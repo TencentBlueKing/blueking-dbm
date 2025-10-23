@@ -8,6 +8,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from dataclasses import asdict
+from datetime import datetime, timedelta
 
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
@@ -22,7 +23,9 @@ from backend.flow.engine.bamboo.scene.common.entrys_manager import BuildEntrysMa
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import check_sub_flow, init_machine_sub_flow
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import AddSpiderNodeFailedException
+from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
 from backend.flow.plugins.components.collections.common.delete_cc_service_instance import DelCCServiceInstComponent
+from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import SpiderRemoteClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
@@ -781,10 +784,14 @@ def remote_migrate_switch_sub_flow(
 
     # 切换前做预检测
     verify_checksum_tuples = []
+    instances = []
     for m in migrate_tuples:
         # old_master-> new_master ; new_master -> new_slave 都需要检测checksum结果
         verify_checksum_tuples.append({"master": m["old_master"], "slave": m["new_master"]})
         verify_checksum_tuples.append({"master": m["new_master"], "slave": m["new_slave"]})
+        instances.append(m["new_master"])
+        instances.append(m["new_slave"])
+
     sub_pipeline.add_sub_pipeline(
         sub_flow=check_sub_flow(
             uid=uid,
@@ -823,9 +830,25 @@ def remote_migrate_switch_sub_flow(
     )
 
     sub_pipeline.add_act(
+        act_name=_("切换期间屏蔽新机器告警30分钟"),
+        act_component_code=AddAlarmShieldComponent.code,
+        kwargs={
+            "begin_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "end_time": (datetime.now() + timedelta(minutes=30)).strftime("%Y-%m-%d %H:%M:%S"),
+            "description": cluster.immute_domain,
+            "dimensions": [
+                {
+                    "name": "instance_host",
+                    "values": list(set([ins.split(IP_PORT_DIVIDER)[0] for ins in instances])),
+                }
+            ],
+        },
+    )
+    sub_pipeline.add_act(
         act_name=_("执行成对切换"),
         act_component_code=RemoteMigrateCutOverComponent.code,
         kwargs={},
     )
+    sub_pipeline.add_act(act_name=_("解除告警屏蔽"), act_component_code=DisableAlarmShieldComponent.code, kwargs={})
 
     return sub_pipeline.build_sub_process(sub_name=_("[{}]成对切换".format(cluster.name)))
