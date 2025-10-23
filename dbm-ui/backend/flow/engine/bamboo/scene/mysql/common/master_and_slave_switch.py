@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging.config
 from dataclasses import asdict
+from datetime import datetime, timedelta
 
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
@@ -22,6 +23,8 @@ from backend.flow.consts import ACCOUNT_PREFIX, AUTH_ADDRESS_DIVIDER, InstanceSt
 from backend.flow.engine.bamboo.scene.common.builder import Conditions, SubBuilder
 from backend.flow.engine.bamboo.scene.mysql.common.cluster_entrys import get_tendb_ha_entry
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import check_sub_flow
+from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
+from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.add_user_for_cluster_switch import AddSwitchUserComponent
 from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
@@ -179,6 +182,25 @@ def master_and_slave_switch_v2(
     cluster_sw_kwargs.exec_ip = cluster_info["new_master_ip"]
     cluster_sw_kwargs.get_mysql_payload_func = MysqlActPayload.get_set_backend_toward_slave_payload.__name__
 
+    cluster_switch_sub_pipeline.add_act(
+        act_name=_("切换期间屏蔽新实例告警30分钟"),
+        act_component_code=AddAlarmShieldComponent.code,
+        kwargs={
+            "begin_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "end_time": (datetime.now() + timedelta(minutes=30)).strftime("%Y-%m-%d %H:%M:%S"),
+            "description": cluster.immute_domain,
+            "dimensions": [
+                {
+                    "name": "instance_host",
+                    "values": [cluster_info["new_master_ip"], cluster_info["new_slave_ip"]],
+                },
+                {
+                    "name": "instance_port",
+                    "values": [cluster_info["mysql_port"]],
+                },
+            ],
+        },
+    )
     source_act = cluster_switch_sub_pipeline.add_act(
         act_name=_("执行集群切换[安全]"),
         act_component_code=ExecSwitchActForSourceComponent.code,
@@ -250,7 +272,9 @@ def master_and_slave_switch_v2(
                 ),
             }
         )
-
+    cluster_switch_sub_pipeline.add_act(
+        act_name=_("解除告警屏蔽"), act_component_code=DisableAlarmShieldComponent.code, kwargs={}
+    )
     # 增加tbinlogdumper实例部署切换联动
     if ExtraProcessInstance.objects.filter(cluster_id=cluster.id).exists():
         cluster_switch_sub_pipeline.add_act(
