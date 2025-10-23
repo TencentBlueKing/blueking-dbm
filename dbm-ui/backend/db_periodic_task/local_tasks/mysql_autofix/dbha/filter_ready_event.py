@@ -23,6 +23,9 @@ def filter_ready_events(events: List[MySQLDBHAEvent]) -> List[MySQLDBHAEvent]:
     获取准备好的 events
     就是在机器所有实例的 events 都到达的
     """
+    if not events:
+        return []
+
     not_ready_check_ids = []
 
     port_counter_dict = defaultdict(set)
@@ -42,7 +45,7 @@ def filter_ready_events(events: List[MySQLDBHAEvent]) -> List[MySQLDBHAEvent]:
             not_ready_check_ids.append(check_id)
 
     # 未准备好的 event 置空 af_uuid, 让它们可以在下一轮被选中
-    MySQLDBHAEvent.objects.filter(check_id__in=not_ready_check_ids).update(af_uuid=None)
+    MySQLDBHAEvent.objects.filter(check_id__in=not_ready_check_ids, af_uuid=events[0].af_uuid).update(af_uuid="")
 
     return [e for e in events if e.check_id not in not_ready_check_ids]
 

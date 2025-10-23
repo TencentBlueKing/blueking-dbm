@@ -14,7 +14,7 @@ from django.db import transaction
 from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 
-from backend.db_meta.enums import ClusterType, InstanceRole, MachineType
+from backend.db_meta.enums import MachineType
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.db_monitor.models import MySQLDBHAEvent
 from backend.flow.plugins.components.collections.common.base_service import BaseService
@@ -29,22 +29,17 @@ class MySQLDBHAAFTodoRegisterService(BaseService):
 
         for row in kwargs["infos"]:
             self.log_info("[{}] mysql autofix info row: {}".format(kwargs["node_name"], row))
-            # ToDo 这是防御代码, 目前只开发一个自愈场景
-            if not (
-                row["cluster_type"] == ClusterType.TenDBHA
-                and row["machine_type"] == MachineType.BACKEND
-                and row["instance_role"] == InstanceRole.BACKEND_MASTER
-            ):
-                self.log_info("{} not supported now".format(row))
-                continue
 
             cluster_obj = Cluster.objects.get(
                 bk_cloud_id=row["bk_cloud_id"], bk_biz_id=row["bk_biz_id"], immute_domain=row["immute_domain"]
             )
 
             if row["machine_type"] in [MachineType.SPIDER, MachineType.PROXY]:
+                # ToDo
+                self.log_info("replace spider/proxy bill not complete, skip autofix now")
+                continue
                 ProxyInstance.objects.get(cluster=cluster_obj, machine__ip=row["ip"], port=row["port"])
-            elif row["machine_type"] in [MachineType.BACKEND, MachineType.SINGLE, MachineType.REMOTE]:
+            elif row["machine_type"] in [MachineType.BACKEND, MachineType.REMOTE]:
                 StorageInstance.objects.get(cluster=cluster_obj, machine__ip=row["ip"], port=row["port"])
             else:
                 self.log_error("unsupported machine_type: {}".format(row["machine_type"]))

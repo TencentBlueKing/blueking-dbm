@@ -71,10 +71,10 @@ class MySQLDBHAAFChangeMasterService(BaseService):
                 return False
 
         old_master_instance = StorageInstance.objects.get(
-            machine__ip=old_master_address.split(":")[0], port=old_master_address.split[":"][1]
+            machine__ip=old_master_address.split(":")[0], port=old_master_address.split(":")[1]
         )
         new_master_instance = StorageInstance.objects.get(
-            machine__ip=new_master_address.split(":")[0], port=new_master_address.split[":"][1]
+            machine__ip=new_master_address.split(":")[0], port=new_master_address.split(":")[1]
         )
         ro_slave_instance = StorageInstance.objects.get(
             machine__ip=ro_slave_address.split(":")[0], port=ro_slave_address.split(":")[1]

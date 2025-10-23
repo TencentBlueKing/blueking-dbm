@@ -12,17 +12,23 @@ from typing import Dict, List
 
 from backend.db_meta.enums import InstanceRole, MachineType
 from backend.db_monitor.models import MySQLDBHAEvent
-from backend.db_periodic_task.local_tasks.mysql_autofix.dbha.tendbha.backend_autofix import repair_ro_slaves_replicate
+from backend.db_periodic_task.local_tasks.mysql_autofix.dbha.tendbha.backend_autofix import (
+    repair_ro_slaves_replicate,
+    replace_slave,
+)
+from backend.db_periodic_task.local_tasks.mysql_autofix.dbha.tendbha.proxy_autofix import replace_proxy
 
 
 def autofix(cluster_ids: List[int], events_by_machine_type: Dict[str, List[MySQLDBHAEvent]]):
     """ """
     if MachineType.PROXY.value in events_by_machine_type:
-        # Todo 拼接新机重建单据参数
-        pass
+        replace_proxy(
+            cluster_ids=cluster_ids,
+            machine_type=MachineType.PROXY.value,
+            events=events_by_machine_type[MachineType.PROXY.value],
+        )
 
     if MachineType.BACKEND.value in events_by_machine_type:
-        # Todo 拼接新机重建单据参数
         # 发起 ro slave 关系修复单据
         repair_ro_slaves_replicate(
             cluster_ids=cluster_ids,
@@ -39,4 +45,10 @@ def autofix(cluster_ids: List[int], events_by_machine_type: Dict[str, List[MySQL
             # events=events_by_machine_type[MachineType.BACKEND.value].filter(instance_role=InstanceRole.BACKEND_MASTER),
         )
 
-    # ToDo 发起新机重建
+        # 只要是 backend 的 dbha, 现在坏的肯定是 slave
+        # 重建就好了
+        replace_slave(
+            cluster_ids=cluster_ids,
+            machine_type=MachineType.BACKEND.value,
+            events=events_by_machine_type[MachineType.BACKEND.value],
+        )
