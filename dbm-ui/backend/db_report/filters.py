@@ -54,5 +54,15 @@ class ReportListFilter(filters.FilterSet):
         return queryset.filter(bk_biz_id__in=list(manage_bizs))
 
 
+class DrillReportFilter(ReportListFilter):
+    """继承 ReportListFilter，但排除 cluster 字段"""
+
+    cluster = None
+
+
 class ReportFilterBackend(DjangoFilterBackend):
     filterset_base = ReportListFilter
+
+
+class DrillReportFilterBackend(DjangoFilterBackend):
+    filterset_base = DrillReportFilter
