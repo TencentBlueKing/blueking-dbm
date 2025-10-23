@@ -40,10 +40,11 @@
         :data="targetClusterData"
         row-key="id">
         <TableColumn
+          col-key="id"
           fixed="left"
           :title="t('集群')"
           :width="250">
-          <template #header>
+          <template #title>
             <div class="domain-header">
               {{ t('目标集群') }}
               <DbIcon
@@ -57,17 +58,23 @@
             </TextOverflowLayout>
           </template>
         </TableColumn>
-        <TableColumn :title="t('集群类型')">
+        <TableColumn
+          col-key="cluster_type_name"
+          :title="t('集群类型')">
           <template #default="{ row }: { row: TargerCluster }">
             {{ ticketDetails.details.clusters[row.id].cluster_type_name }}
           </template>
         </TableColumn>
-        <TableColumn :title="t('版本')">
+        <TableColumn
+          col-key="major_version"
+          :title="t('版本')">
           <template #default="{ row }: { row: TargerCluster }">
             {{ ticketDetails.details.clusters[row.id].major_version }}
           </template>
         </TableColumn>
-        <TableColumn :title="t('状态')">
+        <TableColumn
+          col-key="status"
+          :title="t('状态')">
           <template #default="{ row }: { row: TargerCluster }">
             <RenderClusterStatus :data="ticketDetails.details.clusters[row.id].status" />
           </template>
@@ -81,6 +88,7 @@
         :data="ticketDetails.details.execute_objects"
         row-key="import_mode">
         <TableColumn
+          col-key="dbnames"
           fixed="left"
           :min-width="100"
           :title="t('变更的 DB')">
@@ -88,12 +96,16 @@
             <TagBlock :data="row.dbnames" />
           </template>
         </TableColumn>
-        <TableColumn :title="t('忽略的 DB')">
+        <TableColumn
+          col-key="ignore_dbnames"
+          :title="t('忽略的 DB')">
           <template #default="{ row }: { row: TargetDbRow }">
             <TagBlock :data="row.ignore_dbnames" />
           </template>
         </TableColumn>
-        <TableColumn :title="t('执行的 SQL')">
+        <TableColumn
+          col-key="sql_files"
+          :title="t('执行的 SQL')">
           <template #default="{ row }: { row: TargetDbRow }">
             <BkButton
               v-if="row.sql_files"
@@ -120,20 +132,20 @@
       style="flex: 1 0 100%; margin-top: 10px; overflow: hidden">
       <PrimaryTable :data="ticketDetails.details.backup">
         <TableColumn
-          field="db_patterns"
+          col-key="db_patterns"
           fixed="left"
-          :label="t('备份 DB')">
+          :title="t('备份 DB')">
           <template #default="{ row }: { row: BackupDbRow }">
             <TagBlock :data="row.db_patterns" />
           </template>
         </TableColumn>
         <TableColumn
-          field="backup_on"
-          :label="t('备份源')"
+          col-key="backup_on"
+          :title="t('备份源')"
           :width="150" />
         <TableColumn
-          field="table_patterns"
-          :label="t('备份表名')">
+          col-key="table_patterns"
+          :title="t('备份表名')">
           <template #default="{ row }: { row: BackupDbRow }">
             <TagBlock :data="row.table_patterns" />
           </template>

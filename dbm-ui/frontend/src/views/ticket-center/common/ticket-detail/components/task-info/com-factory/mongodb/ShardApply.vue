@@ -84,33 +84,35 @@
     <InfoItem
       :label="t('ShardSvr 部署方案')"
       style="flex: 1 0 100%">
-      <BkTable :data="[shardSvrSpec]">
-        <BkTableColumn
-          field="spec_name"
-          :label="t('规格')">
-        </BkTableColumn>
-        <BkTableColumn
-          field="machine_pair"
-          :label="t('每个 Shard 节点数')">
-          <template #default="{data}: {data: Props['ticketDetails']['details']['resource_spec']['mongodb']}">
-            {{ data.count / ticketDetails.details.shard_machine_group }}
+      <PrimaryTable
+        :data="[shardSvrSpec]"
+        row-key="spec_id">
+        <TableColumn
+          col-key="spec_name"
+          :title="t('规格')">
+        </TableColumn>
+        <TableColumn
+          col-key="machine_pair"
+          :title="t('每个 Shard 节点数')">
+          <template #default="{ row }: { row: Props['ticketDetails']['details']['resource_spec']['mongodb'] }">
+            {{ row.count / ticketDetails.details.shard_machine_group }}
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="cluster_shard_num"
-          :label="t('集群 Shard 数')">
+        </TableColumn>
+        <TableColumn
+          col-key="cluster_shard_num"
+          :title="t('集群 Shard 数')">
           <template #default>
             {{ ticketDetails.details.shard_num }}
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="cluster_shard_num"
-          :label="t('机器组数')">
+        </TableColumn>
+        <TableColumn
+          col-key="cluster_shard_num"
+          :title="t('机器组数')">
           <template #default>
             {{ ticketDetails.details.shard_machine_group }}
           </template>
-        </BkTableColumn>
-      </BkTable>
+        </TableColumn>
+      </PrimaryTable>
     </InfoItem>
     <InfoItem :label="t('每台主机 oplog 容量占比')">
       {{ ticketDetails.details.oplog_percent ? `${ticketDetails.details.oplog_percent} %` : '--' }}
