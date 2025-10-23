@@ -1925,7 +1925,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("资源管理"),
         subgroup=_("标签"),
-        hidden=True,
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     HEALTHY_REPORT_VIEW = ActionMeta(

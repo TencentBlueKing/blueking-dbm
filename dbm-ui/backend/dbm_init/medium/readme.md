@@ -1,6 +1,9 @@
 # 版本文件初始化镜像
 
-## medium.lock文件
+## 将介质纳入自动化管理
+每次想将新介质纳入安装包管理，需要根据介质不同的类似，编写不同的lock文件和dockerfile
+
+### medium.lock文件
 lock文件记录了每种db类型打包的介质文件信息，以redis为例：
 ```yaml
 redis: # dbtype
@@ -17,8 +20,20 @@ redis: # dbtype
 ```
 如果我们有新加的打包文件，只需按照上面格式填写即可，commit id可以为xxx，version按照x.y.z格式填写
 
-## 打包
+如果是非编译介质，即安装包模式，默认是上传到 github release，然后yaml格式如下：
+```yaml
+- redis-modules:
+    buildPath: /toolkit/redis_modules.tar.gz
+    name: redis_modules.tar.gz
+    version: 1.0.0
+```
+其中buildPath固定为 /toolkit/{pkg_name}，version固定为1.0.0
 
+### Dockerfile
+dockerfile 分为 `Dockerfile`、 `BaseDockerfile`、`installs/Dockerfile-{dbtype}`，其中 `Dockerfile` 构建编译介质的安装包，
+`BaseDockerfile` 构建上传工具tar介质的安装包，`installs`里面的 dockerfile 是构建基础DB组件安装包和exporter。
+
+## 打包
 在blueking目录下执行
 ```shell
 docker build -t dbm-sync-medium -f dbm-ui/backend/dbm_init/medium/Dockerfile . \                                                                             
@@ -29,7 +44,6 @@ docker build -t dbm-sync-medium -f dbm-ui/backend/dbm_init/medium/Dockerfile . \
 ```
 
 ## 脚本用法
-
 使用之前需要配置相关环境变量
 ```shell
 PYTHONUNBUFFERED=1;
