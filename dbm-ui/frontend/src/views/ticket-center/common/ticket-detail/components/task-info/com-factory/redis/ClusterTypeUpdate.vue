@@ -45,12 +45,12 @@
       col-key="target_cluster_type"
       :min-width="130"
       :title="t('新集群类型')" />
-    <!-- <BkTableColumn
-      field="capacity"
-      :label="t('当前容量需求')" />
-    <BkTableColumn
-      field="future_capacity"
-      :label="t('未来容量需求')" /> -->
+    <!-- <TableColumn
+      col-key="capacity"
+      :title="t('当前容量需求')" />
+    <TableColumn
+      col-key="future_capacity"
+      :title="t('未来容量需求')" /> -->
     <TableColumn
       col-key="db_version"
       :title="t('新集群版本')" />

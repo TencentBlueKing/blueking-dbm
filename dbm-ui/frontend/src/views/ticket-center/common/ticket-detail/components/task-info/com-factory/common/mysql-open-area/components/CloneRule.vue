@@ -12,7 +12,9 @@
 -->
 
 <template>
-  <PrimaryTable :data="tableData">
+  <PrimaryTable
+    :data="tableData"
+    row-key="source_db">
     <TableColumn
       col-key="source_db"
       :min-width="150"

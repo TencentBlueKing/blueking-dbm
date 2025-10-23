@@ -16,6 +16,7 @@
     :data="ticketDetails.details.infos"
     row-key="id">
     <TableColumn
+      col-key="cluster_ids"
       fixed="left"
       :min-width="250"
       :title="t('目标集群')">
@@ -29,6 +30,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="resource_spec"
       :min-width="120"
       :title="t('新从库主机')">
       <template #default="{ row: data }: { row: RowData }">

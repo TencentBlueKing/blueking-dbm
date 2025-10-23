@@ -23,44 +23,47 @@
       {{ ticketDetails.details.infos[0].backup_source === 'local' ? t('本地备份') : t('远程备份') }}
     </InfoItem>
   </InfoList>
-  <BkTable
+  <PrimaryTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn
+    row-key="cluster_id">
+    <TableColumn
+      col-key="cluster_id"
       fixed="left"
-      :label="t('源集群')"
-      :min-width="300">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+      :min-width="300"
+      :title="t('源集群')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
+    </TableColumn>
+    <TableColumn
       v-if="ticketDetails.details.infos[0]?.rollback_time"
-      :label="t('指定时间')"
-      :min-width="300">
-      <template #default="{ data }: { data: RowData }">
-        {{ utcDisplayTime(data.rollback_time) }}
+      col-key="rollback_time"
+      :min-width="300"
+      :title="t('指定时间')">
+      <template #default="{ row }: { row: RowData }">
+        {{ utcDisplayTime(row.rollback_time) }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('备份记录')"
-      :min-width="370">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      col-key="backupinfo"
+      :min-width="370"
+      :title="t('备份记录')">
+      <template #default="{ row }: { row: RowData }">
         <div class="content-block">
           <div class="content-label">{{ t('备份记录 ：') }}</div>
           <div class="content-value">
-            {{ `${data.backupinfo.mysql_role} ${utcDisplayTime(data.backupinfo.backup_time)}` }}
+            {{ `${row.backupinfo.mysql_role} ${utcDisplayTime(row.backupinfo.backup_time)}` }}
           </div>
           <div class="content-label">{{ t('备份 ID ：') }}</div>
           <div class="content-value">
-            {{ data.backupinfo.backup_id || '--' }}
+            {{ row.backupinfo.backup_id || '--' }}
           </div>
           <div class="content-label">{{ t('备份类型 ：') }}</div>
           <div class="content-value">
             <BkTag
-              v-if="backupTypeMap[data.backupinfo.backup_type]"
-              :theme="backupTypeMap[data.backupinfo.backup_type].theme">
-              {{ backupTypeMap[data.backupinfo.backup_type].label }}
+              v-if="backupTypeMap[row.backupinfo.backup_type]"
+              :theme="backupTypeMap[row.backupinfo.backup_type].theme">
+              {{ backupTypeMap[row.backupinfo.backup_type].label }}
             </BkTag>
             <span v-else>--</span>
           </div>
@@ -68,69 +71,72 @@
           <div class="content-value">
             <span
               :class="{
-                [`backup-method-sign-${data.backupinfo.backup_method}`]: backupMethodMap[data.backupinfo.backup_method],
+                [`backup-method-sign-${row.backupinfo.backup_method}`]: backupMethodMap[row.backupinfo.backup_method],
               }">
-              {{ backupMethodMap[data.backupinfo.backup_method] || '--' }}
+              {{ backupMethodMap[row.backupinfo.backup_method] || '--' }}
             </span>
           </div>
           <div class="content-label">{{ t('文件大小 ：') }}</div>
-          <div class="content-value">{{ bytePretty(data.backupinfo?.total_filesize ?? 0) }}</div>
+          <div class="content-value">{{ bytePretty(row.backupinfo?.total_filesize ?? 0) }}</div>
           <div
-            v-if="data.backupinfo.bill_id"
+            v-if="row.backupinfo.bill_id"
             class="content-label">
             {{ t('关联单据 ：') }}
           </div>
           <div
-            v-if="data.backupinfo.bill_id"
+            v-if="row.backupinfo.bill_id"
             class="content-value">
             <RouterLink
-              v-if="data.backupinfo.bill_id"
+              v-if="row.backupinfo.bill_id"
               target="_blank"
               :to="{
                 name: 'ticketDetail',
                 params: {
-                  ticketId: data.backupinfo.bill_id,
+                  ticketId: row.backupinfo.bill_id,
                 },
               }">
-              {{ data.backupinfo.bill_id }}
+              {{ row.backupinfo.bill_id }}
             </RouterLink>
             <span v-else>--</span>
           </div>
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('源 DB')"
-      :min-width="120">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      col-key="databases"
+      :min-width="120"
+      :title="t('源 DB')">
+      <template #default="{ row }: { row: RowData }">
         <BkTag
-          v-for="item in data.databases"
+          v-for="item in row.databases"
           :key="item">
           {{ item }}
         </BkTag>
-        <span v-if="data.databases.length < 1">--</span>
+        <span v-if="row.databases.length < 1">--</span>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('源表')"
-      :min-width="120">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      col-key="tables"
+      :min-width="120"
+      :title="t('源表')">
+      <template #default="{ row }: { row: RowData }">
         <BkTag
-          v-for="item in data.tables"
+          v-for="item in row.tables"
           :key="item">
           {{ item }}
         </BkTag>
-        <span v-if="data.tables.length < 1">--</span>
+        <span v-if="row.tables.length < 1">--</span>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('新集群主机')"
-      :min-width="180">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.resource_spec.rollback_host.hosts?.[0]?.ip || '--' }}
+    </TableColumn>
+    <TableColumn
+      col-key="resource_spec"
+      :min-width="180"
+      :title="t('新集群主机')">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.resource_spec.rollback_host.hosts?.[0]?.ip || '--' }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 
 <script setup lang="ts">

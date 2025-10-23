@@ -22,6 +22,7 @@
     ellipsis
     row-key="cluster_id">
     <TableColumn
+      col-key="cluster_id"
       fixed="left"
       :min-width="180"
       :title="t('待回档集群')">
@@ -31,6 +32,7 @@
     </TableColumn>
     <TableColumn
       v-if="['BUILD_INTO_EXIST_CLUSTER'].includes(ticketDetails.details.rollback_cluster_type)"
+      col-key="target_cluster_id"
       :min-width="180"
       :title="t('目标集群')">
       <template #default="{ row:data }: { row: RowData }">
@@ -39,6 +41,7 @@
     </TableColumn>
     <TableColumn
       v-if="['BUILD_INTO_NEW_CLUSTER'].includes(ticketDetails.details.rollback_cluster_type)"
+      col-key="rollback_host"
       :min-width="180"
       :title="t('回档到新主机')">
       <template #default="{ row:data }: { row: RowData }">
@@ -46,6 +49,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="backup_source"
       :min-width="100"
       :title="t('备份源')">
       <template #default="{ row:data }: { row: RowData }">
@@ -53,6 +57,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="rollback_time"
       :min-width="300"
       :title="t('回档类型')">
       <template #default="{ row:data }: { row: RowData }">

@@ -15,6 +15,7 @@
   <PrimaryTable
     class="target-cluster-table"
     :data="tableData"
+    row-key="targetCluster"
     :rowspan-and-colspan="rowspanAndColspan">
     <TableColumn
       col-key="targetCluster"
