@@ -24,11 +24,11 @@ from backend.db_monitor.models import (
     MySQLDBHAEvent,
     TicketQueueUncommitStatus,
 )
-from backend.db_periodic_task.local_tasks.mysql_autofix.dbha import static_validate, tendbha
+from backend.db_periodic_task.local_tasks.mysql_autofix.dbha import static_validate, tendbcluster, tendbha
 from backend.db_periodic_task.local_tasks.mysql_autofix.dbha.aggregate_events import aggregate_events
 from backend.db_periodic_task.local_tasks.mysql_autofix.dbha.commit_ticket import commit_ticket
+from backend.db_periodic_task.local_tasks.mysql_autofix.dbha.consts import AF_TICKET_RUNNING
 from backend.db_periodic_task.local_tasks.mysql_autofix.dbha.filter_ready_event import filter_ready_events
-from backend.ticket.constants import TicketFlowStatus
 from backend.ticket.models import Ticket
 
 logger = logging.getLogger("celery")
@@ -43,7 +43,7 @@ def mysql_dbha_af_tracking_tickets():
     没必要开事务, 因为只有一次迭代求值
     """
     af_tickets = MySQLDBHAAutofixTicketStageQueue.objects.only("ticket_id", "status").filter(
-        status__in=[TicketFlowStatus.PENDING, TicketFlowStatus.RUNNING, TicketFlowStatus.FAILED]
+        status__in=AF_TICKET_RUNNING
     )
     for aftk in af_tickets:
         tk = Ticket.objects.get(pk=aftk.ticket_id)
@@ -67,14 +67,17 @@ def mysql_dbha_af_commiter():
     with transaction.atomic():
         uncommit_tickets = list(MySQLDBHAAutofixTicketStageQueue.objects.filter(status=TicketQueueUncommitStatus))
 
-        # 简单点, 先只考虑只有 p1, p2 的情况
+        # 简单点, 先只考虑只有 p1, p2, p3 的情况
         p1_uncommit_tickets: List[MySQLDBHAAutofixTicketStageQueue] = []
         p2_uncommit_tickets: List[MySQLDBHAAutofixTicketStageQueue] = []
+        p3_uncommit_tickets: List[MySQLDBHAAutofixTicketStageQueue] = []
         for ut in uncommit_tickets:
             if ut.priority == MySQLDBHAAutofixTicketPriority.P1.value:
                 p1_uncommit_tickets.append(ut)
             elif ut.priority == MySQLDBHAAutofixTicketPriority.P2.value:
                 p2_uncommit_tickets.append(ut)
+            elif ut.priority == MySQLDBHAAutofixTicketPriority.P3.value:
+                p3_uncommit_tickets.append(ut)
             else:
                 raise Exception(ut.priority)
 
@@ -82,7 +85,7 @@ def mysql_dbha_af_commiter():
         unfinish_cluster_ids = []
         for pt in uncommit_tickets:
             t = MySQLDBHAAutofixTicketStageQueue.objects.filter(
-                status__in=[TicketFlowStatus.PENDING, TicketFlowStatus.RUNNING, TicketFlowStatus.FAILED],
+                status__in=AF_TICKET_RUNNING,
                 cluster_id=pt.cluster_id,
             )
             if t.exists():
@@ -99,15 +102,25 @@ def mysql_dbha_af_commiter():
     relate_p2_queue_uuid = [ut.queue_uuid for ut in p2_uncommit_tickets if ut.cluster_id in unfinish_cluster_ids]
     p2_uncommit_tickets = [ut for ut in p2_uncommit_tickets if ut.queue_uuid not in relate_p2_queue_uuid]
 
+    relate_p3_queue_uuid = [ut.queue_uuid for ut in p3_uncommit_tickets if ut.cluster_id in unfinish_cluster_ids]
+    p3_uncommit_tickets = [ut for ut in p3_uncommit_tickets if ut.queue_uuid not in relate_p3_queue_uuid]
+
     # 从 p2 里排除掉 p1 相关集群
     p1_relate_cluster_ids = [ut.cluster_id for ut in p1_uncommit_tickets]
     priority_exclude_uuid = [ut.queue_uuid for ut in p2_uncommit_tickets if ut.cluster_id in p1_relate_cluster_ids]
     p2_uncommit_tickets = [ut for ut in p2_uncommit_tickets if ut.queue_uuid not in priority_exclude_uuid]
+    p2_relate_cluster_ids = [ut.cluster_id for ut in p2_uncommit_tickets]
+    # 从 p3 中排除 p1, p2 相关集群
+    priority_exclude_uuid = [
+        ut.queue_uuid for ut in p3_uncommit_tickets if ut.cluster_id in p1_relate_cluster_ids + p2_relate_cluster_ids
+    ]
+    p3_uncommit_tickets = [ut for ut in p3_uncommit_tickets if ut.queue_uuid not in priority_exclude_uuid]
 
-    # 到这里, p1, p2 应该可以无脑发起单据了
+    # 到这里, p1, p2, p3 应该可以无脑发起单据了
     # 不要放到事务里面去
     commit_ticket(p1_uncommit_tickets)
     commit_ticket(p2_uncommit_tickets)
+    commit_ticket(p3_uncommit_tickets)
 
 
 # @register_periodic_task(run_every=crontab(minute="*"))
@@ -153,6 +166,9 @@ def mysql_dbha_af_schedule():
             # 被排除的 event 留给下一轮
             candidate_events_list = filter_ready_events(candidate_events_list)
 
+            # 根据平台规范, standby backend 可以共享, ro slave 必须独占
+            # 当 standby backend 和 ro slave 同时故障时, 因为对应的 cluster_ids 不一样
+            # 会放在不同的 key 中独立返回
             # cluster_ids -> machine_type -> List[event] 字典
             agg_events = aggregate_events(candidate_events_list)
 
@@ -164,7 +180,7 @@ def mysql_dbha_af_schedule():
                 elif cluster_type == ClusterType.TenDBHA:
                     tendbha.autofix(cluster_ids=cluster_ids, events_by_machine_type=v)
                 elif cluster_type == ClusterType.TenDBCluster:
-                    pass
+                    tendbcluster.autofix(cluster_ids=cluster_ids, events_by_machine_type=v)
                 else:
                     pass  # 这里理论上是到达不了的
         finally:

@@ -12,7 +12,7 @@ import threading
 from typing import List
 
 from backend.db_monitor.models import MySQLDBHAAutofixTicketStageQueue
-from backend.ticket.constants import TicketFlowStatus
+from backend.ticket.constants import TicketStatus
 from backend.ticket.models import Ticket
 
 mysql_dbha_af_commiter_lock = threading.Lock()
@@ -33,6 +33,6 @@ def commit_ticket(uncommit_tickets: List[MySQLDBHAAutofixTicketStageQueue]):
             ticket_param = ut.ticket_param
             tk = Ticket.create_ticket(**ticket_param)
             MySQLDBHAAutofixTicketStageQueue.objects.filter(queue_uuid=ut.queue_uuid).update(
-                ticket_id=tk.pk, status=TicketFlowStatus.PENDING
+                ticket_id=tk.pk, status=TicketStatus.PENDING
             )
             commited.append(ut.queue_uuid)

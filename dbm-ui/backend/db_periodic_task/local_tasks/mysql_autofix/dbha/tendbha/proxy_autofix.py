@@ -8,56 +8,82 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-# from typing import List
-#
-# from backend.db_meta.models import ProxyInstance
-# from backend.db_periodic_task.local_tasks.mysql_autofix.dbha.group_todo import GroupedTodo
-# from backend.db_services.dbbase.constants import IpSource
-# from backend.ticket.builders.common.base import HostRecycleSerializer
-# from backend.ticket.builders.common.constants import OperaObjType
-# from backend.ticket.constants import TicketType
-# from backend.ticket.models import Ticket
-#
-#
-# def proxy_autofix(gtd: GroupedTodo, proxies: List[ProxyInstance], dbas: List[str], resource_spec: dict) -> Ticket:
-#     """
-#     新机替换, 自动过单, 自动执行
-#     """
-#     tk = Ticket.create_ticket(
-#         ticket_type=TicketType.MYSQL_DBHA_AF_PROXY_REPLACE,
-#         creator=dbas[0],
-#         helpers=dbas[1:],
-#         bk_biz_id=gtd.bk_biz_id,
-#         remark=TicketType.MYSQL_DBHA_AF_BACKEND_REPLACE,
-#         details={
-#             "bk_cloud_id": gtd.bk_cloud_id,
-#             "bk_biz_id": gtd.bk_biz_id,
-#             "ip_source": IpSource.RESOURCE_POOL,
-#             "ip_recycle": HostRecycleSerializer.DEFAULT,
-#             "disable_manual_confirm": True,
-#             "force": True,
-#             "opera_object": OperaObjType.MACHINE,
-#             "infos": [
-#                 {
-#                     "cluster_ids": gtd.cluster_ids,
-#                     "old_nodes": {
-#                         "origin_proxy": [
-#                             {
-#                                 "bk_cloud_id": gtd.bk_cloud_id,
-#                                 "ip": p.machine.ip,
-#                                 "bk_host_id": p.machine.bk_host_id,
-#                                 "bk_biz_id": gtd.bk_biz_id,
-#                                 "port": p.port,
-#                             }
-#                             for p in proxies
-#                         ]
-#                     },
-#                     "resource_spec": {
-#                         "target_proxy": resource_spec,
-#                     },
-#                 }
-#             ],
-#         },
-#     )
-#
-#     return tk
+import uuid
+from typing import List
+
+from backend.db_meta.models import Machine
+from backend.db_monitor.models import MySQLDBHAAutofixTicketPriority, MySQLDBHAAutofixTicketStageQueue, MySQLDBHAEvent
+from backend.db_services.dbbase.constants import IpSource, SourceType
+from backend.ticket.builders.common.base import HostRecycleSerializer
+from backend.ticket.builders.common.constants import OperaObjType
+from backend.ticket.constants import TicketType
+
+
+def replace_proxy(cluster_ids: List[int], machine_type: str, events: List[MySQLDBHAEvent]):
+    """
+    机器数量可能不止一台了
+    """
+    spec_ids = set()
+
+    proxy_infos = []
+    for ev in events:
+        m = Machine.objects.get(bk_cloud_id=ev.bk_cloud_id, ip=ev.ip)
+        d = {
+            "bk_biz_id": ev.bk_biz_id,
+            "bk_cloud_id": ev.bk_cloud_id,
+            "bk_host_id": m.bk_host_id,
+            "ip": ev.ip,
+            "port": ev.port,
+        }
+        proxy_infos.append(d)
+        spec_ids.add(m.spec_id)
+
+    # ToDo
+    if len(spec_ids) > 1:
+        raise
+
+    resource_spec = {"spec_id": list(spec_ids)[0], "count": len(set([ev.ip for ev in events]))}
+
+    dbas = events[0].dbas()
+    queue_uuid = uuid.uuid4().__str__()
+    ticket_param = {
+        "ticket_type": TicketType.MYSQL_DBHA_AF_PROXY_REPLACE,
+        "remark": TicketType.MYSQL_DBHA_AF_PROXY_REPLACE,
+        # "ignore_duplication": True,
+        "creator": dbas[0],
+        "helpers": dbas[1:],
+        "details": {
+            "is_safe": False,
+            "ip_source": IpSource.RESOURCE_POOL,
+            "source_type": SourceType.RESOURCE_AUTO,
+            "ip_recycle": HostRecycleSerializer.DEFAULT,
+            "force": True,
+            "infos": [
+                {
+                    "old_nodes": {"origin_proxy": proxy_infos},
+                    # "origin_proxy": proxy_infos,
+                    "resource_spec": {"target_proxy": resource_spec},
+                    "cluster_ids": cluster_ids,
+                }
+            ],
+            "opera_object": OperaObjType.MACHINE,
+            "disable_manual_confirm": True,
+        },
+        "bk_biz_id": events[0].bk_biz_id,
+    }
+
+    queue_to_create = []
+    for ev in events:
+        queue_to_create.append(
+            MySQLDBHAAutofixTicketStageQueue(
+                priority=MySQLDBHAAutofixTicketPriority.P1.value,
+                check_id=ev.check_id,
+                cluster_id=ev.cluster_id,
+                machine_type=machine_type,
+                ticket_param=ticket_param,
+                af_uuid=ev.af_uuid,
+                queue_uuid=queue_uuid,
+            )
+        )
+
+    MySQLDBHAAutofixTicketStageQueue.objects.bulk_create(queue_to_create)

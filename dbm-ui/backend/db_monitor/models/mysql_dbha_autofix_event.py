@@ -19,14 +19,11 @@ from backend.configuration.constants import DBType
 from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import ClusterType, InstancePhase, InstanceRole, InstanceStatus, MachineType
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
-from backend.ticket.constants import TicketFlowStatus
-from blue_krill.data_types.enum import EnumField, IntStructuredEnum
-
-# class MySQLDBHAAutofixTicketStatus(StrStructuredEnum):
-# MySQLDBHAAutofixTicketQueueStatus=models.TextChoices()
+from backend.ticket.constants import TicketStatus
+from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 
-class MySQLDBHAAutofixTicketPriority(IntStructuredEnum):
+class MySQLDBHAAutofixTicketPriority(int, StructuredEnum):
     """
     调度优先级
     P1 最高
@@ -35,10 +32,11 @@ class MySQLDBHAAutofixTicketPriority(IntStructuredEnum):
 
     P1 = EnumField(1, _("优先级一"))
     P2 = EnumField(2, _("优先级二"))
+    P3 = EnumField(3, _("优先级三"))
     # P999 = EnumField(999, _("默认优先级"))
 
 
-# 在 TicketFlowStatus 补充的一个状态
+# 在 TicketStatus 补充的一个状态
 # 专门给自愈用的
 # python 搞不了 enum 继承, 就这么搞下算了
 TicketQueueUncommitStatus = "UNCOMMIT"
@@ -56,9 +54,7 @@ class MySQLDBHAAutofixTicketStageQueue(AuditedModel):
     """
 
     ticket_id = models.BigIntegerField(default=0, help_text=_("单据 id"))
-    status = models.CharField(
-        max_length=128, choices=TicketFlowStatus.get_choices(), default=TicketQueueUncommitStatus
-    )
+    status = models.CharField(max_length=128, choices=TicketStatus.get_choices(), default=TicketQueueUncommitStatus)
     check_id = models.IntegerField(help_text=_("关联check_id"))
     cluster_id = models.IntegerField(help_text=_("关联集群id"))  # 数组的 json.dumps
     machine_type = models.CharField(max_length=64, help_text=_("机器类型"), choices=MachineType.get_choices())

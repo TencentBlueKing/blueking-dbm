@@ -100,6 +100,8 @@ class TicketStatus(StrStructuredEnum):
 
 
 # 单据[正在进行]的状态合集
+# MySQL 自愈引用了这个
+# 如果有改动需要确认是否会影响自愈调度
 TICKET_RUNNING_STATUS_SET = [
     TicketStatus.APPROVE,
     TicketStatus.TODO,
