@@ -97,6 +97,7 @@ class DorisDBMeta(object):
                         "ip": node["ip"],
                         "port": self.role_port_dict[role],
                         "instance_role": self.role_instance_dict[role],
+                        "db_version": self.ticket_data.get("db_version", ""),
                     }
                 )
         return instances

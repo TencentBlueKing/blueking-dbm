@@ -90,6 +90,7 @@ class EsDBMeta(object):
                             "port": self.ticket_data["http_port"] + i,
                             "instance_role": self.role_instance_dict[role],
                             "name": f'{role_name}-{node["ip"]}_{i+1}',
+                            "db_version": self.ticket_data.get("db_version", ""),
                         }
                     )
         return instances
