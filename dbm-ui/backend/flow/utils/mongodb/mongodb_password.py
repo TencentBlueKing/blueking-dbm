@@ -108,22 +108,25 @@ class MongoDBPassword(object):
 
     def get_password_from_db(self, ip: str, port: int, bk_cloud_id: int, username: str) -> dict:
         """从db获取密码"""
-        nodes = [{"ip": ip, "port": port, "bk_cloud_id": bk_cloud_id}]
-        result = self.get_nodes_password_from_db(nodes, username)
+        instances = [{"ip": ip, "port": port, "bk_cloud_id": bk_cloud_id}]
+        result = self.get_users_password_from_db(instances, [username])
         if result["password"] is None:
             return {"password": None, "info": result["info"]}
-        if not result["password"]:
+        if not result.get("password"):
             return {"password": "", "info": ""}
-        return {"password": result["password"][0].get("password"), "info": None}
+        return {"password": result.get("password")[0].get("password"), "info": None}
 
-    def get_nodes_password_from_db(self, instances, username: str) -> list:
-        """从db获取密码"""
-        # nodes for format [{"ip":"x.x.x.x","port":1234,"bk_cloud_id":0}]
+    def get_users_password_from_db(self, instances: list[dict], usernames: list[str]) -> dict:
+        """从db获取多个用户密码"""
+
+        users = []
+        for username in usernames:
+            users.append({"username": username, "component": self.component})
 
         result = DBPrivManagerApi.get_password(
             {
                 "instances": instances,
-                "users": [{"username": username, "component": self.component}],
+                "users": users,
             },
             raw=True,
         )
