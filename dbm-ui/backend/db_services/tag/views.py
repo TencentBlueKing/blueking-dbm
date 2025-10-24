@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.utils.decorators import method_decorator
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 from rest_framework.decorators import action
@@ -34,10 +34,6 @@ SWAGGER_TAG = _("标签")
     decorator=common_swagger_auto_schema(
         operation_summary=_("更新标签"), tags=[SWAGGER_TAG], request_body=serializers.UpdateTagSerializer()
     ),
-)
-@method_decorator(
-    name="list",
-    decorator=common_swagger_auto_schema(operation_summary=_("查询标签列表"), tags=[SWAGGER_TAG]),
 )
 class TagViewSet(AuditedModelViewSet):
     """

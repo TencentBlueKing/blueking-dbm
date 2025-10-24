@@ -13,7 +13,7 @@ import logging
 import time
 from typing import List, Tuple
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.configuration.models.dba import DBAdministrator

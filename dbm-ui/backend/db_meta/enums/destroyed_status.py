@@ -9,10 +9,10 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from blue_krill.data_types.enum import StructuredEnum
+from blue_krill.data_types.enum import IntStructuredEnum
 
 
-class DestroyedStatus(int, StructuredEnum):
+class DestroyedStatus(IntStructuredEnum):
     """
     销毁状态枚举
     """
@@ -22,7 +22,7 @@ class DestroyedStatus(int, StructuredEnum):
     DESTROYED = 2  # 已销毁
 
 
-class MigrateStatus(int, StructuredEnum):
+class MigrateStatus(IntStructuredEnum):
     """
     slots 迁移状态枚举
     """
@@ -33,7 +33,7 @@ class MigrateStatus(int, StructuredEnum):
     ERROR_OCCURRED = -1  # 错误
 
 
-class DataStructureStatus(int, StructuredEnum):
+class DataStructureStatus(IntStructuredEnum):
     """
     数据构造状态枚举
     """

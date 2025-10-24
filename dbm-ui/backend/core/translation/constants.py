@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 # 寻找未翻译语言时，忽略方法名
 IGNORED_METHOD_LIST = [
@@ -51,7 +51,7 @@ ALL_EXCLUDE_DIRS = set(EXCLUDE_DIRS + EXCLUDE_FILE_PATHS)
 EXCLUDE_LANGUAGES_IN_FILE = {}
 
 
-class Language(str, StructuredEnum):
+class Language(StrStructuredEnum):
     ZH_CN = EnumField("zh-cn", "ZH-CN")
     EN = EnumField("en", "EN")
 
@@ -60,7 +60,7 @@ class Language(str, StructuredEnum):
 LANGUAGE_REGEX_MAP = {Language.ZH_CN.value: r"[\u4e00-\u9fff]", Language.EN.value: r"[a-zA-Z]"}
 
 
-class LanguageFindMode(str, StructuredEnum):
+class LanguageFindMode(StrStructuredEnum):
     VISIT = EnumField("visit", "VISIT")
     AST_ALTER = EnumField("alter", "ALTER")
     SIMPLE_ALTER = EnumField("simple_alter", "SIMPLE_ALTER")

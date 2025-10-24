@@ -9,9 +9,9 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
 class PrivilegeType:
@@ -21,12 +21,12 @@ class PrivilegeType:
     def get_enum_class_name(cls, enum_value, enum_class):
         for member in dir(enum_class):
             _cls = getattr(enum_class, member)
-            if isinstance(_cls, type) and issubclass(_cls, StructuredEnum):
+            if isinstance(_cls, type) and issubclass(_cls, StrStructuredEnum):
                 if enum_value in _cls.get_values():
                     return member
 
     class MySQL:
-        class DML(str, StructuredEnum):
+        class DML(StrStructuredEnum):
             """DML权限类型"""
 
             SELECT = EnumField("select", _("选择"))
@@ -35,7 +35,7 @@ class PrivilegeType:
             DELETE = EnumField("delete", _("删除"))
             SHOW_VIEW = EnumField("show view", _("查看视图"))
 
-        class DDL(str, StructuredEnum):
+        class DDL(StrStructuredEnum):
             """DDL权限类型"""
 
             CREATE = EnumField("create", _("创建表"))
@@ -51,7 +51,7 @@ class PrivilegeType:
             REFERENCES = EnumField("references", _("references"))
             CREATE_TEMPORARY_TABLES = EnumField("create temporary tables", _("create temporary tables"))
 
-        class GLOBAL(str, StructuredEnum):
+        class GLOBAL(StrStructuredEnum):
             """GLOBAL权限类型"""
 
             FILE = EnumField("file", _("file"))
@@ -62,13 +62,13 @@ class PrivilegeType:
             REPLICATION_CLIENT = EnumField("replication client", _("replication client"))
 
     class MongoDB:
-        class USER(str, StructuredEnum):
+        class USER(StrStructuredEnum):
             READ = EnumField("read", _("Read"))
             READ_write = EnumField("readWrite", _("readWrite"))
             READ_ANY_DATABASE = EnumField("readAnyDatabase", _("readAnyDatabase"))
             READ_WRITE_ANY_DATABASE = EnumField("readWriteAnyDatabase", _("readWriteAnyDatabase"))
 
-        class MANAGER(str, StructuredEnum):
+        class MANAGER(StrStructuredEnum):
             DBADMIN = EnumField("dbAdmin", _("dbAdmin"))
             BACKUP = EnumField("backup", _("backup"))
             RESTORE = EnumField("restore", _("restore"))
@@ -83,15 +83,15 @@ class PrivilegeType:
             ROOT = EnumField("root", _("root"))
 
     class SQLServer:
-        class DML(str, StructuredEnum):
+        class DML(StrStructuredEnum):
             db_datawriter = EnumField("db_datawriter", _("db_datawriter"))
             db_datareader = EnumField("db_datareader", _("db_datareader"))
 
-        class OWNER(str, StructuredEnum):
+        class OWNER(StrStructuredEnum):
             db_owner = EnumField("db_owner", _("db_owner"))
 
 
-class AccountType(str, StructuredEnum):
+class AccountType(StrStructuredEnum):
     """账号类型枚举"""
 
     MYSQL = EnumField("mysql", _("MySQL"))
@@ -100,14 +100,14 @@ class AccountType(str, StructuredEnum):
     SQLServer = EnumField("sqlserver", _("SQLServer"))
 
 
-class FormatType(str, StructuredEnum):
+class FormatType(StrStructuredEnum):
     """权限格式枚举"""
 
     IP = EnumField("ip", _("ip"))
     CLUSTER = EnumField("cluster", _("cluster"))
 
 
-class RuleActionType(str, StructuredEnum):
+class RuleActionType(StrStructuredEnum):
     """权限操作类型"""
 
     AUTH = EnumField("auth", _("授权"))
@@ -116,7 +116,7 @@ class RuleActionType(str, StructuredEnum):
     DELETE = EnumField("delete", _("删除"))
 
 
-class AuthorizeExcelHeader(str, StructuredEnum):
+class AuthorizeExcelHeader(StrStructuredEnum):
     """授权excel的头部信息"""
 
     USER = EnumField("账号(单个)", _("账号(单个)"))

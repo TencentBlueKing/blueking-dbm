@@ -12,7 +12,7 @@ import json
 import logging
 
 from django.http import HttpResponse
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework.decorators import action
 from rest_framework.response import Response
 

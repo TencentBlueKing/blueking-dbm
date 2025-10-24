@@ -13,7 +13,7 @@ import logging.config
 from typing import Dict, List, Optional
 
 import requests
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.flow.consts import MediumEnum, RDMSApplyEnum
 from backend.ticket.constants import TicketType

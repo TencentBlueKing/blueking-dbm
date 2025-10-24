@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import datetime
 
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.constants import AffinityEnum

@@ -15,19 +15,19 @@ from typing import Any, Dict
 from django.db import models
 from django.db.models import Q
 from django.utils.timezone import localtime
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
 from backend.db_meta.exceptions import ClusterExclusiveOperateException
 from backend.flow.consts import SqlserverDtsMode
 from backend.ticket.builders.common.base import fetch_cluster_ids
 from backend.ticket.constants import TicketType
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 logger = logging.getLogger("root")
 
 
-class DtsStatus(str, StructuredEnum):
+class DtsStatus(StrStructuredEnum):
     # 迁移记录的状态枚举
     ToDo = EnumField("todo", _("待执行"))
     Terminated = EnumField("terminated", _("已终止"))

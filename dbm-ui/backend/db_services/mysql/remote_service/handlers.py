@@ -12,7 +12,7 @@ import copy
 from collections import defaultdict
 from typing import Any, Dict, List, Union
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components import DRSApi
 from backend.db_meta.api.cluster.base.handler import ClusterHandler

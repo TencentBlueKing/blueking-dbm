@@ -14,7 +14,7 @@ from dataclasses import asdict
 from datetime import datetime, timedelta
 from typing import Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components import DRSApi
 from backend.configuration.constants import DBType

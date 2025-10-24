@@ -11,13 +11,13 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 
 from backend.configuration.constants import DBType
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 # 兼容原来的字段，spec_cluster_type就是db_type
 SpecClusterType = DBType
 
 
-class SpecMachineType(str, StructuredEnum):
+class SpecMachineType(StrStructuredEnum):
     PROXY = EnumField("proxy", _("proxy"))
     BACKEND = EnumField("backend", _("backend"))
 

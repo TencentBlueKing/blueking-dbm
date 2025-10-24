@@ -13,7 +13,7 @@ from typing import Any, Callable, Dict, List
 
 from django.db.models import CharField, ExpressionWrapper, F, Prefetch, Q, QuerySet, Value
 from django.db.models.functions import Concat
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole, MachineType
 from backend.db_meta.models import AppCache, NosqlStorageSetDtl, StorageInstanceTuple

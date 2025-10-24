@@ -9,12 +9,12 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
-class DBHASwitchResult(str, StructuredEnum):
+class DBHASwitchResult(StrStructuredEnum):
     """切换结果类型枚举"""
 
     INFO = EnumField("info", _("切换中？"))
@@ -22,7 +22,7 @@ class DBHASwitchResult(str, StructuredEnum):
     SUCC = EnumField("success", _("切换成功"))
 
 
-class AutofixItem(str, StructuredEnum):
+class AutofixItem(StrStructuredEnum):
     """切换控制"""
 
     AUTOFIX_ENABLE = EnumField("enable", _("自愈开关"))
@@ -33,7 +33,7 @@ class AutofixItem(str, StructuredEnum):
     IGNORE_DOMAINS = EnumField("ignore_domains", _("忽略自愈的集群列表"))
 
 
-class AutofixStatus(str, StructuredEnum):
+class AutofixStatus(StrStructuredEnum):
     """自愈状态"""
 
     AF_INIT = EnumField("initautofix", _("初始化"))

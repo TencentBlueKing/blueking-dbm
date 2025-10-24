@@ -13,7 +13,7 @@ import logging.config
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Union
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend import env
 from backend.components.bklog.client import BKLogApi

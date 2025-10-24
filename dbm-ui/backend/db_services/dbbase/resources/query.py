@@ -16,7 +16,7 @@ import attr
 from django.db.models import F, Prefetch, Q, QuerySet
 from django.forms import model_to_dict
 from django.http import HttpResponse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole

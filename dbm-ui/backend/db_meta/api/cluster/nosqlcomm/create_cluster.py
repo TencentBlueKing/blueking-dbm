@@ -14,7 +14,7 @@ from typing import Dict, List, Optional
 
 from django.db import IntegrityError, transaction
 from django.db.models import QuerySet
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta import request_validator

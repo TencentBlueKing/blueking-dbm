@@ -10,9 +10,9 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import os
+from unittest import mock
 from unittest.mock import patch
 
-import mock
 import pytest
 from django.contrib.auth import get_user_model
 from django.utils.crypto import get_random_string

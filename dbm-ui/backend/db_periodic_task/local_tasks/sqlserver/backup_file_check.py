@@ -14,7 +14,7 @@ from datetime import datetime, time, timedelta
 from typing import Dict, List, Set
 
 import pytz
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components.bklog.handler import BKLogHandler
 from backend.components.mysql_backup.client import SQLServerBackupApi

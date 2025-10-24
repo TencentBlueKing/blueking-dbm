@@ -13,7 +13,7 @@ from dataclasses import asdict
 from typing import Any, Dict, List, Optional, Union
 
 from bamboo_engine.builder import SubProcess
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.db_proxy.constants import ExtensionAccountEnum
 from backend.flow.consts import CloudServiceConfFileEnum, CloudServiceName

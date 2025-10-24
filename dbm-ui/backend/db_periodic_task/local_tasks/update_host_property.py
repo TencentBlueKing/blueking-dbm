@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 
 from celery.schedules import crontab
 from django.core.cache import cache
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components import CCApi
 from backend.db_dirty.models import DirtyMachine

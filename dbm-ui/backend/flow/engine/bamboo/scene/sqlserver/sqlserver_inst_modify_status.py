@@ -11,7 +11,7 @@ import copy
 import logging.config
 from dataclasses import asdict
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder

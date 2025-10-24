@@ -12,7 +12,7 @@ import logging
 
 from celery.schedules import crontab
 from django.forms.models import model_to_dict
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.exceptions import DBMetaException

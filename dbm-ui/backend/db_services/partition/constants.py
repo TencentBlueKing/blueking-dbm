@@ -8,9 +8,9 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 SWAGGER_TAG = _("分区管理")
 
@@ -30,7 +30,7 @@ QUERY_DATABASE_FIELD_TYPE = (
 )
 
 
-class PartitionTypeEnum(str, StructuredEnum):
+class PartitionTypeEnum(StrStructuredEnum):
     INT = EnumField("int", _("整型"))
     DATETIME = EnumField("datetime", _("日期类型"))
     TIMESTAMP = EnumField("timestamp", _("时间戳类型"))

@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 import importlib
 from typing import Any, Callable, Dict
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 
 from backend.exceptions import ApiRequestError, ApiResultError

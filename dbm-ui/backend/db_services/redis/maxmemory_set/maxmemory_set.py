@@ -17,7 +17,7 @@ from datetime import datetime, timedelta
 from typing import Tuple
 
 from django.utils import timezone
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components import DRSApi
 from backend.db_meta.enums import InstanceRole

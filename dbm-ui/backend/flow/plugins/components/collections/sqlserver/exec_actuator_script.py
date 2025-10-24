@@ -13,7 +13,7 @@ import re
 from dataclasses import asdict, is_dataclass
 
 from django.conf import settings
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from jinja2.sandbox import SandboxedEnvironment as Environment
 from pipeline.component_framework.component import Component
 

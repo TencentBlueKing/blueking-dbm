@@ -8,10 +8,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.db_services.dbpermission.constants import AccountType
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, IntStructuredEnum, StrStructuredEnum
 
 # 平台业务ID
 PLAT_BIZ_ID = 0
@@ -24,16 +24,16 @@ MYSQL_USUAL_JOB_TIME = 7200
 MYSQL8_VER_PARSE_NUM = 8000000
 
 
-class ProfileLabel(str, StructuredEnum):
+class ProfileLabel(StrStructuredEnum):
     SQL = EnumField("SQL", _("个人收藏SQL"))
 
 
-class MySQLMonitorPauseTime(int, StructuredEnum):
+class MySQLMonitorPauseTime(IntStructuredEnum):
     RESTORE_DATA = EnumField(1440, _("数据同步时监控屏蔽"))
     SLAVE_DELAY = EnumField(240, _("数据同步时监控屏蔽"))
 
 
-class DBPrivSecurityType(str, StructuredEnum):
+class DBPrivSecurityType(StrStructuredEnum):
     MYSQL_PASSWORD = EnumField("mysql_password", _("mysql密码策略"))
     REDIS_PASSWORD = EnumField("redis_password_v2", _("redis密码策略"))
     TENDBCLUSTER_PASSWORD = EnumField("tendbcluster_password", _("tendbcluster密码策略"))
@@ -54,7 +54,7 @@ class DBPrivSecurityType(str, StructuredEnum):
         return getattr(cls, attr).value
 
 
-class AdminPasswordRole(str, StructuredEnum):
+class AdminPasswordRole(StrStructuredEnum):
     """
     定义每个集群中每个node的内置账号名称
     """
@@ -64,7 +64,7 @@ class AdminPasswordRole(str, StructuredEnum):
     STORAGE = EnumField("storage", _("storage"))
 
 
-class AffinityEnum(str, StructuredEnum):
+class AffinityEnum(StrStructuredEnum):
     """
     亲和性枚举类
     """
@@ -80,7 +80,7 @@ class AffinityEnum(str, StructuredEnum):
     MAJORITY_ELECTION_DISTRI = EnumField("MAJORITY_ELECTION_DISTRI", _("跨园区(至少跨2个园区,mongo专属)"))
 
 
-class DBType(str, StructuredEnum):
+class DBType(StrStructuredEnum):
     MySQL = EnumField("mysql", _("MySQL"))
     TenDBCluster = EnumField("tendbcluster", _("TenDBCluster"))
     Redis = EnumField("redis", _("Redis"))
@@ -103,7 +103,7 @@ class DBType(str, StructuredEnum):
     TBinlogDumper = EnumField("tbinlogdumper", _("TBinlogDumper"))
 
 
-class SystemSettingsEnum(str, StructuredEnum):
+class SystemSettingsEnum(StrStructuredEnum):
     """配置的枚举项，建议将系统配置都录入到这里方便统一管理"""
 
     MANAGE_TOPO = EnumField("MANAGE_TOPO", _("DBM系统的管理集群拓扑"))
@@ -161,7 +161,7 @@ class SystemSettingsEnum(str, StructuredEnum):
     COMMON_CITIES = EnumField("COMMON_CITIES", _("常用城市配置"))
 
 
-class BizSettingsEnum(str, StructuredEnum):
+class BizSettingsEnum(StrStructuredEnum):
     """配置的枚举项，建议将业务配置都录入到这里方便统一管理"""
 
     OPEN_AREA_VARS = EnumField("OPEN_AREA_VARS", _("开区模板的渲染变量"))

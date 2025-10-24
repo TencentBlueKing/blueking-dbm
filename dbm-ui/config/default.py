@@ -20,6 +20,10 @@ from blueapps.core.celery.celery import app
 
 from backend import env
 from backend.core.encrypt.interceptors import SymmetricInterceptor
+from django.db.backends.mysql.features import DatabaseFeatures
+from blueking.mysql_patch import PatchFeatures
+
+DatabaseFeatures.minimum_database_version = PatchFeatures.minimum_database_version
 
 if env.RUN_VER == "open":
     from blueapps.patch.settings_open_saas import *  # pylint: disable=wildcard-import
@@ -324,6 +328,9 @@ BK_NOTICE = {
 }
 
 BKAPP_BKVISION_APIGW_URL = env.BKAPP_BKVISION_APIGW_URL
+
+# 跨域信任请求源
+CSRF_TRUSTED_ORIGINS = env.CSRF_TRUSTED_ORIGINS
 
 # 需将 bkapi.example.com 替换为真实的云 API 域名，在 PaaS 3.0 部署的应用，可从环境变量中获取 BK_API_URL_TMPL
 

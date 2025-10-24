@@ -9,7 +9,7 @@ specific language governing permissions and limitations under the License.
 """
 from collections import defaultdict
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.db_meta.models import Cluster
 from backend.flow.consts import MIN_TENDB_PROXY_COUNT_IN_TICKET

@@ -13,10 +13,10 @@ from typing import Dict, List
 from django.utils.translation import gettext_lazy as _
 
 from backend.configuration.constants import DBType
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
-class ClusterType(str, StructuredEnum):
+class ClusterType(StrStructuredEnum):
     TenDBSingle = EnumField("tendbsingle", _("MySQL单节点集群"))
     TenDBHA = EnumField("tendbha", _("MySQL高可用集群"))
     TenDBCluster = EnumField("tendbcluster", _("TendbCluster集群"))

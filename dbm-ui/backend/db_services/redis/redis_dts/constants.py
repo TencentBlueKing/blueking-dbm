@@ -8,12 +8,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
-class DtsTaskType(str, StructuredEnum):
+class DtsTaskType(StrStructuredEnum):
     """DTS task类型枚举"""
 
     # tendis ssd相关任务
@@ -35,7 +35,7 @@ class DtsTaskType(str, StructuredEnum):
     TENDISPLUS_SENDINCR = EnumField("tendisplusSendIncr", _("tendisplus增量数据同步"))
 
 
-class DtsOperateType(str, StructuredEnum):
+class DtsOperateType(StrStructuredEnum):
     """DTS task操作类型枚举"""
 
     SYNC_STOP_TODO = EnumField("SyncStopTodo", _("停止数据同步todo"))

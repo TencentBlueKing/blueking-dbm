@@ -9,12 +9,12 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.utils.crypto import get_random_string
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.configuration.constants import DBType
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 SWAGGER_TAG = _("透传服务(proxypass)")
 
@@ -30,7 +30,7 @@ DB_CLOUD_PROXY_EXPIRE_TIME = 1 * 24 * 60 * 60
 DB_CLOUD_MACHINE_EXPIRE_TIME = 1 * 24 * 60 * 60
 
 
-class ExtensionType(str, StructuredEnum):
+class ExtensionType(StrStructuredEnum):
     """扩展类型枚举"""
 
     NGINX = EnumField("NGINX", _("nginx 转发服务"))
@@ -42,7 +42,7 @@ class ExtensionType(str, StructuredEnum):
     MONGODB_EXPORT_CENTER = EnumField("MONGODB_EXPORT_CENTER", _("MongoDB 数据导出中心"))
 
 
-class ExtensionServiceStatus(str, StructuredEnum):
+class ExtensionServiceStatus(StrStructuredEnum):
     """扩展服务状态"""
 
     RUNNING = EnumField("running", _("running"))
@@ -50,7 +50,7 @@ class ExtensionServiceStatus(str, StructuredEnum):
     RESTORING = EnumField("restoring", _("restoring"))
 
 
-class ClusterServiceType(str, StructuredEnum):
+class ClusterServiceType(StrStructuredEnum):
     """集群的扩展服务枚举类型"""
 
     KIBANA = EnumField("kibana", _("kibana-ES管理端"))
@@ -60,7 +60,7 @@ class ClusterServiceType(str, StructuredEnum):
     DORIS_MANAGER = EnumField("doris_web_ui", _("doris_manager管理端"))
 
 
-class ExtensionAccountEnum(str, StructuredEnum):
+class ExtensionAccountEnum(StrStructuredEnum):
     """组件内置账号枚举类型"""
 
     USER = EnumField("user", _("user"))

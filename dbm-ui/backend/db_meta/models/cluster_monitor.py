@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from django.db import models, transaction
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend import env
 from backend.bk_web.constants import LEN_X_LONG

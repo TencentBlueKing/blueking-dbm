@@ -12,7 +12,7 @@ from typing import List, Union
 
 from django.db import models
 from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
 from backend.configuration.constants import DBType
@@ -20,13 +20,13 @@ from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import ClusterType, InstancePhase, InstanceRole, InstanceStatus, MachineType
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.ticket.constants import TicketFlowStatus
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, IntStructuredEnum
 
-# class MySQLDBHAAutofixTicketStatus(str, StructuredEnum):
+# class MySQLDBHAAutofixTicketStatus(StrStructuredEnum):
 # MySQLDBHAAutofixTicketQueueStatus=models.TextChoices()
 
 
-class MySQLDBHAAutofixTicketPriority(int, StructuredEnum):
+class MySQLDBHAAutofixTicketPriority(IntStructuredEnum):
     """
     调度优先级
     P1 最高

@@ -8,13 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.ticket.constants import TicketStatus
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
-class MsgType(str, StructuredEnum):
+class MsgType(StrStructuredEnum):
     SMS = EnumField("sms", _("短信"))
     WEIXIN = EnumField("weixin", _("微信"))
     MAIL = EnumField("mail", _("邮件"))

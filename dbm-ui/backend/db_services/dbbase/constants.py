@@ -8,10 +8,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.db_dirty.constants import PoolType
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 ES_DEFAULT_PORT = 9200
 
@@ -40,21 +40,21 @@ TCP_ESTABLISHED_CODE = 1
 TCP_LISTEN_CODE = 10
 
 
-class IpSource(str, StructuredEnum):
+class IpSource(StrStructuredEnum):
     """主机来源枚举"""
 
     MANUAL_INPUT = EnumField("manual_input", _("手动录入"))
     RESOURCE_POOL = EnumField("resource_pool", _("资源池"))
 
 
-class SourceType(str, StructuredEnum):
+class SourceType(StrStructuredEnum):
     """资源来源类型"""
 
     RESOURCE_AUTO = EnumField("resource_auto", _("资源池自动匹配"))
     RESOURCE_MANUAL = EnumField("resource_manual", _("资源池手动选择"))
 
 
-class ResourceType(str, StructuredEnum):
+class ResourceType(StrStructuredEnum):
     """污点主机，资源操作枚举"""
 
     SPOTTY_HOST = EnumField("spotty_host", _("污点主机"))

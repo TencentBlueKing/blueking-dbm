@@ -229,3 +229,26 @@ class StructuredEnum(OrigEnum, metaclass=StructuredEnumMeta):
         """Get Choices for all field members."""
         members = cls.get_field_members()
         return [(field.real_value, field.label) for field in members.values()]
+
+
+try:
+    # python 3.11+ required
+    from enum import StrEnum, IntEnum
+except ImportError:
+    pass
+else:
+    class StrStructuredEnum(StructuredEnum, StrEnum):
+        """
+        StrStructuredEnum ensures the literals in f-string / str.format() is real_value
+
+        Important: Use XEnum(StrStructuredEnum) instead of XEnum(StrStructuredEnum) since python 3.11
+        """
+        pass
+
+    class IntStructuredEnum(StructuredEnum, IntEnum):
+        """
+        IntStructuredEnum ensures the literals in f-string / str.format() is real_value
+
+        Important: Use XEnum(IntStructuredEnum) instead of XEnum(IntStructuredEnum) since python 3.11
+        """
+        pass

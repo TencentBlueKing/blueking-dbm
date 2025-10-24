@@ -11,10 +11,10 @@ specific language governing permissions and limitations under the License.
 import os
 
 from django.conf import settings
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend import env
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, IntStructuredEnum, StrStructuredEnum
 
 DB_MONITOR_TPLS_DIR = os.path.join(settings.BASE_DIR, "backend/db_monitor/tpls")
 TPLS_COLLECT_DIR = os.path.join(DB_MONITOR_TPLS_DIR, "collect")
@@ -23,7 +23,7 @@ TPLS_ALARM_DIR = os.path.join(DB_MONITOR_TPLS_DIR, "alarm")
 SWAGGER_TAG = "db_monitor"
 
 
-class GroupType(str, StructuredEnum):
+class GroupType(StrStructuredEnum):
     """告警组类别: 平台级->业务级->集群级->一次性"""
 
     PLATFORM = EnumField("PLATFORM", _("platform"))
@@ -32,14 +32,14 @@ class GroupType(str, StructuredEnum):
     SINGLE = EnumField("SINGLE", _("single"))
 
 
-class DutyRuleCategory(str, StructuredEnum):
+class DutyRuleCategory(StrStructuredEnum):
     """轮值规则分类"""
 
     REGULAR = EnumField("regular", _("固定值班"))
     HANDOFF = EnumField("handoff", _("交替轮值"))
 
 
-class TargetLevel(str, StructuredEnum):
+class TargetLevel(StrStructuredEnum):
     """告警策略类别: 平台级->业务级->模块级->集群级->实例级
     ROLE: 角色不确定所处的位置
     CUSTOM: 用于表达额外过滤条件
@@ -52,7 +52,7 @@ class TargetLevel(str, StructuredEnum):
     CUSTOM = EnumField("custom", _("custom"))
 
 
-class TargetPriority(int, StructuredEnum):
+class TargetPriority(IntStructuredEnum):
     """监控策略优先级: 0-10000"""
 
     PLATFORM = EnumField(0, _("platform"))
@@ -74,14 +74,14 @@ TARGET_LEVEL_TO_PRIORITY = {
 PRIORITY_KEY_PREFIX = "PGK:DBM"
 
 
-class PolicyStatus(str, StructuredEnum):
+class PolicyStatus(StrStructuredEnum):
     """监控策略状态"""
 
     VALID = EnumField("valid", _("有效"))
     TARGET_INVALID = EnumField("target_invalid", _("监控目标已失效"))
 
 
-class OperatorEnum(str, StructuredEnum):
+class OperatorEnum(StrStructuredEnum):
     """比较操作符"""
 
     EQ = EnumField("eq", _("等于"))
@@ -92,7 +92,7 @@ class OperatorEnum(str, StructuredEnum):
     GTE = EnumField("gte", _("大于等于"))
 
 
-class AlertLevelEnum(int, StructuredEnum):
+class AlertLevelEnum(IntStructuredEnum):
     """告警级别"""
 
     HIGH = EnumField(1, _("致命"))
@@ -100,7 +100,7 @@ class AlertLevelEnum(int, StructuredEnum):
     LOW = EnumField(3, _("提醒"))
 
 
-class AlertStageEnum(str, StructuredEnum):
+class AlertStageEnum(StrStructuredEnum):
     """告警处理阶段"""
 
     IS_HANDLED = EnumField("is_handled", _("已通知"))
@@ -109,7 +109,7 @@ class AlertStageEnum(str, StructuredEnum):
     IS_BLOCKED = EnumField("is_blocked", _("已流控"))
 
 
-class AlertStatusEnum(str, StructuredEnum):
+class AlertStatusEnum(StrStructuredEnum):
     """告警状态"""
 
     ABNORMAL = EnumField("ABNORMAL", _("未恢复"))
@@ -117,7 +117,7 @@ class AlertStatusEnum(str, StructuredEnum):
     CLOSED = EnumField("CLOSED", _("已失效"))
 
 
-class AlertSourceEnum(str, StructuredEnum):
+class AlertSourceEnum(StrStructuredEnum):
     """告警数据来源"""
 
     TIME_SERIES = EnumField("time_series", _("时序数据"))
@@ -125,20 +125,20 @@ class AlertSourceEnum(str, StructuredEnum):
     LOG = EnumField("log", _("日志关键字"))
 
 
-class DetectAlgEnum(str, StructuredEnum):
+class DetectAlgEnum(StrStructuredEnum):
     """检测算法"""
 
     THRESHOLD = EnumField("Threshold", _("阈值检测"))
 
 
-class NoticeWayEnum(str, StructuredEnum):
+class NoticeWayEnum(StrStructuredEnum):
     """通知方式"""
 
     BY_RULE = EnumField("by_rule", _("基于分派规则通知"))
     ONLY_NOTICE = EnumField("only_notice", _("基于告警组直接通知"))
 
 
-class DashboardType(str, StructuredEnum):
+class DashboardType(StrStructuredEnum):
     """仪表盘类型"""
 
     CLUSTER = EnumField("cluster", _("集群仪表盘"))
@@ -220,7 +220,7 @@ BK_MONITOR_SAVE_DISPATCH_GROUP_TEMPLATE = {
 MONITOR_EVENTS = "monitor_events"
 
 
-class MySQLAutofixStep(str, StructuredEnum):
+class MySQLAutofixStep(StrStructuredEnum):
     IN_PLACE_AUTOFIX = EnumField("IN_PLACE_AUTOFIX", _("原地自愈"))
     REPLACE_NEW = EnumField("REPLACE_NEW", _("新机替换"))
 
@@ -261,7 +261,7 @@ AUTOFIX_ACTION_TEMPLATE = {
 }
 
 
-class MonitorEventType(str, StructuredEnum):
+class MonitorEventType(StrStructuredEnum):
     """
     自定义上报事件名称
     声明后不要轻易修改，如果要修改记得修改对应的监控策略

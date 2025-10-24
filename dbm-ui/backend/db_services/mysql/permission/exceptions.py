@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import functools
 import types
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.exceptions import AppBaseException, ErrorCode
 

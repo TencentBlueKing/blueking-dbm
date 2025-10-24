@@ -8,9 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 BKREPO_RISK_MEMO_PATH = "risk_memo/{biz}/{file}"
 
@@ -21,7 +21,7 @@ SUPPORTED_IMAGE_TYPES = ["jpeg", "png", "gif"]
 IMAGE_MAX_MB = 64
 
 
-class Status(str, StructuredEnum):
+class Status(StrStructuredEnum):
     """
     风险状态
     """
@@ -30,7 +30,7 @@ class Status(str, StructuredEnum):
     DONE = EnumField("done", _("结项"))
 
 
-class BizImpact(str, StructuredEnum):
+class BizImpact(StrStructuredEnum):
     """
     业务影响枚举类
     """
@@ -43,7 +43,7 @@ class BizImpact(str, StructuredEnum):
     OTHER = EnumField("other", _("其他"))
 
 
-class RiskPriority(StructuredEnum):
+class RiskPriority(StrStructuredEnum):
     """
     风险等级
     """
@@ -53,7 +53,7 @@ class RiskPriority(StructuredEnum):
     HIGH = EnumField("High", _("高"))
 
 
-class RiskOpType(str, StructuredEnum):
+class RiskOpType(StrStructuredEnum):
     """风险操作类型枚举"""
 
     CREATE_RISK = EnumField("create_risk", _("创建风险"))

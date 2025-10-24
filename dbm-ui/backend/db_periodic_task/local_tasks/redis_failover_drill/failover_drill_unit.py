@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from blueapps.core.celery.celery import app
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.db_meta.enums import ClusterStatus, ClusterType
 from backend.db_meta.models import Cluster

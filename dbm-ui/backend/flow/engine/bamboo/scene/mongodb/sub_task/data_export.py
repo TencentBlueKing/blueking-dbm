@@ -13,7 +13,7 @@ import os
 from dataclasses import dataclass
 
 from django.conf import settings
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.core.encrypt.handlers import AsymmetricCipherConfigType, AsymmetricHandler
 from backend.flow.consts import MONGODB_DATA_EXPORT_PATH, MongoDBActuatorActionEnum

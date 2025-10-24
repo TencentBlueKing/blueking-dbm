@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from django.utils.translation import gettext_lazy as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 ES_MASTER_NEED = 3
 
@@ -45,41 +45,41 @@ MYSQL_CHECKSUM_TABLE = "checksum_history"
 
 
 class BigDataRole(object):
-    class Es(str, StructuredEnum):
+    class Es(StrStructuredEnum):
         HOT = EnumField("hot", _("hot"))
         COLD = EnumField("cold", _("cold"))
         CLIENT = EnumField("client", _("client"))
         MASTER = EnumField("master", _("master"))
 
-    class Hdfs(str, StructuredEnum):
+    class Hdfs(StrStructuredEnum):
         DATANODE = EnumField("datanode", _("datanode"))
         NAMENODE = EnumField("namenode", _("namenode"))
         # 目前来说ZooKeeper/JournalNode的单据参数角色是zookeeper
         ZK_JN = EnumField("zookeeper", _("zookeeper"))
 
-    class Kafka(str, StructuredEnum):
+    class Kafka(StrStructuredEnum):
         ZOOKEEPER = EnumField("zookeeper", _("zookeeper"))
         BROKER = EnumField("broker", _("broker"))
 
-    class Pulsar(str, StructuredEnum):
+    class Pulsar(StrStructuredEnum):
         BOOKKEEPER = EnumField("bookkeeper", _("bookkeeper"))
         ZOOKEEPER = EnumField("zookeeper", _("zookeeper"))
         BROKER = EnumField("broker", _("broker"))
 
-    class Doris(str, StructuredEnum):
+    class Doris(StrStructuredEnum):
         HOT = EnumField("hot", _("hot"))
         COLD = EnumField("cold", _("cold"))
         FOLLOWER = EnumField("follower", _("follower"))
         OBSERVER = EnumField("observer", _("observer"))
 
 
-class RedisRole(str, StructuredEnum):
+class RedisRole(StrStructuredEnum):
     MASTER = EnumField("master", _("master"))
     SLAVE = EnumField("slave", _("slave"))
     PROXY = EnumField("proxy", _("proxy"))
 
 
-class MySQLBackupSource(str, StructuredEnum):
+class MySQLBackupSource(StrStructuredEnum):
     """
     库备份源的类型
     """
@@ -88,7 +88,7 @@ class MySQLBackupSource(str, StructuredEnum):
     REMOTE = EnumField("remote", _("远程"))
 
 
-class MySQLBackupType(str, StructuredEnum):
+class MySQLBackupType(StrStructuredEnum):
     """
     库备份的类型
     """
@@ -99,7 +99,7 @@ class MySQLBackupType(str, StructuredEnum):
     NON_FULL_BY_REGULAR = EnumField("non_full_by_regular", _("例行非全备"))
 
 
-class MySQLChecksumTicketMode(str, StructuredEnum):
+class MySQLChecksumTicketMode(StrStructuredEnum):
     """
     数据校验后修复执行类型
     """
@@ -108,7 +108,7 @@ class MySQLChecksumTicketMode(str, StructuredEnum):
     MANUAL = EnumField("manual", _("人工确认"))
 
 
-class TendbChecksumScope(str, StructuredEnum):
+class TendbChecksumScope(StrStructuredEnum):
     """
     tendbcluster集群校验的范围
     """
@@ -117,7 +117,7 @@ class TendbChecksumScope(str, StructuredEnum):
     PARTIAL = EnumField("partial", _("部分实例"))
 
 
-class MySQLDataRepairTriggerMode(str, StructuredEnum):
+class MySQLDataRepairTriggerMode(StrStructuredEnum):
     """
     数据修复触发类型
     """
@@ -126,7 +126,7 @@ class MySQLDataRepairTriggerMode(str, StructuredEnum):
     ROUTINE = EnumField("routine", _("例行校验修复"))
 
 
-class FixpointRollbackType(str, StructuredEnum):
+class FixpointRollbackType(StrStructuredEnum):
     """
     定点回档类型
     """
@@ -137,7 +137,7 @@ class FixpointRollbackType(str, StructuredEnum):
     LOCAL_AND_BACKUPID = EnumField("LOCAL_AND_BACKUPID", _("本地备份 + backupid"))
 
 
-class RollbackBuildClusterType(str, StructuredEnum):
+class RollbackBuildClusterType(StrStructuredEnum):
     """
     定点回档构造集群类型
     """
@@ -147,13 +147,13 @@ class RollbackBuildClusterType(str, StructuredEnum):
     BUILD_INTO_METACLUSTER = EnumField("BUILD_INTO_METACLUSTER", _("回档到原集群"))
 
 
-class DumperProtocolType(str, StructuredEnum):
+class DumperProtocolType(StrStructuredEnum):
     KAFKA = EnumField("KAFKA", _("KAFKA"))
     L5_AGENT = EnumField("L5_AGENT", _("L5_AGENT"))
     TCP_IP = EnumField("TCP/IP", _("TCP/IP"))
 
 
-class OperaObjType(str, StructuredEnum):
+class OperaObjType(StrStructuredEnum):
     """
     操作对象类型
     """
@@ -163,7 +163,7 @@ class OperaObjType(str, StructuredEnum):
     MACHINE = EnumField("machine", _("整机类型"))
 
 
-class MongoDBScriptImportMode(str, StructuredEnum):
+class MongoDBScriptImportMode(StrStructuredEnum):
     """
     MongoDB导入的模式
     """
@@ -172,7 +172,7 @@ class MongoDBScriptImportMode(str, StructuredEnum):
     MANUAL = EnumField("manual", _("手动输入"))
 
 
-class FlashbackBuildType(str, StructuredEnum):
+class FlashbackBuildType(StrStructuredEnum):
     """
     闪回方式
     """
@@ -181,7 +181,7 @@ class FlashbackBuildType(str, StructuredEnum):
     RECORD_FLASHBACK = EnumField("RECORD_FLASHBACK", _("记录级闪回"))
 
 
-class ShrinkType(str, StructuredEnum):
+class ShrinkType(StrStructuredEnum):
     """
     缩容方式
     """

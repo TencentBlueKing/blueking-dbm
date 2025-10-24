@@ -13,12 +13,12 @@ import base64
 from functools import wraps
 from typing import Any, List, Optional, Tuple, Union
 
-from Crypto import Util
-from Crypto.Cipher import PKCS1_OAEP
-from Crypto.Cipher import PKCS1_v1_5 as PKCS1_v1_5_cipher
-from Crypto.Hash import SHA1
-from Crypto.PublicKey import RSA
-from Crypto.Signature import PKCS1_v1_5 as PKCS1_v1_5_sign
+from Cryptodome import Util
+from Cryptodome.Cipher import PKCS1_OAEP
+from Cryptodome.Cipher import PKCS1_v1_5 as PKCS1_v1_5_cipher
+from Cryptodome.Hash import SHA1
+from Cryptodome.PublicKey import RSA
+from Cryptodome.Signature import PKCS1_v1_5 as PKCS1_v1_5_sign
 
 from backend.core.encrypt.constants import ENCODING, CipherPadding, KeyObjType
 

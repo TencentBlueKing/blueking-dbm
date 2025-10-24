@@ -15,7 +15,7 @@ from datetime import timedelta
 
 from django.db.models import Q
 from django.utils import timezone
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend import env
 from backend.components import BKMonitorV3Api
