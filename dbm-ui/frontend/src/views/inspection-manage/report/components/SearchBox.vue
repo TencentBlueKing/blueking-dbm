@@ -55,7 +55,7 @@
   const route = useRoute();
   const globalBizsStore = useGlobalBizs();
 
-  const isOnlyAbnormal = ref(false);
+  const isOnlyAbnormal = ref(true);
   const dateValue = ref(dayjs().format('YYYY-MM-DD'));
   const searchValue = ref<ISearchValue[]>([]);
 
