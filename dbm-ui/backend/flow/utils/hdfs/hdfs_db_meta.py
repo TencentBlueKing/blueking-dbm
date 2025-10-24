@@ -165,6 +165,7 @@ class HdfsDBMeta(object):
                         "port": DATANODE_DEFAULT_PORT,
                         "instance_role": InstanceRole.HDFS_DATA_NODE.value,
                         "name": HdfsRoleEnum.DataNode.value,
+                        "db_version": self.ticket_data.get("db_version", ""),
                     }
                 )
             storage_instances.append(
@@ -173,6 +174,7 @@ class HdfsDBMeta(object):
                     "port": self.ticket_data["rpc_port"],
                     "instance_role": InstanceRole.HDFS_NAME_NODE.value,
                     "name": HdfsRoleEnum.NameNode.value,
+                    "db_version": self.ticket_data.get("db_version", ""),
                 }
             )
             storage_instances.append(
@@ -181,6 +183,7 @@ class HdfsDBMeta(object):
                     "port": self.ticket_data["rpc_port"],
                     "instance_role": InstanceRole.HDFS_NAME_NODE.value,
                     "name": HdfsRoleEnum.NameNode.value,
+                    "db_version": self.ticket_data.get("db_version", ""),
                 }
             )
 
@@ -191,6 +194,7 @@ class HdfsDBMeta(object):
                         "port": ZOOKEEPER_DEFAULT_PORT,
                         "instance_role": InstanceRole.HDFS_ZOOKEEPER.value,
                         "name": HdfsRoleEnum.ZooKeeper.value,
+                        "db_version": self.ticket_data.get("db_version", ""),
                     }
                 )
             for jn_ip in self.ticket_data["jn_ips"]:
@@ -200,6 +204,7 @@ class HdfsDBMeta(object):
                         "port": JOURNAL_NODE_DEFAULT_PORT,
                         "instance_role": InstanceRole.HDFS_JOURNAL_NODE.value,
                         "name": HdfsRoleEnum.JournalNode.value,
+                        "db_version": self.ticket_data.get("db_version", ""),
                     }
                 )
         elif self.ticket_data["ticket_type"] == TicketType.HDFS_SCALE_UP:
@@ -210,6 +215,7 @@ class HdfsDBMeta(object):
                         "port": DATANODE_DEFAULT_PORT,
                         "instance_role": InstanceRole.HDFS_DATA_NODE.value,
                         "name": HdfsRoleEnum.DataNode.value,
+                        "db_version": self.ticket_data.get("db_version", ""),
                     }
                 )
         elif self.ticket_data["ticket_type"] == TicketType.HDFS_SHRINK:
@@ -220,6 +226,7 @@ class HdfsDBMeta(object):
                         "port": DATANODE_DEFAULT_PORT,
                         "instance_role": InstanceRole.HDFS_DATA_NODE.value,
                         "name": HdfsRoleEnum.DataNode.value,
+                        "db_version": self.ticket_data.get("db_version", ""),
                     }
                 )
         return storage_instances
@@ -280,6 +287,7 @@ class HdfsDBMeta(object):
                         "port": DATANODE_DEFAULT_PORT,
                         "instance_role": InstanceRole.HDFS_DATA_NODE.value,
                         "name": HdfsRoleEnum.DataNode.value,
+                        "db_version": self.ticket_data.get("db_version", ""),
                     }
                 )
             for dn_ip in self.ticket_data["del_dn_ips"]:
@@ -289,6 +297,7 @@ class HdfsDBMeta(object):
                         "port": DATANODE_DEFAULT_PORT,
                         "instance_role": InstanceRole.HDFS_DATA_NODE.value,
                         "name": HdfsRoleEnum.DataNode.value,
+                        "db_version": self.ticket_data.get("db_version", ""),
                     }
                 )
         elif replace_role == HdfsRoleEnum.ZooKeeper.value:
@@ -299,6 +308,7 @@ class HdfsDBMeta(object):
                         "port": ZOOKEEPER_DEFAULT_PORT,
                         "instance_role": InstanceRole.HDFS_ZOOKEEPER.value,
                         "name": HdfsRoleEnum.ZooKeeper.value,
+                        "db_version": self.ticket_data.get("db_version", ""),
                     },
                 )
                 add_storage_instances.append(
@@ -307,6 +317,7 @@ class HdfsDBMeta(object):
                         "port": JOURNAL_NODE_DEFAULT_PORT,
                         "instance_role": InstanceRole.HDFS_JOURNAL_NODE.value,
                         "name": HdfsRoleEnum.JournalNode.value,
+                        "db_version": self.ticket_data.get("db_version", ""),
                     },
                 )
             for zk_ip in self.ticket_data["old_zk_ips"]:
@@ -316,6 +327,7 @@ class HdfsDBMeta(object):
                         "port": ZOOKEEPER_DEFAULT_PORT,
                         "instance_role": InstanceRole.HDFS_ZOOKEEPER.value,
                         "name": HdfsRoleEnum.ZooKeeper.value,
+                        "db_version": self.ticket_data.get("db_version", ""),
                     },
                 )
                 del_storage_instances.append(
@@ -324,6 +336,7 @@ class HdfsDBMeta(object):
                         "port": JOURNAL_NODE_DEFAULT_PORT,
                         "instance_role": InstanceRole.HDFS_JOURNAL_NODE.value,
                         "name": HdfsRoleEnum.JournalNode.value,
+                        "db_version": self.ticket_data.get("db_version", ""),
                     },
                 )
         elif replace_role == HdfsRoleEnum.NameNode.value:
@@ -334,6 +347,7 @@ class HdfsDBMeta(object):
                         "port": self.ticket_data["rpc_port"],
                         "instance_role": InstanceRole.HDFS_NAME_NODE.value,
                         "name": HdfsRoleEnum.NameNode.value,
+                        "db_version": self.ticket_data.get("db_version", ""),
                     }
                 )
             for nn_ip in self.ticket_data["old_nn_ips"]:
@@ -343,6 +357,7 @@ class HdfsDBMeta(object):
                         "port": self.ticket_data["rpc_port"],
                         "instance_role": InstanceRole.HDFS_NAME_NODE.value,
                         "name": HdfsRoleEnum.NameNode.value,
+                        "db_version": self.ticket_data.get("db_version", ""),
                     }
                 )
         return add_storage_instances, del_storage_instances

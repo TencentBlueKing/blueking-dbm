@@ -88,6 +88,7 @@ class KafkaMeta(object):
                         "port": self.role_port_dict[role],
                         "instance_role": self.role_instance_dict[role],
                         "bk_cloud_id": node["bk_cloud_id"],
+                        "db_version": self.ticket_data.get("db_version", ""),
                     }
                 )
         return instances
