@@ -13,7 +13,7 @@ from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, MachineType
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 UNIFY_QUERY_PARAMS = {
     "bk_biz_id": 3,
@@ -305,6 +305,6 @@ CLUSTER_TYPE_LOAD_RULES = {
 }
 
 
-class RedisLoadStatus(str, StructuredEnum):
+class RedisLoadStatus(StrStructuredEnum):
     LOW = EnumField("low", _("低负载"))
     HIGH = EnumField("high", _("高负载"))

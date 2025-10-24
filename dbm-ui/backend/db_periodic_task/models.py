@@ -16,7 +16,7 @@ from datetime import timedelta
 from django.db import models, transaction
 from django.utils import timezone
 from django.utils.translation import gettext
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django_celery_beat.models import PeriodicTask
 from django_celery_beat.schedulers import ModelEntry
 

@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Tuple, Union
 
 from django.db import models
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from iam import Resource
 
 from backend.components import DBPrivManagerApi
@@ -49,13 +49,11 @@ class ResourceMeta(metaclass=abc.ABCMeta):
     def Field(cls, value):
         return field(default_factory=lambda: value)
 
-    @classmethod
-    def _create_simple_instance(cls, instance_id: str, attr=None) -> Resource:
+    def _create_simple_instance(self, instance_id: str, attr=None) -> Resource:
         attr = attr or {}
-        return Resource(cls.system_id, cls.id, str(instance_id), attr)
+        return Resource(self.system_id, self.id, str(instance_id), attr)
 
-    @classmethod
-    def create_instance(cls, instance_id: str, attr=None) -> Resource:
+    def create_instance(self, instance_id: str, attr=None) -> Resource:
         """
         创建一个Resource，用于make_request中
         :param instance_id: 实例ID
@@ -63,19 +61,17 @@ class ResourceMeta(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
-    @classmethod
-    def batch_create_instances(cls, instance_ids: list, attr=None) -> List[Resource]:
+    def batch_create_instances(self, instance_ids: list, attr=None) -> List[Resource]:
         """
         批量创建resource，默认实现是for调用create_instance，子类可覆写
         :param instance_ids: 实例ID列表
         :param attr: 属性的kv对, 注如果存在拓扑结构则一定加上 _bk_iam_path_ 属性
         """
-        resources = [cls.create_instance(instance_id, attr) for instance_id in instance_ids]
+        resources = [self.create_instance(instance_id, attr) for instance_id in instance_ids]
         return resources
 
-    @classmethod
     def create_model_instance(
-        cls, model: models.Model, instance_id: str, instance: models.Model = None, attr=None
+        self, model: models.Model, instance_id: str, instance: models.Model = None, attr=None
     ) -> Tuple[Resource, models.Model]:
         """
         创建模型实例，即该实例数据是存储在数据库中
@@ -84,34 +80,33 @@ class ResourceMeta(metaclass=abc.ABCMeta):
         :param instance: 实例
         :param attr: 实例属性
         """
-        resource = cls._create_simple_instance(instance_id, attr)
+        resource = self._create_simple_instance(instance_id, attr)
 
         try:
             instance = instance or model.objects.get(pk=instance_id)
         except model.DoesNotExist:
             raise ResourceNotExistError(_("未找到模型[{}]的实例[{}]").format(model.__name__, instance_id))
 
-        display_fields = ResourceEnum.get_resource_by_id(cls.id).display_fields
+        display_fields = ResourceEnum.get_resource_by_id(self.id).display_fields
         instance_name_values = [str(getattr(instance, _field)) for _field in display_fields]
         instance_name = ":".join(instance_name_values)
         # 更新resource的attribute，id和name
         resource.attribute.update(
             {
-                cls.attribute: getattr(instance, cls.attribute),
+                self.attribute: getattr(instance, self.attribute),
                 "id": instance_id,
                 "name": instance_name,
             }
         )
         # 默认是一层父类 TODO: 拓扑结构目前是/{resource_type},{resource_id}/
-        if cls.parent:
-            _bk_iam_path_ = "/{},{}/".format(cls.parent.id, getattr(instance, cls.parent.lookup_field))
+        if self.parent:
+            _bk_iam_path_ = "/{},{}/".format(self.parent.id, getattr(instance, self.parent.lookup_field))
             resource.attribute["_bk_iam_path_"] = _bk_iam_path_
 
         return resource, instance
 
-    @classmethod
     def batch_create_model_instances(
-        cls, model: models.Model, instance_ids: list, instance_queryset: models.QuerySet = None, attr: dict = None
+        self, model: models.Model, instance_ids: list, instance_queryset: models.QuerySet = None, attr: dict = None
     ) -> List[Tuple[Resource, models.Model]]:
         """
         批量创建模型实例
@@ -123,12 +118,11 @@ class ResourceMeta(metaclass=abc.ABCMeta):
         instance_tuple_list: List[Tuple[Resource, models.Model]] = []
         instance_queryset = instance_queryset or model.objects.filter(pk__in=instance_ids)
         for instance in instance_queryset:
-            instance_tuple_list.append(cls.create_model_instance(model, instance.pk, instance, attr))
+            instance_tuple_list.append(self.create_model_instance(model, instance.pk, instance, attr))
         return instance_tuple_list
 
-    @classmethod
     def batch_create_with_iam_path(
-        cls, model: models.Model, instance_ids: list, instance_queryset: models.QuerySet = None, attr: dict = None
+        self, model: models.Model, instance_ids: list, instance_queryset: models.QuerySet = None, attr: dict = None
     ) -> List[Tuple[Resource, models.Model]]:
         """
         批量创建模型实例，带有自定义iam_path
@@ -137,25 +131,24 @@ class ResourceMeta(metaclass=abc.ABCMeta):
         :param instance_queryset: 实例查询集
         :param attr: 实例属性
         """
-        if not hasattr(cls, "get_bk_iam_path"):
+        if not hasattr(self, "get_bk_iam_path"):
             raise NotImplementedError
-        tuples = cls.batch_create_model_instances(model, instance_ids, instance_queryset, attr)
+        tuples = self.batch_create_model_instances(model, instance_ids, instance_queryset, attr)
         resources_tuple_list = []
         for resource, instance in tuples:
-            resource.attribute.update(_bk_iam_path_=cls.get_bk_iam_path(instance))
+            resource.attribute.update(_bk_iam_path_=self.get_bk_iam_path(instance))
             resources_tuple_list.append((resource, instance))
         return resources_tuple_list
 
-    @classmethod
-    def to_json(cls) -> Dict:
+    def to_json(self) -> Dict:
         resource_json = {
-            "id": cls.id,
-            "name": cls.name,
-            "name_en": cls.id,
-            "description": cls.name,
+            "id": self.id,
+            "name": self.name,
+            "name_en": self.id,
+            "description": self.name,
             "provider_config": {"path": "/apis/iam/resource/"},
             "version": 1,
-            "parents": [{"system_id": cls.parent.system_id, "id": cls.parent.id}] if cls.parent else [],
+            "parents": [{"system_id": self.parent.system_id, "id": self.parent.id}] if self.parent else [],
         }
         return resource_json
 
@@ -171,9 +164,8 @@ class BusinessResourceMeta(ResourceMeta):
 
     lookup_field: str = "bk_biz_id"
 
-    @classmethod
-    def create_instance(cls, instance_id: str, attr=None) -> Resource:
-        resource = cls._create_simple_instance(instance_id, attr)
+    def create_instance(self, instance_id: str, attr=None) -> Resource:
+        resource = self._create_simple_instance(instance_id, attr)
         try:
             bk_biz_name = AppCache.objects.get(bk_biz_id=instance_id).bk_biz_name
         except AppCache.DoesNotExist:
@@ -193,9 +185,8 @@ class DBTypeResourceMeta(ResourceMeta):
     selection_mode: str = "instance"
     lookup_field: str = "db_type"
 
-    @classmethod
-    def create_instance(cls, instance_id: str, attr=None) -> Resource:
-        resource = cls._create_simple_instance(instance_id, attr)
+    def create_instance(self, instance_id: str, attr=None) -> Resource:
+        resource = self._create_simple_instance(instance_id, attr)
         resource.attribute = {"id": str(instance_id), "name": DBType.get_choice_label(instance_id)}
         return resource
 
@@ -207,9 +198,8 @@ class TicketGroupResourceMeta(DBTypeResourceMeta):
     id: str = "ticket_group"
     name: str = _("单据分类")
 
-    @classmethod
-    def create_instance(cls, instance_id: str, attr=None) -> Resource:
-        resource = cls._create_simple_instance(instance_id, attr)
+    def create_instance(self, instance_id: str, attr=None) -> Resource:
+        resource = self._create_simple_instance(instance_id, attr)
         resource.attribute = {"id": str(instance_id), "name": DBType.get_choice_label(instance_id)}
         if instance_id == "other":
             resource.attribute["name"] = _("其他")
@@ -229,36 +219,32 @@ class TaskFlowResourceMeta(ResourceMeta):
     display_fields: list = ResourceMeta.Field(["root_id"])
     attribute: str = "created_by"
     attribute_display: str = _("创建者")
-    parent: ResourceMeta = BusinessResourceMeta()
+    parent: ResourceMeta = field(default_factory=BusinessResourceMeta)
 
-    @classmethod
-    def create_instance(cls, instance_id: str, attr=None) -> Resource:
+    def create_instance(self, instance_id: str, attr=None) -> Resource:
         from backend.flow.models import FlowTree
 
-        resource, instance = cls.create_model_instance(FlowTree, instance_id, attr)
-        resource.attribute.update(_bk_iam_path_=cls.get_bk_iam_path(instance))
+        resource, instance = self.create_model_instance(FlowTree, instance_id, attr)
+        resource.attribute.update(_bk_iam_path_=self.get_bk_iam_path(instance))
         return resource
 
-    @classmethod
-    def batch_create_instances(cls, instance_ids: list, attr=None) -> List[Resource]:
+    def batch_create_instances(self, instance_ids: list, attr=None) -> List[Resource]:
         from backend.flow.models import FlowTree
 
-        resources = [item[0] for item in cls.batch_create_with_iam_path(FlowTree, instance_ids, attr=attr)]
+        resources = [item[0] for item in self.batch_create_with_iam_path(FlowTree, instance_ids, attr=attr)]
         return resources
 
-    @classmethod
-    def get_bk_iam_path(cls, instance):
+    def get_bk_iam_path(self, instance):
         biz_topo = "/{},{}".format(BusinessResourceMeta.id, instance.bk_biz_id)
         group_topo = "/{},{}".format(TicketGroupResourceMeta.id, instance.db_type or "other")
         slash = "/"
         return biz_topo + group_topo + slash
 
-    @classmethod
-    def resource_type_chain(cls):
+    def resource_type_chain(self):
         return [
             {"system_id": BusinessResourceMeta.system_id, "id": BusinessResourceMeta.id},
             {"system_id": TicketGroupResourceMeta.system_id, "id": TicketGroupResourceMeta.id},
-            {"system_id": cls.system_id, "id": cls.id},
+            {"system_id": self.system_id, "id": self.id},
         ]
 
 
@@ -275,36 +261,32 @@ class TicketResourceMeta(ResourceMeta):
     display_fields: list = ResourceMeta.Field(["id"])
     attribute: str = "creator"
     attribute_display: str = _("创建者")
-    parent: ResourceMeta = BusinessResourceMeta()
+    parent: ResourceMeta = field(default_factory=BusinessResourceMeta)
 
-    @classmethod
-    def create_instance(cls, instance_id: str, attr=None) -> Resource:
+    def create_instance(self, instance_id: str, attr=None) -> Resource:
         from backend.ticket.models import Ticket
 
-        resource, instance = cls.create_model_instance(Ticket, instance_id, attr)
-        resource.attribute.update(_bk_iam_path_=cls.get_bk_iam_path(instance))
+        resource, instance = self.create_model_instance(Ticket, instance_id, attr)
+        resource.attribute.update(_bk_iam_path_=self.get_bk_iam_path(instance))
         return resource
 
-    @classmethod
-    def batch_create_instances(cls, instance_ids: list, attr=None) -> List[Resource]:
+    def batch_create_instances(self, instance_ids: list, attr=None) -> List[Resource]:
         from backend.ticket.models import Ticket
 
-        resources = [item[0] for item in cls.batch_create_with_iam_path(Ticket, instance_ids, attr=attr)]
+        resources = [item[0] for item in self.batch_create_with_iam_path(Ticket, instance_ids, attr=attr)]
         return resources
 
-    @classmethod
-    def get_bk_iam_path(cls, instance):
+    def get_bk_iam_path(self, instance):
         biz_topo = "/{},{}".format(BusinessResourceMeta.id, instance.bk_biz_id)
         group_topo = "/{},{}".format(TicketGroupResourceMeta.id, instance.group or "other")
         slash = "/"
         return biz_topo + group_topo + slash
 
-    @classmethod
-    def resource_type_chain(cls):
+    def resource_type_chain(self):
         return [
             {"system_id": BusinessResourceMeta.system_id, "id": BusinessResourceMeta.id},
             {"system_id": TicketGroupResourceMeta.system_id, "id": TicketGroupResourceMeta.id},
-            {"system_id": cls.system_id, "id": cls.id},
+            {"system_id": self.system_id, "id": self.id},
         ]
 
 
@@ -321,20 +303,18 @@ class ClusterResourceMeta(ResourceMeta):
     display_fields: list = ResourceMeta.Field(["immute_domain"])
     attribute: str = "creator"
     attribute_display: str = _("创建者")
-    parent: ResourceMeta = BusinessResourceMeta()
+    parent: ResourceMeta = field(default_factory=BusinessResourceMeta)
 
-    @classmethod
-    def create_instance(cls, instance_id: str, attr=None) -> Resource:
+    def create_instance(self, instance_id: str, attr=None) -> Resource:
         from backend.db_meta.models.cluster import Cluster
 
-        resource, __ = cls.create_model_instance(Cluster, instance_id, attr)
+        resource, __ = self.create_model_instance(Cluster, instance_id, attr)
         return resource
 
-    @classmethod
-    def batch_create_instances(cls, instance_ids: list, attr=None) -> List[Resource]:
+    def batch_create_instances(self, instance_ids: list, attr=None) -> List[Resource]:
         from backend.db_meta.models.cluster import Cluster
 
-        resources = [item[0] for item in cls.batch_create_model_instances(Cluster, instance_ids, attr=attr)]
+        resources = [item[0] for item in self.batch_create_model_instances(Cluster, instance_ids, attr=attr)]
         return resources
 
 
@@ -443,18 +423,16 @@ class InstanceResourceMeta(ClusterResourceMeta):
     # 实例默认展示字段为ip:port
     display_fields: list = ResourceMeta.Field(["ip_port"])
 
-    @classmethod
-    def create_instance(cls, instance_id: str, attr=None) -> Resource:
+    def create_instance(self, instance_id: str, attr=None) -> Resource:
         from backend.db_meta.models.instance import StorageInstance
 
-        resource, __ = cls.create_model_instance(StorageInstance, instance_id, attr)
+        resource, __ = self.create_model_instance(StorageInstance, instance_id, attr)
         return resource
 
-    @classmethod
-    def batch_create_instances(cls, instance_ids: list, attr=None) -> List[Resource]:
+    def batch_create_instances(self, instance_ids: list, attr=None) -> List[Resource]:
         from backend.db_meta.models.instance import StorageInstance
 
-        resources = [item[0] for item in cls.batch_create_model_instances(StorageInstance, instance_ids, attr=attr)]
+        resources = [item[0] for item in self.batch_create_model_instances(StorageInstance, instance_ids, attr=attr)]
         return resources
 
 
@@ -479,18 +457,17 @@ class AccountResourceMeta(ResourceMeta):
     display_fields: list = ResourceMeta.Field(["user"])
     attribute: str = "creator"
     attribute_display: str = _("创建者")
-    parent: ResourceMeta = BusinessResourceMeta()
+    parent: ResourceMeta = field(default_factory=BusinessResourceMeta)
 
-    @classmethod
-    def create_instance(cls, instance_id: str, account: dict = None, attr=None) -> Resource:
-        resource = cls._create_simple_instance(instance_id, attr)
+    def create_instance(self, instance_id: str, account: dict = None, attr=None) -> Resource:
+        resource = self._create_simple_instance(instance_id, attr)
         # 根据账号ID查询单个账号
         instance = account or DBPrivManagerApi.get_account(params={"ids": [int(instance_id)]})["results"][0]
         # 更新resource的attribute，id和name
-        _bk_iam_path_ = "/{},{}/".format(cls.parent.id, instance[cls.parent.lookup_field])
+        _bk_iam_path_ = "/{},{}/".format(self.parent.id, instance[self.parent.lookup_field])
         resource.attribute.update(
             {
-                cls.attribute: instance["creator"],
+                self.attribute: instance["creator"],
                 "id": instance["id"],
                 "name": instance["user"],
                 "_bk_iam_path_": _bk_iam_path_,
@@ -498,14 +475,13 @@ class AccountResourceMeta(ResourceMeta):
         )
         return resource
 
-    @classmethod
-    def batch_create_instances(cls, instance_ids: list, attr=None) -> List[Resource]:
+    def batch_create_instances(self, instance_ids: list, attr=None) -> List[Resource]:
         # 批量查询多个账号信息
         accounts = DBPrivManagerApi.get_account(params={"ids": list(map(int, instance_ids))})["results"]
         id__account = {item["id"]: item for item in accounts}
         # 批量创建实例
         resources: List[Resource] = [
-            cls.create_instance(id, id__account[id]) for id in instance_ids if id in id__account
+            self.create_instance(id, id__account[id]) for id in instance_ids if id in id__account
         ]
         return resources
 
@@ -563,10 +539,9 @@ class MonitorPolicyResourceMeta(ResourceMeta):
     attribute_display: str = _("创建者")
     lookup_field: str = "id"
     display_fields: list = ResourceMeta.Field(["name"])
-    parent: ResourceMeta = BusinessResourceMeta()
+    parent: ResourceMeta = field(default_factory=BusinessResourceMeta)
 
-    @classmethod
-    def get_bk_iam_path(cls, instance):
+    def get_bk_iam_path(self, instance):
         # TODO: 拓扑结构目前是/{resource_type},{resource_id}/
         biz_topo = "/{},{}".format(BusinessResourceMeta.id, instance.bk_biz_id)
         dbtype_topo = "/{},{}".format(DBTypeResourceMeta.id, instance.db_type)
@@ -576,27 +551,24 @@ class MonitorPolicyResourceMeta(ResourceMeta):
         else:
             return biz_topo + dbtype_topo + slash
 
-    @classmethod
-    def create_instance(cls, instance_id: str, attr=None) -> Resource:
+    def create_instance(self, instance_id: str, attr=None) -> Resource:
         from backend.db_monitor.models.alarm import MonitorPolicy
 
-        resource, instance = cls.create_model_instance(MonitorPolicy, instance_id, attr)
-        resource.attribute.update(_bk_iam_path_=cls.get_bk_iam_path(instance))
+        resource, instance = self.create_model_instance(MonitorPolicy, instance_id, attr)
+        resource.attribute.update(_bk_iam_path_=self.get_bk_iam_path(instance))
         return resource
 
-    @classmethod
-    def batch_create_instances(cls, instance_ids: list, attr=None) -> List[Resource]:
+    def batch_create_instances(self, instance_ids: list, attr=None) -> List[Resource]:
         from backend.db_monitor.models.alarm import MonitorPolicy
 
-        resources = [item[0] for item in cls.batch_create_with_iam_path(MonitorPolicy, instance_ids, attr=attr)]
+        resources = [item[0] for item in self.batch_create_with_iam_path(MonitorPolicy, instance_ids, attr=attr)]
         return resources
 
-    @classmethod
-    def resource_type_chain(cls):
+    def resource_type_chain(self):
         return [
             {"system_id": BusinessResourceMeta.system_id, "id": BusinessResourceMeta.id},
             {"system_id": DBTypeResourceMeta.system_id, "id": DBTypeResourceMeta.id},
-            {"system_id": cls.system_id, "id": cls.id},
+            {"system_id": self.system_id, "id": self.id},
         ]
 
 
@@ -608,15 +580,14 @@ class GlobalMonitorPolicyResourceMeta(MonitorPolicyResourceMeta):
     select_id: str = "global_monitor_policy"
     name: str = _("全局监控策略")
 
-    @classmethod
-    def instance_selection(cls):
+    def instance_selection(self):
         return {
-            "id": f"{cls.select_id}_list",
-            "name": _("{} 列表".format(cls.name)),
-            "name_en": f"{cls.select_id} list",
+            "id": f"{self.select_id}_list",
+            "name": _("{} 列表".format(self.name)),
+            "name_en": f"{self.select_id} list",
             "resource_type_chain": [
                 {"system_id": DBTypeResourceMeta.system_id, "id": DBTypeResourceMeta.id},
-                {"system_id": cls.system_id, "id": cls.id},
+                {"system_id": self.system_id, "id": self.id},
             ],
         }
 
@@ -634,10 +605,9 @@ class NotifyGroupResourceMeta(ResourceMeta):
     attribute_display: str = _("创建者")
     lookup_field: str = "id"
     display_fields: list = ResourceMeta.Field(["name"])
-    parent: ResourceMeta = BusinessResourceMeta()
+    parent: ResourceMeta = field(default_factory=BusinessResourceMeta)
 
-    @classmethod
-    def get_bk_iam_path(cls, instance):
+    def get_bk_iam_path(self, instance):
         biz_topo = "/{},{}/".format(BusinessResourceMeta.id, instance.bk_biz_id)
         dbtype_topo = "/{},{}/".format(DBTypeResourceMeta.id, instance.db_type)
         if not instance.bk_biz_id:
@@ -645,12 +615,11 @@ class NotifyGroupResourceMeta(ResourceMeta):
         else:
             return biz_topo
 
-    @classmethod
-    def create_instance(cls, instance_id: str, attr=None) -> Resource:
+    def create_instance(self, instance_id: str, attr=None) -> Resource:
         from backend.db_monitor.models.alarm import NoticeGroup
 
-        resource, instance = cls.create_model_instance(NoticeGroup, instance_id, attr)
-        resource.attribute.update(_bk_iam_path_=cls.get_bk_iam_path(instance))
+        resource, instance = self.create_model_instance(NoticeGroup, instance_id, attr)
+        resource.attribute.update(_bk_iam_path_=self.get_bk_iam_path(instance))
         return resource
 
 
@@ -662,15 +631,14 @@ class GlobalNotifyGroupResourceMeta(NotifyGroupResourceMeta):
     select_id: str = "global_notify_group"
     name: str = _("全局告警组")
 
-    @classmethod
-    def instance_selection(cls):
+    def instance_selection(self):
         return {
-            "id": f"{cls.select_id}_list",
-            "name": _("{} 列表".format(cls.name)),
-            "name_en": f"{cls.select_id} list",
+            "id": f"{self.select_id}_list",
+            "name": _("{} 列表".format(self.name)),
+            "name_en": f"{self.select_id} list",
             "resource_type_chain": [
                 {"system_id": DBTypeResourceMeta.system_id, "id": DBTypeResourceMeta.id},
-                {"system_id": cls.system_id, "id": cls.id},
+                {"system_id": self.system_id, "id": self.id},
             ],
         }
 
@@ -688,13 +656,12 @@ class OpenareaConfigResourceMeta(ResourceMeta):
     attribute_display: str = _("创建者")
     lookup_field: str = "id"
     display_fields: list = ResourceMeta.Field(["cluster_type", "config_name"])
-    parent: ResourceMeta = BusinessResourceMeta()
+    parent: ResourceMeta = field(default_factory=BusinessResourceMeta)
 
-    @classmethod
-    def create_instance(cls, instance_id: str, attr=None) -> Resource:
+    def create_instance(self, instance_id: str, attr=None) -> Resource:
         from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
 
-        resource, __ = cls.create_model_instance(TendbOpenAreaConfig, instance_id, attr)
+        resource, __ = self.create_model_instance(TendbOpenAreaConfig, instance_id, attr)
         return resource
 
 
@@ -711,13 +678,12 @@ class DumperSubscribeConfigResourceMeta(ResourceMeta):
     attribute_display: str = _("创建者")
     lookup_field: str = "id"
     display_fields: list = ResourceMeta.Field(["name"])
-    parent: ResourceMeta = BusinessResourceMeta()
+    parent: ResourceMeta = field(default_factory=BusinessResourceMeta)
 
-    @classmethod
-    def create_instance(cls, instance_id: str, attr=None) -> Resource:
+    def create_instance(self, instance_id: str, attr=None) -> Resource:
         from backend.db_services.mysql.dumper.models import DumperSubscribeConfig
 
-        resource, __ = cls.create_model_instance(DumperSubscribeConfig, instance_id, attr)
+        resource, __ = self.create_model_instance(DumperSubscribeConfig, instance_id, attr)
         return resource
 
 

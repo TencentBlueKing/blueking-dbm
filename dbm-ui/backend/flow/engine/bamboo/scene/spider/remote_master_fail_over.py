@@ -11,7 +11,7 @@ import copy
 import logging
 from typing import Any, Dict, List
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.spider.remote_master_slave_swtich import RemoteMasterSlaveSwitchFlow

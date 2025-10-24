@@ -12,7 +12,7 @@ from bkstorages.backends.bkrepo import BKRepoStorage
 from django.db.models import OuterRef, Subquery
 from django.db.models.functions import Coalesce
 from django.http import JsonResponse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response

@@ -288,7 +288,7 @@ class MySQLController(BaseController):
 
         truncate_data_type 为枚举的 value
 
-        class TruncateDataTypeEnum(str, StructuredEnum):
+        class TruncateDataTypeEnum(StrStructuredEnum):
             TRUNCATE_TABLE = EnumField('truncate_table', _('truncate_table'))
             DROP_DATABASE = EnumField('drop_database', _('drop_database'))
             DROP_TABLE = EnumField('drop_table', _('drop_table'))
@@ -530,7 +530,7 @@ class MySQLController(BaseController):
 
         truncate_data_type 为枚举的 value
 
-        class TruncateDataTypeEnum(str, StructuredEnum):
+        class TruncateDataTypeEnum(StrStructuredEnum):
             TRUNCATE_TABLE = EnumField('truncate_table', _('truncate_table'))
             DROP_DATABASE = EnumField('drop_database', _('drop_database'))
             DROP_TABLE = EnumField('drop_table', _('drop_table'))

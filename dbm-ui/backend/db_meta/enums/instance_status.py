@@ -10,10 +10,10 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import gettext_lazy as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
-class InstanceStatus(str, StructuredEnum):
+class InstanceStatus(StrStructuredEnum):
     RUNNING = EnumField("running", _("running"))
     UNAVAILABLE = EnumField("unavailable", _("unavailable"))
     RESTORING = EnumField("restoring", _("restoring"))

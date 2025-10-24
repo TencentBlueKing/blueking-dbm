@@ -13,7 +13,7 @@ import math
 import time
 from typing import List
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components import CCApi
 from backend.components.dbresource.client import DBResourceApi

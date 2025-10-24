@@ -20,7 +20,7 @@ from django.utils.translation import gettext_lazy as _
 from backend import env
 from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole, MachineType, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, ClusterEntry, ProxyInstance, StorageInstance
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
 @dataclass
@@ -133,12 +133,12 @@ class Group:
             self.children_id.append(node.node_id)
 
 
-class LineEndpointType(StructuredEnum):
+class LineEndpointType(StrStructuredEnum):
     Node = EnumField("node", _("node"))
     Group = EnumField("group", _("group"))
 
 
-class LineLabel(StructuredEnum):
+class LineLabel(StrStructuredEnum):
     Rep = EnumField("rep", _("同步"))
     Access = EnumField("access", _("访问"))
     Bind = EnumField("bind", _("绑定"))
@@ -146,7 +146,7 @@ class LineLabel(StructuredEnum):
     ReadWrite = EnumField("readwrite", _("读写"))
 
 
-class GroupNameType(StructuredEnum):
+class GroupNameType(StrStructuredEnum):
     DNS = EnumField("dns", _("主域名"))
     CLB = EnumField("clb", _("CLB IP"))
     POLARIS = EnumField("polaris", _("北极星"))
@@ -181,7 +181,7 @@ class Line:
         super(Line, self).__init__()
 
 
-class ForeignRelationType(StructuredEnum):
+class ForeignRelationType(StrStructuredEnum):
     RepTo = EnumField("rep_to", _("同步到其他集群"))
     RepFrom = EnumField("rep_from", _("从其他集群同步"))
     AccessTo = EnumField("access_to", _("访问其他集群"))

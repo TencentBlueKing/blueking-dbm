@@ -13,7 +13,7 @@ import os
 from collections import defaultdict
 from typing import Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType

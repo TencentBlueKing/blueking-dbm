@@ -12,7 +12,7 @@ import datetime
 import logging
 
 from celery.schedules import crontab
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend import env
 from backend.components.mysql_partition.client import DBPartitionApi

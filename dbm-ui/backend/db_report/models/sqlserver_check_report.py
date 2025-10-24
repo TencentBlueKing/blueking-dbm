@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 
 from django.db import models
 from django.utils import timezone
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.db_meta.enums import ClusterType
 from backend.db_report.enums import ReportStateType

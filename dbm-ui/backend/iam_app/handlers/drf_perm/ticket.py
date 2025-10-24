@@ -14,7 +14,7 @@ from typing import List
 
 from bk_audit.log.models import AuditContext
 from celery import shared_task
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework.permissions import BasePermission
 
 from backend.configuration.models import DBAdministrator

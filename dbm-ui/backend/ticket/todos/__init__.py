@@ -14,14 +14,14 @@ from dataclasses import asdict, dataclass
 from typing import Callable
 
 from blueapps.account.models import User
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.constants import DEFAULT_SYSTEM_USER
 from backend.ticket.constants import TODO_RUNNING_STATUS
 from backend.ticket.exceptions import TodoDuplicateProcessException, TodoWrongOperatorException
 from backend.ticket.models import Todo
 from backend.utils.register import re_import_modules
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, IntStructuredEnum, StrStructuredEnum
 
 logger = logging.getLogger("root")
 
@@ -137,7 +137,7 @@ def register_all_todos():
     re_import_modules(path=os.path.dirname(__file__), module_path="backend.ticket.todos")
 
 
-class TodoActionType(str, StructuredEnum):
+class TodoActionType(StrStructuredEnum):
     """
     待办操作类型
     """

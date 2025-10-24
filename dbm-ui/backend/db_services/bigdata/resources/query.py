@@ -13,7 +13,7 @@ from typing import Any, Dict, List
 
 from django.db.models import Count, F, Q
 from django.forms import model_to_dict
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.models import AppCache
 from backend.db_meta.models.cluster import Cluster

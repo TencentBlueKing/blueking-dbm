@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django_filters import rest_framework as filters
 
 from backend.configuration.models import DBAdministrator
@@ -59,7 +59,7 @@ class RiskMemoListFilter(filters.FilterSet):
             assists = DBAdministrator.objects.filter(users__0=user).values("bk_biz_id", "db_type", "users")
 
         if not assists:
-            # 如果 assists 为空，返回空查询集
+            # 如果 assists 为空 返回空查询集
             return queryset.none()
 
         for assist in assists:

@@ -13,7 +13,7 @@ import time
 from dataclasses import asdict
 from typing import List
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from ...db_monitor.dataclass import MonitorEvent
 from ..base import BaseApi

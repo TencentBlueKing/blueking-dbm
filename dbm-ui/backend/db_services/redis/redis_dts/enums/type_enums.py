@@ -10,10 +10,10 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import gettext_lazy as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
-class DtsBillType(str, StructuredEnum):
+class DtsBillType(StrStructuredEnum):
     """
     DTS单据类型
     """
@@ -24,7 +24,7 @@ class DtsBillType(str, StructuredEnum):
     REDIS_CLUSTER_ROLLBACK_DATA_COPY = EnumField("REDIS_CLUSTER_ROLLBACK_DATA_COPY", _("集群回档数据回写"))
 
 
-class DtsCopyType(str, StructuredEnum):
+class DtsCopyType(StrStructuredEnum):
     """
     DTS数据复制类型(此时 dts_bill_type=REDIS_CLUSTER_DATA_COPY)
     """
@@ -36,7 +36,7 @@ class DtsCopyType(str, StructuredEnum):
     COPY_FROM_ROLLBACK_INSTANCE = EnumField("copy_from_rollback_instance", _("构造实例至业务内"))
 
 
-class DtsWriteMode(str, StructuredEnum):
+class DtsWriteMode(StrStructuredEnum):
     """
     写入模式
     """
@@ -48,7 +48,7 @@ class DtsWriteMode(str, StructuredEnum):
     FLUSHALL_AND_WRITE_TO_REDIS = EnumField("flushall_and_write_to_redis", _("先清空目标集群所有数据,在写入(如flushall + hset $key)"))
 
 
-class ExecuteMode(str, StructuredEnum):
+class ExecuteMode(StrStructuredEnum):
     """
     执行模式
     """
@@ -57,14 +57,14 @@ class ExecuteMode(str, StructuredEnum):
     SCHEDULED_EXECUTION = EnumField("scheduled_execution", _("定时执行"))
 
 
-class DtsOnlineSwitchType(str, StructuredEnum):
+class DtsOnlineSwitchType(StrStructuredEnum):
     """DTS在线切换类型"""
 
     NO_CONFIRM = EnumField("no_confirm", _("自动切换"))
     USER_CONFIRM = EnumField("user_confirm", _("用户确认切换"))
 
 
-class DtsSyncDisconnType(str, StructuredEnum):
+class DtsSyncDisconnType(StrStructuredEnum):
     """
     同步断开类型
     """
@@ -73,7 +73,7 @@ class DtsSyncDisconnType(str, StructuredEnum):
     KEEP_SYNC_WITH_REMINDER = EnumField("keep_sync_with_reminder", _("复制完成后保持同步关系，定时发送断开同步提醒"))
 
 
-class DtsSyncDisconnReminderFreq(str, StructuredEnum):
+class DtsSyncDisconnReminderFreq(StrStructuredEnum):
     """
     Dts复制同步提醒频率
     """
@@ -82,7 +82,7 @@ class DtsSyncDisconnReminderFreq(str, StructuredEnum):
     ONCE_WEEKLY = EnumField("once_weekly", _("每周一次"))
 
 
-class DtsDataCheckType(str, StructuredEnum):
+class DtsDataCheckType(StrStructuredEnum):
     """
     数据校验修复类型
     """
@@ -92,7 +92,7 @@ class DtsDataCheckType(str, StructuredEnum):
     NO_CHECK_NO_REPAIR = EnumField("no_check_no_repair", _("不校验不修复"))
 
 
-class DtsDataCheckFreq(str, StructuredEnum):
+class DtsDataCheckFreq(StrStructuredEnum):
     """
     Dts数据校验修复频率
     """
@@ -102,7 +102,7 @@ class DtsDataCheckFreq(str, StructuredEnum):
     ONCE_WEEKLY = EnumField("once_weekly", _("每周一次"))
 
 
-class DtsDataRepairMode(str, StructuredEnum):
+class DtsDataRepairMode(StrStructuredEnum):
     """
     Dts数据修复模式
     """
@@ -111,7 +111,7 @@ class DtsDataRepairMode(str, StructuredEnum):
     MANUAL_CONFIRM = EnumField("manual_confirm", _("用户确认"))
 
 
-class TimeoutVars(str, StructuredEnum):
+class TimeoutVars(StrStructuredEnum):
     """
     超时时间
     """
@@ -125,7 +125,7 @@ class TimeoutVars(str, StructuredEnum):
     ONE_WEEK = EnumField("1week", _("1周"))
 
 
-class DtsSyncStatus(str, StructuredEnum):
+class DtsSyncStatus(StrStructuredEnum):
     """
     数据sync 状态
     """

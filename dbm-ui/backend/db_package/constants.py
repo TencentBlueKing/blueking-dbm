@@ -10,17 +10,17 @@ specific language governing permissions and limitations under the License.
 """
 import re
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.configuration.constants import DBType
 from backend.flow.consts import MediumEnum
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 DB_PACKAGE_TAG = "db_package"
 PARSE_FILE_EXT = re.compile(r"^.*?[.](?P<ext>tar\.gz|tar\.bz2|\w+)$")
 
 
-class PackageMode(str, StructuredEnum):
+class PackageMode(StrStructuredEnum):
     """包模式枚举"""
 
     USER = EnumField("user", _("用户定义"))

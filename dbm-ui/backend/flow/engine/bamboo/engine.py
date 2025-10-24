@@ -17,7 +17,7 @@ from bamboo_engine import api, builder, states
 from bamboo_engine.api import EngineAPIResult
 from bamboo_engine.builder import Data
 from bamboo_engine.eri import NodeType
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from pipeline.eri.models import State
 from pipeline.eri.runtime import BambooDjangoRuntime
 

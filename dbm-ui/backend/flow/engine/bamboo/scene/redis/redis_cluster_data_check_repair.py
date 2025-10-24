@@ -14,7 +14,7 @@ from dataclasses import asdict
 from datetime import datetime, timezone
 
 from django.db.models import Q
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceStatus

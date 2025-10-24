@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 import logging
 from types import FunctionType
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework import permissions
 from rest_framework.request import Request
 

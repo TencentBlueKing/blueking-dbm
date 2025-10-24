@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import copy
 from typing import Dict, List
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder, SubProcess

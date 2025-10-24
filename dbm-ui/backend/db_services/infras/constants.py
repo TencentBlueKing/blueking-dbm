@@ -10,10 +10,10 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import gettext_lazy as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
-class InventoryTag(str, StructuredEnum):
+class InventoryTag(StrStructuredEnum):
     """库存标签枚举"""
 
     INSUFFICIENT = EnumField("insufficient", _("不足"))

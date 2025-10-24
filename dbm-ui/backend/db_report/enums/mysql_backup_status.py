@@ -10,10 +10,10 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import gettext_lazy as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
-class MysqlBackupStatus(str, StructuredEnum):
+class MysqlBackupStatus(StrStructuredEnum):
     Failed = EnumField("failed", _("失败"))
     Success = EnumField("success", _("成功"))
     Running = EnumField("running", _("备份中"))

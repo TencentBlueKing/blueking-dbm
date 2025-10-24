@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 import os
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.db_services.mysql.sql_import.constants import BKREPO_SQLFILE_PATH, SQLExecuteTicketMode
 from backend.db_services.mysql.sql_import.handlers import SQLHandler

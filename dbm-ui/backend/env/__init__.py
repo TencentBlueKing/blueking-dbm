@@ -87,6 +87,9 @@ BKAPP_BKVISION_APIGW_URL = get_type_env(key="BKAPP_BKVISION_APIGW_URL", _type=st
 
 ENVIRONMENT = get_type_env(key="BKPAAS_ENVIRONMENT", default="prod", _type=str)
 
+# 跨域信任请求源
+CSRF_TRUSTED_ORIGINS = get_type_env(key="CSRF_TRUSTED_ORIGINS", _type=list, default=[])
+
 # SaaS访问地址，用于用户访问/第三方应用跳转/Iframe/Grafana 等场景
 BK_SAAS_HOST = get_type_env(key="BK_SAAS_HOST", _type=str, default="http://bk-dbm")
 # BK_SAAS_CALLBACK_URL 用于 接口回调/权限中心访问 等场景

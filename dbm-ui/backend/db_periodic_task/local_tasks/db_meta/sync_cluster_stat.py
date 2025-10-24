@@ -252,7 +252,7 @@ def sync_cluster_stat_by_cluster_type(bk_biz_id, cluster_type):
         cluster_stats = query_cluster_capacity(bk_biz_id, cluster_type)
     except Exception as e:
         logger.error("query_cluster_capacity error: %s -> %s", cluster_type, e)
-        return
+        return {}
 
     # 计算使用率
     for cluster, cap in cluster_stats.items():

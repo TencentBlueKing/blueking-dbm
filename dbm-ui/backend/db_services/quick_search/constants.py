@@ -8,12 +8,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
-class ResourceType(str, StructuredEnum):
+class ResourceType(StrStructuredEnum):
     # CLUSTER_NAME = EnumField("cluster_name", _("集群名"))
     ENTRY = EnumField("entry", _("访问入口"))
     INSTANCE = EnumField("instance", _("实例"))
@@ -22,7 +22,7 @@ class ResourceType(str, StructuredEnum):
     MACHINE = EnumField("machine", _("主机"))
 
 
-class FilterType(str, StructuredEnum):
+class FilterType(StrStructuredEnum):
     CONTAINS = EnumField("CONTAINS", _("模糊"))
     EXACT = EnumField("EXACT", _("精确"))
 

@@ -17,7 +17,7 @@ from typing import List, Tuple
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service, StaticIntervalGenerator
 

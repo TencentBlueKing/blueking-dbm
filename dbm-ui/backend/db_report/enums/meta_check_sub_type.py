@@ -10,10 +10,10 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import gettext_lazy as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
-class MetaCheckSubType(str, StructuredEnum):
+class MetaCheckSubType(StrStructuredEnum):
     InstanceBelong = EnumField("instance_belong", _("实例集群归属"))
     ReplicateRole = EnumField("replicate_role", _("数据同步实例角色"))
     ClusterTopo = EnumField("cluster_topo", _("集群结构"))

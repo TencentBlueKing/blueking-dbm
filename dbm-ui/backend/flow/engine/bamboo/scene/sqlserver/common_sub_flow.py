@@ -12,7 +12,7 @@ from dataclasses import asdict
 from pathlib import PureWindowsPath
 from typing import List
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend import env
 from backend.configuration.constants import DBType

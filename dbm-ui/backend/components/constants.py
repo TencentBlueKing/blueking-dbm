@@ -11,13 +11,13 @@ specific language governing permissions and limitations under the License.
 
 from django.utils.translation import gettext_lazy as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 SSL_KEY = "DBM_SSL"
 CLIENT_CRT_PATH = "backend/components/conf/ssl"
 
 
-class SSLEnum(str, StructuredEnum):
+class SSLEnum(StrStructuredEnum):
     SERVER_CRT = EnumField("server.crt", _("服务器证书文件"))
     SERVER_KEY = EnumField("server.key", _("服务器私钥"))
     CLIENT_CRT = EnumField("client.crt", _("客户端证书文件"))

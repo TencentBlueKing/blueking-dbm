@@ -12,7 +12,7 @@ from typing import Any, Callable, Dict, List
 
 from django.db.models import F, Prefetch, Q, QuerySet, Value
 from django.forms import model_to_dict
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.api.cluster.tendbcluster.detail import scan_cluster

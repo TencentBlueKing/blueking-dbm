@@ -13,7 +13,7 @@ import ipaddress
 import re
 from typing import Dict, List
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import AffinityEnum
 from backend.db_meta.models import Cluster

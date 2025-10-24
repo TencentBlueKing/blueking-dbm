@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 
 import base64
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components import DBPrivManagerApi
 from backend.db_meta.models import Cluster

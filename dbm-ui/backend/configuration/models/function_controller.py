@@ -9,14 +9,14 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.db import models
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
-class CustomFuncNameEnum(str, StructuredEnum):
+class CustomFuncNameEnum(StrStructuredEnum):
     BigData = EnumField("bigdata", _("大数据"))
     ToolBox = EnumField("toolbox", _("工具箱"))
     TenDBClusterToolBox = EnumField("tendbcluster_toolbox", _("TenDBCluster 工具箱"))

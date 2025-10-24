@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from typing import Any, Dict, Optional
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.components import JobApi
 from backend.utils.md5 import count_md5

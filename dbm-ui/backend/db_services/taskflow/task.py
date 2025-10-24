@@ -17,7 +17,7 @@ from bamboo_engine.api import EngineAPIResult
 from celery import shared_task
 from django.conf import settings
 from django.db import transaction
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from pipeline.eri.models import (
     CallbackData,
     ContextOutputs,

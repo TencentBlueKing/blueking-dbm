@@ -14,10 +14,10 @@ from typing import Any, Callable, Optional, Union
 import wrapt
 from django.utils.crypto import get_random_string
 
-from blue_krill.data_types.enum import StructuredEnum
+from blue_krill.data_types.enum import StrStructuredEnum
 
 
-class MockReturnType(StructuredEnum):
+class MockReturnType(StrStructuredEnum):
 
     RETURN_VALUE = ("return_value", "直接返回指定data")
     SIDE_EFFECT = ("side_effect", "返回可调用函数")

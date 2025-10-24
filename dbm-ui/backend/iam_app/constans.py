@@ -11,12 +11,12 @@ specific language governing permissions and limitations under the License.
 
 from django.utils.translation import gettext as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 MAX_ACTION_NAME_LEN = 32
 
 
-class CommonActionLabel(str, StructuredEnum):
+class CommonActionLabel(StrStructuredEnum):
     BIZ_READ_ONLY = EnumField("biz_read_only", _("业务只读"))
     BIZ_MAINTAIN = EnumField("biz_maintain", _("业务运维"))
     EXTERNAL_DEVELOPER = EnumField("external_developer", _("外部开发商专用"))

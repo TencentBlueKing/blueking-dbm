@@ -10,10 +10,10 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import gettext_lazy as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
-class InstancePhase(str, StructuredEnum):
+class InstancePhase(StrStructuredEnum):
     # instance实际可能存在的phase状态
     ONLINE = EnumField("online", _("正常"))
     OFFLINE = EnumField("offline", _("下架"))

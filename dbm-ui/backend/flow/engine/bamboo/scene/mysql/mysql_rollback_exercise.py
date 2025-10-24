@@ -15,7 +15,7 @@ from typing import Dict, Optional
 
 from django.db.models import Q
 from django.utils.crypto import get_random_string
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components.dbresource.client import DBResourceApi
 from backend.configuration.constants import MYSQL_DATA_RESTORE_TIME, DBType

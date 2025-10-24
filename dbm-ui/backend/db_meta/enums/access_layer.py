@@ -10,10 +10,10 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import gettext_lazy as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
-class AccessLayer(str, StructuredEnum):
+class AccessLayer(StrStructuredEnum):
     PROXY = EnumField("proxy", _("proxy"))
     STORAGE = EnumField("storage", _("storage"))
     CONFIG = EnumField("config", _("config"))

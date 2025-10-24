@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from celery.schedules import crontab
 from django.utils.decorators import method_decorator
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 from rest_framework.decorators import action

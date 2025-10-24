@@ -12,7 +12,7 @@ import copy
 from dataclasses import asdict
 
 from django.db.models import Q
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.db_meta.models import StorageInstance
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder

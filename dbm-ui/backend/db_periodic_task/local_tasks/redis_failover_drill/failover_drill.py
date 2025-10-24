@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from copy import deepcopy
 from typing import Dict, List
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.exceptions import ClusterNotExistException
