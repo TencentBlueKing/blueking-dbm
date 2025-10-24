@@ -24,10 +24,11 @@
         </template>
       </template>
       <PrimaryTable
+        class="dynamic-table-main"
         :data="tableData"
-        header-row-class-name="dynamic-table-head"
         :max-height="485"
         :pagination="pagination"
+        resizable
         @page-change="handlePageChange">
         <template #empty>
           <slot name="empty">
@@ -43,7 +44,9 @@
           :col-key="item.name"
           ellipsis
           ellipsis-title
-          :title="item.display_name">
+          resizable
+          :title="item.display_name"
+          :width="getColumnMinWidth(item.name)">
           <template #default="{ row }: { row: ReportInfo['results'][number] }">
             <template v-if="item.format === 'status'">
               <!-- 兼容旧状态，需要保留 -->
@@ -155,10 +158,31 @@
       stateCountsMap.value = result.state_count;
       pagination.total = result.count;
       tableName.value = result.name;
-      titleList.value = result.title;
+      const rawTitleList = result.title;
+      const failedDaysIndex = rawTitleList.findIndex((item) => item.name === 'failed_days');
+      const msgIndex = rawTitleList.findIndex((item) => item.name === 'msg');
+      if (failedDaysIndex !== -1 && msgIndex !== -1) {
+        [rawTitleList[failedDaysIndex], rawTitleList[msgIndex]] = [
+          rawTitleList[msgIndex],
+          rawTitleList[failedDaysIndex],
+        ];
+      }
+      titleList.value = rawTitleList;
       tableData.value = result.results;
     },
   });
+
+  const getColumnMinWidth = (name: string) => {
+    if (['bk_biz_id', 'cluster_type', 'failed_days', 'state', 'status'].includes(name)) {
+      return 80;
+    }
+
+    if (name === 'msg') {
+      return 220;
+    }
+
+    return 150;
+  };
 
   const getStateTheme = (state: string) => {
     let theme = 'default';
@@ -249,6 +273,11 @@
 
   defineExpose<Exposes>({
     async getExportExcelSheetData() {
+      const searchParams = _.cloneDeep(props.searchParams);
+      if (searchParams.isOnlyAbnormal === 'true') {
+        searchParams.state__in = 'warning,abnormal';
+      }
+      delete searchParams.isOnlyAbnormal;
       const {
         name: fileName,
         results,
@@ -258,8 +287,9 @@
         {
           limit: -1,
           offset: 0,
+          ordering: '-failed_days,-create_at',
           platform: props.isPlatform,
-          ...props.searchParams,
+          ...searchParams,
         },
         {
           permission: 'page',
@@ -298,9 +328,19 @@
     & ~ .render-dynamic-table {
       margin-top: 16px;
     }
-  }
 
-  .dynamic-table-head {
-    background-color: #fafbfd;
+    .dynamic-table-main {
+      .t-table__header {
+        th {
+          background-color: #fafbfd;
+          border-top: none !important;
+          border-right: none !important;
+
+          &:hover {
+            background-color: #eaebf0;
+          }
+        }
+      }
+    }
   }
 </style>
