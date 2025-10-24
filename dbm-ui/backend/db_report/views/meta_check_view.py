@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-
 import logging
 
 from django.utils.translation import gettext as _
@@ -28,7 +27,19 @@ logger = logging.getLogger("root")
 class MetaCheckReportSerializer(serializers.ModelSerializer, ReportCommonFieldSerializerMixin):
     class Meta:
         model = MetaCheckReport
-        fields = ("bk_biz_id", "cluster", "ip", "port", "machine_type", "status", "msg", "create_at", "dba")
+        fields = (
+            "bk_biz_id",
+            "cluster",
+            "ip",
+            "port",
+            "machine_type",
+            "status",
+            "msg",
+            "create_at",
+            "dba",
+            "failed_days",
+            "state",
+        )
         swagger_schema_fields = {"example": mock_data.META_CHECK_DATA}
 
 
@@ -69,6 +80,11 @@ class MetaCheckReportBaseViewSet(ReportBaseViewSet):
         {
             "name": "status",
             "display_name": _("元数据状态"),
+            "format": ReportFieldFormat.STATUS.value,
+        },
+        {
+            "name": "state",
+            "display_name": _("元数据状态(新)"),
             "format": ReportFieldFormat.STATUS.value,
         },
         {
