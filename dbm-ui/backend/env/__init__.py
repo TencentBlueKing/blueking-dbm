@@ -17,6 +17,7 @@ from .bkrepo import *  # pylint: disable=wildcard-import
 from .dev import *  # pylint: disable=wildcard-import
 from .nameservice import *  # pylint: disable=wildcard-import
 from .sync_meta import *  # pylint: disable=wildcard-import
+from .tools import *  # pylint: disable=wildcard-import
 
 APP_CODE = get_type_env(key="APP_ID", default="bk-dbm", _type=str)
 SECRET_KEY = get_type_env(key="APP_TOKEN", default="xxxx", _type=str)
@@ -91,7 +92,7 @@ ENVIRONMENT = get_type_env(key="BKPAAS_ENVIRONMENT", default="prod", _type=str)
 CSRF_TRUSTED_ORIGINS = get_type_env(key="CSRF_TRUSTED_ORIGINS", _type=list, default=[])
 
 # SaaS访问地址，用于用户访问/第三方应用跳转/Iframe/Grafana 等场景
-BK_SAAS_HOST = get_type_env(key="BK_SAAS_HOST", _type=str, default="http://bk-dbm")
+BK_SAAS_HOST = get_type_env(key="BK_SAAS_HOST", _type=str, default="http://bk-dbm.example.com")
 # BK_SAAS_CALLBACK_URL 用于 接口回调/权限中心访问 等场景
 # 通常因证书问题，这里需要使用 http
 BK_SAAS_CALLBACK_URL = get_type_env(key="BK_SAAS_CALLBACK_URL", _type=str, default="") or BK_SAAS_HOST.replace(
@@ -110,6 +111,8 @@ BK_SCR_URL = get_type_env(key="BK_SCR_URL", _type=str, default="http://scr.examp
 BK_HCM_URL = get_type_env(key="BK_HCM_URL", _type=str, default="")
 BK_SOPS_URL = get_type_env(key="BK_SOPS_HOST", _type=str, default=None)
 BK_HELPER_URL = get_type_env(key="BK_HELPER_URL", _type=str, default=None)
+BK_AIDEV_URL = get_type_env(key="BK_AIDEV_URL", _type=str, default=None)
+
 # 北极星服务
 POLARIS_URL = get_type_env(key="POLARIS_URL", _type=str, default="http://polaris.example.com")
 

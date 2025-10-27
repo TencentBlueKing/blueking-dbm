@@ -15,7 +15,13 @@ from backend import env
 from backend.configuration.constants import SQLSERVER_ADMIN_USER
 from backend.db_meta.enums import MachineType
 from backend.db_services.version.constants import SqlserverVersion
-from blue_krill.data_types.enum import EnumField, IntStructuredEnum, StrStructuredEnum, StructuredEnum
+from blue_krill.data_types.enum import (
+    EnumField,
+    FloatStructuredEnum,
+    IntStructuredEnum,
+    ListStructuredEnum,
+    StrStructuredEnum,
+)
 
 GenerateAndPublish = "GenerateAndPublish"
 HOST = "host"
@@ -831,7 +837,7 @@ class DBConstNumEnum(IntStructuredEnum):
     REDIS_ROLE_NUM = EnumField(2, _("redis角色数"))
 
 
-class ConfigDefaultEnum(list, StructuredEnum):
+class ConfigDefaultEnum(ListStructuredEnum):
     DATA_DIRS = EnumField(["/data", "/data1"], _("DB安装目录"))
 
 
@@ -1302,7 +1308,7 @@ class MongoDBClusterRole(StrStructuredEnum):
     Replicaset = EnumField("replicaset", _("replicaset"))
 
 
-class MongoDBTotalCache(float, StructuredEnum):
+class MongoDBTotalCache(FloatStructuredEnum):
     """
     cache占机器内存的百分比
     """
@@ -1590,7 +1596,7 @@ class MongoDBDropType(StrStructuredEnum):
     RENAME_COLLECTION = EnumField("rename_collection", _("将表暂时重命名"))
 
 
-class MongoOplogSizePercent(float, StructuredEnum):
+class MongoOplogSizePercent(FloatStructuredEnum):
     """
     oplog默认占机器磁盘的百分比
     """
