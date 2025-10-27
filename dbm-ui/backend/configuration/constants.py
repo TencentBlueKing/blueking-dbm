@@ -74,7 +74,7 @@ class AffinityEnum(str, StructuredEnum):
     SAME_SUBZONE = EnumField("SAME_SUBZONE", _("指定园区(无机架要求)"))
     CROS_SUBZONE = EnumField("CROS_SUBZONE", _("跨园区"))
     CROSS_RACK = EnumField("CROSS_RACK", _("不限园区"))
-    NONE = EnumField("NONE", _("无限制"))
+    NONE = EnumField("NONE", _("无"))
     MAX_EACH_ZONE_EQUAL = EnumField("MAX_EACH_ZONE_EQUAL", _("每个subzone尽量均匀分布"))
     # mongodb专属
     MAJORITY_ELECTION_DISTRI = EnumField("MAJORITY_ELECTION_DISTRI", _("跨园区(至少跨2个园区,mongo专属)"))
