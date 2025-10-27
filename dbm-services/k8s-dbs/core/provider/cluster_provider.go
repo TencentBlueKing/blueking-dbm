@@ -592,7 +592,9 @@ func (c *ClusterProvider) saveClusterMeta(
 		slog.Error("failed to get storage addon", "error", errMsg)
 		return nil, err
 	}
-	serviceVersion, err := coreutil.SVRFactory.GetResolver(request.StorageAddonType).Resolve(request.ComponentList)
+	serviceVersion, err := coreutil.SVRFactory.
+		GetResolver(coreconst.StorageAddonType(request.StorageAddonType)).
+		Resolve(request.ComponentList)
 	if err != nil {
 		slog.Error("failed to get serviceVersion", "error", err)
 		return nil, err

@@ -16,7 +16,7 @@ func TestCreateAddon(t *testing.T) {
 	var namespace = "vm-dbm-0000"
 	var podName = "monitor-test-vmstorage-0"
 	var params = ClusterMetricQueryParams{
-		AddonType:      coreconst.VM,
+		AddonType:      string(coreconst.Victoriametrics),
 		Namespace:      namespace,
 		JobName:        job,
 		PodName:        podName,
