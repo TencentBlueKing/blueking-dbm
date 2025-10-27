@@ -34,6 +34,7 @@ from backend.db_meta.models import (
 from backend.db_meta.models.city_map import BKSubzone
 from backend.db_services.dbbase.instances.handlers import InstanceHandler
 from backend.db_services.dbbase.resources.query_base import (
+    build_q_for_cluster_name_or_alias,
     build_q_for_domain_by_cluster,
     build_q_for_domain_by_instance,
     build_q_for_instance_filter,
@@ -523,10 +524,7 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             # 集群id
             "id": Q(id__in=query_params.get("id", "").split(",")),
             # 集群名/别名
-            "name": (
-                Q(name__in=query_params.get("name", "").split(","))
-                | Q(alias__in=query_params.get("name", "").split(","))
-            ),
+            "name": build_q_for_cluster_name_or_alias(query_params.get("name", "")),
             # 集群类型
             "cluster_type": Q(cluster_type__in=query_params.get("cluster_type", "").split(",")),
             # 版本
