@@ -96,6 +96,7 @@
   </ProxyWrapper>
 </template>
 <script lang="ts" setup>
+  import _ from 'lodash';
   import { reactive, useTemplateRef } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
@@ -190,6 +191,8 @@
 
   // 行合并
   const handleRowMerge = () => {
+    formData.tableData = [..._.sortBy(formData.tableData, (item) => item.originProxy.cluster_id)];
+
     sameClusterIdsRowsMap = {};
     formData.tableData.forEach((item) => {
       Object.assign(item, { rowspan: 1 });

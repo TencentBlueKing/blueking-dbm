@@ -94,6 +94,8 @@
     bk_idc_city_name: string;
     bk_sub_zone: string;
     ip: string;
+    // 合并行时使用
+    merge_key: string;
     related_clusters: ServiceReturnType<typeof checkInstance>[0]['related_clusters'];
     related_instances: ServiceReturnType<typeof checkInstance>;
     role: string;
@@ -172,13 +174,15 @@
       if (data.length) {
         const relatedInstances = data;
         const [hostInfo] = data;
+        const relatedClusters = _.sortBy(hostInfo.related_clusters, 'id');
         modelValue.value = {
           bk_cloud_id: hostInfo.bk_cloud_id,
           bk_host_id: hostInfo.bk_host_id,
           bk_idc_city_name: hostInfo.host_info?.bk_idc_city_name || '',
           bk_sub_zone: hostInfo.host_info?.bk_sub_zone || '',
           ip: hostInfo.ip,
-          related_clusters: _.sortBy(hostInfo.related_clusters, 'id'),
+          merge_key: relatedClusters.map((i) => i.id).join(','),
+          related_clusters: relatedClusters,
           related_instances: relatedInstances,
           role: hostInfo.role,
           spec_config: hostInfo.spec_config,
@@ -202,6 +206,7 @@
         bk_idc_city_name: '',
         bk_sub_zone: '',
         ip: value,
+        merge_key: '',
         related_clusters: [],
         related_instances: [],
         role: '',
