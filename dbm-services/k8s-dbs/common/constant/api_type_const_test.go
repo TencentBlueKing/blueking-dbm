@@ -17,31 +17,25 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package metric
+package constant
 
-// BaseMetricTags 基础标签
-type BaseMetricTags struct {
-	APIName    string
-	Method     string
-	Status     string
-	BkUserName string
-	BkAppCode  string
-	ResultCode string
-	Result     string
-}
+import (
+	"testing"
 
-// ClusterAPIMetricTags 集群 API 标签
-type ClusterAPIMetricTags struct {
-	K8sClusterName string
-	Namespace      string
-	ClusterName    string
-	BaseMetricTags
-}
+	"github.com/stretchr/testify/assert"
+)
 
-// AddonAPIMetricTags Addon API 标签
-type AddonAPIMetricTags struct {
-	K8sClusterName string
-	AddonType      string
-	AddonVersion   string
-	BaseMetricTags
+// TestGetAPIGroup 测试获取 APIGroup
+func TestGetAPIGroup(t *testing.T) {
+	apiName := "v4_dbs_cluster_vscaling"
+	actual := GetAPIGroup(apiName)
+	assert.Equal(t, APIGroupCluster, actual)
+
+	apiName = "v4_dbs_addon_install"
+	actual = GetAPIGroup(apiName)
+	assert.Equal(t, APIGroupAddon, actual)
+
+	apiName = "test_api"
+	actual = GetAPIGroup(apiName)
+	assert.Equal(t, APIGroupUnknown, actual)
 }
