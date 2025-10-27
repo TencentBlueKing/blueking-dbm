@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 
+// Package config provides configuration management for the DBHA v2 analysis module.
 package config
 
 import "time"
@@ -61,18 +62,23 @@ type DbmApi struct {
 
 // WorkflowConfig workflow's configuration
 type WorkflowConfig struct {
-	WorkerBusinessCount        int           `yaml:"workerBusinessCount"        mapstructure:"workerBusinessCount"`
-	LockBusinessWaitTimeout    time.Duration `yaml:"lockBusinessWaitTimeout"    mapstructure:"lockBusinessWaitTimeout"`
-	ScanTimeout                time.Duration `yaml:"scanTimeout"                mapstructure:"scanTimeout"`
-	ScanInterval               time.Duration `yaml:"scanInterval"               mapstructure:"scanInterval"`
-	UpdateDbmCacheInterval     time.Duration `yaml:"updateDbmCacheInterval"     mapstructure:"updateDbmCacheInterval"`
+	WorkerBusinessCount        int           `yaml:"workerBusinessCount"     mapstructure:"workerBusinessCount"`
+	LockBusinessWaitTimeout    time.Duration `yaml:"lockBusinessWaitTimeout" mapstructure:"lockBusinessWaitTimeout"`
+	ScanTimeout                time.Duration `yaml:"scanTimeout"             mapstructure:"scanTimeout"`
+	ScanInterval               time.Duration `yaml:"scanInterval"            mapstructure:"scanInterval"`
+	UpdateDbmCacheInterval     time.Duration `yaml:"updateDbmCacheInterval"  mapstructure:"updateDbmCacheInterval"`
 	ReadDbMetaOffsetDuration   time.Duration `yaml:"readDbMetaOffsetDuration"   mapstructure:"readDbMetaOffsetDuration"`
 	ReadDbMetricOffsetDuration time.Duration `yaml:"readDbMetricOffsetDuration" mapstructure:"readDbMetricOffsetDuration"`
 	ReadDbEventOffsetDuration  time.Duration `yaml:"readDbEventOffsetDuration"  mapstructure:"readDbEventOffsetDuration"`
-	DbmApiMetadata             DbmApi        `yaml:"dbmApiMetadata"             mapstructure:"dbmApiMetadata"`
-	DbmApiUpdateStatus         DbmApi        `yaml:"dbmApiUpdateStatus"         mapstructure:"dbmApiUpdateStatus"`
-	DbmApiSwapMysqlRole        DbmApi        `yaml:"dbmApiSwapMysqlRole"        mapstructure:"dbmApiSwapMysqlRole"`
-	DbmApiSwapTendisCluster    DbmApi        `yaml:"dbmApiSwapTendisCluster"    mapstructure:"dbmApiSwapTendisCluster"`
+	DbmApiMetadata             DbmApi        `yaml:"dbmApiMetadata"          mapstructure:"dbmApiMetadata"`
+	DbmApiUpdateStatus         DbmApi        `yaml:"dbmApiUpdateStatus"      mapstructure:"dbmApiUpdateStatus"`
+	DbmApiSwapMysqlRole        DbmApi        `yaml:"dbmApiSwapMysqlRole"     mapstructure:"dbmApiSwapMysqlRole"`
+	DbmApiSwapTendisCluster    DbmApi        `yaml:"dbmApiSwapTendisCluster" mapstructure:"dbmApiSwapTendisCluster"`
+	DbmApiDomainGet            DbmApi        `yaml:"dbmApiDomainGet"         mapstructure:"dbmApiDomainGet"`
+	DbmApiDomainDelete         DbmApi        `yaml:"dbmApiDomainDelete"      mapstructure:"dbmApiDomainDelete"`
+	DbmApiCLBDeregister        DbmApi        `yaml:"dbmApiCLBDeregister"     mapstructure:"dbmApiCLBDeregister"`
+	DbmApiPolarisUnbind        DbmApi        `yaml:"dbmApiPolarisUnbind"     mapstructure:"dbmApiPolarisUnbind"`
+	DbmApiDumperSwitch         DbmApi        `yaml:"dbmApiDumperSwitch"     mapstructure:"dbmApiDumperSwitch"`
 }
 
 // DetectorConfig detector's configuration

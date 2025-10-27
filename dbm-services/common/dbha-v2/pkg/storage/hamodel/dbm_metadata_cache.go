@@ -62,6 +62,7 @@ const (
 	DbmMetadataMachineTypeSingle           DbmMetadataMachineType = "single"
 	DbmMetadataMachineTypeSqlServer        DbmMetadataMachineType = "sqlserver_ha"
 	DbmMetadataMachineTypeProxy            DbmMetadataMachineType = "proxy"
+	DbmMetadataMachineTypeBackend          DbmMetadataMachineType = "backend"
 	DbmMetadataMachineTypeRemote           DbmMetadataMachineType = "remote"
 	DbmMetadataMachineTypeSqlServerSingle  DbmMetadataMachineType = "sqlserver_single"
 	DbmMetadataMachineTypeMongoDB          DbmMetadataMachineType = "mongodb"
@@ -119,6 +120,7 @@ const (
 	DbmMetadataFieldSyncDuration    = "sync_duration"
 )
 
+// BindEntry represents a custom type for the bind_entry column in the t_dbm_metadata table.
 type BindEntry struct {
 	BindPort       int      `json:"bind_port"`
 	BindIps        []string `json:"bind_ips"`
@@ -157,6 +159,7 @@ func (be BindEntryType) Value() (driver.Value, error) {
 	return json.Marshal(be)
 }
 
+// DbmMetadata is a model for the t_dbm_metadata table.
 type DbmMetadata struct {
 	BkCloudID       int                    `gorm:"column:bk_cloud_id;primaryKey"`
 	IP              string                 `gorm:"column:ip;primaryKey"`
@@ -177,6 +180,100 @@ type DbmMetadata struct {
 	SyncDuration    time.Duration          `gorm:"column:sync_duration;type:bigint"`
 }
 
+// TableName returns the table name for the DbmMetadata model.
 func (t DbmMetadata) TableName() string {
 	return DbmMetadataTableName
+}
+
+// the "status" in metadata.
+type DbmMetadataStatus string
+
+const (
+	RUNNING     DbmMetadataStatus = "running"
+	UNAVAILABLE DbmMetadataStatus = "unavailable"
+	AVAILABLE   DbmMetadataStatus = "available"
+)
+
+// the "instance_role" in metadata.
+type DbmMetadataInstanceRole string
+
+const (
+	// mysql instance role
+	MySQLStorageMaster   DbmMetadataInstanceRole = "backend_master"
+	MySQLStorageSlave    DbmMetadataInstanceRole = "backend_slave"
+	MySQLStorageRepeater DbmMetadataInstanceRole = "backend_repeater"
+
+	// tendbcluster instance role
+	TenDBClusterStorageMaster DbmMetadataInstanceRole = "remote_master"
+	TenDBClusterStorageSlave  DbmMetadataInstanceRole = "remote_slave"
+	TenDBClusterProxyMaster   DbmMetadataInstanceRole = "spider_master"
+	TenDBClusterProxySlave    DbmMetadataInstanceRole = "spider_slave"
+)
+
+// the "spider_role" in metadata.
+type DbmMetadataSpiderRole string
+
+const (
+	TenDBClusterSpiderMaster DbmMetadataSpiderRole = "spider_master"
+	TenDBClusterSpiderSlave  DbmMetadataSpiderRole = "spider_slave"
+)
+
+// DbmMetadataSlaveInfo defined "receiver" info in metadata.
+type DbmMetadataSlaveInfo struct {
+	Ip        string            `json:"ip"`
+	Port      int               `json:"port"`
+	IsStandBy bool              `json:"is_stand_by"`
+	Status    DbmMetadataStatus `json:"status"`
+}
+
+// BindEntryPolarisInfo defined "polaris" info of "bind_entry" in metadata.
+type BindEntryPolarisInfo struct {
+	Service string `json:"polaris_name"`
+	Token   string `json:"polaris_token"`
+	L5      string `json:"polaris_l5"`
+	// the ip list bind to clb
+	BindIps  []string `json:"bind_ips"`
+	BindPort int      `json:"bind_port"`
+}
+
+// BindEntryClbInfo defined "clb" info of "bind_entry" in metadata.
+type BindEntryClbInfo struct {
+	Region        string `json:"clb_region"`
+	LoadBalanceId string `json:"clb_id"`
+	ListenId      string `json:"listener_id"`
+	Ip            string `json:"clb_ip"`
+	// the ip list bind to clb
+	BindIps  []string `json:"bind_ips"`
+	BindPort int      `json:"bind_port"`
+}
+
+// BindEntryDnsInfo defined "dns" info of "bind_entry" in metadata.
+type BindEntryDnsInfo struct {
+	DomainName string `json:"domain"`
+	//master_entry, slave_entry
+	EntryRole      string   `json:"entry_role"`
+	BindIps        []string `json:"bind_ips"`
+	BindPort       int      `json:"bind_port"`
+	ForwardEntryId int      `json:"forward_entry_id"`
+}
+
+// DbmMetadataBindEntry defined "bind_entry" info in metadata.
+type DbmMetadataBindEntry struct {
+	DNS     []BindEntryDnsInfo
+	Polaris []BindEntryPolarisInfo
+	CLB     []BindEntryClbInfo
+}
+
+// DbmMetadataProxyInstance defined "proxyinstance" info in metadata.
+type DbmMetadataProxyInstance struct {
+	Ip        string            `json:"ip"`
+	Port      int               `json:"port"`
+	AdminPort int               `json:"admin_port"`
+	Status    DbmMetadataStatus `json:"status"`
+}
+
+// DbmMetadataBinlogDumper defined "tbinlogdumper" info in metadata.
+type DbmMetadataBinlogDumper struct {
+	Ip   string `json:"ip"`
+	Port int    `json:"port"`
 }
