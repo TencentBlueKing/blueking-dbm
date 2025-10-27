@@ -13,6 +13,7 @@ import logging.config
 import os.path
 
 from django.db.models import Q
+from django.utils.translation import gettext as _
 
 from backend.components import DRSApi
 from backend.constants import IP_PORT_DIVIDER
@@ -108,7 +109,7 @@ def check_storage_database(bk_cloud_id: int, ip: str, port: int) -> bool:
         return False
 
 
-def check_rollback_databases(cluster_id: int, database_list: list[str], shard_id: int = None) -> bool:
+def check_rollback_databases(cluster_id: int, database_list: list[str], shard_id: int = None) -> (str, bool):
     """
     检查回档的数据库是否在源集群存在
     @param cluster_id: 目标集群id
@@ -158,10 +159,9 @@ def check_rollback_databases(cluster_id: int, database_list: list[str], shard_id
         }
     )
     if res[0]["error_msg"]:
-        logging.error("get databases  error {}".format(res[0]["error_msg"]))
-        return False
+        return _("获取目标集群 {} 的库列表失败").format(target_cluster.name, res[0]["error_msg"]), False
     if isinstance(res[0]["cmd_results"][0]["table_data"], list) and len(res[0]["cmd_results"][0]["table_data"]) == 0:
         logging.info(res[0]["cmd_results"])
-        return True
+        return "", True
     else:
-        return False
+        return _("目标集群 {} 存在和指定回档备份相同的库名。回档会发生覆盖").format(target_cluster.name), False

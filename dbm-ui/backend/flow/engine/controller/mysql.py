@@ -81,6 +81,7 @@ from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_switch_for_migr
 )
 from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_switch_validator import MySQLProxySwitchValidator
 from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_upgrade_validator import MySQLProxyUpgradeValidator
+from backend.flow.engine.bamboo.scene.mysql.validate.mysql_rollback_validator import TenDbHaRollbackFlowValidator
 from backend.flow.engine.controller.base import BaseController
 from backend.flow.engine.validate.base_validate import validates_with
 
@@ -478,6 +479,7 @@ class MySQLController(BaseController):
         flow = MySQLRollbackDataFlow(root_id=self.root_id, data=self.ticket_data)
         flow.rollback_data_flow()
 
+    @validates_with(TenDbHaRollbackFlowValidator)
     def mysql_rollback_to_cluster_scene(self):
         """
         数据定点回档

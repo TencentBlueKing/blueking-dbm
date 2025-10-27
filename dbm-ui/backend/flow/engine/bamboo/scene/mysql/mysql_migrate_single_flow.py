@@ -279,6 +279,7 @@ class MySQLMigrateSingleFlow(object):
                             sub_name=_("{} tendbSingle发起备份").format(cluster_model.immute_domain)
                         )
                     )
+                    #  todo 查询备份得等备份完毕。这里不能在外层了。
                     cluster["backup_id"] = backup_id.hex
                     cluster["recover_grants"] = False
                     cluster["backup_source"] = MySQLBackupSource.LOCAL

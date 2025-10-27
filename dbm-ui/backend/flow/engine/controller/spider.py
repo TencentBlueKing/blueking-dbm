@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.bamboo.scene.mysql.mysql_machine_clear_flow import ClearMysqlMachineFlow
+from backend.flow.engine.bamboo.scene.mysql.validate.mysql_rollback_validator import TenDbClusterRollbackFlowValidator
 from backend.flow.engine.bamboo.scene.spider.append_deploy_ctl_flow import AppendDeployCTLFlow
 from backend.flow.engine.bamboo.scene.spider.db_table_backup import TenDBClusterDBTableBackupFlow
 from backend.flow.engine.bamboo.scene.spider.full_backup import TenDBClusterFullBackupFlow
@@ -215,6 +216,7 @@ class SpiderController(BaseController):
         flow = TenDBRemoteSlaveLocalRecoverFlow(root_id=self.root_id, ticket_data=self.ticket_data)
         flow.tendb_remote_slave_local_recover()
 
+    @validates_with(TenDbClusterRollbackFlowValidator)
     def tendb_cluster_rollback_data(self):
         """
         tendb cluster 定点回档
