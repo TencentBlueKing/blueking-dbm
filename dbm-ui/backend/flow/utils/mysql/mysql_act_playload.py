@@ -12,6 +12,7 @@ import copy
 import json
 import logging
 import os
+import uuid
 from collections import defaultdict
 from typing import Any, List
 
@@ -1454,7 +1455,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "role": self.ticket_data["role"],
                     "backup_type": self.ticket_data["backup_type"],
                     "backup_gsd": self.ticket_data["backup_gsd"],
-                    "backup_id": self.ticket_data["backup_id"].__str__(),
+                    "backup_id": self.ticket_data.get("backup_id".__str__(), uuid.uuid1().hex),
                     "bill_id": str(self.ticket_data["uid"]),
                     "custom_backup_dir": self.ticket_data.get("custom_backup_dir", ""),
                     "shard_id": self.ticket_data.get("shard_id", 0),
@@ -1654,6 +1655,11 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         }
         return payload
 
+    def tendb_restore_from_context_payload(self, **kwargs):
+        self.cluster["backupinfo"] = kwargs["trans_data"]["backup_info"]
+        return self.tendb_restore_remotedb_payload()
+
+    #      backup_info在flow上下问中
     def tendb_restore_priv_payload(self, **kwargs):
         """
         tendb 恢复权限
@@ -1676,6 +1682,24 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             },
         }
         return payload
+
+    #  查询并权限恢复
+    def tendb_restore_rollback_priv_payload(self, **kwargs):
+        """
+        tendb 回档时本地发起备份的恢复权限
+        """
+        file_list = kwargs["trans_data"]["backup_index_file"]["report_result"]["file_list"]
+        sql_files = []
+        for file in file_list:
+            if file["file_type"] == "priv":
+                sql_files.append(file["file_name"])
+        if len(sql_files) == 0:
+            raise Exception("backup priv file is empty")
+        self.cluster["sql_files"] = sql_files
+        self.cluster["file_target_path"] = kwargs["trans_data"]["backup_index_file"]["report_result"][
+            "original_backup_dir"
+        ]
+        return self.tendb_restore_priv_payload(**kwargs)
 
     def tendb_grant_remotedb_repl_user(self, **kwargs) -> dict:
         """

@@ -84,6 +84,12 @@ class P2PFileKwargs(P2PFileBaseKwargs):
     exec_ip: Optional[Any] = None  # 表示执行的ip，多个ip传入list类型，当个ip传入str类型，空则传入None，针对手输ip场景
 
 
+@dataclass
+class P2PFileFromBackupKwargs(P2PFileKwargs):
+    backup_id: str = None
+    cluster_id: int = None
+
+
 @dataclass()
 class P2PFileKwargsForPool(P2PFileBaseKwargs):
     """

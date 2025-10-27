@@ -101,6 +101,7 @@ class MySQLBackupHandler:
         backup_info["backup_charset"] = backup_info["extra_fields"]["backup_charset"]
         backup_info["backup_tool"] = backup_info["extra_fields"]["backup_tool"]
         backup_info["file_list_details"] = backup_info["file_list"]
+        backup_info["database_list"] = backup_info["extra_fields"].get("database_list", [])
         task_ids = []
         local_files = []
         for file in backup_info["file_list_details"]:

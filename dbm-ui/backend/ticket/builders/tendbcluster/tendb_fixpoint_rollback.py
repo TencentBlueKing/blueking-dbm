@@ -81,6 +81,7 @@ class TendbFixPointRollbackDetailSerializer(TendbBaseOperateDetailSerializer):
 
 class TendbFixPointRollbackFlowParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.tendb_cluster_rollback_data
+    validator = SpiderController.tendb_cluster_rollback_data.validator
 
     def format_ticket_data(self):
         for info in self.ticket_data["infos"]:
