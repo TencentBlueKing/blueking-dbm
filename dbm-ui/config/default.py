@@ -330,7 +330,7 @@ BK_NOTICE = {
 BKAPP_BKVISION_APIGW_URL = env.BKAPP_BKVISION_APIGW_URL
 
 # 跨域信任请求源
-CSRF_TRUSTED_ORIGINS = env.CSRF_TRUSTED_ORIGINS
+CSRF_TRUSTED_ORIGINS = env.get_csrf_trusted_origins()
 
 # 需将 bkapi.example.com 替换为真实的云 API 域名，在 PaaS 3.0 部署的应用，可从环境变量中获取 BK_API_URL_TMPL
 
@@ -437,6 +437,7 @@ CELERY_IMPORTS = (
 app.conf.enable_utc = False
 app.conf.timezone = "Asia/Shanghai"
 app.conf.broker_url = env.BROKER_URL
+app.conf.broker_connection_retry_on_startup = True
 
 # 版本日志
 VERSION_LOG = {"MD_FILES_DIR": os.path.join(PROJECT_ROOT, "release")}

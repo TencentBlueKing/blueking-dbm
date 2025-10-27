@@ -233,7 +233,7 @@ class StructuredEnum(OrigEnum, metaclass=StructuredEnumMeta):
 
 try:
     # python 3.11+ required
-    from enum import StrEnum, IntEnum
+    from enum import StrEnum, IntEnum, ReprEnum
 except ImportError:
     pass
 else:
@@ -241,7 +241,7 @@ else:
         """
         StrStructuredEnum ensures the literals in f-string / str.format() is real_value
 
-        Important: Use XEnum(StrStructuredEnum) instead of XEnum(StrStructuredEnum) since python 3.11
+        Important: Use XEnum(StrStructuredEnum) instead of XEnum(str, StructuredEnum) since python 3.11
         """
         pass
 
@@ -249,6 +249,24 @@ else:
         """
         IntStructuredEnum ensures the literals in f-string / str.format() is real_value
 
-        Important: Use XEnum(IntStructuredEnum) instead of XEnum(IntStructuredEnum) since python 3.11
+        Important: Use XEnum(IntStructuredEnum) instead of XEnum(int, StructuredEnum) since python 3.11
+        """
+        pass
+
+
+    class FloatStructuredEnum(float, StructuredEnum, ReprEnum):
+        """
+        FloatStructuredEnum ensures the literals in f-string / str.format() is real_value
+
+        Important: Use XEnum(FloatStructuredEnum) instead of XEnum(float, StructuredEnum) since python 3.11
+        """
+        pass
+
+
+    class ListStructuredEnum(list, StructuredEnum, ReprEnum):
+        """
+        ListStructuredEnum ensures the literals in f-string / str.format() is real_value
+
+        Important: Use XEnum(ListStructuredEnum) instead of XEnum(list, StructuredEnum) since python 3.11
         """
         pass
