@@ -65,11 +65,11 @@ var (
 
 // ServiceVersionResolverFactory ServiceVersionResolver factory
 type ServiceVersionResolverFactory struct {
-	ResolverMap map[string]ServiceVersionResolver
+	ResolverMap map[coreconst.StorageAddonType]ServiceVersionResolver
 }
 
 // GetResolver 获取 ServiceVersionResolver
-func (s *ServiceVersionResolverFactory) GetResolver(addonType string) ServiceVersionResolver {
+func (s *ServiceVersionResolverFactory) GetResolver(addonType coreconst.StorageAddonType) ServiceVersionResolver {
 	resolver, ok := s.ResolverMap[addonType]
 	if !ok {
 		return &BaseServiceVersionResolver{}
@@ -78,7 +78,7 @@ func (s *ServiceVersionResolverFactory) GetResolver(addonType string) ServiceVer
 }
 
 func init() {
-	SVRFactory.ResolverMap = make(map[string]ServiceVersionResolver)
-	SVRFactory.ResolverMap[coreconst.VM] = &BaseServiceVersionResolver{}
+	SVRFactory.ResolverMap = make(map[coreconst.StorageAddonType]ServiceVersionResolver)
+	SVRFactory.ResolverMap[coreconst.Victoriametrics] = &BaseServiceVersionResolver{}
 	SVRFactory.ResolverMap[coreconst.Surreal] = &SurrealDBServiceVersionResolver{}
 }

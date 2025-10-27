@@ -42,7 +42,7 @@ const (
 	AddonMilvus    AddonType = "milvus"
 )
 
-// VM 组件定义
+// Victoriametrics 组件定义
 const (
 	ComponentVMStorage AddonComponent = "vmstorage"
 	ComponentVMSelect  AddonComponent = "vmselect"

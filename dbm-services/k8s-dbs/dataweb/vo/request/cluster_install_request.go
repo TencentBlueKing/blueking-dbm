@@ -43,6 +43,7 @@ type BasicInfo struct {
 	BkBizID          uint64   `json:"bkBizId"`
 	BkBizName        string   `json:"bkBizName"`
 	BkAppAbbr        string   `json:"bkAppAbbr"`
+	Namespace        string   `json:"namespace,omitempty"`
 	Tags             []string `json:"tags"`
 	Description      string   `json:"description"`
 }

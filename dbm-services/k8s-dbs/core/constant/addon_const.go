@@ -29,16 +29,35 @@ const (
 	UpgradeAddonOP   AddonOperation = "upgradeAddon"
 )
 
-// addon 类型
+// StorageAddonType addon 类型
+type StorageAddonType string
+
 const (
-	Surreal = "surrealdb"
-	VM      = "victoriametrics"
-	RW      = "risingwave"
-	GT      = "greptimedb"
-	MILVUS  = "milvus"
+	Surreal         StorageAddonType = "surrealdb"
+	Victoriametrics StorageAddonType = "victoriametrics"
+	Risingwave      StorageAddonType = "risingwave"
+	Greptimedb      StorageAddonType = "greptimedb"
+	Milvus          StorageAddonType = "milvus"
 )
 
-// VM 组件定义
+// addonAbbrMap 存储插件类型到简称的映射
+var addonAbbrMap = map[StorageAddonType]string{
+	Surreal:         "surreal",
+	Victoriametrics: "vm",
+	Risingwave:      "rw",
+	Greptimedb:      "gt",
+	Milvus:          "mv",
+}
+
+// GetStorageAddonAbbr 根据存储插件类型获取简称
+func GetStorageAddonAbbr(addonType StorageAddonType) string {
+	if abbr, exists := addonAbbrMap[addonType]; exists {
+		return abbr
+	}
+	return string(addonType) // 如果没有映射，返回类型本身
+}
+
+// Victoriametrics 组件定义
 const (
 	VMStorage string = "vmstorage"
 	VMSelect  string = "vmselect"

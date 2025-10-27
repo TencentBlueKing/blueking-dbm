@@ -28,6 +28,7 @@ import (
 	coreconst "k8s-dbs/core/constant"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/provider"
+	webconfig "k8s-dbs/dataweb/api/config"
 	webreq "k8s-dbs/dataweb/vo/request"
 	"k8s-dbs/dataweb/vo/response"
 	"k8s-dbs/errors"
@@ -76,8 +77,8 @@ func (c *ClusterController) CreateCluster(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateClusterError, err))
 		return
 	}
-	clusterConfig, err := ClusterConfBuilderFactory.
-		GetBuilder(request.BasicInfo.StorageAddonType).
+	clusterConfig, err := webconfig.ClusterConfBuilderFactory.
+		GetBuilder(coreconst.StorageAddonType(request.BasicInfo.StorageAddonType)).
 		BuildConfig(request)
 	if err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateClusterError, err))
@@ -305,8 +306,8 @@ func (c *ClusterController) UpdateClusterConfig(ctx *gin.Context) {
 		return
 	}
 
-	clusterConfig, err := ClusterConfBuilderFactory.
-		GetBuilder(clusterMetaEntity.AddonInfo.AddonType).
+	clusterConfig, err := webconfig.ClusterConfBuilderFactory.
+		GetBuilder(coreconst.StorageAddonType(clusterMetaEntity.AddonInfo.AddonType)).
 		BuildEnvConfig(request)
 	if err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateClusterError, err))
@@ -341,8 +342,8 @@ func (c *ClusterController) GetClusterConfig(ctx *gin.Context) {
 		return
 	}
 
-	responseData, err := ClusterConfBuilderFactory.
-		GetBuilder(componentData.StorageAddonType).
+	responseData, err := webconfig.ClusterConfBuilderFactory.
+		GetBuilder(coreconst.StorageAddonType(componentData.StorageAddonType)).
 		ParseEnvConfig(componentData)
 
 	if err != nil {
