@@ -232,8 +232,16 @@ func (t *TopicReassignComp) ExecuteReassignment() error {
 		}
 
 		// Skip if already done
-		doneContent, _ := os.ReadFile(doneFile)
-		if strings.Contains(string(doneContent), topic) {
+		doneContentBytes, _ := os.ReadFile(doneFile)
+		doneLines := strings.Split(strings.TrimSpace(string(doneContentBytes)), "\n")
+		isDone := false
+		for _, line := range doneLines {
+			if strings.TrimSpace(line) == topic {
+				isDone = true
+				break
+			}
+		}
+		if isDone {
 			logger.Info("Skipping reassignment for topic %s (already done)", topic)
 			continue
 		}
