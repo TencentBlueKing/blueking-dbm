@@ -363,24 +363,24 @@
         </RoleColumn>
       </template>
       <template #clusterTypeName>
-        <BkTableColumn
-          field="cluster_type_name"
-          :label="t('架构版本')"
-          :min-width="150">
-          <template #default="{ data }: { data: RedisModel }">
-            {{ data.cluster_type_name || '--' }}
+        <TableColumn
+          col-key="cluster_type_name"
+          :min-width="150"
+          :title="t('架构版本')">
+          <template #default="{ row }: { row: RedisModel }">
+            {{ row.cluster_type_name || '--' }}
           </template>
-        </BkTableColumn>
+        </TableColumn>
       </template>
       <template #moduleNames>
-        <BkTableColumn
-          field="module_names"
-          label="Modules"
+        <TableColumn
+          col-key="module_names"
+          title="Modules"
           :width="150">
-          <template #default="{ data }: { data: RedisModel }">
-            <TagBlock :data="data.module_names" />
+          <template #default="{ row }: { row: RedisModel }">
+            <TagBlock :data="row.module_names" />
           </template>
-        </BkTableColumn>
+        </TableColumn>
       </template>
     </ClusterTable>
   </div>

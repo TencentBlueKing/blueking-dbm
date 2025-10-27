@@ -5,20 +5,6 @@
     :filter="columnFilter?.['name']"
     :min-width="200"
     :title="t('集群名称')">
-    <template #title>
-      <RenderHeadCopy
-        :config="[
-          {
-            field: 'cluster_name',
-          },
-        ]"
-        :has-selected="selectedList.length > 0"
-        :is-filter="isFilter"
-        @handle-copy-all="handleCopyAll"
-        @handle-copy-selected="handleCopySelected">
-        {{ t('集群名称') }}
-      </RenderHeadCopy>
-    </template>
     <template #default="{ row }: { row: TendnclusterModel }">
       <div @mouseenter="handleToolsShow">
         <TextOverflowLayout>
@@ -27,9 +13,12 @@
             v-if="isToolsShow"
             #append>
             <BkPopover v-if="row.temporary_info?.source_cluster">
-              <DbIcon
-                style="margin-left: 5px; color: #1cab88; cursor: pointer"
-                type="clone" />
+              <span role="table-cell-operation">
+                <DbIcon
+                  role="table-cell-operation"
+                  style="color: #1cab88; cursor: pointer"
+                  type="clone" />
+              </span>
               <template #content>
                 <div class="struct-cluster-source-popover">
                   <div class="title">{{ t('构造集群') }}</div>
@@ -49,10 +38,12 @@
                 </div>
               </template>
             </BkPopover>
-            <DbIcon
-              v-bk-tooltips="t('复制集群名称')"
-              type="copy"
-              @click="handleCopyClusterName(row.cluster_name)" />
+            <span role="table-cell-operation">
+              <DbIcon
+                v-bk-tooltips="t('复制集群名称')"
+                type="copy"
+                @click="handleCopyClusterName(row.cluster_name)" />
+            </span>
           </template>
         </TextOverflowLayout>
       </div>
@@ -69,20 +60,12 @@
 
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-  import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
-
   import { execCopy } from '@utils';
 
-  import useColumnCopy from './hooks/useColumnCopy';
-  import type { Expose as ClusterTableExpose } from './Index.vue';
-  import type { ClusterModel, ISupportClusterType } from './types';
+  import type { ISupportClusterType } from './types';
 
   export interface Props<clusterType extends ISupportClusterType> {
     clusterType: clusterType;
-    // eslint-disable-next-line vue/no-unused-properties
-    getTableInstance: () => ClusterTableExpose | null;
-    isFilter: boolean;
-    selectedList: ClusterModel<clusterType>[];
   }
 
   const props = defineProps<Props<T>>();
@@ -92,7 +75,6 @@
 
   const isToolsShow = ref(false);
 
-  const { handleCopyAll, handleCopySelected } = useColumnCopy(props);
   const { data: columnFilter } = useClusterColumnFilter({
     cluster_type: props.clusterType,
   });

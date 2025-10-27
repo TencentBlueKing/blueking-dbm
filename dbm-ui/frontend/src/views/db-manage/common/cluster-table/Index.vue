@@ -20,6 +20,7 @@
         :key="tableRef?.loading"
         name="operation" />
       <slot name="masterDomain" />
+      <IdColumn :cluster-type="clusterType" />
       <ClusterAliasColumn
         :cluster-type="clusterType"
         @refresh="handleRefresh" />
