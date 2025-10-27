@@ -21,7 +21,7 @@ package metric
 
 import (
 	commconst "k8s-dbs/common/constant"
-	coreentity "k8s-dbs/core/entity"
+	corereq "k8s-dbs/core/vo/request"
 	"log/slog"
 
 	"github.com/gin-gonic/gin"
@@ -29,15 +29,15 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-// ClusterAPITotalMetric cluster api 计数统计指标
-const ClusterAPITotalMetric = "k8s_dbs_cluster_api_total"
+// AddonAPITotalMetric Addon api 计数统计指标
+const AddonAPITotalMetric = "k8s_dbs_addon_api_total"
 
-var ClusterAPITotalMetricTags = []string{
+var AddonAPITotalMetricTags = []string{
 	"api_name",
 	"method",
 	"k8s_cluster_name",
-	"namespace",
-	"cluster_name",
+	"addon_type",
+	"addon_version",
 	"bk_username",
 	"bk_app_code",
 	"status",
@@ -45,52 +45,52 @@ var ClusterAPITotalMetricTags = []string{
 	"result",
 }
 
-// ClusterAPITotalCounter Cluster API 请求总数
-var ClusterAPITotalCounter = promauto.NewCounterVec(
+// AddonAPITotalCounter Addon API 请求总数
+var AddonAPITotalCounter = promauto.NewCounterVec(
 	prometheus.CounterOpts{
-		Name: ClusterAPITotalMetric,
-		Help: "Total number of cluster api by api_name, result and status code",
+		Name: AddonAPITotalMetric,
+		Help: "Total number of addon api by api_name, result and status code",
 	},
-	ClusterAPITotalMetricTags,
+	AddonAPITotalMetricTags,
 )
 
-// ReportClusterAPIMetrics cluster api 指标上报
-func ReportClusterAPIMetrics(c *gin.Context, basicMetricTags BaseMetricTags) {
+// ReportAddonAPIMetrics addon api 指标上报
+func ReportAddonAPIMetrics(c *gin.Context, basicMetricTags BaseMetricTags) {
 	// 获取 APIGroup
 	apiGroup := commconst.GetAPIGroup(c.GetString(commconst.APIName))
-	if apiGroup != commconst.APIGroupCluster {
+	if apiGroup != commconst.APIGroupAddon {
 		return
 	}
 
 	requestEntity, ok := c.Get(commconst.APIRequestEntity)
 	if !ok {
-		slog.Warn("无法获取 cluster api 操作请求参数")
+		slog.Warn("无法获取 addon api 操作请求参数")
 		return
 	}
 
-	clusterRequest, ok := requestEntity.(*coreentity.Request)
+	addonOpRequest, ok := requestEntity.(*corereq.AddonOperationRequest)
 	if !ok {
 		slog.Warn("请求实体类型断言失败")
 		return
 	}
 
-	clusterMetricTags := ClusterAPIMetricTags{
-		K8sClusterName: clusterRequest.K8sClusterName,
-		Namespace:      clusterRequest.Namespace,
-		ClusterName:    clusterRequest.ClusterName,
+	addonMetricTags := AddonAPIMetricTags{
+		K8sClusterName: addonOpRequest.K8sClusterName,
+		AddonType:      addonOpRequest.AddonType,
+		AddonVersion:   addonOpRequest.AddonVersion,
 		BaseMetricTags: basicMetricTags,
 	}
 
-	ClusterAPITotalCounter.WithLabelValues(
-		clusterMetricTags.APIName,
-		clusterMetricTags.Method,
-		clusterMetricTags.K8sClusterName,
-		clusterMetricTags.Namespace,
-		clusterMetricTags.ClusterName,
-		clusterMetricTags.BkUserName,
-		clusterMetricTags.BkAppCode,
-		clusterMetricTags.Status,
-		clusterMetricTags.ResultCode,
-		clusterMetricTags.Result,
+	AddonAPITotalCounter.WithLabelValues(
+		addonMetricTags.APIName,
+		addonMetricTags.Method,
+		addonMetricTags.K8sClusterName,
+		addonMetricTags.AddonType,
+		addonMetricTags.AddonVersion,
+		addonMetricTags.BkUserName,
+		addonMetricTags.BkAppCode,
+		addonMetricTags.Status,
+		addonMetricTags.ResultCode,
+		addonMetricTags.Result,
 	).Inc()
 }

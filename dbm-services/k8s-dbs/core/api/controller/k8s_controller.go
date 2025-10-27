@@ -183,5 +183,5 @@ func (k *K8sController) setAPIRequestContext(
 			Namespace:   request.Namespace,
 		},
 	}
-	ctx.Set(commconst.ClusterAPIRequestEntity, clusterRequest)
+	ctx.Set(commconst.APIRequestEntity, clusterRequest)
 }

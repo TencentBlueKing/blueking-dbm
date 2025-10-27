@@ -19,6 +19,18 @@ limitations under the License.
 
 package constant
 
+// API 组
+const (
+	APIGroupSystem     = "system"
+	APIGroupAddon      = "addon"
+	APIGroupCluster    = "cluster"
+	APIGroupOpsRequest = "opsrequest"
+	APIGroupComponent  = "component"
+	APIGroupK8s        = "k8s"
+	APIGroupMeta       = "meta"
+	APIGroupUnknown    = "unknown"
+)
+
 const (
 	APIHealth = "v4_dbs_health"
 )
@@ -27,7 +39,7 @@ const (
 const (
 	APIAddonInstall   = "v4_dbs_addon_install"
 	APIAddonUninstall = "v4_dbs_addon_uninstall"
-	APIAddonUpgrade   = "v4_dbs_cluster_upgrade"
+	APIAddonUpgrade   = "v4_dbs_addon_upgrade"
 )
 
 // cluster api
@@ -73,8 +85,82 @@ const (
 )
 
 // meta api
-
 const (
 	APIMetaAddonCategoryCreate = "v4_dbs_metadata_addon_category_create"
 	APIMetaAddonCategoryList   = "v4_dbs_metadata_addon_category_list"
 )
+
+// APIGroups 存储 API 名称到分组的映射
+var APIGroups = initAPIGroups()
+
+// 初始化 API 分组
+func initAPIGroups() map[string]string {
+	groups := make(map[string]string)
+
+	add := func(group string, apis ...string) {
+		for _, api := range apis {
+			groups[api] = group
+		}
+	}
+
+	add(APIGroupSystem, APIHealth)
+
+	add(APIGroupAddon,
+		APIAddonInstall,
+		APIAddonUninstall,
+		APIAddonUpgrade,
+	)
+
+	add(APIGroupCluster,
+		APIClusterVScaling,
+		APIClusterHScaling,
+		APIClusterVExpansion,
+		APIClusterStart,
+		APIClusterReStart,
+		APIClusterStop,
+		APIClusterDelete,
+		APIClusterCreate,
+		APIClusterUpgrade,
+		APIClusterUpdate,
+		APIClusterPartialUpdate,
+		APIClusterDesc,
+		APIClusterStatus,
+		APIClusterExpose,
+		APIClusterEventList,
+		APIClusterServiceInfo,
+	)
+
+	add(APIGroupOpsRequest,
+		APIOpsRequestDesc,
+		APIOpsRequestStatus,
+	)
+
+	add(APIGroupComponent,
+		APIComponentDesc,
+		APIComponentPods,
+		APIComponentServiceInfo,
+	)
+
+	add(APIGroupK8s,
+		APIK8sNsCreate,
+		APIK8sPodDelete,
+		APIK8sPodDetail,
+		APIK8sPodLogList,
+		APIK8sPodRawLog,
+	)
+
+	add(APIGroupMeta,
+		APIMetaAddonCategoryCreate,
+		APIMetaAddonCategoryList,
+	)
+
+	return groups
+}
+
+// GetAPIGroup 根据 API 名称获取所属分组
+func GetAPIGroup(apiName string) string {
+	if group, exists := APIGroups[apiName]; exists {
+		return group
+	}
+	return APIGroupUnknown
+}

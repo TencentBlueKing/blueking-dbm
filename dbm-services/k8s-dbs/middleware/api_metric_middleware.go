@@ -24,7 +24,6 @@ import (
 	"encoding/json"
 	commapi "k8s-dbs/common/api"
 	commconst "k8s-dbs/common/constant"
-	coreentity "k8s-dbs/core/entity"
 	dbsmetrics "k8s-dbs/metric"
 	"log/slog"
 	"net/http"
@@ -80,48 +79,11 @@ func APIMetricsMiddleware() gin.HandlerFunc {
 		reportAPIMetrics(&basicMetricTags, start)
 
 		// 集群操作指标上报
-		reportClusterAPIMetrics(c, basicMetricTags)
+		dbsmetrics.ReportClusterAPIMetrics(c, basicMetricTags)
 
+		// addon 操作指标上报
+		dbsmetrics.ReportAddonAPIMetrics(c, basicMetricTags)
 	}
-}
-
-// reportClusterAPIMetrics cluster api 指标上报
-func reportClusterAPIMetrics(c *gin.Context, basicMetricTags dbsmetrics.BaseMetricTags) {
-	if isClusterAPI := c.GetBool(commconst.IsClusterAPI); !isClusterAPI {
-		return
-	}
-
-	requestEntity, ok := c.Get(commconst.ClusterAPIRequestEntity)
-	if !ok {
-		slog.Warn("无法获取 cluster api 操作请求参数")
-		return
-	}
-
-	clusterRequest, ok := requestEntity.(*coreentity.Request)
-	if !ok {
-		slog.Warn("请求实体类型断言失败")
-		return
-	}
-
-	clusterMetricTags := dbsmetrics.ClusterAPIMetricTags{
-		K8sClusterName: clusterRequest.K8sClusterName,
-		Namespace:      clusterRequest.Namespace,
-		ClusterName:    clusterRequest.ClusterName,
-		BaseMetricTags: basicMetricTags,
-	}
-
-	dbsmetrics.ClusterAPITotalCounter.WithLabelValues(
-		clusterMetricTags.APIName,
-		clusterMetricTags.Method,
-		clusterMetricTags.K8sClusterName,
-		clusterMetricTags.Namespace,
-		clusterMetricTags.ClusterName,
-		clusterMetricTags.BkUserName,
-		clusterMetricTags.BkAppCode,
-		clusterMetricTags.Status,
-		clusterMetricTags.ResultCode,
-		clusterMetricTags.Result,
-	).Inc()
 }
 
 // reportAPIMetrics api 指标上报

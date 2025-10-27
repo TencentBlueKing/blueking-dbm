@@ -530,5 +530,5 @@ func (c *ClusterController) getClusterComponents(clusterMetaEntity *metaentity.K
 func (c *ClusterController) setAPIRequestContext(ctx *gin.Context, request *coreentity.Request, apiName string) {
 	ctx.Set(commconst.APIName, apiName)
 	ctx.Set(commconst.IsClusterAPI, true)
-	ctx.Set(commconst.ClusterAPIRequestEntity, request)
+	ctx.Set(commconst.APIRequestEntity, request)
 }
