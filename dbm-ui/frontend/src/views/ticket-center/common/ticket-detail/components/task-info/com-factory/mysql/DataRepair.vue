@@ -22,12 +22,12 @@
     </TableColumn>
     <TableColumn :title="t('修复主库')">
       <template #default="{ row }: { row: RowData }">
-        {{ row.master.ip }}
+        {{ `${row.master.ip}:${row.master.port}` }}
       </template>
     </TableColumn>
     <TableColumn :title="t('修复从库')">
       <template #default="{ row }: { row: RowData }">
-        {{ row.slaves.map((item) => item.ip).join(',') }}
+        {{ row.slaves.map((item) => `${item.ip}:${item.port}`).join(',') }}
       </template>
     </TableColumn>
   </PrimaryTable>

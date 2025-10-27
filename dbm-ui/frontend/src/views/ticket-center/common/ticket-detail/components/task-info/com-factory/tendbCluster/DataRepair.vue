@@ -16,18 +16,18 @@
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
     <TableColumn :title="t('集群域名')">
-      <template #default="{ row: data }: { row: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
     </TableColumn>
     <TableColumn :title="t('修复主库')">
-      <template #default="{ row: data }: { row: RowData }">
-        {{ data.master.ip }}
+      <template #default="{ row }: { row: RowData }">
+        {{ `${row.master.ip}:${row.master.port}` }}
       </template>
     </TableColumn>
     <TableColumn :title="t('修复从库')">
-      <template #default="{ row: data }: { row: RowData }">
-        {{ data.slaves.map((item) => item.ip).join(',') }}
+      <template #default="{ row }: { row: RowData }">
+        {{ row.slaves.map((item) => `${item.ip}:${item.port}`).join(',') }}
       </template>
     </TableColumn>
   </PrimaryTable>
