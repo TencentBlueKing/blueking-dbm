@@ -4,6 +4,17 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryType
 
 
+def build_q_for_cluster_name_or_alias(name):
+    names = [name.strip() for name in name.split(",") if name.strip()]
+    if len(names) == 1:
+        single_name = names[0]
+        query = Q(name__icontains=single_name) | Q(alias__icontains=single_name)
+    else:
+        query = Q(name__in=names) | Q(alias__in=names)
+
+    return query
+
+
 def build_q_for_domain_by_cluster(domains, role=None):
     # 基础查询条件
     base_query = Q()
