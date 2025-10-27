@@ -39,6 +39,31 @@ workflow:
     api: http://127.0.0.1:80/apis/proxypass/dbmeta/dbha/tendis_cluster_swap
     timeout: 10s
     token: ""
+  
+  dbmApiDomainGet:
+    api: http://127.0.0.1:80/apis/proxypass/dns/domain/get/
+    timeout: 10s
+    token: ""
+  
+  dbmApiDomainDelete:
+    api: http://127.0.0.1:80/apis/proxypass/dns/domain/delete/
+    timeout: 10s
+    token: ""
+  
+  dbmApiCLBDeregister:
+    api: http://127.0.0.1:80/apis/proxypass/clb_deregister_part_target/
+    timeout: 10s
+    token: ""
+
+  dbmApiPolarisUnbind:
+    api: http://127.0.0.1:80/apis/proxypass/polaris_unbind_part_targets/
+    timeout: 10s
+    token: ""
+
+  dbmApiDumperSwitch:
+    api: http://127.0.0.1:80/apis/proxypass/dumper/switch/
+    timeout: 10s
+    token: ""
 
 detector:
   ssh:
