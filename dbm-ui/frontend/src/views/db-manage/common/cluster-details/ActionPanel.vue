@@ -210,7 +210,7 @@
 
   const dbType = computed(() => clusterTypeInfos[props.clusterData.cluster_type].dbType);
   const isLoading = computed(() => !isFixedTab.value && isPanelLoading.value);
-  const isAbleSubscribe = computed(() => metricsMap[props.clusterData.cluster_type].list.length > 0);
+  const isAbleSubscribe = computed(() => metricsMap[props.clusterData.cluster_type]?.list?.length > 0);
 
   const calcTabContentHeight = _.throttle(() => {
     if (rootRef.value) {
