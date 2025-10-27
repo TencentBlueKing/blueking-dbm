@@ -1,10 +1,12 @@
 <template>
   <TableColumn
     class-name="cluster-table-alias-column"
-    col-key="cluster_alias"
+    col-key="name"
+    :filter="columnFilter?.['name']"
     :min-width="150"
-    :title="t('别名')">
+    :title="t('集群名称/别名')">
     <template #default="{ row }: { row: IRowData }">
+      <div>{{ row.cluster_name || '--' }}</div>
       <TextOverflowLayout>
         {{ row.cluster_alias || '--' }}
         <template
@@ -21,6 +23,8 @@
 <script setup lang="ts" generic="T extends ISupportClusterType">
   import { useI18n } from 'vue-i18n';
 
+  import { useClusterColumnFilter } from '@hooks';
+
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import UpdateClusterAliasName from '@views/db-manage/common/UpdateClusterAliasName.vue';
@@ -28,18 +32,21 @@
   import type { ClusterModel, ISupportClusterType } from './types';
 
   export interface Props {
-    // eslint-disable-next-line vue/no-unused-properties
     clusterType: ISupportClusterType;
   }
 
   export type Emits = (e: 'refresh') => void;
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
   type IRowData = ClusterModel<T>;
+
+  const { data: columnFilter } = useClusterColumnFilter({
+    cluster_type: props.clusterType,
+  });
 
   const handleUpdateSuccess = () => {
     emits('refresh');

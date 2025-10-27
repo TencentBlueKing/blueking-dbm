@@ -278,14 +278,14 @@
           @go-detail="handleToDetails" />
       </template>
       <template #moduleNames>
-        <BkTableColumn
-          field="module_names"
-          label="Modules"
-          :width="150">
-          <template #default="{ data }: { data: RedisModel }">
-            <TagBlock :data="data.module_names" />
+        <TableColumn
+          col-key="module_names"
+          :min-width="150"
+          title="Modules">
+          <template #default="{ row }: { row: RedisModel }">
+            <TagBlock :data="row.module_names" />
           </template>
-        </BkTableColumn>
+        </TableColumn>
       </template>
     </ClusterTable>
     <!-- 查看密码 -->

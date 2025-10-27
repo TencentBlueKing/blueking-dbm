@@ -16,6 +16,14 @@ import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
 import { t } from '@/locales';
 
 export const baseFilter = {
+  cluster_ids: {
+    component: markRaw(MultipleInput),
+    popupProps: {
+      attach: 'body',
+      placement: 'bottom',
+    },
+    showConfirmAndReset: true,
+  },
   create_at: {
     component: markRaw(DatetimeRange),
     name: t('申请时间'),
@@ -197,7 +205,7 @@ export const useClusterColumnFilter = <T extends readonly string[] = Array<keyof
               },
               props: {
                 list: result[attr].map((item) => ({
-                  label: item.text,
+                  label: attr === 'bk_cloud_id' ? `${item.text}[${item.value}]` : item.text,
                   value: item.value,
                 })),
               },

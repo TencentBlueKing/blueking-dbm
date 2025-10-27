@@ -33,7 +33,7 @@ export const useClusterQuickSearch = (cluster_type: ClusterTypes | ClusterTypes[
       cluster_type: Array.isArray(cluster_type) ? cluster_type.join(',') : cluster_type,
     }).then((data) => {
       return data[attr].map((item) => ({
-        label: item.text,
+        label: attr === 'bk_cloud_id' ? `${item.text}[${item.value}]` : item.text,
         value: item.value,
       }));
     });
@@ -41,7 +41,7 @@ export const useClusterQuickSearch = (cluster_type: ClusterTypes | ClusterTypes[
 
   const quickSearchData: QuickSearchProps['data'] = [
     {
-      description: t('支持模糊搜索'),
+      description: t('单个值支持模糊搜索'),
       id: 'domain',
       name: t('访问入口'),
       type: 'multiple-input',
@@ -51,12 +51,19 @@ export const useClusterQuickSearch = (cluster_type: ClusterTypes | ClusterTypes[
     },
 
     {
-      description: t('支持模糊搜索'),
       id: 'instance',
       name: t('IP 或 IP:Port'),
       type: 'multiple-input',
       validator: (value) => {
         return ipPort.test(value) || ipv4.test(value);
+      },
+    },
+    {
+      id: 'cluster_ids',
+      name: 'ID',
+      type: 'multiple-input',
+      validator: (value) => {
+        return !isNaN(Number(value)) ? true : t('ID 只支持数字');
       },
     },
     {
@@ -100,7 +107,7 @@ export const useClusterQuickSearch = (cluster_type: ClusterTypes | ClusterTypes[
     {
       description: t('支持模糊搜索'),
       id: 'name',
-      name: t('集群名称'),
+      name: t('别名'),
       type: 'multiple-input',
       validator: (value) => {
         // 排除IP和IP:Port和域名和域名:Port
