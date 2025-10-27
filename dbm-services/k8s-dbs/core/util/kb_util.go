@@ -686,9 +686,15 @@ func ExtractPodsInfo(
 				slog.Warn("failed to get pod resource usage", "namespace", pod.Namespace, "pod", pod.Name)
 			}
 		}
+		podStatus := pod.Status.Phase
+		for _, status := range pod.Status.ContainerStatuses {
+			if status.State.Waiting != nil {
+				podStatus = corev1.PodFailed
+			}
+		}
 		pods = append(pods, &coreentity.Pod{
 			PodName:       pod.Name,
-			Status:        pod.Status.Phase,
+			Status:        podStatus,
 			Node:          pod.Spec.NodeName,
 			Role:          GetPodRole(pod),
 			ResourceQuota: resourceQuota,
