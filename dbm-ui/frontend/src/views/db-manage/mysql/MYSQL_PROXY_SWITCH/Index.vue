@@ -97,6 +97,7 @@
   </ProxyWrapper>
 </template>
 <script lang="ts" setup>
+  import _ from 'lodash';
   import { reactive, useTemplateRef } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
@@ -192,14 +193,16 @@
 
   // 行合并
   const handleRowMerge = () => {
+    formData.tableData = [..._.sortBy(formData.tableData, (item) => item.originProxy.merge_key)];
+
     sameClusterIdsRowsMap = {};
     formData.tableData.forEach((item) => {
       Object.assign(item, { rowspan: 1 });
-      const ids = (item.originProxy.related_clusters || []).map((item) => item.id).join(',');
-      if (!sameClusterIdsRowsMap[ids]) {
-        sameClusterIdsRowsMap[ids] = [item];
+      const key = item.originProxy.merge_key;
+      if (!sameClusterIdsRowsMap[key]) {
+        sameClusterIdsRowsMap[key] = [item];
       } else {
-        sameClusterIdsRowsMap[ids].push(item);
+        sameClusterIdsRowsMap[key].push(item);
       }
     });
     Object.values(sameClusterIdsRowsMap).forEach((list) => {
