@@ -26,6 +26,7 @@ package switcher
 
 import (
 	"context"
+	"fmt"
 
 	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -35,18 +36,24 @@ import (
 
 var _ Switcher = (*Mysql)(nil)
 
+// Mysql implements the Switcher interface for MySQL database instances
 type Mysql struct {
 }
 
+// DbTypeName returns the MySQL database type identifier
 func (m *Mysql) DbTypeName() haprobe.DbType {
 	return haprobe.DbTypeMysql
 }
 
+// Switch handles MySQL instance switching operations
+// Note: This function may be called concurrently, avoid unnecessary duplicate switching
+// Note: For TenDBCluster, handle partial switch failures when multiple instances on same host
 func (m *Mysql) Switch(ctx context.Context, req *Request) *Response {
 	// TODO: Need to implement the switching logic with the switching strategy.
 
 	rsp := &Response{}
 
+	insSockets := make(map[string]struct{})
 	for _, event := range req.BreakdownEvents {
 		monitorEvent := &monitor.EventData{
 			Name:      event.Name.String(),
@@ -67,6 +74,30 @@ func (m *Mysql) Switch(ctx context.Context, req *Request) *Response {
 		}
 
 		logger.Debug("check the business(event): %s %s", event.Endpoint, event.Message)
+		insSockets[fmt.Sprintf("%s:%d", event.IP, event.Port)] = struct{}{}
+	}
+
+	failedIns := make([]string, 0)
+	for insSock := range insSockets {
+		insMetaData := req.MySQLInsData[insSock]
+		swIns, newErr := NewMySQLSwitchInstance(&insMetaData)
+		if newErr != nil {
+			logger.Error("new mysql switch instance failed: %v", newErr)
+			failedIns = append(failedIns, insSock)
+			continue
+		}
+
+		success, swErr := SwitchSingleInstance(swIns)
+		if success {
+			logger.Info("switch single instance[%s] successfully", insSock)
+		} else {
+			logger.Error("switch single instance[%s] failed: %v", insSock, swErr)
+			failedIns = append(failedIns, insSock)
+		}
+	}
+
+	if len(failedIns) > 0 {
+		rsp.Err = fmt.Errorf("failed to switch some instances: %v", failedIns)
 	}
 
 	return rsp

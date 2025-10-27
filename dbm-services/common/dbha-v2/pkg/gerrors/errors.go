@@ -29,6 +29,7 @@ import "fmt"
 // Code dbha global error code type
 type Code int
 
+// Int returns the integer value of the error code
 func (c Code) Int() int {
 	return int(c)
 }
@@ -67,6 +68,7 @@ const (
 	SshFailure
 	EtcdFailure
 	MysqlFailure
+	NodeAbnormal
 )
 
 // New create a internal error.
@@ -104,19 +106,23 @@ func NewCustomE(c int, err error) *Error {
 	return &Error{code: c, message: err.Error()}
 }
 
+// Error represents a custom error with code and message
 type Error struct {
 	code    int
 	message string
 }
 
+// Code returns the error code
 func (e *Error) Code() int {
 	return e.code
 }
 
+// CodeIs checks if the error code matches the given code
 func (e *Error) CodeIs(c Code) bool {
 	return e.code == c.Int()
 }
 
+// Error returns the error message string
 func (e *Error) Error() string {
 	return e.message
 }

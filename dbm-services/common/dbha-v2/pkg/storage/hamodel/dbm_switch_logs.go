@@ -22,39 +22,23 @@
  * SOFTWARE.
  */
 
-// Package switcher provides database switching functionality for DBHA
-package switcher
+package hamodel
 
-import (
-	"context"
+import "time"
 
-	"dbm-services/common/dbha-v2/internal/analysis/storage"
-	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
-	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
-)
-
-// Request contains all data needed for database switching operation
-type Request struct {
-	BkBizID             int
-	Hadb                *storage.DbhaData
-	BreakdownEvents     []*hamodel.DbEvent
-	BreakdownInts       []*hamodel.DbmMetadata
-	MetaInsts           []*hamodel.DbmMetadata
-	SwitchingStrategies []*hamodel.DbSwitchingStrategy
-
-	// metadata needed when switching
-
-	// map: ip:port -> MySQLInstanceMetadata
-	MySQLInsData map[string]MySQLInstanceMetadata
+// HASwitchLogs TODO
+type HASwitchLogs struct {
+	UID      int64      `gorm:"column:uid;type:bigint;primaryKey;autoIncrement" json:"uid,omitempty"`
+	SwitchID int64      `gorm:"column:sw_id;type:bigint;index:idx_sw_id" json:"sw_id,omitempty"`
+	App      string     `gorm:"column:app;type:varchar(32);NOT NULL" json:"app,omitempty"`
+	IP       string     `gorm:"column:ip;type:varchar(32);index:idx_ip_port" json:"ip,omitempty"`
+	Port     int        `gorm:"column:port;type:int(11);index:idx_ip_port" json:"port,omitempty"`
+	Result   string     `gorm:"column:result;type:tinyblob" json:"result,omitempty"`
+	Datetime *time.Time `gorm:"column:datetime;type:datetime;index:idx_date" json:"datetime,omitempty"`
+	Comment  string     `gorm:"column:comment;type:blob" json:"comment,omitempty"`
 }
 
-// Response contains the result of switching operation
-type Response struct {
-	Err error
-}
-
-// Switcher defines the interface for database switching implementations
-type Switcher interface {
-	DbTypeName() haprobe.DbType
-	Switch(ctx context.Context, req *Request) *Response
+// TableName TODO
+func (s *HASwitchLogs) TableName() string {
+	return "ha_switch_logs"
 }
