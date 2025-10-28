@@ -69,15 +69,15 @@ type EventData struct {
 
 	Dimension struct {
 		// Added in v2
-		BkCloudID         int                            `json:"bk_cloud_id,omitempty"`
+		BkCloudId         int                            `json:"bk_cloud_id,omitempty"`
 		IP                string                         `json:"ip,omitempty"`
 		Port              int                            `json:"port,omitempty"`
-		BkBizID           int                            `json:"bk_biz_id,omitempty"`
+		BkBizId           int                            `json:"bk_biz_id,omitempty"`
 		DbClusterType     hamodel.DbmMetadataClusterType `json:"dbm_cluster_type,omitempty"`
 		DbMachineType     hamodel.DbmMetadataMachineType `json:"dbm_machine_type,omitempty"`
 		DbTypeName        haprobe.DbType                 `json:"db_type_name,omitempty"`
 		DbEventName       haprobe.DbEventName            `json:"db_event_name,omitempty"`
-		DbEventNameReason haprobe.DbEventNameReason      `json:"db_event_name_reason,omitempty"`
+		DbEventNameReason haprobe.DbEventNameReasonStr   `json:"db_event_name_reason,omitempty"`
 
 		// Compatible with V1.
 		SwitchInfoBkBizIdV1       string `json:"appid,omitempty"`

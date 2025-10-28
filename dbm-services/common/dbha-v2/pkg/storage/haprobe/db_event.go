@@ -33,6 +33,10 @@ import (
 // DbEventName db event name
 type DbEventName string
 
+func (v DbEventName) String() string {
+	return string(v)
+}
+
 const (
 	// Compatible with V1
 	DbEventNameRedisSwitchSuccessV1     DbEventName = "dbha_redis_switch_succ"
@@ -61,13 +65,51 @@ const (
 )
 
 // DbEventNameReason db event name reason
+type DbEventNameReasonStr string
+
+func (v DbEventNameReasonStr) String() string {
+	return string(v)
+}
+
 type DbEventNameReason int
+
+func (t DbEventNameReason) Str() DbEventNameReasonStr {
+	switch t {
+	case DbEventNameReasonConnectionException:
+		return ConnectionExecption
+
+	case DbEventNameReasonAuthException:
+		return AuthFailure
+
+	case DbEventNameReasonSSHAuthException:
+		return SshAuthFailure
+
+	case DbEventNameReasonMissedProbe:
+		return MissedProbe
+
+	case DbEventNameReasonNoTarget:
+		return NoTarget
+
+	default:
+		unknown := fmt.Sprintf("unknown event name reason: %d", t)
+		return DbEventNameReasonStr(unknown)
+	}
+}
 
 const (
 	DbEventNameReasonConnectionException DbEventNameReason = iota
 	DbEventNameReasonAuthException
 	DbEventNameReasonSSHAuthException
 	DbEventNameReasonMissedProbe
+	DbEventNameReasonNoTarget
+)
+
+const (
+	ConnectionExecption DbEventNameReasonStr = "connection exception"
+	AuthFailure         DbEventNameReasonStr = "auth failure"
+	SshAuthFailure      DbEventNameReasonStr = "ssh auth failure"
+	MissedProbe         DbEventNameReasonStr = "missed probe"
+	NoTarget            DbEventNameReasonStr = "no target"
 )
 
 // DbType  db type
@@ -77,6 +119,10 @@ const (
 	DbTypeMysql DbType = "mysql"
 )
 
+func (t DbType) String() string {
+	return string(t)
+}
+
 // DbEvent Include some exception events
 type DbEvent struct {
 	Name       DbEventName       `json:"name"`
@@ -84,31 +130,4 @@ type DbEvent struct {
 	DbTypeName DbType            `json:"dbTypeName"`
 	Endpoint   *hanet.Endpoint   `json:"endpoint,omitempty"`
 	Message    string            `json:"message"`
-}
-
-func (t DbEventName) String() string {
-	return string(t)
-}
-
-func (t DbEventNameReason) String() string {
-	switch t {
-	case DbEventNameReasonConnectionException:
-		return "connection exception"
-
-	case DbEventNameReasonAuthException:
-		return "auth failure"
-
-	case DbEventNameReasonSSHAuthException:
-		return "ssh auth failure"
-
-	case DbEventNameReasonMissedProbe:
-		return "missed probe"
-
-	default:
-		return fmt.Sprintf("unknown event name reason: %d", t)
-	}
-}
-
-func (t DbType) String() string {
-	return string(t)
 }

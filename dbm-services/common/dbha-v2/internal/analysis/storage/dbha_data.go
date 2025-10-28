@@ -260,27 +260,27 @@ func (ha *DbhaData) SaveSwitchingLog(records ...*hamodel.DbSwitchingLog) error {
 	return err
 }
 
-func (ha *DbhaData) ReadSwitchingStrategyWithBkBizID(bkBizID int) ([]*hamodel.DbSwitchingStrategy, error) {
+func (ha *DbhaData) ReadSwitchingStrategyWithBkBizId(bkBizId int) ([]*hamodel.DbSwitchingStrategy, error) {
 	var strategies []*hamodel.DbSwitchingStrategy
 
 	cond := fmt.Sprintf("%s = ? or %s = 0 ", hamodel.DbSwitchingStrategyFieldBkBizID,
 		hamodel.DbSwitchingStrategyFieldBkBizID)
 
 	query := ha.DB.DB().Model(&hamodel.DbSwitchingStrategy{})
-	if e := query.Where(cond, bkBizID).Find(&strategies).Error; e != nil {
+	if e := query.Where(cond, bkBizId).Find(&strategies).Error; e != nil {
 		return nil, gerrors.NewE(gerrors.MysqlFailure, e)
 	}
 
 	return strategies, nil
 }
 
-func (ha *DbhaData) ReadSkipDbInstancesWithBkBizID(bkBizID int) ([]*hamodel.SkipDbInstance, error) {
+func (ha *DbhaData) ReadSkipDbInstancesWithBkBizId(bkBizId int) ([]*hamodel.SkipDbInstance, error) {
 	var skipDbInstances []*hamodel.SkipDbInstance
 
 	cond := fmt.Sprintf("%s = ? ", hamodel.SkipDbInstanceFieldBkBizID)
 
 	query := ha.DB.DB().Model(&hamodel.SkipDbInstance{})
-	if err := query.Where(cond, bkBizID).Find(&skipDbInstances).Error; err != nil {
+	if err := query.Where(cond, bkBizId).Find(&skipDbInstances).Error; err != nil {
 		return nil, gerrors.NewE(gerrors.MysqlFailure, err)
 	}
 
