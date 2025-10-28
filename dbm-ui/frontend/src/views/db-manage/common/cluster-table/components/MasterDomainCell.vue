@@ -180,6 +180,7 @@
     }
 
     .note-icon {
+      display: block !important;
       margin: 0 !important;
     }
   }

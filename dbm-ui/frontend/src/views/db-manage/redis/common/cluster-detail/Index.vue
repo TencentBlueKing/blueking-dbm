@@ -156,9 +156,10 @@
               </AuthButton>
             </OperationBtnStatusTips>
           </BkDropdownItem>
-          <!-- <FunController
-            controller-id="redis_nameservice"
-            module-id="addons"> -->
+          <ClusterAlarmSubscribe
+            :data="data"
+            is-dropdown
+            @edit="(e) => handleToDetails(data!.id, e, 'alarmSubscription')" />
           <BkDropdownItem
             v-if="!data.isOnlineCLB"
             v-db-console="'common.clb'">
@@ -322,6 +323,7 @@
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
   import TagBlock from '@components/tag-block/Index.vue';
 
+  import ClusterAlarmSubscribe from '@views/db-manage/common/cluster-alarm-subscribe/Index.vue';
   import { ActionPanel, BaseInfo, BaseInfoField, DisplayBox } from '@views/db-manage/common/cluster-details';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
   import ClusterLoad from '@views/db-manage/common/cluster-load/Index.vue';
@@ -333,6 +335,7 @@
     useRedisClusterListToToolbox,
   } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
+  import useGoClusterDetail from '@views/db-manage/hooks/useGoClusterDetail';
   import ClusterPassword from '@views/db-manage/redis/common/cluster-operations/ClusterPassword.vue';
 
   interface Props {
@@ -351,6 +354,7 @@
   const { handleAddClb } = useAddClb<{ cluster_id: number }>(ClusterTypes.REDIS_CLUSTER);
   const { handleAddPolaris } = useAddPolaris<{ cluster_id: number }>(ClusterTypes.REDIS_CLUSTER);
   const { handleBindOrUnbindClb } = useBindOrUnbindClb<{ cluster_id: number }>(ClusterTypes.REDIS_CLUSTER);
+  const { goClusterDetail: handleToDetails } = useGoClusterDetail('redisClusterDetail');
 
   const { handleToToolbox } = useRedisClusterListToToolbox();
 

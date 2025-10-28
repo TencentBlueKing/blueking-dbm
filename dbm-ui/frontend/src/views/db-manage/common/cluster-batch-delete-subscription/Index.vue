@@ -7,7 +7,13 @@
     :width="480">
     <div class="content-main">
       <div class="title">{{ t('确定批量删除n个集群的告警订阅？', { n: selected.length }) }}</div>
-      <div class="tip-main">{{ t('已订阅的集群将停止发送订阅通知并删除配置，未订阅的将忽略') }}</div>
+      <div class="tip-main">
+        {{
+          showUpdate
+            ? t('已订阅的集群将停止发送订阅通知并删除配置，未订阅的将忽略')
+            : t('删除订阅将停止发送告警通知并删除配置，如有需要可再次订阅')
+        }}
+      </div>
       <div class="list-main">
         <div class="count-main">
           <I18nT
@@ -211,7 +217,7 @@
 
       .list-main {
         display: flex;
-        height: 192px;
+        max-height: 192px;
         overflow: hidden;
         border: 1px solid #eaebf0;
         border-radius: 2px;

@@ -27,7 +27,15 @@ export function deleteSubscribe(params: { ids: number[] }) {
  * 获取告警订阅指标
  */
 export function getSubscribeMetrics(params?: { limit?: number; offset?: number }) {
-  return http.get<Record<string, string[]>>(`${path}/get_subscribe_metrics/`, params);
+  return http.get<
+    Record<
+      string,
+      {
+        id: string;
+        name: string;
+      }[]
+    >
+  >(`${path}/get_subscribe_metrics/`, params);
 }
 
 /**
