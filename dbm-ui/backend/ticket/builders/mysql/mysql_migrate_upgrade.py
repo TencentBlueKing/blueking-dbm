@@ -64,6 +64,7 @@ class MysqlMigrateUpgradeDetailSerializer(MySQLBaseOperateDetailSerializer):
     infos = serializers.ListField(help_text=_("添加信息"), child=InfoSerializer())
     is_check_process = serializers.BooleanField(help_text=_("是否做安全检测"), default=True)
     is_verify_checksum = serializers.BooleanField(help_text=_("是否检查主从数据校验结果"), default=True)
+    need_checksum = serializers.BooleanField(help_text=_("执行前是否需要数据校验"), default=True, required=False)
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
