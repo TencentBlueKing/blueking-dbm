@@ -12,11 +12,11 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.constants import AffinityEnum
-from backend.db_meta.enums import MachineType
 from backend.db_meta.models import AppCache
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import get_cluster_tolerance
 from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateDetailSerializer,
     BaseMongoDBOperateResourceParamBuilder,
@@ -59,32 +59,7 @@ class MongoDBShardMigrateFlowParamBuilder(builders.FlowParamBuilder):
 class MongoDBShardMigrateResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder):
     def format(self):
         # 资源申请的一些参数补充
-        self.patch_info_common_affinity(
-            role="mongodb", remain_machine_type=MachineType.MONGODB, replace_key="shard", tolerance=0.5
-        )
-
-    def post_callback(self):
-        with self.next_flow_manager() as next_flow:
-            new_infos = {"MongoShardedCluster": []}
-            info_map = {}
-            shard_name_resource_map = {}
-            for info in next_flow.details["ticket_data"]["infos"]:
-                if info["cluster_id"] not in info_map:
-                    info_map[info["cluster_id"]] = info
-                if info["cluster_id"] not in shard_name_resource_map:
-                    shard_name_resource_map[info["cluster_id"]] = {
-                        "shard_name": [info["shard_name"]],
-                        "resource": [info.pop("mongodb")],
-                    }
-                else:
-                    shard_name_resource_map[info["cluster_id"]]["shard_name"].append(info["shard_name"])
-                    shard_name_resource_map[info["cluster_id"]]["resource"].append(info.pop("mongodb"))
-            for cluster_id in info_map:
-                info = info_map[cluster_id]
-                info["shard_name"] = shard_name_resource_map[cluster_id]["shard_name"]
-                info["mongodb"] = shard_name_resource_map[cluster_id]["resource"]
-                new_infos["MongoShardedCluster"].append(info)
-            next_flow.details["ticket_data"]["infos"] = new_infos
+        self.patch_info_common_affinity(role="mongodb", tolerance=get_cluster_tolerance)
 
 
 @builders.BuilderFactory.register(TicketType.MONGODB_SHARD_MIGRATE, is_recycle=True)

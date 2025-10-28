@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
@@ -16,7 +17,7 @@ from backend.db_meta.models import AppCache
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import CommonValidate
+from backend.ticket.builders.common.base import CommonValidate, get_cluster_tolerance
 from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateDetailSerializer,
     BaseMongoDBOperateResourceParamBuilder,
@@ -31,6 +32,8 @@ class MongoDBAddMongosDetailSerializer(BaseMongoDBOperateDetailSerializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         role = serializers.CharField(help_text=_("接入层角色"), required=False, default=MachineType.MONGOS)
         resource_spec = serializers.JSONField(help_text=_("资源规格"))
+        current_mongos_num = serializers.IntegerField(help_text=_("当前数量"), required=False)
+        add_mongos_num = serializers.IntegerField(help_text=_("扩容数量"), required=False)
 
     is_safe = serializers.BooleanField(help_text=_("是否做安全检测"), default=True, required=False)
     ip_source = serializers.ChoiceField(
@@ -57,7 +60,9 @@ class MongoDBAddMongosFlowParamBuilder(BaseMongoOperateFlowParamBuilder):
 class MongoDBAddMongosResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder):
     def format(self):
         # 扩容接入层亲和性需要和集群亲和性保持一致
-        self.patch_info_affinity_location(roles=["mongos"])
+        self.patch_info_common_affinity(
+            role="mongos", remain_machine_type=MachineType.MONGOS, tolerance=get_cluster_tolerance
+        )
         super().format()
 
     def post_callback(self):

@@ -89,7 +89,10 @@ class MongoReplicaSetApplyFlowParamBuilder(builders.FlowParamBuilder):
 
 class MongoReplicaSetResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder):
     def format(self):
-        pass
+        if self.ticket_data["disaster_tolerance_level"] == AffinityEnum.CROS_SUBZONE.value:
+            self.ticket_data["resource_spec"]["mongo_machine_set"]["tolerance"] = 0.33
+        else:
+            self.ticket_data["resource_spec"]["mongo_machine_set"]["tolerance"] = 0.5
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()

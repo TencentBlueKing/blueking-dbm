@@ -12,11 +12,11 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.constants import AffinityEnum
-from backend.db_meta.enums import MachineType
 from backend.db_meta.models import AppCache
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import get_cluster_tolerance
 from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateDetailSerializer,
     BaseMongoDBOperateResourceParamBuilder,
@@ -57,14 +57,7 @@ class MongoDBReplicasetMigrateFlowParamBuilder(builders.FlowParamBuilder):
 class MongoDBReplicasetMigrateResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder):
     def format(self):
         # 资源申请的一些参数补充
-        self.patch_info_common_affinity(
-            role="mongodb", remain_machine_type=MachineType.MONGODB, replace_key="replicaset", tolerance=0.5
-        )
-
-    def post_callback(self):
-        with self.next_flow_manager() as next_flow:
-            new_infos = {"MongoReplicaSet": next_flow.details["ticket_data"]["infos"]}
-            next_flow.details["ticket_data"]["infos"] = new_infos
+        self.patch_info_common_affinity(role="mongodb", tolerance=get_cluster_tolerance)
 
 
 @builders.BuilderFactory.register(TicketType.MONGODB_REPLICASET_MIGRATE, is_recycle=True)

@@ -82,6 +82,14 @@ class MongoShardedClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
 class MongoShardedClusterResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder):
     def format(self):
         """格式化mongodb申请的组数"""
+        if self.ticket_data["disaster_tolerance_level"] == AffinityEnum.CROS_SUBZONE.value:
+            self.ticket_data["resource_spec"]["mongodb"]["tolerance"] = 0.33
+            self.ticket_data["resource_spec"]["mongo_config"]["tolerance"] = 0.33
+            self.ticket_data["resource_spec"]["mongos"]["tolerance"] = 0.33
+        else:
+            self.ticket_data["resource_spec"]["mongodb"]["tolerance"] = 0.5
+            self.ticket_data["resource_spec"]["mongo_config"]["tolerance"] = 0.5
+            self.ticket_data["resource_spec"]["mongos"]["tolerance"] = 0.5
         resource_spec = self.ticket_data["resource_spec"]
         self.format_mongo_resource_spec(resource_spec, self.ticket_data["shard_machine_group"])
 

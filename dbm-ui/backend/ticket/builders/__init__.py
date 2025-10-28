@@ -298,7 +298,7 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
         role: str,
         remain_machine_type: str = None,
         replace_key: str = None,
-        tolerance: float = 0,
+        tolerance: Union[Callable, float] = None,
         no_need_affinity: bool = False,
     ):
         """
@@ -347,6 +347,7 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
         infos = self.ticket_data["infos"]
         cluster_ids = fetch_cluster_ids(infos)
         cluster_map = Cluster.objects.in_bulk(cluster_ids)
+        tolerance = tolerance or 0
 
         cluster__remain_hosts_map = defaultdict(list)
         off_host_ids = []
@@ -359,8 +360,9 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
 
         for info in infos:
             cluster = cluster_map[fetch_cluster_ids(info)[0]]
+            cluster_tolerance = tolerance(cluster) if isinstance(tolerance, Callable) else tolerance
             exclusive_hosts = cluster__remain_hosts_map.get(cluster.id, [])
-            self.patch_common_affinity(info, role, cluster, exclusive_hosts, tolerance, no_need_affinity)
+            self.patch_common_affinity(info, role, cluster, exclusive_hosts, cluster_tolerance, no_need_affinity)
 
     def patch_info_affinity_location(self, roles=None, replace_zone=None):
         """
