@@ -38,7 +38,6 @@ import (
 var (
 	ErrDetectorCreateSshConnection = gerrors.Newf(gerrors.NetException, "failed to dial")
 	ErrDetectorCreateSshSession    = gerrors.Newf(gerrors.NetException, "failed to create SSH session")
-	ErrDetectorRunShellCommand     = gerrors.Newf(gerrors.Failure, "failed to run shell command")
 )
 
 // SshResponse contains the result of the shell that was running on the remote host.
@@ -64,7 +63,6 @@ func (s *Ssh) Id() string {
 
 // Run runs cmd on the remote host and returns it's combined standard output and standard error.
 func (s *Ssh) Run(cmd string) (*SshResponse, error) {
-
 	conf := &ssh.ClientConfig{
 		Timeout:         s.timeout,
 		User:            s.user,

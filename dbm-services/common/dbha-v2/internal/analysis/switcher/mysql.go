@@ -62,12 +62,12 @@ func (m *Mysql) Switch(ctx context.Context, req *Request) *Response {
 		}
 
 		monitorEvent.Content.Content = event.Message
-		monitorEvent.Dimension.BkCloudID = event.BkCloudID
+		monitorEvent.Dimension.BkCloudId = event.BkCloudID
 		monitorEvent.Dimension.IP = event.IP
 		monitorEvent.Dimension.Port = event.Port
 		monitorEvent.Dimension.DbTypeName = event.DbTypeName
 		monitorEvent.Dimension.DbEventName = event.Name
-		monitorEvent.Dimension.DbEventNameReason = event.Reason
+		monitorEvent.Dimension.DbEventNameReason = event.Reason.Str()
 
 		if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
 			logger.Warn("%v", err)
