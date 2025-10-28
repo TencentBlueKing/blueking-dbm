@@ -51,14 +51,15 @@
           <BackupRecordColumn
             v-if="formData.rollbackMethod === 'BACKUPID'"
             v-model="item.backupRecord"
+            v-model:table-data="formData.tableData"
             :backup-source="formData.backupSource"
             :cluster="item.cluster"
-            @batch-edit="handleBatchEdit"
             @change="() => handleChangeRowData(item)" />
           <TimeBackupRecordColumn
             v-if="formData.rollbackMethod === 'TIME'"
             v-model:backup-record="item.backupRecord"
             v-model:backup-time="item.backupTime"
+            v-model:table-data="formData.tableData"
             :backup-source="formData.backupSource"
             :cluster="item.cluster"
             @batch-edit="handleBatchEdit"
@@ -267,8 +268,7 @@
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     infos: {
-      // 受影响db，仅前端展示用
-      affect_db?: string[]; // 如果是回档到原集群 or 已有集群，需要填此参数
+      affect_database_list?: string[]; // 如果是回档到原集群 or 已有集群，需要填此参数
       backup_id: string;
       backup_source: BackupSourceType;
       backupinfo: BackupLogRecord; // 如果备份类型为REMOTE_AND_BACKUPID提供集群备份信息
@@ -405,7 +405,7 @@
       createTicketRun({
         details: {
           infos: formData.tableData.map((item) => ({
-            affect_db: item.affectDb,
+            affect_database_list: item.affectDb,
             backup_id: item.backupRecord.backup_id,
             backup_source: formData.backupSource,
             backupinfo: item.backupRecord,
