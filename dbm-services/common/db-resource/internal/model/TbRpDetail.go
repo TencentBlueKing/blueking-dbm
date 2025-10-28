@@ -178,6 +178,10 @@ func (t TbRpDetail) MatchDbmSpec(spec dbmapi.DbmSpec) bool {
 			mp := diskSpec.MountPoint
 			realDiskInfo, ok := t.Storages[mp]
 			if !ok {
+				// 如果磁盘规格最小值为0，匹配空的磁盘也允许
+				if diskSpec.Min == 0 {
+					continue
+				}
 				logger.Warn("disk not found, mp:%s, detail:%s", mp, t.IP)
 				return false
 			}
@@ -186,7 +190,7 @@ func (t TbRpDetail) MatchDbmSpec(spec dbmapi.DbmSpec) bool {
 					return false
 				}
 			}
-			if realDiskInfo.Size < diskSpec.Size {
+			if realDiskInfo.Size < diskSpec.Min || realDiskInfo.Size > diskSpec.Max {
 				return false
 			}
 		}
