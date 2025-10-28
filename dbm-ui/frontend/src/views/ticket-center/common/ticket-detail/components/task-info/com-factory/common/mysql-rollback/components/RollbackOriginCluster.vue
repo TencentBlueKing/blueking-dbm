@@ -12,27 +12,28 @@
 -->
 
 <template>
-  <PrimaryTable
+  <InfoTable
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
-    <TableColumn
+    <InfoTableColumn
       col-key="cluster_id"
+      :get-copy-value="(item: RowData) => ticketDetails.details.clusters[item.cluster_id].immute_domain"
       :min-width="220"
       :title="t('集群')">
       <template #default="{ row:data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
+    </InfoTableColumn>
     <slot />
-    <TableColumn
+    <InfoTableColumn
       col-key="backup_source"
       :min-width="150"
       :title="t('备份源')">
       <template #default="{ row:data }: { row: RowData }">
         {{ backupSourceMap[data.backup_source as keyof typeof backupSourceMap] }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </InfoTableColumn>
+    <InfoTableColumn
       col-key="rollback_time"
       :title="t('回档类型')">
       <template #default="{ row:data }: { row: RowData }">
@@ -43,8 +44,8 @@
         </span>
         <span v-else>--</span>
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </InfoTableColumn>
+  </InfoTable>
 </template>
 
 <script setup lang="tsx">
@@ -53,6 +54,8 @@
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
   import { utcDisplayTime } from '@utils';
+
+  import InfoTable, { InfoTableColumn } from '../../../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.RollbackCluster>;

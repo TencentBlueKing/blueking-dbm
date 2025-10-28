@@ -12,22 +12,23 @@
 -->
 
 <template>
-  <PrimaryTable
+  <InfoTable
     :data="tableData"
     row-key="clusterName">
-    <TableColumn
+    <InfoTableColumn
       col-key="clusterName"
+      :get-copy-value="(item: RowData) => item.clusterName"
       :title="t('集群')" />
-    <TableColumn
+    <InfoTableColumn
       col-key="ip"
       title="IP" />
-    <TableColumn
+    <InfoTableColumn
       col-key="dbName"
       :title="t('DB 名')" />
-    <TableColumn
+    <InfoTableColumn
       col-key="tbName"
       :title="t('表名')" />
-    <TableColumn
+    <InfoTableColumn
       col-key="action"
       :title="t('分区动作')">
       <template #default="{ row }">
@@ -39,14 +40,16 @@
           </BkTag>
         </div>
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </InfoTableColumn>
+  </InfoTable>
 </template>
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
+
+  import InfoTable, { InfoTableColumn } from '../../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.Partition>;

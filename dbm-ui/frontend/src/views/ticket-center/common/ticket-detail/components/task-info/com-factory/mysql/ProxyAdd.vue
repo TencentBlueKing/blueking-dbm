@@ -12,10 +12,14 @@
 -->
 
 <template>
-  <PrimaryTable
+  <InfoTable
     :data="ticketDetails.details.infos"
     row-key="new_proxy.ip">
-    <TableColumn
+    <InfoTableColumn
+      col-key="cluster_ids"
+      :get-copy-value="
+        (item: RowData) => item.cluster_ids.map((clusterId) => ticketDetails.details.clusters[clusterId].immute_domain)
+      "
       :min-width="250"
       :title="t('目标集群')">
       <template #default="{ row: data }: { row: RowData }">
@@ -26,13 +30,15 @@
           {{ ticketDetails.details.clusters[clusterId].immute_domain }}
         </div>
       </template>
-    </TableColumn>
-    <TableColumn :title="t('新Proxy主机')">
+    </InfoTableColumn>
+    <InfoTableColumn
+      col-key="new_proxy"
+      :title="t('新Proxy主机')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.new_proxy.ip }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </InfoTableColumn>
+  </InfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -40,6 +46,8 @@
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
+
+  import InfoTable, { InfoTableColumn } from '../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.ProxyAdd>;
