@@ -57,17 +57,17 @@ func (dbm *DbmClient) SendRequest(url string, method hanet.HttpMethod, req any,
 
 	data, err := json.Marshal(&req)
 	if err != nil {
-		logger.Warn("failed to marshal the dbm request data, errmsg: %v", err)
+		logger.Warn("failed to marshal the dbm request data, errmsg: %s", err)
 		return nil, gerrors.NewE(gerrors.InvalidParameter, err)
 	}
 
-	code, resp, err := dbm.httpClient.Request(context.TODO(), url, method, data)
+	code, resp, err := dbm.httpClient.Request(context.Background(), url, method, data)
 	if err != nil {
-		logger.Warn("failed to send http %s request to dbm, errmsg: %v", method, err)
+		logger.Warn("failed to send http %s request to dbm, errmsg: %s", method, err)
 		return nil, err
 	}
 	if http.StatusOK != code {
-		logger.Warn("http %s request failed, status code: %d, errmsg: %v", method, code, err)
+		logger.Warn("http %s request failed, status code: %d, errmsg: %s", method, code, err)
 		return nil, err
 	}
 
@@ -113,7 +113,7 @@ func (dbm *DbmClient) UpdateInstanceStatus(ip string, port int, status hamodel.D
 	response, err := dbm.SendRequest(config.Cfg.Workflow.DbmApiUpdateStatus.Api, hanet.HttpMethodPost,
 		req, config.Cfg.Workflow.DbmApiUpdateStatus.Timeout)
 	if err != nil {
-		logger.Error("UpdateInstanceStatus failed, %s", err.Error())
+		logger.Error("failed to update instance [%s:%d] status, errmsg:%s", ip, port, err.Error())
 		return err
 	}
 
@@ -155,9 +155,9 @@ func (dbm *DbmClient) DeleteFromDomain(domainName string, instance string, app s
 	return nil
 }
 
-// DeregisterFromCLB deregisters an instance from Cloud Load Balancer
-func (dbm *DbmClient) DeregisterFromCLB(region string, lbid string, lnid string, ins string) error {
-	req := CLBDeRegisterRequest{
+// DeleteFromCLB deregisters an instance from Cloud Load Balancer
+func (dbm *DbmClient) DeleteFromCLB(region string, lbid string, lnid string, ins string) error {
+	req := ClbDeleteRequest{
 		DbCloudToken:   config.Cfg.Workflow.DbmApiCLBDeregister.Token,
 		Region:         region,
 		LoadBalancerID: lbid,
@@ -165,38 +165,38 @@ func (dbm *DbmClient) DeregisterFromCLB(region string, lbid string, lnid string,
 		IPs:            []string{ins},
 	}
 
-	logger.Debug("DeregisterFromCLB req: %v", req)
+	logger.Debug("DeleteFromCLB req: %v", req)
 
 	response, err := dbm.SendRequest(config.Cfg.Workflow.DbmApiCLBDeregister.Api, hanet.HttpMethodPost,
 		req, config.Cfg.Workflow.DbmApiCLBDeregister.Timeout)
 	if err != nil {
-		logger.Error("DeregisterFromCLB failed, %s", err.Error())
+		logger.Error("failed to deregister instance [%s] from CLB, errMsg: %s", ins, err.Error())
 		return err
 	}
 
-	logger.Debug("DeregisterFromCLB response: %v", response)
+	logger.Debug("DeleteFromCLB response: %v", response)
 	return nil
 }
 
-// UnbindFromPolaris unbinds an instance from Polaris service discovery
-func (dbm *DbmClient) UnbindFromPolaris(servname string, servtoken string, ins string) error {
-	req := PolarisUnbindRequest{
+// DeleteFromPolaris unbinds an instance from Polaris service discovery
+func (dbm *DbmClient) DeleteFromPolaris(servname string, servtoken string, ins string) error {
+	req := PolarisDeleteRequest{
 		DbCloudToken: config.Cfg.Workflow.DbmApiPolarisUnbind.Token,
 		ServiceName:  servname,
 		ServiceToken: servtoken,
 		IPs:          []string{ins},
 	}
 
-	logger.Debug("UnbindFromPolaris req:%v", req)
+	logger.Debug("DeleteFromPolaris req: %v", req)
 
 	response, err := dbm.SendRequest(config.Cfg.Workflow.DbmApiPolarisUnbind.Api, hanet.HttpMethodPost,
 		req, config.Cfg.Workflow.DbmApiPolarisUnbind.Timeout)
 	if err != nil {
-		logger.Error("UnbindFromPolaris failed, %s", err.Error())
+		logger.Error("failed to unbind instance [%s] from Polaris, %s", ins, err.Error())
 		return err
 	}
 
-	logger.Debug("UnbindFromPolaris response: %v", response)
+	logger.Debug("DeleteFromPolaris response: %v", response)
 	return nil
 }
 
@@ -218,12 +218,13 @@ func (dbm *DbmClient) SwapMySQLRole(masterIp string, masterPort int, slaveIp str
 		Payloads:     []SwapMySQLRolePayload{payload},
 	}
 
-	logger.Debug("SwapMySQLRole param:%v", req)
+	logger.Debug("SwapMySQLRole req: %v", req)
 
 	response, err := dbm.SendRequest(config.Cfg.Workflow.DbmApiSwapMysqlRole.Api, hanet.HttpMethodPost,
 		req, config.Cfg.Workflow.DbmApiSwapMysqlRole.Timeout)
 	if err != nil {
-		logger.Error("SwapMySQLRole failed, %s", err.Error())
+		logger.Error("failed to swap role of master[%s:%d] and slave[%s:%d], errMsg: %s",
+			masterIp, masterPort, slaveIp, slavePort, err.Error())
 		return err
 	}
 
@@ -235,17 +236,17 @@ func (dbm *DbmClient) SwapMySQLRole(masterIp string, masterPort int, slaveIp str
 func (dbm *DbmClient) SwitchBinlogDumper(app string, switchInfos []DumperSwitchInfo) error {
 	req := DumperSwitchRequest{
 		DbCloudToken: config.Cfg.Workflow.DbmApiDumperSwitch.Token,
-		SafeSwitch:   true,
+		IsSafe:       true,
 		BKBizID:      app,
 		SwitchInfos:  switchInfos,
 	}
 
-	logger.Debug("SwitchBinlogDumper param:%v", req)
+	logger.Debug("SwitchBinlogDumper req: %v", req)
 
 	response, err := dbm.SendRequest(config.Cfg.Workflow.DbmApiDumperSwitch.Api, hanet.HttpMethodPost,
 		req, config.Cfg.Workflow.DbmApiDumperSwitch.Timeout)
 	if err != nil {
-		logger.Error("SwitchBinlogDumper failed, %s", err.Error())
+		logger.Error("failed to switch binlogdumper, errMsg: %s", err.Error())
 		return err
 	}
 

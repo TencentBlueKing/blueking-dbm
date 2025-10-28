@@ -69,14 +69,15 @@ func SwitchSingleInstance(ins SwitchableInstance) (success bool, retErr error) {
 
 	// rollback when need
 	defer func() {
-		if !success {
-			rollbackErr := ins.RollBack()
-			if rollbackErr != nil {
-				errMsg := fmt.Sprintf("failed to rollback switch: %s", rollbackErr.Error())
-				logger.Error("%s, instance{%s}", errMsg, ins.GetInstanceInfo())
-				ins.ReportLog(SwitchFail, errMsg)
-				retErr = gerrors.Newf(gerrors.Failure, "%s[rollback failed: %s]", retErr.Error(), rollbackErr.Error())
-			}
+		if success {
+			return
+		}
+
+		if rollbackErr := ins.RollBack(); rollbackErr != nil {
+			errMsg := fmt.Sprintf("failed to rollback switch: %s", rollbackErr.Error())
+			logger.Error("%s, instance{%s}", errMsg, ins.GetInstanceInfo())
+			ins.ReportLog(SwitchFail, errMsg)
+			retErr = gerrors.Newf(gerrors.Failure, "%s[rollback failed: %s]", retErr.Error(), rollbackErr.Error())
 		}
 	}()
 
@@ -87,8 +88,7 @@ func SwitchSingleInstance(ins SwitchableInstance) (success bool, retErr error) {
 		return
 	}
 
-	err := ins.SetInstanceUnavailable()
-	if err != nil {
+	if err := ins.SetInstanceUnavailable(); err != nil {
 		retErr = gerrors.New(gerrors.Failure, fmt.Sprintf("failed to set instance unavailable :%s", err.Error()))
 		logger.Error("%s, instance{%s}", retErr.Error(), ins.GetInstanceInfo())
 		success = false
@@ -96,50 +96,45 @@ func SwitchSingleInstance(ins SwitchableInstance) (success bool, retErr error) {
 	}
 	ins.ReportLog(SwitchInfo, "set instance unavailable successfully")
 
-	var checkpass bool
-	checkpass, err = ins.CheckBeforeSwitch()
-	if !checkpass {
-		if err != nil {
-			retErr = gerrors.New(gerrors.Failure, fmt.Sprintf("check unpass before switch :%s", err.Error()))
-			logger.Error("%s, instance{%s}", retErr.Error(), ins.GetInstanceInfo())
-			success = false
-		} else {
+	if checkpass, err := ins.CheckBeforeSwitch(); !checkpass {
+		if err == nil {
 			logger.Info("check result: no need to switch, instance{%s}", ins.GetInstanceInfo())
 			success = true
+			return
 		}
+
+		retErr = gerrors.New(gerrors.Failure, fmt.Sprintf("check unpass before switch: %s", err.Error()))
+		logger.Error("%s, instance{%s}", retErr.Error(), ins.GetInstanceInfo())
+		success = false
 		return
 	}
-	ins.ReportLog(SwitchInfo, "pre-check pass")
 
-	ins.ReportLog(SwitchInfo, "start to do switch")
-	err = ins.DoSwitch()
-	if err != nil {
+	ins.ReportLog(SwitchInfo, "pre-check pass, start to do switch")
+
+	if err := ins.DoSwitch(); err != nil {
 		retErr = gerrors.New(gerrors.Failure, fmt.Sprintf("do switch failed: %s", err.Error()))
 		logger.Error("%s, instance{%s}", retErr.Error(), ins.GetInstanceInfo())
 		success = false
 		return
 	}
-	ins.ReportLog(SwitchInfo, "do switch successfully")
 
-	ins.ReportLog(SwitchInfo, "try to update meta info")
-	err = ins.UpdateMetaInfo()
-	if err != nil {
+	ins.ReportLog(SwitchInfo, "do switch successfully, try to update meta info")
+
+	if err := ins.UpdateMetaInfo(); err != nil {
 		retErr = gerrors.New(gerrors.Failure, fmt.Sprintf("failed to update meta info: %s", err.Error()))
 		logger.Error("%s, instance{%s}", retErr.Error(), ins.GetInstanceInfo())
 		success = false
 		return
 	}
-	ins.ReportLog(SwitchInfo, "update meta info successfully")
 
-	ins.ReportLog(SwitchInfo, "try to do the final step")
-	err = ins.DoFinal()
-	if err != nil {
+	ins.ReportLog(SwitchInfo, "update meta info successfully, try to do the final step")
+
+	if err := ins.DoFinal(); err != nil {
 		retErr = gerrors.New(gerrors.Failure, fmt.Sprintf("final step failed: %s", err.Error()))
 		logger.Error("%s, instance{%s}", retErr.Error(), ins.GetInstanceInfo())
 		success = false
 		return
 	}
-	ins.ReportLog(SwitchInfo, "do final step successfully")
 
 	ins.ReportLog(SwitchInfo, "switch instance successfully")
 	logger.Debug("single instance switch end: %s", ins.GetInstanceInfo())
