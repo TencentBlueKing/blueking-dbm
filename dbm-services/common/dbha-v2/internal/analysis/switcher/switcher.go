@@ -44,7 +44,7 @@ type Request struct {
 
 	// metadata needed when switching
 
-	// map: ip:port -> MySQLInstanceMetadata
+	// map: bk_cloud_id@ip:port -> MySQLInstanceMetadata
 	MySQLInsData map[string]MySQLInstanceMetadata
 }
 

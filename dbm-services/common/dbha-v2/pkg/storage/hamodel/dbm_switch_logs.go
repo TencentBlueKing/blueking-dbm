@@ -29,13 +29,13 @@ import "time"
 // HASwitchLogs TODO
 type HASwitchLogs struct {
 	UID      int64      `gorm:"column:uid;type:bigint;primaryKey;autoIncrement" json:"uid,omitempty"`
-	SwitchID int64      `gorm:"column:sw_id;type:bigint;index:idx_sw_id" json:"sw_id,omitempty"`
-	App      string     `gorm:"column:app;type:varchar(32);NOT NULL" json:"app,omitempty"`
-	IP       string     `gorm:"column:ip;type:varchar(32);index:idx_ip_port" json:"ip,omitempty"`
-	Port     int        `gorm:"column:port;type:int(11);index:idx_ip_port" json:"port,omitempty"`
-	Result   string     `gorm:"column:result;type:tinyblob" json:"result,omitempty"`
-	Datetime *time.Time `gorm:"column:datetime;type:datetime;index:idx_date" json:"datetime,omitempty"`
-	Comment  string     `gorm:"column:comment;type:blob" json:"comment,omitempty"`
+	SwitchID int64      `gorm:"column:sw_id;type:bigint;index:idx_sw_id"        json:"sw_id,omitempty"`
+	App      string     `gorm:"column:app;type:varchar(32);NOT NULL"            json:"app,omitempty"`
+	IP       string     `gorm:"column:ip;type:varchar(32);index:idx_ip_port"    json:"ip,omitempty"`
+	Port     int        `gorm:"column:port;type:int(11);index:idx_ip_port"      json:"port,omitempty"`
+	Result   string     `gorm:"column:result;type:tinyblob"                     json:"result,omitempty"`
+	Datetime *time.Time `gorm:"column:datetime;type:datetime;index:idx_date"    json:"datetime,omitempty"`
+	Comment  string     `gorm:"column:comment;type:blob"                        json:"comment,omitempty"`
 }
 
 // TableName TODO
