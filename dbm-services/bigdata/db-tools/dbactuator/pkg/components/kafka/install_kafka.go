@@ -827,7 +827,7 @@ func (i *InstallKafkaComp) InstallManager() error {
 
 	var (
 		nodeIP           = i.Params.Host
-		port             = i.Params.Port
+		port             = cst.KafkaUIPort
 		clusterName      = i.Params.ClusterName
 		zookeeperIP      = i.Params.ZookeeperIP
 		version          = i.Params.Version
@@ -852,8 +852,8 @@ func (i *InstallKafkaComp) InstallManager() error {
 	// Sleep 10 secs
 	time.Sleep(10 * time.Second)
 
-	extraCmd := fmt.Sprintf("sed -i 's/kafka-manager-zookeeper/%s/g' %s", nodeIP,
-		i.KafkaEnvDir+"/cmak-3.0.0.5/conf/application.conf")
+	cmakConfPath := i.KafkaEnvDir + "/cmak-3.0.0.5/conf/application.conf"
+	extraCmd := fmt.Sprintf("sed -i 's/kafka-manager-zookeeper/%s/g' %s", nodeIP, cmakConfPath)
 	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
@@ -861,9 +861,7 @@ func (i *InstallKafkaComp) InstallManager() error {
 
 	// 修改 play.http.contex="/{bkid}/{dbtype}/{cluster}/kafka_manager"
 	httpPath := fmt.Sprintf("/%d/%s/%s/%s", bkBizID, dbType, clusterName, serviceType)
-
-	extraCmd = fmt.Sprintf("sed -i '/play.http.context/s#/#%s#' %s", httpPath,
-		i.KafkaEnvDir+"/cmak-3.0.0.5/conf/application.conf")
+	extraCmd = fmt.Sprintf("sed -i '/play.http.context/s#/#%s#' %s", httpPath, cmakConfPath)
 	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
@@ -884,7 +882,12 @@ func (i *InstallKafkaComp) InstallManager() error {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
-
+	portConf := fmt.Sprintf("play.server.http.port=%d", port)
+	extraCmd = fmt.Sprintf(`grep -qxF '%s' %s || echo '%s' >> %s`, portConf, cmakConfPath, portConf, cmakConfPath)
+	if _, err := osutil.ExecShellCommandJ(false, extraCmd); err != nil {
+		logger.Error("%s execute failed, %v", extraCmd, err)
+		return err
+	}
 	if err := startManager(i.KafkaEnvDir); err != nil {
 		return err
 	}
@@ -1061,7 +1064,7 @@ func configCluster(cmak CmakConfig, noSecurity int) (err error) {
 		postData.Add("jaasConfig", "")
 	}
 	// http://localhost:9000/{prefix}/clusters
-	url := "http://" + cmak.NodeIP + ":9000" + cmak.HTTPPath + "/clusters"
+	url := fmt.Sprintf("http://%s:%d/%s/clusters", cmak.NodeIP, cst.KafkaUIPort, cmak.HTTPPath)
 	req, err := http.NewRequest("POST", url, strings.NewReader(postData.Encode()))
 	if err != nil {
 		return err
@@ -1080,7 +1083,7 @@ func configCluster(cmak CmakConfig, noSecurity int) (err error) {
 // InstallKafkaUI TODO
 func (i *InstallKafkaComp) InstallKafkaUI() error {
 	var (
-		servicePort      = cst.KafkaUIPort
+		servicePort      = i.Params.Port
 		clusterName      = i.Params.ClusterName
 		bootstrapServers = fmt.Sprintf("%s:%s", i.Params.Host, getenvOr("KAFKA_PORT", "9092"))
 		username         = i.Params.Username
