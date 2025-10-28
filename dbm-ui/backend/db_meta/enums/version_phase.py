@@ -16,3 +16,6 @@ from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 class VersionPhase(StrStructuredEnum):
     ALPHA = EnumField("alpha", _("alpha"))
+    BETA = EnumField("beta", _("beta"))
+    RC = EnumField("rc", _("rc"))
+    RELEASE = EnumField("release", _("release"))
