@@ -211,13 +211,13 @@ files = [
 
 [[package]]
 name = "bamboo-engine"
-version = "3.0.0rc0"
+version = "3.0.1"
 description = "Bamboo-engine is a general-purpose workflow engine"
 optional = false
-python-versions = "<4.0.0,>=3.11.10"
+python-versions = "<3.12,>=3.11"
 files = [
-    {file = "bamboo_engine-3.0.0rc0-py3-none-any.whl", hash = "sha256:eb77652b844602d7f0cb1bb2fc107ad01376f9bad4a031b34d03e7c3eca8154e"},
-    {file = "bamboo_engine-3.0.0rc0.tar.gz", hash = "sha256:b9b13164d8fc09e1e48b10071f137cceec0714a094a0ea0ca9cc78049e1a703e"},
+    {file = "bamboo_engine-3.0.1-py3-none-any.whl", hash = "sha256:c504729a8c2164a31ea08e4280d31c31e7135b00ce520a798ff539652a5654e7"},
+    {file = "bamboo_engine-3.0.1.tar.gz", hash = "sha256:ba96946de27a41ca611b2793750fecb8bd584c7f2a1974b9ccd4b5833f2ab8d9"},
 ]
 
 [package.dependencies]
@@ -228,17 +228,17 @@ Werkzeug = ">=3,<4"
 
 [[package]]
 name = "bamboo-pipeline"
-version = "4.0.0rc0"
+version = "4.0.0"
 description = "runtime for bamboo-engine base on Django and Celery"
 optional = false
-python-versions = "<4.0.0,>=3.11.10"
+python-versions = "<3.12,>=3.11"
 files = [
-    {file = "bamboo_pipeline-4.0.0rc0-py3-none-any.whl", hash = "sha256:e7194c92f802bc217cb2c251083bce98df4312df401d030dbe644d7f5f520448"},
-    {file = "bamboo_pipeline-4.0.0rc0.tar.gz", hash = "sha256:a196a61f3b15c0f04e3e7a3756f1dab8572f11e3f5649c2ee9d8f4c9f295922b"},
+    {file = "bamboo_pipeline-4.0.0-py3-none-any.whl", hash = "sha256:4df54f5dd0e283e86fb8f89e5d3415c914c7e376c86b0661ea6f503e0af41c86"},
+    {file = "bamboo_pipeline-4.0.0.tar.gz", hash = "sha256:68c119438a0a18268c84c45250681b0d04f7458aeb2191f6ae9c73e086e51a45"},
 ]
 
 [package.dependencies]
-bamboo-engine = "3.0.0rc0"
+bamboo-engine = "3.0.1"
 boto3 = ">=1.34,<2.0"
 celery = ">=5.2.0,<6"
 Django = ">=4.2.0,<5"
@@ -250,7 +250,7 @@ Mako = ">=1.3,<2.0"
 prometheus-client = ">=0.20.0,<0.21.0"
 pyparsing = ">=3,<4"
 pytz = ">=2019.3"
-redis = ">=5.0.3,<6"
+redis = ">=4.0.0,<6"
 requests = ">=2.31,<3.0"
 ujson = ">=5.9,<6.0"
 Werkzeug = ">=3,<4"
@@ -899,6 +899,7 @@ description = "cos-python-sdk-v5"
 optional = false
 python-versions = "*"
 files = [
+    {file = "cos_python_sdk_v5-1.9.38-py3-none-any.whl", hash = "sha256:1d3dd3be2bd992b2e9c2dcd018e2596aa38eab022dbc86b4a5d14c8fc88370e6"},
     {file = "cos_python_sdk_v5-1.9.38.tar.gz", hash = "sha256:491a8689ae2f1a6f04dacba66a877b2c8d361456f9cfd788ed42170a1cbf7a9f"},
 ]
 
@@ -4038,4 +4039,4 @@ testing = ["coverage[toml]", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11.10,<3.12"
-content-hash = "80d1c2fcbee908f04434f05e807ec1d9d8aff6a59468e184ae936e746d2f6268"
+content-hash = "06c55c805756255ad94ff9c1c034a96916cd326603daa0e00190f55c6c674fea"
