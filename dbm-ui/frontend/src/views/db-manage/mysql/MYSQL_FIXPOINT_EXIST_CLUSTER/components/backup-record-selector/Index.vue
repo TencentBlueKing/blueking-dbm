@@ -188,7 +188,7 @@
   import type TendbhaModel from '@services/model/mysql/tendbha';
   import {
     type BackupLogRecord,
-    queryBackupLogFromBklog,
+    queryBackupLogFromHandler,
     queryBackupLogFromLoacal,
   } from '@services/source/fixpointRollback';
 
@@ -436,7 +436,7 @@
           limit: -1,
         });
       } else {
-        results = await queryBackupLogFromBklog({
+        results = await queryBackupLogFromHandler({
           cluster_id: props.cluster.id,
           limit: -1,
         });

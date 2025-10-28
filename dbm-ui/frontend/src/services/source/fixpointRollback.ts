@@ -96,10 +96,10 @@ const { currentBizId } = useGlobalBizs();
 const path = `/apis/mysql/bizs/${currentBizId}/fixpoint_rollback`;
 
 /**
- * 通过日志平台获取集群备份记录
+ * 获取集群备份记录
  */
-export function queryBackupLogFromBklog(params: { cluster_id: number; limit?: number }) {
-  return http.get<BackupLogRecord[]>(`${path}/query_backup_log_from_bklog/`, params);
+export function queryBackupLogFromHandler(params: { cluster_id: number; limit?: number }) {
+  return http.get<BackupLogRecord[]>(`${path}/query_backup_log_from_handler/`, params);
 }
 
 /**
