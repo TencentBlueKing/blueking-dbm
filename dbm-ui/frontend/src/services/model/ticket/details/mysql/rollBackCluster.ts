@@ -38,7 +38,7 @@ export interface RollbackCluster extends DetailBase {
     backup_source: string;
     backupinfo: BackupLogRecord;
     cluster_id: number;
-    affect_db?: string[];
+    affect_database_list?: string[];
     databases: string[];
     databases_ignore: string[];
     resource_spec: {
