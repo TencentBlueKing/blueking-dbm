@@ -26,6 +26,7 @@ export function getSystemEnviron() {
     }[];
     APP_CODE: string;
     APP_VERSION: string;
+    BK_AIDEV_URL: string;
     BK_CMDB_URL: string;
     BK_COMPONENT_API_URL: string;
     BK_DBM_URL: string;

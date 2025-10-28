@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@antv/g6": "5.0.49",
+    "@blueking/ai-blueking": "1.2.9",
     "@blueking/app-select": "0.0.1-beta.19",
     "@blueking/bk-trace-core": "0.0.4",
     "@blueking/date-picker": "1.0.1",
@@ -47,6 +48,7 @@
     "js-cookie": "3.0.5",
     "jsencrypt": "3.5.4",
     "lodash": "4.17.21",
+    "markdown-it": "14.1.0",
     "mitt": "3.0.1",
     "monaco-editor": "0.53.0",
     "pinia": "3.0.3",

@@ -58,6 +58,7 @@
     <DbRouterView style="height: 100%" />
   </Layout>
   <SystemVersionLog v-model:is-show="isShowSystemVersionLog" />
+  <AIBlueking />
 </template>
 <script setup lang="ts">
   import InfoBox from 'bkui-vue/lib/info-box';
@@ -73,6 +74,7 @@
 
   import { useAlarmSubscribe, useSystemEnviron, useUserProfile } from '@stores';
 
+  import AIBlueking from '@components/ai-blueking/Index.vue';
   import DbRouterView from '@components/db-router-view/Index.vue';
   import LocaleSwitch from '@components/locale-switch/Index.vue';
   import RouterBack from '@components/router-back/Index.vue';
