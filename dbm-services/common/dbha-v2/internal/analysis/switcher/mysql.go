@@ -74,7 +74,7 @@ func (m *Mysql) Switch(ctx context.Context, req *Request) *Response {
 		}
 
 		logger.Debug("check the business(event): %s %s", event.Endpoint, event.Message)
-		insSockets[fmt.Sprintf("%s:%d", event.IP, event.Port)] = struct{}{}
+		insSockets[fmt.Sprintf("%d@%s:%d", event.BkCloudID, event.IP, event.Port)] = struct{}{}
 	}
 
 	failedIns := make([]string, 0)
@@ -89,9 +89,9 @@ func (m *Mysql) Switch(ctx context.Context, req *Request) *Response {
 
 		success, swErr := SwitchSingleInstance(swIns)
 		if success {
-			logger.Info("switch single instance[%s] successfully", insSock)
+			logger.Info("switch single instance(%s) successfully", insSock)
 		} else {
-			logger.Error("switch single instance[%s] failed: %v", insSock, swErr)
+			logger.Error("switch single instance(%s) failed: %v", insSock, swErr)
 			failedIns = append(failedIns, insSock)
 		}
 	}

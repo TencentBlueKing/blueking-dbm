@@ -242,6 +242,7 @@ type BindEntryClbInfo struct {
 	LoadBalanceId string `json:"clb_id"`
 	ListenId      string `json:"listener_id"`
 	Ip            string `json:"clb_ip"`
+
 	// the ip list bind to clb
 	BindIps  []string `json:"bind_ips"`
 	BindPort int      `json:"bind_port"`
@@ -249,8 +250,7 @@ type BindEntryClbInfo struct {
 
 // BindEntryDnsInfo defined "dns" info of "bind_entry" in metadata.
 type BindEntryDnsInfo struct {
-	DomainName string `json:"domain"`
-	//master_entry, slave_entry
+	DomainName     string   `json:"domain"`
 	EntryRole      string   `json:"entry_role"`
 	BindIps        []string `json:"bind_ips"`
 	BindPort       int      `json:"bind_port"`
