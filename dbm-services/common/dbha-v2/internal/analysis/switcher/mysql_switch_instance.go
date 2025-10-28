@@ -36,7 +36,7 @@ import (
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 )
 
-// todo: remove those variables and get them dynamically
+// TODO: remove those variables and get them dynamically
 const (
 	DefaultIgnoreCheckSum     bool = false
 	DefaultIgnoreSlaveDelay   bool = false
@@ -91,60 +91,60 @@ type MySQLVariableResult struct {
 
 // SlaveStatusInfo represents MySQL slave status information
 type SlaveStatusInfo struct {
-	SlaveIOState               string `gorm:"column:Slave_IO_State" json:"Slave_IO_State"`
-	MasterHost                 string `gorm:"column:Master_Host" json:"Master_Host"`
-	MasterUser                 string `gorm:"column:Master_User" json:"Master_User"`
-	MasterPort                 int    `gorm:"column:Master_Port" json:"Master_Port"`
-	ConnectRetry               int    `gorm:"column:Connect_Retry" json:"Connect_Retry"`
-	MasterLogFile              string `gorm:"column:Master_Log_File" json:"Master_Log_File"`
-	ReadMasterLogPos           uint64 `gorm:"column:Read_Master_Log_Pos" json:"Read_Master_Log_Pos"`
-	RelayLogFile               string `gorm:"column:Relay_Log_File" json:"Relay_Log_File"`
-	RelayLogPos                uint64 `gorm:"column:Relay_Log_Pos" json:"Relay_Log_Pos"`
-	RelayMasterLogFile         string `gorm:"column:Relay_Master_Log_File" json:"Relay_Master_Log_File"`
-	SlaveIORunning             string `gorm:"column:Slave_IO_Running" json:"Slave_IO_Running"`
-	SlaveSQLRunning            string `gorm:"column:Slave_SQL_Running" json:"Slave_SQL_Running"`
-	ReplicateDoDB              string `gorm:"column:Replicate_Do_DB" json:"Replicate_Do_DB"`
-	ReplicateIgnoreDB          string `gorm:"column:Replicate_Ignore_DB" json:"Replicate_Ignore_DB"`
-	ReplicateDoTable           string `gorm:"column:Replicate_Do_Table" json:"Replicate_Do_Table"`
-	ReplicateIgnoreTable       string `gorm:"column:Replicate_Ignore_Table" json:"Replicate_Ignore_Table"`
-	ReplicateWildDoTable       string `gorm:"column:Replicate_Wild_Do_Table" json:"Replicate_Wild_Do_Table"`
-	ReplicateWildIgnoreTable   string `gorm:"column:Replicate_Wild_Ignore_Table" json:"Replicate_Wild_Ignore_Table"`
-	LastErrno                  int    `gorm:"column:Last_Errno" json:"Last_Errno"`
-	LastError                  string `gorm:"column:Last_Error" json:"Last_Error"`
-	SkipCounter                int    `gorm:"column:Skip_Counter" json:"Skip_Counter"`
-	ExecMasterLogPos           uint64 `gorm:"column:Exec_Master_Log_Pos" json:"Exec_Master_Log_Pos"`
-	RelayLogSpace              uint64 `gorm:"column:Relay_Log_Space" json:"Relay_Log_Space"`
-	UntilCondition             string `gorm:"column:Until_Condition" json:"Until_Condition"`
-	UntilLogFile               string `gorm:"column:Until_Log_File" json:"Until_Log_File"`
-	UntilLogPos                uint64 `gorm:"column:Until_Log_Pos" json:"Until_Log_Pos"`
-	MasterSSLAllowed           string `gorm:"column:Master_SSL_Allowed" json:"Master_SSL_Allowed"`
-	MasterSSLCAFile            string `gorm:"column:Master_SSL_CA_File" json:"Master_SSL_CA_File"`
-	MasterSSLCAPath            string `gorm:"column:Master_SSL_CA_Path" json:"Master_SSL_CA_Path"`
-	MasterSSLCert              string `gorm:"column:Master_SSL_Cert" json:"Master_SSL_Cert"`
-	MasterSSLCipher            string `gorm:"column:Master_SSL_Cipher" json:"Master_SSL_Cipher"`
-	MasterSSLKey               string `gorm:"column:Master_SSL_Key" json:"Master_SSL_Key"`
-	SecondsBehindMaster        int    `gorm:"column:Seconds_Behind_Master" json:"Seconds_Behind_Master"`
+	SlaveIOState               string `gorm:"column:Slave_IO_State"                json:"Slave_IO_State"`
+	MasterHost                 string `gorm:"column:Master_Host"                   json:"Master_Host"`
+	MasterUser                 string `gorm:"column:Master_User"                   json:"Master_User"`
+	MasterPort                 int    `gorm:"column:Master_Port"                   json:"Master_Port"`
+	ConnectRetry               int    `gorm:"column:Connect_Retry"                 json:"Connect_Retry"`
+	MasterLogFile              string `gorm:"column:Master_Log_File"               json:"Master_Log_File"`
+	ReadMasterLogPos           uint64 `gorm:"column:Read_Master_Log_Pos"           json:"Read_Master_Log_Pos"`
+	RelayLogFile               string `gorm:"column:Relay_Log_File"                json:"Relay_Log_File"`
+	RelayLogPos                uint64 `gorm:"column:Relay_Log_Pos"                 json:"Relay_Log_Pos"`
+	RelayMasterLogFile         string `gorm:"column:Relay_Master_Log_File"         json:"Relay_Master_Log_File"`
+	SlaveIORunning             string `gorm:"column:Slave_IO_Running"              json:"Slave_IO_Running"`
+	SlaveSQLRunning            string `gorm:"column:Slave_SQL_Running"             json:"Slave_SQL_Running"`
+	ReplicateDoDB              string `gorm:"column:Replicate_Do_DB"               json:"Replicate_Do_DB"`
+	ReplicateIgnoreDB          string `gorm:"column:Replicate_Ignore_DB"           json:"Replicate_Ignore_DB"`
+	ReplicateDoTable           string `gorm:"column:Replicate_Do_Table"            json:"Replicate_Do_Table"`
+	ReplicateIgnoreTable       string `gorm:"column:Replicate_Ignore_Table"        json:"Replicate_Ignore_Table"`
+	ReplicateWildDoTable       string `gorm:"column:Replicate_Wild_Do_Table"       json:"Replicate_Wild_Do_Table"`
+	ReplicateWildIgnoreTable   string `gorm:"column:Replicate_Wild_Ignore_Table"   json:"Replicate_Wild_Ignore_Table"`
+	LastErrno                  int    `gorm:"column:Last_Errno"                    json:"Last_Errno"`
+	LastError                  string `gorm:"column:Last_Error"                    json:"Last_Error"`
+	SkipCounter                int    `gorm:"column:Skip_Counter"                  json:"Skip_Counter"`
+	ExecMasterLogPos           uint64 `gorm:"column:Exec_Master_Log_Pos"           json:"Exec_Master_Log_Pos"`
+	RelayLogSpace              uint64 `gorm:"column:Relay_Log_Space"               json:"Relay_Log_Space"`
+	UntilCondition             string `gorm:"column:Until_Condition"               json:"Until_Condition"`
+	UntilLogFile               string `gorm:"column:Until_Log_File"                json:"Until_Log_File"`
+	UntilLogPos                uint64 `gorm:"column:Until_Log_Pos"                 json:"Until_Log_Pos"`
+	MasterSSLAllowed           string `gorm:"column:Master_SSL_Allowed"            json:"Master_SSL_Allowed"`
+	MasterSSLCAFile            string `gorm:"column:Master_SSL_CA_File"            json:"Master_SSL_CA_File"`
+	MasterSSLCAPath            string `gorm:"column:Master_SSL_CA_Path"            json:"Master_SSL_CA_Path"`
+	MasterSSLCert              string `gorm:"column:Master_SSL_Cert"               json:"Master_SSL_Cert"`
+	MasterSSLCipher            string `gorm:"column:Master_SSL_Cipher"             json:"Master_SSL_Cipher"`
+	MasterSSLKey               string `gorm:"column:Master_SSL_Key"                json:"Master_SSL_Key"`
+	SecondsBehindMaster        int    `gorm:"column:Seconds_Behind_Master"         json:"Seconds_Behind_Master"`
 	MasterSSLVerifyServerCert  string `gorm:"column:Master_SSL_Verify_Server_Cert" json:"Master_SSL_Verify_Server_Cert"`
-	LastIOErrno                int    `gorm:"column:Last_IO_Errno" json:"Last_IO_Errno"`
-	LastIOError                string `gorm:"column:Last_IO_Error" json:"Last_IO_Error"`
-	LastSQLErrno               int    `gorm:"column:Last_SQL_Errno" json:"Last_SQL_Errno"`
-	LastSQLError               string `gorm:"column:Last_SQL_Error" json:"Last_SQL_Error"`
-	ReplicateIgnoreServerIDs   string `gorm:"column:Replicate_Ignore_Server_Ids" json:"Replicate_Ignore_Server_Ids"`
-	MasterServerID             uint64 `gorm:"column:Master_Server_Id" json:"Master_Server_Id"`
-	MasterUUID                 string `gorm:"column:Master_UUID" json:"Master_UUID"`
-	MasterInfoFile             string `gorm:"column:Master_Info_File" json:"Master_Info_File"`
-	SqlDelay                   uint64 `gorm:"column:SQL_Delay" json:"SQL_Delay"`
-	SqlRemainingDelay          string `gorm:"column:SQL_Remaining_Delay" json:"SQL_Remaining_Delay"`
-	SlaveSqlRunningState       string `gorm:"column:Slave_SQL_Running_State" json:"Slave_SQL_Running_State"`
-	MasterRetryCount           int    `gorm:"column:Master_Retry_Count" json:"Master_Retry_Count"`
-	MasterBind                 string `gorm:"column:Master_Bind" json:"Master_Bind"`
-	LastIoErrorTimestamp       string `gorm:"column:Last_IO_Error_Timestamp" json:"Last_IO_Error_Timestamp"`
-	LastSqlErrorTimestamp      string `gorm:"column:Last_SQL_Error_Timestamp" json:"Last_SQL_Error_Timestamp"`
-	MasterSSLCrl               string `gorm:"column:Master_SSL_Crl" json:"Master_SSL_Crl"`
-	MasterSSLCrlpath           string `gorm:"column:Master_SSL_Crlpath" json:"Master_SSL_Crlpath"`
-	RetrievedGtidSet           string `gorm:"column:Retrieved_Gtid_Set" json:"Retrieved_Gtid_Set"`
-	ExecutedGtidSet            string `gorm:"column:Executed_Gtid_Set" json:"Executed_Gtid_Set"`
-	AutoPosition               string `gorm:"column:Auto_Position" json:"Auto_Position"`
+	LastIOErrno                int    `gorm:"column:Last_IO_Errno"                 json:"Last_IO_Errno"`
+	LastIOError                string `gorm:"column:Last_IO_Error"                 json:"Last_IO_Error"`
+	LastSQLErrno               int    `gorm:"column:Last_SQL_Errno"                json:"Last_SQL_Errno"`
+	LastSQLError               string `gorm:"column:Last_SQL_Error"                json:"Last_SQL_Error"`
+	ReplicateIgnoreServerIDs   string `gorm:"column:Replicate_Ignore_Server_Ids"   json:"Replicate_Ignore_Server_Ids"`
+	MasterServerID             uint64 `gorm:"column:Master_Server_Id"              json:"Master_Server_Id"`
+	MasterUUID                 string `gorm:"column:Master_UUID"                   json:"Master_UUID"`
+	MasterInfoFile             string `gorm:"column:Master_Info_File"              json:"Master_Info_File"`
+	SqlDelay                   uint64 `gorm:"column:SQL_Delay"                     json:"SQL_Delay"`
+	SqlRemainingDelay          string `gorm:"column:SQL_Remaining_Delay"           json:"SQL_Remaining_Delay"`
+	SlaveSqlRunningState       string `gorm:"column:Slave_SQL_Running_State"       json:"Slave_SQL_Running_State"`
+	MasterRetryCount           int    `gorm:"column:Master_Retry_Count"            json:"Master_Retry_Count"`
+	MasterBind                 string `gorm:"column:Master_Bind"                   json:"Master_Bind"`
+	LastIoErrorTimestamp       string `gorm:"column:Last_IO_Error_Timestamp"       json:"Last_IO_Error_Timestamp"`
+	LastSqlErrorTimestamp      string `gorm:"column:Last_SQL_Error_Timestamp"      json:"Last_SQL_Error_Timestamp"`
+	MasterSSLCrl               string `gorm:"column:Master_SSL_Crl"                json:"Master_SSL_Crl"`
+	MasterSSLCrlpath           string `gorm:"column:Master_SSL_Crlpath"            json:"Master_SSL_Crlpath"`
+	RetrievedGtidSet           string `gorm:"column:Retrieved_Gtid_Set"            json:"Retrieved_Gtid_Set"`
+	ExecutedGtidSet            string `gorm:"column:Executed_Gtid_Set"             json:"Executed_Gtid_Set"`
+	AutoPosition               string `gorm:"column:Auto_Position"                 json:"Auto_Position"`
 	ReplicateWildParallelTable string `gorm:"column:Replicate_Wild_Parallel_Table" json:"Replicate_Wild_Parallel_Table"`
 }
 
@@ -156,9 +156,6 @@ type SlaveStatusPartialInfo struct {
 	RelayMasterLogFileIndex int
 	ReadMasterLogPos        uint64
 	ExecMasterLogPos        uint64
-	// RetrievedGtidSet        string
-	// ExecutedGtidSet         string
-	// MasterUUID              string
 }
 
 // SlaveTimeDelayInfo contains slave replication delay information
@@ -277,21 +274,45 @@ func (sw *MySQLBaseSwitchInstance) GetBinlogDumperInfo() string {
 // Only master instances can call this method.
 // If no standby slave is found, it uses the first slave in the list.
 func (sw *MySQLBaseSwitchInstance) SetStandbySlave(slaves []hamodel.DbmMetadataSlaveInfo) {
-	if len(slaves) > 0 {
-		findIndex := 0
-		for i, slave := range slaves {
-			if slave.IsStandBy {
-				findIndex = i
-				break
-			}
-		}
-		sw.StandBySlave = &hamodel.DbmMetadataSlaveInfo{}
-		*(sw.StandBySlave) = slaves[findIndex]
-		logger.Debug("Success to set standby slave: %#v", sw.StandBySlave)
-	} else {
+	if len(slaves) == 0 {
 		logger.Debug("No standby slave found")
 		sw.StandBySlave = nil
 	}
+
+	findIndex := 0
+	for i, slave := range slaves {
+		if slave.IsStandBy {
+			findIndex = i
+			break
+		}
+	}
+	sw.StandBySlave = &hamodel.DbmMetadataSlaveInfo{}
+	*(sw.StandBySlave) = slaves[findIndex]
+	logger.Debug("Success to set standby slave: %#v", sw.StandBySlave)
+}
+
+// parseMasterLogFileIndex safely parses the numeric index from MasterLogFile format like "binlog.000002"
+func parseMasterLogFileIndex(masterLogFile string) (int, error) {
+	if !strings.Contains(masterLogFile, ".") {
+		return 0, gerrors.Newf(gerrors.Failure, "MasterLogFile does not contain dot separator: %s", masterLogFile)
+	}
+
+	parts := strings.Split(masterLogFile, ".")
+	if len(parts) < 2 {
+		return 0, gerrors.Newf(gerrors.Failure, "MasterLogFile has insufficient parts after splitting: %s", masterLogFile)
+	}
+
+	indexStr := parts[1]
+	if indexStr == "" {
+		return 0, gerrors.Newf(gerrors.Failure, "MasterLogFile index part is empty: %s", masterLogFile)
+	}
+
+	index, err := strconv.Atoi(indexStr)
+	if err != nil {
+		return 0, gerrors.Newf(gerrors.Failure, "failed to parse MasterLogFile index as integer: %s", indexStr)
+	}
+
+	return index, nil
 }
 
 // GetSlaveStatusPartialInfo retrieves partial slave status information
@@ -309,35 +330,23 @@ func (sw *MySQLBaseSwitchInstance) GetSlaveStatusPartialInfo(slaveDB *hamysql.DB
 
 	ret := &SlaveStatusPartialInfo{}
 
-	if slaveStatus.SlaveSQLRunning != "Yes" {
+	if !strings.EqualFold(slaveStatus.SlaveSQLRunning, "Yes") {
 		errMsg := fmt.Sprintf("slave node[%s:%d] is abnormal(Slave_SQL_Running:'%s')",
 			ip, port, slaveStatus.SlaveSQLRunning)
 		return nil, gerrors.New(gerrors.NodeAbnormal, errMsg)
 	}
 
-	if !strings.Contains(slaveStatus.MasterLogFile, ".") {
-		errMsg := fmt.Sprintf("cannot parse the master log file of slave node[%s:%d] (Master_Log_File:'%s')",
-			ip, port, slaveStatus.MasterLogFile)
-		return nil, gerrors.New(gerrors.NodeAbnormal, errMsg)
-	}
-
-	ret.MasterLogFileIndex, err = strconv.Atoi(strings.Split(slaveStatus.MasterLogFile, ".")[1])
+	ret.MasterLogFileIndex, err = parseMasterLogFileIndex(slaveStatus.MasterLogFile)
 	if err != nil {
-		errMsg := fmt.Sprintf("failed to parse the master log file of slave node[%s:%d] (Master_Log_File:'%s')",
-			ip, port, slaveStatus.MasterLogFile)
+		errMsg := fmt.Sprintf("failed to parse the master log file of slave node[%s:%d] (Master_Log_File:'%s'): %s",
+			ip, port, slaveStatus.MasterLogFile, err.Error())
 		return nil, gerrors.New(gerrors.NodeAbnormal, errMsg)
 	}
 
-	if !strings.Contains(slaveStatus.RelayMasterLogFile, ".") {
-		errMsg := fmt.Sprintf("cannot parse the relay master log file of slave node[%s:%d] (Relay_Master_Log_File:'%s')",
-			ip, port, slaveStatus.RelayMasterLogFile)
-		return nil, gerrors.New(gerrors.NodeAbnormal, errMsg)
-	}
-
-	ret.RelayMasterLogFileIndex, err = strconv.Atoi(strings.Split(slaveStatus.RelayMasterLogFile, ".")[1])
+	ret.RelayMasterLogFileIndex, err = parseMasterLogFileIndex(slaveStatus.RelayMasterLogFile)
 	if err != nil {
-		errMsg := fmt.Sprintf("failed to parse the relay master log file of slave node[%s:%d] (Relay_Master_Log_File:'%s')",
-			ip, port, slaveStatus.RelayMasterLogFile)
+		errMsg := fmt.Sprintf("failed to parse the relay master log file of slave node[%s:%d] "+
+			"(Relay_Master_Log_File:'%s'): %s", ip, port, slaveStatus.RelayMasterLogFile, err.Error())
 		return nil, gerrors.New(gerrors.NodeAbnormal, errMsg)
 	}
 
@@ -345,14 +354,11 @@ func (sw *MySQLBaseSwitchInstance) GetSlaveStatusPartialInfo(slaveDB *hamysql.DB
 	ret.MasterPort = slaveStatus.MasterPort
 	ret.ReadMasterLogPos = slaveStatus.ReadMasterLogPos
 	ret.ExecMasterLogPos = slaveStatus.ExecMasterLogPos
-	// ret.RetrievedGtidSet = slaveStatus.RetrievedGtidSet
-	// ret.ExecutedGtidSet = slaveStatus.ExecutedGtidSet
-	// ret.MasterUuid = slaveStatus.MasterUUID
 	return ret, nil
 }
 
-// CheckReplicationDelay checks if slave replication is delayed
-func (sw *MySQLBaseSwitchInstance) CheckReplicationDelay(slaveDB *hamysql.DB, ignoreDelay bool) error {
+// CheckSqlReplicationDelay checks if slave replication is delayed
+func (sw *MySQLBaseSwitchInstance) CheckSqlReplicationDelay(slaveDB *hamysql.DB, ignoreDelay bool) error {
 	if slaveDB == nil {
 		return gerrors.New(gerrors.InvalidParameter, "CheckReplicationDelay got nil slaveDB")
 	}
@@ -397,33 +403,37 @@ func (sw *MySQLBaseSwitchInstance) CheckReplicationDelay(slaveDB *hamysql.DB, ig
 	realSlowKBytes := uint64(slaveStatus.MasterLogFileIndex-slaveStatus.RelayMasterLogFileIndex)*(maxBinlogSize/1024) -
 		(slaveStatus.ExecMasterLogPos / 1024) + (slaveStatus.ReadMasterLogPos / 1024)
 
-	loop := 10
-	if realSlowKBytes > uint64(allowSlowKBytes) {
-		sw.ReportLog(SwitchInfo, fmt.Sprintf("the slave[%s:%d] was delayed for %dKB, which is larger than allowed[%dKB]"+
-			"Try to wait in a loop", ip, port, realSlowKBytes, allowSlowKBytes))
-		var i int
-		for i = 0; i < loop; i++ {
-			time.Sleep(3 * time.Second)
-			tmpSlaveStatus, err := sw.GetSlaveStatusPartialInfo(slaveDB)
-			if err != nil {
-				logger.Error("failed to query slave status. err:%s", err.Error())
-				return err
-			}
-			realSlowKBytes = uint64(tmpSlaveStatus.MasterLogFileIndex-tmpSlaveStatus.RelayMasterLogFileIndex)*
-				(maxBinlogSize/1024) - (tmpSlaveStatus.ExecMasterLogPos / 1024) + (tmpSlaveStatus.ReadMasterLogPos / 1024)
-			if realSlowKBytes <= uint64(allowSlowKBytes) {
-				// todo: for GTID
-				break
-			}
-			logger.Warn("Loop [%d]: the slave[%s:%d] was delayed for %dKB, which is larger than allowed[%dKB]",
-				i, ip, port, realSlowKBytes, allowSlowKBytes)
-		}
-		if i == loop {
-			errMsg := fmt.Sprintf("after waiting for %d loops, the slave[%s:%d] was still delayed too much",
-				loop, ip, port)
-			return gerrors.New(gerrors.NodeAbnormal, errMsg)
-		}
+	if realSlowKBytes <= uint64(allowSlowKBytes) {
+		sw.ReportLog(SwitchInfo, fmt.Sprintf("Status check of slave node [%s:%d] passed", ip, port))
+		return nil
 	}
+
+	loop := 10
+	sw.ReportLog(SwitchInfo, fmt.Sprintf("the slave[%s:%d] was delayed for %dKB, which is larger than allowed[%dKB]"+
+		"Try to wait in a loop", ip, port, realSlowKBytes, allowSlowKBytes))
+	var i int
+	for i = 0; i < loop; i++ {
+		time.Sleep(3 * time.Second)
+		tmpSlaveStatus, err := sw.GetSlaveStatusPartialInfo(slaveDB)
+		if err != nil {
+			logger.Error("failed to query slave status. err:%s", err.Error())
+			return err
+		}
+		realSlowKBytes = uint64(tmpSlaveStatus.MasterLogFileIndex-tmpSlaveStatus.RelayMasterLogFileIndex)*
+			(maxBinlogSize/1024) - (tmpSlaveStatus.ExecMasterLogPos / 1024) + (tmpSlaveStatus.ReadMasterLogPos / 1024)
+		if realSlowKBytes <= uint64(allowSlowKBytes) {
+			// TODO: for GTID
+			break
+		}
+		logger.Warn("Loop [%d]: the slave[%s:%d] was delayed for %dKB, which is larger than allowed[%dKB]",
+			i, ip, port, realSlowKBytes, allowSlowKBytes)
+	}
+	if i == loop {
+		errMsg := fmt.Sprintf("after waiting for %d loops, the slave[%s:%d] was still delayed too much",
+			loop, ip, port)
+		return gerrors.New(gerrors.NodeAbnormal, errMsg)
+	}
+
 	sw.ReportLog(SwitchInfo, fmt.Sprintf("Status check of slave node [%s:%d] passed", ip, port))
 	return nil
 }
@@ -553,7 +563,7 @@ func (sw *MySQLBaseSwitchInstance) CheckSlaveTimeDelay(ip string, port int, slav
 
 // CheckSlaveStatus verifies if slave node satisfies switching conditions
 func (sw *MySQLBaseSwitchInstance) CheckSlaveStatus() error {
-	// todo: get the following values dynamically
+	// TODO: get the following values dynamically
 	ignoreCheckSum := DefaultIgnoreCheckSum
 	ignoreSlaveDelay := DefaultIgnoreSlaveDelay
 	ip := sw.StandBySlave.Ip
@@ -580,7 +590,7 @@ func (sw *MySQLBaseSwitchInstance) CheckSlaveStatus() error {
 	}()
 
 	sw.ReportLog(SwitchInfo, "try to check slave status info")
-	if err := sw.CheckReplicationDelay(slaveDB, ignoreSlaveDelay); err != nil {
+	if err := sw.CheckSqlReplicationDelay(slaveDB, ignoreSlaveDelay); err != nil {
 		return err
 	}
 
@@ -607,17 +617,18 @@ func (sw *MySQLBaseSwitchInstance) CheckSlaveStatus() error {
 	sw.ReportLogf(SwitchInfo, "checksumCnt:%d, checksumFail:%d, slaveDelay:%d, timeDelay:%d",
 		checksumCnt, checksumFailCnt, slaveDelay, timeDelay)
 
-	if needCheck {
-		if sw.Status == hamodel.AVAILABLE { // Is this correct? Actually the delay check is not skipped
-			checksumCnt, checksumFailCnt, slaveDelay, timeDelay = 1, 0, 0, 0
-			sw.ReportLogf(SwitchInfo, "instance[%s:%d] is available, skip the check of delay and checksum", ip, port)
-		}
-		if err = sw.CheckSlaveCheckSum(ip, port, checksumCnt, checksumFailCnt); err != nil {
-			return err
-		}
-	} else {
+	if !needCheck {
 		sw.ReportLogf(SwitchInfo, "No user-created database found on db[%s:%d], skip checksum check", ip, port)
 		return nil
+	}
+
+	if sw.Status == hamodel.AVAILABLE { // Is this necessary? Actually the delay check is not skipped
+		checksumCnt, checksumFailCnt, slaveDelay, timeDelay = 1, 0, 0, 0
+		sw.ReportLogf(SwitchInfo, "instance[%s:%d] is available, skip the check of delay and checksum", ip, port)
+	}
+
+	if err = sw.CheckSlaveCheckSum(ip, port, checksumCnt, checksumFailCnt); err != nil {
+		return err
 	}
 
 	if err = sw.CheckSlaveTimeDelay(ip, port, slaveDelay, timeDelay); err != nil {
@@ -765,11 +776,6 @@ func (sw *MySQLBaseSwitchInstance) ResetSlaveWithBinlogPos(slaveIp string, slave
 		return masterStatus.File, masterStatus.Position, err
 	}
 
-	// sw.SetInfo(constvar.NewMasterBinlogFile, masterStatus.File)
-	// sw.SetInfo(constvar.NewMasterBinlogPos, masterStatus.Position)
-	// sw.SetInfo(constvar.NewMasterHost, slaveIp)
-	// sw.SetInfo(constvar.NewMasterPort, slavePort)
-
 	return masterStatus.File, masterStatus.Position, nil
 }
 
@@ -848,48 +854,48 @@ func (sw *MySQLStorageSwitchInstance) GetInstanceInfo() string {
 	return infoStr
 }
 
+// CheckMySQLStorageMaster performs pre-switch validation checks for "backend_master" node
+func (sw *MySQLStorageSwitchInstance) CheckMySQLStorageMaster() (bool, error) {
+	logger.Info("Do check before switch, info{%s}", sw.GetInstanceInfo())
+	if sw.StandBySlave == nil {
+		err := gerrors.Newf(gerrors.Failure, "The standby slave of master[%s:%d] is nil", sw.Ip, sw.Port)
+		sw.ReportLog(SwitchFail, err.Error())
+		return false, err
+	}
+	if sw.StandBySlave.Status == hamodel.UNAVAILABLE {
+		err := gerrors.Newf(gerrors.Failure, "The standby slave[%s:%d] of master[%s:%d] is unavailable",
+			sw.StandBySlave.Ip, sw.StandBySlave.Port, sw.Ip, sw.Port)
+		sw.ReportLog(SwitchFail, err.Error())
+		return false, err
+	}
+
+	if err := sw.CheckSlaveStatus(); err != nil {
+		sw.ReportLog(SwitchFail, err.Error())
+		return false, err
+	}
+
+	if len(sw.ProxyInstanceSet) == 0 {
+		err := gerrors.Newf(gerrors.Failure,
+			"No proxy instances were found for storage node[%s:%d]", sw.Ip, sw.Port)
+		sw.ReportLog(SwitchFail, err.Error())
+		return false, err
+	}
+
+	return true, nil
+}
+
 // CheckBeforeSwitch performs pre-switch validation checks
 func (sw *MySQLStorageSwitchInstance) CheckBeforeSwitch() (checkPass bool, err error) {
 	switch sw.InstanceRole {
 	case hamodel.MySQLStorageSlave:
 		checkPass = false
-		sw.ReportLog(SwitchInfo,
-			fmt.Sprintf("The instance[%s:%d] is a slave node, no need to check", sw.Ip, sw.Port))
+		sw.ReportLogf(SwitchInfo, "The instance[%s:%d] is a slave node, no need to check", sw.Ip, sw.Port)
 	case hamodel.MySQLStorageRepeater:
 		checkPass = false
 		err = gerrors.Newf(gerrors.Failure, "The instance[%s:%d] is a repeater, dbha don't support", sw.Ip, sw.Port)
 		sw.ReportLog(SwitchFail, err.Error())
 	case hamodel.MySQLStorageMaster:
-		logger.Info("Do check before switch, info{%s}", sw.GetInstanceInfo())
-		if sw.StandBySlave == nil {
-			checkPass = false
-			err = gerrors.Newf(gerrors.Failure, "The standby slave of master[%s:%d] is nil", sw.Ip, sw.Port)
-			sw.ReportLog(SwitchFail, err.Error())
-			break
-		}
-		if sw.StandBySlave.Status == hamodel.UNAVAILABLE {
-			checkPass = false
-			err = gerrors.Newf(gerrors.Failure, "The standby slave[%s:%d] of master[%s:%d] is unavailable",
-				sw.StandBySlave.Ip, sw.StandBySlave.Port, sw.Ip, sw.Port)
-			sw.ReportLog(SwitchFail, err.Error())
-			break
-		}
-		// sw.SetInfo(constvar.SlaveIpKey, sw.StandBySlave.Ip)
-		// sw.SetInfo(constvar.SlavePortKey, sw.StandBySlave.Port)
-		err = sw.CheckSlaveStatus()
-		if err != nil {
-			checkPass = false
-			sw.ReportLog(SwitchFail, err.Error())
-			break
-		}
-
-		if len(sw.ProxyInstanceSet) == 0 {
-			checkPass = false
-			err = gerrors.Newf(gerrors.Failure,
-				"No proxy instances were found for storage node[%s:%d]", sw.Ip, sw.Port)
-			sw.ReportLog(SwitchFail, err.Error())
-			break
-		}
+		checkPass, err = sw.CheckMySQLStorageMaster()
 	default:
 		checkPass = false
 		err = gerrors.Newf(gerrors.Failure,
@@ -962,6 +968,7 @@ func SwitchProxyBackendAddress(proxyIp string, proxyAdminPort int, proxyUser str
 func (sw *MySQLStorageSwitchInstance) DoSwitch() error {
 	proxyUser := MySQLProxyUser
 	proxyPasswd := MySQLProxyPassword
+
 	sw.ReportLog(SwitchInfo, "switch step 1: update all proxies' backends to 1.1.1.1 first")
 	for _, proxyIns := range sw.ProxyInstanceSet {
 		sw.ReportLog(SwitchInfo, fmt.Sprintf("try to refresh backends to 1.1.1.1 for the proxy[%s:%d]",
@@ -988,6 +995,7 @@ func (sw *MySQLStorageSwitchInstance) DoSwitch() error {
 		sw.ReportLog(SwitchFail, err.Error())
 		return err
 	}
+
 	sw.NewMasterBinlogFile = binlogFile
 	sw.NewMasterBinlogPos = binlogPosition
 	sw.ReportLog(SwitchInfo, fmt.Sprintf("reset slave status successfully for the standby slave[%s:%d], "+
@@ -1032,35 +1040,40 @@ func (sw *MySQLStorageSwitchInstance) UpdateMetaInfo() error {
 func (sw *MySQLStorageSwitchInstance) DoFinal() error {
 	sw.ReportLog(SwitchInfo, fmt.Sprintf("Do final things after switch for node[%s:%d]",
 		sw.Ip, sw.Port))
+
 	logger.Debug("tbinlogdumpers info of node[%s:%d]: %s", sw.Ip, sw.Port, sw.GetBinlogDumperInfo())
-	if (sw.InstanceRole == hamodel.MySQLStorageMaster) && len(sw.BinlogDumperSet) > 0 {
-		switchInstances := []DumperSwitchInstance{}
-		for _, dumper := range sw.BinlogDumperSet {
-			switchInstances = append(switchInstances, DumperSwitchInstance{
-				Ip:             dumper.Ip,
-				Port:           dumper.Port,
-				BinlogFile:     sw.NewMasterBinlogFile,
-				BinlogPosition: sw.NewMasterBinlogPos,
-			})
-		}
-		switchInfos := []DumperSwitchInfo{
-			{
-				ClusterDomain:   sw.Cluster,
-				SwitchInstances: switchInstances,
-			},
-		}
-		err := sw.dbmClient.SwitchBinlogDumper(sw.GetApp(), switchInfos)
-		if err != nil {
-			errMsg := fmt.Sprintf("failed to switch all tbinlogdumpers for the node[%s:%d], err:%s",
-				sw.Ip, sw.Port, err.Error())
-			sw.ReportLog(SwitchFail, errMsg)
-			return gerrors.New(gerrors.Failure, errMsg)
-		}
-		sw.ReportLogf(SwitchInfo, "switch all tbinlogdumpers successfully for the node[%s:%d]",
-			sw.Ip, sw.Port)
-	} else {
+
+	if (sw.InstanceRole != hamodel.MySQLStorageSlave) || len(sw.BinlogDumperSet) == 0 {
 		sw.ReportLogf(SwitchInfo, "no need to switch tbinlogdumper for node[%s:%d]", sw.Ip, sw.Port)
+		return nil
 	}
+
+	switchInstances := []DumperSwitchInstance{}
+	for _, dumper := range sw.BinlogDumperSet {
+		switchInstances = append(switchInstances, DumperSwitchInstance{
+			Ip:             dumper.Ip,
+			Port:           dumper.Port,
+			BinlogFile:     sw.NewMasterBinlogFile,
+			BinlogPosition: sw.NewMasterBinlogPos,
+		})
+	}
+
+	switchInfos := []DumperSwitchInfo{
+		{
+			ClusterDomain:   sw.Cluster,
+			SwitchInstances: switchInstances,
+		},
+	}
+
+	err := sw.dbmClient.SwitchBinlogDumper(sw.GetApp(), switchInfos)
+	if err != nil {
+		errMsg := fmt.Sprintf("failed to switch all tbinlogdumpers for the node[%s:%d], err:%s",
+			sw.Ip, sw.Port, err.Error())
+		sw.ReportLog(SwitchFail, errMsg)
+		return gerrors.New(gerrors.Failure, errMsg)
+	}
+	sw.ReportLogf(SwitchInfo, "switch all tbinlogdumpers successfully for the node[%s:%d]",
+		sw.Ip, sw.Port)
 
 	return nil
 }

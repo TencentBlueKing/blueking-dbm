@@ -66,11 +66,6 @@ type BaseSwitchInstance struct {
 	MachineType  hamodel.DbmMetadataMachineType
 	InstanceRole hamodel.DbmMetadataInstanceRole
 
-	// Other information related to the switch
-	// EventName   haprobe.DbEventName
-	// EventReason haprobe.DbEventNameReason
-	// SwitchID    int
-
 	// Http client for DBM
 	dbmClient *DbmClient
 }
@@ -102,52 +97,51 @@ func (sw *BaseSwitchInstance) GetInstanceInfo() string {
 // SetInstanceUnavailable marks the instance as unavailable
 func (sw *BaseSwitchInstance) SetInstanceUnavailable() error {
 	err := sw.dbmClient.UpdateInstanceStatus(sw.Ip, sw.Port, hamodel.UNAVAILABLE)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (sw *BaseSwitchInstance) releaseDNSEntry(dnsEntries []hamodel.BindEntryDnsInfo) bool {
 	allSuccess := true
-	if dnsEntries != nil {
-		sw.ReportLog(SwitchInfo, fmt.Sprintf("try to release dns entry [%s:%d]", sw.Ip, sw.Port))
-		for _, dns := range dnsEntries {
-			if (sw.MachineType == hamodel.DbmMetadataMachineTypeProxy) ||
-				(sw.MachineType == hamodel.DbmMetadataMachineTypeSpider) {
-				addressNum, err := sw.dbmClient.GetAddressNumberOfDomain(dns.DomainName)
-				if err != nil {
-					sw.ReportLog(SwitchFail,
-						fmt.Sprintf("failed to get address number of domain [%s]: %v", dns.DomainName, err))
-					allSuccess = false
-					continue
-				}
-				sw.ReportLog(SwitchInfo, fmt.Sprintf("found %d addresses in domain [%s]",
-					addressNum, dns.DomainName))
-				if addressNum <= 1 {
-					sw.ReportLog(SwitchWarn,
-						fmt.Sprintf("only single address in domain [%s], skip release domain", dns.DomainName))
-					continue
-				}
-			}
-			for _, ip := range dns.BindIps {
-				if ip != sw.Ip || dns.BindPort != sw.Port {
-					continue
-				}
+	if dnsEntries == nil {
+		return allSuccess
+	}
 
-				ins := fmt.Sprintf("%s#%d", ip, dns.BindPort)
-				err := sw.dbmClient.DeleteFromDomain(dns.DomainName, ins, sw.GetApp())
-				if err != nil {
-					sw.ReportLog(SwitchFail, fmt.Sprintf("delete ip[%s] from domain[%s] failed: %s",
-						ip, dns.DomainName, err.Error()))
-					allSuccess = false
-				}
-				break
+	sw.ReportLog(SwitchInfo, fmt.Sprintf("try to release dns entry [%s:%d]", sw.Ip, sw.Port))
+	for _, dns := range dnsEntries {
+		if (sw.MachineType == hamodel.DbmMetadataMachineTypeProxy) ||
+			(sw.MachineType == hamodel.DbmMetadataMachineTypeSpider) {
+			addressNum, err := sw.dbmClient.GetAddressNumberOfDomain(dns.DomainName)
+			if err != nil {
+				sw.ReportLog(SwitchFail,
+					fmt.Sprintf("failed to get address number of domain [%s]: %v", dns.DomainName, err))
+				allSuccess = false
+				continue
+			}
+			sw.ReportLog(SwitchInfo, fmt.Sprintf("found %d addresses in domain [%s]",
+				addressNum, dns.DomainName))
+			if addressNum <= 1 {
+				sw.ReportLog(SwitchWarn,
+					fmt.Sprintf("only single address in domain [%s], skip release domain", dns.DomainName))
+				continue
 			}
 		}
-		if allSuccess {
-			sw.ReportLog(SwitchInfo, fmt.Sprintf("release dns entry success [%s:%d]", sw.Ip, sw.Port))
+		for _, ip := range dns.BindIps {
+			if ip != sw.Ip || dns.BindPort != sw.Port {
+				continue
+			}
+
+			ins := fmt.Sprintf("%s#%d", ip, dns.BindPort)
+			err := sw.dbmClient.DeleteFromDomain(dns.DomainName, ins, sw.GetApp())
+			if err != nil {
+				sw.ReportLog(SwitchFail, fmt.Sprintf("delete ip[%s] from domain[%s] failed: %s",
+					ip, dns.DomainName, err.Error()))
+				allSuccess = false
+			}
+			break
 		}
+	}
+	if allSuccess {
+		sw.ReportLog(SwitchInfo, fmt.Sprintf("release dns entry success [%s:%d]", sw.Ip, sw.Port))
 	}
 
 	return allSuccess
@@ -155,30 +149,32 @@ func (sw *BaseSwitchInstance) releaseDNSEntry(dnsEntries []hamodel.BindEntryDnsI
 
 func (sw *BaseSwitchInstance) releaseCLBEntry(clbEntries []hamodel.BindEntryClbInfo) bool {
 	allSuccess := true
-	if clbEntries != nil {
-		sw.ReportLog(SwitchInfo, fmt.Sprintf("try to release clb entry [%s:%d]", sw.Ip, sw.Port))
-		for _, clb := range clbEntries {
-			for _, ip := range clb.BindIps {
-				if ip != sw.Ip || clb.BindPort != sw.Port {
-					continue
-				}
+	if clbEntries == nil {
+		return allSuccess
+	}
 
-				ins := fmt.Sprintf("%s:%d", ip, clb.BindPort)
-				err := sw.dbmClient.DeregisterFromCLB(
-					clb.Region, clb.LoadBalanceId, clb.ListenId, ins,
-				)
-				if err != nil {
-					sw.ReportLog(SwitchFail,
-						fmt.Sprintf("delte %s from clb[%s:%s:%s] failed: %s",
-							ins, clb.Region, clb.LoadBalanceId, clb.ListenId, err.Error()))
-					allSuccess = false
-				}
-				break
+	sw.ReportLog(SwitchInfo, fmt.Sprintf("try to release clb entry [%s:%d]", sw.Ip, sw.Port))
+	for _, clb := range clbEntries {
+		for _, ip := range clb.BindIps {
+			if ip != sw.Ip || clb.BindPort != sw.Port {
+				continue
 			}
+
+			ins := fmt.Sprintf("%s:%d", ip, clb.BindPort)
+			err := sw.dbmClient.DeleteFromCLB(
+				clb.Region, clb.LoadBalanceId, clb.ListenId, ins,
+			)
+			if err != nil {
+				sw.ReportLog(SwitchFail,
+					fmt.Sprintf("delte %s from clb[%s:%s:%s] failed: %s",
+						ins, clb.Region, clb.LoadBalanceId, clb.ListenId, err.Error()))
+				allSuccess = false
+			}
+			break
 		}
-		if allSuccess {
-			sw.ReportLog(SwitchInfo, fmt.Sprintf("release clb entry success [%s:%d]", sw.Ip, sw.Port))
-		}
+	}
+	if allSuccess {
+		sw.ReportLog(SwitchInfo, fmt.Sprintf("release clb entry success [%s:%d]", sw.Ip, sw.Port))
 	}
 
 	return allSuccess
@@ -186,30 +182,32 @@ func (sw *BaseSwitchInstance) releaseCLBEntry(clbEntries []hamodel.BindEntryClbI
 
 func (sw *BaseSwitchInstance) releasePolarisEntry(polarisEntries []hamodel.BindEntryPolarisInfo) bool {
 	allSuccess := true
-	if polarisEntries != nil {
-		sw.ReportLog(SwitchInfo, fmt.Sprintf("try to release polaris entry [%s:%d]", sw.Ip, sw.Port))
-		for _, pinfo := range polarisEntries {
-			for _, ip := range pinfo.BindIps {
-				if ip != sw.Ip || pinfo.BindPort != sw.Port {
-					continue
-				}
+	if polarisEntries == nil {
+		return allSuccess
+	}
 
-				ins := fmt.Sprintf("%s:%d", ip, pinfo.BindPort)
-				err := sw.dbmClient.UnbindFromPolaris(
-					pinfo.Service, pinfo.Token, ins,
-				)
-				if err != nil {
-					sw.ReportLog(SwitchFail,
-						fmt.Sprintf("delete [%s] from polaris %s:%s failed: %s",
-							ins, pinfo.Service, pinfo.Token, err.Error()))
-					allSuccess = false
-				}
-				break
+	sw.ReportLog(SwitchInfo, fmt.Sprintf("try to release polaris entry [%s:%d]", sw.Ip, sw.Port))
+	for _, pinfo := range polarisEntries {
+		for _, ip := range pinfo.BindIps {
+			if ip != sw.Ip || pinfo.BindPort != sw.Port {
+				continue
 			}
+
+			ins := fmt.Sprintf("%s:%d", ip, pinfo.BindPort)
+			err := sw.dbmClient.DeleteFromPolaris(
+				pinfo.Service, pinfo.Token, ins,
+			)
+			if err != nil {
+				sw.ReportLog(SwitchFail,
+					fmt.Sprintf("delete [%s] from polaris %s:%s failed: %s",
+						ins, pinfo.Service, pinfo.Token, err.Error()))
+				allSuccess = false
+			}
+			break
 		}
-		if allSuccess {
-			sw.ReportLog(SwitchInfo, fmt.Sprintf("release polaris entry success [%s:%d]", sw.Ip, sw.Port))
-		}
+	}
+	if allSuccess {
+		sw.ReportLog(SwitchInfo, fmt.Sprintf("release polaris entry success [%s:%d]", sw.Ip, sw.Port))
 	}
 
 	return allSuccess

@@ -45,8 +45,8 @@ type DomainDeleteRequest struct {
 	InstancesToDelete []InstancesOfDomain `json:"domains"`
 }
 
-// CLBDeRegisterRequest represents the request for deregistering from Cloud Load Balancer
-type CLBDeRegisterRequest struct {
+// ClbDeleteRequest represents the request for deregistering from Cloud Load Balancer
+type ClbDeleteRequest struct {
 	BkCloudID      int      `json:"bk_cloud_id"`
 	DbCloudToken   string   `json:"db_cloud_token"`
 	Region         string   `json:"region"`
@@ -55,8 +55,8 @@ type CLBDeRegisterRequest struct {
 	IPs            []string `json:"ips"`
 }
 
-// PolarisUnbindRequest represents the request for unbinding from Polaris service discovery
-type PolarisUnbindRequest struct {
+// PolarisDeleteRequest represents the request for unbinding from Polaris service discovery
+type PolarisDeleteRequest struct {
 	BkCloudID    int      `json:"bk_cloud_id"`
 	DbCloudToken string   `json:"db_cloud_token"`
 	ServiceName  string   `json:"servicename"`
@@ -83,12 +83,10 @@ type SwapMySQLRoleRequest struct {
 	Payloads     []SwapMySQLRolePayload `json:"payloads"`
 }
 
-// DumperSwitchInstance represents binlog dumper instance information for switching
+// DumperSwitchInstance represents the instance information for binlog dumper switching
 type DumperSwitchInstance struct {
 	Ip             string `json:"ip"`
 	Port           int    `json:"port"`
-	IsStandBy      bool   `json:"is_stand_by"`
-	Status         string `json:"status"`
 	BinlogFile     string `json:"binlog_file"`
 	BinlogPosition uint64 `json:"binlog_position"`
 }
@@ -104,7 +102,7 @@ type DumperSwitchRequest struct {
 	BkCloudID    int                `json:"bk_cloud_id"`
 	DbCloudToken string             `json:"db_cloud_token"`
 	BKBizID      string             `json:"bk_biz_id"`
-	SafeSwitch   bool               `json:"is_safe"`
+	IsSafe       bool               `json:"is_safe"`
 	SwitchInfos  []DumperSwitchInfo `json:"infos"`
 }
 
