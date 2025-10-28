@@ -12,10 +12,15 @@
 -->
 
 <template>
-  <PrimaryTable
+  <InfoTable
     :data="ticketDetails.details.infos"
     row-key="new_slave.ip">
-    <TableColumn :title="t('目标集群')">
+    <InfoTableColumn
+      col-key="cluster_ids"
+      :get-copy-value="
+        (item: RowData) => item.cluster_ids.map((clusterId) => ticketDetails.details.clusters[clusterId].immute_domain)
+      "
+      :title="t('目标集群')">
       <template #default="{ row }: { row: RowData }">
         <div
           v-for="clusterId in row.cluster_ids"
@@ -24,18 +29,22 @@
           {{ ticketDetails.details.clusters[clusterId].immute_domain }}
         </div>
       </template>
-    </TableColumn>
-    <TableColumn :title="t('新从库主机')">
+    </InfoTableColumn>
+    <InfoTableColumn
+      col-key="new_slave"
+      :title="t('新从库主机')">
       <template #default="{ row }: { row: RowData }">
         {{ row.new_slave.ip }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('备份源')">
+    </InfoTableColumn>
+    <InfoTableColumn
+      col-key="backup_source"
+      :title="t('备份源')">
       <template #default>
         {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </InfoTableColumn>
+  </InfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -43,6 +52,8 @@
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
+
+  import InfoTable, { InfoTableColumn } from '../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.AddSlave>;

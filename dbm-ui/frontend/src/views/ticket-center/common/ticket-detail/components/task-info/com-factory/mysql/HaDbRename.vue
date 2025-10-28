@@ -12,31 +12,38 @@
 -->
 
 <template>
-  <PrimaryTable
+  <InfoTable
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
-    <TableColumn :title="t('目标集群')">
+    <InfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(item: RowData) => ticketDetails.details.clusters[item.cluster_id].immute_domain"
+      :title="t('目标集群')">
       <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('源DB名')">
+    </InfoTableColumn>
+    <InfoTableColumn
+      col-key="from_database "
+      :title="t('源DB名')">
       <template #default="{ row: data }: { row: RowData }">
         <BkTag v-if="data.from_database">
           {{ data.from_database }}
         </BkTag>
         <span v-else>--</span>
       </template>
-    </TableColumn>
-    <TableColumn :title="t('新DB名')">
+    </InfoTableColumn>
+    <InfoTableColumn
+      col-key="to_database"
+      :title="t('新DB名')">
       <template #default="{ row: data }: { row: RowData }">
         <BkTag v-if="data.to_database">
           {{ data.to_database }}
         </BkTag>
         <span v-else>--</span>
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </InfoTableColumn>
+  </InfoTable>
   <InfoList>
     <InfoItem :label="t('检查业务连接')">
       {{ !ticketDetails.details.force ? t('是') : t('否') }}
@@ -51,6 +58,7 @@
   import { TicketTypes } from '@common/const';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import InfoTable, { InfoTableColumn } from '../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.RenameDataBase>;
