@@ -37,7 +37,8 @@ func GetDbmSpecListMock() (dbmSpecList []dbmapi.DbmSpec) {
 				{
 					MountPoint: "/data",
 					DiskType:   "ALL",
-					Size:       10,
+					Min:        10,
+					Max:        100,
 				},
 			},
 		},
@@ -60,7 +61,8 @@ func GetDbmSpecListMock() (dbmSpecList []dbmapi.DbmSpec) {
 				{
 					MountPoint: "/data",
 					DiskType:   "ALL",
-					Size:       100,
+					Min:        100,
+					Max:        100,
 				},
 			},
 		},
@@ -82,7 +84,8 @@ func GetDbmSpecListMock() (dbmSpecList []dbmapi.DbmSpec) {
 				{
 					MountPoint: "/data",
 					DiskType:   "ALL",
-					Size:       2900,
+					Min:        2900,
+					Max:        2900,
 				},
 			},
 		},

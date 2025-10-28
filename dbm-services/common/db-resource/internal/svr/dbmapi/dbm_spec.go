@@ -39,8 +39,10 @@ type DbmSpec struct {
 
 // RealDiskSpec 真实磁盘规格
 type RealDiskSpec struct {
+	// Size       int    `json:"size"`
+	Min        int    `json:"min"`
+	Max        int    `json:"max"`
 	DiskType   string `json:"type"`
-	Size       int    `json:"size"`
 	MountPoint string `json:"mount_point"`
 }
 
