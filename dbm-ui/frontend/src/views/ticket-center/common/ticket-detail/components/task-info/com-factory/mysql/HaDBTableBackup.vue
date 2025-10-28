@@ -11,15 +11,20 @@
  * the specific language governing permissions and limitations under the License.
 -->
 <template>
-  <PrimaryTable :data="ticketDetails.details.infos">
-    <TableColumn
+  <InfoTable
+    :data="ticketDetails.details.infos"
+    row-key="cluster_id">
+    <InfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(item: RowData) => ticketDetails.details.clusters[item.cluster_id].immute_domain"
       :title="t('目标集群')"
       :width="240">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </InfoTableColumn>
+    <InfoTableColumn
+      col-key="backup_on"
       :title="t('备份位置')"
       :width="180">
       <template #default="{ row }: { row: RowData }">
@@ -31,36 +36,40 @@
             : '--'
         }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </InfoTableColumn>
+    <InfoTableColumn
+      col-key="db_patterns"
       :title="t('备份DB名')"
       :width="180">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="row.db_patterns" />
       </template>
-    </TableColumn>
-    <TableColumn
+    </InfoTableColumn>
+    <InfoTableColumn
+      col-key="ignore_dbs"
       :title="t('忽略DB名')"
       :width="180">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="row.ignore_dbs" />
       </template>
-    </TableColumn>
-    <TableColumn
+    </InfoTableColumn>
+    <InfoTableColumn
+      col-key="table_patterns"
       :title="t('备份表名')"
       :width="180">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="row.table_patterns" />
       </template>
-    </TableColumn>
-    <TableColumn
+    </InfoTableColumn>
+    <InfoTableColumn
+      col-key="ignore_tables"
       :title="t('忽略表名')"
       :width="180">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="row.ignore_tables" />
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </InfoTableColumn>
+  </InfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -70,6 +79,8 @@
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import TagBlock from '@components/tag-block/Index.vue';
+
+  import InfoTable, { InfoTableColumn } from '../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.HaDBTableBackup>;

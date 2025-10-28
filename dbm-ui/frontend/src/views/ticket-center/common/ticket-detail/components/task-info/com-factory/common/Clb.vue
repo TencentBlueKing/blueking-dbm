@@ -12,27 +12,33 @@
 -->
 
 <template>
-  <PrimaryTable
+  <InfoTable
     :data="[ticketDetails]"
     row-key="cluster_id">
-    <TableColumn :title="t('集群')">
+    <InfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(item: RowData) => ticketDetails.details.clusters[item.id].immute_domain"
+      :title="t('集群')">
       <template #default="{ row }: { row: RowData }">
         {{ row.details.clusters[row.details.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('集群类型')">
+    </InfoTableColumn>
+    <InfoTableColumn
+      col-key="cluster_type_name"
+      :title="t('集群类型')">
       <template #default="{ row }: { row: RowData }">
         {{ row.details.clusters[row.details.cluster_id].cluster_type_name }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </InfoTableColumn>
+    <InfoTableColumn
       v-if="ticketDetails.details.spider_role"
+      col-key="role"
       :title="t('角色')">
       <template #default="{ row }: { row: RowData }">
         {{ RoleDisplayMap[row.details.spider_role!] }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </InfoTableColumn>
+  </InfoTable>
 </template>
 
 <script setup lang="tsx">
@@ -40,6 +46,8 @@
 
   import type { DetailClusters } from '@services/model/ticket/details/common';
   import TicketModel from '@services/model/ticket/ticket';
+
+  import InfoTable, { InfoTableColumn } from '../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<{

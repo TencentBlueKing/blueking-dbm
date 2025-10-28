@@ -17,20 +17,20 @@
       {{ rollbackTypetitle[ticketDetails.details.rollback_cluster_type] }}
     </InfoItem>
   </InfoList>
-  <PrimaryTable
+  <InfoTable
     :data="ticketDetails.details.infos"
-    ellipsis
     row-key="cluster_id">
-    <TableColumn
+    <InfoTableColumn
       col-key="cluster_id"
       fixed="left"
+      :get-copy-value="(item: RowData) => ticketDetails.details.clusters[item.cluster_id].immute_domain"
       :min-width="180"
       :title="t('待回档集群')">
       <template #default="{ row:data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </InfoTableColumn>
+    <InfoTableColumn
       v-if="['BUILD_INTO_EXIST_CLUSTER'].includes(ticketDetails.details.rollback_cluster_type)"
       col-key="target_cluster_id"
       :min-width="180"
@@ -38,8 +38,8 @@
       <template #default="{ row:data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.target_cluster_id]?.immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </InfoTableColumn>
+    <InfoTableColumn
       v-if="['BUILD_INTO_NEW_CLUSTER'].includes(ticketDetails.details.rollback_cluster_type)"
       col-key="rollback_host"
       :min-width="180"
@@ -47,16 +47,16 @@
       <template #default="{ row:data }: { row: RowData }">
         {{ data.resource_spec.rollback_host.hosts[0].ip }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </InfoTableColumn>
+    <InfoTableColumn
       col-key="backup_source"
       :min-width="100"
       :title="t('备份源')">
       <template #default="{ row:data }: { row: RowData }">
         {{ backupSourcetitle[data.backup_source] }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </InfoTableColumn>
+    <InfoTableColumn
       col-key="rollback_time"
       :min-width="300"
       :title="t('回档类型')">
@@ -67,12 +67,13 @@
           {{ dayjs(data.backupinfo.backup_time).format('YYYY-MM-DD HH:mm:ss ZZ') }}
         </div>
       </template>
-    </TableColumn>
+    </InfoTableColumn>
     <template
       v-if="
         ['BUILD_INTO_NEW_CLUSTER', 'BUILD_INTO_EXIST_CLUSTER'].includes(ticketDetails.details.rollback_cluster_type)
       ">
-      <TableColumn
+      <InfoTableColumn
+        col-key="databases"
         :min-width="120"
         :title="t('回档DB')">
         <template #default="{ row:data }: { row: RowData }">
@@ -83,8 +84,9 @@
           </BkTag>
           <span v-if="data.databases.length < 1">--</span>
         </template>
-      </TableColumn>
-      <TableColumn
+      </InfoTableColumn>
+      <InfoTableColumn
+        col-key="databases_ignore"
         :min-width="120"
         :title="t('忽略 DB')">
         <template #default="{ row:data }: { row: RowData }">
@@ -95,8 +97,9 @@
           </BkTag>
           <span v-if="data.databases_ignore.length < 1">--</span>
         </template>
-      </TableColumn>
-      <TableColumn
+      </InfoTableColumn>
+      <InfoTableColumn
+        col-key="tables"
         :min-width="120"
         :title="t('回档表名')">
         <template #default="{ row:data }: { row: RowData }">
@@ -107,8 +110,9 @@
           </BkTag>
           <span v-if="data.tables.length < 1">--</span>
         </template>
-      </TableColumn>
-      <TableColumn
+      </InfoTableColumn>
+      <InfoTableColumn
+        col-key="tables_ignore"
         :min-width="120"
         :title="t('忽略表名')">
         <template #default="{ row:data }: { row: RowData }">
@@ -119,9 +123,9 @@
           </BkTag>
           <span v-if="data.tables_ignore.length < 1">--</span>
         </template>
-      </TableColumn>
+      </InfoTableColumn>
     </template>
-  </PrimaryTable>
+  </InfoTable>
 </template>
 
 <script setup lang="tsx">
@@ -133,6 +137,7 @@
   import { TicketTypes } from '@common/const';
 
   import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
+  import InfoTable, { InfoTableColumn } from '../../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.ResourcePool.RollbackCluster>;

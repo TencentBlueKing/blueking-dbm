@@ -12,55 +12,56 @@
 -->
 
 <template>
-  <PrimaryTable
+  <InfoTable
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
-    <TableColumn
+    <InfoTableColumn
       col-key="cluster_id"
       fixed="left"
+      :get-copy-value="(item: RowData) => ticketDetails.details.clusters[item.cluster_id].immute_domain"
       :min-width="250"
       :title="t('集群')">
       <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </InfoTableColumn>
+    <InfoTableColumn
       col-key="truncate_data_type"
       :title="t('清档类型')"
       :width="220">
       <template #default="{ row: data }: { row: RowData }">
         {{ truncateDataTypes[data.truncate_data_type as keyof typeof truncateDataTypes] }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </InfoTableColumn>
+    <InfoTableColumn
       col-key="db_patterns"
       :title="t('指定 DB 名')">
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.db_patterns" />
       </template>
-    </TableColumn>
-    <TableColumn
+    </InfoTableColumn>
+    <InfoTableColumn
       col-key="ignore_dbs"
       :title="t('忽略 DB 名')">
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.ignore_dbs" />
       </template>
-    </TableColumn>
-    <TableColumn
+    </InfoTableColumn>
+    <InfoTableColumn
       col-key="table_patterns"
       :title="t('指定表名')">
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.table_patterns" />
       </template>
-    </TableColumn>
-    <TableColumn
+    </InfoTableColumn>
+    <InfoTableColumn
       col-key="ignore_tables"
       :title="t('忽略表名')">
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.ignore_tables" />
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </InfoTableColumn>
+  </InfoTable>
   <InfoList>
     <InfoItem :label="t('安全模式')">
       {{ !ticketDetails.details.infos[0].force ? t('是') : t('否') }}
@@ -85,6 +86,7 @@
   import TagBlock from '@components/tag-block/Index.vue';
 
   import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
+  import InfoTable, { InfoTableColumn } from '../../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.TruncateData>;

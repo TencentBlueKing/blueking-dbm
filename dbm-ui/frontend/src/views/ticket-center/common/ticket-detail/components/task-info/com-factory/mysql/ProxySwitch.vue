@@ -17,16 +17,20 @@
       {{ displayInfoTypeMap[ticketDetails.details.infos[0].display_info.type] }}
     </InfoItem>
   </InfoList>
-  <PrimaryTable
+  <InfoTable
     :data="ticketDetails.details.infos"
     row-key="origin_proxy.ip">
-    <TableColumn :title="t('目标Proxy')">
+    <InfoTableColumn
+      col-key="origin_proxy_ip"
+      :get-copy-value="(item: RowData) => item.origin_proxy.ip"
+      :title="t('目标Proxy')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.origin_proxy.ip }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </InfoTableColumn>
+    <InfoTableColumn
       v-if="isHostReplace"
+      col-key="related_instances"
       :title="t('关联实例')">
       <template #default="{ row: data }: { row: RowData }">
         <p
@@ -35,8 +39,10 @@
           {{ item }}
         </p>
       </template>
-    </TableColumn>
-    <TableColumn :title="t('关联集群')">
+    </InfoTableColumn>
+    <InfoTableColumn
+      col-key="related_clusters"
+      :title="t('关联集群')">
       <template #default="{ row: data }: { row: RowData }">
         <p
           v-for="item in data.display_info.related_clusters"
@@ -44,13 +50,15 @@
           {{ item }}
         </p>
       </template>
-    </TableColumn>
-    <TableColumn :title="t('新Proxy主机')">
+    </InfoTableColumn>
+    <InfoTableColumn
+      col-key="target_proxy"
+      :title="t('新Proxy主机')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.target_proxy.ip }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </InfoTableColumn>
+  </InfoTable>
   <InfoList>
     <InfoItem :label="t('检查业务连接')">
       {{ !ticketDetails.details.force ? t('是') : t('否') }}
@@ -65,6 +73,7 @@
   import { TicketTypes } from '@common/const';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import InfoTable, { InfoTableColumn } from '../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.ProxySwitch>;

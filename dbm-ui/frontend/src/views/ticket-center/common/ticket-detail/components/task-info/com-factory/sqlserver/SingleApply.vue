@@ -60,7 +60,7 @@
     </InfoItem>
     <InfoItem
       :label="t('域名设置')"
-      whole-line>
+      style="flex: 1 0 100%">
       <PrimaryTable
         :data="ticketDetails.details.domains"
         ellipsis

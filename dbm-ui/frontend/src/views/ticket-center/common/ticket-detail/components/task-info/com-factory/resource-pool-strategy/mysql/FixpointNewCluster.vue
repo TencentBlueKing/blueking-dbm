@@ -23,19 +23,20 @@
       {{ ticketDetails.details.infos[0].backup_source === 'local' ? t('本地备份') : t('远程备份') }}
     </InfoItem>
   </InfoList>
-  <PrimaryTable
+  <InfoTable
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
-    <TableColumn
+    <InfoTableColumn
       col-key="cluster_id"
       fixed="left"
+      :get-copy-value="(item: RowData) => ticketDetails.details.clusters[item.cluster_id].immute_domain"
       :min-width="300"
       :title="t('源集群')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </InfoTableColumn>
+    <InfoTableColumn
       v-if="ticketDetails.details.infos[0]?.rollback_time"
       col-key="rollback_time"
       :min-width="300"
@@ -43,8 +44,8 @@
       <template #default="{ row }: { row: RowData }">
         {{ utcDisplayTime(row.rollback_time) }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </InfoTableColumn>
+    <InfoTableColumn
       col-key="backupinfo"
       :min-width="370"
       :title="t('备份记录')">
@@ -101,8 +102,8 @@
           </div>
         </div>
       </template>
-    </TableColumn>
-    <TableColumn
+    </InfoTableColumn>
+    <InfoTableColumn
       col-key="databases"
       :min-width="120"
       :title="t('源 DB')">
@@ -114,8 +115,8 @@
         </BkTag>
         <span v-if="row.databases.length < 1">--</span>
       </template>
-    </TableColumn>
-    <TableColumn
+    </InfoTableColumn>
+    <InfoTableColumn
       col-key="tables"
       :min-width="120"
       :title="t('源表')">
@@ -127,16 +128,16 @@
         </BkTag>
         <span v-if="row.tables.length < 1">--</span>
       </template>
-    </TableColumn>
-    <TableColumn
+    </InfoTableColumn>
+    <InfoTableColumn
       col-key="resource_spec"
       :min-width="180"
       :title="t('新集群主机')">
       <template #default="{ row }: { row: RowData }">
         {{ row.resource_spec.rollback_host.hosts?.[0]?.ip || '--' }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </InfoTableColumn>
+  </InfoTable>
 </template>
 
 <script setup lang="ts">
@@ -149,6 +150,7 @@
   import { bytePretty, utcDisplayTime } from '@utils';
 
   import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
+  import InfoTable, { InfoTableColumn } from '../../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.ResourcePool.RollbackCluster>;
