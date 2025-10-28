@@ -31,6 +31,7 @@ import (
 
 	"dbm-services/common/go-pubpkg/apm/metric"
 	"dbm-services/common/go-pubpkg/apm/trace"
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-simulation/app/config"
 	"dbm-services/mysql/db-simulation/handler"
@@ -105,12 +106,17 @@ func apiLogger(c *gin.Context) {
 		if len(body) == 0 {
 			body = []byte("{}")
 		}
+		// 净化用户输入以防止XSS攻击
+		sanitizedPath := cmutil.SanitizeInput(c.Request.URL.Path, 255)
+		sanitizedSourceIP := cmutil.SanitizeInput(c.Request.RemoteAddr, 64)
+		sanitizedBody := cmutil.SanitizeInput(string(body), 655350)
+
 		model.DB.Create(&model.TbRequestRecord{
 			RequestID:    rid,
 			Method:       c.Request.Method,
-			Path:         c.Request.URL.Path,
-			SourceIP:     c.Request.RemoteAddr,
-			RequestBody:  string(body),
+			Path:         sanitizedPath,
+			SourceIP:     sanitizedSourceIP,
+			RequestBody:  sanitizedBody,
 			ResponseBody: "{}",
 			CreateTime:   time.Now(),
 			UpdateTime:   time.Now(),
@@ -126,7 +132,11 @@ type bodyLogWriter struct {
 
 // Write 用于常见IO
 func (w bodyLogWriter) Write(b []byte) (int, error) {
-	w.body.Write(b)
+	// 先写入buffer用于日志记录
+	if _, err := w.body.Write(b); err != nil {
+		return 0, err
+	}
+	// 再写入实际的ResponseWriter
 	return w.ResponseWriter.Write(b)
 }
 

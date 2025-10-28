@@ -145,14 +145,19 @@ func ApiLogger(c *gin.Context) {
 		if len(bodyBytes) == 0 {
 			bodyBytes = []byte("{}")
 		}
+		// 净化用户输入以防止XSS攻击
+		sanitizedPath := cmutil.SanitizeInput(c.Request.URL.Path, 512)
+		sanitizedSourceIP := cmutil.SanitizeInput(c.Request.RemoteAddr, 64)
+		sanitizedBody := cmutil.SanitizeInput(string(bodyBytes), 655350)
+		sanitizedUsername := cmutil.SanitizeInput(c.Request.Header.Get("bk_username"), 64)
 		// create a new buffer and replace the original request body
 		c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 		if err := model.CreateTbRequestLog(model.TbRequestLog{
 			RequestID:   rid,
-			RequestUser: c.Request.Header.Get("bk_username"),
-			RequestUrl:  c.Request.RequestURI,
-			RequestBody: string(bodyBytes),
-			SourceIP:    c.Request.RemoteAddr,
+			RequestUser: sanitizedUsername,
+			RequestUrl:  sanitizedPath,
+			RequestBody: sanitizedBody,
+			SourceIP:    sanitizedSourceIP,
 			CreateTime:  time.Now(),
 			ResponeBody: "{}",
 		}); err != nil {
