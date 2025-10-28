@@ -53,6 +53,15 @@ const (
 	readBatchCount       = 1000
 )
 
+var (
+	ErrCreateMutexFailure    = gerrors.Newf(gerrors.EtcdFailure, "failed to create a mutex for a business")
+	ErrReadeMetadataFailure  = gerrors.Newf(gerrors.MysqlFailure, "failed to read metadata")
+	ErrReadDbMetricFailure   = gerrors.Newf(gerrors.MysqlFailure, "failed to read DB metrics")
+	ErrReadDbEventFailure    = gerrors.Newf(gerrors.MysqlFailure, "failed to read DB event")
+	ErrReadSkipDbInstFailure = gerrors.Newf(gerrors.MysqlFailure, "failed to read skip db-inst")
+	ErrAcquireLockFailure    = gerrors.Newf(gerrors.EtcdFailure, "failed to acquire the lock for the business")
+)
+
 // New create a workflow instance.
 func New(cli *discovery.Client, db *hamysql.DB) (*Workflow, error) {
 	wflow := &Workflow{
@@ -74,10 +83,6 @@ func New(cli *discovery.Client, db *hamysql.DB) (*Workflow, error) {
 	}
 
 	return wflow, nil
-}
-
-func key[T any](bkCloudId int, ip string, port T) string {
-	return fmt.Sprintf("%d:%s:%v", bkCloudId, ip, port)
 }
 
 type Workflow struct {
@@ -137,12 +142,12 @@ func (w *Workflow) Close() {
 	w.quit = nil
 }
 
-func (w *Workflow) alarm(procName string, status process.Status,
+func (w *Workflow) triggerAlarmWithDetectorResponse(procName string, status process.Status,
 	content string, exitCode int, resp *detector.Response) {
 
 	target := key(resp.Meta.BkCloudID, resp.Meta.IP, resp.Meta.Port)
 	monitorEvent := &monitor.EventData{
-		Name:      haprobe.DbEventNameProbeOffline.String(),
+		Name:      resp.DbEventName.String(),
 		Target:    target,
 		Timestamp: uint64(time.Now().UnixMilli()),
 	}
@@ -152,17 +157,96 @@ func (w *Workflow) alarm(procName string, status process.Status,
 	monitorEvent.Dimension.DetectorExitCode = exitCode
 	monitorEvent.Dimension.IP = resp.Meta.IP
 	monitorEvent.Dimension.Port = resp.Meta.Port
-	monitorEvent.Dimension.BkBizID = resp.Meta.BkBizID
+	monitorEvent.Dimension.BkBizId = resp.Meta.BkBizID
 	monitorEvent.Dimension.DbClusterType = resp.Meta.ClusterType
 	monitorEvent.Dimension.DbMachineType = resp.Meta.MachineType
 	monitorEvent.Dimension.DetectorProcName = procName
 	monitorEvent.Dimension.DetectorProcStatus = status
 	monitorEvent.Dimension.DbEventName = resp.DbEventName
-	monitorEvent.Dimension.DbEventNameReason = resp.DbEventNameReason
+	monitorEvent.Dimension.DbEventNameReason = resp.DbEventNameReason.Str()
+
+	logger.Info("the workflow triggers an alarm, db-inst: %d:%s:%d content: %s",
+		resp.Meta.BkBizID, resp.Meta.IP, resp.Meta.Port, content)
 
 	if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
-		logger.Warn("%v", err)
+		logger.Warn("failed to post the alarm event to BkMonitor, errmsg: %s", err)
 	}
+}
+
+func (w *Workflow) triggerAlarmWithBizId(bizId int, content string) {
+	target := fmt.Sprintf("BizId: %d", bizId)
+
+	monitorEvent := &monitor.EventData{
+		Name:      "",
+		Target:    target,
+		Timestamp: uint64(time.Now().UnixMilli()),
+	}
+
+	monitorEvent.Content.Content = content
+
+	monitorEvent.Dimension.BkBizId = bizId
+
+	if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
+		logger.Warn("%s", err)
+	}
+
+}
+
+func (w *Workflow) processDetectorResponse(resp *detector.Response) {
+	if resp.Err == detector.ErrDetectorCreateSshConnection {
+		resp.DbEventName = haprobe.DbEventNameDoubleCheckSshFailureV1
+		resp.DbEventNameReason = haprobe.DbEventNameReasonConnectionException
+
+		content := fmt.Sprintf("failed to dial the remote host with SSH, host: %d:%s:%d",
+			resp.Meta.BkCloudID, resp.Meta.IP, config.Cfg.Detector.Ssh.Port)
+
+		w.triggerAlarmWithDetectorResponse("", "", content, gerrors.Failure.Int(), resp)
+		// TODO: Trigger to switch the db.
+		return
+	}
+
+	if resp.Err == detector.ErrDetectorCreateSshSession {
+		resp.DbEventName = haprobe.DbEventNameDoubleCheckSshFailureV1
+		resp.DbEventNameReason = haprobe.DbEventNameReasonConnectionException
+
+		content := fmt.Sprintf("failed to create SSH session with the remote host, host: %d:%s:%d",
+			resp.Meta.BkCloudID, resp.Meta.IP, config.Cfg.Detector.Ssh.Port)
+
+		w.triggerAlarmWithDetectorResponse("", "", content, gerrors.Failure.Int(), resp)
+		// TODO: Trigger to switch the db.
+		return
+	}
+
+	if resp.Err != nil {
+		w.triggerAlarmWithDetectorResponse("", "", resp.Err.Error(), gerrors.Failure.Int(), resp)
+		return
+	}
+
+	if resp.SshResp.ExitCode != 0 {
+		content := fmt.Sprintf("%s, errmsg: %s", resp.SshResp.Data, resp.SshResp.ErrMsg)
+		w.triggerAlarmWithDetectorResponse("", "", content, resp.SshResp.ExitCode, resp)
+		return
+	}
+
+	// Parse the probe health.
+	var health process.HealthInfo
+	err := json.Unmarshal([]byte(resp.SshResp.Data), &health)
+	if err != nil {
+		w.triggerAlarmWithDetectorResponse("", "", err.Error(), gerrors.Failure.Int(), resp)
+		return
+	}
+
+	content := fmt.Sprintf("pid: %d proc name: %s status: %s", health.Pid, health.ProcName, health.Status)
+	if health.Pid == process.InvalidPid {
+		content = health.ErrMsg
+	} else {
+		// Probe is running, but there are no target database metrics.
+		content = fmt.Sprintf("%s, db: %s:%d", content, resp.Meta.IP, resp.Meta.Port)
+		resp.DbEventName = haprobe.DbEventNameDetectFailure
+		resp.DbEventNameReason = haprobe.DbEventNameReasonNoTarget
+	}
+
+	w.triggerAlarmWithDetectorResponse(health.ProcName, health.Status, content, resp.SshResp.ExitCode, resp)
 }
 
 func (w *Workflow) databaseLivenessDoubleCheck(missedInsts []*hamodel.DbmMetadata) {
@@ -180,36 +264,11 @@ func (w *Workflow) databaseLivenessDoubleCheck(missedInsts []*hamodel.DbmMetadat
 	// Post the alarm event by the bk-monitor.
 	for idx, resp := range resps {
 		logger.Debug("idx: %d host: %s:%d resp: %p", idx, resp.Meta.IP, resp.Meta.Port, resp)
-
-		if resp.Err != nil {
-			w.alarm("", "", resp.Err.Error(), gerrors.Failure.Int(), resp)
-			continue
-		}
-
-		if resp.SshResp.ExitCode != 0 {
-			content := fmt.Sprintf("%s, errmsg: %s", resp.SshResp.Data, resp.SshResp.ErrMsg)
-			w.alarm("", "", content, resp.SshResp.ExitCode, resp)
-			continue
-		}
-
-		// Parse the probe health.
-		var health process.HealthInfo
-		err := json.Unmarshal([]byte(resp.SshResp.Data), &health)
-		if err != nil {
-			w.alarm("", "", err.Error(), gerrors.Failure.Int(), resp)
-			continue
-		}
-
-		content := fmt.Sprintf("pid: %d proc name: %s status: %s", health.Pid, health.ProcName, health.Status)
-		if health.Pid == process.InvalidPid {
-			content = health.ErrMsg
-		}
-
-		w.alarm(health.ProcName, health.Status, content, resp.SshResp.ExitCode, resp)
+		w.processDetectorResponse(resp)
 	}
 }
 
-func (w *Workflow) checkEventWithBizID(bizID int, dbEvents []*hamodel.DbEvent,
+func (w *Workflow) checkEventWithBizId(bizId int, dbEvents []*hamodel.DbEvent,
 	skipDbInsts map[string]*hamodel.SkipDbInstance, metaInsts map[string]*hamodel.DbmMetadata) {
 
 	events := []*hamodel.DbEvent{}
@@ -231,7 +290,7 @@ func (w *Workflow) checkEventWithBizID(bizID int, dbEvents []*hamodel.DbEvent,
 	}
 
 	req := &switcher.Request{}
-	req.BkBizID = bizID
+	req.BkBizID = bizId
 	req.BreakdownEvents = events
 	req.MetaInsts = metas
 
@@ -274,36 +333,41 @@ func (w *Workflow) checkMissedProbe(dbMetrics []*hamodel.DatabaseMetric,
 	w.databaseLivenessDoubleCheck(missedProbeInsts)
 }
 
-func (w *Workflow) checkDbMetricWithBizID(ctx context.Context, bizID int, dbMetrics []*hamodel.DatabaseMetric) {
+func (w *Workflow) checkDbMetricWithBizId(ctx context.Context, bizId int, dbMetrics []*hamodel.DatabaseMetric) {
 	// TODO: Base on the metric data from the database, an in-depth analysis is conducted.
 	//       If any abnormal events occur, the switching strategy will be triggered.
 }
 
-func (w *Workflow) checkBusinessWithBizID(ctx context.Context, bizID int) (retErr error) {
-	logger.Debug("check the business: %d", bizID)
+func (w *Workflow) checkBusinessWithBizID(ctx context.Context, bizId int) (retErr error) {
+	logger.Debug("check the business: %d", bizId)
 
 	//  Acquire the lock to ensuer the only one instance of the AM handles the bizID.
-	mu, retErr := w.discoveryCli.CreateMutex(strconv.Itoa(bizID))
+	mu, retErr := w.discoveryCli.CreateMutex(strconv.Itoa(bizId))
 	if retErr != nil {
-		return retErr
+		logger.Warn("failed to acquire the mutex lock for the business, bizId: %d, errmsg: %s", bizId, retErr)
+		return ErrAcquireLockFailure
 	}
 
 	defer mu.Close()
 
 	if retErr = mu.TryLock(ctx); retErr != nil {
+		logger.Warn("failed to lock the business, bizId: %d, errmsg: %s", bizId, retErr)
 		return retErr
 	}
 
 	defer func() {
 		if retErr = mu.Unlock(ctx); retErr != nil {
-			logger.Error("failed to unlock the biz: %d, errmsg: %v", bizID, retErr)
+			logger.Warn("failed to unlock the biz: %d, errmsg: %v", bizId, retErr)
 		}
 	}()
 
 	// Read all metadata by business ID.
-	metaData, retErr := w.hadata.ReadMetadataCacheWithBizID(bizID, readBatchCount, config.Cfg.Workflow.ReadDbMetaOffsetDuration)
+	metaData, retErr := w.hadata.ReadMetadataCacheWithBizID(bizId, readBatchCount,
+		config.Cfg.Workflow.ReadDbMetaOffsetDuration)
+
 	if retErr != nil {
-		return retErr
+		logger.Warn("failed to read the DB metadata for the business, bizId: %d, errmsg: %s", bizId, retErr)
+		return ErrReadeMetadataFailure
 	}
 
 	conds := []*storage.DbInstance{}
@@ -321,17 +385,20 @@ func (w *Workflow) checkBusinessWithBizID(ctx context.Context, bizID int) (retEr
 	// Read the status data reported by the probe.
 	dbMetrics, err := w.hadata.ReadDbMetricsWithDbInstances(conds, config.Cfg.Workflow.ReadDbMetricOffsetDuration)
 	if err != nil {
-		// TODO: post notify by bk-monitor
+		logger.Warn("failed to read the DB metrics with the conditions: %v, bizId: %d, errmsg: %s", conds, bizId, err)
+		return ErrReadDbMetricFailure
 	}
 
 	dbEvents, err := w.hadata.ReadDbEventWithDbInstances(conds, config.Cfg.Workflow.ReadDbEventOffsetDuration)
 	if err != nil {
-		// TODO: post notify by bk-monitor
+		logger.Warn("failed to read the DB events with the conditions: %v, bizId: %d, errmsg: %s", conds, bizId, err)
+		return ErrReadDbEventFailure
 	}
 
-	dbSkipInsts, err := w.hadata.ReadSkipDbInstancesWithBkBizID(bizID)
+	dbSkipInsts, err := w.hadata.ReadSkipDbInstancesWithBkBizId(bizId)
 	if err != nil {
-		// TODO: post notify by bk-monitor
+		logger.Warn("failed to read the skipped DB insts for the business: %d, errmsg: %s", bizId, err)
+		return ErrReadSkipDbInstFailure
 	}
 
 	skipInsts := map[string]*hamodel.SkipDbInstance{}
@@ -350,11 +417,11 @@ func (w *Workflow) checkBusinessWithBizID(ctx context.Context, bizID int) (retEr
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		w.checkEventWithBizID(bizID, dbEvents, skipInsts, metaInsts)
+		w.checkEventWithBizId(bizId, dbEvents, skipInsts, metaInsts)
 	}()
 
 	// Parse and trigger switching logic.
-	w.checkDbMetricWithBizID(ctx, bizID, dbMetrics)
+	w.checkDbMetricWithBizId(ctx, bizId, dbMetrics)
 
 	wg.Wait()
 	return retErr
@@ -375,15 +442,15 @@ func (w *Workflow) scanEventWithoutMetadata() {
 		}
 
 		monitorEvent.Content.Content = fmt.Sprintf("without metadata, %s", event.Message)
-		monitorEvent.Dimension.BkCloudID = event.BkCloudID
+		monitorEvent.Dimension.BkCloudId = event.BkCloudID
 		monitorEvent.Dimension.IP = event.IP
 		monitorEvent.Dimension.Port = event.Port
 		monitorEvent.Dimension.DbTypeName = event.DbTypeName
 		monitorEvent.Dimension.DbEventName = event.Name
-		monitorEvent.Dimension.DbEventNameReason = event.Reason
+		monitorEvent.Dimension.DbEventNameReason = event.Reason.Str()
 
 		if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
-			logger.Warn("%v", err)
+			logger.Warn("failed to post an alarm to the BkMonitor, errmsg: %s", err)
 		}
 
 		logger.Debug("check the business(event): %s %s", event.Endpoint, event.Message)
@@ -393,7 +460,7 @@ func (w *Workflow) scanEventWithoutMetadata() {
 func (w *Workflow) scanBusinesses(ctx context.Context) {
 	bizIDs, err := w.hadata.GetBizIDs()
 	if err != nil {
-		logger.Warn("get business ids failed, %v", err)
+		logger.Warn("failed to get business IDs, errmsg: %s", err)
 		return
 	}
 
@@ -401,15 +468,25 @@ func (w *Workflow) scanBusinesses(ctx context.Context) {
 	for _, bizID := range bizIDs {
 		wgBizs.Add(1)
 
-		go func(bizID int) {
+		go func(bizId int) {
 			defer wgBizs.Done()
 
-			if err := w.checkBusinessWithBizID(ctx, bizID); err != nil {
-				// TODO: notify admin
+			err := w.checkBusinessWithBizID(ctx, bizId)
+			if err == nil {
+				logger.Info("successfully complete the business check, bizId: %d", bizId)
+				return
 			}
+
+			// Trigger an alarm and send it to the monitoring platform.
+			logger.Warn("failed to check the business, bizId: %d", bizId)
+			w.triggerAlarmWithBizId(bizId, err.Error())
 
 		}(bizID)
 	}
 
 	wgBizs.Wait()
+}
+
+func key[T any](bkCloudId int, ip string, port T) string {
+	return fmt.Sprintf("%d:%s:%v", bkCloudId, ip, port)
 }
