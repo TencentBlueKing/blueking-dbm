@@ -129,7 +129,73 @@
         <span v-if="row.tables.length < 1">--</span>
       </template>
     </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="affect_database_list"
+      :min-width="180"
+      :title="t('受影响的 DB')">
+      <template #default="{ row }: { row: RowData }">
+        <span v-if="!row.affect_database_list?.length">--</span>
+        <BkButton
+          v-else
+          text
+          theme="primary"
+          @click="() => handleClick(row)">
+          {{ row.affect_database_list.length }}
+        </BkButton>
+      </template>
+    </TicketInfoTableColumn>
   </TicketInfoTable>
+  <BkSideslider
+    v-if="rowData"
+    v-model:is-show="isShowSlider"
+    :width="900">
+    <template #header>
+      <span>{{ t('受影响的 DB') }}</span>
+      <BkTag class="ml-10">
+        {{ t('源集群：') }}{{ ticketDetails.details.clusters[rowData.cluster_id].immute_domain }}
+      </BkTag>
+      <BkTag
+        v-for="item in rowData.databases"
+        :key="item"
+        class="ml-4">
+        {{ t('源 DB：') }}{{ item }}
+      </BkTag>
+      <BkTag
+        v-for="item in rowData.databases"
+        :key="item"
+        class="ml-4">
+        {{ t('源表：') }}{{ item }}
+      </BkTag>
+    </template>
+    <div class="priview-conflict-dbs">
+      <BkAlert
+        class="mb-16"
+        closable
+        theme="warning">
+        {{
+          t('当前备份记录为backup_method、backup_type。注意：tip', {
+            backup_method: backupMethodMap[rowData.backupinfo?.backup_method],
+            backup_type: rowData.backupinfo?.backup_type === 'logical' ? t('逻辑备份') : t('物理备份'),
+            tip: disabled ? t('受影响的DB在执行时将被强制清空，请谨慎操作！') : t('受影响的DB需在执行前手动清档'),
+          })
+        }}
+      </BkAlert>
+      <PrimaryTable
+        :data="tableData"
+        row-key="dbname">
+        <TableColumn
+          col-key="dbname"
+          :title="t('受影响的 DB')">
+          <template #title>
+            <span>{{ t('受影响的 DB') }}（{{ tableData.length }}）</span>
+          </template>
+          <template #default="{ row }">
+            <span>{{ row.dbname }}</span>
+          </template>
+        </TableColumn>
+      </PrimaryTable>
+    </div>
+  </BkSideslider>
 </template>
 
 <script setup lang="ts">
@@ -154,7 +220,7 @@
     inheritAttrs: false,
   });
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 
@@ -181,6 +247,27 @@
       theme: 'info' | 'warning';
     }
   >;
+
+  const isShowSlider = ref(false);
+  const rowData = ref<RowData>();
+  const disabled = ref(false);
+  const tableData = ref<
+    {
+      dbname: string;
+    }[]
+  >([]);
+
+  const handleClick = (data: RowData) => {
+    rowData.value = data;
+    tableData.value = (data.affect_database_list || []).map((dbname) => ({ dbname }));
+    if (data.backupinfo?.backup_type === 'physical') {
+      disabled.value = true;
+    }
+    if (props.ticketDetails.details.infos[0]?.rollback_time) {
+      disabled.value = true;
+    }
+    isShowSlider.value = true;
+  };
 </script>
 <style lang="less" scoped>
   .content-block {
@@ -225,5 +312,20 @@
       background-color: #f59500;
       content: '';
     }
+  }
+
+  .conflict-db-head {
+    border-bottom: 1px dashed #979ba5;
+  }
+
+  .required-icon::after {
+    margin-left: 4px;
+    line-height: 20px;
+    color: @danger-color;
+    content: '*';
+  }
+
+  .priview-conflict-dbs {
+    margin: 18px 24px;
   }
 </style>

@@ -186,11 +186,7 @@
   import { useI18n } from 'vue-i18n';
 
   import type TendbhaModel from '@services/model/mysql/tendbha';
-  import {
-    type BackupLogRecord,
-    queryBackupLogFromBklog,
-    queryBackupLogFromLoacal,
-  } from '@services/source/fixpointRollback';
+  import { type BackupLogRecord, queryBackupLogFromHandler } from '@services/source/fixpointRollback';
 
   import { useDefaultPagination, useSelectorDialogWidth, useTableMaxHeight } from '@hooks';
 
@@ -429,18 +425,11 @@
   const fetchData = async () => {
     try {
       loading.value = true;
-      let results: BackupLogRecord[] = [];
-      if (props.backupSource === 'local') {
-        results = await queryBackupLogFromLoacal({
-          cluster_id: props.cluster.id,
-          limit: -1,
-        });
-      } else {
-        results = await queryBackupLogFromBklog({
-          cluster_id: props.cluster.id,
-          limit: -1,
-        });
-      }
+      let results = await queryBackupLogFromHandler({
+        backup_source: props.backupSource,
+        cluster_id: props.cluster.id,
+        limit: -1,
+      });
 
       // 仅展示全备记录，需过滤掉库表备份
       if (props.onlyFull) {

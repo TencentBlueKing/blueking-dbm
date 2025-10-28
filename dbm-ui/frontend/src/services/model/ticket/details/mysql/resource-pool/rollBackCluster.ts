@@ -38,6 +38,7 @@ export interface RollbackCluster extends ResourcePoolDetailBase {
     backupinfo: BackupLogRecord;
     cluster_id: number;
     databases: string[];
+    affect_database_list?: string[];
     databases_ignore: string[];
     resource_spec: {
       rollback_host: {
