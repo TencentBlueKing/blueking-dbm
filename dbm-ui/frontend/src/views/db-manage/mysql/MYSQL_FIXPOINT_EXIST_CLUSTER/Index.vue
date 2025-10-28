@@ -51,14 +51,15 @@
           <BackupRecordColumn
             v-if="formData.rollbackMethod === 'BACKUPID'"
             v-model="item.backupRecord"
+            v-model:table-data="formData.tableData"
             :backup-source="formData.backupSource"
             :cluster="item.cluster"
-            @batch-edit="handleBatchEdit"
             @change="() => handleChangeRowData(item)" />
           <TimeBackupRecordColumn
             v-if="formData.rollbackMethod === 'TIME'"
             v-model:backup-record="item.backupRecord"
             v-model:backup-time="item.backupTime"
+            v-model:table-data="formData.tableData"
             :backup-source="formData.backupSource"
             :cluster="item.cluster"
             @batch-edit="handleBatchEdit"
