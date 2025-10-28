@@ -149,3 +149,19 @@ export function queryLatestTimeBackupLog(params: {
 }) {
   return http.get<BackupLogRecord>(`${path}/latest_time_backup_log/`, params);
 }
+
+/**
+ * 获取集群备份记录
+ */
+export function queryBackupLogFromHandler(params: {
+  cluster_id: number;
+  limit?: number;
+  offset?: number;
+  deadlines_days?: number; //指定备份天数前数据
+  latest_time?: string; //备份最迟时间
+  backup_method?: string; //过滤备份类型
+  is_full_backup?: boolean; //是否为全备
+  backup_source?: string; //备份源
+}) {
+  return http.get<BackupLogRecord[]>(`${path}/query_backup_log_from_handler/`, params);
+}
