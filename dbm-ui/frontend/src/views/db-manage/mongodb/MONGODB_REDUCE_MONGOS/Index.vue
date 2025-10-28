@@ -58,7 +58,7 @@
           <SpecColumn
             v-model="item.cluster.spec_config.id"
             :cluster-type="DBTypes.MONGODB"
-            field="item.cluster.spec_config.id"
+            field="cluster.spec_config.id"
             label="当前规格"
             :machine-type="MachineTypes.MONGOS"
             required />
