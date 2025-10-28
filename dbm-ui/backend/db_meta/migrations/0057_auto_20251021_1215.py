@@ -7,6 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
+        ("db_package", "0001_initial"),
         ("db_meta", "0056_cluster_zone_list"),
     ]
 
@@ -162,16 +163,16 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name="proxyinstance",
-            name="db_version",
+            name="db_package",
             field=models.ForeignKey(
-                blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, to="db_meta.dbversion"
+                blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, to="db_package.package"
             ),
         ),
         migrations.AddField(
             model_name="storageinstance",
-            name="db_version",
+            name="db_package",
             field=models.ForeignKey(
-                blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, to="db_meta.dbversion"
+                blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, to="db_package.package"
             ),
         ),
     ]
