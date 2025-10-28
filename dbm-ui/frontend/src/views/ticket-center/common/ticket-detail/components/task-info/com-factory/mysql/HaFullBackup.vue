@@ -11,20 +11,25 @@
  * the specific language governing permissions and limitations under the License.
 -->
 <template>
-  <PrimaryTable
+  <InfoTable
     :data="tableData"
     row-key="cluster_id">
-    <TableColumn :title="t('目标集群')">
+    <InfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(item: RowData) => ticketDetails.details.clusters[item.cluster_id].immute_domain"
+      :title="t('目标集群')">
       <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('备份位置')">
+    </InfoTableColumn>
+    <InfoTableColumn
+      col-key="backup_local"
+      :title="t('备份位置')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.backup_local ? _.capitalize(data.backup_local) : '--' }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </InfoTableColumn>
+  </InfoTable>
   <InfoList>
     <InfoItem :label="t('备份类型')">
       {{ backupType }}
@@ -43,6 +48,7 @@
   import { TicketTypes } from '@common/const';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import InfoTable, { InfoTableColumn } from '../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.HaFullBackup>;

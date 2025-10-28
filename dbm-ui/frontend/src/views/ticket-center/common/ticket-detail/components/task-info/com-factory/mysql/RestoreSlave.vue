@@ -17,17 +17,18 @@
       {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
     </InfoItem>
   </InfoList>
-  <PrimaryTable
+  <InfoTable
     :data="ticketDetails.details.infos"
     row-key="old_slave.ip">
-    <TableColumn
+    <InfoTableColumn
       col-key="old_slave.ip"
+      :get-copy-value="(item: RowData) => item.old_slave.ip"
       :title="t('待重建从库主机')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.old_slave.ip }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </InfoTableColumn>
+    <InfoTableColumn
       col-key="cluster_ids"
       :title="t('同机关联集群')">
       <template #default="{ row: data }: { row: RowData }">
@@ -38,15 +39,15 @@
           {{ ticketDetails.details.clusters[clusterId].immute_domain }}
         </div>
       </template>
-    </TableColumn>
-    <TableColumn
+    </InfoTableColumn>
+    <InfoTableColumn
       col-key="new_slave.ip"
       :title="t('新从库主机')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.new_slave.ip }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </InfoTableColumn>
+  </InfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -56,6 +57,7 @@
   import { TicketTypes } from '@common/const';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import InfoTable, { InfoTableColumn } from '../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.RestoreSlave>;

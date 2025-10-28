@@ -12,25 +12,32 @@
 -->
 
 <template>
-  <PrimaryTable
+  <InfoTable
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
-    <TableColumn :title="t('目标集群')">
+    <InfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(item: RowData) => ticketDetails.details.clusters[item.cluster_id].immute_domain"
+      :title="t('目标集群')">
       <template #default="{ row:data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('目标从库实例')">
+    </InfoTableColumn>
+    <InfoTableColumn
+      col-key="slave"
+      :title="t('目标从库实例')">
       <template #default="{ row:data }: { row: RowData }">
         {{ `${data.slave.ip}:${data.slave.port}` }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('备份源')">
+    </InfoTableColumn>
+    <InfoTableColumn
+      col-key="backup_source"
+      :title="t('备份源')">
       <template #default>
         {{ backupSourceMap[ticketDetails.details.backup_source] }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </InfoTableColumn>
+  </InfoTable>
 </template>
 
 <script setup lang="tsx">
@@ -39,6 +46,8 @@
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
+
+  import InfoTable, { InfoTableColumn } from '../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.RestoreLocalSlave>;

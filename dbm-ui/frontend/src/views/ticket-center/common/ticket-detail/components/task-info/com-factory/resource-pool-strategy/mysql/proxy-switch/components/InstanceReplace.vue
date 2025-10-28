@@ -1,8 +1,15 @@
 <template>
-  <PrimaryTable
+  <InfoTable
     :data="ticketDetails.details.infos"
-    row-key="id">
-    <TableColumn
+    row-key="cluster_ids">
+    <InfoTableColumn
+      col-key="origin_proxy"
+      :get-copy-value="
+        (item: RowData) =>
+          item.old_nodes.origin_proxy?.[0]
+            ? `${item.old_nodes.origin_proxy[0].ip}:${item.old_nodes.origin_proxy[0].port}`
+            : ''
+      "
       :min-width="150"
       :title="t('目标Proxy')">
       <template #default="{ row: data }: { row: RowData }">
@@ -12,8 +19,9 @@
             : '--'
         }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </InfoTableColumn>
+    <InfoTableColumn
+      col-key="related_clusters"
       :min-width="250"
       :title="t('关联集群')">
       <template #default="{ row: data }: { row: RowData }">
@@ -27,16 +35,18 @@
         </template>
         <template v-else> -- </template>
       </template>
-    </TableColumn>
+    </InfoTableColumn>
     <template v-if="ticketDetails.details.source_type === SourceType.RESOURCE_AUTO">
-      <TableColumn
+      <InfoTableColumn
+        col-key="spec_id"
         :min-width="120"
         :title="t('规格')">
         <template #default="{ row: data }: { row: RowData }">
           {{ ticketDetails.details.specs?.[data.resource_spec.target_proxy.spec_id]?.name || '--' }}
         </template>
-      </TableColumn>
-      <TableColumn
+      </InfoTableColumn>
+      <InfoTableColumn
+        col-key="label_names"
         :min-width="200"
         :title="t('资源标签')">
         <template #default="{ row: data }: { row: RowData }">
@@ -53,24 +63,27 @@
             {{ t('通用无标签') }}
           </BkTag>
         </template>
-      </TableColumn>
+      </InfoTableColumn>
     </template>
     <template v-if="ticketDetails.details.source_type === SourceType.RESOURCE_MANUAL">
-      <TableColumn
+      <InfoTableColumn
+        col-key="target_proxy"
         :min-width="120"
         :title="t('新Proxy主机')">
         <template #default="{ row: data }: { row: RowData }">
           {{ data.resource_spec.target_proxy.hosts?.[0]?.ip || '--' }}
         </template>
-      </TableColumn>
+      </InfoTableColumn>
     </template>
-  </PrimaryTable>
+  </InfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
   import { SourceType } from '@services/types';
+
+  import InfoTable, { InfoTableColumn } from '../../../../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.ResourcePool.ProxySwitch>;
