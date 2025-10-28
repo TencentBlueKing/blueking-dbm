@@ -17,18 +17,19 @@
       {{ ticketDetails.details.source_type === SourceType.RESOURCE_AUTO ? t('资源池自动匹配') : t('资源池手动选择') }}
     </InfoItem>
   </InfoList>
-  <PrimaryTable
+  <InfoTable
     :data="ticketDetails.details.infos"
     row-key="id">
-    <TableColumn
+    <InfoTableColumn
       col-key="old_nodes"
+      :get-copy-value="(item: RowData) => item.old_nodes.old_slave[0].ip"
       :min-width="220"
       :title="t('目标从库主机')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.old_nodes.old_slave[0].ip }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </InfoTableColumn>
+    <InfoTableColumn
       col-key="cluster_ids"
       :min-width="220"
       :title="t('同机关联集群')">
@@ -40,17 +41,17 @@
           {{ ticketDetails.details.clusters[clusterId].immute_domain }}
         </div>
       </template>
-    </TableColumn>
+    </InfoTableColumn>
     <template v-if="ticketDetails.details.source_type === SourceType.RESOURCE_AUTO">
-      <TableColumn
+      <InfoTableColumn
         col-key="resource_spec.new_slave.spec_id"
         :min-width="120"
         :title="t('规格')">
         <template #default="{ row: data }: { row: RowData }">
           {{ ticketDetails.details.specs?.[data.resource_spec.new_slave.spec_id]?.name || '--' }}
         </template>
-      </TableColumn>
-      <TableColumn
+      </InfoTableColumn>
+      <InfoTableColumn
         col-key="resource_spec.new_slave.label_names"
         :min-width="200"
         :title="t('资源标签')">
@@ -68,19 +69,19 @@
             {{ t('通用无标签') }}
           </BkTag>
         </template>
-      </TableColumn>
+      </InfoTableColumn>
     </template>
     <template v-if="ticketDetails.details.source_type === SourceType.RESOURCE_MANUAL">
-      <TableColumn
+      <InfoTableColumn
         col-key="resource_spec.new_slave.hosts"
         :min-width="120"
         :title="t('新从库主机')">
         <template #default="{ row: data }: { row: RowData }">
           {{ data.resource_spec.new_slave.hosts?.[0]?.ip || '--' }}
         </template>
-      </TableColumn>
+      </InfoTableColumn>
     </template>
-  </PrimaryTable>
+  </InfoTable>
   <InfoList>
     <InfoItem :label="t('备份源')">
       {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
@@ -96,6 +97,7 @@
   import { TicketTypes } from '@common/const';
 
   import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
+  import InfoTable, { InfoTableColumn } from '../../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.ResourcePool.RestoreSlave>;

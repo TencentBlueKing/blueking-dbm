@@ -12,23 +12,23 @@
 -->
 
 <template>
-  <PrimaryTable :data="ticketDetails.details.clone_data" row-key="cluster_id">
-    <TableColumn :title="t('源实例')">
-      <template #default="{ row:data }: { row: RowData }">
-        {{ data.source }}
-      </template>
-    </TableColumn>
-    <TableColumn :title="t('所属集群')">
-      <template #default="{ row:data }: { row: RowData }">
-        {{ data.cluster_domain }}
-      </template>
-    </TableColumn>
-    <TableColumn :title="t('新实例')">
-      <template #default="{ row:data }: { row: RowData }">
-        {{ data.target }}
-      </template>
-    </TableColumn>
-  </PrimaryTable>
+  <InfoTable
+    :data="ticketDetails.details.clone_data"
+    row-key="cluster_id">
+    <InfoTableColumn
+      col-key="source"
+      :get-copy-value="(item: Props['ticketDetails']['details']['clone_data'][number]) => item.source"
+      :title="t('源实例')">
+    </InfoTableColumn>
+    <InfoTableColumn
+      col-key="cluster_domain"
+      :title="t('所属集群')">
+    </InfoTableColumn>
+    <InfoTableColumn
+      col-key="target"
+      :title="t('新实例')">
+    </InfoTableColumn>
+  </InfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -37,11 +37,11 @@
 
   import { TicketTypes } from '@common/const';
 
+  import InfoTable, { InfoTableColumn } from '../components/info-table/Index.vue';
+
   interface Props {
     ticketDetails: TicketModel<Mysql.InstanceCloneRules>;
   }
-
-  type RowData = Props['ticketDetails']['details']['infos'][number];
 
   defineOptions({
     name: TicketTypes.MYSQL_INSTANCE_CLONE_RULES,

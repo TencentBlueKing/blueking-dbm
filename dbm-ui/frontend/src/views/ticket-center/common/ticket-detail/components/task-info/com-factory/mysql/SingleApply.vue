@@ -52,34 +52,35 @@
     </InfoItem>
     <InfoItem
       :label="t('域名设置')"
-      whole-line>
-      <PrimaryTable
+      style="flex: 1 0 100%">
+      <InfoTable
         :data="ticketDetails.details.domains"
         row-key="key">
-        <TableColumn
+        <InfoTableColumn
           col-key="master"
           fixed="left"
+          :get-copy-value="(item: Props['ticketDetails']['details']['domains'][number]) => item.master"
           :min-width="240"
           :title="t('主访问入口')" />
-        <TableColumn
+        <InfoTableColumn
           col-key="deployStructure"
           :min-width="120"
           :title="t('部署架构')">
           {{ mysqlType[ticketDetails.ticket_type as MysqlTypeString].name }}
-        </TableColumn>
-        <TableColumn
+        </InfoTableColumn>
+        <InfoTableColumn
           col-key="version"
           :min-width="120"
           :title="t('数据库版本')">
           {{ ticketDetails.details.db_version }}
-        </TableColumn>
-        <TableColumn
+        </InfoTableColumn>
+        <InfoTableColumn
           col-key="charset"
           :min-width="120"
           :title="t('字符集')">
           {{ ticketDetails.details.charset }}
-        </TableColumn>
-        <TableColumn
+        </InfoTableColumn>
+        <InfoTableColumn
           v-if="ticketDetails.details.nodes?.backend"
           col-key="backend"
           :min-width="180"
@@ -87,8 +88,8 @@
           <template #default="{ rowIndex }">
             {{ ticketDetails.details.nodes.backend[rowIndex].ip }}
           </template>
-        </TableColumn>
-      </PrimaryTable>
+        </InfoTableColumn>
+      </InfoTable>
     </InfoItem>
   </InfoList>
 </template>
@@ -103,6 +104,7 @@
   import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import InfoTable, { InfoTableColumn } from '../components/info-table/Index.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
 
   interface Props {
