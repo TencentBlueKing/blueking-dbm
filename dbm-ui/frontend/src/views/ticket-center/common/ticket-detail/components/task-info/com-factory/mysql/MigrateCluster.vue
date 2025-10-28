@@ -12,10 +12,15 @@
 -->
 
 <template>
-  <PrimaryTable
+  <InfoTable
     :data="ticketDetails.details.infos"
     row-key="new_master.ip">
-    <TableColumn :title="t('目标集群')">
+    <InfoTableColumn
+      col-key="cluster_ids"
+      :get-copy-value="
+        (item: RowData) => item.cluster_ids.map((clusterId) => ticketDetails.details.clusters[clusterId].immute_domain)
+      "
+      :title="t('目标集群')">
       <template #default="{ row: data }: { row: RowData }">
         <div
           v-for="clusterId in data.cluster_ids"
@@ -24,8 +29,10 @@
           {{ ticketDetails.details.clusters[clusterId].immute_domain }}
         </div>
       </template>
-    </TableColumn>
-    <TableColumn :title="t('新主从主机')">
+    </InfoTableColumn>
+    <InfoTableColumn
+      col-key="new_master"
+      :title="t('新主从主机')">
       <template #default="{ row: data }: { row: RowData }">
         <div>
           <BkTag
@@ -44,8 +51,8 @@
           {{ data.new_slave.ip }}
         </div>
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </InfoTableColumn>
+  </InfoTable>
   <InfoList>
     <InfoItem :label="t('备份源')">
       {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
@@ -60,6 +67,7 @@
   import { TicketTypes } from '@common/const';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import InfoTable, { InfoTableColumn } from '../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.MigrateCluster>;

@@ -12,21 +12,27 @@
 -->
 
 <template>
-  <PrimaryTable
+  <InfoTable
     class="mysql-client-clone-render-table"
-    :data="ticketDetails.details.clone_data"
-    ellipsis>
-    <TableColumn :title="t('源客户端IP')">
+    :data="ticketDetails.details.clone_data">
+    <InfoTableColumn
+      col-key="source"
+      :get-copy-value="(item: RowData) => `${item.bk_cloud_id}:${item.source}`"
+      :title="t('源客户端IP')">
       <template #default="{ row }: { row: RowData }">
         {{ `${row.bk_cloud_id}:${row.source}` }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('所属模块')">
+    </InfoTableColumn>
+    <InfoTableColumn
+      col-key="module"
+      :title="t('所属模块')">
       <template #default="{ row }: { row: RowData }">
         {{ row.module }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('新客户端IP')">
+    </InfoTableColumn>
+    <InfoTableColumn
+      col-key="target"
+      :title="t('新客户端IP')">
       <template #default="{ row }: { row: RowData }">
         <div class="render-target">
           <template
@@ -43,8 +49,8 @@
             @click="copyIp(row.target)" />
         </div>
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </InfoTableColumn>
+  </InfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -54,6 +60,8 @@
   import { TicketTypes } from '@common/const';
 
   import { execCopy } from '@utils';
+
+  import InfoTable, { InfoTableColumn } from '../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.ClientCloneRules>;

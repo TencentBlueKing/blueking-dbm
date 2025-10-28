@@ -12,20 +12,25 @@
 -->
 
 <template>
-  <PrimaryTable
-    :data="ticketDetails.details.cluster_ids.map((item) => ({ cluster_id: item }))"
+  <InfoTable
+    :data="data"
     row-key="cluster_id">
-    <TableColumn :title="t('目标集群')">
-      <template #default="{ row }: { row: { cluster_id: number } }">
+    <InfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(item: RowData) => ticketDetails.details.clusters?.[item.cluster_id]?.immute_domain"
+      :title="t('目标集群')">
+      <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters?.[row.cluster_id]?.immute_domain || '--' }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('集群类型')">
-      <template #default="{ row }: { row: { cluster_id: number } }">
+    </InfoTableColumn>
+    <InfoTableColumn
+      col-key="cluster_type_name"
+      :title="t('集群类型')">
+      <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters?.[row.cluster_id]?.cluster_type_name || '--' }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </InfoTableColumn>
+  </InfoTable>
   <InfoList>
     <InfoItem :label="t('下发配置')">
       {{ ticketDetails.details.with_push_config ? t('是') : t('否') }}
@@ -46,6 +51,9 @@
   import { TicketTypes } from '@common/const';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import InfoTable, { InfoTableColumn } from '../components/info-table/Index.vue';
+
+  type RowData = { cluster_id: number };
 
   interface Props {
     ticketDetails: TicketModel<Mysql.ClusterStandardize>;
@@ -56,7 +64,9 @@
     inheritAttrs: false,
   });
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  const data = props.ticketDetails.details.cluster_ids.map((item) => ({ cluster_id: item }));
 </script>
