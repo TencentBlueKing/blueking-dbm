@@ -37,7 +37,7 @@
       customClass: 'qiwei',
       icon: 'qw',
       isSvg: true,
-      label: t('企业微信'),
+      label: t('企微'),
       value: 'weixin',
     },
     {

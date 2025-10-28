@@ -114,8 +114,8 @@
   const defaultChecked = true;
 
   const initData = () => {
-    alertSeverity.value = [1, 2, 3];
-    noticeWays.value = ['weixin', 'mail', 'sms'];
+    alertSeverity.value = [1];
+    noticeWays.value = ['weixin'];
   };
 
   initData();

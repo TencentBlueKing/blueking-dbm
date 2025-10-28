@@ -51,7 +51,7 @@ export const useAlarmSubscribe = defineStore('useAlarmSubscribe', {
       Object.keys(clusterTypeNameMap).forEach((key) => {
         this.metricsMap[key] = {
           displayName: clusterTypeNameMap[key],
-          list: dataMap[key] || [],
+          list: dataMap[key]?.map((item) => item.name) || [],
         };
       });
     },

@@ -163,7 +163,8 @@
             </div>
             <ClusterAlarmSubscribe
               :data="data"
-              @edit="(e) => handleEditAlarmSubscription(data.id, e)" />
+              @click="hideOperationColumn"
+              @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
             <div v-db-console="'redis.haClusterManage.queryAccessSource'">
               <OperationBtnStatusTips
                 :data="data"
@@ -412,8 +413,12 @@
     });
   };
 
-  const handleShowPassword = (id: number) => {
+  const hideOperationColumn = () => {
     operationColumnRef.value?.hide();
+  };
+
+  const handleShowPassword = (id: number) => {
+    hideOperationColumn();
     passwordState.isShow = true;
     passwordState.fetchParams.cluster_id = id;
   };
@@ -431,11 +436,6 @@
   const handleFilterChange = (filterValue: Record<string, string>) => {
     searchValue.value = filterValue;
     fetchData();
-  };
-
-  const handleEditAlarmSubscription = (id: number, event: MouseEvent) => {
-    operationColumnRef.value?.hide();
-    handleToDetails(id, event, 'alarmSubscription');
   };
 </script>
 <style lang="less">
