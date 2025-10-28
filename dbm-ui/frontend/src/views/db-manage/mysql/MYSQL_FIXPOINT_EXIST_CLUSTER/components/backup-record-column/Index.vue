@@ -164,16 +164,22 @@
     cluster: TendbhaModel;
   }
 
-  interface Emits {
-    (e: 'batch-edit', data: typeof modelValue.value, field: string): void;
-    (e: 'change'): void;
-  }
+  type Emits = (e: 'change') => void;
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<BackupLogRecord>({
+    required: true,
+  });
+
+  const tableData = defineModel<
+    {
+      backupRecord: BackupLogRecord;
+      cluster: TendbhaModel;
+    }[]
+  >('tableData', {
     required: true,
   });
 
@@ -229,15 +235,22 @@
     isShowBatchEdit.value = true;
   };
 
-  const handleBatchEdit = async () => {
-    const data = await queryLatestTimeBackupLog({
-      backup_method: formData.value.backup_method === 'all' ? undefined : formData.value.backup_method,
-      backup_source: props.backupSource,
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      cluster_id: props.cluster.id,
-      latest_time: formatDateToUTC(formData.value.backup_time),
+  const handleBatchEdit = () => {
+    Promise.all(
+      tableData.value.map((rowData) =>
+        queryLatestTimeBackupLog({
+          backup_method: formData.value.backup_method === 'all' ? undefined : formData.value.backup_method,
+          backup_source: props.backupSource,
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_id: rowData.cluster.id,
+          latest_time: formatDateToUTC(formData.value.backup_time),
+        }),
+      ),
+    ).then((res) => {
+      res.forEach((data, index) => {
+        tableData.value[index].backupRecord = data;
+      });
     });
-    emits('batch-edit', data, 'backupRecord');
   };
 
   watch(modelValue, () => {
