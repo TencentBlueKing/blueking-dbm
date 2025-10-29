@@ -27,9 +27,9 @@ package switcher
 import (
 	"fmt"
 
+	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
-	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 )
 
 // SwitchableInstance defines the interface for database instances that support switching operations.
@@ -48,7 +48,7 @@ type SwitchableInstance interface {
 	GetInstanceInfo() string
 
 	// GetStatus retrieves the current status of the instance
-	GetStatus() hamodel.DbmMetadataStatus
+	GetStatus() dbm.DbmMetadataStatus
 
 	// ReportLog records switch operation logs at specified level
 	ReportLog(level SwitchLogLevel, message string) bool
@@ -82,7 +82,7 @@ func SwitchSingleInstance(ins SwitchableInstance) (success bool, retErr error) {
 	}()
 
 	ins.ReportLog(SwitchInfo, "do pre-check before switch")
-	if (ins.GetStatus() != hamodel.RUNNING) && (ins.GetStatus() != hamodel.AVAILABLE) {
+	if (ins.GetStatus() != dbm.RUNNING) && (ins.GetStatus() != dbm.AVAILABLE) {
 		retErr = gerrors.Newf(gerrors.Failure, "pre-check unpass for wrong status:%s", ins.GetStatus())
 		success = false
 		return
