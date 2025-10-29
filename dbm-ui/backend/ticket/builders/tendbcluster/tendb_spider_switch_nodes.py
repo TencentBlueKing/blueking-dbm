@@ -19,7 +19,7 @@ from backend.db_meta.models import Cluster, ProxyInstance
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import fetch_cluster_ids
+from backend.ticket.builders.common.base import HostInfoSerializer, fetch_cluster_ids
 from backend.ticket.builders.tendbcluster.base import (
     BaseTendbTicketFlowBuilder,
     TendbBaseOperateDetailSerializer,
@@ -36,7 +36,8 @@ class SpiderSwitchNodesDetailSerializer(TendbBaseOperateDetailSerializer):
         switch_spider_role = serializers.ChoiceField(
             help_text=_("接入层类型"), choices=TenDBClusterSpiderRole.get_choices(), required=False
         )
-        spider_old_ip_list = serializers.JSONField(help_text=_("替换的节点信息"))
+        # spider_old_ip_list = serializers.JSONField(help_text=_("替换的节点信息"))
+        spider_old_ip_list = serializers.ListSerializer(help_text=_("待回收spider主机信息"), child=HostInfoSerializer())
         old_nodes = serializers.DictField(help_text=_("旧节点信息集合"), child=serializers.ListField(help_text=_("节点信息")))
 
     ip_source = serializers.ChoiceField(
