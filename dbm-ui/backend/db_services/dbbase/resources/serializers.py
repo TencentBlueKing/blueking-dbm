@@ -25,7 +25,7 @@ from backend.flow.consts import SqlserverSyncMode
 
 
 class ListResourceSLZ(serializers.Serializer):
-    id = serializers.IntegerField(required=False)
+    id = serializers.CharField(required=False)
     name = serializers.CharField(required=False)
     instance = serializers.CharField(required=False)
     domain = serializers.CharField(required=False)
@@ -42,6 +42,8 @@ class ListResourceSLZ(serializers.Serializer):
     ordering = serializers.CharField(required=False, help_text=_("排序字段,非必填"))
     tag_ids = serializers.CharField(required=False, help_text=_("标签"))
     tag_keys = serializers.CharField(required=False, help_text=_("标签键"))
+    create_at__gte = serializers.DateTimeField(required=False, help_text=_("创建时间"))
+    create_at__lte = serializers.DateTimeField(required=False, help_text=_("创建时间"))
 
 
 class ListMySQLResourceSLZ(ListResourceSLZ):
