@@ -27,7 +27,7 @@
     "@blueking/notice-component": "2.0.7",
     "@blueking/sub-saas": "0.0.0-beta.6",
     "@blueking/table": "0.0.1-beta.39",
-    "@blueking/tdesign-ui": "0.0.1-beta.92",
+    "@blueking/tdesign-ui": "0.0.2-beta.7",
     "@blueking/xss-filter": "0.0.10",
     "@icon-cool/bk-icon-bk-biz-components": "0.0.4",
     "@vueuse/core": "13.9.0",

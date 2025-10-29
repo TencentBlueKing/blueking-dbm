@@ -1,6 +1,8 @@
 <template>
   <TableColumn
-    v-bind="{ ...attrs, ...props }"
+    v-bind="{ ...attrs }"
+    :col-key="colKey"
+    resizable
     :title="title">
     <template #title="{ colIndex }: { colIndex: number }">
       <div class="info-table-column-copy-button">
@@ -32,7 +34,6 @@
   import { TicketDetailTableKey } from './Index.vue';
 
   export interface Props {
-    // eslint-disable-next-line vue/no-unused-properties
     colKey: string;
     getCopyValue?: (item: any) => string | string[];
     title: string;
