@@ -34,6 +34,7 @@ import (
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/analysis/config"
+	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/detector"
 	"dbm-services/common/dbha-v2/internal/analysis/storage"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher"
@@ -60,6 +61,7 @@ var (
 	ErrReadDbEventFailure    = gerrors.Newf(gerrors.MysqlFailure, "failed to read DB event")
 	ErrReadSkipDbInstFailure = gerrors.Newf(gerrors.MysqlFailure, "failed to read skip db-inst")
 	ErrAcquireLockFailure    = gerrors.Newf(gerrors.EtcdFailure, "failed to acquire the lock for the business")
+	ErrDetectorFailure       = gerrors.Newf(gerrors.Failure, "detector failure, switching is needed")
 )
 
 // New create a workflow instance.
@@ -69,7 +71,7 @@ func New(cli *discovery.Client, db *hamysql.DB) (*Workflow, error) {
 			DB: db,
 		},
 
-		dbmMetadata: &DbmMetadata{
+		dbmSync: &Synchronizer{
 			db:           db,
 			discoveryCli: cli,
 		},
@@ -87,7 +89,7 @@ func New(cli *discovery.Client, db *hamysql.DB) (*Workflow, error) {
 
 type Workflow struct {
 	hadata       *storage.DbhaData
-	dbmMetadata  *DbmMetadata
+	dbmSync      *Synchronizer
 	discoveryCli *discovery.Client
 	switchers    map[haprobe.DbType]switcher.Switcher
 	quit         chan struct{}
@@ -102,7 +104,7 @@ func (w *Workflow) Run(ctx context.Context) error {
 		config.Cfg.Workflow.ScanInterval = scanIntervalLimitMin
 	}
 
-	if err := w.dbmMetadata.Run(ctx); err != nil {
+	if err := w.dbmSync.Run(ctx); err != nil {
 		logger.Error("failed to run the dbm metadata manager, errmsg: %v", err)
 		return err
 	}
@@ -192,7 +194,7 @@ func (w *Workflow) triggerAlarmWithBizId(bizId int, content string) {
 
 }
 
-func (w *Workflow) processDetectorResponse(resp *detector.Response) {
+func (w *Workflow) processDetectorResponse(resp *detector.Response) error {
 	if resp.Err == detector.ErrDetectorCreateSshConnection {
 		resp.DbEventName = haprobe.DbEventNameDoubleCheckSshFailureV1
 		resp.DbEventNameReason = haprobe.DbEventNameReasonConnectionException
@@ -201,8 +203,8 @@ func (w *Workflow) processDetectorResponse(resp *detector.Response) {
 			resp.Meta.BkCloudID, resp.Meta.IP, config.Cfg.Detector.Ssh.Port)
 
 		w.triggerAlarmWithDetectorResponse("", "", content, gerrors.Failure.Int(), resp)
-		// TODO: Trigger to switch the db.
-		return
+		// NOTE: Trigger to switch the db.
+		return ErrDetectorFailure
 	}
 
 	if resp.Err == detector.ErrDetectorCreateSshSession {
@@ -213,19 +215,19 @@ func (w *Workflow) processDetectorResponse(resp *detector.Response) {
 			resp.Meta.BkCloudID, resp.Meta.IP, config.Cfg.Detector.Ssh.Port)
 
 		w.triggerAlarmWithDetectorResponse("", "", content, gerrors.Failure.Int(), resp)
-		// TODO: Trigger to switch the db.
-		return
+		// NOTE: Trigger to switch the db.
+		return ErrDetectorFailure
 	}
 
 	if resp.Err != nil {
 		w.triggerAlarmWithDetectorResponse("", "", resp.Err.Error(), gerrors.Failure.Int(), resp)
-		return
+		return nil
 	}
 
 	if resp.SshResp.ExitCode != 0 {
 		content := fmt.Sprintf("%s, errmsg: %s", resp.SshResp.Data, resp.SshResp.ErrMsg)
 		w.triggerAlarmWithDetectorResponse("", "", content, resp.SshResp.ExitCode, resp)
-		return
+		return nil
 	}
 
 	// Parse the probe health.
@@ -233,7 +235,7 @@ func (w *Workflow) processDetectorResponse(resp *detector.Response) {
 	err := json.Unmarshal([]byte(resp.SshResp.Data), &health)
 	if err != nil {
 		w.triggerAlarmWithDetectorResponse("", "", err.Error(), gerrors.Failure.Int(), resp)
-		return
+		return nil
 	}
 
 	content := fmt.Sprintf("pid: %d proc name: %s status: %s", health.Pid, health.ProcName, health.Status)
@@ -247,6 +249,7 @@ func (w *Workflow) processDetectorResponse(resp *detector.Response) {
 	}
 
 	w.triggerAlarmWithDetectorResponse(health.ProcName, health.Status, content, resp.SshResp.ExitCode, resp)
+	return nil
 }
 
 func (w *Workflow) databaseLivenessDoubleCheck(missedInsts []*hamodel.DbmMetadata) {
@@ -262,39 +265,191 @@ func (w *Workflow) databaseLivenessDoubleCheck(missedInsts []*hamodel.DbmMetadat
 	resps := remoteDetector.WaitResponses()
 
 	// Post the alarm event by the bk-monitor.
+	// key: bkCloudId, value: ip
+	cloudIdIps := map[int][]string{}
 	for idx, resp := range resps {
 		logger.Debug("idx: %d host: %s:%d resp: %p", idx, resp.Meta.IP, resp.Meta.Port, resp)
-		w.processDetectorResponse(resp)
+		err := w.processDetectorResponse(resp)
+		if err == nil {
+			continue
+		}
+
+		if err == ErrDetectorFailure {
+			cloudIdIps[resp.Meta.BkCloudID] = append(cloudIdIps[resp.Meta.BkCloudID], resp.Meta.IP)
+			continue
+		}
+
+		instId := key(resp.Meta.BkCloudID, resp.Meta.IP, resp.Meta.Port)
+		logger.Warn("failed to process detector response, inst: %s, errmsg: %s", instId, err)
+	}
+
+	if len(cloudIdIps) == 0 {
+		return
+	}
+
+	for cloudId, ips := range cloudIdIps {
+		req := w.createSwitcherRequestWithIPs(cloudId, ips)
+		// TODO: Now there is only MySQL(default).
+		logger.Debug("trigger switching, dbType: %s, cloudId: %d, ips: %v", haprobe.DbTypeMysql, cloudId, ips)
+		w.triggerSwitching(haprobe.DbTypeMysql, req)
+	}
+}
+
+func (w *Workflow) createSwitcherRequestWithIPs(bkCloudId int, ips []string) *switcher.Request {
+	metadatas, err := w.dbmSync.cli.QueryMetadataFromDbm(context.Background(), bkCloudId, ips)
+	if err != nil {
+		logger.Warn("failed to query metadata from DBM, errmsg: %s", err)
+		return nil
+	}
+
+	req := &switcher.Request{}
+	for _, meta := range metadatas {
+		dbInstMeta := &switcher.MySQLInstanceMetadata{
+			Ip:           meta.IP,
+			Port:         meta.Port,
+			AdminPort:    meta.AdminPort,
+			Status:       dbm.DbmMetadataStatus(meta.Status),
+			BkCloudID:    meta.BkCloudID,
+			BkIdcCityID:  meta.BkIdcCityID,
+			BkBizID:      meta.BkBizID,
+			Cluster:      meta.Cluster,
+			ClusterID:    meta.ClusterID,
+			ClusterType:  meta.ClusterType,
+			MachineType:  meta.MachineType,
+			InstanceRole: dbm.DbmMetadataInstanceRole(meta.InstanceRole),
+		}
+
+		if meta.BindEntry != "" {
+			if err := json.Unmarshal([]byte(meta.BindEntry), &dbInstMeta.BindEntry); err != nil {
+				logger.Warn("failed to unmarshal the bind entry: %s, errmsg: %s", meta.BindEntry, err)
+			}
+		}
+
+		if meta.Receiver != "" {
+			if err := json.Unmarshal([]byte(meta.Receiver), &dbInstMeta.Receiver); err != nil {
+				logger.Warn("failed to unmarshal the receiver: %s, errmsg: %s", meta.Receiver, err)
+			}
+		}
+
+		if meta.ProxyInstanceSet != "" {
+			if err := json.Unmarshal([]byte(meta.ProxyInstanceSet), &dbInstMeta.ProxyInstanceSet); err != nil {
+				logger.Warn("failed to unmarshal the proxy insts: %s, errmsg: %s", meta.ProxyInstanceSet, err)
+			}
+		}
+
+		if meta.BinlogDumperSet != "" {
+			if err := json.Unmarshal([]byte(meta.BinlogDumperSet), &dbInstMeta.BinlogDumperSet); err != nil {
+				logger.Warn("failed to unmarshal the binlog dumpers: %s, errmsg: %s", meta.BinlogDumperSet, err)
+			}
+		}
+
+		req.AddDbInstMetadata(dbInstMeta)
+	}
+
+	return req
+}
+
+func (w *Workflow) createSwitcherRequest(bkCloudId int, events []*hamodel.DbEvent) *switcher.Request {
+	ips := []string{}
+
+	for _, event := range events {
+		ips = append(ips, event.IP)
+	}
+
+	return w.createSwitcherRequestWithIPs(bkCloudId, ips)
+}
+
+func (w *Workflow) triggerSwitching(dbType haprobe.DbType, req *switcher.Request) {
+	if !config.Cfg.Workflow.EnableSwitching {
+		logger.Warn("switching operation is disabled")
+		return
+	}
+
+	sw, exists := w.switchers[dbType]
+	if !exists {
+		logger.Warn("unknown database type: %s", dbType)
+		return
+	}
+
+	rsp := sw.Switch(context.Background(), req)
+	if rsp.Err == nil {
+		logger.Info("switching success for the database type: %s", dbType)
+	}
+
+	// post the success alarm
+	for _, inst := range req.MySqlInstData {
+		instKey := switcher.GenerateMetadataKey(inst.BkCloudID, inst.Ip, inst.Port)
+
+		if _, exists := rsp.MySqlFailureInsts[instKey]; exists {
+			continue
+		}
+
+		monitorEvent := &monitor.EventData{
+			Name:      string(haprobe.DbEventNameMysqlSwitchSuccessV1),
+			Target:    string(instKey),
+			Timestamp: uint64(time.Now().UnixMilli()),
+		}
+
+		monitorEvent.Content.Content = "switching success"
+		monitorEvent.Dimension.BkCloudId = inst.BkCloudID
+		monitorEvent.Dimension.IP = inst.Ip
+		monitorEvent.Dimension.Port = inst.Port
+		monitorEvent.Dimension.DbTypeName = dbType
+		monitorEvent.Dimension.DbEventName = haprobe.DbEventNameMysqlSwitchSuccessV1
+
+		if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
+			logger.Warn("switching success, failed to post the alarm, inst: %s, errmsg: %s", instKey, err)
+		}
+	}
+
+	// post the failure alarm
+	for instKey, inst := range rsp.MySqlFailureInsts {
+		monitorEvent := &monitor.EventData{
+			Name:      string(haprobe.DbEventNameMysqlSwitchFailureV1),
+			Target:    string(instKey),
+			Timestamp: uint64(time.Now().UnixMilli()),
+		}
+
+		monitorEvent.Content.Content = rsp.Err.Error()
+		monitorEvent.Dimension.BkCloudId = inst.BkCloudID
+		monitorEvent.Dimension.IP = inst.Ip
+		monitorEvent.Dimension.Port = inst.Port
+		monitorEvent.Dimension.DbTypeName = dbType
+		monitorEvent.Dimension.DbEventName = haprobe.DbEventNameMysqlSwitchFailureV1
+
+		if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
+			logger.Warn("switching failure, failed to post the alarm, inst: %s, errmsg: %s", instKey, err)
+		}
 	}
 }
 
 func (w *Workflow) checkEventWithBizId(bizId int, dbEvents []*hamodel.DbEvent,
-	skipDbInsts map[string]*hamodel.SkipDbInstance, metaInsts map[string]*hamodel.DbmMetadata) {
+	skipDbInsts map[string]*hamodel.SkipDbInstance) {
 
-	events := []*hamodel.DbEvent{}
-	metas := []*hamodel.DbmMetadata{}
+	// TODO: read switching strategy with bizId
+	_ = bizId
+
+	// key: is bkCloudId
+	events := map[int][]*hamodel.DbEvent{}
 
 	for _, event := range dbEvents {
-		key := fmt.Sprintf("%d:%s:%d", event.BkCloudID, event.IP, event.Port)
-
-		if inst, exists := metaInsts[key]; exists {
-			metas = append(metas, inst)
-		}
+		key := key(event.BkCloudID, event.IP, event.Port)
 
 		if _, exists := skipDbInsts[key]; exists {
 			logger.Info("skip the db instance: %s", key)
 			continue
 		}
 
-		events = append(events, event)
+		events[event.BkCloudID] = append(events[event.BkCloudID], event)
 	}
 
-	req := &switcher.Request{}
-	req.BkBizID = bizId
-	req.BreakdownEvents = events
-	req.MetaInsts = metas
+	for bkCloudId, dbevents := range events {
+		req := w.createSwitcherRequest(bkCloudId, dbevents)
 
-	w.switchers[haprobe.DbTypeMysql].Switch(context.Background(), req)
+		// TODO: Now there is only MySQL(default).
+		logger.Debug("trigger switching, dbtype: %s, req: %v", haprobe.DbTypeMysql, req)
+		w.triggerSwitching(haprobe.DbTypeMysql, req)
+	}
 }
 
 func (w *Workflow) checkMissedProbe(dbMetrics []*hamodel.DatabaseMetric,
@@ -417,7 +572,7 @@ func (w *Workflow) checkBusinessWithBizID(ctx context.Context, bizId int) (retEr
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		w.checkEventWithBizId(bizId, dbEvents, skipInsts, metaInsts)
+		w.checkEventWithBizId(bizId, dbEvents, skipInsts)
 	}()
 
 	// Parse and trigger switching logic.

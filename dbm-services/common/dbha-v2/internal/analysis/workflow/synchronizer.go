@@ -27,13 +27,12 @@ package workflow
 import (
 	"context"
 	"encoding/json"
-	"net/http"
 	"sync"
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/analysis/config"
+	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/pkg/discovery"
-	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
@@ -48,14 +47,30 @@ const (
 	electionName              = "sync-dbm-metadata"
 )
 
-type DbmMetadata struct {
+type Synchronizer struct {
 	db           *hamysql.DB
-	httpCli      *hanet.HttpClient
+	cli          *dbm.Client
 	wg           sync.WaitGroup
 	discoveryCli *discovery.Client
 }
 
-func (dbm *DbmMetadata) saveRespond(resp *dbmRespond) error {
+func (s *Synchronizer) Run(ctx context.Context) error {
+	if s.cli == nil {
+		s.cli = &dbm.Client{}
+	}
+
+	if err := s.updateCache(ctx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Synchronizer) Close() {
+	s.wg.Wait()
+}
+
+func (s *Synchronizer) saveRespond(resp *dbm.Response) error {
 	datas := []*hamodel.DbmMetadata{}
 	for _, rsp := range resp.Data {
 		meta := &hamodel.DbmMetadata{
@@ -65,83 +80,75 @@ func (dbm *DbmMetadata) saveRespond(resp *dbmRespond) error {
 			LogicalCityID:   rsp.LogicalCityID,
 			LogicalCityName: rsp.LogicalCityName,
 			Port:            rsp.Port,
+			AdminPort:       rsp.AdminPort,
 			IP:              rsp.IP,
 			Cluster:         rsp.Cluster,
 			ClusterID:       rsp.ClusterID,
 			ClusterType:     rsp.ClusterType,
 			MachineType:     rsp.MachineType,
 			Status:          rsp.Status,
-			BindEntry:       hamodel.BindEntryType{},
+			InstanceRole:    string(rsp.InstanceRole),
 		}
 
-		for key, vals := range rsp.BindEntry {
-			for _, val := range vals {
-				meta.BindEntry[key] = append(meta.BindEntry[key], hamodel.BindEntry{
-					BindPort:       val.BindPort,
-					BindIps:        val.BindIps,
-					Domain:         val.Domain,
-					EntryRole:      val.EntryRole,
-					ForwardEntryId: val.ForwardEntryId,
-					ClbIP:          val.ClbIP,
-					ClbID:          val.ClbID,
-					ClbListenerID:  val.ClbListenerID,
-					ClbRegion:      val.ClbRegion,
-				})
+		if rsp.Receiver != nil {
+			if data, err := json.Marshal(rsp.Receiver); err != nil {
+				logger.Warn("failed to marshal the receiver, errmsg: %s", err)
+			} else {
+				meta.Receiver = string(data)
+			}
+		}
+
+		if rsp.BindEntry != nil {
+			if data, err := json.Marshal(rsp.BindEntry); err != nil {
+				logger.Warn("failed to marshal the bind entry, errmsg: %s", err)
+			} else {
+				meta.BindEntry = string(data)
+			}
+		}
+
+		if rsp.ProxyInstanceSet != nil {
+			if data, err := json.Marshal(rsp.ProxyInstanceSet); err != nil {
+				logger.Warn("failed to marshal the proxy insts, errmsg: %s", err)
+			} else {
+				meta.ProxyInstanceSet = string(data)
+			}
+		}
+
+		if rsp.TBinlogDumpers != nil {
+			if data, err := json.Marshal(rsp.TBinlogDumpers); err != nil {
+				logger.Warn("failed to marshal the binlog dumpers, errmsg: %s", err)
+			} else {
+				meta.BinlogDumperSet = string(data)
 			}
 		}
 
 		datas = append(datas, meta)
 	}
 
-	err := dbm.db.DB().Session(&gorm.Session{FullSaveAssociations: true}).
+	err := s.db.DB().Session(&gorm.Session{FullSaveAssociations: true}).
 		Clauses(clause.OnConflict{UpdateAll: true}).
 		Create(datas).Error
 
 	return err
 }
 
-func (dbm *DbmMetadata) syncMetadataFromDBM(ctx context.Context) error {
-	req := defaultDbmRequst
+func (s *Synchronizer) syncMetadataFromDbm(ctx context.Context) error {
+	req := dbm.DefaultRequest
 	req.HashCnt = maxCountPerPage
 	req.DbCloudToken = config.Cfg.Workflow.DbmApiMetadata.Token
 
 	for idx := range maxCountPerPage {
 		req.HashValue = idx
 
-		data, err := json.Marshal(&req)
+		metaRsp, err := s.cli.RequestMetadata(ctx, &req)
 		if err != nil {
-			logger.Warn("failed to marsha the dbm request metadata, errmsg: %v", err)
+			logger.Warn("failed to request the metadata from DBM, API: %s, errmsg: %s",
+				config.Cfg.Workflow.DbmApiMetadata.Api, err)
+
 			continue
 		}
 
-		code, resp, err := dbm.httpCli.Post(ctx, config.Cfg.Workflow.DbmApiMetadata.Api, data)
-		if err != nil {
-			logger.Warn("failed to send http post request, errmsg: %v", err)
-			continue
-		}
-
-		if http.StatusOK != code {
-			logger.Warn("http post request return the bad status, status code: %d, errmsg: %v", code, err)
-			continue
-		}
-
-		if len(resp) == 0 {
-			logger.Warn("response nothing, api: %v", config.Cfg.Workflow.DbmApiMetadata.Api)
-			continue
-		}
-
-		metaRsp := &dbmRespond{}
-		if err := json.Unmarshal(resp, metaRsp); err != nil {
-			logger.Warn("failed to unmarshal metadata respond, api: %s, code: %d resp: %s errmsg: %v",
-				config.Cfg.Workflow.DbmApiMetadata.Api, code, string(resp), err)
-			continue
-		}
-
-		if len(metaRsp.Data) == 0 {
-			continue
-		}
-
-		if err := dbm.saveRespond(metaRsp); err != nil {
+		if err := s.saveRespond(metaRsp); err != nil {
 			logger.Warn("failed to save the metadata: %v, errmsg: %v", metaRsp, err)
 		}
 	}
@@ -149,19 +156,19 @@ func (dbm *DbmMetadata) syncMetadataFromDBM(ctx context.Context) error {
 	return nil
 }
 
-func (dbm *DbmMetadata) updateCache(ctx context.Context) error {
-	if err := dbm.syncMetadataFromDBM(ctx); err != nil {
+func (s *Synchronizer) updateCache(ctx context.Context) error {
+	if err := s.syncMetadataFromDbm(ctx); err != nil {
 		logger.Warn("faled to sync metadata from dbm, errmsg: %v", err)
 	}
 
-	election, err := dbm.discoveryCli.CreateElection(electionName)
+	election, err := s.discoveryCli.CreateElection(electionName)
 	if err != nil {
 		return err
 	}
 
-	dbm.wg.Add(1)
+	s.wg.Add(1)
 	go func() {
-		defer dbm.wg.Done()
+		defer s.wg.Done()
 
 		if err := election.Campaign(ctx); err != nil {
 			election.Close()
@@ -174,7 +181,7 @@ func (dbm *DbmMetadata) updateCache(ctx context.Context) error {
 		for {
 
 			if election == nil {
-				election, err = dbm.discoveryCli.CreateElection(electionName)
+				election, err = s.discoveryCli.CreateElection(electionName)
 				if err != nil {
 					election.Close()
 					logger.Warn("election failure, errmsg: %v", err)
@@ -203,7 +210,7 @@ func (dbm *DbmMetadata) updateCache(ctx context.Context) error {
 				return
 
 			case <-timer.C:
-				if err := dbm.syncMetadataFromDBM(ctx); err != nil {
+				if err := s.syncMetadataFromDbm(ctx); err != nil {
 					logger.Warn("faled to query metadata from dbm, errmsg: %v", err)
 				}
 
@@ -213,22 +220,4 @@ func (dbm *DbmMetadata) updateCache(ctx context.Context) error {
 	}()
 
 	return nil
-}
-
-func (dbm *DbmMetadata) Run(ctx context.Context) error {
-	if dbm.httpCli == nil {
-		dbm.httpCli = hanet.NewHttpClientWithHeaders(map[string]string{
-			"Content-Type": "application/json",
-		})
-	}
-
-	if err := dbm.updateCache(ctx); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (dbm *DbmMetadata) Close() {
-	dbm.wg.Wait()
 }
