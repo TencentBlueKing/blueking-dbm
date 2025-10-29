@@ -47,8 +47,7 @@ class MySQLFixPointRollbackDetailSerializer(MySQLBaseOperateDetailSerializer):
         tables = serializers.ListField(help_text=_("目标table列表"), child=DBTableField())
         tables_ignore = serializers.ListField(help_text=_("忽略table列表"), child=DBTableField())
 
-        # display fields
-        affect_db = serializers.ListField(
+        affect_database_list = serializers.ListField(
             help_text=_("影响的DB"), child=serializers.CharField(), allow_null=True, required=False
         )
 
