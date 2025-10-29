@@ -184,6 +184,8 @@
     [TicketTypes.REDIS_PROXY_SCALE_UP]: TicketTypes.REDIS_PROXY_SCALE_UP, // Redis 扩容接入层
     [TicketTypes.REDIS_PURGE]: TicketTypes.REDIS_PURGE, // Redis 集群清档
     [TicketTypes.REDIS_SCALE_UPDOWN]: TicketTypes.REDIS_SCALE_UPDOWN, // Redis 集群容量变更
+    [TicketTypes.REDIS_SHARD_ADD]: TicketTypes.REDIS_SHARD_ADD,
+    [TicketTypes.REDIS_SHARD_REDUCE]: TicketTypes.REDIS_SHARD_REDUCE,
     [TicketTypes.REDIS_SINGLE_INS_MIGRATE]: TicketTypes.REDIS_SINGLE_INS_MIGRATE, // Redis 主从迁移
     [TicketTypes.REDIS_VERSION_UPDATE_ONLINE]: TicketTypes.REDIS_VERSION_UPDATE_ONLINE, // redis 版本升级
     [TicketTypes.RIAK_CLUSTER_APPLY]: 'RiakApply',

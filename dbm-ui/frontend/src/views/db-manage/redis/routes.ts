@@ -36,6 +36,8 @@ const redisDBReplaceRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_CUTOFF, t(
 const redisClusterMigrateRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_INS_MIGRATE, t('迁移'));
 const redisSingleMigrateRoute = createRouteItem(TicketTypes.REDIS_SINGLE_INS_MIGRATE, t('迁移'));
 const redisClusterShardUpdateRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_SHARD_NUM_UPDATE, t('集群分片变更'));
+const redisShardAddRoute = createRouteItem(TicketTypes.REDIS_SHARD_ADD, t('集群分片变更（Slot迁移）'));
+const redisShardReduceRoute = createRouteItem(TicketTypes.REDIS_SHARD_REDUCE, t('集群分片变更（Slot迁移）'));
 const redisClusterTypeUpdateRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_TYPE_UPDATE, t('集群类型变更'));
 const redisDataStructureRoute = createRouteItem(TicketTypes.REDIS_DATA_STRUCTURE, t('定点构造'));
 const redisClusterRollbackDataCopyRoute = createRouteItem(
@@ -121,6 +123,8 @@ const toolboxDbConsoleRouteMap = {
   'redis.toolbox.recoverFromInstance': redisClusterRollbackDataCopyRoute,
   'redis.toolbox.rollback': redisDataStructureRoute,
   'redis.toolbox.rollbackRecord': redisStructureInstanceRoute,
+  'redis.toolbox.shardAdd': redisShardAddRoute,
+  'redis.toolbox.shardReduce': redisShardReduceRoute,
   'redis.toolbox.singleMigrate': redisSingleMigrateRoute,
   'redis.toolbox.slaveRebuild': redisDBCreateSlaveRoute,
   'redis.toolbox.versionUpgrade': redisVersionUpgradeRoute,

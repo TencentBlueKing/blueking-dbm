@@ -219,6 +219,13 @@ export default [
             parentId: 'cluster-manage',
           },
           {
+            bind: [TicketTypes.REDIS_SHARD_ADD, TicketTypes.REDIS_SHARD_REDUCE],
+            dbConsoleValue: 'redis.toolbox.shardAdd',
+            id: TicketTypes.REDIS_SHARD_ADD,
+            name: t('集群分片变更（Slot迁移）'),
+            parentId: 'cluster-manage',
+          },
+          {
             dbConsoleValue: 'redis.toolbox.clusterTypeChange',
             id: TicketTypes.REDIS_CLUSTER_TYPE_UPDATE,
             name: t('集群类型变更'),
