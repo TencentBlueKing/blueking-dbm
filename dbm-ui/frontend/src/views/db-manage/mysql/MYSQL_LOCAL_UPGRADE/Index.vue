@@ -64,16 +64,6 @@
           </span>
         </BkCheckbox>
       </BkFormItem>
-      <BkFormItem v-if="wrapperController.roleType === 'haStorageLayer'">
-        <BkCheckbox
-          v-model="formData.is_verify_checksum"
-          :false-label="false"
-          true-label>
-          <span>
-            {{ t('检查主从数据校验结果') }}
-          </span>
-        </BkCheckbox>
-      </BkFormItem>
       <TicketPayload v-model="formData.payload" />
       <template #action>
         <BkButton
@@ -175,7 +165,6 @@
 
   const defaultData = () => ({
     is_check_process: true,
-    is_verify_checksum: true,
     payload: createTickePayload(),
     tableData: [createTableRow()],
   });
@@ -241,7 +230,6 @@
         Object.assign(formData, {
           ...createTickePayload(ticketDetail),
           is_check_process: ticketDetail.details.is_check_process,
-          is_verify_checksum: ticketDetail.details.is_verify_checksum,
           tableData: ticketDetail.details.infos.map((item) =>
             createTableRow({
               cluster: {
@@ -278,7 +266,6 @@
       pkg_id: number;
     }[];
     is_check_process: boolean;
-    is_verify_checksum: boolean;
   }>(TicketTypes.MYSQL_LOCAL_UPGRADE);
 
   const handleBatchEdit = (list: TendbhaModel[]) => {
@@ -317,7 +304,6 @@
             pkg_id: item.pkg_id,
           })),
           is_check_process: formData.is_check_process,
-          is_verify_checksum: formData.is_verify_checksum,
         },
         ...formData.payload,
       });
