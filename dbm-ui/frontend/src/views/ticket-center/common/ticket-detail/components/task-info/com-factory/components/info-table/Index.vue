@@ -1,7 +1,10 @@
 <template>
   <PrimaryTable
-    v-bind="{ ...attrs, ...props }"
-    :max-height="500">
+    v-bind="{ ...attrs }"
+    :data="data"
+    :max-height="500"
+    resizable
+    :row-key="rowKey">
     <slot />
   </PrimaryTable>
 </template>
@@ -20,8 +23,8 @@
 
 <script setup lang="ts" generic="T extends Record<string, any>">
   export interface Props<IRowData> {
-    // eslint-disable-next-line vue/no-unused-properties
     data: IRowData[];
+    rowKey: string;
   }
 
   const props = defineProps<Props<T>>();
