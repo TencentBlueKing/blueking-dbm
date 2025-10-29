@@ -123,7 +123,7 @@ func TestRegistryInvalidParameters(t *testing.T) {
 	if err == nil {
 		t.Errorf("expect an error to be returned for empty keys")
 	}
-	if err.(*gerrors.Error).Code() != gerrors.InvalidParameter {
+	if err.(*gerrors.Error).Code() != gerrors.InvalidParameter.Int() {
 		t.Errorf("expected error code: InvalidParameter, actual: %v", err)
 	}
 }

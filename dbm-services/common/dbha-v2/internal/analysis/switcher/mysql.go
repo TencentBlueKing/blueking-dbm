@@ -26,12 +26,14 @@ package switcher
 
 import (
 	"context"
-	"fmt"
 
-	"dbm-services/common/dbha-v2/internal/analysis/config"
+	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
-	"dbm-services/common/dbha-v2/pkg/monitor"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
+)
+
+var (
+	ErrMySqlPartialSuccess = gerrors.Newf(gerrors.Failure, "the switching achieved partial success")
 )
 
 var _ Switcher = (*Mysql)(nil)
@@ -49,56 +51,35 @@ func (m *Mysql) DbTypeName() haprobe.DbType {
 // Note: This function may be called concurrently, avoid unnecessary duplicate switching
 // Note: For TenDBCluster, handle partial switch failures when multiple instances on same host
 func (m *Mysql) Switch(ctx context.Context, req *Request) *Response {
-	// TODO: Need to implement the switching logic with the switching strategy.
-
-	rsp := &Response{}
-
-	insSockets := make(map[string]struct{})
-	for _, event := range req.BreakdownEvents {
-		monitorEvent := &monitor.EventData{
-			Name:      event.Name.String(),
-			Target:    event.Endpoint,
-			Timestamp: uint64(event.UpdatedAt.UnixMilli()),
-		}
-
-		monitorEvent.Content.Content = event.Message
-		monitorEvent.Dimension.BkCloudId = event.BkCloudID
-		monitorEvent.Dimension.IP = event.IP
-		monitorEvent.Dimension.Port = event.Port
-		monitorEvent.Dimension.DbTypeName = event.DbTypeName
-		monitorEvent.Dimension.DbEventName = event.Name
-		monitorEvent.Dimension.DbEventNameReason = event.Reason.Str()
-
-		if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
-			logger.Warn("%v", err)
-		}
-
-		logger.Debug("check the business(event): %s %s", event.Endpoint, event.Message)
-		insSockets[fmt.Sprintf("%d@%s:%d", event.BkCloudID, event.IP, event.Port)] = struct{}{}
+	rsp := &Response{
+		MySqlFailureInsts: map[MetadataKey]*MySQLInstanceMetadata{},
 	}
 
-	failedIns := make([]string, 0)
-	for insSock := range insSockets {
-		insMetaData := req.MySQLInsData[insSock]
-		swIns, newErr := NewMySQLSwitchInstance(&insMetaData)
+	for _, inst := range req.MySqlInstData {
+		instKey := GenerateMetadataKey(inst.BkCloudID, inst.Ip, inst.Port)
+		swInst, newErr := NewMySQLSwitchInstance(inst)
+
 		if newErr != nil {
-			logger.Error("new mysql switch instance failed: %v", newErr)
-			failedIns = append(failedIns, insSock)
+			logger.Warn("failed to create mysql switcher, inst: %s, errmsg: %s", instKey, newErr)
+			rsp.MySqlFailureInsts[instKey] = inst
 			continue
 		}
 
-		success, swErr := SwitchSingleInstance(swIns)
+		success, swErr := SwitchSingleInstance(swInst)
 		if success {
-			logger.Info("switch single instance(%s) successfully", insSock)
-		} else {
-			logger.Error("switch single instance(%s) failed: %v", insSock, swErr)
-			failedIns = append(failedIns, insSock)
+			logger.Info("successfully switched the single instance: %s", instKey)
+
+			continue
 		}
+
+		logger.Warn("failed to switch the single instance: %s, errmsg: %s", instKey, swErr)
+		rsp.MySqlFailureInsts[instKey] = inst
 	}
 
-	if len(failedIns) > 0 {
-		rsp.Err = fmt.Errorf("failed to switch some instances: %v", failedIns)
+	if len(rsp.MySqlFailureInsts) == 0 {
+		return rsp
 	}
 
+	rsp.Err = ErrMySqlPartialSuccess
 	return rsp
 }

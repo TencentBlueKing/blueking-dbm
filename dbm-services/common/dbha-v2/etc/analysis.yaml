@@ -19,6 +19,7 @@ workflow:
   readDbMetaOffsetDuration: -24h
   readDbMetricOffsetDuration: -60s
   readDbEventOffsetDuration: -10m
+  enableSwitching: true
 
   dbmApiMetadata:
     api: http://127.0.0.1:80/apis/proxypass/dbmeta/dbha/instances
@@ -39,17 +40,17 @@ workflow:
     api: http://127.0.0.1:80/apis/proxypass/dbmeta/dbha/tendis_cluster_swap
     timeout: 10s
     token: ""
-  
+
   dbmApiDomainGet:
     api: http://127.0.0.1:80/apis/proxypass/dns/domain/get/
     timeout: 10s
     token: ""
-  
+
   dbmApiDomainDelete:
     api: http://127.0.0.1:80/apis/proxypass/dns/domain/delete/
     timeout: 10s
     token: ""
-  
+
   dbmApiCLBDeregister:
     api: http://127.0.0.1:80/apis/proxypass/clb_deregister_part_target/
     timeout: 10s
