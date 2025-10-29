@@ -138,7 +138,7 @@
 
   import {
     type BackupLogRecord,
-    queryBackupLogFromHandler,
+    queryBackupLogFromBklog,
     queryBackupLogFromLoacal,
     queryLatesBackupLog,
   } from '@services/source/fixpointRollback';
@@ -266,7 +266,7 @@
   const fetchLogData = () => {
     logRecordOptions.value = [];
     logRecordList.value = [];
-    const queryBackupLog = props.backupSource === 'local' ? queryBackupLogFromLoacal : queryBackupLogFromHandler;
+    const queryBackupLog = props.backupSource === 'local' ? queryBackupLogFromLoacal : queryBackupLogFromBklog;
     queryBackupLog({
       cluster_id: props.clusterId,
     }).then((dataList) => {

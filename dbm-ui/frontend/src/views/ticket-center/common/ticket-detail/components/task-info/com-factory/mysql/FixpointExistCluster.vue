@@ -137,17 +137,17 @@
       </template>
     </TableColumn>
     <TableColumn
-      col-key="affect_db"
+      col-key="affect_database_list"
       :min-width="180"
       :title="t('受影响的 DB')">
       <template #default="{ row }: { row: RowData }">
-        <span v-if="!row.affect_db?.length">--</span>
+        <span v-if="!row.affect_database_list?.length">--</span>
         <BkButton
           v-else
           text
           theme="primary"
           @click="() => handleClick(row)">
-          {{ row.affect_db.length }}
+          {{ row.affect_database_list.length }}
         </BkButton>
       </template>
     </TableColumn>
@@ -266,7 +266,7 @@
 
   const handleClick = (data: RowData) => {
     rowData.value = data;
-    tableData.value = (data.affect_db || []).map((dbname) => ({ dbname }));
+    tableData.value = (data.affect_database_list || []).map((dbname) => ({ dbname }));
     if (data.backupinfo?.backup_type === 'physical') {
       disabled.value = true;
     }
