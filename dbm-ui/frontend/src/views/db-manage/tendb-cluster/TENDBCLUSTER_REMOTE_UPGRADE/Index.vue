@@ -55,16 +55,6 @@
           </span>
         </BkCheckbox>
       </BkFormItem>
-      <BkFormItem>
-        <BkCheckbox
-          v-model="formData.is_verify_checksum"
-          :false-label="false"
-          true-label>
-          <span>
-            {{ t('检查主从数据校验结果') }}
-          </span>
-        </BkCheckbox>
-      </BkFormItem>
       <TicketPayload v-model="formData.payload" />
       <template #action>
         <BkButton
@@ -154,7 +144,6 @@
 
   const defaultData = () => ({
     is_check_process: true,
-    is_verify_checksum: true,
     payload: createTickePayload(),
     tableData: [createTableRow()],
   });
@@ -177,7 +166,6 @@
       Object.assign(formData, {
         ...createTickePayload(ticketDetail),
         is_check_process: ticketDetail.details.is_check_process,
-        is_verify_checksum: ticketDetail.details.is_verify_checksum,
         tableData: ticketDetail.details.infos.map((item) =>
           createTableRow({
             // 集群信息现查，从而带出当前版本信息
@@ -212,7 +200,6 @@
       };
     }[];
     is_check_process: boolean;
-    is_verify_checksum: boolean;
     upgrade_local: boolean;
   }>(TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE);
 
@@ -229,7 +216,6 @@
             target_version: item.target_version,
           })),
           is_check_process: formData.is_check_process,
-          is_verify_checksum: formData.is_verify_checksum,
           upgrade_local: true,
         },
         ...formData.payload,
