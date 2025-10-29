@@ -25,9 +25,8 @@ class SpiderConfUpDownDetailSerializer(SpiderSwitchNodesDetailSerializer):
 
 
 class SpiderConfUpDownFlowParamBuilder(builders.FlowParamBuilder):
-    controller = SpiderController.tendbcluster_switch_nodes_scene
-    # 暂时先为空，等校验函数出来再替换
-    validator = None
+    controller = SpiderController.tendbcluster_nodes_change_spec_scene
+    validator = SpiderController.tendbcluster_nodes_change_spec_scene.validator
 
 
 class TendbSpiderConfUpDownResourceParamBuilder(TendbBaseOperateResourceParamBuilder):
