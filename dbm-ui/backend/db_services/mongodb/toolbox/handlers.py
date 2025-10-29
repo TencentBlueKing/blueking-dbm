@@ -8,9 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import operator
-from functools import reduce
-
 from django.db.models import Q
 
 from backend.db_meta.enums import ClusterType, MachineType, MachineTypeInstanceRoleMap
@@ -70,10 +67,7 @@ class ToolboxHandler(ClusterServiceHandler):
             shard_node_count = len(mongodb) / shard_num
             # 获取各个分片的节点组
             inst_filter = Q(
-                reduce(
-                    operator.or_,
-                    [Q(instance_role=role) for role in MachineTypeInstanceRoleMap[MachineType.MONOG_CONFIG]],
-                ),
+                instance_role__in=[role for role in MachineTypeInstanceRoleMap[MachineType.MONGODB]],
                 cluster=cluster,
                 machine_type=MachineType.MONGODB,
             )
@@ -101,3 +95,19 @@ class ToolboxHandler(ClusterServiceHandler):
                 ]
             )
         return shard_data
+
+    @classmethod
+    def get_shard_others_instance(cls, storage, cluster):
+        inst_filter = Q(
+            instance_role__in=[role for role in MachineTypeInstanceRoleMap[MachineType.MONGODB]],
+            cluster=cluster,
+            machine_type=MachineType.MONGODB,
+        )
+        insts, inst_id__shard = MongoDBListRetrieveResource.query_storage_shard(inst_filter)
+        others_instance = []
+        current_shard_name = inst_id__shard[storage.id]
+        for inst in insts:
+            shard_name = inst_id__shard[inst.id]
+            if shard_name == current_shard_name and inst.id != storage.id:
+                others_instance.append(inst)
+        return others_instance
