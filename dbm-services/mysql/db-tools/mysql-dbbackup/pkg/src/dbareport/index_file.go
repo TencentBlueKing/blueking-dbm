@@ -198,6 +198,9 @@ func (i *IndexContent) JudgeBackupMethod(cnf *config.BackupConfig) {
 	} else {
 		if i.IsFullBackup {
 			i.BackupMethod = config.BackupFullByRegular
+			if !cnf.Public.IfBackupData() {
+				i.BackupMethod = config.BackupFullWithNodata
+			}
 		} else {
 			i.BackupMethod = config.BackupNonFullByRegular
 		}

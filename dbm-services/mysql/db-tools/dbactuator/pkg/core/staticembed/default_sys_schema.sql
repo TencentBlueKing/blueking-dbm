@@ -99,8 +99,8 @@ CREATE TABLE IF NOT EXISTS infodba_schema.local_backup_report (
     backup_method varchar(60) DEFAULT NULL,
     backup_meta_file varchar(255),
     binlog_info text,
-    file_list text,
-    extra_fields text,
+    file_list longtext,
+    extra_fields longtext,
     backup_config_file text,
     PRIMARY KEY (backup_id,mysql_role,shard_value)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
