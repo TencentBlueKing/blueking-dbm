@@ -606,6 +606,10 @@ class TicketType(StrStructuredEnum):
     MONGODB_ADD_MONGOS = TicketEnumField("MONGODB_ADD_MONGOS", _("MongoDB 扩容接入层"), _("集群维护"))
     MONGODB_REDUCE_MONGOS = TicketEnumField("MONGODB_REDUCE_MONGOS", _("MongoDB 缩容接入层"), _("集群维护"))
     MONGODB_ADD_SHARD = TicketEnumField("MONGODB_ADD_SHARD", _("MongoDB 增加分片数"), _("集群维护"))
+    MONGODB_SHARD_ADD_SHARD_NODES = TicketEnumField("MONGODB_SHARD_ADD_SHARD_NODES", _("MongoDB 扩容分片集群shard节点数"), _("集群维护"))  # noqa
+    MONGODB_REPLICA_ADD_SHARD_NODES = TicketEnumField("MONGODB_REPLICA_ADD_SHARD_NODES", _("MongoDB 扩容副本集集群shard节点数"), _("集群维护"))  # noqa
+    MONGODB_SHARD_CUTOFF = TicketEnumField("MONGODB_SHARD_CUTOFF", _("MongoDB 分片集群整机替换"), _("集群维护"))
+    MONGODB_REPLICASET_CUTOFF = TicketEnumField("MONGODB_REPLICASET_CUTOFF", _("MongoDB 副本集整机替换"), _("集群维护"))
     MONGODB_ADD_SHARD_NODES = TicketEnumField("MONGODB_ADD_SHARD_NODES", _("MongoDB 扩容shard节点数"), _("集群维护"))
     MONGODB_REPLICASET_MIGRATE = TicketEnumField("MONGODB_REPLICASET_MIGRATE", _("MongoDB 副本集集群迁移"), _("回档"))
     MONGODB_SHARD_MIGRATE = TicketEnumField("MONGODB_SHARD_MIGRATE", _("MongoDB 分片集群迁移"), _("回档"))
