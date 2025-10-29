@@ -233,6 +233,19 @@ class MySQLBackupHandler:
             logger.info("{} only part of storage instance get privilege file".format(self.cluster.id))
         return backup_priv_info
 
+    def get_tendbha_rollback_backup_info(self, latest_time: datetime = None):
+        """
+        tendbha 获取指定集群的备份信息，根据备份时间排序
+        @param latest_time: 查询备份最迟时间
+        @param limit_one: 是否限制只返回一条备份记录
+        @return: 返回集群的各个数据节点的备份记录，且backup_id必须一致
+        """
+        if self.backup_source == MySQLBackupSource.LOCAL:
+            backup_infos = self.get_local_backup_infos(latest_time=latest_time)
+        else:
+            backup_infos = self.get_backup_infos(latest_time)
+        return backup_infos
+
     def get_spider_rollback_backup_info(self, latest_time: datetime = None, limit_one: bool = False) -> Dict[str, Any]:
         """
         tendbCluster 查询当前集群集群各个remote节点点的最新一份远程备份,且要求所有的分片backup_id是一致的。

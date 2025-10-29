@@ -50,7 +50,9 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
     default_permission_class = [DBManagePermission()]
 
     @common_swagger_auto_schema(
-        operation_summary=_("通过日志平台获取集群备份记录"),
+        operation_summary=_(
+            "通过日志平台获取集群备份记录 # TODO: 当前api已废弃，替换为query_backup_log_from_handler接口(backup_source传remote)"
+        ),
         query_serializer=BackupLogSerializer(),
         responses={
             status.HTTP_200_OK: BackupLogTendbResponseSerializer(),
@@ -70,7 +72,7 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
         return Response(logs)
 
     @common_swagger_auto_schema(
-        operation_summary=_("查询集群的本地备份记录"),
+        operation_summary=_("查询集群的本地备份记录 # TODO: 当前api已废弃，替换为query_backup_log_from_handler接口(backup_source传local)"),
         query_serializer=BackupLogSerializer(),
         responses={status.HTTP_200_OK: BackupLocalLogMySQLResponseSerializer()},
         tags=[SWAGGER_TAG],
@@ -82,7 +84,7 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
         return Response(logs)
 
     @common_swagger_auto_schema(
-        operation_summary=_("查询小于回档时间点最近的备份记录"),
+        operation_summary=_("查询小于回档时间点最近的备份记录 # TODO: 部分接口还在使用， 新需求替换为latest_time_backup_log接口"),
         query_serializer=BackupLogRollbackTimeSerializer(),
         responses={
             status.HTTP_200_OK: BackupLogRollbackTimeTendbResponseSerializer(),
@@ -123,7 +125,7 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
         # 获取备份结果
         result = {}
         if db_type == DBType.MySQL.value:
-            result = handler.get_backup_infos(latest_time)
+            result = handler.get_tendbha_rollback_backup_info(latest_time)
         elif db_type == DBType.TenDBCluster.value:
             result = handler.get_spider_rollback_backup_info(latest_time)
         return Response(result)
