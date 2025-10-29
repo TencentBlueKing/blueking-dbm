@@ -30,6 +30,7 @@ import (
 	"strconv"
 	"time"
 
+	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
@@ -56,7 +57,7 @@ type BaseSwitchInstance struct {
 
 	Ip           string
 	Port         int
-	Status       hamodel.DbmMetadataStatus
+	Status       dbm.DbmMetadataStatus
 	BkCloudID    int
 	BkIdcCityID  int
 	BkBizID      int
@@ -64,14 +65,14 @@ type BaseSwitchInstance struct {
 	ClusterID    int
 	ClusterType  hamodel.DbmMetadataClusterType
 	MachineType  hamodel.DbmMetadataMachineType
-	InstanceRole hamodel.DbmMetadataInstanceRole
+	InstanceRole dbm.DbmMetadataInstanceRole
 
 	// Http client for DBM
-	dbmClient *DbmClient
+	dbmClient *dbm.Client
 }
 
 // GetStatus returns the current status of the instance
-func (sw *BaseSwitchInstance) GetStatus() hamodel.DbmMetadataStatus {
+func (sw *BaseSwitchInstance) GetStatus() dbm.DbmMetadataStatus {
 	return sw.Status
 }
 
@@ -81,8 +82,8 @@ func (sw *BaseSwitchInstance) GetApp() string {
 }
 
 // GetInstanceRole returns the role of this instance
-func (sw *BaseSwitchInstance) GetInstanceRole() hamodel.DbmMetadataInstanceRole {
-	return hamodel.DbmMetadataInstanceRole(InstanceRoleNotAvailable)
+func (sw *BaseSwitchInstance) GetInstanceRole() dbm.DbmMetadataInstanceRole {
+	return dbm.DbmMetadataInstanceRole(InstanceRoleNotAvailable)
 }
 
 // GetInstanceInfo returns formatted instance information string
@@ -96,11 +97,11 @@ func (sw *BaseSwitchInstance) GetInstanceInfo() string {
 
 // SetInstanceUnavailable marks the instance as unavailable
 func (sw *BaseSwitchInstance) SetInstanceUnavailable() error {
-	err := sw.dbmClient.UpdateInstanceStatus(sw.Ip, sw.Port, hamodel.UNAVAILABLE)
+	err := sw.dbmClient.UpdateInstanceStatus(sw.Ip, sw.Port, dbm.UNAVAILABLE)
 	return err
 }
 
-func (sw *BaseSwitchInstance) releaseDNSEntry(dnsEntries []hamodel.BindEntryDnsInfo) bool {
+func (sw *BaseSwitchInstance) releaseDNSEntry(dnsEntries []dbm.BindEntryDnsInfo) bool {
 	allSuccess := true
 	if dnsEntries == nil {
 		return allSuccess
@@ -147,7 +148,7 @@ func (sw *BaseSwitchInstance) releaseDNSEntry(dnsEntries []hamodel.BindEntryDnsI
 	return allSuccess
 }
 
-func (sw *BaseSwitchInstance) releaseCLBEntry(clbEntries []hamodel.BindEntryClbInfo) bool {
+func (sw *BaseSwitchInstance) releaseCLBEntry(clbEntries []dbm.BindEntryClbInfo) bool {
 	allSuccess := true
 	if clbEntries == nil {
 		return allSuccess
@@ -180,7 +181,7 @@ func (sw *BaseSwitchInstance) releaseCLBEntry(clbEntries []hamodel.BindEntryClbI
 	return allSuccess
 }
 
-func (sw *BaseSwitchInstance) releasePolarisEntry(polarisEntries []hamodel.BindEntryPolarisInfo) bool {
+func (sw *BaseSwitchInstance) releasePolarisEntry(polarisEntries []dbm.BindEntryPolarisInfo) bool {
 	allSuccess := true
 	if polarisEntries == nil {
 		return allSuccess
@@ -215,7 +216,7 @@ func (sw *BaseSwitchInstance) releasePolarisEntry(polarisEntries []hamodel.BindE
 
 // DeleteNameService removes broken-down instance from DNS, CLB, and Polaris entries
 // This is only applicable for proxy nodes
-func (sw *BaseSwitchInstance) DeleteNameService(entry hamodel.DbmMetadataBindEntry) error {
+func (sw *BaseSwitchInstance) DeleteNameService(entry dbm.DbmMetadataBindEntry) error {
 	dnsFlag := sw.releaseDNSEntry(entry.DNS)
 	clbFlag := sw.releaseCLBEntry(entry.CLB)
 	polarisFlag := sw.releasePolarisEntry(entry.Polaris)

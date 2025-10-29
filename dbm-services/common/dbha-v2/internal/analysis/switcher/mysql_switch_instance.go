@@ -30,6 +30,7 @@ import (
 	"strings"
 	"time"
 
+	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
@@ -186,22 +187,22 @@ type ProxyBackendInfo struct {
 
 // MySQLInstanceMetadata contains MySQL instance metadata from DBM
 type MySQLInstanceMetadata struct {
-	Ip               string                             `json:"ip"`
-	Port             int                                `json:"port"`
-	Status           hamodel.DbmMetadataStatus          `json:"status"`
-	BkCloudID        int                                `json:"bk_cloud_id"`
-	BkIdcCityID      int                                `json:"bk_idc_city_id"`
-	BkBizID          int                                `json:"bk_biz_id"`
-	Cluster          string                             `json:"cluster"`
-	ClusterID        int                                `json:"cluster_id"`
-	ClusterType      hamodel.DbmMetadataClusterType     `json:"cluster_type"`
-	MachineType      hamodel.DbmMetadataMachineType     `json:"machine_type"`
-	InstanceRole     hamodel.DbmMetadataInstanceRole    `json:"instance_role"`
-	Receiver         []hamodel.DbmMetadataSlaveInfo     `json:"receiver"`
-	AdminPort        int                                `json:"admin_port"`
-	BindEntry        hamodel.DbmMetadataBindEntry       `json:"bind_entry"`
-	ProxyInstanceSet []hamodel.DbmMetadataProxyInstance `json:"proxyinstance_set"`
-	BinlogDumperSet  []hamodel.DbmMetadataBinlogDumper  `json:"tbinlogdumpers"`
+	Ip               string                         `json:"ip"`
+	Port             int                            `json:"port"`
+	Status           dbm.DbmMetadataStatus          `json:"status"`
+	BkCloudID        int                            `json:"bk_cloud_id"`
+	BkIdcCityID      int                            `json:"bk_idc_city_id"`
+	BkBizID          int                            `json:"bk_biz_id"`
+	Cluster          string                         `json:"cluster"`
+	ClusterID        int                            `json:"cluster_id"`
+	ClusterType      hamodel.DbmMetadataClusterType `json:"cluster_type"`
+	MachineType      hamodel.DbmMetadataMachineType `json:"machine_type"`
+	InstanceRole     dbm.DbmMetadataInstanceRole    `json:"instance_role"`
+	Receiver         []dbm.DbmMetadataSlaveInfo     `json:"receiver"`
+	AdminPort        int                            `json:"admin_port"`
+	BindEntry        dbm.DbmMetadataBindEntry       `json:"bind_entry"`
+	ProxyInstanceSet []dbm.DbmMetadataProxyInstance `json:"proxyinstance_set"`
+	BinlogDumperSet  []dbm.DbmMetadataBinlogDumper  `json:"tbinlogdumpers"`
 }
 
 // NewMySQLSwitchInstance creates a new MySQL switch instance based on metadata
@@ -250,11 +251,11 @@ type MySQLBaseSwitchInstance struct {
 
 	// The following are instance metadata information from DBM
 
-	StandBySlave     *hamodel.DbmMetadataSlaveInfo
+	StandBySlave     *dbm.DbmMetadataSlaveInfo
 	AdminPort        int
-	BindEntry        hamodel.DbmMetadataBindEntry
-	ProxyInstanceSet []hamodel.DbmMetadataProxyInstance
-	BinlogDumperSet  []hamodel.DbmMetadataBinlogDumper
+	BindEntry        dbm.DbmMetadataBindEntry
+	ProxyInstanceSet []dbm.DbmMetadataProxyInstance
+	BinlogDumperSet  []dbm.DbmMetadataBinlogDumper
 }
 
 // GetBinlogDumperInfo returns binlog dumper information as string
@@ -273,7 +274,7 @@ func (sw *MySQLBaseSwitchInstance) GetBinlogDumperInfo() string {
 // SetStandbySlave sets the standby slave for master instance
 // Only master instances can call this method.
 // If no standby slave is found, it uses the first slave in the list.
-func (sw *MySQLBaseSwitchInstance) SetStandbySlave(slaves []hamodel.DbmMetadataSlaveInfo) {
+func (sw *MySQLBaseSwitchInstance) SetStandbySlave(slaves []dbm.DbmMetadataSlaveInfo) {
 	if len(slaves) == 0 {
 		logger.Debug("No standby slave found")
 		sw.StandBySlave = nil
@@ -286,7 +287,7 @@ func (sw *MySQLBaseSwitchInstance) SetStandbySlave(slaves []hamodel.DbmMetadataS
 			break
 		}
 	}
-	sw.StandBySlave = &hamodel.DbmMetadataSlaveInfo{}
+	sw.StandBySlave = &dbm.DbmMetadataSlaveInfo{}
 	*(sw.StandBySlave) = slaves[findIndex]
 	logger.Debug("Success to set standby slave: %#v", sw.StandBySlave)
 }
@@ -622,7 +623,7 @@ func (sw *MySQLBaseSwitchInstance) CheckSlaveStatus() error {
 		return nil
 	}
 
-	if sw.Status == hamodel.AVAILABLE { // Is this necessary? Actually the delay check is not skipped
+	if sw.Status == dbm.AVAILABLE { // Is this necessary? Actually the delay check is not skipped
 		checksumCnt, checksumFailCnt, slaveDelay, timeDelay = 1, 0, 0, 0
 		sw.ReportLogf(SwitchInfo, "instance(%s:%d) is available, skip the check of delay and checksum", ip, port)
 	}
@@ -862,7 +863,7 @@ func (sw *MySQLStorageSwitchInstance) CheckMySQLStorageMaster() (bool, error) {
 		sw.ReportLog(SwitchFail, err.Error())
 		return false, err
 	}
-	if sw.StandBySlave.Status == hamodel.UNAVAILABLE {
+	if sw.StandBySlave.Status == dbm.UNAVAILABLE {
 		err := gerrors.Newf(gerrors.Failure, "The standby slave(%s:%d) of master(%s:%d) is unavailable",
 			sw.StandBySlave.Ip, sw.StandBySlave.Port, sw.Ip, sw.Port)
 		sw.ReportLog(SwitchFail, err.Error())
@@ -887,14 +888,14 @@ func (sw *MySQLStorageSwitchInstance) CheckMySQLStorageMaster() (bool, error) {
 // CheckBeforeSwitch performs pre-switch validation checks
 func (sw *MySQLStorageSwitchInstance) CheckBeforeSwitch() (checkPass bool, err error) {
 	switch sw.InstanceRole {
-	case hamodel.MySQLStorageSlave:
+	case dbm.MySQLStorageSlave:
 		checkPass = false
 		sw.ReportLogf(SwitchInfo, "The instance(%s:%d) is a slave node, no need to check", sw.Ip, sw.Port)
-	case hamodel.MySQLStorageRepeater:
+	case dbm.MySQLStorageRepeater:
 		checkPass = false
 		err = gerrors.Newf(gerrors.Failure, "The instance(%s:%d) is a repeater, dbha don't support", sw.Ip, sw.Port)
 		sw.ReportLog(SwitchFail, err.Error())
-	case hamodel.MySQLStorageMaster:
+	case dbm.MySQLStorageMaster:
 		checkPass, err = sw.CheckMySQLStorageMaster()
 	default:
 		checkPass = false
@@ -1043,14 +1044,14 @@ func (sw *MySQLStorageSwitchInstance) DoFinal() error {
 
 	logger.Debug("tbinlogdumpers info of node(%s:%d): %s", sw.Ip, sw.Port, sw.GetBinlogDumperInfo())
 
-	if (sw.InstanceRole != hamodel.MySQLStorageSlave) || len(sw.BinlogDumperSet) == 0 {
+	if (sw.InstanceRole != dbm.MySQLStorageSlave) || len(sw.BinlogDumperSet) == 0 {
 		sw.ReportLogf(SwitchInfo, "no need to switch tbinlogdumper for node(%s:%d)", sw.Ip, sw.Port)
 		return nil
 	}
 
-	switchInstances := []DumperSwitchInstance{}
+	switchInstances := []dbm.DumperSwitchInstance{}
 	for _, dumper := range sw.BinlogDumperSet {
-		switchInstances = append(switchInstances, DumperSwitchInstance{
+		switchInstances = append(switchInstances, dbm.DumperSwitchInstance{
 			Ip:             dumper.Ip,
 			Port:           dumper.Port,
 			BinlogFile:     sw.NewMasterBinlogFile,
@@ -1058,7 +1059,7 @@ func (sw *MySQLStorageSwitchInstance) DoFinal() error {
 		})
 	}
 
-	switchInfos := []DumperSwitchInfo{
+	switchInfos := []dbm.DumperSwitchInfo{
 		{
 			ClusterDomain:   sw.Cluster,
 			SwitchInstances: switchInstances,

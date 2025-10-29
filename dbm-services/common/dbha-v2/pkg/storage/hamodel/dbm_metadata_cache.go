@@ -35,8 +35,16 @@ import (
 // DbmMetadataClusterType the cluster type for the metadata.
 type DbmMetadataClusterType string
 
+func (m DbmMetadataClusterType) String() string {
+	return string(m)
+}
+
 // DbmMetadataMachineType the machine type for the metadata.
 type DbmMetadataMachineType string
+
+func (m DbmMetadataMachineType) String() string {
+	return string(m)
+}
 
 const (
 	// Cluster Type
@@ -89,35 +97,32 @@ const (
 	DbmMetadataMachineTypePulsarZookeeper  DbmMetadataMachineType = "pulsar_zookeeper"
 )
 
-func (m DbmMetadataClusterType) String() string {
-	return string(m)
-}
-
-func (m DbmMetadataMachineType) String() string {
-	return string(m)
-}
-
 const (
 	// Define variables for all the field names of the database tables
 	// to avoid hard-coding the field names in the business code.
-	DbmMetadataTableName            = "t_dbm_metadata"
-	DbmMetadataFieldBkCloudID       = "bk_cloud_id"
-	DbmMetadataFieldListenIP        = "ip"
-	DbmMetadataFieldListenPort      = "port"
-	DbmMetadataFieldBkIdcCityID     = "bk_idc_city_id"
-	DbmMetadataFieldBkBizID         = "bk_biz_id"
-	DbmMetadataFieldLogicalCityID   = "logical_city_id"
-	DbmMetadataFieldLogicalCityName = "logical_city_name"
-	DbmMetadataFieldCluster         = "cluster"
-	DbmMetadataFieldClusterID       = "cluster_id"
-	DbmMetadataFieldClusterType     = "cluster_type"
-	DbmMetadataFieldMachineType     = "machine_type"
-	DbmMetadataFieldStatus          = "status"
-	DbmMetadataFieldBindEntry       = "bind_entry"
-	DbmMetadataFieldCreatedAt       = "created_at"
-	DbmMetadataFieldUpdatedAt       = "updated_at"
-	DbmMetadataFieldDeletedAt       = "deleted_at"
-	DbmMetadataFieldSyncDuration    = "sync_duration"
+	DbmMetadataTableName             = "t_dbm_metadata"
+	DbmMetadataFieldBkCloudID        = "bk_cloud_id"
+	DbmMetadataFieldListenIP         = "ip"
+	DbmMetadataFieldListenPort       = "port"
+	DbmMetadataFieldAdminPort        = "admin_port"
+	DbmMetadataFieldBkIdcCityID      = "bk_idc_city_id"
+	DbmMetadataFieldBkBizID          = "bk_biz_id"
+	DbmMetadataFieldLogicalCityID    = "logical_city_id"
+	DbmMetadataFieldLogicalCityName  = "logical_city_name"
+	DbmMetadataFieldCluster          = "cluster"
+	DbmMetadataFieldClusterID        = "cluster_id"
+	DbmMetadataFieldClusterType      = "cluster_type"
+	DbmMetadataFieldMachineType      = "machine_type"
+	DbmMetadataFieldStatus           = "status"
+	DbmMetadataFieldInstanceRole     = "instance_role"
+	DbmMetadataFieldReceiver         = "receiver"
+	DbmMetadataFieldBindEntry        = "bind_entry"
+	DbmMetadataFieldProxyInstanceSet = "proxy_insts"
+	DbmMetadataFieldBinlogDumperSet  = "binlog_dumpers"
+	DbmMetadataFieldCreatedAt        = "created_at"
+	DbmMetadataFieldUpdatedAt        = "updated_at"
+	DbmMetadataFieldDeletedAt        = "deleted_at"
+	DbmMetadataFieldSyncDuration     = "sync_duration"
 )
 
 // BindEntry represents a custom type for the bind_entry column in the t_dbm_metadata table.
@@ -161,119 +166,31 @@ func (be BindEntryType) Value() (driver.Value, error) {
 
 // DbmMetadata is a model for the t_dbm_metadata table.
 type DbmMetadata struct {
-	BkCloudID       int                    `gorm:"column:bk_cloud_id;primaryKey"`
-	IP              string                 `gorm:"column:ip;primaryKey"`
-	Port            int                    `gorm:"column:port;primaryKey"`
-	BkIdcCityID     int                    `gorm:"column:bk_idc_city_id"`
-	BkBizID         int                    `gorm:"column:bk_biz_id"`
-	LogicalCityID   int                    `gorm:"column:logical_city_id"`
-	LogicalCityName string                 `gorm:"column:logcial_city_name"`
-	Cluster         string                 `gorm:"column:cluster"`
-	ClusterID       int                    `gorm:"column:cluster_id"`
-	ClusterType     DbmMetadataClusterType `gorm:"column:cluster_type"`
-	MachineType     DbmMetadataMachineType `gorm:"column:machine_type"`
-	Status          string                 `gorm:"column:status"`
-	BindEntry       BindEntryType          `gorm:"column:bind_entry;type:json"`
-	CreatedAt       time.Time              `gorm:"column:created_at;autoCreateTime"`
-	UpdatedAt       time.Time              `gorm:"column:updated_at;autoUpdateTime"`
-	DeletedAt       time.Time              `gorm:"column:deleted_at;index"`
-	SyncDuration    time.Duration          `gorm:"column:sync_duration;type:bigint"`
+	BkCloudID        int                    `gorm:"column:bk_cloud_id;primaryKey"`
+	IP               string                 `gorm:"column:ip;primaryKey"`
+	Port             int                    `gorm:"column:port;primaryKey"`
+	AdminPort        int                    `gorm:"column:admin_port"`
+	BkIdcCityID      int                    `gorm:"column:bk_idc_city_id"`
+	BkBizID          int                    `gorm:"column:bk_biz_id"`
+	LogicalCityID    int                    `gorm:"column:logical_city_id"`
+	LogicalCityName  string                 `gorm:"column:logcial_city_name"`
+	Cluster          string                 `gorm:"column:cluster"`
+	ClusterID        int                    `gorm:"column:cluster_id"`
+	ClusterType      DbmMetadataClusterType `gorm:"column:cluster_type"`
+	MachineType      DbmMetadataMachineType `gorm:"column:machine_type"`
+	Status           string                 `gorm:"column:status"`
+	InstanceRole     string                 `gorm:"column:instance_role"`
+	Receiver         string                 `gorm:"column:receiver;type:mediumtext"`
+	BindEntry        string                 `gorm:"column:bind_entry;type:mediumtext"`
+	ProxyInstanceSet string                 `gorm:"column:proxy_insts;type:mediumtext"`
+	BinlogDumperSet  string                 `gorm:"column:binlog_dumpers;type:mediumtext"`
+	CreatedAt        time.Time              `gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt        time.Time              `gorm:"column:updated_at;autoUpdateTime"`
+	DeletedAt        time.Time              `gorm:"column:deleted_at;index"`
+	SyncDuration     time.Duration          `gorm:"column:sync_duration;type:bigint"`
 }
 
 // TableName returns the table name for the DbmMetadata model.
 func (t DbmMetadata) TableName() string {
 	return DbmMetadataTableName
-}
-
-// the "status" in metadata.
-type DbmMetadataStatus string
-
-const (
-	RUNNING     DbmMetadataStatus = "running"
-	UNAVAILABLE DbmMetadataStatus = "unavailable"
-	AVAILABLE   DbmMetadataStatus = "available"
-)
-
-// the "instance_role" in metadata.
-type DbmMetadataInstanceRole string
-
-const (
-	// mysql instance role
-	MySQLStorageMaster   DbmMetadataInstanceRole = "backend_master"
-	MySQLStorageSlave    DbmMetadataInstanceRole = "backend_slave"
-	MySQLStorageRepeater DbmMetadataInstanceRole = "backend_repeater"
-
-	// tendbcluster instance role
-	TenDBClusterStorageMaster DbmMetadataInstanceRole = "remote_master"
-	TenDBClusterStorageSlave  DbmMetadataInstanceRole = "remote_slave"
-	TenDBClusterProxyMaster   DbmMetadataInstanceRole = "spider_master"
-	TenDBClusterProxySlave    DbmMetadataInstanceRole = "spider_slave"
-)
-
-// the "spider_role" in metadata.
-type DbmMetadataSpiderRole string
-
-const (
-	TenDBClusterSpiderMaster DbmMetadataSpiderRole = "spider_master"
-	TenDBClusterSpiderSlave  DbmMetadataSpiderRole = "spider_slave"
-)
-
-// DbmMetadataSlaveInfo defined "receiver" info in metadata.
-type DbmMetadataSlaveInfo struct {
-	Ip        string            `json:"ip"`
-	Port      int               `json:"port"`
-	IsStandBy bool              `json:"is_stand_by"`
-	Status    DbmMetadataStatus `json:"status"`
-}
-
-// BindEntryPolarisInfo defined "polaris" info of "bind_entry" in metadata.
-type BindEntryPolarisInfo struct {
-	Service string `json:"polaris_name"`
-	Token   string `json:"polaris_token"`
-	L5      string `json:"polaris_l5"`
-	// the ip list bind to clb
-	BindIps  []string `json:"bind_ips"`
-	BindPort int      `json:"bind_port"`
-}
-
-// BindEntryClbInfo defined "clb" info of "bind_entry" in metadata.
-type BindEntryClbInfo struct {
-	Region        string `json:"clb_region"`
-	LoadBalanceId string `json:"clb_id"`
-	ListenId      string `json:"listener_id"`
-	Ip            string `json:"clb_ip"`
-
-	// the ip list bind to clb
-	BindIps  []string `json:"bind_ips"`
-	BindPort int      `json:"bind_port"`
-}
-
-// BindEntryDnsInfo defined "dns" info of "bind_entry" in metadata.
-type BindEntryDnsInfo struct {
-	DomainName     string   `json:"domain"`
-	EntryRole      string   `json:"entry_role"`
-	BindIps        []string `json:"bind_ips"`
-	BindPort       int      `json:"bind_port"`
-	ForwardEntryId int      `json:"forward_entry_id"`
-}
-
-// DbmMetadataBindEntry defined "bind_entry" info in metadata.
-type DbmMetadataBindEntry struct {
-	DNS     []BindEntryDnsInfo
-	Polaris []BindEntryPolarisInfo
-	CLB     []BindEntryClbInfo
-}
-
-// DbmMetadataProxyInstance defined "proxyinstance" info in metadata.
-type DbmMetadataProxyInstance struct {
-	Ip        string            `json:"ip"`
-	Port      int               `json:"port"`
-	AdminPort int               `json:"admin_port"`
-	Status    DbmMetadataStatus `json:"status"`
-}
-
-// DbmMetadataBinlogDumper defined "tbinlogdumper" info in metadata.
-type DbmMetadataBinlogDumper struct {
-	Ip   string `json:"ip"`
-	Port int    `json:"port"`
 }

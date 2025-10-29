@@ -27,16 +27,16 @@ package switcher
 import (
 	"database/sql"
 
-	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
+	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 )
 
 // SpiderInstanceInfo represents spider node information in TenDBCluster
 type SpiderInstanceInfo struct {
-	IP         string                        `json:"ip"`
-	Port       int                           `json:"port"`
-	AdminPort  int                           `json:"admin_port"`
-	SpiderRole hamodel.DbmMetadataSpiderRole `json:"spider_role"`
-	Status     hamodel.DbmMetadataStatus     `json:"status"`
+	IP         string                    `json:"ip"`
+	Port       int                       `json:"port"`
+	AdminPort  int                       `json:"admin_port"`
+	SpiderRole dbm.DbmMetadataSpiderRole `json:"spider_role"`
+	Status     dbm.DbmMetadataStatus     `json:"status"`
 }
 
 // TdbctlRouteInfo contains TDBCTL routing information

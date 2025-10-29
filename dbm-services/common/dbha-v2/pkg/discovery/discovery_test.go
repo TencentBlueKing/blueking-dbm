@@ -56,7 +56,7 @@ func TestGet(t *testing.T) {
 	if err == nil {
 		t.Errorf("expected return error when get null key")
 	}
-	if err.(*gerrors.Error).Code() != gerrors.NotExists {
+	if err.(*gerrors.Error).Code() != gerrors.NotExist.Int() {
 		t.Errorf("expected err code is NotExists, actual code is %v", err.(*gerrors.Error).Code())
 	}
 
@@ -112,7 +112,7 @@ func TestInvalidParametes(t *testing.T) {
 	if err == nil {
 		t.Errorf("expected watch error for empty key watch")
 	}
-	if err.(*gerrors.Error).Code() != gerrors.InvalidParameter {
+	if err.(*gerrors.Error).Code() != gerrors.InvalidParameter.Int() {
 		t.Errorf("expected watch error code: InvalidParameter, actual: %v", err.(*gerrors.Error).Code())
 	}
 
@@ -120,7 +120,7 @@ func TestInvalidParametes(t *testing.T) {
 	if err == nil {
 		t.Errorf("expected watchWithPrefix error for empty key watch")
 	}
-	if err.(*gerrors.Error).Code() != gerrors.InvalidParameter {
+	if err.(*gerrors.Error).Code() != gerrors.InvalidParameter.Int() {
 		t.Errorf("expected watchWithPrefix error code: InvalidParameter, actual: %v", err.(*gerrors.Error).Code())
 	}
 }
