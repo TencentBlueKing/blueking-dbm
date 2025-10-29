@@ -113,7 +113,7 @@ func (dbm *DbmClient) UpdateInstanceStatus(ip string, port int, status hamodel.D
 	response, err := dbm.SendRequest(config.Cfg.Workflow.DbmApiUpdateStatus.Api, hanet.HttpMethodPost,
 		req, config.Cfg.Workflow.DbmApiUpdateStatus.Timeout)
 	if err != nil {
-		logger.Error("failed to update instance [%s:%d] status, errmsg:%s", ip, port, err.Error())
+		logger.Error("failed to update instance (%s:%d) status, errmsg:%s", ip, port, err.Error())
 		return err
 	}
 
@@ -148,7 +148,7 @@ func (dbm *DbmClient) DeleteFromDomain(domainName string, instance string, app s
 	}
 
 	if domainDeleteRes.RowsNum != 1 {
-		errMsg := fmt.Sprintf("rowsAffected = %d, delete instance [%s] (app=%s) from domain [%s] failed",
+		errMsg := fmt.Sprintf("rowsAffected = %d, delete instance (%s) (app=%s) from domain (%s) failed",
 			domainDeleteRes.RowsNum, instance, app, domainName)
 		return gerrors.New(gerrors.Failure, errMsg)
 	}
@@ -170,7 +170,7 @@ func (dbm *DbmClient) DeleteFromCLB(region string, lbid string, lnid string, ins
 	response, err := dbm.SendRequest(config.Cfg.Workflow.DbmApiCLBDeregister.Api, hanet.HttpMethodPost,
 		req, config.Cfg.Workflow.DbmApiCLBDeregister.Timeout)
 	if err != nil {
-		logger.Error("failed to deregister instance [%s] from CLB, errMsg: %s", ins, err.Error())
+		logger.Error("failed to deregister instance (%s) from CLB, errmsg: %s", ins, err.Error())
 		return err
 	}
 
@@ -192,7 +192,7 @@ func (dbm *DbmClient) DeleteFromPolaris(servname string, servtoken string, ins s
 	response, err := dbm.SendRequest(config.Cfg.Workflow.DbmApiPolarisUnbind.Api, hanet.HttpMethodPost,
 		req, config.Cfg.Workflow.DbmApiPolarisUnbind.Timeout)
 	if err != nil {
-		logger.Error("failed to unbind instance [%s] from Polaris, %s", ins, err.Error())
+		logger.Error("failed to unbind instance (%s) from Polaris, %s", ins, err.Error())
 		return err
 	}
 
@@ -223,7 +223,7 @@ func (dbm *DbmClient) SwapMySQLRole(masterIp string, masterPort int, slaveIp str
 	response, err := dbm.SendRequest(config.Cfg.Workflow.DbmApiSwapMysqlRole.Api, hanet.HttpMethodPost,
 		req, config.Cfg.Workflow.DbmApiSwapMysqlRole.Timeout)
 	if err != nil {
-		logger.Error("failed to swap role of master[%s:%d] and slave[%s:%d], errMsg: %s",
+		logger.Error("failed to swap role of master(%s:%d) and slave(%s:%d), errmsg: %s",
 			masterIp, masterPort, slaveIp, slavePort, err.Error())
 		return err
 	}
@@ -246,7 +246,7 @@ func (dbm *DbmClient) SwitchBinlogDumper(app string, switchInfos []DumperSwitchI
 	response, err := dbm.SendRequest(config.Cfg.Workflow.DbmApiDumperSwitch.Api, hanet.HttpMethodPost,
 		req, config.Cfg.Workflow.DbmApiDumperSwitch.Timeout)
 	if err != nil {
-		logger.Error("failed to switch binlogdumper, errMsg: %s", err.Error())
+		logger.Error("failed to switch binlogdumper, errmsg: %s", err.Error())
 		return err
 	}
 

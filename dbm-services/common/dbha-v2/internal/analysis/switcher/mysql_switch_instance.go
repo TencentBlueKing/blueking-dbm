@@ -239,7 +239,7 @@ func NewMySQLSwitchInstance(metadata *MySQLInstanceMetadata) (SwitchableInstance
 		}
 		return res, nil
 	default:
-		logger.Error("Unknown machine type[%s] for MySQL switch instance constructor ", metadata.MachineType)
+		logger.Error("Unknown machine type(%s) for MySQL switch instance constructor ", metadata.MachineType)
 		return nil, gerrors.New(gerrors.InvalidParameter, "Invalid machine type")
 	}
 }
@@ -265,7 +265,7 @@ func (sw *MySQLBaseSwitchInstance) GetBinlogDumperInfo() string {
 		for _, dumper := range sw.BinlogDumperSet {
 			dumperInfos = append(dumperInfos, fmt.Sprintf("%s:%d", dumper.Ip, dumper.Port))
 		}
-		dumperInfo = fmt.Sprintf("[%s]", strings.Join(dumperInfos, ","))
+		dumperInfo = fmt.Sprintf("(%s)", strings.Join(dumperInfos, ","))
 	}
 	return dumperInfo
 }
@@ -331,21 +331,21 @@ func (sw *MySQLBaseSwitchInstance) GetSlaveStatusPartialInfo(slaveDB *hamysql.DB
 	ret := &SlaveStatusPartialInfo{}
 
 	if !strings.EqualFold(slaveStatus.SlaveSQLRunning, "Yes") {
-		errMsg := fmt.Sprintf("slave node[%s:%d] is abnormal(Slave_SQL_Running:'%s')",
+		errMsg := fmt.Sprintf("slave node(%s:%d) is abnormal(Slave_SQL_Running:'%s')",
 			ip, port, slaveStatus.SlaveSQLRunning)
 		return nil, gerrors.New(gerrors.NodeAbnormal, errMsg)
 	}
 
 	ret.MasterLogFileIndex, err = parseMasterLogFileIndex(slaveStatus.MasterLogFile)
 	if err != nil {
-		errMsg := fmt.Sprintf("failed to parse the master log file of slave node[%s:%d] (Master_Log_File:'%s'): %s",
+		errMsg := fmt.Sprintf("failed to parse the master log file of slave node(%s:%d) (Master_Log_File:'%s'): %s",
 			ip, port, slaveStatus.MasterLogFile, err.Error())
 		return nil, gerrors.New(gerrors.NodeAbnormal, errMsg)
 	}
 
 	ret.RelayMasterLogFileIndex, err = parseMasterLogFileIndex(slaveStatus.RelayMasterLogFile)
 	if err != nil {
-		errMsg := fmt.Sprintf("failed to parse the relay master log file of slave node[%s:%d] "+
+		errMsg := fmt.Sprintf("failed to parse the relay master log file of slave node(%s:%d) "+
 			"(Relay_Master_Log_File:'%s'): %s", ip, port, slaveStatus.RelayMasterLogFile, err.Error())
 		return nil, gerrors.New(gerrors.NodeAbnormal, errMsg)
 	}
@@ -370,27 +370,27 @@ func (sw *MySQLBaseSwitchInstance) CheckSqlReplicationDelay(slaveDB *hamysql.DB,
 	var varQueryRes MySQLVariableResult
 	err := slaveDB.DB().Raw("show variables like 'max_binlog_size'").Scan(&varQueryRes).Error
 	if err != nil {
-		logger.Error("query max_binlog_size from [%s:%d] failed. err: %s", ip, port, err.Error())
+		logger.Error("failed to query max_binlog_size from (%s:%d). errmsg: %s", ip, port, err.Error())
 		return err
 	}
 
 	maxBinlogSize, parseErr := strconv.ParseUint(varQueryRes.Value, 10, 64)
 	if parseErr != nil {
-		logger.Error("parse max_binlog_size('%s') to uint failed. err: %s", varQueryRes.Value, parseErr.Error())
+		logger.Error("failed to parse max_binlog_size('%s') to uint. errmsg: %s", varQueryRes.Value, parseErr.Error())
 		return parseErr
 	}
 	logger.Info("the slave node's max_binlog_size is %dMB!", maxBinlogSize/1024/1024)
 
 	slaveStatus, err := sw.GetSlaveStatusPartialInfo(slaveDB)
 	if err != nil {
-		logger.Error("failed to query slave status. err:%s", err.Error())
+		logger.Error("failed to query slave status. errmsg:%s", err.Error())
 		return err
 	}
 	logger.Info("Relay_Master_Log_File_Index:%d, Exec_Master_Log_Pos:%d",
 		slaveStatus.RelayMasterLogFileIndex, slaveStatus.ReadMasterLogPos)
 
 	if slaveStatus.MasterHost != sw.Ip || slaveStatus.MasterPort != sw.Port {
-		errMsg := fmt.Sprintf("the slave's master info[%s:%d] and the broken-down instance[%s:%d] are not equal",
+		errMsg := fmt.Sprintf("the slave's master info(%s:%d) and the broken-down instance(%s:%d) are not equal",
 			slaveStatus.MasterHost, slaveStatus.MasterPort, sw.Ip, sw.Port)
 		return gerrors.New(gerrors.NodeAbnormal, errMsg)
 	}
@@ -404,19 +404,19 @@ func (sw *MySQLBaseSwitchInstance) CheckSqlReplicationDelay(slaveDB *hamysql.DB,
 		(slaveStatus.ExecMasterLogPos / 1024) + (slaveStatus.ReadMasterLogPos / 1024)
 
 	if realSlowKBytes <= uint64(allowSlowKBytes) {
-		sw.ReportLog(SwitchInfo, fmt.Sprintf("Status check of slave node [%s:%d] passed", ip, port))
+		sw.ReportLog(SwitchInfo, fmt.Sprintf("Status check of slave node (%s:%d) passed", ip, port))
 		return nil
 	}
 
 	loop := 10
-	sw.ReportLog(SwitchInfo, fmt.Sprintf("the slave[%s:%d] was delayed for %dKB, which is larger than allowed[%dKB]"+
+	sw.ReportLog(SwitchInfo, fmt.Sprintf("the slave(%s:%d) was delayed for %dKB, which is larger than allowed(%dKB)"+
 		"Try to wait in a loop", ip, port, realSlowKBytes, allowSlowKBytes))
 	var i int
 	for i = 0; i < loop; i++ {
 		time.Sleep(3 * time.Second)
 		tmpSlaveStatus, err := sw.GetSlaveStatusPartialInfo(slaveDB)
 		if err != nil {
-			logger.Error("failed to query slave status. err:%s", err.Error())
+			logger.Error("failed to query slave status. errmsg:%s", err.Error())
 			return err
 		}
 		realSlowKBytes = uint64(tmpSlaveStatus.MasterLogFileIndex-tmpSlaveStatus.RelayMasterLogFileIndex)*
@@ -425,16 +425,16 @@ func (sw *MySQLBaseSwitchInstance) CheckSqlReplicationDelay(slaveDB *hamysql.DB,
 			// TODO: for GTID
 			break
 		}
-		logger.Warn("Loop [%d]: the slave[%s:%d] was delayed for %dKB, which is larger than allowed[%dKB]",
+		logger.Warn("Loop (%d): the slave(%s:%d) was delayed for %dKB, which is larger than allowed(%dKB)",
 			i, ip, port, realSlowKBytes, allowSlowKBytes)
 	}
 	if i == loop {
-		errMsg := fmt.Sprintf("after waiting for %d loops, the slave[%s:%d] was still delayed too much",
+		errMsg := fmt.Sprintf("after waiting for %d loops, the slave(%s:%d) was still delayed too much",
 			loop, ip, port)
 		return gerrors.New(gerrors.NodeAbnormal, errMsg)
 	}
 
-	sw.ReportLog(SwitchInfo, fmt.Sprintf("Status check of slave node [%s:%d] passed", ip, port))
+	sw.ReportLog(SwitchInfo, fmt.Sprintf("Status check of slave node (%s:%d) passed", ip, port))
 	return nil
 }
 
@@ -452,13 +452,13 @@ func (sw *MySQLBaseSwitchInstance) GetSlaveCheckSum(db *hamysql.DB) (int, int, e
 
 	err := db.DB().Raw(CheckSumSQL).Scan(&checksumCnt).Error
 	if err != nil {
-		logger.Error("failed to get checksumCnt from node[%s:%d], err: %s", ip, port, err.Error())
+		logger.Error("failed to get checksumCnt from node(%s:%d), errmsg: %s", ip, port, err.Error())
 		return 0, 0, err
 	}
 
 	err = db.DB().Raw(CheckSumFailSQL).Scan(&checksumFailCnt).Error
 	if err != nil {
-		logger.Error("failed to get checksumFailCnt from node[%s:%d], err: %s", ip, port, err.Error())
+		logger.Error("failed to get checksumFailCnt from node(%s:%d), errmsg: %s", ip, port, err.Error())
 		return checksumCnt, 0, err
 	}
 
@@ -476,7 +476,7 @@ func (sw *MySQLBaseSwitchInstance) GetSlaveTimeDelay(slaveDB *hamysql.DB) (int, 
 	slaveStatus := SlaveStatusInfo{}
 	err := slaveDB.DB().Raw("show slave status").Scan(&slaveStatus).Error
 	if err != nil {
-		logger.Error("failed to query slave status of [%s:%d]. err: %s", ip, port, err.Error())
+		logger.Error("failed to query slave status of (%s:%d), errmsg: %s", ip, port, err.Error())
 		return 0, 0, err
 	}
 	logger.Debug("slave status info: %v", slaveStatus)
@@ -484,7 +484,7 @@ func (sw *MySQLBaseSwitchInstance) GetSlaveTimeDelay(slaveDB *hamysql.DB) (int, 
 	delayInfo := SlaveTimeDelayInfo{}
 	err = slaveDB.DB().Raw(CheckDelaySQL, slaveStatus.MasterServerID).Scan(&delayInfo).Error
 	if err != nil {
-		logger.Error("failed to query slave[%s:%d] delay info, err: %s", ip, port, err.Error())
+		logger.Error("failed to query slave(%s:%d) delay info, errmsg: %s", ip, port, err.Error())
 		return 0, 0, err
 	}
 
@@ -511,7 +511,7 @@ func (sw *MySQLBaseSwitchInstance) HasUserCreatedDatabase(db *hamysql.DB) (bool,
 	var databases []string
 	err := db.DB().Raw("show databases").Scan(&databases).Error
 	if err != nil {
-		logger.Error("failed to get all databases from node[%s:%d], err:%s", ip, port, err.Error())
+		logger.Error("failed to get all databases from node(%s:%d), errmsg: %s", ip, port, err.Error())
 		return false, err
 	}
 
@@ -521,23 +521,23 @@ func (sw *MySQLBaseSwitchInstance) HasUserCreatedDatabase(db *hamysql.DB) (bool,
 		}
 	}
 
-	logger.Info("no user-created database found on node[%s:%d]", ip, port)
+	logger.Info("no user-created database found on node(%s:%d)", ip, port)
 	return false, nil
 }
 
 // CheckSlaveCheckSum checks the slave checksum status
 func (sw *MySQLBaseSwitchInstance) CheckSlaveCheckSum(ip string, port int, checksumCnt int, checksumFailCnt int) error {
 	if checksumCnt < 1 {
-		return gerrors.Newf(gerrors.NodeAbnormal, "No checksum was done on db[%s:%d]", ip, port)
+		return gerrors.Newf(gerrors.NodeAbnormal, "No checksum was done on db(%s:%d)", ip, port)
 	}
-	logger.Debug("Checksum was done on slave db[%s:%d]", ip, port)
+	logger.Debug("Checksum was done on slave db(%s:%d)", ip, port)
 
 	if checksumFailCnt > AllowedMaxChecksumFailCnt {
-		return gerrors.Newf(gerrors.NodeAbnormal, "Checksum failure count [%d] of db[%s:%d] "+
-			"is larger than allowed [%d]", checksumFailCnt, ip, port, AllowedMaxChecksumFailCnt)
+		return gerrors.Newf(gerrors.NodeAbnormal, "Checksum failure count (%d) of db(%s:%d) "+
+			"is larger than allowed (%d)", checksumFailCnt, ip, port, AllowedMaxChecksumFailCnt)
 	}
-	sw.ReportLogf(SwitchInfo, "Checksum failure count [%d] of db[%s:%d] is in "+
-		"allowed range[%d]", checksumFailCnt, ip, port, AllowedMaxChecksumFailCnt)
+	sw.ReportLogf(SwitchInfo, "Checksum failure count (%d) of db(%s:%d) is in "+
+		"allowed range(%d)", checksumFailCnt, ip, port, AllowedMaxChecksumFailCnt)
 
 	return nil
 }
@@ -545,17 +545,17 @@ func (sw *MySQLBaseSwitchInstance) CheckSlaveCheckSum(ip string, port int, check
 // CheckSlaveTimeDelay checks the slave time delay
 func (sw *MySQLBaseSwitchInstance) CheckSlaveTimeDelay(ip string, port int, slaveDelay int, timeDelay int) error {
 	if slaveDelay >= AllowedMaxSlaveDelay {
-		return gerrors.Newf(gerrors.NodeAbnormal, "IO_Thread delay [%d] on slave[%s:%d] is larger than allowed [%d]",
+		return gerrors.Newf(gerrors.NodeAbnormal, "IO_Thread delay (%d) on slave(%s:%d) is larger than allowed (%d)",
 			slaveDelay, ip, port, AllowedMaxSlaveDelay)
 	}
-	sw.ReportLogf(SwitchInfo, "IO_Thread delay [%d] on slave[%s:%d] is in allowed range[%d]",
+	sw.ReportLogf(SwitchInfo, "IO_Thread delay (%d) on slave(%s:%d) is in allowed range(%d)",
 		slaveDelay, ip, port, AllowedMaxSlaveDelay)
 
 	if timeDelay >= AllowedMaxTimeDelay {
-		return gerrors.Newf(gerrors.NodeAbnormal, "heartbeat delay [%d] on slave[%s:%d] is larger than allowed [%d]",
+		return gerrors.Newf(gerrors.NodeAbnormal, "heartbeat delay (%d) on slave(%s:%d) is larger than allowed (%d)",
 			timeDelay, ip, port, AllowedMaxTimeDelay)
 	}
-	sw.ReportLogf(SwitchInfo, "heartbeat delay [%d] on slave[%s:%d] is in allowed range[%d]",
+	sw.ReportLogf(SwitchInfo, "heartbeat delay (%d) on slave(%s:%d) is in allowed range(%d)",
 		timeDelay, ip, port, AllowedMaxTimeDelay)
 
 	return nil
@@ -578,14 +578,14 @@ func (sw *MySQLBaseSwitchInstance) CheckSlaveStatus() error {
 		hamysql.OptionDBName(MySQLDefaultDB),
 	)
 	if err != nil {
-		logger.Warn("create mysql instance[%s:%d] failed, %v", ip, port, err)
+		logger.Warn("create mysql instance(%s:%d) failed, %v", ip, port, err)
 		return err
 	}
 
 	defer func() {
 		con, _ := slaveDB.DB().DB()
 		if err = con.Close(); err != nil {
-			logger.Warn("close slave DB connect[%s#%d] failed: %s", ip, port, err.Error())
+			logger.Warn("close slave DB connect(%s:%d) failed: %s", ip, port, err.Error())
 		}
 	}()
 
@@ -618,13 +618,13 @@ func (sw *MySQLBaseSwitchInstance) CheckSlaveStatus() error {
 		checksumCnt, checksumFailCnt, slaveDelay, timeDelay)
 
 	if !needCheck {
-		sw.ReportLogf(SwitchInfo, "No user-created database found on db[%s:%d], skip checksum check", ip, port)
+		sw.ReportLogf(SwitchInfo, "No user-created database found on db(%s:%d), skip checksum check", ip, port)
 		return nil
 	}
 
 	if sw.Status == hamodel.AVAILABLE { // Is this necessary? Actually the delay check is not skipped
 		checksumCnt, checksumFailCnt, slaveDelay, timeDelay = 1, 0, 0, 0
-		sw.ReportLogf(SwitchInfo, "instance[%s:%d] is available, skip the check of delay and checksum", ip, port)
+		sw.ReportLogf(SwitchInfo, "instance(%s:%d) is available, skip the check of delay and checksum", ip, port)
 	}
 
 	if err = sw.CheckSlaveCheckSum(ip, port, checksumCnt, checksumFailCnt); err != nil {
@@ -651,9 +651,9 @@ func (sw *MySQLBaseSwitchInstance) StopSlave(slaveDB *hamysql.DB) error {
 	err := slaveDB.DB().Exec(stopSlaveSQL).Error
 	if err != nil {
 		return gerrors.Newf(gerrors.Failure,
-			"failed to stop slave on node[%s:%d], err:%s", slaveIp, slavePort, err.Error())
+			"failed to stop slave on node(%s:%d), errmsg: %s", slaveIp, slavePort, err.Error())
 	}
-	logger.Info("execute '%s' successfully on slave[%s:%d]", stopSlaveSQL, slaveIp, slavePort)
+	logger.Info("execute '%s' successfully on slave(%s:%d)", stopSlaveSQL, slaveIp, slavePort)
 	return nil
 }
 
@@ -670,9 +670,9 @@ func (sw *MySQLBaseSwitchInstance) StartSlave(slaveDB *hamysql.DB) error {
 	err := slaveDB.DB().Exec(startSlaveSQL).Error
 	if err != nil {
 		return gerrors.Newf(gerrors.Failure,
-			"failed to start slave on node[%s:%d], err:%s", slaveIp, slavePort, err.Error())
+			"failed to start slave on node(%s:%d), errmsg: %s", slaveIp, slavePort, err.Error())
 	}
-	logger.Info("execute '%s' successfully on slave[%s:%d]", startSlaveSQL, slaveIp, slavePort)
+	logger.Info("execute '%s' successfully on slave(%s:%d)", startSlaveSQL, slaveIp, slavePort)
 	return nil
 }
 
@@ -690,9 +690,9 @@ func (sw *MySQLBaseSwitchInstance) ShowMasterStatus(db *hamysql.DB) (*MasterStat
 	err := db.DB().Raw(showMasterSQL).Scan(masterStatus).Error
 	if err != nil {
 		return nil, gerrors.Newf(gerrors.Failure,
-			"failed to get master status on node[%s:%d], err:%s", slaveIp, slavePort, err.Error())
+			"failed to get master status on node(%s:%d), errmsg: %s", slaveIp, slavePort, err.Error())
 	}
-	logger.Info("execute '%s' successfully on node[%s:%d]", showMasterSQL, slaveIp, slavePort)
+	logger.Info("execute '%s' successfully on node(%s:%d)", showMasterSQL, slaveIp, slavePort)
 
 	return masterStatus, nil
 }
@@ -711,9 +711,9 @@ func (sw *MySQLBaseSwitchInstance) ShowSlaveStatus(slaveDB *hamysql.DB) (*SlaveS
 	err := slaveDB.DB().Raw(showSlaveSQL).Scan(slaveStatus).Error
 	if err != nil {
 		return nil, gerrors.Newf(gerrors.Failure,
-			"failed to get slave status on node[%s:%d], err:%s", slaveIp, slavePort, err.Error())
+			"failed to get slave status on node(%s:%d), errmsg: %s", slaveIp, slavePort, err.Error())
 	}
-	logger.Info("execute '%s' successfully on node[%s:%d]", showSlaveSQL, slaveIp, slavePort)
+	logger.Info("execute '%s' successfully on node(%s:%d)", showSlaveSQL, slaveIp, slavePort)
 
 	return slaveStatus, nil
 }
@@ -731,9 +731,9 @@ func (sw *MySQLBaseSwitchInstance) ResetSlave(slaveDB *hamysql.DB) error {
 	err := slaveDB.DB().Exec(resetSlaveSQL).Error
 	if err != nil {
 		return gerrors.Newf(gerrors.Failure,
-			"failed to reset slave on node[%s:%d], err:%s", slaveIp, slavePort, err.Error())
+			"failed to reset slave on node(%s:%d), errmsg: %s", slaveIp, slavePort, err.Error())
 	}
-	logger.Info("execute '%s' successfully on slave[%s:%d]", resetSlaveSQL, slaveIp, slavePort)
+	logger.Info("execute '%s' successfully on slave(%s:%d)", resetSlaveSQL, slaveIp, slavePort)
 
 	return nil
 }
@@ -749,14 +749,14 @@ func (sw *MySQLBaseSwitchInstance) ResetSlaveWithBinlogPos(slaveIp string, slave
 		hamysql.OptionDBName(MySQLDefaultDB),
 	)
 	if err != nil {
-		logger.Warn("create slave mysql instance[%s:%d] failed, %v", slaveIp, slavePort, err)
+		logger.Warn("create slave mysql instance(%s:%d) failed, %v", slaveIp, slavePort, err)
 		return "", 0, err
 	}
 
 	defer func() {
 		con, _ := slaveDB.DB().DB()
 		if err = con.Close(); err != nil {
-			logger.Warn("close slave DB connect[%s#%d] failed: %s", slaveIp, slavePort, err.Error())
+			logger.Warn("close slave DB connect(%s:%d) failed: %s", slaveIp, slavePort, err.Error())
 		}
 	}()
 
@@ -790,14 +790,14 @@ func (sw *MySQLBaseSwitchInstance) ChangeMasterAuto(slaveIp string, slavePort in
 		hamysql.OptionDBName(MySQLDefaultDB),
 	)
 	if err != nil {
-		logger.Warn("create slave mysql instance[%s:%d] failed, %v", slaveIp, slavePort, err)
+		logger.Warn("create slave mysql instance(%s:%d) failed, %v", slaveIp, slavePort, err)
 		return err
 	}
 
 	defer func() {
 		con, _ := slaveDB.DB().DB()
 		if err = con.Close(); err != nil {
-			logger.Warn("close slave DB connect[%s#%d] failed: %s", slaveIp, slavePort, err.Error())
+			logger.Warn("close slave DB connect(%s:%d) failed: %s", slaveIp, slavePort, err.Error())
 		}
 	}()
 
@@ -812,21 +812,21 @@ func (sw *MySQLBaseSwitchInstance) ChangeMasterAuto(slaveIp string, slavePort in
 	}
 
 	sw.ReportLog(SwitchInfo, fmt.Sprintf("Before switching to the new master node, "+
-		"the actual synchronization position of the slave node[%s:%d] is: [binlog_file:%s, binlog_pos:%d]",
+		"the actual synchronization position of the slave node(%s:%d) is: [binlog_file:%s, binlog_pos:%d]",
 		slaveIp, slavePort, slaveStatus.RelayMasterLogFile, slaveStatus.ExecMasterLogPos))
 
 	err = slaveDB.DB().Exec(changeMasterSQL).Error
 	if err != nil {
-		return gerrors.Newf(gerrors.Failure, "change master failed on node[%s:%d], err: %s",
+		return gerrors.Newf(gerrors.Failure, "change master failed on node(%s:%d), errmsg: %s",
 			slaveIp, slavePort, err.Error())
 	}
-	sw.ReportLog(SwitchInfo, fmt.Sprintf("Do CHANGE MASTER successfully on node[%s:%d]", slaveIp, slavePort))
+	sw.ReportLog(SwitchInfo, fmt.Sprintf("Do CHANGE MASTER successfully on node(%s:%d)", slaveIp, slavePort))
 
 	err = sw.StartSlave(slaveDB)
 	if err != nil {
 		return err
 	}
-	sw.ReportLog(SwitchInfo, fmt.Sprintf("Do START SLAVE successfully on node[%s:%d]", slaveIp, slavePort))
+	sw.ReportLog(SwitchInfo, fmt.Sprintf("Do START SLAVE successfully on node(%s:%d)", slaveIp, slavePort))
 
 	return nil
 }
@@ -858,12 +858,12 @@ func (sw *MySQLStorageSwitchInstance) GetInstanceInfo() string {
 func (sw *MySQLStorageSwitchInstance) CheckMySQLStorageMaster() (bool, error) {
 	logger.Info("Do check before switch, info{%s}", sw.GetInstanceInfo())
 	if sw.StandBySlave == nil {
-		err := gerrors.Newf(gerrors.Failure, "The standby slave of master[%s:%d] is nil", sw.Ip, sw.Port)
+		err := gerrors.Newf(gerrors.Failure, "The standby slave of master(%s:%d) is nil", sw.Ip, sw.Port)
 		sw.ReportLog(SwitchFail, err.Error())
 		return false, err
 	}
 	if sw.StandBySlave.Status == hamodel.UNAVAILABLE {
-		err := gerrors.Newf(gerrors.Failure, "The standby slave[%s:%d] of master[%s:%d] is unavailable",
+		err := gerrors.Newf(gerrors.Failure, "The standby slave(%s:%d) of master(%s:%d) is unavailable",
 			sw.StandBySlave.Ip, sw.StandBySlave.Port, sw.Ip, sw.Port)
 		sw.ReportLog(SwitchFail, err.Error())
 		return false, err
@@ -876,7 +876,7 @@ func (sw *MySQLStorageSwitchInstance) CheckMySQLStorageMaster() (bool, error) {
 
 	if len(sw.ProxyInstanceSet) == 0 {
 		err := gerrors.Newf(gerrors.Failure,
-			"No proxy instances were found for storage node[%s:%d]", sw.Ip, sw.Port)
+			"No proxy instances were found for storage node(%s:%d)", sw.Ip, sw.Port)
 		sw.ReportLog(SwitchFail, err.Error())
 		return false, err
 	}
@@ -889,10 +889,10 @@ func (sw *MySQLStorageSwitchInstance) CheckBeforeSwitch() (checkPass bool, err e
 	switch sw.InstanceRole {
 	case hamodel.MySQLStorageSlave:
 		checkPass = false
-		sw.ReportLogf(SwitchInfo, "The instance[%s:%d] is a slave node, no need to check", sw.Ip, sw.Port)
+		sw.ReportLogf(SwitchInfo, "The instance(%s:%d) is a slave node, no need to check", sw.Ip, sw.Port)
 	case hamodel.MySQLStorageRepeater:
 		checkPass = false
-		err = gerrors.Newf(gerrors.Failure, "The instance[%s:%d] is a repeater, dbha don't support", sw.Ip, sw.Port)
+		err = gerrors.Newf(gerrors.Failure, "The instance(%s:%d) is a repeater, dbha don't support", sw.Ip, sw.Port)
 		sw.ReportLog(SwitchFail, err.Error())
 	case hamodel.MySQLStorageMaster:
 		checkPass, err = sw.CheckMySQLStorageMaster()
@@ -918,14 +918,14 @@ func SwitchProxyBackendAddress(proxyIp string, proxyAdminPort int, proxyUser str
 		hamysql.OptionDBName(MySQLProxyDefaultDB),
 	)
 	if err != nil {
-		logger.Warn("create mysql instance[%s:%d] failed, %v", proxyIp, proxyAdminPort, err)
+		logger.Warn("create mysql instance(%s:%d) failed, %v", proxyIp, proxyAdminPort, err)
 		return err
 	}
 
 	defer func() {
 		con, _ := proxyDB.DB().DB()
 		if err = con.Close(); err != nil {
-			logger.Warn("close proxy DB connect[%s#%d] failed: %s", proxyIp, proxyAdminPort, err.Error())
+			logger.Warn("close proxy DB connect(%s:%d) failed: %s", proxyIp, proxyAdminPort, err.Error())
 		}
 	}()
 
@@ -934,7 +934,7 @@ func SwitchProxyBackendAddress(proxyIp string, proxyAdminPort int, proxyUser str
 
 	err = proxyDB.DB().Exec(switchSql).Error
 	if err != nil {
-		errMsg := fmt.Sprintf("failed to execute sql[%s], err:%s", switchSql, err.Error())
+		errMsg := fmt.Sprintf("failed to execute sql(%s), errmsg: %s", switchSql, err.Error())
 		logger.Error("%s", errMsg)
 		return gerrors.New(gerrors.Failure, errMsg)
 	}
@@ -942,7 +942,7 @@ func SwitchProxyBackendAddress(proxyIp string, proxyAdminPort int, proxyUser str
 	var backendList []ProxyBackendInfo
 	err = proxyDB.DB().Raw(querySql).Scan(&backendList).Error
 	if err != nil {
-		errMsg := fmt.Sprintf("failed to execute sql[%s], err:%s", querySql, err.Error())
+		errMsg := fmt.Sprintf("failed to execute sql(%s), errmsg: %s", querySql, err.Error())
 		logger.Error("%s", errMsg)
 		return gerrors.New(gerrors.Failure, errMsg)
 	}
@@ -950,12 +950,12 @@ func SwitchProxyBackendAddress(proxyIp string, proxyAdminPort int, proxyUser str
 	slaveAddress := fmt.Sprintf("%s:%d", slaveIp, slavePort)
 	for _, oneBackend := range backendList {
 		if oneBackend.Address == slaveAddress {
-			logger.Info("refreshing proxy[%s:%d] backend to %s worked", proxyIp, proxyAdminPort, slaveIp)
+			logger.Info("refreshing proxy(%s:%d) backend to %s worked", proxyIp, proxyAdminPort, slaveIp)
 			// TODO: There are some redundant processing logics in dbha-v1 here, will modify after understanding it better
 			return nil
 		}
 	}
-	errMsg := fmt.Sprintf("refreshing proxy[%s:%d] backend to %s didn't work", proxyIp, proxyAdminPort, slaveAddress)
+	errMsg := fmt.Sprintf("refreshing proxy(%s:%d) backend to %s didn't work", proxyIp, proxyAdminPort, slaveAddress)
 	logger.Error("%s", errMsg)
 	return gerrors.New(gerrors.Failure, errMsg)
 }
@@ -971,18 +971,18 @@ func (sw *MySQLStorageSwitchInstance) DoSwitch() error {
 
 	sw.ReportLog(SwitchInfo, "switch step 1: update all proxies' backends to 1.1.1.1 first")
 	for _, proxyIns := range sw.ProxyInstanceSet {
-		sw.ReportLog(SwitchInfo, fmt.Sprintf("try to refresh backends to 1.1.1.1 for the proxy[%s:%d]",
+		sw.ReportLog(SwitchInfo, fmt.Sprintf("try to refresh backends to 1.1.1.1 for the proxy(%s:%d)",
 			proxyIns.Ip, proxyIns.Port))
 		err := SwitchProxyBackendAddress(proxyIns.Ip, proxyIns.AdminPort, proxyUser, proxyPasswd,
 			"1.1.1.1", 3306)
 		if err != nil {
 			err = gerrors.Newf(gerrors.Failure,
-				"failed to refresh backends to 1.1.1.1 for the proxy[%s:%d], err: %s",
+				"failed to refresh backends to 1.1.1.1 for the proxy(%s:%d), errmsg: %s",
 				proxyIns.Ip, proxyIns.Port, err.Error())
 			sw.ReportLog(SwitchFail, err.Error())
 			return err
 		}
-		sw.ReportLog(SwitchInfo, fmt.Sprintf("refresh backends to 1.1.1.1 successfully for the proxy[%s:%d]",
+		sw.ReportLog(SwitchInfo, fmt.Sprintf("refresh backends to 1.1.1.1 successfully for the proxy(%s:%d)",
 			proxyIns.Ip, proxyIns.Port))
 	}
 	sw.ReportLog(SwitchInfo, "update all proxies' backends to 1.1.1.1 successfully")
@@ -990,7 +990,7 @@ func (sw *MySQLStorageSwitchInstance) DoSwitch() error {
 	sw.ReportLog(SwitchInfo, "switch step 2: reset slave status for the standby slave")
 	binlogFile, binlogPosition, err := sw.ResetSlaveWithBinlogPos(sw.StandBySlave.Ip, sw.StandBySlave.Port)
 	if err != nil {
-		err = gerrors.Newf(gerrors.Failure, "failed to reset slave status for the standby slave[%s:%d], err: %s",
+		err = gerrors.Newf(gerrors.Failure, "failed to reset slave status for the standby slave(%s:%d), errmsg: %s",
 			sw.StandBySlave.Ip, sw.StandBySlave.Port, err.Error())
 		sw.ReportLog(SwitchFail, err.Error())
 		return err
@@ -998,23 +998,23 @@ func (sw *MySQLStorageSwitchInstance) DoSwitch() error {
 
 	sw.NewMasterBinlogFile = binlogFile
 	sw.NewMasterBinlogPos = binlogPosition
-	sw.ReportLog(SwitchInfo, fmt.Sprintf("reset slave status successfully for the standby slave[%s:%d], "+
+	sw.ReportLog(SwitchInfo, fmt.Sprintf("reset slave status successfully for the standby slave(%s:%d), "+
 		"binlog info: [binlog_file:%s, binlog_pos:%d]",
 		sw.StandBySlave.Ip, sw.StandBySlave.Port, binlogFile, binlogPosition))
 
 	sw.ReportLog(SwitchInfo, "switch step 3: update all proxies' backends to the new master")
 	for _, proxyIns := range sw.ProxyInstanceSet {
-		sw.ReportLog(SwitchInfo, fmt.Sprintf("try to refresh backends to [%s:%d] for the proxy[%s:%d]",
+		sw.ReportLog(SwitchInfo, fmt.Sprintf("try to refresh backends to (%s:%d) for the proxy(%s:%d)",
 			sw.StandBySlave.Ip, sw.StandBySlave.Port, proxyIns.Ip, proxyIns.Port))
 		err = SwitchProxyBackendAddress(proxyIns.Ip, proxyIns.AdminPort, proxyUser,
 			proxyPasswd, sw.StandBySlave.Ip, sw.StandBySlave.Port)
 		if err != nil {
 			err = gerrors.Newf(gerrors.Failure,
-				"failed to refresh backends to [%s:%d] for the proxy[%s:%d], err: %s",
+				"failed to refresh backends to (%s:%d) for the proxy(%s:%d), errmsg: %s",
 				sw.StandBySlave.Ip, sw.StandBySlave.Port, proxyIns.Ip, proxyIns.Port, err.Error())
 			sw.ReportLog(SwitchFail, err.Error())
 		}
-		sw.ReportLog(SwitchInfo, fmt.Sprintf("refresh backends to [%s:%d] successfully for the proxy[%s:%d]",
+		sw.ReportLog(SwitchInfo, fmt.Sprintf("refresh backends to (%s:%d) successfully for the proxy(%s:%d)",
 			sw.StandBySlave.Ip, sw.StandBySlave.Port, proxyIns.Ip, proxyIns.Port))
 	}
 	sw.ReportLog(SwitchInfo, "update all proxies' backends to the new master successfully")
@@ -1026,7 +1026,7 @@ func (sw *MySQLStorageSwitchInstance) DoSwitch() error {
 func (sw *MySQLStorageSwitchInstance) UpdateMetaInfo() error {
 	err := sw.dbmClient.SwapMySQLRole(sw.Ip, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port)
 	if err != nil {
-		errMsg := fmt.Sprintf("swap db-mysql role [master:%s:%d, slave:%s:%d] failed. err:%s",
+		errMsg := fmt.Sprintf("swap db-mysql role [master:%s:%d, slave:%s:%d] failed. errmsg:%s",
 			sw.Ip, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port, err.Error())
 		sw.ReportLog(SwitchFail, errMsg)
 		return err
@@ -1038,13 +1038,13 @@ func (sw *MySQLStorageSwitchInstance) UpdateMetaInfo() error {
 
 // DoFinal performs final operations after switch completion
 func (sw *MySQLStorageSwitchInstance) DoFinal() error {
-	sw.ReportLog(SwitchInfo, fmt.Sprintf("Do final things after switch for node[%s:%d]",
+	sw.ReportLog(SwitchInfo, fmt.Sprintf("Do final things after switch for node(%s:%d)",
 		sw.Ip, sw.Port))
 
-	logger.Debug("tbinlogdumpers info of node[%s:%d]: %s", sw.Ip, sw.Port, sw.GetBinlogDumperInfo())
+	logger.Debug("tbinlogdumpers info of node(%s:%d): %s", sw.Ip, sw.Port, sw.GetBinlogDumperInfo())
 
 	if (sw.InstanceRole != hamodel.MySQLStorageSlave) || len(sw.BinlogDumperSet) == 0 {
-		sw.ReportLogf(SwitchInfo, "no need to switch tbinlogdumper for node[%s:%d]", sw.Ip, sw.Port)
+		sw.ReportLogf(SwitchInfo, "no need to switch tbinlogdumper for node(%s:%d)", sw.Ip, sw.Port)
 		return nil
 	}
 
@@ -1067,12 +1067,12 @@ func (sw *MySQLStorageSwitchInstance) DoFinal() error {
 
 	err := sw.dbmClient.SwitchBinlogDumper(sw.GetApp(), switchInfos)
 	if err != nil {
-		errMsg := fmt.Sprintf("failed to switch all tbinlogdumpers for the node[%s:%d], err:%s",
+		errMsg := fmt.Sprintf("failed to switch all tbinlogdumpers for the node(%s:%d), errmsg: %s",
 			sw.Ip, sw.Port, err.Error())
 		sw.ReportLog(SwitchFail, errMsg)
 		return gerrors.New(gerrors.Failure, errMsg)
 	}
-	sw.ReportLogf(SwitchInfo, "switch all tbinlogdumpers successfully for the node[%s:%d]",
+	sw.ReportLogf(SwitchInfo, "switch all tbinlogdumpers successfully for the node(%s:%d)",
 		sw.Ip, sw.Port)
 
 	return nil
@@ -1085,7 +1085,7 @@ type MySQLProxySwitchInstance struct {
 
 // DoSwitch deletes proxy instance from bound entries
 func (sw *MySQLProxySwitchInstance) DoSwitch() error {
-	sw.ReportLogf(SwitchInfo, "try to delete the proxy instance[%s:%d] from all bound entries",
+	sw.ReportLogf(SwitchInfo, "try to delete the proxy instance(%s:%d) from all bound entries",
 		sw.Ip, sw.Port)
 	return sw.DeleteNameService(sw.BindEntry)
 }
