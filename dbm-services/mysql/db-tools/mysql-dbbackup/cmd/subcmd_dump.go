@@ -276,7 +276,7 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 }
 
 // run backup
-// BeforeDump -> ExecuteBackup -> backupTarAndUpload
+// BeforeDump -> ExecuteBackup -> backupTarAndUpload(report)
 func (t *backupTask) run(ctx context.Context, cnf *config.BackupConfig) (err error) {
 	runner := backupexe.BackupRunner{}
 	logger.Log.Infof("Dbbackup begin for %d", cnf.Public.MysqlPort)
@@ -366,6 +366,7 @@ func (t *backupTask) run(ctx context.Context, cnf *config.BackupConfig) (err err
 	if exeErr != nil {
 		return exeErr
 	}
+
 	indexFilePath := path.Join(cnf.Public.BackupDir, cnf.Public.TargetName()+".index")
 	err = metaInfo.SaveIndexContent(indexFilePath)
 	if err != nil {

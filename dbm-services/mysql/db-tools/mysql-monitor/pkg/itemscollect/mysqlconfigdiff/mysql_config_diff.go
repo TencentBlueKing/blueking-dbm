@@ -37,6 +37,7 @@ func init() {
 		"binlog_format",
 		"max_connections",
 		"character_set_server",
+		"collation_server",
 		"log_bin",
 		"sql_log_bin",
 		"default_storage_engine",
@@ -70,6 +71,7 @@ func init() {
 		"spider_net_read_timeout",
 		"spider_net_write_timeout",
 		"sql_mode",
+		"group_concat_max_len",
 	}
 }
 

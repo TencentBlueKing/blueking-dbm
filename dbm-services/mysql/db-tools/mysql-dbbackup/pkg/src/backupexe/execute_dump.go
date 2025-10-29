@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/samber/lo"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
@@ -66,6 +68,7 @@ func (r *BackupRunner) ExecuteBackup(ctx context.Context, cnf *config.BackupConf
 	if envErr := SetEnv(cnf.Public.BackupType, r.mysqlVersion); envErr != nil {
 		return nil, envErr
 	}
+
 	// 考虑到 role 更新可能没那么及时，不论 master slave 都会去尝试获取 show slave status : master ip/port
 	slaveStatusInfo, err := mysqlconn.ShowMysqlSlaveStatus(db)
 	if err != nil && !strings.EqualFold(cnf.Public.MysqlRole, cst.RoleMaster) {
@@ -111,6 +114,12 @@ func (r *BackupRunner) ExecuteBackup(ctx context.Context, cnf *config.BackupConf
 			return nil, err
 		}
 		metaInfo.DataDirSizeMB = uint64(datadirSizeMB)
+	}
+	if strings.EqualFold(cnf.Public.BackupType, cst.BackupPhysical) && len(metaInfo.ExtraFields.DatabaseList) == 0 {
+		// 逻辑备份目前是从 mydumper 的文件列表里面解析获取
+		if allDatabases, err := mysqlconn.GetDatabases("", db); err == nil {
+			metaInfo.ExtraFields.DatabaseList = lo.Without(allDatabases, cst.SysDbsExcludeForFull...)
+		}
 	}
 
 	if err = buildMetaInfo(cnf, metaInfo); err != nil {
