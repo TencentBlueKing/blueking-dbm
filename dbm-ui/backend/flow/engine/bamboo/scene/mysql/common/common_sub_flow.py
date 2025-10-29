@@ -35,6 +35,9 @@ from backend.flow.plugins.components.collections.mysql.check_client_connections 
 from backend.flow.plugins.components.collections.mysql.check_slaves_delay import CheckSlavesDelayComponent
 from backend.flow.plugins.components.collections.mysql.clone_rules import CloneRulesComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.mysql_check_variable_consistency import (
+    MySQLCheckVariableConsistencyComponent,
+)
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.mysql_os_init import (
     GetOsSysParamComponent,
@@ -53,6 +56,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     DownloadMediaKwargs,
     ExecActuatorKwargs,
     InitCheckKwargs,
+    MySQLCheckVariableConsistencyKwargs,
     VerifyChecksumKwargs,
     YumInstallPerlKwargs,
 )
@@ -356,6 +360,41 @@ def check_sub_flow(
     sub_pipeline.add_parallel_acts(acts_list=act_list)
 
     return sub_pipeline.build_sub_process(sub_name=_("[{}]预检测".format(cluster.name)))
+
+
+def master_slave_variable_consistency_check_sub_flow(
+    uid: str,
+    root_id: str,
+    bk_cloud_id: int,
+    reference_instance: str,
+    compare_instance: str,
+):
+    """
+    设计变量一致性检测的公共子流程，主要服务于切换类的流程，做前置检查，方便管控
+    """
+    check_variable_names = [
+        "character_set_server",
+        "collation_server",
+        "collation_connection",
+        "character_set_connection",
+        "lower_case_table_names",
+        "time_zone",
+        "max_connections",
+    ]
+    sub_pipeline = SubBuilder(root_id=root_id, data={"uid": uid})
+    sub_pipeline.add_act(
+        act_name=_("检测变量一致性"),
+        act_component_code=MySQLCheckVariableConsistencyComponent.code,
+        kwargs=asdict(
+            MySQLCheckVariableConsistencyKwargs(
+                bk_cloud_id=bk_cloud_id,
+                reference_instance=reference_instance,
+                compare_instance=compare_instance,
+                variable_names=check_variable_names,
+            )
+        ),
+    )
+    return sub_pipeline.build_sub_process(sub_name=_("主从参数一致性检测[{}->{}]").format(reference_instance, compare_instance))
 
 
 def check_long_active_process_sub_flow(

@@ -461,6 +461,18 @@ class CrondMonitorKwargs:
 
 
 @dataclass
+class MySQLCheckVariableConsistencyKwargs:
+    """
+    定义检测变量一致性的私有变量结构体
+    """
+
+    bk_cloud_id: int
+    reference_instance: str  # 格式: ip:port
+    compare_instance: str  # 格式: ip:port
+    variable_names: list
+
+
+@dataclass
 class CheckClientConnKwargs:
     """
     定义检测客户端连接的私有变量结构体

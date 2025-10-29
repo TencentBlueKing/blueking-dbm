@@ -28,6 +28,7 @@ from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     check_long_active_process_sub_flow,
     check_sub_flow,
+    master_slave_variable_consistency_check_sub_flow,
 )
 from backend.flow.engine.bamboo.scene.mysql.common.exceptions import NormalTenDBFlowException
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import (
@@ -186,6 +187,14 @@ class MySQLMasterSlaveSwitchFlow(object):
                     filter_hosts=cluster.get("proxy_ip_list", []),
                 )
                 precheck_sub_flows.append(check_active_process_sub_flow)
+                check_variable_consistency_sub_flow = master_slave_variable_consistency_check_sub_flow(
+                    uid=self.data["uid"],
+                    root_id=self.root_id,
+                    bk_cloud_id=cluster["bk_cloud_id"],
+                    reference_instance=f"{cluster['old_master_ip']}{IP_PORT_DIVIDER}{cluster['mysql_port']}",
+                    compare_instance=f"{cluster['new_master_ip']}{IP_PORT_DIVIDER}{cluster['mysql_port']}",
+                )
+                precheck_sub_flows.append(check_variable_consistency_sub_flow)
                 cluster_switch_sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=precheck_sub_flows)
 
                 # 阶段1 添加切换的临时账号
