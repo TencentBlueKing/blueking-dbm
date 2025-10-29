@@ -52,6 +52,7 @@ from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import ClusterInfoContext
 from backend.flow.utils.spider.spider_db_meta import SpiderDBMeta
 from backend.flow.utils.spider.tendb_cluster_info import get_rollback_clusters_info
+from backend.ticket.builders.common.constants import MySQLBackupSource
 from backend.utils.time import str2datetime
 
 logger = logging.getLogger("flow")
@@ -217,6 +218,11 @@ class TenDBRollBackDataFlow(object):
                 target_spider = target_cluster.proxyinstance_set.get(
                     machine__ip=spider_node["ip"], port=spider_node["port"]
                 )
+                # todo 后续考虑使用backup_source和rollback_type分开。
+                # 这里spider、dbctl节点的恢复都只需要BACKUPID的方式恢复，不需要前滚binlog
+                rollback_type = RollbackType.REMOTE_AND_BACKUPID
+                if self.data.get("backup_source", MySQLBackupSource.REMOTE.value) == MySQLBackupSource.LOCAL.value:
+                    rollback_type = RollbackType.LOCAL_AND_BACKUPID
                 spd_cluster = {
                     "charset": charset,
                     # "backupinfo": backup_info["spider_node"],
@@ -234,7 +240,7 @@ class TenDBRollBackDataFlow(object):
                     "change_master": False,
                     "all_database_rollback": self.data["all_database_rollback"],
                     # 由于不恢复binlog。所以设置为仅 BACKUPID 恢复
-                    "rollback_type": RollbackType.REMOTE_AND_BACKUPID,
+                    "rollback_type": rollback_type,
                 }
                 spd_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
 

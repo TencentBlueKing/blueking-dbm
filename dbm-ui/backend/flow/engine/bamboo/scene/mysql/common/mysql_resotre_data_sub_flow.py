@@ -868,6 +868,8 @@ def mysql_backup_restore_sub_flow(
                 exec_ip=cluster["new_slave_ip"],
                 cluster_id=cluster_model.id,
                 backup_id=backup_id,
+                # file_list 传输空,在flow node里面查询备份并写入。
+                file_list=[],
             )
         ),
     )
