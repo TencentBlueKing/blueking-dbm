@@ -145,7 +145,7 @@
     {
       message: t('IP格式有误，请输入合法IP'),
       trigger: 'change',
-      validator: (value: string) => !value || ipv4.test(value),
+      validator: (value: string) => !value || ipv4.test(value.trim()),
     },
     {
       message: t('目标主机不存在'),
