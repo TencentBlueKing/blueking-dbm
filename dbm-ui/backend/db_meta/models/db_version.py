@@ -46,7 +46,7 @@ class Distribution(AuditedModel):
     engine = models.CharField(max_length=64, default="", help_text=_("引擎"))  # mysql 特有
 
     db_type = models.CharField(max_length=128, choices=DBType.get_choices())
-    pkg_type = models.CharField(max_length=128, choices=PackageType.get_choices())
+    pkg_type = models.CharField(max_length=128)
 
     def snapshot(self) -> Dict:
         return {
@@ -57,6 +57,18 @@ class Distribution(AuditedModel):
             "pkg_type": self.pkg_type,
         }
 
+    @classmethod
+    def init_distribution(cls):
+        """初始化发行版，只在一个环境初始化的时候发起"""
+        distribution_list = [
+            cls(name="DBM", engine="default", db_type=db_type, pkg_type=pkg_type)
+            for db_type in DBType.get_values()
+            for pkg_type in PackageType.get_values()
+            # MySQL/TendbCluster 需要维护发行版，先不要初始化
+            if db_type not in [DBType.MySQL, DBType.TenDBCluster]
+        ]
+        cls.objects.bulk_create(distribution_list)
+
 
 class VersionSeries(AuditedModel):
     """
@@ -65,7 +77,11 @@ class VersionSeries(AuditedModel):
     所以现在就直接拆开吧, 毕竟在 ui 交互上已经有 新建系列 这样的动作了
     """
 
-    name = models.CharField(max_length=128, default="", help_text=_("版本系列"), primary_key=True)
+    distribution = models.ForeignKey(Distribution, on_delete=models.PROTECT, blank=True, null=True)
+    name = models.CharField(max_length=128, default="", help_text=_("版本系列"))
+
+    class Meta:
+        unique_together = [("distribution", "name")]
 
 
 class DBVersion(AuditedModel):
@@ -79,19 +95,23 @@ class DBVersion(AuditedModel):
 
     full_version = models.CharField(max_length=128, default="", help_text=_("完整版本"))
     # major_version = models.CharField(max_length=128, default="", help_text=_("主版本"))
+    name = models.CharField(max_length=128, default="", help_text=_("版本名称"))
     distribution_snapshot = models.JSONField(null=True, help_text=_("发行版快照"), default=dict)
-    version_series = models.ForeignKey(VersionSeries, on_delete=models.PROTECT)
+    distribution_id = models.IntegerField(help_text=_("发行版ID"))
+    version_series = models.ForeignKey(VersionSeries, on_delete=models.PROTECT, null=True, blank=True)
     phase = models.CharField(max_length=128, choices=VersionPhase.get_choices(), help_text=_("版本阶段"))
     enable = models.BooleanField(default=True, help_text=_("版本启用"))
+    description = models.TextField(default="", blank=True, help_text=_("版本描述"))
+    recommend = models.BooleanField(default=False, help_text=_("版本推荐"))
 
     class Meta:
-        unique_together = [("full_version", "version_series")]
+        unique_together = [("full_version", "distribution_id"), ("name", "distribution_id")]
 
     def save(self, *args, **kwargs):
         if self.full_version:
             split_fv = self.full_version.split(".")
             if len(split_fv) != 6:
-                raise ValidationError(_("%(value) must look like a.b.c.d.e.f"), params={"value": self.full_version})
+                raise ValidationError(_("%(value)s must look like a.b.c.d.e.f"), params={"value": self.full_version})
 
             # 先不检查版本号大小了, 不同 db 组件自己写吧
             # bad_seg = []
@@ -101,8 +121,9 @@ class DBVersion(AuditedModel):
             #         bad_seg.append(seg)
             #
             # if bad_seg:
-            #     raise ValidationError(_("%(seg) must gt 0 and lt 999"), params={"seg": bad_seg})
-
+            #     raise ValidationError(_("%(seg)s must gt 0 and lt 999"), params={"seg": bad_seg})
+        self.distribution_snapshot = self.version_series.distribution.snapshot()
+        self.distribution_id = self.version_series.distribution_id
         super(DBVersion, self).save(*args, **kwargs)
 
     def __version_s(self, from_p: int, end_p: int) -> str:

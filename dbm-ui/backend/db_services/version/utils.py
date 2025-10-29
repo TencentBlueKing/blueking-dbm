@@ -12,6 +12,34 @@ from backend.db_meta.enums import ClusterType
 from backend.db_package.constants import PackageType
 from backend.db_package.models import Package
 from backend.db_services.version import constants
+from backend.db_services.version.constants import FULL_VERSION_SEGMENT_COUNT, VERSION_PADDING_SEGMENT
+
+
+def pad_full_version(full_version: str) -> str:
+    """
+    将前端传入的 N 段版本号 (N=pkg_type 对应展示段数) 补齐为底层 6 段
+    例如 pkg_type=redis (3 段), full_version="6.2.7" -> "6.2.7.0.0.0"
+    """
+    if not full_version:
+        return full_version
+    segs = full_version.split(".")
+    if len(segs) == FULL_VERSION_SEGMENT_COUNT:
+        return full_version
+    segs += [VERSION_PADDING_SEGMENT] * (FULL_VERSION_SEGMENT_COUNT - len(segs))
+    return ".".join(segs)
+
+
+def strip_full_version(full_version: str, display_version_seg: int) -> str:
+    """
+    将 6 段存储版本号截取为对外展示段数
+    例如 pkg_type=redis (3 段), full_version="6.2.7.0.0.0" -> "6.2.7"
+    """
+    if not full_version:
+        return full_version
+    segs = full_version.split(".")
+    if len(segs) <= display_version_seg:
+        return full_version
+    return ".".join(segs[:display_version_seg])
 
 
 def query_versions_by_key(query_key):

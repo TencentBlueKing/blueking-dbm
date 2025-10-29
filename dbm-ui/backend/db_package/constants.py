@@ -47,3 +47,74 @@ INSTALL_PACKAGE_LIST = {
     DBType.Sqlserver: [PackageType.Sqlserver],
     DBType.Doris: [PackageType.Doris],
 }
+
+# 各个组件的初始化pkg归属
+INIT_DB_PKG_SETTINGS = {
+    DBType.MySQL.value: [
+        {"value": PackageType.MySQL, "version_num": 6},
+        {"value": PackageType.MySQLProxy, "version_num": 3},
+        {"value": PackageType.DBActuator, "version_num": 3},
+        {"value": PackageType.DbBackup, "version_num": 3},
+        {"value": PackageType.DbBackupTXSQL, "version_num": 3},
+        {"value": PackageType.MySQLChecksum, "version_num": 3},
+        {"value": PackageType.MySQLRotateBinlog, "version_num": 3},
+        {"value": PackageType.MySQLToolKit, "version_num": 3},
+        {"value": PackageType.MySQLMonitor, "version_num": 3},
+        {"value": PackageType.MySQLCrond, "version_num": 3},
+        {"value": PackageType.Spider, "version_num": 3},
+        {"value": PackageType.tdbCtl, "version_num": 3},
+        {"value": PackageType.TBinlogDumper, "version_num": 3},
+    ],
+    DBType.Redis.value: [
+        {"value": PackageType.Redis, "version_num": 3},
+        {"value": PackageType.Twemproxy, "version_num": 6},
+        {"value": PackageType.TendisPlus, "version_num": 3},
+        {"value": PackageType.TendisSsd, "version_num": 3},
+        {"value": PackageType.Predixy, "version_num": 3},
+        {"value": PackageType.DBActuator, "version_num": 3},
+        {"value": PackageType.RedisTools, "version_num": 3},
+        {"value": PackageType.DbMon, "version_num": 3},
+        {"value": PackageType.RedisDts, "version_num": 3},
+        {"value": PackageType.RedisModules, "version_num": 3},
+    ],
+    DBType.MongoDB.value: [
+        {"value": PackageType.MongoDB, "version_num": 3},
+        {"value": PackageType.DBActuator, "version_num": 3},
+        {"value": PackageType.DbMon, "version_num": 3},
+        {"value": PackageType.DBTools, "version_num": 3},
+        {"value": PackageType.MongoToolKit, "version_num": 3},
+    ],
+    DBType.Es.value: [
+        {"value": PackageType.Es, "version_num": 3},
+        {"value": PackageType.DBActuator, "version_num": 3},
+    ],
+    DBType.Hdfs.value: [
+        {"value": PackageType.Hdfs, "version_num": 3},
+        {"value": PackageType.DBActuator, "version_num": 3},
+    ],
+    DBType.Kafka.value: [
+        {"value": PackageType.Kafka, "version_num": 3},
+        {"value": PackageType.DBActuator, "version_num": 3},
+    ],
+    DBType.Pulsar.value: [
+        {"value": PackageType.Pulsar, "version_num": 3},
+        {"value": PackageType.DBActuator, "version_num": 3},
+    ],
+    DBType.Riak.value: [
+        {"value": PackageType.Riak, "version_num": 3},
+        {"value": PackageType.DBActuator, "version_num": 3},
+        {"value": PackageType.RiakMonitor, "version_num": 3},
+    ],
+    DBType.Sqlserver.value: [
+        {"value": PackageType.Sqlserver, "version_num": 3},
+        {"value": PackageType.DBActuator, "version_num": 3},
+    ],
+    DBType.Doris.value: [
+        {"value": PackageType.Doris, "version_num": 3},
+        {"value": PackageType.DBActuator, "version_num": 3},
+    ],
+    DBType.Oracle.value: [
+        {"value": PackageType.Oracle, "version_num": 3},
+        {"value": PackageType.DBActuator, "version_num": 3},
+    ],
+}
