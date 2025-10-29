@@ -14,54 +14,44 @@
 <template>
   <PrimaryTable
     :data="ticketDetails.details.infos"
-    row-key="cluster_ids">
+    row-key="cluster_id">
     <TableColumn
-      col-key="cluster_ids"
+      col-key="cluster_id"
       fixed="left"
       :min-width="340"
       :title="t('目标集群')">
       <template #default="{row}: {row: RowData}">
-        <div
-          v-for="item in row.cluster_ids"
-          :key="item">
-          {{ ticketDetails.details.clusters[item].immute_domain }}
-        </div>
+        {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
     </TableColumn>
     <TableColumn
-      col-key="related_instances"
-      min-width="400"
-      :title="t('关联实例')">
-      <template #default="{ row }: { row: RowData }">
-        <div
-          v-for="(item, index) in row.related_instances"
-          :key="index">
-          <div class="domain-item">{{ item.domain }}</div>
-          <div
-            v-for="(instance, instaneIndex) in item.instances"
-            :key="instaneIndex"
-            class="instance-item">
-            --{{ instance }}
-          </div>
-        </div>
-      </template>
-    </TableColumn>
-    <TableColumn
-      col-key="spec_id"
+      col-key="resource_spec"
       :min-width="120"
-      :title="t('目标规格')">
+      :title="t('目标资源规格')">
       <template #default="{row}: {row: RowData}">
-        {{ ticketDetails.details.specs[row.resource_spec.mongodb_.spec_id].name }}
+        {{ ticketDetails.details.specs[row.resource_spec.mongodb.spec_id].name }}
       </template>
+    </TableColumn>
+    <TableColumn
+      col-key="shard_node_count"
+      :title="t('目标 Shard 节点数')">
+    </TableColumn>
+    <TableColumn
+      col-key="shard_machine_group"
+      :title="t('目标机器组数')">
+    </TableColumn>
+    <TableColumn
+      col-key="shards_num"
+      :title="t('分片数')">
     </TableColumn>
     <TableColumn
       col-key="label_names"
       :min-width="200"
       :title="t('资源标签')">
       <template #default="{ row }: { row: RowData }">
-        <template v-if="row.resource_spec.mongodb_?.label_names?.length">
+        <template v-if="row.resource_spec.mongodb?.label_names?.length">
           <BkTag
-            v-for="item in row.resource_spec.mongodb_.label_names"
+            v-for="item in row.resource_spec.mongodb.label_names"
             :key="item">
             {{ item }}
           </BkTag>
@@ -86,11 +76,11 @@
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
   interface Props {
-    ticketDetails: TicketModel<Mongodb.ReplicasetMigrate>;
+    ticketDetails: TicketModel<Mongodb.ResourcePool.ScaleUpdown>;
   }
 
   defineOptions({
-    name: TicketTypes.MONGODB_REPLICASET_MIGRATE,
+    name: TicketTypes.MONGODB_SCALE_UPDOWN,
     inheritAttrs: false,
   });
 

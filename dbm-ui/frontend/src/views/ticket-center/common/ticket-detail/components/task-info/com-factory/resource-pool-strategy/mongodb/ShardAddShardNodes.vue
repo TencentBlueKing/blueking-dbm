@@ -14,26 +14,22 @@
 <template>
   <PrimaryTable
     :data="ticketDetails.details.infos"
-    row-key="cluster_ids">
+    row-key="cluster_id">
     <TableColumn
       col-key="cluster_ids"
       fixed="left"
       :min-width="250"
       :title="t('目标集群')">
-      <template #default="{row}: {row: RowData}">
-        <div
-          v-for="item in row.cluster_ids"
-          :key="item">
-          {{ ticketDetails.details.clusters[item].immute_domain }}
-        </div>
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
     </TableColumn>
     <TableColumn
       col-key="cluster_type"
       :title="t('集群类型')"
       :width="200">
-      <template #default="{row}: {row: RowData}">
-        {{ ticketDetails.details.clusters[row.cluster_ids[0]].cluster_type_name }}
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].cluster_type_name }}
       </template>
     </TableColumn>
     <TableColumn
@@ -48,7 +44,7 @@
       col-key="add_shard_nodes_num"
       :min-width="120"
       :title="t('最终节点数')">
-      <template #default="{row}: {row: RowData}">
+      <template #default="{ row }: { row: RowData }">
         {{ row.current_shard_nodes_num + row.add_shard_nodes_num }}
       </template>
     </TableColumn>
@@ -86,16 +82,16 @@
 
   import { TicketTypes } from '@common/const';
 
-  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
   interface Props {
-    ticketDetails: TicketModel<Mongodb.ReplicaAddShardNodes>;
+    ticketDetails: TicketModel<Mongodb.ResourcePool.ShardAddShardNodes>;
   }
 
   defineOptions({
-    name: TicketTypes.MONGODB_REPLICA_ADD_SHARD_NODES,
+    name: TicketTypes.MONGODB_SHARD_ADD_SHARD_NODES,
     inheritAttrs: false,
   });
 

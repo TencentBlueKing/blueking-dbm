@@ -1,4 +1,4 @@
-import type { DetailBase, DetailClusters, DetailSpecs } from '../common';
+import type { DetailSpecs, ResourcePoolDetailBase } from '../../common';
 
 interface RoleInfo {
   bk_cloud_id: number;
@@ -21,8 +21,7 @@ interface ResourceSpec {
   spec_id: number;
 }
 
-export interface ShardCutoff extends DetailBase {
-  clusters: DetailClusters;
+export interface ShardCutoff extends ResourcePoolDetailBase {
   infos: {
     cluster_id: number;
     mongo_config: RoleInfo[];
@@ -34,12 +33,10 @@ export interface ShardCutoff extends DetailBase {
       mongos?: oldNode[];
     };
     resource_spec: {
-      mongo_config_?: ResourceSpec;
-      mongodb_?: ResourceSpec;
-      mongos_?: ResourceSpec;
+      new_mongo_config?: ResourceSpec;
+      new_mongodb?: ResourceSpec;
+      new_mongos?: ResourceSpec;
     };
     switch_role: string;
   }[];
-  ip_source: string;
-  specs: DetailSpecs;
 }

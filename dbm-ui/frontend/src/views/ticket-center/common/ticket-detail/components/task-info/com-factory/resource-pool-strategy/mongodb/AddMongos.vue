@@ -16,46 +16,54 @@
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
     <TableColumn
-      col-key="cluster_ids"
+      col-key="cluster_id"
       fixed="left"
       :min-width="250"
-      :title="t('目标集群')">
-      <template #default="{ row }: { row: RowData }">
+      :title="t('目标分片集群')">
+      <template #default="{row}: {row: RowData}">
         {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
     </TableColumn>
     <TableColumn
-      col-key="cluster_type"
-      :title="t('集群类型')"
-      :width="200">
-      <template #default="{ row }: { row: RowData }">
-        {{ ticketDetails.details.clusters[row.cluster_id].cluster_type_name }}
+      col-key="current_mongos_num"
+      :title="t('当前数量（台）')"
+      :width="120">
+      <template #default="{row}: {row: RowData}">
+        {{ row.current_mongos_num || '--' }}
       </template>
     </TableColumn>
     <TableColumn
-      col-key="current_shard_nodes_num"
-      :title="t('当前节点数')">
-    </TableColumn>
-    <TableColumn
-      col-key="add_shard_nodes_num"
-      :title="t('扩容节点数')">
-    </TableColumn>
-    <TableColumn
-      col-key="add_shard_nodes_num"
-      :min-width="120"
-      :title="t('最终节点数')">
-      <template #default="{ row }: { row: RowData }">
-        {{ row.current_shard_nodes_num + row.add_shard_nodes_num }}
+      col-key="resource_spec_count"
+      :title="t('扩容数量（台）')"
+      :width="120">
+      <template #default="{row}: {row: RowData}">
+        {{ row.resource_spec.mongos.count }}
       </template>
     </TableColumn>
     <TableColumn
-      col-key="resource_spec.shard_nodes.label_names"
+      col-key="final_spec_count"
+      :title="t('最终数量（台）')"
+      :width="120">
+      <template #default="{row}: {row: RowData}">
+        {{ row.current_mongos_num ? row.current_mongos_num + row.resource_spec.mongos.count : '--' }}
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="spec_id"
+      :title="t('扩容规格')"
+      :width="120">
+      <template #default="{row}: {row: RowData}">
+        {{ ticketDetails.details.specs[row.resource_spec.mongos.spec_id].name }}
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="label_names"
       :min-width="200"
       :title="t('资源标签')">
       <template #default="{ row }: { row: RowData }">
-        <template v-if="row.resource_spec.shard_nodes?.label_names?.length">
+        <template v-if="row.resource_spec.mongos?.label_names?.length">
           <BkTag
-            v-for="item in row.resource_spec.shard_nodes.label_names"
+            v-for="item in row.resource_spec.mongos.label_names"
             :key="item">
             {{ item }}
           </BkTag>
@@ -68,11 +76,6 @@
       </template>
     </TableColumn>
   </PrimaryTable>
-  <InfoList>
-    <InfoItem :label="t('忽略业务连接')">
-      {{ ticketDetails.details.is_safe ? t('否') : t('是') }}
-    </InfoItem>
-  </InfoList>
 </template>
 
 <script setup lang="tsx">
@@ -82,16 +85,14 @@
 
   import { TicketTypes } from '@common/const';
 
-  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  interface Props {
+    ticketDetails: TicketModel<Mongodb.ResourcePool.AddMongos>;
+  }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
-  interface Props {
-    ticketDetails: TicketModel<Mongodb.ShardAddShardNodes>;
-  }
-
   defineOptions({
-    name: TicketTypes.MONGODB_SHARD_ADD_SHARD_NODES,
+    name: TicketTypes.MONGODB_ADD_MONGOS,
     inheritAttrs: false,
   });
 

@@ -239,7 +239,7 @@
     },
   ];
 
-  useTicketDetail<Mongodb.ReplicaAddShardNodes>(TicketTypes.MONGODB_REPLICA_ADD_SHARD_NODES, {
+  useTicketDetail<Mongodb.ResourcePool.ReplicaAddShardNodes>(TicketTypes.MONGODB_REPLICA_ADD_SHARD_NODES, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { clusters, infos, is_safe: isSafe } = details;

@@ -14,62 +14,56 @@
 <template>
   <PrimaryTable
     :data="ticketDetails.details.infos"
-    row-key="cluster_id">
+    row-key="shard_name">
     <TableColumn
-      col-key="cluster_id"
+      col-key="shard_name"
       fixed="left"
       :min-width="250"
-      :title="t('目标集群')">
+      :title="t('目标分片')">
       <template #default="{row}: {row: RowData}">
-        {{ ticketDetails.details.clusters[row.cluster_id]?.immute_domain }}
+        <div
+          v-for="item in row.shard_name"
+          :key="item">
+          {{ item }}
+        </div>
       </template>
     </TableColumn>
     <TableColumn
-      col-key="current_shards_num"
-      :title="t('当前集群分片数')"
-      :width="120">
-    </TableColumn>
-    <TableColumn
-      col-key="add_shards_num"
-      :title="t('新增集群分片数')"
-      :width="120">
-    </TableColumn>
-    <TableColumn
-      col-key="cluster_type"
-      :title="t('最终集群分片数')"
-      :width="120">
+      col-key="cluster_id"
+      :title="t('关联集群')"
+      :width="300">
       <template #default="{row}: {row: RowData}">
-        {{ row.current_shards_num + row.add_shards_num }}
+        {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
     </TableColumn>
     <TableColumn
-      col-key="single_host_shard_num"
-      :title="t('单机分片数')"
-      :width="120">
-    </TableColumn>
-    <TableColumn
-      col-key="current_shard_nodes_num"
-      :title="t('每片节点数')"
-      :width="120">
-    </TableColumn>
-    <TableColumn
-      col-key="resource_spec.mongodb.spec_id"
-      :min-width="200"
-      :title="t('规格')">
-      <template #default="{row}: {row: RowData}">
-        {{ ticketDetails.details.specs[row.resource_spec.mongodb.spec_id]?.name }}
+      col-key="related_instances"
+      min-width="300"
+      :title="t('关联集群实例')">
+      <template #default="{ row }: { row: RowData }">
+        <div
+          v-for="(item, index) in row.related_instances"
+          :key="index">
+          <div class="domain-item">{{ item.domain }}</div>
+          <div
+            v-for="(instance, instaneIndex) in item.instances"
+            :key="instaneIndex"
+            class="instance-item">
+            --{{ instance }}
+          </div>
+        </div>
       </template>
     </TableColumn>
     <TableColumn
-      col-key="resource_spec.mongodb.count"
-      :title="t('新增机器（组）')"
-      :width="120">
+      col-key="spec_id"
+      :min-width="120"
+      :title="t('目标规格')">
       <template #default="{row}: {row: RowData}">
-        {{ row.add_shards_num / row.single_host_shard_num }}
+        {{ ticketDetails.details.specs[row.resource_spec.mongodb.spec_id].name }}
       </template>
     </TableColumn>
     <TableColumn
-      col-key="resource_spec.mongodb.label_names"
+      col-key="label_names"
       :min-width="200"
       :title="t('资源标签')">
       <template #default="{ row }: { row: RowData }">
@@ -100,11 +94,11 @@
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
   interface Props {
-    ticketDetails: TicketModel<Mongodb.AddShard>;
+    ticketDetails: TicketModel<Mongodb.ResourcePool.ShardMigrate>;
   }
 
   defineOptions({
-    name: TicketTypes.MONGODB_ADD_SHARD,
+    name: TicketTypes.MONGODB_SHARD_MIGRATE,
     inheritAttrs: false,
   });
 
