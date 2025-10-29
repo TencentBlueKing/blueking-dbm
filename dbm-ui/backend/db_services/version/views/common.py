@@ -16,13 +16,13 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_meta.enums import ClusterType
 from backend.db_services.version import serializers
+from backend.db_services.version.constants import MySQLEngine
 from backend.db_services.version.utils import query_versions_by_key
+from backend.db_services.version.views import SWAGGER_TAG
 from backend.flow.consts import MssqlSystemVersionSupportMap
 
-SWAGGER_TAG = "version"
 
-
-class VersionViewSet(viewsets.SystemViewSet):
+class VersionCommonViewSet(viewsets.SystemViewSet):
     default_permission_class = []
 
     @common_swagger_auto_schema(
@@ -49,7 +49,7 @@ class VersionViewSet(viewsets.SystemViewSet):
         return Response(versions)
 
     @common_swagger_auto_schema(
-        operation_summary=_("查询数据库版本列表"),
+        operation_summary=_("查询数据库子版本列表"),
         query_serializer=serializers.ListVersionSerializer(),
         tags=[SWAGGER_TAG],
     )
@@ -71,3 +71,11 @@ class VersionViewSet(viewsets.SystemViewSet):
         sqlserver_version = self.params_validate(self.get_serializer_class())["sqlserver_version"]
         sys_versions = MssqlSystemVersionSupportMap[sqlserver_version]
         return Response(sys_versions)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("mysql支持引擎列表"),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False)
+    def list_mysql_engine(self, requests, *args, **kwargs):
+        return Response(MySQLEngine.get_values())

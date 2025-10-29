@@ -12,6 +12,15 @@ redis: # dbtype
     commitId: xxx # 最新编译代码的commit id，这个一般自动生成
     name: dbactuator_redis # 介质文件名称
     version: 1.0.1 # 介质文件版本
+    distribution_name: DBM # (可选)发行版名称 -- 默认DBM
+    distribution_engine: DBM # (可选)发行版引擎 -- 默认DBM
+    version_series: DBHA # (可选)版本系列 -- 默认取pkg_type
+    full_version: 1.0.2.0.0.0 # 完整版本，六分式
+    phase: release # (可选)版本阶段 -- 默认取release
+    os_type: "" # (可选)支持的操作类型
+    os_version: # (可选)支持的操作版本列表
+        - 1.0.0
+        - 1.0.1
 - dbmon:
     buildPath: /blueking-dbm/dbm-services/redis/db-tools/dbmon/build/bk-dbmon-*.tar.gz
     commitId: xxx

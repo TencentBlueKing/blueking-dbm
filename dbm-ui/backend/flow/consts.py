@@ -328,6 +328,7 @@ class MediumEnum(StrStructuredEnum):
     Predixy = EnumField("predixy", _("predixy"))
     RedisTools = EnumField("tools", _("redis_tools"))
     Es = EnumField("es", _("es"))
+    EsPlugin = EnumField("es-plugin", _("es-plugin"))
     Kafka = EnumField("kafka", _("kafka"))
     Hdfs = EnumField("hdfs", _("hdfs"))
     Pulsar = EnumField("pulsar", _("pulsar"))

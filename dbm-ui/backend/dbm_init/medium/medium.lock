@@ -5,6 +5,16 @@ cloud:
     commitId: 1674439623653cb9bbfc0e6f0d66fd4821130a04
     name: dbha
     version: 1.0.2
+    distribution_name: DBM
+    distribution_engine: DBM
+    version_series: DBHA
+    full_version: 1.0.2.0.0.0
+    phase: release
+    description: "auto upload dbha"
+    os_type: ""
+    os_version:
+        - 1.0.0
+        - 1.0.1
 - cloud-dns-bind:
     buildPath: /toolkit/bind.tar.gz
     name: bind.tar.gz

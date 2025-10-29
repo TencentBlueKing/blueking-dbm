@@ -63,11 +63,17 @@ class Package(AuditedModel):
         bk_biz_id: Optional[int] = None,
         db_type: Optional[str] = DBType.MySQL,
         name_prefix: Optional[str] = None,
+        enable_filter: Optional[bool] = True,
     ) -> "Package":
         """
         根据版本和包类型获取最新的介质包
         """
-        filters = {"pkg_type": pkg_type, "db_type": db_type, "enable": True}
+        filters = {"pkg_type": pkg_type, "db_type": db_type}
+
+        # 是否让enable参与介质过滤
+        # 获取介质有不同的语义场景：有时候要是enable=True的最新/有时候要绝对意义的最新
+        if enable_filter:
+            filters["enable"] = True
 
         if name_prefix:
             filters["name__startswith"] = name_prefix
@@ -80,7 +86,7 @@ class Package(AuditedModel):
         if bk_biz_id:
             # 过滤出灰度的业务以及无指定业务的包
             allow_biz_filter = Q(allow_biz_ids__contains=bk_biz_id) | Q(allow_biz_ids__isnull=True)
-            packages = packages.filter(allow_biz_filter, enable=True)
+            packages = packages.filter(allow_biz_filter)
 
         if not packages:
             raise PackageNotExistException(version=version, pkg_type=pkg_type, db_type=db_type)
@@ -96,7 +102,7 @@ class Package(AuditedModel):
         @param pkg_type: 包类型
         @param version_no: 实例版本号（0.0.0）
         """
-        packages = cls.objects.filter(db_type=db_type, pkg_type=pkg_type, name__icontains=version_no, enable=True)
+        packages = cls.objects.filter(db_type=db_type, pkg_type=pkg_type, name__icontains=version_no)
 
         if not packages:
             raise VersionNoNotExistException(version_no=version_no, pkg_type=pkg_type, db_type=db_type)

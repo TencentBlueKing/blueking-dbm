@@ -19,14 +19,19 @@ class PackageListFilter(FilterSet):
     keyword = filters.CharFilter(method="filter_keyword")
     pkg_type = filters.CharFilter(field_name="pkg_type", lookup_expr="exact", label=_("介质类型"))
     db_type = filters.CharFilter(field_name="db_type", lookup_expr="exact", label=_("DB类型"))
+    version = filters.CharFilter(field_name="version", lookup_expr="exact", label=_("版本"))
+    db_version = filters.CharFilter(method="filter_db_version", label=_("DB版本"))
 
     class Meta:
         model = Package
-
-        fields = ("keyword", "db_type", "pkg_type", "version")
+        fields = ("keyword", "db_type", "pkg_type", "version", "db_version")
 
     def filter_keyword(self, queryset, name, value):
         if name == "keyword":
             queryset = queryset.filter(Q(name__icontains=value) | Q(version__icontains=value))
 
         return queryset
+
+    def filter_db_version(self, queryset, name, value):
+        db_version = value.split(",")
+        return queryset.filter(db_version__in=db_version)

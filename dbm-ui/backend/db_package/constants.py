@@ -47,3 +47,9 @@ INSTALL_PACKAGE_LIST = {
     DBType.Sqlserver: [PackageType.Sqlserver],
     DBType.Doris: [PackageType.Doris],
 }
+
+# 业务调整时只需要维护这个列表
+FULL_SEGMENT_PKG_TYPES = [
+    PackageType.MySQL.value,
+    PackageType.Twemproxy.value,
+]

@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("db_meta", "0061_spec_tags_alter_extraprocessinstance_phase_and_more"),
+        ("db_meta", "0059_bksubzone_bk_cloud_region_bksubzone_bk_cloud_zone"),
     ]
 
     operations = [
