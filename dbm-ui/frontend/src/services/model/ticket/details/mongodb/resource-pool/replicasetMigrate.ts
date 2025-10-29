@@ -1,7 +1,6 @@
-import type { DetailBase, DetailClusters, DetailSpecs } from '../common';
+import type { ResourcePoolDetailBase } from '../../common';
 
-export interface ReplicasetMigrate extends DetailBase {
-  clusters: DetailClusters;
+export interface ReplicasetMigrate extends ResourcePoolDetailBase {
   infos: {
     cluster_ids: number[];
     current_replicaset_nodes_num: number; // 当前一个副本集的节点数量
@@ -20,7 +19,7 @@ export interface ReplicasetMigrate extends DetailBase {
       instances: string[];
     }[]; // 展示用
     resource_spec: {
-      mongodb_: {
+      mongodb: {
         count: number;
         label_names: string[]; // 标签名称列表，单据详情回显用
         labels: string[]; // 标签id列表
@@ -28,6 +27,4 @@ export interface ReplicasetMigrate extends DetailBase {
       };
     };
   }[];
-  ip_source: 'resource_pool';
-  specs: DetailSpecs;
 }

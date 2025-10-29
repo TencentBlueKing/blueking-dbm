@@ -1,10 +1,9 @@
-import type { DetailBase, DetailClusters } from '../common';
+import type { ResourcePoolDetailBase } from '../../common';
 
-export interface ShardAddShardNodes extends DetailBase {
-  clusters: DetailClusters;
+export interface ReplicaAddShardNodes extends ResourcePoolDetailBase {
   infos: {
     add_shard_nodes_num: number;
-    cluster_id: number;
+    cluster_ids: number[];
     current_shard_nodes_num: number;
     db_version: string;
     node_replica_count: number;
@@ -17,6 +16,5 @@ export interface ShardAddShardNodes extends DetailBase {
       };
     };
   }[];
-  ip_source: string;
   is_safe: boolean;
 }

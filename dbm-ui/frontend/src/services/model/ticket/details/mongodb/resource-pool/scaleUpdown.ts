@@ -1,7 +1,6 @@
-import type { DetailBase, DetailClusters, DetailSpecs } from '../common';
+import type { ResourcePoolDetailBase } from '../../common';
 
-export interface ScaleUpdown extends DetailBase {
-  clusters: DetailClusters;
+export interface ScaleUpdown extends ResourcePoolDetailBase {
   infos: {
     cluster_id: number;
     cluster_type: string;
@@ -24,6 +23,4 @@ export interface ScaleUpdown extends DetailBase {
     shard_node_count: number;
     shards_num: number;
   }[];
-  ip_source: string;
-  specs: DetailSpecs;
 }

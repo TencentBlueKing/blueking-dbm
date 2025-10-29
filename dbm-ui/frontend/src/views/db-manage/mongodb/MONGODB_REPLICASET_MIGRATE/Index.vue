@@ -153,7 +153,7 @@
 
   const { t } = useI18n();
 
-  useTicketDetail<Mongodb.ReplicasetMigrate>(TicketTypes.MONGODB_REPLICASET_MIGRATE, {
+  useTicketDetail<Mongodb.ResourcePool.ReplicasetMigrate>(TicketTypes.MONGODB_REPLICASET_MIGRATE, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { clusters, infos } = details;
@@ -166,10 +166,10 @@
             batchCluster: {
               renderText: domainList.join('\n'),
             } as IDataRow['batchCluster'],
-            // eslint-disable-next-line no-underscore-dangle
-            labels: (item.resource_spec.mongodb_.labels || []).map((item) => ({ id: Number(item) })),
-            // eslint-disable-next-line no-underscore-dangle
-            target_spec_id: item.resource_spec.mongodb_.spec_id,
+
+            labels: (item.resource_spec.mongodb.labels || []).map((item) => ({ id: Number(item) })),
+
+            target_spec_id: item.resource_spec.mongodb.spec_id,
           });
         }),
       });
@@ -195,7 +195,7 @@
         instances: string[];
       }[]; // 展示用
       resource_spec: {
-        mongodb_: {
+        mongodb: {
           count: number;
           label_names: string[]; // 标签名称列表，单据详情回显用
           labels: string[]; // 标签id列表
@@ -316,7 +316,7 @@
               },
               related_instances: tableItem.batchCluster.related_instances,
               resource_spec: {
-                mongodb_: {
+                mongodb: {
                   count: 1 * clusterInfo.shard_node_count, // 迁移到同一组
                   label_names: tableItem.labels.map((item) => item.value),
                   labels: tableItem.labels.map((item) => String(item.id)),

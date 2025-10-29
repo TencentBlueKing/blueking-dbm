@@ -212,7 +212,7 @@
 
   const { t } = useI18n();
 
-  useTicketDetail<Mongodb.AddShard>(TicketTypes.MONGODB_ADD_SHARD, {
+  useTicketDetail<Mongodb.ResourcePool.AddShard>(TicketTypes.MONGODB_ADD_SHARD, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { clusters, infos } = details;

@@ -14,62 +14,52 @@
 <template>
   <PrimaryTable
     :data="ticketDetails.details.infos"
-    row-key="shard_name">
+    row-key="cluster_ids">
     <TableColumn
-      col-key="shard_name"
+      col-key="cluster_ids"
       fixed="left"
       :min-width="250"
-      :title="t('目标分片')">
+      :title="t('目标集群')">
       <template #default="{row}: {row: RowData}">
         <div
-          v-for="item in row.shard_name"
+          v-for="item in row.cluster_ids"
           :key="item">
-          {{ item }}
+          {{ ticketDetails.details.clusters[item].immute_domain }}
         </div>
       </template>
     </TableColumn>
     <TableColumn
-      col-key="cluster_id"
-      :title="t('关联集群')"
-      :width="300">
+      col-key="cluster_type"
+      :title="t('集群类型')"
+      :width="200">
       <template #default="{row}: {row: RowData}">
-        {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
+        {{ ticketDetails.details.clusters[row.cluster_ids[0]].cluster_type_name }}
       </template>
     </TableColumn>
     <TableColumn
-      col-key="related_instances"
-      min-width="300"
-      :title="t('关联集群实例')">
-      <template #default="{ row }: { row: RowData }">
-        <div
-          v-for="(item, index) in row.related_instances"
-          :key="index">
-          <div class="domain-item">{{ item.domain }}</div>
-          <div
-            v-for="(instance, instaneIndex) in item.instances"
-            :key="instaneIndex"
-            class="instance-item">
-            --{{ instance }}
-          </div>
-        </div>
-      </template>
+      col-key="current_shard_nodes_num"
+      :title="t('当前节点数')">
     </TableColumn>
     <TableColumn
-      col-key="spec_id"
+      col-key="add_shard_nodes_num"
+      :title="t('扩容节点数')">
+    </TableColumn>
+    <TableColumn
+      col-key="add_shard_nodes_num"
       :min-width="120"
-      :title="t('目标规格')">
+      :title="t('最终节点数')">
       <template #default="{row}: {row: RowData}">
-        {{ ticketDetails.details.specs[row.resource_spec.mongodb_.spec_id].name }}
+        {{ row.current_shard_nodes_num + row.add_shard_nodes_num }}
       </template>
     </TableColumn>
     <TableColumn
-      col-key="label_names"
+      col-key="resource_spec.shard_nodes.label_names"
       :min-width="200"
       :title="t('资源标签')">
       <template #default="{ row }: { row: RowData }">
-        <template v-if="row.resource_spec.mongodb_?.label_names?.length">
+        <template v-if="row.resource_spec.shard_nodes?.label_names?.length">
           <BkTag
-            v-for="item in row.resource_spec.mongodb_.label_names"
+            v-for="item in row.resource_spec.shard_nodes.label_names"
             :key="item">
             {{ item }}
           </BkTag>
@@ -82,6 +72,11 @@
       </template>
     </TableColumn>
   </PrimaryTable>
+  <InfoList>
+    <InfoItem :label="t('忽略业务连接')">
+      {{ ticketDetails.details.is_safe ? t('否') : t('是') }}
+    </InfoItem>
+  </InfoList>
 </template>
 
 <script setup lang="tsx">
@@ -91,14 +86,16 @@
 
   import { TicketTypes } from '@common/const';
 
+  import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
+
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
   interface Props {
-    ticketDetails: TicketModel<Mongodb.ShardMigrate>;
+    ticketDetails: TicketModel<Mongodb.ResourcePool.ReplicaAddShardNodes>;
   }
 
   defineOptions({
-    name: TicketTypes.MONGODB_SHARD_MIGRATE,
+    name: TicketTypes.MONGODB_REPLICA_ADD_SHARD_NODES,
     inheritAttrs: false,
   });
 

@@ -59,11 +59,11 @@
   import { TicketTypes } from '@common/const';
 
   interface Props {
-    ticketDetails: TicketModel<Mongodb.ShardCutoff>;
+    ticketDetails: TicketModel<Mongodb.ResourcePool.ReplicaCutoff>;
   }
 
   defineOptions({
-    name: TicketTypes.MONGODB_SHARD_CUTOFF,
+    name: TicketTypes.MONGODB_REPLICASET_CUTOFF,
     inheritAttrs: false,
   });
 
@@ -78,22 +78,18 @@
   const { clusters, infos, specs } = props.ticketDetails.details;
   const tableData = infos.reduce(
     (results, item) => {
-      const types = ['mongo_config', 'mongodb', 'mongos'] as ['mongo_config', 'mongodb', 'mongos'];
-      types.forEach((type) => {
-        if (item[type] && item[type].length) {
-          const list = item[type].map((obj) => ({
-            cluster: clusters[item.cluster_id].immute_domain,
-            ip: obj.ip,
-            label_names: Object.values(item.resource_spec)[0].label_names,
-            role: type,
-            spec: specs[Object.values(item.resource_spec)[0].spec_id].name,
-          }));
-          results.push(...list);
-        }
-      });
+      const list = item.mongodb.map((obj) => ({
+        cluster: clusters[item.cluster_id].immute_domain,
+        ip: obj.ip,
+        label_names: Object.values(item.resource_spec)[0].label_names,
+        role: 'mongodb',
+        spec: specs[Object.values(item.resource_spec)[0].spec_id].name,
+      }));
+      results.push(...list);
+
       spanInfo.push({
         rowIndex: spanInfo.length ? spanInfo[spanInfo.length - 1].rowspan : 0,
-        rowspan: item.mongo_config.length + item.mongodb.length + item.mongos.length,
+        rowspan: item.mongodb.length,
       });
       return results;
     },

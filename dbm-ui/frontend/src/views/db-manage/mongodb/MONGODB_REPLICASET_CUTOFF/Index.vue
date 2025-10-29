@@ -287,7 +287,7 @@
   const selected = computed(() => formData.tableData.filter((item) => item.host.ip).map((item) => item.host));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
 
-  useTicketDetail<Mongodb.ReplicaCutoff>(TicketTypes.MONGODB_REPLICASET_CUTOFF, {
+  useTicketDetail<Mongodb.ResourcePool.ReplicaCutoff>(TicketTypes.MONGODB_REPLICASET_CUTOFF, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { clusters, infos } = details;
@@ -311,7 +311,7 @@
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
-    infos: Mongodb.ReplicaCutoff['infos'];
+    infos: Mongodb.ResourcePool.ReplicaCutoff['infos'];
     ip_source: 'resource_pool';
   }>(TicketTypes.MONGODB_REPLICASET_CUTOFF);
 
@@ -345,11 +345,11 @@
       const sameArr = clusterMap[domain];
       const infoItem = {
         cluster_id: sameArr[0].host.cluster_id,
-        mongo_config: [] as NonNullable<Mongodb.ReplicaCutoff['infos'][number]['mongo_config']>,
-        mongodb: [] as NonNullable<Mongodb.ReplicaCutoff['infos'][number]['mongodb']>,
-        mongos: [] as NonNullable<Mongodb.ReplicaCutoff['infos'][number]['mongos']>,
-        old_nodes: {} as Mongodb.ReplicaCutoff['infos'][number]['old_nodes'],
-        resource_spec: {} as NonNullable<Mongodb.ReplicaCutoff['infos'][number]['resource_spec']>,
+        mongo_config: [] as NonNullable<Mongodb.ResourcePool.ReplicaCutoff['infos'][number]['mongo_config']>,
+        mongodb: [] as NonNullable<Mongodb.ResourcePool.ReplicaCutoff['infos'][number]['mongodb']>,
+        mongos: [] as NonNullable<Mongodb.ResourcePool.ReplicaCutoff['infos'][number]['mongos']>,
+        old_nodes: {} as Mongodb.ResourcePool.ReplicaCutoff['infos'][number]['old_nodes'],
+        resource_spec: {} as NonNullable<Mongodb.ResourcePool.ReplicaCutoff['infos'][number]['resource_spec']>,
         switch_role: '',
       };
       sameArr.forEach((item) => {
@@ -377,7 +377,7 @@
 
       if (infoItem.mongodb.length > 0) {
         Object.assign(infoItem.resource_spec, {
-          mongodb_: getResourceSpecInfo(infoItem.mongodb.length, sameArr[0]),
+          new_mongodb: getResourceSpecInfo(infoItem.mongodb.length, sameArr[0]),
         });
         infoItem.switch_role = 'mongodb';
         infoItem.old_nodes.mongodb = infoItem.mongodb.map((item) => ({

@@ -1,7 +1,6 @@
-import type { DetailBase, DetailClusters, DetailSpecs } from '../common';
+import type { ResourcePoolDetailBase } from '../../common';
 
-export interface AddShard extends DetailBase {
-  clusters: DetailClusters;
+export interface AddShard extends ResourcePoolDetailBase {
   infos: {
     add_shards_num: number; // 新增分片数
     city_code: string;
@@ -21,6 +20,4 @@ export interface AddShard extends DetailBase {
     };
     single_host_shard_num: number; // 展示用
   }[];
-  ip_source: 'resource_pool';
-  specs: DetailSpecs;
 }

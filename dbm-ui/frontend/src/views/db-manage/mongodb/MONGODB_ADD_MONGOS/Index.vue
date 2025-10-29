@@ -198,7 +198,7 @@
     },
   ];
 
-  useTicketDetail<Mongodb.AddMongos>(TicketTypes.MONGODB_ADD_MONGOS, {
+  useTicketDetail<Mongodb.ResourcePool.AddMongos>(TicketTypes.MONGODB_ADD_MONGOS, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { clusters, infos } = details;

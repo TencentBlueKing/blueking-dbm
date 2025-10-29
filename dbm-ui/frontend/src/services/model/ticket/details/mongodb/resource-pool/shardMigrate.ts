@@ -1,7 +1,6 @@
-import type { DetailBase, DetailClusters, DetailSpecs } from '../common';
+import type { ResourcePoolDetailBase } from '../../common';
 
-export interface ShardMigrate extends DetailBase {
-  clusters: DetailClusters;
+export interface ShardMigrate extends ResourcePoolDetailBase {
   infos: {
     city_code: string;
     cluster_id: number;
@@ -23,7 +22,7 @@ export interface ShardMigrate extends DetailBase {
       instances: string[];
     }[]; // 展示用
     resource_spec: {
-      mongodb_: {
+      mongodb: {
         count: number;
         label_names: string[]; // 标签名称列表，单据详情回显用
         labels: string[]; // 标签id列表
@@ -32,6 +31,4 @@ export interface ShardMigrate extends DetailBase {
     };
     shard_name: string[];
   }[];
-  ip_source: 'resource_pool';
-  specs: DetailSpecs;
 }

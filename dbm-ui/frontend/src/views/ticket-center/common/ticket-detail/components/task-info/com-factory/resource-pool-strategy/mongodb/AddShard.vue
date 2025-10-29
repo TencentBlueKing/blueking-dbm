@@ -18,34 +18,58 @@
     <TableColumn
       col-key="cluster_id"
       fixed="left"
-      :min-width="340"
+      :min-width="250"
       :title="t('目标集群')">
       <template #default="{row}: {row: RowData}">
-        {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
+        {{ ticketDetails.details.clusters[row.cluster_id]?.immute_domain }}
       </template>
     </TableColumn>
     <TableColumn
-      col-key="resource_spec"
-      :min-width="120"
-      :title="t('目标资源规格')">
+      col-key="current_shards_num"
+      :title="t('当前集群分片数')"
+      :width="120">
+    </TableColumn>
+    <TableColumn
+      col-key="add_shards_num"
+      :title="t('新增集群分片数')"
+      :width="120">
+    </TableColumn>
+    <TableColumn
+      col-key="cluster_type"
+      :title="t('最终集群分片数')"
+      :width="120">
       <template #default="{row}: {row: RowData}">
-        {{ ticketDetails.details.specs[row.resource_spec.mongodb.spec_id].name }}
+        {{ row.current_shards_num + row.add_shards_num }}
       </template>
     </TableColumn>
     <TableColumn
-      col-key="shard_node_count"
-      :title="t('目标 Shard 节点数')">
+      col-key="single_host_shard_num"
+      :title="t('单机分片数')"
+      :width="120">
     </TableColumn>
     <TableColumn
-      col-key="shard_machine_group"
-      :title="t('目标机器组数')">
+      col-key="current_shard_nodes_num"
+      :title="t('每片节点数')"
+      :width="120">
     </TableColumn>
     <TableColumn
-      col-key="shards_num"
-      :title="t('分片数')">
+      col-key="resource_spec.mongodb.spec_id"
+      :min-width="200"
+      :title="t('规格')">
+      <template #default="{row}: {row: RowData}">
+        {{ ticketDetails.details.specs[row.resource_spec.mongodb.spec_id]?.name }}
+      </template>
     </TableColumn>
     <TableColumn
-      col-key="label_names"
+      col-key="resource_spec.mongodb.count"
+      :title="t('新增机器（组）')"
+      :width="120">
+      <template #default="{row}: {row: RowData}">
+        {{ row.add_shards_num / row.single_host_shard_num }}
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="resource_spec.mongodb.label_names"
       :min-width="200"
       :title="t('资源标签')">
       <template #default="{ row }: { row: RowData }">
@@ -76,11 +100,11 @@
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
   interface Props {
-    ticketDetails: TicketModel<Mongodb.ScaleUpdown>;
+    ticketDetails: TicketModel<Mongodb.ResourcePool.AddShard>;
   }
 
   defineOptions({
-    name: TicketTypes.MONGODB_SCALE_UPDOWN,
+    name: TicketTypes.MONGODB_ADD_SHARD,
     inheritAttrs: false,
   });
 

@@ -196,7 +196,7 @@
     },
   ];
 
-  useTicketDetail<Mongodb.ScaleUpdown>(TicketTypes.MONGODB_SCALE_UPDOWN, {
+  useTicketDetail<Mongodb.ResourcePool.ScaleUpdown>(TicketTypes.MONGODB_SCALE_UPDOWN, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { clusters, infos } = details;

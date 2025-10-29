@@ -1,7 +1,6 @@
-import type { DetailBase, DetailClusters, DetailSpecs } from '../common';
+import type { ResourcePoolDetailBase } from '../../common';
 
-export interface AddMongos extends DetailBase {
-  clusters: DetailClusters;
+export interface AddMongos extends ResourcePoolDetailBase {
   infos: {
     cluster_id: number;
     current_mongos_num: number; // 展示用
@@ -15,7 +14,5 @@ export interface AddMongos extends DetailBase {
     };
     role: string;
   }[];
-  ip_source: string;
   is_safe: boolean;
-  specs: DetailSpecs;
 }

@@ -147,7 +147,7 @@
 
   const { t } = useI18n();
 
-  useTicketDetail<Mongodb.ShardMigrate>(TicketTypes.MONGODB_SHARD_MIGRATE, {
+  useTicketDetail<Mongodb.ResourcePool.ShardMigrate>(TicketTypes.MONGODB_SHARD_MIGRATE, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { infos } = details;
@@ -159,10 +159,8 @@
             batchShard: {
               renderText: item.shard_name.join('\n'),
             } as IDataRow['batchShard'],
-            // eslint-disable-next-line no-underscore-dangle
-            labels: (item.resource_spec.mongodb_.labels || []).map((item) => ({ id: Number(item) })),
-            // eslint-disable-next-line no-underscore-dangle
-            target_spec_id: item.resource_spec.mongodb_.spec_id,
+            labels: (item.resource_spec.mongodb.labels || []).map((item) => ({ id: Number(item) })),
+            target_spec_id: item.resource_spec.mongodb.spec_id,
           });
         }),
       });
@@ -189,7 +187,7 @@
         instances: string[];
       }[]; // 展示用
       resource_spec: {
-        mongodb_: {
+        mongodb: {
           count: number;
           label_names: string[]; // 标签名称列表，单据详情回显用
           labels: string[]; // 标签id列表
@@ -312,7 +310,7 @@
               },
               related_instances: getClusterInstanceList(tableItem.batchShard.shards),
               resource_spec: {
-                mongodb_: {
+                mongodb: {
                   count: 1 * shardInfo.shard_node_count, // 迁移到同一组
                   label_names: tableItem.labels.map((item) => item.value),
                   labels: tableItem.labels.map((item) => String(item.id)),

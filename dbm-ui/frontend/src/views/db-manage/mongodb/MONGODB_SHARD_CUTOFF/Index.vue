@@ -293,7 +293,7 @@
   const selected = computed(() => formData.tableData.filter((item) => item.host.ip).map((item) => item.host));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
 
-  useTicketDetail<Mongodb.ShardCutoff>(TicketTypes.MONGODB_SHARD_CUTOFF, {
+  useTicketDetail<Mongodb.ResourcePool.ShardCutoff>(TicketTypes.MONGODB_SHARD_CUTOFF, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { clusters, infos } = details;
@@ -321,7 +321,7 @@
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
-    infos: Mongodb.ShardCutoff['infos'];
+    infos: Mongodb.ResourcePool.ShardCutoff['infos'];
     ip_source: 'resource_pool';
   }>(TicketTypes.MONGODB_SHARD_CUTOFF);
 
@@ -355,11 +355,11 @@
       const sameArr = clusterMap[domain];
       const infoItem = {
         cluster_id: sameArr[0].host.cluster_id,
-        mongo_config: [] as NonNullable<Mongodb.ShardCutoff['infos'][number]['mongo_config']>,
-        mongodb: [] as NonNullable<Mongodb.ShardCutoff['infos'][number]['mongodb']>,
-        mongos: [] as NonNullable<Mongodb.ShardCutoff['infos'][number]['mongos']>,
-        old_nodes: {} as Mongodb.ShardCutoff['infos'][number]['old_nodes'],
-        resource_spec: {} as NonNullable<Mongodb.ShardCutoff['infos'][number]['resource_spec']>,
+        mongo_config: [] as NonNullable<Mongodb.ResourcePool.ShardCutoff['infos'][number]['mongo_config']>,
+        mongodb: [] as NonNullable<Mongodb.ResourcePool.ShardCutoff['infos'][number]['mongodb']>,
+        mongos: [] as NonNullable<Mongodb.ResourcePool.ShardCutoff['infos'][number]['mongos']>,
+        old_nodes: {} as Mongodb.ResourcePool.ShardCutoff['infos'][number]['old_nodes'],
+        resource_spec: {} as NonNullable<Mongodb.ResourcePool.ShardCutoff['infos'][number]['resource_spec']>,
         switch_role: '',
       };
       sameArr.forEach((item) => {
@@ -387,7 +387,7 @@
 
       if (infoItem.mongo_config.length > 0) {
         Object.assign(infoItem.resource_spec, {
-          mongo_config_: getResourceSpecInfo(infoItem.mongo_config.length, sameArr[0]),
+          new_mongo_config: getResourceSpecInfo(infoItem.mongo_config.length, sameArr[0]),
         });
         infoItem.switch_role = 'mongo_config';
         infoItem.old_nodes.mongo_config = infoItem.mongo_config.map((item) => ({
@@ -398,7 +398,7 @@
       }
       if (infoItem.mongodb.length > 0) {
         Object.assign(infoItem.resource_spec, {
-          mongodb_: getResourceSpecInfo(infoItem.mongodb.length, sameArr[0]),
+          new_mongodb: getResourceSpecInfo(infoItem.mongodb.length, sameArr[0]),
         });
         infoItem.switch_role = 'mongodb';
         infoItem.old_nodes.mongodb = infoItem.mongodb.map((item) => ({
@@ -409,7 +409,7 @@
       }
       if (infoItem.mongos.length > 0) {
         Object.assign(infoItem.resource_spec, {
-          mongos_: getResourceSpecInfo(infoItem.mongos.length, sameArr[0]),
+          new_mongos: getResourceSpecInfo(infoItem.mongos.length, sameArr[0]),
         });
         infoItem.switch_role = 'mongos';
         infoItem.old_nodes.mongos = infoItem.mongos.map((item) => ({
