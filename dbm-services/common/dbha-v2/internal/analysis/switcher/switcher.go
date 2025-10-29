@@ -27,34 +27,34 @@ package switcher
 
 import (
 	"context"
+	"fmt"
 
-	"dbm-services/common/dbha-v2/internal/analysis/storage"
-	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
+type MetadataKey string
+
 // Request contains all data needed for database switching operation
 type Request struct {
-	BkBizID             int
-	Hadb                *storage.DbhaData
-	BreakdownEvents     []*hamodel.DbEvent
-	BreakdownInts       []*hamodel.DbmMetadata
-	MetaInsts           []*hamodel.DbmMetadata
-	SwitchingStrategies []*hamodel.DbSwitchingStrategy
+	MySqlInstData []*MySQLInstanceMetadata
+}
 
-	// metadata needed when switching
-
-	// map: bk_cloud_id@ip:port -> MySQLInstanceMetadata
-	MySQLInsData map[string]MySQLInstanceMetadata
+func (req *Request) AddDbInstMetadata(metadata *MySQLInstanceMetadata) {
+	req.MySqlInstData = append(req.MySqlInstData, metadata)
 }
 
 // Response contains the result of switching operation
 type Response struct {
-	Err error
+	MySqlFailureInsts map[MetadataKey]*MySQLInstanceMetadata
+	Err               error
 }
 
 // Switcher defines the interface for database switching implementations
 type Switcher interface {
 	DbTypeName() haprobe.DbType
 	Switch(ctx context.Context, req *Request) *Response
+}
+
+func GenerateMetadataKey(bkCloudId int, ip string, port int) MetadataKey {
+	return MetadataKey(fmt.Sprintf("%d:%s:%d", bkCloudId, ip, port))
 }
