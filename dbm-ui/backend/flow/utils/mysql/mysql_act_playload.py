@@ -1455,7 +1455,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "role": self.ticket_data["role"],
                     "backup_type": self.ticket_data["backup_type"],
                     "backup_gsd": self.ticket_data["backup_gsd"],
-                    "backup_id": self.ticket_data.get("backup_id".__str__(), uuid.uuid1().hex),
+                    "backup_id": self.ticket_data.get("backup_id", uuid.uuid1()).__str__(),
                     "bill_id": str(self.ticket_data["uid"]),
                     "custom_backup_dir": self.ticket_data.get("custom_backup_dir", ""),
                     "shard_id": self.ticket_data.get("shard_id", 0),
