@@ -22,10 +22,11 @@ def init_db_meta(sender, **kwargs):
 
     # 初始化城市配置
     from .models.city_map import BKCity, LogicalCity
+    from .models.db_version import Distribution
     from .models.spec import Spec
 
     try:
-        if not LogicalCity.objects.count():
+        if not LogicalCity.objects.exists():
             logical_city = LogicalCity.objects.create(name="default")
             BKCity.objects.create(bk_idc_city_name="default", logical_city=logical_city)
     except Exception as err:  # pylint: disable=broad-except:
@@ -33,10 +34,17 @@ def init_db_meta(sender, **kwargs):
 
     # 初始化规格配置
     try:
-        if not Spec.objects.count():
+        if not Spec.objects.exists():
             Spec.init_spec()
     except (IntegrityError, Exception) as err:  # pylint: disable=broad-except:
         logger.warning(f"Spec init occur error: {err}, maybe already init, ignore...")
+
+    # 初始化发行版
+    try:
+        if not Distribution.objects.exists():
+            Distribution.init_distribution()
+    except Exception as err:  # pylint: disable=broad-except:
+        logger.warning(f"Distribution init occur error: {err}")
 
 
 class DBMeta(AppConfig):

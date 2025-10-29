@@ -203,6 +203,9 @@ class SystemSettingsEnum(StrStructuredEnum):
     DBM_DAILY_TODO_REMIND = EnumField("DBM_DAILY_TODO_REMIND", _("每日代办提醒配置"))
     # 代办类型和用户映射信息
     DBM_USER_TODO_TYPE_MAP = EnumField("DBM_USER_TODO_TYPE_MAP", _("代办类型和用户映射信息"))
+    # 配置介质支持的操作系统列表和版本
+    PACKAGE_SUPPORT_SYSTEMS = EnumField("PACKAGE_SUPPORT_SYSTEMS", _("介质支持的操作系统"))
+    DB_PACKAGE_SETTINGS = EnumField("DB_PACKAGE_SETTINGS", _("DB介质配置表"))
     DISABLE_DBHA_AUTOFIX_APPS = EnumField("DISABLE_DBHA_AUTOFIX_APPS", _("DBHA业务自动修复开关"))
 
 
@@ -340,6 +343,9 @@ DEFAULT_MACHINE_PROPERTY = {
     "storage_device": True,  # 磁盘
 }
 
+# 默认介质支持的操作系统
+DEFAULT_PACKAGE_SUPPORT_SYSTEMS = {"linux": ["ubuntu", "centos7", "centos8"], "windows": ["win7", "win10"]}
+
 # 默认智能体场景映射表
 DEFAULT_AI_CODE_SCENE_MAP = {"log_analysis": {"default": "LogAnalysis"}}
 
@@ -377,6 +383,7 @@ DEFAULT_SETTINGS = [
     #                                       为 "machine_type" 时填 machine_type 字符串, 如 "proxy", "backend"
     # }
     [SystemSettingsEnum.DISABLE_DBHA_AUTOFIX_APPS, "list", [], _("禁用DBHA自动修复配置")],
+    [SystemSettingsEnum.PACKAGE_SUPPORT_SYSTEMS.value, "dict", DEFAULT_PACKAGE_SUPPORT_SYSTEMS, _("介质支持的操作系统")],
 ]
 
 # 环境配置项 是否支持DNS解析 pulsar flow used

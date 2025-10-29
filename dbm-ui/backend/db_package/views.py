@@ -2,7 +2,7 @@
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
 Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
-Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+Licensed under the MIT License (the "License"); you may not use this file except in compliance with  the License.
 You may obtain a copy of the License at https://opensource.org/licenses/MIT
 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
@@ -22,13 +22,18 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.configuration.constants import DEFAULT_PACKAGE_SUPPORT_SYSTEMS, SystemSettingsEnum
+from backend.configuration.models import SystemSettings
 from backend.core.storages.handlers import StorageHandler
 from backend.core.storages.storage import get_storage
+from backend.db_meta.models import DBVersion, Distribution, ProxyInstance, StorageInstance, VersionSeries
 from backend.db_package.constants import DB_PACKAGE_TAG, INSTALL_PACKAGE_LIST, PARSE_FILE_EXT, PackageType
-from backend.db_package.exceptions import PackageNotExistException
+from backend.db_package.exceptions import DBPackageBaseException, PackageNotExistException
 from backend.db_package.filters import PackageListFilter
 from backend.db_package.models import Package
 from backend.db_package.serializers import (
+    BulkCreatePackageSerializer,
+    BulkDeletePackageSerializer,
     ListPackageVersionSerializer,
     PackageSerializer,
     SyncMediumSerializer,
@@ -66,6 +71,8 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
     def instance_getter(request, view):
         if view.action == "destroy":
             return [Package.objects.get(id=view.kwargs["pk"]).db_type]
+        elif view.action == "bulk_create":
+            return list(set([data["db_type"] for data in request.data["packages"]]))
         else:
             return [get_request_key_id(request, "db_type")]
 
@@ -80,11 +87,42 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
         package, created = Package.objects.update_or_create(
             defaults=data,
             name=data["name"],
+            # TODO: db_version后续会代替version
             version=data["version"],
+            db_version=data.get("db_version"),
             pkg_type=data["pkg_type"],
             db_type=data["db_type"],
         )
         return Response(PackageSerializer(package).data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("批量创建介质"),
+        tags=[DB_PACKAGE_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=BulkCreatePackageSerializer)
+    def bulk_create(self, request, *args, **kwargs):
+        """批量创建介质包，参考 create 方法的逻辑"""
+        data = self.params_validate(self.get_serializer_class())
+        packages_data = data["packages"]
+        username = request.user.username
+        now = timezone.now()
+
+        created_packages = []
+        with atomic():
+            for pkg_data in packages_data:
+                pkg_data["updater"] = username
+                pkg_data["update_at"] = now
+                package, created = Package.objects.update_or_create(
+                    defaults=pkg_data,
+                    name=pkg_data["name"],
+                    version=pkg_data["version"],
+                    db_version=pkg_data.get("db_version"),
+                    pkg_type=pkg_data["pkg_type"],
+                    db_type=pkg_data["db_type"],
+                )
+                created_packages.append(package)
+
+        return Response(PackageSerializer(created_packages, many=True).data)
 
     @common_swagger_auto_schema(
         operation_summary=_("同步制品库的文件信息(适用于medium初始化)"),
@@ -96,6 +134,32 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
             if isinstance(pkg, Package):
                 return f"{pkg.db_type}-{pkg.pkg_type}-{pkg.name}-{pkg.version}"
             return f"{pkg['db_type']}-{pkg['pkg_type']}-{pkg['name']}-{pkg['version']}"
+
+        def patch_version_model(info):
+            # 获取发行版
+            distribution, __ = Distribution.objects.get_or_create(
+                name=info.pop("distribution_name"),
+                engine=info.pop("distribution_engine"),
+                db_type=info["db_type"],
+                pkg_type=info["pkg_type"],
+            )
+            # 获取版本系列
+            version_series, __ = VersionSeries.objects.get_or_create(
+                name=info.pop("version_series"), distribution=distribution
+            )
+            # 获取介质版本
+            dbversion, __ = DBVersion.objects.get_or_create(
+                defaults={
+                    "distribution_snapshot": distribution.snapshot(),
+                    "description": info.pop("description", ""),
+                    "phase": info.pop("phase"),
+                    "name": info.pop("version_name"),
+                },
+                full_version=info.pop("full_version"),
+                version_series=version_series,
+            )
+            info.update(db_version=dbversion)
+            return info
 
         data = self.params_validate(self.get_serializer_class())
         db_type, sync_medium_infos = data["db_type"], data["sync_medium_infos"]
@@ -118,11 +182,13 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
                 old_package_map[pkg_key].__dict__.update(info)
                 update_packages.append(old_package_map[pkg_key])
             else:
+                info = patch_version_model(info)
                 info.update(priority=0, enable=True)
                 create_packages.append(Package(**info))
 
         # 按照DBType进行原子更新
-        update_fields = list(sync_medium_infos[0].keys())
+        info_fields = list(sync_medium_infos[0].keys())
+        update_fields = [field.name for field in Package._meta.fields if field.name in info_fields]
         with atomic():
             Package.objects.bulk_update(update_packages, fields=update_fields)
             Package.objects.bulk_create(create_packages)
@@ -178,9 +244,13 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
         # 如果有进行默认版本的变更，则需要把当前类型下的默认版本清零
         if "priority" in self.request.data:
             instance = self.get_object()
-            Package.objects.filter(db_type=instance.db_type, pkg_type=instance.pkg_type, priority__gt=0).update(
-                priority=0
-            )
+            Package.objects.filter(db_type=instance.db_type, pkg_type=instance.pkg_type).update(priority=0)
+            # 联动修改V2推荐字段
+            if instance.db_version:
+                dbs = Distribution.objects.filter(db_type=instance.db_type, pkg_type=instance.pkg_type)
+                db_ids = list(dbs.values_list("id", flat=True))
+                DBVersion.objects.filter(distribution_id__in=db_ids).update(recommend=False)
+                DBVersion.objects.filter(package=instance).update(recommend=self.request.data["priority"] > 0)
 
         super().partial_update(request, *args, **kwargs)
         return Response()
@@ -190,6 +260,10 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
         tags=[DB_PACKAGE_TAG],
     )
     def destroy(self, request, *args, **kwargs):
+        # 如果关联了实例，则不允许删除
+        package = self.get_object()
+        if package.storageinstance_set.exists() or package.proxyinstance_set.exists():
+            raise DBPackageBaseException(_("请保证该版本文件没有关联实例"))
         # 删除制品库文件
         try:
             StorageHandler().delete_file(self.get_object().path)
@@ -197,6 +271,28 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
             logger.error(_("文件删除异常，错误信息: {}").format(e))
         # 删除本地记录
         super().destroy(request, *args, **kwargs)
+        return Response()
+
+    @common_swagger_auto_schema(
+        operation_summary=_("删除版本文件"), tags=[DB_PACKAGE_TAG], request_body=BulkDeletePackageSerializer()
+    )
+    @action(methods=["DELETE"], detail=False, serializer_class=BulkDeletePackageSerializer)
+    def bulk_destroy(self, request, *args, **kwargs):
+        package_ids = self.validated_data["package_ids"]
+        # 检查是否有关联实例
+        if StorageInstance.objects.filter(db_package__in=package_ids).exists():
+            raise DBPackageBaseException(_("请保证该版本文件没有关联实例"))
+        if ProxyInstance.objects.filter(db_package__in=package_ids).exists():
+            raise DBPackageBaseException(_("请保证该版本文件没有关联实例"))
+        # 删除制品库文件
+        packages = Package.objects.filter(id__in=package_ids)
+        for package in packages:
+            try:
+                StorageHandler().delete_file(package.path)
+            except ApiRequestError as e:
+                logger.error(_("文件删除异常，错误信息: {}").format(e))
+        # 删除本地记录
+        packages.delete()
         return Response()
 
     @common_swagger_auto_schema(
@@ -222,12 +318,18 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
             md5 = md5sum(file_obj=upload_file, closed=False)
             storage = get_storage()
             path = storage.save(
-                name=os.path.join(
-                    slz.validated_data["db_type"],
-                    slz.validated_data["pkg_type"],
-                    version,
-                    file_name,
-                ),
+                name=os.path.join(slz.validated_data["db_type"], slz.validated_data["pkg_type"], version, file_name),
                 content=upload_file,
             )
         return Response({"name": file_name, "size": file.size, "md5": md5, "path": path, "version": version})
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取介质支持的操作系统"),
+        tags=[DB_PACKAGE_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=None, filter_class=None)
+    def list_support_systems(self, request, *args, **kwargs):
+        systems = SystemSettings.get_setting_value(
+            key=SystemSettingsEnum.PACKAGE_SUPPORT_SYSTEMS, default=DEFAULT_PACKAGE_SUPPORT_SYSTEMS
+        )
+        return Response(systems)

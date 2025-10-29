@@ -15,6 +15,13 @@ from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 # 部分场景的版本无需特定，保持最新即可
 LATEST = "latest"
 
+# 介质版本号底层固定按 6 段式 (a.b.c.d.e.f) 存储, 便于版本号整体可比较
+FULL_VERSION_SEGMENT_COUNT = 6
+# 对外展示的"短"段数, 即 3 段式
+SHORT_VERSION_SEGMENT_COUNT = 3
+# 段数不足 6 段时, 末尾用于补齐的占位段
+VERSION_PADDING_SEGMENT = "0"
+
 
 # 新增数据库版本支持（比如MySQL9.0），大概率需要发版本初始化一些数据，如初始配置项等，甚至有流程的变更
 # 且新增版本并非高频事件，因此这里暂时考虑使用枚举方式来维护，不存入数据库维护
@@ -30,6 +37,13 @@ class MySQLVersion(StrStructuredEnum):
     MySQL57RocksDB = EnumField("MySQL-5.7-RocksDB", _("MySQL-5.7-RocksDB"))
     # MySQL57Community = EnumField("MySQL-5.7-Community", _("MySQL-5.7-Community"))
     MySQL80Community = EnumField("MySQL-8.0-Community", _("MySQL-8.0-Community"))
+
+
+class MySQLEngine(StrStructuredEnum):
+    """MySQL数据库引擎枚举"""
+
+    InnoDB = EnumField("InnoDB", _("InnoDB"))
+    TokuDB = EnumField("TokuDB", _("TokuDB"))
 
 
 class SpiderVersion(StrStructuredEnum):

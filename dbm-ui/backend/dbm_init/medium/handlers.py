@@ -16,6 +16,7 @@ import os
 import shutil
 import subprocess
 import zipfile
+from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
@@ -86,6 +87,24 @@ class MediumHandler:
                 password=os.getenv("BKREPO_PASSWORD"),
                 endpoint_url=os.getenv("BKREPO_ENDPOINT_URL"),
             )
+
+    @staticmethod
+    def __load_medium_lock():
+        medium_lock_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "medium.lock")
+        with open(medium_lock_path, "r") as lock_file:
+            lock_info = yaml.safe_load(lock_file)
+        return lock_info
+
+    @staticmethod
+    def __format_full_version(version):
+        # TODO: medium lock的version必须是点六分式
+        split_ver = version.split(".")
+        if len(split_ver) == 3:
+            return f"{version}.0.0.0"
+        elif len(split_ver) == 6:
+            return version
+        else:
+            return "1.0.0.0.0.0"
 
     def download_medium(self, option, path, bkrepo_tmp_dir):
         """从制品库下载文件到本地"""
@@ -169,6 +188,14 @@ class MediumHandler:
 
     def sync_from_bkrepo(self, db_type):
         """将制品库文件同步到dbm"""
+
+        # 映射版本信息字典
+        lock_info = self.__load_medium_lock()
+        package_map = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(dict))))
+        for medium in lock_info[db_type]:
+            for medium_type, info in medium.items():
+                package_map[db_type][medium_type][info["version"]][info["name"]] = info
+
         from network import HttpHandler
 
         http = HttpHandler()
@@ -180,6 +207,8 @@ class MediumHandler:
 
             for version in self.storage.listdir(pkg_type["fullPath"])[0]:
                 for media in self.storage.listdir(version["fullPath"])[1]:
+                    package_info = package_map[db_type][pkg_type["name"]][version["name"]][media["name"]]
+                    # 介质基础信息
                     package_params = {
                         "name": media["name"],
                         "db_type": db_type,
@@ -188,11 +217,26 @@ class MediumHandler:
                         "path": media["fullPath"],
                         "size": media["size"],
                         "md5": media["md5"],
+                        "permit_os_type": package_info.get("os_type", ""),
+                        "permit_os": package_info.get("os_version", []),
                         "create_at": time_parse(media["createdDate"]).isoformat(),
                         "creator": "system",
                         "update_at": time_parse(media["lastModifiedDate"]).isoformat(),
                         "updater": "system",
                     }
+                    # 介质版本信息
+                    full_version = self.__format_full_version(package_info.get("full_version", version["name"]))
+                    package_version_params = {
+                        "distribution_name": package_info.get("distribution_name", "DBM"),
+                        "distribution_engine": package_info.get("distribution_engine", "DBM"),
+                        "version_series": package_info.get("version_series", version["name"]),
+                        "phase": package_info.get("phase", "release"),
+                        "description": package_info.get("description", "auto sync medium"),
+                        "full_version": full_version,
+                        "version_name": package_info.get("version_name", full_version),
+                    }
+
+                    package_params.update(package_version_params)
                     package_sync_params.append(package_params)
                     print("sync info %s", json.dumps(package_params, indent=4))
 
@@ -214,8 +258,7 @@ class MediumHandler:
 
         # 加载lock文件，获取介质的版本信息
         medium_lock_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "medium.lock")
-        with open(medium_lock_path, "r") as lock_file:
-            lock_info = yaml.safe_load(lock_file)
+        lock_info = cls.__load_medium_lock()
 
         # 将构建好的介质复制到指定目录，并更新lock info
         for db_type, mediums in lock_info.items():
@@ -237,11 +280,10 @@ class MediumHandler:
                         .split(",")
                     )
                     if dir_commit != medium_info["commitId"]:
+                        commit_data = datetime.strptime(commit_date, "%Y-%m-%d %H:%M:%S %z").strftime("%Y%m%d%H%M")
                         medium_info["version"] = add_version(medium_info["version"])
                         medium_info["commitId"] = dir_commit
-                        medium_info["commitDate"] = datetime.strptime(commit_date, "%Y-%m-%d %H:%M:%S %z").strftime(
-                            "%Y%m%d%H%M"
-                        )
+                        medium_info["commitDate"] = commit_data
 
         # 更新lock文件
         with open(medium_lock_path, "w") as lock_file:
@@ -250,10 +292,7 @@ class MediumHandler:
     @classmethod
     def build_medium(cls, bkrepo_tmp_dir, installation=False):
         # 加载lock文件，获取介质的版本信息
-        medium_lock_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "medium.lock")
-        with open(medium_lock_path, "r") as lock_file:
-            lock_info = yaml.safe_load(lock_file)
-
+        lock_info = cls.__load_medium_lock()
         for db_type, mediums in lock_info.items():
             for medium in mediums:
                 for medium_type, medium_info in medium.items():

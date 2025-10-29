@@ -29,7 +29,7 @@ class Package(AuditedModel):
     version = models.CharField(_("版本号"), max_length=LEN_NORMAL)
 
     # 和新版本管理的信息是重复的, 后续可以删掉
-    pkg_type = models.CharField(_("安装包类型"), choices=PackageType.get_choices(), max_length=LEN_SHORT)
+    pkg_type = models.CharField(_("安装包类型"), max_length=LEN_SHORT)
     db_type = models.CharField(
         _("存储类型"), choices=DBType.get_choices(), max_length=LEN_SHORT, default=DBType.MySQL.value
     )
@@ -63,11 +63,17 @@ class Package(AuditedModel):
         bk_biz_id: Optional[int] = None,
         db_type: Optional[str] = DBType.MySQL,
         name_prefix: Optional[str] = None,
+        only_enable_pkg: Optional[bool] = True,
     ) -> "Package":
         """
         根据版本和包类型获取最新的介质包
         """
-        filters = {"pkg_type": pkg_type, "db_type": db_type, "enable": True}
+        filters = {"pkg_type": pkg_type, "db_type": db_type}
+
+        # 是否让enable参与介质过滤
+        # 获取介质有不同的语义场景：有时候要是enable=True的最新/有时候要绝对意义的最新
+        if only_enable_pkg:
+            filters["enable"] = True
 
         if name_prefix:
             filters["name__startswith"] = name_prefix
@@ -80,7 +86,7 @@ class Package(AuditedModel):
         if bk_biz_id:
             # 过滤出灰度的业务以及无指定业务的包
             allow_biz_filter = Q(allow_biz_ids__contains=bk_biz_id) | Q(allow_biz_ids__isnull=True)
-            packages = packages.filter(allow_biz_filter, enable=True)
+            packages = packages.filter(allow_biz_filter)
 
         if not packages:
             raise PackageNotExistException(version=version, pkg_type=pkg_type, db_type=db_type)

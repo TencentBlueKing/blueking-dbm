@@ -36,7 +36,6 @@ class Migration(migrations.Migration):
                 (
                     "pkg_type",
                     models.CharField(
-                        choices=PackageType.get_choices(),
                         max_length=128,
                     ),
                 ),
