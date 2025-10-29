@@ -65,15 +65,13 @@
           </span>
         </BkCheckbox>
       </BkFormItem>
-      <BkFormItem>
-        <BkCheckbox
-          v-model="formData.is_verify_checksum"
-          :false-label="false"
-          true-label>
-          <span>
-            {{ t('检查主从数据校验结果') }}
-          </span>
-        </BkCheckbox>
+      <BkFormItem
+        :label="t('数据校验')"
+        property="need_checksum"
+        required>
+        <BkSwitcher
+          v-model="formData.need_checksum"
+          theme="primary" />
       </BkFormItem>
       <BackupSource v-model="formData.backup_source" />
       <TicketPayload v-model="formData.payload" />
@@ -194,7 +192,7 @@
   const defaultData = () => ({
     backup_source: BackupSourceType.REMOTE,
     is_check_process: true,
-    is_verify_checksum: true,
+    need_checksum: true,
     payload: createTickePayload(),
     tableData: [createTableRow()],
   });
@@ -243,7 +241,7 @@
         Object.assign(formData, {
           ...createTickePayload(ticketDetail),
           is_check_process: ticketDetail.details.is_check_process,
-          is_verify_checksum: ticketDetail.details.is_verify_checksum,
+          need_checksum: ticketDetail.details.need_checksum,
           tableData: ticketDetail.details.infos.map((item) =>
             createTableRow({
               cluster: {
@@ -300,7 +298,7 @@
     }[];
     ip_source: 'resource_pool';
     is_check_process: boolean;
-    is_verify_checksum: boolean;
+    need_checksum: boolean;
   }>(TicketTypes.MYSQL_MIGRATE_UPGRADE);
 
   const handleBatchEdit = (list: TendbhaModel[]) => {
@@ -362,7 +360,7 @@
           })),
           ip_source: 'resource_pool',
           is_check_process: formData.is_check_process,
-          is_verify_checksum: formData.is_verify_checksum,
+          need_checksum: formData.need_checksum,
         },
         ...formData.payload,
       });

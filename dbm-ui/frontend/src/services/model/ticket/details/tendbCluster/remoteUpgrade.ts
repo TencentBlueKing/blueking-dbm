@@ -20,6 +20,5 @@ export interface RemoteUpgrade extends DetailBase {
     };
   }[];
   is_check_process: boolean;
-  is_verify_checksum: boolean;
   upgrade_local: boolean;
 }
