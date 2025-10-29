@@ -101,7 +101,16 @@ class MySQLBackupHandler:
         backup_info["backup_charset"] = backup_info["extra_fields"]["backup_charset"]
         backup_info["backup_tool"] = backup_info["extra_fields"]["backup_tool"]
         backup_info["file_list_details"] = backup_info["file_list"]
+        # 从 extra_fields 挪出来的字段
         backup_info["database_list"] = backup_info["extra_fields"].get("database_list", [])
+        backup_info["total_filesize"] = backup_info["extra_fields"].get("total_filesize", 0)
+        backup_info["file_retention_tag"] = backup_info["extra_fields"].get("file_retention_tag", "")
+        backup_info["backup_tool"] = backup_info["extra_fields"].get("backup_tool", "")
+        backup_info["storage_engine"] = backup_info["extra_fields"]["storage_engine"]
+        backup_info["time_zone"] = backup_info["extra_fields"]["time_zone"]
+        backup_info["backup_charset"] = backup_info["extra_fields"]["backup_charset"]
+        backup_info["bk_cloud_id"] = backup_info["extra_fields"]["bk_cloud_id"]
+
         task_ids = []
         local_files = []
         for file in backup_info["file_list_details"]:

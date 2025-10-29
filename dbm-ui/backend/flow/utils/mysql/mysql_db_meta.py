@@ -238,12 +238,14 @@ class MySQLDBMeta(object):
             api.cluster.tendbha.add_slave(
                 cluster_id=self.cluster["cluster_id"], target_slave_ip=self.cluster["new_slave_ip"]
             )
-            api.cluster.tendbha.add_storage_tuple(
-                master_ip=self.cluster["master_ip"],
-                slave_ip=self.cluster["new_slave_ip"],
-                bk_cloud_id=self.cluster["bk_cloud_id"],
-                port_list=[self.cluster["master_port"]],
-            )
+            # 针对TendbSingle的恢复流程，全量数据恢复主从关系。
+            if self.cluster.get("add_tuple_relation", True):
+                api.cluster.tendbha.add_storage_tuple(
+                    master_ip=self.cluster["master_ip"],
+                    slave_ip=self.cluster["new_slave_ip"],
+                    bk_cloud_id=self.cluster["bk_cloud_id"],
+                    port_list=[self.cluster["master_port"]],
+                )
             # 修改新slave实例状态: restoring->running
             slave_storage = StorageInstance.objects.get(
                 machine__ip=self.cluster["new_slave_ip"],

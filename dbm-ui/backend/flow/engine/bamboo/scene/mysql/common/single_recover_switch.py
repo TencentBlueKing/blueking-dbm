@@ -15,14 +15,17 @@ from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import InstanceStatus
 from backend.db_meta.models import Cluster
+from backend.flow.consts import TendbSingleRestoreType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
+from backend.flow.plugins.components.collections.mysql.mysql_rds_execute import MySQLExecuteRdsComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CreateDnsKwargs,
     DownloadMediaKwargs,
+    ExecuteRdsKwargs,
     InstanceUserCloneKwargs,
     RecycleDnsRecordKwargs,
 )
@@ -33,7 +36,13 @@ tendb ha 从库恢复切换
 
 
 def single_migrate_switch_sub_flow(
-    root_id: str, ticket_data: dict, cluster: Cluster, old_orphan_ip: str, new_orphan_ip: str, domains: list
+    root_id: str,
+    uid: str,
+    orphan_restore_type: str,
+    cluster: Cluster,
+    old_orphan_ip: str,
+    new_orphan_ip: str,
+    domains: list,
 ):
     """"""
     # 默认预检测连接情况、同步延时、checksum校验结果
@@ -42,8 +51,8 @@ def single_migrate_switch_sub_flow(
     )
     old_orphan = "{}{}{}".format(old_orphan_ip, IP_PORT_DIVIDER, old_orphan_storage.port)
     new_orphan = "{}{}{}".format(new_orphan_ip, IP_PORT_DIVIDER, old_orphan_storage.port)
-
-    sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
+    cluster_info = {"root_id": root_id, "uid": uid}
+    sub_pipeline = SubBuilder(root_id=root_id, data=cluster_info)
 
     if old_orphan_storage.status == InstanceStatus.RUNNING.value:
         sub_pipeline.add_act(
@@ -102,6 +111,21 @@ def single_migrate_switch_sub_flow(
             )
         ),
     )
+
+    if orphan_restore_type == TendbSingleRestoreType.REPLICATE_FROM_MASTER:
+        # 目标实例断开同步
+        sub_pipeline.add_act(
+            act_name=_("目标实例断开同步{}").format(new_orphan),
+            act_component_code=MySQLExecuteRdsComponent.code,
+            kwargs=asdict(
+                ExecuteRdsKwargs(
+                    bk_cloud_id=cluster.bk_cloud_id,
+                    instance_ip=new_orphan_ip,
+                    instance_port=old_orphan_storage.port,
+                    sqls=["stop slave", "reset slave all"],
+                )
+            ),
+        )
     return sub_pipeline.build_sub_process(
         sub_name=_("{}切换到新节点{}:{}".format(cluster.name, new_orphan_ip, old_orphan_storage.port))
     )

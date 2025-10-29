@@ -1669,7 +1669,7 @@ class OracleDBActuatorActionEnum(StrStructuredEnum):
     OracleExecuteScript = EnumField("execute_script", _("execute_script"))
 
 
-class TendbSingleRestoreEnum(StrStructuredEnum):
-    RemoteBackupAndNewest = EnumField("remote_backup_newest", _("remote_backup_newest"))
-    LocalBackupAndSchema = EnumField("local_backup_and_schema", _("local_backup_and_schema"))
-    LocalBackupAndData = EnumField("local_backup_and_data", _("local_backup_and_data"))
+class TendbSingleRestoreType(StrStructuredEnum):
+    REPLICATE_FROM_MASTER = EnumField("REPLICATE_FROM_MASTER", _("恢复数据并实时同步binlog"))
+    RESTORE_FROM_BACKUP = EnumField("RESTORE_FROM_BACKUP", _("从选择的备份中恢复"))
+    RESTORE_ONLY_STRUCT = EnumField("RESTORE_ONLY_STRUCT", _("下发备份表结构并恢复表结构"))
