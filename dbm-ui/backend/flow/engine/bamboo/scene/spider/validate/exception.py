@@ -40,3 +40,9 @@ class UpgradeVersionFailedException(FlowValidateBaseException):
     ERROR_CODE = "36005"
     MESSAGE = _("升级版本检查失败")
     MESSAGE_TPL = _("{message}")
+
+
+class SpiderMinCountFailedException(FlowValidateBaseException):
+    ERROR_CODE = "36006"
+    MESSAGE = _("预估集群spider数量低于系统管理的下限")
+    MESSAGE_TPL = _("{message}")

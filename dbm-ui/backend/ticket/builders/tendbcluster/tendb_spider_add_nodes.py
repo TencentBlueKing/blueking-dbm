@@ -30,7 +30,8 @@ from backend.ticket.constants import TicketType
 class TendbSpiderAddNodesDetailSerializer(TendbBaseOperateDetailSerializer):
     class SpiderNodesItemSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-        current_spider_num = serializers.IntegerField(help_text=_("当前proxy数量"), required=False)
+        current_spider_num = serializers.IntegerField(help_text=_("当前spider数量"), required=False)
+        add_spider_num = serializers.IntegerField(help_text=_("添加spider数量"))
         add_spider_role = serializers.ChoiceField(help_text=_("接入层类型"), choices=TenDBClusterSpiderRole.get_choices())
         resource_spec = serializers.DictField(help_text=_("规格参数"))
 
@@ -39,14 +40,10 @@ class TendbSpiderAddNodesDetailSerializer(TendbBaseOperateDetailSerializer):
     )
     infos = serializers.ListSerializer(help_text=_("扩容信息"), child=SpiderNodesItemSerializer())
 
-    def validate(self, attrs):
-        super().validate(attrs)
-        self.validate_max_spider_master_mnt_count(attrs)
-        return attrs
-
 
 class TendbSpiderAddNodesFlowParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.add_spider_nodes_scene
+    validator = SpiderController.add_spider_nodes_scene.validator
 
     def format_ticket_data(self):
         pass
