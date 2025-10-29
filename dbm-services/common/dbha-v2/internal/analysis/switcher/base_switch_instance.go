@@ -106,22 +106,22 @@ func (sw *BaseSwitchInstance) releaseDNSEntry(dnsEntries []hamodel.BindEntryDnsI
 		return allSuccess
 	}
 
-	sw.ReportLog(SwitchInfo, fmt.Sprintf("try to release dns entry [%s:%d]", sw.Ip, sw.Port))
+	sw.ReportLog(SwitchInfo, fmt.Sprintf("try to release dns entry (%s:%d)", sw.Ip, sw.Port))
 	for _, dns := range dnsEntries {
 		if (sw.MachineType == hamodel.DbmMetadataMachineTypeProxy) ||
 			(sw.MachineType == hamodel.DbmMetadataMachineTypeSpider) {
 			addressNum, err := sw.dbmClient.GetAddressNumberOfDomain(dns.DomainName)
 			if err != nil {
 				sw.ReportLog(SwitchFail,
-					fmt.Sprintf("failed to get address number of domain [%s]: %v", dns.DomainName, err))
+					fmt.Sprintf("failed to get address number of domain (%s): %v", dns.DomainName, err))
 				allSuccess = false
 				continue
 			}
-			sw.ReportLog(SwitchInfo, fmt.Sprintf("found %d addresses in domain [%s]",
+			sw.ReportLog(SwitchInfo, fmt.Sprintf("found %d addresses in domain (%s)",
 				addressNum, dns.DomainName))
 			if addressNum <= 1 {
 				sw.ReportLog(SwitchWarn,
-					fmt.Sprintf("only single address in domain [%s], skip release domain", dns.DomainName))
+					fmt.Sprintf("only single address in domain (%s), skip release domain", dns.DomainName))
 				continue
 			}
 		}
@@ -133,7 +133,7 @@ func (sw *BaseSwitchInstance) releaseDNSEntry(dnsEntries []hamodel.BindEntryDnsI
 			ins := fmt.Sprintf("%s#%d", ip, dns.BindPort)
 			err := sw.dbmClient.DeleteFromDomain(dns.DomainName, ins, sw.GetApp())
 			if err != nil {
-				sw.ReportLog(SwitchFail, fmt.Sprintf("delete ip[%s] from domain[%s] failed: %s",
+				sw.ReportLog(SwitchFail, fmt.Sprintf("delete ip(%s) from domain(%s) failed: %s",
 					ip, dns.DomainName, err.Error()))
 				allSuccess = false
 			}
@@ -141,7 +141,7 @@ func (sw *BaseSwitchInstance) releaseDNSEntry(dnsEntries []hamodel.BindEntryDnsI
 		}
 	}
 	if allSuccess {
-		sw.ReportLog(SwitchInfo, fmt.Sprintf("release dns entry success [%s:%d]", sw.Ip, sw.Port))
+		sw.ReportLog(SwitchInfo, fmt.Sprintf("release dns entry success (%s:%d)", sw.Ip, sw.Port))
 	}
 
 	return allSuccess
@@ -153,7 +153,7 @@ func (sw *BaseSwitchInstance) releaseCLBEntry(clbEntries []hamodel.BindEntryClbI
 		return allSuccess
 	}
 
-	sw.ReportLog(SwitchInfo, fmt.Sprintf("try to release clb entry [%s:%d]", sw.Ip, sw.Port))
+	sw.ReportLog(SwitchInfo, fmt.Sprintf("try to release clb entry (%s:%d)", sw.Ip, sw.Port))
 	for _, clb := range clbEntries {
 		for _, ip := range clb.BindIps {
 			if ip != sw.Ip || clb.BindPort != sw.Port {
@@ -166,7 +166,7 @@ func (sw *BaseSwitchInstance) releaseCLBEntry(clbEntries []hamodel.BindEntryClbI
 			)
 			if err != nil {
 				sw.ReportLog(SwitchFail,
-					fmt.Sprintf("delte %s from clb[%s:%s:%s] failed: %s",
+					fmt.Sprintf("delte %s from clb(%s:%s:%s) failed: %s",
 						ins, clb.Region, clb.LoadBalanceId, clb.ListenId, err.Error()))
 				allSuccess = false
 			}
@@ -174,7 +174,7 @@ func (sw *BaseSwitchInstance) releaseCLBEntry(clbEntries []hamodel.BindEntryClbI
 		}
 	}
 	if allSuccess {
-		sw.ReportLog(SwitchInfo, fmt.Sprintf("release clb entry success [%s:%d]", sw.Ip, sw.Port))
+		sw.ReportLog(SwitchInfo, fmt.Sprintf("release clb entry success (%s:%d)", sw.Ip, sw.Port))
 	}
 
 	return allSuccess
@@ -186,7 +186,7 @@ func (sw *BaseSwitchInstance) releasePolarisEntry(polarisEntries []hamodel.BindE
 		return allSuccess
 	}
 
-	sw.ReportLog(SwitchInfo, fmt.Sprintf("try to release polaris entry [%s:%d]", sw.Ip, sw.Port))
+	sw.ReportLog(SwitchInfo, fmt.Sprintf("try to release polaris entry (%s:%d)", sw.Ip, sw.Port))
 	for _, pinfo := range polarisEntries {
 		for _, ip := range pinfo.BindIps {
 			if ip != sw.Ip || pinfo.BindPort != sw.Port {
@@ -199,7 +199,7 @@ func (sw *BaseSwitchInstance) releasePolarisEntry(polarisEntries []hamodel.BindE
 			)
 			if err != nil {
 				sw.ReportLog(SwitchFail,
-					fmt.Sprintf("delete [%s] from polaris %s:%s failed: %s",
+					fmt.Sprintf("delete (%s) from polaris %s:%s failed: %s",
 						ins, pinfo.Service, pinfo.Token, err.Error()))
 				allSuccess = false
 			}
@@ -207,7 +207,7 @@ func (sw *BaseSwitchInstance) releasePolarisEntry(polarisEntries []hamodel.BindE
 		}
 	}
 	if allSuccess {
-		sw.ReportLog(SwitchInfo, fmt.Sprintf("release polaris entry success [%s:%d]", sw.Ip, sw.Port))
+		sw.ReportLog(SwitchInfo, fmt.Sprintf("release polaris entry success (%s:%d)", sw.Ip, sw.Port))
 	}
 
 	return allSuccess
@@ -221,12 +221,12 @@ func (sw *BaseSwitchInstance) DeleteNameService(entry hamodel.DbmMetadataBindEnt
 	polarisFlag := sw.releasePolarisEntry(entry.Polaris)
 
 	if !(dnsFlag && clbFlag && polarisFlag) {
-		errMsg := fmt.Sprintf("Failed to release broken-down instance[%s:%d] from all entries", sw.Ip, sw.Port)
+		errMsg := fmt.Sprintf("Failed to release broken-down instance(%s:%d) from all entries", sw.Ip, sw.Port)
 		return gerrors.New(gerrors.Failure, errMsg)
 	}
 
 	sw.ReportLog(SwitchInfo,
-		fmt.Sprintf("Success to release instance[%s:%d] from all entries[dns/clb/polaris]", sw.Ip, sw.Port))
+		fmt.Sprintf("Success to release instance(%s:%d) from all entries[dns/clb/polaris]", sw.Ip, sw.Port))
 	return nil
 }
 
