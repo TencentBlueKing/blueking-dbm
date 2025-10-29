@@ -25,7 +25,7 @@ from backend.flow.consts import SqlserverSyncMode
 
 
 class ListResourceSLZ(serializers.Serializer):
-    id = serializers.IntegerField(required=False)
+    id = serializers.CharField(required=False)
     name = serializers.CharField(required=False)
     instance = serializers.CharField(required=False)
     domain = serializers.CharField(required=False)
