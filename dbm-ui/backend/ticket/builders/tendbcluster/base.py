@@ -60,16 +60,11 @@ class TendbBaseOperateDetailSerializer(MySQLBaseOperateDetailSerializer):
         TicketType.TENDBCLUSTER_MASTER_SLAVE_SWITCH,
         TicketType.TENDBCLUSTER_MASTER_FAIL_OVER,
     ]
-    # 存储层 slave 异常 (正常情况下,所有存储异常最终都会变成slave异常),备份, 校验单据不可用
+    # 存储层 slave 异常 (正常情况下,所有存储异常最终都会变成slave异常), 校验单据不可用
     REMOTE_SLAVE_UNAVAILABLE_WHITELIST = [
         t
         for t in TicketType.get_ticket_type_by_db(DBType.TenDBCluster.value)
-        if t
-        not in [
-            TicketType.TENDBCLUSTER_FULL_BACKUP,
-            TicketType.TENDBCLUSTER_DB_TABLE_BACKUP,
-            TicketType.TENDBCLUSTER_CHECKSUM,
-        ]
+        if t not in [TicketType.TENDBCLUSTER_CHECKSUM]
     ]
 
     # 集群的flag状态与白名单的映射表
