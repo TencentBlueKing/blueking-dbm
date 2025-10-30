@@ -19,6 +19,7 @@ class MetaCheckSubType(StrStructuredEnum):
     ClusterTopo = EnumField("cluster_topo", _("集群结构"))
     AloneInstance = EnumField("alone_instance", _("孤立的实例"))
     StatusAbnormal = EnumField("status_abnormal", _("不属于RUNNING状态"))
+    AffinityViolation = EnumField("affinity_violation", _("亲和性违规"))
     # tendbha
     TenDBHAProxyBindWrongBackendRole = EnumField("proxy_bind_wrong_backend_role", _("proxy bind backend 角色错误"))
     TenDBHAProxyCountNotMatch = EnumField("proxy_count_not_match", _("访问入口关联 proxy 数和集群 proxy 数不相等"))

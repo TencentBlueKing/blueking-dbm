@@ -7,8 +7,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
-
 import logging
 
 from django.utils.translation import gettext as _
@@ -25,53 +23,67 @@ from backend.db_report.report_baseview import ReportBaseViewSet
 logger = logging.getLogger("root")
 
 
+REDIS_META_CHECK_COMMON_TITLE = [
+    {
+        "name": "bk_biz_id",
+        "display_name": _("业务"),
+        "format": ReportFieldFormat.TEXT.value,
+    },
+    {
+        "name": "cluster",
+        "display_name": _("集群域名"),
+        "format": ReportFieldFormat.TEXT.value,
+    },
+    {
+        "name": "cluster_type",
+        "display_name": _("集群类型"),
+        "format": ReportFieldFormat.TEXT.value,
+    },
+    {
+        "name": "ip",
+        "display_name": _("实例IP"),
+        "format": ReportFieldFormat.TEXT.value,
+    },
+    {
+        "name": "port",
+        "display_name": _("实例端口"),
+        "format": ReportFieldFormat.TEXT.value,
+    },
+    {
+        "name": "state",
+        "display_name": _("元数据状态"),
+        "format": ReportFieldFormat.STATUS.value,
+    },
+    {
+        "name": "msg",
+        "display_name": _("详情"),
+        "format": ReportFieldFormat.TEXT.value,
+    },
+    {
+        "name": "create_at",
+        "display_name": _("巡检时间"),
+        "format": ReportFieldFormat.TEXT.value,
+    },
+    {
+        "name": "failed_days",
+        "display_name": _("持续天数"),
+        "format": ReportFieldFormat.TEXT.value,
+    },
+]
+
+
 class RedisDbmetaCheckReportSerializer(serializers.ModelSerializer):
     class Meta:
         model = MetaCheckReport
-        fields = ("bk_biz_id", "cluster", "cluster_type", "status", "msg", "create_at")
+        fields = ("bk_biz_id", "cluster", "cluster_type", "ip", "port", "state", "msg", "create_at", "failed_days")
         swagger_schema_fields = {"example": mock_data.REDIS_META_CHECK_DATA}
 
 
 class RedisDbmetaCheckReportBaseViewSet(ReportBaseViewSet):
     queryset = MetaCheckReport.objects.all()
     serializer_class = RedisDbmetaCheckReportSerializer
-    report_title = [
-        {
-            "name": "bk_biz_id",
-            "display_name": _("业务"),
-            "format": ReportFieldFormat.TEXT.value,
-        },
-        {
-            "name": "cluster",
-            "display_name": _("集群域名"),
-            "format": ReportFieldFormat.TEXT.value,
-        },
-        {
-            "name": "cluster_type",
-            "display_name": _("集群类型"),
-            "format": ReportFieldFormat.TEXT.value,
-        },
-        {
-            "name": "status",
-            "display_name": _("元数据状态"),
-            "format": ReportFieldFormat.STATUS.value,
-        },
-        {
-            "name": "msg",
-            "display_name": _("详情"),
-            "format": ReportFieldFormat.TEXT.value,
-        },
-        {
-            "name": "create_at",
-            "display_name": _("巡检时间"),
-            "format": ReportFieldFormat.TEXT.value,
-        },
-        {
-            "name": "failed_days",
-            "display_name": _("持续天数"),
-            "format": ReportFieldFormat.TEXT.value,
-        },
-    ]
+    report_title = REDIS_META_CHECK_COMMON_TITLE
+    ordering = ["-create_at", "failed_days"]
 
     @common_swagger_auto_schema(
         operation_summary=_("redis 元数据检查报告"),
@@ -106,6 +118,26 @@ class RedisStatusAbnormalCheckReportViewSet(RedisDbmetaCheckReportBaseViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("实例状态异常检查"),
+        responses={status.HTTP_200_OK: RedisDbmetaCheckReportSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+
+@register_report(DBType.Redis)
+class RedisAffinityCheckReportViewSet(RedisDbmetaCheckReportBaseViewSet):
+    queryset = MetaCheckReport.objects.filter(subtype=MetaCheckSubType.AffinityViolation.value)
+    serializer_class = RedisDbmetaCheckReportSerializer
+    report_type = ReportType.AFFINITY_CHECK
+    report_title = [
+        {**field, "display_name": _("涉及机器")} if field["name"] == "ip" else field
+        for field in REDIS_META_CHECK_COMMON_TITLE
+        if field["name"] != "port"
+    ]
+
+    @common_swagger_auto_schema(
+        operation_summary=_("亲和性检查报告"),
         responses={status.HTTP_200_OK: RedisDbmetaCheckReportSerializer()},
         tags=[SWAGGER_TAG],
     )
