@@ -12,25 +12,27 @@
 -->
 
 <template>
-  <PrimaryTable :data="tableData">
+  <TicketInfoTable
+    :data="tableData"
+    row-key="newNode.ip">
     <!-- 新节点IP -->
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="newNode"
       :title="t('新节点IP')">
       <template #default="{ row }">
         {{ row.newNode?.ip || '--' }}
       </template>
-    </TableColumn>
+    </TicketInfoTableColumn>
 
     <!-- 被替换的节点IP -->
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="oldNode"
       :title="t('被替换的节点IP')">
       <template #default="{ row }">
         {{ row.oldNode?.ip || '--' }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="ts">

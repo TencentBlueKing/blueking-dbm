@@ -12,48 +12,62 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     ellipsis
     row-key="cluster_id">
-    <TableColumn
+    <TicketInfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
       :title="t('集群')"
       :width="240">
       <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('清档类型')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="clean_mode"
+      :title="t('清档类型')">
       <template #default="{ row: data }: { row: RowData }">
         {{ clearModeMap[data.clean_mode] }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('指定 DB 名')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="clean_dbs_patterns"
+      :title="t('指定 DB 名')">
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.clean_dbs_patterns" />
       </template>
-    </TableColumn>
-    <TableColumn :title="t('忽略 DB 名')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="clean_ignore_dbs_patterns"
+      :title="t('忽略 DB 名')">
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.clean_ignore_dbs_patterns" />
       </template>
-    </TableColumn>
-    <TableColumn :title="t('指定表名')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="clean_tables"
+      :title="t('指定表名')">
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.clean_tables" />
       </template>
-    </TableColumn>
-    <TableColumn :title="t('忽略表名')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="ignore_clean_tables"
+      :title="t('忽略表名')">
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.ignore_clean_tables" />
       </template>
-    </TableColumn>
-    <TableColumn :title="t('最终 DB')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="clean_dbs"
+      :title="t('最终 DB')">
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.clean_dbs" />
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

@@ -12,18 +12,19 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="id">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="master.ip"
+      :get-copy-value="(row: RowData) => row.master.ip"
       :title="t('故障主库主机')">
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="slave.ip"
       :title="t('从库主机')">
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="slave.ip"
       :title="t('同机关联的集群')">
       <template #default="{ row: data }: { row: RowData }">
@@ -34,8 +35,8 @@
           {{ ticketDetails.details.clusters[clusterId].immute_domain }}
         </div>
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="ts">

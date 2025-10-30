@@ -12,81 +12,81 @@
 -->
 
 <template>
-  <InfoTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
-    <InfoTableColumn
+    <TicketInfoTableColumn
       col-key="cluster_id"
-      :get-copy-value="(item: RowData) => ticketDetails.details.clusters[item.cluster_id].immute_domain"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
       :min-width="220"
       :title="t('集群')">
-      <template #default="{ row:data }: { row: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="host_source"
       :title="t('主机来源')">
       <template #default>
         {{ t('业务空闲机') }}
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="rollback_host"
       :title="t('回档新主机')">
-      <template #default="{ row:data }: { row: RowData }">
-        {{ data.rollback_host.ip }}
+      <template #default="{ row }: { row: RowData }">
+        {{ row.rollback_host.ip }}
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="backup_source"
       :min-width="150"
       :title="t('备份源')">
-      <template #default="{ row:data }: { row: RowData }">
-        {{ backupSourceMap[data.backup_source as keyof typeof backupSourceMap] }}
+      <template #default="{ row }: { row: RowData }">
+        {{ backupSourceMap[row.backup_source as keyof typeof backupSourceMap] }}
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="rollback_time"
       :title="t('回档类型')">
-      <template #default="{ row:data }: { row: RowData }">
-        <span v-if="data.rollback_time">{{ t('回档到指定时间') }} - {{ utcDisplayTime(data.rollback_time) }}</span>
-        <span v-else-if="data.backupinfo.backup_time && data.backupinfo.mysql_role">
-          {{ t('备份记录') }} - {{ data.backupinfo?.mysql_role }}
-          {{ utcDisplayTime(data.backupinfo?.backup_time) }}
+      <template #default="{ row }: { row: RowData }">
+        <span v-if="row.rollback_time">{{ t('回档到指定时间') }} - {{ utcDisplayTime(row.rollback_time) }}</span>
+        <span v-else-if="row.backupinfo.backup_time && row.backupinfo.mysql_role">
+          {{ t('备份记录') }} - {{ row.backupinfo?.mysql_role }}
+          {{ utcDisplayTime(row.backupinfo?.backup_time) }}
         </span>
         <span v-else>--</span>
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="databases"
       :title="t('回档DB名')">
-      <template #default="{ row:data }: { row: RowData }">
-        <TagBlock :data="data.databases" />
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="row.databases" />
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="databases_ignore"
       :title="t('忽略DB名')">
-      <template #default="{ row:data }: { row: RowData }">
-        <TagBlock :data="data.databases_ignore" />
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="row.databases_ignore" />
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="tables"
       :title="t('回档表名')">
-      <template #default="{ row:data }: { row: RowData }">
-        <TagBlock :data="data.tables" />
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="row.tables" />
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="tables_ignore"
       :title="t('忽略表名')">
-      <template #default="{ row:data }: { row: RowData }">
-        <TagBlock :data="data.tables_ignore" />
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="row.tables_ignore" />
       </template>
-    </InfoTableColumn>
-  </InfoTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">
@@ -97,8 +97,6 @@
   import TagBlock from '@components/tag-block/Index.vue';
 
   import { utcDisplayTime } from '@utils';
-
-  import InfoTable, { InfoTableColumn } from '../../../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.RollbackCluster>;

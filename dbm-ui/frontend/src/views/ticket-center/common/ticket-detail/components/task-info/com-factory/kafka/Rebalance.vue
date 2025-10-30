@@ -29,21 +29,24 @@
       {{ ticketDetails.details.throttle_rate ? ticketDetails.details.throttle_rate + ' byte/s' : '--' }}
     </InfoItem>
   </InfoList>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.instance_list"
     ellipsis
     row-key="ip">
-    <TableColumn
+    <TicketInfoTableColumn
+      col-key="ip"
+      :get-copy-value="(row: RowData) => `${row.ip}:${row.port}`"
       :min-width="200"
       title="Broker">
-      <template #default="{ row }">
+      <template #default="{ row }: { row: RowData }">
         <span>{{ row.ip }}:{{ row.port }}</span>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="agent_status"
       :min-width="200"
       :title="t('主机 Agent 状态')">
-      <template #default="{ row }">
+      <template #default="{ row }: { row: RowData }">
         <DbStatus
           v-if="instanceInfo?.[`${row.ip}:${row.port}`]?.agent_status === 1"
           theme="success">
@@ -56,15 +59,16 @@
         </DbStatus>
         <span v-else>--</span>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="create_at"
       :min-width="200"
       :title="t('部署时间')">
-      <template #default="{ row }">
+      <template #default="{ row }: { row: RowData }">
         <span>{{ instanceInfo?.[`${row.ip}:${row.port}`]?.create_at || '--' }}</span>
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">
@@ -79,6 +83,8 @@
   interface Props {
     ticketDetails: TicketModel<Kafka.Rebalance>;
   }
+
+  type RowData = Props['ticketDetails']['details']['instance_list'][number];
 
   defineOptions({
     name: TicketTypes.KAFKA_REBALANCE,

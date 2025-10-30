@@ -25,54 +25,55 @@
       {{ utcDisplayTime(ticketDetails.details.trigger_checksum_time) }}
     </InfoItem>
   </InfoList>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="cluster_id"
       fixed="left"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
       :min-width="220"
       :title="t('目标集群')">
       <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="prev_cluster_spec_name"
       :title="t('当前资源规格')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.prev_cluster_spec_name }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="cluster_shard_num"
       :title="t('集群分片数')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.cluster_shard_num }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="prev_machine_pair"
       :title="t('部署机器组数')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.prev_machine_pair }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="prev_cluster_spec_name"
       :title="t('当前总容量')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.prev_cluster_spec_name }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="spec_id"
       :title="t('目标总容量')">
       <template #default="{ row: data }: { row: RowData }">
         {{ specInfoMap[data.resource_spec.backend_group.spec_id]?.spec_name }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

@@ -12,19 +12,20 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="id">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="cluster_id"
       fixed="left"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
       :min-width="250"
       :title="t('目标集群')">
       <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="capacity"
       :min-width="200"
       :title="t('当前容量')">
@@ -42,8 +43,8 @@
           <span v-else>--</span>
         </p>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="futureCapacity"
       :min-width="200"
       :title="t('目标容量')">
@@ -61,8 +62,8 @@
           <span v-else>--</span>
         </p>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="label_names"
       :min-width="200"
       :title="t('资源标签')">
@@ -80,8 +81,8 @@
           {{ t('通用无标签') }}
         </BkTag>
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('数据校验')">
       {{ ticketDetails.details.need_checksum ? t('是') : t('否') }}

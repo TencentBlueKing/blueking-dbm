@@ -12,27 +12,31 @@
 -->
 
 <template>
-  <BkTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn
-      fixed="left"
-      :label="t('目标集群')"
-      :min-width="250">
-      <template #default="{ data }: { data: RowData }">
+    row-key="cluster_ids">
+    <TicketInfoTableColumn
+      col-key="cluster_ids"
+      :get-copy-value="
+        (row: RowData) => row.cluster_ids.map((clusterId) => ticketDetails.details.clusters[clusterId].immute_domain)
+      "
+      :min-width="250"
+      :title="t('目标集群')">
+      <template #default="{ row }: { row: RowData }">
         <p
-          v-for="clusterId in data.cluster_ids"
+          v-for="clusterId in row.cluster_ids"
           :key="clusterId">
           {{ ticketDetails.details.clusters[clusterId].immute_domain }}
         </p>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('关联实例')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="related_instances"
+      :min-width="200"
+      :title="t('关联实例')">
+      <template #default="{ row }: { row: RowData }">
         <div
-          v-for="item in data.related_instances"
+          v-for="item in row.related_instances"
           :key="item.cluster_id">
           <p>
             {{ ticketDetails.details.clusters[item.cluster_id].immute_domain }}
@@ -45,21 +49,23 @@
           </p>
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('目标规格')"
-      :min-width="120">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.specs?.[data.resource_spec.target_proxies?.spec_id]?.name || '--' }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="resource_spec.target_proxies.spec_id"
+      :min-width="120"
+      :title="t('目标规格')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.specs?.[row.resource_spec.target_proxies?.spec_id]?.name || '--' }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('资源标签')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
-        <template v-if="data.resource_spec.target_proxies?.label_names?.length">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="resource_spec.target_proxies.label_names"
+      :min-width="200"
+      :title="t('资源标签')">
+      <template #default="{ row }: { row: RowData }">
+        <template v-if="row.resource_spec.target_proxies?.label_names?.length">
           <BkTag
-            v-for="item in data.resource_spec.target_proxies.label_names"
+            v-for="item in row.resource_spec.target_proxies.label_names"
             :key="item">
             {{ item }}
           </BkTag>
@@ -70,8 +76,8 @@
           {{ t('通用无标签') }}
         </BkTag>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

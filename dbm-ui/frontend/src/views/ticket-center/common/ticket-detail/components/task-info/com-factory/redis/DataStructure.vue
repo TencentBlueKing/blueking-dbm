@@ -12,22 +12,28 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="bk_cloud_id">
-    <TableColumn
+    <TicketInfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
       :min-width="180"
       :title="t('待构造的集群')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('架构版本')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_type_name"
+      :title="t('架构版本')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.cluster_id].cluster_type_name }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('待构造的实例')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="master_instance"
+      :title="t('待构造的实例')">
       <template #default="{ row }: { row: RowData }">
         <p
           v-for="item in row.master_instances"
@@ -35,23 +41,29 @@
           {{ item }}
         </p>
       </template>
-    </TableColumn>
-    <TableColumn :title="t('规格需求')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="spec"
+      :title="t('规格需求')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.specs[row.resource_spec.redis.spec_id].name }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('构造主机数量')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="count"
+      :title="t('构造主机数量')">
       <template #default="{ row }: { row: RowData }">
         {{ row.resource_spec.redis.count }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('构造到指定时间')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="recovery_time_point"
+      :title="t('构造到指定时间')">
       <template #default="{ row }: { row: RowData }">
         {{ utcDisplayTime(row.recovery_time_point) }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">

@@ -12,34 +12,41 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.rules"
     row-key="cluster_id">
-    <TableColumn
+    <TicketInfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(row: IRowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
       :min-width="220"
       :title="t('集群')">
       <template #default="{ row }: { row: IRowData }">
         {{ ticketDetails.details.clusters[row.cluster_id]?.immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_type_name"
       :title="t('架构版本')"
       :width="200">
       <template #default="{ row }: { row: IRowData }">
         {{ ticketDetails.details.clusters[row.cluster_id]?.cluster_type_name }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('清档前备份')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="backup"
+      :title="t('清档前备份')">
       <template #default="{ row }: { row: IRowData }">
         <span>{{ row.backup ? t('是') : t('否') }}</span>
       </template>
-    </TableColumn>
-    <TableColumn :title="t('强制清档')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="force"
+      :title="t('强制清档')">
       <template #default="{ row }: { row: IRowData }">
         <span>{{ row.force ? t('是') : t('否') }}</span>
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

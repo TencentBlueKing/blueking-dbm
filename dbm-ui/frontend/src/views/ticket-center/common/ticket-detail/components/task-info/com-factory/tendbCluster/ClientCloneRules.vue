@@ -12,27 +12,29 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     class="mysql-client-clone-render-table"
     :data="ticketDetails.details.clone_data"
     ellipsis
     row-key="source">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="source"
+      :get-copy-value="(row: RowData) => `${row.bk_cloud_id}:${row.source}`"
       :title="t('源客户端IP')">
       <template #default="{ row }: { row: RowData }">
         {{ `${row.bk_cloud_id}:${row.source}` }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="module"
       :title="t('所属模块')">
       <template #default="{ row }: { row: RowData }">
         {{ row.module }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="target"
+      :get-copy-value="(row: RowData) => row.target"
       :title="t('新客户端IP')">
       <template #default="{ row }: { row: RowData }">
         <div class="render-target">
@@ -43,15 +45,10 @@
               {{ item }}
             </p>
           </template>
-          <DbIcon
-            class="db-icon-copy"
-            type="copy"
-            :v-bk-tooltips="t('复制IP')"
-            @click="copyIp(row.target)" />
         </div>
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -59,8 +56,6 @@
   import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
-
-  import { execCopy } from '@utils';
 
   interface Props {
     ticketDetails: TicketModel<TendbCluster.ClientCloneRules>;
@@ -76,10 +71,6 @@
   defineProps<Props>();
 
   const { t } = useI18n();
-
-  const copyIp = (data: string[]) => {
-    execCopy(data.join('\n'), t('复制成功，共n条', { n: data.length }));
-  };
 </script>
 <style lang="less" scoped>
   .mysql-client-clone-render-table {

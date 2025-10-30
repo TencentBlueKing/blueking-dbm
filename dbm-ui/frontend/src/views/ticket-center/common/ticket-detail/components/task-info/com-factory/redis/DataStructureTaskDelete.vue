@@ -12,21 +12,23 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
-    row-key="bk_cloud_id">
-    <TableColumn :title="t('构造产物访问入口')">
+    row-key="display_info.temp_cluster_proxy">
+    <TicketInfoTableColumn
+      col-key=""
+      :title="t('构造产物访问入口')">
       <template #default="{ row }">
         {{ row.display_info?.temp_cluster_proxy || '--' }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="prod_cluster"
       :title="t('源集群')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="related_rollback_bill_id"
       :title="t('关联单据')" />
-  </PrimaryTable>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">

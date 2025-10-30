@@ -55,6 +55,9 @@ import TableDetailDialog from '@components/table-detail-dialog/Index.vue';
 import { ipSelector } from '@components/vue2/ip-selector';
 
 import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
+import InfoTable, {
+  InfoTableColumn,
+} from '@views/ticket-center/common/ticket-detail/components/common/info-table/Index.vue';
 
 import '@blueking/tdesign-ui/vue3/index.css';
 import UserSelector from '@patch/user-selector/selector.vue';
@@ -102,6 +105,8 @@ export const setGlobalComps = (app: App<Element>) => {
   app.component('PrimaryTable', PrimaryTable);
   app.component('TableColumn', PrimaryTableColumn);
   app.component('DbQuickSearch', DbQuickSearch);
+  app.component('TicketInfoTable', InfoTable);
+  app.component('TicketInfoTableColumn', InfoTableColumn);
   setTimeout(() => {
     // eslint-disable-next-line
     delete app._context.components.BkTable;

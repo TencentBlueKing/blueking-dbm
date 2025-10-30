@@ -12,13 +12,14 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     class="single-migrate-table"
     :data="tableData"
     row-key="primary_key">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="primary_key"
       fixed="left"
+      :get-copy-value="(row: RowData) => row.primary_key"
       :title="isDomain ? t('目标集群') : t('目标 Master 主机')">
       <template #default="{ row }: { row: RowData }">
         <div
@@ -27,8 +28,8 @@
           {{ item }}
         </div>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="origin_old_nodes"
       min-width="400"
       :title="t('关联的主从实例')">
@@ -41,18 +42,18 @@
           <div class="instance-item">--{{ item.slave_ins }}</div>
         </div>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="spec_name"
       :title="t('规格')"
       :width="150">
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="db_version"
       :title="t('版本')"
       :width="200">
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

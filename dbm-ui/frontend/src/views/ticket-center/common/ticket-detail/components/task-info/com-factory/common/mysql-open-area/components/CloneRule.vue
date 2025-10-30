@@ -12,25 +12,25 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="tableData"
     row-key="source_db">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="source_db"
       :min-width="150"
       :title="t('克隆 DB')"
       :width="200" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="data_tblist"
       :title="t('克隆表数据')">
       <template #default="{ row }:{ row: RowData }">
         <span>{{ row.data_tblist?.length > 0 ? row.data_tblist.join(',') : '--' }}</span>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="target_db_pattern"
       :title="t('生成的目标 DB 范式')" />
-  </PrimaryTable>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">

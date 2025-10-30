@@ -12,31 +12,32 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     class="details-cluster__table"
-    :data="dataList">
-    <TableColumn
+    :data="dataList"
+    row-key="cluster_id">
+    <TicketInfoTableColumn
       col-key="cluster_id"
       :title="t('集群ID')">
       <template #default="{ row: data }: { row: ClusterItem }">
         <span>{{ data.id || '--' }}</span>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="immute_domain"
       :title="t('集群名称')">
       <template #default="{ row: data }: { row: ClusterItem }">
         <span>{{ data.immute_domain }}</span>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="cluster_type_name"
       :title="t('集群类型')">
       <template #default="{ row: data }: { row: ClusterItem }">
         <span>{{ data.cluster_type_name || '--' }}</span>
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">

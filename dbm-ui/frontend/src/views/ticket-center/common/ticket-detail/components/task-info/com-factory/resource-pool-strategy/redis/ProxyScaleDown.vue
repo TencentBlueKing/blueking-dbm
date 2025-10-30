@@ -16,65 +16,74 @@
       {{ ticketDetails.details.shrink_type === 'HOST' ? t('指定主机缩容') : t('指定数量缩容') }}
     </InfoItem>
   </InfoList>
-  <PrimaryTable
+  <TicketInfoTable
     v-if="ticketDetails.details.shrink_type === 'HOST'"
     :data="tableData"
     row-key="ip">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="ip"
+      :get-copy-value="(row: HostTableRow) => row.ip"
       :min-width="200"
       :title="t('目标主机')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="domain"
       :min-width="250"
       :title="t('关联集群')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="online_switch_type"
       :min-width="150"
       :title="t('切换模式')" />
-  </PrimaryTable>
-  <PrimaryTable
+  </TicketInfoTable>
+  <TicketInfoTable
     v-else
     :data="ticketDetails.details.infos"
+    row-key="cluster_id"
     :show-overflow="false">
-    <TableColumn
+    <TicketInfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters?.[row.cluster_id]?.immute_domain || ''"
       :min-width="200"
       :title="t('目标集群')">
       <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters?.[data.cluster_id]?.immute_domain || '--' }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_type_name"
       :min-width="150"
       :title="t('架构版本')">
       <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters?.[data.cluster_id]?.cluster_type_name || '--' }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="count"
       :min-width="100"
       :title="t('当前数量(台)')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.old_nodes.proxy_reduced_hosts.length + data.target_proxy_count }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="proxy_reduced_hosts"
       :min-width="100"
       :title="t('缩容数量(台)')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.old_nodes.proxy_reduced_hosts.length }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="target_proxy_count"
       :min-width="100"
       :title="t('剩余数量(台)')" />
-    <TableColumn :label="t('切换模式')">
+    <TicketInfoTableColumn
+      col-key="online_switch_type"
+      :title="t('切换模式')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.online_switch_type === 'no_confirm' ? t('无需确认') : t('需人工确认') }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
