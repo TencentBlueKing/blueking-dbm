@@ -19,6 +19,7 @@ from backend.flow.consts import MongoDBClusterRole, MongoDBInstanceType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install import install_plugin
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install_dbmon import add_install_dbmon
+from backend.flow.engine.bamboo.scene.mongodb.sub_task.multi_instance_deinstall import multi_instance_deinstall
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
 from backend.flow.plugins.components.collections.mongodb.mongodb_cmr_4_meta import CMRMongoDBMetaComponent
 from backend.flow.plugins.components.collections.mongodb.send_media import ExecSendMediaOperationComponent
@@ -41,7 +42,7 @@ def cluster_replace(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKw
     mongos_nodes = {}
     old_config_node = ""
     new_config_node = ""
-    if info["mongo_config"]:
+    if info.get("mongo_config"):
         sub_get_kwargs.get_cluster_info_deinstall(cluster_id=info["mongo_config"][0]["instances"][0]["cluster_id"])
         config_port = info["mongo_config"][0]["instances"][0]["port"]
         old_config_node = "{}:{}".format(info["mongo_config"][0]["ip"], config_port)
@@ -53,7 +54,8 @@ def cluster_replace(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKw
 
     # 获取信息
     sub_get_kwargs.get_host_replace(mongodb_type=ClusterType.MongoShardedCluster.value, info=info)
-    if info["mongo_config"]:
+    # 下发介质获取mongos
+    if info.get("mongo_config"):
         sub_get_kwargs.get_mongos_host_replace()
 
     # 安装蓝鲸插件
@@ -80,30 +82,32 @@ def cluster_replace(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKw
     # 进行shard和config替换——并行
     sub_sub_pipelines = []
     # 替换config 以ip为维度
-    for config_info_by_ip in info["mongo_config"]:
-        sub_sub_pipeline = replicaset_replace(
-            root_id=root_id,
-            ticket_data=ticket_data,
-            sub_kwargs=sub_get_kwargs,
-            info=config_info_by_ip,
-            cluster_role=MongoDBClusterRole.ConfigSvr.value,
-        )
-        sub_sub_pipelines.append(sub_sub_pipeline)
+    if info.get("mongo_config"):
+        for config_info_by_ip in info.get("mongo_config"):
+            sub_sub_pipeline = replicaset_replace(
+                root_id=root_id,
+                ticket_data=ticket_data,
+                sub_kwargs=sub_get_kwargs,
+                info=config_info_by_ip,
+                cluster_role=MongoDBClusterRole.ConfigSvr.value,
+            )
+            sub_sub_pipelines.append(sub_sub_pipeline)
     # 替换shard 以ip为维度
-    for shard_info_by_ip in info["mongodb"]:
-        sub_sub_pipeline = replicaset_replace(
-            root_id=root_id,
-            ticket_data=ticket_data,
-            sub_kwargs=sub_get_kwargs,
-            info=shard_info_by_ip,
-            cluster_role=MongoDBClusterRole.ShardSvr.value,
-        )
-        sub_sub_pipelines.append(sub_sub_pipeline)
+    if info.get("mongodb"):
+        for shard_info_by_ip in info.get("mongodb"):
+            sub_sub_pipeline = replicaset_replace(
+                root_id=root_id,
+                ticket_data=ticket_data,
+                sub_kwargs=sub_get_kwargs,
+                info=shard_info_by_ip,
+                cluster_role=MongoDBClusterRole.ShardSvr.value,
+            )
+            sub_sub_pipelines.append(sub_sub_pipeline)
     if sub_sub_pipelines:
         sub_pipeline.add_parallel_sub_pipeline(sub_sub_pipelines)
 
     # 修改mongos参数文件 只修改参数，不重启进程
-    if info["mongo_config"]:
+    if info.get("mongo_config"):
         act_lists = []
         for mongos_node in mongos_nodes:
             mongos_node["role"] = MongoDBInstanceType.MongoS.value
@@ -112,7 +116,7 @@ def cluster_replace(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKw
                 cache_size_gb=0,
                 mongos_conf_db_old=old_config_node,
                 mongos_conf_db_new=new_config_node,
-                cluster_id=info["mongo_config"][0]["instances"][0]["cluster_id"],
+                cluster_id=info.get("mongo_config")[0]["instances"][0]["cluster_id"],
                 instance=mongos_node,
                 only_change_param=True,
             )
@@ -126,9 +130,9 @@ def cluster_replace(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKw
         sub_pipeline.add_parallel_acts(acts_list=act_lists)
 
     # 替换mongos 以ip为维度
-    if info["mongos"]:
+    if info.get("mongos"):
         sub_sub_pipelines = []
-        for mongos_info_by_ip in info["mongos"]:
+        for mongos_info_by_ip in info.get("mongos"):
             for mongos_instance in mongos_info_by_ip["instances"]:
                 sub_get_kwargs.db_instance = mongos_instance
                 sub_sub_pipeline = mongos_replace(
@@ -155,4 +159,23 @@ def cluster_replace(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKw
         bk_cloud_id=ip_list[0]["bk_cloud_id"],
         allow_empty_instance=True,
     )
+
+    # 下架 mongodb mongo_config
+    old_hosts, old_instances = sub_get_kwargs.get_old_host_replace(
+        info=info, cluster_type=ClusterType.MongoShardedCluster.value
+    )
+    if info.get("mongodb") or info.get("mongo_config"):
+        instance_type = MongoDBInstanceType.MongoD.value
+    elif info.get("mongos"):
+        instance_type = MongoDBInstanceType.MongoS.value
+    sub_sub_pipeline = multi_instance_deinstall(
+        root_id=root_id,
+        ticket_data=ticket_data,
+        sub_kwargs=sub_get_kwargs,
+        old_hosts=old_hosts,
+        old_instances=old_instances,
+        instance_type=instance_type,
+    )
+    sub_pipeline.add_sub_pipeline(sub_flow=sub_sub_pipeline)
+
     return sub_pipeline.build_sub_process(sub_name=_("MongoDB--cluster整机替换"))
