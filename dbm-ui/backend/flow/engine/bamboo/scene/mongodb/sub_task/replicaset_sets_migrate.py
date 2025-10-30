@@ -15,6 +15,7 @@ from typing import Dict, Optional
 from django.utils.translation import gettext as _
 
 from backend.db_meta.enums.cluster_type import ClusterType
+from backend.flow.consts import MongoDBInstanceType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install import install_plugin
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install_dbmon import add_install_dbmon
@@ -108,11 +109,15 @@ def replicaset_set_migrate(
 
     # 副本集组下架
     if sub_get_kwargs.payload.get("cluster_type") != ClusterType.MongoShardedCluster.value:
+        # 下架计算
+        old_hosts, old_instances = sub_get_kwargs.get_old_host_migrate(info=replicaset_set_info)
         sub_sub_pipeline = multi_instance_deinstall(
             root_id=root_id,
             ticket_data=ticket_data,
             sub_kwargs=sub_get_kwargs,
-            info=replicaset_set_info,
+            old_hosts=old_hosts,
+            old_instances=old_instances,
+            instance_type=MongoDBInstanceType.MongoD.value,
         )
         sub_pipeline.add_sub_pipeline(sub_flow=sub_sub_pipeline)
 
