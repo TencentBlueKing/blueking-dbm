@@ -384,6 +384,9 @@ class TenDBClusterClusterHandler(ClusterHandler):
             remote_infos[inst.instance_role].append(inst)
             # 如果实例是repeater 把对应的实例添加到new_remote_slave中
             if inst.instance_inner_role == InstanceInnerRole.REPEATER:
+                # 在迁移的时候，repeater可能还没有和new slave建立联系，此时忽略
+                if not hasattr(inst, "as_ejector") or not inst.as_ejector.first():
+                    continue
                 new_slave = getattr(inst, "as_ejector").first().receiver
                 setattr(new_slave, "shard_id", shard_id)
                 remote_infos["new_remote_slave"].append(new_slave)

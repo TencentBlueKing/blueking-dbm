@@ -83,6 +83,8 @@ class _PartitionApi(BaseApi):
             method="POST",
             url="partition/check_log",
             description=_("获取巡检日志"),
+            default_timeout=300,
+            max_retry_times=1,
         )
 
 
