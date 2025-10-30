@@ -47,8 +47,8 @@ class MongoReplaceFlow(object):
 
         # 复制集整机替换——子流程并行
         sub_pipelines = []
-        if self.data["infos"][ClusterType.MongoReplicaSet.value]:
-            for replicaset in self.data["infos"][ClusterType.MongoReplicaSet.value]:
+        if self.data.get("cluster_type") == ClusterType.MongoReplicaSet.value:
+            for replicaset in self.data["infos"]:
                 sub_pipline = replicaset_replace(
                     root_id=self.root_id,
                     ticket_data=self.data,
@@ -58,9 +58,9 @@ class MongoReplaceFlow(object):
                 )
                 sub_pipelines.append(sub_pipline)
 
-        # cluster整机替换——子流程并行
-        if self.data["infos"][ClusterType.MongoShardedCluster.value]:
-            for cluster in self.data["infos"][ClusterType.MongoShardedCluster.value]:
+        # cluster整机替换——子流程并行 一次替换一种类型 mongos mongodb mongo_config
+        if self.data.get("cluster_type") == ClusterType.MongoShardedCluster.value:
+            for cluster in self.data["infos"]:
                 sub_pipline = cluster_replace(
                     root_id=self.root_id, ticket_data=self.data, sub_kwargs=self.get_kwargs, info=cluster
                 )

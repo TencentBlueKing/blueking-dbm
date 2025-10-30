@@ -14,6 +14,7 @@ from typing import Dict, Optional
 
 from django.utils.translation import gettext as _
 
+from backend.flow.consts import MongoDBInstanceType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install import install_plugin
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.multi_instance_deinstall import multi_instance_deinstall
@@ -82,12 +83,16 @@ def cluster_migrate(
         sub_sub_pipelines.append(sub_sub_pipeline)
     sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_sub_pipelines)
 
+    # 下架计算
+    old_hosts, old_instances = sub_get_kwargs.get_old_host_migrate(info=cluster_info)
     # 下架实例
     sub_sub_pipeline = multi_instance_deinstall(
         root_id=root_id,
         ticket_data=ticket_data,
         sub_kwargs=sub_get_kwargs,
-        info=cluster_info,
+        old_hosts=old_hosts,
+        old_instances=old_instances,
+        instance_type=MongoDBInstanceType.MongoD.value,
     )
     sub_pipeline.add_sub_pipeline(sub_flow=sub_sub_pipeline)
 

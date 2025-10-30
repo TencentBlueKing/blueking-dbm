@@ -15,6 +15,7 @@ from backend.db_meta.enums.cluster_type import ClusterType
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.cluster_migrate import cluster_migrate
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.replicaset_sets_migrate import replicaset_set_migrate
+from backend.flow.utils.mongodb.calculate_cluster_instance_migrate import calculate_instance_migrate
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 
 logger = logging.getLogger("flow")
@@ -31,7 +32,7 @@ class MongoDBInstanceMigrateFlow(object):
         """
 
         self.root_id = root_id
-        self.data = data
+        self.data = calculate_instance_migrate(data)
         self.get_kwargs = ActKwargs()
         self.get_kwargs.payload = self.data
         self.get_kwargs.get_file_path()
@@ -48,20 +49,25 @@ class MongoDBInstanceMigrateFlow(object):
         # 多个cluster实例迁移并行
         sub_pipelines = []
         # 副本集
-        for replicaset_set_info in self.data["infos"][ClusterType.MongoReplicaSet.value]:
-            sub_pipline = replicaset_set_migrate(
-                root_id=self.root_id,
-                ticket_data=self.data,
-                sub_kwargs=self.get_kwargs,
-                replicaset_set_info=replicaset_set_info,
-            )
-            sub_pipelines.append(sub_pipline)
+        if self.data.get("cluster_type") == ClusterType.MongoReplicaSet.value:
+            for replicaset_set_info in self.data["infos"]:
+                sub_pipline = replicaset_set_migrate(
+                    root_id=self.root_id,
+                    ticket_data=self.data,
+                    sub_kwargs=self.get_kwargs,
+                    replicaset_set_info=replicaset_set_info,
+                )
+                sub_pipelines.append(sub_pipline)
         # 分片集群
-        for cluster_info in self.data["infos"][ClusterType.MongoShardedCluster.value]:
-            sub_pipline = cluster_migrate(
-                root_id=self.root_id, ticket_data=self.data, sub_kwargs=self.get_kwargs, cluster_info=cluster_info
-            )
-            sub_pipelines.append(sub_pipline)
+        elif self.data.get("cluster_type") == ClusterType.MongoShardedCluster.value:
+            for cluster_info in self.data["infos"]:
+                sub_pipline = cluster_migrate(
+                    root_id=self.root_id,
+                    ticket_data=self.data,
+                    sub_kwargs=self.get_kwargs,
+                    cluster_info=cluster_info,
+                )
+                sub_pipelines.append(sub_pipline)
 
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
