@@ -12,25 +12,32 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
-    <TableColumn :title="t('集群')">
+    <TicketInfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
+      :title="t('集群')">
       <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('从库主机')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="old_slave"
+      :title="t('从库主机')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.old_slave.ip }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('备份源')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="backup_source"
+      :title="t('备份源')">
       <template #default>
         {{ backupSourceMap[ticketDetails.details.backup_source] }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">

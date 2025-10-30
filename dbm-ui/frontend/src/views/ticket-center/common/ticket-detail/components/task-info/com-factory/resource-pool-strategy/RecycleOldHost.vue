@@ -25,69 +25,69 @@
       </BkButton>
     </InfoItem>
     <InfoItem :label="t('已下架主机')">
-      <InfoTable
+      <TicketInfoTable
         :data="ticketDetails.details.recycle_hosts"
         row-key="bk_host_id">
-        <InfoTableColumn
+        <TicketInfoTableColumn
           col-key="ip"
           fixed="left"
-          :get-copy-value="(item: RowData) => item.ip"
+          :get-copy-value="(row: RowData) => row.ip"
           :min-width="150"
           title="IP">
-        </InfoTableColumn>
-        <InfoTableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="bk_cloud_name"
           :min-width="120"
           :title="t('管控区域')" />
-        <InfoTableColumn
+        <TicketInfoTableColumn
           col-key="status"
           :min-width="120"
           :title="t('Agent 状态')">
           <template #default="{ row }: { row: RowData }">
             <HostAgentStatus :data="row.status" />
           </template>
-        </InfoTableColumn>
-        <InfoTableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="city"
           :min-width="120"
           :title="t('地域')">
           <template #default="{ row }: { row: RowData }">
             {{ row.city || '--' }}
           </template>
-        </InfoTableColumn>
-        <InfoTableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="sub_zone"
           :min-width="120"
           :title="t('园区')">
           <template #default="{ row }: { row: RowData }">
             {{ row.sub_zone || '--' }}
           </template>
-        </InfoTableColumn>
-        <InfoTableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="rack_id"
           :min-width="120"
           :title="t('机架')">
           <template #default="{ row }: { row: RowData }">
             {{ row.rack_id || '--' }}
           </template>
-        </InfoTableColumn>
-        <InfoTableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="bk_os_name"
           :min-width="120"
           :title="t('操作系统')">
           <template #default="{ row }: { row: RowData }">
             {{ row.bk_os_name || '--' }}
           </template>
-        </InfoTableColumn>
-        <InfoTableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="device_class"
           :min-width="120"
           :title="t('机型')">
           <template #default="{ row }: { row: RowData }">
             {{ row.device_class || '--' }}
           </template>
-        </InfoTableColumn>
-      </InfoTable>
+        </TicketInfoTableColumn>
+      </TicketInfoTable>
     </InfoItem>
   </InfoList>
 </template>
@@ -104,7 +104,6 @@
   import { getBusinessHref } from '@utils';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
-  import InfoTable, { InfoTableColumn } from '../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Common.ResourcePoolRecycle>;

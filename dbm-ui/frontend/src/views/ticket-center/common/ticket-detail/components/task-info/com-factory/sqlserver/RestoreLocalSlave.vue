@@ -12,23 +12,24 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     ellipsis
     row-key="cluster_id">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="cluster_id"
+      :get-copy-value="(row: RowData) => `${row.slave.ip}:${row.slave.port}`"
       :title="t('目标从库实例')">
-      <template #default="{ row: data }: {row: RowData}"> {{ data.slave.ip }}:{{ data.slave.port }} </template>
-    </TableColumn>
-    <TableColumn
+      <template #default="{ row: data }: { row: RowData }"> {{ data.slave.ip }}:{{ data.slave.port }} </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="new_cluster_name"
       :title="t('所属集群')">
-      <template #default="{ row: data }: {row: RowData}">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">

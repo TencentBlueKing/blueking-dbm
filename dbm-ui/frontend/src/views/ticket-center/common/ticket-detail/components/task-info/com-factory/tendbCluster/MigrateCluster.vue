@@ -12,19 +12,20 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="old_master"
       fixed="left"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
       :min-width="150"
       :title="t('目标主库主机')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.old_master.ip }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="old_master_instance"
       :min-width="200"
       :title="t('主库主机关联实例')">
@@ -44,16 +45,16 @@
             type="sync-pending" />
         </div>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="old_slave"
       :min-width="150"
       :title="t('目标从库主机')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.old_slave.ip }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="old_slave_instance"
       :min-width="200"
       :title="t('从库主机关联实例')">
@@ -73,16 +74,16 @@
             type="sync-pending" />
         </div>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="cluster_id"
       :min-width="200"
       :title="t('所属集群')">
       <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="new_instance"
       fixed="right"
       :min-width="150"
@@ -105,8 +106,8 @@
           <span>{{ data.new_slave.ip }}</span>
         </div>
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('备份源')">
       {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}

@@ -12,23 +12,32 @@
 -->
 
 <template>
-  <PrimaryTable :data="ticketDetails.details.clone_data">
-    <TableColumn :title="t('源实例')">
+  <TicketInfoTable
+    :data="ticketDetails.details.clone_data"
+    row-key="source">
+    <TicketInfoTableColumn
+      col-key="source"
+      :get-copy-value="(row: RowData) => row.source"
+      :title="t('源实例')">
       <template #default="{ row }: { row: RowData }">
         {{ row.source }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('所属集群')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_domain"
+      :title="t('所属集群')">
       <template #default="{ row }: { row: RowData }">
         {{ row.cluster_domain }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('新实例')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="target"
+      :title="t('新实例')">
       <template #default="{ row }: { row: RowData }">
         {{ row.target }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

@@ -11,40 +11,54 @@
  * the specific language governing permissions and limitations under the License.
 -->
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
-    <TableColumn
+    <TicketInfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
       :min-width="250"
       :title="t('目标集群')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('架构版本')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_type_name"
+      :title="t('架构版本')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.cluster_id].cluster_type_name }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('缩容节点类型')"> Proxy </TableColumn>
-    <TableColumn :title="t('主机选择方式')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="node_type"
+      :title="t('缩容节点类型')">
+      Proxy
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="proxy_reduced_hosts"
+      :title="t('主机选择方式')">
       <template #default="{ row }: { row: RowData }">
         {{
           row.proxy_reduced_hosts?.length ? row.proxy_reduced_hosts.map((item) => item.ip).join('\n') : t('自动匹配')
         }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('缩容数量(台)')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="target_proxy_count"
+      :title="t('缩容数量(台)')">
       <template #default="{ row }: { row: RowData }">
         {{ row.target_proxy_count }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('切换模式')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="online_switch_type"
+      :title="t('切换模式')">
       <template #default="{ row }: { row: RowData }">
         {{ switchModeMap[row.online_switch_type] }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

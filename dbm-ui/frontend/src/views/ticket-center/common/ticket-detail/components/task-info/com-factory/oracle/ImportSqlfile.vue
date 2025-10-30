@@ -12,31 +12,27 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.cluster_info"
     row-key="cluster_id">
-    <TableColumn
+    <TicketInfoTableColumn
+      col-key="cluster_id"
       fixed="left"
+      :get-copy-value="(row: IRowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain "
       :min-width="250"
-      :title="t('集群')">
-      <template #title>
-        <div class="oracle-exec-script-apply-domain-header">
-          {{ t('目标集群') }}
-          <DbIcon
-            type="copy"
-            @click="copyAllDomain" />
-        </div>
+      :title="t('目标集群')">
+      <template #default="{ row }: { row: IRowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-      <template #default="{ row: data }: { row: IRowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="execute_db"
+      :title="t('变更 DB')">
+      <template #default="{ row }: { row: IRowData }">
+        <TagBlock :data="row.execute_db" />
       </template>
-    </TableColumn>
-    <TableColumn :title="t('变更 DB')">
-      <template #default="{ row: data }: { row: IRowData }">
-        <TagBlock :data="data.execute_db" />
-      </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('SQL 来源')">
       {{ ticketDetails.details.import_mode === 'manual' ? t('手动输入') : t('SQL文件') }}
@@ -90,8 +86,6 @@
 
   import RenderFileContent from '@views/ticket-center/common/ticket-detail/components/common/SqlFileContent.vue';
   import RenderFileList from '@views/ticket-center/common/ticket-detail/components/common/SqlFileList.vue';
-
-  import { execCopy } from '@utils';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 
@@ -161,15 +155,6 @@
 
   const handleClose = () => {
     isShow.value = false;
-  };
-
-  const copyAllDomain = () => {
-    const domainList = props.ticketDetails.details.cluster_info.map(
-      (item) => props.ticketDetails.details.clusters[item.cluster_id].immute_domain,
-    );
-    if (domainList.length > 0) {
-      execCopy(domainList.join('\n'), t('复制成功，共n条', { n: domainList.length }));
-    }
   };
 </script>
 

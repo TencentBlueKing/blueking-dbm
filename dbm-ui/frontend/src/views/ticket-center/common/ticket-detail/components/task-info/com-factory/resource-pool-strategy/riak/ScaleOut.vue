@@ -34,16 +34,17 @@
       v-if="ticketDetails.details.resource_spec.riak.hosts.length"
       :label="t('已选IP')"
       style="width: 100%">
-      <PrimaryTable
+      <TicketInfoTable
         :data="ticketDetails.details.resource_spec.riak.hosts"
         ellipsis
         row-key="ip">
-        <TableColumn
+        <TicketInfoTableColumn
           col-key="ip"
+          :get-copy-value="(row: RowData) => row.ip"
           :min-width="150"
           :title="t('节点 IP')"
           :width="250" />
-        <TableColumn
+        <TicketInfoTableColumn
           col-key="agent_status"
           :min-width="150"
           :title="t('Agent状态')"
@@ -51,13 +52,13 @@
           <template #default="{ row }">
             <RenderHostStatus :data="row.agent_status" />
           </template>
-        </TableColumn>
-        <TableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="bk_disk"
           :min-width="150"
           :title="t('磁盘容量(G)')"
           :width="150" />
-      </PrimaryTable>
+      </TicketInfoTable>
     </InfoItem>
   </InfoList>
 </template>
@@ -76,6 +77,8 @@
   interface Props {
     ticketDetails: TicketModel<Riak.ResourcePool.ScaleOut>;
   }
+
+  type RowData = Props['ticketDetails']['details']['resource_spec']['riak']['hosts'][number];
 
   defineOptions({
     name: TicketTypes.RIAK_CLUSTER_SCALE_OUT,

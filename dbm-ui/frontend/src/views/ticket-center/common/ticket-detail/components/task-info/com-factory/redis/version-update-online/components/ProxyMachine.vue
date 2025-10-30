@@ -12,16 +12,17 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="dataList"
     row-key="ip">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="ip"
       fixed="left"
+      :get-copy-value="(row: RowData) => row.ip"
       :min-width="250"
       :title="t('目标主机')">
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="related_clusters"
       :title="t('所属集群')"
       :width="200">
@@ -32,8 +33,8 @@
           {{ item }}
         </div>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="current_versions"
       :min-width="250"
       :title="t('当前版本')">
@@ -44,13 +45,13 @@
           {{ item }}
         </div>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="target_version"
       :min-width="250"
       :title="t('目标版本')">
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">

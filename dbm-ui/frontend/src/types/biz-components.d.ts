@@ -36,6 +36,8 @@ declare module 'vue' {
     SmartAction: typeof import('@components/smart-action/Index.vue').default;
     TableColumn: typeof import('@blueking/tdesign-ui').TableColumn;
     TableDetailDialog: typeof import('@components/table-detail-dialog/Index.vue').default;
+    TicketInfoTable: typeof import('@views/ticket-center/common/ticket-detail/components/common/info-table/Index.vue').default;
+    TicketInfoTableColumn: typeof import('@views/ticket-center/common/ticket-detail/components/common/info-table/Index.vue').InfoTableColumn;
   }
 }
 

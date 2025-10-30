@@ -12,30 +12,32 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="src_cluster">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="immute_domain"
       fixed="left"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.src_cluster].immute_domain"
       :min-width="220"
       :title="t('源集群')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.src_cluster].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="cluster_type_name"
       :title="t('架构版本')"
       :width="150">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.src_cluster].cluster_type_name }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="db_version"
-      :label="t('Redis 版本')" />
-    <TableColumn
+      :title="t('Redis 版本')" />
+    <TicketInfoTableColumn
+      col-key="current_plan"
       :min-width="400"
       :title="t('当前方案')">
       <template #default="{ row }: { row: RowData }">
@@ -44,8 +46,9 @@
           :columns="getCurrentColunms(row)"
           :title-width="90" />
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="new_plan"
       :min-width="400"
       :title="t('新部署方案')">
       <template #default="{ row }: { row: RowData }">
@@ -54,16 +57,16 @@
           :columns="getTargetColunms(row)"
           :title-width="90" />
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="online_switch_type"
       :title="t('切换模式')"
       :width="150">
       <template #default="{ row }: { row: RowData }">
         {{ row.online_switch_type === 'user_confirm' ? t('需人工确认') : t('无需确认') }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('校验与修复类型')">
       {{ repairAndVerifyTypesMap[ticketDetails.details.data_check_repair_setting.type] }}
@@ -111,9 +114,9 @@
   const { t } = useI18n();
 
   // 生成映射表
-  const generateMap = (arr: { label: string; value: string }[]) => {
+  const generateMap = (arr: { title: string; value: string }[]) => {
     return arr.reduce<Record<string, string>>((obj, item) => {
-      Object.assign(obj, { [item.value]: item.label });
+      Object.assign(obj, { [item.value]: item.title });
       return obj;
     }, {});
   };

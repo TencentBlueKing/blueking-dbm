@@ -12,23 +12,23 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     ellipsis
     row-key="cluster_id">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="cluster_id"
       :title="t('集群ID')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="new_cluster_name"
       :title="t('新集群')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="new_immutable_domain"
       :title="t('主域名')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="new_slave_domain"
       :title="t('从域名')" />
-  </PrimaryTable>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">

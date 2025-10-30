@@ -14,20 +14,20 @@
 
   import InfoTableColumn from './InfoTableColumn.vue';
 
+  interface Props {
+    data: Record<string, any>[];
+    rowKey: string;
+  }
+
   export const TicketDetailTableKey: InjectionKey<{
-    props: Props<Record<string, any>>;
+    props: Props;
   }> = Symbol('TicketDetailTableKey');
 
   export { InfoTableColumn };
 </script>
 
-<script setup lang="ts" generic="T extends Record<string, any>">
-  export interface Props<IRowData> {
-    data: IRowData[];
-    rowKey: string;
-  }
-
-  const props = defineProps<Props<T>>();
+<script setup lang="ts">
+  const props = defineProps<Props>();
 
   defineSlots<{
     default: () => VNode;

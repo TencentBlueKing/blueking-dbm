@@ -17,32 +17,36 @@
       {{ clusterTypeInfos[ticketDetails.details.cluster_type].name }}
     </InfoItem>
     <InfoItem :label="t('目标集群与构造设置:')">
-      <PrimaryTable
+      <TicketInfoTable
         :data="ticketDetails.details.cluster_ids.map((item) => ({ clusterId: item }))"
         row-key="clusterId">
-        <TableColumn
+        <TicketInfoTableColumn
+          col-key="immute_domain"
           fixed="left"
+          :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.clusterId].immute_domain"
           :title="t('集群')"
           :width="300">
           <template #default="{ row }">
             {{ ticketDetails.details.clusters[row.clusterId].immute_domain }}
           </template>
-        </TableColumn>
-        <TableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="major_version"
           :title="t('版本')"
           :width="150">
           <template #default="{ row }">
             {{ ticketDetails.details.clusters[row.clusterId].major_version }}
           </template>
-        </TableColumn>
-        <TableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="rollback_time"
           :min-width="240"
           :title="t('指定时间')">
           <template #default="{ row }">
             {{ utcDisplayTime(ticketDetails.details.rollback_time[row.clusterId]) }}
           </template>
-        </TableColumn>
-      </PrimaryTable>
+        </TicketInfoTableColumn>
+      </TicketInfoTable>
     </InfoItem>
     <InfoItem :label="t('构造新主机规格:')">
       {{ ticketDetails.details.specs[ticketDetails.details.resource_spec.mongodb.spec_id].name }}
@@ -66,6 +70,10 @@
   interface Props {
     ticketDetails: TicketModel<Mongodb.PitrRestore>;
   }
+
+  type RowData = {
+    clusterId: number;
+  };
 
   defineOptions({
     name: TicketTypes.MONGODB_PITR_RESTORE,
