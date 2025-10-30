@@ -17,115 +17,115 @@
       {{ rollbackTypetitle[ticketDetails.details.rollback_cluster_type] }}
     </InfoItem>
   </InfoList>
-  <InfoTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
-    <InfoTableColumn
+    <TicketInfoTableColumn
       col-key="cluster_id"
       fixed="left"
-      :get-copy-value="(item: RowData) => ticketDetails.details.clusters[item.cluster_id].immute_domain"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
       :min-width="180"
       :title="t('待回档集群')">
-      <template #default="{ row:data }: { row: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       v-if="['BUILD_INTO_EXIST_CLUSTER'].includes(ticketDetails.details.rollback_cluster_type)"
       col-key="target_cluster_id"
       :min-width="180"
       :title="t('目标集群')">
-      <template #default="{ row:data }: { row: RowData }">
-        {{ ticketDetails.details.clusters[data.target_cluster_id]?.immute_domain }}
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.target_cluster_id]?.immute_domain }}
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       v-if="['BUILD_INTO_NEW_CLUSTER'].includes(ticketDetails.details.rollback_cluster_type)"
       col-key="rollback_host"
       :min-width="180"
       :title="t('回档到新主机')">
-      <template #default="{ row:data }: { row: RowData }">
-        {{ data.resource_spec.rollback_host.hosts[0].ip }}
+      <template #default="{ row }: { row: RowData }">
+        {{ row.resource_spec.rollback_host.hosts[0].ip }}
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="backup_source"
       :min-width="100"
       :title="t('备份源')">
-      <template #default="{ row:data }: { row: RowData }">
-        {{ backupSourcetitle[data.backup_source] }}
+      <template #default="{ row }: { row: RowData }">
+        {{ backupSourcetitle[row.backup_source] }}
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="rollback_time"
       :min-width="300"
       :title="t('回档类型')">
-      <template #default="{ row:data }: { row: RowData }">
-        <div v-if="data.rollback_time">{{ t('回档到指定时间：') }}{{ data.rollback_time }}</div>
-        <div v-else-if="data.backupinfo.backup_id">
+      <template #default="{ row }: { row: RowData }">
+        <div v-if="row.rollback_time">{{ t('回档到指定时间：') }}{{ row.rollback_time }}</div>
+        <div v-else-if="row.backupinfo.backup_id">
           {{ t('备份记录：') }}
-          {{ dayjs(data.backupinfo.backup_time).format('YYYY-MM-DD HH:mm:ss ZZ') }}
+          {{ dayjs(row.backupinfo.backup_time).format('YYYY-MM-DD HH:mm:ss ZZ') }}
         </div>
       </template>
-    </InfoTableColumn>
+    </TicketInfoTableColumn>
     <template
       v-if="
         ['BUILD_INTO_NEW_CLUSTER', 'BUILD_INTO_EXIST_CLUSTER'].includes(ticketDetails.details.rollback_cluster_type)
       ">
-      <InfoTableColumn
+      <TicketInfoTableColumn
         col-key="databases"
         :min-width="120"
         :title="t('回档DB')">
-        <template #default="{ row:data }: { row: RowData }">
+        <template #default="{ row }: { row: RowData }">
           <BkTag
-            v-for="item in data.databases"
+            v-for="item in row.databases"
             :key="item">
             {{ item }}
           </BkTag>
-          <span v-if="data.databases.length < 1">--</span>
+          <span v-if="row.databases.length < 1">--</span>
         </template>
-      </InfoTableColumn>
-      <InfoTableColumn
+      </TicketInfoTableColumn>
+      <TicketInfoTableColumn
         col-key="databases_ignore"
         :min-width="120"
         :title="t('忽略 DB')">
-        <template #default="{ row:data }: { row: RowData }">
+        <template #default="{ row }: { row: RowData }">
           <BkTag
-            v-for="item in data.databases_ignore"
+            v-for="item in row.databases_ignore"
             :key="item">
             {{ item }}
           </BkTag>
-          <span v-if="data.databases_ignore.length < 1">--</span>
+          <span v-if="row.databases_ignore.length < 1">--</span>
         </template>
-      </InfoTableColumn>
-      <InfoTableColumn
+      </TicketInfoTableColumn>
+      <TicketInfoTableColumn
         col-key="tables"
         :min-width="120"
         :title="t('回档表名')">
-        <template #default="{ row:data }: { row: RowData }">
+        <template #default="{ row }: { row: RowData }">
           <BkTag
-            v-for="item in data.tables"
+            v-for="item in row.tables"
             :key="item">
             {{ item }}
           </BkTag>
-          <span v-if="data.tables.length < 1">--</span>
+          <span v-if="row.tables.length < 1">--</span>
         </template>
-      </InfoTableColumn>
-      <InfoTableColumn
+      </TicketInfoTableColumn>
+      <TicketInfoTableColumn
         col-key="tables_ignore"
         :min-width="120"
         :title="t('忽略表名')">
-        <template #default="{ row:data }: { row: RowData }">
+        <template #default="{ row }: { row: RowData }">
           <BkTag
-            v-for="item in data.tables_ignore"
+            v-for="item in row.tables_ignore"
             :key="item">
             {{ item }}
           </BkTag>
-          <span v-if="data.tables_ignore.length < 1">--</span>
+          <span v-if="row.tables_ignore.length < 1">--</span>
         </template>
-      </InfoTableColumn>
+      </TicketInfoTableColumn>
     </template>
-  </InfoTable>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">
@@ -137,7 +137,6 @@
   import { TicketTypes } from '@common/const';
 
   import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
-  import InfoTable, { InfoTableColumn } from '../../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.ResourcePool.RollbackCluster>;

@@ -12,36 +12,39 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     ellipsis
     row-key="dts_id">
-    <TableColumn :title="t('源集群')">
+    <TicketInfoTableColumn
+      col-key="src_cluster"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.src_cluster].immute_domain"
+      :title="t('源集群')">
       <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.src_cluster].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('目标集群')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn :title="t('目标集群')">
       <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.dst_cluster].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('迁移 DB 名')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn :title="t('迁移 DB 名')">
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.db_list" />
       </template>
-    </TableColumn>
-    <TableColumn :title="t('忽略 DB 名')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn :title="t('忽略 DB 名')">
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.ignore_db_list" />
       </template>
-    </TableColumn>
-    <TableColumn :title="t('迁移后 DB 名')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn :title="t('迁移后 DB 名')">
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.rename_infos.map((item) => item.target_db_name)" />
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

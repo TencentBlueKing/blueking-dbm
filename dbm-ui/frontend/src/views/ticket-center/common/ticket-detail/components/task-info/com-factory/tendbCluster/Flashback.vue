@@ -17,43 +17,44 @@
       {{ ticketDetails.details.flashback_type === 'RECORD_FLASHBACK' ? t('记录级闪回') : t('库表闪回') }}
     </InfoItem>
   </InfoList>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="cluster_id"
       fixed="left"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
       :min-width="220"
       :title="t('目标集群')">
       <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="start_time"
       :min-width="250"
       :title="t('回档时间')">
       <template #default="{ row: data }: { row: RowData }">
         {{ utcDisplayTime(data.start_time) }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="end_time"
       :min-width="250"
       :title="t('截止时间')">
       <template #default="{ row: data }: { row: RowData }">
         {{ utcDisplayTime(data.end_time) }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="databases"
       :min-width="120"
       :title="t('目标库')">
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.databases" />
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       v-if="isTableFlashback"
       col-key="databases_ignore"
       :title="t('忽略库')">
@@ -65,8 +66,8 @@
         </BkTag>
         <span v-if="data.databases_ignore.length < 1">--</span>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       v-if="isTableFlashback"
       col-key="databases_ignore"
       :min-width="120"
@@ -74,24 +75,24 @@
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.databases_ignore" />
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="tables"
       :min-width="120"
       :title="t('目标表')">
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.tables" />
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       v-if="isTableFlashback"
       col-key="tables_ignore"
       :title="t('忽略表')">
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.tables_ignore" />
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       v-if="isRecordFlashback"
       col-key="rows_filter"
       :min-width="300"
@@ -99,8 +100,8 @@
       <template #default="{ row: data }: { row: RowData }">
         <div style="line-height: 26px; white-space: pre">{{ data.rows_filter }}</div>
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList v-if="isRecordFlashback">
     <InfoItem :label="t('覆盖原始数据')">
       {{ ticketDetails.details.infos[0].direct_write_back ? t('是') : t('否') }}

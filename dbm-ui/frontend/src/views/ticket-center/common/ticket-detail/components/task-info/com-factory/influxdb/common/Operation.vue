@@ -12,12 +12,14 @@
 -->
 
 <template>
-  <PrimaryTable :data="tableData">
-    <TableColumn
+  <TicketInfoTable
+    :data="tableData"
+    row-key="instance_id">
+    <TicketInfoTableColumn
       col-key="instance_id"
       :title="t('实例ID')" />
     <!-- 实例 -->
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="instance"
       :title="t('实例')">
       <template #default="{ row }: { row: Details['ticketDetails']['details']['instance_list'] }">
@@ -25,8 +27,8 @@
           {{ row.ip && row.port ? `${row.ip}:${row.port}` : '--' }}
         </span>
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="ts">

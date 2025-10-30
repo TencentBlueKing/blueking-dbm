@@ -12,25 +12,26 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="tableData"
     row-key="slaveIp">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="slaveIp"
+      :get-copy-value="(row: RowData) => row.slaveIp"
       :title="t('待重建从库主机')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="hostIp"
       :title="t('关联主库主机')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="clusterName"
       :title="t('所属集群')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="sepcName"
       :title="t('规格需求')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="targetNum"
       :title="t('新增从库主机数量')" />
-  </PrimaryTable>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">

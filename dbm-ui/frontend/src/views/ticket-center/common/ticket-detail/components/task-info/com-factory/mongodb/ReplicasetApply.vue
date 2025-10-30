@@ -64,25 +64,26 @@
     <InfoItem
       :label="t('域名设置')"
       style="flex: 1 0 100%">
-      <PrimaryTable
+      <TicketInfoTable
         :data="replicaSets"
         row-key="set_id">
-        <TableColumn
+        <TicketInfoTableColumn
           col-key="domain"
+          :get-copy-value="(row: RowData) => row.domain"
           :title="t('主域名')">
-        </TableColumn>
-        <TableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="set_id"
           :title="t('集群ID')">
-        </TableColumn>
-        <TableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="name"
           :title="t('集群名称')">
-          <template #default="{ row }: { row: { name: string } }">
+          <template #default="{ row }: { row: RowData }">
             {{ row.name || '--' }}
           </template>
-        </TableColumn>
-      </PrimaryTable>
+        </TicketInfoTableColumn>
+      </TicketInfoTable>
     </InfoItem>
   </InfoList>
 </template>
@@ -102,6 +103,8 @@
   interface Props {
     ticketDetails: TicketModel<Mongodb.ReplicasetApply>;
   }
+
+  type RowData = Props['ticketDetails']['details']['replica_sets'][number];
 
   defineOptions({
     name: TicketTypes.MONGODB_REPLICASET_APPLY,

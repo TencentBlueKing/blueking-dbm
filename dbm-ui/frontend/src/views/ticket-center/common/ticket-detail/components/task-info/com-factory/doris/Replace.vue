@@ -12,30 +12,38 @@
 -->
 
 <template>
-  <PrimaryTable :data="dataList">
-    <TableColumn
+  <TicketInfoTable
+    :data="dataList"
+    row-key="cluster_id">
+    <TicketInfoTableColumn
+      col-key="cluster_id"
       ellipsis
       :title="t('集群ID')">
-      <template #default="{ row }">
-        <span class="details-replace__cell">{{ row.cell || '--' }}</span>
+      <template #default="{ row }: { row: RowData }">
+        <span class="details-replace__cell">{{ row.cluster_id || '--' }}</span>
       </template>
-    </TableColumn>
-    <TableColumn :title="t('集群名称')">
-      <template #default="{ row }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="immute_domain"
+      :title="t('集群名称')">
+      <template #default="{ row }: { row: RowData }">
         {{ row.immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_type_name"
       ellipsis
       :title="t('集群类型')">
-      <template #default="{ row }">
+      <template #default="{ row }: { row: RowData }">
         <span class="details-replace__cell">
           {{ row.cluster_type_name || '--' }}
         </span>
       </template>
-    </TableColumn>
-    <TableColumn :title="t('角色类型')">
-      <template #default="{ row }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="role"
+      :title="t('角色类型')">
+      <template #default="{ row }: { row: RowData }">
         <p
           v-for="(item, index) in row.new_nodes"
           :key="index"
@@ -44,9 +52,11 @@
           {{ item.key }}
         </p>
       </template>
-    </TableColumn>
-    <TableColumn :title="t('新节点IP')">
-      <template #default="{ row }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="new_nodes"
+      :title="t('新节点IP')">
+      <template #default="{ row }: { row: RowData }">
         <div
           v-for="(item, index) in row.new_nodes"
           :key="index"
@@ -64,9 +74,11 @@
           </p>
         </div>
       </template>
-    </TableColumn>
-    <TableColumn :title="t('被替换的节点IP')">
-      <template #default="{ row }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="old_nodes"
+      :title="t('被替换的节点IP')">
+      <template #default="{ row }: { row: RowData }">
         <div
           v-for="(item, index) in row.old_nodes"
           :key="index"
@@ -84,11 +96,12 @@
           </p>
         </div>
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">
+  import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Doris } from '@services/model/ticket/ticket';
@@ -110,13 +123,15 @@
 
   const { t } = useI18n();
 
+  type RowData = UnwrapRef<typeof dataList>[number];
+
   type nodeIpList = {
     key: string;
     value: string[];
   };
 
   const dataList = computed(() => {
-    const list: any = [];
+    const list = [];
     const clusterId = props.ticketDetails?.details?.cluster_id;
     const clusters = props.ticketDetails?.details?.clusters?.[clusterId] || {};
     const newNodes = convertNodeFormat(props.ticketDetails?.details?.new_nodes || {});

@@ -17,19 +17,20 @@
       {{ rollbackTypetitle[ticketDetails.details.rollback_cluster_type] }}
     </InfoItem>
   </InfoList>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="cluster_id"
       fixed="left"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
       :min-width="200"
       :title="t('待回档集群')">
       <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       v-if="['BUILD_INTO_EXIST_CLUSTER'].includes(ticketDetails.details.rollback_cluster_type)"
       col-key="target_cluster_id"
       :min-width="200"
@@ -37,8 +38,8 @@
       <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.target_cluster_id]?.immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       v-if="['BUILD_INTO_NEW_CLUSTER'].includes(ticketDetails.details.rollback_cluster_type)"
       col-key="rollback_host.remote_hosts"
       :min-width="200"
@@ -46,8 +47,8 @@
       <template #default="{ row: data }: { row: RowData }">
         {{ data.rollback_host.remote_hosts[0].ip }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       v-if="['BUILD_INTO_NEW_CLUSTER'].includes(ticketDetails.details.rollback_cluster_type)"
       col-key="rollback_host.spider_host.ip"
       :min-width="200"
@@ -55,8 +56,8 @@
       <template #default="{ row: data }: { row: RowData }">
         {{ data.rollback_host.spider_host.ip }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="rollback_time"
       :min-width="200"
       :title="t('回档类型')">
@@ -67,45 +68,45 @@
           {{ dayjs(data.backupinfo.backup_time).format('YYYY-MM-DD HH:mm:ss ZZ') }}
         </div>
       </template>
-    </TableColumn>
+    </TicketInfoTableColumn>
     <template
       v-if="
         ['BUILD_INTO_NEW_CLUSTER', 'BUILD_INTO_EXIST_CLUSTER'].includes(ticketDetails.details.rollback_cluster_type)
       ">
-      <TableColumn
+      <TicketInfoTableColumn
         col-key="databases"
         :min-width="200"
         :title="t('回档DB')">
         <template #default="{ row: data }: { row: RowData }">
           <TagBlock :data="data.databases" />
         </template>
-      </TableColumn>
-      <TableColumn
+      </TicketInfoTableColumn>
+      <TicketInfoTableColumn
         col-key="databases_ignore"
         :min-width="200"
         :title="t('忽略 DB')">
         <template #default="{ row: data }: { row: RowData }">
           <TagBlock :data="data.databases_ignore" />
         </template>
-      </TableColumn>
-      <TableColumn
+      </TicketInfoTableColumn>
+      <TicketInfoTableColumn
         col-key="tables"
         :min-width="200"
         :title="t('回档表名')">
         <template #default="{ row: data }: { row: RowData }">
           <TagBlock :data="data.tables" />
         </template>
-      </TableColumn>
-      <TableColumn
+      </TicketInfoTableColumn>
+      <TicketInfoTableColumn
         col-key="tables_ignore"
         :min-width="200"
         :title="t('忽略表名')">
         <template #default="{ row: data }: { row: RowData }">
           <TagBlock :data="data.tables_ignore" />
         </template>
-      </TableColumn>
+      </TicketInfoTableColumn>
     </template>
-  </PrimaryTable>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">

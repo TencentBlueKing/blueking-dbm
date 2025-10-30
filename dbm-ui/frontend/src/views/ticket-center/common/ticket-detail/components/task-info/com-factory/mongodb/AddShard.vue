@@ -12,63 +12,64 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="cluster_id"
       fixed="left"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id]?.immute_domain"
       :min-width="250"
       :title="t('目标集群')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.cluster_id]?.immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="current_shards_num"
       :title="t('当前集群分片数')"
       :width="120">
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="add_shards_num"
       :title="t('新增集群分片数')"
       :width="120">
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="cluster_type"
       :title="t('最终集群分片数')"
       :width="120">
       <template #default="{ row }: { row: RowData }">
         {{ row.current_shards_num + row.add_shards_num }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="single_host_shard_num"
       :title="t('单机分片数')"
       :width="120">
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="current_shard_nodes_num"
       :title="t('每片节点数')"
       :width="120">
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="resource_spec.mongodb.spec_id"
       :min-width="200"
       :title="t('规格')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.specs[row.resource_spec.mongodb.spec_id]?.name }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="resource_spec.mongodb.count"
       :title="t('新增机器（组）')"
       :width="120">
       <template #default="{ row }: { row: RowData }">
         {{ row.add_shards_num / row.single_host_shard_num }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">

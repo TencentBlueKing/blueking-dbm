@@ -74,38 +74,38 @@
     <InfoItem
       :label="t('域名设置')"
       style="flex: 1 0 100%">
-      <InfoTable
+      <TicketInfoTable
         :data="ticketDetails.details.domains"
         row-key="key">
-        <InfoTableColumn
+        <TicketInfoTableColumn
           col-key="master"
           fixed="left"
-          :get-copy-value="(item: Props['ticketDetails']['details']['domains'][number]) => item.master"
+          :get-copy-value="(row: Props['ticketDetails']['details']['domains'][number]) => row.master"
           :min-width="240"
           :title="t('主访问入口')" />
-        <InfoTableColumn
+        <TicketInfoTableColumn
           col-key="slave"
           :min-width="240"
           :title="t('从访问入口')" />
-        <InfoTableColumn
+        <TicketInfoTableColumn
           col-key="deployStructure"
           :min-width="120"
           :title="t('部署架构')">
           {{ mysqlType[ticketDetails.ticket_type as MysqlTypeString].name }}
-        </InfoTableColumn>
-        <InfoTableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="version"
           :min-width="120"
           :title="t('数据库版本')">
           {{ ticketDetails.details.db_version }}
-        </InfoTableColumn>
-        <InfoTableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="charset"
           :min-width="120"
           :title="t('字符集')">
           {{ ticketDetails.details.charset }}
-        </InfoTableColumn>
-      </InfoTable>
+        </TicketInfoTableColumn>
+      </TicketInfoTable>
     </InfoItem>
   </InfoList>
 </template>
@@ -120,7 +120,6 @@
   import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
-  import InfoTable, { InfoTableColumn } from '../components/info-table/Index.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
 
   interface Props {

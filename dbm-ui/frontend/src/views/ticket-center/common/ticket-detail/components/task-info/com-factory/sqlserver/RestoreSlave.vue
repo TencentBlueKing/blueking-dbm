@@ -12,13 +12,14 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="id">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="old_slave_host.ip"
+      :get-copy-value="(row: RowData) =>row.old_slave_host.ip"
       :title="t('待重建从库主机')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="new_cluster_name"
       :title="t('同机关联集群')">
       <template #default="{ row: data }: { row: RowData }">
@@ -29,11 +30,11 @@
           {{ ticketDetails.details.clusters[clusterId].immute_domain }}
         </div>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="new_slave_host.ip"
       :title="t('新从库主机')" />
-  </PrimaryTable>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">

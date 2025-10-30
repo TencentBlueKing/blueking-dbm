@@ -12,20 +12,27 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
-    <TableColumn :title="t('目标集群')">
+    <TicketInfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
+      :title="t('目标集群')">
       <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('缩容节点类型')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="reduce_spider_role"
+      :title="t('缩容节点类型')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.reduce_spider_role === 'spider_master' ? 'Master' : 'Slave' }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('主机选择方式')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="type"
+      :title="t('主机选择方式')">
       <template #default="{ row: data }: { row: RowData }">
         <template v-if="data.spider_reduced_hosts">
           <div
@@ -36,13 +43,15 @@
         </template>
         <span v-else>{{ t('自动匹配') }}</span>
       </template>
-    </TableColumn>
-    <TableColumn :title="t('缩容数量(台)')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="spider_reduced_hosts"
+      :title="t('缩容数量(台)')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.spider_reduced_hosts ? data.spider_reduced_hosts.length : data.spider_reduced_to_count }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('忽略业务连接')">
       {{ ticketDetails.details.is_safe ? t('是') : t('否') }}

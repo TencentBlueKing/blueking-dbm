@@ -12,20 +12,23 @@
 -->
 
 <template>
-  <PrimaryTable :data="tableData">
-    <TableColumn
+  <TicketInfoTable
+    :data="tableData"
+    row-key="immute_domain">
+    <TicketInfoTableColumn
       col-key="immute_domain"
+      :get-copy-value="(row: RowData) => row.immute_domain"
       :title="t('目标分片集群')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="node_type"
       :title="t('扩容节点类型')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="sepc_name"
       :title="t('扩容规格')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="add_shard_num"
       :title="t('扩容数量（台）')" />
-  </PrimaryTable>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">

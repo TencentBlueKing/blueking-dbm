@@ -12,41 +12,41 @@
 -->
 
 <template>
-  <InfoTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="pkg_id">
-    <InfoTableColumn
+    <TicketInfoTableColumn
       col-key="cluster_ids"
       :get-copy-value="
         (item: RowData) => item.cluster_ids.map((clusterId) => ticketDetails.details.clusters[clusterId].immute_domain)
       "
       :min-width="200"
       :title="t('目标集群')">
-      <template #default="{ row:data }: { row: RowData }">
+      <template #default="{ row }: { row: RowData }">
         <p
-          v-for="item in data.cluster_ids"
+          v-for="item in row.cluster_ids"
           :key="item">
           {{ ticketDetails.details.clusters[item].immute_domain }}
         </p>
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="current_version"
       :min-width="100"
       :title="t('当前版本')">
-      <template #default="{ row:data }: { row: RowData }">
-        {{ data.display_info.current_version || '--' }}
+      <template #default="{ row }: { row: RowData }">
+        {{ row.display_info.current_version || '--' }}
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="target_package"
       :min-width="400"
       :title="t('目标版本')">
-      <template #default="{ row:data }: { row: RowData }">
-        {{ data.display_info.target_package || '--' }}
+      <template #default="{ row }: { row: RowData }">
+        {{ row.display_info.target_package || '--' }}
       </template>
-    </InfoTableColumn>
-  </InfoTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('检查业务连接')">
       {{ ticketDetails.details.is_check_process ? t('是') : t('否') }}
@@ -62,7 +62,6 @@
   import { TicketTypes } from '@common/const';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
-  import InfoTable, { InfoTableColumn } from '../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.ProxyUpgrade>;
