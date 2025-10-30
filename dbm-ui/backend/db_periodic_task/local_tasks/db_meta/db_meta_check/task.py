@@ -18,19 +18,19 @@ from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.db_report.models import MetaCheckReport
 
-from .check_redis_instance import check_redis_instance
 from .mysql_cluster_topo import tendbcluster, tendbha
+from .redis_cluster_check import check_redis_clusters
 from .sqlserver_cluster_topo.check import sqlserver_dbmeta_check
 
 logger = logging.getLogger("celery")
 
 
 @register_periodic_task(run_every=crontab(minute=3, hour=2))
-def db_meta_check_task():
+def redis_meta_check_task():
     """
     巡检校验元数据
     """
-    check_redis_instance()
+    check_redis_clusters()
 
 
 @register_periodic_task(run_every=crontab(hour=2, minute=30))
