@@ -324,7 +324,7 @@ def gen_rollback_task():
         storage_engine = tsk_backup_record["extra_fields"].get("storage_engine", "innodb")
         backup_id = backup_record["backup_id"]
         backup_file_size_gb = bytes_to_gb(backup_record["total_filesize"])
-        backup_type = (backup_record.get("backup_type", ""),)
+        backup_type = backup_record.get("backup_type", "")
 
         # 打印备份信息
         logger.info("exercise backup_record: {}".format(backup_record))

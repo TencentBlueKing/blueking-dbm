@@ -47,9 +47,7 @@ from backend.flow.plugins.components.collections.mysql.mysql_os_init import Clea
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
-from backend.flow.utils.mysql.mysql_context_dataclass import SingleApplyManualContext
-
-# from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
+from backend.flow.utils.mysql.mysql_context_dataclass import MySQLRollbackExerciseContext
 
 
 class MySQLRollbackExerciseFlow(object):
@@ -129,7 +127,7 @@ class MySQLRollbackExerciseFlow(object):
         sub_flow = self.build_rollback_exercise_flow()
         pipeline.add_sub_pipeline(sub_flow)
         # run pipeline
-        pipeline.run_pipeline(init_trans_data_class=SingleApplyManualContext())
+        pipeline.run_pipeline(init_trans_data_class=MySQLRollbackExerciseContext())
 
     def build_rollback_exercise_flow(self):
         sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.ticket_data))
