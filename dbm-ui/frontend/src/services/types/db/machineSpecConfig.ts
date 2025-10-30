@@ -20,5 +20,6 @@ export interface MachineSpecConfig {
     min: number;
     mount_point: string;
     type: string;
+    size: number;
   }[];
 }

@@ -29,7 +29,7 @@
       </span>
     </template>
     <EditableInput
-      v-model="modelValue.ip"
+      v-model.trim="modelValue.ip"
       :placeholder="t('请输入如: 192.168.10.2')"
       @change="handleChange" />
   </EditableColumn>
@@ -126,7 +126,7 @@
     {
       message: t('IP格式有误，请输入合法IP'),
       trigger: 'change',
-      validator: (value: string) => !value || ipv4.test(value.trim()),
+      validator: (value: string) => !value || ipv4.test(value),
     },
     {
       message: t('目标主机不存在'),

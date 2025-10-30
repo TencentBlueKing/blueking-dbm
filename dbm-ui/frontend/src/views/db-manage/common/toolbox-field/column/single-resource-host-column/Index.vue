@@ -21,7 +21,7 @@
     :min-width="minWidth"
     required>
     <EditableInput
-      v-model="modelValue.ip"
+      v-model.trim="modelValue.ip"
       :placeholder="t('请输入n个主机IP', { n: limit })"
       @change="handleInputChange">
       <template #append>
@@ -89,7 +89,7 @@
     {
       message: t('IP格式有误，请输入合法IP'),
       trigger: 'change',
-      validator: (value: string) => !value || ipv4.test(value.trim()),
+      validator: (value: string) => !value || ipv4.test(value),
     },
     {
       message: t('最多输入n个主机IP', { n: limit }),
