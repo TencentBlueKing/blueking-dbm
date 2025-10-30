@@ -15,10 +15,11 @@ from typing import Dict, Optional
 from django.utils.translation import gettext as _
 
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.flow.consts import MongoDBClusterRole
+from backend.flow.consts import MongoDBClusterRole, MongoDBInstanceType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install import install_plugin
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install_dbmon import add_install_dbmon
+from backend.flow.engine.bamboo.scene.mongodb.sub_task.multi_instance_deinstall import multi_instance_deinstall
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
 from backend.flow.plugins.components.collections.mongodb.mongodb_cmr_4_meta import CMRMongoDBMetaComponent
 from backend.flow.plugins.components.collections.mongodb.send_media import ExecSendMediaOperationComponent
@@ -42,6 +43,9 @@ def replicaset_replace(
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
 
     if not cluster_role:
+        # 获取替换信息 info["mongodb"]是list
+        info = info["mongodb"][0]
+
         # 获取信息
         sub_get_kwargs.get_host_replace(mongodb_type=ClusterType.MongoReplicaSet.value, info=info)
 
@@ -65,6 +69,12 @@ def replicaset_replace(
         sub_pipeline.add_act(
             act_name=_("MongoDB-机器初始化"), act_component_code=ExecuteDBActuatorJobComponent.code, kwargs=kwargs
         )
+
+    # 根据计算容量新的 cachesize 和 oplogsize  self.replicaset_info["cacheSizeGB"]  self.replicaset_info["oplogSizeMB"]
+    sub_get_kwargs.calc_param_migrate(info=info["target"], instance_num=len(info["instances"]))
+
+    # 获取节点 role
+    info["instances"] = sub_get_kwargs.get_role_replace_kwargs(info=info, cluster_role=cluster_role)
 
     # 进行替换——并行 以ip为维度
     sub_sub_pipelines = []
@@ -94,17 +104,6 @@ def replicaset_replace(
                 act_component_code=CMRMongoDBMetaComponent.code,
                 kwargs=kwargs,
             )
-            # 安装dbmon 副本集
-            ip_list = sub_get_kwargs.payload["plugin_hosts"]
-            exec_ips = [host["ip"] for host in ip_list]
-            add_install_dbmon(
-                root_id=root_id,
-                flow_data=ticket_data,
-                pipeline=sub_pipeline,
-                iplist=exec_ips,
-                bk_cloud_id=ip_list[0]["bk_cloud_id"],
-                allow_empty_instance=True,
-            )
     else:
         if cluster_role == MongoDBClusterRole.ShardSvr.value:
             info["db_type"] = "cluster_mongodb"
@@ -117,5 +116,31 @@ def replicaset_replace(
         sub_pipeline.add_act(
             act_name=_("MongoDB-mongod修改meta"), act_component_code=CMRMongoDBMetaComponent.code, kwargs=kwargs
         )
+    if not cluster_role:
+        # 安装dbmon 副本集
+        ip_list = sub_get_kwargs.payload["plugin_hosts"]
+        exec_ips = [host["ip"] for host in ip_list]
+        add_install_dbmon(
+            root_id=root_id,
+            flow_data=ticket_data,
+            pipeline=sub_pipeline,
+            iplist=exec_ips,
+            bk_cloud_id=ip_list[0]["bk_cloud_id"],
+            allow_empty_instance=True,
+        )
+
+        # 下架
+        old_hosts, old_instances = sub_get_kwargs.get_old_host_replace(
+            info=info, cluster_type=ClusterType.MongoReplicaSet.value
+        )
+        sub_sub_pipeline = multi_instance_deinstall(
+            root_id=root_id,
+            ticket_data=ticket_data,
+            sub_kwargs=sub_get_kwargs,
+            old_hosts=old_hosts,
+            old_instances=old_instances,
+            instance_type=MongoDBInstanceType.MongoD.value,
+        )
+        sub_pipeline.add_sub_pipeline(sub_flow=sub_sub_pipeline)
 
     return sub_pipeline.build_sub_process(sub_name=_("MongoDB--{}整机替换--ip:{}".format(name, info["ip"])))
