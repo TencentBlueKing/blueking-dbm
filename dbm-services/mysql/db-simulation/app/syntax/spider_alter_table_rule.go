@@ -17,22 +17,22 @@ func (c AlterTableResult) SpiderChecker(mysqlVersion string) (r *CheckerResult) 
 	r = &CheckerResult{
 		ObjName: c.TableName,
 	}
-	for _, altercmd := range c.AlterCommands {
+	for _, alterCmd := range c.AlterCommands {
 		// 如果是增加字段，需要判断增加的字段名称是否是关键字
-		if altercmd.Type == AlterTypeAddColumn {
-			r.ParseBultinRisk(func() (bool, string) {
-				return KeyWordValidator(mysqlVersion, altercmd.ColDef.ColName)
+		if alterCmd.Type == AlterTypeAddColumn {
+			r.ParseBuiltinRisk(func() (bool, string) {
+				return KeyWordValidator(mysqlVersion, alterCmd.ColDef.ColName)
 			})
 		}
 	}
-	r.ParseBultinBan(c.NotAllowedDefaulValCol)
+	r.ParseBuiltinBan(c.NotAllowedDefaultValCol)
 	return c.Checker(mysqlVersion)
 }
 
-// NotAllowedDefaulValCol 不允许存在默认值的字段
-func (c AlterTableResult) NotAllowedDefaulValCol() (bool, string) {
+// NotAllowedDefaultValCol 不允许存在默认值的字段
+func (c AlterTableResult) NotAllowedDefaultValCol() (bool, string) {
 	for _, alt := range c.AlterCommands {
-		if alt.ColDef.IsNotAllowDefaulValCol() {
+		if alt.ColDef.IsNotAllowDefaultValCol() {
 			return true, fmt.Sprintf("col:%s,类型:%s 不允许存在默认值的字段", alt.ColDef.ColName, alt.ColDef.DataType)
 		}
 	}

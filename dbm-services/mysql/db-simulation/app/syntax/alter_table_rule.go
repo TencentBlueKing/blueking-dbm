@@ -19,14 +19,14 @@ func (c AlterTableResult) Checker(mysqlVersion string) (r *CheckerResult) {
 	r = &CheckerResult{
 		ObjName: c.TableName,
 	}
-	for _, altercmd := range c.AlterCommands {
-		r.Parse(R.AlterTableRule.HighRiskType, altercmd.Type, "")
-		r.Parse(R.AlterTableRule.HighRiskPkAlterType, altercmd.GetPkAlterType(), "")
-		r.Parse(R.AlterTableRule.AlterUseAfter, altercmd.After, "")
+	for _, alterCmd := range c.AlterCommands {
+		r.Parse(R.AlterTableRule.HighRiskType, alterCmd.Type, "")
+		r.Parse(R.AlterTableRule.HighRiskPkAlterType, alterCmd.GetPkAlterType(), "")
+		r.Parse(R.AlterTableRule.AlterUseAfter, alterCmd.After, "")
 		// 如果是增加字段，需要判断增加的字段名称是否是关键字
-		if altercmd.Type == AlterTypeAddColumn {
-			r.ParseBultinRisk(func() (bool, string) {
-				return KeyWordValidator(mysqlVersion, altercmd.ColDef.ColName)
+		if alterCmd.Type == AlterTypeAddColumn {
+			r.ParseBuiltinRisk(func() (bool, string) {
+				return KeyWordValidator(mysqlVersion, alterCmd.ColDef.ColName)
 			})
 		}
 	}
