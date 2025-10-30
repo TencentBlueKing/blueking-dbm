@@ -55,7 +55,7 @@
 
   const operateTypeDisplayNameMap: Record<string, string> = {
     create_follow_up: t('添加跟进'),
-    create_require: t('创建需求'),
+    create_require: t('创建要求'),
     create_risk: t('创建风险'),
     delete_follow_up: t('删除跟进'),
     delete_risk: t('删除风险'),

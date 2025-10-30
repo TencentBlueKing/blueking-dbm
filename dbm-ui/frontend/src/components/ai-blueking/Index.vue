@@ -1,5 +1,6 @@
 <template>
   <AIBlueking
+    v-if="apiUrl"
     default-minimize
     :enable-popup="false"
     load-recent-session-on-mount
