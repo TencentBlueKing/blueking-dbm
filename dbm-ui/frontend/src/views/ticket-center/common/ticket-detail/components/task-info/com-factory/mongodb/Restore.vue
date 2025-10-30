@@ -12,34 +12,37 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     class="details-backup__table"
-    :data="tableData">
-    <TableColumn
+    :data="tableData"
+    row-key="immute_domain">
+    <TicketInfoTableColumn
       col-key="immute_domain"
-      :label="t('集群')" />
-    <TableColumn
+      :get-copy-value="(row: RowData) => row.immute_domain"
+      :title="t('集群')" />
+    <TicketInfoTableColumn
       col-key="struct_type"
-      :label="t('构造类型')" />
-    <TableColumn
+      :title="t('构造类型')" />
+    <TicketInfoTableColumn
       v-if="backupinfo"
       col-key="backup_file"
-      :label="t('备份文件')" />
-    <TableColumn
+      :title="t('备份文件')" />
+    <TicketInfoTableColumn
       v-else
       col-key="target_time"
-      :label="t('指定时间')" />
-  </PrimaryTable>
+      :title="t('指定时间')" />
+  </TicketInfoTable>
   <template v-if="tableSettingData.length > 0">
     <div class="ticket-details-list">
       <div class="ticket-details-item">
-        <span class="ticket-details-item-label">{{ t('库表设置') }}：</span>
+        <span class="ticket-details-item-title">{{ t('库表设置') }}：</span>
       </div>
     </div>
-    <PrimaryTable
+    <TicketInfoTable
       class="details-backup__table"
-      :data="tableSettingData">
-      <TableColumn
+      :data="tableSettingData"
+      row-key="db_patterns">
+      <TicketInfoTableColumn
         col-key="db_patterns"
         :title="t('备份DB名')">
         <template #default="{ row }">
@@ -56,8 +59,8 @@
             <span v-else> -- </span>
           </div>
         </template>
-      </TableColumn>
-      <TableColumn
+      </TicketInfoTableColumn>
+      <TicketInfoTableColumn
         col-key="ignore_dbs"
         :title="t('备份DB名')">
         <template #default="{ row }">
@@ -74,8 +77,8 @@
             <span v-else> -- </span>
           </div>
         </template>
-      </TableColumn>
-      <TableColumn
+      </TicketInfoTableColumn>
+      <TicketInfoTableColumn
         col-key="table_patterns"
         :title="t('备份表名')">
         <template #default="{ row }">
@@ -92,8 +95,8 @@
             <span v-else> -- </span>
           </div>
         </template>
-      </TableColumn>
-      <TableColumn
+      </TicketInfoTableColumn>
+      <TicketInfoTableColumn
         col-key="ignore_tables"
         :title="t('忽略表名')">
         <template #default="{ row }">
@@ -110,18 +113,18 @@
             <span v-else> -- </span>
           </div>
         </template>
-      </TableColumn>
-    </PrimaryTable>
+      </TicketInfoTableColumn>
+    </TicketInfoTable>
   </template>
   <div class="ticket-details-list">
     <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('构造新主机规格') }}：</span>
+      <span class="ticket-details-item-title">{{ t('构造新主机规格') }}：</span>
       <span class="ticket-details-item-value">
         {{ specs[resource_spec.mongodb.spec_id].name ?? '--' }}
       </span>
     </div>
     <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('每台主机构造Shard数量') }}：</span>
+      <span class="ticket-details-item-title">{{ t('每台主机构造Shard数量') }}：</span>
       <span class="ticket-details-item-value">
         {{ instance_per_host }}
       </span>
@@ -130,6 +133,7 @@
 </template>
 
 <script setup lang="tsx">
+  import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Mongodb } from '@services/model/ticket/ticket';
@@ -141,6 +145,8 @@
   interface Props {
     ticketDetails: TicketModel<Mongodb.Restore>;
   }
+
+  type RowData = UnwrapRef<typeof tableData>[number];
 
   defineOptions({
     name: TicketTypes.MONGODB_RESTORE,

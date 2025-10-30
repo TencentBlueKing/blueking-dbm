@@ -12,25 +12,25 @@
 -->
 
 <template>
-  <InfoTable
+  <TicketInfoTable
     :data="tableData"
     row-key="id">
-    <InfoTableColumn
+    <TicketInfoTableColumn
       col-key="id"
-      :get-copy-value="(item: RowData) => ticketDetails.details.clusters[item.id].immute_domain"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.id].immute_domain"
       :title="t('集群')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.id].immute_domain }}
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="cluster_type_name"
       :title="t('集群类型')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.id].cluster_type_name }}
       </template>
-    </InfoTableColumn>
-  </InfoTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="ts">
@@ -39,8 +39,6 @@
 
   import type { DetailClusters } from '@services/model/ticket/details/common';
   import TicketModel from '@services/model/ticket/ticket';
-
-  import InfoTable, { InfoTableColumn } from '../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<{

@@ -28,20 +28,21 @@
       {{ repairModesMap[ticketDetails.details.data_repair.mode] }}
     </InfoItem>
   </InfoList>
-  <PrimaryTable
+  <TicketInfoTable
     :data="tableData"
     row-key="master"
     :rowspan-and-colspan="rowspanAndColspan">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="immute_domain"
       fixed="left"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
       :title="t('目标集群')"
       :width="200">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="checksum_scope"
       fixed="left"
       :title="t('校验范围')"
@@ -49,8 +50,8 @@
       <template #default="{ row }: { row: RowData }">
         {{ row.checksum_scope === 'all' ? t('整个集群') : t('部分实例') }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="slave"
       :title="t('校验从库')"
       :width="220">
@@ -78,8 +79,8 @@
         </div>
         <span v-else>--</span>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="master"
       :title="t('校验主库')"
       :width="220">
@@ -102,40 +103,40 @@
           {{ row.master || '--' }}
         </span>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="db_patterns"
       :title="t('校验DB名')"
       :width="120">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="row.db_patterns" />
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="ignore_dbs"
       :title="t('忽略DB名')"
       :width="120">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="row.ignore_dbs" />
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="table_patterns"
       :title="t('校验表名')"
       :width="120">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="row.table_patterns" />
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="ignore_tables"
       :title="t('忽略表名')"
       :width="120">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="row.ignore_tables" />
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';

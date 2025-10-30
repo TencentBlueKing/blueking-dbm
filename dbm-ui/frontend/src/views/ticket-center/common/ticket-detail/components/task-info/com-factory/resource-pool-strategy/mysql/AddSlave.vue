@@ -12,10 +12,10 @@
 -->
 
 <template>
-  <InfoTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="id">
-    <InfoTableColumn
+    <TicketInfoTableColumn
       col-key="cluster_ids"
       fixed="left"
       :get-copy-value="
@@ -31,16 +31,16 @@
           {{ ticketDetails.details.clusters[clusterId].immute_domain }}
         </div>
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="resource_spec"
       :min-width="120"
       :title="t('新从库主机')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.resource_spec.new_slave.hosts?.[0]?.ip || '--' }}
       </template>
-    </InfoTableColumn>
-  </InfoTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('备份源')">
       {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
@@ -55,7 +55,6 @@
   import { TicketTypes } from '@common/const';
 
   import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
-  import InfoTable, { InfoTableColumn } from '../../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.ResourcePool.AddSlave>;

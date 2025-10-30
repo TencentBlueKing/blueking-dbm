@@ -12,31 +12,32 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="tableData"
     row-key="instance">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="instance"
-      :label="t('目标实例')"
-      :min-width="220">
-    </TableColumn>
-    <TableColumn
+      :get-copy-value="(row: RowData) => row.instance"
+      :min-width="220"
+      :title="t('目标实例')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="immute_domain"
-      :label="t('所属集群')"
-      :min-width="130">
+      :min-width="130"
+      :title="t('所属集群')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="cluster_type_name"
-      :label="t('架构版本')"
-      :min-width="130">
+      :min-width="130"
+      :title="t('架构版本')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.cluster_id].cluster_type_name }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('分析时长')">
       {{ `${ticketDetails.details.analysis_time}s` }}

@@ -12,39 +12,49 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="tableData"
     row-key="id">
-    <TableColumn
+    <TicketInfoTableColumn
+      col-key="ip"
       fixed="left"
+      :get-copy-value="(row: RowData) => `${row.ip}:${row.listen_port}`"
       min-width="150"
       :title="t('实例')"
       width="200">
       <template #default="{ row: data }: { row: RowData }"> {{ data.ip }}:{{ data.listen_port }} </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="dumper_id"
       :title="t('实例 ID')"
       width="80">
       <template #default="{ row: data }: { row: RowData }"> {{ data.dumper_id }} </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="immute_domain"
       min-width="200"
       :title="t('数据源集群')"
       width="250">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.source_cluster.immute_domain }}:{{ data.source_cluster.master_port }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('接收端类型')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="protocol_type"
+      :title="t('接收端类型')">
       <template #default="{ row: data }: { row: RowData }"> {{ data.protocol_type }} </template>
-    </TableColumn>
-    <TableColumn :title="t('接收端地址')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="target_address"
+      :title="t('接收端地址')">
       <template #default="{ row: data }: { row: RowData }"> {{ data.target_address }}:{{ data.target_port }} </template>
-    </TableColumn>
-    <TableColumn :title="t('同步方式')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="add_type"
+      :title="t('同步方式')">
       <template #default="{ row: data }: { row: RowData }"> {{ syncTypeMap[data.add_type] }} </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">

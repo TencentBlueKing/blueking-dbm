@@ -12,24 +12,27 @@
 -->
 
 <template>
-  <PrimaryTable :data="tableData">
-    <TableColumn
+  <TicketInfoTable
+    :data="tableData"
+    row-key="host">
+    <TicketInfoTableColumn
       col-key="host"
+      :get-copy-value="(row: RowData) => `${row.host}:${row.port}`"
       :title="t('源实例')">
-      <template #default="{ row }:{ row: { host: string; port: number } }">
+      <template #default="{ row }:{ row: RowData }">
         <span>{{ row.host }}:{{ row.port }}</span>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="target_pos"
       :title="t('迁移目标位置')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="repl_binlog_file"
       title="binlog file" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="repl_binlog_pos"
       title="binlog pos" />
-  </PrimaryTable>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">
@@ -42,6 +45,8 @@
   interface Props {
     ticketDetails: TicketModel<Dumper.SwitchNodes>;
   }
+
+  type RowData = Props['ticketDetails']['details']['infos'][number]['switch_instances'][number];
 
   defineOptions({
     name: TicketTypes.TBINLOGDUMPER_SWITCH_NODES,

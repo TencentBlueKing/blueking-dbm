@@ -12,15 +12,22 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
-    row-key="id">
-    <TableColumn :title="t('待重建从库主机')">
+    row-key="cluster_ids">
+    <TicketInfoTableColumn
+      col-key="cluster_ids"
+      :get-copy-value="
+        (row: RowData) => row.old_nodes.old_slave_host[0].ip
+      "
+      :title="t('待重建从库主机')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.old_nodes.old_slave_host[0].ip }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('同机关联集群')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="immute_domain"
+      :title="t('同机关联集群')">
       <template #default="{ row: data }: { row: RowData }">
         <div
           v-for="clusterId in data.cluster_ids"
@@ -29,13 +36,15 @@
           {{ ticketDetails.details.clusters[clusterId].immute_domain }}
         </div>
       </template>
-    </TableColumn>
-    <TableColumn :title="t('新从库主机')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="sqlserver_ha"
+      :title="t('新从库主机')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.resource_spec.sqlserver_ha.hosts[0].ip }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">

@@ -16,70 +16,70 @@
     <InfoItem
       :label="t('导入主机')"
       style="flex: 1 0 100%">
-      <InfoTable
+      <TicketInfoTable
         :data="ticketDetails.details.hosts"
         ellipsis
         row-key="ip">
-        <InfoTableColumn
+        <TicketInfoTableColumn
           col-key="ip"
           fixed="left"
-          :get-copy-value="(item: RowData) => item.ip"
+          :get-copy-value="(row: RowData) => row.ip"
           :min-width="150"
           title="IP">
-        </InfoTableColumn>
-        <InfoTableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="bk_cloud_name"
           :min-width="120"
           :title="t('管控区域')" />
-        <InfoTableColumn
+        <TicketInfoTableColumn
           col-key="status"
           :min-width="120"
           :title="t('Agent 状态')">
           <template #default="{ row: data }: { row: RowData }">
             <HostAgentStatus :data="data.status" />
           </template>
-        </InfoTableColumn>
-        <InfoTableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="city_name"
           :min-width="120"
           :title="t('地域')">
           <template #default="{ row: data }: { row: RowData }">
             {{ data.city_name || '--' }}
           </template>
-        </InfoTableColumn>
-        <InfoTableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="sub_zone"
           :min-width="120"
           :title="t('园区')">
           <template #default="{ row: data }: { row: RowData }">
             {{ data.sub_zone || '--' }}
           </template>
-        </InfoTableColumn>
-        <InfoTableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="rack_id"
           :min-width="120"
           :title="t('机架')">
           <template #default="{ row: data }: { row: RowData }">
             {{ data.rack_id || '--' }}
           </template>
-        </InfoTableColumn>
-        <InfoTableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="bk_os_name"
           :min-width="120"
           :title="t('操作系统')">
           <template #default="{ row: data }: { row: RowData }">
             {{ data.bk_os_name || '--' }}
           </template>
-        </InfoTableColumn>
-        <InfoTableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="svr_device_class"
           :min-width="120"
           :title="t('机型')">
           <template #default="{ row: data }: { row: RowData }">
             {{ data.svr_device_class || '--' }}
           </template>
-        </InfoTableColumn>
-      </InfoTable>
+        </TicketInfoTableColumn>
+      </TicketInfoTable>
     </InfoItem>
     <InfoItem :label="t('所属业务')">
       {{
@@ -111,7 +111,6 @@
   import TagBlock from '@components/tag-block/Index.vue';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
-  import InfoTable, { InfoTableColumn } from '../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Common.ImportResource>;

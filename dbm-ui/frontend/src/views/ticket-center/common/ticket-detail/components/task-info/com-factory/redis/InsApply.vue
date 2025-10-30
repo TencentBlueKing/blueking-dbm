@@ -66,28 +66,28 @@
     <InfoItem
       :label="t('域名设置')"
       style="flex: 1 0 100%">
-      <PrimaryTable
+      <TicketInfoTable
         :data="tableData"
         row-key="index">
-        <TableColumn
+        <TicketInfoTableColumn
           col-key="mainDomain"
           :title="t('主域名')">
-        </TableColumn>
-        <TableColumn
-          key="databases"
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="databases"
           title="Databases">
-        </TableColumn>
+        </TicketInfoTableColumn>
         <template v-if="isAppend">
-          <TableColumn
-            key="masterIp"
+          <TicketInfoTableColumn
+            col-key="masterIp"
             :title="t('待部署主库主机')">
-          </TableColumn>
-          <TableColumn
-            key="slaveIp"
+          </TicketInfoTableColumn>
+          <TicketInfoTableColumn
+            col-key="slaveIp"
             :title="t('待部署从库主机')">
-          </TableColumn>
+          </TicketInfoTableColumn>
         </template>
-      </PrimaryTable>
+      </TicketInfoTable>
     </InfoItem>
   </InfoList>
 </template>

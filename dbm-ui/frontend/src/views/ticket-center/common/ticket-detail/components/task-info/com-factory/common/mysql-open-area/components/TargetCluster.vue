@@ -12,37 +12,32 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     class="target-cluster-table"
     :data="tableData"
     row-key="targetCluster"
     :rowspan-and-colspan="rowspanAndColspan">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="targetCluster"
+      :get-copy-value="(row: RowData) => row.targetCluster"
       :min-width="200"
       :title="t('目标集群')"
       :width="250" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="newDb"
       :min-width="150"
       :title="t('新DB')"
       :width="200" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="ips"
       ellipsis
+      :get-copy-value="(row: RowData) => row.ips.split(',')"
       :title="t('授权的IP')">
-      <template #default="{ row }">
-        <span>
-          {{ row.ips || '--' }}
-          <DbIcon
-            v-if="row.ips && row.ips.length > 0"
-            class="copy-btn"
-            type="copy"
-            @click="handleIpClick(row.ips)" />
-        </span>
+      <template #default="{ row }: { row: RowData }">
+        {{ row.ips || '--' }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">
@@ -51,8 +46,6 @@
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
-
-  import { execCopy } from '@utils';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.OpenArea>;
@@ -101,10 +94,6 @@
       return { colspan: 1, rowspan: rowSpan > 1 ? rowSpan : 1 };
     }
     return {};
-  };
-
-  const handleIpClick = (ips: string) => {
-    execCopy(ips.replace(/,/g, '\n'), t('复制成功，共n条', { n: ips.split(',').length }));
   };
 </script>
 

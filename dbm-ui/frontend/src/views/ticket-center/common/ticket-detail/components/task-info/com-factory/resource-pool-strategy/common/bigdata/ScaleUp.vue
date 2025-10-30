@@ -44,17 +44,18 @@
       <InfoItem
         v-if="item.isManulSelect"
         :label="t('已选IP')">
-        <PrimaryTable
+        <TicketInfoTable
           :data="item.hostList"
           ellipsis
           row-key="ip">
-          <TableColumn
+          <TicketInfoTableColumn
             col-key="ip"
+            :get-copy-value="(row: RowData['hostList'][number]) => row.ip"
             :title="t('节点 IP')" />
-          <TableColumn
+          <TicketInfoTableColumn
             col-key="bk_disk"
             :title="t('磁盘容量(G)')" />
-        </PrimaryTable>
+        </TicketInfoTable>
       </InfoItem>
     </InfoList>
   </div>

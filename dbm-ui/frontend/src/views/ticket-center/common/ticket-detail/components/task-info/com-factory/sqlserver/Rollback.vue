@@ -17,20 +17,21 @@
       {{ ticketDetails.details.is_local ? t('原地定点构造') : t('定点构造到其他集群') }}
     </InfoItem>
   </InfoList>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     ellipsis
     row-key="dst_cluster">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="src_cluster"
       fixed="left"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.src_cluster].immute_domain"
       :title="t('待回档集群')"
       :width="220">
       <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.src_cluster].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       v-if="!ticketDetails.details.is_local"
       col-key="dst_cluster"
       fixed="left"
@@ -39,8 +40,8 @@
       <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.dst_cluster].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="restore_time"
       :title="t('回档类型')"
       :width="300">
@@ -51,29 +52,29 @@
           {{ data.restore_backup_file.logs[0].backup_begin_time }}
         </div>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="db_list"
       :title="t('构造 DB')">
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.db_list" />
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="ignore_db_list"
       :title="t('忽略 DB')">
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.ignore_db_list" />
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="rename_infos"
       :title="t('构造后 DB 名')">
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.rename_infos.map((item) => item.target_db_name)" />
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

@@ -12,27 +12,28 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="src_cluster">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="immute_domain"
       fixed="left"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.src_cluster].immute_domain"
       :min-width="180"
       :title="t('源集群')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.src_cluster].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="cluster_type_name"
       :min-width="130"
       :title="t('源集群类型')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.src_cluster].cluster_type_name }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       :min-width="150"
       :title="t('源集群容量')">
       <template #default="{ row }: { row: RowData }">
@@ -40,35 +41,35 @@
           `${row.capacity}G_${ticketDetails.details.specs[row.resource_spec.backend_group.spec_id].qps.max || 0}/s(${row.current_shard_num}分片)`
         }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="target_cluster_type"
       :min-width="130"
       :title="t('新集群类型')" />
-    <!-- <TableColumn
+    <!-- <TicketInfoTableColumn
       col-key="capacity"
       :title="t('当前容量需求')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="future_capacity"
       :title="t('未来容量需求')" /> -->
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="db_version"
       :title="t('新集群版本')" />
-    <TableColumn
+    <TicketInfoTableColumn
       :min-width="150"
       :title="t('新集群部署方案')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.specs[row.resource_spec.backend_group.spec_id].name }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       :title="t('切换模式')"
       :width="100">
       <template #default="{ row }: { row: RowData }">
         {{ row.online_switch_type === 'user_confirm' ? t('需人工确认') : t('无需确认') }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('校验与修复类型')">
       {{ repairAndVerifyTypesMap[ticketDetails.details.data_check_repair_setting.type] }}

@@ -12,20 +12,20 @@
 -->
 
 <template>
-  <InfoTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="source_cluster">
-    <InfoTableColumn
+    <TicketInfoTableColumn
       col-key="source_cluster"
       fixed="left"
-      :get-copy-value="(item: RowData) => ticketDetails.details.clusters[item.source_cluster].immute_domain"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.source_cluster].immute_domain"
       :min-width="240"
       :title="t('源集群')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.source_cluster].immute_domain }}
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="target_clusters"
       :min-width="240"
       :title="t('目标集群')">
@@ -36,15 +36,15 @@
           {{ ticketDetails.details.clusters[clusterId].immute_domain }}
         </div>
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="data_schema_grant"
       :title="t('克隆类型')">
       <template #default="{ row }: { row: RowData }">
         {{ row.data_schema_grant === 'schema' ? t('克隆表结构') : t('克隆表结构和数据') }}
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="clone_db_list"
       :min-width="180"
       :title="t('克隆DB名')">
@@ -56,8 +56,8 @@
         </BkTag>
         <span v-if="row.clone_db_list.length < 1">--</span>
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="ignore_db_list"
       :min-width="180"
       :title="t('忽略DB名')">
@@ -69,8 +69,8 @@
         </BkTag>
         <span v-if="row.ignore_db_list.length < 1">--</span>
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="db_list"
       :min-width="180"
       :title="t('最终DB名')">
@@ -82,8 +82,8 @@
         </BkTag>
         <span v-if="row.db_list.length < 1">--</span>
       </template>
-    </InfoTableColumn>
-  </InfoTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -91,8 +91,6 @@
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
-
-  import InfoTable, { InfoTableColumn } from '../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.DataMigrate>;
