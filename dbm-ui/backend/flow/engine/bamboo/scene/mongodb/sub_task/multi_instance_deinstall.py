@@ -14,7 +14,7 @@ from typing import Dict, Optional
 
 from django.utils.translation import gettext as _
 
-from backend.flow.consts import MongoDBInstanceType, MongoInstanceDbmonType
+from backend.flow.consts import MongoInstanceDbmonType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
 from backend.flow.plugins.components.collections.mongodb.fast_exec_script import MongoFastExecScriptComponent
@@ -23,7 +23,12 @@ from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 
 
 def multi_instance_deinstall(
-    root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwargs, info: dict
+    root_id: str,
+    ticket_data: Optional[Dict],
+    sub_kwargs: ActKwargs,
+    old_hosts: list,
+    old_instances: list,
+    instance_type: str,
 ) -> SubBuilder:
     """
     多个instance deinstall流程 放在流程最后
@@ -34,9 +39,6 @@ def multi_instance_deinstall(
 
     # 创建子流程
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
-
-    # 下架计算
-    old_hosts, old_instances = sub_get_kwargs.get_old_host_migrate(info=info)
 
     # 介质下发
     sub_get_kwargs.payload["hosts"] = old_hosts
@@ -56,7 +58,6 @@ def multi_instance_deinstall(
 
     acts_dbmon_list = []
     acts_instance_deinstall_list = []
-    instance_type = MongoDBInstanceType.MongoD.value
     for instance in old_instances:
         # 删除dbmon
         sub_get_kwargs.payload["bk_cloud_id"] = instance["bk_cloud_id"]
