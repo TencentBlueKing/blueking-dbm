@@ -298,7 +298,9 @@ def migrate_mongod_replace(
 
     # 下架老实例
     # 下架节点设置为隐藏
-    kwargs = sub_sub_get_kwargs.get_mongod_hidden_kwargs(info=info, hidden=True)
+    kwargs = sub_sub_get_kwargs.get_mongod_hidden_kwargs(
+        info=info, hidden=True, port=sub_sub_get_kwargs.db_instance["port"]
+    )
     sub_sub_pipeline.add_act(
         act_name=_("MongoDB-mongod下架前隐藏-{}:{}".format(info["ip"], str(sub_sub_get_kwargs.db_instance["port"]))),
         act_component_code=ExecuteDBActuatorJobComponent.code,
