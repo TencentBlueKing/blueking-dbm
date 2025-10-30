@@ -34,7 +34,7 @@
       }"
       style="flex: 1">
       <EditableInput
-        v-model="modelValue.ip"
+        v-model.trim="modelValue.ip"
         :placeholder="t('请输入如: 192.168.10.2')"
         @change="handleChange" />
       <BkLoading
@@ -58,13 +58,12 @@
 
   import { getGlobalMachine } from '@services/source/dbbase';
   import { queryMasterSlavePairs } from '@services/source/redisToolbox';
+  import type { InstanceInfos } from '@services/types';
 
   import { ClusterTypes, DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
   import MachineResourceSelector, { type IMachine } from '@components/machine-resource-selector/Index.vue';
-
-  import type { SpecInfo } from '@views/db-manage/redis/common/spec-panel/Index.vue';
 
   export type IValue = IMachine;
 
@@ -88,10 +87,10 @@
     related_slave?: {
       bk_host_id: number;
       ip: string;
-      spec_config: SpecInfo;
+      spec_config: InstanceInfos['spec_config'];
     }; // 关联的从库ip，仅当role=redis_master时存在
     role: string;
-    spec_config: SpecInfo;
+    spec_config: InstanceInfos['spec_config'];
   }>({
     required: true,
   });
@@ -108,7 +107,7 @@
     {
       message: t('IP格式有误，请输入合法IP'),
       trigger: 'change',
-      validator: (value: string) => !value || ipv4.test(value.trim()),
+      validator: (value: string) => !value || ipv4.test(value),
     },
     {
       message: t('IP 重复'),
@@ -175,7 +174,7 @@
       ip: value,
       master_domain: '',
       role: '',
-      spec_config: {} as SpecInfo,
+      spec_config: {} as InstanceInfos['spec_config'],
     };
   };
 
