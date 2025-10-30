@@ -4,14 +4,15 @@
     :col-key="colKey"
     resizable
     :title="title">
-    <template #title="{ colIndex }: { colIndex: number }">
+    <template #title>
       <div class="info-table-column-copy-button">
-        {{ title }}
-        <span v-if="colIndex === 0 && tableContext?.props.data.length">({{ tableContext.props.data.length }})</span>
-        <DbIcon
-          v-if="getCopyValue"
-          type="copy"
-          @click="handleCopy" />
+        <span>{{ title }}</span>
+        <template v-if="getCopyValue">
+          <span>{{ t('（共 n 个）', [copyDataList.length]) }}</span>
+          <DbIcon
+            type="copy"
+            @click="handleCopy" />
+        </template>
       </div>
     </template>
     <template
@@ -50,30 +51,36 @@
 
   const { t } = useI18n();
 
-  const handleCopy = () => {
-    const dataList = tableContext!.props.data.flatMap((item) => {
-      const formatValue = props.getCopyValue!(item);
-      return _.isArray(formatValue) ? formatValue : [formatValue];
-    });
+  const copyDataList = props.getCopyValue
+    ? _.uniq(
+        tableContext!.props.data.flatMap((item) => {
+          const formatValue = props.getCopyValue!(item);
+          return _.isArray(formatValue) ? formatValue : [formatValue];
+        }),
+      ).filter((item) => !_.isEmpty(item))
+    : [];
 
-    if (dataList.length > 0) {
-      execCopy(
-        _.uniq(dataList)
-          .filter((item) => !_.isEmpty(item))
-          .join('\n'),
-        t('复制成功，共n条', { n: dataList.length }),
-      );
-    }
+  const handleCopy = () => {
+    execCopy(
+      _.uniq(copyDataList)
+        .filter((item) => !_.isEmpty(item))
+        .join('\n'),
+      t('复制成功，共n条', { n: copyDataList.length }),
+    );
   };
 </script>
 
 <style lang="less">
   .info-table-column-copy-button {
     [class*='db-icon'] {
-      margin-top: 1px;
-      margin-left: 4px;
-      color: @primary-color;
+      font-size: 14px;
+      // margin-left: 4px;
+      color: #979ba5;
       cursor: pointer;
+
+      &:hover {
+        color: #3a84ff;
+      }
     }
   }
 </style>
