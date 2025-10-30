@@ -12,29 +12,31 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     class="details-backup__table"
-    :data="tableData">
-    <TableColumn
+    :data="tableData"
+    row-key="immute_domain">
+    <TicketInfoTableColumn
       col-key="immute_domain"
       ellipsis
-      :label="t('目标集群')" />
-    <TableColumn
+      :get-copy-value="(row: RowData) => row.immute_domain"
+      :title="t('目标集群')" />
+    <TicketInfoTableColumn
       col-key="cluster_type"
       ellipsis
-      :label="t('集群类型')" />
-    <TableColumn
+      :title="t('集群类型')" />
+    <TicketInfoTableColumn
       col-key="current_nodes"
       ellipsis
-      :label="t('当前Shard的节点数')" />
-    <TableColumn
+      :title="t('当前Shard的节点数')" />
+    <TicketInfoTableColumn
       col-key="reduce_shard_nodes"
       ellipsis
-      :label="t('缩容至（节点数）')" />
-  </PrimaryTable>
+      :title="t('缩容至（节点数）')" />
+  </TicketInfoTable>
   <div class="ticket-details-list">
     <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('忽略业务连接') }}：</span>
+      <span class="ticket-details-item-title">{{ t('忽略业务连接') }}：</span>
       <span class="ticket-details-item-value">
         {{ ticketDetails.details.is_safe ? t('否') : t('是') }}
       </span>

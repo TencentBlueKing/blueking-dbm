@@ -29,17 +29,18 @@
       <InfoItem
         :label="t('已选IP')"
         style="flex: 1 0 100%">
-        <PrimaryTable
+        <TicketInfoTable
           :data="item.hostList"
           ellipsis
           row-key="oldNodeIp">
-          <TableColumn
+          <TicketInfoTableColumn
             col-key="oldNodeIp"
+            :get-copy-value="(row: RowData['hostList'][number]) => row.oldNodeIp"
             :title="t('被替换的节点IP')" />
-          <TableColumn
+          <TicketInfoTableColumn
             col-key="newNodeIp"
             :title="t('新节点IP')" />
-        </PrimaryTable>
+        </TicketInfoTable>
       </InfoItem>
     </InfoList>
   </div>

@@ -12,25 +12,25 @@
 -->
 
 <template>
-  <InfoTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="master_ip.ip">
-    <InfoTableColumn
+    <TicketInfoTableColumn
       col-key="master_ip"
-      :get-copy-value="(item: RowData) => item.master_ip.ip"
+      :get-copy-value="(row: RowData) => row.master_ip.ip"
       :title="t('故障主库主机')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.master_ip.ip }}
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="slave"
       :title="t('从库主机')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.slave_ip.ip }}
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="cluster_ids"
       :title="t('同机关联的集群')">
       <template #default="{ row: data }: { row: RowData }">
@@ -41,8 +41,8 @@
           {{ ticketDetails.details.clusters[clusterId].immute_domain }}
         </div>
       </template>
-    </InfoTableColumn>
-  </InfoTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('检查业务来源的连接')">
       {{ ticketDetails.details.is_check_process ? t('是') : t('否') }}
@@ -60,7 +60,6 @@
   import { TicketTypes } from '@common/const';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
-  import InfoTable, { InfoTableColumn } from '../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.MasterFailOver>;

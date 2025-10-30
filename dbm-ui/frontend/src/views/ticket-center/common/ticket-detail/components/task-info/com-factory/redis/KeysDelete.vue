@@ -12,24 +12,29 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.rules"
     row-key="cluster_id">
-    <TableColumn
+    <TicketInfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(row: IRowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
       :min-width="220"
       :title="t('集群')">
       <template #default="{ row }: { row: IRowData }">
         {{ ticketDetails.details.clusters[row.cluster_id]?.immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_type_name"
       :title="t('架构版本')"
       :width="200">
       <template #default="{ row }: { row: IRowData }">
         {{ ticketDetails.details.clusters[row.cluster_id]?.cluster_type_name }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('包含Key')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="white_regex"
+      :title="t('包含Key')">
       <template #default="{ row }: { row: IRowData }">
         <span v-if="!row.white_regex">--</span>
         <template v-else>
@@ -40,8 +45,10 @@
           </p>
         </template>
       </template>
-    </TableColumn>
-    <TableColumn :title="t('排除Key')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="black_regex"
+      :title="t('排除Key')">
       <template #default="{ row }: { row: IRowData }">
         <span v-if="!row.black_regex">--</span>
         <template v-else>
@@ -52,15 +59,16 @@
           </p>
         </template>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="delete_rate"
       :title="t('每秒删除 Key 个数')"
       :width="200">
       <template #default="{ row }: { row: IRowData }">
         {{ row.delete_rate || '--' }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

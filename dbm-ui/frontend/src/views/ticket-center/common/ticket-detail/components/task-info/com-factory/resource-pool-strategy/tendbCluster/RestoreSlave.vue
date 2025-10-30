@@ -12,17 +12,20 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
-    row-key="id">
-    <TableColumn
+    row-key="cluster_id">
+    <TicketInfoTableColumn
+      col-key="old_slave"
+      :get-copy-value="(row: RowData) => row.old_nodes.old_slave?.[0]?.ip || ''"
       :min-width="150"
       :title="t('目标从库主机')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.old_nodes.old_slave?.[0]?.ip || '--' }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="related_instances"
       :min-width="180"
       :title="t('从库主机关联实例')">
       <template #default="{ row: data }: { row: RowData }">
@@ -36,8 +39,9 @@
         </template>
         <template v-else> -- </template>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="related_clusters"
       :min-width="220"
       :title="t('同机关联集群')">
       <template #default="{ row: data }: { row: RowData }">
@@ -51,8 +55,9 @@
         </template>
         <template v-else> -- </template>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="spec_id"
       :min-width="150"
       :title="t('规格')">
       <template #default="{ row: data }: { row: RowData }">
@@ -62,8 +67,9 @@
           '--'
         }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="label_names"
       :min-width="200"
       :title="t('资源标签')">
       <template #default="{ row: data }: { row: RowData }">
@@ -80,8 +86,8 @@
           {{ t('通用无标签') }}
         </BkTag>
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('备份源')">
       {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}

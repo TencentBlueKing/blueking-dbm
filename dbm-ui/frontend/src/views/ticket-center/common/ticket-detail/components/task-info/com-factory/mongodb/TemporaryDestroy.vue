@@ -12,14 +12,18 @@
 -->
 
 <template>
-  <PrimaryTable :data="dataList">
-    <TableColumn
+  <TicketInfoTable
+    :data="dataList"
+    row-key="name">
+    <TicketInfoTableColumn
       col-key="name"
-      :title="$t('临时集群名称')" />
-  </PrimaryTable>
+      :title="t('临时集群名称')" />
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">
+  import { useI18n } from 'vue-i18n';
+
   import TicketModel, { type Mongodb } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
@@ -34,6 +38,8 @@
   });
 
   const props = defineProps<Props>();
+
+  const { t } = useI18n();
 
   const dataList = computed(() => {
     const { cluster_ids: clusterIds, clusters } = props.ticketDetails.details;

@@ -12,32 +12,33 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="immute_domain"
       fixed="left"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
       :min-width="250"
       :title="t('源集群')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="cluster_type_name"
       :min-width="180"
       :title="t('架构版本')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.cluster_id].cluster_type_name }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="db_version"
       :min-width="100"
       :title="t('Redis版本')">
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="current_capacity"
       :min-width="240"
       :title="t('当前容量')">
@@ -46,8 +47,8 @@
           v-if="row"
           :columns="getCurrentColunms(row)" />
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="target_capacity"
       :min-width="370"
       :title="t('目标容量')">
@@ -56,16 +57,16 @@
           v-if="row"
           :columns="getTargetColunms(row)" />
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="online_switch_type"
       :min-width="120"
       :title="t('切换模式')">
       <template #default="{ row }: { row: RowData }">
         {{ row.online_switch_type === 'user_confirm' ? t('需人工确认') : t('无需确认') }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">

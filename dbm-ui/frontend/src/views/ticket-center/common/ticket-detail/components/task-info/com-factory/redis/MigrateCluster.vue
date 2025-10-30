@@ -12,11 +12,13 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
-    ellipsis>
-    <TableColumn
+    ellipsis
+    row-key="cluster_id">
+    <TicketInfoTableColumn
       col-key="migrate_instance"
+      :get-copy-value="(row: RowData) => (row.display_info?.instance || row.migrate_instance).split(',')"
       :min-width="200"
       :title="t('目标 Master 实例')">
       <template #default="{ row }: { row: RowData }">
@@ -26,8 +28,8 @@
           {{ item }}
         </div>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="cluster_id"
       :min-width="300"
       :rowspan="3"
@@ -35,16 +37,16 @@
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="resource_spec"
       :title="t('规格')"
       :width="200">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.specs[row.resource_spec.backend_group.spec_id].name }}
       </template>
-    </TableColumn>
-    <!-- <TableColumn
+    </TicketInfoTableColumn>
+    <!-- <TicketInfoTableColumn
       col-key="data.db_version"
       :title="t('版本')">
       <template #default="{ row }: { row : RowData }">
@@ -55,8 +57,8 @@
           {{ version }}
         </div>
       </template>
-    </TableColumn> -->
-  </PrimaryTable>
+    </TicketInfoTableColumn> -->
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   // import type { UnwrapRef } from 'vue';

@@ -12,15 +12,20 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
-    <TableColumn :title="t('目标集群')">
+    <TicketInfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
+      :title="t('目标集群')">
       <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('备份位置')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="backup_local"
+      :title="t('备份位置')">
       <template #default="{ row: data }: { row: RowData }">
         {{
           data.spider_mnt_address
@@ -30,8 +35,8 @@
               : 'RemoteDB'
         }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('备份类型')">
       {{ backupType }}

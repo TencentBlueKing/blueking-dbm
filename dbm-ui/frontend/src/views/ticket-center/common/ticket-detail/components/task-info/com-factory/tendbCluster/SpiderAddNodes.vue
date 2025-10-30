@@ -12,34 +12,41 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
-    <TableColumn
+    <TicketInfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
       :min-width="200"
       :title="t('目标集群')">
       <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('扩容节点类型')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="add_spider_role"
+      :title="t('扩容节点类型')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.add_spider_role }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="spec_id"
       :min-width="300"
       :title="t('规格')">
       <template #default="{ row: data }: { row: RowData }">
         {{ specInfoMap[data.resource_spec.spider_ip_list.spec_id]?.spec_name }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('扩容数量')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="count"
+      :title="t('扩容数量')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.resource_spec.spider_ip_list.count }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { shallowRef } from 'vue';

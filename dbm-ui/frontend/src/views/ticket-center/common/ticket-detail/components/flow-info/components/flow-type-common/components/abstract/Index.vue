@@ -7,16 +7,17 @@
         v-for="(item, index) in abstractList"
         :key="index"
         :title="item.table_name">
-        <PrimaryTable
+        <TicketInfoTable
           :data="item.values"
           header-row-class-name="abstract-table-header-row"
           :row-key="item.titles[0].field">
-          <TableColumn
+          <TicketInfoTableColumn
             v-for="titleItem in item.titles"
             :key="titleItem.field"
             :col-key="titleItem.field"
+            :get-copy-value="titleItem.field === 'ip' ? (row) => row.ip : undefined"
             :title="titleItem.label" />
-        </PrimaryTable>
+        </TicketInfoTable>
       </TableCollapse>
     </div>
   </FlowCollapse>

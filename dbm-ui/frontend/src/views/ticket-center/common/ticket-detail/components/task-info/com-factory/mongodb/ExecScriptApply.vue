@@ -27,32 +27,25 @@
     <InfoItem
       :label="t('目标集群')"
       style="flex: 1 0 100%">
-      <PrimaryTable
+      <TicketInfoTable
         :data="tableData"
         row-key="id">
-        <TableColumn
+        <TicketInfoTableColumn
           col-key="immute_domain"
-          :title="t('集群')">
-          <template #title>
-            <div class="oracle-exec-script-apply-domain-header">
-              {{ t('目标集群') }}
-              <DbIcon
-                type="copy"
-                @click="copyAllDomain" />
-            </div>
-          </template>
+          :get-copy-value="(row: IRowData) => ticketDetails.details.clusters[row.id].immute_domain"
+          :title="t('目标集群')">
           <template #default="{ row }: { row: IRowData }">
             {{ ticketDetails.details.clusters[row.id].immute_domain }}
           </template>
-        </TableColumn>
-        <TableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="cluster_type_name"
           :title="t('类型')">
           <template #default="{ row }: { row: IRowData }">
             {{ ticketDetails.details.clusters[row.id].cluster_type_name }}
           </template>
-        </TableColumn>
-      </PrimaryTable>
+        </TicketInfoTableColumn>
+      </TicketInfoTable>
     </InfoItem>
   </InfoList>
   <BkSideslider
@@ -98,8 +91,6 @@
 
   import RenderFileContent from '@views/ticket-center/common/ticket-detail/components/common/SqlFileContent.vue';
   import RenderFileList from '@views/ticket-center/common/ticket-detail/components/common/SqlFileList.vue';
-
-  import { execCopy } from '@utils';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 
@@ -149,13 +140,6 @@
 
   const handleClose = () => {
     isShow.value = false;
-  };
-
-  const copyAllDomain = () => {
-    const domainList = tableData.map((item) => props.ticketDetails.details.clusters[item.id].immute_domain);
-    if (domainList.length > 0) {
-      execCopy(domainList.join('\n'), t('复制成功，共n条', { n: domainList.length }));
-    }
   };
 </script>
 

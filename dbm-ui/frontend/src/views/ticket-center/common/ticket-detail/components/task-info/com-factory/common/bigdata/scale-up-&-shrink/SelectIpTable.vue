@@ -12,28 +12,29 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="data"
     ellipsis
     row-key="ip">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="ip"
+      :get-copy-value="(row: Props['data'][number]) => row.ip"
       :title="t('节点 IP')" />
-    <TableColumn
+    <TicketInfoTableColumn
       v-if="isShowInstanceColumn"
       col-key="instance_num"
       :title="t('每台主机实例数')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="alive"
       :title="t('Agent状态')">
-      <template #default="{ row }">
+      <template #default="{ row }: { row: Props['data'][number] }">
         <span>{{ row.alive === 1 ? t('正常') : t('异常') }}</span>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="bk_disk"
       :title="t('磁盘_GB')" />
-  </PrimaryTable>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">

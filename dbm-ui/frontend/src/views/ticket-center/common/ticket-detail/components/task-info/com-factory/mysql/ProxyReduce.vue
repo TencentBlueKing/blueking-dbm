@@ -12,18 +12,18 @@
 -->
 
 <template>
-  <InfoTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="origin_proxy_ip.ip">
-    <InfoTableColumn
+    <TicketInfoTableColumn
       col-key="origin_proxy_ip"
-      :get-copy-value="(item: RowData) => item.origin_proxy_ip.ip"
+      :get-copy-value="(row: RowData) => row.origin_proxy_ip.ip"
       :title="t('目标主机')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.origin_proxy_ip.ip }}
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="related_instances"
       :title="t('关联集群实例')">
       <template #default="{ row: data }: { row: RowData }">
@@ -47,8 +47,8 @@
           </div>
         </template>
       </template>
-    </InfoTableColumn>
-  </InfoTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('检查业务连接')">
       {{ ticketDetails.details.is_safe ? t('是') : t('否') }}
@@ -63,7 +63,6 @@
   import { TicketTypes } from '@common/const';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
-  import InfoTable, { InfoTableColumn } from '../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.ProxyReduce>;

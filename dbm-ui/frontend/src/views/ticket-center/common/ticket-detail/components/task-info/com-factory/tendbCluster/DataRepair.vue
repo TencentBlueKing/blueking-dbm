@@ -12,25 +12,32 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
-    <TableColumn :title="t('集群域名')">
+    <TicketInfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
+      :title="t('集群域名')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('修复主库')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="master"
+      :title="t('修复主库')">
       <template #default="{ row }: { row: RowData }">
         {{ `${row.master.ip}:${row.master.port}` }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('修复从库')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="slave"
+      :title="t('修复从库')">
       <template #default="{ row }: { row: RowData }">
         {{ row.slaves.map((item) => `${item.ip}:${item.port}`).join(',') }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('不一致时间范围')">
       {{ `${ticketDetails.details.start_time} - ${ticketDetails.details.end_time}` }}

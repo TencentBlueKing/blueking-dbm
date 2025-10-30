@@ -12,43 +12,44 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="cluster_ids">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="cluster_ids"
       fixed="left"
+      :get-copy-value="(row: RowData) => row.cluster_ids.map(clusterId => ticketDetails.details.clusters[clusterId].immute_domain)"
       :min-width="250"
       :title="t('目标集群')">
-      <template #default="{row:data}: {row: RowData}">
+      <template #default="{ row }: { row: RowData }">
         <div
-          v-for="item in data.cluster_ids"
+          v-for="item in row.cluster_ids"
           :key="item">
           {{ ticketDetails.details.clusters[item].immute_domain }}
         </div>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="cluster_type"
       :title="t('集群类型')"
       :width="200">
-      <template #default="{row:data}: {row: RowData}">
-        {{ ticketDetails.details.clusters[data.cluster_ids[0]].cluster_type_name }}
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_ids[0]].cluster_type_name }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="current_shard_nodes_num"
       :title="t('当前Shard的节点数')">
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="add_shard_nodes_num"
       :min-width="120"
       :title="t('扩容至（节点数）')">
-      <template #default="{row:data}: {row: RowData}">
-        {{ data.current_shard_nodes_num + data.add_shard_nodes_num }}
+      <template #default="{ row }: { row: RowData }">
+        {{ row.current_shard_nodes_num + row.add_shard_nodes_num }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('忽略业务连接')">
       {{ ticketDetails.details.is_safe ? t('否') : t('是') }}

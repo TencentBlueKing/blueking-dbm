@@ -12,25 +12,26 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="tableData"
     ellipsis
     row-key="ip"
     :rowspan-and-colspan="rowspanAndColspan">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="ip"
       fixed="left"
+      :get-copy-value="(row: RowData) => row.ip"
       :title="t('待替换的主机')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="role"
       :title="t('角色类型')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="cluster"
       :title="t('所属集群')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="spec"
       :title="t('新机规格')" />
-  </PrimaryTable>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">
@@ -43,6 +44,8 @@
   interface Props {
     ticketDetails: TicketModel<Mongodb.Cutoff>;
   }
+
+  type RowData = (typeof tableData)[number];
 
   defineOptions({
     name: TicketTypes.MONGODB_CUTOFF,

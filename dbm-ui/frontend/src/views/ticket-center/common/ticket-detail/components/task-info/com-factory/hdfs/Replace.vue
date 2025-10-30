@@ -12,15 +12,17 @@
 -->
 
 <template>
-  <PrimaryTable :data="dataList">
-    <TableColumn
+  <TicketInfoTable
+    :data="dataList"
+    row-key="cluster_id">
+    <TicketInfoTableColumn
       col-key="cluster_id"
       :title="t('集群ID')">
       <template #default="{ row }">
         <span class="details-replace__cell">{{ row.cluster_id || '--' }}</span>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="immute_domain"
       :ellipsis="false"
       :title="t('集群名称')">
@@ -39,15 +41,15 @@
           <span class="cluster-name__alias">{{ row.name }}</span>
         </div>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="cluster_type_name"
       :title="t('集群类型')">
       <template #default="{ row }">
         <span class="details-replace__cell">{{ row.cluster_type_name || '--' }}</span>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="new_nodes"
       :title="t('角色类型')">
       <template #default="{ row }">
@@ -59,8 +61,8 @@
           {{ item.key }}
         </p>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="new_nodes_ips"
       :title="t('新节点IP')">
       <template #default="{ row }">
@@ -81,8 +83,8 @@
           </p>
         </div>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="old_nodes"
       :title="t('被替换的节点IP')">
       <template #default="{ row }">
@@ -103,8 +105,8 @@
           </p>
         </div>
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">
