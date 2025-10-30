@@ -153,32 +153,36 @@ class ActKwargs:
         # instance信息
         all_instances = []
         # 副本集实例
-        for replicaset in self.payload["infos"][ClusterType.MongoReplicaSet.value]:
-            ip = replicaset["ip"]
-            for instance in replicaset["instances"]:
-                all_instances.append(
-                    {
-                        "cluster_id": instance["cluster_id"],
-                        "ip": ip,
-                        "port": instance["port"],
-                        "domain": instance["domain"],
-                        "cluster_type": ClusterType.MongoReplicaSet.value,
-                    }
-                )
-        # 分片集群实例
-        for cluster in self.payload["infos"][ClusterType.MongoShardedCluster.value]:
-            for mongos in cluster["mongos"]:
-                ip = mongos["ip"]
-                for instance in mongos["instances"]:
+        if self.payload.get("cluster_type") == ClusterType.MongoReplicaSet.value:
+            for replicaset in self.payload["infos"]:
+                replicaset_info = replicaset["mongodb"][0]
+                ip = replicaset_info["ip"]
+                for instance in replicaset_info["instances"]:
                     all_instances.append(
                         {
                             "cluster_id": instance["cluster_id"],
                             "ip": ip,
                             "port": instance["port"],
                             "domain": instance["domain"],
-                            "cluster_type": ClusterType.MongoShardedCluster.value,
+                            "cluster_type": ClusterType.MongoReplicaSet.value,
                         }
                     )
+        # 分片集群实例
+        elif self.payload.get("cluster_type") == ClusterType.MongoShardedCluster.value:
+            for cluster in self.payload["infos"]:
+                if cluster.get("mongos"):
+                    for mongos in cluster.get("mongos"):
+                        ip = mongos["ip"]
+                        for instance in mongos["instances"]:
+                            all_instances.append(
+                                {
+                                    "cluster_id": instance["cluster_id"],
+                                    "ip": ip,
+                                    "port": instance["port"],
+                                    "domain": instance["domain"],
+                                    "cluster_type": ClusterType.MongoShardedCluster.value,
+                                }
+                            )
         for instance in all_instances:
             self.check_instance_domain(
                 cluster_id=instance["cluster_id"],
@@ -1340,19 +1344,14 @@ class ActKwargs:
         }
 
     def get_host_replace(self, mongodb_type: str, info: dict):
-        """替换获取host信息"""
+        """替换获取host信息 新机器上操作"""
 
         hosts = []
         plugin_hosts = []
+        deinstall_hosts = []
         if mongodb_type == ClusterType.MongoReplicaSet.value:
             # 源ip
-            for member in (
-                MongoRepository()
-                .fetch_one_cluster(with_domain=False, id=info["instances"][0]["cluster_id"])
-                .get_shards()[0]
-                .members
-            ):
-                hosts.append({"ip": member.ip, "bk_cloud_id": member.bk_cloud_id})
+            deinstall_hosts.append({"ip": info["ip"], "bk_cloud_id": info["bk_cloud_id"]})
             # 目标ip
             hosts.append({"ip": info["target"]["ip"], "bk_cloud_id": info["target"]["bk_cloud_id"]})
             plugin_hosts.append({"ip": info["target"]["ip"], "bk_cloud_id": info["target"]["bk_cloud_id"]})
@@ -1360,55 +1359,43 @@ class ActKwargs:
             self.payload["db_version"] = info["instances"][0]["db_version"]
 
         elif mongodb_type == ClusterType.MongoShardedCluster.value:
-            # 获取 cluster_id
-            if info["mongo_config"]:
-                cluster_id = info["mongo_config"][0]["instances"][0]["cluster_id"]
-            elif info["mongodb"]:
-                cluster_id = info["mongodb"][0]["instances"][0]["cluster_id"]
-            elif info["mongos"]:
-                cluster_id = info["mongos"][0]["instances"][0]["cluster_id"]
-            cluster_info = MongoRepository().fetch_one_cluster(with_domain=False, id=cluster_id)
-            # mongos 获取主机
-            for mongos in info["mongos"]:
-                # 源ip
-                hosts.append({"ip": mongos["ip"], "bk_cloud_id": mongos["bk_cloud_id"]})
-                # 目标ip
-                hosts.append({"ip": mongos["target"]["ip"], "bk_cloud_id": mongos["target"]["bk_cloud_id"]})
-                plugin_hosts.append({"ip": mongos["target"]["ip"], "bk_cloud_id": mongos["target"]["bk_cloud_id"]})
-            # config 获取主机 config只有一个副本集
-            for config in info["mongo_config"]:
-                # 源ip
-                for member in cluster_info.get_config().members:
-                    hosts.append({"ip": member.ip, "bk_cloud_id": member.bk_cloud_id})
-                # 目标ip
-                hosts.append({"ip": config["target"]["ip"], "bk_cloud_id": config["target"]["bk_cloud_id"]})
-                plugin_hosts.append({"ip": config["target"]["ip"], "bk_cloud_id": config["target"]["bk_cloud_id"]})
-            # 分片获取主机 多个分片
-            shards = cluster_info.get_shards()
-            for shard_by_ip in info["mongodb"]:
-                # 分片名
-                seg_range = shard_by_ip["instances"][0]["seg_range"]
-                # 源ip
-                for shard in shards:
-                    if shard.set_name == seg_range:
-                        for member in shard.members:
-                            hosts.append({"ip": member.ip, "bk_cloud_id": member.bk_cloud_id})
-                        break
-                # 目标ip
-                hosts.append({"ip": shard_by_ip["target"]["ip"], "bk_cloud_id": shard_by_ip["target"]["bk_cloud_id"]})
-                plugin_hosts.append(
-                    {"ip": shard_by_ip["target"]["ip"], "bk_cloud_id": shard_by_ip["target"]["bk_cloud_id"]}
-                )
-            # 获取参数
-            if info["mongos"]:
+            # mongos 获取主机以及版本
+            if info.get("mongos"):
                 self.payload["db_version"] = info["mongos"][0]["instances"][0]["db_version"]
-            elif info["mongo_config"]:
+                for mongos in info.get("mongos"):
+                    # 源ip
+                    deinstall_hosts.append({"ip": mongos["ip"], "bk_cloud_id": mongos["bk_cloud_id"]})
+                    # 目标ip
+                    hosts.append({"ip": mongos["target"]["ip"], "bk_cloud_id": mongos["target"]["bk_cloud_id"]})
+                    plugin_hosts.append({"ip": mongos["target"]["ip"], "bk_cloud_id": mongos["target"]["bk_cloud_id"]})
+
+            # config 获取主机 config只有一个副本集
+            if info.get("mongo_config"):
                 self.payload["db_version"] = info["mongo_config"][0]["instances"][0]["db_version"]
-            elif info["mongodb"]:
+                for config in info.get("mongo_config"):
+                    # 源ip
+                    deinstall_hosts.append({"ip": config["ip"], "bk_cloud_id": config["bk_cloud_id"]})
+                    # 目标ip
+                    hosts.append({"ip": config["target"]["ip"], "bk_cloud_id": config["target"]["bk_cloud_id"]})
+                    plugin_hosts.append({"ip": config["target"]["ip"], "bk_cloud_id": config["target"]["bk_cloud_id"]})
+
+            # 分片获取主机 多个分片
+            if info.get("mongodb"):
                 self.payload["db_version"] = info["mongodb"][0]["instances"][0]["db_version"]
+                for shard_by_ip in info.get("mongodb"):
+                    # 源ip
+                    deinstall_hosts.append({"ip": shard_by_ip["ip"], "bk_cloud_id": shard_by_ip["bk_cloud_id"]})
+                    # 目标ip
+                    hosts.append(
+                        {"ip": shard_by_ip["target"]["ip"], "bk_cloud_id": shard_by_ip["target"]["bk_cloud_id"]}
+                    )
+                    plugin_hosts.append(
+                        {"ip": shard_by_ip["target"]["ip"], "bk_cloud_id": shard_by_ip["target"]["bk_cloud_id"]}
+                    )
 
         self.payload["hosts"] = hosts
         self.payload["plugin_hosts"] = plugin_hosts
+        self.payload["deinstall_hosts"] = deinstall_hosts
 
     def get_mongos_host_replace(self):
         """替换configDB获取mongos主机"""
@@ -1495,8 +1482,8 @@ class ActKwargs:
         if info["db_type"] != "mongos":
             change_meta = {
                 "ip": info["ip"],
-                "spec_id": info["spec_id"],
-                "spec_config": info["spec_config"],
+                "spec_id": info["target"]["spec_id"],
+                "spec_config": info["target"]["spec"],
                 "target": {"ip": info["target"]["ip"], "spec_id": info["target"]["spec_id"]},
             }
             if info["db_type"] == "cluster_mongodb":
@@ -1513,8 +1500,8 @@ class ActKwargs:
                 mongos.append(
                     {
                         "ip": mongos_info_by_ip["ip"],
-                        "spec_id": mongos_info_by_ip["spec_id"],
-                        "spec_config": mongos_info_by_ip["spec_config"],
+                        "spec_id": mongos_info_by_ip["target"]["spec_id"],
+                        "spec_config": mongos_info_by_ip["target"]["spec"],
                         "target": {
                             "ip": mongos_info_by_ip["target"]["ip"],
                             "spec_id": mongos_info_by_ip["target"]["spec_id"],
@@ -2416,7 +2403,7 @@ class ActKwargs:
         }
 
     def calc_param_migrate(self, info: dict, instance_num: int):
-        """ "计算参数"""
+        """计算参数"""
 
         self.replicaset_info = {}
 
@@ -2677,11 +2664,10 @@ class ActKwargs:
             old_hosts.extend(old_hosts_unique)
         return old_hosts, old_instances
 
-    def get_mongod_hidden_kwargs(self, info: dict, hidden: bool) -> dict:
+    def get_mongod_hidden_kwargs(self, info: dict, hidden: bool, port: int) -> dict:
         """设置节点是否隐藏"""
 
         hidden_ip = info["ip"]
-        port = info["instances"][0]["port"]
         exec_ip = info["target"]["ip"]
         bk_cloud_id = info["target"]["bk_cloud_id"]
         return {
@@ -2703,6 +2689,117 @@ class ActKwargs:
                 },
             },
         }
+
+    def get_role_replace_kwargs(self, info: dict, cluster_role: str) -> list:
+        """
+        info 替换信息
+        """
+        role_instances = []
+
+        ip = info["ip"]
+        # 分片集群获取集群信息
+        if cluster_role:
+            cluster_id = info["instances"][0]["cluster_id"]
+            cluster_info = MongoRepository().fetch_one_cluster(with_domain=False, id=cluster_id)
+        # 获取 role
+        for instance in info["instances"]:
+            cluster_id = instance["cluster_id"]
+            session_time = datetime.now(timezone.utc).replace(microsecond=0)
+            user_id = "admin"
+            session = f"{user_id}:{session_time}"
+            command = "rs.isMaster().primary"
+            port = instance["port"]
+            # 获取密码
+            param = MongoUtil.get_mongodb_DRS_args_direct(
+                cluster_id=cluster_id,
+                addr="{}:{}".format(ip, str(port)),
+                session=session,
+                command=command,
+            )
+
+            rpc_results = DRSApi.mongodb_rpc(param)
+            # 去除空白字符
+            result = rpc_results.strip()
+            if not re.match(r"^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3}):(\d{1,5})$", result):
+                raise ValueError(
+                    "from instance:{}:{} of cluster:{} get primary info fail, error:{}".format(
+                        ip, str(port), str(cluster_id), result
+                    )
+                )
+            primary_ip = result.split(":")[0]
+            primary_port = int(result.split(":")[1])
+
+            instance["primary_ip"] = primary_ip
+            instance["primary_port"] = primary_port
+            # 获取节点状态 role
+            if ip == primary_ip:
+                instance["role_status"] = "primary"
+            else:
+                instance["role_status"] = "secondary"
+            # 获取节点成员 role
+            if not cluster_role:
+                for member in (
+                    MongoRepository().fetch_one_cluster(with_domain=False, id=cluster_id).get_shards()[0].members
+                ):
+                    if member.ip == ip:
+                        instance["instance_role"] = member.role
+            else:
+                if cluster_role == MongoDBClusterRole.ConfigSvr.value:
+                    for member in cluster_info.get_config().members:
+                        if member.ip == ip:
+                            instance["instance_role"] = member.role
+                elif cluster_role == MongoDBClusterRole.ShardSvr.value:
+                    for shard in cluster_info.get_shards():
+                        if shard.set_name == instance["seg_range"]:
+                            for member in shard.members:
+                                if member.ip == ip:
+                                    instance["instance_role"] = member.role
+            role_instances.append(instance)
+
+        return role_instances
+
+    def get_old_host_replace(self, info: dict, cluster_type: str):
+        """整机替换获取下架机器以及下架实例"""
+
+        old_hosts, old_instances = self.payload["deinstall_hosts"], []
+        if cluster_type == ClusterType.MongoReplicaSet.value:
+            # 老机器实例
+            for instance in info["instances"]:
+                old_instances.append(
+                    {
+                        "ip": info["ip"],
+                        "bk_cloud_id": info["bk_cloud_id"],
+                        "port": instance["port"],
+                        "set_id": instance["cluster_name"],
+                    }
+                )
+
+        elif cluster_type == ClusterType.MongoShardedCluster.value:
+            # 老机器实例
+            replace_info = []
+            if info.get("mongodb"):
+                replace_info = info.get("mongodb")
+            elif info.get("mongo_config"):
+                replace_info = info.get("mongo_config")
+            elif info.get("mongos"):
+                replace_info = info.get("mongos")
+
+            for info_by_ip in replace_info:
+                for instance in info_by_ip["instances"]:
+                    if info.get("mongodb") or info.get("mongo_config"):
+                        set_id = instance["seg_range"]
+                    elif info.get("mongos"):
+                        set_id = instance["cluster_name"]
+                    old_instances.append(
+                        {
+                            "ip": info_by_ip["ip"],
+                            "bk_cloud_id": info_by_ip["bk_cloud_id"],
+                            "port": instance["port"],
+                            "set_id": set_id,
+                        }
+                    )
+
+        return old_hosts, old_instances
 
 
 @dataclass()
