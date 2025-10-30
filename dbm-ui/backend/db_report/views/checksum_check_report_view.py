@@ -27,7 +27,7 @@ logger = logging.getLogger("root")
 class ChecksumCheckReportSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChecksumCheckReport
-        fields = ("bk_biz_id", "cluster", "status", "fail_slaves", "msg", "id", "create_at")
+        fields = ("bk_biz_id", "cluster", "status", "fail_slaves", "msg", "create_at", "failed_days", "state")
         swagger_schema_fields = {"example": mock_data.CHECKSUM_CHECK_DATA}
 
 
@@ -35,11 +35,6 @@ class ChecksumCheckReportBaseViewSet(ReportBaseViewSet):
     queryset = ChecksumCheckReport.objects.all().order_by("-create_at")
     serializer_class = ChecksumCheckReportSerializer
     report_title = [
-        {
-            "name": "id",
-            "display_name": _("报告ID"),
-            "format": ReportFieldFormat.TEXT.value,
-        },
         {
             "name": "bk_biz_id",
             "display_name": _("业务"),
@@ -52,7 +47,12 @@ class ChecksumCheckReportBaseViewSet(ReportBaseViewSet):
         },
         {
             "name": "status",
-            "display_name": _("校验结果"),
+            "display_name": _("校验状态"),
+            "format": ReportFieldFormat.STATUS.value,
+        },
+        {
+            "name": "state",
+            "display_name": _("校验状态(新)"),
             "format": ReportFieldFormat.STATUS.value,
         },
         {
