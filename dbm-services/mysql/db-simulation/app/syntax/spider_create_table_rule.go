@@ -27,16 +27,16 @@ func (c CreateTableResult) SpiderChecker(spiderVersion string) (r *CheckerResult
 		ObjName: c.TableName,
 	}
 	if R.BuiltInRule.TableNameSpecification.KeyWord {
-		r.ParseBultinRisk(func() (bool, string) {
+		r.ParseBuiltinRisk(func() (bool, string) {
 			return KeyWordValidator(spiderVersion, c.TableName)
 		})
 	}
-	if R.BuiltInRule.TableNameSpecification.SpeicalChar {
-		r.ParseBultinBan(func() (bool, string) {
+	if R.BuiltInRule.TableNameSpecification.SpecialChar {
+		r.ParseBuiltinBan(func() (bool, string) {
 			return SpecialCharValidator(c.TableName)
 		})
 	}
-	r.ParseBultinBan(c.NotAllowedDefaulValCol)
+	r.ParseBuiltinBan(c.NotAllowedDefaultValCol)
 	if c.IsCreateTableSelect {
 		r.Trigger(SR.SpiderCreateTableRule.CreateWithSelect, "")
 	}
@@ -88,7 +88,7 @@ func (c CreateTableResult) shardKeyChecker(r *CheckerResult) {
 		}
 		commentSpecialShardKey = true
 	}
-	// 如果table comment 为空,表示没有指定shard key,或table comnent 没有指定shardkey 由中控自主选择
+	// 如果table comment 为空,表示没有指定shard key,或table comment 没有指定shard key 由中控自主选择
 	if !commentSpecialShardKey {
 		switch {
 		case len(uks) == 1:
@@ -98,6 +98,12 @@ func (c CreateTableResult) shardKeyChecker(r *CheckerResult) {
 			pubPreCols := findCommonPreColByKeys(uks)
 			if len(pubPreCols) != 1 {
 				r.Trigger(SR.SpiderCreateTableRule.NoPubColAtMultUniqueIndex, "")
+				return
+			}
+		case len(keys) == 1:
+			shardKeyColDef := c.getColDef(keys[0].KeyParts[0].ColName)
+			if shardKeyColDef.Nullable {
+				r.Trigger(SR.SpiderCreateTableRule.ShardKeyNotNull, shardKeyColDef.ColName)
 				return
 			}
 		case len(keys) > 1:
@@ -158,13 +164,13 @@ func (c CreateTableResult) findTablesIndex() (hasPk bool, uks []KeyDef, keys []K
 
 // findCommonColByKeys 寻找多个唯一键中的公共列
 func findCommonColByKeys(keys []KeyDef) (cols []string) {
-	colmap := make(map[string]int)
+	colMap := make(map[string]int)
 	for _, key := range keys {
 		for _, keyPart := range key.KeyParts {
-			colmap[keyPart.ColName]++
+			colMap[keyPart.ColName]++
 		}
 	}
-	for colName, count := range colmap {
+	for colName, count := range colMap {
 		if count == len(keys) {
 			cols = append(cols, colName)
 		}
@@ -229,10 +235,10 @@ func (c CreateTableResult) getColDef(colName string) (colDef ColDef) {
 	return colDef
 }
 
-// NotAllowedDefaulValCol 不允许存在默认值的字段
-func (c CreateTableResult) NotAllowedDefaulValCol() (bool, string) {
+// NotAllowedDefaultValCol 不允许存在默认值的字段
+func (c CreateTableResult) NotAllowedDefaultValCol() (bool, string) {
 	for _, col := range c.CreateDefinitions.ColDefs {
-		if col.IsNotAllowDefaulValCol() {
+		if col.IsNotAllowDefaultValCol() {
 			return true, fmt.Sprintf("col:%s,类型:%s 不允许存在默认值:[`%s`] ", col.ColName, col.DataType, col.DefaultVal.Value)
 		}
 	}
