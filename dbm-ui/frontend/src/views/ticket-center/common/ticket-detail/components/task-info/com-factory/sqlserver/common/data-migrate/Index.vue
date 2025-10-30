@@ -12,17 +12,20 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="dts_id">
-    <TableColumn
+    <TicketInfoTableColumn
+      col-key="src_cluster"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.src_cluster].immute_domain"
       :min-width="200"
       :title="t('源集群')">
       <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.src_cluster].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="dst_cluster_list"
       :min-width="200"
       :title="t('目标集群')">
       <template #default="{ row: data }: { row: RowData }">
@@ -35,22 +38,25 @@
         </div>
         <span v-else>{{ ticketDetails.details.clusters[data.dst_cluster].immute_domain }}</span>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="db_list"
       :min-width="200"
       :title="t('迁移 DB 名')">
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.db_list" />
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="ignore_db_list"
       :min-width="200"
       :title="t('忽略 DB 名')">
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.ignore_db_list" />
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="rename_infos"
       :min-width="200"
       :title="t('迁移后 DB 名')">
       <template #default="{ row: data }: { row: RowData }">
@@ -67,8 +73,8 @@
         </div>
         <span v-else>--</span>
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('DB 名处理')">
       {{

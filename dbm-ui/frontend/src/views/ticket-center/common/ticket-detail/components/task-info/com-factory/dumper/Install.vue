@@ -16,14 +16,16 @@
     <InfoItem
       :label="t('订阅的库表')"
       style="flex: 0 0 100%">
-      <PrimaryTable
+      <TicketInfoTable
         :data="subscribeTableData"
         ellipsis
         row-key="db_name">
-        <TableColumn
+        <TicketInfoTableColumn
           col-key="db_name"
           :title="t('DB 名')" />
-        <TableColumn :title="t('表名')">
+        <TicketInfoTableColumn
+          col-key="table_names"
+          :title="t('表名')">
           <template #default="{ row }: { row: { table_names: string[] } }">
             <div class="table-names-box">
               <div
@@ -34,54 +36,58 @@
               </div>
             </div>
           </template>
-        </TableColumn>
-      </PrimaryTable>
+        </TicketInfoTableColumn>
+      </TicketInfoTable>
     </InfoItem>
     <InfoItem
       :label="t('数据源与接收端')"
       style="flex: 0 0 100%">
-      <PrimaryTable
+      <TicketInfoTable
         :data="receiverTableData"
         ellipsis
         row-key="cluster_id">
-        <TableColumn
+        <TicketInfoTableColumn
           col-key="source_cluster_domain"
           ellipsis
           :title="t('数据源集群')" />
-        <TableColumn
+        <TicketInfoTableColumn
           col-key="dumper_id"
           ellipsis
           :title="t('部署dumper实例ID')" />
-        <TableColumn
+        <TicketInfoTableColumn
           col-key="protocol_type"
           :title="t('接收端类型')" />
-        <TableColumn :title="t('接收端集群与端口')">
-          <template #default="{ row }:{row:RowData}">
+        <TicketInfoTableColumn
+          col-key="target_address"
+          :title="t('接收端集群与端口')">
+          <template #default="{ row }:{ row:RowData }">
             <span>{{ row.target_address }}:{{ row.target_port }}</span>
           </template>
-        </TableColumn>
+        </TicketInfoTableColumn>
         <template v-if="protocolType === 'L5_AGENT'">
-          <TableColumn
+          <TicketInfoTableColumn
             col-key="l5_modid"
             title="l5_modid" />
-          <TableColumn
+          <TicketInfoTableColumn
             col-key="l5_cmdid"
             title="l5_cmdid" />
         </template>
         <template v-if="protocolType === 'KAFKA'">
-          <TableColumn
+          <TicketInfoTableColumn
             col-key="kafka_user"
             :title="t('账号')" />
-          <TableColumn :title="t('密码')">
-            <template #default="{ row }:{row:RowData}">
+          <TicketInfoTableColumn
+            col-key="kafka_pwd"
+            :title="t('密码')">
+            <template #default="{ row }:{ row:RowData }">
               <BkInput
                 disabled
                 :model-value="row.kafka_pwd"
                 type="password" />
             </template>
-          </TableColumn>
+          </TicketInfoTableColumn>
         </template>
-      </PrimaryTable>
+      </TicketInfoTable>
     </InfoItem>
     <InfoItem
       :label="t('订阅名称')"

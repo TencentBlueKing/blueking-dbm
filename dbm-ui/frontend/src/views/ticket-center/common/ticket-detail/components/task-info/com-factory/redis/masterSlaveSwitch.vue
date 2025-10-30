@@ -12,17 +12,20 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
-    row-key="pairs[0].redis_master">
-    <TableColumn
+    row-key="cluster_ids">
+    <TicketInfoTableColumn
+      col-key="redis_master"
+      :get-copy-value="(row: RowData) => row.pairs[0].redis_master"
       :min-width="200"
       :title="t('主库主机')">
       <template #default="{ row }: { row: RowData }">
         {{ row.pairs[0].redis_master }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_ids"
       :min-width="300"
       :title="t('所属集群')">
       <template #default="{ row }: { row: RowData }">
@@ -32,18 +35,22 @@
           {{ ticketDetails.details.clusters[item].immute_domain }}
         </p>
       </template>
-    </TableColumn>
-    <TableColumn :title="t('待切换的从库主机')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_ids"
+      :title="t('待切换的从库主机')">
       <template #default="{ row }: { row: RowData }">
         {{ row.pairs[0].redis_slave }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('切换模式')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="online_switch_type"
+      :title="t('切换模式')">
       <template #default="{ row }: { row: RowData }">
         {{ row.online_switch_type === 'user_confirm' ? t('需人工确认') : t('无需确认') }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('是否强制切换')">
       {{ ticketDetails.details.force ? t('是') : t('否') }}

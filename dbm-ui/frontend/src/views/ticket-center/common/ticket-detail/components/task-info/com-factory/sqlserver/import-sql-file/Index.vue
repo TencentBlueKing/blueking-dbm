@@ -36,56 +36,49 @@
     <InfoItem
       :label="t('目标集群')"
       style="flex: 1 0 100%; overflow: hidden">
-      <PrimaryTable
+      <TicketInfoTable
         :data="targetClusterData"
         row-key="id">
-        <TableColumn
+        <TicketInfoTableColumn
           col-key="id"
           fixed="left"
+          :get-copy-value="(row: TargerCluster) => ticketDetails.details.clusters[row.id].immute_domain"
           :min-width="250"
           :title="t('集群')">
-          <template #title>
-            <div class="domain-header">
-              {{ t('目标集群') }}
-              <DbIcon
-                type="copy"
-                @click="copyAllDomain" />
-            </div>
-          </template>
           <template #default="{ row }: { row: TargerCluster }">
             {{ ticketDetails.details.clusters[row.id].immute_domain }}
           </template>
-        </TableColumn>
-        <TableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="cluster_type_name"
           :title="t('集群类型')">
           <template #default="{ row }: { row: TargerCluster }">
             {{ ticketDetails.details.clusters[row.id].cluster_type_name }}
           </template>
-        </TableColumn>
-        <TableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="major_version"
           :title="t('版本')">
           <template #default="{ row }: { row: TargerCluster }">
             {{ ticketDetails.details.clusters[row.id].major_version }}
           </template>
-        </TableColumn>
-        <TableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="status"
           :title="t('状态')">
           <template #default="{ row }: { row: TargerCluster }">
             <RenderClusterStatus :data="ticketDetails.details.clusters[row.id].status" />
           </template>
-        </TableColumn>
-      </PrimaryTable>
+        </TicketInfoTableColumn>
+      </TicketInfoTable>
     </InfoItem>
     <InfoItem
       :label="t('变更内容')"
       style="flex: 1 0 100%; margin-top: 10px; overflow: hidden">
-      <PrimaryTable
+      <TicketInfoTable
         :data="ticketDetails.details.execute_objects"
         row-key="dbnames">
-        <TableColumn
+        <TicketInfoTableColumn
           col-key="dbnames"
           fixed="left"
           :min-width="100"
@@ -93,15 +86,15 @@
           <template #default="{ row }: { row: TargetDbRow }">
             <TagBlock :data="row.dbnames" />
           </template>
-        </TableColumn>
-        <TableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="ignore_dbnames"
           :title="t('忽略的 DB')">
           <template #default="{ row }: { row: TargetDbRow }">
             <TagBlock :data="row.ignore_dbnames" />
           </template>
-        </TableColumn>
-        <TableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="sql_files"
           :title="t('执行的 SQL')">
           <template #default="{ row }: { row: TargetDbRow }">
@@ -121,36 +114,36 @@
               </template>
             </BkButton>
           </template>
-        </TableColumn>
-      </PrimaryTable>
+        </TicketInfoTableColumn>
+      </TicketInfoTable>
     </InfoItem>
     <InfoItem
       v-if="ticketDetails.details.backup?.length > 0"
       :label="t('备份设置')"
       style="flex: 1 0 100%; margin-top: 10px; overflow: hidden">
-      <PrimaryTable
+      <TicketInfoTable
         :data="ticketDetails.details.backup"
         row-key="backup_dbs">
-        <TableColumn
+        <TicketInfoTableColumn
           col-key="backup_dbs"
           fixed="left"
           :title="t('备份 DB')">
           <template #default="{ row }: { row: BackupDbRow }">
             <TagBlock :data="row.backup_dbs" />
           </template>
-        </TableColumn>
-        <TableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="backup_on"
           :title="t('备份源')"
           :width="150" />
-        <TableColumn
+        <TicketInfoTableColumn
           col-key="ignore_backup_dbs"
           :title="t('备份表名')">
           <template #default="{ row }: { row: BackupDbRow }">
             <TagBlock :data="row.ignore_backup_dbs" />
           </template>
-        </TableColumn>
-      </PrimaryTable>
+        </TicketInfoTableColumn>
+      </TicketInfoTable>
     </InfoItem>
   </InfoList>
   <RenderSqlfile
@@ -174,7 +167,7 @@
   import RenderClusterStatus from '@components/cluster-status/Index.vue';
   import TagBlock from '@components/tag-block/Index.vue';
 
-  import { execCopy, getSQLFilename } from '@utils';
+  import { getSQLFilename } from '@utils';
 
   import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
 
@@ -236,15 +229,6 @@
     selectFileName.value = filename;
     currentExecuteObject.value = executeObject;
     isShowSqlfile.value = true;
-  };
-
-  const copyAllDomain = () => {
-    const domainList = targetClusterData.value.map(
-      (item) => props.ticketDetails.details.clusters[item.id].immute_domain,
-    );
-    if (domainList.length > 0) {
-      execCopy(domainList.join('\n'), t('复制成功，共n条', { n: domainList.length }));
-    }
   };
 </script>
 

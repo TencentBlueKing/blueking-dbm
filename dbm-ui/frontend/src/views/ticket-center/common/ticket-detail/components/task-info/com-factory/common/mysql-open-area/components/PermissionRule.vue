@@ -13,16 +13,16 @@
 
 <template>
   <BkLoading :loading="isLoading">
-    <PrimaryTable
+    <TicketInfoTable
       class="permission-table"
       :data="tableData"
       row-key="user">
-      <TableColumn
+      <TicketInfoTableColumn
         col-key="user"
         :ellipsis="false"
         :title="t('账号名称')"
         :width="220">
-        <template #default="{ row }:{row:IDataRow}">
+        <template #default="{ row }:{ row:IDataRow }">
           <div class="account-box">
             <DbIcon
               v-if="row.rules.length > 1"
@@ -35,13 +35,13 @@
             {{ row.user }}
           </div>
         </template>
-      </TableColumn>
-      <TableColumn
+      </TicketInfoTableColumn>
+      <TicketInfoTableColumn
         col-key="access_db"
         ellipsis
         :title="t('访问的DB名')"
         :width="300">
-        <template #default="{ row }:{row:IDataRow}">
+        <template #default="{ row }:{ row:IDataRow }">
           <div
             v-for="(item, index) in rowFlodMap[row.user] ? row.rules.slice(0, 1) : row.rules"
             :key="index"
@@ -49,12 +49,12 @@
             <BkTag>{{ item.access_db }}</BkTag>
           </div>
         </template>
-      </TableColumn>
-      <TableColumn
+      </TicketInfoTableColumn>
+      <TicketInfoTableColumn
         col-key="priv"
         :show-overflow-tooltip="false"
         :title="t('权限')">
-        <template #default="{ row }:{row:IDataRow}">
+        <template #default="{ row }:{ row:IDataRow }">
           <div
             v-if="row.rules.length === 0"
             class="inner-row">
@@ -70,8 +70,8 @@
             </TextOverflowLayout>
           </div>
         </template>
-      </TableColumn>
-    </PrimaryTable>
+      </TicketInfoTableColumn>
+    </TicketInfoTable>
   </BkLoading>
 </template>
 

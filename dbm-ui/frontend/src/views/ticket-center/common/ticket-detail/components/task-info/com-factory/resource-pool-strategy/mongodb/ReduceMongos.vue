@@ -12,26 +12,27 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     ellipsis
     row-key="cluster_id">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="cluster_id"
       fixed="left"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters?.[row.cluster_id]?.immute_domain || ''"
       :min-width="200"
       :title="t('目标分片集群')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters?.[row.cluster_id]?.immute_domain || '--' }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="node_type"
       :min-width="150"
       :title="t('缩容节点类型')">
       <template #default> mongos </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="spec"
       :min-width="150"
       :title="t('当前规格')">
@@ -45,16 +46,16 @@
             type="visible1" />
         </SpecDetailPopover>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="old_nodes"
       :min-width="150"
       :title="t('缩容的IP')">
       <template #default="{ row }: { row: RowData }">
         {{ row.old_nodes.mongos?.length > 0 ? row.old_nodes.mongos.map((item) => item.ip).join(',') : '--' }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

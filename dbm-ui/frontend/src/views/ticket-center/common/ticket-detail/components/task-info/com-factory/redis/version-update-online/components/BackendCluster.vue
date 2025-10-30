@@ -12,13 +12,14 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     ellipsis
     row-key="cluster_ids">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="cluster_ids"
       fixed="left"
+      :get-copy-value="(row: RowData) => row.cluster_ids ? row.cluster_ids.map(clusterId => ticketDetails.details.clusters[clusterId].immute_domain): ticketDetails.details.clusters[row.cluster_id].immute_domain"
       :min-width="250"
       :title="t('目标集群')">
       <template #default="{ row }: { row: RowData }">
@@ -33,16 +34,16 @@
           {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
         </span>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="cluster_type_name"
       :title="t('架构版本')"
       :width="200">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.cluster_id].cluster_type_name }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="current_versions"
       :min-width="250"
       :title="t('当前版本')">
@@ -53,16 +54,16 @@
           {{ item }}
         </div>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="target_version"
       :min-width="250"
       :title="t('目标版本')">
       <template #default="{ row }: { row: RowData }">
         {{ row.target_version ? row.target_version : row.target_versions[0].version }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">

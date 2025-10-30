@@ -12,59 +12,59 @@
 -->
 
 <template>
-  <PrimaryTable :data="dataList">
-    <TableColumn
+  <TicketInfoTable
+    :data="dataList"
+    row-key="cluster_id">
+    <TicketInfoTableColumn
       col-key="cluster_id"
       :title="t('集群ID')">
-      <template #default="{ row }">
+      <template #default="{ row }: { row: RowData }">
         <span>{{ row.cluster_id || '--' }}</span>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="immute_domain"
       :ellipsis="false"
       :title="t('集群名称')">
-      <template #default="{ row }">
+      <template #default="{ row }: { row: RowData }">
         <div>
           <span>{{ row.immute_domain }}</span>
         </div>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="cluster_type_name"
       :title="t('集群类型')">
-      <template #default="{ row }">
+      <template #default="{ row }: { row: RowData }">
         <span>{{ row.cluster_type_name || '--' }}</span>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="node_ip"
+      :get-copy-value="(row: RowData) => row.node_ip"
       :title="t('节点IP')">
-      <template #default="{ row }">
+      <template #default="{ row }: { row: RowData }">
         <p class="pt-2 pb-2">
           {{ row.node_ip }}
-          <DbIcon
-            v-bk-tooltips="t('复制IP')"
-            type="copy"
-            @click="execCopy(row.node_ip, t('复制成功，共n条', { n: 1 }))" />
         </p>
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">
+  import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Riak } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
 
-  import { execCopy } from '@utils';
-
   interface Props {
     ticketDetails: TicketModel<Riak.Reboot>;
   }
+
+  type RowData = UnwrapRef<typeof dataList>[number];
 
   defineOptions({
     name: TicketTypes.RIAK_CLUSTER_REBOOT,

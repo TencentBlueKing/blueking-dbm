@@ -12,21 +12,25 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
-    ellipsis>
-    <TableColumn
+    ellipsis
+    row-key="domain">
+    <TicketInfoTableColumn
       col-key="domain"
+      :get-copy-value="(row: RowData) => row.domain"
       :title="t('集群')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="role"
       :title="t('角色')" />
-    <TableColumn :title="t('实例')">
+    <TicketInfoTableColumn
+      col-key="instance"
+      :title="t('实例')">
       <template #default="{ row: data }: { row: RowData }">
         {{ `${data.ip}:${data.port}` }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

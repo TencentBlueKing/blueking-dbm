@@ -12,11 +12,15 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="dst_bk_biz_id">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="src_cluster"
+      :get-copy-value="
+        (row: RowData) =>
+          _.isString(row.src_cluster) ? row.src_cluster : ticketDetails.details.clusters[row.src_cluster].immute_domain
+      "
       :min-width="180"
       :title="t('源集群')">
       <template #default="{ row }: { row: RowData }">
@@ -24,16 +28,16 @@
           _.isString(row.src_cluster) ? row.src_cluster : ticketDetails.details.clusters[row.src_cluster].immute_domain
         }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       v-if="ticketDetails.details.dts_copy_type === 'user_built_to_dbm'"
       col-key="src_cluster_type"
       :title="t('集群类型')">
       <template #default="{ row }: { row: RowData }">
         {{ row.src_cluster_type === 'RedisInstance' ? t('主从版') : t('集群版') }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       v-else
       col-key="src_cluster_type"
       :title="t('架构版本')"
@@ -41,16 +45,16 @@
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.src_cluster as number].cluster_type_name }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       v-if="ticketDetails.details.dts_copy_type === 'diff_app_diff_cluster'"
       col-key="src_bk_biz_id"
       :title="t('目标业务')">
       <template #default="{ row }: { row: RowData }">
         {{ bizsMap[row.dst_bk_biz_id] }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="dst_cluster"
       :min-width="180"
       :title="t('目标集群')">
@@ -59,24 +63,24 @@
           _.isString(row.dst_cluster) ? row.dst_cluster : ticketDetails.details.clusters[row.dst_cluster].immute_domain
         }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="key_white_regex"
       :min-width="240"
       :title="t('包含 Key')">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="generateSplitList(row.key_white_regex)" />
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="key_black_regex"
-      :label="t('排除 Key')"
-      :min-width="370">
+      :min-width="370"
+      :title="t('排除 Key')">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="generateSplitList(row.key_black_regex)" />
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('复制类型')">
       {{ copyTypesMap[ticketDetails.details.dts_copy_type] }}

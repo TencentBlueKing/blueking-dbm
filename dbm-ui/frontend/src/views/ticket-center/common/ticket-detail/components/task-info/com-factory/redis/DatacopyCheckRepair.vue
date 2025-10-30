@@ -12,19 +12,19 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     ellipsis
     row-key="src_cluster">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="bill_id"
       :min-width="130"
       :title="t('关联单据')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="src_cluster"
       :min-width="220"
       :title="t('源集群')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="src_instances"
       :min-width="200"
       :title="t('源实例')">
@@ -34,26 +34,26 @@
           v-else
           :data="row.src_instances" />
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="dst_cluster"
       :min-width="220"
       :title="t('目标集群')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="key_white_regex"
       :title="t('包含 Key')">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="generateSplitList(row.key_white_regex)" />
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="key_black_regex"
       :title="t('排除 Key')">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="generateSplitList(row.key_black_regex)" />
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('执行模式:')">
       {{ executeModesMap[ticketDetails.details.execute_mode] }}

@@ -12,40 +12,41 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     ellipsis
     row-key="cluster_id">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="immute_domain"
       fixed="left"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
       :min-width="220"
       :title="t('源集群')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="cluster_type_name"
       :title="t('架构版本')"
       :width="150">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.cluster_id].cluster_type_name }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="db_version"
       :title="t('版本')"
       :width="200" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="load_modules"
       :min-width="200"
       :title="t('Module')">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="row.load_modules" />
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="ts">

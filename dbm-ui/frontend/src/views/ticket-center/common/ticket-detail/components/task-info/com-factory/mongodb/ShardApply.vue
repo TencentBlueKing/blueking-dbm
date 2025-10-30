@@ -84,35 +84,35 @@
     <InfoItem
       :label="t('ShardSvr 部署方案')"
       style="flex: 1 0 100%">
-      <PrimaryTable
+      <TicketInfoTable
         :data="[shardSvrSpec]"
         row-key="spec_id">
-        <TableColumn
+        <TicketInfoTableColumn
           col-key="spec_name"
           :title="t('规格')">
-        </TableColumn>
-        <TableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="machine_pair"
           :title="t('每个 Shard 节点数')">
           <template #default="{ row }: { row: Props['ticketDetails']['details']['resource_spec']['mongodb'] }">
             {{ row.count / ticketDetails.details.shard_machine_group }}
           </template>
-        </TableColumn>
-        <TableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="cluster_shard_num"
           :title="t('集群 Shard 数')">
           <template #default>
             {{ ticketDetails.details.shard_num }}
           </template>
-        </TableColumn>
-        <TableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="cluster_shard_num"
           :title="t('机器组数')">
           <template #default>
             {{ ticketDetails.details.shard_machine_group }}
           </template>
-        </TableColumn>
-      </PrimaryTable>
+        </TicketInfoTableColumn>
+      </TicketInfoTable>
     </InfoItem>
     <InfoItem :label="t('每台主机 oplog 容量占比')">
       {{ ticketDetails.details.oplog_percent ? `${ticketDetails.details.oplog_percent} %` : '--' }}

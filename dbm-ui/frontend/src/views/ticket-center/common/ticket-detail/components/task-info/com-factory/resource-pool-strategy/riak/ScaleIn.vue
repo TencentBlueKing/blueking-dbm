@@ -32,16 +32,17 @@
       {{ ticketDetails.details.clusters[ticketDetails.details.cluster_id].id || '--' }}
     </InfoItem>
     <InfoItem :label="t('缩容主机：')">
-      <PrimaryTable
+      <TicketInfoTable
         :data="ticketDetails.details.recycle_hosts"
         ellipsis
         row-key="ip">
-        <TableColumn
+        <TicketInfoTableColumn
           col-key="ip"
+          :get-copy-value="(row: RowData) => row.ip"
           :min-width="150"
           :title="t('节点 IP')"
           :width="250" />
-        <TableColumn
+        <TicketInfoTableColumn
           col-key="status"
           :min-width="150"
           :title="t('Agent状态')"
@@ -49,13 +50,13 @@
           <template #default="{ row }">
             <RenderHostStatus :data="row.status" />
           </template>
-        </TableColumn>
-        <TableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="bk_disk"
           :min-width="150"
           :title="t('磁盘容量(G)')"
           :width="150" />
-      </PrimaryTable>
+      </TicketInfoTable>
     </InfoItem>
   </InfoList>
 </template>
@@ -73,6 +74,8 @@
   interface Props {
     ticketDetails: TicketModel<Riak.ResourcePool.ScaleIn>;
   }
+
+  type RowData = Props['ticketDetails']['details']['recycle_hosts'][number];
 
   defineOptions({
     name: TicketTypes.RIAK_CLUSTER_SCALE_IN,

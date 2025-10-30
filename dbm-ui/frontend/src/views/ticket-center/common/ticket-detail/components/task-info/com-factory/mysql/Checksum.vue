@@ -25,20 +25,20 @@
       {{ ticketDetails.details.runtime_hour }}
     </InfoItem>
   </InfoList>
-  <InfoTable
+  <TicketInfoTable
     :data="tableData"
     row-key="cluster_id"
     :rowspan-and-colspan="rowspanAndColspan">
-    <InfoTableColumn
+    <TicketInfoTableColumn
       col-key="cluster_id"
-      :get-copy-value="(item: RowData) => ticketDetails.details.clusters[item.cluster_id].immute_domain"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
       :min-width="220"
       :title="t('目标集群')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="slave"
       :min-width="150"
       :title="t('校验从库')">
@@ -62,8 +62,8 @@
           <p class="pt-2 pb-2">{{ item.ip }}:{{ item.port }}</p>
         </div>
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="master"
       :min-width="150"
       :title="t('校验主库')">
@@ -81,36 +81,36 @@
         </span>
       </template>
       <template #default="{ row }: { row: RowData }"> {{ row.master.ip }}:{{ row.master.port }} </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="db_patterns"
       :title="t('校验 DB 名')">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="row.db_patterns" />
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="ignore_dbs"
       :title="t('忽略 DB 名')">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="row.ignore_dbs" />
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="table_patterns"
       :title="t('校验表名')">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="row.table_patterns" />
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="ignore_tables"
       :title="t('忽略表名')">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="row.ignore_tables" />
       </template>
-    </InfoTableColumn>
-  </InfoTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -125,7 +125,6 @@
   import { execCopy, random, utcDisplayTime } from '@utils';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
-  import InfoTable, { InfoTableColumn } from '../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.CheckSum>;

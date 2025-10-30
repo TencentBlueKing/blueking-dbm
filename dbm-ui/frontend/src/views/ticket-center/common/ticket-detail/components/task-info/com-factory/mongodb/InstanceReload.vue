@@ -12,27 +12,31 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
-    <TableColumn
+    <TicketInfoTableColumn
+      col-key="instance_id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.instances[row.instance_id].instance"
       :title="t('实例')"
       width="300">
-      <template #default="{ row:data }: { row: RowData }">
-        {{ ticketDetails.details.instances[data.instance_id].instance }}
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.instances[row.instance_id].instance }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="role"
       :title="t('角色')"
       width="100">
-    </TableColumn>
-    <TableColumn :title="t('所属集群')">
-      <template #default="{ row:data }: { row: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="immute_domain"
+      :title="t('所属集群')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">

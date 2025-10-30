@@ -36,13 +36,13 @@
     <InfoItem
       :label="t('目标集群')"
       style="flex: 1 0 100%; overflow: hidden">
-      <InfoTable
+      <TicketInfoTable
         :data="targetClusterData"
         row-key="id">
-        <InfoTableColumn
+        <TicketInfoTableColumn
           col-key="id"
           fixed="left"
-          :get-copy-value="(item: TargerCluster) => ticketDetails.details.clusters[item.id].immute_domain"
+          :get-copy-value="(row: TargerCluster) => ticketDetails.details.clusters[row.id].immute_domain"
           :title="t('集群')"
           :width="250">
           <template #default="{ row }: { row: TargerCluster }">
@@ -50,37 +50,37 @@
               {{ ticketDetails.details.clusters[row.id].immute_domain }}
             </TextOverflowLayout>
           </template>
-        </InfoTableColumn>
-        <InfoTableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="cluster_type_name"
           :title="t('集群类型')">
           <template #default="{ row }: { row: TargerCluster }">
             {{ ticketDetails.details.clusters[row.id].cluster_type_name }}
           </template>
-        </InfoTableColumn>
-        <InfoTableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="major_version"
           :title="t('版本')">
           <template #default="{ row }: { row: TargerCluster }">
             {{ ticketDetails.details.clusters[row.id].major_version }}
           </template>
-        </InfoTableColumn>
-        <InfoTableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="status"
           :title="t('状态')">
           <template #default="{ row }: { row: TargerCluster }">
             <RenderClusterStatus :data="ticketDetails.details.clusters[row.id].status" />
           </template>
-        </InfoTableColumn>
-      </InfoTable>
+        </TicketInfoTableColumn>
+      </TicketInfoTable>
     </InfoItem>
     <InfoItem
       :label="t('变更内容')"
       style="flex: 1 0 100%; margin-top: 10px; overflow: hidden">
-      <PrimaryTable
+      <TicketInfoTable
         :data="ticketDetails.details.execute_objects"
         row-key="import_mode">
-        <InfoTableColumn
+        <TicketInfoTableColumn
           col-key="dbnames"
           fixed="left"
           :min-width="100"
@@ -88,15 +88,15 @@
           <template #default="{ row }: { row: TargetDbRow }">
             <TagBlock :data="row.dbnames" />
           </template>
-        </InfoTableColumn>
-        <InfoTableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="ignore_dbnames"
           :title="t('忽略的 DB')">
           <template #default="{ row }: { row: TargetDbRow }">
             <TagBlock :data="row.ignore_dbnames" />
           </template>
-        </InfoTableColumn>
-        <InfoTableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="sql_files"
           :title="t('执行的 SQL')">
           <template #default="{ row }: { row: TargetDbRow }">
@@ -116,36 +116,36 @@
               </template>
             </BkButton>
           </template>
-        </InfoTableColumn>
-      </PrimaryTable>
+        </TicketInfoTableColumn>
+      </TicketInfoTable>
     </InfoItem>
     <InfoItem
       v-if="ticketDetails.details.backup?.length > 0"
       :label="t('备份设置')"
       style="flex: 1 0 100%; margin-top: 10px; overflow: hidden">
-      <PrimaryTable
+      <TicketInfoTable
         :data="ticketDetails.details.backup"
         row-key="db_patterns">
-        <InfoTableColumn
+        <TicketInfoTableColumn
           col-key="db_patterns"
           fixed="left"
           :title="t('备份 DB')">
           <template #default="{ row }: { row: BackupDbRow }">
             <TagBlock :data="row.db_patterns" />
           </template>
-        </InfoTableColumn>
-        <InfoTableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="backup_on"
           :title="t('备份源')"
           :width="150" />
-        <InfoTableColumn
+        <TicketInfoTableColumn
           col-key="table_patterns"
           :title="t('备份表名')">
           <template #default="{ row }: { row: BackupDbRow }">
             <TagBlock :data="row.table_patterns" />
           </template>
-        </InfoTableColumn>
-      </PrimaryTable>
+        </TicketInfoTableColumn>
+      </TicketInfoTable>
     </InfoItem>
   </InfoList>
   <RenderSqlfile
@@ -171,7 +171,6 @@
   import { getSQLFilename } from '@utils';
 
   import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
-  import InfoTable, { InfoTableColumn } from '../../components/info-table/Index.vue';
 
   import RenderSqlfile from './components/render-sqlfile/Index.vue';
 

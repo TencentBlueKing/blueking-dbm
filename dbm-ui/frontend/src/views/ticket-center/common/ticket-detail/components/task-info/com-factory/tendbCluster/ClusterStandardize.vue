@@ -12,20 +12,25 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.cluster_ids.map((item) => ({ cluster_id: item }))"
     row-key="cluster_id">
-    <TableColumn :title="t('目标集群')">
-      <template #default="{ row: data }: { row: { cluster_id: number } }">
-        {{ ticketDetails.details.clusters?.[data.cluster_id]?.immute_domain || '--' }}
+    <TicketInfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters?.[row.cluster_id]?.immute_domain"
+      :title="t('目标集群')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters?.[row.cluster_id]?.immute_domain || '--' }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('集群类型')">
-      <template #default="{ row: data }: { row: { cluster_id: number } }">
-        {{ ticketDetails.details.clusters?.[data.cluster_id]?.cluster_type_name || '--' }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_type_name"
+      :title="t('集群类型')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters?.[row.cluster_id]?.cluster_type_name || '--' }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('下发配置')">
       {{ ticketDetails.details.with_push_config ? t('是') : t('否') }}
@@ -50,6 +55,10 @@
   interface Props {
     ticketDetails: TicketModel<TendbCluster.ClusterStandardize>;
   }
+
+  type RowData = {
+    cluster_id: number;
+  };
 
   defineOptions({
     name: TicketTypes.TENDBCLUSTER_CLUSTER_STANDARDIZE,
