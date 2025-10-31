@@ -49,7 +49,3 @@ class RankItemDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = RankItem
         fields = "__all__"
-
-
-class KeyStatInstanceInfoSerializer(serializers.Serializer):
-    instances = serializers.CharField(help_text=_("内存分析实例(多个实例用|连接)"))
