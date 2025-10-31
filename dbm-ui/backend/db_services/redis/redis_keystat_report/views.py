@@ -9,8 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from collections import defaultdict
-
 from django.utils.translation import gettext as _
 from rest_framework import status
 from rest_framework.decorators import action
@@ -29,7 +27,6 @@ from backend.db_services.redis.redis_keystat_report.filters import (
 from backend.db_services.redis.redis_keystat_report.models import RankItem, ReportItem, ReportRecord
 from backend.db_services.redis.redis_keystat_report.serializers import (
     ExportKeyStatDetailSerializer,
-    KeyStatInstanceInfoSerializer,
     KeyStatRecordDetailSerializer,
     KeyStatReportRecordsSerializer,
     RankItemDetailSerializer,
@@ -37,6 +34,7 @@ from backend.db_services.redis.redis_keystat_report.serializers import (
 )
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.utils.excel import ExcelHandler
+from backend.utils.string import format_size
 
 SWAGGER_TAG = "db_services/redis/redis_keystat_report"
 
@@ -60,57 +58,12 @@ class KeyStatReportViewSet(viewsets.SystemViewSet):
         keystat_data = KeyStatReportRecordsSerializer(keystat_qs, many=True).data
         return self.paginator.get_paginated_response(data=keystat_data)
 
-    @common_swagger_auto_schema(
-        operation_summary=_("获取redis实例分析相关信息"),
-        tags=[SWAGGER_TAG],
-        query_serializer=KeyStatInstanceInfoSerializer(),
-    )
-    @action(
-        methods=["GET"],
-        detail=False,
-        serializer_class=KeyStatInstanceInfoSerializer,
-        filter_class=None,
-        pagination_class=None,
-    )
-    def keystat_info_by_instance(self, request, bk_biz_id):
-        data = self.params_validate(self.get_serializer_class())
-        instances = data.get("instances", "")
-
-        # todo: 假数据构造 后面蔡总补充
-        metric_result = defaultdict(dict)
-        series = []
-        ff = {
-            "dimensions": {"bk_target_ip": "1.1.1.1", "cluster_domain": "ins.test.kio.db", "instance_port": "30000"},
-            "target": "a{bk_target_ip=1.1.1.1, cluster_domain=ins.test.kio.db, instance_port=30000}",
-            "metric_field": "_result_",
-            "datapoints": [[111, 1111]],
-            "alias": "_result_",
-            "type": "line",
-            "dimensions_translation": {},
-            "instanc" "unit": "",
-        }
-
-        for series_ in instances.split("|"):
-            series.append(ff)
-
-        for index, item in enumerate(series):
-            ip_port = item["dimensions"]["bk_target_ip"] + ":" + str(int(item["dimensions"]["instance_port"]) + index)
-            metric_result[ip_port] = {
-                "instance": ip_port,
-                "cluster_domain": item["dimensions"]["cluster_domain"],
-                "value": item["datapoints"][0][0],
-                "key_num": 1000,
-                "memory_total": 1024 * 1024 * 1024,
-            }
-        return Response(metric_result)
-
 
 class KeyStatReportDetailsViewSet(viewsets.SystemViewSet):
     default_permission_class = [DBManagePermission()]
     queryset = ReportItem.objects.all().order_by("-mem_used_bytes")
     filter_class = KeyStatRecordDetailFilter
     serializer_class = KeyStatRecordDetailSerializer
-    pagination_class = AuditedLimitOffsetPagination
 
     @common_swagger_auto_schema(
         operation_summary=_("获取redis内存分析记录详情"),
@@ -122,9 +75,9 @@ class KeyStatReportDetailsViewSet(viewsets.SystemViewSet):
     def get_keystat_details(self, request, bk_biz_id):
         data = self.params_validate(self.get_serializer_class())
         record_id = data.get("record_id", 0)
-        querysets = self.paginate_queryset(self.filter_queryset(self.queryset.filter(record_id=record_id)))
+        querysets = self.filter_queryset(self.queryset.filter(record_id=record_id))
         keystat_data = ReportItemDetailSerializer(querysets, many=True).data
-        return self.paginator.get_paginated_response(data=keystat_data)
+        return Response(keystat_data)
 
     @common_swagger_auto_schema(
         operation_summary=_("获取redis内存分析大Key排行榜"),
@@ -138,7 +91,6 @@ class KeyStatReportDetailsViewSet(viewsets.SystemViewSet):
         serializer_class=RankItemDetailSerializer,
         queryset=RankItem.objects.all().order_by("-memory_size"),
         filter_class=RankItemDetailFilter,
-        pagination_class=None,
     )
     def get_keystat_rank(self, request, bk_biz_id):
         data = self.params_validate(self.get_serializer_class())
@@ -153,16 +105,14 @@ class KeyStatReportDetailsViewSet(viewsets.SystemViewSet):
         tags=[SWAGGER_TAG],
         responses={status.HTTP_200_OK: ExportKeyStatDetailSerializer()},
     )
-    @action(methods=["GET"], detail=False, serializer_class=ExportKeyStatDetailSerializer, filter_class=None)
+    @action(methods=["GET"], detail=False, serializer_class=ExportKeyStatDetailSerializer)
     def export_keystat_analysis(self, request, bk_biz_id):
 
         data = self.params_validate(self.get_serializer_class())
         record_ids = data.get("record_ids", "")
 
         # 处理内存分析导出报告
-        key_stat_querysets = self.paginate_queryset(
-            self.filter_queryset(self.queryset.filter(record_id__in=record_ids.split(",")))
-        )
+        key_stat_querysets = self.filter_queryset(self.queryset.filter(record_id__in=record_ids.split(",")))
         headers = [
             {"id": "key_type", "name": _("Key类型")},
             {"id": "key_class", "name": _("Key模式")},
@@ -170,12 +120,11 @@ class KeyStatReportDetailsViewSet(viewsets.SystemViewSet):
             {"id": "count", "name": _("数量")},
             {"id": "count_with_ttl", "name": _("数量(有过期)")},
             {"id": "avg_ttl", "name": _("过期时间")},
-            {"id": "avg_ttl_human", "name": _("过期时间（带单位）")},
             {"id": "min_idletime", "name": _("最近访问时间")},
             {"id": "avg_key_used_bytes", "name": _("单Key平均内存占用")},
             {"id": "avg_key_length", "name": _("平均成员数量")},
-            {"id": "mem_used_bytes", "name": _("占用内存")},
-            {"id": "mem_used_pct", "name": _("占用内存占比")},
+            {"id": "mem_used_bytes", "name": _("内存占用")},
+            {"id": "mem_used_pct", "name": _("内存占用占比")},
         ]
 
         key_stat_data = [
@@ -185,13 +134,12 @@ class KeyStatReportDetailsViewSet(viewsets.SystemViewSet):
                 "key_name": queryset.key_name,
                 "count": queryset.count,
                 "count_with_ttl": queryset.count_with_ttl,
-                "avg_ttl": queryset.avg_ttl,
-                "avg_ttl_human": queryset.avg_ttl_human,
-                "min_idletime": queryset.min_idletime,
-                "avg_key_used_bytes": queryset.avg_key_used_bytes,
+                "avg_ttl": str(queryset.avg_ttl) + "s",
+                "min_idletime": str(queryset.min_idletime) + "s",
+                "avg_key_used_bytes": format_size(queryset.avg_key_used_bytes),
                 "avg_key_length": queryset.avg_key_length,
-                "mem_used_bytes": queryset.mem_used_bytes,
-                "mem_used_pct": queryset.mem_used_pct,
+                "mem_used_bytes": format_size(queryset.mem_used_bytes),
+                "mem_used_pct": str(queryset.mem_used_pct) + "%",
             }
             for queryset in key_stat_querysets
         ]
@@ -204,7 +152,6 @@ class KeyStatReportDetailsViewSet(viewsets.SystemViewSet):
             {"id": "key_type", "name": _("Key类型")},
             {"id": "key_name", "name": _("Key名称")},
             {"id": "ttl", "name": _("过期时间")},
-            {"id": "ttl_human", "name": _("过期时间（带单位）")},
             {"id": "key_length", "name": _("Key长度")},
             {"id": "value_size", "name": _("Value长度")},
             {"id": "member", "name": _("成员数量")},
@@ -216,13 +163,12 @@ class KeyStatReportDetailsViewSet(viewsets.SystemViewSet):
             {
                 "key_type": queryset.key_type,
                 "key_name": queryset.key_name,
-                "ttl": queryset.ttl,
-                "ttl_human": queryset.ttl_human,
+                "ttl": str(queryset.ttl) + "s",
                 "key_length": queryset.key_length,
-                "value_size": queryset.value_size,
+                "value_size": format_size(queryset.value_size),
                 "member": queryset.member,
                 "member_len": queryset.member_len,
-                "memory_size": queryset.memory_size,
+                "memory_size": format_size(queryset.memory_size),
             }
             for queryset in rank_querysets
         ]
