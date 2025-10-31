@@ -5,7 +5,6 @@ import (
 	"context"
 	"os"
 	"os/exec"
-	"strings"
 	"syscall"
 	"time"
 
@@ -19,12 +18,12 @@ type DealLocalCmdPid interface {
 	DealProcessPid(pid int) error
 }
 
-/*RunCmd 参数:
- * outFile: 不为空,则将标准输出结果打印到outFile中;
- * dealPidMethod: 不为空,则将命令pid传给dealPidMethod.DealProcessPid()函数;
- * exitCode https://stackoverflow.com/questions/10385551/get-exit-code-go
- */
-func RunCmd(cmd string, opts []string, outFile string,
+/*
+RunCmd 参数:
+  - dealPidMethod: 不为空,则将命令pid传给dealPidMethod.DealProcessPid()函数;
+  - exitCode https://stackoverflow.com/questions/10385551/get-exit-code-go
+*/
+func _RunCmd(cmd string, opts []string,
 	dealPidMethod DealLocalCmdPid, timeout time.Duration) (exitCode int, stdout string, stderr string, err error) {
 	exitCode = defaultExitCode
 	ctx, cancel := context.WithTimeout(context.TODO(), timeout)
@@ -33,20 +32,7 @@ func RunCmd(cmd string, opts []string, outFile string,
 	cmdCtx := exec.CommandContext(ctx, cmd, opts...)
 	var retBuffer bytes.Buffer
 	var errBuffer bytes.Buffer
-	var outFileHandler *os.File
-	var useOutFile bool
-	if len(strings.TrimSpace(outFile)) == 0 {
-		cmdCtx.Stdout = &retBuffer
-	} else {
-		outFileHandler, err = os.Create(outFile)
-		if err != nil {
-			err = errors.Wrap(err, "CreateFile")
-			return
-		}
-		defer outFileHandler.Close()
-		cmdCtx.Stdout = outFileHandler
-		useOutFile = true
-	}
+	cmdCtx.Stdout = &retBuffer
 	cmdCtx.Stderr = &errBuffer
 
 	if err = cmdCtx.Start(); err != nil {
@@ -69,19 +55,16 @@ func RunCmd(cmd string, opts []string, outFile string,
 		exitCode = ws.ExitStatus()
 	}
 
-	if !useOutFile {
-		stdout = retBuffer.String()
-	}
-
+	stdout = retBuffer.String()
 	stderr = errBuffer.String()
 	return
 }
 
 // RunCmdByBash bash -c "$cmd" 执行命令并得到命令结果
-func RunCmdByBash(cmd, outFile string, dealPidMethod DealLocalCmdPid,
-	timeout time.Duration) (exitCode int, stdout, stderr string, err error) {
+func RunCmdByBash(cmd string, dealPidMethod DealLocalCmdPid, timeout time.Duration) (
+	exitCode int, stdout, stderr string, err error) {
 	opts := []string{"-c", cmd}
-	return RunCmd("bash", opts, outFile, dealPidMethod, timeout)
+	return _RunCmd("bash", opts, dealPidMethod, timeout)
 }
 
 /* RunCmdV2 参数:
@@ -103,18 +86,22 @@ func RunCmdV2(cmd string, opts []string,
 	var errFileHandler *os.File
 
 	// 如果outFile不为空，则将标准输出结果打印到outFile中
-	outFileHandler, err = os.Create(outFile)
-	if err != nil {
-		err = errors.Wrap(err, "CreateFile")
-		return
+	if outFile != "" {
+		outFileHandler, err = os.Create(outFile)
+		if err != nil {
+			err = errors.Wrap(err, "CreateFile")
+			return
+		}
+		defer outFileHandler.Close()
+		cmdCtx.Stdout = outFileHandler
+	} else {
+		cmdCtx.Stdout = os.Stdout
 	}
-	defer outFileHandler.Close()
-	cmdCtx.Stdout = outFileHandler
 
 	// 如果errFile不为空，则将标准错误结果打印到errFile中
 	if errFile == outFile {
 		cmdCtx.Stderr = outFileHandler
-	} else {
+	} else if errFile != "" {
 		errFileHandler, err = os.Create(errFile)
 		if err != nil {
 			err = errors.Wrap(err, "CreateFile")
@@ -122,6 +109,8 @@ func RunCmdV2(cmd string, opts []string,
 		}
 		defer errFileHandler.Close()
 		cmdCtx.Stderr = errFileHandler
+	} else {
+		cmdCtx.Stderr = os.Stderr
 	}
 
 	if err = cmdCtx.Start(); err != nil {

@@ -8,10 +8,10 @@ import (
 	"time"
 )
 
-func TestMyExec(t *testing.T) {
+func TestZstdMyExec(t *testing.T) {
 	os.Remove("test.zst")
 	tmpContent := "hello" + time.Now().Format("2006-01-02 15:04:05")
-	exec, err := NewMyExec(NewCmdBuilder().Append("echo", "-n", tmpContent), 10*time.Second, nil, os.Stdout, false)
+	exec, err := NewMyExec(New("echo", "-n", tmpContent), 10*time.Second, nil, os.Stdout, false)
 	if err != nil {
 		t.Errorf("NewMyExec failed: %v", err)
 		return
@@ -20,17 +20,18 @@ func TestMyExec(t *testing.T) {
 	// cancel() if timeout > 0
 	defer exec.CancelFunc()
 
-	exec2, err := NewMyExec(NewCmdBuilder().Append("zstd", "-", "-o", "test.zst"), 0, os.DevNull, os.Stderr, false)
+	exec2, err := NewMyExec(New("zstd", "-", "-o", "test.zst"), 0, os.DevNull, os.Stderr, false)
 	if err != nil {
 		t.Errorf("NewMyExec failed: %v", err)
 		return
 	}
-	// connect stdout of exec to stdin of exec2
-	out1, err := exec.ExecHandle.StdoutPipe()
+
+	// connect exec2.Stdout to exec.Stdin
+	err = exec2.ConnectStdin(exec)
 	if err != nil {
-		t.Errorf("StdoutPipe failed: %v", err)
+		t.Errorf("ConnectStdin failed: %v", err)
+		return
 	}
-	exec2.SetStdin(out1)
 
 	for _, e := range []*MyExec{exec, exec2} {
 		err := e.Start()
@@ -57,7 +58,7 @@ func TestMyExec(t *testing.T) {
 	}
 
 	outBuffer := bytes.NewBuffer(nil)
-	exec3, err := NewMyExec(NewCmdBuilder().Append("zstdcat", "test.zst"), 0, outBuffer, os.Stdout, false)
+	exec3, err := NewMyExec(New("zstdcat", "test.zst"), 0, outBuffer, os.Stdout, false)
 	if err != nil {
 		t.Errorf("NewMyExec failed: %v", err)
 		return
@@ -81,20 +82,28 @@ func TestMyExec(t *testing.T) {
 	}
 }
 
-func TestDump(t *testing.T) {
+func TestZstdDump(t *testing.T) {
 	tmpDir := os.TempDir()
 	archivePath := tmpDir + "/dump.archive.zst"
 	dumpLogPath := tmpDir + "/dump.log"
 	os.Remove(archivePath)
 	os.Remove(dumpLogPath)
 
-	exec, err := NewMyExec(NewCmdBuilder().Append(
-		"/data/home/cycker/my/mongotools/mongodump.100.7",
-		"--host", "127.0.0.1",
-		"--port", "27003",
-		"-uroot",
+	port := os.Getenv("TestDump_PORT")
+	host := os.Getenv("TestDump_HOST")
+	user := os.Getenv("TestDump_USER")
+	pass := os.Getenv("TestDump_PASS")
+	authDb := os.Getenv("TestDump_AUTH_DB")
+	mongodumpBin := os.Getenv("TestDump_MONGODUMP_BIN")
+
+	exec, err := NewMyExec(New(
+		mongodumpBin,
+		"--host", host,
+		"--port", port,
+		"-u", user,
+		"-p", pass,
 		"-proot",
-		"--authenticationDatabase", "admin",
+		"--authenticationDatabase", authDb,
 		"--archive",
 	), 7*24*time.Hour, nil, dumpLogPath, false)
 	if err != nil {
@@ -103,7 +112,7 @@ func TestDump(t *testing.T) {
 	}
 	defer exec.CancelFunc()
 
-	exec2, err := NewMyExec(NewCmdBuilder().Append("zstd", "-", "-o", archivePath),
+	exec2, err := NewMyExec(New("zstd", "-", "-o", archivePath),
 		7*24*time.Hour, os.DevNull, os.Stderr, false)
 	if err != nil {
 		t.Errorf("NewMyExec failed: %v", err)
@@ -111,11 +120,11 @@ func TestDump(t *testing.T) {
 	}
 	defer exec2.CancelFunc()
 
-	cmd1Output, err := exec.ExecHandle.StdoutPipe()
+	err = exec2.ConnectStdin(exec)
 	if err != nil {
-		t.Errorf("StdoutPipe failed: %v", err)
+		t.Errorf("ConnectStdin failed: %v", err)
+		return
 	}
-	exec2.SetStdin(cmd1Output)
 
 	for _, e := range []*MyExec{exec, exec2} {
 		err := e.Start()
@@ -142,7 +151,7 @@ func TestDump(t *testing.T) {
 	}
 }
 
-func TestRestore(t *testing.T) {
+func TestZstdRestore(t *testing.T) {
 	tmpDir := os.TempDir()
 	archivePath := tmpDir + "/dump.archive.zst"
 	zstdErrPath := tmpDir + "/zstd.err"
@@ -159,13 +168,21 @@ func TestRestore(t *testing.T) {
 	}
 	defer exec1.CancelFunc()
 
-	exec2, err := NewMyExec(NewCmdBuilder().Append(
-		"/data/home/cycker/my/mongotools/mongorestore.100.7",
-		"--host", "127.0.0.1",
-		"--port", "27003",
-		"-uroot",
+	port := os.Getenv("TestDump_PORT")
+	host := os.Getenv("TestDump_HOST")
+	user := os.Getenv("TestDump_USER")
+	pass := os.Getenv("TestDump_PASS")
+	authDb := os.Getenv("TestDump_AUTH_DB")
+	mongorestoreBin := os.Getenv("TestDump_MONGORESTORE_BIN")
+
+	exec2, err := NewMyExec(New(
+		mongorestoreBin,
+		"--host", host,
+		"--port", port,
+		"-u", user,
+		"-p", pass,
 		"-proot",
-		"--authenticationDatabase", "admin",
+		"--authenticationDatabase", authDb,
 		"--archive"), 80*24*time.Hour, nil, restoreLogPath, false)
 	if err != nil {
 		t.Errorf("NewMyExec failed: %v", err)
@@ -173,12 +190,11 @@ func TestRestore(t *testing.T) {
 	}
 	defer exec2.CancelFunc()
 
-	out1, err := exec1.ExecHandle.StdoutPipe()
+	err = exec2.ConnectStdin(exec1)
 	if err != nil {
-		t.Errorf("StdoutPipe failed: %v", err)
+		t.Errorf("ConnectStdin failed: %v", err)
+		return
 	}
-
-	exec2.SetStdin(out1)
 
 	for _, e := range []*MyExec{exec1, exec2} {
 		err := e.Start()
