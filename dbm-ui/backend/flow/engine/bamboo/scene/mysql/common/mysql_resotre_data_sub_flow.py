@@ -591,6 +591,7 @@ def tendbha_rollback_data_sub_flow(
                 )
             )
     logger.info(_("回档的备份信息如下:  {}".format(backup_info)))
+    backup_id = backup_info["backup_id"]
     cluster_info["backupinfo"] = copy.deepcopy(backup_info)
     cluster_info["backup_time"] = backup_info["backup_time"]
     backup_time = str2datetime(backup_info["backup_time"])
@@ -606,12 +607,14 @@ def tendbha_rollback_data_sub_flow(
         task_ids = backup_info["task_ids"]
 
     # 阶段2 下载备份文件
+    backup_id_for_restore = uuid.uuid1().__str__()
     cluster_info["uid"] = uid
     cluster_info["ip"] = cluster_info["rollback_ip"]
     cluster_info["port"] = cluster_info["rollback_port"]
     cluster_info["backup_type"] = MySQLBackupTypeEnum.LOGICAL.value
     cluster_info["backup_gsd"] = ["grant"]
     cluster_info["role"] = InstanceInnerRole.MASTER.value
+    cluster_info["backup_id_for_restore"] = backup_id_for_restore
 
     sub_pipeline = SubBuilder(root_id=root_id, data=copy.deepcopy(cluster_info))
 
@@ -621,14 +624,14 @@ def tendbha_rollback_data_sub_flow(
     ):
         # tendbHa 使用物理备份恢复在开始恢复之前先备份目标实例的权限
         sub_pipeline.add_act(
-            act_name=_("备份权限 {}".format(cluster_info["rollback_ip"])),
+            act_name=_("备份权限 {} {}".format(cluster_info["rollback_ip"], backup_id_for_restore)),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(
                 ExecActuatorKwargs(
                     bk_cloud_id=cluster_model.bk_cloud_id,
                     run_as_system_user=DBA_SYSTEM_USER,
                     exec_ip=cluster_info["rollback_ip"],
-                    get_mysql_payload_func=MysqlActPayload.mysql_backup_demand_payload.__name__,
+                    get_mysql_payload_func=MysqlActPayload.mysql_backup_for_restore_payload.__name__,
                 )
             ),
             write_payload_var="backup_index_file",
@@ -658,7 +661,7 @@ def tendbha_rollback_data_sub_flow(
         get_mysql_payload_func=MysqlActPayload.get_rollback_data_restore_payload.__name__,
     )
     sub_pipeline.add_act(
-        act_name=_("恢复数据 {}").format(exec_act_kwargs.exec_ip),
+        act_name=_("恢复数据 {} {}").format(exec_act_kwargs.exec_ip, backup_id),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(exec_act_kwargs),
         write_payload_var="change_master_info",
@@ -684,7 +687,7 @@ def tendbha_rollback_data_sub_flow(
             exec_ip=cluster_info["rollback_ip"],
         )
         sub_pipeline.add_act(
-            act_name=_("权限恢复 {} ".format(cluster_info["rollback_ip"])),
+            act_name=_("恢复本地备份的权限 {} {}".format(cluster_info["rollback_ip"], backup_id_for_restore)),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(exec_act_kwargs_priv),
         )
@@ -821,10 +824,10 @@ def mysql_backup_restore_sub_flow(
     @return: 返回构建好的子流程对象，包含完整的恢复流程
     """
     # 子流程ticket_data信息
-    backup_id = uuid.uuid1().hex
+    backup_id_for_restore = uuid.uuid1().__str__()
     binlog_sync = cluster.get("binlog_sync", False)
     cluster["uid"] = uid
-    cluster["backup_id"] = backup_id
+    cluster["backup_id_for_restore"] = backup_id_for_restore
     cluster["ip"] = cluster["master_ip"]
     cluster["port"] = cluster["master_port"]
     cluster["backup_type"] = MySQLBackupTypeEnum.LOGICAL.value
@@ -851,7 +854,7 @@ def mysql_backup_restore_sub_flow(
                 bk_cloud_id=cluster_model.bk_cloud_id,
                 run_as_system_user=DBA_SYSTEM_USER,
                 exec_ip=cluster["ip"],
-                get_mysql_payload_func=MysqlActPayload.mysql_backup_demand_payload.__name__,
+                get_mysql_payload_func=MysqlActPayload.mysql_backup_for_restore_payload.__name__,
             )
         ),
         write_payload_var="backup_index_file",
@@ -867,7 +870,7 @@ def mysql_backup_restore_sub_flow(
                 source_ip_list=[cluster["master_ip"]],
                 exec_ip=cluster["new_slave_ip"],
                 cluster_id=cluster_model.id,
-                backup_id=backup_id,
+                backup_id=backup_id_for_restore,
                 # file_list 传输空,在flow node里面查询备份并写入。
                 file_list=[],
             )
@@ -895,7 +898,9 @@ def mysql_backup_restore_sub_flow(
     # 添加数据恢复任务
     sub_pipeline.add_act(
         act_name=_(
-            "恢复新从节点数据 {}:{} 备份backup_id: {}".format(exec_act_kwargs.exec_ip, cluster["restore_port"], backup_id)
+            "恢复新从节点数据 {}:{} 备份backup_id: {}".format(
+                exec_act_kwargs.exec_ip, cluster["restore_port"], backup_id_for_restore
+            )
         ),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(exec_act_kwargs),
@@ -945,5 +950,5 @@ def mysql_backup_restore_sub_flow(
 
     # 构建并返回完整的子流程
     return sub_pipeline.build_sub_process(
-        sub_name=_("恢复数据{} backup_id: {}".format(exec_act_kwargs.exec_ip, backup_id))
+        sub_name=_("恢复数据{} backup_id: {}".format(exec_act_kwargs.exec_ip, backup_id_for_restore))
     )
