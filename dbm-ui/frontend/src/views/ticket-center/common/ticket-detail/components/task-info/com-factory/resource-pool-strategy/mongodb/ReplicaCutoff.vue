@@ -12,24 +12,25 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="tableData"
     row-key="ip"
     :rowspan-and-colspan="rowspanAndColspan">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="ip"
       fixed="left"
+      :get-copy-value="(row: RowData) => row.ip"
       :title="t('待替换的主机')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="role"
       :title="t('角色类型')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="cluster"
       :title="t('所属集群')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="spec"
       :title="t('新机规格')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="label_names"
       :min-width="200"
       :title="t('资源标签')">
@@ -47,8 +48,8 @@
           {{ t('通用无标签') }}
         </BkTag>
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">
@@ -60,6 +61,14 @@
 
   interface Props {
     ticketDetails: TicketModel<Mongodb.ResourcePool.ReplicaCutoff>;
+  }
+
+  interface RowData {
+    cluster: string;
+    ip: string;
+    label_names: string[];
+    role: string;
+    spec: string;
   }
 
   defineOptions({
@@ -76,31 +85,22 @@
     rowspan: number;
   }[] = [];
   const { clusters, infos, specs } = props.ticketDetails.details;
-  const tableData = infos.reduce(
-    (results, item) => {
-      const list = item.mongodb.map((obj) => ({
-        cluster: clusters[item.cluster_id].immute_domain,
-        ip: obj.ip,
-        label_names: Object.values(item.resource_spec)[0].label_names,
-        role: 'mongodb',
-        spec: specs[Object.values(item.resource_spec)[0].spec_id].name,
-      }));
-      results.push(...list);
+  const tableData = infos.reduce((results, item) => {
+    const list = item.mongodb.map((obj) => ({
+      cluster: clusters[item.cluster_id].immute_domain,
+      ip: obj.ip,
+      label_names: Object.values(item.resource_spec)[0].label_names,
+      role: 'mongodb',
+      spec: specs[Object.values(item.resource_spec)[0].spec_id].name,
+    }));
+    results.push(...list);
 
-      spanInfo.push({
-        rowIndex: spanInfo.length ? spanInfo[spanInfo.length - 1].rowspan : 0,
-        rowspan: item.mongodb.length,
-      });
-      return results;
-    },
-    [] as {
-      cluster: string;
-      ip: string;
-      label_names: string[];
-      role: string;
-      spec: string;
-    }[],
-  );
+    spanInfo.push({
+      rowIndex: spanInfo.length ? spanInfo[spanInfo.length - 1].rowspan : 0,
+      rowspan: item.mongodb.length,
+    });
+    return results;
+  }, [] as RowData[]);
 
   const rowspanAndColspan = ({ colIndex, rowIndex }: { colIndex: number; rowIndex: number }) => {
     const spanItem = spanInfo.find((item) => colIndex === 2 && item.rowIndex === rowIndex);

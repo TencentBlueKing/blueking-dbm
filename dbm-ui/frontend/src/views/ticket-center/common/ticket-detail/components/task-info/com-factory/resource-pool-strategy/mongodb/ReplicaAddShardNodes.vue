@@ -12,47 +12,48 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="cluster_ids">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="cluster_ids"
       fixed="left"
+      :get-copy-value="(row: RowData) => row.cluster_ids.map(clusterId => ticketDetails.details.clusters[clusterId].immute_domain)"
       :min-width="250"
       :title="t('目标集群')">
-      <template #default="{row}: {row: RowData}">
+      <template #default="{ row }: { row: RowData }">
         <div
           v-for="item in row.cluster_ids"
           :key="item">
           {{ ticketDetails.details.clusters[item].immute_domain }}
         </div>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="cluster_type"
       :title="t('集群类型')"
       :width="200">
-      <template #default="{row}: {row: RowData}">
+      <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.cluster_ids[0]].cluster_type_name }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="current_shard_nodes_num"
       :title="t('当前节点数')">
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="add_shard_nodes_num"
       :title="t('扩容节点数')">
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="add_shard_nodes_num"
       :min-width="120"
       :title="t('最终节点数')">
-      <template #default="{row}: {row: RowData}">
+      <template #default="{ row }: { row: RowData }">
         {{ row.current_shard_nodes_num + row.add_shard_nodes_num }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="resource_spec.shard_nodes.label_names"
       :min-width="200"
       :title="t('资源标签')">
@@ -70,8 +71,8 @@
           {{ t('通用无标签') }}
         </BkTag>
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('忽略业务连接')">
       {{ ticketDetails.details.is_safe ? t('否') : t('是') }}

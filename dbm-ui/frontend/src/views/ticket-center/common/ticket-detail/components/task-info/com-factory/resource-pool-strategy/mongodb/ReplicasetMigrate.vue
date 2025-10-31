@@ -12,12 +12,13 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="cluster_ids">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="cluster_ids"
       fixed="left"
+      :get-copy-value="(row: RowData) => row.cluster_ids.map(clusterId => ticketDetails.details.clusters[clusterId].immute_domain)"
       :min-width="340"
       :title="t('目标集群')">
       <template #default="{row}: {row: RowData}">
@@ -27,8 +28,8 @@
           {{ ticketDetails.details.clusters[item].immute_domain }}
         </div>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="related_instances"
       min-width="400"
       :title="t('关联实例')">
@@ -45,16 +46,16 @@
           </div>
         </div>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="spec_id"
       :min-width="120"
       :title="t('目标规格')">
       <template #default="{row}: {row: RowData}">
         {{ ticketDetails.details.specs[row.resource_spec.mongodb.spec_id].name }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="label_names"
       :min-width="200"
       :title="t('资源标签')">
@@ -72,8 +73,8 @@
           {{ t('通用无标签') }}
         </BkTag>
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">
