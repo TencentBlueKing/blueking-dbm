@@ -28,6 +28,7 @@ class RedisClusterInsMigrateDetailSerializer(RedisBaseOperateDetailSerializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         resource_spec = serializers.JSONField(help_text=_("资源规格"))
         origin_old_nodes = serializers.JSONField(help_text=_("旧节点信息集合"), required=False)
+        src_cluster = serializers.ListField(child=serializers.JSONField(help_text=_("替换主机信息集合")), required=False)
         migrate_instance = serializers.CharField(help_text=_("迁移的实例"), required=False)
         db_version = serializers.ListField(help_text=_("集群版本"), child=serializers.CharField())
 
@@ -55,15 +56,12 @@ class RedisClusterInsMigrateBuilder(builders.FlowParamBuilder):
 class RedisClusterInstanceApplyResourceParamBuilder(BaseOperateResourceParamBuilder):
     def format(self):
         # 资源申请的一些参数补充
-        self.patch_info_affinity_location(roles=["backend_group"])
+        self.patch_info_common_affinity(role="backend_group", tolerance=0)
 
-    def get_master_slave_map(self, origin_old_nodes):
+    def get_master_slave_map(self, src_cluster):
         master_slave_map = {}
-        for master in origin_old_nodes["master"]:
-            for slave in origin_old_nodes["slave"]:
-                if master["port"] == slave["port"]:
-                    master_slave_map[f'{master["ip"]}:{master["port"]}'] = f'{slave["ip"]}:{slave["port"]}'
-                    break
+        for src in src_cluster:
+            master_slave_map[src["master_ins"]] = src["slave_ins"]
         return master_slave_map
 
     def post_callback(self):
@@ -72,7 +70,7 @@ class RedisClusterInstanceApplyResourceParamBuilder(BaseOperateResourceParamBuil
         cluster__migrate_list_map = defaultdict(list)
         # 按照集群ID进行聚合
         for info in ticket_data["infos"]:
-            master_slave_map = self.get_master_slave_map(info["origin_old_nodes"])
+            master_slave_map = self.get_master_slave_map(info["src_cluster"])
             migrate_info = [
                 {
                     "resource_spec": info["resource_spec"],

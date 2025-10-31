@@ -39,6 +39,12 @@ class RedisShardUpdateDetailSerializer(RedisBaseOperateDetailSerializer):
                 affinity = serializers.ChoiceField(
                     help_text=_("亲和性"), choices=AffinityEnum.get_choices(), default=AffinityEnum.NONE
                 )
+                labels = serializers.ListSerializer(
+                    help_text=_("标签id列表"), child=serializers.CharField(), required=False
+                )
+                label_names = serializers.ListSerializer(
+                    help_text=_("标签名称列表"), child=serializers.CharField(), required=False
+                )
 
             proxy = SpecSerializer(help_text=_("申请proxy资源"))
             backend_group = SpecSerializer(help_text=_("申请redis主从资源"))
@@ -90,10 +96,17 @@ class RedisShardUpdateParamBuilder(builders.FlowParamBuilder):
 
 class RedisShardUpdateResourceParamBuilder(RedisUpdateApplyResourceParamBuilder):
     def format(self):
-        # 亲和性进一步细化：申请的 接入层  至少 1/2 不同机房，存储层 master 和他的 slave 不能一个机房;
-        self.patch_info_affinity_location(roles=["backend_group", "proxy"])
         for info in self.ticket_data["infos"]:
-            info["resource_spec"]["proxy"]["group_count"] = 2
+            role_tolerance_map = {"backend_group": 0, "proxy": 0.5}
+            cluster = Cluster.objects.get(id=info["src_cluster"])
+            for role in info["resource_spec"]:
+                self.patch_common_affinity(
+                    info,
+                    role=role,
+                    cluster=cluster,
+                    exclusive_hosts=[],
+                    tolerance=role_tolerance_map[role],
+                )
 
 
 @builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_SHARD_NUM_UPDATE, is_apply=True, is_recycle=True)
