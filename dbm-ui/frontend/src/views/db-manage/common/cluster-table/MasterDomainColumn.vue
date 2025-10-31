@@ -112,5 +112,9 @@
       color: @primary-color;
       cursor: pointer;
     }
+
+    .master-domain-alarm-sign {
+      display: none;
+    }
   }
 </style>

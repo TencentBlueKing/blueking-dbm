@@ -178,9 +178,6 @@
                 </AuthButton>
               </OperationBtnStatusTips>
             </div>
-            <ClusterAlarmSubscribe
-              :data="data"
-              @edit="(e) => handleEditAlarmSubscription(data.id, e)" />
             <!-- <FunController
                 controller-id="redis_nameservice"
                 module-id="addons"> -->
@@ -522,7 +519,7 @@
   };
 
   const handleShowPassword = (id: number) => {
-    hideOperationColumn();
+    operationColumnRef.value?.hide();
     passwordState.isShow = true;
     passwordState.fetchParams.cluster_id = id;
   };
