@@ -12,6 +12,7 @@ from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from django_filters import rest_framework as filters
 
+from backend.db_services.dbbase.resources.query_base import build_q_for_domain_by_cluster
 from backend.db_services.redis.redis_keystat_report.models import RankItem, ReportItem, ReportRecord
 
 
@@ -19,13 +20,12 @@ class KeyStatReportRecordFilter(filters.FilterSet):
     record_id = filters.NumberFilter(field_name="record_id", label=_("过滤key类型"))
     ticket_id = filters.NumberFilter(field_name="ticket_id", label=_("过滤关联单据"))
     operator = filters.CharFilter(field_name="creator", lookup_expr="icontains", label=_("操作者"))
-    ordering = filters.CharFilter(field_name="ordering", method="order_keystat", label=_("排序字段"))
     create_at__lte = filters.DateTimeFilter(field_name="create_at", lookup_expr="lte", label=_("创建时间早于"))
     create_at__gte = filters.DateTimeFilter(field_name="create_at", lookup_expr="gte", label=_("创建时间晚于"))
     instance_addresses = filters.CharFilter(
         field_name="ins_list", method="filter_instance_addresses", label=_("过滤IP/实例")
     )
-    immute_domain = filters.CharFilter(field_name="immute_domain", method="filter_immute_domain", label=_("过滤域名"))
+    immute_domain = filters.CharFilter(field_name="immute_domain", method="filter_domains", label=_("过滤域名"))
     cluster_ids = filters.CharFilter(field_name="cluster_id", method="filter_cluster_ids", label=_("过滤集群"))
     status = filters.CharFilter(field_name="status", lookup_expr="exact", label=_("任务状态"))
 
@@ -35,7 +35,7 @@ class KeyStatReportRecordFilter(filters.FilterSet):
             instance_filters = Q()
             instances = value.split(",")
             for instance in instances:
-                instance_filters |= Q(source_addr_list__icontains=instance)
+                instance_filters |= Q(ins_list__icontains=instance)
             query_filters &= instance_filters
         return queryset.filter(query_filters)
 
@@ -43,10 +43,7 @@ class KeyStatReportRecordFilter(filters.FilterSet):
         return queryset.filter(cluster_id__in=value.split(","))
 
     def filter_immute_domain(self, queryset, name, value):
-        return queryset.filter(immute_domain__in=value.split(","))
-
-    def order_keystat(self, queryset, name, value):
-        return queryset.order_by(value)
+        return queryset.filter(build_q_for_domain_by_cluster(domains=value.split(",")))
 
     class Meta:
         model = ReportRecord
@@ -64,31 +61,17 @@ class KeyStatReportRecordFilter(filters.FilterSet):
 
 
 class KeyStatRecordDetailFilter(filters.FilterSet):
-    key_type = filters.CharFilter(field_name="key_type", method="filter_key_type", label=_("过滤key类型"))
+    key_type = filters.CharFilter(field_name="key_type", lookup_expr="in", label=_("过滤key类型"))
     key_class = filters.CharFilter(field_name="key_class", lookup_expr="icontains", label=_("过滤key模式"))
-    ordering = filters.CharFilter(field_name="ordering", method="order_keystat", label=_("排序字段"))
 
     class Meta:
         model = ReportItem
         fields = ["key_type", "key_class"]
 
-    def filter_key_type(self, queryset, name, value):
-        return queryset.filter(key_type__in=value.split(","))
-
-    def order_keystat(self, queryset, name, value):
-        return queryset.order_by(value)
-
 
 class RankItemDetailFilter(filters.FilterSet):
-    key_type = filters.CharFilter(field_name="key_type", method="filter_key_type", label=_("过滤key类型"))
+    key_type = filters.CharFilter(field_name="key_type", lookup_expr="in", label=_("过滤key类型"))
     key_name = filters.CharFilter(field_name="key_name", lookup_expr="icontains", label=_("过滤key样本"))
-    ordering = filters.CharFilter(field_name="ordering", method="order_keystat", label=_("排序字段"))
-
-    def filter_key_type(self, queryset, name, value):
-        return queryset.filter(key_type__in=value.split(","))
-
-    def order_keystat(self, queryset, name, value):
-        return queryset.order_by(value)
 
     class Meta:
         model = RankItem
