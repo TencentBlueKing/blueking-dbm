@@ -38,8 +38,9 @@
           <TableColumn
             col-key="id"
             fixed="left"
+            :min-width="80"
             resizable
-            :width="60">
+            :width="80">
             <template #title>
               <div class="table-selection-head">
                 <div
@@ -93,29 +94,14 @@
             </template>
           </TableColumn>
           <TableColumn
-            col-key="id"
-            resizable
-            title="ID"
-            :width="100">
-            <template #default="{ row }: { row: IRowData }">
-              <BkButton
-                text
-                theme="primary"
-                @click="() => handleEditSubscription(row)">
-                {{ row.id }}
-              </BkButton>
-            </template>
-          </TableColumn>
-          <TableColumn
             col-key="master_domain"
+            :min-width="380"
             resizable
-            :title="t('域名')"
-            :width="420">
+            :title="t('域名')">
             <template #default="{ row }: { row: IRowData }">
               <BkButton
                 text
-                theme="primary"
-                @click="() => handleGoClusterDetailPage(row)">
+                theme="primary">
                 {{ row.master_domain }}
               </BkButton>
             </template>
@@ -123,9 +109,9 @@
           <TableColumn
             col-key="db_type"
             :filter="tableFilter['db_type']"
+            :min-width="120"
             resizable
-            :title="t('DB 类型')"
-            :width="120">
+            :title="t('DB 类型')">
             <template #default="{ row }: { row: IRowData }">
               {{ dbTypeNameMap[row.db_type] }}
             </template>
@@ -133,18 +119,18 @@
           <TableColumn
             col-key="bk_biz_id"
             :filter="tableFilter['biz_id']"
+            :min-width="150"
             resizable
-            :title="t('业务')"
-            :width="150">
+            :title="t('业务')">
             <template #default="{ row }: { row: IRowData }">
               {{ bizIdMap.get(row.bk_biz_id)?.name || '--' }}
             </template>
           </TableColumn>
           <TableColumn
             col-key="conditions"
+            :min-width="60"
             resizable
-            :title="t('指标')"
-            :width="80">
+            :title="t('指标')">
             <template #default="{ row }: { row: IRowData }">
               <BkButton
                 text
@@ -254,7 +240,6 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
-  import { useRouter } from 'vue-router';
 
   import type { TableChangeData, TableColumnFilter } from '@blueking/tdesign-ui';
 
@@ -262,7 +247,7 @@
 
   import { useAlarmSubscribe, useGlobalBizs } from '@stores';
 
-  import { clusterTypeListPageMap, DBTypeInfos } from '@common/const';
+  import { DBTypeInfos } from '@common/const';
 
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
@@ -278,7 +263,6 @@
   export type IRowData = (typeof subscribedDomainInfo.dataList)[number];
 
   const { t } = useI18n();
-  const router = useRouter();
   const { bizIdMap, bizs } = useGlobalBizs();
   const rootRef = useTemplateRef('tableWrapper');
   const { initSubscribedDomainInfo, metricsMap, subscribedDomainInfo } = useAlarmSubscribe();
@@ -486,17 +470,6 @@
     isShowEditSingleSubscription.value = true;
   };
 
-  // 新开tab跳转集群详情页
-  const handleGoClusterDetailPage = (row: IRowData) => {
-    const routeInfo = router.resolve({
-      name: clusterTypeListPageMap[row.cluster_type],
-      params: {
-        clusterId: row.cluster_id,
-      },
-    });
-    window.open(routeInfo.href);
-  };
-
   onMounted(() => {
     const maxHeight = window.innerHeight - getOffset(rootRef.value as HTMLElement).top - 80;
     tableMaxHeight.value = maxHeight;
@@ -561,6 +534,7 @@
         position: relative;
         display: flex;
         align-items: center;
+        padding-left: 8px;
 
         .db-table-whole-check {
           position: relative;

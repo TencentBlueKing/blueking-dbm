@@ -66,7 +66,7 @@
         </BkButton>
         <BkPopConfirm
           v-else
-          :content="t('删除订阅将停止发送告警通知并删除配置，如有需要可再次订阅。')"
+          :content="t('删除操作无法撤回，请谨慎操作！')"
           ext-cls="delete-subscribe-pop-confirm"
           placement="bottom-start"
           :title="t('确认删除该告警订阅？')"
@@ -109,8 +109,8 @@
 
   const isEmpty = ref(false);
   const isCreate = ref(false);
-  const alertSeverity = ref<number[]>([1]);
-  const noticeWays = ref<string[]>(['weixin']);
+  const alertSeverity = ref<number[]>([1, 2, 3]);
+  const noticeWays = ref<string[]>(['weixin', 'mail', 'sms']);
 
   const indicatorList = computed(() => metricsMap[props.clusterType].list || []);
 
@@ -138,7 +138,7 @@
   });
 
   watch(
-    () => [props.domain, subscribedDomainInfo.dataList],
+    () => props.domain,
     () => {
       currentInfo = subscribedDomainInfo.dataList.find((item) => item.master_domain === props.domain);
       if (currentInfo) {
@@ -206,6 +206,7 @@
     }
 
     .alert-main {
+      margin-bottom: 16px;
       color: #4d4f56;
     }
 
@@ -214,7 +215,6 @@
     }
 
     .content-main {
-      margin-top: 16px;
       font-family: MicrosoftYaHei, Arial, sans-serif;
 
       .item-title {
