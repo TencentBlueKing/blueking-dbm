@@ -8,15 +8,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import itertools
-from collections import defaultdict
-
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.configuration.constants import AffinityEnum
-from backend.db_meta.enums import InstanceRole
-from backend.db_meta.models import Cluster, StorageInstance
+from backend.db_meta.enums import InstanceRole, MachineType
+from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
@@ -46,7 +43,9 @@ class RedisClusterCutOffDetailSerializer(
         proxy = serializers.ListField(help_text=_("proxy列表"), child=HostInfoSerializer(), required=False)
         redis_master = serializers.ListField(help_text=_("master列表"), child=HostInfoSerializer(), required=False)
         redis_slave = serializers.ListField(help_text=_("slave列表"), child=HostInfoSerializer(), required=False)
-        resource_spec = serializers.JSONField(required=False, help_text=_("资源申请信息(前端不用传递，后台渲染)"))
+        resource_spec = serializers.JSONField(required=False, help_text=_("资源申请信息"))
+        old_nodes = serializers.JSONField(required=False, help_text=_("回收主机信息"))
+        switch_role = serializers.CharField(required=False, help_text=_("替换角色"))
 
     ip_source = serializers.ChoiceField(
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL
@@ -66,40 +65,53 @@ class RedisClusterCutOffParamBuilder(builders.FlowParamBuilder):
 
 
 class RedisClusterCutOffResourceParamBuilder(BaseOperateResourceParamBuilder):
+    def format(self):
+        # 资源申请的一些参数补充
+        for info in self.ticket_data["infos"]:
+            role_tolerance_map = {"redis_master": 0, "proxy": 0.5, "redis_slave": 0}
+            slave_master_machine_map = {}
+            cluster = Cluster.objects.get(id=info["cluster_ids"][0])
+            if info["switch_role"] == InstanceRole.REDIS_SLAVE.value:
+                redis_slaves = StorageInstance.objects.prefetch_related("as_receiver__ejector", "machine").filter(
+                    cluster=cluster, machine__ip__in=[host["ip"] for host in info["redis_slave"]]
+                )
+                slave_master_machine_map = {
+                    slave.machine.ip: [slave.as_receiver.get().ejector.machine] for slave in redis_slaves
+                }
+
+            if info["switch_role"] == InstanceRole.REDIS_PROXY.value:
+                common_filters = Q(
+                    machine__machine_type=MachineType.TWEMPROXY.value, cluster__in=info["cluster_ids"]
+                ) & ~Q(machine__bk_host_id__in=[host["bk_host_id"] for host in info["proxy"]])
+                proxy_insts = list(ProxyInstance.objects.select_related("machine").filter(common_filters))
+                slave_master_machine_map = {"proxy": [inst.machine for inst in proxy_insts]}
+
+            for role in info["resource_spec"]:
+                self.patch_common_affinity(
+                    info,
+                    role=role,
+                    cluster=cluster,
+                    exclusive_hosts=slave_master_machine_map.get(role.split("_")[-1], []),
+                    tolerance=role_tolerance_map[info["switch_role"]],
+                )
+
     def post_callback(self):
-        nodes = self.ticket_data.pop("nodes", [])
 
         next_flow = self.ticket.next_flow()
         ticket_data = next_flow.details["ticket_data"]
+        for info in ticket_data["infos"]:
+            switch_role = info["switch_role"]
+            for host_index, host in enumerate(info[switch_role]):
+                if switch_role == InstanceRole.REDIS_MASTER.value:
+                    host["target"] = {}
+                    host["target"]["master"] = info["backend_group"][host_index]["master"]
+                    host["target"]["slave"] = info["backend_group"][host_index]["slave"]
 
-        for info_index, info in enumerate(self.ticket_data["infos"]):
-            slave_role_groups = []
-            for role in [InstanceRole.REDIS_PROXY.value, InstanceRole.REDIS_SLAVE.value, InstanceRole.REDIS_MASTER]:
-                role_hosts, role_group = info.get(role), role
+                elif switch_role == InstanceRole.REDIS_SLAVE:
+                    host["target"] = info[f"redis_slave_{host['ip']}"][0]
 
-                if not role_hosts:
-                    continue
-
-                for role_host_index, role_host in enumerate(role_hosts):
-                    if role == InstanceRole.REDIS_MASTER:
-                        role_group, index = "backend_group", role_host_index
-                    elif role == InstanceRole.REDIS_SLAVE:
-                        role_group, index = f"{role}_{role_host['ip']}", 0
-                        slave_role_groups.append(role_group)
-                    elif role == InstanceRole.REDIS_PROXY:
-                        role_group, index = role, role_host_index
-
-                    role_host["target"] = nodes.get(f"{info_index}_{role_group}")[index]
-
-            # 保留下个节点更完整的resource_spec
-            info["resource_spec"] = ticket_data["infos"][info_index]["resource_spec"]
-            info["resource_spec"].pop("backend_group", None)
-            # 将redis_slave_{ip}重命名为redis_slave
-            if slave_role_groups:
-                info["resource_spec"][InstanceRole.REDIS_SLAVE] = info["resource_spec"][slave_role_groups[0]]
-                info["resource_spec"] = {k: v for k, v in info["resource_spec"].items() if k not in slave_role_groups}
-            ticket_data["infos"][info_index] = info
-
+                elif switch_role == InstanceRole.REDIS_PROXY:
+                    host["target"] = info["new_proxy"][host_index]
         next_flow.save(update_fields=["details"])
         super().post_callback()
 
@@ -111,145 +123,3 @@ class RedisClusterCutOffFlowBuilder(BaseRedisTicketFlowBuilder):
     inner_flow_name = _("整机替换")
     resource_batch_apply_builder = RedisClusterCutOffResourceParamBuilder
     need_patch_recycle_host_details = True
-
-    def patch_master_resource(self, cluster, info, resource_spec, old_nodes):
-        role = InstanceRole.REDIS_MASTER.value
-        role_hosts = info.get(role)
-
-        if not info.get(role):
-            return
-
-        old_nodes[role].extend(role_hosts)
-
-        resource_spec["backend_group"] = {
-            "spec_id": info[role][0]["spec_id"],
-            "count": len(role_hosts),
-            "location_spec": {"city": cluster.region, "sub_zone_ids": []},
-            "affinity": cluster.disaster_tolerance_level,
-        }
-
-        # 资源申请同城同园区条件：补充园区id, 且需传include_or_exclue=True来指定申请的园区
-        bk_sub_zone_id = cluster.storageinstance_set.first().machine.bk_sub_zone_id
-        if cluster.disaster_tolerance_level in [AffinityEnum.SAME_SUBZONE, AffinityEnum.SAME_SUBZONE_CROSS_SWTICH]:
-            resource_spec["backend_group"]["location_spec"].update(
-                sub_zone_ids=[bk_sub_zone_id], include_or_exclue=True
-            )
-        elif cluster.disaster_tolerance_level == AffinityEnum.CROS_SUBZONE.value:
-            resource_spec["backend_group"]["location_spec"].update(
-                sub_zone_ids=cluster.zone_list, include_or_exclue=True
-            )
-
-        # 替换redis master需要将slave也下架，所以需要加入old_nodes
-        redis_masters = StorageInstance.objects.prefetch_related("as_ejector__receiver", "machine").filter(
-            cluster=cluster, machine__ip__in=[host["ip"] for host in role_hosts]
-        )
-
-        # 使用集合存储已添加的ip地址
-        seen_ips = set()
-        for master in redis_masters:
-            slave = master.as_ejector.get().receiver.machine
-            if slave.ip not in seen_ips:
-                old_nodes[InstanceRole.REDIS_SLAVE].append(
-                    {
-                        "ip": slave.ip,
-                        "bk_host_id": slave.bk_host_id,
-                        "master_ip": master.machine.ip,
-                        "master_spec_id": master.machine.spec_id,
-                    }
-                )
-                seen_ips.add(slave.ip)
-
-    def patch_slave_resource(self, cluster, info, resource_spec, old_nodes):
-        role = InstanceRole.REDIS_SLAVE.value
-        role_hosts = info.get(role)
-
-        if not info.get(role):
-            return
-
-        old_nodes[role].extend(role_hosts)
-
-        redis_slaves = StorageInstance.objects.prefetch_related("as_receiver__ejector", "machine").filter(
-            cluster=cluster, machine__ip__in=[host["ip"] for host in role_hosts]
-        )
-        redis_slave_ip_map = {slave.machine.ip: slave for slave in redis_slaves}
-        for role_host in role_hosts:
-            redis_master = redis_slave_ip_map[role_host["ip"]].as_receiver.get().ejector
-
-            # slave的一一替换，以ip为key作为分组名
-            group_key = f"{role}_{role_host['ip']}"
-            resource_spec[group_key] = {
-                "spec_id": role_host["spec_id"],
-                "count": 1,
-                "location_spec": {"city": cluster.region, "sub_zone_ids": []},
-                "affinity": cluster.disaster_tolerance_level,
-            }
-
-            # 同园区，则slave与master在相同的subzone，跨园区，则排除master的subzone
-            if cluster.disaster_tolerance_level == AffinityEnum.CROS_SUBZONE:
-                master_subzone = redis_master.machine.bk_sub_zone_id
-                if not cluster.zone_list:
-                    is_include, sub_zone_ids = False, [master_subzone]
-                else:
-                    is_include, sub_zone_ids = True, list(set(cluster.zone_list) - {master_subzone})
-                resource_spec[group_key]["location_spec"].update(
-                    sub_zone_ids=sub_zone_ids, include_or_exclue=is_include
-                )
-            elif cluster.disaster_tolerance_level in [
-                AffinityEnum.SAME_SUBZONE,
-                AffinityEnum.SAME_SUBZONE_CROSS_SWTICH,
-            ]:
-                resource_spec[group_key]["location_spec"].update(
-                    sub_zone_ids=[redis_master.machine.bk_sub_zone_id], include_or_exclue=True
-                )
-
-    def patch_proxy_resource(self, cluster, info, resource_spec, old_nodes):
-        role = InstanceRole.REDIS_PROXY.value
-        role_hosts = info.get(role)
-
-        if not info.get(role):
-            return
-
-        old_nodes[role].extend(role_hosts)
-
-        resource_spec[role] = {
-            "spec_id": info[role][0]["spec_id"],
-            "count": len(role_hosts),
-            "location_spec": {"city": cluster.region, "sub_zone_ids": []},
-            "affinity": cluster.disaster_tolerance_level,
-            # 跨园区情况下，proxy则至少跨两个机房
-            "group_count": 2,
-        }
-
-        # 资源申请同城同园区条件：补充园区id, 且需传include_or_exclue=True来指定申请的园区
-        bk_sub_zone_id = cluster.storageinstance_set.first().machine.bk_sub_zone_id
-        if cluster.disaster_tolerance_level in [AffinityEnum.SAME_SUBZONE, AffinityEnum.SAME_SUBZONE_CROSS_SWTICH]:
-            resource_spec[role]["location_spec"].update(sub_zone_ids=[bk_sub_zone_id], include_or_exclue=True)
-        # 跨园区情况下，proxy取zone_list园区信息
-        elif cluster.disaster_tolerance_level == AffinityEnum.CROS_SUBZONE:
-            resource_spec[role]["location_spec"].update(
-                sub_zone_ids=cluster.zone_list, include_or_exclue=bool(cluster.zone_list)
-            )
-
-    def patch_resource_and_old_nodes(self):
-        cluster_ids = list(itertools.chain(*[infos["cluster_ids"] for infos in self.ticket.details["infos"]]))
-        cluster_map = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
-
-        for info in self.ticket.details["infos"]:
-            old_nodes = defaultdict(list)
-            # 取第一个cluster即可，即使是多集群，也是单机多实例的情况
-            cluster = cluster_map[info["cluster_ids"][0]]
-            resource_spec = {}
-
-            self.patch_master_resource(cluster, info, resource_spec, old_nodes)
-            self.patch_slave_resource(cluster, info, resource_spec, old_nodes)
-            self.patch_proxy_resource(cluster, info, resource_spec, old_nodes)
-
-            info["resource_spec"] = resource_spec
-            info.update(resource_spec=resource_spec, old_nodes=old_nodes)
-
-        self.ticket.save(update_fields=["details"])
-
-    def patch_ticket_detail(self):
-        """redis_master -> backend_group"""
-        self.patch_resource_and_old_nodes()
-        super().patch_ticket_detail()
