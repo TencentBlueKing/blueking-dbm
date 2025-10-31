@@ -24,10 +24,6 @@
 
   type Emits = (e: 'show') => void;
 
-  interface Exposes {
-    hide: () => void;
-  }
-
   const emits = defineEmits<Emits>();
   defineSlots<Slots>();
 
@@ -80,12 +76,6 @@
       tippyIns.unmount();
       tippyIns.destroy();
     }
-  });
-
-  defineExpose<Exposes>({
-    hide() {
-      tippyIns.hide();
-    },
   });
 </script>
 <style lang="less">

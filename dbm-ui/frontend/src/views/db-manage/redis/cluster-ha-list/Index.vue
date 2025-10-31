@@ -50,9 +50,7 @@
       @filter-change="handleFilterChange"
       @selection="handleSelection">
       <template #operation>
-        <OperationColumn
-          ref="operationColumnRef"
-          :cluster-type="ClusterTypes.REDIS_INSTANCE">
+        <OperationColumn :cluster-type="ClusterTypes.REDIS_INSTANCE">
           <template #default="{ data }: { data: RedisModel }">
             <div v-db-console="'redis.haClusterManage.extractKey'">
               <OperationBtnStatusTips
@@ -161,9 +159,6 @@
                 </AuthButton>
               </OperationBtnStatusTips>
             </div>
-            <ClusterAlarmSubscribe
-              :data="data"
-              @edit="(e) => handleEditAlarmSubscription(data.id, e)" />
             <div v-db-console="'redis.haClusterManage.queryAccessSource'">
               <OperationBtnStatusTips
                 :data="data"
@@ -318,7 +313,6 @@
 
   import TagBlock from '@components/tag-block/Index.vue';
 
-  import ClusterAlarmSubscribe from '@views/db-manage/common/cluster-alarm-subscribe/Index.vue';
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
@@ -357,8 +351,6 @@
     showDetail: isShowDetail,
   } = useGoClusterDetail('redisClusterHaDetail');
   const { handleSelection, selectedIdList, selectedList } = useClusterTableSelect<RedisModel>();
-
-  const operationColumnRef = ref<ComponentExposed<typeof OperationColumn>>();
 
   const disableSelectMethod = (data: RedisModel) => {
     if (data.operations?.length > 0) {
@@ -413,7 +405,6 @@
   };
 
   const handleShowPassword = (id: number) => {
-    operationColumnRef.value?.hide();
     passwordState.isShow = true;
     passwordState.fetchParams.cluster_id = id;
   };
@@ -431,11 +422,6 @@
   const handleFilterChange = (filterValue: Record<string, string>) => {
     searchValue.value = filterValue;
     fetchData();
-  };
-
-  const handleEditAlarmSubscription = (id: number, event: MouseEvent) => {
-    operationColumnRef.value?.hide();
-    handleToDetails(id, event, 'alarmSubscription');
   };
 </script>
 <style lang="less">

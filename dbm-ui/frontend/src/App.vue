@@ -72,7 +72,7 @@
 
   import { useSQLTaskNotify } from '@hooks';
 
-  import { useAlarmSubscribe, useSystemEnviron, useUserProfile } from '@stores';
+  import { useSystemEnviron, useUserProfile } from '@stores';
 
   import AIBlueking from '@components/ai-blueking/Index.vue';
   import DbRouterView from '@components/db-router-view/Index.vue';
@@ -90,7 +90,6 @@
   const userProfileStore = useUserProfile();
   const { locale, t } = useI18n();
   const systemEnvironStore = useSystemEnviron();
-  const alarmSubscribeStore = useAlarmSubscribe();
 
   const documentTitles: Record<string, string> = {
     en: 'DBM | Tencent BlueKing',
@@ -137,8 +136,6 @@
       title: t('确认退出登录'),
     });
   };
-
-  alarmSubscribeStore.init();
 
   onMounted(() => {
     if (checkDbConsole('mysql.toolbox.sqlExecute') || checkDbConsole('tendbCluster.toolbox.sqlExecute')) {

@@ -51,9 +51,7 @@
       @filter-change="handleFilterChange"
       @selection="handleSelection">
       <template #operation>
-        <OperationColumn
-          ref="operationColumnRef"
-          :cluster-type="ClusterTypes.REDIS">
+        <OperationColumn :cluster-type="ClusterTypes.REDIS">
           <template #default="{ data }: { data: RedisModel }">
             <div v-db-console="'redis.clusterManage.extractKey'">
               <OperationBtnStatusTips
@@ -159,9 +157,6 @@
                 </AuthButton>
               </OperationBtnStatusTips>
             </div>
-            <ClusterAlarmSubscribe
-              :data="data"
-              @edit="(e) => handleEditAlarmSubscription(data.id, e)" />
             <div v-db-console="'redis.clusterManage.queryAccessSource'">
               <OperationBtnStatusTips
                 :data="data"
@@ -412,7 +407,6 @@
 
   import TagBlock from '@components/tag-block/Index.vue';
 
-  import ClusterAlarmSubscribe from '@views/db-manage/common/cluster-alarm-subscribe/Index.vue';
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterEntryPanel from '@views/db-manage/common/cluster-entry-panel/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
@@ -467,8 +461,6 @@
 
   const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
 
-  const operationColumnRef = ref<ComponentExposed<typeof OperationColumn>>();
-
   const getTableInstance = () => tableRef.value;
 
   /** 查看密码 */
@@ -519,7 +511,6 @@
   };
 
   const handleShowPassword = (id: number) => {
-    operationColumnRef.value?.hide();
     passwordState.isShow = true;
     passwordState.fetchParams.cluster_id = id;
   };
@@ -537,11 +528,6 @@
   const handleFilterChange = (filterValue: Record<string, string>) => {
     searchValue.value = filterValue;
     fetchData();
-  };
-
-  const handleEditAlarmSubscription = (id: number, event: MouseEvent) => {
-    operationColumnRef.value?.hide();
-    handleToDetails(id, event, 'alarmSubscription');
   };
 </script>
 <style lang="less">

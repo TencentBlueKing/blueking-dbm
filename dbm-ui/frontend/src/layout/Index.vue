@@ -193,7 +193,6 @@
       'InspectionTodos',
       'platformAlarmEventsTodo',
       'RiskMemoTodos',
-      'myAlarmSubscription',
     ],
     [menuEnum.platformManage]: [
       'platformTaskManage',

@@ -90,18 +90,6 @@
               :key="clusterData.id" />
           </BkTabPanel>
         </slot>
-        <slot
-          v-if="isAbleSubscribe"
-          name="alarmSubscription">
-          <BkTabPanel
-            :key="clusterData.id"
-            :label="t('告警订阅')"
-            name="alarmSubscription">
-            <AlarmSubscription
-              :cluster-type="clusterData.cluster_type"
-              :domain="clusterData.master_domain" />
-          </BkTabPanel>
-        </slot>
       </BkTab>
     </div>
   </BkLoading>
@@ -133,11 +121,8 @@
 
   import { useUrlSearch } from '@hooks';
 
-  import { useAlarmSubscribe } from '@stores';
-
   import { clusterTypeInfos, ClusterTypes } from '@common/const';
 
-  import AlarmSubscription from './components/AlarmSubscription.vue';
   import BaseInfo from './components/BaseInfo.vue';
   import ClusterTopo from './components/cluster-topo/Index.vue';
   import HostList from './components/HostList.vue';
@@ -158,7 +143,6 @@
   }
 
   export interface Slots {
-    alarmSubscription: () => VNode;
     host: () => VNode;
     hostContent: () => VNode;
     info: () => VNode;
@@ -190,7 +174,7 @@
     [ClusterTypes.TENDBSINGLE]: TendbsingleModel;
   }
 
-  const fixedTabList = ['topo', 'info', 'instance', 'host', 'record', 'alarmSubscription'];
+  const fixedTabList = ['topo', 'info', 'instance', 'host', 'record'];
 </script>
 <script setup lang="ts" generic="T extends keyof ClusterTypeRelateClusterModel">
   const props = defineProps<Props<T>>();
@@ -200,7 +184,6 @@
   const route = useRoute();
   const router = useRouter();
   const { removeSearchParam } = useUrlSearch();
-  const { metricsMap } = useAlarmSubscribe();
 
   const isFixedTab = ref(false);
 
@@ -210,7 +193,6 @@
 
   const dbType = computed(() => clusterTypeInfos[props.clusterData.cluster_type].dbType);
   const isLoading = computed(() => !isFixedTab.value && isPanelLoading.value);
-  const isAbleSubscribe = computed(() => metricsMap[props.clusterData.cluster_type].list.length > 0);
 
   const calcTabContentHeight = _.throttle(() => {
     if (rootRef.value) {
