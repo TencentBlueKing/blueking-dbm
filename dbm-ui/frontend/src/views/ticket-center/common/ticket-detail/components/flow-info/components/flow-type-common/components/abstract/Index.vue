@@ -6,7 +6,7 @@
       <TableCollapse
         v-for="(item, index) in abstractList"
         :key="index"
-        :title="item.table_name">
+        :title="item.table_display_name || item.table_name">
         <TicketInfoTable
           :data="item.values"
           header-row-class-name="abstract-table-header-row"
@@ -51,7 +51,7 @@
           ...item,
           titles: item.titles.map((item) => ({
             field: item.id,
-            label: item.table_display_name || item.display_name,
+            label: item.display_name,
           })),
         };
       });
