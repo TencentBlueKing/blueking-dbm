@@ -65,15 +65,14 @@
           </span>
         </BkCheckbox>
       </BkFormItem>
+      <BackupSource v-model="formData.backup_source" />
       <BkFormItem
         :label="t('数据校验')"
-        property="need_checksum"
-        required>
+        property="need_checksum">
         <BkSwitcher
           v-model="formData.need_checksum"
           theme="primary" />
       </BkFormItem>
-      <BackupSource v-model="formData.backup_source" />
       <TicketPayload v-model="formData.payload" />
       <template #action>
         <BkButton
