@@ -12,43 +12,44 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="cluster_ids"
       fixed="left"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
       :min-width="250"
       :title="t('目标集群')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="cluster_type"
       :title="t('集群类型')"
       :width="200">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.cluster_id].cluster_type_name }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="current_shard_nodes_num"
       :title="t('当前节点数')">
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="add_shard_nodes_num"
       :title="t('扩容节点数')">
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="add_shard_nodes_num"
       :min-width="120"
       :title="t('最终节点数')">
       <template #default="{ row }: { row: RowData }">
         {{ row.current_shard_nodes_num + row.add_shard_nodes_num }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="resource_spec.shard_nodes.label_names"
       :min-width="200"
       :title="t('资源标签')">
@@ -66,8 +67,8 @@
           {{ t('通用无标签') }}
         </BkTag>
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('忽略业务连接')">
       {{ ticketDetails.details.is_safe ? t('否') : t('是') }}

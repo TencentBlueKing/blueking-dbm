@@ -12,31 +12,32 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="shard_name">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="shard_name"
       fixed="left"
+      :get-copy-value="(row: RowData) => row.shard_name"
       :min-width="250"
       :title="t('目标分片')">
-      <template #default="{row}: {row: RowData}">
+      <template #default="{ row }: { row: RowData }">
         <div
           v-for="item in row.shard_name"
           :key="item">
           {{ item }}
         </div>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="cluster_id"
       :title="t('关联集群')"
       :width="300">
-      <template #default="{row}: {row: RowData}">
+      <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="related_instances"
       min-width="300"
       :title="t('关联集群实例')">
@@ -53,16 +54,16 @@
           </div>
         </div>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="spec_id"
       :min-width="120"
       :title="t('目标规格')">
-      <template #default="{row}: {row: RowData}">
+      <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.specs[row.resource_spec.mongodb.spec_id].name }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="label_names"
       :min-width="200"
       :title="t('资源标签')">
@@ -80,8 +81,8 @@
           {{ t('通用无标签') }}
         </BkTag>
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">
