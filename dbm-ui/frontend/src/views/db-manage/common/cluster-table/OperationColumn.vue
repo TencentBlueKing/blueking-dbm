@@ -8,7 +8,6 @@
     :width="30">
     <template #default="{ row, rowIndex }: { row: IRowData; rowIndex: number }">
       <OperationMenu
-        ref="operationMenuRef"
         :style="{
           display: !currentClusterId ? (rowIndex === 0 ? 'flex' : '') : currentClusterId === row.id ? 'flex' : '',
         }"
@@ -33,10 +32,6 @@
     default: (params: { data: ClusterModel<T> }) => void;
   }
 
-  export interface Exposes {
-    hide: () => void;
-  }
-
   type IRowData = ClusterModel<T>;
 
   defineProps<Props<T>>();
@@ -45,7 +40,6 @@
 
   const route = useRoute();
 
-  const operationMenuRef = ref<InstanceType<typeof OperationMenu>>();
   const currentClusterId = ref(0);
 
   watch(
@@ -68,12 +62,6 @@
 
   onBeforeUnmount(() => {
     currentClusterId.value = 0;
-  });
-
-  defineExpose<Exposes>({
-    hide() {
-      operationMenuRef.value?.hide();
-    },
   });
 </script>
 <style lang="less">
