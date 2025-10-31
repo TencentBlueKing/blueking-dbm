@@ -1468,6 +1468,10 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             },
         }
 
+    def mysql_backup_for_restore_payload(self, **kwargs):
+        self.ticket_data["backup_id"] = self.ticket_data.get("backup_id_for_restore", uuid.uuid1()).__str__()
+        return self.mysql_backup_demand_payload(**kwargs)
+
     def spider_priv_backup_demand_payload(self, **kwargs):
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
