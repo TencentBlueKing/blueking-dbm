@@ -11,12 +11,12 @@ specific language governing permissions and limitations under the License.
 
 from rest_framework.routers import DefaultRouter
 
-from backend.db_services.redis.keystat_report.views import KeyStatReportViewSet, KeyStatReportDetailsViewSet
+from backend.db_services.redis.redis_keystat_report.views import KeyStatReportDetailsViewSet, KeyStatReportViewSet
 
 router = DefaultRouter(trailing_slash=True)
 
-router.register(r"analysis", KeyStatReportViewSet, basename="analysis")
-router.register(r"analysis_details", KeyStatReportDetailsViewSet, basename="analysis_details")
+router.register(r"keystat", KeyStatReportViewSet, basename="keystat")
+router.register(r"keystat_details", KeyStatReportDetailsViewSet, basename="keystat_details")
 
 urlpatterns = []
 urlpatterns += router.urls
