@@ -35,12 +35,12 @@ class RedisSingleInsMigrateDetailSerializer(RedisBaseOperateDetailSerializer):
         migrate_type = serializers.CharField(help_text=_("迁移的类型"), required=False)
         origin_old_nodes = serializers.JSONField(help_text=_("旧节点信息集合"), required=False)
         src_cluster = serializers.ListField(child=serializers.JSONField(help_text=_("替换主机信息集合")))
+        old_nodes = serializers.JSONField(help_text=_("旧节点信息集合"), required=False)
 
     ip_source = serializers.ChoiceField(
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL
     )
     infos = serializers.ListSerializer(help_text=_("实例迁移单据详情"), child=RedisSingleInsMigrateItemSerializer())
-    old_nodes = serializers.JSONField(help_text=_("旧节点信息集合"), required=False)
 
     def validate(self, attrs):
         self.validate_cluster_can_access(attrs)
@@ -71,7 +71,8 @@ class RedisSingleInsMigrateBuilder(builders.FlowParamBuilder):
 class RedisSingleInstanceApplyResourceParamBuilder(BaseOperateResourceParamBuilder):
     def format(self):
         # 资源申请的一些参数补充
-        self.patch_info_affinity_location(roles=["backend_group"])
+        # self.patch_info_affinity_location(roles=["backend_group"])
+        self.patch_info_common_affinity(role="backend_group", tolerance=0)
 
     def fetch_cluster_map(self, ticket_data):
         cluster_ids = fetch_cluster_ids(ticket_data)
@@ -104,9 +105,8 @@ class RedisSingleInsMigrateBuilder(BaseRedisInstanceTicketFlowBuilder):
     def patch_ticket_detail(self):
         instance_list = []
         for info in self.ticket.details["infos"]:
-            for role in info["origin_old_nodes"]:
-                instance_list.extend([f'{node["ip"]}:{node["port"]}' for node in info["origin_old_nodes"][role]])
-        self.ticket.details["old_nodes"] = {
-            "instance": get_migrate_shutdown_hosts(instance_list, self.ticket.bk_biz_id)
-        }
+            for src in info["src_cluster"]:
+                instance_list.append(src["master_ins"])
+                instance_list.append(src["slave_ins"])
+            info["old_nodes"] = {"instance": get_migrate_shutdown_hosts(instance_list, self.ticket.bk_biz_id)}
         super().patch_ticket_detail()
