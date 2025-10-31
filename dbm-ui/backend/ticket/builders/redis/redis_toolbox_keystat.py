@@ -36,12 +36,8 @@ class RedisKeyStatSerializer(RedisBaseOperateDetailSerializer):
     class InfoSerializer(DisplayInfoSerializer, ClusterValidateMixin, serializers.Serializer):
         class InstanceSerializer(serializers.Serializer):
             addr = serializers.CharField(help_text=_("实例地址"))
-            # display fields
-            key_num = serializers.IntegerField(help_text=_("key数量"), required=False)
-            memory_total = serializers.IntegerField(help_text=_("内存大小"), required=False)
 
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-        check_last_visit = serializers.BooleanField(help_text=_("是否上次访问"), required=False, default=True)
         ins = serializers.ListField(help_text=_("实例列表"), child=InstanceSerializer())
         immute_domain = serializers.CharField(help_text=_("域名"))
         delimiter = serializers.CharField(help_text=_("域名"), required=False, default="#@_-")
