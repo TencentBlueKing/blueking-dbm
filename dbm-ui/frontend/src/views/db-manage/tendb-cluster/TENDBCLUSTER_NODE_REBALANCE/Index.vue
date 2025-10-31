@@ -58,8 +58,7 @@
       <BackupSource v-model="formData.backupSource" />
       <BkFormItem
         :label="t('数据校验')"
-        property="need_checksum"
-        required>
+        property="need_checksum">
         <BkSwitcher
           v-model="formData.need_checksum"
           theme="primary" />
