@@ -33,8 +33,8 @@ class MySQLCheckProcesslistService(BaseService):
             "addresses": [instance],
             "cmds": [
                 """select * from information_schema.processlist  where
-User not in ('event_scheduler', 'system user','yw', 'MONITOR', 'ADMIN') and
-DB not in ('mysql', 'sys', 'information_schema','performance_schema','test', 'infodba_schema', 'db_infobase')"""
+User not in ('event_scheduler', 'system user','yw', 'MONITOR', 'ADMIN','repl')
+and User!=SUBSTRING_INDEX(current_user(),'@',1)"""
             ],
             "force": False,
             "bk_cloud_id": kwargs["bk_cloud_id"],
@@ -51,8 +51,9 @@ DB not in ('mysql', 'sys', 'information_schema','performance_schema','test', 'in
         """
             )
         )
-        check_flag = False
+        check_slave_flag = False
         try:
+            self.log_info(rpc_info["cmds"][0])
             res = DRSApi.rpc(rpc_info)
             if res[0]["error_msg"]:
                 self.log_info("execute sql error {}".format(res[0]["error_msg"]))
@@ -60,13 +61,28 @@ DB not in ('mysql', 'sys', 'information_schema','performance_schema','test', 'in
             else:
                 if res[0]["cmd_results"][0]["table_data"] is None or len(res[0]["cmd_results"][0]["table_data"]) == 0:
                     #  flush tables 前先 stop slave
-                    rpc_info["cmds"] = ["stop slave"]
+                    rpc_info["cmds"] = ["show slave status"]
+                    self.log_info(rpc_info["cmds"][0])
                     res = DRSApi.rpc(rpc_info)
                     if res[0]["error_msg"]:
                         self.log_info("execute sql error {}".format(res[0]["error_msg"]))
                         return False
-                    time.sleep(10)
+                    # 说明是从节点
+                    if (
+                        res[0]["cmd_results"][0]["table_data"] is not None
+                        and len(res[0]["cmd_results"][0]["table_data"]) > 0
+                    ):
+                        self.log_info(rpc_info["cmds"][0])
+                        check_slave_flag = True
+                        rpc_info["cmds"] = ["stop slave"]
+                        res = DRSApi.rpc(rpc_info)
+                        if res[0]["error_msg"]:
+                            self.log_info("execute sql error {}".format(res[0]["error_msg"]))
+                            return False
+                        time.sleep(10)
+
                     rpc_info["cmds"] = ["flush tables"]
+                    self.log_info(rpc_info["cmds"][0])
                     res = DRSApi.rpc(rpc_info)
                     if res[0]["error_msg"]:
                         self.log_info("execute sql error {}".format(res[0]["error_msg"]))
@@ -76,6 +92,7 @@ DB not in ('mysql', 'sys', 'information_schema','performance_schema','test', 'in
                         """show open tables where `Database`  not in ('mysql', 'sys', 'information_schema',
     'performance_schema', 'test', 'infodba_schema', 'db_infobase')"""
                     ]
+                    self.log_info(rpc_info["cmds"][0])
                     res = DRSApi.rpc(rpc_info)
                     if res[0]["error_msg"]:
                         self.log_info("execute sql error {}".format(res[0]["error_msg"]))
@@ -84,7 +101,6 @@ DB not in ('mysql', 'sys', 'information_schema','performance_schema','test', 'in
                         res[0]["cmd_results"][0]["table_data"] is None
                         or len(res[0]["cmd_results"][0]["table_data"]) == 0
                     ):
-                        check_flag = True
                         return True
                     else:
                         self.log_error(
@@ -96,8 +112,9 @@ DB not in ('mysql', 'sys', 'information_schema','performance_schema','test', 'in
                     self.log_error(_("实例: {},存在链接 {}".format(instance, res[0]["cmd_results"][0]["table_data"])))
                     return False
         finally:
-            if not check_flag:
+            if check_slave_flag:
                 rpc_info["cmds"] = ["start slave"]
+                self.log_info(rpc_info["cmds"][0])
                 res = DRSApi.rpc(rpc_info)
                 if res[0]["error_msg"]:
                     self.log_info("execute sql error {}".format(res[0]["error_msg"]))

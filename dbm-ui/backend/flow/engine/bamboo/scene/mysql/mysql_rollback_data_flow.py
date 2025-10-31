@@ -33,6 +33,7 @@ from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow i
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_apply_flow import MySQLSingleApplyFlow
 from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
 from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
+from backend.flow.plugins.components.collections.mysql.mysql_check_processlist import MySQLCheckProcesslistComponent
 from backend.flow.plugins.components.collections.mysql.mysql_check_slave_delay import MySQLCheckSlaveDelayComponent
 from backend.flow.plugins.components.collections.mysql.mysql_rds_execute import MySQLExecuteRdsComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
@@ -227,27 +228,9 @@ class MySQLRollbackDataFlow(object):
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
             rollback_class = Cluster.objects.get(id=self.data["rollback_cluster_id"])
             storages = rollback_class.storageinstance_set.all()
+            check_connect_list = []
             rollback_pipeline_list = []
             change_master_pipeline_list = []
-            sub_pipeline.add_act(
-                act_name=_("屏蔽告警24小时"),
-                act_component_code=AddAlarmShieldComponent.code,
-                kwargs={
-                    "begin_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "end_time": (datetime.now() + timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S"),
-                    "description": cluster_class.immute_domain,
-                    "dimensions": [
-                        {
-                            "name": "instance_host",
-                            "values": [s.machine.ip for s in storages],
-                        },
-                        {
-                            "name": "instance_port",
-                            "values": [master.port],
-                        },
-                    ],
-                },
-            )
 
             for rollback_storage in storages:
                 #  todo 后续改版这里页面只需要指定backup_id,不需要传整个备份信息。这里兼容原本的。
@@ -279,6 +262,23 @@ class MySQLRollbackDataFlow(object):
                     "master_port": master.port,
                     "master_ip": master.machine.ip,
                 }
+
+                check_connect_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+                check_connect_pipeline.add_act(
+                    act_name=_("检查链接 {}").format(rollback_storage.ip_port),
+                    act_component_code=MySQLCheckProcesslistComponent.code,
+                    kwargs=asdict(
+                        ExecuteRdsKwargs(
+                            bk_cloud_id=cluster_class.bk_cloud_id,
+                            instance_ip=rollback_storage.machine.ip,
+                            instance_port=rollback_storage.port,
+                        )
+                    ),
+                )
+                check_connect_list.append(
+                    check_connect_pipeline.build_sub_process(sub_name=_("检查链接 {}".format(rollback_storage.ip_port)))
+                )
+
                 exec_act_kwargs = ExecActuatorKwargs(
                     bk_cloud_id=cluster_class.bk_cloud_id,
                     cluster_type=ClusterType.TenDBHA,
@@ -315,7 +315,7 @@ class MySQLRollbackDataFlow(object):
                             )
                         ),
                     )
-
+                #  全库表会回档这里设置停止从库
                 if self.data["all_database_rollback"]:
                     rollback_pipeline.add_act(
                         act_name=_("从库stop slave {}").format(rollback_storage.ip_port),
@@ -386,7 +386,26 @@ class MySQLRollbackDataFlow(object):
                             sub_name=_("恢复复制链 {}:{}".format(rollback_storage.machine.ip, rollback_storage.port))
                         )
                     )
-
+            sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=check_connect_list)
+            sub_pipeline.add_act(
+                act_name=_("屏蔽告警24小时"),
+                act_component_code=AddAlarmShieldComponent.code,
+                kwargs={
+                    "begin_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "end_time": (datetime.now() + timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S"),
+                    "description": cluster_class.immute_domain,
+                    "dimensions": [
+                        {
+                            "name": "instance_host",
+                            "values": [s.machine.ip for s in storages],
+                        },
+                        {
+                            "name": "instance_port",
+                            "values": [master.port],
+                        },
+                    ],
+                },
+            )
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=rollback_pipeline_list)
             if len(change_master_pipeline_list) > 0:
                 sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=change_master_pipeline_list)

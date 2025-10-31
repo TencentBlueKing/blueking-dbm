@@ -205,7 +205,7 @@ def mysql_restore_data_sub_flow(
             kwargs=asdict(exec_act_kwargs),
         )
         sub_pipeline.add_act(
-            act_name=_("检查主从复制链路"),
+            act_name=_("检查主从复制链路 {}".format(exec_act_kwargs.exec_ip)),
             act_component_code=MySQLCheckSlaveDelayComponent.code,
             kwargs=asdict(
                 CheckSlaveStatusKwargs(
@@ -423,7 +423,7 @@ def mysql_restore_master_slave_sub_flow(
     )
 
     sub_pipeline.add_act(
-        act_name=_("检查主从复制链路"),
+        act_name=_("检查主从复制链路 {}".format(exec_act_kwargs.exec_ip)),
         act_component_code=MySQLCheckSlaveDelayComponent.code,
         kwargs=asdict(
             CheckSlaveStatusKwargs(
@@ -768,7 +768,7 @@ def change_master_by_master_status(root_id: str, uid: str, cluster_info: dict):
         kwargs=asdict(exec_act_kwargs),
     )
     change_master_pipeline.add_act(
-        act_name=_("检查主从复制链路"),
+        act_name=_("检查主从复制链路 {}".format(exec_act_kwargs.exec_ip)),
         act_component_code=MySQLCheckSlaveDelayComponent.code,
         kwargs=asdict(
             CheckSlaveStatusKwargs(
@@ -933,7 +933,7 @@ def mysql_backup_restore_sub_flow(
             kwargs=asdict(exec_act_kwargs),
         )
         sub_pipeline.add_act(
-            act_name=_("检查主从复制链路"),
+            act_name=_("检查主从复制链路 {}".format(exec_act_kwargs.exec_ip)),
             act_component_code=MySQLCheckSlaveDelayComponent.code,
             kwargs=asdict(
                 CheckSlaveStatusKwargs(

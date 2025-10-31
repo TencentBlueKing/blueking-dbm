@@ -1481,7 +1481,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 "extend": {
                     "host": self.cluster["host"],
                     "port": self.cluster["port"],
-                    "backup_id": self.cluster["backup_id"],
+                    "backup_id": self.cluster["backup_id_for_restore"],
                     "role": TenDBClusterSpiderRole.SPIDER_MASTER.value,
                     "backup_type": MySQLBackupTypeEnum.LOGICAL.value,
                     "backup_gsd": ["grant"],
