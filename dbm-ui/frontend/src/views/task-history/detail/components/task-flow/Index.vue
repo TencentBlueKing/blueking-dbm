@@ -207,7 +207,7 @@
   };
 
   defineExpose<Exposes>({
-    checkAndInitCanvas: () => flowCanvasRef.value!.checkContainerInitCanvas(),
+    checkAndInitCanvas: () => flowCanvasRef.value?.checkContainerInitCanvas(),
     setTreeStatus: (status: string) => searchTreeRef.value!.setStatus(status),
   });
 </script>
