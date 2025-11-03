@@ -2,7 +2,6 @@
   <TableColumn
     col-key="cluster_ids"
     :filter="columnFilter?.['cluster_ids']"
-    fixed="left"
     title="ID"
     :width="80">
     <template #default="{ row }: { row: IRowData }">
