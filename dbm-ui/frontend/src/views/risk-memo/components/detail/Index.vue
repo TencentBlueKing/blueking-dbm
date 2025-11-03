@@ -371,10 +371,6 @@
     runGetRiskMemoDetail({ risk_id: props.riskId });
     emits('updateSuccess');
   };
-
-  onBeforeUnmount(() => {
-    pause();
-  });
 </script>
 <style lang="less">
   .risk-detail-info-main {
