@@ -307,6 +307,7 @@
     }
     let dbVersion = '';
     let charset = '';
+    let spiderVersion = '';
 
     if (confItems.length) {
       confItems.forEach((confItem) => {
@@ -314,8 +315,14 @@
           dbVersion = confItem.conf_value;
         } else if (confItem.conf_name === 'charset') {
           charset = confItem.conf_value;
+        } else if (dbType === DBTypes.TENDBCLUSTER && confItem.conf_name === 'spider_version') {
+          spiderVersion = confItem.conf_value;
         }
       });
+    }
+
+    if (dbType === DBTypes.TENDBCLUSTER) {
+      return [spiderVersion, dbVersion, charset].join('，');
     }
     return [dbVersion, charset].join('，');
   };
