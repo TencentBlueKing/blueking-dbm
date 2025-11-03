@@ -25,39 +25,30 @@
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
-      col-key="add_spider_role"
-      :title="t('扩容节点类型')">
+      col-key="switch_spider_role"
+      :title="t('节点类型')">
       <template #default="{ row: data }: { row: RowData }">
-        {{ data.add_spider_role === 'spider_slave' ? 'Spider Slave' : 'Spider Master' }}
+        {{ data.switch_spider_role === 'spider_slave' ? 'Spider Slave' : 'Spider Master' }}
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
-      col-key="current_spider_num"
-      :title="t('当前数量（台）')">
+      col-key="spider_old_ip_list"
+      :min-width="200"
+      :title="t('当前规格')">
       <template #default="{ row: data }: { row: RowData }">
-        {{ data.current_spider_num }}
-      </template>
-    </TicketInfoTableColumn>
-    <TicketInfoTableColumn
-      col-key="count"
-      :title="t('扩容数量（台）')">
-      <template #default="{ row: data }: { row: RowData }">
-        {{ data.resource_spec.spider_ip_list.count }}
-      </template>
-    </TicketInfoTableColumn>
-    <TicketInfoTableColumn
-      col-key="count"
-      :title="t('最终数量（台）')">
-      <template #default="{ row: data }: { row: RowData }">
-        {{ data.current_spider_num + data.resource_spec.spider_ip_list.count }}
+        <p
+          v-for="host in data.spider_old_ip_list"
+          :key="host.bk_host_id">
+          {{ host.ip }}（{{ host.spec.name }}）
+        </p>
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="spec_id"
       :min-width="120"
       :title="t('目标规格')">
-      <template #default="{ row }: { row: RowData }">
-        {{ ticketDetails.details.specs?.[row.resource_spec.spider_ip_list.spec_id]?.name || '--' }}
+      <template #default="{ row: data }: { row: RowData }">
+        {{ ticketDetails.details.specs?.[data.resource_spec[data.switch_spider_role].spec_id]?.name || '--' }}
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
@@ -65,9 +56,9 @@
       :min-width="200"
       :title="t('资源标签')">
       <template #default="{ row: data }: { row: RowData }">
-        <template v-if="data.resource_spec.spider_ip_list?.label_names?.length">
+        <template v-if="data.resource_spec[data.switch_spider_role]?.label_names?.length">
           <BkTag
-            v-for="item in data.resource_spec.spider_ip_list.label_names"
+            v-for="item in data.resource_spec[data.switch_spider_role].label_names"
             :key="item">
             {{ item }}
           </BkTag>
@@ -89,11 +80,11 @@
   import { TicketTypes } from '@common/const';
 
   interface Props {
-    ticketDetails: TicketModel<TendbCluster.ResourcePool.SpiderAddNodes>;
+    ticketDetails: TicketModel<TendbCluster.ResourcePool.SpiderConfUpDown>;
   }
 
   defineOptions({
-    name: TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES,
+    name: TicketTypes.TENDBCLUSTER_SPIDER_CONF_UP_DOWN,
     inheritAttrs: false,
   });
 

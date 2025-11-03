@@ -1,15 +1,15 @@
 <template>
   <EditableColumn
-    field="role"
-    :label="t('缩容节点类型')"
+    :append-rules="addCountRules"
+    field="count"
+    :label="t('扩容数量（台）')"
     :min-width="200"
     required>
     <template #headAppend>
       <BatchEditColumn
         v-model="showBatchEdit"
-        :data-list="nodeTypeOptions"
-        :title="t('缩容节点类型')"
-        type="select"
+        :title="t('扩容数量（台）')"
+        type="number-input"
         @change="handleBatchEditChange">
         <span
           v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
@@ -19,10 +19,11 @@
         </span>
       </BatchEditColumn>
     </template>
-    <EditableSelect
+    <EditableInput
       v-model="modelValue"
-      :input-search="false"
-      :list="nodeTypeOptions"
+      :max="max"
+      :min="1"
+      type="number"
       @change="handleChange" />
   </EditableColumn>
 </template>
@@ -31,10 +32,16 @@
 
   import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
+  interface Props {
+    max: number;
+  }
+
   interface Emits {
-    (e: 'batch-edit', value: string[]): void;
+    (e: 'batch-edit', value: string[], field: string): void;
     (e: 'change'): void;
   }
+
+  defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
@@ -42,14 +49,11 @@
 
   const { t } = useI18n();
 
-  const nodeTypeOptions = [
+  const addCountRules = [
     {
-      label: 'Spider Master',
-      value: 'spider_master',
-    },
-    {
-      label: 'Spider Slave',
-      value: 'spider_slave',
+      message: t('扩容数量必须大于0'),
+      trigger: 'change',
+      validator: (value: string) => Number(value) > 0,
     },
   ];
 
@@ -60,7 +64,7 @@
   };
 
   const handleBatchEditChange = (value: string[] | string) => {
-    emits('batch-edit', value as string[]);
+    emits('batch-edit', value as string[], 'count');
   };
 
   const handleChange = () => {
@@ -68,7 +72,7 @@
   };
 </script>
 
-<style lang="less">
+<style lang="less" scoped>
   .batch-edit-btn {
     font-size: 14px;
     color: #3a84ff;

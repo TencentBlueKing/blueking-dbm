@@ -107,6 +107,9 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES, t('缩容接入层'), {
       dbConsole: 'tendbCluster.toolbox.proxyScaleDown',
     }),
+    createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_CONF_UP_DOWN, t('Spider 升降配'), {
+      dbConsole: 'tendbCluster.toolbox.spiderConfUpDown',
+    }),
     createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES, t('替换接入层'), {
       dbConsole: 'tendbCluster.toolbox.switchNodes',
     }),

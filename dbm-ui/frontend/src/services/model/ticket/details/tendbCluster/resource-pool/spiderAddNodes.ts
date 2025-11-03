@@ -8,6 +8,7 @@ export interface SpiderAddNodes extends ResourcePoolDetailBase {
   infos: {
     add_spider_role: string;
     cluster_id: number;
+    current_spider_num: number;
     resource_spec: {
       spider_ip_list: {
         count: number;
