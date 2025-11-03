@@ -22,6 +22,9 @@ export const baseFilter = {
       attach: 'body',
       placement: 'bottom',
     },
+    props: {
+      placeholder: t('请输入 ID'),
+    },
     showConfirmAndReset: true,
   },
   create_at: {
@@ -87,14 +90,6 @@ export const baseFilter = {
     },
     showConfirmAndReset: true,
   },
-  domain: {
-    component: markRaw(MultipleInput),
-    popupProps: {
-      attach: 'body',
-      placement: 'bottom',
-    },
-    showConfirmAndReset: true,
-  },
   name: {
     component: markRaw(MultipleInput),
     popupProps: {
@@ -102,18 +97,11 @@ export const baseFilter = {
       placement: 'bottom',
     },
     props: {
-      placeholder: t('请输入集群标识（集群名称/别名）\n“集群标识（集群名称/别名）”  就是搜索字段的label'),
+      placeholder: t('请输入集群标识（集群名称/别名）'),
     },
     showConfirmAndReset: true,
   },
-  slave_domain: {
-    component: markRaw(MultipleInput),
-    popupProps: {
-      attach: 'body',
-      placement: 'bottom',
-    },
-    showConfirmAndReset: true,
-  },
+
   status: {
     component: markRaw(MultipleSelect),
     popupProps: {
