@@ -65,7 +65,7 @@
             <span
               v-overflow-tips.right
               class="text-overflow">
-              {{ t('监控策略') }}
+              {{ t('告警策略') }}
             </span>
           </BkMenuItem>
           <BkMenuItem
