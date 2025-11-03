@@ -590,6 +590,7 @@ class MongoDBActuatorActionEnum(StrStructuredEnum):
     ReplicasetStepDown = EnumField("replicaset_stepdown", _("replicaset_stepdown"))
     ClusterBalancer = EnumField("cluster_balancer", _("cluster_balancer"))
     MongodNodeHidden = EnumField("mongod_node_hidden", _("mongod_node_hidden"))
+    FixServiceStatus = EnumField("fix_service_status", _("fix_service_status"))
 
 
 class EsActuatorActionEnum(StrStructuredEnum):
