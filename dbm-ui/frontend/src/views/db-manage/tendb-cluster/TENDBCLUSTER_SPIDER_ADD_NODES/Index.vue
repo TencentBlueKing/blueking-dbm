@@ -12,22 +12,15 @@
 -->
 
 <template>
-  <SmartAction>
-    <BkAlert
-      class="mb-20"
-      closable
-      :title="t('扩容接入层：增加集群的Proxy数量')" />
-    <BatchInput
-      :config="batchInputConfig"
-      @change="handleBatchInput" />
-    <BkForm
-      class="mt-16 mb-20"
-      form-type="vertical"
-      :model="formData">
+  <SpiderWrapper>
+    <SmartAction>
+      <BatchInput
+        :config="batchInputConfig"
+        @change="handleBatchInput" />
       <EditableTable
         :key="tableKey"
         ref="table"
-        class="mb-20"
+        class="mt-16 mb-20"
         :model="formData.tableData">
         <EditableRow
           v-for="(item, index) in formData.tableData"
@@ -38,7 +31,34 @@
             @batch-edit="handleBatchEdit" />
           <RoleColumn
             v-model="item.role"
-            :cluster="item.cluster" />
+            v-model:role-count="item.current_spider_num"
+            :cluster="item.cluster"
+            @batch-edit="handleBatchEditColumn" />
+          <EditableColumn
+            field="current_spider_num"
+            :label="t('当前数量（台）')"
+            :min-width="150"
+            readonly>
+            <EditableBlock :placeholder="t('自动生成')">
+              {{ item.role && item.current_spider_num ? item.current_spider_num : '' }}
+            </EditableBlock>
+          </EditableColumn>
+          <AddCountColumn
+            v-model="item.add_spider_num"
+            :max="37 - item.cluster.mnt_count"
+            @batch-edit="handleBatchEditColumn" />
+          <EditableColumn
+            :label="t('最终数量（台）')"
+            :min-width="150"
+            readonly>
+            <EditableBlock :placeholder="t('自动生成')">
+              {{
+                item.add_spider_num && item.current_spider_num
+                  ? Number(item.add_spider_num) + item.current_spider_num
+                  : ''
+              }}
+            </EditableBlock>
+          </EditableColumn>
           <SpecColumn
             v-model="item.specId"
             :cluster-type="ClusterTypes.TENDBCLUSTER"
@@ -49,17 +69,6 @@
             required
             selectable
             @batch-edit="handleBatchEditColumn" />
-          <EditableColumn
-            field="count"
-            :label="t('扩容数量（台）')"
-            :min-width="150"
-            required>
-            <EditableInput
-              v-model="item.count"
-              :max="37 - item.cluster.mnt_count"
-              :min="1"
-              type="number" />
-          </EditableColumn>
           <ResourceTagColumn
             v-model="item.labels"
             @batch-edit="handleBatchEditColumn" />
@@ -77,27 +86,27 @@
         </EditableRow>
       </EditableTable>
       <TicketPayload v-model="formData.payload" />
-    </BkForm>
-    <template #action>
-      <BkButton
-        class="mr-8 w-88"
-        :loading="isSubmitting"
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('提交') }}
-      </BkButton>
-      <DbPopconfirm
-        :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="t('确认重置页面')">
+      <template #action>
         <BkButton
-          class="ml8 w-88"
-          :disabled="isSubmitting">
-          {{ t('重置') }}
+          class="mr-8 w-88"
+          :loading="isSubmitting"
+          theme="primary"
+          @click="handleSubmit">
+          {{ t('提交') }}
         </BkButton>
-      </DbPopconfirm>
-    </template>
-  </SmartAction>
+        <DbPopconfirm
+          :confirm-handler="handleReset"
+          :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+          :title="t('确认重置页面')">
+          <BkButton
+            class="ml8 w-88"
+            :disabled="isSubmitting">
+            {{ t('重置') }}
+          </BkButton>
+        </DbPopconfirm>
+      </template>
+    </SmartAction>
+  </SpiderWrapper>
 </template>
 <script lang="ts" setup>
   import { reactive, useTemplateRef } from 'vue';
@@ -119,15 +128,18 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+  import SpiderWrapper from '@views/db-manage/tendb-cluster/TENDBCLUSTER_SPIDER_ADD_NODES/components/SpiderWrapper.vue';
 
   import { random } from '@utils';
 
+  import AddCountColumn from './components/AddCountColumn.vue';
   import ClusterColumn from './components/ClusterColumn.vue';
   import RoleColumn from './components/RoleColumn.vue';
 
   interface RowData {
+    add_spider_num: string;
     cluster: ComponentProps<typeof ClusterColumn>['modelValue'];
-    count: string;
+    current_spider_num: number;
     labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     role: string;
     specId: number;
@@ -155,7 +167,7 @@
     },
     {
       case: '1',
-      key: 'count',
+      key: 'add_spider_num',
       label: t('扩容数量（台）'),
     },
     {
@@ -166,6 +178,7 @@
   ];
 
   const createTableRow = (data: DeepPartial<RowData> = {}) => ({
+    add_spider_num: data.add_spider_num || '',
     cluster: Object.assign(
       {
         bk_cloud_id: 0,
@@ -180,7 +193,7 @@
       },
       data.cluster,
     ),
-    count: data.count || '',
+    current_spider_num: data.current_spider_num || 0,
     labels: (data.labels || []) as RowData['labels'],
     role: data.role || '',
     specId: data.specId || 0,
@@ -204,10 +217,11 @@
         payload: createTickePayload(ticketDetail),
         tableData: details.infos.map((item) =>
           createTableRow({
+            add_spider_num: String(item.add_spider_num || item.resource_spec.spider_ip_list.count),
             cluster: {
               master_domain: details.clusters[item.cluster_id]?.immute_domain || '',
             },
-            count: String(item.resource_spec.spider_ip_list.count),
+            current_spider_num: item.current_spider_num,
             labels: (item.resource_spec.spider_ip_list.labels || []).map((item) => ({ id: Number(item) })),
             role: item.add_spider_role,
             specId: item.resource_spec.spider_ip_list.spec_id,
@@ -219,8 +233,10 @@
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     infos: {
+      add_spider_num: number;
       add_spider_role: string;
       cluster_id: number;
+      current_spider_num: number;
       resource_spec: {
         spider_ip_list: {
           count: number;
@@ -241,11 +257,13 @@
     createTicketRun({
       details: {
         infos: formData.tableData.map((item) => ({
+          add_spider_num: Number(item.add_spider_num),
           add_spider_role: item.role,
           cluster_id: item.cluster.id,
+          current_spider_num: item.current_spider_num,
           resource_spec: {
             spider_ip_list: {
-              count: Number(item.count),
+              count: Number(item.add_spider_num),
               label_names: item.labels.map((item) => item.value),
               labels: item.labels.map((item) => String(item.id)),
               spec_id: item.specId,
@@ -282,10 +300,10 @@
     const dataList = data.reduce<RowData[]>((acc, item) => {
       acc.push(
         createTableRow({
+          add_spider_num: item.add_spider_num,
           cluster: {
             master_domain: item.master_domain,
           },
-          count: item.count,
           labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
           role: (item.role as string).toLocaleLowerCase(),
           specId: item.spec_name,

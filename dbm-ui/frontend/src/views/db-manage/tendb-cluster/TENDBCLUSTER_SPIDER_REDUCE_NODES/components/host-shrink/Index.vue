@@ -12,6 +12,11 @@
 -->
 
 <template>
+  <div class="mt-16 mb-16">
+    <BatchInput
+      :config="batchInputConfig"
+      @change="handleBatchInput" />
+  </div>
   <EditableTable
     ref="table"
     class="mb-20"
@@ -21,13 +26,15 @@
       :key="index">
       <HostColumn
         v-model="item.spider_reduced_host"
+        :handle-row-merge="handleRowMerge"
         :selected="selected"
         @batch-edit="handleBatchEdit" />
       <EditableColumn
         field="spider_reduced_host.role"
         :label="t('缩容节点类型')"
         :min-width="200"
-        readonly>
+        readonly
+        :rowspan="item.same_role">
         <EditableBlock
           v-model="instanceRoleMap[item.spider_reduced_host.role as keyof typeof instanceRoleMap]"
           :placeholder="t('自动生成')" />
@@ -36,14 +43,16 @@
         field="spider_reduced_host.master_domain"
         :label="t('关联集群')"
         :min-width="200"
-        readonly>
+        readonly
+        :rowspan="item.same_cluster">
         <EditableBlock
           v-model="item.spider_reduced_host.master_domain"
           :placeholder="t('自动生成')" />
       </EditableColumn>
       <OperationColumn
         v-model:table-data="tableData"
-        :create-row-method="createTableRow" />
+        :create-row-method="createTableRow"
+        :handle-row-merge="handleRowMerge" />
     </EditableRow>
   </EditableTable>
 </template>
@@ -55,11 +64,15 @@
 
   import type { TendbCluster } from '@services/model/ticket/ticket';
 
-  import { messageError } from '@utils';
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+
+  import { messageError, random } from '@utils';
 
   import HostColumn, { type SelectorHost } from './components/HostColumn.vue';
 
   interface RowData {
+    same_cluster: number;
+    same_role: number;
     spider_reduced_host: ComponentProps<typeof HostColumn>['modelValue'];
   }
 
@@ -80,6 +93,12 @@
           }[];
         };
         reduce_spider_role: string;
+        spider_reduced_hosts: {
+          bk_biz_id: number;
+          bk_cloud_id: number;
+          bk_host_id: number;
+          ip: string;
+        }[];
       }[];
     }>;
     reset: () => void;
@@ -90,7 +109,17 @@
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
 
+  const batchInputConfig = [
+    {
+      case: '192.168.10.2',
+      key: 'ip',
+      label: t('目标主机'),
+    },
+  ];
+
   const createTableRow = (data = {} as DeepPartial<RowData>) => ({
+    same_cluster: data.same_cluster || 1,
+    same_role: data.same_role || 1,
     spider_reduced_host: Object.assign(
       {
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -105,6 +134,7 @@
     ),
   });
 
+  const tableKey = ref(random());
   const tableData = ref<RowData[]>([createTableRow()]);
   const selected = computed(() =>
     tableData.value.filter((item) => item.spider_reduced_host.ip).map((item) => item.spider_reduced_host),
@@ -112,24 +142,48 @@
   const selectedMap = computed(() =>
     Object.fromEntries(tableData.value.map((cur) => [cur.spider_reduced_host.ip, true])),
   );
-  // const rowSpan = computed(() =>
-  //   tableData.value.reduce<Record<string, number>>((acc, item) => {
-  //     if (item.spider_reduced_host.master_domain) {
-  //       Object.assign(acc, {
-  //         [item.spider_reduced_host.master_domain]: (acc[item.spider_reduced_host.master_domain] || 0) + 1,
-  //       });
-  //     }
-  //     return acc;
-  //   }, {}),
-  // );
 
-  /**
-   * 前端展示的值
-   * key 是集群带出的role
-   */
   const instanceRoleMap = {
     spider_master: 'Spider Master',
     spider_slave: 'Spider Slave',
+  };
+
+  // 具备完全相同的集群id列的行数组map
+  let sameClusterIdsRowsMap: Record<string, RowData[]> = {};
+  // 相同集群id，相同role的行数组map
+  let sameRoleRowsMap: Record<string, RowData[]> = {};
+
+  // 行合并
+  const handleRowMerge = () => {
+    // 接口都响应后再合并
+    const isRespsoned = tableData.value.every((item) => !!item.spider_reduced_host.cluster_id);
+    if (!isRespsoned) {
+      return;
+    }
+
+    const sortedData = _.sortBy(tableData.value, [
+      (item) => item.spider_reduced_host.cluster_id,
+      (item) => item.spider_reduced_host.role,
+    ]);
+
+    sameClusterIdsRowsMap = _.groupBy(sortedData, (item) => item.spider_reduced_host.cluster_id);
+    sameRoleRowsMap = _.groupBy(
+      sortedData,
+      (item) => `${item.spider_reduced_host.cluster_id}-${item.spider_reduced_host.role}`,
+    );
+
+    Object.values(sameClusterIdsRowsMap).forEach((list) => {
+      Object.assign(list[0], {
+        same_cluster: list.length,
+      });
+    });
+    Object.values(sameRoleRowsMap).forEach((list) => {
+      Object.assign(list[0], {
+        same_role: list.length,
+      });
+    });
+
+    tableData.value = sortedData;
   };
 
   watch(
@@ -171,6 +225,26 @@
     tableData.value = [...(tableData.value[0]!.spider_reduced_host.bk_host_id ? tableData.value : []), ...dataList];
   };
 
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) =>
+      createTableRow({
+        spider_reduced_host: {
+          ip: item.ip,
+        },
+      }),
+    );
+
+    if (isClear) {
+      tableKey.value = random();
+      tableData.value = [...dataList];
+    } else {
+      tableData.value = [...(tableData.value[0]!.spider_reduced_host.ip ? tableData.value : []), ...dataList];
+    }
+    setTimeout(() => {
+      tableRef.value?.validate();
+    }, 200);
+  };
+
   defineExpose<Exposes>({
     async getValue() {
       try {
@@ -181,14 +255,10 @@
           };
         }
 
-        /*
-         * 以cluster_id分组聚合
-         */
-        const groupByCluster = _.groupBy(tableData.value, (item) => item.spider_reduced_host.cluster_id);
         const infos: ServiceReturnType<Exposes['getValue']>['infos'] = [];
         // 校验角色是否一致
         let validateRole = true;
-        Object.entries(groupByCluster).forEach(([clusterId, items]) => {
+        Object.entries(sameClusterIdsRowsMap).forEach(([clusterId, items]) => {
           if (validateRole) {
             // 只要有一个同集群下角色不一致就不允许缩容
             validateRole = items.every((item) => item.spider_reduced_host.role === items[0]!.spider_reduced_host.role);
@@ -204,6 +274,12 @@
               })),
             },
             reduce_spider_role: items[0]!.spider_reduced_host.role,
+            spider_reduced_hosts: items.map((item) => ({
+              bk_biz_id: item.spider_reduced_host.bk_biz_id,
+              bk_cloud_id: item.spider_reduced_host.bk_cloud_id,
+              bk_host_id: item.spider_reduced_host.bk_host_id,
+              ip: item.spider_reduced_host.ip,
+            })),
           });
         });
         if (!validateRole) {

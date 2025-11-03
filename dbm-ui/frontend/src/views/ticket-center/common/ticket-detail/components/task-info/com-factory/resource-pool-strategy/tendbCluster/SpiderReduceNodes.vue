@@ -137,7 +137,7 @@
   });
 
   const rowspanAndColspan = ({ colIndex, rowIndex }: { colIndex: number; rowIndex: number }) => {
-    const spanItem = spanInfo.find((item) => colIndex === 2 && item.rowIndex === rowIndex);
+    const spanItem = spanInfo.find((item) => (colIndex === 2 || colIndex === 1) && item.rowIndex === rowIndex);
     if (spanItem) {
       return {
         rowspan: spanItem.rowspan,
