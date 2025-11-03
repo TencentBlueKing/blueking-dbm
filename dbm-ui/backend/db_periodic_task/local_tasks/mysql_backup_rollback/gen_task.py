@@ -255,18 +255,22 @@ def gen_rollback_task():
         logger.info(_("没有可用的资源，跳过回档任务生成"))
         return
     clusters = get_exercise_clusters(rs_count)
+
+    # 第一阶段：收集所有集群的备份信息
+    logger.info(_("开始收集 {} 个集群的备份信息").format(len(clusters)))
+    cluster_backup_info = []
+
+    # 先查询出已经回档过的备份ID，在查询时排除
+    exercised_backup_ids = set(
+        MySQLBackupRecoverTask.objects.filter(
+            task_status__in=[TaskStatus.COMMIT_SUCCESS, TaskStatus.RECOVER_SUCCESS]
+        ).values_list("backup_id", flat=True)
+    )
+
+    start_time, end_time = get_last_week_range()
+
     for cluster in clusters:
         # 注意：忽略检查已在 get_exercise_clusters 中完成，这里不需要重复检查
-        # 查询备份记录
-        start_time, end_time = get_last_week_range()
-
-        # 先查询出已经回档过的备份ID，直接在查询时排除
-        exercised_backup_ids = set(
-            MySQLBackupRecoverTask.objects.filter(
-                task_status__in=[TaskStatus.COMMIT_SUCCESS, TaskStatus.RECOVER_SUCCESS]
-            ).values_list("backup_id", flat=True)
-        )
-
         # 构建查询条件：基础条件
         base_conditions = Q(
             cluster_id=cluster.id,
@@ -281,23 +285,36 @@ def gen_rollback_task():
         # 最终条件：基础条件 AND 排除特殊角色
         conditions = base_conditions & exclude_special_roles
 
-        # 查询备份记录，直接排除已回档的备份ID
+        # 查询备份记录，直接排除已回档的备份ID，按时间排序取最新的
         backup_results = (
             MysqlBackupResult.objects.filter(conditions)
             .annotate(json_valid=Func(F("extra_fields"), function="JSON_VALID"))
             .filter(json_valid=1)
             .exclude(backup_id__in=exercised_backup_ids)
-            .order_by("backup_consistent_time")[:10]
+            .order_by("backup_consistent_time")[:10]  # 按时间排序，选择最旧的备份
         )
 
         if not backup_results.exists():
+            logger.info(_("集群 {} 没有可用的备份记录").format(cluster.immute_domain))
             continue
 
-        # 选择第一个备份记录生成回档任务
+        # 选择最新的备份记录
         backup_result = backup_results.first()
         if not backup_result:
-            logger.info("no backup record found")
+            logger.info(_("集群 {} 没有找到备份记录").format(cluster.immute_domain))
             continue
+
+        # 将集群、备份记录和备份大小存入列表
+        cluster_backup_info.append((cluster, backup_result, backup_result.total_filesize))
+
+    # 第二阶段：按备份文件大小降序排序
+    cluster_backup_info.sort(key=lambda x: x[2], reverse=True)
+    logger.info(_("已收集 {} 个集群的备份信息，按备份大小排序后开始生成任务").format(len(cluster_backup_info)))
+
+    # 第三阶段：按排序后的顺序生成回档任务
+    for cluster, backup_result, backup_size in cluster_backup_info:
+        backup_file_size_gb = bytes_to_gb(backup_size)
+        logger.info(_("开始处理集群 {} 的备份，备份大小: {:.2f} GB").format(cluster.immute_domain, backup_file_size_gb))
 
         # 格式化备份信息，保持与原有格式兼容
         backup_result.backup_consistent_time = backup_result.backup_consistent_time.isoformat()
@@ -312,7 +329,7 @@ def gen_rollback_task():
             tsk_backup_record["file_list"] = json.loads(backup_record["file_list"])
             tsk_backup_record["extra_fields"] = json.loads(backup_record["extra_fields"])
         except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse JSON fields: {e}, backup_record: {backup_record}")
+            logger.error(_("解析JSON字段失败: {}, 备份记录: {}").format(e, backup_record))
             continue
 
         # task 需要填充的字段
@@ -327,7 +344,7 @@ def gen_rollback_task():
         backup_type = backup_record.get("backup_type", "")
 
         # 打印备份信息
-        logger.info("exercise backup_record: {}".format(backup_record))
+        logger.info(_("演练备份记录: {}").format(backup_record))
         root_id = generate_root_id()
         task = MySQLBackupRecoverTask(
             bk_biz_id=backup_record["bk_biz_id"],
@@ -725,8 +742,8 @@ def _collect_valid_candidates(cluster_biz_map, target_tendbcluster, target_tendb
     no_backup_clusters = 0
 
     # 计算需要的最大集群数量（预留一些余量以防部分集群没有有效备份）
-    max_needed_tendbcluster = target_tendbcluster * 2  # 2倍余量
-    max_needed_tendbha = target_tendbha * 2  # 2倍余量
+    max_needed_tendbcluster = target_tendbcluster * 5  # 10倍余量
+    max_needed_tendbha = target_tendbha * 5  # 10倍余量
 
     # 统计待检查的集群总数
     total_candidate_clusters = sum(len(pq) for pq in cluster_biz_map.values())
