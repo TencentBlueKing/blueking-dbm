@@ -17,11 +17,12 @@
   // @label-width: 160px;
 
   .db-ticket-info-item {
-    flex: 1 0 50%;
     display: flex;
-    align-items: flex-start;
+    min-width: 0;
     min-height: 32px;
     line-height: 32px;
+    flex: 1 0 50%;
+    align-items: flex-start;
   }
 
   .db-ticket-info-item-label {

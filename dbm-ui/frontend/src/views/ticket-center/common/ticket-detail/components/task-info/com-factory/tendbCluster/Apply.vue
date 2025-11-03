@@ -64,7 +64,7 @@
     </InfoItem>
     <InfoItem
       :label="t('集群部署方案')"
-      style="width: 100%">
+      style="flex: 1 0 100%">
       <TicketInfoTable
         :data="[ticketDetails.details.resource_spec.backend_group.spec_info]"
         row-key="spec_name">
