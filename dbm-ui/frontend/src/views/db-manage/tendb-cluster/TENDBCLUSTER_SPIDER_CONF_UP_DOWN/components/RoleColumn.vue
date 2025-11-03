@@ -14,14 +14,14 @@
 <template>
   <EditableColumn
     field="role"
-    :label="t('扩容节点类型')"
+    :label="t('节点类型')"
     :min-width="150"
     required>
     <template #headAppend>
       <BatchEditColumn
         v-model="showBatchEdit"
         :data-list="defaultOptions"
-        :title="t('扩容节点类型')"
+        :title="t('节点类型')"
         type="select"
         @change="handleBatchEditChange">
         <span
@@ -63,7 +63,7 @@
     required: true,
   });
 
-  const roleCount = defineModel<number>('roleCount', {
+  const hostList = defineModel<TendbClusterModel['spider_master']>('host-list', {
     required: true,
   });
 
@@ -81,18 +81,8 @@
   ];
 
   const renderList = computed(() =>
-    defaultOptions.filter((item) => props.cluster[item.value as 'spider_master' | 'spider_slave'].length > 0),
+    defaultOptions.filter((item) => props.cluster[item.value as 'spider_master' | 'spider_slave']?.length > 0),
   );
-
-  watch(renderList, () => {
-    if (!modelValue.value) {
-      const role = renderList.value?.[0]?.value;
-      if (role) {
-        modelValue.value = role;
-        roleCount.value = props.cluster[role as keyof Props['cluster']].length;
-      }
-    }
-  });
 
   const showBatchEdit = ref(false);
 
@@ -104,8 +94,18 @@
     emits('batch-edit', value as string[], 'role');
   };
 
+  watch(renderList, () => {
+    if (!modelValue.value) {
+      const role = renderList.value?.[0]?.value;
+      if (role) {
+        modelValue.value = role;
+        hostList.value = props.cluster[role as keyof Props['cluster']];
+      }
+    }
+  });
+
   const handleChange = (role: string) => {
-    roleCount.value = props.cluster[role as keyof Props['cluster']].length;
+    hostList.value = props.cluster[role as keyof Props['cluster']];
   };
 </script>
 

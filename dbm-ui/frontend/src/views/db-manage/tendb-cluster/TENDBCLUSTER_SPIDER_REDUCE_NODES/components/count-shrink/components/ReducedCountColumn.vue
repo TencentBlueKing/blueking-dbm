@@ -21,7 +21,7 @@
     </template>
     <EditableInput
       v-model="modelValue"
-      :max="cluster.role === 'spider_master' ? cluster.master_count : cluster.slave_count"
+      :max="max"
       :min="0"
       type="number"
       @change="handleChange" />
@@ -33,11 +33,7 @@
   import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
   interface Props {
-    cluster: {
-      master_count: number;
-      role: string;
-      slave_count: number;
-    };
+    max: number;
   }
 
   interface Emits {
@@ -76,7 +72,7 @@
   };
 </script>
 
-<style lang="less">
+<style lang="less" scoped>
   .batch-edit-btn {
     font-size: 14px;
     color: #3a84ff;

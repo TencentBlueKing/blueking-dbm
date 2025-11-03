@@ -26,19 +26,11 @@
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
-      col-key="related_instance"
-      :min-width="150"
-      :title="t('关联实例')">
-      <template #default="{ row: data }: { row: RowData }">
-        {{ `${data.spider_old_ip_list[0].ip}:${data.spider_old_ip_list[0].port}` }}
-      </template>
-    </TicketInfoTableColumn>
-    <TicketInfoTableColumn
       col-key="switch_spider_role"
       :min-width="150"
       :title="t('实例角色')">
       <template #default="{ row: data }: { row: RowData }">
-        {{ data.switch_spider_role }}
+        {{ roleLabelMap[data.switch_spider_role] }}
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
@@ -97,6 +89,8 @@
 
   import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
 
+  type RowData = Props['ticketDetails']['details']['infos'][number];
+
   interface Props {
     ticketDetails: TicketModel<TendbCluster.ResourcePool.SpiderSwitchNodes>;
   }
@@ -110,5 +104,8 @@
 
   const { t } = useI18n();
 
-  type RowData = Props['ticketDetails']['details']['infos'][number];
+  const roleLabelMap = {
+    spider_master: 'Spider Master',
+    spider_slave: 'Spider Slave',
+  } as Record<string, string>;
 </script>

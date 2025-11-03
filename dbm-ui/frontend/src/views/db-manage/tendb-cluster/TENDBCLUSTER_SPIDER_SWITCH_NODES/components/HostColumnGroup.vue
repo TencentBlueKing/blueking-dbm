@@ -34,28 +34,20 @@
       @change="handleInputChange" />
   </EditableColumn>
   <EditableColumn
-    :label="t('关联实例')"
-    :loading="loading"
-    :min-width="150"
-    readonly>
-    <EditableBlock :placeholder="t('自动生成')">
-      {{ modelValue.instance_address }}
-    </EditableBlock>
-  </EditableColumn>
-  <EditableColumn
     :label="t('实例角色')"
     :loading="loading"
     :min-width="150"
     readonly>
     <EditableBlock :placeholder="t('自动生成')">
-      {{ modelValue.role }}
+      {{ roleLabelMap[modelValue.role] }}
     </EditableBlock>
   </EditableColumn>
   <EditableColumn
     :label="t('关联集群')"
     :loading="loading"
     :min-width="150"
-    readonly>
+    readonly
+    :rowspan="rowspan">
     <EditableBlock :placeholder="t('自动生成')">
       {{ modelValue.master_domain }}
     </EditableBlock>
@@ -71,6 +63,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import TendbclusterModel from '@services/model/tendbcluster/tendbcluster';
   import { checkInstance } from '@services/source/dbbase';
 
   import { ClusterTypes, DBTypes } from '@common/const';
@@ -80,10 +73,12 @@
 
   export type SelectorHost = IValue;
 
+  export type SpecConfig = TendbclusterModel['spider_master'][0]['spec_config'];
+
   interface Props {
-    selected: {
-      ip: string;
-    }[];
+    handleRowMerge: () => void;
+    rowspan: number;
+    selected: Array<typeof modelValue.value>;
   }
 
   type Emits = (e: 'batch-edit', list: IValue[]) => void;
@@ -103,13 +98,17 @@
     master_domain: string;
     port: number;
     role: string;
-    spec_id: number;
+    spec: SpecConfig;
   }>({
     required: true,
   });
 
   const { t } = useI18n();
 
+  const roleLabelMap = {
+    spider_master: 'Spider Master',
+    spider_slave: 'Spider Slave',
+  } as Record<string, string>;
   const showSelector = ref(false);
   const selectedHosts = computed<InstanceSelectorValues<IValue>>(() => ({
     SpiderHost: props.selected.map(
@@ -155,8 +154,11 @@
           master_domain: item.master_domain,
           port: item.port,
           role: item.role,
-          spec_id: item.spec_config.id,
+          spec: item.spec_config,
         };
+        setTimeout(() => {
+          props.handleRowMerge();
+        });
       }
     },
   });
@@ -181,7 +183,9 @@
       master_domain: '',
       port: 0,
       role: '',
-      spec_id: 0,
+      spec: {
+        id: 0,
+      } as SpecConfig,
     };
   };
 

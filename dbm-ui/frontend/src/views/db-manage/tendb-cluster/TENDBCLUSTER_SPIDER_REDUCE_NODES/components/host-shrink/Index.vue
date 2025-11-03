@@ -12,6 +12,11 @@
 -->
 
 <template>
+  <div class="mt-16 mb-16">
+    <BatchInput
+      :config="batchInputConfig"
+      @change="handleBatchInput" />
+  </div>
   <EditableTable
     ref="table"
     class="mb-20"
@@ -55,7 +60,9 @@
 
   import type { TendbCluster } from '@services/model/ticket/ticket';
 
-  import { messageError } from '@utils';
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+
+  import { messageError, random } from '@utils';
 
   import HostColumn, { type SelectorHost } from './components/HostColumn.vue';
 
@@ -90,6 +97,14 @@
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
 
+  const batchInputConfig = [
+    {
+      case: '192.168.10.2',
+      key: 'ip',
+      label: t('目标主机'),
+    },
+  ];
+
   const createTableRow = (data = {} as DeepPartial<RowData>) => ({
     spider_reduced_host: Object.assign(
       {
@@ -105,6 +120,7 @@
     ),
   });
 
+  const tableKey = ref(random());
   const tableData = ref<RowData[]>([createTableRow()]);
   const selected = computed(() =>
     tableData.value.filter((item) => item.spider_reduced_host.ip).map((item) => item.spider_reduced_host),
@@ -169,6 +185,26 @@
       return acc;
     }, []);
     tableData.value = [...(tableData.value[0]!.spider_reduced_host.bk_host_id ? tableData.value : []), ...dataList];
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) =>
+      createTableRow({
+        spider_reduced_host: {
+          ip: item.ip,
+        },
+      }),
+    );
+
+    if (isClear) {
+      tableKey.value = random();
+      tableData.value = [...dataList];
+    } else {
+      tableData.value = [...(tableData.value[0]!.spider_reduced_host.ip ? tableData.value : []), ...dataList];
+    }
+    setTimeout(() => {
+      tableRef.value?.validate();
+    }, 200);
   };
 
   defineExpose<Exposes>({
