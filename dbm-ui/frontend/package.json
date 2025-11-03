@@ -133,10 +133,12 @@
   },
   "overrides": {
     "@rolldown/pluginutils": "1.0.0-beta.31",
-    "oxlint-tsgolint": "0.0.0-10"
+    "oxlint-tsgolint": "0.0.0-10",
+    "@antv/g": "6.1.24"
   },
   "resolutions": {
     "@rolldown/pluginutils": "1.0.0-beta.31",
-    "oxlint-tsgolint": "0.0.0-10"
+    "oxlint-tsgolint": "0.0.0-10",
+    "@antv/g": "6.1.24"
   }
 }
