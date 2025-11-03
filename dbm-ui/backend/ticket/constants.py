@@ -494,6 +494,8 @@ class TicketType(StrStructuredEnum):
     REDIS_CLUSTER_ROLLBACK_DATA_COPY = TicketEnumField("REDIS_CLUSTER_ROLLBACK_DATA_COPY", _("Redis 构造实例数据回写"),
                                                        _("数据构造"))  # noqa
     REDIS_DATACOPY_CHECK_REPAIR = TicketEnumField("REDIS_DATACOPY_CHECK_REPAIR", _("Redis 数据校验与修复"))
+    REDIS_SHARD_ADD = TicketEnumField("REDIS_SHARD_ADD", _("Redis 增加分片数"), _("集群维护"))
+    REDIS_SHARD_REDUCE = TicketEnumField("REDIS_SHARD_REDUCE", _("Redis 减少分片数"), _("集群维护"))
     REDIS_CLUSTER_ADD_SLAVE = TicketEnumField("REDIS_CLUSTER_ADD_SLAVE", _("Redis 重建从库"), _("集群维护"))
     REDIS_DTS_ONLINE_SWITCH = TicketEnumField("REDIS_DTS_ONLINE_SWITCH", _("Redis DTS在线切换"), register_iam=False)
     REDIS_TENDIS_META_MITRATE = TicketEnumField("REDIS_TENDIS_META_MITRATE", _("Redis 数据迁移"), register_iam=False)
