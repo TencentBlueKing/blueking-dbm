@@ -1,10 +1,12 @@
+import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
+
 import type { ResourcePoolDetailBase } from '../../common';
 
 /**
- *  TenDB Cluster 替换接入层
+ *  TenDB Cluster 接入层升降配
  */
 
-export interface SpiderSwitchNodes extends ResourcePoolDetailBase {
+export interface SpiderConfUpDown extends ResourcePoolDetailBase {
   infos: {
     cluster_id: number;
     old_nodes: {
@@ -26,9 +28,10 @@ export interface SpiderSwitchNodes extends ResourcePoolDetailBase {
       bk_cloud_id: number;
       bk_host_id: number;
       ip: string;
-      port: number;
+      spec: TendbClusterModel['spider_master'][0]['spec_config'];
     }[];
     switch_spider_role: string;
   }[];
+  ip_source: 'resource_pool';
   is_safe: boolean;
 }

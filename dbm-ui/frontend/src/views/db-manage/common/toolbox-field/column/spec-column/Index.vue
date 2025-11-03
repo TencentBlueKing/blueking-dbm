@@ -57,7 +57,7 @@
       <template #option="{ item }">
         <div
           v-bk-tooltips="{
-            content: t('规格是集群已存在的'),
+            content: t('请选择与当前不同的规格'),
             disabled: !item.disabled,
             placement: 'right',
           }"

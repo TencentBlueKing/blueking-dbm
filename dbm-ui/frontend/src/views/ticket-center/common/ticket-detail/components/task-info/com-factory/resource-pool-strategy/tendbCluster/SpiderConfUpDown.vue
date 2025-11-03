@@ -14,43 +14,41 @@
 <template>
   <TicketInfoTable
     :data="ticketDetails.details.infos"
-    ellipsis
     row-key="cluster_id">
     <TicketInfoTableColumn
       col-key="cluster_id"
-      :get-copy-value="(row: RowData) => row.spider_old_ip_list[0].ip"
-      :min-width="150"
-      :title="t('目标主机')">
-      <template #default="{ row: data }: { row: RowData }">
-        <p
-          v-for="item in data.spider_old_ip_list"
-          :key="item.ip">
-          {{ item.ip }}
-        </p>
-      </template>
-    </TicketInfoTableColumn>
-    <TicketInfoTableColumn
-      col-key="switch_spider_role"
-      :min-width="150"
-      :title="t('实例角色')">
-      <template #default="{ row: data }: { row: RowData }">
-        {{ roleLabelMap[data.switch_spider_role] }}
-      </template>
-    </TicketInfoTableColumn>
-    <TicketInfoTableColumn
-      col-key="immute_domain"
-      :min-width="150"
-      :title="t('关联集群')">
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
+      :min-width="200"
+      :title="t('目标集群')">
       <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
-      col-key="spec_id"
-      :min-width="150"
-      :title="t('规格')">
+      col-key="switch_spider_role"
+      :title="t('节点类型')">
       <template #default="{ row: data }: { row: RowData }">
-        {{ ticketDetails.details.specs[data.resource_spec[data.switch_spider_role]?.spec_id]?.name || '--' }}
+        {{ data.switch_spider_role === 'spider_slave' ? 'Spider Slave' : 'Spider Master' }}
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="spider_old_ip_list"
+      :min-width="200"
+      :title="t('当前规格')">
+      <template #default="{ row: data }: { row: RowData }">
+        <p
+          v-for="host in data.spider_old_ip_list"
+          :key="host.bk_host_id">
+          {{ host.ip }}（{{ host.spec.name }}）
+        </p>
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="spec_id"
+      :min-width="120"
+      :title="t('目标规格')">
+      <template #default="{ row: data }: { row: RowData }">
+        {{ ticketDetails.details.specs?.[data.resource_spec[data.switch_spider_role].spec_id]?.name || '--' }}
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
@@ -60,7 +58,7 @@
       <template #default="{ row: data }: { row: RowData }">
         <template v-if="data.resource_spec[data.switch_spider_role]?.label_names?.length">
           <BkTag
-            v-for="item in data.resource_spec.new_slave.label_names"
+            v-for="item in data.resource_spec[data.switch_spider_role].label_names"
             :key="item">
             {{ item }}
           </BkTag>
@@ -73,11 +71,6 @@
       </template>
     </TicketInfoTableColumn>
   </TicketInfoTable>
-  <InfoList>
-    <InfoItem :label="t('检查业务连接')">
-      {{ ticketDetails.details.is_safe ? t('是') : t('否') }}
-    </InfoItem>
-  </InfoList>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -86,16 +79,12 @@
 
   import { TicketTypes } from '@common/const';
 
-  import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
-
-  type RowData = Props['ticketDetails']['details']['infos'][number];
-
   interface Props {
-    ticketDetails: TicketModel<TendbCluster.ResourcePool.SpiderSwitchNodes>;
+    ticketDetails: TicketModel<TendbCluster.ResourcePool.SpiderConfUpDown>;
   }
 
   defineOptions({
-    name: TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES,
+    name: TicketTypes.TENDBCLUSTER_SPIDER_CONF_UP_DOWN,
     inheritAttrs: false,
   });
 
@@ -103,8 +92,5 @@
 
   const { t } = useI18n();
 
-  const roleLabelMap = {
-    spider_master: 'Spider Master',
-    spider_slave: 'Spider Slave',
-  } as Record<string, string>;
+  type RowData = Props['ticketDetails']['details']['infos'][number];
 </script>

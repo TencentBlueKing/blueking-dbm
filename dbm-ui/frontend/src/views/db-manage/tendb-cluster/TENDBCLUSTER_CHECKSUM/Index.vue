@@ -222,7 +222,7 @@
 
   const batchInputConfig = [
     {
-      case: 'tendbha.test.dba.db',
+      case: 'tendbcluster.test.dba.db',
       key: 'master_domain',
       label: t('目标集群'),
     },

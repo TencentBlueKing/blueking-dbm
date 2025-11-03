@@ -32,18 +32,32 @@
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
+      col-key="current_spider_num"
+      :title="t('当前数量（台）')">
+      <template #default="{ row: data }: { row: RowData }">
+        {{ data.current_spider_num }}
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="add_spider_num"
+      :title="t('扩容数量（台）')">
+      <template #default="{ row: data }: { row: RowData }">
+        {{ data.add_spider_num || data.resource_spec.spider_ip_list.count }}
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="count"
+      :title="t('最终数量（台）')">
+      <template #default="{ row: data }: { row: RowData }">
+        {{ data.current_spider_num + (data.add_spider_num || data.resource_spec.spider_ip_list.count) }}
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="spec_id"
       :min-width="120"
       :title="t('规格')">
       <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.specs?.[data.resource_spec.spider_ip_list.spec_id]?.name || '--' }}
-      </template>
-    </TicketInfoTableColumn>
-    <TicketInfoTableColumn
-      col-key="count"
-      :title="t('扩容数量')">
-      <template #default="{ row: data }: { row: RowData }">
-        {{ data.resource_spec.spider_ip_list.count }}
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
