@@ -18,7 +18,7 @@ from django.utils.translation import gettext_lazy as _
 
 from backend.configuration.constants import DBType
 from backend.configuration.models import DBAdministrator
-from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
+from backend.db_meta.enums import ClusterPhase, ClusterType, InstanceRole, InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.db_report.enums import MetaCheckSubType, ReportStateType
 from backend.ticket.constants import TICKET_RUNNING_STATUS_SET, TicketType
@@ -62,7 +62,7 @@ def check_redis_instance():
     # 遍历集群
     query = Q(cluster_type__in=cluster_types)
     for c in Cluster.objects.filter(query):
-        logger.info("meta_check: start by {}".format(c))
+        logger.info("instance_check: start by {}".format(c))
         if check_ignore(c):
             continue
 
@@ -235,6 +235,11 @@ def check_cluster_instance_status(cluster: Cluster, creator: str = "admin") -> b
 
 
 def check_ignore(cluster) -> bool:
+    if cluster.phase != ClusterPhase.ONLINE.value:
+        logger.info(
+            f"instance_check: will ignore cluster {cluster}, " f"cluster phase is {cluster.phase} (not online)"
+        )
+        return True
     ignore_tickets = [
         TicketType.REDIS_INSTANCE_CLOSE.value,
         TicketType.REDIS_PROXY_CLOSE.value,
@@ -247,7 +252,7 @@ def check_ignore(cluster) -> bool:
         ticket__status__in=TICKET_RUNNING_STATUS_SET,
         cluster_id=cluster.id,
     ).exists():
-        logger.info("meta_check: will ignore cluster {} , 4 it has destory label".format(cluster))
+        logger.info("instance_check: will ignore cluster {} , 4 it has destory label".format(cluster))
         return True
     return False
 
@@ -305,4 +310,4 @@ def create_cluster_normal_report(c, report_type, creator="admin"):
         state=ReportStateType.NORMAL,
         creator=creator,
     )
-    logger.info("meta_check: cluster {} passed".format(c.immute_domain))
+    logger.info("instance_check: cluster {} passed".format(c.immute_domain))

@@ -20,7 +20,7 @@ from django.utils.translation import gettext_lazy as _
 
 from backend.configuration.constants import AffinityEnum, DBType
 from backend.configuration.models import DBAdministrator
-from backend.db_meta.enums import ClusterType, InstanceRole, MachineType
+from backend.db_meta.enums import ClusterPhase, ClusterType, InstanceRole, MachineType
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_report.enums import MetaCheckSubType, ReportStateType
 from backend.ticket.constants import TICKET_RUNNING_STATUS_SET, TicketType
@@ -160,8 +160,13 @@ class RedisAffinityChecker:
 
         check_results = []
 
+        # Skip proxy check if cluster is RedisInstance type or has directmode label
+        skip_proxy_check = cluster.cluster_type == ClusterType.RedisInstance.value or self._is_cluster_directmode(
+            cluster
+        )
+
         # For proxies, we check the stats of their locations
-        if cluster.cluster_type != ClusterType.RedisInstance.value:
+        if not skip_proxy_check:
             proxy_instances = cluster.proxyinstance_set.filter()
             proxy_result = self._validate_proxies_affinity(proxy_instances, affinity_level)
             proxy_result["result_type"] = RedisAffinityChecker.PROXY_DISTRIBUTION_CHECK
@@ -177,7 +182,7 @@ class RedisAffinityChecker:
             check_results.append(result)
 
         # Check proxy-master co-location
-        if cluster.cluster_type != ClusterType.RedisInstance.value:
+        if not skip_proxy_check:
             proxy_instances = cluster.proxyinstance_set.filter()
             colocation_result = self._validate_proxies_masters_location(proxy_instances, master_instances)
             colocation_result["result_type"] = RedisAffinityChecker.PROXY_MASTER_COLOCATION_CHECK
@@ -194,16 +199,37 @@ class RedisAffinityChecker:
 
     def _should_ignore_cluster(self, cluster: Cluster) -> bool:
         """
-        Check if cluster should be ignored (being destroyed or disabled)
+        Check if cluster should be ignored (being destroyed, disabled, or has active operations)
         """
+        if cluster.phase != ClusterPhase.ONLINE.value:
+            logger.info(
+                f"affinity_check: will ignore cluster {cluster.immute_domain}, "
+                f"cluster phase is {cluster.phase} (not online)"
+            )
+            return True
+
         if ClusterOperateRecord.objects.filter(
             ticket__ticket_type__in=self._ignore_tickets,
             ticket__status__in=TICKET_RUNNING_STATUS_SET,
             cluster_id=cluster.id,
         ).exists():
-            logger.info(f"affinity_check: will ignore cluster {cluster}, it has active destroy/disable ticket")
+            logger.info(
+                f"affinity_check: will ignore cluster {cluster.immute_domain}, it has active destroy/disable ticket"
+            )
             return True
+
         return False
+
+    @classmethod
+    def _is_cluster_directmode(cls, cluster: Cluster) -> bool:
+        """
+        Check if cluster has directmode label set to true
+        """
+        tags = {tag.key: tag.value for tag in cluster.tags.all()}
+        is_directmode = tags.get("directmode", "").lower() == "true"
+        if is_directmode:
+            logger.info(f"affinity_check: cluster {cluster.immute_domain} has directmode=true, will skip proxy checks")
+        return is_directmode
 
     @classmethod
     def _validate_proxies_affinity(cls, proxy_instances, affinity_level: AffinityEnum) -> Dict[str, any]:
@@ -243,7 +269,7 @@ class RedisAffinityChecker:
                 msg = cls._check_proxies_cross_rack(subzones_racks_map, subzones_machines_map, subzones_ips_map)
 
         if msg:
-            result["state"] = ReportStateType.ABNORMAL.value
+            result["state"] = ReportStateType.WARNING.value
             result["msg"] = msg
 
         return result
@@ -489,7 +515,7 @@ class RedisAffinityChecker:
 
             violation_msg = "; ".join(violation_details)
 
-            result["state"] = ReportStateType.ABNORMAL.value
+            result["state"] = ReportStateType.WARNING.value
             result["msg"] = _("Affinity violation: {} master(s) co-located with proxies: {}").format(
                 len(violations), violation_msg
             )
