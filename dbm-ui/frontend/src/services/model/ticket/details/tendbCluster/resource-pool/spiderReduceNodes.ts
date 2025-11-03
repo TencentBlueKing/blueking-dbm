@@ -7,6 +7,12 @@ import type { ResourcePoolDetailBase } from '../../common';
 export interface SpiderReduceNodes extends ResourcePoolDetailBase {
   infos: {
     cluster_id: number;
+    spider_reduced_hosts: {
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      ip: string;
+    }[];
     old_nodes: {
       spider_reduced_hosts: {
         bk_biz_id: number;
