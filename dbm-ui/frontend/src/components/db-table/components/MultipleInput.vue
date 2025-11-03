@@ -8,6 +8,7 @@
         maxRows: 100,
       }"
       clearable
+      :placeholder="placeholder"
       :resize="false"
       type="textarea"
       @input="handleInput" />
@@ -24,6 +25,7 @@
   import { useI18n } from 'vue-i18n';
 
   export interface Props {
+    placeholder?: string;
     value?: string;
   }
   type Emits = (e: 'change', value: string) => void;

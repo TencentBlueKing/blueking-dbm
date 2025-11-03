@@ -12,15 +12,13 @@
         'is-active': isActive,
       }"
       role="table-cell-operation">
-      <AuthButton
+      <AuthTemplate
         :action-id="actionId"
         :permission="checkEditPermission(data)"
         :resource="data.id"
-        text
-        theme="primary"
         @click="handleShowEdit">
         <DbIcon type="edit" />
-      </AuthButton>
+      </AuthTemplate>
     </div>
     <template #content>
       <div style="margin-bottom: 8px; font-size: 16px; font-weight: bold">
@@ -133,8 +131,12 @@
   .cluster-alias-name-edit-btn {
     display: inline-block;
     padding-left: 4px;
-    color: #3a84ff;
+    color: #979ba5;
     cursor: pointer;
+
+    &:hover {
+      color: #3a84ff;
+    }
 
     &.is-active {
       display: inline-block !important;

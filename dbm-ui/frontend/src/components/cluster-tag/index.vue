@@ -12,17 +12,15 @@
           <template
             v-if="index === 0"
             #append>
-            <AuthButton
+            <AuthTemplate
               :action-id="actionId"
               class="edit-main"
               :permission="checkEditPermission(data)"
               :resource="data.id"
               role="table-cell-operation"
-              text
-              theme="primary"
               @click="handleOpenAddTag">
               <DbIcon type="edit" />
-            </AuthButton>
+            </AuthTemplate>
           </template>
         </TextOverflowLayout>
         <template v-if="isShowMore">
@@ -40,18 +38,16 @@
         <RenderTagOverflow :data="horizontalTagList" />
       </div>
     </template>
-    <AuthButton
+    <AuthTemplate
       v-if="!isVertical || (isVertical && !totalList.length)"
       :action-id="actionId"
       class="edit-main"
       :permission="checkEditPermission(data)"
       :resource="data.id"
       role="table-cell-operation"
-      text
-      theme="primary"
       @click="handleOpenAddTag">
       <DbIcon type="edit" />
-    </AuthButton>
+    </AuthTemplate>
   </div>
   <ClusterAddTag
     v-model:is-show="isShowAddTag"
@@ -139,7 +135,13 @@
 
     .edit-main {
       display: none;
-      margin-left: 8px;
+      margin-left: 4px;
+      color: #979ba5;
+      cursor: pointer;
+
+      &:hover {
+        color: #3a84ff;
+      }
     }
   }
 </style>

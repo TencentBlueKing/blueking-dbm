@@ -38,9 +38,9 @@
   const parseCascaderValues = (item: IValue) => {
     const parseValue = (value: string) => {
       // important: 优化分割符
-      const splitCode = '=';
+      const splitCode = '#';
       if (value.includes(splitCode)) {
-        return value.split('=') as [string, string];
+        return value.split(splitCode) as [string, string];
       }
       return [item.id, value] as [string, string];
     };

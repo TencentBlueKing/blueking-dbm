@@ -25,6 +25,8 @@
 
   .t-table__header {
     th {
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
       border-bottom: 1px solid var(--td-component-border);
 
       &:hover {
@@ -43,6 +45,16 @@
 
   .t-table__resize-line {
     border-left-color: #3a84ff;
+
+    &::after {
+      position: absolute;
+      top: 0;
+      left: -3px;
+      width: 5px;
+      height: 40px;
+      background: #3a84ff;
+      content: '';
+    }
   }
 
   .column-settings-icon {

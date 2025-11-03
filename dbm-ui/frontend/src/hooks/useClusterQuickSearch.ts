@@ -92,14 +92,14 @@ export const useClusterQuickSearch = (cluster_type: ClusterTypes | ClusterTypes[
             }
             keyValueMap[item.key].push({
               label: item.value,
-              value: `tag_ids=${item.id}`,
+              value: `tag_ids#${item.id}`,
             });
           });
 
           return Object.keys(keyValueMap).map((tagKey) => ({
             children: keyValueMap[tagKey],
             label: tagKey,
-            value: `tag_keys=${tagKey}`,
+            value: `tag_keys#${tagKey}`,
           }));
         }),
       type: 'multiple-cascader',
@@ -107,8 +107,8 @@ export const useClusterQuickSearch = (cluster_type: ClusterTypes | ClusterTypes[
     {
       description: t('支持模糊搜索'),
       id: 'name',
-      name: t('别名'),
-      type: 'multiple-input',
+      name: t('集群标识（集群名称 / 别名）'),
+      type: 'input',
       validator: (value) => {
         // 排除IP和IP:Port和域名和域名:Port
         return !ipPort.test(value) && !ipv4.test(value) && !domainRegex.test(value) && !domainPort.test(value);
