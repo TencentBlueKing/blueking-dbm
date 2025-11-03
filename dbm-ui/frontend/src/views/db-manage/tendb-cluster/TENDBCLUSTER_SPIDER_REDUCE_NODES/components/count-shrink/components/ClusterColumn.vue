@@ -71,9 +71,12 @@
     id: number;
     master_count: number;
     master_domain: string;
-    role: string;
     slave_count: number;
   }>({
+    required: true,
+  });
+
+  const role = defineModel<string>('role', {
     required: true,
   });
 
@@ -141,9 +144,9 @@
           id: item.id,
           master_count: item.spider_master.length,
           master_domain: item.master_domain,
-          role: item.spider_slave.length ? 'spider_slave' : 'spider_master',
           slave_count: item.spider_slave.length,
         };
+        role.value = item.spider_slave.length ? 'spider_slave' : 'spider_master';
       }
     },
   });
@@ -157,9 +160,9 @@
       id: 0,
       master_count: 0,
       master_domain: value,
-      role: '',
       slave_count: 0,
     };
+    role.value = '';
   };
 
   const handleSelectorChange = (selected: Record<string, TendbClusterModel[]>) => {

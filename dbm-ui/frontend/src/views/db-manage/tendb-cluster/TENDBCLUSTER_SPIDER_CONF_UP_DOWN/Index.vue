@@ -25,38 +25,51 @@
         <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
-          <HostColumn
-            v-model="item.host"
-            :handle-row-merge="handleRowMerge"
-            :role-rowspan="item.same_role"
-            :rowspan="item.same_cluster"
+          <ClusterColumn
+            v-model="item.cluster"
+            allow-repeat
             :selected="selected"
-            @batch-edit="handleBatchEditCluster" />
+            @batch-edit="handleBatchEdit" />
+          <RoleColumn
+            v-model="item.role"
+            v-model:host-list="item.hostList"
+            :cluster="item.cluster"
+            @batch-edit="handleBatchEditColumn" />
+          <EditableColumn
+            :label="t('当前规格')"
+            :min-width="200"
+            readonly>
+            <EditableBlock :placeholder="t('自动生成')">
+              <p
+                v-for="host in item.hostList"
+                :key="host.bk_host_id">
+                {{ host.ip }}（{{ host.spec_config.name }}）
+              </p>
+            </EditableBlock>
+          </EditableColumn>
           <SpecColumn
-            v-model="item.host.spec.id"
+            v-model="item.specId"
             :cluster-type="ClusterTypes.TENDBCLUSTER"
-            field="host.spec.id"
+            :current-spec-id-list="item.hostList.map((item) => item.spec_config.id)"
+            disabled-current-spec
             :machine-type="MachineTypes.TENDBCLUSTER_PROXY"
             required
-            :rowspan="item.same_spec" />
+            selectable
+            @batch-edit="handleBatchEditColumn" />
           <ResourceTagColumn
             v-model="item.labels"
-            :rowspan="item.same_cluster"
             @batch-edit="handleBatchEditColumn" />
           <AvailableResourceColumn
             :params="{
-              city: item.host.bk_idc_city_name,
-              subzones: item.host.bk_sub_zone,
+              city: item.cluster.region,
               for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
-              spec_id: item.host.spec.id,
+              spec_id: item.specId,
               labels: item.labels.map((item) => item.id).join(','),
-            }"
-            :rowspan="item.same_cluster" />
+            }" />
           <OperationColumn
             v-model:table-data="formData.tableData"
-            :create-row-method="createTableRow"
-            :handle-row-merge="handleRowMerge" />
+            :create-row-method="createTableRow" />
         </EditableRow>
       </EditableTable>
       <BkFormItem>
@@ -95,11 +108,11 @@
   </SpiderWrapper>
 </template>
 <script lang="ts" setup>
-  import _ from 'lodash';
   import { reactive, useTemplateRef } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
+  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import type { TendbCluster } from '@services/model/ticket/ticket';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
@@ -114,30 +127,40 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+  import ClusterColumn from '@views/db-manage/tendb-cluster/common/toolbox-field/cluster-column/Index.vue';
   import SpiderWrapper from '@views/db-manage/tendb-cluster/TENDBCLUSTER_SPIDER_ADD_NODES/components/SpiderWrapper.vue';
 
-  import { messageError, random } from '@utils';
+  import { random } from '@utils';
 
-  import HostColumn, { type SelectorHost, type SpecConfig } from './components/HostColumnGroup.vue';
+  import RoleColumn from './components/RoleColumn.vue';
 
   interface RowData {
-    host: ComponentProps<typeof HostColumn>['modelValue'];
+    cluster: ComponentProps<typeof ClusterColumn>['modelValue'];
+    hostList: TendbClusterModel['spider_master'];
     labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
-    same_cluster: number;
-    same_role: number;
-    same_spec: number;
+    role: string;
+    specId: number;
   }
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
-
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const batchInputConfig = [
     {
-      case: '192.168.10.2',
-      key: 'ip',
-      label: t('目标主机'),
+      case: 'spider.tendb-test.1.db',
+      key: 'master_domain',
+      label: t('目标集群'),
+    },
+    {
+      case: 'spider_master',
+      key: 'role',
+      label: t('节点类型'),
+    },
+    {
+      case: '通用proxy配置',
+      key: 'spec_name',
+      label: t('目标规格'),
     },
     {
       case: '标签1,标签2',
@@ -147,28 +170,20 @@
   ];
 
   const createTableRow = (data: DeepPartial<RowData> = {}) => ({
-    host: Object.assign(
+    cluster: Object.assign(
       {
-        bk_cloud_id: 0,
-        bk_host_id: 0,
-        bk_idc_city_name: '',
-        bk_sub_zone: '',
-        cluster_id: 0,
-        instance_address: '',
-        ip: '',
+        cluster_type: '',
+        id: 0,
         master_domain: '',
-        port: 0,
-        role: '',
-        spec: {
-          id: 0,
-        } as SpecConfig,
-      },
-      data.host,
+        spider_master: [] as TendbClusterModel['spider_master'],
+        spider_slave: [] as TendbClusterModel['spider_slave'],
+      } as unknown as TendbClusterModel,
+      data.cluster,
     ),
+    hostList: (data.hostList || []) as RowData['hostList'],
     labels: (data.labels || []) as RowData['labels'],
-    same_cluster: data.same_cluster || 1,
-    same_role: data.same_role || 1,
-    same_spec: data.same_spec || 1,
+    role: data.role || '',
+    specId: data.specId || 0,
   });
 
   const defaultData = () => ({
@@ -180,63 +195,30 @@
   const formData = reactive(defaultData());
   const tableKey = ref(random());
 
-  const selected = computed(() => formData.tableData.filter((item) => item.host.bk_host_id).map((item) => item.host));
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
+  const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
+  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
-  // 具备完全相同的集群id列的行数组map
-  let sameClusterIdsRowsMap: Record<string, RowData[]> = {};
-  // 相同集群id，相同role的行数组map
-  let sameRoleRowsMap: Record<string, RowData[]> = {};
-
-  // 行合并
-  const handleRowMerge = () => {
-    // 接口都响应后再合并
-    const isRespsoned = formData.tableData.every((item) => !!item.host.cluster_id);
-    if (!isRespsoned) {
-      return;
-    }
-
-    const sortedData = _.sortBy(formData.tableData, [(item) => item.host.cluster_id, (item) => item.host.role]);
-
-    sameClusterIdsRowsMap = _.groupBy(sortedData, (item) => item.host.cluster_id);
-    sameRoleRowsMap = _.groupBy(sortedData, (item) => `${item.host.cluster_id}-${item.host.role}`);
-
-    Object.values(sameClusterIdsRowsMap).forEach((list) => {
-      const isSameSpecId = list.every((item) => item.host.spec.id === list[0].host.spec.id);
-      Object.assign(list[0], {
-        same_cluster: list.length,
-        same_spec: isSameSpecId ? list.length : 1, // 相同规格合并
-      });
-    });
-    Object.values(sameRoleRowsMap).forEach((list) => {
-      Object.assign(list[0], {
-        same_role: list.length,
-      });
-    });
-
-    formData.tableData = sortedData;
-  };
-
-  useTicketDetail<TendbCluster.ResourcePool.SpiderSwitchNodes>(TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES, {
+  useTicketDetail<TendbCluster.ResourcePool.SpiderConfUpDown>(TicketTypes.TENDBCLUSTER_SPIDER_CONF_UP_DOWN, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       Object.assign(formData, {
         payload: createTickePayload(ticketDetail),
-        tableData: details.infos.reduce<RowData[]>((acc, item) => {
-          item.spider_old_ip_list.forEach((host) => {
-            acc.push(
-              createTableRow({
-                host: {
-                  ip: host.ip,
-                },
-                labels: (item.resource_spec[item.switch_spider_role]!.labels || []).map((item) => ({
-                  id: Number(item),
-                })),
-              }),
-            );
-          });
-          return acc;
-        }, []),
+        tableData: details.infos.map((item) =>
+          createTableRow({
+            cluster: {
+              master_domain: details.clusters[item.cluster_id]?.immute_domain || '',
+            },
+            hostList: item.spider_old_ip_list.map((host) => ({
+              bk_cloud_id: host.bk_cloud_id,
+              bk_host_id: host.bk_host_id,
+              ip: host.ip,
+              spec_config: host.spec,
+            })),
+            labels: (item.resource_spec[item.switch_spider_role].labels || []).map((item) => ({ id: Number(item) })),
+            role: item.switch_spider_role,
+            specId: item.resource_spec[item.switch_spider_role].spec_id,
+          }),
+        ),
       });
     },
   });
@@ -263,79 +245,64 @@
         bk_cloud_id: number;
         bk_host_id: number;
         ip: string;
-        spec: SpecConfig;
+        spec: TendbClusterModel['spider_master'][0]['spec_config'];
       }[];
       switch_spider_role: string;
     }[];
     ip_source: 'resource_pool';
     is_safe: boolean;
-  }>(TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES);
+  }>(TicketTypes.TENDBCLUSTER_SPIDER_CONF_UP_DOWN);
 
   const handleSubmit = async () => {
-    try {
-      const result = await tableRef.value!.validate();
-      if (!result) {
-        return;
-      }
-      const generateHostInfo = (data: RowData['host']) => ({
-        bk_cloud_id: data.bk_cloud_id,
-        bk_host_id: data.bk_host_id,
-        ip: data.ip,
-      });
-      const generateSpecInfo = (data: RowData[]) => ({
-        count: data.length,
-        label_names: data[0].labels.map((item) => item.value),
-        labels: data[0].labels.map((item) => String(item.id)),
-        spec_id: data[0].host.spec.id,
-      });
-      createTicketRun({
-        details: {
-          infos: Object.values(sameClusterIdsRowsMap).map((rows) => {
-            const masters = rows.filter((item) => item.host.role === 'spider_master');
-            const slaves = rows.filter((item) => item.host.role === 'spider_slave');
-            if (masters.length && slaves.length) {
-              throw new Error(t('同集群不允许同时缩容Spider Master和Spider Slave'));
-            }
-            const hostList = slaves.length > 0 ? slaves : masters;
-            const currentRole = hostList[0].host.role;
-            return {
-              cluster_id: rows[0].host.cluster_id,
-              old_nodes: {
-                [currentRole]: hostList.map((item) => generateHostInfo(item.host)),
-              },
-              resource_spec: {
-                [currentRole]: generateSpecInfo(hostList),
-              },
-              spider_old_ip_list: hostList.map((item) => ({
-                bk_cloud_id: item.host.bk_cloud_id,
-                bk_host_id: item.host.bk_host_id,
-                ip: item.host.ip,
-                spec: item.host.spec,
-              })),
-              switch_spider_role: currentRole,
-            };
-          }),
-          ip_source: 'resource_pool',
-          is_safe: formData.is_safe,
-        },
-        ...formData.payload,
-      });
-    } catch (e: any) {
-      messageError(e.message);
+    const result = await tableRef.value!.validate();
+    if (!result) {
+      return;
     }
+    createTicketRun({
+      details: {
+        infos: formData.tableData.map((item) => ({
+          cluster_id: item.cluster.id,
+          old_nodes: {
+            [item.role]: item.hostList.map((host) => ({
+              bk_cloud_id: host.bk_cloud_id,
+              bk_host_id: host.bk_host_id,
+              ip: host.ip,
+            })),
+          },
+          resource_spec: {
+            [item.role]: {
+              count: item.hostList.length,
+              label_names: item.labels.map((item) => item.value),
+              labels: item.labels.map((item) => String(item.id)),
+              spec_id: item.specId,
+            },
+          },
+          spider_old_ip_list: item.hostList.map((host) => ({
+            bk_cloud_id: host.bk_cloud_id,
+            bk_host_id: host.bk_host_id,
+            ip: host.ip,
+            spec: host.spec_config,
+          })),
+          switch_spider_role: item.role,
+        })),
+        ip_source: 'resource_pool',
+        is_safe: formData.is_safe,
+      },
+      ...formData.payload,
+    });
   };
 
   const handleReset = () => {
     Object.assign(formData, defaultData());
   };
 
-  const handleBatchEditCluster = (list: SelectorHost[]) => {
+  const handleBatchEdit = (list: TendbClusterModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.ip]) {
+      if (!selectedMap.value[item.master_domain]) {
         acc.push(
           createTableRow({
-            host: {
-              ip: item.ip,
+            cluster: {
+              master_domain: item.master_domain,
             },
           }),
         );
@@ -346,20 +313,24 @@
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
-    const dataList = data.map((item) =>
-      createTableRow({
-        host: {
-          ip: item.ip,
-        },
-        labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
-      }),
-    );
-
+    const dataList = data.reduce<RowData[]>((acc, item) => {
+      acc.push(
+        createTableRow({
+          cluster: {
+            master_domain: item.master_domain,
+          },
+          labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
+          role: item.role,
+          specId: item.spec_name,
+        }),
+      );
+      return acc;
+    }, []);
     if (isClear) {
       tableKey.value = random();
       formData.tableData = [...dataList];
     } else {
-      formData.tableData = [...(formData.tableData[0]!.host.bk_host_id ? formData.tableData : []), ...dataList];
+      formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
     }
     setTimeout(() => {
       tableRef.value?.validate();

@@ -8,3 +8,4 @@ export * from './spiderMntDestroy';
 export * from './spiderReduceNodes';
 export * from './spiderSlaveApply';
 export * from './spiderSwitchNodes';
+export * from './spiderConfUpdown';

@@ -12,29 +12,22 @@
 -->
 
 <template>
-  <SmartAction class="db-toolbox">
-    <BkAlert
-      class="mb-20"
-      closable
-      :title="t('缩容接入层：减少集群的Proxy数量')" />
-    <div>
-      <div class="title-spot mt-12 mb-10">{{ t('缩容方式') }}<span class="required" /></div>
-      <BkRadioGroup
-        v-model="shrinkType"
-        style="width: 450px"
-        type="card">
-        <BkRadioButton label="QUANTITY">
-          {{ t('指定数量缩容') }}
-        </BkRadioButton>
-        <BkRadioButton label="HOST">
-          {{ t('指定主机缩容') }}
-        </BkRadioButton>
-      </BkRadioGroup>
-    </div>
-    <BkForm
-      class="mt-16 mb-20"
-      form-type="vertical"
-      :model="formData">
+  <SpiderWrapper>
+    <SmartAction>
+      <div>
+        <div class="title-spot mt-12 mb-10">{{ t('缩容方式') }}<span class="required" /></div>
+        <BkRadioGroup
+          v-model="shrinkType"
+          style="width: 450px"
+          type="card">
+          <BkRadioButton label="QUANTITY">
+            {{ t('指定数量缩容') }}
+          </BkRadioButton>
+          <BkRadioButton label="HOST">
+            {{ t('指定主机缩容') }}
+          </BkRadioButton>
+        </BkRadioGroup>
+      </div>
       <Component
         :is="tableMap[shrinkType]"
         ref="table"
@@ -52,27 +45,27 @@
         </BkCheckbox>
       </BkFormItem>
       <TicketPayload v-model="formData.payload" />
-    </BkForm>
-    <template #action>
-      <BkButton
-        class="mr-8 w-88"
-        :loading="isSubmitting"
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('提交') }}
-      </BkButton>
-      <DbPopconfirm
-        :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="t('确认重置页面')">
+      <template #action>
         <BkButton
-          class="ml-8 w-88"
-          :disabled="isSubmitting">
-          {{ t('重置') }}
+          class="mr-8 w-88"
+          :loading="isSubmitting"
+          theme="primary"
+          @click="handleSubmit">
+          {{ t('提交') }}
         </BkButton>
-      </DbPopconfirm>
-    </template>
-  </SmartAction>
+        <DbPopconfirm
+          :confirm-handler="handleReset"
+          :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+          :title="t('确认重置页面')">
+          <BkButton
+            class="ml-8 w-88"
+            :disabled="isSubmitting">
+            {{ t('重置') }}
+          </BkButton>
+        </DbPopconfirm>
+      </template>
+    </SmartAction>
+  </SpiderWrapper>
 </template>
 <script lang="ts" setup>
   import { reactive, useTemplateRef } from 'vue';
@@ -87,6 +80,7 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+  import SpiderWrapper from '@views/db-manage/tendb-cluster/TENDBCLUSTER_SPIDER_ADD_NODES/components/SpiderWrapper.vue';
 
   import CountShrink from './components/count-shrink/Index.vue';
   import HostShrink from './components/host-shrink/Index.vue';
@@ -133,6 +127,12 @@
         }[];
       };
       reduce_spider_role: string;
+      spider_reduced_hosts?: {
+        bk_biz_id: number;
+        bk_cloud_id: number;
+        bk_host_id: number;
+        ip: string;
+      }[];
       spider_reduced_to_count?: number;
     }[];
     is_safe: boolean;
