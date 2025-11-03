@@ -756,9 +756,9 @@ class MongoNodeWithLabel(object):
         bk_nodes = []
         for node in nodes:
             bk_nodes.append({"ip": node.ip, "port": node.port, "bk_cloud_id": node.bk_cloud_id})
-        result = mongodb_password.MongoDBPassword().get_nodes_password_from_db(bk_nodes, username)
+        result = mongodb_password.MongoDBPassword().get_users_password_from_db(bk_nodes, [username])
         if result["password"] is None:
-            raise Exception("get_nodes_password_from_db fail {}".format(result["info"]))
+            raise Exception("get_users_password_from_db fail {}".format(result["info"]))
 
         pwd_dict = {}
         for row in result["password"]:
