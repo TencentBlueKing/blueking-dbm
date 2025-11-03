@@ -88,6 +88,12 @@ const (
 const (
 	APIMetaAddonCategoryCreate = "v4_dbs_metadata_addon_category_create"
 	APIMetaAddonCategoryList   = "v4_dbs_metadata_addon_category_list"
+	APIMetaAddonList           = "v4_dbs_metadata_addon_list"
+	APIMetaAddonDetail         = "v4_dbs_metadata_addon_detail"
+	APIMetaAddonVersions       = "v4_dbs_metadata_addon_versions"
+	APIMetaAddonCreate         = "v4_dbs_metadata_addon_create"
+	APIMetaAddonDelete         = "v4_dbs_metadata_addon_delete"
+	APIMetaAddonUpdate         = "v4_dbs_metadata_addon_update"
 )
 
 // APIGroups 存储 API 名称到分组的映射
@@ -152,6 +158,12 @@ func initAPIGroups() map[string]string {
 	add(APIGroupMeta,
 		APIMetaAddonCategoryCreate,
 		APIMetaAddonCategoryList,
+		APIMetaAddonList,
+		APIMetaAddonDetail,
+		APIMetaAddonVersions,
+		APIMetaAddonCreate,
+		APIMetaAddonDelete,
+		APIMetaAddonUpdate,
 	)
 
 	return groups

@@ -47,6 +47,7 @@ func NewAddonController(addonProvider provider.K8sCrdStorageAddonProvider) *Addo
 
 // ListAddons 获取当前系统支持的 addon 列表
 func (a *AddonController) ListAddons(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaAddonList)
 	sizeStr := ctx.DefaultQuery("size", commconst.DefaultFetchSizeStr)
 	fetchSize, err := strconv.Atoi(sizeStr)
 	if err != nil {
@@ -69,6 +70,7 @@ func (a *AddonController) ListAddons(ctx *gin.Context) {
 
 // GetAddon retrieves an addon by its ID.
 func (a *AddonController) GetAddon(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaAddonDetail)
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
@@ -90,6 +92,7 @@ func (a *AddonController) GetAddon(ctx *gin.Context) {
 
 // GetVersions 获取组件版本
 func (a *AddonController) GetVersions(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaAddonVersions)
 	var paramsReq metareq.AddonVersionRequest
 	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &paramsReq, nil); err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
@@ -115,6 +118,7 @@ func (a *AddonController) GetVersions(ctx *gin.Context) {
 
 // CreateAddon creates a new addon.
 func (a *AddonController) CreateAddon(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaAddonCreate)
 	var addon metareq.AddonRequest
 	if err := ctx.ShouldBindJSON(&addon); err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
@@ -143,6 +147,7 @@ func (a *AddonController) CreateAddon(ctx *gin.Context) {
 
 // UpdateAddon updates an existing addon.
 func (a *AddonController) UpdateAddon(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaAddonUpdate)
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
@@ -173,6 +178,7 @@ func (a *AddonController) UpdateAddon(ctx *gin.Context) {
 
 // DeleteAddon deletes an addon by its ID.
 func (a *AddonController) DeleteAddon(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaAddonDelete)
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
