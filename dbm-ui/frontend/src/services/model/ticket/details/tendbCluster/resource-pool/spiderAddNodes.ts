@@ -7,6 +7,7 @@ import type { ResourcePoolDetailBase } from '../../common';
 export interface SpiderAddNodes extends ResourcePoolDetailBase {
   infos: {
     add_spider_num: number;
+    add_spider_num: number;
     add_spider_role: string;
     cluster_id: number;
     current_spider_num: number;
