@@ -86,14 +86,20 @@ const (
 
 // meta api
 const (
-	APIMetaAddonCategoryCreate = "v4_dbs_metadata_addon_category_create"
-	APIMetaAddonCategoryList   = "v4_dbs_metadata_addon_category_list"
-	APIMetaAddonList           = "v4_dbs_metadata_addon_list"
-	APIMetaAddonDetail         = "v4_dbs_metadata_addon_detail"
-	APIMetaAddonVersions       = "v4_dbs_metadata_addon_versions"
-	APIMetaAddonCreate         = "v4_dbs_metadata_addon_create"
-	APIMetaAddonDelete         = "v4_dbs_metadata_addon_delete"
-	APIMetaAddonUpdate         = "v4_dbs_metadata_addon_update"
+	APIMetaAddonCategoryCreate    = "v4_dbs_meta_addon_category_create"
+	APIMetaAddonCategoryList      = "v4_dbs_meta_addon_category_list"
+	APIMetaAddonList              = "v4_dbs_meta_addon_list"
+	APIMetaAddonDetail            = "v4_dbs_meta_addon_detail"
+	APIMetaAddonVersions          = "v4_dbs_meta_addon_versions"
+	APIMetaAddonCreate            = "v4_dbs_meta_addon_create"
+	APIMetaAddonDelete            = "v4_dbs_meta_addon_delete"
+	APIMetaAddonUpdate            = "v4_dbs_meta_addon_update"
+	APIMetaAddonRepoDetail        = "v4_dbs_meta_addon_repo_detail"
+	APIMetaAddonRepoSearch        = "v4_dbs_meta_addon_repo_search"
+	APIMetaAddonRepoCreate        = "v4_dbs_meta_addon_repo_create"
+	APIMetaAddonClusterRepoDetail = "v4_dbs_meta_addon_cluster_repo_detail"
+	APIMetaAddonClusterRepoSearch = "v4_dbs_meta_addon_cluster_repo_search"
+	APIMetaAddonClusterRepoCreate = "v4_dbs_meta_addon_cluster_repo_create"
 )
 
 // APIGroups 存储 API 名称到分组的映射
