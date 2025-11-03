@@ -131,6 +131,10 @@
   watch(
     () => route.query,
     () => {
+      if (!Object.keys(route.query).length) {
+        return;
+      }
+
       const queryObj = _.cloneDeep(route.query);
       delete queryObj.tabType;
       searchParams.value = queryObj;
