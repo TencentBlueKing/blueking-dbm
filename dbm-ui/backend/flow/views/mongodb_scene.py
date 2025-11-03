@@ -335,3 +335,15 @@ class MongoDBInstanceMigrateView(FlowTestView):
         root_id = uuid.uuid1().hex
         MongoDBController(root_id=root_id, ticket_data=request.data).instance_migrate()
         return Response({"root_id": root_id})
+
+
+class MongoDBInstanceFixStatusView(FlowTestView):
+    """
+    instance状态修复
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        MongoDBController(root_id=root_id, ticket_data=request.data).instance_fix_status()
+        return Response({"root_id": root_id})

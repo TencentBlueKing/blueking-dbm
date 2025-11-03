@@ -50,12 +50,14 @@ class MongoUtil:
         """
         获取dba user and password
         """
-        dba_user = MongoDBManagerUser.DbaUser.value
-        out = mongodb_password.MongoDBPassword().get_password_from_db(ip, int(port), bk_cloud_id, dba_user)
-        if not out or "password" not in out:
-            raise Exception("can not get dba_user password for {}:{}:{}".format(ip, port, bk_cloud_id))
+        return MongoUtil.get_mongo_user_password(ip, port, bk_cloud_id, MongoDBManagerUser.DbaUser.value)
 
-        return dba_user, out["password"]
+    @staticmethod
+    def get_monitor_user_password(ip: str, port, bk_cloud_id: int):
+        """
+        获取readonly user and password
+        """
+        return MongoUtil.get_mongo_user_password(ip, port, bk_cloud_id, MongoDBManagerUser.MonitorUser.value)
 
     @staticmethod
     def get_mongo_user_password(ip: str, port, bk_cloud_id: int, username: str):
