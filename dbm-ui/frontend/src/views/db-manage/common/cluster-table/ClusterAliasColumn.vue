@@ -4,7 +4,7 @@
     col-key="name"
     :filter="columnFilter?.['name']"
     :min-width="150"
-    :title="t('集群名称/别名')">
+    :title="t('集群标识')">
     <template #default="{ row }: { row: IRowData }">
       <div>{{ row.cluster_name || '--' }}</div>
       <TextOverflowLayout>

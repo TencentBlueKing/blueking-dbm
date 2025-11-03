@@ -59,7 +59,7 @@
       :bk-ui-settings="tableSetting"
       :cluster-id="clusterId"
       :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
-      :data-source="getMongoList"
+      :data-source="dataSource"
       :filter-value="searchValue"
       @bk-ui-settings-change="updateTableSettings"
       @filter-change="handleFilterChange"
@@ -295,6 +295,13 @@
     showDetail: isShowDetail,
   } = useGoClusterDetail('MongoDBSharedClusterDetail');
   const { handleSelection, isSelected, selectedIdList, selectedList } = useClusterTableSelect<MongodbModel>();
+
+  const dataSource = (params: ServiceParameters<typeof getMongoList>) => {
+    return getMongoList({
+      ...params,
+      cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER,
+    });
+  };
 
   const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
   const clusterAuthorizeShow = ref(false);

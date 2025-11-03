@@ -101,6 +101,9 @@ export const baseFilter = {
       attach: 'body',
       placement: 'bottom',
     },
+    props: {
+      placeholder: t('请输入集群标识（集群名称/别名）\n“集群标识（集群名称/别名）”  就是搜索字段的label'),
+    },
     showConfirmAndReset: true,
   },
   slave_domain: {
@@ -158,14 +161,14 @@ export const baseFilter = {
             }
             keyValueMap[item.key].push({
               label: item.value,
-              value: `tag_ids=${item.id}`,
+              value: `tag_ids#${item.id}`,
             });
           });
 
           return Object.keys(keyValueMap).map((tagKey) => ({
             children: keyValueMap[tagKey],
             label: tagKey,
-            value: `tag_keys=${tagKey}`,
+            value: `tag_keys#${tagKey}`,
           }));
         }),
       showAllLevels: true,
