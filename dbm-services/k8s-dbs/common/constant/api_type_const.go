@@ -100,6 +100,9 @@ const (
 	APIMetaAddonClusterRepoDetail = "v4_dbs_meta_addon_cluster_repo_detail"
 	APIMetaAddonClusterRepoSearch = "v4_dbs_meta_addon_cluster_repo_search"
 	APIMetaAddonClusterRepoCreate = "v4_dbs_meta_addon_cluster_repo_create"
+	APIMetaAddonTopoCreate        = "v4_dbs_meta_addon_topo_create"
+	APIMetaAddonTopoDetail        = "v4_dbs_meta_addon_topo_detail"
+	APIMetaAddonTopoSearch        = "v4_dbs_meta_addon_topo_search"
 )
 
 // APIGroups 存储 API 名称到分组的映射

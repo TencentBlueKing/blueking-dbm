@@ -47,6 +47,7 @@ func NewAddonTopologyController(provider provider.AddonTopologyProvider) *AddonT
 
 // Create 创建 addon topology
 func (a *AddonTopologyController) Create(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaAddonTopoCreate)
 	var reqVo request.AddonTopologyRequest
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
@@ -74,6 +75,7 @@ func (a *AddonTopologyController) Create(ctx *gin.Context) {
 
 // GetByID 按照 id 检索 addon topology
 func (a *AddonTopologyController) GetByID(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaAddonTopoDetail)
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
@@ -95,6 +97,7 @@ func (a *AddonTopologyController) GetByID(ctx *gin.Context) {
 
 // GetByParams 按照参数检索 addon topology
 func (a *AddonTopologyController) GetByParams(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaAddonTopoSearch)
 	var topoQueryParams metaenitty.AddonTopologyQueryParams
 	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &topoQueryParams, nil); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterEventError, err))
