@@ -178,8 +178,8 @@
 
       setTimeout(() => {
         isInitCanvas = true;
-        taskFlowRef.value?.checkAndInitCanvas();
-      }, 500);
+        taskFlowRef.value!.checkAndInitCanvas();
+      }, 100);
     }
   });
 
