@@ -196,8 +196,8 @@ class CommonQueryResourceMixin(abc.ABC):
         # 获取DB模块的映射信息
         db_module_queryset = DBModule.objects.filter(cluster_type__in=cluster_types, bk_biz_id=bk_biz_id)
         db_module_names_map = {
-            module["db_module_id"]: module["db_module_name"]
-            for module in db_module_queryset.values("db_module_id", "db_module_name")
+            module["db_module_id"]: module["alias_name"]
+            for module in db_module_queryset.values("db_module_id", "alias_name")
         }
 
         # 预取remote的spec
@@ -648,8 +648,8 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             db_module_queryset = db_module_queryset.filter(bk_biz_id=bk_biz_id)
         # 提取所需的字段和构建映射
         db_module_names_map = {
-            module["db_module_id"]: module["db_module_name"]
-            for module in db_module_queryset.values("db_module_id", "db_module_name")
+            module["db_module_id"]: module["alias_name"]
+            for module in db_module_queryset.values("db_module_id", "alias_name")
         }
 
         # 获取集群操作记录的映射关系
@@ -859,8 +859,8 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             db_module_queryset = db_module_queryset.filter(bk_biz_id=bk_biz_id)
         # 提取所需的字段和构建映射
         db_module_names_map = {
-            module["db_module_id"]: module["db_module_name"]
-            for module in db_module_queryset.values("db_module_id", "db_module_name")
+            module["db_module_id"]: module["alias_name"]
+            for module in db_module_queryset.values("db_module_id", "alias_name")
         }
 
         # 将实例的查询结果序列化为实例字典信息

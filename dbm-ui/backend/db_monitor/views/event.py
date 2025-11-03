@@ -35,7 +35,7 @@ class AlertView(SystemViewSet):
     )
     @action(detail=False, methods=["POST"], serializer_class=serializers.ListAlertSerializer)
     @Permission.decorator_permission_field(
-        id_field=lambda alerts: int({a["key"]: a["value"] for a in alerts["tags"]}.get("appid", 0)),
+        id_field=lambda alerts: int({a.get("key"): a.get("value") for a in alerts.get("tags", [])}.get("appid", 0)),
         data_field=lambda d: d["alerts"],
         actions=[ActionEnum.ALERT_SHIELD_MANAGE, ActionEnum.ALERT_SHIELD_CREATE],
         resource_meta=ResourceEnum.BUSINESS,

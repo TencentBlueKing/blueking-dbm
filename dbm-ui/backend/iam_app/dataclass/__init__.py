@@ -203,11 +203,16 @@ def generate_resource_topo_auth(res_actions: list, bk_biz_id: int = None, bk_biz
     return resource_topo_auth_content
 
 
-def generate_iam_biz_maintain_json(label: str = CommonActionLabel.BIZ_MAINTAIN, json_name: str = ""):
+def generate_iam_biz_maintain_json(
+    label: str = CommonActionLabel.BIZ_MAINTAIN, json_name: str = "", specific_actions: list = None
+):
     """
     根据dataclass的定义自动生成业务运维的用户组迁移json
     """
-    res_actions = [action for action in _all_actions.values() if label in action.common_labels]
+    if specific_actions:
+        res_actions = [action for action in _all_actions.values() if action.id in specific_actions]
+    else:
+        res_actions = [action for action in _all_actions.values() if label in action.common_labels]
     biz_maintain_migrate_content = generate_resource_topo_auth(res_actions)
 
     # 生成json文件
