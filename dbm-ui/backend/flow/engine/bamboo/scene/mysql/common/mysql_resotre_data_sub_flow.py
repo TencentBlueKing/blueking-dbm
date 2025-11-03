@@ -20,7 +20,7 @@ from backend.configuration.constants import MYSQL_DATA_RESTORE_TIME, MYSQL_USUAL
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster
 from backend.db_report.mysql_backup.handers import MySQLBackupHandler
-from backend.flow.consts import DBA_SYSTEM_USER, MySQLBackupTypeEnum, MysqlChangeMasterType, RollbackType
+from backend.flow.consts import DBA_ROOT_USER, MySQLBackupTypeEnum, MysqlChangeMasterType, RollbackType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_restore_download_sub_flow import (
@@ -629,7 +629,7 @@ def tendbha_rollback_data_sub_flow(
             kwargs=asdict(
                 ExecActuatorKwargs(
                     bk_cloud_id=cluster_model.bk_cloud_id,
-                    run_as_system_user=DBA_SYSTEM_USER,
+                    run_as_system_user=DBA_ROOT_USER,
                     exec_ip=cluster_info["rollback_ip"],
                     get_mysql_payload_func=MysqlActPayload.mysql_backup_for_restore_payload.__name__,
                 )
@@ -852,7 +852,7 @@ def mysql_backup_restore_sub_flow(
         kwargs=asdict(
             ExecActuatorKwargs(
                 bk_cloud_id=cluster_model.bk_cloud_id,
-                run_as_system_user=DBA_SYSTEM_USER,
+                run_as_system_user=DBA_ROOT_USER,
                 exec_ip=cluster["ip"],
                 get_mysql_payload_func=MysqlActPayload.mysql_backup_for_restore_payload.__name__,
             )

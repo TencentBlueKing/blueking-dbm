@@ -137,7 +137,7 @@ class MySQLBackupHandler:
         conditions = Q(cluster_id=self.cluster.id, cluster_address=self.cluster.immute_domain)
         if self.backup_id is not None and self.backup_id != "":
             logger.info(_("指定了backup_id {} 查询,其他条件失效".format(self.backup_id)))
-            conditions = Q(backup_id=self.backup_id)
+            conditions &= Q(backup_id=self.backup_id)
         else:
             if self.is_full_backup:
                 # spider dbctl 节点只是备份权限。
