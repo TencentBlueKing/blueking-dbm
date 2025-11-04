@@ -1,0 +1,30 @@
+{
+  "data": {
+    "id": 2727,
+    "creator": "*****",
+    "create_at": "2025-10-08T11:18:50+08:00",
+    "updater": "*****",
+    "update_at": "2025-10-08T11:18:50+08:00",
+    "ticket_type": "MYSQL_HA_FULL_BACKUP",
+    "remark": "eee",
+    "group": "mysql",
+    "details": {},
+    "todo_operators": ["*****"],
+    "todo_helpers": ["***********", "********"],
+    "status": "PENDING",
+    "status_display": "等待中",
+    "ticket_type_display": "MySQL 全库备份",
+    "cost_time": 0,
+    "bk_biz_name": "DBA",
+    "db_app_abbr": "dba",
+    "ignore_duplication": false,
+    "config": {},
+    "bk_biz_id": 3,
+    "send_msg_config": {},
+    "is_reviewed": false
+  },
+  "code": 0,
+  "result": true,
+  "message": "OK",
+  "request_id": "fedaa7dd61ea7fd3e999e84cbed30a7a"
+}

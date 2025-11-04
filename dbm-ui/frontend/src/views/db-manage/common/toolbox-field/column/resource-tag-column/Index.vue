@@ -13,7 +13,7 @@
 
 <template>
   <EditableColumn
-    data-test-id="resourceTagColumnSelect"
+    v-test="{ type: 'column', value: 'resoureTag' }"
     field="labels"
     :label="t('资源标签')"
     :min-width="200"

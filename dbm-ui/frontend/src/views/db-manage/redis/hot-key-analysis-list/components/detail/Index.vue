@@ -17,7 +17,7 @@
     quick-close
     :width="960">
     <template #header>
-      <div class="hot-key-list-detail-header">
+      <div class="redis-hot-key-analysis-detail-header">
         <span>{{ t('热 Key 分析报告') }}</span>
         <template v-if="currentRecord">
           <span class="header-info ml-8"> {{ currentRecord.root_id }}（{{ currentRecord.immute_domain }}） </span>
@@ -49,7 +49,7 @@
       </div>
     </template>
     <template #default>
-      <div class="hot-key-list-detail-content">
+      <div class="redis-hot-key-analysis-detail-content">
         <div class="filter-box">
           <BkSelect
             v-model="selectedInstanceList"
@@ -98,7 +98,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import RedisHotKeyModel from '@services/model/redis/redis-hot-key';
+  import RedisHotKeyAnalysisModel from '@services/model/redis/redis-hot-key-analysis';
   import { exportHotKeyAnalysis, getAnalysisDetails } from '@services/source/redisAnalysis';
 
   import { useDebouncedRef } from '@hooks';
@@ -108,7 +108,7 @@
   import Info from './components/Info.vue';
 
   interface Props {
-    recordList: RedisHotKeyModel[];
+    recordList: RedisHotKeyAnalysisModel[];
   }
 
   const props = defineProps<Props>();
@@ -194,7 +194,7 @@
 </script>
 
 <style lang="less">
-  .hot-key-list-detail-header {
+  .redis-hot-key-analysis-detail-header {
     display: flex;
     width: 100%;
     align-items: center;
@@ -208,7 +208,7 @@
     }
   }
 
-  .hot-key-list-detail-content {
+  .redis-hot-key-analysis-detail-content {
     .filter-box {
       display: flex;
       padding: 16px 24px 0;

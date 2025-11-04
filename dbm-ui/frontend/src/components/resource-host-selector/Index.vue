@@ -1,7 +1,7 @@
 <template>
   <BkDialog
+    v-test="{ type: 'dialog', value: 'resourceHostSelector' }"
     class="resource-host-selector"
-    data-test-id="resourceHostSelector"
     :close-icon="false"
     :is-show="isShow"
     :width="dialogWidth">
@@ -29,7 +29,7 @@
                   content: disableHostMethod(data) || t('已选够n台', { n: limit }),
                   disabled: !disableHostMethod(data) && (isInfinity || selectedNum < limit),
                 }"
-                data-test-id="resourceHostSelectorRowCheckbox"
+                v-test="{ type: 'checkbox', value: 'resourceHostSelectorRow' }"
                 :disabled="
                   !!disableHostMethod(data) ||
                   (!isInfinity && selectedNum === limit && !Boolean(rowSelectMemo[data.bk_host_id]))
@@ -106,10 +106,10 @@
           content: t('还差n台_请先勾选足够的IP', { n: limit - selectedNum }),
           disabled: isInfinity || selectedNum === limit,
         }"
+        v-test="{ type: 'button', value: 'resourceHostSelectorConfirm' }"
         :disabled="!isInfinity && selectedNum !== limit"
         theme="primary"
-        data-test-id="resourceHostSelectorSubmitButton"
-        @click="handleSubmit">
+        @click="handleConfirm">
         {{ t('确定') }}
       </BkButton>
       <BkButton
@@ -227,7 +227,7 @@
     rowSelectMemo.value = latestSelectMemo;
   };
 
-  const handleSubmit = () => {
+  const handleConfirm = () => {
     isShow.value = false;
     const latestValue = Object.values(rowSelectMemo.value);
     modelValue.value = latestValue;
