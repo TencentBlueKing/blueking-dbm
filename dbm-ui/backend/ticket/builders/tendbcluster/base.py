@@ -182,6 +182,7 @@ class TendbBaseOperateDetailSerializer(MySQLBaseOperateDetailSerializer):
             db_module_id=int(attrs["db_module_id"]),
             ready_to_add_count=int(attrs["resource_spec"]["spider"]["count"]) * 2,
             existing_count=0,
+            immute_domain=f"spider.{attrs['cluster_name']}.{attrs['db_app_abbr']}.db",
         )
         if not result:
             raise serializers.ValidationError(
