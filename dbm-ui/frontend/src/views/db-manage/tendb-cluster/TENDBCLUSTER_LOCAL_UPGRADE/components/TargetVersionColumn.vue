@@ -213,7 +213,7 @@
         modelValue.value = {
           charset: firstModule.charset,
           db_module_name: firstModule.db_module_name,
-          db_version: firstModule.db_version,
+          db_version: firstModule.spider_version,
           pkg_name: firstPackage?.name || '',
         };
       }
@@ -272,7 +272,7 @@
     modelValue.value = {
       charset: findModule.charset,
       db_module_name: findModule.db_module_name,
-      db_version: findModule.db_version,
+      db_version: findModule.spider_version,
       pkg_name: firstPackage?.name || '',
     };
   };
