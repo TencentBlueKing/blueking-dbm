@@ -47,7 +47,8 @@
         :data="quickSearchData"
         parse-url
         :placeholder="t('请输入或选择条件搜索')"
-        style="width: 500px; margin-left: auto" />
+        style="width: 500px; margin-left: auto"
+        @change="handleQuickSearchChange" />
     </div>
     <ClusterTable
       ref="clusterTable"
@@ -396,18 +397,6 @@
     tableRef.value!.fetchData(searchValue.value);
   };
 
-  watch(searchValue, () => {
-    setTimeout(() => {
-      fetchData();
-      tableRef.value!.clearSelected();
-    });
-  });
-
-  const handleFilterChange = (filterValue: Record<string, string>) => {
-    searchValue.value = filterValue;
-    fetchData();
-  };
-
   const handleShowAuthorize = (data: TendbhaModel) => {
     isShowAuthorize.value = true;
     currentData.value = data;
@@ -448,6 +437,15 @@
   const handleBatchOperationSuccess = () => {
     tableRef.value!.clearSelected();
     fetchData();
+  };
+
+  const handleQuickSearchChange = () => {
+    fetchData();
+    tableRef.value!.clearSelected();
+  };
+
+  const handleFilterChange = (filterValue: Record<string, string>) => {
+    searchValue.value = filterValue;
   };
 </script>
 

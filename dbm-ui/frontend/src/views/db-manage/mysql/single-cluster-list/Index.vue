@@ -43,7 +43,8 @@
         :data="quickSearchData"
         parse-url
         :placeholder="t('请输入或选择条件搜索')"
-        style="width: 500px; margin-left: auto" />
+        style="width: 500px; margin-left: auto"
+        @change="handleQuickSearchChange" />
     </div>
     <ClusterTable
       ref="clusterTable"
@@ -307,6 +308,10 @@
   const handleShowDataExportSlider = (data: TendbsingleModel) => {
     currentData.value = data;
     showDataExportSlider.value = true;
+  };
+  const handleQuickSearchChange = () => {
+    fetchData();
+    tableRef.value!.clearSelected();
   };
 
   const handleFilterChange = (filterValue: Record<string, string>) => {

@@ -8,7 +8,7 @@
     <template #default="{ row }: { row: IRowData }">
       <div>{{ row.cluster_name || '--' }}</div>
       <TextOverflowLayout>
-        {{ row.cluster_alias || '--' }}
+        <span style="color: #c4c6cc">{{ row.cluster_alias || '--' }}</span>
         <template
           v-if="!row.isOffline"
           #append>
