@@ -110,8 +110,8 @@
           </template>
         </TableColumn>
         <TableColumn
-          col-key="ticket_type__in"
-          :filter="tableFilter['ticket_type']"
+          col-key="ticket_type_search"
+          :filter="tableFilter['ticket_type_search']"
           :min-width="200"
           :title="t('单据类型')">
           <template #default="{ row }: { row: IRowData }">
