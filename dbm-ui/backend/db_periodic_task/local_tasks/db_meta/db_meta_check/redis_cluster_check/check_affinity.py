@@ -26,7 +26,7 @@ from backend.db_report.enums import MetaCheckSubType, ReportStateType
 from backend.ticket.constants import TICKET_RUNNING_STATUS_SET, TicketType
 from backend.ticket.models.ticket import ClusterOperateRecord
 
-from .base import create_meta_check_report, delete_old_meta_check_reports
+from .base import create_meta_check_report, delete_old_meta_check_reports, is_cluster_labeled_with
 
 logger = logging.getLogger("root")
 
@@ -82,15 +82,12 @@ class RedisAffinityChecker:
          * If in the same subzone: MUST be on different racks
 
        Masters without configured slaves generate warnings but do not fail the check.
-
-    C. Proxy-Master Co-location:
-       Validates that proxies and masters are not placed on the same rack to avoid
-       cascading failures. Any co-location is reported as a violation.
     """
 
     PROXY_DISTRIBUTION_CHECK = "proxy_distribution"
     BACKEND_PAIRS_CHECK = "backend_pairs_location"
-    PROXY_MASTER_COLOCATION_CHECK = "proxy_master_colocation"
+
+    SKIP_PROXY_CHECK_LABEL = {"directmode": "true"}
 
     def __init__(self):
         """Initialize the affinity checker"""
@@ -160,9 +157,10 @@ class RedisAffinityChecker:
 
         check_results = []
 
-        # Skip proxy check if cluster is RedisInstance type or has directmode label
-        skip_proxy_check = cluster.cluster_type == ClusterType.RedisInstance.value or self._is_cluster_directmode(
-            cluster
+        # Skip proxy check if cluster is RedisInstance or labeled
+        skip_proxy_check = cluster.cluster_type == ClusterType.RedisInstance.value or is_cluster_labeled_with(
+            cluster,
+            self.SKIP_PROXY_CHECK_LABEL,
         )
 
         # For proxies, we check the stats of their locations
@@ -180,14 +178,6 @@ class RedisAffinityChecker:
             result["result_type"] = RedisAffinityChecker.BACKEND_PAIRS_CHECK
             result["identifier"] = machine_ip
             check_results.append(result)
-
-        # Check proxy-master co-location
-        if not skip_proxy_check:
-            proxy_instances = cluster.proxyinstance_set.filter()
-            colocation_result = self._validate_proxies_masters_location(proxy_instances, master_instances)
-            colocation_result["result_type"] = RedisAffinityChecker.PROXY_MASTER_COLOCATION_CHECK
-            colocation_result["identifier"] = "proxy & master"
-            check_results.append(colocation_result)
 
         # Create reports based on results
         self._create_affinity_reports(
@@ -221,17 +211,6 @@ class RedisAffinityChecker:
         return False
 
     @classmethod
-    def _is_cluster_directmode(cls, cluster: Cluster) -> bool:
-        """
-        Check if cluster has directmode label set to true
-        """
-        tags = {tag.key: tag.value for tag in cluster.tags.all()}
-        is_directmode = tags.get("directmode", "").lower() == "true"
-        if is_directmode:
-            logger.info(f"affinity_check: cluster {cluster.immute_domain} has directmode=true, will skip proxy checks")
-        return is_directmode
-
-    @classmethod
     def _validate_proxies_affinity(cls, proxy_instances, affinity_level: AffinityEnum) -> Dict[str, any]:
         """
         Check if proxies fulfill the affinity requirement
@@ -259,17 +238,21 @@ class RedisAffinityChecker:
             "proxy_count": len(proxy_instances),
         }
 
-        msg = None
+        msg, state = None, ReportStateType.NORMAL
         match affinity_level:
             case AffinityEnum.SAME_SUBZONE_CROSS_SWTICH:
-                msg = cls._check_proxies_same_subzone(subzones_racks_map, subzones_machines_map, subzones_ips_map)
+                msg, state = cls._check_proxies_same_subzone(
+                    subzones_racks_map, subzones_machines_map, subzones_ips_map
+                )
             case AffinityEnum.CROS_SUBZONE:
-                msg = cls._check_proxies_cross_subzone(subzones_racks_map, subzones_machines_map, subzones_ips_map)
+                msg, state = cls._check_proxies_cross_subzone(
+                    subzones_racks_map, subzones_machines_map, subzones_ips_map
+                )
             case AffinityEnum.CROSS_RACK:
-                msg = cls._check_proxies_cross_rack(subzones_racks_map, subzones_machines_map, subzones_ips_map)
+                msg, state = cls._check_proxies_cross_rack(subzones_racks_map, subzones_machines_map, subzones_ips_map)
 
         if msg:
-            result["state"] = ReportStateType.WARNING.value
+            result["state"] = state
             result["msg"] = msg
 
         return result
@@ -282,8 +265,11 @@ class RedisAffinityChecker:
         if subzone_count != 1:
             all_ips = [ip for ips in ips_map.values() for ip in ips]
             ips_str = ", ".join(all_ips)
-            return _("Affinity violation: proxies [{}] are in {} different subzones, expected 1").format(
-                ips_str, subzone_count
+            return (
+                _("Affinity violation: proxies [{}] are in {} different subzones, expected 1").format(
+                    ips_str, subzone_count
+                ),
+                ReportStateType.ABNORMAL,
             )
 
         subzone_id = list(racks_map.keys())[0]
@@ -296,8 +282,8 @@ class RedisAffinityChecker:
             msg = _(
                 "Affinity violation: proxies [{}] in subzone(id: {}) are in {} rack(s), expected at least {} racks"
             ).format(ips_str, subzone_id, rack_count, min_required_racks)
-            return msg
-        return None
+            return msg, ReportStateType.WARNING
+        return None, ReportStateType.NORMAL
 
     @classmethod
     def _check_proxies_cross_subzone(cls, racks_map: dict, machines_map: dict, ips_map: dict) -> Optional[str]:
@@ -317,7 +303,7 @@ class RedisAffinityChecker:
                 msg = _("Affinity violation: {} proxies [{}] in subzone(id: {}) exceed the limit of {}").format(
                     sub_proxy_count, ips_str, subzone_id, max_proxies_per_subzone
                 )
-                return msg
+                return msg, ReportStateType.ABNORMAL
 
             rack_count = len(rack_set)
             ok, min_required_racks = cls._cross_rack_check_and_get_limits(sub_proxy_count, rack_count)
@@ -325,9 +311,9 @@ class RedisAffinityChecker:
                 msg = _(
                     "Affinity violation: {} proxies [{}] in subzone(id: {}) are in {} rack(s), expected at least {} racks"
                 ).format(sub_proxy_count, ips_str, subzone_id, rack_count, min_required_racks)
-                return msg
+                return msg, ReportStateType.WARNING
 
-        return None
+        return None, ReportStateType.NORMAL
 
     @classmethod
     def _check_proxies_cross_rack(cls, racks_map: dict, machines_map: dict, ips_map: dict) -> Optional[str]:
@@ -344,7 +330,7 @@ class RedisAffinityChecker:
                 msg += _(
                     "Affinity violation: {} proxies [{}] in subzone(id: {}) are in {} rack(s), expected at least {} racks\n"
                 ).format(sub_proxy_count, ips_str, subzone_id, rack_count, min_required_racks)
-        return msg
+        return msg, ReportStateType.ABNORMAL if msg else ReportStateType.NORMAL
 
     @classmethod
     def _cross_rack_check_and_get_limits(cls, n_proxy, n_rack) -> Tuple[bool, int]:
@@ -463,64 +449,6 @@ class RedisAffinityChecker:
                 "Affinity violation: master {} and slave {} " "are in the same rack, expected different racks"
             ).format(master_obj.machine.ip, slave_obj.machine.ip)
         return None
-
-    @classmethod
-    def _validate_proxies_masters_location(cls, proxy_instances, master_instances) -> Dict[str, any]:
-        """
-        Check if any proxy and master are in the same rack
-
-        Returns:
-            dict: {
-                'state': ReportStateType,
-                'msg': str,
-                'machine_type': Proxy
-            }
-        """
-        # Build a map of rack_id -> set of proxy IPs for efficient lookup
-        proxy_racks_map = defaultdict(set)
-        for proxy_obj in proxy_instances:
-            subzone_id = proxy_obj.machine.bk_sub_zone_id
-            rack_id = proxy_obj.machine.bk_rack_id
-            proxy_racks_map[(subzone_id, rack_id)].add(proxy_obj.machine.ip)
-
-        # Check each master against the proxy rack map
-        violations = []
-        ip_seened = set()
-        for master_obj in master_instances:
-            master_subzone_id = master_obj.machine.bk_sub_zone_id
-            master_rack_id = master_obj.machine.bk_rack_id
-            master_ip = master_obj.machine.ip
-            if master_ip in ip_seened:
-                continue
-            ip_seened.add(master_ip)
-
-            # If this rack has proxies, we have a violation
-            if (master_subzone_id, master_rack_id) in proxy_racks_map:
-                violations.append((master_ip, proxy_racks_map[(master_subzone_id, master_rack_id)], master_rack_id))
-
-        result = {
-            "state": ReportStateType.NORMAL.value,
-            "msg": "",
-            "machine_type": MachineType.PROXY.value,
-        }
-
-        if violations:
-            violation_details = []
-            for master_ip, proxy_ips_set, rack_id in violations:
-                proxy_str = ", ".join(list(proxy_ips_set))
-
-                violation_details.append(
-                    _("master {} with proxies [{}] in rack {}").format(master_ip, proxy_str, rack_id)
-                )
-
-            violation_msg = "; ".join(violation_details)
-
-            result["state"] = ReportStateType.WARNING.value
-            result["msg"] = _("Affinity violation: {} master(s) co-located with proxies: {}").format(
-                len(violations), violation_msg
-            )
-
-        return result
 
     @classmethod
     def _create_affinity_reports(
