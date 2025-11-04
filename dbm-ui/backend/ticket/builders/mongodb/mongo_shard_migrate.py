@@ -48,7 +48,7 @@ class MongoDBShardMigrateDetailSerializer(BaseMongoDBOperateDetailSerializer):
 
 
 class MongoDBShardMigrateFlowParamBuilder(builders.FlowParamBuilder):
-    controller = MongoDBController.migrate_meta
+    controller = MongoDBController.instance_migrate
     validator = None
 
     def format_ticket_data(self):
