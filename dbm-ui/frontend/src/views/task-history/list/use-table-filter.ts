@@ -1,6 +1,5 @@
 import dayjs from 'dayjs';
 import { useI18n } from 'vue-i18n';
-import { useRequest } from 'vue-request';
 
 import TaskFlowModel from '@services/model/taskflow/taskflow';
 import { getTicketGroupTypes } from '@services/source/ticket';
@@ -40,17 +39,6 @@ type ITableFilter = Record<
 export default () => {
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
-
-  const ticketTypeGroupList = shallowRef<
-    {
-      children: {
-        label: string;
-        value: string;
-      }[];
-      label: string;
-      value: string;
-    }[]
-  >([]);
 
   const tableFilter = computed<ITableFilter>(() => {
     return {
@@ -161,7 +149,7 @@ export default () => {
         },
         showConfirmAndReset: true,
       },
-      ticket_type__in: {
+      ticket_type_search: {
         component: markRaw(MultCascader),
         name: t('任务类型'),
         popupProps: {
@@ -169,7 +157,23 @@ export default () => {
           placement: 'bottom',
         },
         props: {
-          list: ticketTypeGroupList.value,
+          checkStrictly: true,
+          remoteMethod: () =>
+            getTicketGroupTypes().then((data) =>
+              data.map((item) => {
+                return {
+                  children: item.children.map((child) => {
+                    return {
+                      label: child.label,
+                      value: `ticket_type__in#${child.value}`,
+                    };
+                  }),
+                  label: item.label,
+                  value: `db_type#${item.value}`,
+                };
+              }),
+            ),
+          showAllLevels: true,
         },
         showConfirmAndReset: true,
       },
@@ -183,12 +187,6 @@ export default () => {
         showConfirmAndReset: true,
       },
     };
-  });
-
-  useRequest(getTicketGroupTypes, {
-    onSuccess(data) {
-      ticketTypeGroupList.value = data;
-    },
   });
 
   return tableFilter;

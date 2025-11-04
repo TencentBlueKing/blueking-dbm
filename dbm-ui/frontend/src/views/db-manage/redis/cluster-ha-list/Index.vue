@@ -44,7 +44,7 @@
       :bk-ui-settings="settings"
       :cluster-id="clusterId"
       :cluster-type="ClusterTypes.REDIS_INSTANCE"
-      :data-source="getRedisList"
+      :data-source="dataSource"
       :disable-select-method="disableSelectMethod"
       :filter-value="searchValue"
       @bk-ui-settings-change="updateTableSettings"
@@ -332,6 +332,10 @@
   import ClusterDetail from '@views/db-manage/redis/common/cluster-ha-detail/Index.vue';
   import ClusterPassword from '@views/db-manage/redis/common/cluster-operations/ClusterPassword.vue';
 
+  const dataSource = () =>
+    getRedisList({
+      cluster_type: ClusterTypes.REDIS_INSTANCE,
+    });
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();

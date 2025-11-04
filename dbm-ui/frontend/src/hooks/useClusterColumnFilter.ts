@@ -97,7 +97,7 @@ export const baseFilter = {
       placement: 'bottom',
     },
     props: {
-      placeholder: t('请输入集群标识（集群名称/别名）'),
+      placeholder: t('请输入集群标识（集群名称 / 别名）'),
     },
     showConfirmAndReset: true,
   },

@@ -19,7 +19,8 @@
         :data="quickSearchData"
         parse-url
         :placeholder="quickSerachPlaceholder"
-        style="width: 500px" />
+        style="width: 500px"
+        @change="handleQuickSearchChange" />
     </div>
     <DbTable
       ref="tableRef"
@@ -27,8 +28,8 @@
       :filter-value="quickSearchValue"
       releate-url-query
       row-key="root_id"
-      @change="handleFilterChange"
-      @clear-search="handleClearSearch">
+      @clear-search="handleClearSearch"
+      @filter-change="handleFilterChange">
       <TableColumn
         col-key="root_id__in"
         :filter="tableFilter['root_id__in']"
@@ -57,8 +58,8 @@
         </template>
       </TableColumn>
       <TableColumn
-        col-key="ticket_type__in"
-        :filter="tableFilter['ticket_type__in']"
+        col-key="ticket_type_search"
+        :filter="tableFilter['ticket_type_search']"
         :title="t('任务类型')">
         <template #default="{row}: {row: TaskFlowModel}">
           {{ row.ticketTypeDisplay || '--' }}
@@ -159,7 +160,6 @@
 
 <script setup lang="tsx">
   import dayjs from 'dayjs';
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
@@ -219,9 +219,27 @@
       type: 'multiple',
     },
     {
-      id: 'ticket_type__in',
+      id: 'ticket_type_search',
       name: t('任务类型'),
-      remoteMethod: () => getTicketGroupTypes(),
+      props: {
+        checkStrictly: true,
+        showAllLevels: true,
+      },
+      remoteMethod: () =>
+        getTicketGroupTypes().then((data) =>
+          data.map((item) => {
+            return {
+              children: item.children.map((child) => {
+                return {
+                  label: child.label,
+                  value: `ticket_type__in#${child.value}`,
+                };
+              }),
+              label: item.label,
+              value: `db_type#${item.value}`,
+            };
+          }),
+        ),
       type: 'multiple-cascader',
     },
     {
@@ -314,25 +332,13 @@
     tableRef.value.fetchData(transfromDataToQuery(quickSearchValue.value));
   };
 
-  watch(
-    quickSearchValue,
-    _.debounce(() => {
-      fetchData();
-    }, 100),
-  );
+  const handleQuickSearchChange = () => {
+    fetchData();
+    tableRef.value!.clearSelected();
+  };
 
-  const handleFilterChange = (payload: { filter?: Record<string, any> }) => {
-    if (!payload.filter) {
-      return;
-    }
-
-    quickSearchValue.value = Object.keys(payload.filter).reduce((result, key) => {
-      const valueItem = payload.filter![key];
-      Object.assign(result, {
-        [key]: Array.isArray(valueItem) ? valueItem.join(',') : valueItem,
-      });
-      return result;
-    }, {});
+  const handleFilterChange = (filterValue: Record<string, string>) => {
+    quickSearchValue.value = filterValue;
   };
 
   const handleClearSearch = () => {
