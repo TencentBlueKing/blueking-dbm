@@ -53,7 +53,8 @@
             class="result-item">
             <span
               v-overflow-tips
-              class="text-overflow">
+              class="text-overflow"
+              data-test-id="instanceSelectorPreviewItem">
               {{ item[displayKey] }}
             </span>
             <DbIcon
