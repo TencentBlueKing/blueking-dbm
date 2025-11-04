@@ -69,12 +69,11 @@ class ExecRollbackActForSourceService(ExecuteDBActuatorScriptService):
                 # 从本节点 kwargs 读取 node_id 与 version_id（框架注入）
                 step_kwargs = data.get_one_of_inputs("kwargs") or {}
                 node_id = step_kwargs.get("node_id")
-                version_id = step_kwargs.get("version_id")
-
+                version_id = self._runtime_attrs.get("version")
+                logger.info(f"root_id: {root_id}, node_id: {node_id}, version_id: {version_id}")
                 error_lines = []
                 if root_id and node_id and version_id:
                     handler = TaskFlowHandler(root_id)
-
                     # 添加重试机制，防止日志异步上报导致获取为空
                     # 考虑到日志系统的异步特性，使用指数退避策略
                     max_retries = 4
