@@ -24,7 +24,7 @@
         v-db-console="'tendbCluster.clusterManage.batchOperation'"
         :cluster-type="ClusterTypes.TENDBCLUSTER"
         :selected="selectedList"
-        @success="fetchTableData" />
+        @success="fetchData" />
       <span
         v-bk-tooltips="{
           disabled: hasData,
@@ -50,14 +50,15 @@
         :data="quickSearchData"
         parse-url
         :placeholder="t('请输入或选择条件搜索')"
-        style="width: 500px; margin-left: auto" />
+        style="width: 500px; margin-left: auto"
+        @change="handleQuickSearchChange" />
     </div>
     <ClusterTable
       ref="clusterTable"
       :bk-ui-settings="settings"
       :cluster-id="clusterId"
       :cluster-type="ClusterTypes.TENDBCLUSTER"
-      :data-source="fetchData"
+      :data-source="dataSource"
       :filter-value="searchValue"
       @bk-ui-settings-change="updateTableSettings"
       @filter-change="handleFilterChange"
@@ -298,7 +299,7 @@
           :label="t('主访问入口')"
           :selected-list="selectedList"
           @go-detail="handleToDetails"
-          @refresh="fetchTableData">
+          @refresh="fetchData">
           <template #append="{ data }">
             <div
               v-if="data.isOnlineCLBMaster"
@@ -467,7 +468,7 @@
   const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(
     ClusterTypes.TENDBCLUSTER,
     {
-      onSuccess: () => fetchTableData(),
+      onSuccess: () => fetchData(),
     },
   );
 
@@ -503,6 +504,10 @@
   const tableDataList = computed(() => tableRef.value?.getData<TendbClusterModel>() || []);
   const hasData = computed(() => tableDataList.value.length > 0);
 
+  const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.TENDBCLUSTER_TABLE_SETTINGS, {
+    disabled: ['master_domain'],
+  });
+
   const { run: getSpiderClusterPrimaryRun } = useRequest(getTendbclusterPrimary, {
     manual: true,
     onSuccess(data) {
@@ -520,7 +525,7 @@
     },
   });
 
-  const { runAsync: fetchData } = useRequest(getTendbClusterList, {
+  const { runAsync: dataSource } = useRequest(getTendbClusterList, {
     manual: true,
     onSuccess(data) {
       const clusterIds = data.results.map((item) => item.id);
@@ -532,21 +537,9 @@
     },
   });
 
-  const fetchTableData = () => {
+  const fetchData = () => {
     tableRef.value?.fetchData(searchValue.value);
   };
-
-  watch(searchValue, () => {
-    setTimeout(() => {
-      tableRef.value?.clearSelected();
-
-      fetchTableData();
-    });
-  });
-
-  const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.TENDBCLUSTER_TABLE_SETTINGS, {
-    disabled: ['master_domain'],
-  });
 
   // 下架运维节点
   const handleRemoveMNT = (data: TendbClusterModel) => {
@@ -664,9 +657,14 @@
     excelAuthorizeShow.value = true;
   };
 
+  const handleQuickSearchChange = () => {
+    fetchData();
+    tableRef.value!.clearSelected();
+  };
+
   const handleFilterChange = (filterValue: Record<string, string>) => {
     searchValue.value = filterValue;
-    fetchTableData();
+    fetchData();
   };
 </script>
 <style lang="less">

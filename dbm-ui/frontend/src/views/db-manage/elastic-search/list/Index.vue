@@ -25,7 +25,7 @@
         v-db-console="'es.clusterManage.batchOperation'"
         :cluster-type="ClusterTypes.ES"
         :selected="selectedList"
-        @success="fetchTableData" />
+        @success="fetchData" />
       <DropdownExportExcel
         v-db-console="'es.clusterManage.export'"
         :has-selected="isSelected"
@@ -39,7 +39,8 @@
         :data="quickSearchData"
         parse-url
         :placeholder="t('请输入或选择条件搜索')"
-        style="width: 500px; margin-left: auto" />
+        style="width: 500px; margin-left: auto"
+        @change="handleQuickSearchChange" />
     </div>
     <ClusterTable
       ref="clusterTable"
@@ -213,7 +214,7 @@
           :label="t('访问入口')"
           :selected-list="selectedList"
           @go-detail="handleToDetails"
-          @refresh="fetchTableData">
+          @refresh="fetchData">
           <template #append="{ data }">
             <div
               v-if="data.isOnlineCLB"
@@ -272,12 +273,12 @@
       v-if="operationData"
       v-model:is-show="isShowExpandsion"
       :cluster-data="operationData"
-      @change="fetchTableData" />
+      @change="fetchData" />
     <ClusterShrink
       v-if="operationData"
       v-model:is-show="isShowShrink"
       :cluster-data="operationData"
-      @change="fetchTableData" />
+      @change="fetchData" />
     <BkDialog
       v-model:is-show="isShowPassword"
       render-directive="if"
@@ -339,7 +340,7 @@
   const { t } = useI18n();
   const { isSearching, quickSearchData, searchValue } = useClusterQuickSearch(ClusterTypes.ES);
   const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(ClusterTypes.ES, {
-    onSuccess: () => fetchTableData(),
+    onSuccess: () => fetchData(),
   });
   const { handleAddClb } = useAddClb<{
     bk_cloud_id: number;
@@ -377,16 +378,9 @@
     disabled: ['master_domain'],
   });
 
-  const fetchTableData = () => {
+  const fetchData = () => {
     tableRef.value?.fetchData(searchValue.value);
   };
-
-  watch(searchValue, () => {
-    setTimeout(() => {
-      fetchTableData();
-      tableRef.value!.clearSelected();
-    });
-  });
 
   // 申请实例
   const handleGoApply = () => {
@@ -420,9 +414,14 @@
     isShowPassword.value = false;
   };
 
+  const handleQuickSearchChange = () => {
+    fetchData();
+    tableRef.value!.clearSelected();
+  };
+
   const handleFilterChange = (filterValue: Record<string, string>) => {
     searchValue.value = filterValue;
-    fetchTableData();
+    fetchData();
   };
 </script>
 <style lang="less">
