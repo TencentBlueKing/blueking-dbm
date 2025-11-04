@@ -1,0 +1,63 @@
+{
+  "data": {
+    "count": 8,
+    "next": null,
+    "previous": null,
+    "results": [
+      {
+        "id": 53,
+        "cluster_id": 37,
+        "cluster_type": "TwemproxyRedisInstance",
+        "cluster_type_name": "TendisCache集群",
+        "cluster_name": "***",
+        "version": "",
+        "db_module_id": 0,
+        "db_module_name": "",
+        "bk_cloud_id": 0,
+        "bk_cloud_name": "直连区域",
+        "bk_sub_zone": "",
+        "bk_sub_zone_id": 0,
+        "ip": "127.0.0.1",
+        "port": 1000,
+        "instance_address": "127.0.0.1:10000",
+        "bk_host_id": 341,
+        "machine_type": "twemproxy",
+        "bk_os_name": "linux centos",
+        "bk_rack_id": 0,
+        "bk_svr_device_cls_name": "",
+        "role": "proxy",
+        "master_domain": "***",
+        "slave_domain": "",
+        "status": "running",
+        "create_at": "2025-02-19T17:32:37+08:00",
+        "spec_config": {
+          "id": 401,
+          "cpu": {
+            "max": 256,
+            "min": 1
+          },
+          "mem": {
+            "max": 2048,
+            "min": 1
+          },
+          "qps": {
+            "max": 0,
+            "min": 0
+          },
+          "name": "1核_1G",
+          "count": 2,
+          "device_class": [],
+          "storage_spec": []
+        },
+        "bk_biz_id": 5,
+        "permission": {
+          "redis_view": true
+        }
+      }
+    ]
+  },
+  "code": 0,
+  "result": true,
+  "message": "OK",
+  "request_id": "dc9024787c5b13551ff35c95145caa8d"
+}

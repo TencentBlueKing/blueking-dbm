@@ -22,10 +22,13 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
+  import { TicketTypes } from '@common/const';
+
   import { getBusinessHref } from '@utils';
 
   interface Props {
     bizId: number;
+    ticketType: TicketTypes.REDIS_HOT_KEY_ANALYSIS | TicketTypes.REDIS_KEYSTAT;
   }
 
   const props = defineProps<Props>();
@@ -33,8 +36,13 @@
   const { t } = useI18n();
   const router = useRouter();
 
+  const routeMap: Record<Props['ticketType'], string> = {
+    [TicketTypes.REDIS_HOT_KEY_ANALYSIS]: 'RedisHotKeyAnalysisList',
+    [TicketTypes.REDIS_KEYSTAT]: 'RedisMemoryAnalysisList',
+  };
+
   const { href } = router.resolve({
-    name: 'RedisHotKeyList',
+    name: routeMap[props.ticketType],
     query: {
       from: 'flow',
     },

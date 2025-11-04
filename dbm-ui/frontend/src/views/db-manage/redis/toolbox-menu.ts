@@ -150,14 +150,26 @@ export default [
       {
         children: [
           {
-            dbConsoleValue: 'redis.toolbox.hotKey',
+            dbConsoleValue: 'redis.toolbox.memoryAnalysis',
+            id: TicketTypes.REDIS_KEYSTAT,
+            name: t('内存分析'),
+            parentId: 'redis_data_query',
+          },
+          {
+            dbConsoleValue: 'redis.toolbox.memoryAnalysisList',
+            id: 'RedisMemoryAnalysisList',
+            name: t('内存分析报告'),
+            parentId: 'redis_data_query',
+          },
+          {
+            dbConsoleValue: 'redis.toolbox.hotKeyAnalysis',
             id: TicketTypes.REDIS_HOT_KEY_ANALYSIS,
             name: t('热 Key 分析'),
             parentId: 'redis_data_query',
           },
           {
-            dbConsoleValue: 'redis.toolbox.hotKeyList',
-            id: 'RedisHotKeyList',
+            dbConsoleValue: 'redis.toolbox.hotKeyAnalysisList',
+            id: 'RedisHotKeyAnalysisList',
             name: t('热 Key 分析报告'),
             parentId: 'redis_data_query',
           },

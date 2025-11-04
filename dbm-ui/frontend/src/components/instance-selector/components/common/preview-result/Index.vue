@@ -53,6 +53,7 @@
             class="result-item">
             <span
               v-overflow-tips
+              v-test="{ type: 'span', value: 'instanceSelectorPreviewItem' }"
               class="text-overflow">
               {{ item[displayKey] }}
             </span>
