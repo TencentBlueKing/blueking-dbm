@@ -77,10 +77,11 @@
       </span>
       <span v-bk-tooltips="submitButtonDisabledInfo.tooltips">
         <BkButton
+          v-test="{ type: 'button', value: 'instanceSelectorConfirm' }"
           class="w-88"
           :disabled="submitButtonDisabledInfo.disabled"
           theme="primary"
-          @click="handleSubmit">
+          @click="handleConfirm">
           {{ t('确定') }}
         </BkButton>
       </span>
@@ -1222,7 +1223,7 @@
     Object.assign(lastValues, values);
   };
 
-  const handleSubmit = () => {
+  const handleConfirm = () => {
     emits('change', lastValues);
     handleClose();
   };

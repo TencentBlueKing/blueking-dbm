@@ -82,9 +82,9 @@
     </BkForm>
     <template #action>
       <BkButton
+        v-test="{ type: 'button', value: 'submitTicket' }"
         class="mr-8 w-88"
         :loading="isSubmitting"
-        data-test-id="submitTicket"
         theme="primary"
         @click="handleSubmit">
         {{ t('提交') }}

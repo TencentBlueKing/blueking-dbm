@@ -1,0 +1,32 @@
+{
+  "data": [
+    {
+      "bk_biz_id": 3,
+      "name": "DBA",
+      "english_name": "dba",
+      "permission": {
+        "db_manage": true
+      }
+    },
+    {
+      "bk_biz_id": 5,
+      "name": "",
+      "english_name": "",
+      "permission": {
+        "db_manage": true
+      }
+    },
+    {
+      "bk_biz_id": 27,
+      "name": "验收专用业务",
+      "english_name": "only-dba-test",
+      "permission": {
+        "db_manage": true
+      }
+    }
+  ],
+  "code": 0,
+  "result": true,
+  "message": "OK",
+  "request_id": "04342b94db8fc345c337b54b8f98aa39"
+}

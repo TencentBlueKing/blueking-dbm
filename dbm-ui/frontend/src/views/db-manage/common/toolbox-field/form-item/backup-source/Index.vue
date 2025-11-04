@@ -1,8 +1,8 @@
 <template>
   <BkFormItem
+    v-test="{ type: 'form', value: 'backupSource' }"
     :label="t('备份源')"
     property="backupSource"
-    data-test-id="backupSourceRadioGroup"
     required>
     <BkRadioGroup v-model="modelValue">
       <BkRadio :label="BackupSourceType.LOCAL">

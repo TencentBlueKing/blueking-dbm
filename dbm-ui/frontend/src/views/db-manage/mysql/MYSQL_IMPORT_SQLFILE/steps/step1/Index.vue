@@ -41,11 +41,11 @@
       </div>
       <template #action>
         <BkButton
+          v-test="{ type: 'button', value: 'semanticCheck' }"
           class="w-88"
           :loading="isSubmitting"
           theme="primary"
-          data-test-id="simulationExecuteBtn"
-          @click="handleSubmit">
+          @click="handleSemanticCheck">
           {{ t('模拟执行') }}
         </BkButton>
         <DbPopconfirm
@@ -188,7 +188,7 @@
   });
 
   // 开始模拟执行
-  const handleSubmit = () => {
+  const handleSemanticCheck = () => {
     formRef.value!.validate().then(() => {
       const { payload, ...restFormData } = formData;
       runSemanticCheck({

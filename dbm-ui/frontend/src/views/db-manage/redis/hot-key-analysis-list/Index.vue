@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="redis-hot-key-list">
+  <div class="redis-hot-key-analysis-list">
     <div class="header-action">
       <!-- <span
         v-bk-tooltips="{
@@ -52,7 +52,7 @@
         fixed="left"
         :label="t('任务 ID')"
         :min-width="180">
-        <template #default="{data}: {data: RedisHotKeyModel}">
+        <template #default="{data}: {data: RedisHotKeyAnalysisModel}">
           <div
             v-if="data.root_id"
             class="hot-key-task-id">
@@ -79,7 +79,7 @@
         :label="t('目标实例')"
         min-width="200"
         :show-overflow="false">
-        <template #default="{ data }: { data: RedisHotKeyModel }">
+        <template #default="{ data }: { data: RedisHotKeyAnalysisModel }">
           <div
             v-if="data.ins_list"
             style="line-height: 20px">
@@ -111,7 +111,7 @@
         field="immute_domain"
         :label="t('所属集群')"
         :min-width="200">
-        <template #default="{data}: {data: RedisHotKeyModel}">
+        <template #default="{data}: {data: RedisHotKeyAnalysisModel}">
           <BkButton
             text
             theme="primary"
@@ -123,15 +123,15 @@
       <BkTableColumn
         field="status"
         :filterss="{
-          list: Object.keys(RedisHotKeyModel.STATUS_TEXT_MAP).map((id) => ({
-            label: t(RedisHotKeyModel.STATUS_TEXT_MAP[id]),
+          list: Object.keys(RedisHotKeyAnalysisModel.STATUS_TEXT_MAP).map((id) => ({
+            label: t(RedisHotKeyAnalysisModel.STATUS_TEXT_MAP[id]),
             value: id,
           })),
           checked: columnCheckedMap.status,
         }"
         :label="t('任务状态')"
         :width="120">
-        <template #default="{data}: {data: RedisHotKeyModel}">
+        <template #default="{data}: {data: RedisHotKeyAnalysisModel}">
           <DbStatus
             :theme="data.statusTheme"
             type="linear">
@@ -143,7 +143,7 @@
         field="analysis_time"
         :label="t('分析时长')"
         :width="80">
-        <template #default="{data}: {data: RedisHotKeyModel}">
+        <template #default="{data}: {data: RedisHotKeyAnalysisModel}">
           {{ `${data.analysis_time}s` }}
         </template>
       </BkTableColumn>
@@ -157,7 +157,7 @@
         field="ticket_id"
         :label="t('关联单据')"
         :width="100">
-        <template #default="{data}: {data: RedisHotKeyModel}">
+        <template #default="{data}: {data: RedisHotKeyAnalysisModel}">
           <BkButton
             text
             theme="primary"
@@ -180,7 +180,7 @@
         fixed="right"
         :label="t('操作')"
         :width="100">
-        <template #default="{data}: {data: RedisHotKeyModel}">
+        <template #default="{data}: {data: RedisHotKeyAnalysisModel}">
           <template v-if="data.status === 'FINISHED'">
             <BkButton
               text
@@ -215,7 +215,7 @@
   import { useRequest } from 'vue-request';
   import { useRoute, useRouter } from 'vue-router';
 
-  import RedisHotKeyModel from '@services/model/redis/redis-hot-key';
+  import RedisHotKeyAnalysisModel from '@services/model/redis/redis-hot-key-analysis';
   import { exportHotKeyAnalysis, queryAnalysisRecords } from '@services/source/redisAnalysis';
   import { getTicketTypes } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
@@ -260,8 +260,8 @@
   const daterange = ref(initDate());
 
   const ticketTypes = ref<{ id: string; name: string }[]>([]);
-  // const selected = shallowRef<RedisHotKeyModel[]>([]);
-  const recordList = shallowRef<RedisHotKeyModel[]>([]);
+  // const selected = shallowRef<RedisHotKeyAnalysisModel[]>([]);
+  const recordList = shallowRef<RedisHotKeyAnalysisModel[]>([]);
 
   const searchData = computed(() => [
     {
@@ -343,8 +343,8 @@
     return searchData.value.find((set) => set.id === item.id)?.children || [];
   };
 
-  // const handleSelection = (key: any, list: Record<number, RedisHotKeyModel>[]) => {
-  //   selected.value = list as unknown as RedisHotKeyModel[];
+  // const handleSelection = (key: any, list: Record<number, RedisHotKeyAnalysisModel>[]) => {
+  //   selected.value = list as unknown as RedisHotKeyAnalysisModel[];
   // };
 
   const handleClearSearch = () => {
@@ -352,16 +352,16 @@
     clearSearchValue();
   };
 
-  const handleShowDetail = (data: RedisHotKeyModel) => {
+  const handleShowDetail = (data: RedisHotKeyAnalysisModel) => {
     if (data.status !== 'FINISHED') {
       return;
     }
     isDetailShow.value = true;
-    recordList.value = tableRef.value!.getData<RedisHotKeyModel>().filter((item) => item.status === 'FINISHED');
+    recordList.value = tableRef.value!.getData<RedisHotKeyAnalysisModel>().filter((item) => item.status === 'FINISHED');
     currentDetailIndex.value = recordList.value.findIndex((item) => item.id === data.id);
   };
 
-  const handleGoTicketDetail = (data: RedisHotKeyModel) => {
+  const handleGoTicketDetail = (data: RedisHotKeyAnalysisModel) => {
     const { href } = router.resolve({
       name: 'bizTicketManage',
       params: {
@@ -372,7 +372,7 @@
     window.open(getBusinessHref(href), '_blank');
   };
 
-  const handleToClusterList = (data: RedisHotKeyModel) => {
+  const handleToClusterList = (data: RedisHotKeyAnalysisModel) => {
     const routeName = data.cluster_type === ClusterTypes.REDIS_INSTANCE ? 'DatabaseRedisHaList' : 'DatabaseRedisList';
     const { href } = router.resolve({
       name: routeName,
@@ -384,7 +384,7 @@
     window.open(getBusinessHref(href), '_blank');
   };
 
-  const handleToTaskDetail = (row: RedisHotKeyModel) => {
+  const handleToTaskDetail = (row: RedisHotKeyAnalysisModel) => {
     const { href } = router.resolve({
       name: 'taskHistoryDetail',
       params: {
@@ -398,20 +398,20 @@
     window.open(getBusinessHref(href), '_blank');
   };
 
-  // const handleExport = (row?: RedisHotKeyModel) => {
+  // const handleExport = (row?: RedisHotKeyAnalysisModel) => {
   //   const data = row ? [row] : selected.value;
   //   exportHotKeyAnalysis({ record_ids: data.map((item) => item.id).join(',') }).then(() => {
   //     tableRef.value!.clearSelected();
   //   });
   // };
 
-  const handleExport = (row: RedisHotKeyModel) => {
+  const handleExport = (row: RedisHotKeyAnalysisModel) => {
     exportHotKeyAnalysis({ record_ids: `${row.id}` });
   };
 </script>
 
 <style lang="less">
-  .redis-hot-key-list {
+  .redis-hot-key-analysis-list {
     .header-action {
       display: flex;
       padding-bottom: 16px;

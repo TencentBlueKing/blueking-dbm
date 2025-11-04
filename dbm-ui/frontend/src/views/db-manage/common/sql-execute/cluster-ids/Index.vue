@@ -20,8 +20,8 @@
       required
       :rules="rules">
       <BkButton
-        @click="handleShowClusterSelector"
-        data-test-id="addTargetClustersBtn">
+        v-test="{ type: 'button', value: 'addTargetClusters' }"
+        @click="handleShowClusterSelector">
         <DbIcon
           style="margin-right: 3px"
           type="add" />
@@ -112,14 +112,17 @@
         };
         return clusterNameMap[data.cluster_type as keyof typeof clusterNameMap];
       },
+      width: 100,
     },
     {
       label: t('版本'),
       render: ({ data }: { data: IClusterData }) => data.major_version || '--',
+      width: 200,
     },
     {
       label: t('状态'),
       render: ({ data }: { data: IClusterData }) => <RenderClusterStatus data={data.status} />,
+      width: 200,
     },
     {
       field: 'action',
@@ -132,7 +135,7 @@
           {t('删除')}
         </bk-button>
       ),
-      width: '100',
+      width: 200,
     },
   ];
 

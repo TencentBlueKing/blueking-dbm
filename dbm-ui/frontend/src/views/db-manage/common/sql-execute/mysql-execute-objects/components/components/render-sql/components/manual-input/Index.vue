@@ -26,7 +26,7 @@
         @remove="handleRemoveFile">
         <div
           key="upload"
-          data-test-id="manualAddSqlBtn"
+          v-test="{ type: 'div', value: 'createFile' }"
           class="create-file-btn mr-4"
           @click="handleCreateFile">
           <DbIcon type="add" />
@@ -55,10 +55,10 @@
                 content: t('请先输入变更 DB'),
                 disabled: !grammarCheckDisabled,
               }"
+              v-test="{ type: 'button', value: 'grammarCheck' }"
               :disabled="grammarCheckDisabled"
               size="small"
               theme="primary"
-              data-test-id="manualGrammarCheckBtn"
               @click="handleGrammarCheck">
               <DbIcon type="right-shape" />
               <span class="ml-4">{{ t('语法检测') }}</span>
