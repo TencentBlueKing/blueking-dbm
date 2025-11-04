@@ -46,7 +46,7 @@
       :bk-ui-settings="settings"
       :cluster-id="clusterId"
       :cluster-type="ClusterTypes.REDIS"
-      :data-source="getRedisList"
+      :data-source="dataSource"
       :filter-value="searchValue"
       @bk-ui-settings-change="updateTableSettings"
       @filter-change="handleFilterChange"
@@ -431,6 +431,16 @@
   import ClusterDetail from '@views/db-manage/redis/common/cluster-detail/Index.vue';
   import ClusterPassword from '@views/db-manage/redis/common/cluster-operations/ClusterPassword.vue';
 
+  const dataSource = () =>
+    getRedisList({
+      cluster_type: [
+        ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+        ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+        ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+        ClusterTypes.PREDIXY_REDIS_CLUSTER,
+      ].join(','),
+    });
+
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
@@ -481,12 +491,6 @@
 
   const fetchData = () => {
     tableRef.value!.fetchData({
-      cluster_type: [
-        ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-        ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-        ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-        ClusterTypes.PREDIXY_REDIS_CLUSTER,
-      ].join(','),
       ...searchValue.value,
     });
   };

@@ -29,9 +29,27 @@ export default (options = {} as { exclude: string[] }) => {
         },
       },
       {
-        id: 'ticket_type__in',
+        id: 'ticket_type_search',
         name: t('单据类型'),
-        remoteMethod: () => getTicketGroupTypes(),
+        props: {
+          checkStrictly: true,
+          showAllLevels: true,
+        },
+        remoteMethod: () =>
+          getTicketGroupTypes().then((data) =>
+            data.map((item) => {
+              return {
+                children: item.children.map((child) => {
+                  return {
+                    label: child.label,
+                    value: `ticket_type__in#${child.value}`,
+                  };
+                }),
+                label: item.label,
+                value: `db_type#${item.value}`,
+              };
+            }),
+          ),
         type: 'multiple-cascader',
       },
       {

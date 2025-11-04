@@ -152,11 +152,27 @@ export default () => {
         },
         showConfirmAndReset: true,
       },
-      ticket_type: {
+      ticket_type_search: {
         component: markRaw(MultCascader),
         name: t('单据类型'),
         props: {
-          remoteMethod: getTicketGroupTypes,
+          checkStrictly: true,
+          remoteMethod: () =>
+            getTicketGroupTypes().then((data) =>
+              data.map((item) => {
+                return {
+                  children: item.children.map((child) => {
+                    return {
+                      label: child.label,
+                      value: `ticket_type__in#${child.value}`,
+                    };
+                  }),
+                  label: item.label,
+                  value: `db_type#${item.value}`,
+                };
+              }),
+            ),
+          showAllLevels: true,
         },
         showConfirmAndReset: true,
       },
