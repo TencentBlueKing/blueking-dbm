@@ -52,6 +52,7 @@
         <BkButton
           class="w-88"
           :disabled="Boolean(submitButtonTips)"
+          data-test-id="submitSqlBtn"
           theme="primary"
           @click="handleSubmit">
           {{ t('确定') }}

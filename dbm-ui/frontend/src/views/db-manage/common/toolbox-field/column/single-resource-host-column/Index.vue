@@ -14,6 +14,7 @@
 <template>
   <EditableColumn
     :append-rules="rules"
+    data-test-id="singleResourceHostColumn"
     :disabled-method="disabledMethod"
     :field="field"
     :label="label"
@@ -28,6 +29,7 @@
         <DbIcon
           v-bk-tooltips="t('从资源池选择')"
           class="select-icon"
+          data-test-id="singleResourceHostSelectIcon"
           type="host-select"
           @click="handleShowSelector" />
       </template>

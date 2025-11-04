@@ -1,0 +1,17 @@
+{
+  "data": {
+    "tmp4dtl7zsh.sql": {
+      "syntax_fails": null,
+      "highrisk_warnings": null,
+      "bancommand_warnings": null,
+      "content": "-- Please enter the SQL statement\r\nselect * from test;",
+      "sql_path": "mysql/sqlfile/3/tmp4dtl7zsh.sql",
+      "raw_file_name": "/tmp/tmp4dtl7zsh.sql",
+      "skip_check": false
+    }
+  },
+  "code": 0,
+  "result": true,
+  "message": "OK",
+  "request_id": "6e6c38aebaabd428964faad72b3a8b71"
+}

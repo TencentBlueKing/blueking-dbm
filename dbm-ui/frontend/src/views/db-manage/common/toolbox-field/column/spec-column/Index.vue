@@ -13,6 +13,7 @@
 
 <template>
   <EditableColumn
+    data-test-id="specColumnSelect"
     :field="field"
     :label="t(label)"
     :min-width="minWidth"
@@ -260,8 +261,8 @@
   }
 
   .spec-column-option {
-    width: 100%;
     display: flex;
+    width: 100%;
     justify-content: space-between;
   }
 </style>

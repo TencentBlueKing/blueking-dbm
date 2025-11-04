@@ -1,6 +1,7 @@
 <template>
   <BkDialog
     class="resource-host-selector"
+    data-test-id="resourceHostSelector"
     :close-icon="false"
     :is-show="isShow"
     :width="dialogWidth">
@@ -28,6 +29,7 @@
                   content: disableHostMethod(data) || t('已选够n台', { n: limit }),
                   disabled: !disableHostMethod(data) && (isInfinity || selectedNum < limit),
                 }"
+                data-test-id="resourceHostSelectorRowCheckbox"
                 :disabled="
                   !!disableHostMethod(data) ||
                   (!isInfinity && selectedNum === limit && !Boolean(rowSelectMemo[data.bk_host_id]))
@@ -106,6 +108,7 @@
         }"
         :disabled="!isInfinity && selectedNum !== limit"
         theme="primary"
+        data-test-id="resourceHostSelectorSubmitButton"
         @click="handleSubmit">
         {{ t('确定') }}
       </BkButton>
