@@ -7,6 +7,7 @@ import (
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 	"fmt"
 	"log/slog"
+	"os"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -29,7 +30,7 @@ func (c *Checker) Run() (msg string, err error) {
 			config.MonitorConfig.Port,
 		),
 	)
-
+	slog.Info("find lsof command", slog.String("PATH", os.Getenv("PATH")))
 	commandPath, err := exec.LookPath("lsof")
 	if err != nil {
 		slog.Error("find lsof failed", slog.String("error", err.Error()))
