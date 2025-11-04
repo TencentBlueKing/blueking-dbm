@@ -15,6 +15,7 @@ from django.utils.translation import gettext_lazy as _
 from backend.components import DRSApi
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import FailedToAssignIncrException
+from backend.flow.utils.spider.spider_bk_config import calc_spider_max_count, get_spider_version_and_charset
 
 logger = logging.getLogger("root")
 
@@ -27,7 +28,6 @@ def get_spider_master_incr(cluster: Cluster, add_spiders: list) -> list:
     new_add_spiders = copy.deepcopy(add_spiders)
     ctl_address = cluster.tendbcluster_ctl_primary_address()  # 随便拿一个spider-master接入层
 
-    logger.info("ctl address: {}".format(ctl_address))
     res = DRSApi.rpc(
         {
             "addresses": [ctl_address],
@@ -52,9 +52,31 @@ def get_spider_master_incr(cluster: Cluster, add_spiders: list) -> list:
         set([int(info["SPIDER_AUTO_INCREMENT_STEP"]) for info in res[0]["cmd_results"][1]["table_data"]])
     )
     if len(increment_step_list) > 1:
-        raise FailedToAssignIncrException(message=_("there are several different self incrementing steps"))
+        raise FailedToAssignIncrException(
+            message=_(f"there are several different self incrementing steps in cluster[{cluster.immute_domain}]")
+        )
     max_spider_master_count = increment_step_list[0]
     logger.info("get the spider_auto_increment val: {}".format(max_spider_master_count))
+
+    # 判断集群当前的spider_auto_increment值，与准备安装的spider节点的spider_auto_increment值，是否一致
+    # 获取Spider版本号
+    __, spider_version = get_spider_version_and_charset(cluster.bk_biz_id, cluster.db_module_id)
+    max_spider_master_count_in_bk_config = calc_spider_max_count(
+        bk_biz_id=cluster.bk_biz_id,
+        db_version=spider_version,
+        db_module_id=cluster.db_module_id,
+        immute_domain=cluster.immute_domain,
+    )
+    if max_spider_master_count != max_spider_master_count_in_bk_config:
+        raise FailedToAssignIncrException(
+            message=_(
+                f"The value of SPIDER_AUTO_INCREMENT_STEP differs between the "
+                f"cluster [{cluster.immute_domain}]:{max_spider_master_count} "
+                f"and bk-config{max_spider_master_count_in_bk_config}. Please check."
+            )
+        )
+
+    # 验证通过后开始预分配 SPIDER_AUTO_INCREMENT_MODE_VALUE 值
     # incr_number 从1开始寻找，如果已使用则跳过，直至到未使用则赋值给对应的待加入的spider-master节点，且跳出
     start = 0
     for spider in new_add_spiders:

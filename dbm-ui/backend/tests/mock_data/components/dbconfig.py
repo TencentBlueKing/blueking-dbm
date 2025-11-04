@@ -148,6 +148,19 @@ class DBConfigApiMock(object):
         return conf_item_data
 
     @classmethod
+    def get_or_generate_instance_config(cls, *args, **kwargs):
+        db_args = args[0]
+        conf_item_data = copy.deepcopy(CONF_ITEM_DATA)
+        conf_item_data["bk_biz_id"] = db_args.get("bk_biz_id", 0)
+        conf_item_data["level_name"] = db_args.get("level_name", "plat")
+        conf_item_data["level_value"] = db_args.get("level_value", 0)
+        conf_item_data["conf_file_info"]["conf_file"] = db_args.get("conf_file", "MySQL-5.7")
+        conf_item_data["conf_file_info"]["conf_type"] = db_args.get("conf_type", "dbconf")
+        conf_item_data["conf_file_info"]["namespace"] = db_args.get("namespace", "tendbsingle")
+
+        return conf_item_data
+
+    @classmethod
     def list_conf_file(cls, *args, **kwargs):
         data = copy.deepcopy(LIST_PLATFORM_CONFIGS)
         return data

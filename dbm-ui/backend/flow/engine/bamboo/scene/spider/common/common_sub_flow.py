@@ -606,15 +606,8 @@ def reduce_spiders_flow(
 
     # 阶段1 清理机器配置，这里不需要做实例级别的配置清理，因为目前平台spider的单机单实例部署，专属一套集群
     # 卸载前先清理，避免出现误告
-    exec_act_kwargs.exec_ip = [ip_info["ip"] for ip_info in reduce_spiders]
-    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_clear_machine_crontab.__name__
-    sub_pipeline.add_act(
-        act_name=_("清理机器周边配置"),
-        act_component_code=SpiderRemoteClearMachineComponent.code,
-        kwargs=asdict(exec_act_kwargs),
-    )
 
-    # 阶段1 下发spider安装介质包
+    # 下发spider安装介质包
     sub_pipeline.add_act(
         act_name=_("下发db-actuator介质"),
         act_component_code=TransFileComponent.code,
@@ -625,6 +618,14 @@ def reduce_spiders_flow(
                 file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
             )
         ),
+    )
+
+    exec_act_kwargs.exec_ip = [ip_info["ip"] for ip_info in reduce_spiders]
+    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_clear_machine_crontab.__name__
+    sub_pipeline.add_act(
+        act_name=_("清理机器周边配置"),
+        act_component_code=SpiderRemoteClearMachineComponent.code,
+        kwargs=asdict(exec_act_kwargs),
     )
 
     # 阶段2 卸载相关db组件
