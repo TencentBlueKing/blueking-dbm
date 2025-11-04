@@ -395,12 +395,12 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         is_apply = self.params_validate(self.get_serializer_class())["is_apply"]
         ticket_type_list = []
 
-        resource_type = ["Resource", "Recycle"]
-        all_type = resource_type + DBType.get_values()
+        resource_type = [("resource", "Resource"), ("recycle", "Recycle")]
+        all_type = resource_type + DBType.get_choices()
         for db_type in all_type:
             children = []
             # 获取该DB类型的所有单据键值
-            ticket_keys = TicketType.get_ticket_type_by_db(db_type)
+            ticket_keys = TicketType.get_ticket_type_by_db(db_type[0])
 
             # 遍历每个单据键值，获取其详细信息
             for ticket_key in ticket_keys:
@@ -413,8 +413,8 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
             ticket_type_list.append(
                 {
                     "children": children,
-                    "label": DBType.get_choice_label(db_type) or db_type,
-                    "value": DBType.get_choice_label(db_type) or db_type,
+                    "label": db_type[1],
+                    "value": db_type[0],
                 }
             )
 

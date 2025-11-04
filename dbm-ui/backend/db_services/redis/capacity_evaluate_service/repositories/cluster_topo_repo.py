@@ -16,11 +16,11 @@ from collections import defaultdict
 
 from backend import env
 from backend.components.bkmonitorv3.client import BKMonitorV3Api
+from backend.db_meta.api.cluster.nosqlcomm.redis_cluster_repo import DbmClusterRepository
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.db_services.redis.capacity_evaluate_service.repositories.cvm_repo import CvmSpec
-from backend.db_meta.api.cluster.nosqlcomm.redis_cluster_repo import DbmClusterRepository
 from backend.db_services.redis.capacity_evaluate_service.util import is_dev, logger_debug
 
 logger = logging.getLogger("root")
