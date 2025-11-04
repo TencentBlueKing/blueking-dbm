@@ -25,8 +25,8 @@
         @remove="handleRemoveFile">
         <div
           key="upload"
+          v-test="{ type: 'div', value: 'uploadFiles' }"
           class="create-file-btn mr-4"
-          data-test-id="manualAddSqlBtn"
           @click="handleCreateFile">
           <DbIcon type="add" />
           {{ t('点击添加') }}
@@ -50,9 +50,9 @@
             v-if="!selectFileData.grammarCheck"
             class="footer-action">
             <BkButton
+              v-test="{ type: 'button', value: 'grammarCheck' }"
               size="small"
               theme="primary"
-              data-test-id="manualGrammarCheckBtn"
               @click="handleGrammarCheck">
               <DbIcon type="right-shape" />
               <span class="ml-4">{{ t('语法检测') }}</span>

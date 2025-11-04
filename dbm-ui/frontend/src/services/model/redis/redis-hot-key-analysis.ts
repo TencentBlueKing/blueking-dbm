@@ -15,7 +15,7 @@ import { utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
 
-export default class RedisHotKey {
+export default class RedisHotKeyAnalysis {
   static STATUS_TEXT_MAP: Record<string, string> = {
     FAILED: t('执行失败'),
     FINISHED: t('执行成功'),
@@ -48,7 +48,7 @@ export default class RedisHotKey {
   update_at: string;
   updater: string;
 
-  constructor(payload = {} as RedisHotKey) {
+  constructor(payload = {} as RedisHotKeyAnalysis) {
     this.analysis_time = payload.analysis_time;
     this.bk_biz_id = payload.bk_biz_id;
     this.cluster_type = payload.cluster_type;
@@ -70,11 +70,11 @@ export default class RedisHotKey {
   }
 
   get statusText() {
-    return RedisHotKey.STATUS_TEXT_MAP[this.status] || '--';
+    return RedisHotKeyAnalysis.STATUS_TEXT_MAP[this.status] || '--';
   }
 
   get statusTheme() {
-    return RedisHotKey.STATUS_THEME_MAP[this.status] || 'danger';
+    return RedisHotKeyAnalysis.STATUS_THEME_MAP[this.status] || 'danger';
   }
 
   get updateAtDisplay() {

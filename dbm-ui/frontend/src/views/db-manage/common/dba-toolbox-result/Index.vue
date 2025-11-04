@@ -13,7 +13,7 @@
 
 <template>
   <div
-    class="mysql-operation-success-page"
+    class="dba-toolbox-result-success-page"
     :loading="isLoading">
     <div style="font-size: 64px; color: #2dcb56">
       <DbIcon type="check-circle-fill" />
@@ -193,7 +193,7 @@
   );
 </script>
 <style lang="less">
-  .mysql-operation-success-page {
+  .dba-toolbox-result-success-page {
     display: block;
     padding-top: 100px;
     text-align: center;

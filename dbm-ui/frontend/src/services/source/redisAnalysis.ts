@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 import http from '@services/http';
-import RedisHotKeyModel from '@services/model/redis/redis-hot-key';
+import RedisHotKeyAnalysisModel from '@services/model/redis/redis-hot-key-analysis';
 import type { ListBase } from '@services/types';
 
 const getRootPath = () => `/apis/redis/bizs/${window.PROJECT_CONFIG.BIZ_ID}/analysis`;
@@ -30,10 +30,12 @@ export function queryAnalysisRecords(params: {
   offset?: number;
   operator?: string;
 }) {
-  return http.get<ListBase<RedisHotKeyModel[]>>(`${getRootPath()}/query_analysis_records/`, params).then((data) => ({
-    ...data,
-    results: data.results.map((item) => new RedisHotKeyModel(item)),
-  }));
+  return http
+    .get<ListBase<RedisHotKeyAnalysisModel[]>>(`${getRootPath()}/query_analysis_records/`, params)
+    .then((data) => ({
+      ...data,
+      results: data.results.map((item) => new RedisHotKeyAnalysisModel(item)),
+    }));
 }
 
 /**

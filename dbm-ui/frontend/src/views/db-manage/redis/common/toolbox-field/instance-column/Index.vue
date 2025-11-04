@@ -36,6 +36,7 @@
   <InstanceSelector
     v-model:is-show="showSelector"
     :cluster-types="['RedisInstance']"
+    hide-manual-input
     :selected="selectedInstances"
     :tab-list-config="tabListConfig"
     @change="handleInstanceSelectChange" />
@@ -46,9 +47,8 @@
 
   import RedisInstanceModel from '@services/model/redis/redis-instance';
   import { checkInstance } from '@services/source/dbbase';
-  import type { InstanceInfos } from '@services/types';
 
-  import { clusterTypeInfos, ClusterTypes } from '@common/const';
+  import { clusterTypeInfos, ClusterTypes, DBTypes } from '@common/const';
   import { ipPort } from '@common/regex';
 
   import InstanceSelector, {
@@ -60,7 +60,6 @@
   export type SelectorHost = IValue;
 
   interface Props {
-    afterInput?: (data: InstanceInfos) => void;
     selected: {
       instance_address: string;
     }[];
@@ -69,17 +68,13 @@
 
   type Emits = (e: 'batch-edit', list: RedisInstanceModel[]) => void;
 
-  interface Exposes {
-    inputManualChange: () => void;
-  }
-
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
     bk_cloud_id: number;
-    bk_host_id?: number;
+    bk_host_id: number;
     cluster_id: number;
     cluster_type: string;
     cluster_type_name: string;
@@ -88,7 +83,7 @@
   }>({
     default: () => ({
       bk_cloud_id: 0,
-      bk_host_id: undefined,
+      bk_host_id: 0,
       cluster_id: 0,
       cluster_type: '',
       cluster_type_name: '',
@@ -111,46 +106,37 @@
 
   const rules = [
     {
-      message: t('格式不符合要求'),
+      message: t('实例格式有误，请输入 IP:Port'),
       trigger: 'change',
-      validator: (value: string) => ipPort.test(value),
+      validator: (value: string) => !value || ipPort.test(value),
     },
     {
       message: t('目标实例重复'),
-      trigger: 'blur',
-      validator: (value: string) => props.selected.filter((item) => item.instance_address === value).length < 2,
+      trigger: 'change',
+      validator: (value: string) =>
+        !value || props.selected.filter((item) => item.instance_address === value).length < 2,
     },
     {
       message: t('目标实例不存在'),
       trigger: 'blur',
-      validator: (value: string) => {
-        if (!value) {
-          return true;
-        }
-        return Boolean(modelValue.value.bk_host_id);
-      },
+      validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
     },
   ];
 
   const { loading, run: queryHost } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
-      if (data.length) {
-        const [currentHost] = data;
-        if (props.afterInput) {
-          modelValue.value.bk_host_id = currentHost.bk_host_id;
-          props.afterInput(data[0]);
-        } else {
-          modelValue.value = {
-            bk_cloud_id: currentHost.bk_cloud_id,
-            bk_host_id: currentHost.bk_host_id,
-            cluster_id: currentHost.cluster_id,
-            cluster_type: currentHost.cluster_type,
-            cluster_type_name: clusterTypeInfos[currentHost.cluster_type as ClusterTypes].name,
-            instance_address: currentHost.instance_address,
-            master_domain: currentHost.master_domain,
-          };
-        }
+      const [currentHost] = data;
+      if (currentHost) {
+        modelValue.value = {
+          bk_cloud_id: currentHost.bk_cloud_id,
+          bk_host_id: currentHost.bk_host_id,
+          cluster_id: currentHost.cluster_id,
+          cluster_type: currentHost.cluster_type,
+          cluster_type_name: clusterTypeInfos[currentHost.cluster_type as ClusterTypes].name,
+          instance_address: currentHost.instance_address,
+          master_domain: currentHost.master_domain,
+        };
       }
     },
   });
@@ -162,32 +148,36 @@
   const handleInputChange = (value: string) => {
     modelValue.value = {
       bk_cloud_id: 0,
-      bk_host_id: undefined,
+      bk_host_id: 0,
       cluster_id: 0,
       cluster_type: '',
       cluster_type_name: '',
       instance_address: value,
       master_domain: '',
     };
-    if (value) {
-      queryHost({
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        instance_addresses: [value],
-      });
-    }
   };
 
-  const handleInstanceSelectChange = (selected: Record<string, RedisInstanceModel[]>) => {
-    const list = Object.values(selected).flatMap((selectedList) => selectedList);
-    emits('batch-edit', list);
+  const handleInstanceSelectChange = (selected: InstanceSelectorValues<RedisInstanceModel>) => {
+    emits('batch-edit', selected.RedisInstance);
   };
 
-  defineExpose<Exposes>({
-    inputManualChange() {
-      handleInputChange(modelValue.value.instance_address);
+  watch(
+    modelValue,
+    () => {
+      if (modelValue.value.instance_address && !modelValue.value.bk_host_id) {
+        queryHost({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          db_type: DBTypes.REDIS,
+          instance_addresses: [modelValue.value.instance_address],
+        });
+      }
     },
-  });
+    {
+      immediate: true,
+    },
+  );
 </script>
+
 <style lang="less" scoped>
   .batch-host-select {
     font-size: 14px;
