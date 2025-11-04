@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="mysql-operation-success-page">
+  <div class="ticket-success-page">
     <div style="font-size: 64px; color: #2dcb56">
       <DbIcon type="check-circle-fill" />
     </div>
@@ -60,7 +60,7 @@
   });
 </script>
 <style lang="less">
-  .mysql-operation-success-page {
+  .ticket-success-page {
     display: block;
     padding-top: 180px;
     text-align: center;

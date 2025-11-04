@@ -109,8 +109,8 @@
       </span>
       <span v-bk-tooltips="submitButtonDisabledInfo.tooltips">
         <BkButton
+          v-test="{ type: 'button', value: 'clusterSelectorConfirm' }"
           class="cluster-selector-button mr-8"
-          data-test-id="clusterSelectorConfirmButton"
           :disabled="submitButtonDisabledInfo.disabled || selectedMap[activeTab].list.length === 0"
           theme="primary"
           @click="handleConfirm">

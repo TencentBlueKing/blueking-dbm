@@ -33,9 +33,12 @@
           {{ t('查看详情') }}
         </a>
       </template>
-      <template v-if="ticketDetail.ticket_type === TicketTypes.REDIS_HOT_KEY_ANALYSIS">
+      <template
+        v-if="[TicketTypes.REDIS_HOT_KEY_ANALYSIS, TicketTypes.REDIS_KEYSTAT].includes(ticketDetail.ticket_type)">
         <span> ，</span>
-        <RedisHotKeyAnalysisToList :biz-id="ticketDetail.bk_biz_id" />
+        <RedisAnalysisToList
+          :biz-id="ticketDetail.bk_biz_id"
+          :ticket-type="ticketDetail.ticket_type" />
       </template>
     </template>
   </StatusSucceeded>
@@ -57,7 +60,7 @@
 
   import MongodbExecScriptDownloadFile from './components/MongodbExecScriptDownloadFile.vue';
   import MysqlDumpDataDownload from './components/MysqlDumpDataDownload.vue';
-  import RedisHotKeyAnalysisToList from './components/RedisHotKeyAnalysisToList.vue';
+  import RedisAnalysisToList from './components/RedisAnalysisToList.vue';
   import RedisKeysExtractFile from './components/RedisKeysExtractFile.vue';
 
   interface Props {

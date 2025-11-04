@@ -13,8 +13,8 @@
 
 <template>
   <EditableColumn
+    v-test="{ type: 'column', value: 'singleResoureHost' }"
     :append-rules="rules"
-    data-test-id="singleResourceHostColumn"
     :disabled-method="disabledMethod"
     :field="field"
     :label="label"
@@ -28,8 +28,8 @@
       <template #append>
         <DbIcon
           v-bk-tooltips="t('从资源池选择')"
+          v-test="{ type: 'icon', value: 'singleResoureHostSelectIcon' }"
           class="select-icon"
-          data-test-id="singleResourceHostSelectIcon"
           type="host-select"
           @click="handleShowSelector" />
       </template>

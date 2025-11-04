@@ -13,7 +13,7 @@
 
 <template>
   <EditableColumn
-    data-test-id="specColumnSelect"
+    v-test="{ type: 'column', value: 'spec' }"
     :field="field"
     :label="t(label)"
     :min-width="minWidth"

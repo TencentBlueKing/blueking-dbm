@@ -24,7 +24,7 @@
           content: t('请先选择目标集群'),
           disabled: clusterIds.length > 0,
         }"
-        data-test-id="addSqlContentBtn"
+        v-test="{ type: 'button', value: 'showExecuteObjects' }"
         :disabled="clusterIds.length === 0"
         @click="handleShowSideSlider">
         <DbIcon

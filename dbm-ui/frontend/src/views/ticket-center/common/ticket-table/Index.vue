@@ -516,7 +516,7 @@
       return;
     }
     if (payload) {
-      ordering.value = payload.descending ? payload.sortBy : `-${payload.sortBy}`;
+      ordering.value = payload.descending ? `-${payload.sortBy}` : payload.sortBy;
     } else {
       ordering.value = '';
     }
