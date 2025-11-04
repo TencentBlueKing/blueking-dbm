@@ -78,6 +78,7 @@
       <span v-bk-tooltips="submitButtonDisabledInfo.tooltips">
         <BkButton
           class="w-88"
+          data-test-id="instanceSelectorConfirmButton"
           :disabled="submitButtonDisabledInfo.disabled"
           theme="primary"
           @click="handleSubmit">

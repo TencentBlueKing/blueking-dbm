@@ -16,7 +16,7 @@
     <BkAlert
       class="mb-20"
       closable
-      :title="t('对集群的实例进行热 Key 分析，热 Key 分析仅支持 TendisCache 、RedisCluster 、主从版。')" />
+      :title="t('对集群的实例进行内存分析，内存分析仅支持 TendisCache 、RedisCluster 、主从版。')" />
     <BatchInput
       :config="batchInputConfig"
       @change="handleBatchInput" />
@@ -36,6 +36,7 @@
           <InstanceColumn
             v-model="item.instance"
             :selected="selected"
+            :tab-list-config="tabListConfig"
             @batch-edit="handleInstanceBatchEdit" />
           <EditableColumn
             :label="t('所属集群')"
@@ -53,26 +54,20 @@
               v-model="item.instance.cluster_type_name"
               :placeholder="t('自动生成')" />
           </EditableColumn>
+          <StatInfoColumnGroup
+            v-model="item.stat_info"
+            :instance="item.instance.instance_address" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
         </EditableRow>
       </EditableTable>
-      <BkFormItem
-        :label="t('分析时长')"
-        property="analysis_time"
-        required>
-        <BkSelect
-          v-model="formData.analysis_time"
-          :clearable="false"
-          :list="timeSelectList"
-          style="width: 300px" />
-      </BkFormItem>
       <TicketPayload v-model="formData.payload" />
     </BkForm>
     <template #action>
       <BkButton
         class="mr-8 w-88"
+        data-test-id="submitTicket"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
@@ -98,10 +93,13 @@
 
   import RedisInstanceModel from '@services/model/redis/redis-instance';
   import type { Redis } from '@services/model/ticket/ticket';
+  import { getRedisClusterList, getRedisInstances } from '@services/source/redis';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
+
+  import type { PanelListType } from '@components/instance-selector/Index.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
@@ -111,8 +109,11 @@
 
   import { random } from '@utils';
 
-  interface RowData {
+  import StatInfoColumnGroup from './components/StatInfoColumnGroup.vue';
+
+  interface IRowData {
     instance: NonNullable<ComponentProps<typeof InstanceColumn>['modelValue']>;
+    stat_info: ComponentProps<typeof StatInfoColumnGroup>['modelValue'];
   }
 
   const { t } = useI18n();
@@ -125,22 +126,53 @@
     },
   ];
 
+  const tabListConfig = {
+    RedisInstance: [
+      {
+        tableConfig: {
+          firsrColumn: {
+            role: 'redis_master',
+          },
+          getTableList: (params: ServiceParameters<typeof getRedisInstances>) =>
+            getRedisInstances({
+              ...params,
+              cluster_type: [
+                ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+                ClusterTypes.REDIS_CLUSTER,
+                ClusterTypes.REDIS_INSTANCE,
+              ].join(','),
+            }),
+        },
+        topoConfig: {
+          getTopoList: (params: ServiceParameters<typeof getRedisClusterList>) =>
+            getRedisClusterList({
+              ...params,
+              cluster_type: [
+                ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+                ClusterTypes.REDIS_CLUSTER,
+                ClusterTypes.REDIS_INSTANCE,
+              ].join(','),
+            }),
+        },
+      },
+    ],
+  } as unknown as Record<string, PanelListType>;
+
   const formRef = useTemplateRef('form');
   const editableTableRef = useTemplateRef('table');
 
-  useTicketDetail<Redis.HotKeyAnalyse>(TicketTypes.REDIS_HOT_KEY_ANALYSIS, {
+  useTicketDetail<Redis.KeyStat>(TicketTypes.REDIS_KEYSTAT, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { infos } = details;
       Object.assign(formData, {
-        analysis_time: details.analysis_time,
         payload: createTickePayload(ticketDetail),
         tableData: infos.flatMap((item) =>
           item.ins.map((instanceItem) =>
             createTableRow({
               instance: {
-                instance_address: instanceItem,
-              } as RowData['instance'],
+                instance_address: instanceItem.addr,
+              } as IRowData['instance'],
             }),
           ),
         ),
@@ -148,7 +180,7 @@
     },
   });
 
-  const createTableRow = (data = {} as Partial<RowData>) => ({
+  const createTableRow = (data = {} as Partial<IRowData>) => ({
     instance: Object.assign(
       {
         bk_cloud_id: 0,
@@ -161,18 +193,16 @@
       },
       data.instance,
     ),
+    stat_info: {
+      key_num: 0,
+      memory_total: 0,
+    },
   });
 
   const defaultData = () => ({
-    analysis_time: 10,
     payload: createTickePayload(),
     tableData: [createTableRow()],
   });
-
-  const timeSelectList = [10, 30, 60].map((item) => ({
-    label: `${item}s`,
-    value: item,
-  }));
 
   const tableKey = ref(random());
 
@@ -184,18 +214,12 @@
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.instance_address, true])));
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
-    analysis_time: number;
     bk_cloud_id: number;
-    infos: {
-      cluster_id: number;
-      cluster_type: string;
-      immute_domain: string;
-      ins: string[];
-    }[];
-  }>(TicketTypes.REDIS_HOT_KEY_ANALYSIS);
+    infos: Redis.KeyStat['infos'];
+  }>(TicketTypes.REDIS_KEYSTAT);
 
   const handleInstanceBatchEdit = (list: RedisInstanceModel[]) => {
-    const dataList = list.reduce<RowData[]>((acc, item) => {
+    const dataList = list.reduce<IRowData[]>((acc, item) => {
       if (!selectedMap.value[item.instance_address]) {
         acc.push(
           createTableRow({
@@ -221,7 +245,7 @@
       createTableRow({
         instance: {
           instance_address: item.instance,
-        } as RowData['instance'],
+        } as IRowData['instance'],
       }),
     );
 
@@ -244,31 +268,32 @@
     }
 
     formRef.value!.validate().then(() => {
-      const clusterMap = formData.tableData.reduce<Record<number, Redis.HotKeyAnalyse['infos'][number]>>(
-        (prev, item) => {
-          if (prev[item.instance.cluster_id]) {
-            return Object.assign(prev, {
-              [item.instance.cluster_id]: {
-                ...prev[item.instance.cluster_id],
-                ins: prev[item.instance.cluster_id].ins.concat(item.instance.instance_address),
-              },
-            });
-          }
+      const clusterMap = formData.tableData.reduce<Record<number, Redis.KeyStat['infos'][number]>>((prev, item) => {
+        const insItem = {
+          addr: item.instance.instance_address,
+          key_num: item.stat_info.key_num,
+          memory_total: item.stat_info.memory_total,
+        };
+        if (prev[item.instance.cluster_id]) {
           return Object.assign(prev, {
             [item.instance.cluster_id]: {
-              cluster_id: item.instance.cluster_id,
-              cluster_type: item.instance.cluster_type,
-              immute_domain: item.instance.master_domain,
-              ins: [item.instance.instance_address],
+              ...prev[item.instance.cluster_id],
+              ins: prev[item.instance.cluster_id].ins.concat(insItem),
             },
           });
-        },
-        {},
-      );
+        }
+        return Object.assign(prev, {
+          [item.instance.cluster_id]: {
+            cluster_id: item.instance.cluster_id,
+            cluster_type: item.instance.cluster_type,
+            immute_domain: item.instance.master_domain,
+            ins: [insItem],
+          },
+        });
+      }, {});
 
       createTicketRun({
         details: {
-          analysis_time: formData.analysis_time,
           bk_cloud_id: formData.tableData[0].instance.bk_cloud_id,
           infos: Object.values(clusterMap),
         },

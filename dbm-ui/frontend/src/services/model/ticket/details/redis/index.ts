@@ -20,6 +20,7 @@ export * from './instanceProxyClose';
 export * from './instanceProxyOpen';
 export * from './keysDelete';
 export * from './keysExtract';
+export * from './keyStat';
 export * from './masterSlaveSwitch';
 export * from './migrateCluster';
 export * from './migrateSingle';
