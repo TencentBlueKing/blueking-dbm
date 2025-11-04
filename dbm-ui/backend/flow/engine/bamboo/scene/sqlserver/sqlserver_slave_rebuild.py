@@ -68,7 +68,7 @@ from backend.flow.utils.sqlserver.sqlserver_db_function import (
 )
 from backend.flow.utils.sqlserver.sqlserver_db_meta import SqlserverDBMeta
 from backend.flow.utils.sqlserver.sqlserver_host import Host
-from backend.flow.utils.sqlserver.validate import SqlserverCluster, SqlserverInstance
+from backend.flow.utils.sqlserver.validate import SqlserverInstance
 
 logger = logging.getLogger("flow")
 
@@ -163,6 +163,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                 Conditions(
                     act_object=self._fix_database_sync_sub_flow(
                         sub_flow_context=sub_flow_context,
+                        master=master,
                         rebuild_slave=rebuild_slave,
                         cluster=cluster,
                     ),
@@ -210,6 +211,9 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                 sub_lists = []
                 for entry in entry_list:
                     sub_flow = self.fix_slave_dns_sub_flow(
+                        uid=self.data["uid"],
+                        root_id=self.root_id,
+                        bk_biz_id=self.data["bk_biz_id"],
                         domain_name=entry.entry,
                         master_instance=SqlserverInstance(
                             host=master.machine.ip, port=master.port, bk_cloud_id=master.machine.bk_cloud_id
@@ -290,8 +294,8 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
             sub_flow_context.update(info)
 
             # 计算新机器部署端口，以及每个端口和集群的关系
-            sub_flow_context["clusters"] = SqlserverAddSlaveFlow.get_clusters_install_info(info["cluster_ids"])
-            sub_flow_context["install_ports"] = [i["port"] for i in sub_flow_context["clusters"]]
+            clusters = SqlserverAddSlaveFlow.get_clusters_install_info(info["cluster_ids"])
+            sub_flow_context["install_ports"] = [i.port for i in clusters]
 
             # 已第一集群id的db_module_id/db_version 作为本次的安装依据，因为平台上同机相关联的集群的模块id/主版本都是一致的
             cluster = Cluster.objects.get(id=info["cluster_ids"][0])
@@ -321,7 +325,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                     bk_cloud_id=int(cluster.bk_cloud_id),
                     db_module_id=sub_flow_context["db_module_id"],
                     install_ports=sub_flow_context["install_ports"],
-                    clusters=[SqlserverCluster(**i) for i in sub_flow_context["clusters"]],
+                    clusters=clusters,
                     cluster_type=ClusterType.SqlserverHA,
                     target_hosts=[Host(**info["new_slave_host"])],
                     db_version=sub_flow_context["db_version"],
@@ -405,6 +409,8 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                             cluster=cluster,
                             sync_slaves=[Host(**info["new_slave_host"])],
                             sync_dbs=sync_dbs,
+                            master_host=Host(ip=master.machine.ip, bk_cloud_id=cluster.bk_cloud_id),
+                            port=master.port,
                         )
                     )
 
@@ -439,6 +445,9 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                     sub_lists = []
                     for entry in entry_list:
                         sub_flow = self.fix_slave_dns_sub_flow(
+                            uid=self.data["uid"],
+                            root_id=self.root_id,
+                            bk_biz_id=self.data["bk_biz_id"],
                             domain_name=entry.entry,
                             master_instance=SqlserverInstance(
                                 host=master.machine.ip, port=master.port, bk_cloud_id=master.machine.bk_cloud_id
@@ -467,8 +476,12 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                 ):
                     cluster_sub_pipeline.add_sub_pipeline(
                         sub_flow=self.remote_slave_in_cluster(
+                            root_id=self.data["root_id"],
+                            bk_biz_id=self.data["bk_biz_id"],
+                            uid=self.data["uid"],
                             cluster=cluster,
-                            master_instance=master,
+                            master_host=Host(ip=master.machine.ip, bk_cloud_id=master.machine.bk_cloud_id),
+                            master_port=master.port,
                             old_slave_instances=[old_slave],
                         )
                     )
@@ -511,7 +524,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                     bk_cloud_id=int(cluster.bk_cloud_id),
                     master_host=[],
                     slave_host=[Host(**info["new_slave_host"])],
-                    cluster_domain_list=[c["immutable_domain"] for c in sub_flow_context["clusters"]],
+                    cluster_domain_list=[c.immutable_domain for c in clusters],
                 )
             )
 
@@ -524,17 +537,15 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
 
             # 删除服务实例
             acts_list = []
-            for cluster_info in sub_flow_context["clusters"]:
+            for cluster_info in clusters:
                 acts_list.append(
                     {
-                        "act_name": _(
-                            "删除注册CC系统的服务实例[{}:{}]".format(info["old_slave_host"]["ip"], cluster_info["port"])
-                        ),
+                        "act_name": _("删除注册CC系统的服务实例[{}:{}]".format(info["old_slave_host"]["ip"], cluster_info.port)),
                         "act_component_code": DelCCServiceInstComponent.code,
                         "kwargs": asdict(
                             DelServiceInstKwargs(
-                                cluster_id=cluster_info["cluster_id"],
-                                del_instance_list=[{"ip": info["old_slave_host"]["ip"], "port": cluster_info["port"]}],
+                                cluster_id=cluster_info.cluster_id,
+                                del_instance_list=[{"ip": info["old_slave_host"]["ip"], "port": cluster_info.port}],
                             )
                         ),
                     }
@@ -586,8 +597,12 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
         main_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         main_pipeline.run_pipeline(init_trans_data_class=SqlserverBackupIDContext())
 
+    @classmethod
     def fix_slave_dns_sub_flow(
-        self,
+        cls,
+        bk_biz_id: int,
+        uid: str,
+        root_id: str,
         domain_name: str,
         master_instance: SqlserverInstance,
         new_slave_instance: SqlserverInstance,
@@ -600,43 +615,39 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
         2：回收当前slave的域名映射关系（新机重建）
         3：对新的slave的域名关系添加
         """
-        # 遍历所有域名映射记录
-        acts_list = []
         is_new_slave_exist = False
-        dns_manage = DnsManage(bk_biz_id=self.data["bk_biz_id"], bk_cloud_id=master_instance.bk_cloud_id)
+        acts_list = [
+            {
+                "act_name": _("回收master[{}]的域名映射".format(master_instance.host)),
+                "act_component_code": MySQLDnsManageComponent.code,
+                "kwargs": asdict(
+                    IpDnsRecordRecycleKwargs(
+                        instance_list=[f"{master_instance.host}#{master_instance.port}"],
+                        bk_cloud_id=master_instance.bk_cloud_id,
+                        domain_name=domain_name,
+                    )
+                ),
+            },
+            {
+                "act_name": _("回收slave[{}]的域名映射".format(old_slave_instance.host)),
+                "act_component_code": MySQLDnsManageComponent.code,
+                "kwargs": asdict(
+                    IpDnsRecordRecycleKwargs(
+                        instance_list=[f"{old_slave_instance.host}#{old_slave_instance.port}"],
+                        bk_cloud_id=old_slave_instance.bk_cloud_id,
+                        domain_name=domain_name,
+                    )
+                ),
+            },
+        ]
+
+        dns_manage = DnsManage(bk_biz_id=bk_biz_id, bk_cloud_id=master_instance.bk_cloud_id)
+
+        # 检查新slave是否已经存在域名映射关系
         for row in dns_manage.get_domain(domain_name=domain_name):
-            if row["ip"] == master_instance.host and row["port"] == master_instance.port:
-                acts_list.append(
-                    {
-                        "act_name": _("回收master[{}]的域名映射".format(master_instance.host)),
-                        "act_component_code": MySQLDnsManageComponent.code,
-                        "kwargs": asdict(
-                            IpDnsRecordRecycleKwargs(
-                                instance_list=[f"{master_instance.host}#{master_instance.port}"],
-                                bk_cloud_id=master_instance.bk_cloud_id,
-                                domain_name=domain_name,
-                            )
-                        ),
-                    },
-                )
-
-            if old_slave_instance and row["ip"] == old_slave_instance.host and row["port"] == old_slave_instance.port:
-                acts_list.append(
-                    {
-                        "act_name": _("回收slave[{}]的域名映射".format(old_slave_instance.host)),
-                        "act_component_code": MySQLDnsManageComponent.code,
-                        "kwargs": asdict(
-                            IpDnsRecordRecycleKwargs(
-                                instance_list=[f"{old_slave_instance.host}#{old_slave_instance.port}"],
-                                bk_cloud_id=old_slave_instance.bk_cloud_id,
-                                domain_name=domain_name,
-                            )
-                        ),
-                    },
-                )
-
             if row["ip"] == new_slave_instance.host and row["port"] == new_slave_instance.port:
                 is_new_slave_exist = True
+                break
 
         if not is_new_slave_exist:
             acts_list.append(
@@ -657,30 +668,35 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
         if len(acts_list) == 0:
             return None
 
-        sub_pipeline = SubBuilder(
-            root_id=self.root_id, data={"bk_biz_id": self.data["bk_biz_id"], "uid": self.data["uid"]}
-        )
+        sub_pipeline = SubBuilder(root_id=root_id, data={"bk_biz_id": bk_biz_id, "uid": uid})
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
         return sub_pipeline.build_sub_process(sub_name=_("处理[{}]的域名关系".format(domain_name)))
 
+    @classmethod
     def remote_slave_in_cluster(
-        self,
+        cls,
+        root_id: str,
+        bk_biz_id: str,
+        uid: str,
         cluster: Cluster,
-        master_instance: StorageInstance,
+        master_host: Host,
+        master_port: int,
         old_slave_instances: List[StorageInstance],
     ):
         """
         移除可用组，Alwayson架构专属
+        @param root_id:
+        @param bk_biz_id:
+        @param uid:
         @param cluster: 集群信息
-        @param master_instance: master信息
+        @param master_host: master ip
+        @param master_port: master port
         @param old_slave_instances: 待移除的slave信息列表
         """
 
         # 先禁用业务账号
-        sub_pipeline = SubBuilder(
-            root_id=self.root_id, data={"bk_biz_id": self.data["bk_biz_id"], "uid": self.data["uid"]}
-        )
+        sub_pipeline = SubBuilder(root_id=root_id, data={"bk_biz_id": bk_biz_id, "uid": uid})
         acts_list = []
         for instance in old_slave_instances:
             acts_list.append(
@@ -704,10 +720,10 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
             act_component_code=SqlserverActuatorScriptComponent.code,
             kwargs=asdict(
                 ExecActuatorKwargs(
-                    exec_ips=[Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
+                    exec_ips=[master_host],
                     get_payload_func=SqlserverActPayload.get_remote_dr_payload.__name__,
                     custom_params={
-                        "port": master_instance.port,
+                        "port": master_port,
                         "remotes_slaves": [{"host": i.machine.ip, "port": i.port} for i in old_slave_instances],
                     },
                 )
@@ -763,6 +779,8 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                 clean_dbs=[],
                 is_recalc_sync_dbs=True,
                 is_recalc_clean_dbs=True,
+                master_host=Host(ip=master.machine.ip, bk_cloud_id=cluster.bk_cloud_id),
+                port=master.port,
             )
         )
 
@@ -813,12 +831,16 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                 clean_dbs=[],
                 is_recalc_sync_dbs=True,
                 is_recalc_clean_dbs=True,
+                master_host=Host(ip=master.machine.ip, bk_cloud_id=cluster.bk_cloud_id),
+                port=master.port,
             )
         )
 
         return sub_pipeline.build_sub_process(sub_name=_("slave[{}]重建可用组修复流程".format(rebuild_slave.ip_port)))
 
-    def _fix_database_sync_sub_flow(self, sub_flow_context: dict, rebuild_slave: StorageInstance, cluster: Cluster):
+    def _fix_database_sync_sub_flow(
+        self, sub_flow_context: dict, master: StorageInstance, rebuild_slave: StorageInstance, cluster: Cluster
+    ):
         """
         部分数据库未建立同步场景，修复slave的子流程
         """
@@ -840,6 +862,8 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                 clean_dbs=[],
                 is_recalc_sync_dbs=True,
                 is_recalc_clean_dbs=True,
+                master_host=Host(ip=master.machine.ip, bk_cloud_id=cluster.bk_cloud_id),
+                port=master.port,
             )
         )
 

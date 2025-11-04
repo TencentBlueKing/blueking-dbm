@@ -71,9 +71,15 @@ class SqlserverActuatorScriptService(BkJobService):
         if is_dataclass(trans_data):
             trans_data = asdict(trans_data)
 
+        self.log_info(_("个性化参数体component_kwargs:{}").format(kwargs.get("component_kwargs", {})))
+
         db_act_template = getattr(mssql_act_payload, kwargs["get_payload_func"])(
-            ips=exec_ips, trans_data=trans_data, custom_params=kwargs.get("custom_params", {})
+            ips=exec_ips,
+            trans_data=trans_data,
+            custom_params=kwargs.get("custom_params", {}),  # todo 后续废弃
+            **kwargs.get("component_kwargs", {}),
         )
+
         db_act_template.root_id = root_id
         db_act_template.node_id = node_id
         db_act_template.version_id = self._runtime_attrs.get("version")

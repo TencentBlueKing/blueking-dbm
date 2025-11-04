@@ -7,6 +7,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from typing import List
 
 from django.db import transaction
 
@@ -18,6 +19,7 @@ from backend.db_meta.enums import (
     ClusterPhase,
     ClusterType,
     InstanceInnerRole,
+    InstancePhase,
     InstanceRole,
     InstanceStatus,
     MachineType,
@@ -290,6 +292,8 @@ class SqlserverHAClusterHandler(ClusterHandler):
             bk_cloud_id=new_slave_host.bk_cloud_id,
         )
 
+        clusters = []
+        new_slave_objs = []
         for cluster_id in cluster_ids:
             # 每个集群维度遍历变更信息
             cluster = Cluster.objects.get(id=cluster_id)
@@ -314,17 +318,20 @@ class SqlserverHAClusterHandler(ClusterHandler):
             new_slave_obj.machine.save()
             cluster.storageinstance_set.add(new_slave_obj)
 
+            new_slave_objs.append(new_slave_obj)
+            clusters.append(cluster)
+
             # 切换slave域名信息
             slave_entry_list = old_slave_obj.bind_entry.filter(cluster_entry_type=ClusterEntryType.DNS.value).all()
             for slave_entry in slave_entry_list:
                 slave_entry.storageinstance_set.remove(old_slave_obj)
                 slave_entry.storageinstance_set.add(new_slave_obj)
 
-            # 添加对应cmdb服务实例信息
-            SqlserverCCTopoOperator(cluster).transfer_instances_to_cluster_module([new_slave_obj])
-
             # 替换关联的主从关系信息
             StorageInstanceTuple.objects.filter(receiver=old_slave_obj).update(receiver=new_slave_obj)
+
+        # 添加对应cmdb服务实例信息
+        SqlserverCCTopoOperator(clusters).transfer_instances_to_cluster_module(new_slave_objs)
 
     @classmethod
     @transaction.atomic
@@ -362,6 +369,8 @@ class SqlserverHAClusterHandler(ClusterHandler):
             bk_cloud_id=new_slave_host.bk_cloud_id,
         )
 
+        clusters = []
+        new_slave_objs = []
         for cluster_id in cluster_ids:
             # 每个集群维度遍历变更信息
             cluster = Cluster.objects.get(id=cluster_id)
@@ -391,8 +400,11 @@ class SqlserverHAClusterHandler(ClusterHandler):
             master_storage_obj = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
             StorageInstanceTuple.objects.create(ejector=master_storage_obj, receiver=new_slave_obj)
 
-            # 添加对应cmdb服务实例信息
-            SqlserverCCTopoOperator(cluster).transfer_instances_to_cluster_module([new_slave_obj])
+            new_slave_objs.append(new_slave_obj)
+            clusters.append(cluster)
+
+        # 添加对应cmdb服务实例信息
+        SqlserverCCTopoOperator(clusters).transfer_instances_to_cluster_module(new_slave_objs)
 
     @classmethod
     @transaction.atomic
@@ -442,3 +454,95 @@ class SqlserverHAClusterHandler(ClusterHandler):
             StorageInstance.objects.filter(cluster=cluster, machine__ip__in=ip_list).update(
                 status=InstanceStatus.UNAVAILABLE
             )
+
+    @classmethod
+    @transaction.atomic
+    def migrate_cluster_for_always_on(
+        cls, bk_biz_id: int, cluster_ids: List[int], new_master_host: Host, new_stand_by_host: Host, creator: str
+    ):
+        # 录入新机器的machine信息
+        # 录入机器
+        machines = [
+            {
+                "ip": new_master_host.ip,
+                "bk_biz_id": int(bk_biz_id),
+                "machine_type": MachineType.SQLSERVER_HA.value,
+                "spec_id": new_master_host.spec["id"],
+                "spec_config": new_master_host.spec,
+            },
+            {
+                "ip": new_stand_by_host.ip,
+                "bk_biz_id": int(bk_biz_id),
+                "machine_type": MachineType.SQLSERVER_HA.value,
+                "spec_id": new_stand_by_host.spec["id"],
+                "spec_config": new_stand_by_host.spec,
+            },
+        ]
+        api.machine.create(machines=machines, creator=creator, bk_cloud_id=new_master_host.bk_cloud_id)
+
+        clusters = []
+        storage_objs = []
+        for cluster_id in cluster_ids:
+            # 每个集群维度遍历变更信息
+            cluster = Cluster.objects.get(id=cluster_id)
+            old_master_obj = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
+            old_stand_by_obj = cluster.storageinstance_set.get(
+                instance_role=InstanceRole.BACKEND_SLAVE, is_stand_by=True
+            )
+
+            storages = [
+                {
+                    "ip": new_master_host.ip,
+                    "port": old_master_obj.port,
+                    "instance_role": InstanceRole.BACKEND_MASTER.value,
+                    "is_stand_by": True,  # 标记实例属于切换组实例
+                    "db_version": cluster.major_version,
+                },
+                {
+                    "ip": new_stand_by_host.ip,
+                    "port": old_stand_by_obj.port,
+                    "instance_role": InstanceRole.BACKEND_SLAVE.value,
+                    "is_stand_by": True,  # 标记实例属于切换组实例
+                    "db_version": cluster.major_version,
+                },
+            ]
+
+            # 保存新实例的信息
+            new_objs = api.storage_instance.create(instances=storages, creator=creator, time_zone=cluster.time_zone)
+            for obj in new_objs:
+                obj.db_module_id = cluster.db_module_id
+                obj.machine.db_module_id = cluster.db_module_id
+                obj.save()
+                obj.machine.save()
+                cluster.storageinstance_set.add(obj)
+
+                # 切换域名信息
+                if obj.instance_role == InstanceRole.BACKEND_MASTER:
+                    # 修改db-meta主从的映射关系
+                    StorageInstanceTuple.objects.filter(ejector=old_master_obj).update(ejector=obj)
+
+                    entry_list = old_master_obj.bind_entry.filter(cluster_entry_type=ClusterEntryType.DNS.value).all()
+                    for entry in entry_list:
+                        entry.storageinstance_set.remove(old_master_obj)
+                        entry.storageinstance_set.add(obj)
+                        old_master_obj.phase = InstancePhase.OFFLINE
+                        old_master_obj.save()
+                else:
+                    entry_list = old_stand_by_obj.bind_entry.filter(
+                        cluster_entry_type=ClusterEntryType.DNS.value
+                    ).all()
+                    for entry in entry_list:
+                        entry.storageinstance_set.remove(old_stand_by_obj)
+                        entry.storageinstance_set.add(obj)
+                        old_stand_by_obj.phase = InstancePhase.OFFLINE
+                        old_stand_by_obj.save()
+
+            # 移除旧机器跟集群的关系
+            cluster.storageinstance_set.remove(old_master_obj)
+            cluster.storageinstance_set.remove(old_stand_by_obj)
+
+            storage_objs.extend(new_objs)
+            clusters.append(cluster)
+
+        # 添加对应cmdb服务实例信息
+        SqlserverCCTopoOperator(clusters).transfer_instances_to_cluster_module(storage_objs, is_increment=False)

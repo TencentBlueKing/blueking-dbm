@@ -10,14 +10,15 @@ specific language governing permissions and limitations under the License.
 import copy
 from dataclasses import asdict
 from pathlib import PureWindowsPath
-from typing import List
+from typing import Dict, List, Optional
 
+from bamboo_engine.builder import SubProcess
 from django.utils.translation import gettext as _
 
 from backend import env
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole
-from backend.db_meta.models import Cluster, StorageInstance
+from backend.db_meta.enums import ClusterEntryType, ClusterType
+from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance
 from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
 from backend.flow.consts import (
     DBM_SQLSERVER_JOB_LONG_TIMEOUT,
@@ -72,6 +73,7 @@ from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
     UpdateWindowGseConfigKwargs,
 )
 from backend.flow.utils.sqlserver.sqlserver_act_payload import SqlserverActPayload
+from backend.flow.utils.sqlserver.sqlserver_bk_config import get_sqlserver_backup_config
 from backend.flow.utils.sqlserver.sqlserver_db_function import get_backup_path
 from backend.flow.utils.sqlserver.sqlserver_host import Host
 from backend.flow.utils.sqlserver.validate import SqlserverCluster, SqlserverInstance
@@ -256,18 +258,92 @@ def switch_domain_sub_flow_for_cluster(
     uid: str,
     root_id: str,
     cluster: Cluster,
-    old_master: StorageInstance,
-    new_master: StorageInstance,
+    # old_master: StorageInstance,
+    # new_master: StorageInstance,
+    old_master_host: Host,
+    old_master_port: int,
+    old_master_dns_list: List[ClusterEntry],
+    new_master_host: Host,
+    new_master_port: int,
+    new_master_dns_list: List[ClusterEntry],
     is_force: bool = False,
 ):
     """
     主从切换后做域名切换处理
     @param uid: 单据id
     @param root_id: 主流程的id
-    @param old_master: 集群原主实例
-    @param new_master: 集群新主实例
-    @param cluster: 集群id
+    @param old_master_host: 集群原主实例
+    @param old_master_port: 集群新主实例
+    @param old_master_dns_list: 原主实例当前的域名列表
+    @param new_master_host: 集群新主实例
+    @param new_master_port: 集群新主实例
+    @param new_master_dns_list: 新主实例当前的域名列表
+    @param cluster: 集群元信息
     @param is_force: 是否属于强切行为，默认不是，强切行为认为主故障，从域名不切换到旧主上
+    """
+    # 构造只读上下文
+    global_data = {"uid": uid, "bk_biz_id": cluster.bk_biz_id}
+
+    # 声明子流程
+    sub_pipeline = SubBuilder(root_id=root_id, data=global_data)
+
+    # 替换主域名映射
+    acts_list = []
+    for old_master_dns in old_master_dns_list:
+        acts_list.append(
+            {
+                "act_name": _("[{}]替换主域名映射".format(old_master_dns.entry)),
+                "act_component_code": MySQLDnsManageComponent.code,
+                "kwargs": asdict(
+                    UpdateDnsRecordKwargs(
+                        bk_cloud_id=cluster.bk_cloud_id,
+                        old_instance=f"{old_master_host.ip}#{old_master_port}",
+                        new_instance=f"{new_master_host.ip}#{new_master_port}",
+                        update_domain_name=old_master_dns.entry,
+                    ),
+                ),
+            }
+        )
+    # 并发替换从域名映射
+    if not is_force:
+        for slave_dns in new_master_dns_list:
+            acts_list.append(
+                {
+                    "act_name": _("[{}]替换从域名映射".format(slave_dns.entry)),
+                    "act_component_code": MySQLDnsManageComponent.code,
+                    "kwargs": asdict(
+                        UpdateDnsRecordKwargs(
+                            bk_cloud_id=cluster.bk_cloud_id,
+                            old_instance=f"{new_master_host.ip}#{new_master_port}",
+                            new_instance=f"{old_master_host.ip}#{old_master_port}",
+                            update_domain_name=slave_dns.entry,
+                        ),
+                    ),
+                }
+            )
+    sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+    return sub_pipeline.build_sub_process(sub_name=_("变更集群[{}]域名映射".format(cluster.name)))
+
+
+def migrate_domain_for_cluster_ha(
+    uid: str,
+    root_id: str,
+    cluster: Cluster,
+    old_master: StorageInstance,
+    old_stand_by: StorageInstance,
+    new_master_host: Host,
+    new_stand_by_host: Host,
+):
+    """
+    主从切换后做域名切换处理
+    @param uid: 单据id
+    @param root_id: 主流程的id
+    @param old_master: 集群原主实例
+    @param old_stand_by: 集群原备实例
+    @param new_master_host: 集群新主机器
+    @param new_stand_by_host: 集群新备机器
+    @param cluster: 集群id
     """
     # 构造只读上下文
     global_data = {"uid": uid, "bk_biz_id": cluster.bk_biz_id}
@@ -287,30 +363,73 @@ def switch_domain_sub_flow_for_cluster(
                     UpdateDnsRecordKwargs(
                         bk_cloud_id=cluster.bk_cloud_id,
                         old_instance=f"{old_master.machine.ip}#{old_master.port}",
-                        new_instance=f"{new_master.machine.ip}#{new_master.port}",
+                        new_instance=f"{new_master_host.ip}#{old_master.port}",
                         update_domain_name=old_master_dns.entry,
                     ),
                 ),
             }
         )
     # 并发替换从域名映射
-    if not is_force:
-        slave_dns_list = new_master.bind_entry.filter(cluster_entry_type=ClusterEntryType.DNS.value).all()
-        for slave_dns in slave_dns_list:
-            acts_list.append(
-                {
-                    "act_name": _("[{}]替换从域名映射".format(slave_dns.entry)),
-                    "act_component_code": MySQLDnsManageComponent.code,
-                    "kwargs": asdict(
-                        UpdateDnsRecordKwargs(
-                            bk_cloud_id=cluster.bk_cloud_id,
-                            old_instance=f"{new_master.machine.ip}#{new_master.port}",
-                            new_instance=f"{old_master.machine.ip}#{old_master.port}",
-                            update_domain_name=slave_dns.entry,
-                        ),
+    slave_dns_list = old_stand_by.bind_entry.filter(cluster_entry_type=ClusterEntryType.DNS.value).all()
+    for slave_dns in slave_dns_list:
+        acts_list.append(
+            {
+                "act_name": _("[{}]替换从域名映射".format(slave_dns.entry)),
+                "act_component_code": MySQLDnsManageComponent.code,
+                "kwargs": asdict(
+                    UpdateDnsRecordKwargs(
+                        bk_cloud_id=cluster.bk_cloud_id,
+                        old_instance=f"{old_stand_by.machine.ip}#{old_stand_by.port}",
+                        new_instance=f"{new_stand_by_host.ip}#{old_stand_by.port}",
+                        update_domain_name=slave_dns.entry,
                     ),
-                }
-            )
+                ),
+            }
+        )
+    sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+    return sub_pipeline.build_sub_process(sub_name=_("变更集群[{}]域名映射".format(cluster.immute_domain)))
+
+
+def migrate_domain_for_cluster_single(
+    uid: str,
+    root_id: str,
+    cluster: Cluster,
+    old_instance: StorageInstance,
+    new_host: Host,
+):
+    """
+    定义单节点集群迁移，做域名切换的子流程
+    @param uid: 单据ID
+    @param root_id: 主流程的id
+    @param cluster: 集群元数据
+    @param old_instance: 原来的实例
+    @param new_host: 待替换新的机器信息
+    """
+    # 构造只读上下文
+    global_data = {"uid": uid, "bk_biz_id": cluster.bk_biz_id}
+
+    # 声明子流程
+    sub_pipeline = SubBuilder(root_id=root_id, data=global_data)
+
+    # 替换主域名映射
+    acts_list = []
+    dns_list = old_instance.bind_entry.filter(cluster_entry_type=ClusterEntryType.DNS.value).all()
+    for dns_info in dns_list:
+        acts_list.append(
+            {
+                "act_name": _("[{}]替换主域名映射".format(dns_info.entry)),
+                "act_component_code": MySQLDnsManageComponent.code,
+                "kwargs": asdict(
+                    UpdateDnsRecordKwargs(
+                        bk_cloud_id=cluster.bk_cloud_id,
+                        old_instance=f"{old_instance.machine.ip}#{old_instance.port}",
+                        new_instance=f"{new_host.ip}#{old_instance.port}",
+                        update_domain_name=dns_info.entry,
+                    ),
+                ),
+            }
+        )
     sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     return sub_pipeline.build_sub_process(sub_name=_("变更集群[{}]域名映射".format(cluster.name)))
@@ -508,12 +627,15 @@ def sync_dbs_for_cluster_sub_flow(
     uid: str,
     root_id: str,
     cluster: Cluster,
+    master_host: Host,
     sync_slaves: List[Host],
+    port: int,
     sync_dbs: list,
     clean_dbs: list = None,
     sub_flow_name: str = _("建立数据库同步子流程"),
     is_recalc_sync_dbs: bool = False,
     is_recalc_clean_dbs: bool = False,
+    sync_mode: SqlserverSyncMode = None,
 ):
     """
     数据库建立同步的子流程
@@ -526,18 +648,24 @@ def sync_dbs_for_cluster_sub_flow(
     @param sub_flow_name: 子流程名称
     @param is_recalc_sync_dbs: 控制在流程运行是否在传输上下文获取sync_dbs,适配于原地重建slave场景
     @param is_recalc_clean_dbs: 控制在流程运行是否在传输上下文获取clean_dbs,适配于原地重建slave场景
+    @param master_host: 当前指定的master主机
+    @param port: 端口号
+    @param sync_mode: 数据的同步模式，默认不需要传递，如果传递，则以传入为准。目的是兼容单节点集群迁移的场景
     """
-    # 获取当前master实例信息
-    master_instance = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
+
     # 获取集群的备份路径
     cluster_backup_path = get_backup_path(cluster.id)
     if cluster_backup_path == "":
         # 如果没有配置，则用默认路径
-        backup_path = str(PureWindowsPath("d:/") / "dbbak" / f"restore_dr_{root_id}_{master_instance.port}")
+        backup_path = str(PureWindowsPath("d:/") / "dbbak" / f"restore_dr_{root_id}_{port}")
     else:
-        backup_path = str(PureWindowsPath(cluster_backup_path) / f"restore_dr_{root_id}_{master_instance.port}")
+        backup_path = str(PureWindowsPath(cluster_backup_path) / f"restore_dr_{root_id}_{port}")
+    # 获取集群的同步模式
+    # 如果cluster_sync_mode 为空，则默认是mirror
+    cluster_sync_mode = (
+        sync_mode if sync_mode else SqlserverClusterSyncMode.objects.get(cluster_id=cluster.id).sync_mode
+    )
 
-    cluster_sync_mode = SqlserverClusterSyncMode.objects.get(cluster_id=cluster.id).sync_mode
     # 生成切换payload的字典
     sync_payload_func_map = {
         SqlserverSyncMode.MIRRORING: SqlserverActPayload.get_build_database_mirroring.__name__,
@@ -553,11 +681,11 @@ def sync_dbs_for_cluster_sub_flow(
 
     global_data = {
         "uid": uid,
-        "port": master_instance.port,
+        "port": port,
         "backup_dbs": sync_dbs,
         "target_backup_dir": backup_path,
         "is_set_full_model": True,
-        "job_id": f"restore_dr_{root_id}_{master_instance.port}",
+        "job_id": f"restore_dr_{root_id}_{port}",
         "clean_dbs": clean_dbs if clean_dbs else sync_dbs,
         "clean_mode": SqlserverCleanMode.DROP_DBS.value,
         "clean_tables": ["*"],
@@ -585,7 +713,7 @@ def sync_dbs_for_cluster_sub_flow(
         act_component_code=TransFileInWindowsComponent.code,
         kwargs=asdict(
             DownloadMediaKwargs(
-                target_hosts=sync_slaves + [Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
+                target_hosts=sync_slaves + [master_host],
                 file_list=GetFileList(db_type=DBType.Sqlserver).get_db_actuator_package(),
             ),
         ),
@@ -614,11 +742,11 @@ def sync_dbs_for_cluster_sub_flow(
         act_component_code=SqlserverActuatorScriptComponent.code,
         kwargs=asdict(
             ExecActuatorKwargs(
-                exec_ips=[Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
+                exec_ips=[master_host],
                 get_payload_func=SqlserverActPayload.get_backup_dbs_payload.__name__,
                 job_timeout=DBM_SQLSERVER_JOB_LONG_TIMEOUT,
                 custom_params={
-                    "port": master_instance.port,
+                    "port": port,
                     "file_tag": SqlserverBackupFileTagEnum.DBFILE1M.value,
                     "backup_type": SqlserverBackupMode.FULL_BACKUP.value,
                 },
@@ -632,11 +760,11 @@ def sync_dbs_for_cluster_sub_flow(
         act_component_code=SqlserverActuatorScriptComponent.code,
         kwargs=asdict(
             ExecActuatorKwargs(
-                exec_ips=[Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
+                exec_ips=[master_host],
                 get_payload_func=SqlserverActPayload.get_backup_dbs_payload.__name__,
                 job_timeout=DBM_SQLSERVER_JOB_LONG_TIMEOUT,
                 custom_params={
-                    "port": master_instance.port,
+                    "port": port,
                     "file_tag": SqlserverBackupFileTagEnum.INCREMENT_BACKUP.value,
                     "backup_type": SqlserverBackupMode.LOG_BACKUP.value,
                 },
@@ -650,7 +778,7 @@ def sync_dbs_for_cluster_sub_flow(
         act_component_code=SqlserverTransBackupFileFor2P2Component.code,
         kwargs=asdict(
             P2PFileForWindowKwargs(
-                source_hosts=[Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
+                source_hosts=[master_host],
                 target_hosts=sync_slaves,
                 file_target_path=backup_path,
                 cluster_id=cluster.id,
@@ -663,16 +791,16 @@ def sync_dbs_for_cluster_sub_flow(
     for slave in sync_slaves:
         acts_list.append(
             {
-                "act_name": _("恢复全量备份数据[{}]".format(slave.ip)),
+                "act_name": _("恢复全量备份数据[{}:{}]".format(slave.ip, port)),
                 "act_component_code": RestoreForDoDrComponent.code,
                 "kwargs": asdict(
                     RestoreForDoDrKwargs(
                         cluster_id=cluster.id,
                         job_id=global_data["job_id"],
                         restore_dbs=sync_dbs,
-                        restore_mode=SqlserverRestoreMode.FULL.value,
+                        restore_mode=SqlserverRestoreMode.FULL,
                         exec_ips=[slave],
-                        port=master_instance.port,
+                        port=port,
                         job_timeout=DBM_SQLSERVER_JOB_LONG_TIMEOUT,
                     )
                 ),
@@ -684,16 +812,16 @@ def sync_dbs_for_cluster_sub_flow(
     for slave in sync_slaves:
         acts_list.append(
             {
-                "act_name": _("恢复增量备份数据[{}]".format(slave.ip)),
+                "act_name": _("恢复增量备份数据[{}:{}]".format(slave.ip, port)),
                 "act_component_code": RestoreForDoDrComponent.code,
                 "kwargs": asdict(
                     RestoreForDoDrKwargs(
                         cluster_id=cluster.id,
                         job_id=global_data["job_id"],
                         restore_dbs=sync_dbs,
-                        restore_mode=SqlserverRestoreMode.LOG.value,
+                        restore_mode=SqlserverRestoreMode.LOG,
                         exec_ips=[slave],
-                        port=master_instance.port,
+                        port=port,
                         job_timeout=DBM_SQLSERVER_JOB_LONG_TIMEOUT,
                     )
                 ),
@@ -702,19 +830,19 @@ def sync_dbs_for_cluster_sub_flow(
     sub_pipeline.add_parallel_acts(acts_list=acts_list)
     # 建立数据库级别同步关系
     if cluster_sync_mode == SqlserverSyncMode.MIRRORING:
-        custom_params = {"dr_host": sync_slaves[0].ip, "dr_port": master_instance.port, "dbs": sync_dbs}
+        custom_params = {"dr_host": sync_slaves[0].ip, "dr_port": port, "dbs": sync_dbs}
     else:
         custom_params = {
-            "add_slaves": [{"host": i.ip, "port": master_instance.port} for i in sync_slaves],
+            "add_slaves": [{"host": i.ip, "port": port} for i in sync_slaves],
             "dbs": sync_dbs,
         }
     # 建立数据同步
     sub_pipeline.add_act(
-        act_name=_("在master建立数据同步[{}]".format(master_instance.machine.ip)),
+        act_name=_("在master建立数据同步[{}]".format(master_host.ip)),
         act_component_code=SqlserverActuatorScriptComponent.code,
         kwargs=asdict(
             ExecActuatorKwargs(
-                exec_ips=[Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
+                exec_ips=[master_host],
                 get_payload_func=sync_payload_func_map[cluster_sync_mode],
                 custom_params=custom_params,
             )
@@ -940,5 +1068,109 @@ def download_backup_file_sub_flow(
             )
         ),
     )
+
+    return sub_pipeline.build_sub_process(sub_name=sub_name)
+
+
+def switch_cluster_sub_flow(
+    uid: str,
+    root_id: str,
+    cluster: Cluster,
+    old_master_host: Host,
+    new_master_host: Host,
+    port: int,
+    sync_mode_number: int,
+    other_slaves: List[Dict],
+    force: bool = False,
+    sub_name: str = _("切换集群"),
+) -> Optional[SubProcess]:
+    """
+    切换集群的子流程
+    @param uid: 单据id
+    @param root_id: 主流程id
+    @param cluster: 集群对象
+    @param old_master_host: 旧主机
+    @param new_master_host: 新主机
+    @param port: 端口
+    @param sync_mode_number: 同步模式编号
+    @param force: 是否强制切换
+    @param other_slaves: 兼容一主多从集群，填入其余slaves
+    @param sub_name: 子流程名称
+    @return: 子流程
+    """
+    # 获取集群的备份位置
+    backup_space = get_sqlserver_backup_config(
+        bk_biz_id=cluster.bk_biz_id,
+        db_module_id=cluster.db_module_id,
+        cluster_domain=cluster.immute_domain,
+    )["backup_space"]
+
+    sub_pipeline = SubBuilder(root_id=root_id, data={"uid": uid, "root_id": root_id})
+
+    if not force:
+        # 如果是强制模式，不做预检测, 不做克隆
+        sub_pipeline.add_sub_pipeline(
+            sub_flow=pre_check_sub_flow(
+                uid=uid,
+                root_id=root_id,
+                check_host=old_master_host,
+                check_port=port,
+                cluster_id=cluster.id,
+            )
+        )
+
+        # 先做克隆user和link_server，保证这块内容切换前是同步的
+        sub_pipeline.add_sub_pipeline(
+            sub_flow=clone_configs_sub_flow(
+                uid=uid,
+                root_id=root_id,
+                source_host=old_master_host,
+                source_port=port,
+                target_host=new_master_host,
+                target_port=port,
+                is_clone_user=True,
+                is_clone_jobs=False,
+                is_clone_linkserver=True,
+                sub_flow_name=_("克隆user和Link_server配置"),
+            )
+        )
+
+    # 执行切换
+    sub_pipeline.add_act(
+        act_name=_("执行切换"),
+        act_component_code=SqlserverActuatorScriptComponent.code,
+        kwargs=asdict(
+            ExecActuatorKwargs(
+                exec_ips=[new_master_host],
+                get_payload_func=SqlserverActPayload.get_switch_payload.__name__,
+                component_kwargs={
+                    "target_port": port,
+                    "master_host": old_master_host.ip,
+                    "master_port": port,
+                    "sync_mode": sync_mode_number,
+                    "other_slaves": other_slaves,
+                    "force": force,
+                    "backup_space": backup_space,
+                },
+            )
+        ),
+    )
+
+    if not force:
+        # 再克隆job
+        sub_pipeline.add_sub_pipeline(
+            sub_flow=clone_configs_sub_flow(
+                uid=uid,
+                root_id=root_id,
+                source_host=old_master_host,
+                source_port=port,
+                target_host=new_master_host,
+                target_port=port,
+                is_clone_user=False,
+                is_clone_jobs=True,
+                is_clone_linkserver=False,
+                sub_flow_name=_("克隆job配置"),
+            )
+        )
 
     return sub_pipeline.build_sub_process(sub_name=sub_name)

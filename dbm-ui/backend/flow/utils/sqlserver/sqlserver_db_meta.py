@@ -8,10 +8,12 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+from typing import Dict, List
 
 from backend.db_meta.api.cluster.sqlserverha.handler import SqlserverHAClusterHandler
 from backend.db_meta.api.cluster.sqlserversingle.handler import SqlserverSingleClusterHandler
-from backend.db_meta.enums import ClusterPhase, ClusterType
+from backend.db_meta.api.storage_instance import remove_storage_instances
+from backend.db_meta.enums import ClusterPhase, ClusterType, MachineType
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_meta.models.sqlserver_dts import DtsStatus, SqlserverDtsInfo
 from backend.flow.consts import InstanceStatus, SqlserverDtsMode
@@ -79,15 +81,18 @@ class SqlserverDBMeta(object):
         )
         return True
 
-    def sqlserver_ha_switch(self):
+    @classmethod
+    def sqlserver_ha_switch(
+        cls, cluster_ids: List[int], old_master_host: Dict, new_master_host: Dict, is_force: bool = False
+    ):
         """
         ha集群部署录入你元数据
         """
         SqlserverHAClusterHandler.switch_role(
-            cluster_ids=self.global_data["cluster_ids"],
-            old_master=Host(**self.global_data["master"]),
-            new_master=Host(**self.global_data["slave"]),
-            is_force=self.global_data.get("force", False),
+            cluster_ids=cluster_ids,
+            old_master=Host(**old_master_host),
+            new_master=Host(**new_master_host),
+            is_force=is_force,
         )
         return True
 
@@ -210,3 +215,69 @@ class SqlserverDBMeta(object):
             cluster_id=int(self.global_data["cluster_id"]),
             ip_list=self.global_data["ip_list"],
         )
+
+    @classmethod
+    def migrate_cluster_single(cls, bk_biz_id: int, cluster_ids: List[int], new_host: Dict, creator: str = "admin"):
+        """
+        对单节点集群做迁移单据时，原数据的处理，绑定原子任务
+        @param bk_biz_id: 业务ID
+        @param cluster_ids: 待关联的集群ID列表
+        @param new_host: 待替换的新机器信息
+        @param creator: 单据发起者，默认admin
+        """
+        SqlserverSingleClusterHandler.migrate_cluster(
+            bk_biz_id=bk_biz_id, cluster_ids=cluster_ids, new_host=Host(**new_host), creator=creator
+        )
+
+    @classmethod
+    def migrate_cluster_always_on(
+        cls,
+        bk_biz_id: int,
+        cluster_ids: List[int],
+        new_master_host: Dict,
+        new_stand_by_host: Dict,
+        creator: str = "admin",
+    ):
+        """
+        对always_on集群做迁移单据时，原数据的处理，绑定原子任务
+        @param bk_biz_id: 业务ID
+        @param cluster_ids: 待关联的集群ID列表
+        @param new_master_host: 待替换的新master机器信息
+        @param new_stand_by_host: 待替换的新slave机器信息
+        @param creator: 单据发起者，默认admin
+        """
+        SqlserverHAClusterHandler.migrate_cluster_for_always_on(
+            bk_biz_id=bk_biz_id,
+            cluster_ids=cluster_ids,
+            new_master_host=Host(**new_master_host),
+            new_stand_by_host=Host(**new_stand_by_host),
+            creator=creator,
+        )
+
+    @classmethod
+    def switch_slave_for_migrate(
+        cls, bk_biz_id: int, cluster_ids: List[int], old_slave_host: Dict, new_slave_host: Dict, creator: str = "admin"
+    ):
+        """
+        定义迁移单据中替换slave
+        """
+        resource_spec = {MachineType.SQLSERVER_HA.value: new_slave_host["spec"]}
+        SqlserverHAClusterHandler.switch_slave(
+            bk_biz_id=bk_biz_id,
+            cluster_ids=cluster_ids,
+            old_slave_host=Host(**old_slave_host),
+            new_slave_host=Host(**new_slave_host),
+            creator=creator,
+            resource_spec=resource_spec,
+        )
+        return True
+
+    @classmethod
+    def remove_instance_for_migrate(cls, bk_biz_id: int, cluster_type: ClusterType, instances: List[Dict]):
+        """
+        迁移单据回收旧实例的阶段的逻辑， 只有标记offline的实例状态，才能进程移除
+        @param bk_biz_id: 业务ID
+        @param cluster_type: 集群类型
+        @param instances 待删除的sqlserver实例
+        """
+        remove_storage_instances(bk_biz_id=bk_biz_id, instances=instances, cluster_type=cluster_type)

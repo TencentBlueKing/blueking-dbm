@@ -35,6 +35,7 @@ type ClusterRoleSwitchParam struct {
 	Force       bool           `json:"force"`                                 // 是否强制切换
 	SyncMode    int            `json:"sync_mode" validate:"required"`         // 同步模式
 	OtherSlaves []cst.Instnace `json:"other_slaves" `                         // 集群其余slave实例
+	BackupSpace string         `json:"backup_space" validate:"required"`      // 备份配置
 }
 
 // 运行是需要的必须参数,可以提前计算
@@ -235,15 +236,15 @@ func (c *ClusterRoleSwitchComp) ExecSwitch() (err error) {
 			// 执行报错则回滚
 			logger.Error(
 				"step 1 : exec Sys_AutoSwitch_SafetyOn in old_master_instance [%s:%d] failed ",
-				c.Params.MasterHost,
-				c.Params.MasterPort,
+				c.MasterDB.Host,
+				c.MasterDB.Port,
 			)
 			return err
 		}
 		logger.Info(
 			"step 1 : exec Sys_AutoSwitch_SafetyOn in old_master_instance [%s:%d] successfully ",
-			c.Params.MasterHost,
-			c.Params.MasterPort,
+			c.MasterDB.Host,
+			c.MasterDB.Port,
 		)
 
 		//执行切换过程
@@ -259,30 +260,30 @@ func (c *ClusterRoleSwitchComp) ExecSwitch() (err error) {
 				// 执行报错则回滚
 				logger.Error(
 					"step 2: exec Sys_AutoSwitch_FailOver in old_master_instance [%s:%d] failed",
-					c.Params.MasterHost,
-					c.Params.MasterPort,
+					c.MasterDB.Host,
+					c.MasterDB.Port,
 				)
 				return err
 			}
 			logger.Info(
 				"step 2: exec Sys_AutoSwitch_FailOver in old_master_instance [%s:%d] successfully",
-				c.Params.MasterHost,
-				c.Params.MasterPort,
+				c.MasterDB.Host,
+				c.MasterDB.Port,
 			)
 
 			// 阶段3：同步数据切换成高性能模式
 			if err := sqlserver.ExecSwitchSP(c.NewMasterDB, "Sys_AutoSwitch_SafetyOff", ""); err != nil {
 				logger.Error(
 					"step 3: exec Sys_AutoSwitch_SafetyOff in new_master_instance [%s:%d] failed",
-					c.Params.Host,
-					c.Params.Port,
+					c.NewMasterDB.Host,
+					c.NewMasterDB.Port,
 				)
 				return err
 			}
 			logger.Info(
 				"step 3: exec Sys_AutoSwitch_SafetyOff in new_master_instance [%s:%d] successfully",
-				c.Params.Host,
-				c.Params.Port,
+				c.NewMasterDB.Host,
+				c.NewMasterDB.Port,
 			)
 
 			// 阶段4： 旧master同步新master数据
@@ -313,30 +314,30 @@ func (c *ClusterRoleSwitchComp) ExecSwitch() (err error) {
 				// 执行报错则回滚
 				logger.Error(
 					"step 2: exec Sys_AutoSwitch_FailOver in new_master_instance [%s:%d] failed",
-					c.Params.Host,
-					c.Params.Port,
+					c.NewMasterDB.Host,
+					c.NewMasterDB.Port,
 				)
 				return err
 			}
 			logger.Info(
 				"step 2: exec Sys_AutoSwitch_FailOver in new_master_instance [%s:%d] successfully",
-				c.Params.Host,
-				c.Params.Port,
+				c.NewMasterDB.Host,
+				c.NewMasterDB.Port,
 			)
 
 			// 阶段3：同步数据切换成高性能模式
 			if err := sqlserver.ExecSwitchSP(c.NewMasterDB, "Sys_AutoSwitch_SafetyOff", ""); err != nil {
 				logger.Error(
 					"step 3: exec Sys_AutoSwitch_SafetyOff in new_master_instance [%s:%d] failed",
-					c.Params.Host,
-					c.Params.Port,
+					c.NewMasterDB.Host,
+					c.NewMasterDB.Port,
 				)
 				return err
 			}
 			logger.Info(
 				"step 3: exec Sys_AutoSwitch_SafetyOff in new_master_instance [%s:%d] successfully",
-				c.Params.Host,
-				c.Params.Port,
+				c.NewMasterDB.Host,
+				c.NewMasterDB.Port,
 			)
 
 			// 阶段4： 剩余其他slave同步新的master数据
@@ -348,8 +349,8 @@ func (c *ClusterRoleSwitchComp) ExecSwitch() (err error) {
 			); err != nil {
 				logger.Error(
 					"step 4: exec Sys_AutoSwitch_Resume in instance [%s:%d] failed",
-					c.Params.Host,
-					c.Params.Port,
+					c.MasterDB.Host,
+					c.MasterDB.Port,
 				)
 				return err
 			}
@@ -362,8 +363,8 @@ func (c *ClusterRoleSwitchComp) ExecSwitch() (err error) {
 				); err != nil {
 					logger.Error(
 						"step 4: exec Sys_AutoSwitch_Resume in instance [%s:%d] failed",
-						c.Params.Host,
-						c.Params.Port,
+						slave.Host,
+						slave.Port,
 					)
 					return err
 				}
@@ -376,6 +377,54 @@ func (c *ClusterRoleSwitchComp) ExecSwitch() (err error) {
 			)
 		}
 
+	}
+	return nil
+}
+
+// ExecSnapShot 切换后执行快照逻辑, 不异常退出
+func (c *ClusterRoleSwitchComp) UpdateAppSetting() (err error) {
+	masterBackupTag := "all"
+	standbyBackupTag := "grant"
+
+	switch c.Params.BackupSpace {
+	case "master":
+		masterBackupTag = "all"
+		standbyBackupTag = "grant"
+	case "slave":
+		masterBackupTag = "grant"
+		standbyBackupTag = "all"
+	default:
+		return fmt.Errorf("the backupSpace {%s} is not supported, check", c.Params.BackupSpace)
+	}
+
+	newMasterUpdateSQL := fmt.Sprintf(
+		"update [%s].[dbo].[APP_SETTING] set [MASTER_IP] = '%s', [MASTER_PORT] = %d , [ROLE] = 'master', [DATA_SCHEMA_GRANT] = '%s'",
+		cst.SysDB, c.Params.Host, c.Params.Port, masterBackupTag,
+	)
+	oldMasterUpdateSQL := fmt.Sprintf(
+		"update [%s].[dbo].[APP_SETTING] set [MASTER_IP] = '%s', [MASTER_PORT] = %d , [ROLE] = 'slave', [DATA_SCHEMA_GRANT] = '%s'",
+		cst.SysDB, c.Params.Host, c.Params.Port, standbyBackupTag,
+	)
+	otherSlaveUpdateSQL := fmt.Sprintf(
+		"update [%s].[dbo].[APP_SETTING] set [MASTER_IP] = '%s', [MASTER_PORT] = %d ",
+		cst.SysDB, c.Params.Host, c.Params.Port,
+	)
+
+	// 在new master 处理
+	if _, err := c.NewMasterDB.Exec(newMasterUpdateSQL); err != nil {
+		return fmt.Errorf("exec update new master app_setting table failed: %s", err.Error())
+	}
+	if !c.Params.Force {
+		// 安全切换则处理旧master的app_setting表
+		if _, err := c.MasterDB.Exec(oldMasterUpdateSQL); err != nil {
+			return fmt.Errorf("exec update old master app_setting table failed: %s", err.Error())
+		}
+	}
+	// 再在其余的slave机器跑
+	for _, slave := range c.Slaves {
+		if _, err := slave.Exec(otherSlaveUpdateSQL); err != nil {
+			return fmt.Errorf("exec update slave [%s:%d] app_setting table failed: %s", slave.Host, slave.Port, err.Error())
+		}
 	}
 	return nil
 }

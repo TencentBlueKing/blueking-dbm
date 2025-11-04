@@ -7,23 +7,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import gettext as _
-
-from backend.exceptions import AppBaseException, ErrorCode
+from backend.flow.engine.validate.mysql_base_validate import MysqlBaseValidator
 
 
-class SqlserverFlowBaseException(AppBaseException):
-    MODULE_CODE = ErrorCode.FLOW_CODE
-    MESSAGE = _("Flow模块Sqlserver异常")
-
-
-class ActPayloadFlowException(SqlserverFlowBaseException):
-    ERROR_CODE = "001"
-    MESSAGE = _("解析act payload结构异常")
-    MESSAGE_TPL = _("{message}")
-
-
-class MigrateFlowException(SqlserverFlowBaseException):
-    ERROR_CODE = "002"
-    MESSAGE = _("构建集群迁移FLow异常")
-    MESSAGE_TPL = _("{message}")
+class SqlserverBaseValidator(MysqlBaseValidator):
+    """
+    sqlserver的基础校验类
+    """

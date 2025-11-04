@@ -302,6 +302,7 @@ class BkJobService(BaseService, metaclass=ABCMeta):
         try:
             # 以dict形式追加写入
             result = json.loads(re.search(cpl, resp["data"]["log_content"]).group("context"))
+
             if write_op == WriteContextOpType.APPEND.value:
                 context = copy.deepcopy(getattr(trans_data, write_payload_var))
                 ip = ip_dict["ip"]
@@ -311,7 +312,6 @@ class BkJobService(BaseService, metaclass=ABCMeta):
                     context = {ip: copy.deepcopy(result)}
 
                 setattr(trans_data, write_payload_var, copy.deepcopy(context))
-
             else:
                 # 默认覆盖写入
                 setattr(trans_data, write_payload_var, copy.deepcopy(result))
@@ -450,7 +450,6 @@ class BkJobService(BaseService, metaclass=ABCMeta):
         # 覆盖写入是会直接赋值给上下文属性上，不管之前有什么值，这是默认写入 WriteContextOpType.REWRITE
         # 追加写入是特殊行为，如果想IP日志结果都写入，可以选择追加写入，上下文变成list，每个元素是{"ip":"log"} WriteContextOpType.APPEND
         self.log_info(_("[{}]该节点需要获取执行后日志，赋值到流程上下文").format(node_name))
-
         is_false = False
         for ip_dict in ip_dicts:
             if not self.__get_target_ip_context(
