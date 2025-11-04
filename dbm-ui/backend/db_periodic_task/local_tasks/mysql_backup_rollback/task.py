@@ -11,9 +11,11 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from celery.schedules import crontab
+from django.utils.translation import gettext as _
 
 from backend.db_periodic_task.local_tasks import register_periodic_task
 
+from .check_failed_task import check_mysql_backup_exercise_failed
 from .gen_task import gen_rollback_task
 
 logger = logging.getLogger("root")
@@ -23,3 +25,12 @@ logger = logging.getLogger("root")
 def backup_data_recovery_task():
     logger.info("start backup data recovery task")
     gen_rollback_task()
+
+
+@register_periodic_task(run_every=crontab(day_of_week="*", hour="10", minute="30"))
+def mysql_backup_exercise_check_failed():
+    """
+    检查MySQL备份演练失败任务
+    """
+    logger.info(_("开始检查MySQL备份演练失败任务"))
+    check_mysql_backup_exercise_failed()
