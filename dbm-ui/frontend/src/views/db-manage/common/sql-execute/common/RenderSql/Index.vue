@@ -9,6 +9,7 @@
       }">
       <BkButton
         :disabled="Boolean(actionTips)"
+        data-test-id="addSqlBtn"
         text
         theme="primary"
         @click="handleShowSql">

@@ -43,6 +43,8 @@
         <BkButton
           class="w-88"
           :loading="isSubmitting"
+          theme="primary"
+          data-test-id="simulationExecuteBtn"
           @click="handleSubmit">
           {{ t('模拟执行') }}
         </BkButton>

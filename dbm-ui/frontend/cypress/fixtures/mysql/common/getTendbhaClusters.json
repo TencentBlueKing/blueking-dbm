@@ -1,0 +1,884 @@
+{
+  "data": {
+    "count": 1,
+    "next": null,
+    "previous": null,
+    "results": [
+      {
+        "id": 72,
+        "db_type": "mysql",
+        "phase": "online",
+        "phase_name": "正常",
+        "status": "normal",
+        "operations": [
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 6849,
+            "ticket_id": 2724,
+            "ticket_type": "MYSQL_HA_FULL_BACKUP",
+            "title": "MySQL 全库备份",
+            "status": "TODO"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 6846,
+            "ticket_id": 2723,
+            "ticket_type": "MYSQL_HA_FULL_BACKUP",
+            "title": "MySQL 全库备份",
+            "status": "TODO"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 6843,
+            "ticket_id": 2722,
+            "ticket_type": "MYSQL_HA_FULL_BACKUP",
+            "title": "MySQL 全库备份",
+            "status": "TODO"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 6840,
+            "ticket_id": 2721,
+            "ticket_type": "MYSQL_HA_FULL_BACKUP",
+            "title": "MySQL 全库备份",
+            "status": "TODO"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 6834,
+            "ticket_id": 2719,
+            "ticket_type": "MYSQL_HA_FULL_BACKUP",
+            "title": "MySQL 全库备份",
+            "status": "TODO"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 6831,
+            "ticket_id": 2718,
+            "ticket_type": "MYSQL_HA_FULL_BACKUP",
+            "title": "MySQL 全库备份",
+            "status": "TODO"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 6828,
+            "ticket_id": 2717,
+            "ticket_type": "MYSQL_HA_FULL_BACKUP",
+            "title": "MySQL 全库备份",
+            "status": "TODO"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 6825,
+            "ticket_id": 2716,
+            "ticket_type": "MYSQL_HA_FULL_BACKUP",
+            "title": "MySQL 全库备份",
+            "status": "TODO"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 6076,
+            "ticket_id": 2462,
+            "ticket_type": "MYSQL_HA_DB_TABLE_BACKUP",
+            "title": "MySQL 库表备份",
+            "status": "FAILED"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 6056,
+            "ticket_id": 2456,
+            "ticket_type": "MYSQL_MIGRATE_CLUSTER",
+            "title": "MySQL 主从迁移",
+            "status": "TODO"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 6026,
+            "ticket_id": 2447,
+            "ticket_type": "MYSQL_INSTANCE_FAIL_OVER",
+            "title": "MySQL 主库实例故障切换",
+            "status": "TODO"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5895,
+            "ticket_id": 2398,
+            "ticket_type": "MYSQL_MASTER_FAIL_OVER",
+            "title": "MySQL 主库主机故障切换",
+            "status": "TODO"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5716,
+            "ticket_id": 2343,
+            "ticket_type": "MYSQL_MASTER_FAIL_OVER",
+            "title": "MySQL 主库主机故障切换",
+            "status": "TODO"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5638,
+            "ticket_id": 2322,
+            "ticket_type": "MYSQL_PROXY_SWITCH",
+            "title": "MySQL 替换Proxy",
+            "status": "TODO"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5562,
+            "ticket_id": 2286,
+            "ticket_type": "MYSQL_MIGRATE_CLUSTER",
+            "title": "MySQL 主从迁移",
+            "status": "TODO"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5408,
+            "ticket_id": 2244,
+            "ticket_type": "MYSQL_PROXY_SWITCH",
+            "title": "MySQL 替换Proxy",
+            "status": "TODO"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5404,
+            "ticket_id": 2243,
+            "ticket_type": "MYSQL_MIGRATE_CLUSTER",
+            "title": "MySQL 主从迁移",
+            "status": "TODO"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5393,
+            "ticket_id": 2240,
+            "ticket_type": "MYSQL_MIGRATE_CLUSTER",
+            "title": "MySQL 主从迁移",
+            "status": "TODO"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5389,
+            "ticket_id": 2239,
+            "ticket_type": "MYSQL_MIGRATE_CLUSTER",
+            "title": "MySQL 主从迁移",
+            "status": "TODO"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5387,
+            "ticket_id": 2238,
+            "ticket_type": "MYSQL_HA_DB_TABLE_BACKUP",
+            "title": "MySQL 库表备份",
+            "status": "FAILED"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5367,
+            "ticket_id": 2232,
+            "ticket_type": "MYSQL_MIGRATE_CLUSTER",
+            "title": "MySQL 主从迁移",
+            "status": "TODO"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5364,
+            "ticket_id": 2231,
+            "ticket_type": "MYSQL_MASTER_FAIL_OVER",
+            "title": "MySQL 主库主机故障切换",
+            "status": "TODO"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5358,
+            "ticket_id": 2229,
+            "ticket_type": "MYSQL_MASTER_FAIL_OVER",
+            "title": "MySQL 主库主机故障切换",
+            "status": "TODO"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5355,
+            "ticket_id": 2228,
+            "ticket_type": "MYSQL_MASTER_FAIL_OVER",
+            "title": "MySQL 主库主机故障切换",
+            "status": "TODO"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5349,
+            "ticket_id": 2226,
+            "ticket_type": "MYSQL_MASTER_FAIL_OVER",
+            "title": "MySQL 主库主机故障切换",
+            "status": "TODO"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5346,
+            "ticket_id": 2225,
+            "ticket_type": "MYSQL_MASTER_FAIL_OVER",
+            "title": "MySQL 主库主机故障切换",
+            "status": "TODO"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5343,
+            "ticket_id": 2224,
+            "ticket_type": "MYSQL_MASTER_FAIL_OVER",
+            "title": "MySQL 主库主机故障切换",
+            "status": "TODO"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5340,
+            "ticket_id": 2223,
+            "ticket_type": "MYSQL_MASTER_FAIL_OVER",
+            "title": "MySQL 主库主机故障切换",
+            "status": "TODO"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5337,
+            "ticket_id": 2222,
+            "ticket_type": "MYSQL_MASTER_FAIL_OVER",
+            "title": "MySQL 主库主机故障切换",
+            "status": "TODO"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5334,
+            "ticket_id": 2221,
+            "ticket_type": "MYSQL_MASTER_FAIL_OVER",
+            "title": "MySQL 主库主机故障切换",
+            "status": "TODO"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5326,
+            "ticket_id": 2219,
+            "ticket_type": "MYSQL_ROLLBACK_CLUSTER",
+            "title": "MySQL 定点构造",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5323,
+            "ticket_id": 2218,
+            "ticket_type": "MYSQL_ROLLBACK_CLUSTER",
+            "title": "MySQL 定点构造",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5265,
+            "ticket_id": 2200,
+            "ticket_type": "MYSQL_ROLLBACK_CLUSTER",
+            "title": "MySQL 定点构造",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5262,
+            "ticket_id": 2199,
+            "ticket_type": "MYSQL_HA_DISABLE",
+            "title": "MySQL 高可用禁用",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5254,
+            "ticket_id": 2197,
+            "ticket_type": "MYSQL_PROXY_ADD",
+            "title": "MySQL 添加Proxy",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5251,
+            "ticket_id": 2196,
+            "ticket_type": "MYSQL_ROLLBACK_CLUSTER",
+            "title": "MySQL 定点构造",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5202,
+            "ticket_id": 2182,
+            "ticket_type": "MYSQL_MASTER_FAIL_OVER",
+            "title": "MySQL 主库主机故障切换",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5199,
+            "ticket_id": 2181,
+            "ticket_type": "MYSQL_PROXY_ADD",
+            "title": "MySQL 添加Proxy",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5196,
+            "ticket_id": 2180,
+            "ticket_type": "MYSQL_PROXY_SWITCH",
+            "title": "MySQL 替换Proxy",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5190,
+            "ticket_id": 2178,
+            "ticket_type": "MYSQL_MASTER_SLAVE_SWITCH",
+            "title": "MySQL 主从互换",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5187,
+            "ticket_id": 2177,
+            "ticket_type": "MYSQL_MIGRATE_CLUSTER",
+            "title": "MySQL 主从迁移",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5184,
+            "ticket_id": 2176,
+            "ticket_type": "MYSQL_ADD_SLAVE",
+            "title": "MySQL 添加从库",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5181,
+            "ticket_id": 2175,
+            "ticket_type": "MYSQL_RESTORE_SLAVE",
+            "title": "MySQL Slave重建",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5179,
+            "ticket_id": 2174,
+            "ticket_type": "MYSQL_RESTORE_LOCAL_SLAVE",
+            "title": "MySQL Slave原地重建",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5176,
+            "ticket_id": 2173,
+            "ticket_type": "MYSQL_INSTANCE_CLONE_RULES",
+            "title": "MySQL DB实例权限克隆",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5172,
+            "ticket_id": 2171,
+            "ticket_type": "MYSQL_ROLLBACK_CLUSTER",
+            "title": "MySQL 定点构造",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5169,
+            "ticket_id": 2170,
+            "ticket_type": "MYSQL_ROLLBACK_CLUSTER",
+            "title": "MySQL 定点构造",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5166,
+            "ticket_id": 2169,
+            "ticket_type": "MYSQL_ROLLBACK_CLUSTER",
+            "title": "MySQL 定点构造",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5163,
+            "ticket_id": 2168,
+            "ticket_type": "MYSQL_HA_FULL_BACKUP",
+            "title": "MySQL 全库备份",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5118,
+            "ticket_id": 2157,
+            "ticket_type": "MYSQL_MASTER_FAIL_OVER",
+            "title": "MySQL 主库主机故障切换",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5115,
+            "ticket_id": 2156,
+            "ticket_type": "MYSQL_MASTER_SLAVE_SWITCH",
+            "title": "MySQL 主从互换",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5112,
+            "ticket_id": 2155,
+            "ticket_type": "MYSQL_ROLLBACK_CLUSTER",
+            "title": "MySQL 定点构造",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5106,
+            "ticket_id": 2153,
+            "ticket_type": "MYSQL_ROLLBACK_CLUSTER",
+            "title": "MySQL 定点构造",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5083,
+            "ticket_id": 2146,
+            "ticket_type": "MYSQL_ROLLBACK_CLUSTER",
+            "title": "MySQL 定点构造",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5080,
+            "ticket_id": 2145,
+            "ticket_type": "MYSQL_ROLLBACK_CLUSTER",
+            "title": "MySQL 定点构造",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 5029,
+            "ticket_id": 2129,
+            "ticket_type": "MYSQL_ROLLBACK_CLUSTER",
+            "title": "MySQL 定点构造",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 4982,
+            "ticket_id": 2115,
+            "ticket_type": "MYSQL_ROLLBACK_CLUSTER",
+            "title": "MySQL 定点构造",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 4966,
+            "ticket_id": 2110,
+            "ticket_type": "MYSQL_ROLLBACK_CLUSTER",
+            "title": "MySQL 定点构造",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 4963,
+            "ticket_id": 2109,
+            "ticket_type": "MYSQL_ROLLBACK_CLUSTER",
+            "title": "MySQL 定点构造",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 4960,
+            "ticket_id": 2108,
+            "ticket_type": "MYSQL_ROLLBACK_CLUSTER",
+            "title": "MySQL 定点构造",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 4953,
+            "ticket_id": 2106,
+            "ticket_type": "MYSQL_ROLLBACK_CLUSTER",
+            "title": "MySQL 定点构造",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 4947,
+            "ticket_id": 2104,
+            "ticket_type": "MYSQL_ROLLBACK_CLUSTER",
+            "title": "MySQL 定点构造",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 4944,
+            "ticket_id": 2103,
+            "ticket_type": "MYSQL_ROLLBACK_CLUSTER",
+            "title": "MySQL 定点构造",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 4941,
+            "ticket_id": 2102,
+            "ticket_type": "MYSQL_ROLLBACK_CLUSTER",
+            "title": "MySQL 定点构造",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 4863,
+            "ticket_id": 2081,
+            "ticket_type": "MYSQL_HA_FULL_BACKUP",
+            "title": "MySQL 全库备份",
+            "status": "FAILED"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 4834,
+            "ticket_id": 2071,
+            "ticket_type": "MYSQL_OPEN_AREA",
+            "title": "MySQL 开区",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 4831,
+            "ticket_id": 2070,
+            "ticket_type": "MYSQL_OPEN_AREA",
+            "title": "MySQL 开区",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 4825,
+            "ticket_id": 2068,
+            "ticket_type": "MYSQL_OPEN_AREA",
+            "title": "MySQL 开区",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 4790,
+            "ticket_id": 2059,
+            "ticket_type": "MYSQL_PROXY_ADD",
+            "title": "MySQL 添加Proxy",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 4786,
+            "ticket_id": 2058,
+            "ticket_type": "MYSQL_CHECKSUM",
+            "title": "MySQL 数据校验修复",
+            "status": "FAILED"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 4768,
+            "ticket_id": 2053,
+            "ticket_type": "MYSQL_IMPORT_SQLFILE",
+            "title": "MySQL 变更SQL执行",
+            "status": "FAILED"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 4457,
+            "ticket_id": 1788,
+            "ticket_type": "MYSQL_HA_DISABLE",
+            "title": "MySQL 高可用禁用",
+            "status": "FAILED"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 4249,
+            "ticket_id": 1733,
+            "ticket_type": "MYSQL_HA_TRUNCATE_DATA",
+            "title": "MySQL 高可用清档",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 4178,
+            "ticket_id": 1713,
+            "ticket_type": "MYSQL_IMPORT_SQLFILE",
+            "title": "MySQL 变更SQL执行",
+            "status": "FAILED"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 4101,
+            "ticket_id": 1693,
+            "ticket_type": "MYSQL_HA_FULL_BACKUP",
+            "title": "MySQL 全库备份",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 4068,
+            "ticket_id": 1682,
+            "ticket_type": "MYSQL_RESTORE_LOCAL_SLAVE",
+            "title": "MySQL Slave原地重建",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 4065,
+            "ticket_id": 1681,
+            "ticket_type": "MYSQL_RESTORE_SLAVE",
+            "title": "MySQL Slave重建",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 4059,
+            "ticket_id": 1679,
+            "ticket_type": "MYSQL_RESTORE_LOCAL_SLAVE",
+            "title": "MySQL Slave原地重建",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 4034,
+            "ticket_id": 1672,
+            "ticket_type": "MYSQL_MASTER_FAIL_OVER",
+            "title": "MySQL 主库主机故障切换",
+            "status": "RUNNING"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 3725,
+            "ticket_id": 1574,
+            "ticket_type": "MYSQL_RESTORE_LOCAL_SLAVE",
+            "title": "MySQL Slave原地重建",
+            "status": "FAILED"
+          },
+          {
+            "operator": "*****",
+            "cluster_id": 72,
+            "flow_id": 3643,
+            "ticket_id": 1534,
+            "ticket_type": "MYSQL_RESTORE_SLAVE",
+            "title": "MySQL Slave重建",
+            "status": "FAILED"
+          }
+        ],
+        "dns_to_clb": false,
+        "cluster_time_zone": "+08:00",
+        "cluster_name": "**********",
+        "cluster_alias": "",
+        "cluster_access_port": 10000,
+        "cluster_stats": {},
+        "cluster_type": "tendbha",
+        "cluster_type_name": "MySQL高可用集群",
+        "cluster_subzones": [],
+        "cluster_subzone_ids": [],
+        "disaster_tolerance_level": "NONE",
+        "master_domain": "www.baidu.com",
+        "slave_domain": "www.baidu.com",
+        "cluster_entry": [
+          {
+            "cluster_entry_type": "dns",
+            "entry": "www.baidu.com",
+            "role": "master_entry"
+          },
+          {
+            "cluster_entry_type": "dns",
+            "entry": "www.baidu.com",
+            "role": "slave_entry"
+          }
+        ],
+        "bk_biz_id": 3,
+        "bk_biz_name": "DBA",
+        "bk_cloud_id": 0,
+        "bk_cloud_name": "直连区域",
+        "major_version": "MySQL-8.0",
+        "region": "",
+        "city": "",
+        "db_module_name": "mysql80",
+        "db_module_id": 5,
+        "creator": "admin",
+        "updater": "",
+        "create_at": "2023-11-17T18:23:45+08:00",
+        "update_at": "2024-07-19T14:46:07+08:00",
+        "cluster_spec": null,
+        "tags": [],
+        "zone_list": null,
+        "proxies": [
+          {
+            "name": "",
+            "ip": "127.0.0.1",
+            "port": 10000,
+            "instance": "127.0.0.1:10000",
+            "status": "running",
+            "version": "",
+            "phase": "online",
+            "bk_instance_id": 5550,
+            "bk_host_id": 225,
+            "bk_cloud_id": 0,
+            "spec_config": {
+              "id": 0
+            },
+            "bk_sub_zone": "",
+            "bk_biz_id": 3,
+            "admin_port": 11000
+          },
+          {
+            "name": "",
+            "ip": "127.0.0.1",
+            "port": 10000,
+            "instance": "127.0.0.1:10000",
+            "status": "running",
+            "version": "",
+            "phase": "online",
+            "bk_instance_id": 5549,
+            "bk_host_id": 224,
+            "bk_cloud_id": 0,
+            "spec_config": {
+              "id": 0
+            },
+            "bk_sub_zone": "",
+            "bk_biz_id": 3,
+            "admin_port": 11000
+          }
+        ],
+        "masters": [
+          {
+            "name": "",
+            "ip": "127.0.0.1",
+            "port": 20000,
+            "instance": "127.0.0.1:20000",
+            "status": "running",
+            "version": "8.0.18",
+            "phase": "online",
+            "bk_instance_id": 5547,
+            "bk_host_id": 226,
+            "bk_cloud_id": 0,
+            "spec_config": {
+              "id": 0
+            },
+            "bk_sub_zone": "",
+            "bk_biz_id": 3,
+            "is_stand_by": true
+          }
+        ],
+        "slaves": [
+          {
+            "name": "",
+            "ip": "127.0.0.1",
+            "port": 20000,
+            "instance": "127.0.0.1:20000",
+            "status": "running",
+            "version": "8.0.18",
+            "phase": "online",
+            "bk_instance_id": 5548,
+            "bk_host_id": 227,
+            "bk_cloud_id": 0,
+            "spec_config": {
+              "id": 0
+            },
+            "bk_sub_zone": "",
+            "bk_biz_id": 3,
+            "is_stand_by": true
+          }
+        ],
+        "permission": {
+          "mysql_enable_disable": true,
+          "mysql_add_clb": true,
+          "mysql_clb_bind_domain": true,
+          "mysql_destroy": true,
+          "mysql_view": true,
+          "mysql_edit": true,
+          "tbinlogdumper_install": true,
+          "mysql_dump_data": true,
+          "mysql_webconsole": true
+        }
+      }
+    ],
+    "permission": {
+      "access_entry_edit": true
+    }
+  },
+  "code": 0,
+  "result": true,
+  "message": "OK",
+  "request_id": "87d3a63d8f8df1a0f7f49f71727ea02f"
+}

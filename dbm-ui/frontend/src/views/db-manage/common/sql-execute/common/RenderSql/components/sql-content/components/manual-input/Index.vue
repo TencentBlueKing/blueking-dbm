@@ -26,6 +26,7 @@
         <div
           key="upload"
           class="create-file-btn mr-4"
+          data-test-id="manualAddSqlBtn"
           @click="handleCreateFile">
           <DbIcon type="add" />
           {{ t('点击添加') }}
@@ -51,6 +52,7 @@
             <BkButton
               size="small"
               theme="primary"
+              data-test-id="manualGrammarCheckBtn"
               @click="handleGrammarCheck">
               <DbIcon type="right-shape" />
               <span class="ml-4">{{ t('语法检测') }}</span>

@@ -13,6 +13,7 @@
 
 <template>
   <EditableColumn
+    data-test-id="resourceTagColumnSelect"
     field="labels"
     :label="t('资源标签')"
     :min-width="200"
