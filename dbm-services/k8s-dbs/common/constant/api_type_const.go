@@ -103,6 +103,8 @@ const (
 	APIMetaAddonTopoCreate        = "v4_dbs_meta_addon_topo_create"
 	APIMetaAddonTopoDetail        = "v4_dbs_meta_addon_topo_detail"
 	APIMetaAddonTopoSearch        = "v4_dbs_meta_addon_topo_search"
+	APIMetaAddonTypeList          = "v4_dbs_meta_addon_type_list"
+	APIMetaAddonTypeCreate        = "v4_dbs_meta_addon_type_create"
 )
 
 // APIGroups 存储 API 名称到分组的映射
@@ -173,6 +175,17 @@ func initAPIGroups() map[string]string {
 		APIMetaAddonCreate,
 		APIMetaAddonDelete,
 		APIMetaAddonUpdate,
+		APIMetaAddonRepoDetail,
+		APIMetaAddonRepoSearch,
+		APIMetaAddonRepoCreate,
+		APIMetaAddonClusterRepoDetail,
+		APIMetaAddonClusterRepoSearch,
+		APIMetaAddonClusterRepoCreate,
+		APIMetaAddonTopoCreate,
+		APIMetaAddonTopoDetail,
+		APIMetaAddonTopoSearch,
+		APIMetaAddonTypeList,
+		APIMetaAddonTypeCreate,
 	)
 
 	return groups
