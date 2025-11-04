@@ -23,6 +23,21 @@ from backend.db_report.models import MetaCheckReport
 logger = logging.getLogger("root")
 
 
+def is_cluster_labeled_with(cluster: Cluster, label: dict) -> bool:
+    """
+    Check if cluster has the specified label
+    """
+    if not label:
+        return True
+
+    cluster_tags = {tag.key: tag.value for tag in cluster.tags.all()}
+    for key, value in label.items():
+        if cluster_tags.get(key) != value:
+            return False
+
+    return True
+
+
 def calculate_failed_days(cluster_domain: str, ip: str, port: int, subtype: str, current_state: str) -> int:
     """
     Calculate consecutive failed days based on historical records

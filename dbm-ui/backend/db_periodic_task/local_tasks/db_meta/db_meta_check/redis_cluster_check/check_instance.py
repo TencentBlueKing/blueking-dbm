@@ -24,7 +24,7 @@ from backend.db_report.enums import MetaCheckSubType, ReportStateType
 from backend.ticket.constants import TICKET_RUNNING_STATUS_SET, TicketType
 from backend.ticket.models.ticket import ClusterOperateRecord
 
-from .base import create_meta_check_report, delete_old_meta_check_reports
+from .base import create_meta_check_report, delete_old_meta_check_reports, is_cluster_labeled_with
 
 logger = logging.getLogger("root")
 
@@ -73,7 +73,11 @@ def check_redis_instance():
         cluster_has_lonely_issue = False
 
         # proxy节点数不能小于2
-        if c.proxyinstance_set.count() < 2 and c.cluster_type != ClusterType.TendisRedisInstance:
+        skip_proxy_count_check = c.cluster_type == ClusterType.TendisRedisInstance.value or is_cluster_labeled_with(
+            c,
+            {"directmode": "true"},
+        )
+        if not skip_proxy_count_check and c.proxyinstance_set.count() < 2:
             cluster_has_lonely_issue = True
             msg = _("cluster:{} now had proxies[{}] < 2").format(c.immute_domain, c.proxyinstance_set.count())
             create_meta_check_report(
