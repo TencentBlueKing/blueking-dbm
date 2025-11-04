@@ -11,7 +11,7 @@ import logging
 
 from django.db import transaction
 
-from backend.db_meta.models import Cluster, ClusterDBHAExt, ClusterEntry, StorageInstanceTuple
+from backend.db_meta.models import Cluster, ClusterDBHAExt, ClusterEntry, StorageInstance, StorageInstanceTuple
 from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
 from backend.flow.utils.cc_manage import CcManage
 
@@ -26,7 +26,9 @@ def decommission(cluster: Cluster):
         StorageInstanceTuple.objects.filter(receiver=storage).delete()
         storage.delete(keep_parents=True)
         # sqlserver 可能存在单机多集群/多实例的场景，因此下架时，需判断主机的所有实例是否都被下架了
-        if not storage.machine.storageinstance_set.exists():
+        # 查询实例对应的机器是否存在其他的实例(当前读)，如果不存在，则删除machine表
+        remaining_instances = list(StorageInstance.objects.select_for_update().filter(machine=storage.machine))
+        if not remaining_instances:
             # 转移主机到待回收
             cc_manage.recycle_host([storage.machine.bk_host_id])
             storage.machine.delete(keep_parents=True)

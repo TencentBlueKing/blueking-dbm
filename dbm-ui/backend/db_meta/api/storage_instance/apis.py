@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import List
+from typing import Dict, List
 
 from django.db import transaction
 
@@ -16,12 +16,14 @@ from backend.constants import DEFAULT_TIME_ZONE
 from backend.db_meta import request_validator
 from backend.db_meta.enums import (
     AccessLayer,
+    ClusterType,
     InstancePhase,
     InstanceRoleInstanceInnerRoleMap,
     InstanceStatus,
     MachineTypeInstanceRoleMap,
 )
 from backend.db_meta.models import Machine, StorageInstance
+from backend.flow.utils.cc_manage import CcManage
 
 
 @transaction.atomic
@@ -109,3 +111,31 @@ def delete(instances):
         port = ins["port"]
         bk_cloud_id = ins["bk_cloud_id"]
         StorageInstance.objects.filter(machine__bk_cloud_id=bk_cloud_id, machine__ip=ip, port=port).delete()
+
+
+@transaction.atomic
+def remove_storage_instances(bk_biz_id: int, cluster_type: ClusterType, instances: List[Dict]):
+    """
+    根据传入的实例信息列表，绑定事务进行清理
+    """
+    cc_manage = CcManage(bk_biz_id, cluster_type)
+    for ins in instances:
+        storage = StorageInstance.objects.get(
+            machine__bk_cloud_id=ins["bk_cloud_id"], machine__ip=ins["ip"], port=ins["port"]
+        )
+        cc_manage.delete_service_instance(bk_instance_ids=[storage.bk_instance_id])
+        storage.delete(keep_parents=True)
+
+        # 查询实例对应的机器是否存在其他的实例(当前读)，如果不存在，则删除machine表
+        remaining_instances = list(
+            StorageInstance.objects.select_for_update().filter(
+                machine__bk_cloud_id=ins["bk_cloud_id"], machine__ip=ins["ip"]
+            )
+        )
+        if remaining_instances:
+            continue
+
+        # 不存在，则清理machine表
+        Machine.objects.filter(ip=ins["ip"], bk_cloud_id=ins["bk_cloud_id"]).delete()
+        # 转移退回池
+        cc_manage.recycle_host([storage.machine.bk_host_id])

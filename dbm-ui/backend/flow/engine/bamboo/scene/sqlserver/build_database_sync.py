@@ -48,6 +48,7 @@ class SqlserverBuildDBSyncFlow(BaseFlow):
         for info in self.data["infos"]:
             # 获取集群的master节点,默认统一在master节点备份
             cluster = Cluster.objects.get(id=info["cluster_id"])
+            master_instance = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
             slave_instance = cluster.storageinstance_set.filter(instance_role=InstanceRole.BACKEND_SLAVE)
 
             sync_slaves = []
@@ -89,6 +90,8 @@ class SqlserverBuildDBSyncFlow(BaseFlow):
                     cluster=cluster,
                     sync_slaves=sync_slaves,
                     sync_dbs=info["sync_dbs"],
+                    master_host=Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id),
+                    port=master_instance.port,
                 )
             )
 

@@ -26,6 +26,12 @@ class BaseFlow(object):
         """
         self.root_id = root_id
         self.data = data
+        self.default_flow_global_data = {
+            "uid": self.data["uid"],
+            "bk_biz_id": self.data["bk_biz_id"],
+            "root_id": root_id,
+            "ticket_type": self.data["ticket_type"],
+        }
 
     def flow_pre_check(self):
         """

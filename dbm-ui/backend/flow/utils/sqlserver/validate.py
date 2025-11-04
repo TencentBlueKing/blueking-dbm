@@ -48,6 +48,7 @@ class SqlserverCluster:
     __dataclass_fields__ = None
     port: int
     immutable_domain: str
+    cluster_id: int = 0
 
     def __init__(self, **kwargs):
         for field in SqlserverCluster.__dataclass_fields__:

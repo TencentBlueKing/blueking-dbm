@@ -301,7 +301,7 @@ class SqlserverActPayload(PayloadHandler):
         }
 
     @wrap_sqlserver_act_return
-    def get_switch_payload(self, **kwargs) -> dict:
+    def get_switch_payload_old(self, **kwargs) -> dict:
         """
         执行互切或者故障转移的payload
         """
@@ -318,6 +318,39 @@ class SqlserverActPayload(PayloadHandler):
                     "force": self.global_data["force"],
                     "sync_mode": self.global_data["sync_mode"],
                     "other_slaves": self.global_data["other_slaves"],
+                },
+            },
+        }
+
+    @wrap_sqlserver_act_return
+    def get_switch_payload(
+        self,
+        target_port: int,
+        master_host: str,
+        master_port: int,
+        sync_mode: str,
+        other_slaves: list,
+        force: bool,
+        backup_space: str,
+        **kwargs,
+    ) -> dict:
+        """
+        执行互切或者故障转移的payload
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Sqlserver.value,
+            "action": SqlserverActuatorActionEnum.RoleSwitch.value,
+            "payload": {
+                "general": {"runtime_account": self.get_sqlserver_account()},
+                "extend": {
+                    "host": kwargs["ips"][0]["ip"],
+                    "port": target_port,
+                    "master_host": master_host,
+                    "master_port": master_port,
+                    "force": force,
+                    "sync_mode": sync_mode,
+                    "other_slaves": other_slaves,
+                    "backup_space": backup_space,
                 },
             },
         }

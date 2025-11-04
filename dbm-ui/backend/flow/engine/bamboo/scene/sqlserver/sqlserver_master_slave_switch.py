@@ -15,7 +15,7 @@ from dataclasses import asdict
 from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import InstanceRole
+from backend.db_meta.enums import ClusterEntryType, InstanceRole
 from backend.db_meta.models import Cluster
 from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
 from backend.flow.consts import SqlserverSyncModeMaps
@@ -23,14 +23,11 @@ from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.sqlserver.base_flow import BaseFlow
 from backend.flow.engine.bamboo.scene.sqlserver.common_sub_flow import (
-    clone_configs_sub_flow,
-    install_surrounding_apps_sub_flow,
-    pre_check_sub_flow,
+    switch_cluster_sub_flow,
     switch_domain_sub_flow_for_cluster,
 )
 from backend.flow.plugins.components.collections.sqlserver.create_random_job_user import SqlserverAddJobUserComponent
 from backend.flow.plugins.components.collections.sqlserver.drop_random_job_user import SqlserverDropJobUserComponent
-from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script import SqlserverActuatorScriptComponent
 from backend.flow.plugins.components.collections.sqlserver.sqlserver_db_meta import SqlserverDBMetaComponent
 from backend.flow.plugins.components.collections.sqlserver.trans_files import TransFileInWindowsComponent
 from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
@@ -38,9 +35,7 @@ from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
     DBMetaOPKwargs,
     DownloadMediaKwargs,
     DropRandomJobUserKwargs,
-    ExecActuatorKwargs,
 )
-from backend.flow.utils.sqlserver.sqlserver_act_payload import SqlserverActPayload
 from backend.flow.utils.sqlserver.sqlserver_db_function import create_sqlserver_login_sid
 from backend.flow.utils.sqlserver.sqlserver_db_meta import SqlserverDBMeta
 from backend.flow.utils.sqlserver.sqlserver_host import Host
@@ -96,7 +91,6 @@ class SqlserverSwitchFlow(BaseFlow):
                 cluster = Cluster.objects.get(id=cluster_id)
                 old_master = cluster.storageinstance_set.get(machine__ip=info["master"]["ip"])
                 new_master = cluster.storageinstance_set.get(machine__ip=info["slave"]["ip"])
-                other_slaves = cluster.storageinstance_set.filter(is_stand_by=False)
 
                 # 判断传入slave的is_stand_by是否为true
                 if not new_master.is_stand_by:
@@ -107,29 +101,8 @@ class SqlserverSwitchFlow(BaseFlow):
                 if old_master.instance_role != InstanceRole.BACKEND_MASTER:
                     raise Exception(f"The [{old_master.ip_port}] in cluster [{cluster.immute_domain}] is not master")
 
-                # 获取集群数据库同步模式
-                sync_mode = SqlserverSyncModeMaps[
-                    SqlserverClusterSyncMode.objects.get(cluster_id=cluster.id).sync_mode
-                ]
-
                 # 拼接子流程全局上下文
                 cluster_context = copy.deepcopy(self.data)
-                cluster_context.pop("infos")
-                cluster_context["master_host"] = old_master.machine.ip
-                cluster_context["master_port"] = old_master.port
-                cluster_context["port"] = new_master.port
-                cluster_context["sync_mode"] = sync_mode
-                cluster_context["other_slaves"] = [
-                    asdict(
-                        SqlserverInstance(
-                            host=i.machine.ip,
-                            port=i.port,
-                            bk_cloud_id=cluster.bk_cloud_id,
-                            is_new=False,
-                        )
-                    )
-                    for i in other_slaves
-                ]
 
                 # 启动子流程
                 cluster_pipeline = SubBuilder(root_id=self.root_id, data=cluster_context)
@@ -146,62 +119,32 @@ class SqlserverSwitchFlow(BaseFlow):
                     ),
                 )
 
-                if not self.data["force"]:
-                    # 如果是强制模式，不做预检测, 不做克隆
-                    cluster_pipeline.add_sub_pipeline(
-                        sub_flow=pre_check_sub_flow(
-                            uid=self.data["uid"],
-                            root_id=self.root_id,
-                            check_host=Host(ip=old_master.machine.ip, bk_cloud_id=cluster.bk_cloud_id),
-                            check_port=old_master.port,
-                            cluster_id=cluster_id,
-                        )
+                cluster_pipeline.add_sub_pipeline(
+                    sub_flow=switch_cluster_sub_flow(
+                        uid=self.data["uid"],
+                        root_id=self.root_id,
+                        cluster=cluster,
+                        old_master_host=Host(ip=old_master.machine.ip, bk_cloud_id=cluster.bk_cloud_id),
+                        new_master_host=Host(ip=new_master.machine.ip, bk_cloud_id=cluster.bk_cloud_id),
+                        port=new_master.port,
+                        sync_mode_number=SqlserverSyncModeMaps[
+                            SqlserverClusterSyncMode.objects.get(cluster_id=cluster.id).sync_mode
+                        ],
+                        force=self.data["force"],
+                        other_slaves=[
+                            asdict(
+                                SqlserverInstance(
+                                    host=i.machine.ip,
+                                    port=i.port,
+                                    bk_cloud_id=cluster.bk_cloud_id,
+                                    is_new=False,
+                                )
+                            )
+                            for i in cluster.storageinstance_set.filter(is_stand_by=False)
+                        ],
+                        sub_name=_("{}执行切换过程".format(cluster.immute_domain)),
                     )
-
-                    # 先做克隆user和link_server，保证这块内容切换前是同步的
-                    cluster_pipeline.add_sub_pipeline(
-                        sub_flow=clone_configs_sub_flow(
-                            uid=self.data["uid"],
-                            root_id=self.root_id,
-                            source_host=Host(ip=old_master.machine.ip, bk_cloud_id=cluster.bk_cloud_id),
-                            source_port=old_master.port,
-                            target_host=Host(ip=new_master.machine.ip, bk_cloud_id=cluster.bk_cloud_id),
-                            target_port=new_master.port,
-                            is_clone_user=True,
-                            is_clone_jobs=False,
-                            is_clone_linkserver=True,
-                            sub_flow_name=_("克隆user和Link_server配置"),
-                        )
-                    )
-
-                # 之前切换
-                cluster_pipeline.add_act(
-                    act_name=_("执行切换"),
-                    act_component_code=SqlserverActuatorScriptComponent.code,
-                    kwargs=asdict(
-                        ExecActuatorKwargs(
-                            exec_ips=[Host(ip=new_master.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
-                            get_payload_func=SqlserverActPayload.get_switch_payload.__name__,
-                        )
-                    ),
                 )
-
-                if not self.data["force"]:
-                    # 再克隆job
-                    cluster_pipeline.add_sub_pipeline(
-                        sub_flow=clone_configs_sub_flow(
-                            uid=self.data["uid"],
-                            root_id=self.root_id,
-                            source_host=Host(ip=old_master.machine.ip, bk_cloud_id=cluster.bk_cloud_id),
-                            source_port=old_master.port,
-                            target_host=Host(ip=new_master.machine.ip, bk_cloud_id=cluster.bk_cloud_id),
-                            target_port=new_master.port,
-                            is_clone_user=False,
-                            is_clone_jobs=True,
-                            is_clone_linkserver=False,
-                            sub_flow_name=_("克隆job配置"),
-                        )
-                    )
 
                 # 变更集群域名映射
                 cluster_pipeline.add_sub_pipeline(
@@ -209,8 +152,16 @@ class SqlserverSwitchFlow(BaseFlow):
                         uid=self.data["uid"],
                         root_id=self.root_id,
                         cluster=cluster,
-                        old_master=old_master,
-                        new_master=new_master,
+                        old_master_host=Host(ip=old_master.machine.ip, bk_cloud_id=cluster.bk_cloud_id),
+                        old_master_port=old_master.port,
+                        old_master_dns_list=old_master.bind_entry.filter(
+                            cluster_entry_type=ClusterEntryType.DNS.value
+                        ).all(),
+                        new_master_host=Host(ip=new_master.machine.ip, bk_cloud_id=cluster.bk_cloud_id),
+                        new_master_port=new_master.port,
+                        new_master_dns_list=new_master.bind_entry.filter(
+                            cluster_entry_type=ClusterEntryType.DNS.value
+                        ).all(),
                         is_force=self.data["force"],
                     )
                 )
@@ -222,7 +173,9 @@ class SqlserverSwitchFlow(BaseFlow):
                     kwargs=asdict(DropRandomJobUserKwargs(cluster_ids=[cluster.id])),
                 )
 
-                act_list.append(cluster_pipeline.build_sub_process(sub_name=_("{}{}".format(cluster.name, sub_name))))
+                act_list.append(
+                    cluster_pipeline.build_sub_process(sub_name=_("{}{}".format(cluster.immute_domain, sub_name)))
+                )
 
             # 拼接集群维度的子流程
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=act_list)
@@ -234,22 +187,14 @@ class SqlserverSwitchFlow(BaseFlow):
                 kwargs=asdict(
                     DBMetaOPKwargs(
                         db_meta_class_func=SqlserverDBMeta.sqlserver_ha_switch.__name__,
+                        component_kwargs={
+                            "cluster_ids": info["cluster_ids"],
+                            "old_master_host": info["master"],
+                            "new_master_host": info["slave"],
+                            "is_force": self.data["force"],
+                        },
                     )
                 ),
-            )
-
-            # 重新配置源数据, 不需要安装备份client
-            sub_pipeline.add_sub_pipeline(
-                sub_flow=install_surrounding_apps_sub_flow(
-                    uid=self.data["uid"],
-                    root_id=self.root_id,
-                    bk_biz_id=int(self.data["bk_biz_id"]),
-                    bk_cloud_id=0,
-                    master_host=[] if self.data["force"] else [Host(**info["master"])],
-                    slave_host=[Host(**info["slave"])],
-                    cluster_domain_list=[i.immute_domain for i in Cluster.objects.filter(id__in=info["cluster_ids"])],
-                    is_install_backup_client=False,
-                )
             )
 
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("切换子流程")))

@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging.config
 from dataclasses import asdict
+from typing import List
 
 from django.utils.translation import gettext as _
 
@@ -56,7 +57,7 @@ class SqlserverAddSlaveFlow(BaseFlow):
     """
 
     @staticmethod
-    def get_clusters_install_info(cluster_ids) -> list:
+    def get_clusters_install_info(cluster_ids) -> List[SqlserverCluster]:
         """
         根据传入cluster集群id列表，输出每个集群端口、域名信息返回
         @param cluster_ids: 集群id列表
@@ -64,9 +65,12 @@ class SqlserverAddSlaveFlow(BaseFlow):
         clusters = []
         for cluster_id in cluster_ids:
             cluster = Cluster.objects.get(id=cluster_id)
-            port = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER).port
+            port = cluster.storageinstance_set.get(
+                instance_role__in=[InstanceRole.BACKEND_MASTER, InstanceRole.ORPHAN]
+            ).port
             # 分配部署port、cluster的关系
-            clusters.append({"cluster_id": cluster_id, "port": port, "immutable_domain": cluster.immute_domain})
+            # clusters.append({"cluster_id": cluster_id, "port": port, "immutable_domain": cluster.immute_domain})
+            clusters.append(SqlserverCluster(port=port, immutable_domain=cluster.immute_domain, cluster_id=cluster_id))
         return clusters
 
     def run_flow(self):
@@ -91,8 +95,8 @@ class SqlserverAddSlaveFlow(BaseFlow):
             sub_flow_context.update(info)
 
             # 计算新机器部署端口，以及每个端口和集群的关系
-            sub_flow_context["clusters"] = SqlserverAddSlaveFlow.get_clusters_install_info(info["cluster_ids"])
-            sub_flow_context["install_ports"] = [i["port"] for i in sub_flow_context["clusters"]]
+            clusters = SqlserverAddSlaveFlow.get_clusters_install_info(info["cluster_ids"])
+            sub_flow_context["install_ports"] = [i.port for i in clusters]
 
             # 已第一集群id的db_module_id/db_version 作为本次的安装依据，因为平台上同机相关联的集群的模块id/主版本都是一致的
             cluster = Cluster.objects.get(id=info["cluster_ids"][0])
@@ -123,7 +127,7 @@ class SqlserverAddSlaveFlow(BaseFlow):
                     bk_cloud_id=int(cluster.bk_cloud_id),
                     db_module_id=sub_flow_context["db_module_id"],
                     install_ports=sub_flow_context["install_ports"],
-                    clusters=[SqlserverCluster(**i) for i in sub_flow_context["clusters"]],
+                    clusters=clusters,
                     cluster_type=ClusterType.SqlserverHA,
                     target_hosts=[Host(**info["new_slave_host"])],
                     db_version=sub_flow_context["db_version"],
@@ -197,6 +201,8 @@ class SqlserverAddSlaveFlow(BaseFlow):
                             cluster=cluster,
                             sync_slaves=[Host(**info["new_slave_host"])],
                             sync_dbs=sync_dbs,
+                            master_host=Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id),
+                            port=master_instance.port,
                         )
                     )
 
@@ -250,7 +256,7 @@ class SqlserverAddSlaveFlow(BaseFlow):
                     bk_cloud_id=int(cluster.bk_cloud_id),
                     master_host=[],
                     slave_host=[Host(**info["new_slave_host"])],
-                    cluster_domain_list=[c["immutable_domain"] for c in sub_flow_context["clusters"]],
+                    cluster_domain_list=[c.immutable_domain for c in clusters],
                 )
             )
 

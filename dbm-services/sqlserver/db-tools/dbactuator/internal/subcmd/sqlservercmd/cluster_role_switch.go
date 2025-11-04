@@ -78,6 +78,10 @@ func (u *ClusterRoleSwitchAct) Run() (err error) {
 			Func:    u.BaseService.ExecSwitch,
 		},
 		{
+			FunName: "更新app_setting表信息",
+			Func:    u.BaseService.UpdateAppSetting,
+		},
+		{
 			FunName: "操作数据库快照",
 			Func:    u.BaseService.ExecSnapShot,
 		},

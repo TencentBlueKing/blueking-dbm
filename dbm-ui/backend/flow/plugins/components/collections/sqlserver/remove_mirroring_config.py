@@ -10,36 +10,38 @@ specific language governing permissions and limitations under the License.
 
 import logging
 
-from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 
+from backend.constants import IP_PORT_DIVIDER
+from backend.db_meta.models import Cluster
 from backend.flow.plugins.components.collections.common.base_service import BaseService
-from backend.flow.utils.sqlserver.sqlserver_db_meta import SqlserverDBMeta
+from backend.flow.utils.sqlserver.sqlserver_act_dataclass import RemoveMirroringConfigKwargs
+from backend.flow.utils.sqlserver.sqlserver_db_function import remove_mirroring_config
 
 logger = logging.getLogger("flow")
 
 
-class SqlserverDBMetaService(BaseService):
+class RemoveMirroringConfigService(BaseService):
     """
-    根据sqlserver单据类型来更新cmdb
+    移除mirroring配置
     """
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
-        global_data = data.get_one_of_inputs("global_data")
-        trans_data = data.get_one_of_inputs("trans_data")
 
-        self.log_info(_("个性化参数体component_kwargs:{}").format(kwargs.get("component_kwargs", {})))
+        # 理论上一个集群对应一个主域名
+        cluster = Cluster.objects.get(id=kwargs["cluster_id"])
+        port = cluster.storageinstance_set.first().port
 
-        meta = SqlserverDBMeta(global_data=global_data, trans_data=trans_data)
-        result = getattr(meta, kwargs.get("db_meta_class_func"))(**kwargs.get("component_kwargs", {}))
+        target_instances = [f"{i['ip']}{IP_PORT_DIVIDER}{port}" for i in kwargs["target_hosts"]]
 
-        self.log_info("Successfully wrote SQL Server metadata")
-        data.outputs.ext_result = result
-        return result
+        # 配置数据
+        remove_mirroring_config(target_instances=target_instances, bk_cloud_id=cluster.bk_cloud_id)
+        return True
 
 
-class SqlserverDBMetaComponent(Component):
+class RemoveMirroringConfigComponent(Component):
     name = __name__
-    code = "sqlserver_db_meta"
-    bound_service = SqlserverDBMetaService
+    code = "sqlserver_remove_mirroring_config"
+    bound_service = RemoveMirroringConfigService
+    kwargs = RemoveMirroringConfigKwargs
