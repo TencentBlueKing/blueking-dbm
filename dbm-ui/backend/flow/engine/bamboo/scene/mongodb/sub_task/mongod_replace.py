@@ -291,13 +291,6 @@ def mongod_replace(
         kwargs=kwargs,
     )
 
-    if mongod_scale:
-        # 修改 meta
-        kwargs = sub_sub_get_kwargs.get_scale_change_meta(info=info, instance=sub_sub_get_kwargs.db_instance)
-        sub_sub_pipeline.add_act(
-            act_name=_("MongoDB-mongod修改meta"), act_component_code=MongoDBCapcityMetaComponent.code, kwargs=kwargs
-        )
-
     # 下架老实例
     # 下架节点设置为隐藏
     kwargs = sub_sub_get_kwargs.get_mongod_hidden_kwargs(
@@ -315,6 +308,13 @@ def mongod_replace(
         act_component_code=ExecuteDBActuatorJobComponent.code,
         kwargs=kwargs,
     )
+
+    if mongod_scale:
+        # 修改 meta
+        kwargs = sub_sub_get_kwargs.get_scale_change_meta(info=info, instance=sub_sub_get_kwargs.db_instance)
+        sub_sub_pipeline.add_act(
+            act_name=_("MongoDB-mongod修改meta"), act_component_code=MongoDBCapcityMetaComponent.code, kwargs=kwargs
+        )
 
     return sub_sub_pipeline.build_sub_process(
         sub_name=_("MongoDB--mongod替换--{}:{}".format(info["ip"], str(sub_sub_get_kwargs.db_instance["port"])))
