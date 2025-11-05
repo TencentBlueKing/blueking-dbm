@@ -207,6 +207,7 @@ from backend.flow.views.redis_cluster import (
     RedisDataStructureTaskDeleteSceneApiView,
     RedisFlushDataSceneApiView,
     RedisInsShutdownSceneApiView,
+    RedisKeystatApiView,
     RedisProxyScaleSceneApiView,
     RedisRemoveDtsServerSceneApiView,
     RedisSingleInsMigrateApiView,

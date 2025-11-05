@@ -25,6 +25,7 @@ from backend.db_proxy.views.jobapi.views import JobApiProxyPassViewSet
 from backend.db_proxy.views.nameservice.views import NameServiceProxyPassViewSet
 from backend.db_proxy.views.redis_dts.views import DtsApiProxyPassViewSet
 from backend.db_proxy.views.redis_hot_key_analysis.views import HotKeyAnalysisViewSet
+from backend.db_proxy.views.redis_keystat_report.views import KeyStatReportViewSet
 
 routers = DefaultRouter(trailing_slash=True)
 routers.register(r"", DnsProxyPassViewSet, basename="dns")
