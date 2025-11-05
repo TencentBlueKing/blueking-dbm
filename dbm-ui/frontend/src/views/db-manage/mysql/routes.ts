@@ -194,6 +194,7 @@ const commonRouters: RouteRecordRaw[] = [
     path: 'mysql',
     name: 'MysqlManage',
     meta: {
+      dbType: DBTypes.MYSQL,
       navName: t('Mysql 集群管理'),
     },
     redirect: {

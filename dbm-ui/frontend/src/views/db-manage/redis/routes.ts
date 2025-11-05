@@ -206,6 +206,7 @@ const routes: RouteRecordRaw[] = [
     path: 'redis',
     name: 'RedisManage',
     meta: {
+      dbType: DBTypes.REDIS,
       navName: t('Redis_集群管理'),
     },
     redirect: {

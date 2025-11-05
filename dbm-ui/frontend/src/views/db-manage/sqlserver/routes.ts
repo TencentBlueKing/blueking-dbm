@@ -28,6 +28,7 @@ const routes: RouteRecordRaw[] = [
     path: 'sqlserver',
     name: 'SqlServerManage',
     meta: {
+      dbType: DBTypes.SQLSERVER,
       navName: t('SQlServer_工具箱'),
     },
     redirect: {
