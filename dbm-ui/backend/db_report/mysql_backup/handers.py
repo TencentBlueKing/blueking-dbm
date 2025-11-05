@@ -520,8 +520,11 @@ class MySQLBackupHandler:
         DATE_FORMAT(CONVERT_TZ(backup_consistent_time,@@time_zone,"+00:00"),'%Y-%m-%dT%H:%i:%s+00:00')
         as backup_consistent_time
         from infodba_schema.local_backup_report r
-        where server_id=@@server_id {condition} order by backup_consistent_time desc {limit}"""
-        conditions = f" and r.cluster_id={self.cluster.id} and r.cluster_address='{self.cluster.immute_domain}' "
+        where 1=1 {condition} order by backup_consistent_time desc {limit}"""
+        conditions = (
+            f" and r.cluster_id={self.cluster.id} and r.cluster_address='{self.cluster.immute_domain}' "
+            f" and backup_status!='local_removed' "
+        )
 
         if self.backup_id is not None and self.backup_id != "":
             logger.info(_("指定了backup_id {} 查询,其他条件失效".format(self.backup_id)))
@@ -550,9 +553,7 @@ class MySQLBackupHandler:
                 logger.info(_("指定备份方法 {} 查询").format(self.backup_method))
                 backup_method_str = "','".join(self.backup_method)
                 conditions = f" {conditions} and backup_method in ('{backup_method_str}') "
-        query_cmds = cmds.format(condition=conditions, limit=limit)
-        self.query = query_cmds
-        logger.info(query_cmds)
+
         backup_infos = []
 
         # 获取实例信息
@@ -575,10 +576,14 @@ class MySQLBackupHandler:
             this_instances.append(primary_map[self.cluster.id])
         logger.info(this_instances)
 
-        for addr in this_instances:
+        for storage in storages:
+            conditions_tmp = f" {conditions} and backup_host='{storage.machine.ip}' and backup_port={storage.port} "
+            query_cmds = cmds.format(condition=conditions_tmp, limit=limit)
+            self.query = query_cmds
+            logger.info(query_cmds)
             res = DRSApi.rpc(
                 {
-                    "addresses": [addr],
+                    "addresses": [storage.ip_port],
                     "cmds": [query_cmds],
                     "force": False,
                     "bk_cloud_id": self.cluster.bk_cloud_id,
@@ -586,15 +591,16 @@ class MySQLBackupHandler:
             )
 
             if res[0]["error_msg"]:
-                logging.error("{} get backup info error {}".format(addr, res[0]["error_msg"]))
+                logging.error("{} get backup info error {}".format(storage.ip_port, res[0]["error_msg"]))
                 continue
             if (
                 isinstance(res[0]["cmd_results"][0]["table_data"], list)
                 and len(res[0]["cmd_results"][0]["table_data"]) > 0
             ):
                 backup_tmps = res[0]["cmd_results"][0]["table_data"]
-                ip, port = addr.split(IP_PORT_DIVIDER)
-                backup_tmps = [{"instance_ip": ip, "instance_port": port, **info} for info in backup_tmps]
+                backup_tmps = [
+                    {"instance_ip": storage.machine.ip, "instance_port": storage.port, **info} for info in backup_tmps
+                ]
                 backup_infos.extend(backup_tmps)
         if backup_infos is None or len(backup_infos) == 0:
             logger.error("{} has no backup info".format(self.cluster.id))
