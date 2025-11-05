@@ -223,6 +223,7 @@
   };
 
   const handleFocus = (event: Event) => {
+    event.stopPropagation();
     // 避免逻辑重复触发
     if (isFouced.value) {
       return;

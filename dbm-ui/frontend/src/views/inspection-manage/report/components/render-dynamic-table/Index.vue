@@ -2,7 +2,7 @@
   <BkLoading
     class="render-dynamic-table"
     :loading="loading">
-    <BlockCard>
+    <CollapseCard>
       <template #title>
         <span style="font-weight: 700">{{ tableName }}</span>
         <template v-if="isShowStateCount">
@@ -46,7 +46,7 @@
           ellipsis-title
           resizable
           :title="item.display_name"
-          :width="getColumnMinWidth(item.name)">
+          :width="columnWidthMap[item.name] || 120">
           <template #default="{ row }: { row: ReportInfo['results'][number] }">
             <template v-if="item.format === 'status'">
               <!-- 兼容旧状态，需要保留 -->
@@ -75,7 +75,7 @@
           </template>
         </TableColumn>
       </PrimaryTable>
-    </BlockCard>
+    </CollapseCard>
     <FailSlaveInstance
       :id="failSlaveInstanceReportId"
       v-model="isShowFailSlaveInstance" />
@@ -90,11 +90,11 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import CollapseCard from '@components/collapse-card/Index.vue';
   import DbStatus from '@components/db-status/index.vue';
 
-  import { utcDisplayTime } from '@utils';
+  import { calcTextWidth, utcDisplayTime } from '@utils';
 
-  import BlockCard from './components/BlockCard.vue';
   import FailSlaveInstance from './components/FailSlaveInstance.vue';
 
   interface Props {
@@ -140,6 +140,7 @@
     warning: 0,
   });
   const titleList = ref<ReportInfo['title']>([]);
+  const columnWidthMap = ref<Record<string, number>>({});
 
   const tableData = shallowRef<any[]>([]);
 
@@ -167,22 +168,16 @@
           rawTitleList[failedDaysIndex],
         ];
       }
+      if (result.count > 0 && !Object.keys(columnWidthMap.value).length) {
+        Object.entries(result.results[0]).forEach(([key, value]) => {
+          const width = calcTextWidth(value);
+          columnWidthMap.value[key] = width > 120 ? width : 120;
+        });
+      }
       titleList.value = rawTitleList;
       tableData.value = result.results;
     },
   });
-
-  const getColumnMinWidth = (name: string) => {
-    if (['bk_biz_id', 'cluster_type', 'failed_days', 'state', 'status'].includes(name)) {
-      return 80;
-    }
-
-    if (name === 'msg') {
-      return 220;
-    }
-
-    return 150;
-  };
 
   const getStateTheme = (state: string) => {
     let theme = 'default';

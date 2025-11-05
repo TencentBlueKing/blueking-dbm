@@ -203,6 +203,7 @@
       'ServiceStatus',
       'DashboradManage',
       'RiskMemoGlobal',
+      'ExerciseReportGlobal',
     ],
     [menuEnum.resourceManage]: ['ResourceSpec', 'resourceManage', 'resourcePoolDirtyMachines'],
   } as Record<string, string[]>;
