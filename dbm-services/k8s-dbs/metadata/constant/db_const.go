@@ -41,4 +41,5 @@ const (
 	TbAddonCategory        = "tb_addon_category"
 	TbAddonType            = "tb_addon_type"
 	TbAddonTopology        = "tb_addon_topology"
+	TbAuthUserRole         = "bkdata_basic.auth_user_role"
 )

@@ -51,6 +51,7 @@ const (
 	ParameterTypeError
 	ParameterValueError
 	OperationForbidden
+	NotPermissionError
 )
 
 // 存储集群 cluster 操作异常
@@ -160,6 +161,9 @@ var codeTag = map[ErrorCode]string{
 	DescribeComponentError: "查询组件失败",
 	GetComponentSvcError:   "查询组件服务信息失败",
 	GetComponentPodsError:  "查询组件实例列表失败",
+
+	// 权限异常
+	NotPermissionError: "没有相关权限",
 }
 
 // NewK8sDbsError 自定义错误

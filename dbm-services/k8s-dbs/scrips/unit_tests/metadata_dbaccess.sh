@@ -17,3 +17,4 @@ go test -v -run TestClusterTagDbAccess ./k8s-dbs/metadata/dbaccess/testsuite/
 go test -v -run TestComponentOperationDbAccess ./k8s-dbs/metadata/dbaccess/testsuite/
 go test -v -run TestK8sClusterAddonsDbAccess ./k8s-dbs/metadata/dbaccess/testsuite/
 go test -v -run TestOpsRequestDbAccess ./k8s-dbs/metadata/dbaccess/testsuite/
+go test -v -run TestAuthUserRoleDbAccess ./k8s-dbs/metadata/dbaccess/testsuite/
