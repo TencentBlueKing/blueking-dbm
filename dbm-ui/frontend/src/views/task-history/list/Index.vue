@@ -31,21 +31,37 @@
       @clear-search="handleClearSearch"
       @filter-change="handleFilterChange">
       <TableColumn
+        col-key="flow_alias"
+        :filter="tableFilter['flow_alias']"
+        :title="t('任务名')"
+        :width="150">
+        <template #default="{ row }: { row: TaskFlowModel }">
+          <AuthRouterLink
+            action-id="flow_detail"
+            :permission="row.permission.flow_detail"
+            :resource="row.root_id"
+            target="_blank"
+            :to="{
+              name: 'taskHistoryDetail',
+              params: {
+                root_id: row.root_id,
+              },
+              query: {
+                from: route.name as string,
+              },
+            }">
+            {{ row.flow_alias }}
+          </AuthRouterLink>
+        </template>
+      </TableColumn>
+      <TableColumn
         col-key="root_id__in"
         :filter="tableFilter['root_id__in']"
         fixed="left"
         title="ID"
         :width="180">
-        <template #default="{row}: {row: TaskFlowModel}">
-          <AuthButton
-            action-id="flow_detail"
-            :permission="row.permission.flow_detail"
-            :resource="row.root_id"
-            text
-            theme="primary"
-            @click="handleGoDetail(row)">
-            {{ row.root_id }}
-          </AuthButton>
+        <template #default="{ row }: { row: TaskFlowModel }">
+          {{ row.root_id }}
         </template>
       </TableColumn>
       <TableColumn
@@ -53,16 +69,8 @@
         :filter="isPlatformManage ? tableFilter['bk_biz_id__in'] : undefined"
         :title="t('业务')"
         :width="150">
-        <template #default="{row}: {row: TaskFlowModel}">
+        <template #default="{ row }: { row: TaskFlowModel }">
           {{ row.bk_biz_name || '--' }}
-        </template>
-      </TableColumn>
-      <TableColumn
-        col-key="ticket_type_search"
-        :filter="tableFilter['ticket_type_search']"
-        :title="t('任务类型')">
-        <template #default="{row}: {row: TaskFlowModel}">
-          {{ row.ticketTypeDisplay || '--' }}
         </template>
       </TableColumn>
       <TableColumn
@@ -70,7 +78,7 @@
         :filter="tableFilter['status__in']"
         :title="t('状态')"
         :width="160">
-        <template #default="{row}: {row: TaskFlowModel}">
+        <template #default="{ row }: { row: TaskFlowModel }">
           <DbStatus
             :theme="row.statusTheme"
             type="linear">
@@ -79,11 +87,19 @@
         </template>
       </TableColumn>
       <TableColumn
+        col-key="ticket_type_search"
+        :filter="tableFilter['ticket_type_search']"
+        :title="t('关联单据类型')">
+        <template #default="{ row }: { row: TaskFlowModel }">
+          {{ row.ticket_type_display || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
         col-key="uid__in"
         :filter="tableFilter['uid__in']"
         :title="t('关联单据')"
         :width="120">
-        <template #default="{row}: {row: TaskFlowModel}">
+        <template #default="{ row }: { row: TaskFlowModel }">
           <AuthButton
             v-if="row.uid"
             action-id="ticket_view"
@@ -102,7 +118,7 @@
         :filter="tableFilter['created_by__in']"
         :title="t('执行人')"
         :width="120">
-        <template #default="{row}: {row: TaskFlowModel}">
+        <template #default="{ row }: { row: TaskFlowModel }">
           {{ row.created_by }}
         </template>
       </TableColumn>
@@ -111,7 +127,7 @@
         :filter="tableFilter['created_at']"
         :title="t('执行时间')"
         :width="250">
-        <template #default="{row}: {row: TaskFlowModel}">
+        <template #default="{ row }: { row: TaskFlowModel }">
           {{ row.createAtDisplay }}
         </template>
       </TableColumn>
@@ -119,7 +135,7 @@
         col-key="cost_time"
         :title="t('耗时')"
         :width="150">
-        <template #default="{row}: {row: TaskFlowModel}">
+        <template #default="{ row }: { row: TaskFlowModel }">
           {{ getCostTimeDisplay(row.cost_time) }}
         </template>
       </TableColumn>
@@ -127,16 +143,23 @@
         col-key="row-operation"
         :title="t('操作')"
         :width="120">
-        <template #default="{row}: {row: TaskFlowModel}">
-          <AuthButton
+        <template #default="{ row }: { row: TaskFlowModel }">
+          <AuthRouterLink
             action-id="flow_detail"
             :permission="row.permission.flow_detail"
             :resource="row.root_id"
-            text
-            theme="primary"
-            @click="handleGoDetail(row)">
+            target="_blank"
+            :to="{
+              name: 'taskHistoryDetail',
+              params: {
+                root_id: row.root_id,
+              },
+              query: {
+                from: route.name as string,
+              },
+            }">
             {{ t('查看详情') }}
-          </AuthButton>
+          </AuthRouterLink>
           <BkButton
             v-if="
               [TicketTypes.REDIS_KEYS_EXTRACT, TicketTypes.REDIS_KEYS_DELETE].includes(row.ticket_type) &&
@@ -158,7 +181,7 @@
     v-model="resultFileState.isShow" />
 </template>
 
-<script setup lang="tsx">
+<script setup lang="ts">
   import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
@@ -220,7 +243,7 @@
     },
     {
       id: 'ticket_type_search',
-      name: t('任务类型'),
+      name: t('关联单据类型'),
       props: {
         checkStrictly: true,
         showAllLevels: true,
@@ -349,19 +372,6 @@
   const handleShowResultFiles = (id: string) => {
     resultFileState.isShow = true;
     resultFileState.rootId = id;
-  };
-
-  const handleGoDetail = (data: TaskFlowModel) => {
-    const { href } = router.resolve({
-      name: 'taskHistoryDetail',
-      params: {
-        root_id: data.root_id,
-      },
-      query: {
-        from: route.name as string,
-      },
-    });
-    window.open(href, '_blank');
   };
 
   const handleGoTicketDetail = (data: TaskFlowModel) => {

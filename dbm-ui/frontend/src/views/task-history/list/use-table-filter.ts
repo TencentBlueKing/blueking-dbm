@@ -151,7 +151,7 @@ export default () => {
       },
       ticket_type_search: {
         component: markRaw(MultCascader),
-        name: t('任务类型'),
+        name: t('关联单据类型'),
         popupProps: {
           attach: 'body',
           placement: 'bottom',
