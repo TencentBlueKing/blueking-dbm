@@ -861,7 +861,7 @@ func (task *RedisInsKeyPatternTask) tendisSSDAllKeys() {
 		return
 	}
 	task.runtime.Logger.Info("grepCommand:%s success", grepCmd)
-	util.RunLocalCmd("bash", []string{"-c", fmt.Sprintf("chown -R mysql.mysql %s", task.SaveDir)}, "", nil, 10*time.Second)
+	util.RunLocalCmd("bash", []string{"-c", fmt.Sprintf("chown -R mysql:mysql %s", task.SaveDir)}, "", nil, 10*time.Second)
 
 	// 清理task.KeysFile
 	task.ClearKeysFile()
