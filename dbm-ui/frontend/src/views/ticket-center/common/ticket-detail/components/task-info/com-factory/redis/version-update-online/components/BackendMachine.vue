@@ -18,7 +18,7 @@
     <TicketInfoTableColumn
       col-key="ip"
       fixed="left"
-      :get-copy-value="(row: RowData) => row.ip"
+      :get-copy-value="(row: RowData) => [row.ip, row.pair_machine.ip]"
       :min-width="250"
       :title="t('目标主机')">
       <template #default="{ row }: { row : RowData }">
