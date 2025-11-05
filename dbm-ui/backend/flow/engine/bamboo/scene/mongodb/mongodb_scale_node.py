@@ -47,10 +47,11 @@ class MongoScaleNodeFlow(object):
         pipeline = Builder(root_id=self.root_id, data=self.data)
 
         sub_pipelines = []
-        # 复制集增减节点——子流程并行
-        if ClusterType.MongoReplicaSet.value in self.data["infos"]:
-            for replicaset_set in self.data["infos"][ClusterType.MongoReplicaSet.value]:
-                if increase:
+        # 扩容 shard 节点数——子流程并行
+        if increase:
+            # 副本集
+            if self.data.get("cluster_type") == ClusterType.MongoReplicaSet.value:
+                for replicaset_set in self.data["infos"]:
                     sub_pipline = replicaset_set_increase_node(
                         root_id=self.root_id,
                         ticket_data=self.data,
@@ -58,7 +59,17 @@ class MongoScaleNodeFlow(object):
                         info=replicaset_set,
                     )
                     sub_pipelines.append(sub_pipline)
-                else:
+            # 分片集群
+            elif self.data.get("cluster_type") == ClusterType.MongoShardedCluster.value:
+                for cluster in self.data["infos"]:
+                    sub_pipline = cluster_increase_node(
+                        root_id=self.root_id, ticket_data=self.data, sub_kwargs=self.get_kwargs, info=cluster
+                    )
+                    sub_pipelines.append(sub_pipline)
+        # 缩容 shard 节点数——子流程并行
+        else:
+            if ClusterType.MongoReplicaSet.value in self.data["infos"]:
+                for replicaset_set in self.data["infos"][ClusterType.MongoReplicaSet.value]:
                     sub_pipline = replicaset_reduce_node(
                         root_id=self.root_id,
                         ticket_data=self.data,
@@ -67,18 +78,13 @@ class MongoScaleNodeFlow(object):
                         cluster=False,
                     )
                     sub_pipelines.append(sub_pipline)
-        # cluster的shard增减节点——子流程并行
-        if ClusterType.MongoShardedCluster.value in self.data["infos"]:
-            for cluster in self.data["infos"][ClusterType.MongoShardedCluster.value]:
-                if increase:
-                    sub_pipline = cluster_increase_node(
-                        root_id=self.root_id, ticket_data=self.data, sub_kwargs=self.get_kwargs, info=cluster
-                    )
-                else:
+            # cluster的shard增减节点——子流程并行
+            if ClusterType.MongoShardedCluster.value in self.data["infos"]:
+                for cluster in self.data["infos"][ClusterType.MongoShardedCluster.value]:
                     sub_pipline = cluster_reduce_node(
                         root_id=self.root_id, ticket_data=self.data, sub_kwargs=self.get_kwargs, info=cluster
                     )
-                sub_pipelines.append(sub_pipline)
+                    sub_pipelines.append(sub_pipline)
 
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
