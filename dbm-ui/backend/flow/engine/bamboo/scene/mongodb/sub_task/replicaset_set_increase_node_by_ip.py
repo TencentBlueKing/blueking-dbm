@@ -14,9 +14,9 @@ from typing import Dict, Optional
 
 from django.utils.translation import gettext as _
 
-from backend.db_meta.enums.cluster_type import ClusterType
 from backend.flow.consts import MongoDBClusterRole
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_install_dbmon import add_install_dbmon
 from backend.flow.plugins.components.collections.mongodb.mongodb_scale_repls_meta import MongoScaleReplsMetaComponent
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 
@@ -39,13 +39,14 @@ def replicaset_set_increase_node_by_ip(
 
     # 获取集群信息并计算对应关系
     if not cluster:
-        sub_get_kwargs.payload["cluster_type"] = ClusterType.MongoReplicaSet.value
         sub_get_kwargs.calc_increase_node(info=info)
         ip = info["add_shard_node"]["ip"]
+        bk_cloud_id = info["add_shard_node"]["bk_cloud_id"]
         cluster_role = ""
     else:
         sub_get_kwargs.payload["replicaset_set"] = info
         ip = sub_get_kwargs.payload["add_shard_node"]
+        bk_cloud_id = info[0]["bk_cloud_id"]
         cluster_role = MongoDBClusterRole.ShardSvr.value
 
     # 复制集维度增加node——子流程并行
@@ -83,4 +84,15 @@ def replicaset_set_increase_node_by_ip(
             kwargs=kwargs,
         )
 
-    return sub_pipeline.build_sub_process(sub_name=_("MongoDB--{}增加node".format(ip)))
+    # 安装dbmon 副本集
+    exec_ips = [ip]
+    add_install_dbmon(
+        root_id=root_id,
+        flow_data=ticket_data,
+        pipeline=sub_pipeline,
+        iplist=exec_ips,
+        bk_cloud_id=bk_cloud_id,
+        allow_empty_instance=True,
+    )
+
+    return sub_pipeline.build_sub_process(sub_name=_("MongoDB--{}:增加node".format(ip)))
