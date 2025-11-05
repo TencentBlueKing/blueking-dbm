@@ -1,45 +1,42 @@
 <template>
-  <div class="inspection-manage-page">
+  <div class="exercise-report-page">
     <div
       v-show="!isEmptyShow"
       class="page-content">
       <BkLoading :loading="overviewLoading">
-        <DbTabForBiz
-          v-if="isInspectionReport"
-          v-model="tabType"
-          v-model:is-show="isTabShow"
-          :exclude="excludeDbs"
-          :label-config="labelConfig" />
         <DbTab
-          v-else
           v-model="tabType"
-          :exclude="excludeDbs"
-          :label-config="labelConfig" />
+          :exclude="excludeDbs" />
       </BkLoading>
       <div class="content-wrapper">
         <div class="operation-main">
           <BkButton
+            class="export-tables"
             :loading="exportLoading"
-            style="width: 64px"
             theme="primary"
             @click="handleExport">
             {{ t('导出') }}
           </BkButton>
-          <SearchBox
-            :is-assist="isTodoAssist"
-            :is-show-all="isPlatform"
-            :is-todos="!isInspectionReport"
-            :show-only-abnormal="!isTodoPage"
-            style="margin-bottom: 16px"
-            @change="handleSearchChange" />
+          <BkCheckbox
+            v-model="isOnlyAbnormal"
+            class="only-abnormal-checkbox">
+            {{ t('仅显示异常') }}
+          </BkCheckbox>
+          <BkDatePicker
+            append-to-body
+            class="date-picker-main"
+            clearable
+            :model-value="dateValue"
+            :placeholder="t('请选择日期范围')"
+            type="datetimerange"
+            @change="handleDatePickerChange"
+            @clear="handleDatePickerClear"
+            @pick-success="handleDatePickerSuccess" />
         </div>
         <RenderDynamicTable
           v-for="url in serviceList"
           :key="url"
           ref="dynamicTablesRef"
-          :is-only-abnormal="isOnlyAbnormal"
-          :is-platform="isPlatform"
-          :is-show-state-count="!isTodoPage"
           :search-params="searchParams"
           :service-url="url" />
       </div>
@@ -53,7 +50,7 @@
   </div>
 </template>
 <script setup lang="ts">
-  import BkLoading from 'bkui-vue/lib/loading';
+  import dayjs from 'dayjs';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -61,35 +58,26 @@
 
   import { getReportOverview } from '@services/source/report';
 
-  import { useReportCount } from '@hooks';
-
   import { DBTypeInfos, DBTypes } from '@common/const';
 
   import DbTab from '@components/db-tab/Index.vue';
-  import DbTabForBiz from '@components/db-tab-for-biz/Index.vue';
 
   import RenderDynamicTable from './components/render-dynamic-table/Index.vue';
-  import SearchBox from './components/SearchBox.vue';
 
-  const { dbReportCountMap } = useReportCount();
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
 
   const exportLoading = ref(false);
-  const tabType = ref((route.query.tabType as DBTypes) || DBTypes.MYSQL);
-  const searchParams = ref<Record<string, any>>({});
+  const tabType = ref(DBTypes.MYSQL);
   const excludeDbs = ref<DBTypes[]>([]);
   const dynamicTablesRef = ref<InstanceType<typeof RenderDynamicTable>[]>([]);
   const isTabShow = ref(true);
-  const isOnlyAbnormal = ref(false);
+  const isOnlyAbnormal = ref(true);
+  const dateValue = ref<[string, string]>(['', '']);
+  const searchParams = ref<Record<string, any>>({});
 
-  const isTodoAssist = computed(() => route.query.manage === 'assist');
-  const isPlatform = computed(() => route.name === 'inspectionReportGlobal');
-  const isInspectionReport = computed(() => route.name === 'inspectionReport');
-  const isTodoPage = computed(() => route.name === 'InspectionTodos');
-  const isEmptyShow = computed(() => isInspectionReport.value && !isTabShow.value);
-
+  const isEmptyShow = computed(() => !isTabShow.value);
   const serviceList = computed(() => {
     if (!dbOverviewConfig.value?.[tabType.value]) {
       return [];
@@ -99,28 +87,12 @@
     return pathList.map((path) => `/db_report/${tabType.value}/${path}/`);
   });
 
-  const labelConfig = computed(() => {
-    if (
-      isInspectionReport.value ||
-      isPlatform.value ||
-      !dbOverviewConfig.value ||
-      !Object.keys(dbReportCountMap.value).length
-    ) {
-      return undefined;
-    }
-
-    return Object.keys(dbOverviewConfig.value).reduce(
-      (results, item) => {
-        Object.assign(results, {
-          [item]: `${item}(${dbReportCountMap.value[item]?.manageCount || 0})`,
-        });
-        return results;
-      },
-      {} as Record<DBTypes, string>,
-    );
-  });
-
   const { data: dbOverviewConfig, loading: overviewLoading } = useRequest(getReportOverview, {
+    defaultParams: [
+      {
+        kind: 'drill',
+      },
+    ],
     onSuccess: (data) => {
       const availableDbs = Object.keys(data);
       const totalDbs = Object.keys(DBTypeInfos);
@@ -128,45 +100,25 @@
     },
   });
 
-  watch(
-    () => route.query,
-    () => {
-      const queryObj = _.cloneDeep(route.query);
-      delete queryObj.tabType;
-      searchParams.value = queryObj;
-    },
-    {
-      immediate: true,
-    },
-  );
+  let tmpDateValue: [string, string] = ['', ''];
 
-  watch(tabType, () => {
-    updateRouteQuery();
-  });
+  const updateRouteQuery = () => {
+    const query = {
+      create_at__gte: dateValue.value[0],
+      create_at__lte: dateValue.value[1],
+      isOnlyAbnormal: `${isOnlyAbnormal.value}`,
+      tabType: tabType.value,
+    };
+    searchParams.value = {};
 
-  const updateRouteQuery = (payload?: Record<string, string>) => {
-    const query = payload
-      ? {
-          ...payload,
-          tabType: tabType.value,
-        }
-      : {
-          ...searchParams.value,
-          tabType: tabType.value,
-        };
-    if (route.query.manage) {
-      Object.assign(query, { manage: route.query.manage });
+    if (dateValue.value[0] && dateValue.value[1]) {
+      searchParams.value = {
+        create_at__gte: dateValue.value[0],
+        create_at__lte: dateValue.value[1],
+      };
     }
-    if (isInspectionReport.value) {
-      Object.assign(query, { bk_biz_id: window.PROJECT_CONFIG.BIZ_ID });
-    }
-
-    if (!isInspectionReport.value && !isPlatform.value) {
-      // Object.assign(query, { status: 0 });
-
-      if (!route.query.manage) {
-        Object.assign(query, { manage: 'todo' });
-      }
+    if (isOnlyAbnormal.value) {
+      searchParams.value.state__in = 'abnormal';
     }
     router.replace({
       name: route.name,
@@ -174,9 +126,56 @@
     });
   };
 
-  const handleSearchChange = (payload: Record<string, any>) => {
-    isOnlyAbnormal.value = payload.isOnlyAbnormal;
-    updateRouteQuery(payload);
+  watch(
+    tabType,
+    () => {
+      isOnlyAbnormal.value = true;
+      dateValue.value = [
+        dayjs().subtract(1, 'day').startOf('day').format('YYYY-MM-DD HH:mm:ss'),
+        dayjs().format('YYYY-MM-DD HH:mm:ss'),
+      ];
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  watch(
+    () => [tabType.value, isOnlyAbnormal.value, dateValue.value],
+    () => {
+      updateRouteQuery();
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  const initSearchData = () => {
+    if (route.query.tabType) {
+      tabType.value = route.query.tabType as DBTypes;
+    }
+    if (route.query.isOnlyAbnormal) {
+      isOnlyAbnormal.value = route.query.isOnlyAbnormal === 'true';
+    }
+    if (route.query.create_at__gte && route.query.create_at__lte) {
+      dateValue.value = [
+        dayjs(route.query.create_at__gte as string).format('YYYY-MM-DD HH:mm:ss'),
+        dayjs(route.query.create_at__lte as string).format('YYYY-MM-DD HH:mm:ss'),
+      ];
+    }
+  };
+
+  const handleDatePickerChange = (value: [string, string]) => {
+    tmpDateValue = value;
+  };
+
+  const handleDatePickerSuccess = () => {
+    dateValue.value = tmpDateValue;
+  };
+
+  const handleDatePickerClear = () => {
+    tmpDateValue = ['', ''];
+    dateValue.value = ['', ''];
   };
 
   const handleExport = async () => {
@@ -190,14 +189,16 @@
         XLSX.utils.book_append_sheet(workbook, worksheet, `${tabType.value}-${fileName}`);
         worksheet['!cols'] = colWidthList;
       });
-      XLSX.writeFile(workbook, `${tabType.value}_${t('巡检报告')}.xlsx`);
+      XLSX.writeFile(workbook, `${tabType.value}_${t('演练报告')}.xlsx`);
     } finally {
       exportLoading.value = false;
     }
   };
+
+  initSearchData();
 </script>
 <style lang="less">
-  .inspection-manage-page {
+  .exercise-report-page {
     height: 100%;
 
     .page-content {
@@ -236,7 +237,21 @@
 
       .operation-main {
         display: flex;
-        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+
+        .export-tables {
+          width: 64px;
+        }
+
+        .only-abnormal-checkbox {
+          margin-right: 8px;
+          margin-left: auto;
+        }
+
+        .date-picker-main {
+          width: 340px;
+        }
       }
     }
 

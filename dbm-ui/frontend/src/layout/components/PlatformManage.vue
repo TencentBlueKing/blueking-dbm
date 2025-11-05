@@ -18,6 +18,44 @@
         {{ t('任务') }}
       </BkMenuItem>
     </BkMenuGroup>
+    <BkMenuGroup :name="t('异常中心')">
+      <BkMenuItem key="platformAlarmEvents">
+        <template #icon>
+          <DbIcon type="db-config" />
+        </template>
+        <span
+          v-overflow-tips.right
+          class="text-overflow">
+          {{ t('告警事件') }}
+        </span>
+      </BkMenuItem>
+      <BkMenuItem key="inspectionReportGlobal">
+        <template #icon>
+          <DbIcon type="db-config" />
+        </template>
+        <span
+          v-overflow-tips.right
+          class="text-overflow">
+          {{ t('巡检报告') }}
+        </span>
+      </BkMenuItem>
+      <BkMenuItem key="ExerciseReportGlobal">
+        <template #icon>
+          <DbIcon type="yanlianbaogao" />
+        </template>
+        <span
+          v-overflow-tips.right
+          class="text-overflow">
+          {{ t('演练报告') }}
+        </span>
+      </BkMenuItem>
+      <BkMenuItem key="RiskMemoGlobal">
+        <template #icon>
+          <DbIcon type="file" />
+        </template>
+        {{ t('风险备忘录') }}
+      </BkMenuItem>
+    </BkMenuGroup>
     <BkMenuGroup
       v-db-console="'platformManage.dbaManage'"
       :name="t('DBA 工具箱')">
