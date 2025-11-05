@@ -62,12 +62,14 @@ class RedisInsShutdownFlow(object):
         slave_ips = []
         ip_port_dict = defaultdict(list)
         cluster_type = ""
+        bk_cloud_id = 0
         for cluster_id in cluster_ids:
             cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
             master_obj = cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value)[0]
             master_ip = master_obj.machine.ip
             port = master_obj.port
             slave_ip = master_obj.as_ejector.all()[0].receiver.machine.ip
+            bk_cloud_id = cluster.bk_cloud_id
 
             ins_info_list.append(
                 {
@@ -90,6 +92,7 @@ class RedisInsShutdownFlow(object):
                 raise Exception(_("存在不同的cluster_type。 {} and {}").format(cluster_type, cluster.cluster_type))
 
         return {
+            "bk_cloud_id": bk_cloud_id,
             "ins_info_list": ins_info_list,
             "master_ips": list(set(master_ips)),
             "slave_ips": list(set(slave_ips)),
@@ -134,6 +137,7 @@ class RedisInsShutdownFlow(object):
             "ignore_req": True,
             "ignore_keys": DEFAULT_REDIS_SYSTEM_CMDS,
         }
+        act_kwargs.bk_cloud_id = all_ins_info["bk_cloud_id"]
 
         redis_pipeline.add_act(
             act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
@@ -157,7 +161,6 @@ class RedisInsShutdownFlow(object):
                     "act_name": _("redis请求检查: {}").format(ip),
                     "act_component_code": ExecuteDBActuatorScriptComponent.code,
                     "kwargs": asdict(act_kwargs),
-                    "error_ignorable": True,
                 }
             )
         redis_pipeline.add_parallel_acts(acts_list=acts_list)
@@ -218,7 +221,6 @@ class RedisInsShutdownFlow(object):
                     "act_name": _("{}下架redis实例{}").format(ip, ip_ports[ip]),
                     "act_component_code": ExecuteDBActuatorScriptComponent.code,
                     "kwargs": asdict(act_kwargs),
-                    "error_ignorable": True,
                 }
             )
         redis_pipeline.add_parallel_acts(acts_list=acts_list)

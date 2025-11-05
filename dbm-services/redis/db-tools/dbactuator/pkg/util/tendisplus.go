@@ -114,16 +114,7 @@ func GetTendisplusExeWorkPoolSize() int {
 
 // GetTendisplusMaxBGJobs  根据系统cpu核数,返回tendisplus rocks.max_background_jobs
 func GetTendisplusMaxBGJobs() int {
-	var ret int
-	minVal := 2
-	maxVal := 24
-	cpuCoresNum := runtime.NumCPU()
-	if cpuCoresNum <= 4 {
-		return cpuCoresNum
-	}
-	ret = cpuCoresNum * 3 / 4
-	ret = mustBetweenMinAndMax(ret, minVal, maxVal)
-	return ret
+	return runtime.NumCPU()
 }
 
 // GetIncrPushThreadnum 根据系统cpu核数,返回tendisplus incrPushThreadnum
