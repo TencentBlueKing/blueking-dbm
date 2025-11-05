@@ -30,6 +30,7 @@ from backend.ticket.constants import TicketType
 class TendbSpiderAddNodesDetailSerializer(TendbBaseOperateDetailSerializer):
     class SpiderNodesItemSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+        current_spider_num = serializers.IntegerField(help_text=_("当前proxy数量"), required=False)
         add_spider_role = serializers.ChoiceField(help_text=_("接入层类型"), choices=TenDBClusterSpiderRole.get_choices())
         resource_spec = serializers.DictField(help_text=_("规格参数"))
 
