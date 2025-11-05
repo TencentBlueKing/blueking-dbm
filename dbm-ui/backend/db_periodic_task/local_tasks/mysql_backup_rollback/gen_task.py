@@ -96,7 +96,7 @@ def build_resource_apply_params(task_id: str, min_disk_size: int, mysql_version:
     # 如果MySQL版本大于等于8.0，则排除tlinux 1.2操作系统
 
     if mysql_version and mysql_version_parse(mysql_version) >= 8000000:
-        details["os_names"] = ["tliunx-1.2", ""]
+        details["os_names"] = ["tlinux-1.2", ""]
         details["exclude_os_name"] = True
 
     return {

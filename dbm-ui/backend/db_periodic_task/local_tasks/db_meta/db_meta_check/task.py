@@ -18,6 +18,7 @@ from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.db_report.models import MetaCheckReport
 
+from .mysql_cluster_check import check_mysql_affinity
 from .mysql_cluster_topo import tendbcluster, tendbha
 from .redis_cluster_check import check_redis_clusters
 from .sqlserver_cluster_topo.check import sqlserver_dbmeta_check
@@ -61,3 +62,11 @@ def sqlserver_topo_daily_check():
         r: MetaCheckReport
         for r in sqlserver_dbmeta_check(c.id):
             r.save()
+
+
+@register_periodic_task(run_every=crontab(hour=2, minute=45))
+def mysql_affinity_check_task():
+    """
+    MySQL 集群亲和性检查
+    """
+    check_mysql_affinity()
