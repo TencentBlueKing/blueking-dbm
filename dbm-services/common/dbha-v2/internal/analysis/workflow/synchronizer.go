@@ -136,14 +136,15 @@ func (s *Synchronizer) syncMetadataFromDbm(ctx context.Context) error {
 	req := dbm.DefaultRequest
 	req.HashCnt = maxCountPerPage
 	req.DbCloudToken = config.Cfg.Workflow.DbmApiMetadata.Token
+	req.Statuses = []string{string(dbm.RUNNING), string(dbm.AVAILABLE)}
 
 	for idx := range maxCountPerPage {
 		req.HashValue = idx
 
 		metaRsp, err := s.cli.RequestMetadata(ctx, &req)
 		if err != nil {
-			logger.Warn("failed to request the metadata from DBM, API: %s, errmsg: %s",
-				config.Cfg.Workflow.DbmApiMetadata.Api, err)
+			logger.Warn("failed to request the metadata from DBM, API: %s, req: %v, errmsg: %s",
+				config.Cfg.Workflow.DbmApiMetadata.Api, req, err)
 
 			continue
 		}

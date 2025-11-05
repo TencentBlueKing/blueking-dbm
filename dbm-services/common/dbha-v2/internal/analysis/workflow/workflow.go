@@ -289,6 +289,15 @@ func (w *Workflow) databaseLivenessDoubleCheck(missedInsts []*hamodel.DbmMetadat
 
 	for cloudId, ips := range cloudIdIps {
 		req := w.createSwitcherRequestWithIPs(cloudId, ips)
+		if req == nil {
+			continue
+		}
+
+		if len(req.MySqlInstData) == 0 {
+			logger.Debug("there is no database instance that needs to be switched")
+			continue
+		}
+
 		// TODO: Now there is only MySQL(default).
 		logger.Debug("trigger switching, dbType: %s, cloudId: %d, ips: %v", haprobe.DbTypeMysql, cloudId, ips)
 		w.triggerSwitching(haprobe.DbTypeMysql, req)
@@ -298,12 +307,17 @@ func (w *Workflow) databaseLivenessDoubleCheck(missedInsts []*hamodel.DbmMetadat
 func (w *Workflow) createSwitcherRequestWithIPs(bkCloudId int, ips []string) *switcher.Request {
 	metadatas, err := w.dbmSync.cli.QueryMetadataFromDbm(context.Background(), bkCloudId, ips)
 	if err != nil {
-		logger.Warn("failed to query metadata from DBM, errmsg: %s", err)
+		logger.Warn("failed to query metadata from DBM, bkCloudId: %d, ips: %v, errmsg: %s", bkCloudId, ips, err)
 		return nil
 	}
 
 	req := &switcher.Request{}
 	for _, meta := range metadatas {
+		if meta.Status == string(dbm.UNAVAILABLE) {
+			logger.Info("the database instance is unavailable, skipping, inst: %s", key(meta.BkCloudID, meta.IP, meta.Port))
+			continue
+		}
+
 		dbInstMeta := &switcher.MySQLInstanceMetadata{
 			Ip:           meta.IP,
 			Port:         meta.Port,
