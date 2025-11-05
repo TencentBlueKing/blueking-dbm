@@ -15,15 +15,14 @@ from typing import Dict, Optional
 from django.utils.translation import gettext as _
 
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.flow.consts import MongoDBClusterRole
+from backend.flow.consts import MongoDBInstanceType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install import install_plugin
-from backend.flow.engine.bamboo.scene.mongodb.mongodb_install_dbmon import add_install_dbmon
+from backend.flow.engine.bamboo.scene.mongodb.sub_task.cluster_host_set_scale import cluster_host_set_scale
+from backend.flow.engine.bamboo.scene.mongodb.sub_task.multi_instance_deinstall import multi_instance_deinstall
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
 from backend.flow.plugins.components.collections.mongodb.send_media import ExecSendMediaOperationComponent
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
-
-from .replicaset_scale import replicaset_scale
 
 
 def cluster_scale(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwargs, info: dict) -> SubBuilder:
@@ -65,43 +64,32 @@ def cluster_scale(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwar
         act_name=_("MongoDB-机器初始化"), act_component_code=ExecuteDBActuatorJobComponent.code, kwargs=kwargs
     )
 
-    # 进行shard——并行
+    # 机器组——并行
     sub_sub_pipelines = []
-    for shard_instance_relationships in sub_get_kwargs.payload["shards_instance_relationships"]:
-        sub_get_kwargs.payload["instance_relationships"] = shard_instance_relationships
-        sub_sub_pipeline = replicaset_scale(
+    for one_host_set_shards_instance_relationships in sub_get_kwargs.payload["shards_instance_relationships"]:
+        sub_sub_pipeline = cluster_host_set_scale(
             root_id=root_id,
             ticket_data=ticket_data,
             sub_kwargs=sub_get_kwargs,
-            info=shard_instance_relationships,
-            cluster_role=MongoDBClusterRole.ShardSvr.value,
+            one_host_set_shards_instance_relationships=one_host_set_shards_instance_relationships,
         )
         sub_sub_pipelines.append(sub_sub_pipeline)
     sub_pipeline.add_parallel_sub_pipeline(sub_sub_pipelines)
 
-    # 获取大版本信息
-    sub_get_kwargs.db_main_version = info["db_version"].split("-")[1].split(".")[0]
-
-    # 通过最后一个shard的实例关系进行计算每个 shard 的oplogsize cachesize
-    instance_relationships = sub_get_kwargs.payload["instance_relationships"]
-    sub_get_kwargs.calc_param_replace(
-        info=instance_relationships[0], instance_num=instance_relationships[0].get("node_replica_count", 0)
+    # 下架
+    old_hosts, old_instances = sub_get_kwargs.get_old_host_scale_storage(
+        instance_relationships=[],
+        shards_instance_relationships=sub_get_kwargs.payload["shards_instance_relationships"],
+        cluster_type=ClusterType.MongoShardedCluster.value,
     )
-    # 在 dbconfig 设置集群的 oplogsize cachesize
-    sub_get_kwargs.scale_save_conf(
-        cluster_name=sub_get_kwargs.payload["cluster_name"], namespace=ClusterType.MongoShardedCluster.value
-    )
-
-    # 安装dbmon
-    ip_list = sub_get_kwargs.payload["plugin_hosts"]
-    exec_ips = [host["ip"] for host in ip_list]
-    add_install_dbmon(
+    sub_sub_pipeline = multi_instance_deinstall(
         root_id=root_id,
-        flow_data=ticket_data,
-        pipeline=sub_pipeline,
-        iplist=exec_ips,
-        bk_cloud_id=ip_list[0]["bk_cloud_id"],
-        allow_empty_instance=True,
+        ticket_data=ticket_data,
+        sub_kwargs=sub_get_kwargs,
+        old_hosts=old_hosts,
+        old_instances=old_instances,
+        instance_type=MongoDBInstanceType.MongoD.value,
     )
+    sub_pipeline.add_sub_pipeline(sub_flow=sub_sub_pipeline)
 
     return sub_pipeline.build_sub_process(sub_name=_("MongoDB--cluster:{}容量变更".format(info["cluster_id"])))
