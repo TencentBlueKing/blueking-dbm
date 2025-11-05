@@ -204,6 +204,7 @@ const renderRoutes = [
     path: 'tendb-cluster',
     name: 'SpiderManage',
     meta: {
+      dbType: DBTypes.TENDBCLUSTER,
       navName: t('Spider_集群管理'),
     },
     redirect: {

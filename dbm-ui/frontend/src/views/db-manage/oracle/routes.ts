@@ -98,6 +98,7 @@ const commonRouters: RouteRecordRaw[] = [
     path: 'oracle',
     name: 'OracleManage',
     meta: {
+      dbType: DBTypes.ORACLE,
       fullscreen: true,
       navName: t('【Oracle】主从集群管理'),
       skeleton: 'clusterList',
