@@ -15,16 +15,16 @@ from rest_framework.response import Response
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_proxy.constants import SWAGGER_TAG
 from backend.db_proxy.views.redis_keystat_report.serializers import (
-    CreateKeyStatReportRecordSerializer,
-    CreateKeyStatReportItemSerializer,
     CreateKeyStatRankItemSerializer,
+    CreateKeyStatReportItemSerializer,
+    CreateKeyStatReportRecordSerializer,
     UpdateKeyStatReportRecordSerializer,
 )
 from backend.db_proxy.views.views import BaseProxyPassViewSet
 from backend.db_services.redis.redis_keystat_report.models.redis_keystat_report import (
-    ReportRecord,
-    ReportItem,
     RankItem,
+    ReportItem,
+    ReportRecord,
 )
 
 
