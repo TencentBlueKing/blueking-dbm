@@ -165,3 +165,31 @@ def check_rollback_databases(cluster_id: int, database_list: list[str], shard_id
         return "", True
     else:
         return _("目标集群 {} 存在和指定回档备份相同的库名。回档会发生覆盖").format(target_cluster.name), False
+
+
+def check_binlog_missing(binlog_file_list: list[str]) -> (list[str], bool):
+    binlog_ids = []
+    missing_binlog_files = []
+    if len(binlog_file_list) == 0:
+        return [], True
+    binlog_pre = binlog_file_list[0].split(".")[0]
+    for binlog_file in binlog_file_list:
+        binlog_file_split = binlog_file.split(".")
+        if len(binlog_file_split) < 2:
+            return [f"binlog {binlog_file} for is not binlogPORT.xxxx "], False
+        #  int 转换可能出错
+        try:
+            binlog_file_id = int(binlog_file_split[1])
+        except ValueError:
+            return [f" {binlog_file} binlog number str to int error "], False
+        binlog_ids.append(binlog_file_id)
+    binlog_ids.sort()
+    for i in range(1, len(binlog_ids)):
+        diff = binlog_ids[i] - binlog_ids[i - 1]
+        if diff > 1:
+            for j in range(binlog_ids[i - 1] + 1, binlog_ids[i]):
+                missing_binlog_files.append(f"{binlog_pre}.{j}")
+    if len(missing_binlog_files) == 0:
+        return [], True
+    else:
+        return missing_binlog_files, False

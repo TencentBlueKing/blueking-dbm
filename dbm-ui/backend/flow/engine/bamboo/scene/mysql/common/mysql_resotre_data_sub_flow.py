@@ -23,6 +23,7 @@ from backend.db_report.mysql_backup.handers import MySQLBackupHandler
 from backend.flow.consts import DBA_ROOT_USER, MySQLBackupTypeEnum, MysqlChangeMasterType, RollbackType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.engine.bamboo.scene.mysql.common.get_local_backup import check_binlog_missing
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_restore_download_sub_flow import (
     mysql_restore_download_sub_flow,
 )
@@ -703,7 +704,9 @@ def tendbha_rollback_data_sub_flow(
                 message="{} binlog sql: {}".format(binlog_result["query_binlog_error"], backup_handler.query)
             )
         cluster_info.update(binlog_result)
-
+        missing_binlog_files, check_binlog = check_binlog_missing(binlog_result["binlog_files_list"])
+        if not check_binlog:
+            raise TendbGetBinlogFailedException(message="binlog missing: {}".format(missing_binlog_files))
         sub_pipeline.add_sub_pipeline(
             sub_flow=mysql_restore_download_sub_flow(
                 root_id=root_id,
