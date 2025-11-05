@@ -75,10 +75,11 @@
       allowHTML: true,
       appendTo: () => document.body,
       content: popRef.value,
+      delay: [200, 0],
       hideOnClick: true,
       interactive: true,
       maxWidth: 'none',
-      onHide() {
+      onHidden() {
         isActive.value = false;
         emits('toogle-show', false);
       },

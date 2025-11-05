@@ -66,7 +66,7 @@
       },
       theme: 'light cluster-list-column-operation-panel',
       trigger: 'click',
-      zIndex: 999,
+      zIndex: 9999,
     });
   });
 
