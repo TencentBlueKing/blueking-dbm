@@ -206,13 +206,13 @@ from backend.flow.views.redis_cluster import (
     RedisDataStructureTaskDeleteSceneApiView,
     RedisFlushDataSceneApiView,
     RedisInsShutdownSceneApiView,
+    RedisKeystatApiView,
     RedisProxyScaleSceneApiView,
     RedisRemoveDtsServerSceneApiView,
     RedisSingleInsMigrateApiView,
     RedisSlotsMigrateForHotkeySceneApiView,
     RedisSlotsMigrateScaleSceneApiView,
     SingleProxyShutdownSceneApiView,
-    RedisKeystatApiView,
 )
 from backend.flow.views.redis_keys import RedisKeysDeleteSceneApiView, RedisKeysExtractSceneApiView
 from backend.flow.views.redis_scene import (
