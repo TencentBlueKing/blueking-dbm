@@ -15,7 +15,6 @@ from django.utils.translation import gettext as _
 
 from backend.components import ItsmApi
 from backend.components.itsm.constants import ItsmTicketStatus
-from backend.core import notify
 from backend.exceptions import ApiResultError
 from backend.ticket.constants import TicketFlowStatus, TicketStatus, TodoStatus, TodoType
 from backend.ticket.flow_manager.base import BaseTicketFlow
@@ -133,9 +132,6 @@ class ItsmFlow(BaseTicketFlow):
         )
         # 创建单据
         data = ItsmApi.create_ticket(self.flow_obj.details)
-        # 如果此时单据处于待审批状态，说明存在连续审批节点，需主动触发一次消息发送
-        if self.ticket.status == TicketStatus.APPROVE:
-            notify.send_msg.apply_async(args=(self.ticket.id,))
         return data["sn"]
 
     def _revoke(self, operator, remark="") -> Any:
