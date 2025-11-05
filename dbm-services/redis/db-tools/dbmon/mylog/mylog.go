@@ -66,7 +66,7 @@ func InitRotateLoger() {
 	logDir := filepath.Join(currDir, "logs")
 	mkdirIfNotExistsWithPerm(logDir, 0750)
 
-	chownCmd := fmt.Sprintf("chown -R %s.%s %s", consts.MysqlAaccount, consts.MysqlGroup, logDir)
+	chownCmd := fmt.Sprintf("chown -R %s:%s %s", consts.MysqlAaccount, consts.MysqlGroup, logDir)
 	cmd := exec.Command("bash", "-c", chownCmd)
 	cmd.Run()
 
