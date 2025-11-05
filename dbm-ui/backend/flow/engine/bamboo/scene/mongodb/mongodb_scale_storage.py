@@ -44,26 +44,28 @@ class MongoScaleFlow(object):
         # 创建流程实例
         pipeline = Builder(root_id=self.root_id, data=self.data)
 
-        # 复制集容量变更——子流程并行
         sub_pipelines = []
-        if ClusterType.MongoReplicaSet.value in self.data["infos"]:
-            for replicaset in self.data["infos"][ClusterType.MongoReplicaSet.value]:
+        for cluster_info in self.data["infos"]:
+            # 复制集容量变更——子流程并行
+            if cluster_info.get("cluster_type") == ClusterType.MongoReplicaSet.value:
                 sub_pipline = replicaset_scale(
                     root_id=self.root_id,
                     ticket_data=self.data,
                     sub_kwargs=self.get_kwargs,
-                    info=replicaset,
+                    info=cluster_info,
                     cluster_role="",
                 )
                 sub_pipelines.append(sub_pipline)
-
-        # cluster容量变更——子流程并行
-        if ClusterType.MongoShardedCluster.value in self.data["infos"]:
-            for cluster in self.data["infos"][ClusterType.MongoShardedCluster.value]:
+            # cluster容量变更——子流程并行
+            elif cluster_info.get("cluster_type") == ClusterType.MongoShardedCluster.value:
                 sub_pipline = cluster_scale(
-                    root_id=self.root_id, ticket_data=self.data, sub_kwargs=self.get_kwargs, info=cluster
+                    root_id=self.root_id,
+                    ticket_data=self.data,
+                    sub_kwargs=self.get_kwargs,
+                    info=cluster_info,
                 )
                 sub_pipelines.append(sub_pipline)
+
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
         # 运行流程
