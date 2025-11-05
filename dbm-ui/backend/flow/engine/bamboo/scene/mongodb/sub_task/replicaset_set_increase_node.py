@@ -16,7 +16,6 @@ from django.utils.translation import gettext as _
 
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install import install_plugin
-from backend.flow.engine.bamboo.scene.mongodb.mongodb_install_dbmon import add_install_dbmon
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
 from backend.flow.plugins.components.collections.mongodb.send_media import ExecSendMediaOperationComponent
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
@@ -41,7 +40,7 @@ def replicaset_set_increase_node(
     # 设置变量
     info["target"] = info["add_shard_nodes"][0]
 
-    # 计算cacheSize oplogSize
+    # 计算cacheSize oplogSize self.replicaset_info["cacheSizeGB"] self.replicaset_info["oplogSizeMB"]
     sub_get_kwargs.calc_param_replace(info=info, instance_num=len(info["cluster_ids"]))
 
     # 获取主机信息
@@ -68,8 +67,7 @@ def replicaset_set_increase_node(
         act_name=_("MongoDB-机器初始化"), act_component_code=ExecuteDBActuatorJobComponent.code, kwargs=kwargs
     )
 
-    # 以IP为维度增加node——子流程并行
-    sub_sub_pipelines = []
+    # 以IP为维度增加node——子流程串行
     for node_index, add_shard_node in enumerate(info["add_shard_nodes"]):
         # 机器的索引即是增加node的索引
         info["add_shard_node"] = add_shard_node
@@ -81,19 +79,6 @@ def replicaset_set_increase_node(
             info=info,
             cluster=False,
         )
-        sub_sub_pipelines.append(sub_sub_pipeline)
-    sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_sub_pipelines)
-
-    # 安装dbmon 副本集
-    ip_list = sub_get_kwargs.payload["plugin_hosts"]
-    exec_ips = [host["ip"] for host in ip_list]
-    add_install_dbmon(
-        root_id=root_id,
-        flow_data=ticket_data,
-        pipeline=sub_pipeline,
-        iplist=exec_ips,
-        bk_cloud_id=ip_list[0]["bk_cloud_id"],
-        allow_empty_instance=True,
-    )
+        sub_pipeline.add_sub_pipeline(sub_flow=sub_sub_pipeline)
 
     return sub_pipeline.build_sub_process(sub_name=_("MongoDB--{}增加node".format("replicaset")))
