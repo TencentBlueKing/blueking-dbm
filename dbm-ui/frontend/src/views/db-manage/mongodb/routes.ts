@@ -179,6 +179,7 @@ const commonRouters: RouteRecordRaw[] = [
     path: 'mongodb',
     name: 'MongoDBManage',
     meta: {
+      dbType: DBTypes.MONGODB,
       navName: t('集群管理'),
     },
     redirect: {
