@@ -11,9 +11,9 @@ specific language governing permissions and limitations under the License.
 from rest_framework import serializers
 
 from backend.db_services.redis.redis_keystat_report.models.redis_keystat_report import (
-    ReportRecord,
-    ReportItem,
     RankItem,
+    ReportItem,
+    ReportRecord,
 )
 
 
