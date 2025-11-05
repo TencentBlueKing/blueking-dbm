@@ -15,10 +15,11 @@ from typing import Dict, Optional
 from django.utils.translation import gettext as _
 
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.flow.consts import MongoDBClusterRole
+from backend.flow.consts import MongoDBClusterRole, MongoDBInstanceType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install import install_plugin
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install_dbmon import add_install_dbmon
+from backend.flow.engine.bamboo.scene.mongodb.sub_task.multi_instance_deinstall import multi_instance_deinstall
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
 from backend.flow.plugins.components.collections.mongodb.send_media import ExecSendMediaOperationComponent
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
@@ -68,25 +69,21 @@ def replicaset_scale(
             act_name=_("MongoDB-机器初始化"), act_component_code=ExecuteDBActuatorJobComponent.code, kwargs=kwargs
         )
         # 获取大版本信息
-        sub_get_kwargs.db_main_version = info["db_version"].split("-")[1].split(".")[0]
+        # sub_get_kwargs.db_main_version = info["db_version"].split("-")[1].split(".")[0]
 
-    # 计算容量变更新的 cachesize 和 oplogsize
+    # 计算容量变更新的 cachesize 和 oplogsize self.replicaset_info["cacheSizeGB"] self.replicaset_info["oplogSizeMB"]
     instance_relationships = sub_get_kwargs.payload["instance_relationships"]
     sub_get_kwargs.calc_param_replace(
         info=instance_relationships[0], instance_num=instance_relationships[0].get("node_replica_count", 0)
     )
-    if not cluster_role:
-        # 副本集在 dbconfig 设置集群的 oplogsize cachesize
-        sub_get_kwargs.scale_save_conf(
-            cluster_name=sub_get_kwargs.payload["set_id"], namespace=ClusterType.MongoReplicaSet.value
-        )
+    # 获取节点 role
+    instance_relationships = sub_get_kwargs.get_role_scale_storage_kwargs(
+        instance_relationships=instance_relationships
+    )
 
     # 复制集进行替换——串行
-    # backup节点优先替换
-    instance_relationships.reverse()
     for instance_relationship in instance_relationships:
         sub_get_kwargs.db_instance = instance_relationship["instances"][0]
-        instance_relationship["db_type"] = "replicaset_mongodb"
         sub_sub_pipeline = mongod_replace(
             root_id=root_id,
             ticket_data=ticket_data,
@@ -110,6 +107,21 @@ def replicaset_scale(
             bk_cloud_id=ip_list[0]["bk_cloud_id"],
             allow_empty_instance=True,
         )
+        # 下架
+        old_hosts, old_instances = sub_get_kwargs.get_old_host_scale_storage(
+            instance_relationships=instance_relationships,
+            shards_instance_relationships=[],
+            cluster_type=ClusterType.MongoReplicaSet.value,
+        )
+        sub_sub_pipeline = multi_instance_deinstall(
+            root_id=root_id,
+            ticket_data=ticket_data,
+            sub_kwargs=sub_get_kwargs,
+            old_hosts=old_hosts,
+            old_instances=old_instances,
+            instance_type=MongoDBInstanceType.MongoD.value,
+        )
+        sub_pipeline.add_sub_pipeline(sub_flow=sub_sub_pipeline)
     else:
         if cluster_role == MongoDBClusterRole.ShardSvr.value:
             name = "shard"
