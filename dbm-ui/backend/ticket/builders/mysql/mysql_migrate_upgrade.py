@@ -62,8 +62,8 @@ class MysqlMigrateUpgradeDetailSerializer(MySQLBaseOperateDetailSerializer):
     ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
     backup_source = serializers.ChoiceField(help_text=_("备份源"), choices=MySQLBackupSource.get_choices())
     infos = serializers.ListField(help_text=_("添加信息"), child=InfoSerializer())
-    is_check_process = serializers.BooleanField(help_text=_("是否做安全检测"), default=True)
-    is_verify_checksum = serializers.BooleanField(help_text=_("是否检查主从数据校验结果"), default=True)
+    is_check_process = serializers.BooleanField(help_text=_("是否做安全检测"), default=True, required=False)
+    is_verify_checksum = serializers.BooleanField(help_text=_("是否检查主从数据校验结果"), default=True, required=False)
     need_checksum = serializers.BooleanField(help_text=_("执行前是否需要数据校验"), default=True, required=False)
 
     def validate(self, attrs):

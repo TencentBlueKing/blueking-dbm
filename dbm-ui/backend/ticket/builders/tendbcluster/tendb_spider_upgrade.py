@@ -40,7 +40,7 @@ class TenDBSpiderUpgradeSerializer(TendbBaseOperateDetailSerializer):
         target_version = VersionModelSerializer(help_text=_("目标版本信息"), required=False)
 
     infos = serializers.ListField(help_text=_("单据信息"), child=InfoSerializer())
-    is_check_process = serializers.BooleanField(help_text=_("是否做安全检测"), default=True)
+    is_check_process = serializers.BooleanField(help_text=_("是否做安全检测"), default=True, required=False)
     upgrade_local = serializers.BooleanField(help_text=_("是否本地升级"), default=False)
     ip_source = serializers.ChoiceField(
         help_text=_("机器来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL

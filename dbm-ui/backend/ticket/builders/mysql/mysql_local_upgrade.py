@@ -26,8 +26,8 @@ class MysqlLocalUpgradeDetailSerializer(MySQLBaseOperateDetailSerializer):
         new_db_module_id = serializers.IntegerField(help_text=_("数据库模块ID"), required=False)
 
     infos = serializers.ListField(help_text=_("单据信息"), child=InfoSerializer())
-    is_check_process = serializers.BooleanField(help_text=_("是否做安全检测"), default=True)
-    is_verify_checksum = serializers.BooleanField(help_text=_("是否检查主从数据校验结果"), default=True)
+    is_check_process = serializers.BooleanField(help_text=_("是否做安全检测"), default=True, required=False)
+    is_verify_checksum = serializers.BooleanField(help_text=_("是否检查主从数据校验结果"), default=True, required=False)
 
 
 class MysqlLocalUpgradeParamBuilder(builders.FlowParamBuilder):
