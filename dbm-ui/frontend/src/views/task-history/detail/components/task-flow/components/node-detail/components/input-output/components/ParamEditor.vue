@@ -85,7 +85,7 @@
         alwaysConsumeMouseWheel: false,
       },
       theme: 'vs-dark',
-      wordWrap: 'bounded',
+      wordWrap: 'on',
     });
   });
 
