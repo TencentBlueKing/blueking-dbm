@@ -94,6 +94,7 @@
         appendTo: () => document.body,
         arrow: false,
         content: popRef.value,
+        delay: [200, 0],
         hideOnClick: true,
         interactive: true,
         maxWidth: 'none',

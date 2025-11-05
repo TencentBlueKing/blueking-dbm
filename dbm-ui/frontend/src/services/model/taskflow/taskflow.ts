@@ -81,8 +81,4 @@ export default class TaskFlow {
   get statusTheme() {
     return TaskFlow.STATUS_THEME_MAP[this.status] || 'danger';
   }
-
-  get ticketTypeDisplay() {
-    return this.flow_alias || this.ticket_type_display;
-  }
 }

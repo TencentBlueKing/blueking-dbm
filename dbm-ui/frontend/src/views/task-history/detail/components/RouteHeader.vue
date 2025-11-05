@@ -15,7 +15,7 @@
   <Teleport to="#dbContentTitleAppend">
     <span v-if="data?.flow_info">
       <span class="ml-8 mr-6">|</span>
-      {{ baseInfo.ticket_type_display }}
+      {{ baseInfo.flow_alias }}
     </span>
   </Teleport>
   <Teleport to="#dbContentHeaderAppend">
@@ -119,12 +119,12 @@
       return 'warning';
     }
     const themes = {
-      CREATED: 'default',
+      CREATED: undefined,
       FINISHED: 'success',
       REVOKED: 'danger',
       RUNNING: 'info',
-    };
-    return themes[status as keyof typeof themes] || 'default';
+    } as const;
+    return themes[status as keyof typeof themes];
   });
 
   const todoNodesCount = computed(() => {
