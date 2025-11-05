@@ -29,6 +29,7 @@ class _HADBApi(BaseApi):
             method="POST",
             url="dbstatus/",
             description=_("上报和查询数据库实例的状态"),
+            default_timeout=120,
         )
         self.ha_status = self.generate_data_api(
             method="POST",

@@ -39,6 +39,8 @@ from backend.utils.basic import get_target_items_from_details
 
 logger = logging.getLogger("root")
 
+audit_ticket_status = [TicketStatus.RUNNING, TicketStatus.SUCCEEDED, TicketStatus.FAILED, TicketStatus.TERMINATED]
+
 
 class CreateTicketOneResourcePermission(ResourceActionPermission):
     """
@@ -246,7 +248,6 @@ def add_ticket_audit_event(ticket_id):
     添加单据审计事件
     目前只有在任务开始执行和任务执行失败/终止的时候才上报事件
     """
-    audit_ticket_status = [TicketStatus.RUNNING, TicketStatus.SUCCEEDED, TicketStatus.FAILED, TicketStatus.TERMINATED]
     ticket = Ticket.objects.get(id=ticket_id)
 
     # 非审计状态，忽略

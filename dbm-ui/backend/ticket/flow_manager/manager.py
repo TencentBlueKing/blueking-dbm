@@ -14,7 +14,7 @@ from django.db import transaction
 from django.utils.translation import gettext as _
 
 from backend.core import notify
-from backend.iam_app.handlers.drf_perm.ticket import add_ticket_audit_event
+from backend.iam_app.handlers.drf_perm.ticket import add_ticket_audit_event, audit_ticket_status
 from backend.ticket import constants
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.constants import FLOW_FINISHED_STATUS, FlowType, TicketStatus, TicketType
@@ -113,17 +113,18 @@ class TicketFlowManager(object):
         with transaction.atomic():
             ticket = Ticket.objects.select_for_update().get(id=self.ticket.id)
             origin_status, ticket.status = ticket.status, target_status
-            if origin_status == target_status:
-                return
-            ticket.save(update_fields=["status", "update_at"])
+            if origin_status != target_status:
+                ticket.save(update_fields=["status", "update_at"])
 
         # 执行状态更新钩子函数
         self.ticket_status_trigger(origin_status, target_status)
 
     def ticket_status_trigger(self, origin_status, target_status):
         """单据状态更新后的钩子函数。注：如果钩子函数非关键链路，请异步发起"""
-        # 上报单据状态流转事件
-        add_ticket_audit_event.apply_async(args=(self.ticket.id,))
+
+        # 上报单据状态流转事件，针对任务运行、成功、失败、终止状态上报
+        if target_status in audit_ticket_status:
+            add_ticket_audit_event.apply_async(args=(self.ticket.id,))
 
         # 单据状态变更后，发送通知。
         # 忽略运行中：流转到内置任务无需通知，待继续在todo创建时才触发通知
@@ -133,6 +134,6 @@ class TicketFlowManager(object):
 
         # 如果是待下架单据，正常结束要联动回收主机
         is_recycle = self.ticket.ticket_type in BuilderFactory.recycle_ticket_type
-        if target_status == TicketStatus.SUCCEEDED and is_recycle:
+        if origin_status != target_status and target_status == TicketStatus.SUCCEEDED and is_recycle:
             recycle_old_hosts = self.ticket.details.get("recycle_hosts", [])
             create_recycle_ticket.apply_async(args=(self.ticket.id, recycle_old_hosts, TicketType.RECYCLE_OLD_HOST))
