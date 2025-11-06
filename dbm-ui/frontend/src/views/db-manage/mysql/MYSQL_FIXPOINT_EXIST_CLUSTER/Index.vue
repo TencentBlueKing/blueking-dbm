@@ -62,7 +62,6 @@
             v-model:table-data="formData.tableData"
             :backup-source="formData.backupSource"
             :cluster="item.cluster"
-            @batch-edit="handleBatchEdit"
             @change="() => handleChangeRowData(item)" />
           <DbNameColumn
             v-model="item.databases"
