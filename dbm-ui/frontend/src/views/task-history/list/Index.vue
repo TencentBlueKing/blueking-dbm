@@ -31,10 +31,11 @@
       @clear-search="handleClearSearch"
       @filter-change="handleFilterChange">
       <TableColumn
-        col-key="flow_alias"
-        :filter="tableFilter['flow_alias']"
-        :title="t('任务名')"
-        :width="150">
+        col-key="root_id__in"
+        :filter="tableFilter['root_id__in']"
+        fixed="left"
+        title="ID"
+        :width="180">
         <template #default="{ row }: { row: TaskFlowModel }">
           <AuthRouterLink
             action-id="flow_detail"
@@ -50,18 +51,17 @@
                 from: route.name as string,
               },
             }">
-            {{ row.flow_alias }}
+            {{ row.root_id }}
           </AuthRouterLink>
         </template>
       </TableColumn>
       <TableColumn
-        col-key="root_id__in"
-        :filter="tableFilter['root_id__in']"
-        fixed="left"
-        title="ID"
-        :width="180">
+        col-key="flow_alias"
+        :filter="tableFilter['flow_alias']"
+        :title="t('任务名')"
+        :width="200">
         <template #default="{ row }: { row: TaskFlowModel }">
-          {{ row.root_id }}
+          {{ row.nameText }}
         </template>
       </TableColumn>
       <TableColumn
