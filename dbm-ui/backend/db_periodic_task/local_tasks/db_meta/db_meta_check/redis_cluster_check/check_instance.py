@@ -96,45 +96,41 @@ def check_redis_instance():
             logger.info(msg)
 
         # 检查master对应的slave是否缺失
-        master_slave_map, slave_master_map = defaultdict(), defaultdict()
+        master_slave_map, slave_master_map = defaultdict(list), defaultdict()
         for master_obj in c.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value):
             try:
-                try:
-                    slave_obj = master_obj.as_ejector.get().receiver
-                except ObjectDoesNotExist:
+                slave_tuples = master_obj.as_ejector.all()
+
+                if not slave_tuples.exists():
                     cluster_has_lonely_issue = True
                     logger.warning(
-                        "Warning: cluster {} master {} failed to get slave_obj".format(c.immute_domain, master_obj)
+                        "Warning: cluster {} master {} has no slave configured".format(c.immute_domain, master_obj)
                     )
                     msg = _("集群{}的master：{} 获取slave失败").format(c.immute_domain, master_obj)
                     create_single_node_record(c, master_obj, msg, creator)
                     continue
 
-                # 集群不支持一个主多个从架构
-                ifslave = master_slave_map.get(master_obj.machine.ip)
-                if ifslave and ifslave != slave_obj.machine.ip:
-                    cluster_has_lonely_issue = True
-                    logger.warning(
-                        "Warning: cluster {} unsupport multiple slaves for master {}".format(
-                            c.immute_domain, master_obj.machine.ip
+                slave_objs = [tuple_obj.receiver for tuple_obj in slave_tuples]
+                all_slaves_valid = True
+
+                for slave_obj in slave_objs:
+                    master_slave_map[master_obj.machine.ip].append(slave_obj.machine.ip)
+
+                    if master_obj.port != slave_obj.port:
+                        cluster_has_lonely_issue = True
+                        all_slaves_valid = False
+                        msg = _("集群{}的master实例：{} 的slave {} 端口不匹配").format(c.immute_domain, master_obj, slave_obj)
+                        create_single_node_record(c, master_obj, msg, creator)
+
+                # Log the result
+                if all_slaves_valid:
+                    slave_count = len(slave_objs)
+                    slave_ips = ", ".join([s.machine.ip for s in slave_objs])
+                    logger.info(
+                        _("集群{}的master实例：{} slave关系正常，共{}个slave: {}").format(
+                            c.immute_domain, master_obj, slave_count, slave_ips
                         )
                     )
-                    msg = _(
-                        "unsupport mutil slave with cluster {} 4:{}".format(c.immute_domain, master_obj.machine.ip)
-                    )
-                    create_single_node_record(c, master_obj, msg, creator)
-                    continue
-
-                else:
-                    master_slave_map[master_obj.machine.ip] = slave_obj.machine.ip
-                # 没获取到对应端口
-                if master_obj.port != slave_obj.port:
-                    cluster_has_lonely_issue = True
-                    msg = _("集群{}的master实例：{} 没有slave").format(c.immute_domain, master_obj)
-                    create_single_node_record(c, master_obj, msg, creator)
-                else:
-                    # Master-slave relationship is normal
-                    logger.info(_("集群{}的master实例：{} slave关系正常").format(c.immute_domain, master_obj))
             except Exception as e:
                 cluster_has_lonely_issue = True
                 logger.warning(
