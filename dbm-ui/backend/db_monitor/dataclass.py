@@ -11,6 +11,8 @@ specific language governing permissions and limitations under the License.
 
 from dataclasses import dataclass
 
+from django_stubs_ext import StrOrPromise
+
 from backend.db_monitor.constants import MonitorEventType
 
 
@@ -48,7 +50,7 @@ class MonitorEvent:
     # 事件内容，其中content必填: "event": {"content": "xxx"}
     event: BaseEventBody
     # 来源标识如IP，必需项
-    target: str
+    target: StrOrPromise
     # 事件维度
     dimension: dict
     # 事件时间戳，毫秒级, 默认为当前时间，可为空
