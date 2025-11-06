@@ -128,13 +128,13 @@ func (c *RotateBinlogComp) Start() (err error) {
 			}
 		}
 	}
+	servers = lo.Filter(servers, func(item *ServerObj, index int) bool {
+		return item.rotate != nil
+	})
 	if err = c.decideSizeToFree(servers); err != nil {
 		return errors.Join(errRet, err)
 	}
 	for _, inst := range servers {
-		if inst.rotate == nil {
-			continue
-		}
 		if err = inst.FreeSpace(); err != nil {
 			logger.Error("FreeSpace %+v", err)
 			errRet = errors.Join(errRet, err)
@@ -253,7 +253,6 @@ func (c *RotateBinlogComp) decideSizeToFree(servers []*ServerObj) error {
 		return err
 	} else {
 		for _, inst := range servers {
-			// inst.rotate 会是 nil ???
 			inst.rotate.sizeToFreeMB = requestSizeToFree / 1024 / 1024
 		}
 	}
@@ -261,9 +260,6 @@ func (c *RotateBinlogComp) decideSizeToFree(servers []*ServerObj) error {
 	var diskPartInst = make(map[string][]*ServerObj)      // 每个挂载目录上，放了哪些binlog实例以及对应的binlog空间
 	var diskParts = make(map[string]*cmutil.DiskPartInfo) // 目录对应的空间信息
 	for _, inst := range servers {
-		if inst.rotate == nil {
-			continue
-		}
 		diskPart, err := util.GetDiskPartitionWithDir(inst.binlogDir)
 		if err != nil {
 			logger.Warn("fail to get binlog_dir %s disk partition info, err:%s", inst.binlogDir, err.Error())

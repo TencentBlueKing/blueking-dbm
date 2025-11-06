@@ -10,3 +10,4 @@ specific language governing permissions and limitations under the License.
 """
 
 # 根据 db_meta 里面 running 状态实例信息，查询 mysql_up / proxy_up 如果没有数据则报告异常
+from .task import check_mysql_exporter_up
