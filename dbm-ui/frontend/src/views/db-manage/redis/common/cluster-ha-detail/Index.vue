@@ -138,6 +138,10 @@
               </AuthButton>
             </OperationBtnStatusTips>
           </BkDropdownItem>
+          <ClusterAlarmSubscribe
+            :data="data"
+            is-dropdown
+            @edit="(e) => handleToDetails(data!.id, e, 'alarmSubscription')" />
           <BkDropdownItem v-db-console="'redis.haClusterManage.queryAccessSource'">
             <OperationBtnStatusTips
               :data="data"
@@ -256,11 +260,13 @@
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
   import TagBlock from '@components/tag-block/Index.vue';
 
+  import ClusterAlarmSubscribe from '@views/db-manage/common/cluster-alarm-subscribe/Index.vue';
   import { ActionPanel, BaseInfo, DisplayBox, SlaveDomain } from '@views/db-manage/common/cluster-details';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
   import ClusterLoad from '@views/db-manage/common/cluster-load/Index.vue';
   import { useOperateClusterBasic, useRedisClusterListToToolbox } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
+  import useGoClusterDetail from '@views/db-manage/hooks/useGoClusterDetail';
   import ClusterPassword from '@views/db-manage/redis/common/cluster-operations/ClusterPassword.vue';
 
   interface Props {
@@ -276,6 +282,7 @@
   const router = useRouter();
 
   const { handleToToolbox } = useRedisClusterListToToolbox();
+  const { goClusterDetail: handleToDetails } = useGoClusterDetail('redisClusterHaDetail');
 
   const data = ref<RedisDetailModel>();
 
