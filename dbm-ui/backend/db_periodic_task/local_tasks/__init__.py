@@ -14,6 +14,7 @@ from backend.db_periodic_task.local_tasks.db_meta import *
 from backend.db_periodic_task.local_tasks.db_monitor import *
 from backend.db_periodic_task.local_tasks.db_proxy import *
 from backend.db_periodic_task.local_tasks.dbmon_heartbeat import *
+from backend.db_periodic_task.local_tasks.disable_dbha import *
 from backend.db_periodic_task.local_tasks.iam import *
 from backend.db_periodic_task.local_tasks.mongodb_tasks import mongodb_backup_check_task, mongodb_metric_check_task
 from backend.db_periodic_task.local_tasks.mysql_backup import *
