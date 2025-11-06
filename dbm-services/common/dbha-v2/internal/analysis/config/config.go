@@ -25,11 +25,15 @@
 // Package config provides configuration management for the DBHA v2 analysis module.
 package config
 
-import "time"
+import (
+	"time"
+
+	"dbm-services/common/dbha-v2/pkg/logger"
+)
 
 var Cfg = Configuration{
 	Name:    "analysis",
-	Version: "v2.0.0",
+	PidFile: "./pids/analysis.pid",
 	Workflow: WorkflowConfig{
 		WorkerBusinessCount:        100,
 		LockBusinessWaitTimeout:    5 * time.Second,
@@ -43,6 +47,13 @@ var Cfg = Configuration{
 
 	Monitor: MonitorConfig{
 		Timeout: 10 * time.Second,
+	},
+
+	Log: LogConfig{
+		Path:      "./logs/analysis.log",
+		Level:     logger.InfoLevel.String(),
+		FileCount: 10,
+		FileSize:  100,
 	},
 }
 
@@ -130,16 +141,17 @@ type ApmConfig struct {
 
 // LogConfig log configuration
 type LogConfig struct {
-	Path       string `yaml:"path"      mapstructure:"path"`
-	Level      string `yaml:"level"     mapstructure:"level"`
-	FileCount  int    `yaml:"fileCount" mapstructure:"fileCount"`
-	FileSizeMB int    `yaml:"fileSize"  mapstructure:"fileSize"`
+	Path      string `yaml:"path"      mapstructure:"path"`
+	Level     string `yaml:"level"     mapstructure:"level"`
+	FileCount int    `yaml:"fileCount" mapstructure:"fileCount"`
+	FileSize  int    `yaml:"fileSize"  mapstructure:"fileSize"`
 }
 
 // Configuration receiver's configuration
 type Configuration struct {
 	Name      string          `yaml:"name"      mapstructure:"name"`
 	Version   string          `yaml:"version"   mapstructure:"version"`
+	PidFile   string          `yaml:"pidFile"   mapstructure:"pidFile"`
 	Discovery DiscoveryConfig `yaml:"discovery" mapstructure:"discovery"`
 	Apm       ApmConfig       `yaml:"apm"       mapstructure:"apm"`
 	Workflow  WorkflowConfig  `yaml:"workflow"  mapstructure:"workflow"`
