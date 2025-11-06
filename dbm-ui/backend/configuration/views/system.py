@@ -55,6 +55,7 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
             "machine_property",
             "builtin_labels",
             "operation_data_switch",
+            "get_tendata_helper",
         ): [],
     }
     default_permission_class = [ResourceActionPermission([ActionEnum.GLOBAL_MANAGE])]
@@ -74,6 +75,16 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
     @action(methods=["GET"], detail=False)
     def disk_classes(self, request, *args, **kwargs):
         return Response(DISK_CLASSES)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取各组件负责的机器人"),
+        tags=tags,
+    )
+    @action(methods=["GET"], detail=False)
+    def get_tendata_helper(self, request, *args, **kwargs):
+        tendata_helper = SystemSettings.get_setting_value(key=SystemSettingsEnum.DBA_ROBOT.value, default={})
+
+        return Response(tendata_helper)
 
     @common_swagger_auto_schema(
         operation_summary=_("查询平台常用SQL语句"), tags=tags, query_serializer=GetCommonSQLSerializer()
