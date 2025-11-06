@@ -37,7 +37,7 @@
             v-model="item.cluster"
             allow-repeat
             :cluster-types="[ClusterTypes.TENDBHA]"
-            :rowspan="item.rowspan"
+            :rowspan="item.same_cluster"
             :selected="selected"
             @batch-edit="handleBatchEditCluster" />
           <MasterSlaveColumn
@@ -45,12 +45,15 @@
             v-model:slaves="item.slaves"
             v-model:table-data="formData.tableData"
             :cluster="item.cluster"
-            @change="handleRowMerge" />
+            :create-table-row="createTableRow"
+            :handle-row-merge="handleRowMerge"
+            :rowspan="item.same_master" />
           <DbNameColumn
             v-model="item.db_patterns"
             :cluster-id="item.cluster?.id"
             field="db_patterns"
             :label="t('校验 DB 名')"
+            :rowspan="item.same_master"
             @batch-edit="handleBatchEdit" />
           <DbNameColumn
             v-model="item.ignore_dbs"
@@ -58,12 +61,14 @@
             field="ignore_dbs"
             :label="t('忽略 DB 名')"
             :required="false"
+            :rowspan="item.same_master"
             @batch-edit="handleBatchEdit" />
           <TableNameColumn
             v-model="item.table_patterns"
             :cluster-id="item.cluster?.id"
             field="table_patterns"
             :label="t('校验表名')"
+            :rowspan="item.same_master"
             @batch-edit="handleBatchEdit" />
           <TableNameColumn
             v-model="item.ignore_tables"
@@ -71,10 +76,12 @@
             field="ignore_tables"
             :label="t('忽略表名')"
             :required="false"
+            :rowspan="item.same_master"
             @batch-edit="handleBatchEdit" />
           <OperationColumn
             v-model:table-data="formData.tableData"
-            :create-row-method="createTableRow" />
+            :create-row-method="createTableRow"
+            :handle-row-merge="handleRowMerge" />
         </EditableRow>
       </EditableTable>
       <BkFormItem
@@ -204,7 +211,10 @@
     ignore_dbs: string[];
     ignore_tables: string[];
     master: ComponentProps<typeof MasterSlaveColumn>['master'];
-    rowspan: number;
+    // 集群相同行
+    same_cluster: number;
+    // 主库相同行
+    same_master: number;
     slaves: ComponentProps<typeof MasterSlaveColumn>['slaves'];
     table_patterns: string[];
   }
@@ -278,7 +288,8 @@
       } as ComponentProps<typeof MasterSlaveColumn>['master'],
       data.master,
     ),
-    rowspan: data.rowspan || 1,
+    same_cluster: data.same_cluster || 1,
+    same_master: data.same_master || 1,
     slaves: data.slaves || ([] as RowData['slaves']),
     table_patterns: data.table_patterns || ['*'],
   });
@@ -315,23 +326,29 @@
   const selectedMap = computed(() =>
     Object.fromEntries(formData.tableData.map((cur) => [cur.cluster.master_domain, true])),
   );
+  // 具备完全相同的集群id列的行数组map
+  let sameClusterIdsRowsMap: Record<string, RowData[]> = {};
 
   // 行合并
   const handleRowMerge = () => {
     formData.tableData = [..._.sortBy(formData.tableData, (item) => item.cluster.id)];
 
-    const clusterMap: Record<string, RowData[]> = {};
+    sameClusterIdsRowsMap = {};
     formData.tableData.forEach((item) => {
       Object.assign(item, { rowspan: 1 });
-      const { id } = item.cluster;
-      if (!clusterMap[id]) {
-        clusterMap[id] = [item];
+      const key = item.cluster.id;
+      if (!sameClusterIdsRowsMap[key]) {
+        sameClusterIdsRowsMap[key] = [item];
       } else {
-        clusterMap[id].push(item);
+        sameClusterIdsRowsMap[key].push(item);
       }
     });
-    Object.values(clusterMap).forEach((list) => {
-      Object.assign(list[0], { rowspan: list.length });
+    Object.values(sameClusterIdsRowsMap).forEach((list) => {
+      const isSameMaster = list.every((item) => item.master.ip === list[0].master.ip);
+      Object.assign(list[0], {
+        same_cluster: list.length,
+        same_master: isSameMaster ? list.length : 1, // 相同规格合并
+      });
     });
   };
 
@@ -341,33 +358,34 @@
       const { clusters, infos } = details;
       Object.assign(formData, {
         payload: createTickePayload(ticketDetail),
-        tableData: infos.map((item) => ({
-          cluster: {
-            master_domain: clusters[item.cluster_id].immute_domain || '',
-          },
-          db_patterns: item.db_patterns,
-          ignore_dbs: item.ignore_dbs,
-          ignore_tables: item.ignore_tables,
-          master: {
-            bk_biz_id: item.master.bk_biz_id,
-            bk_cloud_id: item.master.bk_cloud_id,
-            bk_host_id: item.master.bk_host_id,
-            instance_address: `${item.master.ip}:${item.master.port}`,
-            ip: item.master.ip,
-            port: item.master.port,
-          },
-          slaves: item.slaves.map((slave) => ({
-            bk_biz_id: slave.bk_biz_id,
-            bk_cloud_id: slave.bk_cloud_id,
-            bk_host_id: slave.bk_host_id,
-            instance_address: `${slave.ip}:${slave.port}`,
-            ip: slave.ip,
-            port: slave.port,
-          })),
-          table_patterns: item.table_patterns,
-        })),
+        tableData: infos.map((item) =>
+          createTableRow({
+            cluster: {
+              master_domain: clusters[item.cluster_id].immute_domain || '',
+            } as TendbhaModel,
+            db_patterns: item.db_patterns,
+            ignore_dbs: item.ignore_dbs,
+            ignore_tables: item.ignore_tables,
+            master: {
+              bk_biz_id: item.master.bk_biz_id,
+              bk_cloud_id: item.master.bk_cloud_id,
+              bk_host_id: item.master.bk_host_id,
+              instance_address: `${item.master.ip}:${item.master.port}`,
+              ip: item.master.ip,
+              port: item.master.port,
+            },
+            slaves: item.slaves.map((slave) => ({
+              bk_biz_id: slave.bk_biz_id,
+              bk_cloud_id: slave.bk_cloud_id,
+              bk_host_id: slave.bk_host_id,
+              instance_address: `${slave.ip}:${slave.port}`,
+              ip: slave.ip,
+              port: slave.port,
+            })),
+            table_patterns: item.table_patterns,
+          }),
+        ),
       });
-      handleRowMerge();
     },
   });
 

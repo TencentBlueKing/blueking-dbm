@@ -26,13 +26,12 @@
     </InfoItem>
   </InfoList>
   <TicketInfoTable
-    :data="tableData"
-    row-key="cluster_id"
-    :rowspan-and-colspan="rowspanAndColspan">
+    :data="props.ticketDetails.details.infos"
+    row-key="cluster_id">
     <TicketInfoTableColumn
       col-key="cluster_id"
       :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
-      :min-width="220"
+      :min-width="280"
       :title="t('目标集群')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
@@ -122,7 +121,7 @@
   import PopoverCopy from '@components/popover-copy/Index.vue';
   import TagBlock from '@components/tag-block/Index.vue';
 
-  import { execCopy, random, utcDisplayTime } from '@utils';
+  import { execCopy, utcDisplayTime } from '@utils';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 
@@ -141,47 +140,8 @@
 
   const { t } = useI18n();
 
-  const tableData = shallowRef<RowData[]>([]);
-
-  const spanInfo: {
-    rowIndex: number;
-    rowspan: number;
-  }[] = [];
-  const clusterMap: Record<string, RowData[]> = {};
-  props.ticketDetails.details.infos.forEach((item) => {
-    const clusterItem = Object.assign(item, { rowKey: random() });
-    const clusterId = item.cluster_id;
-    if (!clusterMap[clusterId]) {
-      clusterMap[clusterId] = [clusterItem];
-    } else {
-      clusterMap[clusterId].push(clusterItem);
-    }
-  });
-
-  Object.values(clusterMap).forEach((list) => {
-    const preRow = spanInfo[spanInfo.length - 1] || {
-      rowIndex: 0,
-      rowspan: 1,
-    };
-    spanInfo.push({
-      rowIndex: preRow.rowIndex + preRow.rowspan - 1,
-      rowspan: list.length,
-    });
-    tableData.value.push(...list);
-  });
-
-  const rowspanAndColspan = ({ colIndex, rowIndex }: { colIndex: number; rowIndex: number }) => {
-    const spanItem = spanInfo.find((item) => colIndex === 0 && item.rowIndex === rowIndex);
-    if (spanItem) {
-      return {
-        rowspan: spanItem.rowspan,
-      };
-    }
-    return {};
-  };
-
   const handleCopySlave = (field: 'ip' | 'instance') => {
-    const slaves = tableData.value.reduce<RowData['slaves']>((acc, item) => {
+    const slaves = props.ticketDetails.details.infos.reduce<RowData['slaves']>((acc, item) => {
       if (item.slaves.length) {
         return [...acc, ...item.slaves];
       }
@@ -194,7 +154,7 @@
   };
 
   const handleCopyMaster = (field: 'ip' | 'instance') => {
-    const items = tableData.value.map((item) =>
+    const items = props.ticketDetails.details.infos.map((item) =>
       item.master && field === 'instance' ? `${item.master.ip}:${item.master.port}` : item.master.ip,
     );
     if (items.length > 0) {
