@@ -24,7 +24,6 @@
         </template>
       </template>
       <PrimaryTable
-        :key="titleList.length"
         class="dynamic-table-main"
         :data="tableData"
         :max-height="485"
