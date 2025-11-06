@@ -35,7 +35,6 @@ import (
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
-	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 )
 
 // Client provides HTTP client for communicating with DBM API services
@@ -113,8 +112,7 @@ func (c *Client) RequestMetadata(ctx context.Context, req *Request) (*Response, 
 }
 
 // QueryMetadataFromDbm queries metadata from DBM
-func (c *Client) QueryMetadataFromDbm(ctx context.Context,
-	bkCloudId int, ips []string) ([]*hamodel.DbmMetadata, error) {
+func (c *Client) QueryMetadataFromDbm(ctx context.Context, bkCloudId int, ips []string) ([]*DbInstMetadata, error) {
 
 	req := DefaultRequest
 	req.BkCloudId = bkCloudId
@@ -126,64 +124,7 @@ func (c *Client) QueryMetadataFromDbm(ctx context.Context,
 		return nil, err
 	}
 
-	datas := []*hamodel.DbmMetadata{}
-	for _, rsp := range metaRsp.Data {
-		meta := &hamodel.DbmMetadata{
-			BkIdcCityID:     rsp.BkIdcCityID,
-			BkBizID:         rsp.BkBizID,
-			BkCloudID:       rsp.BkCloudID,
-			LogicalCityID:   rsp.LogicalCityID,
-			LogicalCityName: rsp.LogicalCityName,
-			Port:            rsp.Port,
-			IP:              rsp.IP,
-			Cluster:         rsp.Cluster,
-			ClusterID:       rsp.ClusterID,
-			ClusterType:     rsp.ClusterType,
-			MachineType:     rsp.MachineType,
-			InstanceRole:    string(rsp.InstanceRole),
-			Status:          rsp.Status,
-		}
-
-		if rsp.BindEntry != nil {
-			bindEndtry, err := json.Marshal(rsp.BindEntry)
-			if err != nil {
-				return nil, err
-			}
-
-			meta.BindEntry = string(bindEndtry)
-		}
-
-		if rsp.Receiver != nil {
-			receiver, err := json.Marshal(rsp.Receiver)
-			if err != nil {
-				return nil, err
-			}
-
-			meta.Receiver = string(receiver)
-		}
-
-		if rsp.ProxyInstanceSet != nil {
-			proxyInsts, err := json.Marshal(rsp.ProxyInstanceSet)
-			if err != nil {
-				return nil, err
-			}
-
-			meta.ProxyInstanceSet = string(proxyInsts)
-		}
-
-		if rsp.TBinlogDumpers != nil {
-			binlogDumpers, err := json.Marshal(rsp.TBinlogDumpers)
-			if err != nil {
-				return nil, err
-			}
-
-			meta.BinlogDumperSet = string(binlogDumpers)
-		}
-
-		datas = append(datas, meta)
-	}
-
-	return datas, nil
+	return metaRsp.Data, nil
 }
 
 // GetAddressNumberOfDomain retrieves the number of addresses in a specific domain
