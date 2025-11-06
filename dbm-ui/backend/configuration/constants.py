@@ -159,6 +159,8 @@ class SystemSettingsEnum(StrStructuredEnum):
     OPERATION_DATA_SWITCH = EnumField("OPERATION_DATA_SWITCH", _("运营数据开关"))
     # 常用城市配置
     COMMON_CITIES = EnumField("COMMON_CITIES", _("常用城市配置"))
+    # 各组件负责的机器人
+    DBA_ROBOT = EnumField("DBA_ROBOT", _("各组件负责的机器人"))
 
 
 class BizSettingsEnum(StrStructuredEnum):
