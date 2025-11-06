@@ -1161,6 +1161,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                         "tables": tables,
                         "tables_ignore": [],
                         "filter_rows": "",
+                        "conv_rows_update_to_write": self.cluster.get("conv_rows_update_to_write", False),
+                        "filter_delete_rows_only": self.cluster.get("filter_delete_rows_only", False),
                     },
                     # 原始 binlog 目录，如果不提供，则自动为实例 binlog 目录
                     "binlog_dir": "",
