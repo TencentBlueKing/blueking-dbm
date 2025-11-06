@@ -71,6 +71,7 @@ const (
 		"SELECT COUNT(DISTINCT `db`, tbl, chunk) AS total_count " +
 		"FROM infodba_schema.checksum_history " +
 		"WHERE (this_crc <> master_crc OR this_cnt <> master_cnt) AND ts > DATE_SUB(NOW(), INTERVAL 7 DAY)"
+
 	// CheckDelaySQL master and slave's time delay
 	CheckDelaySQL = `
 		SELECT unix_timestamp(now())-unix_timestamp(master_time) as time_delay, delay_sec as slave_delay 
@@ -181,30 +182,13 @@ type ProxyBackendInfo struct {
 }
 
 // MySQLInstanceMetadata contains MySQL instance metadata from DBM
-type MySQLInstanceMetadata struct {
-	Ip               string                         `json:"ip"`
-	Port             int                            `json:"port"`
-	Status           dbm.DbmMetadataStatus          `json:"status"`
-	BkCloudID        int                            `json:"bk_cloud_id"`
-	BkIdcCityID      int                            `json:"bk_idc_city_id"`
-	BkBizID          int                            `json:"bk_biz_id"`
-	Cluster          string                         `json:"cluster"`
-	ClusterID        int                            `json:"cluster_id"`
-	ClusterType      hamodel.DbmMetadataClusterType `json:"cluster_type"`
-	MachineType      hamodel.DbmMetadataMachineType `json:"machine_type"`
-	InstanceRole     dbm.DbmMetadataInstanceRole    `json:"instance_role"`
-	Receiver         []dbm.DbmMetadataSlaveInfo     `json:"receiver"`
-	AdminPort        int                            `json:"admin_port"`
-	BindEntry        dbm.DbmMetadataBindEntry       `json:"bind_entry"`
-	ProxyInstanceSet []dbm.DbmMetadataProxyInstance `json:"proxyinstance_set"`
-	BinlogDumperSet  []dbm.DbmMetadataBinlogDumper  `json:"tbinlogdumpers"`
-}
+type MySQLInstanceMetadata dbm.DbInstMetadata
 
 // NewMySQLSwitchInstance creates a new MySQL switch instance based on metadata
 func NewMySQLSwitchInstance(metadata *MySQLInstanceMetadata) (SwitchableInstance, error) {
 	mysqlBaseInstance := MySQLBaseSwitchInstance{
 		BaseSwitchInstance: BaseSwitchInstance{
-			Ip:           metadata.Ip,
+			IP:           metadata.IP,
 			Port:         metadata.Port,
 			Status:       metadata.Status,
 			BkCloudID:    metadata.BkCloudID,
@@ -220,7 +204,7 @@ func NewMySQLSwitchInstance(metadata *MySQLInstanceMetadata) (SwitchableInstance
 		AdminPort:        metadata.AdminPort,
 		BindEntry:        metadata.BindEntry,
 		ProxyInstanceSet: metadata.ProxyInstanceSet,
-		BinlogDumperSet:  metadata.BinlogDumperSet,
+		BinlogDumperSet:  metadata.BinlogDumpers,
 	}
 	mysqlBaseInstance.SetStandbySlave(metadata.Receiver)
 
@@ -230,11 +214,13 @@ func NewMySQLSwitchInstance(metadata *MySQLInstanceMetadata) (SwitchableInstance
 			MySQLBaseSwitchInstance: mysqlBaseInstance,
 		}
 		return res, nil
+
 	case hamodel.DbmMetadataMachineTypeProxy:
 		res := &MySQLProxySwitchInstance{
 			MySQLBaseSwitchInstance: mysqlBaseInstance,
 		}
 		return res, nil
+
 	default:
 		logger.Error("Unknown machine type(%s) for MySQL switch instance constructor", metadata.MachineType)
 		return nil, gerrors.New(gerrors.InvalidParameter, "Invalid machine type")
@@ -272,7 +258,7 @@ func (sw *MySQLBaseSwitchInstance) GetBinlogDumperInfo() string {
 // If no standby slave is found, it uses the first slave in the list.
 func (sw *MySQLBaseSwitchInstance) SetStandbySlave(slaves []dbm.DbmMetadataSlaveInfo) {
 	if len(slaves) == 0 {
-		logger.Debug("No standby slave found for master(%s:%d)", sw.Ip, sw.Port)
+		logger.Debug("No standby slave found for master(%s:%d)", sw.IP, sw.Port)
 		sw.StandBySlave = nil
 		return
 	}
@@ -286,7 +272,7 @@ func (sw *MySQLBaseSwitchInstance) SetStandbySlave(slaves []dbm.DbmMetadataSlave
 	}
 	sw.StandBySlave = &dbm.DbmMetadataSlaveInfo{}
 	*(sw.StandBySlave) = slaves[findIndex]
-	logger.Debug("Success to set standby slave for master(%s:%d), slave: %#v", sw.Ip, sw.Port, sw.StandBySlave)
+	logger.Debug("Success to set standby slave for master(%s:%d), slave: %#v", sw.IP, sw.Port, sw.StandBySlave)
 }
 
 // parseMasterLogFileIndex safely parses the numeric index from MasterLogFile format like "binlog.000002"
@@ -387,9 +373,9 @@ func (sw *MySQLBaseSwitchInstance) CheckSqlReplicationDelay(slaveDB *hamysql.DB,
 	logger.Info("Relay_Master_Log_File_Index:%d, Exec_Master_Log_Pos:%d",
 		slaveStatus.RelayMasterLogFileIndex, slaveStatus.ReadMasterLogPos)
 
-	if slaveStatus.MasterHost != sw.Ip || slaveStatus.MasterPort != sw.Port {
+	if slaveStatus.MasterHost != sw.IP || slaveStatus.MasterPort != sw.Port {
 		errMsg := fmt.Sprintf("the slave's master info(%s:%d) and the broken-down instance(%s:%d) are not equal",
-			slaveStatus.MasterHost, slaveStatus.MasterPort, sw.Ip, sw.Port)
+			slaveStatus.MasterHost, slaveStatus.MasterPort, sw.IP, sw.Port)
 		return gerrors.New(gerrors.NodeAbnormal, errMsg)
 	}
 
@@ -619,7 +605,7 @@ func (sw *MySQLBaseSwitchInstance) CheckSlaveStatus() error {
 		return nil
 	}
 
-	if sw.Status == dbm.AVAILABLE { // Is this necessary? Actually the delay check is not skipped
+	if sw.Status == dbm.Available { // Is this necessary? Actually the delay check is not skipped
 		checksumCnt, checksumFailCnt, slaveDelay, timeDelay = 1, 0, 0, 0
 		sw.ReportLogf(SwitchInfo, "instance(%s:%d) is available, skip the check of delay and checksum", ip, port)
 	}
@@ -844,7 +830,7 @@ func (sw *MySQLStorageSwitchInstance) GetInstanceInfo() string {
 	}
 	infoStr := fmt.Sprintf("{bk_cloud_id:%d, ip:%s, port:%d, bk_idc_city_id:%d, bk_biz_id:%d, status:%s, "+
 		"cluster:%s, cluster_id:%d, cluster_type:%s, machine_type:%s, role:%s, standby_slave:%s}",
-		sw.BkCloudID, sw.Ip, sw.Port, sw.BkIdcCityID, sw.BkBizID, sw.Status, sw.Cluster,
+		sw.BkCloudID, sw.IP, sw.Port, sw.BkIdcCityID, sw.BkBizID, sw.Status, sw.Cluster,
 		sw.ClusterID, sw.ClusterType, sw.MachineType, sw.InstanceRole, standBySlave)
 	return infoStr
 }
@@ -853,13 +839,13 @@ func (sw *MySQLStorageSwitchInstance) GetInstanceInfo() string {
 func (sw *MySQLStorageSwitchInstance) CheckMySQLStorageMaster() (bool, error) {
 	logger.Info("Do check before switch, info{%s}", sw.GetInstanceInfo())
 	if sw.StandBySlave == nil {
-		err := gerrors.Newf(gerrors.Failure, "The standby slave of master(%s:%d) is nil", sw.Ip, sw.Port)
+		err := gerrors.Newf(gerrors.Failure, "The standby slave of master(%s:%d) is nil", sw.IP, sw.Port)
 		sw.ReportLog(SwitchFail, err.Error())
 		return false, err
 	}
-	if sw.StandBySlave.Status == dbm.UNAVAILABLE {
+	if sw.StandBySlave.Status == dbm.Unavailable {
 		err := gerrors.Newf(gerrors.Failure, "The standby slave(%s:%d) of master(%s:%d) is unavailable",
-			sw.StandBySlave.Ip, sw.StandBySlave.Port, sw.Ip, sw.Port)
+			sw.StandBySlave.Ip, sw.StandBySlave.Port, sw.IP, sw.Port)
 		sw.ReportLog(SwitchFail, err.Error())
 		return false, err
 	}
@@ -871,7 +857,7 @@ func (sw *MySQLStorageSwitchInstance) CheckMySQLStorageMaster() (bool, error) {
 
 	if len(sw.ProxyInstanceSet) == 0 {
 		err := gerrors.Newf(gerrors.Failure,
-			"No proxy instances were found for storage node(%s:%d)", sw.Ip, sw.Port)
+			"No proxy instances were found for storage node(%s:%d)", sw.IP, sw.Port)
 		sw.ReportLog(SwitchFail, err.Error())
 		return false, err
 	}
@@ -884,10 +870,10 @@ func (sw *MySQLStorageSwitchInstance) CheckBeforeSwitch() (checkPass bool, err e
 	switch sw.InstanceRole {
 	case dbm.MySQLStorageSlave:
 		checkPass = false
-		sw.ReportLogf(SwitchInfo, "The instance(%s:%d) is a slave node, no need to check", sw.Ip, sw.Port)
+		sw.ReportLogf(SwitchInfo, "The instance(%s:%d) is a slave node, no need to check", sw.IP, sw.Port)
 	case dbm.MySQLStorageRepeater:
 		checkPass = false
-		err = gerrors.Newf(gerrors.Failure, "The instance(%s:%d) is a repeater, dbha don't support", sw.Ip, sw.Port)
+		err = gerrors.Newf(gerrors.Failure, "The instance(%s:%d) is a repeater, dbha don't support", sw.IP, sw.Port)
 		sw.ReportLog(SwitchFail, err.Error())
 	case dbm.MySQLStorageMaster:
 		checkPass, err = sw.CheckMySQLStorageMaster()
@@ -1017,27 +1003,28 @@ func (sw *MySQLStorageSwitchInstance) DoSwitch() error {
 
 // UpdateMetaInfo updates metadata after switching
 func (sw *MySQLStorageSwitchInstance) UpdateMetaInfo() error {
-	err := sw.dbmClient.SwapMySQLRole(sw.Ip, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port)
+	err := sw.dbmClient.SwapMySQLRole(sw.IP, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port)
 	if err != nil {
 		errMsg := fmt.Sprintf("failed to swap db-mysql role [master:%s:%d, slave:%s:%d]. errmsg:%s",
-			sw.Ip, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port, err.Error())
+			sw.IP, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port, err.Error())
 		sw.ReportLog(SwitchFail, errMsg)
 		return err
 	}
+
 	sw.ReportLog(SwitchInfo, fmt.Sprintf("successfully swap db-mysql role [master:%s:%d, slave:%s:%d]",
-		sw.Ip, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port))
+		sw.IP, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port))
 	return nil
 }
 
 // DoFinal performs final operations after switch completion
 func (sw *MySQLStorageSwitchInstance) DoFinal() error {
 	sw.ReportLog(SwitchInfo, fmt.Sprintf("Do final things after switch for node(%s:%d)",
-		sw.Ip, sw.Port))
+		sw.IP, sw.Port))
 
-	logger.Debug("tbinlogdumpers info of node(%s:%d): %s", sw.Ip, sw.Port, sw.GetBinlogDumperInfo())
+	logger.Debug("tbinlogdumpers info of node(%s:%d): %s", sw.IP, sw.Port, sw.GetBinlogDumperInfo())
 
 	if (sw.InstanceRole != dbm.MySQLStorageSlave) || len(sw.BinlogDumperSet) == 0 {
-		sw.ReportLogf(SwitchInfo, "no need to switch tbinlogdumper for node(%s:%d)", sw.Ip, sw.Port)
+		sw.ReportLogf(SwitchInfo, "no need to switch tbinlogdumper for node(%s:%d)", sw.IP, sw.Port)
 		return nil
 	}
 
@@ -1061,12 +1048,12 @@ func (sw *MySQLStorageSwitchInstance) DoFinal() error {
 	err := sw.dbmClient.SwitchBinlogDumper(sw.GetApp(), switchInfos)
 	if err != nil {
 		errMsg := fmt.Sprintf("failed to switch all tbinlogdumpers for the node(%s:%d), errmsg: %s",
-			sw.Ip, sw.Port, err.Error())
+			sw.IP, sw.Port, err.Error())
 		sw.ReportLog(SwitchFail, errMsg)
 		return gerrors.New(gerrors.Failure, errMsg)
 	}
 	sw.ReportLogf(SwitchInfo, "switch all tbinlogdumpers successfully for the node(%s:%d)",
-		sw.Ip, sw.Port)
+		sw.IP, sw.Port)
 
 	return nil
 }
@@ -1079,6 +1066,6 @@ type MySQLProxySwitchInstance struct {
 // DoSwitch deletes proxy instance from bound entries
 func (sw *MySQLProxySwitchInstance) DoSwitch() error {
 	sw.ReportLogf(SwitchInfo, "try to delete the proxy instance(%s:%d) from all bound entries",
-		sw.Ip, sw.Port)
+		sw.IP, sw.Port)
 	return sw.DeleteNameService(sw.BindEntry)
 }

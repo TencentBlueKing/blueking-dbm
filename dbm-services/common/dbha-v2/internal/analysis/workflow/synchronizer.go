@@ -86,7 +86,7 @@ func (s *Synchronizer) saveRespond(resp *dbm.Response) error {
 			ClusterID:       rsp.ClusterID,
 			ClusterType:     rsp.ClusterType,
 			MachineType:     rsp.MachineType,
-			Status:          rsp.Status,
+			Status:          string(rsp.Status),
 			InstanceRole:    string(rsp.InstanceRole),
 		}
 
@@ -98,12 +98,10 @@ func (s *Synchronizer) saveRespond(resp *dbm.Response) error {
 			}
 		}
 
-		if rsp.BindEntry != nil {
-			if data, err := json.Marshal(rsp.BindEntry); err != nil {
-				logger.Warn("failed to marshal the bind entry, errmsg: %s", err)
-			} else {
-				meta.BindEntry = string(data)
-			}
+		if data, err := json.Marshal(rsp.BindEntry); err != nil {
+			logger.Warn("failed to marshal the bind entry, errmsg: %s", err)
+		} else {
+			meta.BindEntry = string(data)
 		}
 
 		if rsp.ProxyInstanceSet != nil {
@@ -114,8 +112,8 @@ func (s *Synchronizer) saveRespond(resp *dbm.Response) error {
 			}
 		}
 
-		if rsp.TBinlogDumpers != nil {
-			if data, err := json.Marshal(rsp.TBinlogDumpers); err != nil {
+		if rsp.BinlogDumpers != nil {
+			if data, err := json.Marshal(rsp.BinlogDumpers); err != nil {
 				logger.Warn("failed to marshal the binlog dumpers, errmsg: %s", err)
 			} else {
 				meta.BinlogDumperSet = string(data)
@@ -136,7 +134,7 @@ func (s *Synchronizer) syncMetadataFromDbm(ctx context.Context) error {
 	req := dbm.DefaultRequest
 	req.HashCnt = maxCountPerPage
 	req.DbCloudToken = config.Cfg.Workflow.DbmApiMetadata.Token
-	req.Statuses = []string{string(dbm.RUNNING), string(dbm.AVAILABLE)}
+	req.Statuses = []string{string(dbm.Running), string(dbm.Available)}
 
 	for idx := range maxCountPerPage {
 		req.HashValue = idx
