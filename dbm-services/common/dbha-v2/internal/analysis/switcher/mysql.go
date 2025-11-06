@@ -61,7 +61,7 @@ func (m *Mysql) Switch(ctx context.Context, req *Request) *Response {
 	}
 
 	for _, inst := range req.MySqlInstData {
-		instKey := GenerateMetadataKey(inst.BkCloudID, inst.Ip, inst.Port)
+		instKey := GenerateMetadataKey(inst.BkCloudID, inst.IP, inst.Port)
 		swInst, newErr := NewMySQLSwitchInstance(inst)
 
 		if newErr != nil {

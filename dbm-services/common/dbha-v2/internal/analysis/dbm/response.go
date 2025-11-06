@@ -30,6 +30,62 @@ import (
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 )
 
+type DbInstMetadata struct {
+	BkIdcCityID        int                            `json:"bk_idc_city_id"`
+	BkIdcCityName      string                         `json:"bk_idc_city_name"`
+	LogicalCityID      int                            `json:"logical_city_id"`
+	LogicalCityName    string                         `json:"logical_city_name"`
+	BkOSName           string                         `json:"bk_os_name"`
+	BkIdcArea          string                         `json:"bk_idc_area"`
+	BkIdcAreaID        int                            `json:"bk_idc_area_id"`
+	BkSubZone          string                         `json:"bk_sub_zone"`
+	BkSubZoneID        int                            `json:"bk_sub_zone_id"`
+	BkRack             string                         `json:"bk_rack"`
+	BkRackID           int                            `json:"bk_rack_id"`
+	BkSvrDeviceClsName string                         `json:"bk_svr_device_cls_name"`
+	BkIdcName          string                         `json:"bk_idc_name"`
+	BkIdcID            int                            `json:"bk_idc_id"`
+	BkCloudID          int                            `json:"bk_cloud_id"`
+	NetDeviceID        string                         `json:"net_device_id"`
+	AdminPort          int                            `json:"admin_port"`
+	Port               int                            `json:"port"`
+	IP                 string                         `json:"ip"`
+	DbModuleID         int                            `json:"db_module_id"`
+	BkBizID            int                            `json:"bk_biz_id"`
+	Cluster            string                         `json:"cluster"`
+	AccessLayer        string                         `json:"access_layer"`
+	MachineType        hamodel.DbmMetadataMachineType `json:"machine_type"`
+	InstanceRole       DbmMetadataInstanceRole        `json:"instance_role"`
+	InstanceInnerRole  string                         `json:"instance_inner_role"`
+	ClusterID          int                            `json:"cluster_id"`
+	ClusterType        hamodel.DbmMetadataClusterType `json:"cluster_type"`
+	Status             DbmMetadataStatus              `json:"status"`
+
+	// The storage instance will be set when the cluster type is tendbha and the access layer is storage.
+	Receiver []DbmMetadataSlaveInfo `json:"receiver"`
+
+	Ejector []struct {
+		IP        string `json:"ip"`
+		Port      int    `json:"port"`
+		Status    string `json:"status"`
+		IsStandBy bool   `json:"is_stand_by"`
+	} `json:"ejector"`
+
+	// The storage instance will be set when the access layer is proxy.
+	StorageInstance []struct {
+		IP        string `json:"ip"`
+		Port      int    `json:"port"`
+		IsStandBy bool   `json:"is_stand_by"`
+	} `json:"storageinstance"`
+
+	BindEntry DbmMetadataBindEntry `json:"bind_entry"`
+
+	// The receiver  will be set when the cluster type is tendbha
+	// and the access layer is storage.
+	ProxyInstanceSet []DbmMetadataProxyInstance `json:"proxyinstance_set"`
+	BinlogDumpers    []DbmMetadataBinlogDumper  `json:"tbinlogdumpers"`
+}
+
 // ResponseCommonInfo defines the other info except "data" of response.
 type ResponseCommonInfo struct {
 	Result    bool   `json:"result"`
@@ -42,62 +98,7 @@ type ResponseCommonInfo struct {
 type Response struct {
 	ResponseCommonInfo
 
-	Data []struct {
-		BkIdcCityID        int                            `json:"bk_idc_city_id"`
-		BkIdcCityName      string                         `json:"bk_idc_city_name"`
-		LogicalCityID      int                            `json:"logical_city_id"`
-		LogicalCityName    string                         `json:"logical_city_name"`
-		BkOSName           string                         `json:"bk_os_name"`
-		BkIdcArea          string                         `json:"bk_idc_area"`
-		BkIdcAreaID        int                            `json:"bk_idc_area_id"`
-		BkSubZone          string                         `json:"bk_sub_zone"`
-		BkSubZoneID        int                            `json:"bk_sub_zone_id"`
-		BkRack             string                         `json:"bk_rack"`
-		BkRackID           int                            `json:"bk_rack_id"`
-		BkSvrDeviceClsName string                         `json:"bk_svr_device_cls_name"`
-		BkIdcName          string                         `json:"bk_idc_name"`
-		BkIdcID            int                            `json:"bk_idc_id"`
-		BkCloudID          int                            `json:"bk_cloud_id"`
-		NetDeviceID        string                         `json:"net_device_id"`
-		AdminPort          int                            `json:"admin_port"`
-		Port               int                            `json:"port"`
-		IP                 string                         `json:"ip"`
-		DbModuleID         int                            `json:"db_module_id"`
-		BkBizID            int                            `json:"bk_biz_id"`
-		Cluster            string                         `json:"cluster"`
-		AccessLayer        string                         `json:"access_layer"`
-		MachineType        hamodel.DbmMetadataMachineType `json:"machine_type"`
-		InstanceRole       DbmMetadataInstanceRole        `json:"instance_role"`
-		InstanceInnerRole  string                         `json:"instance_inner_role"`
-		ClusterID          int                            `json:"cluster_id"`
-		ClusterType        hamodel.DbmMetadataClusterType `json:"cluster_type"`
-		Status             string                         `json:"status"`
-
-		// The storage instance will be set when the cluster type is tendbha and the access layer is storage.
-		Receiver []DbmMetadataSlaveInfo `json:"receiver"`
-
-		Ejector []struct {
-			IP        string `json:"ip"`
-			Port      int    `json:"port"`
-			Status    string `json:"status"`
-			IsStandBy bool   `json:"is_stand_by"`
-		} `json:"ejector"`
-
-		// The storage instance will be set when the access layer is proxy.
-		StorageInstance []struct {
-			IP        string `json:"ip"`
-			Port      int    `json:"port"`
-			IsStandBy bool   `json:"is_stand_by"`
-		} `json:"storageinstance"`
-
-		BindEntry *DbmMetadataBindEntry `json:"bind_entry"`
-
-		// The receiver  will be set when the cluster type is tendbha
-		// and the access layer is storage.
-		ProxyInstanceSet []DbmMetadataProxyInstance `json:"proxyinstance_set"`
-
-		TBinlogDumpers []DbmMetadataBinlogDumper `json:"tbinlogdumpers"`
-	} `json:"data"`
+	Data []*DbInstMetadata `json:"data"`
 }
 
 // DomainInfo contains detailed information about a domain configuration

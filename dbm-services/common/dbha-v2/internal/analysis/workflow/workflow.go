@@ -313,51 +313,12 @@ func (w *Workflow) createSwitcherRequestWithIPs(bkCloudId int, ips []string) *sw
 
 	req := &switcher.Request{}
 	for _, meta := range metadatas {
-		if meta.Status == string(dbm.UNAVAILABLE) {
+		if meta.Status == dbm.Unavailable {
 			logger.Info("the database instance is unavailable, skipping, inst: %s", key(meta.BkCloudID, meta.IP, meta.Port))
 			continue
 		}
 
-		dbInstMeta := &switcher.MySQLInstanceMetadata{
-			Ip:           meta.IP,
-			Port:         meta.Port,
-			AdminPort:    meta.AdminPort,
-			Status:       dbm.DbmMetadataStatus(meta.Status),
-			BkCloudID:    meta.BkCloudID,
-			BkIdcCityID:  meta.BkIdcCityID,
-			BkBizID:      meta.BkBizID,
-			Cluster:      meta.Cluster,
-			ClusterID:    meta.ClusterID,
-			ClusterType:  meta.ClusterType,
-			MachineType:  meta.MachineType,
-			InstanceRole: dbm.DbmMetadataInstanceRole(meta.InstanceRole),
-		}
-
-		if meta.BindEntry != "" {
-			if err := json.Unmarshal([]byte(meta.BindEntry), &dbInstMeta.BindEntry); err != nil {
-				logger.Warn("failed to unmarshal the bind entry: %s, errmsg: %s", meta.BindEntry, err)
-			}
-		}
-
-		if meta.Receiver != "" {
-			if err := json.Unmarshal([]byte(meta.Receiver), &dbInstMeta.Receiver); err != nil {
-				logger.Warn("failed to unmarshal the receiver: %s, errmsg: %s", meta.Receiver, err)
-			}
-		}
-
-		if meta.ProxyInstanceSet != "" {
-			if err := json.Unmarshal([]byte(meta.ProxyInstanceSet), &dbInstMeta.ProxyInstanceSet); err != nil {
-				logger.Warn("failed to unmarshal the proxy insts: %s, errmsg: %s", meta.ProxyInstanceSet, err)
-			}
-		}
-
-		if meta.BinlogDumperSet != "" {
-			if err := json.Unmarshal([]byte(meta.BinlogDumperSet), &dbInstMeta.BinlogDumperSet); err != nil {
-				logger.Warn("failed to unmarshal the binlog dumpers: %s, errmsg: %s", meta.BinlogDumperSet, err)
-			}
-		}
-
-		req.AddDbInstMetadata(dbInstMeta)
+		req.AddDbInstMetadata((*switcher.MySQLInstanceMetadata)(meta))
 	}
 
 	return req
@@ -392,7 +353,7 @@ func (w *Workflow) triggerSwitching(dbType haprobe.DbType, req *switcher.Request
 
 	// post the success alarm
 	for _, inst := range req.MySqlInstData {
-		instKey := switcher.GenerateMetadataKey(inst.BkCloudID, inst.Ip, inst.Port)
+		instKey := switcher.GenerateMetadataKey(inst.BkCloudID, inst.IP, inst.Port)
 
 		if _, exists := rsp.MySqlFailureInsts[instKey]; exists {
 			continue
@@ -406,7 +367,7 @@ func (w *Workflow) triggerSwitching(dbType haprobe.DbType, req *switcher.Request
 
 		monitorEvent.Content.Content = "switching success"
 		monitorEvent.Dimension.BkCloudId = inst.BkCloudID
-		monitorEvent.Dimension.IP = inst.Ip
+		monitorEvent.Dimension.IP = inst.IP
 		monitorEvent.Dimension.Port = inst.Port
 		monitorEvent.Dimension.DbTypeName = dbType
 		monitorEvent.Dimension.DbEventName = haprobe.DbEventNameMysqlSwitchSuccessV1
@@ -426,7 +387,7 @@ func (w *Workflow) triggerSwitching(dbType haprobe.DbType, req *switcher.Request
 
 		monitorEvent.Content.Content = rsp.Err.Error()
 		monitorEvent.Dimension.BkCloudId = inst.BkCloudID
-		monitorEvent.Dimension.IP = inst.Ip
+		monitorEvent.Dimension.IP = inst.IP
 		monitorEvent.Dimension.Port = inst.Port
 		monitorEvent.Dimension.DbTypeName = dbType
 		monitorEvent.Dimension.DbEventName = haprobe.DbEventNameMysqlSwitchFailureV1
