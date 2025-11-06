@@ -3,7 +3,6 @@ package atommongodb
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -131,7 +130,7 @@ func (b *Balancer) execScript() error {
 	b.runtime.Logger.Info("get balancer status successfully")
 	if flag == b.ConfParams.Open {
 		b.runtime.Logger.Info("balancer status has been %t", b.ConfParams.Open)
-		os.Exit(0)
+		return nil
 	}
 
 	// 执行脚本
