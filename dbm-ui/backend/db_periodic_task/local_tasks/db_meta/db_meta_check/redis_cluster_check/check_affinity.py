@@ -12,9 +12,8 @@ specific language governing permissions and limitations under the License.
 import logging
 from collections import defaultdict
 from math import floor
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
-from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
@@ -112,6 +111,7 @@ class RedisAffinityChecker:
             AffinityEnum.SAME_SUBZONE_CROSS_SWTICH.value,
             AffinityEnum.CROS_SUBZONE.value,
             AffinityEnum.CROSS_RACK.value,
+            AffinityEnum.NONE.value,
         }
 
     def check_all_clusters(self) -> None:
@@ -131,13 +131,10 @@ class RedisAffinityChecker:
         """
         logger.info(f"affinity_check: start checking cluster {cluster.immute_domain}")
 
-        if self._should_ignore_cluster(cluster):
-            return
-
         dba_list = DBAdministrator.get_biz_db_type_admins(bk_biz_id=cluster.bk_biz_id, db_type=DBType.Redis.value)
         creator = dba_list[0] if dba_list else "admin"
-
         affinity_level = cluster.disaster_tolerance_level
+
         if affinity_level not in self._supported_levels:
             supported_levels_str = ", ".join(self._supported_levels)
             msg = _(
@@ -153,6 +150,9 @@ class RedisAffinityChecker:
                 state=ReportStateType.WARNING,
                 creator=creator,
             )
+            return
+
+        if self._should_ignore_cluster(cluster):
             return
 
         check_results = []
@@ -174,9 +174,9 @@ class RedisAffinityChecker:
         # For backends, we check each master-slave pair
         master_instances = cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value)
         backend_results = self._validate_backends_affinity(master_instances, affinity_level)
-        for machine_ip, result in backend_results.items():
+        for identifier, result in backend_results.items():
             result["result_type"] = RedisAffinityChecker.BACKEND_PAIRS_CHECK
-            result["identifier"] = machine_ip
+            result["identifier"] = identifier
             check_results.append(result)
 
         # Create reports based on results
@@ -191,6 +191,10 @@ class RedisAffinityChecker:
         """
         Check if cluster should be ignored (being destroyed, disabled, or has active operations)
         """
+        if cluster.disaster_tolerance_level == AffinityEnum.NONE.value:
+            logger.info(f"affinity_check: will ignore cluster {cluster.immute_domain}, affinity level is NONE")
+            return True
+
         if cluster.phase != ClusterPhase.ONLINE.value:
             logger.info(
                 f"affinity_check: will ignore cluster {cluster.immute_domain}, "
@@ -346,64 +350,100 @@ class RedisAffinityChecker:
         Return:
             Dict {<master_ip>: {msg: str, state: ReportStateType, machine_type: MachineType}}
         """
-        backend_results = {}
+        machine_instances = defaultdict(list)
         for master_obj in master_instances:
-            machine_ip = master_obj.machine.ip
-            if machine_ip in backend_results:
-                continue
+            master_ip = master_obj.machine.ip
+            machine_instances[master_ip].append(master_obj)
 
-            backend_result = cls._check_master_slave_affinity(master_obj=master_obj, affinity_level=affinity_level)
-            backend_results[machine_ip] = backend_result
+        backend_results = {}
+        for master_ip, instances in machine_instances.items():
+            backend_result, slave_ips = cls._check_master_slave_affinity(
+                master_instances=instances, affinity_level=affinity_level
+            )
+            identifier = master_ip if slave_ips is None else ", ".join(slave_ips)
+            backend_results[identifier] = backend_result
 
         return backend_results
 
     @classmethod
-    def _check_master_slave_affinity(cls, master_obj: StorageInstance, affinity_level: str) -> Dict[str, any]:
+    def _check_master_slave_affinity(
+        cls, master_instances: List[StorageInstance], affinity_level: str
+    ) -> Tuple[Dict[str, any], List[str]]:
         """
-        Check if a master-slave pair fulfills the affinity requirement
+        Check affinity for all instances on a master machine
+        Collects slaves from all instances on the machine and checks affinity once per machine
 
         Returns:
             Dict: {msg: str, state: ReportStateType, machine_type: MachineType}
+            List: list of unique slave machine IPs
         """
+        first_master = master_instances[0]
+        master_ip = first_master.machine.ip
+
         result = {
             "msg": "",
             "state": ReportStateType.NORMAL.value,
-            "machine_type": master_obj.machine_type,
+            "machine_type": first_master.machine_type,
         }
 
-        try:
-            slave_obj = master_obj.as_ejector.get().receiver
-        except ObjectDoesNotExist:
-            warning_msg = _("Master {} has no slave configured").format(master_obj.ip_port)
+        all_slave_machines = {}  # {slave_machine_ip: slave_obj}
+        instances_without_slaves = []
+
+        for master_obj in master_instances:
+            try:
+                slave_tuples = master_obj.as_ejector.all()
+                if not slave_tuples.exists():
+                    instances_without_slaves.append(master_obj.ip_port)
+                    continue
+                for slave_tuple in slave_tuples:
+                    slave_obj = slave_tuple.receiver
+                    slave_machine_ip = slave_obj.machine.ip
+                    if slave_machine_ip not in all_slave_machines:
+                        all_slave_machines[slave_machine_ip] = slave_obj
+            except Exception as e:
+                warning_msg = _("Error getting slaves for instance {}: {}").format(master_obj.ip_port, str(e))
+                logger.warning(f"affinity_check: {warning_msg}", exc_info=True)
+                instances_without_slaves.append(master_obj.ip_port)
+
+        if not all_slave_machines:
+            warning_msg = _("Master machine {} has no slave configured").format(master_ip)
+            if instances_without_slaves:
+                warning_msg += _(" (instances: {})").format(", ".join(instances_without_slaves))
             logger.warning(f"affinity_check: {warning_msg}")
             result["msg"] = warning_msg
             result["state"] = ReportStateType.WARNING.value
-            return result
-        except Exception as e:
-            warning_msg = _("Unknown error occurred when getting slave: {}").format(str(e))
-            logger.warning(f"affinity_check: {warning_msg}", exc_info=True)
-            result["msg"] = warning_msg
-            result["state"] = ReportStateType.WARNING.value
-            return result
+            return result, None
 
-        msg = None
-        match affinity_level:
-            case AffinityEnum.SAME_SUBZONE_CROSS_SWTICH.value:
-                msg = cls._check_backend_same_subzone(master_obj, slave_obj)
-            case AffinityEnum.CROS_SUBZONE.value:
-                msg = cls._check_backend_cross_subzone(master_obj, slave_obj)
-            case AffinityEnum.CROSS_RACK.value:
-                msg = cls._check_backend_cross_rack(master_obj, slave_obj)
+        violating_slaves = []
+        compliant_slaves = []
+        violation_msgs = []
 
-        if msg:  # Has violation
-            result["msg"] = msg
+        for slave_machine_ip, slave_obj in all_slave_machines.items():
+            msg = None
+            match affinity_level:
+                case AffinityEnum.SAME_SUBZONE_CROSS_SWTICH.value:
+                    msg = cls._check_backend_same_subzone(first_master, slave_obj)
+                case AffinityEnum.CROS_SUBZONE.value:
+                    msg = cls._check_backend_cross_subzone(first_master, slave_obj)
+                case AffinityEnum.CROSS_RACK.value:
+                    msg = cls._check_backend_cross_rack(first_master, slave_obj)
+
+            if msg:  # Has violation
+                violation_msgs.append(msg)
+                violating_slaves.append(slave_machine_ip)
+            else:
+                compliant_slaves.append(slave_machine_ip)
+
+        if violation_msgs:
+            result["msg"] = "; ".join(violation_msgs)
             result["state"] = ReportStateType.ABNORMAL.value
         else:
-            result["msg"] = _("Master: {} and slave: {} comply with affinity level '{}'").format(
-                master_obj.machine.ip, slave_obj.machine.ip, affinity_level
+            slaves_str = ", ".join(compliant_slaves)
+            result["msg"] = _("Master machine: {} and slave machines: {} comply with affinity level '{}'").format(
+                master_ip, slaves_str, affinity_level
             )
 
-        return result
+        return result, violating_slaves
 
     @classmethod
     def _check_backend_same_subzone(
