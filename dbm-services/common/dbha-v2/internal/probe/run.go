@@ -47,13 +47,26 @@ func setupGracefulShutdown(p *Probe) {
 
 	go func() {
 		<-sigC
-		err := os.Remove(config.Cfg.PidFile)
-		if err != nil {
-			logger.Error("%v", err)
+
+		defer func() {
+			logger.Info("shutdown probe")
+			p.Close()
+			os.Exit(0)
+		}()
+
+		if config.Cfg.PidFile == "" {
+			logger.Error("pid file is not set, file: %s", config.Cfg.PidFile)
+			return
 		}
-		logger.Info("shutdown probe")
-		p.Close()
-		os.Exit(0)
+
+		if _, err := os.Stat(config.Cfg.PidFile); err != nil {
+			logger.Error("failed to remove the file: %s, errmsg: %s", config.Cfg.PidFile, err)
+			return
+		}
+
+		if err := os.Remove(config.Cfg.PidFile); err != nil {
+			logger.Error("failed to remove the file: %s, errmsg: %s", config.Cfg.PidFile, err)
+		}
 	}()
 }
 

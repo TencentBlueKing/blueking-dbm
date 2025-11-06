@@ -30,8 +30,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"dbm-services/common/dbha-v2/internal/analysis/config"
+	"dbm-services/common/dbha-v2/internal/admin/config"
 	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/process"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -41,11 +42,30 @@ func setupGracefulShutdown(svr *Service) {
 	sigC := make(chan os.Signal, 1)
 	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM)
 
+	process.SavePid(config.Cfg.PidFile)
+
 	go func() {
 		<-sigC
-		logger.Info("shutdown admin server")
-		svr.Close()
-		os.Exit(0)
+
+		defer func() {
+			logger.Info("shutdown admin server")
+			svr.Close()
+			os.Exit(0)
+		}()
+
+		if config.Cfg.PidFile == "" {
+			logger.Error("pid file is not set, file: %s", config.Cfg.PidFile)
+			return
+		}
+
+		if _, err := os.Stat(config.Cfg.PidFile); err != nil {
+			logger.Error("failed to remove the file: %s, errmsg: %s", config.Cfg.PidFile, err)
+			return
+		}
+
+		if err := os.Remove(config.Cfg.PidFile); err != nil {
+			logger.Error("failed to remove the file: %s, errmsg: %s", config.Cfg.PidFile, err)
+		}
 	}()
 }
 
@@ -70,7 +90,7 @@ func Run(cmd *cobra.Command, args []string) error {
 	logCfg := logger.Config{
 		FileName:   config.Cfg.Log.Path,
 		LogLevel:   logger.Level(config.Cfg.Log.Level),
-		MaxSizeMB:  config.Cfg.Log.FileSizeMB,
+		MaxSizeMB:  config.Cfg.Log.FileSize,
 		MaxBackups: config.Cfg.Log.FileCount,
 	}
 
