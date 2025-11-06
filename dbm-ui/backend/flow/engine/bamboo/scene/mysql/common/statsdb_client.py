@@ -12,11 +12,13 @@ STATSDB_DSN = {
 }
 
 DB_QUERY_TEMPLATE = {
-    "DBSIZE": """SELECT cluster_domain, database_name, MAX(database_size) as bytes
-        FROM mysql_db_table_size
-        WHERE cluster_domain = %s AND database_name IN (%s)
-        AND dteventtimehour > DATE_ADD(NOW(), INTERVAL -1 DAY)
-        GROUP BY cluster_domain, database_name;"""
+    "DBSIZE": """select concat_ws('|',cluster_domain,database_name) as db,
+    round(database_size/1024/1024/1024, 2) as gb, dteventtimehour from
+    (select cluster_domain, database_name, database_size, dteventtimehour,
+    row_number()over(partition by cluster_domain, database_name order by
+    dteventtimehour desc) as desc_rn from mysql_db_table_size
+    where (%s) AND dteventtimehour > DATE_ADD(NOW(), INTERVAL -3 DAY))
+    as t1 where t1.desc_rn = 1;"""
 }
 
 
