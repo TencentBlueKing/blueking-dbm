@@ -359,6 +359,23 @@
       label: 'Doris',
       name: DBTypes.DORIS,
     },
+    {
+      children: [
+        {
+          label: 'Oracle',
+          name: DBTypes.ORACLE,
+        },
+        {
+          label: t('任务执行器'),
+          name: 'actuator',
+        },
+      ],
+      controller: {
+        moduleId: 'oracle',
+      },
+      label: 'Oracle',
+      name: DBTypes.ORACLE,
+    },
   ];
 
   const renderTabs = tabs.filter((item) => {
