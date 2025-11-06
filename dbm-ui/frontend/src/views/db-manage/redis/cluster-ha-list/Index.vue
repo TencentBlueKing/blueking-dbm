@@ -332,8 +332,9 @@
   import ClusterDetail from '@views/db-manage/redis/common/cluster-ha-detail/Index.vue';
   import ClusterPassword from '@views/db-manage/redis/common/cluster-operations/ClusterPassword.vue';
 
-  const dataSource = () =>
+  const dataSource = (params: ServiceParameters<typeof getRedisList>) =>
     getRedisList({
+      ...params,
       cluster_type: ClusterTypes.REDIS_INSTANCE,
     });
   const { t } = useI18n();
