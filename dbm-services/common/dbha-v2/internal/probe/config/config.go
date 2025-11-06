@@ -25,13 +25,13 @@
 package config
 
 import (
-	"dbm-services/common/dbha-v2/pkg/logger"
 	"time"
+
+	"dbm-services/common/dbha-v2/pkg/logger"
 )
 
 var Cfg = Configuration{
 	Name:    "probe",
-	Version: "v2.0.0",
 	PidFile: "./pids/probe.pid",
 	Log: LogConfig{
 		Path:      "./logs/probe.log",
