@@ -15,7 +15,7 @@
   <Teleport to="#dbContentTitleAppend">
     <span v-if="data?.flow_info">
       <span class="ml-8 mr-6">|</span>
-      {{ baseInfo.flow_alias }}
+      {{ baseInfo.nameText }}
     </span>
   </Teleport>
   <Teleport to="#dbContentHeaderAppend">

@@ -74,10 +74,13 @@ export default class TaskFlow {
     return utcDisplayTime(this.created_at) || '--';
   }
 
+  get nameText() {
+    return this.flow_alias || this.ticket_type_display || this.root_id;
+  }
+
   get statusText() {
     return TaskFlow.STATUS_TEXT_MAP[this.status] || '--';
   }
-
   get statusTheme() {
     return TaskFlow.STATUS_THEME_MAP[this.status] || 'danger';
   }
