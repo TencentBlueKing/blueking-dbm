@@ -15,6 +15,7 @@ from django.utils.translation import gettext as _
 
 from backend.components import ItsmApi
 from backend.components.itsm.constants import ItsmTicketStatus
+from backend.core import notify
 from backend.exceptions import ApiResultError
 from backend.ticket.constants import TicketFlowStatus, TicketStatus, TodoStatus, TodoType
 from backend.ticket.flow_manager.base import BaseTicketFlow
@@ -121,6 +122,11 @@ class ItsmFlow(BaseTicketFlow):
             return self.ticket_approval_result["ticket_url"]
 
         return ""
+
+    def run(self):
+        super().run()
+        # 创建ITSM单后，发送通知
+        notify.send_msg.apply_async(args=(self.ticket.id,))
 
     def _run(self) -> str:
         Todo.objects.create(
