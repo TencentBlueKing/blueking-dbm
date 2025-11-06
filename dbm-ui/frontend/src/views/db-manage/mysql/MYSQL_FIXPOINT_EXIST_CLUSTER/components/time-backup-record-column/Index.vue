@@ -64,12 +64,17 @@
     :min-width="370"
     required>
     <EditableBlock
-      v-if="backupRecord?.backup_id"
+      v-if="backupTime"
+      :placeholder="t('未匹配到备份记录，请选择备份记录')"
       style="width: 100%"
       @click="handleShowSelector">
-      <div class="content-block">
+      <div
+        v-if="backupRecord?.backup_id"
+        class="content-block">
         <div class="content-label">{{ t('备份记录 ：') }}</div>
-        <div class="content-value">{{ `${backupRecord.mysql_role} ${utcDisplayTime(backupRecord.backup_time)}` }}</div>
+        <div class="content-value">
+          {{ `${backupRecord.mysql_role} ${utcDisplayTime(backupRecord.backup_time)}` }}
+        </div>
         <div class="content-label">{{ t('备份 ID ：') }}</div>
         <div class="content-value">
           {{ backupRecord.backup_id || '--' }}
@@ -115,6 +120,9 @@
           </RouterLink>
           <span v-else>--</span>
         </div>
+        <DbIcon
+          class="content-icon"
+          type="down-big" />
       </div>
       <DbIcon
         class="content-icon"
@@ -251,7 +259,7 @@
     ).then((res) => {
       res.forEach((data, index) => {
         tableData.value[index].backupRecord = data;
-        tableData.value[index].backupTime = data.backup_time;
+        tableData.value[index].backupTime = data?.backup_time || '';
       });
     });
   };
@@ -315,5 +323,6 @@
     position: absolute;
     top: 50%;
     right: 0;
+    transform: translate(0, -50%);
   }
 </style>
