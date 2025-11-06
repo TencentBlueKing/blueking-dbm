@@ -3,6 +3,9 @@ describe('Mysql 迁移主从 Test', () => {
     // @ts-ignore
     cy.login();
     cy.viewport(1920, 1080);
+    cy.intercept('get', '/apis/cmdb/list_bizs/', {
+      fixture: 'mysql/common/listBizs.json',
+    }).as('listBizs');
     cy.intercept('post', '/apis/tickets/', {
       fixture: 'mysql/common/ticket.json',
     }).as('submitTicket');
@@ -17,6 +20,7 @@ describe('Mysql 迁移主从 Test', () => {
       });
       const url = '/3/db-manage/mysql/toolbox/MYSQL_MIGRATE_CLUSTER';
       cy.visit(url);
+      cy.wait('@listBizs');
       cy.get('.db-icon-batch-host-select').click();
       cy.get('.vxe-body--row').not('is-offline').first().click();
       cy.get('[data-test-id="clusterSelectorPreviewItem"]').should('exist');
@@ -48,6 +52,7 @@ describe('Mysql 迁移主从 Test', () => {
       });
       const url = '/3/db-manage/mysql/toolbox/MYSQL_MIGRATE_CLUSTER';
       cy.visit(url);
+      cy.wait('@listBizs');
       cy.get('[data-test-id="sourceTypeRadioGroup"]').find('[type="radio"]').last().check({ force: true });
       cy.get('.db-icon-batch-host-select').click();
       cy.get('.vxe-body--row').not('is-offline').first().click();
