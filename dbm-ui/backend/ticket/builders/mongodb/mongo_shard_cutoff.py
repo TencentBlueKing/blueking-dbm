@@ -51,6 +51,7 @@ class MongoDBShardCutoffDetailSerializer(BaseMongoDBOperateDetailSerializer):
     ip_source = serializers.ChoiceField(
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL
     )
+    cluster_type = serializers.CharField(help_text=_("集群版本"))
     infos = serializers.ListSerializer(help_text=_("整机替换信息"), child=ACutoffDetailSerializer())
     ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
