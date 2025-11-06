@@ -9,6 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from collections import defaultdict
+
 from django.utils.translation import gettext as _
 from rest_framework import status
 from rest_framework.decorators import action
@@ -27,6 +29,7 @@ from backend.db_services.redis.redis_keystat_report.filters import (
 from backend.db_services.redis.redis_keystat_report.models import RankItem, ReportItem, ReportRecord
 from backend.db_services.redis.redis_keystat_report.serializers import (
     ExportKeyStatDetailSerializer,
+    KeyStatInstanceInfoSerializer,
     KeyStatRecordDetailSerializer,
     KeyStatReportRecordsSerializer,
     RankItemDetailSerializer,
@@ -57,6 +60,50 @@ class KeyStatReportViewSet(viewsets.SystemViewSet):
         )
         keystat_data = KeyStatReportRecordsSerializer(keystat_qs, many=True).data
         return self.paginator.get_paginated_response(data=keystat_data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取redis实例分析相关信息"),
+        tags=[SWAGGER_TAG],
+        query_serializer=KeyStatInstanceInfoSerializer(),
+    )
+    @action(
+        methods=["GET"],
+        detail=False,
+        serializer_class=KeyStatInstanceInfoSerializer,
+        filter_class=None,
+        pagination_class=None,
+    )
+    def keystat_info_by_instance(self, request, bk_biz_id):
+        data = self.params_validate(self.get_serializer_class())
+        instances = data.get("instances", "")
+
+        # todo: 假数据构造 后面蔡总补充
+        metric_result = defaultdict(dict)
+        series = []
+        ff = {
+            "dimensions": {"bk_target_ip": "1.1.1.1", "cluster_domain": "ins.test.kio.db", "instance_port": "30000"},
+            "target": "a{bk_target_ip=1.1.1.1, cluster_domain=ins.test.kio.db, instance_port=30000}",
+            "metric_field": "_result_",
+            "datapoints": [[111, 1111]],
+            "alias": "_result_",
+            "type": "line",
+            "dimensions_translation": {},
+            "instanc" "unit": "",
+        }
+
+        for series_ in instances.split("|"):
+            series.append(ff)
+
+        for index, item in enumerate(series):
+            ip_port = item["dimensions"]["bk_target_ip"] + ":" + str(int(item["dimensions"]["instance_port"]) + index)
+            metric_result[ip_port] = {
+                "instance": ip_port,
+                "cluster_domain": item["dimensions"]["cluster_domain"],
+                "value": item["datapoints"][0][0],
+                "key_num": 1000,
+                "memory_total": 1024 * 1024 * 1024,
+            }
+        return Response(metric_result)
 
 
 class KeyStatReportDetailsViewSet(viewsets.SystemViewSet):
