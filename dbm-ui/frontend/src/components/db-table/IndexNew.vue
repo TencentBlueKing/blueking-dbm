@@ -303,6 +303,7 @@
         })
         .finally(() => {
           isLoading.value = false;
+          tableKey.value = Date.now().toString();
         });
     });
   };
