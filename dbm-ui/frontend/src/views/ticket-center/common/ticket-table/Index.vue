@@ -4,6 +4,7 @@
     :loading="isLoading">
     <div ref="tableWrapper">
       <PrimaryTable
+        :key="tableKey"
         ref="table"
         :bk-ui-settings="tableSettings"
         :data="dataList"
@@ -371,6 +372,7 @@
   const table = ref();
 
   const rootRef = useTemplateRef('tableWrapper');
+  const tableKey = ref(Date.now().toString());
   const tableMaxHeight = ref<number | 'auto'>('auto');
   const isWholeChecked = ref(false);
   const isCurrentPageAllSelected = ref(false);
@@ -395,6 +397,7 @@
 
   const fetchData = () => {
     fetchTicketList(transfromDataToQuery(quickSearchValue.value));
+    tableKey.value = Date.now().toString();
   };
 
   const { run: fetchInnerFlowInfo } = useRequest(getInnerFlowInfo, {
