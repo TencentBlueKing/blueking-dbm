@@ -15,7 +15,6 @@
   <EditableColumn
     ref="column"
     :disabled-method="disabledMethod"
-    field="slaves"
     :label="t('校验从库')"
     :loading="loading"
     :min-width="180"
@@ -68,22 +67,23 @@
     field="master.instance_address"
     :label="t('校验主库')"
     :min-width="180"
-    required>
+    readonly
+    required
+    :rowspan="rowspan">
     <EditableBlock
       v-model="master.instance_address"
       :placeholder="t('自动生成')" />
   </EditableColumn>
 </template>
 <script lang="ts" setup>
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
+  import { getRemoteMachineInstancePair } from '@services/source/mysqlCluster';
   import { getTendbhaInstanceList } from '@services/source/tendbha';
 
   type SlaveItem = ServiceReturnType<typeof getTendbhaInstanceList>['results'][0];
-  type MasterItem = SlaveItem['related_pair_instance'];
 
   interface InstanceInfo {
     bk_biz_id: number;
@@ -106,13 +106,12 @@
 
   interface Props {
     cluster: TendbhaModel;
+    createTableRow: (data: Partial<RowData>) => RowData;
+    handleRowMerge: () => void;
+    rowspan: number;
   }
 
-  type Emits = (e: 'change') => void;
-
   const props = defineProps<Props>();
-
-  const emits = defineEmits<Emits>();
 
   const slaves = defineModel<InstanceInfo[]>('slaves', {
     required: true,
@@ -131,18 +130,24 @@
 
   const allSlaveInstances = ref<SlaveItem[]>([]);
   const selected = ref<string[]>([]);
+  const selectedInstances = ref<SlaveItem[]>([]);
+  const masterSlavePair = ref<ServiceReturnType<typeof getRemoteMachineInstancePair>['instances']>({});
+
+  const { run: fetchInstancePair } = useRequest(getRemoteMachineInstancePair, {
+    manual: true,
+    onSuccess(data) {
+      masterSlavePair.value = data.instances;
+    },
+  });
 
   const { loading, run: fetchData } = useRequest(getTendbhaInstanceList, {
     manual: true,
     onSuccess(data) {
       allSlaveInstances.value = data.results;
-      if (slaves.value.length && data.results.length > 0) {
-        selected.value = slaves.value.map((item) => item.instance_address);
-        return;
-      }
-      if (data.results.length === 1) {
-        handleChange(data.results.map((item) => item.instance_address));
-      }
+      fetchInstancePair({
+        bk_biz_id: props.cluster.bk_biz_id,
+        instances: data.results.map((item) => item.instance_address),
+      });
     },
   });
 
@@ -153,40 +158,9 @@
     return '';
   };
 
-  /**
-   * 以master分组映射slaves
-   */
-  const masterGroup = ref<Record<string, SlaveItem[]>>({});
-  // 用于暂存当前选项
-  let selectFinished = false;
-
-  /**
-   * 转换master数据
-   */
-  const generateMaster = (data: MasterItem) => ({
-    bk_biz_id: data.bk_biz_id,
-    bk_cloud_id: data.bk_cloud_id,
-    bk_host_id: data.bk_host_id,
-    instance_address: data.instance,
-    ip: data.ip,
-    port: data.port,
-  });
-
-  /**
-   * 转换slave单项数据
-   */
-  const generateSlave = (data: SlaveItem) => ({
-    bk_biz_id: data.bk_biz_id,
-    bk_cloud_id: data.bk_cloud_id,
-    bk_host_id: data.bk_host_id,
-    instance_address: data.instance_address,
-    ip: data.ip,
-    port: data.port,
-  });
-
-  const handleChange = (values: string[]) => {
-    const selectedInstances = allSlaveInstances.value.filter((item) => values.includes(item.instance_address));
-    if (!selectedInstances.length) {
+  const handleChange = async (values: string[]) => {
+    const selected = allSlaveInstances.value.filter((item) => values.includes(item.instance_address));
+    if (!selected.length) {
       slaves.value = [];
       master.value = {
         bk_biz_id: 0,
@@ -198,47 +172,66 @@
       };
       return;
     }
-    const group = _.groupBy(selectedInstances, (item) => item.related_pair_instance.instance);
-    masterGroup.value = group;
-    const currentMaster = generateMaster(selectedInstances[0].related_pair_instance);
-    master.value = currentMaster;
-    slaves.value = group[currentMaster.instance_address].map((item) => generateSlave(item));
-    selectFinished = true;
+    selectedInstances.value = selected;
   };
 
   // poper隐藏时再追加
-  const handleToggle = () => {
-    if (!selectFinished) {
+  const handleToggle = async () => {
+    if (!selectedInstances.value.length) {
       return;
     }
-    const rowIndex = columnRef.value!.getRowIndex();
-    const rowDataGroup = _.groupBy(tableData.value, (item) => item.master.instance_address);
-    const currentRow = tableData.value[rowIndex];
-    selected.value = rowDataGroup[currentRow.master.instance_address]?.[0]?.slaves.map((item) => item.instance_address);
-    const newDataList: RowData[] = [];
-    Object.entries(masterGroup.value).forEach(([master, slaves]) => {
-      const slavesData = slaves.map((item: SlaveItem) => generateSlave(item));
-      const masterRow = rowDataGroup[master]?.[0];
-      if (masterRow) {
-        newDataList.push(
-          Object.assign({}, masterRow, {
-            master: generateMaster(slaves[0].related_pair_instance),
-            slaves: _.sortBy(_.uniqBy([...masterRow.slaves, ...slavesData], 'instance_address'), 'instance_address'),
-          }),
-        );
-      } else {
-        newDataList.push(
-          Object.assign({}, currentRow, {
-            master: generateMaster(slaves[0].related_pair_instance),
-            slaves: slavesData,
-          }),
-        );
+
+    const groupByMaster: Record<
+      string,
+      {
+        master: RowData['master'];
+        slaves: RowData['slaves'];
       }
+    > = {};
+    selectedInstances.value.forEach((slaveInfo) => {
+      const slave = slaveInfo.instance_address;
+      const masterInfo = masterSlavePair.value[slave];
+      const master = masterInfo.instance;
+      if (!groupByMaster[master]) {
+        groupByMaster[master] = {
+          master: {
+            bk_biz_id: masterInfo.bk_biz_id,
+            bk_cloud_id: masterInfo.bk_cloud_id,
+            bk_host_id: masterInfo.bk_host_id,
+            instance_address: masterInfo.instance,
+            ip: masterInfo.ip,
+            port: masterInfo.port,
+          },
+          slaves: [],
+        };
+      }
+      groupByMaster[master].slaves.push({
+        bk_biz_id: slaveInfo.bk_biz_id,
+        bk_cloud_id: slaveInfo.bk_cloud_id,
+        bk_host_id: slaveInfo.bk_host_id,
+        instance_address: slaveInfo.instance_address,
+        ip: slaveInfo.ip,
+        port: slaveInfo.port,
+      });
     });
-    tableData.value = newDataList;
+
+    const list = Object.values(groupByMaster).map((info) => {
+      return props.createTableRow({
+        cluster: props.cluster,
+        master: info.master,
+        slaves: info.slaves,
+      });
+    });
+
+    const rowIndex = columnRef.value!.getRowIndex();
+
+    tableData.value.splice(rowIndex, 1, ...list);
+
     // 触发行合并
-    emits('change');
-    selectFinished = false;
+    setTimeout(() => {
+      props.handleRowMerge();
+      selectedInstances.value = [];
+    });
   };
 
   watch(
@@ -256,11 +249,17 @@
     },
   );
 
-  watch(slaves, (newList, oldList) => {
-    if (newList.length !== oldList.length) {
-      selected.value = slaves.value.map((item) => item.instance_address);
-    }
-  });
+  watch(
+    slaves,
+    (newList) => {
+      if (newList.length) {
+        selected.value = slaves.value.map((item) => item.instance_address);
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 <style lang="less">
   .mysql-checksum-select-option {
