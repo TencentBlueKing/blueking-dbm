@@ -85,6 +85,22 @@
     </BkMenuGroup>
     <BkMenuGroup
       v-db-console="'personalWorkbench'"
+      :name="t('订阅')">
+      <BkMenuItem
+        key="myAlarmSubscription"
+        v-db-console="'personalWorkbench.myAlarmSubscription'">
+        <template #icon>
+          <DbIcon type="note" />
+        </template>
+        <span
+          v-overflow-tips.right
+          class="text-overflow">
+          {{ t('我的告警订阅') }}
+        </span>
+      </BkMenuItem>
+    </BkMenuGroup>
+    <BkMenuGroup
+      v-db-console="'personalWorkbench'"
       :name="t('数据库部署')">
       <BkMenuItem
         key="serviceApply"

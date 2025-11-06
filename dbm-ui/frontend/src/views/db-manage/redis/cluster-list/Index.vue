@@ -52,7 +52,9 @@
       @filter-change="handleFilterChange"
       @selection="handleSelection">
       <template #operation>
-        <OperationColumn :cluster-type="ClusterTypes.REDIS">
+        <OperationColumn
+          ref="operationColumnRef"
+          :cluster-type="ClusterTypes.REDIS">
           <template #default="{ data }: { data: RedisModel }">
             <div v-db-console="'redis.clusterManage.extractKey'">
               <OperationBtnStatusTips
@@ -174,6 +176,10 @@
                 </AuthButton>
               </OperationBtnStatusTips>
             </div>
+            <ClusterAlarmSubscribe
+              :data="data"
+              @click="hideOperationColumn"
+              @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
             <!-- <FunController
                 controller-id="redis_nameservice"
                 module-id="addons"> -->
@@ -408,6 +414,7 @@
 
   import TagBlock from '@components/tag-block/Index.vue';
 
+  import ClusterAlarmSubscribe from '@views/db-manage/common/cluster-alarm-subscribe/Index.vue';
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterEntryPanel from '@views/db-manage/common/cluster-entry-panel/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
@@ -472,6 +479,8 @@
 
   const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
 
+  const operationColumnRef = ref<ComponentExposed<typeof OperationColumn>>();
+
   const getTableInstance = () => tableRef.value;
 
   /** 查看密码 */
@@ -508,7 +517,12 @@
     });
   };
 
+  const hideOperationColumn = () => {
+    operationColumnRef.value?.hide();
+  };
+
   const handleShowPassword = (id: number) => {
+    hideOperationColumn();
     passwordState.isShow = true;
     passwordState.fetchParams.cluster_id = id;
   };

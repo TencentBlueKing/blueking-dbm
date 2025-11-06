@@ -12,6 +12,7 @@
  */
 
 export * from './globalBizs';
+export * from './useAlarmSubscribe';
 export * from './useFunController';
 export * from './useMenu';
 export * from './useSqlImport';
