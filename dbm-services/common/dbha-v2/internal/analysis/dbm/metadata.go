@@ -28,9 +28,9 @@ package dbm
 type DbmMetadataStatus string
 
 const (
-	RUNNING     DbmMetadataStatus = "running"
-	UNAVAILABLE DbmMetadataStatus = "unavailable"
-	AVAILABLE   DbmMetadataStatus = "available"
+	Running     DbmMetadataStatus = "running"
+	Unavailable DbmMetadataStatus = "unavailable"
+	Available   DbmMetadataStatus = "available"
 )
 
 // the "instance_role" in metadata.

@@ -82,7 +82,7 @@ func SwitchSingleInstance(ins SwitchableInstance) (success bool, retErr error) {
 	}()
 
 	ins.ReportLog(SwitchInfo, "do pre-check before switch")
-	if (ins.GetStatus() != dbm.RUNNING) && (ins.GetStatus() != dbm.AVAILABLE) {
+	if (ins.GetStatus() != dbm.Running) && (ins.GetStatus() != dbm.Available) {
 		retErr = gerrors.Newf(gerrors.Failure, "pre-check unpass for wrong status:%s", ins.GetStatus())
 		success = false
 		return
