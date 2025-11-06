@@ -3,6 +3,7 @@ export * from './bizSettingKeys';
 export * from './clusterAffinity';
 export * from './clusterInsStatus';
 export * from './clusterLoad';
+export * from './clusterTypeListPageMap';
 export * from './clusterTypes';
 export * from './clusterTypesInfos/index';
 export * from './confLevels';
