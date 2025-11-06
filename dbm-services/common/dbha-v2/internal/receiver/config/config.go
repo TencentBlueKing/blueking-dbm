@@ -24,9 +24,22 @@
 
 package config
 
-import "time"
+import (
+	"time"
 
-var Cfg = Configuration{}
+	"dbm-services/common/dbha-v2/pkg/logger"
+)
+
+var Cfg = Configuration{
+	Name:    "receiver",
+	PidFile: "./pids/receiver.pid",
+	Log: LogConfig{
+		Path:      "./logs/receiver.log",
+		Level:     logger.InfoLevel.String(),
+		FileCount: 10,
+		FileSize:  100,
+	},
+}
 
 // DiscoveryConfig discovery configuration
 type DiscoveryConfig struct {
@@ -83,6 +96,7 @@ type LogConfig struct {
 type Configuration struct {
 	Name      string          `yaml:"name"      mapstructure:"name"`
 	Version   string          `yaml:"version"   mapstructure:"version"`
+	PidFile   string          `yaml:"pidFile"   mapstructure:"pidFile"`
 	Discovery DiscoveryConfig `yaml:"discovery" mapstructure:"discovery"`
 	Apm       ApmConfig       `yaml:"apm"       mapstructure:"apm"`
 	Service   ServiceConfig   `yaml:"service"   mapstructure:"service"`
