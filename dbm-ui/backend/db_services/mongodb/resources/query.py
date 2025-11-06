@@ -230,7 +230,8 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource, MongoDBExportQuery
         # 获取shard分片规格
         mongodb_spec = mongodb_insts[0].machine.spec_config
         mount_point__size = {
-            disk["mount_point"]: disk.get("min") or disk.get("size") for disk in mongodb_spec["storage_spec"]
+            disk["mount_point"]: disk["min"] if "min" in disk else disk.get("size")
+            for disk in mongodb_spec["storage_spec"]
         }
         mongodb_spec.update(
             capacity=mount_point__size.get("/data1") or mount_point__size["/data"] / 2,
