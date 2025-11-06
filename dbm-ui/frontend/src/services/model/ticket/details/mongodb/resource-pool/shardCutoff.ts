@@ -1,3 +1,5 @@
+import type { ClusterTypes } from '@common/const';
+
 import type { DetailSpecs, ResourcePoolDetailBase } from '../../common';
 
 interface RoleInfo {
@@ -22,6 +24,7 @@ interface ResourceSpec {
 }
 
 export interface ShardCutoff extends ResourcePoolDetailBase {
+  cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER;
   infos: {
     cluster_id: number;
     mongo_config: RoleInfo[];

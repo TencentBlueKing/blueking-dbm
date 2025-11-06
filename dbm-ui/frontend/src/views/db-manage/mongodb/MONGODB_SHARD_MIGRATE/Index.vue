@@ -104,7 +104,7 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { DBTypes, MachineTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
@@ -168,6 +168,7 @@
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
+    cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER;
     infos: {
       city_code: string;
       cluster_id: number;
@@ -285,6 +286,7 @@
     if (validateResult) {
       createTicketRun({
         details: {
+          cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER,
           infos: formData.tableData.map((tableItem) => {
             // 取首个分片信息，给定校验基准
             const shardInfo = Object.values(tableItem.batchShard.shards)[0];

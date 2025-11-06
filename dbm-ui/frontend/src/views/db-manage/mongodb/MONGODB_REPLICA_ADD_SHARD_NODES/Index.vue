@@ -262,6 +262,7 @@
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
+    cluster_type: ClusterTypes.MONGO_REPLICA_SET;
     infos: {
       add_shard_nodes_num: number; // 增加shard节点数
       cluster_ids: number[];
@@ -305,6 +306,7 @@
     if (validateResult) {
       createTicketRun({
         details: {
+          cluster_type: ClusterTypes.MONGO_REPLICA_SET,
           infos: formData.tableData.map((tableRow) => {
             const cluster = tableRow.cluster as Required<IDataRow['cluster']>;
             return {

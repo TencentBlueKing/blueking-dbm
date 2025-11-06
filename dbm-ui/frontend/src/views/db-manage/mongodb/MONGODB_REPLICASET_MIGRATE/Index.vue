@@ -110,7 +110,7 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { DBTypes, MachineTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
@@ -177,6 +177,7 @@
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
+    cluster_type: ClusterTypes.MONGO_REPLICA_SET;
     infos: {
       cluster_ids: number[];
       current_replicaset_nodes_num: number; // 当前一个副本集的节点数量
@@ -292,6 +293,7 @@
     if (validateResult) {
       createTicketRun({
         details: {
+          cluster_type: ClusterTypes.MONGO_REPLICA_SET,
           infos: formData.tableData.map((tableItem) => {
             // 取首个集群信息，给定校验基准
             const clusterInfo = Object.values(tableItem.batchCluster.clusters)[0];

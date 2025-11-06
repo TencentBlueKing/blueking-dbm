@@ -311,6 +311,7 @@
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
+    cluster_type: ClusterTypes.MONGO_REPLICA_SET;
     infos: Mongodb.ResourcePool.ReplicaCutoff['infos'];
     ip_source: 'resource_pool';
   }>(TicketTypes.MONGODB_REPLICASET_CUTOFF);
@@ -399,6 +400,7 @@
     }
     createTicketRun({
       details: {
+        cluster_type: ClusterTypes.MONGO_REPLICA_SET,
         infos: generateRequestParam(),
         ip_source: 'resource_pool',
       },

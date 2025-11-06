@@ -1,6 +1,9 @@
+import type { ClusterTypes } from '@common/const';
+
 import type { ResourcePoolDetailBase } from '../../common';
 
 export interface ShardAddShardNodes extends ResourcePoolDetailBase {
+  cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER;
   infos: {
     add_shard_nodes_num: number;
     cluster_id: number;

@@ -1,3 +1,5 @@
+import type { ClusterTypes } from '@common/const';
+
 import type { DetailSpecs, ResourcePoolDetailBase } from '../../common';
 
 interface RoleInfo {
@@ -9,6 +11,7 @@ interface RoleInfo {
 }
 
 export interface ReplicaCutoff extends ResourcePoolDetailBase {
+  cluster_type: ClusterTypes.MONGO_REPLICA_SET;
   infos: {
     cluster_id: number;
     mongo_config: RoleInfo[];
