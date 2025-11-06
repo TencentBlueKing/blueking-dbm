@@ -3,6 +3,7 @@ name = "bk-dbm"
 version = "0.1.0"
 description = "blueking database management platform"
 authors = ["blueking"]
+package-mode = false
 
 [tool.poetry.dependencies]
 python = ">=3.11.10,<3.12"
