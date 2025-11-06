@@ -42,6 +42,7 @@ class MongoDBReplicasetMigrateDetailSerializer(BaseMongoDBOperateDetailSerialize
     ip_source = serializers.ChoiceField(
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL
     )
+    cluster_type = serializers.CharField(help_text=_("集群版本"))
     infos = serializers.ListSerializer(help_text=_("实例信息"), child=ReplicasetMigrateDetailSerializer())
 
 

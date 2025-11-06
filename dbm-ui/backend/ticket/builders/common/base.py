@@ -140,10 +140,7 @@ def format_bigdata_resource_spec(attrs: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def get_mongodb_cluster_tolerance(cluster):
-    if (
-        cluster.cluster_type == ClusterType.MongoShardedCluster.value
-        and cluster.disaster_tolerance_level == AffinityEnum.CROS_SUBZONE.value
-    ):
+    if cluster.disaster_tolerance_level == AffinityEnum.CROS_SUBZONE.value:
         tolerance = 0.33
     else:
         tolerance = 0.5
