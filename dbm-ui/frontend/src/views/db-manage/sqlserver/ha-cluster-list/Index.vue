@@ -35,7 +35,7 @@
         @change="handleQuickSearchChange" />
     </div>
     <ClusterTable
-      ref="tableRef"
+      ref="clusterTable"
       :bk-ui-settings="settings"
       :cluster-id="clusterId"
       :cluster-type="ClusterTypes.SQLSERVER_HA"
@@ -293,7 +293,7 @@
 
   const handleQuickSearchChange = () => {
     fetchData();
-    tableRef.value!.clearSelected();
+    tableRef.value?.clearSelected();
   };
 
   const handleFilterChange = (filterValue: Record<string, string>) => {

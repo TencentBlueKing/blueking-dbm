@@ -24,11 +24,13 @@
         </template>
       </template>
       <PrimaryTable
+        :key="titleList.length"
         class="dynamic-table-main"
         :data="tableData"
         :max-height="485"
         :pagination="pagination"
         resizable
+        row-key="instance"
         @page-change="handlePageChange">
         <template #empty>
           <slot name="empty">
