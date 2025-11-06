@@ -40,7 +40,6 @@ const routes: RouteRecordRaw[] = [
         path: 'ha-cluster',
         name: 'SqlServerHaCluster',
         meta: {
-          fullscreen: true,
           navName: t('SQLServer主从集群管理'),
         },
         redirect: {
@@ -71,7 +70,6 @@ const routes: RouteRecordRaw[] = [
         path: 'single-cluster',
         name: 'SqlServerSingle',
         meta: {
-          fullscreen: true,
           navName: t('SQLServer单节点集群管理'),
         },
         redirect: {
