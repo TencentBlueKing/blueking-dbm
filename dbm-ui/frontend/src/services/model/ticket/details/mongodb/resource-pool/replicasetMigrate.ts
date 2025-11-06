@@ -1,6 +1,9 @@
+import type { ClusterTypes } from '@common/const';
+
 import type { ResourcePoolDetailBase } from '../../common';
 
 export interface ReplicasetMigrate extends ResourcePoolDetailBase {
+  cluster_type: ClusterTypes.MONGO_REPLICA_SET;
   infos: {
     cluster_ids: number[];
     current_replicaset_nodes_num: number; // 当前一个副本集的节点数量

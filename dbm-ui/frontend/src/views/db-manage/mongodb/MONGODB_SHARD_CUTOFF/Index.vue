@@ -321,6 +321,7 @@
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
+    cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER;
     infos: Mongodb.ResourcePool.ShardCutoff['infos'];
     ip_source: 'resource_pool';
   }>(TicketTypes.MONGODB_SHARD_CUTOFF);
@@ -431,6 +432,7 @@
     }
     createTicketRun({
       details: {
+        cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER,
         infos: generateRequestParam(),
         ip_source: 'resource_pool',
       },
