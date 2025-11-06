@@ -3,6 +3,9 @@ describe('Mysql DB 重命名 Test', () => {
     // @ts-ignore
     cy.login();
     cy.viewport(1920, 1080);
+    cy.intercept('get', '/apis/cmdb/list_bizs/', {
+      fixture: 'mysql/common/listBizs.json',
+    }).as('listBizs');
     cy.intercept('get', '/apis/mysql/bizs/3/tendbha_resources/?bk_biz_id=3&limit=10&offset=0', {
       fixture: 'mysql/common/getTendbhaClusters.json',
     }).as('getTendbhaClusters');
@@ -31,6 +34,7 @@ describe('Mysql DB 重命名 Test', () => {
       });
       const url = '/3/db-manage/mysql/toolbox/MYSQL_RENAME_DATABASE';
       cy.visit(url);
+      cy.wait('@listBizs');
       cy.get('.db-icon-batch-host-select').click();
       cy.wait('@getTendbhaClusters');
       cy.get('.vxe-body--row').not('is-offline').first().click();

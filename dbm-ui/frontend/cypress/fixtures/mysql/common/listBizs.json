@@ -1,0 +1,216 @@
+{
+  "data": [
+    {
+      "bk_biz_id": 2,
+      "name": "蓝鲸",
+      "english_name": "fff",
+      "permission": {
+        "db_manage": true
+      }
+    },
+    {
+      "bk_biz_id": 3,
+      "name": "DBA",
+      "english_name": "dba",
+      "permission": {
+        "db_manage": true
+      }
+    },
+    {
+      "bk_biz_id": 4,
+      "name": "durant",
+      "english_name": "durant",
+      "permission": {
+        "db_manage": true
+      }
+    },
+    {
+      "bk_biz_id": 5,
+      "name": "kiozhang",
+      "english_name": "kio",
+      "permission": {
+        "db_manage": true
+      }
+    },
+    {
+      "bk_biz_id": 6,
+      "name": "testbiz",
+      "english_name": "testbiz",
+      "permission": {
+        "db_manage": true
+      }
+    },
+    {
+      "bk_biz_id": 7,
+      "name": "DBA_TEST",
+      "english_name": "dba-test",
+      "permission": {
+        "db_manage": true
+      }
+    },
+    {
+      "bk_biz_id": 8,
+      "name": "DBA_DEV",
+      "english_name": "dba-dev",
+      "permission": {
+        "db_manage": true
+      }
+    },
+    {
+      "bk_biz_id": 9,
+      "name": "biz1010",
+      "english_name": "",
+      "permission": {
+        "db_manage": true
+      }
+    },
+    {
+      "bk_biz_id": 10,
+      "name": "zbin",
+      "english_name": "zbin",
+      "permission": {
+        "db_manage": true
+      }
+    },
+    {
+      "bk_biz_id": 11,
+      "name": "lukexw",
+      "english_name": "lukexw",
+      "permission": {
+        "db_manage": true
+      }
+    },
+    {
+      "bk_biz_id": 12,
+      "name": "ES-paasdb",
+      "english_name": "tendata",
+      "permission": {
+        "db_manage": true
+      }
+    },
+    {
+      "bk_biz_id": 13,
+      "name": "Vito_test",
+      "english_name": "vitocc",
+      "permission": {
+        "db_manage": true
+      }
+    },
+    {
+      "bk_biz_id": 14,
+      "name": "hayley",
+      "english_name": "",
+      "permission": {
+        "db_manage": true
+      }
+    },
+    {
+      "bk_biz_id": 15,
+      "name": "dbtest",
+      "english_name": "",
+      "permission": {
+        "db_manage": true
+      }
+    },
+    {
+      "bk_biz_id": 16,
+      "name": "EDTEST",
+      "english_name": "edtest",
+      "permission": {
+        "db_manage": true
+      }
+    },
+    {
+      "bk_biz_id": 17,
+      "name": "bellketest",
+      "english_name": "belktest",
+      "permission": {
+        "db_manage": true
+      }
+    },
+    {
+      "bk_biz_id": 18,
+      "name": "reggie测试业务",
+      "english_name": "",
+      "permission": {
+        "db_manage": true
+      }
+    },
+    {
+      "bk_biz_id": 19,
+      "name": "yytest",
+      "english_name": "yytest",
+      "permission": {
+        "db_manage": true
+      }
+    },
+    {
+      "bk_biz_id": 20,
+      "name": "makeyuan专用测试",
+      "english_name": "make",
+      "permission": {
+        "db_manage": true
+      }
+    },
+    {
+      "bk_biz_id": 21,
+      "name": "obtest",
+      "english_name": "obtest",
+      "permission": {
+        "db_manage": true
+      }
+    },
+    {
+      "bk_biz_id": 22,
+      "name": "jam",
+      "english_name": "jam",
+      "permission": {
+        "db_manage": true
+      }
+    },
+    {
+      "bk_biz_id": 23,
+      "name": "cyctest",
+      "english_name": "cyctest",
+      "permission": {
+        "db_manage": true
+      }
+    },
+    {
+      "bk_biz_id": 24,
+      "name": "joker测试",
+      "english_name": "jtest",
+      "permission": {
+        "db_manage": true
+      }
+    },
+    {
+      "bk_biz_id": 25,
+      "name": "dannytest",
+      "english_name": "dannytest",
+      "permission": {
+        "db_manage": true
+      }
+    },
+    {
+      "bk_biz_id": 26,
+      "name": "资源池弹性池",
+      "english_name": "dba_resource",
+      "permission": {
+        "db_manage": true
+      }
+    },
+    {
+      "bk_biz_id": 27,
+      "name": "验收专用业务",
+      "english_name": "only-dba-test",
+      "permission": {
+        "db_manage": true
+      }
+    }
+  ],
+  "code": 0,
+  "result": true,
+  "message": "OK",
+  "request_id": "04342b94db8fc345c337b54b8f98aa39"
+}

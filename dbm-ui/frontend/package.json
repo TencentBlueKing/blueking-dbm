@@ -18,7 +18,7 @@
     "prettier": "prettier --write ./src",
     "e2e-dev": "npx cypress open",
     "e2e": "npx cypress run --browser chrome --headless",
-    "e2e-parallel": "cypress-parallel -s e2e -t 4 -d cypress/e2e",
+    "e2e-parallel": "cypress-parallel -s e2e -t 8 -d cypress/e2e",
     "component-test": "npx cypress run --component --browser chrome",
     "test": "start-server-and-test dev http://127.0.0.1:8088 e2e-parallel"
   },
