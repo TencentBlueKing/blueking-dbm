@@ -107,7 +107,11 @@ def mysql_backup_failed_alert():
         create_at__gte=today_time_zero,
     )
     for backup in backup_inspect_failed:
-        dim = {"appid": backup.bk_biz_id, "cluster_domain": backup.cluster}
+        dim = {
+            "appid": backup.bk_biz_id,
+            "cluster_domain": backup.cluster,
+            "cluster_type": backup.cluster_type,
+        }
 
         event = MonitorEvent(
             event_name=MonitorEventType.MYSQL_BACKUP_INSPECT_FAILED,

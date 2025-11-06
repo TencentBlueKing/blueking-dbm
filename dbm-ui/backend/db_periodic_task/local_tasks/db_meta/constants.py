@@ -43,7 +43,28 @@ EXPORTER_UP_QUERY_TEMPLATE = {
         "dbm_redis_exporter": """count by (cluster_domain) (
             bkmonitor:exporter_dbm_redis_exporter:redis_up{instance_role='redis_master'}
         )""",
-    }
+    },
+    ClusterType.TenDBHA: {
+        "range": 5,
+        "dbm_mysqld_exporter": """count by (appid,cluster_domain,instance,instance_role) (
+            bkmonitor:exporter_dbm_mysqld_exporter:mysql_up{cluster_type='tendbha'}
+        )""",
+        "dbm_mysqlproxy_exporter": """count by (appid,cluster_domain,instance,instance_role) (
+            bkmonitor:exporter_dbm_mysqlproxy_exporter:mysqlproxy_up{cluster_type='tendbha'}
+        )""",
+    },
+    ClusterType.TenDBCluster: {
+        "range": 5,
+        "dbm_mysqld_exporter": """count by (appid,cluster_domain,instance,instance_role) (
+            bkmonitor:exporter_dbm_mysqld_exporter:mysql_up{cluster_type='tendbcluster'}
+        )""",
+    },
+    ClusterType.TenDBSingle: {
+        "range": 5,
+        "dbm_mysqld_exporter": """count by (appid,cluster_domain,instance,instance_role) (
+        bkmonitor:exporter_dbm_mysqld_exporter:mysql_up{cluster_type='tendbsingle'}
+        )""",
+    },
 }
 
 QUERY_TEMPLATE = {
