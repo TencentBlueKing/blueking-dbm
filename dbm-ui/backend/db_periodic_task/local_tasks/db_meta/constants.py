@@ -89,39 +89,39 @@ QUERY_TEMPLATE = {
     },
     ClusterType.TenDBSingle: {
         "range": 129,
-        "used": """sum by (cluster_domain) (
+        "used": """max by (cluster_domain, instance, mount_point) (
                     max_over_time(
                         bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_df_used_mb{instance_role="orphan",%s}[5m]
-                    ) * 1024 * 1024 )""",
-        "total": """max by (cluster_domain) (
+                    ) * 1024 * 1024
+            )""",
+        "total": """max by (cluster_domain, instance, mount_point) (
                     max_over_time(
                         bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_df_total_mb{instance_role="orphan",%s}[5m]
-                    ) * 1024 * 1024 )""",
+                    ) * 1024 * 1024
+            )""",
     },
     ClusterType.TenDBHA: {
         "range": 129,
-        "used": """sum by (cluster_domain) (
-            max by (cluster_domain, ip) (
+        "used": """max by (cluster_domain, instance, mount_point) (
                 max_over_time(
                     bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_df_used_mb{instance_role="backend_master",%s}[124m]
                 ) * 1024 * 1024
-            ))""",
-        "total": """sum by (cluster_domain) (
-            max by (cluster_domain, ip) (
+            )""",
+        "total": """max by (cluster_domain, instance, mount_point) (
                 max_over_time(
                     bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_df_total_mb{instance_role="backend_master",%s}[124m]
                 ) * 1024 * 1024
-            ))""",
+            )""",
     },
     ClusterType.TenDBCluster: {
         "range": 129,
         "used": """sum by (cluster_domain) (
-            avg by (cluster_domain, instance) (
+            avg by (cluster_domain, instance, mount_point) (
                 avg_over_time(
                     bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_du_used_mb{instance_role="remote_master",%s}[124m]
                 ) * 1024 * 1024))""",
         "total": """sum by (cluster_domain) (
-            avg by (cluster_domain, ip) (
+            avg by (cluster_domain, ip, mount_point) (
                 avg_over_time(
                     bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_df_total_mb{instance_role="remote_master",%s}[124m]
                 ) * 1024 * 1024))""",
