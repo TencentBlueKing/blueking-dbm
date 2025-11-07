@@ -2492,8 +2492,8 @@ class ActKwargs:
                         "target": {
                             "ip": host["ip"],
                             "bk_cloud_id": host["bk_cloud_id"],
-                            "spec_id": info["resource_spec"]["mongodb"]["spec_id"],
-                            "spec_config": info["resource_spec"]["mongodb"]["spec_config"],
+                            "spec_id": host["spec"]["id"],
+                            "spec_config": host["spec"],
                             "bk_cpu": host["bk_cpu"],
                             "bk_mem": host["bk_mem"],
                             "storage_device": host["storage_device"],
@@ -2529,8 +2529,8 @@ class ActKwargs:
                         "target": {
                             "ip": host["ip"],
                             "bk_cloud_id": host["bk_cloud_id"],
-                            "spec_id": info["resource_spec"]["mongodb"]["spec_id"],
-                            "spec_config": info["resource_spec"]["mongodb"]["spec_config"],
+                            "spec_id": host["spec"]["id"],
+                            "spec_config": host["spec"],
                             "bk_cpu": host["bk_cpu"],
                             "bk_mem": host["bk_mem"],
                             "storage_device": host["storage_device"],
