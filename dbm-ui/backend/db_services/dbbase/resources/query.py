@@ -556,6 +556,10 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             "create_at__gte": Q(create_at__gte=query_params.get("create_at__gte", "")),
             # 截至时间
             "create_at__lte": Q(create_at__lte=query_params.get("create_at__lte", "")),
+            # 集群容灾
+            "disaster_tolerance_level": Q(
+                disaster_tolerance_level__in=query_params.get("disaster_tolerance_level", "").split(",")
+            ),
         }
 
         filter_params_map.update(inner_filter_params_map)
