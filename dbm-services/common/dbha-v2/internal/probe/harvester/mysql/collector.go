@@ -95,13 +95,13 @@ func collectMySQLInfo(db *gorm.DB, dbMetric *haprobe.DatabaseMetric) error {
 	var portResult globalStatus
 	err = db.Raw("SHOW VARIABLES LIKE 'port'").Scan(&portResult).Error
 	if err != nil {
-		logger.Warn("failed to get mysql listen port, %v", err)
+		logger.Warn("failed to get mysql listen port, result: %s, errmsg: %s", portResult, err)
 		return err
 	}
 
 	port, err := converter.ToInt(portResult.Value)
 	if err != nil {
-		logger.Error("failed to parse mysql listen port, port(%v), %v", portResult.Value, err)
+		logger.Error("failed to convert mysql listen port to int, port: %v, errmsg: %s", portResult.Value, err)
 		return err
 	}
 
@@ -401,7 +401,7 @@ func obtainOtherMetrics(globalStatus map[string]string, dbMetric *haprobe.Databa
 func transferToInt(m map[string]string, key string, target *int) {
 	val, ok := m[key]
 	if !ok {
-		logger.Warn("missed the field(%s)", key)
+		logger.Warn("missed the field: %s", key)
 		return
 	}
 
@@ -418,13 +418,13 @@ func transferToInt(m map[string]string, key string, target *int) {
 func transferToUint64(m map[string]string, key string, target *uint64) {
 	val, exists := m[key]
 	if !exists {
-		logger.Warn("the key(%s) does not exist", key)
+		logger.Warn("missed the field: %s", key)
 		return
 	}
 
 	v, err := converter.ToUint64(val)
 	if err != nil {
-		logger.Warn("parse the key(%v) value failed, %v", key, err)
+		logger.Warn("failed to parse the key: %s, errmsg: %s", key, err)
 		return
 	}
 

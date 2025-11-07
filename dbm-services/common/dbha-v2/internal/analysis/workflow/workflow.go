@@ -439,6 +439,8 @@ func (w *Workflow) checkMissedProbe(dbMetrics []*hamodel.DatabaseMetric,
 			key := key(dbMetric.BkCloudID, ip, dbMetric.InstanceID)
 			dbMetricKeys[key] = struct{}{}
 		}
+
+		logger.Debug("db instance metric: %v", dbMetric)
 	}
 
 	// Extract the instance of the DB that the probe is currently in an office state.

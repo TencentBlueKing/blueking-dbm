@@ -32,7 +32,7 @@ import (
 
 // HarvestData harvst data from a db
 type HarvestData struct {
-	Value interface{}
+	Value any
 }
 
 // Plugin probe plugin interface

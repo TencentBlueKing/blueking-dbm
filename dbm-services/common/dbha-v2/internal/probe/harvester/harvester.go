@@ -31,6 +31,11 @@ import (
 	"dbm-services/common/dbha-v2/internal/probe/harvester/mysql"
 	"dbm-services/common/dbha-v2/internal/probe/harvester/plugin"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/logger"
+)
+
+var (
+	ErrUnknownPlugin = gerrors.Newf(gerrors.Unknown, "unknown harvester plugin")
 )
 
 // NewPlugin creates a new probe plugin.
@@ -40,6 +45,7 @@ func NewPlugin(cfg config.HarvesterConfig) (plugin.Plugin, error) {
 		return mysql.NewMySql(cfg)
 
 	default:
-		return nil, gerrors.Newf(gerrors.Unknown, "unknown harvest plugin(%s)", cfg.Name)
+		logger.Error("unknown harvester plugin: %s", cfg.Name)
+		return nil, ErrUnknownPlugin
 	}
 }
