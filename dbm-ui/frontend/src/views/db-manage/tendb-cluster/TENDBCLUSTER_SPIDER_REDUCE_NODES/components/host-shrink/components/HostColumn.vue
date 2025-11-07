@@ -53,6 +53,7 @@
   export type SelectorHost = IValue;
 
   interface Props {
+    handleRowMerge: () => void;
     selected: Array<typeof modelValue.value>;
   }
 
@@ -124,6 +125,7 @@
           master_domain: item.master_domain,
           role: item.role,
         };
+        props.handleRowMerge();
       }
     },
   });

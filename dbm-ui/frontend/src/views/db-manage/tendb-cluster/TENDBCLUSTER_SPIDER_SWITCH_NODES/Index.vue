@@ -28,7 +28,8 @@
           <HostColumn
             v-model="item.host"
             :handle-row-merge="handleRowMerge"
-            :rowspan="item.rowspan"
+            :role-rowspan="item.same_role"
+            :rowspan="item.same_cluster"
             :selected="selected"
             @batch-edit="handleBatchEditCluster" />
           <SpecColumn
@@ -37,10 +38,10 @@
             field="host.spec.id"
             :machine-type="MachineTypes.TENDBCLUSTER_PROXY"
             required
-            :rowspan="item.specRowspan" />
+            :rowspan="item.same_spec" />
           <ResourceTagColumn
             v-model="item.labels"
-            :rowspan="item.rowspan"
+            :rowspan="item.same_cluster"
             @batch-edit="handleBatchEditColumn" />
           <AvailableResourceColumn
             :params="{
@@ -51,7 +52,7 @@
               spec_id: item.host.spec.id,
               labels: item.labels.map((item) => item.id).join(','),
             }"
-            :rowspan="item.rowspan" />
+            :rowspan="item.same_cluster" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow"
@@ -115,15 +116,16 @@
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import SpiderWrapper from '@views/db-manage/tendb-cluster/TENDBCLUSTER_SPIDER_ADD_NODES/components/SpiderWrapper.vue';
 
-  import { random } from '@utils';
+  import { messageError, random } from '@utils';
 
   import HostColumn, { type SelectorHost, type SpecConfig } from './components/HostColumnGroup.vue';
 
   interface RowData {
     host: ComponentProps<typeof HostColumn>['modelValue'];
     labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
-    rowspan: number;
-    specRowspan: number;
+    same_cluster: number;
+    same_role: number;
+    same_spec: number;
   }
 
   const { t } = useI18n();
@@ -164,8 +166,9 @@
       data.host,
     ),
     labels: (data.labels || []) as RowData['labels'],
-    rowspan: data.rowspan || 1,
-    specRowspan: data.specRowspan || 1,
+    same_cluster: data.same_cluster || 1,
+    same_role: data.same_role || 1,
+    same_spec: data.same_spec || 1,
   });
 
   const defaultData = () => ({
@@ -182,28 +185,36 @@
 
   // 具备完全相同的集群id列的行数组map
   let sameClusterIdsRowsMap: Record<string, RowData[]> = {};
+  // 相同集群id，相同role的行数组map
+  let sameRoleRowsMap: Record<string, RowData[]> = {};
 
   // 行合并
   const handleRowMerge = () => {
-    formData.tableData = [..._.sortBy(formData.tableData, (item) => item.host.cluster_id)];
+    // 接口都响应后再合并
+    const isRespsoned = formData.tableData.every((item) => !!item.host.cluster_id);
+    if (!isRespsoned) {
+      return;
+    }
 
-    sameClusterIdsRowsMap = {};
-    formData.tableData.forEach((item) => {
-      Object.assign(item, { rowspan: 1 });
-      const key = item.host.cluster_id;
-      if (!sameClusterIdsRowsMap[key]) {
-        sameClusterIdsRowsMap[key] = [item];
-      } else {
-        sameClusterIdsRowsMap[key].push(item);
-      }
-    });
+    const sortedData = _.sortBy(formData.tableData, [(item) => item.host.cluster_id, (item) => item.host.role]);
+
+    sameClusterIdsRowsMap = _.groupBy(sortedData, (item) => item.host.cluster_id);
+    sameRoleRowsMap = _.groupBy(sortedData, (item) => `${item.host.cluster_id}-${item.host.role}`);
+
     Object.values(sameClusterIdsRowsMap).forEach((list) => {
       const isSameSpecId = list.every((item) => item.host.spec.id === list[0].host.spec.id);
       Object.assign(list[0], {
-        rowspan: list.length,
-        specRowspan: isSameSpecId ? list.length : 1, // 相同规格合并
+        same_cluster: list.length,
+        same_spec: isSameSpecId ? list.length : 1, // 相同规格合并
       });
     });
+    Object.values(sameRoleRowsMap).forEach((list) => {
+      Object.assign(list[0], {
+        same_role: list.length,
+      });
+    });
+
+    formData.tableData = sortedData;
   };
 
   useTicketDetail<TendbCluster.ResourcePool.SpiderSwitchNodes>(TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES, {
@@ -211,17 +222,21 @@
       const { details } = ticketDetail;
       Object.assign(formData, {
         payload: createTickePayload(ticketDetail),
-        tableData: details.infos.map((item) => {
-          const [host] = item.spider_old_ip_list;
-          return createTableRow({
-            host: {
-              ip: host.ip,
-            },
-            labels: (item.resource_spec[`${item.switch_spider_role}_${host!.ip}`]!.labels || []).map((item) => ({
-              id: Number(item),
-            })),
+        tableData: details.infos.reduce<RowData[]>((acc, item) => {
+          item.spider_old_ip_list.forEach((host) => {
+            acc.push(
+              createTableRow({
+                host: {
+                  ip: host.ip,
+                },
+                labels: (item.resource_spec[item.switch_spider_role]!.labels || []).map((item) => ({
+                  id: Number(item),
+                })),
+              }),
+            );
           });
-        }),
+          return acc;
+        }, []),
       });
     },
   });
@@ -230,12 +245,7 @@
     infos: {
       cluster_id: number;
       old_nodes: {
-        spider_master: {
-          bk_cloud_id: number;
-          bk_host_id: number;
-          ip: string;
-        }[];
-        spider_slave: {
+        [x in string]: {
           bk_cloud_id: number;
           bk_host_id: number;
           ip: string;
@@ -262,50 +272,57 @@
   }>(TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES);
 
   const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
+    try {
+      const result = await tableRef.value!.validate();
+      if (!result) {
+        return;
+      }
+      const generateHostInfo = (data: RowData['host']) => ({
+        bk_cloud_id: data.bk_cloud_id,
+        bk_host_id: data.bk_host_id,
+        ip: data.ip,
+      });
+      const generateSpecInfo = (data: RowData[]) => ({
+        count: data.length,
+        label_names: data[0].labels.map((item) => item.value),
+        labels: data[0].labels.map((item) => String(item.id)),
+        spec_id: data[0].host.spec.id,
+      });
+      createTicketRun({
+        details: {
+          infos: Object.values(sameClusterIdsRowsMap).map((rows) => {
+            const masters = rows.filter((item) => item.host.role === 'spider_master');
+            const slaves = rows.filter((item) => item.host.role === 'spider_slave');
+            if (masters.length && slaves.length) {
+              throw new Error(t('同集群不允许同时缩容Spider Master和Spider Slave'));
+            }
+            const hostList = slaves.length > 0 ? slaves : masters;
+            const currentRole = hostList[0].host.role;
+            return {
+              cluster_id: rows[0].host.cluster_id,
+              old_nodes: {
+                [currentRole]: hostList.map((item) => generateHostInfo(item.host)),
+              },
+              resource_spec: {
+                [currentRole]: generateSpecInfo(hostList),
+              },
+              spider_old_ip_list: hostList.map((item) => ({
+                bk_cloud_id: item.host.bk_cloud_id,
+                bk_host_id: item.host.bk_host_id,
+                ip: item.host.ip,
+                spec: item.host.spec,
+              })),
+              switch_spider_role: currentRole,
+            };
+          }),
+          ip_source: 'resource_pool',
+          is_safe: formData.is_safe,
+        },
+        ...formData.payload,
+      });
+    } catch (e: any) {
+      messageError(e.message);
     }
-    const oldNodes = _.groupBy(formData.tableData, (item) => item.host.role);
-    createTicketRun({
-      details: {
-        infos: formData.tableData.map((item) => ({
-          cluster_id: item.host.cluster_id,
-          old_nodes: {
-            spider_master: (oldNodes['spider_master'] || []).map((item) => ({
-              bk_cloud_id: item.host.bk_cloud_id,
-              bk_host_id: item.host.bk_host_id,
-              ip: item.host.ip,
-            })),
-            spider_slave: (oldNodes['spider_slave'] || []).map((item) => ({
-              bk_cloud_id: item.host.bk_cloud_id,
-              bk_host_id: item.host.bk_host_id,
-              ip: item.host.ip,
-            })),
-          },
-          resource_spec: {
-            [`${item.host.role}_${item.host.ip}`]: {
-              count: 1,
-              label_names: item.labels.map((item) => item.value),
-              labels: item.labels.map((item) => String(item.id)),
-              spec_id: item.host.spec.id,
-            },
-          },
-          spider_old_ip_list: [
-            {
-              bk_cloud_id: item.host.bk_cloud_id,
-              bk_host_id: item.host.bk_host_id,
-              ip: item.host.ip,
-              spec: item.host.spec,
-            },
-          ],
-          switch_spider_role: item.host.role,
-        })),
-        ip_source: 'resource_pool',
-        is_safe: formData.is_safe,
-      },
-      ...formData.payload,
-    });
   };
 
   const handleReset = () => {
