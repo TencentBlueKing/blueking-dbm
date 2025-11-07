@@ -89,10 +89,11 @@ class MongoReplicaSetApplyFlowParamBuilder(builders.FlowParamBuilder):
 
 class MongoReplicaSetResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder):
     def format(self):
-        if self.ticket_data["disaster_tolerance_level"] == AffinityEnum.CROS_SUBZONE.value:
-            self.ticket_data["resource_spec"]["mongo_machine_set"]["tolerance"] = 0.33
-        else:
-            self.ticket_data["resource_spec"]["mongo_machine_set"]["tolerance"] = 0.5
+        for info in self.ticket_data["infos"]:
+            if info["resource_spec"]["mongo_machine_set"]["affinity"] == AffinityEnum.CROS_SUBZONE.value:
+                info["resource_spec"]["mongo_machine_set"]["tolerance"] = 0.33
+            else:
+                info["resource_spec"]["mongo_machine_set"]["tolerance"] = 0.5
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()
@@ -132,9 +133,6 @@ class MongoReplicaSetApplyFlowBuilder(BaseMongoReplicaSetTicketFlowBuilder):
         else:
             sub_zone_ids = []
 
-        # 跨园区（强）分布在不同的园区
-        group_count = 3 if ticket_data["disaster_tolerance_level"] == AffinityEnum.CROS_SUBZONE.value else 2
-
         infos = [
             {
                 "bk_cloud_id": ticket_data["bk_cloud_id"],
@@ -146,10 +144,8 @@ class MongoReplicaSetApplyFlowBuilder(BaseMongoReplicaSetTicketFlowBuilder):
                         "location_spec": {
                             "city": ticket_data["city_code"],
                             "sub_zone_ids": sub_zone_ids,
-                            "include_or_exclue": bool(sub_zone_ids),
                         },
                         # # 副本集的亲和性要求至少跨两个机房
-                        "group_count": group_count,
                         "count": ticket_data["node_count"],
                         "spec_id": ticket_data["spec_id"],
                     }
