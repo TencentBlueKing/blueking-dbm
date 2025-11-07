@@ -30,12 +30,19 @@ import (
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 )
 
-type Response struct {
-	Result    bool   `json:""`
+// ResponseCommonInfo defines the other info except "data" of response.
+type ResponseCommonInfo struct {
+	Result    bool   `json:"result"`
 	Code      int    `json:"code"`
 	Message   string `json:"message"`
 	RequestID string `json:"request_id"`
-	Data      []struct {
+}
+
+// Response represents the response structure for instances metadata query
+type Response struct {
+	ResponseCommonInfo
+
+	Data []struct {
 		BkIdcCityID        int                            `json:"bk_idc_city_id"`
 		BkIdcCityName      string                         `json:"bk_idc_city_name"`
 		LogicalCityID      int                            `json:"logical_city_id"`
@@ -111,12 +118,20 @@ type DomainInfo struct {
 
 // DomainGetRespond represents the response structure for domain information query
 type DomainGetRespond struct {
-	Detail  []DomainInfo `json:"detail"`
-	RowsNum int          `json:"rowsNum"`
+	ResponseCommonInfo
+
+	Data struct {
+		Detail  []DomainInfo `json:"detail"`
+		RowsNum int          `json:"rowsNum"`
+	} `json:"data"`
 }
 
 // DomainDeleteRespond represents the response structure for domain deletion operation
 type DomainDeleteRespond struct {
-	Detail  []DomainInfo `json:"detail"`
-	RowsNum int          `json:"rowsNum"`
+	ResponseCommonInfo
+
+	Data struct {
+		Detail  []DomainInfo `json:"detail"`
+		RowsNum int          `json:"rowsNum"`
+	} `json:"data"`
 }

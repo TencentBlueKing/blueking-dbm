@@ -4,13 +4,13 @@
  * Copyright (c) 2023 腾讯蓝鲸
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of sw software and associated documentation files (the "Software"), to deal
+ * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and sw permission notice shall be included in all
+ * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -134,7 +134,7 @@ func (sw *BaseSwitchInstance) releaseDNSEntry(dnsEntries []dbm.BindEntryDnsInfo)
 			ins := fmt.Sprintf("%s#%d", ip, dns.BindPort)
 			err := sw.dbmClient.DeleteFromDomain(dns.DomainName, ins, sw.GetApp())
 			if err != nil {
-				sw.ReportLog(SwitchFail, fmt.Sprintf("delete ip(%s) from domain(%s) failed: %s",
+				sw.ReportLog(SwitchFail, fmt.Sprintf("failed to delete ip(%s) from domain(%s): %s",
 					ip, dns.DomainName, err.Error()))
 				allSuccess = false
 			}
@@ -142,7 +142,7 @@ func (sw *BaseSwitchInstance) releaseDNSEntry(dnsEntries []dbm.BindEntryDnsInfo)
 		}
 	}
 	if allSuccess {
-		sw.ReportLog(SwitchInfo, fmt.Sprintf("release dns entry success (%s:%d)", sw.Ip, sw.Port))
+		sw.ReportLog(SwitchInfo, fmt.Sprintf("successfully release dns entry (%s:%d)", sw.Ip, sw.Port))
 	}
 
 	return allSuccess
@@ -167,7 +167,7 @@ func (sw *BaseSwitchInstance) releaseCLBEntry(clbEntries []dbm.BindEntryClbInfo)
 			)
 			if err != nil {
 				sw.ReportLog(SwitchFail,
-					fmt.Sprintf("delte %s from clb(%s:%s:%s) failed: %s",
+					fmt.Sprintf("failed to delete %s from clb(%s:%s:%s): %s",
 						ins, clb.Region, clb.LoadBalanceId, clb.ListenId, err.Error()))
 				allSuccess = false
 			}
@@ -175,7 +175,7 @@ func (sw *BaseSwitchInstance) releaseCLBEntry(clbEntries []dbm.BindEntryClbInfo)
 		}
 	}
 	if allSuccess {
-		sw.ReportLog(SwitchInfo, fmt.Sprintf("release clb entry success (%s:%d)", sw.Ip, sw.Port))
+		sw.ReportLog(SwitchInfo, fmt.Sprintf("successfully release clb entry (%s:%d)", sw.Ip, sw.Port))
 	}
 
 	return allSuccess
@@ -200,7 +200,7 @@ func (sw *BaseSwitchInstance) releasePolarisEntry(polarisEntries []dbm.BindEntry
 			)
 			if err != nil {
 				sw.ReportLog(SwitchFail,
-					fmt.Sprintf("delete (%s) from polaris %s:%s failed: %s",
+					fmt.Sprintf("failed to delete (%s) from polaris %s:%s: %s",
 						ins, pinfo.Service, pinfo.Token, err.Error()))
 				allSuccess = false
 			}
@@ -208,7 +208,7 @@ func (sw *BaseSwitchInstance) releasePolarisEntry(polarisEntries []dbm.BindEntry
 		}
 	}
 	if allSuccess {
-		sw.ReportLog(SwitchInfo, fmt.Sprintf("release polaris entry success (%s:%d)", sw.Ip, sw.Port))
+		sw.ReportLog(SwitchInfo, fmt.Sprintf("successfully release polaris entry (%s:%d)", sw.Ip, sw.Port))
 	}
 
 	return allSuccess

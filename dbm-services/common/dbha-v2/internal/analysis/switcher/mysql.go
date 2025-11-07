@@ -55,6 +55,11 @@ func (m *Mysql) Switch(ctx context.Context, req *Request) *Response {
 		MySqlFailureInsts: map[MetadataKey]*MySQLInstanceMetadata{},
 	}
 
+	if req == nil {
+		rsp.Err = gerrors.Newf(gerrors.Failure, "Mysql switcher get nil request")
+		return rsp
+	}
+
 	for _, inst := range req.MySqlInstData {
 		instKey := GenerateMetadataKey(inst.BkCloudID, inst.Ip, inst.Port)
 		swInst, newErr := NewMySQLSwitchInstance(inst)
