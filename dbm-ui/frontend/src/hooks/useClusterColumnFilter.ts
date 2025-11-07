@@ -6,7 +6,7 @@ import { queryBizClusterAttrs } from '@services/source/dbbase';
 import { listTag } from '@services/source/tag';
 import { getUserList } from '@services/source/user';
 
-import { ClusterTypes } from '@common/const';
+import { clusterTypeInfos, ClusterTypes } from '@common/const';
 
 import DatetimeRange from '@components/db-table/components/DatetimeRange.vue';
 import MultCascader from '@components/db-table/components/MultCascader.vue';
@@ -14,6 +14,13 @@ import MultipleInput from '@components/db-table/components/MultipleInput.vue';
 import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
 
 import { t } from '@/locales';
+
+const clusterRedisTypeList = [
+  ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+  ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+  ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+  ClusterTypes.PREDIXY_REDIS_CLUSTER,
+];
 
 export const baseFilter = {
   cluster_ids: {
@@ -101,7 +108,20 @@ export const baseFilter = {
     },
     showConfirmAndReset: true,
   },
-
+  redis_cluster_type: {
+    component: markRaw(MultipleSelect),
+    popupProps: {
+      attach: 'body',
+      placement: 'bottom',
+    },
+    props: {
+      list: clusterRedisTypeList.map((redisClusterType) => ({
+        label: clusterTypeInfos[redisClusterType].name,
+        value: redisClusterType,
+      })),
+    },
+    showConfirmAndReset: true,
+  },
   status: {
     component: markRaw(MultipleSelect),
     popupProps: {
@@ -218,15 +238,7 @@ export const useClusterColumnFilter = <T extends readonly string[] = Array<keyof
       ...params,
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_attrs: params.cluster_attrs?.join(','),
-      cluster_type:
-        params.cluster_type === ClusterTypes.REDIS
-          ? [
-              ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-              ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-              ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-              ClusterTypes.PREDIXY_REDIS_CLUSTER,
-            ].join(',')
-          : params.cluster_type,
+      cluster_type: params.cluster_type === ClusterTypes.REDIS ? clusterRedisTypeList.join(',') : params.cluster_type,
       instances_attrs: params.instances_attrs?.join(''),
     });
   } else {
