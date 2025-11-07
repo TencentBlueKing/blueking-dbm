@@ -66,6 +66,13 @@ workflow:
     timeout: 10s
     token: ""
 
+database:
+  mysql:
+    user: "mysql"
+    password: "xxx"
+    proxyUser: "proxy"
+    proxyPassword: "xxx"
+
 detector:
   ssh:
     port: 22
