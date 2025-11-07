@@ -4,13 +4,13 @@
  * Copyright (c) 2023 腾讯蓝鲸
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of sw software and associated documentation files (the "Software"), to deal
+ * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and sw permission notice shall be included in all
+ * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -74,6 +74,7 @@ func (c *Client) SendRequest(url string, method hanet.HttpMethod, req any,
 	return resp, nil
 }
 
+// RequestMetadata sends HTTP request to DBM to get metadata of instances
 func (c *Client) RequestMetadata(ctx context.Context, req *Request) (*Response, error) {
 	data, err := json.Marshal(&req)
 	if err != nil {
@@ -111,6 +112,7 @@ func (c *Client) RequestMetadata(ctx context.Context, req *Request) (*Response, 
 	return metaRsp, nil
 }
 
+// QueryMetadataFromDbm queries metadata from DBM
 func (c *Client) QueryMetadataFromDbm(ctx context.Context,
 	bkCloudId int, ips []string) ([]*hamodel.DbmMetadata, error) {
 
@@ -138,6 +140,7 @@ func (c *Client) QueryMetadataFromDbm(ctx context.Context,
 			ClusterID:       rsp.ClusterID,
 			ClusterType:     rsp.ClusterType,
 			MachineType:     rsp.MachineType,
+			InstanceRole:    string(rsp.InstanceRole),
 			Status:          rsp.Status,
 		}
 
@@ -187,21 +190,27 @@ func (c *Client) QueryMetadataFromDbm(ctx context.Context,
 func (c *Client) GetAddressNumberOfDomain(domainName string) (int, error) {
 	req := DomainGetRequest{
 		DbCloudToken: config.Cfg.Workflow.DbmApiDomainGet.Token,
-		DomainName:   domainName,
+		DomainName:   []string{domainName},
 	}
+	logger.Debug("GetAddressNumberOfDomain req:%v", req)
 
 	resp, err := c.SendRequest(config.Cfg.Workflow.DbmApiDomainGet.Api, hanet.HttpMethodPost,
 		req, config.Cfg.Workflow.DbmApiDomainGet.Timeout)
 	if err != nil {
 		return 0, err
 	}
+	logger.Debug("GetAddressNumberOfDomain response: %s", string(resp))
 
 	domainGetRes := &DomainGetRespond{}
 	if err := json.Unmarshal(resp, domainGetRes); err != nil {
-		return 0, err
+		return 0, gerrors.Newf(gerrors.Failure, "failed to unmarshal response: %s", err.Error())
 	}
 
-	return domainGetRes.RowsNum, nil
+	if !domainGetRes.Result {
+		return 0, gerrors.Newf(gerrors.Failure, "request failed: %s", domainGetRes.Message)
+	}
+
+	return domainGetRes.Data.RowsNum, nil
 }
 
 // UpdateInstanceStatus updates the status of a database instance
@@ -226,7 +235,7 @@ func (c *Client) UpdateInstanceStatus(ip string, port int, status DbmMetadataSta
 		return err
 	}
 
-	logger.Debug("UpdateInstanceStatus response: %v", string(response))
+	logger.Debug("UpdateInstanceStatus response: %s", string(response))
 	return nil
 }
 
@@ -242,7 +251,6 @@ func (c *Client) DeleteFromDomain(domainName string, instance string, app string
 			},
 		},
 	}
-
 	logger.Debug("DeleteFromDomain req:%v", req)
 
 	resp, err := c.SendRequest(config.Cfg.Workflow.DbmApiDomainDelete.Api, hanet.HttpMethodDelete,
@@ -250,15 +258,20 @@ func (c *Client) DeleteFromDomain(domainName string, instance string, app string
 	if err != nil {
 		return err
 	}
+	logger.Debug("DeleteFromDomain response: %s", string(resp))
 
 	domainDeleteRes := &DomainDeleteRespond{}
 	if err := json.Unmarshal(resp, domainDeleteRes); err != nil {
-		return err
+		return gerrors.Newf(gerrors.Failure, "failed to unmarshal response: %s", err.Error())
 	}
 
-	if domainDeleteRes.RowsNum != 1 {
-		errMsg := fmt.Sprintf("rowsAffected = %d, delete instance (%s) (app=%s) from domain (%s) failed",
-			domainDeleteRes.RowsNum, instance, app, domainName)
+	if !domainDeleteRes.Result {
+		return gerrors.Newf(gerrors.Failure, "request failed: %s", domainDeleteRes.Message)
+	}
+
+	if domainDeleteRes.Data.RowsNum != 1 {
+		errMsg := fmt.Sprintf("rowsAffected = %d, failed to delete instance (%s) (app=%s) from domain (%s)",
+			domainDeleteRes.Data.RowsNum, instance, app, domainName)
 		return gerrors.New(gerrors.Failure, errMsg)
 	}
 	return nil
@@ -283,7 +296,7 @@ func (c *Client) DeleteFromCLB(region string, lbid string, lnid string, ins stri
 		return err
 	}
 
-	logger.Debug("DeleteFromCLB response: %v", response)
+	logger.Debug("DeleteFromCLB response: %s", string(response))
 	return nil
 }
 
@@ -305,7 +318,7 @@ func (c *Client) DeleteFromPolaris(servname string, servtoken string, ins string
 		return err
 	}
 
-	logger.Debug("DeleteFromPolaris response: %v", response)
+	logger.Debug("DeleteFromPolaris response: %s", string(response))
 	return nil
 }
 
@@ -337,7 +350,7 @@ func (c *Client) SwapMySQLRole(masterIp string, masterPort int, slaveIp string, 
 		return err
 	}
 
-	logger.Debug("SwapMySQLRole response: %v", response)
+	logger.Debug("SwapMySQLRole response: %s", string(response))
 	return nil
 }
 
@@ -359,6 +372,6 @@ func (c *Client) SwitchBinlogDumper(app string, switchInfos []DumperSwitchInfo) 
 		return err
 	}
 
-	logger.Debug("SwitchBinlogDumper response: %v", response)
+	logger.Debug("SwitchBinlogDumper response: %s", string(response))
 	return nil
 }

@@ -28,6 +28,7 @@ var DefaultRequest = Request{
 	MachineOnly: true,
 }
 
+// Request represents the request structure for getting metadata of instances
 type Request struct {
 	BkCloudId      int      `json:"bk_cloud_id"`
 	DbCloudToken   string   `json:"db_cloud_token"`
@@ -42,9 +43,9 @@ type Request struct {
 
 // DomainGetRequest represents the request structure for getting domain information
 type DomainGetRequest struct {
-	BkCloudID    int    `json:"bk_cloud_id"`
-	DbCloudToken string `json:"db_cloud_token"`
-	DomainName   string `json:"domain_name"`
+	BkCloudID    int      `json:"bk_cloud_id"`
+	DbCloudToken string   `json:"db_cloud_token"`
+	DomainName   []string `json:"domain_name"`
 }
 
 // InstancesOfDomain contains domain name and its associated instances

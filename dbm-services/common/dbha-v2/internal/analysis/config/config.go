@@ -82,6 +82,19 @@ type WorkflowConfig struct {
 	DbmApiDumperSwitch         DbmApi        `yaml:"dbmApiDumperSwitch"         mapstructure:"dbmApiDumperSwitch"`
 }
 
+// MysqlDatabaseConfig mysql's configuration
+type MysqlDatabaseConfig struct {
+	User          string `yaml:"user"          mapstructure:"user"`
+	Password      string `yaml:"password"      mapstructure:"password"`
+	ProxyUser     string `yaml:"proxyUser"     mapstructure:"proxyUser"`
+	ProxyPassword string `yaml:"proxyPassword" mapstructure:"proxyPassword"`
+}
+
+// DatabaseConfig database's configuration
+type DatabaseConfig struct {
+	Mysql MysqlDatabaseConfig `yaml:"mysql" mapstructure:"mysql"`
+}
+
 // DetectorConfig detector's configuration
 type DetectorConfig struct {
 	Ssh struct {
@@ -130,7 +143,8 @@ type Configuration struct {
 	Discovery DiscoveryConfig `yaml:"discovery" mapstructure:"discovery"`
 	Apm       ApmConfig       `yaml:"apm"       mapstructure:"apm"`
 	Workflow  WorkflowConfig  `yaml:"workflow"  mapstructure:"workflow"`
-	Detector  DetectorConfig  `yaml:"detector" mapstructure:"detector"`
+	Database  DatabaseConfig  `yaml:"database"  mapstructure:"database"`
+	Detector  DetectorConfig  `yaml:"detector"  mapstructure:"detector"`
 	Monitor   MonitorConfig   `yaml:"monitor"   mapstructure:"monitor"`
 	Storage   StorageConfig   `yaml:"storage"   mapstructure:"storage"`
 	Log       LogConfig       `yaml:"log"       mapstructure:"log"`
