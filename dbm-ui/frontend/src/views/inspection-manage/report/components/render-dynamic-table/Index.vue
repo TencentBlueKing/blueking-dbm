@@ -29,6 +29,7 @@
         :max-height="485"
         :pagination="pagination"
         resizable
+        row-key="__uuid"
         @page-change="handlePageChange">
         <template #empty>
           <slot name="empty">
@@ -93,7 +94,7 @@
   import CollapseCard from '@components/collapse-card/Index.vue';
   import DbStatus from '@components/db-status/index.vue';
 
-  import { calcTextWidth, utcDisplayTime } from '@utils';
+  import { calcTextWidth, random, utcDisplayTime } from '@utils';
 
   import FailSlaveInstance from './components/FailSlaveInstance.vue';
 
@@ -175,7 +176,11 @@
         });
       }
       titleList.value = rawTitleList;
-      tableData.value = result.results;
+      tableData.value = result.results.map((item) =>
+        Object.assign(item, {
+          __uuid: random(),
+        }),
+      );
     },
   });
 
