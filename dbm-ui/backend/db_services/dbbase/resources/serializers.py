@@ -33,6 +33,7 @@ class ListResourceSLZ(serializers.Serializer):
     major_version = serializers.CharField(required=False)
     region = serializers.CharField(required=False)
     city = serializers.CharField(required=False)
+    disaster_tolerance_level = serializers.CharField(required=False)
     cluster_ids = serializers.CharField(help_text=_("集群ID(多个过滤以逗号分隔)"), required=False)
     exact_domain = serializers.CharField(help_text=_("精确域名查询"), required=False)
     status = serializers.CharField(required=False, help_text=_("状态"))
@@ -56,7 +57,7 @@ class ListTendbClusterResourceSLZ(ListMySQLResourceSLZ):
 
 
 class ListRedisResourceSLZ(ListResourceSLZ):
-    pass
+    redis_cluster_type = serializers.CharField(help_text=_("集群架构"), required=False)
 
 
 class ListSQLServerResourceSLZ(ListResourceSLZ):
