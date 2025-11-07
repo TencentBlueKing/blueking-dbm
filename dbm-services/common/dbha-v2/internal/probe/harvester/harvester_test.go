@@ -44,6 +44,7 @@ func TestNewPlugin(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+
 		t.Run(tt.name, func(t *testing.T) {
 			plugin, err := harvester.NewPlugin(tt.cfg)
 			assert.NoError(t, err)
