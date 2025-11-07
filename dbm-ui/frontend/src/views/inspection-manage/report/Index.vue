@@ -166,8 +166,6 @@
     }
 
     if (!isInspectionReport.value && !isPlatform.value) {
-      Object.assign(query, { status: 0 });
-
       if (!route.query.manage) {
         Object.assign(query, { manage: 'todo' });
       }
