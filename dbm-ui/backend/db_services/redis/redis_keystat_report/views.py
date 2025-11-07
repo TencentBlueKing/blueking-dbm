@@ -111,6 +111,7 @@ class KeyStatReportDetailsViewSet(viewsets.SystemViewSet):
     queryset = ReportItem.objects.all().order_by("-mem_used_bytes")
     filter_class = KeyStatRecordDetailFilter
     serializer_class = KeyStatRecordDetailSerializer
+    pagination_class = AuditedLimitOffsetPagination
 
     @common_swagger_auto_schema(
         operation_summary=_("获取redis内存分析记录详情"),
@@ -122,9 +123,9 @@ class KeyStatReportDetailsViewSet(viewsets.SystemViewSet):
     def get_keystat_details(self, request, bk_biz_id):
         data = self.params_validate(self.get_serializer_class())
         record_id = data.get("record_id", 0)
-        querysets = self.filter_queryset(self.queryset.filter(record_id=record_id))
+        querysets = self.paginate_queryset(self.filter_queryset(self.queryset.filter(record_id=record_id)))
         keystat_data = ReportItemDetailSerializer(querysets, many=True).data
-        return Response(keystat_data)
+        return self.paginator.get_paginated_response(data=keystat_data)
 
     @common_swagger_auto_schema(
         operation_summary=_("获取redis内存分析大Key排行榜"),
@@ -138,6 +139,7 @@ class KeyStatReportDetailsViewSet(viewsets.SystemViewSet):
         serializer_class=RankItemDetailSerializer,
         queryset=RankItem.objects.all().order_by("-memory_size"),
         filter_class=RankItemDetailFilter,
+        pagination_class=None,
     )
     def get_keystat_rank(self, request, bk_biz_id):
         data = self.params_validate(self.get_serializer_class())
@@ -152,14 +154,16 @@ class KeyStatReportDetailsViewSet(viewsets.SystemViewSet):
         tags=[SWAGGER_TAG],
         responses={status.HTTP_200_OK: ExportKeyStatDetailSerializer()},
     )
-    @action(methods=["GET"], detail=False, serializer_class=ExportKeyStatDetailSerializer)
+    @action(methods=["GET"], detail=False, serializer_class=ExportKeyStatDetailSerializer, filter_class=None)
     def export_keystat_analysis(self, request, bk_biz_id):
 
         data = self.params_validate(self.get_serializer_class())
         record_ids = data.get("record_ids", "")
 
         # 处理内存分析导出报告
-        key_stat_querysets = self.filter_queryset(self.queryset.filter(record_id__in=record_ids.split(",")))
+        key_stat_querysets = self.paginate_queryset(
+            self.filter_queryset(self.queryset.filter(record_id__in=record_ids.split(",")))
+        )
         headers = [
             {"id": "key_type", "name": _("Key类型")},
             {"id": "key_class", "name": _("Key模式")},
@@ -167,11 +171,12 @@ class KeyStatReportDetailsViewSet(viewsets.SystemViewSet):
             {"id": "count", "name": _("数量")},
             {"id": "count_with_ttl", "name": _("数量(有过期)")},
             {"id": "avg_ttl", "name": _("过期时间")},
+            {"id": "avg_ttl_human", "name": _("过期时间（带单位）")},
             {"id": "min_idletime", "name": _("最近访问时间")},
             {"id": "avg_key_used_bytes", "name": _("单Key平均内存占用")},
             {"id": "avg_key_length", "name": _("平均成员数量")},
-            {"id": "mem_used_bytes", "name": _("内存占用")},
-            {"id": "mem_used_pct", "name": _("内存占用占比")},
+            {"id": "mem_used_bytes", "name": _("占用内存")},
+            {"id": "mem_used_pct", "name": _("占用内存占比")},
         ]
 
         key_stat_data = [
@@ -182,6 +187,7 @@ class KeyStatReportDetailsViewSet(viewsets.SystemViewSet):
                 "count": queryset.count,
                 "count_with_ttl": queryset.count_with_ttl,
                 "avg_ttl": str(queryset.avg_ttl) + "s",
+                "avg_ttl_human": str(queryset.avg_ttl_human) + "s",
                 "min_idletime": str(queryset.min_idletime) + "s",
                 "avg_key_used_bytes": format_size(queryset.avg_key_used_bytes),
                 "avg_key_length": queryset.avg_key_length,
@@ -199,6 +205,7 @@ class KeyStatReportDetailsViewSet(viewsets.SystemViewSet):
             {"id": "key_type", "name": _("Key类型")},
             {"id": "key_name", "name": _("Key名称")},
             {"id": "ttl", "name": _("过期时间")},
+            {"id": "ttl_human", "name": _("过期时间（带单位）")},
             {"id": "key_length", "name": _("Key长度")},
             {"id": "value_size", "name": _("Value长度")},
             {"id": "member", "name": _("成员数量")},
@@ -211,6 +218,7 @@ class KeyStatReportDetailsViewSet(viewsets.SystemViewSet):
                 "key_type": queryset.key_type,
                 "key_name": queryset.key_name,
                 "ttl": str(queryset.ttl) + "s",
+                "ttl_human": str(queryset.ttl_human) + "s",
                 "key_length": queryset.key_length,
                 "value_size": format_size(queryset.value_size),
                 "member": queryset.member,
