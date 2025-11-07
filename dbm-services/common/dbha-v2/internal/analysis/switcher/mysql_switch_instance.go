@@ -30,6 +30,7 @@ import (
 	"strings"
 	"time"
 
+	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -41,18 +42,12 @@ import (
 const (
 	DefaultIgnoreCheckSum     bool = false
 	DefaultIgnoreSlaveDelay   bool = false
-	AllowedMaxChecksumFailCnt int  = 10
-	AllowedMaxSlaveDelay      int  = 1000
-	AllowedMaxTimeDelay       int  = 1000
+	AllowedMaxChecksumFailCnt int  = 2
+	AllowedMaxSlaveDelay      int  = 600
+	AllowedMaxTimeDelay       int  = 300
 
-	MySQLProtocol       string = "tcp"
-	MySQLUser           string = "mysql"
-	MySQLPassword       string = "xxx"
-	MySQLProxyUser      string = "proxy"
-	MySQLProxyPassword  string = "xxx"
-	MySQLDefaultDB      string = "infodba_schema"
-	MySQLProxyDefaultDB string = "mysql"
-	AllowSlowBytes      int    = 1024
+	MySQLProtocol  string = "tcp"
+	AllowSlowBytes int    = 0
 )
 
 const (
@@ -176,13 +171,13 @@ type MasterStatusInfo struct {
 
 // ProxyBackendInfo contains proxy backend connection information
 type ProxyBackendInfo struct {
-	BackendNdx       int    `gorm:"column:backend_ndx"`
-	Address          string `gorm:"column:address"`
-	State            string `gorm:"column:state"`
-	Type             string `gorm:"column:type"`
-	UUID             string `gorm:"column:uuid"`
-	ConnectedClients int    `gorm:"column:connected_clients"`
-	RefreshTime      int    `gorm:"column:refresh_time"`
+	BackendNdx       int    `db:"backend_ndx"`
+	Address          string `db:"address"`
+	State            string `db:"state"`
+	Type             string `db:"type"`
+	UUID             string `db:"uuid"`
+	ConnectedClients int    `db:"connected_clients"`
+	RefreshTime      int    `db:"refresh_time"`
 }
 
 // MySQLInstanceMetadata contains MySQL instance metadata from DBM
@@ -220,6 +215,7 @@ func NewMySQLSwitchInstance(metadata *MySQLInstanceMetadata) (SwitchableInstance
 			ClusterType:  metadata.ClusterType,
 			MachineType:  metadata.MachineType,
 			InstanceRole: metadata.InstanceRole,
+			dbmClient:    &dbm.Client{},
 		},
 		AdminPort:        metadata.AdminPort,
 		BindEntry:        metadata.BindEntry,
@@ -240,7 +236,7 @@ func NewMySQLSwitchInstance(metadata *MySQLInstanceMetadata) (SwitchableInstance
 		}
 		return res, nil
 	default:
-		logger.Error("Unknown machine type(%s) for MySQL switch instance constructor ", metadata.MachineType)
+		logger.Error("Unknown machine type(%s) for MySQL switch instance constructor", metadata.MachineType)
 		return nil, gerrors.New(gerrors.InvalidParameter, "Invalid machine type")
 	}
 }
@@ -276,8 +272,9 @@ func (sw *MySQLBaseSwitchInstance) GetBinlogDumperInfo() string {
 // If no standby slave is found, it uses the first slave in the list.
 func (sw *MySQLBaseSwitchInstance) SetStandbySlave(slaves []dbm.DbmMetadataSlaveInfo) {
 	if len(slaves) == 0 {
-		logger.Debug("No standby slave found")
+		logger.Debug("No standby slave found for master(%s:%d)", sw.Ip, sw.Port)
 		sw.StandBySlave = nil
+		return
 	}
 
 	findIndex := 0
@@ -289,7 +286,7 @@ func (sw *MySQLBaseSwitchInstance) SetStandbySlave(slaves []dbm.DbmMetadataSlave
 	}
 	sw.StandBySlave = &dbm.DbmMetadataSlaveInfo{}
 	*(sw.StandBySlave) = slaves[findIndex]
-	logger.Debug("Success to set standby slave: %#v", sw.StandBySlave)
+	logger.Debug("Success to set standby slave for master(%s:%d), slave: %#v", sw.Ip, sw.Port, sw.StandBySlave)
 }
 
 // parseMasterLogFileIndex safely parses the numeric index from MasterLogFile format like "binlog.000002"
@@ -574,19 +571,18 @@ func (sw *MySQLBaseSwitchInstance) CheckSlaveStatus() error {
 		hamysql.OptionProto(MySQLProtocol),
 		hamysql.OptionIP(ip),
 		hamysql.OptionPort(port),
-		hamysql.OptionUser(MySQLUser),
-		hamysql.OptionPassword(MySQLPassword),
-		hamysql.OptionDBName(MySQLDefaultDB),
+		hamysql.OptionUser(config.Cfg.Database.Mysql.User),
+		hamysql.OptionPassword(config.Cfg.Database.Mysql.Password),
 	)
 	if err != nil {
-		logger.Warn("create mysql instance(%s:%d) failed, %v", ip, port, err)
+		logger.Warn("failed to create mysql instance(%s:%d), %v", ip, port, err)
 		return err
 	}
 
 	defer func() {
 		con, _ := slaveDB.DB().DB()
 		if err = con.Close(); err != nil {
-			logger.Warn("close slave DB connect(%s:%d) failed: %s", ip, port, err.Error())
+			logger.Warn("failed to close slave DB connect(%s:%d): %s", ip, port, err.Error())
 		}
 	}()
 
@@ -745,19 +741,18 @@ func (sw *MySQLBaseSwitchInstance) ResetSlaveWithBinlogPos(slaveIp string, slave
 		hamysql.OptionProto(MySQLProtocol),
 		hamysql.OptionIP(slaveIp),
 		hamysql.OptionPort(slavePort),
-		hamysql.OptionUser(MySQLUser),
-		hamysql.OptionPassword(MySQLPassword),
-		hamysql.OptionDBName(MySQLDefaultDB),
+		hamysql.OptionUser(config.Cfg.Database.Mysql.User),
+		hamysql.OptionPassword(config.Cfg.Database.Mysql.Password),
 	)
 	if err != nil {
-		logger.Warn("create slave mysql instance(%s:%d) failed, %v", slaveIp, slavePort, err)
+		logger.Warn("failed to create slave mysql instance(%s:%d), %v", slaveIp, slavePort, err)
 		return "", 0, err
 	}
 
 	defer func() {
 		con, _ := slaveDB.DB().DB()
 		if err = con.Close(); err != nil {
-			logger.Warn("close slave DB connect(%s:%d) failed: %s", slaveIp, slavePort, err.Error())
+			logger.Warn("failed to close slave DB connect(%s:%d): %s", slaveIp, slavePort, err.Error())
 		}
 	}()
 
@@ -786,19 +781,18 @@ func (sw *MySQLBaseSwitchInstance) ChangeMasterAuto(slaveIp string, slavePort in
 		hamysql.OptionProto(MySQLProtocol),
 		hamysql.OptionIP(slaveIp),
 		hamysql.OptionPort(slavePort),
-		hamysql.OptionUser(MySQLUser),
-		hamysql.OptionPassword(MySQLPassword),
-		hamysql.OptionDBName(MySQLDefaultDB),
+		hamysql.OptionUser(config.Cfg.Database.Mysql.User),
+		hamysql.OptionPassword(config.Cfg.Database.Mysql.Password),
 	)
 	if err != nil {
-		logger.Warn("create slave mysql instance(%s:%d) failed, %v", slaveIp, slavePort, err)
+		logger.Warn("failed to create slave mysql instance(%s:%d), %v", slaveIp, slavePort, err)
 		return err
 	}
 
 	defer func() {
 		con, _ := slaveDB.DB().DB()
 		if err = con.Close(); err != nil {
-			logger.Warn("close slave DB connect(%s:%d) failed: %s", slaveIp, slavePort, err.Error())
+			logger.Warn("failed to close slave DB connect(%s:%d): %s", slaveIp, slavePort, err.Error())
 		}
 	}()
 
@@ -818,7 +812,7 @@ func (sw *MySQLBaseSwitchInstance) ChangeMasterAuto(slaveIp string, slavePort in
 
 	err = slaveDB.DB().Exec(changeMasterSQL).Error
 	if err != nil {
-		return gerrors.Newf(gerrors.Failure, "change master failed on node(%s:%d), errmsg: %s",
+		return gerrors.Newf(gerrors.Failure, "failed to change master on node(%s:%d), errmsg: %s",
 			slaveIp, slavePort, err.Error())
 	}
 	sw.ReportLog(SwitchInfo, fmt.Sprintf("Do CHANGE MASTER successfully on node(%s:%d)", slaveIp, slavePort))
@@ -910,30 +904,28 @@ func (sw *MySQLStorageSwitchInstance) CheckBeforeSwitch() (checkPass bool, err e
 // SwitchProxyBackendAddress switches proxy backend to new address
 func SwitchProxyBackendAddress(proxyIp string, proxyAdminPort int, proxyUser string, proxyPasswd string,
 	slaveIp string, slavePort int) error {
-	proxyDB, err := hamysql.New(
-		hamysql.OptionProto(MySQLProtocol),
-		hamysql.OptionIP(proxyIp),
-		hamysql.OptionPort(proxyAdminPort),
-		hamysql.OptionUser(proxyUser),
-		hamysql.OptionPassword(proxyPasswd),
-		hamysql.OptionDBName(MySQLProxyDefaultDB),
+	proxyDB, err := hamysql.NewProxy(
+		proxyIp,
+		proxyAdminPort,
+		proxyUser,
+		proxyPasswd,
 	)
 	if err != nil {
-		logger.Warn("create mysql instance(%s:%d) failed, %v", proxyIp, proxyAdminPort, err)
+		logger.Warn("failed to create mysql proxy instance(%s:%d), %v", proxyIp, proxyAdminPort, err)
 		return err
 	}
 
 	defer func() {
-		con, _ := proxyDB.DB().DB()
+		con := proxyDB.DB()
 		if err = con.Close(); err != nil {
-			logger.Warn("close proxy DB connect(%s:%d) failed: %s", proxyIp, proxyAdminPort, err.Error())
+			logger.Warn("failed to close proxy DB connect(%s:%d): %s", proxyIp, proxyAdminPort, err.Error())
 		}
 	}()
 
 	switchSql := fmt.Sprintf("refresh_backends('%s:%d',1)", slaveIp, slavePort)
 	querySql := "select * from backends"
 
-	err = proxyDB.DB().Exec(switchSql).Error
+	_, err = proxyDB.DB().Exec(switchSql)
 	if err != nil {
 		errMsg := fmt.Sprintf("failed to execute sql(%s), errmsg: %s", switchSql, err.Error())
 		logger.Error("%s", errMsg)
@@ -941,7 +933,7 @@ func SwitchProxyBackendAddress(proxyIp string, proxyAdminPort int, proxyUser str
 	}
 
 	var backendList []ProxyBackendInfo
-	err = proxyDB.DB().Raw(querySql).Scan(&backendList).Error
+	err = proxyDB.DB().Select(&backendList, querySql)
 	if err != nil {
 		errMsg := fmt.Sprintf("failed to execute sql(%s), errmsg: %s", querySql, err.Error())
 		logger.Error("%s", errMsg)
@@ -967,8 +959,8 @@ func SwitchProxyBackendAddress(proxyIp string, proxyAdminPort int, proxyUser str
 //     consistent synchronization position(binlog file and binlog position)
 //  3. refresh all proxies' backends to the alive mysql(standby slave)
 func (sw *MySQLStorageSwitchInstance) DoSwitch() error {
-	proxyUser := MySQLProxyUser
-	proxyPasswd := MySQLProxyPassword
+	proxyUser := config.Cfg.Database.Mysql.ProxyUser
+	proxyPasswd := config.Cfg.Database.Mysql.ProxyPassword
 
 	sw.ReportLog(SwitchInfo, "switch step 1: update all proxies' backends to 1.1.1.1 first")
 	for _, proxyIns := range sw.ProxyInstanceSet {
@@ -1027,12 +1019,12 @@ func (sw *MySQLStorageSwitchInstance) DoSwitch() error {
 func (sw *MySQLStorageSwitchInstance) UpdateMetaInfo() error {
 	err := sw.dbmClient.SwapMySQLRole(sw.Ip, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port)
 	if err != nil {
-		errMsg := fmt.Sprintf("swap db-mysql role [master:%s:%d, slave:%s:%d] failed. errmsg:%s",
+		errMsg := fmt.Sprintf("failed to swap db-mysql role [master:%s:%d, slave:%s:%d]. errmsg:%s",
 			sw.Ip, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port, err.Error())
 		sw.ReportLog(SwitchFail, errMsg)
 		return err
 	}
-	sw.ReportLog(SwitchInfo, fmt.Sprintf("swap db-mysql role [master:%s:%d, slave:%s:%d] successfully",
+	sw.ReportLog(SwitchInfo, fmt.Sprintf("successfully swap db-mysql role [master:%s:%d, slave:%s:%d]",
 		sw.Ip, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port))
 	return nil
 }

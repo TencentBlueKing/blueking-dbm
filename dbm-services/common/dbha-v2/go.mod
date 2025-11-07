@@ -27,6 +27,7 @@ require (
 require (
 	github.com/gin-gonic/gin v1.10.1
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
+	github.com/jmoiron/sqlx v1.4.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/shirou/gopsutil/v3 v3.24.5
 	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.63.0
