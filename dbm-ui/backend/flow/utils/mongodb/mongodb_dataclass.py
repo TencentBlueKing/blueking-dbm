@@ -1482,9 +1482,9 @@ class ActKwargs:
         if info["db_type"] != "mongos":
             change_meta = {
                 "ip": info["ip"],
-                "spec_id": info["target"]["spec_id"],
+                "spec_id": info["target"]["spec"]["id"],
                 "spec_config": info["target"]["spec"],
-                "target": {"ip": info["target"]["ip"], "spec_id": info["target"]["spec_id"]},
+                "target": {"ip": info["target"]["ip"], "spec_id": info["target"]["spec"]["id"]},
             }
             if info["db_type"] == "cluster_mongodb":
                 mongodb.append(change_meta)
@@ -1500,11 +1500,11 @@ class ActKwargs:
                 mongos.append(
                     {
                         "ip": mongos_info_by_ip["ip"],
-                        "spec_id": mongos_info_by_ip["target"]["spec_id"],
+                        "spec_id": mongos_info_by_ip["target"]["spec"]["id"],
                         "spec_config": mongos_info_by_ip["target"]["spec"],
                         "target": {
                             "ip": mongos_info_by_ip["target"]["ip"],
-                            "spec_id": mongos_info_by_ip["target"]["spec_id"],
+                            "spec_id": mongos_info_by_ip["target"]["spec"]["id"],
                         },
                     }
                 )
