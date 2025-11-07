@@ -37,7 +37,8 @@
     :label="t('实例角色')"
     :loading="loading"
     :min-width="150"
-    readonly>
+    readonly
+    :rowspan="roleRowspan">
     <EditableBlock :placeholder="t('自动生成')">
       {{ roleLabelMap[modelValue.role] }}
     </EditableBlock>
@@ -77,6 +78,7 @@
 
   interface Props {
     handleRowMerge: () => void;
+    roleRowspan: number;
     rowspan: number;
     selected: Array<typeof modelValue.value>;
   }
@@ -156,9 +158,7 @@
           role: item.role,
           spec: item.spec_config,
         };
-        setTimeout(() => {
-          props.handleRowMerge();
-        });
+        props.handleRowMerge();
       }
     },
   });

@@ -44,7 +44,7 @@
             </EditableBlock>
           </EditableColumn>
           <AddCountColumn
-            v-model="item.count"
+            v-model="item.add_spider_num"
             :max="37 - item.cluster.mnt_count"
             @batch-edit="handleBatchEditColumn" />
           <EditableColumn
@@ -52,7 +52,11 @@
             :min-width="150"
             readonly>
             <EditableBlock :placeholder="t('自动生成')">
-              {{ item.count && item.current_spider_num ? Number(item.count) + item.current_spider_num : '' }}
+              {{
+                item.add_spider_num && item.current_spider_num
+                  ? Number(item.add_spider_num) + item.current_spider_num
+                  : ''
+              }}
             </EditableBlock>
           </EditableColumn>
           <SpecColumn
@@ -133,8 +137,8 @@
   import RoleColumn from './components/RoleColumn.vue';
 
   interface RowData {
+    add_spider_num: string;
     cluster: ComponentProps<typeof ClusterColumn>['modelValue'];
-    count: string;
     current_spider_num: number;
     labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     role: string;
@@ -163,7 +167,7 @@
     },
     {
       case: '1',
-      key: 'count',
+      key: 'add_spider_num',
       label: t('扩容数量（台）'),
     },
     {
@@ -174,6 +178,7 @@
   ];
 
   const createTableRow = (data: DeepPartial<RowData> = {}) => ({
+    add_spider_num: data.add_spider_num || '',
     cluster: Object.assign(
       {
         bk_cloud_id: 0,
@@ -188,7 +193,6 @@
       },
       data.cluster,
     ),
-    count: data.count || '',
     current_spider_num: data.current_spider_num || 0,
     labels: (data.labels || []) as RowData['labels'],
     role: data.role || '',
@@ -213,10 +217,10 @@
         payload: createTickePayload(ticketDetail),
         tableData: details.infos.map((item) =>
           createTableRow({
+            add_spider_num: String(item.add_spider_num || item.resource_spec.spider_ip_list.count),
             cluster: {
               master_domain: details.clusters[item.cluster_id]?.immute_domain || '',
             },
-            count: String(item.resource_spec.spider_ip_list.count),
             current_spider_num: item.current_spider_num,
             labels: (item.resource_spec.spider_ip_list.labels || []).map((item) => ({ id: Number(item) })),
             role: item.add_spider_role,
@@ -229,6 +233,7 @@
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     infos: {
+      add_spider_num: number;
       add_spider_role: string;
       cluster_id: number;
       current_spider_num: number;
@@ -252,12 +257,13 @@
     createTicketRun({
       details: {
         infos: formData.tableData.map((item) => ({
+          add_spider_num: Number(item.add_spider_num),
           add_spider_role: item.role,
           cluster_id: item.cluster.id,
           current_spider_num: item.current_spider_num,
           resource_spec: {
             spider_ip_list: {
-              count: Number(item.count),
+              count: Number(item.add_spider_num),
               label_names: item.labels.map((item) => item.value),
               labels: item.labels.map((item) => String(item.id)),
               spec_id: item.specId,
@@ -294,10 +300,10 @@
     const dataList = data.reduce<RowData[]>((acc, item) => {
       acc.push(
         createTableRow({
+          add_spider_num: item.add_spider_num,
           cluster: {
             master_domain: item.master_domain,
           },
-          count: item.count,
           labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
           role: (item.role as string).toLocaleLowerCase(),
           specId: item.spec_name,

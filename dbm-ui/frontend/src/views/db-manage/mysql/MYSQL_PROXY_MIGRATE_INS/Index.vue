@@ -191,6 +191,12 @@
 
   // 行合并
   const handleRowMerge = () => {
+    // 接口都响应后再合并
+    const isRespsoned = formData.tableData.every((item) => !!item.originProxy.cluster_id);
+    if (!isRespsoned) {
+      return;
+    }
+
     formData.tableData = [..._.sortBy(formData.tableData, (item) => item.originProxy.cluster_id)];
 
     sameClusterIdsRowsMap = {};

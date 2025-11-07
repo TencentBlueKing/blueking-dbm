@@ -1,7 +1,7 @@
 <template>
   <EditableColumn
     :append-rules="addCountRules"
-    field="count"
+    field="add_spider_num"
     :label="t('扩容数量（台）')"
     :min-width="200"
     required>

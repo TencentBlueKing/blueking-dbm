@@ -22,7 +22,11 @@
       :min-width="150"
       :title="t('目标主机')">
       <template #default="{ row: data }: { row: RowData }">
-        {{ data.spider_old_ip_list[0].ip }}
+        <p
+          v-for="item in data.spider_old_ip_list"
+          :key="item.ip">
+          {{ item.ip }}
+        </p>
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
@@ -46,11 +50,7 @@
       :min-width="150"
       :title="t('目标规格')">
       <template #default="{ row: data }: { row: RowData }">
-        {{
-          ticketDetails.details.specs[
-            data.resource_spec[`${data.switch_spider_role}_${data.spider_old_ip_list[0].ip}`].spec_id
-          ].name
-        }}
+        {{ ticketDetails.details.specs[data.resource_spec[data.switch_spider_role]?.spec_id]?.name || '--' }}
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
@@ -58,8 +58,7 @@
       :min-width="200"
       :title="t('资源标签')">
       <template #default="{ row: data }: { row: RowData }">
-        <template
-          v-if="data.resource_spec[`${data.switch_spider_role}_${data.spider_old_ip_list[0].ip}`]?.label_names?.length">
+        <template v-if="data.resource_spec[data.switch_spider_role]?.label_names?.length">
           <BkTag
             v-for="item in data.resource_spec.new_slave.label_names"
             :key="item">

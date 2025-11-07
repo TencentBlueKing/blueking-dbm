@@ -39,17 +39,17 @@
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
-      col-key="count"
+      col-key="add_spider_num"
       :title="t('扩容数量（台）')">
       <template #default="{ row: data }: { row: RowData }">
-        {{ data.resource_spec.spider_ip_list.count }}
+        {{ data.add_spider_num || data.resource_spec.spider_ip_list.count }}
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="count"
       :title="t('最终数量（台）')">
       <template #default="{ row: data }: { row: RowData }">
-        {{ data.current_spider_num + data.resource_spec.spider_ip_list.count }}
+        {{ data.current_spider_num + (data.add_spider_num || data.resource_spec.spider_ip_list.count) }}
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
