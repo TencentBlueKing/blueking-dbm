@@ -282,7 +282,6 @@
 
   const fetchData = () => {
     tableRef.value!.fetchData({
-      cluster_type: ClusterTypes.MONGO_REPLICA_SET,
       ...searchValue.value,
     });
   };
