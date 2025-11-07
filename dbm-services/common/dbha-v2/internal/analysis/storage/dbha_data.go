@@ -31,6 +31,7 @@ import (
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
+	"dbm-services/common/go-pubpkg/logger"
 )
 
 type DbInstance struct {
@@ -100,6 +101,7 @@ func (ha *DbhaData) ReadDbMetricsWithDbInstances(dbInstances []*DbInstance,
 	}
 
 	lastUpdateTime := time.Now().Local().Add(offsetDuration)
+	logger.Debug("read db metric from the datetime point: %v", lastUpdateTime)
 
 	query := ha.DB.DB().Model(&hamodel.DatabaseMetric{})
 	hasCondition := false
@@ -107,18 +109,22 @@ func (ha *DbhaData) ReadDbMetricsWithDbInstances(dbInstances []*DbInstance,
 	for _, inst := range dbInstances {
 		if hasCondition {
 			query = query.Or(fmt.Sprintf("%s like ? and %s = ?", hamodel.DatabaseMetricFieldIPs,
-				hamodel.DatabaseMetricFieldInstanceID), inst.IP, inst.Port)
+				hamodel.DatabaseMetricFieldInstanceID), "%"+inst.IP+"%", inst.Port).
+				Where(fmt.Sprintf("%s > @updatedAt", hamodel.DatabaseMetricFieldUpdatedAt),
+					map[string]any{"updatedAt": lastUpdateTime})
+
 			continue
 		}
 
 		query = query.Where(fmt.Sprintf("%s like ? and %s = ?", hamodel.DatabaseMetricFieldIPs,
-			hamodel.DatabaseMetricFieldInstanceID), inst.IP, inst.Port)
+			hamodel.DatabaseMetricFieldInstanceID), "%"+inst.IP+"%", inst.Port).
+			Where(fmt.Sprintf("%s > @updatedAt", hamodel.DatabaseMetricFieldUpdatedAt),
+				map[string]any{"updatedAt": lastUpdateTime})
+
 		hasCondition = true
 	}
 
-	queryErr := query.Where(fmt.Sprintf("%s > @updatedAt", hamodel.DatabaseMetricFieldUpdatedAt),
-		map[string]any{"updatedAt": lastUpdateTime}).
-		Order(fmt.Sprintf("%s asc", hamodel.DatabaseMetricFieldUpdatedAt)).
+	queryErr := query.Order(fmt.Sprintf("%s asc", hamodel.DatabaseMetricFieldUpdatedAt)).
 		Find(&dbMetrics).Error
 
 	if queryErr != nil {

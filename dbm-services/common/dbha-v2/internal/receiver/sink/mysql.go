@@ -86,11 +86,6 @@ func (s *mysql) Save(msg *Message) error {
 
 	logger.Debug("outputter(mysql) save msg(%v)", string(msg.Data))
 
-	if len(mysqlMetric.Databases) == 0 {
-		return gerrors.Newf(gerrors.InvalidJson, "unmarshal a mysql metric message failed, topic(%s), data(%v)",
-			msg.Topic, *mysqlMetric)
-	}
-
 	data := hamodel.NewDbhaData(mysqlMetric)
 
 	for _, db := range s.dbs {
