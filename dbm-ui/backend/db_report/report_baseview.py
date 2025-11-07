@@ -121,10 +121,10 @@ class ReportCommonViewSet(viewsets.SystemViewSet):
             for cls in report_classes:
                 # 过滤当天的代办
                 now_date = datetime.now(timezone.utc).date()
-                queryset = cls.queryset.filter(status=False, update_at__gte=now_date)
+                queryset = cls.queryset.filter(state=ReportStateType.ABNORMAL, update_at__gte=now_date)
                 report_count_map[db_type][cls.report_type].update(
-                    manage_count=queryset.filter(status=False, bk_biz_id__in=manage_bizs).count(),
-                    assist_count=queryset.filter(status=False, bk_biz_id__in=assist_bizs).count(),
+                    manage_count=queryset.filter(state=ReportStateType.ABNORMAL, bk_biz_id__in=manage_bizs).count(),
+                    assist_count=queryset.filter(state=ReportStateType.ABNORMAL, bk_biz_id__in=assist_bizs).count(),
                 )
 
         # 默认可以做1h的缓存
