@@ -360,9 +360,10 @@
       </template>
       <template #clusterTypeName>
         <TableColumn
-          col-key="cluster_type_name"
+          col-key="redis_cluster_type"
+          :filter="columnFilter?.['redis_cluster_type']"
           :min-width="150"
-          :title="t('架构版本')">
+          :title="t('架构类型')">
           <template #default="{ row }: { row: RedisModel }">
             {{ row.cluster_type_name || '--' }}
           </template>
@@ -402,7 +403,7 @@
   import RedisModel from '@services/model/redis/redis';
   import { getRedisList } from '@services/source/redis';
 
-  import { useClusterQuickSearch, useTableSettings } from '@hooks';
+  import { useClusterColumnFilter, useClusterQuickSearch, useTableSettings } from '@hooks';
 
   import { ClusterTypes, DBTypes, TicketTypes, UserPersonalSettings } from '@common/const';
 
@@ -446,6 +447,9 @@
   const route = useRoute();
   const router = useRouter();
 
+  const { data: columnFilter } = useClusterColumnFilter({
+    cluster_type: ClusterTypes.REDIS,
+  });
   const { isSearching, quickSearchData, searchValue } = useClusterQuickSearch([
     ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
     ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
