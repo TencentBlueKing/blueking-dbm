@@ -26,30 +26,28 @@ describe('Mysql DB 重命名 Test', () => {
   });
 
   it('Mysql DB 重命名', () => {
-    cy.origin(Cypress.env('LOCAL_URL'), () => {
-      Cypress.on('uncaught:exception', (err) => {
-        if (['ResizeObserver', 'false', 'valid user identity'].some((message) => err.message.includes(message))) {
-          return false;
-        }
-      });
-      const url = '/3/db-manage/mysql/toolbox/MYSQL_RENAME_DATABASE';
-      cy.visit(url);
-      cy.wait('@listBizs');
-      cy.get('.db-icon-batch-host-select').click();
-      cy.wait('@getTendbhaClusters');
-      cy.get('.vxe-body--row').not('is-offline').first().click();
-      cy.get('[data-test-id="clusterSelectorPreviewItem"]').should('exist');
-      cy.get('[data-test-id="clusterSelectorConfirmButton"]').click();
-      cy.get('.bk-editable-tag-input').eq(0).click();
-      cy.get('.bk-editable-tag-input').find('.tag-input').eq(0).type('test{enter}​');
-      cy.wait('@checkClusterDatabases');
-      cy.get('.bk-editable-tag-input').eq(1).click();
-      cy.get('.bk-editable-tag-input').find('.tag-input').eq(1).type('hello{enter}​');
-      cy.wait('@checkClusterDatabases');
-      cy.get('textarea').type('前端自动化测试，请忽略此单据');
-      cy.get('[data-test-id="submitTicket"]').click();
-      cy.wait('@submitTicket');
-      cy.get('.mysql-operation-success-page').should('contain', 'DB 重命名任务提交成功');
+    cy.on('uncaught:exception', (err, runnable) => {
+      if (['ResizeObserver', 'false', 'valid user identity'].some((message) => err.message.includes(message))) {
+        return false;
+      }
     });
+    const url = `${Cypress.env('LOCAL_URL')}/3/db-manage/mysql/toolbox/MYSQL_RENAME_DATABASE`;
+    cy.visit(url);
+    cy.wait('@listBizs');
+    cy.get('.db-icon-batch-host-select').click();
+    cy.wait('@getTendbhaClusters');
+    cy.get('.vxe-body--row').not('is-offline').first().click();
+    cy.get('[data-test-id="clusterSelectorPreviewItem"]').should('exist');
+    cy.get('[data-test-id="clusterSelectorConfirmButton"]').click();
+    cy.get('.bk-editable-tag-input').eq(0).click();
+    cy.get('.bk-editable-tag-input').find('.tag-input').eq(0).type('test{enter}​');
+    cy.wait('@checkClusterDatabases');
+    cy.get('.bk-editable-tag-input').eq(1).click();
+    cy.get('.bk-editable-tag-input').find('.tag-input').eq(1).type('hello{enter}​');
+    cy.wait('@checkClusterDatabases');
+    cy.get('textarea').type('前端自动化测试，请忽略此单据');
+    cy.get('[data-test-id="submitTicket"]').click();
+    cy.wait('@submitTicket');
+    cy.get('.mysql-operation-success-page').should('contain', 'DB 重命名任务提交成功');
   });
 });
