@@ -36,17 +36,53 @@
 //   }
 // }
 
+// Cypress.Commands.add('login' as any, () => {
+//   // 使用 cy.session() 缓存登录会话
+//   cy.session('login', () => {
+//     // 这里是执行登录操作的代码
+//     const loginUrl = Cypress.env('LOGIN_URL');
+//     const username = Cypress.env('USERNAME');
+//     const password = Cypress.env('PASSWORD');
+//     cy.visit(loginUrl);
+//     cy.get('[name="username"]').type(username);
+//     cy.get('[name="password"]').type(password);
+//     cy.get('#login-btn').click();
+//     cy.url().should('contain', 'local');
+//   });
+// });
+
 Cypress.Commands.add('login' as any, () => {
-  // 使用 cy.session() 缓存登录会话
+  // 缓存登录会话
   cy.session('login', () => {
-    // 这里是执行登录操作的代码
-    const loginUrl = Cypress.env('LOGIN_URL');
-    const username = Cypress.env('USERNAME');
-    const password = Cypress.env('PASSWORD');
-    cy.visit(loginUrl);
-    cy.get('[name="username"]').type(username);
-    cy.get('[name="password"]').type(password);
-    cy.get('#login-btn').click();
-    cy.url().should('contain', 'local');
+    cy.setCookie('dbm_csrftoken', Cypress.env('dbm_csrftoken'), { path: '/', domain: Cypress.env('BKDBM_DOMAIN') });
+    cy.setCookie('dbm_sessionid', Cypress.env('dbm_sessionid'), { path: '/', domain: Cypress.env('BKDBM_DOMAIN') });
+    cy.setCookie('bk_ticket', Cypress.env('bk_ticket'), { path: '/', domain: Cypress.env('ROOT_DOMAIN') });
+    cy.setCookie('bk_uid', Cypress.env('bk_uid'), { path: '/', domain: Cypress.env('ROOT_DOMAIN') });
+    cy.setCookie('blueking_language', Cypress.env('blueking_language'), {
+      path: '/',
+      domain: Cypress.env('ROOT_DOMAIN'),
+    });
+    cy.setCookie('DiggerTraceId', Cypress.env('DiggerTraceId'), { path: '/', domain: Cypress.env('ROOT_DOMAIN') });
+    cy.setCookie('DiggerTraceIdTs', Cypress.env('DiggerTraceIdTs'), { path: '/', domain: Cypress.env('ROOT_DOMAIN') });
+    cy.setCookie('ERP_USERNAME', Cypress.env('ERP_USERNAME'), { path: '/', domain: Cypress.env('ROOT_DOMAIN') });
+    cy.setCookie('pgv_info', Cypress.env('pgv_info'), { path: '/', domain: Cypress.env('ROOT_DOMAIN') });
+    cy.setCookie('pgv_pvid', Cypress.env('pgv_pvid'), { path: '/', domain: Cypress.env('ROOT_DOMAIN') });
+    cy.setCookie('RIO_TOKEN', Cypress.env('RIO_TOKEN'), { path: '/', domain: Cypress.env('ROOT_DOMAIN') });
+    cy.setCookie('sensorsdata2015jssdkcross', Cypress.env('sensorsdata2015jssdkcross'), {
+      path: '/',
+      domain: Cypress.env('ROOT_DOMAIN'),
+    });
+    cy.setCookie('wsd_ulog', Cypress.env('wsd_ulog'), { path: '/', domain: Cypress.env('ROOT_DOMAIN') });
+    cy.setCookie('x_host_key_access', Cypress.env('x_host_key_access'), {
+      path: '/',
+      domain: Cypress.env('ROOT_DOMAIN'),
+    });
+    cy.setCookie('x-client-ssid', Cypress.env('x-client-ssid'), { path: '/', domain: Cypress.env('ROOT_DOMAIN') });
+    cy.setCookie('x-mp-host-key', Cypress.env('x-mp-host-key'), { path: '/', domain: Cypress.env('ROOT_DOMAIN') });
+    cy.setCookie('bk_token', Cypress.env('bk_token'), { path: '/', domain: Cypress.env('PAASDB_DOMAIN') });
+    cy.setCookie('blueking_language', Cypress.env('blueking_language'), {
+      path: '/',
+      domain: Cypress.env('PAASDB_DOMAIN'),
+    });
   });
 });
