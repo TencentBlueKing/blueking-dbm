@@ -163,7 +163,7 @@ var codeTag = map[ErrorCode]string{
 	GetComponentPodsError:  "查询组件实例列表失败",
 
 	// 权限异常
-	NotPermissionError: "没有相关权限",
+	NotPermissionError: "权限不足",
 }
 
 // NewK8sDbsError 自定义错误
