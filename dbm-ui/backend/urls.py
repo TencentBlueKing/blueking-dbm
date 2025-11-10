@@ -85,6 +85,8 @@ urlpatterns = [
     path("{}".format(config.ENTRANCE_URL), include("bk_notice_sdk.urls")),
     # 接入bkvision
     path("bkvision/", include(bkvision_urls)),
+    # mcp
+    path("mcp/", include("backend.db_mcp_backends.urls")),
 ]
 
 # TODO 正式环境屏蔽swagger访问路径，目前开发测试只使用了 prod

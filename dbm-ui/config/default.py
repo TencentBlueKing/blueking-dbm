@@ -139,6 +139,7 @@ INSTALLED_APPS += (
     "backend.db_services.mysql.dumper",
     "backend.dbm_init",
     "backend.db_services.mongodb.password",
+    "backend.db_mcp_backends"
 )
 
 MIDDLEWARE = (
