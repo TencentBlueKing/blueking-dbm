@@ -59,7 +59,7 @@ func APIAuthMiddleware(provider metaprovider.AuthUserRoleProvider) gin.HandlerFu
 		ok := provider.CheckUserRole(params)
 		// 没有权限
 		if !ok {
-			api.ErrorResponse(c, apierrors.NewK8sDbsError(apierrors.NotPermissionError, nil))
+			api.ErrorResponse(c, apierrors.NewK8sDbsError(apierrors.NotPermissionError, fmt.Errorf("您没有当前操作的权限")))
 			c.Abort()
 			return
 		}
