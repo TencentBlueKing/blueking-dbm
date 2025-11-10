@@ -62,6 +62,7 @@ func NewClusterController(clusterProvider provider.K8sCrdClusterProvider) *Clust
 
 // GetClusterTopology 按照 ID 获取集群实例拓扑
 func (c *ClusterController) GetClusterTopology(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaClusterTopologyDetail)
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
@@ -78,6 +79,7 @@ func (c *ClusterController) GetClusterTopology(ctx *gin.Context) {
 
 // GetClusterInfo 按照 ID 获取存储集群实例
 func (c *ClusterController) GetClusterInfo(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaClusterDetail)
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
@@ -101,6 +103,7 @@ func (c *ClusterController) GetClusterInfo(ctx *gin.Context) {
 
 // ListCluster 分页检索集群实例列表
 func (c *ClusterController) ListCluster(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaClusterList)
 	pagination, err := commutil.BuildPagination(ctx)
 	if err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
