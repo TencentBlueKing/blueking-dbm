@@ -1,7 +1,6 @@
 <template>
   <div
     v-if="riskMemoDetail"
-    v-bk-loading="{ loading: detailLoading }"
     class="risk-detail-info-main"
     style="height: 100%">
     <div class="title-operate-main">
@@ -22,6 +21,7 @@
       </AuthButton>
       <BkPopConfirm
         v-else
+        :key="`${riskMemoManagePermission}`"
         :confirm-config="{ loading: updateLoading }"
         :confirm-text="t('重启')"
         :content="isSpecial ? t('重启后，将恢复正常使用') : t('重启后，将恢复重新开放跟进内容')"
@@ -255,7 +255,7 @@
 
   const {
     data: riskMemoDetail,
-    loading: detailLoading,
+    // loading: detailLoading,
     run: runGetRiskMemoDetail,
   } = useRequest(getRiskMemoDetail, { manual: true });
 
