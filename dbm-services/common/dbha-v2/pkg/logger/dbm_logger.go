@@ -83,6 +83,5 @@ func NewDbmLogger(config Config) Logger {
 
 	lg := dbmlogger.NewRotate(opts)
 	dbmlogger.ResetDefault(lg)
-
 	return &DbmLogger{dbmLogger: lg}
 }

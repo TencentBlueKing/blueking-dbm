@@ -26,6 +26,9 @@ package hamysql
 
 import (
 	"fmt"
+	"time"
+
+	"dbm-services/common/dbha-v2/pkg/logger"
 
 	"gorm.io/driver/mysql"
 )
@@ -45,6 +48,7 @@ var defaultOptions = options{
 	dontSupportRenameIndex:    true,
 	dontSupportRenameColumn:   true,
 	skipInitializeWithVersion: false,
+	logSlowThreshold:          5 * time.Second,
 }
 
 type options struct {
@@ -74,6 +78,12 @@ type options struct {
 
 	// Automatically configure based on the current MySQL version.
 	skipInitializeWithVersion bool
+
+	// The slow query threshold for SQL.
+	logger                       logger.Logger
+	logSlowThreshold             time.Duration
+	logIgnoreRecordNotFoundError bool
+	logParameterizedQueries      bool
 }
 
 func (o options) DSN() string {
@@ -200,6 +210,42 @@ func OptionLoc(val string) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
 			opt.loc = val
+			return nil
+		},
+	}
+}
+
+func OptionLogger(val logger.Logger) *funcOptions {
+	return &funcOptions{
+		f: func(opt *options) error {
+			opt.logger = val
+			return nil
+		},
+	}
+}
+
+func OptionLogSlowThreshold(val time.Duration) *funcOptions {
+	return &funcOptions{
+		f: func(opt *options) error {
+			opt.logSlowThreshold = val
+			return nil
+		},
+	}
+}
+
+func OptionIgnoreRecordNotFound(val bool) *funcOptions {
+	return &funcOptions{
+		f: func(opt *options) error {
+			opt.logIgnoreRecordNotFoundError = val
+			return nil
+		},
+	}
+}
+
+func OptionParameterizedQueries(val bool) *funcOptions {
+	return &funcOptions{
+		f: func(opt *options) error {
+			opt.logParameterizedQueries = val
 			return nil
 		},
 	}
