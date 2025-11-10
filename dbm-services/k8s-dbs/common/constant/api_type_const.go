@@ -109,6 +109,7 @@ const (
 	APIMetaClusterDetail          = "v4_dbs_meta_cluster_detail"
 	APIMetaClusterList            = "v4_dbs_meta_cluster_list"
 	APIMetaClusterTopologyDetail  = "v4_dbs_meta_cluster_topology_detail"
+	APIMetaComponentDetail        = "v4_dbs_meta_component_detail"
 )
 
 // APIGroups 存储 API 名称到分组的映射

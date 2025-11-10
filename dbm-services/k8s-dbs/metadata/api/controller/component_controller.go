@@ -43,6 +43,7 @@ func NewComponentController(componentProvider provider.K8sCrdComponentProvider) 
 
 // GetComponent get an existing component by its ID.
 func (c *ComponentController) GetComponent(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaComponentDetail)
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
