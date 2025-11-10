@@ -9,21 +9,16 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
-from dataclasses import asdict
 from typing import List
 
 from django.utils.translation import gettext as _
 
 from backend import env
 from backend.components import CCApi
-from backend.flow.consts import BIGDATA_DEPEND_PLUGINS
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
-from backend.flow.plugins.components.collections.common.install_nodeman_plugin import (
-    InstallNodemanPluginServiceComponent,
-)
+from backend.flow.engine.bamboo.scene.common.install_plugins import install_nodeman_plugins
 from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
 from backend.flow.plugins.components.collections.common.sa_init import SaInitComponent
-from backend.flow.utils.common_act_dataclass import InstallNodemanPluginKwargs
 
 """
 定义大数据组件实施流程上可能会用到的子流程，以减少代码的重复率
@@ -73,28 +68,6 @@ def make_sa_init_act(ips: list, bk_biz_id: int, bk_host_ids: List[int] = None):
     return None
 
 
-def make_install_plugins_acts(bk_host_ids: List[int]) -> list:
-    """
-    安装蓝鲸插件
-    :param bk_host_ids: 机器ID列表
-    :return: 安装插件act列表
-    """
-    # 安装插件
-    acts_list = []
-    # 这里用 bk_host_ids 临时兼容，更合理的做法是，参数流转都不使用 IP，统一使用 bk_host_id
-    if bk_host_ids:
-        for plugin_name in BIGDATA_DEPEND_PLUGINS:
-            acts_list.append(
-                {
-                    "act_name": _("安装[{}]插件".format(plugin_name)),
-                    "act_component_code": InstallNodemanPluginServiceComponent.code,
-                    "kwargs": asdict(InstallNodemanPluginKwargs(bk_host_ids=bk_host_ids, plugin_name=plugin_name)),
-                }
-            )
-
-    return acts_list
-
-
 def new_machine_common_sub_flow(
     uid: str,
     root_id: str,
@@ -120,10 +93,9 @@ def new_machine_common_sub_flow(
     if sa_init_act:
         act_exist = True
         sub_pipeline.add_parallel_acts([sa_init_act])
-    plugin_acts = make_install_plugins_acts(bk_host_ids)
-    if plugin_acts:
+    if bk_host_ids:
         act_exist = True
-        sub_pipeline.add_parallel_acts(plugin_acts)
+        sub_pipeline.add_sub_pipeline(install_nodeman_plugins(root_id, uid, bk_host_ids))
 
     if act_exist:
         return sub_pipeline.build_sub_process(sub_name=_("机器空闲检查及初始化"))

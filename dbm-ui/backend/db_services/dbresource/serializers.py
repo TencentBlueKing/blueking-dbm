@@ -36,7 +36,8 @@ from backend.db_services.ipchooser.constants import BkOsTypeCode
 from backend.db_services.ipchooser.serializers.base import QueryHostsBaseSer
 from backend.ticket.builders.common.base import HostInfoSerializer
 from backend.ticket.builders.common.field import DBTimezoneField
-from backend.ticket.constants import TicketStatus
+from backend.ticket.constants import TICKET_RUNNING_STATUS_SET, TicketStatus, TicketType
+from backend.ticket.models import Ticket
 
 
 class ResourceImportSerializer(serializers.Serializer):
@@ -89,6 +90,18 @@ class ResourceImportSerializer(serializers.Serializer):
         if check_dissolved:
             ips = [host_id__ip_map[host_id] for host_id in check_dissolved]
             raise serializers.ValidationError(_("导入失败，检测主机{}为待裁撤主机，请检查后重新导入").format(ips))
+
+        # 存在正在运行的已下架主机处理单据，则不允许导入
+        recycling_tickets = Ticket.objects.filter(
+            ticket_type__in=[TicketType.RECYCLE_OLD_HOST, TicketType.RECYCLE_APPLY_HOST],
+            status__in=TICKET_RUNNING_STATUS_SET,
+        )
+        recycling_map = {host["bk_host_id"]: t.id for t in recycling_tickets for host in t.details["recycle_hosts"]}
+        conflict_host = next(iter(set(host_ids) & recycling_map.keys()), None)
+        if conflict_host:
+            raise serializers.ValidationError(
+                _("导入失败，检测主机{}关联已下架主机处理单据{}").format(conflict_host, recycling_map[conflict_host])
+            )
 
         return attrs
 
