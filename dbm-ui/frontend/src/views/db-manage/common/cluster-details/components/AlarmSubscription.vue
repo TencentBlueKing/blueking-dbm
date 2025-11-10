@@ -90,7 +90,7 @@
 
   import { deleteSubscribe, saveSubscribe } from '@services/source/monitorSubscribe';
 
-  import { useAlarmSubscribe } from '@stores';
+  import { useAlarmSubscribe } from '@hooks';
 
   import AlertSeverityGroup from '@views/db-manage/common/cluster-batch-edit-subscription/components/content/components/AlertSeverityGroup.vue';
   import NoticeWaysGroup from '@views/db-manage/common/cluster-batch-edit-subscription/components/content/components/NoticeWaysGroup.vue';
@@ -112,9 +112,9 @@
   const alertSeverity = ref<number[]>([1]);
   const noticeWays = ref<string[]>(['weixin']);
 
-  const indicatorList = computed(() => metricsMap[props.clusterType].list || []);
+  const indicatorList = computed(() => metricsMap.value[props.clusterType].list || []);
 
-  let currentInfo: (typeof subscribedDomainInfo.dataList)[number] | undefined;
+  let currentInfo: (typeof subscribedDomainInfo.value.dataList)[number] | undefined;
 
   const defaultChecked = true;
 
@@ -138,12 +138,13 @@
   });
 
   watch(
-    () => [props.domain, subscribedDomainInfo.dataList],
+    () => [props.domain, subscribedDomainInfo.value.dataList],
     () => {
-      currentInfo = subscribedDomainInfo.dataList.find((item) => item.master_domain === props.domain);
+      currentInfo = subscribedDomainInfo.value.dataList.find((item) => item.master_domain === props.domain);
       if (currentInfo) {
         alertSeverity.value = currentInfo.alert_severity;
         noticeWays.value = currentInfo.notice_ways;
+        isEmpty.value = false;
       } else {
         isEmpty.value = true;
       }
@@ -175,7 +176,6 @@
       ],
       notice_ways: noticeWays.value,
     };
-    console.log(params);
     runSaveSubscribe(params);
   };
 
