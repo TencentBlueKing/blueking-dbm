@@ -28,6 +28,7 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"dbm-services/common/dbha-v2/internal/analysis/config"
@@ -87,6 +88,7 @@ func Run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// set a logger for DBHA
 	logCfg := logger.Config{
 		FileName:   config.Cfg.Log.Path,
 		LogLevel:   logger.Level(config.Cfg.Log.Level),
@@ -97,10 +99,25 @@ func Run(cmd *cobra.Command, args []string) error {
 	log := logger.NewDbmLogger(logCfg)
 	logger.SetLogger(log)
 
+	logBasename := filepath.Base(config.Cfg.Log.Path)
+	logDir := filepath.Dir(config.Cfg.Log.Path)
+
+	// create a logger for Etcd
+	etcdLogCfg := logCfg
+	etcdLogCfg.FileName = filepath.Join(logDir, "etcd-"+logBasename)
+
+	etcdLogger := logger.NewZapLogger(etcdLogCfg)
+
+	// create a logger for GORM
+	gormLogCfg := logCfg
+	gormLogCfg.FileName = filepath.Join(logDir, "gorm-"+logBasename)
+
+	gormLogger := logger.NewZapLogger(gormLogCfg)
+
 	logger.Debug("analysis configuration:%v", config.Cfg)
 
 	ctx := context.Background()
-	svr := &Service{logger: log.OriginLogger()}
+	svr := &Service{etcdLogger: etcdLogger.OriginLogger(), gormLogger: gormLogger}
 
 	setupGracefulShutdown(svr)
 
