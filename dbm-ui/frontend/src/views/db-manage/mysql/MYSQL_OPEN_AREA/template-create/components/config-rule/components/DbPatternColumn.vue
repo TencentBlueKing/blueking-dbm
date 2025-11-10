@@ -49,6 +49,7 @@
 
   interface Props {
     clusterId: number;
+    sourceDb: string;
   }
 
   type Emits = (e: 'batch-edit', value: string, field: string) => void;
@@ -79,6 +80,15 @@
   const handleBatchEdit = (value: string) => {
     emits('batch-edit', value, 'target_db_pattern');
   };
+
+  watch(
+    () => props.sourceDb,
+    () => {
+      if (props.sourceDb) {
+        modelValue.value = `${props.sourceDb}_{ID}`;
+      }
+    },
+  );
 </script>
 <style lang="less" scoped>
   .batch-edit-btn {
