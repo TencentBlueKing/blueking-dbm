@@ -84,7 +84,6 @@ func (z *ZapLogger) Sync() error {
 
 // NewZapLogger create a zap logger
 func NewZapLogger(config Config) Logger {
-
 	logRotator := &lumberjack.Logger{
 		Filename:   config.FileName,
 		MaxSize:    config.MaxSizeMB,
@@ -113,7 +112,7 @@ func NewZapLogger(config Config) Logger {
 
 	encoder := zapcore.NewConsoleEncoder(cfg.EncoderConfig)
 	core := zapcore.NewCore(encoder, zapcore.AddSync(logRotator), convertLevel(config.LogLevel))
-	logger := zap.New(core, zap.AddCaller(), zap.AddCallerSkip(2))
+	logger := zap.New(core)
 
 	return &ZapLogger{logger: logger, sugaredLogger: logger.Sugar()}
 }
