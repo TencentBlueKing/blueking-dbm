@@ -197,11 +197,16 @@ func InstanceSetGVR() schema.GroupVersionResource {
 
 // CreateCluster 创建集群
 func (c *ClusterProvider) CreateCluster(ctx *commentity.DbsContext, request *coreentity.Request) error {
+	// 检查集群版本
+	if err := c.checkClusterVersion(request); err != nil {
+		return err
+	}
+
+	// 检查是否重复创建
 	k8sClusterConfig, err := c.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
 	if err != nil {
 		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
 	}
-	// check duplicate cluster
 	originClusterEntity, err := c.clusterMetaProvider.FindByParams(&metaentity.ClusterQueryParams{
 		K8sClusterConfigID: k8sClusterConfig.ID,
 		ClusterName:        request.ClusterName,
@@ -215,12 +220,11 @@ func (c *ClusterProvider) CreateCluster(ctx *commentity.DbsContext, request *cor
 			fmt.Errorf("集群 %s 已存在，请勿重复创建", request.ClusterName))
 	}
 
-	// check termination policy,default is Delete
 	if request.TerminationPolicy == "" {
 		request.TerminationPolicy = coreconst.Delete
 	}
 
-	// save audit log
+	// 保存审计日志
 	addedRequestEntity, err := metautil.SaveAuditLog(c.reqRecordProvider, request, ctx.RequestType)
 	if err != nil {
 		return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
@@ -230,7 +234,7 @@ func (c *ClusterProvider) CreateCluster(ctx *commentity.DbsContext, request *cor
 		return dbserrors.NewK8sDbsError(dbserrors.CreateK8sClientError, err)
 	}
 
-	// install cluster
+	// 安装集群
 	values, err := c.installHelmRelease(request, k8sClient)
 	if err != nil {
 		exists, checkErr := coreutil.CheckClusterReleaseExists(k8sClient, request.Namespace, request.ClusterName)
@@ -249,22 +253,80 @@ func (c *ClusterProvider) CreateCluster(ctx *commentity.DbsContext, request *cor
 		return dbserrors.NewK8sDbsError(dbserrors.CreateClusterError, err)
 	}
 
-	// save metadata of cluster and component
+	// 保存集群元数据
 	clusterEntity, err := c.saveClusterCRMetaData(request, addedRequestEntity.RequestID, k8sClusterConfig.ID)
 	if err != nil {
 		return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
 	}
 
-	// save metadata of cluster tag
+	// 保存集群标签元数据
 	if len(request.Tags) > 0 {
 		if err = c.saveClusterTagsMeta(request, clusterEntity); err != nil {
 			return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
 		}
 	}
 
-	// save metadata of cluster release
+	// 保存集群 release 元数据
 	if err = c.saveClusterReleaseMeta(request, k8sClusterConfig, values); err != nil {
 		return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
+	}
+	return nil
+}
+
+// checkClusterVersion 检查集群版本是否与存储插件的支持版本匹配
+// 参数:
+//
+//	request - 包含集群配置信息的请求对象
+//	err - 可能的错误信息
+//
+// 返回值:
+//
+//	error - 检查过程中遇到的错误，如果检查通过则为nil
+//	bool - 是否发生了错误，true表示有错误发生
+func (c *ClusterProvider) checkClusterVersion(request *coreentity.Request) error {
+	addonQueryParams := &metaentity.AddonQueryParams{
+		AddonType:    request.StorageAddonType,
+		AddonVersion: request.StorageAddonVersion,
+	}
+	storageAddon, err := c.addonMetaProvider.FindStorageAddonByParams(addonQueryParams)
+	if err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError,
+			fmt.Errorf("查询存储插件元数据失败: %w", err))
+	}
+	if len(storageAddon) == 0 {
+		return dbserrors.NewK8sDbsError(dbserrors.CreateClusterError,
+			fmt.Errorf("插件类型 '%s' 版本 '%s' 不存在或未配置，请检查插件配置", request.StorageAddonType, request.StorageAddonVersion))
+	}
+
+	// 反序列化支持的版本列表
+	var supportedVersions []string
+	if err := json.Unmarshal([]byte(storageAddon[0].SupportedVersions), &supportedVersions); err != nil {
+		slog.Error("failed to unmarshal supported versions", "error", err)
+		return dbserrors.NewK8sDbsError(dbserrors.CreateClusterError,
+			fmt.Errorf("supported versions 反序列化失败"))
+	}
+
+	// 检查组件版本是否在支持的版本列表中
+	for _, component := range request.ComponentList {
+		if !lo.Contains(supportedVersions, component.Version) {
+			return dbserrors.NewK8sDbsError(dbserrors.CreateClusterError,
+				fmt.Errorf("组件 %s 的版本 %s 不在支持的版本列表中，支持的版本: %v",
+					component.ComponentName, component.Version, supportedVersions))
+		}
+	}
+
+	// 反序列化支持的AC版本列表
+	var supportedAcVersions []string
+	if err := json.Unmarshal([]byte(storageAddon[0].SupportedAcVersions), &supportedAcVersions); err != nil {
+		slog.Error("failed to unmarshal supported ac versions", "error", err)
+		return dbserrors.NewK8sDbsError(dbserrors.CreateClusterError,
+			fmt.Errorf("supported ac versions 反序列化失败"))
+	}
+
+	if !lo.Contains(supportedAcVersions, request.AddonClusterVersion) {
+		return dbserrors.NewK8sDbsError(dbserrors.CreateClusterError,
+			fmt.Errorf("addonClusterVersion 版本 %s 不在支持的版本列表中，支持的版本: %v",
+				request.AddonClusterVersion, supportedAcVersions))
 	}
 	return nil
 }
