@@ -51,6 +51,7 @@
             v-model="item.specId"
             :cluster-type="ClusterTypes.TENDBCLUSTER"
             :current-spec-id-list="item.hostList.map((item) => item.spec_config.id)"
+            disabled-current-spec
             :machine-type="MachineTypes.TENDBCLUSTER_PROXY"
             required
             selectable
