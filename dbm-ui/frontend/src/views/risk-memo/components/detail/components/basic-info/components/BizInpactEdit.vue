@@ -149,6 +149,7 @@
         overflow: hidden;
 
         .bk-tag {
+          max-width: none;
           padding: 1px 8px;
         }
       }
