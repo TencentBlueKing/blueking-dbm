@@ -13,7 +13,7 @@ export const affinityMap: {
   [x in Affinity]?: string;
 } = {
   [Affinity.CROS_SUBZONE]: t('跨园区'),
-  [Affinity.CROSS_RACK]: t('不限园区'),
+  [Affinity.CROSS_RACK]: t('跨机架'),
   [Affinity.MAX_EACH_ZONE_EQUAL]: t('尽量分散'),
   [Affinity.NONE]: t('无'),
   [Affinity.SAME_SUBZONE_CROSS_SWTICH]: t('指定园区'),
@@ -24,7 +24,7 @@ export const mongodbAffinityMap: {
   [x in Affinity]?: string;
 } = {
   [Affinity.CROS_SUBZONE]: t('跨园区（强）'),
-  [Affinity.CROSS_RACK]: t('不限园区'),
+  [Affinity.CROSS_RACK]: t('跨机架'),
   [Affinity.MAJORITY_ELECTION_DISTRI]: t('跨园区（弱）'),
   [Affinity.NONE]: t('无'),
   [Affinity.SAME_SUBZONE_CROSS_SWTICH]: t('指定园区'),
