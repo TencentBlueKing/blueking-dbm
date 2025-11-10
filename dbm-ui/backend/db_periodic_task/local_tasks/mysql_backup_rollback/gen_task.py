@@ -705,24 +705,21 @@ def _collect_all_clusters(cluster_biz_map, recover_success_map, count, num):
         exclude_condition |= Q(bk_biz_id__in=ignored_biz_ids)
     if ignored_cluster_ids:
         exclude_condition |= Q(id__in=ignored_cluster_ids)
-    if count <= num * 3:
-        clusters = Cluster.objects.filter(cluster_type__in=[ClusterType.TenDBCluster, ClusterType.TenDBHA]).exclude(
-            exclude_condition
-        )
-        fallback_clusters = 0
+    clusters = Cluster.objects.filter(cluster_type__in=[ClusterType.TenDBCluster, ClusterType.TenDBHA]).exclude(
+        exclude_condition
+    )
+    fallback_clusters = 0
 
-        for cluster in clusters:
-            recover_success_cnt = recover_success_map.get(cluster.immute_domain, 0)
-            # 兜底集群使用最低优先级
-            priority = max(500 - recover_success_cnt * 50, 100)  # 优先级范围 100-500
-            heapq.heappush(cluster_biz_map[cluster.bk_biz_id], Task(priority, cluster))
-            fallback_clusters += 1
-            count += 1
-            if count >= num * 3:
-                break
+    for cluster in clusters:
+        recover_success_cnt = recover_success_map.get(cluster.immute_domain, 0)
+        # 兜底集群使用最低优先级
+        priority = max(500 - recover_success_cnt * 50, 100)  # 优先级范围 100-500
+        heapq.heappush(cluster_biz_map[cluster.bk_biz_id], Task(priority, cluster))
+        fallback_clusters += 1
+        count += 1
 
-        if fallback_clusters > 0:
-            logger.info(_("添加了 {} 个兜底集群").format(fallback_clusters))
+    if fallback_clusters > 0:
+        logger.info(_("添加了 {} 个兜底集群").format(fallback_clusters))
 
     return count
 
