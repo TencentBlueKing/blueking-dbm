@@ -30,6 +30,7 @@ from backend.db_services.dbbase.constants import IpDest
 from backend.db_services.ipchooser.constants import BK_OS_CODE__TYPE, BkOsType
 from backend.flow.consts import LINUX_ADMIN_USER_FOR_CHECK, WINDOW_ADMIN_USER_FOR_CHECK
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
+from backend.flow.engine.bamboo.scene.common.install_plugins import install_nodeman_plugins
 from backend.flow.plugins.components.collections.common.external_service import ExternalServiceComponent
 from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
 from backend.flow.plugins.components.collections.common.sa_init import SaInitComponent
@@ -93,7 +94,8 @@ class ImportResourceInitStepFlow(object):
         self.data["task_id"] = self.root_id
 
     def __build_machine_import_pipeline(self, p, data):
-        ip_list = data["hosts"]
+        host_list = data["hosts"]
+        host_ids = [host["host_id"] for host in host_list]
         bk_biz_id = data["bk_biz_id"]
 
         os_type = BK_OS_CODE__TYPE[data.get("os_type", BkOsType.LINUX.value)]
@@ -110,7 +112,7 @@ class ImportResourceInitStepFlow(object):
                 act_component_code=CheckMachineIdleComponent.code,
                 kwargs=asdict(
                     InitCheckForResourceKwargs(
-                        ips=[host["ip"] for host in ip_list], bk_biz_id=bk_biz_id, account_name=account_name
+                        ips=[host["ip"] for host in host_list], bk_biz_id=bk_biz_id, account_name=account_name
                     )
                 ),
             )
@@ -121,7 +123,11 @@ class ImportResourceInitStepFlow(object):
             p.add_act(
                 act_name=_("执行sa初始化"),
                 act_component_code=SaInitComponent.code,
-                kwargs={"ips": [host["ip"] for host in ip_list], "bk_biz_id": bk_biz_id, "account_name": account_name},
+                kwargs={
+                    "ips": [host["ip"] for host in host_list],
+                    "bk_biz_id": bk_biz_id,
+                    "account_name": account_name,
+                },
             )
 
         # 调用资源导入接口
@@ -163,10 +169,13 @@ class ImportResourceInitStepFlow(object):
             kwargs={
                 "bk_biz_id": get_resource_biz(),
                 "bk_module_ids": [get_or_create_resource_module()],
-                "bk_host_ids": [host["host_id"] for host in ip_list],
+                "bk_host_ids": host_ids,
                 "update_host_properties": {"dbm_meta": [], "need_monitor": False, "update_operator": False},
             },
         )
+
+        # 主机安装节点管理插件
+        p.add_sub_pipeline(install_nodeman_plugins(self.root_id, self.data["uid"], host_ids))
 
     def machine_init_flow(self):
         """资源池导入"""

@@ -22,12 +22,10 @@ from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster
 from backend.db_services.dbpermission.db_account.handlers import AccountHandler
 from backend.db_services.mysql.permission.clone.handlers import CloneHandler
-from backend.flow.consts import DBA_ROOT_USER, DEPENDENCIES_PLUGINS, WriteContextOpType
+from backend.flow.consts import DBA_ROOT_USER, WriteContextOpType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.plugins.components.collections.common.install_nodeman_plugin import (
-    InstallNodemanPluginServiceComponent,
-)
+from backend.flow.engine.bamboo.scene.common.install_plugins import install_nodeman_plugins
 from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
 from backend.flow.plugins.components.collections.mysql.authorize_rules import AuthorizeRulesComponent
 from backend.flow.plugins.components.collections.mysql.authorize_rules_v2 import AuthorizeRulesV2Component
@@ -46,7 +44,6 @@ from backend.flow.plugins.components.collections.mysql.mysql_os_init import (
 )
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.mysql.verify_checksum import VerifyChecksumComponent
-from backend.flow.utils.common_act_dataclass import InstallNodemanPluginKwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     AuthorizeKwargs,
     CheckClientConnKwargs,
@@ -486,18 +483,8 @@ def init_machine_sub_flow(
         )
 
     # 安装插件
-    acts_list = []
-    # 这里用 bk_host_ids 临时兼容，更合理的做法是，参数流转都不使用 IP，统一使用 bk_host_id
     if bk_host_ids:
-        for plugin_name in DEPENDENCIES_PLUGINS:
-            acts_list.append(
-                {
-                    "act_name": _("安装[{}]插件".format(plugin_name)),
-                    "act_component_code": InstallNodemanPluginServiceComponent.code,
-                    "kwargs": asdict(InstallNodemanPluginKwargs(bk_host_ids=bk_host_ids, plugin_name=plugin_name)),
-                }
-            )
-        sub_pipeline.add_parallel_acts(acts_list=acts_list)
+        sub_pipeline.add_sub_pipeline(install_nodeman_plugins(root_id, uid, bk_host_ids))
 
     # 判断是否需要执行按照MySQL Perl依赖
     if env.YUM_INSTALL_PERL and yum_install_perl_ips:

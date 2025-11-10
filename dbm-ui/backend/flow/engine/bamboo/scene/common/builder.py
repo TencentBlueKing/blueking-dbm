@@ -137,6 +137,7 @@ class Builder(object):
         is_remote_rewritable: bool = False,
         skippable: bool = True,
         retryable: bool = True,
+        timeout: int = None,
     ):
         """
         add_act 方法：为流程加入活动节点，并加入流程数字典
@@ -152,6 +153,7 @@ class Builder(object):
         @param is_remote_rewritable, 目前版本有bug，在有设置上下文的流程中，部分场景加入上下文交互列表会有导致上下文失效，参数设置为了避免出现这个bug，默认False即可
         @param skippable：节点是否可以跳过，默认可跳过
         @param retryable：节点是否可以重试，默认可以重试
+        @param timeout：节点超时时间，默认不设置
         """
 
         act = ServiceActivity(
@@ -160,6 +162,7 @@ class Builder(object):
             error_ignorable=error_ignorable,
             skippable=skippable,
             retryable=retryable,
+            timeout=timeout,
         )
         kwargs.update({"root_id": self.root_id, "node_id": act.id, "node_name": act_name})
         act.component.inputs.kwargs = Var(type=Var.PLAIN, value=kwargs)
@@ -200,6 +203,7 @@ class Builder(object):
                 error_ignorable=act_info.get("error_ignorable", False),
                 retryable=act_info.get("retryable", True),
                 skippable=act_info.get("skippable", True),
+                timeout=act_info.get("timeout", None),
             )
             act_info["kwargs"].update({"root_id": self.root_id, "node_id": act.id, "node_name": act_info["act_name"]})
             act.component.inputs.kwargs = Var(type=Var.PLAIN, value=act_info["kwargs"])

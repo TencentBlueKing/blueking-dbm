@@ -22,7 +22,6 @@ from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance
 from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
 from backend.flow.consts import (
     DBM_SQLSERVER_JOB_LONG_TIMEOUT,
-    DEPENDENCIES_PLUGINS,
     WINDOW_ADMIN_USER_FOR_CHECK,
     SqlserverBackupFileTagEnum,
     SqlserverBackupJobExecMode,
@@ -35,10 +34,8 @@ from backend.flow.consts import (
 )
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.engine.bamboo.scene.common.install_plugins import install_nodeman_plugins
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
-from backend.flow.plugins.components.collections.common.install_nodeman_plugin import (
-    InstallNodemanPluginServiceComponent,
-)
 from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
 from backend.flow.plugins.components.collections.common.sa_udns_add import UdnsAddInMachineComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
@@ -59,7 +56,7 @@ from backend.flow.plugins.components.collections.sqlserver.trans_files import Tr
 from backend.flow.plugins.components.collections.sqlserver.update_window_gse_config import (
     UpdateWindowGseConfigComponent,
 )
-from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs, InstallNodemanPluginKwargs
+from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import InitCheckKwargs, UpdateDnsRecordKwargs
 from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
     DownloadBackupFileKwargs,
@@ -132,20 +129,8 @@ def init_machine_sub_flow(uid: str, bk_biz_id: int, bk_cloud_id: int, root_id: s
         )
 
     # 安装蓝鲸插件
-    acts_list = []
-    for plugin_name in DEPENDENCIES_PLUGINS:
-        acts_list.append(
-            {
-                "act_name": _("安装[{}]插件".format(plugin_name)),
-                "act_component_code": InstallNodemanPluginServiceComponent.code,
-                "kwargs": asdict(
-                    InstallNodemanPluginKwargs(
-                        bk_host_ids=[t.bk_host_id for t in target_hosts], plugin_name=plugin_name
-                    )
-                ),
-            }
-        )
-    sub_pipeline.add_parallel_acts(acts_list=acts_list)
+    bk_host_ids = [t.bk_host_id for t in target_hosts]
+    sub_pipeline.add_sub_pipeline(install_nodeman_plugins(root_id, uid, bk_host_ids))
 
     return sub_pipeline.build_sub_process(sub_name=_("初始化机器"))
 
