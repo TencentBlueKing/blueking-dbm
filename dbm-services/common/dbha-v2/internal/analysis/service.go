@@ -68,7 +68,8 @@ type Service struct {
 	wflow        *workflow.Workflow
 	db           *hamysql.DB
 	wg           sync.WaitGroup
-	logger       *zap.Logger // only for the gRPC
+	etcdLogger   *zap.Logger
+	gormLogger   logger.Logger
 }
 
 func (s *Service) Run(ctx context.Context) error {
@@ -151,7 +152,7 @@ func (s *Service) createDiscovery() error {
 		discovery.OptionPassword(config.Cfg.Discovery.Password),
 		discovery.OptionServiceName(s.info.Name),
 		discovery.OptionServiceID(s.info.ID),
-		discovery.OptionLogger(s.logger),
+		discovery.OptionLogger(s.etcdLogger),
 	)
 
 	if err != nil {
@@ -236,6 +237,7 @@ func (s *Service) createStorage() error {
 		hamysql.OptionDBName(hamodel.DatabaseName),
 		hamysql.OptionUser(config.Cfg.Storage.User),
 		hamysql.OptionPassword(config.Cfg.Storage.Password),
+		hamysql.OptionLogger(s.gormLogger),
 	)
 
 	if err != nil {

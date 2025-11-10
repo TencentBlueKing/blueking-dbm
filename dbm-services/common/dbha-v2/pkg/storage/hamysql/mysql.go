@@ -28,9 +28,11 @@ import (
 	"fmt"
 
 	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/logger"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	gormlogger "gorm.io/gorm/logger"
 )
 
 type DB struct {
@@ -68,7 +70,19 @@ func New(opts ...Option) (*DB, error) {
 		}
 	}
 
-	gdb, err := gorm.Open(mysql.New(db.opts.Config()), &gorm.Config{})
+	gormCfg := &gorm.Config{}
+	var gormLogger *logger.GormLogger
+	if db.opts.logger != nil {
+		gormLogger = logger.NewGormLogger(db.opts.logger, &gormlogger.Config{
+			SlowThreshold:             db.opts.logSlowThreshold,
+			IgnoreRecordNotFoundError: db.opts.logIgnoreRecordNotFoundError,
+			ParameterizedQueries:      db.opts.logParameterizedQueries,
+		})
+
+		gormCfg.Logger = gormLogger
+	}
+
+	gdb, err := gorm.Open(mysql.New(db.opts.Config()), gormCfg)
 	if err == nil {
 		db.gdb = gdb
 		return db, nil
