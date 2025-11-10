@@ -50,7 +50,7 @@
 
   import { saveSubscribe } from '@services/source/monitorSubscribe';
 
-  import { useAlarmSubscribe } from '@stores';
+  import { useAlarmSubscribe } from '@hooks';
 
   import { messageSuccess } from '@utils';
 
@@ -107,15 +107,15 @@
             }[]
           >
         >((dataMap, item) => {
-          const displayName = metricsMap[item.cluster_type]?.displayName;
+          const displayName = metricsMap.value[item.cluster_type]?.displayName;
           if (!dataMap[displayName]) {
             Object.assign(dataMap, { [displayName]: [] });
           }
           dataMap[displayName].push({
             clusterDomian: item.master_domain,
             clusterType: item.cluster_type,
-            isIgnore: !metricsMap[item.cluster_type].list.length,
-            isNew: !subscribedDomainInfo.dataSet.has(item.master_domain),
+            isIgnore: !metricsMap.value[item.cluster_type].list.length,
+            isNew: !subscribedDomainInfo.value.dataSet.has(item.master_domain),
           });
           return dataMap;
         }, {});

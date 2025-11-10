@@ -12,6 +12,7 @@
  */
 
 export * from './useAlarmEventsCount';
+export * from './useAlarmSubscribe';
 export * from './useApplyBase';
 export * from './useBatchCreateTicket';
 export * from './useBeforeClose';
