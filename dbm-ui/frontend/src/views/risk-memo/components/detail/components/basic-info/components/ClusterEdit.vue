@@ -182,14 +182,10 @@
       margin-top: -1px;
 
       &.is-effect-all {
-        margin-top: -3px;
-
-        .bk-tag {
-          padding: 2px 8px 0;
-        }
+        margin-top: -2px;
 
         .edit-main {
-          margin-top: 7px;
+          margin-top: 6px;
         }
       }
 
