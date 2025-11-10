@@ -39,7 +39,7 @@
 
   import { deleteSubscribe } from '@services/source/monitorSubscribe';
 
-  import { useAlarmSubscribe } from '@stores';
+  import { useAlarmSubscribe } from '@hooks';
 
   import { messageSuccess } from '@utils';
 
@@ -63,8 +63,8 @@
   const { t } = useI18n();
   const { initSubscribedDomainInfo, metricsMap, subscribedDomainInfo } = useAlarmSubscribe();
 
-  const isAbleSubscribe = computed(() => metricsMap[props.data.cluster_type].list.length > 0);
-  const isNotSubscribed = computed(() => !subscribedDomainInfo.dataSet.has(props.data.master_domain));
+  const isAbleSubscribe = computed(() => metricsMap.value[props.data.cluster_type]?.list.length > 0);
+  const isNotSubscribed = computed(() => !subscribedDomainInfo.value.dataSet.has(props.data.master_domain));
 
   const { run: deleteSubscribeRun } = useRequest(deleteSubscribe, {
     manual: true,
@@ -100,7 +100,9 @@
   };
 
   const handleConfirmDelete = () => {
-    const currentInfo = subscribedDomainInfo.dataList.find((item) => item.master_domain === props.data.master_domain);
+    const currentInfo = subscribedDomainInfo.value.dataList.find(
+      (item) => item.master_domain === props.data.master_domain,
+    );
     if (!currentInfo) {
       return;
     }

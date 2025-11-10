@@ -131,9 +131,7 @@
   import { getMonitorUrls } from '@services/source/monitorGrafana';
   import type { ClusterListNode } from '@services/types';
 
-  import { useUrlSearch } from '@hooks';
-
-  import { useAlarmSubscribe } from '@stores';
+  import { useAlarmSubscribe, useUrlSearch } from '@hooks';
 
   import { clusterTypeInfos, ClusterTypes } from '@common/const';
 
@@ -210,7 +208,7 @@
 
   const dbType = computed(() => clusterTypeInfos[props.clusterData.cluster_type].dbType);
   const isLoading = computed(() => !isFixedTab.value && isPanelLoading.value);
-  const isAbleSubscribe = computed(() => metricsMap[props.clusterData.cluster_type]?.list?.length > 0);
+  const isAbleSubscribe = computed(() => metricsMap.value[props.clusterData.cluster_type]?.list?.length > 0);
 
   const calcTabContentHeight = _.throttle(() => {
     if (rootRef.value) {
