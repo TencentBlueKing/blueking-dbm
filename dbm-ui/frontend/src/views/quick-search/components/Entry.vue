@@ -139,7 +139,7 @@
             field="disaster_tolerance_level"
             :label="t('容灾要求')">
             <template #default="{data: rowData}: {data: QuickSearchEntryModel}">
-              {{ rowData.disaster_tolerance_level || '--' }}
+              {{ rowData.disasterToleranceLevelName || '--' }}
             </template>
           </BkTableColumn>
           <BkTableColumn
@@ -242,7 +242,7 @@
       [t('业务名称')]: props.bizIdNameMap[dataItem.bk_biz_id],
       [t('主 DBA')]: dataItem.dba,
       [t('地域')]: dataItem.region,
-      [t('容灾要求')]: dataItem.disaster_tolerance_level,
+      [t('容灾要求')]: dataItem.disasterToleranceLevelName,
       [t('所属业务')]: String(dataItem.bk_biz_id),
       [t('所属集群')]: dataItem.immute_domain,
       [t('架构类型')]: dataItem.cluster_type,
