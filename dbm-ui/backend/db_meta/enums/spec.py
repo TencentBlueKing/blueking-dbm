@@ -54,3 +54,5 @@ class SpecMachineType(StrStructuredEnum):
     DORIS_FOLLOWER = EnumField("doris_follower", _("doris_follower"))
     DORIS_OBSERVER = EnumField("doris_observer", _("doris_observer"))
     DORIS_BACKEND = EnumField("doris_backend", _("doris_backend"))
+
+    ORACLE = EnumField("oracle", _("oracle"))
