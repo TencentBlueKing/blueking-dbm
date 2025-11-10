@@ -68,7 +68,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
 
-  import { useAlarmSubscribe } from '@stores';
+  import { useAlarmSubscribe } from '@hooks';
 
   import { ClusterTypes } from '@common/const';
 
@@ -128,7 +128,7 @@
 
   const isHover = ref(false);
   const viewActionId = computed(() => viewActionIdMap[props.clusterType]);
-  const isSubscribed = computed(() => subscribedDomainInfo.dataSet.has(props.data.master_domain));
+  const isSubscribed = computed(() => subscribedDomainInfo.value.dataSet.has(props.data.master_domain));
 
   watch(
     route,

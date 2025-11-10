@@ -150,7 +150,7 @@
                 text
                 theme="primary"
                 @click="() => handleEditSubscription(row)">
-                {{ metricsMap[row.cluster_type].list.length }}
+                {{ metricsMap[row.cluster_type]?.list.length }}
               </BkButton>
             </template>
           </TableColumn>
@@ -181,6 +181,7 @@
             </template>
           </TableColumn>
           <TableColumn
+            col-key="cluster_id"
             fixed="right"
             resizable
             :title="t('操作')"
@@ -260,7 +261,9 @@
 
   import { deleteSubscribe, saveSubscribe } from '@services/source/monitorSubscribe';
 
-  import { useAlarmSubscribe, useGlobalBizs } from '@stores';
+  import { useAlarmSubscribe } from '@hooks';
+
+  import { useGlobalBizs } from '@stores';
 
   import { clusterTypeListPageMap, DBTypeInfos } from '@common/const';
 
@@ -349,6 +352,7 @@
     manual: true,
     onSuccess: () => {
       messageSuccess('保存成功');
+      initSubscribedDomainInfo();
     },
   });
 
@@ -363,15 +367,15 @@
   const refreshTableData = (isFilter = false) => {
     const start = (pagination.current - 1) * pagination.limit;
     const end = start + pagination.limit;
-    const totalList = isFilter ? filteredTableData : subscribedDomainInfo.dataList;
+    const totalList = isFilter ? filteredTableData : subscribedDomainInfo.value.dataList;
     tableData.value = totalList.slice(start, end);
   };
 
   watch(
-    () => subscribedDomainInfo.dataList,
+    () => subscribedDomainInfo.value.dataList,
     () => {
       refreshTableData();
-      pagination.count = subscribedDomainInfo.dataList.length;
+      pagination.count = subscribedDomainInfo.value.dataList.length;
     },
     {
       immediate: true,
@@ -423,7 +427,7 @@
       return;
     }
 
-    filteredTableData = subscribedDomainInfo.dataList.filter((item) =>
+    filteredTableData = subscribedDomainInfo.value.dataList.filter((item) =>
       Object.entries(payload.filter!).every(([key, value]) => {
         return (item as Record<string, unknown>)[key] === value;
       }),
@@ -449,7 +453,7 @@
     isWholeChecked.value = checked;
     isCurrentPageAllSelected.value = false;
     if (checked) {
-      subscribedDomainInfo.dataList.forEach((item) => {
+      subscribedDomainInfo.value.dataList.forEach((item) => {
         rowSelectMemo.value[item.id] = item;
       });
     } else {
@@ -548,11 +552,12 @@
       .alarm-subscription-table {
         .t-table__header {
           th {
-            &:not(:last-child) {
-              border-right: 1px solid #f0f1f5 !important;
-            }
-
             border-top: none !important;
+            // border-right: 1px solid #f0f1f5 !important;
+
+            // &:not(:last-child) {
+            //   border-right: 1px solid #f0f1f5 !important;
+            // }
           }
         }
       }
@@ -561,6 +566,7 @@
         position: relative;
         display: flex;
         align-items: center;
+        padding-left: 8px;
 
         .db-table-whole-check {
           position: relative;
@@ -595,14 +601,10 @@
       }
 
       .table-footer {
-        // position: relative;
-        // z-index: 1;
         display: flex;
         height: 60px;
         padding: 0 16px;
-        // margin-top: -1px;
         background: #fff;
-        // border-top: 1px solid var(--td-component-border);
         align-items: center;
 
         .bk-pagination {

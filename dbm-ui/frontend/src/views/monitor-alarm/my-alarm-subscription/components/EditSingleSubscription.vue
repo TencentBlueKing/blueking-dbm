@@ -71,9 +71,7 @@
 
   import { saveSubscribe } from '@services/source/monitorSubscribe';
 
-  import { useBeforeClose } from '@hooks';
-
-  import { useAlarmSubscribe } from '@stores';
+  import { useAlarmSubscribe, useBeforeClose } from '@hooks';
 
   import AlertSeverityGroup from '@views/db-manage/common/cluster-batch-edit-subscription/components/content/components/AlertSeverityGroup.vue';
   import NoticeWaysGroup from '@views/db-manage/common/cluster-batch-edit-subscription/components/content/components/NoticeWaysGroup.vue';
@@ -99,7 +97,7 @@
   const alertSeverity = ref<number[]>([]);
   const noticeWays = ref<string[]>([]);
 
-  const indicatorList = computed(() => (props.data ? metricsMap[props.data.cluster_type].list : []));
+  const indicatorList = computed(() => (props.data ? metricsMap.value[props.data.cluster_type].list : []));
 
   const defaultChecked = true;
 

@@ -35,7 +35,7 @@ export function getSubscribeMetrics(params?: { limit?: number; offset?: number }
         name: string;
       }[]
     >
-  >(`${path}/get_subscribe_metrics/`, params);
+  >(`${path}/get_subscribe_metrics/`, params, { cache: 3000 });
 }
 
 /**
@@ -66,7 +66,7 @@ export function getSubscribeList() {
         username: string;
       }[]
     >
-  >(`${path}/list_subscribe/`);
+  >(`${path}/list_subscribe/`, undefined, { cache: 1000 });
 }
 
 /**
