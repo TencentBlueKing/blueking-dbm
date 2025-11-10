@@ -184,7 +184,7 @@
   Object.values(DBTypeInfos).forEach((db) => {
     dbNameMap[db.id] = db.name;
     db.machineList.forEach((machine) => {
-      machineTypeMap[`${machine.value}`] = `${db.name} - ${machine.label}`;
+      machineTypeMap[machine.value] = machine.label;
     });
   });
 

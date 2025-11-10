@@ -27,15 +27,12 @@
           title="ID"
           width="80">
           <template #default="{ row }: { row: IRowData }">
-            <RouterLink
-              :to="{
-                name: 'resourcePool',
-                params: {
-                  page: 'replenish-list',
-                },
-              }">
+            <BkButton
+              text
+              theme="primary"
+              @click="handleViewDetail(row)">
               {{ row.id }}
-            </RouterLink>
+            </BkButton>
           </template>
         </TableColumn>
         <TableColumn
