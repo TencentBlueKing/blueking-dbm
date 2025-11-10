@@ -297,7 +297,7 @@ class RedisAffinityChecker:
             proxy_count / 3 * 2
         )  # We expect each subzone contains no more than 2/3 of all proxies
 
-        for subzone_id, rack_set in racks_map.items():
+        for subzone_id in racks_map.keys():
             sub_proxy_count = machines_map[subzone_id]
             # Collect all IPs for this subzone across all racks
             all_ips_in_subzone = [ip for (sz_id, _), ips in ips_map.items() if sz_id == subzone_id for ip in ips]
@@ -308,14 +308,6 @@ class RedisAffinityChecker:
                     sub_proxy_count, ips_str, subzone_id, max_proxies_per_subzone
                 )
                 return msg, ReportStateType.ABNORMAL
-
-            rack_count = len(rack_set)
-            ok, min_required_racks = cls._cross_rack_check_and_get_limits(sub_proxy_count, rack_count)
-            if not ok:
-                msg = _(
-                    "Affinity violation: {} proxies [{}] in subzone(id: {}) are in {} rack(s), expected at least {} racks"
-                ).format(sub_proxy_count, ips_str, subzone_id, rack_count, min_required_racks)
-                return msg, ReportStateType.WARNING
 
         return None, ReportStateType.NORMAL
 
