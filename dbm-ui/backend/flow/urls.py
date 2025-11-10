@@ -89,7 +89,6 @@ from backend.flow.views.migrate_views.riak_migrate import RiakClusterMigrateApiV
 from backend.flow.views.mongodb_scene import (
     ClusterInstallApiView,
     MongoBackupApiView,
-    MongoDBInstanceFixStatusView,
     MongoDataExportApiView,
     MongoDBClusterAddShardView,
     MongoDBClusterMigrateView,
@@ -102,6 +101,7 @@ from backend.flow.views.mongodb_scene import (
     MongoDBIncreaseMongoSView,
     MongoDBIncreaseNodeView,
     MongoDBInstanceDeInstallView,
+    MongoDBInstanceFixStatusView,
     MongoDBInstanceMigrateView,
     MongoDBInstanceRestartView,
     MongoDBReduceMongoSView,
