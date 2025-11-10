@@ -22,13 +22,13 @@
             <DbIcon
               class="mr-4"
               type="bk-dbm-icon db-icon-legend" />
-            {{ t('操作记录视角') }}
+            {{ t('补货操作视角') }}
           </BkRadioButton>
           <BkRadioButton label="ticket-view">
             <DbIcon
               class="mr-4"
               type="bk-dbm-icon db-icon-danju" />
-            {{ t('单据视角') }}
+            {{ t('补货单据视角') }}
           </BkRadioButton>
         </BkRadioGroup>
         <BkButton

@@ -179,22 +179,6 @@
             <span>{{ row.create_at ? utcDisplayTime(row.create_at) : '--' }}</span>
           </template>
         </TableColumn>
-        <TableColumn
-          col-key="operate"
-          fixed="right"
-          :title="t('操作')"
-          width="100">
-          <template #default="{ row }: { row: IRowData }">
-            <BkButton
-              :disabled="isSubmitting"
-              :loading="isSubmitting"
-              text
-              theme="primary"
-              @click="() => handleReplenish(row)">
-              {{ t('再次提单') }}
-            </BkButton>
-          </template>
-        </TableColumn>
       </PrimaryTable>
       <div class="table-footer">
         <BkPagination
@@ -216,13 +200,11 @@
   </BkLoading>
 </template>
 <script setup lang="tsx">
-  import InfoBox from 'bkui-vue/lib/info-box';
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import type ReplenishModel from '@services/model/db-resource/Replenish';
   import TicketModel from '@services/model/ticket/ticket';
-  import { createResourceReplenish, listTicketApplyCount } from '@services/source/dbresourceReplenish';
+  import { listTicketApplyCount } from '@services/source/dbresourceReplenish';
   import { getTicketDetails } from '@services/source/ticket';
   import { getInnerFlowInfo } from '@services/source/ticketFlow';
 
@@ -233,7 +215,7 @@
   import TicketDetail from '@components/ticket-detail/index.vue';
   import TicketStatusTag from '@components/ticket-status-tag/Index.vue';
 
-  import { getBusinessHref, getOffset, messageSuccess, utcDisplayTime } from '@utils';
+  import { getBusinessHref, getOffset, utcDisplayTime } from '@utils';
 
   import useFetchData from './hooks/use-fetch-data';
 
@@ -269,14 +251,6 @@
     });
   });
 
-  const { loading: isSubmitting, run: replenish } = useRequest(createResourceReplenish, {
-    manual: true,
-    onSuccess: () => {
-      messageSuccess('手动补货单据已提交');
-      fetchData();
-    },
-  });
-
   watch(tableData, () => {
     if (tableData.value.length < 1) {
       return;
@@ -301,45 +275,6 @@
       });
     });
   });
-
-  const handleReplenish = (ticketDetail: IRowData) => {
-    const details = ticketDetailsInfo.value[ticketDetail.id];
-    const replenishList = [
-      {
-        city: details.city,
-        count: details.count,
-        db_type: details.db_type,
-        os_name: details.os_name,
-        spec_id: details.spec_id,
-        subzone: details.subzone,
-      },
-    ];
-
-    InfoBox({
-      cancelText: t('取消'),
-      confirmText: t('确认补货'),
-      content: () => (
-        <>
-          <div style='text-align: left; padding: 0 24px;'>
-            <p
-              class='pt-12 replenish-confirm-tip'
-              style='font-size: 12px;'>
-              {t('确认后，将按照待补货列表发起补货操作')}
-            </p>
-          </div>
-        </>
-      ),
-      onConfirm: () => {
-        return replenish({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          infos: replenishList,
-          remark: t('手动补货'),
-        });
-      },
-      title: t('确认一键补货 n 台？', [replenishList.length]),
-      type: 'warning',
-    });
-  };
 
   const handleGoDetail = (ticketData: TicketModel, event: MouseEvent) => {
     if (event.ctrlKey || event.metaKey) {
