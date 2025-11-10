@@ -82,7 +82,7 @@
 
   import { deleteSubscribe } from '@services/source/monitorSubscribe';
 
-  import { useAlarmSubscribe } from '@stores';
+  import { useAlarmSubscribe } from '@hooks';
 
   import { messageSuccess } from '@utils';
 
@@ -133,7 +133,7 @@
     () => [isShow.value, props.selected],
     () => {
       if (isShow.value) {
-        domainSubscribeIdMap.value = subscribedDomainInfo.dataList.reduce<Record<string, number>>(
+        domainSubscribeIdMap.value = subscribedDomainInfo.value.dataList.reduce<Record<string, number>>(
           (dataMap, item) =>
             Object.assign(dataMap, {
               [item.master_domain]: item.id,
@@ -163,7 +163,7 @@
     { immediate: true },
   );
 
-  const checkIsDomainSubscribe = (domain: string) => subscribedDomainInfo.dataSet.has(domain);
+  const checkIsDomainSubscribe = (domain: string) => subscribedDomainInfo.value.dataSet.has(domain);
 
   const handleConfirm = () => {
     const ids = props.selected.map((item) => domainSubscribeIdMap.value[item.master_domain]).filter((item) => !!item);
