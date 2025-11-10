@@ -27,12 +27,14 @@
     </template>
     <EditableBlock
       v-model="localValue"
-      :placeholder="t('选择后生成')">
+      class="host-block"
+      :placeholder="t('请选择 IP')"
+      @click="handleShowSelector">
       <template #append>
         <DbIcon
-          class="select-icon"
-          type="host-select"
-          @click="handleShowSelector" />
+          class="angle-down"
+          size="small"
+          type="bk-dbm-icon db-icon-down-big" />
       </template>
     </EditableBlock>
     <IpSelector
@@ -146,16 +148,7 @@
     cursor: pointer;
   }
 
-  .select-icon {
-    display: flex;
-    margin-right: 5px;
-    font-size: 18px;
-    color: #979ba5;
-    align-items: center;
+  .host-block {
     cursor: pointer;
-
-    &:hover {
-      color: #3a84ff;
-    }
   }
 </style>

@@ -34,9 +34,11 @@
         v-model="item.schema_tblist"
         :cluster-id="props.clusterId"
         field="schema_tblist"
-        :label="t('克隆表数据')" />
+        :label="t('克隆表数据')"
+        :single="false" />
       <DbPatternColumn
         v-model="item.target_db_pattern"
+        :source-db="item.source_db"
         v-bind="props" />
     </EditableRow>
   </EditableTable>
@@ -45,7 +47,7 @@
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
 
-  import TableNameColumn from '@views/db-manage/mysql/common/edit-table-column/TableNameColumn.vue';
+  import TableNameColumn from '@views/db-manage/mysql/common/toolbox-field/table-name-column/Index.vue';
 
   import CloneDbColumn from './components/CloneDbColumn.vue';
   import DbPatternColumn from './components/DbPatternColumn.vue';
@@ -72,7 +74,7 @@
   const tableRef = useTemplateRef('table');
 
   const createTableRow = (data = {} as DeepPartial<RowData>) => ({
-    data_tblist: (data.data_tblist || []) as RowData['data_tblist'],
+    data_tblist: ['*'],
     schema_tblist: (data.schema_tblist || []) as RowData['schema_tblist'],
     source_db: data.source_db || '',
     target_db_pattern: data.target_db_pattern || '',

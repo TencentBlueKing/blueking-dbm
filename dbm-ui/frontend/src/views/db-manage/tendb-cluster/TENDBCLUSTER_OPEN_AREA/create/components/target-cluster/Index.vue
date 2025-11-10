@@ -53,6 +53,7 @@
   import { useTicketDetail } from '@hooks';
 
   import { TicketTypes } from '@common/const';
+  import { batchSplitRegex } from '@common/regex';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import ClusterColumn from '@views/db-manage/tendb-cluster/common/toolbox-field/cluster-column/Index.vue';
@@ -83,28 +84,10 @@
     >;
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
-
-  const batchInputConfig = [
-    {
-      case: 'tendbha.test.dba.db',
-      key: 'master_domain',
-      label: t('目标集群'),
-    },
-    {
-      case: 'db1',
-      key: 'fromDatabase',
-      label: t('源 DB 名'),
-    },
-    {
-      case: 'db2',
-      key: 'toDatabase',
-      label: t('新 DB 名'),
-    },
-  ];
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
     authorize_ips: (data.authorize_ips || []) as RowData['authorize_ips'],
@@ -132,6 +115,31 @@
       return acc;
     }, []),
   );
+
+  const batchInputConfig = computed(() => {
+    const base = [
+      {
+        case: 'tendbha.test.dba.db',
+        key: 'master_domain',
+        label: t('目标集群'),
+      },
+      ...props.variableList.map((variableName) => ({
+        case: `${variableName}_{AA}`,
+        key: variableName,
+        label: variableName,
+      })),
+    ];
+
+    if (props.showIpCloumn) {
+      base.push({
+        case: '192.168.10.1,192.168.10.2',
+        key: 'authorize_ips',
+        label: t('授权 IP'),
+      });
+    }
+
+    return base;
+  });
 
   useTicketDetail<TendbCluster.OpenArea>(TicketTypes.TENDBCLUSTER_OPEN_AREA, {
     async onSuccess(ticketDetail) {
@@ -194,9 +202,16 @@
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
     const dataList = data.map((item) =>
       createTableRow({
+        authorize_ips: item.authorize_ips.split(batchSplitRegex),
         cluster: {
           master_domain: item.master_domain,
         } as TendbclusterModel,
+        vars: props.variableList.reduce<Record<string, string>>((acc, variableName) => {
+          Object.assign(acc, {
+            [variableName]: item[variableName],
+          });
+          return acc;
+        }, {}),
       }),
     );
     if (isClear) {
@@ -205,6 +220,9 @@
     } else {
       tableData.value = [...(tableData.value[0].cluster.id ? tableData.value : []), ...dataList];
     }
+    setTimeout(() => {
+      tableRef.value?.validate();
+    }, 200);
   };
 
   defineExpose<Exposes>({
