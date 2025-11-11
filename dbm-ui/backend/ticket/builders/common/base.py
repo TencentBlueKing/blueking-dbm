@@ -23,7 +23,14 @@ from rest_framework import serializers
 
 from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, PLAT_BIZ_ID, AffinityEnum
 from backend.constants import DOMAIN_PATTERN
-from backend.db_meta.enums import AccessLayer, ClusterPhase, ClusterType, InstanceInnerRole, InstanceStatus
+from backend.db_meta.enums import (
+    AccessLayer,
+    ClusterPhase,
+    ClusterType,
+    InstanceInnerRole,
+    InstanceStatus,
+    MachineType,
+)
 from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.models import Cluster, ExtraProcessInstance, Machine, ProxyInstance, Spec, StorageInstance
 from backend.db_services.dbbase.constants import IpDest, IpSource
@@ -139,9 +146,13 @@ def format_bigdata_resource_spec(attrs: Dict[str, Any]) -> Dict[str, Any]:
         resource_spec["location_spec"] = resource_spec.get("location_spec") or cluster_location_spec
 
 
-def get_mongodb_cluster_tolerance(cluster):
+def get_mongodb_cluster_tolerance(cluster, role=None):
     if cluster.disaster_tolerance_level == AffinityEnum.CROS_SUBZONE.value:
-        tolerance = 0.33
+        # 跨园区强的情况下， mongos亲和性容忍度是0.5
+        if role == MachineType.MONGOS:
+            tolerance = 0.5
+        else:
+            tolerance = 0.33
     else:
         tolerance = 0.5
     return tolerance
