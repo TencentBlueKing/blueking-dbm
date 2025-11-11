@@ -85,7 +85,7 @@ class MongoShardedClusterResourceParamBuilder(BaseMongoDBOperateResourceParamBui
         if self.ticket_data["disaster_tolerance_level"] == AffinityEnum.CROS_SUBZONE.value:
             self.ticket_data["resource_spec"]["mongodb"]["tolerance"] = 0.33
             self.ticket_data["resource_spec"]["mongo_config"]["tolerance"] = 0.33
-            self.ticket_data["resource_spec"]["mongos"]["tolerance"] = 0.33
+            self.ticket_data["resource_spec"]["mongos"]["tolerance"] = 0.5
         else:
             self.ticket_data["resource_spec"]["mongodb"]["tolerance"] = 0.5
             self.ticket_data["resource_spec"]["mongo_config"]["tolerance"] = 0.5
