@@ -55,6 +55,7 @@
   interface Props {
     cluster: {
       id: number;
+      master_domain: string;
     };
     selected: {
       id: number;
@@ -135,7 +136,7 @@
 
   const disabledMethod = (rowData?: any, field?: string) => {
     if (field === 'targetCluster.master_domain' && !rowData.cluster.id) {
-      return t('请先选择待回档集群');
+      return t('请先选择源集群');
     }
     return '';
   };

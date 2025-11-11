@@ -155,28 +155,36 @@ export default [
   },
   {
     children: [
+      // {
+      //   dbConsoleValue: 'tendbCluster.toolbox.rollbackRecord',
+      //   id: 'spiderRollbackRecord',
+      //   name: t('构造实例'),
+      //   parentId: 'spider_fileback',
+      // },
+      {
+        bind: [TicketTypes.TENDBCLUSTER_FIXPOINT_EXIST, TicketTypes.TENDBCLUSTER_FIXPOINT_NEW],
+        dbConsoleValue: 'tendbCluster.toolbox.fixpoint',
+        id: TicketTypes.TENDBCLUSTER_FIXPOINT_EXIST,
+        name: t('构造'),
+        parentId: 'fileback',
+      },
+      {
+        bind: [TicketTypes.TENDBCLUSTER_FLASHBACK, TicketTypes.TENDBCLUSTER_ROLLBACK],
+        dbConsoleValue: 'tendbCluster.toolbox.flashback',
+        id: TicketTypes.TENDBCLUSTER_ROLLBACK,
+        name: t('回档'),
+        parentId: 'spider_fileback',
+      },
       {
         dbConsoleValue: 'tendbCluster.toolbox.rollback',
         id: TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER,
-        name: t('定点构造'),
-        parentId: 'spider_fileback',
-      },
-      {
-        dbConsoleValue: 'tendbCluster.toolbox.rollbackRecord',
-        id: 'spiderRollbackRecord',
-        name: t('构造实例'),
-        parentId: 'spider_fileback',
-      },
-      {
-        dbConsoleValue: 'tendbCluster.toolbox.flashback',
-        id: TicketTypes.TENDBCLUSTER_FLASHBACK,
-        name: t('闪回'),
+        name: t('定点构造（旧）'),
         parentId: 'spider_fileback',
       },
     ],
     icon: 'db-icon-rollback',
     id: 'spider_fileback',
-    name: t('回档'),
+    name: t('构造和回档'),
   },
   {
     children: [
