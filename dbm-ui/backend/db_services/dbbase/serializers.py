@@ -130,6 +130,7 @@ class QueryBizClusterAttrsSerializer(serializers.Serializer):
     cluster_type = serializers.CharField(help_text=_("集群类型"))
     cluster_attrs = serializers.CharField(help_text=_("查询集群属性字段(逗号分隔)"), default="")
     instances_attrs = serializers.CharField(help_text=_("查询实例属性字段(逗号分隔)"), default="")
+    machine_attrs = serializers.CharField(help_text=_("查询主机属性字段(逗号分隔)"), default="")
 
     def validate_cluster_type(self, value):
         cluster_types = [ct.strip() for ct in value.split(",")]
@@ -149,6 +150,7 @@ class QueryBizClusterAttrsSerializer(serializers.Serializer):
     def validate(self, attrs):
         attrs["cluster_attrs"] = attrs["cluster_attrs"].split(",") if attrs["cluster_attrs"] else []
         attrs["instances_attrs"] = attrs["instances_attrs"].split(",") if attrs["instances_attrs"] else []
+        attrs["machine_attrs"] = attrs["machine_attrs"].split(",") if attrs["machine_attrs"] else []
         return attrs
 
 
