@@ -107,7 +107,7 @@
     FunctionKeys,
   } from '@services/model/function-controller/functionController';
 
-  import { useFunController, useGlobalBizs, useUserProfile } from '@stores';
+  import { useFunController, useUserProfile } from '@stores';
 
   import {
     bigDataType,
@@ -149,7 +149,6 @@
   const { t } = useI18n();
   const userProfile = useUserProfile();
   const funControllerStore = useFunController();
-  const { currentBizId } = useGlobalBizs();
 
   const localHistroyKey = 'SERVICE_APPLY_HISTORY';
 
@@ -448,7 +447,7 @@
 
         .favor-btn {
           opacity: 0%;
-          transform: all 0.1s;
+          transition: all 0.1s;
         }
       }
     }
