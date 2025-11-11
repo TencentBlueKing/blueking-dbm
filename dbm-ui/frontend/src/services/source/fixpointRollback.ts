@@ -12,84 +12,12 @@
  */
 
 import FixpointLogModel from '@services/model/fixpoint-rollback/fixpoint-log';
+import BackupLogRecordModel from '@services/model/mysql/backup-log-record';
 import type { ListBase } from '@services/types';
 
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-
-export interface BackupLogRecord {
-  backup_begin_time: string;
-  backup_config_file: string;
-  backup_consistent_time: string;
-  backup_dir: string;
-  backup_end_time: string;
-  backup_host: string;
-  backup_id: string;
-  backup_meta_file: string;
-  backup_port: string;
-  backup_status: string;
-  /**
-   * backup_method
-    - full_by_ticket: 全库备份（单据）
-    - partial_by_ticket: 库表备份（单据）
-    - full_by_regular: 全库备份（例行）
-    - non_full_by_regular: 非全库备份（例行）
-   */
-  backup_method: string;
-  backup_time: string;
-  backup_type: string;
-  bill_id: string;
-  binlog_info: {
-    show_master_status: {
-      binlog_file: string;
-      binlog_pos: string;
-      gtid: string;
-      master_host: string;
-      master_port: number;
-    };
-    show_slave_status: {
-      binlog_file: string;
-      binlog_pos: string;
-      gtid: string;
-      master_host: string;
-      master_port: number;
-    };
-  };
-  bk_biz_id: string;
-  cluster_address: string;
-  cluster_id: string;
-  database_list: string[];
-  data_schema_grant: string;
-  extra_fields: {
-    backup_charset: string;
-    bk_cloud_id: number;
-    encrypt_enable: boolean;
-    storage_engine: string;
-    time_zone: string;
-    total_size_kb_uncompress: number;
-  };
-  total_filesize: number;
-  backup_tool: string;
-  file_list: {
-    contain_files: null;
-    contain_tables: null;
-    file_name: string;
-    file_size: number;
-    file_type: string;
-    task_id: string;
-  }[];
-  index: {
-    file_name: string;
-  };
-  instance_ip: string;
-  instance_port: string;
-  is_full_backup: string;
-  mysql_role: string;
-  mysql_version: string;
-  server_id: string;
-  shard_value: string;
-}
 
 const { currentBizId } = useGlobalBizs();
 
@@ -99,14 +27,14 @@ const path = `/apis/mysql/bizs/${currentBizId}/fixpoint_rollback`;
  * 通过日志平台获取集群备份记录
  */
 export function queryBackupLogFromBklog(params: { cluster_id: number; limit?: number }) {
-  return http.get<BackupLogRecord[]>(`${path}/query_backup_log_from_bklog/`, params);
+  return http.get<BackupLogRecordModel[]>(`${path}/query_backup_log_from_bklog/`, params);
 }
 
 /**
  * 根据job id查询任务执行状态和执行结果
  */
 export function queryBackupLogFromLoacal(params: { cluster_id: number; limit?: number }) {
-  return http.get<BackupLogRecord[]>(`${path}/query_backup_log_from_local/`, params);
+  return http.get<BackupLogRecordModel[]>(`${path}/query_backup_log_from_local/`, params);
 }
 
 /**
@@ -130,7 +58,7 @@ export function queryLatesBackupLog(params: {
   backup_source?: string;
   backup_method?: string;
 }) {
-  return http.get<BackupLogRecord>(`${path}/query_latest_backup_log/`, params);
+  return http.get<BackupLogRecordModel>(`${path}/query_latest_backup_log/`, params);
 }
 
 /**
@@ -147,7 +75,7 @@ export function queryLatestTimeBackupLog(params: {
   offset?: number;
   is_full_backup?: boolean;
 }) {
-  return http.get<BackupLogRecord>(`${path}/latest_time_backup_log/`, params);
+  return http.get<BackupLogRecordModel>(`${path}/latest_time_backup_log/`, params);
 }
 
 /**
@@ -163,5 +91,5 @@ export function queryBackupLogFromHandler(params: {
   is_full_backup?: boolean; //是否为全备
   backup_source?: string; //备份源
 }) {
-  return http.get<BackupLogRecord[]>(`${path}/query_backup_log_from_handler/`, params);
+  return http.get<BackupLogRecordModel[]>(`${path}/query_backup_log_from_handler/`, params);
 }

@@ -15,18 +15,21 @@
         <TimeZonePicker style="width: 450px" />
       </BkFormItem>
       <BkFormItem
-        :label="t('闪回方式')"
+        :label="t('回档类型')"
         required>
-        <BkRadioGroup v-model="flashbackType">
-          <BkRadioButton
-            label="TABLE_FLASHBACK"
-            style="width: 225px">
-            {{ t('库表闪回') }}
+        <BkRadioGroup
+          v-model="flashbackType"
+          style="width: 450px"
+          type="card"
+          @change="handleFlashbackTypeChange">
+          <BkRadioButton label="ROLLBACK_FLASHBACK">
+            {{ t('构造回档') }}
           </BkRadioButton>
-          <BkRadioButton
-            label="RECORD_FLASHBACK"
-            style="width: 225px">
-            {{ t('记录级闪回') }}
+          <BkRadioButton label="TABLE_FLASHBACK">
+            {{ t('库表闪回回档') }}
+          </BkRadioButton>
+          <BkRadioButton label="RECORD_FLASHBACK">
+            {{ t('记录级闪回回档') }}
           </BkRadioButton>
         </BkRadioGroup>
       </BkFormItem>
@@ -54,6 +57,7 @@
   };
 
   const { t } = useI18n();
+  const router = useRouter();
   const route = useRoute();
 
   const flashbackType = ref<'RECORD_FLASHBACK' | 'TABLE_FLASHBACK'>(
@@ -66,4 +70,19 @@
       flashbackType.value = details.flashback_type;
     },
   });
+
+  const handleFlashbackTypeChange = (type: string) => {
+    if (['RECORD_FLASHBACK', 'TABLE_FLASHBACK'].includes(type)) {
+      router.push({
+        name: TicketTypes.TENDBCLUSTER_FLASHBACK,
+        query: {
+          type,
+        },
+      });
+    } else if (type === 'ROLLBACK_FLASHBACK') {
+      router.push({
+        name: TicketTypes.TENDBCLUSTER_ROLLBACK,
+      });
+    }
+  };
 </script>

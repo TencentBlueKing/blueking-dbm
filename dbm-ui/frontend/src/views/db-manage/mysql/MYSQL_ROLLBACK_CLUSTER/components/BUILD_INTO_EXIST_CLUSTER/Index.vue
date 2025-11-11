@@ -79,9 +79,9 @@
   import { useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import BackupLogRecordModel from '@services/model/mysql/backup-log-record';
   import TendbhaModel from '@services/model/mysql/tendbha';
   import { type Mysql } from '@services/model/ticket/ticket';
-  import type { BackupLogRecord } from '@services/source/fixpointRollback';
 
   import { ClusterTypes } from '@common/const';
 
@@ -107,7 +107,7 @@
     databases_ignore: string[];
     rollback: {
       backupid?: string;
-      backupinfo?: BackupLogRecord;
+      backupinfo?: BackupLogRecordModel;
       rollback_time?: string;
       rollback_type: string;
     };
@@ -128,7 +128,7 @@
     getValue: () => Promise<{
       infos: {
         backup_source: string;
-        backupinfo?: BackupLogRecord; // 如果备份类型为REMOTE_AND_BACKUPID提供集群备份信息
+        backupinfo?: BackupLogRecordModel; // 如果备份类型为REMOTE_AND_BACKUPID提供集群备份信息
         cluster_id: number;
         databases: string[];
         databases_ignore: string[];

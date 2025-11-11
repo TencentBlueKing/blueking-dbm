@@ -14,6 +14,7 @@
 <template>
   <EditableColumn
     :append-rules="limit > -1 ? appendRules : []"
+    :disabled-method="disabledMethod"
     :field="field"
     :label="label"
     :loading="loading"
@@ -37,8 +38,8 @@
     </EditableInput>
   </EditableColumn>
   <ResourceHostSelector
+    v-model="modelValue"
     v-model:is-show="showSelector"
-    v-mode="modelValue"
     :limit="limit"
     :params="params"
     @change="handleSelectorChange" />
@@ -63,16 +64,12 @@
 
   import { batchSplitRegex, ipv4 } from '@common/regex';
 
-  import ResourceHostSelector, { type IValue } from '@components/resource-host-selector/Index.vue';
-
-  interface IHost {
-    bk_biz_id?: number;
-    bk_cloud_id?: number;
-    bk_host_id?: number;
-    ip: string;
-  }
+  import ResourceHostSelector, { type IHost } from '@components/resource-host-selector/Index.vue';
 
   interface Props {
+    cluster?: {
+      id: number;
+    };
     /**
      * field 对应的必须是model的数组变量
      */
@@ -84,8 +81,9 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    cluster: undefined,
     limit: -1,
-    minWidth: 300,
+    minWidth: 200,
     params: () => ({}),
   });
 
@@ -93,7 +91,7 @@
    * 绑定modelValue为数组 项须包含ip
    */
   const modelValue = defineModel<IHost[]>({
-    default: () => [],
+    required: true,
   });
 
   const { t } = useI18n();
@@ -188,6 +186,13 @@
     }
   });
 
+  const disabledMethod = () => {
+    if (props.cluster) {
+      return props.cluster.id ? false : t('请先选择集群');
+    }
+    return false;
+  };
+
   const handleShowSelector = () => {
     showSelector.value = true;
   };
@@ -204,7 +209,7 @@
     }));
   };
 
-  const handleSelectorChange = (hostList: IValue[]) => {
+  const handleSelectorChange = (hostList: IHost[]) => {
     modelValue.value = hostList.map((item) => ({
       bk_biz_id: item.dedicated_biz || item.bk_biz_id,
       bk_cloud_id: item.bk_cloud_id,

@@ -16,7 +16,7 @@
     :append-rules="rules"
     field="cluster.master_domain"
     fixed="left"
-    :label="t(label)"
+    :label="label"
     :loading="loading"
     :min-width="minWidth"
     required
@@ -44,7 +44,6 @@
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
-  import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
@@ -54,6 +53,8 @@
   import { domainRegex } from '@common/regex';
 
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
+
+  import { t } from '@/locales/index';
 
   interface Props {
     /**
@@ -91,7 +92,7 @@
   const props = withDefaults(defineProps<Props>(), {
     allowRepeat: false,
     clusterTypes: () => [ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE],
-    label: '目标集群',
+    label: t('目标集群'),
     minWidth: 350,
     onlyOneType: false,
     rowspan: 1,
@@ -112,8 +113,6 @@
   const modelValue = defineModel<TendbhaModel>({
     required: true,
   });
-
-  const { t } = useI18n();
 
   const showSelector = ref(false);
   const selectedClusters = computed<Record<string, TendbhaModel[]>>(() => ({

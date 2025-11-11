@@ -41,20 +41,26 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       v-if="['BUILD_INTO_NEW_CLUSTER'].includes(ticketDetails.details.rollback_cluster_type)"
-      col-key="rollback_host.remote_hosts"
+      col-key="resource_spec.remote_hosts"
       :min-width="200"
       :title="t('存储层主机')">
       <template #default="{ row: data }: { row: RowData }">
-        {{ data.rollback_host.remote_hosts[0].ip }}
+        <span v-if="data.resource_spec?.remote_hosts?.hosts.length < 1"> -- </span>
+        <p
+          v-for="item in data.resource_spec?.remote_hosts?.hosts"
+          v-else
+          :key="item.bk_host_id">
+          {{ item.ip }}
+        </p>
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       v-if="['BUILD_INTO_NEW_CLUSTER'].includes(ticketDetails.details.rollback_cluster_type)"
-      col-key="rollback_host.spider_host.ip"
+      col-key="resource_spec.spider_host.ip"
       :min-width="200"
       :title="t('接入层主机')">
       <template #default="{ row: data }: { row: RowData }">
-        {{ data.rollback_host.spider_host.ip }}
+        {{ data.resource_spec?.spider_host?.hosts?.[0]?.ip || '--' }}
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn

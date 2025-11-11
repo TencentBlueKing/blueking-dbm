@@ -52,8 +52,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import TendbhaModel from '@services/model/mysql/tendbha';
-  import { type BackupLogRecord } from '@services/source/fixpointRollback';
+  import BackupLogRecordModel from '@services/model/mysql/backup-log-record';
   import { showDatabasesWithPatterns } from '@services/source/remoteService';
 
   import PriviewConflictDbs from './PriviewConflictDbs.vue';
@@ -66,11 +65,17 @@
      */
     disabled: boolean;
     rowData: {
-      backupRecord: BackupLogRecord;
-      cluster: TendbhaModel;
+      backupRecord: BackupLogRecordModel;
+      cluster: {
+        id: number;
+        master_domain: string;
+      };
       databases: string[];
       tables: string[];
-      targetCluster?: TendbhaModel;
+      targetCluster?: {
+        id: number;
+        master_domain: string;
+      };
     };
   }
 

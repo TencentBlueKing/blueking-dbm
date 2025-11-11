@@ -130,7 +130,7 @@
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
-      col-key="resource_spec"
+      col-key="resource_spec.rollback_host"
       :min-width="180"
       :title="t('新集群主机')">
       <template #default="{ row }: { row: RowData }">

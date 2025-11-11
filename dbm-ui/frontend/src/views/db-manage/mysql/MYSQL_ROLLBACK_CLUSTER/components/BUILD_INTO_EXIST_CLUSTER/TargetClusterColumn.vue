@@ -135,7 +135,7 @@
 
   const disabledMethod = (rowData?: any, field?: string) => {
     if (field === 'target_cluster.master_domain' && !rowData.cluster.id) {
-      return t('请先选择待回档集群');
+      return t('请先选择源集群');
     }
     return '';
   };
