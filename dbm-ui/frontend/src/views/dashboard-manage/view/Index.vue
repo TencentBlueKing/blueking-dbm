@@ -40,6 +40,29 @@
       nextTick(async () => {
         app = await window.BkVisionSDK.init(rootRef.value!, versionId.value, {
           apiPrefix: urlJoin(window.PROJECT_ENV.VITE_AJAX_URL_PREFIX, `/bkvision/`),
+          chartToolMenu: [
+            {
+              build_in: true,
+              id: 'fullscreen',
+              type: 'tool',
+            }, // 全屏
+            {
+              build_in: true,
+              id: 'refresh',
+              type: 'tool',
+            }, // 刷新
+            {
+              build_in: true,
+              id: 'excel',
+              type: 'menu',
+            }, // 导出
+          ],
+          toolMenu: [
+            {
+              build_in: true,
+              id: 'screenshot',
+            },
+          ],
           waterMark: {
             content: 'bk-vision',
           },
