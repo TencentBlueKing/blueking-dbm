@@ -15,7 +15,7 @@
   <EditableColumn
     :append-rules="rules"
     :disabled-method="disabledMethod"
-    field="target_cluster.master_domain"
+    field="targetCluster.master_domain"
     :label="t('目标集群')"
     :loading="loading"
     :min-width="200"
@@ -34,7 +34,7 @@
   </EditableColumn>
   <ClusterSelector
     v-model:is-show="showSelector"
-    :cluster-types="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]"
+    :cluster-types="[ClusterTypes.TENDBCLUSTER]"
     :selected="selectedClusters"
     :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
@@ -43,8 +43,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import TendbhaModel from '@services/model/mysql/tendbha';
-  import TendbsingleModel from '@services/model/mysql/tendbsingle';
+  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import { filterClusters } from '@services/source/dbbase';
 
   import { ClusterTypes, DBTypes } from '@common/const';
@@ -55,6 +54,7 @@
   interface Props {
     cluster: {
       id: number;
+      master_domain: string;
     };
     selected: {
       id: number;
@@ -75,19 +75,10 @@
   const { t } = useI18n();
 
   const tabListConfig = {
-    [ClusterTypes.TENDBHA]: {
+    [ClusterTypes.TENDBCLUSTER]: {
       disabledRowConfig: [
         {
-          handler: (data: TendbhaModel) => data.id === props.cluster.id,
-          tip: t('不能选择源集群'),
-        },
-      ],
-      multiple: false,
-    },
-    [ClusterTypes.TENDBSINGLE]: {
-      disabledRowConfig: [
-        {
-          handler: (data: TendbsingleModel) => data.id === props.cluster.id,
+          handler: (data: TendbClusterModel) => data.id === props.cluster.id,
           tip: t('不能选择源集群'),
         },
       ],
@@ -96,9 +87,8 @@
   } as unknown as Record<string, TabConfig>;
 
   const showSelector = ref(false);
-  const selectedClusters = shallowRef<{ [key: string]: TendbhaModel[] }>({
-    [ClusterTypes.TENDBHA]: [],
-    [ClusterTypes.TENDBSINGLE]: [],
+  const selectedClusters = shallowRef<{ [key: string]: TendbClusterModel[] }>({
+    [ClusterTypes.TENDBCLUSTER]: [],
   });
 
   const rules = [
@@ -119,7 +109,7 @@
     },
   ];
 
-  const { loading, run: queryCluster } = useRequest(filterClusters<TendbhaModel>, {
+  const { loading, run: queryCluster } = useRequest(filterClusters<TendbClusterModel>, {
     manual: true,
     onSuccess: (data) => {
       if (data.length) {
@@ -134,7 +124,7 @@
   });
 
   const disabledMethod = (rowData?: any, field?: string) => {
-    if (field === 'target_cluster.master_domain' && !rowData.cluster.id) {
+    if (field === 'targetCluster.master_domain' && !rowData.cluster.id) {
       return t('请先选择源集群');
     }
     return '';
@@ -152,9 +142,9 @@
     };
   };
 
-  const handleSelectorChange = (selected: Record<string, TendbhaModel[]>) => {
+  const handleSelectorChange = (selected: Record<string, TendbClusterModel[]>) => {
     selectedClusters.value = selected;
-    const [currentCluster] = [...selected[ClusterTypes.TENDBHA], ...selected[ClusterTypes.TENDBSINGLE]];
+    const [currentCluster] = selected[ClusterTypes.TENDBCLUSTER];
     if (currentCluster) {
       modelValue.value = {
         cluster_type: currentCluster.cluster_type,
@@ -170,8 +160,8 @@
       if (!modelValue.value.id && modelValue.value.master_domain) {
         queryCluster({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_type: [ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE].join(','),
-          db_type: DBTypes.MYSQL,
+          cluster_type: ClusterTypes.TENDBCLUSTER,
+          db_type: DBTypes.TENDBCLUSTER,
           exact_domain: modelValue.value.master_domain,
         });
       }

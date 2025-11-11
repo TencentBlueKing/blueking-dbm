@@ -13,7 +13,7 @@
 
 <template>
   <BkDialog
-    class="mysql-backup-record-selector"
+    class="tendbcluster-backup-record-selector"
     :close-icon="false"
     :draggable="false"
     :esc-close="false"
@@ -67,7 +67,7 @@
               :label="row.backup_id"
               @change="() => handleChecked(row)">
               <div class="ml-12">
-                {{ `${row.mysql_role} ${utcDisplayTime(row.backup_time)}` }}
+                {{ utcDisplayTime(row.backup_consistent_time) }}
               </div>
             </BkRadio>
           </template>
@@ -144,14 +144,14 @@
       </BkTable>
     </BkLoading>
     <template #footer>
-      <div class="mysql-backup-record-selector-footer">
+      <div class="tendbcluster-backup-record-selector-footer">
         <div class="align-center">
           <div class="footer-text">{{ t('已选择：') }}</div>
           <div
             v-if="localValue?.backup_id"
             class="footer-text"
             style="font-weight: bold">
-            {{ `${localValue?.mysql_role} ${utcDisplayTime(localValue?.backup_time)}` }}
+            {{ utcDisplayTime(localValue?.backup_consistent_time) }}
           </div>
           <div v-else>--</div>
           <BkButton
@@ -185,8 +185,8 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import BackupLogRecordModel from '@services/model/mysql/backup-log-record';
-  import { queryBackupLogFromHandler } from '@services/source/fixpointRollback';
+  import BackupLogRecordModel from '@services/model/tendbcluster/backup-log-record';
+  import { queryBackupLogFromHandler } from '@services/source/fixpointRollbackTendbCluster';
 
   import { useDefaultPagination, useSelectorDialogWidth, useTableMaxHeight } from '@hooks';
 
@@ -309,15 +309,15 @@
     filteredData.value = [];
     tableData.value.forEach((row) => {
       const timerange = {
-        end_time: new Date(row.backup_begin_time).getTime(),
-        start_time: new Date(row.backup_begin_time).getTime(),
+        end_time: new Date(row.backup_consistent_time).getTime(),
+        start_time: new Date(row.backup_consistent_time).getTime(),
       };
       const isTimeMatch = !dateParams
         ? true
         : timerange.start_time >= dateParams.start_time && timerange.end_time <= dateParams.end_time;
       const isSearchMatch = !searchParams.display
         ? true
-        : `${row.mysql_role} ${utcDisplayTime(row.backup_time)}`.indexOf(searchParams.display) > -1;
+        : `${utcDisplayTime(row.backup_consistent_time)}`.indexOf(searchParams.display) > -1;
       const isFilterChecked =
         isChecked(row, 'backup_type_filter') && isChecked(row, 'backup_method') && isChecked(row, 'backup_tool');
       if (isTimeMatch && isSearchMatch && isFilterChecked) {
@@ -427,11 +427,13 @@
   const fetchData = async () => {
     try {
       loading.value = true;
-      let results = await queryBackupLogFromHandler({
+      const data = await queryBackupLogFromHandler({
         backup_source: props.backupSource,
         cluster_id: props.cluster.id,
         limit: -1,
       });
+
+      let results = Object.values(data);
 
       // 仅展示全备记录，需过滤掉库表备份
       if (props.onlyFull) {
@@ -487,7 +489,7 @@
   });
 </script>
 <style lang="less">
-  .mysql-backup-record-selector {
+  .tendbcluster-backup-record-selector {
     .align-center {
       display: flex;
       align-items: center;
@@ -538,7 +540,7 @@
       content: '';
     }
 
-    .mysql-backup-record-selector-footer {
+    .tendbcluster-backup-record-selector-footer {
       position: relative;
       display: flex;
       align-items: center;

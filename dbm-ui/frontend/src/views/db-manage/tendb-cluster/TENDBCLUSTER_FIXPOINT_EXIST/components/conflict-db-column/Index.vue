@@ -52,7 +52,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import BackupLogRecordModel from '@services/model/mysql/backup-log-record';
+  import BackupLogRecordModel from '@services/model/tendbcluster/backup-log-record';
   import { showDatabasesWithPatterns } from '@services/source/remoteService';
 
   import PriviewConflictDbs from './PriviewConflictDbs.vue';

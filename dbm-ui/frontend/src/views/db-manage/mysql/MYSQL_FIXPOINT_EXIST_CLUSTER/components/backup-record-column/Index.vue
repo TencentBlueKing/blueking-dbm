@@ -148,8 +148,8 @@
   import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
 
-  import type TendbhaModel from '@services/model/mysql/tendbha';
-  import { type BackupLogRecord, queryLatestTimeBackupLog } from '@services/source/fixpointRollback';
+  import BackupLogRecordModel from '@services/model/mysql/backup-log-record';
+  import { queryLatestTimeBackupLog } from '@services/source/fixpointRollback';
 
   import { useTimeZoneFormat } from '@hooks';
 
@@ -161,7 +161,10 @@
 
   interface Props {
     backupSource: 'local' | 'remote';
-    cluster: TendbhaModel;
+    cluster: {
+      id: number;
+      master_domain: string;
+    };
   }
 
   type Emits = (e: 'change') => void;
@@ -170,14 +173,14 @@
 
   const emits = defineEmits<Emits>();
 
-  const modelValue = defineModel<BackupLogRecord>({
+  const modelValue = defineModel<BackupLogRecordModel>({
     required: true,
   });
 
   const tableData = defineModel<
     {
-      backupRecord: BackupLogRecord;
-      cluster: TendbhaModel;
+      backupRecord: BackupLogRecordModel;
+      cluster: Props['cluster'];
     }[]
   >('tableData', {
     required: true,

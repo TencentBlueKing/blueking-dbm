@@ -131,6 +131,14 @@
   import PanelTab from './components/PanelTab.vue';
   import useSearchSelectData from './hooks/use-search-select-data';
 
+  export interface IHost {
+    bk_biz_id: number;
+    bk_cloud_id: number;
+    bk_host_id: number;
+    dedicated_biz?: number;
+    ip: string;
+  }
+
   export type IValue = DbResourceModel;
 
   interface Props {
@@ -161,7 +169,7 @@
   const isShow = defineModel<boolean>('isShow', {
     default: false,
   });
-  const modelValue = defineModel<IValue[]>({
+  const modelValue = defineModel<IHost[]>({
     default: () => [],
   });
   const dialogWidth = Math.max(window.innerWidth * 0.8, 800);

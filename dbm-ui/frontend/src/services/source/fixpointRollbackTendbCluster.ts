@@ -12,12 +12,12 @@
  */
 
 import FixpointLogModel from '@services/model/fixpoint-rollback/fixpoint-log';
-import BackupLogRecordModel from '@services/model/mysql/backup-log-record';
 import type { ListBase } from '@services/types';
 
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
+import BackupLogRecordModel from '@services/model/tendbcluster/backup-log-record';
 
 const { currentBizId } = useGlobalBizs();
 
@@ -91,5 +91,5 @@ export function queryBackupLogFromHandler(params: {
   is_full_backup?: boolean; //是否为全备
   backup_source?: string; //备份源
 }) {
-  return http.get<BackupLogRecordModel[]>(`${path}/query_backup_log_from_handler/`, params);
+  return http.get<Record<string, BackupLogRecordModel>>(`${path}/query_backup_log_from_handler/`, params);
 }

@@ -76,8 +76,7 @@
           <ClusterColumn
             v-model="item.cluster"
             allow-repeat
-            label="源集群"
-            :min-width="240"
+            :label="t('源集群')"
             :selected="selected"
             @batch-edit="handleClusterBatchEdit" />
           <BackupRecordColumn
@@ -147,9 +146,9 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import BackupLogRecordModel from '@services/model/mysql/backup-log-record';
   import TendbhaModel from '@services/model/mysql/tendbha';
   import { type Mysql } from '@services/model/ticket/ticket';
-  import type { BackupLogRecord } from '@services/source/fixpointRollback';
   import { BackupSourceType } from '@services/types';
 
   import { useCreateTicket, useTicketDetail, useTimeZoneFormat } from '@hooks';
@@ -282,9 +281,9 @@
       affect_database_list?: string[]; // 如果是回档到原集群 or 已有集群，需要填此参数
       backup_id: string;
       backup_source: BackupSourceType;
-      backupinfo: BackupLogRecord; // 如果备份类型为REMOTE_AND_BACKUPID提供集群备份信息
+      backupinfo: BackupLogRecordModel; // 如果备份类型为REMOTE_AND_BACKUPID提供集群备份信息
       cluster_id: number;
-      database_list: BackupLogRecord['database_list'];
+      database_list: BackupLogRecordModel['database_list'];
       databases: string[];
       databases_ignore: string[];
       // 回档到新主机，指定机器需要填这个
