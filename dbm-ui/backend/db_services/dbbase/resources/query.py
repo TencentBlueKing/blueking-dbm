@@ -1014,7 +1014,7 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
         def filter_spec_name_func(query_params):
             """过滤规格名称"""
             filter_spec = Q()
-            spec_names = query_params.get("spec_names", "").split(",")
+            spec_names = query_params.get("spec_name", "").split(",")
             if spec_names:
                 filter_spec_ids = list(Spec.objects.filter(spec_name__in=spec_names).values_list("spec_id", flat=True))
                 filter_spec &= Q(spec_id__in=filter_spec_ids)
@@ -1026,11 +1026,14 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             "bk_host_id": Q(bk_host_id=query_params.get("bk_host_id")),
             "ip": Q(ip__in=query_params.get("ip", "").split(",")),
             "machine_type": Q(machine_type=query_params.get("machine_type")),
+            # 地域搜索
             "bk_city_name": (
                 Q(bk_city__bk_idc_city_name__in=query_params.get("bk_city_name", "").split(","))
                 | Q(bk_city__logical_city__name__in=query_params.get("bk_city_name", "").split(","))
             ),
-            "bk_os_name": Q(bk_os_name=query_params.get("bk_os_name")),
+            "bk_city_id": Q(bk_city__bk_idc_city_id__in=query_params.get("bk_city_id", "").split(",")),
+            # 操作系统
+            "bk_os_name": Q(bk_os_name=query_params.get("bk_os_name").split(",")),
             "bk_cloud_id": Q(bk_cloud_id=query_params.get("bk_cloud_id")),
             "bk_agent_id": Q(bk_agent_id=query_params.get("bk_agent_id")),
             "cluster_type": Q(cluster_type=query_params.get("cluster_type")),
@@ -1054,9 +1057,17 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             "db_module_id": Q(db_module_id__in=query_params.get("db_module_id", "").split(",")),
             "creator": Q(creator__icontains=query_params.get("creator")),
             # 规格id筛选
-            "spec_ids": Q(spec_id__in=query_params.get("spec_ids", "").split(",")),
+            "spec_id": Q(spec_id__in=query_params.get("spec_id", "").split(",")),
             # 规格名称筛选
-            "spec_names": filter_spec_name_func(query_params),
+            "spec_name": filter_spec_name_func(query_params),
+            # 园区id过滤
+            "bk_sub_zone_id": Q(bk_sub_zone_id__in=query_params.get("bk_sub_zone_id", "").split(",")),
+            # 园区名称过滤
+            "bk_sub_zone": Q(bk_sub_zone__in=query_params.get("bk_sub_zone", "").split(",")),
+            # 机型
+            "bk_svr_device_cls_name": Q(
+                bk_svr_device_cls_name__in=query_params.get("bk_svr_device_cls_name", "").split(",")
+            ),
         }
         filter_params_map = {**inner_filter_params_map, **filter_params_map}
 
