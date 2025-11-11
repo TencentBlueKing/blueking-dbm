@@ -59,6 +59,7 @@
     </EditableDatePicker>
   </EditableColumn>
   <EditableColumn
+    :disabled-method="disabledMethod"
     field="backupRecord"
     :label="t('备份记录')"
     :min-width="370"
@@ -120,6 +121,15 @@
         class="content-icon"
         type="down-big" />
     </EditableBlock>
+    <EditableSelect
+      v-else-if="backupTime"
+      :placeholder="t('未匹配到备份记录，请选择')"
+      :popover-options="{
+        boundary: 'parent',
+        trigger: 'manual',
+        isShow: false,
+      }"
+      @click="handleShowSelector" />
     <EditableBlock
       v-else
       :placeholder="t('自动生成')" />
@@ -128,6 +138,7 @@
     v-model="backupRecord"
     v-model:is-show="isShowSelector"
     v-bind="props"
+    :lastest-time="backupTime"
     only-full />
 </template>
 <script lang="ts" setup>
@@ -135,8 +146,8 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import type TendbhaModel from '@services/model/mysql/tendbha';
-  import { type BackupLogRecord, queryLatestTimeBackupLog } from '@services/source/fixpointRollback';
+  import BackupLogRecordModel from '@services/model/mysql/backup-log-record';
+  import { queryLatestTimeBackupLog } from '@services/source/fixpointRollback';
 
   import { useTimeZoneFormat } from '@hooks';
 
@@ -148,7 +159,10 @@
 
   interface Props {
     backupSource: 'local' | 'remote';
-    cluster: TendbhaModel;
+    cluster: {
+      id: number;
+      master_domain: string;
+    };
   }
 
   type Emits = (e: 'change') => void;
@@ -161,15 +175,15 @@
     required: true,
   });
 
-  const backupRecord = defineModel<BackupLogRecord>('backupRecord', {
+  const backupRecord = defineModel<BackupLogRecordModel>('backupRecord', {
     required: true,
   });
 
   const tableData = defineModel<
     {
-      backupRecord: BackupLogRecord;
+      backupRecord: BackupLogRecordModel;
       backupTime: string;
-      cluster: TendbhaModel;
+      cluster: Props['cluster'];
     }[]
   >('tableData', {
     required: true,

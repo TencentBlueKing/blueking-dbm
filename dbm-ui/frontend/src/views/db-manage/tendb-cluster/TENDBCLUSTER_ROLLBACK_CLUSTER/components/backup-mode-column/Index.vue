@@ -109,24 +109,24 @@
     REMOTE_AND_BACKUPID = 'REMOTE_AND_BACKUPID',
     REMOTE_AND_TIME = 'REMOTE_AND_TIME',
   }
-</script>
-<script lang="ts" setup>
-  import dayjs from 'dayjs';
-  import { useI18n } from 'vue-i18n';
-
-  import type { BackupLogRecord } from '@services/source/fixpointRollback';
-
-  import { useTimeZoneFormat } from '@hooks';
-
-  import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
-
-  import RecordSelector from './RecordSelector.vue';
 
   interface Props {
     cluster: {
       id: number;
     };
   }
+</script>
+<script lang="ts" setup>
+  import dayjs from 'dayjs';
+  import { useI18n } from 'vue-i18n';
+
+  import BackupLogRecordModel from '@services/model/mysql/backup-log-record';
+
+  import { useTimeZoneFormat } from '@hooks';
+
+  import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
+
+  import RecordSelector from './RecordSelector.vue';
 
   type Emits = (e: 'batch-edit', data: typeof modelValue.value, field: string) => void;
 
@@ -136,7 +136,7 @@
 
   const modelValue = defineModel<{
     backupid?: string;
-    backupinfo?: BackupLogRecord;
+    backupinfo?: BackupLogRecordModel;
     rollback_time?: string;
     rollback_type: string;
   }>({

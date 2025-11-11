@@ -24,6 +24,7 @@
     @closed="handleClose">
     <div class="align-center mb-12">
       <div
+        v-if="!onlyFull"
         class="align-center mr-8"
         style="flex: 1">
         <div class="backup-time-picker">{{ t('备份时间') }}</div>
@@ -56,12 +57,11 @@
         @page-value-change="handleChangePage">
         <BkTableColumn
           :label="t('文件名')"
-          :min-width="300"
           :width="300">
           <template #header>
             <div class="ml-35">{{ t('备份记录') }}</div>
           </template>
-          <template #default="{ row }: { row: BackupLogRecord }">
+          <template #default="{ row }: { row: BackupLogRecordModel }">
             <BkRadio
               v-model="checkedBackupId"
               :label="row.backup_id"
@@ -76,19 +76,20 @@
           field="backup_id"
           :label="t('备份 ID')"
           :width="270">
-          <template #default="{ row }: { row: BackupLogRecord }">
+          <template #default="{ row }: { row: BackupLogRecordModel }">
             {{ row.backup_id }}
           </template>
         </BkTableColumn>
         <BkTableColumn
           field="backup_type_filter"
           :filter="filterOption.backup_type_filter"
-          :label="t('备份类型')">
+          :label="t('备份类型')"
+          :width="120">
           <template
             #default="{
               row,
             }: {
-              row: BackupLogRecord & { backup_type_display: { label: string; theme: 'warning' | 'info' } };
+              row: BackupLogRecordModel & { backup_type_display: { label: string; theme: 'warning' | 'info' } };
             }">
             <BkTag
               v-if="row?.backup_type_display?.theme"
@@ -103,7 +104,7 @@
           :filter="filterOption.backup_method"
           :label="t('备份范围')"
           :width="150">
-          <template #default="{ row }: { row: BackupLogRecord & { backup_method_label: string } }">
+          <template #default="{ row }: { row: BackupLogRecordModel & { backup_method_label: string } }">
             <span
               :class="{
                 [`backup-method-sign-${row.backup_method}`]: row?.backup_method_label,
@@ -115,18 +116,23 @@
         <BkTableColumn
           field="backup_tool"
           :filter="filterOption.backup_tool"
-          :label="t('备份工具')">
-          <template #default="{ row }: { row: BackupLogRecord }">
+          :label="t('备份工具')"
+          :width="120">
+          <template #default="{ row }: { row: BackupLogRecordModel }">
             {{ row?.backup_tool || '--' }}
           </template>
         </BkTableColumn>
-        <BkTableColumn :label="t('备份大小')">
-          <template #default="{ row }: { row: BackupLogRecord }">
+        <BkTableColumn
+          :label="t('备份大小')"
+          :width="120">
+          <template #default="{ row }: { row: BackupLogRecordModel }">
             {{ bytePretty(row?.total_filesize ?? 0) }}
           </template>
         </BkTableColumn>
-        <BkTableColumn :label="t('关联单据')">
-          <template #default="{ row }: { row: BackupLogRecord }">
+        <BkTableColumn
+          :label="t('关联单据')"
+          :width="120">
+          <template #default="{ row }: { row: BackupLogRecordModel }">
             <RouterLink
               v-if="row.bill_id"
               target="_blank"
@@ -185,8 +191,8 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import type TendbhaModel from '@services/model/mysql/tendbha';
-  import { type BackupLogRecord, queryBackupLogFromHandler } from '@services/source/fixpointRollback';
+  import BackupLogRecordModel from '@services/model/mysql/backup-log-record';
+  import { queryBackupLogFromHandler } from '@services/source/fixpointRollback';
 
   import { useDefaultPagination, useSelectorDialogWidth, useTableMaxHeight } from '@hooks';
 
@@ -194,14 +200,17 @@
 
   interface Props {
     backupSource: 'local' | 'remote';
-    cluster: TendbhaModel;
+    cluster: {
+      id: number;
+    };
+    lastestTime?: string;
     /**
      * 仅全备
      */
     onlyFull?: boolean;
   }
 
-  type Emits = (e: 'change', data?: BackupLogRecord) => void;
+  type Emits = (e: 'change', data?: BackupLogRecordModel) => void;
 
   const props = defineProps<Props>();
 
@@ -211,13 +220,13 @@
     default: false,
   });
 
-  const modelValue = defineModel<BackupLogRecord>();
+  const modelValue = defineModel<BackupLogRecordModel>();
 
   const { dialogWidth } = useSelectorDialogWidth();
   const tableMaxHeight = useTableMaxHeight(240);
   const { t } = useI18n();
 
-  const localValue = ref<BackupLogRecord>();
+  const localValue = ref<BackupLogRecordModel>();
   const tableRef = ref();
   const daterange = ref<[string, string] | [Date, Date]>(['', '']);
   // 用于时间选择器点确定时赋值
@@ -231,14 +240,14 @@
     },
   ];
   // 存储原始数据（请求到的所有备份记录）
-  const originalData = shallowRef<BackupLogRecord[]>([]);
+  const originalData = shallowRef<BackupLogRecordModel[]>([]);
   // 全量结果
-  const tableData = shallowRef<BackupLogRecord[]>([]);
+  const tableData = shallowRef<BackupLogRecordModel[]>([]);
   const pagination = ref(useDefaultPagination());
   const loading = ref(false);
   const checkedBackupId = ref<string>();
   // 过滤后的结果
-  const filteredData = shallowRef<BackupLogRecord[]>([]);
+  const filteredData = shallowRef<BackupLogRecordModel[]>([]);
   const filterOption = ref<
     Record<
       string,
@@ -333,7 +342,7 @@
     pagination.value.count = filteredData.value.length || tableData.value.length;
   });
 
-  const generateRowData = (row: BackupLogRecord) => {
+  const generateRowData = (row: BackupLogRecordModel) => {
     const defaultDisplay = {
       backup_type_display: {
         label: '--',
@@ -393,7 +402,7 @@
     };
   };
 
-  const handleChecked = (row: BackupLogRecord) => {
+  const handleChecked = (row: BackupLogRecordModel) => {
     checkedBackupId.value = row.backup_id;
     localValue.value = originalData.value.find((item) => item.backup_id === row.backup_id);
   };
@@ -428,6 +437,8 @@
       let results = await queryBackupLogFromHandler({
         backup_source: props.backupSource,
         cluster_id: props.cluster.id,
+        is_full_backup: props.onlyFull,
+        latest_time: props.lastestTime,
         limit: -1,
       });
 

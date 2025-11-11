@@ -1,9 +1,11 @@
 <template>
   <EditableColumn
+    :disabled="disabled"
     :disabled-method="disabledMethod"
     :field="field"
     :label="label"
     :min-width="180"
+    :readonly="readonly"
     :required="required"
     :rules="rules">
     <template #headAppend>
@@ -23,9 +25,10 @@
     <EditableTagInput
       v-model="modelValue"
       :max-data="single ? 1 : -1"
-      :placeholder="t('请输入表名称，支持通配符“%”，含通配符的仅支持单个')" />
+      :placeholder="t('请输入表名称，支持通配符“%”，含通配符的仅支持单个')"
+      v-bind="{ ...attrs, ...props }" />
     <template #tips>
-      <div class="tendbcluster-table-name-tips">
+      <div class="mysql-table-name-tips">
         <div style="font-weight: 700">{{ t('库表输入说明') }}：</div>
         <div>
           <div class="circle-dot"></div>
@@ -60,8 +63,10 @@
   interface Props {
     allowAsterisk?: boolean; // 是否允许单个 *
     clusterId?: number;
+    disabled?: boolean;
     field: string;
     label: string;
+    readonly?: boolean;
     required?: boolean;
     single?: boolean;
   }
@@ -70,14 +75,17 @@
 
   const props = withDefaults(defineProps<Props>(), {
     allowAsterisk: true,
-    clusterId: undefined,
-    required: false,
+    disabled: false,
+    readonly: false,
+    required: true,
     single: false,
   });
 
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<string[]>();
+
+  const attrs = useAttrs();
 
   const { t } = useI18n();
 
@@ -130,7 +138,7 @@
     cursor: pointer;
   }
 
-  .tendbcluster-table-name-tips {
+  .mysql-table-name-tips {
     div {
       display: flex;
       align-items: center;
