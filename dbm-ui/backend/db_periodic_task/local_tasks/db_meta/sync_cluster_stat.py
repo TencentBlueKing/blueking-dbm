@@ -23,7 +23,7 @@ from django.utils.translation import gettext as _
 
 from backend import env
 from backend.components import BKMonitorV3Api
-from backend.configuration.constants import DBType, SystemSettingsEnum
+from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
 from backend.constants import CACHE_CLUSTER_STATS
 from backend.db_meta.enums import ClusterType
@@ -60,22 +60,10 @@ def query_cluster_exporter_up(db_type, exporter):
 
     # 查询exporter up指标
     series = BKMonitorV3Api.unify_query(params)["series"]
-    if db_type == DBType.Redis:
-        cluster_exporter_up_map = {
-            data["dimensions"]["cluster_domain"]: data["datapoints"][0][0] for data in series if data["datapoints"]
-        }
-        return cluster_exporter_up_map
-    else:
-        cluster_exporter_up_map = {}
-        for data in series:
-            if data["datapoints"]:
-                dim = data["dimensions"]
-                unique_key = "{}#{}#{}#{}".format(
-                    dim["appid"], dim["cluster_domain"], dim["instance"], dim["instance_role"]
-                )
-                cluster_exporter_up_map[unique_key] = len(data["datapoints"])
-        # map is like: {'appid#cluster_domain#host-port#instance_role': 1, '1#xxx#yyy-3306#zzz': 2}
-        return cluster_exporter_up_map
+    cluster_exporter_up_map = {
+        data["dimensions"]["cluster_domain"]: data["datapoints"][0][0] for data in series if data["datapoints"]
+    }
+    return cluster_exporter_up_map
 
 
 def query_cap(bk_biz_id, cluster_type, cap_key="used", clusters=None):

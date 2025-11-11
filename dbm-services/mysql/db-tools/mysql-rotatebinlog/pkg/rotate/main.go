@@ -320,7 +320,7 @@ func (c *RotateBinlogComp) decideSizeToFree(servers []*ServerObj) error {
 		portSizeToFreeMB := util.DecideSizeToRemove(instBinlogSizeMB, diskPartSizeToFreeMB)
 		logger.Info("diskPart %s maxDiskUsedAllowedMB:%d UsedTotalMB:%d expectFreeMB:%d",
 			diskPartName, maxDiskUsedAllowedMB, diskPart.UsedTotal/1024/1024, diskPartSizeToFreeMB)
-		logger.Info("plan to free spaceMB:%+v", portSizeToFreeMB)
+		logger.Info("plan to free space:%+v MB, burst:%+v MB", portSizeToFreeMB, portSizeToFreeMBBurst)
 		for _, inst := range diskPartInst[diskPartName] {
 			if portSizeToFreeMB[inst.Port] > inst.rotate.sizeToFreeMB {
 				inst.rotate.sizeToFreeMB = portSizeToFreeMB[inst.Port]

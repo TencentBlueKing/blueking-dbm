@@ -115,7 +115,7 @@ func InitConfig(confFile string) (*Config, error) {
 		configObj.Public.MaxDiskUsedBurstPct = configObj.Public.MaxDiskUsedPct
 		viper.SetDefault("public.max_disk_used_pct_burst", configObj.Public.MaxDiskUsedPct)
 	}
-
+	PublicConfig = configObj.Public
 	//logger.Debug("ConfigObj: %+v", ConfigObj)
 	return configObj, nil
 }
