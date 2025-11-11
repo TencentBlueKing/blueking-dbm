@@ -58,6 +58,9 @@ class TendbFixPointRollbackDetailSerializer(TendbBaseOperateDetailSerializer):
         )
         tables = serializers.ListField(help_text=_("目标table列表"), child=DBTableField())
         tables_ignore = serializers.ListField(help_text=_("忽略table列表"), child=DBTableField(), required=False)
+        affect_database_list = serializers.ListField(
+            help_text=_("影响的DB"), child=serializers.CharField(), allow_null=True, required=False
+        )
 
     rollback_cluster_type = serializers.ChoiceField(
         help_text=_("回档集群类型"), choices=RollbackBuildClusterType.get_choices()
@@ -254,3 +257,18 @@ class TendbFixPointRollbackFlowBuilder(BaseTendbTicketFlowBuilder):
         flow_desc = cls._add_itsm_pause_describe(flow_desc=[], flow_config_map=flow_config_map)
         flow_desc.extend([_("回档临时集群部署"), _("TenDBCluster 回档执行")])
         return flow_desc
+
+
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_FIXPOINT_NEW, is_apply=True)
+class TendbFixPointFlowNewClusterBuilder(TendbFixPointRollbackFlowBuilder):
+    inner_flow_name = _("定点构造执行")
+
+
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_FIXPOINT_EXIST, is_apply=True)
+class TendbFixPointFlowExistClusterBuilder(TendbFixPointRollbackFlowBuilder):
+    inner_flow_name = _("定点构造执行")
+
+
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_ROLLBACK, is_apply=True)
+class TendbRollbackFlowBuilder(TendbFixPointRollbackFlowBuilder):
+    inner_flow_name = _("定点回档执行")
