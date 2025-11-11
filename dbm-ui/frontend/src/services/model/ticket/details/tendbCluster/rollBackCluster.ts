@@ -2,9 +2,10 @@ import type { DetailBase, DetailClusters } from '../common';
 
 /**
  * TenDB Cluster 定点构造
+ * v2版本分出三种单据：TENDBCLUSTER_FIXPOINT_EXIST(构造到已有集群)、TENDBCLUSTER_FIXPOINT_NEW(构造到新集群)、TENDBCLUSTER_ROLLBACK(回档)
  */
-
 export interface RollbackCluster extends DetailBase {
+  clusters: DetailClusters;
   apply_details: {
     bk_cloud_id: number;
     charset: string;
@@ -30,40 +31,34 @@ export interface RollbackCluster extends DetailBase {
     spider_port: number;
     spider_version: string;
   };
-  clusters: DetailClusters;
   ignore_check_db: boolean;
   infos: {
-    backupinfo: {
-      backup_begin_time: string;
-      backup_end_time: string;
-      backup_host: string;
-      backup_id: string;
-      backup_time: string;
-      bill_id: string;
-      bk_biz_id: string;
-      bk_cloud_id: string;
-      cluster_address: string;
-      cluster_id: number;
-      remote_node: Record<string, any>;
-      spider_node: Record<string, any>;
-      spider_slave: Record<string, any>;
-      time_zone: string;
-    };
+    backup_source: string;
+    backupinfo: any; // 旧的构造还在用之前的结构
     cluster_id: number;
+    affect_database_list?: string[];
     databases: string[];
     databases_ignore: string[];
-    rollback_host: {
+    resource_spec: {
       remote_hosts: {
-        bk_biz_id: number;
-        bk_cloud_id: number;
-        bk_host_id: number;
-        ip: string;
-      }[];
+        count: number;
+        hosts: {
+          bk_biz_id: number;
+          bk_cloud_id: number;
+          bk_host_id: number;
+          ip: string;
+        }[];
+        spec_id: number;
+      };
       spider_host: {
-        bk_biz_id: number;
-        bk_cloud_id: number;
-        bk_host_id: number;
-        ip: string;
+        count: number;
+        hosts: {
+          bk_biz_id: number;
+          bk_cloud_id: number;
+          bk_host_id: number;
+          ip: string;
+        }[];
+        spec_id: number;
       };
     };
     rollback_time: string;
@@ -72,5 +67,5 @@ export interface RollbackCluster extends DetailBase {
     tables_ignore: string[];
     target_cluster_id: number;
   }[];
-  rollback_cluster_type: string;
+  rollback_cluster_type: 'BUILD_INTO_NEW_CLUSTER' | 'BUILD_INTO_EXIST_CLUSTER' | 'BUILD_INTO_METACLUSTER';
 }

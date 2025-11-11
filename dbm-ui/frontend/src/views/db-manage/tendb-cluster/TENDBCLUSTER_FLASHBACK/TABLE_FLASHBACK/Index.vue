@@ -36,6 +36,7 @@
           :cluster-id="item.cluster?.id"
           field="databases_ignore"
           :label="t('忽略库')"
+          :required="false"
           @batch-edit="handleBatchEdit" />
         <TableNameColumn
           v-model="item.tables"
@@ -50,6 +51,7 @@
           :cluster-id="item.cluster?.id"
           field="tables_ignore"
           :label="t('忽略表')"
+          :required="false"
           @batch-edit="handleBatchEdit" />
         <OperationColumn
           v-model:table-data="formData.tableData"
