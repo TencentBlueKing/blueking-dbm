@@ -13,13 +13,13 @@
 
 <template>
   <EditableColumn
-    field="labels"
-    :label="t('资源标签')"
+    :field="field"
+    :label="labelText"
     :min-width="200"
     :rowspan="rowspan"
     :rules="rules">
     <template #head>
-      {{ t('资源标签') }}
+      {{ labelText }}
       <span class="custom-required" />
     </template>
     <template #headAppend>
@@ -31,12 +31,13 @@
         filterable
         id-key="id"
         :list="tagList"
+        :loading="loading"
         multiple
         multiple-mode="tag"
         :placeholder="t('请选择')"
         :popover-min-width="200"
         show-all
-        :title="t('资源标签')"
+        :title="labelText"
         type="select"
         @change="handleBatchEditChange">
         <span
@@ -45,8 +46,8 @@
           @click="handleBatchEditShow">
           <DbIcon type="bulk-edit" />
         </span>
-        <template #tagRender="{ label, value }">
-          {{ value === DEFAULT_TAG_ID ? t('通用无标签') : label }}
+        <template #tagRender="{ label: tagLabel, value }">
+          {{ value === DEFAULT_TAG_ID ? t('通用无标签') : tagLabel }}
         </template>
         <template #allOptionIcon>
           <BkTag
@@ -67,14 +68,15 @@
       filterable
       id-key="id"
       :list="tagList"
+      :loading="loading"
       multiple
       multiple-mode="tag"
       :popover-min-width="200"
       show-all
       :tag-theme="tagTheme"
       @change="handleChange">
-      <template #tagRender="{ label, value }">
-        {{ value === DEFAULT_TAG_ID ? t('通用无标签') : label }}
+      <template #tagRender="{ label: tagLabel, value }">
+        {{ value === DEFAULT_TAG_ID ? t('通用无标签') : tagLabel }}
       </template>
       <template #allOptionIcon>
         <BkTag
@@ -89,6 +91,7 @@
   </EditableColumn>
 </template>
 <script lang="ts" setup>
+  import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -99,12 +102,18 @@
   type IValue = ServiceReturnType<typeof listTag>['results'][0];
 
   interface Props {
+    bizId?: number;
+    field?: string;
+    label?: string;
     rowspan?: number;
   }
 
   type Emits = (e: 'batch-edit', value: any, field: string) => void;
 
-  withDefaults(defineProps<Props>(), {
+  const props = withDefaults(defineProps<Props>(), {
+    bizId: window.PROJECT_CONFIG.BIZ_ID,
+    field: 'labels',
+    label: '',
     rowspan: 1,
   });
 
@@ -140,13 +149,10 @@
     },
   ];
 
-  useRequest(listTag, {
-    defaultParams: [
-      {
-        bk_biz_ids: String(window.PROJECT_CONFIG.BIZ_ID),
-        type: 'resource',
-      },
-    ],
+  const labelText = computed(() => (props.label ? props.label : t('资源标签')));
+
+  const { loading, run: runListTag } = useRequest(listTag, {
+    manual: true,
     onSuccess: (data) => {
       if (!data.results.length) {
         return;
@@ -176,6 +182,19 @@
     },
   });
 
+  watch(
+    () => props.bizId,
+    () => {
+      runListTag({
+        bk_biz_ids: String(props.bizId),
+        type: 'resource',
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
+
   const handleChange = (values: number[]) => {
     ids.value = values;
     tagTheme.value = values[0] === DEFAULT_TAG_ID ? 'success' : '';
@@ -187,10 +206,10 @@
 
   const handleBatchEditChange = (values: number[]) => {
     const labels = values.map((id) => tagMap.value[id]);
-    emits('batch-edit', labels, 'labels');
+    emits('batch-edit', labels, props.field);
   };
 
-  const updateModel = (data: typeof modelValue.value) => {
+  const updateModel = (data: UnwrapRef<typeof modelValue>) => {
     const list = data.reduce<IValue[]>((acc, item: { id: number; value: string }) => {
       const tagInfo = Object.assign(item, tagMap.value[item?.value || item?.id]);
       if (tagInfo.id && tagInfo.value) {

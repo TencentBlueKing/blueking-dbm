@@ -32,15 +32,11 @@
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
-      col-key="node_type"
-      :title="t('扩容节点类型')">
-      Proxy
-    </TicketInfoTableColumn>
-    <TicketInfoTableColumn
-      col-key="spec_id"
-      :title="t('当前规格')">
-      <template #default="{ row }: { row: IRowData }">
-        {{ ticketDetails.details.specs[row.resource_spec.proxy.spec_id].name }}
+      col-key="current_proxy_num"
+      :title="t('当前数量（台）')"
+      :width="120">
+      <template #default="{row}: {row: IRowData}">
+        {{ row.current_proxy_num || '--' }}
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
@@ -48,6 +44,40 @@
       :title="t('扩容数量（台）')">
       <template #default="{ row }: { row: IRowData }">
         {{ row.resource_spec.proxy.count }}
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="final_spec_count"
+      :title="t('最终数量（台）')"
+      :width="120">
+      <template #default="{row}: {row: IRowData}">
+        {{ row.current_proxy_num ? row.current_proxy_num + row.resource_spec.proxy.count : '--' }}
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="spec_id"
+      :title="t('目标规格')">
+      <template #default="{row}: {row: IRowData}">
+        {{ ticketDetails.details.specs[row.resource_spec.proxy.spec_id].name }}
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="label_names"
+      :min-width="200"
+      :title="t('资源标签')">
+      <template #default="{ row }: { row: IRowData }">
+        <template v-if="row.resource_spec.proxy?.label_names?.length">
+          <BkTag
+            v-for="item in row.resource_spec.proxy.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
       </template>
     </TicketInfoTableColumn>
   </TicketInfoTable>
@@ -61,7 +91,7 @@
   import { TicketTypes } from '@common/const';
 
   interface Props {
-    ticketDetails: TicketModel<Redis.ProxyScaleUp>;
+    ticketDetails: TicketModel<Redis.ResourcePool.ProxyScaleUp>;
   }
 
   defineOptions({

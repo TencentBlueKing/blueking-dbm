@@ -3,10 +3,9 @@ import type { OnlineSwitchType } from '@services/types';
 
 import { Affinity } from '@common/const';
 
-import type { DetailBase, DetailClusters, DetailSpecs } from '../common';
+import type { ResourcePoolDetailBase } from '../../common';
 
-export interface ScaleUpdown extends DetailBase {
-  clusters: DetailClusters;
+export interface ScaleUpdown extends ResourcePoolDetailBase {
   infos: {
     bk_cloud_id: number;
     capacity: number;
@@ -31,12 +30,12 @@ export interface ScaleUpdown extends DetailBase {
       backend_group: {
         affinity: Affinity;
         count: number; // 机器组数
+        label_names: string[]; // 标签名称列表，单据详情回显用
+        labels: string[]; // 标签id列表
         spec_id: number;
       };
     };
     shard_num: number;
     update_mode: string;
   }[];
-  ip_source: 'resource_pool';
-  specs: DetailSpecs;
 }

@@ -15,15 +15,20 @@
   <SmartAction>
     <div class="cluster-shard-update">
       <BkAlert
+        class="mb-20"
         closable
         theme="info"
         :title="t('集群类型变更：通过部署新集群来实现原集群的类型变更，可以指定新的版本')" />
+      <!-- <BatchInput
+        :config="batchInputConfig"
+        @change="handleBatchInput" /> -->
       <DbForm
         ref="form"
         class="toolbox-form mt-16"
         form-type="vertical"
         :model="formData">
         <EditableTable
+          :key="tableKey"
           ref="editableTable"
           class="mt-16 mb-16"
           :model="formData.tableData">
@@ -69,6 +74,34 @@
               :cluster="item.cluster"
               :target-cluster-type="item.target_cluster_type"
               :title="t('选择集群类型变更部署方案')" />
+            <ResourceTagColumn
+              v-model="item.proxyLabels"
+              field="proxyLabels"
+              :label="t('Proxy 资源标签')"
+              @batch-edit="handleBatchEdit" />
+            <AvailableResourceColumn
+              :label="t('Proxy 可用资源')"
+              :params="{
+                city: item.cluster.region,
+                for_bizs: [currentBizId, 0],
+                resource_types: [DBTypes.REDIS, 'PUBLIC'],
+                spec_id: item.cluster.proxy.length ? item.cluster.proxy[0].spec_config.id : undefined,
+                labels: item.proxyLabels.map((item) => item.id).join(','),
+              }" />
+            <ResourceTagColumn
+              v-model="item.backendLabels"
+              field="backendLabels"
+              :label="t('后端存储资源标签')"
+              @batch-edit="handleBatchEdit" />
+            <AvailableResourceColumn
+              :label="t('后端存储可用资源')"
+              :params="{
+                city: item.cluster.region,
+                for_bizs: [currentBizId, 0],
+                resource_types: [DBTypes.REDIS, 'PUBLIC'],
+                spec_id: item.target_capacity.spec_id,
+                labels: item.backendLabels.map((item) => item.id).join(','),
+              }" />
             <EditableColumn
               :label="t('切换模式')"
               readonly
@@ -160,6 +193,7 @@
 </template>
 
 <script setup lang="ts">
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import RedisModel from '@services/model/redis/redis';
@@ -169,21 +203,27 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { Affinity, ClusterTypes, TicketTypes } from '@common/const';
+  import { Affinity, ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import { type TabItem } from '@components/cluster-selector/Index.vue';
 
+  // import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+  import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
+  import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import { repairAndVerifyFrequencyList, repairAndVerifyTypeList } from '@views/db-manage/redis/common/const';
   import ClusterColumn from '@views/db-manage/redis/common/toolbox-field/cluster-column/Index.vue';
 
+  import { random } from '@utils';
+
   import TargetCapacityColumn from './components/target-capacity-column/Index.vue';
   import TargetClusterTypeColumn from './components/TargetClusterTypeColumn.vue';
   import TargetVersionSelectColumn from './components/TargetVersionSelectColumn.vue';
 
   interface IDataRow {
+    backendLabels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     cluster: {
       bk_cloud_id: number;
       cluster_capacity: number;
@@ -197,8 +237,10 @@
       major_version: string;
       master_domain: string;
       proxy: RedisModel['proxy'];
+      region: string;
     };
     db_version: string;
+    proxyLabels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     target_capacity: {
       capacity: number;
       cluster_shard_num: number;
@@ -209,7 +251,8 @@
     target_cluster_type: string;
   }
 
-  const createRowData = (values = {} as Partial<IDataRow>) => ({
+  const createRowData = (values: DeepPartial<IDataRow> = {}) => ({
+    backendLabels: (values.backendLabels || []) as IDataRow['backendLabels'],
     cluster: Object.assign(
       {
         bk_cloud_id: 0,
@@ -224,10 +267,12 @@
         major_version: '',
         master_domain: '',
         proxy: [] as RedisModel['proxy'],
+        region: '',
       },
       values.cluster,
     ),
     db_version: values?.db_version || '',
+    proxyLabels: (values.proxyLabels || []) as IDataRow['proxyLabels'],
     target_capacity: Object.assign(
       {
         capacity: 0,
@@ -251,7 +296,7 @@
   const { t } = useI18n();
 
   // 单据克隆
-  useTicketDetail<Redis.ClusterTypeUpdate>(TicketTypes.REDIS_CLUSTER_TYPE_UPDATE, {
+  useTicketDetail<Redis.ResourcePool.ClusterTypeUpdate>(TicketTypes.REDIS_CLUSTER_TYPE_UPDATE, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { clusters, infos } = details;
@@ -261,10 +306,12 @@
         data_check_repair_setting_type: details.data_check_repair_setting.type,
         tableData: infos.map((infoItem) =>
           createRowData({
+            backendLabels: (infoItem.resource_spec.backend_group.labels || []).map((item) => ({ id: Number(item) })),
             cluster: {
               master_domain: clusters[infoItem.src_cluster].immute_domain,
             } as IDataRow['cluster'],
             db_version: infoItem.db_version,
+            proxyLabels: (infoItem.resource_spec.proxy.labels || []).map((item) => ({ id: Number(item) })),
             target_cluster_type: infoItem.target_cluster_type,
           }),
         ),
@@ -298,11 +345,15 @@
         backend_group: {
           affinity: string;
           count: number; // 机器组数
+          label_names: string[]; // 标签名称列表，单据详情回显用
+          labels: string[]; // 标签id列表
           spec_id: number;
         };
         proxy: {
           affinity: string;
           count: number;
+          label_names: string[]; // 标签名称列表，单据详情回显用
+          labels: string[]; // 标签id列表
           spec_id: number;
         };
       };
@@ -313,6 +364,38 @@
   }>(TicketTypes.REDIS_CLUSTER_TYPE_UPDATE);
 
   const editableTableRef = useTemplateRef('editableTable');
+
+  // const batchInputConfig = [
+  //   {
+  //     case: 'redis.test.dba.db',
+  //     key: 'domain',
+  //     label: t('目标集群'),
+  //   },
+  //   {
+  //     case: 'TwemproxyRedisInstance',
+  //     key: 'type',
+  //     label: t('新集群类型'),
+  //   },
+  //   {
+  //     case: 'Redis-6',
+  //     key: 'version',
+  //     label: t('Redis 版本'),
+  //   },
+  //   {
+  //     case: '标签1,标签2',
+  //     key: 'proxyLabels',
+  //     label: t('Proxy 资源标签'),
+  //   },
+  //   {
+  //     case: '标签1,标签2',
+  //     key: 'backendLabels',
+  //     label: t('后端存储资源标签'),
+  //   },
+  // ];
+
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
+
+  const tableKey = ref(random());
 
   const formData = reactive(createDefaultFormData());
 
@@ -364,6 +447,37 @@
     window.changeConfirm = true;
   };
 
+  const handleBatchEdit = (value: string | number, field: string) => {
+    formData.tableData.forEach((item) => {
+      Object.assign(item, { [field]: value });
+    });
+    window.changeConfirm = true;
+  };
+
+  // const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+  //   const dataList = data.map((item) =>
+  //     createRowData({
+  //       backendLabels: (item.backendLabels as string)
+  //         ?.split(',')
+  //         .map((item) => ({ value: item })) as IDataRow['backendLabels'],
+  //       cluster: {
+  //         master_domain: item.domain,
+  //       } as IDataRow['cluster'],
+  //       db_version: item.version || '',
+  //       proxyLabels: (item.proxyLabels as string)
+  //         ?.split(',')
+  //         .map((item) => ({ value: item })) as IDataRow['proxyLabels'],
+  //       target_cluster_type: item.type || '',
+  //     }),
+  //   );
+  //   if (isClear) {
+  //     tableKey.value = random();
+  //     formData.tableData = [...dataList];
+  //   } else {
+  //     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+  //   }
+  // };
+
   const handleSubmit = async () => {
     const validateResult = await editableTableRef.value!.validate();
     if (validateResult) {
@@ -386,11 +500,15 @@
               backend_group: {
                 affinity: tableItem.cluster.disaster_tolerance_level || Affinity.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
                 count: Number(tableItem.target_capacity.count), // 机器组数
+                label_names: tableItem.backendLabels.map((item) => item.value),
+                labels: tableItem.backendLabels.map((item) => String(item.id)),
                 spec_id: tableItem.target_capacity.spec_id,
               },
               proxy: {
                 affinity: Affinity.CROS_SUBZONE,
                 count: Math.min(new Set(tableItem.cluster.proxy.map((item) => item.ip)).size, 5), // 最大5台
+                label_names: tableItem.proxyLabels.map((item) => item.value),
+                labels: tableItem.proxyLabels.map((item) => String(item.id)),
                 spec_id: tableItem.cluster.proxy[0].spec_config.id,
               },
             },

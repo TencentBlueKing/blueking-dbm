@@ -20,7 +20,7 @@
     :rowspan-and-colspan="rowspanAndColspan">
     <TicketInfoTableColumn
       col-key="ip"
-      :get-copy-value="(row: RowData) => row.ip"
+      :get-copy-value="(row: RowData) => [row.ip, row.related_slave_ip || '']"
       :min-width="150"
       :title="t('目标主机')">
       <template #default="{ row: data }: { row: RowData }">
@@ -37,21 +37,13 @@
       col-key="role"
       :min-width="150"
       :title="t('角色类型')">
-      <template #default="{ row: data }: { row: RowData }">
-        <p class="has-related">{{ data.role || '--' }}</p>
-        <p
-          v-if="data?.related_slave_ip"
-          class="has-related related-slave-cell">
-          redis_slave
-        </p>
-      </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="cluster_domain"
       :min-width="250"
       :title="t('所属集群')">
       <template #default="{ row: data }: { row: RowData }">
-        <p class="has-related">{{ data.cluster_domain || '--' }}</p>
+        {{ data.cluster_domain || '--' }}
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
@@ -59,35 +51,39 @@
       :min-width="200"
       :title="t('规格需求')">
       <template #default="{ row: data }: { row: RowData }">
-        <div class="has-related">
+        <SpecDetailPopover
+          v-if="data.spec_config?.name"
+          :data="data.spec_config">
           {{ data.spec_config?.name || '--' }}
-          <SpecDetailPopover
-            v-if="data.spec_config?.name"
-            :data="data.spec_config">
-            <DbIcon
-              class="visible-icon ml-4"
-              type="visible1" />
-          </SpecDetailPopover>
-        </div>
-        <div
-          v-if="data.related_slave_spec?.name"
-          class="has-related related-slave-cell">
-          {{ data.related_slave_spec?.name || '--' }}
-          <SpecDetailPopover
-            v-if="data.related_slave_spec?.name"
-            :data="data.related_slave_spec">
-            <DbIcon
-              class="visible-icon ml-4"
-              type="visible1" />
-          </SpecDetailPopover>
-        </div>
+          <DbIcon
+            class="visible-icon ml-4"
+            type="visible1" />
+        </SpecDetailPopover>
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="label_names"
+      :min-width="200"
+      :title="t('资源标签')">
+      <template #default="{ row }: { row: RowData }">
+        <template v-if="row.labels.length">
+          <BkTag
+            v-for="item in row.labels"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
       </template>
     </TicketInfoTableColumn>
   </TicketInfoTable>
 </template>
 
 <script setup lang="ts">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import type { DetailSpecs } from '@services/model/ticket/details/common';
@@ -95,7 +91,6 @@
 
   import { TicketTypes } from '@common/const';
 
-  // import SpecPanel from '@components/render-table/columns/spec-display/Panel.vue';
   import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
   interface Props {
@@ -114,13 +109,12 @@
   interface RowData {
     cluster_domain: string;
     ip: string;
+    labels: string[];
     related_slave_ip?: string; // 关联的slave
-    related_slave_spec?: DetailSpecs[number]; // 关联的slave
     role: string;
     spec_config: DetailSpecs[number];
   }
 
-  const ipInfoMap = reactive<Record<string, RowData>>({});
   const tableData = ref<RowData[]>([]);
 
   const generateRowClass = ({ row }: { row: RowData }) => {
@@ -134,59 +128,43 @@
     rowIndex: number;
     rowspan: number;
   }[] = [];
-  const { clusters, infos, recycle_hosts: recycleHosts, specs } = props.ticketDetails.details;
-  if (infos.length && recycleHosts.length) {
-    const generateData = (
-      list: Redis.ResourcePool.ClusterCutoff['infos'][0]['redis_master'],
-      role: keyof Redis.ResourcePool.ClusterCutoff['infos'][0]['old_nodes'],
-      clusterIds: number[],
-    ) => {
-      if (list?.length) {
-        _.uniqBy(list, 'ip').forEach((hostInfo) => {
-          const clusterInfo = clusters[clusterIds[0]];
-          const ip = hostInfo.master_ip || hostInfo.ip;
-          const specId = hostInfo.master_spec_id || hostInfo.spec_id;
-          const isRelatedSlave = !!hostInfo.master_ip; // 是否是关联带出的slave
-          if (!ipInfoMap[ip]) {
-            Object.assign(ipInfoMap, {
-              [ip]: {
-                cluster_domain: clusterInfo.immute_domain,
-                ip,
-                role,
-                spec_config: specs[specId],
-              },
-            });
-          } else if (isRelatedSlave) {
-            ipInfoMap[ip].related_slave_ip = hostInfo.ip;
-            ipInfoMap[ip].related_slave_spec = specs[specId];
-          }
-        });
-      }
-    };
 
-    infos.forEach((infoItem) => {
-      generateData(infoItem.old_nodes.redis_master, 'redis_master', infoItem.cluster_ids);
-      generateData(infoItem.old_nodes.redis_slave, 'redis_slave', infoItem.cluster_ids);
-      generateData(infoItem.old_nodes.proxy, 'proxy', infoItem.cluster_ids);
-    });
+  const { clusters, infos, specs } = props.ticketDetails.details;
+  const list = infos.flatMap((infoItem) => {
+    const role = infoItem.switch_role as keyof (typeof infos)[number]['old_nodes'];
+    const hosts = infoItem[role]!;
 
-    const list = Object.values(ipInfoMap);
-    const domainCounter: Record<string, number> = {};
-    list.forEach((rowData, index) => {
-      const domain = rowData.cluster_domain;
-      domainCounter[domain] = (domainCounter[domain] || 0) + 1;
-      if (domainCounter[domain] > 1) {
-        spanInfo.push({
-          rowIndex: index + 1 - domainCounter[domain],
-          rowspan: domainCounter[domain],
-        });
-      }
-    });
-    tableData.value = list;
-  }
+    const resouceSpecItem = Object.values(infoItem.resource_spec)[0];
+    const labels = resouceSpecItem.label_names || [];
+    const domain = clusters[infoItem.cluster_ids[0]].immute_domain;
+    const specConfig = specs[resouceSpecItem.spec_id];
+    const redisMasterOldNodes = role === 'redis_master' ? infoItem['old_nodes']['redis_master']! : [];
+
+    return hosts.map((host, hostIndex) => ({
+      cluster_domain: domain,
+      ip: host.ip,
+      labels,
+      related_slave_ip: role === 'redis_master' ? redisMasterOldNodes[hostIndex * 2 + 1].ip : '',
+      role,
+      spec_config: specConfig,
+    }));
+  });
+
+  const domainCounter: Record<string, number> = {};
+  list.forEach((rowData, index) => {
+    const domain = rowData.cluster_domain;
+    domainCounter[domain] = (domainCounter[domain] || 0) + 1;
+    if (domainCounter[domain] > 1) {
+      spanInfo.push({
+        rowIndex: index + 1 - domainCounter[domain],
+        rowspan: domainCounter[domain],
+      });
+    }
+  });
+  tableData.value = list;
 
   const rowspanAndColspan = ({ colIndex, rowIndex }: { colIndex: number; rowIndex: number }) => {
-    const spanItem = spanInfo.find((item) => colIndex === 2 && item.rowIndex === rowIndex);
+    const spanItem = spanInfo.find((item) => [2, 3, 4].includes(colIndex) && item.rowIndex === rowIndex);
     if (spanItem) {
       return {
         rowspan: spanItem.rowspan,
@@ -203,31 +181,19 @@
   }
 
   .related-slave-row {
-    td {
-      height: 80px !important;
-      padding: 0 !important;
-    }
-
-    .vxe-cell {
+    .t-table__td-first-col {
       padding: 0 !important;
     }
 
     .has-related {
-      height: 40px;
-      padding: 0 16px;
-      line-height: 40px;
+      padding: 11px 8px;
     }
 
     .related-slave {
-      height: 40px;
-      padding: 0 16px;
+      padding: 0 8px;
       line-height: 18px;
       color: #979ba5;
       background: #fafbfd;
-    }
-
-    .related-slave-cell {
-      border-top: 1px solid #dcdee5;
     }
   }
 </style>

@@ -16,6 +16,7 @@
     :config="batchInputConfig"
     @change="handleBatchInput" />
   <EditableTable
+    :key="tableKey"
     ref="editableTable"
     class="mt-16 mb-16"
     :model="tableData">
@@ -41,6 +42,17 @@
         required
         selectable
         @batch-edit="handleBatchEdit" />
+      <ResourceTagColumn
+        v-model="item.labels"
+        @batch-edit="handleBatchEdit" />
+      <AvailableResourceColumn
+        :params="{
+          city: Object.values(item.batchCluster.clusters)?.[0]?.region,
+          for_bizs: [currentBizId, 0],
+          resource_types: [DBTypes.REDIS, 'PUBLIC'],
+          spec_id: item.target_spec_id,
+          labels: item.labels.map((item) => item.id).join(','),
+        }" />
       <TargetVersionSelectColumn
         v-model="item.db_version"
         :cluster-type="Object.values(item.batchCluster.clusters)?.[0]?.cluster_type"
@@ -64,9 +76,13 @@
   import { type TabItem } from '@components/cluster-selector/Index.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+  import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
+  import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import { specClusterMachineMap } from '@views/db-manage/redis/common/const';
   import TargetVersionSelectColumn from '@views/db-manage/redis/common/toolbox-field/target-version-select-column/Index.vue';
+
+  import { random } from '@utils';
 
   import { useTicketDetail } from '@/hooks';
 
@@ -75,7 +91,7 @@
   import ClusterBatchColumn from './components/ClusterBatchColumn.vue';
 
   interface Exposes {
-    getValue: () => Promise<Redis.MigrateSingle['infos']>;
+    getValue: () => Promise<Redis.ResourcePool.MigrateSingle['infos']>;
     resetTable: () => void;
   }
 
@@ -101,10 +117,11 @@
         slave_ins: string;
       }[];
     };
+    labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     target_spec_id: number;
   }
 
-  const createRowData = (values = {} as Partial<IDataRow>) => ({
+  const createRowData = (values: Partial<IDataRow> = {}) => ({
     batchCluster: Object.assign(
       {
         clusters: {} as IDataRow['batchCluster']['clusters'],
@@ -114,6 +131,7 @@
     ),
     db_version: values.db_version || '',
     instance_data: {} as IDataRow['instance_data'],
+    labels: (values.labels || []) as IDataRow['labels'],
     target_spec_id: values.target_spec_id || 0,
   });
 
@@ -121,10 +139,10 @@
 
   const editableTableRef = useTemplateRef('editableTable');
 
-  useTicketDetail<Redis.MigrateSingle>(TicketTypes.REDIS_SINGLE_INS_MIGRATE, {
+  useTicketDetail<Redis.ResourcePool.MigrateSingle>(TicketTypes.REDIS_SINGLE_INS_MIGRATE, {
     onSuccess(ticketDetail) {
       const { infos } = ticketDetail.details;
-      const rowMap = infos.reduce<Record<string, Redis.MigrateSingle['infos']>>((prevMap, infoItem) => {
+      const rowMap = infos.reduce<Record<string, Redis.ResourcePool.MigrateSingle['infos']>>((prevMap, infoItem) => {
         const migrateDomain = infoItem.migrate_domain!;
         if (prevMap[migrateDomain]) {
           return Object.assign({}, prevMap, {
@@ -143,6 +161,7 @@
             renderText: rowItem.migrate_domain?.replaceAll(',', '\n') || '',
           } as IDataRow['batchCluster'],
           db_version: rowItem.db_version,
+          labels: (rowItem.resource_spec.backend_group.labels || []).map((item) => ({ id: Number(item), value: '' })),
           target_spec_id: rowItem.resource_spec.backend_group.spec_id,
         });
       });
@@ -177,6 +196,9 @@
     },
   } as unknown as Record<ClusterTypes, TabItem>;
 
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
+
+  const tableKey = ref(random());
   const tableData = ref([createRowData()]);
 
   const selected = computed(() =>
@@ -218,6 +240,7 @@
       return acc;
     }, []);
     if (isClear) {
+      tableKey.value = random();
       tableData.value = [...newList];
     } else {
       tableData.value = [...tableData.value.filter((item) => item.batchCluster.renderText), ...newList];
@@ -250,6 +273,8 @@
               resource_spec: {
                 backend_group: {
                   count: 1,
+                  label_names: tableItem.labels.map((item) => item.value),
+                  labels: tableItem.labels.map((item) => String(item.id)),
                   spec_id: tableItem.target_spec_id,
                 },
               },

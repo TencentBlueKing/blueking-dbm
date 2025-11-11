@@ -89,6 +89,7 @@
     cluster_ids: number[];
     ip: string;
     master_domain: string;
+    region: string;
     related_slave?: {
       bk_host_id: number;
       ip: string;
@@ -153,6 +154,7 @@
           cluster_ids: item.related_clusters.map((item) => item.id),
           ip: item.ip,
           master_domain: item.master_domain,
+          region: item.related_clusters[0].region,
           role: item.role,
           spec_config: item.spec_config,
         };
@@ -178,6 +180,7 @@
       cluster_ids: [] as number[],
       ip: value,
       master_domain: '',
+      region: '',
       role: '',
       spec_config: {} as InstanceInfos['spec_config'],
     };

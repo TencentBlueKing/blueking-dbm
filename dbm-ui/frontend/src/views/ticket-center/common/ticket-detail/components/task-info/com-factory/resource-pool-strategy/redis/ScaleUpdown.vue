@@ -59,6 +59,25 @@
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
+      col-key="label_names"
+      :min-width="200"
+      :title="t('资源标签')">
+      <template #default="{ row }: { row: RowData }">
+        <template v-if="row.resource_spec.backend_group?.label_names?.length">
+          <BkTag
+            v-for="item in row.resource_spec.backend_group.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="online_switch_type"
       :min-width="120"
       :title="t('切换模式')">
@@ -81,10 +100,10 @@
 
   import ValueDiff from '@views/db-manage/common/value-diff/Index.vue';
 
-  import TableGroupContent from '../components/TableGroupContent.vue';
+  import TableGroupContent from '../../components/TableGroupContent.vue';
 
   interface Props {
-    ticketDetails: TicketModel<Redis.ScaleUpdown>;
+    ticketDetails: TicketModel<Redis.ResourcePool.ScaleUpdown>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];

@@ -58,7 +58,7 @@
 
   import { getGlobalMachine } from '@services/source/dbbase';
   import { queryMasterSlavePairs } from '@services/source/redisToolbox';
-  import type { InstanceInfos } from '@services/types';
+  import type { InstanceInfos, MachineSpecConfig } from '@services/types';
 
   import { ClusterTypes, DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
@@ -84,10 +84,11 @@
     cluster_ids: number[];
     ip: string;
     master_domain: string;
+    region: string;
     related_slave?: {
       bk_host_id: number;
       ip: string;
-      spec_config: InstanceInfos['spec_config'];
+      spec_config: MachineSpecConfig;
     }; // 关联的从库ip，仅当role=redis_master时存在
     role: string;
     spec_config: InstanceInfos['spec_config'];
@@ -148,6 +149,7 @@
           cluster_ids: item.related_clusters.map((item) => item.id),
           ip: item.ip,
           master_domain: cluster?.immute_domain || '',
+          region: item.related_clusters[0].region,
           role: item.instance_role,
           spec_config: item.spec_config,
         };
@@ -173,6 +175,7 @@
       cluster_ids: [] as number[],
       ip: value,
       master_domain: '',
+      region: '',
       role: '',
       spec_config: {} as InstanceInfos['spec_config'],
     };

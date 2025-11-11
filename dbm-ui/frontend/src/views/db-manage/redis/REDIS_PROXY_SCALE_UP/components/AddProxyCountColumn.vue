@@ -1,7 +1,7 @@
 <template>
   <EditableColumn
     :append-rules="rules"
-    field="target_proxy_count"
+    field="add_proxy_count"
     :label="t('扩容数量（台）')"
     required
     :width="200">
@@ -31,7 +31,7 @@
   }
 
   const emits = defineEmits<Emits>();
-  const modelValue = defineModel<string>();
+  const modelValue = defineModel<number>();
 
   const { t } = useI18n();
 
@@ -46,7 +46,7 @@
   const batchEditValue = ref(0);
 
   const handleBatchEditConfirm = () => {
-    emits('batch-edit', batchEditValue.value, 'target_proxy_count');
+    emits('batch-edit', batchEditValue.value, 'add_proxy_count');
   };
 </script>
 

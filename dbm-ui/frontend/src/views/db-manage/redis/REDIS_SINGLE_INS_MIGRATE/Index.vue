@@ -80,7 +80,7 @@
   const currentTableRef = useTemplateRef('currentTable');
 
   // 单据克隆
-  useTicketDetail<Redis.MigrateSingle>(TicketTypes.REDIS_SINGLE_INS_MIGRATE, {
+  useTicketDetail<Redis.ResourcePool.MigrateSingle>(TicketTypes.REDIS_SINGLE_INS_MIGRATE, {
     onSuccess(ticketDetail) {
       if (ticketDetail.details.infos[0]?.migrate_type === 'machine') {
         formData.migrateType = MigrateType.MACHINE;
@@ -91,7 +91,7 @@
   });
 
   const { loading: isSubmitting, run: createSingleTicketRun } = useCreateTicket<{
-    infos: Redis.MigrateSingle['infos'];
+    infos: Redis.ResourcePool.MigrateSingle['infos'];
   }>(TicketTypes.REDIS_SINGLE_INS_MIGRATE);
 
   const initFormData = () => ({
