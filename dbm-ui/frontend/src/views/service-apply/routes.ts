@@ -14,6 +14,8 @@ import type { RouteRecordRaw } from 'vue-router';
 
 import { registerBusinessModule } from '@router';
 
+import { DBTypes } from '@common/const';
+
 import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
@@ -28,6 +30,7 @@ const routes: RouteRecordRaw[] = [
     redirect: {
       name: 'serviceApplyIndex',
     },
+    component: () => import('@views/service-apply/Index.vue'),
     children: [
       {
         path: 'index',
@@ -41,6 +44,7 @@ const routes: RouteRecordRaw[] = [
         path: 'single',
         name: 'SelfServiceApplySingle',
         meta: {
+          dbType: DBTypes.MYSQL,
           navName: t('申请MySQL单节点部署'),
         },
         component: () => import('@views/db-manage/mysql/apply/ApplyMySQL.vue'),
@@ -49,6 +53,7 @@ const routes: RouteRecordRaw[] = [
         path: 'ha',
         name: 'SelfServiceApplyHa',
         meta: {
+          dbType: DBTypes.MYSQL,
           navName: t('申请MySQL主从部署'),
         },
         component: () => import('@views/db-manage/mysql/apply/ApplyMySQL.vue'),
@@ -57,6 +62,7 @@ const routes: RouteRecordRaw[] = [
         path: 'tendbcluster',
         name: 'spiderApply',
         meta: {
+          dbType: DBTypes.TENDBCLUSTER,
           navName: t('申请TendbCluster分布式集群部署'),
         },
         component: () => import('@views/db-manage/tendb-cluster/apply/Index.vue'),
@@ -65,6 +71,7 @@ const routes: RouteRecordRaw[] = [
         path: 'redis',
         name: 'SelfServiceApplyRedis',
         meta: {
+          dbType: DBTypes.REDIS,
           navName: t('申请Redis集群部署'),
         },
         component: () => import('@views/db-manage/redis/apply/ApplyRedis.vue'),
@@ -73,6 +80,7 @@ const routes: RouteRecordRaw[] = [
         path: 'redis-ha',
         name: 'SelfServiceApplyRedisHa',
         meta: {
+          dbType: DBTypes.REDIS,
           navName: t('申请 Redis 主从部署'),
         },
         component: () => import('@views/db-manage/redis/apply-ha/Index.vue'),
@@ -81,6 +89,7 @@ const routes: RouteRecordRaw[] = [
         path: 'es',
         name: 'EsApply',
         meta: {
+          dbType: DBTypes.ES,
           navName: t('申请ES集群部署'),
         },
         component: () => import('@views/db-manage/elastic-search/apply/Index.vue'),
@@ -89,6 +98,7 @@ const routes: RouteRecordRaw[] = [
         path: 'kafka',
         name: 'KafkaApply',
         meta: {
+          dbType: DBTypes.KAFKA,
           navName: t('申请Kafka集群部署'),
         },
         component: () => import('@views/db-manage/kafka/apply/Index.vue'),
@@ -97,6 +107,7 @@ const routes: RouteRecordRaw[] = [
         path: 'hdfs',
         name: 'HdfsApply',
         meta: {
+          dbType: DBTypes.HDFS,
           navName: t('申请HDFS集群部署'),
         },
         component: () => import('@views/db-manage/hdfs/apply/Index.vue'),
@@ -105,6 +116,7 @@ const routes: RouteRecordRaw[] = [
         path: 'pulsar',
         name: 'PulsarApply',
         meta: {
+          dbType: DBTypes.PULSAR,
           navName: t('申请Pulsar集群部署'),
         },
         component: () => import('@views/db-manage/pulsar/apply/index.vue'),
@@ -113,6 +125,7 @@ const routes: RouteRecordRaw[] = [
         path: 'influxdb',
         name: 'SelfServiceApplyInfluxDB',
         meta: {
+          dbType: DBTypes.INFLUXDB,
           navName: t('申请InfluxDB集群部署'),
         },
         component: () => import('@views/db-manage/influxdb/apply/index.vue'),
@@ -121,6 +134,7 @@ const routes: RouteRecordRaw[] = [
         path: 'riak',
         name: 'RiakApply',
         meta: {
+          dbType: DBTypes.RIAK,
           navName: t('申请Riak集群部署'),
         },
         component: () => import('@views/db-manage/riak/apply/Index.vue'),
@@ -129,6 +143,7 @@ const routes: RouteRecordRaw[] = [
         path: 'mongodb-shared-cluster-apply',
         name: 'MongoDBSharedClusterApply',
         meta: {
+          dbType: DBTypes.MONGODB,
           navName: t('申请MongoDB分片集群部署'),
         },
         component: () => import('@views/db-manage/mongodb/shared-cluster-apply/Index.vue'),
@@ -137,6 +152,7 @@ const routes: RouteRecordRaw[] = [
         path: 'mongodb-replica-set-apply',
         name: 'MongoDBReplicaSetApply',
         meta: {
+          dbType: DBTypes.MONGODB,
           navName: t('申请MongoDB副本集部署'),
         },
         component: () => import('@views/db-manage/mongodb/replica-set-apply/Index.vue'),
@@ -145,6 +161,7 @@ const routes: RouteRecordRaw[] = [
         path: 'doris',
         name: 'DorisApply',
         meta: {
+          dbType: DBTypes.DORIS,
           navName: t('申请Doris集群部署'),
         },
         component: () => import('@views/db-manage/doris/apply/Index.vue'),
@@ -169,6 +186,7 @@ const routes: RouteRecordRaw[] = [
         path: 'sqlserver-single',
         name: 'SqlServiceSingleApply',
         meta: {
+          dbType: DBTypes.SQLSERVER,
           navName: t('申请SQLServer单节点部署'),
         },
         component: () => import('@views/db-manage/sqlserver/apply/SqlServer.vue'),
@@ -177,6 +195,7 @@ const routes: RouteRecordRaw[] = [
         path: 'sqlserver-ha',
         name: 'SqlServiceHaApply',
         meta: {
+          dbType: DBTypes.SQLSERVER,
           navName: t('申请SQLServer主从部署'),
         },
         component: () => import('@views/db-manage//sqlserver/apply/SqlServer.vue'),
