@@ -1,6 +1,7 @@
 <template>
   <div
     v-if="riskMemoDetail"
+    v-bkloading="{ loading: detailLoading }"
     class="risk-detail-info-main"
     style="height: 100%">
     <div class="title-operate-main">
@@ -255,7 +256,7 @@
 
   const {
     data: riskMemoDetail,
-    // loading: detailLoading,
+    loading: detailLoading,
     run: runGetRiskMemoDetail,
   } = useRequest(getRiskMemoDetail, { manual: true });
 
