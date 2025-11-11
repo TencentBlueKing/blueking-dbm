@@ -90,7 +90,10 @@ class MongoDBShardCutoffResourceParamBuilder(BaseMongoDBOperateResourceParamBuil
                 machine__bk_host_id__in=off_host_ids
             )
             if cluster.disaster_tolerance_level == AffinityEnum.CROS_SUBZONE.value:
-                tolerance = 0.33
+                if info["switch_role"] == MachineType.MONGOS.value:
+                    tolerance = 0.5
+                else:
+                    tolerance = 0.33
             else:
                 tolerance = 0.5
 
