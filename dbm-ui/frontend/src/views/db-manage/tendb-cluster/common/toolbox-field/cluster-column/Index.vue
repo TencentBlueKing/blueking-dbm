@@ -16,9 +16,9 @@
     :append-rules="rules"
     field="cluster.master_domain"
     fixed="left"
-    :label="t('目标集群')"
+    :label="label"
     :loading="loading"
-    :min-width="350"
+    :min-width="minWidth"
     required
     :rowspan="rowspan">
     <template #headAppend>
@@ -43,7 +43,6 @@
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
-  import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
@@ -54,12 +53,16 @@
 
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
 
+  import { t } from '@/locales/index';
+
   interface Props {
     /**
      * @description 是否允许重复选择集群
      * @default false
      */
     allowRepeat?: boolean;
+    label?: string;
+    minWidth?: number;
     rowspan?: number;
     selected: TendbClusterModel[];
     /**
@@ -74,6 +77,8 @@
 
   const props = withDefaults(defineProps<Props>(), {
     allowRepeat: false,
+    label: t('目标集群'),
+    minWidth: 350,
     rowspan: 1,
     supportOfflineData: false,
     tabListConfig: () => ({}) as Record<ClusterTypes.TENDBCLUSTER, TabConfig>,
@@ -84,8 +89,6 @@
   const modelValue = defineModel<TendbClusterModel>({
     required: true,
   });
-
-  const { t } = useI18n();
 
   const showSelector = ref(false);
   const selectedClusters = computed<Record<string, TendbClusterModel[]>>(() => ({

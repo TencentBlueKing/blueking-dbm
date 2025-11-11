@@ -14,15 +14,16 @@
 <template>
   <EditableColumn
     :disabled-method="disabledMethod"
-    field="backupTime"
-    :label="t('指定时间')"
-    :min-width="240"
+    field="backupRecord"
+    :label="t('备份记录')"
+    :min-width="370"
     required>
     <template #headAppend>
       <BatchEditColumn
         v-model="isShowBatchEdit"
-        :title="t('指定时间')"
+        :title="t('备份记录')"
         title-prefix-type="select"
+        :width="504"
         @change="handleBatchEdit">
         <template #content>
           <BkForm
@@ -30,15 +31,37 @@
             :model="formData">
             <BkFormItem
               field="backup_time"
-              :label="t('指定时间（提交后自动选择与指定时间最近的全备记录文件）')"
+              :label="t('备份文件（批量编辑仅支持“指定时间自动匹配”）')"
               required>
               <BkDatePicker
                 v-model="formData.backup_time"
                 :clearable="false"
                 :disabled-date="disableDate"
-                :placeholder="t('请选择指定时间')"
+                :placeholder="t('请选择')"
                 style="width: 360px"
                 type="datetime" />
+            </BkFormItem>
+            <BkFormItem
+              field="backup_method"
+              :label="t('备份范围')"
+              required>
+              <BkRadioGroup
+                v-model="formData.backup_method"
+                class="mb-12"
+                style="width: 100%">
+                <BkRadio label="all">
+                  {{ t('全部') }}
+                </BkRadio>
+                <BkRadio :label="BackupMethod.full_by_ticket">
+                  {{ t('全库备份（单据）') }}
+                </BkRadio>
+                <BkRadio :label="BackupMethod.partial_by_ticket">
+                  {{ t('库表备份（单据）') }}
+                </BkRadio>
+                <BkRadio :label="BackupMethod.full_by_regular">
+                  {{ t('全库备份（例行）') }}
+                </BkRadio>
+              </BkRadioGroup>
             </BkFormItem>
           </BkForm>
         </template>
@@ -50,37 +73,23 @@
         <DbIcon type="bulk-edit" />
       </span>
     </template>
-    <EditableDatePicker
-      v-model="backupTime"
-      :disabled-date="disableDate"
-      :placeholder="t('请选择指定时间')"
-      type="datetime"
-      @change="handleDateChange">
-    </EditableDatePicker>
-  </EditableColumn>
-  <EditableColumn
-    :disabled-method="disabledMethod"
-    field="backupRecord"
-    :label="t('备份记录')"
-    :min-width="370"
-    required>
     <EditableBlock
-      v-if="backupRecord?.backup_id"
+      v-if="modelValue?.backup_id"
       style="width: 100%"
       @click="handleShowSelector">
       <div class="content-block">
         <div class="content-label">{{ t('备份记录 ：') }}</div>
-        <div class="content-value">{{ `${backupRecord.mysql_role} ${utcDisplayTime(backupRecord.backup_time)}` }}</div>
+        <div class="content-value">{{ utcDisplayTime(modelValue.backup_consistent_time) }}</div>
         <div class="content-label">{{ t('备份 ID ：') }}</div>
         <div class="content-value">
-          {{ backupRecord.backup_id || '--' }}
+          {{ modelValue.backup_id || '--' }}
         </div>
         <div class="content-label">{{ t('备份类型 ：') }}</div>
         <div class="content-value">
           <BkTag
-            v-if="backupTypeMap[backupRecord.backup_type]"
-            :theme="backupTypeMap[backupRecord.backup_type].theme">
-            {{ backupTypeMap[backupRecord.backup_type].label }}
+            v-if="backupTypeMap[modelValue.backup_type]"
+            :theme="backupTypeMap[modelValue.backup_type].theme">
+            {{ backupTypeMap[modelValue.backup_type].label }}
           </BkTag>
           <span v-else>--</span>
         </div>
@@ -88,31 +97,31 @@
         <div class="content-value">
           <span
             :class="{
-              [`backup-method-sign-${backupRecord.backup_method}`]: backupMethodMap[backupRecord.backup_method],
+              [`backup-method-sign-${modelValue.backup_method}`]: backupMethodMap[modelValue.backup_method],
             }">
-            {{ backupMethodMap[backupRecord.backup_method] || '--' }}
+            {{ backupMethodMap[modelValue.backup_method] || '--' }}
           </span>
         </div>
         <div class="content-label">{{ t('文件大小 ：') }}</div>
-        <div class="content-value">{{ bytePretty(backupRecord?.total_filesize ?? 0) }}</div>
+        <div class="content-value">{{ bytePretty(modelValue?.total_filesize ?? 0) }}</div>
         <div
-          v-if="backupRecord.bill_id"
+          v-if="modelValue.bill_id"
           class="content-label">
           {{ t('关联单据 ：') }}
         </div>
         <div
-          v-if="backupRecord.bill_id"
+          v-if="modelValue.bill_id"
           class="content-value">
           <RouterLink
-            v-if="backupRecord.bill_id"
+            v-if="modelValue.bill_id"
             target="_blank"
             :to="{
               name: 'ticketDetail',
               params: {
-                ticketId: backupRecord.bill_id,
+                ticketId: modelValue.bill_id,
               },
             }">
-            {{ backupRecord.bill_id }}
+            {{ modelValue.bill_id }}
           </RouterLink>
           <span v-else>--</span>
         </div>
@@ -121,23 +130,26 @@
         class="content-icon"
         type="down-big" />
     </EditableBlock>
-    <EditableBlock
+    <EditableSelect
       v-else
-      :placeholder="t('自动生成')" />
+      :popover-options="{
+        boundary: 'parent',
+        trigger: 'manual',
+        isShow: false,
+      }"
+      @click="handleShowSelector" />
   </EditableColumn>
   <BackupRecordSelector
-    v-model="backupRecord"
+    v-model="modelValue"
     v-model:is-show="isShowSelector"
-    v-bind="props"
-    only-full />
+    v-bind="props" />
 </template>
 <script lang="ts" setup>
   import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
-  import BackupLogRecordModel from '@services/model/mysql/backup-log-record';
-  import { queryLatestTimeBackupLog } from '@services/source/fixpointRollback';
+  import BackupLogRecordModel from '@services/model/tendbcluster/backup-log-record';
+  import { queryLatestTimeBackupLog } from '@services/source/fixpointRollbackTendbCluster';
 
   import { useTimeZoneFormat } from '@hooks';
 
@@ -161,18 +173,13 @@
 
   const emits = defineEmits<Emits>();
 
-  const backupTime = defineModel<string>('backupTime', {
-    required: true,
-  });
-
-  const backupRecord = defineModel<BackupLogRecordModel>('backupRecord', {
+  const modelValue = defineModel<BackupLogRecordModel>({
     required: true,
   });
 
   const tableData = defineModel<
     {
       backupRecord: BackupLogRecordModel;
-      backupTime: string;
       cluster: Props['cluster'];
     }[]
   >('tableData', {
@@ -184,7 +191,15 @@
 
   const isShowSelector = ref(false);
   const isShowBatchEdit = ref(false);
+  enum BackupMethod {
+    full_by_regular = 'full_by_regular',
+    full_by_ticket = 'full_by_ticket',
+    non_full_by_regular = 'non_full_by_regular',
+    partial_by_ticket = 'partial_by_ticket',
+  }
+
   const formData = ref({
+    backup_method: 'all',
     backup_time: '',
   });
 
@@ -212,13 +227,6 @@
     }
   >;
 
-  const { run: fetchData } = useRequest(queryLatestTimeBackupLog, {
-    manual: true,
-    onSuccess(data) {
-      backupRecord.value = data;
-    },
-  });
-
   const disabledMethod = () => (props.cluster.id ? false : t('请先选择集群'));
   const disableDate = (date?: Date | number) => dayjs(date).isAfter(dayjs(), 'day');
 
@@ -230,37 +238,25 @@
     isShowBatchEdit.value = true;
   };
 
-  const handleDateChange = (date: string) => {
-    backupTime.value = date;
-    fetchData({
-      backup_source: props.backupSource,
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      cluster_id: props.cluster.id,
-      is_full_backup: true,
-      latest_time: formatDateToUTC(date),
-    });
-  };
-
-  const handleBatchEdit = async () => {
+  const handleBatchEdit = () => {
     Promise.all(
       tableData.value.map((rowData) =>
         queryLatestTimeBackupLog({
+          backup_method: formData.value.backup_method === 'all' ? undefined : formData.value.backup_method,
           backup_source: props.backupSource,
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           cluster_id: rowData.cluster.id,
-          is_full_backup: true,
           latest_time: formatDateToUTC(formData.value.backup_time),
         }),
       ),
     ).then((res) => {
       res.forEach((data, index) => {
         tableData.value[index].backupRecord = data;
-        tableData.value[index].backupTime = data.backup_time;
       });
     });
   };
 
-  watch(backupTime, () => {
+  watch(modelValue, () => {
     emits('change');
   });
 </script>
@@ -273,9 +269,9 @@
 
   .content-block {
     display: grid;
+    grid-template-columns: 0fr 1fr;
     font-family: MicrosoftYaHei, sans-serif;
     line-height: 24px;
-    grid-template-columns: 0fr 1fr;
 
     .content-label {
       width: 80px;

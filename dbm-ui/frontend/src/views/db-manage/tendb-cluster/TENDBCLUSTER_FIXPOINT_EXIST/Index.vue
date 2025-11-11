@@ -18,18 +18,6 @@
           :title="t('指定时间构造数据')"
           true-value="TIME" />
       </BkFormItem>
-      <BkFormItem
-        :label="t('备份源')"
-        required>
-        <BkRadioGroup v-model="formData.backupSource">
-          <BkRadio :label="BackupSourceType.REMOTE">
-            {{ t('远程备份') }}
-          </BkRadio>
-          <BkRadio :label="BackupSourceType.LOCAL">
-            {{ t('本地备份') }}
-          </BkRadio>
-        </BkRadioGroup>
-      </BkFormItem>
       <BatchInput
         :config="batchInputConfig"
         @change="handleBatchInput" />
@@ -61,6 +49,7 @@
             v-model:table-data="formData.tableData"
             :backup-source="formData.backupSource"
             :cluster="item.cluster"
+            @batch-edit="handleBatchEdit"
             @change="() => handleChangeRowData(item)" />
           <DbNameColumn
             v-model="item.databases"
@@ -76,15 +65,14 @@
             field="tables"
             :label="t('源表')"
             @batch-edit="handleBatchEdit" />
-          <SingleResourceHostColumn
-            v-model="item.newHost"
+          <TargetClusterColumn
+            v-model="item.targetCluster"
             :cluster="item.cluster"
-            field="newHost.ip"
-            :label="t('新集群主机')"
-            :params="{
-              for_bizs: [currentBizId, 0],
-              resource_types: [DBTypes.MYSQL, 'PUBLIC'],
-            }" />
+            :selected="selectedTargetClusters" />
+          <ConflictDbColumn
+            v-model="item.affectDb"
+            :disabled="diabledEdit(item)"
+            :row-data="item" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -118,49 +106,50 @@
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
-  import BackupLogRecordModel from '@services/model/mysql/backup-log-record';
-  import TendbhaModel from '@services/model/mysql/tendbha';
-  import { type Mysql } from '@services/model/ticket/ticket';
+  import BackupLogRecordModel from '@services/model/tendbcluster/backup-log-record';
+  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
+  import { type TendbCluster } from '@services/model/ticket/ticket';
   import { BackupSourceType } from '@services/types';
 
   import { useCreateTicket, useTicketDetail, useTimeZoneFormat } from '@hooks';
 
-  import { DBTypes, TicketTypes } from '@common/const';
+  import { TicketTypes } from '@common/const';
 
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
-  import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-  import DbNameColumn from '@views/db-manage/mysql/common/edit-table-column/DbNameColumn.vue';
-  import TableNameColumn from '@views/db-manage/mysql/common/edit-table-column/TableNameColumn.vue';
-  import ClusterColumn from '@views/db-manage/mysql/common/toolbox-field/cluster-column/Index.vue';
-  import BackupRecordColumn from '@views/db-manage/mysql/MYSQL_FIXPOINT_EXIST_CLUSTER/components/backup-record-column/Index.vue';
-  import FixpointWrapper from '@views/db-manage/mysql/MYSQL_FIXPOINT_EXIST_CLUSTER/components/FixpointWrapper.vue';
-  import TimeBackupRecordColumn from '@views/db-manage/mysql/MYSQL_FIXPOINT_EXIST_CLUSTER/components/time-backup-record-column/Index.vue';
+  import DbNameColumn from '@views/db-manage/tendb-cluster/common/edit-table-column/DbNameColumn.vue';
+  import TableNameColumn from '@views/db-manage/tendb-cluster/common/edit-table-column/TableNameColumn.vue';
+  import ClusterColumn from '@views/db-manage/tendb-cluster/common/toolbox-field/cluster-column/Index.vue';
 
   import { random } from '@utils';
 
+  import BackupRecordColumn from './components/backup-record-column/Index.vue';
+  import ConflictDbColumn from './components/conflict-db-column/Index.vue';
+  import FixpointWrapper from './components/FixpointWrapper.vue';
+  import TargetClusterColumn from './components/target-cluster-column/Index.vue';
+  import TimeBackupRecordColumn from './components/time-backup-record-column/Index.vue';
+
   interface RowData {
+    affectDb: string[];
     backupRecord: ComponentProps<typeof BackupRecordColumn>['modelValue'];
     backupTime: string;
-    cluster: TendbhaModel;
+    cluster: TendbClusterModel;
     databases: string[];
-    newHost: ComponentProps<typeof SingleResourceHostColumn>['modelValue'];
     tables: string[];
+    targetCluster: TendbClusterModel;
   }
 
   const { t } = useI18n();
   const { format: formatDateToUTC } = useTimeZoneFormat();
 
-  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
-
   const batchInputConfig = computed(() => {
     const base = [
       {
-        case: 'tendbha.test.dba.db',
+        case: 'tendbcluster.test.dba.db',
         key: 'master_domain',
         label: t('目标集群'),
       },
@@ -180,9 +169,9 @@
         label: t('源表'),
       },
       {
-        case: '192.168.10.2',
-        key: 'newHost',
-        label: t('新集群主机'),
+        case: 'tendbha.test2.dba.db',
+        key: 'targetCluster',
+        label: t('目标集群'),
       },
     ];
     if (formData.rollbackMethod === 'TIME') {
@@ -196,26 +185,25 @@
   });
 
   const createTableRow = (data: DeepPartial<RowData> = {}) => ({
+    affectDb: (data.affectDb || []) as string[],
     backupRecord: Object.assign({} as RowData['backupRecord'], data.backupRecord),
     backupTime: data.backupTime || '',
     cluster: Object.assign(
       {
         id: 0,
         master_domain: '',
-      } as TendbhaModel,
+      } as TendbClusterModel,
       data.cluster,
     ),
     databases: (data.databases || []) as string[],
-    newHost: Object.assign(
-      {
-        bk_biz_id: currentBizId,
-        bk_cloud_id: 0,
-        bk_host_id: 0,
-        ip: '',
-      } as RowData['newHost'],
-      data.newHost,
-    ),
     tables: (data.tables || []) as string[],
+    targetCluster: Object.assign(
+      {
+        id: 0,
+        master_domain: '',
+      } as TendbClusterModel,
+      data.targetCluster,
+    ),
   });
 
   const editableTableRef = useTemplateRef('editableTableRef');
@@ -232,14 +220,16 @@
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
+  const selectedTargetClusters = computed(() =>
+    formData.tableData.filter((item) => item.targetCluster.id).map((item) => item.targetCluster),
+  );
 
-  useTicketDetail<Mysql.ResourcePool.RollbackCluster>(TicketTypes.MYSQL_FIXPOINT_NEW_CLUSTER, {
+  useTicketDetail<TendbCluster.ResourcePool.RollbackCluster>(TicketTypes.TENDBCLUSTER_FIXPOINT_EXIST, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { clusters, infos } = details;
       isTicketLoaded = true;
       Object.assign(formData, {
-        backupSource: infos[0].backup_source,
         payload: createTickePayload(ticketDetail),
         rollbackMethod: infos[0].rollback_time ? 'TIME' : 'BACKUPID',
       });
@@ -252,10 +242,10 @@
               master_domain: clusters[item.cluster_id]?.immute_domain || '',
             },
             databases: item.databases,
-            newHost: {
-              ip: item.resource_spec?.rollback_host?.hosts[0]?.ip || '',
-            },
             tables: item.tables,
+            targetCluster: {
+              master_domain: clusters[item.target_cluster_id]?.immute_domain || '',
+            },
           }),
         );
       });
@@ -264,6 +254,7 @@
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     infos: {
+      affect_database_list?: string[]; // 如果是回档到原集群 or 已有集群，需要填此参数
       backup_id: string;
       backup_source: BackupSourceType;
       backupinfo: BackupLogRecordModel; // 如果备份类型为REMOTE_AND_BACKUPID提供集群备份信息
@@ -292,11 +283,11 @@
     }[];
     ip_source?: 'resource_pool'; // 只有在回档新集群选项，才传递此参数
     rollback_cluster_type: string;
-  }>(TicketTypes.MYSQL_FIXPOINT_NEW_CLUSTER);
+  }>(TicketTypes.TENDBCLUSTER_FIXPOINT_EXIST);
 
   // 切换构造类型/方式、备份源时重置表格
   watch(
-    () => [formData.rollbackMethod, formData.backupSource],
+    () => formData.rollbackMethod,
     () => {
       tableKey.value = random();
       formData.tableData = [createTableRow()];
@@ -341,7 +332,7 @@
     }
   };
 
-  const handleClusterBatchEdit = (list: TendbhaModel[]) => {
+  const handleClusterBatchEdit = (list: TendbClusterModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
       if (!selectedMap.value[item.master_domain]) {
         acc.push(
@@ -376,12 +367,12 @@
         backupTime: item.backupTime || '',
         cluster: {
           master_domain: item.master_domain,
-        } as TendbhaModel,
+        } as TendbClusterModel,
         databases: item.databases ? item.databases.split(',') : [],
-        newHost: {
-          ip: item.newHost || '',
-        } as RowData['newHost'],
         tables: item.tables ? item.tables.split(',') : [],
+        targetCluster: {
+          master_domain: item.targetCluster || '',
+        } as TendbClusterModel,
       }),
     );
     if (isClear) {
@@ -400,6 +391,7 @@
       createTicketRun({
         details: {
           infos: formData.tableData.map((item) => ({
+            affect_database_list: item.affectDb,
             backup_id: item.backupRecord.backup_id,
             backup_source: formData.backupSource,
             backupinfo: item.backupRecord,
@@ -407,32 +399,15 @@
             database_list: item.backupRecord.database_list,
             databases: item.databases,
             databases_ignore: [],
-            resource_spec: item.newHost.ip
-              ? {
-                  rollback_host: {
-                    count: 1,
-                    hosts: [
-                      {
-                        bk_biz_id: item.newHost.bk_biz_id,
-                        bk_cloud_id: item.newHost.bk_cloud_id,
-                        bk_host_id: item.newHost.bk_host_id,
-                        ip: item.newHost.ip,
-                      },
-                    ],
-                    spec_id: 0,
-                  },
-                }
-              : undefined,
             // 指定时间构造需要传
             rollback_time:
               formData.rollbackMethod === 'TIME' && item.backupTime ? formatDateToUTC(item.backupTime) : undefined,
             rollback_type: `${formData.backupSource.toLocaleUpperCase()}_AND_${formData.rollbackMethod}`,
             tables: item.tables,
             tables_ignore: [],
+            target_cluster_id: item.targetCluster.id,
           })),
-          // 只有在回档新集群选项，才传递此参数
-          ip_source: 'resource_pool',
-          rollback_cluster_type: 'BUILD_INTO_NEW_CLUSTER',
+          rollback_cluster_type: 'BUILD_INTO_EXIST_CLUSTER',
         },
         ...formData.payload,
       }),

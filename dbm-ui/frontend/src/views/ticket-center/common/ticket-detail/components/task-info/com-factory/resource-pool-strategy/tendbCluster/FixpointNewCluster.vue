@@ -19,9 +19,6 @@
     <InfoItem :label="t('构造方式')">
       {{ ticketDetails.details.infos[0]?.rollback_time ? t('指定时间构造数据') : t('指定备份记录构造数据') }}
     </InfoItem>
-    <InfoItem :label="t('备份源')">
-      {{ ticketDetails.details.infos[0].backup_source === 'local' ? t('本地备份') : t('远程备份') }}
-    </InfoItem>
   </InfoList>
   <TicketInfoTable
     :data="ticketDetails.details.infos"
@@ -53,7 +50,7 @@
         <div class="content-block">
           <div class="content-label">{{ t('备份记录 ：') }}</div>
           <div class="content-value">
-            {{ `${row.backupinfo.mysql_role} ${utcDisplayTime(row.backupinfo.backup_time)}` }}
+            {{ utcDisplayTime(row.backupinfo.backup_consistent_time) }}
           </div>
           <div class="content-label">{{ t('备份 ID ：') }}</div>
           <div class="content-value">
@@ -130,11 +127,25 @@
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
-      col-key="resource_spec.rollback_host"
+      col-key="resource_spec.remote_hosts"
       :min-width="180"
-      :title="t('新集群主机')">
+      :title="t('存储层主机')">
       <template #default="{ row }: { row: RowData }">
-        {{ row.resource_spec.rollback_host.hosts?.[0]?.ip || '--' }}
+        <span v-if="row.resource_spec?.remote_hosts.hosts.length < 1">--</span>
+        <p
+          v-for="item in row.resource_spec.remote_hosts.hosts"
+          v-else
+          :key="item.bk_host_id">
+          {{ item.ip }}
+        </p>
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="resource_spec.spider_host"
+      :min-width="180"
+      :title="t('接入层主机')">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.resource_spec.spider_host.hosts?.[0]?.ip || '--' }}
       </template>
     </TicketInfoTableColumn>
   </TicketInfoTable>
@@ -143,7 +154,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
+  import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
 
@@ -152,13 +163,13 @@
   import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
 
   interface Props {
-    ticketDetails: TicketModel<Mysql.ResourcePool.RollbackCluster>;
+    ticketDetails: TicketModel<TendbCluster.ResourcePool.RollbackCluster>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
   defineOptions({
-    name: TicketTypes.MYSQL_FIXPOINT_NEW_CLUSTER,
+    name: TicketTypes.TENDBCLUSTER_FIXPOINT_NEW,
     inheritAttrs: false,
   });
 

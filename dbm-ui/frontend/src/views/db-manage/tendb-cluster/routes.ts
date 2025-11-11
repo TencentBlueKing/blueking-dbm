@@ -134,8 +134,17 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_FULL_BACKUP, t('全库备份'), {
       dbConsole: 'tendbCluster.toolbox.dbBackup',
     }),
-    createRouteItem(TicketTypes.TENDBCLUSTER_FLASHBACK, t('闪回'), {
+    createRouteItem(TicketTypes.TENDBCLUSTER_FLASHBACK, t('回档'), {
       dbConsole: 'tendbCluster.toolbox.flashback',
+    }),
+    createRouteItem(TicketTypes.TENDBCLUSTER_ROLLBACK, t('回档'), {
+      dbConsole: 'tendbCluster.toolbox.rollback',
+    }),
+    createRouteItem(TicketTypes.TENDBCLUSTER_FIXPOINT_EXIST, t('构造'), {
+      dbConsole: 'tendbCluster.toolbox.fixpointExist',
+    }),
+    createRouteItem(TicketTypes.TENDBCLUSTER_FIXPOINT_NEW, t('构造'), {
+      dbConsole: 'tendbCluster.toolbox.fixpointNew',
     }),
     createRouteItem(TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER, t('定点构造'), {
       dbConsole: 'tendbCluster.toolbox.rollback',

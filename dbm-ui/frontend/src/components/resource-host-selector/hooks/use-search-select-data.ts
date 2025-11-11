@@ -41,7 +41,7 @@ export default (props: any) => {
       },
       {
         children: cloudList.value?.map((item) => ({
-          id: item.bk_cloud_id,
+          id: `${item.bk_cloud_id}`,
           name: item.bk_cloud_name,
         })),
         id: 'bk_cloud_ids',
@@ -97,7 +97,7 @@ export default (props: any) => {
       },
       {
         children: subzoneList.value?.map((item) => ({
-          id: item.bk_sub_zone_id,
+          id: `${item.bk_sub_zone_id}`,
           name: item.bk_sub_zone,
         })),
         id: 'sub_zone',
@@ -105,7 +105,7 @@ export default (props: any) => {
       },
       {
         children: deviceClassList.value?.map((item) => ({
-          id: item.id,
+          id: `${item.id}`,
           name: item.device_type,
         })),
         id: 'device_class',

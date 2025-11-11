@@ -1,11 +1,9 @@
-import type { BackupLogRecord } from '@services/source/fixpointRollback';
-
 import type { ResourcePoolDetailBase } from '../../common';
 
 /**
  * TenDB Cluster 定点构造
+ * v2版本分出三种单据：TENDBCLUSTER_FIXPOINT_EXIST(构造到已有集群)、TENDBCLUSTER_FIXPOINT_NEW(构造到新集群)、TENDBCLUSTER_ROLLBACK(回档)
  */
-
 export interface RollbackCluster extends ResourcePoolDetailBase {
   apply_details: {
     bk_cloud_id: number;
@@ -34,9 +32,10 @@ export interface RollbackCluster extends ResourcePoolDetailBase {
   };
   ignore_check_db: boolean;
   infos: {
-    backupinfo: BackupLogRecord;
+    backupinfo: any; // 旧的构造还在用之前的结构
     cluster_id: number;
     databases: string[];
+    affect_database_list?: string[];
     databases_ignore: string[];
     resource_spec: {
       remote_hosts: {

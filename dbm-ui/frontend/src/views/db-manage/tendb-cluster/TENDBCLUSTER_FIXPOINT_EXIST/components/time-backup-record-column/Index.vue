@@ -70,7 +70,7 @@
       @click="handleShowSelector">
       <div class="content-block">
         <div class="content-label">{{ t('备份记录 ：') }}</div>
-        <div class="content-value">{{ `${backupRecord.mysql_role} ${utcDisplayTime(backupRecord.backup_time)}` }}</div>
+        <div class="content-value">{{ utcDisplayTime(backupRecord.backup_consistent_time) }}</div>
         <div class="content-label">{{ t('备份 ID ：') }}</div>
         <div class="content-value">
           {{ backupRecord.backup_id || '--' }}
@@ -136,8 +136,8 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import BackupLogRecordModel from '@services/model/mysql/backup-log-record';
-  import { queryLatestTimeBackupLog } from '@services/source/fixpointRollback';
+  import BackupLogRecordModel from '@services/model/tendbcluster/backup-log-record';
+  import { queryLatestTimeBackupLog } from '@services/source/fixpointRollbackTendbCluster';
 
   import { useTimeZoneFormat } from '@hooks';
 
@@ -255,7 +255,7 @@
     ).then((res) => {
       res.forEach((data, index) => {
         tableData.value[index].backupRecord = data;
-        tableData.value[index].backupTime = data.backup_time;
+        tableData.value[index].backupTime = data.backup_consistent_time;
       });
     });
   };
