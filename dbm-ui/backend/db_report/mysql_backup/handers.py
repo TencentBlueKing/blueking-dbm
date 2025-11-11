@@ -540,14 +540,14 @@ class MySQLBackupHandler:
                 begin_time = datetime.now().astimezone(timezone.utc) - timedelta(days=self.deadlines_days)
                 begin_time_str = begin_time.isoformat()
                 conditions = (
-                    f" {conditions} and backup_consistent_time >= CONVERT_TZ('{begin_time_str}',@@time_zone,'+00:00') "
+                    f" {conditions} and backup_consistent_time >= CONVERT_TZ('{begin_time_str}','+00:00',@@time_zone) "
                 )
 
             if latest_time is not None:
                 logger.info(_("指定备份最迟时间 {} ").format(latest_time))
                 latest_time = latest_time.astimezone(timezone.utc)
                 latest_time_str = latest_time.isoformat()
-                conditions = f" {conditions} and backup_consistent_time <= CONVERT_TZ('{latest_time_str}',@@time_zone,'+00:00') "
+                conditions = f" {conditions} and backup_consistent_time <= CONVERT_TZ('{latest_time_str}','+00:00',@@time_zone) "
 
             if self.backup_method is not None and len(self.backup_method) > 0:
                 logger.info(_("指定备份方法 {} 查询").format(self.backup_method))
