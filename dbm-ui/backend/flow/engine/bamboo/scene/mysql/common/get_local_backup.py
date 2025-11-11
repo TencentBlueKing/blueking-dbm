@@ -173,6 +173,7 @@ def check_binlog_missing(binlog_file_list: list[str]) -> (list[str], bool):
     if len(binlog_file_list) == 0:
         return [], True
     binlog_pre = binlog_file_list[0].split(".")[0]
+    binlog_len = len(binlog_file_list[0].split(".")[-1])
     for binlog_file in binlog_file_list:
         binlog_file_split = binlog_file.split(".")
         if len(binlog_file_split) < 2:
@@ -184,11 +185,12 @@ def check_binlog_missing(binlog_file_list: list[str]) -> (list[str], bool):
             return [f" {binlog_file} binlog number str to int error "], False
         binlog_ids.append(binlog_file_id)
     binlog_ids.sort()
-    for i in range(1, len(binlog_ids)):
-        diff = binlog_ids[i] - binlog_ids[i - 1]
-        if diff > 1:
-            for j in range(binlog_ids[i - 1] + 1, binlog_ids[i]):
-                missing_binlog_files.append(f"{binlog_pre}.{j}")
+    if len(binlog_ids) > 1:
+        for i in range(1, len(binlog_ids)):
+            diff = binlog_ids[i] - binlog_ids[i - 1]
+            if diff > 1:
+                for j in range(binlog_ids[i - 1] + 1, binlog_ids[i]):
+                    missing_binlog_files.append(f"{binlog_pre}.{str(j).zfill(binlog_len)}")
     if len(missing_binlog_files) == 0:
         return [], True
     else:

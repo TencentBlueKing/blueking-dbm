@@ -536,7 +536,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
             )
 
             tendb_migrate_pipeline.add_act(
-                act_name=_("下发db-actor到节点{}".format(target_slave.machine.ip)),
+                act_name=_("下发db-actor到节点 {} {}".format(target_slave.machine.ip, master.machine.ip)),
                 act_component_code=TransFileComponent.code,
                 kwargs=asdict(
                     DownloadMediaKwargs(
