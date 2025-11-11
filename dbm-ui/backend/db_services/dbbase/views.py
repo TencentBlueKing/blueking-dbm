@@ -25,7 +25,7 @@ from backend.bk_web.swagger import ResponseSwaggerAutoSchema, common_swagger_aut
 from backend.components import BKBaseApi, DRSApi
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole
-from backend.db_meta.models import Cluster, DBModule, ProxyInstance, StorageInstance, Tag
+from backend.db_meta.models import BKCity, Cluster, DBModule, Machine, ProxyInstance, Spec, StorageInstance, Tag
 from backend.db_services.dbbase.cluster.handlers import ClusterServiceHandler, retrieve_resources
 from backend.db_services.dbbase.cluster.serializers import (
     BatchCheckClusterDbsSerializer,
@@ -316,6 +316,60 @@ class DBBaseViewSet(viewsets.SystemViewSet):
             cluster_attrs["role"] = roles_dicts
 
         return Response(cluster_attrs)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询业务下主机的属性字段"),
+        auto_schema=ResponseSwaggerAutoSchema,
+        query_serializer=QueryBizClusterAttrsSerializer(),
+        responses={status.HTTP_200_OK: QueryBizClusterAttrsResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=QueryBizClusterAttrsSerializer)
+    def query_biz_machine_attrs(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        Machines = Machine.objects.filter(bk_biz_id=data["bk_biz_id"], cluster_type__in=data["cluster_type"])
+        # 聚合每个属性字段
+        machine_attrs: Dict[str, Union[List, Set]] = defaultdict(list)
+        existing_values: Dict[str, Set[str]] = defaultdict(set)
+        # 过滤一些不合格的数据
+        if data["machine_attrs"]:
+            # 获取choice map
+            field__choice_map = {
+                attr: {value: label for value, label in getattr(Machine, attr).field.choices or []}
+                for attr in data["machine_attrs"]
+            }
+            for attr in Machines.values(*data["machine_attrs"]):
+                for key, value in attr.items():
+                    # 保留bk_cloud_id有等于0的情况
+                    if value is not None and value not in existing_values[key]:
+                        existing_values[key].add(value)
+                        machine_attrs[key].append({"value": value, "text": field__choice_map[key].get(value, value)})
+
+            if "bk_city_id" in machine_attrs:
+                cities = BKCity.objects.all()
+                if cities:
+                    city_name_map = {city.bk_idc_city_id: city.bk_idc_city_name for city in cities}
+                    machine_attrs["bk_city_id"] = [
+                        {"value": city_id, "text": city_name_map.get(city_id, "--")}
+                        for city_id in existing_values["bk_city_id"]
+                    ]
+
+                else:
+                    machine_attrs["bk_city_id"] = []
+
+            if "spec_id" in machine_attrs:
+                specs = Spec.objects.filter(spec_id__in=list(existing_values["spec_id"]))
+                if specs:
+                    spec_name_map = {spec.spec_id: spec.spec_name for spec in specs}
+                    machine_attrs["spec_id"] = [
+                        {"value": spec_id, "text": spec_name_map.get(spec_id, "--")}
+                        for spec_id in existing_values["spec_id"]
+                    ]
+
+                else:
+                    machine_attrs["spec_id"] = []
+
+        return Response(machine_attrs)
 
     @common_swagger_auto_schema(
         operation_summary=_("查询资源池,污点主机管理表头筛选数据"),
