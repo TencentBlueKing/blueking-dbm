@@ -65,7 +65,7 @@ class RedisShardReduceFlowBuilder(BaseRedisTicketFlowBuilder):
                 ClusterType.TendisPredixyTendisplusCluster.value,
                 ClusterType.TendisPredixyRedisCluster.value,
             ]:
-
+                info["old_nodes"] = {}
                 shutdown_master_hosts, shutdown_slave_hosts = get_tendisplus_shutdown_hosts(
                     info["cluster_id"], info["group_num"], info["update_mode"]
                 )
