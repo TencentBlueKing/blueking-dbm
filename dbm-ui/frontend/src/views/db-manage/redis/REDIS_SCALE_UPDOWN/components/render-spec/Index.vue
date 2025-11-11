@@ -87,6 +87,7 @@
 </script>
 <style lang="less" scoped>
   .render-spec-box {
+    display: flex;
     overflow: hidden;
     line-height: 20px;
     color: #313238;

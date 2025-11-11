@@ -14,7 +14,7 @@
 <template>
   <EditableColumn
     field="available_resource"
-    :label="t('可用资源')"
+    :label="labelText"
     :min-width="150"
     readonly
     :rowspan="rowspan">
@@ -38,17 +38,21 @@
   import ResourcePreview from './components/ResourcePreview.vue';
 
   interface Props {
+    label?: string;
     params: ComponentProps<typeof ResourcePreview>['params'];
     rowspan?: number;
   }
 
-  withDefaults(defineProps<Props>(), {
+  const props = withDefaults(defineProps<Props>(), {
+    label: '',
     rowspan: 1,
   });
 
   const { t } = useI18n();
 
   const showSlider = ref(false);
+
+  const labelText = computed(() => (props.label ? props.label : t('可用资源')));
 
   const handleClick = () => {
     showSlider.value = true;

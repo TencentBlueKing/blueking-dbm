@@ -34,6 +34,7 @@
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
+      col-key="capacity"
       :min-width="150"
       :title="t('源集群容量')">
       <template #default="{ row }: { row: RowData }">
@@ -56,6 +57,7 @@
       col-key="db_version"
       :title="t('新集群版本')" />
     <TicketInfoTableColumn
+      col-key="spec_id"
       :min-width="150"
       :title="t('新集群部署方案')">
       <template #default="{ row }: { row: RowData }">
@@ -63,6 +65,45 @@
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
+      col-key="proxy_label_names"
+      :min-width="200"
+      :title="t('Proxy 资源标签')">
+      <template #default="{ row }: { row: RowData }">
+        <template v-if="row.resource_spec.proxy?.label_names?.length">
+          <BkTag
+            v-for="item in row.resource_spec.proxy.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="backend_label_names"
+      :min-width="200"
+      :title="t('后端存储资源标签')">
+      <template #default="{ row }: { row: RowData }">
+        <template v-if="row.resource_spec.backend_group?.label_names?.length">
+          <BkTag
+            v-for="item in row.resource_spec.backend_group.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="online_switch_type"
       :title="t('切换模式')"
       :width="100">
       <template #default="{ row }: { row: RowData }">
@@ -91,10 +132,10 @@
 
   import { repairAndVerifyFrequencyList, repairAndVerifyTypeList } from '@views/db-manage/redis/common/const';
 
-  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
 
   interface Props {
-    ticketDetails: TicketModel<Redis.ClusterTypeUpdate>;
+    ticketDetails: TicketModel<Redis.ResourcePool.ClusterTypeUpdate>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];

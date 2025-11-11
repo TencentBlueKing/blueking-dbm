@@ -28,14 +28,15 @@
         :key="tableKey"
         ref="table"
         class="mb-20"
-        :model="formData.tableData">
+        :model="formData.tableData"
+        :rules="rules">
         <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
           <HostColumn
             v-model="item.host"
             :selected="selected"
-            @batch-edit="handleBatchEdit" />
+            @batch-edit="handleHostBatchEdit" />
           <EditableColumn
             :label="t('角色类型')"
             :min-width="150"
@@ -54,12 +55,32 @@
           <EditableColumn
             :label="t('所属集群')"
             :min-width="150"
-            readonly>
+            readonly
+            :rowspan="item.rowspan">
             <EditableBlock
               v-model="item.host.master_domain"
               :placeholder="t('自动生成')" />
           </EditableColumn>
-          <SpecColumn v-model="item.host" />
+          <SpecColumn
+            v-model="item.specId"
+            :cluster-type="DBTypes.REDIS"
+            required
+            :rowspan="item.rowspan"
+            selectable
+            @batch-edit="handleBatchEdit" />
+          <ResourceTagColumn
+            v-model="item.labels"
+            :rowspan="item.rowspan"
+            @batch-edit="handleBatchEdit" />
+          <AvailableResourceColumn
+            :params="{
+              city: item.host.region,
+              for_bizs: [currentBizId, 0],
+              resource_types: [DBTypes.REDIS, 'PUBLIC'],
+              spec_id: item.specId,
+              labels: item.labels.map((item) => item.id).join(','),
+            }"
+            :rowspan="item.rowspan" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -98,18 +119,23 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { DBTypes, TicketTypes } from '@common/const';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+  import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
+  import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
+  import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import HostColumn, { type SelectorHost } from './components/HostColumn.vue';
-  import SpecColumn from './components/SpecColumn.vue';
 
-  interface RowData {
+  interface IDataRow {
     host: ComponentProps<typeof HostColumn>['modelValue'];
+    labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
+    rowspan: number;
+    specId: number;
   }
 
   const { t } = useI18n();
@@ -121,9 +147,41 @@
       key: 'ip',
       label: t('待替换主机'),
     },
+    {
+      case: '2核_4G_50G',
+      key: 'spec_name',
+      label: t('目标规格'),
+    },
+    {
+      case: '标签1,标签2',
+      key: 'labels',
+      label: t('资源标签'),
+    },
   ];
 
-  const createTableRow = (data: { host?: Partial<RowData['host']> } = {}) => ({
+  const rules = {
+    'host.ip': [
+      {
+        message: '',
+        trigger: 'change',
+        validator: (value: string, { rowData, rowIndex }: { rowData: IDataRow; rowIndex: number }) => {
+          if (
+            formData.tableData.some(
+              (tableItem, tableIndex) =>
+                tableIndex !== rowIndex &&
+                tableItem.host.master_domain === rowData.host.master_domain &&
+                tableItem.host.role !== rowData.host.role,
+            )
+          ) {
+            return t('同一集群仅允许替换一个角色');
+          }
+          return true;
+        },
+      },
+    ],
+  };
+
+  const createTableRow = (values: DeepPartial<IDataRow> = {}) => ({
     host: Object.assign(
       {
         bk_biz_id: 0,
@@ -132,11 +190,15 @@
         cluster_ids: [] as number[],
         ip: '',
         master_domain: '',
+        region: '',
         role: '',
-        spec_config: {} as RowData['host']['spec_config'],
+        spec_config: {} as IDataRow['host']['spec_config'],
       },
-      data.host,
+      values.host,
     ),
+    labels: (values.labels || []) as IDataRow['labels'],
+    rowspan: values?.rowspan || 1,
+    specId: values?.specId || 0,
   });
 
   const defaultData = () => ({
@@ -144,66 +206,155 @@
     tableData: [createTableRow()],
   });
 
-  const formData = reactive(defaultData());
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
+
   const tableKey = ref(Date.now());
+
+  const formData = reactive(defaultData());
 
   const selected = computed(() => formData.tableData.filter((item) => item.host.bk_host_id).map((item) => item.host));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
+  const masterDomains = computed(() => formData.tableData.map((item) => item.host.master_domain));
 
   useTicketDetail<Redis.ResourcePool.ClusterCutoff>(TicketTypes.REDIS_CLUSTER_CUTOFF, {
     onSuccess(ticketDetail) {
       const { infos } = ticketDetail.details;
+      const tableData = infos.flatMap((infoItem) => {
+        const role = infoItem.switch_role as keyof (typeof infos)[number]['old_nodes'];
+        const hosts = infoItem[role]!;
+        const labels = (Object.values(infoItem.resource_spec)[0].labels || []).map((item) => ({ id: Number(item) }));
+        const specId = Object.values(infoItem.resource_spec)[0].spec_id;
+
+        return hosts.map((host) =>
+          createTableRow({
+            host: {
+              ip: host.ip,
+            },
+            labels,
+            specId,
+          }),
+        );
+      });
       Object.assign(formData, {
         payload: createTickePayload(ticketDetail),
+        tableData,
       });
-      if (infos.length > 0) {
-        const dataList: RowData[] = [];
-        const checkMap: Record<string, boolean> = {};
-        const generateData = (list: { ip: string; master_ip: string }[]) => {
-          if (list?.length) {
-            list.forEach((item) => {
-              const ip = item.master_ip || item.ip;
-              if (!checkMap[ip]) {
-                dataList.push(
-                  createTableRow({
-                    host: {
-                      ip,
-                    },
-                  }),
-                );
-                checkMap[ip] = true;
-              }
-            });
-          }
-        };
-        infos.forEach((item) => {
-          generateData(item.old_nodes.redis_master);
-          generateData(item.old_nodes.redis_slave);
-          generateData(item.old_nodes.proxy);
-        });
-        formData.tableData = [...dataList];
-      }
     },
   });
 
-  interface TicketDetail {
-    infos: {
-      bk_cloud_id: number;
-      cluster_ids: number[];
-      proxy: TicketDetail['infos'][0]['redis_master'];
-      redis_master: {
-        bk_host_id: number;
-        ip: string;
-        spec_id: number;
-      }[];
-      redis_slave: TicketDetail['infos'][0]['redis_master'];
-    }[];
+  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
+    infos: Redis.ResourcePool.ClusterCutoff['infos'];
     ip_source: 'resource_pool';
-  }
+  }>(TicketTypes.REDIS_CLUSTER_CUTOFF);
 
-  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<TicketDetail>(
-    TicketTypes.REDIS_CLUSTER_CUTOFF,
-  );
+  const debouncedSortTableByCluster = _.debounce(() => {
+    sortTableByCluster();
+  }, 100);
+
+  watch(masterDomains, () => {
+    if (masterDomains) {
+      debouncedSortTableByCluster();
+    }
+  });
+
+  const sortTableByCluster = () => {
+    const clusterMap: Record<string, IDataRow[]> = {};
+    const emptyRowList: IDataRow[] = [];
+    formData.tableData.forEach((item) => {
+      Object.assign(item, { rowspan: 1 });
+      const { master_domain: domain } = item.host;
+      if (!domain) {
+        emptyRowList.push(item);
+        return;
+      }
+      if (!clusterMap[domain]) {
+        clusterMap[domain] = [item];
+      } else {
+        clusterMap[domain].push(item);
+      }
+    });
+
+    const sortedList: IDataRow[] = [];
+    Object.values(clusterMap).forEach((list) => {
+      Object.assign(list[0], { rowspan: list.length });
+      sortedList.push(...list);
+    });
+
+    formData.tableData = [...sortedList, ...emptyRowList];
+  };
+
+  const getNodeInfo = (rowList: IDataRow[], role: string) => {
+    const nodes: NonNullable<Redis.ResourcePool.ClusterCutoff['infos'][number]['proxy']> = [];
+    const oldNodes: NonNullable<Redis.ResourcePool.ClusterCutoff['infos'][number]['old_nodes']['proxy']> = [];
+
+    rowList.forEach((row) => {
+      const nodeItem = {
+        bk_host_id: row.host.bk_host_id,
+        ip: row.host.ip,
+        spec_id: row.host.spec_config.id,
+      };
+      nodes.push(nodeItem);
+
+      const oldNodeItem = {
+        bk_host_id: row.host.bk_host_id,
+        ip: row.host.ip,
+        spec: row.host.spec_config,
+      };
+      oldNodes.push(oldNodeItem);
+      if (role === 'redis_master') {
+        const relatedSlave = row.host.related_slave!;
+        oldNodes.push({
+          bk_host_id: relatedSlave.bk_host_id,
+          ip: relatedSlave.ip,
+          spec: relatedSlave.spec_config,
+        });
+      }
+    });
+
+    return {
+      old_nodes: {
+        [role]: oldNodes,
+      },
+      [role]: nodes,
+    };
+  };
+
+  const resourceSpecInfo = (
+    rowList: IDataRow[],
+    role: string,
+  ): NonNullable<Redis.ResourcePool.ClusterCutoff['infos'][number]['resource_spec']> => {
+    const keyMap = {
+      proxy: 'new_proxy',
+      redis_master: 'backend_group',
+    };
+    const { labels, specId } = rowList[0];
+    const labelNames = labels.map((item) => item.value);
+    const labelIds = labels.map((item) => String(item.id));
+
+    if (Object.keys(keyMap).includes(role)) {
+      return {
+        [keyMap[role as keyof typeof keyMap]]: {
+          count: rowList.length,
+          label_names: labelNames,
+          labels: labelIds,
+          spec_id: specId,
+        },
+      };
+    }
+
+    return rowList.reduce<
+      Record<string, NonNullable<Redis.ResourcePool.ClusterCutoff['infos'][number]['resource_spec']['backend_group']>>
+    >((prev, row) => {
+      return Object.assign(prev, {
+        [`redis_slave_${row.host.ip}`]: {
+          count: 1,
+          label_names: labelNames,
+          labels: labelIds,
+          spec_id: specId,
+        },
+      });
+    }, {});
+  };
 
   const handleSubmit = async () => {
     const result = await tableRef.value!.validate();
@@ -216,21 +367,11 @@
       const info = {
         bk_cloud_id: sameRows[0].host.bk_cloud_id,
         cluster_ids: sameRows[0].host.cluster_ids,
-        proxy: [],
-        redis_master: [],
-        redis_slave: [],
+        switch_role: sameRows[0].host.role,
+        ...getNodeInfo(sameRows, sameRows[0].host.role),
+        resource_spec: resourceSpecInfo(sameRows, sameRows[0].host.role),
       };
-      sameRows.forEach((item) => {
-        const spec = {
-          bk_host_id: item.host.bk_host_id,
-          ip: item.host.ip,
-          spec_id: item.host.spec_config.id,
-        };
-        const list = info[item.host.role as 'redis_slave' | 'redis_master' | 'proxy'];
-        _.merge(info, {
-          [item.host.role]: [...list, spec],
-        });
-      });
+
       return info;
     });
 
@@ -247,14 +388,14 @@
     Object.assign(formData, defaultData());
   };
 
-  const handleBatchEdit = (list: SelectorHost[]) => {
-    const dataList = list.reduce<RowData[]>((acc, item) => {
+  const handleHostBatchEdit = (list: SelectorHost[]) => {
+    const dataList = list.reduce<IDataRow[]>((acc, item) => {
       if (!selectedMap.value[item.ip]) {
         acc.push(
           createTableRow({
             host: {
               ip: item.ip,
-            },
+            } as IDataRow['host'],
           }),
         );
       }
@@ -264,12 +405,14 @@
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
-    const dataList = data.reduce<RowData[]>((acc, item) => {
+    const dataList = data.reduce<IDataRow[]>((acc, item) => {
       acc.push(
         createTableRow({
           host: {
             ip: item.ip,
           },
+          labels: (item.labels as string)?.split(',').map((item) => ({ value: item })) as IDataRow['labels'],
+          specId: item.spec_name,
         }),
       );
       return acc;
@@ -280,6 +423,14 @@
     } else {
       formData.tableData = [...(formData.tableData[0].host.bk_host_id ? formData.tableData : []), ...dataList]; // 追加
     }
+  };
+
+  const handleBatchEdit = (value: any, field: string) => {
+    formData.tableData.forEach((rowData) => {
+      Object.assign(rowData, {
+        [field]: value,
+      });
+    });
   };
 </script>
 <style lang="less">

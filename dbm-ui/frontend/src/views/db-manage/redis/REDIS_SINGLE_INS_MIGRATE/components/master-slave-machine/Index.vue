@@ -16,6 +16,7 @@
     :config="batchInputConfig"
     @change="handleBatchInput" />
   <EditableTable
+    :key="tableKey"
     ref="editableTable"
     class="mt-16 mb-16"
     :model="tableData"
@@ -45,6 +46,17 @@
         required
         selectable
         @batch-edit="handleBatchEdit" />
+      <ResourceTagColumn
+        v-model="item.labels"
+        @batch-edit="handleBatchEdit" />
+      <AvailableResourceColumn
+        :params="{
+          city: item.host.related_clusters?.[0]?.region,
+          for_bizs: [currentBizId, 0],
+          resource_types: [DBTypes.REDIS, 'PUBLIC'],
+          spec_id: item.target_spec_id,
+          labels: item.labels.map((item) => item.id).join(','),
+        }" />
       <TargetVersionSelectColumn
         v-model="item.db_version"
         :cluster-type="item.host.cluster_type"
@@ -75,17 +87,21 @@
   import { type IValue, type PanelListType } from '@components/instance-selector/Index.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+  import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
+  import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import { specClusterMachineMap } from '@views/db-manage/redis/common/const';
   import HostColumn from '@views/db-manage/redis/common/toolbox-field/host-column/Index.vue';
   import TargetVersionSelectColumn from '@views/db-manage/redis/common/toolbox-field/target-version-select-column/Index.vue';
+
+  import { random } from '@utils';
 
   import { useTicketDetail } from '@/hooks';
 
   import OldMasterSlaveHostColumn from '../OldMasterSlaveHostColumn.vue';
 
   interface Exposes {
-    getValue: () => Promise<Redis.MigrateSingle['infos']>;
+    getValue: () => Promise<Redis.ResourcePool.MigrateSingle['infos']>;
     resetTable: () => void;
   }
 
@@ -106,6 +122,7 @@
       ip: string;
       related_clusters: {
         major_version: string;
+        region: string;
       }[];
       related_instances: ComponentProps<typeof OldMasterSlaveHostColumn>['data'];
       spec_config: NonNullable<IValue['spec_config']>;
@@ -121,10 +138,11 @@
         slave_ins: string;
       }[];
     };
+    labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     target_spec_id: number;
   }
 
-  const createRowData = (values = {} as Partial<IDataRow>) => ({
+  const createRowData = (values: DeepPartial<IDataRow> = {}) => ({
     db_version: values.db_version || '',
     host: Object.assign(
       {
@@ -139,6 +157,7 @@
       values.host,
     ),
     instance_data: {} as IDataRow['instance_data'],
+    labels: (values.labels || []) as IDataRow['labels'],
     target_spec_id: values.target_spec_id || 0,
   });
 
@@ -146,10 +165,10 @@
 
   const editableTableRef = useTemplateRef('editableTable');
 
-  useTicketDetail<Redis.MigrateSingle>(TicketTypes.REDIS_SINGLE_INS_MIGRATE, {
+  useTicketDetail<Redis.ResourcePool.MigrateSingle>(TicketTypes.REDIS_SINGLE_INS_MIGRATE, {
     onSuccess(ticketDetail) {
       const { infos } = ticketDetail.details;
-      const rowMap = infos.reduce<Record<string, Redis.MigrateSingle['infos']>>((prevMap, infoItem) => {
+      const rowMap = infos.reduce<Record<string, Redis.ResourcePool.MigrateSingle['infos']>>((prevMap, infoItem) => {
         const migrateIp = infoItem.migrate_ip!;
         if (prevMap[migrateIp]) {
           return Object.assign({}, prevMap, {
@@ -168,6 +187,7 @@
           host: {
             ip: rowItem.migrate_ip,
           } as IDataRow['host'],
+          labels: (rowItem.resource_spec.backend_group.labels || []).map((item) => ({ id: Number(item) })),
           target_spec_id: rowItem.resource_spec.backend_group.spec_id,
         });
       });
@@ -208,6 +228,9 @@
     ],
   };
 
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
+
+  const tableKey = ref(random());
   const tableData = ref([createRowData()]);
 
   const tabListConfig = {
@@ -292,6 +315,7 @@
       return acc;
     }, []);
     if (isClear) {
+      tableKey.value = random();
       tableData.value = [...newList];
     } else {
       tableData.value = [...(selected.value.length ? tableData.value : []), ...newList];
@@ -321,6 +345,8 @@
             resource_spec: {
               backend_group: {
                 count: 1,
+                label_names: tableItem.labels.map((item) => item.value),
+                labels: tableItem.labels.map((item) => String(item.id)),
                 spec_id: tableItem.target_spec_id,
               },
             },

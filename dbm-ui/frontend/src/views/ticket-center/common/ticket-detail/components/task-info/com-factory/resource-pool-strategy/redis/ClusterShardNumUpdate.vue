@@ -59,6 +59,44 @@
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
+      col-key="proxy_label_names"
+      :min-width="200"
+      :title="t('Proxy 资源标签')">
+      <template #default="{ row }: { row: RowData }">
+        <template v-if="row.resource_spec.proxy?.label_names?.length">
+          <BkTag
+            v-for="item in row.resource_spec.proxy.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="backend_label_names"
+      :min-width="200"
+      :title="t('后端存储资源标签')">
+      <template #default="{ row }: { row: RowData }">
+        <template v-if="row.resource_spec.backend_group?.label_names?.length">
+          <BkTag
+            v-for="item in row.resource_spec.backend_group.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="online_switch_type"
       :title="t('切换模式')"
       :width="150">
@@ -95,11 +133,11 @@
 
   import { convertStorageUnits } from '@utils';
 
-  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
-  import TableGroupContent from '../components/TableGroupContent.vue';
+  import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
+  import TableGroupContent from '../../components/TableGroupContent.vue';
 
   interface Props {
-    ticketDetails: TicketModel<Redis.ClusterShardNumUpdate>;
+    ticketDetails: TicketModel<Redis.ResourcePool.ClusterShardNumUpdate>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
@@ -114,9 +152,9 @@
   const { t } = useI18n();
 
   // 生成映射表
-  const generateMap = (arr: { title: string; value: string }[]) => {
+  const generateMap = (arr: { label: string; value: string }[]) => {
     return arr.reduce<Record<string, string>>((obj, item) => {
-      Object.assign(obj, { [item.value]: item.title });
+      Object.assign(obj, { [item.value]: item.label });
       return obj;
     }, {});
   };

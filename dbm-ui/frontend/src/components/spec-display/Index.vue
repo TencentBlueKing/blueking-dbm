@@ -92,6 +92,7 @@
     white-space: nowrap;
 
     .content {
+      display: flex;
       color: #313238;
       // padding-bottom: 2px;
       cursor: pointer;
