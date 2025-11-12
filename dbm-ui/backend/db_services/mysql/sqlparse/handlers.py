@@ -155,7 +155,7 @@ class SQLParseHandler:
             return
 
         # 判断解析表结构，普通用户不允许查询系统库，自助查询只允许查系统库
-        dbs = [table.split(".")[0] for table in self.parse_sql(sql)["table_name"].split(",")]
+        dbs = [table.split(".")[0].lower() for table in self.parse_sql(sql)["table_name"].split(",")]
         if dbs and not db_query and set(dbs).intersection(set(SYSTEM_DBS)):
             raise SQLParseBaseException(_("不允许查询以下系统库表:{}").format(SYSTEM_DBS))
         elif dbs and db_query and not set(dbs).issubset(set(SYSTEM_DBS)):
