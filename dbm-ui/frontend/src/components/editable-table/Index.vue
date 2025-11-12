@@ -1,5 +1,7 @@
 <template>
-  <div class="bk-editable-table">
+  <div
+    class="bk-editable-table"
+    @click="handleUserChange">
     <div
       ref="tableRef"
       class="bk-editable-table-wrapper"
@@ -144,6 +146,7 @@
   const rowList = shallowRef<IColumnContext[][]>([]);
 
   const isShowScrollX = ref(true);
+  const isUserChange = ref(false);
 
   const { columnSizeConfig, handleMouseDown, handleMouseMove } = useResize(tableRef, resizePlaceholderRef, columnList);
   const { fixedLeft, fixedRight, initalScroll, leftFixedStyles, rightFixedStyles } = useScroll(tableRef);
@@ -172,6 +175,18 @@
       immediate: true,
     },
   );
+
+  watch(
+    () => props.model,
+    () => {
+      if (isUserChange.value) {
+        window.changeConfirm = true;
+      }
+    },
+    { deep: true },
+  );
+
+  const handleUserChange = () => (isUserChange.value = true);
 
   const registerRow = (rowColumnList: IColumnContext[]) => {
     rowList.value.push(rowColumnList);
@@ -257,6 +272,10 @@
     validateByColumnIndex,
     validateByField,
     validateByRowIndex,
+  });
+
+  onBeforeUnmount(() => {
+    window.changeConfirm = false;
   });
 
   defineExpose<Expose>({

@@ -105,7 +105,6 @@
     modelValue.value.forEach((item) => {
       Object.assign(item, { [field]: value });
     });
-    window.changeConfirm = true;
   };
 
   defineExpose<Exposes>({

@@ -357,7 +357,6 @@
     });
     if (newList.length) {
       formData.tableData = [...(selected.value.length ? formData.tableData : []), ...newList];
-      window.changeConfirm = true;
     }
   };
 
@@ -485,6 +484,5 @@
   // 重置
   const handleReset = () => {
     Object.assign(formData, createDefaultFormData());
-    window.changeConfirm = false;
   };
 </script>

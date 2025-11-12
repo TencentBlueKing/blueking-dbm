@@ -213,7 +213,6 @@
     if (!result) {
       return;
     }
-    window.changeConfirm = false;
     isShow.value = false;
   };
 
@@ -226,7 +225,6 @@
       targetInfo,
       updateInfo,
     });
-    window.changeConfirm = true;
     isShow.value = false;
   };
 </script>
