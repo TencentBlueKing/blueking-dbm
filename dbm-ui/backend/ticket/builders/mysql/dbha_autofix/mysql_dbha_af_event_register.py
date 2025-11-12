@@ -99,7 +99,7 @@ class MySQLDBHAAlarmTransformSerializer(AlarmCallBackDataSerializer):
                     "check_id": dimensions.get("double_check_id", 0),
                     "immute_domain": dimensions["cluster_domain"],
                     "machine_type": dimensions.get("machine_type", ""),
-                    "instance_role": dimensions.get("role", ""),
+                    "instance_role": dimensions.get("instance_role", ""),
                     "ip": dimensions.get("server_ip", ""),
                     "port": dimensions.get("server_port", 0),
                     "event_create_time": data["callback_message"]["event"]["create_time"],
