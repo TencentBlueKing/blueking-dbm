@@ -71,12 +71,19 @@ func (p *Probe) runPlugin(ctx context.Context, plug plugin.Plugin) {
 		case <-ctx.Done():
 			return
 
-		case data := <-eventC:
+		case data, opened := <-eventC:
+			if !opened {
+				logger.Error("the event chan is closed, exit from the plugin: %s", name)
+				return
+			}
+
 			dataEncoded, err := json.Marshal(data.Value)
 			if err != nil {
 				logger.Warn("encode data to json failed, plugin(%s), data(%v), %v", name, data.Value, err)
 				continue
 			}
+
+			logger.Debug("harvester reported data: %s", string(dataEncoded))
 
 			for _, r := range p.reporters {
 				err := r.Post(ctx, dataEncoded)
@@ -93,23 +100,20 @@ func (p *Probe) runPlugin(ctx context.Context, plug plugin.Plugin) {
 
 func (p *Probe) loadPlugins(ctx context.Context) error {
 	if p.plugins == nil {
-		p.plugins = make([]plugin.Plugin, 20)
+		p.plugins = make([]plugin.Plugin, 3)
 	}
 
-	for _, cfg := range config.Cfg.Harvesters {
-		plug, err := harvester.NewPlugin(cfg)
-		if err != nil {
-			logger.Warn("create a new harvester plugin(%s) failed, %v", cfg.Name, err)
-			continue
+	if config.Cfg.Harvester.MySql != nil {
+		if plug, err := harvester.NewPluginMySql(config.Cfg.Harvester.MySql); err == nil {
+			p.wg.Add(1)
+			go func() {
+				defer p.wg.Done()
+				p.runPlugin(ctx, plug)
+			}()
+
+		} else {
+			logger.Warn("failed to create a new harvester, dbType: mysql, errmsg: %s", err)
 		}
-
-		p.wg.Add(1)
-
-		go func() {
-			defer p.wg.Done()
-
-			p.runPlugin(ctx, plug)
-		}()
 	}
 
 	return nil
