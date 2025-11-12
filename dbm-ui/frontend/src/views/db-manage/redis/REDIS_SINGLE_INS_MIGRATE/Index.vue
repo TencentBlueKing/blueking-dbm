@@ -86,7 +86,6 @@
         formData.migrateType = MigrateType.MACHINE;
       }
       formData.payload = createTickePayload(ticketDetail);
-      window.changeConfirm = true;
     },
   });
 
@@ -123,6 +122,5 @@
 
   const handleReset = () => {
     currentTableRef.value!.resetTable();
-    window.changeConfirm = false;
   };
 </script>

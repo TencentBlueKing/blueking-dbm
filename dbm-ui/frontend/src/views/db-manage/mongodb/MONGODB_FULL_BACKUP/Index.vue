@@ -207,7 +207,6 @@
       }
     });
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...newList];
-    window.changeConfirm = true;
   };
 
   const handleSubmit = async () => {
@@ -229,7 +228,6 @@
 
   const handleReset = () => {
     Object.assign(formData, createDefaultFormData());
-    window.changeConfirm = false;
   };
 </script>
 

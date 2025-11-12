@@ -328,14 +328,12 @@
     });
 
     formData.tableData = [...formData.tableData.filter((item) => item.batchInstance.renderText), ...newList];
-    window.changeConfirm = true;
   };
 
   const handleBatchEdit = (value: string | number, field: string) => {
     formData.tableData.forEach((item) => {
       Object.assign(item, { [field]: value });
     });
-    window.changeConfirm = true;
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
@@ -417,6 +415,5 @@
 
   const handleReset = () => {
     Object.assign(formData, initFormData());
-    window.changeConfirm = false;
   };
 </script>

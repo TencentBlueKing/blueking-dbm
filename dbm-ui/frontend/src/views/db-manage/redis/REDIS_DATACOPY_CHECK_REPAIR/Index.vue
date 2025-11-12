@@ -267,7 +267,6 @@
     formData.tableData.forEach((item) => {
       Object.assign(item, { [field]: value });
     });
-    window.changeConfirm = true;
   };
 
   const handleSubmit = async () => {
@@ -301,7 +300,6 @@
   // 重置
   const handleReset = () => {
     Object.assign(formData, createDefaultFormData());
-    window.changeConfirm = false;
   };
 
   onMounted(() => {

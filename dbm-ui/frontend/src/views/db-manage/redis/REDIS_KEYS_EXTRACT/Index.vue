@@ -212,14 +212,12 @@
       }
     });
     formData.tableData = [...(formData.tableData[0]!.cluster.master_domain ? formData.tableData : []), ...newList];
-    window.changeConfirm = true;
   };
 
   const handleBatchEdit = (value: string, field: string) => {
     formData.tableData.forEach((item) => {
       Object.assign(item, { [field]: value });
     });
-    window.changeConfirm = true;
   };
 
   const handleSubmit = async () => {
@@ -242,7 +240,6 @@
 
   const handleReset = () => {
     Object.assign(formData, createDefaultFormData());
-    window.changeConfirm = false;
   };
 
   const handleTypeChange = () => {

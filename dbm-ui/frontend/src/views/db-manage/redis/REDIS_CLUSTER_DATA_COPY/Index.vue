@@ -286,7 +286,6 @@
   const handleReset = async () => {
     Object.assign(formData, createDefaultFormData());
     currentTableRef.value!.resetTable();
-    window.changeConfirm = false;
   };
 
   onMounted(() => {

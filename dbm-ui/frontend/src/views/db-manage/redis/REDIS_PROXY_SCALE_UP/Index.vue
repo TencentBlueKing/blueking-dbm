@@ -235,7 +235,6 @@
           }),
         ),
       });
-      window.changeConfirm = true;
     },
   });
 
@@ -303,14 +302,12 @@
     });
 
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...newList];
-    window.changeConfirm = true;
   };
 
   const handleBatchEdit = (value: string | number, field: string) => {
     formData.tableData.forEach((item) => {
       Object.assign(item, { [field]: value });
     });
-    window.changeConfirm = true;
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
@@ -360,7 +357,6 @@
 
   const handleReset = () => {
     Object.assign(formData, createDefaultFormData());
-    window.changeConfirm = false;
   };
 </script>
 

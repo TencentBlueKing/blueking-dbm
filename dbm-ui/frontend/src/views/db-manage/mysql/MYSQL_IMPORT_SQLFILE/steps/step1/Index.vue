@@ -131,7 +131,6 @@
         },
       });
       uploadFilePath.value = details.path;
-      window.changeConfirm = true;
 
       nextTick(() => {
         executeObjectsRef.value!.setReEditValue(details.execute_objects);

@@ -360,7 +360,6 @@
       const res = await createTicket(params);
       ticketMessage(res.id);
       emits('success');
-      window.changeConfirm = false;
       handleClose();
     } finally {
       state.isLoading = false;
