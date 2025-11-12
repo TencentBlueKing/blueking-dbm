@@ -158,6 +158,7 @@
           </BkDropdownItem>
           <ClusterAlarmSubscribe
             :data="data"
+            db-console-prefix="redis.clusterManage"
             is-dropdown
             @edit="(e) => handleToDetails(data!.id, e, 'alarmSubscription')" />
           <BkDropdownItem

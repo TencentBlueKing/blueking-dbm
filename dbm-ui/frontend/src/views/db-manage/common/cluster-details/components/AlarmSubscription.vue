@@ -6,12 +6,16 @@
       :description="t('暂未添加告警订阅')"
       scene="part"
       type="empty">
-      <BkButton
+      <AuthButton
+        :action-id="permissionId"
         class="w-88 mt-12"
+        :disabled="data.isOffline"
+        :permission="data.permission[permissionId]"
+        :resource="data.id"
         theme="primary"
         @click="handleClickAdd">
         {{ t('立即添加') }}
-      </BkButton>
+      </AuthButton>
     </BkException>
     <template v-else>
       <BkAlert
@@ -97,9 +101,11 @@
 
   import { messageSuccess } from '@utils';
 
+  import type { ClusterModel, ISupportClusterType } from '../../cluster-table/types';
+
   interface Props {
     clusterType: string;
-    domain: string;
+    data: { master_domain?: string } & ClusterModel<ISupportClusterType>;
   }
 
   const props = defineProps<Props>();
@@ -113,6 +119,7 @@
   const noticeWays = ref<string[]>(['weixin']);
 
   const indicatorList = computed(() => metricsMap.value[props.clusterType].list || []);
+  const permissionId = computed(() => `${props.data.db_type}_subscribe_monitor` as keyof typeof props.data.permission);
 
   let currentInfo: (typeof subscribedDomainInfo.value.dataList)[number] | undefined;
 
@@ -138,9 +145,9 @@
   });
 
   watch(
-    () => [props.domain, subscribedDomainInfo.value.dataList],
+    () => [props.data.master_domain, subscribedDomainInfo.value.dataList],
     () => {
-      currentInfo = subscribedDomainInfo.value.dataList.find((item) => item.master_domain === props.domain);
+      currentInfo = subscribedDomainInfo.value.dataList.find((item) => item.master_domain === props.data.master_domain);
       if (currentInfo) {
         alertSeverity.value = currentInfo.alert_severity;
         noticeWays.value = currentInfo.notice_ways;
@@ -170,7 +177,7 @@
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       clusters: [
         {
-          cluster_domain: props.domain,
+          cluster_domain: props.data.master_domain!,
           cluster_type: props.clusterType,
         },
       ],
