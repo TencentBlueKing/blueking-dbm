@@ -74,13 +74,16 @@ class RedisUpdateVersionService(BaseService):
         self.log_info("cluster [{}] proxy version updated successfully:".format(cluster.immute_domain))
 
     def update_storage_instance(self, cluster: Cluster):
-        passwd_ret = PayloadHandler.redis_get_password_by_cluster_id(cluster.id)
+        last_ip, passwd_ret = "", PayloadHandler.redis_get_password_by_cluster_id(cluster.id)
         for storage in cluster.storageinstance_set.filter(status=InstanceStatus.RUNNING):
             v = get_online_redis_version(
                 storage.machine.ip, storage.port, cluster.bk_cloud_id, passwd_ret.get("redis_password")
             )
             storage.version = v
             storage.save(update_fields=["version"])
+            if last_ip != "" and storage.machine.ip != last_ip:
+                self.log_info("host_all_instances:{} version updated successfully:".format(storage.machine.ip))
+            last_ip = storage.machine.ip
         self.log_info("cluster [{}] storage version updated successfully:".format(cluster.immute_domain))
 
     def inputs_format(self) -> List:
