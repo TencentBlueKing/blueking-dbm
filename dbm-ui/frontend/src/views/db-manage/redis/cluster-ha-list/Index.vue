@@ -164,6 +164,7 @@
             </div>
             <ClusterAlarmSubscribe
               :data="data"
+              db-console-prefix="redis.haClusterManage"
               @click="hideOperationColumn"
               @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
             <div v-db-console="'redis.haClusterManage.queryAccessSource'">

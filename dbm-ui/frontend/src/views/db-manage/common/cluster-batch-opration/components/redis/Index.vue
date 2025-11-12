@@ -58,6 +58,11 @@
   </BkDropdownItem>
   <BkDropdownItem v-db-console="'redis.clusterManage.batchAddTag'">
     <BkButton
+      v-bk-tooltips="{
+        disabled: isClusterTagEditable,
+        content: t('全部选中对象有权限，方可批量操作'),
+        placement: 'right',
+      }"
       class="opration-button"
       :disabled="!isClusterTagEditable"
       text
@@ -67,6 +72,11 @@
   </BkDropdownItem>
   <BkDropdownItem v-db-console="'redis.clusterManage.batchRemoveTag'">
     <BkButton
+      v-bk-tooltips="{
+        disabled: isClusterTagEditable,
+        content: t('全部选中对象有权限，方可批量操作'),
+        placement: 'right',
+      }"
       class="opration-button"
       :disabled="!isClusterTagEditable"
       text
@@ -77,7 +87,6 @@
   <BkDropdownItem v-db-console="'redis.clusterManage.configAlarmSubscription'">
     <BkButton
       class="opration-button"
-      :disabled="!isClusterTagEditable"
       text
       @click="() => (showClusterBatchEditSubscription = true)">
       {{ t('设置告警订阅') }}
@@ -86,7 +95,6 @@
   <BkDropdownItem v-db-console="'redis.clusterManage.deleteAlarmSubscription'">
     <BkButton
       class="opration-button"
-      :disabled="!isClusterTagEditable"
       text
       @click="() => (showClusterBatchDeleteSubscription = true)">
       {{ t('删除告警订阅') }}
