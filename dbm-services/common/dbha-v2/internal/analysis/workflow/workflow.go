@@ -399,32 +399,33 @@ func (w *Workflow) triggerSwitching(dbType haprobe.DbType, req *switcher.Request
 }
 
 func (w *Workflow) checkEventWithBizId(bizId int, dbEvents []*hamodel.DbEvent,
-	skipDbInsts map[string]*hamodel.SkipDbInstance) {
+	skipDbInsts map[string]*hamodel.SkipDbInstance, metaInsts map[string]*hamodel.DbmMetadata) {
 
 	// TODO: read switching strategy with bizId
 	_ = bizId
 
-	// key: is bkCloudId
-	events := map[int][]*hamodel.DbEvent{}
+	badInsts := []*hamodel.DbmMetadata{}
 
 	for _, event := range dbEvents {
 		key := key(event.BkCloudID, event.IP, event.Port)
 
 		if _, exists := skipDbInsts[key]; exists {
-			logger.Info("skip the db instance: %s", key)
+			logger.Info("skip the db-inst: %s", key)
 			continue
 		}
 
-		events[event.BkCloudID] = append(events[event.BkCloudID], event)
+		meta, exists := metaInsts[key]
+		if !exists {
+			logger.Warn("not found the meta for the db-inst: %s", key)
+			continue
+		}
+
+		logger.Warn("recheck the db-inst: %s", key)
+		badInsts = append(badInsts, meta)
 	}
 
-	for bkCloudId, dbevents := range events {
-		req := w.createSwitcherRequest(bkCloudId, dbevents)
-
-		// TODO: Now there is only MySQL(default).
-		logger.Debug("trigger switching, dbtype: %s, req: %v", haprobe.DbTypeMysql, req)
-		w.triggerSwitching(haprobe.DbTypeMysql, req)
-	}
+	// Trigger to recheck.
+	w.databaseLivenessDoubleCheck(badInsts)
 }
 
 func (w *Workflow) checkMissedProbe(dbMetrics []*hamodel.DatabaseMetric,
@@ -458,7 +459,7 @@ func (w *Workflow) checkMissedProbe(dbMetrics []*hamodel.DatabaseMetric,
 			continue
 		}
 
-		missedProbeInsts = append(missedProbeInsts, metaInsts[key])
+		missedProbeInsts = append(missedProbeInsts, dbMeta)
 	}
 
 	// Trigger to recheck.
@@ -549,7 +550,7 @@ func (w *Workflow) checkBusinessWithBizID(ctx context.Context, bizId int) (retEr
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		w.checkEventWithBizId(bizId, dbEvents, skipInsts)
+		w.checkEventWithBizId(bizId, dbEvents, skipInsts, metaInsts)
 	}()
 
 	// Parse and trigger switching logic.
