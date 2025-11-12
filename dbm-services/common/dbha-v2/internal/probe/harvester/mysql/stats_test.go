@@ -22,14 +22,17 @@
  * SOFTWARE.
  */
 
-package harvester
+package mysql
 
 import (
-	"dbm-services/common/dbha-v2/internal/probe/harvester/mysql"
+	"fmt"
+	"testing"
 )
 
-var (
-	// NewPluginMySql To avoid potential ambiguity caused by directly using 'mysql',
-	// the method for creating the mysql plugin has been renamed here.
-	NewPluginMySql = mysql.NewMySql
-)
+func TestGlobalStatus(t *testing.T) {
+	gstats := []globalStatus{}
+
+	dbMetrics := convertToMetric(gstats)
+
+	fmt.Println("db-metrics: ", dbMetrics)
+}

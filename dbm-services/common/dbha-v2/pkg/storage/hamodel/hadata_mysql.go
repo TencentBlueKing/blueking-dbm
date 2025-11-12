@@ -304,39 +304,41 @@ func NewDbhaData(msg *haprobe.MySQLMetric) *DbhaData {
 	data.SequenceID = msg.SequenceID
 	data.MachineID = msg.MachineID
 	data.AgentID = msg.AgentID
-	data.IPs = strings.Join(msg.Host.NetIPs, constant.Delimiter)
 	data.BkCloudID = msg.BkCloudID
 	data.MessageID = msg.MessageID
 	data.ServiceID = msg.ServiceID
 	data.ReportTimestamp = msg.ReportTimestamp
 
-	data.Host = &HostMetric{
-		BkCloudID: msg.BkCloudID,
-		MachineID: msg.MachineID,
-		AgentID:   msg.AgentID,
-		IPs:       data.IPs,
+	if msg.Host != nil {
+		data.IPs = strings.Join(msg.Host.NetIPs, constant.Delimiter)
+		data.Host = &HostMetric{
+			BkCloudID: msg.BkCloudID,
+			MachineID: msg.MachineID,
+			AgentID:   msg.AgentID,
+			IPs:       data.IPs,
 
-		CpuUsagePercent:  msg.Host.CpuUsagePercent,
-		CpuUserPercent:   msg.Host.CpuUserPercent,
-		CpuSystemPercent: msg.Host.CpuSystemPercent,
-		CpuIOWaitPercent: msg.Host.CpuIOWaitPercent,
-		CpuLoad1:         msg.Host.CpuLoad1,
-		CpuLoad5:         msg.Host.CpuLoad5,
-		CpuLoad15:        msg.Host.CpuLoad15,
+			CpuUsagePercent:  msg.Host.CpuUsagePercent,
+			CpuUserPercent:   msg.Host.CpuUserPercent,
+			CpuSystemPercent: msg.Host.CpuSystemPercent,
+			CpuIOWaitPercent: msg.Host.CpuIOWaitPercent,
+			CpuLoad1:         msg.Host.CpuLoad1,
+			CpuLoad5:         msg.Host.CpuLoad5,
+			CpuLoad15:        msg.Host.CpuLoad15,
 
-		MemTotalMB:     msg.Host.MemTotalMB,
-		MemUsedMB:      msg.Host.MemUsedMB,
-		MemFreeMB:      msg.Host.MemFreeMB,
-		MemCacheMB:     msg.Host.MemCacheMB,
-		MemAvailableMB: msg.Host.MemAvailableMB,
-		SwapTotalMB:    msg.Host.SwapTotalMB,
-		SwapUsedMB:     msg.Host.SwapUsedMB,
+			MemTotalMB:     msg.Host.MemTotalMB,
+			MemUsedMB:      msg.Host.MemUsedMB,
+			MemFreeMB:      msg.Host.MemFreeMB,
+			MemCacheMB:     msg.Host.MemCacheMB,
+			MemAvailableMB: msg.Host.MemAvailableMB,
+			SwapTotalMB:    msg.Host.SwapTotalMB,
+			SwapUsedMB:     msg.Host.SwapUsedMB,
 
-		DiskUsagePercent: msg.Host.DiskUsagePercent,
-		DiskTotal:        msg.Host.DiskTotal,
-		DiskUsed:         msg.Host.DiskUsed,
-		DiskAvailable:    msg.Host.DiskAvailable,
-		DiskReadOnly:     msg.Host.DiskReadOnly,
+			DiskUsagePercent: msg.Host.DiskUsagePercent,
+			DiskTotal:        msg.Host.DiskTotal,
+			DiskUsed:         msg.Host.DiskUsed,
+			DiskAvailable:    msg.Host.DiskAvailable,
+			DiskReadOnly:     msg.Host.DiskReadOnly,
+		}
 	}
 
 	for _, event := range msg.Events {

@@ -26,7 +26,9 @@ package mysql
 
 import (
 	"context"
-	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
 	"sync"
 	"time"
 
@@ -36,13 +38,23 @@ import (
 	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/machine"
-	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
 const (
 	Name    = "mysql"
 	Version = "v1.0.0"
+
+	MySqlConfigFileType  = "ini"
+	MySqlBindPort        = "mysql.port"
+	MySqlBindAddress     = "mysqld.bind-address"
+	MySqlConnectionProto = "tcp"
+)
+
+var (
+	ErrInvalidMySqlIp   = gerrors.Newf(gerrors.InvalidParameter, "invalid MySQL ip")
+	ErrInvalidMySqlPort = gerrors.Newf(gerrors.InvalidParameter, "invalid MySQL port")
+	ErrReadMySqlConfig  = gerrors.Newf(gerrors.Failure, "failed to read MySQL config file")
 )
 
 // MySql mysql harvester
@@ -53,176 +65,21 @@ type MySql struct {
 	machineID      string
 	serviceID      string
 	wg             sync.WaitGroup
-	cfg            config.HarvesterConfig
+	cfg            *config.MySqlHarvesterConfig
 	historyMetrics map[string]*haprobe.DatabaseMetric
+
+	// key: the mysql endpoint
+	collectors map[string]*collector
 }
 
 // NewMySql constructor
-func NewMySql(cfg config.HarvesterConfig) (*MySql, error) {
+func NewMySql(cfg *config.MySqlHarvesterConfig) (*MySql, error) {
 	msql := &MySql{
 		cfg:            cfg,
 		historyMetrics: make(map[string]*haprobe.DatabaseMetric),
 	}
 
 	return msql, nil
-}
-
-func (m *MySql) connectMySql() ([]*hamysql.DB, []*haprobe.DbEvent, error) {
-	epoints, err := hanet.NewEndpoints(m.cfg.Endpoint)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	events := []*haprobe.DbEvent{}
-	dbs := []*hamysql.DB{}
-	for _, epoint := range epoints {
-		db, err := hamysql.New(
-			hamysql.OptionProto(epoint.Proto),
-			hamysql.OptionIP(epoint.Host),
-			hamysql.OptionPort(epoint.Port),
-			hamysql.OptionUser(m.cfg.User),
-			hamysql.OptionPassword(m.cfg.Password),
-		)
-
-		if err != nil {
-			logger.Warn("create mysql db operator failed, %v", err)
-			events = append(events, &haprobe.DbEvent{
-				Name:       haprobe.DbEventNameDetectFailure,
-				Reason:     haprobe.DbEventNameReasonConnectionException,
-				DbTypeName: haprobe.DbTypeMysql,
-				Endpoint:   epoint,
-				Message:    err.Error(),
-			})
-
-			continue
-		}
-
-		dbs = append(dbs, db)
-	}
-
-	if len(dbs) == 0 {
-		return nil, events, gerrors.New(gerrors.MysqlFailure, "no usable mysql db operator")
-	}
-
-	return dbs, events, nil
-}
-
-// collectAndSaveMetrics collects and saves metrics.
-func (m *MySql) collectAndSaveMetrics() (*haprobe.MySQLMetric, error) {
-	// collect metrics from system
-	systemMetric, err := m.collectSystemMetrics()
-	if err != nil {
-		logger.Error("failed to collect host metrics, %v", err)
-		return nil, err
-	}
-
-	logger.Debug("system metrics(%v)", *systemMetric)
-
-	// collect metrics from mysql instances
-	mysqlMetrics, events, err := m.collectMysqlMetrics()
-	if err != nil {
-		logger.Warn("failed to collect mysql metrics, %v", err)
-	}
-
-	logger.Debug("mysql metrics(%v)", mysqlMetrics)
-
-	// combine metrics
-	metrics := &haprobe.MySQLMetric{
-		SequenceID:      machine.NewSequenceID(),
-		MachineID:       m.machineID,
-		MessageID:       machine.NewMessageID(),
-		ServiceID:       m.serviceID,
-		ReportTimestamp: uint64(time.Now().Unix()),
-		Host:            systemMetric,
-		Events:          events,
-		Databases:       mysqlMetrics, // slice, mysql instance metrics
-	}
-
-	return metrics, nil
-}
-
-// collectSystemMetrics collects system metrics.
-func (m *MySql) collectSystemMetrics() (*haprobe.HostMetric, error) {
-	systemMetric := &haprobe.HostMetric{}
-	if err := obtainCPUMetrics(systemMetric); err != nil {
-		logger.Info("failed to harvest CPU info. errmsg: %v", err)
-		return systemMetric, err
-	}
-
-	if err := obtainStorageMetrics(systemMetric); err != nil {
-		logger.Info("failed to harvest Swap/Memory/Disk info. errmsg: %v", err)
-		return systemMetric, err
-	}
-
-	if err := obtainNetworkMetrics(systemMetric); err != nil {
-		logger.Info("failed to harvest Network info. errmsg: %v", err)
-		return systemMetric, err
-	}
-
-	return systemMetric, nil
-}
-
-// collectMySQLInfo collect all instances MySQL metrics.
-func (m *MySql) collectMysqlMetrics() ([]*haprobe.DatabaseMetric, []*haprobe.DbEvent, error) {
-	var allDbMetrics []*haprobe.DatabaseMetric
-
-	dbs, events, err := m.connectMySql()
-	if err != nil {
-		return nil, events, err
-	}
-
-	// Iterate over configured instances
-	for _, db := range dbs {
-		// create a DatabaseMetric to store instance metrics
-		instanceDbMetrics := haprobe.DatabaseMetric{}
-
-		if err := collectMySQLInfo(db.DB(), &instanceDbMetrics); err != nil {
-			continue
-		}
-
-		// realtime QPS
-		instanceName := fmt.Sprintf("%s:%d", db.Host(), db.Port())
-		m.calculateRealTimeQPS(instanceName, &instanceDbMetrics)
-
-		// add single instance metrics to all metrics
-		allDbMetrics = append(allDbMetrics, &instanceDbMetrics)
-
-		logger.Debug("mysql db metric(%v)", instanceDbMetrics)
-	}
-
-	return allDbMetrics, events, nil
-}
-
-// calculateRealTimeQPS to calculate realtime QPS
-func (m *MySql) calculateRealTimeQPS(instanceName string, currentMetric *haprobe.DatabaseMetric) {
-
-	// get history metric
-	previousMetric, exists := m.historyMetrics[instanceName]
-	if !exists {
-		// fisrt time to collect, not to calculate
-		m.historyMetrics[instanceName] = currentMetric
-		return
-	}
-
-	// calculate difference between current and previous metric
-	queryDiff := currentMetric.QueryTotal - previousMetric.QueryTotal
-	if queryDiff > 0 {
-		interval := m.cfg.Interval.Seconds()
-		realTimeQPS := float64(queryDiff) / interval
-		currentMetric.QPS = uint(realTimeQPS)
-	}
-
-	// Realtime TPS
-	commitDiff := currentMetric.QueryCommits - previousMetric.QueryCommits
-	rollbackDiff := currentMetric.QueryRollbacks - previousMetric.QueryRollbacks
-	totalDiff := commitDiff + rollbackDiff
-	if totalDiff > 0 {
-		interval := m.cfg.Interval.Seconds()
-		realTimeTPS := float64(totalDiff) / interval
-		currentMetric.TPS = uint(realTimeTPS)
-	}
-
-	m.historyMetrics[instanceName] = currentMetric
 }
 
 // Name returns the name of the plugin.
@@ -250,13 +107,16 @@ func (m *MySql) Harvest(ctx context.Context, machineID, serviceID string) (<-cha
 
 	dataC := make(chan *plugin.HarvestData, 1024)
 
+	// Load all collectors.
+	m.loadCollectors()
+
 	m.wg.Add(1)
 	go func(ctx context.Context) {
 		defer m.wg.Done()
 		defer close(dataC)
 
-		ticker := time.NewTicker(m.cfg.Interval)
-		defer ticker.Stop()
+		timer := time.NewTimer(m.cfg.Interval)
+		defer timer.Stop()
 
 		for {
 			select {
@@ -264,23 +124,126 @@ func (m *MySql) Harvest(ctx context.Context, machineID, serviceID string) (<-cha
 				logger.Info("exit harvester(mysql)")
 				return
 
-			case <-ticker.C:
-				// collect data from the target instance.
-				metrics, err := m.collectAndSaveMetrics()
-				if err != nil {
-					logger.Error("failed to collect mysql metrics: %v", err)
-					// Retry next instance if failed to maintain availability
-					continue
-				}
+			case <-timer.C:
+				wg := &sync.WaitGroup{}
 
-				logger.Debug("mysql harvest data(%v)", *metrics)
+				// Start the collectors.
+				m.beginCollecting(wg, dataC)
 
-				dataC <- &plugin.HarvestData{
-					Value: metrics,
-				}
+				// Wait for the collectors to stop.
+				wg.Wait()
+
+				timer.Reset(m.cfg.Interval)
 			}
 		}
 	}(ctx)
 
 	return dataC, nil
+}
+
+func (m *MySql) loadConfigFile(rootDir, pattern string) ([]string, error) {
+	var matches []string
+
+	reg, err := regexp.Compile(pattern)
+	if err != nil {
+		return nil, err
+	}
+
+	err = filepath.Walk(rootDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !info.IsDir() && reg.MatchString(info.Name()) {
+			fileName := filepath.Join(rootDir, info.Name())
+			logger.Info("found the file: %s", fileName)
+			matches = append(matches, fileName)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return matches, nil
+}
+
+func (m *MySql) loadCollectors() {
+	if m.collectors == nil {
+		m.collectors = map[string]*collector{}
+	}
+
+	for _, epoint := range m.cfg.Endpoints {
+		for _, ports := range epoint.Ports {
+
+			eports, err := parsePorts(ports)
+			if err != nil {
+				continue
+			}
+
+			for _, eport := range eports {
+				c := &collector{}
+				c.user = m.cfg.User
+				c.password = m.cfg.Password
+
+				c.endpoint = &hanet.Endpoint{}
+				c.endpoint.Proto = epoint.Proto
+				c.endpoint.Host = epoint.Ip
+				c.endpoint.Port = eport
+
+				m.collectors[c.endpoint.String()] = c
+			}
+		}
+	}
+}
+
+func (m *MySql) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
+	metrics := &haprobe.MySQLMetric{
+		SequenceID:      machine.NewSequenceID(),
+		MachineID:       m.machineID,
+		MessageID:       machine.NewMessageID(),
+		ServiceID:       m.serviceID,
+		ReportTimestamp: uint64(time.Now().Unix()),
+	}
+
+	defer func() {
+		c.close()
+
+		dataC <- &plugin.HarvestData{
+			Value: metrics,
+		}
+	}()
+
+	if hostStatus, err := c.obtainHostStatus(); err != nil {
+		logger.Warn("failed to obtain the host status, errmsg: %s", err)
+	} else {
+		metrics.Host = hostStatus
+	}
+
+	dbEvent, err := c.open()
+	if err != nil {
+		metrics.Events = []*haprobe.DbEvent{dbEvent}
+		logger.Error("failed to open the collector for the db: %s", c.endpoint)
+		return
+	}
+
+	if dbStatus, err := c.obtainMySqlGlobalStatus(); err != nil {
+		logger.Warn("failed to obtain the MySQL status, errmsg: %s", err)
+	} else {
+		metrics.Databases = []*haprobe.DatabaseMetric{dbStatus}
+	}
+}
+
+func (m *MySql) beginCollecting(wg *sync.WaitGroup, dataC chan<- *plugin.HarvestData) {
+	for _, c := range m.collectors {
+		wg.Add(1)
+
+		go func(t *collector) {
+			defer wg.Done()
+
+			m.collecting(t, dataC)
+		}(c)
+	}
 }
