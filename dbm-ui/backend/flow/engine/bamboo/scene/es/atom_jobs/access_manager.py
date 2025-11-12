@@ -145,20 +145,34 @@ def _get_new_access_ips_from_dbmeta_and_ticket(ticket_data: dict, cluster_id: in
     :return 最新的接入层ip列表
     """
     ticket_type = ticket_data["ticket_type"]
-    if ticket_type != TicketType.ES_SCALE_UP and ticket_type != TicketType.ES_SHRINK:
-        raise ValueError("ticket type not in [ES_SCALE_UP, ES_SHRINK]")
+    if ticket_type not in [TicketType.ES_SCALE_UP, TicketType.ES_SHRINK, TicketType.ES_REPLACE]:
+        raise ValueError("ticket type not in [ES_SCALE_UP, ES_SHRINK, ES_REPLACE]")
     access_ips = []
-    for role in order_list:
-        ips_in_ticket = []
-        if role in ticket_data.get("nodes"):
-            ips_in_ticket = [node["ip"] for node in ticket_data["nodes"][role]]
-        ips_in_dbmeta = _get_ips_by_es_role_from_dbmeta(cluster_id=cluster_id, role=role)
-        if ticket_data["ticket_type"] == TicketType.ES_SCALE_UP:
-            access_ips = list(set(ips_in_ticket) | set(ips_in_dbmeta))
-        elif ticket_data["ticket_type"] == TicketType.ES_SHRINK:
-            access_ips = list(set(ips_in_dbmeta) - set(ips_in_ticket))
-        if access_ips:
-            return access_ips
+    if ticket_type == TicketType.ES_SCALE_UP or ticket_type == TicketType.ES_SHRINK:
+        for role in order_list:
+            ips_in_ticket = []
+            if role in ticket_data.get("nodes"):
+                ips_in_ticket = [node["ip"] for node in ticket_data["nodes"][role]]
+            ips_in_dbmeta = _get_ips_by_es_role_from_dbmeta(cluster_id=cluster_id, role=role)
+            if ticket_data["ticket_type"] == TicketType.ES_SCALE_UP:
+                access_ips = list(set(ips_in_ticket) | set(ips_in_dbmeta))
+            elif ticket_data["ticket_type"] == TicketType.ES_SHRINK:
+                access_ips = list(set(ips_in_dbmeta) - set(ips_in_ticket))
+            if access_ips:
+                return access_ips
+    else:
+        for role in order_list:
+            new_ips_in_ticket = []
+            old_ips_in_ticket = []
+            if role in ticket_data.get("new_nodes"):
+                new_ips_in_ticket = [node["ip"] for node in ticket_data["new_nodes"][role]]
+            if role in ticket_data.get("old_nodes"):
+                old_ips_in_ticket = [node["ip"] for node in ticket_data["old_nodes"][role]]
+            ips_in_dbmeta = _get_ips_by_es_role_from_dbmeta(cluster_id=cluster_id, role=role)
+            # 注意这里的优先级，"-"的优先级比"|"高
+            access_ips = list((set(new_ips_in_ticket) | set(ips_in_dbmeta)) - set(old_ips_in_ticket))
+            if access_ips:
+                return access_ips
     return access_ips
 
 
@@ -176,6 +190,7 @@ def get_access_ips_from_dbmeta(cluster_id: int) -> list:
         ip_list = _get_ips_by_es_role_from_dbmeta(cluster_id=cluster_id, role=role)
         if ip_list:
             return ip_list
+    return []
 
 
 def gen_dns_atom_job(root_id, ticket_data, param: Dict) -> Optional[SubProcess]:
@@ -378,6 +393,7 @@ def generic_manager(cluster_entry_type, root_id, ticket_data, param: Dict) -> Op
         return gen_clb_atom_job(root_id, ticket_data, param)
     elif cluster_entry_type == ClusterEntryType.POLARIS:
         return gen_polaris_atom_job(root_id, ticket_data, param)
+    return None
 
 
 def get_access_manager_atom_job(root_id, ticket_data) -> Optional[SubProcess]:
@@ -395,10 +411,10 @@ def get_access_manager_atom_job(root_id, ticket_data) -> Optional[SubProcess]:
 
     # 判断操作类型给op_type
     # 1. 部署单据：只有增加域名一个选项，op_type=DnsOpType.CREATE
-    # 2. 扩容单据：DnsOpType.UPDATE
-    # 3. 缩容单据：DnsOpType.RECYCLE_RECORD
-    # 4. 删除单据：DnsOpType.CLUSTER_DELETE
-    # 5. 不会有替换单据类型，替换单据=扩容单据+缩容单据，是两个子流程
+    # 2. 扩容单据：DnsOpType.ADD_AND_DELETE
+    # 3. 缩容单据：DnsOpType.ADD_AND_DELETE
+    # 4. 替换单据：DnsOpType.ADD_AND_DELETE
+    # 5. 删除单据：DnsOpType.CLUSTER_DELETE
 
     new_ips = []
     sub_builder_list = []
@@ -415,7 +431,6 @@ def get_access_manager_atom_job(root_id, ticket_data) -> Optional[SubProcess]:
     else:
         #  1. 根据cluster_id从db_meta_clusterentry表中查询出所有记录。获取所有的接入类型
         #  2. 然后根据使用的接入类型，进行对应的操作
-        # op_type in [DnsOpType.CREATE、DnsOpType.RECYCLE_RECORD、DnsOpType.CLUSTER_DELETE]
 
         cluster_id = ticket_data["cluster_id"]
         cluster_entries = ClusterEntry.objects.filter(cluster__id=cluster_id).values()
@@ -426,8 +441,13 @@ def get_access_manager_atom_job(root_id, ticket_data) -> Optional[SubProcess]:
         elif ticket_type == TicketType.ES_SHRINK:
             param["op_type"] = DnsOpType.ADD_AND_DELETE
             new_ips = _get_new_access_ips_from_dbmeta_and_ticket(ticket_data, cluster_id)
+        elif ticket_type == TicketType.ES_REPLACE:
+            param["op_type"] = DnsOpType.ADD_AND_DELETE
+            new_ips = _get_new_access_ips_from_dbmeta_and_ticket(ticket_data, cluster_id)
         elif ticket_type == TicketType.ES_DESTROY:
             param["op_type"] = DnsOpType.CLUSTER_DELETE
+        else:
+            return None
 
         # 获取端口号
         masters = StorageInstance.objects.filter(cluster=cluster, instance_role=InstanceRole.ES_MASTER)
