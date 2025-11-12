@@ -140,14 +140,14 @@
           @go-detail="handleToDetails" />
       </template>
       <template #syncMode>
-        <BkTableColumn
-          field="sync_mode"
-          :label="t('同步模式')"
+        <TableColumn
+          col-key="sync_mode"
+          :title="t('同步模式')"
           :width="120">
-          <template #default="{data}: {data: SqlServerHaModel}">
-            {{ data.sync_mode || '--' }}
+          <template #default="{ row }: { row: SqlServerHaModel }">
+            {{ row.sync_mode || '--' }}
           </template>
-        </BkTableColumn>
+        </TableColumn>
       </template>
       <template #moduleNames>
         <ModuleNameColumn :cluster-type="ClusterTypes.SQLSERVER_HA" />
@@ -179,7 +179,7 @@
       :cluster-id="clusterId" />
   </TableDetailDialog>
 </template>
-<script setup lang="tsx">
+<script setup lang="ts">
   import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
