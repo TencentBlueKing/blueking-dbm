@@ -13,6 +13,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/spf13/cast"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
@@ -128,9 +129,13 @@ func GetMysqlVersion(dbh *sql.DB) (string, error) {
 }
 
 func GetBinlogFormat(dbh *sql.DB) (string, string) {
-	binlogFormat, _ := GetSingleGlobalVar("binlog_format", dbh)
-	binlogRowImage, _ := GetSingleGlobalVar("binlog_row_image", dbh)
-	return binlogFormat, binlogRowImage
+	binlogEnabled, _ := GetSingleGlobalVar("log_bin", dbh)
+	if cmutil.ToBoolExt(binlogEnabled) {
+		binlogFormat, _ := GetSingleGlobalVar("binlog_format", dbh)
+		binlogRowImage, _ := GetSingleGlobalVar("binlog_row_image", dbh)
+		return binlogFormat, binlogRowImage
+	}
+	return "", ""
 }
 
 // GetStorageEngine Get the storage engine from mysql server, to lower
