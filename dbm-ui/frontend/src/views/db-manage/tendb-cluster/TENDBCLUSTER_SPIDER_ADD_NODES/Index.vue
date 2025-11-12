@@ -66,6 +66,7 @@
               item.role === 'spider_slave' ? item.cluster.spider_slave_spec_list : item.cluster.spider_master_spec_list
             "
             :machine-type="MachineTypes.TENDBCLUSTER_PROXY"
+            only-show-current-spec
             required
             selectable
             @batch-edit="handleBatchEditColumn" />
