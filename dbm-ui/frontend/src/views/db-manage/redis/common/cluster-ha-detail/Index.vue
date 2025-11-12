@@ -140,6 +140,7 @@
           </BkDropdownItem>
           <ClusterAlarmSubscribe
             :data="data"
+            db-console-prefix="redis.haClusterManage"
             is-dropdown
             @edit="(e) => handleToDetails(data!.id, e, 'alarmSubscription')" />
           <BkDropdownItem v-db-console="'redis.haClusterManage.queryAccessSource'">

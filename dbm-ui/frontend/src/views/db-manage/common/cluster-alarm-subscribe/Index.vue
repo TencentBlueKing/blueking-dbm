@@ -2,22 +2,25 @@
   <template v-if="isAbleSubscribe">
     <BkDropdownItem
       v-if="isNotSubscribed"
-      v-db-console="'redis.clusterManage.editAlarmSubscription'">
+      v-db-console="`${dbConsolePrefix}.editAlarmSubscription`">
       <OperationBtnStatusTips
         :data="data"
         :disabled="!data.isOffline">
-        <BkButton
+        <AuthButton
+          :action-id="permissionId"
           :class="{ 'is-dropdown-button': isDropdown }"
           :disabled="data.isOffline"
+          :permission="data.permission[permissionId]"
+          :resource="data.id"
           text
           @click="handleClickEdit">
           {{ t('设置告警订阅') }}
-        </BkButton>
+        </AuthButton>
       </OperationBtnStatusTips>
     </BkDropdownItem>
     <BkDropdownItem
       v-else
-      v-db-console="'redis.clusterManage.deleteAlarmSubscription'">
+      v-db-console="`${dbConsolePrefix}.deleteAlarmSubscription`">
       <OperationBtnStatusTips
         :data="data"
         :disabled="!data.isOffline">
@@ -47,6 +50,7 @@
 
   export interface Props<clusterType extends ISupportClusterType> {
     data: { master_domain: string } & ClusterModel<clusterType>;
+    dbConsolePrefix?: string;
     isDropdown?: boolean;
   }
 
@@ -56,6 +60,7 @@
   }
 
   const props = withDefaults(defineProps<Props<T>>(), {
+    dbConsolePrefix: '',
     isDropdown: false,
   });
   const emits = defineEmits<Emits>();
@@ -65,6 +70,7 @@
 
   const isAbleSubscribe = computed(() => metricsMap.value[props.data.cluster_type]?.list.length > 0);
   const isNotSubscribed = computed(() => !subscribedDomainInfo.value.dataSet.has(props.data.master_domain));
+  const permissionId = computed(() => `${props.data.db_type}_subscribe_monitor` as keyof typeof props.data.permission);
 
   const { run: deleteSubscribeRun } = useRequest(deleteSubscribe, {
     manual: true,

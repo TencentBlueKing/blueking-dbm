@@ -99,7 +99,7 @@
             name="alarmSubscription">
             <AlarmSubscription
               :cluster-type="clusterData.cluster_type"
-              :domain="clusterData.master_domain" />
+              :data="clusterData" />
           </BkTabPanel>
         </slot>
       </BkTab>

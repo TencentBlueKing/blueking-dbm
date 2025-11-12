@@ -178,6 +178,7 @@
             </div>
             <ClusterAlarmSubscribe
               :data="data"
+              db-console-prefix="redis.clusterManage"
               @click="hideOperationColumn"
               @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
             <!-- <FunController
