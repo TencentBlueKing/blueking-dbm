@@ -11,6 +11,7 @@
 package dbbackup_loader
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -18,9 +19,10 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-	"sync"
+	"time"
 
 	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
@@ -139,77 +141,64 @@ func (x *Xtrabackup) RepairMyisamTablesForMysqldb() error {
 }
 
 // RepairNonSysMyIsamTables 修复业务的 myisam 表
-func (x *Xtrabackup) RepairNonSysMyIsamTables() error {
+func (x *Xtrabackup) RepairNonSysMyIsamTables(ctx context.Context) error {
 	systemDbs := cmutil.StringsRemove(native.DBSys, native.TEST_DB)
 	sqlStr := fmt.Sprintf(
 		`SELECT table_schema, table_name FROM information_schema.tables `+
 			`WHERE table_schema not in (%s) AND engine = 'MyISAM' AND TABLE_TYPE ='BASE TABLE'`,
 		mysqlcomm.UnsafeIn(systemDbs, "'"),
 	)
-
-	rows, dbErr := x.dbWorker.Db.Query(sqlStr)
+	type dbRow struct {
+		TableSchema string `db:"table_schema"`
+		TableName   string `db:"table_name"`
+	}
+	var rows []*dbRow
+	dbErr := x.dbWorker.Queryx(&rows, sqlStr)
 	if dbErr != nil {
 		return fmt.Errorf("query myisam tables error,detail:%w,sql:%s", dbErr, sqlStr)
 	}
-	defer rows.Close()
+	repairConcurrency := 4
+	logger.Info("myisam tables to repair: %d tables, concurrency: %d", len(rows), repairConcurrency)
 
-	wg := sync.WaitGroup{}
-	limitChan := make(chan struct{}, 4) // 控制并发
-	errChan := make(chan error, 4)
-	stopChan := make(chan error, 1) // close 或者往里面丢 error，都会退出
-	var stopErr error
-	for rows.Next() {
+	var eg *errgroup.Group
+	eg, ctx = errgroup.WithContext(ctx)
+	eg.SetLimit(repairConcurrency) // 单个进程也设置一下最大并发
+	for _, row := range rows {
+		if row.TableSchema == native.TEST_DB || row.TableSchema == native.INFODBA_SCHEMA {
+			return nil
+		}
+
+		var ctxDone bool
+		// 如果遇到解析错误，不启动后续解析的 goroutine，所以要在 routine 外层
 		select {
-		case stopErr = <-errChan:
-			stopErr = errors.WithMessage(stopErr, "stop repair myisam tables")
-			stopChan <- stopErr
-			//close(stopChan)
+		case <-ctx.Done():
+			ctxDone = true
 			break
 		default:
+			// 默认不阻塞
 		}
-
-		var db string
-		var table string
-		if err := rows.Scan(&db, &table); err != nil {
-			return errors.WithMessage(err, "query myisam tables error")
+		if ctxDone {
+			break // 需要跳出 for 循环。主要是避免是用 break label 才定义的 ctxDone
 		}
-		limitChan <- struct{}{}
-		wg.Add(1)
-		go func(worker *native.DbWorker, db, table string) {
-			<-limitChan
-			defer wg.Done()
-			/* 如果用 close(errChan) 的写法，这里要判断 panic recover
-			defer func() {
-				if err := recover(); err != nil {
-					stopErr = fmt.Errorf("repair myisam table panic:%s", err)
-				}
-			}()
-			*/
-
-			repairSql := ""
-			if db == native.TEST_DB || db == native.INFODBA_SCHEMA {
-				// test.conn_log, check_heartbeat, backup_report
-				// sql = fmt.Sprintf("truncate table %s.%s", db, table)
-			} else {
-				repairSql = fmt.Sprintf("repair table %s.%s", db, table)
+		eg.Go(func() error {
+			select {
+			case <-ctx.Done():
+				//fmt.Printf("Cancellation signal received, stopping processing of file: %s\n", filePath)
+				return ctx.Err()
+			default:
 			}
-			if repairSql == "" {
-				return
-			} else if _, err := worker.Exec(repairSql); err != nil {
-				errChan <- fmt.Errorf("repair myisam table error,sql:%s,error:%w", repairSql, err)
-				return
+			repairSql := fmt.Sprintf("repair table %s.%s", row.TableSchema, row.TableName)
+			if _, internalErr := x.dbWorker.Exec(repairSql); internalErr != nil {
+				logger.Error("repair myisam table error,sql:%s,error:%w", repairSql, internalErr.Error())
+				return internalErr
 			}
-			return
-		}(x.dbWorker, db, table)
+			return nil
+		})
 	}
-	go func() {
-		wg.Wait()
-		close(stopChan)
-	}()
-
-	if err, ok := <-stopChan; err != nil {
+	if err := eg.Wait(); err != nil {
+		logger.Error("repair myisam tables exit with error: %w", err)
 		return err
-	} else if !ok {
+	} else {
 		logger.Info("repair myisam tables success")
 	}
 	return nil
@@ -428,23 +417,30 @@ func ResetPath(paths []string, cnf *util.CnfFile, backup bool) error {
 	} else {
 		logger.Info("Directories to reset: %+v", paths)
 		for _, pa := range paths {
-			if strings.TrimSpace(pa) == "." || strings.TrimSpace(pa) == "./" {
-				return errors.Errorf("path %s is not allowed to clean", pa)
-			}
-			if cmutil.IsDirectory(pa) {
-				logger.Info("Clean Dir: %s", pa)
-				if err := cmutil.SafeRmDir(pa); err != nil {
-					return errors.WithMessage(err, "clean dir")
-				} else { // recreate dir
-					if err = os.MkdirAll(pa, 0755); err != nil {
-						return errors.WithMessage(err, "recreate dir")
+			// 清理目录实时打印日志，设置超时
+			err := cmutil.WithPeriodicLogging(fmt.Sprintf("Clean Path %s", pa), func(ctx context.Context) error {
+				if strings.TrimSpace(pa) == "." || strings.TrimSpace(pa) == "./" {
+					return errors.Errorf("path %s is not allowed to clean", pa)
+				}
+				if cmutil.IsDirectory(pa) {
+					logger.Info("Clean Dir: %s", pa)
+					if err := cmutil.SafeRmDir(pa); err != nil {
+						return errors.WithMessage(err, "clean dir")
+					} else { // recreate dir
+						if err = os.MkdirAll(pa, 0755); err != nil {
+							return errors.WithMessage(err, "recreate dir")
+						}
+					}
+				} else {
+					logger.Info("Remove File: %s", pa)
+					if err := os.RemoveAll(pa); err != nil {
+						return errors.WithMessage(err, "remove file")
 					}
 				}
-			} else {
-				logger.Info("Remove File: %s", pa)
-				if err := os.RemoveAll(pa); err != nil {
-					return errors.WithMessage(err, "remove file")
-				}
+				return nil
+			}, 30*time.Second, 10*time.Minute, logger.Default())
+			if err != nil {
+				return err
 			}
 		}
 		return nil

@@ -62,7 +62,7 @@ EXPORTER_UP_QUERY_TEMPLATE = {
     ClusterType.TenDBSingle: {
         "range": 5,
         "dbm_mysqld_exporter": """count by (appid,cluster_domain,instance,instance_role) (
-        bkmonitor:exporter_dbm_mysqld_exporter:mysql_up{cluster_type='tendbsingle'}
+            bkmonitor:exporter_dbm_mysqld_exporter:mysql_up{cluster_type='tendbsingle'}
         )""",
     },
 }
