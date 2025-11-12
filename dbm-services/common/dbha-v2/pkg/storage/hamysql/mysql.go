@@ -35,30 +35,6 @@ import (
 	gormlogger "gorm.io/gorm/logger"
 )
 
-type DB struct {
-	gdb  *gorm.DB
-	opts options
-}
-
-func createDatabase(opts *options) (*gorm.DB, error) {
-	gdb, err := gorm.Open(mysql.New(opts.RootDBConfig()), &gorm.Config{})
-	if err != nil {
-		return nil, gerrors.Newf(gerrors.MysqlFailure, "failed to connect the mysql, %v", err)
-	}
-
-	if opts.dbName == "" {
-		return gdb, nil
-	}
-
-	sql := fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci", opts.dbName)
-	err = gdb.Exec(sql).Error
-	if err != nil {
-		return nil, gerrors.Newf(gerrors.MysqlFailure, "failed to create the database(%s), %v", opts.dbName, err)
-	}
-
-	return gorm.Open(mysql.New(opts.Config()), &gorm.Config{})
-}
-
 func New(opts ...Option) (*DB, error) {
 	db := &DB{
 		opts: defaultOptions,
@@ -101,6 +77,11 @@ func New(opts ...Option) (*DB, error) {
 	return db, nil
 }
 
+type DB struct {
+	gdb  *gorm.DB
+	opts options
+}
+
 func (db DB) DB() *gorm.DB {
 	return db.gdb
 }
@@ -111,4 +92,33 @@ func (db DB) Host() string {
 
 func (db DB) Port() int {
 	return db.opts.port
+}
+
+func (db DB) Close() {
+	if db.gdb == nil {
+		return
+	}
+
+	if sqlDb, err := db.gdb.DB(); err == nil {
+		sqlDb.Close()
+	}
+}
+
+func createDatabase(opts *options) (*gorm.DB, error) {
+	gdb, err := gorm.Open(mysql.New(opts.RootDBConfig()), &gorm.Config{})
+	if err != nil {
+		return nil, gerrors.Newf(gerrors.MysqlFailure, "failed to connect the mysql, %v", err)
+	}
+
+	if opts.dbName == "" {
+		return gdb, nil
+	}
+
+	sql := fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci", opts.dbName)
+	err = gdb.Exec(sql).Error
+	if err != nil {
+		return nil, gerrors.Newf(gerrors.MysqlFailure, "failed to create the database(%s), %v", opts.dbName, err)
+	}
+
+	return gorm.Open(mysql.New(opts.Config()), &gorm.Config{})
 }

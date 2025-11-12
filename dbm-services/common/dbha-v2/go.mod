@@ -8,7 +8,6 @@ require (
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
-	github.com/stretchr/testify v1.11.1
 	github.com/xdg-go/scram v1.1.2
 	go.etcd.io/etcd/client/v3 v3.6.0
 	go.uber.org/zap v1.27.0
@@ -72,7 +71,6 @@ require (
 require (
 	github.com/ebitengine/purego v0.8.4 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
 	github.com/shirou/gopsutil/v4 v4.25.6
 	github.com/tklauser/go-sysconf v0.3.12 // indirect

@@ -1,0 +1,5 @@
+dbType: mysql
+endpoint: ""
+interval: 20s
+user: root
+password: 123456
