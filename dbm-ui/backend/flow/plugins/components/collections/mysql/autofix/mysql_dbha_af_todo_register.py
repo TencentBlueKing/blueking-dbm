@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+from datetime import datetime, timezone
 
 from django.db import transaction
 from django.utils.translation import gettext as _
@@ -45,6 +46,12 @@ class MySQLDBHAAFTodoRegisterService(BaseService):
                 self.log_error("unsupported machine_type: {}".format(row["machine_type"]))
                 continue
 
+            # 蓝鲸监控默认使用 utc 时区, 但是时间又没有时区信息
+            event_create_time_str = row["event_create_time"]
+            event_create_time_dt = datetime.strptime(event_create_time_str, "%Y-%m-%d %H:%M:%S").replace(
+                tzinfo=timezone.utc
+            )
+
             new_record = {
                 "bk_cloud_id": row["bk_cloud_id"],
                 "bk_biz_id": row["bk_biz_id"],
@@ -55,7 +62,7 @@ class MySQLDBHAAFTodoRegisterService(BaseService):
                 "machine_type": row["machine_type"],
                 "ip": row["ip"],
                 "port": row["port"],
-                "event_create_time": row["event_create_time"],
+                "event_create_time": event_create_time_dt,  # row["event_create_time"],
                 "instance_role": row["instance_role"],
                 "new_master_host": row["new_master_host"],
                 "new_master_port": row["new_master_port"],
