@@ -65,6 +65,7 @@ func (c *Client) SendRequest(url string, method hanet.HttpMethod, req any,
 		logger.Warn("failed to send http %s request to dbm, errmsg: %s", method, err)
 		return nil, err
 	}
+
 	if http.StatusOK != code {
 		logger.Warn("http %s request failed, status code: %d, errmsg: %s", method, code, err)
 		return nil, err

@@ -31,42 +31,42 @@ type DatabaseMetric struct {
 	// Status
 	Version          string `json:"mysql_version"`
 	ThreadsConnected uint   `json:"mysql_threads_connected"`
-	ServerCharset    string `json:"mysql_server_charset"`
+	ServerCharset    string `json:"character_set_server"`
 
 	// Performance Connection metric
-	ThreadsRunning            int `json:"mysql_threads_running"`
-	ConnectionsAborted        int `json:"mysql_connections_aborted"`
-	Connections               int `json:"mysql_connections"`
-	ConnectionsErrorsAccept   int `json:"mysql_connections_errors_accept"`
-	ConnectionsErrorsInternal int `json:"mysql_connections_errors_internal"`
-	ConnectionsErrorsPeerAddr int `json:"mysql_connections_errors_peer_address"`
+	ThreadsRunning            int `json:"threads_running"`
+	ConnectionsAborted        int `json:"aborted_connects"`
+	Connections               int `json:"connections"`
+	ConnectionsErrorsAccept   int `json:"connection_errors_accept"`
+	ConnectionsErrorsInternal int `json:"connection_errors_internal"`
+	ConnectionsErrorsPeerAddr int `json:"connection_errors_peer_address"`
 
 	// MySQL Performance Query metric
-	QueryTotal     uint64 `json:"mysql_quey_total"`
-	AvgQPS         uint   `json:"mysql_avg_qps"`
-	AvgTPS         uint   `json:"mysql_avg_tps"`
-	QPS            uint   `json:"mysql_QPS"`
-	TPS            uint   `json:"mysql_TPS"`
-	QueryQuestions uint64 `json:"mysql_questions_total"`
-	QuerySelects   uint64 `json:"mysql_selects_times"`
-	QueryInserts   uint64 `json:"mysql_inserts_times"`
-	QueryUpdates   uint64 `json:"mysql_updates_times"`
-	QueryDeletes   uint64 `json:"mysql_deletes_times"`
-	QuerySlow      uint64 `json:"mysql_slow_queries_times"`
-	QueryCommits   uint64 `json:"mysql_commits_times"`
-	QueryRollbacks uint64 `json:"mysql_rollbacks_times"`
+	QueryTotal     uint64 `json:"queries"`
+	AvgQPS         uint   `json:"avg_qps"`
+	AvgTPS         uint   `json:"avg_tps"`
+	QPS            uint   `json:"qps"`
+	TPS            uint   `json:"tps"`
+	QueryQuestions uint64 `json:"questions"`
+	QuerySelects   uint64 `json:"com_select"`
+	QueryInserts   uint64 `json:"com_insert"`
+	QueryUpdates   uint64 `json:"com_update"`
+	QueryDeletes   uint64 `json:"com_delete"`
+	QuerySlow      uint64 `json:"slow_queries"`
+	QueryCommits   uint64 `json:"query_commits"`
+	QueryRollbacks uint64 `json:"query_rollbacks"`
 
 	// MySQL Performance Query Cache metric
 	KeyReadRequests   uint64  `json:"key_read_requests"`
 	KeyReads          uint64  `json:"key_reads"`
 	KeyBufferHitRate  float64 `json:"key_buffer_hit_rate"`
-	QCacheHits        uint64  `json:"query_cache_hits"`
-	QCacheFreeBlocks  uint64  `json:"query_cache_free_blocks"`
-	QCacheFreeMem     uint64  `json:"query_cache_free_mem"`
-	QCacheInserts     uint64  `json:"query_cache_inserts"`
-	QCachePrunes      uint64  `json:"query_cache_lowmen_prunes"`
-	QCacheNotCached   uint64  `json:"query_cache_not_cached"`
-	QCacheTotalBlocks uint64  `json:"query_cache_total_blocks"`
+	QCacheHits        uint64  `json:"qcache_hits"`
+	QCacheFreeBlocks  uint64  `json:"qcache_free_blocks"`
+	QCacheFreeMem     uint64  `json:"qcache_free_mem"`
+	QCacheInserts     uint64  `json:"qcache_inserts"`
+	QCachePrunes      uint64  `json:"qcache_lowmen_prunes"`
+	QCacheNotCached   uint64  `json:"qcache_not_cached"`
+	QCacheTotalBlocks uint64  `json:"qcache_total_blocks"`
 
 	// MySQL Performance InnoDB handler metrics
 	HandlerReadKey      uint64 `json:"handler_read_key"`
@@ -77,12 +77,12 @@ type DatabaseMetric struct {
 	HandlerExternalLock uint64 `json:"handler_external_lock"`
 
 	// Performance Table statistical metrics
-	TableCreatedTmp     uint64 `json:"tables_created_tmp"`
-	TableCreatedTmpDisk uint64 `json:"tables_created_tmp_disk"`
-	FileCreatedTmp      uint64 `json:"files_created_tmp"`
-	FileOpen            uint64 `json:"files_opened"`
-	TableOpen           uint64 `json:"tables_opened"`
-	TableFlush          uint   `json:"tables_flushed"`
+	TableCreatedTmp     uint64 `json:"created_tmp_tables"`
+	TableCreatedTmpDisk uint64 `json:"created_tmp_disk_tables"`
+	FileCreatedTmp      uint64 `json:"created_tmp_files"`
+	FileOpen            uint64 `json:"opened_files"`
+	TableOpen           uint64 `json:"opened_tables"`
+	TableFlush          uint   `json:"flush_commands"`
 
 	// Performance BinLog metrics
 	BinlogCacheDiskUse     uint64 `json:"binlog_cache_disk_use"`
