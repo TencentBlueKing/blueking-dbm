@@ -112,7 +112,10 @@ def single_migrate_switch_sub_flow(
         ),
     )
 
-    if orphan_restore_type == TendbSingleRestoreType.REPLICATE_FROM_MASTER:
+    if orphan_restore_type in [
+        TendbSingleRestoreType.REPLICATE_WITH_STRUCT,
+        TendbSingleRestoreType.REPLICATE_WITH_DATA,
+    ]:
         # 目标实例断开同步
         sub_pipeline.add_act(
             act_name=_("目标实例断开同步{}").format(new_orphan),

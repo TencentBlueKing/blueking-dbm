@@ -144,6 +144,25 @@ class MySQLMigrateSingleFlow(object):
             db_config = get_instance_config(cluster_class.bk_cloud_id, master_model.machine.ip, self.data["ports"])
             install_sub_pipeline_list = []
             install_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+
+            actor_exe_ips = [self.data["new_orphan_ip"]]
+            if self.data["orphan_restore_type"] not in [
+                TendbSingleRestoreType.RESTORE_WITH_DATA,
+                TendbSingleRestoreType.RESTORE_WITH_STRUCT,
+            ]:
+                actor_exe_ips.append(master_model.machine.ip)
+            install_sub_pipeline.add_act(
+                act_name=_("下发db-actor到 {}".format(actor_exe_ips)),
+                act_component_code=TransFileComponent.code,
+                kwargs=asdict(
+                    DownloadMediaKwargs(
+                        bk_cloud_id=cluster_class.bk_cloud_id,
+                        exec_ip=actor_exe_ips,
+                        file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+                    )
+                ),
+            )
+
             install_sub_pipeline.add_sub_pipeline(
                 sub_flow=install_mysql_in_cluster_sub_flow(
                     uid=self.data["uid"],
@@ -225,7 +244,7 @@ class MySQLMigrateSingleFlow(object):
 
                 # 查询备份。根据选择的恢复类型。分别从本地发起实时备份，和从远程查询备份。
                 sync_data_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-                if self.data["orphan_restore_type"] == TendbSingleRestoreType.RESTORE_ONLY_STRUCT:
+                if self.data["orphan_restore_type"] == TendbSingleRestoreType.RESTORE_FROM_FLOW_BACKUP:
                     sync_data_sub_pipeline.add_sub_pipeline(
                         sub_flow=mysql_backup_restore_sub_flow(
                             root_id=self.root_id,
@@ -235,10 +254,21 @@ class MySQLMigrateSingleFlow(object):
                         )
                     )
                 else:
-                    if self.data["orphan_restore_type"] == TendbSingleRestoreType.REPLICATE_FROM_MASTER:
+                    # 有4种类型
+
+                    if self.data["orphan_restore_type"] in [
+                        TendbSingleRestoreType.REPLICATE_WITH_STRUCT,
+                        TendbSingleRestoreType.REPLICATE_WITH_DATA,
+                    ]:
                         cluster["binlog_sync"] = True
                         cluster["change_master_force"] = True
                         cluster["add_tuple_relation"] = True
+
+                    if self.data["orphan_restore_type"] in [
+                        TendbSingleRestoreType.REPLICATE_WITH_STRUCT,
+                        TendbSingleRestoreType.RESTORE_WITH_STRUCT,
+                    ]:
+                        cluster["backup_method"] = "full_with_nodata"
 
                     cluster["backup_source"] = self.data["backup_source"]
                     cluster["backup_id"] = self.data["backup_infos"][str(cluster_model.id)]
@@ -285,6 +315,12 @@ class MySQLMigrateSingleFlow(object):
                     "new_orphan_port": master_model.port,
                     "domains": domains,
                 }
+                if self.data["orphan_restore_type"] in [
+                    TendbSingleRestoreType.REPLICATE_WITH_STRUCT,
+                    TendbSingleRestoreType.REPLICATE_WITH_DATA,
+                ]:
+                    cluster["add_tuple_relation"] = True
+
                 switch_sub_pipeline.add_sub_pipeline(
                     sub_flow=single_migrate_switch_sub_flow(
                         root_id=self.root_id,
@@ -336,18 +372,6 @@ class MySQLMigrateSingleFlow(object):
                 "backend_port": self.data["ports"],
                 "bk_cloud_id": cluster_class.bk_cloud_id,
             }
-
-            uninstall_surrounding_sub_pipeline.add_act(
-                act_name=_("下发db-actor到节点{}".format(master_model.machine.ip)),
-                act_component_code=TransFileComponent.code,
-                kwargs=asdict(
-                    DownloadMediaKwargs(
-                        bk_cloud_id=cluster_class.bk_cloud_id,
-                        exec_ip=[master_model.machine.ip],
-                        file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
-                    )
-                ),
-            )
 
             uninstall_surrounding_sub_pipeline.add_act(
                 act_name=_("清理实例级别周边配置"),
@@ -434,8 +458,7 @@ class MySQLMigrateSingleFlow(object):
             )
             # 数据同步
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=sync_data_sub_pipeline_list)
-            # 不能部署备份
-            # 不然这些未启用机器的备份可能会污染正式集群
+            # 不能部署备份,不然这些未启用机器的备份可能会污染正式集群
             tendb_migrate_pipeline.add_sub_pipeline(
                 sub_flow=standardize_mysql_cluster_subflow(
                     root_id=self.root_id,

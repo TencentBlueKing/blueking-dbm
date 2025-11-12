@@ -77,6 +77,7 @@ def mysql_restore_data_sub_flow(
                    - shard_id: 分片ID（TenDB Cluster专用）
                    - restore_privilege: 是否恢复权限
                    - privilege_ips: 权限来源IP列表
+                   - backup_method 备份方法,这里专门给TendbSingle使用
     @param cluster_model: 集群元数据模型对象
     @param filter_ips: 过滤的IP列表，用于指定备份查询范围
     @return: 返回构建好的子流程对象，包含完整的恢复流程
@@ -100,7 +101,9 @@ def mysql_restore_data_sub_flow(
 
     # 如果是TenDB Single类型，设置为增量备份
     if cluster_model.cluster_type == ClusterType.TenDBSingle:
-        backup_handler.is_full_backup = False
+        if cluster.get("backup_method", None) is not None:
+            backup_handler.is_full_backup = False
+            backup_handler.backup_method = cluster["backup_method"]
 
     # 阶段1: 查询备份信息
     # 如果是TenDB Cluster类型，需要设置分片ID
