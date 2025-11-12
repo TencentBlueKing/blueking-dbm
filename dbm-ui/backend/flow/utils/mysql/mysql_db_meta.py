@@ -280,6 +280,13 @@ class MySQLDBMeta(object):
                 source_slave_ip=self.cluster["orphan_ip"],
                 domains=self.cluster["domains"],
             )
+            if self.cluster.get("add_tuple_relation", False):
+                api.cluster.tendbha.storage_tuple.remove_storage_tuple(
+                    master_ip=self.cluster["orphan_ip"],
+                    slave_ip=self.cluster["new_orphan_ip"],
+                    bk_cloud_id=self.cluster["bk_cloud_id"],
+                    port_list=[self.cluster["orphan_port"]],
+                )
 
     def mysql_restore_remove_old_slave(self):
         """
