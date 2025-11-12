@@ -50,7 +50,9 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
     default_permission_class = [DBManagePermission()]
 
     @common_swagger_auto_schema(
-        operation_summary=_("通过日志平台获取集群备份记录"),
+        operation_summary=_(
+            "通过日志平台获取集群备份记录 # TODO: 当前api已废弃，替换为query_backup_log_from_handler接口(backup_source传remote)"
+        ),
         query_serializer=BackupLogSerializer(),
         responses={
             status.HTTP_200_OK: BackupLogTendbResponseSerializer(),
@@ -70,7 +72,7 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
         return Response(logs)
 
     @common_swagger_auto_schema(
-        operation_summary=_("查询集群的本地备份记录"),
+        operation_summary=_("查询集群的本地备份记录 # TODO: 当前api已废弃，替换为query_backup_log_from_handler接口(backup_source传local)"),
         query_serializer=BackupLogSerializer(),
         responses={status.HTTP_200_OK: BackupLocalLogMySQLResponseSerializer()},
         tags=[SWAGGER_TAG],
@@ -82,7 +84,7 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
         return Response(logs)
 
     @common_swagger_auto_schema(
-        operation_summary=_("查询小于回档时间点最近的备份记录"),
+        operation_summary=_("查询小于回档时间点最近的备份记录 # TODO: 部分接口还在使用， 新需求替换为latest_time_backup_log接口"),
         query_serializer=BackupLogRollbackTimeSerializer(),
         responses={
             status.HTTP_200_OK: BackupLogRollbackTimeTendbResponseSerializer(),
@@ -100,6 +102,33 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
                 backup_source=validated_data.get("backup_source"),
             )
         )
+
+    @common_swagger_auto_schema(
+        operation_summary=_("通过handler获取集群备份记录"),
+        query_serializer=FilterBackupLogSerializer(),
+        responses={
+            status.HTTP_200_OK: BackupLogTendbResponseSerializer(),
+            status.HTTP_202_ACCEPTED: BackupLogMySQLResponseSerializer(),
+        },
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=FilterBackupLogSerializer)
+    def query_backup_log_from_handler(self, requests, *args, **kwargs):
+        validated_data = self.params_validate(self.get_serializer_class())
+        cluster_id = validated_data["cluster_id"]
+        cluster = Cluster.objects.get(id=cluster_id)
+        db_type = ClusterType.cluster_type_to_db_type(cluster.cluster_type)
+        latest_time = validated_data.pop("latest_time", None)
+        # 初始化备份文件对象
+        handler = MySQLBackupHandler(**validated_data)
+
+        # 获取备份结果
+        result = {}
+        if db_type == DBType.MySQL.value:
+            result = handler.get_tendbha_rollback_backup_info(latest_time)
+        elif db_type == DBType.TenDBCluster.value:
+            result = handler.get_spider_rollback_backup_info(latest_time)
+        return Response(result)
 
     @common_swagger_auto_schema(
         operation_summary=_("通过获取集群最迟时间的最新一条备份记录"),
