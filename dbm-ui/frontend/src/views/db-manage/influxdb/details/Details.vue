@@ -63,7 +63,7 @@
   <Teleport to="#dbContentTitleAppend">
     <span v-if="details"> - {{ details.instance_address }}</span>
   </Teleport>
-  <Teleport to="#dbContentHeaderAppend">
+  <Teleport to="#dbContentTitleAppend">
     <div class="influxdb-instance-detail-status-box">
       <span>{{ t('状态') }}：</span>
       <span>
