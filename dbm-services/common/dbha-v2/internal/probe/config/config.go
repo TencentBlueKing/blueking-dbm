@@ -41,7 +41,7 @@ var Cfg = Configuration{
 	},
 }
 
-// ReporterConfig reporter's config
+// ReporterConfig reporter config
 type ReporterConfig struct {
 	Name        string        `yaml:"name"        mapstructure:"name"`
 	Endpoint    string        `yaml:"endpoint"    mapstructure:"endpoint"`
@@ -49,13 +49,28 @@ type ReporterConfig struct {
 	ConnTimeout time.Duration `yaml:"connTimeout" mapstructure:"connTimeout"`
 }
 
-// HarvesterConfig harvester's config
+// DbEndpointConfig db instance endpoint config
+type DbEndpointConfig struct {
+	Proto       string   `yaml:"proto"       mapstructure:"proto"`
+	ClusterType string   `yaml:"clusterType" mapstructure:"clusterType"`
+	MachineType string   `yaml:"machineType" mapstructure:"machineType"`
+	AccessLayer string   `yaml:"accessLayer" mapstructure:"accessLayer"`
+	Ip          string   `yaml:"ip"          mapstructure:"ip"`
+	Ports       []string `yaml:"ports"       mapstructure:"ports"`
+	AdminPorts  []string `yaml:"adminPorts"  mapstructure:"adminPorts"`
+}
+
+// MySqlHarvesterConfig MySQL harvester config
+type MySqlHarvesterConfig struct {
+	User      string             `yaml:"user"      mapstructure:"user"`
+	Password  string             `yaml:"password"  mapstructure:"password"`
+	Interval  time.Duration      `yaml:"interval"  mapstructure:"interval"`
+	Endpoints []DbEndpointConfig `yaml:"endpoints" mapstructure:"endpoints"`
+}
+
+// HarvesterConfig harvester config
 type HarvesterConfig struct {
-	Name     string        `yaml:"name"     mapstructure:"name"`
-	Endpoint string        `yaml:"endpoint" mapstructure:"endpoint"`
-	User     string        `yaml:"user"     mapstructure:"user"`
-	Password string        `yaml:"password" mapstructure:"password"`
-	Interval time.Duration `yaml:"interval" mapstructure:"interval"`
+	MySql *MySqlHarvesterConfig
 }
 
 // LogConfig log configuration
@@ -68,11 +83,11 @@ type LogConfig struct {
 
 // Configuration receiver's configuration
 type Configuration struct {
-	Name       string            `yaml:"name"      mapstructure:"name"`
-	Version    string            `yaml:"version"   mapstructure:"version"`
-	ServiceID  string            `yaml:"serviceID" mapstructure:"serviceID"`
-	PidFile    string            `yaml:"pidFile"   mapstructure:"pidFile"`
-	Reporters  []ReporterConfig  `yaml:"reporter"  mapstructure:"reporter"`
-	Harvesters []HarvesterConfig `yaml:"harvester" mapstructure:"harvester"`
-	Log        LogConfig         `yaml:"log"       mapstructure:"log"`
+	Name      string           `yaml:"name"      mapstructure:"name"`
+	Version   string           `yaml:"version"   mapstructure:"version"`
+	ServiceID string           `yaml:"serviceID" mapstructure:"serviceID"`
+	PidFile   string           `yaml:"pidFile"   mapstructure:"pidFile"`
+	Reporters []ReporterConfig `yaml:"reporter"  mapstructure:"reporter"`
+	Harvester HarvesterConfig  `yaml:"harvester" mapstructure:"harvester"`
+	Log       LogConfig        `yaml:"log"       mapstructure:"log"`
 }

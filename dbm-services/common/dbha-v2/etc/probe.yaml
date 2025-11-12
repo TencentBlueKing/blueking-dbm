@@ -10,11 +10,24 @@ reporter:
     connTimeout: 5s
 
 harvester:
-  - name: mysql
-    endpoint: ""
-    user: root
-    password: 123456
+  mysql:
+    user: "root"
+    password: "root"
+    # The time interval for each data collection from MySQL.
     interval: 20s
+
+    endpoints:
+      # If this 'proto' is not set, the default value is 'tcp'.
+      - proto: tcp
+        clusterType: ""
+        machineType: ""
+        accessLayer: ""
+        ip: 127.0.0.1
+
+        # Ports configuration format is: 1000~2000,20003, 3000, 5000-6000
+        # The target port number to be probed are such that begin <= port <= end.
+        ports: [1000-2000,20003, 3000, 5000-6000]
+        adminPorts: []
 
 log:
   path: ./logs/probe.log

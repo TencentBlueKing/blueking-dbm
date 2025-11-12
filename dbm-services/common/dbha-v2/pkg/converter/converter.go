@@ -31,7 +31,7 @@ import (
 )
 
 type Number interface {
-	int | uint | uint64 | string
+	int | uint | int64 | uint64 | float64 | string
 }
 
 func ToInt[T Number](value T) (int, error) {
@@ -53,6 +53,25 @@ func ToInt[T Number](value T) (int, error) {
 	}
 }
 
+func ToInt64[T Number](value T) (int64, error) {
+	switch v := any(value).(type) {
+	case int:
+		return int64(v), nil
+
+	case uint:
+		return int64(v), nil
+
+	case int64:
+		return v, nil
+
+	case string:
+		return strconv.ParseInt(v, 10, 64)
+
+	default:
+		return 0, gerrors.Newf(gerrors.Unsupported, "Unsupported type: %T", value)
+	}
+}
+
 func ToUint64[T Number](value T) (uint64, error) {
 	switch v := any(value).(type) {
 	case int:
@@ -66,6 +85,26 @@ func ToUint64[T Number](value T) (uint64, error) {
 
 	case string:
 		return strconv.ParseUint(v, 10, 64)
+
+	default:
+		return 0, gerrors.Newf(gerrors.Unsupported, "Unsupported type: %T", value)
+	}
+}
+
+func ToFloat64[T Number](value T) (float64, error) {
+	switch v := any(value).(type) {
+	case float32:
+		return float64(v), nil
+
+	case float64:
+		return float64(v), nil
+
+	case string:
+		rval, err := strconv.ParseFloat(v, 64)
+		if err != nil {
+			return 0, err
+		}
+		return float64(rval), nil
 
 	default:
 		return 0, gerrors.Newf(gerrors.Unsupported, "Unsupported type: %T", value)
