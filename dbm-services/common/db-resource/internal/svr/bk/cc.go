@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 
 	"dbm-services/common/db-resource/internal/config"
 	"dbm-services/common/go-pubpkg/cc.v3"
@@ -39,18 +40,34 @@ func InitCCClient() {
 	var err error
 	BkCmdbClient, err = NewClient(config.AppConfig.BkCmdbApiUrl)
 	if err != nil {
-		logger.Fatal("init cmdb client failed %s", err.Error())
+		logger.Fatal("初始化 CMDB 客户端失败: API URL=%s, AppCode=%s, Username=%s, 错误详情: %s",
+			config.AppConfig.BkCmdbApiUrl,
+			config.AppConfig.BkSecretConfig.BkAppCode,
+			config.AppConfig.BkSecretConfig.BkUserName,
+			err.Error())
 		return
 	}
 	BkJobClient, err = NewClient(config.AppConfig.BkJobApiUrl)
 	if err != nil {
-		logger.Fatal("init bk job client failed %s", err.Error())
+		logger.Fatal("初始化 BK Job 客户端失败: API URL=%s, AppCode=%s, Username=%s, 错误详情: %s",
+			config.AppConfig.BkJobApiUrl,
+			config.AppConfig.BkSecretConfig.BkAppCode,
+			config.AppConfig.BkSecretConfig.BkUserName,
+			err.Error())
 		return
 	}
-	BkNodeManClient, err = NewClient(config.AppConfig.BkNodeManApiUrl)
-	if err != nil {
-		logger.Fatal("init bk node man client failed %s", err.Error())
-		return
+	if lo.IsNotEmpty(config.AppConfig.BkNodeManApiUrl) {
+		BkNodeManClient, err = NewClient(config.AppConfig.BkNodeManApiUrl)
+		if err != nil {
+			logger.Fatal("初始化 BK NodeMan 客户端失败: API URL=%s, AppCode=%s, Username=%s, 错误详情: %s",
+				config.AppConfig.BkNodeManApiUrl,
+				config.AppConfig.BkSecretConfig.BkAppCode,
+				config.AppConfig.BkSecretConfig.BkUserName,
+				err.Error())
+			return
+		}
+	} else {
+		logger.Warn("BK NodeMan API URL 为空，不初始化 BK NodeMan 客户端")
 	}
 	CCModuleFields = []string{
 		"bk_host_id",
@@ -78,21 +95,24 @@ func InitCCClient() {
 }
 
 var cli *cc.Client
-var clierr error
+var newClientErr error
 
-// NewClient TODO
-func NewClient(apiurl string) (*cc.Client, error) {
-	cli, clierr = cc.NewClient(apiurl, cc.Secret{
+// NewClient 创建BK CC客户端
+func NewClient(apiUrl string) (*cc.Client, error) {
+	if lo.IsEmpty(apiUrl) {
+		return nil, errors.New("API URL 为空，请检查配置")
+	}
+	cli, newClientErr = cc.NewClient(apiUrl, cc.Secret{
 		BKAppCode:   config.AppConfig.BkSecretConfig.BkAppCode,
 		BKAppSecret: config.AppConfig.BkSecretConfig.BKAppSecret,
 		BKUsername:  config.AppConfig.BkSecretConfig.BkUserName,
 	})
-	return cli, clierr
+	return cli, newClientErr
 }
 
-// BatchQueryHostsInfo TODO
-func BatchQueryHostsInfo(bizId int, allhosts []string) (ccHosts []*cc.Host, nofoundHosts []string, err error) {
-	for _, hosts := range cmutil.SplitGroup(allhosts, 200) {
+// BatchQueryHostsInfo 批量查询主机信息
+func BatchQueryHostsInfo(bizId int, allHosts []string) (ccHosts []*cc.Host, notFoundHosts []string, err error) {
+	for _, hosts := range cmutil.SplitGroup(allHosts, 200) {
 		err = cmutil.Retry(cmutil.RetryConfig{Times: 3, DelayTime: 1 * time.Second}, func() error {
 			data, resp, errx := cc.NewListBizHostsGw(BkCmdbClient, strconv.Itoa(bizId)).QueryListBizHosts(&cc.ListBizHostsParam{
 				BkBizId: bizId,
@@ -136,7 +156,7 @@ func BatchQueryHostsInfo(bizId int, allhosts []string) (ccHosts []*cc.Host, nofo
 
 	// 构建查找映射
 	searchMap := make(map[string]struct{})
-	for _, host := range allhosts {
+	for _, host := range allHosts {
 		searchMap[host] = struct{}{}
 	}
 
@@ -147,11 +167,11 @@ func BatchQueryHostsInfo(bizId int, allhosts []string) (ccHosts []*cc.Host, nofo
 
 	// 收集未找到的主机
 	for host := range searchMap {
-		nofoundHosts = append(nofoundHosts, host)
+		notFoundHosts = append(notFoundHosts, host)
 	}
 
 	logger.Info("BatchQueryHostsInfo completed for bizId:%d, total hosts:%d, found:%d, not found:%d",
-		bizId, len(allhosts), len(ccHosts), len(nofoundHosts))
+		bizId, len(allHosts), len(ccHosts), len(notFoundHosts))
 
-	return ccHosts, nofoundHosts, nil
+	return ccHosts, notFoundHosts, nil
 }
