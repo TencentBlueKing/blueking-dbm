@@ -19,7 +19,7 @@
       type="unborder-card"
       @change="handleChange">
       <BkTabPanel
-        v-for="item in panels"
+        v-for="item in renderPanels"
         :key="item.name"
         :label="item.label"
         :name="item.name" />
@@ -37,12 +37,15 @@
 
   import { useDebouncedRef } from '@hooks';
 
+  import { useFunController } from '@stores';
+
   import Flow from './components/flow/Index.vue';
   import Replenish from './components/replenish/Index.vue';
 
   const { t } = useI18n();
   const router = useRouter();
   const route = useRoute();
+  const funControllerStore = useFunController();
 
   const panels = [
     {
@@ -54,6 +57,25 @@
       name: 'replenish',
     },
   ];
+
+  const renderPanels = computed(() =>
+    panels.filter((item) => {
+      const data = funControllerStore.funControllerData.resourceManage.children.resourceOperationRecord;
+      if (!data) {
+        return false;
+      }
+
+      const childItem = data.children[item.name];
+
+      // 若有对应的模块子功能，判断是否开启
+      if (childItem) {
+        return data && data.is_enabled && childItem.is_enabled;
+      }
+
+      // 若无，则判断整个模块是否开启
+      return data && data.is_enabled;
+    }),
+  );
 
   const activeTab = useDebouncedRef(route.params.page as string);
 
