@@ -21,7 +21,8 @@
         :key="tableKey"
         ref="table"
         class="mt-16 mb-20"
-        :model="formData.tableData">
+        :model="formData.tableData"
+        :rules="rules">
         <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
@@ -116,7 +117,7 @@
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import SpiderWrapper from '@views/db-manage/tendb-cluster/TENDBCLUSTER_SPIDER_ADD_NODES/components/SpiderWrapper.vue';
 
-  import { messageError, random } from '@utils';
+  import { random } from '@utils';
 
   import HostColumn, { type SelectorHost, type SpecConfig } from './components/HostColumnGroup.vue';
 
@@ -205,7 +206,7 @@
       const isSameSpecId = list.every((item) => item.host.spec.id === list[0].host.spec.id);
       Object.assign(list[0], {
         same_cluster: list.length,
-        same_spec: isSameSpecId ? list.length : 1, // 相同规格合并
+        same_spec: isSameSpecId ? list.length : 1, // 同集群下所有主机都是同一规格才合并
       });
     });
     Object.values(sameRoleRowsMap).forEach((list) => {
@@ -215,6 +216,35 @@
     });
 
     formData.tableData = sortedData;
+  };
+
+  const rules = {
+    'host.role': [
+      {
+        message: t('同集群不允许同时操作 Spider Master 和 Spider Slave'),
+        trigger: 'blur',
+        validator: (
+          value: string,
+          row: {
+            rowData: RowData;
+            rowIndex: number;
+          },
+        ) => sameClusterIdsRowsMap[row.rowData.host.cluster_id].every((item) => item.host.role === value),
+      },
+    ],
+    'host.spec.id': [
+      {
+        message: t('主机规格不一致'),
+        trigger: 'blur',
+        validator: (
+          value: number,
+          row: {
+            rowData: RowData;
+            rowIndex: number;
+          },
+        ) => sameClusterIdsRowsMap[row.rowData.host.cluster_id].every((item) => item.host.spec.id === value),
+      },
+    ],
   };
 
   useTicketDetail<TendbCluster.ResourcePool.SpiderSwitchNodes>(TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES, {
@@ -272,57 +302,50 @@
   }>(TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES);
 
   const handleSubmit = async () => {
-    try {
-      const result = await tableRef.value!.validate();
-      if (!result) {
-        return;
-      }
-      const generateHostInfo = (data: RowData['host']) => ({
-        bk_cloud_id: data.bk_cloud_id,
-        bk_host_id: data.bk_host_id,
-        ip: data.ip,
-      });
-      const generateSpecInfo = (data: RowData[]) => ({
-        count: data.length,
-        label_names: data[0].labels.map((item) => item.value),
-        labels: data[0].labels.map((item) => String(item.id)),
-        spec_id: data[0].host.spec.id,
-      });
-      createTicketRun({
-        details: {
-          infos: Object.values(sameClusterIdsRowsMap).map((rows) => {
-            const masters = rows.filter((item) => item.host.role === 'spider_master');
-            const slaves = rows.filter((item) => item.host.role === 'spider_slave');
-            if (masters.length && slaves.length) {
-              throw new Error(t('同集群不允许同时缩容Spider Master和Spider Slave'));
-            }
-            const hostList = slaves.length > 0 ? slaves : masters;
-            const currentRole = hostList[0].host.role;
-            return {
-              cluster_id: rows[0].host.cluster_id,
-              old_nodes: {
-                [currentRole]: hostList.map((item) => generateHostInfo(item.host)),
-              },
-              resource_spec: {
-                [currentRole]: generateSpecInfo(hostList),
-              },
-              spider_old_ip_list: hostList.map((item) => ({
-                bk_cloud_id: item.host.bk_cloud_id,
-                bk_host_id: item.host.bk_host_id,
-                ip: item.host.ip,
-                spec: item.host.spec,
-              })),
-              switch_spider_role: currentRole,
-            };
-          }),
-          ip_source: 'resource_pool',
-          is_safe: formData.is_safe,
-        },
-        ...formData.payload,
-      });
-    } catch (e: any) {
-      messageError(e.message);
+    const result = await tableRef.value!.validate();
+    if (!result) {
+      return;
     }
+    const generateHostInfo = (data: RowData['host']) => ({
+      bk_cloud_id: data.bk_cloud_id,
+      bk_host_id: data.bk_host_id,
+      ip: data.ip,
+    });
+    const generateSpecInfo = (data: RowData[]) => ({
+      count: data.length,
+      label_names: data[0].labels.map((item) => item.value),
+      labels: data[0].labels.map((item) => String(item.id)),
+      spec_id: data[0].host.spec.id,
+    });
+    createTicketRun({
+      details: {
+        infos: Object.values(sameClusterIdsRowsMap).map((rows) => {
+          const masters = rows.filter((item) => item.host.role === 'spider_master');
+          const slaves = rows.filter((item) => item.host.role === 'spider_slave');
+          const hostList = slaves.length > 0 ? slaves : masters;
+          const currentRole = hostList[0].host.role;
+          return {
+            cluster_id: rows[0].host.cluster_id,
+            old_nodes: {
+              [currentRole]: hostList.map((item) => generateHostInfo(item.host)),
+            },
+            resource_spec: {
+              [currentRole]: generateSpecInfo(hostList),
+            },
+            spider_old_ip_list: hostList.map((item) => ({
+              bk_cloud_id: item.host.bk_cloud_id,
+              bk_host_id: item.host.bk_host_id,
+              ip: item.host.ip,
+              spec: item.host.spec,
+            })),
+            switch_spider_role: currentRole,
+          };
+        }),
+        ip_source: 'resource_pool',
+        is_safe: formData.is_safe,
+      },
+      ...formData.payload,
+    });
   };
 
   const handleReset = () => {
