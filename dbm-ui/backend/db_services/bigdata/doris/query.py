@@ -8,7 +8,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import json
 
+from django.core import cache
+from django.forms import model_to_dict
 from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.api.cluster.doris.detail import scan_cluster
@@ -16,12 +19,14 @@ from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Machine
 from backend.db_meta.models.cluster import Cluster
+from backend.db_meta.models.storage_set_dtl import DorisResourceSet
 from backend.db_services.bigdata.resources.query import (
     BigDataBaseExportQueryResourceMixin,
     BigDataBaseListRetrieveResource,
 )
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
+from backend.flow.utils.doris.consts import CACHE_CLUSTER_MASTER, CACHE_DORIS_REMOTE_USED, DorisResourceTag
 
 
 class DorisExportQueryResourceMixin(BigDataBaseExportQueryResourceMixin):
@@ -73,3 +78,42 @@ class DorisListRetrieveResource(BigDataBaseListRetrieveResource, DorisExportQuer
         cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
         graph = scan_cluster(cluster).to_dict()
         return graph
+
+    @classmethod
+    def get_cold_resource(cls, bk_biz_id: int, cluster_id: int) -> dict:
+        """获取Doris集群冷存储资源, 仅从Cache中获取资源用量"""
+        cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
+        res_set = DorisResourceSet.objects.filter(cluster=cluster, resource__tag=DorisResourceTag.PRIVATE.value)
+        res = res_set.first().resource if res_set.exists() else None
+        # 若 冷存储资源存在，获取资源用量
+        if res:
+            # 从cache获取Doris集群远程存储用量(按业务ID维度)
+            cache_remote_used = cache.get(f"{CACHE_DORIS_REMOTE_USED}_{bk_biz_id}", {})
+            # cache中内容为域名:用量
+            used = cache_remote_used.get(cluster.immute_domain, 0)
+            res_dict = model_to_dict(res, fields=["id", "name", "region"])
+            res_dict["used"] = used
+            return res_dict
+        else:
+            return {}
+
+    @classmethod
+    def get_clusters_master(cls, bk_biz_id: int, cluster_ids: list) -> dict:
+        """获取Doris集群主节点信息，只从Cache中获取"""
+        cache_master_stats = {}
+        for cluster_type in cls.cluster_types:
+            cache_master_stats.update(
+                json.loads(cache.get(f"{CACHE_CLUSTER_MASTER}_{bk_biz_id}_{cluster_type}", "{}"))
+            )
+        # 获取集群域名和集群ID的映射
+        cluster_domain_qs = Cluster.objects.filter(
+            bk_biz_id=bk_biz_id, id__in=cluster_ids, cluster_type=ClusterType.Doris
+        ).values("immute_domain", "id")
+        domain_ids = {cluster["immute_domain"]: cluster["id"] for cluster in cluster_domain_qs}
+
+        # 返回集群ID和主节点信息的映射
+        cluster_stat_map = {
+            domain_ids[domain]: master for domain, master in cache_master_stats.items() if domain in domain_ids
+        }
+
+        return cluster_stat_map
