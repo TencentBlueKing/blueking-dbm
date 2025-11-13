@@ -234,6 +234,7 @@ func (c *PickerObject) CrossRackCheck(v InstanceObject) bool {
 	if cmutil.IsEmpty(v.RackId) {
 		return false
 	}
+	logger.Info("跨机架检查, rackId: %s,已存在机架ID: %v", v.RackId, c.ExistRackIds)
 	return c.InterSectForEquipment(v.RackId) == 0
 }
 

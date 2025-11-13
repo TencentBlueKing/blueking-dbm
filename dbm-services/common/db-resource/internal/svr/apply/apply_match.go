@@ -545,6 +545,7 @@ func (c *PickerObject) PickerMajorityElectionCrossSubzone() {
 		if len(campKeys) == 0 {
 			return
 		}
+		logger.Info("campKeys: %v", campKeys)
 		subzoneChan := make(chan subZone, len(campKeys))
 		for _, v := range campKeys {
 			subzoneChan <- v
@@ -557,21 +558,23 @@ func (c *PickerObject) PickerMajorityElectionCrossSubzone() {
 			}
 			pq, ok := c.PriorityElements[subzone]
 			if !ok {
-				logger.Warn("%s is queue is nil", subzone)
+				logger.Warn("园区 %s 的优先级队列为空，从候选移除", subzone)
 				delete(c.PriorityElements, subzone)
 				continue
 			}
 			if pq.Len() == 0 {
+				logger.Info("园区 %s 没有剩余资源，从候选移除", subzone)
 				delete(c.PriorityElements, subzone)
 			}
-			logger.Info(fmt.Sprintf("surplus %s,%d", subzone, pq.Len()))
-			logger.Info(fmt.Sprintf("total demand count:%d,当前满足总数有 %s:%d", c.Count, subzone, len(c.SatisfiedHostIds)))
+			logger.Info(fmt.Sprintf("当前园区 %s 剩余资源数量: %d", subzone, pq.Len()))
+			logger.Info(fmt.Sprintf("总申请数量: %d,当前满足总数有 %d", c.Count, len(c.SatisfiedHostIds)))
 			needCrossSwitchCheck := false
 			if len(c.SatisfiedHostIdsMap[subzone]) >= 1 {
 				needCrossSwitchCheck = true
 			}
 			if c.pickerOneByPriority(subzone, needCrossSwitchCheck) {
 				if len(c.SatisfiedHostIdsMap[subzone]) >= subZoneMaxCount {
+					logger.Info("园区 %s 已达到最大容忍度限制，从候选移除", subzone)
 					delete(c.PriorityElements, subzone)
 				}
 			}
@@ -753,25 +756,33 @@ func (c *PickerObject) pickerOneByPriorityWithRackTolerance(key string, cross_sw
 
 // pickerOneByPriorityWithoutTolerance 无容忍度限制的机器选择（原有逻辑）
 func (c *PickerObject) pickerOneByPriorityWithoutTolerance(key string, cross_switch bool) bool {
+	logger.Info("pickerOneByPriorityWithoutTolerance 开始选择, key: %s, cross_switch: %v", key, cross_switch)
 	c.ExistSubZone = append(c.ExistSubZone, key)
 	pq, ok := c.PriorityElements[key]
 	if !ok {
-		logger.Error("not exist %s", key)
+		logger.Error("优先级队列不存在, key: %s", key)
 		return false
 	}
+	logger.Info("优先级队列长度: %d, key: %s", pq.Len(), key)
 	for pq.Len() > 0 {
 		item, _ := pq.Pop()
 		v, ok := item.Value.(InstanceObject)
 		if !ok {
-			logger.Warn("Type Assertion failed,hostId:%s", item.Key)
+			logger.Warn("类型断言失败, hostId: %d, key: %s", item.Key, key)
 			continue
 		}
+		logger.Info("处理主机实例, hostId: %d, rackId: %s, key: %s", v.BkHostId, v.RackId, key)
 		if cross_switch {
-			if !c.CrossRackCheck(v) || !c.CrossSwitchCheck(v) {
+			rackCheck := c.CrossRackCheck(v)
+			switchCheck := c.CrossSwitchCheck(v)
+			if !rackCheck || !switchCheck {
+				logger.Info("跨机架/跨交换机检查未通过, hostId: %d, rackId: %s, crossRackCheck: %v, crossSwitchCheck: %v",
+					v.BkHostId, v.RackId, rackCheck, switchCheck)
 				continue
 			}
 		}
 		if slices.Contains(c.SatisfiedHostIds, v.BkHostId) {
+			logger.Warn("主机ID已存在于已满足列表中, hostId: %d, key: %s", v.BkHostId, key)
 			return false
 		}
 
@@ -780,8 +791,11 @@ func (c *PickerObject) pickerOneByPriorityWithoutTolerance(key string, cross_swi
 		c.SatisfiedHostIds = append(c.SatisfiedHostIds, v.BkHostId)
 		c.ExistLinkNetdeviceIds = append(c.ExistLinkNetdeviceIds, v.LinkNetdeviceId...)
 		c.PickDistribute[key]++
+		logger.Info("成功选择主机, hostId: %d, rackId: %s, key: %s, 当前已选择主机数: %d",
+			v.BkHostId, v.RackId, key, len(c.SatisfiedHostIds))
 		return true
 	}
+	logger.Warn("优先级队列已遍历完毕但未找到合适的主机, key: %s, PriorityElements长度: %d", key, len(c.PriorityElements))
 	return len(c.PriorityElements) == 0
 }
 
