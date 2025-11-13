@@ -43,7 +43,7 @@
               <p
                 v-for="host in item.hostList"
                 :key="host.bk_host_id">
-                {{ host.ip }}（{{ host.spec_config.name }}）
+                {{ host.ip }}（{{ host.spec_config?.name || '--' }}）
               </p>
             </EditableBlock>
           </EditableColumn>

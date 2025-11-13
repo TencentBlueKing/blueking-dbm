@@ -146,7 +146,7 @@
           master_domain: item.master_domain,
           slave_count: item.spider_slave.length,
         };
-        role.value = item.spider_slave.length ? 'spider_slave' : 'spider_master';
+        role.value = item.spider_master.length ? 'spider_master' : 'spider_slave';
       }
     },
   });

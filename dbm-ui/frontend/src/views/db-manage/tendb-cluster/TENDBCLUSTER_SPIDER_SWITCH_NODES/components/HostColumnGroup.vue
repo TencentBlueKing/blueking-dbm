@@ -34,6 +34,7 @@
       @change="handleInputChange" />
   </EditableColumn>
   <EditableColumn
+    field="host.role"
     :label="t('实例角色')"
     :loading="loading"
     :min-width="150"
@@ -44,6 +45,7 @@
     </EditableBlock>
   </EditableColumn>
   <EditableColumn
+    field="host.cluster_id"
     :label="t('关联集群')"
     :loading="loading"
     :min-width="150"

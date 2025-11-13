@@ -20,7 +20,8 @@
   <EditableTable
     ref="table"
     class="mb-20"
-    :model="tableData">
+    :model="tableData"
+    :rules="rules">
     <EditableRow
       v-for="(item, index) in tableData"
       :key="index">
@@ -66,7 +67,7 @@
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
 
-  import { messageError, random } from '@utils';
+  import { random } from '@utils';
 
   import HostColumn, { type SelectorHost } from './components/HostColumn.vue';
 
@@ -186,6 +187,25 @@
     tableData.value = sortedData;
   };
 
+  const rules = {
+    'spider_reduced_host.role': [
+      {
+        message: t('同集群不允许同时操作 Spider Master 和 Spider Slave'),
+        trigger: 'blur',
+        validator: (
+          value: string,
+          row: {
+            rowData: RowData;
+            rowIndex: number;
+          },
+        ) =>
+          sameClusterIdsRowsMap[row.rowData.spider_reduced_host.cluster_id].every(
+            (item) => item.spider_reduced_host.role === value,
+          ),
+      },
+    ],
+  };
+
   watch(
     () => props.ticketDetails,
     () => {
@@ -247,23 +267,16 @@
 
   defineExpose<Exposes>({
     async getValue() {
-      try {
-        const validateResult = await tableRef.value?.validate();
-        if (!validateResult) {
-          return {
-            infos: [],
-          };
-        }
+      const validateResult = await tableRef.value?.validate();
+      if (!validateResult) {
+        return {
+          infos: [],
+        };
+      }
 
-        const infos: ServiceReturnType<Exposes['getValue']>['infos'] = [];
-        // 校验角色是否一致
-        let validateRole = true;
-        Object.entries(sameClusterIdsRowsMap).forEach(([clusterId, items]) => {
-          if (validateRole) {
-            // 只要有一个同集群下角色不一致就不允许缩容
-            validateRole = items.every((item) => item.spider_reduced_host.role === items[0]!.spider_reduced_host.role);
-          }
-          infos.push({
+      const infos = Object.entries(sameClusterIdsRowsMap).reduce<ServiceReturnType<Exposes['getValue']>['infos']>(
+        (acc, [clusterId, items]) => {
+          acc.push({
             cluster_id: Number(clusterId),
             old_nodes: {
               spider_reduced_hosts: items.map((item) => ({
@@ -281,20 +294,14 @@
               ip: item.spider_reduced_host.ip,
             })),
           });
-        });
-        if (!validateRole) {
-          throw new Error(t('同集群不允许同时缩容Spider Master和Spider Slave'));
-        }
+          return acc;
+        },
+        [],
+      );
 
-        return {
-          infos,
-        };
-      } catch (e: any) {
-        messageError(e.message);
-        return {
-          infos: [],
-        };
-      }
+      return {
+        infos,
+      };
     },
     reset() {
       tableData.value = [createTableRow()];

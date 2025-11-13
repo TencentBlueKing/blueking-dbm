@@ -215,7 +215,7 @@
       const isSameSpecId = list.every((item) => item.specId === list[0].specId);
       Object.assign(list[0], {
         rowspan: list.length,
-        specRowspan: isSameSpecId ? list.length : 1, // 相同规格合并
+        specRowspan: isSameSpecId ? list.length : 1, // 同集群下所有主机都是同一规格才合并
       });
     });
   };
