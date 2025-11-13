@@ -231,6 +231,13 @@ QUERY_TEMPLATE = {
             {cluster_domain="{cluster_domain}",%s}
         }[1m]))""",
     },
+    ClusterType.Doris: {
+        "range": 5,
+        "used": """sum by (cluster_domain)(
+            bkmonitor:pushgateway_dbm_doris_bkpull:doris_be_disks_local_used_capacity{%s})""",
+        "total": """sum by (cluster_domain) (
+            bkmonitor:pushgateway_dbm_doris_bkpull:doris_be_disks_total_capacity{%s})""",
+    },
 }
 
 # 使用相同容量查询模板的集群类型映射

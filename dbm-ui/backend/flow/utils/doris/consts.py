@@ -78,3 +78,7 @@ DORIS_RES_NAME_MAX_LENGTH = 64
 DORIS_BUCKET_NAME_MAX_LENGTH = 30
 # DORIS资源名称模板
 DORIS_RES_NAME_TMPL = "dbm-{bk_biz_id}-{cluster_name}"
+
+# Doris集群监控缓存键常量
+CACHE_CLUSTER_MASTER = "doris_cluster_master"
+CACHE_DORIS_REMOTE_USED = "doris_remote_used"
