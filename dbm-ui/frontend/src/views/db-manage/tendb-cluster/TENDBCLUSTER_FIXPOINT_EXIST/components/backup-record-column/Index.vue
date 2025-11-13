@@ -86,12 +86,14 @@
         </div>
         <div class="content-label">{{ t('备份类型 ：') }}</div>
         <div class="content-value">
+          <span v-if="modelValue.backup_type_list?.length < 1">--</span>
           <BkTag
-            v-if="backupTypeMap[modelValue.backup_type]"
-            :theme="backupTypeMap[modelValue.backup_type].theme">
-            {{ backupTypeMap[modelValue.backup_type].label }}
+            v-for="item in modelValue.backup_type_list"
+            v-else
+            :key="item"
+            :theme="backupTypeMap[item].theme">
+            {{ backupTypeMap[item].label }}
           </BkTag>
-          <span v-else>--</span>
         </div>
         <div class="content-label">{{ t('备份范围 ：') }}</div>
         <div class="content-value">

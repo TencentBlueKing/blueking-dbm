@@ -51,13 +51,13 @@
         :height="500"
         :max-height="tableMaxHeight"
         :pagination="pagination.count > 0 ? pagination : false"
+        :show-overflow="false"
         @column-filter="handleFilter"
         @page-limit-change="handeChangeLimit"
         @page-value-change="handleChangePage">
         <BkTableColumn
           :label="t('文件名')"
-          :min-width="300"
-          :width="300">
+          :width="270">
           <template #header>
             <div class="ml-35">{{ t('备份记录') }}</div>
           </template>
@@ -81,21 +81,18 @@
           </template>
         </BkTableColumn>
         <BkTableColumn
-          field="backup_type_filter"
-          :filter="filterOption.backup_type_filter"
-          :label="t('备份类型')">
-          <template
-            #default="{
-              row,
-            }: {
-              row: BackupLogRecordModel & { backup_type_display: { label: string; theme: 'warning' | 'info' } };
-            }">
-            <BkTag
-              v-if="row?.backup_type_display?.theme"
-              :theme="row.backup_type_display.theme">
-              {{ row.backup_type_display.label }}
-            </BkTag>
-            <span v-else>--</span>
+          field="backup_type_list"
+          :filter="filterOption.backup_type_list"
+          :label="t('备份类型')"
+          :width="120">
+          <template #default="{ row }: { row: BackupLogRecordModel }">
+            <span v-if="row.backup_type_list.length < 1">--</span>
+            <p
+              v-for="item in row.backup_type_list"
+              :key="item"
+              class="backup-type-tag-block">
+              <BkTag :theme="backupTypeMap[item].theme">{{ backupTypeMap[item].label }}</BkTag>
+            </p>
           </template>
         </BkTableColumn>
         <BkTableColumn
@@ -103,29 +100,39 @@
           :filter="filterOption.backup_method"
           :label="t('备份范围')"
           :width="150">
-          <template #default="{ row }: { row: BackupLogRecordModel & { backup_method_label: string } }">
+          <template #default="{ row }: { row: BackupLogRecordModel }">
             <span
               :class="{
-                [`backup-method-sign-${row.backup_method}`]: row?.backup_method_label,
+                [`backup-method-sign-${row.backup_method}`]: row?.backup_method,
               }">
-              {{ row?.backup_method_label || '--' }}
+              {{ backupMethodMap[row.backup_method] || '--' }}
             </span>
           </template>
         </BkTableColumn>
         <BkTableColumn
-          field="backup_tool"
-          :filter="filterOption.backup_tool"
-          :label="t('备份工具')">
+          field="backup_tool_list"
+          :filter="filterOption.backup_tool_list"
+          :label="t('备份工具')"
+          :width="120">
           <template #default="{ row }: { row: BackupLogRecordModel }">
-            {{ row?.backup_tool || '--' }}
+            <span v-if="row.backup_tool_list.length < 1">--</span>
+            <p
+              v-for="item in row.backup_tool_list"
+              :key="item">
+              {{ item }}
+            </p>
           </template>
         </BkTableColumn>
-        <BkTableColumn :label="t('备份大小')">
+        <BkTableColumn
+          :label="t('备份大小')"
+          :width="120">
           <template #default="{ row }: { row: BackupLogRecordModel }">
             {{ bytePretty(row?.total_filesize ?? 0) }}
           </template>
         </BkTableColumn>
-        <BkTableColumn :label="t('关联单据')">
+        <BkTableColumn
+          :label="t('关联单据')"
+          :width="110">
           <template #default="{ row }: { row: BackupLogRecordModel }">
             <RouterLink
               v-if="row.bill_id"
@@ -269,14 +276,14 @@
         },
       ],
     },
-    backup_tool: {
+    backup_tool_list: {
       checked: [],
-      key: 'backup_tool',
+      key: 'backup_tool_list',
       list: [],
     },
-    backup_type_filter: {
+    backup_type_list: {
       checked: [],
-      key: 'backup_type_filter',
+      key: 'backup_type_list',
       list: [
         {
           text: t('物理备份'),
@@ -290,7 +297,40 @@
     },
   });
 
-  const isChecked = (row: any, field: 'backup_method' | 'backup_type_filter' | 'backup_tool') => {
+  const backupTypeMap = {
+    logical: {
+      label: t('逻辑备份'),
+      theme: 'info',
+    },
+    physical: {
+      label: t('物理备份'),
+      theme: 'warning',
+    },
+  } as Record<
+    string,
+    {
+      label: string;
+      theme: 'warning' | 'info';
+    }
+  >;
+
+  const backupMethodMap = {
+    full_by_regular: t('全库备份（例行）'),
+    full_by_ticket: t('全库备份（单据）'),
+    non_full_by_regular: t('非全库备份（例行）'), // 过滤掉，不展示
+    partial_by_ticket: t('库表备份（单据）'),
+  } as Record<string, string>;
+
+  /**
+   * 是否包含，checked与field字段是否存在交集
+   */
+  const isContain = (row: any, field: 'backup_type_list' | 'backup_tool_list') => {
+    return filterOption.value[field]?.checked?.length
+      ? filterOption.value[field].checked.some((value) => row[field].includes(value))
+      : true;
+  };
+
+  const isChecked = (row: any, field: 'backup_method') => {
     return filterOption.value[field]?.checked?.length ? filterOption.value[field].checked.includes(row[field]) : true;
   };
 
@@ -319,7 +359,7 @@
         ? true
         : `${utcDisplayTime(row.backup_consistent_time)}`.indexOf(searchParams.display) > -1;
       const isFilterChecked =
-        isChecked(row, 'backup_type_filter') && isChecked(row, 'backup_method') && isChecked(row, 'backup_tool');
+        isChecked(row, 'backup_method') && isContain(row, 'backup_type_list') && isContain(row, 'backup_tool_list');
       if (isTimeMatch && isSearchMatch && isFilterChecked) {
         filteredData.value.push(row);
       }
@@ -334,66 +374,6 @@
   watch(filteredData, () => {
     pagination.value.count = filteredData.value.length || tableData.value.length;
   });
-
-  const generateRowData = (row: BackupLogRecordModel) => {
-    const defaultDisplay = {
-      backup_type_display: {
-        label: '--',
-        theme: '',
-      },
-    };
-    const backupTypeMap = {
-      logical: {
-        backup_type_display: {
-          label: t('逻辑备份'),
-          theme: 'info',
-        },
-        backup_type_filter: 'logical', // 用于表头过滤
-      },
-      physical: {
-        backup_type_display: {
-          label: t('物理备份'),
-          theme: 'warning',
-        },
-        backup_type_filter: 'physical',
-      },
-    };
-    let backupTypeFilter;
-    /**
-     * backup_method
-      - full_by_ticket: 全库备份（单据）
-        可能为物理备份，或者逻辑备份
-      - partial_by_ticket: 库表备份（单据）
-        逻辑备份，bill_id 不为空
-      - full_by_regular: 全库备份（例行）: 可能为物理备份
-        或者逻辑备份, bill_id 为空
-      - non_full_by_regular: 非全库备份（例行）
-        构造，回档，这个应该要过滤掉，备份只有库表结构，权限，不能用户恢复
-     */
-    if (row.backup_method === 'partial_by_ticket') {
-      // 必然是逻辑备份
-      backupTypeFilter = Object.assign({}, defaultDisplay, backupTypeMap.logical);
-    }
-
-    if (row.backup_type === 'logical') {
-      backupTypeFilter = Object.assign({}, defaultDisplay, backupTypeMap.logical);
-    } else if (row.backup_type === 'physical') {
-      backupTypeFilter = Object.assign({}, defaultDisplay, backupTypeMap.physical);
-    }
-
-    const backupMethodMap = {
-      full_by_regular: t('全库备份（例行）'),
-      full_by_ticket: t('全库备份（单据）'),
-      non_full_by_regular: t('非全库备份（例行）'), // 过滤掉，不展示
-      partial_by_ticket: t('库表备份（单据）'),
-    } as Record<string, string>;
-
-    return {
-      ...row,
-      backup_method_label: backupMethodMap[row.backup_method] || '--',
-      ...backupTypeFilter,
-    };
-  };
 
   const handleChecked = (row: BackupLogRecordModel) => {
     checkedBackupId.value = row.backup_id;
@@ -442,14 +422,17 @@
       }
 
       originalData.value = results;
-      tableData.value = results
-        .filter((item) => item.backup_method !== 'non_full_by_regular') // 过滤掉例行非全备
-        .map((item) => generateRowData(item));
+      tableData.value = results.filter((item) => item.backup_method !== 'non_full_by_regular'); // 过滤掉例行非全备
 
-      filterOption.value.backup_tool.list = _.uniqBy(
-        results.map((item) => ({
-          text: item?.backup_tool,
-          value: item?.backup_tool,
+      const backupToolList: string[] = [];
+      results.forEach((data) => {
+        backupToolList.push(...data.backup_tool_list);
+      });
+
+      filterOption.value.backup_tool_list.list = _.uniqBy(
+        backupToolList.map((item) => ({
+          text: item,
+          value: item,
         })),
         'text',
       );
@@ -510,6 +493,10 @@
       border-radius: 2px 0 0 2px;
       align-items: center;
       justify-content: center;
+    }
+
+    .backup-type-tag-block {
+      line-height: 28px;
     }
 
     // 全库备份（例行）
