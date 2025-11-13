@@ -45,6 +45,12 @@ class RedisScaleUpDownDetailSerializer(RedisBaseOperateDetailSerializer):
                 affinity = serializers.ChoiceField(
                     help_text=_("亲和性"), choices=AffinityEnum.get_choices(), default=AffinityEnum.NONE
                 )
+                labels = serializers.ListSerializer(
+                    help_text=_("标签id列表"), child=serializers.CharField(), required=False
+                )
+                label_names = serializers.ListSerializer(
+                    help_text=_("标签名称列表"), child=serializers.CharField(), required=False
+                )
 
             backend_group = BackendGroupSerializer()
 
