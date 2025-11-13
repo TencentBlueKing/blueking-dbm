@@ -14,6 +14,7 @@ export default () => {
 
   const searchParams = getSearchParams();
 
+  const flushTime = ref<string>('');
   const updateTime = ref<string>('');
   const dataList = ref<ResourceWaterLevel['water_level']>([]);
   const tableData = ref<ResourceWaterLevel['water_level']>([]);
@@ -33,6 +34,7 @@ export default () => {
   const { loading, run } = useRequest(calcResourceWaterLevel, {
     manual: true,
     onSuccess: (data: ResourceWaterLevel) => {
+      flushTime.value = data.flush_time;
       updateTime.value = data.update_time;
       dataList.value = data.water_level;
       pagination.count = data.water_level.length;
@@ -69,6 +71,7 @@ export default () => {
     handlePageLimitChange,
     handlePageValueChange,
     updateTime,
+    flushTime,
     dataList,
   };
 };

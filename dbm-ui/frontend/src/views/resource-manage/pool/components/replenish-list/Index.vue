@@ -25,7 +25,7 @@
         <DbIcon
           class="ml-16"
           type="bk-dbm-icon db-icon-dingshichufa" />
-        {{ t('系统于每日 12:00:00 发起自动提交补货操作，也可手动点击') }}
+        {{ t('系统于每日 time 发起自动提交补货操作，也可手动点击', [flushTime]) }}
       </div>
       <div>
         <span>{{ t('最近更新时间：') }}{{ updateTime }}</span>
@@ -168,6 +168,7 @@
   const router = useRouter();
   const {
     dataList,
+    flushTime,
     handlePageLimitChange,
     handlePageValueChange,
     loading: isLoading,

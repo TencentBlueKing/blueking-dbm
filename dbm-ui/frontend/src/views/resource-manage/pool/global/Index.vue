@@ -36,7 +36,7 @@
       type="unborder-card"
       @change="handleChange">
       <BkTabPanel
-        v-for="item in panels"
+        v-for="item in renderPanels"
         :key="item.name"
         :label="item.label"
         :name="item.name" />
@@ -55,6 +55,8 @@
 
   import { useDebouncedRef } from '@hooks';
 
+  import { useFunController } from '@stores';
+
   import ImportHost from '../components/host-list/components/import-host/Index.vue';
   import HostList from '../components/host-list/Index.vue';
   import ReplenishList from '../components/replenish-list/Index.vue';
@@ -63,23 +65,46 @@
   const { t } = useI18n();
   const router = useRouter();
   const route = useRoute();
+  const funControllerStore = useFunController();
 
   const isShowImportHost = ref(false);
 
   const panels = [
     {
+      functionControllerKey: 'hostList',
       label: t('主机列表'),
       name: 'host-list',
     },
     {
+      functionControllerKey: 'summaryView',
       label: t('统计视图'),
       name: 'summary-view',
     },
     {
+      functionControllerKey: 'replenishList',
       label: t('待补货列表'),
       name: 'replenish-list',
     },
   ];
+
+  const renderPanels = computed(() =>
+    panels.filter((item) => {
+      const data = funControllerStore.funControllerData.resourceManage.children.resourcePool;
+      if (!data) {
+        return false;
+      }
+
+      const childItem = data.children[item.functionControllerKey];
+
+      // 若有对应的模块子功能，判断是否开启
+      if (childItem) {
+        return data && data.is_enabled && childItem.is_enabled;
+      }
+
+      // 若无，则判断整个模块是否开启
+      return data && data.is_enabled;
+    }),
+  );
 
   const activeTab = useDebouncedRef(route.params.page as string);
 
