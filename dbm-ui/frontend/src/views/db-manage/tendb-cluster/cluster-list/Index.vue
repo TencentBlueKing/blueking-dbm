@@ -630,7 +630,7 @@
   // 申请实例
   const handleApply = () => {
     router.push({
-      name: 'spiderApply',
+      name: TicketTypes.TENDBCLUSTER_APPLY,
       query: {
         bizId: window.PROJECT_CONFIG.BIZ_ID,
         from: route.name as string,

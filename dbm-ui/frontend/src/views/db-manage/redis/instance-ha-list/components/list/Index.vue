@@ -57,7 +57,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes, UserPersonalSettings } from '@common/const';
+  import { ClusterTypes, TicketTypes, UserPersonalSettings } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
@@ -372,7 +372,7 @@
    */
   const handleApply = () => {
     router.push({
-      name: 'SelfServiceApplyRedisHa',
+      name: TicketTypes.REDIS_INS_APPLY,
       query: {
         bizId: globalBizsStore.currentBizId,
       },

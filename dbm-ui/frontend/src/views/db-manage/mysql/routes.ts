@@ -90,7 +90,7 @@ const singleRoutes: RouteRecordRaw[] = [
           navName: t('MySQL单节点_集群管理'),
           skeleton: 'clusterList',
         },
-        component: () => import('@/views/db-manage/mysql/single-cluster-list/Index.vue'),
+        component: () => import('@views/db-manage/mysql/single-cluster-list/Index.vue'),
       },
       {
         path: 'detail/:clusterId',

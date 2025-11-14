@@ -63,7 +63,13 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { type ClusterInstStatus, clusterInstStatus, ClusterTypes, UserPersonalSettings } from '@common/const';
+  import {
+    type ClusterInstStatus,
+    clusterInstStatus,
+    ClusterTypes,
+    TicketTypes,
+    UserPersonalSettings,
+  } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
@@ -388,7 +394,7 @@
   // 申请实例
   const handleApply = () => {
     router.push({
-      name: 'spiderApply',
+      name: TicketTypes.TENDBCLUSTER_APPLY,
       query: {
         bizId: currentBizId,
       },
