@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import json
 
-from django.core import cache
+from django.core.cache import cache
 from django.forms import model_to_dict
 from django.utils.translation import gettext_lazy as _
 
@@ -53,7 +53,7 @@ class DorisListRetrieveResource(BigDataBaseListRetrieveResource, DorisExportQuer
         InstanceRole.DORIS_FOLLOWER.value,
         InstanceRole.DORIS_OBSERVER.value,
         InstanceRole.DORIS_BACKEND_HOT.value,
-        InstanceRole.DORIS_BACKEND_COLD.value,
+        InstanceRole.DORIS_BACKEND_WARM.value,
     ]
     fields = [
         *BigDataBaseListRetrieveResource.fields,
@@ -117,3 +117,11 @@ class DorisListRetrieveResource(BigDataBaseListRetrieveResource, DorisExportQuer
         }
 
         return cluster_stat_map
+
+    @classmethod
+    def retrieve_cluster(cls, bk_biz_id: int, cluster_id: int) -> dict:
+        """查询集群详情"""
+        cluster_details = cls.list_clusters(bk_biz_id, {"id": cluster_id}, limit=1, offset=0).data[0]
+        details = cls._retrieve_cluster(cluster_details, cluster_id)
+        details["cold_resource"] = cls.get_cold_resource(bk_biz_id, cluster_id)
+        return details

@@ -85,6 +85,7 @@ DORIS_SHRINK_TICKET_DATA = {
         "old_nodes": {
             "hot": [],
             "cold": [],
+            "warm": [],
             "observer": [
                 {"ip": "127.0.0.5", "bk_host_id": 1005, "bk_cloud_id": 0},
                 {"ip": "127.0.1.4", "bk_host_id": 1004, "bk_cloud_id": 0},
