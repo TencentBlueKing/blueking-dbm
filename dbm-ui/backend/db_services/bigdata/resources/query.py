@@ -200,7 +200,6 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource, BigDataBaseExp
     def list_nodes(cls, bk_biz_id: int, query_params: Dict, limit: int, offset: int) -> query.ResourceList:
         cluster_id = query_params["cluster_id"]
         fields = [
-            "id",
             "machine__ip",
             "machine__bk_host_id",
             "machine__bk_cloud_id",
@@ -225,7 +224,7 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource, BigDataBaseExp
         storage_queryset = (
             StorageInstance.objects.filter(query_filters)
             .values("instance_role", "machine__ip")
-            .annotate(node_count=Count("id"), role=F("instance_role"))
+            .annotate(node_count=Count("id"), role=F("instance_role"), create_at=F("machine__create_at"))
             .values(*fields)
             .order_by("node_count")
         )
