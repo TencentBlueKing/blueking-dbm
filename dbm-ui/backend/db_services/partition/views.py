@@ -46,9 +46,10 @@ from .constants import SWAGGER_TAG
 from .handlers import PartitionHandler
 
 
-class DBPartitionViewSet(viewsets.AuditedModelViewSet):
+class DBPartitionViewSet(viewsets.SystemViewSet):
 
     pagination_class = None
+    serializer_class = None
 
     action_permission_map = {("list", "verify_partition_field"): [DBManagePermission()]}
     default_permission_class = [PartitionManagePermission()]

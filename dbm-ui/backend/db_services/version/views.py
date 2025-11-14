@@ -29,7 +29,7 @@ class VersionViewSet(viewsets.SystemViewSet):
         operation_summary=_("查询所有数据库的版本列表"),
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["GET"], detail=False, serializer_class=None, pagination_class=None)
+    @action(methods=["GET"], detail=False, pagination_class=None)
     def cluster_type_to_versions(self, requests, *args, **kwargs):
         return Response(
             {cluster_type: query_versions_by_key(cluster_type) for cluster_type in ClusterType.get_values()}

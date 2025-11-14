@@ -68,30 +68,33 @@ vine = ">=5.0.0,<6.0.0"
 
 [[package]]
 name = "apigw-manager"
-version = "3.1.2"
+version = "4.2.0"
 description = "The SDK for managing blueking gateway resource."
 optional = false
-python-versions = "<4.0.0,>=3.6.1"
+python-versions = "<3.13,>=3.8"
 files = [
-    {file = "apigw_manager-3.1.2-py3-none-any.whl", hash = "sha256:0bff95951ebd7623d34e905a33f621937deb6bf126026c7f36269269d2751b9f"},
+    {file = "apigw_manager-4.2.0-py3-none-any.whl", hash = "sha256:f4e6b0a3fa14d23414fa45f76fd3bc98f63c9f70224dd050989b6c7452a2dddb"},
 ]
 
 [package.dependencies]
-bkapi-bk-apigateway = ">=1.0.11,<2.0.0"
+bkapi-bk-apigateway = ">=1.0.12,<2.0.0"
 bkapi-client-core = ">=1.2.0"
 cryptography = {version = ">=3.1.1", optional = true, markers = "extra == \"cryptography\" or extra == \"drf\""}
-future = ">=0.18.2"
+Django = {version = ">=3.0.14", optional = true, markers = "extra == \"drf\" or extra == \"django\" or extra == \"demo\""}
+djangorestframework = {version = ">=3.10.3", optional = true, markers = "extra == \"drf\""}
+docutils = "0.20.1"
+drf-spectacular = {version = "<=0.27.2", optional = true, markers = "extra == \"drf\""}
 packaging = ">=20.4"
-pyjwt = {version = ">=1.6.4", optional = true, markers = "extra == \"cryptography\" or extra == \"drf\" or extra == \"django\" or extra == \"demo\""}
-pyyaml = ">=5.4.1"
+pyjwt = {version = ">=2.0.0", optional = true, markers = "extra == \"cryptography\" or extra == \"drf\" or extra == \"django\" or extra == \"demo\""}
+pyyaml = ">=5.4.2"
 setuptools = ">=21.0.0"
 urllib3 = ">=1.25.3"
 
 [package.extras]
-cryptography = ["cryptography (>=3.1.1)", "pyjwt (>=1.6.4)"]
-demo = ["Django (>=1.11.1)", "PyMySQL (>=1.0.2,<2.0.0)", "django-environ (>=0.8.1)", "pyjwt (>=1.6.4)"]
-django = ["Django (>=1.11.1)", "pyjwt (>=1.6.4)"]
-drf = ["Django (>=1.11.1)", "cryptography (>=3.1.1)", "djangorestframework (<=3.15.1)", "drf-spectacular (<=0.27.1)", "pyjwt (>=1.6.4)"]
+cryptography = ["cryptography (>=3.1.1)", "pyjwt (>=2.0.0)"]
+demo = ["Django (>=3.0.14)", "PyMySQL (>=1.0.2,<2.0.0)", "django-environ (>=0.8.1)", "pyjwt (>=2.0.0)"]
+django = ["Django (>=3.0.14)", "pyjwt (>=2.0.0)"]
+drf = ["Django (>=3.0.14)", "cryptography (>=3.1.1)", "djangorestframework (>=3.10.3)", "drf-spectacular (<=0.27.2)", "pyjwt (>=2.0.0)"]
 kubernetes = ["kubernetes"]
 
 [[package]]
@@ -1387,6 +1390,40 @@ files = [
 
 [package.dependencies]
 django = ">=4.2"
+
+[[package]]
+name = "docutils"
+version = "0.20.1"
+description = "Docutils -- Python Documentation Utilities"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "docutils-0.20.1-py3-none-any.whl", hash = "sha256:96f387a2c5562db4476f09f13bbab2192e764cac08ebbf3a34a95d9b1e4a59d6"},
+    {file = "docutils-0.20.1.tar.gz", hash = "sha256:f08a4e276c3a1583a86dce3e34aba3fe04d02bba2dd51ed16106244e8a923e3b"},
+]
+
+[[package]]
+name = "drf-spectacular"
+version = "0.27.2"
+description = "Sane and flexible OpenAPI 3 schema generation for Django REST framework"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "drf-spectacular-0.27.2.tar.gz", hash = "sha256:a199492f2163c4101055075ebdbb037d59c6e0030692fc83a1a8c0fc65929981"},
+    {file = "drf_spectacular-0.27.2-py3-none-any.whl", hash = "sha256:b1c04bf8b2fbbeaf6f59414b4ea448c8787aba4d32f76055c3b13335cf7ec37b"},
+]
+
+[package.dependencies]
+Django = ">=2.2"
+djangorestframework = ">=3.10.3"
+inflection = ">=0.3.1"
+jsonschema = ">=2.6.0"
+PyYAML = ">=5.1"
+uritemplate = ">=2.0.0"
+
+[package.extras]
+offline = ["drf-spectacular-sidecar"]
+sidecar = ["drf-spectacular-sidecar"]
 
 [[package]]
 name = "drf-yasg"
@@ -4039,4 +4076,4 @@ testing = ["coverage[toml]", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11.10,<3.12"
-content-hash = "da9588e20a86d5e092eda588cfba0353bf19c96972ba64a22e8efe3c34e6e50c"
+content-hash = "0c9f3b368d0f9c159616b1304bba7bfe69b691d0edac68545f2927aee2884e72"

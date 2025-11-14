@@ -29,7 +29,6 @@ SWAGGER_TAG = "iam"
 
 
 class IAMViewSet(viewsets.SystemViewSet):
-    serializer_class = None
     permission_classes = ()
 
     default_permission_class = []
