@@ -230,9 +230,9 @@ class MySQLBackupRecoverTask(BaseReportABS):
             return []
 
     @classmethod
-    def get_recent_2h_exercise_cluster_type_stats(cls):
+    def get_recent_24h_exercise_cluster_type_stats(cls):
         """
-        获取最近2小时内演练的集群类型统计
+        获取最近24小时内演练的集群类型统计
 
         Returns:
             dict: {
@@ -241,7 +241,7 @@ class MySQLBackupRecoverTask(BaseReportABS):
                 'total_count': int          # 总演练次数
             }
         """
-        recent_time = timezone.now() - timedelta(hours=2)
+        recent_time = timezone.now() - timedelta(hours=24)
         recent_tasks = MySQLBackupRecoverTask.objects.filter(
             create_at__gte=recent_time,
         ).values_list("cluster_type", flat=True)
@@ -256,13 +256,13 @@ class MySQLBackupRecoverTask(BaseReportABS):
         }
 
     @classmethod
-    def get_recent_3days_failed_cluster_ids(cls):
+    def get_recent_2days_failed_cluster_ids(cls):
         """
-        获取最近3天内失败的演练集群ID列表
+        获取最近2天内失败的演练集群ID列表
         失败指的是task_status为RECOVER_FAILED状态的任务
         """
         try:
-            recent_time = timezone.now() - timedelta(days=3)
+            recent_time = timezone.now() - timedelta(days=2)
             return list(
                 MySQLBackupRecoverTask.objects.filter(
                     create_at__gte=recent_time, task_status=TaskStatus.RECOVER_FAILED
@@ -271,7 +271,7 @@ class MySQLBackupRecoverTask(BaseReportABS):
                 .distinct()
             )
         except Exception as e:
-            logger.warning(gettext("获取最近3天失败演练集群ID列表时发生数据库连接错误: {}").format(str(e)))
+            logger.warning(gettext("获取最近2天失败演练集群ID列表时发生数据库连接错误: {}").format(str(e)))
             return []
 
 
