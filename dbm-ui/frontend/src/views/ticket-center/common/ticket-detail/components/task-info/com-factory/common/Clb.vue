@@ -17,10 +17,17 @@
     row-key="cluster_id">
     <TicketInfoTableColumn
       col-key="cluster_id"
-      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.id].immute_domain"
-      :title="t('集群')">
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.details.cluster_id].immute_domain"
+      :title="t('域名')">
       <template #default="{ row }: { row: RowData }">
         {{ row.details.clusters[row.details.cluster_id].immute_domain }}
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="region"
+      :title="t('地域')">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.details.clusters[row.details.cluster_id].region }}
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
