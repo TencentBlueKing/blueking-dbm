@@ -200,7 +200,6 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource, BigDataBaseExp
     def list_nodes(cls, bk_biz_id: int, query_params: Dict, limit: int, offset: int) -> query.ResourceList:
         cluster_id = query_params["cluster_id"]
         fields = [
-            "id",
             "machine__ip",
             "machine__bk_host_id",
             "machine__bk_cloud_id",
