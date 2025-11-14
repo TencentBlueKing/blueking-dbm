@@ -399,7 +399,7 @@
    */
   const handleApply = () => {
     router.push({
-      name: 'SelfServiceApplyRedisHa',
+      name: TicketTypes.REDIS_INS_APPLY,
       query: {
         bizId: globalBizsStore.currentBizId,
         from: route.name as string,

@@ -144,7 +144,7 @@
     redisClusterTypes,
     type RedisIpSources,
     redisIpSources,
-  } from '@views/db-manage/redis/apply/common/const';
+  } from '@views/db-manage/redis/REDIS_CLUSTER_APPLY/common/const';
 
   import { firstLetterToUpper } from '@utils';
 

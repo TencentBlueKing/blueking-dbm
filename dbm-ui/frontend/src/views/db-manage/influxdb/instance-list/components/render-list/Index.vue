@@ -145,7 +145,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes, UserPersonalSettings } from '@common/const';
+  import { ClusterTypes, TicketTypes, UserPersonalSettings } from '@common/const';
 
   import DbTable from '@components/db-table/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
@@ -829,7 +829,7 @@
    */
   const handleApply = () => {
     router.push({
-      name: 'SelfServiceApplyInfluxDB',
+      name: TicketTypes.INFLUXDB_APPLY,
       query: {
         bizId: currentBizId,
         from: route.name as string,

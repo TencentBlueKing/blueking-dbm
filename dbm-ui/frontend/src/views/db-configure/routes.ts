@@ -70,7 +70,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           navName: t('新建模块'),
         },
-        component: () => import('@views/service-apply/create-db-module/Index.vue'),
+        component: () => import('@views/service-apply/create-db-module/Mysql.vue'),
       },
       {
         path: 'create-module/:bizId(\\d+)',
@@ -78,7 +78,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           navName: t('新建模块'),
         },
-        component: () => import('@views/db-manage/tendb-cluster/apply/CreateModule.vue'),
+        component: () => import('@views/service-apply/create-db-module/tendb-cluster/Index.vue'),
       },
       {
         path: 'sqlserver-create-db-module/:ticketType/:bizId/',
@@ -86,7 +86,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           navName: t('新建模块'),
         },
-        component: () => import('@views/service-apply/create-db-module/SqlServerCreateDbModule.vue'),
+        component: () => import('@views/service-apply/create-db-module/SqlServer.vue'),
       },
     ],
   },

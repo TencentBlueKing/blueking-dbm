@@ -1,0 +1,26 @@
+import { DBTypes, type TicketTypes } from '@common/const';
+
+export function createApplyRoute(
+  dbType: DBTypes,
+  ticketType: TicketTypes,
+  navName: string,
+  meta: { fullscreen?: boolean; navName?: string } = {},
+) {
+  const routeNameMap = {
+    [DBTypes.ES]: 'elastic-search',
+    [DBTypes.TENDBCLUSTER]: 'tendb-cluster',
+  };
+  const dbToolbox = routeNameMap[dbType as keyof typeof routeNameMap] || dbType;
+
+  return {
+    component: () => import(`@views/db-manage/${dbToolbox}/${ticketType}/Index.vue`),
+    meta: {
+      fullscreen: false,
+      navName,
+      ticketType,
+      ...meta,
+    },
+    name: ticketType,
+    path: `${ticketType}`,
+  };
+}

@@ -454,7 +454,7 @@
    */
   const handleApply = () => {
     router.push({
-      name: 'SqlServiceSingleApply',
+      name: TicketTypes.SQLSERVER_SINGLE_APPLY,
       query: {
         bizId: currentBizId,
         from: String(route.name),

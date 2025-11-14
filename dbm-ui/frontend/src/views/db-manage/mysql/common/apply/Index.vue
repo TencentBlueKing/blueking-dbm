@@ -110,7 +110,7 @@
               v-model:domains="formdata.details.domains"
               :formdata="formdata"
               :module-alias-name="moduleAliasName"
-              :ticket-type="dbType" />
+              :ticket-type="ticketType" />
           </BkFormItem>
           <BkFormItem
             :label="t('服务器选择')"
@@ -340,7 +340,6 @@
 
   const { t } = useI18n();
   const route = useRoute();
-  const router = useRouter();
 
   useTicketDetail<Mysql.SingleApply>(TicketTypes.MYSQL_SINGLE_APPLY, {
     onSuccess(ticketDetail) {
@@ -442,8 +441,8 @@
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
-  const isSingleType = route.name === 'SelfServiceApplySingle';
-  const dbType: string = isSingleType ? TicketTypes.MYSQL_SINGLE_APPLY : TicketTypes.MYSQL_HA_APPLY;
+  const ticketType = route.name as string;
+  const isSingleType = ticketType === TicketTypes.MYSQL_SINGLE_APPLY;
 
   const regionRequirementsRef = useTemplateRef('regionRequirements');
 
@@ -507,7 +506,7 @@
     return labels;
   });
   const hostSpecInfo = computed(() => fetchState.hostSpecs.find((info) => info.spec === formdata.details.spec));
-  const typeInfo = computed(() => mysqlType[dbType as MysqlTypeString]);
+  const typeInfo = computed(() => mysqlType[ticketType as MysqlTypeString]);
   const tableData = computed(() => {
     if (moduleAliasName.value && formdata.details.db_app_abbr) {
       return formdata.details.domains;
@@ -546,7 +545,7 @@
   });
 
   // 获取基础数据信息
-  const { fetchState, formdata, handleResetFormdata } = useMysqlData(dbType);
+  const { fetchState, formdata, handleResetFormdata } = useMysqlData(ticketType);
 
   function handleChangeClusterCount(value: number) {
     if (value && formdata.details.inst_num > value) {
@@ -786,18 +785,6 @@
       bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
     }
   };
-
-  defineExpose({
-    routerBack() {
-      if (!route.query.from) {
-        router.back();
-        return;
-      }
-      router.push({
-        name: route.query.from as string,
-      });
-    },
-  });
 </script>
 
 <style lang="less" scoped>

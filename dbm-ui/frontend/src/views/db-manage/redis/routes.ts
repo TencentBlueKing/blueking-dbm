@@ -212,7 +212,7 @@ const redisDatabaseHaList = {
         fullscreen: true,
         navName: t('Redis_主从集群详情'),
       },
-      component: () => import('@/views/db-manage/redis/cluster-ha-detail/Index.vue'),
+      component: () => import('@views/db-manage/redis/cluster-ha-detail/Index.vue'),
     },
   ],
 };
@@ -238,7 +238,7 @@ const routes: RouteRecordRaw[] = [
         redirect: {
           name: 'DatabaseRedisList',
         },
-        component: () => import('@/views/db-manage/redis/Index.vue'),
+        component: () => import('@views/db-manage/redis/Index.vue'),
         children: [
           {
             path: 'list/:clusterId?',
@@ -246,7 +246,7 @@ const routes: RouteRecordRaw[] = [
             meta: {
               navName: t('Redis_集群管理'),
             },
-            component: () => import('@/views/db-manage/redis/cluster-list/Index.vue'),
+            component: () => import('@views/db-manage/redis/cluster-list/Index.vue'),
           },
           {
             path: 'detail/:clusterId',
@@ -255,7 +255,7 @@ const routes: RouteRecordRaw[] = [
               fullscreen: true,
               navName: t('Redis_集群详情'),
             },
-            component: () => import('@/views/db-manage/redis/cluster-detail/Index.vue'),
+            component: () => import('@views/db-manage/redis/cluster-detail/Index.vue'),
           },
         ],
       },

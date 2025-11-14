@@ -239,7 +239,7 @@
 
   import { useClusterQuickSearch, useTableSettings } from '@hooks';
 
-  import { ClusterTypes, DBTypes, UserPersonalSettings } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes, UserPersonalSettings } from '@common/const';
 
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
@@ -298,7 +298,7 @@
   // 申请实例
   const handleGoApply = () => {
     router.push({
-      name: 'DorisApply',
+      name: TicketTypes.DORIS_APPLY,
       query: {
         bizId: window.PROJECT_CONFIG.BIZ_ID,
         from: route.name as string,

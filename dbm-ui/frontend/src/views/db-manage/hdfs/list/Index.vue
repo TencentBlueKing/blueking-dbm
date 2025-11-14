@@ -329,7 +329,7 @@
   // 集群提单
   const handleGoApply = () => {
     router.push({
-      name: 'HdfsApply',
+      name: TicketTypes.HDFS_APPLY,
       query: {
         bizId: window.PROJECT_CONFIG.BIZ_ID,
         from: route.name as string,

@@ -509,7 +509,7 @@
    */
   const handleApply = () => {
     router.push({
-      name: 'SelfServiceApplyRedis',
+      name: TicketTypes.REDIS_CLUSTER_APPLY,
       query: {
         bizId: window.PROJECT_CONFIG.BIZ_ID,
         from: route.name as string,
