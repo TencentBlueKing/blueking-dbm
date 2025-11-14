@@ -106,6 +106,7 @@ func (job *KeyStat) useLocalPlayLoadFile() (payload string, err error) {
 
 // Init 初始化
 func (job *KeyStat) Init(m *jobruntime.JobGenericRuntime) error {
+
 	job.runtime = m
 	var err error
 	if s, err := job.useLocalPlayLoadFile(); err == nil {
@@ -589,6 +590,7 @@ func (job *KeyStat) updateReportStatus(status string, params map[string]any) err
 	if params == nil {
 		params = make(map[string]any)
 	}
+	params["root_id"] = job.runtime.RootID
 	params["record_id"] = job.params.RecordId
 	params["status"] = status
 	params["update_at"] = time.Now()

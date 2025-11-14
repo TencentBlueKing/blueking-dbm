@@ -28,6 +28,8 @@ from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.redis.exec_actuator_job2 import RedisExecJobComponent2
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
+from backend.flow.utils.base.payload_handler import PayloadHandler
+
 
 logger = logging.getLogger("flow")
 
@@ -164,8 +166,9 @@ class RedisKeystatFlow(object):
 
     @classmethod
     def make_kwargs(cls, cluster: Cluster, info: dict, exec_ip: str, nginx_ip: str, db_cloud_token: str) -> dict:
-        proxy_pwd = "proxy_pwd"
-        redis_pwd = "redis_pwd"
+        proxy_pwd = "not_used"
+        passwd_ret = PayloadHandler.redis_get_password_by_domain(cluster.immute_domain)
+        redis_pwd = passwd_ret["redis_password"]
         return {
             "set_trans_data_dataclass": CommonContext.__name__,
             "get_trans_data_ip_var": None,

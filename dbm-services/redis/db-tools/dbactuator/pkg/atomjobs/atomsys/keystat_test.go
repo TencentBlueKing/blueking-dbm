@@ -49,7 +49,7 @@ func TestKeyStat(t *testing.T) {
 		return
 	}
 	runtime, err := jobruntime.NewJobGenericRuntime(
-		"111", "222", "3333", "4444",
+		"111", "333000333", "3333", "4444",
 		string(payload), consts.PayloadFormatRaw, "keystat", "test", 1)
 	if err != nil {
 		t.Errorf("NewJobGenericRuntime failed, err:%v", err)
