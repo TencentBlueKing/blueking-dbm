@@ -33,6 +33,7 @@ logger = logging.getLogger("root")
 class DorisApplyDetailSerializer(BigDataApplyDetailsSerializer):
     http_port = serializers.IntegerField(help_text=_("http端口"), default=DORIS_DEFAULT_HTTP_PORT)
     query_port = serializers.IntegerField(help_text=_("输入端口"), default=DORIS_DEFAULT_QUERY_PORT)
+    enable_cold_storage = serializers.BooleanField(help_text=_("是否建立低频存储"), default=False)
 
     def validate(self, attrs):
         """
@@ -75,8 +76,8 @@ class DorisApplyFlowParamBuilder(builders.FlowParamBuilder):
 class DorisApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
     @classmethod
     def fill_instance_num(cls, next_flow_data, ticket_data, nodes_key):
-        """对doris的hot和cold角色填充实例数"""
-        for role in ["hot", "cold"]:
+        """对doris的hot和warm角色填充实例数"""
+        for role in ["hot", "warm"]:
             if role not in next_flow_data[nodes_key]:
                 continue
 

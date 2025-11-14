@@ -21,7 +21,7 @@ DORIS_INVALID_PORTS = [9020, 9010]
 DORIS_FOLLOWER_NEED = 3
 DORIS_OBSERVER_ZERO = 0
 DORIS_OBSERVER_MIN = 2
-DORIS_HOT_COLD_LIMIT = 2
+DORIS_HOT_WARM_LIMIT = 2
 
 HDFS_DATANODE_MIN = 2
 HDFS_NAMENODE_NEED = 2
@@ -68,7 +68,7 @@ class BigDataRole(object):
 
     class Doris(StrStructuredEnum):
         HOT = EnumField("hot", _("hot"))
-        COLD = EnumField("cold", _("cold"))
+        WARM = EnumField("warm", _("warm"))
         FOLLOWER = EnumField("follower", _("follower"))
         OBSERVER = EnumField("observer", _("observer"))
 
