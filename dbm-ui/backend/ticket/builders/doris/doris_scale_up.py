@@ -28,6 +28,8 @@ logger = logging.getLogger("root")
 
 
 class DorisScaleUpDetailSerializer(BigDataScaleDetailSerializer):
+    enable_cold_storage = serializers.BooleanField(help_text=_("是否建立低频存储"), default=False)
+
     def validate(self, attrs):
         attrs = super().validate(attrs)
 
@@ -75,7 +77,7 @@ class DorisScaleUpFlowParamBuilder(builders.FlowParamBuilder):
                         "ip": "127.0.0.7"
                     }
                 ],
-                "cold": [
+                "warm": [
                     {
                         "bk_cloud_id": 0,
                         "bk_host_id": 0,
