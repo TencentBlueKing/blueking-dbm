@@ -42,6 +42,7 @@ class UpdateKeyStatReportRecordSerializer(serializers.ModelSerializer):
             "source_addr_list",
             "atime_available",
             "analyzed_shard_num",
+            "root_id",
         ]
 
 
