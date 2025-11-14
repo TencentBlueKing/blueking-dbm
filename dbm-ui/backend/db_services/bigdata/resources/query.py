@@ -224,7 +224,7 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource, BigDataBaseExp
         storage_queryset = (
             StorageInstance.objects.filter(query_filters)
             .values("instance_role", "machine__ip")
-            .annotate(node_count=Count("id"), role=F("instance_role"))
+            .annotate(node_count=Count("id"), role=F("instance_role"), create_at=F("machine__create_at"))
             .values(*fields)
             .order_by("node_count")
         )
