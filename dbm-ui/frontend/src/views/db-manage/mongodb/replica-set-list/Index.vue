@@ -288,7 +288,7 @@
 
   const handleApply = () => {
     router.push({
-      name: 'MongoDBReplicaSetApply',
+      name: TicketTypes.MONGODB_REPLICASET_APPLY,
       query: {
         bizId: window.PROJECT_CONFIG.BIZ_ID,
         from: route.name as string,

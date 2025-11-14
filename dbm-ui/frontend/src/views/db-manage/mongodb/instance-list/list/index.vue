@@ -400,7 +400,10 @@
 
   const handleGoApply = () => {
     router.push({
-      name: route.name === 'mongodbReplicaSetInstanceList' ? 'MongoDBReplicaSetApply' : 'MongoDBSharedClusterApply',
+      name:
+        route.name === 'mongodbReplicaSetInstanceList'
+          ? TicketTypes.MONGODB_REPLICASET_APPLY
+          : TicketTypes.MONGODB_SHARD_APPLY,
     });
   };
 

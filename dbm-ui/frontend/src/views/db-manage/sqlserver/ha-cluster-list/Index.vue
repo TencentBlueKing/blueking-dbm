@@ -283,7 +283,7 @@
    */
   const handleApply = () => {
     router.push({
-      name: 'SqlServiceHaApply',
+      name: TicketTypes.SQLSERVER_HA_APPLY,
       query: {
         bizId: window.PROJECT_CONFIG.BIZ_ID,
         from: String(route.name),
