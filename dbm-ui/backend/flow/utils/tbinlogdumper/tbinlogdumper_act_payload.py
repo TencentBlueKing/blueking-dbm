@@ -24,6 +24,8 @@ from backend.flow.consts import (
     DBActuatorActionEnum,
     DBActuatorTypeEnum,
     MediumEnum,
+    MySQLBackupFileTagEnum,
+    MySQLBackupTypeEnum,
     TBinlogDumperProtocolType,
 )
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version
@@ -194,12 +196,16 @@ class TBinlogDumperActPayload(object):
                     "host": kwargs["ip"],
                     "port": self.ticket_data["port"],
                     "role": self.ticket_data["role"],
-                    "backup_type": "logical",
+                    "backup_type": MySQLBackupTypeEnum.LOGICAL.value,
                     "backup_gsd": ["data"],
-                    "regex": self.ticket_data["db_table_filter_regex"],
                     "backup_id": self.ticket_data["backup_id"].__str__(),
                     "bill_id": str(self.ticket_data["uid"]),
                     "custom_backup_dir": "tbinlogdumper",
+                    "backup_file_tag": MySQLBackupFileTagEnum.DBFILE1M.value,
+                    "db_patterns": self.ticket_data["db_patterns"],
+                    "ignore_dbs": [],
+                    "table_patterns": self.ticket_data["table_patterns"],
+                    "ignore_tables": [],
                 },
             },
         }

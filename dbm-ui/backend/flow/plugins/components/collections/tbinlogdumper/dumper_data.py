@@ -28,17 +28,19 @@ class TBinlogDumperFullSyncDataService(ExecuteDBActuatorScriptService):
         backup_port = kwargs["backup_port"]
         backup_role = kwargs["backup_role"]
 
-        # 拼装备份你库表正则表达式, 目前只考虑replicate_do_table 和 replicate_wild_do_table的 过滤同步场景
-        backup_regex = ""
-        tmp = "|".join(kwargs["repl_tables"])
-        backup_regex += tmp.replace("%", "*")
+        # 拼装备份你库表正则表达式
+        db_patterns = []
+        table_patterns = []
+        for table in kwargs["repl_tables"]:
+            tmp = table.split(".")
+            db_patterns.append(tmp[0])
+            table_patterns.append(tmp[1])
 
         # 下发库表备份指令
         data.get_one_of_inputs("global_data")["port"] = backup_port
         data.get_one_of_inputs("global_data")["role"] = backup_role
-
-        data.get_one_of_inputs("global_data")["db_table_filter_regex"] = backup_regex
-
+        data.get_one_of_inputs("global_data")["db_patterns"] = list(set(db_patterns))
+        data.get_one_of_inputs("global_data")["table_patterns"] = list(set(table_patterns))
         data.get_one_of_inputs("kwargs")["bk_cloud_id"] = kwargs["bk_cloud_id"]
         data.get_one_of_inputs("kwargs")[
             "get_mysql_payload_func"
