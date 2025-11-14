@@ -3,6 +3,8 @@ export * from './addPolaris';
 export * from './apply';
 export * from './clbBindDomain';
 export * from './clbUnbindDomain';
+export * from './deleteClb';
+export * from './deletePolaris';
 export * from './destroy';
 export * from './disable';
 export * from './enable';
