@@ -49,6 +49,7 @@ func (d *BackupDemandAct) Init() (err error) {
 		logger.Error("DeserializeAndValidate err %s", err.Error())
 		return err
 	}
+	d.Payload.GeneralParam = subcmd.GeneralRuntimeParam
 	logger.Warn("params %+v", d.Payload.Params)
 
 	return
