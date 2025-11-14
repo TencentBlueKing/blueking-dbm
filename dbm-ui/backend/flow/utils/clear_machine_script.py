@@ -40,6 +40,8 @@ if [ -d "/data" ]; then
     rm -rf /data/dbbak/
     rm -rf /data/mysqldata/
     rm -rf /data/mysqllog/
+    rm -rf /data/mysqldata_*/
+    rm -rf /data/mysqllog_*/
     rm -rf /data/mysql-proxy/
     rm -rf /data/idip_cache/
 fi
@@ -49,6 +51,8 @@ echo "rm data1-dir ...."
 if [ -d "/data1" ]; then
     rm -rf /data1/mysqldata/
     rm -rf /data1/mysqllog/
+    rm -rf /data1/mysqldata_*/
+    rm -rf /data1/mysqllog_*/
     rm -rf /data1/dbbak/
     rm -rf /data1/dbha/
 fi
