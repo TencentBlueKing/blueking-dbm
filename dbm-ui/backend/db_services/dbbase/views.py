@@ -95,7 +95,6 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         (
             "simple_query_cluster",
             "common_query_cluster",
-            "filter_clusters",
             "query_cluster_stat",
             "query_cluster_load",
         ): [DBManagePermission()],

@@ -67,6 +67,7 @@ api_patterns = [
     path("tag/", include("backend.db_services.tag.urls")),
     path("plugin/", include("backend.db_services.plugin.urls")),
     path("legacy/", include("backend.legacy.urls")),
+    path("ai/", include("backend.dbm_aiagent.urls")),
 ]
 
 urlpatterns = [

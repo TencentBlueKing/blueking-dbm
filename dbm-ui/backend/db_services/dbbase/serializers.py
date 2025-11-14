@@ -92,9 +92,9 @@ class CommonQueryClusterResponseSerializer(serializers.Serializer):
 class ClusterFilterSerializer(ListMySQLResourceSLZ, ListSQLServerResourceSLZ, ListMongoDBResourceSLZ):
     # 基础的集群过滤条件
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
-    cluster_ids = serializers.CharField(help_text=_("集群ID(逗号分割)"), required=False, default="")
-    cluster_type = serializers.CharField(help_text=_("集群类型"), required=False, default="")
-    db_type = serializers.CharField(help_text=_("DB类型"), required=False, default="")
+    cluster_ids = serializers.CharField(help_text=_("集群ID(逗号分割)"), required=False)
+    cluster_type = serializers.CharField(help_text=_("集群类型"), required=False)
+    db_type = serializers.CharField(help_text=_("DB类型"), required=False)
     limit = serializers.IntegerField(help_text=_("分页限制"), required=False, default=-1)
     offset = serializers.IntegerField(help_text=_("分页起始"), required=False, default=0)
 
@@ -104,11 +104,11 @@ class ClusterFilterSerializer(ListMySQLResourceSLZ, ListSQLServerResourceSLZ, Li
         attrs["bk_biz_id"] = attrs.get("bk_biz_id", None)
         if attrs["bk_biz_id"]:
             filters &= Q(bk_biz_id=attrs["bk_biz_id"])
-        if attrs["cluster_ids"]:
+        if attrs.get("cluster_ids"):
             filters &= Q(id__in=attrs["cluster_ids"].split(","))
-        if attrs["cluster_type"]:
+        if attrs.get("cluster_type"):
             filters &= Q(cluster_type__in=attrs["cluster_type"].split(","))
-        if attrs["db_type"]:
+        if attrs.get("db_type"):
             cluster_types = ClusterType.db_type_to_cluster_types(attrs["db_type"])
             filters &= Q(cluster_type__in=cluster_types)
         attrs["filters"] = filters

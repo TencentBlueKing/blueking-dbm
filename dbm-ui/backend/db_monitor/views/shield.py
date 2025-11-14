@@ -43,6 +43,7 @@ class AlarmShieldView(SystemViewSet):
             "create": serializers.CreateAlarmShieldSerializer,
             "update": serializers.UpdateAlarmShieldSerializer,
             "disable": serializers.DisableAlarmShieldSerializer,
+            "retrieve": serializers.serializers.Serializer,
         }
         return action_slz_map.get(self.action)
 

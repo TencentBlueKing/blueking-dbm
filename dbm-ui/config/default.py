@@ -101,6 +101,7 @@ INSTALLED_APPS += (
     "blueapps.opentelemetry.instrument_app",
     # apigw
     "apigw_manager.apigw",
+    "apigw_manager.drf",
     # DB重连
     "backend.django_dbconn_retry",
     # 动态 raw-id
@@ -318,10 +319,12 @@ BK_APIGW_MANAGER_MAINTAINERS = env.BK_APIGW_MANAGER_MAINTAINERS
 BK_APIGW_STAGE_NAME = env.BK_APIGW_STAGE_NAME
 BK_APIGATEWAY_DOMAIN = env.BK_APIGATEWAY_DOMAIN
 BK_API_URL_TMPL = env.BK_API_URL_TMPL
-BK_APIGW_NAME = "bkdbm"
+BK_APIGW_NAME = env.BK_APIGW_NAME
+BK_APIGW_MCP_NAME = env.BK_APIGW_MCP_NAME
 BK_APIGW_GRANT_APPS = env.BK_APIGW_GRANT_APPS
 # TODO: apigw文档待补充
 BK_APIGW_RESOURCE_DOCS_BASE_DIR = env.BK_APIGW_RESOURCE_DOCS_BASE_DIR
+BK_APIGW_STAGE_BACKEND_SUBPATH = ""
 
 BK_NOTICE = {
     "BK_API_URL_TMPL": BK_API_URL_TMPL,
@@ -418,6 +421,7 @@ REST_FRAMEWORK = {
     "DATETIME_FORMAT": None,
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
     "EXCEPTION_HANDLER": "backend.bk_web.handlers.drf_exception_handler",
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -621,3 +625,21 @@ if env.BKAPP_MONITOR_REPORTER_ENABLE:
 # 开启DEBUG_TOOL_BAR，需要内联IP
 if env.DEBUG_TOOL_BAR:
     INTERNAL_IPS = ["127.0.0.1", "localhost"]
+
+# 开启MCP server
+BK_APIGW_STAGE_ENABLE_MCP_SERVERS = env.BK_APIGW_STAGE_ENABLE_MCP_SERVERS
+BK_APIGW_STAGE_MCP_SERVERS = [
+    {
+        "name": "dbm-mcp",
+        "description": "dbm-mcp",
+        # 主动授权 app_code
+        "target_app_codes": [APP_CODE],
+        "labels": ["dbm"],
+        # 是否启用：1-启用，0-停止
+        "status": 1,
+        # 是否公开
+        "is_public": False,
+        # 自动发现并填充该 MCP 服务器对应的工具
+        "tools": [],
+    }
+]
