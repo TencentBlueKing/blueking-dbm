@@ -411,7 +411,7 @@
    */
   const handleApply = () => {
     router.push({
-      name: 'SqlServiceHaApply',
+      name: TicketTypes.SQLSERVER_HA_APPLY,
       query: {
         bizId: globalBizsStore.currentBizId,
       },

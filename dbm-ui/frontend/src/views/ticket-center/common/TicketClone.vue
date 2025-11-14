@@ -54,35 +54,35 @@
 
   const ticketTypeRouteNameMap: Record<string, string> = {
     ...ticketTypesMap,
-    [TicketTypes.DORIS_APPLY]: 'DorisApply',
-    [TicketTypes.ES_APPLY]: 'EsApply',
+    [TicketTypes.DORIS_APPLY]: TicketTypes.DORIS_APPLY,
+    [TicketTypes.ES_APPLY]: TicketTypes.ES_APPLY,
     [TicketTypes.ES_CREATE_CLB]: 'EsList', // es 启用clb',
     [TicketTypes.ES_CREATE_POLARIS]: 'EsList', // es 启用北极星',
     [TicketTypes.ES_DNS_BIND_CLB]: 'EsList', // es 主域名指向CLB ip
     [TicketTypes.ES_DNS_UNBIND_CLB]: 'EsList', // es 解绑主域名指向clb
-    [TicketTypes.HDFS_APPLY]: 'HdfsApply',
-    [TicketTypes.INFLUXDB_APPLY]: 'SelfServiceApplyInfluxDB',
-    [TicketTypes.KAFKA_APPLY]: 'KafkaApply',
-    [TicketTypes.MONGODB_REPLICASET_APPLY]: 'MongoDBReplicaSetApply',
-    [TicketTypes.MONGODB_SHARD_APPLY]: 'MongoDBSharedClusterApply',
+    [TicketTypes.HDFS_APPLY]: TicketTypes.HDFS_APPLY,
+    [TicketTypes.INFLUXDB_APPLY]: TicketTypes.INFLUXDB_APPLY,
+    [TicketTypes.KAFKA_APPLY]: TicketTypes.KAFKA_APPLY,
+    [TicketTypes.MONGODB_REPLICASET_APPLY]: TicketTypes.MONGODB_REPLICASET_APPLY,
+    [TicketTypes.MONGODB_SHARD_APPLY]: TicketTypes.MONGODB_SHARD_APPLY,
     [TicketTypes.MYSQL_ADD_CLB]: 'DatabaseTendbha', // mysql 启用clb',
     [TicketTypes.MYSQL_AUTHORIZE_RULES]: 'PermissionRules', // Mysql 授权
     [TicketTypes.MYSQL_CLB_BIND_DOMAIN]: 'DatabaseTendbha', // mysql 主域名指向CLB ip
     [TicketTypes.MYSQL_CLB_UNBIND_DOMAIN]: 'DatabaseTendbha', // mysql 解绑主域名指向clb
     [TicketTypes.MYSQL_EXCEL_AUTHORIZE_RULES]: '', // Mysql excel 授权
-    [TicketTypes.MYSQL_HA_APPLY]: 'SelfServiceApplyHa', // Mysql 主从部署
+    [TicketTypes.MYSQL_HA_APPLY]: TicketTypes.MYSQL_HA_APPLY, // Mysql 主从部署
     [TicketTypes.MYSQL_HA_DESTROY]: 'DatabaseTendbha', // Mysql 删除
     [TicketTypes.MYSQL_HA_DISABLE]: 'DatabaseTendbha', // Mysql 禁用
     [TicketTypes.MYSQL_HA_ENABLE]: 'DatabaseTendbha', // Mysql 启用
-    [TicketTypes.MYSQL_SINGLE_APPLY]: 'SelfServiceApplySingle', // Mysql 单节点部署
+    [TicketTypes.MYSQL_SINGLE_APPLY]: TicketTypes.MYSQL_SINGLE_APPLY, // Mysql 单节点部署
     [TicketTypes.MYSQL_SINGLE_DESTROY]: 'DatabaseTendbsingle', // Mysql 单节点删除
     [TicketTypes.MYSQL_SINGLE_DISABLE]: 'DatabaseTendbsingle', // Mysql 单节点禁用
     [TicketTypes.MYSQL_SINGLE_ENABLE]: 'DatabaseTendbsingle', // Mysql 单节点启用
-    [TicketTypes.PULSAR_APPLY]: 'PulsarApply',
-    [TicketTypes.REDIS_CLUSTER_APPLY]: 'SelfServiceApplyRedis', // Redis 申请部署
+    [TicketTypes.PULSAR_APPLY]: TicketTypes.PULSAR_APPLY,
+    [TicketTypes.REDIS_CLUSTER_APPLY]: TicketTypes.REDIS_CLUSTER_APPLY, // Redis 申请部署
     [TicketTypes.REDIS_DATA_STRUCTURE_TASK_DELETE]: 'RedisStructureInstance', // Redis 删除构造任务
     [TicketTypes.REDIS_DESTROY]: 'DatabaseRedisList', // Redis 集群删除
-    [TicketTypes.REDIS_INS_APPLY]: 'SelfServiceApplyRedisHa',
+    [TicketTypes.REDIS_INS_APPLY]: TicketTypes.REDIS_INS_APPLY,
     [TicketTypes.REDIS_PLUGIN_CREATE_CLB]: 'DatabaseRedisList', // Redis 创建CLB
     [TicketTypes.REDIS_PLUGIN_CREATE_POLARIS]: 'DatabaseRedisList', // Redis 删除构造任务
     [TicketTypes.REDIS_PLUGIN_DELETE_CLB]: 'DatabaseRedisList', // Redis 删除CLB
@@ -91,12 +91,12 @@
     [TicketTypes.REDIS_PLUGIN_DNS_UNBIND_CLB]: 'DatabaseRedisList', // Redis 解绑CLB
     [TicketTypes.REDIS_PROXY_CLOSE]: 'DatabaseRedisList', // Redis 集群禁用
     [TicketTypes.REDIS_PROXY_OPEN]: 'DatabaseRedisList', // Redis 集群启用
-    [TicketTypes.RIAK_CLUSTER_APPLY]: 'RiakApply',
+    [TicketTypes.RIAK_CLUSTER_APPLY]: TicketTypes.RIAK_CLUSTER_APPLY,
     [TicketTypes.SQLSERVER_DATA_MIGRATE]: 'sqlServerDataMigrate', // sqlserver 数据迁移
-    [TicketTypes.SQLSERVER_HA_APPLY]: 'SqlServiceHaApply',
-    [TicketTypes.SQLSERVER_SINGLE_APPLY]: 'SqlServiceSingleApply',
+    [TicketTypes.SQLSERVER_HA_APPLY]: TicketTypes.SQLSERVER_HA_APPLY,
+    [TicketTypes.SQLSERVER_SINGLE_APPLY]: TicketTypes.SQLSERVER_SINGLE_APPLY,
     [TicketTypes.TENDBCLUSTER_ADD_CLB]: 'tendbClusterList', // tendbcluster 启用clb
-    [TicketTypes.TENDBCLUSTER_APPLY]: 'spiderApply', // spider 集群部署
+    [TicketTypes.TENDBCLUSTER_APPLY]: TicketTypes.TENDBCLUSTER_APPLY, // spider 集群部署
     [TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES]: 'spiderPermission',
     [TicketTypes.TENDBCLUSTER_CLB_BIND_DOMAIN]: 'tendbClusterList', // tendbcluster 主域名指向CLB ip
     [TicketTypes.TENDBCLUSTER_CLB_UNBIND_DOMAIN]: 'tendbClusterList', // tendbcluster 解绑主域名指向clb

@@ -194,7 +194,7 @@
 
   import { useClusterQuickSearch, useTableSettings } from '@hooks';
 
-  import { ClusterTypes, UserPersonalSettings } from '@common/const';
+  import { ClusterTypes, TicketTypes, UserPersonalSettings } from '@common/const';
 
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
@@ -248,7 +248,7 @@
 
   const handleApply = () => {
     router.push({
-      name: 'RiakApply',
+      name: TicketTypes.RIAK_CLUSTER_APPLY,
       query: {
         bizId: window.PROJECT_CONFIG.BIZ_ID,
       },

@@ -328,7 +328,7 @@
 
   const handleApply = () => {
     router.push({
-      name: 'MongoDBSharedClusterApply',
+      name: TicketTypes.MONGODB_SHARD_APPLY,
       query: {
         bizId: window.PROJECT_CONFIG.BIZ_ID,
         from: route.name as string,
