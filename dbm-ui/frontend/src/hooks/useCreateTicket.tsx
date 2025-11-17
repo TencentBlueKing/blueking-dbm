@@ -33,6 +33,7 @@ export function useCreateTicket<T>(ticketType: TicketTypes, options?: { onSucces
 
       if (options?.onSuccess) {
         options.onSuccess(ticketId);
+        ticketMessage(ticketId);
         return;
       }
 

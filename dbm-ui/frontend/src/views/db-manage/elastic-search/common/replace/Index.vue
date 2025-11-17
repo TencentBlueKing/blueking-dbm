@@ -60,6 +60,7 @@
       resourceSpec: {
         count: 0,
         instance_num: 1,
+        labels: [],
         spec_id: 0,
       },
       role: 'es_client',
@@ -74,6 +75,7 @@
       resourceSpec: {
         count: 0,
         instance_num: 1,
+        labels: [],
         spec_id: 0,
       },
       role: 'es_datanode_cold',
@@ -88,6 +90,7 @@
       resourceSpec: {
         count: 0,
         instance_num: 1,
+        labels: [],
         spec_id: 0,
       },
       role: 'es_datanode_hot',
@@ -102,6 +105,7 @@
       resourceSpec: {
         count: 0,
         instance_num: 1,
+        labels: [],
         spec_id: 0,
       },
       role: 'es_master',

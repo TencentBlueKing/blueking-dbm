@@ -55,6 +55,7 @@
     oldHostList: [],
     resourceSpec: {
       count: 0,
+      labels: [],
       spec_id: 0,
     },
     specClusterType: ClusterTypes.DORIS,

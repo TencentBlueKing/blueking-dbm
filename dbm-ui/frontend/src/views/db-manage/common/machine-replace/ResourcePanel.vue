@@ -34,7 +34,7 @@
             <span>
               <span>{{ t('新节点 IP') }}</span>
               <span>(</span>
-              <template v-if="ipSource === 'manual_input' && (isValidated || hostList.length > 0)">
+              <template v-if="ipSource === 'manual_input' && hostList.length > 0">
                 <I18nT
                   v-if="oldHostList.length > hostList.length"
                   keypath="已选n台_少n台_共nG"
@@ -100,10 +100,10 @@
               @update:model-value="handleValueChange" />
             <ResourcePoolSelector
               v-else
+              ref="resourcePoolSelector"
               v-model="resourceSpec"
               :cloud-info="cloudInfo"
               :data="data"
-              :error="ipSource !== 'manual_input' && isValidated && resourceSpec.spec_id < 1"
               @update:model-value="handleValueChange" />
           </td>
         </tr>
@@ -111,34 +111,6 @@
     </table>
   </div>
 </template>
-<script lang="tsx">
-  import DbResourceModel from '@services/model/db-resource/DbResource';
-  import type { HostInfo } from '@services/types';
-
-  export interface TReplaceNode {
-    // 集群id
-    clusterId: number;
-    hostList: DbResourceModel[];
-    oldHostList: {
-      bk_cloud_id: number;
-      bk_host_id: number;
-      host_info: HostInfo;
-      ip: string;
-      related_instances: { bk_instance_id: number }[];
-    }[];
-    // 扩容资源池
-    resourceSpec: {
-      count: number;
-      spec_id: number;
-    };
-    // 集群的节点类型
-    role: string;
-    // 资源池规格集群类型
-    specClusterType: string;
-    // 资源池规格集群类型
-    specMachineType: string;
-  }
-</script>
 <script setup lang="tsx">
   import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
@@ -147,6 +119,7 @@
 
   import ResourceHostSelect from './components/ResourceHostSelect.vue';
   import ResourcePoolSelector from './components/ResourcePoolSelector.vue';
+  import type { TReplaceNode } from './Index.vue';
 
   export interface Props {
     cloudInfo: {
@@ -161,10 +134,10 @@
   export type Emits = (e: 'removeNode', node: TReplaceNode['oldHostList'][number]) => void;
 
   export interface Exposes {
-    getValue: () => Promise<boolean>;
+    validate: () => Promise<boolean>;
   }
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
@@ -181,30 +154,32 @@
   const { t } = useI18n();
 
   const hostEditBtnPlaceholderId = `replaceHostEditBtn${random()}`;
-  const isValidated = ref(false);
+
+  const resourcePoolSelectorRef = useTemplateRef('resourcePoolSelector');
+  // const isValidated = ref(false);
 
   const oldHostDiskTotal = computed(() =>
     oldHostList.value.reduce((result, item) => result + (item.host_info?.bk_disk || 0), 0),
   );
   const localHostDisk = computed(() => hostList.value.reduce((result, item) => result + ~~Number(item.bk_disk), 0));
 
-  const isError = computed(() => {
-    if (oldHostList.value.length < 1) {
-      return false;
-    }
-    if (props.ipSource === 'manual_input') {
-      return hostList.value.length > 0 && hostList.value.length !== oldHostList.value.length;
-    }
+  // const isError = computed(() => {
+  //   if (oldHostList.value.length < 1) {
+  //     return false;
+  //   }
+  //   if (props.ipSource === 'manual_input') {
+  //     return hostList.value.length > 0 && hostList.value.length !== oldHostList.value.length;
+  //   }
 
-    return resourceSpec.value.spec_id < 1;
-  });
+  //   return resourceSpec.value.spec_id < 1;
+  // });
 
-  watch(
-    () => props.ipSource,
-    () => {
-      isValidated.value = false;
-    },
-  );
+  // watch(
+  //   () => props.ipSource,
+  //   () => {
+  //     isValidated.value = false;
+  //   },
+  // );
 
   // 移除节点
   const handleRemoveNode = (node: TReplaceNode['oldHostList'][number]) => {
@@ -220,17 +195,18 @@
 
   // 资源池自动匹配不需要校验主机数
   const handleValueChange = () => {
-    isValidated.value = false;
+    // isValidated.value = false;
     window.changeConfirm = true;
   };
 
   defineExpose<Exposes>({
-    getValue() {
-      isValidated.value = true;
-      if (isError.value) {
-        return Promise.reject(false);
-      }
-      return Promise.resolve(true);
+    validate() {
+      // isValidated.value = true;
+      // if (isError.value) {
+      //   return Promise.reject(false);
+      // }
+      // return Promise.resolve(true);
+      return resourcePoolSelectorRef.value!.validate();
     },
   });
 </script>
