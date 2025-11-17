@@ -89,7 +89,7 @@ type SwapMySQLRoleInstance struct {
 
 // SwapMySQLRolePayload contains two instances for MySQL role swapping
 // Note: instance1 and instance2 should be a MySQL master-slave pair.
-// While there is no need to distinguish which is master and which is slave.
+// instance1 should be backend_master, instance2 should be backend_slave.
 type SwapMySQLRolePayload struct {
 	Instance1 SwapMySQLRoleInstance `json:"instance1"`
 	Instance2 SwapMySQLRoleInstance `json:"instance2"`
