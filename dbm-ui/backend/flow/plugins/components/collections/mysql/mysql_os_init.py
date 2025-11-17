@@ -284,7 +284,14 @@ get_os_sys_param = """
     sys_max_open_file=`cat /proc/sys/fs/file-max`
     user_max_open_file=`ulimit -n`
     glibc_version=$(ldd --version | head -n 1 | awk '{print $NF}')
-    printf "<ctx>{\\\"sys_max_open_file\\\":${sys_max_open_file},\\\"user_max_open_file\\\":${user_max_open_file},\\\"glibc_version\\\":${glibc_version}}</ctx>"
+    if [ -f /etc/os-release ]; then
+        version_id=$(grep "^VERSION_ID=" /etc/os-release | cut -d'=' -f2 | tr -d '"')
+        os_id=$(grep "^ID=" /etc/os-release | cut -d'=' -f2 | tr -d '"')
+    else
+        version_id=""
+        os_id=""
+    fi
+    printf "<ctx>{\\\"sys_max_open_file\\\":${sys_max_open_file},\\\"user_max_open_file\\\":${user_max_open_file},\\\"glibc_version\\\":${glibc_version},\\\"version_id\\\":\\\"${version_id}\\\",\\\"os_id\\\":\\\"${os_id}\\\"}</ctx>"
 """  # noqa
 
 
@@ -371,3 +378,131 @@ class CleanDataBakDirComponent(Component):
     name = __name__
     code = "clean_data_bak_dir"
     bound_service = CleanDataBakDirSvr
+
+
+tlinux4_dependencies_script = """
+    echo "install tlinux4 dependencies"
+    if [ -f /etc/os-release ]; then
+        ID=$(grep "^ID=" /etc/os-release | cut -d'=' -f2 | tr -d '"' | xargs)
+        ID_LOWER=$(echo "$ID" | tr '[:upper:]' '[:lower:]' | xargs)
+
+        if [ "$ID_LOWER" = "tlinux" ] || [ "$ID_LOWER" = "tencentos" ]; then
+            VERSION_ID=$(grep "^VERSION_ID=" /etc/os-release | cut -d'=' -f2 | tr -d '"' | xargs)
+            MAJOR_VERSION=$(echo $VERSION_ID | cut -d'.' -f1)
+
+            if [ "$MAJOR_VERSION" -ge 4 ]; then
+                echo "OS version check passed: ID=$ID, VERSION_ID=$VERSION_ID"
+                mkdir -p /data/install
+                if [ -n "{{download_url}}" ] && [ ! -f /data/install/{{pkg}} ]; then
+                    cd /data/install/ && wget --header "Host:{{domain}}" --tries=10 {{download_url}} -O {{pkg}}
+                    if [ $? -ne 0 ]; then
+                        echo "Failed to download {{pkg}}, exit"
+                        exit 1
+                    fi
+                fi
+                if [ ! -f /data/install/{{pkg}} ]; then
+                    echo "Package file /data/install/{{pkg}} not found, exit"
+                    exit 1
+                fi
+                rpm -ivh /data/install/{{pkg}}
+                if [ $? -ne 0 ]; then
+                    echo "Failed to install {{pkg}}, exit"
+                    exit 1
+                fi
+                if [ -L /usr/lib64/libmysqlclient.so.21 ]; then
+                    echo "Found symlink /usr/lib64/libmysqlclient.so.21, removing it"
+                    unlink /usr/lib64/libmysqlclient.so.21
+                fi
+            else
+                echo "Skip installation: ID=$ID, VERSION_ID=$VERSION_ID (requires version 4.x+)"
+                exit 0
+            fi
+        else
+            echo "Skip installation: ID=$ID (requires tlinux or tencentos)"
+            exit 0
+        fi
+    else
+        echo "Warning: /etc/os-release not found, skip installation"
+        exit 0
+    fi
+"""  # noqa
+
+
+class AdaptTLinux4DependenciesSvr(BkJobService):
+    def __get_exec_ips(self, kwargs, trans_data) -> list:
+        """
+        获取需要执行的ip list
+        """
+        # 拼接节点执行ip所需要的信息，ip信息统一用list处理拼接
+        if kwargs.get("get_trans_data_ip_var"):
+            exec_ips = self.splice_exec_ips_list(pool_ips=getattr(trans_data, kwargs["get_trans_data_ip_var"]))
+        else:
+            exec_ips = self.splice_exec_ips_list(ticket_ips=kwargs.get("exec_ip"))
+
+        return exec_ips
+
+    def _execute(self, data, parent_data) -> bool:
+        trans_data = data.get_one_of_inputs("trans_data")
+        kwargs = data.get_one_of_inputs("kwargs")
+        pkg = kwargs.get("pkg", "")
+        download_url = kwargs.get("download_url", "")
+
+        # 参数校验
+        if not pkg:
+            self.log_error("pkg parameter is required")
+            return False
+
+        if not kwargs.get("exec_ip"):
+            self.log_error("exec_ip parameter is required")
+            return False
+
+        if not env.BKREPO_ENDPOINT_URL:
+            self.log_error("BKREPO_ENDPOINT_URL is not configured")
+            return False
+
+        domain = env.BKREPO_ENDPOINT_URL.replace("https://", "").replace("http://", "").rstrip("/")
+
+        # 脚本内容
+        jinja_env = Environment()
+        template = jinja_env.from_string(tlinux4_dependencies_script)
+        script_content = template.render(
+            pkg=pkg,
+            download_url=download_url,
+            domain=domain,
+        )
+
+        exec_ips = self.__get_exec_ips(kwargs=kwargs, trans_data=trans_data)
+        if not exec_ips:
+            self.log_error("No execution IPs found")
+            return False
+
+        target_ip_info = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": ip} for ip in exec_ips]
+        body = {
+            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+            "task_name": "Adapt-TLinux4-Dependencies",
+            "script_content": base64_encode(script_content),
+            "script_language": 1,
+            "target_server": {"ip_list": target_ip_info},
+        }
+        self.log_info("ready start task with body {}".format(body))
+
+        common_kwargs = copy.deepcopy(fast_execute_script_common_kwargs)
+        common_kwargs["account_alias"] = DBA_ROOT_USER
+        resp = JobApi.fast_execute_script({**common_kwargs, **body}, raw=True)
+        self.log_info(f"fast execute script response: {resp}")
+
+        # 检查响应结果
+        if not resp.get("result") or not resp.get("data") or not resp["data"].get("job_instance_id"):
+            self.log_error(f"Failed to execute script: {resp}")
+            return False
+
+        self.log_info(f"job url: {self.__url__(resp['data']['job_instance_id'])}")
+        data.outputs.ext_result = resp
+        data.outputs.exec_ips = exec_ips
+        return True
+
+
+class AdaptTLinux4DependenciesComponent(Component):
+    name = __name__
+    code = "adapt_tlinux4_dependencies"
+    bound_service = AdaptTLinux4DependenciesSvr

@@ -20,6 +20,7 @@ from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster
+from backend.db_package.exceptions import PackageNotExistException
 from backend.db_services.dbpermission.db_account.handlers import AccountHandler
 from backend.db_services.mysql.permission.clone.handlers import CloneHandler
 from backend.flow.consts import DBA_ROOT_USER, WriteContextOpType
@@ -38,6 +39,7 @@ from backend.flow.plugins.components.collections.mysql.mysql_check_variable_cons
 )
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.mysql_os_init import (
+    AdaptTLinux4DependenciesComponent,
     GetOsSysParamComponent,
     MySQLOsInitComponent,
     SysInitComponent,
@@ -475,14 +477,43 @@ def init_machine_sub_flow(
 
     # 初始化机器
     if sys_init_ips:
-        sub_pipeline.add_act(
-            act_name=_("初始化机器"),
-            act_component_code=SysInitComponent.code,
-            kwargs={
-                "exec_ip": sys_init_ips,
-                "bk_cloud_id": bk_cloud_id,
-            },
+        act_list = []
+        act_list.append(
+            {
+                "act_name": _("初始化机器"),
+                "act_component_code": SysInitComponent.code,
+                "kwargs": {"exec_ip": sys_init_ips, "bk_cloud_id": bk_cloud_id},
+            }
         )
+        # 获取tlinux4依赖包配置，如果配置为空则跳过
+        try:
+            pkg, download_url = GetFileList(db_type=DBType.MySQL).get_tlinux4_dependencies_package()
+            if pkg and download_url:
+                act_list.append(
+                    {
+                        "act_name": _("判断/安装tlinux4依赖"),
+                        "act_component_code": AdaptTLinux4DependenciesComponent.code,
+                        "kwargs": {
+                            "exec_ip": sys_init_ips,
+                            "pkg": pkg,
+                            "download_url": download_url,
+                            "bk_cloud_id": bk_cloud_id,
+                        },
+                    }
+                )
+            else:
+                logger.info(_("tlinux4依赖包配置为空，跳过安装步骤"))
+        except PackageNotExistException:
+            logger.info(_("tlinux4依赖包不存在，跳过安装步骤"))
+        sub_pipeline.add_parallel_acts(acts_list=act_list)
+        # sub_pipeline.add_parallel_acts(acts_list=act_list)
+        #     act_name=_("初始化机器"),
+        #     act_component_code=SysInitComponent.code,
+        #     kwargs={
+        #         "exec_ip": sys_init_ips,
+        #         "bk_cloud_id": bk_cloud_id,
+        #     },
+        # )
 
     # 安装插件
     if bk_host_ids:

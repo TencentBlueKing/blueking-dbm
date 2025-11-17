@@ -740,3 +740,15 @@ class GetFileList(object):
         return [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
         ]
+
+    def get_tlinux4_dependencies_package(self) -> tuple:
+        """
+        tlinux4依赖包
+        """
+        tlinux4_dependencies_pkg = Package.get_latest_package(
+            version=MediumEnum.Latest, pkg_type=MediumEnum.TLinux4Dependencies, db_type=DBType.MySQL
+        )
+        return [
+            tlinux4_dependencies_pkg.name,
+            f"{env.BKREPO_ENDPOINT_URL}/generic/{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{tlinux4_dependencies_pkg.path}",
+        ]
