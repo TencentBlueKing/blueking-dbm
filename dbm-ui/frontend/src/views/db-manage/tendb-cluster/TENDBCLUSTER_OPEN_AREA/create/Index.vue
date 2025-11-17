@@ -18,7 +18,7 @@
     <span style="font-size: 16px">【{{ templateData.config_name }}】</span>
   </Teleport>
   <SmartAction
-    class="tendbcluster-openarea-page"
+    class="openarea-template-create"
     :offset-target="getSmartActionOffsetTarget">
     <BkLoading :loading="loading">
       <DbCard
@@ -160,7 +160,7 @@
   });
 </script>
 <style lang="less">
-  .tendbcluster-openarea-page {
+  .openarea-template-create {
     .bk-form-label {
       font-size: 12px;
     }

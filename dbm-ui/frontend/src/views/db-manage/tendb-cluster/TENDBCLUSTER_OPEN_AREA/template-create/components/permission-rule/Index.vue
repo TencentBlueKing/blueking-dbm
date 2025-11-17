@@ -25,47 +25,48 @@
     <BKLoading :loading="loading">
       <BkTable
         v-if="tableData.length > 0"
-        :cell-class="getCellClass"
-        class="add-permission-table"
-        :data="tableData">
+        class="openarea-permission-rule-table"
+        :data="tableData"
+        :row-class-name="rowClass"
+        :show-overflow="false">
         <BkTableColumn
           field="user"
           :label="t('账号名称')"
-          :min-width="220">
-          <template #default="{ data }: { data: MysqlPermissionAccountModel }">
+          :width="220">
+          <template #default="{ row }: { row: MysqlPermissionAccountModel }">
             <DbIcon
-              v-if="data.rules.length > 1"
+              v-if="row.rules.length > 1"
               class="flod-flag"
               :class="{
-                'is-flod': rowFlodMap[data.account.user],
+                'is-flod': rowFlodMap[row.account.user],
               }"
               type="down-shape"
-              @click="handleToogleExpand" />
-            {{ data.account.user }}
+              @click="() => handleToogleExpand(row.account.user)" />
+            {{ row.account.user }}
           </template>
         </BkTableColumn>
         <BkTableColumn
           field="access_db"
           :label="t('访问DB')"
-          :min-width="300">
-          <template #default="{ data }: { data: MysqlPermissionAccountModel }">
-            <BkTag
-              v-for="item in rowFlodMap[data.account.user] ? data.rules.slice(0, 1) : data.rules"
-              :key="item.rule_id">
-              {{ item.access_db }}
-            </BkTag>
+          :width="300">
+          <template #default="{ row }: { row: MysqlPermissionAccountModel }">
+            <p
+              v-for="item in rowFlodMap[row.account.user] ? row.rules : row.rules.slice(0, 1)"
+              :key="item.rule_id"
+              class="inner-row">
+              <BkTag>{{ item.access_db }}</BkTag>
+            </p>
           </template>
         </BkTableColumn>
         <BkTableColumn
           field="privilege"
           :label="t('权限')"
           :min-width="300">
-          <template #default="{ data }: { data: MysqlPermissionAccountModel }">
-            <span v-if="data.rules.length === 0">--</span>
+          <template #default="{ row }: { row: MysqlPermissionAccountModel }">
             <TextOverflowLayout
-              v-for="item in rowFlodMap[data.account.user] ? data.rules.slice(0, 1) : data.rules"
-              v-else
-              :key="item.rule_id">
+              v-for="item in rowFlodMap[row.account.user] ? row.rules : row.rules.slice(0, 1)"
+              :key="item.rule_id"
+              class="inner-row">
               {{ item.privilege }}
             </TextOverflowLayout>
           </template>
@@ -74,20 +75,22 @@
           field="operate"
           :label="t('操作')"
           :min-width="145">
-          <template #default="{ data }: { data: MysqlPermissionAccountModel }">
-            <BkButton
-              v-for="item in rowFlodMap[data.account.user] ? data.rules.slice(0, 1) : data.rules"
-              :key="item.rule_id"
-              text
-              theme="primary"
-              @click="handleRemove(item)">
-              {{ t('移除') }}
-            </BkButton>
+          <template #default="{ row }: { row: MysqlPermissionAccountModel }">
+            <p
+              v-for="item in rowFlodMap[row.account.user] ? row.rules : row.rules.slice(0, 1)"
+              :key="item.rule_id">
+              <BkButton
+                text
+                theme="primary"
+                @click="handleRemove(item)">
+                {{ t('移除') }}
+              </BkButton>
+            </p>
           </template>
         </BkTableColumn>
       </BkTable>
     </BKLoading>
-    <PermissionRule
+    <PermissionRuleSelector
       v-model="permissionRules"
       v-model:is-show="isShowPermissionRule"
       :account-type="AccountTypes.TENDBCLUSTER"
@@ -107,7 +110,7 @@
 
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-  import PermissionRule from '@views/db-manage/common/add-permission-rule-dialog/Index.vue';
+  import PermissionRuleSelector from './components/PermissionRuleSelector.vue';
 
   const sourceClusterId = defineModel<number>('sourceClusterId', {
     required: true,
@@ -147,8 +150,12 @@
     });
   };
 
-  const getCellClass = (data: { field: string }) =>
-    ['operate', 'privilege'].includes(data.field) ? 'cell-privilege' : '';
+  const rowClass = ({ row }: { row: MysqlPermissionAccountModel }) => {
+    if (!rowFlodMap.value[row.account.user]) {
+      return 'init-height';
+    }
+    return '';
+  };
 
   const handleToogleExpand = (user: string) => {
     if (rowFlodMap.value[user]) {
@@ -170,6 +177,10 @@
     permissionRules.value = permissionRules.value.filter((id) => id !== data.rule_id);
   };
 
+  watch(permissionRules, () => {
+    handleSelected(permissionRules.value);
+  });
+
   defineExpose({
     reset() {
       tableData.value = [];
@@ -177,8 +188,8 @@
     },
   });
 </script>
-<style lang="less" scoped>
-  .add-permission-table {
+<style lang="less">
+  .openarea-permission-rule-table {
     .flod-flag {
       display: inline-block;
       margin-right: 4px;
@@ -187,6 +198,18 @@
 
       &.is-flod {
         transform: rotateZ(-90deg);
+      }
+    }
+
+    .inner-row {
+      height: 28px;
+      display: flex;
+      align-items: center;
+    }
+
+    .init-height {
+      td {
+        height: initial !important;
       }
     }
   }

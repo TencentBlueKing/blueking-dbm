@@ -32,13 +32,14 @@
         v-for="variableName in variableList"
         :key="variableName"
         v-model="item.vars[variableName]"
-        :field="`vars.${variableName}`"
-        :label="variableName" />
+        :variable-name="variableName"
+        @batch-edit="handleBatchEditByRows" />
       <HostColumn
         v-if="showIpCloumn"
         v-model="item.authorize_ips"
         :cluster="item.cluster"
-        :selected-ips="selectedIps" />
+        :selected-ips="selectedIps"
+        @batch-edit="handleBatchEdit" />
     </EditableRow>
   </EditableTable>
 </template>
@@ -126,7 +127,7 @@
         label: t('目标集群'),
       },
       ...props.variableList.map((variableName) => ({
-        case: `${variableName}_{AA}`,
+        case: variableName,
         key: variableName,
         label: variableName,
       })),
@@ -201,10 +202,27 @@
     tableData.value = [...(tableData.value[0].cluster.id ? tableData.value : []), ...dataList];
   };
 
+  // 逐行修改
+  const handleBatchEditByRows = (value: any, field: string) => {
+    if (!value) {
+      return;
+    }
+    const values = value.split(batchSplitRegex);
+    tableData.value.forEach((item, index) => {
+      Object.assign(item.vars, { [field]: _.cloneDeep(values[index]) });
+    });
+  };
+
+  const handleBatchEdit = (value: any, field: string) => {
+    tableData.value.forEach((item) => {
+      Object.assign(item, { [field]: _.cloneDeep(value) });
+    });
+  };
+
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
     const dataList = data.map((item) =>
       createTableRow({
-        authorize_ips: item.authorize_ips.split(batchSplitRegex),
+        authorize_ips: item.authorize_ips?.split(batchSplitRegex),
         cluster: {
           master_domain: item.master_domain,
         } as TendbhaModel,

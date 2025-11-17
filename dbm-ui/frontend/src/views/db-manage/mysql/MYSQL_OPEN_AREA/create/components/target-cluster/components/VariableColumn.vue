@@ -14,20 +14,20 @@
 <template>
   <EditableColumn
     :disabled-method="disabledMethod"
-    :field="field"
-    :label="label"
+    :field="`vars.${variableName}`"
+    :label="variableName"
     :min-width="200"
     required>
     <template #headAppend>
       <BatchEditColumn
         v-model="showBatchEdit"
         :placeholder="t('只能包含英文字母、数字，多个换行分隔')"
-        :title="label"
-        title-prefix-type="entry"
+        :title="variableName"
+        title-prefix-type="by-rows"
         type="textarea"
         @change="handleBatchEditChange">
         <span
-          v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
+          v-bk-tooltips="t('按行录入：批量录入多个单元格的值')"
           class="batch-edit-btn"
           @click="handleBatchEditShow">
           <DbIcon type="bulk-edit" />
@@ -43,8 +43,7 @@
   import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
   interface Props {
-    field: string;
-    label: string;
+    variableName: string;
   }
 
   type Emits = (e: 'batch-edit', value: string, field: string) => void;
@@ -73,7 +72,7 @@
   };
 
   const handleBatchEditChange = (value: string) => {
-    emits('batch-edit', value as string, `vars.${props.field}`);
+    emits('batch-edit', value as string, props.variableName);
   };
 </script>
 <style lang="less" scoped>
