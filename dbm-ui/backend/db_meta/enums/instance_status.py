@@ -16,5 +16,6 @@ from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 class InstanceStatus(StrStructuredEnum):
     RUNNING = EnumField("running", _("running"))
     UNAVAILABLE = EnumField("unavailable", _("unavailable"))
+    AVAILABLE = EnumField("available", _("available"))
     RESTORING = EnumField("restoring", _("restoring"))
     UPGRADING = EnumField("upgrading", _("upgrading"))

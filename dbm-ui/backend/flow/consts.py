@@ -566,6 +566,7 @@ class RedisActuatorActionEnum(StrStructuredEnum):
     REPLICAS_FORCE_RESYNC = EnumField("replicas_force_resync", _("replicas_force_resync"))
     RESTART_EXPORTER = EnumField("restart_exporter", _("restart_exporter"))
     HOTKEY_ANALYSIS = EnumField("hotkey_analysis", _("hotkey_analysis"))
+    PROXY_REUSE = EnumField("proxy_reuse", _("proxy_reuse"))
 
 
 class MongoDBActuatorActionEnum(StrStructuredEnum):
