@@ -57,6 +57,7 @@ from backend.flow.engine.bamboo.scene.redis.redis_proxy_scale import RedisProxyS
 from backend.flow.engine.bamboo.scene.redis.redis_remove_dts_server import RedisRemoveDtsServerFlow
 from backend.flow.engine.bamboo.scene.redis.redis_replicas_force_resync import RedisReplicasForceResyncSceneFlow
 from backend.flow.engine.bamboo.scene.redis.redis_reupload_old_backup_records import RedisReuploadOldBackupRecordsFlow
+from backend.flow.engine.bamboo.scene.redis.redis_rollback_exercise import RedisRollbackExerciseFlow
 from backend.flow.engine.bamboo.scene.redis.redis_slots_migrate import RedisSlotsMigrateFlow
 from backend.flow.engine.bamboo.scene.redis.redis_storages_client_conns_kill import (
     RedisStoragesClientConnsKillSceneFlow,
@@ -456,3 +457,10 @@ class RedisController(BaseController):
         """
         flow = FailoverDrillFlow(root_id=self.root_id, data=self.ticket_data)
         flow.failover_drill()
+
+    def redis_rollback_exercise(self):
+        """
+        redis 回档演练
+        """
+        flow = RedisRollbackExerciseFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.rollback_exercise_flow()
