@@ -49,10 +49,11 @@
 
   const panels = [
     {
-      label: t('资源流转记录'),
+      label: t('资源流转记录'), // 默认开启
       name: 'flow',
     },
     {
+      functionControllerKey: 'replenish', // 默认关闭，仅特定环境开启
       label: t('资源补货记录'),
       name: 'replenish',
     },
@@ -60,20 +61,23 @@
 
   const renderPanels = computed(() =>
     panels.filter((item) => {
-      const data = funControllerStore.funControllerData.resourceManage.children.resourceOperationRecord;
+      if (!item.functionControllerKey) {
+        return true;
+      }
+
+      const data = funControllerStore.funControllerData?.resourceManage?.children?.resourceOperationRecord;
       if (!data) {
         return false;
       }
 
-      const childItem = data.children[item.name];
+      const childItem = data.children[item.functionControllerKey];
 
       // 若有对应的模块子功能，判断是否开启
       if (childItem) {
         return data && data.is_enabled && childItem.is_enabled;
       }
 
-      // 若无，则判断整个模块是否开启
-      return data && data.is_enabled;
+      return false;
     }),
   );
 
