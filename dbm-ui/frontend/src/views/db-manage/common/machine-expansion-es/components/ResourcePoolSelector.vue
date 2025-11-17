@@ -29,6 +29,15 @@
         </div>
         <div class="form-block-item">
           <div class="form-block-title">
+            {{ t('资源标签') }}
+            <span class="required-flag">*</span>
+          </div>
+          <ResourceTagSelector
+            v-model="tagList"
+            @change="handleResourceTagChange" />
+        </div>
+        <div class="form-block-item">
+          <div class="form-block-title">
             <I18nT
               keypath="扩容数量（当前n台）"
               scope="global">
@@ -46,7 +55,7 @@
     </BkLoading>
     <div
       v-if="estimateCapacity > 0"
-      class="disk-tips mt-16">
+      class="disk-tips mb-16">
       <I18nT
         keypath="当前容量：nG"
         scope="global"
@@ -74,6 +83,8 @@
 
   import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
+  import ResourceTagSelector from '@views/db-manage/common/apply-items/ResourceTagSelector.vue';
+
   import type { TExpansionNode } from '../Index.vue';
 
   interface Props {
@@ -96,8 +107,18 @@
 
   const { t } = useI18n();
 
+  const getTagList = () => {
+    const { label_names: labelNames, labels } = props.data.resourceSpec;
+
+    return labels.map((labelId, index) => ({
+      id: labelId,
+      value: labelNames[index],
+    }));
+  };
+
   const specId = ref(props.data.resourceSpec.spec_id);
   const machinePairCnt = ref(props.data.resourceSpec.count);
+  const tagList = ref(getTagList());
   const specCountMap = shallowRef<Record<number, number>>({});
 
   const originalHostNums = computed(() => props.data.originalHostList.length);
@@ -122,6 +143,8 @@
     resourceSpec.value = {
       count,
       instance_num: currentSelectSpec.value ? (currentSelectSpec.value.instance_num as number) : 0,
+      label_names: tagList.value.map((item) => item.value),
+      labels: tagList.value.map((item) => item.id),
       spec_id: specId.value,
     };
     expansionDisk.value = count ? estimateCapacity.value : 0;
@@ -179,6 +202,10 @@
     machinePairCnt.value = value;
     triggerChange();
   };
+
+  const handleResourceTagChange = () => {
+    triggerChange();
+  };
 </script>
 <style lang="less">
   .es-cluster-expansion-resource-pool-selector {
@@ -186,6 +213,7 @@
 
     .form-block {
       display: flex;
+      flex-wrap: wrap;
 
       .form-block-title {
         margin-bottom: 6px;
@@ -197,10 +225,15 @@
       }
 
       .form-block-item {
-        flex: 1;
+        width: 50%;
+        margin-bottom: 24px;
 
-        & ~ .form-block-item {
-          margin-left: 32px;
+        &:nth-child(odd) {
+          padding-right: 16px;
+        }
+
+        &:nth-child(even) {
+          padding-left: 16px;
         }
       }
     }

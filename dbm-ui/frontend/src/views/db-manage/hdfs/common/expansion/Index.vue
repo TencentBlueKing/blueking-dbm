@@ -56,6 +56,8 @@
       originalHostList: [],
       resourceSpec: {
         count: 0,
+        label_names: [],
+        labels: [],
         spec_id: 0,
       },
       role: 'hdfs_datanode',

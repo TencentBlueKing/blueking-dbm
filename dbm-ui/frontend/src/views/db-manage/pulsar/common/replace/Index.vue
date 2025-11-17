@@ -59,6 +59,7 @@
       oldHostList: [],
       resourceSpec: {
         count: 0,
+        labels: [],
         spec_id: 0,
       },
       role: 'pulsar_bookkeeper',
@@ -72,6 +73,7 @@
       oldHostList: [],
       resourceSpec: {
         count: 0,
+        labels: [],
         spec_id: 0,
       },
       role: 'pulsar_broker',
@@ -85,6 +87,7 @@
       oldHostList: [],
       resourceSpec: {
         count: 3,
+        labels: [],
         spec_id: 0,
       },
       role: 'pulsar_zookeeper',

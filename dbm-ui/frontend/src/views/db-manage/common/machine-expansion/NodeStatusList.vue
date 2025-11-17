@@ -31,7 +31,9 @@
         </div>
         <div
           v-else-if="
-            nodeInfo[nodeItem.key].resourceSpec.spec_id === 0 && nodeInfo[nodeItem.key].resourceSpec.count === 0
+            nodeInfo[nodeItem.key].resourceSpec.spec_id === 0 &&
+            nodeInfo[nodeItem.key].resourceSpec.labels.length > 0 &&
+            nodeInfo[nodeItem.key].resourceSpec.count === 0
           "
           class="empty-tips">
           <span>{{ t('未填写') }}</span>
@@ -101,7 +103,11 @@
         if (props.ipSource === 'manual_input') {
           return nodeData.hostList.length > 0;
         }
-        return nodeData.resourceSpec.spec_id > 0 && nodeData.resourceSpec.count > 0;
+        return (
+          nodeData.resourceSpec.spec_id > 0 &&
+          nodeData.resourceSpec.labels.length > 0 &&
+          nodeData.resourceSpec.count > 0
+        );
       });
     },
   });

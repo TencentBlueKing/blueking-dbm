@@ -23,7 +23,7 @@
       class="machine-expansion-wrapper"
       :loading="isLoading">
       <BkAlert
-        class="mb16"
+        class="mb-16"
         theme="warning"
         :title="t('冷热节点至少扩容一种类型')" />
       <BkRadioGroup
@@ -43,7 +43,7 @@
           :ip-source="ipSource"
           :list="nodeStatusList"
           :node-info="modelValue" />
-        <div class="node-panel">
+        <div class="machine-panel">
           <MachinePanel
             v-if="!isLoading"
             :key="nodeType"
@@ -113,6 +113,8 @@
     resourceSpec: {
       count: number;
       instance_num: number;
+      label_names: string[]; // 标签名称列表，单据详情回显用
+      labels: number[]; // 标签id列表
       spec_id: number;
     };
     // 集群的节点类型
@@ -191,14 +193,13 @@
         >,
       );
     }
-    return Object.entries(modelValue.value).reduce(
-      (result, [nodeName, nodeInfo]) => {
-        return Object.assign(result, {
-          [nodeName]: nodeInfo.resourceSpec,
-        });
-      },
-      {} as TExpansionNode['resourceSpec'],
-    );
+    return Object.entries(modelValue.value).reduce<
+      Record<string, { labels: string[] } & TExpansionNode['resourceSpec']>
+    >((result, [nodeName, nodeInfo]) => {
+      return Object.assign(result, {
+        [nodeName]: { ...nodeInfo.resourceSpec, labels: nodeInfo.resourceSpec.labels.map((item) => String(item)) },
+      });
+    }, {});
   };
 
   const { loading: isSubmiting, run: createTicket } = useCreateTicket<{
