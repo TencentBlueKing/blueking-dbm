@@ -241,7 +241,7 @@ func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) (err error) {
 			db.Where("os_name in (?)", c.OsNames)
 		}
 	}
-	if !lo.IsNotEmpty(c.CreateTime) {
+	if lo.IsNotEmpty(c.CreateTime) {
 		db.Where("create_time >= ?", c.CreateTime)
 	}
 	db.Order("create_time desc")

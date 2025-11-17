@@ -151,6 +151,7 @@ func getGroupcampusNice(param RequestInputParam, resourceReqList []ObjectDetail,
 			} else {
 				campusSummary[item.SubZoneID].Count++
 				campusSummary[item.SubZoneID].RackIdList = append(campusSummary[item.SubZoneID].RackIdList, item.RackID)
+
 				campusSummary[item.SubZoneID].LinkNetdeviceList = append(campusSummary[item.SubZoneID].LinkNetdeviceList,
 					strings.Split(item.NetDeviceID, ",")...)
 			}
@@ -218,7 +219,7 @@ type SubZoneSummary struct {
 func getLogicIdcCitys(v ObjectDetail) (idcCitys []string, err error) {
 	if config.AppConfig.RunMode == "dev" {
 		idcCitys = []string{}
-	} else if cmutil.ElementNotInArry(v.Affinity, []string{CROSS_RACK, NONE}) ||
+	} else if cmutil.ElementNotInArry(v.Affinity, []string{CROSS_RACK, NONE, CROSS_SUBZONE_STRONG, CROSS_SUBZONE_WEAK}) ||
 		lo.IsNotEmpty(v.LocationSpec.City) ||
 		len(v.Hosts) > 0 {
 		idcCitys, err = dbmapi.GetIdcCityByLogicCity(v.LocationSpec.City)
@@ -325,7 +326,7 @@ func (o *SearchContext) pickBase(db *gorm.DB) {
 	// 如果需要存在跨园区检查则需要判断是否存在网卡id,机架id等
 	case SAME_SUBZONE_CROSS_SWTICH:
 		o.UseNetDeviceIsNotEmpty(db)
-	case CROSS_RACK:
+	case CROSS_RACK, CROSS_SUBZONE_STRONG, CROSS_SUBZONE_WEAK:
 		o.RackIdIsNotEmpty(db)
 	}
 }
@@ -421,11 +422,11 @@ func (o *SearchContext) predictResourceNoMatchReason() (reason string) {
 			fn:   o.UseNetDeviceIsNotEmpty,
 			desc: "亲和性是同园区跨交换机,在排除网卡id为空的时候没有匹配到资源",
 		})
-	case CROSS_RACK:
+	case CROSS_RACK, CROSS_SUBZONE_STRONG, CROSS_SUBZONE_WEAK:
 		checks = append(checks, checkFunc{
 			name: "rackId",
 			fn:   o.RackIdIsNotEmpty,
-			desc: "亲和性是跨机架,在排除机架id为空的时候没有匹配到资源",
+			desc: "亲和性是跨机架或跨园区(强/弱),在排除机架id为空的时候没有匹配到资源",
 		})
 	}
 
@@ -590,11 +591,36 @@ func (o *SearchContext) PickInstanceBase(picker *PickerObject, items []model.TbR
 		picker.PickerSameSubZone(true)
 	case CROSS_RACK:
 		picker.InitRackToleranceConfig(o.Tolerance, o.CurrentHosts, o.Count)
+		picker.InitRackForCrossRack(o.CurrentHosts)
 		picker.PriorityElements, picker.SubZonePrioritySumMap, err = o.AnalysisResourcePriority(items, true)
 		picker.PickerSameSubZone(true)
 	case MAJORITY_ELECTION_DISTRI:
+		// 初始化园区级容忍度配置（限制每个园区最多 ceil(n/2) 台机器）
+		logger.Info(" ================ InitToleranceConfig, tolerance: %f, currentHosts: %v, count: %d",
+			o.Tolerance, o.CurrentHosts, o.Count)
+		picker.InitToleranceConfig(o.Tolerance, o.CurrentHosts, o.Count)
 		picker.PriorityElements, picker.SubZonePrioritySumMap, err = o.AnalysisResourcePriority(items, false)
 		picker.PickerMajorityElectionCrossSubzone()
+	case CROSS_SUBZONE_STRONG:
+		// 跨园区(强)：至少3个园区，园区容忍度1/3，同一园区至少2机架，机架容忍度1/2
+		logger.Info(" ================ InitDualToleranceConfig, subzoneTolerance: %f, rackTolerance: %f, "+
+			"currentHosts: %v, count: %d", 1.0/3.0, 0.5, o.CurrentHosts, o.Count)
+		picker.InitDualToleranceConfig(1.0/3.0, 0.5, o.CurrentHosts, o.Count)
+		picker.PriorityElements, picker.SubZonePrioritySumMap, err = o.AnalysisResourcePriority(items, false)
+		if err != nil {
+			return err
+		}
+		picker.PickerCrossSubzoneWithRackTolerance()
+	case CROSS_SUBZONE_WEAK:
+		// 跨园区(弱)：至少2个园区，园区容忍度1/2，同一园区至少2机架，机架容忍度1/2
+		logger.Info(" ================ InitDualToleranceConfig, subzoneTolerance: %f, rackTolerance: %f, "+
+			"currentHosts: %v, count: %d", 0.5, 0.5, o.CurrentHosts, o.Count)
+		picker.InitDualToleranceConfig(0.5, 0.5, o.CurrentHosts, o.Count)
+		picker.PriorityElements, picker.SubZonePrioritySumMap, err = o.AnalysisResourcePriority(items, false)
+		if err != nil {
+			return err
+		}
+		picker.PickerCrossSubzoneWithRackTolerance()
 	}
 	return
 }

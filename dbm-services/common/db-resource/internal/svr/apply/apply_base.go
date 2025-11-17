@@ -83,6 +83,26 @@ func (param *RequestInputParam) ParamCheck() (err error) {
 						totalMachines, len(a.LocationSpec.SubZoneIds))
 				}
 			}
+		case CROSS_SUBZONE_STRONG:
+			if a.LocationSpec.IsEmpty() {
+				return fmt.Errorf("you need choose a city !!! ")
+			}
+			// 跨园区(强)需要至少3个园区
+			if !a.LocationSpec.IsExclude() && len(a.LocationSpec.SubZoneIds) > 0 &&
+				len(a.LocationSpec.SubZoneIds) < 3 {
+				return fmt.Errorf("CROSS_SUBZONE_STRONG requires at least 3 subzones, but only specified %d",
+					len(a.LocationSpec.SubZoneIds))
+			}
+		case CROSS_SUBZONE_WEAK:
+			if a.LocationSpec.IsEmpty() {
+				return fmt.Errorf("you need choose a city !!! ")
+			}
+			// 跨园区(弱)需要至少2个园区
+			if !a.LocationSpec.IsExclude() && len(a.LocationSpec.SubZoneIds) > 0 &&
+				len(a.LocationSpec.SubZoneIds) < 2 {
+				return fmt.Errorf("CROSS_SUBZONE_WEAK requires at least 2 subzones, but only specified %d",
+					len(a.LocationSpec.SubZoneIds))
+			}
 		case NONE:
 			return nil
 		}
@@ -254,6 +274,10 @@ const (
 	SAME_SUBZONE = "SAME_SUBZONE"
 	// CROS_SUBZONE 同城跨园区
 	CROS_SUBZONE = "CROS_SUBZONE"
+	// CROSS_SUBZONE_STRONG 跨园区(强)：至少3个园区，园区容忍度1/3，同一园区至少2机架，机架容忍度1/2
+	CROSS_SUBZONE_STRONG = "CROSS_SUBZONE_STRONG"
+	// CROSS_SUBZONE_WEAK 跨园区(弱)：至少2个园区，园区容忍度1/2，同一园区至少2机架，机架容忍度1/2
+	CROSS_SUBZONE_WEAK = "CROSS_SUBZONE_WEAK"
 	// MAJORITY_ELECTION_DISTRI 最少跨2个园区，园区内跨机架
 	// 	1）不能超过ceil(n/2）的机器在同一个园区
 	// 2）同一个机架上不能超过1个机器
@@ -415,6 +439,18 @@ func (a *ObjectDetail) GetMessage() (message string) {
 				message += fmt.Sprintf("容忍度： %.2f (每个机架最多不超过总数的%.1f%%)\n", a.Tolerance, a.Tolerance*100)
 			}
 		}
+		if len(a.CurrentHosts) > 0 {
+			message += fmt.Sprintf("当前集群已有机器数： %d\n", len(a.CurrentHosts))
+		}
+	case CROSS_SUBZONE_STRONG:
+		message += "资源亲和性： 跨园区(强)\n"
+		message += "要求：至少3个园区，园区容忍度1/3，同一园区至少2机架，机架容忍度1/2\n"
+		if len(a.CurrentHosts) > 0 {
+			message += fmt.Sprintf("当前集群已有机器数： %d\n", len(a.CurrentHosts))
+		}
+	case CROSS_SUBZONE_WEAK:
+		message += "资源亲和性： 跨园区(弱)\n"
+		message += "要求：至少2个园区，园区容忍度1/2，同一园区至少2机架，机架容忍度1/2\n"
 		if len(a.CurrentHosts) > 0 {
 			message += fmt.Sprintf("当前集群已有机器数： %d\n", len(a.CurrentHosts))
 		}

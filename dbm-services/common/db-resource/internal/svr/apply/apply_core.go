@@ -16,17 +16,13 @@ import (
 	"slices"
 	"sort"
 	"strings"
-	"time"
 
 	"dbm-services/common/db-resource/internal/model"
-	"dbm-services/common/db-resource/internal/svr/meta"
 	"dbm-services/common/db-resource/internal/svr/task"
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 
 	mapset "github.com/deckarep/golang-set/v2"
-	"github.com/patrickmn/go-cache"
-	"github.com/samber/lo"
 )
 
 const (
@@ -62,15 +58,19 @@ type PickerObject struct {
 	ProcessLogs []string
 
 	// 容忍度相关字段 - 用于CROS_SUBZONE亲和性
-	Tolerance             float64         // 容忍度参数
+	Tolerance             float64         // 园区级容忍度参数
 	CurrentHostsBySubZone map[subZone]int // 当前集群已存在资源按园区分组的数量
 	TotalCount            int             // 总数量（申请数量 + 当前已存在数量）
 	MaxPerSubZone         int             // 每个园区最大容忍机器数量
 
-	// 机架级别容忍度相关字段 - 用于SAME_SUBZONE跨机架亲和性
+	// 机架级别容忍度相关字段 - 用于SAME_SUBZONE跨机架亲和性和双容忍度场景
+	RackTolerance      float64        // 机架级容忍度参数（用于双容忍度场景）
 	CurrentHostsByRack map[string]int // 当前集群已存在资源按机架分组的数量
 	MaxPerRack         int            // 每个机架最大容忍机器数量
 	RackDistribute     map[string]int // 当前分配中各机架的机器数量
+
+	// MAJORITY_ELECTION_DISTRI 按园区跟踪机架 - 用于确保同一园区内的机器跨机架
+	RackIdsBySubZone map[subZone][]string // 每个园区已使用的机架ID列表
 }
 
 // LockReturnPickers 将匹配好的机器资源,查询出详情结果返回
@@ -214,7 +214,9 @@ func NewPicker(count int, item string) *PickerObject {
 		CurrentHostsBySubZone: make(map[subZone]int),
 		CurrentHostsByRack:    make(map[string]int),
 		RackDistribute:        make(map[string]int),
-		Tolerance:             -1, // 默认值-1表示未设置容忍度
+		RackIdsBySubZone:      make(map[subZone][]string),
+		Tolerance:             -1, // 默认值-1表示未设置园区级容忍度
+		RackTolerance:         -1, // 默认值-1表示未设置机架级容忍度
 		MaxPerSubZone:         0,
 		MaxPerRack:            0,
 		TotalCount:            count,
@@ -235,6 +237,17 @@ func (c *PickerObject) CrossRackCheck(v InstanceObject) bool {
 		return false
 	}
 	return c.InterSectForEquipment(v.RackId) == 0
+}
+
+// CrossRackCheckInSubZone 检查指定机架是否在指定园区内已使用
+// 用于 MAJORITY_ELECTION_DISTRI 策略，确保同一园区内的机器跨机架
+func (c *PickerObject) CrossRackCheckInSubZone(subzone subZone, rackId string) bool {
+	if cmutil.IsEmpty(rackId) {
+		return false
+	}
+	rackIds := c.RackIdsBySubZone[subzone]
+	logger.Info("CrossRackCheckInSubZone, subzone: %s, rackId: %s, rackIds: %v", subzone, rackId, rackIds)
+	return !slices.Contains(rackIds, rackId)
 }
 
 // DebugDistributeLog debug log
@@ -367,10 +380,17 @@ func (c *PickerObject) InitToleranceConfig(tolerance float64, currentHosts []Cur
 	c.Tolerance = tolerance
 	c.CurrentHostsBySubZone = make(map[subZone]int)
 
-	// 统计当前主机在各个园区的分布
+	// 统计当前主机在各个园区的分布，并记录每个园区已使用的机架ID
 	for _, host := range currentHosts {
-		c.CurrentHostsBySubZone[host.SubZone]++
+		subzone := strings.TrimSpace(host.SubZone)
+		c.CurrentHostsBySubZone[subzone]++
+		// 记录当前主机所在园区的机架ID（用于 MAJORITY_ELECTION_DISTRI 场景的跨机架检查）
+		if cmutil.IsNotEmpty(host.RackId) {
+			logger.Info("InitToleranceConfig, subzone: %s, rackId: %s", host.SubZone, host.RackId)
+			c.RackIdsBySubZone[subzone] = append(c.RackIdsBySubZone[subzone], host.RackId)
+		}
 	}
+	logger.Info("RackIdsBySubZone: %v", c.RackIdsBySubZone)
 
 	// 计算总数量
 	currentTotalCount := len(currentHosts)
@@ -388,17 +408,30 @@ func (c *PickerObject) InitToleranceConfig(tolerance float64, currentHosts []Cur
 	logger.Info("园区级容忍度配置: tolerance=%.2f, totalCount=%d, maxPerSubZone=%d, currentHosts=%v",
 		tolerance, c.TotalCount, c.MaxPerSubZone, c.CurrentHostsBySubZone)
 }
+func (c *PickerObject) InitRackForCrossRack(currentHosts []CurrentResource) {
+	c.CurrentHostsByRack = make(map[string]int)
+	c.RackDistribute = make(map[string]int)
+	for _, host := range currentHosts {
+		if host.RackId != "" {
+			rackKey := buildRackKey(RANDOM, host.RackId)
+			c.CurrentHostsByRack[rackKey]++
+			c.RackDistribute[rackKey]++
+		}
+	}
+}
 
 // InitRackToleranceConfig 初始化机架级别的容忍度相关配置
 func (c *PickerObject) InitRackToleranceConfig(tolerance float64, currentHosts []CurrentResource, requestCount int) {
 	c.Tolerance = tolerance
+	c.RackTolerance = tolerance // 机架级容忍度与园区级容忍度相同（用于SAME_SUBZONE等场景）
 	c.CurrentHostsByRack = make(map[string]int)
 	c.RackDistribute = make(map[string]int)
 
 	// 统计当前主机在各个机架的分布
 	for _, host := range currentHosts {
 		if host.RackId != "" {
-			c.CurrentHostsByRack[host.RackId]++
+			rackKey := buildRackKey(host.SubZone, host.RackId)
+			c.CurrentHostsByRack[rackKey]++
 		}
 	}
 
@@ -417,6 +450,64 @@ func (c *PickerObject) InitRackToleranceConfig(tolerance float64, currentHosts [
 
 	logger.Info("机架级容忍度配置: tolerance=%.2f, totalCount=%d, maxPerRack=%d, currentRackHosts=%v",
 		tolerance, c.TotalCount, c.MaxPerRack, c.CurrentHostsByRack)
+}
+
+func buildRackKey(subzone, rackId string) string {
+	return fmt.Sprintf("%s-%s", subzone, rackId)
+}
+
+// InitDualToleranceConfig 初始化双容忍度配置（同时支持园区级和机架级容忍度）
+// 用于 CROSS_SUBZONE_STRONG 和 CROSS_SUBZONE_WEAK 策略
+func (c *PickerObject) InitDualToleranceConfig(
+	subzoneTolerance float64,
+	rackTolerance float64,
+	currentHosts []CurrentResource,
+	requestCount int,
+) {
+	c.Tolerance = subzoneTolerance  // 园区级容忍度
+	c.RackTolerance = rackTolerance // 机架级容忍度
+	c.CurrentHostsBySubZone = make(map[subZone]int)
+	c.CurrentHostsByRack = make(map[string]int)
+	c.RackDistribute = make(map[string]int)
+	if c.RackIdsBySubZone == nil {
+		c.RackIdsBySubZone = make(map[subZone][]string)
+	}
+
+	// 统计当前主机在各个园区和机架的分布
+	for _, host := range currentHosts {
+		subzone := strings.TrimSpace(host.SubZone)
+		c.CurrentHostsBySubZone[subzone]++
+		// 记录当前主机所在园区的机架ID
+		if cmutil.IsNotEmpty(host.RackId) {
+			rackKey := buildRackKey(subzone, host.RackId)
+			c.CurrentHostsByRack[rackKey]++
+			c.RackIdsBySubZone[rackKey] = append(c.RackIdsBySubZone[rackKey], host.RackId)
+		}
+	}
+
+	// 计算总数量
+	currentTotalCount := len(currentHosts)
+	c.TotalCount = currentTotalCount + requestCount
+
+	// 计算每个园区最大容忍机器数量
+	if subzoneTolerance == 0 {
+		c.MaxPerSubZone = 1
+	} else {
+		c.MaxPerSubZone = int(math.Ceil(float64(c.TotalCount) * subzoneTolerance))
+	}
+
+	// 计算每个机架最大容忍机器数量（基于每个园区的最大机器数）
+	if rackTolerance == 0 {
+		c.MaxPerRack = 1
+	} else {
+		c.MaxPerRack = int(math.Ceil(float64(c.MaxPerSubZone) * rackTolerance))
+	}
+
+	logger.Info("双容忍度配置: subzoneTolerance=%.2f, rackTolerance=%.2f, totalCount=%d, maxPerSubZone=%d, maxPerRack=%d",
+		subzoneTolerance, rackTolerance, c.TotalCount, c.MaxPerSubZone, c.MaxPerRack)
+	logger.Info("当前园区分布: %v", c.CurrentHostsBySubZone)
+	logger.Info("当前机架分布: %v", c.CurrentHostsByRack)
+	logger.Info("园区机架映射: %v", c.RackIdsBySubZone)
 }
 
 // CanAllocateToSubZone 检查是否可以向指定园区分配机器
@@ -444,26 +535,38 @@ func (c *PickerObject) GetSubZoneCurrentTotal(subZone string) int {
 }
 
 // CanAllocateToRack 检查是否可以向指定机架分配机器
-func (c *PickerObject) CanAllocateToRack(rackId string) bool {
-	if c.Tolerance == 0 {
-		// tolerance为0时，必须跨机架，检查该机架是否已经有机器
-		currentCount := c.CurrentHostsByRack[rackId]
-		allocatedCount := c.RackDistribute[rackId]
+func (c *PickerObject) CanAllocateToRack(subzone, rackId string) bool {
+	// 如果没有设置机架级容忍度限制，直接允许分配
+	if c.MaxPerRack == 0 {
+		return true
+	}
+
+	// 确定使用的机架级容忍度：优先使用RackTolerance，否则使用Tolerance（向后兼容）
+	rackTolerance := c.RackTolerance
+	if rackTolerance == -1 {
+		rackTolerance = c.Tolerance
+	}
+	rackKey := buildRackKey(subzone, rackId)
+	// tolerance为0时，必须跨机架，检查该机架是否已经有机器
+	if rackTolerance == 0 {
+		currentCount := c.CurrentHostsByRack[rackKey]
+		allocatedCount := c.RackDistribute[rackKey]
 		return currentCount+allocatedCount == 0
 	}
 
 	// 检查该机架当前总数是否超过容忍限制
-	currentCount := c.CurrentHostsByRack[rackId]
-	allocatedCount := c.RackDistribute[rackId]
+	currentCount := c.CurrentHostsByRack[rackKey]
+	allocatedCount := c.RackDistribute[rackKey]
 	totalInRack := currentCount + allocatedCount
 
 	return totalInRack < c.MaxPerRack
 }
 
 // GetRackCurrentTotal 获取指定机架当前总机器数（包括已存在的和已分配的）
-func (c *PickerObject) GetRackCurrentTotal(rackId string) int {
-	currentCount := c.CurrentHostsByRack[rackId]
-	allocatedCount := c.RackDistribute[rackId]
+func (c *PickerObject) GetRackCurrentTotal(subzone, rackId string) int {
+	rackKey := buildRackKey(subzone, rackId)
+	currentCount := c.CurrentHostsByRack[rackKey]
+	allocatedCount := c.RackDistribute[rackKey]
 	return currentCount + allocatedCount
 }
 
@@ -602,12 +705,12 @@ func (c *PickerObject) SortRackByBalance(subZone string) []string {
 
 		// 检查是否可以分配到该机架
 		if c.Tolerance >= 0 && c.MaxPerRack > 0 {
-			if !c.CanAllocateToRack(rackId) {
+			if !c.CanAllocateToRack(subZone, rackId) {
 				continue
 			}
 		}
 
-		currentTotal := c.GetRackCurrentTotal(rackId)
+		currentTotal := c.GetRackCurrentTotal(subZone, rackId)
 		priority := rackPriorities[rackId]
 
 		// 计算均衡得分：当前机器数越低，得分越低（优先级越高）
@@ -751,718 +854,4 @@ func (c *PickerObject) CalculateBalanceScore() float64 {
 	}
 
 	return standardDeviation / avgLoad
-}
-
-// ShouldRebalance 判断是否需要重新平衡
-func (c *PickerObject) ShouldRebalance() bool {
-	// 如果没有设置容忍度，或者分配的机器数量较少，不需要重新平衡
-	if c.Tolerance < 0 || len(c.SatisfiedHostIds) < 3 {
-		return false
-	}
-
-	balanceScore := c.CalculateBalanceScore()
-
-	// 如果均衡得分超过阈值，建议重新平衡
-	// 阈值可以根据实际需求调整
-	threshold := 0.3
-	if c.Tolerance == 0 {
-		// tolerance=0时，要求更严格的均衡
-		threshold = 0.1
-	}
-
-	shouldRebalance := balanceScore > threshold
-	if shouldRebalance {
-		logger.Info("当前均衡得分 %.3f 超过阈值 %.3f，建议重新平衡", balanceScore, threshold)
-	}
-
-	return shouldRebalance
-}
-
-// GlobalBalanceCoordinator 全局均衡分配协调器
-type GlobalBalanceCoordinator struct {
-	RequestParam      RequestInputParam
-	GlobalDistribute  map[string]int                // 全局园区/机架分配统计
-	GlobalRackDistrib map[string]int                // 全局机架分配统计
-	TotalRequestCount int                           // 总请求数量
-	AllAffinities     []string                      // 所有亲和性类型
-	GlobalTolerance   float64                       // 全局容忍度
-	IsRackLevel       bool                          // 是否是机架级别的分配
-	MaxPerUnit        int                           // 每个单元(园区/机架)最大容忍数量
-	CurrentUnitCounts map[string]int                // 当前单元已存在的机器数量
-	RequestContexts   []*SearchContext              // 所有请求上下文
-	AllResourcePools  map[string][]model.TbRpDetail // 所有可用资源池 key=subzone
-
-	// 城市观测数据（仅用于日志/容量预估，不参与硬过滤）
-	CityTolerance    map[string]float64 // 每城市平均容忍度（观测）
-	CityMaxPerUnit   map[string]int     // 每城市的估算单元上限（观测）
-	CityReqTotals    map[string]int     // 每城市的总请求量（观测）
-	CityCurrentCount map[string]int     // 每城市现有机器数（观测）
-}
-
-// NewGlobalBalanceCoordinator 创建全局均衡协调器
-func NewGlobalBalanceCoordinator(param RequestInputParam) *GlobalBalanceCoordinator {
-	coordinator := &GlobalBalanceCoordinator{
-		RequestParam:      param,
-		GlobalDistribute:  make(map[string]int),
-		GlobalRackDistrib: make(map[string]int),
-		AllAffinities:     param.GetAllAffinities(),
-		AllResourcePools:  make(map[string][]model.TbRpDetail),
-		CurrentUnitCounts: make(map[string]int),
-		CityTolerance:     make(map[string]float64),
-		CityMaxPerUnit:    make(map[string]int),
-		CityReqTotals:     make(map[string]int),
-		CityCurrentCount:  make(map[string]int),
-	}
-
-	// 计算总请求数量
-	for _, detail := range param.Details {
-		coordinator.TotalRequestCount += detail.Count
-	}
-
-	// 统计所有当前主机分布和确定分配级别
-	coordinator.analyzeGlobalDistribution()
-
-	return coordinator
-}
-
-// analyzeGlobalDistribution 分析全局分布情况
-func (gc *GlobalBalanceCoordinator) analyzeGlobalDistribution() {
-	// 统计所有现有主机分布
-	allCurrentHosts := make([]CurrentResource, 0)
-	toleranceSum := 0.0
-	toleranceCount := 0
-	// 按城市聚合观测数据
-	cityTolSum := make(map[string]float64)
-	cityTolCnt := make(map[string]int)
-
-	for _, detail := range gc.RequestParam.Details {
-		allCurrentHosts = append(allCurrentHosts, detail.CurrentHosts...)
-		if detail.Tolerance >= 0 {
-			toleranceSum += detail.Tolerance
-			toleranceCount++
-		}
-		// 城市观测：将请求和容忍度按城市聚合
-		city := detail.LocationSpec.City
-		if city != "" {
-			gc.CityReqTotals[city] += detail.Count
-			if detail.Tolerance >= 0 {
-				cityTolSum[city] += detail.Tolerance
-				cityTolCnt[city]++
-			}
-			// 假设当前主机与该请求处于同城（用于观测统计）
-			gc.CityCurrentCount[city] += len(detail.CurrentHosts)
-		}
-	}
-
-	// 计算平均容忍度
-	if toleranceCount > 0 {
-		gc.GlobalTolerance = toleranceSum / float64(toleranceCount)
-	}
-
-	// 确定是否使用机架级分配
-	gc.IsRackLevel = slices.Contains([]string{SAME_SUBZONE, SAME_SUBZONE_CROSS_SWTICH, CROSS_RACK}, gc.AllAffinities[0])
-
-	// 统计当前分布
-	if gc.IsRackLevel {
-		// 机架级统计
-		for _, host := range allCurrentHosts {
-			if host.RackId != "" {
-				gc.CurrentUnitCounts[host.RackId]++
-				gc.GlobalRackDistrib[host.RackId]++
-			}
-		}
-	} else {
-		// 园区级统计
-		for _, host := range allCurrentHosts {
-			if host.SubZone != "" {
-				gc.CurrentUnitCounts[host.SubZone]++
-				gc.GlobalDistribute[host.SubZone]++
-			}
-		}
-	}
-
-	// 计算城市观测的 MaxPerUnit（仅观测）
-	for city, cnt := range cityTolCnt {
-		if cnt == 0 {
-			continue
-		}
-		avgTol := cityTolSum[city] / float64(cnt)
-		gc.CityTolerance[city] = avgTol
-		totalMachinesCity := gc.CityCurrentCount[city] + gc.CityReqTotals[city]
-		if avgTol == 0 {
-			gc.CityMaxPerUnit[city] = 1
-		} else {
-			gc.CityMaxPerUnit[city] = int(math.Ceil(float64(totalMachinesCity) * avgTol))
-		}
-	}
-
-	logger.Info("全局分配分析: 总请求=%d, 现有主机=%d, 是否机架级=%v",
-		gc.TotalRequestCount, len(allCurrentHosts), gc.IsRackLevel)
-	// 输出城市观测信息
-	for city := range gc.CityReqTotals {
-		logger.Info("城市观测: city=%s req_total=%d current=%d tol=%.2f city_max=%d",
-			city, gc.CityReqTotals[city], gc.CityCurrentCount[city], gc.CityTolerance[city], gc.CityMaxPerUnit[city])
-	}
-}
-
-// PrepareAllContexts 准备所有请求的上下文和资源池
-func (gc *GlobalBalanceCoordinator) PrepareAllContexts(details []ObjectDetail) ([]*SearchContext, error) {
-	cityMapCache := cache.New(2*time.Minute, 30*time.Second)
-	defer cityMapCache.Flush()
-
-	for _, detail := range details {
-		// 创建搜索上下文
-		idcCites := []string{}
-		if lo.IsNotEmpty(&detail.LocationSpec.City) {
-			var err error
-			idcCites, err = getLogicIdcCitys(detail)
-			if err != nil {
-				return nil, fmt.Errorf("get logic cities failed: %v", err)
-			}
-		}
-
-		context := &SearchContext{
-			IntentionBkBizId: gc.RequestParam.ForbizId,
-			RsType:           gc.RequestParam.ResourceType,
-			ObjectDetail:     &detail,
-			IdcCitys:         idcCites,
-			SpecialHostIds:   detail.Hosts.GetBkHostIds(),
-		}
-
-		if err := context.PickCheck(); err != nil {
-			return nil, fmt.Errorf("pick check failed for %s: %v", detail.GroupMark, err)
-		}
-
-		// 获取可用资源
-		resources, err := gc.getAvailableResources(context)
-		if err != nil {
-			return nil, fmt.Errorf("get resources failed for %s: %v", detail.GroupMark, err)
-		}
-
-		// 按园区组织资源
-		gc.organizeResourcesBySubZone(resources)
-		gc.RequestContexts = append(gc.RequestContexts, context)
-	}
-
-	logger.Info("准备完成，共%d个请求上下文，资源池覆盖%d个园区",
-		len(gc.RequestContexts), len(gc.AllResourcePools))
-	return gc.RequestContexts, nil
-}
-
-// getAvailableResources 获取可用资源
-func (gc *GlobalBalanceCoordinator) getAvailableResources(context *SearchContext) ([]model.TbRpDetail, error) {
-	var items []model.TbRpDetail
-	db := model.DB.Self.Table(model.TbRpDetailName())
-	context.pickBase(db)
-	if err := db.Scan(&items).Error; err != nil {
-		return nil, fmt.Errorf("query resources failed: %v", err)
-	}
-
-	// 过滤空挂载点的磁盘
-	diskSpecs := meta.GetEmptyDiskSpec(context.StorageSpecs)
-	if len(diskSpecs) > 0 && len(context.SpecialHostIds) == 0 {
-		filteredItems, err := context.filterEmptyMountPointStorage(items, diskSpecs)
-		if err != nil {
-			return nil, fmt.Errorf("filter storage failed: %v", err)
-		}
-		items = filteredItems
-	}
-
-	return items, nil
-}
-
-// organizeResourcesBySubZone 按园区组织资源（按 BkHostID 去重）
-func (gc *GlobalBalanceCoordinator) organizeResourcesBySubZone(resources []model.TbRpDetail) {
-	seen := make(map[string]map[int]struct{})
-	// 预热已存在的资源，避免多次调用时重复累积
-	for subZone, exists := range gc.AllResourcePools {
-		if _, ok := seen[subZone]; !ok {
-			seen[subZone] = make(map[int]struct{})
-		}
-		for _, r := range exists {
-			seen[subZone][r.BkHostID] = struct{}{}
-		}
-	}
-	for _, resource := range resources {
-		subZone := resource.SubZone
-		if _, exists := gc.AllResourcePools[subZone]; !exists {
-			gc.AllResourcePools[subZone] = make([]model.TbRpDetail, 0)
-		}
-		if _, ok := seen[subZone]; !ok {
-			seen[subZone] = make(map[int]struct{})
-		}
-		if _, exists := seen[subZone][resource.BkHostID]; exists {
-			continue
-		}
-		seen[subZone][resource.BkHostID] = struct{}{}
-		gc.AllResourcePools[subZone] = append(gc.AllResourcePools[subZone], resource)
-	}
-}
-
-// GlobalBalancedAllocation 全局均衡分配
-func (gc *GlobalBalanceCoordinator) GlobalBalancedAllocation(contexts []*SearchContext) ([]*PickerObject, error) {
-	var pickers []*PickerObject
-
-	// 创建全局资源分配状态跟踪
-	globalState := &GlobalAllocationState{
-		UnitCounts:  make(map[string]int),
-		RackCounts:  make(map[string]int),
-		UsedHostIds: make(map[int]bool),
-		MaxPerUnit:  gc.MaxPerUnit,
-		IsRackLevel: gc.IsRackLevel,
-		Tolerance:   gc.GlobalTolerance,
-	}
-
-	// 初始化已存在的分布
-	for unit, count := range gc.CurrentUnitCounts {
-		globalState.UnitCounts[unit] = count
-		if gc.IsRackLevel {
-			globalState.RackCounts[unit] = count
-		}
-	}
-
-	// 输出全局分配开始信息
-	gc.logGlobalAllocationStart(contexts)
-
-	// 按优先级分配每个请求
-	for i, context := range contexts {
-		logger.Info("🎯 === 开始分配组 %s (%d/%d) ===", context.GroupMark, i+1, len(contexts))
-
-		picker, err := gc.allocateForContext(context, globalState)
-		if err != nil {
-			logger.Error("❌ 组 %s 分配失败: %v", context.GroupMark, err)
-			return nil, fmt.Errorf("allocate failed for %s: %v", context.GroupMark, err)
-		}
-
-		pickers = append(pickers, picker)
-		logger.Info("✅ 完成组 %s 的分配: %d台机器 (%.1f%%)",
-			context.GroupMark, len(picker.SatisfiedHostIds),
-			float64(len(picker.SatisfiedHostIds))/float64(context.ObjectDetail.Count)*100)
-		logger.Info("=====================================")
-	}
-
-	// 输出全局分配统计
-	gc.logGlobalAllocationResult(globalState)
-	return pickers, nil
-}
-
-// GlobalAllocationState 全局分配状态
-type GlobalAllocationState struct {
-	UnitCounts  map[string]int // 单元(园区/机架)计数
-	RackCounts  map[string]int // 机架计数(仅机架级使用)
-	UsedHostIds map[int]bool   // 已使用的主机ID
-	MaxPerUnit  int            // 每单元最大数量
-	IsRackLevel bool           // 是否机架级
-	Tolerance   float64        // 容忍度
-}
-
-// allocateForContext 为特定上下文分配资源
-func (gc *GlobalBalanceCoordinator) allocateForContext(context *SearchContext, globalState *GlobalAllocationState) (*PickerObject, error) {
-	picker := NewPicker(context.Count, context.GroupMark)
-
-	// 选择本组的容忍度，优先使用请求自身的 Tolerance，其次使用全局容忍度
-	selectedTolerance := gc.GlobalTolerance
-	if context.Tolerance >= 0 {
-		selectedTolerance = context.Tolerance
-	}
-
-	// 根据分配级别初始化容忍度配置
-	if gc.IsRackLevel {
-		picker.InitRackToleranceConfig(selectedTolerance, context.CurrentHosts, context.Count)
-	} else {
-		picker.InitToleranceConfig(selectedTolerance, context.CurrentHosts, context.Count)
-	}
-
-	// 获取优先级资源
-	priorityElements, prioritySumMap, err := context.AnalysisResourcePriority(
-		gc.getResourcesForContext(), false)
-	if err != nil {
-		return nil, fmt.Errorf("analyze priority failed: %v", err)
-	}
-
-	picker.PriorityElements = priorityElements
-	picker.SubZonePrioritySumMap = prioritySumMap
-
-	// 使用全局均衡分配策略
-	err = gc.globalBalancedPick(picker, globalState)
-	if err != nil {
-		return nil, fmt.Errorf("global balanced pick failed: %v", err)
-	}
-
-	if !picker.PickerDone() {
-		return nil, fmt.Errorf("insufficient resources for %s, allocated: %d, required: %d",
-			context.GroupMark, len(picker.SatisfiedHostIds), context.Count)
-	}
-
-	return picker, nil
-}
-
-// getResourcesForContext 获取特定上下文的资源
-func (gc *GlobalBalanceCoordinator) getResourcesForContext() []model.TbRpDetail {
-	var resources []model.TbRpDetail
-
-	// 收集相关园区的资源
-	for _, subZoneResources := range gc.AllResourcePools {
-		resources = append(resources, subZoneResources...)
-	}
-
-	return resources
-}
-
-// globalBalancedPick 全局均衡选择
-func (gc *GlobalBalanceCoordinator) globalBalancedPick(picker *PickerObject,
-	globalState *GlobalAllocationState) error {
-	for !picker.PickerDone() {
-		allocated := false
-
-		// 获取按可用容量排序的单元列表（容量大的优先）- 考虑本组容忍度余量
-		sortedUnits := gc.getSortedUnitsByAvailableCapacityWithPicker(globalState, picker)
-		if len(sortedUnits) == 0 {
-			break
-		}
-
-		// 轮询各单元尝试分配
-		for _, unit := range sortedUnits {
-			if gc.allocateOneFromUnit(picker, unit, globalState) {
-				allocated = true
-				break
-			}
-		}
-
-		if !allocated {
-			break
-		}
-	}
-
-	return nil
-}
-
-// getSortedUnitsByAvailableCapacity 兼容旧签名（不考虑特定分组余量）
-func (gc *GlobalBalanceCoordinator) getSortedUnitsByAvailableCapacity(
-	globalState *GlobalAllocationState) []string {
-	return gc.getSortedUnitsByAvailableCapacityWithPicker(globalState, nil)
-}
-
-// getSortedUnitsByAvailableCapacityWithPicker 按可用容量排序单元（容量大的优先，兼顾均衡与本组余量）
-func (gc *GlobalBalanceCoordinator) getSortedUnitsByAvailableCapacityWithPicker(
-	globalState *GlobalAllocationState, picker *PickerObject) []string {
-	type unitCapacity struct {
-		unit              string
-		allocatedCount    int     // 本【园区/机架】 已分配数量（全局）
-		availableCount    int     // 本【园区/机架】 可用资源数量
-		remainingCapacity int     // 本【园区/机架】 全局需要的容量 = 全局容忍上限 - 已分配
-		pickerHeadroom    int     // 本【园区/机架】 本组还需要的容量 = 本组容忍上限 - (本组已存在+已分配)
-		score             float64 // 综合评分
-	}
-
-	minInt := func(a, b int) int {
-		if a < b {
-			return a
-		}
-		return b
-	}
-
-	var units []unitCapacity
-	processedUnits := make(map[string]bool)
-
-	// 收集所有可用单元的容量信息
-	for zoneName, resources := range gc.AllResourcePools {
-		if gc.IsRackLevel {
-			// 机架级分配：按机架统计
-			rackResources := make(map[string]int)
-			for _, resource := range resources {
-				if resource.RackID != "" {
-					rackResources[resource.RackID]++
-				}
-			}
-
-			for rackId, availableCount := range rackResources {
-				if processedUnits[rackId] {
-					continue
-				}
-				processedUnits[rackId] = true
-
-				allocatedCount := globalState.RackCounts[rackId]
-				remainingCapacity := gc.MaxPerUnit - allocatedCount // 仅用于评分，不做硬过滤
-
-				// 计算本组在该机架的余量
-				pickerRemaining := 0
-				if picker != nil {
-					pickerRemaining = picker.MaxPerRack - picker.GetRackCurrentTotal(rackId)
-				}
-
-				if availableCount > 0 && (picker == nil || pickerRemaining > 0) {
-					// 计算综合评分：可用资源多、全局剩余容量大、本组余量足 的优先
-					effRemaining := remainingCapacity
-					if picker != nil {
-						effRemaining = minInt(remainingCapacity, pickerRemaining)
-					}
-					if effRemaining < 0 {
-						effRemaining = 0
-					}
-					score := gc.calculateUnitScore(availableCount, allocatedCount, effRemaining)
-					units = append(units, unitCapacity{
-						unit:              rackId,
-						allocatedCount:    allocatedCount,
-						availableCount:    availableCount,
-						remainingCapacity: remainingCapacity,
-						pickerHeadroom:    pickerRemaining,
-						score:             score,
-					})
-				}
-			}
-			continue
-		}
-
-		// 园区级分配
-		if processedUnits[zoneName] {
-			continue
-		}
-		processedUnits[zoneName] = true
-
-		allocatedCount := globalState.UnitCounts[zoneName]
-		remainingCapacity := gc.MaxPerUnit - allocatedCount // 仅用于评分，不做硬过滤
-		availableCount := len(resources)
-
-		// 计算本组在该园区的余量
-		pickerRemaining := 0
-		if picker != nil {
-			pickerRemaining = picker.MaxPerSubZone - picker.GetSubZoneCurrentTotal(zoneName)
-		}
-
-		if availableCount > 0 && (picker == nil || pickerRemaining > 0) {
-			effRemaining := remainingCapacity
-			if picker != nil {
-				effRemaining = minInt(remainingCapacity, pickerRemaining)
-			}
-			if effRemaining < 0 {
-				effRemaining = 0
-			}
-			score := gc.calculateUnitScore(availableCount, allocatedCount, effRemaining)
-			units = append(units, unitCapacity{
-				unit:              zoneName,
-				allocatedCount:    allocatedCount,
-				availableCount:    availableCount,
-				remainingCapacity: remainingCapacity,
-				pickerHeadroom:    pickerRemaining,
-				score:             score,
-			})
-		}
-	}
-
-	// 按综合评分降序排序（评分高的优先分配）
-	sort.Slice(units, func(i, j int) bool {
-		return units[i].score > units[j].score
-	})
-
-	result := make([]string, len(units))
-	for i, u := range units {
-		result[i] = u.unit
-	}
-
-	logger.Debug("单元分配优先级排序完成，共%d个可用单元", len(result))
-	return result
-}
-
-// calculateUnitScore 计算单元的综合评分
-func (gc *GlobalBalanceCoordinator) calculateUnitScore(availableCount, allocatedCount, remainingCapacity int) float64 {
-	if availableCount == 0 || remainingCapacity <= 0 {
-		return 0
-	}
-
-	// 评分因子
-	var (
-		availableWeight = 0.5 // 可用资源权重
-		capacityWeight  = 0.3 // 剩余容量权重
-		balanceWeight   = 0.2 // 均衡因子权重
-	)
-
-	// 可用资源评分 (归一化到0-1)
-	availableScore := math.Log(float64(availableCount + 1)) // 使用对数避免极值影响
-
-	// 剩余容量评分
-	capacityScore := float64(remainingCapacity) / float64(gc.MaxPerUnit)
-
-	// 均衡因子：已分配数量越少，均衡分越高
-	maxAllocated := float64(gc.MaxPerUnit)
-	balanceScore := (maxAllocated - float64(allocatedCount)) / maxAllocated
-
-	// 综合评分
-	totalScore := availableWeight*availableScore +
-		capacityWeight*capacityScore +
-		balanceWeight*balanceScore
-
-	return totalScore
-}
-
-// allocateOneFromUnit 从指定单元分配一台机器
-func (gc *GlobalBalanceCoordinator) allocateOneFromUnit(picker *PickerObject, unit string, globalState *GlobalAllocationState) bool {
-	// 根据分配级别选择分配逻辑
-	if gc.IsRackLevel {
-		return gc.allocateOneFromRack(picker, unit, globalState)
-	}
-	return gc.allocateOneFromSubZone(picker, unit, globalState)
-}
-
-// allocateOneFromRack 从指定机架分配一台机器
-func (gc *GlobalBalanceCoordinator) allocateOneFromRack(picker *PickerObject, rackId string, globalState *GlobalAllocationState) bool {
-	// 分配前检查该分组在该机架上的容忍度是否允许
-	if picker.Tolerance >= 0 && picker.MaxPerRack > 0 {
-		if !picker.CanAllocateToRack(rackId) {
-			return false
-		}
-	}
-	// 找到包含该机架的园区
-	var targetSubZone string
-	for subZone, resources := range gc.AllResourcePools {
-		for _, resource := range resources {
-			if resource.RackID == rackId {
-				targetSubZone = subZone
-				break
-			}
-		}
-		if targetSubZone != "" {
-			break
-		}
-	}
-
-	if targetSubZone == "" {
-		return false
-	}
-
-	// 从该园区的资源中选择指定机架的机器
-	pq, ok := picker.PriorityElements[targetSubZone]
-	if !ok || pq.Len() == 0 {
-		return false
-	}
-
-	var tempItems []*Item
-	defer func() {
-		for _, item := range tempItems {
-			if err := pq.Push(item); err != nil {
-				logger.Error("failed to push item back: %v", err)
-			}
-		}
-	}()
-
-	for pq.Len() > 0 {
-		item, _ := pq.Pop()
-		v, ok := item.Value.(InstanceObject)
-		if !ok {
-			continue
-		}
-
-		// 检查是否是目标机架且未被使用
-		if v.RackId != rackId || globalState.UsedHostIds[v.BkHostId] {
-			tempItems = append(tempItems, item)
-			continue
-		}
-
-		// 分配成功
-		picker.SatisfiedHostIds = append(picker.SatisfiedHostIds, v.BkHostId)
-		picker.PickDistribute[targetSubZone]++
-		picker.RackDistribute[rackId]++
-		globalState.UsedHostIds[v.BkHostId] = true
-		globalState.RackCounts[rackId]++
-		globalState.UnitCounts[targetSubZone]++
-
-		logger.Debug("从机架 %s 分配主机 %d", rackId, v.BkHostId)
-		return true
-	}
-
-	return false
-}
-
-// allocateOneFromSubZone 从指定园区分配一台机器
-func (gc *GlobalBalanceCoordinator) allocateOneFromSubZone(picker *PickerObject, subZone string, globalState *GlobalAllocationState) bool {
-	// 分配前检查该分组在该园区的容忍度是否允许
-	if picker.Tolerance >= 0 && picker.MaxPerSubZone > 0 {
-		if !picker.CanAllocateToSubZone(subZone) {
-			return false
-		}
-	}
-	pq, ok := picker.PriorityElements[subZone]
-	if !ok || pq.Len() == 0 {
-		return false
-	}
-
-	for pq.Len() > 0 {
-		item, _ := pq.Pop()
-		v, ok := item.Value.(InstanceObject)
-		if !ok {
-			continue
-		}
-
-		if globalState.UsedHostIds[v.BkHostId] {
-			continue
-		}
-
-		// 分配成功
-		picker.SatisfiedHostIds = append(picker.SatisfiedHostIds, v.BkHostId)
-		picker.PickDistribute[subZone]++
-		globalState.UsedHostIds[v.BkHostId] = true
-		globalState.UnitCounts[subZone]++
-
-		logger.Debug("从园区 %s 分配主机 %d", subZone, v.BkHostId)
-		return true
-	}
-
-	return false
-}
-
-// logGlobalAllocationStart 输出全局分配开始信息
-func (gc *GlobalBalanceCoordinator) logGlobalAllocationStart(contexts []*SearchContext) {
-	logger.Info("🌍 === 开始全局均衡分配 ===")
-	logger.Info("📊 分配概览: 总请求组数=%d, 总请求机器数=%d", len(contexts), gc.TotalRequestCount)
-	logger.Info("🎯 分配级别: %s", map[bool]string{true: "机架级", false: "园区级"}[gc.IsRackLevel])
-	logger.Info("⚖️  全局容忍度: %.2f", gc.GlobalTolerance)
-	logger.Info("📏 单元最大机器数: %d", gc.MaxPerUnit)
-
-	// 显示各组的请求详情
-	logger.Info("📋 请求组详情:")
-	for i, context := range contexts {
-		logger.Info("  %d. 组 %s: 申请%d台机器", i+1, context.GroupMark, context.ObjectDetail.Count)
-	}
-
-	// 显示初始资源分布
-	logger.Info("📍 初始资源分布:")
-	if gc.IsRackLevel {
-		for rackId, count := range gc.CurrentUnitCounts {
-			logger.Info("  🏗️  机架 %s: 已存在机器=%d", rackId, count)
-		}
-	} else {
-		for subZone, count := range gc.CurrentUnitCounts {
-			logger.Info("  🏢 园区 %s: 已存在机器=%d", subZone, count)
-		}
-	}
-	logger.Info("===============================")
-}
-
-// logGlobalAllocationResult 输出全局分配结果
-func (gc *GlobalBalanceCoordinator) logGlobalAllocationResult(globalState *GlobalAllocationState) {
-	logger.Info("🏁 === 全局均衡分配结果 ===")
-	logger.Info("📊 总请求数量: %d", gc.TotalRequestCount)
-	logger.Info("🎯 分配级别: %s", map[bool]string{true: "机架级", false: "园区级"}[gc.IsRackLevel])
-	logger.Info("⚖️  全局容忍度: %.2f", gc.GlobalTolerance)
-	logger.Info("📏 单元最大机器数: %d", gc.MaxPerUnit)
-
-	if gc.IsRackLevel {
-		logger.Info("🏗️  机架机器分布:")
-		for rackId, count := range globalState.RackCounts {
-			existing := gc.CurrentUnitCounts[rackId]
-			newAllocated := count - existing
-			logger.Info("  🏗️  机架 %s: 已存在=%d, 新分配=%d, 总计=%d",
-				rackId, existing, newAllocated, count)
-		}
-	} else {
-		logger.Info("🏢 园区机器分布:")
-		for subZone, count := range globalState.UnitCounts {
-			existing := gc.CurrentUnitCounts[subZone]
-			newAllocated := count - existing
-			logger.Info("  🏢 园区 %s: 已存在=%d, 新分配=%d, 总计=%d",
-				subZone, existing, newAllocated, count)
-		}
-	}
-
-	logger.Info("===============================")
 }
