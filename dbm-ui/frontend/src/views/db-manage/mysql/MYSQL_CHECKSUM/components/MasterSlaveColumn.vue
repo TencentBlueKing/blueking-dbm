@@ -42,7 +42,7 @@
         <div class="mysql-checksum-select-trigger">
           <div
             v-if="selected.length === 0"
-            class="bk-editable-text-content-placeholder ml-8">
+            class="mysql-checksum-placeholder ml-8">
             {{ t('请选择') }}
           </div>
           <div
@@ -287,6 +287,10 @@
   }
 
   .mysql-checksum-select-trigger {
+    .mysql-checksum-placeholder {
+      color: #c4c6cc;
+    }
+
     .render-slaves-icon {
       font-size: 15px !important;
     }
