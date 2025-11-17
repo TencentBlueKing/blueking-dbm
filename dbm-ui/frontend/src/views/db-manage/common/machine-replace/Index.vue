@@ -117,6 +117,10 @@
     // 扩容资源池
     resourceSpec: {
       count: number;
+      labels: {
+        id: number;
+        value: string;
+      }[];
       spec_id: number;
     };
     // 集群的节点类型
@@ -141,13 +145,14 @@
     }[];
     resource_spec: {
       count: number;
+      labels: TReplaceNode['resourceSpec']['labels'];
       spec_id: number;
     };
   }
 
   const ticketTypeMap = {
     [DBTypes.DORIS]: TicketTypes.DORIS_REPLACE,
-    [DBTypes.ES]: TicketTypes.ES_REPLACE,
+    // [DBTypes.ES]: TicketTypes.ES_REPLACE,
     [DBTypes.HDFS]: TicketTypes.HDFS_REPLACE,
     [DBTypes.KAFKA]: TicketTypes.KAFKA_REPLACE,
     [DBTypes.PULSAR]: TicketTypes.PULSAR_REPLACE,
@@ -216,7 +221,12 @@
     return Object.entries(modelValue.value).reduce(
       (result, [nodeName, nodeInfo]) => {
         return Object.assign(result, {
-          [nodeName]: nodeInfo.resourceSpec,
+          [nodeName]: {
+            count: nodeInfo.resourceSpec.count,
+            label_names: nodeInfo.resourceSpec.labels.map((item) => item.value),
+            labels: nodeInfo.resourceSpec.labels.map((item) => String(item.id)),
+            spec_id: nodeInfo.resourceSpec.spec_id,
+          },
         });
       },
       {} as TReplaceNode['resourceSpec'],
@@ -275,89 +285,89 @@
       return;
     }
 
-    Promise.all(nodeRefs.value!.map((item) => item!.getValue()))
-      .then(() => {
-        const replaceResult = Object.entries(modelValue.value).reduce<Record<string, INodeValue>>(
-          (result, [key, nodeInfo]) => {
-            if (nodeInfo.oldHostList.length < 1) {
-              return Object.assign(result, {
-                [key]: {
-                  new_nodes: [],
-                  resource_spec: {
-                    count: 0,
-                    spec_id: 0,
-                  },
-                },
-              });
-            }
+    Promise.all(nodeRefs.value!.map((item) => item!.validate())).then(() => {
+      const replaceResult = Object.entries(modelValue.value).reduce<Record<string, INodeValue>>(
+        (result, [key, nodeInfo]) => {
+          if (nodeInfo.oldHostList.length < 1) {
             return Object.assign(result, {
               [key]: {
-                new_nodes: nodeInfo.hostList.map((hostItem) => ({
-                  bk_biz_id: hostItem.dedicated_biz,
-                  bk_cloud_id: hostItem.bk_cloud_id,
-                  bk_host_id: hostItem.bk_host_id,
-                  ip: hostItem.ip,
-                })),
+                new_nodes: [],
                 resource_spec: {
-                  ...nodeInfo.resourceSpec,
-                  count: nodeInfo.oldHostList.length,
+                  count: 0,
+                  labels: [],
+                  spec_id: 0,
                 },
               },
             });
-          },
-          {},
-        );
-
-        const isEmptyValue = () => {
-          if (ipSource.value === 'manual_input') {
-            return Object.values(replaceResult).every((item) => item.new_nodes.length < 1);
           }
-          return Object.values(replaceResult).every(
-            (item) => item.resource_spec.spec_id > 0 && item.resource_spec.count < 1,
-          );
-        };
-
-        if (isEmptyValue()) {
-          messageError(t('替换节点不能为空'));
-          return Promise.reject();
-        }
-
-        const getReplaceNodeNums = () => {
-          if (ipSource.value === 'manual_input') {
-            return Object.values(modelValue.value).reduce((result, nodeData) => result + nodeData.hostList.length, 0);
-          }
-          return Object.values(modelValue.value).reduce((result, nodeData) => {
-            if (nodeData.resourceSpec.spec_id > 0) {
-              return result + nodeData.oldHostList.length;
-            }
-            return result;
-          }, 0);
-        };
-
-        InfoBox({
-          cancelText: t('取消'),
-          confirmText: t('确认'),
-          contentAlign: 'center',
-          footerAlign: 'center',
-          headerAlign: 'center',
-          onConfirm: () =>
-            createTicket({
-              details: {
-                cluster_id: props.clusterData.id,
-                ip_source: ipSource.value,
-                old_nodes: getOldNodes(),
-                resource_spec: getResourceSpce(),
+          return Object.assign(result, {
+            [key]: {
+              new_nodes: nodeInfo.hostList.map((hostItem) => ({
+                bk_biz_id: hostItem.dedicated_biz,
+                bk_cloud_id: hostItem.bk_cloud_id,
+                bk_host_id: hostItem.bk_host_id,
+                ip: hostItem.ip,
+              })),
+              resource_spec: {
+                ...nodeInfo.resourceSpec,
+                count: nodeInfo.oldHostList.length,
               },
-            }),
-          subTitle: t('替换后原节点 IP 将不在可用，资源将会被释放'),
-          title: t('确认替换n台节点IP', {
-            n: getReplaceNodeNums(),
+            },
+          });
+        },
+        {},
+      );
+
+      const isEmptyValue = () => {
+        if (ipSource.value === 'manual_input') {
+          return Object.values(replaceResult).every((item) => item.new_nodes.length < 1);
+        }
+        return Object.values(replaceResult).every(
+          (item) => item.resource_spec.spec_id > 0 && item.resource_spec.count < 1,
+        );
+      };
+
+      if (isEmptyValue()) {
+        messageError(t('替换节点不能为空'));
+        return Promise.reject();
+      }
+
+      const getReplaceNodeNums = () => {
+        if (ipSource.value === 'manual_input') {
+          return Object.values(modelValue.value).reduce((result, nodeData) => result + nodeData.hostList.length, 0);
+        }
+        return Object.values(modelValue.value).reduce((result, nodeData) => {
+          if (nodeData.resourceSpec.spec_id > 0) {
+            return result + nodeData.oldHostList.length;
+          }
+          return result;
+        }, 0);
+      };
+
+      InfoBox({
+        cancelText: t('取消'),
+        confirmText: t('确认'),
+        contentAlign: 'center',
+        footerAlign: 'center',
+        headerAlign: 'center',
+        onConfirm: () =>
+          createTicket({
+            details: {
+              cluster_id: props.clusterData.id,
+              ip_source: ipSource.value,
+              old_nodes: getOldNodes(),
+              resource_spec: getResourceSpce(),
+            },
           }),
-        });
-      })
-      .catch(() => {
-        messageError(t('扩容主机未填写'));
+        subTitle: t('替换后原节点 IP 将不在可用，资源将会被释放'),
+        title: t('确认替换n台节点IP', {
+          n: getReplaceNodeNums(),
+        }),
       });
+    });
+    // .catch(() => {
+    //   messageError(t('扩容主机未填写'));
+    // });
   };
 
   const handleCancel = () => {

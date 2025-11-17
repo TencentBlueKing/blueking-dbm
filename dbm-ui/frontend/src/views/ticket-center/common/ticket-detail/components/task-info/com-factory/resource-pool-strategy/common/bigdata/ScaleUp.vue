@@ -29,6 +29,16 @@
       <InfoItem :label="t('扩容容量')">
         {{ t('当前m_G_扩容后预估n_G', { m: item.totalDisk, n: item.totalDisk + item.expectDisk }) }}
       </InfoItem>
+      <InfoItem :label="t('资源标签')">
+        <TagBlock
+          v-if="item.labelNames.length"
+          :data="item.labelNames" />
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
+      </InfoItem>
       <InfoItem :label="t('扩容数量')">
         {{ t('n台', [item.count]) }}({{
           t('当前n台_扩容至m台', { n: item.totalHost, m: item.totalHost + item.count })
@@ -66,6 +76,8 @@
 
   import TicketModel, { type Bigdata } from '@services/model/ticket/ticket';
 
+  import TagBlock from '@components/tag-block/Index.vue';
+
   import InfoList, { Item as InfoItem } from '../../../components/info-list/Index.vue';
 
   interface Props {
@@ -85,6 +97,7 @@
       ip: string;
     }[];
     isManulSelect: boolean;
+    labelNames: string[];
     nodeText: string;
     specName: string;
     totalDisk: number;
@@ -129,6 +142,7 @@
           expectDisk: extInfoData?.expansion_disk || 0,
           hostList: isManulSelect ? currentResourceSpec.hosts : [],
           isManulSelect,
+          labelNames: currentResourceSpec?.label_names || [],
           nodeText: nodeTypeText[node] || '--',
           specName: specs[currentResourceSpec.spec_id]?.name || '--',
           totalDisk: extInfoData?.total_disk || 0,
