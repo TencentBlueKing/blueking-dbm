@@ -22,6 +22,7 @@ from backend.db_proxy.views.dumper.views import DumperProxyPassViewSet
 from backend.db_proxy.views.hadb.views import HADBProxyPassViewSet
 from backend.db_proxy.views.job_callback.views import JobCallBackViewSet
 from backend.db_proxy.views.jobapi.views import JobApiProxyPassViewSet
+from backend.db_proxy.views.k8s.views import K8sClusterApiProxyPassViewSet
 from backend.db_proxy.views.nameservice.views import NameServiceProxyPassViewSet
 from backend.db_proxy.views.redis_dts.views import DtsApiProxyPassViewSet
 from backend.db_proxy.views.redis_hot_key_analysis.views import HotKeyAnalysisViewSet
@@ -40,6 +41,7 @@ routers.register(r"", HotKeyAnalysisViewSet, basename="redis_hot_key_analysis")
 routers.register(r"", JobApiProxyPassViewSet, basename="jobapi")
 routers.register(r"", DumperProxyPassViewSet, basename="dumper")
 routers.register(r"", DBPrivProxyPassViewSet, basename="dbpriv")
+routers.register(r"", K8sClusterApiProxyPassViewSet, basename="k8s")
 routers.register(r"cloud", CloudProxyPassViewSet, basename="cloud")
 
 urlpatterns = routers.urls
