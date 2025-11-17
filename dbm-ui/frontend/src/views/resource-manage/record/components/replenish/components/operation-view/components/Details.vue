@@ -28,7 +28,7 @@
           <BkTableColumn
             field="spec_name"
             :label="t('规格')"
-            :min-width="280">
+            :width="240">
             <template #default="{ row }: { row: RowData }">
               {{
                 `${dbNameMap[row.db_type] || '--'} / ${machineTypeMap[row.spec?.spec_machine_type] || '--'} / ${row.spec?.spec_name || '--'}`
@@ -36,9 +36,17 @@
             </template>
           </BkTableColumn>
           <BkTableColumn
+            field="city"
+            :label="t('地域')"
+            :width="100">
+            <template #default="{ row }: { row: RowData }">
+              <span>{{ row.city }}</span>
+            </template>
+          </BkTableColumn>
+          <BkTableColumn
             field="subzone"
             :label="t('园区')"
-            :min-width="120">
+            :width="100">
             <template #default="{ row }: { row: RowData }">
               <span>{{ row.subzone }}</span>
             </template>
@@ -46,7 +54,7 @@
           <BkTableColumn
             field="os_name"
             :label="t('操作系统')"
-            :min-width="120">
+            :width="100">
             <template #default="{ row }: { row: RowData }">
               <span>{{ row.os_name }}</span>
             </template>
@@ -54,7 +62,7 @@
           <BkTableColumn
             field="count"
             :label="t('补货数量')"
-            :min-width="100">
+            :width="100">
             <template #default="{ row }: { row: RowData }">
               <span>{{ row.count }}</span>
             </template>
@@ -62,7 +70,7 @@
           <BkTableColumn
             field="ticket_id"
             :label="t('关联补货单')"
-            :min-width="100">
+            :width="100">
             <template #default="{ row }: { row: RowData }">
               <RouterLink
                 target="_blank"
@@ -79,7 +87,7 @@
           <BkTableColumn
             field="status"
             :label="t('操作结果')"
-            :min-width="120">
+            :min-width="100">
             <template #default="{ row }: { row: RowData }">
               <DbIcon
                 :class="{ 'rotate-loading': row.isRunning }"

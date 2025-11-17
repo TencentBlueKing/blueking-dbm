@@ -71,17 +71,15 @@
 
   const panels = [
     {
-      functionControllerKey: 'hostList',
-      label: t('主机列表'),
+      label: t('主机列表'), // 默认开启
       name: 'host-list',
     },
     {
-      functionControllerKey: 'summaryView',
-      label: t('统计视图'),
+      label: t('统计视图'), // 默认开启
       name: 'summary-view',
     },
     {
-      functionControllerKey: 'replenishList',
+      functionControllerKey: 'replenishList', // 默认关闭，仅特定环境开启
       label: t('待补货列表'),
       name: 'replenish-list',
     },
@@ -89,7 +87,11 @@
 
   const renderPanels = computed(() =>
     panels.filter((item) => {
-      const data = funControllerStore.funControllerData.resourceManage.children.resourcePool;
+      if (!item.functionControllerKey) {
+        return true;
+      }
+
+      const data = funControllerStore.funControllerData?.resourceManage?.children?.resourcePool;
       if (!data) {
         return false;
       }
@@ -101,8 +103,7 @@
         return data && data.is_enabled && childItem.is_enabled;
       }
 
-      // 若无，则判断整个模块是否开启
-      return data && data.is_enabled;
+      return false;
     }),
   );
 
