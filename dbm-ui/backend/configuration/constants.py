@@ -161,6 +161,8 @@ class SystemSettingsEnum(StrStructuredEnum):
     COMMON_CITIES = EnumField("COMMON_CITIES", _("常用城市配置"))
     # 各组件负责的机器人
     DBA_ROBOT = EnumField("DBA_ROBOT", _("各组件负责的机器人"))
+    # Redis 回档演练配置
+    REDIS_ROLLBACK_EXERCISE = EnumField("REDIS_ROLLBACK_EXERCISE", _("Redis回档演练配置"))
 
 
 class BizSettingsEnum(StrStructuredEnum):
