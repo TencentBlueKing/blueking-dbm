@@ -99,6 +99,7 @@ func SwitchSingleInstance(ins SwitchableInstance) (success bool, retErr error) {
 	if checkpass, err := ins.CheckBeforeSwitch(); !checkpass {
 		if err == nil {
 			logger.Info("check result: no need to switch, instance{%s}", ins.GetInstanceInfo())
+			ins.ReportLog(SwitchInfo, "switch end: no need to do switch")
 			success = true
 			return
 		}
