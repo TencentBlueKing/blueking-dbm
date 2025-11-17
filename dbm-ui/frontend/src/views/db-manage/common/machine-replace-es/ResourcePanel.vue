@@ -36,7 +36,7 @@
                 <span>
                   <span>{{ t('新节点 IP') }}</span>
                   <span>(</span>
-                  <template v-if="ipSource === 'manual_input' && (isValidated || hostList.length > 0)">
+                  <template v-if="ipSource === 'manual_input' && hostList.length > 0">
                     <I18nT
                       v-if="oldHostList.length > hostList.length"
                       keypath="已选n台_少n台_共nG"
@@ -109,10 +109,10 @@
               @update:model-value="handleValueChange" />
             <ResourcePoolSelector
               v-else
+              ref="resourcePoolSelector"
               v-model="resourceSpec"
               :cloud-info="cloudInfo"
               :data="data"
-              :error="ipSource !== 'manual_input' && isValidated && resourceSpec.spec_id < 1"
               @update:model-value="handleValueChange" />
           </td>
         </tr>
@@ -156,7 +156,7 @@
     }>;
   }
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
@@ -173,30 +173,32 @@
   const { t } = useI18n();
 
   const hostEditBtnPlaceholderId = `replaceHostEditBtn${random()}`;
-  const isValidated = ref(false);
+
+  // const isValidated = ref(false);
+  const resourcePoolSelectorRef = useTemplateRef('resourcePoolSelector');
 
   const nodeDiskTotal = computed(() =>
     oldHostList.value.reduce((result, item) => result + (item.host_info?.bk_disk || 0), 0),
   );
   const localHostDisk = computed(() => hostList.value.reduce((result, item) => result + ~~Number(item.bk_disk), 0));
 
-  const isError = computed(() => {
-    if (oldHostList.value.length < 1) {
-      return false;
-    }
-    if (props.ipSource === 'manual_input') {
-      return hostList.value.length > 0 && hostList.value.length !== oldHostList.value.length;
-    }
+  // const isError = computed(() => {
+  //   if (oldHostList.value.length < 1) {
+  //     return false;
+  //   }
+  //   if (props.ipSource === 'manual_input') {
+  //     return hostList.value.length > 0 && hostList.value.length !== oldHostList.value.length;
+  //   }
 
-    return resourceSpec.value.spec_id < 1;
-  });
+  //   return resourceSpec.value.spec_id < 1;
+  // });
 
-  watch(
-    () => props.ipSource,
-    () => {
-      isValidated.value = false;
-    },
-  );
+  // watch(
+  //   () => props.ipSource,
+  //   () => {
+  //     isValidated.value = false;
+  //   },
+  // );
 
   // 移除节点
   const handleRemoveNode = (node: TReplaceNode['oldHostList'][0]) => {
@@ -215,16 +217,18 @@
 
   // 资源池自动匹配不需要校验主机数
   const handleValueChange = () => {
-    isValidated.value = false;
+    // isValidated.value = false;
     window.changeConfirm = true;
   };
 
   defineExpose<Exposes>({
-    getValue() {
-      isValidated.value = true;
-      if (isError.value) {
-        return Promise.reject();
-      }
+    async getValue() {
+      // isValidated.value = true;
+      // if (isError.value) {
+      //   return Promise.reject();
+      // }
+
+      await resourcePoolSelectorRef.value!.validate();
 
       if (oldHostList.value.length < 1) {
         return Promise.resolve({
@@ -233,6 +237,7 @@
           resource_spec: {
             count: 0,
             instance_num: 0,
+            labels: [],
             spec_id: 0,
           },
         });

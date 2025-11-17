@@ -17,7 +17,7 @@
     v-model:is-show="isShow"
     :cluster-data="clusterData"
     :loading="isLoading"
-    :title="t('xx扩容【name】', { title: 'HDFS', name: clusterData.cluster_name })"
+    :title="t('xx扩容【name】', { title: 'HDFS', name: clusterData.master_domain })"
     @submit="handleChange" />
 </template>
 <script setup lang="tsx">
@@ -45,7 +45,7 @@
   });
   const { t } = useI18n();
 
-  const nodeInfoMap = ref<Record<'datanode', TExpansionNode>>({
+  const getInitInfo = (): Record<'datanode', TExpansionNode> => ({
     datanode: {
       clusterId: props.clusterData.id,
       // targetDisk: 0,
@@ -56,6 +56,8 @@
       originalHostList: [],
       resourceSpec: {
         count: 0,
+        label_names: [],
+        labels: [],
         spec_id: 0,
       },
       role: 'hdfs_datanode',
@@ -65,6 +67,8 @@
       totalDisk: 0,
     },
   });
+
+  const nodeInfoMap = reactive(getInitInfo());
 
   const isLoading = ref(false);
 
@@ -88,8 +92,8 @@
           }
         });
 
-        nodeInfoMap.value.datanode.totalDisk = datanodeDiskTotal;
-        nodeInfoMap.value.datanode.originalHostList = datanodeOriginalHostList;
+        nodeInfoMap.datanode.totalDisk = datanodeDiskTotal;
+        nodeInfoMap.datanode.originalHostList = datanodeOriginalHostList;
       })
       .finally(() => {
         isLoading.value = false;
@@ -100,6 +104,7 @@
     isShow,
     () => {
       if (isShow.value) {
+        Object.assign(nodeInfoMap, getInitInfo());
         fetchHostDetail();
       }
     },
