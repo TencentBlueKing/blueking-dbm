@@ -76,6 +76,7 @@ export default class Pulsar extends ClusterBase {
   domain: string;
   id: number;
   major_version: string;
+  master_domain: string;
   operations: Array<{
     cluster_id: number;
     flow_id: number;
@@ -127,6 +128,7 @@ export default class Pulsar extends ClusterBase {
     this.domain = payload.domain;
     this.id = payload.id;
     this.major_version = payload.major_version;
+    this.master_domain = payload.master_domain;
     this.operations = payload.operations || [];
     this.phase = payload.phase;
     this.pulsar_bookkeeper = payload.pulsar_bookkeeper || [];

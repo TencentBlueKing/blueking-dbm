@@ -17,7 +17,7 @@
     v-model:is-show="isShow"
     :data="clusterData"
     :loading="isLoading"
-    :title="t('xx缩容【name】', { title: 'HDFS', name: clusterData?.cluster_name })"
+    :title="t('xx缩容【name】', { title: 'HDFS', name: clusterData?.master_domain })"
     @submit="handleChange" />
 </template>
 <script setup lang="tsx">
@@ -49,7 +49,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = ref<Record<'datanode', TShrinkNode>>({
+  const getInitInfo = (): Record<'datanode', TShrinkNode> => ({
     datanode: {
       hostList: [],
       label: 'DataNode',
@@ -65,6 +65,8 @@
       totalDisk: 0,
     },
   });
+
+  const nodeInfoMap = reactive(getInitInfo());
 
   const isLoading = ref(false);
 
@@ -87,48 +89,44 @@
           }
         });
 
-        nodeInfoMap.value.datanode.originalNodeList = datanodeOriginalNodeList;
-        nodeInfoMap.value.datanode.totalDisk = datanodeDiskTotal;
+        nodeInfoMap.datanode.originalNodeList = datanodeOriginalNodeList;
+        nodeInfoMap.datanode.totalDisk = datanodeDiskTotal;
       })
       .finally(() => {
         isLoading.value = false;
       });
   };
 
+  // 默认选中的缩容节点
+  const setInitShrinkNodes = () => {
+    const datanodeList: TShrinkNode['hostList'] = [];
+
+    let datanodeShrinkDisk = 0;
+
+    props.machineList.forEach((machineItem) => {
+      if (machineItem.isDataNode) {
+        datanodeShrinkDisk += machineItem.host_info?.bk_disk || 0;
+        datanodeList.push({
+          alive: machineItem.host_info?.alive || 0,
+          bk_cloud_id: machineItem.bk_cloud_id,
+          bk_disk: machineItem.host_info.bk_disk,
+          bk_host_id: machineItem.bk_host_id,
+          ip: machineItem.ip,
+        });
+      }
+    });
+    nodeInfoMap.datanode.hostList = datanodeList;
+    nodeInfoMap.datanode.shrinkDisk = datanodeShrinkDisk;
+  };
+
   watch(
     isShow,
     () => {
       if (isShow.value) {
+        Object.assign(nodeInfoMap, getInitInfo());
+        setInitShrinkNodes();
         fetchListNode();
       }
-    },
-    {
-      immediate: true,
-    },
-  );
-
-  // 默认选中的缩容节点
-  watch(
-    () => props.machineList,
-    () => {
-      const datanodeList: TShrinkNode['hostList'] = [];
-
-      let datanodeShrinkDisk = 0;
-
-      props.machineList.forEach((machineItem) => {
-        if (machineItem.isDataNode) {
-          datanodeShrinkDisk += machineItem.host_info?.bk_disk || 0;
-          datanodeList.push({
-            alive: machineItem.host_info?.alive || 0,
-            bk_cloud_id: machineItem.bk_cloud_id,
-            bk_disk: machineItem.host_info.bk_disk,
-            bk_host_id: machineItem.bk_host_id,
-            ip: machineItem.ip,
-          });
-        }
-      });
-      nodeInfoMap.value.datanode.hostList = datanodeList;
-      nodeInfoMap.value.datanode.shrinkDisk = datanodeShrinkDisk;
     },
     {
       immediate: true,

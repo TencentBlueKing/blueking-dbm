@@ -23,6 +23,8 @@ interface ResourceSpecItem {
     bk_host_id: number;
     ip: string;
   }[];
+  label_names: string[]; // 标签名称列表，单据详情回显用
+  labels: string[]; // 标签id列表
   location_spec: {
     city: string;
     sub_zone_ids: number[];

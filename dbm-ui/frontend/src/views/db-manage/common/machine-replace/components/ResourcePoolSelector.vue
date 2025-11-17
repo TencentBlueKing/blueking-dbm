@@ -1,19 +1,20 @@
 <template>
-  <div
-    class="replace-resource-pool-selector"
-    :class="{
-      'is-error': error,
-    }">
-    <div class="mr-8">
-      <span>{{ t('匹配规格') }}</span>
-      <span style="color: #ea3636">*</span>
-    </div>
-    <div class="select-box">
+  <DbForm
+    ref="dbForm"
+    class="replace-resource-tag-selector"
+    :label-width="72"
+    :model="modelValue">
+    <DbFormItem
+      error-display-type="tooltips"
+      :label="t('匹配规格')"
+      property="spec_id"
+      required
+      :rules="specRules">
       <BkSelect
         :loading="isResourceSpecLoading"
         :model-value="modelValue.spec_id || undefined"
         :placeholder="t('请选择匹配规格')"
-        @change="handleChange">
+        @change="handleSpecChange">
         <BkOption
           v-for="item in resourceSpecList?.results"
           :key="item.spec_id"
@@ -31,14 +32,18 @@
           </SpecDetailPopover>
         </BkOption>
       </BkSelect>
-      <div
-        v-if="error"
-        v-bk-tooltips="t('请选择匹配规格')"
-        class="error-tips">
-        <DbIcon type="exclamation-fill" />
-      </div>
-    </div>
-  </div>
+    </DbFormItem>
+    <DbFormItem
+      error-display-type="tooltips"
+      :label="t('资源标签')"
+      property="labels"
+      required
+      :rules="resourceTagRules">
+      <ResourceTagSelector
+        ref="resourceTagSelector"
+        v-model="modelValue.labels" />
+    </DbFormItem>
+  </DbForm>
 </template>
 <script setup lang="ts">
   import { shallowRef } from 'vue';
@@ -50,6 +55,8 @@
 
   import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
+  import ResourceTagSelector from '@views/db-manage/common/apply-items/ResourceTagSelector.vue';
+
   import type { TReplaceNode } from '../Index.vue';
 
   interface Props {
@@ -58,7 +65,6 @@
       name: string;
     };
     data: TReplaceNode;
-    error: boolean;
   }
 
   const props = defineProps<Props>();
@@ -67,8 +73,37 @@
     required: true,
   });
 
+  interface Exposes {
+    validate: () => Promise<boolean>;
+  }
+
   const { t } = useI18n();
 
+  const specRules = [
+    {
+      message: t('请选择匹配规格'),
+      required: true,
+      trigger: 'change',
+      validator: (value: number) => {
+        if (props.data.oldHostList.length === 0) {
+          return true;
+        }
+        return Boolean(value) && value > 0;
+      },
+    },
+  ];
+
+  const resourceTagRules = [
+    {
+      message: t('请选择资源标签'),
+      required: true,
+      trigger: 'change',
+      validator: () => resourceTagSelector.value?.validate(),
+    },
+  ];
+
+  const dbFormRef = useTemplateRef('dbForm');
+  const resourceTagSelector = useTemplateRef('resourceTagSelector');
   const specCountMap = shallowRef<Record<number, number>>({});
 
   const { run: fetchSpecResourceCount } = useRequest(getSpecResourceCount, {
@@ -124,48 +159,40 @@
     defaultParams: [getDefaultParams()],
     onSuccess(recommendSpecList) {
       if (recommendSpecList.length > 0) {
-        modelValue.value = {
+        modelValue.value = Object.assign(modelValue.value, {
           count: props.data.oldHostList.length,
           spec_id: recommendSpecList[0].spec_id,
-        };
+        });
       }
     },
   });
 
-  const handleChange = (value: number) => {
-    modelValue.value = {
+  const handleSpecChange = (value: number) => {
+    modelValue.value = Object.assign(modelValue.value, {
       count: props.data.oldHostList.length,
       spec_id: value,
-    };
+    });
   };
+
+  defineExpose<Exposes>({
+    validate() {
+      return dbFormRef.value!.validate();
+    },
+  });
 </script>
 <style lang="less">
-  .replace-resource-pool-selector {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  .replace-resource-tag-selector {
+    padding: 16px 60px;
 
-    .bk-select {
-      width: 240px;
-    }
+    .bk-form-item {
+      margin-bottom: 16px;
 
-    &.is-error {
-      .bk-select {
-        .bk-input {
-          border-color: #ea3636;
-        }
+      &:last-child {
+        margin-bottom: 0;
       }
-    }
 
-    .select-box {
-      position: relative;
-
-      .error-tips {
-        position: absolute;
-        top: 50%;
-        right: 9px;
-        color: #ea3636;
-        transform: translateY(-50%);
+      .bk-form-label {
+        font-size: 12px;
       }
     }
   }

@@ -68,7 +68,7 @@
 </script>
 <style lang="less">
   .big-data-cluster-expansion-machine-box {
-    padding: 0 24px 24px;
+    padding: 0 24px;
 
     .bk-form-label {
       font-size: 12px;

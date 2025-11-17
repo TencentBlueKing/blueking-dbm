@@ -16,7 +16,7 @@
     v-model="nodeInfoMap"
     v-model:is-show="isShow"
     :cluster-data="clusterData"
-    :title="t('xx替换【name】', { title: 'Doris', name: clusterData?.cluster_name })"
+    :title="t('xx替换【name】', { title: 'Doris', name: clusterData?.master_domain })"
     @remove-node="handleRemoveNode"
     @submit="handleChange" />
 </template>
@@ -48,6 +48,8 @@
     default: false,
   });
 
+  const { t } = useI18n();
+
   const generateNodeInfo = (values: Pick<TReplaceNode, 'role' | 'specMachineType' | 'label'>): TReplaceNode => ({
     ...values,
     clusterId: props.clusterData.id,
@@ -55,14 +57,13 @@
     oldHostList: [],
     resourceSpec: {
       count: 0,
+      labels: [],
       spec_id: 0,
     },
     specClusterType: ClusterTypes.DORIS,
   });
 
-  const { t } = useI18n();
-
-  const nodeInfoMap = ref<Record<'cold' | 'hot' | 'observer' | 'follower', TReplaceNode>>({
+  const getInitInfo = (): Record<'cold' | 'hot' | 'observer' | 'follower', TReplaceNode> => ({
     cold: generateNodeInfo({
       label: t('冷节点'),
       role: 'doris_backend_cold',
@@ -86,30 +87,39 @@
     }),
   });
 
+  const nodeInfoMap = reactive(getInitInfo());
+
+  const setInitReplaceNodes = () => {
+    const hotList: TReplaceNode['oldHostList'] = [];
+    const coldList: TReplaceNode['oldHostList'] = [];
+    const observerList: TReplaceNode['oldHostList'] = [];
+    const followerList: TReplaceNode['oldHostList'] = [];
+
+    props.machineList.forEach((machineItem) => {
+      if (machineItem.isHot) {
+        hotList.push(machineItem);
+      } else if (machineItem.isCold) {
+        coldList.push(machineItem);
+      } else if (machineItem.isObserver) {
+        observerList.push(machineItem);
+      } else if (machineItem.isFollower) {
+        followerList.push(machineItem);
+      }
+    });
+
+    nodeInfoMap.hot.oldHostList = hotList;
+    nodeInfoMap.cold.oldHostList = coldList;
+    nodeInfoMap.observer.oldHostList = observerList;
+    nodeInfoMap.follower.oldHostList = followerList;
+  };
+
   watch(
-    () => props.machineList,
+    isShow,
     () => {
-      const hotList: TReplaceNode['oldHostList'] = [];
-      const coldList: TReplaceNode['oldHostList'] = [];
-      const observerList: TReplaceNode['oldHostList'] = [];
-      const followerList: TReplaceNode['oldHostList'] = [];
-
-      props.machineList.forEach((machineItem) => {
-        if (machineItem.isHot) {
-          hotList.push(machineItem);
-        } else if (machineItem.isCold) {
-          coldList.push(machineItem);
-        } else if (machineItem.isObserver) {
-          observerList.push(machineItem);
-        } else if (machineItem.isFollower) {
-          followerList.push(machineItem);
-        }
-      });
-
-      nodeInfoMap.value.hot.oldHostList = hotList;
-      nodeInfoMap.value.cold.oldHostList = coldList;
-      nodeInfoMap.value.observer.oldHostList = observerList;
-      nodeInfoMap.value.follower.oldHostList = followerList;
+      if (isShow.value) {
+        Object.assign(nodeInfoMap, getInitInfo());
+        setInitReplaceNodes();
+      }
     },
     {
       immediate: true,

@@ -30,6 +30,7 @@ export function useCreateTicket<T>(ticketType: TicketTypes, options?: { onSucces
       const { id: ticketId } = await createTicketNew<T>(params);
       if (options?.onSuccess) {
         options.onSuccess(ticketId);
+        ticketMessage(ticketId);
         return;
       }
 

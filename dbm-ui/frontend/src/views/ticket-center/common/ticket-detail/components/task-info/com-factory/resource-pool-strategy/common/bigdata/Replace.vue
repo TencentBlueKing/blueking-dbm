@@ -40,6 +40,25 @@
           <TicketInfoTableColumn
             col-key="newNodeIp"
             :title="t('新节点IP')" />
+          <TicketInfoTableColumn
+            col-key="label_names"
+            :min-width="200"
+            :title="t('资源标签')">
+            <template #default="{ row }: { row: RowData['hostList'][number] }">
+              <template v-if="row.labelNames.length">
+                <BkTag
+                  v-for="labelItem in row.labelNames"
+                  :key="labelItem">
+                  {{ labelItem }}
+                </BkTag>
+              </template>
+              <BkTag
+                v-else
+                theme="success">
+                {{ t('通用无标签') }}
+              </BkTag>
+            </template>
+          </TicketInfoTableColumn>
         </TicketInfoTable>
       </InfoItem>
     </InfoList>
@@ -61,6 +80,7 @@
     clusterId: number;
     clusterName: string;
     hostList: {
+      labelNames: string[];
       newNodeIp: string;
       oldNodeIp: string;
     }[];
@@ -98,6 +118,7 @@
           clusterName: clusters[clusterId]?.immute_domain || '--',
           hostList: hosts.map((host: { ip: string }) => {
             return {
+              labelNames: currentResourceSpec?.label_names || [],
               newNodeIp: isManulSelect
                 ? currentResourceSpec.hosts[0].ip
                 : `${t('匹配规格：')} ${specs[currentResourceSpec.spec_id].name}`,

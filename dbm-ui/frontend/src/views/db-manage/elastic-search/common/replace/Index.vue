@@ -16,7 +16,7 @@
     v-model="nodeInfoMap"
     v-model:is-show="isShow"
     :cluster-data="clusterData"
-    :title="t('xx替换【name】', { title: 'ES', name: clusterData?.cluster_name })"
+    :title="t('xx替换【name】', { title: 'ES', name: clusterData?.master_domain })"
     @remove-node="handleRemoveNode"
     @submit="handleChange" />
 </template>
@@ -51,7 +51,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = reactive<Record<'client' | 'cold' | 'hot' | 'master', TReplaceNode>>({
+  const getInitInfo = (): Record<'client' | 'cold' | 'hot' | 'master', TReplaceNode> => ({
     client: {
       clusterId: props.clusterData.id,
       hostList: [],
@@ -60,6 +60,7 @@
       resourceSpec: {
         count: 0,
         instance_num: 1,
+        labels: [],
         spec_id: 0,
       },
       role: 'es_client',
@@ -74,6 +75,7 @@
       resourceSpec: {
         count: 0,
         instance_num: 1,
+        labels: [],
         spec_id: 0,
       },
       role: 'es_datanode_cold',
@@ -88,6 +90,7 @@
       resourceSpec: {
         count: 0,
         instance_num: 1,
+        labels: [],
         spec_id: 0,
       },
       role: 'es_datanode_hot',
@@ -102,6 +105,7 @@
       resourceSpec: {
         count: 0,
         instance_num: 1,
+        labels: [],
         spec_id: 0,
       },
       role: 'es_master',
@@ -110,30 +114,39 @@
     },
   });
 
+  const nodeInfoMap = reactive(getInitInfo());
+
+  const setInitReplaceNodes = () => {
+    const hotList: TReplaceNode['oldHostList'] = [];
+    const coldList: TReplaceNode['oldHostList'] = [];
+    const clientList: TReplaceNode['oldHostList'] = [];
+    const masterList: TReplaceNode['oldHostList'] = [];
+
+    props.machineList.forEach((nodeItem) => {
+      if (nodeItem.isHot) {
+        hotList.push(nodeItem);
+      } else if (nodeItem.isCold) {
+        coldList.push(nodeItem);
+      } else if (nodeItem.isClient) {
+        clientList.push(nodeItem);
+      } else if (nodeItem.isMaster) {
+        masterList.push(nodeItem);
+      }
+    });
+
+    nodeInfoMap.hot.oldHostList = hotList;
+    nodeInfoMap.cold.oldHostList = coldList;
+    nodeInfoMap.client.oldHostList = clientList;
+    nodeInfoMap.master.oldHostList = masterList;
+  };
+
   watch(
-    () => props.machineList,
+    isShow,
     () => {
-      const hotList: TReplaceNode['oldHostList'] = [];
-      const coldList: TReplaceNode['oldHostList'] = [];
-      const clientList: TReplaceNode['oldHostList'] = [];
-      const masterList: TReplaceNode['oldHostList'] = [];
-
-      props.machineList.forEach((nodeItem) => {
-        if (nodeItem.isHot) {
-          hotList.push(nodeItem);
-        } else if (nodeItem.isCold) {
-          coldList.push(nodeItem);
-        } else if (nodeItem.isClient) {
-          clientList.push(nodeItem);
-        } else if (nodeItem.isMaster) {
-          masterList.push(nodeItem);
-        }
-      });
-
-      nodeInfoMap.hot.oldHostList = hotList;
-      nodeInfoMap.cold.oldHostList = coldList;
-      nodeInfoMap.client.oldHostList = clientList;
-      nodeInfoMap.master.oldHostList = masterList;
+      if (isShow.value) {
+        Object.assign(nodeInfoMap, getInitInfo());
+        setInitReplaceNodes();
+      }
     },
     {
       immediate: true,
