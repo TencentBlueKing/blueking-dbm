@@ -18,6 +18,7 @@ from django.utils.translation import ugettext as _
 from backend import env
 from backend.components.bklog.client import BKLogApi
 from backend.utils.string import pascal_to_snake
+from backend.utils.tenant import TenantHandler
 from backend.utils.time import datetime2str
 
 logger = logging.getLogger("root")
@@ -43,6 +44,7 @@ def _get_log_from_bklog(
             "start": 0,
             "size": 6000,
             "sort_list": [["dtEventTimeStamp", "asc"], ["gseIndex", "asc"], ["iterationIndex", "asc"]],
+            "tenant_id": TenantHandler.get_tenant_id_by_biz(env.DBA_APP_BK_BIZ_ID),
         },
         use_admin=True,
     )

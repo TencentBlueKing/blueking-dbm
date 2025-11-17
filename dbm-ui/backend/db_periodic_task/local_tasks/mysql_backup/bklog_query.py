@@ -15,6 +15,7 @@ from typing import Dict, List
 from backend import env
 from backend.components.bklog.client import BKLogApi
 from backend.utils.string import pascal_to_snake
+from backend.utils.tenant import TenantHandler
 from backend.utils.time import datetime2str
 
 
@@ -37,6 +38,7 @@ def _get_log_from_bklog(bk_biz_id, collector, start_time, end_time, query_string
             "start": 0,
             "size": 6000,
             "sort_list": [["dtEventTimeStamp", "asc"], ["gseIndex", "asc"], ["iterationIndex", "asc"]],
+            "tenant_id": TenantHandler.get_tenant_id_by_biz(bk_biz_id),
         },
         use_admin=True,
     )

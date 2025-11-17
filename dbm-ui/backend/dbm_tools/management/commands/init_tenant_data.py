@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.core.management.base import BaseCommand
+from django.utils.translation import gettext_lazy as _
 
 from backend.utils.tenant import TenantHandler
 
@@ -18,7 +19,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         # 添加必填参数
-        parser.add_argument("tenant_id", type=str, help="租户id")
+        parser.add_argument("tenant_id", type=str, help=_("租户id"))
 
     def handle(self, *args, **options):
         tenant_id = options["tenant_id"]

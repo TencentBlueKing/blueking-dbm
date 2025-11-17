@@ -64,6 +64,9 @@ class ReportBaseViewSet(AuditedModelViewSet):
         state_map.update({info["state"]: info["count"] for info in state_count_info})
         return state_map
 
+    def get_queryset(self):
+        return self.filter_by_tenant_id(super().get_queryset())
+
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
         response.data["name"] = self.report_name or ReportType.get_choice_label(self.report_type)

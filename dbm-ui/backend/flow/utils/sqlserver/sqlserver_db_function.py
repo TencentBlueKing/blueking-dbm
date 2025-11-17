@@ -29,6 +29,7 @@ from backend.flow.consts import (
 )
 from backend.flow.utils.mysql.db_table_filter import DbTableFilter
 from backend.flow.utils.mysql.get_mysql_sys_user import generate_mysql_tmp_user
+from backend.utils.tenant import TenantHandler
 
 logger = logging.getLogger("flow")
 
@@ -681,6 +682,10 @@ def insert_sqlserver_config(
     else:
         sync_mode = ""
     drop_sql = "use Monitor truncate table [Monitor].[dbo].[APP_SETTING]"
+
+    # 获取租户id
+    tenant_id = TenantHandler.get_tenant_id_by_biz(cluster.bk_biz_id)
+
     for storage in storages:
         if is_get_old_backup_config:
             # 按照需求获取旧的备份配置
@@ -690,6 +695,7 @@ def insert_sqlserver_config(
                     "addresses": [storage.ip_port],
                     "cmds": [f"select * from [{SQLSERVER_CUSTOM_SYS_DB}].[dbo].[BACKUP_SETTING_OLD]"],
                     "force": False,
+                    "tenant_id": tenant_id,
                 }
             )
             if ret[0]["error_msg"]:
@@ -856,7 +862,11 @@ def fix_app_setting_data(cluster: Cluster, instance: StorageInstance, sync_mode:
 [MASTER_IP] = '{master.machine.ip}',
 [MASTER_PORT]= {master.port}
 """
-    ret = base_sqlserver_drs(bk_cloud_id=cluster.bk_cloud_id, instances=[instance.ip_port], sqls=[sql])
+    ret = base_sqlserver_drs(
+        bk_cloud_id=cluster.bk_cloud_id,
+        instances=[instance.ip_port],
+        sqls=[sql],
+    )
     if ret[0]["error_msg"]:
         return False, f"fix app_setting failed: {ret[0]['error_msg']}"
 
@@ -871,7 +881,11 @@ def check_sys_job_status(cluster: Cluster, instance: StorageInstance):
         "select name, enabled from msdb.dbo.sysjobs where name like 'TC_%' and name "
         "not in('TC_SNAPSHOT_DAY','TC_SNAPSHOT_ONE','TC_REPORT_LOAD')"
     )
-    ret = base_sqlserver_drs(bk_cloud_id=cluster.bk_cloud_id, instances=[instance.ip_port], sqls=[sql])
+    ret = base_sqlserver_drs(
+        bk_cloud_id=cluster.bk_cloud_id,
+        instances=[instance.ip_port],
+        sqls=[sql],
+    )
     msg = ""
     if ret[0]["error_msg"]:
         msg = f"[{instance.ip_port}] select sys job failed: {ret[0]['error_msg']}"

@@ -20,11 +20,13 @@ from django.utils.crypto import get_random_string
 from backend.configuration.constants import DBType
 from backend.db_meta.api.cluster.tendbha.handler import TenDBHAClusterHandler
 from backend.db_meta.models import AppCache, BKCity, DBModule, LogicalCity, Spec
+from backend.db_meta.models.app import TenantCache
 from backend.db_package.constants import PackageType
 from backend.db_package.models import Package
 from backend.tests.mock_data import constant
 from backend.tests.mock_data.components.cc import CCInitMock
 from backend.tests.mock_data.constant import INIT_SPEC_DATA, INIT_TENDBHA_CREATE_API_DATA
+from backend.ticket.handler import TicketHandler
 
 
 def mock_bk_user(username):
@@ -145,3 +147,15 @@ def init_mysql_cluster():
 
 
 mark_global_skip = pytest.mark.skipif(os.environ.get("GLOBAL_SKIP") == "true", reason="disable in landun WIP")
+
+
+# 初始化租户的流程配置
+def pytest_configure(config):
+    tenant_list = TenantCache.objects.all()
+    if not tenant_list:
+        return
+    for tenant in tenant_list:
+        try:
+            TicketHandler.ticket_flow_config_init(tenant_id=tenant.tenant_id)
+        except Exception as e:
+            print(f"Error initializing tenant {tenant.tenant_id}: {e}")

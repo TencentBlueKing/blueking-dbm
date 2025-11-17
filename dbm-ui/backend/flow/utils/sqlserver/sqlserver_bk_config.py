@@ -13,6 +13,7 @@ from backend.components.dbconfig.constants import FormatType, LevelName, ReqType
 from backend.db_meta.enums import ClusterType
 from backend.db_services.version.constants import SqlserverVersion
 from backend.flow.consts import ConfigTypeEnum
+from backend.utils.tenant import TenantHandler
 
 
 def get_module_infos(bk_biz_id: int, db_module_id: int, cluster_type: ClusterType) -> dict:
@@ -31,6 +32,7 @@ def get_module_infos(bk_biz_id: int, db_module_id: int, cluster_type: ClusterTyp
             "conf_type": "deploy",
             "namespace": cluster_type,
             "format": FormatType.MAP,
+            "tenant_id": TenantHandler.get_tenant_id_by_biz(bk_biz_id),
         }
     )["content"]
     return data
@@ -59,6 +61,7 @@ def get_sqlserver_config(
             "namespace": cluster_type,
             "format": FormatType.MAP_LEVEL,
             "method": ReqType.GENERATE_AND_PUBLISH,
+            "tenant_id": TenantHandler.get_tenant_id_by_biz(bk_biz_id),
         }
     )
     return data["content"]
@@ -82,6 +85,7 @@ def get_sqlserver_backup_config(bk_biz_id: int, cluster_domain: str, db_module_i
             "conf_type": "backup",
             "namespace": "sqlservercomm",
             "format": FormatType.MAP,
+            "tenant_id": TenantHandler.get_tenant_id_by_biz(bk_biz_id),
         }
     )["content"]
     return data
@@ -106,6 +110,7 @@ def get_sqlserver_alarm_config(bk_biz_id: int, cluster_domain: str, db_module_id
             "conf_type": "alarm",
             "namespace": "sqlservercomm",
             "format": FormatType.MAP,
+            "tenant_id": TenantHandler.get_tenant_id_by_biz(bk_biz_id),
         }
     )["content"]
     init_sql = data.pop("init_sql")
