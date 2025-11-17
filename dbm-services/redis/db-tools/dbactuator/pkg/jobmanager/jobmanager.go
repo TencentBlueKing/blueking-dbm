@@ -184,6 +184,7 @@ func (m *JobGenericManager) atomjobsMapperLoading() {
 		m.atomJobMapper[atomredis.NewTendisKeysPatternDelete().Name()] = atomredis.NewTendisKeysPatternDelete
 		m.atomJobMapper[atomredis.NewTendisKeysFilesDelete().Name()] = atomredis.NewTendisKeysFilesDelete
 		m.atomJobMapper[atomproxy.NewPredixyInstall().Name()] = atomproxy.NewPredixyInstall
+		m.atomJobMapper[atomproxy.NewProxyReUse().Name()] = atomproxy.NewProxyReUse
 		m.atomJobMapper[atomredis.NewTendisssdDrRestore().Name()] = atomredis.NewTendisssdDrRestore
 		m.atomJobMapper[atomproxy.NewTwemproxyOperate().Name()] = atomproxy.NewTwemproxyOperate
 		m.atomJobMapper[atomproxy.NewPredixyOperate().Name()] = atomproxy.NewPredixyOperate

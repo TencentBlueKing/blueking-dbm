@@ -178,6 +178,14 @@ class BizSettingsEnum(StrStructuredEnum):
     NOTIFY_CONFIG = EnumField("NOTIFY_CONFIG", _("业务通知渠道配置"))
 
 
+class RedisFastRecoverEnum(StrStructuredEnum):
+    """Redis 快速剔除、恢复 统一入口管理"""
+
+    PROXY_ENTRY_KICKOFF = EnumField("PROXY_ENTRY_KICKOFF", _("踢掉所有接入层"))
+    PROXY_ENTRY_FIX = EnumField("PROXY_ENTRY_FIX", _("修复接入层"))
+    SLAVE_REUSE_FIX = EnumField("SLAVE_REUSE_FIX", _("SLAVE重启后复用"))
+
+
 DEFAULT_DB_ADMINISTRATORS = ["admin"]
 
 # TODO 域名模板是否可配置，调整后会带来额外的管理成本？
