@@ -65,9 +65,11 @@ func (c *Client) SendRequest(url string, method hanet.HttpMethod, req any,
 		logger.Warn("failed to send http %s request to dbm, errmsg: %s", method, err)
 		return nil, err
 	}
+
 	if http.StatusOK != code {
-		logger.Warn("http %s request failed, status code: %d, errmsg: %s", method, code, err)
-		return nil, err
+		errMsg := fmt.Sprintf("HTTP %s request responded with a bad code: %d, errmsg: %s", method, code, err)
+		logger.Warn("%s", errMsg)
+		return nil, gerrors.Newf(gerrors.HttpRequestFailure, "%s", errMsg)
 	}
 
 	return resp, nil
@@ -177,6 +179,16 @@ func (c *Client) UpdateInstanceStatus(ip string, port int, status DbmMetadataSta
 	}
 
 	logger.Debug("UpdateInstanceStatus response: %s", string(response))
+
+	updateStatusResp := &UpdateInstanceStatusRespond{}
+	if err := json.Unmarshal(response, updateStatusResp); err != nil {
+		return err
+	}
+
+	if !updateStatusResp.Result {
+		return gerrors.Newf(gerrors.Failure, "request failed, errmsg: %s", updateStatusResp.Message)
+	}
+
 	return nil
 }
 
@@ -238,6 +250,9 @@ func (c *Client) DeleteFromCLB(region string, lbid string, lnid string, ins stri
 	}
 
 	logger.Debug("DeleteFromCLB response: %s", string(response))
+
+	// TODO: parse response and check if result is success
+
 	return nil
 }
 
@@ -260,6 +275,9 @@ func (c *Client) DeleteFromPolaris(servname string, servtoken string, ins string
 	}
 
 	logger.Debug("DeleteFromPolaris response: %s", string(response))
+
+	// TODO: parse response and check if result is success
+
 	return nil
 }
 
@@ -292,6 +310,16 @@ func (c *Client) SwapMySQLRole(masterIp string, masterPort int, slaveIp string, 
 	}
 
 	logger.Debug("SwapMySQLRole response: %s", string(response))
+
+	swapResp := &SwapRoleRespond{}
+	if err := json.Unmarshal(response, swapResp); err != nil {
+		return err
+	}
+
+	if !swapResp.Result {
+		return gerrors.Newf(gerrors.Failure, "request failed: %s", swapResp.Message)
+	}
+
 	return nil
 }
 
@@ -314,5 +342,8 @@ func (c *Client) SwitchBinlogDumper(app string, switchInfos []DumperSwitchInfo) 
 	}
 
 	logger.Debug("SwitchBinlogDumper response: %s", string(response))
+
+	// TODO: parse response and check if result is success
+
 	return nil
 }

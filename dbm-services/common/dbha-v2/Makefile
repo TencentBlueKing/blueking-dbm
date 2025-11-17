@@ -54,7 +54,7 @@ GO_GEN_FILES=$(PROTO_FILES:$(PROTO_DIR)/%.proto=$(GEN_DIR)/%.pb.go)
 
 # build target
 
-all: proto admin analysis receiver probe
+all: proto admin analysis receiver probe toolkits
 
 proto: $(GO_GEN_FILES)
 	@goimports -w .
@@ -79,6 +79,14 @@ probe:
 	CGO_ENABLED=0 GOOS=${GO_OS} GOARCH=amd64 go build -ldflags=$(BUILD_FLAG) -gcflags="all=-trimpath=$(PWD)" \
 				-asmflags="all=-trimpath=$(PWD)" -o $(BUILD_DIR)/$@ cmd/probe/main.go
 
+toolkits: cluster
+
+# test toolkits build target
+cluster:
+	@mkdir -p $(BUILD_DIR)
+	CGO_ENABLED=0 GOOS=${GO_OS} GOARCH=amd64 go build -ldflags=$(BUILD_FLAG) -gcflags="all=-trimpath=$(PWD)" \
+				-asmflags="all=-trimpath=$(PWD)" -o $(BUILD_DIR)/$@ tools/cmd/cluster.go
+
 # build protobuf to go
 $(GEN_DIR)/%.pb.go: $(PROTO_DIR)/%.proto
 	@mkdir -p $(GEN_DIR)
@@ -90,4 +98,3 @@ format:
 clean:
 	rm -rf $(GEN_DIR)/*.go
 	rm -rf $(BUILD_DIR)/*
-

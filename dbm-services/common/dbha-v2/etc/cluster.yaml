@@ -1,0 +1,76 @@
+# mysql cluster
+mysqlClusters:
+  - domain: "testdb.dbha-test1.hz.db"
+    bkBizId: 1
+    proxy: 
+      - host: xxx.xxx.xxx.1
+        port: 3306
+        adminPort: 4306
+      - host: xxx.xxx.xxx.2
+        port: 3306
+        adminPort: 4306
+    
+    master:
+      host: xxx.xxx.xxx.3
+      port: 3306
+    
+    slave:
+      - host: xxx.xxx.xxx.4
+        port: 3306
+      - host: xxx.xxx.xxx.5
+        port: 3306
+  
+  - domain: "testdb.dbha-test2.hz.db"
+    bkBizId: 1
+    proxy: 
+      - host: xxx.xxx.xxx.6
+        port: 3306
+        adminPort: 4306
+      - host: xxx.xxx.xxx.7
+        port: 3306
+        adminPort: 4306
+    
+    master:
+      host: xxx.xxx.xxx.8
+      port: 3306
+    
+    slave:
+      - host: xxx.xxx.xxx.9
+        port: 3306
+      - host: xxx.xxx.xxx.10
+        port: 3306
+
+dbmServices:
+  dbmApiMetadata:
+    api: http://127.0.0.1:80/apis/proxypass/dbmeta/dbha/instances/
+    timeout: 10s
+    token: "xxx"
+
+  dbmApiUpdateStatus:
+    api: http://127.0.0.1:80/apis/proxypass/dbmeta/dbha/update_status/
+    timeout: 10s
+    token: "xxx"
+
+  dbmApiSwapMysqlRole:
+    api: http://127.0.0.1:80/apis/proxypass/dbmeta/dbha/swap_role/
+    timeout: 10s
+    token: "xxx"
+  
+  dbmApiDomainGet:
+    api: http://127.0.0.1:80/apis/proxypass/dns/domain/get/
+    timeout: 10s
+    token: ""
+  
+  dbmApiDomainPut:
+    api: http://127.0.0.1:80/apis/proxypass/dns/domain/put/
+    timeout: 10s
+    token: ""
+
+authInfo:
+  user: "mysql"
+  password: "xxx"
+  proxyUser: "proxy"
+  proxyPassword: "xxx"
+  replUser: "repl"
+  replPassword: "xxx"
+    

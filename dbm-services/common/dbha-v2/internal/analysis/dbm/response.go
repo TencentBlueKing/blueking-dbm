@@ -30,6 +30,7 @@ import (
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 )
 
+// DbInstMetadata represents the metadata of a database instance.
 type DbInstMetadata struct {
 	BkIdcCityID        int                            `json:"bk_idc_city_id"`
 	BkIdcCityName      string                         `json:"bk_idc_city_name"`
@@ -101,8 +102,15 @@ type Response struct {
 	Data []*DbInstMetadata `json:"data"`
 }
 
-// DomainInfo contains detailed information about a domain configuration
-type DomainInfo struct {
+// UpdateInstanceStatusRespond represents the response for updating database instance status
+type UpdateInstanceStatusRespond struct {
+	ResponseCommonInfo
+
+	Data string `json:"data"`
+}
+
+// InstanceInfoInDomain contains detailed information about a instance in a domain
+type InstanceInfoInDomain struct {
 	App            string    `json:"app"`
 	DnsStr         string    `json:"dns_str"`
 	DomainName     string    `json:"domain_name"`
@@ -122,8 +130,8 @@ type DomainGetRespond struct {
 	ResponseCommonInfo
 
 	Data struct {
-		Detail  []DomainInfo `json:"detail"`
-		RowsNum int          `json:"rowsNum"`
+		Detail  []InstanceInfoInDomain `json:"detail"`
+		RowsNum int                    `json:"rowsNum"`
 	} `json:"data"`
 }
 
@@ -132,7 +140,14 @@ type DomainDeleteRespond struct {
 	ResponseCommonInfo
 
 	Data struct {
-		Detail  []DomainInfo `json:"detail"`
-		RowsNum int          `json:"rowsNum"`
+		Detail  []InstanceInfoInDomain `json:"detail"`
+		RowsNum int                    `json:"rowsNum"`
 	} `json:"data"`
+}
+
+// SwapRoleRespond represents the response structure for role swapping
+type SwapRoleRespond struct {
+	ResponseCommonInfo
+
+	Data string `json:"data"`
 }
