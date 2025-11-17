@@ -178,7 +178,6 @@
 </template>
 <script lang="ts" setup>
   import dayjs from 'dayjs';
-  import _ from 'lodash';
   import { reactive, useTemplateRef } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
@@ -331,11 +330,9 @@
 
   // 行合并
   const handleRowMerge = () => {
-    formData.tableData = [..._.sortBy(formData.tableData, (item) => item.cluster.id)];
-
     sameClusterIdsRowsMap = {};
     formData.tableData.forEach((item) => {
-      Object.assign(item, { rowspan: 1 });
+      Object.assign(item, { same_cluster: 1 });
       const key = item.cluster.id;
       if (!sameClusterIdsRowsMap[key]) {
         sameClusterIdsRowsMap[key] = [item];
@@ -347,7 +344,7 @@
       const isSameMaster = list.every((item) => item.master.ip === list[0].master.ip);
       Object.assign(list[0], {
         same_cluster: list.length,
-        same_master: isSameMaster ? list.length : 1, // 相同规格合并
+        same_master: isSameMaster ? list.length : 1,
       });
     });
   };
