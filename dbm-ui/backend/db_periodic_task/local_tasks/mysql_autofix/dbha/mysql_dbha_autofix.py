@@ -14,6 +14,7 @@ import threading
 import uuid
 from typing import List
 
+from celery.schedules import crontab
 from django.db import transaction
 
 from backend.db_meta.enums import ClusterType
@@ -24,11 +25,13 @@ from backend.db_monitor.models import (
     MySQLDBHAEvent,
     TicketQueueUncommitStatus,
 )
+from backend.db_periodic_task.local_tasks import register_periodic_task
 from backend.db_periodic_task.local_tasks.mysql_autofix.dbha import static_validate, tendbcluster, tendbha
 from backend.db_periodic_task.local_tasks.mysql_autofix.dbha.aggregate_events import aggregate_events
 from backend.db_periodic_task.local_tasks.mysql_autofix.dbha.commit_ticket import commit_ticket
 from backend.db_periodic_task.local_tasks.mysql_autofix.dbha.consts import AF_TICKET_RUNNING
 from backend.db_periodic_task.local_tasks.mysql_autofix.dbha.filter_ready_event import filter_ready_events
+from backend.ticket.constants import TicketStatus
 from backend.ticket.models import Ticket
 
 logger = logging.getLogger("celery")
@@ -36,7 +39,7 @@ logger = logging.getLogger("celery")
 mysql_dbha_af_schedule_lock = threading.Lock()
 
 
-# @register_periodic_task(run_every=crontab(minute="*"))
+@register_periodic_task(run_every=crontab(minute="*"))
 def mysql_dbha_af_tracking_tickets():
     """
     跟踪单据状态
@@ -47,12 +50,21 @@ def mysql_dbha_af_tracking_tickets():
     )
     for aftk in af_tickets:
         tk = Ticket.objects.get(pk=aftk.ticket_id)
-        aftk.status = tk.status
-        aftk.save(update_fields=["status"])
+
+        tracked_status = aftk.status
+        current_status = tk.status
+
+        # 只有状态变化了才更新, 省点 qps
+        if tracked_status != current_status:
+            aftk.status = tk.status
+            aftk.save(update_fields=["status"])
+
+            # 如果单据状态变成了 failed
+            if current_status == TicketStatus.FAILED:
+                pass
 
 
-# @transaction.atomic
-# @register_periodic_task(run_every=crontab(minute="*"))
+@register_periodic_task(run_every=crontab(minute="*"))
 def mysql_dbha_af_commiter():
     """
     这个函数理论上还挺快的, 应该可以开个事务
@@ -123,7 +135,7 @@ def mysql_dbha_af_commiter():
     commit_ticket(p3_uncommit_tickets)
 
 
-# @register_periodic_task(run_every=crontab(minute="*"))
+@register_periodic_task(run_every=crontab(minute="*"))
 def mysql_dbha_af_schedule():
     """
     1. 每个 check_id 代表一台机器
