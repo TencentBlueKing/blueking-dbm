@@ -2,8 +2,8 @@
   <BkDialog
     v-model:is-show="isShow"
     :title="t('添加授权规则')"
-    :width="1300">
-    <div class="openarea-create-permission-rule">
+    width="80%">
+    <div class="openarea-permission-rule-selector">
       <div class="top-operate mb-16">
         <div class="search-main">
           <DbSearchSelect
@@ -33,11 +33,58 @@
       </div>
       <DbTable
         ref="tableRef"
-        :cell-class="cellClassCallback"
-        :columns="columns"
         :data-source="getPermissionRules"
         :max-height="700"
-        @clear-search="handleClearSearch" />
+        :row-class-name="rowClass"
+        :show-overflow="false"
+        @clear-search="handleClearSearch">
+        <BkTableColumn
+          field="user"
+          :label="t('账号名称')"
+          :width="220">
+          <template #default="{ row }: {row: MysqlPermissionAccountModel}">
+            <DbIcon
+              v-if="row.rules.length > 1"
+              class="flod-flag"
+              :class="{
+                'is-flod': rowFlodMap[row.account.user],
+              }"
+              type="down-shape"
+              @click="() => handleToogleExpand(row.account.user)" />
+            {{ row.account.user }}
+          </template>
+        </BkTableColumn>
+        <BkTableColumn
+          field="access_db"
+          :label="t('访问DB')"
+          :width="300">
+          <template #default="{ row }: {row: MysqlPermissionAccountModel}">
+            <p
+              v-for="item in rowFlodMap[row.account.user] ? row.rules : row.rules.slice(0, 1)"
+              :key="item.rule_id"
+              class="inner-row">
+              <BkCheckbox
+                class="mr-8"
+                :model-value="ruleCheckedMap[item.rule_id]"
+                @change="(value: boolean) => handleDbChange(value, item.rule_id)" />
+              <BkTag>{{ item.access_db }}</BkTag>
+            </p>
+          </template>
+        </BkTableColumn>
+        <BkTableColumn
+          field="privilege"
+          :label="t('权限')"
+          :min-width="300">
+          <template #default="{ row }: {row: MysqlPermissionAccountModel}">
+            <TextOverflowLayout
+              v-for="item in rowFlodMap[row.account.user] ? row.rules : row.rules.slice(0, 1)"
+              :key="item.rule_id"
+              class="inner-row">
+              {{ item.privilege }}
+            </TextOverflowLayout>
+          </template>
+        </BkTableColumn>
+      </DbTable>
     </div>
     <template #footer>
       <div style="display: flex">
@@ -121,90 +168,6 @@
     },
   ];
 
-  const columns = [
-    {
-      field: 'user',
-      label: t('账号名称'),
-      render: ({ data }: { data: MysqlPermissionAccountModel }) => (
-        <div class='account-box'>
-          {data.rules.length > 1 && (
-            <db-icon
-              class={{
-                'flod-flag': true,
-                'is-flod': rowFlodMap.value[data.account.user],
-              }}
-              type='down-shape'
-              onClick={() => handleToogleExpand(data.account.user)}
-            />
-          )}
-          {data.account.user}
-        </div>
-      ),
-      showOverflowTooltip: false,
-      width: 220,
-    },
-    {
-      field: 'access_db',
-      label: t('访问DB'),
-      render: ({ data }: { data: MysqlPermissionAccountModel }) => {
-        if (data.rules.length === 0) {
-          return (
-            <div class='inner-row'>
-              <bk-checkbox
-                class='mr-8'
-                disabled
-              />
-              <span>{t('暂无规则，')}</span>
-              <router-link
-                to={{
-                  name: 'PermissionRules',
-                }}
-                target='_blank'>
-                {t('去创建')}
-              </router-link>
-            </div>
-          );
-        }
-        const renderRules = rowFlodMap.value[data.account.user] ? data.rules.slice(0, 1) : data.rules;
-
-        return renderRules.map((item) => (
-          <div class='inner-row'>
-            <bk-checkbox
-              class='mr-8'
-              model-value={ruleCheckedMap.value[item.rule_id]}
-              onChange={(value: boolean) => handleDbChange(value, item.rule_id)}
-            />
-            <bk-tag>{item.access_db}</bk-tag>
-          </div>
-        ));
-      },
-      showOverflowTooltip: true,
-      sort: true,
-      width: 300,
-    },
-    {
-      field: 'privilege',
-      label: t('权限'),
-      render: ({ data }: { data: MysqlPermissionAccountModel }) => {
-        if (data.rules.length === 0) {
-          return <div class='inner-row'>--</div>;
-        }
-        const renderRules = rowFlodMap.value[data.account.user] ? data.rules.slice(0, 1) : data.rules;
-        return renderRules.map((item) => (
-          <div class='inner-row'>
-            <TextOverflowLayout>
-              {{
-                default: () => item.privilege,
-              }}
-            </TextOverflowLayout>
-          </div>
-        ));
-      },
-      showOverflowTooltip: false,
-      sort: true,
-    },
-  ];
-
   watch(isShow, () => {
     if (!isShow.value) {
       searchSelectValue.value = [];
@@ -224,6 +187,13 @@
     });
   });
 
+  const rowClass = ({ row }: { row: MysqlPermissionAccountModel }) => {
+    if (!rowFlodMap.value[row.account.user]) {
+      return 'init-height';
+    }
+    return '';
+  };
+
   const fetchTableData = () => {
     tableRef.value.fetchData(
       {
@@ -234,8 +204,6 @@
       },
     );
   };
-
-  const cellClassCallback = (data: any) => (data.field ? `cell-${data.field}` : '');
 
   const handleSearchChange = (valueList: ISearchValue[]) => {
     ruleCheckedMap.value = {};
@@ -308,7 +276,7 @@
   };
 </script>
 <style lang="less">
-  .openarea-create-permission-rule {
+  .openarea-permission-rule-selector {
     height: 730px;
 
     .top-operate {
@@ -327,37 +295,26 @@
       }
     }
 
-    .account-box {
-      .flod-flag {
-        display: inline-block;
-        margin-right: 4px;
-        cursor: pointer;
-        transition: all 0.1s;
+    .flod-flag {
+      display: inline-block;
+      margin-right: 4px;
+      cursor: pointer;
+      transition: all 0.1s;
 
-        &.is-flod {
-          transform: rotateZ(-90deg);
-        }
-      }
-    }
-
-    .cell-privilege {
-      .vxe-cell {
-        padding: 0 !important;
-        margin-left: -16px;
-
-        .inner-row {
-          padding-left: 32px !important;
-        }
+      &.is-flod {
+        transform: rotateZ(-90deg);
       }
     }
 
     .inner-row {
+      height: 28px;
       display: flex;
-      height: 40px;
       align-items: center;
+    }
 
-      & ~ .inner-row {
-        border-top: 1px solid #dcdee5;
+    .init-height {
+      td {
+        height: initial !important;
       }
     }
   }

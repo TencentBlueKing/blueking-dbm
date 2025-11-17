@@ -16,7 +16,7 @@
     v-model="modelValue"
     :field="field"
     :label="label"
-    :placeholder="t('请输入DB 名称，支持通配符“%”，含通配符的仅支持单个')"
+    :placeholder="placeholder"
     :required="required"
     :rules="localRules"
     :show-batch-edit="showBatchEdit"
@@ -54,11 +54,12 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import type { ComponentProps } from 'vue-component-type-helpers';
-  import { useI18n } from 'vue-i18n';
 
   import { checkClusterDatabase } from '@services/source/dbbase';
 
   import DbNameColumn from '@views/db-manage/common/toolbox-field/column/db-table-name-column/Index.vue';
+
+  import { t } from '@locales/index';
 
   interface Props {
     /**
@@ -84,6 +85,7 @@
     clusterId?: number;
     field: string;
     label: string;
+    placeholder?: string;
     required?: boolean;
     rules?: NonNullable<ComponentProps<typeof DbNameColumn>['rules']>;
     showBatchEdit?: boolean;
@@ -99,6 +101,7 @@
     checkNotExist: false,
     clusterId: undefined,
     disabled: false,
+    placeholder: t('请输入DB 名称，支持通配符“%”，含通配符的仅支持单个'),
     required: false,
     rules: () => [],
     showBatchEdit: true,
@@ -109,8 +112,6 @@
   const modelValue = defineModel<string[]>({
     required: true,
   });
-
-  const { t } = useI18n();
 
   let isInit = true;
 

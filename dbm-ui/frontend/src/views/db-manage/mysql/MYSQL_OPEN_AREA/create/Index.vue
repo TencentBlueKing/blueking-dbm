@@ -18,7 +18,7 @@
     <span style="font-size: 16px">【{{ templateData.config_name }}】</span>
   </Teleport>
   <SmartAction
-    class="mysql-openarea-page"
+    class="openarea-create"
     :offset-target="getSmartActionOffsetTarget">
     <BkLoading :loading="loading">
       <DbCard
@@ -163,7 +163,7 @@
   });
 </script>
 <style lang="less">
-  .mysql-openarea-page {
+  .openarea-create {
     .bk-form-label {
       font-size: 12px;
     }

@@ -35,11 +35,15 @@
         :cluster-id="props.clusterId"
         field="schema_tblist"
         :label="t('克隆表数据')"
+        :placeholder="t('留空表示不克隆表数据')"
         :single="false" />
       <DbPatternColumn
         v-model="item.target_db_pattern"
         :source-db="item.source_db"
         v-bind="props" />
+      <OperationColumn
+        v-model:table-data="tableData"
+        :create-row-method="createTableRow" />
     </EditableRow>
   </EditableTable>
 </template>
@@ -66,6 +70,7 @@
 
   interface Exposes {
     getValue: () => Promise<RowData[]>;
+    reset: () => void;
   }
 
   const props = defineProps<Props>();
@@ -101,6 +106,9 @@
         return Promise.reject([]);
       }
       return tableData.value as RowData[];
+    },
+    reset() {
+      tableData.value = [createTableRow()];
     },
   });
 </script>

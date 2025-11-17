@@ -32,14 +32,17 @@
         type="textarea"
         @change="(value: string) => handleBatchEdit(value)">
         <span
-          v-bk-tooltips="t('批量录入：按行录入，快速批量输入多个单元格的值')"
+          v-bk-tooltips="t('按行录入：批量录入多个单元格的值')"
           class="batch-edit-btn"
           @click="handleShowBatchEdit">
           <DbIcon type="piliangluru" />
         </span>
       </BatchEditColumn>
     </template>
-    <EditableInput v-model="modelValue"> </EditableInput>
+    <EditableInput
+      v-model="modelValue"
+      :placeholder="t('可使用_{_}_占位，如db_{id} ；_{id}的实际值在执行开区时传入')">
+    </EditableInput>
   </EditableColumn>
 </template>
 <script lang="ts" setup>

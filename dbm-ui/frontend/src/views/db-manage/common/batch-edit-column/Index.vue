@@ -44,9 +44,9 @@
             </BkSelect>
             <BkInput
               v-else-if="type === 'textarea'"
+              v-bind="{ ...attrs, ...props }"
               ref="inputRef"
               v-model="localValue"
-              v-bind="{ ...attrs, ...props }"
               :placeholder="placeholder"
               :rows="5"
               type="textarea"
@@ -107,7 +107,7 @@
     placeholder?: string;
     single?: boolean;
     title: string;
-    titlePrefixType?: 'edit' | 'entry' | 'select';
+    titlePrefixType?: 'by-rows' | 'edit' | 'entry' | 'select';
     type?: 'select' | 'textarea' | 'input' | 'taginput' | 'datetime' | 'number-input';
     width?: number;
   }
@@ -135,6 +135,7 @@
   const attrs = useAttrs();
 
   const titlePrefixTypeMap = {
+    'by-rows': t('按行录入'),
     edit: t('统一设置'),
     entry: t('批量录入'),
     select: t('批量选择'),

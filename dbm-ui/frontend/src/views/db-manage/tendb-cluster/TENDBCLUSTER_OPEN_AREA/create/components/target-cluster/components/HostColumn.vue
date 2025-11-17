@@ -21,9 +21,25 @@
       <span
         v-bk-tooltips="t('批量选择')"
         class="batch-host-select"
-        @click="handleShowSelector">
-        <DbIcon type="batch-host-select" />
+        @click="handleShowBatchSelector">
+        <DbIcon type="bulk-edit" />
       </span>
+      <!-- 批量选择 -->
+      <IpSelector
+        v-model:show-dialog="isShowBatchIpSelector"
+        :biz-id="cluster.bk_biz_id"
+        button-text=""
+        :cloud-info="{
+          id: cluster.bk_cloud_id,
+          name: cluster.bk_cloud_name,
+        }"
+        :data="batchSelected"
+        :only-alive-host="false"
+        :panel-list="['staticTopo', 'dbmWhitelist', 'manualInput']"
+        service-mode="all"
+        :show-view="false"
+        @change="handleHostBatchChange"
+        @change-whitelist="handleWhitelistBatchChange" />
     </template>
     <EditableBlock
       v-model="localValue"
@@ -37,6 +53,7 @@
           type="bk-dbm-icon db-icon-down-big" />
       </template>
     </EditableBlock>
+    <!-- 单行选择 -->
     <IpSelector
       v-model:show-dialog="isShowIpSelector"
       :biz-id="cluster.bk_biz_id"
@@ -70,7 +87,7 @@
     selectedIps: string[];
   }
 
-  type Emits = (e: 'batch-edit', list: HostInfo[]) => void;
+  type Emits = (e: 'batch-edit', ips: string[], field: 'authorize_ips') => void;
 
   const props = defineProps<Props>();
 
@@ -82,7 +99,9 @@
 
   const { t } = useI18n();
 
+  const isShowBatchIpSelector = ref(false);
   const isShowIpSelector = ref(false);
+  const batchSelected = shallowRef<HostInfo[]>([]);
   const selected = shallowRef<HostInfo[]>([]);
   const localValue = computed(() => modelValue.value.join(','));
 
@@ -104,10 +123,22 @@
     isShowIpSelector.value = true;
   };
 
+  const handleShowBatchSelector = () => {
+    isShowBatchIpSelector.value = true;
+  };
+
   const handleHostChange = (hostList: HostInfo[]) => {
     selected.value = hostList;
     modelValue.value = hostList.map((item) => item.ip);
-    emits('batch-edit', hostList);
+  };
+
+  const handleHostBatchChange = (hostList: HostInfo[]) => {
+    batchSelected.value = hostList;
+    emits(
+      'batch-edit',
+      hostList.map((item) => item.ip),
+      'authorize_ips',
+    );
   };
 
   const handleWhitelistChange = (whiteList: IPSelectorResult['dbm_whitelist']) => {
@@ -117,7 +148,15 @@
     );
     selected.value = finalIps.map((ip) => ({ ip }) as HostInfo);
     modelValue.value = finalIps;
-    emits('batch-edit', selected.value);
+  };
+
+  const handleWhitelistBatchChange = (whiteList: IPSelectorResult['dbm_whitelist']) => {
+    const finalIps = _.union(
+      batchSelected.value.map((item) => item.ip),
+      _.flatMap(whiteList, 'ips'),
+    );
+    batchSelected.value = finalIps.map((ip) => ({ ip }) as HostInfo);
+    emits('batch-edit', finalIps, 'authorize_ips');
   };
 
   watch(

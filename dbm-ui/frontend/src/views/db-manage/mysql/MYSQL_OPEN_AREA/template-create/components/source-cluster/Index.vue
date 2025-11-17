@@ -20,7 +20,7 @@
   </BkButton>
   <div
     v-if="clusterInfo.domain"
-    class="mysql-openarea-source-cluster">
+    class="openarea-source-cluster">
     {{ clusterInfo.domain }}（{{ clusterInfo.type === 'tendbha' ? t('主从') : t('单节点') }}）
     <DbIcon
       class="delete-icon"
@@ -44,6 +44,10 @@
   import { ClusterTypes } from '@common/const';
 
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
+
+  type Emits = (e: 'change') => void;
+
+  const emits = defineEmits<Emits>();
 
   const sourceClusterId = defineModel<number>({
     required: true,
@@ -82,6 +86,7 @@
       domain: '',
       type: '',
     };
+    emits('change');
   };
 
   const handelChange = (selected: Record<string, TendbhaModel[]>) => {
@@ -94,6 +99,7 @@
       domain,
       type: clusterType,
     };
+    emits('change');
   };
 
   defineExpose({
@@ -113,7 +119,7 @@
   });
 </script>
 <style lang="less" scoped>
-  .mysql-openarea-source-cluster {
+  .openarea-source-cluster {
     display: flex;
     margin-top: 12px;
     font-size: 14px;

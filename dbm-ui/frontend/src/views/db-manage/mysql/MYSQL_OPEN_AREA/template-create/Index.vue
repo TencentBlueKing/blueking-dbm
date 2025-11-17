@@ -8,7 +8,7 @@
     <SmartAction :offset-target="getSmartActionOffsetTarget">
       <BkForm
         ref="form"
-        class="mysql-template-create mb-32"
+        class="openarea-source-cluster mb-32"
         :model="formData">
         <DbCard :title="t('基本信息')">
           <BkFormItem
@@ -32,7 +32,8 @@
             required>
             <SourceCluster
               ref="sourceClusterRef"
-              v-model="formData.source_cluster_id" />
+              v-model="formData.source_cluster_id"
+              @change="handleChangeCluster" />
           </BkFormItem>
           <BkFormItem
             :label="t('克隆的规则')"
@@ -186,9 +187,19 @@
     }
   };
 
+  const handleChangeCluster = () => {
+    configRuleRef.value?.reset();
+    permissionRuleRef.value?.reset();
+    nextTick(() => {
+      window.changeConfirm = false;
+      formDataChanged.value = false;
+    });
+  };
+
   const handleReset = () => {
     Object.assign(formData, genDefaultValue());
     sourceClusterRef.value?.reset();
+    configRuleRef.value?.reset();
     permissionRuleRef.value?.reset();
     nextTick(() => {
       window.changeConfirm = false;
@@ -214,7 +225,7 @@
   });
 </script>
 <style lang="less">
-  .mysql-template-create {
+  .openarea-source-cluster {
     .bk-form-label {
       font-size: 12px;
     }
