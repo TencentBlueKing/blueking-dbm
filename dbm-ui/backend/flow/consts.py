@@ -357,6 +357,7 @@ class MediumEnum(StrStructuredEnum):
     Doris = EnumField("doris", _("doris"))
     Vm = EnumField("vm", _("vm"))
     Oracle = EnumField("oracle", _("oracle"))
+    TLinux4Dependencies = EnumField("tlinux4-dependencies", _("tlinux4-dependencies"))
 
 
 class CloudServiceName(StrStructuredEnum):
