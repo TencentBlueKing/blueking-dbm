@@ -17,7 +17,7 @@
     v-model="nodeInfoMap"
     v-model:is-show="isShow"
     :cluster-data="clusterData"
-    :title="t('xx替换【name】', { title: 'HDFS', name: clusterData?.cluster_name })"
+    :title="t('xx替换【name】', { title: 'HDFS', name: clusterData?.master_domain })"
     @remove-node="handleRemoveNode"
     @submit="handleChange" />
 </template>
@@ -52,7 +52,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = ref<Record<'datanode', TReplaceNode>>({
+  const getInitInfo = (): Record<'datanode', TReplaceNode> => ({
     datanode: {
       clusterId: props.clusterData.id,
       hostList: [],
@@ -60,6 +60,7 @@
       oldHostList: [],
       resourceSpec: {
         count: 0,
+        labels: [],
         spec_id: 0,
       },
       role: 'hdfs_datanode',
@@ -68,18 +69,27 @@
     },
   });
 
+  const nodeInfoMap = reactive(getInitInfo());
+
+  const setInitReplaceNodes = () => {
+    const datanodeList: TReplaceNode['oldHostList'] = [];
+
+    props.machineList.forEach((machineItem) => {
+      if (machineItem.isDataNode) {
+        datanodeList.push(machineItem);
+      }
+    });
+
+    nodeInfoMap.datanode.oldHostList = datanodeList;
+  };
+
   watch(
-    () => props.machineList,
+    isShow,
     () => {
-      const datanodeList: TReplaceNode['oldHostList'] = [];
-
-      props.machineList.forEach((machineItem) => {
-        if (machineItem.isDataNode) {
-          datanodeList.push(machineItem);
-        }
-      });
-
-      nodeInfoMap.value.datanode.oldHostList = datanodeList;
+      if (isShow.value) {
+        Object.assign(nodeInfoMap, getInitInfo());
+        setInitReplaceNodes();
+      }
     },
     {
       immediate: true,

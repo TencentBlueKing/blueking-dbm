@@ -17,7 +17,7 @@
     v-model:is-show="isShow"
     :data="clusterData"
     :loading="isLoading"
-    :title="t('xx缩容【name】', { title: 'Kafka', name: clusterData?.cluster_name })"
+    :title="t('xx缩容【name】', { title: 'Kafka', name: clusterData?.master_domain })"
     @submit="handleChange" />
 </template>
 <script setup lang="tsx">
@@ -47,7 +47,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = ref<Record<'broker', TShrinkNode>>({
+  const getInitInfo = (): Record<'broker', TShrinkNode> => ({
     broker: {
       hostList: [],
       label: 'Broker',
@@ -62,6 +62,8 @@
       totalDisk: 0,
     },
   });
+
+  const nodeInfoMap = reactive(getInitInfo());
 
   const isLoading = ref(false);
 
@@ -84,48 +86,44 @@
           }
         });
 
-        nodeInfoMap.value.broker.originalNodeList = brokerOriginalNodeList;
-        nodeInfoMap.value.broker.totalDisk = brokerDiskTotal;
+        nodeInfoMap.broker.originalNodeList = brokerOriginalNodeList;
+        nodeInfoMap.broker.totalDisk = brokerDiskTotal;
       })
       .finally(() => {
         isLoading.value = false;
       });
   };
 
+  // 默认选中的缩容节点
+  const setInitShrinkNodes = () => {
+    const brokerHostList: TShrinkNode['hostList'] = [];
+
+    let brokerShrinkDisk = 0;
+
+    props.machineList.forEach((machineItem) => {
+      if (machineItem.isBroker) {
+        brokerShrinkDisk += machineItem.host_info?.bk_disk || 0;
+        brokerHostList.push({
+          alive: machineItem.host_info?.alive || 0,
+          bk_cloud_id: machineItem.bk_cloud_id,
+          bk_disk: machineItem.host_info.bk_disk,
+          bk_host_id: machineItem.bk_host_id,
+          ip: machineItem.ip,
+        });
+      }
+    });
+    nodeInfoMap.broker.hostList = brokerHostList;
+    nodeInfoMap.broker.shrinkDisk = brokerShrinkDisk;
+  };
+
   watch(
     isShow,
     () => {
       if (isShow.value) {
+        Object.assign(nodeInfoMap, getInitInfo());
+        setInitShrinkNodes();
         fetchListNode();
       }
-    },
-    {
-      immediate: true,
-    },
-  );
-
-  // 默认选中的缩容节点
-  watch(
-    () => props.machineList,
-    () => {
-      const brokerHostList: TShrinkNode['hostList'] = [];
-
-      let brokerShrinkDisk = 0;
-
-      props.machineList.forEach((machineItem) => {
-        if (machineItem.isBroker) {
-          brokerShrinkDisk += machineItem.host_info?.bk_disk || 0;
-          brokerHostList.push({
-            alive: machineItem.host_info?.alive || 0,
-            bk_cloud_id: machineItem.bk_cloud_id,
-            bk_disk: machineItem.host_info.bk_disk,
-            bk_host_id: machineItem.bk_host_id,
-            ip: machineItem.ip,
-          });
-        }
-      });
-      nodeInfoMap.value.broker.hostList = brokerHostList;
-      nodeInfoMap.value.broker.shrinkDisk = brokerShrinkDisk;
     },
     {
       immediate: true,

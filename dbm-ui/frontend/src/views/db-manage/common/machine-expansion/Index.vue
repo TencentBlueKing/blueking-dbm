@@ -111,6 +111,8 @@
     // 扩容资源池
     resourceSpec: {
       count: number;
+      label_names: string[]; // 标签名称列表，单据详情回显用
+      labels: number[]; // 标签id列表
       spec_id: number;
     };
     // 集群的节点类型
@@ -129,7 +131,7 @@
 
   const ticketTypeMap = {
     [DBTypes.DORIS]: TicketTypes.DORIS_SCALE_UP,
-    [DBTypes.ES]: TicketTypes.ES_SCALE_UP,
+    // [DBTypes.ES]: TicketTypes.ES_SCALE_UP,
     [DBTypes.HDFS]: TicketTypes.HDFS_SCALE_UP,
     [DBTypes.KAFKA]: TicketTypes.KAFKA_SCALE_UP,
     [DBTypes.PULSAR]: TicketTypes.PULSAR_SCALE_UP,
@@ -185,7 +187,7 @@
       >,
     );
 
-  const getResourceSpce = () => {
+  const getResourceSpec = () => {
     if (ipSource.value === 'manual_input') {
       return Object.entries(modelValue.value).reduce(
         (result, [nodeName, nodeInfo]) => {
@@ -213,14 +215,13 @@
         >,
       );
     }
-    return Object.entries(modelValue.value).reduce(
-      (result, [nodeName, nodeInfo]) => {
-        return Object.assign(result, {
-          [nodeName]: nodeInfo.resourceSpec,
-        });
-      },
-      {} as TExpansionNode['resourceSpec'],
-    );
+    return Object.entries(modelValue.value).reduce<
+      Record<string, { labels: string[] } & TExpansionNode['resourceSpec']>
+    >((result, [nodeName, nodeInfo]) => {
+      return Object.assign(result, {
+        [nodeName]: { ...nodeInfo.resourceSpec, labels: nodeInfo.resourceSpec.labels.map((item) => String(item)) },
+      });
+    }, {});
   };
 
   const { t } = useI18n();
@@ -229,7 +230,7 @@
     cluster_id: number;
     ext_info: ReturnType<typeof generateExtInfo>;
     ip_source: string;
-    resource_spec: ReturnType<typeof getResourceSpce>;
+    resource_spec: ReturnType<typeof getResourceSpec>;
   }>(ticketTypeMap[props.clusterData.db_type], {
     onSuccess() {
       emits('submit');
@@ -265,7 +266,7 @@
             cluster_id: props.clusterData.id,
             ext_info: generateExtInfo(),
             ip_source: ipSource.value,
-            resource_spec: getResourceSpce(),
+            resource_spec: getResourceSpec(),
           },
         }),
       subTitle: () => {

@@ -17,7 +17,7 @@
     v-model:is-show="isShow"
     :cluster-data="clusterData"
     :loading="isLoading"
-    :title="t('xx扩容【name】', { title: 'ES', name: clusterData.cluster_name })"
+    :title="t('xx扩容【name】', { title: 'ES', name: clusterData.master_domain })"
     @submit="handleChange" />
 </template>
 <script setup lang="tsx">
@@ -47,7 +47,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = reactive<Record<'client' | 'cold' | 'hot', TExpansionNode>>({
+  const getInitInfo = (): Record<'client' | 'cold' | 'hot', TExpansionNode> => ({
     client: {
       clusterId: props.clusterData.id,
       expansionDisk: 0,
@@ -58,6 +58,8 @@
       resourceSpec: {
         count: 0,
         instance_num: 1,
+        label_names: [],
+        labels: [],
         spec_id: 0,
       },
       role: 'es_client',
@@ -76,6 +78,8 @@
       resourceSpec: {
         count: 0,
         instance_num: 1,
+        label_names: [],
+        labels: [],
         spec_id: 0,
       },
       role: 'es_datanode_cold',
@@ -94,6 +98,8 @@
       resourceSpec: {
         count: 0,
         instance_num: 1,
+        label_names: [],
+        labels: [],
         spec_id: 0,
       },
       role: 'es_datanode_hot',
@@ -103,6 +109,8 @@
       totalDisk: 0,
     },
   });
+
+  const nodeInfoMap = reactive(getInitInfo());
 
   const isLoading = ref(false);
   // 获取主机详情
@@ -155,6 +163,7 @@
     isShow,
     () => {
       if (isShow.value) {
+        Object.assign(nodeInfoMap, getInitInfo());
         fetchHostDetail();
       }
     },

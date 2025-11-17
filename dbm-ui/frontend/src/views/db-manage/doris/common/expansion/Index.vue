@@ -17,7 +17,7 @@
     v-model:is-show="isShow"
     :cluster-data="clusterData"
     :loading="isLoading"
-    :title="t('xx扩容【name】', { title: 'Doris', name: clusterData.cluster_name })"
+    :title="t('xx扩容【name】', { title: 'Doris', name: clusterData.master_domain })"
     @submit="handleChange" />
 </template>
 <script setup lang="tsx">
@@ -32,7 +32,7 @@
   import MachineExpansion, { type TExpansionNode } from '@views/db-manage/common/machine-expansion/Index.vue';
 
   interface TDorisExpansionNode extends TExpansionNode {
-    mutexNodeTypes: ('hot' | 'cold' | 'observer')[];
+    mutexNodeTypes: ('hot' | 'warm' | 'observer')[];
   }
 
   interface Props {
@@ -47,6 +47,8 @@
   const isShow = defineModel<boolean>('isShow', {
     default: false,
   });
+
+  const { t } = useI18n();
 
   const generateNodeInfo = (
     values: Pick<
@@ -63,15 +65,15 @@
     originalHostList: [],
     resourceSpec: {
       count: 0,
+      label_names: [],
+      labels: [],
       spec_id: 0,
     },
     specClusterType: ClusterTypes.DORIS,
     totalDisk: 0,
   });
 
-  const { t } = useI18n();
-
-  const nodeInfoMap = ref<Record<'cold' | 'hot' | 'observer', TDorisExpansionNode>>({
+  const getInitInfo = (): Record<'cold' | 'hot' | 'observer', TDorisExpansionNode> => ({
     cold: generateNodeInfo({
       label: t('冷节点'),
       mutexNodeTypes: ['hot', 'observer'],
@@ -81,20 +83,22 @@
     }),
     hot: generateNodeInfo({
       label: t('热节点'),
-      mutexNodeTypes: ['cold', 'observer'],
+      mutexNodeTypes: ['warm', 'observer'],
       role: 'doris_backend_hot',
       specMachineType: 'doris_backend',
       tagText: t('存储层'),
     }),
     observer: generateNodeInfo({
       label: t('Observer节点'),
-      mutexNodeTypes: ['hot', 'cold'],
+      mutexNodeTypes: ['hot', 'warm'],
       role: 'doris_observer',
       showCount: true,
       specMachineType: 'doris_observer',
       tagText: t('接入层'),
     }),
   });
+
+  const nodeInfoMap = reactive(getInitInfo());
 
   const isLoading = ref(false);
 
@@ -129,14 +133,14 @@
           }
         });
 
-        nodeInfoMap.value.hot.totalDisk = hotDiskTotal;
-        nodeInfoMap.value.hot.originalHostList = hotOriginalHostList;
+        nodeInfoMap.hot.totalDisk = hotDiskTotal;
+        nodeInfoMap.hot.originalHostList = hotOriginalHostList;
 
-        nodeInfoMap.value.cold.totalDisk = coldDiskTotal;
-        nodeInfoMap.value.cold.originalHostList = coldOriginalHostList;
+        nodeInfoMap.warm.totalDisk = coldDiskTotal;
+        nodeInfoMap.warm.originalHostList = coldOriginalHostList;
 
-        nodeInfoMap.value.observer.totalDisk = observerDiskTotal;
-        nodeInfoMap.value.observer.originalHostList = observerOriginalHostList;
+        nodeInfoMap.observer.totalDisk = observerDiskTotal;
+        nodeInfoMap.observer.originalHostList = observerOriginalHostList;
       })
       .finally(() => {
         isLoading.value = false;
@@ -147,6 +151,7 @@
     isShow,
     () => {
       if (isShow.value) {
+        Object.assign(nodeInfoMap, getInitInfo());
         fetchMachineDetail();
       }
     },

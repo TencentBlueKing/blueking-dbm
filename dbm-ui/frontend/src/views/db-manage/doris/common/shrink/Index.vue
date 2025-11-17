@@ -17,7 +17,7 @@
     v-model:is-show="isShow"
     :data="clusterData"
     :loading="isLoading"
-    :title="t('xx缩容【name】', { title: 'Doris', name: clusterData?.cluster_name })"
+    :title="t('xx缩容【name】', { title: 'Doris', name: clusterData?.master_domain })"
     @submit="handleChange" />
 </template>
 
@@ -57,7 +57,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = ref<Record<'cold' | 'hot' | 'observer', TShrinkNode>>({
+  const getInitInfo = (): Record<'cold' | 'hot' | 'observer', TShrinkNode> => ({
     cold: generateNodeInfo({
       label: t('冷节点'),
       minHost: 0,
@@ -75,6 +75,7 @@
     }),
   });
 
+  const nodeInfoMap = reactive(getInitInfo());
   const isLoading = ref(false);
 
   const fetchListNode = () => {
@@ -106,70 +107,66 @@
           }
         });
 
-        nodeInfoMap.value.hot.originalNodeList = hotOriginalNodeList;
-        nodeInfoMap.value.hot.totalDisk = hotDiskTotal;
+        nodeInfoMap.hot.originalNodeList = hotOriginalNodeList;
+        nodeInfoMap.hot.totalDisk = hotDiskTotal;
 
-        nodeInfoMap.value.cold.originalNodeList = coldOriginalNodeList;
-        nodeInfoMap.value.cold.totalDisk = coldDiskTotal;
+        nodeInfoMap.cold.originalNodeList = coldOriginalNodeList;
+        nodeInfoMap.cold.totalDisk = coldDiskTotal;
 
-        nodeInfoMap.value.observer.originalNodeList = observerOriginalNodeList;
-        nodeInfoMap.value.observer.totalDisk = observerDiskTotal;
+        nodeInfoMap.observer.originalNodeList = observerOriginalNodeList;
+        nodeInfoMap.observer.totalDisk = observerDiskTotal;
       })
       .finally(() => {
         isLoading.value = false;
       });
   };
 
+  // 默认选中的缩容节点
+  const setInitShrinkNodes = () => {
+    const hotList: TShrinkNode['hostList'] = [];
+    const coldList: TShrinkNode['hostList'] = [];
+    const observerList: TShrinkNode['hostList'] = [];
+
+    let hotShrinkDisk = 0;
+    let coldShrinkDisk = 0;
+    let observerShrinkDisk = 0;
+
+    props.machineList.forEach((machineItem) => {
+      const machineDisk = machineItem.host_info?.bk_disk || 0;
+      const machineHost = {
+        alive: machineItem.host_info?.alive || 0,
+        bk_cloud_id: machineItem.bk_cloud_id,
+        bk_disk: machineDisk,
+        bk_host_id: machineItem.bk_host_id,
+        ip: machineItem.ip,
+      };
+      if (machineItem.isHot) {
+        hotShrinkDisk += machineDisk;
+        hotList.push(machineHost);
+      } else if (machineItem.isCold) {
+        coldShrinkDisk += machineDisk;
+        coldList.push(machineHost);
+      } else if (machineItem.isObserver) {
+        observerShrinkDisk += machineDisk;
+        observerList.push(machineHost);
+      }
+    });
+    nodeInfoMap.hot.hostList = hotList;
+    nodeInfoMap.hot.shrinkDisk = hotShrinkDisk;
+    nodeInfoMap.cold.hostList = coldList;
+    nodeInfoMap.cold.shrinkDisk = coldShrinkDisk;
+    nodeInfoMap.observer.hostList = observerList;
+    nodeInfoMap.observer.shrinkDisk = observerShrinkDisk;
+  };
+
   watch(
     isShow,
     () => {
       if (isShow.value) {
+        Object.assign(nodeInfoMap, getInitInfo());
+        setInitShrinkNodes();
         fetchListNode();
       }
-    },
-    {
-      immediate: true,
-    },
-  );
-
-  // 默认选中的缩容节点
-  watch(
-    () => props.machineList,
-    () => {
-      const hotList: TShrinkNode['hostList'] = [];
-      const coldList: TShrinkNode['hostList'] = [];
-      const observerList: TShrinkNode['hostList'] = [];
-
-      let hotShrinkDisk = 0;
-      let coldShrinkDisk = 0;
-      let observerShrinkDisk = 0;
-
-      props.machineList.forEach((machineItem) => {
-        const machineDisk = machineItem.host_info?.bk_disk || 0;
-        const machineHost = {
-          alive: machineItem.host_info?.alive || 0,
-          bk_cloud_id: machineItem.bk_cloud_id,
-          bk_disk: machineDisk,
-          bk_host_id: machineItem.bk_host_id,
-          ip: machineItem.ip,
-        };
-        if (machineItem.isHot) {
-          hotShrinkDisk += machineDisk;
-          hotList.push(machineHost);
-        } else if (machineItem.isCold) {
-          coldShrinkDisk += machineDisk;
-          coldList.push(machineHost);
-        } else if (machineItem.isObserver) {
-          observerShrinkDisk += machineDisk;
-          observerList.push(machineHost);
-        }
-      });
-      nodeInfoMap.value.hot.hostList = hotList;
-      nodeInfoMap.value.hot.shrinkDisk = hotShrinkDisk;
-      nodeInfoMap.value.cold.hostList = coldList;
-      nodeInfoMap.value.cold.shrinkDisk = coldShrinkDisk;
-      nodeInfoMap.value.observer.hostList = observerList;
-      nodeInfoMap.value.observer.shrinkDisk = observerShrinkDisk;
     },
     {
       immediate: true,

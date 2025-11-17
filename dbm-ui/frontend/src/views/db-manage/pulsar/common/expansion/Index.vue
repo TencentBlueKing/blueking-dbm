@@ -17,7 +17,7 @@
     v-model:is-show="isShow"
     :cluster-data="clusterData"
     :loading="isLoading"
-    :title="t('xx扩容【name】', { title: 'Pulsar', name: clusterData.cluster_name })"
+    :title="t('xx扩容【name】', { title: 'Pulsar', name: clusterData.master_domain })"
     @submit="handleChange" />
 </template>
 <script setup lang="tsx">
@@ -47,7 +47,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = ref<Record<'bookkeeper' | 'broker', TExpansionNode>>({
+  const getInitInfo = (): Record<'bookkeeper' | 'broker', TExpansionNode> => ({
     bookkeeper: {
       clusterId: props.clusterData.id,
       // targetDisk: 0,
@@ -58,6 +58,8 @@
       originalHostList: [],
       resourceSpec: {
         count: 0,
+        label_names: [],
+        labels: [],
         spec_id: 0,
       },
       role: 'pulsar_bookkeeper',
@@ -76,6 +78,8 @@
       originalHostList: [],
       resourceSpec: {
         count: 0,
+        label_names: [],
+        labels: [],
         spec_id: 0,
       },
       role: 'pulsar_broker',
@@ -85,6 +89,8 @@
       totalDisk: 0,
     },
   });
+
+  const nodeInfoMap = reactive(getInitInfo());
 
   const isLoading = ref(false);
 
@@ -113,11 +119,11 @@
           }
         });
 
-        nodeInfoMap.value.bookkeeper.totalDisk = bookkeeperDiskTotal;
-        nodeInfoMap.value.bookkeeper.originalHostList = bookkeeperOriginalHostList;
+        nodeInfoMap.bookkeeper.totalDisk = bookkeeperDiskTotal;
+        nodeInfoMap.bookkeeper.originalHostList = bookkeeperOriginalHostList;
 
-        nodeInfoMap.value.broker.totalDisk = brokerDiskTotal;
-        nodeInfoMap.value.broker.originalHostList = brokerOriginalHostList;
+        nodeInfoMap.broker.totalDisk = brokerDiskTotal;
+        nodeInfoMap.broker.originalHostList = brokerOriginalHostList;
       })
       .finally(() => {
         isLoading.value = false;
@@ -128,6 +134,7 @@
     isShow,
     () => {
       if (isShow.value) {
+        Object.assign(nodeInfoMap, getInitInfo());
         fetchHostDetail();
       }
     },

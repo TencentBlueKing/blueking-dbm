@@ -17,7 +17,7 @@
     v-model:is-show="isShow"
     :cluster-data="clusterData"
     :loading="isLoading"
-    :title="t('xx扩容【name】', { title: 'Kafka', name: clusterData.cluster_name })"
+    :title="t('xx扩容【name】', { title: 'Kafka', name: clusterData.master_domain })"
     @submit="handleChange" />
 </template>
 <script setup lang="tsx">
@@ -47,7 +47,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = ref<Record<'broker', TExpansionNode>>({
+  const getInitInfo = (): Record<'broker', TExpansionNode> => ({
     broker: {
       clusterId: props.clusterData.id,
       // targetDisk: 0,
@@ -58,6 +58,8 @@
       originalHostList: [],
       resourceSpec: {
         count: 0,
+        label_names: [],
+        labels: [],
         spec_id: 0,
       },
       role: 'broker',
@@ -67,6 +69,8 @@
       totalDisk: 0,
     },
   });
+
+  const nodeInfoMap = reactive(getInitInfo());
 
   const isLoading = ref(false);
 
@@ -90,8 +94,8 @@
           }
         });
 
-        nodeInfoMap.value.broker.totalDisk = brokerDiskTotal;
-        nodeInfoMap.value.broker.originalHostList = brokerOriginalHostList;
+        nodeInfoMap.broker.totalDisk = brokerDiskTotal;
+        nodeInfoMap.broker.originalHostList = brokerOriginalHostList;
       })
       .finally(() => {
         isLoading.value = false;
@@ -102,6 +106,7 @@
     isShow,
     () => {
       if (isShow.value) {
+        Object.assign(nodeInfoMap, getInitInfo());
         fetchHostDetail();
       }
     },
