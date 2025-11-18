@@ -39,6 +39,16 @@
           {{ t('巡检报告') }}
         </span>
       </BkMenuItem>
+      <BkMenuItem key="ExerciseReportGlobal">
+        <template #icon>
+          <DbIcon type="yanlianbaogao" />
+        </template>
+        <span
+          v-overflow-tips.right
+          class="text-overflow">
+          {{ t('演练报告') }}
+        </span>
+      </BkMenuItem>
       <BkMenuItem key="RiskMemoGlobal">
         <template #icon>
           <DbIcon type="file" />
