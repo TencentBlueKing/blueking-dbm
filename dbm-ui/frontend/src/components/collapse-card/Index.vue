@@ -1,6 +1,6 @@
 <template>
   <div
-    class="block-card"
+    class="collapse-card-main"
     :class="{ 'is-toggle': isToggle }">
     <div
       class="card-title"
@@ -21,7 +21,6 @@
 </template>
 <script setup lang="ts">
   import BKCollapseTransition from 'bkui-vue/lib/collapse-transition';
-  import { ref } from 'vue';
 
   const isToggle = ref(true);
 
@@ -30,13 +29,13 @@
   };
 </script>
 <style lang="less" scoped>
-  .block-card {
+  .collapse-card-main {
     padding: 16px 24px;
     background-color: #fff;
     border-radius: 2px;
     box-shadow: 0 2px 4px 0 #1919290d;
 
-    & ~ .block-card {
+    & ~ .collapse-card-main {
       margin-top: 16px;
     }
 
