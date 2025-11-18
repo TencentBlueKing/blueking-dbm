@@ -23,11 +23,11 @@
         v-model="showBatchEdit"
         :placeholder="t('只能包含英文字母、数字，多个换行分隔')"
         :title="variableName"
-        title-prefix-type="by-rows"
+        title-prefix-type="edit"
         type="textarea"
         @change="handleBatchEditChange">
         <span
-          v-bk-tooltips="t('按行录入：批量录入多个单元格的值')"
+          v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
           class="batch-edit-btn"
           @click="handleBatchEditShow">
           <DbIcon type="bulk-edit" />

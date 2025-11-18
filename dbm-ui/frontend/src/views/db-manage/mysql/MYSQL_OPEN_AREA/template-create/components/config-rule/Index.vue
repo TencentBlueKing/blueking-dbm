@@ -12,7 +12,13 @@
 -->
 
 <template>
+  <BatchInput
+    :config="batchInputConfig"
+    :disabled="!clusterId"
+    :tooltips-content="t('请先选择源集群')"
+    @change="handleBatchInput" />
   <EditableTable
+    :key="tableKey"
     ref="table"
     class="mt-16 mb-16"
     :model="tableData">
@@ -36,11 +42,13 @@
         field="schema_tblist"
         :label="t('克隆表数据')"
         :placeholder="t('留空表示不克隆表数据')"
-        :single="false" />
+        :single="false"
+        @batch-edit="handleBatchEdit" />
       <DbPatternColumn
         v-model="item.target_db_pattern"
         :source-db="item.source_db"
-        v-bind="props" />
+        v-bind="props"
+        @batch-edit="handleBatchEdit" />
       <OperationColumn
         v-model:table-data="tableData"
         :create-row-method="createTableRow" />
@@ -49,9 +57,15 @@
 </template>
 
 <script lang="ts" setup>
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  import { batchSplitRegex } from '@common/regex';
+
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TableNameColumn from '@views/db-manage/mysql/common/toolbox-field/table-name-column/Index.vue';
+
+  import { random } from '@utils';
 
   import CloneDbColumn from './components/CloneDbColumn.vue';
   import DbPatternColumn from './components/DbPatternColumn.vue';
@@ -85,7 +99,31 @@
     target_db_pattern: data.target_db_pattern || '',
   });
 
+  const tableKey = ref(random());
   const tableData = ref<RowData[]>([createTableRow()]);
+
+  const batchInputConfig = [
+    {
+      case: 'db1',
+      key: 'source_db',
+      label: t('克隆 DB'),
+    },
+    {
+      case: t('所有表'),
+      key: 'data_tblist',
+      label: t('克隆表结构'),
+    },
+    {
+      case: 'schema1',
+      key: 'schema_tblist',
+      label: t('克隆表数据'),
+    },
+    {
+      case: 'db_1',
+      key: 'target_db_pattern',
+      label: t('生成的目标DB名'),
+    },
+  ];
 
   watch(
     () => props.data,
@@ -98,6 +136,31 @@
       immediate: true,
     },
   );
+
+  const handleBatchEdit = (value: any, field: string) => {
+    tableData.value.forEach((item) => {
+      Object.assign(item, { [field]: _.cloneDeep(value) });
+    });
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) =>
+      createTableRow({
+        schema_tblist: item.schema_tblist ? item.schema_tblist.split(batchSplitRegex) : [],
+        source_db: item.source_db || '',
+        target_db_pattern: item.target_db_pattern || '',
+      }),
+    );
+    if (isClear) {
+      tableKey.value = random();
+      tableData.value = [...dataList];
+    } else {
+      tableData.value = [...(tableData.value[0].source_db ? tableData.value : []), ...dataList];
+    }
+    setTimeout(() => {
+      tableRef.value?.validate();
+    }, 200);
+  };
 
   defineExpose<Exposes>({
     async getValue() {

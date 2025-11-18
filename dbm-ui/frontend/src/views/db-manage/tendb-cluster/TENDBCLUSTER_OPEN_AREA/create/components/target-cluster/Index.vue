@@ -32,7 +32,7 @@
         :key="variableName"
         v-model="item.vars[variableName]"
         :variable-name="variableName"
-        @batch-edit="handleBatchEditByRows" />
+        @batch-edit="handleBatchEditVars" />
       <HostColumn
         v-if="showIpCloumn"
         v-model="item.authorize_ips"
@@ -200,14 +200,9 @@
     tableData.value = [...(tableData.value[0].cluster.id ? tableData.value : []), ...dataList];
   };
 
-  // 逐行修改
-  const handleBatchEditByRows = (value: any, field: string) => {
-    if (!value) {
-      return;
-    }
-    const values = value.split(batchSplitRegex);
-    tableData.value.forEach((item, index) => {
-      Object.assign(item.vars, { [field]: _.cloneDeep(values[index]) });
+  const handleBatchEditVars = (value: any, field: string) => {
+    tableData.value.forEach((item) => {
+      Object.assign(item.vars, { [field]: _.cloneDeep(value) });
     });
   };
 
