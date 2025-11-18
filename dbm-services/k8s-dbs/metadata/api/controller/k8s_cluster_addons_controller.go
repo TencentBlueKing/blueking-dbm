@@ -44,6 +44,7 @@ func NewK8sClusterAddonsController(caProvider provider.K8sClusterAddonsProvider)
 
 // GetAddon retrieves a cluster addon by its ID.
 func (k *K8sClusterAddonsController) GetAddon(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaClusterAddonDetail)
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
@@ -65,6 +66,7 @@ func (k *K8sClusterAddonsController) GetAddon(ctx *gin.Context) {
 
 // GetAddonsByClusterName retrieves cluster addons by k8s_cluster_name.
 func (k *K8sClusterAddonsController) GetAddonsByClusterName(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaClusterAddonByName)
 	k8sClusterName := ctx.Query("k8sClusterName")
 	clusterAddonParams := &metaentity.K8sClusterAddonQueryParams{
 		K8sClusterName: k8sClusterName,

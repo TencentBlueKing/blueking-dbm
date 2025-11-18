@@ -46,6 +46,7 @@ func NewOperationDefinitionController(provider provider.OperationDefinitionProvi
 
 // ListOperationDefinitions list operation definitions
 func (o *OperationDefinitionController) ListOperationDefinitions(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaOpDefList)
 	sizeStr := ctx.DefaultQuery("size", commconst.DefaultFetchSizeStr)
 	fetchSize, err := strconv.Atoi(sizeStr)
 	if err != nil {
@@ -68,6 +69,7 @@ func (o *OperationDefinitionController) ListOperationDefinitions(ctx *gin.Contex
 
 // CreateOperationDefinition creates a new operation definition.
 func (o *OperationDefinitionController) CreateOperationDefinition(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaOpDefCreate)
 	var reqVo request.OperationDefinitionRequest
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
