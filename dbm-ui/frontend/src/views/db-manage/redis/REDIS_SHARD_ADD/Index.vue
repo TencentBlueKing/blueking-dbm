@@ -82,7 +82,7 @@
               :params="{
                 city: item.cluster.region,
                 for_bizs: [currentBizId, 0],
-                resource_types: [DBTypes.MONGODB, 'PUBLIC'],
+                resource_types: [DBTypes.REDIS, 'PUBLIC'],
                 spec_id: item.cluster.cluster_spec.spec_id,
                 labels: item.labels.map((item) => item.id).join(','),
               }" />
