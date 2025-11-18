@@ -95,17 +95,8 @@ class RedisTypeUpdateParamBuilder(builders.FlowParamBuilder):
 
 class RedisTypeUpdateResourceParamBuilder(RedisUpdateApplyResourceParamBuilder):
     def format(self):
-        for info in self.ticket_data["infos"]:
-            role_tolerance_map = {"backend_group": 0, "proxy": 0.5}
-            cluster = Cluster.objects.get(id=info["src_cluster"])
-            for role in info["resource_spec"]:
-                self.patch_common_affinity(
-                    info,
-                    role=role,
-                    cluster=cluster,
-                    exclusive_hosts=[],
-                    tolerance=role_tolerance_map[role],
-                )
+        self.patch_info_common_affinity("backend_group", tolerance=0)
+        self.patch_info_common_affinity("proxy", tolerance=0.5)
 
 
 @builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_TYPE_UPDATE, is_apply=True, is_recycle=True)
