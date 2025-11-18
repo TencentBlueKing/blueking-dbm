@@ -60,7 +60,9 @@ class MongoDBShardMigrateFlowParamBuilder(builders.FlowParamBuilder):
 class MongoDBShardMigrateResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder):
     def format(self):
         # 资源申请的一些参数补充
-        self.patch_info_common_affinity(role="mongodb", tolerance=get_mongodb_cluster_tolerance)
+        self.patch_info_common_affinity(
+            role="mongodb", tolerance=get_mongodb_cluster_tolerance, tolerance_type="mongodb"
+        )
 
 
 @builders.BuilderFactory.register(TicketType.MONGODB_SHARD_MIGRATE, is_recycle=True)
