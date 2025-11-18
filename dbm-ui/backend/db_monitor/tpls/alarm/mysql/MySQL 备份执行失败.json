@@ -1,16 +1,16 @@
 {
   "bk_biz_id": 0,
-  "name": "TendbCluster tdbctl 中控同步异常",
-  "db_type": "tendbcluster",
+  "name": "MySQL 备份执行失败",
+  "db_type": "mysql",
   "details": {
     "bk_biz_id": "",
-    "name": "TendbCluster tdbctl 中控同步异常",
+    "name": "MySQL 备份执行失败",
     "source": "dbm",
     "scenario": "component",
     "type": "monitor",
     "items": [
       {
-        "name": "COUNT(ctl-replicate-dbm_report_channel)",
+        "name": "COUNT(mysql-backup-failed-dbm_report_channel)",
         "no_data_config": {
           "level": 2,
           "continuous": 10,
@@ -26,27 +26,28 @@
             "data_source_label": "custom",
             "data_type_label": "event",
             "alias": "a",
-            "metric_id": "custom.event.bkmonitor_event_{event_data_id}.ctl-replicate",
+            "metric_id": "custom.event.bkmonitor_event_{event_data_id}.mysql-backup-failed",
             "functions": [],
             "result_table_id": "bkmonitor_event_{event_data_id}",
             "agg_method": "COUNT",
-            "agg_interval": 60,
+            "agg_interval": 600,
             "agg_dimension": [
               "appid",
               "cluster_domain",
-              "instance_host",
-              "bk_target_service_instance_id"
+              "instance_role",
+              "target",
+              "instance_port"
             ],
             "agg_condition": [],
-            "custom_event_name": "ctl-replicate",
+            "custom_event_name": "mysql-backup-failed",
             "query_string": "*",
-            "name": "ctl-replicate"
+            "name": "mysql-backup-failed"
           }
         ],
         "algorithms": [
           {
             "type": "Threshold",
-            "level": 1,
+            "level": 2,
             "config": [
               [
                 {
@@ -58,28 +59,30 @@
             "unit_prefix": ""
           }
         ],
-        "metric_type": "event"
+        "metric_type": "event",
+        "time_delay": 0
       }
     ],
     "detects": [
       {
-        "level": 1,
+        "level": 2,
         "expression": "",
         "trigger_config": {
-          "count": 2,
+          "count": 1,
           "uptime": {
             "calendars": [],
             "time_ranges": [
               {
-                "end": "23:59",
-                "start": "10:10"
+                "end": "21:59",
+                "start": "09:00"
               }
-            ]
+            ],
+            "active_calendars": []
           },
-          "check_window": 5
+          "check_window": 2
         },
         "recovery_config": {
-          "check_window": 5,
+          "check_window": 1,
           "status_setter": "recovery"
         },
         "connector": "and"
@@ -87,7 +90,7 @@
     ],
     "actions": [],
     "notice": {
-      "config_id": 145190,
+      "config_id": 204561,
       "user_groups": [],
       "user_type": "main",
       "signal": [
@@ -210,7 +213,7 @@
       "relate_type": "NOTICE",
       "config": {
         "need_poll": true,
-        "notify_interval": 21600,
+        "notify_interval": 7200,
         "interval_notify_mode": "standard",
         "template": [
           {
@@ -233,22 +236,22 @@
     },
     "labels": [
       "DBM",
-      "DBM_TENDBCLUSTER",
-      "MySQL"
+      "DBM_MYSQL",
+      "MYSQL"
     ],
     "app": "",
     "path": "",
     "priority": 0,
-    "priority_group_key": "",
+    "priority_group_key": "543da905ba4b898b",
     "edit_allowed": true,
     "metric_type": "event",
     "data_source_type": "自定义事件",
     "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "COUNT(ctl-replicate-dbm_report_channel)",
-  "version": 28,
+  "monitor_indicator": "COUNT(mysql-backup-failed-dbm_report_channel)",
+  "version": 1,
   "alert_source": "event",
   "custom_conditions": [],
-  "export_at": "2024-12-06T15:54:01+08:00"
+  "export_at": "2025-11-18T11:00:37+08:00"
 }

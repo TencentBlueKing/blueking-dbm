@@ -11,6 +11,11 @@ func DecideSizeToRemove(ports map[int]int64, sizeToFree int64) map[int]int64 {
 	sizeDeleted := int64(0)                  // 实际计划删除的总单位数
 	var portSizeToFree = make(map[int]int64) // 实际计划的每个port删除的 MB
 	if sizeToFree <= 0 {
+		// 代表空间还有余量，才到到清理阈值。这里给每个端口返回 平均余量(负数)
+		avg := sizeToFree / int64(len(ports))
+		for p, _ := range ports {
+			portSizeToFree[p] = avg
+		}
 		return portSizeToFree
 	}
 	for {
