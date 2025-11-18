@@ -98,6 +98,29 @@ func (c ColDef) IsNotAllowDefaultValCol() bool {
 	return false
 }
 
+// HasInvalidJsonDefault 检查 JSON 字段是否设置了无效的默认值
+// 无效的默认值包括：NULL 关键字、字符串 'null'、空字符串 ”
+// 有效的默认值包括：有效的 JSON 值（如 [], {}, "string" 等）
+func (c ColDef) HasInvalidJsonDefault() bool {
+	// 只检查 JSON 类型的字段
+	if c.DataType != "json" {
+		return false
+	}
+	// 如果设置了默认值，检查是否为无效值
+	if c.DefaultVal != nil {
+		trimmedValue := strings.TrimSpace(c.DefaultVal.Value)
+		// 检查默认值是否为字符串 'null'（对应 SQL: DEFAULT 'null'，不是有效的 JSON）
+		if strings.ToLower(trimmedValue) == "null" {
+			return true
+		}
+		// 检查默认值是否为空字符串（对应 SQL: DEFAULT ''，不是有效的 JSON）
+		if trimmedValue == "" {
+			return true
+		}
+	}
+	return false
+}
+
 // DefaultVal column default value
 type DefaultVal struct {
 	Type  string `json:"type"`

@@ -11,6 +11,8 @@
 package syntax
 
 import (
+	"fmt"
+
 	"github.com/samber/lo"
 )
 
@@ -31,6 +33,9 @@ func (c AlterTableResult) Checker(mysqlVersion string) (r *CheckerResult) {
 		}
 	}
 	r.Parse(R.AlterTableRule.AddColumnMixed, c.GetAllAlterType(), "")
+	r.ParseBuiltinBan(func() (bool, string) {
+		return c.JsonColumInvalidDefaultCheck()
+	})
 	return
 }
 
@@ -63,4 +68,15 @@ func (a AlterCommand) GetPkAlterType() string {
 //	@receiver a
 func (a AlterCommand) GetAlterAlgorithm() string {
 	return a.Algorithm
+}
+
+func (c AlterTableResult) JsonColumInvalidDefaultCheck() (bool, string) {
+	for _, alterCmd := range c.AlterCommands {
+		if alterCmd.ColDef.DataType == JsonDataType {
+			if alterCmd.ColDef.HasInvalidJsonDefault() {
+				return true, fmt.Sprintf("json 列 %s 的默认值无效，不允许为 '' 或 'null'", alterCmd.ColDef.ColName)
+			}
+		}
+	}
+	return false, ""
 }
