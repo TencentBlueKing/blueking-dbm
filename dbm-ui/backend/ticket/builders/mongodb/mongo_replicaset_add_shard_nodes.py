@@ -58,13 +58,16 @@ class MongoDBReplicaAddShardNodesFlowParamBuilder(builders.FlowParamBuilder):
 class MongoDBReplicaAddShardNodesResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder):
     def format(self):
         self.patch_info_common_affinity(
-            role="shard_nodes", remain_machine_type=MachineType.MONGODB, tolerance=get_mongodb_cluster_tolerance
+            role="shard_nodes",
+            remain_machine_type=MachineType.MONGODB,
+            tolerance=get_mongodb_cluster_tolerance,
+            tolerance_type="mongodb",
         )
 
     def post_callback(self):
         with self.next_flow_manager() as next_flow:
             for info in next_flow.details["ticket_data"]["infos"]:
-                info["add_shard_nodes"] = [info.pop("shard_nodes")]
+                info["add_shard_nodes"] = info.pop("shard_nodes")
 
 
 @builders.BuilderFactory.register(TicketType.MONGODB_REPLICA_ADD_SHARD_NODES, is_apply=True)

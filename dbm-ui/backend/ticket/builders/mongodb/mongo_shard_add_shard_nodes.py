@@ -15,13 +15,13 @@ from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.configuration.constants import AffinityEnum
 from backend.db_meta.enums import MachineType, MachineTypeInstanceRoleMap
 from backend.db_meta.models import AppCache, Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.mongodb.resources.query import MongoDBListRetrieveResource
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import get_mongodb_cluster_tolerance
 from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateDetailSerializer,
     BaseMongoDBOperateResourceParamBuilder,
@@ -77,10 +77,8 @@ class MongoDBShardAddShardNodesResourceParamBuilder(BaseMongoDBOperateResourcePa
         id__cluster = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
         for info in self.ticket_data["infos"]:
             cluster = id__cluster[info["cluster_id"]]
-            if cluster.disaster_tolerance_level == AffinityEnum.CROS_SUBZONE.value:
-                tolerance = 0.33
-            else:
-                tolerance = 0.5
+            tolerance = get_mongodb_cluster_tolerance(cluster.disaster_tolerance_level, "mongodb")
+
             group_num = info["shards_num"] // info["node_replica_count"]
             old_shard_nodes = info["resource_spec"].pop("shard_nodes")
             old_shard_nodes["count"] = old_shard_nodes["count"] // group_num
