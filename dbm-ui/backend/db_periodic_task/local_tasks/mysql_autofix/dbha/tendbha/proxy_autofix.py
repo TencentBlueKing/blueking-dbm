@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import uuid
 from typing import List
 
+from backend.db_meta.enums import MachineType
 from backend.db_meta.models import Machine
 from backend.db_monitor.models import MySQLDBHAAutofixTicketPriority, MySQLDBHAAutofixTicketStageQueue, MySQLDBHAEvent
 from backend.db_services.dbbase.constants import IpSource, SourceType
@@ -19,7 +20,7 @@ from backend.ticket.builders.common.constants import OperaObjType
 from backend.ticket.constants import TicketType
 
 
-def replace_proxy(cluster_ids: List[int], machine_type: str, events: List[MySQLDBHAEvent]):
+def replace_proxy(cluster_ids: List[int], machine_type: MachineType, events: List[MySQLDBHAEvent]):
     """
     机器数量可能不止一台了
     """
@@ -79,7 +80,7 @@ def replace_proxy(cluster_ids: List[int], machine_type: str, events: List[MySQLD
                 priority=MySQLDBHAAutofixTicketPriority.P1.value,
                 check_id=ev.check_id,
                 cluster_id=ev.cluster_id,
-                machine_type=machine_type,
+                machine_type=machine_type.value,
                 ticket_param=ticket_param,
                 af_uuid=ev.af_uuid,
                 queue_uuid=queue_uuid,

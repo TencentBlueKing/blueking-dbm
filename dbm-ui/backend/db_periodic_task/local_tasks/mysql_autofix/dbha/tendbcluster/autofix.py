@@ -20,13 +20,13 @@ def autofix(cluster_ids: List[int], events_by_machine_type: Dict[str, List[MySQL
     if MachineType.SPIDER in events_by_machine_type:
         replace_spider(
             cluster_ids=cluster_ids,
-            machine_type=MachineType.SPIDER.value,
-            events=events_by_machine_type[MachineType.SPIDER.value],
+            machine_type=MachineType.SPIDER,
+            events=events_by_machine_type[str(MachineType.SPIDER.value)],
         )
 
     if MachineType.REMOTE in events_by_machine_type:
         replace_remote(
             cluster_ids=cluster_ids,
-            machine_type=MachineType.REMOTE.value,
-            events=events_by_machine_type[MachineType.REMOTE.value],
+            machine_type=MachineType.REMOTE,
+            events=events_by_machine_type[str(MachineType.REMOTE.value)],
         )
