@@ -5136,5 +5136,8 @@
   "删除订阅将停止发送告警通知并删除配置，如有需要可再次订阅。": "Deleting the subscription will stop sending alarm notifications and delete the configuration, if needed, you can subscribe again.",
   "仅已启用集群可以设置告警订阅": "Only enabled clusters can set alarm subscription",
   "全部选中对象有权限，方可批量操作": "All selected objects must have permission to perform batch operations",
+  "演练报告": "Exercise Report",
+  "请选择日期范围": "Please select date range",
+  "仅显示异常": "Show abnormal only",
   "这行勿动！新增翻译请在上一行添加！": ""
 }

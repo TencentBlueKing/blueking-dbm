@@ -203,7 +203,11 @@
     const regex = /^##\[[a-z]+]/;
     return data.map((item) => {
       const { levelname, message, timestamp } = item;
-      const time = format(new Date(Number(timestamp)), 'yyyy-MM-dd HH:mm:ss');
+      const time = timestamp ? format(new Date(Number(timestamp)), 'yyyy-MM-dd HH:mm:ss') : '';
+      if (!time && !levelname) {
+        return message;
+      }
+
       let rowText = regex.test(message)
         ? message.replace(regex, (match: string) => `${match}[${time} ${levelname}]`)
         : `[${time} ${levelname}] ${message}`;
