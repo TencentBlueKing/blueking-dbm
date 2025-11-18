@@ -35,7 +35,7 @@ import (
 var name = "ibd-statistic"
 
 var ibdExt string
-var tokudbExt string
+var tableSpaceExt []string
 var partitionPattern *regexp.Regexp
 var defaultMergeRules []*MergeRuleDef
 var systemDBs = []string{
@@ -51,7 +51,7 @@ var systemDBs = []string{
 
 func init() {
 	ibdExt = ".ibd"
-	tokudbExt = ".tokudb"
+	tableSpaceExt = []string{".ibd", ".myi", ".myd"} // to lower
 	partitionPattern = regexp.MustCompile(`^(.*)#[pP]#.*`)
 }
 
