@@ -91,7 +91,7 @@ func (k *TerminalProvider) OpenTerminal(
 		err := conn.ReadJSON(&msg)
 		if err != nil {
 			slog.Error("读取消息失败", "error", err)
-			continue
+			break
 		}
 
 		switch msg.Type {
@@ -106,6 +106,8 @@ func (k *TerminalProvider) OpenTerminal(
 			k.handleTabComplete(conn, shell, msg.ID, td.Input)
 		}
 	}
+
+	return nil
 }
 
 // completeCommand 将输入和补全结果合并成完整命令
