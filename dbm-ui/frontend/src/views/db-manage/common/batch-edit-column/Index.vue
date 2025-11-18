@@ -107,7 +107,7 @@
     placeholder?: string;
     single?: boolean;
     title: string;
-    titlePrefixType?: 'by-rows' | 'edit' | 'entry' | 'select';
+    titlePrefixType?: 'edit' | 'entry' | 'select';
     type?: 'select' | 'textarea' | 'input' | 'taginput' | 'datetime' | 'number-input';
     width?: number;
   }
@@ -135,7 +135,6 @@
   const attrs = useAttrs();
 
   const titlePrefixTypeMap = {
-    'by-rows': t('按行录入'),
     edit: t('统一设置'),
     entry: t('批量录入'),
     select: t('批量选择'),

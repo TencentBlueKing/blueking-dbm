@@ -20,7 +20,7 @@
     required>
     <template #head>
       <BkPopover
-        :content="t('支持使用 { } 占位，如db_{id} , id在执行开区时传入', { x: '{ }', y: '{id}' })"
+        :content="t('可使用 { } 占位，如db_{id} ；_{id}的实际值在执行开区时传入', { x: '{ }', y: '{id}' })"
         placement="top"
         theme="dark">
         <span style="border-bottom: 1px dashed #979ba5">{{ t('生成的目标DB名') }}</span>
@@ -32,16 +32,16 @@
         type="textarea"
         @change="(value: string) => handleBatchEdit(value)">
         <span
-          v-bk-tooltips="t('按行录入：批量录入多个单元格的值')"
+          v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
           class="batch-edit-btn"
           @click="handleShowBatchEdit">
-          <DbIcon type="piliangluru" />
+          <DbIcon type="bulk-edit" />
         </span>
       </BatchEditColumn>
     </template>
     <EditableInput
       v-model="modelValue"
-      :placeholder="t('可使用_{_}_占位，如db_{id} ；_{id}的实际值在执行开区时传入')">
+      :placeholder="t('可使用 { } 占位，如db_{id} ；_{id}的实际值在执行开区时传入', { x: '{ }', y: '{id}' })">
     </EditableInput>
   </EditableColumn>
 </template>
@@ -96,6 +96,7 @@
 <style lang="less" scoped>
   .batch-edit-btn {
     margin-left: 4px;
+    font-size: 14px;
     color: #3a84ff;
     cursor: pointer;
   }

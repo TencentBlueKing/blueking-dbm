@@ -14,8 +14,13 @@
 <template>
   <div>
     <BkButton
+      v-bk-tooltips="{
+        content: t('请先选择源集群'),
+        disabled: !!sourceClusterId,
+        placement: 'top',
+      }"
       class="mb-12"
-      :disabled="sourceClusterId === 0"
+      :disabled="!sourceClusterId"
       @click="handleShow">
       <DbIcon
         style="margin-right: 3px"
