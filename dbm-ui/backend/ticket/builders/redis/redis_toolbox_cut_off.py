@@ -71,13 +71,13 @@ class RedisClusterCutOffResourceParamBuilder(BaseOperateResourceParamBuilder):
         # 资源申请的一些参数补充
         for info in self.ticket_data["infos"]:
             role_tolerance_map = {"redis_master": 0, "proxy": 0.5, "redis_slave": 0}
-            slave_master_machine_map = {}
+            exclusive_machine_map = {}
             cluster = Cluster.objects.get(id=info["cluster_ids"][0])
             if info["switch_role"] == InstanceRole.REDIS_SLAVE.value:
                 redis_slaves = StorageInstance.objects.prefetch_related("as_receiver__ejector", "machine").filter(
                     cluster=cluster, machine__ip__in=[host["ip"] for host in info["redis_slave"]]
                 )
-                slave_master_machine_map = {
+                exclusive_machine_map = {
                     slave.machine.ip: [slave.as_receiver.get().ejector.machine] for slave in redis_slaves
                 }
 
@@ -86,14 +86,14 @@ class RedisClusterCutOffResourceParamBuilder(BaseOperateResourceParamBuilder):
                     machine__machine_type=MachineType.TWEMPROXY.value, cluster__in=info["cluster_ids"]
                 ) & ~Q(machine__bk_host_id__in=[host["bk_host_id"] for host in info["proxy"]])
                 proxy_insts = list(ProxyInstance.objects.select_related("machine").filter(common_filters))
-                slave_master_machine_map = {"proxy": [inst.machine for inst in proxy_insts]}
+                exclusive_machine_map = {"proxy": [inst.machine for inst in proxy_insts]}
 
             for role in info["resource_spec"]:
                 self.patch_common_affinity(
                     info,
                     role=role,
                     cluster=cluster,
-                    exclusive_hosts=slave_master_machine_map.get(role.split("_")[-1], []),
+                    exclusive_hosts=exclusive_machine_map.get(role.split("_")[-1], []),
                     tolerance=role_tolerance_map[info["switch_role"]],
                 )
 
