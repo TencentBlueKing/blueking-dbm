@@ -400,11 +400,12 @@
   .rollback-mode-select {
     position: relative;
     display: flex;
-    height: 42px;
+    height: 40px;
     overflow: hidden;
     color: #63656e;
     cursor: pointer;
-    border: 1px solid transparent;
+    border: none;
+    box-sizing: border-box;
     transition: all 0.15s;
     align-items: center;
 
