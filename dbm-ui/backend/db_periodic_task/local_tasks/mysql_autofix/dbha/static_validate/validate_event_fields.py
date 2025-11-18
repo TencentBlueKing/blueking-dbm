@@ -22,6 +22,7 @@ def validate_event_fields(events: List[MySQLDBHAEvent]) -> List[MySQLDBHAEvent]:
     for ev in events:
         if ev.cluster_type not in [ClusterType.TenDBSingle, ClusterType.TenDBHA, ClusterType.TenDBCluster]:
             ev.failed_validate_it(f"{ev.cluster_type} not supported")
+
             continue
 
         if ev.machine_type not in ClusterTypeMachineTypeDefine[ev.cluster_type]:

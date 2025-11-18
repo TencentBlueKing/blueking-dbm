@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import uuid
 from typing import List
 
-from backend.db_meta.enums import InstanceRole
+from backend.db_meta.enums import InstanceRole, MachineType
 from backend.db_meta.models import Cluster, Machine, StorageInstance
 from backend.db_monitor.models import MySQLDBHAAutofixTicketPriority, MySQLDBHAAutofixTicketStageQueue, MySQLDBHAEvent
 from backend.db_services.dbbase.constants import IpSource, SourceType
@@ -21,7 +21,7 @@ from backend.ticket.builders.common.constants import MySQLBackupSource
 from backend.ticket.constants import TicketType
 
 
-def repair_ro_slaves_replicate(cluster_ids: List[int], machine_type: str, events: List[MySQLDBHAEvent]):
+def repair_ro_slaves_replicate(cluster_ids: List[int], machine_type: MachineType, events: List[MySQLDBHAEvent]):
     """
     events 的 check_id 应该是相同的
     表示 cluster_ids 的 master 发生了 dbha
@@ -74,7 +74,7 @@ def repair_ro_slaves_replicate(cluster_ids: List[int], machine_type: str, events
                     priority=MySQLDBHAAutofixTicketPriority.P2.value,
                     check_id=ele["check_id"],
                     cluster_id=ele["cluster_id"],
-                    machine_type=machine_type,
+                    machine_type=machine_type.value,
                     ticket_param=ticket_param,
                     af_uuid=events[0].af_uuid,
                     queue_uuid=queue_uuid,
@@ -85,7 +85,7 @@ def repair_ro_slaves_replicate(cluster_ids: List[int], machine_type: str, events
         MySQLDBHAAutofixTicketStageQueue.objects.bulk_create(queue_to_create)
 
 
-def replace_slave(cluster_ids: List[int], machine_type: str, events: List[MySQLDBHAEvent]):
+def replace_slave(cluster_ids: List[int], machine_type: MachineType, events: List[MySQLDBHAEvent]):
     """
     根据平台规范, ro slave 机器必须整机被集群独占, 不存在多实例部署的情况
     如果一台 standby slave 机器和 一台 ro slave 机器同时需要重建
@@ -175,7 +175,7 @@ def replace_slave(cluster_ids: List[int], machine_type: str, events: List[MySQLD
                 priority=priority,
                 check_id=ev.check_id,
                 cluster_id=ev.cluster_id,
-                machine_type=machine_type,
+                machine_type=machine_type.value,
                 ticket_param=ticket_param,
                 af_uuid=ev.af_uuid,
                 queue_uuid=queue_uuid,
