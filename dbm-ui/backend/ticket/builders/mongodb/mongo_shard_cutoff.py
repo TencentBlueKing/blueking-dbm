@@ -13,7 +13,6 @@ from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.configuration.constants import AffinityEnum
 from backend.db_meta.enums import MachineType
 from backend.db_meta.models import AppCache, Cluster, Machine, ProxyInstance, StorageInstance
 from backend.db_services.dbbase.constants import IpSource
@@ -21,7 +20,7 @@ from backend.db_services.mongodb.resources.query import MongoDBListRetrieveResou
 from backend.db_services.mongodb.toolbox.handlers import ToolboxHandler
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostRecycleSerializer
+from backend.ticket.builders.common.base import HostRecycleSerializer, get_mongodb_cluster_tolerance
 from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateDetailSerializer,
     BaseMongoDBOperateResourceParamBuilder,
@@ -89,13 +88,7 @@ class MongoDBShardCutoffResourceParamBuilder(BaseMongoDBOperateResourceParamBuil
             common_filters = Q(machine__machine_type=info["switch_role"], cluster__in=[info["cluster_id"]]) & ~Q(
                 machine__bk_host_id__in=off_host_ids
             )
-            if cluster.disaster_tolerance_level == AffinityEnum.CROS_SUBZONE.value:
-                if info["switch_role"] == MachineType.MONGOS.value:
-                    tolerance = 0.5
-                else:
-                    tolerance = 0.33
-            else:
-                tolerance = 0.5
+            tolerance = get_mongodb_cluster_tolerance(cluster.disaster_tolerance_level, info["switch_role"])
 
             if info["switch_role"] == MachineType.MONGODB.value:
                 host = info["mongodb"][0]
