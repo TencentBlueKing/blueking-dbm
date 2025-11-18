@@ -44,6 +44,7 @@ class MongoDBReplicasetCutoffResourceParamBuilder(BaseMongoDBOperateResourcePara
             remain_machine_type=MachineType.MONGODB,
             replace_key="mongodb",
             tolerance=get_mongodb_cluster_tolerance,
+            tolerance_type="mongodb",
         )
 
         super().format()

@@ -19,7 +19,11 @@ from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.common.base import TicketBaseValidateSerializerMixin, get_ticket_zone_list
+from backend.ticket.builders.common.base import (
+    TicketBaseValidateSerializerMixin,
+    get_mongodb_cluster_tolerance,
+    get_ticket_zone_list,
+)
 from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateResourceParamBuilder,
     BaseMongoReplicaSetTicketFlowBuilder,
@@ -90,10 +94,9 @@ class MongoReplicaSetApplyFlowParamBuilder(builders.FlowParamBuilder):
 class MongoReplicaSetResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder):
     def format(self):
         for info in self.ticket_data["infos"]:
-            if info["resource_spec"]["mongo_machine_set"]["affinity"] == AffinityEnum.CROS_SUBZONE.value:
-                info["resource_spec"]["mongo_machine_set"]["tolerance"] = 0.33
-            else:
-                info["resource_spec"]["mongo_machine_set"]["tolerance"] = 0.5
+            info["resource_spec"]["mongo_machine_set"]["tolerance"] = get_mongodb_cluster_tolerance(
+                info["resource_spec"]["mongo_machine_set"]["affinity"], "mongodb"
+            )
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()
