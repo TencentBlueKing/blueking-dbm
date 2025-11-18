@@ -28,6 +28,8 @@ from backend.db_report.enums import MysqlBackupCheckSubType, ReportStateType
 from backend.db_report.models import MysqlBackupCheckReport, MysqlBackupProgress
 from backend.exceptions import ApiResultError
 
+from .check_ignore import CheckIgnore
+
 logger = logging.getLogger("celery")
 
 
@@ -43,8 +45,14 @@ def mysql_backup_failed_alert():
         status="Failed", event_create_timestamp__gte=today_time_zero_ms
     ).order_by("bk_biz_id", "cluster_domain")
 
+    ignore_configs = CheckIgnore(subtype=MysqlBackupCheckSubType.FullBackup)
     failed_cluster = defaultdict(set)
     for backup in failed_backups:
+        # 检查是否应该忽略该集群的备份告警
+        if ignore_configs.should_ignore_check(backup.bk_biz_id, backup.cluster_domain):
+            logger.info(f"==== skip backup failed alert for cluster {backup.cluster_domain} (ignored by config) ====")
+            continue
+
         dim = {
             "appid": backup.bk_biz_id,
             "cluster_domain": backup.cluster_domain,
@@ -107,6 +115,11 @@ def mysql_backup_failed_alert():
         create_at__gte=today_time_zero,
     )
     for backup in backup_inspect_failed:
+        # 检查是否应该忽略该集群的备份巡检告警
+        if ignore_configs.should_ignore_check(backup.bk_biz_id, backup.cluster):
+            logger.info(f"==== skip backup inspect failed alert for cluster {backup.cluster} (ignored by config) ====")
+            continue
+
         dim = {
             "appid": backup.bk_biz_id,
             "cluster_domain": backup.cluster,

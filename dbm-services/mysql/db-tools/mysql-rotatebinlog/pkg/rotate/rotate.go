@@ -38,12 +38,14 @@ type BinlogRotate struct {
 	binlogInst models.BinlogFileModel
 	// sizeToFreeMB 计划释放这么多，可能因为没有上传实际没有释放这么多
 	sizeToFreeMB int64 // MB
-	// sizeToFreeMBBurst 一定要释放这么多
-	sizeToFreeMBBurst int64 // MB
-	binlogSizeMB      int64 // MB
-	purgeInterval     time.Duration
-	rotateInterval    time.Duration
-	maxKeepDuration   time.Duration
+	// hardSizeToFree 一定要释放这么多
+	// 当 > 0 时，说明 binlog目录大小达到了硬限制，一定要清理
+	// 当 <= 0 时，说明目录没有达到清理阈值，或者只是达到了软限制，可以把超出软限制的部分挪到 stage 目录
+	hardSizeToFree  int64 // MB
+	binlogSizeMB    int64 // MB
+	purgeInterval   time.Duration
+	rotateInterval  time.Duration
+	maxKeepDuration time.Duration
 }
 
 // String 用于打印
@@ -322,8 +324,8 @@ func (r *BinlogRotate) Backup(backupClient backup.BackupClient) error {
 // removeToStageDir rename file to binlog_wait_upload 放到暂存空间
 // f: 原始 binlog 文件
 // server: 用于 register
-// burstSizeAllowed: 允许的最大大小
-func removeToStageDir(f *models.BinlogFileModel, server *ServerObj, burstSizeAllowed int64) (err error) {
+// stageSizeAllowed: 中转目录允许的最大大小
+func removeToStageDir(f *models.BinlogFileModel, server *ServerObj, stageSizeAllowed int64) (err error) {
 	if strings.Contains(f.BinlogDir, cst.BinlogUploadStageDir) {
 		// 文件已经是 stage 目录的，不需要处理
 		return nil
@@ -335,11 +337,11 @@ func removeToStageDir(f *models.BinlogFileModel, server *ServerObj, burstSizeAll
 		os.Mkdir(stageUploadDir, 0755)
 	}
 	// 当暂存目录 达到一定大小时，也不能继续放了
-	if stageDirSize, fileInfoList, _ := cmutil.DirFileStatsList(stageUploadDir); stageDirSize > burstSizeAllowed {
-		logger.Warn("stage_upload_dir %s size %d > burstSizeAllowed %d",
-			stageUploadDir, stageDirSize, burstSizeAllowed)
+	if stageDirSize, fileInfoList, _ := cmutil.DirFileStatsList(stageUploadDir); stageDirSize > stageSizeAllowed {
+		logger.Warn("stage_upload_dir %s size %d > hardSizeAllowed %d",
+			stageUploadDir, stageDirSize, stageSizeAllowed)
 
-		stageDirSizeToDelete := stageDirSize - burstSizeAllowed
+		stageDirSizeToDelete := stageDirSize - stageSizeAllowed
 		var stageDirSizeDeleted int64 = 0
 		for _, fi := range fileInfoList {
 			stagedBinlogFile := filepath.Join(stageUploadDir, fi.Name())
@@ -386,12 +388,13 @@ func removeToStageDir(f *models.BinlogFileModel, server *ServerObj, burstSizeAll
 // 将本地 done,success 的超过阈值的 binlog 文件删除，更新 binlog 列表状态
 // 超过 max_keep_days 的强制删除，单位 bytes
 // sizeBytesToFree=999999999 代表尽可能删除
-func (r *BinlogRotate) Remove(sizeBytesToFree, sizeBytesToFreeBurst int64, server *ServerObj) (err error) {
-	if sizeBytesToFree == 0 {
+// sizeBytesToFreeHard 一定要清理这么多，<=0 代表不需要强制delete，可以先转 stage目录. > 0 时，达到到目录大小硬限制，必须删除
+func (r *BinlogRotate) Remove(sizeBytesToFree, sizeBytesToFreeHard int64, server *ServerObj) (err error) {
+	if sizeBytesToFree <= 0 {
 		logger.Info("no need to free %d binlog size", r.binlogInst.Port)
 		return nil
 	}
-	burstSizeAllowed := sizeBytesToFree - sizeBytesToFreeBurst // stageUploadDir max size
+	stageSizeAllowed := sizeBytesToFree - sizeBytesToFreeHard // stageUploadDir max size
 	var binlogFiles []*models.BinlogFileModel
 	binlogFiles, err = r.binlogInst.QueryToRemove(models.DB.Conn)
 
@@ -421,13 +424,13 @@ func (r *BinlogRotate) Remove(sizeBytesToFree, sizeBytesToFreeBurst int64, serve
 			if lo.Contains(models.StatusSuccess, f.BackupStatus) {
 				canRemove = true
 			} else if strings.Contains(fileFullPath, cst.BinlogUploadStageDir) {
-				// 不管真实有没有删除，stage目录下的 binlog都当做不占用空间，stage目录的大小有单独的 burstSizeAllowed 来控制
+				// 不管真实有没有删除，stage目录下的 binlog都当做不占用空间，stage目录的大小有单独的 hardSizeAllowed 来控制
 				sizeDeleted += f.Filesize
 				if time.Now().Sub(fileMtime).Seconds() > 12*3600 {
 					canRemove = true
 				}
 			} else if f.BackupStatus < models.IBStatusSuccess && !strings.Contains(f.BinlogDir, cst.BinlogUploadStageDir) {
-				if err := removeToStageDir(f, server, burstSizeAllowed); err != nil {
+				if err := removeToStageDir(f, server, stageSizeAllowed); err != nil {
 					logger.Error("remove to stage dir failed: %s", err.Error())
 				} else {
 					staged = true // binlog已经stage处理， 标记后续不要改状态

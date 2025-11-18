@@ -64,7 +64,6 @@ func CheckCharset(cnf *config.BackupConfig, mysqlVersion string, dbh *sql.DB) er
 			useCharset = "binary"
 		}
 		cnf.Public.MysqlCharset = useCharset
-		return nil
 	}
 	logger.Log.Info("use character set:", cnf.Public.MysqlCharset, "  to backup")
 	return nil
