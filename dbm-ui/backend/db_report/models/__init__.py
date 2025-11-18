@@ -15,6 +15,7 @@ from .failover_drill_report import FailoverDrillReport
 from .meta_check_report import MetaCheckReport
 from .monogdb_check_report import MongodbBackupCheckReport
 from .mysql_backup_progress import MysqlBackupProgress
+from .mysql_inspect_ignore import MysqlInspectIgnore
 from .mysqlbackup_check_report import MysqlBackupCheckReport
 from .redisbackup_check_report import RedisBackupCheckReport
 from .sqlserver_check_report import (

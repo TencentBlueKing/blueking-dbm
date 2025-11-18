@@ -6,9 +6,10 @@ import (
 	"path/filepath"
 	"strconv"
 
+	gyaml "github.com/ghodss/yaml"
+
 	"dbm-services/common/reverseapi/pkg"
 
-	gyaml "github.com/ghodss/yaml"
 	"github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
@@ -37,9 +38,9 @@ type PublicCfg struct {
 	MaxBinlogTotalSize string `json:"max_binlog_total_size" mapstructure:"max_binlog_total_size"`
 	// MaxDiskUsedPct 100 制
 	MaxDiskUsedPct float64 `json:"max_disk_used_pct" mapstructure:"max_disk_used_pct"  validate:"required,lte=99"`
-	// max_disk_used_burst_pct 如果文件来不及上传，会转存一部分文件到 binlog_wait_upload 目录
+	// max_disk_used_pct_hard 如果文件来不及上传，会转存一部分文件到 binlog_wait_upload 目录
 	// 这个配置约束 突破 max_disk_used_pct 后，最大允许的磁盘使用率。这个值是一定不会突破
-	MaxDiskUsedBurstPct float64 `json:"max_disk_used_pct_burst" mapstructure:"max_disk_used_pct_burst"`
+	MaxDiskUsedPctHard float64 `json:"max_disk_used_pct_hard" mapstructure:"max_disk_used_pct_hard"`
 
 	// 本地 binlog 最大保留时间，超过会直接删除
 	MaxKeepDuration string `json:"max_keep_duration" mapstructure:"max_keep_duration"`
@@ -87,7 +88,7 @@ func initConfigDefault() {
 	viper.SetDefault("public.max_binlog_total_size", "2000g")
 	viper.SetDefault("public.backup_enable", "auto")
 	viper.SetDefault("public.max_old_days_to_upload", 7)
-	viper.SetDefault("public.max_disk_used_pct_burst", 90)
+	viper.SetDefault("public.max_disk_used_pct_hard", 90)
 }
 
 // InitConfig 读取 main.yaml 配置
@@ -97,7 +98,28 @@ func InitConfig(confFile string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	// we only report main config to remote
+	if len(configObj.Servers) > 0 {
+		// remove servers section to separated instance config file
+		for _, serverConfig := range configObj.Servers {
+			yamlData, err := gyaml.Marshal(serverConfig) // use json tag
+			if err != nil {
+				return nil, err
+			}
+			serverConfigFile := filepath.Join(filepath.Dir(confFile),
+				fmt.Sprintf("server.%d.yaml", serverConfig.Port))
+			if err := os.WriteFile(serverConfigFile, yamlData, 0644); err != nil {
+				return nil, err
+			}
+		}
+		configObj.Servers = nil
+		yamlData, err := gyaml.Marshal(configObj) // use json tag
+		if err != nil {
+			return nil, err
+		}
+		if err := os.WriteFile(confFile, yamlData, 0644); err != nil {
+			return nil, err
+		}
+	}
 
 	servers, err := readInstanceConfig(confFile)
 	if err != nil {
@@ -108,13 +130,9 @@ func InitConfig(confFile string) (*Config, error) {
 		servers = deduplicateServers(servers)
 		configObj.Servers = servers
 	}
-	if configObj.Public.MaxOldDaysToUpload == 0 {
-		configObj.Public.MaxOldDaysToUpload = 7
-	}
-	if configObj.Public.MaxDiskUsedBurstPct < configObj.Public.MaxDiskUsedPct {
-		configObj.Public.MaxDiskUsedBurstPct = configObj.Public.MaxDiskUsedPct
-		viper.SetDefault("public.max_disk_used_pct_burst", configObj.Public.MaxDiskUsedPct)
-	}
+
+	// 设置全局变量
+	PublicConfig = configObj.Public
 
 	//logger.Debug("ConfigObj: %+v", ConfigObj)
 	return configObj, nil
@@ -146,32 +164,15 @@ func ReadMainConfig(mainConfFile string) (*Config, error) {
 	} else if !lo.Contains(cst.BackupEnableAllowed, configObj.Public.BackupEnable) {
 		return nil, errors.Errorf("public.backup_enable value only %s, but get %s",
 			cst.BackupEnableAllowed, configObj.Public.BackupEnable)
-	} else {
-		PublicConfig = configObj.Public
+	}
+	if configObj.Public.MaxOldDaysToUpload == 0 {
+		configObj.Public.MaxOldDaysToUpload = 7
+	}
+	if configObj.Public.MaxDiskUsedPctHard < configObj.Public.MaxDiskUsedPct {
+		configObj.Public.MaxDiskUsedPctHard = configObj.Public.MaxDiskUsedPct
+		viper.SetDefault("public.max_disk_used_pct_hard", configObj.Public.MaxDiskUsedPct)
 	}
 
-	if len(configObj.Servers) > 0 {
-		// remove servers section to separated instance config file
-		for _, serverConfig := range configObj.Servers {
-			yamlData, err := gyaml.Marshal(serverConfig) // use json tag
-			if err != nil {
-				return nil, err
-			}
-			serverConfigFile := filepath.Join(filepath.Dir(mainConfFile),
-				fmt.Sprintf("server.%d.yaml", serverConfig.Port))
-			if err := os.WriteFile(serverConfigFile, yamlData, 0644); err != nil {
-				return nil, err
-			}
-		}
-		configObj.Servers = nil
-		yamlData, err := gyaml.Marshal(configObj) // use json tag
-		if err != nil {
-			return nil, err
-		}
-		if err := os.WriteFile(mainConfFile, yamlData, 0644); err != nil {
-			return nil, err
-		}
-	}
 	return configObj, nil
 }
 
