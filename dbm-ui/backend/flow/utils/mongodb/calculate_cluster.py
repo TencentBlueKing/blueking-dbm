@@ -39,7 +39,10 @@ def machine_order_by_tolerance(disaster_tolerance_level: str, machine_set: list)
 
     machines = []
     # 主从节点分布在不同的机房
-    if disaster_tolerance_level in [AffinityEnum.CROS_SUBZONE, AffinityEnum.MAJORITY_ELECTION_DISTRI]:
+    if disaster_tolerance_level in [
+        AffinityEnum.CROSS_SUBZONE_STRONG,
+        AffinityEnum.CROSS_SUBZONE_WEAK,
+    ]:
         mongo_machine_set = deepcopy(machine_set)
         machines.append(mongo_machine_set[0])
         mongo_machine_set.remove(mongo_machine_set[0])
