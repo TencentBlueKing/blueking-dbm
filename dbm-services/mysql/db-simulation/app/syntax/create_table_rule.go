@@ -11,6 +11,7 @@
 package syntax
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/samber/lo"
@@ -33,6 +34,9 @@ func (c CreateTableResult) Checker(mysqlVersion string) (r *CheckerResult) {
 			return SpecialCharValidator(c.TableName)
 		})
 	}
+	r.ParseBuiltinBan(func() (bool, string) {
+		return c.JsonColumInvalidDefaultCheck()
+	})
 	return
 }
 
@@ -115,4 +119,19 @@ func (c CreateTableResult) ColCharsetNotEqTbCharset() bool {
 		return false
 	}
 	return true
+}
+
+// JsonDataType JSON 数据类型常量
+const JsonDataType = "json"
+
+// JsonColumInvalidDefaultCheck 检查创建表时json字段是否设置了无效的默认值
+// 无效的默认值包括：NULL 关键字、字符串 'null'、空字符串 ”
+// 有效的默认值包括：有效的 JSON 值（如 [], {}, "string" 等）
+func (c CreateTableResult) JsonColumInvalidDefaultCheck() (bool, string) {
+	for _, colDef := range c.CreateDefinitions.ColDefs {
+		if colDef.DataType == JsonDataType {
+			return colDef.HasInvalidJsonDefault(), fmt.Sprintf("json 列 %s 的默认值无效，不允许为 '' 或 'null'", colDef.ColName)
+		}
+	}
+	return false, ""
 }

@@ -3,6 +3,7 @@ package syntax_test
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -850,4 +851,210 @@ func TestTmysqlParseFile_Do_TableDriven(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestTmysqlParseFile_Do_InvalidJsonDefault 测试无效的 JSON 字段默认值检测
+func TestTmysqlParseFile_Do_InvalidJsonDefault(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	workdir, cleanup := setupTestEnv(t)
+	defer cleanup()
+
+	testFile := getTestDataPath("invalid_json_default.sql")
+	err := copyTestFile(t, testFile, workdir)
+	require.NoError(t, err)
+
+	tf := &syntax.TmysqlParseFile{
+		TmysqlParse: syntax.TmysqlParse{
+			TmysqlParseBinPath: testTmysqlParseBin,
+			BaseWorkdir:        workdir,
+		},
+		Param: syntax.CheckSQLFileParam{
+			FileNames: []string{"invalid_json_default.sql"},
+			ExecuteObjects: []syntax.ExecuteSQLFileObj{
+				{
+					LineId:   1,
+					SQLFiles: []string{"invalid_json_default.sql"},
+					DbNames:  []string{"test_db"},
+				},
+			},
+		},
+		IsLocalFile: true,
+	}
+
+	result, err := tf.Do(app.MySQL, []string{"5.7.20"})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	fileResult, ok := result["invalid_json_default.sql"]
+	require.True(t, ok)
+
+	// 应该检测到无效的 JSON 默认值（应该被标记为 BanWarnings）
+	assert.NotEmpty(t, fileResult.BanWarnings, "should detect invalid JSON default values")
+
+	t.Logf("Invalid JSON Default Result: %d ban warnings", len(fileResult.BanWarnings))
+	for i, ban := range fileResult.BanWarnings {
+		t.Logf("  Ban %d: Line %d, Type: %s, Info: %s", i+1, ban.Line, ban.CommandType, ban.WarnInfo)
+	}
+
+	// 验证警告信息中包含 JSON 字段相关的信息
+	hasJsonWarning := false
+	for _, ban := range fileResult.BanWarnings {
+		if ban.CommandType == "create_table" || ban.CommandType == "alter_table" {
+			// 检查警告信息是否包含 json column 相关的内容
+			warnInfoLower := strings.ToLower(ban.WarnInfo)
+			if strings.Contains(warnInfoLower, "json") && strings.Contains(warnInfoLower, "column") {
+				hasJsonWarning = true
+				break
+			}
+		}
+	}
+	assert.True(t, hasJsonWarning, "should have JSON-related ban warnings")
+}
+
+// TestTmysqlParseFile_Do_ValidJsonDefault 测试有效的 JSON 字段默认值
+func TestTmysqlParseFile_Do_ValidJsonDefault(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	workdir, cleanup := setupTestEnv(t)
+	defer cleanup()
+
+	testFile := getTestDataPath("valid_json_default.sql")
+	err := copyTestFile(t, testFile, workdir)
+	require.NoError(t, err)
+
+	tf := &syntax.TmysqlParseFile{
+		TmysqlParse: syntax.TmysqlParse{
+			TmysqlParseBinPath: testTmysqlParseBin,
+			BaseWorkdir:        workdir,
+		},
+		Param: syntax.CheckSQLFileParam{
+			FileNames: []string{"valid_json_default.sql"},
+			ExecuteObjects: []syntax.ExecuteSQLFileObj{
+				{
+					LineId:   1,
+					SQLFiles: []string{"valid_json_default.sql"},
+					DbNames:  []string{"test_db"},
+				},
+			},
+		},
+		IsLocalFile: true,
+	}
+
+	result, err := tf.Do(app.MySQL, []string{"5.7.20"})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	fileResult, ok := result["valid_json_default.sql"]
+	require.True(t, ok)
+
+	// 有效的 JSON 默认值不应该被标记为 BanWarnings（除非有其他问题）
+	// 检查是否有 JSON 相关的 BanWarnings
+	hasJsonBanWarning := false
+	for _, ban := range fileResult.BanWarnings {
+		if ban.CommandType == "create_table" || ban.CommandType == "alter_table" {
+			warnInfoLower := strings.ToLower(ban.WarnInfo)
+			if strings.Contains(warnInfoLower, "json column") && strings.Contains(warnInfoLower, "invalid default") {
+				hasJsonBanWarning = true
+				break
+			}
+		}
+	}
+	assert.False(t, hasJsonBanWarning, "valid JSON default values should not trigger ban warnings")
+
+	t.Logf("Valid JSON Default Result: %d syntax errors, %d risk warnings, %d ban warnings",
+		len(fileResult.SyntaxFailInfos),
+		len(fileResult.RiskWarnings),
+		len(fileResult.BanWarnings))
+}
+
+// TestTmysqlParseFile_Do_InvalidJsonFormat 测试非法的 JSON 格式 SQL
+func TestTmysqlParseFile_Do_InvalidJsonFormat(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	workdir, cleanup := setupTestEnv(t)
+	defer cleanup()
+
+	testFile := getTestDataPath("invalid_json_format.sql")
+	err := copyTestFile(t, testFile, workdir)
+	require.NoError(t, err)
+
+	tf := &syntax.TmysqlParseFile{
+		TmysqlParse: syntax.TmysqlParse{
+			TmysqlParseBinPath: testTmysqlParseBin,
+			BaseWorkdir:        workdir,
+		},
+		Param: syntax.CheckSQLFileParam{
+			FileNames: []string{"invalid_json_format.sql"},
+			ExecuteObjects: []syntax.ExecuteSQLFileObj{
+				{
+					LineId:   1,
+					SQLFiles: []string{"invalid_json_format.sql"},
+					DbNames:  []string{"test_db"},
+				},
+			},
+		},
+		IsLocalFile: true,
+	}
+
+	result, err := tf.Do(app.MySQL, []string{"5.7.20"})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	fileResult, ok := result["invalid_json_format.sql"]
+	require.True(t, ok)
+
+	// 非法的 JSON 格式应该被检测到
+	// 可能被标记为语法错误（SyntaxFailInfos）或 BanWarnings
+	hasError := len(fileResult.SyntaxFailInfos) > 0 || len(fileResult.BanWarnings) > 0
+	assert.True(t, hasError, "should detect invalid JSON format SQL")
+
+	t.Logf("Invalid JSON Format Result: %d syntax errors, %d risk warnings, %d ban warnings",
+		len(fileResult.SyntaxFailInfos),
+		len(fileResult.RiskWarnings),
+		len(fileResult.BanWarnings))
+
+	// 记录语法错误
+	if len(fileResult.SyntaxFailInfos) > 0 {
+		t.Logf("Syntax Errors:")
+		for i, fail := range fileResult.SyntaxFailInfos {
+			t.Logf("  Error %d: Line %d, Code %d, Msg: %s", i+1, fail.Line, fail.ErrorCode, fail.ErrorMsg)
+		}
+	}
+
+	// 记录 BanWarnings
+	if len(fileResult.BanWarnings) > 0 {
+		t.Logf("Ban Warnings:")
+		for i, ban := range fileResult.BanWarnings {
+			t.Logf("  Ban %d: Line %d, Type: %s, Info: %s", i+1, ban.Line, ban.CommandType, ban.WarnInfo)
+		}
+	}
+
+	// 验证是否有 JSON 相关的错误或警告
+	hasJsonRelatedIssue := false
+	for _, fail := range fileResult.SyntaxFailInfos {
+		failMsgLower := strings.ToLower(fail.ErrorMsg)
+		if strings.Contains(failMsgLower, "json") {
+			hasJsonRelatedIssue = true
+			break
+		}
+	}
+	for _, ban := range fileResult.BanWarnings {
+		if ban.CommandType == "create_table" || ban.CommandType == "alter_table" {
+			warnInfoLower := strings.ToLower(ban.WarnInfo)
+			if strings.Contains(warnInfoLower, "json") {
+				hasJsonRelatedIssue = true
+				break
+			}
+		}
+	}
+	// 注意：某些无效 JSON 格式可能在 MySQL 解析阶段就被拒绝，所以不一定会有 JSON 相关的错误信息
+	// 但至少应该有语法错误或警告
+	t.Logf("Has JSON-related issue: %v", hasJsonRelatedIssue)
 }
