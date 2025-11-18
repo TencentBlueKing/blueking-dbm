@@ -60,8 +60,10 @@ def create_or_update_affinity_report(
     """
     创建或更新亲和性检查报告
 
-    如果昨天的记录存在且错误信息相同，则只更新 failed_days，不创建新记录
-    否则创建新记录
+    更新逻辑：
+    1. 以集群为单位查询最近的记录（不按 affinity_type 过滤）
+    2. 如果查询不到记录，创建新记录
+    3. 如果查询到记录，更新记录（包括 affinity_type、msg、state 等）
 
     Args:
         cluster: 集群对象
@@ -75,64 +77,79 @@ def create_or_update_affinity_report(
     """
     loopback_time = timezone.now() - timedelta(hours=25)
 
-    # 查找最近的记录
+    # 以集群为单位查找最近的记录（不按 affinity_type 过滤）
     last_record = (
         AffinityCheckReport.objects.filter(
             cluster_id=cluster.id,
             cluster=cluster.immute_domain,
-            affinity_type=affinity_type,
             create_at__gte=loopback_time,
         )
-        .order_by("-create_at")
+        .order_by("-update_at")
         .first()
     )
 
-    # 如果找到记录且错误信息和状态都相同
-    if last_record and last_record.msg == msg and last_record.state == state:
-        # 如果是异常状态，累加 failed_days
-        if state != ReportStateType.NORMAL.value:
-            last_record.failed_days += 1
-            last_record.update_at = timezone.now()
-            last_record.save(update_fields=["failed_days", "update_at"])
-            logger.info(_("亲和性检查: 更新集群 {} 的报告，失败天数: {}").format(cluster.immute_domain, last_record.failed_days))
-            return last_record
-        else:
-            # 如果是正常状态，保持 failed_days=0，更新时间即可
-            last_record.update_at = timezone.now()
-            last_record.save(update_fields=["update_at"])
-            logger.info(_("亲和性检查: 集群 {} 保持正常状态").format(cluster.immute_domain))
-            return last_record
+    current_time = timezone.now()
 
-    # 否则创建新记录（状态变化或消息变化）
-    failed_days = 0
-    if state != ReportStateType.NORMAL.value:
+    # 如果查询不到记录，创建新记录
+    if not last_record:
+        failed_days = 1 if state != ReportStateType.NORMAL.value else 0
+        report = AffinityCheckReport.objects.create(
+            bk_biz_id=cluster.bk_biz_id,
+            bk_cloud_id=cluster.bk_cloud_id,
+            cluster_id=cluster.id,
+            cluster=cluster.immute_domain,
+            cluster_type=cluster.cluster_type,
+            region=cluster.region,
+            affinity_type=affinity_type,
+            state=state,
+            status=(state == ReportStateType.NORMAL.value),  # True=正常, False=异常
+            msg=msg,
+            failed_days=failed_days,
+            creator=creator,
+            create_at=current_time,
+            update_at=current_time,
+        )
+        logger.info(_("亲和性检查: 创建集群 {} 的报告 - 状态={}, 失败天数={}").format(cluster.immute_domain, state, failed_days))
+        return report
+
+    # 如果查询到记录，更新记录
+    # 计算 failed_days
+    if state == ReportStateType.NORMAL.value:
+        # 如果当前是正常状态，failed_days 必须置为 0
+        failed_days = 0
+        # 检查是否从不正常变成正常
+        if last_record.state != ReportStateType.NORMAL.value:
+            # 集群从不正常恢复为正常，重置失败天数
+            msg = _("集群 {} 状态从不正常恢复为正常，重置失败天数（原失败天数: {}）").format(cluster.immute_domain, last_record.failed_days)
+            logger.info(msg)
+    else:
         # 如果当前是异常状态
-        if last_record and last_record.state != ReportStateType.NORMAL.value:
+        if last_record.state != ReportStateType.NORMAL.value:
             # 上一条也是异常，累加 failed_days
             failed_days = last_record.failed_days + 1
         else:
-            # 上一条是正常或不存在，重新开始计数
+            # 上一条是正常，重新开始计数
             failed_days = 1
-    # 如果当前是正常状态，failed_days = 0（已在上面初始化）
 
-    report = AffinityCheckReport.objects.create(
-        bk_biz_id=cluster.bk_biz_id,
-        bk_cloud_id=cluster.bk_cloud_id,
-        cluster_id=cluster.id,
-        cluster=cluster.immute_domain,
-        cluster_type=cluster.cluster_type,
-        region=cluster.region,
-        affinity_type=affinity_type,
-        state=state,
-        status=(state == ReportStateType.NORMAL.value),  # True=正常, False=异常
-        msg=msg,
-        failed_days=failed_days,
-        creator=creator,
+    # 更新记录
+    last_record.affinity_type = affinity_type
+    last_record.state = state
+    last_record.status = state == ReportStateType.NORMAL.value  # True=正常, False=异常
+    # 追加消息而不是覆盖
+    if last_record.msg and last_record.msg != msg:
+        last_record.msg = f"{last_record.msg}\n{msg}"
+    else:
+        last_record.msg = msg
+    last_record.failed_days = failed_days
+    last_record.create_at = current_time
+    last_record.update_at = current_time
+    last_record.save(
+        update_fields=["affinity_type", "state", "status", "msg", "failed_days", "create_at", "update_at"]
     )
 
-    logger.info(_("亲和性检查: 创建集群 {} 的报告 - 状态={}, 失败天数={}").format(cluster.immute_domain, state, failed_days))
+    logger.info(_("亲和性检查: 更新集群 {} 的报告 - 状态={}, 失败天数={}").format(cluster.immute_domain, state, failed_days))
 
-    return report
+    return last_record
 
 
 def delete_old_affinity_reports(cluster_types: list = None, days: int = 30) -> int:
@@ -148,7 +165,7 @@ def delete_old_affinity_reports(cluster_types: list = None, days: int = 30) -> i
     """
     cutoff_date = timezone.now() - timedelta(days=days)
 
-    query = AffinityCheckReport.objects.filter(create_at__lt=cutoff_date)
+    query = AffinityCheckReport.objects.filter(update_at__lt=cutoff_date)
 
     # 按集群类型过滤
     if cluster_types:
