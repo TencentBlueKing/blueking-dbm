@@ -46,6 +46,7 @@ func NewClusterOperationController(provider provider.ClusterOperationProvider) *
 
 // ListClusterOperations list cluster operations
 func (c *ClusterOperationController) ListClusterOperations(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaClusterOpDefList)
 	sizeStr := ctx.DefaultQuery("size", commconst.DefaultFetchSizeStr)
 	fetchSize, err := strconv.Atoi(sizeStr)
 	if err != nil {
@@ -68,6 +69,7 @@ func (c *ClusterOperationController) ListClusterOperations(ctx *gin.Context) {
 
 // CreateClusterOperation creates a new cluster operation.
 func (c *ClusterOperationController) CreateClusterOperation(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaClusterOpDefCreate)
 	var reqVo request.ClusterOperationRequest
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
