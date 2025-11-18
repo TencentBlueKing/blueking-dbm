@@ -300,6 +300,7 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
         replace_key: str = None,
         tolerance: Union[Callable, float] = None,
         no_need_affinity: bool = False,
+        tolerance_type: str = None,
     ):
         """
         针对批量扩容、替换补充亲和性参数
@@ -308,6 +309,7 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
         @param replace_key 替换实例key
         @param tolerance: 亲和性容忍度
         @param no_need_affinity: 是否需要亲和性
+        @param tolerance_type: 亲和性容忍度类型
         """
         # 获得infos中的集群信息
         from backend.ticket.builders.common.base import fetch_cluster_ids
@@ -360,9 +362,7 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
 
         for info in infos:
             cluster = cluster_map[fetch_cluster_ids(info)[0]]
-            cluster_tolerance = (
-                tolerance(cluster, remain_machine_type) if isinstance(tolerance, Callable) else tolerance
-            )
+            cluster_tolerance = tolerance(cluster, tolerance_type) if isinstance(tolerance, Callable) else tolerance
             exclusive_hosts = cluster__remain_hosts_map.get(cluster.id, [])
             self.patch_common_affinity(info, role, cluster, exclusive_hosts, cluster_tolerance, no_need_affinity)
 
@@ -384,7 +384,11 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
         for info in self.ticket_data["infos"]:
             cluster = cluster_id_map[fetch_cluster_ids(info)[0]]
             affinity = cluster.disaster_tolerance_level
-            if affinity in [AffinityEnum.CROS_SUBZONE, AffinityEnum.MAJORITY_ELECTION_DISTRI] and machine_zone_map:
+            if (
+                affinity
+                in [AffinityEnum.CROS_SUBZONE, AffinityEnum.CROSS_SUBZONE_STRONG, AffinityEnum.CROSS_SUBZONE_WEAK]
+                and machine_zone_map
+            ):
                 replace_zone = [machine_zone_map[fetch_host_ips(info["old_nodes"])[0]]]
             else:
                 replace_zone = []
