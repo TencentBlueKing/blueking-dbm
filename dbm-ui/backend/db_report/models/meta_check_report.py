@@ -27,4 +27,7 @@ class MetaCheckReport(BaseReportABS):
     )
 
     class Meta:
-        indexes = [models.Index(fields=["cluster", "ip", "port", "subtype", "create_at"])]
+        indexes = [
+            models.Index(fields=["cluster", "ip", "port", "subtype", "create_at"]),
+            models.Index(fields=["subtype", "failed_days", "create_at"]),
+        ]
