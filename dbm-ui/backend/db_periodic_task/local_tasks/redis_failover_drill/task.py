@@ -17,12 +17,39 @@ from django.utils.translation import gettext as _
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_periodic_task.local_tasks import register_periodic_task
+from backend.db_periodic_task.local_tasks.common.failover_drill_base import delete_old_failover_drill_records
 
 from ...models import FailoverDrillConfig
 from .failover_drill import FailoverDrillTargetType
 from .failover_drill_unit import failover_drill_unit
 
 logger = logging.getLogger("celery")
+
+
+@register_periodic_task(run_every=crontab(day_of_month=1, hour=0, minute=0))
+def delete_outdated_drill_records():
+    """
+    删除365天以前的Redis切换演练记录
+    每月1号凌晨0点执行
+    """
+    total_deleted = 0
+    target_types = [
+        ClusterType.TendisTwemproxyRedisInstance.value,  # TendisCache 集群
+    ]
+
+    for cluster_type in target_types:
+        try:
+            deleted_count = delete_old_failover_drill_records(cluster_type, days_look_back=365)
+            total_deleted += deleted_count
+            logger.info(
+                _("Deleted {} outdated redis failover drill records for cluster_type: {}").format(
+                    deleted_count, cluster_type
+                )
+            )
+        except Exception as e:
+            logger.error(_("Failed to delete outdated records for cluster_type {}: {}").format(cluster_type, e))
+
+    logger.info(_("Total deleted {} outdated redis failover drill records").format(total_deleted))
 
 
 @register_periodic_task(run_every=crontab(hour=9, minute=0))
