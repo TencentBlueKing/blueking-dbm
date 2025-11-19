@@ -18,7 +18,7 @@ export default () => {
       {
         description: t('支持模糊搜索'),
         id: 'key_name',
-        name: t('Key 样本'),
+        name: t('Key 名称'),
         type: 'input',
       },
     ] as const;

@@ -33,6 +33,7 @@
         col-key="key_type"
         :filter="tableFilter?.['key_type']"
         fixed="left"
+        sorter
         :title="t('Key 类型')"
         :width="100">
       </TableColumn>
@@ -41,20 +42,24 @@
         :filter="tableFilter?.['key_class']"
         fixed="left"
         :min-width="200"
+        sorter
         :title="t('Key 模式')">
       </TableColumn>
       <TableColumn
         col-key="key_name"
         :min-width="200"
+        sorter
         :title="t('Key 样本')">
       </TableColumn>
       <TableColumn
         col-key="count"
+        sorter
         :title="t('数量')"
         width="100">
       </TableColumn>
       <TableColumn
         col-key="avg_ttl_human"
+        sorter
         :title="t('过期时间')"
         :width="200">
         <template #title>
@@ -70,6 +75,7 @@
       </TableColumn>
       <TableColumn
         col-key="min_idletime_show"
+        sorter
         :title="t('最近访问时间')"
         :width="200">
         <template #title>
@@ -91,19 +97,22 @@
       </TableColumn>
       <TableColumn
         col-key="avg_key_used_bytes"
+        sorter
         :title="t('单 Key 平均占用内存')"
-        :width="160">
+        :width="150">
         <template #default="{ row }: { row: IRowData }">
           {{ bytePretty(row.avg_key_used_bytes) }}
         </template>
       </TableColumn>
       <TableColumn
         col-key="avg_key_length"
+        sorter
         :title="t('平均成员数量')"
-        :width="120">
+        :width="110">
       </TableColumn>
       <TableColumn
         col-key="mem_used_bytes"
+        sorter
         :title="t('占用内存')"
         :width="120">
         <template #default="{ row }: { row: IRowData }">
@@ -111,7 +120,8 @@
         </template>
       </TableColumn>
       <TableColumn
-        col-key="cpu"
+        col-key="mem_used_pct"
+        sorter
         :title="t('占用内存占比')"
         :width="120">
         <template #default="{ row }: { row: IRowData }">
