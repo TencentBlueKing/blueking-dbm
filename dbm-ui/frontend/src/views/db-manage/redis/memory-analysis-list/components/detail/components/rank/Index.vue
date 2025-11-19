@@ -21,7 +21,7 @@
     <DbQuickSearch
       v-model="quickSearchValue"
       :data="quickSearchData"
-      :placeholder="t('搜索 Key 类型、搜索 Key 样本')"
+      :placeholder="t('搜索 Key 类型、搜索 Key 名称')"
       style="width: 550px; margin-left: auto"
       @change="handleQuickSearchChange" />
     <div ref="tableContainer">
@@ -31,11 +31,13 @@
         :loading="isLoading"
         :max-height="tableMaxHeight"
         row-key="key_name"
-        @filter-change="handleFilterChange">
+        @filter-change="handleFilterChange"
+        @sort-change="handleSortChange">
         <TableColumn
           col-key="key_type"
           :filter="tableFilter?.['key_type']"
           fixed="left"
+          sorter
           :title="t('Key 类型')"
           :width="100">
         </TableColumn>
@@ -44,10 +46,12 @@
           :filter="tableFilter?.['key_name']"
           fixed="left"
           :min-width="200"
-          :title="t('Key 样本')">
+          sorter
+          :title="t('Key 名称')">
         </TableColumn>
         <TableColumn
           col-key="ttl_human"
+          sorter
           :title="t('过期时间')"
           :width="200">
           <template #title>
@@ -63,11 +67,13 @@
         </TableColumn>
         <TableColumn
           col-key="key_length"
+          sorter
           :title="t('Key 长度')"
           :width="100">
         </TableColumn>
         <TableColumn
           col-key="value_size"
+          sorter
           :title="t('Value 长度')"
           :width="140">
           <template #default="{ row }: { row: IRowData }">
@@ -76,16 +82,19 @@
         </TableColumn>
         <TableColumn
           col-key="member"
+          sorter
           :title="t('成员数量')"
           :width="100">
         </TableColumn>
         <TableColumn
           col-key="member_len"
+          sorter
           :title="t('成员平均长度')"
           :width="120">
         </TableColumn>
         <TableColumn
           col-key="memory_size"
+          sorter
           :title="t('内存占用')"
           :width="140">
           <template #default="{ row }: { row: IRowData }">
@@ -100,6 +109,8 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
+
+  import type { TableSort } from '@blueking/tdesign-ui';
 
   import { getKeystatRank } from '@services/source/redisKeystat';
 
@@ -175,9 +186,21 @@
     fetchData();
   };
 
-  const fetchData = () => {
+  const handleSortChange = (payload: TableSort) => {
+    if (Array.isArray(payload)) {
+      return;
+    }
+    if (payload) {
+      fetchData(payload.descending ? `-${payload.sortBy}` : payload.sortBy);
+    } else {
+      fetchData();
+    }
+  };
+
+  const fetchData = (ordering?: string) => {
     runGetKeystatRank({
       ...transfromDataToQuery(quickSearchValue.value),
+      ordering,
       record_id: props.recordId,
     });
   };

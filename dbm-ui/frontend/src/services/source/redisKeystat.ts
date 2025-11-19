@@ -94,7 +94,12 @@ export function getKeyStatDetails(params: {
 /**
  * 获取redis内存分析大Key排行榜
  */
-export function getKeystatRank(params: { key_class?: string; key_name?: string; record_id: number }) {
+export function getKeystatRank(params: {
+  key_class?: string;
+  key_name?: string;
+  ordering?: string;
+  record_id: number;
+}) {
   return http.get<
     Array<{
       key_length: number;

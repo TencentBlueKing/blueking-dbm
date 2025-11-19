@@ -379,7 +379,7 @@
     }
     if (payload) {
       sortParams = {
-        ordering: payload.descending ? payload.sortBy : `-${payload.sortBy}`,
+        ordering: payload.descending ? `-${payload.sortBy}` : payload.sortBy,
       };
     } else {
       sortParams = {};

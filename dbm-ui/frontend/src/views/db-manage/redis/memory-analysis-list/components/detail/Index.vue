@@ -15,7 +15,7 @@
   <BkSideslider
     v-model:is-show="isShow"
     quick-close
-    :width="960">
+    :width="1200">
     <template #header>
       <div class="redis-memory-analysis-detail-header">
         <span>{{ t('内存分析报告') }}</span>
