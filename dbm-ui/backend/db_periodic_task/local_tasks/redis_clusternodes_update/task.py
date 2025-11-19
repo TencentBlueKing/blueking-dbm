@@ -28,6 +28,7 @@ from backend.db_meta.enums import ClusterEntryRole, InstanceInnerRole, InstanceR
 from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.db_services.redis.autofix.enums import AutofixStatus
+from backend.db_services.redis.autofix.global_msg import CanClusterStartAutoFix
 from backend.db_services.redis.autofix.models import (
     NodeUpdateTaskStatus,
     RedisAutofixCore,
@@ -393,7 +394,7 @@ class RedisClusterNodesUpdateJob:
                         if row.deal_status in [AutofixStatus.AF_RUNNING.value, AutofixStatus.AF_TICKET.value]:
                             exists = True
                             break
-                if not exists:
+                if not exists and CanClusterStartAutoFix(cluster.immute_domain, ip):
                     fault_machines.append({"instance_type": slave_objs[0].machine_type, "ip": ip})
         if len(fault_machines) > 0:
             unavail_ips = [item["ip"] for item in fault_machines]
