@@ -327,6 +327,10 @@ class Ticket(AuditedModel):
         revoke_ticket = Ticket.objects.get(id=revoke_ticket_id)
         host_ids = [host["bk_host_id"] for host in hosts]
 
+        if not host_ids:
+            logger.error(_("不存在回收主机"))
+            return
+
         # 已下架回收单据，如果存在元数据主机，则不允许发起回收单据
         if ticket_type == TicketType.RECYCLE_OLD_HOST and Machine.objects.filter(bk_host_id__in=host_ids).exists():
             logger.error(_("流程校验不通过，存在元数据主机: {}").format(host_ids))

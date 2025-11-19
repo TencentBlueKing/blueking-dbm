@@ -28,4 +28,4 @@ IBS_INFO_KEY = get_type_env(key="IBS_INFO_KEY", _type=str)
 IBS_INFO_SYSID = get_type_env(key="IBS_INFO_SYSID", _type=str)
 
 # 密钥文件存储路径
-BKREPO_SSL_PATH = "/cloud/ssl"
+BKREPO_SSL_PATH = "cloud/ssl"
