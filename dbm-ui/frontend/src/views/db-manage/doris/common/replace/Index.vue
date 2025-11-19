@@ -63,12 +63,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = ref<Record<'cold' | 'hot' | 'observer' | 'follower', TReplaceNode>>({
-    cold: generateNodeInfo({
-      label: t('冷节点'),
-      role: 'doris_backend_cold',
-      specMachineType: 'doris_backend',
-    }),
+  const nodeInfoMap = ref<Record<'warm' | 'hot' | 'observer' | 'follower', TReplaceNode>>({
     follower: generateNodeInfo({
       label: 'Follower',
       role: 'doris_follower',
@@ -85,21 +80,26 @@
       role: 'doris_observer',
       specMachineType: 'doris_observer',
     }),
+    warm: generateNodeInfo({
+      label: t('温节点'),
+      role: 'doris_backend_warm',
+      specMachineType: 'doris_backend',
+    }),
   });
 
   watch(
     () => props.machineList,
     () => {
       const hotList: TReplaceNode['oldHostList'] = [];
-      const coldList: TReplaceNode['oldHostList'] = [];
+      const warmList: TReplaceNode['oldHostList'] = [];
       const observerList: TReplaceNode['oldHostList'] = [];
       const followerList: TReplaceNode['oldHostList'] = [];
 
       props.machineList.forEach((machineItem) => {
         if (machineItem.isHot) {
           hotList.push(machineItem);
-        } else if (machineItem.isCold) {
-          coldList.push(machineItem);
+        } else if (machineItem.isWarm) {
+          warmList.push(machineItem);
         } else if (machineItem.isObserver) {
           observerList.push(machineItem);
         } else if (machineItem.isFollower) {
@@ -108,7 +108,7 @@
       });
 
       nodeInfoMap.value.hot.oldHostList = hotList;
-      nodeInfoMap.value.cold.oldHostList = coldList;
+      nodeInfoMap.value.warm.oldHostList = warmList;
       nodeInfoMap.value.observer.oldHostList = observerList;
       nodeInfoMap.value.follower.oldHostList = followerList;
     },

@@ -48,6 +48,7 @@
       label="Modules">
       <slot name="moduleNames" />
     </InfoItem>
+    <slot name="coldResource" />
     <CommonInfo :data="data" />
   </InfoList>
 </template>
@@ -62,13 +63,14 @@
   import UpdateClusterAliasName from '@views/db-manage/common/UpdateClusterAliasName.vue';
 
   import ClbInfo from './ClbInfo.vue';
+  import ColdResourceInfo from './ColdResourceInfo.vue';
   import CommonInfo from './CommonInfo.vue';
   import InfoList, { InfoItem } from './components/Index.vue';
   import ModuleNameInfo from './ModuleNameInfo.vue';
   import PolarisInfo from './PolarisInfo.vue';
   import type { ClusterDetailModel, ISupportClusterType } from './types';
 
-  export { ClbInfo, InfoItem, InfoList, ModuleNameInfo, PolarisInfo };
+  export { ClbInfo, ColdResourceInfo, InfoItem, InfoList, ModuleNameInfo, PolarisInfo };
 </script>
 <script setup lang="ts" generic="T extends ISupportClusterType">
   export interface Props<C extends ISupportClusterType> {
@@ -82,6 +84,7 @@
     clbMaster: () => VNode;
     clbSlave: () => VNode;
     clusterTypeName: () => VNode;
+    coldResource: () => VNode;
     load: () => VNode;
     moduleName: () => VNode;
     moduleNames: () => VNode;

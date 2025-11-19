@@ -38,7 +38,7 @@
   // const { t } = useI18n();
 
   // const codeMap = {
-  //   Cold: t('冷节点'),
+  //   Warm: t('温节点'),
   //   Hot: t('热节点'),
   // } as Record<string, string>;
 

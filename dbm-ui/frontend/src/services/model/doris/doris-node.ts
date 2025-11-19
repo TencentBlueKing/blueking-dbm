@@ -16,16 +16,16 @@ import { bytePretty, isRecentDays, utcDisplayTime } from '@utils';
 import { t } from '@locales/index';
 
 export default class DorisNode {
-  static ROLE_COLD = 'doris_backend_cold';
   static ROLE_FOLLOWER = 'doris_follower';
   static ROLE_HOT = 'doris_backend_hot';
   static ROLE_OBSERVER = 'doris_observer';
+  static ROLE_WARM = 'doris_backend_warm';
 
   static roleLabelMap = {
-    [DorisNode.ROLE_COLD]: t('冷节点'),
     [DorisNode.ROLE_FOLLOWER]: t('Follower节点'),
     [DorisNode.ROLE_HOT]: t('热节点'),
     [DorisNode.ROLE_OBSERVER]: t('Observer节点'),
+    [DorisNode.ROLE_WARM]: t('温节点'),
   };
 
   bk_cloud_id: number;
@@ -77,10 +77,6 @@ export default class DorisNode {
     return this.status === 0;
   }
 
-  get isCold() {
-    return this.role === DorisNode.ROLE_COLD;
-  }
-
   get isFollower() {
     return this.role === DorisNode.ROLE_FOLLOWER;
   }
@@ -95,6 +91,10 @@ export default class DorisNode {
 
   get isObserver() {
     return this.role === DorisNode.ROLE_OBSERVER;
+  }
+
+  get isWarm() {
+    return this.role === DorisNode.ROLE_WARM;
   }
 
   get memText() {
