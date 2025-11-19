@@ -19,6 +19,7 @@ class KeyStatReportRecordFilter(filters.FilterSet):
     record_id = filters.NumberFilter(field_name="record_id", label=_("过滤key类型"))
     ticket_id = filters.NumberFilter(field_name="ticket_id", label=_("过滤关联单据"))
     operator = filters.CharFilter(field_name="creator", lookup_expr="icontains", label=_("操作者"))
+    ordering = filters.CharFilter(field_name="ordering", method="order_keystat", label=_("排序字段"))
     create_at__lte = filters.DateTimeFilter(field_name="create_at", lookup_expr="lte", label=_("创建时间早于"))
     create_at__gte = filters.DateTimeFilter(field_name="create_at", lookup_expr="gte", label=_("创建时间晚于"))
     instance_addresses = filters.CharFilter(
@@ -44,6 +45,9 @@ class KeyStatReportRecordFilter(filters.FilterSet):
     def filter_immute_domain(self, queryset, name, value):
         return queryset.filter(immute_domain__in=value.split(","))
 
+    def order_keystat(self, queryset, name, value):
+        return queryset.order_by(value)
+
     class Meta:
         model = ReportRecord
         fields = [
@@ -62,6 +66,7 @@ class KeyStatReportRecordFilter(filters.FilterSet):
 class KeyStatRecordDetailFilter(filters.FilterSet):
     key_type = filters.CharFilter(field_name="key_type", method="filter_key_type", label=_("过滤key类型"))
     key_class = filters.CharFilter(field_name="key_class", lookup_expr="icontains", label=_("过滤key模式"))
+    ordering = filters.CharFilter(field_name="ordering", method="order_keystat", label=_("排序字段"))
 
     class Meta:
         model = ReportItem
@@ -70,13 +75,20 @@ class KeyStatRecordDetailFilter(filters.FilterSet):
     def filter_key_type(self, queryset, name, value):
         return queryset.filter(key_type__in=value.split(","))
 
+    def order_keystat(self, queryset, name, value):
+        return queryset.order_by(value)
+
 
 class RankItemDetailFilter(filters.FilterSet):
     key_type = filters.CharFilter(field_name="key_type", method="filter_key_type", label=_("过滤key类型"))
     key_name = filters.CharFilter(field_name="key_name", lookup_expr="icontains", label=_("过滤key样本"))
+    ordering = filters.CharFilter(field_name="ordering", method="order_keystat", label=_("排序字段"))
 
     def filter_key_type(self, queryset, name, value):
         return queryset.filter(key_type__in=value.split(","))
+
+    def order_keystat(self, queryset, name, value):
+        return queryset.order_by(value)
 
     class Meta:
         model = RankItem
