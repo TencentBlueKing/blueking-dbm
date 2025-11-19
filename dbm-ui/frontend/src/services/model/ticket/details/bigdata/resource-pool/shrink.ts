@@ -23,6 +23,7 @@ export interface Shrink extends ResourcePoolDetailBase {
     namenode: ExtInfoItem;
     proxy: ExtInfoItem;
     slave: ExtInfoItem;
+    warm: ExtInfoItem;
     zookeeper: ExtInfoItem;
   };
   old_nodes: Nodes;

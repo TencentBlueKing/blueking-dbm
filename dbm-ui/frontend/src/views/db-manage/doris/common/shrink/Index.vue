@@ -57,12 +57,7 @@
 
   const { t } = useI18n();
 
-  const getInitInfo = (): Record<'cold' | 'hot' | 'observer', TShrinkNode> => ({
-    cold: generateNodeInfo({
-      label: t('冷节点'),
-      minHost: 0,
-      tagText: t('存储层'),
-    }),
+  const getInitInfo = (): Record<'warm' | 'hot' | 'observer', TShrinkNode> => ({
     hot: generateNodeInfo({
       label: t('热节点'),
       minHost: 0,
@@ -73,6 +68,11 @@
       minHost: 0,
       tagText: t('接入层'),
     }),
+    warm: generateNodeInfo({
+      label: t('温节点'),
+      minHost: 0,
+      tagText: t('存储层'),
+    }),
   });
 
   const nodeInfoMap = reactive(getInitInfo());
@@ -80,7 +80,7 @@
 
   const fetchListNode = () => {
     const hotOriginalNodeList: TShrinkNode['originalNodeList'] = [];
-    const coldOriginalNodeList: TShrinkNode['originalNodeList'] = [];
+    const warmOriginalNodeList: TShrinkNode['originalNodeList'] = [];
     const observerOriginalNodeList: TShrinkNode['originalNodeList'] = [];
 
     isLoading.value = true;
@@ -91,16 +91,16 @@
     })
       .then((data) => {
         let hotDiskTotal = 0;
-        let coldDiskTotal = 0;
+        let warmDiskTotal = 0;
         let observerDiskTotal = 0;
 
         data.results.forEach((nodeItem) => {
           if (nodeItem.isHot) {
             hotDiskTotal += nodeItem.disk;
             hotOriginalNodeList.push(nodeItem);
-          } else if (nodeItem.isCold) {
-            coldDiskTotal += nodeItem.disk;
-            coldOriginalNodeList.push(nodeItem);
+          } else if (nodeItem.isWarm) {
+            warmDiskTotal += nodeItem.disk;
+            warmOriginalNodeList.push(nodeItem);
           } else if (nodeItem.isObserver) {
             observerDiskTotal += nodeItem.disk;
             observerOriginalNodeList.push(nodeItem);
@@ -110,8 +110,8 @@
         nodeInfoMap.hot.originalNodeList = hotOriginalNodeList;
         nodeInfoMap.hot.totalDisk = hotDiskTotal;
 
-        nodeInfoMap.cold.originalNodeList = coldOriginalNodeList;
-        nodeInfoMap.cold.totalDisk = coldDiskTotal;
+        nodeInfoMap.warm.originalNodeList = warmOriginalNodeList;
+        nodeInfoMap.warm.totalDisk = warmDiskTotal;
 
         nodeInfoMap.observer.originalNodeList = observerOriginalNodeList;
         nodeInfoMap.observer.totalDisk = observerDiskTotal;
@@ -124,11 +124,11 @@
   // 默认选中的缩容节点
   const setInitShrinkNodes = () => {
     const hotList: TShrinkNode['hostList'] = [];
-    const coldList: TShrinkNode['hostList'] = [];
+    const warmList: TShrinkNode['hostList'] = [];
     const observerList: TShrinkNode['hostList'] = [];
 
     let hotShrinkDisk = 0;
-    let coldShrinkDisk = 0;
+    let warmShrinkDisk = 0;
     let observerShrinkDisk = 0;
 
     props.machineList.forEach((machineItem) => {
@@ -143,9 +143,9 @@
       if (machineItem.isHot) {
         hotShrinkDisk += machineDisk;
         hotList.push(machineHost);
-      } else if (machineItem.isCold) {
-        coldShrinkDisk += machineDisk;
-        coldList.push(machineHost);
+      } else if (machineItem.isWarm) {
+        warmShrinkDisk += machineDisk;
+        warmList.push(machineHost);
       } else if (machineItem.isObserver) {
         observerShrinkDisk += machineDisk;
         observerList.push(machineHost);
@@ -153,8 +153,8 @@
     });
     nodeInfoMap.hot.hostList = hotList;
     nodeInfoMap.hot.shrinkDisk = hotShrinkDisk;
-    nodeInfoMap.cold.hostList = coldList;
-    nodeInfoMap.cold.shrinkDisk = coldShrinkDisk;
+    nodeInfoMap.warm.hostList = warmList;
+    nodeInfoMap.warm.shrinkDisk = warmShrinkDisk;
     nodeInfoMap.observer.hostList = observerList;
     nodeInfoMap.observer.shrinkDisk = observerShrinkDisk;
   };

@@ -1,6 +1,7 @@
 import ActionPanel from './ActionPanel.vue';
 import BaseInfo, {
   ClbInfo,
+  ColdResourceInfo,
   // InfoItem as BaseInfoItem,
   // InfoList as BaseInfoList,
   ModuleNameInfo,
@@ -19,9 +20,10 @@ export {
   ActionPanel,
   BaseInfo,
   BaseInfoField,
-  // BaseInfoItem,
   // BaseInfoList,
   BigDataInstanceList,
+  // BaseInfoItem,
+  ColdResourceInfo,
   DisplayBox,
   HostListFieldColumn,
   InstanceListFieldColumn,

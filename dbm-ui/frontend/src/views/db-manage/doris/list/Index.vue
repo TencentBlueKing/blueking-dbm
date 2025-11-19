@@ -187,10 +187,10 @@
           @go-detail="handleToDetails" />
         <RoleColumn
           :cluster-type="ClusterTypes.DORIS"
-          field="doris_backend_cold"
+          field="doris_backend_warm"
           :get-table-instance="getTableInstance"
           :is-filter="isSearching"
-          :label="t('冷节点')"
+          :label="t('温节点')"
           :selected-list="selectedList"
           @go-detail="handleToDetails" />
       </template>
