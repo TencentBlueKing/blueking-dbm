@@ -37,7 +37,6 @@ from backend.db_services.redis.redis_keystat_report.serializers import (
 )
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.utils.excel import ExcelHandler
-from backend.utils.string import format_size
 
 SWAGGER_TAG = "db_services/redis/redis_keystat_report"
 
@@ -186,13 +185,13 @@ class KeyStatReportDetailsViewSet(viewsets.SystemViewSet):
                 "key_name": queryset.key_name,
                 "count": queryset.count,
                 "count_with_ttl": queryset.count_with_ttl,
-                "avg_ttl": str(queryset.avg_ttl) + "s",
-                "avg_ttl_human": str(queryset.avg_ttl_human) + "s",
-                "min_idletime": str(queryset.min_idletime) + "s",
-                "avg_key_used_bytes": format_size(queryset.avg_key_used_bytes),
+                "avg_ttl": queryset.avg_ttl,
+                "avg_ttl_human": queryset.avg_ttl_human,
+                "min_idletime": queryset.min_idletime,
+                "avg_key_used_bytes": queryset.avg_key_used_bytes,
                 "avg_key_length": queryset.avg_key_length,
-                "mem_used_bytes": format_size(queryset.mem_used_bytes),
-                "mem_used_pct": str(queryset.mem_used_pct) + "%",
+                "mem_used_bytes": queryset.mem_used_bytes,
+                "mem_used_pct": queryset.mem_used_pct,
             }
             for queryset in key_stat_querysets
         ]
@@ -217,13 +216,13 @@ class KeyStatReportDetailsViewSet(viewsets.SystemViewSet):
             {
                 "key_type": queryset.key_type,
                 "key_name": queryset.key_name,
-                "ttl": str(queryset.ttl) + "s",
-                "ttl_human": str(queryset.ttl_human) + "s",
+                "ttl": queryset.ttl,
+                "ttl_human": queryset.ttl_human,
                 "key_length": queryset.key_length,
-                "value_size": format_size(queryset.value_size),
+                "value_size": queryset.value_size,
                 "member": queryset.member,
                 "member_len": queryset.member_len,
-                "memory_size": format_size(queryset.memory_size),
+                "memory_size": queryset.memory_size,
             }
             for queryset in rank_querysets
         ]
