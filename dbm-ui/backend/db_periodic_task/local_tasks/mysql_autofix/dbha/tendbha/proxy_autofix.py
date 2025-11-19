@@ -11,18 +11,24 @@ specific language governing permissions and limitations under the License.
 import uuid
 from typing import List
 
+from django.utils.translation import gettext_lazy as _
+
+from backend.components.bkmonitorv3.client import BKMonitorV3EventApi
 from backend.db_meta.enums import MachineType
-from backend.db_meta.models import Machine
+from backend.db_meta.models import Machine, ProxyInstance
+from backend.db_monitor.constants import MonitorEventType
+from backend.db_monitor.dataclass import BaseEventBody, MonitorEvent
 from backend.db_monitor.models import MySQLDBHAAutofixTicketPriority, MySQLDBHAAutofixTicketStageQueue, MySQLDBHAEvent
-from backend.db_services.dbbase.constants import IpSource, SourceType
-from backend.ticket.builders.common.base import HostRecycleSerializer
-from backend.ticket.builders.common.constants import OperaObjType
+from backend.db_services.dbbase.constants import IpSource
 from backend.ticket.constants import TicketType
 
 
 def replace_proxy(cluster_ids: List[int], machine_type: MachineType, events: List[MySQLDBHAEvent]):
     """
     机器数量可能不止一台了
+    其实仔细想想这里不太可能出现大于一台的机器
+    因为一个集群就两台 proxy
+    第二台机器故障是不触发 DBHA 的
     """
     spec_ids = set()
 
@@ -30,18 +36,40 @@ def replace_proxy(cluster_ids: List[int], machine_type: MachineType, events: Lis
     for ev in events:
         m = Machine.objects.get(bk_cloud_id=ev.bk_cloud_id, ip=ev.ip)
         d = {
-            "bk_biz_id": ev.bk_biz_id,
             "bk_cloud_id": ev.bk_cloud_id,
-            "bk_host_id": m.bk_host_id,
             "ip": ev.ip,
+            "bk_host_id": m.bk_host_id,
+            "bk_biz_id": ev.bk_biz_id,
             "port": ev.port,
         }
         proxy_infos.append(d)
-        spec_ids.add(m.spec_id)
 
-    # ToDo
+    # 统计相关集群所有 proxy 的 spec id
+    for p in ProxyInstance.objects.filter(cluster__pk__in=cluster_ids):
+        spec_ids.add(p.machine.spec_id)
+
+    # 从上面 docstring 的分析
+    # 这里都假定只有一台机器得了, 告警信息就发一台的
     if len(spec_ids) > 1:
-        raise
+        BKMonitorV3EventApi.send_event(
+            events=[
+                MonitorEvent(
+                    event_name=MonitorEventType.MYSQL_DBHA_AUTOFIX_VALIDATE_FAILED,
+                    target=f"{events[0].ip}",
+                    event=BaseEventBody(content=str(_("{} 所属集群 proxy 规格不一致".format(events[0].ip)))),
+                    dimension={
+                        "appid": events[0].bk_biz_id,
+                        "bk_cloud_id": events[0].bk_cloud_id,
+                        "machine_type": machine_type,
+                        "instance_role": events[0].instance_role,
+                        "port": events[0].port,
+                    },
+                    timestamp=0,
+                )
+            ]
+        )
+        # 不能瞎 raise, 有可能会中断其他的自愈
+        return
 
     resource_spec = {"spec_id": list(spec_ids)[0], "count": len(set([ev.ip for ev in events]))}
 
@@ -50,24 +78,21 @@ def replace_proxy(cluster_ids: List[int], machine_type: MachineType, events: Lis
     ticket_param = {
         "ticket_type": TicketType.MYSQL_DBHA_AF_PROXY_REPLACE,
         "remark": TicketType.MYSQL_DBHA_AF_PROXY_REPLACE,
-        # "ignore_duplication": True,
         "creator": dbas[0],
         "helpers": dbas[1:],
         "details": {
             "is_safe": False,
             "ip_source": IpSource.RESOURCE_POOL,
-            "source_type": SourceType.RESOURCE_AUTO,
-            "ip_recycle": HostRecycleSerializer.DEFAULT,
-            "force": True,
             "infos": [
                 {
-                    "old_nodes": {"origin_proxy": proxy_infos},
-                    # "origin_proxy": proxy_infos,
-                    "resource_spec": {"target_proxy": resource_spec},
                     "cluster_ids": cluster_ids,
+                    "origin_proxies": proxy_infos,
+                    "old_nodes": {
+                        "proxy": proxy_infos,
+                    },
+                    "resource_spec": {"target_proxies": resource_spec},
                 }
             ],
-            "opera_object": OperaObjType.MACHINE,
             "disable_manual_confirm": True,
         },
         "bk_biz_id": events[0].bk_biz_id,
