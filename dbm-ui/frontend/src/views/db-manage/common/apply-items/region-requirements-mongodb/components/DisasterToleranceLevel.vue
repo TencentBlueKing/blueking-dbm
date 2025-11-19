@@ -48,9 +48,9 @@
   const { t } = useI18n();
 
   const descriptionMap: Record<string, string> = {
-    [Affinity.CROS_SUBZONE]: t('mongos、同一副本集主机必须分布在不同园区'),
     [Affinity.CROSS_RACK]: t('不限制主机所在园区，但mongos、同一副本集主机必须分布在不同机架'),
-    [Affinity.MAJORITY_ELECTION_DISTRI]: t('mongos、同一副本集主机至少跨 2 个园区，且同一园区时必须分布在不同机架'),
+    [Affinity.CROSS_SUBZONE_STRONG]: t('mongos、同一副本集主机必须分布在不同园区'),
+    [Affinity.CROSS_SUBZONE_WEAK]: t('mongos、同一副本集主机至少跨 2 个园区，且同一园区时必须分布在不同机架'),
     [Affinity.NONE]: t('主机分布无任何约束'),
     [Affinity.SAME_SUBZONE_CROSS_SWTICH]: t('主机必须部署在指定园区内，且mongos、同一副本集主机必须分布在不同机架'),
   };
@@ -64,8 +64,8 @@
   let radioDataList: ReturnType<typeof getAffinityItem>[] = [];
 
   const defaultAffinityList = [
-    Affinity.CROS_SUBZONE,
-    Affinity.MAJORITY_ELECTION_DISTRI,
+    Affinity.CROSS_SUBZONE_STRONG,
+    Affinity.CROSS_SUBZONE_WEAK,
     Affinity.SAME_SUBZONE_CROSS_SWTICH,
     Affinity.CROSS_RACK,
   ];
