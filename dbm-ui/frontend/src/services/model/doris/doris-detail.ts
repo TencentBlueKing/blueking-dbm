@@ -17,9 +17,16 @@ import DorisModel from './doris';
 
 export default class DorisDetail extends DorisModel {
   cluster_entry_details: ClusterEntryDetailModel[];
+  cold_resource: {
+    id: number;
+    name: string;
+    region: string;
+    used: number;
+  };
 
   constructor(payload = {} as DorisDetail) {
     super(payload);
+    this.cold_resource = payload.cold_resource || {};
     this.cluster_entry_details = payload.cluster_entry_details.map((item) => new ClusterEntryDetailModel(item));
   }
 }

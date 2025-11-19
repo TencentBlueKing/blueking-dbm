@@ -56,10 +56,6 @@ export default class DorisMachine {
     this.spec_name = payload.spec_name;
   }
 
-  get isCold() {
-    return this.instance_role.includes('cold');
-  }
-
   get isFollower() {
     return this.machine_type === MachineTypes.DORIS_FOLLOWER;
   }
@@ -74,5 +70,9 @@ export default class DorisMachine {
 
   get isUnvailable() {
     return this.host_info?.alive !== 1;
+  }
+
+  get isWarm() {
+    return this.instance_role.includes('warm');
   }
 }

@@ -29,6 +29,7 @@ export interface ScaleUp extends DetailBase {
     namenode: HostInfo[];
     proxy: HostInfo[];
     slave: HostInfo[];
+    warm: HostInfo[];
     zookeeper: HostInfo[];
   };
   resource_spec: {

@@ -73,14 +73,7 @@
     totalDisk: 0,
   });
 
-  const getInitInfo = (): Record<'cold' | 'hot' | 'observer', TDorisExpansionNode> => ({
-    cold: generateNodeInfo({
-      label: t('冷节点'),
-      mutexNodeTypes: ['hot', 'observer'],
-      role: 'doris_backend_cold',
-      specMachineType: 'doris_backend',
-      tagText: t('存储层'),
-    }),
+  const getInitInfo = (): Record<'warm' | 'hot' | 'observer', TDorisExpansionNode> => ({
     hot: generateNodeInfo({
       label: t('热节点'),
       mutexNodeTypes: ['warm', 'observer'],
@@ -95,6 +88,13 @@
       showCount: true,
       specMachineType: 'doris_observer',
       tagText: t('接入层'),
+    }),
+    warm: generateNodeInfo({
+      label: t('温节点'),
+      mutexNodeTypes: ['hot', 'observer'],
+      role: 'doris_backend_warm',
+      specMachineType: 'doris_backend',
+      tagText: t('存储层'),
     }),
   });
 
@@ -113,20 +113,20 @@
     })
       .then((data) => {
         const hotOriginalHostList: DorisMachineModel[] = [];
-        const coldOriginalHostList: DorisMachineModel[] = [];
+        const warmOriginalHostList: DorisMachineModel[] = [];
         const observerOriginalHostList: DorisMachineModel[] = [];
 
         let hotDiskTotal = 0;
-        let coldDiskTotal = 0;
+        let warmDiskTotal = 0;
         let observerDiskTotal = 0;
 
         data.results.forEach((hostItem) => {
           if (hostItem.isHot) {
             hotDiskTotal += Math.floor(Number(hostItem.host_info.bk_disk));
             hotOriginalHostList.push(hostItem);
-          } else if (hostItem.isCold) {
-            coldDiskTotal += Math.floor(Number(hostItem.host_info.bk_disk));
-            coldOriginalHostList.push(hostItem);
+          } else if (hostItem.isWarm) {
+            warmDiskTotal += Math.floor(Number(hostItem.host_info.bk_disk));
+            warmOriginalHostList.push(hostItem);
           } else if (hostItem.isObserver) {
             observerDiskTotal += Math.floor(Number(hostItem.host_info.bk_disk));
             observerOriginalHostList.push(hostItem);
@@ -136,8 +136,8 @@
         nodeInfoMap.hot.totalDisk = hotDiskTotal;
         nodeInfoMap.hot.originalHostList = hotOriginalHostList;
 
-        nodeInfoMap.warm.totalDisk = coldDiskTotal;
-        nodeInfoMap.warm.originalHostList = coldOriginalHostList;
+        nodeInfoMap.warm.totalDisk = warmDiskTotal;
+        nodeInfoMap.warm.originalHostList = warmOriginalHostList;
 
         nodeInfoMap.observer.totalDisk = observerDiskTotal;
         nodeInfoMap.observer.originalHostList = observerOriginalHostList;
