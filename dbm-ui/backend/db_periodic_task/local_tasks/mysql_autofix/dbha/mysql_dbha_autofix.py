@@ -68,11 +68,11 @@ def mysql_dbha_af_tracking_tickets():
             if current_status == TicketStatus.FAILED:
                 need_warning.append(aftk)
 
-    events = []
+    monitor_events = []
     for failed_tk in need_warning:
         cluster_obj = Cluster.objects.get(pk=failed_tk.cluster_id)
 
-        events.append(
+        monitor_events.append(
             MonitorEvent(
                 event_name=MonitorEventType.MYSQL_DBHA_AUTOFIX_TICKET_FAILED,
                 target=cluster_obj.immute_domain,
@@ -91,7 +91,8 @@ def mysql_dbha_af_tracking_tickets():
             )
         )
 
-    BKMonitorV3EventApi.send_event(events=events)
+    if monitor_events:
+        BKMonitorV3EventApi.send_event(events=monitor_events)
 
 
 @register_periodic_task(run_every=crontab(minute="*"))
@@ -215,13 +216,15 @@ def mysql_dbha_af_schedule():
                             "cluster_domain": ev.immute_domain,
                             "machine_type": ev.machine_type,
                             "instance_role": ev.instance_role,
+                            "ip": ev.ip,
                             "port": ev.port,
                         },
                         timestamp=0,
                     )
                 )
 
-            BKMonitorV3EventApi.send_event(events=monitor_events)
+            if monitor_events:
+                BKMonitorV3EventApi.send_event(events=monitor_events)
 
             # 过滤掉机器所有实例没上报全的 event
             # 被排除的 event 留给下一轮
