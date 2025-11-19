@@ -151,7 +151,6 @@ class MySQLBackupRecoverTask(BaseReportABS):
     task_info = models.TextField(_("任务信息"), default="")
     # 定义任务的运行阶段
     phase = models.CharField(_("阶段"), max_length=constants.LEN_SHORT, default="")
-    status = models.BooleanField(default=False, help_text=_("巡检结果状态, 默认正常"))  # True = 正常, False = 异常
 
     class Meta:
         indexes = [
