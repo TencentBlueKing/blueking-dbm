@@ -54,16 +54,6 @@
           sorter
           :title="t('过期时间')"
           :width="200">
-          <template #title>
-            <BkPopover placement="bottom">
-              <span style="border-bottom: 1px dashed">{{ t('过期时间') }}</span>
-              <template #content>
-                <p>{{ t('不过期： 表示全部不过期') }}</p>
-                <p>{{ t('平均：2.0day： 表示全部都有过期，平均过期时间为2.0day') }}</p>
-                <p>{{ t('数量：33857,平均:1.9day：表示有过期的数量33857(不是全部），平均过期时间为1.9day') }}</p>
-              </template>
-            </BkPopover>
-          </template>
         </TableColumn>
         <TableColumn
           col-key="key_length"
