@@ -86,13 +86,13 @@ class MongoShardedClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
 class MongoShardedClusterResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder):
     def format(self):
         """格式化mongodb申请的组数"""
-        self.ticket_data["resource_spec"]["mongodb"] = get_mongodb_cluster_tolerance(
+        self.ticket_data["resource_spec"]["mongodb"]["tolerance"] = get_mongodb_cluster_tolerance(
             self.ticket_data["disaster_tolerance_level"], "mongodb"
         )
-        self.ticket_data["resource_spec"]["mongo_config"] = get_mongodb_cluster_tolerance(
+        self.ticket_data["resource_spec"]["mongo_config"]["tolerance"] = get_mongodb_cluster_tolerance(
             self.ticket_data["disaster_tolerance_level"], "mongo_config"
         )
-        self.ticket_data["resource_spec"]["mongos"] = get_mongodb_cluster_tolerance(
+        self.ticket_data["resource_spec"]["mongos"]["tolerance"] = get_mongodb_cluster_tolerance(
             self.ticket_data["disaster_tolerance_level"], "mongos"
         )
 
