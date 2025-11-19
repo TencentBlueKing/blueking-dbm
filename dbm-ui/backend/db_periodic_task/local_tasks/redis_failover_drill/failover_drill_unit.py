@@ -16,6 +16,7 @@ from django.utils.translation import gettext as _
 
 from backend.db_meta.enums import ClusterStatus, ClusterType
 from backend.db_meta.models import Cluster
+from backend.db_report.enums import ReportStateType
 
 from .failover_drill import RedisFailoverDrill, RedisFailoverDrillTaskStatus
 from .utils import autofix_done_polling, autofix_ticket_polling, log_with_context
@@ -109,7 +110,9 @@ def failover_drill_unit(city: str, conf: Dict[str, Any]) -> None:
         if not autofix_done_polling(ticket_id, **retry_settings):
             handle_drill_error(rfod, _("自愈结果异常"), TaskStatus.SWITCHED_AUTOFIX_ERROR)
         else:
-            rfod.update_drill_task_report(switch_status_info, True, TaskStatus.SUCCESS)
+            succ_info = _("自愈成功，演练正常结束")
+            log_with_context("info", city, succ_info)
+            rfod.update_drill_task_report(succ_info, ReportStateType.NORMAL, TaskStatus.SUCCESS)
     else:
         final_task_status = TaskStatus.SWITCH_FAILED if not switch_success else TaskStatus.SWITCHED_NO_AUTOFIX
         handle_drill_error(rfod, _("没有监测到Redis自愈发生, timeout: {}min".format(timeout_minutes)), final_task_status)
