@@ -84,7 +84,12 @@
       message: t('请选择匹配规格'),
       required: true,
       trigger: 'change',
-      validator: (value: number) => Boolean(value) && value > 0,
+      validator: (value: number) => {
+        if (props.data.oldHostList.length === 0) {
+          return true;
+        }
+        return Boolean(value) && value > 0;
+      },
     },
   ];
 
