@@ -83,7 +83,6 @@ class RedisDbmetaCheckReportBaseViewSet(ReportBaseViewSet):
     queryset = MetaCheckReport.objects.all()
     serializer_class = RedisDbmetaCheckReportSerializer
     report_title = REDIS_META_CHECK_COMMON_TITLE
-    ordering = ["-create_at", "failed_days"]
 
     @common_swagger_auto_schema(
         operation_summary=_("redis 元数据检查报告"),

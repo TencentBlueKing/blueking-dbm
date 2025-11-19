@@ -38,38 +38,41 @@ def is_cluster_labeled_with(cluster: Cluster, label: dict) -> bool:
     return True
 
 
-def calculate_failed_days(cluster_domain: str, ip: str, port: int, subtype: str, current_state: str) -> int:
+def get_last_record(
+    cluster_domain: str, ip: str, port: int, subtype: str, current_state: str, lookback_hours: int = 25
+) -> Optional[MetaCheckReport]:
     """
-    Calculate consecutive failed days based on historical records
-
-    Args:
-        cluster_domain: Cluster domain name
-        ip: Instance IP address
-        port: Instance port
-        subtype: Meta check subtype
-        current_state: Current state (NORMAL/WARNING/ABNORMAL)
-
-    Returns:
-        Number of consecutive failed days
+    Get the last meta check report record within the lookback period
     """
-    if current_state == ReportStateType.NORMAL.value:
-        return 0
-
-    # Look back 25 hours to find yesterday's record
-    lookback_time = timezone.now() - timedelta(hours=25)
+    lookback_time = timezone.now() - timedelta(hours=lookback_hours)
 
     last_record = (
         MetaCheckReport.objects.filter(
-            cluster=cluster_domain, ip=ip, port=port, subtype=subtype, create_at__gte=lookback_time
+            cluster=cluster_domain,
+            ip=ip,
+            port=port,
+            subtype=subtype,
+            create_at__gte=lookback_time,
+            state=current_state,
         )
         .order_by("-create_at")
         .first()
     )
 
-    if last_record and last_record.state != ReportStateType.NORMAL.value:
+    return last_record
+
+
+def calculate_failed_days(current_state: str, last_record: Optional[MetaCheckReport]) -> int:
+    """
+    Calculate consecutive failed days based on current state and last record
+    """
+    if current_state == ReportStateType.NORMAL.value:
+        return 0
+
+    if last_record:
         return last_record.failed_days + 1
-    else:
-        return 1
+
+    return 1
 
 
 def create_meta_check_report(
@@ -98,30 +101,34 @@ def create_meta_check_report(
     Returns:
         Created MetaCheckReport object
     """
-    # Calculate failed days
-    failed_days = calculate_failed_days(
-        cluster_domain=cluster.immute_domain, ip=ip, port=port, subtype=subtype, current_state=state
-    )
+    report = get_last_record(cluster.immute_domain, ip, port, subtype, state)
+    failed_days = calculate_failed_days(state, report)
 
-    # Create report
-    report = MetaCheckReport.objects.create(
-        bk_biz_id=cluster.bk_biz_id,
-        bk_cloud_id=cluster.bk_cloud_id,
-        ip=ip,
-        port=port,
-        cluster=cluster.immute_domain,
-        cluster_type=cluster.cluster_type,
-        state=state,
-        msg=msg,
-        subtype=subtype,
-        failed_days=failed_days,
-        machine_type=machine_type,
-        creator=creator,
-    )
+    if not report:
+        report = MetaCheckReport.objects.create(
+            bk_biz_id=cluster.bk_biz_id,
+            bk_cloud_id=cluster.bk_cloud_id,
+            ip=ip,
+            port=port,
+            cluster=cluster.immute_domain,
+            cluster_type=cluster.cluster_type,
+            state=state,
+            msg=msg,
+            subtype=subtype,
+            failed_days=failed_days,
+            machine_type=machine_type,
+            creator=creator,
+        )
+    else:  # If there's existing record for the (domain, ip, port, subtype), we simply overwrite this record
+        report.msg = msg
+        report.state = state
+        report.failed_days = failed_days
+        report.create_at = timezone.now()
+        report.save(update_fields=["msg", "state", "failed_days", "create_at", "update_at"])
 
     logger.info(
         _(
-            "meta_check: created {} check report for {} {}:{} - state={}, failed_days={}, machine_type={}, creator={}".format(
+            "meta_check: {} check report for {} {}:{} - state={}, failed_days={}, machine_type={}, creator={}".format(
                 subtype, cluster.immute_domain, ip, port, state, failed_days, machine_type, creator
             )
         )
@@ -155,8 +162,8 @@ def delete_old_meta_check_reports(
     deleted_count, _d = query.delete()
 
     logger.info(
-        _("meta_check: deleted {} old records (older than {} days) for cluster_types={}").format(
-            deleted_count, days, cluster_types if cluster_types else "all"
+        _("meta_check: deleted {} old {} records (older than {} days) for cluster_types={}").format(
+            deleted_count, report_sub_type, days, cluster_types if cluster_types else "all"
         )
     )
 
