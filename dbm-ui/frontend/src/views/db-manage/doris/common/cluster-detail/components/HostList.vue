@@ -231,32 +231,31 @@
       options.tooltips.content = t('节点类型不支持缩容');
     } else {
       // Observer 若存在至少需要2台
-      // 冷/热 数据节点必选1种以上，每个角色至少需要2台
+      // 温/热 数据节点必选1种以上，每个角色至少需要2台
       let observerNodeNum = 0;
       let hotNodeNum = 0;
-      let coldNodeNum = 0;
+      let warmNodeNum = 0;
       (hostTableRef.value!.getData() as DorisMachineModel[]).forEach((nodeItem) => {
         if (nodeItem.isObserver) {
           observerNodeNum = observerNodeNum + 1;
         } else if (nodeItem.isHot) {
           hotNodeNum = hotNodeNum + 1;
-        } else if (nodeItem.isCold) {
-          coldNodeNum = coldNodeNum + 1;
+        } else if (nodeItem.isWarm) {
+          warmNodeNum = warmNodeNum + 1;
         }
       });
-
       if (node.isObserver && observerNodeNum === 2) {
         options.disabled = true;
         options.tooltips.disabled = false;
-        options.tooltips.content = t('Follower类型节点若存在至少保留两台');
-      } else if (node.isHot && hotNodeNum > 0 && coldNodeNum === 0) {
+        options.tooltips.content = t('Observer 类型节点若存在至少保留两台');
+      } else if (node.isHot && hotNodeNum > 0 && warmNodeNum === 0) {
         options.disabled = true;
         options.tooltips.disabled = false;
-        options.tooltips.content = t('冷/热 数据节点必选 1 种以上，每个角色至少需要 2 台');
-      } else if (node.isCold && coldNodeNum > 0 && hotNodeNum === 0) {
+        options.tooltips.content = t('温/热 数据节点必选 1 种以上，每个角色至少需要 2 台');
+      } else if (node.isWarm && warmNodeNum > 0 && hotNodeNum === 0) {
         options.disabled = true;
         options.tooltips.disabled = false;
-        options.tooltips.content = t('冷/热 数据节点必选 1 种以上，每个角色至少需要 2 台');
+        options.tooltips.content = t('温/热 数据节点必选 1 种以上，每个角色至少需要 2 台');
       }
     }
 
@@ -282,7 +281,7 @@
   const batchShrinkDisabledInfo = computed(() => {
     // 1.Follower 为必须，3个节点, 缩容
     // 2.Observer 非必选，若选至少需要2台
-    // 3.冷/热 数据节点必选1种以上，每个角色至少需要2台
+    // 3.温/热 数据节点必选1种以上，每个角色至少需要2台
 
     const options = {
       disabled: false,

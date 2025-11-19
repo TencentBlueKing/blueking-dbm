@@ -32,7 +32,7 @@
   import MachineExpansion, { type TExpansionNode } from '@views/db-manage/common/machine-expansion/Index.vue';
 
   interface TDorisExpansionNode extends TExpansionNode {
-    mutexNodeTypes: ('hot' | 'cold' | 'observer')[];
+    mutexNodeTypes: ('hot' | 'warm' | 'observer')[];
   }
 
   interface Props {
@@ -73,28 +73,28 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = ref<Record<'cold' | 'hot' | 'observer', TDorisExpansionNode>>({
-    cold: generateNodeInfo({
-      label: t('冷节点'),
-      mutexNodeTypes: ['hot', 'observer'],
-      role: 'doris_backend_cold',
-      specMachineType: 'doris_backend',
-      tagText: t('存储层'),
-    }),
+  const nodeInfoMap = ref<Record<'warm' | 'hot' | 'observer', TDorisExpansionNode>>({
     hot: generateNodeInfo({
       label: t('热节点'),
-      mutexNodeTypes: ['cold', 'observer'],
+      mutexNodeTypes: ['warm', 'observer'],
       role: 'doris_backend_hot',
       specMachineType: 'doris_backend',
       tagText: t('存储层'),
     }),
     observer: generateNodeInfo({
       label: t('Observer节点'),
-      mutexNodeTypes: ['hot', 'cold'],
+      mutexNodeTypes: ['hot', 'warm'],
       role: 'doris_observer',
       showCount: true,
       specMachineType: 'doris_observer',
       tagText: t('接入层'),
+    }),
+    warm: generateNodeInfo({
+      label: t('温节点'),
+      mutexNodeTypes: ['hot', 'observer'],
+      role: 'doris_backend_warm',
+      specMachineType: 'doris_backend',
+      tagText: t('存储层'),
     }),
   });
 
@@ -111,20 +111,20 @@
     })
       .then((data) => {
         const hotOriginalHostList: DorisMachineModel[] = [];
-        const coldOriginalHostList: DorisMachineModel[] = [];
+        const warmOriginalHostList: DorisMachineModel[] = [];
         const observerOriginalHostList: DorisMachineModel[] = [];
 
         let hotDiskTotal = 0;
-        let coldDiskTotal = 0;
+        let warmDiskTotal = 0;
         let observerDiskTotal = 0;
 
         data.results.forEach((hostItem) => {
           if (hostItem.isHot) {
             hotDiskTotal += Math.floor(Number(hostItem.host_info.bk_disk));
             hotOriginalHostList.push(hostItem);
-          } else if (hostItem.isCold) {
-            coldDiskTotal += Math.floor(Number(hostItem.host_info.bk_disk));
-            coldOriginalHostList.push(hostItem);
+          } else if (hostItem.isWarm) {
+            warmDiskTotal += Math.floor(Number(hostItem.host_info.bk_disk));
+            warmOriginalHostList.push(hostItem);
           } else if (hostItem.isObserver) {
             observerDiskTotal += Math.floor(Number(hostItem.host_info.bk_disk));
             observerOriginalHostList.push(hostItem);
@@ -134,8 +134,8 @@
         nodeInfoMap.value.hot.totalDisk = hotDiskTotal;
         nodeInfoMap.value.hot.originalHostList = hotOriginalHostList;
 
-        nodeInfoMap.value.cold.totalDisk = coldDiskTotal;
-        nodeInfoMap.value.cold.originalHostList = coldOriginalHostList;
+        nodeInfoMap.value.warm.totalDisk = warmDiskTotal;
+        nodeInfoMap.value.warm.originalHostList = warmOriginalHostList;
 
         nodeInfoMap.value.observer.totalDisk = observerDiskTotal;
         nodeInfoMap.value.observer.originalHostList = observerOriginalHostList;

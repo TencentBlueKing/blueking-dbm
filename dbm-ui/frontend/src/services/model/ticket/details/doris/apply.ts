@@ -11,19 +11,22 @@ export interface Apply extends DetailBase {
   db_app_abbr: string;
   db_version: string;
   disaster_tolerance_level: string;
+  enable_cold_storage: boolean;
   http_port: number;
   ip_source: string;
   nodes?: {
-    cold: HostInfo[];
+    cold: HostInfo[]; // 历史协议，替换为warm
     follower: HostInfo[];
     hot: HostInfo[];
     observer: HostInfo[];
+    warm: HostInfo[];
   };
   query_port: number;
   resource_spec?: {
-    cold?: SpecInfo;
+    cold?: SpecInfo; // 历史协议，替换为warm
     follower: SpecInfo;
     hot?: SpecInfo;
     observer?: SpecInfo;
+    warm?: SpecInfo;
   };
 }

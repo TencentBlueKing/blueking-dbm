@@ -63,6 +63,7 @@ export default class FunctionController {
 
   // 通用开关，涉及多个功能页面
   'common.clb': ControllerItem<string>;
+  'common.dorisColdResource': ControllerItem<string>;
   'common.hcmRecycle': ControllerItem<string>;
   'common.polaris': ControllerItem<string>;
   'common.specCostEstimate': ControllerItem<string>;
@@ -176,13 +177,13 @@ export default class FunctionController {
   'resourceManage.allHost': ControllerItem<string>;
   'resourceManage.dirtyHostManage': ControllerItem<string>;
   'resourceManage.faultPool': ControllerItem<string>;
-  'resourceManage.resourceOperationRecord': ControllerItem<string>;
   'resourceManage.resourceOperationRecord.flow': ControllerItem<string>;
   'resourceManage.resourceOperationRecord.replenish': ControllerItem<string>;
-  'resourceManage.resourcePool': ControllerItem<string>;
-  'resourceManage.resourcePool.replenishList': ControllerItem<string>;
+  'resourceManage.resourceOperationRecord': ControllerItem<string>;
   'resourceManage.resourcePool.hostList': ControllerItem<string>;
+  'resourceManage.resourcePool.replenishList': ControllerItem<string>;
   'resourceManage.resourcePool.summaryView': ControllerItem<string>;
+  'resourceManage.resourcePool': ControllerItem<string>;
   'resourceManage.resourceSpec': ControllerItem<string>;
   'resourceManage.resourceTagsManagement': ControllerItem<string>;
   'resourceManage.toRecyclePool': ControllerItem<string>;
