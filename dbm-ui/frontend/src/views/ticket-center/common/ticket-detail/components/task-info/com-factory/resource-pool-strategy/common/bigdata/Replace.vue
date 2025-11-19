@@ -98,11 +98,13 @@
     client: 'Client',
     cold: t('冷节点'),
     datanode: 'DataNode',
+    follower: 'Follower',
     hot: t('热节点'),
     master: 'Master',
     namenode: 'NameNode',
     proxy: 'Proxy',
     slave: 'Slave',
+    warm: t('温节点'),
     zookeeper: 'Zookeeper',
   };
 

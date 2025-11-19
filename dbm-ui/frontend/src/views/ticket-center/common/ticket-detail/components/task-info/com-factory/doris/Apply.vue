@@ -85,18 +85,23 @@
         </SpecDetailPopover>
         <span v-else>--</span>
       </InfoItem>
-      <InfoItem :label="t('冷节点')">
+      <InfoItem :label="t('温节点')">
         <SpecDetailPopover
-          v-if="coldSpec"
-          :data="coldSpec"
+          v-if="warmSpec"
+          :data="warmSpec"
           placement="top">
           <span
             class="pb-2"
             style="cursor: pointer; border-bottom: 1px dashed #979ba5">
-            {{ coldSpec.spec_name }}（{{ `${coldSpec.count} ${t('台')}` }}）
+            {{ warmSpec.spec_name }}（{{ `${warmSpec.count} ${t('台')}` }}）
           </span>
         </SpecDetailPopover>
         <span v-else>--</span>
+      </InfoItem>
+      <InfoItem
+        v-db-console="'common.dorisColdResource'"
+        :label="t('启用低频存储')">
+        {{ ticketDetails.details.enable_cold_storage ? t('是') : t('否') }}
       </InfoItem>
     </template>
     <template v-else>
@@ -182,7 +187,7 @@
   const followerSpec = resourceSpec?.follower;
   const observerSpec = resourceSpec?.observer;
   const hotSpec = resourceSpec?.hot;
-  const coldSpec = resourceSpec?.cold;
+  const warmSpec = resourceSpec?.warm || resourceSpec?.cold;
 
   const isPreviewShow = ref(false);
   const previewRole = ref('');
@@ -194,11 +199,13 @@
     role: previewRole.value,
   }));
 
+  // 历史数据中，手动选择IP可以不兼容温节点
   const getServiceNums = (key: 'follower' | 'observer' | 'hot' | 'cold') => {
     const nodes = props.ticketDetails.details?.nodes;
     return nodes?.[key].length ?? 0;
   };
 
+  // 历史数据中，手动选择IP可以不兼容温节点
   const handleShowPreview = (role: 'follower' | 'observer' | 'hot' | 'cold') => {
     isPreviewShow.value = true;
     previewRole.value = role;

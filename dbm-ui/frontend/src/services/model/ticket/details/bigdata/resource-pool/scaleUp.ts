@@ -23,6 +23,7 @@ export interface ScaleUp extends ResourcePoolDetailBase {
     namenode: ExtInfoItem;
     proxy: ExtInfoItem;
     slave: ExtInfoItem;
+    warm: ExtInfoItem;
     zookeeper: ExtInfoItem;
   };
   resource_spec: ResourceSpec;

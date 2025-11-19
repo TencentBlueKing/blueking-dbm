@@ -75,12 +75,13 @@ export default class Doris extends ClusterBase {
   db_type: DBTypes.DORIS;
   disaster_tolerance_level: Affinity;
   domain: string;
-  doris_backend_cold: Array<ClusterListNode>;
   doris_backend_hot: Array<ClusterListNode>;
+  doris_backend_warm: Array<ClusterListNode>;
   doris_follower: Array<ClusterListNode>;
   doris_observer: Array<ClusterListNode>;
   id: number;
   major_version: string;
+  master_domain: string;
   operations: ClusterListOperation[];
   permission: {
     access_entry_edit: boolean;
@@ -120,7 +121,8 @@ export default class Doris extends ClusterBase {
     this.db_type = payload.db_type;
     this.disaster_tolerance_level = payload.disaster_tolerance_level;
     this.domain = payload.domain;
-    this.doris_backend_cold = payload.doris_backend_cold;
+    this.master_domain = payload.master_domain;
+    this.doris_backend_warm = payload.doris_backend_warm;
     this.doris_backend_hot = payload.doris_backend_hot;
     this.doris_follower = payload.doris_follower;
     this.doris_observer = payload.doris_observer;
@@ -137,7 +139,7 @@ export default class Doris extends ClusterBase {
   }
 
   get allInstanceList() {
-    return [...this.doris_follower, ...this.doris_observer, ...this.doris_backend_cold, ...this.doris_backend_hot];
+    return [...this.doris_follower, ...this.doris_observer, ...this.doris_backend_warm, ...this.doris_backend_hot];
   }
 
   get allIPList() {
@@ -234,7 +236,7 @@ export default class Doris extends ClusterBase {
     return {
       Follower: ClusterBase.getRoleFaildInstanceList(this.doris_follower),
       Observer: ClusterBase.getRoleFaildInstanceList(this.doris_observer),
-      [t('冷节点')]: ClusterBase.getRoleFaildInstanceList(this.doris_backend_cold),
+      [t('温节点')]: ClusterBase.getRoleFaildInstanceList(this.doris_backend_warm),
       [t('热节点')]: ClusterBase.getRoleFaildInstanceList(this.doris_backend_hot),
     };
   }

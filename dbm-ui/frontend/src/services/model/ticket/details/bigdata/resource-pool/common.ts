@@ -10,6 +10,7 @@ export interface Nodes {
   namenode: HostInfo[];
   proxy: HostInfo[];
   slave: HostInfo[];
+  warm: HostInfo[];
   zookeeper: HostInfo[];
 }
 
@@ -42,5 +43,6 @@ export interface ResourceSpec {
   namenode: ResourceSpecItem;
   proxy: ResourceSpecItem;
   slave: ResourceSpecItem;
+  warm: ResourceSpecItem;
   zookeeper: ResourceSpecItem;
 }

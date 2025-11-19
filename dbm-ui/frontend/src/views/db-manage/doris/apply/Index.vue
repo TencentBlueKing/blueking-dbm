@@ -78,7 +78,7 @@
                   :cloud-info="cloudInfo"
                   :data="formData.details.nodes.follower"
                   :disable-dialog-submit-method="followerDisableDialogSubmitMethod"
-                  :disable-host-method="(data: HostInfo) => disableHostMethod(data, ['observer', 'hot', 'cold'])"
+                  :disable-host-method="(data: HostInfo) => disableHostMethod(data, ['observer', 'hot', 'warm'])"
                   required
                   :show-view="false"
                   style="display: inline-block"
@@ -109,7 +109,7 @@
                 :cloud-info="cloudInfo"
                 :data="formData.details.nodes.observer"
                 :disable-dialog-submit-method="optionalNodeDisableDialogSubmitMethod"
-                :disable-host-method="(data: HostInfo) => disableHostMethod(data, ['follower', 'hot', 'cold'])"
+                :disable-host-method="(data: HostInfo) => disableHostMethod(data, ['follower', 'hot', 'warm'])"
                 :show-view="false"
                 @change="(data: HostInfo[]) => handleIpListChange(data, 'observer')">
                 <template #submitTips="{ hostList }">
@@ -133,7 +133,7 @@
               <BkAlert
                 style="width: 655px"
                 :theme="tipTheme"
-                :title="t('请保证冷/热节点至少存在一种')" />
+                :title="t('请保证温/热节点至少存在一种')" />
             </BkFormItem>
             <DbFormItem
               :label="t('热节点')"
@@ -143,7 +143,7 @@
                 :cloud-info="cloudInfo"
                 :data="formData.details.nodes.hot"
                 :disable-dialog-submit-method="optionalNodeDisableDialogSubmitMethod"
-                :disable-host-method="(data: HostInfo) => disableHostMethod(data, ['observer', 'follower', 'cold'])"
+                :disable-host-method="(data: HostInfo) => disableHostMethod(data, ['observer', 'follower', 'warm'])"
                 :show-view="false"
                 @change="(data: HostInfo[]) => handleIpListChange(data, 'hot')">
                 <template #submitTips="{ hostList }">
@@ -164,16 +164,16 @@
                 :biz-id="formData.bk_biz_id" />
             </DbFormItem>
             <DbFormItem
-              :label="t('冷节点')"
-              property="details.nodes.cold">
+              :label="t('温节点')"
+              property="details.nodes.warm">
               <IpSelector
                 :biz-id="formData.bk_biz_id"
                 :cloud-info="cloudInfo"
-                :data="formData.details.nodes.cold"
+                :data="formData.details.nodes.warm"
                 :disable-dialog-submit-method="optionalNodeDisableDialogSubmitMethod"
                 :disable-host-method="(data: HostInfo) => disableHostMethod(data, ['follower', 'observer', 'hot'])"
                 :show-view="false"
-                @change="(data: HostInfo[]) => handleIpListChange(data, 'cold')">
+                @change="(data: HostInfo[]) => handleIpListChange(data, 'warm')">
                 <template #submitTips="{ hostList }">
                   <I18nT
                     keypath="若选择至少需要n台，已选m台"
@@ -188,7 +188,7 @@
                 </template>
               </IpSelector>
               <RenderHostTable
-                v-model:data="formData.details.nodes.cold"
+                v-model:data="formData.details.nodes.warm"
                 :biz-id="formData.bk_biz_id" />
             </DbFormItem>
           </div>
@@ -253,7 +253,7 @@
               <BkAlert
                 style="width: 655px"
                 :theme="tipTheme"
-                :title="t('请保证冷/热节点至少存在一种')" />
+                :title="t('请保证温/热节点至少存在一种')" />
             </BkFormItem>
             <BkFormItem :label="t('热节点')">
               <div class="resource-pool-item">
@@ -280,14 +280,14 @@
                 </BkFormItem>
               </div>
             </BkFormItem>
-            <BkFormItem :label="t('冷节点')">
+            <BkFormItem :label="t('温节点')">
               <div class="resource-pool-item">
                 <BkFormItem
                   :label="t('规格')"
-                  property="details.resource_spec.cold.spec_id">
+                  property="details.resource_spec.warm.spec_id">
                   <SpecSelector
-                    ref="specColdRef"
-                    v-model="formData.details.resource_spec.cold.spec_id"
+                    ref="specWarmRef"
+                    v-model="formData.details.resource_spec.warm.spec_id"
                     :biz-id="formData.bk_biz_id"
                     :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
@@ -297,13 +297,19 @@
                 </BkFormItem>
                 <BkFormItem
                   :label="t('数量')"
-                  property="details.resource_spec.cold.count">
+                  property="details.resource_spec.warm.count">
                   <BkInput
-                    v-model="formData.details.resource_spec.cold.count"
+                    v-model="formData.details.resource_spec.warm.count"
                     :min="0"
                     type="number" />
                 </BkFormItem>
               </div>
+            </BkFormItem>
+            <BkFormItem
+              v-db-console="'common.dorisColdResource'"
+              :label="t('启用低频存储')"
+              required>
+              <BkSwitcher v-model="formData.details.enable_cold_storage" />
             </BkFormItem>
             <BkFormItem :label="t('总容量')">
               <BkInput
@@ -408,7 +414,9 @@
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
   import RenderHostTable from '@views/db-manage/common/big-data-host-table/RenderHostTable.vue';
 
-  type NodeType = 'follower' | 'observer' | 'hot' | 'cold';
+  import { checkDbConsole } from '@utils';
+
+  type NodeType = 'follower' | 'observer' | 'hot' | 'warm';
 
   const route = useRoute();
   const router = useRouter();
@@ -436,6 +444,15 @@
 
       if (details.ip_source === 'resource_pool') {
         const resourceSpec = Object.entries(details.resource_spec!).reduce((prev, [specType, specInfo]) => {
+          // 兼容历史数据
+          if (specType === 'cold') {
+            return Object.assign(prev, {
+              warm: {
+                count: specInfo.count,
+                spec_id: specInfo.spec_id,
+              },
+            });
+          }
           return Object.assign(prev, {
             [specType]: {
               count: specInfo.count,
@@ -474,20 +491,17 @@
       db_app_abbr: '',
       db_version: '',
       disaster_tolerance_level: Affinity.MAX_EACH_ZONE_EQUAL, // 同 affinity
+      enable_cold_storage: false,
       http_port: 8030,
       ip_source: 'resource_pool',
       nodes: {
-        cold: [] as Array<HostInfo>,
         follower: [] as Array<HostInfo>,
         hot: [] as Array<HostInfo>,
         observer: [] as Array<HostInfo>,
+        warm: [] as Array<HostInfo>,
       },
       query_port: 9030,
       resource_spec: {
-        cold: {
-          count: 0,
-          spec_id: '',
-        },
         follower: {
           count: 3,
           spec_id: '',
@@ -497,6 +511,10 @@
           spec_id: '',
         },
         observer: {
+          count: 0,
+          spec_id: '',
+        },
+        warm: {
           count: 0,
           spec_id: '',
         },
@@ -513,7 +531,7 @@
   const specFollowerRef = ref<InstanceType<typeof SpecSelector>>();
   const specObserverRef = ref<InstanceType<typeof SpecSelector>>();
   const specHotRef = ref<InstanceType<typeof SpecSelector>>();
-  const specColdRef = ref<InstanceType<typeof SpecSelector>>();
+  const specWarmRef = ref<InstanceType<typeof SpecSelector>>();
   const totalCapacity = ref(0);
   const isClickSubmit = ref(false);
   const cloudInfo = ref({
@@ -530,11 +548,11 @@
 
     let isPass = false;
     if (formData.details.ip_source === 'resource_pool') {
-      const { cold, hot } = formData.details.resource_spec;
-      isPass = Boolean(hot.spec_id && hot.count) || Boolean(cold.spec_id && cold.count);
+      const { hot, warm } = formData.details.resource_spec;
+      isPass = Boolean(hot.spec_id && hot.count) || Boolean(warm.spec_id && warm.count);
     } else {
-      const { cold, hot } = formData.details.nodes;
-      isPass = hot.length > 0 || cold.length > 0;
+      const { hot, warm } = formData.details.nodes;
+      isPass = hot.length > 0 || warm.length > 0;
     }
 
     return isPass ? 'info' : 'danger';
@@ -553,23 +571,6 @@
         validator: (value: number) => value !== formData.details.query_port,
       },
     ],
-    'details.nodes.cold': [
-      {
-        message: t('请保证冷/热节点至少存在一种'),
-        trigger: 'change',
-        validator: () => formData.details.nodes.hot.length > 0 || formData.details.nodes.cold.length > 0,
-      },
-      {
-        message: t('若选择至少需要n台', [2]),
-        trigger: 'change',
-        validator: (value: Array<HostInfo>) => {
-          if (value.length === 0) {
-            return true;
-          }
-          return value.length >= 2;
-        },
-      },
-    ],
     'details.nodes.follower': [
       {
         message: t('固定为n台', [3]),
@@ -579,9 +580,9 @@
     ],
     'details.nodes.hot': [
       {
-        message: t('请保证冷/热节点至少存在一种'),
+        message: t('请保证温/热节点至少存在一种'),
         trigger: 'change',
-        validator: () => formData.details.nodes.hot.length > 0 || formData.details.nodes.cold.length > 0,
+        validator: () => formData.details.nodes.hot.length > 0 || formData.details.nodes.warm.length > 0,
       },
       {
         message: t('若选择至少需要n台', [2]),
@@ -606,6 +607,23 @@
         },
       },
     ],
+    'details.nodes.warm': [
+      {
+        message: t('请保证温/热节点至少存在一种'),
+        trigger: 'change',
+        validator: () => formData.details.nodes.hot.length > 0 || formData.details.nodes.warm.length > 0,
+      },
+      {
+        message: t('若选择至少需要n台', [2]),
+        trigger: 'change',
+        validator: (value: Array<HostInfo>) => {
+          if (value.length === 0) {
+            return true;
+          }
+          return value.length >= 2;
+        },
+      },
+    ],
     'details.query_port': [
       {
         message: t('9010 和 9020 为服务内部占用端口'),
@@ -616,30 +634,6 @@
         message: t('与http端口互斥'),
         trigger: 'change',
         validator: (value: number) => value !== formData.details.http_port,
-      },
-    ],
-    'details.resource_spec.cold.count': [
-      {
-        message: t('若选择至少需要n台', [2]),
-        trigger: 'change',
-        validator: (value: number) => {
-          if (value === 0) {
-            return true;
-          }
-          return value >= 2;
-        },
-      },
-    ],
-    'details.resource_spec.cold.spec_id': [
-      {
-        message: t('规格不能为空'),
-        trigger: 'change',
-        validator: (value: number | string) => {
-          if (formData.details.resource_spec.cold.count > 0) {
-            return !!value;
-          }
-          return true;
-        },
       },
     ],
     'details.resource_spec.follower.count': [
@@ -697,19 +691,43 @@
         },
       },
     ],
+    'details.resource_spec.warm.count': [
+      {
+        message: t('若选择至少需要n台', [2]),
+        trigger: 'change',
+        validator: (value: number) => {
+          if (value === 0) {
+            return true;
+          }
+          return value >= 2;
+        },
+      },
+    ],
+    'details.resource_spec.warm.spec_id': [
+      {
+        message: t('规格不能为空'),
+        trigger: 'change',
+        validator: (value: number | string) => {
+          if (formData.details.resource_spec.warm.count > 0) {
+            return !!value;
+          }
+          return true;
+        },
+      },
+    ],
   };
 
   watch(
-    [() => formData.details.resource_spec.hot, () => formData.details.resource_spec.cold],
-    ([newHotSpec, newColdSpec]) => {
+    [() => formData.details.resource_spec.hot, () => formData.details.resource_spec.warm],
+    ([newHotSpec, newWarmSpec]) => {
       const hotCount = Number(newHotSpec.count);
-      const coldCount = Number(newColdSpec.count);
-      if (specHotRef.value && specColdRef.value) {
+      const warmCount = Number(newWarmSpec.count);
+      if (specHotRef.value && specWarmRef.value) {
         const { storage_spec: hotStorageSpec = [] } = specHotRef.value.getData();
-        const { storage_spec: coldStorageSpec = [] } = specColdRef.value.getData();
+        const { storage_spec: warmStorageSpec = [] } = specWarmRef.value.getData();
         const hotDisk = hotStorageSpec.reduce((total, item) => total + Number(item.min || 0), 0);
-        const coldDisk = coldStorageSpec.reduce((total, item) => total + Number(item.min || 0), 0);
-        totalCapacity.value = hotDisk * hotCount + coldCount * coldDisk;
+        const warmDisk = warmStorageSpec.reduce((total, item) => total + Number(item.min || 0), 0);
+        totalCapacity.value = hotDisk * hotCount + warmCount * warmDisk;
       }
     },
     { deep: true, flush: 'post' },
@@ -725,7 +743,7 @@
     bizState.hasEnglishName = !!info.english_name;
 
     formData.details.nodes.hot = [];
-    formData.details.nodes.cold = [];
+    formData.details.nodes.warm = [];
     formData.details.nodes.observer = [];
     formData.details.nodes.follower = [];
   };
@@ -737,7 +755,7 @@
     cloudInfo.value = info;
 
     formData.details.nodes.hot = [];
-    formData.details.nodes.cold = [];
+    formData.details.nodes.warm = [];
     formData.details.nodes.follower = [];
     formData.details.nodes.observer = [];
   };
@@ -745,10 +763,10 @@
   // 主机节点互斥
   const disableHostMethod = (data: HostInfo, mutexNodeTypes: NodeType[]) => {
     const tipMap = {
-      cold: t('主机已被冷节点使用'),
       follower: t('主机已被Follower节点使用'),
       hot: t('主机已被热节点使用'),
       observer: t('主机已被Observer节点使用'),
+      warm: t('主机已被温节点使用'),
     };
 
     for (const mutexNodeType of mutexNodeTypes) {
@@ -763,7 +781,7 @@
   // follower 节点 IP 选择器提交
   const followerDisableDialogSubmitMethod = (hostList: HostInfo[]) =>
     hostList.length === 3 ? false : t('需要n台', { n: 3 });
-  // observer、hot、cold 节点 IP 选择器提交
+  // observer、hot、warm 节点 IP 选择器提交
   const optionalNodeDisableDialogSubmitMethod = (hostList: HostInfo[]) => {
     if (hostList.length === 0) {
       return false;
@@ -781,7 +799,7 @@
     isClickSubmit.value = true;
     formRef.value!.validate().then(() => {
       if (tipTheme.value === 'danger' && formData.details.ip_source === 'resource_pool') {
-        return Promise.reject(t('请保证冷/热节点至少存在一种'));
+        return Promise.reject(t('请保证温/热节点至少存在一种'));
       }
       baseState.isSubmitting = true;
 
@@ -795,6 +813,10 @@
 
       const getDetails = () => {
         const { details }: { details: Record<string, any> } = _.cloneDeep(formData);
+
+        if (!checkDbConsole('common.dorisColdResource')) {
+          delete details.enable_cold_storage;
+        }
 
         if (formData.details.ip_source === 'resource_pool') {
           delete details.nodes;
@@ -815,7 +837,7 @@
 
           const observerCount = Number(details.resource_spec.observer.count);
           const hotCount = Number(details.resource_spec.hot.count);
-          const coldCount = Number(details.resource_spec.cold.count);
+          const warmCount = Number(details.resource_spec.warm.count);
           if (observerCount > 0) {
             Object.assign(result.resource_spec, {
               observer: {
@@ -836,13 +858,13 @@
               },
             });
           }
-          if (coldCount > 0) {
+          if (warmCount > 0) {
             Object.assign(result.resource_spec, {
-              cold: {
-                ...details.resource_spec.cold,
-                ...specColdRef.value!.getData(),
+              warm: {
+                ...details.resource_spec.warm,
+                ...specWarmRef.value!.getData(),
                 ...regionAndDisasterParams,
-                count: coldCount,
+                count: warmCount,
               },
             });
           }
@@ -850,13 +872,14 @@
         }
 
         delete details.resource_spec;
+
         return {
           ...details,
           nodes: {
-            cold: getNodeList(formData.details.nodes.cold),
             follower: getNodeList(formData.details.nodes.follower),
             hot: getNodeList(formData.details.nodes.hot),
             observer: getNodeList(formData.details.nodes.observer),
+            warm: getNodeList(formData.details.nodes.warm),
           },
         };
       };
