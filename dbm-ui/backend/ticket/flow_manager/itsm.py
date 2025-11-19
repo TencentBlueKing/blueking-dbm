@@ -83,7 +83,7 @@ class ItsmFlow(BaseTicketFlow):
         except (IndexError, KeyError):
             # 异常时根据状态取默认的概览
             msg = TicketStatus.get_choice_label(self.status)
-            summary.update(operator=self.ticket_logs[-1]["operator"], status=self.status, message=msg)
+            summary.update(operator="", status=self.status, message=msg)
         return summary
 
     @property
