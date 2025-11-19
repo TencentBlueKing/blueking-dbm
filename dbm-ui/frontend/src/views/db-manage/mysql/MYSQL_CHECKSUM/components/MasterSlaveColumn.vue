@@ -137,6 +137,11 @@
     manual: true,
     onSuccess(data) {
       masterSlavePair.value = data.instances;
+      // 如果只有一个从库，自动选中
+      if (allSlaveInstances.value.length === 1) {
+        handleChange([allSlaveInstances.value[0].instance_address]);
+        handleToggle();
+      }
     },
   });
 
