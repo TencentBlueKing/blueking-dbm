@@ -16,6 +16,7 @@ export interface Replace extends DetailBase {
     namenode: HostInfo[];
     proxy: HostInfo[];
     slave: HostInfo[];
+    warm: HostInfo[];
     zookeeper: HostInfo[];
   };
   old_nodes: {
@@ -28,6 +29,7 @@ export interface Replace extends DetailBase {
     namenode: HostInfo[];
     proxy: HostInfo[];
     slave: HostInfo[];
+    warm: HostInfo[];
     zookeeper: HostInfo[];
   };
 }

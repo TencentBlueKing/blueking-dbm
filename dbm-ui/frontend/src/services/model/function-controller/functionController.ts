@@ -63,6 +63,7 @@ export default class FunctionController {
 
   // 通用开关，涉及多个功能页面
   'common.clb': ControllerItem<string>;
+  'common.dorisColdResource': ControllerItem<string>;
   'common.hcmRecycle': ControllerItem<string>;
   'common.polaris': ControllerItem<string>;
   'common.specCostEstimate': ControllerItem<string>;

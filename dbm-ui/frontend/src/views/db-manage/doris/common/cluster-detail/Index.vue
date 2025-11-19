@@ -137,6 +137,12 @@
             :cluster-type="ClusterTypes.DORIS"
             :data="data"
             @refresh="fetchDetailData">
+            <template #coldResource>
+              <ColdResourceInfo
+                v-db-console="'common.dorisColdResource'"
+                :cluster-type="ClusterTypes.DORIS"
+                :data="data" />
+            </template>
           </BaseInfo>
         </template>
         <template #hostContent>
@@ -183,7 +189,13 @@
 
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
 
-  import { ActionPanel, BaseInfo, BigDataInstanceList, DisplayBox } from '@views/db-manage/common/cluster-details';
+  import {
+    ActionPanel,
+    BaseInfo,
+    BigDataInstanceList,
+    ColdResourceInfo,
+    DisplayBox,
+  } from '@views/db-manage/common/cluster-details';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
@@ -216,7 +228,7 @@
       [t('Follower 节点')]: data.value?.doris_follower || [],
       [t('Observer 节点')]: data.value?.doris_observer || [],
       [t('热节点')]: data.value?.doris_backend_hot || [],
-      [t('冷节点')]: data.value?.doris_backend_cold || [],
+      [t('温节点')]: data.value?.doris_backend_warm || [],
     };
     /* eslint-enable perfectionist/sort-objects */
   });
