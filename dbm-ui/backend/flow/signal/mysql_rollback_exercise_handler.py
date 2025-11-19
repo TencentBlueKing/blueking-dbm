@@ -13,6 +13,7 @@ import logging
 from django.utils.translation import gettext as _
 
 from backend.db_periodic_task.models import MySQLBackupRecoverTask, TaskPhase
+from backend.db_report.enums import ReportStateType
 from backend.flow.consts import StateType
 from backend.flow.signal.callback_map import create_ticket_handler
 from backend.ticket.constants import TicketType
@@ -36,14 +37,15 @@ def mysql_rollback_exercise_callback_handler(root_id: str, node_id: str, status:
     """
     MySQL备份恢复演练的信号状态处理函数
 
-    根据flow的不同状态更新MySQLBackupRecoverTask的phase和status：
-    - StateType.FAILED/REVOKED: 更新phase为DONE，status为False
-    - StateType.FINISHED: 更新phase为DONE，status为True
+    根据flow的不同状态更新MySQLBackupRecoverTask的phase和state：
+    - StateType.FAILED/REVOKED: 更新phase为DONE，state为ReportStateType.ABNORMAL
+    - StateType.FINISHED: 更新phase为DONE，state保持为空
     - StateType.RUNNING/CREATED/READY: 更新phase为RUNNING
 
     注意：
     - task_status字段由flow中的MySQLBackupRecoverTaskMetaComponent组件负责更新
     - task_info字段不在此处更新，可通过任务详情查看错误日志
+    - state字段一旦设置为ReportStateType.ABNORMAL后，后续不再改变
 
     Args:
         root_id: 流程根ID
@@ -71,16 +73,15 @@ def mysql_rollback_exercise_callback_handler(root_id: str, node_id: str, status:
         task.phase = task_phase
 
         if status == StateType.FINISHED:
-
-            task.status = True  # 设置巡检结果状态为正常
             task.phase = TaskPhase.DONE
-            update_fields.extend(["status"])
             logger.info(_("MySQL备份恢复演练成功完成，task_id={}").format(root_id))
 
         elif status in [StateType.FAILED, StateType.REVOKED]:
-            task.status = False  # 设置巡检结果状态为异常
             task.phase = TaskPhase.DONE
-            update_fields.extend(["status"])
+            # 备份恢复失败时，设置 state 为 abnormal，且后续不再改变
+            if task.state != ReportStateType.ABNORMAL.value:
+                task.state = ReportStateType.ABNORMAL.value
+                update_fields.append("state")
             logger.warning(_("MySQL备份恢复演练失败，task_id={}, status={}").format(root_id, status))
 
         # 保存更新
