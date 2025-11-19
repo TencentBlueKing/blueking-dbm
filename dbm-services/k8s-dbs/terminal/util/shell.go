@@ -434,15 +434,19 @@ func (s *Shell) parseCompletions(output string, token string) []string {
 			continue
 		}
 
-		// 去除目录前缀（如果有）
-		if dirPrefix != "" && strings.HasPrefix(line, dirPrefix) {
-			line = strings.TrimPrefix(line, dirPrefix)
-		}
-
 		// 去重
 		if !seen[line] {
 			seen[line] = true
 			results = append(results, line)
+		}
+	}
+
+	// 如果只有一个结果，保持完整路径供 completeCommand 使用
+	if len(results) > 1 && dirPrefix != "" {
+		for i, r := range results {
+			if strings.HasPrefix(r, dirPrefix) {
+				results[i] = strings.TrimPrefix(r, dirPrefix)
+			}
 		}
 	}
 

@@ -85,7 +85,16 @@ func (k *TerminalProvider) OpenTerminal(
 	}
 	_ = conn.WriteJSON(initMsg)
 
-	// 6. 循环处理 WebSocket 消息
+	// 6. 进入消息处理循环
+	return k.messageLoop(conn, shell, session)
+}
+
+// messageLoop 处理 WebSocket 消息循环
+func (k *TerminalProvider) messageLoop(
+	conn *websocket.Conn,
+	shell *terminalutil.Shell,
+	session *terminalutil.TerminalSession,
+) error {
 	for {
 		var msg terminalentity.WebSocketMessage
 		err := conn.ReadJSON(&msg)
@@ -97,16 +106,37 @@ func (k *TerminalProvider) OpenTerminal(
 		switch msg.Type {
 		case terminalentity.MessageCommand:
 			var cd terminalentity.CommandData
-			_ = decodeData(msg.Data, &cd)
-			k.handleCommand(conn, shell, session, cd.Input)
+			if err := decodeData(msg.Data, &cd); err != nil {
+				slog.Error("解码命令数据失败", "error", err)
+				_ = conn.WriteJSON(terminalentity.WebSocketMessage{
+					Type: terminalentity.MessageOutput,
+					Data: terminalentity.OutputData{
+						Output: "错误: 无效的命令数据格式\n",
+						Prompt: session.BuildPrompt(),
+					},
+				})
+				continue
+			}
+			if !k.handleCommand(conn, shell, session, cd.Input) {
+				return nil
+			}
 
 		case terminalentity.MessageTabComplete:
 			var td terminalentity.TabCompleteData
-			_ = decodeData(msg.Data, &td)
-			k.handleTabComplete(conn, shell, msg.ID, td.Input)
+			if err := decodeData(msg.Data, &td); err != nil {
+				slog.Error("解码补全数据失败", "error", err)
+				_ = conn.WriteJSON(terminalentity.WebSocketMessage{
+					Type: terminalentity.MessageTabCompleteResult,
+					ID:   msg.ID,
+					Data: terminalentity.TabCompleteResultData{Input: "", Completions: []string{}},
+				})
+				continue
+			}
+			if !k.handleTabComplete(conn, shell, msg.ID, td.Input) {
+				return nil
+			}
 		}
 	}
-
 	return nil
 }
 
@@ -134,10 +164,20 @@ func (k *TerminalProvider) handleCommand(
 	shell *terminalutil.Shell,
 	session *terminalutil.TerminalSession,
 	input string,
-) {
+) bool {
 	input = strings.TrimSpace(input)
+
+	// 处理空命令：返回空输出和当前提示符
 	if input == "" {
-		return
+		resp := terminalentity.WebSocketMessage{
+			Type: terminalentity.MessageOutput,
+			Data: terminalentity.OutputData{Output: "", Prompt: session.BuildPrompt()},
+		}
+		if err := conn.WriteJSON(resp); err != nil {
+			slog.Error("发送空命令响应失败", "error", err)
+			return false
+		}
+		return true
 	}
 
 	// 如果是纯 clear 命令，直接返回 clear 消息，不执行
@@ -146,8 +186,11 @@ func (k *TerminalProvider) handleCommand(
 			Type: terminalentity.MessageClear,
 			Data: terminalentity.OutputData{Output: "", Prompt: session.BuildPrompt()},
 		}
-		_ = conn.WriteJSON(resp)
-		return
+		if err := conn.WriteJSON(resp); err != nil {
+			slog.Error("发送 clear 响应失败", "error", err)
+			return false
+		}
+		return true
 	}
 
 	// 在持久 shell 中执行命令
@@ -163,8 +206,11 @@ func (k *TerminalProvider) handleCommand(
 				Prompt: session.BuildPrompt(),
 			},
 		}
-		_ = conn.WriteJSON(resp)
-		return
+		if err := conn.WriteJSON(resp); err != nil {
+			slog.Error("发送错误响应失败", "error", err)
+			return false
+		}
+		return true
 	}
 
 	// 更新 cwd
@@ -177,7 +223,11 @@ func (k *TerminalProvider) handleCommand(
 		Type: terminalentity.MessageOutput,
 		Data: terminalentity.OutputData{Output: result.Output, Prompt: session.BuildPrompt()},
 	}
-	_ = conn.WriteJSON(resp)
+	if err := conn.WriteJSON(resp); err != nil {
+		slog.Error("发送命令输出失败", "error", err)
+		return false
+	}
+	return true
 }
 
 // handleTabComplete 处理 Tab 补全
@@ -186,7 +236,7 @@ func (k *TerminalProvider) handleTabComplete(
 	shell *terminalutil.Shell,
 	msgID string,
 	input string,
-) {
+) bool {
 	// 在持久 shell 中执行补全
 	results := shell.Complete(input)
 
@@ -202,7 +252,11 @@ func (k *TerminalProvider) handleTabComplete(
 		ID:   msgID,
 		Data: terminalentity.TabCompleteResultData{Input: input, Completions: completions},
 	}
-	_ = conn.WriteJSON(resp)
+	if err := conn.WriteJSON(resp); err != nil {
+		slog.Error("发送 Tab 补全响应失败", "error", err)
+		return false
+	}
+	return true
 }
 
 // writeWSMessage 向 WebSocket 发送文本消息
