@@ -20,8 +20,7 @@ limitations under the License.
 package core
 
 import (
-	"k8s-dbs/core/client"
-	"log"
+	"k8s-dbs/core/util"
 	"log/slog"
 )
 
@@ -35,11 +34,11 @@ func Init() error {
 
 // InitDB 集群管理核心服务元数据初始化
 func InitDB() error {
-	log.Println("Start to initial MySql Connection...")
-	if err := client.Db.Init(); err != nil {
+	slog.Info("Start to initial MySql Connection...")
+	if err := util.Db.Init(); err != nil {
 		slog.Error("Failed to initial MySql Connection", "error", err)
 		return err
 	}
-	log.Println("Finish initialize MySql Connection...")
+	slog.Info("Finish initialize MySql Connection...")
 	return nil
 }

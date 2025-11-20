@@ -49,6 +49,9 @@ func DecodeClusterInfo(cmdRet string) (clusterInfo *CmdClusterInfo) {
 		}
 		if list02[0] == "cluster_state" {
 			clusterInfo.ClusterState = list02[1]
+		} else if list02[0] == "cluster_slots_assigned" {
+			clusterInfo.ClusterSlotsAssigned, _ = strconv.Atoi(list02[1])
+			//	tendisplus的bug，名字错误
 		} else if list02[0] == "cluster_slots_assigend" {
 			clusterInfo.ClusterSlotsAssigned, _ = strconv.Atoi(list02[1])
 		} else if list02[0] == "cluster_slots_ok" {

@@ -3,6 +3,7 @@ package restore
 import (
 	"fmt"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -93,16 +94,16 @@ func (b *GoMySQLBinlogUtil) BuildArgs(filterMode bool) ([]string, error) {
 			b.cmdArgs = append(b.cmdArgs, fmt.Sprintf("--rows-filter='%s'", b.RowsFilter))
 		}
 		if len(b.Databases) > 0 {
-			b.cmdArgs = append(b.cmdArgs, "--databases", strings.Join(b.Databases, ","))
+			b.cmdArgs = append(b.cmdArgs, "--databases", strconv.Quote(strings.Join(b.Databases, ",")))
 		}
 		if len(b.Tables) > 0 {
-			b.cmdArgs = append(b.cmdArgs, "--tables", strings.Join(b.Tables, ","))
+			b.cmdArgs = append(b.cmdArgs, "--tables", strconv.Quote(strings.Join(b.Tables, ",")))
 		}
 		if len(b.ExcludeDatabases) > 0 {
-			b.cmdArgs = append(b.cmdArgs, "--databases", strings.Join(b.Databases, ","))
+			b.cmdArgs = append(b.cmdArgs, "--exclude-databases", strconv.Quote(strings.Join(b.ExcludeDatabases, ",")))
 		}
 		if len(b.ExcludeTables) > 0 {
-			b.cmdArgs = append(b.cmdArgs, "--exclude-tables", strings.Join(b.ExcludeTables, ","))
+			b.cmdArgs = append(b.cmdArgs, "--exclude-tables", strconv.Quote(strings.Join(b.ExcludeTables, ",")))
 		}
 	}
 

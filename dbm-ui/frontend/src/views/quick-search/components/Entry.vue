@@ -46,9 +46,9 @@
                   text
                   theme="primary"
                   @click="() => handleToCluster(rowData)">
-                  <HightLightText
+                  <TextHighlight
                     high-light-color="#FF9C01"
-                    :key-word="formattedKeyword"
+                    :keyword="formattedKeyword"
                     :text="rowData.entry" />
                 </BkButton>
                 <template #append>
@@ -139,7 +139,7 @@
             field="disaster_tolerance_level"
             :label="t('容灾要求')">
             <template #default="{data: rowData}: {data: QuickSearchEntryModel}">
-              {{ rowData.disaster_tolerance_level || '--' }}
+              {{ rowData.disasterToleranceLevelName || '--' }}
             </template>
           </BkTableColumn>
           <BkTableColumn
@@ -172,8 +172,8 @@
 
   import RenderClusterStatus from '@components/cluster-status/Index.vue';
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
-  import HightLightText from '@components/system-search/components/search-result/render-result/components/HightLightText.vue';
   import { useRedirect } from '@components/system-search/hooks/useRedirect';
+  import TextHighlight from '@components/text-highlight/Index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { execCopy, exportExcelFile } from '@utils';
@@ -225,7 +225,6 @@
   watch(
     renderData,
     (newRenderData) => {
-      console.log('renderData = ', renderData);
       pagination.value = newRenderData.dataList.map((dataItem) => ({
         count: dataItem.dataList.length,
         current: 1,
@@ -243,13 +242,13 @@
       [t('业务名称')]: props.bizIdNameMap[dataItem.bk_biz_id],
       [t('主 DBA')]: dataItem.dba,
       [t('地域')]: dataItem.region,
-      [t('容灾要求')]: dataItem.disaster_tolerance_level,
+      [t('容灾要求')]: dataItem.disasterToleranceLevelName,
       [t('所属业务')]: String(dataItem.bk_biz_id),
       [t('所属集群')]: dataItem.immute_domain,
       [t('架构类型')]: dataItem.cluster_type,
       [t('版本')]: dataItem.major_version,
       [t('访问入口（域名、CLB、北极星）')]: dataItem.entry,
-      [t('集群ID')]: String(dataItem.id),
+      [t('集群ID')]: String(dataItem.cluster_id),
     }));
     const colsWidths = [{ width: 10 }, { width: 16 }, { width: 16 }, { width: 24 }, { width: 24 }, { width: 16 }];
 

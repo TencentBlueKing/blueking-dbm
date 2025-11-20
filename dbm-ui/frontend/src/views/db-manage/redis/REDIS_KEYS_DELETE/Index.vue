@@ -1,7 +1,7 @@
 <template>
   <div class="sqlserver-db-backup-page">
     <SmartAction>
-      <KeyOpreationAlert />
+      <KeyOperationAlert />
       <DbForm
         ref="form"
         class="mt-16 mb-24 toolbox-form"
@@ -38,25 +38,29 @@
               @batch-edit="handleClusterBatchEdit" />
             <EditableColumn
               :label="t('架构版本')"
-              :width="300">
+              readonly
+              :width="150">
               <EditableBlock
                 v-model="rowData.cluster.cluster_type_name"
                 :placeholder="t('自动生成')">
               </EditableBlock>
             </EditableColumn>
-            <KeyOprationColumn
+            <KeyOperationColumn
               v-model="rowData.white_regex"
               field="white_regex"
               :label="t('包含 Key')"
               required
               @batch-edit="handleBatchEdit">
-            </KeyOprationColumn>
-            <KeyOprationColumn
+            </KeyOperationColumn>
+            <KeyOperationColumn
               v-model="rowData.black_regex"
               field="black_regex"
               :label="t('排除 Key')"
               @batch-edit="handleBatchEdit">
-            </KeyOprationColumn>
+            </KeyOperationColumn>
+            <DeleteRateColumn
+              v-model="rowData.delete_rate"
+              :cluster-id="rowData.cluster.id" />
             <OperationColumn
               :create-row-method="createRowData"
               :table-data="formData.tableData" />
@@ -77,7 +81,7 @@
           :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
           :title="t('确认重置页面')">
           <BkButton
-            class="ml8 w-88"
+            class="ml-8 w-88"
             :disabled="isSubmitting">
             {{ t('重置') }}
           </BkButton>
@@ -99,10 +103,11 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-  import KeyOprationColumn from '@views/db-manage/redis/common/edit-field/KeyOprationColumn.vue';
-  import KeyOpreationAlert from '@views/db-manage/redis/common/KeyOpreationAlert.vue';
+  import KeyOperationAlert from '@views/db-manage/redis/common/toolbox-common/key-operation-alert/Index.vue';
+  import KeyOperationColumn from '@views/db-manage/redis/common/toolbox-field/key-operation-column/Index.vue';
 
   import ClusterColumn from './components/ClusterColumn.vue';
+  import DeleteRateColumn from './components/DeleteRateColumn.vue';
 
   interface IDataRow {
     black_regex: string;
@@ -113,6 +118,7 @@
       id: number;
       master_domain: string;
     };
+    delete_rate: number | string;
     white_regex: string;
   }
 
@@ -128,6 +134,7 @@
       },
       values.cluster,
     ),
+    delete_rate: '' as number | string,
     white_regex: values.white_regex || '',
   });
 
@@ -152,9 +159,16 @@
             cluster: {
               master_domain: item.domain,
             } as IDataRow['cluster'],
+            // delete_rate: item.delete_rate,
             white_regex: item.white_regex,
           }),
         ),
+      });
+
+      nextTick(() => {
+        formData.tableData.forEach((item, index) =>
+          Object.assign(item, { delete_rate: details.rules[index]!.delete_rate }),
+        );
       });
     },
   });
@@ -164,6 +178,7 @@
     rules: {
       black_regex: string;
       cluster_id: number;
+      delete_rate: number;
       domain: string;
       white_regex: string;
     }[];
@@ -204,6 +219,7 @@
               bk_cloud_id: item.bk_cloud_id,
               cluster_type: item.cluster_type,
               cluster_type_name: item.cluster_type_name,
+
               id: item.id,
               master_domain: item.master_domain,
             },
@@ -211,11 +227,11 @@
         );
       }
     });
-    formData.tableData = [...(formData.tableData[0].cluster.master_domain ? formData.tableData : []), ...newList];
+    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...newList];
     window.changeConfirm = true;
   };
 
-  const handleBatchEdit = (value: string[], field: string) => {
+  const handleBatchEdit = (value: string, field: string) => {
     formData.tableData.forEach((item) => {
       Object.assign(item, { [field]: value });
     });
@@ -232,6 +248,7 @@
           rules: formData.tableData.map((item) => ({
             black_regex: item.black_regex,
             cluster_id: item.cluster.id,
+            delete_rate: Number(item.delete_rate),
             domain: item.cluster.master_domain,
             white_regex: item.white_regex,
           })),

@@ -3,7 +3,6 @@ go 1.24.2
 use (
 	k8s-dbs
 	bigdata/db-tools/dbactuator
-	common/celery-service
 	common/db-config
 	common/db-dns/dns-api
 	common/db-dns/dns-api/pkg
@@ -15,6 +14,7 @@ use (
 	common/go-pubpkg
 	common/reverseapi
 	common/bkdata-kafka-consumer
+	common/db-event-consumer
 	oracle/db-tools/dbactuator
 	mongodb/db-tools/dbactuator
 	mongodb/db-tools/dbmon

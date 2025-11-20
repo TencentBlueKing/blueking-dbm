@@ -32,7 +32,7 @@ func NewChkTdbctlSpiderRouterCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "check-tdbctl-with-spider-router",
 		Short: "检查中控和spider的路由是否一致",
-		Example: fmt.Sprintf(`dbactuator spiderctl cluster-backend-switch %s %s`,
+		Example: fmt.Sprintf(`dbactuator spiderctl check-tdbctl-with-spider-router %s %s`,
 			subcmd.CmdBaseExampleStr, subcmd.ToPrettyJson(act.Service.Example()),
 		),
 		Run: func(cmd *cobra.Command, args []string) {

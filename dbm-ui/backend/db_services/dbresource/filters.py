@@ -8,8 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import operator
+from functools import reduce
 
-from django.utils.translation import ugettext_lazy as _
+from django.db.models import Q
+from django.utils.translation import gettext_lazy as _
 from django_filters import rest_framework as filters
 
 from backend.db_meta.models.machine import DeviceClass
@@ -25,6 +28,8 @@ class SpecListFilter(filters.FilterSet):
     spec_ids = filters.CharFilter(field_name="spec_ids", method="filter_spec_ids", label=_("ID过滤(逗号分隔)"))
     update_at = filters.BooleanFilter(field_name="update_at", method="filter_update_at", label=_("根据时间正序/逆序"))
     enable = filters.BooleanFilter(field_name="enable", label=_("过滤启用/禁用的规格"))
+    biz_scope = filters.CharFilter(field_name="biz_scope", method="filter_biz_scope", label=_("业务范围"))
+    biz_ids = filters.CharFilter(field_name="biz_ids", method="filter_biz_ids", label=_("业务"))
 
     def filter_update_at(self, queryset, name, value):
         time_field = "update_at" if value else "-update_at"
@@ -37,6 +42,23 @@ class SpecListFilter(filters.FilterSet):
         ids = value.split(",")
         return queryset.filter(spec_id__in=ids)
 
+    def filter_biz_ids(self, queryset, name, value):
+        bk_biz_ids = [int(x.strip()) for x in value.split(",") if x.strip()]
+        if bk_biz_ids:
+            return queryset.filter(
+                reduce(operator.or_, [Q(biz_scope__contains=int(bk_biz_id)) for bk_biz_id in bk_biz_ids])
+                | Q(biz_scope=[])
+                | Q(biz_scope__isnull=True)
+            )
+
+    def filter_biz_scope(self, queryset, name, value):
+        # 查询全部业务类型
+        if value == "all":
+            return queryset.filter(Q(biz_scope=[]) | Q(biz_scope__isnull=True))
+        # 查询指定业务类型
+        elif value == "bizs":
+            return queryset.exclude(Q(biz_scope=[]) | Q(biz_scope__isnull=True))
+
     class Meta:
         model = Spec
         fields = [
@@ -47,6 +69,7 @@ class SpecListFilter(filters.FilterSet):
             "update_at",
             "spec_db_type",
             "spec_ids",
+            "biz_scope",
         ]
 
 

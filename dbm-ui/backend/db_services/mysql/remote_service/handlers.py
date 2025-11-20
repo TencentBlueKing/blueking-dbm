@@ -12,7 +12,7 @@ import copy
 from collections import defaultdict
 from typing import Any, Dict, List, Union
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components import DRSApi
 from backend.db_meta.api.cluster.base.handler import ClusterHandler
@@ -278,13 +278,18 @@ class RemoteServiceHandler:
         """
         # 获取远程执行地址
         cluster = Cluster.objects.get(id=cluster_id)
-        __, remote_address = self._get_cluster_address(cluster_id__role_map={}, cluster_id=cluster.id)
+        cluster_id__role_map = {}
+        if kwargs.get("options", {}).get("role"):
+            cluster_id__role_map[cluster_id] = kwargs.get("options", {}).get("role")
+        __, remote_address = self._get_cluster_address(
+            cluster_id__role_map=cluster_id__role_map, cluster_id=cluster.id
+        )
 
         # 请求rpc
         try:
             instances = [{"bk_cloud_id": cluster.bk_cloud_id, "instance": remote_address}]
             rpc_results = ClusterServiceHandler.console_rpc(
-                instances, cmd, db_query=False, rpc_function=DRSApi.webconsole_rpc
+                instances, cmd, db_query=False, rpc_function=DRSApi.webconsole_rpc, **kwargs
             )
             return {"query": rpc_results[0]["table_data"], "error_msg": rpc_results[0]["error_msg"]}
         except SQLParseBaseException as e:

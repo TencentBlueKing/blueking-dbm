@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/samber/lo"
@@ -32,10 +33,10 @@ func (param *RequestInputParam) ParamCheck() (err error) {
 				return fmt.Errorf("min %d great thane min %d", d.MinSize, d.MaxSize)
 			}
 		}
-		if !a.Spec.Cpu.Iegal() {
+		if !a.Spec.Cpu.Legal() {
 			return fmt.Errorf("cpu参数不合法: min:%d,max:%d", a.Spec.Cpu.Min, a.Spec.Cpu.Max)
 		}
-		if !a.Spec.Mem.Iegal() {
+		if !a.Spec.Mem.Legal() {
 			return fmt.Errorf("mem参数不合法: min:%d,max:%d", a.Spec.Mem.Min, a.Spec.Mem.Max)
 		}
 		// 如果只是申请一个机器，则没有亲和性的必要
@@ -47,12 +48,40 @@ func (param *RequestInputParam) ParamCheck() (err error) {
 			if a.LocationSpec.IsEmpty() {
 				return fmt.Errorf("you need choose a city !!! ")
 			}
+			// 验证容忍度参数
+			if a.Tolerance < 0 || a.Tolerance > 1 {
+				return fmt.Errorf("tolerance must be between 0 and 1, got: %f", a.Tolerance)
+			}
+			// tolerance=0的特殊场景验证：必须跨机架，检查是否有足够的机架
+			if a.Tolerance == 0 {
+				totalMachines := a.Count + len(a.CurrentHosts)
+				// 当tolerance=0时，每个机架最多只能有1台机器，所以需要至少totalMachines个机架
+				if totalMachines > 1 {
+					logger.Info("tolerance=0要求所有机器跨机架分布，总计需要%d个不同机架", totalMachines)
+				}
+			}
 		case CROS_SUBZONE:
 			if a.LocationSpec.IsEmpty() {
 				return fmt.Errorf("you need choose a city !!! ")
 			}
-			if !a.LocationSpec.IsExclude() && (len(a.LocationSpec.SubZoneIds) > 0 && len(a.LocationSpec.SubZoneIds) < 2) {
-				return fmt.Errorf("because need cros subzone,you special subzones need more than 2 subzones")
+			if !a.LocationSpec.IsExclude() && (len(a.LocationSpec.SubZoneIds) > 0 &&
+				len(a.LocationSpec.SubZoneIds) < 2) {
+				return fmt.Errorf("because need cross sub-zone,you special subzones need more than 2 subzones")
+			}
+			// 验证容忍度参数
+			if a.Tolerance < 0 || a.Tolerance > 1 {
+				return fmt.Errorf("tolerance must be between 0 and 1, got: %f", a.Tolerance)
+			}
+			// tolerance=0的特殊场景验证：必须跨园区，检查是否有足够的园区
+			if a.Tolerance == 0 {
+				totalMachines := a.Count + len(a.CurrentHosts)
+				// 当tolerance=0时，每个园区最多只能有1台机器，所以需要至少totalMachines个园区
+				if !a.LocationSpec.IsExclude() && len(a.LocationSpec.SubZoneIds) > 0 &&
+					len(a.LocationSpec.SubZoneIds) < totalMachines {
+					return fmt.Errorf("tolerance=0 requires all machines in different subzones, "+
+						"need at least %d subzones but only specified %d",
+						totalMachines, len(a.LocationSpec.SubZoneIds))
+				}
 			}
 		case NONE:
 			return nil
@@ -71,22 +100,23 @@ type ActionInfo struct {
 
 // RequestInputParam 请求接口参数
 type RequestInputParam struct {
-	ResourceType         string         `json:"resource_type"` // 申请的资源用作的用途 Redis|MySQL|Proxy
-	DryRun               bool           `json:"dry_run"`
-	ForbizId             int            `json:"for_biz_id"`
-	Details              []ObjectDetail `json:"details" binding:"required,gt=0,dive"`
-	GroupsInSameLocation bool           `json:"groups_in_same_location"`
+	ResourceType string         `json:"resource_type"` // 申请的资源用作的用途 Redis|MySQL|Proxy
+	DryRun       bool           `json:"dry_run"`
+	ForbizId     int            `json:"for_biz_id"`
+	Details      []ObjectDetail `json:"details" binding:"required,gt=0,dive"`
+	// 表示 deails需要保证每个请求的资源都在同一个园区,参考第一个detail的园区的相关参数
+	GroupsInSameLocation bool `json:"groups_in_same_location"`
 	ActionInfo
 }
 
-// GetAllAffinitys 获取这批请求的所有亲和性的参数
-func (param RequestInputParam) GetAllAffinitys() (affinitys []string) {
+// GetAllAffinities 获取这批请求的所有亲和性的参数
+func (param RequestInputParam) GetAllAffinities() (affinities []string) {
 	for _, d := range param.Details {
-		if !lo.Contains(affinitys, d.Affinity) {
-			affinitys = append(affinitys, d.Affinity)
+		if !lo.Contains(affinities, d.Affinity) {
+			affinities = append(affinities, d.Affinity)
 		}
 	}
-	return affinitys
+	return affinities
 }
 
 // BuildMessage build apply message
@@ -99,9 +129,10 @@ func (param RequestInputParam) BuildMessage() (msg string) {
 		groupCountMap[d.Affinity] += d.Count
 		count += d.Count
 	}
-	msg = fmt.Sprintf("此次申请分%d组申请%d个机器\n", len(param.Details), count)
+	msg = fmt.Sprintf("\n此次申请分%d组申请%d个机器\n", len(param.Details), count)
+	msg += fmt.Sprintf("申请的资源类型: %s\n", param.ResourceType)
 	for affinity, count := range groupMap {
-		msg += fmt.Sprintf("按照亲和性%s申请的资源分组%d,总共包含机器数量%d\n", affinity, count, groupCountMap[affinity])
+		msg += fmt.Sprintf("按照亲和性 [%s] 申请: %d组机器,总共机器数量: %d\n", affinity, count, groupCountMap[affinity])
 	}
 	return msg
 }
@@ -126,7 +157,6 @@ func (param RequestInputParam) SortDetails() ([]ObjectDetail, error) {
 			Priority: 0,
 		}
 		if len(dtlp.StorageSpecs) > 0 {
-			// 多磁盘需求前置
 			item.Priority += int64(len(dtlp.StorageSpecs))
 		}
 		if !dtlp.LocationSpec.IsEmpty() {
@@ -138,22 +168,28 @@ func (param RequestInputParam) SortDetails() ([]ObjectDetail, error) {
 		if len(dtlp.DeviceClass) > 0 {
 			item.Priority++
 		}
-
 		if dtlp.Count > 1 {
 			item.Priority += int64(dtlp.Count)
 		}
-
 		if err := pq.Push(&item); err != nil {
 			return nil, err
 		}
-
 	}
+
+	// 预分配切片容量
+	dlts = make([]ObjectDetail, 0, len(param.Details))
 	for pq.Len() > 0 {
 		item, err := pq.Pop()
 		if err != nil {
 			return nil, err
 		}
-		dlts = append(dlts, item.Value.(ObjectDetail))
+		// 添加类型检查
+		// nolint
+		if objDetail, ok := item.Value.(ObjectDetail); ok {
+			dlts = append(dlts, objDetail)
+		} else {
+			return nil, fmt.Errorf("invalid type in PriorityQueue: expected ObjectDetail, got %T", item.Value)
+		}
 	}
 	return dlts, nil
 }
@@ -218,6 +254,11 @@ const (
 	SAME_SUBZONE = "SAME_SUBZONE"
 	// CROS_SUBZONE 同城跨园区
 	CROS_SUBZONE = "CROS_SUBZONE"
+	// MAJORITY_ELECTION_DISTRI 最少跨2个园区，园区内跨机架
+	// 	1）不能超过ceil(n/2）的机器在同一个园区
+	// 2）同一个机架上不能超过1个机器
+	// 3）申请到的机器的园区分布要尽量平均（根据资源情况平均给到）
+	MAJORITY_ELECTION_DISTRI = "MAJORITY_ELECTION_DISTRI"
 	// MAX_EACH_ZONE_EQUAL 尽量每个zone分配数量相等
 	MAX_EACH_ZONE_EQUAL = "MAX_EACH_ZONE_EQUAL"
 	// CROSS_RACK 跨机架
@@ -233,23 +274,42 @@ const (
 // CROS_SUBZONE：同城跨subzone
 // NONE: 无需亲和性处理
 type ObjectDetail struct {
-	BkCloudId int      `json:"bk_cloud_id"`
-	Hosts     Hosts    `json:"hosts"`                          // 主机id
-	GroupMark string   `json:"group_mark" binding:"required" ` // 资源组标记
-	Labels    []string `json:"labels"`                         // 标签
+	// 云区域id
+	BkCloudId int `json:"bk_cloud_id"`
+	// 主机id
+	Hosts Hosts `json:"hosts"`
+	// 资源组标记
+	GroupMark string `json:"group_mark" binding:"required" `
+	// 标签
+	Labels []string `json:"labels"`
 	// 通过机型规格 或者 资源规格描述来匹配资源
 	// 这两个条件是 || 关系
-	DeviceClass  []string          `json:"device_class"` // 机器类型 "IT5.8XLARGE128" "SA3.2XLARGE32"
-	Spec         meta.Spec         `json:"spec"`         // 规格描述
-	StorageSpecs []meta.DiskSpec   `json:"storage_spec"`
-	LocationSpec meta.LocationSpec `json:"location_spec"` // 地域区间
-
+	// 机器类型 "IT5.8XLARGE128" "SA3.2XLARGE32"
+	DeviceClass []string `json:"device_class"`
+	// 规格描述
+	Spec         meta.Spec       `json:"spec"`
+	StorageSpecs []meta.DiskSpec `json:"storage_spec"`
+	// 地域区间
+	LocationSpec meta.LocationSpec `json:"location_spec"`
+	// 容忍度，表示每个园区最多不能超过总数total * tolerance 向上取整
+	Tolerance float64 `json:"tolerance"`
+	// 当前集群已经存在的资源，用于亲和性处理
+	CurrentHosts []CurrentResource `json:"current_hosts"`
+	// 亲和性
 	Affinity string `json:"affinity"`
 	// Windows,Linux
 	OsType        string   `json:"os_type"`
 	OsNames       []string `json:"os_names"`
 	ExcludeOsName bool     `json:"exclude_os_name"`
-	Count         int      `json:"count" binding:"required,min=1"` // 申请数量
+	// 申请数量
+	Count int `json:"count" binding:"required,min=1"`
+}
+
+// CurrentResource 当前集群已存在的资源信息，用于亲和性处理
+type CurrentResource struct {
+	BkHostId int    `json:"bk_host_id" binding:"required,gt=0,number"`
+	SubZone  string `json:"sub_zone" binding:"required,min=1,max=40"`
+	RackId   string `json:"rack_id" binding:"required,min=1,max=40"`
 }
 
 // Hosts bk hosts
@@ -289,46 +349,90 @@ func (a *ObjectDetail) GetDiskMatchInfo() (message string) {
 				message += fmt.Sprintf(" size >= %d G ", d.MinSize)
 			}
 		}
-		message += "\n\r"
+		message += "\n"
 	}
 	return
 }
 
 // GetMessage return apply failed message
 func (a *ObjectDetail) GetMessage() (message string) {
-	message += fmt.Sprintf("group: %s\n\r", a.GroupMark)
+	message += fmt.Sprintf(" group: %s\n", a.GroupMark)
 	if len(a.DeviceClass) > 0 {
-		message += fmt.Sprintf("device_class: %v\n\r", a.DeviceClass)
+		message += fmt.Sprintf("device_class: %v\n", a.DeviceClass)
 	}
 	if a.Spec.NotEmpty() {
 		if a.Spec.Cpu.IsNotEmpty() {
-			message += fmt.Sprintf("cpu: %d ~ %d 核\n\r", a.Spec.Cpu.Min, a.Spec.Cpu.Max)
+			message += fmt.Sprintf("cpu: %d ~ %d 核\n", a.Spec.Cpu.Min, a.Spec.Cpu.Max)
 		}
 		if a.Spec.Mem.IsNotEmpty() {
-			message += fmt.Sprintf("mem: %d ~ %d M\n\r", a.Spec.Mem.Min, a.Spec.Mem.Max)
+			message += fmt.Sprintf("mem: %d ~ %d M\n", a.Spec.Mem.Min, a.Spec.Mem.Max)
 		}
 	}
 	message += a.GetDiskMatchInfo()
 	if !a.LocationSpec.IsEmpty() {
-		message += fmt.Sprintf("city: %s \n\r", a.LocationSpec.City)
+		message += fmt.Sprintf("city: %s \n", a.LocationSpec.City)
 		if len(a.LocationSpec.SubZoneIds) > 0 {
 			if a.LocationSpec.IsExclude() {
-				message += fmt.Sprintf("subzoneId 必须不能存在这些园区中: %v", a.LocationSpec.SubZoneIds)
+				message += fmt.Sprintf("subzoneId 必须不能存在这些园区中: %v", translateSubzoneIdToName(a.LocationSpec.SubZoneIds))
 			} else {
-				message += fmt.Sprintf("subzoneId 必须存在一下这些园区中： %v", a.LocationSpec.SubZoneIds)
+				message += fmt.Sprintf("subzoneId 必须存在一下这些园区中： %v", translateSubzoneIdToName(a.LocationSpec.SubZoneIds))
 			}
 		}
 	}
 	switch a.Affinity {
 	case NONE:
-		message += "资源亲和性： NONE\n\r"
+		message += "资源亲和性： NONE\n"
 	case CROS_SUBZONE:
-		message += "资源亲和性： 同城跨园区\n\r"
+		message += "资源亲和性： 同城跨园区\n"
+		if a.Tolerance >= 0 {
+			if a.Tolerance == 0 {
+				message += "容忍度： 0 (所有机器必须跨园区)\n"
+			} else {
+				message += fmt.Sprintf("容忍度： %.2f (每个园区最多不超过总数的%.1f%%)\n", a.Tolerance, a.Tolerance*100)
+			}
+		}
+		if len(a.CurrentHosts) > 0 {
+			message += fmt.Sprintf("当前集群已有机器数： %d\n", len(a.CurrentHosts))
+		}
 	case SAME_SUBZONE:
-		message += "资源亲和性： 同城同园区\n\r"
+		message += "资源亲和性： 同城同园区\n"
+		if a.Tolerance >= 0 {
+			if a.Tolerance == 0 {
+				message += "容忍度： 0 (所有机器必须跨机架)\n"
+			} else {
+				message += fmt.Sprintf("容忍度： %.2f (每个机架最多不超过总数的%.1f%%)\n", a.Tolerance, a.Tolerance*100)
+			}
+		}
+		if len(a.CurrentHosts) > 0 {
+			message += fmt.Sprintf("当前集群已有机器数： %d\n", len(a.CurrentHosts))
+		}
 	case SAME_SUBZONE_CROSS_SWTICH:
-		message += "资源亲和性： 同城同园区 跨交换机跨机架\n\r"
+		message += "资源亲和性： 同城同园区 跨交换机跨机架\n"
+		if a.Tolerance >= 0 {
+			if a.Tolerance == 0 {
+				message += "容忍度： 0 (所有机器必须跨机架)\n"
+			} else {
+				message += fmt.Sprintf("容忍度： %.2f (每个机架最多不超过总数的%.1f%%)\n", a.Tolerance, a.Tolerance*100)
+			}
+		}
+		if len(a.CurrentHosts) > 0 {
+			message += fmt.Sprintf("当前集群已有机器数： %d\n", len(a.CurrentHosts))
+		}
 	}
-	message += fmt.Sprintf("申请总数: %d \n\r", a.Count)
+	message += fmt.Sprintf("申请总数: %d \n", a.Count)
 	return message
+}
+
+// translateSubzoneIdToName 将subzoneId 转换为subzoneName
+func translateSubzoneIdToName(subzoneIds []string) string {
+	subzoneNames := make([]string, 0, len(subzoneIds))
+	for _, subzoneId := range subzoneIds {
+		subzoneName, ok := model.SubzoneIdMap[subzoneId]
+		if !ok {
+			subzoneNames = append(subzoneNames, subzoneId)
+		} else {
+			subzoneNames = append(subzoneNames, subzoneName)
+		}
+	}
+	return strings.Join(subzoneNames, ",")
 }

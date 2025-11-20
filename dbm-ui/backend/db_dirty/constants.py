@@ -9,14 +9,14 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 SWAGGER_TAG = _("主机池")
 
 
-class PoolType(str, StructuredEnum):
+class PoolType(StrStructuredEnum):
     # 池管理：资源池，故障池，待回收池
     Fault = EnumField("fault", _("故障池"))
     Recycle = EnumField("recycle", _("待回收池"))
@@ -26,7 +26,7 @@ class PoolType(str, StructuredEnum):
     Recycled = EnumField("recycled", _("已回收"))
 
 
-class MachineEventType(str, StructuredEnum):
+class MachineEventType(StrStructuredEnum):
     ImportResource = EnumField("import_resource", _("导入资源池"))
     ApplyResource = EnumField("apply_resource", _("申请资源"))
     ReturnResource = EnumField("return_resource", _("退回资源"))

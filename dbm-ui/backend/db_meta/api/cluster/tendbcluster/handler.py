@@ -12,7 +12,7 @@ from typing import List, Optional
 
 from django.db import transaction
 from django.db.models import F
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta import api
@@ -35,7 +35,6 @@ from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_r
 from backend.flow.utils.cc_manage import CcManage
 from backend.flow.utils.mysql.mysql_module_operate import MysqlCCTopoOperator
 from backend.flow.utils.spider.spider_act_dataclass import ShardInfo
-from backend.flow.utils.spider.spider_bk_config import get_spider_version_and_charset
 
 
 class TenDBClusterClusterHandler(ClusterHandler):
@@ -63,6 +62,7 @@ class TenDBClusterClusterHandler(ClusterHandler):
         resource_spec: dict,
         region: str,
         disaster_tolerance_level: str,
+        zone_list: list,
     ):
         """「必须」创建spider集群"""
 
@@ -149,6 +149,7 @@ class TenDBClusterClusterHandler(ClusterHandler):
             creator=creator,
             region=region,
             disaster_tolerance_level=disaster_tolerance_level,
+            zone_list=zone_list,
         )
 
         cc_topo_operator = MysqlCCTopoOperator(cluster)
@@ -175,10 +176,9 @@ class TenDBClusterClusterHandler(ClusterHandler):
         creator: str,
         add_spiders: list,
         spider_role: Optional[TenDBClusterSpiderRole],
-        resource_spec: dict,
         is_slave_cluster_create: bool,
         new_slave_domain: str = None,
-        new_db_module_id: int = 0,
+        global_pkg_id: int = 0,
     ):
         """
         对已有的集群添加spider的元信息
@@ -187,16 +187,12 @@ class TenDBClusterClusterHandler(ClusterHandler):
         @param creator: 提单的用户名称
         @param add_spiders: 待加入的spider机器信息
         @param spider_role: 待加入spider的角色
-        @param resource_spec: 待加入spider的规格
         @param is_slave_cluster_create: 代表这次是否是添加从集群
         @param new_slave_domain: 如果是添加从集群场景，这里代表新的从域名信息
         @param new_db_module_id: new_db_module_id代表新的模块ID，默认为0，代表延用cluster信息的模块ID做依据
+        @param global_pkg_id: global_pkg_id 全局安装包的package ID, 默认为0
         """
         cluster = Cluster.objects.get(id=cluster_id)
-        db_module_id = new_db_module_id if new_db_module_id else cluster.db_module_id
-        spider_charset, spider_version = get_spider_version_and_charset(
-            bk_biz_id=cluster.bk_biz_id, db_module_id=db_module_id
-        )
 
         # 录入机器
         machines = []
@@ -206,8 +202,8 @@ class TenDBClusterClusterHandler(ClusterHandler):
                     "ip": ip_info["ip"],
                     "bk_biz_id": cluster.bk_biz_id,
                     "machine_type": MachineType.SPIDER.value,
-                    "spec_id": resource_spec[MachineType.SPIDER.value]["id"],
-                    "spec_config": resource_spec[MachineType.SPIDER.value],
+                    "spec_id": ip_info["spec"]["id"],
+                    "spec_config": ip_info["spec"],
                 },
             )
         # 录入机器信息
@@ -215,11 +211,9 @@ class TenDBClusterClusterHandler(ClusterHandler):
 
         # 录入机器对应的实例信息
         spiders = []
-        spider_pkg = Package.get_latest_package(
-            version=spider_version, pkg_type=MediumEnum.Spider, db_type=DBType.MySQL
-        )
-
         for ip_info in add_spiders:
+            pkg_id = global_pkg_id if global_pkg_id else ip_info["pkg_id"]
+            spider_pkg = Package.objects.get(id=pkg_id)
             spiders.append(
                 {
                     "ip": ip_info["ip"],
@@ -348,16 +342,19 @@ class TenDBClusterClusterHandler(ClusterHandler):
         """
         查询DRS访问远程数据库的地址，你默认查询remote的db
         """
-        proxy_role = (
-            TenDBClusterSpiderRole.SPIDER_MASTER
-            if role == TenDBBackUpLocation.REMOTE
-            else TenDBClusterSpiderRole.SPIDER_MNT
+        if role == TenDBBackUpLocation.REMOTE:
+            role = TenDBClusterSpiderRole.SPIDER_MASTER
+
+        inst = ProxyInstance.objects.filter(
+            cluster=self.cluster, tendbclusterspiderext__spider_role=role, status=InstanceStatus.RUNNING
         )
-
-        inst = ProxyInstance.objects.filter(cluster=self.cluster, tendbclusterspiderext__spider_role=proxy_role)
         if not inst:
-            raise InstanceNotExistException(_("集群{}不具有该角色「{}」的实例").format(self.cluster.name, proxy_role))
-
+            raise InstanceNotExistException(_("集群{}不具有该角色「{}」的正常实例").format(self.cluster.name, role))
+        if (
+            role == TenDBClusterSpiderRole.SPIDER_SLAVE.value
+            and inst.filter(storageinstance__is_stand_by=True).exists()
+        ):
+            return inst.filter(storageinstance__is_stand_by=True).first().ip_port
         return inst.first().ip_port
 
     @classmethod
@@ -385,10 +382,28 @@ class TenDBClusterClusterHandler(ClusterHandler):
 
             setattr(inst, "shard_id", shard_id)
             remote_infos[inst.instance_role].append(inst)
+            # 如果实例是repeater 把对应的实例添加到new_remote_slave中
+            if inst.instance_inner_role == InstanceInnerRole.REPEATER:
+                # 在迁移的时候，repeater可能还没有和new slave建立联系，此时忽略
+                if not hasattr(inst, "as_ejector") or not inst.as_ejector.first():
+                    continue
+                new_slave = getattr(inst, "as_ejector").first().receiver
+                setattr(new_slave, "shard_id", shard_id)
+                remote_infos["new_remote_slave"].append(new_slave)
+
+        # 即存在new_remote_slave 需移除原remote_slave的实例
+        for new_slave in remote_infos.get("new_remote_slave", []):
+            if new_slave in remote_infos[InstanceRole.REMOTE_SLAVE.value]:
+                remote_infos[InstanceRole.REMOTE_SLAVE.value].remove(new_slave)
 
         # 将-1分片放在最后，优先展示合法分片
         sort_func = lambda x: x.shard_id if x.shard_id >= 0 else float("inf")  # noqa: E731
         master_infos = sorted(remote_infos[InstanceRole.REMOTE_MASTER.value], key=sort_func)
         slave_infos = sorted(remote_infos[InstanceRole.REMOTE_SLAVE.value], key=sort_func)
-
-        return master_infos, slave_infos
+        repeater_infos = []
+        new_slave_infos = []
+        if InstanceRole.REMOTE_REPEATER.value in remote_infos:
+            repeater_infos = sorted(remote_infos[InstanceRole.REMOTE_REPEATER.value], key=sort_func)
+        if "new_remote_slave" in remote_infos:
+            new_slave_infos = sorted(remote_infos["new_remote_slave"], key=sort_func)
+        return master_infos, slave_infos, repeater_infos, new_slave_infos

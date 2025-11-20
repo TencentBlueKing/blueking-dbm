@@ -13,7 +13,7 @@ from collections import defaultdict
 from dataclasses import asdict
 from typing import Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceRole
@@ -75,11 +75,14 @@ class RedisFlushDataFlow(object):
         """
         redis_pipeline = Builder(root_id=self.root_id, data=self.data)
         trans_files = GetFileList(db_type=DBType.Redis)
+        import time
 
+        dateF = time.strftime("%Y%m%d%H", time.localtime(time.time()))
         sub_pipelines = []
         for rule in self.data["rules"]:
             cluster_info = self.__get_cluster_info(self.data["bk_biz_id"], rule["cluster_id"])
             rule["backup_type"] = RedisBackupEnum.NORMAL_BACKUP.value
+            rule["backup_identify"] = "FLUSH{}-{}".format(self.data.get("uid"), dateF)  # 集群清档的备份标识
             cluster = {
                 **rule,
                 **cluster_info["master_redis_map"],

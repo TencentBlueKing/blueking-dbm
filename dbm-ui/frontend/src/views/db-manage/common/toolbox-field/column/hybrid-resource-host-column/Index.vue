@@ -88,35 +88,33 @@
   }
 
   interface Props {
+    bkCloudId?: number;
     field: string; // 绑选项值的vmodel，不绑主机列表
     label: string;
     limit: number;
     minWidth?: number;
-    placeholder?: string;
-    bkCloudId?: number;
-    specIds?: number[];
     params?: ComponentProps<typeof ResourceHostSelector>['params'];
+    placeholder?: string;
+    specIds?: number[];
   }
 
-  interface Emits {
-    (e: 'change', list: IHost[]): void;
-  }
+  type Emits = (e: 'change', list: IHost[]) => void;
 
   const props = withDefaults(defineProps<Props>(), {
-    minWidth: 300,
-    placeholder: '请选择',
     bkCloudId: 0,
-    specIds: () => [],
+    minWidth: 300,
     params: () => ({}),
+    placeholder: '请选择',
+    specIds: () => [],
   });
 
   const emits = defineEmits<Emits>();
 
-  const { t } = useI18n();
-
   const modelValue = defineModel<string>({
     default: '',
   });
+
+  const { t } = useI18n();
 
   const showSelector = ref(false);
   const hostList = ref<IHost[]>([]);
@@ -140,17 +138,17 @@
 
   const rules = [
     {
-      validator: (value: HostSelectType) => Boolean(value),
       message: t('请选择节点类型'),
+      validator: (value: HostSelectType) => Boolean(value),
     },
     {
+      message: t('请选择主机'),
       validator: (value: HostSelectType) => {
         if (value === HostSelectType.AUTO) {
           return true;
         }
         return Boolean(localValue.value);
       },
-      message: t('请选择主机'),
     },
   ];
 

@@ -8,13 +8,22 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework import serializers
 
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder
 from backend.ticket.constants import FlowRetryType, TicketType
+
+
+class QuerySpiderPkgListByCompareVersionSerializer(serializers.Serializer):
+    cluster_id = serializers.IntegerField()
+    higher_major_version = serializers.BooleanField(default=False)
+    higher_sub_version = serializers.BooleanField(default=False)
+
+    class Meta:
+        swagger_schema_fields = {"cluster_id": 123, "higher_major_version": False, "higher_sub_version": False}
 
 
 class QueryPkgListByCompareVersionSerializer(serializers.Serializer):
@@ -67,4 +76,42 @@ class TendbhaAddSlaveDomainSerializer(serializers.Serializer):
             "slave_ip": "1.1.1.1",
             "slave_port": 3306,
             "domain_name": "",
+        }
+
+
+class ChangeClusterSpecSerializer(serializers.Serializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    cluster_type = serializers.ChoiceField(
+        choices=["tendbha", "tendbcluster"], help_text=_("集群类型: tendbha 或 tendbcluster")
+    )
+    spec_id = serializers.IntegerField(help_text=_("规格ID"))
+    machine_type = serializers.CharField(help_text=_("机器类型"))
+
+
+class GetSpiderVersionModulesSerializer(serializers.Serializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    higher_major_version = serializers.BooleanField(default=False, help_text=_("是否查找更高主版本的模块"))
+    higher_sub_version = serializers.BooleanField(default=False, help_text=_("是否查找同大版本但子版本更高的模块"))
+
+    class Meta:
+        swagger_schema_fields = {
+            "cluster_id": 123,
+            "cluster_type": "tendbha",
+            "spec_id": 456,
+            "machine_type": "storage",
+            "higher_major_version": False,
+            "higher_sub_version": False,
+        }
+
+
+class GetStorageVersionModulesSerializer(serializers.Serializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    higher_major_version = serializers.BooleanField(default=False, help_text=_("是否查找更高主版本的模块"))
+    higher_sub_version = serializers.BooleanField(default=False, help_text=_("是否查找同大版本但子版本更高的模块"))
+
+    class Meta:
+        swagger_schema_fields = {
+            "cluster_id": 96,
+            "higher_major_version": True,
+            "higher_sub_version": False,
         }

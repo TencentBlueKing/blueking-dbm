@@ -1,17 +1,34 @@
 <template>
-  <DbNameColumn
-    v-model="modelValue"
-    :disabled="(checkExist || checkNotExist) && !clusterId"
+  <EditableColumn
+    :append-rules="localRules"
+    :disabled-method="disabledMethod"
     :field="field"
     :label="label"
-    :placeholder="t('请输入DB 名称，支持通配符“%”，含通配符的仅支持单个')"
-    :required="required"
-    :rules="rules"
-    :show-batch-edit="showBatchEdit"
-    :single="single"
-    @batch-edit="handleBatchEdit"
-    @change="handleChange">
-    <template #tip>
+    :min-width="200"
+    :required="required">
+    <template #headAppend>
+      <div style="display: flex">
+        <slot name="tooltip" />
+        <BatchEditColumn
+          v-if="showBatchEdit"
+          :confirm-handler="handleBatchEditConfirm"
+          :label="label">
+          <BatchEditTagInput v-model="batchEditValue" />
+        </BatchEditColumn>
+      </div>
+    </template>
+    <EditableTagInput
+      v-model="modelValue"
+      allow-auto-match
+      allow-create
+      clearable
+      :disabled="disabled"
+      has-delete-icon
+      :max-data="single ? 1 : -1"
+      :paste-fn="tagInputPasteFn"
+      :placeholder="t('请输入DB 名称，支持通配符“%”，含通配符的仅支持单个')"
+      @change="handleChange" />
+    <template #tips>
       <div class="db-table-tag-tip">
         <div style="font-weight: 700">{{ t('库表输入说明') }}：</div>
         <div>
@@ -36,30 +53,39 @@
         </div>
       </div>
     </template>
-  </DbNameColumn>
+  </EditableColumn>
 </template>
 
 <script setup lang="ts">
   import _ from 'lodash';
+  import type { VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { checkClusterDatabase } from '@services/source/dbbase';
 
-  import DbNameColumn from '@views/db-manage/common/toolbox-field/column/db-table-name-column/Index.vue';
+  import { batchSplitRegex } from '@common/regex';
+
+  import BatchEditColumn, { BatchEditTagInput } from '@views/db-manage/common/batch-edit-column-new/Index.vue';
 
   interface Props {
     allowAsterisk?: boolean;
     checkExist?: boolean;
     checkNotExist?: boolean;
     clusterId?: number;
+    disabled?: boolean;
     field: string;
     label: string;
     required?: boolean;
     showBatchEdit?: boolean;
     single?: boolean;
+    validateMaster?: boolean;
   }
 
   type Emits = (e: 'batch-edit', value: string[], field: string) => void;
+
+  interface Slots {
+    tooltip?: () => VNode;
+  }
 
   const props = withDefaults(defineProps<Props>(), {
     allowAsterisk: true,
@@ -72,8 +98,10 @@
     required: true,
     showBatchEdit: true,
     single: false,
+    validateMaster: true,
   });
   const emits = defineEmits<Emits>();
+  defineSlots<Slots>();
 
   const modelValue = defineModel<string[]>({
     required: true,
@@ -83,9 +111,11 @@
 
   let isInit = true;
 
-  const systemDbNames = ['master', 'msdb', 'model', 'tempdb', 'Monitor'];
+  const batchEditValue = ref<string[]>([]);
 
-  const rules = [
+  const systemDbNames = ['msdb', 'model', 'tempdb', 'Monitor'].concat(props.validateMaster ? ['master'] : []);
+
+  const localRules = [
     {
       message: t('DB 名不能为空'),
       trigger: 'change',
@@ -100,6 +130,16 @@
       message: t('不允许输入系统库和特殊库 n', { n: systemDbNames.join(',') }),
       trigger: 'change',
       validator: (value: string[]) => _.every(value, (item) => !systemDbNames.includes(item)),
+    },
+    {
+      message: t('有 master 时只允许一个'),
+      trigger: 'change',
+      validator: (value: string[]) => {
+        if (!props.validateMaster) {
+          return true;
+        }
+        return !(value.includes('master') && value.length > 1);
+      },
     },
     {
       message: t('* 只能独立使用'),
@@ -212,9 +252,18 @@
     },
   );
 
-  const handleBatchEdit = (value: string[]) => {
+  const disabledMethod = () => {
+    if (!props.checkExist || !props.checkNotExist) {
+      return false;
+    }
+    return props.clusterId ? false : t('请先选择集群');
+  };
+
+  const tagInputPasteFn = (value: string) => value.split(batchSplitRegex).map((item) => ({ id: item }));
+
+  const handleBatchEditConfirm = () => {
     isInit = false;
-    emits('batch-edit', value, props.field);
+    emits('batch-edit', batchEditValue.value, props.field);
   };
 
   const handleChange = () => {

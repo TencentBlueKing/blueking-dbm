@@ -87,10 +87,14 @@ type Public struct {
 	// issue lock to mysqld: default 10s
 	//  lock-ddl-timeout(xtrabackup57), backup-lock-timeout(xtrabackup80) --lock-wait-timeout(mydumper)
 	AcquireLockWaitTimeout int `ini:"AcquireLockWaitTimeout"`
-	// IsFullBackup 1: true, -1: false, 0: auto
-	// 这个选项默认 0 代表会自动根据备份方式+备份对象 来决定是否将备份上报为全备
+	// IsFullBackup yes: true, no: false, empty or auto: 自动判断
+	// 这个选项默认 empty 代表会自动根据备份方式+备份对象 来决定是否将备份上报为全备
 	// 某些情况只需要表结构，可以设置此选项强制上报为全备
-	IsFullBackup int `ini:"IsFullBackup"`
+	IsFullBackup string `ini:"IsFullBackup"`
+	// SkipTarball 跳过打包步骤
+	// 跳过打包意味着保持备份完后的目录，会自动禁用 backup_client(目前 backup_client不支持上传目录)
+	// 一般用于测试用途，可以将目录手动拷贝到远程进行恢复
+	SkipTarball bool `ini:"SkipTarball"`
 
 	cnfFilename string
 	targetName  string
@@ -162,3 +166,16 @@ func (c *Public) TargetName() string {
 func (c *Public) SetTargetName(targetName string) {
 	c.targetName = targetName
 }
+
+const (
+	// BackupFullByRegular 例行全备
+	BackupFullByRegular = "full_by_regular"
+	// BackupNonFullByRegular 例行非全备,data_grant_schema != 'all' or data_grant_schema != "data,schema")
+	BackupNonFullByRegular = "non_full_by_regular"
+	// BackupFullByTicket 单据全库备份
+	BackupFullByTicket = "full_by_ticket"
+	// BackupFullWithNodata 只备份表结构，但当做 full backup。用于只做结构迁移的同步
+	BackupFullWithNodata = "full_with_nodata"
+	// BackupPartialByTicket 单据库表备份
+	BackupPartialByTicket = "partial_by_ticket"
+)

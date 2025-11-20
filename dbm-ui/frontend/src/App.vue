@@ -10,6 +10,7 @@
       <LocaleSwitch />
       <BkPopover
         placement="bottom"
+        :popover-delay="[200, 0]"
         theme="light top-action-menu-theme"
         @after-hidden="isShowHelp = false"
         @after-show="isShowHelp = true">
@@ -31,6 +32,7 @@
       </BkPopover>
       <BkPopover
         placement="bottom"
+        :popover-delay="[200, 0]"
         theme="light top-action-menu-theme"
         @after-hidden="isShowLogout = false"
         @after-show="isShowLogout = true">
@@ -58,6 +60,7 @@
     <DbRouterView style="height: 100%" />
   </Layout>
   <SystemVersionLog v-model:is-show="isShowSystemVersionLog" />
+  <AIBlueking />
 </template>
 <script setup lang="ts">
   import InfoBox from 'bkui-vue/lib/info-box';
@@ -73,6 +76,7 @@
 
   import { useSystemEnviron, useUserProfile } from '@stores';
 
+  import AIBlueking from '@components/ai-blueking/Index.vue';
   import DbRouterView from '@components/db-router-view/Index.vue';
   import LocaleSwitch from '@components/locale-switch/Index.vue';
   import RouterBack from '@components/router-back/Index.vue';
@@ -103,7 +107,7 @@
   watch(
     locale,
     () => {
-      document.title = documentTitles[locale.value];
+      document.title = documentTitles[locale.value]!;
     },
     { immediate: true },
   );

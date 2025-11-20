@@ -62,6 +62,13 @@ export function getSingleClusterTopoGraph(params: { cluster_id: number }) {
  * 导出数据为 excel 文件
  */
 export function exportSqlServerSingleClusterToExcel(params: { bk_host_ids?: number[] }) {
+  return http.post<string>(`${getPath()}/export_cluster/`, params, { responseType: 'blob' });
+}
+
+/**
+ * 导出数据为 excel 文件
+ */
+export function exportSqlServerSingleInstanceToExcel(params: { bk_host_ids?: number[] }) {
   return http.post<string>(`${getPath()}/export_instance/`, params, { responseType: 'blob' });
 }
 

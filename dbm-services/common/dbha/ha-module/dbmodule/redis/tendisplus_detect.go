@@ -28,7 +28,7 @@ func (ins *TendisplusDetectInstance) Detection() error {
 	}
 
 	if err != nil {
-		log.Logger.Errorf("tendisplus detect failed. %s#%d|%s:%s %+v", ins.Ip, ins.Port, ins.GetDBType(), ins.Pass, err)
+		log.Logger.Errorf("tendisplus detect failed. %s#%d|%s:*** %+v", ins.Ip, ins.Port, ins.GetDBType(), err)
 		if ins.Status == constvar.RedisAuthFailed {
 			return err
 		}

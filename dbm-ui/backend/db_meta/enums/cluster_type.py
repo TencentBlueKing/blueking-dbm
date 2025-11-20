@@ -13,10 +13,10 @@ from typing import Dict, List
 from django.utils.translation import gettext_lazy as _
 
 from backend.configuration.constants import DBType
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
-class ClusterType(str, StructuredEnum):
+class ClusterType(StrStructuredEnum):
     TenDBSingle = EnumField("tendbsingle", _("MySQL单节点集群"))
     TenDBHA = EnumField("tendbha", _("MySQL高可用集群"))
     TenDBCluster = EnumField("tendbcluster", _("TendbCluster集群"))
@@ -56,7 +56,15 @@ class ClusterType(str, StructuredEnum):
     Riak = EnumField("riak", _("Riak集群"))
     SqlserverSingle = EnumField("sqlserver_single", _("sqlserver单节点版"))
     SqlserverHA = EnumField("sqlserver_ha", _("sqlserver主从版"))
+
     OraclePrimaryStandby = EnumField("oracle_primary_standby", _("oracle主从版"))
+    OracleSingleNone = EnumField("oracle_single_none", _("oracle单节点版"))
+
+    # k8s集群
+    K8sSurreal = EnumField("k8s_surreal", _("k8s surrealdb集群"))
+    K8sVM = EnumField("k8s_vm", _("k8s Victoria metrics集群"))
+    K8sRW = EnumField("k8s_rw", _("k8s Risingwave集群"))
+    K8sMV = EnumField("k8s_mv", _("k8s Milvus集群"))
 
     @classmethod
     def db_type_cluster_types_map(cls) -> Dict[str, List]:
@@ -92,7 +100,7 @@ class ClusterType(str, StructuredEnum):
             DBType.Sqlserver.value: [cls.SqlserverHA, cls.SqlserverSingle],
             DBType.Doris.value: [cls.Doris],
             DBType.Vm.value: [cls.Vm],
-            DBType.Oracle.value: [cls.OraclePrimaryStandby],
+            DBType.Oracle.value: [cls.OraclePrimaryStandby, cls.OracleSingleNone],
         }
 
     @classmethod
@@ -129,4 +137,30 @@ class ClusterType(str, StructuredEnum):
     @classmethod
     def is_mongodb(cls, cluster_type: str):
         """is_mongodb 判断是否为Mongo集群类型"""
-        return cluster_type in [cls.MongoShardedCluster.value, cls.MongoReplicaSet.value]
+        return cluster_type in cls.db_type_cluster_types_map()[DBType.MongoDB.value]
+
+    @classmethod
+    def is_redis_cluster_type(cls, cluster_type: str):
+        """is_redis 判断是否为Redis集群类型"""
+        return cluster_type in cls.db_type_cluster_types_map()[DBType.Redis.value]
+
+    @classmethod
+    def is_ssd_redis(cls, cluster_type: str):
+        """is_ssd_redis 判断是否为SSD Redis集群类型. 关键字为SSD,TendisPlus"""
+        return cluster_type in [
+            cls.TwemproxyTendisSSDInstance.value,
+            cls.TendisTendisSSDInstance.value,
+            cls.TendisPredixyTendisplusCluster.value,
+            cls.TendisTwemproxyTendisplusIns.value,
+        ]
+
+    @classmethod
+    def is_memory_redis(cls, cluster_type: str):
+        """is_memory_redis 判断是否为内存Redis集群类型"""
+        return cluster_type in [
+            cls.TendisTwemproxyRedisInstance.value,
+            cls.RedisInstance.value,
+            cls.TendisPredixyRedisCluster.value,
+            cls.TendisRedisInstance.value,
+            cls.TendisRedisCluster.value,
+        ]

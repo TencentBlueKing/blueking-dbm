@@ -172,7 +172,7 @@ func IsExecAll(mode os.FileMode) bool {
 
 // LocalDirChownMysql 改变localDir的属主为mysql
 func LocalDirChownMysql(localDir string) (err error) {
-	cmd := fmt.Sprintf("chown -R %s.%s %s", consts.MysqlAaccount, consts.MysqlGroup, localDir)
+	cmd := fmt.Sprintf("chown -R %s:%s %s", consts.MysqlAaccount, consts.MysqlGroup, localDir)
 	_, err = RunBashCmd(cmd, "", nil, 1*time.Hour)
 	return
 }
@@ -220,4 +220,22 @@ func GetFileSize(filename string) (size int64, err error) {
 		return
 	}
 	return fileInfo.Size(), nil
+}
+
+// GetDirSize 获取目录大小(单位byte)
+func GetDirSize(dirPath string) (size int64, err error) {
+	err = filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			size += info.Size()
+		}
+		return nil
+	})
+	if err != nil {
+		err = fmt.Errorf("dir:%s filepath.Walk fail,err:%v", dirPath, err)
+		return
+	}
+	return size, nil
 }

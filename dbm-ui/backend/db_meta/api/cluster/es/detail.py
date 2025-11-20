@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext as _
 
 from backend.db_meta.api.cluster.base.graph import Graphic, LineLabel
+from backend.db_meta.api.common import get_clb_topo
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster
 
@@ -37,14 +38,13 @@ def scan_cluster(cluster: Cluster) -> Graphic:
     cold_insts, cold_node_group = graph.add_instance_nodes(
         cluster=cluster, roles=InstanceRole.ES_DATANODE_COLD, group_name=_("冷节点")
     )
-    entry = cluster.clusterentry_set.first()
+    all_entry = cluster.clusterentry_set.all()
 
     if client_group:
         hub_group = client_group
-        # 获得访问入口节点组
-        _dummy, entry_group = graph.add_node(entry)
         # 访问入口 ---> Client节点，关系为：访问
-        graph.add_line(source=entry_group, target=client_group, label=LineLabel.Bind)
+        graph = get_clb_topo(graph, all_entry, client_group)
+
         # Client节点 ---> Master/冷/热节点，关系为：访问
         graph.add_line(source=client_group, target=master_group, label=LineLabel.Access)
         if hot_node_group:
@@ -52,9 +52,8 @@ def scan_cluster(cluster: Cluster) -> Graphic:
         if cold_node_group:
             graph.add_line(source=client_group, target=cold_node_group, label=LineLabel.Access)
     elif hot_node_group:
-        _dummy, entry_group = graph.add_node(entry)
         hub_group = hot_node_group
-        graph.add_line(source=entry_group, target=hot_node_group, label=LineLabel.Bind)
+        graph = get_clb_topo(graph, all_entry, hot_node_group)
         graph.add_line(source=hot_node_group, target=master_group, label=LineLabel.Access)
     else:
         hub_group = master_group

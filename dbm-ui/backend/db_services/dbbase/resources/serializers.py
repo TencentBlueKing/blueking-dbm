@@ -25,7 +25,7 @@ from backend.flow.consts import SqlserverSyncMode
 
 
 class ListResourceSLZ(serializers.Serializer):
-    id = serializers.IntegerField(required=False)
+    id = serializers.CharField(required=False)
     name = serializers.CharField(required=False)
     instance = serializers.CharField(required=False)
     domain = serializers.CharField(required=False)
@@ -33,6 +33,7 @@ class ListResourceSLZ(serializers.Serializer):
     major_version = serializers.CharField(required=False)
     region = serializers.CharField(required=False)
     city = serializers.CharField(required=False)
+    disaster_tolerance_level = serializers.CharField(required=False)
     cluster_ids = serializers.CharField(help_text=_("集群ID(多个过滤以逗号分隔)"), required=False)
     exact_domain = serializers.CharField(help_text=_("精确域名查询"), required=False)
     status = serializers.CharField(required=False, help_text=_("状态"))
@@ -42,6 +43,8 @@ class ListResourceSLZ(serializers.Serializer):
     ordering = serializers.CharField(required=False, help_text=_("排序字段,非必填"))
     tag_ids = serializers.CharField(required=False, help_text=_("标签"))
     tag_keys = serializers.CharField(required=False, help_text=_("标签键"))
+    create_at__gte = serializers.DateTimeField(required=False, help_text=_("创建时间"))
+    create_at__lte = serializers.DateTimeField(required=False, help_text=_("创建时间"))
 
 
 class ListMySQLResourceSLZ(ListResourceSLZ):
@@ -54,7 +57,7 @@ class ListTendbClusterResourceSLZ(ListMySQLResourceSLZ):
 
 
 class ListRedisResourceSLZ(ListResourceSLZ):
-    pass
+    redis_cluster_type = serializers.CharField(help_text=_("集群架构"), required=False)
 
 
 class ListSQLServerResourceSLZ(ListResourceSLZ):
@@ -80,8 +83,13 @@ class SearchResourceTreeSLZ(serializers.Serializer):
 
 class InstanceAddressSerializer(serializers.Serializer):
     instance = serializers.CharField(help_text=_("实例地址(ip:port)"), required=False)
+    instance_address = serializers.CharField(help_text=_("实例地址(ip:port-兼容字段)"), required=False)
     ip = serializers.CharField(help_text=_("IP"), required=False)
     port = serializers.CharField(help_text=_("端口"), required=False)
+
+    def to_internal_value(self, data):
+        data["instance"] = data.get("instance") or data.get("instance_address", "")
+        return super().to_internal_value(data)
 
 
 class ListInstancesSerializer(InstanceAddressSerializer):
@@ -95,6 +103,10 @@ class ListInstancesSerializer(InstanceAddressSerializer):
     name = serializers.CharField(help_text=_("名称"), required=False)
     version = serializers.CharField(help_text=_("版本"), required=False)
     extra = serializers.IntegerField(help_text=_("额外信息"), required=False)
+    # spider额外参数
+    spider_ctl = serializers.BooleanField(help_text=_("中控节点"), required=False)
+    # 额外过滤角色参数
+    role_exclude = serializers.CharField(help_text=_("需要过滤的角色"), required=False)
 
 
 class SqlserverListInstanceSerializer(ListInstancesSerializer):
@@ -131,6 +143,8 @@ class ListMachineSLZ(serializers.Serializer):
     instance_status = serializers.ChoiceField(
         help_text=_("集群状态"), choices=InstanceStatus.get_choices(), required=False
     )
+    spec_ids = serializers.CharField(help_text=_("规格ID(多个过滤以逗号分隔)"), required=False)
+    spec_names = serializers.CharField(help_text=_("规格名称(多个过滤以逗号分隔)"), required=False)
     creator = serializers.CharField(help_text=_("创建者"), required=False)
 
 

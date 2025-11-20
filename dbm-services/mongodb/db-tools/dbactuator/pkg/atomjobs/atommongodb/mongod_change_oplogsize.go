@@ -318,7 +318,7 @@ db.temp.drop();`
 	}
 	// 修改配置文件属主
 	if _, err = util.RunBashCmd(
-		fmt.Sprintf("chown -R %s.%s %s", c.OsUser, c.OsGroup, c.ScriptDir),
+		fmt.Sprintf("chown -R %s:%s %s", c.OsUser, c.OsGroup, c.ScriptDir),
 		"", nil,
 		60*time.Second); err != nil {
 		c.runtime.Logger.Error("chown script file fail, error:%s", err)
@@ -355,7 +355,7 @@ func (c *MongoDChangeOplogSize) standaloneStart() error {
 	}
 	// 检查是否启动成功
 	flag, _, err := common.CheckMongoService(c.NewPort)
-	if err != nil || flag == false {
+	if err != nil || !flag {
 		c.runtime.Logger.Error("check mongod fail by port:%d fail, error:%s", c.NewPort, err)
 		return fmt.Errorf("check mongod fail by port:%d fail, error:%s", c.NewPort, err)
 	}
@@ -375,7 +375,7 @@ func (c *MongoDChangeOplogSize) normalStart() error {
 	}
 	// 检查是否启动成功
 	flag, _, err := common.CheckMongoService(c.NewPort)
-	if err != nil || flag == false {
+	if err != nil || !flag {
 		c.runtime.Logger.Error("check mongod fail about port:%d fail, error:%s", c.ConfParams.Port, err)
 		return fmt.Errorf("check mongod fail about port:%d fail, error:%s", c.ConfParams.Port, err)
 	}

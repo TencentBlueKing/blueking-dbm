@@ -22,6 +22,7 @@ export default class RedisMachine {
   bk_sub_zone: string;
   bk_svr_device_cls_name: string;
   cluster_type: string;
+  cluster_type_name: string;
   create_at: string;
   host_info: HostInfo;
   instance_role: string;
@@ -31,6 +32,7 @@ export default class RedisMachine {
   related_instances: MachineRelatedInstance[];
   spec_config: MachineSpecConfig;
   spec_id: number;
+  spec_name: string;
 
   constructor(payload = {} as RedisMachine) {
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -41,6 +43,7 @@ export default class RedisMachine {
     this.bk_sub_zone = payload.bk_sub_zone;
     this.bk_svr_device_cls_name = payload.bk_svr_device_cls_name;
     this.cluster_type = payload.cluster_type;
+    this.cluster_type_name = payload.cluster_type_name;
     this.create_at = payload.create_at;
     this.host_info = payload.host_info;
     this.instance_role = payload.instance_role;
@@ -48,6 +51,7 @@ export default class RedisMachine {
     this.machine_type = payload.machine_type;
     this.related_clusters = payload.related_clusters;
     this.related_instances = payload.related_instances;
+    this.spec_name = payload.spec_name;
     this.spec_config = payload.spec_config;
     this.spec_id = payload.spec_id;
   }

@@ -20,14 +20,14 @@ export interface CheckSum extends DetailBase {
       bk_cloud_id: number;
       bk_host_id: number;
       ip: string;
-      port?: number;
+      port: number;
     };
     slaves: {
       bk_biz_id: number;
       bk_cloud_id: number;
       bk_host_id: number;
       ip: string;
-      port?: number;
+      port: number;
     }[];
     table_patterns: string[];
   }[];

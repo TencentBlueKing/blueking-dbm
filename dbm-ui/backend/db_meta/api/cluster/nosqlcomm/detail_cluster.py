@@ -12,8 +12,9 @@ import logging
 
 from django.utils.translation import gettext as _
 
-from backend.db_meta.api.cluster.base.graph import Graphic, Group, GroupNameType, LineLabel
-from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, InstanceInnerRole
+from backend.db_meta.api.cluster.base.graph import Graphic, Group, LineLabel
+from backend.db_meta.api.common import get_clb_topo
+from backend.db_meta.enums import ClusterEntryRole, InstanceInnerRole
 from backend.db_meta.models import Cluster, StorageInstanceTuple
 
 logger = logging.getLogger("root")
@@ -51,47 +52,11 @@ def scan_cluster(cluster: Cluster) -> Graphic:
     master_backend_instance_grp = graph.get_or_create_group(*Group.generate_group_info(master_backend_instance))
     graph.add_line(source=proxy_instance_group, target=master_backend_instance_grp, label=LineLabel.Access)
 
-    # 主访问入口
-    clb_entry_group = None
-    master_entry_group = Group(node_id="master_entry_group", group_name=_("访问入口（{}）"))
-    master_entry_names = []
     # redis的集群要获取master和proxy的entry作为访问入口
     master_proxy_entry = cluster.clusterentry_set.filter(
         role__in=[ClusterEntryRole.MASTER_ENTRY.value, ClusterEntryRole.PROXY_ENTRY.value]
     ).all()
-    if master_proxy_entry.filter(cluster__clusterentry__cluster_entry_type=ClusterEntryType.CLB).exists():
-        clb_entry_group = Group(node_id="clb_entry_group", group_name=_("访问入口（CLB IP）"))
-    for entry in master_proxy_entry:
-        # clb肯定指向proxy
-        if entry.cluster_entry_type == ClusterEntryType.CLB:
-            dummy_be_node, clb_entry_group = graph.add_node(entry, to_group=clb_entry_group)
-            graph.add_line(source=clb_entry_group, target=proxy_instance_group, label=LineLabel.Forward)
-
-        # clbDNS肯定指向clb
-        elif entry.cluster_entry_type == ClusterEntryType.CLBDNS:
-            clb_dns_entry_group = Group(node_id="clb_dns_entry_group", group_name=_("访问入口（CLB域名）"))
-            dummy_be_node, clb_dns_entry_group = graph.add_node(entry, to_group=clb_dns_entry_group)
-            graph.add_line(source=clb_dns_entry_group, target=clb_entry_group, label=LineLabel.Bind)
-
-        # dns默认指向proxy 指向clb之后不再指向proxy
-        elif entry.cluster_entry_type == ClusterEntryType.DNS:
-            if entry.forward_to:
-                dns_entry_group = Group(node_id="dns_entry_group", group_name=_("访问入口（主域名）"))
-                dummy_be_node, dns_entry_group = graph.add_node(entry, to_group=dns_entry_group)
-                graph.add_line(source=dns_entry_group, target=clb_entry_group, label=LineLabel.Bind)
-
-            else:
-                dummy_be_node, master_entry_group = graph.add_node(entry, to_group=master_entry_group)
-                graph.add_line(source=master_entry_group, target=proxy_instance_group, label=LineLabel.Bind)
-                master_entry_names.append(str(GroupNameType.get_choice_label(GroupNameType.DNS.value)))
-
-        # 北极星目前只指向proxy
-        else:
-            dummy_be_node, master_entry_group = graph.add_node(entry, to_group=master_entry_group)
-            graph.add_line(source=master_entry_group, target=proxy_instance_group, label=LineLabel.Bind)
-            master_entry_names.append(str(GroupNameType.get_choice_label(GroupNameType.POLARIS.value)))
-
-    master_entry_group.group_name = master_entry_group.group_name.format("、".join(master_entry_names))
+    graph = get_clb_topo(graph, master_proxy_entry, proxy_instance_group)
 
     # 存储层访问入口
     nodes_bind_entry_group = Group(node_id="nodes_bind_entry_group", group_name=_("存储层访问入口"))

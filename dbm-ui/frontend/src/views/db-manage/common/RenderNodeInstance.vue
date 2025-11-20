@@ -76,12 +76,12 @@
       @closed="handleHideMore">
       <div class="action-box">
         <BkButton
-          class="mr8"
+          class="mr-8"
           @click="handleCopyAbnormal">
           {{ t('复制异常实例') }}
         </BkButton>
         <BkButton
-          class="mr8"
+          class="mr-8"
           @click="handleCopyListAll">
           {{ t('复制全部实例') }}
         </BkButton>

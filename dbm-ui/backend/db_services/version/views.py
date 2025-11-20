@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -29,7 +29,7 @@ class VersionViewSet(viewsets.SystemViewSet):
         operation_summary=_("查询所有数据库的版本列表"),
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["GET"], detail=False, serializer_class=None, pagination_class=None)
+    @action(methods=["GET"], detail=False, pagination_class=None)
     def cluster_type_to_versions(self, requests, *args, **kwargs):
         return Response(
             {cluster_type: query_versions_by_key(cluster_type) for cluster_type in ClusterType.get_values()}

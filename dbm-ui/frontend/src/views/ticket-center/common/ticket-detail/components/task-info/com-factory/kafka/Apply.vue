@@ -26,6 +26,9 @@
     <InfoItem :label="t('集群别名')">
       {{ ticketDetails.details.cluster_alias || '--' }}
     </InfoItem>
+    <InfoItem :label="t('管控区域')">
+      {{ ticketDetails.details.bk_cloud_name || '--' }}
+    </InfoItem>
   </InfoList>
   <RegionRequirements :details="ticketDetails.details" />
   <div class="info-title mt-20">{{ t('部署需求') }}</div>
@@ -35,35 +38,29 @@
     </InfoItem>
     <template v-if="isFromResourcePool">
       <InfoItem :label="t('Broker节点规格')">
-        <BkPopover
+        <SpecDetailPopover
           v-if="brokerSpec"
-          placement="top"
-          theme="light">
+          :data="brokerSpec"
+          placement="top">
           <span
             class="pb-2"
             style="cursor: pointer; border-bottom: 1px dashed #979ba5">
             {{ brokerSpec.spec_name }}（{{ `${brokerSpec.count} ${t('台')}` }}）
           </span>
-          <template #content>
-            <SpecInfos :data="brokerSpec" />
-          </template>
-        </BkPopover>
+        </SpecDetailPopover>
         <span v-else>--</span>
       </InfoItem>
       <InfoItem :label="t('Zookeeper节点规格')">
-        <BkPopover
+        <SpecDetailPopover
           v-if="zookeeperSpec"
-          placement="top"
-          theme="light">
+          :data="zookeeperSpec"
+          placement="top">
           <span
             class="pb-2"
             style="cursor: pointer; border-bottom: 1px dashed #979ba5">
             {{ zookeeperSpec.spec_name }}（{{ `${zookeeperSpec.count} ${t('台')}` }}）
           </span>
-          <template #content>
-            <SpecInfos :data="zookeeperSpec" />
-          </template>
-        </BkPopover>
+        </SpecDetailPopover>
         <span v-else>--</span>
       </InfoItem>
     </template>
@@ -136,12 +133,12 @@
   import { TicketTypes } from '@common/const';
 
   import HostPreview from '@components/host-preview/HostPreview.vue';
+  import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
   import { firstLetterToUpper } from '@utils';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
-  import SpecInfos from '../components/SpecInfos.vue';
 
   interface Props {
     ticketDetails: TicketModel<Kafka.Apply>;
@@ -160,7 +157,7 @@
   const brokerSpec = props.ticketDetails?.details?.resource_spec?.broker || {};
 
   const { count, storage_spec: storageSpec = [] } = brokerSpec;
-  const disk = storageSpec.reduce((total: number, item: { size: number }) => total + Number(item.size || 0), 0);
+  const disk = storageSpec.reduce((total: number, item: { min: number }) => total + Number(item.min || 0), 0);
   const totalCapacity = disk * count;
 
   /**

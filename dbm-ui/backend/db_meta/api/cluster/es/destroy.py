@@ -37,6 +37,8 @@ def destroy(cluster_id: int):
             storage.machine.delete(keep_parents=True)
 
     # 删除entry
+    for ce in ClusterEntry.objects.filter(cluster=cluster, forward_to_id__isnull=False).all():
+        ce.delete(keep_parents=True)
     for ce in ClusterEntry.objects.filter(cluster=cluster).all():
         ce.delete(keep_parents=True)
 

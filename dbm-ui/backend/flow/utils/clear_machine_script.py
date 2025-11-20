@@ -53,6 +53,10 @@ if [ -d "/data1" ]; then
     rm -rf /data1/dbha/
 fi
 echo "rm data1-dir completed"
+
+echo "rm /etc/my.cnf* ...."
+rm -f /etc/my.cnf*
+echo "rm /etc/my.cnf* completed"
 """
 
 sqlserver_clear_machine_script = """

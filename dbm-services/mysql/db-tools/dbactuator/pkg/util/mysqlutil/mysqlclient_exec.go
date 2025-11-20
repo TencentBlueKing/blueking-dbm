@@ -108,6 +108,7 @@ func (e ExecuteSqlAtLocal) ExecuteSqlByMySQLClientOne(sqlfile string, db string,
 	command := e.CreateLoadSQLCommand()
 	command = command + " " + db + "<" + path.Join(e.WorkDir, sqlfile)
 	e.ErrFile = path.Join(e.WorkDir, fmt.Sprintf("%s.%s.err", sqlfile, db)) // 删除原有的时间戳方便调用方拼接
+	logger.Info("Run sql file %s", mysqlcomm.ClearSensitiveInformation(command))
 	err = e.ExecuteCommand(command, report)
 	if err != nil {
 		return err

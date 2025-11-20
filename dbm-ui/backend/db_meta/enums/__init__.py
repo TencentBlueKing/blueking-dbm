@@ -34,3 +34,4 @@ from .type_maps import (
     MachineTypeInstanceRoleMap,
     machine_type_to_cluster_type,
 )
+from .version_phase import VersionPhase

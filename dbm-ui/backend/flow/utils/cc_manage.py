@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import copy
 import json
 import logging
 from collections import defaultdict
@@ -15,15 +16,18 @@ from typing import Any, Dict, List
 
 from blueapps.core.celery.celery import app
 from django.db import transaction
+from django.db.models import Q
 
 from backend import env
 from backend.components import BKLogApi, BKMonitorV3Api, CCApi
+from backend.configuration.constants import DBType
 from backend.configuration.models import BizSettings, DBAdministrator
 from backend.db_meta.enums import ClusterType, ClusterTypeMachineTypeDefine
 from backend.db_meta.models import AppMonitorTopo, Cluster, ClusterMonitorTopo, Machine, ProxyInstance, StorageInstance
 from backend.db_meta.models.cluster_monitor import (
     INSTANCE_BKLOG_PLUGINS,
     INSTANCE_MONITOR_PLUGINS,
+    SERVICE_INSTANCE_BKLOG_PLUGINS,
     get_monitor_set_name,
 )
 from backend.db_monitor.models import CollectInstance, MonitorPolicy
@@ -32,6 +36,7 @@ from backend.db_services.cmdb.biz import (
     get_or_create_cmdb_module_with_name,
     get_or_create_pending_module,
     get_or_create_set_with_name,
+    get_resource_biz,
 )
 from backend.db_services.ipchooser.constants import IDLE_HOST_MODULE
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
@@ -394,19 +399,33 @@ class CcManage(object):
         bk_host_ids = list(set(bk_host_ids))
         self.operate_host_collectors(bk_host_ids, OperateCollectorActionEnum.UNINSTALL.value)
 
-        # 转移机器到待回收
-        CCApi.transfer_host_to_recyclemodule(
-            params={"bk_biz_id": self.hosting_biz_id, "bk_host_id": bk_host_ids}, use_admin=True
-        )
         # 如果非独立管控业务，则将主机转移到自定义的pending模块
+        # 独立业务则转移机器到待回收
         if self.hosting_biz_id == env.DBA_APP_BK_BIZ_ID:
-            pending_module = [get_or_create_pending_module()]
-            CCApi.transfer_host_module(
-                {"bk_biz_id": self.hosting_biz_id, "bk_host_id": bk_host_ids, "bk_module_id": pending_module},
-                use_admin=True,
-            )
+            self.recycle_host_pending_module(bk_host_ids)
+        else:
+            params = {"bk_biz_id": self.hosting_biz_id, "bk_host_id": bk_host_ids}
+            CCApi.transfer_host_to_recyclemodule(params=params, use_admin=True)
 
         self.update_host_properties(bk_host_ids, need_monitor=False, dbm_meta=[])
+
+    def recycle_host_pending_module(self, bk_host_ids: list):
+        """
+        将主机转移到资源业务的pending模块，用于机器下架的暂存
+        独立管控业务此方法不生效
+        """
+        if self.hosting_biz_id != env.DBA_APP_BK_BIZ_ID:
+            return
+
+        resource_biz, pending_module = get_resource_biz(), get_or_create_pending_module()
+        # 如果资源业务和DBA业务不相同，则先转移到资源业务空闲机
+        if resource_biz != self.hosting_biz_id:
+            self.transfer_host_to_idlemodule_across_biz(resource_biz, bk_host_ids)
+
+        CCApi.transfer_host_module(
+            {"bk_biz_id": resource_biz, "bk_host_id": bk_host_ids, "bk_module_id": [pending_module]},
+            use_admin=True,
+        )
 
     def add_service_instance(
         self,
@@ -589,27 +608,36 @@ def parser_operate_collector_cache_key(cache_key: str):
 
 
 @app.task
-def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, bk_instance_ids: list, action: str):
+def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, instance_id_to_host_id: list, action: str):
     """
     操作采集器
     调用监控 API，针对本次变更的范围进行下发
     """
-    if not bk_instance_ids:
+    if not instance_id_to_host_id:
         return
 
     logger.info(
         "operate_collector: {db_type} {machine_type} {bk_instance_ids} {action}".format(
-            db_type=db_type, machine_type=machine_type, bk_instance_ids=bk_instance_ids, action=action
+            db_type=db_type, machine_type=machine_type, bk_instance_ids=instance_id_to_host_id, action=action
         )
     )
 
     # 获取下发的实例和采集范围
-    nodes = [{"id": bk_instance_id, "bk_biz_id": bk_biz_id} for bk_instance_id in bk_instance_ids]
+    nodes = [
+        {"id": int(parts[0]), "bk_biz_id": bk_biz_id, "bk_host_id": int(parts[1]) if len(parts) > 1 else None}
+        for id_str in instance_id_to_host_id
+        for parts in [id_str.split("-", maxsplit=1)]
+    ]
     scope = {"bk_biz_id": bk_biz_id, "object_type": "SERVICE", "node_type": "INSTANCE", "nodes": nodes}
+    # 获取主机下发nodes
+    bk_host_ids = list(set([node["bk_host_id"] for node in nodes if node["bk_host_id"]]))
+    host_nodes = [{"bk_host_id": bk_host_id, "bk_biz_id": bk_biz_id} for bk_host_id in bk_host_ids]
 
     # --- 下发监控采集器 ---
     plugin_id = INSTANCE_MONITOR_PLUGINS[db_type][machine_type]["plugin_id"]
-    collect_instances = CollectInstance.objects.filter(db_type=db_type, plugin_id=plugin_id)
+    # mysql 和 tendbcluster 共用的mysql采集项
+    collect_db_type = DBType.MySQL if db_type == DBType.TenDBCluster else db_type
+    collect_instances = CollectInstance.objects.filter(db_type=collect_db_type, plugin_id=plugin_id)
     for collect_ins in collect_instances:
         # 当前采集绑定机器类型，且下发的实例不属于绑定范围，则跳过
         if collect_ins.machine_types and machine_type not in collect_ins.machine_types:
@@ -627,23 +655,33 @@ def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, bk_instan
     if db_type not in INSTANCE_BKLOG_PLUGINS or machine_type not in INSTANCE_BKLOG_PLUGINS[db_type]:
         return
 
-    plugin_id = INSTANCE_BKLOG_PLUGINS[db_type][machine_type]["plugin_id"]
+    plugin_ids = INSTANCE_BKLOG_PLUGINS[db_type][machine_type]["plugin_ids"]
     # 获取当前采集项的列表
     data = BKLogApi.list_collectors({"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "pagesize": 500, "page": 1}, use_admin=True)
     collectors_name__info_map = {collector["collector_config_name_en"]: collector for collector in data["list"]}
-    collect = collectors_name__info_map.get(plugin_id)
-    # 忽略不存在的采集项
-    if not collect:
-        return
-    # 下发采集器
-    collect_id = collect["collector_config_id"]
-    try:
-        BKLogApi.run_databus_collectors(
-            {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "collector_config_id": collect_id, "scope": scope, "action": action},
-            use_admin=True,
-        )
-    except ApiError as err:
-        logger.error(f"[bklog] id:{collect_id} error: {err}")
+    for plugin_id in plugin_ids:
+        collect = collectors_name__info_map.get(plugin_id)
+        # 忽略不存在的采集项
+        if not collect:
+            continue
+        # 如果是主机维度的采集项，则维度为HOST
+        bklog_scope = copy.deepcopy(scope)
+        if plugin_id not in SERVICE_INSTANCE_BKLOG_PLUGINS:
+            bklog_scope.update(object_type="HOST", nodes=host_nodes)
+        # 下发采集器
+        collect_id = collect["collector_config_id"]
+        try:
+            BKLogApi.run_databus_collectors(
+                {
+                    "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+                    "collector_config_id": collect_id,
+                    "scope": bklog_scope,
+                    "action": action,
+                },
+                use_admin=True,
+            )
+        except ApiError as err:
+            logger.error(f"[bklog] id:{collect_id} error: {err}")
 
 
 def trigger_operate_collector(
@@ -663,12 +701,23 @@ def trigger_operate_collector(
     if not bk_instance_ids:
         return
 
-    # 获取实例信息，同一批下发实例的采集：组件、类型、管控业务都相同，任取一个即可
-    ins = (
-        StorageInstance.objects.filter(bk_instance_id__in=bk_instance_ids).first()
-        or ProxyInstance.objects.filter(bk_instance_id__in=bk_instance_ids).first()
+    query = Q(bk_instance_id__in=bk_instance_ids)
+    storage_queryset = StorageInstance.objects.filter(query).select_related("machine")
+    proxy_queryset = ProxyInstance.objects.filter(query).select_related("machine")
+
+    # 合并两个查询集并生成映射关系
+    instance_id_to_host_id = [
+        f"{instance.bk_instance_id}-{instance.machine.bk_host_id}"
+        for instance in list(storage_queryset) + list(proxy_queryset)
+    ]
+
+    # 优化实例信息获取：优先从已查询的结果中获取
+    ins = next(
+        (instance for instance in storage_queryset if instance.bk_instance_id in bk_instance_ids),
+        next((instance for instance in proxy_queryset if instance.bk_instance_id in bk_instance_ids), None),
     )
-    if ins is None:
+
+    if not ins:
         return
 
     # 监控某些场景下，不传入 db_type 和 machine_type 的情况，例如 dbha 切换后，仅更新标签
@@ -683,5 +732,5 @@ def trigger_operate_collector(
     cache_key = format_operate_collector_cache_key(hosting_biz, db_type, machine_type, action)
 
     # 这里先推入下发任务，再将任务加入任务列表，保证执行一致性
-    RedisConn.sadd(cache_key, *bk_instance_ids)
+    RedisConn.sadd(cache_key, *instance_id_to_host_id)
     RedisConn.sadd("operate_collector", cache_key)

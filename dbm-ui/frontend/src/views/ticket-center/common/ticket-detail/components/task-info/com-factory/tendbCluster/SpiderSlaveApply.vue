@@ -12,23 +12,32 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn :label="t('目标集群')">
-      <template #default="{ data }: { data: RowData }">
+  <TicketInfoTable
+    :data="ticketDetails.details.infos"
+    row-key="cluster_id">
+    <TicketInfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
+      :title="t('目标集群')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('规格')">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="spec_id"
+      :title="t('规格')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.specs[data.resource_spec.spider_slave_ip_list.spec_id].name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('部署台数')">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="count"
+      :title="t('部署台数')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.resource_spec.spider_slave_ip_list.count }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework.response import Response
 
 from backend.flow.engine.controller.mysql import MySQLController
@@ -33,21 +33,6 @@ class UpgradeMySQLSceneApiView(FlowTestView):
         logger.info("define root_id: {}".format(root_id))
         test = MySQLController(root_id=root_id, ticket_data=request.data)
         test.mysql_local_upgrade_scene()
-        return Response({"root_id": root_id})
-
-
-class MigrateUpgradeMySQLSceneApiView(FlowTestView):
-    """
-    api: /apis/v1/flow/scene/migrate_upgrade_mysql
-    """
-
-    @staticmethod
-    def post(request):
-        logger.info(_("开始测试迁移升级mysql实例场景"))
-        root_id = generate_root_id()
-        logger.info("define root_id: {}".format(root_id))
-        test = MySQLController(root_id=root_id, ticket_data=request.data)
-        test.mysql_migrate_upgrade_scene()
         return Response({"root_id": root_id})
 
 

@@ -25,13 +25,15 @@ export default (modelValue: Ref<string[]>) => {
       return;
     }
     isContentLoading.value = true;
-    const latestfileDataMap = { ...fileDataMap.value };
     getFileContent({
       file_path: `${uploadFilePath}/${fileName}`,
     })
       .then((data) => {
-        latestfileDataMap[getSQLFilename(fileName)].content = data.content;
-        fileDataMap.value = latestfileDataMap;
+        const sqlFileName = getSQLFilename(fileName);
+        const fileInfo = fileDataMap.value[sqlFileName];
+        if (fileInfo) {
+          fileDataMap.value[sqlFileName].content = data.content;
+        }
       })
       .finally(() => {
         isContentLoading.value = false;

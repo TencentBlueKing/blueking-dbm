@@ -34,27 +34,34 @@
             @batch-edit="handleBatchEdit" />
           <EditableColumn
             :label="t('缩容节点类型')"
-            :min-width="180">
+            readonly
+            :width="180">
             <EditableBlock v-model="item.role" />
           </EditableColumn>
-          <EditableColumn
+          <!-- <EditableColumn
             :label="t('当前规格')"
             :min-width="180">
             <EditableBlock v-if="item.cluster.spec_config.id">
               {{ item.cluster.spec_config.name }}
-              <SpecPanel
+              <SpecDetailPopover
                 v-if="item.cluster.spec_config.id"
-                :data="item.cluster.spec_config"
-                :hide-qps="!item.cluster.spec_config.qps.min">
+                :data="item.cluster.spec_config">
                 <DbIcon
                   class="visible-icon ml-4"
                   type="visible1" />
-              </SpecPanel>
+              </SpecDetailPopover>
             </EditableBlock>
             <EditableBlock
               v-else
               :placeholder="t('自动生成')" />
-          </EditableColumn>
+          </EditableColumn> -->
+          <SpecColumn
+            v-model="item.cluster.spec_config.id"
+            :cluster-type="DBTypes.MONGODB"
+            field="cluster.spec_config.id"
+            label="当前规格"
+            :machine-type="MachineTypes.MONGOS"
+            required />
           <IpColumn
             v-model="item.hosts"
             :row-data="item" />
@@ -78,7 +85,7 @@
         :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
         :title="t('确认重置页面')">
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="isSubmitting">
           {{ t('重置') }}
         </BkButton>
@@ -95,10 +102,10 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { DBTypes, MachineTypes, TicketTypes } from '@common/const';
 
-  import SpecPanel from '@components/render-table/columns/spec-display/Panel.vue';
-
+  // import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
+  import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
@@ -131,7 +138,9 @@
       id: 0,
       master_domain: '',
       mongos: [] as MongoDBModel['mongos'],
-      spec_config: {} as MongoDBModel['mongos'][0]['spec_config'],
+      spec_config: {
+        id: 0,
+      } as MongoDBModel['mongos'][0]['spec_config'],
     },
     hosts: data.hosts || ([] as RowData['hosts']),
     role: data.role || 'mongos',

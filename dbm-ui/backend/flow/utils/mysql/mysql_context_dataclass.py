@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from dataclasses import dataclass, field
-from typing import Dict, List
+from typing import Dict
 
 
 @dataclass()
@@ -38,10 +38,31 @@ class SingleApplyManualContext:
 
     time_zone_info: dict = field(default_factory=dict)  # 新机器的时区设置信息
     system_info: dict = field(default_factory=dict)
+    alarm_shield_id: int = None
 
     @staticmethod
     def get_time_zone_var_name() -> str:
         return "time_zone_info"
+
+
+@dataclass()
+class MySQLRollbackExerciseContext:
+    """
+    定义回档演练的上下文dataclass类
+    """
+
+    rollback_error_info: dict = field(default_factory=dict)  # 回档演练的错误信息
+    time_zone_info: dict = field(default_factory=dict)  # 新机器的时区设置信息
+    system_info: dict = field(default_factory=dict)
+    alarm_shield_id: int = None
+
+    @staticmethod
+    def get_time_zone_var_name() -> str:
+        return "time_zone_info"
+
+    @staticmethod
+    def get_rollback_error_info_var_name() -> str:
+        return "rollback_error_info"
 
 
 @dataclass()
@@ -64,6 +85,8 @@ class ClusterInfoContext:
     max_open_file: dict = field(default_factory=dict)
     system_info: dict = field(default_factory=dict)
     time_zone_info: dict = field(default_factory=dict)
+    alarm_shield_id: int = None
+    backup_index_file: str = None
 
     @staticmethod
     def get_sync_info_var_name() -> str:
@@ -256,6 +279,15 @@ class ClusterSwitchContext:
 
 
 @dataclass()
+class SpiderSwitchContext:
+    masters_bin_pos_map: dict = field(default_factory=dict)  # 代表新master的位点信息
+
+    @staticmethod
+    def get_new_masters_bin_pos_var_name() -> str:
+        return "masters_bin_pos_map"
+
+
+@dataclass()
 class SpiderApplyManualContext:
     """
     定义Spider集群部署的可交互上下文dataclass类(手输ip模式)
@@ -322,21 +354,6 @@ class MySQLFlashBackContext:
 
 
 @dataclass()
-class MySQLHAImportMetadataContext:
-    cluster_ids: List = None
-
-
-@dataclass()
-class TenDBClusterImportMetadataContext:
-    cluster_ids: List = None
-
-
-@dataclass()
-class TenDBSingleImportMetadataContext:
-    cluster_ids: List = None
-
-
-@dataclass()
 class SystemInfoContext:
     """
     获取操作系统参数的通用结构体
@@ -356,3 +373,55 @@ class MysqlDataMigrateContext:
     @staticmethod
     def get_file_list_var_name() -> str:
         return "file_list_info"
+
+
+@dataclass()
+class MySQLUpgradeContext:
+    """
+    定义MySQL升级的上下文dataclass
+    """
+
+    # 代表新master的位点信息
+    master_ip_sync_info: dict = field(default_factory=dict)
+    alarm_shield_id: int = None
+
+    @staticmethod
+    def get_new_master_bin_pos_var_name() -> str:
+        return "master_ip_sync_info"
+
+    @staticmethod
+    def get_alarm_shield_id_var_name() -> str:
+        return "alarm_shield_id"
+
+
+@dataclass()
+class TendbClusterStorageUpgradeContext:
+    """
+    定义TenDBClusterStorage升级的上下文dataclass
+    """
+
+    # 代表新master的位点信息
+    alarm_shield_id: int = None
+    masters_bin_pos_map: dict = field(default_factory=dict)  # 代表新master的位点信息
+
+    @staticmethod
+    def get_new_masters_bin_pos_var_name() -> str:
+        return "masters_bin_pos_map"
+
+    @staticmethod
+    def get_alarm_shield_id_var_name() -> str:
+        return "alarm_shield_id"
+
+
+@dataclass()
+class TendbClusterSpiderUpgradeContext:
+    """
+    定义TenDBClusterSpider升级的上下文dataclass
+    """
+
+    # 代表新master的位点信息
+    alarm_shield_id: int = None
+
+    @staticmethod
+    def get_alarm_shield_id_var_name() -> str:
+        return "alarm_shield_id"

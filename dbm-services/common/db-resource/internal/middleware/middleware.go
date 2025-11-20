@@ -34,6 +34,8 @@ func init() {
 	RequestLoggerFilter = &ApiLoggerFilter{}
 	RequestLoggerFilter.Add("/ping")
 	RequestLoggerFilter.Add("/metrics")
+	RequestLoggerFilter.Add("/resource/list")
+	RequestLoggerFilter.Add("/resource/list/all")
 }
 
 // ApiLoggerFilter TODO
@@ -80,13 +82,43 @@ func BodyLogMiddleware(c *gin.Context) {
 		rp = controller.Response{}
 	} else {
 		if err := json.Unmarshal(blw.body.Bytes(), &rp); err != nil {
-			logger.Error("unmarshal respone body failed %s", err.Error())
+			logger.Error("unmarshal response body failed %s", err.Error())
 			return
 		}
 	}
 	if err := model.UpdateTbRequestLog(rp.RequestId, map[string]interface{}{"respone_body": blw.body.String(),
 		"respone_code": statusCode, "update_time": time.Now()}); err != nil {
-		logger.Warn("update request respone failed %s", err.Error())
+		logger.Warn("update request response failed %s", err.Error())
+	}
+}
+
+// RequestBodySizeLimit 限制请求体大小的中间件
+func RequestBodySizeLimit(maxSize int64) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// 只对有请求体的方法进行限制
+		if c.Request.Method == http.MethodPost || c.Request.Method == http.MethodPut || c.Request.Method == http.MethodPatch {
+			// 使用http.MaxBytesReader限制请求体大小
+			c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxSize)
+		}
+		c.Next()
+	}
+}
+
+// SecurityHeaders 添加安全响应头的中间件
+func SecurityHeaders() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// 设置安全响应头
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.Header("X-Frame-Options", "DENY")
+		c.Header("X-XSS-Protection", "1; mode=block")
+		c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
+
+		// 设置正确的Content-Type
+		if c.Request.Method != http.MethodOptions {
+			c.Header("Content-Type", "application/json; charset=utf-8")
+		}
+
+		c.Next()
 	}
 }
 
@@ -101,6 +133,7 @@ func ApiLogger(c *gin.Context) {
 	c.Set("request_id", rid)
 	if c.Request.Method == http.MethodPost {
 		if !RequestLoggerFilter.filter(c.Request.RequestURI) {
+			c.Next()
 			return
 		}
 		var bodyBytes []byte

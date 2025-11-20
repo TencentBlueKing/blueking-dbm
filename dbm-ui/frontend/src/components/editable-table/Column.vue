@@ -39,17 +39,6 @@
         class="bk-editable-table-column-disabled-mask" />
     </div>
     <div
-      v-if="validateState.isError"
-      class="bk-editable-table-column-error">
-      <slot
-        name="error"
-        v-bind="{ message: validateState.errorMessage }">
-        <i
-          v-bk-tooltips="validateState.errorMessage"
-          class="bk-dbm db-icon-exclamation-fill" />
-      </slot>
-    </div>
-    <div
       v-if="slots.tips"
       ref="tipsRef"
       class="bk-editable-table-body-column-tips">
@@ -465,7 +454,7 @@
     let rules: IRule[] = [];
     // 继承 table 的验证规则
     if (tableContext?.props.rules && _.has(tableContext.props.rules, props.field)) {
-      rules = tableContext.props.rules[props.field];
+      rules = tableContext.props.rules[props.field]!;
     }
     // column 自己的 rules 规则优先级更高
     if (props.rules) {
@@ -498,10 +487,10 @@
           tableContext.emits('validate', props.field || '', true, '');
           return Promise.resolve(true);
         }
-        const rule = finalRuleList[stepIndex];
+        const rule = finalRuleList[stepIndex]!;
 
         return Promise.resolve().then(() => {
-          const result = rule.validator(value, rowDataValue);
+          const result = rule!.validator(value, rowDataValue);
           // 同步验证通过下一步
           if (result === true) {
             return doValidate(finalRuleList, value, rowDataValue);
@@ -575,7 +564,7 @@
 
         const rowIndex = rowContext!.getRowIndex();
         const rowDataValue = {
-          rowData: tableContext.props.model[rowIndex],
+          rowData: tableContext.props.model[rowIndex]!,
           rowIndex,
         };
         const value = _.get(rowDataValue.rowData, props.field || '_');
@@ -651,12 +640,6 @@
   });
 </script>
 <style lang="less">
-  @hover-z-index: 100;
-  @focus-z-index: 102;
-  @fixed-focus-z-index: 122;
-  @error-z-index: 101;
-  @fixed-error-z-index: 121;
-
   @keyframes editable-table-column-loading {
     0% {
       transform: rotateZ(0);
@@ -668,54 +651,86 @@
   }
 
   .bk-editable-table-body-column {
-    &:hover {
-      z-index: @hover-z-index;
-
-      &::before {
-        border-color: #979ba5;
-      }
-    }
+    --column-hover-z-index: 101;
+    --column-focus-z-index: 102;
+    --column-error-z-index: 100;
+    --column-fixed-z-index: 111;
+    --column-fixed-hover-z-index: 112;
+    --column-fixed-focus-z-index: 122;
+    --column-fixed-error-z-index: 121;
+    --column-hover-border-color: #a3c5fd;
+    --column-focus-border-color: #3a84ff;
+    --column-error-border-color: #ea3636;
+    --column-readonly-border-color: #dcdee5;
+    --column-error-background-color: #fff1f1;
+    --column-readonly-background-color: #fafbfd;
+    --column-disabled-background-color: #fafbfd;
 
     &.is-disabled {
-      .bk-editable-table-field-cell {
-        background: #fafbfd;
-
-        & > *:not(.bk-editable-table-column-disabled-mask) {
-          pointer-events: none;
-        }
-
-        * {
-          pointer-events: none;
-          background: #fafbfd;
-        }
-      }
-    }
-
-    &.is-error {
-      z-index: @error-z-index;
-      background: #fff1f1;
-
-      &::before {
-        border-color: #ea3636;
-      }
+      background: var(--column-disabled-background-color);
 
       .bk-editable-table-field-cell {
-        padding-right: 20px;
-        background: #fff1f1;
-      }
-    }
+        > *:not(.bk-editable-table-column-disabled-mask) {
+          position: relative;
+          z-index: 0;
+          background: var(--column-disabled-background-color);
+        }
 
-    &.is-focused {
-      z-index: @focus-z-index;
-
-      &::before {
-        border-color: #3a84ff;
+        *:not(.bk-editable-table-column-disabled-mask) {
+          pointer-events: none;
+          cursor: not-allowed;
+        }
       }
     }
 
     &.is-readonly {
+      background: var(--column-readonly-background-color);
+
       &::before {
-        border-color: #dcdee5;
+        border-color: var(--column-readonly-border-color);
+      }
+
+      .bk-editable-table-field-cell {
+        & > * {
+          background: var(--column-readonly-background-color);
+        }
+
+        * {
+          pointer-events: none;
+        }
+      }
+    }
+
+    &:hover {
+      z-index: var(--column-hover-z-index);
+
+      &::before {
+        border-color: var(--column-hover-border-color);
+      }
+    }
+
+    &.is-focused {
+      z-index: var(--column-focus-z-index);
+
+      &::before {
+        border-color: var(--column-focus-border-color);
+      }
+    }
+
+    &.is-error {
+      z-index: var(--column-error-z-index);
+      background: var(--column-error-background-color);
+
+      &::before {
+        border-color: var(--column-error-border-color);
+      }
+
+      .bk-editable-table-field-cell {
+        padding-right: 20px;
+
+        & > * {
+          background: var(--column-error-background-color);
+        }
       }
     }
 
@@ -726,12 +741,18 @@
     }
 
     &.is-fixed {
+      z-index: var(--column-fixed-z-index);
+
       &.is-error {
-        z-index: @fixed-error-z-index;
+        z-index: var(--column-fixed-error-z-index);
       }
 
       &.is-focused {
-        z-index: @fixed-focus-z-index;
+        z-index: var(--column-fixed-focus-z-index);
+      }
+
+      &:hover {
+        z-index: var(--column-fixed-hover-z-index);
       }
     }
   }
@@ -739,8 +760,9 @@
   .bk-editable-table-field-cell {
     position: relative;
     display: flex;
-    height: 100%;
     min-height: 40px;
+    font-size: 12px;
+    line-height: 20px;
     align-items: center;
   }
 
@@ -752,9 +774,10 @@
     display: flex;
     height: 40px;
     padding-right: 8px;
+    font-size: 14px;
     color: #ea3636;
-    align-items: center;
     transform: translateY(-50%);
+    align-items: center;
   }
 
   .bk-editable-table-column-loading {

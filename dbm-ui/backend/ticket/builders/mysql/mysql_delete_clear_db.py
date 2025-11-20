@@ -16,6 +16,7 @@ from backend.db_services.mysql.sql_import.constants import SQLExecuteTicketMode
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders import TicketFlowBuilder
+from backend.ticket.builders.mysql.base import MySQLBaseOperateDetailSerializer
 from backend.ticket.builders.mysql.mysql_force_import_sqlfile import (
     MysqlForceSqlImportDetailSerializer,
     MysqlForceSqlImportFlowBuilder,
@@ -28,6 +29,7 @@ logger = logging.getLogger("root")
 
 class MysqlDeleteClearDBDetailSerializer(MysqlForceSqlImportDetailSerializer):
     def validate(self, attrs):
+        attrs = super(MySQLBaseOperateDetailSerializer, self).validate(attrs)
         return attrs
 
 

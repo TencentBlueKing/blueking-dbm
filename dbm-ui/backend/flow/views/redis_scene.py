@@ -96,6 +96,36 @@ class RedisClusterReinstallDbmonSceneApiView(FlowTestView):
         return Response({"root_id": root_id})
 
 
+class RedisProxyFastRecoverFlowApiView(FlowTestView):
+    """
+    /apis/v1/flow/scene/redis_clusters_reinstall_dbmon
+    params:
+    {
+        "bk_biz_id": 3,
+        "uid": "2025111310000",
+        "created_by":"vitox",
+        "ticket_type":"REDIS_PROXY_FAST_FIX",
+        "infos": [
+            {
+            "cluster_id": 1,
+            "proxy": [
+                        {"ip": "1.1.1.a","bk_cloud_id": 0},
+                    ],
+            # 可选值: KICKOFF_CLUSTER_ENTRY(踢掉集群入口); FIX_CLUSTER_ENTRY(修复集群入口)
+            "operate_type":"KICKOFF_CLUSTER_ENTRY",
+            "restart_proxy": False, # 默认值
+            }
+        ]
+    }
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = generate_root_id()
+        RedisController(root_id=root_id, ticket_data=request.data).cluster_proxy_fast_recovery()
+        return Response({"root_id": root_id})
+
+
 class RedisClusterMSSwitchSceneApiView(FlowTestView):
     """
     /apis/v1/flow/scene/switch/redis_cluster
@@ -112,4 +142,35 @@ class RedisClusterMSSwitchSceneApiView(FlowTestView):
     def post(request):
         root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_failover_scene()
+        return Response({"root_id": root_id})
+
+
+class RedisFailoverDrillApiView(FlowTestView):
+    """
+    /apis/v1/flow/scene/redis_failover_drill
+    params:
+    {
+    "bk_biz_id": 3,
+    "ticket_type": "REDIS_FAILOVER_DRILL",
+    "created_by": "dba",
+    "drill_infos": [{
+        "cluster_id": 7,
+        "bk_cloud_id": 1,
+        "types": ["backend"],
+        #"proxy": {
+        #    "ip": "1.1.1.1",
+        #    "logical_city_id": "17"
+        #},
+        "backend": {
+            "ip": "2.2.2.2",
+            "logical_city_id": "17"
+        }
+    }]}
+    Note: Do not target "proxy" and "backend" at the same time.
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = generate_root_id()
+        RedisController(root_id=root_id, ticket_data=request.data).redis_failover_drill()
         return Response({"root_id": root_id})

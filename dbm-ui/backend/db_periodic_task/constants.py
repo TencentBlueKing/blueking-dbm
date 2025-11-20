@@ -8,9 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 # 任务状态轮询最大次数
 MAX_QUERY_TASK_STATUS_TIMES = 5
@@ -27,12 +27,12 @@ return elements
 """
 
 
-class PeriodicTaskType(str, StructuredEnum):
+class PeriodicTaskType(StrStructuredEnum):
     REMOTE = EnumField("remote", _("远程 API 周期任务"))
     LOCAL = EnumField("local", _("本地函数周期任务"))
 
 
-class NoticeSignalEnum(str, StructuredEnum):
+class NoticeSignalEnum(StrStructuredEnum):
     recovered = EnumField("recovered", _("告警恢复时"))
     abnormal = EnumField("abnormal", _("告警触发时"))
     closed = EnumField("closed", _("告警关闭时"))

@@ -8,10 +8,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.db_services.dbpermission.constants import AccountType
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, IntStructuredEnum, StrStructuredEnum
 
 # 平台业务ID
 PLAT_BIZ_ID = 0
@@ -24,16 +24,16 @@ MYSQL_USUAL_JOB_TIME = 7200
 MYSQL8_VER_PARSE_NUM = 8000000
 
 
-class ProfileLabel(str, StructuredEnum):
+class ProfileLabel(StrStructuredEnum):
     SQL = EnumField("SQL", _("个人收藏SQL"))
 
 
-class MySQLMonitorPauseTime(int, StructuredEnum):
+class MySQLMonitorPauseTime(IntStructuredEnum):
     RESTORE_DATA = EnumField(1440, _("数据同步时监控屏蔽"))
     SLAVE_DELAY = EnumField(240, _("数据同步时监控屏蔽"))
 
 
-class DBPrivSecurityType(str, StructuredEnum):
+class DBPrivSecurityType(StrStructuredEnum):
     MYSQL_PASSWORD = EnumField("mysql_password", _("mysql密码策略"))
     REDIS_PASSWORD = EnumField("redis_password_v2", _("redis密码策略"))
     TENDBCLUSTER_PASSWORD = EnumField("tendbcluster_password", _("tendbcluster密码策略"))
@@ -54,7 +54,7 @@ class DBPrivSecurityType(str, StructuredEnum):
         return getattr(cls, attr).value
 
 
-class AdminPasswordRole(str, StructuredEnum):
+class AdminPasswordRole(StrStructuredEnum):
     """
     定义每个集群中每个node的内置账号名称
     """
@@ -64,7 +64,7 @@ class AdminPasswordRole(str, StructuredEnum):
     STORAGE = EnumField("storage", _("storage"))
 
 
-class AffinityEnum(str, StructuredEnum):
+class AffinityEnum(StrStructuredEnum):
     """
     亲和性枚举类
     """
@@ -74,11 +74,13 @@ class AffinityEnum(str, StructuredEnum):
     SAME_SUBZONE = EnumField("SAME_SUBZONE", _("指定园区(无机架要求)"))
     CROS_SUBZONE = EnumField("CROS_SUBZONE", _("跨园区"))
     CROSS_RACK = EnumField("CROSS_RACK", _("不限园区"))
-    NONE = EnumField("NONE", _("无限制"))
+    NONE = EnumField("NONE", _("无"))
     MAX_EACH_ZONE_EQUAL = EnumField("MAX_EACH_ZONE_EQUAL", _("每个subzone尽量均匀分布"))
+    # mongodb专属
+    MAJORITY_ELECTION_DISTRI = EnumField("MAJORITY_ELECTION_DISTRI", _("跨园区(弱)"))
 
 
-class DBType(str, StructuredEnum):
+class DBType(StrStructuredEnum):
     MySQL = EnumField("mysql", _("MySQL"))
     TenDBCluster = EnumField("tendbcluster", _("TenDBCluster"))
     Redis = EnumField("redis", _("Redis"))
@@ -101,7 +103,7 @@ class DBType(str, StructuredEnum):
     TBinlogDumper = EnumField("tbinlogdumper", _("TBinlogDumper"))
 
 
-class SystemSettingsEnum(str, StructuredEnum):
+class SystemSettingsEnum(StrStructuredEnum):
     """配置的枚举项，建议将系统配置都录入到这里方便统一管理"""
 
     MANAGE_TOPO = EnumField("MANAGE_TOPO", _("DBM系统的管理集群拓扑"))
@@ -113,7 +115,6 @@ class SystemSettingsEnum(str, StructuredEnum):
     # 主机默认统一转移到 DBM 业务下托管，若业务 ID 属于这个列表，则转移到对应的业务下
     INDEPENDENT_HOSTING_BIZS = EnumField("INDEPENDENT_HOSTING_BIZS", _("独立托管机器的业务列表"))
     BF_WHITELIST_BIZS = EnumField("BF_WHITELIST_BIZS", _("BF业务白名单"))
-    EXTERNAL_WHITELIST_CLUSTER_IDS = EnumField("EXTERNAL_WHITELIST_CLUSTER_IDS", _("外部访问集群ID白名单列表"))
     SPEC_OFFSET = EnumField("SPEC_OFFSET", _("默认的规格参数偏移量"))
     DEVICE_CLASSES = EnumField("DEVICE_CLASSES", _("机型列表"))
     BKM_DUTY_NOTICE = EnumField("BKM_DUTY_NOTICE", _("轮值通知设置"))
@@ -123,6 +124,8 @@ class SystemSettingsEnum(str, StructuredEnum):
     SYSTEM_MSG_TYPE = EnumField("SYSTEM_MSG_TYPE", _("系统消息通知方式"))
     PADDING_PROXY_CLUSTER_LIST = EnumField("PADDING_PROXY_CLUSTER_LIST", _("补全proxy的集群域名列表"))
     EXCLUSIVE_TICKET_MAP = EnumField("EXCLUSIVE_TICKET_MAP", _("单据互斥表(全局)"))
+    # 巡检配置
+    DB_REPORT_EXCLUDE_BIZS = EnumField("DB_REPORT_EXCLUDE_BIZS", _("巡检报告排除业务列表"))
     # ITSM配置
     BK_ITSM_SERVICE_ID = EnumField("BK_ITSM_SERVICE_ID", _("DBM的流程服务ID"))
     ITSM_APPROVAL_KEY = EnumField("ITSM_APPROVAL_KEY", _("ITSM审批意见key"))
@@ -138,12 +141,32 @@ class SystemSettingsEnum(str, StructuredEnum):
     # 内置标签列表
     BUILTIN_LABELS = EnumField("BUILTIN_LABELS", _("内置标签列表"))
     # 反向上报事件类型
-    REVERSE_REPORT_EVENT_TYPES = EnumField("REVERSE_REPORT_EVENT_TYPES", _("反向上报事件类型"))
+    # REVERSE_REPORT_EVENT_TYPES = EnumField("REVERSE_REPORT_EVENT_TYPES", _("反向上报事件类型"))
     # 大数据管理端域名映射
     DBM_MANAGE_ADDRESS = EnumField("DBM_MANAGE_ADDRESS", _("大数据管理端域名映射"))
+    # Doris使用COS地域映射
+    DORIS_COS_REGION = EnumField("DORIS_COS_REGION", _("Doris使用COS地域映射"))
+    # Doris使用COS标签
+    DORIS_COS_TAGGING = EnumField("DORIS_COS_TAGGING", _("Doris使用COS标签"))
+    # 小额绿通单据申请
+    QUICK_MINOR_POAA = EnumField("QUICK_MINOR_POAA", _("小额绿通单据申请"))
+    # 资源池独立业务,如果配置该变量,需要联动修改 MANAGE_TOPO::resource.idle.module的值
+    RESOURCE_INDEPENDENT_BIZ = EnumField("RESOURCE_INDEPENDENT_BIZ", _("资源池独立业务"))
+    # redie删除key限速配置
+    REDIS_DELETE_RATE = EnumField("REDIS_DELETE_RATE", _("redie删除key限速配置"))
+    # 集群负载判定配置
+    CLUSTER_LOAD_RULE = EnumField("CLUSTER_LOAD_RULE", _("集群负载判定配置"))
+    # 平台管理运营数据开关
+    OPERATION_DATA_SWITCH = EnumField("OPERATION_DATA_SWITCH", _("运营数据开关"))
+    # 常用城市配置
+    COMMON_CITIES = EnumField("COMMON_CITIES", _("常用城市配置"))
+    # 各组件负责的机器人
+    DBA_ROBOT = EnumField("DBA_ROBOT", _("各组件负责的机器人"))
+    # Redis 回档演练配置
+    REDIS_ROLLBACK_EXERCISE = EnumField("REDIS_ROLLBACK_EXERCISE", _("Redis回档演练配置"))
 
 
-class BizSettingsEnum(str, StructuredEnum):
+class BizSettingsEnum(StrStructuredEnum):
     """配置的枚举项，建议将业务配置都录入到这里方便统一管理"""
 
     OPEN_AREA_VARS = EnumField("OPEN_AREA_VARS", _("开区模板的渲染变量"))
@@ -154,6 +177,14 @@ class BizSettingsEnum(str, StructuredEnum):
     BIZ_ASSISTANCE_VARS = EnumField("BIZ_ASSISTANCE_VARS", _("业务协助人员变量"))
     BIZ_ASSISTANCE_SWITCH = EnumField("BIZ_ASSISTANCE_SWITCH", _("业务协助开关"))
     NOTIFY_CONFIG = EnumField("NOTIFY_CONFIG", _("业务通知渠道配置"))
+
+
+class RedisFastRecoverEnum(StrStructuredEnum):
+    """Redis 快速剔除、恢复 统一入口管理"""
+
+    PROXY_ENTRY_KICKOFF = EnumField("PROXY_ENTRY_KICKOFF", _("踢掉所有接入层"))
+    PROXY_ENTRY_FIX = EnumField("PROXY_ENTRY_FIX", _("修复接入层"))
+    SLAVE_REUSE_FIX = EnumField("SLAVE_REUSE_FIX", _("SLAVE重启后复用"))
 
 
 DEFAULT_DB_ADMINISTRATORS = ["admin"]
@@ -203,11 +234,11 @@ COST_ESTIMATE_TEMPLATE = {
     # 内存/G
     "mem": 0,
     # 磁盘/G
-    "storage": {"SSD": 0, "HDD": 0, "ALL": 0},
+    "storage": {"SSD": 0, "CLOUD_SSD": 0, "HDD": 0, "LOCAL_HDD": 0, "ALL": 0},
 }
 
 # 磁盘类型，目前固定写死
-DISK_CLASSES = ["SSD", "HDD", "ALL"]
+DISK_CLASSES = ["SSD", "CLOUD_SSD", "HDD", "LOCAL_HDD", "ALL"]
 
 # 默认轮值通知配置
 BKM_DUTY_NOTICE_VALUE = {
@@ -261,6 +292,8 @@ DEFAULT_MACHINE_PROPERTY = {
     "storage_device": True,  # 磁盘
 }
 
+# DEFAULT_REVERSE_REPORT_EVENT_TYPES = ["mysql_dbbackup_result", "mysql_dbbackup_progress", "mysql_binlog_result"]
+
 # 默认具备迁移权限的人员
 DBM_DEFAULT_MIGRATE_USER = ["admin"]
 
@@ -281,7 +314,8 @@ DEFAULT_SETTINGS = [
     [SystemSettingsEnum.MACHINE_PROPERTY, "dict", DEFAULT_MACHINE_PROPERTY, _("主机属性开关配置")],
     [SystemSettingsEnum.PADDING_PROXY_APPS, "list", [], _("补全proxy业务")],
     [SystemSettingsEnum.DISABLE_DBHA_APPS_CLUSTER_TYPE, "dict", {}, _("禁用DBHA业务")],
-    [SystemSettingsEnum.REVERSE_REPORT_EVENT_TYPES, "list", [], _("反向上报事件类型")],
+    # [SystemSettingsEnum.REVERSE_REPORT_EVENT_TYPES, "list", DEFAULT_REVERSE_REPORT_EVENT_TYPES, _("反向上报事件类型")],
+    [SystemSettingsEnum.OPERATION_DATA_SWITCH.value, "bool", False, _("运营数据开关")],
 ]
 
 # 环境配置项 是否支持DNS解析 pulsar flow used

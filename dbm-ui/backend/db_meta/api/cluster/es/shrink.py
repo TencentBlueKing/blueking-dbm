@@ -47,29 +47,35 @@ def shrink(
             storage.machine.delete(keep_parents=True)
 
     # 修正entry到instance的关系
-    cluster_entry = ClusterEntry.objects.get(cluster=cluster)
-
-    if not cluster_entry.storageinstance_set.exists():
-        all_client_nodes = StorageInstance.objects.filter(cluster=cluster, instance_role=InstanceRole.ES_CLIENT.value)
-        all_hot_datanodes = StorageInstance.objects.filter(
-            cluster=cluster, instance_role=InstanceRole.ES_DATANODE_HOT.value
-        )
-        all_cold_datanodes = StorageInstance.objects.filter(
-            cluster=cluster, instance_role=InstanceRole.ES_DATANODE_COLD.value
-        )
-        all_master_nodes = StorageInstance.objects.filter(cluster=cluster, instance_role=InstanceRole.ES_MASTER.value)
-        if all_client_nodes.exists():
-            for instance in all_client_nodes:
-                cluster_entry.storageinstance_set.add(instance)
-        elif all_hot_datanodes.exists():
-            for instance in all_hot_datanodes:
-                cluster_entry.storageinstance_set.add(instance)
-        elif all_cold_datanodes.exists():
-            for instance in all_cold_datanodes:
-                cluster_entry.storageinstance_set.add(instance)
+    cluster_entries = ClusterEntry.objects.filter(cluster=cluster)
+    for cluster_entry in cluster_entries:
+        if cluster_entry.forward_to_id is None:
+            if not cluster_entry.storageinstance_set.exists():
+                all_client_nodes = StorageInstance.objects.filter(
+                    cluster=cluster, instance_role=InstanceRole.ES_CLIENT.value
+                )
+                all_hot_datanodes = StorageInstance.objects.filter(
+                    cluster=cluster, instance_role=InstanceRole.ES_DATANODE_HOT.value
+                )
+                all_cold_datanodes = StorageInstance.objects.filter(
+                    cluster=cluster, instance_role=InstanceRole.ES_DATANODE_COLD.value
+                )
+                all_master_nodes = StorageInstance.objects.filter(
+                    cluster=cluster, instance_role=InstanceRole.ES_MASTER.value
+                )
+                if all_client_nodes.exists():
+                    for instance in all_client_nodes:
+                        cluster_entry.storageinstance_set.add(instance)
+                elif all_hot_datanodes.exists():
+                    for instance in all_hot_datanodes:
+                        cluster_entry.storageinstance_set.add(instance)
+                elif all_cold_datanodes.exists():
+                    for instance in all_cold_datanodes:
+                        cluster_entry.storageinstance_set.add(instance)
+                else:
+                    for instance in all_master_nodes:
+                        cluster_entry.storageinstance_set.add(instance)
         else:
-            for instance in all_master_nodes:
-                cluster_entry.storageinstance_set.add(instance)
-
+            cluster_entry.storageinstance_set.clear()
     # 判断服务实例是否还存在，不存在则安装
     EsCCTopoOperator(cluster).init_instances_service(MachineType.ES_DATANODE.value)

@@ -14,6 +14,7 @@
 <template>
   <EditableColumn
     :label="t('版本')"
+    readonly
     required
     :width="200">
     <EditableBlock :placeholder="t('自动生成')">

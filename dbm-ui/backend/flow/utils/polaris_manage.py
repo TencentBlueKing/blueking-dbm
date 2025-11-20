@@ -80,3 +80,16 @@ class PolarisManage(object):
             logger.error(res)
             return False
         return True
+
+    def get_polaris_rs(self) -> list:
+        """
+        获取polaris后端的rs记录
+        """
+        res = NameServiceApi.polaris_describe_targets(
+            {"servicename": self.servicename},
+            raw=True,
+        )
+        if "code" in res and res["code"] != 0:
+            logger.error(res)
+            return []
+        return res["data"]["ips"]

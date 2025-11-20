@@ -32,8 +32,9 @@
       <slot name="footer">
         <BkButton
           v-if="showConfirm"
+          v-bk-tooltips="submitButtonDisabledInfo.tooltips"
           class="mr-8"
-          :disabled="disabledConfirm"
+          :disabled="submitButtonDisabledInfo.disabled"
           :loading="isLoading"
           style="min-width: 88px"
           theme="primary"
@@ -50,6 +51,7 @@
   </BkSideslider>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { ref, useAttrs, useSlots, watch } from 'vue';
 
   import { useModelProvider } from '@hooks';
@@ -59,7 +61,8 @@
   interface Props {
     cancelText?: string;
     confirmText?: string;
-    disabledConfirm?: boolean;
+    disabledConfirm?: boolean | string;
+    // eslint-disable-next-line vue/no-required-prop-with-default
     isShow: boolean;
     renderDirective?: 'if' | 'show';
     showConfirm?: boolean;
@@ -91,6 +94,26 @@
 
   const isLoading = ref(false);
   let pageChangeConfirm: boolean | 'popover' = false;
+
+  const submitButtonDisabledInfo = computed(() => {
+    const info = {
+      disabled: false,
+      tooltips: {
+        content: '',
+        disabled: true,
+      },
+    };
+
+    if (_.isString(props.disabledConfirm)) {
+      info.disabled = true;
+      info.tooltips.disabled = false;
+      info.tooltips.content = props.disabledConfirm;
+      return info;
+    }
+
+    info.disabled = !!props.disabledConfirm;
+    return info;
+  });
 
   watch(
     () => props.isShow,

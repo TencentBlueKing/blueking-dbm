@@ -1,19 +1,27 @@
 <template>
-  <ProcessApproveExce :data="data">
-    <BkButton
-      text
-      theme="primary">
-      {{ t('确认执行') }}
-    </BkButton>
-  </ProcessApproveExce>
-  <ProcessTerminate :data="data">
-    <BkButton
-      class="ml-8"
-      text
-      theme="primary">
-      {{ t('终止单据') }}
-    </BkButton>
-  </ProcessTerminate>
+  <TableColumn
+    col-key="row-operation"
+    fixed="right"
+    :title="t('操作')"
+    :width="140">
+    <template #default="{ row }: { row: TicketModel }">
+      <ProcessApproveExce :data="row">
+        <BkButton
+          text
+          theme="primary">
+          {{ t('确认执行') }}
+        </BkButton>
+      </ProcessApproveExce>
+      <ProcessTerminate :data="row">
+        <BkButton
+          class="ml-8"
+          text
+          theme="primary">
+          {{ t('终止单据') }}
+        </BkButton>
+      </ProcessTerminate>
+    </template>
+  </TableColumn>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -23,13 +31,9 @@
   import ProcessApproveExce from '@views/ticket-center/common/action-confirm/ProcessApproveExce.vue';
   import ProcessTerminate from '@views/ticket-center/common/action-confirm/ProcessTerminate.vue';
 
-  interface Props {
-    data: TicketModel;
-  }
-
   defineOptions({
     inheritAttrs: false,
   });
-  defineProps<Props>();
+
   const { t } = useI18n();
 </script>

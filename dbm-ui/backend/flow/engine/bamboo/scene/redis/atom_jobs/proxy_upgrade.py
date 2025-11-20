@@ -13,7 +13,7 @@ from copy import deepcopy
 from dataclasses import asdict
 from typing import Dict
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceStatus
@@ -32,41 +32,49 @@ logger = logging.getLogger("flow")
 
 def ClusterProxysUpgradeAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param: Dict) -> SubBuilder:
     """
-    ### SubBuilder: 集群所有proxy升级版本
+    ### SubBuilder: 升级所有Proxy或部分指定IP到目标版本
     Args:
         param (Dict): {
-            "cluster_domain": "cache.test.testapp.db"
+            "cluster_domain": "cache.test.testapp.db",
+            "target_ips" (optional): {"1.1.1.1", "2.2.2.2"}
+            "target_version" (optional): "twemproxy-0.4.1-v29"
         }
     """
     cluster_ips_set = set()
     cluster = Cluster.objects.get(immute_domain=param["cluster_domain"])
-    for proxy in cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
-        cluster_ips_set.add(proxy.machine.ip)
     cluster_info = get_cluster_info_by_id(bk_biz_id=cluster.bk_biz_id, cluster_id=cluster.id)
+
+    if param.get("target_ips"):
+        cluster_ips_set = param["target_ips"]
+    else:
+        # If `target_ips` are not specified, we upgrade all IPs under the domain.
+        for proxy in cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
+            cluster_ips_set.add(proxy.machine.ip)
 
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
     act_kwargs = deepcopy(sub_kwargs)
     act_kwargs.cluster = {}
     trans_files = GetFileList(db_type=DBType.Redis)
-    act_kwargs.file_list = trans_files.redis_cluster_apply_proxy(cluster.cluster_type)
+
+    proxy_pkg_prefix = param.get("target_version", None)
+    # If version not specified, the latest proxy will be selected.
+    act_kwargs.file_list = trans_files.redis_cluster_apply_proxy(cluster.cluster_type, proxy_pkg_prefix)
+
+    if not proxy_pkg_prefix:
+        # This in fact extract the whole file name instead of prefix only, but it also works.
+        def extract_file_name(path: str):
+            parts = path.split("/")
+            return parts[-1] if parts else ""
+
+        # The second file is the proxy pkg.
+        proxy_pkg_prefix = extract_file_name(act_kwargs.file_list[1])
 
     sub_pipeline.add_act(
         act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
     )
 
-    acts_list = []
-    for ip in cluster_ips_set:
-        # 下发介质
-        act_kwargs.exec_ip = ip
-        acts_list.append(
-            {
-                "act_name": _("{}-下发介质包").format(ip),
-                "act_component_code": TransFileComponent.code,
-                "kwargs": asdict(act_kwargs),
-            }
-        )
-    if acts_list:
-        sub_pipeline.add_parallel_acts(acts_list=acts_list)
+    act_kwargs.exec_ip = list(cluster_ips_set)
+    sub_pipeline.add_act(act_name=_("下发介质包"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs))
 
     acts_list = []
     for ip in cluster_ips_set:
@@ -76,15 +84,16 @@ def ClusterProxysUpgradeAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, par
             "port": cluster_info["cluster_port"],
             "password": cluster_info["cluster_password"],
             "cluster_type": cluster.cluster_type,
+            "proxy_pkg_prefix": proxy_pkg_prefix,
         }
         act_kwargs.get_redis_payload_func = RedisActPayload.redis_proxy_upgrade_online_payload.__name__
         acts_list.append(
             {
-                "act_name": _("{}-proxy版本升级").format(ip),
+                "act_name": _("{}-proxy执行actuator").format(ip),
                 "act_component_code": ExecuteDBActuatorScriptComponent.code,
                 "kwargs": asdict(act_kwargs),
             }
         )
     if acts_list:
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
-    return sub_pipeline.build_sub_process(sub_name=_("{}-集群proxy版本升级").format(param["cluster_domain"]))
+    return sub_pipeline.build_sub_process(sub_name=_("目标版本-{}").format(proxy_pkg_prefix))

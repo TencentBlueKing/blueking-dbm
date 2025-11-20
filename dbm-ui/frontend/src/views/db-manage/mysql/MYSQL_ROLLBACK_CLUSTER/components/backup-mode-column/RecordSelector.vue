@@ -26,7 +26,7 @@
       type="wenjian" />
     <div
       v-bk-tooltips="{
-        content: renderText,
+        content: renderText || '--',
         disabled: !renderText,
       }"
       class="select-result-text">
@@ -59,7 +59,7 @@
             v-for="item in tabOptions"
             :key="item.name"
             v-bk-tooltips="{
-              content: item.hoverText,
+              content: item.hoverText || '--',
               disabled: !item.hoverText,
             }"
             class="tab-header-item"
@@ -162,15 +162,13 @@
   }
 
   interface Exposes {
-    getData: (backupid: string) => Promise<BackupLogRecord>;
+    getData: (backupid: string) => Promise<BackupLogRecord> | undefined;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    backupid: '',
     backupSource: '',
     clearable: false,
     disabled: false,
-    modelValue: '',
   });
 
   const backupinfo = defineModel<BackupLogRecord>('backupinfo');
@@ -342,6 +340,7 @@
   );
 
   onMounted(() => {
+    localValue.value = (backupinfo.value?.backup_id as string) || '';
     tippyIns = tippy(rootRef.value as SingleTarget, {
       appendTo: () => document.body,
       arrow: false,
@@ -377,6 +376,9 @@
 
   defineExpose<Exposes>({
     getData(backupid: string) {
+      if (!isDateType(backupid)) {
+        return;
+      }
       return queryLatesBackupLog({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         cluster_id: props.clusterId,
@@ -398,11 +400,12 @@
   .rollback-mode-select {
     position: relative;
     display: flex;
-    height: 42px;
+    height: 40px;
     overflow: hidden;
     color: #63656e;
     cursor: pointer;
-    border: 1px solid transparent;
+    border: none;
+    box-sizing: border-box;
     transition: all 0.15s;
     align-items: center;
 

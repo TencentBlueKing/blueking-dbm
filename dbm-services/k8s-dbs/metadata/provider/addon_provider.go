@@ -20,23 +20,26 @@ limitations under the License.
 package provider
 
 import (
-	"k8s-dbs/common/entity"
+	commentity "k8s-dbs/common/entity"
 	"k8s-dbs/metadata/dbaccess"
-	models "k8s-dbs/metadata/dbaccess/model"
-	entitys "k8s-dbs/metadata/provider/entity"
-	"log/slog"
+	metaentity "k8s-dbs/metadata/entity"
+	metamodel "k8s-dbs/metadata/model"
+
+	"github.com/pkg/errors"
 
 	"github.com/jinzhu/copier"
 )
 
 // K8sCrdStorageAddonProvider 定义 addon 业务逻辑层访问接口
 type K8sCrdStorageAddonProvider interface {
-	CreateStorageAddon(entity *entitys.K8sCrdStorageAddonEntity) (*entitys.K8sCrdStorageAddonEntity, error)
+	CreateStorageAddon(dbsCtx *commentity.DbsContext, entity *metaentity.K8sCrdStorageAddonEntity) (
+		*metaentity.K8sCrdStorageAddonEntity, error)
 	DeleteStorageAddonByID(id uint64) (uint64, error)
-	FindStorageAddonByID(id uint64) (*entitys.K8sCrdStorageAddonEntity, error)
-	FindStorageAddonByParams(params map[string]interface{}) ([]entitys.K8sCrdStorageAddonEntity, error)
-	UpdateStorageAddon(entity *entitys.K8sCrdStorageAddonEntity) (uint64, error)
-	ListStorageAddons(pagination entity.Pagination) ([]entitys.K8sCrdStorageAddonEntity, error)
+	FindStorageAddonByID(id uint64) (*metaentity.K8sCrdStorageAddonEntity, error)
+	FindVersionsByParams(params *metaentity.AddonVersionQueryParams) ([]*metaentity.AddonVersionEntity, error)
+	FindStorageAddonByParams(params *metaentity.AddonQueryParams) ([]*metaentity.K8sCrdStorageAddonEntity, error)
+	UpdateStorageAddon(dbsCtx *commentity.DbsContext, entity *metaentity.K8sCrdStorageAddonEntity) (uint64, error)
+	ListStorageAddons(pagination commentity.Pagination) ([]*metaentity.K8sCrdStorageAddonEntity, error)
 }
 
 // K8sCrdStorageAddonProviderImpl K8sCrdStorageAddonProvider 具体实现
@@ -44,43 +47,61 @@ type K8sCrdStorageAddonProviderImpl struct {
 	dbAccess dbaccess.K8sCrdStorageAddonDbAccess
 }
 
-// FindStorageAddonByParams 按照参数进行查询
-func (k *K8sCrdStorageAddonProviderImpl) FindStorageAddonByParams(
-	params map[string]interface{},
-) ([]entitys.K8sCrdStorageAddonEntity, error) {
-	saModels, err := k.dbAccess.FindByParams(params)
+// FindVersionsByParams 按照参数查询 addon 版本信息
+func (k *K8sCrdStorageAddonProviderImpl) FindVersionsByParams(params *metaentity.AddonVersionQueryParams) (
+	[]*metaentity.AddonVersionEntity,
+	error,
+) {
+	versionModels, err := k.dbAccess.FindVersionsByParams(params)
 	if err != nil {
-		slog.Error("failed to find storage addon by params.", "params", params, "err", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to find addon versions with params %+v", params)
 	}
-	var saEntities []entitys.K8sCrdStorageAddonEntity
-	if err := copier.Copy(&saEntities, saModels); err != nil {
-		slog.Error("failed to copy models", "error", err)
-		return nil, err
+	var versionEntities []*metaentity.AddonVersionEntity
+	if err = copier.Copy(&versionEntities, versionModels); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
-	return saEntities, nil
+	return versionEntities, nil
+}
+
+// FindStorageAddonByParams 按照参数进行查询
+func (k *K8sCrdStorageAddonProviderImpl) FindStorageAddonByParams(params *metaentity.AddonQueryParams) (
+	[]*metaentity.K8sCrdStorageAddonEntity,
+	error,
+) {
+	addonModels, err := k.dbAccess.FindByParams(params)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to find addon with params %+v", params)
+	}
+	var addonEntities []*metaentity.K8sCrdStorageAddonEntity
+	if err = copier.Copy(&addonEntities, addonModels); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
+	}
+	return addonEntities, nil
 }
 
 // CreateStorageAddon 创建 addon
-func (k *K8sCrdStorageAddonProviderImpl) CreateStorageAddon(entity *entitys.K8sCrdStorageAddonEntity) (
-	*entitys.K8sCrdStorageAddonEntity, error,
-) {
-	storageAddonModel := models.K8sCrdStorageAddonModel{}
-	err := copier.Copy(&storageAddonModel, entity)
-	if err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+func (k *K8sCrdStorageAddonProviderImpl) CreateStorageAddon(
+	dbsCtx *commentity.DbsContext,
+	entity *metaentity.K8sCrdStorageAddonEntity,
+) (*metaentity.K8sCrdStorageAddonEntity, error) {
+	storageAddonModel := metamodel.K8sCrdStorageAddonModel{}
+	entity.CreatedBy = dbsCtx.BkAuth.BkUserName
+	entity.UpdatedBy = dbsCtx.BkAuth.BkUserName
+
+	if err := copier.Copy(&storageAddonModel, entity); err != nil {
+		return nil, errors.Wrapf(err, "failed to copy")
 	}
+
 	addedStorageAddonModel, err := k.dbAccess.Create(&storageAddonModel)
 	if err != nil {
-		slog.Error("Failed to create model", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create addon with entity: %+v", entity)
 	}
-	storageAddonEntity := entitys.K8sCrdStorageAddonEntity{}
-	if err := copier.Copy(&storageAddonEntity, addedStorageAddonModel); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+
+	storageAddonEntity := metaentity.K8sCrdStorageAddonEntity{}
+	if err = copier.Copy(&storageAddonEntity, addedStorageAddonModel); err != nil {
+		return nil, errors.Wrapf(err, "failed to copy")
 	}
+
 	return &storageAddonEntity, nil
 }
 
@@ -90,50 +111,48 @@ func (k *K8sCrdStorageAddonProviderImpl) DeleteStorageAddonByID(id uint64) (uint
 }
 
 // FindStorageAddonByID 按照 ID 进行查询
-func (k *K8sCrdStorageAddonProviderImpl) FindStorageAddonByID(id uint64) (*entitys.K8sCrdStorageAddonEntity, error) {
+func (k *K8sCrdStorageAddonProviderImpl) FindStorageAddonByID(id uint64) (*metaentity.K8sCrdStorageAddonEntity, error) {
 	storageAddonModel, err := k.dbAccess.FindByID(id)
 	if err != nil {
-		slog.Error("Failed to find entity")
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to find addon with id %d", id)
 	}
-	storageAddonEntity := entitys.K8sCrdStorageAddonEntity{}
-	if err := copier.Copy(&storageAddonEntity, storageAddonModel); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	storageAddonEntity := metaentity.K8sCrdStorageAddonEntity{}
+	if err = copier.Copy(&storageAddonEntity, storageAddonModel); err != nil {
+		return nil, errors.Wrapf(err, "failed to copy")
 	}
 	return &storageAddonEntity, nil
 }
 
 // UpdateStorageAddon 更新 addon
-func (k *K8sCrdStorageAddonProviderImpl) UpdateStorageAddon(entity *entitys.K8sCrdStorageAddonEntity) (uint64, error) {
-	storageAddonModel := models.K8sCrdStorageAddonModel{}
-	err := copier.Copy(&storageAddonModel, entity)
-	if err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return 0, err
+func (k *K8sCrdStorageAddonProviderImpl) UpdateStorageAddon(
+	dbsCtx *commentity.DbsContext,
+	entity *metaentity.K8sCrdStorageAddonEntity,
+) (uint64, error) {
+	storageAddonModel := metamodel.K8sCrdStorageAddonModel{}
+	entity.UpdatedBy = dbsCtx.BkAuth.BkUserName
+	if err := copier.Copy(&storageAddonModel, entity); err != nil {
+		return 0, errors.Wrapf(err, "failed to copy")
 	}
+
 	rows, err := k.dbAccess.Update(&storageAddonModel)
 	if err != nil {
-		slog.Error("Failed to update entity", "error", err)
-		return 0, err
+		return 0, errors.Wrapf(err, "failed to update addon with entity: %+v", entity)
 	}
 	return rows, nil
 }
 
 // ListStorageAddons 获取 addon 列表
-func (k *K8sCrdStorageAddonProviderImpl) ListStorageAddons(pagination entity.Pagination) (
-	[]entitys.K8sCrdStorageAddonEntity,
+func (k *K8sCrdStorageAddonProviderImpl) ListStorageAddons(pagination commentity.Pagination) (
+	[]*metaentity.K8sCrdStorageAddonEntity,
 	error,
 ) {
 	addonModels, _, err := k.dbAccess.ListByPage(pagination)
 	if err != nil {
-		slog.Error("Failed to find entity")
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to list addons with pagination: %+v", pagination)
 	}
-	var storageAddons []entitys.K8sCrdStorageAddonEntity
-	if err := copier.Copy(&storageAddons, addonModels); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	var storageAddons []*metaentity.K8sCrdStorageAddonEntity
+	if err = copier.Copy(&storageAddons, addonModels); err != nil {
+		return nil, errors.Wrapf(err, "failed to copy")
 	}
 	return storageAddons, nil
 }

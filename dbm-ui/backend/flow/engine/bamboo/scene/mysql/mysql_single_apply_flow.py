@@ -13,7 +13,7 @@ import logging.config
 from dataclasses import asdict
 from typing import Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
@@ -71,7 +71,13 @@ class MySQLSingleApplyFlow(object):
         pipeline.add_sub_pipeline(sub_flow=self.deploy_mysql_single_flow())
         pipeline.run_pipeline(init_trans_data_class=SingleApplyManualContext())
 
-    def deploy_mysql_single_flow(self):
+    def deploy_mysql_single_flow(
+        self,
+        origin_cluster_domain: str = "",
+        with_collect_sysinfo: bool = True,
+        with_push_config: bool = True,
+        with_exporter_config: bool = True,
+    ) -> SubBuilder:
         """
         定义部署单节点集群的流程，资源是通过手动录入方式，兼容单机多实例的部署
         目前资源池已经在saas层适配，目前flow统一为手动模式即可
@@ -115,7 +121,6 @@ class MySQLSingleApplyFlow(object):
                 cluster={"old_instance_configs": info.get("old_instance_configs", {})},
             )
 
-            # 初始新机器
             # 初始新机器
             sub_pipeline.add_sub_pipeline(
                 sub_flow=init_machine_sub_flow(
@@ -196,7 +201,13 @@ class MySQLSingleApplyFlow(object):
                 instances=instances,
                 with_actuator=False,
                 with_bk_plugin=False,
+                with_collect_sysinfo=with_collect_sysinfo,
+                with_push_config=with_push_config,
+                with_exporter_config=with_exporter_config,
             )
         )
-
-        return mysql_single_pipeline.build_sub_process(sub_name=_("部署子流程"))
+        if origin_cluster_domain:
+            sub_name = _("【{}】模版集群的演练部署流程".format(origin_cluster_domain))
+        else:
+            sub_name = _("单节点集群部署")
+        return mysql_single_pipeline.build_sub_process(sub_name=sub_name)

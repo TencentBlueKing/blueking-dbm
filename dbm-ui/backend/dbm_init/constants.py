@@ -11,3 +11,23 @@ specific language governing permissions and limitations under the License.
 
 CC_HOST_DBM_ATTR = "dbm_meta"
 CC_APP_ABBR_ATTR = "db_app_abbr"
+
+BKLOG_JSON_FILES_PATH = "backend/dbm_init/json_files/bklog"
+
+BKLOG_JOSN_FIELD_LIST = [
+    "bk_biz_id",
+    "collector_config_name",
+    "collector_config_name_en",
+    "collector_scenario_id",
+    "category_id",
+    "etl_config",
+    "data_encoding",
+    "retention",
+    "es_shards",
+    "target_object_type",
+    "target_node_type",
+    "target_nodes",
+    "params",
+    "etl_params",
+    "fields",
+]

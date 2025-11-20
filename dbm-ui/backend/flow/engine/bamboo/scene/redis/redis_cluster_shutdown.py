@@ -13,7 +13,7 @@ from collections import defaultdict
 from dataclasses import asdict
 from typing import Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterEntryRole, InstanceRole
@@ -98,9 +98,14 @@ class RedisClusterShutdownFlow(object):
         act_kwargs.set_trans_data_dataclass = CommonContext.__name__
         act_kwargs.file_list = trans_files.redis_base()
         act_kwargs.is_update_trans_data = True
+        import time
+
         act_kwargs.cluster = {
             **cluster_info,
             "backup_type": RedisBackupEnum.FOREVER_BACKUP.value,
+            "backup_identify": "FOREVER{}-{}".format(
+                self.data.get("uid"), time.strftime("%Y%m%d%H", time.localtime(time.time()))
+            ),  # 集群删除的备份标识
             **cluster_info["redis_map"],
             **cluster_info["proxy_map"],
             "monitor_time_ms": DEFAULT_MONITOR_TIME,

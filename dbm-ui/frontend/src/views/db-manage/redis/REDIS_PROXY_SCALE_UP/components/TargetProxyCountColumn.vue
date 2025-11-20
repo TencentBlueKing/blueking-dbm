@@ -26,7 +26,7 @@
   import BatchEditColumn, { BatchEditNumberInput } from '@views/db-manage/common/batch-edit-column-new/Index.vue';
 
   interface Emits {
-    (e: 'batch-edit', value: string, filed: string): void;
+    (e: 'batch-edit', value: number, filed: string): void;
     (e: 'change'): void;
   }
 
@@ -43,7 +43,7 @@
     },
   ];
 
-  const batchEditValue = ref('');
+  const batchEditValue = ref(0);
 
   const handleBatchEditConfirm = () => {
     emits('batch-edit', batchEditValue.value, 'target_proxy_count');

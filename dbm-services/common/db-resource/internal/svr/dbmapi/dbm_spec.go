@@ -39,8 +39,10 @@ type DbmSpec struct {
 
 // RealDiskSpec 真实磁盘规格
 type RealDiskSpec struct {
+	// Size       int    `json:"size"`
+	Min        int    `json:"min"`
+	Max        int    `json:"max"`
 	DiskType   string `json:"type"`
-	Size       int    `json:"size"`
 	MountPoint string `json:"mount_point"`
 }
 
@@ -50,7 +52,7 @@ type DbmSpecBaseResp struct {
 	Results []DbmSpec `json:"results"`
 }
 
-// DbmBaseResp dbm base api respone data
+// DbmBaseResp dbm base api response data
 type DbmBaseResp struct {
 	Code      int             `json:"code"`
 	Message   string          `json:"message"`
@@ -109,21 +111,21 @@ func (c *DbmClient) GetDbmSpec(queryParam map[string]string) (specData []DbmSpec
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		logger.Error("read respone body failed %s", err.Error())
+		logger.Error("read response body failed %s", err.Error())
 		return
 	}
-	logger.Info("GetDbmSpec respone:%s", string(body))
-	var rpdata DbmBaseResp
-	if err = json.Unmarshal(body, &rpdata); err != nil {
-		logger.Error("unmarshal respone body failed %s", err.Error())
+	logger.Info("GetDbmSpec response:%s", string(body))
+	var respData DbmBaseResp
+	if err = json.Unmarshal(body, &respData); err != nil {
+		logger.Error("unmarshal response body failed %s", err.Error())
 		return
 	}
-	if rpdata.Code != 0 {
-		return nil, fmt.Errorf("respone code:%d,message:%s", rpdata.Code, rpdata.Message)
+	if respData.Code != 0 {
+		return nil, fmt.Errorf("response code:%d,message:%s", respData.Code, respData.Message)
 	}
-	logger.Debug("GetDbmSpec respone:%s", string(rpdata.Data))
+	logger.Debug("GetDbmSpec response:%s", string(respData.Data))
 	var specRespData DbmSpecBaseResp
-	if err = json.Unmarshal(rpdata.Data, &specRespData); err != nil {
+	if err = json.Unmarshal(respData.Data, &specRespData); err != nil {
 		logger.Error("unmarshal  DbmBaseResp body failed %s", err.Error())
 		return
 	}

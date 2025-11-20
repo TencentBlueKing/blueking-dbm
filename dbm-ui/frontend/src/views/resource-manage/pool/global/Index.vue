@@ -19,9 +19,16 @@
         theme="info">
         {{ t('全局') }}
       </BkTag>
-      <ImportHostBtn
+      <AuthButton
+        action-id="resource_pool_manage"
         class="w-88"
-        @export-host="handleImportHost" />
+        theme="primary"
+        @click="handleImportHost">
+        <DbIcon
+          class="mr-6"
+          type="add" />
+        {{ t('导入主机') }}
+      </AuthButton>
     </Teleport>
     <BkTab
       v-model:active="activeTab"
@@ -49,7 +56,6 @@
   import { useDebouncedRef } from '@hooks';
 
   import ImportHost from '../components/host-list/components/import-host/Index.vue';
-  import ImportHostBtn from '../components/host-list/components/ImportHostBtn.vue';
   import HostList from '../components/host-list/Index.vue';
   import SummaryView from '../components/summary-view/Index.vue';
 
@@ -105,6 +111,10 @@
     padding: 0 24px;
     background: #fff;
     box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
+
+    :deep(.bk-tab-header-active-bar) {
+      transition: none;
+    }
 
     :deep(.bk-tab-content) {
       display: none;

@@ -13,10 +13,10 @@ from typing import List
 
 from django.utils.translation import gettext_lazy as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
-class ClusterStatus(str, StructuredEnum):
+class ClusterStatus(StrStructuredEnum):
     NORMAL = EnumField("normal", _("normal"))
     ABNORMAL = EnumField("abnormal", _("abnormal"))
     # spider 定点构造的集群状态标记为临时集群

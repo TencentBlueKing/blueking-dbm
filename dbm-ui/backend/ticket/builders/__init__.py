@@ -10,22 +10,24 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import importlib
+import itertools
 import json
 import logging
+import math
 import os
-from typing import Callable, Dict
+from collections import defaultdict
+from typing import Callable, Dict, List, Union
 
-from django.utils.translation import ugettext as _
+from django.db.models import Count, Q
+from django.utils.translation import gettext as _
 from rest_framework import serializers
 
 from backend import env
-from backend.components.dbresource.client import DBResourceApi
 from backend.configuration.constants import AffinityEnum, DBType, SystemSettingsEnum
 from backend.configuration.models import DBAdministrator, SystemSettings
-from backend.db_dirty.constants import PoolType
-from backend.db_meta.models import AppCache, Cluster
+from backend.db_meta.enums import MachineType, TenDBClusterSpiderRole
+from backend.db_meta.models import AppCache, Cluster, Machine, ProxyInstance, StorageInstance
 from backend.db_services.dbbase.constants import IpSource
-from backend.flow.engine.controller.base import BaseController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket.constants import TICKET_EXPIRE_DEFAULT_CONFIG, FlowRetryType, FlowType, TicketType
 from backend.ticket.models import Flow, Ticket, TicketFlowsConfig
@@ -79,6 +81,9 @@ class FlowParamBuilder(CallBackBuilderMixin):
     # 配置任务流程控制器：流程启动函数
     controller = None
 
+    # 暂时先为空，等校验函数出来再替换
+    validator = None
+
     def __init__(self, ticket: Ticket):
         self.ticket = ticket
         self.ticket_data = copy.deepcopy(ticket.details)
@@ -125,6 +130,9 @@ class ItsmParamBuilder(CallBackBuilderMixin):
     def get_approvers(self):
         db_type = BuilderFactory.registry[self.ticket.ticket_type].group
         approvers = DBAdministrator.get_biz_db_type_admins(self.ticket.bk_biz_id, db_type)
+        # 审批默认加上admin
+        if "admin" not in approvers:
+            approvers.append("admin")
         return ",".join(approvers)
 
     def format(self):
@@ -228,36 +236,172 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
         """
         pass
 
-    def patch_info_affinity_location(self, roles=None):
+    @staticmethod
+    def patch_common_affinity(
+        info: dict,
+        role: str,
+        cluster: Cluster,
+        exclusive_hosts: List[Machine] = None,
+        tolerance: float = 0,
+        no_need_affinity: bool = False,
+    ):
+        """
+        针对扩容、替换、部署场景，补充亲和性参数
+        @param info: 申请信息
+        @param role: 分组名称
+        @param cluster: 集群
+        @param exclusive_hosts: 互斥主机(要求园区/机架亲和性)
+        @param tolerance: 亲和性容忍度
+        @param no_need_affinity: 是否需要亲和性
+        """
+
+        # 补充云区域和业务信息
+        info.update(bk_cloud_id=cluster.bk_cloud_id, bk_biz_id=cluster.bk_biz_id)
+
+        # 如果不存在资源池匹配，或者是资源池手动选择，则跳过
+        if role not in info["resource_spec"] or "hosts" in info["resource_spec"][role]:
+            return
+
+        resource_spec = info["resource_spec"]
+        affinity = cluster.disaster_tolerance_level
+        # 对互斥主机进行去重
+        exclusive_hosts = exclusive_hosts or []
+        exclusive_hosts = list({host.bk_host_id: host for host in exclusive_hosts}.values())
+
+        # 如果不需要亲和性，则更新城市，亲和性固定为None
+        if no_need_affinity:
+            resource_spec[role]["location_spec"] = {"city": cluster.region, "sub_zone_ids": []}
+            resource_spec[role]["affinity"] = AffinityEnum.NONE
+            return
+
+        # 获取互斥机器园区、园区信息
+        current_hosts = [
+            {
+                "ip": host.ip,
+                "bk_host_id": host.bk_host_id,
+                "sub_zone": host.bk_sub_zone,
+                "sub_zone_id": str(host.bk_sub_zone_id),
+                "rack_id": str(host.bk_rack_id),
+            }
+            for host in exclusive_hosts
+        ]
+
+        resource_spec[role].update(
+            affinity=affinity,
+            location_spec={"city": cluster.region, "sub_zone_ids": cluster.zone_list or []},
+            tolerance=tolerance,
+            current_hosts=current_hosts,
+        )
+
+    def patch_info_common_affinity(
+        self,
+        role: str,
+        remain_machine_type: str = None,
+        replace_key: str = None,
+        tolerance: float = 0,
+        no_need_affinity: bool = False,
+    ):
+        """
+        针对批量扩容、替换补充亲和性参数
+        @param role 分组名称
+        @param remain_machine_type 库存机器类型
+        @param replace_key 替换实例key
+        @param tolerance: 亲和性容忍度
+        @param no_need_affinity: 是否需要亲和性
+        """
+        # 获得infos中的集群信息
+        from backend.ticket.builders.common.base import fetch_cluster_ids
+
+        def __get_exclusive_hosts():
+            """找到集群和存量机型的映射"""
+
+            # 存量主机的通用过滤
+            common_filters = Q(machine__machine_type=remain_machine_type, cluster__in=cluster_ids) & ~Q(
+                machine__bk_host_id__in=off_host_ids
+            )
+
+            # 如果是slave替换，则找到对应master
+            if remain_machine_type == "master":
+                slave_insts = StorageInstance.objects.prefetch_related("as_receiver__ejector__machine").filter(
+                    machine__bk_host_id__in=off_host_ids
+                )
+                for slave in slave_insts:
+                    master = slave.as_receiver.first().ejector.machine
+                    cluster__remain_hosts_map[slave.cluster.first().id].append(master)
+            # 如果机器类型是spider，则考虑spider master
+            elif remain_machine_type == MachineType.SPIDER.value:
+                spider_masters = ProxyInstance.objects.select_related("machine").filter(
+                    common_filters, tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
+                )
+                for spider_master in spider_masters:
+                    cluster__remain_hosts_map[spider_master.cluster.first().id].append(spider_master.machine)
+            # 找到集群和存量机型的映射
+            elif remain_machine_type:
+                storage_insts = list(StorageInstance.objects.select_related("machine").filter(common_filters))
+                proxy_insts = list(ProxyInstance.objects.select_related("machine").filter(common_filters))
+                for inst in storage_insts + proxy_insts:
+                    cluster__remain_hosts_map[inst.cluster.first().id].append(inst.machine)
+
+            return cluster__remain_hosts_map
+
+        infos = self.ticket_data["infos"]
+        cluster_ids = fetch_cluster_ids(infos)
+        cluster_map = Cluster.objects.in_bulk(cluster_ids)
+
+        cluster__remain_hosts_map = defaultdict(list)
+        off_host_ids = []
+        # 如果有replace_key，则说明是替换单据，找到替换的机器
+        if replace_key:
+            off_host_ids = [host["bk_host_id"] for info in infos for host in info["old_nodes"][replace_key]]
+        # 考虑存量机型
+        if remain_machine_type:
+            cluster__remain_hosts_map = __get_exclusive_hosts()
+
+        for info in infos:
+            cluster = cluster_map[fetch_cluster_ids(info)[0]]
+            exclusive_hosts = cluster__remain_hosts_map.get(cluster.id, [])
+            self.patch_common_affinity(info, role, cluster, exclusive_hosts, tolerance, no_need_affinity)
+
+    def patch_info_affinity_location(self, roles=None, replace_zone=None):
         """
         批量节点变更的时候，补充亲和性和位置参数
+        TODO: 暂定废弃，改用patch_common_affinity/patch_info_common_affinity
         """
-        from backend.ticket.builders.common.base import fetch_cluster_ids
+        from backend.ticket.builders.common.base import fetch_cluster_ids, fetch_host_ips
+
+        machine_zone_map = {}
+        # 处理替换指定园区
+        if replace_zone:
+            host_ips = fetch_host_ips(self.ticket_data["infos"])
+            machine_zone_map = {host.ip: host.bk_sub_zone_id for host in Machine.objects.filter(ip__in=host_ips)}
 
         cluster_ids = fetch_cluster_ids(self.ticket_data["infos"])
         cluster_id_map = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
         for info in self.ticket_data["infos"]:
             cluster = cluster_id_map[fetch_cluster_ids(info)[0]]
-            self.patch_affinity_location(cluster, info["resource_spec"], roles)
+            affinity = cluster.disaster_tolerance_level
+            if affinity in [AffinityEnum.CROS_SUBZONE, AffinityEnum.MAJORITY_ELECTION_DISTRI] and machine_zone_map:
+                replace_zone = [machine_zone_map[fetch_host_ips(info["old_nodes"])[0]]]
+            else:
+                replace_zone = []
+            self.patch_affinity_location(cluster, info["resource_spec"], roles, replace_zone)
             # 工具箱操作，补充业务和云区域ID
             info.update(bk_cloud_id=cluster.bk_cloud_id, bk_biz_id=self.ticket.bk_biz_id)
 
     @classmethod
-    def patch_affinity_location(cls, cluster, resource_spec, roles=None):
+    def patch_affinity_location(cls, cluster, resource_spec, roles=None, replace_zone: list = None):
         """
         节点变更的时候，补充亲和性和位置参数
+        TODO: 暂定废弃，改用patch_common_affinity/patch_info_common_affinity
         """
-        bk_sub_zone_id = None
-        # 资源申请同城同园区条件：补充园区id, 且需传include_or_exclude=True来指定申请的园区，如不传nclude_or_exclude参数，默认视为包含该园区
-        if cluster.disaster_tolerance_level in [AffinityEnum.SAME_SUBZONE, AffinityEnum.SAME_SUBZONE_CROSS_SWTICH]:
-            bk_sub_zone_id = cluster.storageinstance_set.first().machine.bk_sub_zone_id
 
+        bk_sub_zone_ids = replace_zone or cluster.zone_list
         resource_role = roles or resource_spec.keys()
         for role in resource_role:
             resource_spec[role]["affinity"] = cluster.disaster_tolerance_level
             resource_spec[role]["location_spec"] = {"city": cluster.region, "sub_zone_ids": []}
-            if bk_sub_zone_id:
-                resource_spec[role]["location_spec"].update(sub_zone_ids=[bk_sub_zone_id], include_or_exclude=True)
+            if bk_sub_zone_ids:
+                resource_spec[role]["location_spec"].update(sub_zone_ids=bk_sub_zone_ids, include_or_exclue=True)
 
 
 class RecycleCleanMachineParamBuilder(FlowParamBuilder):

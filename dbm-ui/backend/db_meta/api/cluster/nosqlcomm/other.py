@@ -35,7 +35,12 @@ def get_cluster_proxies(cluster_id: int):
             "proxyinstance_set__machine",
         ).get(id=cluster_id)
         return [
-            {"ip": proxy_obj.machine.ip, "port": proxy_obj.port, "admin_port": proxy_obj.admin_port}
+            {
+                "ip": proxy_obj.machine.ip,
+                "port": proxy_obj.port,
+                "status": proxy_obj.status,
+                "admin_port": proxy_obj.admin_port,
+            }
             for proxy_obj in cluster_obj.proxyinstance_set.all()
         ]
 

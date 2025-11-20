@@ -10,7 +10,7 @@ type ObserveConfig struct {
 type BkLogConfig struct {
 	Enabled bool              `json:"enabled,omitempty"`
 	Labels  map[string]string `json:"labels,omitempty"`
-	DataID  int32             `json:"dataID,omitempty"`
+	DataID  int32             `json:"dataId,omitempty"`
 }
 
 // SvcMonitor serviceMonitor parameter from request

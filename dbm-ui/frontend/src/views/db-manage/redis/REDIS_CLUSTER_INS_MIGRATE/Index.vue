@@ -27,39 +27,48 @@
         form-type="vertical"
         :model="formData">
         <MigrateFormItems v-model="formData" />
+        <BatchInput
+          :config="batchInputConfig"
+          @change="handleBatchInput" />
         <EditableTable
           ref="editableTable"
-          class="mt16 mb16"
+          class="mt-16 mb-16"
           :model="formData.tableData">
           <EditableRow
             v-for="(item, index) in formData.tableData"
             :key="index">
             <InstanceColumn
-              v-model="item.instance"
-              :after-input="(data: RedisInstanceModel) => afterInput(data, index)"
+              ref="instanceColumnRef"
+              v-model="item.batchInstance"
               :selected="selected"
+              :selected-map="selectedMap"
               :tab-list-config="tabListConfig"
               @batch-edit="handleInstanceSelectChange" />
             <EditableColumn
               :append-rules="masterDomainRules"
-              field="instance.master_domain"
+              field="batchInstance.renderText"
               :label="t('所属集群')"
               :min-width="300"
+              readonly
               :rowspan="item.rowspan">
               <EditableBlock :placeholder="t('输入主机后自动生成')">
-                {{ item.instance.master_domain }}
+                <div
+                  v-for="domainItem in _.uniq(
+                    Object.values(item.batchInstance.instances).map((item) => item.master_domain),
+                  )"
+                  :key="domainItem">
+                  {{ domainItem }}
+                </div>
               </EditableBlock>
             </EditableColumn>
-            <EditableColumn
-              :label="t('规格')"
-              :width="200">
-              <EditableBlock :placeholder="t('输入主机后自动生成')">
-                {{ item.instance.spec_config.id ? item.instance.spec_config.name : '' }}
-              </EditableBlock>
-            </EditableColumn>
-            <CurrentVersionColumn
+            <SpecColumn
+              v-model="item.batchInstance.current_spec_id"
+              :cluster-type="DBTypes.REDIS"
+              field="batchInstance.current_spec_id"
+              label="规格" />
+            <!-- <CurrentVersionColumn
               v-model="item.current_versions"
-              :cluster-id="item.instance.cluster_id" />
+              :cluster-id="Object.values(item.batchInstance.instances)?.[0]?.cluster_id" /> -->
             <OperationColumn
               :create-row-method="createRowData"
               :table-data="formData.tableData" />
@@ -81,7 +90,7 @@
         :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
         :title="t('确认重置页面')">
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="isSubmitting">
           {{ t('重置') }}
         </BkButton>
@@ -91,31 +100,34 @@
 </template>
 
 <script setup lang="tsx">
+  import _ from 'lodash';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import RedisModel from '@services/model/redis/redis';
   import RedisInstanceModel from '@services/model/redis/redis-instance';
   import { type Redis } from '@services/model/ticket/ticket';
   import { getRedisClusterList, getRedisInstances } from '@services/source/redis';
-  import { queryMachineInstancePair } from '@services/source/redisToolbox';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import ManualInputHostContent from '@components/instance-selector/components/common/manual-content/Index.vue';
   import { type PanelListType } from '@components/instance-selector/Index.vue';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+  import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-  import InstanceColumn from '@views/db-manage/redis/common/toolbox-field/instance-column/Index.vue';
   import MigrateFormItems, {
     ArchitectureType,
     MigrateType,
-  } from '@views/db-manage/redis/common/toolbox-field/migrate-form-items/Index.vue';
+  } from '@views/db-manage/redis/common/toolbox-common/migrate-form-items/Index.vue';
 
-  import CurrentVersionColumn from './components/CurrentVersionColumn.vue';
+  // import CurrentVersionColumn from './components/CurrentVersionColumn.vue';
+  import InstanceColumn from './components/InstanceColumn.vue';
 
   interface IHostData {
     bk_biz_id: number;
@@ -126,23 +138,23 @@
   }
 
   interface IDataRow {
+    batchInstance: ComponentProps<typeof InstanceColumn>['modelValue'];
     current_versions: string[];
-    instance: {
-      cluster_id: number;
-      cluster_type: string;
-      id: number;
-      instance_address: string;
-      master_domain: string;
-      spec_config: RedisInstanceModel['spec_config'];
-    };
-    master: IHostData;
     rowspan: number;
-    slave: IHostData;
   }
 
   const { t } = useI18n();
 
   const editableTableRef = useTemplateRef('editableTable');
+  const instanceColumnRef = useTemplateRef<Array<InstanceType<typeof InstanceColumn>>>('instanceColumnRef');
+
+  const batchInputConfig = [
+    {
+      case: '192.168.10.2:10000\\n192.168.10.2:10001',
+      key: 'instance',
+      label: t('目标实例'),
+    },
+  ];
 
   // 单据克隆
   useTicketDetail<Redis.MigrateCluster>(TicketTypes.REDIS_CLUSTER_INS_MIGRATE, {
@@ -152,48 +164,18 @@
         payload: createTickePayload(ticketDetail),
         tableData: infos.map((infoItem) =>
           createRowData({
-            instance: {
-              instance_address: infoItem.display_info.instance,
-            } as IDataRow['instance'],
-            // master: infoItem.old_nodes.master[0],
-            // slave: infoItem.old_nodes.slave[0],
+            batchInstance: {
+              renderText: infoItem.migrate_instance,
+            } as IDataRow['batchInstance'],
           }),
         ),
       });
     },
   });
 
-  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
-    infos: {
-      cluster_id: number;
-      display_info: {
-        db_version: string[];
-        instance: string;
-      };
-      old_nodes: {
-        master: {
-          bk_biz_id: number;
-          bk_cloud_id: number;
-          bk_host_id: number;
-          ip: string;
-          port: number;
-        }[];
-        slave: {
-          bk_biz_id: number;
-          bk_cloud_id: number;
-          bk_host_id: number;
-          ip: string;
-          port: number;
-        }[];
-      };
-      resource_spec: {
-        backend_group: {
-          count: number;
-          spec_id: number;
-        };
-      };
-    }[];
-  }>(TicketTypes.REDIS_CLUSTER_INS_MIGRATE);
+  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{ infos: Redis.MigrateCluster['infos'] }>(
+    TicketTypes.REDIS_CLUSTER_INS_MIGRATE,
+  );
 
   const initFormData = () => ({
     architectureType: ArchitectureType.CLUSTER,
@@ -203,39 +185,16 @@
   });
 
   const createRowData = (values = {} as Partial<IDataRow>) => ({
+    batchInstance: Object.assign(
+      {
+        current_spec_id: 0,
+        instances: {} as IDataRow['batchInstance']['instances'],
+        renderText: '',
+      },
+      values.batchInstance,
+    ),
     current_versions: values?.current_versions || [],
-    instance: Object.assign(
-      {
-        cluster_id: 0,
-        cluster_type: '',
-        id: 0,
-        instance_address: '',
-        master_domain: '',
-        spec_config: {} as RedisInstanceModel['spec_config'],
-      },
-      values.instance,
-    ),
-    master: Object.assign(
-      {
-        bk_biz_id: 0,
-        bk_cloud_id: 0,
-        bk_host_id: 0,
-        ip: '',
-        port: 0,
-      },
-      values.master,
-    ),
     rowspan: values?.rowspan || 1,
-    slave: Object.assign(
-      {
-        bk_biz_id: 0,
-        bk_cloud_id: 0,
-        bk_host_id: 0,
-        ip: '',
-        port: 0,
-      },
-      values.slave,
-    ),
   });
 
   const masterDomainRules = [
@@ -244,7 +203,7 @@
       trigger: 'change',
       validator: (value: string, { rowData }: { rowData: IDataRow }) =>
         ![ClusterTypes.PREDIXY_REDIS_CLUSTER, ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER].includes(
-          rowData.instance.cluster_type as ClusterTypes,
+          Object.values(rowData.batchInstance.instances)?.[0]!.cluster_type as ClusterTypes,
         ),
     },
   ];
@@ -324,134 +283,52 @@
       }) as unknown as Record<ClusterTypes, PanelListType>,
   );
 
-  const selected = computed(() => formData.tableData.filter((item) => item.instance.id).map((item) => item.instance));
+  const selected = computed(() =>
+    formData.tableData
+      .filter((item) => item.batchInstance.renderText)
+      .flatMap((item) => Object.values(item.batchInstance.instances)),
+  );
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.instance_address, true])));
 
-  const getMasterSlaveInstaceMap = async (data: RedisInstanceModel[]) => {
-    const slaveInstanceMap = await queryMachineInstancePair({
-      instances: data.map((item) => item.instance_address),
-    });
-
-    if (slaveInstanceMap && slaveInstanceMap.instances) {
-      const masterSlaveInstaceMap = data.reduce<
-        Record<
-          string,
-          {
-            master: IHostData;
-            slave: IHostData;
-          }
-        >
-      >(
-        (prevMap, instanceItem) =>
-          Object.assign({}, prevMap, {
-            [instanceItem.instance_address]: {
-              master: {
-                bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-                bk_cloud_id: instanceItem.bk_cloud_id,
-                bk_host_id: instanceItem.bk_host_id,
-                ip: instanceItem.ip,
-                port: instanceItem.port,
-              },
-            },
-          }),
-        {},
-      );
-      Object.keys(masterSlaveInstaceMap).forEach((masterInstance) => {
-        const slaveItem = slaveInstanceMap.instances![masterInstance];
-        masterSlaveInstaceMap[masterInstance].slave = {
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          bk_cloud_id: slaveItem.bk_cloud_id,
-          bk_host_id: slaveItem.bk_host_id,
-          ip: slaveItem.ip,
-          port: slaveItem.port,
-        };
-      });
-
-      return masterSlaveInstaceMap;
-    }
-
-    return {};
-  };
-
   // 批量选择
-  const handleInstanceSelectChange = async (data: RedisInstanceModel[]) => {
+  const handleInstanceSelectChange = (data: RedisInstanceModel[]) => {
     const newList: IDataRow[] = [];
-    const masterSlaveInstaceMap = await getMasterSlaveInstaceMap(data);
     data.forEach((item) => {
       const { instance_address: instance } = item;
       if (!selectedMap.value[instance]) {
-        const { slave } = masterSlaveInstaceMap[item.instance_address];
         newList.push(
           createRowData({
-            instance: {
-              cluster_id: item.cluster_id,
-              cluster_type: item.cluster_type,
-              id: item.id,
-              instance_address: item.instance_address,
-              master_domain: item.master_domain,
-              spec_config: item.spec_config,
-            },
-            master: {
-              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-              bk_cloud_id: item.bk_cloud_id,
-              bk_host_id: item.bk_host_id,
-              ip: item.ip,
-              port: item.port,
-            },
-            slave: {
-              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-              bk_cloud_id: slave.bk_cloud_id,
-              bk_host_id: slave.bk_host_id,
-              ip: slave.ip,
-              port: slave.port,
-            },
+            batchInstance: {
+              renderText: item.instance_address,
+            } as IDataRow['batchInstance'],
           }),
         );
       }
     });
 
-    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...newList];
+    formData.tableData = [...formData.tableData.filter((item) => item.batchInstance.renderText), ...newList];
     window.changeConfirm = true;
-
-    nextTick(() => {
-      editableTableRef.value!.validateByField('instance.master_domain');
-    });
   };
 
-  const afterInput = async (data: RedisInstanceModel, index: number) => {
-    const masterSlaveInstaceMap = await getMasterSlaveInstaceMap([data]);
-    const { instance_address: instance } = data;
-    if (!selectedMap.value[instance]) {
-      const { slave } = masterSlaveInstaceMap[data.instance_address];
-      formData.tableData[index] = createRowData({
-        instance: {
-          cluster_id: data.cluster_id,
-          cluster_type: data.cluster_type,
-          id: data.id,
-          instance_address: data.instance_address,
-          master_domain: data.master_domain,
-          spec_config: data.spec_config,
-        },
-        master: {
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          bk_cloud_id: data.bk_cloud_id,
-          bk_host_id: data.bk_host_id,
-          ip: data.ip,
-          port: data.port,
-        },
-        slave: {
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          bk_cloud_id: slave.bk_cloud_id,
-          bk_host_id: slave.bk_host_id,
-          ip: slave.ip,
-          port: slave.port,
-        },
-      });
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const newList = data.reduce<IDataRow[]>((acc, item) => {
+      acc.push(
+        createRowData({
+          batchInstance: {
+            renderText: item.instance?.replaceAll('\\n', '\n') || '',
+          } as IDataRow['batchInstance'],
+        }),
+      );
+      return acc;
+    }, []);
+    if (isClear) {
+      formData.tableData = [...newList];
+    } else {
+      formData.tableData = [...formData.tableData.filter((item) => item.batchInstance.renderText), ...newList];
     }
-
-    nextTick(() => {
-      editableTableRef.value!.validateByField('instance.master_domain');
-    });
+    setTimeout(() => {
+      editableTableRef.value!.validate();
+    }, 200);
   };
 
   const handleSubmit = async () => {
@@ -459,23 +336,44 @@
     if (validateResult) {
       createTicketRun({
         details: {
-          infos: formData.tableData.map((tableItem) => ({
-            cluster_id: tableItem.instance.cluster_id,
-            display_info: {
-              db_version: tableItem.current_versions,
-              instance: tableItem.instance.instance_address,
-            },
-            old_nodes: {
-              master: [tableItem.master],
-              slave: [tableItem.slave],
-            },
-            resource_spec: {
-              backend_group: {
-                count: 1,
-                spec_id: tableItem.instance.spec_config.id,
+          infos: formData.tableData.map((tableItem) => {
+            const instances = Object.values(tableItem.batchInstance.instances);
+            const oldNodes = instances.reduce<{
+              master: IHostData[];
+              slave: IHostData[];
+            }>(
+              (prev, item) => {
+                return Object.assign(prev, {
+                  master: prev.master.concat({
+                    bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+                    bk_cloud_id: item.bk_cloud_id,
+                    bk_host_id: item.bk_host_id,
+                    ip: item.ip,
+                    port: item.port,
+                  }),
+                  slave: prev.slave.concat(item.slave),
+                });
               },
-            },
-          })),
+              {
+                master: [],
+                slave: [],
+              },
+            );
+            const [instance] = instances;
+            return {
+              cluster_id: instance!.cluster_id,
+              db_version: tableItem.current_versions,
+              migrate_instance: instances.map((item) => item.instance_address).join(','),
+              // old_nodes: oldNodes,
+              origin_old_nodes: oldNodes,
+              resource_spec: {
+                backend_group: {
+                  count: 1,
+                  spec_id: instance!.spec_config.id,
+                },
+              },
+            };
+          }),
         },
         ...formData.payload,
       });

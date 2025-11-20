@@ -35,6 +35,7 @@ const (
 	Observer Role = "observer"
 	Hot      Role = "hot"
 	Cold     Role = "cold"
+	Warm     Role = "warm"
 )
 
 const (
@@ -66,6 +67,10 @@ type HotEnum struct {
 
 // ColdEnum 冷节点 枚举类
 type ColdEnum struct {
+}
+
+// WarmEnum 温节点 枚举类
+type WarmEnum struct {
 }
 
 // RoleImp Doris角色方法接口
@@ -135,6 +140,21 @@ func (r *ColdEnum) InnerPort() int {
 	return BeHeartBeatPort
 }
 
+// Value 返回角色的值
+func (r *WarmEnum) Value() Role {
+	return Warm
+}
+
+// Group 返回角色所属的组
+func (r *WarmEnum) Group() Group {
+	return Backend
+}
+
+// InnerPort 返回角色的内部端口
+func (r *WarmEnum) InnerPort() int {
+	return BeHeartBeatPort
+}
+
 // RoleEnum 通过角色名string返回 Doris角色 枚举类
 func RoleEnum(roleName string) RoleImp {
 	switch roleName {
@@ -146,6 +166,8 @@ func RoleEnum(roleName string) RoleImp {
 		return &HotEnum{}
 	case string(Cold):
 		return &ColdEnum{}
+	case string(Warm):
+		return &WarmEnum{}
 	}
 	return nil
 }
@@ -161,6 +183,8 @@ func RoleEnumByRole(role Role) RoleImp {
 		return &HotEnum{}
 	case Cold:
 		return &ColdEnum{}
+	case Warm:
+		return &WarmEnum{}
 	}
 	return nil
 }
@@ -171,12 +195,19 @@ const (
 	PriorityNetworks = "priority_networks"
 	StorageRootPath  = "storage_root_path"
 	JavaOpts         = "JAVA_OPTS"
+	JavaOpts17       = "JAVA_OPTS_FOR_JDK_17"
 )
 
 const (
-	JavaOptsDefault = "-Djavax.security.auth.useSubjectCredsOnly=false -Xss4m -Xmx%dm -XX:+UseMembar -XX:SurvivorRatio=8 -XX:MaxTenuringThreshold=7 -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:+CMSClassUnloadingEnabled -XX:-CMSParallelRemarkEnabled -XX:CMSInitiatingOccupancyFraction=80 -XX:SoftRefLRUPolicyMSPerMB=0 -Xloggc:$DORIS_HOME/log/fe.gc.log.$CUR_DATE"
+	JavaOptsDefault   = "-Dfile.encoding=UTF-8 -Djavax.security.auth.useSubjectCredsOnly=false -Xss4m -Xmx%dm -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:+PrintClassHistogramAfterFullGC -Xloggc:$LOG_DIR/log/fe.gc.log.$CUR_DATE -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=10 -XX:GCLogFileSize=50M -Dlog4j2.formatMsgNoLookups=true"
+	JavaOpts17Default = "-Dfile.encoding=UTF-8 -Djavax.security.auth.useSubjectCredsOnly=false -Xmx%dm -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$LOG_DIR -Xlog:gc*,classhisto*=trace:$LOG_DIR/fe.gc.log.$CUR_DATE:time,uptime:filecount=10,filesize=50M --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens java.base/jdk.internal.ref=ALL-UNNAMED"
 )
 
 const (
 	BootstrapStatusOK = 0
+)
+
+const (
+	// DefaultCosEndpoint 默认的COS地址，内网，需要拼接上地域
+	DefaultCosEndpoint = "cos-internal.%s.tencentcos.cn"
 )

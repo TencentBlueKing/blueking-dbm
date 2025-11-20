@@ -52,8 +52,9 @@ export default class RedisRollback {
       min: number;
     };
     storage_spec: {
+      max: number;
+      min: number;
       mount_point: string;
-      size: number;
       type: string;
     }[];
   };

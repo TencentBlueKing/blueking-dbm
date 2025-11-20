@@ -24,40 +24,37 @@
       <ClusterBatchOperation
         v-db-console="'es.clusterManage.batchOperation'"
         :cluster-type="ClusterTypes.ES"
-        :selected="selected"
-        @success="fetchTableData" />
+        :selected="selectedList"
+        @success="fetchData" />
       <DropdownExportExcel
         v-db-console="'es.clusterManage.export'"
-        :has-selected="hasSelected"
-        :ids="selectedIds"
+        :has-selected="isSelected"
+        :ids="selectedIdList"
         type="es" />
       <ClusterIpCopy
         v-db-console="'es.clusterManage.batchCopy'"
-        :selected="selected" />
-      <TagSearch @search="handleTagSearch" />
-      <DbSearchSelect
-        :data="serachData"
-        :get-menu-list="getMenuList"
-        :model-value="searchValue"
+        :selected="selectedList" />
+      <DbQuickSearch
+        v-model="searchValue"
+        :data="quickSearchData"
+        parse-url
         :placeholder="t('请输入或选择条件搜索')"
-        unique-select
-        :validate-values="validateSearchValues"
-        @change="handleSearchValueChange" />
+        style="width: 500px; margin-left: auto"
+        @change="handleQuickSearchChange" />
     </div>
     <ClusterTable
-      ref="tableRef"
+      ref="clusterTable"
+      :bk-ui-settings="tableSetting"
       :cluster-id="clusterId"
       :cluster-type="ClusterTypes.ES"
       :data-source="dataSource"
-      :settings="tableSetting"
-      @clear-search="clearSearchValue"
-      @column-filter="columnFilterChange"
-      @column-sort="columnSortChange"
-      @selection="handleSelection"
-      @setting-change="updateTableSettings">
+      :filter-value="searchValue"
+      @bk-ui-settings-change="updateTableSettings"
+      @filter-change="handleFilterChange"
+      @selection="handleSelection">
       <template #operation>
         <OperationColumn :cluster-type="ClusterTypes.ES">
-          <template #default="{ data }">
+          <template #default="{ data }: { data: EsModel }">
             <div v-db-console="'es.clusterManage.manage'">
               <a
                 :href="data.access_url"
@@ -76,7 +73,6 @@
                 {{ t('获取访问方式') }}
               </AuthButton>
             </div>
-
             <div v-db-console="'es.clusterManage.scaleUp'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
@@ -100,6 +96,63 @@
                   text
                   @click="handleShowShrink(data)">
                   {{ t('缩容') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div
+              v-if="!data.isOnlineCLB"
+              v-db-console="'common.clb'">
+              <OperationBtnStatusTips
+                :data="data"
+                :disabled="!data.isOffline">
+                <AuthButton
+                  action-id="es_create_clb"
+                  :disabled="data.isOffline"
+                  :permission="data.permission.es_create_clb"
+                  :resource="data.id"
+                  text
+                  @click="() => handleAddClb({ details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id } })">
+                  {{ t('启用接入层负载均衡（CLB）') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div
+              v-if="!data.isOnlinePolaris"
+              v-db-console="'common.polaris'">
+              <OperationBtnStatusTips
+                :data="data"
+                :disabled="!data.isOffline">
+                <AuthButton
+                  action-id="es_create_polaris"
+                  :disabled="data.isOffline"
+                  :permission="data.permission.es_create_polaris"
+                  :resource="data.id"
+                  text
+                  @click="() => handleAddPolaris({ details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id } })">
+                  {{ t('启用接入层负载均衡（北极星）') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div
+              v-if="data.isOnlineCLB"
+              v-db-console="'common.clb'">
+              <OperationBtnStatusTips
+                :data="data"
+                :disabled="!data.isOffline">
+                <AuthButton
+                  action-id="es_dns_bind_clb"
+                  :disabled="data.isOffline"
+                  :permission="data.permission.es_dns_bind_clb"
+                  :resource="data.id"
+                  text
+                  @click="
+                    () =>
+                      handleBindOrUnbindClb(
+                        { details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id } },
+                        data.dns_to_clb,
+                      )
+                  ">
+                  {{ data.dns_to_clb ? t('恢复主域名直连接入层') : t('配置主域名指向负载均衡器（CLB）') }}
                 </AuthButton>
               </OperationBtnStatusTips>
             </div>
@@ -157,75 +210,75 @@
           :cluster-type="ClusterTypes.ES"
           field="master_domain"
           :get-table-instance="getTableInstance"
-          :is-filter="isFilter"
+          :is-filter="isSearching"
           :label="t('访问入口')"
-          :selected-list="selected"
+          :selected-list="selectedList"
           @go-detail="handleToDetails"
-          @refresh="fetchTableData" />
+          @refresh="fetchData">
+          <template #append="{ data }">
+            <div
+              v-if="data.isOnlineCLB"
+              class="ml-4">
+              <ClusterEntryPanel
+                :cluster-id="data.id"
+                entry-type="clb" />
+            </div>
+            <div
+              v-if="data.isOnlinePolaris"
+              class="ml-4">
+              <ClusterEntryPanel
+                :cluster-id="data.id"
+                entry-type="polaris"
+                :panel-width="418" />
+            </div>
+          </template>
+        </MasterDomainColumn>
       </template>
       <template #role>
         <RoleColumn
           :cluster-type="ClusterTypes.ES"
           field="es_master"
           :get-table-instance="getTableInstance"
-          :is-filter="isFilter"
+          :is-filter="isSearching"
           :label="t('Master节点')"
-          :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected"
+          :selected-list="selectedList"
           @go-detail="handleToDetails" />
         <RoleColumn
           :cluster-type="ClusterTypes.ES"
           field="es_client"
           :get-table-instance="getTableInstance"
-          :is-filter="isFilter"
+          :is-filter="isSearching"
           :label="t('Client节点')"
-          :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected"
+          :selected-list="selectedList"
           @go-detail="handleToDetails" />
         <RoleColumn
           :cluster-type="ClusterTypes.ES"
           field="es_datanode_hot"
           :get-table-instance="getTableInstance"
-          :is-filter="isFilter"
+          :is-filter="isSearching"
           :label="t('热节点')"
-          :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected"
+          :selected-list="selectedList"
           @go-detail="handleToDetails" />
         <RoleColumn
           :cluster-type="ClusterTypes.ES"
           field="es_datanode_cold"
           :get-table-instance="getTableInstance"
-          :is-filter="isFilter"
+          :is-filter="isSearching"
           :label="t('冷节点')"
-          :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected"
+          :selected-list="selectedList"
           @go-detail="handleToDetails" />
       </template>
     </ClusterTable>
-    <DbSideslider
+    <ClusterExpansion
+      v-if="operationData"
       v-model:is-show="isShowExpandsion"
-      background-color="#F5F7FA"
-      class="es-manage-sideslider"
-      :title="t('xx扩容【name】', { title: 'ES', name: operationData?.cluster_name })"
-      :width="960">
-      <ClusterExpansion
-        v-if="operationData"
-        :data="operationData"
-        @change="fetchTableData" />
-    </DbSideslider>
-    <DbSideslider
+      :cluster-data="operationData"
+      @change="fetchData" />
+    <ClusterShrink
+      v-if="operationData"
       v-model:is-show="isShowShrink"
-      background-color="#F5F7FA"
-      class="es-manage-sideslider"
-      :title="t('xx缩容【name】', { title: 'ES', name: operationData?.cluster_name })"
-      :width="960">
-      <ClusterShrink
-        v-if="operationData"
-        :cluster-id="operationData.id"
-        :data="operationData"
-        :node-list="[]"
-        @change="fetchTableData" />
-    </DbSideslider>
+      :cluster-data="operationData"
+      @change="fetchData" />
     <BkDialog
       v-model:is-show="isShowPassword"
       render-directive="if"
@@ -252,23 +305,20 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
+  import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
   import EsModel from '@services/model/es/es';
   import { getEsList } from '@services/source/es';
-  import { getUserList } from '@services/source/user';
 
-  import { useLinkQueryColumnSerach, useTableSettings } from '@hooks';
+  import { useClusterQuickSearch, useTableSettings } from '@hooks';
 
   import { ClusterTypes, DBTypes, UserPersonalSettings } from '@common/const';
 
-  import DbTable from '@components/db-table/index.vue';
-  import TagSearch from '@components/tag-search/index.vue';
-
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
+  import ClusterEntryPanel from '@views/db-manage/common/cluster-entry-panel/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import ClusterTable, {
     MasterDomainColumn,
@@ -276,198 +326,60 @@
     RoleColumn,
   } from '@views/db-manage/common/cluster-table/Index.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
-  import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
+  import { useAddClb, useAddPolaris, useBindOrUnbindClb, useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import RenderPassword from '@views/db-manage/common/RenderPassword.vue';
   import ClusterDetail from '@views/db-manage/elastic-search/common/cluster-detail/Index.vue';
   import ClusterExpansion from '@views/db-manage/elastic-search/common/expansion/Index.vue';
   import ClusterShrink from '@views/db-manage/elastic-search/common/shrink/Index.vue';
+  import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
   import useGoClusterDetail from '@views/db-manage/hooks/useGoClusterDetail';
-
-  import { getMenuListSearch, getSearchSelectorParams } from '@utils';
 
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
+  const { isSearching, quickSearchData, searchValue } = useClusterQuickSearch(ClusterTypes.ES);
   const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(ClusterTypes.ES, {
-    onSuccess: () => fetchTableData(),
+    onSuccess: () => fetchData(),
   });
+  const { handleAddClb } = useAddClb<{
+    bk_cloud_id: number;
+    cluster_id: number;
+  }>(ClusterTypes.ES);
+  const { handleAddPolaris } = useAddPolaris<{
+    bk_cloud_id: number;
+    cluster_id: number;
+  }>(ClusterTypes.ES);
+  const { handleBindOrUnbindClb } = useBindOrUnbindClb<{
+    bk_cloud_id: number;
+    cluster_id: number;
+  }>(ClusterTypes.ES);
+
   const {
     clusterDetailClose: handleDetailClose,
     clusterId,
     goClusterDetail: handleToDetails,
     showDetail: isShowDetail,
   } = useGoClusterDetail('esDetail');
-
-  const {
-    batchSearchIpInatanceList,
-    clearSearchValue,
-    columnFilterChange,
-    columnSortChange,
-    handleSearchValueChange,
-    isFilter,
-    searchAttrs,
-    searchValue,
-    sortValue,
-    validateSearchValues,
-  } = useLinkQueryColumnSerach({
-    attrs: ['bk_cloud_id', 'major_version', 'region', 'time_zone'],
-    defaultSearchItem: {
-      id: 'domain',
-      name: t('访问入口'),
-    },
-    fetchDataFn: () => fetchTableData(),
-    searchType: ClusterTypes.ES,
-  });
+  const { handleSelection, isSelected, selectedIdList, selectedList } = useClusterTableSelect<EsModel>();
 
   const dataSource = getEsList;
-  const tableRef = ref<InstanceType<typeof DbTable>>();
+
+  const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
   const isShowPassword = ref(false);
-  const selected = ref<EsModel[]>([]);
-  const tagSearchValue = ref<Record<string, any>>({});
 
   const operationData = shallowRef<EsModel>();
 
   const getTableInstance = () => tableRef.value;
 
-  const serachData = computed(() => [
-    {
-      async: false,
-      id: 'domain',
-      multiple: true,
-      name: t('访问入口'),
-    },
-    {
-      async: false,
-      id: 'instance',
-      multiple: true,
-      name: t('IP 或 IP:Port'),
-    },
-    {
-      id: 'cluster_ids',
-      multiple: true,
-      name: 'ID',
-    },
-    {
-      id: 'name',
-      name: t('集群名称'),
-    },
-    {
-      children: searchAttrs.value.bk_cloud_id,
-      id: 'bk_cloud_id',
-      multiple: true,
-      name: t('管控区域'),
-    },
-    {
-      id: 'creator',
-      name: t('创建人'),
-    },
-    {
-      children: [
-        {
-          id: 'normal',
-          name: t('正常'),
-        },
-        {
-          id: 'abnormal',
-          name: t('异常'),
-        },
-      ],
-      id: 'status',
-      multiple: true,
-      name: t('状态'),
-    },
-    {
-      children: searchAttrs.value.major_version,
-      id: 'major_version',
-      multiple: true,
-      name: t('版本'),
-    },
-    {
-      children: searchAttrs.value.region,
-      id: 'region',
-      multiple: true,
-      name: t('地域'),
-    },
-    {
-      children: searchAttrs.value.time_zone,
-      id: 'time_zone',
-      multiple: true,
-      name: t('时区'),
-    },
-  ]);
-  const hasSelected = computed(() => selected.value.length > 0);
-  const selectedIds = computed(() => selected.value.map((item) => item.id));
-
   const { settings: tableSetting, updateTableSettings } = useTableSettings(UserPersonalSettings.ES_TABLE_SETTINGS, {
-    checked: [
-      'status',
-      'cluster_stats',
-      'major_version',
-      'region',
-      'disaster_tolerance_level',
-      'es_master',
-      'es_client',
-      'es_datanode_hot',
-      'es_datanode_cold',
-      'tag',
-    ],
     disabled: ['master_domain'],
   });
 
-  watch(searchValue, () => {
-    tableRef.value!.clearSelected();
-  });
-
-  const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
-    if (item?.id !== 'creator' && keyword) {
-      return getMenuListSearch(item, keyword, serachData.value, searchValue.value);
-    }
-
-    // 没有选中过滤标签
-    if (!item) {
-      // 过滤掉已经选过的标签
-      const selected = (searchValue.value || []).map((value) => value.id);
-      return serachData.value.filter((item) => !selected.includes(item.id));
-    }
-
-    // 远程加载执行人
-    if (item.id === 'creator') {
-      if (!keyword) {
-        return [];
-      }
-      return getUserList({
-        fuzzy_lookups: keyword,
-      }).then((res) =>
-        res.results.map((item) => ({
-          id: item.username,
-          name: item.username,
-        })),
-      );
-    }
-
-    // 不需要远层加载
-    return serachData.value.find((set) => set.id === item.id)?.children || [];
-  };
-
-  const handleTagSearch = (params: Record<string, any>) => {
-    tagSearchValue.value = params;
-    fetchTableData();
-  };
-
-  const fetchTableData = () => {
-    const searchParams = getSearchSelectorParams(searchValue.value);
-    tableRef.value?.fetchData({
-      ...searchParams,
-      ...tagSearchValue.value,
-      ...sortValue,
-    });
-  };
-
-  const handleSelection = (data: any, list: EsModel[]) => {
-    selected.value = list;
+  const fetchData = () => {
+    tableRef.value?.fetchData(searchValue.value);
   };
 
   // 申请实例
@@ -501,28 +413,24 @@
   const handleHidePassword = () => {
     isShowPassword.value = false;
   };
+
+  const handleQuickSearchChange = () => {
+    fetchData();
+    tableRef.value!.clearSelected();
+  };
+
+  const handleFilterChange = (filterValue: Record<string, string>) => {
+    searchValue.value = filterValue;
+    fetchData();
+  };
 </script>
 <style lang="less">
   .es-list-page {
-    height: 100%;
-    padding: 24px 0;
-    margin: 0 24px;
-    overflow: hidden;
-
     .header-action {
       display: flex;
       flex-wrap: wrap;
       margin-bottom: 16px;
       gap: 8px;
-
-      .tag-search-main {
-        margin-left: auto;
-      }
-
-      .bk-search-select {
-        flex: 1;
-        max-width: 500px;
-      }
     }
   }
 </style>

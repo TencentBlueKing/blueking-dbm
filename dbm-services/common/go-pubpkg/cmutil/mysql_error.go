@@ -18,7 +18,12 @@ var mysqlErrors = map[int]MySQLError{
 	1146: {
 		Code:     1146,
 		Message:  "Table doesn't exists",
-		regexStr: regexp.MustCompile(`ERROR 1146 .*: Table '(.+)' doesn't exist`)},
+		regexStr: regexp.MustCompile(`(?i)ERROR 1146 .*: Table '(.+)' doesn't exist`)},
+	1932: {
+		Code:     1932,
+		Message:  "Table doesn't exist in engine",
+		regexStr: regexp.MustCompile(`(?i)ERROR 1932 .*: Table '(.+)' doesn't exist in engine`),
+	},
 	1049: {
 		Code:     1049,
 		Message:  "Unknown database",

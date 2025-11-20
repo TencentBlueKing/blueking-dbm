@@ -1,10 +1,10 @@
 apiVersion: apps.kubeblocks.io/v1alpha1
 kind: ComponentDefinition
 metadata:
-  name: rw-compute-{{ .Chart.Version}}
+  name: {{ include "risingwave-compute.cmpdName" . }}
 spec:
   serviceKind: risingwave
-  serviceVersion: 2.2.1  # 修改版本号
+  serviceVersion: 2.2.1-2.0.0
   services:
     - name: compute
       spec:
@@ -37,7 +37,7 @@ spec:
     - name: META_SVC
       valueFrom:
         serviceVarRef:
-          compDef: rw-meta-{{ .Chart.Version}}
+          compDef: {{ include "risingwave.configTplName" . }}
           optional: false
           host: Required
     - name: RISINGWAVE_COMPUTE_COMPONENT_NAME

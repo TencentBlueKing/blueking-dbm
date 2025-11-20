@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import re
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.bk_web.constants import LEN_NORMAL, LEN_SHORT
@@ -252,11 +252,6 @@ class ListIPWhitelistSerializer(serializers.Serializer):
 
     limit = serializers.IntegerField(help_text=_("分页限制"), default=10, required=False)
     offset = serializers.IntegerField(help_text=_("分页起始"), default=0, required=False)
-
-
-class UpdateDutyNoticeSerializer(serializers.Serializer):
-    schedule_table = serializers.JSONField(help_text=_("排期表通知"))
-    person_duty = serializers.JSONField(help_text=_("个人轮值通知"))
 
 
 class FunctionControllerSerializer(serializers.Serializer):

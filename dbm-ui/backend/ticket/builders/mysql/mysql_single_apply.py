@@ -12,22 +12,23 @@ import collections
 import itertools
 from typing import Dict, List
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.bk_web.constants import LEN_MIDDLE, SMALLEST_POSITIVE_INTEGER
 from backend.components import DBConfigApi
 from backend.components.dbconfig import constants as dbconf_const
-from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE
+from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, AffinityEnum
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, DBModule
 from backend.db_services.dbbase.constants import IpSource
+from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.mysql.constants import DEFAULT_ORIGIN_MYSQL_PORT, SERVER_PORT_LIMIT_MAX, SERVER_PORT_LIMIT_MIN
 from backend.exceptions import ValidationError
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.common.base import CommonValidate
+from backend.ticket.builders.common.base import CommonValidate, TicketBaseValidateSerializerMixin, get_ticket_zone_list
 from backend.ticket.builders.mysql.base import BaseMySQLSingleTicketFlowBuilder
 from backend.ticket.constants import TicketType
 from backend.ticket.exceptions import TicketParamsVerifyException
@@ -42,7 +43,7 @@ class DomainSerializer(serializers.Serializer):
     key = serializers.CharField(help_text=_("域名关键字"), max_length=LEN_MIDDLE)
 
 
-class MysqlSingleApplyDetailSerializer(serializers.Serializer):
+class MysqlSingleApplyDetailSerializer(TicketBaseValidateSerializerMixin, serializers.Serializer):
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
     city_code = serializers.CharField(
         help_text=_("城市代码"), required=False, allow_blank=True, allow_null=True, default=""
@@ -66,6 +67,7 @@ class MysqlSingleApplyDetailSerializer(serializers.Serializer):
     db_module_name = serializers.SerializerMethodField(help_text=_("DB模块名"))
     city_name = serializers.SerializerMethodField(help_text=_("城市名"))
     spec_display = serializers.SerializerMethodField(help_text=_("机器规格展示名"))
+    bk_cloud_name = serializers.SerializerMethodField(help_text=_("云区域"), read_only=True)
 
     start_mysql_port = serializers.IntegerField(
         help_text=_("MySQL起始端口"),
@@ -74,14 +76,27 @@ class MysqlSingleApplyDetailSerializer(serializers.Serializer):
         max_value=SERVER_PORT_LIMIT_MAX,
         default=DEFAULT_ORIGIN_MYSQL_PORT,
     )
+    disaster_tolerance_level = serializers.ChoiceField(
+        help_text=_("容灾级别"), choices=AffinityEnum.get_choices(), required=False, default=AffinityEnum.NONE.value
+    )
+
+    def get_bk_cloud_name(self, obj):
+        clouds = ResourceQueryHelper.search_cc_cloud(get_cache=True)
+        return clouds[str(obj["bk_cloud_id"])]["bk_cloud_name"]
+
+    disaster_tolerance_level = serializers.ChoiceField(
+        help_text=_("容灾级别"), choices=AffinityEnum.get_choices(), required=False, default=AffinityEnum.NONE.value
+    )
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         self._format_domains(representation["domains"], instance)
         # TODO 缺少数据库版本和字符集，考虑封装 DBConfigHandler 来处理此类需求
+        representation["bk_cloud_name"] = self.get_bk_cloud_name(instance)
         return representation
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         # 校验集群名是否重复
         for domain in attrs["domains"]:
             CommonValidate.validate_duplicate_cluster_name(
@@ -174,6 +189,10 @@ class MysqlSingleApplyFlowParamBuilder(builders.FlowParamBuilder):
 
         if self.ticket_data["ip_source"] == IpSource.MANUAL_INPUT:
             self.insert_ip_into_apply_infos(self.ticket.details, apply_infos)
+
+        # 补充zone_list数据
+        role = "backend" if self.ticket.ticket_type == TicketType.MYSQL_SINGLE_APPLY else "backend_group"
+        self.ticket_data["zone_list"] = get_ticket_zone_list(self.ticket_data, role)
 
         self.ticket_data.update(
             {

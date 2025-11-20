@@ -4,6 +4,7 @@ SCRIPT_DIR=`dirname $0`
 cd $SCRIPT_DIR && cd ../frontend || exit 1
 npm config set registry https://mirrors.tencent.com/npm/
 export NODE_OPTIONS="--max_old_space_size=8192"
+yarn cache clean --force && rm -rf node_modules && rm -rf yarn.lock
 yarn install && yarn build
 mkdir -p ../static/
 cp -rf dist/* ../static/

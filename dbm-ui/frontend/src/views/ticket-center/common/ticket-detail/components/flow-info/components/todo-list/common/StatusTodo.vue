@@ -30,6 +30,7 @@
       </template>
     </div>
     <div
+      v-if="data.done_at"
       class="mt-12"
       style="color: #979ba5">
       {{ utcDisplayTime(data.done_at) }}
@@ -42,13 +43,6 @@
           {{ t('确认执行') }}
         </BkButton>
       </ProcessApproveExce>
-      <ProcessTerminate :todo-data="data">
-        <BkButton
-          class="w-88 ml-8"
-          theme="danger">
-          {{ t('终止单据') }}
-        </BkButton>
-      </ProcessTerminate>
     </template>
   </div>
 </template>
@@ -63,7 +57,6 @@
   import CostTimer from '@components/cost-timer/CostTimer.vue';
 
   import ProcessApproveExce from '@views/ticket-center/common/action-confirm/ProcessApproveExce.vue';
-  import ProcessTerminate from '@views/ticket-center/common/action-confirm/ProcessTerminate.vue';
 
   import { utcDisplayTime, utcTimeToSeconds } from '@utils';
 

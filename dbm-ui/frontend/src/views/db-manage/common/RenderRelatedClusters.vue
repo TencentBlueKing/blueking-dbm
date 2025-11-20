@@ -45,10 +45,14 @@
 
   import { checkInstance } from '@services/source/dbbase';
 
+  import { ClusterTypes, DBTypes } from '@common/const';
+
   import { t } from '@locales/index';
 
   interface Props {
+    clusterType: ClusterTypes[];
     data?: T;
+    dbType: DBTypes;
     placeholder?: string;
     role?: string;
   }
@@ -64,7 +68,7 @@
   const props = withDefaults(defineProps<Props>(), {
     data: undefined,
     placeholder: t('自动生成'),
-    role: 'master',
+    role: 'remote_master',
   });
 
   const emits = defineEmits<Emits>();
@@ -81,7 +85,7 @@
       }
 
       const [currentData] = data.filter((item) => item.role === props.role);
-      relatedClusterList.value = currentData.related_clusters;
+      relatedClusterList.value = currentData?.related_clusters || [];
       emits(
         'change',
         relatedClusterList.value.map((item) => item.id),
@@ -101,6 +105,8 @@
       if (props.data?.ip) {
         fetchChecklInstances({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_type: props.clusterType,
+          db_type: props.dbType,
           instance_addresses: [props.data.ip],
         });
       }

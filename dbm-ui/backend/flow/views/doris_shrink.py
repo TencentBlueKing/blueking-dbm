@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework.response import Response
 
 from backend.flow.engine.controller.doris import DorisController
@@ -37,7 +37,11 @@ class ShrinkDorisSceneApiView(FlowTestView):
             "hot": [
                 {"ip": "127.1.1.1", "bk_cloud_id": 0}
             ],
+            # 后续不保留cold
             "cold": [
+                {"ip": "127.1.1.2", "bk_cloud_id": 0}
+            ],
+            "warm": [
                 {"ip": "127.1.1.2", "bk_cloud_id": 0}
             ],
             "observer": [

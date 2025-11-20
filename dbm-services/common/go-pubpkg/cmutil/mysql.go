@@ -1,3 +1,13 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 // Package cmutil TODO
 package cmutil
 
@@ -7,6 +17,15 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+)
+
+const (
+	// Billion TODO
+	Billion = 1000000
+	// Thousand TODO
+	Thousand = 1000
+	// Single TODO
+	Single = 1
 )
 
 // GetMysqlSystemDatabases TODO
@@ -66,6 +85,21 @@ func MySQLVersionParse(version string) uint64 {
 	return mysqlVersionParse(re, version)
 }
 
+// MySQLVersionCompare ver1 > ver2 return 1
+// ver1 < ver2 return -1
+// ver1 == ver2 return 0
+func MySQLVersionCompare(ver1, ver2 string) int {
+	v1 := MySQLVersionParse(ver1)
+	v2 := MySQLVersionParse(ver2)
+	if v1 > v2 {
+		return 1
+	} else if v1 < v2 {
+		return -1
+	} else {
+		return 0
+	}
+}
+
 // SpiderVersionParse 解析spider version
 // example:
 // mariadb-10.3.7-linux-x86_64-tspider-3.7.6-gcs.tar.gz
@@ -97,7 +131,7 @@ func mysqlVersionParse(re *regexp.Regexp, mysqlVersion string) uint64 {
 				// log.Printf("%s", err)
 				b = 0
 			}
-			total += b * 1000000
+			total += b * Billion
 		}
 		if thousand != "" {
 			t, err := strconv.ParseUint(thousand, 10, 64)
@@ -105,14 +139,14 @@ func mysqlVersionParse(re *regexp.Regexp, mysqlVersion string) uint64 {
 				// log.Printf("%s", err)
 				t = 0
 			}
-			total += t * 1000
+			total += t * Thousand
 		}
 		if single != "" {
 			s, err := strconv.ParseUint(single, 10, 64)
 			if err != nil {
 				s = 0
 			}
-			total += s
+			total += s * Single
 		}
 	default:
 		return 0

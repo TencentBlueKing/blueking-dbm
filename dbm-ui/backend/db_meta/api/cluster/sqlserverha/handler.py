@@ -49,6 +49,7 @@ class SqlserverHAClusterHandler(ClusterHandler):
         region: str,
         sync_type: str,
         disaster_tolerance_level: str,
+        zone_list: list,
         is_increment: bool = False,
     ):
         """
@@ -118,6 +119,7 @@ class SqlserverHAClusterHandler(ClusterHandler):
                     region=region,
                     sync_type=sync_type,
                     disaster_tolerance_level=disaster_tolerance_level,
+                    zone_list=zone_list,
                 )
             )
 

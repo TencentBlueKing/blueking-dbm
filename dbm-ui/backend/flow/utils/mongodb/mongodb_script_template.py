@@ -110,7 +110,7 @@ function safe_remove_dbactuator_dir() {
         echo "Error install_dir $install_dir not exist"
         return
     fi
-    for old_dir in `find $install_dir -maxdepth 1  -type d -name "dbactuator-*"  -mtime +3  -print`
+    for old_dir in `find $install_dir -maxdepth 1  -type d -name "dbactuator-*"  -mtime +15  -print`
     do
         if [  "${old_dir/dbactuator//}" = "$old_dir" ];then
             echo "Error bad dir $old_dir"
@@ -178,6 +178,11 @@ exe=mongo-dbactuator
 exe_path=$workdir/$exe
 lock_file="$workdir/$exe.cp.lock"
 mkdir -p $workdir/logs
+
+# update workdir to avoid find and remove old dbactuator dir
+if [ -d "$workdir" ];then
+    touch $workdir
+fi
 
 safe_remove_dbactuator_dir $install_dir
 safe_cpfile $install_dir/$exe $exe_path $lock_file

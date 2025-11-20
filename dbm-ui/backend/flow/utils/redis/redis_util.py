@@ -9,12 +9,15 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import re
+from collections import defaultdict
 from typing import Dict, List
+
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import InstanceRole
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum, RedisCapacityUpdateType
 
@@ -104,23 +107,49 @@ def version_equal(version1, version2):
     return base_version1 == base_version2 and sub_version1 == sub_version2, None
 
 
-def version_ge(version1, version2):
+def _version_compare(version1, version2):
     """
-    判断版本1是否大于等于版本2
+    比较两个版本，返回比较结果
+    返回值: -1 (version1 < version2), 0 (version1 == version2), 1 (version1 > version2), None (解析错误)
     """
     if version1 is None or version2 is None:
-        return False
+        return None
+
     base_version1, sub_version1, err = version_parse(version1)
     if err:
-        return False
+        return None
     base_version2, sub_version2, err = version_parse(version2)
     if err:
-        return False
+        return None
+
     if base_version1 > base_version2:
-        return True
-    if base_version1 == base_version2 and sub_version1 >= sub_version2:
-        return True
-    return False
+        return 1
+    elif base_version1 < base_version2:
+        return -1
+    else:  # base_version1 == base_version2
+        if sub_version1 > sub_version2:
+            return 1
+        elif sub_version1 < sub_version2:
+            return -1
+        else:
+            return 0
+
+
+def version_gt(version1, version2):
+    """
+    判断版本1是否大于版本2
+    """
+    result = _version_compare(version1, version2)
+    return result is not None and result > 0
+
+
+def version_eq(version1, version2):
+    result = _version_compare(version1, version2)
+    return result is not None and result == 0
+
+
+def version_ge(version1, version2):
+    return version_eq(version1, version2) or version_gt(version1, version2)
 
 
 # 根据db_version 获取 redis 最新 Package
@@ -240,3 +269,122 @@ def get_tendisplus_shutdown_hosts(cluster_id, target_group_num: int, update_mode
         shutdown_master_hosts.append(master_ip)
         shutdown_slave_hosts.append(master_slave_dict[master_ip])
     return shutdown_master_hosts, shutdown_slave_hosts
+
+
+def get_migrate_shutdown_hosts(src_ins_list: list, bk_biz_id: int):
+    """
+    获取迁移单据时需要下架的机器
+    """
+    ips = set()
+    migrate_ports = defaultdict(set)
+    shutdown_hosts = []
+    shutdown_hosts_info = []
+    for ins in src_ins_list:
+        ip = ins.split(IP_PORT_DIVIDER)[0]
+        port = int(ins.split(IP_PORT_DIVIDER)[1])
+
+        ips.add(ip)
+        migrate_ports[ip].add(port)
+
+    # 查询出ips对应的所有实例
+    if len(ips) != 0:
+        storages = StorageInstance.find_storage_instance_by_ip(list(ips)).filter(bk_biz_id=bk_biz_id)
+
+    exist_ports = defaultdict(set)
+    # 遍历实例，确认端口，如果端口都没了，就是要下架的机器
+    for s in storages:
+        ip = s.machine.ip
+        port = s.port
+        exist_ports[ip].add(port)
+
+    for ip in list(ips):
+        if ip not in exist_ports:
+            raise Exception(_("有ip[{}]不在元数据中".format(ip)))
+        # 如果迁移端口不在已有端口中，报错
+        if len(migrate_ports[ip] - exist_ports[ip]) > 0:
+            raise Exception(_("{}有迁移端口{}不在元数据中".format(ip, migrate_ports[ip] - exist_ports[ip])))
+        if len(exist_ports[ip] - migrate_ports[ip]) == 0:
+            shutdown_hosts.append(ip)
+    # 如果有需要下架的机器
+    if len(shutdown_hosts) != 0:
+        storages = StorageInstance.find_storage_instance_by_ip(list(shutdown_hosts)).filter(bk_biz_id=bk_biz_id)
+        for s in storages:
+            m_desc = s.machine.simple_desc
+            shutdown_hosts_info.append({"bk_host_id": m_desc["bk_host_id"], "ip": m_desc["ip"]})
+    return shutdown_hosts_info
+
+
+def get_cluster_capacity_shutdown_host(bk_biz_id, cluster_id, target_group_num: int, update_mode: str):
+    """
+    重构后的后端容量变更获取下架机器统一函数。
+     返回:
+    - err_msg 错误信息
+    - "old_machine_info": {
+                        "master": [{"ip", "bk_biz_id", "bk_host_id", "bk_cloud_id"}],
+                        "slave":  [{"ip", "bk_biz_id", "bk_host_id", "bk_cloud_id"}]
+                     } 下架机器的信息
+    """
+    cluster = Cluster.objects.get(id=cluster_id)
+    cluster_masters = cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value)
+
+    master_ips = set()
+    slave_ips = set()
+    master_slave_dict = {}
+    for master_obj in cluster_masters:
+        master_ips.add(master_obj.machine.ip)
+        if master_obj.as_ejector and master_obj.as_ejector.first():
+            my_slave_obj = master_obj.as_ejector.get().receiver
+            slave_ips.add(my_slave_obj.machine.ip)
+            master_slave_dict[master_obj.machine.ip] = my_slave_obj.machine.ip
+
+    current_group_num = len(master_ips)
+    # 如果是扩容，没有需要下架的机器
+    if current_group_num <= target_group_num:
+        err_msg = _("slot 扩容时不需要获取下架机器。 当前机器组数[{}], 目标机器组数[{}]", len(cluster_masters), target_group_num)
+        return err_msg, {}
+
+    contraction_group = current_group_num - target_group_num
+    shutdown_master_hosts = []
+    shutdown_slave_hosts = []
+
+    # 整机替换方式扩缩容(总分片数不变，机器数变少 or 机型变)
+    # 扩缩容这里不再做隐式版本升级，如果有版本升级需求，需要走版本升级单显式去升级
+    if update_mode == RedisCapacityUpdateType.ALL_MACHINES_REPLACE:
+        shutdown_master_hosts = master_ips
+    elif update_mode == RedisCapacityUpdateType.SLOT_MIGRATE:
+        for master_ip in list(master_ips):
+            if contraction_group <= 0:
+                break
+            contraction_group -= 1
+            shutdown_master_hosts.append(master_ip)
+    else:
+        # 有可能是本地扩容，机器数变多
+        return _("{}变更类型不支持获取下架机器"), {}
+    for master_ip in shutdown_master_hosts:
+        shutdown_slave_hosts.append(master_slave_dict[master_ip])
+
+    shutdown_master_info = []
+    shutdown_slave_info = []
+    storages = StorageInstance.find_storage_instance_by_ip(list(shutdown_master_hosts)).filter(bk_biz_id=bk_biz_id)
+    for s in storages:
+        m_desc = s.machine.simple_desc
+        shutdown_master_info.append(
+            {
+                "bk_host_id": m_desc["bk_host_id"],
+                "ip": m_desc["ip"],
+                "bk_biz_id": m_desc["bk_biz_id"],
+                "bk_cloud_id": m_desc["bk_cloud_id"],
+            }
+        )
+    storages = StorageInstance.find_storage_instance_by_ip(list(shutdown_slave_info)).filter(bk_biz_id=bk_biz_id)
+    for s in storages:
+        m_desc = s.machine.simple_desc
+        shutdown_slave_info.append(
+            {
+                "bk_host_id": m_desc["bk_host_id"],
+                "ip": m_desc["ip"],
+                "bk_biz_id": m_desc["bk_biz_id"],
+                "bk_cloud_id": m_desc["bk_cloud_id"],
+            }
+        )
+    return "", {"master": shutdown_master_info, "slave": shutdown_slave_info}

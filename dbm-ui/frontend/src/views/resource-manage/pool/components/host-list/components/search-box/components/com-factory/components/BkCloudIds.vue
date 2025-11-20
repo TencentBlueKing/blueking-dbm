@@ -40,21 +40,19 @@
     defaultValue?: number[];
   }
 
-  interface Emits {
-    (e: 'change', value: Props['defaultValue']): void;
-  }
-
-  defineProps<Props>();
-
-  const emits = defineEmits<Emits>();
+  type Emits = (e: 'change', value: Props['defaultValue']) => void;
 
   defineOptions({
     inheritAttrs: false,
   });
 
+  defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
+
   const { t } = useI18n();
 
-  const { loading: isLoading, data } = useRequest(getCloudList, {
+  const { data, loading: isLoading } = useRequest(getCloudList, {
     initialData: [],
   });
 

@@ -24,6 +24,7 @@ class TendbMasterFailOverDetailSerializer(TendbMasterSlaveSwitchDetailSerializer
     serializers.BooleanField(help_text=_("是否检测数据同步延时情况"))
 
     def validate(self, attrs):
+        attrs = super(TendbBaseOperateDetailSerializer, self).validate(attrs)
         # 校验集群是否可用，集群类型为tendbcluster
         super(TendbBaseOperateDetailSerializer, self).validate_cluster_can_access(attrs)
         if not attrs["force"]:
@@ -34,6 +35,7 @@ class TendbMasterFailOverDetailSerializer(TendbMasterSlaveSwitchDetailSerializer
 
 class TendbMasterFailOverParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.tendbcluster_remote_fail_over_scene
+    validator = None
 
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_MASTER_FAIL_OVER)
@@ -41,3 +43,8 @@ class TendbMasterFailOverFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbMasterFailOverDetailSerializer
     inner_flow_builder = TendbMasterFailOverParamBuilder
     inner_flow_name = _("TendbCluster 主故障切换")
+
+
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_INSTANCE_FAIL_OVER)
+class TendbInstanceFailOverFlowBuilder(TendbMasterFailOverFlowBuilder):
+    inner_flow_name = _("TendbCluster 主库实例故障切换")

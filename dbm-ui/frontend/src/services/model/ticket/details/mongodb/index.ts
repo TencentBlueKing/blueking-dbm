@@ -1,4 +1,5 @@
 export * from './addMongos';
+export * from './addShard';
 export * from './addShardNodes';
 export * from './authorizeRules';
 export * from './backup';

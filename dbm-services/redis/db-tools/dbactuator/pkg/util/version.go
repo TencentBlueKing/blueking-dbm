@@ -105,6 +105,19 @@ func IsMajorVersionSame(ver1, ver2 string) (ok bool, err error) {
 	return (bVer1 / 1000000) == (bVer2 / 1000000), nil
 }
 
+// IsVersionGe 判断版本1是否大于等于版本2
+func IsVersionGe(ver1, ver2 string) (ok bool, err error) {
+	bVer1, _, err := VersionParse(ver1)
+	if err != nil {
+		return false, err
+	}
+	bVer2, _, err := VersionParse(ver2)
+	if err != nil {
+		return false, err
+	}
+	return (bVer1 / 1000000) >= (bVer2 / 1000000), nil
+}
+
 // RedisCliVersion redis-cli 的版本解析
 func RedisCliVersion(cliBin string) (baseVersion, subVersion uint64, err error) {
 	cmd := cliBin + " -v"
@@ -117,6 +130,17 @@ func RedisCliVersion(cliBin string) (baseVersion, subVersion uint64, err error) 
 		return
 	}
 	return
+}
+
+func IsCliSupportedClusterReshard(cliBin string) bool {
+	bVer, _, err := RedisCliVersion(cliBin)
+	if err != nil {
+		return false
+	}
+	if bVer > 6000000 {
+		return true
+	}
+	return false
 }
 
 // IsCliSupportedNoAuthWarning redis-cli 是否支持 --no-auth-warning参数

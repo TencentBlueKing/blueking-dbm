@@ -11,14 +11,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// CutOverToSlaveAct TODO
+// CutOverToSlaveAct 切换Proxy后端指向Slave的命令
 type CutOverToSlaveAct struct {
 	*subcmd.BaseOptions
 	Service cutover.CutOverToSlaveComp
 }
 
-// NewCutOverToSlaveCommnad TODO
-func NewCutOverToSlaveCommnad() *cobra.Command {
+// NewCutOverToSlaveCommand 创建切换Proxy后端指向Slave的命令
+func NewCutOverToSlaveCommand() *cobra.Command {
 	act := CutOverToSlaveAct{
 		BaseOptions: subcmd.GBaseOptions,
 	}
@@ -42,7 +42,7 @@ func NewCutOverToSlaveCommnad() *cobra.Command {
 	return cmd
 }
 
-// Init TODO
+// Init 初始化
 func (d *CutOverToSlaveAct) Init() (err error) {
 	logger.Info("CutOverToSlaveAct Init")
 	if err = d.Deserialize(&d.Service.Params); err != nil {
@@ -53,7 +53,7 @@ func (d *CutOverToSlaveAct) Init() (err error) {
 	return
 }
 
-// Run TODO
+// Run 执行切换
 func (d *CutOverToSlaveAct) Run() (err error) {
 	steps := subcmd.Steps{
 		{
@@ -67,11 +67,11 @@ func (d *CutOverToSlaveAct) Run() (err error) {
 		{
 			FunName: "[切换中] 切换",
 			Func: func() error {
-				postion, err := d.Service.CutOver()
+				position, err := d.Service.CutOver()
 				if err != nil {
 					return err
 				}
-				d.OutputCtx(postion)
+				d.OutputCtx(position)
 				return nil
 			},
 		},
@@ -83,11 +83,13 @@ func (d *CutOverToSlaveAct) Run() (err error) {
 			FunName: "[已切换成功] 剩余操作",
 			Func: func() error {
 				if d.Service.Params.GrantRepl {
+					logger.Info("授权Repl账户")
 					if err := d.Service.GrantRepl(); err != nil {
 						logger.Error("授权Repl账户失败", err.Error())
 					}
 				}
 				if d.Service.Params.LockedSwitch {
+					logger.Info("删除临时用户")
 					switchUser := d.Service.Params.Cluster.MasterIns.SwitchTmpAccount.User
 					host := d.Service.Params.Host
 					if err := d.Service.Params.Cluster.MasterIns.DropSwitchUser(
@@ -113,7 +115,7 @@ func (d *CutOverToSlaveAct) Run() (err error) {
 	return nil
 }
 
-// Rollback TODO
+// Rollback 回滚
 func (d *CutOverToSlaveAct) Rollback() (err error) {
 	return
 }

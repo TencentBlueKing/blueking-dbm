@@ -74,6 +74,11 @@ class DbmonHeatbeartCheckReportBaseViewSet(ReportBaseViewSet):
             "display_name": _("心跳超时时间"),
             "format": ReportFieldFormat.TEXT.value,
         },
+        {
+            "name": "failed_days",
+            "display_name": _("持续天数"),
+            "format": ReportFieldFormat.TEXT.value,
+        },
     ]
 
     @common_swagger_auto_schema(

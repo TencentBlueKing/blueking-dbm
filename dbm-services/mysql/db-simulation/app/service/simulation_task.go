@@ -59,7 +59,7 @@ type BaseParam struct {
 	MySQLStartConfigs map[string]string    `json:"mysql_start_config"`
 	Path              string               `json:"path"  binding:"required"`
 	SchemaSQLFile     string               `json:"schema_sql_file"  binding:"required"`
-	ExcuteObjects     []ExcuteSQLFileObjV2 `json:"execute_objects"  binding:"gt=0,dive,required"`
+	ExecuteObjects    []ExcuteSQLFileObjV2 `json:"execute_objects"  binding:"gt=0,dive,required"`
 }
 
 // BuildTendbPodName build tendb pod name
@@ -296,7 +296,7 @@ func (r ReloadParam) BuildTsk(requestId string) (tsk SimulationTask) {
 	tsk.BaseInfo = &MySQLPodBaseInfo{
 		PodName: fmt.Sprintf("tendb-%s-%s", strings.ToLower(version),
 			replaceUnderSource(r.TaskId)),
-		Lables: map[string]string{"task_id": replaceUnderSource(r.TaskId),
+		Labels: map[string]string{"task_id": replaceUnderSource(r.TaskId),
 			"request_id": requestId},
 		RootPwd: r.TaskId[0:4],
 		Args:    r.BuildStartArgs(),
@@ -319,7 +319,7 @@ func run(task SimulationTask, tkType string) {
 			errMsg = err.Error()
 		}
 		if err = model.CompleteTask(task.TaskId, task.Version, status, se, so, errMsg); err != nil {
-			logger.Error("update task status faield %s", err.Error())
+			logger.Error("update task status failed %s", err.Error())
 			return
 		}
 	}()
@@ -403,7 +403,7 @@ func (t *SimulationTask) SimulationRun(containerName string, xlogger *logger.Log
 	model.UpdatePhase(t.TaskId, t.MySQLVersion, model.PhaseRunning)
 	errs := []error{}
 	sstderrs := []string{}
-	for _, e := range t.ExcuteObjects {
+	for _, e := range t.ExecuteObjects {
 		sstdout, sstderr, err = t.executeMultFilesObject(e, containerName, xlogger)
 		if err != nil {
 			//nolint

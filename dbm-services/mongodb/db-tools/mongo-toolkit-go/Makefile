@@ -48,3 +48,6 @@ build2:
 local:
 	@echo "  >  Building $(OS)  binary..."
 	go build -v $(BUILD_FLAG) -o target/$(toolkit) cmd/mongo-toolkit-go/main.go
+
+
+.PHONY: build

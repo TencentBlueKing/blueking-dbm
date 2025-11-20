@@ -88,7 +88,7 @@ func (job *Job) closeDB() {
 
 // Run Command Run
 func (job *Job) Run() {
-	mylog.Logger.Info("failednodehandle wakeup,start running...")
+	mylog.Logger.Debug("failednodehandle wakeup,start running...")
 	defer func() {
 		if job.Err != nil {
 			mylog.Logger.Info(fmt.Sprintf("failednodehandle end fail,err:%v", job.Err))

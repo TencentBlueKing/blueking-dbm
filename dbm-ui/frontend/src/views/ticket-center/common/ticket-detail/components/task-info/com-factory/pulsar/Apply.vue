@@ -26,6 +26,9 @@
     <InfoItem :label="t('集群别名')">
       {{ ticketDetails.details.cluster_alias || '--' }}
     </InfoItem>
+    <InfoItem :label="t('管控区域')">
+      {{ ticketDetails.details.bk_cloud_name || '--' }}
+    </InfoItem>
   </InfoList>
   <RegionRequirements :details="ticketDetails.details" />
   <div class="info-title mt-20">{{ t('部署需求') }}</div>
@@ -35,51 +38,42 @@
     </InfoItem>
     <template v-if="isFromResourcePool">
       <InfoItem :label="t('Bookkeeper节点规格')">
-        <BkPopover
+        <SpecDetailPopover
           v-if="bookkeeperSpec"
-          placement="top"
-          theme="light">
+          :data="bookkeeperSpec"
+          placement="top">
           <span
             class="pb-2"
             style="cursor: pointer; border-bottom: 1px dashed #979ba5">
             {{ bookkeeperSpec.spec_name }}（{{ `${bookkeeperSpec.count} ${t('台')}` }}）
           </span>
-          <template #content>
-            <SpecInfos :data="bookkeeperSpec" />
-          </template>
-        </BkPopover>
+        </SpecDetailPopover>
         <span v-else>--</span>
       </InfoItem>
       <InfoItem :label="t('Zookeeper节点规格')">
-        <BkPopover
+        <SpecDetailPopover
           v-if="zookeeperSpec"
-          placement="top"
-          theme="light">
+          :data="zookeeperSpec"
+          placement="top">
           <span
             class="pb-2"
             style="cursor: pointer; border-bottom: 1px dashed #979ba5">
             {{ zookeeperSpec.spec_name }}（{{ `${zookeeperSpec.count} ${t('台')}` }}）
           </span>
-          <template #content>
-            <SpecInfos :data="zookeeperSpec" />
-          </template>
-        </BkPopover>
+        </SpecDetailPopover>
         <span v-else>--</span>
       </InfoItem>
       <InfoItem :label="t('Broker节点规格')">
-        <BkPopover
+        <SpecDetailPopover
           v-if="brokerSpec"
-          placement="top"
-          theme="light">
+          :data="brokerSpec"
+          placement="top">
           <span
             class="pb-2"
             style="cursor: pointer; border-bottom: 1px dashed #979ba5">
             {{ brokerSpec.spec_name }}（{{ `${brokerSpec.count} ${t('台')}` }}）
           </span>
-          <template #content>
-            <SpecInfos :data="brokerSpec" />
-          </template>
-        </BkPopover>
+        </SpecDetailPopover>
         <span v-else>--</span>
       </InfoItem>
     </template>
@@ -147,10 +141,10 @@
   import { TicketTypes } from '@common/const';
 
   import HostPreview from '@components/host-preview/HostPreview.vue';
+  import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
-  import SpecInfos from '../components/SpecInfos.vue';
 
   type ServiceKeys = 'bookkeeper' | 'zookeeper' | 'broker';
 
@@ -166,10 +160,11 @@
   const { t } = useI18n();
 
   const isFromResourcePool = props.ticketDetails.details.ip_source === 'resource_pool';
-
-  const zookeeperSpec = computed(() => props.ticketDetails?.details?.resource_spec.zookeeper || {});
-  const bookkeeperSpec = computed(() => props.ticketDetails?.details?.resource_spec.bookkeeper || {});
-  const brokerSpec = computed(() => props.ticketDetails?.details?.resource_spec.broker || {});
+  const {
+    bookkeeper: bookkeeperSpec,
+    broker: brokerSpec,
+    zookeeper: zookeeperSpec,
+  } = props.ticketDetails.details.resource_spec || {};
 
   /**
    * 获取服务器数量

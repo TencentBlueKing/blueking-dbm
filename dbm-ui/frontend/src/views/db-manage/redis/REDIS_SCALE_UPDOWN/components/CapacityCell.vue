@@ -16,10 +16,7 @@
       <div class="item">
         <div class="item-title">{{ t('资源规格') }}：</div>
         <div class="item-content">
-          <RenderSpec
-            :data="data.spec"
-            :hide-qps="!data.spec?.qps?.max"
-            is-ignore-counts />
+          <RenderSpec :data="data.spec" />
         </div>
       </div>
       <div class="item">

@@ -17,14 +17,18 @@ package mysql
 import (
 	"bufio"
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/samber/lo"
@@ -41,14 +45,14 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 )
 
-// ExecuteSQLFileComp excute sql file component
+// ExecuteSQLFileComp execute sql file component
 type ExecuteSQLFileComp struct {
 	GeneralParam             *components.GeneralParam `json:"general"`
 	Params                   *ExecuteSQLFileParam     `json:"extend"`
 	ExecuteSQLFileRunTimeCtx `json:"-"`
 }
 
-// ExecuteSQLFileParam excute sql file param
+// ExecuteSQLFileParam execute sql file param
 type ExecuteSQLFileParam struct {
 	Host              string                      `json:"host"  validate:"required,ip"`             // 当前实例的主机地址
 	Ports             []int                       `json:"ports"`                                    // 被监控机器的上所有需要监控的端口
@@ -100,7 +104,7 @@ func (e *ExecuteSQLFileComp) Example() interface{} {
 			Ports:          []int{3306, 3307},
 			CharSet:        "utf8",
 			FilePath:       "/data/workspace",
-			FileBaseDir:    "/datta",
+			FileBaseDir:    "/data",
 			FilePathSubfix: "sqlfile_",
 			ExecuteObjects: []ExecuteSQLFileObj{
 				{
@@ -115,14 +119,20 @@ func (e *ExecuteSQLFileComp) Example() interface{} {
 	}
 }
 
-// Precheck do some check step
-func (e *ExecuteSQLFileComp) Precheck() (err error) {
+// PreCheck do some check step
+func (e *ExecuteSQLFileComp) PreCheck() (err error) {
 	if err = e.CheckSQLFileExist(); err != nil {
 		logger.Error("SQL文件存在性检查失败:%s", err.Error())
 		return err
 	}
+	logger.Info("检查单行里面的SQL文件内容重复性检查")
+	if err = e.checkDuplicateFileInObjects(); err != nil {
+		logger.Error("SQL文件内容重复性检查失败:%s", err.Error())
+		return err
+	}
 	for _, port := range e.ports {
 		if err = e.checkDuplicateObjects(port); err != nil {
+			logger.Error("SQL文件内容重复性检查失败:%s", err.Error())
 			return err
 		}
 	}
@@ -133,16 +143,17 @@ func (e *ExecuteSQLFileComp) cleanHistorySQLDir() {
 	if e.Params.FilePathSubfix == "" {
 		return
 	}
-	cleanCmd := fmt.Sprintf(`find %s -maxdepth 1 -name %s* -type d -mtime +60 |xargs -i rm {};`, cst.BK_PKG_INSTALL_PATH,
+	cleanCmd := fmt.Sprintf(`find %s -maxdepth 1 -name %s* -type d -mtime +60 |xargs -i rm -r {};`,
+		cst.BK_PKG_INSTALL_PATH,
 		e.Params.FilePathSubfix)
-	logger.Warn("delete before 60 days dump sql file")
-	logger.Warn("will execute: %s", cleanCmd)
+	logger.Info("delete before 60 days dump sql file")
+	logger.Info("will execute: %s", cleanCmd)
 	out, err := osutil.StandardShellCommand(false, cleanCmd)
 	if err != nil {
-		logger.Error("clean sql file failed:%s,out:%s", err.Error(), out)
+		logger.Warn("clean sql file failed:%s,out:%s", err.Error(), out)
 		return
 	}
-	logger.Warn("clean sql file success")
+	logger.Info("clean sql file success")
 }
 
 // CheckSQLFileExist 检查文件是否存在
@@ -157,6 +168,32 @@ func (e *ExecuteSQLFileComp) CheckSQLFileExist() (err error) {
 		}
 	}
 	return errors.Join(errs...)
+}
+
+func (e ExecuteSQLFileComp) checkDuplicateFileInObjects() (err error) {
+	for _, f := range e.Params.ExecuteObjects {
+		// 如果文件只有一个，则跳过
+		if len(f.SQLFiles) <= 1 {
+			continue
+		}
+		// 校验每个文件的sha256, 如果存在相同的则报错，并抛出冲突的文件
+		hashMap := make(map[string]string) // hash => 文件名
+		for _, sqlFile := range f.SQLFiles {
+			filePath := path.Join(e.taskdir, sqlFile)
+			fileContent, err := readFile(filePath)
+			if err != nil {
+				logger.Error("读取SQL文件%s失败:%s", filePath, err.Error())
+				return err
+			}
+			sum := sha256.Sum256(fileContent)
+			hashsum := hex.EncodeToString(sum[:])
+			if existFile, ok := hashMap[hashsum]; ok {
+				return fmt.Errorf("文件内容重复, 文件: %s 和 %s 的hash相同, 请检查", sqlFile, existFile)
+			}
+			hashMap[hashsum] = sqlFile
+		}
+	}
+	return nil
 }
 
 func (e *ExecuteSQLFileComp) parseBlockingTables(port int) (blockingTableMap map[string][]string, err error) {
@@ -234,17 +271,29 @@ func readFile(file string) (content []byte, err error) {
 	defer f.Close()
 
 	var filtered []string
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := scanner.Text()
-		trimmed := strings.TrimSpace(line)
+	var buf []byte
+	reader := bufio.NewReader(f)
+	for {
+		line, isPrefix, err := reader.ReadLine()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			logger.Error("read Line Error %s", err.Error())
+			return nil, err
+		}
+		buf = append(buf, line...)
+		if isPrefix {
+			continue
+		}
+		bs := buf
+		buf = []byte{}
+		lineStr := string(bs)
+		trimmed := strings.TrimSpace(lineStr)
 		if trimmed == "" || strings.HasPrefix(trimmed, "/*!") || strings.HasPrefix(trimmed, "--") {
 			continue
 		}
-		filtered = append(filtered, line)
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, err
+		filtered = append(filtered, lineStr)
 	}
 	return []byte(strings.Join(filtered, "\n")), nil
 }
@@ -253,9 +302,21 @@ func readFile(file string) (content []byte, err error) {
 func (e *ExecuteSQLFileComp) CheckBlockingDDLPcls() (err error) {
 	defer e.closeDb()
 	for _, port := range e.ports {
-		if err = e.checkBlockingAtSpiderOne(port); err != nil {
-			logger.Error("check ddl blocking at %s:%d failed: %s", e.Params.Host, port, err.Error())
-			return err
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
+		defer cancel()
+		done := make(chan error, 1)
+		go func() {
+			done <- e.checkBlockingAtSpiderOne(port)
+		}()
+		select {
+		case err = <-done:
+			if err != nil {
+				logger.Error("check ddl blocking at %s:%d failed: %s", e.Params.Host, port, err.Error())
+				return err
+			}
+		case <-ctx.Done():
+			logger.Error("check ddl blocking at %s:%d timeout", e.Params.Host, port)
+			return fmt.Errorf("check ddl blocking at %s:%d timeout", e.Params.Host, port)
 		}
 	}
 	return nil
@@ -269,10 +330,13 @@ func (e *ExecuteSQLFileComp) checkBlockingAtSpiderOne(port int) (err error) {
 	}
 	tdbctlConn := &native.TdbctlDbWork{DbWorker: *e.dbConns[port]}
 	var svrs []native.Server
-	svrs, err = tdbctlConn.SelectServers()
+	svrs, err = tdbctlConn.GetBlockingCheckNode()
 	if err != nil {
-		logger.Error("SelectServers failed:%s", err.Error())
+		logger.Error("GetBlockingCheckNode failed:%s", err.Error())
 		return err
+	}
+	if len(svrs) == 0 {
+		return fmt.Errorf("没有找到检查节点,请检查集群中控路由是否正确")
 	}
 	ctrl := make(chan struct{}, 10)
 	errChan := make(chan error)

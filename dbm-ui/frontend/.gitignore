@@ -34,3 +34,9 @@ public/.DS_Store
 bkcodeai.json
 .what-is-this
 
+cypress/parallel-weights.json
+
+cypress.env.json
+multi-reporter-config.json
+runner-results/
+

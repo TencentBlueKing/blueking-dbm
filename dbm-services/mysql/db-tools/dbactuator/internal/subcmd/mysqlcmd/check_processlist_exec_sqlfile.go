@@ -78,8 +78,8 @@ func (d *CheckProcesslistExecSQLFileAct) Run() (err error) {
 			Func:    d.Payload.Init,
 		},
 		{
-			FunName: "Precheck",
-			Func:    d.Payload.Precheck,
+			FunName: "PreCheck",
+			Func:    d.Payload.PreCheck,
 		},
 		{
 			FunName: "执行DDL阻塞检查",
@@ -90,6 +90,6 @@ func (d *CheckProcesslistExecSQLFileAct) Run() (err error) {
 	if err := steps.Run(); err != nil {
 		return err
 	}
-	logger.Info("precheck blocking ddl pcls successfully")
+	logger.Info("pre-check blocking ddl process list successfully")
 	return nil
 }

@@ -49,7 +49,6 @@
   const handleChange = (data: PermissionRule['rules']) => {
     accountRules.value = data;
     const filterData = accountRules.value.filter((item) => accessDbs.value.includes(item.access_db));
-    accessDbs.value = filterData.length > 0 ? accessDbs.value : data.slice(0, 1).map((item) => item.access_db);
     rules.value = filterData;
   };
 

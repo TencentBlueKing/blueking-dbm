@@ -16,7 +16,7 @@ from typing import Any
 from django.db import transaction
 from django.db.models import Q
 from django.db.transaction import atomic
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
@@ -57,9 +57,14 @@ from backend.db_services.redis.util import (
     is_tendisplus_instance_type,
     is_tendisssd_instance_type,
 )
-from backend.flow.consts import DEFAULT_DB_MODULE_ID, DEFAULT_REDIS_START_PORT, InstanceStatus
+from backend.flow.consts import (
+    DEFAULT_DB_MODULE_ID,
+    DEFAULT_REDIS_START_PORT,
+    InstanceStatus,
+    OperateCollectorActionEnum,
+)
 from backend.flow.utils.base.payload_handler import PayloadHandler
-from backend.flow.utils.cc_manage import CcManage
+from backend.flow.utils.cc_manage import CcManage, trigger_operate_collector
 from backend.flow.utils.dns_manage import DnsManage
 from backend.flow.utils.redis.redis_module_operate import RedisCCTopoOperator
 from backend.ticket.constants import TicketType
@@ -497,6 +502,7 @@ class RedisDBMeta(object):
                 "creator": self.cluster["created_by"],
                 "region": self.cluster.get("region", ""),
                 "disaster_tolerance_level": self.cluster.get("disaster_tolerance_level", ""),
+                "zone_list": self.cluster.get("zone_list", []),
             }
         )
         return True
@@ -533,6 +539,7 @@ class RedisDBMeta(object):
                 "creator": self.cluster["created_by"],
                 "region": self.cluster.get("region", ""),
                 "disaster_tolerance_level": self.cluster.get("disaster_tolerance_level", ""),
+                "zone_list": self.cluster.get("zone_list", []),
             }
         )
         return True
@@ -566,6 +573,7 @@ class RedisDBMeta(object):
                 "creator": self.cluster["created_by"],
                 "region": self.cluster.get("region", ""),
                 "disaster_tolerance_level": self.cluster.get("disaster_tolerance_level", ""),
+                "zone_list": self.cluster.get("zone_list", []),
             }
         )
         return True
@@ -760,6 +768,18 @@ class RedisDBMeta(object):
             if self.cluster["origin_db_version"] != self.cluster["db_version"]:
                 cluster.major_version = self.cluster["db_version"]
                 cluster.save()
+
+    def update_cluster_proxy_status(self) -> bool:
+        """
+        更新proxy 状态
+        """
+        #         act_kwargs.cluster["proxy_ips"] = op_proxies
+        # act_kwargs.cluster["meta_update_status"] = InstanceStatus.RUNNING.value
+        cluster = Cluster.objects.get(id=self.cluster["cluster_id"])
+        for proxy in cluster.proxyinstance_set.all():
+            if proxy.machine.ip in self.cluster["proxy_ips"]:
+                proxy.status = self.cluster["meta_update_status"]
+                proxy.save()
 
     def update_rollback_task_status(self) -> bool:
         """
@@ -1575,24 +1595,51 @@ class RedisDBMeta(object):
             self.dts_switch_update_cluster_entry(src_cluster)
             self.dts_switch_update_cluster_entry(dst_cluster)
 
+        return True
+
+    def dts_online_switch_swap_cc(self):
+        """
+        将重操作挪cc的操作独立出来，避免元数据锁等待问题
+        到这一步的时候元数据已经被修改成预期的了
+        """
+        src_cluster_id: int = self.cluster["src_cluster_id"]
+        dst_cluster_id: int = self.cluster["dst_cluster_id"]
+        src_cluster = Cluster.objects.get(id=src_cluster_id)
+        dst_cluster = Cluster.objects.get(id=dst_cluster_id)
+        src_proxyinstances = copy.deepcopy(src_cluster.proxyinstance_set.all())
+        dst_proxyinstances = copy.deepcopy(dst_cluster.proxyinstance_set.all())
+
+        src_storageinstances = copy.deepcopy(src_cluster.storageinstance_set.all())
+        dst_storageinstances = copy.deepcopy(dst_cluster.storageinstance_set.all())
+
+        # 提前卸载实例采集配置
+        instance_model = StorageInstance
+        instances = instance_model.objects.filter(cluster__in=[src_cluster_id, dst_cluster_id])
+        machine_type = instances.first().machine.machine_type
+        bk_instance_ids = list(instances.values_list("bk_instance_id", flat=True))
+        db_type = ClusterType.cluster_type_to_db_type(src_cluster.cluster_type)
+        action = OperateCollectorActionEnum.UNINSTALL.value
+        trigger_operate_collector(db_type, machine_type, bk_instance_ids, action)
+
+        with atomic():
             # 交换 cc module
             logger.info(_("dts 交换两个集群的 cc module"))
             logger.info(
                 _(
                     "dts_online_switch_swap_two_cluster_storage 3333 转移目标机器模块到源集群下,src_cluster:{} dst_inst_list:{}"
-                ).format(src_cluster.immute_domain, self.get_inst_list(dst_storageinstances))
+                ).format(src_cluster.immute_domain, self.get_inst_list(src_storageinstances))
             )
-            RedisCCTopoOperator(src_cluster).transfer_instances_to_cluster_module(dst_storageinstances)
+            RedisCCTopoOperator(src_cluster).transfer_instances_to_cluster_module(src_storageinstances)
             logger.info(
                 _(
                     "dts_online_switch_swap_two_cluster_storage 3333 转移源机器模块到目标集群下,dst_cluster:{} src_inst_list:{}"
-                ).format(dst_cluster.immute_domain, self.get_inst_list(src_storageinstances))
+                ).format(dst_cluster.immute_domain, self.get_inst_list(dst_storageinstances))
             )
-            RedisCCTopoOperator(dst_cluster).transfer_instances_to_cluster_module(src_storageinstances)
+            RedisCCTopoOperator(dst_cluster).transfer_instances_to_cluster_module(dst_storageinstances)
             # 两个集群的 proxy ip均是不变的,但类型变化后,模块信息需变化
+            # 这一步默认会下发安装export的操作，但是没有卸载的操作
             RedisCCTopoOperator(src_cluster).transfer_instances_to_cluster_module(src_proxyinstances)
             RedisCCTopoOperator(dst_cluster).transfer_instances_to_cluster_module(dst_proxyinstances)
-
         return True
 
     def dts_online_switch_update_nodes_domain(self):

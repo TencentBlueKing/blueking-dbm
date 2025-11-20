@@ -11,8 +11,10 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from django.db import transaction
+from django.utils.translation import gettext as _
 
 from backend.core import notify
+from backend.iam_app.handlers.drf_perm.ticket import add_ticket_audit_event, audit_ticket_status
 from backend.ticket import constants
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.constants import FLOW_FINISHED_STATUS, FlowType, TicketStatus, TicketType
@@ -47,10 +49,6 @@ logger = logging.getLogger("root")
 class TicketFlowManager(object):
     def __init__(self, ticket: Ticket):
         self.ticket = ticket
-        self.current_flow_obj = ticket.current_flow()
-        self.current_ticket_flow = self.get_ticket_flow_cls(flow_type=self.current_flow_obj.flow_type)(
-            ticket.current_flow()
-        )
 
     @staticmethod
     def get_ticket_flow_cls(flow_type):
@@ -61,15 +59,27 @@ class TicketFlowManager(object):
 
     def run_next_flow(self):
         next_flow = self.ticket.next_flow()
+        current_flow = self.ticket.current_flow()
+
+        # 没有下一个节点，说明流程已结束
         if not next_flow:
-            # 没有下一个节点，说明流程已结束
+            logger.error(_("无可执行的下一流程"))
+            return
+
+        # 先取下一个流程，再取当前流程，可以根据流程的顺序保证并发的一致性
+        # 如果current_flow晚于next_flow，说明流程已经发起
+        is_init_flow = next_flow.id == self.ticket.flows.first().id
+
+        if current_flow.id >= next_flow.id and not is_init_flow:
+            logger.error(_("流程非预期：当前流程晚于下一个流程"))
             return
 
         # 满足下面两种条件之一，则继续执行下一个流程
         # 1. 初始状态的任务流程
         # 2. 当前流程已完成
-        is_init_flow = next_flow.id == self.current_flow_obj.id
-        if is_init_flow or self.current_ticket_flow.status in FLOW_FINISHED_STATUS:
+        current_flow_status = self.get_ticket_flow_cls(flow_type=current_flow.flow_type)(current_flow).status
+        if is_init_flow or current_flow_status in FLOW_FINISHED_STATUS:
+            logger.info(_("[{}]流程已触发:{}").format(self.ticket.id, next_flow.flow_alias))
             self.get_ticket_flow_cls(flow_type=next_flow.flow_type)(next_flow).run()
 
     def update_ticket_status(self):
@@ -113,10 +123,15 @@ class TicketFlowManager(object):
     def ticket_status_trigger(self, origin_status, target_status):
         """单据状态更新后的钩子函数。注：如果钩子函数非关键链路，请异步发起"""
 
+        # 上报单据状态流转事件，针对任务运行、成功、失败、终止状态上报
+        if target_status in audit_ticket_status:
+            add_ticket_audit_event.apply_async(args=(self.ticket.id,))
+
         # 单据状态变更后，发送通知。
         # 忽略运行中：流转到内置任务无需通知，待继续在todo创建时才触发通知
         # 忽略待补货：到资源申请节点，单据状态总会流转为待补货，但是只有待补货todo创建才触发通知
-        if target_status not in [TicketStatus.RUNNING, TicketStatus.RESOURCE_REPLENISH]:
+        # 忽略审批：创建itsm单据后，发送通知
+        if target_status not in [TicketStatus.RUNNING, TicketStatus.RESOURCE_REPLENISH, TicketStatus.APPROVE]:
             notify.send_msg.apply_async(args=(self.ticket.id,))
 
         # 如果是待下架单据，正常结束要联动回收主机

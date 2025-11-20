@@ -1,0 +1,386 @@
+# -*- coding: utf-8 -*-
+"""
+TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+You may obtain a copy of the License at https://opensource.org/licenses/MIT
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+"""
+import copy
+from dataclasses import asdict
+from datetime import datetime, timedelta
+from typing import Dict, Optional
+
+from django.db.models import Q
+from django.utils.crypto import get_random_string
+from django.utils.translation import gettext as _
+
+from backend.components.dbresource.client import DBResourceApi
+from backend.configuration.constants import MYSQL_DATA_RESTORE_TIME, DBType
+from backend.db_meta.enums import ClusterType, InstanceInnerRole
+from backend.db_meta.models import Cluster
+from backend.db_package.models import Package
+from backend.db_periodic_task.models import TaskStatus
+from backend.db_services.cmdb.biz import get_or_create_resource_module, get_resource_biz
+from backend.flow.consts import MediumEnum, RollbackType
+from backend.flow.engine.bamboo.scene.common.builder import Builder, Conditions, SubBuilder
+from backend.flow.engine.bamboo.scene.common.machine_os_init import insert_host_event
+from backend.flow.engine.bamboo.scene.mysql.common.domain_util import generate_valid_domain
+from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_cluster_config
+from backend.flow.engine.bamboo.scene.mysql.common.mysql_restore_download_sub_flow import (
+    mysql_restore_download_sub_flow,
+)
+from backend.flow.engine.bamboo.scene.mysql.mysql_single_apply_flow import MySQLSingleApplyFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_single_destroy_flow import MySQLSingleDestroyFlow
+from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
+from backend.flow.plugins.components.collections.common.external_service import ExternalServiceComponent
+from backend.flow.plugins.components.collections.common.transfer_host_service import TransferHostServiceComponent
+from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.exec_switch_for_source_act import (
+    ExecRollbackActForSourceComponent,
+)
+from backend.flow.plugins.components.collections.mysql.mysql_backup_recovery_exercise import (
+    MySQLBackupRecoverTaskMetaComponent,
+)
+from backend.flow.plugins.components.collections.mysql.mysql_os_init import CleanDataBakDirComponent
+from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
+from backend.flow.utils.mysql.mysql_act_dataclass import ExecActuatorKwargs
+from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
+from backend.flow.utils.mysql.mysql_context_dataclass import MySQLRollbackExerciseContext
+
+
+class MySQLRollbackExerciseFlow(object):
+    """
+    MySQL Rollback Exercise Flow
+
+    This class implements the complete workflow for MySQL database rollback exercise.
+    It handles the following operations:
+    1. Deploying a temporary MySQL instance for rollback testing
+    2. Restoring backup data to the temporary instance
+    3. Verifying the rollback results
+    4. Cleaning up resources after exercise
+
+    The workflow consists of multiple sub-pipelines executed in sequence:
+    - MySQL instance deployment
+    - Backup data restoration
+    - Resource cleanup
+    """
+
+    def __init__(self, root_id: str, data: Optional[Dict]):
+        """
+        Initialize the rollback exercise flow
+
+        Args:
+            root_id (str): Unique identifier for the workflow instance
+            data (Dict): Ticket data containing rollback parameters:
+                {
+                    "ticket_type": "MYSQL_ROLLBACK_EXERCISE",  # Ticket type identifier
+                    "exercise_cluster_id": 1,  # ID of cluster to rollback
+                    "backup_id": "xxx",  # Backup ID to restore from
+                    "rollback_host": {  # Target host for rollback exercise
+                        "ip": "127.0.0.1",  # IP address
+                        "bk_host_id": 1212,  # Host ID in CMDB
+                        "bk_cloud_id": 0  # Cloud area ID
+                    },
+                    "bk_biz_id": 123,  # Target business ID
+                    "backupinfo": {},  # Backup metadata
+                    "labels": [""]  # Resource labels
+                }
+        """
+        self.root_id = root_id
+        self.ticket_data = data
+        self.data = {}
+        self.rollback_port = 20000
+        self.rollback_host = self.ticket_data["rollback_host"]
+        self.rollback_to_bk_biz_id = self.ticket_data["bk_biz_id"]
+        self.labels = self.ticket_data.get("labels", [])
+
+    def run(self):
+        """
+        Execute the complete rollback exercise workflow
+
+        The workflow consists of the following steps:
+        1. Prepare temporary MySQL instance:
+            - Get cluster metadata
+            - Generate unique cluster name
+            - Prepare installation parameters
+            - Deploy temporary MySQL instance
+
+        2. Perform backup restoration:
+            - Create backup directory
+            - Restore backup data
+            - Update task status
+
+        3. Clean up resources:
+            - Destroy temporary instance
+            - Return host to resource pool
+            - Update final task status
+
+        The workflow uses Bamboo pipeline to orchestrate all steps with proper
+        error handling and status tracking.
+        """
+        pipeline = Builder(
+            root_id=self.root_id,
+            data=copy.deepcopy(self.ticket_data),
+        )
+        sub_flow = self.build_rollback_exercise_flow()
+        pipeline.add_sub_pipeline(sub_flow)
+        # run pipeline
+        pipeline.run_pipeline(init_trans_data_class=MySQLRollbackExerciseContext())
+
+    def build_rollback_exercise_flow(self):
+        sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.ticket_data))
+        cluster_class = Cluster.objects.get(id=self.ticket_data["exercise_cluster_id"])
+        if cluster_class.cluster_type == ClusterType.TenDBCluster.value:
+            shard0 = cluster_class.tendbclusterstorageset_set.filter(shard_id=0).first()
+            master = shard0.storage_instance_tuple.ejector
+        else:
+            filters = Q(
+                cluster__cluster_type=ClusterType.TenDBSingle.value, instance_inner_role=InstanceInnerRole.ORPHAN.value
+            )
+            filters = filters | Q(
+                cluster__cluster_type=ClusterType.TenDBHA.value, instance_inner_role=InstanceInnerRole.MASTER.value
+            )
+            master = cluster_class.storageinstance_set.filter(filters).first()
+        self.data = copy.deepcopy(self.ticket_data)
+        self.data["bk_cloud_id"] = cluster_class.bk_cloud_id
+        self.data["db_module_id"] = cluster_class.db_module_id
+        self.data["time_zone"] = cluster_class.time_zone
+        self.data["created_by"] = self.ticket_data["created_by"]
+        self.data["module"] = cluster_class.db_module_id
+        self.data["ticket_type"] = self.ticket_data["ticket_type"]
+        self.data["uid"] = self.ticket_data["uid"]
+        self.data["city"] = cluster_class.region
+        self.data["package"] = Package.get_latest_package(
+            version=cluster_class.major_version, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL
+        ).name
+        self.data["charset"], self.data["db_version"] = get_version_and_charset(
+            cluster_class.bk_biz_id,
+            db_module_id=self.data["db_module_id"],
+            cluster_type=cluster_class.cluster_type,
+        )
+        install_ticket = copy.deepcopy(self.data)
+        datetime_str = datetime.strftime(datetime.now(), "%Y%m%d%H%M%S%f")
+        cluster_name = "{}-{}".format(cluster_class.name, datetime_str).replace("_", "")
+        if len(cluster_name) > 48:
+            cluster_name = get_random_string(24)
+
+        # 生成符合规则的域名
+        master_domain = generate_valid_domain(cluster_name, prefix="rb", suffix="db", max_length=48)
+
+        install_ticket["start_mysql_port"] = self.rollback_port
+        install_ticket["inst_num"] = 1
+        install_ticket["ticket_type"] = self.ticket_data["ticket_type"]
+        sql = """show global variables where Variable_name in ('sql_mode','max_allowed_packet','lower_case_table_names',
+        'innodb_strict_mode','max_heap_table_size','tmp_table_size','character_set_server','collation_server',
+        'default_storage_engine','default-storage-engine')"""
+        old_instance_configs = get_cluster_config(cluster_class, query_cmds=sql)
+        install_ticket["apply_infos"] = [
+            {
+                "new_ip": self.rollback_host,
+                "old_instance_configs": {str(master.port): old_instance_configs},
+                "clusters": [{"name": cluster_name, "master": master_domain}],
+            }
+        ]
+        # 初始化安装mysql
+        sub_pipeline.add_sub_pipeline(
+            MySQLSingleApplyFlow(root_id=self.root_id, data=install_ticket).deploy_mysql_single_flow(
+                origin_cluster_domain=cluster_class.immute_domain,
+                with_collect_sysinfo=False,
+                with_push_config=False,
+                with_exporter_config=False,
+            )
+        )
+        # 屏蔽告警
+        sub_pipeline.add_act(
+            act_name=_("屏蔽集群 {} 告警12小时").format(cluster_class.name),
+            act_component_code=AddAlarmShieldComponent.code,
+            kwargs={
+                "begin_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "end_time": (datetime.now() + timedelta(hours=12)).strftime("%Y-%m-%d %H:%M:%S"),
+                "description": _("集群 {} MySQL回档演练操作").format(cluster_class.immute_domain),
+                "dimensions": [
+                    {
+                        "name": "instance_host",
+                        "values": [self.rollback_host["ip"]],
+                    }
+                ],
+            },
+        )
+        # 更新任务状态
+        sub_pipeline.add_act(
+            act_name=_("更新演练任务状态"),
+            act_component_code=MySQLBackupRecoverTaskMetaComponent.code,
+            kwargs={
+                "task_id": self.root_id,
+                "task_status": TaskStatus.DEPLOY_SUCCESS,
+            },
+        )
+        my_cluster = {
+            "bk_cloud_id": cluster_class.bk_cloud_id,
+            "databases": ["*"],
+            "tables": ["*"],
+            "databases_ignore": [],
+            "tables_ignore": [],
+            "charset": self.data["charset"],
+            "change_master": False,
+            "cluster_type": cluster_class.cluster_type,
+            "file_target_path": "/data/dbbak/{}/{}".format(self.root_id, master.port),
+            "skip_local_exists": True,
+            "rollback_ip": self.rollback_host["ip"],
+            "rollback_port": self.rollback_port,
+            "rollback_type": self.ticket_data.get("rollback_type", RollbackType.REMOTE_AND_BACKUPID),
+        }
+        # 创建目录
+        exec_act_kwargs = ExecActuatorKwargs(
+            bk_cloud_id=cluster_class.bk_cloud_id,
+            cluster_type=None,
+            cluster=my_cluster,
+        )
+        exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.mysql_mkdir_dir.__name__
+        exec_act_kwargs.exec_ip = self.rollback_host["ip"]
+        sub_pipeline.add_act(
+            act_name=_("创建目录 {}".format(my_cluster["file_target_path"])),
+            act_component_code=ExecuteDBActuatorScriptComponent.code,
+            kwargs=asdict(exec_act_kwargs),
+        )
+        backup_info = self.data.get("backup_record", {})
+        # 阶段2 下载备份文件
+        sub_pipeline.add_sub_pipeline(
+            sub_flow=mysql_restore_download_sub_flow(
+                root_id=self.root_id,
+                uid=self.ticket_data["uid"],
+                bk_cloud_id=cluster_class.bk_cloud_id,
+                file_target_path=my_cluster["file_target_path"],
+                task_ids=backup_info["task_ids"],
+                dest_ips=[my_cluster["rollback_ip"]],
+                source_ip=None,
+            )
+        )
+        # 恢复数据
+        my_cluster["change_master"] = False
+        my_cluster["backupinfo"] = backup_info
+        my_cluster["recover_binlog"] = False
+        exec_act_kwargs = ExecActuatorKwargs(
+            bk_cloud_id=cluster_class.bk_cloud_id,
+            cluster_type=cluster_class.cluster_type,
+            cluster=copy.deepcopy(my_cluster),
+            job_timeout=MYSQL_DATA_RESTORE_TIME,
+            exec_ip=my_cluster["rollback_ip"],
+            get_mysql_payload_func=MysqlActPayload.get_rollback_data_restore_payload.__name__,
+        )
+        source_act = sub_pipeline.add_act(
+            act_name=_("恢复数据 {}").format(my_cluster["rollback_ip"]),
+            act_component_code=ExecRollbackActForSourceComponent.code,
+            kwargs=asdict(exec_act_kwargs),
+            write_payload_var="rollback_error_info",
+            error_ignorable=True,
+            extend=False,
+        )
+
+        # 创建成功分支节点
+        success_act = sub_pipeline.add_act(
+            act_name=_("更新演练任务状态为成功"),
+            act_component_code=MySQLBackupRecoverTaskMetaComponent.code,
+            kwargs={
+                "task_id": self.root_id,
+                "task_status": TaskStatus.RECOVER_SUCCESS,
+                "root_id": self.root_id,
+            },
+            extend=False,
+        )
+
+        # 创建失败分支节点
+        failed_act = sub_pipeline.add_act(
+            act_name=_("更新演练任务状态为失败"),
+            act_component_code=MySQLBackupRecoverTaskMetaComponent.code,
+            kwargs={
+                "task_id": self.root_id,
+                "task_status": TaskStatus.RECOVER_FAILED,
+                "root_id": self.root_id,
+            },
+            extend=False,
+        )
+
+        # 添加条件网关：根据回档执行结果选择不同分支
+        sub_pipeline.add_conditional_subs(
+            source_act=source_act,
+            conditions=[
+                Conditions(act_object=success_act, express="==0"),
+                Conditions(act_object=failed_act, express="==1"),
+            ],
+            conditions_param="rollback_code",
+            name=_("判断恢复数据状态"),
+        )
+
+        # 回档成功,回收资源
+        uninstall_data = copy.deepcopy(self.data)
+        uninstall_data["force"] = True
+        sub_pipeline.add_sub_pipeline(
+            MySQLSingleDestroyFlow(root_id=self.root_id, data=uninstall_data).destroy_mysql_single_subflow(
+                ip=self.rollback_host["ip"],
+                port=self.rollback_port,
+                bk_cloud_id=cluster_class.bk_cloud_id,
+                domain=master_domain,
+                bk_biz_id=self.rollback_to_bk_biz_id,
+                skip_clean_surrounding_config=True,
+            )
+        )
+        # 退还资源到资源池
+        import_data = {
+            "resource_type": "mysql",
+            "for_biz": self.rollback_to_bk_biz_id,
+            "bk_biz_id": get_resource_biz(),
+            "hosts": [
+                {
+                    "ip": self.rollback_host["ip"],
+                    "host_id": self.rollback_host["bk_host_id"],
+                    "bk_cloud_id": self.rollback_host["bk_cloud_id"],
+                }
+            ],
+            "labels": self.labels,
+            "operator": "system",
+        }
+        # 机器归还到资源池
+        sub_pipeline.add_act(
+            act_name=_("机器归还到资源池"),
+            act_component_code=ExternalServiceComponent.code,
+            kwargs={
+                "params": import_data,
+                "api_import_path": DBResourceApi.__module__,
+                "api_import_module": "DBResourceApi",
+                "api_call_func": "resource_import",
+                "success_callback_path": f"{insert_host_event.__module__}.{insert_host_event.__name__}",
+            },
+        )
+        # 转移模块到对应业务的资源池
+        sub_pipeline.add_act(
+            act_name=_("主机转移至资源池空闲模块"),
+            act_component_code=TransferHostServiceComponent.code,
+            kwargs={
+                "bk_biz_id": get_resource_biz(),
+                "bk_module_ids": [get_or_create_resource_module()],
+                "bk_host_ids": [self.rollback_host["bk_host_id"]],
+                "update_host_properties": {"dbm_meta": [], "need_monitor": False, "update_operator": False},
+            },
+        )
+        # 清理数据备份目录
+        sub_pipeline.add_act(
+            act_name=_("清理数据备份目录"),
+            act_component_code=CleanDataBakDirComponent.code,
+            kwargs={
+                "bk_biz_id": get_resource_biz(),
+                "bk_cloud_id": self.rollback_host["bk_cloud_id"],
+                "exec_ip": self.rollback_host["ip"],
+            },
+        )
+        # # 解除告警屏蔽
+        # pipeline.add_act(
+        #     act_name=_("解除告警屏蔽"),
+        #     act_component_code=DisableAlarmShieldComponent.code,
+        #     kwargs={},
+        # )
+        # 更新任务状态
+        return sub_pipeline.build_sub_process(sub_name=_("{}回档演练".format(cluster_class.immute_domain)))

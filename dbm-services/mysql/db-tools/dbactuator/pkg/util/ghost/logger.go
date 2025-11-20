@@ -25,14 +25,28 @@ func transGhost2dbmLogger() *ghostLogger {
 }
 
 func (*ghostLogger) Debug(args ...any) {
-	logger.Debug(fmt.Sprintf(args[0].(string), args[1:]))
+	if len(args) == 0 {
+		return
+	}
+	if format, ok := args[0].(string); ok {
+		logger.Debug(fmt.Sprintf(format, args[1:]...))
+	} else {
+		logger.Debug(fmt.Sprint(args...))
+	}
 }
 func (*ghostLogger) Debugf(format string, args ...any) {
 	logger.Debug(format, args...)
 }
 
 func (*ghostLogger) Info(args ...any) {
-	logger.Info(fmt.Sprintf(args[0].(string), args[1:]))
+	if len(args) == 0 {
+		return
+	}
+	if format, ok := args[0].(string); ok {
+		logger.Info(fmt.Sprintf(format, args[1:]...))
+	} else {
+		logger.Info(fmt.Sprint(args...))
+	}
 }
 
 func (*ghostLogger) Infof(format string, args ...any) {
@@ -40,8 +54,17 @@ func (*ghostLogger) Infof(format string, args ...any) {
 }
 
 func (*ghostLogger) Warning(args ...any) error {
-	logger.Warn(fmt.Sprintf(args[0].(string), args[1:]))
-	return fmt.Errorf(args[0].(string), args[1:])
+	if len(args) == 0 {
+		return nil
+	}
+	if format, ok := args[0].(string); ok {
+		logger.Warn(fmt.Sprintf(format, args[1:]...))
+		return fmt.Errorf(format, args[1:]...)
+	} else {
+		msg := fmt.Sprint(args...)
+		logger.Warn(msg)
+		return fmt.Errorf(msg)
+	}
 }
 
 func (*ghostLogger) Warningf(format string, args ...any) error {
@@ -50,8 +73,17 @@ func (*ghostLogger) Warningf(format string, args ...any) error {
 }
 
 func (*ghostLogger) Error(args ...any) error {
-	logger.Error(fmt.Sprintf(args[0].(string), args[1:]))
-	return fmt.Errorf(args[0].(string), args[1:])
+	if len(args) == 0 {
+		return nil
+	}
+	if format, ok := args[0].(string); ok {
+		logger.Error(fmt.Sprintf(format, args[1:]...))
+		return fmt.Errorf(format, args[1:]...)
+	} else {
+		msg := fmt.Sprint(args...)
+		logger.Error(msg)
+		return fmt.Errorf(msg)
+	}
 }
 
 func (*ghostLogger) Errorf(format string, args ...any) error {
@@ -67,8 +99,17 @@ func (*ghostLogger) Errore(err error) error {
 }
 
 func (*ghostLogger) Fatal(args ...any) error {
-	logger.Error(fmt.Sprintf(args[0].(string), args[1:]))
-	return fmt.Errorf(args[0].(string), args[1:])
+	if len(args) == 0 {
+		return nil
+	}
+	if format, ok := args[0].(string); ok {
+		logger.Error(fmt.Sprintf(format, args[1:]...))
+		return fmt.Errorf(format, args[1:]...)
+	} else {
+		msg := fmt.Sprint(args...)
+		logger.Error(msg)
+		return fmt.Errorf(msg)
+	}
 }
 
 func (*ghostLogger) Fatalf(format string, args ...any) error {

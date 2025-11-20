@@ -12,159 +12,258 @@
 -->
 
 <template>
-  <div class="mysql-version-upgrade-page">
-    <BkAlert
-      class="mb-20"
-      closable
-      :title="
-        t(
-          '版本升级：主从接入层和单节点采用原地升级，存储层小版本升级采用原地升级（注意：暂不支持一主多从），大版本需提供新机迁移方式执行。同一主机所有关联集群将一并同步升级',
-        )
-      " />
-    <BkForm
-      class="upgrade-form"
-      form-type="vertical"
-      :model="formData">
-      <BkFormItem
-        :label="t('角色类型')"
-        property="roleType"
-        required>
-        <BkRadioGroup
-          v-model="formData.roleType"
-          style="width: 450px"
-          type="card"
-          @change="handleChange">
-          <BkRadioButton label="haAccessLayer">
-            {{ t('主从 - 接入层') }}
-          </BkRadioButton>
-          <BkRadioButton label="haStorageLayer">
-            {{ t('主从 - 存储层') }}
-          </BkRadioButton>
-          <BkRadioButton label="singleStorageLayer">
-            {{ t('单节点') }}
-          </BkRadioButton>
-        </BkRadioGroup>
+  <UpgradeWrapper v-model="wrapperController">
+    <SmartAction class="db-toolbox">
+      <EditableTable
+        ref="table"
+        class="mb-20"
+        :model="formData.tableData"
+        :rules="rules">
+        <EditableRow
+          v-for="(item, index) in formData.tableData"
+          :key="index">
+          <WithRelatedClustersColumn
+            v-model="item.cluster"
+            :callback="() => handleInputFinish(item)"
+            role="proxy"
+            :selected="selected"
+            @batch-edit="handleBatchEdit" />
+          <EditableColumn
+            field="current_version"
+            :label="t('当前版本')"
+            :min-width="200"
+            readonly
+            required>
+            <EditableBlock
+              v-model="item.current_version"
+              :placeholder="t('自动生成')" />
+          </EditableColumn>
+          <TargetVersionColumn
+            v-model="item.target_version"
+            :row-data="item" />
+          <OperationColumn
+            v-model:table-data="formData.tableData"
+            :create-row-method="createTableRow" />
+        </EditableRow>
+      </EditableTable>
+      <BkFormItem>
+        <BkCheckbox
+          v-model="formData.is_check_process"
+          :false-label="false"
+          true-label>
+          <span
+            v-bk-tooltips="t('存在业务连接时需要人工确认')"
+            class="safe-action-text">
+            {{ t('检查业务连接') }}
+          </span>
+        </BkCheckbox>
       </BkFormItem>
-      <BkFormItem
-        v-if="formData.roleType !== 'haAccessLayer'"
-        :label="t('升级类型')"
-        property="updateType"
-        required>
-        <CardCheckbox
-          v-model="formData.updateType"
-          :desc="t('适用于小版本升级，如 5.6.1 ->  5.6.2 ')"
-          icon="rebuild"
-          :title="t('原地升级')"
-          true-value="local" />
-        <CardCheckbox
-          v-model="formData.updateType"
-          class="ml-8"
-          :desc="t('适用于大版本升级，如 5.6.0 ->  5.7.0')"
-          :disabled="formData.roleType === 'singleStorageLayer'"
-          :disabled-tooltips="t('单节点仅支持原地升级')"
-          icon="clone"
-          :title="t('迁移升级')"
-          true-value="remote" />
-      </BkFormItem>
-      <Component
-        :is="renderCom"
-        :key="`${formData.roleType}-${formData.updateType}`"
-        :ticket-details="ticketDetails" />
-    </BkForm>
-  </div>
+      <TicketPayload v-model="formData.payload" />
+      <template #action>
+        <BkButton
+          class="mr-8 w-88"
+          :loading="isSubmitting"
+          theme="primary"
+          @click="handleSubmit">
+          {{ t('提交') }}
+        </BkButton>
+        <DbPopconfirm
+          :confirm-handler="handleReset"
+          :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+          :title="t('确认重置页面')">
+          <BkButton
+            class="ml-8 w-88"
+            :disabled="isSubmitting">
+            {{ t('重置') }}
+          </BkButton>
+        </DbPopconfirm>
+      </template>
+    </SmartAction>
+  </UpgradeWrapper>
 </template>
 <script lang="ts" setup>
+  import { useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import TendbhaModel from '@services/model/mysql/tendbha';
   import type { Mysql } from '@services/model/ticket/ticket';
 
-  import { useTicketDetail } from '@hooks';
+  import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
+  import TicketPayload, {
+    createTickePayload,
+  } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+  import WithRelatedClustersColumn from '@views/db-manage/mysql/common/edit-table-column/WithRelatedClustersColumn.vue';
+  import UpgradeWrapper from '@views/db-manage/mysql/MYSQL_LOCAL_UPGRADE/components/UpgradeWrapper.vue';
 
-  import HaAccessLayer from './ha-access-layer/Index.vue';
-  import HaStorageLayerLocal from './ha-storage-layer-local/Index.vue';
-  import HaStorageLayerRemote from './ha-storage-layer-remote/Index.vue';
-  import SingleStorage from './single-storage-layer/Index.vue';
+  import TargetVersionColumn from './components/TargetVersionColumn.vue';
+
+  interface RowData {
+    cluster: {
+      cluster_type: ClusterTypes;
+      id: number;
+      master_domain: string;
+      related_clusters: {
+        id: number;
+        master_domain: string;
+      }[];
+    } & TendbhaModel;
+    current_version: string;
+    target_version: {
+      pkg_id: number;
+      target_package: string;
+    };
+  }
 
   const { t } = useI18n();
+  const tableRef = useTemplateRef('table');
 
-  const formData = reactive({
-    roleType: 'haAccessLayer',
-    tableData: [],
-    updateType: 'local',
+  const createTableRow = (data = {} as DeepPartial<RowData>) => ({
+    cluster: Object.assign(
+      {
+        cluster_type: '',
+        id: 0,
+        master_domain: '',
+        related_clusters: [],
+      } as unknown as RowData['cluster'],
+      data.cluster,
+    ),
+    current_version: data.current_version || '',
+    target_version: Object.assign(
+      {
+        pkg_id: 0,
+        target_package: '',
+      },
+      data.target_version,
+    ),
   });
-  const ticketDetails = ref<Mysql.ProxyUpgrade | Mysql.LocalUpgrade | Mysql.MigrateUpgrade>();
+
+  const defaultData = () => ({
+    is_check_process: true,
+    payload: createTickePayload(),
+    tableData: [createTableRow()],
+  });
+
+  const wrapperController = ref({
+    roleType: TicketTypes.MYSQL_PROXY_UPGRADE,
+  });
+  const formData = reactive(defaultData());
+
+  const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
+  const clusterMap = computed(() => {
+    return formData.tableData.reduce<Record<string, string>>((acc, cur) => {
+      Object.assign(acc, {
+        [cur.cluster.master_domain]: cur.cluster.master_domain,
+      });
+      cur.cluster.related_clusters.forEach((item) => {
+        Object.assign(acc, {
+          [item.master_domain]: cur.cluster.master_domain, // 关联集群映射到所属集群
+        });
+      });
+      return acc;
+    }, {});
+  });
+
+  const rules = {
+    'cluster.master_domain': [
+      {
+        message: '',
+        trigger: 'blur',
+        validator: (value: string) => {
+          const target = clusterMap.value[value];
+          if (target && target !== value) {
+            return t('目标集群是集群target的关联集群_请勿重复添加', { target });
+          }
+          return true;
+        },
+      },
+    ],
+  };
 
   useTicketDetail<Mysql.ProxyUpgrade>(TicketTypes.MYSQL_PROXY_UPGRADE, {
     onSuccess(ticketDetail) {
-      const { details } = ticketDetail;
-      formData.roleType = 'haAccessLayer';
-      window.changeConfirm = true;
-      nextTick(() => {
-        ticketDetails.value = details;
-      });
+      const { clusters, infos } = ticketDetail.details;
+      if (infos.length > 0) {
+        Object.assign(formData, {
+          ...createTickePayload(ticketDetail),
+          is_check_process: ticketDetail.details.is_check_process,
+          tableData: ticketDetail.details.infos.map((item) =>
+            createTableRow({
+              cluster: {
+                master_domain: clusters[item.cluster_ids[0]].immute_domain,
+              },
+              current_version: item.display_info.current_version,
+              target_version: {
+                pkg_id: item.pkg_id,
+                target_package: item.display_info.target_package,
+              },
+            }),
+          ),
+        });
+      }
     },
   });
 
-  useTicketDetail<Mysql.LocalUpgrade>(TicketTypes.MYSQL_LOCAL_UPGRADE, {
-    onSuccess(ticketDetail) {
-      const { details } = ticketDetail;
-      const { clusters, infos } = details;
-      const isSingle = clusters[infos[0].cluster_ids[0]].cluster_type === (ClusterTypes.TENDBSINGLE as string);
-      formData.roleType = isSingle ? 'singleStorageLayer' : 'haStorageLayer';
-      formData.updateType = 'local';
-      window.changeConfirm = true;
-      nextTick(() => {
-        ticketDetails.value = details;
+  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
+    infos: {
+      cluster_ids: number[];
+      display_info: {
+        current_version: string;
+        target_package: string;
+      };
+      pkg_id: number;
+    }[];
+    is_check_process: boolean;
+  }>(TicketTypes.MYSQL_PROXY_UPGRADE);
+
+  const handleInputFinish = (item: RowData) => {
+    if (!item.current_version && item.cluster.proxies.length > 0) {
+      Object.assign(item, {
+        current_version: item.cluster.proxies[0].version,
       });
-    },
-  });
+    }
+  };
 
-  useTicketDetail<Mysql.ResourcePool.MigrateUpgrade>(TicketTypes.MYSQL_MIGRATE_UPGRADE, {
-    onSuccess(ticketDetail) {
-      const { details } = ticketDetail;
-      formData.roleType = 'haStorageLayer';
-      formData.updateType = 'remote';
-      window.changeConfirm = true;
-      nextTick(() => {
-        ticketDetails.value = details;
+  const handleBatchEdit = (list: TendbhaModel[]) => {
+    const dataList = list.reduce<RowData[]>((acc, item) => {
+      if (!clusterMap.value[item.master_domain]) {
+        acc.push(
+          createTableRow({
+            cluster: {
+              master_domain: item.master_domain,
+            },
+            current_version: item.proxies[0]?.version,
+          }),
+        );
+      }
+      return acc;
+    }, []);
+    formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
+  };
+
+  const handleSubmit = async () => {
+    const result = await tableRef.value?.validate();
+    if (result) {
+      createTicketRun({
+        details: {
+          infos: formData.tableData.map((item) => ({
+            cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
+            display_info: {
+              current_version: item.current_version,
+              target_package: item.target_version.target_package,
+            },
+            pkg_id: item.target_version.pkg_id,
+          })),
+          is_check_process: formData.is_check_process,
+        },
+        ...formData.payload,
       });
-    },
-  });
+    }
+  };
 
-  const renderCom = computed(() => {
-    if (formData.roleType === 'haAccessLayer') {
-      return HaAccessLayer;
-    }
-    if (formData.roleType === 'singleStorageLayer') {
-      return SingleStorage;
-    }
-    if (formData.updateType === 'local') {
-      return HaStorageLayerLocal;
-    }
-    return HaStorageLayerRemote;
-  });
-
-  const handleChange = () => {
-    formData.updateType = 'local';
+  const handleReset = () => {
+    Object.assign(formData, defaultData());
   };
 </script>
-
-<style lang="less" scoped>
-  .mysql-version-upgrade-page {
-    padding-bottom: 20px;
-
-    .upgrade-form {
-      margin: 24px 0;
-
-      :deep(.bk-form-label) {
-        font-size: 12px;
-        font-weight: 700;
-        color: #313238;
-      }
-    }
-  }
-</style>

@@ -66,7 +66,7 @@ class TestTicketRevoke:
         # 在todo流程终止
         current_flow = Flow.objects.filter(flow_obj_id=SN).first()
         client.post(f"/apis/tickets/{current_flow.ticket_id}/callback/")
-        TicketHandler.revoke_ticket(ticket_ids=[ticket["id"]], operator=DEFAULT_SYSTEM_USER)
+        TicketHandler.revoke_ticket(ticket_ids=[ticket["id"]], operator=DEFAULT_SYSTEM_USER, remark="")
         # 验证单据和todo已经终止
         revoke_ticket = Ticket.objects.get(id=ticket["id"])
         assert revoke_ticket.status == TicketStatus.TERMINATED

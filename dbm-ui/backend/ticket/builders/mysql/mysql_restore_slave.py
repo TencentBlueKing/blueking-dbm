@@ -12,10 +12,8 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.configuration.constants import AffinityEnum
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
-from backend.db_meta.models import StorageInstance
-from backend.db_services.dbbase.constants import IpSource
+from backend.db_services.dbbase.constants import IpSource, SourceType
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import (
@@ -44,13 +42,16 @@ class MysqlRestoreSlaveDetailSerializer(MySQLBaseOperateDetailSerializer):
     ip_source = serializers.ChoiceField(
         help_text=_("机器来源"), choices=IpSource.get_choices(), required=False, default=IpSource.MANUAL_INPUT
     )
+    source_type = serializers.ChoiceField(
+        help_text=_("资源来源类型"), choices=SourceType.get_choices(), required=False, default=SourceType.RESOURCE_AUTO
+    )
     ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
+    disable_manual_confirm = serializers.BooleanField(help_text=(_("自愈单据禁用人工确认")), default=False)
 
     def validate(self, attrs):
         cluster_ids = fetch_cluster_ids(attrs)
+        attrs = super().validate(attrs)
 
-        # 校验集群是否可用，集群类型为高可用
-        super(MysqlRestoreSlaveDetailSerializer, self).validate_cluster_can_access(attrs)
         super(MysqlRestoreSlaveDetailSerializer, self).validated_cluster_type(attrs, ClusterType.TenDBHA)
 
         # 校验old_slave的实例角色为slave
@@ -89,30 +90,8 @@ class MysqlRestoreSlaveParamBuilder(builders.FlowParamBuilder):
 
 
 class MysqlRestoreSlaveResourceParamBuilder(BaseOperateResourceParamBuilder):
-    @classmethod
-    def patch_slave_subzone(cls, ticket_data):
-        # TODO: 后续改造为，尽量与原slave一致，不一致再满足亲和性
-        slave_host_ids = [s["bk_host_id"] for info in ticket_data["infos"] for s in info["old_nodes"]["old_slave"]]
-        slaves = StorageInstance.objects.prefetch_related("as_receiver__ejector__machine", "machine").filter(
-            machine__bk_host_id__in=slave_host_ids
-        )
-        slave_host_map = {slave.machine.bk_host_id: slave for slave in slaves}
-        for info in ticket_data["infos"]:
-            resource_spec = info["resource_spec"]["new_slave"]
-            slave = slave_host_map[info["old_nodes"]["old_slave"][0]["bk_host_id"]]
-            master_subzone_id = slave.as_receiver.get().ejector.machine.bk_sub_zone_id
-            # 同城跨园区，要求slave和master在不同subzone
-            if resource_spec["affinity"] == AffinityEnum.CROS_SUBZONE:
-                resource_spec["location_spec"].update(sub_zone_ids=[master_subzone_id], include_or_exclue=False)
-            # 同城同园区，要求slave和master在一个subzone
-            elif resource_spec["affinity"] in [AffinityEnum.SAME_SUBZONE, AffinityEnum.SAME_SUBZONE_CROSS_SWTICH]:
-                resource_spec["location_spec"].update(sub_zone_ids=[master_subzone_id], include_or_exclue=True)
-
     def format(self):
-        # 补充亲和性和城市信息
-        super().patch_info_affinity_location(roles=["new_slave"])
-        # 补充slave园区申请
-        self.patch_slave_subzone(self.ticket_data)
+        self.patch_info_common_affinity("new_slave", remain_machine_type="master", replace_key="old_slave")
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()

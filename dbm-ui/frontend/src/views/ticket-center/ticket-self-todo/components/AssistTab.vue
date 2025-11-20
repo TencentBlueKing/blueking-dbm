@@ -127,6 +127,10 @@
       align-items: center;
       transition: all 0.15s;
 
+      &:hover {
+        color: #3a84ff;
+      }
+
       &.is-active {
         color: #3a84ff;
         cursor: default;

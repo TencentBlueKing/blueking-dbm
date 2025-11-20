@@ -273,7 +273,7 @@
               "periodUnit": "min",
               "timeNum": 1
             },
-            "queryString": "$query_string",
+            "queryString": "__parse_failure: false AND slow_query.query_digest_md5: \"$digest\" AND $filter",
             "size": 50,
             "target": {
               "expandKeys": [],
@@ -446,7 +446,7 @@
         "type": "bk_log_datasource",
         "uid": "${DS_日志平台}"
       },
-      "description": "按  md5 过滤：slow_query.query_digest_md5 is 'xxx'",
+      "description": "按  db 过滤：db_name: \"xxx\"",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -484,7 +484,7 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 153
+                "value": 163
               }
             ]
           },
@@ -587,14 +587,14 @@
         ]
       },
       "gridPos": {
-        "h": 8,
+        "h": 11,
         "w": 24,
         "x": 0,
         "y": 6
       },
       "id": 4,
       "options": {
-        "cellHeight": "sm",
+        "cellHeight": "md",
         "footer": {
           "countRows": false,
           "enablePagination": false,
@@ -608,7 +608,7 @@
         "sortBy": [
           {
             "desc": true,
-            "displayName": "rows_examined"
+            "displayName": "time"
           }
         ]
       },
@@ -775,8 +775,8 @@
               "periodUnit": "min",
               "timeNum": 1
             },
-            "queryString": "$query_string",
-            "size": 100,
+            "queryString": "__parse_failure: false AND slow_query.query_digest_md5: \"$digest\" AND $filter",
+            "size": 1000,
             "target": {
               "expandKeys": [],
               "realValues": [],
@@ -791,12 +791,13 @@
           "refId": "A"
         }
       ],
-      "title": "All slow query logs [$instance_role]",
+      "title": "Slow query logs detail [$instance_role]: limit 1000",
       "transformations": [
         {
           "id": "organize",
           "options": {
             "excludeByName": {
+              "__data_label": true,
               "__ext.app": true,
               "__ext.app_id": true,
               "__ext.bk_cloud_id": true,
@@ -804,9 +805,13 @@
               "__ext.cluster_domain": true,
               "__ext.cluster_name": true,
               "__ext.cluster_type": true,
+              "__id__": true,
+              "__index_set_id__": true,
               "__ipv6__": true,
               "__module__": true,
+              "__result_table": true,
               "__set__": true,
+              "_time": true,
               "access_source_host": true,
               "bk_host_id": true,
               "cloudId": true,
@@ -818,55 +823,63 @@
               "path": true,
               "serverIp": true,
               "slow_query.command": false,
-              "slow_query.db_name": true,
+              "slow_query.db_name": false,
               "slow_query.query_length": true,
-              "sql_text": true,
+              "slow_query.query_string": true,
+              "sql_text": false,
               "sql_timestamp": true
             },
             "includeByName": {},
             "indexByName": {
+              "__data_label": 40,
               "__ext.app": 25,
-              "__ext.app_id": 17,
-              "__ext.bk_cloud_id": 21,
-              "__ext.bk_collect_config_id": 23,
+              "__ext.app_id": 19,
+              "__ext.bk_cloud_id": 22,
+              "__ext.bk_collect_config_id": 24,
               "__ext.cluster_domain": 26,
-              "__ext.cluster_name": 19,
-              "__ext.cluster_type": 20,
-              "__ext.instance_host": 18,
-              "__ext.instance_port": 24,
-              "__ext.instance_role": 22,
+              "__ext.cluster_name": 20,
+              "__ext.cluster_type": 21,
+              "__ext.instance_host": 11,
+              "__ext.instance_port": 12,
+              "__ext.instance_role": 23,
+              "__id__": 44,
+              "__index_set_id__": 43,
               "__ipv6__": 37,
               "__module__": 35,
               "__parse_failure": 39,
+              "__result_table": 41,
               "__set__": 36,
+              "_time": 42,
               "bk_host_id": 27,
               "client_host": 5,
               "cloudId": 31,
               "db_name": 6,
-              "dtEventTimeStamp": 14,
+              "dtEventTimeStamp": 16,
               "gseIndex": 30,
               "index": 38,
-              "iterationIndex": 16,
+              "iterationIndex": 18,
               "lock_time": 32,
-              "log": 15,
+              "log": 17,
               "path": 28,
               "query_time": 1,
               "rows_examined": 2,
               "rows_sent": 3,
               "serverIp": 34,
-              "slow_query.command": 10,
-              "slow_query.db_name": 12,
+              "slow_query.command": 14,
+              "slow_query.db_name": 15,
               "slow_query.query_digest_md5": 7,
               "slow_query.query_digest_text": 8,
               "slow_query.query_length": 29,
-              "slow_query.query_string": 9,
-              "slow_query.table_name": 11,
-              "sql_text": 13,
+              "slow_query.query_string": 10,
+              "slow_query.table_name": 13,
+              "sql_text": 9,
               "sql_timestamp": 33,
               "time": 0,
               "user": 4
             },
-            "renameByName": {}
+            "renameByName": {
+              "__parse_failure": ""
+            }
           }
         },
         {
@@ -890,7 +903,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 14
+        "y": 17
       },
       "id": 17,
       "panels": [],
@@ -961,7 +974,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 15
+        "y": 18
       },
       "id": 18,
       "interval": "1m",
@@ -1224,7 +1237,7 @@
               "periodUnit": "min",
               "timeNum": 1
             },
-            "queryString": "$query_string",
+            "queryString": "__parse_failure: false AND slow_query.query_digest_md5: \"$digest\" AND $filter",
             "size": 50,
             "target": {
               "expandKeys": [],
@@ -1397,7 +1410,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 22
+        "y": 25
       },
       "id": 22,
       "interval": "1m",
@@ -1660,7 +1673,7 @@
               "periodUnit": "min",
               "timeNum": 1
             },
-            "queryString": "$query_string",
+            "queryString": "__parse_failure: false AND slow_query.query_digest_md5: \"$digest\" AND $filter",
             "size": 50,
             "target": {
               "expandKeys": [],
@@ -1833,7 +1846,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 28
+        "y": 31
       },
       "id": 19,
       "interval": "1m",
@@ -2096,7 +2109,7 @@
               "periodUnit": "min",
               "timeNum": 1
             },
-            "queryString": "$query_string",
+            "queryString": "__parse_failure: false AND slow_query.query_digest_md5: \"$digest\" AND $filter",
             "size": 50,
             "target": {
               "expandKeys": [],
@@ -2269,7 +2282,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 34
+        "y": 37
       },
       "id": 20,
       "interval": "1m",
@@ -2532,7 +2545,7 @@
               "periodUnit": "min",
               "timeNum": 1
             },
-            "queryString": "$query_string",
+            "queryString": "__parse_failure: false AND slow_query.query_digest_md5: \"$digest\" AND $filter",
             "size": 50,
             "target": {
               "expandKeys": [],
@@ -2705,7 +2718,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 40
+        "y": 43
       },
       "id": 21,
       "interval": "1m",
@@ -2968,7 +2981,7 @@
               "periodUnit": "min",
               "timeNum": 1
             },
-            "queryString": "$query_string",
+            "queryString": "__parse_failure: false AND slow_query.query_digest_md5: \"$digest\" AND $filter",
             "size": 50,
             "target": {
               "expandKeys": [],
@@ -3140,7 +3153,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 47
+        "y": 50
       },
       "id": 23,
       "interval": "1m",
@@ -3397,7 +3410,7 @@
               "periodUnit": "min",
               "timeNum": 1
             },
-            "queryString": "$query_string",
+            "queryString": "__parse_failure: false AND slow_query.query_digest_md5: \"$digest\" AND $filter",
             "size": 50,
             "target": {
               "expandKeys": [],
@@ -3422,7 +3435,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 54
+        "y": 57
       },
       "id": 16,
       "panels": [
@@ -3486,10 +3499,10 @@
             "overrides": []
           },
           "gridPos": {
-            "h": 11,
+            "h": 6,
             "w": 12,
             "x": 0,
-            "y": 55
+            "y": 19
           },
           "id": 13,
           "options": {
@@ -3747,7 +3760,7 @@
                   "periodUnit": "min",
                   "timeNum": 1
                 },
-                "queryString": "$query_string",
+                "queryString": "$filter AND __parse_failure is false",
                 "size": 10000,
                 "target": {
                   "expandKeys": [],
@@ -3829,10 +3842,10 @@
             "overrides": []
           },
           "gridPos": {
-            "h": 11,
+            "h": 6,
             "w": 12,
             "x": 12,
-            "y": 55
+            "y": 19
           },
           "id": 14,
           "options": {
@@ -4090,7 +4103,7 @@
                   "periodUnit": "min",
                   "timeNum": 1
                 },
-                "queryString": "",
+                "queryString": "$filter AND __parse_failure is false",
                 "size": 10000,
                 "target": {
                   "expandKeys": [],
@@ -4192,10 +4205,10 @@
             ]
           },
           "gridPos": {
-            "h": 11,
+            "h": 7,
             "w": 8,
             "x": 0,
-            "y": 66
+            "y": 25
           },
           "id": 2,
           "options": {
@@ -4452,7 +4465,7 @@
                   "periodUnit": "min",
                   "timeNum": 1
                 },
-                "queryString": "$query_string AND NOT \"# TIME\"",
+                "queryString": "$filter AND __parse_failure is false",
                 "size": 50,
                 "target": {
                   "expandKeys": [],
@@ -4531,10 +4544,10 @@
             "overrides": []
           },
           "gridPos": {
-            "h": 11,
+            "h": 7,
             "w": 8,
             "x": 8,
-            "y": 66
+            "y": 25
           },
           "id": 10,
           "options": {
@@ -4866,10 +4879,10 @@
             "overrides": []
           },
           "gridPos": {
-            "h": 11,
+            "h": 7,
             "w": 8,
             "x": 16,
-            "y": 66
+            "y": 25
           },
           "id": 11,
           "options": {
@@ -5166,7 +5179,7 @@
             "h": 15,
             "w": 8,
             "x": 0,
-            "y": 77
+            "y": 32
           },
           "id": 6,
           "options": {
@@ -5429,7 +5442,7 @@
                   "periodUnit": "min",
                   "timeNum": 1440
                 },
-                "queryString": "$query_string AND NOT \"# TIME\"",
+                "queryString": "$filter AND __parse_failure is false",
                 "size": 50,
                 "target": {
                   "expandKeys": [],
@@ -5473,7 +5486,7 @@
             "h": 15,
             "w": 8,
             "x": 8,
-            "y": 77
+            "y": 32
           },
           "id": 8,
           "options": {
@@ -5736,7 +5749,7 @@
                   "periodUnit": "min",
                   "timeNum": 1440
                 },
-                "queryString": "$query_string AND NOT \"# TIME\"",
+                "queryString": "$filter AND __parse_failure is false",
                 "size": 50,
                 "target": {
                   "expandKeys": [],
@@ -5780,7 +5793,7 @@
             "h": 15,
             "w": 8,
             "x": 16,
-            "y": 77
+            "y": 32
           },
           "id": 15,
           "options": {
@@ -6042,7 +6055,7 @@
                   "periodUnit": "min",
                   "timeNum": 1440
                 },
-                "queryString": "$query_string AND NOT \"# TIME\"",
+                "queryString": "$filter AND __parse_failure is false",
                 "size": 50,
                 "target": {
                   "expandKeys": [],
@@ -6095,7 +6108,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -6110,7 +6124,7 @@
             "h": 12,
             "w": 24,
             "x": 0,
-            "y": 92
+            "y": 47
           },
           "id": 12,
           "options": {
@@ -6447,7 +6461,7 @@
                   "periodUnit": "min",
                   "timeNum": 1
                 },
-                "queryString": "",
+                "queryString": "$filter AND __parse_failure is false",
                 "size": 10000,
                 "target": {
                   "expandKeys": [],
@@ -6591,17 +6605,35 @@
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
-        "sort": 0,
+        "sort": 1,
         "type": "query"
       },
       {
         "current": {},
+        "description": "slow_query.query_digest_md5",
         "hide": 0,
-        "name": "query_string",
+        "includeAll": false,
+        "multi": false,
+        "name": "digest",
         "options": [],
         "query": "*",
+        "queryValue": "",
         "skipUrlSync": false,
-        "type": "textbox",
+        "type": "custom",
+        "refresh": 1
+      },
+      {
+        "allValue": "*",
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "filter",
+        "options": [],
+        "query": "*, db_name: \"*\", user: \"*\"",
+        "queryValue": "",
+        "skipUrlSync": false,
+        "type": "custom",
         "refresh": 1
       }
     ]
@@ -6613,7 +6645,7 @@
   "timepicker": {},
   "timezone": "default",
   "title": "MySQL慢查询",
-  "version": 56,
+  "version": 60,
   "weekStart": "",
   "__inputs": [
     {

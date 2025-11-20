@@ -8,9 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 from .dbmon_heartbeat_report_sub_type import DbmonHeartbeatReportSubType
 from .meta_check_sub_type import MetaCheckSubType
@@ -22,14 +22,24 @@ SWAGGER_TAG = _("巡检报告")
 REPORT_COUNT_CACHE_KEY = "{user}_report_count_key"
 
 
-class ReportFieldFormat(str, StructuredEnum):
+class ReportKind(StrStructuredEnum):
+    """报告种类"""
+
+    INSPECT = EnumField("inspect", _("巡检报告"))
+    DRILL = EnumField("drill", _("演练报告"))
+
+
+class ReportFieldFormat(StrStructuredEnum):
     TEXT = EnumField("text", _("文本渲染"))
     STATUS = EnumField("status", _("状态渲染"))
+    LINK = EnumField("link", _("链接渲染"))
+    TIME = EnumField("time", _("时间渲染"))
+    LOG = EnumField("log", _("日志渲染"))
     # 数据校验失败详情字段
     FAIL_SLAVE_INSTANCE = EnumField("fail_slave_instance", _("数据校验失败详情渲染"))
 
 
-class ReportType(str, StructuredEnum):
+class ReportType(StrStructuredEnum):
     """巡检报告类型，定义的顺序决定在页面展示的顺序"""
 
     META_CHECK = EnumField("meta_check", _("元数据检查"))
@@ -39,9 +49,10 @@ class ReportType(str, StructuredEnum):
 
     ALONE_INSTANCE_CHECK = EnumField("alone_instance_check", _("孤立实例检查"))
     STATUS_ABNORMAL_CHECK = EnumField("status_abnormal_check", _("实例异常状态检查"))
+    AFFINITY_CHECK = EnumField("affinity_check", _("亲和性检查"))
     REDIS_DBMON_HEARTBEAT_CHECK = EnumField("dbmon_heartbeat_check", _("dbmon心跳超时检查"))
 
-    EXPORTER_CHECK = EnumField("exporter_check", _("exporter数据检查"))
+    EXPORTER_CHECK = EnumField("exporter_check", _("exporter监控上报检查"))
 
     # SQLSERVER
     SQLSERVER_FULL_BACKUP_CHECK = EnumField("sqlserver_full_backup_check", _("全量备份文件异常报告"))
@@ -51,3 +62,19 @@ class ReportType(str, StructuredEnum):
     SQLSERVER_JOB_SYNC_CHECK = EnumField("sqlserver_job_sync_check", _("业务Job的同步巡检"))
     SQLSERVER_LINK_SERVER_SYNC_CHECK = EnumField("sqlserver_link_server_sync_check", _("业务Linkserver的同步巡检"))
     SQLSERVER_USER_SYNC_CHECK = EnumField("sqlserver_user_sync_check", _("业务账号同步巡检"))
+
+    FAIL_OVER_DRILL = EnumField("fail_over_drill", _("切换演练任务报告"))
+    BACKUP_RECOVER_DRILL = EnumField("backup_recover_drill", _("回档演练任务报告"))
+
+
+class ReportStateType(StrStructuredEnum):
+    NORMAL = EnumField("normal", _("正常"))
+    WARNING = EnumField("warning", _("预警"))
+    ABNORMAL = EnumField("abnormal", _("异常"))
+
+
+class DrillFilterType(StrStructuredEnum):
+    TIME = EnumField("time", _("时间"))
+    TEXT = EnumField("text", _("文本"))
+    ENUM = EnumField("enum", _("枚举"))
+    BIZ = EnumField("biz", _("业务"))

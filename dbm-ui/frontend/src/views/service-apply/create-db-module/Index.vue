@@ -167,7 +167,7 @@
   const isBindSuccessfully = ref(false);
   const paramsConfigDataStringify = ref('');
   // 模块信息
-  const moduleId = ref(Number(route.params.db_module_id) ?? '');
+  const moduleId = ref(Number(route.params.db_module_id));
   const disabledSubmit = computed(() => {
     if (isBindSuccessfully.value === false) {
       return false;

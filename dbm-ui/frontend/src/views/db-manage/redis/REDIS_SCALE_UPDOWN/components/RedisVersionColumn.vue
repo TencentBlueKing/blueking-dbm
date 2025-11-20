@@ -21,8 +21,7 @@
     <EditableSelect
       v-model="modelValue"
       :input-search="false"
-      :list="versionList"
-      :placeholder="t('自动生成')">
+      :list="versionList">
       <template #option="{ item }">
         <div>
           {{ item.label }}

@@ -19,7 +19,7 @@ dependencies:
   version: 7.9.8
 - name: dbm
   repository: file://charts/dbm
-  version: 0.1.47
+  version: 0.1.48
 - name: dbconfig
   repository: file://charts/dbconfig
   version: 0.1.13
@@ -49,13 +49,16 @@ dependencies:
   version: 0.0.4
 - name: backup-server
   repository: file://charts/backup-server
-  version: 0.0.4
+  version: 0.0.5
 - name: backup-consumer
   repository: file://charts/backup-consumer
   version: 0.0.3
 - name: bkdata-kafka-consumer
   repository: file://charts/bkdata-kafka-consumer
   version: 0.0.7
+- name: db-event-consumer
+  repository: file://charts/db-event-consumer
+  version: 0.0.10
 - name: db-remote-service
   repository: file://charts/db-remote-service
   version: 0.9.5
@@ -70,6 +73,6 @@ dependencies:
   version: 0.1.0
 - name: k8s-dbs
   repository: file://charts/k8s-dbs
-  version: 1.0.0-alpha.2
-digest: sha256:2c23400596e84753ba319c3820bd502248589ce59bcd26323ca00e6c9d88f74b
-generated: "2025-06-24T11:05:03.523596+08:00"
+  version: 2.1.1
+digest: sha256:f44628d861b3832b35ff48c3ccad7caae47d2e0a51c9566a842155d91d571b06
+generated: "2025-10-21T16:37:31.061948+08:00"

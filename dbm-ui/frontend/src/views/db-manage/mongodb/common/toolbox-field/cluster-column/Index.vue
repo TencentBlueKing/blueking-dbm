@@ -6,7 +6,7 @@
     fixed="left"
     :label="label || t('目标集群')"
     :loading="isLoading"
-    :min-width="300"
+    :min-width="350"
     required>
     <template #headAppend>
       <span
@@ -50,6 +50,8 @@
       id: number;
       master_domain: string;
     }[];
+    // eslint-disable-next-line vue/require-default-prop
+    setCurrentSpecIdMethod?: (data: MongodbModel) => number;
     tabListConfig?: Record<string, TabConfig>;
   }
 
@@ -63,7 +65,13 @@
   });
   const emits = defineEmits<Emits>();
 
-  const modelValue = defineModel<Partial<ServiceReturnType<typeof filterClusters>[number]>>({
+  const modelValue = defineModel<
+    Partial<
+      {
+        current_spec_id: number;
+      } & ServiceReturnType<typeof filterClusters>[number]
+    >
+  >({
     required: true,
   });
 
@@ -102,7 +110,9 @@
     manual: true,
     onSuccess(data) {
       if (data.length > 0) {
-        [modelValue.value] = data;
+        modelValue.value = Object.assign(data[0]!, {
+          current_spec_id: props.setCurrentSpecIdMethod ? props.setCurrentSpecIdMethod(data[0]!) : 0,
+        });
       }
     },
   });
@@ -111,14 +121,14 @@
     () => modelValue.value.master_domain,
     () => {
       if (!modelValue.value.id && modelValue.value.master_domain) {
-        modelValue.value.id = undefined;
+        modelValue.value.id = 0;
         runFilterClusters({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           exact_domain: modelValue.value.master_domain,
         });
       }
       if (!modelValue.value.master_domain) {
-        modelValue.value.id = undefined;
+        modelValue.value.id = 0;
       }
     },
     {

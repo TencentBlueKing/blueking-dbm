@@ -12,6 +12,7 @@ type RPCEmbedInterface interface {
 		password string,
 		timeout int,
 		timezone string,
+		charset string,
 	) (*sqlx.DB, error)
 	ParseCommand(command string) (*ParseQueryBase, error)
 	IsQueryCommand(*ParseQueryBase) bool

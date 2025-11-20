@@ -3,28 +3,13 @@ package crond
 import (
 	"bytes"
 	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/common/reverseapi/define"
-	"dbm-services/common/reverseapi/pkg"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
 	"fmt"
 	"os/exec"
-	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
 )
-
-func (c *MySQLCrondComp) GenerateRuntimeConfig() (err error) {
-	nginxAddrs, err := pkg.ReadNginxProxyAddrs(
-		filepath.Join(define.DefaultCommonConfigDir, define.DefaultNginxProxyAddrsFileName),
-	)
-	if err != nil {
-		logger.Error(err.Error())
-		return err
-	}
-
-	return GenConfig(int64(c.Params.BkCloudId), nginxAddrs)
-}
 
 func GenConfig(bkCloudId int64, nginxAddrs []string) error {
 	t, err := tools.NewToolSetWithPick(tools.ToolMySQLCrond)

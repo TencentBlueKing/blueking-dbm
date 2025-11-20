@@ -11,7 +11,6 @@ import (
 )
 
 type Reload struct {
-	//GeneralParam *components.GeneralParam `json:"general"`
 	Param *ReloadParam `json:"extend"`
 }
 
@@ -37,12 +36,22 @@ func (c *Reload) Run() (err error) {
 func (c *Reload) reloadDepart(depart string) (err error) {
 	switch depart {
 	case DepartMySQLCrond:
+		err = crond.RemoveKeepAlive()
+		if err != nil {
+			logger.Error(err.Error())
+			return err
+		}
 		err = crond.Stop()
 		if err != nil {
 			logger.Error(err.Error())
 			return err
 		}
 		err = crond.Start()
+		if err != nil {
+			logger.Error(err.Error())
+			return err
+		}
+		err = crond.AddKeepAlive()
 		if err != nil {
 			logger.Error(err.Error())
 			return err

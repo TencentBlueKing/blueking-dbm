@@ -14,6 +14,8 @@ from typing import Dict, List
 
 from backend import env
 from backend.components.bklog.client import BKLogApi
+from backend.db_report.models.mysql_backup_result import MysqlBackupResult
+from backend.db_report.models.mysql_binlog_backup_result import MysqlBinlogResult
 from backend.utils.string import pascal_to_snake
 from backend.utils.time import datetime2str
 
@@ -58,73 +60,30 @@ class ClusterBackup:
         self.backups = {}
         self.success = False
 
-    def query_backup_log_from_bklog(self, start_time: datetime.datetime, end_time: datetime.datetime) -> List[Dict]:
+    def query_backup_from_dbreport(
+        self, start_time: datetime.datetime, end_time: datetime.datetime
+    ) -> List[MysqlBackupResult]:
         """
-        通过日志平台查询集群的时间范围内的全备备份记录
+        通过 bk_dbm_dbreport 库查询集群的时间范围内的全备备份记录
         :param start_time: 开始时间
         :param end_time: 结束时间
         """
-        backup_files = []
-        backup_logs = _get_log_from_bklog(
-            collector="mysql_dbbackup_result",
-            start_time=start_time,
-            end_time=end_time,
-            # query_string=f'log: "cluster_id: {self.cluster_id}"',
-            query_string=f'log: "cluster_address: \\"{self.cluster_domain}\\""',
+        backups = MysqlBackupResult.objects.filter(
+            cluster_id=self.cluster_id,
+            cluster_address=self.cluster_domain,
+            backup_consistent_time__range=(start_time, end_time),
         )
-        for log in backup_logs:
-            bf = {
-                "bk_biz_id": log["bk_biz_id"],
-                "backup_id": log["backup_id"],
-                "cluster_domain": log["cluster_address"],
-                "cluster_id": log["cluster_id"],
-                "mysql_host": log["backup_host"],
-                "mysql_port": log["backup_port"],
-                "mysql_role": log["mysql_role"],
-                "backup_type": log["backup_type"],
-                "file_list": log["file_list"],
-                "data_schema_grant": log["data_schema_grant"],
-                "is_full_backup": log["is_full_backup"],
-                "total_filesize": log["total_filesize"],
-                "encrypt_enable": log["encrypt_enable"],
-                "mysql_version": log["mysql_version"],
-                "backup_begin_time": log["backup_begin_time"],
-                "backup_end_time": log["backup_end_time"],
-                "backup_consistent_time": log["backup_consistent_time"],
-                "shard_value": log["shard_value"],
-            }
-            backup_files.append(bf)
-        return backup_files
+        return list(backups)
 
-    def query_binlog_from_bklog(self, start_time: datetime.datetime, end_time: datetime.datetime) -> List[Dict]:
+    def query_binlog_from_dbreport(
+        self, start_time: datetime.datetime, end_time: datetime.datetime
+    ) -> List[MysqlBinlogResult]:
         """
-        通过日志平台查询集群的时间范围内的binlog 备份记录
-        :param cluster_domain: 集群
+        通过 bk_dbm_dbreport 查询集群的时间范围内的binlog 备份记录
         :param start_time: 开始时间
         :param end_time: 结束时间
         """
-        binlogs = []
-        backup_logs = _get_log_from_bklog(
-            collector="mysql_binlog_result",
-            start_time=start_time,
-            end_time=end_time,
-            query_string=f'log: "cluster_id: {self.cluster_id}"',
-            # query_string=f'log: "cluster_address: \\"{self.cluster_domain}\\""',
+        binlogs = MysqlBinlogResult.objects.filter(
+            cluster_id=self.cluster_id, cluster_domain=self.cluster_domain, start_time__range=(start_time, end_time)
         )
-        for log in backup_logs:
-            bl = {
-                "cluster_domain": log["cluster_domain"],
-                "cluster_id": log["cluster_id"],
-                "task_id": log["task_id"],
-                "file_name": log["filename"],  # file_name
-                "file_size": log["size"],
-                "file_mtime": log["file_mtime"],
-                "file_type": "binlog",
-                "mysql_host": log["host"],
-                "mysql_port": log["port"],
-                "mysql_role": log["db_role"],
-                "backup_status": log["backup_status"],
-                "backup_status_info": log["backup_status_info"],
-            }
-            binlogs.append(bl)
-        return binlogs
+        return list(binlogs)

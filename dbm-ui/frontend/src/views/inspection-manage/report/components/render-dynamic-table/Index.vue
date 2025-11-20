@@ -2,18 +2,35 @@
   <BkLoading
     class="render-dynamic-table"
     :loading="loading">
-    <BlockCard>
+    <CollapseCard>
       <template #title>
-        <span>{{ tableName }}</span>
-        <span>（{{ pagination.count }}）</span>
+        <span style="font-weight: 700">{{ tableName }}</span>
+        <template v-if="isShowStateCount">
+          <span class="ml-6 mr-2">(</span>
+          <template v-if="!isOnlyAbnormal">
+            <span>{{ t('正常') }}</span>
+            <span class="ml-4 mr-4">:</span>
+            <span style="font-weight: 700; color: #2caf5e">{{ stateCountsMap.normal }}</span>
+            <span class="ml-4 mr-4">,</span>
+          </template>
+          <span>{{ t('预警') }}</span>
+          <span class="ml-4 mr-4">:</span>
+          <span style="font-weight: 700; color: #f59500">{{ stateCountsMap.warning }}</span>
+          <span class="ml-4 mr-4">,</span>
+          <span>{{ t('异常') }}</span>
+          <span class="ml-4 mr-4">:</span>
+          <span style="font-weight: 700; color: #ea3636">{{ stateCountsMap.abnormal }}</span>
+          <span class="ml-2">)</span>
+        </template>
       </template>
-      <BkTable
-        :columns="tableColumns"
+      <PrimaryTable
+        class="dynamic-table-main"
         :data="tableData"
-        header-row-class-name="dynamic-table-head"
+        :max-height="485"
         :pagination="pagination"
-        @page-limit-change="pageLimitChange"
-        @page-value-change="pageValueChange">
+        resizable
+        row-key="__uuid"
+        @page-change="handlePageChange">
         <template #empty>
           <slot name="empty">
             <BkException
@@ -22,14 +39,51 @@
               type="empty" />
           </slot>
         </template>
-      </BkTable>
-    </BlockCard>
+        <TableColumn
+          v-for="(item, index) in titleList"
+          :key="index"
+          :col-key="item.name"
+          ellipsis
+          ellipsis-title
+          resizable
+          :title="item.display_name"
+          :width="columnWidthMap[item.name] || 120">
+          <template #default="{ row }: { row: ReportInfo['results'][number] }">
+            <template v-if="item.format === 'status'">
+              <!-- 兼容旧状态，需要保留 -->
+              <DbStatus
+                v-if="item.name === 'status'"
+                :theme="row[item.name] ? 'success' : 'danger'">
+                {{ row[item.name] ? t('成功') : t('失败') }}
+              </DbStatus>
+              <!-- 新状态 -->
+              <DbStatus
+                v-if="item.name === 'state'"
+                :theme="getStateTheme(row[item.name]!)">
+                {{ getStateText(row[item.name]!)}}
+              </DbStatus>
+            </template>
+            <BkButton
+              v-else-if="item.format === 'fail_slave_instance'"
+              text
+              theme="primary"
+              @click="() => handleShowFailSlaveInstance(row)">
+              {{ row[item.name] }}
+            </BkButton>
+            <span v-else-if="item.name === 'create_at'">{{ utcDisplayTime(row[item.name]) }}</span>
+            <span v-else-if="item.name === 'bk_biz_id'">{{ bizsMap[row[item.name]] || row[item.name] }}</span>
+            <span v-else>{{ row[item.name] || '--' }}</span>
+          </template>
+        </TableColumn>
+      </PrimaryTable>
+    </CollapseCard>
     <FailSlaveInstance
       :id="failSlaveInstanceReportId"
       v-model="isShowFailSlaveInstance" />
   </BkLoading>
 </template>
 <script setup lang="tsx">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -37,16 +91,18 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import CollapseCard from '@components/collapse-card/Index.vue';
   import DbStatus from '@components/db-status/index.vue';
 
-  import { utcDisplayTime } from '@utils';
+  import { calcTextWidth, random, utcDisplayTime } from '@utils';
 
-  import BlockCard from './components/BlockCard.vue';
   import FailSlaveInstance from './components/FailSlaveInstance.vue';
 
   interface Props {
+    isOnlyAbnormal?: boolean;
     isPlatform?: boolean;
-    searchParams?: Record<string, any>;
+    isShowStateCount?: boolean;
+    searchParams: Record<string, any>;
     serviceUrl: string;
   }
 
@@ -59,26 +115,34 @@
     }>;
   }
 
+  type ReportInfo = ServiceReturnType<typeof getReport>;
+
   const props = withDefaults(defineProps<Props>(), {
+    isOnlyAbnormal: false,
     isPlatform: false,
-    searchParams: undefined,
+    isShowStateCount: true,
   });
 
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
 
   const pagination = reactive({
-    count: 0,
     current: 1,
-    limit: 10,
-    remote: true,
+    pageSize: 10,
+    total: 0,
   });
 
   const tableName = ref('');
   const isShowFailSlaveInstance = ref(false);
   const failSlaveInstanceReportId = ref(0);
+  const stateCountsMap = ref({
+    abnormal: 0,
+    normal: 0,
+    warning: 0,
+  });
+  const titleList = ref<ReportInfo['title']>([]);
+  const columnWidthMap = ref<Record<string, number>>({});
 
-  const tableColumns = shallowRef<{ label: string; render: (data: any) => any }[]>([]);
   const tableData = shallowRef<any[]>([]);
 
   const bizsMap = computed(() =>
@@ -93,50 +157,84 @@
   const { loading, run: fetchInspectionData } = useRequest(getReport, {
     manual: true,
     onSuccess(result) {
-      pagination.count = result.count;
+      stateCountsMap.value = result.state_count;
+      pagination.total = result.count;
       tableName.value = result.name;
-
-      tableColumns.value = result.title.map((titleItem) => ({
-        label: titleItem.display_name,
-        render: ({ data: fieldData }: { data: any }) => {
-          const fieldValue = fieldData[titleItem.name];
-          if (titleItem.format === 'status') {
-            const isSuccess = fieldValue === true;
-            return <DbStatus theme={isSuccess ? 'success' : 'danger'}>{isSuccess ? t('成功') : t('失败')}</DbStatus>;
-          }
-          if (titleItem.format === 'fail_slave_instance') {
-            return (
-              <bk-button
-                theme='primary'
-                text
-                onClick={() => handleShowFailSlaveInstance(fieldData)}>
-                {fieldData[titleItem.name]}
-              </bk-button>
-            );
-          }
-          if (titleItem.name === 'create_at') {
-            return utcDisplayTime(fieldData[titleItem.name]);
-          }
-          if (titleItem.name === 'bk_biz_id') {
-            return bizsMap.value[fieldValue] || fieldValue;
-          }
-          return fieldData[titleItem.name] || '--';
-        },
-        showOverflow: 'tooltip',
-      }));
-
-      tableData.value = result.results;
+      const rawTitleList = result.title;
+      const failedDaysIndex = rawTitleList.findIndex((item) => item.name === 'failed_days');
+      const msgIndex = rawTitleList.findIndex((item) => item.name === 'msg');
+      if (failedDaysIndex !== -1 && msgIndex !== -1) {
+        [rawTitleList[failedDaysIndex], rawTitleList[msgIndex]] = [
+          rawTitleList[msgIndex],
+          rawTitleList[failedDaysIndex],
+        ];
+      }
+      if (result.count > 0 && !Object.keys(columnWidthMap.value).length) {
+        Object.entries(result.results[0]).forEach(([key, value]) => {
+          const width = calcTextWidth(value);
+          columnWidthMap.value[key] = width > 120 ? width : 120;
+        });
+      }
+      titleList.value = rawTitleList;
+      tableData.value = result.results.map((item) =>
+        Object.assign(item, {
+          __uuid: random(),
+        }),
+      );
     },
   });
 
+  const getStateTheme = (state: string) => {
+    let theme = 'default';
+    switch (state) {
+      case 'abnormal':
+        theme = 'danger';
+        break;
+      case 'warning':
+        theme = 'warning';
+        break;
+      case 'normal':
+        theme = 'success';
+        break;
+      default:
+        break;
+    }
+    return theme;
+  };
+
+  const getStateText = (state: string) => {
+    let text = '--';
+    switch (state) {
+      case 'abnormal':
+        text = t('异常');
+        break;
+      case 'warning':
+        text = t('预警');
+        break;
+      case 'normal':
+        text = t('正常');
+        break;
+      default:
+        break;
+    }
+    return text;
+  };
+
   const fetchData = () => {
+    const searchParams = _.cloneDeep(props.searchParams);
+    if (searchParams.isOnlyAbnormal === 'true') {
+      searchParams.state__in = 'warning,abnormal';
+    }
+    delete searchParams.isOnlyAbnormal;
     fetchInspectionData(
       props.serviceUrl,
       {
-        limit: pagination.limit,
-        offset: (pagination.current - 1) * pagination.limit,
+        limit: pagination.pageSize,
+        offset: (pagination.current - 1) * pagination.pageSize,
+        // 默认排序，优先按失败天数排序，其次按创建时间排序
+        ordering: '-failed_days,-create_at',
         platform: props.isPlatform,
-        ...props.searchParams,
+        ...searchParams,
       },
       {
         permission: 'page',
@@ -159,27 +257,27 @@
     failSlaveInstanceReportId.value = data.id;
   };
 
-  const pageLimitChange = (pageLimit: number) => {
-    if (pagination.limit === pageLimit) {
+  const handlePageChange = (pageInfo: { current: number; pageSize: number; previous: number }) => {
+    if (pagination.pageSize !== pageInfo.pageSize) {
+      pagination.pageSize = pageInfo.pageSize;
+      pagination.current = 1;
+      fetchData();
       return;
     }
 
-    pagination.limit = pageLimit;
-    pagination.current = 1;
-    fetchData();
-  };
-
-  const pageValueChange = (pageValue: number) => {
-    if (pagination.current === pageValue) {
-      return;
+    if (pageInfo.current !== pagination.current) {
+      pagination.current = pageInfo.current;
+      fetchData();
     }
-
-    pagination.current = pageValue;
-    fetchData();
   };
 
   defineExpose<Exposes>({
     async getExportExcelSheetData() {
+      const searchParams = _.cloneDeep(props.searchParams);
+      if (searchParams.isOnlyAbnormal === 'true') {
+        searchParams.state__in = 'warning,abnormal';
+      }
+      delete searchParams.isOnlyAbnormal;
       const {
         name: fileName,
         results,
@@ -189,8 +287,9 @@
         {
           limit: -1,
           offset: 0,
+          ordering: '-failed_days,-create_at',
           platform: props.isPlatform,
-          ...props.searchParams,
+          ...searchParams,
         },
         {
           permission: 'page',
@@ -207,9 +306,9 @@
         .map((width) => ({ wch: width }));
       const dataList = results.map((item) =>
         columnIds.reduce<string[]>((results, columnId) => {
-          let value = item[columnId];
+          let value = item[columnId]!;
           if (columnId === 'bk_biz_id') {
-            value = bizsMap.value[Number(value)];
+            value = bizsMap.value[Number(value)]!;
           }
           results.push(value);
           return results;
@@ -229,9 +328,19 @@
     & ~ .render-dynamic-table {
       margin-top: 16px;
     }
-  }
 
-  .dynamic-table-head {
-    background-color: #fafbfd;
+    .dynamic-table-main {
+      .t-table__header {
+        th {
+          background-color: #fafbfd;
+          border-top: none !important;
+          border-right: none !important;
+
+          &:hover {
+            background-color: #eaebf0;
+          }
+        }
+      }
+    }
   }
 </style>

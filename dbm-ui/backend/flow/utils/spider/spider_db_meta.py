@@ -68,6 +68,7 @@ class SpiderDBMeta(object):
             "shard_infos": shard_infos,
             "region": self.global_data["city"],
             "disaster_tolerance_level": self.global_data["disaster_tolerance_level"],
+            "zone_list": self.global_data.get("zone_list", []),
         }
         TenDBClusterClusterHandler.create(**kwargs)
         return True
@@ -90,9 +91,9 @@ class SpiderDBMeta(object):
             "creator": self.global_data["created_by"],
             "add_spiders": self.global_data["spider_slave_ip_list"],
             "spider_role": TenDBClusterSpiderRole.SPIDER_SLAVE,
-            "resource_spec": self.global_data["resource_spec"],
             "is_slave_cluster_create": True,
             "new_slave_domain": self.global_data["slave_domain"],
+            "global_pkg_id": self.global_data["global_pkg_id"],
         }
         TenDBClusterClusterHandler.add_spiders(**kwargs)
         return True
@@ -101,16 +102,13 @@ class SpiderDBMeta(object):
         """
         对已有的TenDB cluster集群 （spider集群）扩容写入的公共方法
         """
-        # 兼容spider mnt不使用资源池的情况
-        default_spider_spec = {MachineType.SPIDER.value: {"id": 0}}
         kwargs = {
             "cluster_id": self.global_data["cluster_id"],
             "creator": self.global_data["created_by"],
             "add_spiders": self.global_data["spider_ip_list"],
             "spider_role": spider_role,
-            "resource_spec": self.global_data.get("resource_spec") or default_spider_spec,
             "is_slave_cluster_create": False,
-            "new_db_module_id": self.global_data.get("new_db_module_id", 0),
+            "global_pkg_id": self.global_data["global_pkg_id"],
         }
         TenDBClusterClusterHandler.add_spiders(**kwargs)
         return True
@@ -160,9 +158,9 @@ class SpiderDBMeta(object):
         对已执行remote互切/主故障切换后的集群做元数据的调整
         """
         TenDBClusterClusterHandler.remote_switch(
-            cluster_id=self.global_data["cluster_id"],
-            switch_tuples=self.global_data["switch_tuples"],
-            force=self.global_data["force"],
+            cluster_id=self.cluster["cluster_id"],
+            switch_tuples=self.cluster["switch_tuples"],
+            force=self.cluster["force"],
         )
         return True
 
@@ -170,8 +168,14 @@ class SpiderDBMeta(object):
         """
         remotedb 成对迁移添加初始化节点元数据
         """
-        cluster = Cluster.objects.get(id=self.cluster["cluster_id"])
-        old_resource_spec = {MachineType.REMOTE.value: cluster.storageinstance_set.first().machine.spec_config}
+        # cluster = Cluster.objects.get(id=self.cluster["cluster_id"])
+        # old_resource_spec = {MachineType.REMOTE.value: cluster.storageinstance_set.first().machine.spec_config}
+        # 不继承参数，如果无resource_spec参数则留空
+        default_resource_spec = {MachineType.REMOTE.value: {"id": 0}}
+        resource_spec = self.global_data.get("resource_spec", {})
+        if MachineType.REMOTE.value not in resource_spec:
+            resource_spec = default_resource_spec
+
         TenDBClusterMigrateRemoteDb.storage_create(
             cluster_id=self.cluster["cluster_id"],
             master_ip=self.cluster["new_master_ip"],
@@ -180,7 +184,7 @@ class SpiderDBMeta(object):
             creator=self.global_data["created_by"],
             mysql_version=self.cluster["version"],
             # 兼容资源池和手输机器两种情况
-            resource_spec=self.global_data.get("resource_spec") or old_resource_spec,
+            resource_spec=resource_spec,
         )
         return True
 
@@ -253,8 +257,14 @@ class SpiderDBMeta(object):
         """
         remotedb 成对迁移添加初始化节点元数据
         """
-        cluster = Cluster.objects.get(id=self.cluster["cluster_id"])
-        old_resource_spec = {MachineType.REMOTE.value: cluster.storageinstance_set.first().machine.spec_config}
+        # cluster = Cluster.objects.get(id=self.cluster["cluster_id"])
+        # 不继承参数，如果无resource_spec参数则留空。以防出现规格错误
+        # old_resource_spec = {MachineType.REMOTE.value: cluster.storageinstance_set.first().machine.spec_config}
+        default_resource_spec = {MachineType.REMOTE.value: {"id": 0}}
+        resource_spec = self.global_data.get("resource_spec", {})
+        if MachineType.REMOTE.value not in resource_spec:
+            resource_spec = default_resource_spec
+
         TenDBClusterMigrateRemoteDb.storage_create(
             cluster_id=self.cluster["cluster_id"],
             slave_ip=self.cluster["new_slave_ip"],
@@ -262,7 +272,7 @@ class SpiderDBMeta(object):
             creator=self.global_data["created_by"],
             mysql_version=self.cluster["version"],
             # 兼容资源池和手输机器两种情况
-            resource_spec=self.global_data.get("resource_spec") or old_resource_spec,
+            resource_spec=resource_spec,
         )
         return True
 

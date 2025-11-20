@@ -101,7 +101,7 @@
   import MongodbModel from '@services/model/mongodb/mongodb';
   import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
 
-  import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
+  import RenderSpec from '@components/spec-display/Index.vue';
 
   import SpecPlan from './components/SpecPlan.vue';
 

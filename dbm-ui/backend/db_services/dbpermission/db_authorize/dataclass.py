@@ -23,7 +23,6 @@ from backend.db_services.dbpermission.constants import (
     EXCEL_DIVIDER,
     AuthorizeExcelHeader,
 )
-from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.ticket.constants import FlowType
 from backend.ticket.models import Flow
 
@@ -72,15 +71,23 @@ class AuthorizeMeta:
                 return "\n".join(_data)
             return _data
 
+        field_map = AUTHORIZE_KEY__EXCEL_FIELD_MAP
+        record_data_list = []
+
         # 目前授权只有：授权单据和开区单据，仅一个inner flow，可以直接取first
         flow = Flow.objects.filter(ticket_id=ticket_id, flow_type=FlowType.INNER_FLOW).first()
-        authorize_results = BaseService.get_flow_output(flow)["data"].get("authorize_results", [])
-        field_map = AUTHORIZE_KEY__EXCEL_FIELD_MAP
+        try:
+            authorize_results = [result["message"] for result in flow.output_data[0]["values"]]
+        except (KeyError, IndexError):
+            authorize_results = []
 
-        record_data_list = []
         for index, info in enumerate(flow.details["ticket_data"]["rules_set"]):
             data = {field_map[field]: __format(value) for field, value in info.items() if field in field_map}
-            data.update({AuthorizeExcelHeader.ERROR: authorize_results[index]})
+            try:
+                errors = authorize_results[index]
+            except (KeyError, IndexError):
+                errors = ""
+            data.update({AuthorizeExcelHeader.ERROR: errors})
             record_data_list.append(data)
 
         return record_data_list

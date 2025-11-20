@@ -370,8 +370,9 @@ func (task *Task) GetTendisBinlogs() (rets []tendisBinlogItem) {
 					BinlogId:   binlogID,
 					KvStoreIdx: storeIdx,
 					StartTime:  startTime,
-					FileMtime:  fmTime,
-					FileSize:   info.Size(),
+					// FileMtime:  fmTime,
+					FileMtime: time.Now(), // tendisplus slave在备份的时候，master会导出binlog
+					FileSize:  info.Size(),
 				})
 			}
 			return nil

@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from typing import List
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.check_response import CheckResponse
@@ -30,7 +30,7 @@ def cluster_instance_unique_cluster(c: Cluster) -> List[CheckResponse]:
                 bad.append(
                     CheckResponse(
                         msg=_("实例同时属于另一个集群: {}".format(sc.immute_domain)),
-                        check_subtype=MetaCheckSubType.ClusterTopo,
+                        check_subtype=MetaCheckSubType.TenDBHAMultiClusterBelong,
                         instance=si,
                     )
                 )
@@ -41,7 +41,7 @@ def cluster_instance_unique_cluster(c: Cluster) -> List[CheckResponse]:
                 bad.append(
                     CheckResponse(
                         msg=_("实例同时属于另一个集群: {}".format(pc.immute_domain)),
-                        check_subtype=MetaCheckSubType.ClusterTopo,
+                        check_subtype=MetaCheckSubType.TenDBHAMultiClusterBelong,
                         instance=pi,
                     )
                 )

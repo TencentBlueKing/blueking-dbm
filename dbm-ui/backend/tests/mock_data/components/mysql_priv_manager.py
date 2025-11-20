@@ -86,7 +86,7 @@ class DBPrivManagerApiMock(object):
     @classmethod
     @raw_response
     def authorize_rules_v2(cls, *args, **kwargs):
-        return True
+        return {"code": 0, "message": "授权成功"}  # 任何表示成功的字符串
 
     @classmethod
     @raw_response

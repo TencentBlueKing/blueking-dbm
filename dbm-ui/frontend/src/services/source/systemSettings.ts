@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import { DBTypes } from '@common/const';
+
 import http from '../http';
 
 const path = '/apis/conf/system_settings';
@@ -26,6 +28,7 @@ export function getSystemEnviron() {
     }[];
     APP_CODE: string;
     APP_VERSION: string;
+    BK_AIDEV_URL: string;
     BK_CMDB_URL: string;
     BK_COMPONENT_API_URL: string;
     BK_DBM_URL: string;
@@ -44,7 +47,11 @@ export function getSystemEnviron() {
     };
     DBA_APP_BK_BIZ_ID: number;
     DBA_APP_BK_BIZ_NAME: number;
+    // DB 模块主 DBA 配置
+    DBA_ROBOT?: Record<DBTypes, string>;
     ENABLE_EXTERNAL_PROXY: boolean;
+    RES0URCE_INDEPENDENT_BIZ_NAME: string;
+    RESOURCE_INDEPENDENT_BIZ: number;
   }>(`${path}/environ/`);
 }
 

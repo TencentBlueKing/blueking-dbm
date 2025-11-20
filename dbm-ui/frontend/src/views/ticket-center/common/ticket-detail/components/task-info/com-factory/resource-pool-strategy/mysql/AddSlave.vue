@@ -12,11 +12,18 @@
 -->
 
 <template>
-  <BkTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
-    show-overflow>
-    <BkTableColumn :label="t('目标集群')">
-      <template #default="{ data }: { data: RowData }">
+    row-key="id">
+    <TicketInfoTableColumn
+      col-key="cluster_ids"
+      fixed="left"
+      :get-copy-value="
+        (item: RowData) => item.cluster_ids.map((clusterId) => ticketDetails.details.clusters[clusterId].immute_domain)
+      "
+      :min-width="250"
+      :title="t('目标集群')">
+      <template #default="{ row: data }: { row: RowData }">
         <div
           v-for="clusterId in data.cluster_ids"
           :key="clusterId"
@@ -24,18 +31,21 @@
           {{ ticketDetails.details.clusters[clusterId].immute_domain }}
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('新从库主机')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.resource_spec.new_slave.hosts[0].ip }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="resource_spec"
+      :min-width="120"
+      :title="t('新从库主机')">
+      <template #default="{ row: data }: { row: RowData }">
+        {{ data.resource_spec.new_slave.hosts?.[0]?.ip || '--' }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('备份源')">
-      <template #default>
-        {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
-      </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
+  <InfoList>
+    <InfoItem :label="t('备份源')">
+      {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
+    </InfoItem>
+  </InfoList>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -43,6 +53,8 @@
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
+
+  import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.ResourcePool.AddSlave>;

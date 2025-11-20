@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from ..base import BaseApi
 from ..domains import BKCHAT_APIGW_DOMAIN
@@ -20,10 +20,16 @@ class _BkChatApi(BaseApi):
     BASE = BKCHAT_APIGW_DOMAIN
 
     def __init__(self):
-        self.send_msg = self.generate_data_api(
+        self.send_ticket_msg = self.generate_data_api(
             method="POST",
             url="dbm_ticket_send/",
             description=_("dbm消息发送"),
+        )
+
+        self.send_custom_msg = self.generate_data_api(
+            method="POST",
+            url="send_custom_msg/",
+            description=_("bkchat自定义消息发送"),
         )
 
 

@@ -10,13 +10,13 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import gettext_lazy as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
-class MongodbBackupCheckSubType(str, StructuredEnum):
+class MongodbBackupCheckSubType(StrStructuredEnum):
     FullBackup = EnumField("full_backup", _("全量备份"))
     IncrBackup = EnumField("incr_backup", _("增量备份"))
 
 
-class MongodbExporterCheckSubType(str, StructuredEnum):
+class MongodbExporterCheckSubType(StrStructuredEnum):
     Up = EnumField("mongodb_up", _("mongodb_up指标"))

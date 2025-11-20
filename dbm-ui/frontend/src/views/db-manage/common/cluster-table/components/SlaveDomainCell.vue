@@ -12,6 +12,9 @@
         </TextHighlight>
       </div>
       <template #append>
+        <slot
+          name="append"
+          v-bind="{ data: data }" />
         <PopoverCopy>
           <div @click="handleCopyDomain">
             {{ t('复制域名') }}
@@ -30,7 +33,7 @@
       placement="top"
       theme="light">
       <BkTag>
-        <I18nT keypath="共n个">{{ data.slaveList.length }}</I18nT>
+        <I18nT keypath="共n个">{{ data.slaveEntryList.length }}</I18nT>
       </BkTag>
       <template #content>
         <div style="max-height: 280px; overflow: scroll">
@@ -65,7 +68,8 @@
     | ClusterTypes.TENDBCLUSTER
     | ClusterTypes.TENDBHA
     | ClusterTypes.REDIS_INSTANCE
-    | ClusterTypes.SQLSERVER_HA;
+    | ClusterTypes.SQLSERVER_HA
+    | ClusterTypes.ORACLE_PRIMARY_STANDBY;
 
   export const copyDomain = (data: ClusterModel<ISupportClusterType>['slaveEntryList']) => {
     const copyList = _.uniq(data.map(({ entry }) => entry));

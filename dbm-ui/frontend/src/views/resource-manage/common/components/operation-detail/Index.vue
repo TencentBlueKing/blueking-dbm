@@ -36,6 +36,7 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import { TicketTypes } from '@common/const';
   import { MachineEvents, machineEventsDisplayMap } from '@common/const/machineEvents';
 
   import { getBusinessHref } from '@utils';
@@ -47,6 +48,7 @@
       event: MachineEvents;
       remark: string;
       ticket?: number;
+      ticket_type: string;
     };
   }
 
@@ -67,16 +69,24 @@
 
   const bizName = computed(() => props.data.bk_biz_name || globalBizsStore.bizIdMap.get(props.data.bk_biz_id)?.name);
 
-  const machineEventsMap = computed(() => ({
-    [MachineEvents.APPLY_RESOURCE]: machineEventsDisplayMap[props.data.event],
-    [MachineEvents.IMPORT_RESOURCE]: t('从「n」业务 CMDB空闲机模块导入', { n: bizName.value }),
-    [MachineEvents.RECYCLED]: t('回收到「n」业务 CMDB 待回收模块', { n: bizName.value }),
-    [MachineEvents.RETURN_RESOURCE]: props.data.ticket ? t('已下架主机退回资源池再利用') : t('故障池主机转回资源池'),
-    [MachineEvents.TO_DIRTY]: machineEventsDisplayMap[props.data.event],
-    [MachineEvents.TO_FAULT]: t('从资源池手动转入'),
-    [MachineEvents.TO_RECYCLE]: t('从其他池转入待回收池'),
-    [MachineEvents.UNDO_IMPORT]: t('退回「n」业务 CMDB 空闲机模块', { n: bizName.value }),
-  }));
+  const machineEventsMap = computed(() => {
+    const returnResourceTextMap: Record<string, string> = {
+      [TicketTypes.RECYCLE_OLD_HOST]: t('已下架主机退回资源池再利用'),
+      [TicketTypes.RESOURCE_IMPORT]: t('故障池主机转回资源池'),
+    };
+
+    return {
+      [MachineEvents.APPLY_RESOURCE]: machineEventsDisplayMap[props.data.event],
+      [MachineEvents.IMPORT_RESOURCE]: t('从「n」业务 CMDB空闲机模块导入', { n: bizName.value }),
+      [MachineEvents.RECYCLED]: t('回收到「n」业务 CMDB 待回收模块', { n: bizName.value }),
+      [MachineEvents.RETURN_RESOURCE]:
+        returnResourceTextMap[props.data.ticket_type] || machineEventsDisplayMap[props.data.event],
+      [MachineEvents.TO_DIRTY]: machineEventsDisplayMap[props.data.event],
+      [MachineEvents.TO_FAULT]: t('从资源池手动转入'),
+      [MachineEvents.TO_RECYCLE]: t('从其他池转入待回收池'),
+      [MachineEvents.UNDO_IMPORT]: t('退回「n」业务 CMDB 空闲机模块', { n: bizName.value }),
+    };
+  });
 
   const handleToTicketManage = () => {
     const routeInfo = router.resolve({

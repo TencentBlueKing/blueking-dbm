@@ -21,12 +21,20 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import DbResourceModel from '@services/model/db-resource/DbResource';
-
   import { DBTypeInfos, DBTypes } from '@common/const';
 
   interface Props {
-    data: DbResourceModel;
+    data: {
+      for_biz: {
+        bk_biz_id: number;
+        bk_biz_name: string;
+      };
+      labels: {
+        id: number;
+        name: string;
+      }[];
+      resource_type: string;
+    };
   }
 
   const props = defineProps<Props>();

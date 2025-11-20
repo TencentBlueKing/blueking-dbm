@@ -12,23 +12,59 @@
 -->
 
 <template>
-  <DbOriginalTable
-    :columns="columns"
-    :data="dataList" />
+  <TicketInfoTable
+    :data="dataList"
+    row-key="cluster_id">
+    <TicketInfoTableColumn
+      col-key="cluster_id"
+      :title="t('集群ID')">
+      <template #default="{ row }: { row: RowData }">
+        <span>{{ row.cluster_id || '--' }}</span>
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="immute_domain"
+      :ellipsis="false"
+      :title="t('集群名称')">
+      <template #default="{ row }: { row: RowData }">
+        <div>
+          <span>{{ row.immute_domain }}</span>
+        </div>
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_type_name"
+      :title="t('集群类型')">
+      <template #default="{ row }: { row: RowData }">
+        <span>{{ row.cluster_type_name || '--' }}</span>
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="node_ip"
+      :get-copy-value="(row: RowData) => row.node_ip"
+      :title="t('节点IP')">
+      <template #default="{ row }: { row: RowData }">
+        <p class="pt-2 pb-2">
+          {{ row.node_ip }}
+        </p>
+      </template>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">
+  import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Riak } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
 
-  import { execCopy } from '@utils';
-
   interface Props {
     ticketDetails: TicketModel<Riak.Reboot>;
   }
+
+  type RowData = UnwrapRef<typeof dataList>[number];
 
   defineOptions({
     name: TicketTypes.RIAK_CLUSTER_REBOOT,
@@ -38,43 +74,6 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
-
-  const columns = [
-    {
-      field: 'cluster_id',
-      label: t('集群ID'),
-      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-    },
-    {
-      field: 'immute_domain',
-      label: t('集群名称'),
-      render: ({ data }: { data: any }) => (
-        <div>
-          <span>{data.immute_domain}</span>
-        </div>
-      ),
-      showOverflowTooltip: false,
-    },
-    {
-      field: 'cluster_type_name',
-      label: t('集群类型'),
-      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-    },
-    {
-      field: 'node_ip',
-      label: t('节点IP'),
-      render: ({ cell }: { cell: string }) => (
-        <p class='pt-2 pb-2'>
-          {cell}
-          <db-icon
-            v-bk-tooltips={t('复制IP')}
-            type='copy'
-            onClick={() => execCopy(cell, t('复制成功，共n条', { n: 1 }))}
-          />
-        </p>
-      ),
-    },
-  ];
 
   const dataList = computed(() => {
     const clusterId = props.ticketDetails?.details?.cluster_id;

@@ -23,6 +23,8 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 )
 
+const EmptyContext = "{}"
+
 // CutOverParam cutover 参数
 type CutOverParam struct {
 	Host    string              `json:"host"  validate:"required,ip"`
@@ -180,6 +182,13 @@ func (m *CutOverToSlaveComp) Example() interface{} {
 
 // PreCheck  预备检查
 func (m *CutOverToSlaveComp) PreCheck() (err error) {
+	defer func() {
+		if err != nil {
+			logger.Warn("尽量处理这个节点的检查,然后再重试")
+			logger.Warn("但是如果这些检查无法处理或者可以忽略，可以忽略过这个节点到下一个节点进入强制切换的逻辑")
+			logger.Warn("*** 强切可能存在数据丢失的风险，请谨慎操作 ***")
+		}
+	}()
 	// 以下是强制检查的内容
 	// 检查下proxy backend 是不是 源Master
 	if err = m.cluster.CheckBackends(m.cluster.MasterIns.Host, m.cluster.MasterIns.Port); err != nil {
@@ -204,13 +213,14 @@ func (m *CutOverToSlaveComp) PreCheck() (err error) {
 	}
 	// 客户端连接检查
 	if m.Params.ClientConnCheck {
-		prcsls, errx := m.cluster.AltSlaveIns.dbConn.ShowApplicationProcesslist(m.sysUsers)
-		if errx != nil {
-			logger.Error("show processlist failed %s", errx.Error())
-			return errx
+		var processLists []native.SelectProcessListResp
+		processLists, err = m.cluster.AltSlaveIns.dbConn.ShowApplicationProcesslist(m.sysUsers)
+		if err != nil {
+			logger.Error("show processlist failed %v", err)
+			return err
 		}
-		if len(prcsls) > 0 {
-			return fmt.Errorf("there is a connection for non system users %v", prcsls)
+		if len(processLists) > 0 {
+			return fmt.Errorf("there is a connection for non system users %v", processLists)
 		}
 	}
 
@@ -276,7 +286,7 @@ func (m *CutOverToSlaveComp) CutOver() (binPos string, err error) {
 				logger.Warn("rollback proxy backends failed  %s", err.Error())
 				return
 			}
-			logger.Info("rollback proxy backend to %ssuccessfully", m.cluster.MasterIns.Addr())
+			logger.Info("rollback proxy backend to %s successfully", m.cluster.MasterIns.Addr())
 		}
 	}()
 	// proxy switch 1.1.1.1:3306
@@ -288,7 +298,7 @@ func (m *CutOverToSlaveComp) CutOver() (binPos string, err error) {
 			"1.1.1.1:3306",
 			err.Error(),
 		)
-		return "{}", err
+		return EmptyContext, err
 	}
 	//  尝试在源主库加锁
 	if m.Params.LockedSwitch {
@@ -318,7 +328,7 @@ func (m *CutOverToSlaveComp) CutOver() (binPos string, err error) {
 	// record cutover bin pos
 	if binPos, err = m.cluster.AltSlaveIns.RecordBinPos(); err != nil {
 		logger.Error("获取切换时候的位点信息失败: %s", err.Error())
-		return "{}", err
+		return EmptyContext, err
 	}
 	// proxy switch 待切换slave
 	logger.Info("proxy backend switch to %s", m.cluster.AltSlaveIns.Addr())
@@ -333,7 +343,7 @@ func (m *CutOverToSlaveComp) CutOver() (binPos string, err error) {
 			"update proxies[%#v] backend to %s get an error:%s",
 			m.cluster.ProxyInstances, m.cluster.AltSlaveIns.Addr(), err.Error(),
 		)
-		return "{}", err
+		return EmptyContext, err
 	}
 	return binPos, err
 }
@@ -342,6 +352,11 @@ func (m *CutOverToSlaveComp) CutOver() (binPos string, err error) {
 // 切换成功之后
 // Stop Slave && Reset Slave
 func (m *CutOverToSlaveComp) StopAndResetSlave() (err error) {
+	defer func() {
+		if err != nil {
+			logger.Warn("已经完成切换了 不能跳过进入强切逻辑")
+		}
+	}()
 	// stop slave
 	if err = m.cluster.AltSlaveIns.dbConn.StopSlave(); err != nil {
 		logger.Error("stop slave failed %s", err.Error())
@@ -373,6 +388,7 @@ func (m *CutOverToSlaveComp) GrantRepl() (err error) {
 				ReplHosts: []string{host},
 			},
 		}
+		logger.Info("在 [%s:%d] 对 [%s] 授权Repl账户", m.cluster.AltSlaveIns.Host, m.cluster.AltSlaveIns.Port, host)
 		if err = g.Init(); err != nil {
 			logger.Error("%s:grant repl,init db conn failed:%s", host, err.Error())
 			return

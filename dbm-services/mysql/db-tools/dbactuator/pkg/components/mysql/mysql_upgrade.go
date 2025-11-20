@@ -45,8 +45,6 @@ type MysqlUpgradeParam struct {
 	Host  string `json:"host"  validate:"required,ip"`
 	Ports []int  `json:"ports"`
 	components.Medium
-	// 是否强制升级
-	IsForce bool `json:"is_force"`
 	// 只做升级检查
 	Run bool `json:"run"`
 }
@@ -190,7 +188,7 @@ func (current *VersionInfo) canUpgrade(newVersion VersionInfo) (err error) {
 		return fmt.Errorf("don't allow to upgrade to NON-TMYSQL: current version: %s, new version: %s", current.Version,
 			newVersion.Version)
 	case (newVersion.TmysqlVersion/1000000)-(current.TmysqlVersion/1000000) > 1:
-		return fmt.Errorf("don't allow to upgrade across big versin: current version: %s, new version: %s",
+		return fmt.Errorf("don't allow to upgrade across big version: current version: %s, new version: %s",
 			current.Version, newVersion.Version)
 	case newVersion.TmysqlVersion >= native.TMYSQL_1 && current.MysqlVersion < native.MYSQL_5P1P24:
 		return fmt.Errorf("don't allow to upgrade, current version: %s, new version: %s", current.Version,

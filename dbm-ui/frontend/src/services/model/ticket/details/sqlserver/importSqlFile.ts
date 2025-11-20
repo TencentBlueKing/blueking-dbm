@@ -2,9 +2,9 @@ import type { DetailBase, DetailClusters } from '../common';
 
 export interface ImportSqlFile extends DetailBase {
   backup: {
+    backup_dbs: string[];
     backup_on: string;
-    db_patterns: [];
-    table_patterns: [];
+    ignore_backup_dbs: string[];
   }[];
   bk_biz_id: number;
   blueking_language: string;
@@ -13,9 +13,9 @@ export interface ImportSqlFile extends DetailBase {
   clusters: DetailClusters;
   created_by: string;
   execute_objects: {
-    dbnames: [];
-    ignore_dbnames: [];
-    import_mode: string;
+    dbnames: string[];
+    ignore_dbnames: string[];
+    import_mode: 'manual' | 'file';
     sql_files: string[];
   }[];
   grammar_check_info: Record<

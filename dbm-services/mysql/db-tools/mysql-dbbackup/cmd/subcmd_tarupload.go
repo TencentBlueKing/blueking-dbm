@@ -27,6 +27,8 @@ import (
 func init() {
 	uploadCmd.Flags().String("backup-index-file", "", "read backup info from this index file")
 	uploadCmd.Flags().String("backup-target-dir", "", "backup target dir that has exported before")
+	uploadCmd.Flags().Bool("with-remote-enabled", false, "if this tar-upload is remote or not")
+
 	uploadCmd.Flags().StringSliceP("config", "c",
 		[]string{}, "config files to backup, comma separated. (required)")
 	_ = uploadCmd.MarkFlagRequired("config")
@@ -42,14 +44,14 @@ var uploadCmd = &cobra.Command{
 		defer func() {
 			cmutil.ExecCommand(false, "", "chown", "-R", "mysql:mysql", cst.DbbackupGoInstallPath)
 		}()
-		if err = tarAndUpload(cmd, args); err != nil {
+		if err = remoteTarAndUpload(cmd, args); err != nil {
 			return err
 		}
 		return nil
 	},
 }
 
-func tarAndUpload(cmd *cobra.Command, args []string) (err error) {
+func remoteTarAndUpload(cmd *cobra.Command, args []string) (err error) {
 	if err = logger.InitLog("dbbackup_tar.log"); err != nil {
 		return err
 	}
@@ -72,6 +74,13 @@ func tarAndUpload(cmd *cobra.Command, args []string) (err error) {
 		logger.Log.Error("Create Dbbackup: fail to parse ", f)
 	}
 	indexFilePath, _ := cmd.Flags().GetString("backup-index-file")
+	remoteEnabled, _ := cmd.Flags().GetBool("with-remote-enabled")
+	cnf.BackupToRemote.EnableRemote = remoteEnabled
+	backupDir, _ := cmd.Flags().GetString("backup-target-dir")
+	if backupDir != "" {
+		cnf.Public.BackupDir = backupDir
+	}
+
 	return tarBackupData(indexFilePath, &cnf)
 }
 
@@ -98,6 +107,7 @@ func tarBackupData(indexFilePath string, cnf *config.BackupConfig) (err error) {
 	if err != nil {
 		return err
 	}
+	logReport.RemoteSide = true
 	// 初始化 reportLogger，后续可通过 dbareport.Report 来调用
 	if err = dbareport.InitReporter(cnf.Public.ReportPath); err != nil {
 		return err
@@ -106,6 +116,6 @@ func tarBackupData(indexFilePath string, cnf *config.BackupConfig) (err error) {
 	if err = backupTarAndUpload(cnf, indexFilePath, logReport); err != nil {
 		return err
 	}
-	logger.Log.Infof("Dbbackup tar-upload for %d", cnf.Public.MysqlPort)
+	logger.Log.Infof("Dbbackup tar-upload sucess for %d", cnf.Public.MysqlPort)
 	return nil
 }

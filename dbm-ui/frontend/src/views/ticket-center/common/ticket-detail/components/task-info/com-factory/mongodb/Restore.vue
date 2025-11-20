@@ -12,30 +12,119 @@
 -->
 
 <template>
-  <DbOriginalTable
+  <TicketInfoTable
     class="details-backup__table"
-    :columns="columns"
-    :data="tableData" />
+    :data="tableData"
+    row-key="immute_domain">
+    <TicketInfoTableColumn
+      col-key="immute_domain"
+      :get-copy-value="(row: RowData) => row.immute_domain"
+      :title="t('集群')" />
+    <TicketInfoTableColumn
+      col-key="struct_type"
+      :title="t('构造类型')" />
+    <TicketInfoTableColumn
+      v-if="backupinfo"
+      col-key="backup_file"
+      :title="t('备份文件')" />
+    <TicketInfoTableColumn
+      v-else
+      col-key="target_time"
+      :title="t('指定时间')" />
+  </TicketInfoTable>
   <template v-if="tableSettingData.length > 0">
     <div class="ticket-details-list">
       <div class="ticket-details-item">
-        <span class="ticket-details-item-label">{{ t('库表设置') }}：</span>
+        <span class="ticket-details-item-title">{{ t('库表设置') }}：</span>
       </div>
     </div>
-    <DbOriginalTable
+    <TicketInfoTable
       class="details-backup__table"
-      :columns="dbTableColumns"
-      :data="tableSettingData" />
+      :data="tableSettingData"
+      row-key="db_patterns">
+      <TicketInfoTableColumn
+        col-key="db_patterns"
+        :title="t('备份DB名')">
+        <template #default="{ row }">
+          <div
+            v-overflow-tips="{ content: row.db_patterns }"
+            class="text-overflow">
+            <template v-if="row.db_patterns.length > 0">
+              <BkTag
+                v-for="(item, index) in row.db_patterns"
+                :key="index">
+                {{ item }}
+              </BkTag>
+            </template>
+            <span v-else> -- </span>
+          </div>
+        </template>
+      </TicketInfoTableColumn>
+      <TicketInfoTableColumn
+        col-key="ignore_dbs"
+        :title="t('备份DB名')">
+        <template #default="{ row }">
+          <div
+            v-overflow-tips="{ content: row.ignore_dbs }"
+            class="text-overflow">
+            <template v-if="row.ignore_dbs.length > 0">
+              <BkTag
+                v-for="(item, index) in row.ignore_dbs"
+                :key="index">
+                {{ item }}
+              </BkTag>
+            </template>
+            <span v-else> -- </span>
+          </div>
+        </template>
+      </TicketInfoTableColumn>
+      <TicketInfoTableColumn
+        col-key="table_patterns"
+        :title="t('备份表名')">
+        <template #default="{ row }">
+          <div
+            v-overflow-tips="{ content: row.table_patterns }"
+            class="text-overflow">
+            <template v-if="row.table_patterns.length > 0">
+              <BkTag
+                v-for="(item, index) in row.table_patterns"
+                :key="index">
+                {{ item }}
+              </BkTag>
+            </template>
+            <span v-else> -- </span>
+          </div>
+        </template>
+      </TicketInfoTableColumn>
+      <TicketInfoTableColumn
+        col-key="ignore_tables"
+        :title="t('忽略表名')">
+        <template #default="{ row }">
+          <div
+            v-overflow-tips="{ content: row.ignore_tables }"
+            class="text-overflow">
+            <template v-if="row.ignore_tables.length > 0">
+              <BkTag
+                v-for="(item, index) in row.ignore_tables"
+                :key="index">
+                {{ item }}
+              </BkTag>
+            </template>
+            <span v-else> -- </span>
+          </div>
+        </template>
+      </TicketInfoTableColumn>
+    </TicketInfoTable>
   </template>
   <div class="ticket-details-list">
     <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('构造新主机规格') }}：</span>
+      <span class="ticket-details-item-title">{{ t('构造新主机规格') }}：</span>
       <span class="ticket-details-item-value">
         {{ specs[resource_spec.mongodb.spec_id].name ?? '--' }}
       </span>
     </div>
     <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('每台主机构造Shard数量') }}：</span>
+      <span class="ticket-details-item-title">{{ t('每台主机构造Shard数量') }}：</span>
       <span class="ticket-details-item-value">
         {{ instance_per_host }}
       </span>
@@ -44,6 +133,7 @@
 </template>
 
 <script setup lang="tsx">
+  import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Mongodb } from '@services/model/ticket/ticket';
@@ -55,6 +145,8 @@
   interface Props {
     ticketDetails: TicketModel<Mongodb.Restore>;
   }
+
+  type RowData = UnwrapRef<typeof tableData>[number];
 
   defineOptions({
     name: TicketTypes.MONGODB_RESTORE,
@@ -75,92 +167,6 @@
     rollback_time: rollbackTime,
     specs,
   } = props.ticketDetails.details;
-
-  const columns = [
-    {
-      field: 'immute_domain',
-      label: t('集群'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'struct_type',
-      label: t('构造类型'),
-      rowspan: clusterIds.length,
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'backup_file',
-      label: t('备份文件'),
-    },
-  ];
-
-  if (!backupinfo) {
-    columns[2] = {
-      field: 'target_time',
-      label: t('指定时间'),
-    };
-  }
-
-  const dbTableColumns = [
-    {
-      field: 'db_patterns',
-      label: t('备份DB名'),
-      render: ({ cell }: { cell: string[] }) => (
-        <div
-          v-overflow-tips={{
-            content: cell,
-          }}
-          class='text-overflow'>
-          {cell.length > 0 ? cell.map((item) => <bk-tag>{item}</bk-tag>) : '--'}
-        </div>
-      ),
-      showOverflowTooltip: false,
-    },
-    {
-      field: 'ignore_dbs',
-      label: t('忽略DB名'),
-      render: ({ cell }: { cell: string[] }) => (
-        <div
-          v-overflow-tips={{
-            content: cell,
-          }}
-          class='text-overflow'>
-          {cell.length > 0 ? cell.map((item) => <bk-tag>{item}</bk-tag>) : '--'}
-        </div>
-      ),
-      showOverflowTooltip: false,
-    },
-    {
-      field: 'table_patterns',
-      label: t('备份表名'),
-      render: ({ cell }: { cell: string[] }) => (
-        <div
-          v-overflow-tips={{
-            content: cell,
-          }}
-          class='text-overflow'>
-          {cell.map((item) => (
-            <bk-tag>{item}</bk-tag>
-          ))}
-        </div>
-      ),
-      showOverflowTooltip: false,
-    },
-    {
-      field: 'ignore_tables',
-      label: t('忽略表名'),
-      render: ({ cell }: { cell: string[] }) => (
-        <div
-          v-overflow-tips={{
-            content: cell,
-          }}
-          class='text-overflow'>
-          {cell.length > 0 ? cell.map((item) => <bk-tag>{item}</bk-tag>) : '--'}
-        </div>
-      ),
-      showOverflowTooltip: false,
-    },
-  ];
 
   const tableSettingData = nsFilter
     ? [

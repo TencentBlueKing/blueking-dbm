@@ -14,20 +14,23 @@ import (
 
 // BackupOption 备份参数
 type BackupOption struct {
-	MongoHost          *mymongo.MongoHost
-	BackupType         string
-	Dir                string
-	Zip                bool
-	FullFreq           uint64
-	IncrFreq           uint64
-	FullTag            string
-	IncrTag            string
-	SendToBackupSystem bool
-	RemoveOldFileFirst bool
-	ReportFile         string
-	BkDbmLabel         *config.BkDbmLabel
-	Archive            bool
-	DryRun             bool
+	MongoHost              *mymongo.MongoHost
+	BackupType             string
+	Dir                    string
+	Zip                    bool
+	FullFreq               uint64
+	IncrFreq               uint64
+	FullTag                string
+	IncrTag                string
+	SendToBackupSystem     bool
+	RemoveOldFileFirst     bool // 是否删除过期的备份文件
+	MaxDiskUsage           int  // 高于此值为磁盘紧急状态, 默认50
+	MinDiskUsage           int  // 低于此值为磁盘正常状态, 默认25
+	ReportFile             string
+	BkDbmLabel             *config.BkDbmLabel
+	Archive                bool
+	DryRun                 bool
+	NumParallelCollections int
 }
 
 // DoJob 执行一个备份任务
@@ -42,9 +45,18 @@ func DoJob(option *BackupOption) {
 		log.Debugf("Get BackupMeta %+v GetMetaFile:%s", bm, bm.GetMetaFileName())
 	}
 
+	maxDiskUsage := option.MaxDiskUsage
+	minDiskUsage := option.MinDiskUsage
+	if maxDiskUsage == 0 {
+		maxDiskUsage = 50
+	}
+	if minDiskUsage == 0 {
+		minDiskUsage = 25
+	}
+
 	if option.RemoveOldFileFirst {
 		log.Infof("RemoveOldFileFirst")
-		bm.RemoveOldFileFirst()
+		bm.RemoveOldFileFirst(maxDiskUsage, minDiskUsage)
 	}
 
 	prevFull, lastIncr, err := bm.GetLastBackup()
@@ -65,7 +77,7 @@ func DoJob(option *BackupOption) {
 
 	log.Printf("lastBackup %+v", lastBackup)
 	currBackup, err := DoBackup(option.MongoHost, option.BackupType, option.Dir, option.Zip, option.Archive,
-		lastBackup, nil)
+		lastBackup, nil, option.NumParallelCollections)
 	if err != nil || currBackup == nil {
 		log.Errorf("backup failed %v %v", currBackup, err)
 		return
@@ -94,7 +106,7 @@ func backupIncrForPrevFull(option *BackupOption, bm *BackupMetaV2,
 	}
 
 	incrResult, err := DoBackup(option.MongoHost, BackupTypeIncr, option.Dir, option.Zip, option.Archive,
-		lastIncr, &currBackup.LastTs)
+		lastIncr, &currBackup.LastTs, option.NumParallelCollections)
 
 	if incrResult != nil {
 		bm.Append(incrResult)

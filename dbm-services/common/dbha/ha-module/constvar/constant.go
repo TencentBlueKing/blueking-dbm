@@ -171,6 +171,8 @@ const (
 	RegisterDBHAInfo = "register_dbha_info"
 	// GetAliveHAInfo TODO
 	GetAliveHAInfo = "get_alive_ha_info"
+	// GetAliveHAInfoDetail TODO
+	GetAliveHAInfoDetail = "get_alive_ha_info_detail"
 	// GetAliveAgentInfo TODO
 	GetAliveAgentInfo = "get_alive_agent_info"
 	// ReporterAgentHeartbeat TODO

@@ -136,51 +136,49 @@
 
     if (props.isShowNodes) {
       haColumns.push(
-        ...[
-          {
-            field: 'proxy',
-            label: 'Proxy IP',
-            render: () => {
-              const hosts = props.nodes.proxy;
-              return getRenderHosts(hosts).map((group) => (
-                <div class='host-list__group'>
-                  {group.map((item) => (
+        {
+          field: 'proxy',
+          label: 'Proxy IP',
+          render: () => {
+            const hosts = props.nodes.proxy;
+            return getRenderHosts(hosts).map((group) => (
+              <div class='host-list__group'>
+                {group.map((item) => (
+                  <div class='host-list__item'>
+                    <strong class='host-list__tag host-list__tag--proxy'>P</strong>
+                    <span class='host-list__ip'>{item.ip}</span>
+                  </div>
+                ))}
+              </div>
+            ));
+          },
+          rowspan: () => (props.data.length === 0 ? 1 : props.data.length),
+          width: 300,
+        },
+        {
+          field: 'backend',
+          label: 'Master / Slave IP',
+          render: () => {
+            const hosts = props.nodes.backend;
+            return getRenderHosts(hosts).map((group) => (
+              <div class='host-list__group'>
+                {group.map((item, index) => {
+                  const tag = index === 0 ? 'master' : 'slave';
+                  return (
                     <div class='host-list__item'>
-                      <strong class='host-list__tag host-list__tag--proxy'>P</strong>
+                      <strong class={`host-list__tag ${`host-list__tag--${tag}`}`}>
+                        {tag.charAt(0).toUpperCase()}
+                      </strong>
                       <span class='host-list__ip'>{item.ip}</span>
                     </div>
-                  ))}
-                </div>
-              ));
-            },
-            rowspan: () => (props.data.length === 0 ? 1 : props.data.length),
-            width: 300,
+                  );
+                })}
+              </div>
+            ));
           },
-          {
-            field: 'backend',
-            label: 'Master / Slave IP',
-            render: () => {
-              const hosts = props.nodes.backend;
-              return getRenderHosts(hosts).map((group) => (
-                <div class='host-list__group'>
-                  {group.map((item, index) => {
-                    const tag = index === 0 ? 'master' : 'slave';
-                    return (
-                      <div class='host-list__item'>
-                        <strong class={`host-list__tag ${`host-list__tag--${tag}`}`}>
-                          {tag.charAt(0).toUpperCase()}
-                        </strong>
-                        <span class='host-list__ip'>{item.ip}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              ));
-            },
-            rowspan: () => (props.data.length === 0 ? 1 : props.data.length),
-            width: 300,
-          },
-        ],
+          rowspan: () => (props.data.length === 0 ? 1 : props.data.length),
+          width: 300,
+        },
       );
     }
     return haColumns;

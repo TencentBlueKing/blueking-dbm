@@ -89,7 +89,7 @@ SQLSERVER_SINGLE_APPLY_TICKET_DATA = {
                 "count": 2,
                 "cpu": {"max": 4, "min": 2},
                 "mem": {"max": 8, "min": 4},
-                "storage_spec": [{"size": 10, "type": "ALL", "mount_point": "/data"}],
+                "storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}],
             }
         },
         "domains": [
@@ -102,6 +102,7 @@ SQLSERVER_SINGLE_APPLY_TICKET_DATA = {
         "db_version": "MSSQL_Enterprise_2016",
         "db_module_name": "test-sqlserver01",
         "start_mssql_port": 20000,
+        "disaster_tolerance_level": "SAME_SUBZONE_CROSS_SWTICH",
     },
 }
 
@@ -155,7 +156,7 @@ SQLSERVER_HA_APPLY_TICKET_DATA = {
                 "count": 2,
                 "cpu": {"max": 4, "min": 2},
                 "mem": {"max": 8, "min": 4},
-                "storage_spec": [{"size": 10, "type": "ALL", "mount_point": "/data"}],
+                "storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}],
             }
         },
         "domains": [
@@ -573,8 +574,8 @@ SQLSERVER_MACHINE_DATA = [
         "bk_city_id": 0,
         "spec_config": '{"id": 440, "cpu": {"max": 4, "min": 2}, "mem": {"max": 8, "min": 4}, '
         '"qps": {"max": 0, "min": 0}, "name": "1核_4G_20G", "count": 1, "device_class": [], '
-        '"storage_spec": [{"size": 20, "type": "ALL", "mount_point": "C:\\", "isSystemDrive": true},'
-        ' {"size": 30, "type": "ALL", "mount_point": "D:\\", "isSystemDrive": true}]}',
+        '"storage_spec": [{"min": 20, "max": 2147483647, "type": "ALL", "mount_point": "C:\\", "isSystemDrive": true},'
+        ' {"min": 30, "type": "ALL", "mount_point": "D:\\", "isSystemDrive": true}]}',
         "spec_id": 1,
         "bk_agent_id": "",
     },
@@ -605,8 +606,8 @@ SQLSERVER_MACHINE_DATA = [
         "bk_city_id": 0,
         "spec_config": '{"id": 440, "cpu": {"max": 4, "min": 2}, "mem": {"max": 8, "min": 4}, '
         '"qps": {"max": 0, "min": 0}, "name": "1核_4G_20G", "count": 1, "device_class": [], '
-        '"storage_spec": [{"size": 20, "type": "ALL", "mount_point": "C:\\", "isSystemDrive": true},'
-        ' {"size": 30, "type": "ALL", "mount_point": "D:\\", "isSystemDrive": true}]}',
+        '"storage_spec": [{"min": 20, "max": 2147483647, "type": "ALL", "mount_point": "C:\\", "isSystemDrive": true},'
+        ' {"min": 30, "type": "ALL", "mount_point": "D:\\", "isSystemDrive": true}]}',
         "spec_id": 2,
         "bk_agent_id": "",
     },
@@ -637,8 +638,8 @@ SQLSERVER_MACHINE_DATA = [
         "bk_city_id": 0,
         "spec_config": '{"id": 440, "cpu": {"max": 4, "min": 2}, "mem": {"max": 8, "min": 4}, '
         '"qps": {"max": 0, "min": 0}, "name": "1核_4G_20G", "count": 1, "device_class": [], '
-        '"storage_spec": [{"size": 20, "type": "ALL", "mount_point": "C:\\", "isSystemDrive": true},'
-        ' {"size": 30, "type": "ALL", "mount_point": "D:\\", "isSystemDrive": true}]}',
+        '"storage_spec": [{"min": 20, "max": 2147483647, "type": "ALL", "mount_point": "C:\\", "isSystemDrive": true},'
+        ' {"min": 30, "type": "ALL", "mount_point": "D:\\", "isSystemDrive": true}]}',
         "spec_id": 1,
         "bk_agent_id": "",
     },

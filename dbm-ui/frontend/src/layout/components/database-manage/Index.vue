@@ -11,13 +11,35 @@
         :active-key="currentActiveKey"
         :opened-keys="[parentKey]"
         @click="handleMenuChange">
-        <ModuleGroup
-          v-for="item in renderModuleList"
-          :key="item"
-          :name="item" />
-        <span v-db-console="'databaseManage.addDatabaseComponents'">
-          <ModuleConfig v-model="renderModuleList" />
-        </span>
+        <BkLoading
+          :loading="isModuleLoading"
+          :style="{ minHeight: isModuleLoading ? '30px' : 0 }">
+          <template v-if="!isModuleLoading">
+            <TransitionGroup name="rende-db-module">
+              <ModuleGroup
+                v-for="item in renderModuleList"
+                :key="item"
+                :is-error="isModuleError"
+                :name="item" />
+            </TransitionGroup>
+          </template>
+        </BkLoading>
+        <BkMenuGroup
+          v-db-console="'personalWorkbench'"
+          :name="t('数据库部署')">
+          <BkMenuItem
+            key="BussinessServiceApply"
+            v-db-console="'personalWorkbench.serviceApply'">
+            <template #icon>
+              <DbIcon type="ticket" />
+            </template>
+            <span
+              v-overflow-tips.right
+              class="text-overflow">
+              {{ t('部署申请') }}
+            </span>
+          </BkMenuItem>
+        </BkMenuGroup>
         <BkMenuGroup
           v-db-console="'databaseManage.temporaryPaasswordModify'"
           :name="t('安全')">
@@ -64,31 +86,48 @@
     </ScrollFaker>
   </div>
 </template>
-<script setup lang="ts">
+<script setup lang="ts" async>
   import { Menu } from 'bkui-vue';
-  import { computed, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
+
+  import { useBizDbDisplay } from '@hooks';
 
   import AppSelect from '../AppSelect.vue';
   import { useActiveKey } from '../hooks/useActiveKey';
   import { useMenuStyles } from '../hooks/useMenuStyles';
 
   import ModuleGroup from './components/module-group/Index.vue';
-  import ModuleConfig from './components/ModuleConfig.vue';
 
   const { t } = useI18n();
+  const {
+    fetchClusterInstanceCount,
+    isError: isModuleError,
+    isLoading: isModuleLoading,
+    tabList,
+  } = useBizDbDisplay({
+    manual: true,
+  });
 
   const menuBoxRef = ref<HTMLElement>();
   const menuRef = ref<InstanceType<typeof Menu>>();
-  const renderModuleList = ref([]);
 
-  const isModuleLoading = computed(() => renderModuleList.value.length < 1);
+  const renderModuleList = computed(() => tabList.value.map((tabItem) => tabItem.id));
+
+  await fetchClusterInstanceCount();
+
+  const defaultRouterName =
+    tabList.value.length === 0 || isModuleError.value ? 'BussinessServiceApply' : tabList.value[0]!.routeIndexName;
 
   const {
     key: currentActiveKey,
     parentKey,
     routeLocation: handleMenuChange,
-  } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'DatabaseTendbha', isModuleLoading);
+  } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, defaultRouterName);
 
   const styles = useMenuStyles(menuBoxRef);
 </script>
+<style lang="less">
+  .rende-db-module-move {
+    transition: all 0.5s cubic-bezier(0.55, 0, 0.1, 1);
+  }
+</style>

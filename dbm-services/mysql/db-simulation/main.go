@@ -43,6 +43,9 @@ var githash = ""
 var version = ""
 
 func main() {
+	logger.New(os.Stdout, true, logger.InfoLevel, map[string]string{})
+	//nolint: errcheck
+	defer logger.Sync()
 	app := gin.New()
 	pprof.Register(app)
 
@@ -55,7 +58,7 @@ func main() {
 
 	app.Use(requestid.New())
 	app.Use(apiLogger)
-	app.Use(returnRessponeMiddleware)
+	app.Use(returnResponseMiddleware)
 	router.RegisterRouter(app)
 	app.POST("/app", func(ctx *gin.Context) {
 		ctx.SecureJSON(http.StatusOK, map[string]interface{}{"buildstamp": buildstamp, "githash": githash,
@@ -90,12 +93,6 @@ func main() {
 	logger.Info("Server exiting\n")
 }
 
-func init() {
-	logger.New(os.Stdout, true, logger.InfoLevel, map[string]string{})
-	//nolint: errcheck
-	defer logger.Sync()
-}
-
 // apiLogger TODO
 func apiLogger(c *gin.Context) {
 	rid := requestid.Get(c)
@@ -109,14 +106,14 @@ func apiLogger(c *gin.Context) {
 			body = []byte("{}")
 		}
 		model.DB.Create(&model.TbRequestRecord{
-			RequestID:   rid,
-			Method:      c.Request.Method,
-			Path:        c.Request.URL.Path,
-			SourceIP:    c.Request.RemoteAddr,
-			RequestBody: string(body),
-			ResponeBody: "{}",
-			CreateTime:  time.Now(),
-			UpdateTime:  time.Now(),
+			RequestID:    rid,
+			Method:       c.Request.Method,
+			Path:         c.Request.URL.Path,
+			SourceIP:     c.Request.RemoteAddr,
+			RequestBody:  string(body),
+			ResponseBody: "{}",
+			CreateTime:   time.Now(),
+			UpdateTime:   time.Now(),
 		})
 	}
 	c.Next()
@@ -133,9 +130,9 @@ func (w bodyLogWriter) Write(b []byte) (int, error) {
 	return w.ResponseWriter.Write(b)
 }
 
-// returnRessponeMiddleware TODO
+// returnResponseMiddleware TODO
 // BodyLogMiddleware 记录返回的body
-func returnRessponeMiddleware(c *gin.Context) {
+func returnResponseMiddleware(c *gin.Context) {
 	blw := &bodyLogWriter{body: bytes.NewBufferString(""), ResponseWriter: c.Writer}
 	c.Writer = blw
 	c.Next()

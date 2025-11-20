@@ -861,7 +861,7 @@ func (task *RedisInsKeyPatternTask) tendisSSDAllKeys() {
 		return
 	}
 	task.runtime.Logger.Info("grepCommand:%s success", grepCmd)
-	util.RunLocalCmd("bash", []string{"-c", fmt.Sprintf("chown -R mysql.mysql %s", task.SaveDir)}, "", nil, 10*time.Second)
+	util.RunLocalCmd("bash", []string{"-c", fmt.Sprintf("chown -R mysql:mysql %s", task.SaveDir)}, "", nil, 10*time.Second)
 
 	// 清理task.KeysFile
 	task.ClearKeysFile()
@@ -1191,7 +1191,7 @@ func (task *RedisInsKeyPatternTask) GetTendisKeys() {
 // getKeysFromRegex 根据正则获取key
 func (task *RedisInsKeyPatternTask) getKeysFromRegex() {
 	task.setResultFile()
-	file, err := os.OpenFile(task.ResultFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0755)
+	file, err := os.OpenFile(task.ResultFile, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0755)
 	if err != nil {
 		task.Err = fmt.Errorf("getKeysFromRegex os.OpenFile fail,err:%v,resultFile:%s", err, task.ResultFile)
 		task.runtime.Logger.Error(task.Err.Error())
@@ -1557,21 +1557,22 @@ func (task *RedisInsKeyPatternTask) DelKeysRateLimitV2() {
 
 	// tendisplus/tendisSSD 与 cache 删除默认速率不同
 	// 这里只需要添加ssd 删除速率逻辑就好：因为都是通过工具在文件里去删除和存储类型没关系
+	// 如果有传参，就根据传参来。如果没有传参或者超过最大值，就以一个安全值去执行
 	delRateLimit := 10000
 	if task.TendisType == consts.TendisTypeTendisplusInsance {
-		if task.TendisplusDeleteRate >= 10 {
+		if task.TendisplusDeleteRate >= 10 && task.TendisplusDeleteRate <= 20000 {
 			delRateLimit = task.TendisplusDeleteRate
 		} else {
 			delRateLimit = 3000
 		}
 	} else if task.TendisType == consts.TendisTypeRedisInstance {
-		if task.DeleteRate >= 10 {
+		if task.DeleteRate >= 10 && task.DeleteRate <= 20000 {
 			delRateLimit = task.DeleteRate
 		} else {
 			delRateLimit = 10000
 		}
 	} else if task.TendisType == consts.TendisTypeTendisSSDInsance {
-		if task.SsdDeleteRate >= 10 {
+		if task.SsdDeleteRate >= 10 && task.SsdDeleteRate <= 20000 {
 			delRateLimit = task.SsdDeleteRate
 		} else {
 			delRateLimit = 3000

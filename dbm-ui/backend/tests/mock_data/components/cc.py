@@ -211,6 +211,9 @@ class CCApiMock:
             ]
         return self.find_host_biz_relations_return
 
+    def batch_find_host_biz_relations(self, *args, **kwargs):
+        return self.find_host_biz_relations(*args, **kwargs)
+
     def list_service_instance_detail(self, *args, **kwargs):
         return self.list_service_instance_detail_return
 

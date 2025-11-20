@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 
 from backend.components import DRSApi
@@ -28,7 +28,6 @@ class MySQLCheckBinlogDumpService(BaseService):
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
         self.log_info(_("传入参数:{}").format(kwargs))
-        self.log_info(_("检查从库是否延迟,如果检查不通过,根据您实际需求来选择跳过此节点。"))
         res = DRSApi.rpc(
             {
                 "addresses": ["{}{}{}".format(kwargs["instance_ip"], IP_PORT_DIVIDER, kwargs["instance_port"])],

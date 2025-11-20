@@ -8,27 +8,25 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from dataclasses import asdict
+from datetime import datetime, timedelta
 
 from django.utils.crypto import get_random_string
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryRole, ClusterType, InstanceStatus, MachineType, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
-from backend.flow.consts import AUTH_ADDRESS_DIVIDER, DBA_ROOT_USER, TDBCTL_USER, DnsOpType, PrivRole
+from backend.flow.consts import AUTH_ADDRESS_DIVIDER, TDBCTL_USER, DnsOpType, PrivRole
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.entrys_manager import BuildEntrysManageSubflow
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
-    check_sub_flow,
-    init_machine_sub_flow,
-    update_machine_system_info_flow,
-)
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import check_sub_flow, init_machine_sub_flow
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import AddSpiderNodeFailedException
+from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
 from backend.flow.plugins.components.collections.common.delete_cc_service_instance import DelCCServiceInstComponent
-from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
-from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
+from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
+from backend.flow.plugins.components.collections.mysql.clear_machine import SpiderRemoteClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -40,7 +38,6 @@ from backend.flow.plugins.components.collections.spider.drop_spider_ronting impo
 from backend.flow.plugins.components.collections.spider.remote_migrate_cut_over import RemoteMigrateCutOverComponent
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
 from backend.flow.utils.base.base_dataclass import Instance
-from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CreateDnsKwargs,
     DBMetaOPKwargs,
@@ -73,7 +70,7 @@ def add_spider_slaves_sub_flow(
     parent_global_data: dict,
     is_clone_user: bool = True,
     slave_domain: str = None,
-    new_pkg_id: int = 0,
+    global_pkg_id: int = 0,
     new_db_module_id: int = 0,
 ):
     """
@@ -86,24 +83,29 @@ def add_spider_slaves_sub_flow(
     @param parent_global_data: 本次子流程的对应上层流程的全局只读上下文
     @param uid: 单据id
     @param is_clone_user 是否克隆权限, 区分一些单据场景。
-    @param new_pkg_id 如果是做升级部署，需要传新版本的介质包，默认为0，表示不升级部署
+    @param global_pkg_id 全局安装包的package ID，非必需参数，如果传入代表这批机器都以这个介质包来安装
     @param new_db_module_id 如果是做升级部署，需要传新的DB模块ID，默认为0，表示不升级部署
     """
     tdbctl_pass = get_random_string(length=10)
 
     # 获取到集群对应的spider端口，作为这次的安装
-    # 获取模板spider，先更加spider_slave获取，如果不存在，则根据spider_master获取
+    # 获取模板spider作为模板spider节点，从spider_slave列表中获取
+    # 部署只读集群的场景，可以用is_clone_user参数控制不做克隆
     spiders = cluster.proxyinstance_set.filter(
         status=InstanceStatus.RUNNING, tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE
     )
     if spiders:
         tmp_spider = spiders[0]
+        spider_port = tmp_spider.port
     else:
-        tmp_spider = cluster.proxyinstance_set.filter(
-            status=InstanceStatus.RUNNING, tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
-        )[0]
+        # 如果集群没有running同角色spider实例，会存在克隆权限的风险，这里先不退出，给tmp_spider属性设置None，到下层判断是否要做权限克隆
+        # spider_port 属性拿spider master角色，如果是第一次部署slave集群，则默认spider master端口和spider slave 是一致的
+        tmp_spider = None
+        spider_port = cluster.proxyinstance_set.filter(
+            tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
+        )[0].port
 
-    parent_global_data["spider_ports"] = [tmp_spider.port]
+    parent_global_data["spider_ports"] = [spider_port]
     # 获取版本和字符集信息
     parent_global_data["db_module_id"] = new_db_module_id if new_db_module_id else cluster.db_module_id
     parent_global_data["spider_charset"], parent_global_data["spider_version"] = get_spider_version_and_charset(
@@ -138,8 +140,8 @@ def add_spider_slaves_sub_flow(
     )
 
     # 阶段1 下发spider安装介质包
-    if new_pkg_id:
-        # 代表升级部署，根据新的pkg_id下发介质包
+    if global_pkg_id:
+        # 针对全局统一版本指定的场景，比如整体版本升级、扩容spider单据
         sub_pipeline.add_act(
             act_name=_("下发spider安装介质"),
             act_component_code=TransFileComponent.code,
@@ -147,42 +149,40 @@ def add_spider_slaves_sub_flow(
                 DownloadMediaKwargs(
                     bk_cloud_id=cluster.bk_cloud_id,
                     exec_ip=[ip_info["ip"] for ip_info in add_spider_slaves],
-                    file_list=GetFileList(db_type=DBType.MySQL).spider_upgrade_package(pkg_id=new_pkg_id),
+                    file_list=GetFileList(db_type=DBType.MySQL).spider_upgrade_package(pkg_id=global_pkg_id),
                 )
             ),
         )
     else:
-        # 根据继承的版本名称，或者介质包
-        sub_pipeline.add_act(
-            act_name=_("下发spider安装介质"),
-            act_component_code=TransFileComponent.code,
-            kwargs=asdict(
-                DownloadMediaKwargs(
-                    bk_cloud_id=cluster.bk_cloud_id,
-                    exec_ip=[ip_info["ip"] for ip_info in add_spider_slaves],
-                    file_list=GetFileList(db_type=DBType.MySQL).spider_slave_install_package(
-                        spider_version=parent_global_data["spider_version"]
+        # 如果没有传global_pkg_id参数，说明每个待加入的节点都携带自己安装的版本ID(pkg_id), 比如替换spider场景
+        # todo 后面可能考虑做聚合优化，减少发起的job数量
+        acts_list = []
+        for spider in add_spider_slaves:
+            acts_list.append(
+                {
+                    "act_name": _("下发spider安装介质[{}]".format(spider["ip"])),
+                    "act_component_code": TransFileComponent.code,
+                    "kwargs": asdict(
+                        DownloadMediaKwargs(
+                            bk_cloud_id=cluster.bk_cloud_id,
+                            exec_ip=[spider["ip"]],
+                            file_list=GetFileList(db_type=DBType.MySQL).spider_upgrade_package(
+                                pkg_id=spider["pkg_id"]
+                            ),
+                        )
                     ),
-                )
-            ),
-        )
-
-    # # 阶段2 安装mysql-crond组件
-    # exec_act_kwargs.exec_ip = [ip_info["ip"] for ip_info in add_spider_slaves]
-    # exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_deploy_mysql_crond_payload.__name__
-    # sub_pipeline.add_act(
-    #     act_name=_("部署mysql-crond"),
-    #     act_component_code=ExecuteDBActuatorScriptComponent.code,
-    #     kwargs=asdict(exec_act_kwargs),
-    # )
+                }
+            )
+        sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     # 阶段3 安装spider-slave实例，目前spider-slave机器属于单机单实例部署方式，专属一套集群
     acts_list = []
-    for spider_ip in add_spider_slaves:
-        exec_act_kwargs.exec_ip = spider_ip["ip"]
+    for spider in add_spider_slaves:
+        exec_act_kwargs.exec_ip = spider["ip"]
         exec_act_kwargs.cluster = {
             "immutable_domain": cluster.immute_domain,
             "auto_incr_value": 1,  # spider slave 对这个值不敏感，所有统一设计为1
+            "pkg_id": global_pkg_id if global_pkg_id else spider["pkg_id"],
         }
         exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_slave_spider_payload.__name__
         acts_list.append(
@@ -194,9 +194,34 @@ def add_spider_slaves_sub_flow(
         )
     sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
+    # 阶段5 下发actor，并执行spider-slave 路由初始化
+    sub_pipeline.add_act(
+        act_name=_("添加对应路由关系"),
+        act_component_code=AddSpiderRoutingComponent.code,
+        kwargs=asdict(
+            AddSpiderRoutingKwargs(
+                cluster_id=cluster.id,
+                add_spiders=add_spider_slaves,
+                add_spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE.value,
+                user=TDBCTL_USER,
+                passwd=tdbctl_pass,
+            )
+        ),
+    )
+
     if is_clone_user:
-        # 阶段5 集群的业务账号信息克隆到新的spider实例上, 因为目前spider中控实例无法有克隆权限的操作，只能在这里做
+        # 阶段6 集群的业务账号信息克隆到新的spider实例上, 因为目前spider中控实例无法有克隆权限的操作，只能在这里做
         # 如果是slave集群部署，则不需要克隆权限， 应该is_clone_user=False
+        # 如果上层获取的tmp_spider为空，则这里报异常，因为无法做权限克隆，扩容后会丢失权限
+        if not tmp_spider:
+            raise AddSpiderNodeFailedException(
+                message=_(
+                    "[{}]构建流程失败，集群找不到相应角色[{}]的且running状态的spider实例作为权限克隆的来源，请检查集群".format(
+                        cluster.immute_domain, TenDBClusterSpiderRole.SPIDER_SLAVE
+                    )
+                )
+            )
+
         acts_list = []
         for spider in add_spider_slaves:
             acts_list.append(
@@ -219,21 +244,6 @@ def add_spider_slaves_sub_flow(
             )
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
-    # 阶段6 下发actor，并执行spider-slave 路由初始化
-    sub_pipeline.add_act(
-        act_name=_("添加对应路由关系"),
-        act_component_code=AddSpiderRoutingComponent.code,
-        kwargs=asdict(
-            AddSpiderRoutingKwargs(
-                cluster_id=cluster.id,
-                add_spiders=add_spider_slaves,
-                add_spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE.value,
-                user=TDBCTL_USER,
-                passwd=tdbctl_pass,
-            )
-        ),
-    )
-
     # 阶段7 添加从域名
     if slave_domain:
         # 这里针对spider_slave集群部署的场景，从域名是传进来的
@@ -244,7 +254,7 @@ def add_spider_slaves_sub_flow(
                 CreateDnsKwargs(
                     bk_cloud_id=cluster.bk_cloud_id,
                     add_domain_name=slave_domain,
-                    dns_op_exec_port=tmp_spider.port,
+                    dns_op_exec_port=spider_port,
                     exec_ip=[ip_info["ip"] for ip_info in add_spider_slaves],
                 )
             ),
@@ -257,7 +267,7 @@ def add_spider_slaves_sub_flow(
             op_type=DnsOpType.CREATE,
             param={
                 "cluster_id": cluster.id,
-                "port": tmp_spider.port,
+                "port": spider_port,
                 "add_ips": [ip_info["ip"] for ip_info in add_spider_slaves],
                 "entry_role": [ClusterEntryRole.SLAVE_ENTRY.value],
             },
@@ -274,7 +284,7 @@ def add_spider_masters_sub_flow(
     uid: str,
     parent_global_data: dict,
     is_add_spider_mnt: bool,
-    new_pkg_id: int = 0,
+    global_pkg_id: int = 0,
     new_db_module_id: int = 0,
 ):
     """
@@ -287,7 +297,7 @@ def add_spider_masters_sub_flow(
     @param parent_global_data: 本次子流程的对应上层流程的全局只读上下文
     @param is_add_spider_mnt: 表示这次添加spider 运维节点，如果是则True，不是则False
     @param uid: 单据uid
-    @param new_pkg_id 如果是做升级部署，需要传新版本的介质包，默认为0，表示不升级部署
+    @param global_pkg_id 全局安装包的package ID，非必需参数，如果传入代表这批机器都以这个介质包来安装
     @param new_db_module_id 如果是做升级部署，需要传新的DB模块ID，默认为0，表示不升级部署
     """
     tag = "mnt"
@@ -303,6 +313,12 @@ def add_spider_masters_sub_flow(
         bk_biz_id=cluster.bk_biz_id, db_module_id=parent_global_data["db_module_id"]
     )
     parent_global_data["ctl_charset"] = parent_global_data["spider_charset"]
+
+    # 不过角色后续处理的行为不一样
+    if is_add_spider_mnt:
+        role = TenDBClusterSpiderRole.SPIDER_MNT.value
+    else:
+        role = TenDBClusterSpiderRole.SPIDER_MASTER.value
 
     # 声明子流程
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
@@ -329,7 +345,8 @@ def add_spider_masters_sub_flow(
         )
     )
     # 阶段1 下发spider安装介质包
-    if new_pkg_id:
+    if global_pkg_id:
+        # 针对全局统一版本指定的场景，比如整体版本升级、扩容spider单据
         sub_pipeline.add_act(
             act_name=_("下发spider安装介质"),
             act_component_code=TransFileComponent.code,
@@ -337,33 +354,31 @@ def add_spider_masters_sub_flow(
                 DownloadMediaKwargs(
                     bk_cloud_id=cluster.bk_cloud_id,
                     exec_ip=[ip_info["ip"] for ip_info in add_spider_masters],
-                    file_list=GetFileList(db_type=DBType.MySQL).spider_upgrade_package(pkg_id=new_pkg_id),
+                    file_list=GetFileList(db_type=DBType.MySQL).spider_upgrade_package(pkg_id=global_pkg_id),
                 )
             ),
         )
     else:
-        sub_pipeline.add_act(
-            act_name=_("下发spider安装介质"),
-            act_component_code=TransFileComponent.code,
-            kwargs=asdict(
-                DownloadMediaKwargs(
-                    bk_cloud_id=cluster.bk_cloud_id,
-                    exec_ip=[ip_info["ip"] for ip_info in add_spider_masters],
-                    file_list=GetFileList(db_type=DBType.MySQL).spider_master_install_package(
-                        spider_version=parent_global_data["spider_version"]
+        # 如果没有传global_pkg_id参数，说明每个待加入的节点都携带自己安装的版本ID(pkg_id), 比如替换spider场景
+        # todo 后面可能考虑做聚合优化，减少发起的job数量
+        acts_list = []
+        for spider in add_spider_masters:
+            acts_list.append(
+                {
+                    "act_name": _("下发spider安装介质[{}]".format(spider["ip"])),
+                    "act_component_code": TransFileComponent.code,
+                    "kwargs": asdict(
+                        DownloadMediaKwargs(
+                            bk_cloud_id=cluster.bk_cloud_id,
+                            exec_ip=[spider["ip"]],
+                            file_list=GetFileList(db_type=DBType.MySQL).spider_upgrade_package(
+                                pkg_id=spider["pkg_id"]
+                            ),
+                        )
                     ),
-                )
-            ),
-        )
-
-    # # 阶段3 安装mysql-crond组件
-    # exec_act_kwargs.exec_ip = [ip_info["ip"] for ip_info in add_spider_masters]
-    # exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_deploy_mysql_crond_payload.__name__
-    # sub_pipeline.add_act(
-    #     act_name=_("部署mysql-crond"),
-    #     act_component_code=ExecuteDBActuatorScriptComponent.code,
-    #     kwargs=asdict(exec_act_kwargs),
-    # )
+                }
+            )
+        sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     # 阶段4 安装spider-master实例，目前spider-master机器属于单机单实例部署方式，专属一套集群
     acts_list = []
@@ -372,7 +387,7 @@ def add_spider_masters_sub_flow(
         exec_act_kwargs.cluster = {
             "immutable_domain": cluster.immute_domain,
             "auto_incr_value": spider["incr_number"],
-            "pkg_id": new_pkg_id,
+            "pkg_id": global_pkg_id if global_pkg_id else spider["pkg_id"],
         }
         exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_spider_payload.__name__
         acts_list.append(
@@ -400,12 +415,22 @@ def add_spider_masters_sub_flow(
             )
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
-    # 这里获取集群内running状态的spider节点作为这次克隆权限的依据
-    if is_add_spider_mnt:
-        role = TenDBClusterSpiderRole.SPIDER_MNT.value
-    else:
-        role = TenDBClusterSpiderRole.SPIDER_MASTER.value
+    # 阶段6 执行spider-master 路由初始化, 内置账号密码随机生成，不需要平台来维护，避免误操作影响
+    sub_pipeline.add_act(
+        act_name=_("添加对应路由关系"),
+        act_component_code=AddSpiderRoutingComponent.code,
+        kwargs=asdict(
+            AddSpiderRoutingKwargs(
+                cluster_id=cluster.id,
+                add_spiders=add_spider_masters,
+                add_spider_role=role,
+                user=TDBCTL_USER,
+                passwd=tdbctl_pass,
+            )
+        ),
+    )
 
+    # 这里获取集群内running状态的spider节点作为这次克隆权限的依据
     spiders = cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING, tendbclusterspiderext__spider_role=role)
     if not spiders and role == TenDBClusterSpiderRole.SPIDER_MNT.value:
         # 如果添加节点的角色是spider_mnt, 但是集群没有相应的角色，作为第一次添加，不做权限克隆
@@ -416,11 +441,15 @@ def add_spider_masters_sub_flow(
         is_clone_user = True
         tmp_spider = spiders[0]
     else:
-        # 如果spiders没有返回，则构建流程失败
-        raise AddSpiderNodeFailedException(message=_("构建流程失败，集群找不到相应角色[{}]的spider实例作为权限克隆的来源".format(role)))
+        # 如果扩容角色是master，且spiders没有running状态的节点，则扩容时无法做权限克隆，故异常，表示构建流程失败
+        raise AddSpiderNodeFailedException(
+            message=_(
+                "[{}]构建流程失败，集群找不到相应角色[{}]的且running状态的spider实例作为权限克隆的来源，请检查集群".format(cluster.immute_domain, role)
+            )
+        )
 
     if is_clone_user:
-        # 阶段6 集群的业务账号信息克隆到新的spider实例上, 因为目前spider中控实例无法有克隆权限的操作，只能在这里做
+        # 阶段7 集群的业务账号信息克隆到新的spider实例上, 因为目前spider中控实例无法有克隆权限的操作，只能在这里做
         acts_list = []
         for spider in add_spider_masters:
             acts_list.append(
@@ -442,21 +471,6 @@ def add_spider_masters_sub_flow(
                 }
             )
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
-
-    # 阶段7 执行spider-master 路由初始化, 内置账号密码随机生成，不需要平台来维护，避免误操作影响
-    sub_pipeline.add_act(
-        act_name=_("添加对应路由关系"),
-        act_component_code=AddSpiderRoutingComponent.code,
-        kwargs=asdict(
-            AddSpiderRoutingKwargs(
-                cluster_id=cluster.id,
-                add_spiders=add_spider_masters,
-                add_spider_role=role,
-                user=TDBCTL_USER,
-                passwd=tdbctl_pass,
-            )
-        ),
-    )
 
     if not is_add_spider_mnt:
         # 阶段8 待添加中控实例建立主从数据同步关系
@@ -480,19 +494,6 @@ def add_spider_masters_sub_flow(
             ),
         )
 
-        # 阶段8 添加域名映射关系
-        # sub_pipeline.add_act(
-        #     act_name=_("添加集群域名"),
-        #     act_component_code=MySQLDnsManageComponent.code,
-        #     kwargs=asdict(
-        #         CreateDnsKwargs(
-        #             bk_cloud_id=cluster.bk_cloud_id,
-        #             add_domain_name=cluster.immute_domain,
-        #             dns_op_exec_port=tmp_spider.port,
-        #             exec_ip=[ip_info["ip"] for ip_info in add_spider_masters],
-        #         )
-        #     ),
-        # )
         entrysub_process = BuildEntrysManageSubflow(
             root_id=root_id,
             ticket_data=parent_global_data,
@@ -507,123 +508,6 @@ def add_spider_masters_sub_flow(
         tag = "master"
 
     return sub_pipeline.build_sub_process(sub_name=_("集群[{}]添加spider {}节点".format(cluster.name, tag)))
-
-
-def build_apps_for_spider_sub_flow(
-    bk_cloud_id: int,
-    spiders: list,
-    root_id: str,
-    parent_global_data: dict,
-    spider_role: TenDBClusterSpiderRole,
-    is_collect_sysinfo: bool,
-    is_install_backup: bool = True,
-    is_install_monitor: bool = True,
-):
-    """
-    定义为spider机器部署周边组件的子流程
-    @param bk_cloud_id: 操作所属的云区域
-    @param spiders: 需要操作的spider机器列表信息
-    @param root_id: 整体flow流程的root_id
-    @param parent_global_data: 子流程的需要全局只读上下文
-    @param spider_role: 这批spider的角色
-    @param is_collect_sysinfo: 是否收集系统参数
-    @param is_install_backup: 是否安装备份
-    @param is_install_monitor: 是否安装监控
-    """
-    sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
-    spider_ips = list(filter(None, list(set(spiders))))
-
-    sub_pipeline.add_act(
-        act_name=_("下发Spider周边程序介质"),
-        act_component_code=TransFileComponent.code,
-        kwargs=asdict(
-            DownloadMediaKwargs(
-                bk_cloud_id=bk_cloud_id,
-                exec_ip=spider_ips,
-                file_list=GetFileList(db_type=DBType.MySQL).get_spider_apps_package(),
-            )
-        ),
-    )
-
-    acts_list = []
-    # 是否采集系统信息
-    if is_collect_sysinfo:
-        acts_list.append(
-            update_machine_system_info_flow(
-                root_id=root_id,
-                bk_cloud_id=bk_cloud_id,
-                parent_global_data=parent_global_data,
-                ip_list=spider_ips,
-            )
-        )
-
-    if isinstance(spiders, list) and len(spiders) != 0:
-        for spider_ip in list(set(spiders)):
-            acts_list.append(
-                {
-                    "act_name": _("spider[{}]安装DBATools工具箱".format(spider_ip)),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(
-                        ExecActuatorKwargs(
-                            bk_cloud_id=bk_cloud_id,
-                            exec_ip=spider_ip,
-                            get_mysql_payload_func=MysqlActPayload.get_install_dba_toolkit_payload.__name__,
-                            cluster_type=ClusterType.TenDBCluster.value,
-                            run_as_system_user=DBA_ROOT_USER,
-                        )
-                    ),
-                }
-            )
-            if is_install_monitor:
-                acts_list.append(
-                    {
-                        "act_name": _("spider[{}]安装mysql-monitor".format(spider_ip)),
-                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                        "kwargs": asdict(
-                            ExecActuatorKwargs(
-                                bk_cloud_id=bk_cloud_id,
-                                exec_ip=spider_ip,
-                                get_mysql_payload_func=MysqlActPayload.get_deploy_mysql_monitor_payload.__name__,
-                                cluster_type=ClusterType.TenDBCluster.value,
-                                run_as_system_user=DBA_ROOT_USER,
-                            )
-                        ),
-                    },
-                )
-            # 因为同一台机器的只有会有一个spider实例，所以直接根据ip、bk_cloud_id获取对应实例的spider角色，来判断是否安装备份程序
-            if is_install_backup:
-                acts_list.append(
-                    {
-                        "act_name": _("{}[{}]安装备份程序".format(spider_role.value, spider_ip)),
-                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                        "kwargs": asdict(
-                            ExecActuatorKwargs(
-                                bk_cloud_id=bk_cloud_id,
-                                exec_ip=spider_ip,
-                                get_mysql_payload_func=MysqlActPayload.get_install_db_backup_payload.__name__,
-                                cluster_type=ClusterType.TenDBCluster.value,
-                                run_as_system_user=DBA_ROOT_USER,
-                            )
-                        ),
-                    },
-                )
-
-        acts_list.append(
-            {
-                "act_name": _("安装backup-client工具"),
-                "act_component_code": DownloadBackupClientComponent.code,
-                "kwargs": asdict(
-                    DownloadBackupClientKwargs(
-                        bk_cloud_id=bk_cloud_id,
-                        bk_biz_id=int(parent_global_data["bk_biz_id"]),
-                        download_host_list=list(filter(None, list(set(spiders)))),
-                    )
-                ),
-            }
-        )
-
-    sub_pipeline.add_parallel_acts(acts_list=acts_list)
-    return sub_pipeline.build_sub_process(sub_name=_("安装Spider周边程序"))
 
 
 def build_ctl_replication_with_gtid(
@@ -676,7 +560,7 @@ def build_ctl_replication_with_gtid(
     return sub_pipeline.build_sub_process(sub_name=_("建立spider-ctl数据同步"))
 
 
-def reduce_spider_slaves_flow(
+def reduce_spiders_flow(
     cluster: Cluster,
     reduce_spiders: list,
     root_id: str,
@@ -720,7 +604,10 @@ def reduce_spider_slaves_flow(
         ),
     )
 
-    # 阶段1 下发spider安装介质包
+    # 阶段1 清理机器配置，这里不需要做实例级别的配置清理，因为目前平台spider的单机单实例部署，专属一套集群
+    # 卸载前先清理，避免出现误告
+
+    # 下发spider安装介质包
     sub_pipeline.add_act(
         act_name=_("下发db-actuator介质"),
         act_component_code=TransFileComponent.code,
@@ -731,6 +618,14 @@ def reduce_spider_slaves_flow(
                 file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
             )
         ),
+    )
+
+    exec_act_kwargs.exec_ip = [ip_info["ip"] for ip_info in reduce_spiders]
+    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_clear_machine_crontab.__name__
+    sub_pipeline.add_act(
+        act_name=_("清理机器周边配置"),
+        act_component_code=SpiderRemoteClearMachineComponent.code,
+        kwargs=asdict(exec_act_kwargs),
     )
 
     # 阶段2 卸载相关db组件
@@ -783,15 +678,6 @@ def reduce_spider_slaves_flow(
                 db_meta_class_func=SpiderDBMeta.reduce_spider_nodes_apply.__name__,
             )
         ),
-    )
-
-    # 阶段5 清理机器配置，这里不需要做实例级别的配置清理，因为目前平台spider的单机单实例部署，专属一套集群
-    exec_act_kwargs.exec_ip = [ip_info["ip"] for ip_info in reduce_spiders]
-    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_clear_machine_crontab.__name__
-    sub_pipeline.add_act(
-        act_name=_("清理机器周边配置"),
-        act_component_code=MySQLClearMachineComponent.code,
-        kwargs=asdict(exec_act_kwargs),
     )
 
     return sub_pipeline.build_sub_process(sub_name=_("下架spider节点"))
@@ -899,10 +785,14 @@ def remote_migrate_switch_sub_flow(
 
     # 切换前做预检测
     verify_checksum_tuples = []
+    instances = []
     for m in migrate_tuples:
         # old_master-> new_master ; new_master -> new_slave 都需要检测checksum结果
         verify_checksum_tuples.append({"master": m["old_master"], "slave": m["new_master"]})
         verify_checksum_tuples.append({"master": m["new_master"], "slave": m["new_slave"]})
+        instances.append(m["new_master"])
+        instances.append(m["new_slave"])
+
     sub_pipeline.add_sub_pipeline(
         sub_flow=check_sub_flow(
             uid=uid,
@@ -941,9 +831,25 @@ def remote_migrate_switch_sub_flow(
     )
 
     sub_pipeline.add_act(
+        act_name=_("切换期间屏蔽新机器告警30分钟"),
+        act_component_code=AddAlarmShieldComponent.code,
+        kwargs={
+            "begin_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "end_time": (datetime.now() + timedelta(minutes=30)).strftime("%Y-%m-%d %H:%M:%S"),
+            "description": cluster.immute_domain,
+            "dimensions": [
+                {
+                    "name": "instance_host",
+                    "values": list(set([ins.split(IP_PORT_DIVIDER)[0] for ins in instances])),
+                }
+            ],
+        },
+    )
+    sub_pipeline.add_act(
         act_name=_("执行成对切换"),
         act_component_code=RemoteMigrateCutOverComponent.code,
         kwargs={},
     )
+    sub_pipeline.add_act(act_name=_("解除告警屏蔽"), act_component_code=DisableAlarmShieldComponent.code, kwargs={})
 
     return sub_pipeline.build_sub_process(sub_name=_("[{}]成对切换".format(cluster.name)))

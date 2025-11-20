@@ -62,6 +62,7 @@
         :container-height="contentHeight - 110"
         :data-source="fetchListDbaHost"
         :disable-select-method="disableSelectMethod"
+        ignore-biz
         primary-key="host_id"
         :releate-url-query="false"
         selectable
@@ -87,7 +88,6 @@
 
   import DbStatus from '@components/db-status/index.vue';
 
-  // import BusinessSelector from '@views/tag-manage/components/BusinessSelector.vue';
   import HostEmpty from './components/HostEmpty.vue';
 
   interface Props {
@@ -108,7 +108,7 @@
   const systemEnvironStore = useSystemEnviron();
 
   const isBusiness = route.name === 'BizResourcePool';
-  const defaultBizId = systemEnvironStore.urls.DBA_APP_BK_BIZ_ID;
+  const defaultBizId = systemEnvironStore.urls.RESOURCE_INDEPENDENT_BIZ;
 
   const { t } = useI18n();
 

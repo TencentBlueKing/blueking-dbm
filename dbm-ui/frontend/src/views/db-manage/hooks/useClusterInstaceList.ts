@@ -3,6 +3,8 @@ import { getEsInstanceList } from '@services/source/es';
 import { getHdfsInstanceList } from '@services/source/hdfs';
 import { getKafkaInstanceList } from '@services/source/kafka';
 import { getMongoInstancesList } from '@services/source/mongodb';
+import { getOracleHaInstanceList } from '@services/source/oracleHaCluster';
+import { getOracleSingleInstanceList } from '@services/source/oracleSingleCluster';
 import { getPulsarInstanceList } from '@services/source/pulsar';
 import { getRedisInstances } from '@services/source/redis';
 import { getRiakInstanceList } from '@services/source/riak';
@@ -21,6 +23,8 @@ const dataSourceMap = {
   [ClusterTypes.KAFKA]: getKafkaInstanceList,
   [ClusterTypes.MONGO_REPLICA_SET]: getMongoInstancesList,
   [ClusterTypes.MONGO_SHARED_CLUSTER]: getMongoInstancesList,
+  [ClusterTypes.ORACLE_PRIMARY_STANDBY]: getOracleHaInstanceList,
+  [ClusterTypes.ORACLE_SINGLE_NONE]: getOracleSingleInstanceList,
   [ClusterTypes.PULSAR]: getPulsarInstanceList,
   [ClusterTypes.REDIS]: getRedisInstances,
   [ClusterTypes.REDIS_CLUSTER]: getRedisInstances,

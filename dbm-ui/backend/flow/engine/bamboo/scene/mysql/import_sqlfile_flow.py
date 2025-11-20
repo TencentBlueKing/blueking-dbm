@@ -14,7 +14,7 @@ import os
 from dataclasses import asdict
 from typing import Any, Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
@@ -205,6 +205,7 @@ class ImportSQLFlow(object):
                     exec_ip=backend_ip,
                     cluster=template_cluster,
                     get_mysql_payload_func=MysqlActPayload.get_semantic_dump_schema_payload.__name__,
+                    job_timeout=LONG_JOB_TIMEOUT,
                 )
             ),
         )

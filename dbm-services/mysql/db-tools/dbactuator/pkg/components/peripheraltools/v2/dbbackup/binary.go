@@ -29,10 +29,10 @@ func DeployBinary(medium *components.Medium) (err error) {
 		err = fmt.Errorf("execute %s error:%w,%s", cmd, err, output)
 		return err
 	}
-	return ChownGroup()
+	return chownGroup()
 }
 
-func ChownGroup() (err error) {
+func chownGroup() (err error) {
 	// run dbbackup migrateold
 	_, errStr, err := cmutil.ExecCommandReturnBytes(
 		false,
@@ -57,8 +57,4 @@ func ChownGroup() (err error) {
 		return err
 	}
 	return nil
-}
-
-func (c *NewDbBackupComp) ChownGroup() (err error) {
-	return ChownGroup()
 }

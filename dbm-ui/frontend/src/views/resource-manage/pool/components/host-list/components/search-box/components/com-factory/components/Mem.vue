@@ -36,17 +36,15 @@
     model: Record<string, any>;
   }
 
-  interface Emits {
-    (e: 'change', value: Props['defaultValue']): void;
-  }
-
-  const props = defineProps<Props>();
-
-  const emits = defineEmits<Emits>();
+  type Emits = (e: 'change', value: Props['defaultValue']) => void;
 
   defineOptions({
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
 
   const min = ref();
   const max = ref();

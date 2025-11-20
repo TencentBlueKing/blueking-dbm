@@ -23,7 +23,7 @@
         <DbIcon
           style="margin-right: 3px"
           type="add" />
-        <span>{{ t('添加目标集群') }}</span>
+        <span>{{ t('添加') }}</span>
       </BkButton>
       <div :class="{ 'cluster-checking': isLoading }">
         <BkLoading :loading="isLoading">
@@ -80,15 +80,16 @@
 
   defineProps<Props>();
 
-  const { t } = useI18n();
-
   const modelValue = defineModel<number[]>({
     default: () => [],
     required: true,
   });
+
   const clusterVersionList = defineModel<string[]>('clusterVersionList', {
     default: () => [],
   });
+
+  const { t } = useI18n();
 
   const colums = [
     {
@@ -103,7 +104,7 @@
         const clusterNameMap = {
           [ClusterTypes.SQLSERVER_HA]: t('主从集群'),
           [ClusterTypes.SQLSERVER_SINGLE]: t('单节点集群'),
-          [ClusterTypes.TENDBCLUSTER]: t('Tendb Cluster'),
+          [ClusterTypes.TENDBCLUSTER]: 'Tendb Cluster',
           [ClusterTypes.TENDBHA]: t('高可用'),
           [ClusterTypes.TENDBSINGLE]: t('单节点'),
         };

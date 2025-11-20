@@ -1,7 +1,7 @@
 package mysql
 
 import (
-	"dbm-services/common/reverseapi/internal/core"
+	"dbm-services/common/reverseapi/pkg/core"
 
 	"github.com/pkg/errors"
 )

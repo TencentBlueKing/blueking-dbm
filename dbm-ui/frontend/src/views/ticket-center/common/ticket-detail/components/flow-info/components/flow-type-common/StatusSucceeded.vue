@@ -33,14 +33,6 @@
         </span>
       </slot>
       <slot name="contentPreppend" />
-      <FlowCollapse
-        v-if="data.err_msg"
-        danger
-        :title="t('失败原因')">
-        <div style="padding-left: 16px">
-          {{ data.err_msg }}
-        </div>
-      </FlowCollapse>
       <Abstract :data="data" />
     </template>
     <template
@@ -65,7 +57,6 @@
   import TodoList from '../todo-list/Index.vue';
 
   import Abstract from './components/abstract/Index.vue';
-  import FlowCollapse from './components/FlowCollapse.vue';
 
   interface Props {
     data: FlowMode;

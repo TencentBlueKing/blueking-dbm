@@ -49,6 +49,7 @@ def pkg_create_single(
     bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
     region: str = "",
     disaster_tolerance_level: str = "",
+    zone_list: list = None,
     cluster_type=ClusterType.TendisRedisInstance.value,
 ):
     """一主一丛模式, Slave域名可选"""
@@ -86,6 +87,7 @@ def pkg_create_single(
             bk_cloud_id=bk_cloud_id,
             region=region,
             disaster_tolerance_level=disaster_tolerance_level,
+            zone_list=zone_list,
         )
         cluster.storageinstance_set.add(master_obj)
         cluster.storageinstance_set.add(slave_obj)

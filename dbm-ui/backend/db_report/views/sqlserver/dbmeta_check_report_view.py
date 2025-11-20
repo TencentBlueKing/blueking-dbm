@@ -17,7 +17,7 @@ from backend.db_report.views.meta_check_view import MetaCheckReportBaseViewSet
 
 
 @register_report(DBType.Sqlserver)
-class MySQLMetaCheckReportViewSet(MetaCheckReportBaseViewSet):
+class SqlserverMetaCheckReportViewSet(MetaCheckReportBaseViewSet):
     report_type = ReportType.META_CHECK
     cluster_types = ClusterType.db_type_to_cluster_types(DBType.Sqlserver)
     queryset = MetaCheckReport.objects.filter(cluster_type__in=cluster_types).order_by("-create_at")

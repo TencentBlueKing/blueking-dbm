@@ -12,23 +12,32 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.clone_data">
-    <BkTableColumn :label="t('源客户端IP')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.source }}
+  <TicketInfoTable
+    :data="ticketDetails.details.clone_data"
+    row-key="source">
+    <TicketInfoTableColumn
+      col-key="source"
+      :get-copy-value="(row: RowData) => row.source"
+      :title="t('源实例')">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.source }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('所属模块')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.module }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_domain"
+      :title="t('所属集群')">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.cluster_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('新客户端 IP')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.target }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="target"
+      :title="t('新实例')">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.target }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

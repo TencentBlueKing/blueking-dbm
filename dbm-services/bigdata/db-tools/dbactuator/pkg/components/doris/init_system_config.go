@@ -29,7 +29,7 @@ type InitSystemConfigService struct {
 	RollBackContext rollback.RollBackObjects
 }
 
-// InitSystemConfig TODO
+// InitSystemConfig 初始化系统配置
 func (i *InitSystemConfigService) InitSystemConfig() (err error) {
 	// 创建执行用户
 	err = i.CreateExecuteUser()
@@ -91,7 +91,7 @@ swapoff -a`
 	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("关闭swap分区执行失败", err.Error())
 	}
-	if i.Params.Role == Hot || i.Params.Role == Cold {
+	if i.Params.Role == Hot || i.Params.Role == Cold || i.Params.Role == Warm {
 		// BE节点 修改vma数量
 		addConfCmd := "echo 'vm.max_map_count=2000000'>> /etc/sysctl.conf; sysctl -p"
 		delConfCmd := "sed -i '/vm\\.max_map_count/d' /etc/sysctl.conf;"

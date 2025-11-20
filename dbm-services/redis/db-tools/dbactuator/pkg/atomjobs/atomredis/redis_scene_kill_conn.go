@@ -74,6 +74,8 @@ func (job *RedisKillDeadConn) Init(m *jobruntime.JobGenericRuntime) error {
 // Run 运行干掉旧链接逻辑
 func (job *RedisKillDeadConn) Run() (err error) {
 	job.runtime.Logger.Info("kill dead conn start; params:%+v", job.params)
+	// 主从禁用的时候可能会获取密码失败，所以先sleep一下
+	time.Sleep(30 * time.Second)
 
 	for _, storage := range job.params.Instances {
 		addr := fmt.Sprintf("%s:%d", storage.IP, storage.Port)

@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 import logging.config
+import time
 import traceback
 from typing import List
 
@@ -69,7 +70,28 @@ class MongoDBCapcityMetaService(BaseService):
         except Exception as e:
             logger.error(traceback.format_exc())
             logger.error("cluster specs changs 4 meta fail, {}error:{}".format(kwargs, str(e)))
-            return False
+            # 5秒后重试一次
+            time.sleep(5)
+            try:
+                mongo_cluster = Cluster.objects.get(bk_biz_id=kwargs["bk_biz_id"], id=kwargs["cluster_id"])
+
+                # 仅支持 MongoDB 实例级的容量变更
+                if kwargs.get("mongodb"):
+                    logger.info(
+                        "mongo cluster capcity specs changes {} mongodb : {} ".format(
+                            mongo_cluster.immute_domain, kwargs.get("mongodb")
+                        )
+                    )
+                    self.mongdb_instance_spec_modify(
+                        mongo_cluster,
+                        kwargs.get("mongodb"),
+                        MachineType.MONGODB.value,
+                        kwargs.get("created_by"),
+                    )
+            except Exception as e:
+                logger.error(traceback.format_exc())
+                logger.error("cluster specs changs 4 meta fail, {}error:{}".format(kwargs, str(e)))
+                return False
         logger.info("cluster specs changs 4 meta successfully {}".format(kwargs))
         return True
 
@@ -130,6 +152,7 @@ class MongoDBCapcityMetaService(BaseService):
 
     @transaction.atomic
     def mongo_package_meta(self, cluster, rep_insts, created_by):
+        new_objs, ins_is_increment = [], False
         for inst_pair in rep_insts:
             old_ip, old_port = inst_pair["old"]["ip"], inst_pair["old"]["port"]
             new_ip, new_port = inst_pair["new"]["ip"], inst_pair["new"]["port"]
@@ -191,13 +214,13 @@ class MongoDBCapcityMetaService(BaseService):
                 old_tuple = StorageInstanceTuple.objects.get(receiver=old_obj)
                 StorageInstanceTuple.objects.create(ejector=old_tuple.ejector, receiver=new_obj, creator=created_by)
                 old_tuple.delete()
+            new_objs.append(new_obj)
             # 转移模块
-            ins_is_increment = False
             if cluster.cluster_type == ClusterType.MongoReplicaSet.value:
                 ins_is_increment = True
-            MongoDBCCTopoOperator(cluster).transfer_instances_to_cluster_module(
-                instances=[new_obj], is_increment=ins_is_increment
-            )
+        MongoDBCCTopoOperator(cluster).transfer_instances_to_cluster_module(
+            instances=new_objs, is_increment=ins_is_increment
+        )
 
     # 流程节点输入参数
     def inputs_format(self) -> List:

@@ -22,8 +22,8 @@ type TbMysqlPodStartCfg struct {
 	CreateTime    time.Time `gorm:"column:create_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"create_time"`
 }
 
-// GetStartArsg pod 启动参数
-func GetStartArsg(componentType, version string) (start_args string, err error) {
+// GetStartArgs pod 启动参数
+func GetStartArgs(componentType, version string) (start_args string, err error) {
 	err = DB.Model(&TbMysqlPodStartCfg{}).Select("start_args").Where("component_type = ? AND version = ?", componentType,
 		version).
 		First(&start_args).Error

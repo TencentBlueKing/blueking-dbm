@@ -20,11 +20,11 @@ limitations under the License.
 package controller
 
 import (
-	commconst "k8s-dbs/common/api/constant"
-	"k8s-dbs/core/entity"
-	"k8s-dbs/core/errors"
-	"k8s-dbs/metadata/api/vo/resp"
+	"k8s-dbs/common/api"
+	commconst "k8s-dbs/common/constant"
+	"k8s-dbs/errors"
 	"k8s-dbs/metadata/provider"
+	"k8s-dbs/metadata/vo/response"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -43,21 +43,22 @@ func NewComponentController(componentProvider provider.K8sCrdComponentProvider) 
 
 // GetComponent get an existing component by its ID.
 func (c *ComponentController) GetComponent(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaComponentDetail)
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
 	component, err := c.componentProvider.FindComponentByID(id)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	var data resp.K8sCrdComponentRespVo
-	if err := copier.Copy(&data, component); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+	var data response.K8sCrdComponentResponse
+	if err = copier.Copy(&data, component); err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, commconst.Success)
+	api.SuccessResponse(ctx, data, commconst.Success)
 }

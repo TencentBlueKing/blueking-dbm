@@ -20,7 +20,7 @@
         cluster-detail-router-name="MongoDBReplicaSetDetail"
         :data="data">
         <BkButton
-          v-db-console="'mongodb.replicaSetList.authorize'"
+          v-db-console="'mongodb.replicaSetList.importAuthorize'"
           class="ml-4"
           :disabled="data.isOffline"
           size="small"
@@ -36,6 +36,7 @@
           {{ t('获取访问方式') }}
         </BkButton>
         <AuthRouterLink
+          v-db-console="'mongodb.replicaSetList.webconsole'"
           action-id="mongodb_webconsole"
           class="ml-4"
           :disabled="data.isOffline"
@@ -64,7 +65,23 @@
               <DbIcon type="more" />
             </BkButton>
           </template>
-          <BkDropdownItem v-db-console="'mongodb.replicaSetList.capacityChange'">
+          <BkDropdownItem v-db-console="'mongodb.replicaSetList.queryAccessSource'">
+            <OperationBtnStatusTips
+              :data="data"
+              :disabled="!data.isOffline">
+              <AuthButton
+                action-id="mongodb_source_access_view"
+                :disabled="data.isOffline"
+                :permission="data.permission.mongodb_source_access_view"
+                :resource="data.id"
+                style="width: 100%; height: 32px"
+                text
+                @click="handleGoQueryAccessSourcePage(data.master_domain)">
+                {{ t('查询访问来源') }}
+              </AuthButton>
+            </OperationBtnStatusTips>
+          </BkDropdownItem>
+          <BkDropdownItem v-db-console="'mongodb.replicaSetList.scaleUpDown'">
             <OperationBtnStatusTips :data="data">
               <BkButton
                 :disabled="Boolean(data.isStructCluster) || data.operationDisabled"
@@ -123,8 +140,10 @@
         :cluster-type="ClusterTypes.MONGO_REPLICA_SET">
         <template #infoContent>
           <BaseInfo
+            :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
             :data="data"
-            @refresh="fetchDetailData" />
+            @refresh="fetchDetailData">
+          </BaseInfo>
         </template>
         <template #instanceContent>
           <InstanceList
@@ -158,14 +177,12 @@
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
-  import { ActionPanel, DisplayBox } from '@views/db-manage/common/cluster-details';
+  import { ActionPanel, BaseInfo, DisplayBox } from '@views/db-manage/common/cluster-details';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
+  import AccessEntry from '@views/db-manage/mongodb/common/cluster-operations/AccessEntry.vue';
   import InstanceList from '@views/db-manage/mongodb/common/ClusterDetailInstanceList.vue';
-  import AccessEntry from '@views/db-manage/mongodb/components/AccessEntry.vue';
-
-  import BaseInfo from './components/BaseInfo.vue';
 
   interface Props {
     clusterId: number;
@@ -232,6 +249,16 @@
       name: TicketTypes.MONGODB_SCALE_UPDOWN,
       query: {
         masterDomain: data.value!.master_domain,
+      },
+    });
+    window.open(routeInfo.href, '_blank');
+  };
+
+  const handleGoQueryAccessSourcePage = (masterDomain: string) => {
+    const routeInfo = router.resolve({
+      name: 'MongodbQueryAccessSource',
+      query: {
+        masterDomain,
       },
     });
     window.open(routeInfo.href, '_blank');

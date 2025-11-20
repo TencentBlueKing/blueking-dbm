@@ -271,7 +271,7 @@
 
   const toRelatedPolicy = (notifyGroupId: number, dbType: string) => {
     const routerData = router.resolve({
-      name: 'DBMonitorStrategy',
+      name: 'monitorStrategy',
       params: {
         bizId: currentBizId,
       },

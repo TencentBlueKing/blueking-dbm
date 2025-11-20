@@ -9,18 +9,18 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.flow.engine.controller.tbinlogdumper import TBinlogDumperController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.common.base import SkipToRepresentationMixin
+from backend.ticket.builders.tbinlogdumper.base import DumperBaseOperateDetailSerializer
 from backend.ticket.builders.tendbcluster.base import BaseDumperTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 
-class TbinlogdumperDisableDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class TbinlogdumperDisableDetailSerializer(DumperBaseOperateDetailSerializer):
     dumper_instance_ids = serializers.ListField(help_text=_("dumper实例ID"), child=serializers.IntegerField())
 
 

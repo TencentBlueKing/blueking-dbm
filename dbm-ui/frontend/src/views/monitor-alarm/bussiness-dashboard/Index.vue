@@ -3,9 +3,10 @@
     class="bussiness-dashboard"
     :loading="businessDashboardLoading">
     <template v-if="businessDashboardData?.urls.length">
-      <DbTab
+      <DbTabForBiz
         v-model="activePanelKey"
-        :exclude="excludeDbTyps" />
+        :exclude="excludeDbTyps"
+        :prefix-items="prefixItems" />
       <div class="bussiness-dashboard-content">
         <MonitorDashboard :url="currentItem?.url" />
       </div>
@@ -27,7 +28,7 @@
 
   import { DBTypeInfos, DBTypes } from '@common/const';
 
-  import DbTab from '@components/db-tab/Index.vue';
+  import DbTabForBiz from '@components/db-tab-for-biz/Index.vue';
 
   import MonitorDashboard from '@views/db-manage/common/cluster-monitor/MonitorDashboard.vue';
 
@@ -41,7 +42,20 @@
     manual: true,
   });
 
-  const activePanelKey = ref('' as DBTypes);
+  const activePanelKey = ref('');
+
+  const prefixItems = computed(() => {
+    const overviewItem = (businessDashboardData.value?.urls || []).find((urlItem) => urlItem.type === 'overview');
+    if (overviewItem) {
+      return [
+        {
+          id: overviewItem.type,
+          name: t('概览'),
+        },
+      ];
+    }
+    return [];
+  });
 
   const excludeDbTyps = computed(() => {
     const urlDbTypeMap = Object.fromEntries(
@@ -56,7 +70,12 @@
   });
 
   const currentItem = computed(() =>
-    businessDashboardData.value?.urls.find((urlItem) => urlItem.db_type === activePanelKey.value),
+    businessDashboardData.value?.urls.find((urlItem) => {
+      if (activePanelKey.value === 'overview') {
+        return urlItem.type === activePanelKey.value;
+      }
+      return urlItem.db_type === activePanelKey.value;
+    }),
   );
 
   const fetchData = () => {

@@ -9,13 +9,14 @@
 package ibdstatistic
 
 import (
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/internal/identifiertrans"
 	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
 	"time"
+
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/internal/identifiertrans"
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/reportlog"
@@ -25,6 +26,27 @@ import (
 	"github.com/pkg/errors"
 )
 
+type tableSizeStruct struct {
+	// ReportTime time.RFC3339, format like 024-11-29T11:19:02+08:00
+	ReportTime   time.Time `json:"report_time"`
+	BkCloudId    int       `json:"bk_cloud_id"`
+	BkBizId      int       `json:"bk_biz_id"`
+	ImmuteDomain string    `json:"cluster_domain"`
+	//DBModule          int       `json:"db_module"`
+	ClusterType       string `json:"cluster_type"`
+	MachineType       string `json:"machine_type"`
+	Ip                string `json:"instance_host"`
+	Port              int    `json:"instance_port"`
+	Role              string `json:"instance_role"`
+	ServiceInstanceId int64  `json:"bk_target_service_instance_id"`
+	// OriginalDBName original DBName for spider remote(with shard_id suffix)
+	OriginalDBName string `json:"original_database_name"`
+	DBName         string `json:"database_name"`
+	DBSize         int64  `json:"database_size"`
+	TableName      string `json:"table_name"`
+	TableSize      int64  `json:"table_size"`
+}
+
 func reportLog2(dbPort int, dbTableSize map[string]int64, dbSize map[string]int64) error {
 	dbsizeReportBaseDir := filepath.Join(cst.DBAReportBase, "mysql/dbsize")
 	err := os.MkdirAll(dbsizeReportBaseDir, os.ModePerm)
@@ -32,7 +54,6 @@ func reportLog2(dbPort int, dbTableSize map[string]int64, dbSize map[string]int6
 		slog.Error("failed to create database size reports directory", slog.String("error", err.Error()))
 		return errors.Wrap(err, "failed to create database size reports directory")
 	}
-	// TODO add port to report_<port>.log
 	resultReport, err := reportlog.NewReporter(dbsizeReportBaseDir, fmt.Sprintf("report_%d.log", dbPort), nil)
 	if err != nil {
 		return err

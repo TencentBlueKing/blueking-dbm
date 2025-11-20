@@ -14,12 +14,12 @@ from .cluster import Cluster, ClusterDBHAExt
 from .cluster_entry import CLBEntryDetail, ClusterEntry, PolarisEntryDetail
 from .cluster_monitor import AppMonitorTopo, ClusterMonitorTopo
 from .db_module import DBModule
+from .db_version import DBVersion, Distribution, VersionSeries
 from .extra_process import ExtraProcessInstance
 from .group import Group, GroupInstance
 from .instance import ProxyInstance, StorageInstance
 from .machine import Machine
 from .proxy_instance_ext import TenDBClusterSpiderExt
-from .redis_hot_key import RedisHotKeyDetail, RedisHotKeyInfo
 from .spec import SnapshotSpec, Spec
 from .storage_instance_tuple import StorageInstanceTuple
 from .storage_set_dtl import NosqlStorageSetDtl, TenDBClusterStorageSet

@@ -16,6 +16,7 @@ import { TicketTypes } from '@common/const';
 import { t } from '@locales/index';
 
 export interface MenuChild {
+  bind?: string[];
   dbConsoleValue: string;
   id: string;
   name: string;
@@ -27,7 +28,7 @@ export default [
     children: [
       {
         dbConsoleValue: 'tendbCluster.toolbox.sqlExecute',
-        id: 'spiderSqlExecute',
+        id: TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE,
         name: t('变更SQL执行'),
         parentId: 'spider_sql',
       },
@@ -46,13 +47,14 @@ export default [
     children: [
       {
         dbConsoleValue: 'tendbCluster.toolbox.masterSlaveSwap',
-        id: 'spiderMasterSlaveSwap',
+        id: TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH,
         name: t('主从互切'),
         parentId: 'spider_cluster_maintain',
       },
       {
-        dbConsoleValue: 'tendbCluster.toolbox.masterFailover',
-        id: 'spiderMasterFailover',
+        bind: [TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER, TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER],
+        dbConsoleValue: 'tendbCluster.toolbox.instanceFailover',
+        id: TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER,
         name: t('主库故障切换'),
         parentId: 'spider_cluster_maintain',
       },
@@ -62,17 +64,34 @@ export default [
         name: t('集群容量变更'),
         parentId: 'spider_cluster_maintain',
       },
+      // {
+      //   dbConsoleValue: 'tendbCluster.toolbox.proxyScaleUp',
+      //   id: TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES,
+      //   name: t('扩容接入层'),
+      //   parentId: 'spider_cluster_maintain',
+      // },
+      // {
+      //   dbConsoleValue: 'tendbCluster.toolbox.proxyScaleDown',
+      //   id: TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES,
+      //   name: t('缩容接入层'),
+      //   parentId: 'spider_cluster_maintain',
+      // },
+      // {
+      //   dbConsoleValue: 'tendbCluster.toolbox.switchNodes',
+      //   id: TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES,
+      //   name: t('替换接入层'),
+      //   parentId: 'spider_cluster_maintain',
+      // },
       {
-        dbConsoleValue: 'tendbCluster.toolbox.proxyScaleUp',
-        id: 'SpiderProxyScaleUp',
-        name: t('扩容接入层'),
-        parentId: 'spider_cluster_maintain',
-      },
-      {
-        dbConsoleValue: 'tendbCluster.toolbox.proxyScaleDown',
-        id: TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES,
-        name: t('缩容接入层'),
-        parentId: 'spider_cluster_maintain',
+        bind: [
+          TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES,
+          TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES,
+          TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES,
+        ],
+        dbConsoleValue: 'mysql.toolbox.proxyScaleUp',
+        id: TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES,
+        name: t('接入层变更'),
+        parentId: 'migrate',
       },
       {
         dbConsoleValue: 'tendbCluster.toolbox.masterSlaveClone',
@@ -81,8 +100,24 @@ export default [
         parentId: 'spider_cluster_maintain',
       },
       {
+        bind: [TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE, TicketTypes.TENDBCLUSTER_RESTORE_SLAVE],
         id: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE,
         name: t('重建从库'),
+        parentId: 'spider_cluster_maintain',
+      },
+      {
+        id: TicketTypes.TENDBCLUSTER_CLUSTER_STANDARDIZE,
+        name: t('集群标准化'),
+        parentId: 'spider_cluster_maintain',
+      },
+      {
+        bind: [
+          TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE,
+          TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE,
+          TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE,
+        ],
+        id: TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE,
+        name: t('版本升级'),
         parentId: 'spider_cluster_maintain',
       },
     ],
@@ -94,7 +129,7 @@ export default [
     children: [
       {
         dbConsoleValue: 'tendbCluster.toolbox.proxySlaveApply',
-        id: 'SpiderProxySlaveApply',
+        id: TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY,
         name: t('部署只读接入层'),
         parentId: 'spider_entry',
       },
@@ -120,13 +155,13 @@ export default [
     children: [
       {
         dbConsoleValue: 'tendbCluster.toolbox.dbTableBackup',
-        id: 'spiderDbTableBackup',
+        id: TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP,
         name: t('库表备份'),
         parentId: 'spider_copy',
       },
       {
         dbConsoleValue: 'tendbCluster.toolbox.dbBackup',
-        id: 'spiderDbBackup',
+        id: TicketTypes.TENDBCLUSTER_FULL_BACKUP,
         name: t('全库备份'),
         parentId: 'spider_copy',
       },
@@ -151,7 +186,7 @@ export default [
       },
       {
         dbConsoleValue: 'tendbCluster.toolbox.flashback',
-        id: 'spiderFlashback',
+        id: TicketTypes.TENDBCLUSTER_FLASHBACK,
         name: t('闪回'),
         parentId: 'spider_fileback',
       },
@@ -164,13 +199,13 @@ export default [
     children: [
       {
         dbConsoleValue: 'tendbCluster.toolbox.dbClear',
-        id: 'spiderDbClear',
+        id: TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE,
         name: t('清档'),
         parentId: 'spider_data',
       },
       {
         dbConsoleValue: 'tendbCluster.toolbox.checksum',
-        id: 'spiderChecksum',
+        id: TicketTypes.TENDBCLUSTER_CHECKSUM,
         name: t('数据校验修复'),
         parentId: 'spider_data',
       },
@@ -183,13 +218,13 @@ export default [
     children: [
       {
         dbConsoleValue: 'tendbCluster.toolbox.clientPermissionClone',
-        id: 'spiderPrivilegeCloneClient',
+        id: TicketTypes.TENDBCLUSTER_CLIENT_CLONE_RULES,
         name: t('客户端权限克隆'),
         parentId: 'spider_privilege',
       },
       {
         dbConsoleValue: 'tendbCluster.toolbox.dbInstancePermissionClone',
-        id: 'spiderPrivilegeCloneInst',
+        id: TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES,
         name: t('DB实例权限克隆'),
         parentId: 'spider_privilege',
       },

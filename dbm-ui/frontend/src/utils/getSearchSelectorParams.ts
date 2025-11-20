@@ -21,7 +21,19 @@ import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
 export function getSearchSelectorParams<T extends Record<string, any>>(data: ISearchValue[]): T {
   const params = {};
   data.forEach((value: ISearchValue) => {
-    Object.assign(params, { [value.id]: (value.values || []).map((item) => `${item.id}`.trim()).join(',') });
+    const values = value.values || [];
+    let valueStr = '';
+    if (values.length > 1) {
+      valueStr = values.map((item) => `${item.id}`.trim()).join(',');
+    } else if (values.length === 1) {
+      valueStr = `${values[0].id}`
+        .split(/[|｜,，]/)
+        .map((item) => item.trim())
+        .join(',');
+    }
+    Object.assign(params, {
+      [value.id]: valueStr,
+    });
   });
   return params as T;
 }

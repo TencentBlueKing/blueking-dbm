@@ -172,7 +172,7 @@
     () => modelValue.value.backupid,
     (backupid) => {
       if (backupid) {
-        recordSelector.value?.getData(backupid).then((data) => {
+        recordSelector.value?.getData(backupid)?.then((data) => {
           modelValue.value.backupinfo = data;
         });
       }

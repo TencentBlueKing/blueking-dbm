@@ -182,7 +182,7 @@ func MigrateInstanceBackupInfo(infoFilePath string, cnf *config.BackupConfig) (s
 		beginTime.Format("20060102150405"), backupTool)
 	cnf.Public.SetTargetName(newTargetName)
 	indexFilePath := filepath.Join(cnf.Public.BackupDir, newTargetName+".index")
-	indexFilePath, err = indexObj.SaveIndexContent(indexFilePath)
+	err = indexObj.SaveIndexContent(indexFilePath)
 	if err != nil {
 		return "", nil, err
 	}

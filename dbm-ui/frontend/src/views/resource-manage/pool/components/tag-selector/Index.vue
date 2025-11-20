@@ -90,6 +90,10 @@
     disabled?: boolean;
   }
 
+  interface Exposes {
+    getLabelNames: () => string[];
+  }
+
   const props = defineProps<Props>();
   const modelValue = defineModel<number[]>({
     default: () => [],
@@ -269,6 +273,13 @@
       ordering: 'create_time',
       type: 'resource',
     });
+  });
+
+  defineExpose<Exposes>({
+    getLabelNames() {
+      const tagLabelMap = Object.fromEntries(tagList.value.map((tagItem) => [tagItem.id, tagItem.value]));
+      return modelValue.value.map((tagId) => tagLabelMap[tagId]);
+    },
   });
 </script>
 

@@ -31,6 +31,7 @@ export default class SqlServerHaInstance {
   bk_mem: number;
   bk_os_name: string;
   bk_sub_zone: string;
+  bk_svr_device_cls_name?: string;
   cluster_id: number;
   cluster_name: string;
   cluster_type: ClusterTypes;
@@ -70,6 +71,7 @@ export default class SqlServerHaInstance {
     this.bk_mem = payload.bk_mem;
     this.bk_os_name = payload.bk_os_name;
     this.bk_sub_zone = payload.bk_sub_zone;
+    this.bk_svr_device_cls_name = payload.bk_svr_device_cls_name;
     this.cluster_id = payload.cluster_id;
     this.cluster_name = payload.cluster_name;
     this.cluster_type = payload.cluster_type;

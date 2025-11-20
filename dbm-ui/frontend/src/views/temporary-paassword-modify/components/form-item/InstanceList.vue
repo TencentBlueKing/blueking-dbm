@@ -17,9 +17,6 @@
       :data="modelValue"
       :max-height="300"
       show-overflow-tooltip>
-      <!-- <BkTableColumn label="asdasd">
-        <template #default="{ data }"> {{ data.instance_address }}sadadad </template>
-      </BkTableColumn> -->
     </BkTable>
   </BkFormItem>
 
@@ -70,6 +67,10 @@
     | TendbclusterInstanceModel
     | SqlServerHaInstanceModel
     | SqlServerSingleInstanceModel;
+
+  const modelValue = defineModel<IValue[]>({
+    default: () => [],
+  });
 
   const { t } = useI18n();
 
@@ -136,10 +137,6 @@
       },
     ],
   } as unknown as Record<ClusterTypes, PanelListType>;
-
-  const modelValue = defineModel<IValue[]>({
-    default: () => [],
-  });
 
   const isShowInstanceSelector = shallowRef(false);
   const instanceSelectorValue = shallowRef<Record<string, IValue[]>>({

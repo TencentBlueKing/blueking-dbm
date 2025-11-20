@@ -25,7 +25,7 @@ export default [
   {
     children: [
       {
-        id: 'sqlServerExecute',
+        id: TicketTypes.SQLSERVER_IMPORT_SQLFILE,
         name: t('变更SQL执行'),
         parentId: 'sql',
       },
@@ -76,12 +76,12 @@ export default [
         parentId: 'migrate',
       },
       {
-        id: 'sqlServerMasterSlaveSwap',
+        id: TicketTypes.SQLSERVER_MASTER_SLAVE_SWITCH,
         name: t('主从互切'),
         parentId: 'migrate',
       },
       {
-        id: 'sqlServerMasterFailover',
+        id: TicketTypes.SQLSERVER_MASTER_FAIL_OVER,
         name: t('主库故障切换'),
         parentId: 'migrate',
       },
@@ -93,6 +93,7 @@ export default [
   {
     children: [
       {
+        bind: [TicketTypes.SQLSERVER_FULL_MIGRATE, TicketTypes.SQLSERVER_INCR_MIGRATE],
         id: TicketTypes.SQLSERVER_FULL_MIGRATE,
         name: t('数据迁移'),
         parentId: 'data',

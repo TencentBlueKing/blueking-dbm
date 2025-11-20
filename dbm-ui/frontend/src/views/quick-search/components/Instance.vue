@@ -42,9 +42,9 @@
                   text
                   theme="primary"
                   @click="() => handleToInstance(rowData)">
-                  <HightLightText
+                  <TextHighlight
                     high-light-color="#FF9C01"
-                    :key-word="keyword"
+                    :keyword="keyword"
                     :text="rowData.ip_port" />
                 </BkButton>
                 <template #append>
@@ -131,8 +131,8 @@
 
   import ClusterInstanceStatus from '@components/cluster-instance-status/Index.vue';
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
-  import HightLightText from '@components/system-search/components/search-result/render-result/components/HightLightText.vue';
   import { useRedirect } from '@components/system-search/hooks/useRedirect';
+  import TextHighlight from '@components/text-highlight/Index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { execCopy } from '@utils';

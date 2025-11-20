@@ -74,6 +74,7 @@ def storage_instance(storages: QuerySet) -> List[Dict]:
             "instance_inner_role": ins.instance_inner_role,
             "cluster_type": ins.cluster_type,
             "status": ins.status,
+            "is_stand_by": ins.is_stand_by,
         }
 
         receiver = []

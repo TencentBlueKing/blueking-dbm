@@ -19,4 +19,7 @@ const (
 	DBMEnvironApi = "/apis/conf/system_settings/environ/"
 	// DBMSpecApi 查询规格接口
 	DBMSpecApi = "/apis/dbresource/spec/"
+
+	// DBMFaultHostsCheckApi 查询主机关联的故障单据
+	DBMFaultHostsCheckApi = "/apis/dbresource/resource/check_fault_hosts/"
 )

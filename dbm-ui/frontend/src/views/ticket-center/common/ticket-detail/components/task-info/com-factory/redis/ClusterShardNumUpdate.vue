@@ -12,55 +12,61 @@
 -->
 
 <template>
-  <BkTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn
+    row-key="src_cluster">
+    <TicketInfoTableColumn
+      col-key="immute_domain"
       fixed="left"
-      :label="t('源集群')"
-      :min-width="220">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.src_cluster].immute_domain }}
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.src_cluster].immute_domain"
+      :min-width="220"
+      :title="t('源集群')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.src_cluster].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('架构版本')"
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_type_name"
+      :title="t('架构版本')"
       :width="150">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.src_cluster].cluster_type_name }}
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.src_cluster].cluster_type_name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="db_version"
-      :label="t('Redis 版本')" />
-    <BkTableColumn
-      :label="t('当前方案')"
-      :min-width="400">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="db_version"
+      :title="t('Redis 版本')" />
+    <TicketInfoTableColumn
+      col-key="current_plan"
+      :min-width="400"
+      :title="t('当前方案')">
+      <template #default="{ row }: { row: RowData }">
         <TableGroupContent
-          v-if="data"
-          :columns="getCurrentColunms(data)"
+          v-if="row"
+          :columns="getCurrentColunms(row)"
           :title-width="90" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('新部署方案')"
-      :min-width="400">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="new_plan"
+      :min-width="400"
+      :title="t('新部署方案')">
+      <template #default="{ row }: { row: RowData }">
         <TableGroupContent
-          v-if="data"
-          :columns="getTargetColunms(data)"
+          v-if="row"
+          :columns="getTargetColunms(row)"
           :title-width="90" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('切换模式')"
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="online_switch_type"
+      :title="t('切换模式')"
       :width="150">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.online_switch_type === 'user_confirm' ? t('需人工确认') : t('无需确认') }}
+      <template #default="{ row }: { row: RowData }">
+        {{ row.online_switch_type === 'user_confirm' ? t('需人工确认') : t('无需确认') }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('校验与修复类型')">
       {{ repairAndVerifyTypesMap[ticketDetails.details.data_check_repair_setting.type] }}
@@ -81,7 +87,7 @@
 
   import { TicketTypes } from '@common/const';
 
-  import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
+  import RenderSpec from '@components/spec-display/Index.vue';
 
   import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue';
   import ValueDiff from '@views/db-manage/common/value-diff/Index.vue';
@@ -108,9 +114,9 @@
   const { t } = useI18n();
 
   // 生成映射表
-  const generateMap = (arr: { label: string; value: string }[]) => {
+  const generateMap = (arr: { title: string; value: string }[]) => {
     return arr.reduce<Record<string, string>>((obj, item) => {
-      Object.assign(obj, { [item.value]: item.label });
+      Object.assign(obj, { [item.value]: item.title });
       return obj;
     }, {});
   };
@@ -126,7 +132,6 @@
           return (
             <RenderSpec
               data={targetSpec}
-              hide-qps={!targetSpec.qps.max}
               is-ignore-counts
             />
           );
@@ -160,7 +165,6 @@
           return (
             <RenderSpec
               data={targetSpec}
-              hide-qps={!targetSpec.qps.max}
               is-ignore-counts
             />
           );
@@ -200,7 +204,6 @@
         return (
           <RenderSpec
             data={targetSpec}
-            hide-qps={!targetSpec.qps.max}
             is-ignore-counts
           />
         );
@@ -253,7 +256,6 @@
         return (
           <RenderSpec
             data={targetSpec}
-            hide-qps={!targetSpec.qps.max}
             is-ignore-counts
           />
         );

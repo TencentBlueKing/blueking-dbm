@@ -578,19 +578,24 @@ class RedisClusterVersionUpdateOnlineApiView(FlowTestView):
         "created_by":"admin",
         "uid":"1111",
         "infos": [
-             {
+            {
                 "cluster_id": 41,
-                "node_type":"Proxy",
-                "current_versions": ["twemproxy-0.4.1-v28"],
-                "target_version": "twemproxy-0.4.1-v29",
-             },
-             {
+                "node_type": "Proxy",
+                "current_versions": ["twemproxy-0.4.1-v30"],
+                "target_versions": [
+                    {"ip": "1.1.1.1", "version": "twemproxy-0.4.1-v28"},
+                    {"ip": "2.2.2.2", "version": "twemproxy-0.4.1-v33"}
+                ]
+            },
+            {
                 "cluster_id": 41,
-                "node_type":"Backend",
+                "node_type": "Backend",
                 "current_versions": ["redis-6.2.7"],
-                "target_version": "redis-6.2.14",
-             }
-         ]
+                "target_versions": [
+                    {"ip": "3.3.3.3", "version": "redis-6.2.14"}
+                ]
+            }
+        ]
     }
     """
 
@@ -703,6 +708,19 @@ class RedisSlotsMigrateForHotkeySceneApiView(FlowTestView):
         return Response({"root_id": root_id})
 
 
+class RedisSlotsMigrateScaleSceneApiView(FlowTestView):
+    @staticmethod
+    def post(request):
+        root_id = generate_root_id()
+        # 扩容
+        if len(request.data["infos"][0].get("backend_group", [])) > 0:
+            RedisController(root_id=root_id, ticket_data=request.data).redis_slots_migrate_for_expansion()
+        # 缩容
+        else:
+            RedisController(root_id=root_id, ticket_data=request.data).redis_slots_migrate_for_contraction()
+        return Response({"root_id": root_id})
+
+
 class RedisReuploadOldBackupRecordsSceneApiView(FlowTestView):
     """
     api:   /apis/v1/flow/scene/redis_reupload_old_backup_records
@@ -783,4 +801,32 @@ class RedisHotkeyAnalysisApiView(FlowTestView):
     def post(request):
         root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).redis_hotkey_analysis()
+        return Response({"root_id": root_id})
+
+
+class RedisKeystatApiView(FlowTestView):
+    """
+    {
+        "uid": "2022051612120001",
+        "ticket_id": "1111",
+        "bk_biz_id": 2005000194,
+        "bk_cloud_id": 0,
+        "ticket_type": "REDIS_KEYSTAT",
+        "created_by": "xxx",
+        "analysis_time": "20",
+        "infos": [ {
+            "record_id": 1, "cluster_id": "111", "role": "master/slave/redis_master/redis_slave",
+            "check_last_visit": true/false, # 是否检查最近访问时间,如是，则必须为master角色
+            "delimiter": "|#:_-", # 分隔符
+            "ins": [ { "addr":"1.1.1.1:50000", start_bucket: 0, end_bucket: 4299 } ... ]
+        } ... ]
+        # 一个记录包含一个集群的多个实例
+        # 不同的记录的集群id不可能相同
+    }
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = generate_root_id()
+        RedisController(root_id=root_id, ticket_data=request.data).redis_keystat()
         return Response({"root_id": root_id})

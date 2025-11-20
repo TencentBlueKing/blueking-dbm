@@ -21,26 +21,27 @@ import (
 // TbRpDetailArchive 资源池资源归档表
 // nolint
 type TbRpDetailArchive struct {
-	ID              int                      `gorm:"primary_key;auto_increment;not_null" json:"-"`
-	BkCloudID       int                      `gorm:"column:bk_cloud_id;type:int(11);not null;comment:'云区域 ID'" json:"bk_cloud_id"`
-	BkBizId         int                      `gorm:"column:bk_biz_id;type:int(11);not null;comment:'机器当前所属业务'" json:"bk_biz_id"`
-	DedicatedBiz    int                      `gorm:"column:dedicated_biz;type:int(11);default:0;comment:专属业务" json:"dedicated_biz"`
-	RsType          string                   `gorm:"column:rs_type;type:varchar(64);default:'PUBLIC';comment:资源专用组件类型" json:"rs_type"`
-	Bizs            map[string]string        `gorm:"-"`
-	BkHostID        int                      `gorm:"column:bk_host_id;type:int(11);not null;comment:'bk主机ID'" json:"bk_host_id"`
-	IP              string                   `gorm:"column:ip;type:varchar(20);not null" json:"ip"` //  svr ip
-	AssetID         string                   `gorm:"column:asset_id;type:varchar(64);not null;comment:'固定资产编号'" json:"asset_id"`
-	DeviceClass     string                   `gorm:"column:device_class;type:varchar(64);not null" json:"device_class"` //  对应机型 A30,D3
-	SvrTypeName     string                   `gorm:"column:svr_type_name;type:varchar(64);not null;comment:'服务器型号,判断是否是云机器'" json:"svr_type_name"`
-	CPUNum          int                      `gorm:"column:cpu_num;type:int(11);not null;comment:'cpu核数'" json:"cpu_num"`
-	DramCap         int                      `gorm:"column:dram_cap;type:int(11);not null;comment:'内存大小'" json:"dram_cap"`
-	StorageDevice   json.RawMessage          `gorm:"column:storage_device;type:json;comment:'磁盘设备'" json:"storage_device"`
-	TotalStorageCap int                      `gorm:"column:total_storage_cap;type:int(11);comment:'磁盘总容量'" json:"total_storage_cap"`
-	Storages        map[string]bk.DiskDetail `gorm:"-"`
-	OsType          string                   `gorm:"column:os_type;type:varchar(32);not null;comment:'操作系统类型'" json:"os_type"`
-	OsBit           string                   `gorm:"column:os_bit;type:varchar(32);not null;comment:'操作系统位数'" json:"os_bit"`
+	ID                  int                      `gorm:"primary_key;auto_increment;not_null" json:"-"`
+	BkCloudID           int                      `gorm:"column:bk_cloud_id;type:int(11);not null;comment:'云区域 ID'" json:"bk_cloud_id"`
+	BkBizId             int                      `gorm:"column:bk_biz_id;type:int(11);not null;comment:'机器当前所属业务'" json:"bk_biz_id"`
+	DedicatedBiz        int                      `gorm:"column:dedicated_biz;type:int(11);default:0;comment:专属业务" json:"dedicated_biz"`
+	RsType              string                   `gorm:"column:rs_type;type:varchar(64);default:'PUBLIC';comment:资源专用组件类型" json:"rs_type"`
+	Bizs                map[string]string        `gorm:"-"`
+	BkHostID            int                      `gorm:"column:bk_host_id;type:int(11);not null;comment:'bk主机ID'" json:"bk_host_id"`
+	IP                  string                   `gorm:"column:ip;type:varchar(20);not null" json:"ip"` //  svr ip
+	AssetID             string                   `gorm:"column:asset_id;type:varchar(64);not null;comment:'固定资产编号'" json:"asset_id"`
+	DeviceClass         string                   `gorm:"column:device_class;type:varchar(64);not null" json:"device_class"` //  对应机型 A30,D3
+	SvrTypeName         string                   `gorm:"column:svr_type_name;type:varchar(64);not null;comment:'服务器型号,判断是否是云机器'" json:"svr_type_name"`
+	CPUNum              int                      `gorm:"column:cpu_num;type:int(11);not null;comment:'cpu核数'" json:"cpu_num"`
+	DramCap             int                      `gorm:"column:dram_cap;type:int(11);not null;comment:'内存大小'" json:"dram_cap"`
+	StorageDevice       json.RawMessage          `gorm:"column:storage_device;type:json;comment:'磁盘设备'" json:"storage_device"`
+	TotalStorageCap     int                      `gorm:"column:total_storage_cap;type:int(11);comment:'磁盘总容量'" json:"total_storage_cap"`
+	TotalDataStorageCap int                      `gorm:"column:total_data_storage_cap;type:int(11);comment:'数据盘总容量'" json:"total_data_storage_cap"`
+	Storages            map[string]bk.DiskDetail `gorm:"-"`
+	OsType              string                   `gorm:"column:os_type;type:varchar(32);not null;comment:'操作系统类型'" json:"os_type"`
+	OsBit               string                   `gorm:"column:os_bit;type:varchar(32);not null;comment:'操作系统位数'" json:"os_bit"`
 	//  操作系统版本
-	OsVerion string `gorm:"column:os_version;type:varchar(64);not null;comment:'操作系统版本'" json:"os_version"`
+	OsVersion string `gorm:"column:os_version;type:varchar(64);not null;comment:'操作系统版本'" json:"os_version"`
 	//  操作系统名称
 	OsName string `gorm:"column:os_name;type:varchar(64);not null;comment:'操作系统名称'" json:"os_name"`
 	// 磁盘Raid

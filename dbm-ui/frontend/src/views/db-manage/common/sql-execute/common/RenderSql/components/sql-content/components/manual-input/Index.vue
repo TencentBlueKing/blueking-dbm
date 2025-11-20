@@ -115,6 +115,10 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
+  const modelValue = defineModel<string[]>({
+    required: true,
+  });
+
   const genFilename = (() => {
     let index = 0;
     return () => {
@@ -125,10 +129,6 @@
 
   const { dbType: currentDbType, grammarCheckHandle } = useSqlImport();
   const { t } = useI18n();
-
-  const modelValue = defineModel<string[]>({
-    required: true,
-  });
 
   const {
     fetchFileContentByFileName,

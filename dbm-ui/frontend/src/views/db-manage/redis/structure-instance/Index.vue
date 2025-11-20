@@ -12,37 +12,580 @@
 -->
 
 <template>
-  <Component :is="component" />
+  <div class="redis-struct-ins-page">
+    <BkAlert
+      closable
+      theme="info"
+      :title="t('构造实例：通过定点构造产生的实例，可以将实例数据写回原集群或者直接销毁')" />
+    <div class="buttons">
+      <BkButton
+        :disabled="!isIndeterminate"
+        @click="handleBatchDestruct">
+        {{ t('批量销毁') }}
+      </BkButton>
+      <BkButton
+        class="ml-8"
+        :disabled="!isIndeterminate"
+        @click="handleBatchDataCopy">
+        {{ t('批量回写') }}
+      </BkButton>
+    </div>
+    <BkLoading
+      :loading="isTableDataLoading"
+      :z-index="2">
+      <DbOriginalTable
+        class="record-table"
+        :columns="columns"
+        :data="tableData"
+        :max-height="tableHeight"
+        :pagination="pagination"
+        remote-pagination
+        :row-class="setRowClass"
+        :settings="settings"
+        @page-limit-change="handeChangeLimit"
+        @page-value-change="handleChangePage"
+        @refresh="fetchHostNodes" />
+    </BkLoading>
+  </div>
 </template>
-<script setup lang="ts">
-  import { useRoute } from 'vue-router';
 
-  import Page1 from './pages/page1/Index.vue';
-  import Page2 from './pages/page2/Index.vue';
+<script setup lang="tsx">
+  import { InfoBox } from 'bkui-vue';
+  import { useI18n } from 'vue-i18n';
+  import { useRouter } from 'vue-router';
 
-  const route = useRoute();
+  import RedisRollbackModel from '@services/model/redis/redis-rollback';
+  import { getRollbackList } from '@services/source/redisRollback';
+  import { createTicket } from '@services/source/ticket';
 
-  const comMap = {
-    success: Page2,
-    ticket: Page1,
+  import { useDefaultPagination, useTicketMessage } from '@hooks';
+
+  import { useGlobalBizs } from '@stores';
+
+  import { TicketTypes } from '@common/const';
+
+  import useResetTableHeight from '@views/db-manage/redis/common/hooks/useResetTableHeight';
+
+  const { currentBizId } = useGlobalBizs();
+  const handleDeleteSuccess = useTicketMessage();
+  const { t } = useI18n();
+  const router = useRouter();
+  const tableData = ref<RedisRollbackModel[]>([]);
+  const isTableDataLoading = ref(false);
+  const pagination = ref(useDefaultPagination());
+  const tableHeight = ref(500);
+  const checkedMap = shallowRef<Record<number, RedisRollbackModel>>({});
+  const timer = ref();
+
+  const isSelectedAll = computed(
+    () =>
+      tableData.value.length > 0 &&
+      tableData.value.length === tableData.value.filter((item) => checkedMap.value[item.id]).length,
+  );
+
+  const isIndeterminate = computed(() => Object.keys(checkedMap.value).length > 0);
+
+  const settings = {
+    checked: [
+      'prod_cluster',
+      'prod_instance_range',
+      'temp_cluster_proxy',
+      'specification',
+      'related_rollback_bill_id',
+      'host_count',
+      'recovery_time_point',
+    ],
+    fields: [
+      {
+        field: 'prod_cluster',
+        label: t('构造的集群'),
+      },
+      {
+        field: 'prod_instance_range',
+        label: t('构造实例范围'),
+      },
+      {
+        field: 'temp_cluster_proxy',
+        label: t('构造产物访问入口'),
+      },
+      {
+        field: 'specification',
+        label: t('规格需求'),
+      },
+      {
+        field: 'related_rollback_bill_id',
+        label: t('关联单据'),
+      },
+      {
+        field: 'host_count',
+        label: t('构造的主机数量'),
+      },
+      {
+        field: 'recovery_time_point',
+        label: t('构造到指定时间'),
+      },
+    ],
   };
 
-  const page = ref('');
+  const { resetTableHeight } = useResetTableHeight(tableHeight, 275);
 
-  const component = computed(() => {
-    if (comMap[page.value as keyof typeof comMap]) {
-      return comMap[page.value as keyof typeof comMap];
-    }
-    return Page1;
+  onMounted(() => {
+    fetchHostNodes();
+    resetTableHeight();
   });
 
-  watch(
-    route,
-    () => {
-      page.value = route.params.page as string;
+  const handleChangePage = (value: number) => {
+    pagination.value.current = value;
+    fetchHostNodes();
+  };
+
+  const handeChangeLimit = (value: number) => {
+    pagination.value.limit = value;
+    pagination.value.current = 1;
+    fetchHostNodes();
+  };
+
+  const fetchHostNodes = async () => {
+    const ret = await getRollbackList({
+      bk_biz_id: currentBizId,
+      limit: pagination.value.limit,
+      offset: (pagination.value.current - 1) * pagination.value.limit,
+    });
+    tableData.value = ret.results;
+    pagination.value.count = ret.count;
+  };
+
+  // 渲染多选框
+  const renderCheckbox = (data: RedisRollbackModel) => (
+    <bk-checkbox
+      disabled={!data.isNotDestroyed}
+      model-value={Boolean(checkedMap.value[data.id])}
+      style='margin-right:8px;vertical-align: middle;'
+      onChange={(value: boolean) => handleTableSelectOne(value, data)}
+      onClick={(e: Event) => e.stopPropagation()}
+    />
+  );
+
+  const handleControlTip = (data: RedisRollbackModel, isShow: boolean) => {
+    clearTimeout(timer.value);
+    Object.assign(data, {
+      isShowInstancesTip: false,
+    });
+    timer.value = setTimeout(() => {
+      Object.assign(data, {
+        isShowInstancesTip: isShow,
+      });
+    }, 500);
+  };
+
+  // 渲染首列
+  const renderColumnCluster = (data: RedisRollbackModel) => {
+    let tipText = '';
+    if (data.isDestroyed) {
+      tipText = t('已销毁');
+    } else if (data.isDestroying) {
+      tipText = t('销毁中');
+    }
+    return (
+      <div class='first-column'>
+        {data.isDestroying ? (
+          <bk-popover
+            placement='top'
+            theme='light'>
+            {{
+              content: () => (
+                <span>
+                  {t('销毁任务正在进行中，跳转')}{' '}
+                  <router-link
+                    to={{
+                      name: 'bizTicketManage',
+                      params: {
+                        ticketId: data.related_rollback_bill_id,
+                      },
+                    }}
+                    target='_blank'>
+                    {t('单据')}
+                  </router-link>
+                  {t('查看进度')}
+                </span>
+              ),
+              default: () => renderCheckbox(data),
+            }}
+          </bk-popover>
+        ) : (
+          renderCheckbox(data)
+        )}
+        <div class='name'>{data.prod_cluster}</div>
+        {(data.isDestroyed || data.isDestroying) && (
+          <bk-tag
+            class='tag-tip'
+            style={{ color: data.isDestroyed ? '#63656E' : '#EA3536' }}
+            theme={data.isDestroyed ? undefined : 'danger'}>
+            {tipText}
+          </bk-tag>
+        )}
+      </div>
+    );
+  };
+
+  const renderInstanceRange = (index: number, data: RedisRollbackModel) => {
+    const len = data.prod_instance_range.length;
+    const showTag = len > 1;
+    return showTag ? (
+      <bk-popover
+        is-show={data.isShowInstancesTip}
+        placement='top'
+        theme='dark'
+        trigger='manual'>
+        {{
+          content: () => data.prod_instance_range.map((item) => <div>{item}</div>),
+          default: () => (
+            <div class='instance-box'>
+              <div
+                class='content'
+                onMouseenter={() => handleControlTip(data, true)}
+                onMouseleave={() => handleControlTip(data, false)}>
+                {data.prod_instance_range.toString()}{' '}
+                {showTag && (
+                  <div class='tag-box'>
+                    <bk-tag>{`+${len - 1}`}</bk-tag>
+                  </div>
+                )}
+              </div>
+            </div>
+          ),
+        }}
+      </bk-popover>
+    ) : (
+      <span>{data.prod_instance_range.toString()}</span>
+    );
+  };
+
+  const columns = [
+    {
+      field: 'prod_cluster',
+      label: () => (
+        <div class='first-column'>
+          <bk-checkbox
+            indeterminate={isSelectedAll.value ? false : isIndeterminate.value}
+            label={true}
+            model-value={isSelectedAll.value}
+            onChange={handleSelectPageAll}
+            onClick={(e: Event) => e.stopPropagation()}
+          />
+          {t('构造的集群')}
+        </div>
+      ),
+      minWidth: 150,
+      render: ({ data }: { data: RedisRollbackModel }) => renderColumnCluster(data),
+      showOverflowTooltip: false,
     },
     {
-      immediate: true,
+      field: 'prod_instance_range',
+      label: t('构造实例范围'),
+      minWidth: 150,
+      render: ({ data, index }: { data: RedisRollbackModel; index: number }) => renderInstanceRange(index, data),
+      showOverflowTooltip: false,
+      width: 250,
     },
-  );
+    {
+      field: 'temp_cluster_proxy',
+      label: t('构造产物访问入口'),
+      minWidth: 130,
+    },
+    {
+      field: 'specification',
+      label: t('规格需求'),
+      minWidth: 100,
+      render: ({ data }: { data: RedisRollbackModel }) => <span>{data.specification.name}</span>,
+    },
+    {
+      field: 'related_rollback_bill_id',
+      label: t('关联单据'),
+      minWidth: 100,
+      render: ({ data }: { data: RedisRollbackModel }) =>
+        data.related_rollback_bill_id ? (
+          <router-link
+            to={{
+              name: 'bizTicketManage',
+              params: {
+                ticketId: data.related_rollback_bill_id,
+              },
+            }}
+            target='_blank'>
+            {data.related_rollback_bill_id}
+          </router-link>
+        ) : (
+          '--'
+        ),
+      showOverflowTooltip: true,
+      width: 110,
+    },
+    {
+      field: 'host_count',
+      label: t('构造的主机数量'),
+      minWidth: 120,
+      showOverflowTooltip: true,
+      width: 120,
+    },
+    {
+      field: 'recovery_time_point',
+      label: t('构造到指定时间'),
+      minWidth: 150,
+      render: ({ data }: { data: RedisRollbackModel }) => <span>{data.recoveryTimePointDisplay}</span>,
+      showOverflowTooltip: true,
+    },
+    {
+      field: '',
+      fixed: 'right',
+      label: t('操作'),
+      minWidth: 140,
+      render: ({ data }: { data: RedisRollbackModel }) => (
+        <div
+          class='operate-box'
+          style={{ color: data.isNotDestroyed ? '#3A84FF' : '#C4C6CC' }}>
+          <bk-button
+            theme='primary'
+            text
+            onClick={() => handleClickDestructItem(data)}>
+            {t('销毁')}
+          </bk-button>
+          <bk-button
+            style='margin-left:10px;'
+            theme='primary'
+            text
+            onClick={() => handleClickDataCopy(data)}>
+            {t('回写数据')}
+          </bk-button>
+        </div>
+      ),
+      showOverflowTooltip: true,
+      width: 180,
+    },
+  ];
+
+  const handleSelectPageAll = (checked: boolean) => {
+    const lastCheckMap = { ...checkedMap.value };
+    for (const item of tableData.value) {
+      if (item.isNotDestroyed) {
+        if (checked) {
+          lastCheckMap[item.id] = item;
+        } else {
+          delete lastCheckMap[item.id];
+        }
+      }
+    }
+    checkedMap.value = lastCheckMap;
+  };
+
+  const handleTableSelectOne = (checked: boolean, data: RedisRollbackModel) => {
+    const lastCheckMap = { ...checkedMap.value };
+    if (checked) {
+      lastCheckMap[data.id] = data;
+    } else {
+      delete lastCheckMap[data.id];
+    }
+    checkedMap.value = lastCheckMap;
+  };
+
+  // 获取有效的选中列表
+  const getCheckedValidList = () => {
+    const list = Object.values(checkedMap.value);
+    return list.filter((item) => item.isNotDestroyed);
+  };
+
+  // 根据表格数据生成提交单据请求参数
+  const generateRequestParam = (rowData?: RedisRollbackModel) => {
+    const dataArr = getCheckedValidList();
+    if (!rowData) {
+      const infos = dataArr.map((item) => {
+        const { bk_cloud_id, related_rollback_bill_id } = item;
+        const obj = {
+          bk_cloud_id,
+          cluster_id: item.prod_cluster_id,
+          display_info: {
+            temp_cluster_proxy: item.temp_cluster_proxy,
+          },
+          related_rollback_bill_id,
+        };
+        return obj;
+      });
+      return infos;
+    }
+    return [
+      {
+        bk_cloud_id: rowData.bk_cloud_id,
+        cluster_id: rowData.prod_cluster_id,
+        display_info: {
+          temp_cluster_proxy: rowData.temp_cluster_proxy,
+        },
+        related_rollback_bill_id: rowData.related_rollback_bill_id,
+      },
+    ];
+  };
+
+  // 设置行样式
+  const setRowClass = (row: RedisRollbackModel) => (row.isDestroyed ? 'disable-color' : 'normal-color');
+
+  // 批量销毁
+  const handleBatchDestruct = () => {
+    const infos = generateRequestParam();
+    const params = {
+      bk_biz_id: currentBizId,
+      details: {
+        infos,
+      },
+      ticket_type: TicketTypes.REDIS_DATA_STRUCTURE_TASK_DELETE,
+    };
+    InfoBox({
+      confirmText: t('删除'),
+      onConfirm: () => {
+        createTicket(params).then((data) => {
+          const ticketId = data.id;
+          handleDeleteSuccess(ticketId);
+        });
+      },
+      subTitle: t('销毁后将不可再恢复，请谨慎操作！'),
+      title: t('确认销毁 n 个集群的构造实例？', { n: infos.length }),
+      width: 480,
+    });
+  };
+
+  // 批量回写
+  const handleBatchDataCopy = () => {
+    const list = Object.values(checkedMap.value);
+    router.push({
+      name: TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY,
+      query: {
+        domains: list.map((item) => item.temp_cluster_proxy).join(','),
+      },
+    });
+  };
+
+  // 销毁
+  const handleClickDestructItem = (data: RedisRollbackModel) => {
+    if (!data.isNotDestroyed) {
+      return;
+    }
+    const infos = generateRequestParam(data);
+    const params = {
+      bk_biz_id: currentBizId,
+      details: {
+        infos,
+      },
+      ticket_type: TicketTypes.REDIS_DATA_STRUCTURE_TASK_DELETE,
+    };
+    InfoBox({
+      confirmText: t('删除'),
+      onConfirm: () => {
+        createTicket(params).then((data) => {
+          const ticketId = data.id;
+          handleDeleteSuccess(ticketId);
+        });
+      },
+      subTitle: t('销毁后将不可再恢复，请谨慎操作！'),
+      title: t('确认销毁 n 个集群的构造实例？', { n: 1 }),
+      width: 480,
+    });
+  };
+
+  // 回写数据
+  const handleClickDataCopy = (data: RedisRollbackModel) => {
+    if (!data.isNotDestroyed) {
+      return;
+    }
+    router.push({
+      name: TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY,
+      query: {
+        domains: data.temp_cluster_proxy,
+      },
+    });
+  };
 </script>
+
+<style lang="less" scoped>
+  .record-table {
+    :deep(.normal-color) {
+      .vxe-cell {
+        color: #63656e;
+      }
+    }
+
+    :deep(.disable-color) {
+      .vxe-cell {
+        color: #c4c6cc;
+      }
+    }
+
+    :deep(.first-column) {
+      display: flex;
+      align-items: center;
+
+      .name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .tag-tip {
+        padding: 1px 4px;
+        font-weight: 700;
+        transform: scale(0.83, 0.83);
+      }
+    }
+
+    :deep(.operate-box) {
+      cursor: pointer;
+    }
+
+    :deep(.instance-box) {
+      position: relative;
+      width: 100%;
+      padding-right: 4px;
+      overflow: hidden;
+
+      .content {
+        width: 100%;
+        padding-right: 20px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .tag-box {
+        position: absolute;
+        top: 0;
+        right: -10px;
+
+        .bk-tag {
+          padding: 0 6px;
+          font-size: 12px;
+          transform: scale(0.83, 0.83);
+        }
+      }
+    }
+  }
+
+  .redis-struct-ins-page {
+    padding-bottom: 20px;
+
+    .buttons {
+      margin: 16px 0;
+    }
+
+    .page-action-box {
+      display: flex;
+      align-items: center;
+      margin-top: 16px;
+
+      .safe-action {
+        margin-left: auto;
+
+        .safe-action-text {
+          padding-bottom: 2px;
+          border-bottom: 1px dashed #979ba5;
+        }
+      }
+    }
+  }
+</style>

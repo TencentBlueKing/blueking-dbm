@@ -14,7 +14,7 @@ from typing import List, Optional, Union
 
 from dateutil.parser import parse as time_parse
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.constants import DATE_PATTERN, DATETIME_PATTERN
 from backend.exceptions import ValidationError
@@ -76,6 +76,9 @@ def str2datetime(datetime_str: str, fmt: str = DATETIME_PATTERN, aware_check: bo
 
 
 def compare_time(time1: str, time2: str):
+    """
+    比较两个时间大小
+    """
     time1 = time1 if isinstance(time1, datetime.datetime) else str2datetime(time1)
     time2 = time2 if isinstance(time2, datetime.datetime) else str2datetime(time2)
     return time1 > time2
@@ -90,6 +93,9 @@ def standardized_time_str(datetime_str: str):
 
 
 def datetime2timestamp(o_datetime: Optional[datetime.datetime]) -> float:
+    """
+    将datetime转换为timestamp
+    """
     # time.mktime(o_datetime.timetuple())
     # 这样转换有问题: time.mktime()函数默认假设时间元组是本地时间，而不是UTC时间。
     # 直接用datetime的时间戳转换即可
@@ -99,6 +105,9 @@ def datetime2timestamp(o_datetime: Optional[datetime.datetime]) -> float:
 
 
 def date2str(o_date: datetime.date, fmt: str = DATE_PATTERN) -> str:
+    """
+    将时间对象转换为日期字符串
+    """
     return datetime.date.strftime(o_date, fmt)
 
 
@@ -111,17 +120,23 @@ def calculate_cost_time(
         start_time = strptime(start_time)
     if isinstance(end_time, str) or end_time is None:
         end_time = strptime(end_time)
-    return (end_time - start_time).seconds
+    return int((end_time - start_time).total_seconds())
 
 
 def timestamp2str(timestamp: int) -> str:
+    """
+    将timestamp转换为str
+    """
     timestamp = int(timestamp)
     return datetime2str(datetime.datetime.fromtimestamp(timestamp).astimezone())
 
 
 def timestamp2datetime(timestamp: int) -> datetime:
+    """
+    将timestamp转换为datetime
+    """
     timestamp = int(timestamp)
-    return datetime.datetime.fromtimestamp(timestamp)
+    return datetime.datetime.fromtimestamp(timestamp).astimezone()
 
 
 def countdown2str(countdown: Union[int, datetime.timedelta]) -> str:
@@ -179,3 +194,32 @@ def trans_time_zone(o_datetime: datetime, time_zone_str: str) -> datetime:
     """
     offset_hours = int(time_zone_str[:3])
     return o_datetime.astimezone(datetime.timezone(datetime.timedelta(hours=offset_hours)))
+
+
+def get_local_charset():
+    """获取本地时区"""
+    now = datetime.datetime.now(datetime.timezone.utc).astimezone()
+    # 提取时区偏移并格式化
+    offset = now.utcoffset()
+    total_seconds = offset.total_seconds()
+    hours = int(total_seconds // 3600)
+    minutes = int(abs(total_seconds) % 3600 // 60)
+
+    # 格式化为"+HH:MM"（确保小时和分钟都是两位数）
+    formatted_offset = f"{'+' if hours >= 0 else '-'}{abs(hours):02d}:{minutes:02d}"
+    return formatted_offset
+
+
+def get_days_range(start_date: datetime, end_date: datetime, weekdays=None, fmt=DATE_PATTERN) -> List[str]:
+    """获取两个日期之间的所有日期天数"""
+    if isinstance(start_date, str):
+        start_date = str2datetime(start_date)
+    if isinstance(end_date, str):
+        end_date = str2datetime(end_date)
+
+    days_range = []
+    for i in range((end_date - start_date).days + 1):
+        day_datetime = (start_date + datetime.timedelta(days=i)).astimezone()
+        if not weekdays or (day_datetime.weekday() + 1) in weekdays:
+            days_range.append(date2str(day_datetime, fmt))
+    return days_range

@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -28,9 +28,9 @@ from backend.configuration.serializers import (
     ListBizSettingsResponseSerializer,
     ListBizSettingsSerializer,
     UpdateBizSettingsSerializer,
-    UpdateDutyNoticeSerializer,
 )
 from backend.db_meta.models import AppCache
+from backend.db_services.cmdb.biz import get_resource_biz
 from backend.db_services.ipchooser.constants import IDLE_HOST_MODULE
 from backend.flow.utils.cc_manage import CcManage
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -46,7 +46,16 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
     action_permission_map = {
         ("sensitive_environ",): [RejectPermission()],
         ("update_duty_notice_config",): [ResourceActionPermission([ActionEnum.UPDATE_DUTY_NOTICE_CONFIG])],
-        ("disk_classes", "device_classes", "duty_notice_config", "environ", "common_sqls", "machine_property"): [],
+        (
+            "disk_classes",
+            "device_classes",
+            "duty_notice_config",
+            "environ",
+            "common_sqls",
+            "machine_property",
+            "builtin_labels",
+            "operation_data_switch",
+        ): [],
     }
     default_permission_class = [ResourceActionPermission([ActionEnum.GLOBAL_MANAGE])]
 
@@ -85,25 +94,6 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
     def device_classes(self, request, *args, **kwargs):
         return Response(SystemSettings.get_setting_value(SystemSettingsEnum.DEVICE_CLASSES.value, default=[]))
 
-    @common_swagger_auto_schema(
-        operation_summary=_("查询轮值通知配置"),
-        tags=tags,
-    )
-    @action(methods=["GET"], detail=False, pagination_class=None)
-    def duty_notice_config(self, request, *args, **kwargs):
-        return Response(SystemSettings.get_setting_value(SystemSettingsEnum.BKM_DUTY_NOTICE.value, default={}))
-
-    @common_swagger_auto_schema(
-        operation_summary=_("更新轮值通知配置"),
-        tags=tags,
-        request_body=UpdateDutyNoticeSerializer(),
-    )
-    @action(methods=["POST"], detail=False, pagination_class=None, serializer_class=UpdateDutyNoticeSerializer)
-    def update_duty_notice_config(self, request, *args, **kwargs):
-        """"""
-        SystemSettings.insert_setting_value(SystemSettingsEnum.BKM_DUTY_NOTICE.value, self.validated_data, "dict")
-        return Response(SystemSettings.get_setting_value(SystemSettingsEnum.BKM_DUTY_NOTICE.value, default={}))
-
     @common_swagger_auto_schema(operation_summary=_("查询环境变量"), tags=tags)
     @action(detail=False, methods=["get"])
     def environ(self, request):
@@ -116,9 +106,12 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
             "BK_DBM_URL": env.BK_SAAS_HOST,
             "DBA_APP_BK_BIZ_ID": env.DBA_APP_BK_BIZ_ID,
             "DBA_APP_BK_BIZ_NAME": AppCache.get_biz_name(env.DBA_APP_BK_BIZ_ID),
+            "RESOURCE_INDEPENDENT_BIZ": get_resource_biz(),
+            "RESOURCE_INDEPENDENT_BIZ_NAME": AppCache.get_biz_name(get_resource_biz()),
             "CC_MANAGE_TOPO": SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO),
             "AFFINITY": SystemSettings.get_setting_value(key=SystemSettingsEnum.AFFINITY.value),
             "ENABLE_EXTERNAL_PROXY": env.ENABLE_EXTERNAL_PROXY,
+            "DBA_ROBOT": SystemSettings.get_setting_value(key=SystemSettingsEnum.DBA_ROBOT.value, default={}),
         }
         # 非外部环境，补充额外环境变量
         if not env.ENABLE_EXTERNAL_PROXY and not env.ENABLE_OPEN_EXTERNAL_PROXY:
@@ -132,6 +125,7 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
                     "BK_NODEMAN_URL": env.BK_NODEMAN_URL,
                     "BK_SCR_URL": env.BK_SCR_URL,
                     "BKDATA_FRONTEND_REPORT_URL": BKBaseApi.get_bkdata_frontend_report_url(),
+                    "BK_AIDEV_URL": env.BK_AIDEV_URL,
                     "BKMONITOR_URL": env.BKMONITOR_URL,
                     "BK_HCM_URL": env.BK_HCM_URL,
                 }
@@ -163,6 +157,16 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
             SystemSettings.get_setting_value(
                 SystemSettingsEnum.MACHINE_PROPERTY.value, default=DEFAULT_MACHINE_PROPERTY
             )
+        )
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询平台运营数据开关配置"),
+        tags=tags,
+    )
+    @action(methods=["GET"], detail=False, pagination_class=None)
+    def operation_data_switch(self, request, *args, **kwargs):
+        return Response(
+            SystemSettings.get_setting_value(SystemSettingsEnum.OPERATION_DATA_SWITCH.value, default=False)
         )
 
 

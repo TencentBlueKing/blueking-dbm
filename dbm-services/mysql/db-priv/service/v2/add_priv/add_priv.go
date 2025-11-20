@@ -48,7 +48,9 @@ func (c *PrivTaskPara) AddPriv(jsonPara, ticket string) (err error) {
 	if c.User == "" {
 		return errno.GrantPrivilegesParameterCheckFail
 	}
-	if c.ClusterType == "" {
+	if !(c.ClusterType == internal.ClusterTypeTenDBSingle ||
+		c.ClusterType == internal.ClusterTypeTenDBCluster ||
+		c.ClusterType == internal.ClusterTypeTenDBHA) {
 		return errno.GrantPrivilegesParameterCheckFail
 	}
 

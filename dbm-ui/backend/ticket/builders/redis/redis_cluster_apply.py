@@ -8,22 +8,30 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework import serializers
 
 from backend.configuration.constants import AffinityEnum, DBPrivSecurityType
 from backend.configuration.handlers.password import DBPasswordHandler
 from backend.db_meta.enums import ClusterType
 from backend.db_services.dbbase.constants import IpSource
+from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import CommonValidate, SkipToRepresentationMixin
+from backend.ticket.builders.common.base import (
+    CommonValidate,
+    SkipToRepresentationMixin,
+    TicketBaseValidateSerializerMixin,
+    get_ticket_zone_list,
+)
 from backend.ticket.builders.common.constants import REDIS_PROXY_MIN, RedisRole
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, RedisBasePauseParamBuilder
 from backend.ticket.constants import TicketType
 
 
-class RedisClusterApplyDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class RedisClusterApplyDetailSerializer(
+    TicketBaseValidateSerializerMixin, SkipToRepresentationMixin, serializers.Serializer
+):
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
     proxy_port = serializers.IntegerField(help_text=_("集群端口"))
     db_app_abbr = serializers.CharField(help_text=_("业务英文缩写"))
@@ -48,6 +56,13 @@ class RedisClusterApplyDetailSerializer(SkipToRepresentationMixin, serializers.S
     resource_spec = serializers.JSONField(help_text=_("proxy部署方案"), required=False)
     cluster_shard_num = serializers.IntegerField(help_text=_("集群分片数"), required=False)
 
+    # display fields
+    bk_cloud_name = serializers.SerializerMethodField(help_text=_("云区域"), read_only=True)
+
+    def get_bk_cloud_name(self, obj):
+        clouds = ResourceQueryHelper.search_cc_cloud(get_cache=True)
+        return clouds[str(obj["bk_cloud_id"])]["bk_cloud_name"]
+
     def get_city_name(self, obj):
         city_code = obj["city_code"]
         return self.context["ticket_ctx"].city_map.get(city_code, city_code)
@@ -63,9 +78,8 @@ class RedisClusterApplyDetailSerializer(SkipToRepresentationMixin, serializers.S
         2. master=slave数量为>=1
         3. proxy>=2
         """
-
         # 判断主机角色是否互斥
-        super().validate(attrs)
+        attrs = super().validate(attrs)
 
         # predixyRedisCluster， tendisplus集群分片数至少>=3
         if attrs["cluster_shard_num"] < 3 and attrs["cluster_type"] in [
@@ -114,6 +128,11 @@ class RedisClusterApplyDetailSerializer(SkipToRepresentationMixin, serializers.S
             raise serializers.ValidationError(_("proxy至少提供2台机器"))
 
         return attrs
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation["bk_cloud_name"] = self.get_bk_cloud_name(instance)
+        return representation
 
 
 class RedisClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
@@ -215,6 +234,9 @@ class RedisClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
         )
         # 校验域名是否合法
         CommonValidate._validate_domain_valid(domain_name)
+
+        # 补充zone_list数据
+        self.ticket_data["zone_list"] = get_ticket_zone_list(self.ticket_data)
 
         self.ticket_data.update(
             {

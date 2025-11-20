@@ -135,6 +135,7 @@ func (p *PhysicalDumper) buildArgs() []string {
 
 	if p.cnf.PhysicalBackup.Throttle > 0 {
 		args = append(args, fmt.Sprintf("--throttle=%d", p.cnf.PhysicalBackup.Throttle))
+		args = append(args, "--log-copy-interval=300")
 	}
 	if p.cnf.PhysicalBackup.LockDDL {
 		// will block all ddl and non-innodb dml from the backup beginning
@@ -199,7 +200,7 @@ func (p *PhysicalDumper) Execute(ctx context.Context) error {
 		} else {
 			logger.Log.Infof("will set global slave_parallel_workers=%s after backup finished", originVal)
 			defer func() {
-				if err = mysqlconn.SetSingleGlobalVar("slave_parallel_workers", originVal, db); err != nil {
+				if err := mysqlconn.SetSingleGlobalVar("slave_parallel_workers", originVal, db); err != nil {
 					logger.Log.Errorf("set global slave_parallel_workers=%s failed, err: %s", originVal, err.Error())
 				}
 			}()
@@ -232,14 +233,14 @@ func (p *PhysicalDumper) Execute(ctx context.Context) error {
 	if err != nil {
 		errStrPrefix := fmt.Sprintf("tail 5 error from %s", xtrabackupLogFile)
 		errStrDetail, _ := cmutil.NewGrepLines(xtrabackupLogFile, true, false).
-			MatchWords([]string{"ERROR", "fatal", "unknown", "No such file"}, 5)
+			MatchWords([]string{"ERROR", "fatal", "unknown", "No such file", "Note", "DDLoperation"}, 5)
 		if len(errStrDetail) > 0 {
 			logger.Log.Info(errStrPrefix)
 			logger.Log.Error(errStrDetail)
 		} else {
 			logger.Log.Warn("tail can not find more detail error message from ", xtrabackupLogFile)
 		}
-		logger.Log.Error("run physical backup failed", err, p.cnf.Public.MysqlPort)
+		logger.Log.Error("run physical backup failed: ", err, p.cnf.Public.MysqlPort)
 		return errors.WithMessagef(err, fmt.Sprintf("%s\n%s", errStrPrefix, errStrDetail))
 	}
 	return nil
@@ -248,9 +249,8 @@ func (p *PhysicalDumper) Execute(ctx context.Context) error {
 // PrepareBackupMetaInfo prepare the backup result of Physical Backup(innodb)
 // xtrabackup备份完成后，解析 xtrabackup_info 等文件
 func (p *PhysicalDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig, metaInfo *dbareport.IndexContent) error {
-	metaInfo.JudgeIsFullBackup(&cnf.Public)
+	metaInfo.JudgeBackupMethod(cnf)
 	// 物理备份，在 tarball 阶段再获取binlog info
-	//return nil
 
 	backupTargetDir := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName())
 	xtrabackupInfoFileName := filepath.Join(backupTargetDir, "xtrabackup_info")
@@ -270,16 +270,19 @@ func (p *PhysicalDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig, metaInf
 	// parse xtrabackup_info
 	if err = parseXtraInfo(qpressPath, xtrabackupInfoFileName, tmpFileName, metaInfo); err != nil {
 		logger.Log.Warnf("xtrabackup_info file not found, use current time as BackupEndTime, err: %s", err.Error())
-		//metaInfo.BackupBeginTime = cmutil.TimeToSecondPrecision(p.backupStartTime)
-		//metaInfo.BackupEndTime = cmutil.TimeToSecondPrecision(p.backupEndTime)
 	}
 	// parse xtrabackup_timestamp_info
-	if err := parseXtraTimestamp(qpressPath, xtrabackupTimestampFileName, tmpFileName, metaInfo); err != nil {
-		// 此时刚备份完成，还没有开始打包，这里把当前时间认为是 consistent_time，不完善！
-		logger.Log.Warnf("xtrabackup_timestamp_info file not found, "+
-			"use current time as Consistent Time, err: %s", err.Error())
-		metaInfo.BackupConsistentTime = cmutil.TimeToSecondPrecision(metaInfo.BackupEndTime)
+	if metaInfo.BackupConsistentTime.IsZero() {
+		if err := parseXtraTimestamp(qpressPath, xtrabackupTimestampFileName, tmpFileName, metaInfo); err != nil {
+			// 此时刚备份完成，还没有开始打包，这里把当前时间认为是 consistent_time，不完善！
+			logger.Log.Warnf("xtrabackup_timestamp_info file not found, "+
+				"use current time as Consistent Time, err: %s", err.Error())
+			metaInfo.BackupConsistentTime = cmutil.TimeToSecondPrecision(metaInfo.BackupEndTime)
+			// 如果是 slave，判断当前的延迟，需要用这个时间减去延时的时间才是 consistent_time
+			// 所以这个一致性时间，只是个大概，可能有 1s 左右的误差
+		}
 	}
+
 	// parse xtrabackup_binlog_info 本机的 binlog file,pos
 	if masterStatus, err := parseXtraBinlogInfo(qpressPath, xtrabackupBinlogInfoFileName, tmpFileName); err != nil {
 		logger.Log.Warnf("xtrabackup_binlog_info file not found, "+
@@ -295,7 +298,7 @@ func (p *PhysicalDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig, metaInf
 	}
 
 	// parse xtrabackup_slave_info 如果是 slave，获取它的 master file,pos
-	if mysqlRole := strings.ToLower(cnf.Public.MysqlRole); mysqlRole == cst.RoleSlave || mysqlRole == cst.RoleRepeater {
+	if !strings.EqualFold(cnf.Public.MysqlRole, cst.RoleMaster) {
 		if slaveStatus, err := parseXtraSlaveInfo(qpressPath, xtrabackupSlaveInfoFileName, tmpFileName); err != nil {
 			logger.Log.Warnf("parse xtrabackup_slave_info with error for role=%s %s:%d , err: %s",
 				cnf.Public.MysqlRole, cnf.Public.MysqlHost, cnf.Public.MysqlPort, err.Error())

@@ -1,6 +1,6 @@
 <template>
   <DbPopconfirm
-    v-if="isCan"
+    v-if="isRender"
     :confirm-handler="handleRevoke"
     :content="t('撤销后，单据将作废处理')"
     :title="t('确定撤销单据')">
@@ -37,7 +37,7 @@
 
   const localTicketData = ref<TicketModel>();
 
-  const isCan = computed(
+  const isRender = computed(
     () => localTicketData.value?.status === TicketModel.STATUS_APPROVE && props.data.creator === username,
   );
 

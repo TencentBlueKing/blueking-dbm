@@ -13,7 +13,7 @@ from dataclasses import asdict
 from typing import Dict, Optional
 
 from bamboo_engine.builder import SubProcess
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType
 from backend.db_meta.models import Cluster, ClusterEntry
@@ -72,6 +72,27 @@ def BuildDNSManageSubflow(root_id, ticket_data, op_type: str, param: Dict) -> Op
             act_component_code=MySQLDnsManageComponent.code,
             kwargs={**asdict(dns_kwargs)},
         )
+    if op_type == DnsOpType.DISABLE:
+        dns_kwargs = RecycleDnsRecordKwargs(
+            bk_cloud_id=param["bk_cloud_id"], dns_op_exec_port=param["port"], exec_ip=param["del_ips"]
+        )
+        dns_sub_pipeline.add_act(
+            act_name=_("删除域名映射"),
+            act_component_code=MySQLDnsManageComponent.code,
+            kwargs={**asdict(dns_kwargs)},
+        )
+    if op_type == DnsOpType.ENABLE:
+        dns_kwargs = CreateDnsKwargs(
+            bk_cloud_id=param["bk_cloud_id"],
+            add_domain_name=param["entry"],
+            dns_op_exec_port=param["port"],
+            exec_ip=param["add_ips"],
+        )
+        dns_sub_pipeline.add_act(
+            act_name=_("添加域名映射"),
+            act_component_code=MySQLDnsManageComponent.code,
+            kwargs={**asdict(dns_kwargs)},
+        )
 
     return dns_sub_pipeline.build_sub_process(sub_name=_("域名变更子流程"))
 
@@ -116,6 +137,33 @@ def BuildCLBManageSubflow(root_id, ticket_data, op_type: str, param: Dict) -> Op
         )
         clb_sub_pipeline.add_act(
             act_name=_("删除clb"),
+            act_component_code=MySQLClbManageComponent.code,
+            kwargs={**asdict(dns_kwargs)},
+        )
+
+    # 禁用clb
+    if op_type == DnsOpType.DISABLE:
+        dns_kwargs = ClbKwargs(
+            clb_op_type=DnsOpType.CLB_DISABLE_RS,
+            clb_ip=param["entry"],
+            clb_op_exec_port=param["port"],
+        )
+        dns_kwargs.exec_ip = param["del_ips"]
+        clb_sub_pipeline.add_act(
+            act_name=_("禁用clb"),
+            act_component_code=MySQLClbManageComponent.code,
+            kwargs={**asdict(dns_kwargs)},
+        )
+    # 启用clb
+    if op_type == DnsOpType.ENABLE:
+        dns_kwargs = ClbKwargs(
+            clb_op_type=DnsOpType.CLB_ENABLE_RS,
+            clb_ip=param["entry"],
+            clb_op_exec_port=param["port"],
+        )
+        dns_kwargs.exec_ip = param["add_ips"]
+        clb_sub_pipeline.add_act(
+            act_name=_("启用clb"),
             act_component_code=MySQLClbManageComponent.code,
             kwargs={**asdict(dns_kwargs)},
         )

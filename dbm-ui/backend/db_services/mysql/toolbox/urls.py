@@ -19,8 +19,8 @@ from backend.db_services.mysql.toolbox.views import (
 
 router = DefaultRouter(trailing_slash=True)
 router.register(r"toolbox", ToolboxViewSet, basename="toolbox")
-router.register(r"toolbox", TendbhaTransferToOtherBizViewSet, basename="toolbox")
-router.register(r"toolbox", TendbHaSlaveInstanceAddDomainSet, basename="toolbox")
+router.register(r"toolbox", TendbhaTransferToOtherBizViewSet, basename="tendbha-transfer")
+router.register(r"toolbox", TendbHaSlaveInstanceAddDomainSet, basename="tendbha-slave-add-domain")
 
 urlpatterns = []
 urlpatterns += router.urls

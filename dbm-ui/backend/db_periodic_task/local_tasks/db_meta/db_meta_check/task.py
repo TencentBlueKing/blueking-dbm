@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+import re
 
 from celery.schedules import crontab
 
@@ -17,19 +18,20 @@ from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.db_report.models import MetaCheckReport
 
-from .check_redis_instance import check_redis_instance
+from .mysql_cluster_check import check_mysql_affinity
 from .mysql_cluster_topo import tendbcluster, tendbha
+from .redis_cluster_check import check_redis_clusters
 from .sqlserver_cluster_topo.check import sqlserver_dbmeta_check
 
 logger = logging.getLogger("celery")
 
 
 @register_periodic_task(run_every=crontab(minute=3, hour=2))
-def db_meta_check_task():
+def redis_meta_check_task():
     """
     巡检校验元数据
     """
-    check_redis_instance()
+    check_redis_clusters()
 
 
 @register_periodic_task(run_every=crontab(hour=2, minute=30))
@@ -42,8 +44,11 @@ def tendbha_topo_daily_check():
 
 @register_periodic_task(run_every=crontab(hour=2, minute=30))
 def tendbcluster_topo_daily_check():
+    pattern = r"^.*-tmp[0-9]{8}-[0-9]{7}.*$"
     for c in Cluster.objects.filter(cluster_type=ClusterType.TenDBCluster):
         r: MetaCheckReport
+        if re.match(pattern=pattern, string=c.immute_domain.lower()):
+            continue
         for r in tendbcluster.health_check(c.id):
             r.save()
 
@@ -57,3 +62,11 @@ def sqlserver_topo_daily_check():
         r: MetaCheckReport
         for r in sqlserver_dbmeta_check(c.id):
             r.save()
+
+
+@register_periodic_task(run_every=crontab(hour=2, minute=45))
+def mysql_affinity_check_task():
+    """
+    MySQL 集群亲和性检查
+    """
+    check_mysql_affinity()

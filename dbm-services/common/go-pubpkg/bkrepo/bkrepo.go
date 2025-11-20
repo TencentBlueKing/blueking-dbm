@@ -248,6 +248,10 @@ func UploadDirectToBkRepo(filepath string, targetURL string, username string, pa
 	logger.Info("start upload files from  %s to %s", filepath, targetURL)
 	bodyBuf := bytes.NewBufferString("")
 	bodyWriter := multipart.NewWriter(bodyBuf)
+	// Prevent path traversal attacks
+	if strings.Contains(filepath, "..") {
+		return nil, fmt.Errorf("invalid filepath: path traversal detected")
+	}
 	fh, err := os.Open(filepath)
 	if err != nil {
 		logger.Info("error opening file")

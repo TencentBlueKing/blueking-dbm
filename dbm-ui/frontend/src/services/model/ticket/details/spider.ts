@@ -402,8 +402,10 @@ export interface SpiderSlaveRebuid {
           min: number;
         };
         storage_spec: {
+          max: number;
+          min: number;
           mount_point: string;
-          size: number;
+          size?: number;
           type: string;
         }[];
       };

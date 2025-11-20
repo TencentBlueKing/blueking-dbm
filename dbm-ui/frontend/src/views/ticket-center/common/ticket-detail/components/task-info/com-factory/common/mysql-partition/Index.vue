@@ -12,9 +12,36 @@
 -->
 
 <template>
-  <DbOriginalTable
-    :columns="columns"
-    :data="tableData" />
+  <TicketInfoTable
+    :data="tableData"
+    row-key="clusterName">
+    <TicketInfoTableColumn
+      col-key="clusterName"
+      :get-copy-value="(row: RowData) => row.clusterName"
+      :title="t('集群')" />
+    <TicketInfoTableColumn
+      col-key="ip"
+      title="IP" />
+    <TicketInfoTableColumn
+      col-key="dbName"
+      :title="t('DB 名')" />
+    <TicketInfoTableColumn
+      col-key="tbName"
+      :title="t('表名')" />
+    <TicketInfoTableColumn
+      col-key="action"
+      :title="t('分区动作')">
+      <template #default="{ row }">
+        <div>
+          <BkTag
+            v-for="(item, index) in row.action"
+            :key="index">
+            {{ item }}
+          </BkTag>
+        </div>
+      </template>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">
@@ -37,35 +64,6 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
-
-  const columns = [
-    {
-      field: 'clusterName',
-      label: t('集群'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'ip',
-      label: 'IP',
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'dbName',
-      label: t('DB 名'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'tbName',
-      label: t('表名'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'action',
-      label: t('分区动作'),
-      render: ({ data }: { data: RowData }) => data.action.map((item) => <bk-tag>{item}</bk-tag>),
-      showOverflowTooltip: true,
-    },
-  ];
 
   const tableData = props.ticketDetails.details.infos.reduce((results, item) => {
     const partitionObjects = item.partition_objects;

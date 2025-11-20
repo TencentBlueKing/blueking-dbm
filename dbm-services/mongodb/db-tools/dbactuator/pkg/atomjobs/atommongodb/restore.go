@@ -103,7 +103,7 @@ func (s *restoreJob) checkDstMongo() error {
 			s.param.Args.NsFilter.IgnoreColList)
 
 		dbColList, err := logical.GetDbCollectionWithFilter(s.MongoInst.Host, s.MongoInst.Port,
-			s.MongoInst.User, s.MongoInst.Pass, s.MongoInst.AuthDb, filter)
+			s.MongoInst.User, s.MongoInst.Pass, s.MongoInst.AuthDb, filter, true)
 		if err != nil {
 			return errors.Wrap(err, "GetDbCollectionWithFilter")
 		}
@@ -186,7 +186,7 @@ func (s *restoreJob) doLogicalRestore() error {
 	return nil
 }
 
-// removeDbmSysNs
+// removeDbmSysNs TODO
 // 删除掉 admin/gcs.backup文件
 // 删除掉 test/dbmon_heartbeat文件
 // 删除掉 test/dbmon_heartbeat文件
@@ -237,11 +237,7 @@ func (s *restoreJob) removeNsByFilter(dbColList []logical.DbCollection, dstDir s
 		if row.Db == "admin" {
 			continue
 		}
-		if !filter.IsDbMatched(row.Db) {
-			os.RemoveAll(fmt.Sprintf("%s/%s", dstDir, row.Db))
-			continue
-		}
-		matchList, notMatchList := filter.FilterTb(row.Col)
+		matchList, notMatchList := filter.FilterTbV2(row.Db, row.Col)
 		if len(matchList) == 0 {
 			os.RemoveAll(fmt.Sprintf("%s/%s", dstDir, row.Db))
 			continue

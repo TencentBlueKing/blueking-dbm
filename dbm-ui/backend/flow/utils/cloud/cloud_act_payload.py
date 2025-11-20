@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import json
 import logging
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend import env
 from backend.configuration.handlers.password import DBPasswordHandler

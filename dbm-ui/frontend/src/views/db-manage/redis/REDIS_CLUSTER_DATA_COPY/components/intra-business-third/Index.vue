@@ -26,6 +26,7 @@
         @batch-edit="handleClusterBatchEdit" />
       <EditableColumn
         :label="t('架构版本')"
+        readonly
         :width="200">
         <EditableBlock
           v-model="item.cluster.cluster_type_name"
@@ -44,7 +45,7 @@
         :label="t('访问密码')"
         :params="{
           dstCluster: item.dst_cluster,
-          srcCluster: item.cluster.master_domain,
+          srcCluster: String(item.cluster.id),
         }">
       </AccessCodeColumn>
       <RegexKeysColumn

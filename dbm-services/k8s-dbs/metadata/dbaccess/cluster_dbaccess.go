@@ -20,12 +20,11 @@ limitations under the License.
 package dbaccess
 
 import (
-	"errors"
-	"fmt"
 	"k8s-dbs/common/entity"
-	models "k8s-dbs/metadata/dbaccess/model"
-	"log"
-	"log/slog"
+	metaentity "k8s-dbs/metadata/entity"
+	models "k8s-dbs/metadata/model"
+
+	"github.com/pkg/errors"
 
 	"gorm.io/gorm"
 )
@@ -35,9 +34,10 @@ type K8sCrdClusterDbAccess interface {
 	Create(model *models.K8sCrdClusterModel) (*models.K8sCrdClusterModel, error)
 	DeleteByID(id uint64) (uint64, error)
 	FindByID(id uint64) (*models.K8sCrdClusterModel, error)
-	FindByParams(params map[string]interface{}) (*models.K8sCrdClusterModel, error)
+	FindByParams(params *metaentity.ClusterQueryParams) (*models.K8sCrdClusterModel, error)
 	Update(model *models.K8sCrdClusterModel) (uint64, error)
-	ListByPage(params map[string]interface{}, pagination *entity.Pagination) ([]models.K8sCrdClusterModel, uint64, error)
+	ListByPage(params *metaentity.ClusterQueryParams, pagination *entity.Pagination) (
+		[]*models.K8sCrdClusterModel, uint64, error)
 }
 
 // K8sCrdClusterDbAccessImpl K8sCrdClusterDbAccess 的具体实现
@@ -48,8 +48,7 @@ type K8sCrdClusterDbAccessImpl struct {
 // Create 创建 cluster 元数据接口实现
 func (k *K8sCrdClusterDbAccessImpl) Create(model *models.K8sCrdClusterModel) (*models.K8sCrdClusterModel, error) {
 	if err := k.db.Create(model).Error; err != nil {
-		slog.Error("Create cluster error", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create cluster with model %+v", model)
 	}
 	return model, nil
 }
@@ -58,8 +57,7 @@ func (k *K8sCrdClusterDbAccessImpl) Create(model *models.K8sCrdClusterModel) (*m
 func (k *K8sCrdClusterDbAccessImpl) DeleteByID(id uint64) (uint64, error) {
 	result := k.db.Delete(&models.K8sCrdClusterModel{}, id)
 	if result.Error != nil {
-		slog.Error("Delete cluster error:", "error", result.Error)
-		return 0, result.Error
+		return 0, errors.Wrapf(result.Error, "failed to delete cluster with id %d", id)
 	}
 	return uint64(result.RowsAffected), nil
 }
@@ -68,28 +66,38 @@ func (k *K8sCrdClusterDbAccessImpl) DeleteByID(id uint64) (uint64, error) {
 func (k *K8sCrdClusterDbAccessImpl) FindByID(id uint64) (*models.K8sCrdClusterModel, error) {
 	var cluster models.K8sCrdClusterModel
 	result := k.db.First(&cluster, id)
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
 	if result.Error != nil {
-		slog.Error("Find cluster error", "error", result.Error)
-		return nil, result.Error
+		return nil, errors.Wrapf(result.Error, "failed to find cluster with id %d", id)
 	}
 	return &cluster, nil
 }
 
 // FindByParams 根据参数查找 cluster 元数据接口实现
-func (k *K8sCrdClusterDbAccessImpl) FindByParams(params map[string]interface{}) (*models.K8sCrdClusterModel, error) {
+func (k *K8sCrdClusterDbAccessImpl) FindByParams(params *metaentity.ClusterQueryParams) (
+	*models.K8sCrdClusterModel,
+	error,
+) {
 	var cluster models.K8sCrdClusterModel
-
-	// 动态条件查询
-	result := k.db.Where(params).First(&cluster)
-
+	query := k.db.Where(&models.K8sCrdClusterModel{})
+	if params.K8sClusterConfigID > 0 {
+		query = query.Where("k8s_cluster_config_id = ?", params.K8sClusterConfigID)
+	}
+	if params.Namespace != "" {
+		query = query.Where("namespace = ?", params.Namespace)
+	}
+	if params.ClusterName != "" {
+		query = query.Where("cluster_name = ?", params.ClusterName)
+	}
+	result := query.First(&cluster)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, fmt.Errorf("cluster not found")
+		return nil, nil
 	}
 	if result.Error != nil {
-		log.Printf("Query cluster error: %v", result.Error)
-		return nil, result.Error
+		return nil, errors.Wrapf(result.Error, "failed to find cluster with params %+v", params)
 	}
-
 	return &cluster, nil
 }
 
@@ -97,23 +105,61 @@ func (k *K8sCrdClusterDbAccessImpl) FindByParams(params map[string]interface{}) 
 func (k *K8sCrdClusterDbAccessImpl) Update(model *models.K8sCrdClusterModel) (uint64, error) {
 	result := k.db.Omit("CreatedAt", "CreatedBy").Save(model)
 	if result.Error != nil {
-		slog.Error("Update cluster error:", "error", result.Error)
-		return 0, result.Error
+		return 0, errors.Wrapf(result.Error, "failed to update cluster with model %+v", model)
 	}
 	return uint64(result.RowsAffected), nil
 }
 
 // ListByPage 分页查询 cluster 元数据接口实现
 func (k *K8sCrdClusterDbAccessImpl) ListByPage(
-	params map[string]interface{},
+	params *metaentity.ClusterQueryParams,
 	pagination *entity.Pagination,
-) ([]models.K8sCrdClusterModel, uint64, error) {
-	var clusterModels []models.K8sCrdClusterModel
-	if err := k.db.Offset(pagination.Page).Limit(pagination.Limit).Where(params).Find(&clusterModels).Error; err != nil {
-		slog.Error("List cluster models error", "error", err.Error())
-		return nil, 0, err
+) ([]*models.K8sCrdClusterModel, uint64, error) {
+	var clusterModels []*models.K8sCrdClusterModel
+	var count int64
+	query := k.db.Debug().Model(&models.K8sCrdClusterModel{})
+	if len(params.Creators) > 0 {
+		query = query.Where("created_by in (?)", params.Creators)
 	}
-	return clusterModels, uint64(len(clusterModels)), nil
+	if len(params.Updaters) > 0 {
+		query = query.Where("updated_by in (?)", params.Updaters)
+	}
+	if params.ClusterName != "" {
+		query = query.Where("cluster_name like ?", "%"+params.ClusterName+"%")
+	}
+	if params.ClusterAlias != "" {
+		query = query.Where("cluster_alias like ?", "%"+params.ClusterAlias+"%")
+	}
+	if params.BkBizName != "" {
+		query = query.Where("bk_biz_name like ?", "%"+params.BkBizName+"%")
+	}
+	if len(params.BkBizIDs) > 0 {
+		query = query.Where("bk_biz_id in (?)", params.BkBizIDs)
+	}
+	if params.Namespace != "" {
+		query = query.Where("namespace = ?", params.Namespace)
+	}
+	if len(params.AddonTypes) > 0 {
+		subQuery := k.db.Debug().Model(&models.K8sCrdStorageAddonModel{}).
+			Select("id").
+			Where("addon_type in (?)", params.AddonTypes)
+		query = query.Where("addon_id in (?)", subQuery)
+	}
+
+	if err := query.Count(&count).Error; err != nil {
+		return nil, 0, errors.Wrapf(err, "failed to count cluster with pagination %+v", pagination)
+	}
+	offset := (pagination.Page - 1) * pagination.Limit
+	if err := query.
+		Offset(offset).
+		Limit(pagination.Limit).
+		Order("created_at DESC").
+		Find(&clusterModels).
+		Error; err != nil {
+		return nil, 0, errors.Wrapf(err, "failed to list cluster with pagination %+v", pagination)
+	}
+
+	return clusterModels, uint64(count), nil
 }
 
 // NewCrdClusterDbAccess 创建 K8sCrdClusterDbAccess 接口实现实例

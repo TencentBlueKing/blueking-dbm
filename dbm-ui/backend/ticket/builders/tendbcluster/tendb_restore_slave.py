@@ -42,8 +42,10 @@ class TendbClusterRestoreSlaveDetailSerializer(MysqlRestoreSlaveDetailSerializer
     ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
     backup_source = serializers.ChoiceField(help_text=_("备份源"), choices=MySQLBackupSource.get_choices())
     infos = serializers.ListField(help_text=_("集群重建信息"), child=RestoreInfoSerializer())
+    disable_manual_confirm = serializers.BooleanField(help_text=(_("自愈单据禁用人工确认")), default=False)
 
     def validate(self, attrs):
+        attrs = super(TendbBaseOperateDetailSerializer, self).validate(attrs)
         # 校验集群是否可用，集群类型为tendbcluster
         super(TendbBaseOperateDetailSerializer, self).validate_cluster_can_access(attrs)
         super(MysqlRestoreSlaveDetailSerializer, self).validated_cluster_type(attrs, ClusterType.TenDBCluster)

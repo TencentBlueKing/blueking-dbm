@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 from dataclasses import dataclass, field
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from backend import env
 from backend.db_dirty.constants import MachineEventType
@@ -42,12 +42,13 @@ class ExecActuatorBaseKwargs:
 
     bk_cloud_id: int  # 对应的云区域ID
     run_as_system_user: str = None  # 表示执行job的api的操作用户, None 默认是用root用户
-    payload_class: str = None
+    payload_class: str = None  # 可以指定哪个payload类
     get_mysql_payload_func: str = None  # 上下文中MysqlActPayload类的获取参数方法名称。空则传入None
     cluster_type: str = None  # 表示操作的集群类型,如果过程中不需要这个变量，则可以传None
-    cluster: dict = field(default_factory=dict)  # 表示单据执行的集群信息，比如集群名称，集群域名等
-    job_timeout: int = DEFAULT_JOB_TIMEOUT
-    write_op: str = None
+    cluster: dict = field(default_factory=dict)  # 表示单据执行的集群信息，比如集群名称，集群域名等, 后续需要废弃，尽量不要用这个属性，用custom_params属性
+    job_timeout: int = DEFAULT_JOB_TIMEOUT  # 执行job单据的超时时间，默认是7200s
+    write_op: str = None  # 控制上下文写方式，WriteContextOpType类型，有REWRITE和APPEND模式，如果不填默认是采用REWRITE模式
+    component_kwargs: dict = field(default_factory=dict)  # 隐性参数，传入参数时作为额外参数传入，自定义拼接， 逐步代替cluster属性
 
 
 @dataclass()
@@ -57,15 +58,6 @@ class ExecActuatorKwargs(ExecActuatorBaseKwargs):
     """
 
     exec_ip: Optional[Any] = None  # 表示执行的ip，多个ip传入list类型，当个ip传入str类型，空则传入None，针对手输ip场景
-
-
-@dataclass()
-class ExecActuatorKwargsForPool(ExecActuatorBaseKwargs):
-    """
-    针对资源池获取IP的场景
-    """
-
-    get_trans_data_ip_var: str = None  # 表示在上下文获取ip信息的变量名称。空则传入None, 针对资源池获取ip场景
 
 
 @dataclass()
@@ -90,6 +82,12 @@ class P2PFileKwargs(P2PFileBaseKwargs):
     """
 
     exec_ip: Optional[Any] = None  # 表示执行的ip，多个ip传入list类型，当个ip传入str类型，空则传入None，针对手输ip场景
+
+
+@dataclass
+class P2PFileFromBackupKwargs(P2PFileKwargs):
+    backup_id: str = None
+    cluster_id: int = None
 
 
 @dataclass()
@@ -267,6 +265,7 @@ class DBMetaOPKwargs:
     db_meta_class_func: str
     cluster: dict = field(default_factory=dict)  # 表示单据执行的集群信息，比如集群名称，集群域名等
     is_update_trans_data: bool = False  # 表示是否把流程中上下文trans_data合并到cluster信息，默认不合并
+    component_kwargs: dict = field(default_factory=dict)  # 额外参数传入，对应每个场景应用，自定义拼接， 逐步代替cluster属性
 
 
 @dataclass()
@@ -392,6 +391,16 @@ class DelServiceInstKwargs:
 
 
 @dataclass()
+class DelServiceInstByDomainKwargs:
+    """
+    删除集群内服务实例的专属私有变量
+    """
+
+    domain: str  # 对应的cluster的域名
+    del_instance_list: list  # 删除对应的实例信息
+
+
+@dataclass()
 class DownloadBackupFileKwargs:
     """
     定义下载mysql备份文件的变量结构体
@@ -423,6 +432,8 @@ class ExecuteRdsKwargs:
 class CheckSlaveStatusKwargs(ExecuteRdsKwargs):
     master_ip: str = ""
     master_port: int = 0
+    slave_delay_threshold: int = 360
+    rounds: int = 1
 
 
 @dataclass()
@@ -450,6 +461,18 @@ class CrondMonitorKwargs:
 
 
 @dataclass
+class MySQLCheckVariableConsistencyKwargs:
+    """
+    定义检测变量一致性的私有变量结构体
+    """
+
+    bk_cloud_id: int
+    reference_instance: str  # 格式: ip:port
+    compare_instance: str  # 格式: ip:port
+    variable_names: list
+
+
+@dataclass
 class CheckClientConnKwargs:
     """
     定义检测客户端连接的私有变量结构体
@@ -457,12 +480,15 @@ class CheckClientConnKwargs:
     @attributes check_instances: 检测实例
     @attributes is_filter_sleep: 是否过滤sleep状态的线程， 默认否
     @attributes is_proxy: 检测实例是否都是mysql-proxy，默认否
+    @attributes filter_hosts: 需要过滤的主机列表，默认空列表
     """
 
     bk_cloud_id: int
     check_instances: list
     is_filter_sleep: bool = False
     is_proxy: bool = False
+    long_process_time: int = -1
+    filter_hosts: list = field(default_factory=list)
 
 
 @dataclass
@@ -679,3 +705,18 @@ class InitiativeDownloadFileKwargs:
     file_url: str
     md5sum: str
     exec_ip: Optional[Any] = None  # 表示执行的ip，多个ip传入list类型，当个ip传入str类型，空则传入None，针对手输ip场景
+
+
+@dataclass
+class UpgradeKeyWordCheckKwargs:
+    """
+    定义upgrade_key_word_check活动节点的私有变量结构体
+    用于Spider版本升级前的关键字冲突检查
+    """
+
+    cluster_id: int  # 集群ID
+    from_version_map: Dict[str, List[str]]  # 源版本到地址的映射，如 {"5.5.24-tspider-1.15-log": ["192.168.1.100:25000"]}
+    to_version: str  # 目标版本
+    check_types: Optional[List[str]] = None  # 检查类型列表，如["table_check", "column_check"]
+    schemas: Optional[List[str]] = None  # 要检查的数据库列表
+    fail_on_conflict: bool = True  # 发现冲突时是否失败

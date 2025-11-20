@@ -13,7 +13,7 @@ import logging.config
 from dataclasses import asdict
 from typing import Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryRole, TenDBClusterSpiderRole
@@ -22,8 +22,10 @@ from backend.db_meta.models import Cluster
 from backend.flow.consts import MIN_SPIDER_MASTER_COUNT, MIN_SPIDER_SLAVE_COUNT, DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.entrys_manager import BuildEntrysManageSubflow
-from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import reduce_spider_slaves_flow
+from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import reduce_spiders_flow
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import NormalSpiderFlowException
+from backend.flow.engine.validate.base_validate import BaseValidator
+from backend.flow.engine.validate.exceptions import CheckDisasterToleranceException
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.check_client_connections import CheckClientConnComponent
 from backend.flow.plugins.components.collections.spider.drop_spider_ronting import DropSpiderRoutingComponent
@@ -51,13 +53,14 @@ class TenDBClusterReduceNodesFlow(object):
         self.mix_spider_master_count = MIN_SPIDER_MASTER_COUNT
         self.mix_spider_slave_count = MIN_SPIDER_SLAVE_COUNT
 
-    def __calc_reduce_spiders(
+    def __pre_check_and_calc_reduce_spiders(
         self,
         cluster: Cluster,
         reduce_spider_role: TenDBClusterSpiderRole,
         spider_reduced_hosts: list,
         spider_reduced_to_count_snapshot: int,
         is_check_min_count: bool = True,
+        is_check_disaster_tolerance_level: bool = True,
     ):
         """
         根据每个子单据的操作spider角色和缩容剩余数量，来计算出合理的待回收spider节点列表
@@ -66,13 +69,21 @@ class TenDBClusterReduceNodesFlow(object):
         @param spider_reduced_hosts: 缩容指定的主机
         @param spider_reduced_to_count_snapshot: 单据传入的剩余spider实例数量快照
         @param is_check_min_count 是否要做下架后spider角色的数量的检测，默认是检测的。但特殊情况可以不检测，比如替换spider实例
+        @param is_check_disaster_tolerance_level: 是否评估缩容后的是否满足容灾要求，默认是检测的。但特殊情况可以不检测，比如替换spider实例
         """
         # 检测
         # 如果是指定缩容IP，则直接返回
         if not spider_reduced_hosts:
             raise NormalSpiderFlowException(message=_("传入的spider_reduced_hosts参数为空，请联系系统管理员"))
 
+        # spider节点数量
         spiders_count = cluster.proxyinstance_set.filter(tendbclusterspiderext__spider_role=reduce_spider_role).count()
+
+        # 计算出剩余spider节点
+        remaining_spiders = cluster.proxyinstance_set.filter(
+            tendbclusterspiderext__spider_role=reduce_spider_role
+        ).exclude(machine__ip__in=[i["ip"] for i in spider_reduced_hosts])
+
         if spider_reduced_to_count_snapshot + len(spider_reduced_hosts) != spiders_count:
             # 此时计算的单据传入的spider数量， 不等于此时的集群的spider数量总数，则认为该单据运行前拓扑发生变更，如果执行下去就会有风险
             raise NormalSpiderFlowException(
@@ -105,6 +116,24 @@ class TenDBClusterReduceNodesFlow(object):
             raise NormalSpiderFlowException(
                 message=_("[{}]集群最后不能少于{}个spider_slave实例".format(cluster.immute_domain, self.mix_spider_slave_count))
             )
+        # 判断剩余的spider节点是否满足集群的容灾要求, 如果只剩一个spider节点，则不做判断.
+        # spider_slave 角色，不做容灾检查
+        if reduce_spider_role == TenDBClusterSpiderRole.SPIDER_MASTER.value:
+            check_hosts = [
+                {"ip": i.machine.ip, "sub_zone_id": i.machine.bk_sub_zone_id, "rack_id": i.machine.bk_rack_id}
+                for i in remaining_spiders
+            ]
+            if len(check_hosts) > 1:
+                if is_check_disaster_tolerance_level and not BaseValidator.check_disaster_tolerance_level(
+                    cluster=cluster, hosts=check_hosts
+                ):
+                    raise CheckDisasterToleranceException(
+                        message=_(
+                            "[{}]集群剩余spider节点不满足容灾要求[{}]，请检查，剩余的节点信息:{}".format(
+                                cluster.immute_domain, cluster.disaster_tolerance_level, check_hosts
+                            )
+                        )
+                    )
 
         return [{"ip": host["ip"]} for host in spider_reduced_hosts]
 
@@ -115,6 +144,8 @@ class TenDBClusterReduceNodesFlow(object):
         reduce_spider_role: TenDBClusterSpiderRole,
         spider_reduced_to_count_snapshot: int,
         is_check_min_count: bool = True,
+        is_check_disaster_tolerance_level: bool = True,
+        is_check_process: bool = True,
     ):
         """
         根据cluster维度处理缩容子流程
@@ -123,7 +154,10 @@ class TenDBClusterReduceNodesFlow(object):
         @param reduce_spider_role: 下架角色
         @param spider_reduced_to_count_snapshot 单据传入的剩余spider实例数量快照
         @param is_check_min_count 是否要做下架后spider角色的数量的检测，默认是检测的。但特殊情况可以不检测，比如替换spider实例
+        @param is_check_disaster_tolerance_level: 是否评估缩容后的是否满足容灾要求，默认是检测的。但特殊情况可以不检测，比如替换spider实例
         """
+        disable_manual_confirm = self.data.get("disable_manual_confirm", False)
+
         # 获取对应集群相关对象
         try:
             cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=int(self.data["bk_biz_id"]))
@@ -133,12 +167,13 @@ class TenDBClusterReduceNodesFlow(object):
             )
 
         # 计算待下架的spider节点列表,转化成全局参数
-        reduce_spiders = self.__calc_reduce_spiders(
+        reduce_spiders = self.__pre_check_and_calc_reduce_spiders(
             cluster=cluster,
             reduce_spider_role=reduce_spider_role,
             spider_reduced_hosts=spider_reduced_hosts,
             spider_reduced_to_count_snapshot=spider_reduced_to_count_snapshot,
             is_check_min_count=is_check_min_count,
+            is_check_disaster_tolerance_level=is_check_disaster_tolerance_level,
         )
 
         # 拼接子流程全局变量
@@ -156,7 +191,7 @@ class TenDBClusterReduceNodesFlow(object):
         sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
 
         # 预检测
-        if self.data["is_safe"]:
+        if is_check_process:
             sub_pipeline.add_act(
                 act_name=_("检测回收Spider端连接情况"),
                 act_component_code=CheckClientConnComponent.code,
@@ -170,18 +205,6 @@ class TenDBClusterReduceNodesFlow(object):
                     )
                 ),
             )
-
-        # 删除spider的路由关系
-        sub_pipeline.add_act(
-            act_name=_("删除spider的路由关系"),
-            act_component_code=DropSpiderRoutingComponent.code,
-            kwargs=asdict(
-                DropSpiderRoutingKwargs(
-                    cluster_id=cluster.id,
-                    reduce_spiders=reduce_spiders,
-                )
-            ),
-        )
 
         entry_role = ClusterEntryRole.MASTER_ENTRY.value
         if reduce_spider_role == TenDBClusterSpiderRole.SPIDER_SLAVE.value:
@@ -199,11 +222,24 @@ class TenDBClusterReduceNodesFlow(object):
         )
         sub_pipeline.add_sub_pipeline(sub_flow=entry_sub_process)
         # 后续流程需要在这里加一个暂停节点，让用户在合适的时间执行下架
-        sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
+        if not disable_manual_confirm:
+            sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
+
+        # 删除spider的路由关系
+        sub_pipeline.add_act(
+            act_name=_("删除spider的路由关系"),
+            act_component_code=DropSpiderRoutingComponent.code,
+            kwargs=asdict(
+                DropSpiderRoutingKwargs(
+                    cluster_id=cluster.id,
+                    reduce_spiders=reduce_spiders,
+                )
+            ),
+        )
 
         # 根据场景执行下架spider子流程
         sub_pipeline.add_sub_pipeline(
-            sub_flow=reduce_spider_slaves_flow(
+            sub_flow=reduce_spiders_flow(
                 cluster=cluster,
                 reduce_spiders=reduce_spiders,
                 root_id=self.root_id,
@@ -211,7 +247,9 @@ class TenDBClusterReduceNodesFlow(object):
                 spider_role=reduce_spider_role,
             )
         )
-        return sub_pipeline.build_sub_process(sub_name=_("[{}]减少spider节点流程".format(cluster.immute_domain)))
+        return sub_pipeline.build_sub_process(
+            sub_name=_("[{}]减少{}节点流程".format(cluster.immute_domain, reduce_spider_role))
+        )
 
     def reduce_spider_nodes(self):
         """
@@ -227,6 +265,7 @@ class TenDBClusterReduceNodesFlow(object):
                     spider_reduced_hosts=info["spider_reduced_hosts"],
                     reduce_spider_role=info["reduce_spider_role"],
                     spider_reduced_to_count_snapshot=info["spider_reduced_to_count"],
+                    is_check_process=self.data.get("is_check_process", True),
                 )
             )
 

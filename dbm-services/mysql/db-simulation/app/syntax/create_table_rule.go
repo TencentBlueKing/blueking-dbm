@@ -24,12 +24,12 @@ func (c CreateTableResult) Checker(mysqlVersion string) (r *CheckerResult) {
 	r.Parse(R.CreateTableRule.SuggestEngine, c.GetEngine(), "")
 	r.Parse(R.CreateTableRule.SuggestBlobColumCount, c.BlobColumCount(), "")
 	if R.BuiltInRule.TableNameSpecification.KeyWord {
-		r.ParseBultinRisk(func() (bool, string) {
+		r.ParseBuiltinRisk(func() (bool, string) {
 			return KeyWordValidator(mysqlVersion, c.TableName)
 		})
 	}
-	if R.BuiltInRule.TableNameSpecification.SpeicalChar {
-		r.ParseBultinBan(func() (bool, string) {
+	if R.BuiltInRule.TableNameSpecification.SpecialChar {
+		r.ParseBuiltinBan(func() (bool, string) {
 			return SpecialCharValidator(c.TableName)
 		})
 	}
@@ -82,36 +82,36 @@ func (c CreateTableResult) GetTableCharset() (engine string) {
 	return ""
 }
 
-// GetAllColCharsets get columns define charset
-func (c CreateTableResult) GetAllColCharsets() (charsets []string) {
-	haveDefaultCharseTypes := []string{
+// GetAllColCharacterSets get columns defined charset
+func (c CreateTableResult) GetAllColCharacterSets() (charSets []string) {
+	haveDefaultCharSetTypes := []string{
 		"timestamp", "time", "datetime", "date",
 		"tinyblob", "blob", "mediumblob", "longblob",
 		"string", "varchar", "json",
 	}
 	for _, colDef := range c.CreateDefinitions.ColDefs {
 		// Mysql会对MYSQL_TYPE_TIME，MYSQL_TYPE_TIMESTAMP，MYSQL_TYPE_DATETIME这三种类型的字段默认设置字符集为latin1
-		if lo.IsNotEmpty(colDef.CharacterSet) && !lo.Contains(haveDefaultCharseTypes, colDef.DataType) {
-			charsets = append(charsets, colDef.CharacterSet)
+		if lo.IsNotEmpty(colDef.CharacterSet) && !lo.Contains(haveDefaultCharSetTypes, colDef.DataType) {
+			charSets = append(charSets, colDef.CharacterSet)
 		}
 	}
-	return lo.Uniq(charsets)
+	return lo.Uniq(charSets)
 }
 
 // ColCharsetNotEqTbCharset 字段的字符集合和表的字符集合相同
 func (c CreateTableResult) ColCharsetNotEqTbCharset() bool {
-	colCharsets := c.GetAllColCharsets()
-	if len(colCharsets) == 0 {
+	colCharSets := c.GetAllColCharacterSets()
+	if len(colCharSets) == 0 {
 		return false
 	}
-	if len(colCharsets) > 1 {
+	if len(colCharSets) > 1 {
 		return true
 	}
 	tableDefineCharset := c.GetTableCharset()
 	if lo.IsEmpty(tableDefineCharset) {
 		return false
 	}
-	if strings.Compare(strings.ToLower(colCharsets[0]), strings.ToLower(tableDefineCharset)) == 0 {
+	if strings.Compare(strings.ToLower(colCharSets[0]), strings.ToLower(tableDefineCharset)) == 0 {
 		return false
 	}
 	return true

@@ -14,6 +14,7 @@
 import { defineStore } from 'pinia';
 
 import { grammarCheck as mysqlGrammarCheck } from '@services/source/mysqlSqlImport';
+import { grammarCheck as oracleGrammarCheck } from '@services/source/oracleSqlImport';
 import { grammarCheck as sqlserverGrammarCheck } from '@services/source/sqlserverSqlImport';
 
 import { DBTypes } from '@common/const';
@@ -27,6 +28,7 @@ export const useSqlImport = defineStore('useSqlImport', {
     grammarCheckHandle: (state) => {
       const grammarCheckMap = {
         [DBTypes.MYSQL]: mysqlGrammarCheck,
+        [DBTypes.ORACLE]: oracleGrammarCheck,
         [DBTypes.SQLSERVER]: sqlserverGrammarCheck,
         [DBTypes.TENDBCLUSTER]: mysqlGrammarCheck,
       };

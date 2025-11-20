@@ -37,19 +37,13 @@
       <template #left>
         <span v-if="!diffState.current.spec.spec_id">--</span>
         <template v-else>
-          <RenderSpec
-            :data="diffState.current.spec"
-            :hide-qps="!diffState.current.spec?.qps?.max"
-            is-ignore-counts />
+          <RenderSpec :data="diffState.current.spec" />
         </template>
       </template>
       <template #right>
         <span v-if="!updateMode">--</span>
         <template v-else>
-          <RenderSpec
-            :data="diffState.target.spec"
-            :hide-qps="!diffState.target.spec?.qps?.max"
-            is-ignore-counts />
+          <RenderSpec :data="diffState.target.spec" />
         </template>
       </template>
     </DiffInfoItem>

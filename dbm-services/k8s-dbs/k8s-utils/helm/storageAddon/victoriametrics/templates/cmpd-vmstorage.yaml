@@ -4,7 +4,7 @@ metadata:
   name: {{ include "victoriametrics-storage.cmpdName" . }}
 spec:
   serviceKind: victoriametrics
-  serviceVersion: 1.93.10
+  serviceVersion: 1.93.10-2.0.0
   updateStrategy: Serial
   exporter:
     scrapePath: /metrics
@@ -86,3 +86,4 @@ spec:
           periodSeconds: 15
           timeoutSeconds: 5
           failureThreshold: 3
+    dnsConfig: {}

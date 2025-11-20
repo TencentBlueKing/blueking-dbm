@@ -172,7 +172,8 @@
                     :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="es"
-                    machine-type="es_master" />
+                    machine-type="es_master"
+                    :subzone-ids="formData.details.sub_zone_ids" />
                 </BkFormItem>
                 <BkFormItem
                   :label="t('数量')"
@@ -198,7 +199,8 @@
                     :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="es"
-                    machine-type="es_client" />
+                    machine-type="es_client"
+                    :subzone-ids="formData.details.sub_zone_ids" />
                 </BkFormItem>
                 <BkFormItem
                   :label="t('数量')"
@@ -233,7 +235,8 @@
                     :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="es"
-                    machine-type="es_datanode" />
+                    machine-type="es_datanode"
+                    :subzone-ids="formData.details.sub_zone_ids" />
                 </BkFormItem>
                 <BkFormItem
                   :label="t('数量')"
@@ -258,7 +261,8 @@
                     :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="es"
-                    machine-type="es_datanode" />
+                    machine-type="es_datanode"
+                    :subzone-ids="formData.details.sub_zone_ids" />
                 </BkFormItem>
                 <BkFormItem
                   :label="t('数量')"
@@ -316,13 +320,13 @@
           {{ t('提交') }}
         </BkButton>
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="baseState.isSubmitting"
           @click="handleReset">
           {{ t('重置') }}
         </BkButton>
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="baseState.isSubmitting"
           @click="handleCancel">
           {{ t('取消') }}
@@ -337,11 +341,12 @@
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
+  import type { Es } from '@services/model/ticket/ticket';
   import type { BizItem, HostInfo } from '@services/types';
 
-  import { useApplyBase } from '@hooks';
+  import { useApplyBase, useTicketDetail } from '@hooks';
 
-  import { Affinity, DBTypes, OSTypes } from '@common/const';
+  import { Affinity, DBTypes, OSTypes, TicketTypes } from '@common/const';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
@@ -361,6 +366,46 @@
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
+
+  useTicketDetail<Es.Apply>(TicketTypes.ES_APPLY, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+
+      Object.assign(formData, {
+        bk_biz_id: ticketDetail.bk_biz_id,
+        remark: ticketDetail.remark,
+      });
+      Object.assign(formData.details, {
+        bk_cloud_id: details.bk_cloud_id,
+        city_code: details.city_code,
+        cluster_alias: details.cluster_alias,
+        cluster_name: details.cluster_name,
+        db_version: details.db_version,
+        disaster_tolerance_level: details.disaster_tolerance_level,
+        http_port: details.http_port,
+        ip_source: details.ip_source,
+      });
+
+      if (details.ip_source === 'resource_pool') {
+        const resourceSpec = Object.entries(details.resource_spec!).reduce((prev, [specType, specInfo]) => {
+          return Object.assign(prev, {
+            [specType]: {
+              count: specInfo.count,
+              spec_id: specInfo.spec_id,
+            },
+          });
+        }, {});
+        const subzoneIds = details.resource_spec!.master.location_spec.sub_zone_ids || [];
+        Object.assign(formData.details, {
+          resource_spec: Object.assign(formData.details.resource_spec, resourceSpec),
+          sub_zone_ids: subzoneIds,
+        });
+        nextTick(() => {
+          regionRequirementsRef.value!.setInitSubzone(subzoneIds);
+        });
+      }
+    },
+  });
 
   const makeMapByHostId = (hostList: HostInfo[]) =>
     hostList.reduce(
@@ -410,7 +455,7 @@
       sub_zone_ids: [] as number[],
     },
     remark: '',
-    ticket_type: 'ES_APPLY',
+    ticket_type: TicketTypes.ES_APPLY,
   });
 
   const formatIpDataWidthInstance = (data: HostInfo[]) =>
@@ -495,11 +540,11 @@
         const { storage_spec: hotStorageSpec = [] } = specHotRef.value.getData();
         const { storage_spec: coldStorageSpec = [] } = specColdRef.value.getData();
         const hotDisk = hotStorageSpec.reduce(
-          (total: number, item: { size: number }) => total + Number(item.size || 0),
+          (total: number, item: { min: number }) => total + Number(item.min || 0),
           0,
         );
         const coldDisk = coldStorageSpec.reduce(
-          (total: number, item: { size: number }) => total + Number(item.size || 0),
+          (total: number, item: { min: number }) => total + Number(item.min || 0),
           0,
         );
         totalCapacity.value = hotDisk * hotCount + coldCount * coldDisk;

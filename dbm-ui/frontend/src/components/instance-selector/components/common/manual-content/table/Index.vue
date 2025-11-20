@@ -318,8 +318,6 @@
     if (checked) {
       lastCheckMap[data[firstColumnFieldId.value]] = {
         ...data,
-        bk_cloud_id: data.host_info.cloud_id,
-        bk_cloud_name: data.host_info.cloud_area.name,
       };
     } else {
       delete lastCheckMap[data[firstColumnFieldId.value]];

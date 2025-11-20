@@ -12,22 +12,23 @@ import collections
 import itertools
 from typing import Dict, List
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.bk_web.constants import LEN_MIDDLE, SMALLEST_POSITIVE_INTEGER
-from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE
+from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, AffinityEnum
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, DBModule
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.ipchooser.constants import BkOsType
+from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.exceptions import ValidationError
 from backend.flow.consts import DEFAULT_SQLSERVER_PORT
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.flow.utils.sqlserver.sqlserver_bk_config import get_module_infos
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.common.base import CommonValidate
+from backend.ticket.builders.common.base import CommonValidate, TicketBaseValidateSerializerMixin, get_ticket_zone_list
 from backend.ticket.builders.sqlserver.base import (
     BaseSQLServerSingleTicketFlowBuilder,
     SQLServerBaseOperateResourceParamBuilder,
@@ -36,7 +37,7 @@ from backend.ticket.constants import TicketType
 from backend.ticket.exceptions import TicketParamsVerifyException
 
 
-class SQLServerSingleApplyDetailSerializer(serializers.Serializer):
+class SQLServerSingleApplyDetailSerializer(TicketBaseValidateSerializerMixin, serializers.Serializer):
     class DomainSerializer(serializers.Serializer):
         """域名信息序列化，此字段是集群名，可考虑跟前端一起调整为 cluster_name"""
 
@@ -69,13 +70,29 @@ class SQLServerSingleApplyDetailSerializer(serializers.Serializer):
     start_mssql_port = serializers.IntegerField(
         help_text=_("SQLServer起始端口"), required=False, default=DEFAULT_SQLSERVER_PORT
     )
+    disaster_tolerance_level = serializers.ChoiceField(
+        help_text=_("容灾级别"), choices=AffinityEnum.get_choices(), required=False, default=AffinityEnum.NONE.value
+    )
+
+    disaster_tolerance_level = serializers.ChoiceField(
+        help_text=_("容灾级别"), choices=AffinityEnum.get_choices(), required=False, default=AffinityEnum.NONE.value
+    )
+
+    # display fields
+    bk_cloud_name = serializers.SerializerMethodField(help_text=_("云区域"), read_only=True)
+
+    def get_bk_cloud_name(self, obj):
+        clouds = ResourceQueryHelper.search_cc_cloud(get_cache=True)
+        return clouds[str(obj["bk_cloud_id"])]["bk_cloud_name"]
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
+        representation["bk_cloud_name"] = self.get_bk_cloud_name(instance)
         self._format_domains(representation["domains"], instance)
         return representation
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         # 校验集群名是否重复
         for domain in attrs["domains"]:
             CommonValidate.validate_duplicate_cluster_name(
@@ -168,6 +185,10 @@ class SQLServerSingleApplyFlowParamBuilder(builders.FlowParamBuilder):
 
         if self.ticket_data["ip_source"] == IpSource.MANUAL_INPUT:
             self.insert_ip_into_apply_infos(self.ticket.details, infos)
+
+        # 补充zone_list数据
+        role = "backend" if self.ticket.ticket_type == TicketType.SQLSERVER_SINGLE_APPLY else "backend_group"
+        self.ticket_data["zone_list"] = get_ticket_zone_list(self.ticket_data, role)
 
         self.ticket_data.update(
             {

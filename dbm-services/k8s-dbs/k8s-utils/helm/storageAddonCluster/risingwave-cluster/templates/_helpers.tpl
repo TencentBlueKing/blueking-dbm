@@ -1,5 +1,5 @@
 {{/*
-Define victoriametrics insert component definition name
+Define risingwave cluster definition name
 */}}
 {{- define "risingwave-cdName" -}}
 risingwave-{{ .Values.addonVersion}}

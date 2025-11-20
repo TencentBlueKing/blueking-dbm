@@ -18,15 +18,17 @@ import (
 	"syscall"
 	"time"
 
+	"dbm-services/common/db-resource/internal/config"
 	"dbm-services/common/go-pubpkg/apm/metric"
 	"dbm-services/common/go-pubpkg/apm/trace"
-	"dbm-services/mysql/db-simulation/app/config"
 
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 
 	"dbm-services/common/db-resource/internal/middleware"
 	"dbm-services/common/db-resource/internal/model"
 	"dbm-services/common/db-resource/internal/routers"
+	"dbm-services/common/db-resource/internal/svr/bk"
+	"dbm-services/common/db-resource/internal/svr/cloud/tencent"
 	"dbm-services/common/db-resource/internal/svr/task"
 	"dbm-services/common/go-pubpkg/logger"
 
@@ -57,6 +59,8 @@ func main() {
 	metric.NewPrometheus("").Use(app)
 
 	app.Use(requestid.New())
+	app.Use(middleware.SecurityHeaders())              // 安全响应头
+	app.Use(middleware.RequestBodySizeLimit(10 << 20)) // 10MB请求体限制
 	app.Use(middleware.ApiLogger)
 	app.Use(middleware.BodyLogMiddleware)
 	routers.RegisterRoutes(app)
@@ -66,9 +70,13 @@ func main() {
 	})
 
 	srv := &http.Server{
-		Addr:              config.GAppConfig.ListenAddr,
+		Addr:              config.AppConfig.ListenAddress,
 		Handler:           app,
-		ReadHeaderTimeout: 5 * time.Second,
+		ReadHeaderTimeout: 2 * time.Second,  // 防止Slowloris攻击
+		ReadTimeout:       30 * time.Second, // 完整请求读取超时
+		WriteTimeout:      60 * time.Second, // 响应写入超时
+		IdleTimeout:       60 * time.Second, // 空闲连接超时
+		MaxHeaderBytes:    1 << 20,          // 1MB头部大小限制
 	}
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -105,6 +113,11 @@ func init() {
 		logger.Fatal("Init Logger Failed %s", err.Error())
 		return
 	}
+	config.InitConfig()
+	model.InitModel()
+	bk.InitCCClient()
+	// 依赖 InitConfig 的云厂商初始化，避免在 init() 读取到空配置
+	tencent.InitTencentCloud()
 }
 
 // LocalCron define local crontab
@@ -141,9 +154,9 @@ func registerCrontab(localcron *cron.Cron) {
 			Name: "同步主机硬件信息",
 			Spec: "20 */12 * * *",
 			Func: func() {
-				logger.Info("Start sync machine hardinfo .....")
+				logger.Info("Start sync machine hardware information .....")
 				if err := task.AsyncResourceHardInfo(); err != nil {
-					logger.Error("async machine hardinfo failed:%s", err.Error())
+					logger.Error("async machine hardware information failed:%s", err.Error())
 				}
 			},
 		},
@@ -152,7 +165,16 @@ func registerCrontab(localcron *cron.Cron) {
 			Spec: " 0 3 * * *",
 			Func: func() {
 				if err := model.SyncDbRpDailySnapShot(); err != nil {
-					logger.Error("async machine softinfo failed:%s", err.Error())
+					logger.Error("async machine snapshot failed:%s", err.Error())
+				}
+			},
+		},
+		{
+			Name: "检查故障主机",
+			Spec: "@every 12h",
+			Func: func() {
+				if err := task.FaultHostCheck(); err != nil {
+					logger.Error("check fault hosts failed %s", err.Error())
 				}
 			},
 		},
@@ -172,10 +194,7 @@ func initLogger() (err error) {
 	writer = os.Stdout
 	l := logger.New(writer, formatJson, level, map[string]string{})
 	logger.ResetDefault(l)
-	defer func() {
-		if errx := l.Sync(); errx != nil {
-			logger.Warn("sync log failed %v", errx)
-		}
-	}()
+	// nolint
+	defer l.Sync()
 	return
 }

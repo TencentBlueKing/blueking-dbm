@@ -108,8 +108,10 @@
   type IKey = string | number;
 
   export interface IListItem {
+    [key: string]: any;
     disabled?: boolean;
     id: IKey;
+    index?: number;
     name: string;
   }
 

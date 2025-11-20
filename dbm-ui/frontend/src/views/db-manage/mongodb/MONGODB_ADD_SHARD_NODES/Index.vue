@@ -13,11 +13,11 @@
 
 <template>
   <SmartAction>
-    <div class="proxy-scale-down-page">
+    <div class="proxy-scale-down-page db-toolbox">
       <BkAlert
         closable
         theme="info"
-        :title="t('扩容Shard节点数：xxx')" />
+        :title="t('扩容 Shard 节点数：提供增加副本集对应的member功能，目标节点数建议为3,5,7..奇数')" />
       <DbForm
         ref="form"
         class="toolbox-form"
@@ -26,7 +26,7 @@
         style="margin-top: 16px">
         <EditableTable
           ref="editableTable"
-          class="mt16 mb16"
+          class="mt-16 mb-16"
           :model="formData.tableData">
           <EditableRow
             v-for="(item, index) in formData.tableData"
@@ -37,6 +37,7 @@
               @batch-edit="handleClusterBatchEdit" />
             <EditableColumn
               :label="t('集群类型')"
+              readonly
               :width="200">
               <EditableBlock
                 v-model="item.cluster.cluster_type_name"
@@ -44,16 +45,17 @@
             </EditableColumn>
             <EditableColumn
               :label="t('当前 Shard 的节点数')"
+              readonly
               :width="200">
               <EditableBlock
                 v-model="item.cluster.cluster_type_name"
                 :placeholder="t('输入集群后自动生成')">
-                {{ item.cluster.shard_node_count }}
+                {{ item.cluster.id ? item.cluster.shard_node_count : '' }}
               </EditableBlock>
             </EditableColumn>
             <TargetNumColumn
               v-model="item.target_num"
-              :disabled="!item.cluster.id"
+              :cluster-id="item.cluster.id"
               :min="item.cluster.shard_node_count"
               @batch-edit="handleBatchEdit" />
             <OperationColumn
@@ -61,9 +63,16 @@
               :table-data="formData.tableData" />
           </EditableRow>
         </EditableTable>
-        <IgnoreBiz
-          v-model="formData.is_ignore_business_access"
-          v-bk-tooltips="t('如忽略_有连接的情况下也会执行')" />
+        <BkFormItem
+          v-bk-tooltips="t('如忽略_有连接的情况下也会执行')"
+          class="fit-content">
+          <BkCheckbox
+            v-model="formData.is_ignore_business_access"
+            :false-label="false"
+            true-label>
+            <span class="safe-action-text">{{ t('忽略业务连接') }}</span>
+          </BkCheckbox>
+        </BkFormItem>
         <TicketPayload v-model="formData.payload" />
       </DbForm>
     </div>
@@ -99,7 +108,6 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import IgnoreBiz from '@views/db-manage/common/toolbox-field/form-item/ignore-biz/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';

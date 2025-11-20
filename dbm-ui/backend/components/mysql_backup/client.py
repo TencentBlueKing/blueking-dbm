@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from ..base import BaseApi
 from ..domains import BACKUP_APIGW_DOMAIN
@@ -28,6 +28,8 @@ class _BackupApi(BaseApi):
             method="POST",
             url="backupapi/recover",
             description=_("备份文件下载"),
+            default_timeout=300,
+            max_retry_times=1,
         )
 
         self.download_result = self.generate_data_api(

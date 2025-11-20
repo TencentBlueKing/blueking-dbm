@@ -153,12 +153,14 @@ func report(conn *sqlx.Conn) error {
 }
 
 func clean(conn *sqlx.Conn) error {
+	var totalDeleted int64
 	for {
 		rowsDeleted, err := cleanOneRound(conn)
 		if err != nil {
 			return err
 		}
 
+		totalDeleted = totalDeleted + rowsDeleted
 		slog.Info("clean 3days ago conn_log limit 500")
 
 		if rowsDeleted == 0 {
@@ -167,6 +169,20 @@ func clean(conn *sqlx.Conn) error {
 	}
 
 	slog.Info("clean 3days ago conn_log")
+
+	// 连接日志太多了, 短连接
+	// 禁用连接日志
+	if totalDeleted >= 100000 {
+		slog.Info("too many conn_log, disable init_connect")
+
+		_, err := conn.ExecContext(context.Background(), `SET GLOBAL init_connect=""`)
+		if err != nil {
+			slog.Error("set init_connect fail", slog.String("error", err.Error()))
+			return err
+		}
+		slog.Info("set init_connect success")
+	}
+
 	return nil
 }
 
@@ -174,7 +190,7 @@ func cleanOneRound(conn *sqlx.Conn) (affectedRows int64, err error) {
 	r, err := conn.ExecContext(
 		context.Background(),
 		fmt.Sprintf(
-			`DELETE FROM %s.conn_log WHERE conn_time < DATE_SUB(NOW(), INTERVAL 3 DAY) LIMIT 500`,
+			`DELETE FROM %s.conn_log WHERE conn_time < DATE_SUB(NOW(), INTERVAL 2 DAY) LIMIT 500`,
 			cst.DBASchema,
 		),
 	)

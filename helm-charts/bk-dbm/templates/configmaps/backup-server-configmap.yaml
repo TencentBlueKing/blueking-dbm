@@ -36,6 +36,11 @@ data:
         order_process: 100
         single_order_thread: 8
         order_number: 200
+        {{- $replicaCount := int (index .Values "backup-server" "replicaCount" | default 0) }}
+        # 在 replicaCount为 1 时，会自动设置standalone为true replicaCount={{ $replicaCount }}
+        {{- if eq $replicaCount 1 }}
+        standalone: true
+        {{- end }}
         package_bkrepo_project: "{{ index .Values "backup-server" "package" "bkrepo_project" }}"
         package_bkrepo_public_bucket: "{{ index .Values "backup-server" "package" "bkrepo_public_bucket" }}"
         backupclient_default_dns: "{{ index .Values "backup-server" "backup_client" "cos_default_dns" }}"
@@ -80,5 +85,5 @@ data:
           password: "{{ index .Values "backup-server" "hdfs" "oldBackupDb" "password" }}"
           database: "{{ index .Values "backup-server" "hdfs" "oldBackupDb" "name" }}"
           charset: "utf8mb4"
-      {{- end }} 
+      {{- end }}
     {{- end }}

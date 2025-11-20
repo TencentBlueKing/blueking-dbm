@@ -1,0 +1,78 @@
+<!--
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License athttps://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+-->
+
+<template>
+  <TicketInfoTable
+    :data="ticketDetails.details.infos"
+    row-key="master_ip.ip">
+    <TicketInfoTableColumn
+      col-key="master_ip.ip"
+      :get-copy-value="(row: RowData) => `${row.master_ip.ip}:${row.master_ip.port}`"
+      :title="t('故障主库实例')">
+      <template #default="{ row: data }: { row: RowData }">
+        {{ `${data.master_ip.ip}:${data.master_ip.port}` }}
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="slave_ip"
+      :title="t('从库实例')">
+      <template #default="{ row: data }: { row: RowData }">
+        {{ `${data.slave_ip.ip}:${data.slave_ip.port}` }}
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_ids"
+      :title="t('同机关联的集群')">
+      <template #default="{ row: data }: { row: RowData }">
+        <div
+          v-for="clusterId in data.cluster_ids"
+          :key="clusterId"
+          style="line-height: 20px">
+          {{ ticketDetails.details.clusters[clusterId].immute_domain }}
+        </div>
+      </template>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
+  <InfoList>
+    <InfoItem :label="t('检查业务来源的连接')">
+      {{ ticketDetails.details.is_check_process ? t('是') : t('否') }}
+    </InfoItem>
+    <InfoItem :label="t('检查主从数据校验结果')">
+      {{ ticketDetails.details.is_verify_checksum ? t('是') : t('否') }}
+    </InfoItem>
+  </InfoList>
+</template>
+<script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
+  import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
+
+  import { TicketTypes } from '@common/const';
+
+  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+
+  interface Props {
+    ticketDetails: TicketModel<Mysql.InstanceFailOver>;
+  }
+
+  type RowData = Props['ticketDetails']['details']['infos'][number];
+
+  defineOptions({
+    name: TicketTypes.MYSQL_INSTANCE_FAIL_OVER,
+    inheritAttrs: false,
+  });
+
+  defineProps<Props>();
+
+  const { t } = useI18n();
+</script>

@@ -1,6 +1,6 @@
 module dbm-services/mongodb/db-tools/dbactuator
 
-go 1.21.0
+go 1.23.0
 
 toolchain go1.24.2
 
@@ -12,7 +12,7 @@ require (
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.18.2
 	go.mongodb.org/mongo-driver v1.11.4
-	golang.org/x/sys v0.22.0
+	golang.org/x/sys v0.30.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -49,11 +49,11 @@ require (
 	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
-	golang.org/x/crypto v0.22.0 // indirect
+	golang.org/x/crypto v0.35.0 // indirect
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
 	golang.org/x/net v0.24.0 // indirect
-	golang.org/x/sync v0.7.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/sync v0.11.0 // indirect
+	golang.org/x/text v0.22.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

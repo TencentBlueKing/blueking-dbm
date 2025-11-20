@@ -74,6 +74,7 @@
 
   interface Props {
     routes?: {
+      bind?: string[];
       dbConsoleValue: string;
       id: string;
       name: string;
@@ -92,7 +93,7 @@
   const serachKey = useDebouncedRef('');
 
   const toolboxTitle = ref('');
-  const activeMenu = ref('');
+  const activeMenu = ref(route.name);
 
   const renderRoutes = computed(() => {
     if (serachKey.value) {
@@ -103,26 +104,13 @@
     return props.routes;
   });
 
-  watchEffect(() => {
-    if (props.routes.length) {
-      activeMenu.value = props.routes[0].id;
-    }
-  });
-
   watch(
     route,
     () => {
       toolboxTitle.value = route.meta.navName as string;
-    },
-    {
-      immediate: true,
-    },
-  );
-
-  watch(
-    activeMenu,
-    () => {
-      router.push({ name: activeMenu.value });
+      activeMenu.value = props.routes.find(
+        (item) => item.bind?.includes(route.name as string) || route.name === item.id,
+      )?.id;
     },
     {
       immediate: true,
@@ -131,6 +119,7 @@
 
   const handleMenuClick = (id: string) => {
     activeMenu.value = id;
+    router.push({ name: activeMenu.value });
   };
 </script>
 <style lang="less">

@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from datetime import datetime
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 
 from backend.flow.consts import STAGE_DB_HEADER

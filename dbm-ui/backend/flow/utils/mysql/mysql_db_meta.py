@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import logging
+from typing import Dict, List
 
 from django.db.transaction import atomic
 
@@ -72,6 +73,7 @@ class MySQLDBMeta(object):
             bk_cloud_id=int(self.ticket_data["bk_cloud_id"]),
             resource_spec=self.ticket_data.get("resource_spec", def_resource_spec),
             region=self.ticket_data["city"],
+            zone_list=self.ticket_data.get("zone_list", []),
         )
         return True
 
@@ -97,6 +99,7 @@ class MySQLDBMeta(object):
             "resource_spec": self.ticket_data.get("resource_spec", def_resource_spec),
             "region": self.ticket_data["city"],
             "disaster_tolerance_level": self.ticket_data["disaster_tolerance_level"],
+            "zone_list": self.ticket_data.get("zone_list", []),
         }
         TenDBHAClusterHandler.create(**kwargs)
         return True
@@ -108,6 +111,14 @@ class MySQLDBMeta(object):
         TenDBSingleClusterHandler(bk_biz_id=self.bk_biz_id, cluster_id=self.cluster["id"]).decommission()
         return True
 
+    def mysql_single_destroy_by_domain(self) -> bool:
+        """
+        下架mysql单节点版集群，删除元信息
+        """
+        cluster = Cluster.objects.get(immute_domain=self.cluster["domain"], bk_biz_id=self.cluster["bk_biz_id"])
+        TenDBSingleClusterHandler(bk_biz_id=self.bk_biz_id, cluster_id=cluster.id).decommission()
+        return True
+
     def mysql_ha_destroy(self) -> bool:
         """
         下架mysql主从版集群，删除元信息
@@ -115,45 +126,50 @@ class MySQLDBMeta(object):
         TenDBHAClusterHandler(bk_biz_id=self.bk_biz_id, cluster_id=self.cluster["id"]).decommission()
         return True
 
-    def mysql_proxy_add(self) -> bool:
+    def mysql_proxy_add(
+        self,
+        new_proxies: List[Dict],
+        proxy_ports: List[int],
+        cluster_ids: List[int],
+        target_proxy_pkg_id: int,
+        template_proxy_ip: str = None,
+        created_by: str = "admin",
+    ) -> bool:
         """
         添加proxy节点，添加相关元信息
+        @param new_proxies: 待加入的proxy机器信息，格式dict{"ip":xx, "bk_cloud_id":0 ...}
+        @param proxy_ports: 机器添加的proxy端口列表
+        @param cluster_ids: 哪些集群添加这些proxy实例
+        @param target_proxy_pkg_id: proxy实例安装哪个版本id
+        @param template_proxy_ip: 模板proxy机器ip， 替换单据专属
+        @param created_by: 单据操作者
         """
+        # 多proxy处理变成事务性：
+        with atomic():
+            for new_proxy in new_proxies:
+                TenDBHAClusterHandler.mysql_proxy_add(
+                    bk_biz_id=int(self.bk_biz_id),
+                    bk_cloud_id=new_proxy["bk_cloud_id"],
+                    proxy=new_proxy,
+                    proxy_ports=proxy_ports,
+                    cluster_ids=cluster_ids,
+                    created_by=created_by,
+                    template_proxy_ip=template_proxy_ip,
+                    target_proxy_pkg_id=target_proxy_pkg_id,
+                )
+            return True
 
-        TenDBHAClusterHandler.mysql_proxy_add(
-            bk_biz_id=int(self.bk_biz_id),
-            bk_cloud_id=self.cluster["proxy_ip"]["bk_cloud_id"],
-            proxy_ip=self.cluster["proxy_ip"]["ip"],
-            proxy_ports=self.ticket_data["proxy_ports"],
-            cluster_ids=self.cluster["cluster_ids"],
-            created_by=self.ticket_data["created_by"],
-        )
-        return True
-
-    def mysql_proxy_add_for_switch(self) -> bool:
+    @staticmethod
+    def mysql_proxy_reduce(cluster_ids: List[int], origin_proxy_ip: str) -> bool:
         """
-        添加proxy节点，添加相关元信息(替换专属)
-        """
-
-        TenDBHAClusterHandler.mysql_proxy_add(
-            bk_biz_id=int(self.bk_biz_id),
-            bk_cloud_id=self.cluster["target_proxy_ip"]["bk_cloud_id"],
-            proxy_ip=self.cluster["target_proxy_ip"]["ip"],
-            proxy_ports=self.ticket_data["proxy_ports"],
-            cluster_ids=self.cluster["cluster_ids"],
-            created_by=self.ticket_data["created_by"],
-            template_proxy_ip=self.cluster["origin_proxy_ip"]["ip"],
-        )
-        return True
-
-    def mysql_proxy_reduce(self) -> bool:
-        """
-        删除proxy节点
+        删除proxy节点的，在cluster_ids对应集群的相关元信息
+        @param cluster_ids: 需要删除proxy的相关集群ID列表
+        @param origin_proxy_ip: 删除的proxy节点ip
         """
 
         TenDBHAClusterHandler.mysql_proxy_reduce(
-            cluster_ids=self.cluster["cluster_ids"],
-            origin_proxy_ip=self.cluster["origin_proxy_ip"]["ip"],
+            cluster_ids=cluster_ids,
+            origin_proxy_ip=origin_proxy_ip,
         )
         return True
 
@@ -222,12 +238,14 @@ class MySQLDBMeta(object):
             api.cluster.tendbha.add_slave(
                 cluster_id=self.cluster["cluster_id"], target_slave_ip=self.cluster["new_slave_ip"]
             )
-            api.cluster.tendbha.add_storage_tuple(
-                master_ip=self.cluster["master_ip"],
-                slave_ip=self.cluster["new_slave_ip"],
-                bk_cloud_id=self.cluster["bk_cloud_id"],
-                port_list=[self.cluster["master_port"]],
-            )
+            # 针对TendbSingle的恢复流程，全量数据恢复主从关系。
+            if self.cluster.get("add_tuple_relation", True):
+                api.cluster.tendbha.add_storage_tuple(
+                    master_ip=self.cluster["master_ip"],
+                    slave_ip=self.cluster["new_slave_ip"],
+                    bk_cloud_id=self.cluster["bk_cloud_id"],
+                    port_list=[self.cluster["master_port"]],
+                )
             # 修改新slave实例状态: restoring->running
             slave_storage = StorageInstance.objects.get(
                 machine__ip=self.cluster["new_slave_ip"],
@@ -250,6 +268,25 @@ class MySQLDBMeta(object):
                 source_slave_ip=self.cluster["old_slave_ip"],
                 slave_domain=self.cluster["slave_domain"],
             )
+
+    def mysql_single_change_cluster_info(self):
+        """
+        TendbSingle 重建处理元数据步骤之三：切换实例，修改集群从节点域名指向新从节点
+        """
+        with atomic():
+            api.cluster.tendbha.switch_single(
+                cluster_id=self.cluster["cluster_id"],
+                target_slave_ip=self.cluster["new_orphan_ip"],
+                source_slave_ip=self.cluster["orphan_ip"],
+                domains=self.cluster["domains"],
+            )
+            if self.cluster.get("add_tuple_relation", False):
+                api.cluster.tendbha.storage_tuple.remove_storage_tuple(
+                    master_ip=self.cluster["orphan_ip"],
+                    slave_ip=self.cluster["new_orphan_ip"],
+                    bk_cloud_id=self.cluster["bk_cloud_id"],
+                    port_list=[self.cluster["orphan_port"]],
+                )
 
     def mysql_restore_remove_old_slave(self):
         """
@@ -722,11 +759,22 @@ class MySQLDBMeta(object):
 
     def slave_recover_add_instance(self):
         # tendb ha从节点重建
+        # if "resource_spec" in self.ticket_data:
+        resource_spec = self.ticket_data.get("resource_spec", {}).get("new_slave", {})
+        # else:
+        #     cluster = Cluster.objects.get(id=self.cluster["cluster_ids"][0])
+        #     resource_spec = (
+        #         cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.MASTER.value)
+        #         .first()
+        #         .machine.spec_config
+        #     )
         machines = [
             {
                 "ip": self.cluster["install_ip"],
                 "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
                 "machine_type": MachineType.BACKEND.value,
+                "spec_config": resource_spec,
+                "spec_id": resource_spec.get("id", 0),
             }
         ]
         storage_instances = []
@@ -920,17 +968,32 @@ class MySQLDBMeta(object):
         mysql_pkg = Package.get_latest_package(
             version=self.ticket_data["db_version"], pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL
         )
+        # if "resource_spec" in self.ticket_data:
+        resource_spec_master = self.ticket_data.get("resource_spec", {}).get("master", {})
+        resource_spec_slave = self.ticket_data.get("resource_spec", {}).get("slave", {})
+        # else:
+        #     cluster = Cluster.objects.get(id=self.cluster["cluster_ids"][0])
+        #     resource_spec_master = (
+        #         cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.MASTER.value)
+        #         .first()
+        #         .machine.spec_config
+        #     )
+        #     resource_spec_slave = resource_spec_master
 
         machines = [
             {
                 "ip": self.cluster["new_master_ip"],
                 "bk_biz_id": int(self.bk_biz_id),
                 "machine_type": MachineType.BACKEND.value,
+                "spec_config": resource_spec_master,
+                "spec_id": resource_spec_master.get("id", 0),
             },
             {
                 "ip": self.cluster["new_slave_ip"],
                 "bk_biz_id": int(self.bk_biz_id),
                 "machine_type": MachineType.BACKEND.value,
+                "spec_config": resource_spec_slave,
+                "spec_id": resource_spec_slave.get("id", 0),
             },
         ]
         storage_instances = []
@@ -1004,6 +1067,70 @@ class MySQLDBMeta(object):
             )
         return True
 
+    def migrate_single_add_instance(self):
+        """
+        logdb成对迁移：安装新节点，添加实例元数据，关联到集群，转移机器模块
+        """
+        mysql_pkg = Package.get_latest_package(
+            version=self.ticket_data["db_version"], pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL
+        )
+
+        machines = [
+            {
+                "ip": self.cluster["new_orphan_ip"],
+                "bk_biz_id": int(self.bk_biz_id),
+                "machine_type": MachineType.SINGLE.value,
+                "spec_config": self.ticket_data["resource_spec"]["orphan"],
+                "spec_id": self.ticket_data["resource_spec"]["orphan"]["id"],
+            },
+        ]
+        storage_instances = []
+        for storage_port in self.cluster["cluster_ports"]:
+            storage_instances.append(
+                {
+                    "ip": self.cluster["new_orphan_ip"],
+                    "port": int(storage_port),
+                    "instance_role": InstanceRole.ORPHAN.value,
+                    "is_stand_by": False,  # 添加新建
+                    "db_version": get_mysql_real_version(mysql_pkg.name),  # 存储真正的版本号信息
+                    "phase": InstancePhase.TRANS_STAGE.value,
+                }
+            )
+
+        cluster_list = []
+        clusterid_list = []
+        for cluster_id in self.ticket_data["cluster_ids"]:
+            cluster_model = Cluster.objects.get(id=cluster_id)
+            master = cluster_model.storageinstance_set.get(instance_inner_role=InstanceInnerRole.ORPHAN.value)
+            cluster_list.append(
+                {
+                    "ip": self.cluster["new_orphan_ip"],
+                    "port": master.port,
+                    "cluster_id": cluster_model.id,
+                }
+            )
+            clusterid_list.append(cluster_model.id)
+        with atomic():
+            api.machine.create(
+                bk_cloud_id=self.ticket_data["bk_cloud_id"], machines=machines, creator=self.ticket_data["created_by"]
+            )
+            machines_objs = Machine.objects.filter(
+                bk_cloud_id=self.ticket_data["bk_cloud_id"],
+                ip__in=[self.cluster["new_orphan_ip"]],
+            )
+            machines_objs.update(db_module_id=self.ticket_data["db_module_id"])
+            storage_objs = api.storage_instance.create(
+                instances=storage_instances,
+                creator=self.ticket_data["created_by"],
+                time_zone=self.ticket_data["time_zone"],
+                status=InstanceStatus.RESTORING,
+            )
+            api.cluster.tendbha.cluster_add_storage(cluster_list)
+            # 转移模块，实例ID注册服务
+            clusters = Cluster.objects.filter(id__in=clusterid_list)
+            MysqlCCTopoOperator(clusters).transfer_instances_to_cluster_module(storage_objs)
+        return True
+
     def migrate_cluster_add_tuple(self):
         """
         添加主从关系链
@@ -1056,18 +1183,30 @@ class MySQLDBMeta(object):
         升级后更新proxy版本信息
         """
         with atomic():
-            ProxyInstance.objects.filter(
-                machine__ip=self.cluster["proxy_ip"],
-            ).update(version=self.cluster["version"])
+            if self.cluster.get("port"):
+                ProxyInstance.objects.filter(
+                    machine__ip=self.cluster["proxy_ip"],
+                    port=self.cluster["port"],
+                ).update(version=self.cluster["version"])
+            else:
+                ProxyInstance.objects.filter(
+                    machine__ip=self.cluster["proxy_ip"],
+                ).update(version=self.cluster["version"])
 
     def update_proxy_instance_status(self):
         """
         更新proxy状态
         """
         with atomic():
-            ProxyInstance.objects.filter(
-                machine__ip=self.cluster["proxy_ip"],
-            ).update(phase=self.cluster["phase"], status=self.cluster["status"])
+            if self.cluster.get("port"):
+                ProxyInstance.objects.filter(
+                    machine__ip=self.cluster["proxy_ip"],
+                    port=self.cluster["port"],
+                ).update(phase=self.cluster["phase"], status=self.cluster["status"])
+            else:
+                ProxyInstance.objects.filter(
+                    machine__ip=self.cluster["proxy_ip"],
+                ).update(phase=self.cluster["phase"], status=self.cluster["status"])
 
     def update_mysql_instance_version(self):
         """

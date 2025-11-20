@@ -3,23 +3,33 @@
     :data="data"
     :ticket-detail="ticketDetail">
     <template #content>
-      <I18nT
-        v-if="isNeedOperation"
-        keypath="m_处理人_p_耗时_t"
-        scope="global">
-        <span style="color: #ea3636">{{ t('执行失败') }}</span>
-        <span>{{ ticketDetail.todo_operators.join(',') }}</span>
-        <CostTimer
-          :is-timing="false"
-          :start-time="utcTimeToSeconds(data.start_time)"
-          :value="data.cost_time" />
-      </I18nT>
+      <template v-if="isNeedOperation">
+        <I18nT
+          keypath="m_处理人_p"
+          scope="global">
+          <span style="color: #ea3636">{{ t('执行失败') }}</span>
+          {{ ticketDetail.todo_operators.join(',') }}
+        </I18nT>
+        <I18nT
+          v-if="ticketDetail.todo_helpers.length > 0"
+          keypath="_协助人_p"
+          scope="global">
+          {{ ticketDetail.todo_helpers.join(',') }}
+        </I18nT>
+        <I18nT
+          keypath="_耗时_t"
+          scope="global">
+          <CostTimer
+            :is-timing="false"
+            :start-time="utcTimeToSeconds(data.start_time)"
+            :value="data.cost_time" />
+        </I18nT>
+      </template>
       <I18nT
         v-else
         keypath="m_耗时_t"
         scope="global">
         <span style="color: #ea3636">{{ t('执行失败') }}</span>
-
         <CostTimer
           :is-timing="false"
           :start-time="utcTimeToSeconds(data.start_time)"
@@ -38,36 +48,6 @@
           {{ t('去处理') }}
         </a>
       </template>
-      <FlowCollapse
-        v-if="data.err_msg"
-        danger
-        :title="t('失败原因')">
-        <div style="padding-left: 16px">
-          {{ data.err_msg }}
-        </div>
-      </FlowCollapse>
-      <div
-        v-if="isCanOperation && isNeedOperation"
-        class="mt-12">
-        <ProcessRetry
-          :data="ticketDetail"
-          :flow-data="data">
-          <BkButton
-            class="w-88"
-            theme="primary">
-            {{ t('失败重试') }}
-          </BkButton>
-        </ProcessRetry>
-        <ProcessFailedTerminate
-          :data="ticketDetail"
-          :flow-data="data">
-          <BkButton
-            class="ml-8 w-88"
-            theme="danger">
-            {{ t('终止') }}
-          </BkButton>
-        </ProcessFailedTerminate>
-      </div>
     </template>
   </StatusFailed>
 </template>
@@ -78,18 +58,12 @@
   import FlowMode from '@services/model/ticket/flow';
   import TicketModel from '@services/model/ticket/ticket';
 
-  import { useUserProfile } from '@stores';
-
   import { TicketTypes } from '@common/const';
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
 
-  import ProcessFailedTerminate from '@views/ticket-center/common/action-confirm/ProcessFailedTerminate.vue';
-  import ProcessRetry from '@views/ticket-center/common/action-confirm/ProcessRetry.vue';
-
   import { utcTimeToSeconds } from '@utils';
 
-  import FlowCollapse from '../flow-type-common/components/FlowCollapse.vue';
   import StatusFailed from '../flow-type-common/StatusFailed.vue';
 
   import MongodbExecScriptDownloadFile from './components/MongodbExecScriptDownloadFile.vue';
@@ -106,13 +80,6 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
-  const { isSuperuser, username } = useUserProfile();
 
-  const isCanOperation = computed(
-    () =>
-      isSuperuser ||
-      props.ticketDetail.todo_operators.includes(username) ||
-      props.ticketDetail.todo_helpers.includes(username),
-  );
   const isNeedOperation = computed(() => props.data.err_msg || [0, 2].includes(props.data.err_code));
 </script>

@@ -7,7 +7,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.exceptions import AppBaseException, ErrorCode
 
@@ -62,4 +62,16 @@ class TendbGetBinlogFailedException(TenDBClusterFlowBaseException):
 class TendbGetClusterInfoFailedException(TenDBClusterFlowBaseException):
     ERROR_CODE = "008"
     MESSAGE = _("获取集群信息失败")
+    MESSAGE_TPL = _("{message}")
+
+
+class NoSpiderVersionException(TenDBClusterFlowBaseException):
+    ERROR_CODE = "009"
+    MESSAGE = _("存在spider元数据没有版本信息")
+    MESSAGE_TPL = _("{message}")
+
+
+class SpiderVersionInconsistentException(TenDBClusterFlowBaseException):
+    ERROR_CODE = "009"
+    MESSAGE = _("集群spider版本不一致")
     MESSAGE_TPL = _("{message}")

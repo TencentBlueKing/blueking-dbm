@@ -43,6 +43,11 @@ export default (isAssist: Ref<number>) => {
         id: TicketModel.STATUS_INNER_TODO,
         name: `${t('待继续')}(${countData.INNER_TODO})`,
       },
+      {
+        count: countData.TIMER,
+        id: TicketModel.STATUS_TIMER,
+        name: `${t('定时中')}(${countData.TIMER})`,
+      },
     ];
   });
 
@@ -54,6 +59,9 @@ export default (isAssist: Ref<number>) => {
   }
 
   watch(list, () => {
+    if (route.params.status) {
+      return;
+    }
     defaultStatus.value = _.find(list.value, (item) => item.count > 0)?.id ?? TicketModel.STATUS_APPROVE;
   });
 

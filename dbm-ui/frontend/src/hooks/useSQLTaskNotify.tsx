@@ -19,7 +19,7 @@ import { useRequest } from 'vue-request';
 import type UserSemanticTaskModel from '@services/model/sql-import/user-semantic-task';
 import { getUserSemanticTasks } from '@services/source/mysqlSqlImport';
 
-import { DBTypes } from '@common/const';
+import { DBTypes, TicketTypes } from '@common/const';
 
 export const useSQLTaskNotify = () => {
   const { t } = useI18n();
@@ -27,7 +27,10 @@ export const useSQLTaskNotify = () => {
 
   const handleGoTaskLog = (taskData: UserSemanticTaskModel) => {
     const { href } = router.resolve({
-      name: taskData.cluster_type === DBTypes.MYSQL ? 'MySQLExecute' : 'spiderSqlExecute',
+      name:
+        taskData.cluster_type === DBTypes.MYSQL
+          ? TicketTypes.MYSQL_IMPORT_SQLFILE
+          : TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE,
       params: {
         step: 'log',
       },

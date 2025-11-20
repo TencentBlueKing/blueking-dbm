@@ -15,7 +15,7 @@ from collections import defaultdict
 from dataclasses import asdict
 from typing import Dict, List, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
@@ -156,6 +156,7 @@ class TenDBClusterFullBackupFlow(object):
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(
                 ExecActuatorKwargs(
+                    job_timeout=LONG_JOB_TIMEOUT,
                     bk_cloud_id=cluster_obj.bk_cloud_id,
                     run_as_system_user=DBA_SYSTEM_USER,
                     exec_ip=ctl_primary_ip,
@@ -169,6 +170,7 @@ class TenDBClusterFullBackupFlow(object):
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(
                 ExecActuatorKwargs(
+                    job_timeout=LONG_JOB_TIMEOUT,
                     bk_cloud_id=cluster_obj.bk_cloud_id,
                     run_as_system_user=DBA_SYSTEM_USER,
                     exec_ip=ctl_primary_ip,

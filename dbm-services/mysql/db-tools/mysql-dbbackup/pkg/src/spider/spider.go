@@ -15,7 +15,8 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/olekukonko/tablewriter"
+	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/spf13/viper"
 
 	"dbm-services/common/go-pubpkg/cmutil"
@@ -121,7 +122,7 @@ func QueryBackup(cnf *config.Public, backupStatus []string) error {
 			return err
 		}
 		sort.Sort(sort.Reverse(GlobalBackupList(tasks)))
-		printBackup(tasks, viper.GetString("query.format"))
+		printBackup(tasks, viper.GetString("query.format"), viper.GetInt("query.limit"))
 	}
 	return nil
 }
@@ -218,7 +219,7 @@ func RunBackupTasks(cnfList []*config.Public) error {
 			for i, t := range backupIdTasks {
 				tasks[i] = t.earliestBackupTask
 			}
-			printBackup(tasks, "")
+			printBackup(tasks, "", 0)
 		}
 	} else {
 		logger.Log.Info("no backup tasks for this host")
@@ -229,32 +230,45 @@ func RunBackupTasks(cnfList []*config.Public) error {
 	return nil
 }
 
-func printBackup(tasks []*GlobalBackupModel, format string) {
+func printBackup(tasks []*GlobalBackupModel, format string, limit int) {
 	if format == "json" {
 		jsonBytes, _ := json.Marshal(tasks)
 		fmt.Println(string(jsonBytes))
 		return
 	}
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetAutoWrapText(false)
-	table.SetAutoFormatHeaders(false)
-	table.SetAutoMergeCellsByColumnIndex([]int{0})
-	table.SetRowLine(true)
-	table.SetHeader([]string{"BackupId", "ServerName", "BackupStatus", "Host", "Port", "ShardValue", "CreatedAt"})
-	for _, t := range tasks {
+	tw := table.NewWriter()
+	tw.SetOutputMirror(os.Stdout)
+	tw.Style().Options.SeparateRows = true
+	tw.Style().Format.Header = text.FormatDefault
+	tw.SetColumnConfigs([]table.ColumnConfig{
+		{Number: 1, Name: "BackupId", AutoMerge: true},
+	})
+	tw.SortBy([]table.SortBy{
+		{Name: "CreatedAt", Mode: table.Dsc},
+		{Name: "Wrapper", Mode: table.Asc},
+		{Name: "ShardValue", Mode: table.Asc},
+	})
+	tw.AppendHeader(table.Row{
+		"BackupId", "ServerName", "BackupStatus", "Host", "Port", "ShardValue", "Wrapper", "CreatedAt",
+	})
+	for idx, t := range tasks {
+		if idx >= limit && limit > 0 {
+			break
+		}
 		if t != nil {
-			table.Append([]string{
+			tw.AppendRow([]interface{}{
 				t.BackupId,
 				t.ServerName,
 				t.BackupStatus,
 				t.Host,
-				cast.ToString(t.Port),
-				cast.ToString(t.ShardValue),
+				t.Port,
+				t.ShardValue,
+				t.Wrapper,
 				t.CreatedAt})
 		}
 	}
-	table.SetFooter([]string{"Rows", cast.ToString(table.NumLines()), "", "", "", "", ""})
-	table.Render()
+	tw.SetCaption("Total: %d", tw.Length())
+	tw.Render()
 }
 func runBackup(tasks []InstBackupTask) error {
 	var errList []error

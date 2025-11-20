@@ -17,11 +17,11 @@
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
 
-  const { t } = useI18n();
-
-  const modelValue = defineModel<boolean | undefined>({
-    default: undefined,
+  const modelValue = defineModel<boolean>({
+    required: true,
   });
+
+  const { t } = useI18n();
 
   const handleRawSwitch = (value: boolean) => {
     modelValue.value = value;

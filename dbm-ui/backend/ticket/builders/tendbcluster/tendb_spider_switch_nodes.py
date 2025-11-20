@@ -8,14 +8,18 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from collections import defaultdict
 
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import TenDBClusterSpiderRole
+from backend.db_meta.models import Cluster, ProxyInstance
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import HostInfoSerializer, fetch_cluster_ids
 from backend.ticket.builders.tendbcluster.base import (
     BaseTendbTicketFlowBuilder,
     TendbBaseOperateDetailSerializer,
@@ -28,41 +32,60 @@ class SpiderSwitchNodesDetailSerializer(TendbBaseOperateDetailSerializer):
     class SpiderSwitchNodesInfoSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         resource_spec = serializers.DictField(help_text=_("规格参数"))
-        role_key = serializers.CharField(help_text=_("唯一值"), required=False)
+        row_key = serializers.CharField(help_text=_("唯一值"), required=False)
         switch_spider_role = serializers.ChoiceField(
-            help_text=_("接入层类型"), choices=TenDBClusterSpiderRole.get_choices()
+            help_text=_("接入层类型"), choices=TenDBClusterSpiderRole.get_choices(), required=False
         )
-        spider_old_ip_list = serializers.JSONField(help_text=_("替换的节点信息"))
+        # spider_old_ip_list = serializers.JSONField(help_text=_("替换的节点信息"))
+        spider_old_ip_list = serializers.ListSerializer(help_text=_("待回收spider主机信息"), child=HostInfoSerializer())
+        old_nodes = serializers.DictField(help_text=_("旧节点信息集合"), child=serializers.ListField(help_text=_("节点信息")))
 
     ip_source = serializers.ChoiceField(
         help_text=_("机器来源"), choices=IpSource.get_choices(), required=False, default=IpSource.MANUAL_INPUT
     )
     infos = serializers.ListSerializer(help_text=_("克隆主从信息"), child=SpiderSwitchNodesInfoSerializer())
     is_safe = serializers.BooleanField(help_text=_("是否做安全检测"), default=True, required=False)
-    old_nodes = serializers.DictField(help_text=_("旧节点信息集合"), child=serializers.ListField(help_text=_("节点信息")))
 
 
 class SpiderSwitchNodesFlowParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.tendbcluster_switch_nodes_scene
     # 暂时先为空，等校验函数出来再替换
-    validator = None
+    validator = SpiderController.tendbcluster_switch_nodes_scene.validator
 
 
 class TendbSpiderSwitchNodesResourceParamBuilder(TendbBaseOperateResourceParamBuilder):
     def format(self):
-        # 在跨机房亲和性要求下，接入层proxy的亲和性要求至少分布在2个机房
-        self.patch_info_affinity_location()
-        for info in self.ticket_data["infos"]:
-            role = f'{info["switch_spider_role"]}_{info["spider_old_ip_list"][0]["ip"]}'
-            info["resource_spec"][role]["group_count"] = 2
+        infos = self.ticket_data["infos"]
+        host_ids = [host["bk_host_id"] for info in infos for host in info["spider_old_ip_list"]]
+        cluster_ids = fetch_cluster_ids(infos)
+        # 获取集群下剩余的spider master
+        remain_spiders = ProxyInstance.objects.select_related("machine").filter(
+            ~Q(machine__bk_host_id__in=host_ids),
+            cluster__in=cluster_ids,
+            tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER.value,
+        )
+        cluster__spider_inst_map = defaultdict(list)
+        for spider in remain_spiders:
+            cluster__spider_inst_map[spider.cluster.first().id].append(spider.machine)
+
+        cluster_map = Cluster.objects.in_bulk(cluster_ids)
+
+        for info in infos:
+            self.patch_common_affinity(
+                info,
+                role=info["switch_spider_role"],
+                cluster=cluster_map[info["cluster_id"]],
+                exclusive_hosts=cluster__spider_inst_map.get(info["cluster_id"], []),
+                tolerance=0.5,
+                no_need_affinity=info["switch_spider_role"] == TenDBClusterSpiderRole.SPIDER_SLAVE,
+            )
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()
         for info in next_flow.details["ticket_data"]["infos"]:
             # 格式化规格信息
-            role = f'{info["switch_spider_role"]}_{info["spider_old_ip_list"][0]["ip"]}'
+            role = info["switch_spider_role"]
             info["spider_new_ip_list"] = info.pop(role)
-            info["resource_spec"]["spider"] = info["resource_spec"].pop(role)
 
         next_flow.save(update_fields=["details"])
 

@@ -16,14 +16,16 @@
  * @param {String} prefix 统一前缀
  * @param {Int} idLength 随机ID长度
  */
+import _ from 'lodash';
+
 export function generateId(prefix = '', length = 6) {
   let d = new Date().getTime();
-  const uuid = new Array(length)
+  const uuid = Array.from({ length: length })
     .fill('x')
     .join('')
     .replace(/[xy]/g, (c) => {
-      const r = (d + Math.random() * 16) % 16 | 0;
-      d = Math.floor(d / 16);
+      const r = (d + _.random() * 16) % 16 | 0;
+      d = _.random();
       return (c === 'x' ? r : (r & 0x7) | 0x8).toString(16);
     });
   return `${prefix}${uuid}`;

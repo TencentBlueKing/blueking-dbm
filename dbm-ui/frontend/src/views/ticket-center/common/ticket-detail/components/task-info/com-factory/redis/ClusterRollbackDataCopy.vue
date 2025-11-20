@@ -12,15 +12,55 @@
 -->
 
 <template>
-  <DbOriginalTable
-    :columns="columns"
-    :data="tableData" />
-  <div class="ticket-details-list">
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('写入类型') }}：</span>
-      <span class="ticket-details-item-value">{{ writeTypesMap[ticketDetails.details.write_mode] }}</span>
-    </div>
-  </div>
+  <TicketInfoTable
+    :data="ticketDetails.details.infos"
+    row-key="src_cluster">
+    <TicketInfoTableColumn
+      col-key="src_cluster"
+      fixed="left"
+      :get-copy-value="(row: RowData) => row.src_cluster"
+      :min-width="220"
+      :title="t('构造产物访问入口')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="dst_cluster"
+      :title="t('目标集群')"
+      :width="150">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.dst_cluster].immute_domain }}
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_type_name"
+      :title="t('架构版本')"
+      :width="150">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.dst_cluster].cluster_type_name }}
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="recovery_time_point"
+      :title="t('构造到指定时间')" />
+    <TicketInfoTableColumn
+      col-key="key_white_regex"
+      :title="t('包含 Key')">
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="generateSplitList(row.key_white_regex)" />
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="key_black_regex"
+      :title="t('排除 Key')">
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="generateSplitList(row.key_black_regex)" />
+      </template>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
+  <InfoList>
+    <InfoItem :label="t('写入类型')">
+      {{ writeTypesMap[ticketDetails.details.write_mode] }}
+    </InfoItem>
+  </InfoList>
 </template>
 
 <script setup lang="tsx">
@@ -30,25 +70,25 @@
 
   import { TicketTypes } from '@common/const';
 
+  import TagBlock from '@components/tag-block/Index.vue';
+
   import { writeTypeList } from '@views/db-manage/redis/common/const';
+
+  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+
+  type RowData = TicketModel<Redis.ClusterRollbackDataCopy>['details']['infos'][number];
 
   interface Props {
     ticketDetails: TicketModel<Redis.ClusterRollbackDataCopy>;
-  }
-
-  interface RowData {
-    entry: string;
-    excludeKeys: string[];
-    includeKeys: string[];
-    taregtClusterName: string;
-    time: string;
   }
 
   defineOptions({
     name: TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY,
     inheritAttrs: false,
   });
-  const props = defineProps<Props>();
+
+  defineProps<Props>();
+
   const { t } = useI18n();
 
   const writeTypesMap = writeTypeList.reduce(
@@ -59,73 +99,5 @@
     {} as Record<string, string>,
   );
 
-  const columns = [
-    {
-      field: 'entry',
-      label: t('构造产物访问入口'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'taregtClusterName',
-      label: t('目标集群'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'clusterTypeName',
-      label: t('架构版本'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'time',
-      label: t('构造到指定时间'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'includeKeys',
-      label: t('包含 Key'),
-      render: ({ data }: { data: RowData }) => {
-        if (data.includeKeys.length > 0) {
-          return data.includeKeys.map((key, index) => (
-            <bk-tag
-              key={index}
-              type='stroke'>
-              {key}
-            </bk-tag>
-          ));
-        }
-        return <span>--</span>;
-      },
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'excludeKeys',
-      label: t('排除 Key'),
-      render: ({ data }: { data: RowData }) => {
-        if (data.excludeKeys.length > 0) {
-          return data.excludeKeys.map((key, index) => (
-            <bk-tag
-              key={index}
-              type='stroke'>
-              {key}
-            </bk-tag>
-          ));
-        }
-        return <span>--</span>;
-      },
-      showOverflowTooltip: true,
-    },
-  ];
-
-  const tableData = computed(() => {
-    const { clusters, infos } = props.ticketDetails.details;
-
-    return infos.map((item) => ({
-      clusterTypeName: clusters[item.dst_cluster].cluster_type_name,
-      entry: item.src_cluster,
-      excludeKeys: item.key_black_regex === '' ? [] : item.key_black_regex.split('\n'),
-      includeKeys: item.key_white_regex === '' ? [] : item.key_white_regex.split('\n'),
-      taregtClusterName: clusters[item.dst_cluster].immute_domain,
-      time: item.recovery_time_point,
-    }));
-  });
+  const generateSplitList = (str: string) => (str ? str.split('\n') : []);
 </script>

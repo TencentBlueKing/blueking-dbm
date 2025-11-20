@@ -1,27 +1,24 @@
 <template>
-  <BkTable
+  <TicketInfoTable
     class="preview-privilege-table"
     :data="tableData"
-    :show-overflow="false">
-    <BkTableColumn
-      :label="t('访问源')"
-      :min-width="150">
-      <template #default="{ data: rowData }: { data: IDataRow }">
+    row-key="user">
+    <TicketInfoTableColumn
+      col-key="ips"
+      :get-copy-value="(row: IDataRow) => row.ips"
+      :min-width="150"
+      :title="t('访问源')">
+      <template #default="{ row }: { row: IDataRow }">
         <div>
           <p
-            v-for="(ip, index) in showAllIp ? rowData.ips : rowData.ips.slice(0, 10)"
+            v-for="(ip, index) in showAllIp ? row.ips : row.ips.slice(0, 10)"
             :key="index">
             {{ ip }}
-            <DbIcon
-              v-if="index === 0"
-              class="copy-btn"
-              type="copy"
-              @click="() => handleCopyIps(rowData.ips)" />
           </p>
         </div>
-        <div v-if="rowData.ips.length > 10">
+        <div v-if="row.ips.length > 10">
           <BkTag size="small">
-            {{ t('共n个', [rowData.ips.length]) }}
+            {{ t('共n个', [row.ips.length]) }}
           </BkTag>
           <BkButton
             class="more-btn"
@@ -32,35 +29,33 @@
           </BkButton>
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('集群域名')"
-      :min-width="250">
-      <template #default="{ data: rowData }: { data: IDataRow }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="clusterDomains"
+      :get-copy-value="(row: IDataRow) => row.clusterDomains"
+      :min-width="250"
+      :title="t('集群域名')">
+      <template #default="{ row }: { row: IDataRow }">
         <div class="cell-cluster">
           <p
-            v-for="(item, index) in rowData.clusterDomains"
+            v-for="(item, index) in row.clusterDomains"
             :key="index">
             {{ item }}
-            <DbIcon
-              v-if="index === 0"
-              class="copy-btn"
-              type="copy"
-              @click="() => handleCopyDomains(rowData.clusterDomains)" />
           </p>
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="user"
-      :label="t('账号')" />
-    <BkTableColumn
-      :label="t('访问DB')"
-      :min-width="150">
-      <template #default="{ data: rowData }: { data: IDataRow }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="user"
+      :title="t('账号')" />
+    <TicketInfoTableColumn
+      col-key="accessDbs"
+      :min-width="150"
+      :title="t('访问DB')">
+      <template #default="{ row }: { row: IDataRow }">
         <div>
           <p
-            v-for="item in showAllDb ? rowData.accessDbs : rowData.accessDbs.slice(0, 10)"
+            v-for="item in showAllDb ? row.accessDbs : row.accessDbs.slice(0, 10)"
             :key="item"
             class="mb-6">
             <BkTag>
@@ -68,9 +63,9 @@
             </BkTag>
           </p>
         </div>
-        <div v-if="rowData.accessDbs.length > 10">
+        <div v-if="row.accessDbs.length > 10">
           <BkTag size="small">
-            {{ t('共n个', [rowData.accessDbs.length]) }}
+            {{ t('共n个', [row.accessDbs.length]) }}
           </BkTag>
           <BkButton
             class="more-btn"
@@ -81,14 +76,15 @@
           </BkButton>
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('权限')"
-      :min-width="400">
-      <template #default="{ data: rowData }: { data: IDataRow }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="privilege"
+      :min-width="400"
+      :title="t('权限')">
+      <template #default="{ row }: { row: IDataRow }">
         <div
-          v-for="(privilege, key) in userDbPrivilegeMap[`${rowData.user}#${rowData.accessDbs}`]"
-          :key="`${rowData.user}#${rowData.accessDbs}#${key}`">
+          v-for="(privilege, key) in userDbPrivilegeMap[row.user]"
+          :key="key">
           <div
             v-if="privilege.length"
             class="cell-privilege">
@@ -110,8 +106,8 @@
           </div>
         </div>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -122,8 +118,6 @@
   import { AccountTypes } from '@common/const';
 
   import configMap from '@views/db-manage/common/permission/components/mysql/config';
-
-  import { execCopy } from '@utils';
 
   interface IDataRow {
     accessDbs: string[];
@@ -163,10 +157,10 @@
         userDbPrivilegeMap.value = props.data.reduce<Record<string, AccountRulePrivilege>>((acc, cur) => {
           const { privileges } = cur;
           privileges?.forEach((item) => {
-            const { access_db: accessDbs, priv, user } = item;
+            const { priv, user } = item;
             const privileageMap = new Set(priv.split(','));
             Object.assign(acc, {
-              [`${user}#${accessDbs}`]: {
+              [user]: {
                 ddl: ddl.filter((item) => privileageMap.has(item)),
                 dml: dml.filter((item) => privileageMap.has(item)),
                 glob: glob.filter((item) => privileageMap.has(item)),
@@ -197,7 +191,7 @@
                 }
                 const privileageMap = new Set(results[0].rules.flatMap((item) => item.privilege.split(',')));
                 resolve({
-                  [`${user}#${accessDbs}`]: {
+                  [user]: {
                     ddl: ddl.filter((item) => privileageMap.has(item)),
                     dml: dml.filter((item) => privileageMap.has(item)),
                     glob: glob.filter((item) => privileageMap.has(item)),
@@ -214,14 +208,6 @@
       immediate: true,
     },
   );
-
-  const handleCopyIps = (ips: string[]) => {
-    execCopy(ips.join('\n'), t('复制成功，共n条', { n: ips.length }));
-  };
-
-  const handleCopyDomains = (domains: string[]) => {
-    execCopy(domains.join('\n'), t('复制成功，共n条', { n: domains.length }));
-  };
 </script>
 
 <style lang="less" scoped>
@@ -257,7 +243,6 @@
         .cell-privilege-value {
           max-width: 350px;
           margin-left: 6px;
-          word-wrap: break-word;
           overflow-wrap: break-word;
           white-space: normal;
         }

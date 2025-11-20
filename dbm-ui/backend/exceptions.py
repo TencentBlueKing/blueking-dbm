@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from iam import IAM
 
 from backend import env
@@ -48,6 +48,7 @@ class ErrorCode(object):
     DB_DIRTY_POOL_CODE = "21"
     PROXY_PASS_CODE = "31"
     PROXY_PASS_REVERSE_API_CODE = "32"
+    MYSQL_AUTOFIX_CODE = "77"
 
 
 class AppBaseException(Exception):

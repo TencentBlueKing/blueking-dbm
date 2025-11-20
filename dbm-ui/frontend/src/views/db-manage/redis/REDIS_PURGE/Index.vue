@@ -19,6 +19,7 @@
               @batch-edit="handleClusterBatchEdit" />
             <EditableColumn
               :label="t('架构版本')"
+              readonly
               :width="300">
               <EditableBlock
                 v-model="rowData.cluster.cluster_type_name"
@@ -53,7 +54,7 @@
           :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
           :title="t('确认重置页面')">
           <BkButton
-            class="ml8 w-88"
+            class="ml-8 w-88"
             :disabled="isSubmitting">
             {{ t('重置') }}
           </BkButton>

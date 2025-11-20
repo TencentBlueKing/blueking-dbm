@@ -13,7 +13,7 @@ import logging.config
 from dataclasses import asdict
 from typing import List
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole
@@ -175,7 +175,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                         act_component_code=TransFileInWindowsComponent.code,
                         kwargs=asdict(
                             DownloadMediaKwargs(
-                                target_hosts=[Host(ip=master.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
+                                target_hosts=[Host(ip=rebuild_slave.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
                                 file_list=GetFileList(db_type=DBType.Sqlserver).get_db_actuator_package(),
                             ),
                         ),

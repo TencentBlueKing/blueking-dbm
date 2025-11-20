@@ -44,7 +44,7 @@ func GetRedisKeyLifeCycleJob(conf *config.Configuration) *Job {
 
 // Run 执行例行任务
 func (job *Job) Run() {
-	mylog.Logger.Info("keylifecycle wakeup,start running...")
+	mylog.Logger.Debug("keylifecycle wakeup,start running...")
 	defer func() {
 		if job.Err != nil {
 			mylog.Logger.Info(fmt.Sprintf("keylifecycle end fail,err:%v", job.Err))

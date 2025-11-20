@@ -37,7 +37,7 @@ func (c *ProxyRPCEmbed) ParseCommand(command string) (*rpc_core.ParseQueryBase, 
 }
 
 // MakeConnection proxy 建立连接
-func (c *ProxyRPCEmbed) MakeConnection(address string, user string, password string, timeout int, timezone string) (*sqlx.DB, error) {
+func (c *ProxyRPCEmbed) MakeConnection(address string, user string, password string, timeout int, timezone string, charset string) (*sqlx.DB, error) {
 	connectParam := fmt.Sprintf("timeout=%ds", timeout)
 	db, err := sqlx.Open(
 		"mysql",

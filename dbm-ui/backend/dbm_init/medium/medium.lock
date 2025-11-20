@@ -221,6 +221,10 @@ redis:
     buildPath: /toolkit/dbtools.tar.gz
     name: dbtools.tar.gz
     version: 1.0.0
+- redis-modules:
+    buildPath: /toolkit/redis_modules.tar.gz
+    name: redis_modules.tar.gz
+    version: 1.0.0
 # ---安装包列表---
 - redis:
     buildPath: /install/redis/redis-5.0.14.tar.gz

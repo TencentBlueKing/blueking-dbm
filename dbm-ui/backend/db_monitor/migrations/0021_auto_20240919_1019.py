@@ -3,7 +3,7 @@
 from django.db import migrations, models
 
 from backend.db_meta.enums import ClusterType, InstanceRole, MachineType
-from backend.db_monitor.models import MySQLAutofixTicketStatus
+from backend.ticket.constants import TicketFlowStatus
 
 
 class Migration(migrations.Migration):
@@ -62,7 +62,7 @@ class Migration(migrations.Migration):
                 (
                     "inplace_ticket_status",
                     models.CharField(
-                        choices=MySQLAutofixTicketStatus.get_choices(),
+                        choices=TicketFlowStatus.get_choices(),
                         default="UNSUBMITTED",
                         max_length=64,
                     ),
@@ -71,7 +71,7 @@ class Migration(migrations.Migration):
                 (
                     "replace_ticket_status",
                     models.CharField(
-                        choices=MySQLAutofixTicketStatus.get_choices(),
+                        choices=TicketFlowStatus.get_choices(),
                         default="UNSUBMITTED",
                         max_length=64,
                     ),

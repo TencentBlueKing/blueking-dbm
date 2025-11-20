@@ -25,7 +25,7 @@
         :model="formData">
         <EditableTable
           ref="editableTable"
-          class="mt16 mb16"
+          class="mt-16 mb-16"
           :model="formData.tableData">
           <EditableRow
             v-for="(item, index) in formData.tableData"
@@ -40,13 +40,24 @@
               @batch-edit="handleClusterBatchEdit" />
             <EditableColumn
               :label="t('扩容节点类型')"
+              readonly
               :width="200">
               <EditableBlock>mongos</EditableBlock>
             </EditableColumn>
-            <SpecSelectColumn
+            <!-- <SpecSelectColumn
               v-model="item.spec_id"
               :bk-cloud-id="item.cluster.bk_cloud_id"
-              :current-spec-ids="item.cluster.mongos.length ? [item.cluster.mongos[0].spec_config.id] : []" />
+              :current-spec-ids="item.cluster.mongos.length ? [item.cluster.mongos[0].spec_config.id] : []" /> -->
+            <SpecColumn
+              v-model="item.spec_id"
+              :cluster-type="DBTypes.MONGODB"
+              :current-spec-id-list="item.cluster.mongos.map((item) => item.spec_config.id)"
+              field="spec_id"
+              label="扩容规格"
+              :machine-type="MachineTypes.MONGOS"
+              required
+              selectable
+              @batch-edit="handleBatchEdit" />
             <TargetNumColumn
               v-model="item.target_num"
               @batch-edit="handleBatchEdit" />
@@ -88,16 +99,17 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
 
   import { type TabItem } from '@components/cluster-selector/Index.vue';
 
+  import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import ClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/cluster-column/Index.vue';
 
-  import SpecSelectColumn from './components/spec-select-column/Index.vue';
+  // import SpecSelectColumn from './components/spec-select-column/Index.vue';
   import TargetNumColumn from './components/TargetNumColumn.vue';
 
   export interface IDataRow {
@@ -229,7 +241,7 @@
     window.changeConfirm = true;
   };
 
-  const handleBatchEdit = (value: string | string[], field: string) => {
+  const handleBatchEdit = (value: string | string[] | number, field: string) => {
     formData.tableData.forEach((item) => {
       Object.assign(item, {
         [field]: value,

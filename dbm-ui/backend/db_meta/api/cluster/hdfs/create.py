@@ -12,7 +12,7 @@ import logging
 from typing import List, Optional
 
 from django.db import transaction
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta import request_validator
 from backend.db_meta.api import common
@@ -48,6 +48,7 @@ def create(
     storages: Optional[List] = None,
     creator: str = "",
     region: str = "",
+    disaster_tolerance_level: str = "",
 ) -> Cluster:
     """
     注册 HDFS 集群
@@ -72,6 +73,7 @@ def create(
         creator=creator,
         bk_cloud_id=bk_cloud_id,
         region=region,
+        disaster_tolerance_level=disaster_tolerance_level,
     )
 
     cluster_entry = ClusterEntry.objects.create(

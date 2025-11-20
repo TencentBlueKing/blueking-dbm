@@ -1,7 +1,8 @@
 <template>
   <Component
     :is="renderCom"
-    :data="data">
+    :data="data"
+    :ticket-detail="ticketDetail">
     <template
       v-if="
         [

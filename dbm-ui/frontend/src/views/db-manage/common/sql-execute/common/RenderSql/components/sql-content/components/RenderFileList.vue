@@ -143,8 +143,6 @@
   defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const { t } = useI18n();
-
   // 选中的文件名
   const modelValue = defineModel<string>({
     required: true,
@@ -153,6 +151,8 @@
   const filenameList = defineModel<string[]>('filenameList', {
     required: true,
   });
+
+  const { t } = useI18n();
 
   const rootRef = ref<HTMLElement>();
   const styles = shallowRef({});

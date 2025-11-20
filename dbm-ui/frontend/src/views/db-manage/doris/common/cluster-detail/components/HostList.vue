@@ -28,7 +28,7 @@
         <span v-bk-tooltips="batchShrinkDisabledInfo.tooltips">
           <AuthButton
             action-id="doris_shrink"
-            class="ml8"
+            class="ml-8"
             :disabled="batchShrinkDisabledInfo.disabled || clusterData?.operationDisabled"
             :resource="clusterData.id"
             @click="handleShowShrink">
@@ -44,7 +44,7 @@
           }">
           <AuthButton
             action-id="doris_replace"
-            class="ml8"
+            class="ml-8"
             :disabled="isBatchReplaceDisabeld || clusterData?.operationDisabled"
             :resource="clusterData.id"
             @click="handleShowReplace">
@@ -53,7 +53,7 @@
         </span>
       </OperationBtnStatusTips>
       <BkDropdown
-        class="ml8"
+        class="ml-8"
         @hide="() => (isCopyDropdown = false)"
         @show="() => (isCopyDropdown = true)">
         <BkButton>
@@ -81,6 +81,7 @@
       </BkDropdown>
       <DbSearchSelect
         :data="searchSelectData"
+        :get-menu-list="getSearchMenuList"
         :model-value="searchSelectValue"
         :placeholder="t('请输入或选择条件搜索')"
         style="flex: 1; max-width: 560px; margin-left: auto"
@@ -89,7 +90,7 @@
     </div>
     <BkAlert
       v-if="clusterData?.operationStatusText"
-      class="mb16"
+      class="mb-16"
       theme="warning">
       <I18nT
         keypath="当前集群有xx暂时不能进行其他操作跳转xx查看进度"
@@ -157,36 +158,23 @@
         </template>
       </BkTableColumn>
     </DbTable>
-    <DbSideslider
+    <ClusterExpansion
+      v-if="clusterData"
       v-model:is-show="isShowExpandsion"
-      quick-close
-      :title="t('xx扩容【name】', { title: 'Doris', name: clusterData?.cluster_name })"
-      :width="960">
-      <ClusterExpansion
-        v-if="clusterData"
-        :data="clusterData"
-        @change="handleOperationChange" />
-    </DbSideslider>
-    <DbSideslider
+      :cluster-data="clusterData"
+      @change="handleOperationChange" />
+    <ClusterShrink
+      v-if="clusterData"
       v-model:is-show="isShowShrink"
-      :title="t('xx缩容【name】', { title: 'Doris', name: clusterData?.cluster_name })"
-      :width="960">
-      <ClusterShrink
-        v-if="clusterData"
-        :data="clusterData"
-        :machine-list="operationNodeList"
-        @change="handleOperationChange" />
-    </DbSideslider>
-    <DbSideslider
+      :cluster-data="clusterData"
+      :machine-list="operationMachineList"
+      @change="handleOperationChange" />
+    <ClusterReplace
+      v-if="clusterData"
       v-model:is-show="isShowReplace"
-      :title="t('xx替换【name】', { title: 'Doris', name: clusterData?.cluster_name })"
-      :width="960">
-      <ClusterReplace
-        v-if="clusterData"
-        :data="clusterData"
-        :machine-list="operationNodeList"
-        @change="handleOperationChange" />
-    </DbSideslider>
+      :cluster-data="clusterData"
+      :machine-list="operationMachineList"
+      @change="handleOperationChange" />
   </div>
 </template>
 <script setup lang="tsx">
@@ -236,6 +224,21 @@
       cluster_ids: `${props.clusterData.id}`,
     });
 
+  const getSearchMenuList = (payload: { children: any[]; id: string }) => {
+    return Promise.resolve().then(() => {
+      if (payload.id === 'instance_role') {
+        return _.uniqBy(
+          tableRef.value?.getData<DorisMachineModel>().map((item) => ({
+            id: item.instance_role,
+            name: item.instance_role,
+          })),
+          'id',
+        );
+      }
+      return payload.children || [];
+    });
+  };
+
   const searchSelectData = [
     {
       id: 'ip',
@@ -284,7 +287,7 @@
       let observerNodeNum = 0;
       let hotNodeNum = 0;
       let coldNodeNum = 0;
-      (tableRef.value.getData() as DorisMachineModel[]).forEach((nodeItem) => {
+      (tableRef.value!.getData() as DorisMachineModel[]).forEach((nodeItem) => {
         if (nodeItem.isObserver) {
           observerNodeNum = observerNodeNum + 1;
         } else if (nodeItem.isHot) {
@@ -312,25 +315,17 @@
     return options;
   };
 
-  const tableRef = ref();
+  const tableRef = useTemplateRef('tableRef');
   const isShowReplace = ref(false);
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
   const isCopyDropdown = ref(false);
 
-  const operationNodeList = shallowRef<Array<DorisMachineModel>>([]);
+  const operationMachineList = shallowRef<Array<DorisMachineModel>>([]);
   const selectedMachineList = shallowRef<Array<DorisMachineModel>>([]);
   const searchSelectValue = shallowRef<ReturnType<typeof getSearchSelectValue>>([]);
 
   const isBatchReplaceDisabeld = computed(() => selectedMachineList.value.length < 1);
-
-  const selectedMachineMap = computed(() => {
-    return selectedMachineList.value.reduce<Record<number, DorisMachineModel>>((result, item) => {
-      return Object.assign(result, {
-        [item.bk_host_id]: item,
-      });
-    }, {});
-  });
 
   const batchShrinkDisabledInfo = computed(() => {
     // 1.Follower 为必须，3个节点, 缩容
@@ -355,42 +350,6 @@
       options.tooltips.disabled = false;
       options.tooltips.content = t('Follower节点不支持缩容');
       return options;
-    }
-
-    let observerNumTotal = 0;
-    let observerNum = 0;
-    let hotNodeNumTotal = 0;
-    let hotNodeNum = 0;
-    let coldNodeNumTotal = 0;
-    let coldNodeNum = 0;
-    (tableRef.value.getData() as DorisMachineModel[]).forEach((nodeItem) => {
-      if (nodeItem.isObserver) {
-        observerNumTotal = observerNumTotal + 1;
-      } else if (nodeItem.isHot) {
-        hotNodeNumTotal = hotNodeNumTotal + 1;
-      } else if (nodeItem.isCold) {
-        coldNodeNumTotal = coldNodeNumTotal + 1;
-      }
-      if (selectedMachineMap.value[nodeItem.bk_host_id]) {
-        return;
-      }
-      if (nodeItem.isObserver) {
-        observerNum = observerNum + 1;
-      } else if (nodeItem.isHot) {
-        hotNodeNum = hotNodeNum + 1;
-      } else if (nodeItem.isCold) {
-        coldNodeNum = coldNodeNum + 1;
-      }
-    });
-
-    if (observerNumTotal > 0 && observerNumTotal - observerNum === 1) {
-      options.disabled = true;
-      options.tooltips.disabled = false;
-      options.tooltips.content = t('Observer类型节点若存在至少保留两台');
-    } else if ((hotNodeNumTotal === 0 && coldNodeNum === 1) || (coldNodeNumTotal === 0 && hotNodeNum === 1)) {
-      options.disabled = true;
-      options.tooltips.disabled = false;
-      options.tooltips.content = t('冷/热 数据节点必选 1 种以上，每个角色至少需要 2 台');
     }
 
     return options;
@@ -423,12 +382,12 @@
 
   // 复制所有 IP
   const handleCopyAll = () => {
-    copyAllIp(tableRef.value.getData());
+    copyAllIp(tableRef.value!.getData<DorisMachineModel>());
   };
 
   // 复制异常 IP
   const handleCopeFailed = () => {
-    copyNotAliveIp(tableRef.value.getData());
+    copyNotAliveIp(tableRef.value!.getData<DorisMachineModel>());
   };
 
   // 复制已选 IP
@@ -438,22 +397,22 @@
 
   // 批量缩容
   const handleShowShrink = () => {
-    operationNodeList.value = selectedMachineList.value;
+    operationMachineList.value = selectedMachineList.value;
     isShowShrink.value = true;
   };
 
   // 批量扩容
   const handleShowReplace = () => {
-    operationNodeList.value = selectedMachineList.value;
+    operationMachineList.value = selectedMachineList.value;
     isShowReplace.value = true;
   };
   const handleShrinkOne = (data: DorisMachineModel) => {
-    operationNodeList.value = [data];
+    operationMachineList.value = [data];
     isShowShrink.value = true;
   };
 
   const handleReplaceOne = (data: DorisMachineModel) => {
-    operationNodeList.value = [data];
+    operationMachineList.value = [data];
     isShowReplace.value = true;
   };
 

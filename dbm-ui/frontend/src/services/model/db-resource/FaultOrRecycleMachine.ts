@@ -47,6 +47,7 @@ export default class FaultOrRecycleMachine {
     ip: string;
     remark: string;
     ticket?: number;
+    ticket_type: string;
     to: string;
     updater: string;
   };

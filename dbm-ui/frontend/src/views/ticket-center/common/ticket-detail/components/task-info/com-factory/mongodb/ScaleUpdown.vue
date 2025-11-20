@@ -12,12 +12,34 @@
 -->
 
 <template>
-  <DbOriginalTable
-    :columns="columns"
-    :data="dataList" />
+  <TicketInfoTable
+    :data="dataList"
+    row-key="immute_domain">
+    <TicketInfoTableColumn
+      col-key="immute_domain"
+      :get-copy-value="(row: RowData) => row.immute_domain"
+      :title="t('目标分片集群')" />
+    <TicketInfoTableColumn
+      col-key="target_spec"
+      :title="t('目标资源规格')">
+      <template #default="{ row }: { row: RowData }">
+        <span>{{ row.target_spec || '--' }}</span>
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="shard_node_count"
+      :title="t('目标Shard节点数')" />
+    <TicketInfoTableColumn
+      col-key="shard_machine_group"
+      :title="t('目标机器组数')" />
+    <TicketInfoTableColumn
+      col-key="shards_num"
+      :title="t('分片数')" />
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">
+  import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Mongodb } from '@services/model/ticket/ticket';
@@ -28,6 +50,8 @@
     ticketDetails: TicketModel<Mongodb.ScaleUpdown>;
   }
 
+  type RowData = UnwrapRef<typeof dataList>[number];
+
   defineOptions({
     name: TicketTypes.MONGODB_SCALE_UPDOWN,
     inheritAttrs: false,
@@ -36,32 +60,6 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
-
-  const columns = [
-    {
-      field: 'immute_domain',
-      label: t('目标分片集群'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'target_spec',
-      label: t('目标资源规格'),
-      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'shard_node_count',
-      label: t('目标Shard节点数'),
-    },
-    {
-      field: 'shard_machine_group',
-      label: t('目标机器组数'),
-    },
-    {
-      field: 'shards_num',
-      label: t('分片数'),
-    },
-  ];
 
   const dataList = computed(() => {
     const { clusters, infos, specs } = props.ticketDetails.details;

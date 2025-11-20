@@ -54,9 +54,12 @@
         </div>
         <div class="editor-layout-right">
           <RenderFileContent
+            :db-types="DBTypes.MYSQL"
+            :execute-object="executeObject"
             :model-value="currentFileContent"
             readonly
-            :title="localSelectFileName" />
+            :title="localSelectFileName"
+            :version-list="versionList" />
         </div>
       </div>
     </BkLoading>
@@ -67,16 +70,19 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { type Sqlserver } from '@services/model/ticket/ticket';
+  import { type Mysql } from '@services/model/ticket/ticket';
   import { batchFetchFile } from '@services/source/storage';
+
+  import { DBTypes } from '@common/const';
 
   import RenderFileContent from '@views/ticket-center/common/ticket-detail/components/common/SqlFileContent.vue';
   import RenderFileList from '@views/ticket-center/common/ticket-detail/components/common/SqlFileList.vue';
 
   interface Props {
-    executeObject: Sqlserver.ImportSqlFile['execute_objects'][number];
+    executeObject: Mysql.ImportSqlFile['execute_objects'][number];
     path: string;
     selectFileName: string;
+    versionList: string[];
     wholeFileList: string[];
   }
   const props = defineProps<Props>();

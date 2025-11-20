@@ -44,17 +44,19 @@
 <script setup lang="ts">
   import { useRequest } from 'vue-request';
 
-  import { getInfrasCities, getInfrasSubzonesByCity } from '@services/source/infras';
+  import { getCommonCities, getInfrasSubzonesByCity } from '@services/source/infras';
 
-  type CityItem = ServiceReturnType<typeof getInfrasCities>[number];
+  type CityItem = ServiceReturnType<typeof getCommonCities>['common'][number];
 
   interface Props {
     model: Record<string, any>;
   }
 
-  interface Emits {
-    (e: 'change', value: any, name?: string): void;
-  }
+  type Emits = (e: 'change', value: any, name?: string) => void;
+
+  defineOptions({
+    inheritAttrs: false,
+  });
 
   const props = defineProps<Props>();
 
@@ -64,10 +66,6 @@
     default: '',
   });
 
-  defineOptions({
-    inheritAttrs: false,
-  });
-
   const subzoneIds = ref<string[]>([]);
   const citiyList = ref<CityItem[]>([]);
 
@@ -75,9 +73,9 @@
     (subzoneList.value || []).filter((item) => item.bk_city_code === cityCode.value),
   );
 
-  useRequest(getInfrasCities, {
+  useRequest(getCommonCities, {
     onSuccess(data) {
-      citiyList.value = data.filter((item) => item.city_code !== 'default');
+      citiyList.value = data.common.concat(data.internal).filter((item) => item.city_code !== 'default');
     },
   });
 

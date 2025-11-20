@@ -3,7 +3,8 @@
     <div class="action-box">
       <BkRadioGroup
         v-model="viewType"
-        type="capsule">
+        type="capsule"
+        @change="handleViewTypeChange">
         <BkRadioButton label="table">
           {{ t('表格视图') }}
         </BkRadioButton>
@@ -23,7 +24,9 @@
         {{ t('复制所有 IP') }}
       </BkButton>
     </div>
-    <div v-show="viewType === 'table'">
+    <div
+      v-show="viewType === 'table'"
+      style="height: 100%">
       <ViewTable :cluster-role-node-group="clusterRoleNodeGroup" />
     </div>
     <ViewTopo
@@ -36,14 +39,19 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
+  import { useRoute, useRouter } from 'vue-router';
 
   import type { ClusterListNode } from '@services/types';
+
+  import { useUrlSearch } from '@hooks';
 
   import { ClusterInstStatusKeys, DBTypes } from '@common/const';
 
   import useClusterMachineList from '@views/db-manage/hooks/useClusterMachineList';
 
   import { execCopy, messageWarn } from '@utils';
+
+  import { URL_CLUSTER_TOPO_VIEW_TYPE_KEY } from '../../constants';
 
   import ViewTable from './components/ViewTable.vue';
   import ViewTopo from './components/ViewTopo.vue';
@@ -58,16 +66,21 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
+  const route = useRoute();
+  const router = useRouter();
+  const { getSearchParams } = useUrlSearch();
 
-  const viewType = ref('table');
+  const viewType = ref(String(route.query[URL_CLUSTER_TOPO_VIEW_TYPE_KEY] || 'table'));
 
   const handleNotAliveHostIp = () => {
-    const ipList = _.flatten(Object.values(props.clusterRoleNodeGroup)).reduce<string[]>((result, item) => {
-      if (item.status === ClusterInstStatusKeys.UNAVAILABLE) {
-        result.push(item.instance);
-      }
-      return result;
-    }, []);
+    const ipList = _.uniq(
+      _.flatten(Object.values(props.clusterRoleNodeGroup)).reduce<string[]>((result, item) => {
+        if (item.status === ClusterInstStatusKeys.UNAVAILABLE) {
+          result.push(item.instance);
+        }
+        return result;
+      }, []),
+    );
 
     if (ipList.length < 1) {
       messageWarn(t('没有可复制 IP'));
@@ -83,7 +96,7 @@
   };
 
   const handleAllHostIp = () => {
-    const ipList = _.flatten(Object.values(props.clusterRoleNodeGroup)).map((item) => item.ip);
+    const ipList = _.uniq(_.flatten(Object.values(props.clusterRoleNodeGroup)).map((item) => item.ip));
     if (ipList.length < 1) {
       messageWarn(t('没有可复制 IP'));
       return;
@@ -94,6 +107,15 @@
         n: ipList.length,
       }),
     );
+  };
+
+  const handleViewTypeChange = (value: string) => {
+    router.replace({
+      query: {
+        ...getSearchParams(),
+        [URL_CLUSTER_TOPO_VIEW_TYPE_KEY]: value,
+      },
+    });
   };
 </script>
 <style lang="less">

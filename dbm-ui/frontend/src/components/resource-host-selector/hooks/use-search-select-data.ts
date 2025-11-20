@@ -3,11 +3,13 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRequest } from 'vue-request';
 
-import { fetchDeviceClass, fetchDiskTypes, fetchMountPoints, getOsTypeList } from '@services/source/dbresourceResource';
-import { fetchDbTypeList, getInfrasCities, getInfrasSubzonesByCity } from '@services/source/infras';
-import { getCloudList } from '@services/source/ipchooser';
+import { fetchDeviceClass, fetchMountPoints, getOsTypeList } from '@services/source/dbresourceResource';
+import { fetchDbTypeList, getCommonCities, getInfrasSubzonesByCity } from '@services/source/infras';
+import { getCloudList, searchDeviceClass } from '@services/source/ipchooser';
 
 import { useGlobalBizs } from '@stores';
+
+import { DeviceClass, deviceClassDisplayMap } from '@common/const';
 
 import { getSearchSelectorParams } from '@utils';
 
@@ -76,10 +78,12 @@ export default (props: any) => {
         name: t('磁盘挂载点'),
       },
       {
-        children: diskTypeList.value?.map((item) => ({
-          id: item,
-          name: item,
-        })),
+        children: diskTypeList.value
+          ?.filter((item) => item !== 'ALL')
+          .map((item) => ({
+            id: item,
+            name: deviceClassDisplayMap[item as DeviceClass],
+          })),
         id: 'disk_type',
         name: t('磁盘类型'),
       },
@@ -118,7 +122,7 @@ export default (props: any) => {
     initialData: [],
   });
 
-  const { data: diskTypeList } = useRequest(fetchDiskTypes, {
+  const { data: diskTypeList } = useRequest(searchDeviceClass, {
     initialData: [],
   });
 
@@ -140,10 +144,10 @@ export default (props: any) => {
     initialData: [],
   });
 
-  const cityList = shallowRef<ServiceReturnType<typeof getInfrasCities>>([]);
-  useRequest(getInfrasCities, {
+  const cityList = shallowRef<ServiceReturnType<typeof getCommonCities>['common']>([]);
+  useRequest(getCommonCities, {
     onSuccess(data) {
-      cityList.value = data.filter((item) => item.city_code !== 'default');
+      cityList.value = data.common.concat(data.internal).filter((item) => item.city_code !== 'default');
     },
   });
 
@@ -153,6 +157,12 @@ export default (props: any) => {
 
   const deviceClassList = shallowRef<ServiceReturnType<typeof fetchDeviceClass>['results']>([]);
   useRequest(fetchDeviceClass, {
+    defaultParams: [
+      {
+        limit: -1,
+        offset: 0,
+      },
+    ],
     onSuccess(data) {
       deviceClassList.value = data.results;
     },

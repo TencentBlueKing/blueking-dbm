@@ -15,7 +15,7 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
 
-import { Affinity, affinityMap, ClusterTypes, TicketTypes } from '@common/const';
+import { Affinity, affinityMap, ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
@@ -67,12 +67,12 @@ export default class Doris extends ClusterBase {
   cluster_name: string;
   cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
-  cluster_subzons: string[];
   cluster_time_zone: string;
   cluster_type: ClusterTypes;
   cluster_type_name: string;
   create_at: string;
   creator: string;
+  db_type: DBTypes.DORIS;
   disaster_tolerance_level: Affinity;
   domain: string;
   doris_backend_cold: Array<ClusterListNode>;
@@ -96,7 +96,6 @@ export default class Doris extends ClusterBase {
   };
   phase: 'online' | 'offline';
   phase_name: string;
-  region: string;
   status: string;
   update_at: string;
   updater: string;
@@ -107,7 +106,6 @@ export default class Doris extends ClusterBase {
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
-    this.cluster_subzons = payload.cluster_subzons || [];
     this.cluster_access_port = payload.cluster_access_port;
     this.cluster_alias = payload.cluster_alias;
     this.cluster_entry = payload.cluster_entry;
@@ -119,6 +117,7 @@ export default class Doris extends ClusterBase {
     this.cluster_time_zone = payload.cluster_time_zone;
     this.create_at = payload.create_at;
     this.creator = payload.creator;
+    this.db_type = payload.db_type;
     this.disaster_tolerance_level = payload.disaster_tolerance_level;
     this.domain = payload.domain;
     this.doris_backend_cold = payload.doris_backend_cold;
@@ -131,7 +130,6 @@ export default class Doris extends ClusterBase {
     this.permission = payload.permission || {};
     this.phase = payload.phase;
     this.phase_name = payload.phase_name;
-    this.region = payload.region;
     this.status = payload.status;
     this.update_at = payload.update_at;
     this.updater = payload.updater;
@@ -204,19 +202,19 @@ export default class Doris extends ClusterBase {
 
   // 操作中的状态 icon
   get operationStatusIcon() {
-    return Doris.operationIconMap[this.operationRunningStatus];
+    return Doris.operationIconMap[this.operationRunningStatus]!;
   }
 
   // 操作中的状态描述文本
   get operationStatusText() {
-    return Doris.operationTextMap[this.operationRunningStatus];
+    return Doris.operationTextMap[this.operationRunningStatus]!;
   }
 
   get operationTagTips() {
     return this.operations.map((item) => ({
-      icon: Doris.operationIconMap[item.ticket_type],
+      icon: Doris.operationIconMap[item.ticket_type]!,
       ticketId: item.ticket_id,
-      tip: Doris.operationTextMap[item.ticket_type],
+      tip: Doris.operationTextMap[item.ticket_type]!,
     }));
   }
 

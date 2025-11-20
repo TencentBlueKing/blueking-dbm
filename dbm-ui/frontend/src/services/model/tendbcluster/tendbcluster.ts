@@ -60,7 +60,6 @@ export default class TendbCluster extends ClusterBase {
   cluster_shard_num: number;
   cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
-  cluster_subzons: string[];
   cluster_time_zone: string;
   cluster_type: ClusterTypes;
   cluster_type_name: string;
@@ -69,6 +68,7 @@ export default class TendbCluster extends ClusterBase {
   db_module_id: number;
   db_module_name: string;
   disaster_tolerance_level: Affinity;
+  dns_to_clb: boolean;
   id: number;
   machine_pair_cnt: number;
   major_version: string;
@@ -77,6 +77,8 @@ export default class TendbCluster extends ClusterBase {
   permission: {
     access_entry_edit: boolean;
     tendb_spider_slave_destroy: boolean;
+    tendbcluster_add_clb: boolean;
+    tendbcluster_clb_bind_domain: boolean;
     tendbcluster_destroy: boolean;
     tendbcluster_dump_data: boolean;
     tendbcluster_edit: boolean;
@@ -113,7 +115,6 @@ export default class TendbCluster extends ClusterBase {
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
-    this.cluster_subzons = payload.cluster_subzons || [];
     this.cluster_access_port = payload.cluster_access_port;
     this.cluster_alias = payload.cluster_alias;
     this.cluster_capacity = payload.cluster_capacity;
@@ -123,6 +124,7 @@ export default class TendbCluster extends ClusterBase {
     this.cluster_spec = payload.cluster_spec || {};
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type;
+    this.dns_to_clb = payload.dns_to_clb;
     this.cluster_type_name = payload.cluster_type_name;
     this.cluster_time_zone = payload.cluster_time_zone;
     this.create_at = payload.create_at;
@@ -136,9 +138,9 @@ export default class TendbCluster extends ClusterBase {
     this.master_domain = payload.master_domain;
     this.operations = payload.operations || [];
     this.permission = payload.permission || {};
+    this.region = payload.region;
     this.phase = payload.phase;
     this.phase_name = payload.phase_name;
-    this.region = payload.region;
     this.remote_db = payload.remote_db;
     this.remote_dr = payload.remote_dr;
     this.remote_shard_num = payload.remote_shard_num;
@@ -173,6 +175,14 @@ export default class TendbCluster extends ClusterBase {
 
   get disasterToleranceLevelName() {
     return affinityMap[this.disaster_tolerance_level];
+  }
+
+  get isOnlineCLBMaster() {
+    return this.cluster_entry.some((item) => item.cluster_entry_type === 'clb' && item.role === 'master_entry');
+  }
+
+  get isOnlineCLBSlave() {
+    return this.cluster_entry.some((item) => item.cluster_entry_type === 'clb' && item.role === 'slave_entry');
   }
 
   get isStarting() {
@@ -266,7 +276,7 @@ export default class TendbCluster extends ClusterBase {
   get slaveEntryList() {
     const port = this.spider_slave[0]?.port;
     return this.cluster_entry
-      .filter((item) => item.role === 'slave_entry')
+      .filter((item) => item.role === 'slave_entry' && !['clb', 'clbDns'].includes(item.cluster_entry_type))
       .map((item) => ({
         ...item,
         port,

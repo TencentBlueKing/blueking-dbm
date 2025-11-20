@@ -42,6 +42,8 @@ type RedisFullbackupHistorySchema struct {
 	BackupTaskID   string `json:"backup_taskid" gorm:"type:varchar(128);column:backup_taskid;not null;default:''"`
 	// 目前为空
 	BackupMD5 string `json:"backup_md5" gorm:"type:varchar(128);column:backup_md5;not null;default:''"`
+	// BackupIdentify 集群上一批备份的标识， 用于备份恢复时候选择
+	BackupIdentify string `json:"backup_identify" gorm:"type:varchar(128);column:backup_identify;not null;default:''"`
 	// REDIS_FULL
 	BackupTag string `json:"backup_tag" gorm:"type:varchar(128);column:backup_tag;not null;default:''"`
 	// shard值
@@ -130,18 +132,19 @@ func NewFullBackupTask(bkBizID string, bkCloudID int64, domain, ip string, port 
 	}
 	timeZone, _ := time.Now().Local().Zone()
 	ret.RedisFullbackupHistorySchema = RedisFullbackupHistorySchema{
-		ReportType:   consts.RedisFullBackupReportType,
-		BkBizID:      bkBizID,
-		BkCloudID:    bkCloudID,
-		Domain:       domain,
-		ServerIP:     ip,
-		ServerPort:   port,
-		BackupDir:    backupDir,
-		BackupTaskID: "",
-		BackupMD5:    "",
-		BackupTag:    backupFileTag,
-		TimeZone:     timeZone,
-		ShardValue:   shardValue,
+		ReportType:     consts.RedisFullBackupReportType,
+		BkBizID:        bkBizID,
+		BkCloudID:      bkCloudID,
+		Domain:         domain,
+		ServerIP:       ip,
+		ServerPort:     port,
+		BackupDir:      backupDir,
+		BackupTaskID:   "",
+		BackupMD5:      "",
+		BackupIdentify: fmt.Sprintf("SCHEDULED-%s", time.Now().Format("2006010203")),
+		BackupTag:      backupFileTag,
+		TimeZone:       timeZone,
+		ShardValue:     shardValue,
 	}
 	// ret.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisFullBackupTAG)
 	ret.backupClient, err = backupsys.NewCosBackupClient(consts.COSBackupClient,

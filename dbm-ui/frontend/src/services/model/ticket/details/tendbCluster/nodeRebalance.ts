@@ -35,4 +35,6 @@ export interface NodeRebalance extends DetailBase {
   >;
   resource_request_id: string;
   specs: Record<number, SpecInfo>;
+  trigger_checksum_time: string;
+  trigger_checksum_type: string;
 }

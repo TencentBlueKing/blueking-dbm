@@ -16,6 +16,8 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/validate"
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/restore/dbbackup_loader"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
@@ -99,6 +101,16 @@ func (m *DBLoader) PreCheck() error {
 		} else {
 			SContext.Set("change_master", info, false)
 			SContext.Save()
+		}
+	}
+	if m.RestoreParam.RestoreOpt.RecoverGrants {
+		privFile := m.RestoreParam.indexObj.GetTarFileList("priv")
+		if len(privFile) == 0 {
+			return errors.Errorf("no priv file found in %s", m.RestoreParam.BackupDir)
+		} else if f := filepath.Join(m.RestoreParam.BackupDir, privFile[0]); !cmutil.FileExists(f) {
+			return errors.Errorf("priv file %s not found", privFile[0])
+		} else {
+			logger.Info("will recover grants file after finishing data restore: %s", f)
 		}
 	}
 	// 工具可执行权限
@@ -221,6 +233,40 @@ func (m *DBLoader) PostCheck() error {
 		spider.StatusQuit, m.TgtInstance.Host, m.TgtInstance.Port)
 	if _, err = dbWorker.ExecMore([]string{"set session sql_log_bin=off", sqlStr}); err != nil {
 		logger.Warn("fail to repair data for table global_backup. ignore %s", err.Error())
+	}
+
+	if m.RestoreParam.RestoreOpt.RecoverGrants {
+		privFile := m.RestoreParam.indexObj.GetTarFileList("priv")
+		if len(privFile) == 0 {
+			return errors.Errorf("no priv file found in %s", m.RestoreParam.BackupDir)
+		}
+		logger.Info("recover grants for port %d from sql file: %s", m.TgtInstance.Port, privFile)
+		comp := mysql.FastExecuteSqlComp{
+			GeneralParam: &components.GeneralParam{
+				RuntimeAccountParam: components.RuntimeAccountParam{
+					MySQLAccountParam: components.MySQLAccountParam{
+						MySQLAdminAccount: components.MySQLAdminAccount{
+							AdminUser: m.TgtInstance.User, AdminPwd: m.TgtInstance.Pwd,
+						},
+					},
+				},
+			},
+			Params: mysql.FastExecuteSqlParam{
+				Host:       m.TgtInstance.Host,
+				Port:       m.TgtInstance.Port,
+				Socket:     m.TgtInstance.Socket,
+				Force:      true,
+				OnDatabase: "mysql",
+				FileDir:    m.RestoreParam.BackupDir,
+				SqlFiles:   privFile,
+			},
+		}
+		if err = comp.Init(); err != nil {
+			return errors.WithMessagef(err, "restore-dr recover grants")
+		}
+		if err = comp.Run(); err != nil {
+			return errors.WithMessagef(err, "restore-dr recover grants")
+		}
 	}
 
 	_ = m.removeRestoreDir()

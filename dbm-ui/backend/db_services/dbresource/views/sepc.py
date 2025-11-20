@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import math
 
 from django.db.models import F, Q
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -22,6 +22,7 @@ from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_meta.enums import InstanceRole, MachineType
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
+from backend.db_meta.models.machine import DeviceClass
 from backend.db_meta.models.spec import Spec
 from backend.db_services.dbresource.constants import SPEC_FILTER_FACTORY, SWAGGER_TAG
 from backend.db_services.dbresource.exceptions import SpecFilterClassDoesNotExistException, SpecOperateException
@@ -34,7 +35,7 @@ from backend.db_services.dbresource.serializers import (
     QueryQPSRangeSerializer,
     RecommendResponseSpecSerializer,
     RecommendSpecSerializer,
-    SpecEnableDisableSerializer,
+    SpecBatchUpdateSerializer,
     SpecSerializer,
     VerifyDuplicatedSpecNameSerializer,
 )
@@ -121,25 +122,39 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
         if not Machine.is_refer_spec([spec_id]):
             return super().update(request, *args, **kwargs)
 
+        if all(not item for item in [update_data["cpu"], update_data["mem"], update_data["device_class"]]):
+            raise SpecOperateException(_("机型及cpu和内存不可全为空"))
+
         spec = self.get_object()
         for key in update_data:
             # 如果是可更新字段或不存在字段，则忽略
-            if key in ["desc", "spec_name", "enable", *AuditedModel.AUDITED_FIELDS] or key not in spec.__dict__:
+            if (
+                key in ["desc", "spec_name", "enable", "biz_scope", *AuditedModel.AUDITED_FIELDS]
+                or key not in spec.__dict__
+            ):
                 continue
-            # 如果更新机型字段，则只允许拓展机型。device_class为[]表示无限制
             elif key == "device_class":
-                if update_data[key] == []:
-                    continue
-                if set(update_data[key]).issuperset(set(spec.device_class)) and spec.device_class != []:
-                    continue
-                else:
-                    raise SpecOperateException(_("规格: {}已经被引用，只允许拓展机型").format(spec_id))
+                removed_classes = list(set(spec.device_class) - set(update_data[key]))
+                if removed_classes and DeviceClass.objects.filter(device_type__in=removed_classes).exists():
+                    raise SpecOperateException(_("规格: {}已经被引用，只允许拓展机型或删除不存在的机型").format(spec_id))
             # 在机型更新的情况下 允许cpu/内存的更新
             elif key in ["cpu", "mem"]:
-                if set(update_data["device_class"]) > set(spec.device_class):
-                    continue
-                else:
-                    raise SpecOperateException(_("规格: {}已经被引用，只允许拓展机型").format(spec_id))
+                if set(update_data["device_class"]) == set(spec.device_class) and (
+                    update_data["cpu"] != spec.cpu or update_data["mem"] != spec.mem
+                ):
+                    raise SpecOperateException(_("规格: {}已经被引用，机型未发生改变cpu和内存不允许修改").format(spec_id))
+
+            # 判断磁盘的变化
+            elif key == "storage_spec":
+                new_storage_spec = {d["mount_point"]: d for d in update_data["storage_spec"]}
+                old_storage_spec = {d["mount_point"]: d for d in spec.storage_spec}
+
+                if list(new_storage_spec.keys()) != list(old_storage_spec.keys()):
+                    raise SpecOperateException(_("规格: {}已经被引用，无法修改磁盘信息").format(spec.spec_name))
+
+                for mount_point in new_storage_spec:
+                    if new_storage_spec[mount_point] != old_storage_spec[mount_point]:
+                        raise SpecOperateException(_("规格: {}已经被引用，无法修改磁盘信息").format(spec.spec_name))
             # 对正在被引用的规格的配置字段更改，抛出异常
             elif update_data[key] != spec.__dict__[key]:
                 raise SpecOperateException(_("规格: {}已经被引用，无法修改配置！(只允许拓展机型和修改描述)").format(spec.spec_name))
@@ -147,13 +162,14 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
         return super().update(request, *args, **kwargs)
 
     @common_swagger_auto_schema(
-        operation_summary=_("更新规格的启用禁用态"),
+        operation_summary=_("批量修改规格的启用/业务范围信息"),
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["POST"], detail=False, serializer_class=SpecEnableDisableSerializer)
-    def modify_spec_enable_status(self, request, *args, **kwargs):
+    @action(methods=["POST"], detail=False, serializer_class=SpecBatchUpdateSerializer)
+    def batch_common_update(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
-        Spec.objects.filter(spec_id__in=data["spec_ids"]).update(enable=data["enable"])
+        spec_ids = data.pop("spec_ids")
+        Spec.objects.filter(spec_id__in=spec_ids).update(**data)
         return Response()
 
     @common_swagger_auto_schema(

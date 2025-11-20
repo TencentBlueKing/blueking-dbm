@@ -16,6 +16,7 @@ from backend.components.dbresource.client import DBResourceApi
 from backend.db_meta.enums import ClusterEntryRole, ClusterType
 from backend.db_meta.models import Cluster, Machine
 from backend.db_services.quick_search.views import QuickSearchViewSet
+from backend.tests.mock_data.iam_app.permission import PermissionMock
 from backend.utils.pytest import AuthorizedAPIRequestFactory
 
 pytestmark = pytest.mark.django_db
@@ -69,6 +70,7 @@ class TestQuickSearchViewSet:
 
     @pytest.mark.parametrize("query", [QUICK_SEARCH_CONTAINS_PARAMS, QUICK_SEARCH_EXACT_PARAMS])
     @patch.object(DBResourceApi, "resource_list")
+    @patch("backend.db_services.quick_search.handlers.Permission", PermissionMock)
     def test_quick_search_for_entry(self, resource_list_mock, query, init_mysql_cluster):
         """
         测试搜索访问入口
@@ -87,6 +89,7 @@ class TestQuickSearchViewSet:
 
     @pytest.mark.parametrize("query", [QUICK_SEARCH_CONTAINS_PARAMS, QUICK_SEARCH_EXACT_PARAMS])
     @patch.object(DBResourceApi, "resource_list")
+    @patch("backend.db_services.quick_search.handlers.Permission", PermissionMock)
     def test_quick_search_for_proxy_instance(self, resource_list_mock, query, init_proxy_instance):
         """
         测试搜索实例
@@ -100,6 +103,7 @@ class TestQuickSearchViewSet:
 
     @pytest.mark.parametrize("query", [QUICK_SEARCH_CONTAINS_PARAMS, QUICK_SEARCH_EXACT_PARAMS])
     @patch.object(DBResourceApi, "resource_list")
+    @patch("backend.db_services.quick_search.handlers.Permission", PermissionMock)
     def test_quick_search_for_storage_instance(self, resource_list_mock, query, init_storage_instance):
         """
         测试搜索存储实例
@@ -113,6 +117,7 @@ class TestQuickSearchViewSet:
 
     @pytest.mark.parametrize("query", [QUICK_SEARCH_EXACT_PARAMS])
     @patch.object(DBResourceApi, "resource_list")
+    @patch("backend.db_services.quick_search.handlers.Permission", PermissionMock)
     def test_quick_search_for_task(self, resource_list_mock, query, init_flow_tree):
         """
         测试搜索任务ID
@@ -139,6 +144,7 @@ class TestQuickSearchViewSet:
 
     @pytest.mark.parametrize("query", [QUICK_SEARCH_EXACT_PARAMS])
     @patch.object(DBResourceApi, "resource_list")
+    @patch("backend.db_services.quick_search.handlers.Permission", PermissionMock)
     def test_quick_search_for_ticket(self, resource_list_mock, query, init_ticket):
         """
         测试搜索单据

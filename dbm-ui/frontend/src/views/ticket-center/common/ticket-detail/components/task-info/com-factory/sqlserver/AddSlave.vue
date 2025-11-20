@@ -12,11 +12,16 @@
 -->
 
 <template>
-  <BkTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn :label="t('集群')">
-      <template #default="{ data }: { data: RowData }">
+    row-key="cluster_ids">
+    <TicketInfoTableColumn
+      col-key=""
+      :get-copy-value="
+        (row: RowData) => row.cluster_ids.map((clusterId) => ticketDetails.details.clusters[clusterId].immute_domain)
+      "
+      :title="t('集群')">
+      <template #default="{ row: data }: { row: RowData }">
         <div
           v-for="clusterId in data.cluster_ids"
           :key="clusterId"
@@ -24,13 +29,15 @@
           {{ ticketDetails.details.clusters[clusterId].immute_domain }}
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('新从库主机')">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="new_slave_host"
+      :title="t('新从库主机')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.new_slave_host.ip }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

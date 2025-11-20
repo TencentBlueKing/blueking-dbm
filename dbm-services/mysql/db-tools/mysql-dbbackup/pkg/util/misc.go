@@ -106,6 +106,7 @@ func CheckIntegrity(publicConfig *config.Public) error {
 }
 
 // CalServerDataSize Calculate the data size bytes of Mysql server
+// unit: bytes
 func CalServerDataSize(port int) (uint64, error) {
 	datadir, err := common.GetDataHomeDir(port)
 	if err != nil {
@@ -122,6 +123,7 @@ func CalServerDataSize(port int) (uint64, error) {
 }
 
 // DiskUsage Get disk usage info
+// unit: byte
 func DiskUsage(path string) (disk DiskStatus, err error) {
 	switch runtime.GOOS {
 	case "linux":
@@ -135,7 +137,7 @@ func DiskUsage(path string) (disk DiskStatus, err error) {
 		}
 		disk.Total = fs.Blocks * uint64(fs.Bsize)
 		disk.Free = fs.Bfree * uint64(fs.Bsize)   // free include reserved (free = avail + reserved)
-		disk.Avail = fs.Bavail * uint64(fs.Bsize) // avail is little than free usually
+		disk.Avail = fs.Bavail * uint64(fs.Bsize) // avail is little then free usually
 		disk.Used = disk.Total - disk.Free
 		disk.Reserved = disk.Free - disk.Avail
 		disk.TotalAvail = disk.Avail + disk.Used // equal disk.Total - disk.Reserved
@@ -152,13 +154,13 @@ func DiskUsage(path string) (disk DiskStatus, err error) {
 //
 // err == nil
 //  1. 如果返回值 >0，则表示空间足够，且还剩余的空间大小
-func CheckDiskSpace(backupDir string, mysqlPort int, backupSize uint64) (sizeLeft int64, err error) {
+func CheckDiskSpace(backupDir string, mysqlPort int, dataDirSizeBytes uint64) (sizeLeft int64, err error) {
 	diskSpaceInfo, err := DiskUsage(backupDir)
 	if err != nil {
 		return 0, err
 	}
 	logger.Log.Infof("backupDir %s disk info: %+v", backupDir, diskSpaceInfo)
-	expectSize := backupSize*1 + 5*1024*1024*1024 // 预计备份需要多少实际空间
+	expectSize := dataDirSizeBytes*1 + 5*1024*1024*1024 // 预计备份需要多少实际空间
 	expectSizeLeft := float64(diskSpaceInfo.Avail) - float64(expectSize)
 	if expectSizeLeft < 0 {
 		err = errors.New("free space is not enough")
@@ -166,7 +168,7 @@ func CheckDiskSpace(backupDir string, mysqlPort int, backupSize uint64) (sizeLef
 	}
 	sizeLeft = int64(expectSizeLeft - 0.06*float64(diskSpaceInfo.TotalAvail))
 	if sizeLeft < 0 { // 为负，说明expectSize用掉后，空间可能会超过 94%
-		err = errors.New("disk space usage may be over 94%")
+		err = errors.Errorf("disk space usage may be over 94%% for port %d", mysqlPort)
 		return sizeLeft, err
 	}
 	return sizeLeft, nil

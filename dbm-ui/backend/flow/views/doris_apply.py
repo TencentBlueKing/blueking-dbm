@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework.response import Response
 
 from backend.flow.engine.controller.doris import DorisController
@@ -41,11 +41,16 @@ class InstallDorisSceneApiView(FlowTestView):
         "uid":"2111"
         "created_by": "rtx",
         "domain": "doris.viper-cluster.blueking.db",
+        "enable_cold_storage": true|false,
         "nodes": {
             "hot": [
                 {"ip": "127.0.0.1", "bk_cloud_id": 0}
             ],
+            # 暂时兼容保留，后续去掉cold
             "cold": [
+                {"ip": "127.0.0.2", "bk_cloud_id": 0}
+            ],
+            "warm": [
                 {"ip": "127.0.0.2", "bk_cloud_id": 0}
             ],
             "client": [

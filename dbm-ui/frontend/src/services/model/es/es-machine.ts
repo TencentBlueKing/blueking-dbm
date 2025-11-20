@@ -33,6 +33,7 @@ export default class EsMachine {
   related_instances: MachineRelatedInstance[];
   spec_config: MachineSpecConfig;
   spec_id: number;
+  spec_name: string;
 
   constructor(payload = {} as EsMachine) {
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -47,6 +48,7 @@ export default class EsMachine {
     this.host_info = payload.host_info;
     this.instance_role = payload.instance_role;
     this.ip = payload.ip;
+    this.spec_name = payload.spec_name;
     this.machine_type = payload.machine_type;
     this.related_clusters = payload.related_clusters;
     this.related_instances = payload.related_instances;

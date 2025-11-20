@@ -13,7 +13,7 @@ from copy import deepcopy
 from dataclasses import asdict
 from typing import Dict
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums.cluster_type import ClusterType
@@ -156,6 +156,7 @@ def ProxyFaultShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param
         param (Dict): {
             "ip":"1.1.1.x",
             "proxy_port": 30000,
+            "need_manual_confirm": True,
     }
     """
     immute_domain = sub_kwargs.cluster["immute_domain"]
@@ -184,7 +185,8 @@ def ProxyFaultShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param
         act_kwargs.cluster["machine_type"] = MachineType.TWEMPROXY.value
 
     # 在这里等着
-    sub_pipeline.add_act(act_name=_("Redis-人工确认"), act_component_code=PauseComponent.code, kwargs={})
+    if param["need_manual_confirm"]:
+        sub_pipeline.add_act(act_name=_("Redis-人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
     # 先删除元数据
     act_kwargs.cluster["proxy_ips"] = [exec_ip]

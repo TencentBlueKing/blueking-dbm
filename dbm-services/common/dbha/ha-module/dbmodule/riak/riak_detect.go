@@ -39,6 +39,7 @@ type RiakDetectInstanceInfoFromCmDB struct {
 	ClusterType string
 	MetaType    string
 	Cluster     string
+	DbRole      string
 }
 
 // NewRiakDetectInstanceForAgent convert cmdb info to detect info
@@ -49,6 +50,7 @@ func NewRiakDetectInstanceForAgent(ins *RiakDetectInstanceInfoFromCmDB, conf *co
 			Port:           ins.Port,
 			App:            ins.App,
 			DBType:         types.DBType(ins.ClusterType),
+			DBRole:         ins.DbRole,
 			ReporterTime:   time.Unix(0, 0),
 			ReportInterval: conf.AgentConf.ReportInterval + rand.Intn(20),
 			Status:         constvar.DBCheckSuccess,
@@ -75,10 +77,19 @@ func NewRiakDetectInstanceForGdm(ins *RiakDetectResponse, dbType string, conf *c
 			Port:           ins.DBPort,
 			App:            ins.App,
 			DBType:         types.DBType(dbType),
+			DBRole:         ins.DBRole,
 			ReporterTime:   time.Unix(0, 0),
 			ReportInterval: conf.AgentConf.ReportInterval + rand.Intn(20),
 			Status:         types.CheckStatus(ins.Status),
 			Cluster:        ins.Cluster,
+			SshInfo: dbutil.Ssh{
+				Port:      conf.SSH.Port,
+				User:      conf.SSH.User,
+				Pass:      conf.SSH.Pass,
+				Dest:      conf.SSH.Dest,
+				Timeout:   conf.SSH.Timeout,
+				MaxUptime: conf.SSH.MaxUptime,
+			},
 		},
 		Timeout: conf.DBConf.Riak.Timeout,
 	}

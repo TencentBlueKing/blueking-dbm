@@ -12,7 +12,7 @@ import logging.config
 from dataclasses import asdict
 from typing import Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
@@ -186,8 +186,9 @@ class KafkaApplyFlow(object):
         broker_act_list = []
         for broker in self.data["nodes"]["broker"]:
             act_kwargs.exec_ip = [broker]
+            rack = broker.get("rack_id", "RACK1")
             act_kwargs.template = act_payload.get_payload(
-                action=KafkaActuatorActionEnum.installBroker.value, host=broker["ip"]
+                action=KafkaActuatorActionEnum.installBroker.value, host=broker["ip"], rack=rack
             )
             ip = broker["ip"]
             broker_act = {

@@ -22,6 +22,7 @@ var executable string
 
 var nameMySQLLock = "mysql-lock"
 var nameMySQLInject = "mysql-inject"
+var nameMySQLTableSlow = "mysql-table-slow"
 
 var once sync.Once
 var snapShotErr error

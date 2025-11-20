@@ -63,10 +63,12 @@ type MySQLBinlogUtil struct {
 	Flashback bool `json:"flashback,omitempty"`
 
 	// mysqlbinlog options string
-	options   string
-	cmdArgs   []string
-	workDir   string
-	binlogCmd string
+	options string
+	// optStartPos 只用于保存 --start-position，只有第一个 binlog才需要
+	optStartPos string
+	cmdArgs     []string
+	workDir     string
+	binlogCmd   string
 }
 
 func (b *MySQLBinlogUtil) BuildArgs() ([]string, error) {

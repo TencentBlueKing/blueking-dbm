@@ -8,13 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _
+from django.db.models import Exists, OuterRef, Q
+from django.utils.translation import gettext_lazy as _
 from django_filters import rest_framework as filters
 
 from backend.db_meta.models import Cluster
 from backend.ticket.constants import TODO_RUNNING_STATUS, TicketStatus
-from backend.ticket.models import ClusterOperateRecord, InstanceOperateRecord, Ticket
+from backend.ticket.models import ClusterOperateRecord, InstanceOperateRecord, Ticket, Todo
 
 
 class TicketListFilter(filters.FilterSet):
@@ -25,6 +25,8 @@ class TicketListFilter(filters.FilterSet):
     todo = filters.CharFilter(field_name="todo", method="filter_todo", label=_("代办状态"))
     ordering = filters.CharFilter(field_name="ordering", method="order_ticket", label=_("排序字段"))
     is_assist = filters.BooleanFilter(field_name="is_assist", method="filter_is_assist", label=_("是否协助"))
+    bk_biz_ids = filters.CharFilter(field_name="bk_biz_ids", method="filter_bk_biz_ids", label=_("业务ID列表(逗号分隔)"))
+    db_type = filters.CharFilter(field_name="db_type", method="filter_db_type", label=_("db类型"))
 
     class Meta:
         model = Ticket
@@ -33,7 +35,7 @@ class TicketListFilter(filters.FilterSet):
             "bk_biz_id": ["exact"],
             "ticket_type": ["exact", "in"],
             "create_at": ["gte", "lte"],
-            "creator": ["exact"],
+            "creator": ["exact", "in"],
         }
 
     def filter_cluster(self, queryset, name, value):
@@ -41,42 +43,65 @@ class TicketListFilter(filters.FilterSet):
         records = ClusterOperateRecord.objects.filter(cluster_id__in=clusters).values_list("id", flat=True)
         return queryset.filter(clusteroperaterecord__in=records)
 
+    def filter_db_type(self, queryset, name, value):
+        db_types = [db_type for db_type in value.split(",")]
+        return queryset.filter(group__in=db_types)
+
     def filter_ids(self, queryset, name, value):
         ids = list(map(int, value.split(",")))
         return queryset.filter(id__in=ids)
 
     def filter_todo(self, queryset, name, value):
         user = self.request.user.username
+
         if value == "running":
-            todo_filter = Q(
-                Q(todo_of_ticket__operators__contains=user) | Q(todo_of_ticket__helpers__contains=user),
-                todo_of_ticket__status__in=TODO_RUNNING_STATUS,
+            # 筛选操作员/协助者+运行中状态
+            todo_subquery = Todo.objects.filter(
+                Q(operators__contains=user) | Q(helpers__contains=user), status__in=TODO_RUNNING_STATUS
             )
         else:
-            todo_filter = Q(todo_of_ticket__done_by=user)
-        return queryset.filter(todo_filter).distinct()
+            # 筛选已完成的todo
+            todo_subquery = Todo.objects.filter(done_by=user)
+
+        # 获取相关的ticket_id列表
+        ticket_ids = list(
+            todo_subquery.values_list("ticket_id", flat=True).distinct().order_by("-ticket_id").iterator()
+        )
+
+        return queryset.filter(id__in=ticket_ids).order_by("-id")
 
     def filter_is_assist(self, queryset, name, value):
         user = self.request.user.username
         # 根据 value 的值选择不同的字段
         field = "helpers" if value else "operators"
-        todo_filter = Q(**{f"todo_of_ticket__{field}__contains": user}, todo_of_ticket__status__in=TODO_RUNNING_STATUS)
-        return queryset.filter(todo_filter).distinct()
+        subquery = Todo.objects.filter(
+            **{f"{field}__contains": user}, status__in=TODO_RUNNING_STATUS, ticket_id=OuterRef("id")
+        )
+        todo_filter = Exists(subquery)
+        return queryset.filter(todo_filter)
 
     def filter_status(self, queryset, name, value):
         status = value.split(",")
         status_filter = Q()
         # 如果有待确认，则解析为：running + 包含正在运行的todo
         if TicketStatus.INNER_TODO in status:
-            status_filter |= Q(status=TicketStatus.RUNNING, todo_of_ticket__status__in=TODO_RUNNING_STATUS)
+            subquery = Todo.objects.filter(status__in=TODO_RUNNING_STATUS, ticket_id=OuterRef("id"))
+            status_filter |= Q(status=TicketStatus.RUNNING) & Q(Exists(subquery))
             status.remove(TicketStatus.INNER_TODO.value)
         # 如果有待执行，则解析为：running + 不包含正在运行的todo
         if TicketStatus.RUNNING in status:
-            status_filter |= Q(status=TicketStatus.RUNNING) & ~Q(todo_of_ticket__status__in=TODO_RUNNING_STATUS)
+            subquery = Todo.objects.filter(status__in=TODO_RUNNING_STATUS, ticket_id=OuterRef("id"))
+            status_filter |= Q(status=TicketStatus.RUNNING) & ~Q(Exists(subquery))
             status.remove(TicketStatus.RUNNING.value)
         # 其他状态，直接in即可
         status_filter |= Q(status__in=status)
-        return queryset.filter(status_filter).distinct()
+        return queryset.filter(status_filter)
+
+    def filter_bk_biz_ids(self, queryset, name, value):
+        """处理多个业务ID的过滤，支持逗号分隔的字符串"""
+        # 将逗号分隔的字符串转换为整数列表
+        biz_ids = [int(x.strip()) for x in value.split(",") if x.strip()]
+        return queryset.filter(bk_biz_id__in=biz_ids)
 
     def order_ticket(self, queryset, name, value):
         return queryset.order_by(value)

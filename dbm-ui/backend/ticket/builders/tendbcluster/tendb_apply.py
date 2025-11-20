@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.components import DBConfigApi
@@ -21,15 +21,16 @@ from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import CommonValidate
+from backend.ticket.builders.common.base import CommonValidate, TicketBaseValidateSerializerMixin, get_ticket_zone_list
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
 
-class TenDBClusterApplyDetailSerializer(serializers.Serializer):
+class TenDBClusterApplyDetailSerializer(TicketBaseValidateSerializerMixin, serializers.Serializer):
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
     db_app_abbr = serializers.CharField(help_text=_("业务英文缩写"))
     cluster_name = serializers.CharField(help_text=_("集群名"))
+    cluster_alias = serializers.CharField(help_text=_("集群别名（一般为中文别名）"), required=False, allow_blank=True)
     city_code = serializers.CharField(
         help_text=_("城市代码"), required=False, allow_blank=True, allow_null=True, default=""
     )
@@ -76,6 +77,7 @@ class TenDBClusterApplyDetailSerializer(serializers.Serializer):
         return obj["cluster_shard_num"] / obj["remote_shard_num"]
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         # 校验集群域名合法
         CommonValidate.validate_generate_domain("spider", attrs["cluster_name"], attrs["db_app_abbr"])
         CommonValidate.validate_generate_domain("spider-slave", attrs["cluster_name"], attrs["db_app_abbr"])
@@ -86,7 +88,16 @@ class TenDBClusterApplyDetailSerializer(serializers.Serializer):
         )
         # 校验分片数合法
         TendbBaseOperateDetailSerializer.validate_cluster_shard_num(attrs)
+
+        # 检查spider_master数量上限
+        TendbBaseOperateDetailSerializer.validate_spider_count_for_apply(self.context["bk_biz_id"], attrs)
+
         return attrs
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation["bk_cloud_name"] = self.get_bk_cloud_name(instance)
+        return representation
 
 
 class TenDBClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
@@ -99,11 +110,13 @@ class TenDBClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
             city=self.ticket.details["city_code"],
             immutable_domain=f"spider.{self.ticket_data['cluster_name']}.{self.ticket_data['db_app_abbr']}.db",
         )
+        # 补充zone_list数据
+        self.ticket_data["zone_list"] = get_ticket_zone_list(self.ticket_data)
 
 
 class TenDBClusterApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
     def format(self):
-        self.ticket_data["resource_spec"]["spider"]["group_count"] = 2
+        self.ticket_data["resource_spec"]["spider"].update(tolerance=0.5)
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()

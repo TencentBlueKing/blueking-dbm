@@ -2,12 +2,12 @@
   <!-- prettier-ignore -->
   <BkTagInput
     v-model="(modelValue as string[])"
-    v-bind="{ ...attrs, ...props }"
     allow-auto-match
     allow-create
     class="bk-editable-tag-input"
     clearable
     has-delete-icon
+    v-bind="{ ...attrs, ...props }"
     @blur="handleBlur"
     @change="handleChange"
     @focus="handleFocus" />
@@ -61,6 +61,26 @@
   };
 </script>
 <style lang="less">
+  .bk-editable-table-body-column {
+    &.is-readonly,
+    &.is-disabled {
+      .bk-editable-tag-input {
+        &.bk-tag-input {
+          pointer-events: none;
+
+          .clear-icon,
+          .remove-tag {
+            display: none !important;
+          }
+
+          * {
+            pointer-events: none;
+          }
+        }
+      }
+    }
+  }
+
   .bk-editable-tag-input {
     &.bk-tag-input {
       width: 100%;
@@ -79,6 +99,10 @@
 
         .tag-input {
           background: transparent;
+        }
+
+        .tag-list {
+          max-height: unset !important;
         }
       }
     }

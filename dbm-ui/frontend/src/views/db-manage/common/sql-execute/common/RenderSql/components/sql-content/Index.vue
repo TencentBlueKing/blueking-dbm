@@ -78,13 +78,6 @@
 
   defineProps<Props>();
 
-  const { t } = useI18n();
-
-  const comMap = {
-    file: LocalFile,
-    manual: ManualInput,
-  };
-
   const isShow = defineModel<boolean>('isShow', {
     default: false,
     required: false,
@@ -93,9 +86,17 @@
   const importMode = defineModel<'manual' | 'file'>('importMode', {
     required: true,
   });
+
   const modelValue = defineModel<string[]>('modelValue', {
     required: true,
   });
+
+  const { t } = useI18n();
+
+  const comMap = {
+    file: LocalFile,
+    manual: ManualInput,
+  };
 
   const attrs = useAttrs();
 

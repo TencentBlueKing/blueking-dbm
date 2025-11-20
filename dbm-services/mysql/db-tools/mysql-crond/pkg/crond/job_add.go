@@ -21,7 +21,6 @@ func Add(j *config.ExternalJob, permanent bool) (int, error) {
 		slog.Error("add job", slog.String("error", err.Error()))
 		return 0, err
 	}
-
 	if *j.Enable {
 		return addActivate(j, permanent)
 	} else {

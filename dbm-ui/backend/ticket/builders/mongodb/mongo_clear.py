@@ -8,10 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.flow.consts import MongoDBDropType
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
 from backend.ticket.builders.mongodb.base import (
@@ -26,15 +25,12 @@ from backend.ticket.constants import TicketType
 class MongoDBClearDetailSerializer(BaseMongoDBOperateDetailSerializer):
     class ClearDetailSerializer(serializers.Serializer):
         cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
-        drop_type = serializers.ChoiceField(help_text=_("删除类型"), choices=MongoDBDropType.get_choices())
-        drop_index = serializers.BooleanField(help_text=_("是否删除索引"))
+        drop_type = serializers.CharField(help_text=_("删除类型"), default="", allow_blank=True, required=False)
+        drop_index = serializers.BooleanField(help_text=_("是否删除索引"), default=True, required=False)
         ns_filter = DBTableSerializer(help_text=_("库表选择器"))
 
     infos = serializers.ListSerializer(help_text=_("清档信息"), child=ClearDetailSerializer())
     is_safe = serializers.BooleanField(help_text=_("是否做安全检测"), default=True, required=False)
-
-    def validate(self, attrs):
-        return attrs
 
 
 class MongoDBClearFlowParamBuilder(BaseMongoOperateFlowParamBuilder):

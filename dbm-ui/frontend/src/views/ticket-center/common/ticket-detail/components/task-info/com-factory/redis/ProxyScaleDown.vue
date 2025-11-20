@@ -11,38 +11,54 @@
  * the specific language governing permissions and limitations under the License.
 -->
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
-      :label="t('目标集群')"
-      :min-width="250">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+  <TicketInfoTable
+    :data="ticketDetails.details.infos"
+    row-key="cluster_id">
+    <TicketInfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
+      :min-width="250"
+      :title="t('目标集群')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('架构版本')">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].cluster_type_name }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_type_name"
+      :title="t('架构版本')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].cluster_type_name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('缩容节点类型')"> Proxy </BkTableColumn>
-    <BkTableColumn :label="t('主机选择方式')">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="node_type"
+      :title="t('缩容节点类型')">
+      Proxy
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="proxy_reduced_hosts"
+      :title="t('主机选择方式')">
+      <template #default="{ row }: { row: RowData }">
         {{
-          data.proxy_reduced_hosts?.length ? data.proxy_reduced_hosts.map((item) => item.ip).join('\n') : t('自动匹配')
+          row.proxy_reduced_hosts?.length ? row.proxy_reduced_hosts.map((item) => item.ip).join('\n') : t('自动匹配')
         }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('缩容数量(台)')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.target_proxy_count }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="target_proxy_count"
+      :title="t('缩容数量(台)')">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.target_proxy_count }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('切换模式')">
-      <template #default="{ data }: { data: RowData }">
-        {{ switchModeMap[data.online_switch_type] }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="online_switch_type"
+      :title="t('切换模式')">
+      <template #default="{ row }: { row: RowData }">
+        {{ switchModeMap[row.online_switch_type] }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

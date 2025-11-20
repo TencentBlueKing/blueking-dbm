@@ -10,10 +10,13 @@ specific language governing permissions and limitations under the License.
 """
 import base64
 import json
+import random
 import re
+import string
+import time
 from typing import Any, List, Optional, Tuple, Union
 
-from django.utils.translation import ugettext
+from django.utils.translation import gettext
 
 MIN_FORMAT_JSON_LENGTH = 30
 
@@ -170,7 +173,7 @@ def format_json_string(msg: str) -> str:
 def i18n_str(string):
     # 翻译字符串
     if isinstance(string, str):
-        return ugettext(string)
+        return gettext(string)
 
     return string
 
@@ -207,3 +210,27 @@ def base64_decode(content: Union[str, bytes]) -> str:
     if isinstance(content, str):
         content = content.encode("utf-8")
     return base64.b64decode(content).decode("utf-8")
+
+
+# 容量单位自适应转为其他单位
+def format_size(size_bytes: int) -> str:
+    if size_bytes == 0:
+        return "0B"  # 如果大小为0，直接返回0B
+    size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+    i = int(len(size_name) - 1)
+    p = 1024.0
+    size = float(size_bytes)
+
+    while size >= p and i > 0:
+        size /= p
+        i -= 1
+
+    # 使用合适的单位并限制小数点后两位
+    return f"{size:.2f} {size_name[len(size_name) - 1 - i]}"
+
+
+def make_unique_key(file_obj, random_len: int = 8) -> str:
+    """生成唯一文件 key"""
+    now = int(time.time())
+    random_str = "".join(random.choices(string.ascii_lowercase, k=random_len))
+    return f"{now}_{random_str}_{file_obj.name}"

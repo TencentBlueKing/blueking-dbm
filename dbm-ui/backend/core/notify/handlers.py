@@ -15,7 +15,7 @@ from datetime import datetime, timedelta, timezone
 
 from celery import shared_task
 from django.utils.translation import gettext as _
-from jinja2 import Environment
+from jinja2.sandbox import SandboxedEnvironment as Environment
 
 from backend import env
 from backend.components import CmsiApi
@@ -137,6 +137,7 @@ class BkChatHandler(BaseNotifyHandler):
         return title, content
 
     def send_msg(self, msg_type, context):
+        """发送单据消息"""
         ticket, phase, receivers = context["ticket"], context["phase"], context["receivers"]
         title, content = self.render_title_content(msg_type, self.title, self.content, phase, receivers)
         ticket_operators = ticket.get_current_operators()
@@ -153,7 +154,13 @@ class BkChatHandler(BaseNotifyHandler):
             "actions": self.get_actions(msg_type, ticket),
             "click": {"click_url": ticket.url, "name": _("查看详情")},
         }
-        BkChatApi.send_msg(msg_info, use_admin=True)
+        BkChatApi.send_ticket_msg(msg_info, use_admin=True)
+
+    def send_custom_msg(self):
+        """发送任意自定义消息"""
+        content = f"### {self.title}\n{self.content}"
+        msg_info = {"receiver_id_list": self.receivers, "msg_content": content}
+        BkChatApi.send_custom_msg(msg_info, use_admin=True)
 
 
 class CmsiHandler(BaseNotifyHandler):
@@ -257,11 +264,14 @@ class NotifyAdapter:
     def get_support_msg_types(cls):
         # 获取当前环境下支持的通知类型
         # 所有的拓展方式都需要接入CMSI，所以直接返回CMSI支持方式即可
-        # TODO: 暂不暴露微信的通知方式
+        # TODO: 暂不暴露微信、短信的通知方式
         msg_types = CmsiApi.get_msg_type()
-        msg_type_map = {msg["type"]: msg for msg in msg_types}
-        msg_type_map[MsgType.WEIXIN.value]["is_active"] = False
-        return list(msg_type_map.values())
+        for msg in msg_types:
+            # 将msg_type文案转换为平台定义
+            msg["label"] = MsgType.get_choice_label(msg["type"])
+            if msg["type"] in [MsgType.WEIXIN, MsgType.SMS]:
+                msg["is_active"] = False
+        return msg_types
 
     def get_notify_class(self, msg_type: str):
         # 根据通知类型获取通知类，以及通知所需的上下文

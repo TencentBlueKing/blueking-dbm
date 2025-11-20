@@ -184,6 +184,7 @@ func (m *JobGenericManager) atomjobsMapperLoading() {
 		m.atomJobMapper[atomredis.NewTendisKeysPatternDelete().Name()] = atomredis.NewTendisKeysPatternDelete
 		m.atomJobMapper[atomredis.NewTendisKeysFilesDelete().Name()] = atomredis.NewTendisKeysFilesDelete
 		m.atomJobMapper[atomproxy.NewPredixyInstall().Name()] = atomproxy.NewPredixyInstall
+		m.atomJobMapper[atomproxy.NewProxyReUse().Name()] = atomproxy.NewProxyReUse
 		m.atomJobMapper[atomredis.NewTendisssdDrRestore().Name()] = atomredis.NewTendisssdDrRestore
 		m.atomJobMapper[atomproxy.NewTwemproxyOperate().Name()] = atomproxy.NewTwemproxyOperate
 		m.atomJobMapper[atomproxy.NewPredixyOperate().Name()] = atomproxy.NewPredixyOperate
@@ -192,8 +193,9 @@ func (m *JobGenericManager) atomjobsMapperLoading() {
 		m.atomJobMapper[atomsys.NewRedisCapturer().Name()] = atomsys.NewRedisCapturer
 		m.atomJobMapper[atomsys.NewHotkeyAnalysis().Name()] = atomsys.NewHotkeyAnalysis
 		m.atomJobMapper[atomredis.NewRedisSwitch().Name()] = atomredis.NewRedisSwitch
+		m.atomJobMapper[atomredis.NewRedisSwitchPreCheck().Name()] = atomredis.NewRedisSwitchPreCheck
 		m.atomJobMapper[atomredis.NewBkDbmonInstall().Name()] = atomredis.NewBkDbmonInstall
-		m.atomJobMapper[atomredis.NewTendisPlusMigrateSlots().Name()] = atomredis.NewTendisPlusMigrateSlots
+		m.atomJobMapper[atomredis.NewClusterMigrateSlots().Name()] = atomredis.NewClusterMigrateSlots
 		m.atomJobMapper[atomredis.NewRedisDtsDataCheck().Name()] = atomredis.NewRedisDtsDataCheck
 		m.atomJobMapper[atomredis.NewRedisDtsDataRepair().Name()] = atomredis.NewRedisDtsDataRepair
 		m.atomJobMapper[atomredis.NewRedisAddDtsServer().Name()] = atomredis.NewRedisAddDtsServer
@@ -225,7 +227,10 @@ func (m *JobGenericManager) atomjobsMapperLoading() {
 		m.atomJobMapper[atomredis.NewRedisSceneSyncPrams().Name()] = atomredis.NewRedisSceneSyncPrams
 		m.atomJobMapper[atomsys.NewRestartExporter().Name()] = atomsys.NewRestartExporter
 		// 迁移
-		m.atomJobMapper[atomredis.NewRedisReuploadOldBackupRecords().Name()] = atomredis.NewRedisReuploadOldBackupRecords
+		m.atomJobMapper[atomredis.NewRedisReuploadOldBackupRecords().Name()] =
+			atomredis.NewRedisReuploadOldBackupRecords
+		// 内存分析
+		m.atomJobMapper[atomsys.NewKeyStat().Name()] = atomsys.NewKeyStat
 
 	})
 }

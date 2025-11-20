@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Tuple, Union
 from django.conf import settings
 from django.core.cache import cache
 from django.http.response import HttpResponse
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend import env
 from backend.components.mysql_priv_manager.client import DBPrivManagerApi
@@ -204,5 +204,5 @@ class AuthorizeHandler(object):
             for data in authorize_data_dict__list:
                 excel_data_dict__list[data["index"]] = self.excel_authorize_meta.serialize_excel_data(data)
 
-        wb = ExcelHandler.serialize(excel_data_dict__list, template=self.EXCEL_ERROR_TEMPLATE)
+        wb = ExcelHandler.serialize(excel_data_dict__list, template=self.EXCEL_ERROR_TEMPLATE, match_header=True)
         return ExcelHandler.response(wb, excel_name)

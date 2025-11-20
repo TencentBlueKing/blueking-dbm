@@ -16,11 +16,12 @@ from blueapps.core.celery.celery import app
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.constants import BACKUP_TASK_SUCCESS
-from backend.db_report.enums import MysqlBackupCheckSubType
+from backend.db_report.enums import MysqlBackupCheckSubType, ReportStateType
 from backend.db_report.models import MysqlBackupCheckReport
 
 from .bklog_query import ClusterBackup
-from .check_full_backup import find_discontinuous_numbers, get_query_date_time
+from .check_full_backup import find_discontinuous_numbers, get_backup_failed_duration, get_query_date_time
+from .check_ignore import CheckIgnore
 
 logger = logging.getLogger("root")
 
@@ -55,6 +56,8 @@ def _check_binlog_backup(cluster_type, date_str):
     master 实例必须要有备份binlog
     且binlog序号要连续
     """
+    # 获取忽略配置
+    ignore_configs = CheckIgnore(subtype=MysqlBackupCheckSubType.BinlogSeq.value)
     start_time, end_time = get_query_date_time(date_str)
     logger.info(
         "==== start check binlog for cluster type {}, time range[{},{}] ====".format(
@@ -62,6 +65,11 @@ def _check_binlog_backup(cluster_type, date_str):
         )
     )
     for c in Cluster.objects.filter(cluster_type=cluster_type):
+        # 检查是否应该忽略该集群的binlog巡检
+        if ignore_configs.should_ignore_check_cluster(c.bk_biz_id, c.immute_domain, cluster_type):
+            logger.info(f"==== skip check binlog for cluster {c.immute_domain} (ignored by config) ====")
+            continue
+
         backup = ClusterBackup(c.id, c.immute_domain)
         logger.info(
             "==== start check binlog for cluster {}, time range[{},{}] ====".format(
@@ -71,14 +79,14 @@ def _check_binlog_backup(cluster_type, date_str):
         # todo 需要获取集群的 master 分片实例，或者分片数
         # c.tendbclusterstorageset_set.all()
 
-        items = backup.query_binlog_from_bklog(start_time, end_time)
+        items = backup.query_binlog_from_dbreport(start_time, end_time)
         instance_binlogs = defaultdict(list)
         # ip-port : {[不连续的值],[]}
         shard_binlog_stat = {}
         for i in items:
-            instance = "{}:{}".format(i.get("mysql_host"), i.get("mysql_port"))
-            if i.get("backup_status") == BACKUP_TASK_SUCCESS:
-                instance_binlogs[instance].append(i.get("file_name"))
+            instance = "{}:{}".format(i.host, i.port)
+            if i.backup_status == BACKUP_TASK_SUCCESS:
+                instance_binlogs[instance].append(i.filename)
             else:
                 instance_binlogs[instance].append("binlog.000001")  # 人为触发不连续
 
@@ -98,6 +106,9 @@ def _check_binlog_backup(cluster_type, date_str):
                 shard_binlog_stat[inst] = [prefix + "." + str(s).zfill(suffix_len) for s in shard_binlog_stat[inst]]
 
         if not backup.success:
+            failed_days = get_backup_failed_duration(
+                c.immute_domain, MysqlBackupCheckSubType.BinlogSeq.value, start_time
+            )
             MysqlBackupCheckReport.objects.create(
                 bk_biz_id=c.bk_biz_id,
                 bk_cloud_id=c.bk_cloud_id,
@@ -106,4 +117,6 @@ def _check_binlog_backup(cluster_type, date_str):
                 status=False,
                 msg="binlog is not consecutive:{}".format(shard_binlog_stat),
                 subtype=MysqlBackupCheckSubType.BinlogSeq.value,
+                state=ReportStateType.ABNORMAL.value,
+                failed_days=failed_days,
             )

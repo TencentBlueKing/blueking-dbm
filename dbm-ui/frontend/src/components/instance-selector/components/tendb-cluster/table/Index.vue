@@ -25,6 +25,7 @@
       <DbOriginalTable
         :columns="columns"
         :data="tableData"
+        :height="500"
         :max-height="530"
         :pagination="pagination.count < 10 ? false : pagination"
         :show-overflow="false"
@@ -211,15 +212,7 @@
       filter: props.roleFilterList,
       label: t('角色'),
       minWidth: 120,
-      render: ({ data }: DataRow) => {
-        const instanceRoleMap = {
-          remote_master: 'Master',
-          remote_slave: 'Slave',
-          spider_master: 'Spider Master',
-          spider_slave: 'Spider Slave',
-        };
-        return instanceRoleMap[data.role as keyof typeof instanceRoleMap] || data.role || '--';
-      },
+      render: ({ data }: DataRow) => data.role || '--',
       showOverflow: true,
     },
     {
@@ -368,9 +361,6 @@
         ...props.lastValues,
         [activePanel.value]: Object.values(checkedMap.value).map((item) => ({
           ...item,
-          // 兼容历史遗留问题（对 bk_cloud_id, bk_cloud_name 的特殊处理）
-          bk_cloud_id: item.host_info?.cloud_id || 0,
-          bk_cloud_name: item.host_info?.cloud_area?.name || '',
         })),
       });
     }

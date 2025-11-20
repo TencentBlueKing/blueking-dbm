@@ -89,7 +89,7 @@ class TagHandler:
         """
         批量创建标签
         """
-        duplicate_tags = cls.verify_duplicated(bk_biz_id, tags)
+        duplicate_tags = cls.verify_duplicated(type, bk_biz_id, tags)
         if duplicate_tags:
             raise ValidationError(_("检查到重复的标签"), data=duplicate_tags)
 
@@ -100,15 +100,15 @@ class TagHandler:
         Tag.objects.bulk_create(tag_models)
 
         # 重新获取标签信息给前端返回
-        created_tags = cls.verify_duplicated(bk_biz_id, tags)
+        created_tags = cls.verify_duplicated(type, bk_biz_id, tags)
         return created_tags
 
     @classmethod
-    def verify_duplicated(cls, bk_biz_id: int, tags: List[Dict[str, str]]) -> List[Dict[str, str]]:
+    def verify_duplicated(cls, tag_type: str, bk_biz_id: int, tags: List[Dict[str, str]]) -> List[Dict[str, str]]:
         """
         检查标签是否重复
         """
-        created_tags = [f"{tag['key']}:{tag['value']}" for tag in tags]
-        biz_tags = {f"{tag.key}:{tag.value}": tag for tag in Tag.objects.filter(bk_biz_id=bk_biz_id)}
+        created_tags = [f"{tag['key']}_{tag_type}:{tag['value']}" for tag in tags]
+        biz_tags = {f"{tag.key}_{tag.type}:{tag.value}": tag for tag in Tag.objects.filter(bk_biz_id=bk_biz_id)}
         duplicate_tags = [tag.desc for kv, tag in biz_tags.items() if kv in created_tags]
         return duplicate_tags

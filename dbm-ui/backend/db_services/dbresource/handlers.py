@@ -13,7 +13,7 @@ import math
 from typing import Any, Dict, List
 
 from django.forms import model_to_dict
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components import CCApi
 from backend.components.dbresource.client import DBResourceApi
@@ -399,7 +399,9 @@ class ResourceHandler(object):
     """资源池接口的处理函数"""
 
     @classmethod
-    def spec_resource_count(cls, bk_biz_id: int, bk_cloud_id: int, spec_ids: List[int], city: str):
+    def spec_resource_count(
+        cls, bk_biz_id: int, bk_cloud_id: int, sub_zone_ids: List[int], spec_ids: List[int], city: str
+    ):
         """规格预估资源数量"""
         specs = Spec.objects.filter(spec_id__in=spec_ids)
         if not specs.exists():
@@ -416,7 +418,7 @@ class ResourceHandler(object):
         ]
         spec_count_details = list(itertools.chain(*spec_count_details))
         spec_count_params = {
-            "location_spec": {"city": "" if city == "default" else city, "sub_zone_ids": []},
+            "location_spec": {"city": "" if city == "default" else city, "sub_zone_ids": sub_zone_ids},
             "for_biz_id": bk_biz_id,
             "resource_type": resource_type,
             "bk_cloud_id": bk_cloud_id,
@@ -491,11 +493,11 @@ class ResourceHandler(object):
             # 每台机器预估单价
             cpu_per_cost = spec.cpu["max"] * db_cost_estimate["cpu"]
             mem_per_cost = spec.mem["max"] * db_cost_estimate["mem"]
-            disk_per_cost = sum([db_cost_estimate["storage"][d["type"]] * d["size"] for d in spec.storage_spec])
+            disk_per_cost = sum([db_cost_estimate["storage"][d["type"]] * d["min"] for d in spec.storage_spec])
             # 合并计算总价
             excepted_cost += (cpu_per_cost + mem_per_cost + disk_per_cost) * count
 
-        return excepted_cost
+        return int(excepted_cost)
 
     @classmethod
     def standardized_resource_host(cls, hosts):
@@ -504,12 +506,13 @@ class ResourceHandler(object):
         # 获取主机通用信息
         hosts = ResourceQueryHelper.search_cc_hosts(role_host_ids=host_ids)
         # 获取主机拓扑信息
-        host_topos = CCApi.find_host_biz_relations({"bk_host_id": host_ids})
+        host_topos = CCApi.batch_find_host_biz_relations({"bk_host_id": host_ids})
         host_biz_map = {host["bk_host_id"]: host["bk_biz_id"] for host in host_topos}
         # 补充主机信息
         for host in hosts:
             host.update(
                 bk_biz_id=host_biz_map.get(host["bk_host_id"]),
+                status=int(host.get("status", 0)),
                 ip=host.get("bk_host_innerip"),
                 city=host.get("idc_city_name"),
                 host_id=host.get("bk_host_id"),

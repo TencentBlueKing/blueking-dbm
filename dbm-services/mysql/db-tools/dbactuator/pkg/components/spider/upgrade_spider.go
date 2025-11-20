@@ -114,20 +114,19 @@ func (i *UpgradeSpiderComp) Init() (err error) {
 
 // PreCheck pre run pre check
 func (i *UpgradeSpiderComp) PreCheck() (err error) {
-	if i.Param.Force {
-		return nil
-	}
 	var version string
 	for port, conn := range i.spiderConns {
-		activeprocesslist, err := conn.ShowApplicationProcesslist(i.sysUsers)
-		if err != nil {
-			logger.Error("get %d processlist failed %v", port, err)
-			return err
-		}
-		if len(activeprocesslist) > 0 {
-			errMsg := fmt.Sprintf("还存在活跃的业务连接,请先确认,具体连接%v", activeprocesslist)
-			logger.Error(errMsg)
-			return errors.New(errMsg)
+		if !i.Param.Force {
+			activeprocesslist, errx := conn.ShowApplicationProcesslist(i.sysUsers)
+			if errx != nil {
+				logger.Error("get %d processlist failed %v", port, errx)
+				return errx
+			}
+			if len(activeprocesslist) > 0 {
+				errMsg := fmt.Sprintf("还存在活跃的业务连接,请先确认,具体连接%v", activeprocesslist)
+				logger.Error(errMsg)
+				return errors.New(errMsg)
+			}
 		}
 		version, err = conn.SelectVersion()
 		if err != nil {

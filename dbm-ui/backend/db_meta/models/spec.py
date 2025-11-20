@@ -17,12 +17,11 @@ from typing import Dict, List
 from django.conf import settings
 from django.db import models
 from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
 from backend.configuration.constants import AffinityEnum, SystemSettingsEnum
 from backend.configuration.models import SystemSettings
-from backend.constants import INT_MAX
 from backend.db_meta.enums.spec import SpecClusterType, SpecMachineType
 
 logger = logging.getLogger("root")
@@ -41,7 +40,7 @@ class Spec(AuditedModel):
     mem = models.JSONField(null=True, help_text=_('mem规格描述:{"min":100,"max":1000}'), default=dict)
     device_class = models.JSONField(null=True, help_text=_('实际机器机型: ["class1","class2"]'), default=dict)
     storage_spec = models.JSONField(
-        help_text=_('存储磁盘需求配置:[{"mount_point":"/data","size":500,"type":"ssd"}]'), default=dict, null=True
+        help_text=_('存储磁盘需求配置:[{"mount_point":"/data","min":500,"max":1000,"type":"ssd"}]'), default=dict, null=True
     )
     desc = models.TextField(help_text=_("资源规格描述"), null=True, blank=True)
     enable = models.BooleanField(help_text=_("是否启用"), default=True)
@@ -49,6 +48,7 @@ class Spec(AuditedModel):
     instance_num = models.IntegerField(default=0, help_text=_("实例数(es专属)"))
     # spider，redis集群专属
     qps = models.JSONField(default=dict, help_text=_('qps规格描述:{"min": 1, "max": 100}'), null=True)
+    biz_scope = models.JSONField(default=list, help_text=_("业务范围:[3,4,5]"), null=True, blank=True)
 
     class Meta:
         verbose_name = verbose_name_plural = _("资源规格(Spec)")
@@ -63,7 +63,7 @@ class Spec(AuditedModel):
         RedisCluster/TendisCache/Redis: 以内存为准，内存不是范围，是一个准确的值
         默认：磁盘总容量
         """
-        mount_point__size: Dict[str, int] = {disk["mount_point"]: disk["size"] for disk in self.storage_spec}
+        mount_point__size: Dict[str, int] = {disk["mount_point"]: disk["min"] for disk in self.storage_spec}
         if (
             self.spec_cluster_type == SpecClusterType.TenDBCluster
             and self.spec_machine_type == SpecMachineType.BACKEND.value
@@ -84,11 +84,23 @@ class Spec(AuditedModel):
         return sum(map(lambda x: int(x), mount_point__size.values()))
 
     def _get_apply_params_detail(
-        self, group_mark, count, bk_cloud_id, affinity=AffinityEnum.NONE.value, labels=None, location_spec=None
+        self,
+        group_mark,
+        count,
+        bk_cloud_id,
+        affinity=AffinityEnum.NONE.value,
+        labels=None,
+        location_spec=None,
+        tolerance=0,
+        current_hosts=None,
     ):
         # 如果没有城市信息，default表示无城市信息
         if location_spec and location_spec["city"] == "default":
             location_spec = None
+
+        # 如果亲和性为空，则忽略current_hosts
+        if affinity == AffinityEnum.NONE.value:
+            current_hosts = None
 
         # 获取资源申请的detail过程，暂时忽略亲和性和位置参数过滤
         spec_offset = SystemSettings.get_setting_value(SystemSettingsEnum.SPEC_OFFSET)
@@ -100,14 +112,17 @@ class Spec(AuditedModel):
                     "mount_point": storage_spec["mount_point"],
                     # 如果是all，则需要传空
                     "disk_type": "" if storage_spec["type"] == "ALL" else storage_spec["type"],
-                    "min": storage_spec["size"] - spec_offset["disk"],
-                    "max": INT_MAX,
+                    "min": storage_spec["min"] - spec_offset["disk"],
+                    "max": storage_spec["max"],
                 }
                 for storage_spec in self.storage_spec
             ],
             "count": count,
             "affinity": affinity,
+            "location_spec": location_spec,
             "labels": labels,
+            "tolerance": tolerance,
+            "current_hosts": current_hosts or [],
         }
         # 对于机型和规格，优先以机型为准，机型不存在则用规格申请
         if self.device_class:
@@ -123,10 +138,15 @@ class Spec(AuditedModel):
             }
             apply_params.update(spec=spec)
 
+        # 格式化参数，将bk_sub_zone_id/exclude_rack_ids/exclude_sub_zone_ids转成str，本身为空也不影响
         if location_spec:
-            # 将bk_sub_zone_id转成str，本身为空也不影响
-            location_spec["sub_zone_ids"] = list(map(str, location_spec.get("sub_zone_ids", [])))
-            apply_params["location_spec"] = location_spec
+            location_spec["sub_zone_ids"] = list(map(str, location_spec.get("sub_zone_ids") or []))
+            location_spec["exclude_rack_ids"] = list(map(str, location_spec.get("exclude_rack_ids") or []))
+            location_spec["exclude_sub_zone_ids"] = list(map(str, location_spec.get("exclude_sub_zone_ids") or []))
+
+        for host in apply_params["current_hosts"]:
+            host["sub_zone_id"] = str(host["sub_zone_id"])
+            host["rack_id"] = str(host["rack_id"])
 
         return apply_params
 
@@ -139,6 +159,8 @@ class Spec(AuditedModel):
         affinity=AffinityEnum.NONE.value,
         labels=None,
         location_spec=None,
+        tolerance=0,
+        current_hosts=None,
     ):
         """
         根据规格和分组要求，获取资源申请参数
@@ -153,6 +175,8 @@ class Spec(AuditedModel):
         @param affinity: 亲和性
         @param location_spec: 位置参数
         @param labels: 位置参数
+        @param tolerance: 亲和性容忍度(代替group_count)
+        @param current_hosts: 存量主机，和tolerance一起使用可以让资源池整体分配机型
         """
         group_count_list = [group_count] * (count // group_count)
         if count % group_count:
@@ -166,6 +190,8 @@ class Spec(AuditedModel):
                 affinity=affinity,
                 labels=labels,
                 location_spec=location_spec,
+                tolerance=tolerance,
+                current_hosts=current_hosts,
             )
             for index, num in enumerate(group_count_list)
         ]
@@ -186,8 +212,8 @@ class Spec(AuditedModel):
     def compare_to(self, spec: "Spec", compare_flag: bool):
         """比较规格"""
         # 比较存储配置里磁盘的最小值 TODO: TendisCache可能是内存比较
-        self_min_config = min([storage.get("size", 0) for storage in self.storage_spec])
-        spec_min_config = min([storage.get("size", 0) for storage in spec.storage_spec])
+        self_min_config = min([storage.get("min", 0) for storage in self.storage_spec])
+        spec_min_config = min([storage.get("min", 0) for storage in spec.storage_spec])
 
         if compare_flag:
             return self_min_config >= spec_min_config

@@ -25,6 +25,7 @@ import { t } from '@locales/index';
 
 const { createRouteItem } = createToolboxRoute(DBTypes.REDIS);
 
+const redisClusterReInstallDbmonRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_REINSTALL_DBMON, t('集群标准化'));
 const redisInstallModuleRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_LOAD_MODULES, t('安装 Module'));
 const redisCapacityChangeRoute = createRouteItem(TicketTypes.REDIS_SCALE_UPDOWN, t('集群容量变更'));
 const redisProxyScaleUpRoute = createRouteItem(TicketTypes.REDIS_PROXY_SCALE_UP, t('扩容接入层'));
@@ -36,15 +37,11 @@ const redisClusterMigrateRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_INS_M
 const redisSingleMigrateRoute = createRouteItem(TicketTypes.REDIS_SINGLE_INS_MIGRATE, t('迁移'));
 const redisClusterShardUpdateRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_SHARD_NUM_UPDATE, t('集群分片变更'));
 const redisClusterTypeUpdateRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_TYPE_UPDATE, t('集群类型变更'));
-
-const redisDBStructureRoute = {
-  path: 'db-structure/:page?',
-  name: 'RedisDBStructure',
-  meta: {
-    navName: t('定点构造'),
-  },
-  component: () => import('@views/db-manage/redis/db-structure/Index.vue'),
-};
+const redisDataStructureRoute = createRouteItem(TicketTypes.REDIS_DATA_STRUCTURE, t('定点构造'));
+const redisClusterRollbackDataCopyRoute = createRouteItem(
+  TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY,
+  t('以构造实例恢复'),
+);
 
 const redisStructureInstanceRoute = {
   path: 'structure-instance/:page?',
@@ -53,15 +50,6 @@ const redisStructureInstanceRoute = {
     navName: t('构造实例'),
   },
   component: () => import('@views/db-manage/redis/structure-instance/Index.vue'),
-};
-
-const redisRecoverFromInstanceRoute = {
-  path: 'recover-from-instance/:page?',
-  name: 'RedisRecoverFromInstance',
-  meta: {
-    navName: t('以构造实例恢复'),
-  },
-  component: () => import('@views/db-manage/redis/recover-from-instance/Index.vue'),
 };
 
 const redisDBDataCopyRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_DATA_COPY, t('数据复制'));
@@ -114,6 +102,7 @@ const toolboxDbConsoleRouteMap = {
   'redis.toolbox.backup': redisBackupRoute,
   'redis.toolbox.capacityChange': redisCapacityChangeRoute,
   'redis.toolbox.clusterMigrate': redisClusterMigrateRoute,
+  'redis.toolbox.clusterReinstallDbmon': redisClusterReInstallDbmonRoute,
   'redis.toolbox.clusterShardChange': redisClusterShardUpdateRoute,
   'redis.toolbox.clusterTypeChange': redisClusterTypeUpdateRoute,
   'redis.toolbox.dataCopy': redisDBDataCopyRoute,
@@ -129,8 +118,8 @@ const toolboxDbConsoleRouteMap = {
   'redis.toolbox.proxyScaleUp': redisProxyScaleUpRoute,
   'redis.toolbox.purge': redisPurgeRoute,
   'redis.toolbox.queryAccessSource': redisQueryAccessSourceRoute,
-  'redis.toolbox.recoverFromInstance': redisRecoverFromInstanceRoute,
-  'redis.toolbox.rollback': redisDBStructureRoute,
+  'redis.toolbox.recoverFromInstance': redisClusterRollbackDataCopyRoute,
+  'redis.toolbox.rollback': redisDataStructureRoute,
   'redis.toolbox.rollbackRecord': redisStructureInstanceRoute,
   'redis.toolbox.singleMigrate': redisSingleMigrateRoute,
   'redis.toolbox.slaveRebuild': redisDBCreateSlaveRoute,
@@ -185,7 +174,6 @@ const redisDatabaseHaList = {
   path: 'cluster-ha',
   name: 'DatabaseRedisHa',
   meta: {
-    fullscreen: true,
     navName: t('Redis 主从管理'),
   },
   redirect: {
@@ -197,7 +185,6 @@ const redisDatabaseHaList = {
       path: 'list/:clusterId?',
       name: 'DatabaseRedisHaList',
       meta: {
-        fullscreen: true,
         navName: t('Redis 主从管理'),
       },
       component: () => import('@views/db-manage/redis/cluster-ha-list/Index.vue'),
@@ -219,6 +206,7 @@ const routes: RouteRecordRaw[] = [
     path: 'redis',
     name: 'RedisManage',
     meta: {
+      dbType: DBTypes.REDIS,
       navName: t('Redis_集群管理'),
     },
     redirect: {
@@ -230,7 +218,6 @@ const routes: RouteRecordRaw[] = [
         path: 'cluster',
         name: 'redisCluster',
         meta: {
-          fullscreen: true,
           navName: t('Redis_集群管理'),
         },
         redirect: {
@@ -242,7 +229,6 @@ const routes: RouteRecordRaw[] = [
             path: 'list/:clusterId?',
             name: 'DatabaseRedisList',
             meta: {
-              fullscreen: true,
               navName: t('Redis_集群管理'),
             },
             component: () => import('@/views/db-manage/redis/cluster-list/Index.vue'),

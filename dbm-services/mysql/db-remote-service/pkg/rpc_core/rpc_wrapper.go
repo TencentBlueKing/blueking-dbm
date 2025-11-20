@@ -11,6 +11,7 @@ type RPCWrapper struct {
 	connectTimeout int
 	queryTimeout   int
 	timezone       string
+	charset        string
 	force          bool
 	logger         *slog.Logger
 	RPCEmbedInterface
@@ -25,6 +26,7 @@ func NewRPCWrapper(
 	connectTimeout int,
 	queryTimeout int,
 	timezone string,
+	charset string,
 	force bool,
 	em RPCEmbedInterface,
 	requestId string,
@@ -37,6 +39,7 @@ func NewRPCWrapper(
 		connectTimeout:    connectTimeout,
 		queryTimeout:      queryTimeout,
 		timezone:          timezone,
+		charset:           charset,
 		force:             force,
 		RPCEmbedInterface: em,
 	}

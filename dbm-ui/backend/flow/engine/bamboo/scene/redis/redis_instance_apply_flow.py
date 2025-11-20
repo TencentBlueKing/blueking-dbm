@@ -13,7 +13,7 @@ from collections import defaultdict
 from dataclasses import asdict
 from typing import Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import AffinityEnum, DBType
 from backend.db_meta.api import common
@@ -408,6 +408,7 @@ class RedisInstanceApplyFlow(object):
                     "region": rule.get("city_code", ""),
                     "meta_func_name": RedisDBMeta.redis_instance.__name__,
                     "disaster_tolerance_level": rule.get("disaster_tolerance_level", AffinityEnum.CROS_SUBZONE),
+                    "zone_list": rule.get("zone_list", []),
                 }
                 acts_list.append(
                     {

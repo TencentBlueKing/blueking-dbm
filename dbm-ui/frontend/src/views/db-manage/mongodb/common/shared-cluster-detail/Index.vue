@@ -20,7 +20,7 @@
         cluster-detail-router-name="MongoDBSharedClusterDetail"
         :data="data">
         <BkButton
-          v-db-console="'mongodb.sharedClusterList.authorize'"
+          v-db-console="'mongodb.sharedClusterList.importAuthorize'"
           class="ml-4"
           :disabled="data.isOffline"
           size="small"
@@ -36,6 +36,7 @@
           {{ t('获取访问方式') }}
         </BkButton>
         <AuthRouterLink
+          v-db-console="'mongodb.sharedClusterList.webconsole'"
           action-id="mongodb_webconsole"
           class="ml-4"
           :permission="data.permission.mongodb_webconsole"
@@ -63,7 +64,23 @@
               <DbIcon type="more" />
             </BkButton>
           </template>
-          <BkDropdownItem v-db-console="'mongodb.sharedClusterList.capacityChange'">
+          <BkDropdownItem v-db-console="'mongodb.sharedClusterList.queryAccessSource'">
+            <OperationBtnStatusTips
+              :data="data"
+              :disabled="!data.isOffline">
+              <AuthButton
+                action-id="mongodb_source_access_view"
+                :disabled="data.isOffline"
+                :permission="data.permission.mongodb_source_access_view"
+                :resource="data.id"
+                style="width: 100%; height: 32px"
+                text
+                @click="handleGoQueryAccessSourcePage(data.master_domain)">
+                {{ t('查询访问来源') }}
+              </AuthButton>
+            </OperationBtnStatusTips>
+          </BkDropdownItem>
+          <BkDropdownItem v-db-console="'mongodb.sharedClusterList.scaleUpDown'">
             <OperationBtnStatusTips :data="data">
               <BkButton
                 :disabled="data.isOffline || data.operationDisabled"
@@ -73,7 +90,9 @@
               </BkButton>
             </OperationBtnStatusTips>
           </BkDropdownItem>
-          <BkDropdownItem v-db-console="'mongodb.sharedClusterList.enableCLB'">
+          <BkDropdownItem
+            v-if="!data.isOnlineCLB"
+            v-db-console="'common.clb'">
             <OperationBtnStatusTips
               :data="data"
               :disabled="!data.isOffline">
@@ -83,8 +102,8 @@
                 :permission="data.permission.mongodb_plugin_create_clb"
                 :resource="data.id"
                 text
-                @click="handleSwitchClb(data)">
-                {{ data.isOnlineCLB ? t('禁用CLB') : t('启用CLB') }}
+                @click="handleAddClb({ details: { cluster_id: data.id } })">
+                {{ t('启用CLB') }}
               </AuthButton>
             </OperationBtnStatusTips>
           </BkDropdownItem>
@@ -138,8 +157,15 @@
         :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER">
         <template #infoContent>
           <BaseInfo
+            :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
             :data="data"
-            @refresh="fetchDetailData" />
+            @refresh="fetchDetailData">
+            <template #clbMaster>
+              <ClbInfo
+                :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
+                :data="data" />
+            </template>
+          </BaseInfo>
         </template>
         <template #instanceContent>
           <InstanceList
@@ -173,14 +199,12 @@
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
-  import { ActionPanel, DisplayBox } from '@views/db-manage/common/cluster-details';
+  import { ActionPanel, BaseInfo, BaseInfoField, DisplayBox } from '@views/db-manage/common/cluster-details';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
-  import { useOperateClusterBasic, useSwitchClb } from '@views/db-manage/common/hooks';
+  import { useAddClb, useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
+  import AccessEntry from '@views/db-manage/mongodb/common/cluster-operations/AccessEntry.vue';
   import InstanceList from '@views/db-manage/mongodb/common/ClusterDetailInstanceList.vue';
-  import AccessEntry from '@views/db-manage/mongodb/components/AccessEntry.vue';
-
-  import BaseInfo from './components/BaseInfo.vue';
 
   interface Props {
     clusterId: number;
@@ -190,6 +214,8 @@
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
+
+  const { ClbInfo } = BaseInfoField;
 
   const { t } = useI18n();
   const router = useRouter();
@@ -230,7 +256,7 @@
     },
   );
 
-  const { handleSwitchClb } = useSwitchClb(ClusterTypes.MONGO_SHARED_CLUSTER);
+  const { handleAddClb } = useAddClb<{ cluster_id: number }>(ClusterTypes.MONGO_SHARED_CLUSTER);
 
   watch(
     () => props.clusterId,
@@ -250,6 +276,16 @@
       name: TicketTypes.MONGODB_SCALE_UPDOWN,
       query: {
         masterDomain: data.value!.master_domain,
+      },
+    });
+    window.open(routeInfo.href, '_blank');
+  };
+
+  const handleGoQueryAccessSourcePage = (masterDomain: string) => {
+    const routeInfo = router.resolve({
+      name: 'MongodbQueryAccessSource',
+      query: {
+        masterDomain,
       },
     });
     window.open(routeInfo.href, '_blank');

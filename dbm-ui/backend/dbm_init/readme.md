@@ -39,3 +39,10 @@ db_type
         version
             media_file
 ```
+
+## 将日志平台采集项信息制作成json文件
+
+执行前需要拿到采集项在日志平台中的collector_config_id作为参数传入
+```
+python manage.py export_bklog_collect 960 961 962
+```

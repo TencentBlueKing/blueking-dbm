@@ -44,6 +44,8 @@
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
 
+  import { batchSplitRegex } from '@common/regex';
+
   const modelValue = defineModel<string[]>();
 
   const { t } = useI18n();
@@ -76,7 +78,7 @@
     },
   ];
 
-  const tagInputPasteFn = (value: string) => value.split('\n').map((item) => ({ id: item }));
+  const tagInputPasteFn = (value: string) => value.split(batchSplitRegex).map((item) => ({ id: item }));
 
   const handleShowTips = () => {
     tippyIns?.show();

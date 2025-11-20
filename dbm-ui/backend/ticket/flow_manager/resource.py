@@ -22,7 +22,7 @@ from backend.configuration.models import DBAdministrator
 from backend.core import notify
 from backend.db_dirty.constants import MachineEventType
 from backend.db_dirty.models import MachineEvent
-from backend.db_meta.models import Spec
+from backend.db_meta.models import AppCache, Spec, Tag
 from backend.db_services.dbresource.exceptions import ResourceApplyException, ResourceApplyInsufficientException
 from backend.ticket import constants
 from backend.ticket.builders.common.base import fetch_apply_hosts
@@ -129,8 +129,17 @@ class ResourceApplyFlow(BaseTicketFlow):
         except Exception as err:  # pylint: disable=broad-except
             self.run_error_status_handler(err)
 
-    def _format_resource_hosts(self, hosts):
+    def _format_resource_hosts(self, hosts, spec, biz_name_map, label_name_map):
         """格式化申请的主机参数"""
+        default_spec = {
+            "id": 0,
+            "name": "",
+            "cpu": "",
+            "mem": "",
+            "qps": "",
+            "device_class": "",
+            "storage_spec": "",
+        }
         return [
             {
                 # 主机来源业务
@@ -156,7 +165,16 @@ class ResourceApplyFlow(BaseTicketFlow):
                 # 补充主机资源池原信息，可能用于重导入
                 "for_biz": host["dedicated_biz"],
                 "labels": host["labels"],
+                "for_biz_info": {
+                    "bk_biz_id": host["dedicated_biz"],
+                    "bk_biz_name": biz_name_map.get(host["dedicated_biz"], None),
+                },
+                # 补充标签字段
+                "label_info": [
+                    {"id": int(label_id), "name": label_name_map.get(int(label_id), "")} for label_id in host["labels"]
+                ],
                 "resource_type": host["rs_type"],
+                "spec": spec.get_spec_info() if isinstance(spec, Spec) else default_spec,
             }
             for host in hosts
         ]
@@ -201,15 +219,37 @@ class ResourceApplyFlow(BaseTicketFlow):
                 _("资源池相关服务出现未知异常，请联系管理员处理。错误信息: [{}]{}").format(resp["code"], resp.get("message"))
             )
 
+        # 获得规格信息
+        resource_specs = (
+            [ticket_data["resource_spec"]]
+            if ticket_data.get("resource_spec")
+            else [info["resource_spec"] for info in ticket_data["infos"]]
+        )
+        first_key_spec_id_map = {
+            role: spec["spec_id"]
+            for resource in resource_specs
+            for role, spec in resource.items()
+            if spec.get("spec_id")
+        }
+        spec_map = {
+            spec.spec_id: spec for spec in Spec.objects.filter(spec_id__in=list(first_key_spec_id_map.values()))
+        }
+
         # 将资源池申请的主机信息转换为单据参数
         resource_request_id, apply_data = resp["request_id"], resp["data"]
         node_infos: Dict[str, List] = defaultdict(list)
+        # 获取业务名映射关系
+        for_biz_ids = [item["dedicated_biz"] for info in apply_data for item in info["data"]]
+        biz_name_map = AppCache.batch_get_app_attr(bk_biz_ids=for_biz_ids, attr_name="bk_biz_name")
+        label_ids = [int(label) for info in apply_data for item in info["data"] for label in item["labels"]]
+        label_name_map = {tag.id: tag.value for tag in Tag.objects.filter(id__in=label_ids)}
         for info in apply_data:
             role = info["item"]
-            host_infos = self._format_resource_hosts(info["data"])
+            group_name = role.rsplit("_", 1)[0]
+            spec = self.get_spec(group_name, first_key_spec_id_map, spec_map)
+            host_infos = self._format_resource_hosts(info["data"], spec, biz_name_map, label_name_map)
             # 如果是部署方案的分组，则用backend_group包裹。里面每一小组是一对master/slave;
             # 否则就按角色分组填入
-            group_name = role.rsplit("_", 1)[0]
             if "backend_group" in role:
                 node_infos[group_name].append({"master": host_infos[0], "slave": host_infos[1]})
             else:
@@ -246,6 +286,12 @@ class ResourceApplyFlow(BaseTicketFlow):
         )
         notify.send_msg.apply_async(args=(self.ticket.id,))
 
+    def get_spec(self, group_name, source_spec_key_map, spec_map):
+        if source_spec_key_map.get(group_name):
+            return spec_map[source_spec_key_map[group_name]]
+        role = group_name.split("_", 1)[-1]
+        return spec_map.get(source_spec_key_map.get(role), None)
+
     def fetch_apply_params(self, ticket_data):
         """
         构造资源申请参数, ticket_data主要包含两项信息：
@@ -281,6 +327,8 @@ class ResourceApplyFlow(BaseTicketFlow):
                     affinity=role_spec.get("affinity", AffinityEnum.NONE.value),
                     labels=role_spec.get("labels", []),
                     location_spec=role_spec.get("location_spec"),
+                    tolerance=role_spec.get("tolerance", 0),
+                    current_hosts=role_spec.get("current_hosts", []),
                 )
             )
 

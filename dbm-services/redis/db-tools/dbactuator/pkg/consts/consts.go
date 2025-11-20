@@ -81,6 +81,10 @@ const (
 	ClusterStateOK = "ok"
 	// ClusterStateFail command 'cluster info',cluster_state
 	ClusterStateFail = "fail"
+
+	// ClusterEnable info cluster cluster_enabled
+	ClusterEnable   = "1"
+	ClusterUnEnable = "0"
 )
 const (
 	// DefaultMinSlots  0
@@ -245,6 +249,11 @@ const (
 	ModuleRedisJson  = "redisjson"
 )
 
+// redis status
+const (
+	REDISLOADDATAINFO = "LOADING Redis is loading the dataset in memory"
+)
+
 // IsKnownModule 是否是认识的module
 func IsKnownModule(module string) bool {
 	return module == ModuleRedisCell ||
@@ -311,6 +320,16 @@ func IsTendisplusInstanceDbType(dbType string) bool {
 		dbType == TendisTypeTwemproxyTendisplusInstance ||
 		dbType == TendisTypeTendisplusInsance ||
 		dbType == TendisTypeTendisplusCluster {
+		return true
+	}
+	return false
+}
+
+// IsRedisClusterProtocal 存储端是否支持rediscluster协议
+func IsRedisClusterProtocal(dbType string) bool {
+	if dbType == TendisTypePredixyRedisCluster ||
+		dbType == TendisTypeRedisCluster ||
+		dbType == TendisTypePredixyTendisplusCluster {
 		return true
 	}
 	return false

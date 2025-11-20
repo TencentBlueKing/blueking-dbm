@@ -26,7 +26,7 @@
   import DbResourceModel from '@services/model/db-resource/DbResource';
   import { updateResource } from '@services/source/dbresourceResource';
 
-  import ReviewDataDialog from '../review-data-dialog/Index.vue';
+  import ReviewDataDialog from '@views/resource-manage/common/components/review-data-dialog/Index.vue';
 
   interface Props {
     selected: DbResourceModel[];

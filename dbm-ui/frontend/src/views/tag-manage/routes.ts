@@ -44,10 +44,10 @@ export default function getRoutes() {
     },
   ];
   if (checkDbConsole('bizConfigManage.businessResourceTag')) {
-    routes[0].children!.push(bizResourceTagRoute);
+    routes[0]!.children!.push(bizResourceTagRoute);
   }
   if (checkDbConsole('bizConfigManage.businessClusterTag')) {
-    routes[0].children!.push(bizClusterTagRoute);
+    routes[0]!.children!.push(bizClusterTagRoute);
   }
   return routes;
 }

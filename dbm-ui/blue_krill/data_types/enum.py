@@ -12,7 +12,9 @@ import dataclasses
 from collections import OrderedDict
 from enum import Enum as OrigEnum
 from enum import EnumMeta, auto
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
+
+from django.utils.functional import Promise
 
 
 @dataclasses.dataclass(init=False)
@@ -140,7 +142,7 @@ class EnumField(EnumFieldBase):
     :param is_reserved: if current member was reserved, it will not be included in choices
     """
 
-    def __init__(self, real_value: Any, label: Optional[str] = None, is_reserved: bool = False):
+    def __init__(self, real_value: Any, label: Optional[Union[str | Promise]] = None, is_reserved: bool = False):
         self.real_value = real_value
         self.label = label
         self.is_reserved = is_reserved
@@ -227,3 +229,44 @@ class StructuredEnum(OrigEnum, metaclass=StructuredEnumMeta):
         """Get Choices for all field members."""
         members = cls.get_field_members()
         return [(field.real_value, field.label) for field in members.values()]
+
+
+try:
+    # python 3.11+ required
+    from enum import StrEnum, IntEnum, ReprEnum
+except ImportError:
+    pass
+else:
+    class StrStructuredEnum(StructuredEnum, StrEnum):
+        """
+        StrStructuredEnum ensures the literals in f-string / str.format() is real_value
+
+        Important: Use XEnum(StrStructuredEnum) instead of XEnum(str, StructuredEnum) since python 3.11
+        """
+        pass
+
+    class IntStructuredEnum(StructuredEnum, IntEnum):
+        """
+        IntStructuredEnum ensures the literals in f-string / str.format() is real_value
+
+        Important: Use XEnum(IntStructuredEnum) instead of XEnum(int, StructuredEnum) since python 3.11
+        """
+        pass
+
+
+    class FloatStructuredEnum(float, StructuredEnum, ReprEnum):
+        """
+        FloatStructuredEnum ensures the literals in f-string / str.format() is real_value
+
+        Important: Use XEnum(FloatStructuredEnum) instead of XEnum(float, StructuredEnum) since python 3.11
+        """
+        pass
+
+
+    class ListStructuredEnum(list, StructuredEnum, ReprEnum):
+        """
+        ListStructuredEnum ensures the literals in f-string / str.format() is real_value
+
+        Important: Use XEnum(ListStructuredEnum) instead of XEnum(list, StructuredEnum) since python 3.11
+        """
+        pass

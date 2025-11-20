@@ -13,7 +13,7 @@ import logging
 import time
 from typing import List
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
@@ -32,6 +32,8 @@ class TransFileService(BkJobService):
     """
     下载介质文件包到目标机器
     """
+
+    only_failed_retry = True
 
     def _execute(self, data, parent_data) -> bool:
         """

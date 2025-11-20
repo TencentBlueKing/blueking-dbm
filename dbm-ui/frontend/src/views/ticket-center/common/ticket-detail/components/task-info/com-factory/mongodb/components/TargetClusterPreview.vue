@@ -132,7 +132,7 @@
 
   const fetchCluster = () => {
     getMongoListRun({
-      cluster_ids: props.clusterIds,
+      cluster_ids: props.clusterIds.join(','),
       ...pagination.value.getFetchParams(),
       ...getSearchSelectorParams(searchSelectValue.value),
     });

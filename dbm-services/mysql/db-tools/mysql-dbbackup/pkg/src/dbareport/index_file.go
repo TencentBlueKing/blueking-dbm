@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
@@ -30,6 +31,9 @@ const (
 	// ReTar tar file with suffix .tar
 	ReTar = `(.+)\.tar$`
 )
+
+// VarIsStandby global var
+var VarIsStandby string
 
 // BackupMetaFileBase index meta info 基础内容
 type BackupMetaFileBase struct {
@@ -54,9 +58,12 @@ type BackupMetaFileBase struct {
 	// BackupBeginTime use time.RFC3339
 	BackupBeginTime time.Time `json:"backup_begin_time" db:"backup_begin_time"`
 	BackupEndTime   time.Time `json:"backup_end_time" db:"backup_end_time"`
-
 	// ConsistentBackupTime todo 为了字段兼容性，可以删掉
 	ConsistentBackupTime time.Time `json:"consistent_backup_time" db:"consistent_backup_time"`
+	BackupMethod         string    `json:"backup_method" db:"backup_method"`
+	// IsStandby 是否是 standby, yes/no empty means unknown.
+	// 因为这个信息是读取的配置文件，不用 true/false 是为了避免读取失败时上报 false
+	IsStandby string `json:"is_standby" db:"is_standby"`
 }
 
 // IndexContent the content of the index file
@@ -125,15 +132,25 @@ type ExtraFields struct {
 	BinlogRowImage string `json:"binlog_row_image" db:"binlog_row_image"`
 	// BackupTool command name xtrabackup / mydumper / mysqldump
 	BackupTool string `json:"backup_tool" db:"backup_tool"`
+	// DataDirSizeMB 所备份实例的原始数据目录大小
+	DataDirSizeMB uint64 `json:"data_dir_size_mb" db:"data_dir_size_mb"`
+	//OriginalBackupDir 原始机器的备份目录
+	// 正常不关注这个备份目录，因为文件上传的到远程之后，都是用相对目录
+	// 但如果从本地获取备份文件，需要这个目录来定位
+	OriginalBackupDir string `json:"original_backup_dir" db:"original_backup_dir"`
+	// BackupFilter backup object filter db.table
+	BackupFilter string `json:"backup_filter" db:"backup_filter"`
+	// DatabaseList database list that this backup contains. we do not care about table name
+	DatabaseList []string `json:"database_list" db:"database_list"`
 }
 
 // JudgeIsFullBackup 是否是带所有数据的全备
 // 这里比较难判断逻辑备份 Regex 正则是否只包含系统库，所以优先判断如果是库表备份，认为false
-func (i *IndexContent) JudgeIsFullBackup(cnf *config.Public) bool {
-	if cnf.IsFullBackup < 0 {
+func (i *IndexContent) judgeIsFullBackup(cnf *config.Public) bool {
+	if cnf.IsFullBackup == "no" {
 		i.IsFullBackup = false
 		return false
-	} else if cnf.IsFullBackup > 0 {
+	} else if cnf.IsFullBackup == "yes" {
 		i.IsFullBackup = true
 		return true
 	}
@@ -142,14 +159,67 @@ func (i *IndexContent) JudgeIsFullBackup(cnf *config.Public) bool {
 	// 库表备份单，false
 	if !cnf.IfBackupAll() || strings.Contains(cnf.BackupDir, "backupDatabaseTable_") {
 		i.IsFullBackup = false
+		cnf.IsFullBackup = "no"
 		return i.IsFullBackup
 	}
 	// 物理备份数据，true
 	if cnf.IfBackupAll() && i.BackupType == cst.BackupPhysical {
 		i.IsFullBackup = true
+		cnf.IsFullBackup = "yes"
 	}
 	i.IsFullBackup = true
+	cnf.IsFullBackup = "yes"
+
+	if cnf.BillId != "" {
+		if i.IsFullBackup {
+			i.BackupMethod = config.BackupFullByTicket
+		} else {
+			i.BackupMethod = config.BackupPartialByTicket
+		}
+	} else {
+		if i.IsFullBackup {
+			i.BackupMethod = config.BackupFullByRegular
+		} else {
+			i.BackupMethod = config.BackupNonFullByRegular
+		}
+	}
 	return true
+}
+
+func (i *IndexContent) JudgeBackupMethod(cnf *config.BackupConfig) {
+	i.judgeIsFullBackup(&cnf.Public)
+
+	if cnf.Public.BillId != "" {
+		if i.IsFullBackup {
+			i.BackupMethod = config.BackupFullByTicket
+		} else {
+			i.BackupMethod = config.BackupPartialByTicket
+		}
+	} else {
+		if i.IsFullBackup {
+			i.BackupMethod = config.BackupFullByRegular
+			if !cnf.Public.IfBackupData() {
+				i.BackupMethod = config.BackupFullWithNodata
+			}
+		} else {
+			i.BackupMethod = config.BackupNonFullByRegular
+		}
+	}
+	//i.IsStandby = VarIsStandby
+}
+
+func (i *IndexContent) JudgeLogicalFilter(cnf *config.BackupConfig) string {
+	// 物理备份目前不支持备份部分库表
+	if cnf.Public.BackupType == cst.BackupPhysical {
+		return ""
+	}
+	if i.IsFullBackup {
+		i.BackupFilter = cnf.LogicalBackup.Regex
+		//i.BackupFilter = "*.*"
+	} else {
+		i.BackupFilter = cnf.LogicalBackup.Regex
+	}
+	return i.BackupFilter
 }
 
 func (r *BackupLogReport) BuildMetaInfo(cnf *config.BackupConfig, metaInfo *IndexContent) error {
@@ -159,6 +229,7 @@ func (r *BackupLogReport) BuildMetaInfo(cnf *config.BackupConfig, metaInfo *Inde
 	metaInfo.reMetadata = regexp.MustCompile(ReMetadata)
 	metaInfo.reSchemaView = regexp.MustCompile(ReSchemaView)
 	metaInfo.reSplitPart = regexp.MustCompile(ReSplitPart)
+	metaInfo.reTar = regexp.MustCompile(ReTar)
 	return nil
 }
 
@@ -167,7 +238,21 @@ func (i *IndexContent) AppendFileList(f TarFileItem) {
 	i.FileList = append(i.FileList, &f)
 }
 
+func (i *IndexContent) ParseTableSchema(fileName string) (db string, table string, err error) {
+	fileMeta := IndexFileItem{BackupFileName: fileName}
+	i.parseTableSchema(&fileMeta)
+	if fileMeta.FileType == cst.FileData || fileMeta.FileType == cst.FileSchema {
+		if strings.Contains(fileMeta.DBTable, ".") {
+			return cmutil.GetDbTableName(fileMeta.DBTable)
+		} else {
+			return fileMeta.DBTable, "", nil
+		}
+	}
+	return "", "", nil
+}
+
 // parseTableSchema 从 mydumper 文件名里解析出库表和文件类型
+// 注意这里不是特别精确，比如 tablename 包含非英文字符，mydumper 会用 mydumper_ 来作为文件名
 func (i *IndexContent) parseTableSchema(f *IndexFileItem) {
 	var matches []string
 	if matches = i.reData.FindStringSubmatch(f.BackupFileName); len(matches) == 3 {
@@ -196,16 +281,16 @@ func (i *IndexContent) parseTableSchema(f *IndexFileItem) {
 
 // SaveIndexContent record some server info and fileIndex info,
 // and then write these content to [targetName].index
-func (i *IndexContent) SaveIndexContent(indexFilePath string) (string, error) {
+func (i *IndexContent) SaveIndexContent(indexFilePath string) error {
 	contentJson, err := json.Marshal(i)
 	if err != nil {
 		logger.Log.Error("Failed to marshal json encoding data from IndexContent, err: ", err)
-		return "", err
+		return err
 	}
 	indexFile, err := os.OpenFile(indexFilePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		logger.Log.Error("failed to create index file: ", indexFilePath)
-		return "", err
+		return err
 	}
 	defer func() {
 		_ = indexFile.Close()
@@ -214,9 +299,9 @@ func (i *IndexContent) SaveIndexContent(indexFilePath string) (string, error) {
 	_, err = indexFile.Write(contentJson)
 	if err != nil {
 		logger.Log.Error("Failed to write json encoding data into Index file :", indexFilePath, ", err: ", err)
-		return "", err
+		return err
 	}
-	return indexFilePath, nil
+	return nil
 }
 
 // AddPrivFileItem add .priv to index file

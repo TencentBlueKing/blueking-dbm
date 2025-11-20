@@ -21,20 +21,22 @@ package provider
 
 import (
 	"k8s-dbs/metadata/dbaccess"
-	models "k8s-dbs/metadata/dbaccess/model"
-	entitys "k8s-dbs/metadata/provider/entity"
+	metaentity "k8s-dbs/metadata/entity"
+	metamodel "k8s-dbs/metadata/model"
 	"log/slog"
+
+	"github.com/pkg/errors"
 
 	"github.com/jinzhu/copier"
 )
 
 // K8sClusterAddonsProvider 定义 addon 业务逻辑层访问接口
 type K8sClusterAddonsProvider interface {
-	CreateClusterAddon(entity *entitys.K8sClusterAddonsEntity) (*entitys.K8sClusterAddonsEntity, error)
+	CreateClusterAddon(entity *metaentity.K8sClusterAddonsEntity) (*metaentity.K8sClusterAddonsEntity, error)
 	DeleteClusterAddon(id uint64) (uint64, error)
-	FindClusterAddonByID(id uint64) (*entitys.K8sClusterAddonsEntity, error)
-	UpdateClusterAddon(entity *entitys.K8sClusterAddonsEntity) (uint64, error)
-	FindClusterAddonByParams(params map[string]interface{}) ([]entitys.K8sClusterAddonsEntity, error)
+	FindClusterAddonByID(id uint64) (*metaentity.K8sClusterAddonsEntity, error)
+	UpdateClusterAddon(entity *metaentity.K8sClusterAddonsEntity) (uint64, error)
+	FindClusterAddonByParams(params *metaentity.K8sClusterAddonQueryParams) ([]metaentity.K8sClusterAddonsEntity, error)
 }
 
 // K8sClusterAddonsProviderImpl K8sClusterAddonsProvider 具体实现
@@ -45,28 +47,26 @@ type K8sClusterAddonsProviderImpl struct {
 
 // FindClusterAddonByParams 通过参数查询 cluster addon
 func (k *K8sClusterAddonsProviderImpl) FindClusterAddonByParams(
-	params map[string]interface{},
-) ([]entitys.K8sClusterAddonsEntity, error) {
+	params *metaentity.K8sClusterAddonQueryParams,
+) ([]metaentity.K8sClusterAddonsEntity, error) {
 	caModels, err := k.kcaDbAccess.FindByParams(params)
 	if err != nil {
-		slog.Error("failed to find cluster addon by params", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to find cluster addon with params: %v", params)
 	}
-	var caEntities []entitys.K8sClusterAddonsEntity
-	if err := copier.Copy(&caEntities, caModels); err != nil {
-		slog.Error("failed to copy models", "error", err)
-		return nil, err
+
+	var caEntities []metaentity.K8sClusterAddonsEntity
+	if err = copier.Copy(&caEntities, caModels); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
 
 	for i, ca := range caEntities {
 		saModel, err := k.saDbAccess.FindByID(ca.AddonID)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to find addon with id: %v", ca.AddonID)
 		}
-		saEntity := entitys.K8sCrdStorageAddonEntity{}
-		if err := copier.Copy(&saEntity, saModel); err != nil {
-			slog.Error("Failed to copy entity to copied model", "error", err)
-			return nil, err
+		saEntity := metaentity.K8sCrdStorageAddonEntity{}
+		if err = copier.Copy(&saEntity, saModel); err != nil {
+			return nil, errors.Wrap(err, "failed to copy")
 		}
 		caEntities[i].StorageAddon = saEntity
 	}
@@ -74,10 +74,10 @@ func (k *K8sClusterAddonsProviderImpl) FindClusterAddonByParams(
 }
 
 // CreateClusterAddon 创建 cluster addon
-func (k *K8sClusterAddonsProviderImpl) CreateClusterAddon(entity *entitys.K8sClusterAddonsEntity) (
-	*entitys.K8sClusterAddonsEntity, error,
+func (k *K8sClusterAddonsProviderImpl) CreateClusterAddon(entity *metaentity.K8sClusterAddonsEntity) (
+	*metaentity.K8sClusterAddonsEntity, error,
 ) {
-	model := models.K8sClusterAddonsModel{}
+	model := metamodel.K8sClusterAddonsModel{}
 	err := copier.Copy(&model, entity)
 	if err != nil {
 		slog.Error("Failed to copy entity to copied model", "error", err)
@@ -88,8 +88,8 @@ func (k *K8sClusterAddonsProviderImpl) CreateClusterAddon(entity *entitys.K8sClu
 		slog.Error("Failed to create model", "error", err)
 		return nil, err
 	}
-	addedEntity := entitys.K8sClusterAddonsEntity{}
-	if err := copier.Copy(&addedEntity, addedModel); err != nil {
+	addedEntity := metaentity.K8sClusterAddonsEntity{}
+	if err = copier.Copy(&addedEntity, addedModel); err != nil {
 		slog.Error("Failed to copy entity to copied model", "error", err)
 		return nil, err
 	}
@@ -97,13 +97,12 @@ func (k *K8sClusterAddonsProviderImpl) CreateClusterAddon(entity *entitys.K8sClu
 	if err != nil {
 		return nil, err
 	}
-	addonEntity := entitys.K8sCrdStorageAddonEntity{}
+	addonEntity := metaentity.K8sCrdStorageAddonEntity{}
 	if err := copier.Copy(&addonEntity, addonModel); err != nil {
 		slog.Error("Failed to copy entity to copied model", "error", err)
 		return nil, err
 	}
 	addedEntity.StorageAddon = addonEntity
-
 	return &addedEntity, nil
 }
 
@@ -113,33 +112,33 @@ func (k *K8sClusterAddonsProviderImpl) DeleteClusterAddon(id uint64) (uint64, er
 }
 
 // FindClusterAddonByID 查找 cluster addon
-func (k *K8sClusterAddonsProviderImpl) FindClusterAddonByID(id uint64) (*entitys.K8sClusterAddonsEntity, error) {
+func (k *K8sClusterAddonsProviderImpl) FindClusterAddonByID(id uint64) (*metaentity.K8sClusterAddonsEntity, error) {
 	model, err := k.kcaDbAccess.FindByID(id)
 	if err != nil {
 		slog.Error("Failed to find entity")
 		return nil, err
 	}
-	entity := entitys.K8sClusterAddonsEntity{}
-	if err := copier.Copy(&entity, model); err != nil {
+	clusterAddonEntity := metaentity.K8sClusterAddonsEntity{}
+	if err := copier.Copy(&clusterAddonEntity, model); err != nil {
 		slog.Error("Failed to copy entity to copied model", "error", err)
 		return nil, err
 	}
-	addonModel, err := k.saDbAccess.FindByID(entity.AddonID)
+	addonModel, err := k.saDbAccess.FindByID(clusterAddonEntity.AddonID)
 	if err != nil {
 		return nil, err
 	}
-	addonEntity := entitys.K8sCrdStorageAddonEntity{}
+	addonEntity := metaentity.K8sCrdStorageAddonEntity{}
 	if err := copier.Copy(&addonEntity, addonModel); err != nil {
 		slog.Error("Failed to copy entity to copied model", "error", err)
 		return nil, err
 	}
-	entity.StorageAddon = addonEntity
-	return &entity, nil
+	clusterAddonEntity.StorageAddon = addonEntity
+	return &clusterAddonEntity, nil
 }
 
 // UpdateClusterAddon 更新
-func (k *K8sClusterAddonsProviderImpl) UpdateClusterAddon(entity *entitys.K8sClusterAddonsEntity) (uint64, error) {
-	model := models.K8sClusterAddonsModel{}
+func (k *K8sClusterAddonsProviderImpl) UpdateClusterAddon(entity *metaentity.K8sClusterAddonsEntity) (uint64, error) {
+	model := metamodel.K8sClusterAddonsModel{}
 	err := copier.Copy(&model, entity)
 	if err != nil {
 		slog.Error("Failed to copy entity to copied model", "error", err)

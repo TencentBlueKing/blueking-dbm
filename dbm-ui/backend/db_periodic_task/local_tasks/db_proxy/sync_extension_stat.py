@@ -27,9 +27,6 @@ logger = logging.getLogger("celery")
 def sync_db_extension_stat():
     """同步云区域组件状态"""
 
-    # 待更新的组件
-    updated_extensions = []
-
     for extension in CloudServiceModuleName.get_values():
         if extension not in QUERY_TEMPLATE_CLOUD_MAP:
             continue
@@ -56,8 +53,8 @@ def sync_db_extension_stat():
             # 能读到数据，说明进程正常
             if s["datapoints"][-1][0] > 0:
                 continue
+
             db_extension = ip__db_extension[s["dimensions"]["bk_target_ip"]]
             db_extension.status = ExtensionServiceStatus.UNAVAILABLE
-            updated_extensions.append(db_extension)
-
-    DBExtension.objects.bulk_update(updated_extensions)
+            db_extension.save()
+            logger.error(f"extension {db_extension.id} is unavailable")

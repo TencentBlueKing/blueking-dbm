@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 from datetime import datetime
 
 from django.utils import timezone
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components import DRSApi
 from backend.db_meta.exceptions import ClusterNotExistException, InstanceNotExistException
@@ -32,7 +32,9 @@ class ClusterServiceHandler(BaseClusterServiceHandler):
         """
         # 获取rpc结果
         try:
-            session_time = kwargs.get("session_time", datetime.now(timezone.utc).replace(microsecond=0))
+            session_time = kwargs.get("options", {}).get(
+                "session_time", kwargs.get("session_time", datetime.now(timezone.utc).replace(microsecond=0))
+            )
             session = f"{kwargs['user_id']}:{session_time}"
             rpc_results = DRSApi.mongodb_rpc(
                 MongoUtil.get_mongodb_webconsole_args(cluster_id=cluster_id, session=session, command=cmd)

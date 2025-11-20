@@ -35,7 +35,5 @@ export function getUserList(
         username: string;
       }[]
     >
-  >(`${path}/list_users/`, params, {
-    cache: true,
-  });
+  >(`${path}/list_users/`, params);
 }

@@ -10,15 +10,14 @@ specific language governing permissions and limitations under the License.
 """
 import abc
 from collections import defaultdict
-from typing import Any, Callable, Dict, List, Tuple, Union
+from typing import Any, Callable, Dict, List, Tuple
 
 import attr
 from django.db.models import F, Prefetch, Q, QuerySet
 from django.forms import model_to_dict
 from django.http import HttpResponse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
-from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole
 from backend.db_meta.enums.comm import SystemTagEnum
@@ -32,18 +31,20 @@ from backend.db_meta.models import (
     Spec,
     StorageInstance,
 )
+from backend.db_meta.models.city_map import BKSubzone
 from backend.db_services.dbbase.instances.handlers import InstanceHandler
 from backend.db_services.dbbase.resources.query_base import (
+    build_q_for_cluster_name_or_alias,
     build_q_for_domain_by_cluster,
     build_q_for_domain_by_instance,
     build_q_for_instance_filter,
 )
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
-from backend.db_services.redis.redis_modules.models.redis_module_support import ClusterRedisModuleAssociate
 from backend.flow.utils.dns_manage import DnsManage
 from backend.ticket.models import ClusterOperateRecord
 from backend.utils.excel import ExcelHandler
+from backend.utils.string import format_size
 from backend.utils.time import datetime2str
 
 
@@ -53,13 +54,77 @@ class ResourceList:
     data = attr.ib(validator=attr.validators.instance_of(list))
 
 
+CLUSTER_STATUS_MAP = {
+    "normal": _("正常"),
+    "abnormal": _("异常"),
+    "temporary": _("temporary"),
+}
+
+
+class CommonExportQueryResourceMixin:
+    """集群列表导出基类"""
+
+    @classmethod
+    def update_headers(cls, headers, **kwargs):
+        """
+        更新表头信息
+        """
+        return headers, []
+
+    @classmethod
+    def update_cluster_info(cls, cluster, cluster_info, **kwargs):
+        """
+        更新集群信息
+        """
+        return cluster_info
+
+    @staticmethod
+    def fill_instances_to_cluster_info(cluster_info: Dict, instance_queryset: QuerySet, role_header_ids):
+        """
+        将实例信息填充到集群信息中
+        """
+        instances = instance_queryset.all()
+        if not instances.exists():
+            return
+
+        for ins in instances:
+            # 暂时过滤掉 repeater 角色实例
+            if "repeater" in ins.instance_role:
+                continue
+
+            role = ins.instance_role
+
+            # 添加实例信息
+            if role in cluster_info:
+                cluster_info[role] += f"\n{ins.machine.ip}:{ins.port}"
+            else:
+                role_header_ids.add(role)
+                cluster_info[role] = f"{ins.machine.ip}:{ins.port}"
+
+
 class CommonQueryResourceMixin(abc.ABC):
     """集群通用的查询方法封装类"""
+
+    @staticmethod
+    def get_cluster_clb_polaris_entries(cluster):
+        clb_entry = ""
+        polaris_entry = ""
+        for entry in cluster.clusterentry_set.all():
+            entry_detail = entry.detail
+            if entry.cluster_entry_type == ClusterEntryType.CLB or entry.cluster_entry_type == ClusterEntryType.CLBDNS:
+                clb_entry += f"\n{entry_detail.get('clb_ip', '')}"
+                clb_entry += f"\n{entry_detail.get('clb_domain', '')}"
+            elif entry.cluster_entry_type == ClusterEntryType.POLARIS.value:
+                polaris_entry += f"\n{entry_detail.get('polaris_l5', '')}"
+                polaris_entry += f"\n{entry_detail.get('polaris_name', '')}"
+        return clb_entry.strip(), polaris_entry.strip()
 
     @classmethod
     def query_cluster_entry_details(cls, cluster_details, **kwargs):
         """查询集群访问入口详情"""
-        entries = ClusterEntry.objects.filter(cluster_id=cluster_details["id"], **kwargs)
+        entries = ClusterEntry.objects.filter(cluster_id=cluster_details["id"], **kwargs).prefetch_related(
+            "storageinstance_set"
+        )
         entry_details = []
         for entry in entries:
             if entry.cluster_entry_type == ClusterEntryType.DNS:
@@ -69,22 +134,33 @@ class CommonQueryResourceMixin(abc.ABC):
             else:
                 target_details = [entry.detail]
 
+            # 预取第一个存储实例的角色
+            storage_instances = entry.storageinstance_set.all()
+            instance_role = storage_instances[0].instance_role if storage_instances else None
+
             entry_details.append(
                 {
                     "cluster_entry_type": entry.cluster_entry_type,
                     "role": entry.role,
                     "entry": entry.entry,
                     "target_details": target_details,
+                    "instance_role": instance_role,
                 }
             )
         return entry_details
 
-    @staticmethod
-    def common_query_cluster(bk_biz_id: int, cluster_types: list, cluster_ids: list) -> Tuple[List[Dict], List[Dict]]:
+    @classmethod
+    def common_query_cluster(
+        cls, bk_biz_id: int, cluster_types: list, cluster_ids: list
+    ) -> Tuple[List[Dict], List[Dict]]:
         """集群的通用属性查询"""
         # 获取所有符合条件的集群对象
         clusters = Cluster.objects.prefetch_related(
-            "storageinstance_set", "proxyinstance_set", "storageinstance_set__machine", "proxyinstance_set__machine"
+            "storageinstance_set",
+            "proxyinstance_set",
+            "clusterentry_set",
+            "storageinstance_set__machine",
+            "proxyinstance_set__machine",
         ).filter(bk_biz_id=bk_biz_id, cluster_type__in=cluster_types)
         if cluster_ids:
             clusters = clusters.filter(id__in=cluster_ids)
@@ -94,59 +170,103 @@ class CommonQueryResourceMixin(abc.ABC):
         # 初始化用于存储Excel数据的字典列表
         headers = [
             {"id": "cluster_id", "name": _("集群 ID")},
+            {"id": "db_type", "name": _("db类型")},
             {"id": "cluster_name", "name": _("集群名称")},
             {"id": "cluster_alias", "name": _("集群别名")},
             {"id": "cluster_type", "name": _("集群类型")},
             {"id": "master_domain", "name": _("主域名")},
             {"id": "slave_domain", "name": _("从域名")},
-            {"id": "major_version", "name": _("主版本")},
-            {"id": "region", "name": _("地域")},
-            {"id": "disaster_tolerance_level", "name": _("容灾级别")},
+            {"id": "tags", "name": _("标签")},
+            {"id": "status", "name": _("状态")},
+            {"id": "cluster_stats", "name": _("容量使用率")},
+            {"id": "db_module_name", "name": _("模块")},
+            {"id": "major_version", "name": _("版本")},
+            {"id": "disaster_tolerance_level", "name": _("容灾要求")},
+            {"id": "region", "name": _("地域园区")},
+            {"id": "cluster_spec", "name": _("规格")},
+            {"id": "bk_cloud_id", "name": _("管控区域")},
+            {"id": "creator", "name": _("创建人")},
+            {"id": "create_at", "name": _("部署时间")},
+            {"id": "cluster_time_zone", "name": _("时区")},
         ]
+        headers, extra_headers = cls.update_headers(headers, cluster_type=cluster_types[0])
         role_header_ids = set()
+        # 获取集群容量使用率的映射信息
+        cluster_stats_map = Cluster.get_cluster_stats(bk_biz_id, cluster_types)
+        # 获取DB模块的映射信息
+        db_module_queryset = DBModule.objects.filter(cluster_type__in=cluster_types, bk_biz_id=bk_biz_id)
+        db_module_names_map = {
+            module["db_module_id"]: module["alias_name"]
+            for module in db_module_queryset.values("db_module_id", "alias_name")
+        }
 
-        def fill_instances_to_cluster_info(
-            _cluster_info: Dict, instances: List[Union[StorageInstance, ProxyInstance]]
-        ):
-            """
-            把实例信息填充到集群信息中
-            """
-            for ins in instances:
-                # 获取存储实例所属角色
-                role = ins.instance_role
-
-                # 如果该角色已经存在于集群信息字典中，则添加新的IP和端口；否则，更新字典的值
-                if role in cluster_info:
-                    cluster_info[role] += f"\n{ins.machine.ip}#{ins.port}"
-                else:
-                    role_header_ids.add(role)
-                    cluster_info[role] = f"{ins.machine.ip}#{ins.port}"
+        # 预取remote的spec
+        db_types = set([ClusterType.cluster_type_to_db_type(cluster_type) for cluster_type in cluster_types])
+        remote_spec_map = {spec.spec_id: spec for spec in Spec.objects.filter(spec_cluster_type__in=db_types)}
 
         # 遍历所有的集群对象
         data_list = []
         for cluster in clusters:
+            # 补充集群规格信息
+            storage = next((inst for inst in cluster.storageinstance_set.all()), None)
+            cluster_spec_id = storage.machine.spec_id if storage else 0
+            cluster_spec = remote_spec_map.get(cluster_spec_id)
+
+            # 补充内存使用率信息
+            cluster_stats = cluster_stats_map.get(cluster.immute_domain, {})
+            in_use = cluster_stats.get("in_use", 0)
+            used = cluster_stats.get("used", 0)
+            total = cluster_stats.get("total", 0)
+            cluster_stats_display = (
+                f"{in_use}% ({format_size(used)}/{format_size(total)})" if used > 0 and total > 0 else ""
+            )
+
+            # 补充标签字段信息
+            tag_list = [f"{tag.key}:{tag.value}" for tag in cluster.tags.all() if tag.key]
+            tags = "\n".join(tag_list)
+
             # 创建一个空字典来保存当前集群的信息
             cluster_info = {
                 "cluster_id": cluster.id,
+                "db_type": ClusterType.cluster_type_to_db_type(cluster.cluster_type),
                 "cluster_name": cluster.name,
                 "cluster_alias": cluster.alias,
                 "cluster_type": cluster.cluster_type,
                 "master_domain": cluster.immute_domain,
                 "slave_domain": cluster_entry_map[cluster.id].get("slave_domain", ""),
+                "tags": tags,
+                "status": CLUSTER_STATUS_MAP[cluster.status.lower()],
+                "cluster_stats": cluster_stats_display,
+                "db_module_name": db_module_names_map.get(cluster.db_module_id, ""),
                 "major_version": cluster.major_version,
-                "region": cluster.region,
-                "disaster_tolerance_level": cluster.get_disaster_tolerance_level_display(),
+                "disaster_tolerance_level": cluster.disaster_tolerance_level,
+                "region": f"{cluster.region}\n--",
+                "cluster_spec": cluster_spec.spec_name if cluster_spec else "",
+                "bk_cloud_id": cluster.bk_cloud_id,
+                "creator": cluster.creator,
+                "create_at": datetime2str(cluster.create_at),
+                "cluster_time_zone": cluster.time_zone,
             }
-            fill_instances_to_cluster_info(cluster_info, cluster.proxyinstance_set.all())
-            fill_instances_to_cluster_info(cluster_info, cluster.storageinstance_set.all())
+
+            # 补充额外字段信息
+            cluster_info = cls.update_cluster_info(cluster, cluster_info)
+
+            cls.fill_instances_to_cluster_info(cluster_info, cluster.proxyinstance_set, role_header_ids)
+            cls.fill_instances_to_cluster_info(cluster_info, cluster.storageinstance_set, role_header_ids)
 
             # 将当前集群的信息追加到data_list列表中
             data_list.append(cluster_info)
 
-        for ins_role in InstanceRole.get_values():
-            if ins_role in role_header_ids:
-                headers.append({"id": ins_role, "name": InstanceRole.get_choice_label(ins_role)})
-
+        # 在"tags"之前插入实例数据
+        insert_position = next((index for index, header in enumerate(headers) if header["id"] == "tags"), None)
+        # 收集需要插入的header
+        dynamic_headers = [
+            {"id": ins_role, "name": InstanceRole.get_choice_label(ins_role).capitalize()}
+            for ins_role in InstanceRole.get_values()
+            if ins_role in role_header_ids
+        ]
+        merge_headers = {item["id"]: item for item in extra_headers + dynamic_headers}
+        headers[insert_position:insert_position] = list(merge_headers.values())
         return headers, data_list
 
     @staticmethod
@@ -202,12 +322,13 @@ class CommonQueryResourceMixin(abc.ABC):
         return headers, data_list
 
     @classmethod
-    def export_cluster(cls, bk_biz_id: int, cluster_ids: list) -> HttpResponse:
+    def export_cluster(cls, bk_biz_id: int, cluster_ids: list, cluster_types: list) -> HttpResponse:
         """集群通用属性导出"""
-        headers, data_list = cls.common_query_cluster(bk_biz_id, cls.cluster_types, cluster_ids)
+        cluster_types = cluster_types or cls.cluster_types
+        headers, data_list = cls.common_query_cluster(bk_biz_id, cluster_types, cluster_ids)
 
         biz_abbr = AppCache.get_app_attr(bk_biz_id)
-        db_type = ClusterType.cluster_type_to_db_type(cls.cluster_types[0])
+        db_type = ClusterType.cluster_type_to_db_type(cluster_types[0])
         wb = ExcelHandler.serialize(data_list, headers=headers, match_header=True)
 
         return ExcelHandler.response(wb, f"{biz_abbr}({bk_biz_id}){db_type}_cluster.xlsx")
@@ -368,7 +489,7 @@ class BaseListRetrieveResource(CommonQueryResourceMixin):
         return cls.fields
 
 
-class ListRetrieveResource(BaseListRetrieveResource):
+class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMixin):
     """集群基础视图接口的封装类实现，组件的相关视图接口一般继承此类实现"""
 
     @classmethod
@@ -391,8 +512,9 @@ class ListRetrieveResource(BaseListRetrieveResource):
         @param filter_params_map: 过滤参数map
         @param filter_func_map: 过滤函数map，每个函数必须接受query_params和cluster、proxy、storage三个query参数
         """
-
-        query_filters = Q(bk_biz_id=bk_biz_id, cluster_type__in=cls.cluster_types)
+        query_filters = Q(cluster_type__in=cls.cluster_types)
+        if bk_biz_id is not None:
+            query_filters &= Q(bk_biz_id=bk_biz_id)
         proxy_queryset = ProxyInstance.objects.filter(query_filters)
         storage_queryset = StorageInstance.objects.filter(query_filters)
 
@@ -400,12 +522,9 @@ class ListRetrieveResource(BaseListRetrieveResource):
         filter_params_map = filter_params_map or {}
         inner_filter_params_map = {
             # 集群id
-            "id": Q(id=query_params.get("id")),
+            "id": Q(id__in=query_params.get("id", "").split(",")),
             # 集群名/别名
-            "name": (
-                Q(name__in=query_params.get("name", "").split(","))
-                | Q(alias__in=query_params.get("name", "").split(","))
-            ),
+            "name": build_q_for_cluster_name_or_alias(query_params.get("name", "")),
             # 集群类型
             "cluster_type": Q(cluster_type__in=query_params.get("cluster_type", "").split(",")),
             # 版本
@@ -416,7 +535,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             # 集群id列表
             "cluster_ids": Q(id__in=query_params.get("cluster_ids", "").split(",")),
             # 创建者
-            "creator": Q(creator__icontains=query_params.get("creator")),
+            "creator": Q(creator__in=query_params.get("creator", "").split(",")),
             # 所属DB模块
             "db_module_id": Q(db_module_id__in=query_params.get("db_module_id", "").split(",")),
             # 管控区域
@@ -424,7 +543,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             # 状态
             "status": Q(status__in=query_params.get("status", "").split(",")),
             # 时区
-            "time_zone": Q(time_zone=query_params.get("time_zone", "").split(",")),
+            "time_zone": Q(time_zone__in=query_params.get("time_zone", "").split(",")),
             # 主域名精确查询，主要用于工具箱手动填入域名查询
             "exact_domain": Q(immute_domain__in=query_params.get("exact_domain", "").split(",")),
             # 域名
@@ -433,6 +552,14 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "tag_ids": Q(tags__in=query_params.get("tag_ids", "").split(",")),
             # 标签key过滤
             "tag_keys": Q(tags__key__in=query_params.get("tag_keys", "").split(",")),
+            # 起始时间
+            "create_at__gte": Q(create_at__gte=query_params.get("create_at__gte", "")),
+            # 截至时间
+            "create_at__lte": Q(create_at__lte=query_params.get("create_at__lte", "")),
+            # 集群容灾
+            "disaster_tolerance_level": Q(
+                disaster_tolerance_level__in=query_params.get("disaster_tolerance_level", "").split(",")
+            ),
         }
 
         filter_params_map.update(inner_filter_params_map)
@@ -506,7 +633,9 @@ class ListRetrieveResource(BaseListRetrieveResource):
         cluster_list = cluster_queryset[offset : limit + offset].prefetch_related(
             Prefetch("proxyinstance_set", queryset=proxy_queryset.select_related("machine"), to_attr="proxies"),
             Prefetch("storageinstance_set", queryset=storage_queryset.select_related("machine"), to_attr="storages"),
-            Prefetch("clusterentry_set", to_attr="entries"),
+            Prefetch(
+                "clusterentry_set", queryset=ClusterEntry.objects.select_related("forward_to"), to_attr="entries"
+            ),
             "tags",
         )
         # 由于对 queryset 切片工作方式的模糊性，这里的values可能会获得非预期的排序，所以不要在切片后用values
@@ -516,55 +645,69 @@ class ListRetrieveResource(BaseListRetrieveResource):
         # 获取集群与访问入口的映射
         # cluster_entry_map = ClusterEntry.get_cluster_entry_map(cluster_ids)
         cluster_entry_map = defaultdict(dict)
-        # 获取DB模块的映射信息
-        db_module_names_map = {
-            module["db_module_id"]: module["db_module_name"]
-            for module in DBModule.objects.filter(bk_biz_id=bk_biz_id, cluster_type__in=cls.cluster_types).values(
-                "db_module_id", "db_module_name"
-            )
-        }
 
-        # 获取redis集群DB模块的映射信息
-        if set(cls.cluster_types).intersection([*ClusterType.db_type_to_cluster_types(DBType.Redis)]):
-            # 获取redis模块的映射信息
-            kwargs["redis_cluster_module_map"] = {
-                module["cluster_id"]: module["module_names"]
-                for module in ClusterRedisModuleAssociate.objects.filter(cluster_id__in=cluster_ids)
-                .distinct()
-                .values("cluster_id", "module_names")
-            }
+        # 获取DB模块的映射信息
+        db_module_queryset = DBModule.objects.filter(cluster_type__in=cls.cluster_types)
+        if bk_biz_id is not None:
+            db_module_queryset = db_module_queryset.filter(bk_biz_id=bk_biz_id)
+        # 提取所需的字段和构建映射
+        db_module_names_map = {
+            module["db_module_id"]: module["alias_name"]
+            for module in db_module_queryset.values("db_module_id", "alias_name")
+        }
 
         # 获取集群操作记录的映射关系
         cluster_operate_records_map = ClusterOperateRecord.get_cluster_records_map(cluster_ids)
 
         # 获取云区域信息和业务信息
         cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
-        biz_info = AppCache.objects.get(bk_biz_id=bk_biz_id)
+        try:
+            biz_info = AppCache.objects.get(bk_biz_id=bk_biz_id)
+        except AppCache.DoesNotExist:
+            biz_info = None
 
-        # 将集群的查询结果序列化为集群字典信息
-        clusters: List[Dict[str, Any]] = []
         # 获取集群统计信息，只需要获取一次
         cluster_stats_map = Cluster.get_cluster_stats(bk_biz_id, cls.cluster_types)
 
-        # 预取remote的spec
+        # 预取集群的规格信息
         db_types = set([ClusterType.cluster_type_to_db_type(cluster_type) for cluster_type in cls.cluster_types])
-        kwargs["remote_spec_map"] = {
-            spec.spec_id: spec for spec in Spec.objects.filter(spec_cluster_type__in=db_types)
-        }
+        kwargs["remote_spec_map"] = {s.spec_id: s for s in Spec.objects.filter(spec_cluster_type__in=db_types)}
 
+        # 预取园区信息
+        cluster_zone_map = BKSubzone.get_subzone_map(get_cache=True)
+
+        # 将集群的查询结果序列化为集群字典信息
+        clusters: List[Dict[str, Any]] = []
         for cluster in cluster_list:
+            cluster_entry = []
+            dns_to_clb = False
+            for entry in cluster.entries:
+                # 处理条目数据收集
+                cluster_entry.append(
+                    {"cluster_entry_type": entry.cluster_entry_type, "entry": entry.entry, "role": entry.role}
+                )
+
+                # 并行进行DNS->CLB检查
+                if (
+                    not dns_to_clb
+                    and entry.cluster_entry_type == ClusterEntryType.DNS.value
+                    and entry.entry == cluster.immute_domain
+                    and entry.forward_to is not None
+                    and entry.forward_to.cluster_entry_type == ClusterEntryType.CLB.value
+                ):
+                    dns_to_clb = True
+
             cluster_info = cls._to_cluster_representation(
                 cluster=cluster,
-                cluster_entry=[
-                    {"cluster_entry_type": entry.cluster_entry_type, "entry": entry.entry, "role": entry.role}
-                    for entry in cluster.entries
-                ],
+                cluster_entry=cluster_entry,
                 db_module_names_map=db_module_names_map,
                 cluster_entry_map=cluster_entry_map,
                 cluster_operate_records_map=cluster_operate_records_map,
                 cloud_info=cloud_info,
                 biz_info=biz_info,
                 cluster_stats_map=cluster_stats_map,
+                dns_to_clb=dns_to_clb,
+                cluster_zone_map=cluster_zone_map,
                 **kwargs,
             )
             clusters.append(cluster_info)
@@ -582,6 +725,8 @@ class ListRetrieveResource(BaseListRetrieveResource):
         cloud_info: Dict[str, Any],
         biz_info: AppCache,
         cluster_stats_map: Dict[str, Dict[str, int]],
+        cluster_zone_map: Dict[str, str],
+        dns_to_clb: bool = False,
         **kwargs,
     ) -> Dict[str, Any]:
         """
@@ -591,10 +736,16 @@ class ListRetrieveResource(BaseListRetrieveResource):
         @param db_module_names_map: key 是 db_module_id, value 是 db_module_name
         @param cluster_entry_map: key 是 cluster.id, value 是当前集群对应的 entry 映射
         @param cluster_operate_records_map: key 是 cluster.id, value 是当前集群对应的 操作记录 映射
+        @param cloud_info: 云区域信息
+        @param biz_info: 业务信息
+        @param cluster_stats_map: 集群容量信息映射
+        @param cluster_zone_map: 集群园区信息映射
+        @param dns_to_clb: 是否将域名转换为 clb
         """
         cluster_spec = None
         cluster_entry_map_value = ClusterEntry.get_entries_map(entries=cluster.entries).get(cluster.id, {})
         bk_cloud_name = cloud_info.get(str(cluster.bk_cloud_id), {}).get("bk_cloud_name", "")
+        cluster_zone_list = cluster.zone_list or []
 
         # 补充集群规格信息
         if cls.storage_spec_role:
@@ -609,6 +760,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "phase_name": cluster.get_phase_display(),
             "status": cluster.status,
             "operations": cluster_operate_records_map.get(cluster.id, []),
+            "dns_to_clb": dns_to_clb,
             "cluster_time_zone": cluster.time_zone,
             "cluster_name": cluster.name,
             "cluster_alias": cluster.alias,
@@ -616,12 +768,14 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "cluster_stats": cluster_stats_map.get(cluster.immute_domain, {}),
             "cluster_type": cluster.cluster_type,
             "cluster_type_name": ClusterType.get_choice_label(cluster.cluster_type),
+            "cluster_subzones": [cluster_zone_map.get(str(zone), "") for zone in cluster_zone_list],
+            "cluster_subzone_ids": cluster_zone_list,
             "disaster_tolerance_level": cluster.disaster_tolerance_level,
             "master_domain": cluster_entry_map_value.get("master_domain", ""),
             "slave_domain": cluster_entry_map_value.get("slave_domain", ""),
             "cluster_entry": cluster_entry,
             "bk_biz_id": cluster.bk_biz_id,
-            "bk_biz_name": biz_info.bk_biz_name,
+            "bk_biz_name": "" if biz_info is None else biz_info.bk_biz_name,
             "bk_cloud_id": cluster.bk_cloud_id,
             "bk_cloud_name": bk_cloud_name,
             "major_version": cluster.major_version,
@@ -635,6 +789,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "update_at": datetime2str(cluster.update_at),
             "cluster_spec": model_to_dict(cluster_spec) if cluster_spec else None,
             "tags": [tag.desc for tag in cluster.tags.all()],
+            "zone_list": cluster.zone_list,
         }
 
     @classmethod
@@ -655,7 +810,9 @@ class ListRetrieveResource(BaseListRetrieveResource):
         @param offset: 分页查询, 当前页的偏移数
         @param filter_params_map: 过滤参数map
         """
-        query_filters = Q(bk_biz_id=bk_biz_id, cluster_type__in=cls.cluster_types)
+        query_filters = Q(cluster_type__in=cls.cluster_types)
+        if bk_biz_id is not None:
+            query_filters &= Q(bk_biz_id=bk_biz_id)
 
         # 定义内置的过滤参数map
         inner_filter_params_map = {
@@ -664,6 +821,8 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "status": Q(status__in=query_params.get("status", "").split(",")),
             "cluster_id": Q(cluster__id=query_params.get("cluster_id")),
             "cluster_type": Q(cluster_type__in=query_params.get("cluster_type", "").split(",")),
+            # 所属DB模块
+            "db_module_id": Q(db_module_id__in=query_params.get("db_module_id", "").split(",")),
             "region": Q(region=query_params.get("region")),
             "role": Q(role__in=query_params.get("role", "").split(",")),
             "name": Q(cluster__name__in=query_params.get("name", "").split(",")),
@@ -699,17 +858,22 @@ class ListRetrieveResource(BaseListRetrieveResource):
         # 查询云区域信息
         cloud = ResourceQueryHelper.search_cc_cloud(get_cache=True)
         # 获取DB模块的映射信息
+        db_module_queryset = DBModule.objects.filter(cluster_type__in=cls.cluster_types)
+        if bk_biz_id is not None:
+            db_module_queryset = db_module_queryset.filter(bk_biz_id=bk_biz_id)
+        # 提取所需的字段和构建映射
         db_module_names_map = {
-            module.db_module_id: module.alias_name
-            for module in DBModule.objects.filter(bk_biz_id=bk_biz_id, cluster_type__in=cls.cluster_types)
+            module["db_module_id"]: module["alias_name"]
+            for module in db_module_queryset.values("db_module_id", "alias_name")
         }
+
         # 将实例的查询结果序列化为实例字典信息
         instance_infos = [
             cls._to_instance_representation(inst, cluster_entry_map, db_module_names_map, cloud_info=cloud, **kwargs)
             for inst in instances
         ]
         # 特例：如果有extra参数，则补充额外实例信息
-        if query_params.get("extra"):
+        if query_params.get("extra") and bk_biz_id is not None:
             cls._fill_instance_extra_info(bk_biz_id, instance_infos, **kwargs)
 
         return instance_infos
@@ -742,6 +906,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "port",
             "status",
             "create_at",
+            "bk_biz_id",
             "cluster__id",
             "version",
             "cluster__cluster_type",
@@ -821,6 +986,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "status": instance["status"],
             "create_at": datetime2str(instance["create_at"]),
             "spec_config": instance["machine__spec_config"],
+            "bk_biz_id": instance["bk_biz_id"],
         }
 
     @classmethod
@@ -841,7 +1007,19 @@ class ListRetrieveResource(BaseListRetrieveResource):
         @param offset: 分页查询, 当前页的偏移数
         @param filter_params_map: 过滤参数map
         """
-        query_filters = Q(bk_biz_id=bk_biz_id, cluster_type__in=cls.cluster_types)
+        query_filters = Q(cluster_type__in=cls.cluster_types)
+        if bk_biz_id is not None:
+            query_filters &= Q(bk_biz_id=bk_biz_id)
+
+        def filter_spec_name_func(query_params):
+            """过滤规格名称"""
+            filter_spec = Q()
+            spec_names = query_params.get("spec_names", "").split(",")
+            if spec_names:
+                filter_spec_ids = list(Spec.objects.filter(spec_name__in=spec_names).values_list("spec_id", flat=True))
+                filter_spec &= Q(spec_id__in=filter_spec_ids)
+            return filter_spec
+
         # 定义内置的过滤参数map
         filter_params_map = filter_params_map or {}
         inner_filter_params_map = {
@@ -872,7 +1050,13 @@ class ListRetrieveResource(BaseListRetrieveResource):
                 Q(storageinstance__cluster__status=query_params.get("cluster_status"))
                 | Q(proxyinstance__cluster__status=query_params.get("cluster_status"))
             ),
+            # 所属DB模块
+            "db_module_id": Q(db_module_id__in=query_params.get("db_module_id", "").split(",")),
             "creator": Q(creator__icontains=query_params.get("creator")),
+            # 规格id筛选
+            "spec_ids": Q(spec_id__in=query_params.get("spec_ids", "").split(",")),
+            # 规格名称筛选
+            "spec_names": filter_spec_name_func(query_params),
         }
         filter_params_map = {**inner_filter_params_map, **filter_params_map}
 
@@ -882,6 +1066,11 @@ class ListRetrieveResource(BaseListRetrieveResource):
                 query_filters &= filter_params_map[param]
 
         machine_queryset = Machine.objects.filter(query_filters).distinct()
+        # 获取规格信息
+        spec_ids = list(machine_queryset.values_list("spec_id", flat=True).distinct())
+        spec_query = Spec.objects.filter(spec_id__in=spec_ids)
+        kwargs["remote_spec_map"] = {spec.spec_id: spec for spec in spec_query}
+
         machine_infos = cls._filter_machine_hook(bk_biz_id, machine_queryset, limit, offset, **kwargs)
         return machine_infos
 
@@ -937,21 +1126,26 @@ class ListRetrieveResource(BaseListRetrieveResource):
         """
         cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
         bk_cloud_name = cloud_info.get(str(machine.bk_cloud_id), {}).get("bk_cloud_name", "")
+        machine_spec = kwargs["remote_spec_map"].get(machine.spec_id)
         machine_info = {
             "bk_host_id": machine.bk_host_id,
             "ip": machine.ip,
             "bk_cloud_id": machine.bk_cloud_id,
             "bk_cloud_name": bk_cloud_name,
             "cluster_type": machine.cluster_type,
+            "cluster_type_name": ClusterType.get_choice_label(machine.cluster_type),
             "machine_type": machine.machine_type,
             "create_at": machine.create_at,
             "spec_id": machine.spec_id,
             "spec_config": machine.spec_config,
+            "spec_name": machine_spec.spec_name if machine_spec else "",
             "bk_sub_zone": machine.bk_sub_zone,
             "bk_os_name": machine.bk_os_name,
             "bk_rack_id": machine.bk_rack_id,
             "bk_svr_device_cls_name": machine.bk_svr_device_cls_name,
             "host_info": host_id_info_map.get(machine.bk_host_id, {}),
+            "bk_biz_id": machine.bk_biz_id,
+            "db_module_id": machine.db_module_id,
         }
         machine_info.update(cls._get_machine_extra_info(machine))
         return machine_info

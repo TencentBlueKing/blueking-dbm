@@ -35,7 +35,9 @@ export default {
         } else if (typeof props.user === 'object') {
           avatar.value = props.user.avatar || props.user.logo || (await props.urlMethod(props.user.username));
         }
-      } catch (e) {}
+      } catch (e) {
+        console.log(e)
+      }
     });
 
     const userSelectorAvatarRef = ref(null);

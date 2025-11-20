@@ -13,20 +13,27 @@
 
 <template>
   <InfoList>
-    <InfoItem :label="t('备份源')">
-      {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
+    <InfoItem :label="t('主机选择方式')">
+      {{ ticketDetails.details.source_type === SourceType.RESOURCE_AUTO ? t('资源池自动匹配') : t('资源池手动选择') }}
     </InfoItem>
   </InfoList>
-  <BkTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn :label="t('待重建从库主机')">
-      <template #default="{ data }: { data: RowData }">
+    row-key="id">
+    <TicketInfoTableColumn
+      col-key="old_nodes"
+      :get-copy-value="(row: RowData) => row.old_nodes.old_slave[0].ip"
+      :min-width="220"
+      :title="t('目标从库主机')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.old_nodes.old_slave[0].ip }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('同机关联集群')">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_ids"
+      :min-width="220"
+      :title="t('同机关联集群')">
+      <template #default="{ row: data }: { row: RowData }">
         <div
           v-for="clusterId in data.cluster_ids"
           :key="clusterId"
@@ -34,18 +41,58 @@
           {{ ticketDetails.details.clusters[clusterId].immute_domain }}
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('新从库主机')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.resource_spec.new_slave.hosts[0].ip }}
-      </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+    <template v-if="ticketDetails.details.source_type === SourceType.RESOURCE_AUTO">
+      <TicketInfoTableColumn
+        col-key="resource_spec.new_slave.spec_id"
+        :min-width="120"
+        :title="t('规格')">
+        <template #default="{ row: data }: { row: RowData }">
+          {{ ticketDetails.details.specs?.[data.resource_spec.new_slave.spec_id]?.name || '--' }}
+        </template>
+      </TicketInfoTableColumn>
+      <TicketInfoTableColumn
+        col-key="resource_spec.new_slave.label_names"
+        :min-width="200"
+        :title="t('资源标签')">
+        <template #default="{ row: data }: { row: RowData }">
+          <template v-if="data.resource_spec.new_slave?.label_names?.length">
+            <BkTag
+              v-for="item in data.resource_spec.new_slave.label_names"
+              :key="item">
+              {{ item }}
+            </BkTag>
+          </template>
+          <BkTag
+            v-else
+            theme="success">
+            {{ t('通用无标签') }}
+          </BkTag>
+        </template>
+      </TicketInfoTableColumn>
+    </template>
+    <template v-if="ticketDetails.details.source_type === SourceType.RESOURCE_MANUAL">
+      <TicketInfoTableColumn
+        col-key="resource_spec.new_slave.hosts"
+        :min-width="120"
+        :title="t('新从库主机')">
+        <template #default="{ row: data }: { row: RowData }">
+          {{ data.resource_spec.new_slave.hosts?.[0]?.ip || '--' }}
+        </template>
+      </TicketInfoTableColumn>
+    </template>
+  </TicketInfoTable>
+  <InfoList>
+    <InfoItem :label="t('备份源')">
+      {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
+    </InfoItem>
+  </InfoList>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
+  import { SourceType } from '@services/types';
 
   import { TicketTypes } from '@common/const';
 

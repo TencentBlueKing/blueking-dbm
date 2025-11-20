@@ -2,7 +2,7 @@ import type { DetailBase, DetailClusters } from '../common';
 
 export interface LocalUpgrade extends DetailBase {
   clusters: DetailClusters;
-  force: boolean;
+  is_check_process: boolean;
   infos: {
     cluster_ids: number[];
     display_info: {

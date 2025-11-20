@@ -12,6 +12,7 @@ import json.decoder
 import logging
 from collections import defaultdict
 from datetime import datetime, time, timedelta
+from typing import List
 
 from blueapps.core.celery.celery import app
 from django.db.models import Q
@@ -19,10 +20,12 @@ from django.utils import timezone
 
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
-from backend.db_report.enums import MysqlBackupCheckSubType
-from backend.db_report.models import MysqlBackupCheckReport
+from backend.db_report.enums import MysqlBackupCheckSubType, ReportStateType
+from backend.db_report.models import MysqlBackupCheckReport, MysqlBackupProgress
+from backend.db_report.models.mysql_backup_result import MysqlBackupResult
 
 from .bklog_query import ClusterBackup
+from .check_ignore import CheckIgnore
 
 logger = logging.getLogger("root")
 
@@ -73,21 +76,45 @@ def find_discontinuous_numbers(numbers):
     return is_continuous, discontinuous
 
 
-def is_consecutive_strings(str_list: list):
-    """
-    判断字符串数字是否连续
-    """
-    int_list = [int(s) for s in str_list]
-    int_sorted = list(set(int_list))
-    int_sorted.sort()
-    if len(int_sorted) == 0:
-        return False
-    if len(int_sorted) == 1:
-        return True
-    if len(int_sorted) == int_sorted[-1] - int_sorted[0] + 1:
-        return True
-    else:
-        return False
+def get_backup_failed_detail(cluster_domain: str, start_time: datetime, end_time: datetime):
+    start_ts = int(datetime.timestamp(start_time) * 1000 * 1000)
+    end_ts = int(datetime.timestamp(end_time) * 1000 * 1000)
+    status_failed = list(
+        MysqlBackupProgress.objects.filter(
+            cluster_domain=cluster_domain,
+            status="Failed",
+            event_create_timestamp__gte=start_ts,
+            event_create_timestamp__lte=end_ts,
+        ).all()
+    )
+    host_failed = []
+    detail_failed = {}
+    for i in status_failed:
+        host_failed.append(i.backup_host)
+        detail_failed[f"{i.backup_host}:{i.backup_port}"] = i.status_detail
+    host_failed = list(set(host_failed))
+    if not host_failed:
+        return [], ""
+    return host_failed, json.dumps(detail_failed)
+
+
+def get_backup_failed_duration(cluster_domain: str, subtype: str, start_time: datetime):
+    last_succ = (
+        MysqlBackupCheckReport.objects.filter(
+            cluster=cluster_domain, subtype=subtype, state=ReportStateType.NORMAL.value, create_at__lt=start_time
+        )
+        .order_by("-create_at")
+        .first()
+    )
+    # warnings.warn("DateTimeField %s received a naive datetime (%s)"
+    # 如果没有找到成功记录，有可能是第一次备份，也有可能是一直失败
+    if not last_succ:
+        total_failed = MysqlBackupCheckReport.objects.filter(
+            cluster=cluster_domain, subtype=subtype, state=ReportStateType.ABNORMAL.value
+        ).count()
+        return total_failed
+    # 按天数返回失败持续时间
+    return (start_time.astimezone(timezone.utc) - last_succ.create_at).days
 
 
 def check_full_backup(date_str: str):
@@ -121,18 +148,19 @@ class MysqlBackup:
         self.file_tar = []
 
 
-def _build_backup_info_files(backups_info: []):
+def _build_backup_info_files(backups_info: List[MysqlBackupResult]):
     backups = {}
     for i in backups_info:
-        if i.get("is_full_backup", 0) == 0 and i.get("mysql_role") not in ["spider_master", "TDBCTL"]:
+        if i.is_full_backup == 0 and i.mysql_role not in ["spider_master", "TDBCTL"]:
             continue
         # key format backup_id#shard_value#mysql_role
-        bid = "{}#{}#{}".format(i.get("backup_id"), i.get("shard_value"), i.get("mysql_role"))
+        bid = "{}#{}#{}".format(i.backup_id, i.shard_value, i.mysql_role)
         if bid not in backups:
-            backups[bid] = MysqlBackup(i["cluster_id"], i["cluster_domain"], i["backup_id"], i.get("mysql_role"))
+            backups[bid] = MysqlBackup(i.cluster_id, i.cluster_address, i.backup_id, i.mysql_role)
 
-        backups[bid].is_full_backup = i.get("is_full_backup")
-        for f in i.get("file_list", []):
+        backups[bid].is_full_backup = i.is_full_backup
+        file_list_json = json.loads(i.file_list)  # file object list
+        for f in file_list_json:
             file_type = f.get("file_type")
             bf = BackupFile(f.get("file_name"), f.get("file_size"), file_type, f.get("task_id"))
             if file_type == "index":
@@ -151,9 +179,10 @@ def _check_tendbha_full_backup(date_str: str):
     """
     tendbha 必须有一份完整的备份
     """
-
     # 清理过期的报表
     MysqlBackupCheckReport.objects.filter(create_at__lte=timezone.now() - timedelta(days=60)).delete()
+    # 获取忽略配置
+    ignore_configs = CheckIgnore(subtype=MysqlBackupCheckSubType.FullBackup)
 
     # 检查前一天的全备
     start_time, end_time = get_query_date_time(date_str)
@@ -165,10 +194,14 @@ def _check_tendbha_full_backup(date_str: str):
     query = Q(cluster_type=ClusterType.TenDBHA) & Q(create_at__lt=timezone.now() - timedelta(days=1))
     for c in Cluster.objects.filter(query):
         try:
+            if ignore_configs.should_ignore_check_cluster(c.bk_biz_id, c.cluster, ClusterType.TenDBHA):
+                logger.info(f"==== skip check full backup for cluster {c.immute_domain} (ignored by config) ====")
+                continue
+
             logger.info("==== start check full backup for cluster {} ====".format(c.immute_domain))
             backup = ClusterBackup(c.id, c.immute_domain)
 
-            items = backup.query_backup_log_from_bklog(start_time, end_time)
+            items = backup.query_backup_from_dbreport(start_time, end_time)
             backup.backups = _build_backup_info_files(items)
 
             for bid, bk in backup.backups.items():
@@ -177,14 +210,32 @@ def _check_tendbha_full_backup(date_str: str):
                         backup.success = True
                         break
             if not backup.success:
+                host_failed, detail_failed = get_backup_failed_detail(c.immute_domain, start_time, end_time)
+                failed_days = get_backup_failed_duration(
+                    c.immute_domain, MysqlBackupCheckSubType.FullBackup.value, start_time
+                )
                 MysqlBackupCheckReport.objects.create(
                     bk_biz_id=c.bk_biz_id,
                     bk_cloud_id=c.bk_cloud_id,
                     cluster=c.immute_domain,
                     cluster_type=ClusterType.TenDBHA,
-                    status=False,
-                    msg="no success full backup found",
                     subtype=MysqlBackupCheckSubType.FullBackup.value,
+                    status=False,
+                    state=ReportStateType.ABNORMAL.value,
+                    msg="no success full backup found:\n{}".format(detail_failed),
+                    host=" | ".join(host_failed),
+                    failed_days=failed_days,
+                )
+            else:
+                MysqlBackupCheckReport.objects.create(
+                    bk_biz_id=c.bk_biz_id,
+                    bk_cloud_id=c.bk_cloud_id,
+                    cluster=c.immute_domain,
+                    cluster_type=ClusterType.TenDBHA,
+                    subtype=MysqlBackupCheckSubType.FullBackup.value,
+                    status=True,
+                    state=ReportStateType.NORMAL.value,
+                    msg="success",
                 )
         except json.decoder.JSONDecodeError as e:
             logger.error("==== eslog error check full backup for cluster {}:{} ====".format(c.immute_domain, e))
@@ -197,6 +248,8 @@ def _check_tendbcluster_full_backup(date_str: str):
     """
     tendbcluster 集群必须有完整的备份
     """
+    # 获取忽略配置
+    ignore_configs = CheckIgnore(subtype=MysqlBackupCheckSubType.FullBackup)
     start_time, end_time = get_query_date_time(date_str)
     logger.info(
         "==== start check full backup for cluster type {}, time range[{},{}] ====".format(
@@ -206,9 +259,14 @@ def _check_tendbcluster_full_backup(date_str: str):
 
     for c in Cluster.objects.filter(cluster_type=ClusterType.TenDBCluster):
         try:
-            logger.info("==== start check full backup for cluster {} ====".format(c.immute_domain))
+            # 检查是否应该忽略该集群的全备巡检
+            if ignore_configs.should_ignore_check_cluster(c.bk_biz_id, c.immute_domain, ClusterType.TenDBCluster):
+                logger.info(f"==== skip check full backup for tendbcluster {c.immute_domain} (ignored by config) ====")
+                continue
+
+            logger.info("==== start check full backup for tendbcluster {} ====".format(c.immute_domain))
             backup = ClusterBackup(c.id, c.immute_domain)
-            items = backup.query_backup_log_from_bklog(start_time, end_time)
+            items = backup.query_backup_from_dbreport(start_time, end_time)
             backup.backups = _build_backup_info_files(items)
             backup.success = False
             shard_num = c.tendbclusterstorageset_set.count()
@@ -230,20 +288,39 @@ def _check_tendbcluster_full_backup(date_str: str):
                 if stat.get("spider_master") and stat.get("TDBCTL") and len(stat.get("remote")) == shard_num:
                     backup.success = True
                     break
-                shard_id_list = [int(i) for i in stat.get("remote").keys()]
-                stat["remote"] = find_discontinuous_numbers(shard_id_list)
+                if len(stat.get("remote")) != shard_num:
+                    shard_id_list = [int(i) for i in stat.get("remote").keys()]
+                    stat["remote"] = find_discontinuous_numbers(shard_id_list)
                 message = "backup_id={}:{}".format(backup_id, json.dumps(stat))
 
-            # 只记录失败的结果
+            # 持续天数，只记录失败的
             if not backup.success:
+                host_failed, detail_failed = get_backup_failed_detail(c.immute_domain, start_time, end_time)
+                failed_days = get_backup_failed_duration(
+                    c.immute_domain, MysqlBackupCheckSubType.FullBackup.value, start_time
+                )
                 MysqlBackupCheckReport.objects.create(
                     bk_biz_id=c.bk_biz_id,
                     bk_cloud_id=c.bk_cloud_id,
                     cluster=c.immute_domain,
                     cluster_type=ClusterType.TenDBCluster,
-                    status=False,
-                    msg="no success full backup found:{}".format(message),
                     subtype=MysqlBackupCheckSubType.FullBackup.value,
+                    status=False,
+                    state=ReportStateType.ABNORMAL.value,
+                    msg="no success full backup found:{}\n{}".format(message, detail_failed),
+                    host=" | ".join(host_failed),
+                    failed_days=failed_days,
+                )
+            else:
+                MysqlBackupCheckReport.objects.create(
+                    bk_biz_id=c.bk_biz_id,
+                    bk_cloud_id=c.bk_cloud_id,
+                    cluster=c.immute_domain,
+                    cluster_type=ClusterType.TenDBCluster,
+                    subtype=MysqlBackupCheckSubType.FullBackup.value,
+                    status=True,
+                    state=ReportStateType.NORMAL.value,
+                    msg="success",
                 )
         except json.decoder.JSONDecodeError as e:
             logger.error("==== eslog error check full backup for cluster {}:{} ====".format(c.immute_domain, e))

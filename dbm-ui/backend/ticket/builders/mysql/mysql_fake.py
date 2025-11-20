@@ -10,13 +10,14 @@ specific language governing permissions and limitations under the License.
 """
 # 此单据用于各种线上的后台流程测试，可以保留
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
-from backend.ticket.constants import TicketType
+from backend.ticket.constants import FlowType, TicketType
+from backend.ticket.models import Flow
 
 
 class MySQLFakeDetailSerializer(MySQLBaseOperateDetailSerializer):
@@ -33,6 +34,7 @@ class MySQLFakeFlowParamBuilder(builders.FlowParamBuilder):
 class MySQLDataMigrateFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLFakeDetailSerializer
     inner_flow_builder = MySQLFakeFlowParamBuilder
+    inner_flow_name = "Fake Test"
 
     @property
     def need_itsm(self):
@@ -41,3 +43,22 @@ class MySQLDataMigrateFlowBuilder(BaseMySQLTicketFlowBuilder):
     @property
     def need_manual_confirm(self):
         return False
+
+    def custom_ticket_flows(self):
+        flows = [
+            Flow(
+                ticket=self.ticket,
+                flow_type=FlowType.INNER_FLOW.value,
+                details=self.inner_flow_builder(self.ticket).get_params(),
+                flow_alias=f"{self.inner_flow_name}-1",
+                retry_type=self.retry_type,
+            ),
+            Flow(
+                ticket=self.ticket,
+                flow_type=FlowType.INNER_FLOW.value,
+                details=self.inner_flow_builder(self.ticket).get_params(),
+                flow_alias=f"{self.inner_flow_name}-2",
+                retry_type=self.retry_type,
+            ),
+        ]
+        return flows

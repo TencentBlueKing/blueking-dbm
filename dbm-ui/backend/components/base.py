@@ -22,7 +22,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.handlers.wsgi import WSGIRequest
 from django.utils import translation
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from urllib3.exceptions import ConnectTimeoutError
 
 from backend import env
@@ -319,8 +319,8 @@ class DataAPI(object):
                     if self.after_request is not None:
                         response_result = self.after_request(response_result)
 
-                if self.cache_time and "cache_key" in locals():
-                    self._set_cache(locals()["cache_key"], response_result)
+                    if self.cache_time and "cache_key" in locals():
+                        self._set_cache(locals()["cache_key"], response_result)
 
                 response = DataResponse(response_result, self.request_id)
                 return response

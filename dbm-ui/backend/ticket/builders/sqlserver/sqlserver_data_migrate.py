@@ -13,7 +13,7 @@ from collections import defaultdict
 from typing import Any, Dict, List
 
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.models.sqlserver_dts import DtsStatus, SqlserverDtsInfo

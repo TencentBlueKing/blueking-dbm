@@ -31,6 +31,7 @@ export default class RiakMachine {
   related_instances: MachineRelatedInstance[];
   spec_config: MachineSpecConfig;
   spec_id: number;
+  spec_name: string;
 
   constructor(payload = {} as RiakMachine) {
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -49,6 +50,7 @@ export default class RiakMachine {
     this.related_clusters = payload.related_clusters;
     this.related_instances = payload.related_instances;
     this.spec_config = payload.spec_config;
+    this.spec_name = payload.spec_name;
     this.spec_id = payload.spec_id;
   }
 }

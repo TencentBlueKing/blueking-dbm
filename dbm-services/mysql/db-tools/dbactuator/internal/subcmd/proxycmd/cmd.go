@@ -28,8 +28,8 @@ func NewMysqlProxyCommand() *cobra.Command {
 				NewCloneProxyUserCommand(),
 				NewRestartProxyCommand(),
 				NewMySQLProxyUpgradeAct(),
+				NewMySQLProxyUpgradeRelinkAct(),
 				NewStandardizeProxyCommand(),
-				NewInplaceAutofixCommand(),
 			},
 		},
 	}

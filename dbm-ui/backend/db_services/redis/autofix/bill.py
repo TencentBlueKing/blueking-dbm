@@ -16,7 +16,7 @@ import traceback
 from django.db.models import QuerySet
 from django.utils import timezone
 from django.utils.crypto import get_random_string
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.configuration.models.dba import DBAdministrator
@@ -32,9 +32,11 @@ from backend.utils.time import datetime2str
 
 from .enums import AutofixItem, AutofixStatus
 from .message import get_ticket_heplers, send_msg_2_qywx
-from .models import RedisAutofixCore, RedisAutofixCtl
+from .models import RedisAutofixCore, RedisAutofixCtl, RedisIgnoreAutofix
 
 logger = logging.getLogger("root")
+
+FAILOVER_DRILL_DOMAIN_PREFIX: str = "cache.failover-drill-"
 
 
 def generate_autofix_ticket(fault_clusters: QuerySet):
@@ -61,7 +63,37 @@ def generate_autofix_ticket(fault_clusters: QuerySet):
             cluster.save(update_fields=["status_version", "deal_status", "update_at"])
             continue
 
+        # 忽略proxy和master 同时挂的情况下的自愈
+        if will_ignore_autofix_by_half_switch(cluster):
+            cluster.update_at = datetime2str(datetime.datetime.now(timezone.utc))
+            cluster.deal_status = AutofixStatus.AF_IGNORE.value
+            cluster.save(update_fields=["status_version", "deal_status", "update_at"])
+            continue
+
         generate_single_autofix_ticket(cluster)
+
+
+# 如果 proxy 和后端master 同时挂， proxy自愈应该忽略
+def will_ignore_autofix_by_half_switch(cluster: RedisAutofixCore):
+    try:
+        half_switch = RedisIgnoreAutofix.objects.filter(
+            bk_biz_id=cluster.bk_biz_id,
+            cluster_id=cluster.cluster_id,
+            instance_type="redis_master",
+            create_at__gt=cluster.create_at - datetime.timedelta(minutes=30),
+        ).first()
+        if half_switch:
+            cluster.status_version = _("ignore_by_half_switch:{}".format(half_switch.sw_result))
+            msgs, title = {}, _("{} - 🥸忽略自愈🥸".format(cluster.immute_domain))
+            msgs[_("BKID")] = cluster.bk_biz_id
+            msgs[_("集群类型")] = cluster.cluster_type
+            msgs[_("故障机S")] = json.dumps(cluster.fault_machines)
+            msgs[_("忽略原因")] = _("(30分钟内)Redis部分切换: {}#{} ".format(half_switch.ip, json.dumps(half_switch.sw_result)))
+            send_msg_2_qywx(title, msgs)
+            return True
+        return False
+    except RedisIgnoreAutofix.DoesNotExist:
+        return False
 
 
 # 增加支持忽略自愈控制
@@ -92,7 +124,7 @@ def will_ignore_autofix_by_domain(cluster: RedisAutofixCore):
         msgs[_("BKID")] = cluster.bk_biz_id
         msgs[_("集群类型")] = cluster.cluster_type
         msgs[_("故障机S")] = json.dumps(cluster.fault_machines)
-        msgs[_("配置列表")] = _("配置了忽略自愈的集群列表: {} ".format(json.dumps(ignore_domains)))
+        msgs[_("忽略原因")] = _("存在配置了忽略的集群: {} ".format(json.dumps(ignore_domains)))
         send_msg_2_qywx(title, msgs)
         return True
     # 默认发起自愈
@@ -164,6 +196,7 @@ def generate_single_autofix_ticket(cluster: RedisAutofixCore):
 
 def create_ticket(cluster: RedisAutofixCore, cluster_ids: list, redis_proxies: list, redis_slaves: list):
     """redis自愈创建单据"""
+    is_failover_drill_cluster = cluster.immute_domain.startswith(FAILOVER_DRILL_DOMAIN_PREFIX)
     details = {
         "ip_source": IpSource.RESOURCE_POOL.value,
         "infos": [
@@ -174,6 +207,7 @@ def create_ticket(cluster: RedisAutofixCore, cluster_ids: list, redis_proxies: l
                 "bk_biz_id": cluster.bk_biz_id,
                 "proxy": redis_proxies,
                 "redis_slave": redis_slaves,
+                "need_manual_confirm": not is_failover_drill_cluster,
             }
         ],
     }

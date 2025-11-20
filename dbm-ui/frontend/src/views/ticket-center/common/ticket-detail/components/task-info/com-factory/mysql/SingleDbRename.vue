@@ -12,32 +12,41 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn :label="t('目标集群')">
-      <template #default="{ data }: { data: RowData }">
+  <TicketInfoTable
+    :data="ticketDetails.details.infos"
+    row-key="cluster_id">
+    <TicketInfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
+      :title="t('目标集群')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('源DB名')">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="from_database"
+      :title="t('源DB名')">
+      <template #default="{ row: data }: { row: RowData }">
         <BkTag v-if="data.from_database">
           {{ data.from_database }}
         </BkTag>
         <span v-else>--</span>
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('新DB名')">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="to_database"
+      :title="t('新DB名')">
+      <template #default="{ row: data }: { row: RowData }">
         <BkTag v-if="data.to_database">
           {{ data.to_database }}
         </BkTag>
         <span v-else>--</span>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
-    <InfoItem :label="t('忽略业务连接')">
-      {{ ticketDetails.details.force ? t('是') : t('否') }}
+    <InfoItem :label="t('检查业务连接')">
+      {{ !ticketDetails.details.force ? t('是') : t('否') }}
     </InfoItem>
   </InfoList>
 </template>

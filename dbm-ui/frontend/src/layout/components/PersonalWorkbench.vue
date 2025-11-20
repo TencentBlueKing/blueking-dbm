@@ -20,8 +20,8 @@
       </BkMenuItem>
       <BkMenuItem
         v-if="userProfileStore.isDba"
-        key="AlarmEventsTodo"
-        v-db-console="'personalWorkbench.AlarmEventsTodo'">
+        key="platformAlarmEventsTodo"
+        v-db-console="'personalWorkbench.platformAlarmEventsTodo'">
         <template #icon>
           <DbIcon type="warning" />
         </template>
@@ -41,6 +41,18 @@
           {{ t('巡检待办') }}
         </span>
         <span class="ticket-count">{{ manageCount }}</span>
+      </BkMenuItem>
+      <BkMenuItem
+        v-if="userProfileStore.isDba"
+        key="RiskMemoTodos"
+        v-db-console="'personalWorkbench.RiskMemoTodos'">
+        <template #icon>
+          <DbIcon type="file" />
+        </template>
+        <span>
+          {{ t('风险备忘录') }}
+        </span>
+        <span class="ticket-count">{{ riskMemoTodoCount }}</span>
       </BkMenuItem>
     </BkMenuGroup>
     <BkMenuGroup
@@ -73,7 +85,7 @@
     </BkMenuGroup>
     <BkMenuGroup
       v-db-console="'personalWorkbench'"
-      :name="t('服务申请')">
+      :name="t('数据库部署')">
       <BkMenuItem
         key="serviceApply"
         v-db-console="'personalWorkbench.serviceApply'">
@@ -83,7 +95,7 @@
         <span
           v-overflow-tips.right
           class="text-overflow">
-          {{ t('服务申请') }}
+          {{ t('部署申请') }}
         </span>
       </BkMenuItem>
     </BkMenuGroup>
@@ -93,7 +105,7 @@
   import { Menu } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import { useAlarmEventsCount, useReportCount, useTicketCount } from '@hooks';
+  import { useAlarmEventsCount, useReportCount, useRiskMemoCount, useTicketCount } from '@hooks';
 
   import { useUserProfile } from '@stores';
 
@@ -112,6 +124,7 @@
   const { data: ticketCount } = useTicketCount();
   const { manageCount } = useReportCount();
   const { todoCount: alarmEventsTodoCount } = useAlarmEventsCount();
+  const { todoCount: riskMemoTodoCount } = useRiskMemoCount();
   const userProfileStore = useUserProfile();
 
   const todoCount = computed(() => {
@@ -124,6 +137,7 @@
       ticketCount.value.pending.FAILED +
       ticketCount.value.pending.RESOURCE_REPLENISH +
       ticketCount.value.pending.INNER_TODO +
+      ticketCount.value.pending.TIMER +
       ticketCount.value.pending.TODO
     );
   });

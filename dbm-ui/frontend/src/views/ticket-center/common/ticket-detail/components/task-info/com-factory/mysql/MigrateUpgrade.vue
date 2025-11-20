@@ -12,31 +12,36 @@
 -->
 
 <template>
-  <BkTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn
-      :label="t('目标集群')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+    row-key="pkg_id">
+    <TicketInfoTableColumn
+      col-key="cluster_ids"
+      :get-copy-value="
+        (item: RowData) => item.cluster_ids.map((clusterId) => ticketDetails.details.clusters[clusterId].immute_domain)
+      "
+      :min-width="200"
+      :title="t('目标集群')">
+      <template #default="{ row }: { row: RowData }">
         <p
-          v-for="item in data.cluster_ids"
+          v-for="item in row.cluster_ids"
           :key="item">
           {{ ticketDetails.details.clusters[item].immute_domain }}
         </p>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('主从主机')"
-      :min-width="150">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="old_master_slave"
+      :min-width="150"
+      :title="t('主从主机')">
+      <template #default="{ row }: { row: RowData }">
         <div>
           <BkTag
             size="small"
             theme="info">
             M
           </BkTag>
-          {{ data.display_info.old_master_slave[0] }}
+          {{ row.display_info.old_master_slave[0] }}
         </div>
         <div>
           <BkTag
@@ -44,59 +49,63 @@
             theme="success">
             S
           </BkTag>
-          {{ data.display_info.old_master_slave[1] }}
+          {{ row.display_info.old_master_slave[1] }}
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('只读主机')"
-      :min-width="150">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="read_only_slaves"
+      :min-width="150"
+      :title="t('只读主机')">
+      <template #default="{ row }: { row: RowData }">
         <div
-          v-for="host in data.read_only_slaves"
+          v-for="host in row.read_only_slaves"
           :key="host.old_slave.bk_host_id">
           {{ host.old_slave.ip }}
         </div>
-        <span v-if="data.read_only_slaves.length < 1"> -- </span>
+        <span v-if="row.read_only_slaves.length < 1"> -- </span>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('当前版本')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="current_version"
+      :min-width="200"
+      :title="t('当前版本')">
+      <template #default="{ row }: { row: RowData }">
         <VersionContent
           :data="{
-            version: data.display_info.current_version,
-            package: data.display_info.current_package,
-            charSet: data.display_info.charset,
-            moduleName: data.display_info.current_module_name,
+            version: row.display_info.current_version,
+            package: row.display_info.current_package,
+            charSet: row.display_info.charset,
+            moduleName: row.display_info.current_module_name,
           }" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('目标版本')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="target_version"
+      :min-width="200"
+      :title="t('目标版本')">
+      <template #default="{ row }: { row: RowData }">
         <VersionContent
           :data="{
-            version: data.display_info.target_version,
-            package: data.display_info.target_package,
-            charSet: data.display_info.charset,
-            moduleName: data.display_info.target_module_name,
+            version: row.display_info.target_version,
+            package: row.display_info.target_package,
+            charSet: row.display_info.charset,
+            moduleName: row.display_info.target_module_name,
           }" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('新主从主机')"
-      :min-width="150">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="new_master"
+      :min-width="150"
+      :title="t('新主从主机')">
+      <template #default="{ row }: { row: RowData }">
         <div>
           <BkTag
             size="small"
             theme="info">
             M
           </BkTag>
-          {{ data.new_master.ip }}
+          {{ row.new_master.ip }}
         </div>
         <div>
           <BkTag
@@ -104,21 +113,22 @@
             theme="success">
             S
           </BkTag>
-          {{ data.new_slave.ip }}
+          {{ row.new_slave.ip }}
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('新只读主机')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.read_only_slaves.length ? data.read_only_slaves.map((item) => item.new_slave.ip).join(',') : '--' }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="new_read_only_slaves"
+      :min-width="200"
+      :title="t('新只读主机')">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.read_only_slaves.length ? row.read_only_slaves.map((item) => item.new_slave.ip).join(',') : '--' }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
-    <InfoItem :label="t('忽略业务连接')">
-      {{ ticketDetails.details.force ? t('是') : t('否') }}
+    <InfoItem :label="t('检查业务连接')">
+      {{ !ticketDetails.details.force ? t('是') : t('否') }}
     </InfoItem>
     <InfoItem :label="t('备份源')">
       {{ backupSourceMap[ticketDetails.details.backup_source] }}

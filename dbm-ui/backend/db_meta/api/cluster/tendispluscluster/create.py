@@ -13,7 +13,7 @@ import traceback
 from typing import List, Optional
 
 from django.db import IntegrityError, transaction
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta import request_validator
@@ -41,6 +41,7 @@ def create(
     bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
     region: str = "",
     disaster_tolerance_level: str = "",
+    zone_list: list = None,
 ):
     """
     注册 TendisplusCluster 集群
@@ -76,6 +77,7 @@ def create(
             bk_cloud_id=bk_cloud_id,
             region=region,
             disaster_tolerance_level=disaster_tolerance_level,
+            zone_list=zone_list,
         )
         cluster.proxyinstance_set.add(*proxy_objs)
         cluster.storageinstance_set.add(*storage_objs)

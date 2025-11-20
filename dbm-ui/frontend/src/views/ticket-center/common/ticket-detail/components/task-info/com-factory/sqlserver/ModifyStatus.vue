@@ -12,21 +12,28 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn :label="t('集群')">
-      <template #default="{ data }: { data: RowData }">
+  <TicketInfoTable
+    :data="ticketDetails.details.infos"
+    ellipsis
+    row-key="cluster_id">
+    <TicketInfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
+      :title="t('集群')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('故障实例IP')">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="ip_list"
+      :title="t('故障实例IP')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.ip_list.join(',') }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
-  import BkTable from 'bkui-vue/lib/table';
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Sqlserver } from '@services/model/ticket/ticket';

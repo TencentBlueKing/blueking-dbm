@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"log/slog"
 
 	"github.com/pkg/errors"
 )
@@ -28,7 +27,7 @@ func (m *Manager) CreateOrReplace(job JobDefine, permanent bool) (int, error) {
 		Job:       job,
 		Permanent: permanent,
 	}
-	slog.Info("CreateOrReplace", slog.Any("job", job))
+	//slog.Info("CreateOrReplace", slog.Any("job", job))
 
 	resp, err := m.do("/create_or_replace", "POST", body)
 	if err != nil {

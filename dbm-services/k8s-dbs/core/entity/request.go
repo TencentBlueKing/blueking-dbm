@@ -20,6 +20,8 @@
 package entity
 
 import (
+	coreentity "k8s-dbs/common/entity"
+
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -31,15 +33,21 @@ type OpsRequestParams struct {
 
 // Request Receive request structure
 type Request struct {
-	K8sClusterName string `json:"k8sClusterName,omitempty" required:"true"`
-	Metadata       `json:",inline"`
-	Spec           `json:",omitempty"`
+	K8sClusterName    string   `json:"k8sClusterName,omitempty" required:"true"`
+	BkBizID           uint64   `json:"bkBizId,omitempty"`
+	BkBizName         string   `json:"bkBizName,omitempty"`
+	BkAppAbbr         string   `json:"bkAppAbbr,omitempty"`
+	Tags              []string `json:"tags,omitempty"`
+	Metadata          `json:",inline"`
+	Spec              `json:",inline"`
+	coreentity.BKAuth `json:",inline"`
+	Description       string `json:"description,omitempty"`
 }
 
 // OpsService 定义 OpsService 结构体
 type OpsService struct {
 	ComponentName string         `json:"componentName,omitempty"`
-	Enable        bool           `json:"enable,omitempty"`
+	Enable        bool           `json:"enable"`
 	Service       ClusterService `json:"service,omitempty"`
 }
 

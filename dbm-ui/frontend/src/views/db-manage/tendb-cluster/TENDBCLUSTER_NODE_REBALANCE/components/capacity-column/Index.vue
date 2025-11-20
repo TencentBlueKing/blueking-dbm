@@ -15,7 +15,8 @@
   <EditableColumn
     field="currentCapacity.spec_name"
     :label="t('当前容量')"
-    :min-width="200">
+    :min-width="200"
+    readonly>
     <EditableBlock :placeholder="t('自动生成')">
       <div v-if="cluster?.cluster_spec?.spec_name">
         <p>{{ t('规格') }}：{{ cluster.cluster_spec.spec_name || '--' }}</p>
@@ -92,12 +93,7 @@
   const props = defineProps<Props>();
 
   const modelValue = defineModel<TicketSpecInfo>({
-    default: () => ({
-      cluster_capacity: 0,
-      machine_pair: 0,
-      spec_id: 0,
-      spec_name: '',
-    }),
+    required: true,
   });
 
   const { t } = useI18n();

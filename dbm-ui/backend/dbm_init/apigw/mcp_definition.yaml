@@ -1,0 +1,64 @@
+# reference: https://github.com/TencentBlueKing/bkpaas-python-sdk/tree/master/sdks/apigw-manager
+spec_version: 2
+
+release:
+  version: "{{ settings.BK_APIGW_STATIC_VERSION }}"
+  comment: "auto release by bk-dbm"
+
+apigateway:
+  description: "{{ settings.APP_CODE }}-mcp-apigw"
+  is_public: false
+  maintainers:
+    {% for member in settings.BK_APIGW_MANAGER_MAINTAINERS %}
+    - "{{ member }}"
+    {% endfor %}
+
+stages:
+  - name: "{{ settings.BK_APIGW_STAGE_NAME }}"
+    description: "{{ settings.BK_APIGW_STAGE_DESCRIPTION }}"
+    vars: {}
+    backends:
+      - name: "default"
+        config:
+          timeout: 120
+          loadbalance: "roundrobin"
+          hosts:
+            - host: "{{ settings.BK_SAAS_HOST }}"
+              weight: 100
+    {% if settings.BK_APIGW_STAGE_ENABLE_MCP_SERVERS %}
+    mcp_servers:
+      {% for mcp_server in settings.BK_APIGW_STAGE_MCP_SERVERS %}
+      - name: "{{ mcp_server.name }}"
+        description: "{{ mcp_server.description }}"
+        {% if mcp_server.labels %}
+        labels:
+          {% for label in mcp_server.labels %}
+          - "{{ label }}"
+          {% endfor %}
+        {% endif %}
+        resource_names:
+          {% for resource in mcp_server.tools %}
+          - "{{ resource }}"
+          {% endfor %}
+        is_public: {{ mcp_server.is_public }}
+        status: {{ mcp_server.status }}
+        {% if mcp_server.target_app_codes %}
+        target_app_codes:
+          {% for app_code in mcp_server.target_app_codes %}
+          - "{{ app_code }}"
+          {% endfor %}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+
+grant_permissions:
+  {% for bk_app_code in settings.BK_APIGW_GRANT_APPS %}
+  - bk_app_code: "{{ bk_app_code }}"
+    grant_dimension: "gateway"
+  {% endfor %}
+
+related_apps:
+  - "{{ settings.APP_CODE }}"
+
+resource_docs:
+  basedir: "{{ settings.BK_APIGW_RESOURCE_DOCS_BASE_DIR }}"

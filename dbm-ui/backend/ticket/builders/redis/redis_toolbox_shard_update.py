@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.constants import AffinityEnum
@@ -17,17 +17,18 @@ from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostRecycleSerializer, SkipToRepresentationMixin
+from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.builders.redis.base import (
     BaseRedisTicketFlowBuilder,
     ClusterValidateMixin,
     DataCheckRepairSettingSerializer,
+    RedisBaseOperateDetailSerializer,
     RedisUpdateApplyResourceParamBuilder,
 )
 from backend.ticket.constants import SwitchConfirmType, TicketType
 
 
-class RedisShardUpdateDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class RedisShardUpdateDetailSerializer(RedisBaseOperateDetailSerializer):
     """集群分片变更"""
 
     class InfoSerializer(ClusterValidateMixin, serializers.Serializer):

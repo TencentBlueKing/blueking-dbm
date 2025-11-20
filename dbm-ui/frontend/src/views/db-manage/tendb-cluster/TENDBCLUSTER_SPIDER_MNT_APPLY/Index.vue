@@ -36,7 +36,8 @@
           <EditableColumn
             field="cluster.bk_cloud_name"
             :label="t('所属管控区域')"
-            :min-width="250">
+            :min-width="250"
+            readonly>
             <EditableBlock
               v-model="item.cluster.bk_cloud_name"
               :placeholder="t('自动生成')" />
@@ -70,7 +71,7 @@
         :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
         :title="t('确认重置页面')">
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="isSubmitting">
           {{ t('重置') }}
         </BkButton>
@@ -80,6 +81,7 @@
 </template>
 <script lang="ts" setup>
   import { reactive, useTemplateRef } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
@@ -93,22 +95,11 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-
-  import ClusterColumn from './components/ClusterColumn.vue';
+  import ClusterColumn from '@views/db-manage/tendb-cluster/common/toolbox-field/cluster-column/Index.vue';
 
   interface RowData {
-    cluster: {
-      bk_cloud_id: number;
-      bk_cloud_name: string;
-      id: number;
-      master_domain: string;
-    };
-    host: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      ip: string;
-    };
+    cluster: TendbClusterModel;
+    host: ComponentProps<typeof SingleResourceHostColumn>['modelValue'];
   }
 
   const { t } = useI18n();
@@ -116,19 +107,25 @@
 
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
-  const createTableRow = (data = {} as Partial<RowData>) => ({
-    cluster: data.cluster || {
-      bk_cloud_id: 0,
-      bk_cloud_name: '',
-      id: 0,
-      master_domain: '',
-    },
-    host: data.host || {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      ip: '',
-    },
+  const createTableRow = (data = {} as DeepPartial<RowData>) => ({
+    cluster: Object.assign(
+      {
+        bk_cloud_id: 0,
+        bk_cloud_name: '',
+        id: 0,
+        master_domain: '',
+      } as TendbClusterModel,
+      data.cluster,
+    ),
+    host: Object.assign(
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        ip: '',
+      },
+      data.host,
+    ),
   });
 
   const defaultData = () => ({
@@ -186,9 +183,6 @@
           const clusterInfo = clusters[item.cluster_id];
           return createTableRow({
             cluster: {
-              bk_cloud_id: clusterInfo.bk_cloud_id,
-              bk_cloud_name: clusterInfo.bk_cloud_name,
-              id: clusterInfo.id,
               master_domain: clusterInfo.immute_domain,
             },
             host: item.resource_spec.spider_ip_list.hosts[0],
@@ -249,9 +243,6 @@
         acc.push(
           createTableRow({
             cluster: {
-              bk_cloud_id: item.bk_cloud_id,
-              bk_cloud_name: item.bk_cloud_name,
-              id: item.id,
               master_domain: item.master_domain,
             },
           }),

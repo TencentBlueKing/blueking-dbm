@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.db import models
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.enums import ClusterType
 from backend.db_report.enums import MysqlBackupCheckSubType
@@ -22,3 +22,10 @@ class MysqlBackupCheckReport(BaseReportABS):
     subtype = models.CharField(
         max_length=64, choices=MysqlBackupCheckSubType.get_choices(), default="", help_text=_("备份检查子项")
     )
+    host = models.CharField(max_length=255, default="")
+    status_detail = models.TextField(default="")
+
+    class Meta:
+        managed = True
+        # 添加索引
+        index_together = ["cluster", "subtype"]

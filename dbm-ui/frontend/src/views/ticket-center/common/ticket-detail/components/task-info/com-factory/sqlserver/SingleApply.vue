@@ -23,8 +23,17 @@
     <InfoItem :label="t('DB模块名')">
       {{ ticketDetails.details.db_module_name || '--' }}
     </InfoItem>
+    <InfoItem :label="t('管控区域')">
+      {{ ticketDetails.details.bk_cloud_name || '--' }}
+    </InfoItem>
   </InfoList>
   <RegionRequirements :details="ticketDetails.details" />
+  <div class="info-title">{{ t('数据库部署信息') }}</div>
+  <InfoList>
+    <InfoItem :label="t('SQLServer 起始端口')">
+      {{ ticketDetails.details.start_mssql_port || '--' }}
+    </InfoItem>
+  </InfoList>
   <div class="info-title mt-20">{{ t('需求信息') }}</div>
   <InfoList>
     <InfoItem :label="t('集群数量')">
@@ -39,56 +48,57 @@
     <InfoItem
       v-if="resourceSpec"
       :label="t('后端存储规格')">
-      <BkPopover
-        placement="top"
-        theme="light">
+      <SpecDetailPopover
+        :data="resourceSpec"
+        placement="top">
         <span
           class="pb-2"
           style="cursor: pointer; border-bottom: 1px dashed #979ba5">
           {{ resourceSpec.spec_name }}（{{ resourceSpec.count }} {{ t('台') }}）
         </span>
-        <template #content>
-          <SpecInfos :data="resourceSpec" />
-        </template>
-      </BkPopover>
+      </SpecDetailPopover>
     </InfoItem>
     <InfoItem
-      :label="t('集群设置')"
-      style="width: 100%">
-      <BkTable :data="ticketDetails.details.domains">
-        <BkTableColumn
-          field="master"
+      :label="t('域名设置')"
+      style="flex: 1 0 100%">
+      <TicketInfoTable
+        :data="ticketDetails.details.domains"
+        ellipsis
+        row-key="key">
+        <TicketInfoTableColumn
+          col-key="master"
           fixed="left"
-          :label="t('主访问入口')"
-          :min-width="240" />
-        <BkTableColumn
-          field="deployStructure"
-          :label="t('部署架构')"
-          :min-width="120">
+          :get-copy-value="(row: Props['ticketDetails']['details']['domains'][number]) => row.master"
+          :min-width="240"
+          :title="t('主访问入口')" />
+        <TicketInfoTableColumn
+          col-key="deployStructure"
+          :min-width="120"
+          :title="t('部署架构')">
           {{ t('单节点部署') }}
-        </BkTableColumn>
-        <BkTableColumn
-          field="version"
-          :label="t('数据库版本')"
-          :min-width="120">
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="version"
+          :min-width="120"
+          :title="t('数据库版本')">
           {{ ticketDetails.details.db_version }}
-        </BkTableColumn>
-        <BkTableColumn
-          field="charset"
-          :label="t('字符集')"
-          :min-width="120">
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="charset"
+          :min-width="120"
+          :title="t('字符集')">
           {{ ticketDetails.details.charset }}
-        </BkTableColumn>
-        <BkTableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           v-if="ticketDetails.details.nodes?.backend"
-          field="backend"
-          :label="t('服务器')"
-          :min-width="180">
+          col-key="backend"
+          :min-width="180"
+          :title="t('服务器')">
           <template #default="{ rowIndex }">
             {{ ticketDetails.details.nodes.backend[rowIndex].ip }}
           </template>
-        </BkTableColumn>
-      </BkTable>
+        </TicketInfoTableColumn>
+      </TicketInfoTable>
     </InfoItem>
   </InfoList>
 </template>
@@ -101,9 +111,10 @@
 
   import { TicketTypes } from '@common/const';
 
+  import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
+
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
-  import SpecInfos from '../components/SpecInfos.vue';
 
   interface Props {
     ticketDetails: TicketModel<Sqlserver.SingleApply>;

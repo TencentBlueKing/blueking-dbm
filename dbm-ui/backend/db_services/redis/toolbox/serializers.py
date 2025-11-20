@@ -57,7 +57,7 @@ class QueryByClusterResultSerializer(serializers.Serializer):
                                 "cpu": 1,
                                 "mem": 2,
                                 "name": 2,
-                                "storage_spec": {"size": 500, "type": "ssd", "mount_point": "/data"},
+                                "storage_spec": {"min": 500, "max": 2147483647, "type": "ssd", "mount_point": "/data"},
                             },
                         },
                     ],
@@ -74,7 +74,7 @@ class QueryByClusterResultSerializer(serializers.Serializer):
                                 "cpu": 1,
                                 "mem": 2,
                                 "name": 2,
-                                "storage_spec": {"size": 500, "type": "ssd", "mount_point": "/data"},
+                                "storage_spec": {"min": 500, "max": 2147483647, "type": "ssd", "mount_point": "/data"},
                             },
                             "instance_role": "redis_slave",
                         },
@@ -90,7 +90,7 @@ class QueryByClusterResultSerializer(serializers.Serializer):
                                 "cpu": 1,
                                 "mem": 2,
                                 "name": 2,
-                                "storage_spec": {"size": 500, "type": "ssd", "mount_point": "/data"},
+                                "storage_spec": {"min": 500, "max": 2147483647, "type": "ssd", "mount_point": "/data"},
                             },
                             "instance_role": "redis_master",
                         },
@@ -134,7 +134,7 @@ class QueryByIpResultSerializer(serializers.Serializer):
                         "name": 2,
                         "cpu": 1,
                         "mem": 2,
-                        "storage_spec": {"mount_point": "/data", "size": 500, "type": "ssd"},
+                        "storage_spec": {"mount_point": "/data", "min": 500, "max": 2147483647, "type": "ssd"},
                     },
                 }
             ]
@@ -220,6 +220,10 @@ class GetClusterVersionSerializer(serializers.Serializer):
     type = serializers.ChoiceField(help_text=_("请求版本类型"), choices=RedisVersionQueryType.get_choices())
 
 
+class GetClusterVersionByIpSerializer(GetClusterVersionSerializer):
+    ip = serializers.IPAddressField(help_text=_("指定IP地址"))
+
+
 class ListClusterBigVersionSerializer(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
 
@@ -245,6 +249,10 @@ class GetClusterCapacityInfoSerializer(serializers.Serializer):
 class GetClusterModuleInfoSerializer(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     version = serializers.CharField(help_text=_("版本"))
+
+
+class GetClusterDelKeyRateSerializer(serializers.Serializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
 
 
 class ExecuteClusterTcpCmdSerializer(serializers.Serializer):

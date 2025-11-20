@@ -4,12 +4,12 @@ package masterslaveheartbeat
 import (
 	"context"
 	"database/sql"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/utils"
-
 	"fmt"
 	"log/slog"
 	"strconv"
 	"strings"
+
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/utils"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/internal/cst"
@@ -25,7 +25,8 @@ var (
 
 	HeartBeatTable = fmt.Sprintf("%s.%s", cst.DBASchema, checkTable)
 	DropTableSQL   = fmt.Sprintf("DROP TABLE IF EXISTS %s", HeartBeatTable)
-	CreateTableSQL = fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (
+	CreateTableSQL = fmt.Sprintf(
+		`CREATE TABLE IF NOT EXISTS %s (
 		master_server_id varchar(40) COMMENT 'server_id that run this update',
 		slave_server_id  varchar(40) COMMENT 'slave server_id',
 		master_time varchar(32) COMMENT 'the time on master',
@@ -90,7 +91,8 @@ func (c *Checker) updateHeartbeat() error {
 	insertSQL := fmt.Sprintf(
 		`REPLACE INTO %s(master_server_id, slave_server_id, master_time, slave_time, delay_sec) 
 VALUES('%s', @@server_id, now(), sysdate(), timestampdiff(SECOND, now(),sysdate()))`,
-		c.heartBeatTable, masterServerId)
+		c.heartBeatTable, masterServerId,
+	)
 
 	if _, err = conn.ExecContext(context.Background(), txrrSQL); err != nil {
 		err := errors.Wrapf(err, "update heartbeat need SET SESSION tx_isolation = 'REPEATABLE-READ'")
@@ -117,12 +119,12 @@ VALUES('%s', @@server_id, now(), sysdate(), timestampdiff(SECOND, now(),sysdate(
 	return nil
 }
 
-func (c *Checker) reportHeartbeatDelay() error {
+func (c *Checker) reportHeartbeatDelay() (string, error) {
 	slaveStatus := make(map[string]interface{})
 	rows, err := c.db.Queryx(`SHOW SLAVE STATUS`)
 	if err != nil {
 		slog.Error(name, slog.String("error", err.Error()))
-		return err
+		return "", err
 	}
 	defer func() {
 		_ = rows.Close()
@@ -132,7 +134,7 @@ func (c *Checker) reportHeartbeatDelay() error {
 		err := rows.MapScan(slaveStatus)
 		if err != nil {
 			slog.Error(name, slog.String("error", err.Error()))
-			return err
+			return "", err
 		}
 		break
 	}
@@ -142,29 +144,35 @@ func (c *Checker) reportHeartbeatDelay() error {
 			slaveStatus[k] = strings.TrimSpace(string(value))
 		}
 	}
-
+	if len(slaveStatus) == 0 {
+		slog.Error(name, slog.String("error", "slave status is empty"))
+		return "slave status is empty", nil
+	}
 	masterServerId, err := strconv.ParseInt(slaveStatus["Master_Server_Id"].(string), 10, 64)
 	if err != nil {
 		slog.Error(name, slog.String("error", err.Error()))
-		return err
+		return "", err
 	}
 
 	slog.Info(name, slog.Any("master server id", masterServerId))
 
 	var timeDelay int64
 
+	var _useless interface{}
 	var uptime int64
 	err = c.db.QueryRowx(
-		`select VARIABLE_VALUE as uptime from information_schema.GLOBAL_STATUS where VARIABLE_NAME='Uptime';`,
-	).Scan(&uptime)
+		`show global status where Variable_name = 'Uptime';`,
+	).Scan(&_useless, &uptime)
 	if err != nil {
 		slog.Error(name, slog.String("error", err.Error()))
-		return err
+		return "", err
 	}
+	slog.Info(name, slog.Int64("uptime", uptime))
 
 	if uptime < 3600 {
 		timeDelay = 0
-		slog.Info(name,
+		slog.Info(
+			name,
 			slog.String("uptime", fmt.Sprintf("%v", uptime)),
 			slog.String("force report time_delay", fmt.Sprintf("%v", timeDelay)),
 		)
@@ -179,7 +187,7 @@ func (c *Checker) reportHeartbeatDelay() error {
 			if errors.Is(err, sql.ErrNoRows) {
 				timeDelay = 99999999
 			} else {
-				return err
+				return "", err
 			}
 		}
 
@@ -196,7 +204,7 @@ func (c *Checker) reportHeartbeatDelay() error {
 		},
 	)
 
-	return nil
+	return "", nil
 }
 
 func (c *Checker) initTableHeartbeat() (sql.Result, error) {
@@ -226,16 +234,16 @@ func (c *Checker) heartBeatOnSpider() (msg string, err error) {
 	err = c.db.QueryRowx(`tdbctl get primary`).StructScan(&res)
 	if err != nil {
 		slog.Error(name, slog.String("err", err.Error()))
-		return "", err
+		return err.Error(), nil // 获取 primary 失败转成明确的告警
 	}
 	slog.Info(name, slog.Bool("is primary", res.IsThisServer == 1))
 	if res.IsThisServer == 1 {
 		err = c.updateHeartbeat()
 	} else {
-		err = c.reportHeartbeatDelay()
+		msg, err = c.reportHeartbeatDelay()
 	}
 
-	return "", err
+	return msg, err
 }
 
 func (c *Checker) heartBeatOnStorage() (msg string, err error) {
@@ -247,19 +255,15 @@ func (c *Checker) heartBeatOnStorage() (msg string, err error) {
 			return "", err
 		}
 	case "slave":
-		err = c.reportHeartbeatDelay()
-		if err != nil {
-			return "", err
-		}
+		return c.reportHeartbeatDelay()
+
 	case "repeater":
 		err = c.updateHeartbeat()
 		if err != nil {
 			return "", err
 		}
-		err = c.reportHeartbeatDelay()
-		if err != nil {
-			return "", err
-		}
+		return c.reportHeartbeatDelay()
+
 	default:
 		return "", errors.Errorf("unkown role: %s", *config.MonitorConfig.Role)
 	}

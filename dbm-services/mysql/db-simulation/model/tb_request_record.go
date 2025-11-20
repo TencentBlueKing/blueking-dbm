@@ -25,9 +25,9 @@ type TbRequestRecord struct {
 	// 请求路径
 	Path string `gorm:"column:path;type:varchar(32);not null" json:"path"`
 	// response data message
-	ResponeBody string `gorm:"column:response_body;type:json" json:"response_body"`
+	ResponseBody string `gorm:"column:response_body;type:json" json:"response_body"`
 	// response code
-	ResponeCode int `gorm:"column:response_code;type:int(11);not null" json:"response_code"`
+	ResponseCode int `gorm:"column:response_code;type:int(11);not null" json:"response_code"`
 	// 请求来源Ip
 	SourceIP   string    `gorm:"column:source_ip;type:varchar(32);not null" json:"source_ip"`
 	UpdateTime time.Time `gorm:"column:update_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"update_time"`

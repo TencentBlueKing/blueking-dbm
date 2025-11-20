@@ -25,6 +25,7 @@ from backend.tests.mock_data.ticket.es_flow import (
     ES_SPEC_DATA,
     ES_STORAGE_INSTANCE,
 )
+from backend.tests.ticket.decorator import use_pipeline_mock
 from backend.tests.ticket.server_base import BaseTicketTest
 
 logger = logging.getLogger("test")
@@ -51,6 +52,7 @@ def setup_es_database(django_db_setup, django_db_blocker):
         Spec.objects.filter(spec_cluster_type=DBType.Es).delete()
 
 
+# mock_data中的单据信息不符合流程构建的参数。
 class TestEsFlow(BaseTicketTest):
     """
     es测试类
@@ -60,18 +62,22 @@ class TestEsFlow(BaseTicketTest):
     def apply_patches(cls):
         super().apply_patches()
 
+    @use_pipeline_mock
     def test_es_apply_flow(self):
         # es集群部署
         self.flow_test(ES_APPLY_DATA)
 
+    @use_pipeline_mock
     def test_es_scale_up_flow(self):
         # es集群扩容
         self.flow_test(ES_SCALE_UP_DATA)
 
+    @use_pipeline_mock
     def test_es_shrink_flow(self):
         # es集群缩容
         self.flow_test(ES_SHRINK_DATA)
 
+    @use_pipeline_mock
     def test_es_disable(self):
         # es禁用
         self.flow_test(ES_DISABLE_DATA)

@@ -15,7 +15,8 @@
   <EditableColumn
     field="cluster_capacity"
     :label="t('当前容量')"
-    :min-width="200">
+    :min-width="200"
+    readonly>
     <CapacityCell
       v-if="cluster.id"
       :data="currentCapacity" />

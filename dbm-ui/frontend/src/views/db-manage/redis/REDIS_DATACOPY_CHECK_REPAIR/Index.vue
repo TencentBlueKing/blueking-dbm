@@ -21,18 +21,20 @@
       <BkFormItem :label="t('基础信息')">
         <EditableTable
           ref="editableTable"
-          class="mt16 mb16"
+          class="mt-16 mb-16"
           :model="formData.tableData">
           <EditableRow
             v-for="(item, index) in formData.tableData"
             :key="index">
             <EditableColumn
               :label="t('关联单据')"
+              readonly
               :width="200">
               <EditableBlock style="color: #3a84ff">{{ item.bill_id }}</EditableBlock>
             </EditableColumn>
             <EditableColumn
               :label="t('源集群')"
+              readonly
               :width="300">
               <EditableBlock>{{ item.src_cluster }}</EditableBlock>
             </EditableColumn>
@@ -41,6 +43,7 @@
               :src-cluster="item.src_cluster" />
             <EditableColumn
               :label="t('目标集群')"
+              readonly
               :width="300">
               <EditableBlock>{{ item.dst_cluster }}</EditableBlock>
             </EditableColumn>
@@ -124,7 +127,7 @@
         :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
         :title="t('确认重置页面')">
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="isSubmitting">
           {{ t('重置') }}
         </BkButton>

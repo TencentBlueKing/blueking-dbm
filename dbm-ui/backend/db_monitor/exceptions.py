@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.exceptions import AppBaseException, ErrorCode
 
@@ -46,3 +46,9 @@ class DutyRuleSaveException(DBMonitorBaseException):
     ERROR_CODE = "204"
     MESSAGE = _("轮值策略保存失败")
     MESSAGE_TPL = _("轮值策略保存失败: {message}")
+
+
+class DutyNoticeScheduleException(DBMonitorBaseException):
+    ERROR_CODE = "204"
+    MESSAGE = _("轮值排班表异常")
+    MESSAGE_TPL = _("轮值排班表异常: {message}")

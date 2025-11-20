@@ -105,7 +105,7 @@ func (t *EnableTokudbEngineComp) Init() (err error) {
 		}
 		// version check
 		if mysqlutil.GetMajorVersion(cmutil.MySQLVersionParse(ver)) != "5.6" {
-			return errors.New("tokudb engine only support mysql 5.6  vesion")
+			return errors.New("tokudb engine only support mysql 5.6  version")
 		}
 		// my.cnf  exist check
 		mycnfFile := util.GetMyCnfFileName(port)
@@ -230,7 +230,7 @@ func (t *EnableTokudbEngineComp) Install() (err error) {
 			if err != nil {
 				logger.Error("restart mysql %d instance err:%v", port, err)
 				mu.Lock()
-				errs = append(errs, fmt.Errorf("retsart %d failde:%w", port, err))
+				errs = append(errs, fmt.Errorf("restart %d failed:%w", port, err))
 				mu.Unlock()
 			}
 		}(port)

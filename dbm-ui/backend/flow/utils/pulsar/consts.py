@@ -10,14 +10,14 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import gettext_lazy as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 PULSAR_KEY_PATH_LIST_ZOOKEEPER = ["/data/pulsarenv/zookeeper/my-secret.key"]
 PULSAR_KEY_PATH_LIST_BROKER = ["/data/pulsarenv/broker/my-secret.key"]
 PULSAR_AUTH_CONF_TARGET_PATH = "/data/pulsarenv/broker/"
 
 
-class PulsarConfigEnum(str, StructuredEnum):
+class PulsarConfigEnum(StrStructuredEnum):
     NumPartitions = EnumField("broker.defaultNumPartitions", _("broker默认分区数"))
     ClientAuthenticationParameters = EnumField("broker.brokerClientAuthenticationParameters", _("broker认证配置"))
     EnsembleSize = EnumField("broker.managedLedgerDefaultEnsembleSize", _("默认bookie池大小"))

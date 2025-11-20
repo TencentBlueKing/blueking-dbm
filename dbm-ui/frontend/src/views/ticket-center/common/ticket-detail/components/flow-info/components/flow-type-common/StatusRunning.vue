@@ -42,7 +42,13 @@
         v-if="data.err_msg"
         danger
         :title="t('失败原因')">
-        <div style="padding-left: 16px">
+        <div
+          class="pl-16"
+          :style="{
+            'white-space': 'pre-wrap',
+            'max-height': `${errMessageMaxHeight}px`,
+            overflow: 'auto',
+          }">
           {{ data.err_msg }}
         </div>
       </FlowCollapse>
@@ -83,6 +89,7 @@
   }>();
 
   const { t } = useI18n();
+  const errMessageMaxHeight = window.innerHeight * 0.4;
 
   const renderTodoList = computed(() =>
     _.filter(props.data.todos, (item) => item.type !== FlowMode.TODO_TYPE_INNER_FAILED),

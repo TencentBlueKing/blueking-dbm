@@ -10,12 +10,12 @@ specific language governing permissions and limitations under the License.
 """
 from typing import List
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
-class DeployPeripheralToolsDepart(str, StructuredEnum):
+class DeployPeripheralToolsDepart(StrStructuredEnum):
     # BackupClient = EnumField("backup-client", _("backup-client"))
     MySQLDBBackup = EnumField("mysql-dbbackup", _("mysql-dbbackup"))
     # 下面这些要保证和介质命名一致

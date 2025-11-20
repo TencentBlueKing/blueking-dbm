@@ -35,6 +35,7 @@ class TendbClusterRestoreLocalSlaveDetailSerializer(TendbBaseOperateDetailSerial
     force = serializers.BooleanField(help_text=_("是否强制执行"), required=False, default=False)
 
     def validate(self, attrs):
+        attrs = super(TendbBaseOperateDetailSerializer, self).validate(attrs)
         # 校验集群是否可用
         super(TendbBaseOperateDetailSerializer, self).validate_cluster_can_access(attrs)
         # TODO 校验slave角色信息

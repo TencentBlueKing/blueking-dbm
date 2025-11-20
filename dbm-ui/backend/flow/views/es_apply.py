@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework.response import Response
 
 from backend.flow.engine.controller.es import EsController
@@ -40,6 +40,7 @@ class InstallEsSceneApiView(FlowTestView):
         "uid":"2111"
         "created_by": "rtx",
         "domain": "es.viper-cluster.blueking.db",
+        ”bk_cloud_id": 0,
         "nodes": {
             "hot": [
                 {"ip": "127.0.0.1", "bk_cloud_id": 0, "instance_num": 1}

@@ -15,13 +15,13 @@
   <BkButton
     class="checksum-batch"
     @click="() => (isShow = true)">
-    <i class="db-icon-add" />
+    <i class="bk-dbm-icon db-icon-add" />
     {{ t('批量录入') }}
   </BkButton>
   <BkDialog
     :is-show="isShow"
     :quick-close="false"
-    :title="t('xx_批量录入', { title: route.meta.navName })"
+    :title="t('xx_批量录入', { title: route.meta.tabName || route.meta.navName })"
     :width="1200"
     @closed="handleClose">
     <div class="batch-input">
@@ -101,7 +101,7 @@
   const isClear = ref(false);
 
   const handleCopy = () => {
-    copy(props.config.map((item) => `${item.case}`).join('\t'));
+    copy(props.config.map((item) => `${item.case}`).join('\t') + '\n');
   };
 
   const handleClose = () => {
@@ -114,7 +114,7 @@
       return;
     }
 
-    const lines = inputValue.value.split(/\n|\\n/).filter((text) => text);
+    const lines = inputValue.value.split(/\n/).filter((text) => text);
 
     const getContents = (value: string) => {
       const contents = value

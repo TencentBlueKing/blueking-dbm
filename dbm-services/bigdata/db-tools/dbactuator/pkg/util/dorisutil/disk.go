@@ -40,3 +40,34 @@ func GetDataMountDir() []string {
 	}
 	return dirs
 }
+
+// GetMaxSize 获取挂载data目录中最大的磁盘容量
+func GetMaxSize() int64 {
+	mountPaths := osutil.GetMountPathInfo()
+	var maxSize int64 = 0
+	for k, v := range mountPaths {
+		// 仅判断挂盘/data目录
+		if strings.HasPrefix(k, "/data") && v.TotalSizeMB > maxSize {
+			maxSize = v.TotalSizeMB
+		}
+	}
+	return maxSize
+}
+
+// GetDorisDataMountDir 获取Doris数据节点挂载data目录
+func GetDorisDataMountDir() []string {
+	var dirs []string
+	dirMaxSize := GetMaxSize()
+	mountPaths := osutil.GetMountPathInfo()
+	for k, v := range mountPaths {
+		// 仅判断挂盘/data目录
+		if strings.HasPrefix(k, "/data") && v.TotalSizeMB == dirMaxSize {
+			dirs = append(dirs, k)
+		}
+	}
+	if dirs == nil {
+		// default doris data dir
+		dirs = append(dirs, "/data")
+	}
+	return dirs
+}

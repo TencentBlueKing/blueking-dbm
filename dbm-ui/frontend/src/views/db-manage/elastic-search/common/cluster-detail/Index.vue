@@ -78,6 +78,62 @@
             </OperationBtnStatusTips>
           </BkDropdownItem>
           <BkDropdownItem
+            v-if="!data.isOnlineCLB"
+            v-db-console="'common.clb'">
+            <OperationBtnStatusTips
+              :data="data"
+              :disabled="!data.isOffline">
+              <AuthButton
+                action-id="es_create_clb"
+                :disabled="data.isOffline"
+                :permission="data.permission.es_create_clb"
+                :resource="data.id"
+                text
+                @click="handleAddClb({ details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id } })">
+                {{ t('启用接入层负载均衡（CLB）') }}
+              </AuthButton>
+            </OperationBtnStatusTips>
+          </BkDropdownItem>
+          <BkDropdownItem
+            v-if="!data.isOnlinePolaris"
+            v-db-console="'common.polaris'">
+            <OperationBtnStatusTips
+              :data="data"
+              :disabled="!data.isOffline">
+              <AuthButton
+                action-id="es_create_polaris"
+                :disabled="data.isOffline"
+                :permission="data.permission.es_create_polaris"
+                :resource="data.id"
+                text
+                @click="handleAddPolaris({ details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id } })">
+                {{ t('启用接入层负载均衡（北极星）') }}
+              </AuthButton>
+            </OperationBtnStatusTips>
+          </BkDropdownItem>
+          <BkDropdownItem
+            v-if="data.isOnlineCLB"
+            v-db-console="'common.clb'">
+            <OperationBtnStatusTips
+              :data="data"
+              :disabled="!data.isOffline">
+              <AuthButton
+                action-id="es_dns_bind_clb"
+                :disabled="data.isOffline"
+                :permission="data.permission.es_dns_bind_clb"
+                :resource="data.id"
+                text
+                @click="
+                  handleBindOrUnbindClb(
+                    { details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id } },
+                    data.dns_to_clb,
+                  )
+                ">
+                {{ data.dns_to_clb ? t('恢复主域名直连接入层') : t('配置主域名指向负载均衡器（CLB）') }}
+              </AuthButton>
+            </OperationBtnStatusTips>
+          </BkDropdownItem>
+          <BkDropdownItem
             v-if="data.isOffline"
             v-db-console="'es.clusterManage.enable'">
             <AuthButton
@@ -133,8 +189,20 @@
         :cluster-type="ClusterTypes.ES">
         <template #infoContent>
           <BaseInfo
+            :cluster-type="ClusterTypes.ES"
             :data="data"
-            @refresh="fetchDetailData" />
+            @refresh="fetchDetailData">
+            <template #clbMaster>
+              <ClbInfo
+                :cluster-type="ClusterTypes.ES"
+                :data="data" />
+            </template>
+            <template #polaris>
+              <PolarisInfo
+                :cluster-type="ClusterTypes.ES"
+                :data="data" />
+            </template>
+          </BaseInfo>
         </template>
         <template #hostContent>
           <HostList :cluster-data="data" />
@@ -145,28 +213,14 @@
             :cluster-type="ClusterTypes.ES" />
         </template>
       </ActionPanel>
-      <DbSideslider
+      <ClusterExpansion
+        v-if="data"
         v-model:is-show="isShowExpandsion"
-        background-color="#F5F7FA"
-        class="es-manage-sideslider"
-        :title="t('xx扩容【name】', { title: 'ES', name: data?.cluster_name })"
-        :width="960">
-        <ClusterExpansion
-          v-if="data"
-          :data="data" />
-      </DbSideslider>
-      <DbSideslider
+        :cluster-data="data" />
+      <ClusterShrink
+        v-if="data"
         v-model:is-show="isShowShrink"
-        background-color="#F5F7FA"
-        class="es-manage-sideslider"
-        :title="t('xx缩容【name】', { title: 'ES', name: data?.cluster_name })"
-        :width="960">
-        <ClusterShrink
-          v-if="data"
-          :cluster-id="data.id"
-          :data="data"
-          :node-list="[]" />
-      </DbSideslider>
+        :cluster-data="data" />
       <BkDialog
         v-model:is-show="isShowPassword"
         render-directive="if"
@@ -190,22 +244,27 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import EsModel from '@services/model/es/es';
+  import EsDetailModel from '@services/model/es/es-detail';
   import { getEsDetail } from '@services/source/es';
 
   import { ClusterTypes, DBTypes } from '@common/const';
 
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
 
-  import { ActionPanel, BigDataInstanceList, DisplayBox } from '@views/db-manage/common/cluster-details';
+  import {
+    ActionPanel,
+    BaseInfo,
+    BaseInfoField,
+    BigDataInstanceList,
+    DisplayBox,
+  } from '@views/db-manage/common/cluster-details';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
-  import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
+  import { useAddClb, useAddPolaris, useBindOrUnbindClb, useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import RenderPassword from '@views/db-manage/common/RenderPassword.vue';
   import ClusterExpansion from '@views/db-manage/elastic-search/common/expansion/Index.vue';
   import ClusterShrink from '@views/db-manage/elastic-search/common/shrink/Index.vue';
 
-  import BaseInfo from './components/BaseInfo.vue';
   import HostList from './components/HostList.vue';
 
   interface Props {
@@ -217,9 +276,24 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
+  const { ClbInfo, PolarisInfo } = BaseInfoField;
+
   const { t } = useI18n();
 
-  const data = ref<EsModel>();
+  const { handleAddClb } = useAddClb<{
+    bk_cloud_id: number;
+    cluster_id: number;
+  }>(ClusterTypes.ES);
+  const { handleAddPolaris } = useAddPolaris<{
+    bk_cloud_id: number;
+    cluster_id: number;
+  }>(ClusterTypes.ES);
+  const { handleBindOrUnbindClb } = useBindOrUnbindClb<{
+    bk_cloud_id: number;
+    cluster_id: number;
+  }>(ClusterTypes.ES);
+
+  const data = ref<EsDetailModel>();
 
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
@@ -238,7 +312,7 @@
 
   const { loading: isLoading, run: fetchClusterDetail } = useRequest(getEsDetail, {
     manual: true,
-    onSuccess(result: EsModel) {
+    onSuccess(result: EsDetailModel) {
       data.value = result;
     },
   });

@@ -20,21 +20,26 @@ limitations under the License.
 package provider
 
 import (
+	"k8s-dbs/common/entity"
 	"k8s-dbs/metadata/dbaccess"
-	models "k8s-dbs/metadata/dbaccess/model"
-	entitys "k8s-dbs/metadata/provider/entity"
-	"log/slog"
+	metaentity "k8s-dbs/metadata/entity"
+	metamodel "k8s-dbs/metadata/model"
+
+	"github.com/pkg/errors"
 
 	"github.com/jinzhu/copier"
 )
 
 // ClusterRequestRecordProvider 定义 request record 业务逻辑层访问接口
 type ClusterRequestRecordProvider interface {
-	CreateRequestRecord(entity *entitys.ClusterRequestRecordEntity) (*entitys.ClusterRequestRecordEntity, error)
+	CreateRequestRecord(entity *metaentity.ClusterRequestRecordEntity) (*metaentity.ClusterRequestRecordEntity, error)
 	DeleteRequestRecordByID(id uint64) (uint64, error)
-	FindRequestRecordByID(id uint64) (*entitys.ClusterRequestRecordEntity, error)
-	UpdateRequestRecord(entity *entitys.ClusterRequestRecordEntity) (uint64, error)
-	FindRecordsByParams(params map[string]interface{}) ([]entitys.ClusterRequestRecordEntity, error)
+	FindRequestRecordByID(id uint64) (*metaentity.ClusterRequestRecordEntity, error)
+	UpdateRequestRecord(entity *metaentity.ClusterRequestRecordEntity) (uint64, error)
+	ListRecords(
+		params *metaentity.ClusterRequestQueryParams,
+		pagination *entity.Pagination,
+	) ([]*metaentity.ClusterRequestRecordEntity, uint64, error)
 }
 
 // ClusterRequestRecordProviderImpl ClusterRequestRecordProvider 具体实现
@@ -42,42 +47,44 @@ type ClusterRequestRecordProviderImpl struct {
 	dbAccess dbaccess.ClusterRequestRecordDbAccess
 }
 
-// FindRecordsByParams 通过参数查询 request record
-func (k *ClusterRequestRecordProviderImpl) FindRecordsByParams(params map[string]interface{}) (
-	[]entitys.ClusterRequestRecordEntity,
-	error,
-) {
-	recordModels, err := k.dbAccess.FindByParams(params)
+// ListRecords 查询 record 列表
+func (k *ClusterRequestRecordProviderImpl) ListRecords(
+	params *metaentity.ClusterRequestQueryParams,
+	pagination *entity.Pagination,
+) ([]*metaentity.ClusterRequestRecordEntity, uint64, error) {
+	recordModels, count, err := k.dbAccess.ListByPage(params, pagination)
 	if err != nil {
-		return nil, err
+		return nil, 0, errors.Wrapf(err, "failed to list request record with params: %+v", params)
 	}
-	var recordEntities []entitys.ClusterRequestRecordEntity
-	if err := copier.Copy(&recordEntities, recordModels); err != nil {
-		return nil, err
+	var recordEntities []*metaentity.ClusterRequestRecordEntity
+	if err = copier.Copy(&recordEntities, recordModels); err != nil {
+		return nil, 0, errors.Wrapf(err, "failed to copy")
 	}
-	return recordEntities, nil
+	return recordEntities, count, nil
+
 }
 
 // CreateRequestRecord 创建 request record
-func (k *ClusterRequestRecordProviderImpl) CreateRequestRecord(entity *entitys.ClusterRequestRecordEntity) (
-	*entitys.ClusterRequestRecordEntity, error,
+func (k *ClusterRequestRecordProviderImpl) CreateRequestRecord(entity *metaentity.ClusterRequestRecordEntity) (
+	*metaentity.ClusterRequestRecordEntity,
+	error,
 ) {
-	newModel := models.ClusterRequestRecordModel{}
+	newModel := metamodel.ClusterRequestRecordModel{}
 	err := copier.Copy(&newModel, entity)
 	if err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+		return nil, errors.Wrap(err, "failed to copy")
 	}
+
 	addedModel, err := k.dbAccess.Create(&newModel)
 	if err != nil {
-		slog.Error("Failed to create model", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create request record with entity: %+v", entity)
 	}
-	addedEntity := entitys.ClusterRequestRecordEntity{}
-	if err := copier.Copy(&addedEntity, addedModel); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+
+	addedEntity := metaentity.ClusterRequestRecordEntity{}
+	if err = copier.Copy(&addedEntity, addedModel); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
+
 	return &addedEntity, nil
 }
 
@@ -88,35 +95,31 @@ func (k *ClusterRequestRecordProviderImpl) DeleteRequestRecordByID(id uint64) (u
 
 // FindRequestRecordByID 查找 cluster
 func (k *ClusterRequestRecordProviderImpl) FindRequestRecordByID(id uint64) (
-	*entitys.ClusterRequestRecordEntity, error,
+	*metaentity.ClusterRequestRecordEntity, error,
 ) {
 	foundModel, err := k.dbAccess.FindByID(id)
 	if err != nil {
-		slog.Error("Failed to find entity")
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to find request record with id %d", id)
 	}
-	foundEntity := entitys.ClusterRequestRecordEntity{}
-	if err := copier.Copy(&foundEntity, foundModel); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	foundEntity := metaentity.ClusterRequestRecordEntity{}
+	if err = copier.Copy(&foundEntity, foundModel); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
 	return &foundEntity, nil
 }
 
 // UpdateRequestRecord 更新 cluster
-func (k *ClusterRequestRecordProviderImpl) UpdateRequestRecord(entity *entitys.ClusterRequestRecordEntity) (
+func (k *ClusterRequestRecordProviderImpl) UpdateRequestRecord(entity *metaentity.ClusterRequestRecordEntity) (
 	uint64, error,
 ) {
-	newModel := models.ClusterRequestRecordModel{}
+	newModel := metamodel.ClusterRequestRecordModel{}
 	err := copier.Copy(&newModel, entity)
 	if err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return 0, err
+		return 0, errors.Wrap(err, "failed to copy")
 	}
 	rows, err := k.dbAccess.Update(&newModel)
 	if err != nil {
-		slog.Error("Failed to update entity", "error", err)
-		return 0, err
+		return 0, errors.Wrapf(err, "failed to update request record with entity: %+v", entity)
 	}
 	return rows, nil
 }

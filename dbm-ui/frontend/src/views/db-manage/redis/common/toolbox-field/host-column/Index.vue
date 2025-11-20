@@ -24,6 +24,7 @@
     <InstanceSelector
       v-model:is-show="isShowSelector"
       :cluster-types="clusterTypes"
+      :hide-manual-input="hideManualInput"
       :selected="selectedList"
       :tab-list-config="tabListConfig"
       @change="handleInstanceSelectChange" />
@@ -34,9 +35,9 @@
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
-  import RedisMachineModel from '@services/model/redis/redis-machine';
-  import { getRedisMachineList } from '@services/source/redis';
+  import { getGlobalMachine } from '@services/source/dbbase';
 
+  import { DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
   import InstanceSelector, { type InstanceSelectorValues, type IValue } from '@components/instance-selector/Index.vue';
@@ -44,9 +45,9 @@
   type InstanceSelectorProps = ComponentProps<typeof InstanceSelector>;
 
   interface Props {
-    afterInput?: (data: RedisMachineModel) => void;
     clusterTypes: InstanceSelectorProps['clusterTypes'];
     disabled?: boolean;
+    hideManualInput?: boolean;
     label: string;
     placeholder?: string;
     selected: {
@@ -103,16 +104,14 @@
       if (!modelValue.value.bk_host_id && modelValue.value.ip) {
         isLoading.value = true;
         modelValue.value.bk_host_id = 0;
-        getRedisMachineList({
+        getGlobalMachine({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          db_type: DBTypes.REDIS,
           ip: modelValue.value.ip,
         })
           .then((data) => {
             if (data.results.length > 0) {
-              if (props.afterInput) {
-                props.afterInput(data.results[0]);
-              } else {
-                [modelValue.value] = data.results;
-              }
+              [modelValue.value] = data.results;
             }
           })
           .finally(() => {

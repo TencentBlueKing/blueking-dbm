@@ -92,7 +92,7 @@
    * @desc 当 placeholder 块是 fixed 效果时，修正左边位置的 paddingLeft
    */
   const smartPosition = _.throttle(() => {
-    if (!placeholderRef.value) {
+    if (!placeholderRef.value || !document.querySelector(props.teleportTo)) {
       return;
     }
     const { left: targetLeft } = document.querySelector(props.teleportTo)!.getBoundingClientRect();
@@ -131,7 +131,7 @@
     right: 0;
     bottom: 0;
     left: 0;
-    z-index: 1;
+    z-index: 2;
     display: flex;
     height: 52px;
     background: #fff;

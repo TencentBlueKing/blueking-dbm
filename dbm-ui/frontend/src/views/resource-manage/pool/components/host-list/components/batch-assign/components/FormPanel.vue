@@ -56,6 +56,7 @@
         </BkSelect>
       </BkFormItem>
       <BkFormItem
+        v-if="currentApp?.bk_biz_id !== 0"
         :label="t('资源标签')"
         property="labels">
         <TagSelector

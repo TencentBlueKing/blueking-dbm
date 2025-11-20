@@ -25,6 +25,7 @@
       </BkButton>
       <DbSearchSelect
         :data="searchSelectData"
+        :get-menu-list="getSearchMenuList"
         :model-value="searchSelectValue"
         :placeholder="t('请输入或选择条件搜索')"
         style="flex: 1; max-width: 560px; margin-left: auto"
@@ -85,6 +86,21 @@
       cluster_ids: `${props.clusterId}`,
       ...params,
     });
+
+  const getSearchMenuList = (payload: { children: any[]; id: string }) => {
+    return Promise.resolve().then(() => {
+      if (payload.id === 'instance_role') {
+        return _.uniqBy(
+          dbTable.value?.getData<IData>().map((item) => ({
+            id: item.instance_role,
+            name: item.instance_role,
+          })),
+          'id',
+        );
+      }
+      return payload.children || [];
+    });
+  };
 
   const searchSelectData = [
     {

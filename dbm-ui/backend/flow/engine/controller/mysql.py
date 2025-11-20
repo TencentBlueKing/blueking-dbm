@@ -14,9 +14,13 @@ from backend.db_meta.enums import ClusterType
 from backend.flow.engine.bamboo.scene.common.account_rule_manage import AccountRulesFlows
 from backend.flow.engine.bamboo.scene.common.download_dbactor import DownloadDbactorFlow
 from backend.flow.engine.bamboo.scene.common.download_file import DownloadFileFlow
+from backend.flow.engine.bamboo.scene.common.failover_drill_flow import FailoverDrillFlow
 from backend.flow.engine.bamboo.scene.common.transfer_cluster_to_other_biz import TransferMySQLClusterToOtherBizFlow
-from backend.flow.engine.bamboo.scene.mysql.autofix.mysql_autofix_todo_register_flow import (
-    MySQLAutofixTodoRegisterFlow,
+from backend.flow.engine.bamboo.scene.mysql.autofix.mysql_dbha_af_event_register_flow import (
+    MySQLDBHAAFEventRegisterFlow,
+)
+from backend.flow.engine.bamboo.scene.mysql.autofix.mysql_dbha_af_repair_replicate import (
+    MySQLDBHAAFRepairROSlaveReplicateFlow,
 )
 from backend.flow.engine.bamboo.scene.mysql.dbconsole import DbConsoleDumpSqlFlow
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.flow import MySQLStandardizeFlow
@@ -33,8 +37,6 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_ha_apply_flow import MySQLHAAp
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_destroy_flow import MySQLHADestroyFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_disable_flow import MySQLHADisableFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_enable_flow import MySQLHAEnableFlow
-from backend.flow.engine.bamboo.scene.mysql.mysql_ha_metadata_import import TenDBHAMetadataImportFlow
-from backend.flow.engine.bamboo.scene.mysql.mysql_ha_standardize_flow import MySQLHAStandardizeFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_upgrade import (
     DestroyNonStanbySlaveMySQLFlow,
     TendbClusterUpgradeFlow,
@@ -49,6 +51,8 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_partition_cron import MysqlPar
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_cluster_add import MySQLProxyClusterAddFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_cluster_reduce import MySQLProxyClusterReduceFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_cluster_switch import MySQLProxyClusterSwitchFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_switch_for_extend import ProxySwitchForExtendFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_switch_for_migrate import ProxySwitchForMigrateFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_upgrade import MySQLProxyLocalUpgradeFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_random_password import MySQLRandomizePassword
 from backend.flow.engine.bamboo.scene.mysql.mysql_rename_database_flow import MySQLRenameDatabaseFlow
@@ -59,9 +63,27 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_single_destroy_flow import MyS
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_disable_flow import MySQLSingleDisableFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_enable_flow import MySQLSingleEnableFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_truncate_flow import MySQLTruncateFlow
-from backend.flow.engine.bamboo.scene.mysql.mysql_upgrade import MySQLStorageLocalUpgradeFlow, MySQMigrateUpgradeFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_upgrade import MySQLStorageLocalUpgradeFlow
 from backend.flow.engine.bamboo.scene.mysql.pt_table_sync import PtTableSyncFlow
+from backend.flow.engine.bamboo.scene.mysql.validate.mysql_local_upgrade_validator import MySQLLocalUpgradeValidator
+from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_add_validator import MySQLProxyClusterAddFlowValidator
+from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_reduce_validator import (
+    MySQLProxyClusterReduceFlowValidator,
+)
+from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_switch_for_extend_validator import (
+    MySQLProxySwitchForExtendValidator,
+)
+from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_switch_for_migrate_ins_validator import (
+    MySQLProxySwitchForMigrateInsValidator,
+)
+from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_switch_for_migrate_validator import (
+    MySQLProxySwitchForMigrateValidator,
+)
+from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_switch_validator import MySQLProxySwitchValidator
+from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_upgrade_validator import MySQLProxyUpgradeValidator
+from backend.flow.engine.bamboo.scene.mysql.validate.mysql_rollback_validator import TenDbHaRollbackFlowValidator
 from backend.flow.engine.controller.base import BaseController
+from backend.flow.engine.validate.base_validate import validates_with
 
 
 class MySQLController(BaseController):
@@ -232,26 +254,10 @@ class MySQLController(BaseController):
         flow = AccountRulesFlows(root_id=self.root_id, data=self.ticket_data)
         flow.delete_account_rule()
 
+    @validates_with(MySQLProxyClusterAddFlowValidator)
     def mysql_proxy_add_scene(self):
         """
         添加mysql_proxy实例场景(新flow编排)
-        ticket_data 参数结构体样例
-        {
-        "uid": "2022051612120001",
-        "created_by": "xxx",
-        "bk_biz_id": "152",
-        "ticket_type": "MYSQL_PROXY_ADD",
-        "add_infos": [
-              {
-                "cluster_ids": [1,2,3],
-                "proxy_ip": "1.1.1.1"
-              },
-              {
-                "cluster_ids": [4,5,6],
-                "proxy_ip": "2.2.2.2"
-              }
-        ]
-        }
         """
 
         flow = MySQLProxyClusterAddFlow(root_id=self.root_id, data=self.ticket_data)
@@ -283,7 +289,7 @@ class MySQLController(BaseController):
 
         truncate_data_type 为枚举的 value
 
-        class TruncateDataTypeEnum(str, StructuredEnum):
+        class TruncateDataTypeEnum(StrStructuredEnum):
             TRUNCATE_TABLE = EnumField('truncate_table', _('truncate_table'))
             DROP_DATABASE = EnumField('drop_database', _('drop_database'))
             DROP_TABLE = EnumField('drop_table', _('drop_table'))
@@ -292,32 +298,41 @@ class MySQLController(BaseController):
         flow = MySQLTruncateFlow(root_id=self.root_id, data=self.ticket_data, cluster_type=ClusterType.TenDBHA.value)
         flow.truncate_flow()
 
+    @validates_with(MySQLProxySwitchValidator)
     def mysql_proxy_switch_scene(self):
         """
-        上架mysql_proxy实例场景(新flow编排)
-        ticket_data 参数结构体样例
-        {
-        "uid": "2022051612120001",
-        "created_by": "xxx",
-        "bk_biz_id": "152",
-        "force": false,
-        "ticket_type": "MYSQL_PROXY_SWITCH",
-        "switch_infos": [
-              {
-                "cluster_ids": [1,2,3],
-                "origin_proxy_ip":"1.1.1.1",
-                "target_proxy_ip":"2.2.2.2"
-              },
-              {
-                "cluster_ids": [4,5,6]
-                "origin_proxy_ip":"3.3.3.3",
-                "target_proxy_ip":"4.4.4.4"
-              }
-        ]
-        }
+        proxy 替换单据调用flow的入口，
+        整机替换
         """
         flow = MySQLProxyClusterSwitchFlow(root_id=self.root_id, data=self.ticket_data)
         flow.switch_mysql_cluster_proxy_flow()
+
+    @validates_with(MySQLProxySwitchForExtendValidator)
+    def mysql_proxy_switch_for_extend_scene(self):
+        """
+        proxy 扩缩容单据调用flow的入口
+        整个集群、整个机器扩缩容
+        """
+        flow = ProxySwitchForExtendFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.switch_proxy_for_extend_flow()
+
+    @validates_with(MySQLProxySwitchForMigrateValidator)
+    def mysql_proxy_switch_for_migrate_scene(self):
+        """
+        proxy 拆分单据调用flow的入口
+        整个集群维度操作
+        """
+        flow = ProxySwitchForMigrateFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.switch_proxy_for_migrate_flow()
+
+    @validates_with(MySQLProxySwitchForMigrateInsValidator)
+    def mysql_proxy_switch_for_migrate_ins_scene(self):
+        """
+        proxy 拆分单据调用flow的入口
+        可以细化到实例维度拆分，旧产物单据，为了修复集群同机关联的正确性，未来会回收掉
+        """
+        flow = ProxySwitchForMigrateFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.switch_proxy_for_migrate_flow()
 
     def mysql_import_sqlfile_scene(self):
         flow = ImportSQLFlow(root_id=self.root_id, data=self.ticket_data)
@@ -464,6 +479,7 @@ class MySQLController(BaseController):
         flow = MySQLRollbackDataFlow(root_id=self.root_id, data=self.ticket_data)
         flow.rollback_data_flow()
 
+    @validates_with(TenDbHaRollbackFlowValidator)
     def mysql_rollback_to_cluster_scene(self):
         """
         数据定点回档
@@ -516,7 +532,7 @@ class MySQLController(BaseController):
 
         truncate_data_type 为枚举的 value
 
-        class TruncateDataTypeEnum(str, StructuredEnum):
+        class TruncateDataTypeEnum(StrStructuredEnum):
             TRUNCATE_TABLE = EnumField('truncate_table', _('truncate_table'))
             DROP_DATABASE = EnumField('drop_database', _('drop_database'))
             DROP_TABLE = EnumField('drop_table', _('drop_table'))
@@ -554,10 +570,6 @@ class MySQLController(BaseController):
         )
         flow.rename_database()
 
-    def mysql_ha_standardize_scene(self):
-        flow = MySQLHAStandardizeFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.standardize()
-
     def mysql_randomize_password(self):
         flow = MySQLRandomizePassword(root_id=self.root_id, data=self.ticket_data)
         flow.mysql_randomize_password()
@@ -566,10 +578,7 @@ class MySQLController(BaseController):
         flow = MysqlOpenAreaFlow(root_id=self.root_id, data=self.ticket_data)
         flow.mysql_open_area_flow()
 
-    def mysql_ha_metadata_import_scene(self):
-        flow = TenDBHAMetadataImportFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.import_meta()
-
+    @validates_with(MySQLProxyUpgradeValidator)
     def mysql_proxy_upgrade_scene(self):
         """
         添加mysql_proxy实例场景(新flow编排)
@@ -595,6 +604,7 @@ class MySQLController(BaseController):
         flow = MySQLProxyLocalUpgradeFlow(root_id=self.root_id, data=self.ticket_data)
         flow.upgrade_mysql_proxy_flow()
 
+    @validates_with(MySQLLocalUpgradeValidator)
     def mysql_local_upgrade_scene(self):
         """
         mysql实例本地升级场景(新flow编排)
@@ -619,15 +629,6 @@ class MySQLController(BaseController):
         """
         flow = MySQLStorageLocalUpgradeFlow(root_id=self.root_id, ticket_data=self.ticket_data)
         flow.upgrade_mysql_flow()
-
-    def mysql_migrate_upgrade_scene(self):
-        """
-        mysql实例迁移升级场景
-        ticket_data 参数结构体样例
-        必须选择关联主机的所有集群
-        """
-        flow = MySQMigrateUpgradeFlow(root_id=self.root_id, ticket_data=self.ticket_data)
-        flow.upgrade()
 
     def mysql_data_migrate_scene(self):
         """
@@ -694,6 +695,7 @@ class MySQLController(BaseController):
         flow = ClearMysqlMachineFlow(root_id=self.root_id, data=self.ticket_data)
         flow.run_flow()
 
+    @validates_with(MySQLProxyClusterReduceFlowValidator)
     def mysql_proxy_reduce_scene(self):
         """
         清理mysql机器
@@ -710,15 +712,17 @@ class MySQLController(BaseController):
         mysql 自愈
         只是把自愈信息入库
         """
-        flow = MySQLAutofixTodoRegisterFlow(root_id=self.root_id, data=self.ticket_data)
+        flow = MySQLDBHAAFEventRegisterFlow(root_id=self.root_id, data=self.ticket_data)
         flow.autofix_register()
 
-    def storage_auto_standardize_autofix_scene(self):
-        """
-        mysql 自愈
-        """
-        flow = MySQLStandardizeFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.standardize_by_ip()
+    def dbha_autofix_repair_replicate_scene(self):
+        flow = MySQLDBHAAFRepairROSlaveReplicateFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.do_repair()
+
+    def dbha_autofix_schedule_scene(self):
+        pass
+        # flow = MySQLDBHAAFScheduleFlow(root_id=self.root_id, data=self.ticket_data)
+        # flow.schedule()
 
     def mysql_rename_database_scene(self):
         """
@@ -728,3 +732,7 @@ class MySQLController(BaseController):
             root_id=self.root_id, data=self.ticket_data  # , cluster_type=ClusterType.TenDBSingle.value
         )
         flow.rename_database()
+
+    def mysql_failover_scene(self):
+        flow = FailoverDrillFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.failover_drill()

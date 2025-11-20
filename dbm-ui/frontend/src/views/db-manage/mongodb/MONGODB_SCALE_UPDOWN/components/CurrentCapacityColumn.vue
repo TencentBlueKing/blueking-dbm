@@ -14,7 +14,8 @@
 <template>
   <EditableColumn
     :label="t('当前容量')"
-    :min-width="400">
+    :min-width="400"
+    readonly>
     <EditableBlock :placeholder="t('选择集群后自动生成')">
       <div
         v-if="modelValue.id"
@@ -22,10 +23,7 @@
         <div class="info-item">
           <div class="item-title">{{ t('当前资源规格') }}：</div>
           <div class="item-content">
-            <RenderSpec
-              :data="spec"
-              :hide-qps="!spec.qps.max"
-              is-ignore-counts />
+            <RenderSpec :data="spec" />
           </div>
         </div>
         <div class="info-item">
@@ -67,7 +65,7 @@
 
   import MongodbModel from '@services/model/mongodb/mongodb';
 
-  import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
+  import RenderSpec from '@components/spec-display/Index.vue';
 
   const modelValue = defineModel<{
     id: number;

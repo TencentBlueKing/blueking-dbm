@@ -13,19 +13,22 @@ from typing import Optional
 import django.utils.timezone as timezone
 from django.db import models
 from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.bk_web.constants import LEN_LONG, LEN_NORMAL, LEN_SHORT
 from backend.bk_web.models import AuditedModel
 from backend.configuration.constants import DBType
+from backend.db_meta.models.db_version import DBVersion
 from backend.db_package.constants import PackageMode, PackageType
-from backend.db_package.exceptions import PackageNotExistException
+from backend.db_package.exceptions import PackageNotExistException, VersionNoNotExistException
 from backend.flow.consts import MediumEnum
 
 
 class Package(AuditedModel):
     name = models.CharField(_("文件名"), max_length=LEN_LONG)
     version = models.CharField(_("版本号"), max_length=LEN_NORMAL)
+
+    # 和新版本管理的信息是重复的, 后续可以删掉
     pkg_type = models.CharField(_("安装包类型"), choices=PackageType.get_choices(), max_length=LEN_SHORT)
     db_type = models.CharField(
         _("存储类型"), choices=DBType.get_choices(), max_length=LEN_SHORT, default=DBType.MySQL.value
@@ -42,6 +45,12 @@ class Package(AuditedModel):
     create_at = models.DateTimeField(_("创建时间"), default=timezone.now)
     update_at = models.DateTimeField(_("更新时间"), default=timezone.now)
 
+    # 新版本管理
+    db_version = models.ForeignKey(DBVersion, on_delete=models.PROTECT, blank=True, null=True)
+    # os 信息
+    permit_os = models.JSONField(blank=True, null=True, help_text=_("os 列表"), default=list)
+    permit_os_type = models.CharField(max_length=128, default="", blank=True, null=True, help_text=_("os 类型"))
+
     class Meta:
         verbose_name_plural = verbose_name = _("介质包（Package）")
         ordering = ("-create_at",)
@@ -53,16 +62,21 @@ class Package(AuditedModel):
         pkg_type: str,
         bk_biz_id: Optional[int] = None,
         db_type: Optional[str] = DBType.MySQL,
-        name: Optional[str] = None,
+        name_prefix: Optional[str] = None,
     ) -> "Package":
         """
         根据版本和包类型获取最新的介质包
         """
-        if version == MediumEnum.Latest:
-            # 引进制品版本管理后，默认最新版就是最近上传的介质
-            packages = cls.objects.filter(pkg_type=pkg_type, db_type=db_type, enable=True)
-        else:
-            packages = cls.objects.filter(version=version, pkg_type=pkg_type, db_type=db_type, enable=True)
+        filters = {"pkg_type": pkg_type, "db_type": db_type, "enable": True}
+
+        if name_prefix:
+            filters["name__startswith"] = name_prefix
+
+        if version != MediumEnum.Latest:
+            filters["version"] = version
+
+        packages = cls.objects.filter(**filters)
+
         if bk_biz_id:
             # 过滤出灰度的业务以及无指定业务的包
             allow_biz_filter = Q(allow_biz_ids__contains=bk_biz_id) | Q(allow_biz_ids__isnull=True)
@@ -72,5 +86,20 @@ class Package(AuditedModel):
             raise PackageNotExistException(version=version, pkg_type=pkg_type, db_type=db_type)
 
         # 取最新的版本
-        package = packages.order_by("-update_at").first()
-        return package
+        return packages.latest("update_at")
+
+    @classmethod
+    def get_package_for_version_no(cls, db_type: DBType, pkg_type: PackageType, version_no: str):
+        """
+        根据当前版本类型，和db_meta记录的版本号信息，找到对应的介质包
+        @param db_type: 包的对应的组件类型
+        @param pkg_type: 包类型
+        @param version_no: 实例版本号（0.0.0）
+        """
+        packages = cls.objects.filter(db_type=db_type, pkg_type=pkg_type, name__icontains=version_no, enable=True)
+
+        if not packages:
+            raise VersionNoNotExistException(version_no=version_no, pkg_type=pkg_type, db_type=db_type)
+
+        # 取最新的版本
+        return packages.latest("update_at")

@@ -51,7 +51,8 @@ func (d *DumperGrant) Execute(ctx context.Context) error {
 	defer func() {
 		d.backupEndTime = cmutil.TimeToSecondPrecision(time.Now())
 	}()
-	if err := BackupGrant(&d.cnf.Public); err != nil {
+	runner := BackupRunner{}
+	if err := runner.BackupGrant(&d.cnf.Public); err != nil {
 		return err
 	}
 	return nil
@@ -73,7 +74,7 @@ func (d *DumperGrant) PrepareBackupMetaInfo(cnf *config.BackupConfig, metaInfo *
 }
 
 // BackupGrant backup grant information
-func BackupGrant(cfg *config.Public) error {
+func (r *BackupRunner) BackupGrant(cfg *config.Public) error {
 	db, err := mysqlconn.InitConn(cfg)
 	if err != nil {
 		return err

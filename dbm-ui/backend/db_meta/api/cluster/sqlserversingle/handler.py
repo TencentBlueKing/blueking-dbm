@@ -34,6 +34,7 @@ class SqlserverSingleClusterHandler(ClusterHandler):
         bk_cloud_id: int,
         resource_spec: dict,
         region: str,
+        zone_list: list,
         is_increment: bool = False,
     ):
         """
@@ -87,6 +88,7 @@ class SqlserverSingleClusterHandler(ClusterHandler):
                     creator=creator,
                     bk_cloud_id=bk_cloud_id,
                     region=region,
+                    zone_list=zone_list,
                 )
             )
 

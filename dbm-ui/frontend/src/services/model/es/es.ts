@@ -14,7 +14,7 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
 
-import { Affinity, affinityMap, ClusterTypes } from '@common/const';
+import { Affinity, affinityMap, ClusterTypes, DBTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
@@ -63,7 +63,6 @@ export default class Es extends ClusterBase {
   cluster_name: string;
   cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
-  cluster_subzons: string[];
   cluster_time_zone: string;
   cluster_type: ClusterTypes;
   cluster_type_name: string;
@@ -71,7 +70,9 @@ export default class Es extends ClusterBase {
   creator: string;
   db_module_id: number;
   db_module_name: number;
+  db_type: DBTypes.ES;
   disaster_tolerance_level: Affinity;
+  dns_to_clb: boolean;
   domain: string;
   es_client: Array<ClusterListNode>;
   es_datanode_cold: Array<ClusterListNode>;
@@ -84,7 +85,10 @@ export default class Es extends ClusterBase {
   permission: {
     access_entry_edit: boolean;
     es_access_entry_view: boolean;
+    es_create_clb: boolean;
+    es_create_polaris: boolean;
     es_destroy: boolean;
+    es_dns_bind_clb: boolean;
     es_edit: boolean;
     es_enable_disable: boolean;
     es_reboot: boolean;
@@ -95,7 +99,6 @@ export default class Es extends ClusterBase {
   };
   phase: 'online' | 'offline';
   phase_name: string;
-  region: string;
   slave_domain: string;
   status: string;
   update_at: string;
@@ -108,7 +111,6 @@ export default class Es extends ClusterBase {
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
-    this.cluster_subzons = payload.cluster_subzons || [];
     this.cluster_access_port = payload.cluster_access_port;
     this.cluster_alias = payload.cluster_alias;
     this.cluster_entry = payload.cluster_entry;
@@ -116,12 +118,14 @@ export default class Es extends ClusterBase {
     this.cluster_spec = payload.cluster_spec || {};
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type;
+    this.dns_to_clb = payload.dns_to_clb;
     this.cluster_type_name = payload.cluster_type_name;
     this.cluster_time_zone = payload.cluster_time_zone;
     this.create_at = payload.create_at;
     this.creator = payload.creator;
     this.db_module_id = payload.db_module_id;
     this.db_module_name = payload.db_module_name;
+    this.db_type = payload.db_type;
     this.disaster_tolerance_level = payload.disaster_tolerance_level;
     this.domain = payload.domain;
     this.es_datanode_cold = payload.es_datanode_cold;
@@ -135,7 +139,6 @@ export default class Es extends ClusterBase {
     this.permission = payload.permission || {};
     this.phase = payload.phase;
     this.phase_name = payload.phase_name;
-    this.region = payload.region;
     this.slave_domain = payload.slave_domain;
     this.status = payload.status;
     this.update_at = payload.update_at;
@@ -164,11 +167,23 @@ export default class Es extends ClusterBase {
     return affinityMap[this.disaster_tolerance_level];
   }
 
+  get isOnlineCLB() {
+    return this.cluster_entry.some((item) => item.cluster_entry_type === 'clb');
+  }
+
+  get isOnlinePolaris() {
+    return this.cluster_entry.some((item) => item.cluster_entry_type === 'polaris');
+  }
+
   get isStarting() {
     return Boolean(this.operations.find((item) => item.ticket_type === Es.ES_ENABLE));
   }
   get masterDomainDisplayName() {
-    const { port } = this.es_master[0];
+    if (this.es_master.length < 1) {
+      return '';
+    }
+
+    const { port } = this.es_master[0]!;
     const displayName = port ? `${this.domain}:${port}` : this.domain;
     return displayName;
   }
@@ -201,19 +216,19 @@ export default class Es extends ClusterBase {
 
   // 操作中的状态 icon
   get operationStatusIcon() {
-    return Es.operationIconMap[this.operationRunningStatus];
+    return Es.operationIconMap[this.operationRunningStatus]!;
   }
 
   // 操作中的状态描述文本
   get operationStatusText() {
-    return Es.operationTextMap[this.operationRunningStatus];
+    return Es.operationTextMap[this.operationRunningStatus]!;
   }
 
   get operationTagTips() {
     return this.operations.map((item) => ({
-      icon: Es.operationIconMap[item.ticket_type],
+      icon: Es.operationIconMap[item.ticket_type]!,
       ticketId: item.ticket_id,
-      tip: Es.operationTextMap[item.ticket_type],
+      tip: Es.operationTextMap[item.ticket_type]!,
     }));
   }
 

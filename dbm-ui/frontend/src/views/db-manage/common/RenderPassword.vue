@@ -120,13 +120,58 @@
       </span>
     </div>
   </BkLoading>
+  <BkLoading
+    v-if="isClbShow"
+    :loading="clbLoading">
+    <div class="cluster-render-password-clb">
+      <template
+        v-for="(value, key) in dataObj"
+        :key="key">
+        <div
+          v-if="dataObj[key].list[0].value"
+          class="item-main-box">
+          <div class="main-title">
+            {{ dataObj[key].title }}
+          </div>
+          <div
+            v-for="(item, index) in dataObj[key].list"
+            :key="index"
+            class="item-box">
+            <div class="item-title">{{ item.title }}：</div>
+            <div class="item-content">
+              <span
+                v-overflow-tips
+                class="text-overflow">
+                {{ item.value }}
+              </span>
+              <DbIcon
+                v-bk-tooltips="t('复制n', { n: item.title })"
+                class="copy-btn"
+                type="copy"
+                @click="() => copy(item.value)" />
+              <DbIcon
+                v-if="item.shareLink"
+                class="icon"
+                type="link"
+                @click="() => handleNavigateTo(item.shareLink)" />
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+  </BkLoading>
 </template>
 
 <script setup lang="ts">
   import { Eye, Unvisible } from 'bkui-vue/lib/icon';
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
+  import ClusterEntryDetailModel, {
+    type ClbPolarisTargetDetails,
+  } from '@services/model/cluster-entry/cluster-entry-details';
+  import { getClusterEntries } from '@services/source/clusterEntry';
   import { getDorisPassword } from '@services/source/doris';
   import { getEsPassword } from '@services/source/es';
   import { getHdfsPassword } from '@services/source/hdfs';
@@ -146,6 +191,39 @@
 
   const { t } = useI18n();
 
+  const initDataObj = () => ({
+    clb: {
+      list: [
+        {
+          shareLink: '',
+          title: 'IP',
+          value: '',
+        },
+        {
+          shareLink: '',
+          title: t('CLB域名'),
+          value: '',
+        },
+      ],
+      title: t('腾讯云负载均衡（CLB）'),
+    },
+    polary: {
+      list: [
+        {
+          shareLink: '',
+          title: 'CL5',
+          value: '',
+        },
+        {
+          shareLink: '',
+          title: t('北极星服务名称'),
+          value: '',
+        },
+      ],
+      title: t('CL5与北极星'),
+    },
+  });
+
   const isLoading = ref(true);
   const isShowPassword = ref(false);
   const isShowSCPassword = ref(false);
@@ -159,16 +237,13 @@
     username: '',
   });
 
+  const dataObj = ref(initDataObj());
+
   const isPulsar = computed(() => props.dbType === DBTypes.PULSAR);
   const isKafka = computed(() => props.dbType === DBTypes.KAFKA);
+  const isClbShow = computed(() => props.dbType === DBTypes.ES);
 
-  const domainDisplay = computed(() => {
-    if (isPulsar.value) {
-      return result.value.domain || '--';
-    }
-
-    return `${result.value.domain}:${result.value.access_port}`;
-  });
+  const domainDisplay = computed(() => `${result.value.domain}:${result.value.access_port}`);
 
   const passwordText = computed(() => {
     if (!isShowPassword.value) {
@@ -188,6 +263,26 @@
       return '******';
     }
     return result.value.token || '--';
+  });
+
+  const { loading: clbLoading, run: runGetClusterEntries } = useRequest(getClusterEntries, {
+    manual: true,
+    onSuccess: (res) => {
+      res.forEach((item) => {
+        if (item.target_details.length) {
+          if (item.isClb) {
+            const targetDetailItem = (item as ClusterEntryDetailModel<ClbPolarisTargetDetails>).target_details[0];
+            dataObj.value.clb.list[0].value = `${targetDetailItem.clb_ip}:${targetDetailItem.port}`;
+            dataObj.value.clb.list[1].value = `${targetDetailItem.clb_domain}:${targetDetailItem.port}`;
+          } else if (item.isPolaris) {
+            const targetDetailItem = (item as ClusterEntryDetailModel<ClbPolarisTargetDetails>).target_details[0];
+            dataObj.value.polary.list[0].value = targetDetailItem.polaris_l5;
+            dataObj.value.polary.list[0].shareLink = targetDetailItem.url;
+            dataObj.value.polary.list[1].value = `${targetDetailItem.polaris_name}:${targetDetailItem.port}`;
+          }
+        }
+      });
+    },
   });
 
   const serviceMap: Record<string, typeof getPulsarPassword> = {
@@ -210,6 +305,13 @@
           .finally(() => {
             isLoading.value = false;
           });
+        if (isClbShow.value) {
+          dataObj.value = initDataObj();
+          runGetClusterEntries({
+            bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+            cluster_id: props.clusterId,
+          });
+        }
       }
     },
     {
@@ -228,23 +330,30 @@
 
     let content = `${t('集群名称')}: ${clusterName}\n${t('域名')}: ${domainPort}\n${t('账号')}: ${username}\n${t('密码')}: ${passwordToken}`;
     if (isPulsar.value) {
-      content = `${t('集群名称')}: ${clusterName}\n${t('域名')}: ${domain}\n${t('Manager 账号')}: ${username}\n${t('Manager 密码')}: ${password}\nToken: ${token}`;
+      content = `${t('集群名称')}: ${clusterName}\n${t('域名')}: ${domainPort}\n${t('Manager 账号')}: ${username}\n${t('Manager 密码')}: ${password}\nToken: ${token}`;
     }
     let securityInfo = '';
     if (isKafka.value) {
       securityInfo = `security.protocol=SASL_PLAINTEXT\nsasl.mechanism=SCRAM-SHA-512\nsasl.jaas.config=org.apache.${props.dbType}.common.security.scram.ScramLoginModule required username="${username}" password="${password}";`;
       content = `${content}\n${t('安全认证')}: ${securityInfo}`;
     }
+
+    if (isClbShow.value) {
+      if (dataObj.value.clb.list[0].value) {
+        // 存在CLB
+        content = `${content}IP: ${dataObj.value.clb.list[0].value}\n${t('CLB域名')}: ${dataObj.value.clb.list[1].value}\n`;
+      }
+      if (dataObj.value.polary.list[0].value) {
+        // 存在北极星
+        content = `${content}CL5: ${dataObj.value.polary.list[0].value}\n${t('北极星服务名称')}: ${dataObj.value.polary.list[1].value}\n`;
+      }
+    }
+
     switch (type) {
       case 'cluster_name':
         copy(clusterName);
         break;
       case 'domain':
-        if (isPulsar.value) {
-          copy(domain);
-          return;
-        }
-
         copy(domainPort);
         break;
       case 'username':
@@ -264,6 +373,10 @@
 
   const copy = (value: string) => {
     execCopy(value, t('复制成功，共n条', { n: 1 }));
+  };
+
+  const handleNavigateTo = (url: string) => {
+    window.open(url);
   };
 
   const handlePasswordToggle = () => {
@@ -322,6 +435,69 @@
 
       .copy-btn {
         visibility: hidden;
+      }
+    }
+  }
+
+  .cluster-render-password-clb {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+
+    .item-main-box {
+      display: flex;
+      width: 100%;
+      margin-bottom: 24px;
+      flex-direction: column;
+
+      .main-title {
+        margin-bottom: 10px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #313238;
+      }
+
+      .item-box {
+        display: flex;
+        width: 100%;
+        height: 28px;
+        font-size: 12px;
+        align-items: center;
+
+        .item-title {
+          width: 96px;
+          color: #63656e;
+          text-align: right;
+        }
+
+        .item-content {
+          display: flex;
+          overflow: hidden;
+          color: #313238;
+          flex: 1;
+          align-items: center;
+
+          &:hover {
+            .copy-btn {
+              visibility: visible;
+            }
+          }
+
+          .icon {
+            margin-left: 6px;
+            color: #3a84ff;
+            cursor: pointer;
+          }
+
+          .copy-btn {
+            display: inline-block;
+            margin-left: 6px;
+            font-size: @font-size-mini;
+            color: @primary-color;
+            cursor: pointer;
+            visibility: hidden;
+          }
+        }
       }
     }
   }

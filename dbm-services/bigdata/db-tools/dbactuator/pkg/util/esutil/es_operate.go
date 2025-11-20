@@ -445,11 +445,11 @@ func GetPath() []string {
 		/dev/vdb1      412715432 165966836 225760744  43% /data
 		tmpfs            1612500         0   1612500   0% /run/user/0
 	*/
-	extraCmd := `df | grep ^/dev |egrep -vw '/|/usr|/boot'|awk '{print $1":"$2":"$NF}'`
+	extraCmd := `df | grep ^/dev |grep -E -vw '/|/usr|/boot'|awk '{print $1":"$2":"$NF}'`
 	logger.Info("Command [%s]", extraCmd)
 	output, err := osutil.ExecShellCommand(false, extraCmd)
 	if err != nil {
-		logger.Info("[%s] execute failed, %s", extraCmd, err.Error())
+		logger.Error("[%s] execute failed, %s", extraCmd, err.Error())
 		return paths
 	}
 	logger.Info("Commnad output, %s", output)

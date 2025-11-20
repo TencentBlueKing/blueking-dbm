@@ -2,6 +2,12 @@
   <ConsoleInput
     ref="consoleInputRef"
     :cluster="cluster"
+    :options="{
+      charset,
+      timezone,
+      role,
+    }"
+    :placeholder="placeholder"
     :pre-check="preCheck">
     <template #default="{ message }">
       <RenderMessage :data="message" />
@@ -19,14 +25,25 @@
   import RenderMessage from './components/RenderMessage.vue';
 
   interface Props {
+    charset: string;
     cluster: ServiceReturnType<typeof queryAllTypeCluster>[number];
+    role: keyof typeof roleDisplay;
+    timezone: string;
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 
   const consoleInputRef = ref<typeof ConsoleInput>();
+
+  const roleDisplay = {
+    backend_master: 'Master',
+    backend_slave: 'Slave',
+    orphan: 'Orphan',
+  };
+
+  const placeholder = computed(() => `${props.cluster.immute_domain}[${roleDisplay[props.role]}] > `);
 
   const preCheck = (cmd: string) => {
     if (/^\s*use\s+.*$/.test(cmd)) {

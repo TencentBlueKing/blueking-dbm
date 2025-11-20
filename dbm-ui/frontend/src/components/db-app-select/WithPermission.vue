@@ -1,13 +1,13 @@
 <template>
   <AppSelect
+    :custom-list-filter-render-method="customListFilterRenderMethod"
     :data="withFavorBizList"
     :generate-key="(item: IAppItem) => item.bk_biz_id"
     :generate-name="(item: IAppItem) => item.display_name"
-    :search-extension-method="searchExtensionMethod"
     v-bind="{ ...attrs, ...props }"
     :value="modelValue"
     @change="handleAppChange">
-    <template #value="{ data }">
+    <template #value="{ data }: { data: IAppItem }">
       <TextOverflowLayout class="db-select-with-permission-trigger">
         <span>{{ data.name }}</span>
         <span> (#{{ data.bk_biz_id }}</span>
@@ -15,11 +15,11 @@
         <span>)</span>
       </TextOverflowLayout>
     </template>
-    <template #default="{ data }">
+    <template #default="{ data }: { data: IAppItem }">
       <AuthTemplate
         :action-id="permissionActionId"
         :biz-id="data.bk_biz_id"
-        :permission="data.permission[permissionActionId]"
+        :permission="data.permission[permissionActionId as 'db_manage']"
         :resource="data.bk_biz_id">
         <template #default="{ permission }">
           <div
@@ -51,7 +51,7 @@
     </template>
   </AppSelect>
 </template>
-<script setup lang="ts">
+<script lang="ts">
   import _ from 'lodash';
   import { computed, shallowRef } from 'vue';
 
@@ -65,9 +65,11 @@
 
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-  import { encodeRegexp, makeMap } from '@utils';
+  import { makeMap } from '@utils';
 
   import '@blueking/app-select/dist/style.css';
+
+  import { customListFilterRenderMethod } from './Index.vue';
 
   type IAppItem = ServiceReturnType<typeof getBizs>[number];
 
@@ -76,7 +78,8 @@
     permissionActionId?: string;
   }
   type Emits = (e: 'change', value: IAppItem) => void;
-
+</script>
+<script setup lang="ts">
   const props = withDefaults(defineProps<Props>(), {
     permissionActionId: 'db_manage',
   });
@@ -91,12 +94,6 @@
   const favorBizIdMap = shallowRef(makeMap(userProfile.profile[UserPersonalSettings.APP_FAVOR] || []));
 
   const withFavorBizList = computed(() => _.sortBy(props.list, (item) => favorBizIdMap.value[item.bk_biz_id]));
-
-  const searchExtensionMethod = (data: IAppItem, keyword: string) => {
-    const rule = new RegExp(encodeRegexp(keyword), 'i');
-
-    return rule.test(data.english_name);
-  };
 
   const handleAppChange = (appInfo: IAppItem) => {
     modelValue.value = appInfo;

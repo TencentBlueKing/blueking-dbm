@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"log/slog"
 
+	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/jmoiron/sqlx"
-	"github.com/olekukonko/tablewriter"
-	"github.com/spf13/cast"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/scenesnapshot/internal/archivescenes"
 )
@@ -28,7 +28,7 @@ var processListName = "processlist"
 func queryProcesslist(db *sqlx.DB) (res []*mysqlProcess, err error) {
 	err = db.Select(
 		&res,
-		`SELECT ID, USER, HOST, DB, COMMAND, TIME, STATE, INFO FROM INFORMATION_SCHEMA.PROCESSLIST`,
+		`SELECT ID, USER, HOST, DB, COMMAND, TIME, STATE, INFO FROM INFORMATION_SCHEMA.PROCESSLIST ORDER BY TIME DESC`,
 	)
 	if err != nil {
 		slog.Error("show full processlist", slog.String("error", err.Error()))
@@ -50,26 +50,30 @@ func processListScene(db *sqlx.DB) error {
 	}
 
 	var b bytes.Buffer
-	table := tablewriter.NewWriter(&b)
-	table.SetAutoWrapText(true)
-	table.SetRowLine(true)
-	table.SetAutoFormatHeaders(false)
-	table.SetHeader([]string{"ID", "USER", "HOST", "DB", "COMMAND", "TIME", "STATE", "INFO"})
-
+	tw := table.NewWriter()
+	tw.SetOutputMirror(&b)
+	tw.Style().Options.SeparateRows = true
+	tw.Style().Format.Header = text.FormatDefault
+	tw.AppendHeader(table.Row{"ID", "USER", "HOST", "DB", "COMMAND", "TIME", "INFO", "STATE"})
+	tw.SetColumnConfigs([]table.ColumnConfig{
+		{Number: 7, Name: "INFO", WidthMax: 60}, // wrap text
+		{Number: 8, Name: "STATE", WidthMax: 40},
+	})
+	//tw.SetAllowedRowLength(120)
 	for _, p := range processList {
-		table.Append([]string{
-			cast.ToString(p.Id.Int64),
+		tw.AppendRow([]interface{}{
+			p.Id.Int64,
 			p.User.String,
 			p.Host.String,
 			p.Db.String,
 			p.Command.String,
-			cast.ToString(p.Time.Int64),
-			p.State.String,
+			p.Time.Int64,
 			p.Info.String,
+			p.State.String,
 		})
 	}
 
-	table.Render()
+	tw.Render()
 
 	err = archivescenes.Write(processListName, sceneBase, b.Bytes())
 	if err != nil {

@@ -106,13 +106,13 @@
     title: string;
   }
 
+  defineOptions({
+    inheritAttrs: false,
+  });
+
   const props = withDefaults(defineProps<Props>(), {
     highlightIps: () => [],
     tagKeyConfig: () => [],
-  });
-
-  defineOptions({
-    inheritAttrs: false,
   });
 
   const { t } = useI18n();

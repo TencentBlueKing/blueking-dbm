@@ -34,7 +34,9 @@
     </template>
     <template #menu>
       <div class="db-navigation-side-menu">
-        <component :is="renderMenuCom" />
+        <Suspense :key="menuType">
+          <component :is="renderMenuCom" />
+        </Suspense>
       </div>
     </template>
     <div class="db-navigation-content-header">
@@ -113,6 +115,7 @@
       value: menuEnum.globalConfigManage,
     },
     userProfile.platformManage && {
+      dbConsoleValue: 'platformManage',
       label: t('平台管理'),
       value: menuEnum.platformManage,
     },
@@ -133,8 +136,8 @@
       'BizResourceTag',
       'businessClusterTag',
       'DbConfigure',
-      'DBMonitorStrategy',
-      'DBMonitorAlarmGroup',
+      'monitorStrategy',
+      'alarmGroup',
       'AlarmShield',
       'StaffManage',
       'TicketFlowSetting',
@@ -142,9 +145,11 @@
       'TicketNoticeSetting',
     ],
     [menuEnum.databaseManage]: [
+      'DbManage',
       'MysqlManage',
       'EsManage',
       'HdfsManage',
+      'OracleManage',
       'InfluxDBManage',
       'KafkaManage',
       'PulsarManage',
@@ -154,10 +159,12 @@
       'MongoDBManage',
       'SqlServerManage',
       'DorisManage',
+      'OracleManage',
       'taskHistory',
       'DatabaseWhitelist',
       'bizTicketManage',
       'DBPasswordTemporaryModify',
+      'BussinessServiceApply',
     ],
     [menuEnum.globalConfigManage]: [
       'PlatformVersionFiles',
@@ -170,7 +177,13 @@
       'PlatformTicketFlowSetting',
       'PlatformStaffManage',
     ],
-    [menuEnum.observableManage]: ['DBHASwitchEvents', 'inspectionManage', 'AlarmManage'],
+    [menuEnum.observableManage]: [
+      'DBHASwitchEvents',
+      'inspectionManage',
+      'monitorAlarm',
+      'bussinessDashboard',
+      'RiskMemo',
+    ],
     [menuEnum.personalWorkbench]: [
       'serviceApply',
       'SelfServiceMyTickets',
@@ -178,15 +191,19 @@
       'ticketSelfDone',
       'ticketSelfManage',
       'InspectionTodos',
-      'AlarmEventsTodo',
+      'platformAlarmEventsTodo',
+      'RiskMemoTodos',
     ],
     [menuEnum.platformManage]: [
       'platformTaskManage',
       'ticketPlatformManage',
       'inspectionReportGlobal',
       'DbaManage',
-      'AlarmEventsGlobal',
+      'platformAlarmEvents',
       'ServiceStatus',
+      'DashboradManage',
+      'RiskMemoGlobal',
+      'ExerciseReportGlobal',
     ],
     [menuEnum.resourceManage]: ['ResourceSpec', 'resourceManage', 'resourcePoolDirtyMachines'],
   } as Record<string, string[]>;
@@ -221,7 +238,7 @@
 
       const routeGroupMap = Object.keys(routeGroup).reduce(
         (result, key) => {
-          routeGroup[key].forEach((item) => {
+          routeGroup[key]!.forEach((item) => {
             Object.assign(result, {
               [item]: key,
             });
@@ -244,7 +261,6 @@
 
   const handleCollapse = () => {
     isSideMenuFlod.value = !isSideMenuFlod.value;
-    console.log('handleCollapse');
   };
 
   const handleMenuChange = (type: string) => {
@@ -331,6 +347,10 @@
     color: #979ba5;
     align-items: center;
     justify-content: flex-end;
+  }
+
+  .db-navigation-side-menu {
+    height: 100%;
   }
 
   .db-navigation-content-header {

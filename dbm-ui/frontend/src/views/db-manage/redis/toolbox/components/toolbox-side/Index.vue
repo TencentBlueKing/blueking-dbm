@@ -100,7 +100,7 @@
   watch(
     route,
     () => {
-      activeViewName.value = route.name as string;
+      activeViewName.value = route.meta.menuId as string || route.name as string;
     },
     {
       immediate: true,

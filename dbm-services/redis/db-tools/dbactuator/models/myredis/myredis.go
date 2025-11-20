@@ -74,24 +74,6 @@ func GetRedisPasswdFromConfFile(port int) (password string, err error) {
 	return
 }
 
-// GetRedisPasswdFromConfFile (从配置文件中)获取本地redis实例密码
-//func GetRedisPasswdFromConfFile(port int) (password string, err error) {
-//	confFile, err := GetRedisLoccalConfFile(port)
-//	if err != nil {
-//		err = fmt.Errorf("get redis local config file failed,err:%v,port:%d", err, port)
-//		mylog.Logger.Error(err.Error())
-//		return
-//	}
-//	cmd01 := fmt.Sprintf(`grep -E '^requirepass' %s|awk '{print $2}'|head -1`, confFile)
-//	password, err = util.RunBashCmd(cmd01, "", nil, 10*time.Second)
-//	if err != nil {
-//		return
-//	}
-//	password = strings.TrimPrefix(password, "\"")
-//	password = strings.TrimSuffix(password, "\"")
-//	return
-//}
-
 // GetTwemproxyLocalConfFile 本地获取twemproxy实例配置文件
 func GetTwemproxyLocalConfFile(port int) (confFile string, err error) {
 	psCmd := fmt.Sprintf(`

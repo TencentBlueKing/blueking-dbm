@@ -269,17 +269,18 @@
           popoverInstance.setContent(alternateContent.value.$refs.alternateListContainer);
           showPopover();
           alternateContent.value.loading = !!value;
-          const { results: users, next: nextPage } = await new Promise(async (resolve, _reject) => {
+          const { results: users, next: nextPage } = await new Promise((resolve, _reject) => {
             if (value) {
               const promise = [(fuzzySearchMethod.value || defaultFuzzySearchMethod)(value, next)];
               if (searchFromDefaultAlternate.value) {
                 promise.push(getDefaultAlternateData(value));
               }
-              const [fuzzySearchData, defaultAlternateData] = await Promise.all(promise);
-              if (defaultAlternateData) {
-                fuzzySearchData.results.unshift(...defaultAlternateData.results);
-              }
-              resolve(fuzzySearchData);
+              Promise.all(promise).then(([fuzzySearchData, defaultAlternateData]) => {
+                if (defaultAlternateData) {
+                  fuzzySearchData.results.unshift(...defaultAlternateData.results);
+                }
+                resolve(fuzzySearchData);
+              })
             } else {
               const defaultAlternateData = getDefaultAlternateData();
               resolve(defaultAlternateData);

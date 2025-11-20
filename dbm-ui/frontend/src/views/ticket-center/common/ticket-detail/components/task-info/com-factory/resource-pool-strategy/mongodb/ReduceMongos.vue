@@ -12,58 +12,60 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
+  <TicketInfoTable
+    :data="ticketDetails.details.infos"
+    ellipsis
+    row-key="cluster_id">
+    <TicketInfoTableColumn
+      col-key="cluster_id"
       fixed="left"
-      :label="t('目标分片集群')"
-      :min-width="200">
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters?.[row.cluster_id]?.immute_domain || ''"
+      :min-width="200"
+      :title="t('目标分片集群')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters?.[row.cluster_id]?.immute_domain || '--' }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('缩容节点类型')"
-      :min-width="150">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="node_type"
+      :min-width="150"
+      :title="t('缩容节点类型')">
       <template #default> mongos </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('当前规格')"
-      :min-width="150">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="spec"
+      :min-width="150"
+      :title="t('当前规格')">
       <template #default>
-        {{ specInfo.name }}
-        <SpecPanel
-          v-if="specInfo.id"
-          :data="specInfo"
-          :hide-qps="!specInfo.qps.min">
+        {{ specInfo?.name || '--' }}
+        <SpecDetailPopover
+          v-if="specInfo?.id"
+          :data="specInfo">
           <DbIcon
             class="visible-icon ml-4"
             type="visible1" />
-        </SpecPanel>
+        </SpecDetailPopover>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('缩容的IP')"
-      :min-width="150">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="old_nodes"
+      :min-width="150"
+      :title="t('缩容的IP')">
       <template #default="{ row }: { row: RowData }">
         {{ row.old_nodes.mongos?.length > 0 ? row.old_nodes.mongos.map((item) => item.ip).join(',') : '--' }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import type { DetailSpecs } from '@services/model/ticket/details/common';
   import TicketModel, { type Mongodb } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
 
-  import SpecPanel, { type SpecInfo } from '@components/render-table/columns/spec-display/Panel.vue';
-
-  interface Props {
-    ticketDetails: TicketModel<Mongodb.ResourcePool.ReduceMongos>;
-  }
-
-  type RowData = Props['ticketDetails']['details']['infos'][0];
+  import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
   defineOptions({
     name: TicketTypes.MONGODB_REDUCE_MONGOS,
@@ -72,25 +74,15 @@
 
   const props = defineProps<Props>();
 
+  interface Props {
+    ticketDetails: TicketModel<Mongodb.ResourcePool.ReduceMongos>;
+  }
+
+  type RowData = Props['ticketDetails']['details']['infos'][0];
+
   const { t } = useI18n();
 
-  const specInfo = ref<SpecInfo>({
-    cpu: {
-      max: 0,
-      min: 0,
-    },
-    id: 0,
-    mem: {
-      max: 0,
-      min: 0,
-    },
-    name: '--',
-    qps: {
-      max: 0,
-      min: 0,
-    },
-    storage_spec: [],
-  });
+  const specInfo = ref<DetailSpecs[string]>();
 
   watch(
     () => props.ticketDetails.details,

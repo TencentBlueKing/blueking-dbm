@@ -4,14 +4,16 @@
       <div class="cluster-domain">
         {{ data.masterDomain }}
       </div>
-      <div
-        v-if="data.isOnlineCLB"
-        class="ml-4">
-        <ClusterEntryPanel
-          :cluster-id="data.id"
-          entry-type="clb"
-          size="big" />
-      </div>
+      <slot name="clb">
+        <div
+          v-if="data.isOnlineCLB"
+          class="ml-4">
+          <ClusterEntryPanel
+            :cluster-id="data.id"
+            entry-type="clb"
+            size="big" />
+        </div>
+      </slot>
       <div
         v-if="data.isOnlinePolaris"
         class="ml-4">
@@ -21,6 +23,9 @@
           :panel-width="418"
           size="big" />
       </div>
+      <slot
+        v-if="slots.load"
+        name="load" />
       <CluterRelatedTicket
         v-if="data.operations.length > 0"
         class="ml-4"
@@ -80,6 +85,7 @@
   </div>
 </template>
 <script setup lang="ts">
+  import type { VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
@@ -101,19 +107,27 @@
     } & Pick<
       TendbhaModel,
       | 'masterDomain'
+      | 'master_domain'
       | 'cluster_name'
       | 'region'
-      | 'operationTagTips'
+      // | 'operationTagTips'
       | 'id'
       | 'isOffline'
-      | 'isStarting'
+      // | 'isStarting'
       | 'operations'
       | 'id'
       | 'status'
     >;
   }
 
+  interface Slots {
+    clb: () => VNode;
+    default: () => VNode;
+    load: () => VNode;
+  }
+
   const props = defineProps<Props>();
+  const slots = defineSlots<Slots>();
 
   const { t } = useI18n();
   const route = useRoute();

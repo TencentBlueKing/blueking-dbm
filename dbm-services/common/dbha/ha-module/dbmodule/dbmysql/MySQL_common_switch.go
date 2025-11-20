@@ -13,13 +13,14 @@ package dbmysql
 
 import (
 	"database/sql"
-	"dbm-services/common/dbha/ha-module/util"
-	"dbm-services/common/dbha/hadb-api/model"
 	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
+
+	"dbm-services/common/dbha/ha-module/util"
+	"dbm-services/common/dbha/hadb-api/model"
 
 	"dbm-services/common/dbha/ha-module/client"
 	"dbm-services/common/dbha/ha-module/constvar"
@@ -77,6 +78,7 @@ type MySQLCommonSwitch struct {
 	Role string
 	//standby slave which master switch to
 	StandBySlave dbutil.SlaveInfo
+	Entry        dbutil.BindEntry
 }
 
 // MySQLCommonSwitchUtil common switch util for mysql-related instance used

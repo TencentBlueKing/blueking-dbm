@@ -48,7 +48,7 @@ func (d *StartStopProcessComp) StopProcess() (err error) {
 		return err
 	}
 
-	extraCmd = "ps -ef | egrep 'cmak' | grep -v grep |awk {'print \"kill -9 \" $2'}|sh"
+	extraCmd = "ps -ef | grep -E 'cmak' | grep -v grep |awk {'print \"kill -9 \" $2'}|sh"
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("[%s] execute failed, %v", extraCmd, err)
 		return err
@@ -95,7 +95,7 @@ func (d *StartStopProcessComp) RestartProcess() (err error) {
 		return err
 	}
 
-	extraCmd = "ps -ef | egrep 'cmak' | grep -v grep |awk {'print \"kill -9 \" $2'}|sh"
+	extraCmd = "ps -ef | grep -E 'cmak' | grep -v grep |awk {'print \"kill -9 \" $2'}|sh"
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("[%s] execute failed, %v", extraCmd, err)
 		return err

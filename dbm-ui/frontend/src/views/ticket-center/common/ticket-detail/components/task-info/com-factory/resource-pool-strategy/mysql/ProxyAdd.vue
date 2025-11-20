@@ -12,27 +12,80 @@
 -->
 
 <template>
-  <BkTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
-    show-overflow>
-    <BkTableColumn
-      :label="t('目标集群')"
-      :min-width="250">
-      <template #default="{ data }: { data: RowData }">
-        <div
+    row-key="cluster_ids">
+    <TicketInfoTableColumn
+      col-key="cluster_ids"
+      :get-copy-value="
+        (item: RowData) => item.cluster_ids.map((clusterId) => ticketDetails.details.clusters[clusterId].immute_domain)
+      "
+      :min-width="250"
+      :title="t('目标集群')">
+      <template #default="{ row: data }: { row: RowData }">
+        <p
           v-for="clusterId in data.cluster_ids"
-          :key="clusterId"
-          style="line-height: 20px">
+          :key="clusterId">
           {{ ticketDetails.details.clusters[clusterId].immute_domain }}
-        </div>
+        </p>
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('新Proxy主机')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.resource_spec.new_proxy.hosts[0].ip }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="current_proxy_num"
+      :min-width="120"
+      :title="t('当前数量（台）')">
+      <template #default="{ row: data }: { row: RowData }">
+        {{ data?.current_proxy_num || '--' }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="resource_spec.new_proxies.count"
+      :min-width="120"
+      :title="t('扩容数量（台）')">
+      <template #default="{ row: data }: { row: RowData }">
+        {{ data.resource_spec.new_proxies?.count || '--' }}
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="current_proxy_num"
+      :min-width="120"
+      :title="t('最终数量（台）')">
+      <template #default="{ row: data }: { row: RowData }">
+        {{
+          data?.current_proxy_num && data.resource_spec.new_proxies?.count
+            ? data.current_proxy_num + data.resource_spec.new_proxies.count
+            : '--'
+        }}
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="spec_id"
+      :min-width="120"
+      :title="t('规格')">
+      <template #default="{ row: data }: { row: RowData }">
+        {{ ticketDetails.details.specs?.[data.resource_spec.new_proxies.spec_id]?.name || '--' }}
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="label_names"
+      :min-width="200"
+      :title="t('资源标签')">
+      <template #default="{ row: data }: { row: RowData }">
+        <template v-if="data.resource_spec.new_proxies?.label_names?.length">
+          <BkTag
+            v-for="item in data.resource_spec.new_proxies.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
+      </template>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

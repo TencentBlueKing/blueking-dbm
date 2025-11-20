@@ -12,22 +12,27 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
-      :label="t('目标集群')"
-      :min-width="220">
-      <template #default="{data}: {data: RowData}">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+  <TicketInfoTable
+    :data="ticketDetails.details.infos"
+    row-key="cluster_id">
+    <TicketInfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
+      :min-width="220"
+      :title="t('目标集群')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('集群类型')"
-      :min-width="220">
-      <template #default="{data}: {data: RowData}">
-        {{ ticketDetails.details.clusters[data.cluster_id].cluster_type_name }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_type_name"
+      :min-width="220"
+      :title="t('集群类型')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].cluster_type_name }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('备份保存时间')">
       {{ fileTagMap[ticketDetails.details.file_tag] }}

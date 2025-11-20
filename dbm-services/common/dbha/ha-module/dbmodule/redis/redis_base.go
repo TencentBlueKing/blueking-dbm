@@ -58,6 +58,7 @@ type RedisDetectInfoFromCmDB struct {
 	Pass        string
 	Cluster     string
 	ClusterId   int
+	DbRole      string
 }
 
 // RedisProxySwitchInfo redis proxy switch information
@@ -98,6 +99,7 @@ func GetDetectBaseByInfo(ins *RedisDetectInfoFromCmDB,
 			Port:           ins.Port,
 			App:            ins.App,
 			DBType:         types.DBType(dbType),
+			DBRole:         ins.DbRole,
 			ReporterTime:   time.Unix(0, 0),
 			ReportInterval: conf.AgentConf.ReportInterval + rand.Intn(20),
 			Status:         constvar.DBCheckSuccess,
@@ -128,6 +130,7 @@ func GetDetectBaseByRsp(ins *RedisDetectResponse,
 			Port:           ins.DBPort,
 			App:            ins.App,
 			DBType:         types.DBType(dbType),
+			DBRole:         ins.DBRole,
 			ReporterTime:   time.Unix(0, 0),
 			ReportInterval: conf.AgentConf.ReportInterval + rand.Intn(20),
 			Status:         types.CheckStatus(ins.Status),
@@ -235,6 +238,7 @@ func UnMarshalRedisInstanceByCmdb(instances []interface{},
 			MetaType:    ins.MachineType,
 			Cluster:     ins.Cluster,
 			ClusterId:   ins.ClusterId,
+			DbRole:      ins.InstanceRole,
 		}
 
 		ret = append(ret, detechInfo)

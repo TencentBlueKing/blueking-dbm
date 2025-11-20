@@ -81,8 +81,10 @@ export interface DetailSpecs {
     };
     spec_id: number;
     storage_spec: {
+      max: number;
+      min: number;
       mount_point: string;
-      size: number;
+      size?: number;
       type: string;
     }[];
   };
@@ -130,12 +132,17 @@ export interface SpecInfo {
     max: number;
     min: number;
   };
-  qps: Record<string, any>;
+  qps: {
+    max: number;
+    min: number;
+  };
   spec_id: number;
   spec_name: string;
   storage_spec: {
+    max: number;
+    min: number;
     mount_point: string;
-    size: number;
+    size?: number;
     type: string;
   }[];
 }
@@ -193,6 +200,29 @@ export interface ResourcePoolRecycle extends DetailBase {
   group: string; // 回收机器的组件类型
   parent_ticket: number; // 关联的父单
   recycle_hosts: ResourcePoolRecycleHost[]; // 已下架主机
+}
+
+/**
+ * 导入资源池
+ */
+export interface ImportResource extends DetailBase {
+  bk_biz_id: number;
+  for_biz: number;
+  hosts: Array<{
+    bk_cloud_id: number;
+    bk_cloud_name: string;
+    bk_os_name: string;
+    city_name: string;
+    host_id: number;
+    ip: string;
+    rack_id: string;
+    status: number;
+    sub_zone: string;
+    svr_device_class: string;
+  }>;
+  label_names: string[];
+  labels: number[];
+  resource_type: string;
 }
 
 export interface ResourcePoolDetailBase extends DetailBase, Omit<ResourcePoolRecycle, 'group' | 'parent_ticket'> {

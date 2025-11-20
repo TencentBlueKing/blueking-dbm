@@ -34,10 +34,9 @@ export default defineConfigWithVueTs(
     name: 'app/files-to-lint',
     files: ['**/*.{ts,mts,tsx,vue}'],
   },
-
   {
     name: 'app/files-to-ignore',
-    ignores: ['**/dist/**', '**/dist-ssr/**', '**/coverage/**'],
+    ignores: ['**/dist/**'],
   },
   pluginVue.configs['flat/recommended'],
   vueTsConfigs.recommended,
@@ -63,6 +62,7 @@ export default defineConfigWithVueTs(
       },
     },
   },
+  // typescript 代码规范
   {
     files: ['**/*.ts', '**/*.tsx', '**/*.vue'],
     rules: {
@@ -74,12 +74,6 @@ export default defineConfigWithVueTs(
         {
           selector: 'variable',
           format: ['camelCase', 'PascalCase', 'UPPER_CASE'],
-        },
-      ],
-      '@typescript-eslint/no-misused-promises': [
-        'error',
-        {
-          checksVoidReturn: false,
         },
       ],
       '@typescript-eslint/unified-signatures': 'off',
@@ -259,6 +253,7 @@ export default defineConfigWithVueTs(
       ],
     },
   },
+  // 格式化 import 的配置顺序
   {
     files: ['**/*.ts', '**/*.tsx', '**/*.vue'],
     plugins: {
@@ -270,6 +265,7 @@ export default defineConfigWithVueTs(
       'import/no-duplicates': 'error',
     },
   },
+  // 格式化 import 分组的配置顺序
   {
     plugins: {
       'simple-import-sort': simpleImportSortPlugin,

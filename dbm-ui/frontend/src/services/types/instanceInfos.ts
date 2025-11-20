@@ -25,10 +25,8 @@ export interface InstanceInfos {
   cluster_type: string;
   create_at: string;
   db_module_id: number;
-  db_module_name: string;
   host_info: HostInfo;
   instance_address: string;
-  instance_role: string;
   ip: string;
   master_domain: string;
   port: number;
@@ -57,7 +55,7 @@ export interface InstanceInfos {
       max: number;
       min: number;
     };
-    device_class: string;
+    device_class: string[];
     id: number;
     mem: {
       max: number;
@@ -69,10 +67,11 @@ export interface InstanceInfos {
       min: number;
     };
     storage_spec: {
-      mount_point: string;
       size: number;
       type: string;
+      mount_point: string;
     }[];
   };
+  spec_id: number;
   status: string;
 }

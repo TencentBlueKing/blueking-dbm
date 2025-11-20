@@ -6,8 +6,8 @@
       class="result-item"
       @click="handleGo(item)">
       <div class="value-text">
-        <HightLightText
-          :key-word="keyWord"
+        <TextHighlight
+          :keyword="keyWord"
           :text="item.ip" />
       </div>
       <div
@@ -23,7 +23,7 @@
 
   import { systemSearchCache } from '@common/cache';
 
-  import HightLightText from './components/HightLightText.vue';
+  import TextHighlight from '@components/text-highlight/Index.vue';
 
   interface Props {
     data: {

@@ -18,7 +18,7 @@
     fixed="left"
     :label="t('目标从库主机')"
     :loading="loading"
-    :min-width="300"
+    :min-width="240"
     required>
     <template #headAppend>
       <span
@@ -36,7 +36,8 @@
   <EditableColumn
     :label="t('同机关联集群')"
     :loading="loading"
-    :min-width="300">
+    :min-width="300"
+    readonly>
     <EditableBlock v-if="modelValue.related_clusters.length">
       <p
         v-for="item in modelValue.related_clusters"
@@ -136,24 +137,19 @@
 
   const rules = [
     {
-      message: t('IP 格式不符合IPv4标准'),
+      message: t('IP格式有误，请输入合法IP'),
       trigger: 'change',
-      validator: (value: string) => ipv4.test(value),
+      validator: (value: string) => !value || ipv4.test(value),
     },
     {
       message: t('目标主机重复'),
-      trigger: 'blur',
-      validator: (value: string) => props.selected.filter((item) => item.ip === value).length < 2,
+      trigger: 'change',
+      validator: (value: string) => !value || props.selected.filter((item) => item.ip === value).length < 2,
     },
     {
       message: t('目标主机不存在'),
       trigger: 'blur',
-      validator: (value: string) => {
-        if (!value) {
-          return true;
-        }
-        return Boolean(modelValue.value.bk_host_id);
-      },
+      validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
     },
   ];
 

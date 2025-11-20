@@ -29,3 +29,4 @@ worker-agent.jar
 preci.port
 build.yml
 tests/dbactuator-test
+build

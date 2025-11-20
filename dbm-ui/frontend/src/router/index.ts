@@ -18,33 +18,30 @@ import { connectToMain, rootPath } from '@blueking/sub-saas';
 import { useGlobalBizs } from '@stores';
 
 import BizPermission from '@views/BizPermission.vue';
+import getDashborderRoutes from '@views/dashboard-manage/routes';
 import getDbConfRoutes from '@views/db-configure/routes';
-import getDbManageRoutes, { getDbaManageRoutes } from '@views/db-manage/routes';
+import getDbManageRoutes from '@views/db-manage/routes';
 import getDbhaSwitchEventsRouters from '@views/dbha-switch-events/routes';
 import getDutyRuleManageRoutes from '@views/duty-rule-manage/routes';
+import getExerciseReportRoutes from '@views/exercise-report/routes';
 import getInspectionRoutes from '@views/inspection-manage/routes';
+import getMonitorAlarmRoutes from '@views/monitor-alarm/routes';
 import getNotificationSettingRoutes from '@views/notification-setting/routes';
 import getPasswordManageRoutes from '@views/password-manage/routes';
 import getPlatformDbConfigureRoutes from '@views/platform-db-configure/routes';
 import getQuickSearchRoutes from '@views/quick-search/routes';
-import getResourceManageRoutes, { getBizResourcePoolRoute } from '@views/resource-manage/routes';
+import getResourceManageRoutes from '@views/resource-manage/routes';
+import getRiskMemoRoutes from '@views/risk-memo/routes';
 import getServiceApplyRoutes from '@views/service-apply/routes';
 import getServiceStatusRoutes from '@views/service-status/routes';
 import getStaffManageRoutes from '@views/staff-manage/routes';
-import getResourceTagRoutes from '@views/tag-manage/routes';
 import getTaskHistoryRoutes from '@views/task-history/routes';
 import getTemporaryPasswordModify from '@views/temporary-paassword-modify/routes';
 import getTicketRoutes from '@views/ticket-center/routes';
-import getTicketCooperationSettingRoutes from '@views/ticket-cooperation-setting/routes';
-import getTicketFlowSettingBizRoutes from '@views/ticket-flow-setting-biz/routes';
-import getTicketFlowSettingGlobalRoutes from '@views/ticket-flow-setting-global/routes';
-import getTicketNoticeRoutes from '@views/ticket-notice-setting/routes';
 import getVersionFilesRoutes from '@views/version-files/routes';
 import getWhitelistRoutes from '@views/whitelist/routes';
 
 import { checkDbConsole } from '@utils';
-
-import getMonitorAlarmRoutes from '@/views/monitor-alarm/routes';
 
 let appRouter: Router;
 
@@ -104,14 +101,15 @@ export default () => {
   getTicketRoutes();
   getTaskHistoryRoutes();
   getInspectionRoutes();
-  getDbaManageRoutes();
   getMonitorAlarmRoutes();
-  getBizResourcePoolRoute();
+  getResourceManageRoutes();
+  getDashborderRoutes();
+  getDbManageRoutes();
+  getRiskMemoRoutes();
 
   const routes = [
     {
       children: [
-        ...getResourceManageRoutes(),
         ...getVersionFilesRoutes(),
         ...getPlatformDbConfigureRoutes(),
         ...getPasswordManageRoutes(),
@@ -119,7 +117,12 @@ export default () => {
         ...getQuickSearchRoutes(),
         ...getDutyRuleManageRoutes(),
         ...getServiceStatusRoutes(),
+        ...getExerciseReportRoutes(),
         ...moduleList,
+        {
+          component: () => import('@/demo/Index.vue'),
+          path: 'demo',
+        },
       ],
       name: 'index',
       path: rootPath,
@@ -129,20 +132,13 @@ export default () => {
     },
     {
       children: [
-        ...getResourceTagRoutes(),
-        ...getDbManageRoutes(),
         ...getDbConfRoutes(),
         ...getDbhaSwitchEventsRouters(),
         ...getNotificationSettingRoutes(),
         ...getStaffManageRoutes(),
         ...getWhitelistRoutes(),
-        // ...getTicketManageRoutes(),
         ...getTemporaryPasswordModify(),
-        ...getTicketFlowSettingBizRoutes(),
-        ...getTicketCooperationSettingRoutes(),
-        ...getTicketFlowSettingGlobalRoutes(),
         ...businessModuleList,
-        ...getTicketNoticeRoutes(),
       ],
       path: `${rootPath}${currentBiz}`,
     },
@@ -156,7 +152,7 @@ export default () => {
   console.log('routes = ', routes);
 
   if (!bizPermission) {
-    renderPageWithComponent(routes[1], BizPermission);
+    renderPageWithComponent(routes[1]!, BizPermission);
   }
 
   appRouter = createRouter({

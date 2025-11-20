@@ -82,28 +82,28 @@ func GetItemVal(rule TbSyntaxRule) (val interface{}, err error) {
 	case ArryItem:
 		var d []string
 		if err = json.Unmarshal(rule.Item, &d); err != nil {
-			logger.Error("umarshal failed %s", err.Error())
+			logger.Error("unmarshal failed %s", err.Error())
 			return nil, err
 		}
 		val = d
 	case StringItem:
 		var d string
 		if err = json.Unmarshal(rule.Item, &d); err != nil {
-			logger.Error("umarshal failed %s", err.Error())
+			logger.Error("unmarshal failed %s", err.Error())
 			return nil, err
 		}
 		val = d
 	case IntItem:
 		var d int
 		if err = json.Unmarshal(rule.Item, &d); err != nil {
-			logger.Error("umarshal failed %s", err.Error())
+			logger.Error("unmarshal failed %s", err.Error())
 			return nil, err
 		}
 		val = d
 	case BoolItem:
 		var d bool
 		if err = json.Unmarshal(rule.Item, &d); err != nil {
-			logger.Error("umarshal failed %s", err.Error())
+			logger.Error("unmarshal failed %s", err.Error())
 			return nil, err
 		}
 		val = d

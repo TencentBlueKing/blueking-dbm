@@ -72,8 +72,6 @@
 
   const props = defineProps<Props>();
 
-  const { t } = useI18n();
-
   const importMode = defineModel<ComponentProps<typeof SqlContent>['importMode']>('importMode', {
     required: true,
   });
@@ -81,6 +79,8 @@
   const modelValue = defineModel<string[]>({
     default: () => [],
   });
+
+  const { t } = useI18n();
 
   const rules = [
     {

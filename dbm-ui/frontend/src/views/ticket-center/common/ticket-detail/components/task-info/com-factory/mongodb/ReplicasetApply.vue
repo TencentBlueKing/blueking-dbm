@@ -46,41 +46,44 @@
       {{ ticketDetails.details.node_count || '--' }}
     </InfoItem>
     <InfoItem :label="t('规格')">
-      <BkPopover
+      <SpecDetailPopover
         v-if="backendSpec"
-        placement="top"
-        theme="light">
+        :data="backendSpec"
+        placement="top">
         <span
           class="pb-2"
           style="cursor: pointer; border-bottom: 1px dashed #979ba5">
           {{ backendSpec.spec_name }}（{{ `${backendSpec.count} ${t('台')}` }}）
         </span>
-        <template #content>
-          <SpecInfos :data="backendSpec" />
-        </template>
-      </BkPopover>
+      </SpecDetailPopover>
       <span v-else>--</span>
     </InfoItem>
-    <InfoItem :label="t('每台主机oplog容量占比')">
-      {{ ticketDetails.details.oplog_percent || '--' }}
+    <InfoItem :label="t('每台主机 oplog 容量占比')">
+      {{ ticketDetails.details.oplog_percent ? `${ticketDetails.details.oplog_percent} %` : '--' }}
     </InfoItem>
     <InfoItem
       :label="t('域名设置')"
-      style="width: 100%">
-      <BkTable :data="tableData">
-        <BkTableColumn
-          field="mainDomain"
-          :label="t('主域名')">
-        </BkTableColumn>
-        <BkTableColumn
-          field="clusterId"
-          :label="t('集群ID')">
-        </BkTableColumn>
-        <BkTableColumn
-          field="clusterName"
-          :label="t('集群名称')">
-        </BkTableColumn>
-      </BkTable>
+      style="flex: 1 0 100%">
+      <TicketInfoTable
+        :data="replicaSets"
+        row-key="set_id">
+        <TicketInfoTableColumn
+          col-key="domain"
+          :get-copy-value="(row: RowData) => row.domain"
+          :title="t('主域名')">
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="set_id"
+          :title="t('集群ID')">
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="name"
+          :title="t('集群名称')">
+          <template #default="{ row }: { row: RowData }">
+            {{ row.name || '--' }}
+          </template>
+        </TicketInfoTableColumn>
+      </TicketInfoTable>
     </InfoItem>
   </InfoList>
 </template>
@@ -92,13 +95,16 @@
 
   import { TicketTypes } from '@common/const';
 
+  import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
+
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
-  import RegionRequirements from '../components/RegionRequirements.vue';
-  import SpecInfos from '../components/SpecInfos.vue';
+  import RegionRequirements from '../components/RegionRequirementsMongodb.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mongodb.ReplicasetApply>;
   }
+
+  type RowData = Props['ticketDetails']['details']['replica_sets'][number];
 
   defineOptions({
     name: TicketTypes.MONGODB_REPLICASET_APPLY,
@@ -111,11 +117,6 @@
 
   const { replica_sets: replicaSets, resource_spec: resourceSpec } = props.ticketDetails.details;
   const backendSpec = resourceSpec.mongo_machine_set;
-  const tableData = replicaSets.map((domainItem) => ({
-    clusterId: domainItem.set_id,
-    clusterName: domainItem.name,
-    mainDomain: domainItem.domain,
-  }));
 </script>
 
 <style lang="less" scoped>

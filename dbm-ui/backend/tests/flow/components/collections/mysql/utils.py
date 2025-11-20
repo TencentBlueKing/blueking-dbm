@@ -64,7 +64,7 @@ class MySQLComponentBaseTest(BaseComponentTest):
     @classmethod
     def _set_excepted_outputs(cls) -> None:
         """预期测试样例的输出结果"""
-        raise NotImplementedError()
+        cls.excepted_outputs = {}
 
     @classmethod
     def setUpTestData(cls) -> Union[Any, NoReturn]:
@@ -171,7 +171,13 @@ class MySQLSingleApplyComponentTest(MySQLComponentBaseTest):
         cls.kwargs.update({"root_id": uuid.uuid1().hex, "node_id": uuid.uuid1().hex, "node_name": "Component"})
 
     @classmethod
+    def _set_excepted_schedule_outputs(cls):
+        return {**cls.excepted_outputs, "job_execute": True}
+
+    @classmethod
     def get_schedule_assertions(cls) -> List[ScheduleAssertion]:
         return [
-            ScheduleAssertion(success=True, schedule_finished=True, outputs=cls.excepted_outputs, callback_data=None)
+            ScheduleAssertion(
+                success=True, schedule_finished=True, outputs=cls._set_excepted_schedule_outputs(), callback_data=None
+            )
         ]

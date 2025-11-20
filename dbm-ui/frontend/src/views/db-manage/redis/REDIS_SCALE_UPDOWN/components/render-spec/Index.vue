@@ -13,22 +13,16 @@
 
 <template>
   <div class="render-spec-box">
-    {{
-      displayInfo?.name ? `${displayInfo.name} ${isIgnoreCounts ? '' : t('((n))台', { n: displayInfo?.count })}` : ''
-    }}
-    <SpecPanel
-      :data="displayInfo"
-      :hide-qps="hideQps">
+    {{ displayInfo.name }}
+    <SpecDetailPopover :data="displayInfo">
       <DbIcon
         class="visible-icon ml-4"
         type="visible1" />
-    </SpecPanel>
+    </SpecDetailPopover>
   </div>
 </template>
 <script setup lang="ts">
-  import { useI18n } from 'vue-i18n';
-
-  import SpecPanel from './Panel.vue';
+  import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
   interface Props {
     data: {
@@ -50,35 +44,26 @@
       spec_id?: number;
       spec_name?: string;
       storage_spec?: {
+        max: number;
+        min: number;
         mount_point: string;
-        size: number;
+        size?: number;
         type: string;
       }[];
     };
-    hideQps?: boolean;
-    isIgnoreCounts?: boolean;
-    isLoading?: boolean;
-    placeholder?: string;
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    hideQps: true,
-    isIgnoreCounts: false,
-    isLoading: false,
-    placeholder: undefined,
-  });
-
-  const { t } = useI18n();
+  const props = defineProps<Props>();
 
   const displayInfo = computed(() =>
     Object.assign(
       {
-        count: 0,
+        // count: 0,
         cpu: {
           max: 1,
           min: 0,
         },
-        id: 0,
+        // id: 0,
         mem: {
           max: 1,
           min: 0,
@@ -94,7 +79,7 @@
       },
       props.data,
       {
-        id: props.data?.id || (props.data?.spec_id as number),
+        // id: props.data?.id || (props.data?.spec_id as number),
         name: props.data?.name || (props.data?.spec_name as string),
       },
     ),

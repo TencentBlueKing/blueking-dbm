@@ -11,52 +11,41 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging.config
 from dataclasses import asdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Optional
 
 from django.db.models import Q
 from django.utils.crypto import get_random_string
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
-from backend.configuration.constants import MYSQL_USUAL_JOB_TIME, DBType
-from backend.constants import IP_PORT_DIVIDER
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceRole
 from backend.db_meta.models import Cluster, StorageInstanceTuple
 from backend.db_package.models import Package
-from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
-from backend.flow.consts import InstanceStatus, MediumEnum, MySQLBackupTypeEnum, MysqlChangeMasterType, RollbackType
+from backend.flow.consts import MediumEnum, MySQLBackupTypeEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.mysql.common.exceptions import NormalTenDBFlowException
-from backend.flow.engine.bamboo.scene.mysql.common.get_local_backup import check_storage_database, get_local_backup
 from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_cluster_config
-from backend.flow.engine.bamboo.scene.mysql.mysql_rollback_data_sub_flow import (
-    rollback_local_and_backupid,
-    rollback_local_and_time,
-    rollback_remote_and_backupid,
-    rollback_remote_and_time,
+from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import (
+    change_master_by_master_status,
+    tendbha_rollback_data_sub_flow,
 )
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_apply_flow import MySQLSingleApplyFlow
-from backend.flow.engine.bamboo.scene.spider.common.exceptions import (
-    NormalSpiderFlowException,
-    TendbGetBackupInfoFailedException,
-)
-from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
+from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
+from backend.flow.plugins.components.collections.mysql.mysql_check_processlist import MySQLCheckProcesslistComponent
 from backend.flow.plugins.components.collections.mysql.mysql_check_slave_delay import MySQLCheckSlaveDelayComponent
-from backend.flow.plugins.components.collections.mysql.mysql_crond_control import MysqlCrondMonitorControlComponent
 from backend.flow.plugins.components.collections.mysql.mysql_rds_execute import MySQLExecuteRdsComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CheckSlaveStatusKwargs,
-    CrondMonitorKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
     ExecuteRdsKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import ClusterInfoContext
-from backend.utils.time import str2datetime
 
 logger = logging.getLogger("flow")
 
@@ -77,7 +66,7 @@ class MySQLRollbackDataFlow(object):
 
     def rollback_data_flow(self):
         """
-        定义重建slave节点的流程
+        tendbHa tendbCluster 回档数据,回档到的目标集群没安装周边
         增加单据临时ADMIN账号的添加和删除逻辑
         """
         cluster_ids = [i["cluster_id"] for i in self.ticket_data["infos"]]
@@ -141,8 +130,11 @@ class MySQLRollbackDataFlow(object):
             sub_pipeline.add_sub_pipeline(
                 MySQLSingleApplyFlow(root_id=self.root_id, data=install_ticket).deploy_mysql_single_flow()
             )
-
-            mycluster = {
+            #  todo 后续改版这里页面只需要指定backup_id,不需要传整个备份信息。这里兼容原本的。
+            backup_id = self.data.get("backup_id", None)
+            if backup_id is None or backup_id == "":
+                backup_id = self.data.get("backupinfo", {}).get("backup_id", None)
+            cluster_info = {
                 "name": cluster_class.name,
                 "cluster_id": cluster_class.id,
                 "cluster_type": cluster_class.cluster_type,
@@ -159,7 +151,7 @@ class MySQLRollbackDataFlow(object):
                 "skip_local_exists": True,
                 "name_regex": "^.+{}\\.\\d+(\\..*)*$".format(master.port),
                 "rollback_time": self.data["rollback_time"],
-                "backupinfo": self.data["backupinfo"],
+                "backup_id": backup_id,
                 "rollback_type": self.data["rollback_type"],
                 "rollback_ip": self.data["rollback_ip"],
                 "rollback_port": master.port,
@@ -167,79 +159,14 @@ class MySQLRollbackDataFlow(object):
                 "master_port": master.port,
                 "master_ip": master.machine.ip,
             }
-
-            exec_act_kwargs = ExecActuatorKwargs(
-                bk_cloud_id=cluster_class.bk_cloud_id,
-                cluster_type=ClusterType.TenDBHA,
-                cluster=mycluster,
+            backup_info, rollback_sub_flow = tendbha_rollback_data_sub_flow(
+                root_id=self.root_id,
+                uid=self.ticket_data["uid"],
+                cluster_model=cluster_class,
+                cluster_info=copy.deepcopy(cluster_info),
             )
-            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.mysql_mkdir_dir.__name__
-            exec_act_kwargs.exec_ip = self.data["rollback_ip"]
-            sub_pipeline.add_act(
-                act_name=_("创建目录 {}".format(mycluster["file_target_path"])),
-                act_component_code=ExecuteDBActuatorScriptComponent.code,
-                kwargs=asdict(exec_act_kwargs),
-            )
-
-            # 本地备份+时间
-            if self.data["rollback_type"] == RollbackType.LOCAL_AND_TIME:
-                inst_list = ["{}{}{}".format(master.machine.ip, IP_PORT_DIVIDER, master.port)]
-                stand_by_slaves = cluster_class.storageinstance_set.filter(
-                    instance_inner_role=InstanceInnerRole.SLAVE.value,
-                    is_stand_by=True,
-                    status=InstanceStatus.RUNNING.value,
-                ).exclude(machine__ip__in=[self.data["rollback_ip"]])
-                if len(stand_by_slaves) > 0:
-                    inst_list.append(
-                        "{}{}{}".format(stand_by_slaves[0].machine.ip, IP_PORT_DIVIDER, stand_by_slaves[0].port)
-                    )
-
-                backupinfo = get_local_backup(inst_list, cluster_class, mycluster["rollback_time"])
-                if backupinfo is None:
-                    logger.error("cluster {} backup info not exists".format(cluster_class.id))
-                    raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(cluster_class.id)))
-                mycluster["backupinfo"] = copy.deepcopy(backupinfo)
-
-                sub_pipeline.add_sub_pipeline(
-                    sub_flow=rollback_local_and_time(
-                        root_id=self.root_id,
-                        ticket_data=copy.deepcopy(self.data),
-                        cluster_info=mycluster,
-                        cluster_model=cluster_class,
-                    )
-                )
-
-            # 远程备份+时间
-            elif self.data["rollback_type"] == RollbackType.REMOTE_AND_TIME.value:
-                rollback_handler = FixPointRollbackHandler(cluster_class.id)
-                backupinfo = rollback_handler.query_latest_backup_log(str2datetime(mycluster["rollback_time"]))
-                if backupinfo is None:
-                    logger.error("cluster {} backup info not exists".format(cluster_class.id))
-                    raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(cluster_class.id)))
-                mycluster["backupinfo"] = copy.deepcopy(backupinfo)
-
-                sub_pipeline.add_sub_pipeline(
-                    sub_flow=rollback_remote_and_time(
-                        root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=mycluster
-                    )
-                )
-            # 远程备份+备份ID
-            elif self.data["rollback_type"] == RollbackType.REMOTE_AND_BACKUPID.value:
-                sub_pipeline.add_sub_pipeline(
-                    sub_flow=rollback_remote_and_backupid(
-                        root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=mycluster
-                    )
-                )
-
-            # 本地备份+备份ID
-            elif self.data["rollback_type"] == RollbackType.LOCAL_AND_BACKUPID:
-                sub_pipeline.add_sub_pipeline(
-                    sub_flow=rollback_local_and_backupid(
-                        root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=mycluster
-                    )
-                )
-            else:
-                raise NormalTenDBFlowException(message=_("rollback_type不存在"))
+            cluster_info["backupinfo"] = copy.deepcopy(backup_info)
+            sub_pipeline.add_sub_pipeline(sub_flow=rollback_sub_flow)
 
             sub_pipeline_list.append(sub_pipeline.build_sub_process(sub_name=_("定点恢复")))
 
@@ -271,6 +198,7 @@ class MySQLRollbackDataFlow(object):
                 and len(self.data["databases_ignore"]) == 0
             ):
                 self.data["all_database_rollback"] = False
+
             cluster_class = Cluster.objects.get(id=self.data["cluster_id"])
             filters = Q(
                 cluster__cluster_type=ClusterType.TenDBSingle.value, instance_inner_role=InstanceInnerRole.ORPHAN.value
@@ -279,6 +207,7 @@ class MySQLRollbackDataFlow(object):
                 cluster__cluster_type=ClusterType.TenDBHA.value, instance_inner_role=InstanceInnerRole.MASTER.value
             )
             master = cluster_class.storageinstance_set.get(filters)
+
             self.data["bk_biz_id"] = cluster_class.bk_biz_id
             self.data["bk_cloud_id"] = cluster_class.bk_cloud_id
             self.data["db_module_id"] = cluster_class.db_module_id
@@ -295,45 +224,20 @@ class MySQLRollbackDataFlow(object):
                 db_module_id=self.data["db_module_id"],
                 cluster_type=self.data["cluster_type"],
             )
-            # 为了回档的备份信息各个节点统一，获取备份的信息提前
-            backupinfo = copy.deepcopy(self.data["backupinfo"])
-            if self.data["rollback_type"] == RollbackType.LOCAL_AND_TIME:
-                inst_list = ["{}{}{}".format(master.machine.ip, IP_PORT_DIVIDER, master.port)]
-                stand_by_slaves = cluster_class.storageinstance_set.filter(
-                    instance_inner_role=InstanceInnerRole.SLAVE.value,
-                    is_stand_by=True,
-                    status=InstanceStatus.RUNNING.value,
-                )
-                if len(stand_by_slaves) > 0:
-                    inst_list.append(
-                        "{}{}{}".format(stand_by_slaves[0].machine.ip, IP_PORT_DIVIDER, stand_by_slaves[0].port)
-                    )
-                backupinfo = get_local_backup(inst_list, cluster_class, self.data["rollback_time"])
-                if backupinfo is None:
-                    logger.error("cluster {} backup info not exists".format(cluster_class.id))
-                    raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(cluster_class.id)))
-
-            elif self.data["rollback_type"] == RollbackType.REMOTE_AND_TIME.value:
-                rollback_handler = FixPointRollbackHandler(cluster_class.id)
-                backupinfo = rollback_handler.query_latest_backup_log(str2datetime(self.data["rollback_time"]))
-                if backupinfo is None:
-                    logger.error("cluster {} backup info not exists".format(cluster_class.id))
-                    raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(cluster_class.id)))
 
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
             rollback_class = Cluster.objects.get(id=self.data["rollback_cluster_id"])
             storages = rollback_class.storageinstance_set.all()
+            check_connect_list = []
             rollback_pipeline_list = []
             change_master_pipeline_list = []
+
             for rollback_storage in storages:
-                if not check_storage_database(
-                    rollback_class.bk_cloud_id, rollback_storage.machine.ip, rollback_storage.port
-                ):
-                    logger.error("cluster {} check database fail".format(rollback_class.id))
-                    raise NormalSpiderFlowException(
-                        message=_("回档集群 {} 空闲检查不通过，请确认回档集群是否存在非系统数据库".format(rollback_class.id))
-                    )
-                mycluster = {
+                #  todo 后续改版这里页面只需要指定backup_id,不需要传整个备份信息。这里兼容原本的。
+                backup_id = self.data.get("backup_id", None)
+                if backup_id is None or backup_id == "":
+                    backup_id = self.data.get("backupinfo", {}).get("backup_id", None)
+                cluster_info = {
                     "name": cluster_class.name,
                     "cluster_id": cluster_class.id,
                     "cluster_type": cluster_class.cluster_type,
@@ -350,7 +254,7 @@ class MySQLRollbackDataFlow(object):
                     "skip_local_exists": True,
                     "name_regex": "^.+{}\\.\\d+(\\..*)*$".format(master.port),
                     "rollback_time": self.data["rollback_time"],
-                    "backupinfo": backupinfo,
+                    "backup_id": backup_id,
                     "rollback_type": self.data["rollback_type"],
                     "rollback_ip": rollback_storage.machine.ip,
                     "rollback_port": rollback_storage.port,
@@ -358,10 +262,27 @@ class MySQLRollbackDataFlow(object):
                     "master_port": master.port,
                     "master_ip": master.machine.ip,
                 }
+
+                check_connect_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+                check_connect_pipeline.add_act(
+                    act_name=_("检查链接 {}").format(rollback_storage.ip_port),
+                    act_component_code=MySQLCheckProcesslistComponent.code,
+                    kwargs=asdict(
+                        ExecuteRdsKwargs(
+                            bk_cloud_id=cluster_class.bk_cloud_id,
+                            instance_ip=rollback_storage.machine.ip,
+                            instance_port=rollback_storage.port,
+                        )
+                    ),
+                )
+                check_connect_list.append(
+                    check_connect_pipeline.build_sub_process(sub_name=_("检查链接 {}".format(rollback_storage.ip_port)))
+                )
+
                 exec_act_kwargs = ExecActuatorKwargs(
                     bk_cloud_id=cluster_class.bk_cloud_id,
                     cluster_type=ClusterType.TenDBHA,
-                    cluster=mycluster,
+                    cluster=copy.deepcopy(cluster_info),
                 )
 
                 exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.mysql_mkdir_dir.__name__
@@ -377,11 +298,6 @@ class MySQLRollbackDataFlow(object):
                             file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
                         )
                     ),
-                )
-                rollback_pipeline.add_act(
-                    act_name=_("创建目录 {}".format(mycluster["file_target_path"])),
-                    act_component_code=ExecuteDBActuatorScriptComponent.code,
-                    kwargs=asdict(exec_act_kwargs),
                 )
 
                 if rollback_storage.instance_role in (
@@ -399,20 +315,7 @@ class MySQLRollbackDataFlow(object):
                             )
                         ),
                     )
-
-                # 屏蔽监控，停止从库备份
-                rollback_pipeline.add_act(
-                    act_name=_("屏蔽监控 {}").format(rollback_storage.ip_port),
-                    act_component_code=MysqlCrondMonitorControlComponent.code,
-                    kwargs=asdict(
-                        CrondMonitorKwargs(
-                            bk_cloud_id=cluster_class.bk_cloud_id,
-                            exec_ips=[rollback_storage.machine.ip],
-                            port=rollback_storage.port,
-                        )
-                    ),
-                )
-
+                #  全库表会回档这里设置停止从库
                 if self.data["all_database_rollback"]:
                     rollback_pipeline.add_act(
                         act_name=_("从库stop slave {}").format(rollback_storage.ip_port),
@@ -426,42 +329,15 @@ class MySQLRollbackDataFlow(object):
                             )
                         ),
                     )
-                # 本地备份+时间
-                if self.data["rollback_type"] == RollbackType.LOCAL_AND_TIME:
-                    mycluster["backupinfo"] = copy.deepcopy(backupinfo)
-                    rollback_pipeline.add_sub_pipeline(
-                        sub_flow=rollback_local_and_time(
-                            root_id=self.root_id,
-                            ticket_data=copy.deepcopy(self.data),
-                            cluster_info=mycluster,
-                            cluster_model=cluster_class,
-                        )
-                    )
-                # 远程备份+时间
-                elif self.data["rollback_type"] == RollbackType.REMOTE_AND_TIME.value:
-                    mycluster["backupinfo"] = copy.deepcopy(backupinfo)
-                    rollback_pipeline.add_sub_pipeline(
-                        sub_flow=rollback_remote_and_time(
-                            root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=mycluster
-                        )
-                    )
-                # 远程备份+备份ID
-                elif self.data["rollback_type"] == RollbackType.REMOTE_AND_BACKUPID.value:
-                    rollback_pipeline.add_sub_pipeline(
-                        sub_flow=rollback_remote_and_backupid(
-                            root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=mycluster
-                        )
-                    )
 
-                # 本地备份+备份ID
-                elif self.data["rollback_type"] == RollbackType.LOCAL_AND_BACKUPID:
-                    rollback_pipeline.add_sub_pipeline(
-                        sub_flow=rollback_local_and_backupid(
-                            root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=mycluster
-                        )
-                    )
-                else:
-                    raise NormalTenDBFlowException(message=_("rollback_type不存在"))
+                backup_info, rollback_sub_flow = tendbha_rollback_data_sub_flow(
+                    root_id=self.root_id,
+                    uid=self.ticket_data["uid"],
+                    cluster_model=cluster_class,
+                    cluster_info=copy.deepcopy(cluster_info),
+                )
+                cluster_info["backupinfo"] = copy.deepcopy(backup_info)
+                rollback_pipeline.add_sub_pipeline(sub_flow=rollback_sub_flow)
 
                 rollback_pipeline_list.append(
                     rollback_pipeline.build_sub_process(
@@ -469,7 +345,7 @@ class MySQLRollbackDataFlow(object):
                     )
                 )
                 # 针对slave repeater角色的从库。建立复制链路。重置slave>添加复制账号和获取位点>建立主从关系
-                backup_type = backupinfo.get("backup_type", "")
+                backup_type = backup_info.get("backup_type", "")
                 change_master_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
                 if rollback_storage.instance_role in (InstanceRole.BACKEND_SLAVE, InstanceRole.BACKEND_REPEATER):
                     repl_master = StorageInstanceTuple.objects.get(receiver=rollback_storage)
@@ -479,27 +355,16 @@ class MySQLRollbackDataFlow(object):
                             "target_port": repl_master.ejector.port,
                             "repl_ip": rollback_storage.machine.ip,
                             "repl_port": rollback_storage.port,
-                            "change_master_type": MysqlChangeMasterType.MASTERSTATUS.value,
                             "change_master_force": True,
+                            "bk_cloud_id": cluster_class.bk_cloud_id,
+                            "cluster_type": cluster_class.cluster_type,
                         }
-                        exec_act_kwargs.cluster = copy.deepcopy(repl_cluster)
-                        exec_act_kwargs.exec_ip = repl_master.ejector.machine.ip
-                        exec_act_kwargs.job_timeout = MYSQL_USUAL_JOB_TIME
-                        exec_act_kwargs.get_mysql_payload_func = (
-                            MysqlActPayload.tendb_grant_remotedb_repl_user.__name__
-                        )
-                        change_master_pipeline.add_act(
-                            act_name=_("新增repl帐户{}".format(exec_act_kwargs.exec_ip)),
-                            act_component_code=ExecuteDBActuatorScriptComponent.code,
-                            kwargs=asdict(exec_act_kwargs),
-                            write_payload_var="show_master_status_info",
-                        )
-                        exec_act_kwargs.exec_ip = rollback_storage.machine.ip
-                        exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_remotedb_change_master.__name__
-                        change_master_pipeline.add_act(
-                            act_name=_("建立原主从关系{}".format(rollback_storage.ip_port)),
-                            act_component_code=ExecuteDBActuatorScriptComponent.code,
-                            kwargs=asdict(exec_act_kwargs),
+                        change_master_pipeline.add_sub_pipeline(
+                            sub_flow=change_master_by_master_status(
+                                root_id=self.root_id,
+                                uid=self.ticket_data["uid"],
+                                cluster_info=copy.deepcopy(repl_cluster),
+                            )
                         )
                     elif backup_type == MySQLBackupTypeEnum.LOGICAL.value:
                         change_master_pipeline.add_act(
@@ -514,26 +379,37 @@ class MySQLRollbackDataFlow(object):
                                 )
                             ),
                         )
-                change_master_pipeline.add_act(
-                    act_name=_("解除监控屏蔽 {}").format(rollback_storage.ip_port),
-                    act_component_code=MysqlCrondMonitorControlComponent.code,
-                    kwargs=asdict(
-                        CrondMonitorKwargs(
-                            bk_cloud_id=cluster_class.bk_cloud_id,
-                            exec_ips=[rollback_storage.machine.ip],
-                            port=rollback_storage.port,
-                            enable=True,
+                    else:
+                        raise Exception(_("备份类型{}不支持").format(backup_type))
+                    change_master_pipeline_list.append(
+                        change_master_pipeline.build_sub_process(
+                            sub_name=_("恢复复制链 {}:{}".format(rollback_storage.machine.ip, rollback_storage.port))
                         )
-                    ),
-                )
-                change_master_pipeline_list.append(
-                    change_master_pipeline.build_sub_process(
-                        sub_name=_("恢复复制链 {}:{}".format(rollback_storage.machine.ip, rollback_storage.port))
                     )
-                )
-
+            sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=check_connect_list)
+            sub_pipeline.add_act(
+                act_name=_("屏蔽告警24小时"),
+                act_component_code=AddAlarmShieldComponent.code,
+                kwargs={
+                    "begin_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "end_time": (datetime.now() + timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S"),
+                    "description": cluster_class.immute_domain,
+                    "dimensions": [
+                        {
+                            "name": "instance_host",
+                            "values": [s.machine.ip for s in storages],
+                        },
+                        {
+                            "name": "instance_port",
+                            "values": [master.port],
+                        },
+                    ],
+                },
+            )
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=rollback_pipeline_list)
-            sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=change_master_pipeline_list)
+            if len(change_master_pipeline_list) > 0:
+                sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=change_master_pipeline_list)
+            sub_pipeline.add_act(act_name=_("解除告警屏蔽"), act_component_code=DisableAlarmShieldComponent.code, kwargs={})
             sub_pipeline_list.append(
                 sub_pipeline.build_sub_process(sub_name=_("定点回档到{}".format(rollback_class.immute_domain)))
             )

@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import itertools
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.constants import AffinityEnum
@@ -19,13 +19,17 @@ from backend.db_meta.models import Cluster, Machine, StorageInstanceTuple
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, SkipToRepresentationMixin
-from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
+from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
+from backend.ticket.builders.redis.base import (
+    BaseRedisTicketFlowBuilder,
+    ClusterValidateMixin,
+    RedisBaseOperateDetailSerializer,
+)
 from backend.ticket.constants import TicketType
 from backend.utils.basic import get_target_items_from_details
 
 
-class RedisAddSlaveDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class RedisAddSlaveDetailSerializer(RedisBaseOperateDetailSerializer):
     """新建从库"""
 
     class InfoSerializer(ClusterValidateMixin, serializers.Serializer):
@@ -106,11 +110,16 @@ class RedisAddSlaveFlowBuilder(BaseRedisTicketFlowBuilder):
                     "sub_zone_ids": [],
                 }
                 pair["redis_slave"].update(affinity=cluster.disaster_tolerance_level)
+                # 同园区，则slave与master在相同的subzone，跨园区，则排除master的subzone
                 if cluster.disaster_tolerance_level == AffinityEnum.CROS_SUBZONE:
+                    master_subzone = master_machine.bk_sub_zone_id
+                    if not cluster.zone_list:
+                        is_include, sub_zone_ids = False, [master_subzone]
+                    else:
+                        is_include, sub_zone_ids = True, list(set(cluster.zone_list) - {master_subzone})
                     pair["redis_slave"]["location_spec"].update(
-                        sub_zone_ids=[master_machine.bk_sub_zone_id], include_or_exclue=False
+                        sub_zone_ids=sub_zone_ids, include_or_exclue=is_include
                     )
-
                 elif cluster.disaster_tolerance_level in [
                     AffinityEnum.SAME_SUBZONE,
                     AffinityEnum.SAME_SUBZONE_CROSS_SWTICH,

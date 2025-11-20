@@ -1435,8 +1435,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1587,8 +1586,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1731,8 +1729,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1865,8 +1862,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -4462,8 +4458,8 @@
               "expressionList": [
                 {
                   "active": true,
-                  "alias": "[$tag_cluster_domain]$tag_instance[$tag_instance_role]",
-                  "expression": "a/60",
+                  "alias": "",
+                  "expression": "a / 60",
                   "functions": []
                 }
               ],
@@ -4471,7 +4467,7 @@
               "host": [],
               "mode": "ui",
               "module": [],
-              "promqlAlias": "$tag_instance[$tag_instance_role]",
+              "promqlAlias": "a/60",
               "query_configs": [
                 {
                   "alias": "[$tag_cluster_domain]$tag_instance[$tag_instance_role]",
@@ -4496,7 +4492,7 @@
                     "instance_role",
                     "cluster_domain"
                   ],
-                  "interval": 60,
+                  "interval": 30,
                   "interval_unit": "s",
                   "method": "MAX",
                   "metric_field": "mssql_page_writes",
@@ -4516,7 +4512,7 @@
                 }
               ],
               "refId": "A",
-              "source": "max by (instance, instance_role) (max_over_time(bkmonitor:exporter_dbm_mssql_exporter:mssql_page_writes{cluster_domain=\"$cluster_domain\"}[1m]))",
+              "source": "max by (instance, instance_role, cluster_domain) (delta(bkmonitor:exporter_dbm_mssql_exporter:mssql_page_writes{cluster_domain=\"$cluster_domain\"}[1m])) / 60",
               "step": "",
               "type": "range"
             }
@@ -4796,7 +4792,17 @@
                   "data_type_label": "time_series",
                   "display": true,
                   "filter_dict": {},
-                  "functions": [],
+                  "functions": [
+                    {
+                      "id": "delta",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "1m"
+                        }
+                      ]
+                    }
+                  ],
                   "group_by": [
                     "instance",
                     "instance_role",
@@ -4891,8 +4897,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -5025,8 +5030,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -5159,8 +5163,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -5293,8 +5296,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -5427,8 +5429,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -5613,8 +5614,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -5754,8 +5754,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -5895,8 +5894,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -6039,8 +6037,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -6183,8 +6180,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -6334,8 +6330,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -6485,8 +6480,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -6650,8 +6644,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -6784,8 +6777,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -6918,8 +6910,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -7052,8 +7043,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -7186,8 +7176,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -7320,8 +7309,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -7436,8 +7424,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -7582,8 +7569,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -7684,8 +7670,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -7823,8 +7808,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -7971,8 +7955,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -8105,8 +8088,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -8239,8 +8221,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -8373,8 +8354,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -8557,6 +8537,6 @@
   "timezone": "default",
   "title": "Mssql-Instance",
   "uid": "r5IAkJIIz",
-  "version": 141,
+  "version": 56,
   "weekStart": ""
 }

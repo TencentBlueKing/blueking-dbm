@@ -1,11 +1,12 @@
 package common
 
 import (
+	"bytes"
 	"context"
 	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/common/go-pubpkg/mycmd"
 	"dbm-services/mongodb/db-tools/dbmon/pkg/consts"
 	"dbm-services/mongodb/db-tools/dbmon/pkg/linuxproc"
-	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mycmd"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mymongo"
 	"fmt"
 	"log"
@@ -33,6 +34,7 @@ type Instance struct {
 	InstanceType  string `json:"instanceType"` // mongos or shard or configsvr
 }
 
+// NewInstance TODO
 func NewInstance(ip string, port int, user, pass, instanceType string) *Instance {
 	return &Instance{
 		IP:            ip,
@@ -127,7 +129,6 @@ func (inst *InstanceOp) DoStop() error {
 			}
 		}
 		time.Sleep(5 * time.Second)
-
 	}
 	return nil
 }
@@ -140,16 +141,14 @@ const startMongoScript = "/usr/local/mongodb/bin/start_mongo.sh"
 func (inst *InstanceOp) DoStart(mode string) error {
 	switch mode {
 	case "auth":
-		_, _, _, err := mycmd.New(startMongoScript, fmt.Sprintf("%d", inst.Port)).Run(time.Second * 60)
+		_, err := mycmd.New(startMongoScript, fmt.Sprintf("%d", inst.Port)).Run3(time.Second*60, nil, nil)
 		return err
 	case "noauth":
-		_, _, _, err := mycmd.New(startMongoScript, fmt.Sprintf("%d", inst.Port), "noauth").Run(time.Second * 60)
+		_, err := mycmd.New(startMongoScript, fmt.Sprintf("%d", inst.Port), "noauth").Run3(time.Second*60, nil, nil)
 		return err
 	default:
 		return errors.New("unknown mode " + mode)
 	}
-
-	return nil
 }
 
 // DoStartAsStandAlone 启动为单节点
@@ -234,6 +233,7 @@ func (inst *InstanceOp) RsRemoveMember(toRemoveMember string) error {
 	return nil
 }
 
+// IsMaster TODO
 func (inst *Instance) IsMaster() (*mymongo.IsMasterResult, error) {
 	client, err := inst.Connect()
 	if err != nil {
@@ -263,6 +263,7 @@ func (inst *InstanceOp) IsRunning() (pid int, portIsUsing bool, err error) {
 	return
 }
 
+// ExecJs TODO
 func (inst *InstanceOp) ExecJs(js string, timeout int64) error {
 	var sb strings.Builder
 	sb.WriteString("db = connect('" + inst.IP + ":" + strconv.Itoa(inst.Port) + "/admin');\n")
@@ -270,13 +271,18 @@ func (inst *InstanceOp) ExecJs(js string, timeout int64) error {
 	sb.WriteString(js)
 	sb.WriteString("\n")
 	jsCode := sb.String()
-	code, stdOut, stdErr, err :=
-		mycmd.New("/usr/local/mongodb/bin/mongo", "--nodb", "--eval", jsCode).
-			Run(time.Second * time.Duration(timeout))
-	log.Printf("ExecJs %s return %d %s %s", jsCode, code, stdOut, stdErr)
-	return errors.Wrap(err, fmt.Sprintf("ExecJs %s return %d %s %s", jsCode, code, stdOut, stdErr))
+	o, err := mycmd.New("/usr/local/mongodb/bin/mongo", "--nodb", "--eval", jsCode).
+		Run3(time.Second*time.Duration(timeout), bytes.NewBuffer(nil), bytes.NewBuffer(nil))
+
+	if err != nil {
+		return errors.Wrap(err, "ExecJs")
+	}
+
+	log.Printf("ExecJs %s return %d %s %s", js, o.ExitCode, o.GetStdout(), o.GetStderr())
+	return errors.Wrap(err, fmt.Sprintf("ExecJs %s return %d %s %s", js, o.ExitCode, o.GetStdout(), o.GetStderr()))
 }
 
+// GrantRolesToUser TODO
 func (inst *InstanceOp) GrantRolesToUser(user string, roles []string) error {
 	for i, role := range roles {
 		roles[i] = fmt.Sprintf(`'%s'`, role)
@@ -284,6 +290,11 @@ func (inst *InstanceOp) GrantRolesToUser(user string, roles []string) error {
 	rolesVal := strings.Join(roles, ",")
 	err := inst.ExecJs(fmt.Sprintf(`db.grantRolesToUser('%s', [%s]);`, user, rolesVal), 60)
 	return errors.Wrap(err, "GrantRolesToUser")
+}
+
+// DoFlushRouterConfig TODO
+func (inst *InstanceOp) DoFlushRouterConfig() error {
+	return inst.ExecJs("db.adminCommand({flushRouterConfig: 1});", 300)
 }
 
 func checkPortInUse(port int) (bool, error) {

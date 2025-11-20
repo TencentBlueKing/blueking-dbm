@@ -21,20 +21,23 @@ package provider
 
 import (
 	"k8s-dbs/metadata/dbaccess"
-	models "k8s-dbs/metadata/dbaccess/model"
-	entitys "k8s-dbs/metadata/provider/entity"
-	"log/slog"
+	metaentity "k8s-dbs/metadata/entity"
+	metamodel "k8s-dbs/metadata/model"
+
+	"github.com/pkg/errors"
 
 	"github.com/jinzhu/copier"
 )
 
 // K8sClusterConfigProvider 定义 cluster config 业务逻辑层访问接口
 type K8sClusterConfigProvider interface {
-	CreateConfig(entity *entitys.K8sClusterConfigEntity) (*entitys.K8sClusterConfigEntity, error)
+	CreateConfig(entity *metaentity.K8sClusterConfigEntity) (*metaentity.K8sClusterConfigEntity, error)
 	DeleteConfigByID(id uint64) (uint64, error)
-	FindConfigByID(id uint64) (*entitys.K8sClusterConfigEntity, error)
-	FindConfigByName(name string) (*entitys.K8sClusterConfigEntity, error)
-	UpdateConfig(entity *entitys.K8sClusterConfigEntity) (uint64, error)
+	FindConfigByID(id uint64) (*metaentity.K8sClusterConfigEntity, error)
+	FindConfigByName(name string) (*metaentity.K8sClusterConfigEntity, error)
+	UpdateConfig(entity *metaentity.K8sClusterConfigEntity) (uint64, error)
+	GetRegionsByVisibility(public bool) ([]*metaentity.RegionEntity, error)
+	ListConfigsByLimit(limit int) ([]*metaentity.K8sClusterConfigEntity, error)
 }
 
 // K8sClusterConfigProviderImpl K8sClusterConfigProvider 具体实现
@@ -42,25 +45,52 @@ type K8sClusterConfigProviderImpl struct {
 	dbAccess dbaccess.K8sClusterConfigDbAccess
 }
 
+// ListConfigsByLimit list 查询实现
+func (k *K8sClusterConfigProviderImpl) ListConfigsByLimit(limit int) ([]*metaentity.K8sClusterConfigEntity, error) {
+	configModels, err := k.dbAccess.ListByLimit(limit)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to list k8s cluster config with limit %d", limit)
+	}
+	var configEntities []*metaentity.K8sClusterConfigEntity
+	if err = copier.Copy(&configEntities, configModels); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
+	}
+
+	return configEntities, nil
+}
+
+// GetRegionsByVisibility 根据可访问性（公有/私有）筛选并返回符合条件的区域列表。
+func (k *K8sClusterConfigProviderImpl) GetRegionsByVisibility(isPublic bool) ([]*metaentity.RegionEntity, error) {
+	params := &metaentity.RegionQueryParams{
+		IsPublic: isPublic,
+	}
+	regionModels, err := k.dbAccess.FindRegionsByParams(params)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to find regions with public visibility: %v", params)
+	}
+	var regions []*metaentity.RegionEntity
+	if err = copier.Copy(&regions, regionModels); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
+	}
+	return regions, nil
+}
+
 // CreateConfig 创建 k8s cluster config
-func (k *K8sClusterConfigProviderImpl) CreateConfig(entity *entitys.K8sClusterConfigEntity) (
-	*entitys.K8sClusterConfigEntity, error,
+func (k *K8sClusterConfigProviderImpl) CreateConfig(entity *metaentity.K8sClusterConfigEntity) (
+	*metaentity.K8sClusterConfigEntity, error,
 ) {
-	configModel := models.K8sClusterConfigModel{}
+	configModel := metamodel.K8sClusterConfigModel{}
 	err := copier.Copy(&configModel, entity)
 	if err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+		return nil, errors.Wrap(err, "failed to copy")
 	}
 	createdModel, err := k.dbAccess.Create(&configModel)
 	if err != nil {
-		slog.Error("Failed to create model", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create cluster config with entity: %+v", entity)
 	}
-	configEntity := entitys.K8sClusterConfigEntity{}
-	if err := copier.Copy(&configEntity, createdModel); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	configEntity := metaentity.K8sClusterConfigEntity{}
+	if err = copier.Copy(&configEntity, createdModel); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
 	return &configEntity, nil
 }
@@ -71,47 +101,43 @@ func (k *K8sClusterConfigProviderImpl) DeleteConfigByID(id uint64) (uint64, erro
 }
 
 // FindConfigByID 根据 ID 查找 k8s cluster config
-func (k *K8sClusterConfigProviderImpl) FindConfigByID(id uint64) (*entitys.K8sClusterConfigEntity, error) {
+func (k *K8sClusterConfigProviderImpl) FindConfigByID(id uint64) (*metaentity.K8sClusterConfigEntity, error) {
 	configModel, err := k.dbAccess.FindByID(id)
 	if err != nil {
-		slog.Error("Failed to find entity", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to find cluster config with id: %d", id)
 	}
-	configEntity := entitys.K8sClusterConfigEntity{}
-	if err := copier.Copy(&configEntity, configModel); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+
+	configEntity := metaentity.K8sClusterConfigEntity{}
+	if err = copier.Copy(&configEntity, configModel); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
+
 	return &configEntity, nil
 }
 
 // FindConfigByName 根据 Params 查找 k8s cluster config
-func (k *K8sClusterConfigProviderImpl) FindConfigByName(name string) (*entitys.K8sClusterConfigEntity, error) {
+func (k *K8sClusterConfigProviderImpl) FindConfigByName(name string) (*metaentity.K8sClusterConfigEntity, error) {
 	configModel, err := k.dbAccess.FindByClusterName(name)
 	if err != nil {
-		slog.Error("Failed to find entity", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to find cluster config with k8s cluster name: %s", name)
 	}
-	clusterEntity := entitys.K8sClusterConfigEntity{}
-	if err := copier.Copy(&clusterEntity, configModel); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	clusterEntity := metaentity.K8sClusterConfigEntity{}
+	if err = copier.Copy(&clusterEntity, configModel); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
 	return &clusterEntity, nil
 }
 
 // UpdateConfig 更新 k8s cluster config
-func (k *K8sClusterConfigProviderImpl) UpdateConfig(entity *entitys.K8sClusterConfigEntity) (uint64, error) {
-	configModel := models.K8sClusterConfigModel{}
+func (k *K8sClusterConfigProviderImpl) UpdateConfig(entity *metaentity.K8sClusterConfigEntity) (uint64, error) {
+	configModel := metamodel.K8sClusterConfigModel{}
 	err := copier.Copy(&configModel, entity)
 	if err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return 0, err
+		return 0, errors.Wrap(err, "failed to copy")
 	}
 	rows, err := k.dbAccess.Update(&configModel)
 	if err != nil {
-		slog.Error("Failed to update entity", "error", err)
-		return 0, err
+		return 0, errors.Wrapf(err, "failed to update cluster config with entity: %+v", entity)
 	}
 	return rows, nil
 }

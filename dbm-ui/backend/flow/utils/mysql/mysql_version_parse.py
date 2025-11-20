@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 import re
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components.db_remote_service.client import DRSApi
 from backend.constants import IP_PORT_DIVIDER
@@ -61,12 +61,46 @@ def mysql_version_parse(mysql_version: str) -> int:
     return total
 
 
+def spider_major_version_parse(mysql_version: str, has_prefix: bool = False):
+    """
+    解析spider版本字符串，返回主版本号和子版本号（均为数字，便于比较）
+
+    :param mysql_version: 版本字符串，如 "tspider-3.6.20" 或 "3.6.20"
+    :param has_prefix: 是否带有前缀（如"tspider-"），默认为False
+    :return: (major_version, sub_version)
+        - major_version: 主版本号（如3.6.20中的3，返回3000000）
+        - sub_version: 子版本号（如3.6.20中的6.20，返回6020）
+        - 若解析失败，返回(0, 0)
+    """
+    # 根据是否有前缀选择正则表达式
+    re_pattern = r"tspider-([\d]+)\.?([\d]+)?\.?([\d]+)?" if has_prefix else r"([\d]+)\.?([\d]+)?\.?([\d]+)?"
+    result = re.findall(re_pattern, mysql_version)
+
+    if not result:
+        # 解析失败，返回(0, 0)
+        return 0, 0
+
+    billion, thousand, single = result[0]
+
+    # 主版本号：只取第一个数字（如3），乘以1000000
+    major_version = int(billion) * 1000000 if billion else 0
+
+    # 子版本号：第二个数字乘以1000，加上第三个数字
+    sub_version = 0
+    if thousand:
+        sub_version += int(thousand) * 1000
+    if single:
+        sub_version += int(single)
+
+    return major_version, sub_version
+
+
 def major_version_parse(mysql_version: str):
     re_pattern = r"([\d]+).?([\d]+)?.?([\d]+)?"
     result = re.findall(re_pattern, mysql_version)
 
     if len(result) == 0:
-        return 0
+        return 0, 0
 
     billion, thousand, single = result[0]
 
@@ -108,7 +142,10 @@ def tmysql_version_parse(mysql_version: str) -> int:
 
 
 def tspider_version_parse(mysql_version: str) -> int:
-    re_pattern = r"tspider-([\d]+).?([\d]+)?.?([\d]+)?"
+    if mysql_version.startswith("tspider-"):
+        re_pattern = r"tspider-([\d]+).?([\d]+)?.?([\d]+)?"
+    else:
+        re_pattern = r"([\d]+).?([\d]+)?.?([\d]+)?"
     result = re.findall(re_pattern, mysql_version)
 
     if len(result) == 0:
@@ -126,7 +163,6 @@ def tspider_version_parse(mysql_version: str) -> int:
 
     if single != "":
         total += int(single)
-
     return total
 
 
@@ -199,3 +235,71 @@ def get_online_mysql_version(ip: str, port: int, bk_cloud_id: int):
         return ""
 
     return resp[0]["cmd_results"][0]["table_data"][0].get("version")
+    # mock data
+    # return "5.6.24-tmysql-2.2.2"
+
+
+def spider_cross_major_version(current_version_num, refer_version_num) -> bool:
+    """判断spider是否跨主版本
+
+    Args:
+        current_version_num (_type_): _description_
+        refer_version_num (_type_): _description_
+
+    Returns:
+        bool: _description_
+    """
+    return (current_version_num // 1000000 - refer_version_num // 1000000) >= 1
+
+
+def module_version_parse(mysql_version: str) -> int:
+    """
+    解析模块版本字符串，返回主版本号和子版本号（均为数字，便于比较）
+    MySQL模块版本字符串示例： MySQL-8.0,MySQL-5.7,TXSQL-8.0,MySQL-8.0-Community
+    @param mysql_version: 版本字符串，如 "MySQL-8.0" 或 "MySQL-5.7"
+    """
+    re_pattern = r"([\d]+)\.?([\d]+)?"
+    result = re.findall(re_pattern, mysql_version)
+    billion, thousand = result[0]
+    return int(billion) * 1000000 + int(thousand) * 10000
+
+
+def calculate_tmysql_version_number(
+    mysql_major: int, mysql_minor: int, mysql_patch: int, tmysql_major: int, tmysql_minor: int, tmysql_patch: int
+) -> int:
+    """
+    计算TMySQL版本号（MySQL基础版本 + TMySQL扩展版本）
+
+    格式：MYSQL_MAJOR * 1000000 + MYSQL_MINOR * 10000 + MYSQL_PATCH * 1000 +
+          TMYSQL_MAJOR * 100 + TMYSQL_MINOR * 10 + TMYSQL_PATCH
+
+    @param mysql_major: MySQL主版本号
+    @param mysql_minor: MySQL次版本号
+    @param mysql_patch: MySQL补丁版本号
+    @param tmysql_major: TMySQL主版本号
+    @param tmysql_minor: TMySQL次版本号
+    @param tmysql_patch: TMySQL补丁版本号
+    @return: 数值版本号，用于比较
+    """
+    return (
+        mysql_major * 1000000
+        + mysql_minor * 10000
+        + mysql_patch * 1000
+        + tmysql_major * 100
+        + tmysql_minor * 10
+        + tmysql_patch
+    )
+
+
+def calculate_mysql_version_number(major: int, minor: int, patch: int) -> int:
+    """
+    计算标准MySQL版本号
+
+    格式：MAJOR * 1000000 + MINOR * 1000 + PATCH
+
+    @param major: 主版本号
+    @param minor: 次版本号
+    @param patch: 补丁版本号
+    @return: 数值版本号，用于比较
+    """
+    return major * 1000000 + minor * 10000 + patch * 1000

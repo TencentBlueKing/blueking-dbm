@@ -9,7 +9,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.ticket.constants import TicketType
 
@@ -46,6 +46,6 @@ def call_ticket_handler(ticket_type, **kwargs):
     if not handler:
         logger.info(_("该单据类型未注册：{}, 不执行".format(ticket_type)))
         return
-
+    logger.info(_("流程回调单据类型: {}").format(ticket_type))
     # 动态调用处理函数并解参
     return handler(**kwargs)

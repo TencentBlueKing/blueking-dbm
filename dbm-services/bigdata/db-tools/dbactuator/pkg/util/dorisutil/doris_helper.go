@@ -48,3 +48,11 @@ func HttpGet(url string) ([]byte, error) {
 	}
 	return responseBody, nil
 }
+
+// DefaultString 返回 originalStr，如果 originalStr 为空串则返回 defaultStr
+func DefaultString(originalStr, defaultStr string) string {
+	if originalStr == "" {
+		return defaultStr
+	}
+	return originalStr
+}

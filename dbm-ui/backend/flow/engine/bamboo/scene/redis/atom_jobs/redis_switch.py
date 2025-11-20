@@ -13,7 +13,7 @@ from copy import deepcopy
 from dataclasses import asdict
 from typing import List
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.api.cluster.nosqlcomm.other import get_cluster_ins_dns
@@ -147,6 +147,12 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
                     },
                 }
             )
+    swith_act.get_redis_payload_func = RedisActPayload.redis__switch_precheck_4_scene.__name__
+    sub_pipeline.add_act(
+        act_name=_("Redis-{}-切换检查").format(exec_ip),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(swith_act),
+    )
     swith_act.get_redis_payload_func = RedisActPayload.redis__switch_4_scene.__name__
     sub_pipeline.add_act(
         act_name=_("Redis-{}-实例切换").format(exec_ip),

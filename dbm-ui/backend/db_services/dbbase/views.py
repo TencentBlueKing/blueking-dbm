@@ -13,7 +13,7 @@ from collections import defaultdict
 from typing import Dict, List, Set, Union
 
 from django.db.models import Count, Q
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -26,7 +26,7 @@ from backend.components import BKBaseApi, DRSApi
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster, DBModule, ProxyInstance, StorageInstance, Tag
-from backend.db_services.dbbase.cluster.handlers import ClusterServiceHandler
+from backend.db_services.dbbase.cluster.handlers import ClusterServiceHandler, retrieve_resources
 from backend.db_services.dbbase.cluster.serializers import (
     BatchCheckClusterDbsSerializer,
     CheckClusterDbsResponseSerializer,
@@ -35,6 +35,7 @@ from backend.db_services.dbbase.cluster.serializers import (
 from backend.db_services.dbbase.instances.handlers import InstanceHandler
 from backend.db_services.dbbase.instances.yasg_slz import CheckInstancesResSLZ, CheckInstancesSLZ
 from backend.db_services.dbbase.resources import register
+from backend.db_services.dbbase.resources.pagination import ResourceLimitOffsetPagination
 from backend.db_services.dbbase.resources.query import ListRetrieveResource, ResourceList
 from backend.db_services.dbbase.resources.serializers import ClusterSLZ
 from backend.db_services.dbbase.serializers import (
@@ -54,6 +55,9 @@ from backend.db_services.dbbase.serializers import (
     QueryClusterCapResponseSerializer,
     QueryClusterCapSerializer,
     QueryClusterInstanceCountSerializer,
+    QueryGlobalClusterSerializer,
+    QueryGlobalInstanceSerializer,
+    QueryGlobalMachineSerializer,
     RemoveClusterTagKeysSerializer,
     ResourceAdministrationSerializer,
     UpdateClusterAliasSerializer,
@@ -69,6 +73,7 @@ from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.iam_app.handlers.drf_perm.cluster import (
     ClusterDBConsolePermission,
     ClusterEditPermission,
+    ClusterListPermission,
     ClusterWebconsolePermission,
 )
 
@@ -90,7 +95,8 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         (
             "simple_query_cluster",
             "common_query_cluster",
-            "filter_clusters",
+            "query_cluster_stat",
+            "query_cluster_load",
         ): [DBManagePermission()],
         ("webconsole",): [ClusterWebconsolePermission()],
         ("dbconsole",): [ClusterDBConsolePermission()],
@@ -100,6 +106,11 @@ class DBBaseViewSet(viewsets.SystemViewSet):
             "remove_cluster_tag_keys",
             "add_cluster_tag_keys",
         ): [ClusterEditPermission()],
+        (
+            "filter_clusters",
+            "filter_machines",
+            "filter_instances",
+        ): [ClusterListPermission()],
     }
     default_permission_class = [DBManagePermission()]
 
@@ -150,9 +161,10 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         query_serializer=ClusterFilterSerializer(),
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["GET"], detail=False, serializer_class=ClusterFilterSerializer)
+    @action(methods=["GET"], detail=False, serializer_class=ClusterFilterSerializer, pagination_class=None)
     def filter_clusters(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
+        limit, offset = data.pop("limit"), data.pop("offset")
         # 先按照集群类型聚合
         resource_cls__cluster_ids_map = defaultdict(list)
         for cluster in Cluster.objects.filter(data["filters"]).values("id", "cluster_type"):
@@ -165,7 +177,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
                 continue
             query_params = {**data["query_params"], "cluster_ids": ",".join(map(str, cluster_ids))}
             cluster_resource_data: ResourceList = resource_class.list_clusters(
-                bk_biz_id=data["bk_biz_id"], query_params=query_params, limit=-1, offset=0
+                bk_biz_id=data["bk_biz_id"], query_params=query_params, limit=limit, offset=offset
             )
             clusters_data.extend(cluster_resource_data.data)
 
@@ -200,7 +212,9 @@ class DBBaseViewSet(viewsets.SystemViewSet):
             InstanceHandler(bk_biz_id=data["bk_biz_id"]).check_instances(
                 query_instances=data["instance_addresses"],
                 cluster_ids=data.get("cluster_ids"),
+                cluster_type=data.get("cluster_type"),
                 db_type=data.get("db_type"),
+                instance_role=data.get("instance_role"),
             )
         )
 
@@ -495,6 +509,27 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         return Response(cluster_stat_map)
 
     @common_swagger_auto_schema(
+        operation_summary=_("查询集群负载"),
+        auto_schema=ResponseSwaggerAutoSchema,
+        query_serializer=QueryClusterCapSerializer(),
+        responses={status.HTTP_200_OK: QueryClusterCapResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=QueryClusterCapSerializer, pagination_class=None)
+    def query_cluster_load(self, request, *args, **kwargs):
+        from backend.db_periodic_task.local_tasks.db_meta.sync_cluster_stat import sync_cluster_load_by_cluster_type
+
+        data = self.params_validate(self.get_serializer_class())
+        cluster_load_data_map, cluster_load_status_map = {}, {}
+        for cluster_type in data["cluster_type"].split(","):
+            load_status, load_data = sync_cluster_load_by_cluster_type(data["bk_biz_id"], cluster_type)
+            cluster_load_data_map.update(load_data)
+            cluster_load_status_map.update(load_status)
+
+        data = {"cluster_load_data_map": cluster_load_data_map, "cluster_load_status_map": cluster_load_status_map}
+        return Response(data)
+
+    @common_swagger_auto_schema(
         operation_summary=_("更新集群别名"),
         request_body=UpdateClusterAliasSerializer(),
         tags=[SWAGGER_TAG],
@@ -557,3 +592,52 @@ class DBBaseViewSet(viewsets.SystemViewSet):
             through.objects.bulk_create(add_tags)
 
         return Response()
+
+    @common_swagger_auto_schema(
+        operation_summary=_("根据集群类型获取实例信息"),
+        auto_schema=ResponseSwaggerAutoSchema,
+        query_serializer=QueryGlobalInstanceSerializer(),
+        responses={status.HTTP_200_OK: QueryGlobalInstanceSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["GET"],
+        detail=False,
+        serializer_class=QueryGlobalInstanceSerializer,
+        pagination_class=ResourceLimitOffsetPagination,
+    )
+    def filter_instances(self, request, *args, **kwargs):
+        return retrieve_resources(self, request, QueryGlobalInstanceSerializer, "list_instances")
+
+    @common_swagger_auto_schema(
+        operation_summary=_("根据集群类型获取机器信息"),
+        auto_schema=ResponseSwaggerAutoSchema,
+        query_serializer=QueryGlobalMachineSerializer(),
+        responses={status.HTTP_200_OK: QueryGlobalMachineSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["GET"],
+        detail=False,
+        serializer_class=QueryGlobalMachineSerializer,
+        pagination_class=ResourceLimitOffsetPagination,
+    )
+    def filter_machines(self, request, *args, **kwargs):
+        return retrieve_resources(self, request, self.get_serializer_class(), "list_machines")
+
+    @common_swagger_auto_schema(
+        operation_summary=_("根据集群类型获取集群信息"),
+        auto_schema=ResponseSwaggerAutoSchema,
+        query_serializer=QueryGlobalClusterSerializer(),
+        responses={status.HTTP_200_OK: QueryGlobalClusterSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["GET"],
+        detail=False,
+        serializer_class=QueryGlobalClusterSerializer,
+        pagination_class=ResourceLimitOffsetPagination,
+    )
+    def filter_clusters_by_type(self, request, *args, **kwargs):
+        """根据集群类型获取集群信息"""
+        return retrieve_resources(self, request, self.get_serializer_class(), "list_clusters")

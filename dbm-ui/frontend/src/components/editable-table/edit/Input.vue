@@ -53,7 +53,7 @@
     prepend?: () => VNode;
   }>();
 
-  const modelValue = defineModel<string>();
+  const modelValue = defineModel<string | number>();
 
   const attrs = useAttrs();
   const columnContext = useColumn();
@@ -85,6 +85,23 @@
   });
 </script>
 <style lang="less">
+  .bk-editable-table-body-column {
+    &.is-readonly,
+    &.is-disabled {
+      .bk-editable-input {
+        .bk-input {
+          .bk-input--clear-icon {
+            display: none !important;
+          }
+
+          * {
+            pointer-events: none;
+          }
+        }
+      }
+    }
+  }
+
   .bk-editable-input {
     position: relative;
     display: flex;

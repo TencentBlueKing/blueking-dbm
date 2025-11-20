@@ -70,7 +70,8 @@ func (c *ApplyHandler) ConfirmApply(r *gin.Context) {
 	var cnt int64
 	err := model.DB.Self.Table(model.TbRpApplyDetailLogName()).Where("request_id = ?", param.RequestId).Count(&cnt).Error
 	if err != nil {
-		logger.Error("use request id %s,query apply resouece failed %s", param.RequestId, err.Error())
+		logger.Error("use request id %s,query apply resource failed %s", param.RequestId, err.Error())
+		c.SendResponse(r, err, err.Error())
 		return
 	}
 	if len(hostIds) != int(cnt) {
@@ -101,10 +102,10 @@ func (c *ApplyHandler) ConfirmApply(r *gin.Context) {
 		c.SendResponse(r, err, err.Error())
 		return
 	}
-	uerr := model.DB.Self.Table(model.TbRpOperationInfoTableName()).Where("request_id = ?",
+	err = model.DB.Self.Table(model.TbRpOperationInfoTableName()).Where("request_id = ?",
 		param.RequestId).Update("status", model.Used).Error
-	if uerr != nil {
-		logger.Warn("update tb_rp_operation_info failed %s ", uerr.Error())
+	if err != nil {
+		logger.Warn("update tb_rp_operation_info failed %s ", err.Error())
 	}
 	archive(hostIds)
 	c.SendResponse(r, nil, "successful")
@@ -127,7 +128,7 @@ func archive(bkHostIds []int) {
 		return
 	}
 	for _, v := range rs {
-		task.ArchiverResourceChan <- v.ID
+		task.ArchivedResourceChan <- v.ID
 	}
 }
 
@@ -142,14 +143,14 @@ func (c *ApplyHandler) PreApplyResource(r *gin.Context) {
 }
 
 func newLocker(key string, requestId string) *lock.SpinLock {
-	return lock.NewSpinLock(&lock.RedisLock{Name: key, RandKey: requestId, Expiry: 120 * time.Second}, 60,
-		350*time.Millisecond)
+	redisLock := lock.NewRedisLock(key, requestId, 120*time.Second)
+	return lock.NewSpinLock(redisLock, 60, 350*time.Millisecond)
 }
 
 // ApplyBase apply resource base func
 func (c *ApplyHandler) ApplyBase(r *gin.Context, mode string) {
-	task.RuningTask <- struct{}{}
-	defer func() { <-task.RuningTask }()
+	task.RunningTask <- struct{}{}
+	defer func() { <-task.RunningTask }()
 	logger.Info("start apply resource ... ")
 	var param apply.RequestInputParam
 	var pickers []*apply.PickerObject
@@ -165,7 +166,7 @@ func (c *ApplyHandler) ApplyBase(r *gin.Context, mode string) {
 	if !param.DryRun {
 		lock := newLocker(param.LockKey(), c.RequestId)
 		defer func() {
-			logger.Info("defer unlock in contorller")
+			logger.Info("defer unlock in controller")
 			if err = lock.Unlock(); err != nil {
 				logger.Error(fmt.Sprintf("unlock failed %s", err.Error()))
 				return
@@ -196,7 +197,7 @@ func (c *ApplyHandler) ApplyBase(r *gin.Context, mode string) {
 		return
 	}
 	logger.Info(fmt.Sprintf("The %s, will return %d machines", c.RequestId, len(data)))
-	task.ApplyResponeLogChan <- task.ApplyResponeLogItem{
+	task.ApplyResponseLogChan <- task.ApplyResponseLogItem{
 		RequestId: c.RequestId,
 		Data:      data,
 	}

@@ -1,7 +1,6 @@
 package handler_rpc
 
 import (
-	"dbm-services/mysql/db-remote-service/pkg/config"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -21,7 +20,8 @@ func generalHandler(rpcEmbed rpc_core.RPCEmbedInterface) func(*gin.Context) {
 			ConnectTimeout: 2,
 			QueryTimeout:   600, // 默认超时时间 10 分钟
 			Force:          false,
-			Timezone:       config.RuntimeConfig.Timezone,
+			Timezone:       "", //config.RuntimeConfig.Timezone,
+			Charset:        "",
 		}
 
 		if err := c.ShouldBindJSON(&req); err != nil {
@@ -39,6 +39,9 @@ func generalHandler(rpcEmbed rpc_core.RPCEmbedInterface) func(*gin.Context) {
 		if req.QueryTimeout <= 0 {
 			req.QueryTimeout = 600
 		}
+		if req.Charset == "" {
+			req.Charset = "default"
+		}
 
 		slog.Info(
 			"enter rpc handler",
@@ -48,6 +51,8 @@ func generalHandler(rpcEmbed rpc_core.RPCEmbedInterface) func(*gin.Context) {
 			slog.Int("connect_timeout", req.ConnectTimeout),
 			slog.Int("query_timeout", req.QueryTimeout),
 			slog.String("request-id", requestId),
+			slog.String("charset", req.Charset),
+			slog.String("timezone", req.Timezone),
 		)
 		dupAddrs := findDuplicateAddresses(req.Addresses)
 
@@ -69,7 +74,7 @@ func generalHandler(rpcEmbed rpc_core.RPCEmbedInterface) func(*gin.Context) {
 		rpcWrapper := rpc_core.NewRPCWrapper(
 			req.Addresses, req.Cmds,
 			rpcEmbed.User(), rpcEmbed.Password(),
-			req.ConnectTimeout, req.QueryTimeout, req.Timezone, req.Force,
+			req.ConnectTimeout, req.QueryTimeout, req.Timezone, req.Charset, req.Force,
 			rpcEmbed,
 			requestId,
 		)

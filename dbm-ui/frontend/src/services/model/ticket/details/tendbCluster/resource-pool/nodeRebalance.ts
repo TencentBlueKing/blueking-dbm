@@ -17,6 +17,8 @@ export interface NodeRebalance extends ResourcePoolDetailBase {
         affinity: string;
         count: number;
         futureCapacity: number;
+        label_names: string[]; // 标签名称列表，单据详情回显用
+        labels: string[]; // 标签id列表
         spec_id: number;
         specName: string;
       };

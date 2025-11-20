@@ -15,7 +15,7 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListSpec } from '@services/types';
 
-import { Affinity, affinityMap, ClusterTypes, PipelineStatus, TicketTypes } from '@common/const';
+import { Affinity, ClusterTypes, mongodbAffinityMap, PipelineStatus, TicketTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
@@ -47,7 +47,6 @@ export default class Mongodb extends ClusterBase {
   cluster_name: string;
   cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
-  cluster_subzons: string[];
   cluster_time_zone: string;
   cluster_type: ClusterTypes;
   cluster_type_name: string;
@@ -57,14 +56,14 @@ export default class Mongodb extends ClusterBase {
   db_module_name: string;
   disaster_tolerance_level: Affinity;
   id: number;
-  machine_instance_num: number;
+  machine_instance_num: number; // 单机部署实例数
   machine_type: string;
   major_version: string;
   master_domain: string;
   mongo_config: ClusterListNode[];
   mongodb: ClusterListNode[];
-  mongodb_machine_num: number;
-  mongodb_machine_pair: number;
+  mongodb_machine_num: number; // 机器台数
+  mongodb_machine_pair: number; // 机器组数
   mongos: ClusterListNode[];
   operations: {
     cluster_id: number;
@@ -81,17 +80,18 @@ export default class Mongodb extends ClusterBase {
     mongodb_edit: boolean;
     mongodb_enable_disable: boolean;
     mongodb_plugin_create_clb: boolean;
+    mongodb_source_access_view: boolean;
     mongodb_view: boolean;
     mongodb_webconsole: boolean;
   };
   phase: string;
   phase_name: string;
-  region: string;
   replicaset_machine_num: number;
   seg_range: Record<string, string[]>;
   shard_node_count: number; // 分片节点数
-  shard_num: number; // 分片数
+  shard_num: number; // 集群分片数
   shard_spec: string;
+  single_host_shard_num: number; // 单机分片数
   slave_domain: string;
   status: string;
   temporary_info: {
@@ -107,7 +107,6 @@ export default class Mongodb extends ClusterBase {
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
-    this.cluster_subzons = payload.cluster_subzons || [];
     this.cluster_access_port = payload.cluster_access_port;
     this.cluster_alias = payload.cluster_alias;
     this.cluster_entry = payload.cluster_entry || [];
@@ -122,7 +121,6 @@ export default class Mongodb extends ClusterBase {
     this.creator = payload.creator;
     this.db_module_id = payload.db_module_id;
     this.db_module_name = payload.db_module_name;
-
     this.id = payload.id;
     this.major_version = payload.major_version;
     this.master_domain = payload.master_domain;
@@ -137,11 +135,11 @@ export default class Mongodb extends ClusterBase {
     this.permission = payload.permission || {};
     this.phase = payload.phase;
     this.phase_name = payload.phase_name;
-    this.region = payload.region;
     this.replicaset_machine_num = payload.replicaset_machine_num;
     this.seg_range = payload.seg_range;
     this.slave_domain = payload.slave_domain;
     this.shard_node_count = payload.shard_node_count;
+    this.single_host_shard_num = payload.single_host_shard_num;
     this.shard_num = payload.shard_num;
     this.temporary_info = payload.temporary_info;
     this.shard_spec = payload.shard_spec;
@@ -173,37 +171,7 @@ export default class Mongodb extends ClusterBase {
   }
 
   get disasterToleranceLevelName() {
-    return affinityMap[this.disaster_tolerance_level];
-  }
-
-  get entryAccess() {
-    if (this.isMongoReplicaSet) {
-      return `mongodb://{username}:{password}@${this.entryDomain}/?replicaSet=${this.cluster_name}&authSource=admin`;
-    }
-    return `mongodb://{username}:{password}@${this.entryDomain}/?authSource=admin`;
-  }
-
-  get entryAccessClb() {
-    if (!this.isMongoReplicaSet) {
-      const clbItem = this.cluster_entry.find((entryItem) => entryItem.cluster_entry_type === 'clbDns');
-      if (clbItem) {
-        return `mongodb://{username}:{password}@${clbItem.entry}:${this.cluster_access_port}/?authSource=admin`;
-      }
-    }
-    return '';
-  }
-
-  get entryDomain() {
-    if (this.isMongoReplicaSet) {
-      const domainList = this.cluster_entry.reduce<string[]>((prevDomainList, entryItem) => {
-        if (!entryItem.entry.includes('backup')) {
-          return prevDomainList.concat(`${entryItem.entry}:${this.cluster_access_port}`);
-        }
-        return prevDomainList;
-      }, []);
-      return domainList.join(',');
-    }
-    return `${this.master_domain}:${this.cluster_access_port}`;
+    return mongodbAffinityMap[this.disaster_tolerance_level];
   }
 
   get instanceCount() {

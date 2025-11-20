@@ -1,5 +1,5 @@
 <template>
-  <BaseInfo>
+  <InfoList>
     <InfoItem :label="t('集群别名')">
       {{ data.cluster_alias || '--' }}
     </InfoItem>
@@ -11,10 +11,10 @@
       {{ data.disasterToleranceLevelName }}
     </InfoItem>
     <InfoItem :label="t('地域')">
-      <div>{{ data.region || '--' }}</div>
+      <div>{{ data.regionDisplay }}</div>
     </InfoItem>
     <InfoItem :label="t('园区')">
-      <div>{{ data.cluster_subzons.join('，') || '--' }}</div>
+      <div>{{ data.clusterSubzonesDisplay }}</div>
     </InfoItem>
     <InfoItem :label="t('规格')">
       {{ data.cluster_spec.spec_name || '--' }}
@@ -31,14 +31,14 @@
     <InfoItem :label="t('时区')">
       {{ data.cluster_time_zone || '--' }}
     </InfoItem>
-  </BaseInfo>
+  </InfoList>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
 
-  import BaseInfo, { InfoItem } from '../base-info/Index.vue';
+  import InfoList, { InfoItem } from '../base-info/components/Index.vue';
 
   interface Props {
     data: Pick<
@@ -48,12 +48,12 @@
       | 'cluster_name'
       | 'major_version'
       | 'disasterToleranceLevelName'
-      | 'region'
       | 'cluster_spec'
       | 'bk_cloud_name'
       | 'bk_cloud_id'
       | 'bk_biz_name'
-      | 'cluster_subzons'
+      | 'clusterSubzonesDisplay'
+      | 'regionDisplay'
       | 'creator'
       | 'createAtDisplay'
       | 'cluster_time_zone'

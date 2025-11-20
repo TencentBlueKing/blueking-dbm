@@ -13,7 +13,7 @@ import logging.config
 from dataclasses import asdict
 from typing import Dict, Optional, Tuple
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
@@ -175,7 +175,7 @@ class MySQLHAApplyFlow(object):
             acts_list = []
             for proxy_ip in info["proxy_ip_list"]:
                 exec_act_kwargs.exec_ip = proxy_ip["ip"]
-                exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_proxy_payload.__name__
+                exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_proxy_for_deploy_payload.__name__
                 acts_list.append(
                     {
                         "act_name": _("安装proxy实例"),

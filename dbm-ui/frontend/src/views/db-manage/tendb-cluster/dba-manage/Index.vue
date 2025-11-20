@@ -14,7 +14,7 @@
 <template>
   <DbaManageMenu
     :routes="routes"
-    sub-title="TendbCluster" />
+    sub-title="Tendb Cluster" />
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

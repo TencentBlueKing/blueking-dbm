@@ -13,7 +13,7 @@ from collections import defaultdict
 
 from django.db.models import Q
 from django.db.transaction import atomic
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums.extra_process_type import ExtraProcessType
@@ -22,12 +22,13 @@ from backend.db_services.mysql.dumper.models import DumperSubscribeConfig
 from backend.flow.consts import TBinlogDumperAddType
 from backend.flow.engine.controller.tbinlogdumper import TBinlogDumperController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import TicketBaseValidateSerializerMixin
 from backend.ticket.builders.common.constants import DumperProtocolType
 from backend.ticket.builders.tendbcluster.base import BaseDumperTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 
-class TbinlogdumperApplyDetailSerializer(serializers.Serializer):
+class TbinlogdumperApplyDetailSerializer(TicketBaseValidateSerializerMixin, serializers.Serializer):
     class DBTableDetailSerializer(serializers.Serializer):
         db_name = serializers.CharField(help_text=_("订阅库名"))
         table_names = serializers.ListField(help_text=_("订阅表名列表"), child=serializers.CharField())
@@ -129,6 +130,7 @@ class TbinlogdumperApplyDetailSerializer(serializers.Serializer):
         return dumper_config
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         # 校验类型和配置可选项的匹配
         for info in attrs["infos"]:
             if info["protocol_type"] == DumperProtocolType.KAFKA and not (info["kafka_user"] and info["kafka_pwd"]):

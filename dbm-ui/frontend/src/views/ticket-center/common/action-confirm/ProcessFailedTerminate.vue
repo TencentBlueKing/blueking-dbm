@@ -29,6 +29,7 @@
             required>
             <BkInput
               v-model="terminateFormMode.remark"
+              autofocus
               :maxlength="100"
               :rows="3"
               type="textarea" />
@@ -72,22 +73,27 @@
     return terminateForm
       .value!.validate()
       .then(() => {
-        if (props.data) {
-          return revokeTicket({
-            ticket_ids: [props.data.id],
-          });
-        }
         if (props.flowData) {
           return revokeFlow({
             flow_id: props.flowData.id,
             id: props.data.id,
+            ...terminateFormMode,
           });
         }
+
+        if (props.data) {
+          return revokeTicket({
+            ticket_ids: [props.data.id],
+            ...terminateFormMode,
+          });
+        }
+
         return Promise.reject();
       })
       .then(() => {
         messageSuccess(t('操作成功'));
         eventBus.emit('refreshTicketStatus');
+        eventBus.emit('refreshTicketData');
       })
       .finally(() => {
         isSubmitting.value = false;

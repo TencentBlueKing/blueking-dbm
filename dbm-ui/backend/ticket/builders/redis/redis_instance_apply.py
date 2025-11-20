@@ -10,22 +10,23 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Dict
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework import serializers
 
 from backend.configuration.constants import AffinityEnum, DBPrivSecurityType
 from backend.configuration.handlers.password import DBPasswordHandler
 from backend.db_meta.models import Cluster, Machine, StorageInstance
 from backend.db_services.dbbase.constants import IpSource
+from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.engine.controller.redis import RedisController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.common.base import CommonValidate, SkipToRepresentationMixin
-from backend.ticket.builders.redis.base import BaseRedisInstanceTicketFlowBuilder
+from backend.ticket.builders.common.base import CommonValidate, get_ticket_zone_list
+from backend.ticket.builders.redis.base import BaseRedisInstanceTicketFlowBuilder, RedisBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
 
-class RedisInstanceApplyDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class RedisInstanceApplyDetailSerializer(RedisBaseOperateDetailSerializer):
     class InstanceInfoSerializer(serializers.Serializer):
         cluster_name = serializers.CharField(help_text=_("集群ID（英文数字及下划线）"))
         databases = serializers.IntegerField(help_text=_("db数量"))
@@ -51,11 +52,19 @@ class RedisInstanceApplyDetailSerializer(SkipToRepresentationMixin, serializers.
 
     city_name = serializers.SerializerMethodField(help_text=_("城市名"))
 
+    # display fields
+    bk_cloud_name = serializers.SerializerMethodField(help_text=_("云区域"), read_only=True)
+
+    def get_bk_cloud_name(self, obj):
+        clouds = ResourceQueryHelper.search_cc_cloud(get_cache=True)
+        return clouds[str(obj["bk_cloud_id"])]["bk_cloud_name"]
+
     def get_city_name(self, obj):
         city_code = obj["city_code"]
         return self.context["ticket_ctx"].city_map.get(city_code, city_code)
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         # 集群名校验
         bk_biz_id, ticket_type = self.context["bk_biz_id"], self.context["ticket_type"]
         for info in attrs["infos"]:
@@ -69,6 +78,11 @@ class RedisInstanceApplyDetailSerializer(SkipToRepresentationMixin, serializers.
                 raise serializers.ValidationError(_("请保证机器组数{}能整除集群数{}").format(machine_group, cluster_num))
 
         return attrs
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation["bk_cloud_name"] = self.get_bk_cloud_name(instance)
+        return representation
 
 
 class RedisInstanceApplyFlowParamBuilder(builders.FlowParamBuilder):
@@ -139,17 +153,22 @@ class RedisInstanceApplyFlowParamBuilder(builders.FlowParamBuilder):
         if self.ticket_data["append_apply"]:
             self.format_append_cluster_info()
 
+        # 补充zone_list数据
+        self.ticket_data["zone_list"] = get_ticket_zone_list(self.ticket_data)
+
 
 class RedisInstanceApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
     def format_apply_cluster_info(self, ticket_data):
         """补充部署集群的信息"""
         cluster_num, machine_group = len(ticket_data["infos"]), len(ticket_data["nodes"]["backend_group"])
+        # 分配数
+        distribute_num = cluster_num // machine_group
         for index, info in enumerate(ticket_data["infos"]):
-            backend_group = ticket_data["nodes"]["backend_group"][index % machine_group]
+            backend_group = ticket_data["nodes"]["backend_group"][index // distribute_num]
             info.update(
                 backend_group=backend_group,
                 # 在同一台机器部署的实例端口号要递增
-                port=ticket_data["port"] + (index // machine_group),
+                port=ticket_data["port"] + (index % distribute_num),
                 db_version=ticket_data["db_version"],
                 resource_spec=ticket_data["resource_spec"]["master"],
                 # maxmemory = 机器内存 * 0.9 / 单机实例数 * 1024 * 1024 (MB --> 字节)

@@ -14,7 +14,7 @@ import time
 from datetime import timedelta
 from typing import Dict
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend import env
 from backend.components.base import BaseApi

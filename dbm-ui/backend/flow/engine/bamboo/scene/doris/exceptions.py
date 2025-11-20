@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.exceptions import AppBaseException, ErrorCode
 
@@ -58,3 +58,15 @@ class NoShrinkMachineException(DorisFlowBaseException):
     ERROR_CODE = "007"
     MESSAGE = _("机器数量异常")
     MESSAGE_TPL = _("Doris缩容选择机器不能为空")
+
+
+class ResourceUnsupportException(DorisFlowBaseException):
+    ERROR_CODE = "008"
+    MESSAGE = _("环境配置异常")
+    MESSAGE_TPL = _("Doris不支持冷存储资源管理")
+
+
+class ResourceExistsException(DorisFlowBaseException):
+    ERROR_CODE = "008"
+    MESSAGE = _("集群资源已存在")
+    MESSAGE_TPL = _("Doris集群{cluster_name}已存在资源")

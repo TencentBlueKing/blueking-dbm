@@ -80,14 +80,14 @@
 
   import AccountRulesTable from './components/AccountRulesTable.vue';
 
-  interface Props {
+  export interface Props<T> {
     accountType: AccountTypes;
     selectedList?: T[];
   }
 
   type Emits = (e: 'change', value: T[]) => void;
 
-  withDefaults(defineProps<Props>(), {
+  withDefaults(defineProps<Props<T>>(), {
     selectedList: () => [],
   });
   const emits = defineEmits<Emits>();
@@ -181,7 +181,7 @@
         margin-right: auto;
 
         .selected-count {
-          font-size: 700;
+          font-weight: bolder;
           color: #2dcb56;
         }
       }

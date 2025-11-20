@@ -9,18 +9,18 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.models import Cluster, Machine
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostRecycleSerializer, SkipToRepresentationMixin
-from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
+from backend.ticket.builders.common.base import HostRecycleSerializer
+from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, RedisBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
 
-class RedisClusterInstShutdownDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class RedisClusterInstShutdownDetailSerializer(RedisBaseOperateDetailSerializer):
     """实例下架"""
 
     class InfoSerializer(serializers.Serializer):
@@ -35,6 +35,7 @@ class RedisClusterInstShutdownDetailSerializer(SkipToRepresentationMixin, serial
         redis_slave = serializers.ListField(
             help_text=_("slave列表"), allow_empty=True, child=serializers.IPAddressField(), required=False
         )
+        need_manual_confirm = serializers.BooleanField(help_text=_("需要人工确认"), required=False, default=True)
 
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
     ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)

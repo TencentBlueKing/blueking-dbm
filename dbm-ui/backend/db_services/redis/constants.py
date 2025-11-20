@@ -8,23 +8,19 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
-
-# TCP【建立连接】状态码，【监听】状态码;
-TCP_ESTABLISHED_CODE = 1
-TCP_LISTEN_CODE = 10
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
-class KeyDeleteType(str, StructuredEnum):
+class KeyDeleteType(StrStructuredEnum):
     """Key删除方式定义"""
 
     BY_REGEX = EnumField("regex", _("基于正则"))
     BY_FILES = EnumField("files", _("基于文件"))
 
 
-class RedisVersionQueryType(str, StructuredEnum):
+class RedisVersionQueryType(StrStructuredEnum):
     """redis版本查询类型"""
 
     ONLINE = EnumField("online", _("查询当前版本"))

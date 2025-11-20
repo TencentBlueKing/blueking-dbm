@@ -15,7 +15,7 @@ from copy import deepcopy
 from dataclasses import asdict
 from typing import Any, Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
@@ -38,6 +38,7 @@ from backend.flow.engine.bamboo.scene.redis.atom_jobs import (
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
+from backend.flow.plugins.components.collections.redis.redis_update_version import RedisUpdateVersionComponent
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
@@ -236,9 +237,13 @@ class RedisClusterCMRSceneFlow(object):
                 flow_data["replace_info"] = cluster_replacement
 
                 sub_pipeline = self.generate_cluster_replacement(flow_data, cluster_kwargs, cluster_replacement)
-                sub_pipelines.append(sub_pipeline)
-
-        redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+                # 如果有单实例的集群，那么先让他串行搞；完成后再搞非单实例集群
+                if cluster_info["cluster_type"] == ClusterType.RedisInstance.value:
+                    redis_pipeline.add_sub_pipeline(sub_pipeline)
+                else:
+                    sub_pipelines.append(sub_pipeline)
+        if len(sub_pipelines) > 0:
+            redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         return redis_pipeline.run_pipeline()
 
     # 组装&控制 集群替换流程
@@ -298,9 +303,24 @@ class RedisClusterCMRSceneFlow(object):
             )
             sub_pipeline.add_sub_pipeline(master_replace_pipe)
 
+        act_kwargs.cluster["update_all"] = True
+        sub_pipeline.add_act(
+            act_name=_("{}-更新版本").format(act_kwargs.cluster["immute_domain"]),
+            act_component_code=RedisUpdateVersionComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
+
         return sub_pipeline.build_sub_process(sub_name=_("整机替换-{}").format(act_kwargs.cluster["immute_domain"]))
 
-    def proxy_replacement(self, sub_pipeline, act_kwargs, proxy_replace_info):
+    def proxy_replacement(self, sub_pipeline, proxy_kwargs, proxy_replace_info):
+        act_kwargs = copy.deepcopy(proxy_kwargs)
+        del act_kwargs.cluster["slave_ports"]
+        del act_kwargs.cluster["master_ports"]
+        del act_kwargs.cluster["ins_pair_map"]
+        del act_kwargs.cluster["slave_ins_map"]
+        del act_kwargs.cluster["slave_master_map"]
+        del act_kwargs.cluster["master_slave_map"]
+
         old_proxies, new_proxies = [], []
         proxy_replace_details = proxy_replace_info["proxy"]
         for replace_link in proxy_replace_details:

@@ -83,7 +83,7 @@ class ItsmFlow(BaseTicketFlow):
         except (IndexError, KeyError):
             # 异常时根据状态取默认的概览
             msg = TicketStatus.get_choice_label(self.status)
-            summary.update(operator=self.ticket_logs[-1]["operator"], status=self.status, message=msg)
+            summary.update(operator="", status=self.status, message=msg)
         return summary
 
     @property
@@ -123,6 +123,11 @@ class ItsmFlow(BaseTicketFlow):
 
         return ""
 
+    def run(self):
+        super().run()
+        # 创建ITSM单后，发送通知
+        notify.send_msg.apply_async(args=(self.ticket.id,))
+
     def _run(self) -> str:
         Todo.objects.create(
             name=_("【{}】单据等待审批").format(self.ticket.get_ticket_type_display()),
@@ -133,11 +138,8 @@ class ItsmFlow(BaseTicketFlow):
         )
         # 创建单据
         data = ItsmApi.create_ticket(self.flow_obj.details)
-        # 如果此时单据处于待审批状态，说明存在连续审批节点，需主动触发一次消息发送
-        if self.ticket.status == TicketStatus.APPROVE:
-            notify.send_msg.apply_async(args=(self.ticket.id,))
         return data["sn"]
 
-    def _revoke(self, operator) -> Any:
+    def _revoke(self, operator, remark="") -> Any:
         # 父类通过触发todo的终止可以终止itsm单据
-        super()._revoke(operator)
+        super()._revoke(operator, remark)

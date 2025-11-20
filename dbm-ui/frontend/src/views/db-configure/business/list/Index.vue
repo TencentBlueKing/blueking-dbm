@@ -13,7 +13,9 @@
 
 <template>
   <div class="business-db-configure-list-page">
-    <ClusterTab v-model="activeTab" />
+    <ClusterTab
+      v-model="activeTab"
+      :excludes="[ClusterTypes.ORACLE_SINGLE_NONE, ClusterTypes.ORACLE_PRIMARY_STANDBY]" />
     <div class="content-main">
       <Content
         v-if="activeTab"

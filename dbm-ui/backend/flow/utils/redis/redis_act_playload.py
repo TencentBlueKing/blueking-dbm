@@ -15,7 +15,7 @@ import time
 from typing import Any
 
 from django.conf import settings
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend import env
 from backend.components import DBConfigApi
@@ -697,6 +697,74 @@ class RedisActPayload(object):
             "payload": {"user": redis_os_account["os_user"], "password": redis_os_account["os_password"]},
         }
 
+    # proxy重启， proxy 复用
+    def proxy_reuse_payload(self, **kwargs) -> dict:
+        params, payload, proxy_version = (
+            kwargs["params"],
+            {},
+            ConfigFileEnum.Predixy.value,
+        )
+        cluster = Cluster.objects.get(id=params["cluster_id"])
+        self.bk_biz_id, self.namespace = str(cluster.bk_biz_id), cluster.cluster_type
+        if is_twemproxy_proxy_type(cluster.cluster_type):
+            proxy_version = ConfigFileEnum.Twemproxy.value
+        proxy_config = self.__get_cluster_config(
+            domain_name=cluster.immute_domain, db_version=proxy_version, conf_type=ConfigTypeEnum.ProxyConf.value
+        )
+
+        cluster_info = metaApi.cluster.nosqlcomm.other.get_cluster_detail(cluster_id=cluster.id)[0]
+        redis_master_set, redis_slave_set, servers = (
+            cluster_info["redis_master_set"],
+            cluster_info["redis_slave_set"],
+            [],
+        )
+        if is_twemproxy_proxy_type(cluster.cluster_type):
+            for set in redis_master_set:
+                ip_port, seg_range = str.split(set)
+                servers.append("{} {} {} {}".format(ip_port, cluster.name, seg_range, 1))
+        else:
+            servers = redis_master_set + redis_slave_set
+
+        # 从dbconfig中获取load_modules
+        module_rows = get_cluster_redis_modules_detial(cluster_id=cluster.id)
+        load_modules = [module_row["module_name"] for module_row in module_rows]
+
+        payload.update(
+            {
+                "ip": params["proxy_ip"],
+                "port": params["proxy_port"],
+                "reuse": params.get("proxy_reuse", False),
+                "cluster_type": cluster.cluster_type,
+                "password": proxy_config["password"],
+                "redis_password": proxy_config["redis_password"],
+                "twemproxy_confies": {},
+                "predixy_confies": {},
+            }
+        )
+        logger.info("cluster: {}, reuse proxy: {} ;payload: {}".format(cluster.immute_domain, params, payload))
+
+        if cluster.cluster_type in [
+            ClusterType.TendisTwemproxyRedisInstance.value,
+            ClusterType.TwemproxyTendisSSDInstance.value,
+        ]:
+            payload["twemproxy_confies"] = {
+                "conf_configs": proxy_config,
+                "servers": servers,
+            }
+        else:
+            payload["predixy_confies"] = {
+                "predixyadminpasswd": proxy_config.get("redis_proxy_admin_password", proxy_config["password"]),
+                "servers": servers,
+                "load_modules": load_modules,
+                "dbconfig": proxy_config,
+            }
+
+        return {
+            "db_type": DBActuatorTypeEnum.Proxy.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.PROXY_REUSE.value,
+            "payload": payload,
+        }
+
     def get_install_predixy_payload(self, **kwargs) -> dict:
         self.proxy_pkg = Package.get_latest_package(
             version=PredixyVersion.PredixyLatest, pkg_type=MediumEnum.Predixy, db_type=DBType.Redis
@@ -893,6 +961,7 @@ class RedisActPayload(object):
                 "is_keys_to_be_del": True,
                 "delete_rate": int(self.global_config["delete_rate"]),
                 "tendisplus_delete_rate": int(self.global_config["tendisplus_delete_rate"]),
+                "ssd_delete_rate": int(self.global_config["tendisplus_delete_rate"]),
             },
         }
 
@@ -922,6 +991,7 @@ class RedisActPayload(object):
                 "proxy_password": proxy_config["password"],
                 "tendis_type": self.cluster["cluster_type"],
                 "tendisplus_delete_rate": int(self.global_config["tendisplus_delete_rate"]),
+                "ssd_delete_rate": int(self.global_config["tendisplus_delete_rate"]),
             },
         }
 
@@ -947,6 +1017,7 @@ class RedisActPayload(object):
                 "domain": domain_name,
                 "without_to_backup_sys": not BACKUP_SYS_STATUS,
                 "backup_client_storage_type": "",  # 留空,使用系统默认
+                "backup_identify": self.cluster.get("backup_identify", ""),  # 新参数，一次备份的整体标识
             },
         }
 
@@ -1579,6 +1650,38 @@ class RedisActPayload(object):
         }
 
     # Tendis 单实例/集群 架构-实例切换;
+    def redis__switch_precheck_4_scene(self, **kwargs) -> dict:
+        """same as redis__switch_4_scene"""
+        params, proxy_pass, storage_pass = kwargs["params"], "<", ">"
+        self.namespace = params["cluster_type"]
+        cluster_meta = nosqlcomm.other.get_cluster_detail(cluster_id=params["cluster_id"])[0]
+        passwd_ret = PayloadHandler.redis_get_password_by_domain(params["immute_domain"])
+        if self.namespace == ClusterType.RedisInstance.value:
+            storage_pass = passwd_ret.get("redis_password")
+        else:
+            proxy_pass, storage_pass = passwd_ret.get("redis_proxy_password"), passwd_ret.get("redis_password")
+
+        logger.info("switch cluster {}, switch infos : {}".format(params["immute_domain"], params["switch_info"]))
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.SwitchPrecheck.value,
+            "payload": {
+                "cluster_meta": {
+                    "bk_biz_id": cluster_meta["bk_biz_id"],
+                    "immute_domain": cluster_meta["immute_domain"],
+                    "cluster_type": cluster_meta["cluster_type"],
+                    "major_version": cluster_meta["major_version"],
+                    "twemproxy_status_set": cluster_meta["twemproxy_status_set"],
+                    "redis_master_set": cluster_meta["redis_master_set"],
+                    "proxy_pass": proxy_pass,
+                    "storage_pass": storage_pass,
+                },
+                "switch_info": params["switch_info"],  # list
+                "switch_condition": params["switch_condition"],  # dict
+            },
+        }
+
+    # Tendis 单实例/集群 架构-实例切换;
     def redis__switch_4_scene(self, **kwargs) -> dict:
         """{
             "cluster_id":0,
@@ -1607,9 +1710,10 @@ class RedisActPayload(object):
                     "immute_domain": cluster_meta["immute_domain"],
                     "cluster_type": cluster_meta["cluster_type"],
                     "major_version": cluster_meta["major_version"],
-                    "twemproxy_set": cluster_meta["twemproxy_set"],
+                    # "twemproxy_set": cluster_meta["twemproxy_set"],
+                    "twemproxy_status_set": cluster_meta["twemproxy_status_set"],
                     "redis_master_set": cluster_meta["redis_master_set"],
-                    "redis_slave_set": cluster_meta["redis_slave_set"],
+                    # "redis_slave_set": cluster_meta["redis_slave_set"], # 似乎没有用.
                     "proxy_pass": proxy_pass,
                     "storage_pass": storage_pass,
                 },
@@ -2090,17 +2194,25 @@ class RedisActPayload(object):
         logger.info(_("更新集群:{} redis配置 为 目标集群的配置,upsert_param:{}".format(cluster_map["cluster_domain"], upsert_param)))
         DBConfigApi.upsert_conf_item(upsert_param)
 
-    # redis proxy 原地升级
+    # redis proxy 原地升级/降级
     def redis_proxy_upgrade_online_payload(self, **kwargs) -> dict:
         params = kwargs["params"]
+        # target_version_file could be None
+        proxy_pkg_prefix = params.get("proxy_pkg_prefix", None)
         proxy_pkg: Package = None
         if is_twemproxy_proxy_type(params["cluster_type"]):
             proxy_pkg = Package.get_latest_package(
-                version=TwemproxyVersion.TwemproxyLatest, pkg_type=MediumEnum.Twemproxy, db_type=DBType.Redis
+                version=TwemproxyVersion.TwemproxyLatest,
+                pkg_type=MediumEnum.Twemproxy,
+                db_type=DBType.Redis,
+                name_prefix=proxy_pkg_prefix,
             )
         elif is_predixy_proxy_type(params["cluster_type"]):
             proxy_pkg = Package.get_latest_package(
-                version=PredixyVersion.PredixyLatest, pkg_type=MediumEnum.Predixy, db_type=DBType.Redis
+                version=PredixyVersion.PredixyLatest,
+                pkg_type=MediumEnum.Predixy,
+                db_type=DBType.Redis,
+                name_prefix=proxy_pkg_prefix,
             )
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
@@ -2170,7 +2282,7 @@ class RedisActPayload(object):
         print(f"params:{params}")
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
-            "action": DBActuatorTypeEnum.Tendisplus.value + "_" + RedisActuatorActionEnum.SLOTS_MIGRATE.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.SLOTS_MIGRATE.value,
             "payload": {
                 "src_node": params["src_node"],
                 "dst_node": params["dst_node"],
@@ -2204,7 +2316,7 @@ class RedisActPayload(object):
         print(f"params:{params}")
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
-            "action": DBActuatorTypeEnum.Tendisplus.value + "_" + RedisActuatorActionEnum.SLOTS_MIGRATE.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.SLOTS_MIGRATE.value,
             "payload": {
                 "src_node": params["src_node"],
                 "dst_node": params["dst_node"],
@@ -2238,7 +2350,7 @@ class RedisActPayload(object):
         print(f"params:{params}")
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
-            "action": DBActuatorTypeEnum.Tendisplus.value + "_" + RedisActuatorActionEnum.SLOTS_MIGRATE.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.SLOTS_MIGRATE.value,
             "payload": {
                 "src_node": params["src_node"],
                 "dst_node": params["dst_node"],

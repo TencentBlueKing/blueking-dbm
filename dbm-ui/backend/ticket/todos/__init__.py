@@ -14,14 +14,14 @@ from dataclasses import asdict, dataclass
 from typing import Callable
 
 from blueapps.account.models import User
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.constants import DEFAULT_SYSTEM_USER
 from backend.ticket.constants import TODO_RUNNING_STATUS
 from backend.ticket.exceptions import TodoDuplicateProcessException, TodoWrongOperatorException
 from backend.ticket.models import Todo
 from backend.utils.register import re_import_modules
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, IntStructuredEnum, StrStructuredEnum
 
 logger = logging.getLogger("root")
 
@@ -42,10 +42,16 @@ class TodoActor:
         return cls.__name__
 
     def update_context(self, params):
+        if not params:
+            return
+
         # 更新上下文信息
         if "remark" in params:
             self.todo.context.update(remark=params["remark"])
+            self.todo.flow.context.update(remark=params["remark"])
+
         self.todo.save(update_fields=["context"])
+        self.todo.flow.save(update_fields=["context"])
 
     @property
     def allow_superuser_process(self):
@@ -62,13 +68,13 @@ class TodoActor:
             self._process(username, action, params)
             return
         # 允许超级用户和操作人确认
-        is_superuser = User.objects.get(username=username).is_superuser and self.allow_superuser_process
+        is_superuser = self.allow_superuser_process and User.objects.get(username=username).is_superuser
         if not is_superuser and username not in self.todo.operators + self.todo.helpers:
             raise TodoWrongOperatorException(_("{}不在处理人: {}中，无法处理").format(username, self.todo.operators))
 
         # 执行确认操作
-        self._process(username, action, params)
         self.update_context(params)
+        self._process(username, action, params)
 
     def _process(self, username, action, params):
         """处理操作的具体实现"""
@@ -131,7 +137,7 @@ def register_all_todos():
     re_import_modules(path=os.path.dirname(__file__), module_path="backend.ticket.todos")
 
 
-class TodoActionType(str, StructuredEnum):
+class TodoActionType(StrStructuredEnum):
     """
     待办操作类型
     """

@@ -40,6 +40,7 @@ class SpiderSlaveApplyDetailSerializer(TendbBaseOperateDetailSerializer):
 
     def validate(self, attrs):
         """校验集群是否已经存在只读接入层"""
+        attrs = super(TendbBaseOperateDetailSerializer, self).validate(attrs)
         clusters = Cluster.objects.prefetch_related("proxyinstance_set").filter(
             id__in=[info["cluster_id"] for info in attrs["infos"]]
         )
@@ -66,9 +67,8 @@ class SpiderSlaveApplyFlowParamBuilder(builders.FlowParamBuilder):
 
 class SpiderSlaveApplyResourceParamBuilder(TendbBaseOperateResourceParamBuilder):
     def format(self):
-        self.patch_info_affinity_location(roles=["spider_slave_ip_list"])
-        for info in self.ticket_data["infos"]:
-            info["resource_spec"]["spider_slave_ip_list"]["group_count"] = 2
+        # spider slave 无亲和性要求
+        self.patch_info_common_affinity(role="spider_slave_ip_list", no_need_affinity=True)
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()

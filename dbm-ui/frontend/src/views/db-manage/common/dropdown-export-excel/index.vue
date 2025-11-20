@@ -42,6 +42,11 @@
   import { exportInfluxdbClusterToExcel, exportInfluxdbInstanceToExcel } from '@services/source/influxdb';
   import { exportKafkaClusterToExcel, exportKafkaInstanceToExcel } from '@services/source/kafka';
   import { exportMongodbClusterToExcel, exportMongodbInstanceToExcel } from '@services/source/mongodb';
+  import { exportOracleHaClusterToExcel, exportOracleHaInstanceToExcel } from '@services/source/oracleHaCluster';
+  import {
+    exportOracleSingleClusterToExcel,
+    exportOracleSingleInstanceToExcel,
+  } from '@services/source/oracleSingleCluster';
   import { exportPulsarClusterToExcel, exportPulsarInstanceToExcel } from '@services/source/pulsar';
   import { exportRedisClusterToExcel, exportRedisInstanceToExcel } from '@services/source/redis';
   import { exportRiakClusterToExcel, exportRiakInstanceToExcel } from '@services/source/riak';
@@ -49,7 +54,10 @@
     exportSqlServerHaClusterToExcel,
     exportSqlServerHaInstanceToExcel,
   } from '@services/source/sqlserveHaCluster';
-  import { exportSqlServerSingleClusterToExcel } from '@services/source/sqlserverSingleCluster';
+  import {
+    exportSqlServerSingleClusterToExcel,
+    exportSqlServerSingleInstanceToExcel,
+  } from '@services/source/sqlserverSingleCluster';
   import { exportTendbclusterInstanceToExcel, exportTendbclusterToExcel } from '@services/source/tendbcluster';
   import { exportTendbhaClusterToExcel, exportTendbhaInstanceToExcel } from '@services/source/tendbha';
   import { exportTendbsingleClusterToExcel, exportTendbsingleInstanceToExcel } from '@services/source/tendbsingle';
@@ -71,7 +79,9 @@
       | 'mongodb'
       | 'sqlserver_ha'
       | 'sqlserver_single'
-      | 'doris';
+      | 'doris'
+      | 'oracle_single_none'
+      | 'oracle_primary_standby';
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -110,6 +120,14 @@
       cluster: exportMongodbClusterToExcel,
       instance: exportMongodbInstanceToExcel,
     },
+    oracle_primary_standby: {
+      cluster: exportOracleHaClusterToExcel,
+      instance: exportOracleHaInstanceToExcel,
+    },
+    oracle_single_none: {
+      cluster: exportOracleSingleClusterToExcel,
+      instance: exportOracleSingleInstanceToExcel,
+    },
     pulsar: {
       cluster: exportPulsarClusterToExcel,
       instance: exportPulsarInstanceToExcel,
@@ -132,6 +150,7 @@
     },
     sqlserver_single: {
       cluster: exportSqlServerSingleClusterToExcel,
+      instance: exportSqlServerSingleInstanceToExcel,
     },
     tendbha: {
       cluster: exportTendbhaClusterToExcel,

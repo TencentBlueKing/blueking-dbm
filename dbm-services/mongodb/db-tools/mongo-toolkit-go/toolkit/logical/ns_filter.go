@@ -38,6 +38,9 @@ func NewNsFilter(whiteDbList, blackDbList, whiteTbList, blackTbList []string) *N
 注： mongodb中，不会存在A和a两个库，创建了A库，a库创建会失败。但可以存在A和a两个表
 */
 func isMatch(list []string, name string, defaultVal bool) bool {
+	if len(list) == 0 {
+		return defaultVal
+	}
 	for _, item := range list {
 		// 空值，白名单返回true，黑名单返回false
 		if item == "" {
@@ -55,16 +58,18 @@ func isMatch(list []string, name string, defaultVal bool) bool {
 	return false
 }
 
-// IsDbMatched 是否匹配
-// 如果不在白名单中
+// IsDbMatched 是否匹配，先匹配白名单，再匹配黑名单
+// 1. 不在白名单中，则不匹配
+// 2. 在白名单中，且不在黑名单中，则匹配
+// 3. 在白名单中，且在黑名单中，则不匹配
 func (f *NsFilter) IsDbMatched(db string) bool {
-	// 空的白名单，表示全部匹配
-	if len(f.WhiteDbList) > 0 && !isMatch(f.WhiteDbList, db, true) {
+	// 不在白名单中
+	if !isMatch(f.WhiteDbList, db, true) {
 		return false
 	}
 
-	// 空的黑名单，表示全部不匹配
-	if len(f.BlackDbList) > 0 && isMatch(f.BlackDbList, db, false) {
+	// 在白名单中，且又在黑名单中，则不匹配
+	if isMatch(f.BlackDbList, db, false) {
 		return false
 	}
 	return true
@@ -93,7 +98,7 @@ func (f *NsFilter) FilterDb(dbList []string) (matchList, notMatchList []string) 
 	return
 }
 
-// FilterTb 过滤表名
+// FilterTb 过滤表名 Deprecated
 func (f *NsFilter) FilterTb(tbList []string) (matchList, notMatchList []string) {
 	for _, tb := range tbList {
 		if f.isTbMatched("", tb) {
@@ -102,5 +107,54 @@ func (f *NsFilter) FilterTb(tbList []string) (matchList, notMatchList []string) 
 			notMatchList = append(notMatchList, tb)
 		}
 	}
+	return
+}
+
+// inWhiteList 判断表名是否在白名单中
+func (f *NsFilter) inWhiteList(db, tb string) bool {
+	dbInWhiteList := isMatch(f.WhiteDbList, db, true)
+	tbInWhiteList := isMatch(f.WhiteTbList, tb, true)
+	return dbInWhiteList && tbInWhiteList
+}
+
+// inBlackList 判断表名是否在黑名单中
+func (f *NsFilter) inBlackList(db, tb string) bool {
+	dbInBlackList := isMatch(f.BlackDbList, db, false)
+	tbInBlackList := isMatch(f.BlackTbList, tb, false)
+	return dbInBlackList && tbInBlackList
+}
+
+// FilterTbV2 过滤表名
+// 1. 数据库中的库, 先用 db_patterns 获取目标列表, 再用 ignore_dbs 排除忽略库
+// 2. 在上一步剩下的库中, 用 table_patterns 和 ignore_tables 做表选择
+func (f *NsFilter) FilterTbV2(db string, tbList []string) (matchList, notMatchList []string) {
+	if !f.IsDbMatched(db) {
+		return nil, tbList
+	}
+
+	for _, tb := range tbList {
+		if f.isTbMatched(db, tb) {
+			matchList = append(matchList, tb)
+		} else {
+			notMatchList = append(notMatchList, tb)
+		}
+	}
+
+	return
+}
+
+// FilterTbV2_Cartesian 笛卡尔积过滤表名. 目前不使用
+func (f *NsFilter) FilterTbV2_Cartesian(db string, tbList []string) (matchList, notMatchList []string) {
+
+	for _, tb := range tbList {
+		v1 := f.inWhiteList(db, tb)
+		v2 := f.inBlackList(db, tb)
+		if v1 && !v2 {
+			matchList = append(matchList, tb)
+		} else {
+			notMatchList = append(notMatchList, tb)
+		}
+	}
+
 	return
 }

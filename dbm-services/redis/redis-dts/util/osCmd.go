@@ -42,10 +42,10 @@ func RunLocalCmd(
 		cmdCtx.Stdout = outFileHandler
 	}
 	cmdCtx.Stderr = &errBuffer
-	logger.Debug("Running a new local command", zap.String("cmd", cmd), zap.Strings("opts", opts))
+	logger.Debug("Running a new local command", zap.String("cmd", cmd))
 
 	if err = cmdCtx.Start(); err != nil {
-		logger.Error("RunLocalCmd cmd Start fail", zap.Error(err), zap.String("cmd", cmd), zap.Strings("opts", opts))
+		logger.Error("RunLocalCmd cmd Start fail", zap.Error(err), zap.String("cmd", cmd))
 		return "", fmt.Errorf("RunLocalCmd cmd Start fail,err:%v", err)
 	}
 	if dealPidMethod != nil {
@@ -55,13 +55,13 @@ func RunLocalCmd(
 		logger.Error("RunLocalCmd cmd wait fail", zap.Error(err),
 			zap.String("errBuffer", errBuffer.String()),
 			zap.String("retBuffer", retBuffer.String()),
-			zap.String("cmd", cmd), zap.Strings("opts", opts))
+			zap.String("cmd", cmd))
 		return "", fmt.Errorf("RunLocalCmd cmd wait fail,err:%v", err)
 	}
 	retStr = retBuffer.String()
 	if len(errBuffer.String()) > 0 {
 		logger.Error("RunLocalCmd fail", zap.String("err", errBuffer.String()),
-			zap.String("cmd", cmd), zap.Strings("opts", opts))
+			zap.String("cmd", cmd))
 		err = fmt.Errorf("RunLocalCmd fail,err:%s", retBuffer.String()+"\n"+errBuffer.String())
 	} else {
 		err = nil

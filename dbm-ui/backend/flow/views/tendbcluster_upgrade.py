@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework.response import Response
 
 from backend.flow.engine.controller.spider import SpiderController
@@ -48,4 +48,19 @@ class UpgradeTendbClusterRemoteSceneApiView(FlowTestView):
         logger.info("define root_id: {}".format(root_id))
         test = SpiderController(root_id=root_id, ticket_data=request.data)
         test.tendbcluster_remote_upgrade()
+        return Response({"root_id": root_id})
+
+
+class SpiderKeywordCheckSceneApiView(FlowTestView):
+    """
+    api: /apis/v1/flow/scene/spider_keyword_check
+    """
+
+    @staticmethod
+    def post(request):
+        logger.info(_("开始测试spider关键字检查场景"))
+        root_id = generate_root_id()
+        logger.info("define root_id: {}".format(root_id))
+        test = SpiderController(root_id=root_id, ticket_data=request.data)
+        test.spider_keyword_check_scene()
         return Response({"root_id": root_id})

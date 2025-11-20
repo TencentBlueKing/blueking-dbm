@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 
 import logging
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components import DBConfigApi, DnsApi
 from backend.components.dbconfig.constants import LevelName, ReqType
@@ -150,8 +150,8 @@ class MongoDBMigrateMeta(object):
                 )
                 if result:
                     logger.error(
-                        "nodes:{} save user:{} password:{} fail, error: {}".format(
-                            password_info["nodes"], username, password_info["password"][username], result
+                        "nodes:{} save user:{} password fail, error: {}".format(
+                            password_info["nodes"], username, result
                         )
                     )
                     return False

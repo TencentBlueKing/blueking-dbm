@@ -25,7 +25,7 @@
         :model="formData">
         <EditableTable
           ref="editableTable"
-          class="mt16 mb16"
+          class="mt-16 mb-16"
           :model="formData.tableData">
           <EditableRow
             v-for="(item, index) in formData.tableData"
@@ -40,6 +40,7 @@
               @batch-edit="handleClusterBatchEdit" />
             <EditableColumn
               :label="t('源集群类型')"
+              readonly
               :width="200">
               <EditableBlock :placeholder="t('选择集群后自动生成')">
                 {{ item.cluster.cluster_type_name }}
@@ -47,6 +48,7 @@
             </EditableColumn>
             <EditableColumn
               :label="t('源集群容量')"
+              readonly
               :width="200">
               <EditableBlock :placeholder="t('选择集群后自动生成')">
                 {{
@@ -69,6 +71,7 @@
               :title="t('选择集群类型变更部署方案')" />
             <EditableColumn
               :label="t('切换模式')"
+              readonly
               :width="200">
               <template #head>
                 <BkPopover
@@ -147,7 +150,7 @@
         :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
         :title="t('确认重置页面')">
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="isSubmitting">
           {{ t('重置') }}
         </BkButton>

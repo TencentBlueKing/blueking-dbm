@@ -1,18 +1,25 @@
 <template>
-  <BkTableColumn
+  <TableColumn
     class-name="cluster-list-operation-column"
+    col-key="row-operation"
     fixed="left"
-    label=" "
-    :resize="false"
+    :resizable="false"
+    title=" "
     :width="30">
-    <template #default="{ data, rowIndex }: { data: IRowData; rowIndex: number }">
-      <OperationMenu :style="{ display: rowIndex === 0 ? 'flex' : '' }">
-        <slot v-bind="{ data }" />
+    <template #default="{ row, rowIndex }: { row: IRowData; rowIndex: number }">
+      <OperationMenu
+        :style="{
+          display: !currentClusterId ? (rowIndex === 0 ? 'flex' : '') : currentClusterId === row.id ? 'flex' : '',
+        }"
+        @show="() => handleShow(row)">
+        <slot v-bind="{ data: row }" />
       </OperationMenu>
     </template>
-  </BkTableColumn>
+  </TableColumn>
 </template>
 <script setup lang="ts" generic="T extends ISupportClusterType">
+  import { useRoute } from 'vue-router';
+
   import OperationMenu from './components/OperationMenu.vue';
   import type { ClusterModel, ISupportClusterType } from './types';
 
@@ -30,11 +37,35 @@
   defineProps<Props<T>>();
 
   defineSlots<Slots<T>>();
+
+  const route = useRoute();
+
+  const currentClusterId = ref(0);
+
+  watch(
+    route,
+    () => {
+      const currentClusterIdFromRoute = Number(route.params.clusterId);
+
+      if (currentClusterIdFromRoute > 0) {
+        currentClusterId.value = currentClusterIdFromRoute;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  const handleShow = (data: IRowData) => {
+    currentClusterId.value = data.id;
+  };
+
+  onBeforeUnmount(() => {
+    currentClusterId.value = 0;
+  });
 </script>
 <style lang="less">
   td.cluster-list-operation-column {
-    .vxe-cell {
-      padding: 0 !important;
-    }
+    padding: 0 !important;
   }
 </style>

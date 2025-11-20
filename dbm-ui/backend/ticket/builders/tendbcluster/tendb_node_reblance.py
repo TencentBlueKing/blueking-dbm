@@ -72,7 +72,7 @@ class TendbNodeRebalanceFlowParamBuilderBuilder(builders.FlowParamBuilder):
 
 class TendbNodeRebalanceResourceParamBuilder(TendbBaseOperateResourceParamBuilder):
     def format(self):
-        self.patch_info_affinity_location(roles=["backend_group"])
+        self.patch_info_common_affinity(role="backend_group")
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()

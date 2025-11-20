@@ -332,7 +332,7 @@ class ListAlertSerializer(serializers.Serializer):
 class CreateAlarmShieldSerializer(serializers.Serializer):
     category = serializers.CharField(help_text=_("屏蔽类型"))
     dimension_config = serializers.DictField(help_text=_("屏蔽维度配置"))
-    shield_notice = serializers.BaseSerializer(help_text=_("告警屏蔽通知"), default=False)
+    shield_notice = serializers.BooleanField(help_text=_("告警屏蔽通知"), default=False)
     begin_time = serializers.CharField(help_text=_("开始时间"))
     end_time = serializers.CharField(help_text=_("结束时间"))
     description = serializers.CharField(help_text=_("屏蔽原因"))
@@ -380,3 +380,24 @@ class ListAlarmShieldSerializer(serializers.Serializer):
 
     class Meta:
         swagger_schema_fields = {"example": mock_data.LIST_ALARM_SHIELD}
+
+
+class UpdateDutyNoticeSerializer(serializers.Serializer):
+    class DutyCrontabSerializer(serializers.Serializer):
+        minute = serializers.CharField(help_text=_("分钟"))
+        hour = serializers.CharField(help_text=_("小时"))
+        day_of_week = serializers.CharField(help_text=_("每周几天(eg: 1,4,5 表示一周的周一，周四，周五)"), required=False)
+        day_of_month = serializers.CharField(help_text=_("每月几天(eg: 1, 11, 13 表示每月的1号，11号，13号)"), required=False)
+
+    db_type = serializers.ChoiceField(help_text=_("数据库类型"), choices=DBType.get_choices())
+    cron = DutyCrontabSerializer(help_text=_("值班通知周期"))
+    after = serializers.IntegerField(help_text=_("通知几天后的排班表"))
+    enabled = serializers.BooleanField(help_text=_("是否启用"))
+    channels = serializers.JSONField(help_text=_("通知渠道"))
+
+    class Meta:
+        swagger_schema_fields = {"example": mock_data.DUTY_NOTICE_RULE_DATA}
+
+
+class SendDutyNoticeScheduleSerializer(serializers.Serializer):
+    db_type = serializers.ChoiceField(help_text=_("数据库类型"), choices=DBType.get_choices())

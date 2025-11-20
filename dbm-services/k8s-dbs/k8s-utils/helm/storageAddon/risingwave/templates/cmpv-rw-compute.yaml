@@ -1,25 +1,25 @@
 apiVersion: apps.kubeblocks.io/v1alpha1
 kind: ComponentVersion
 metadata:
-  name: rw-compute-{{ .Chart.Version}}
+  name: {{ include "risingwave-compute.cmpvName" . }}
 spec:
   compatibilityRules:
     - releases:
-        - compute-2.2.1
-        - compute-2.3.0
-        - compute-2.4.1
+        - compute-2.2.1-2.0.0
+        - compute-2.3.0-2.0.0
+        - compute-2.4.1-2.0.0
       compDefs:
-        - rw-compute-{{ .Chart.Version}}
+        - risingwave-compute-2.0.0
   releases:
-    - name: compute-2.2.1
-      serviceVersion: 2.2.1
+    - name: compute-2.2.1-2.0.0
+      serviceVersion: 2.2.1-2.0.0
       images:
         compute: docker.risingwave.com/risingwavelabs/risingwave:v2.2.1
-    - name: compute-2.3.0
-      serviceVersion: 2.3.0
+    - name: compute-2.3.0-2.0.0
+      serviceVersion: 2.3.0-2.0.0
       images:
         compute: docker.risingwave.com/risingwavelabs/risingwave:v2.3.0
-    - name: compute-2.4.1
-      serviceVersion: 2.4.1
+    - name: compute-2.4.1-2.0.0
+      serviceVersion: 2.4.1-2.0.0
       images:
         compute: docker.risingwave.com/risingwavelabs/risingwave:v2.4.1

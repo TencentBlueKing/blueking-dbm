@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from ..base import BaseApi
 from ..domains import JOB_APIGW_DOMAIN
@@ -24,6 +24,7 @@ class _JobApi(BaseApi):
             method="POST",
             url="fast_execute_script/",
             description=_("快速执行脚本"),
+            before_request=self.__format_fast_execute_script,
         )
         self.fast_transfer_file = self.generate_data_api(
             method="POST",
@@ -70,6 +71,17 @@ class _JobApi(BaseApi):
             url="get_account_list/",
             description=_("查询账号列表"),
         )
+        self.operate_step_instance = self.generate_data_api(
+            method="POST",
+            url="operate_step_instance/",
+            description=_("用于对执行的实例的步骤进行操作"),
+        )
+
+    @staticmethod
+    def __format_fast_execute_script(params):
+        # 截断task_name，太长会有平台限制
+        params["task_name"] = params.get("task_name", "dbm_fast_execute_script")[:100]
+        return params
 
 
 JobApi = _JobApi()

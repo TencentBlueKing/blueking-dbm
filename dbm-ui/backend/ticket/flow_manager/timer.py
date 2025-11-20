@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 
 import uuid
 from datetime import datetime
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -21,6 +21,7 @@ from backend.ticket.constants import TodoType
 from backend.ticket.flow_manager.base import BaseTicketFlow
 from backend.ticket.models import Flow, Todo
 from backend.ticket.tasks.ticket_tasks import TicketTask, apply_ticket_task
+from backend.ticket.todos import TodoActionType, TodoActorFactory
 from backend.ticket.todos.timer_todo import TimerTodoContext
 from backend.utils.basic import get_target_items_from_details
 from backend.utils.time import countdown2str, datetime2str, str2datetime
@@ -125,3 +126,8 @@ class TimerFlow(BaseTicketFlow):
             expired_flag=self.expired_flag, run_time=self.run_time, trigger_time=self.trigger_time, task_id=task_id
         )
         return timer_uid
+
+    def _revoke(self, operator, remark="") -> Any:
+        # 一个定时任务肯定关联一个todo，所以这里直接操作todo即可
+        todo = self.flow_obj.todo_of_flow.first()
+        TodoActorFactory.actor(todo).process(operator, TodoActionType.TERMINATE, params={"remark": remark})

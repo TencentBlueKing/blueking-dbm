@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import { affinityMap, DBTypes, mongodbAffinityMap } from '@common/const';
+
 export default class QuickSearchEntry {
   bk_biz_id: number;
   cluster_entry_type: string;
@@ -46,5 +48,12 @@ export default class QuickSearchEntry {
     this.major_version = payload.major_version;
     this.region = payload.region;
     this.role = payload.role;
+  }
+
+  get disasterToleranceLevelName() {
+    if (this.db_type === DBTypes.MONGODB) {
+      return mongodbAffinityMap[this.disaster_tolerance_level as keyof typeof mongodbAffinityMap];
+    }
+    return affinityMap[this.disaster_tolerance_level as keyof typeof affinityMap];
   }
 }

@@ -46,12 +46,12 @@
   import tippy, { type Instance, type Props as TippyProps, type SingleTarget } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
 
-  // import BatchEditDatePick from './edit/DatePicker.vue';
-  // import BatchEditInput from './edit/Input.vue';
+  import BatchEditDatePick from './edit/DatePicker.vue';
+  import BatchEditInput from './edit/Input.vue';
   import BatchEditNumberInput from './edit/NumberInput.vue';
   import BatchEditSelect from './edit/Select.vue';
   import BatchEditTagInput from './edit/TagInput.vue';
-  // import BatchEditTextarea from './edit/Textarea.vue';
+  import BatchEditTextarea from './edit/Textarea.vue';
 
   interface Props {
     cancelHandler?: () => Promise<any> | void;
@@ -68,12 +68,12 @@
     }
   };
   export {
-    // BatchEditDatePick,
-    // BatchEditInput,
+    BatchEditDatePick,
+    BatchEditInput,
     BatchEditNumberInput,
     BatchEditSelect,
     BatchEditTagInput,
-    // BatchEditTextarea,
+    BatchEditTextarea,
   };
 </script>
 <script setup lang="ts">

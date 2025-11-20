@@ -8,18 +8,17 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import datetime
 import re
 from typing import Dict, List, Union
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework import serializers
 from rest_framework.serializers import ValidationError
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import AccessLayer, ClusterDBHAStatusFlags, ClusterType, InstanceInnerRole
 from backend.db_meta.models.cluster import Cluster, ClusterPhase
-from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
+from backend.db_report.mysql_backup.handers import MySQLBackupHandler
 from backend.flow.consts import SYSTEM_DBS
 from backend.flow.utils.mysql.db_table_filter.exception import DbTableFilterValidateException
 from backend.flow.utils.mysql.db_table_filter.tools import glob_check
@@ -31,6 +30,7 @@ from backend.ticket.builders.common.base import (
     MySQLTicketFlowBuilderPatchMixin,
     ParamValidateSerializerMixin,
     SkipToRepresentationMixin,
+    TicketBaseValidateSerializerMixin,
     fetch_cluster_ids,
 )
 from backend.ticket.constants import TicketType
@@ -57,7 +57,7 @@ class MySQLBasePauseParamBuilder(builders.PauseParamBuilder):
 
 
 class MySQLBaseOperateDetailSerializer(
-    SkipToRepresentationMixin, ParamValidateSerializerMixin, serializers.Serializer
+    TicketBaseValidateSerializerMixin, SkipToRepresentationMixin, ParamValidateSerializerMixin, serializers.Serializer
 ):
     """
     mysql操作的基类，主要功能:
@@ -154,28 +154,47 @@ class MySQLBaseOperateDetailSerializer(
 
     def validate_slave_is_stand_by(self, attrs):
         """校验从库的is_stand_by标志必须为true"""
-        slave_insts = [f"{info['slave_ip']['ip']}" for info in attrs["infos"]]
+        slave_insts = [f"{info['slave_ip']['ip'].split(':')[0]}" for info in attrs["infos"]]
         CommonValidate.validate_slave_is_stand_by(slave_insts)
 
     def validated_cluster_latest_backup(self, cluster_ids, backup_source, backup_type=None):
         """校验集群是否具有最近一次备份日志"""
-        now = datetime.datetime.now(datetime.timezone.utc)
         for cluster_id in cluster_ids:
-            handler = FixPointRollbackHandler(cluster_id=cluster_id)
-            backup = handler.query_latest_backup_log(rollback_time=now, backup_source=backup_source)
+            backup_handler = MySQLBackupHandler(
+                cluster_id=cluster_id,
+                is_full_backup=True,
+                check_instance_exist=True,
+                backup_source=backup_source,
+            )
+            backup = backup_handler.get_tendb_latest_backup_info()
             if not backup:
                 raise serializers.ValidationError(_("集群{}无法找到最近一次备份").format(cluster_id))
             if backup_type and backup["backup_type"] != backup_type:
                 raise serializers.ValidationError(_("集群{}最近一次备份类型不匹配{}").format(cluster_id, backup_type))
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         # 默认全局校验只需要校验集群的状态
         self.validate_cluster_can_access(attrs)
         attrs = super().validated_params(attrs=attrs)
         return attrs
 
 
-class MySQLClustersTakeDownDetailsSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class MysqlSingleOpsBaseDetailSerializer(MySQLBaseOperateDetailSerializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
+
+    def validate(self, attrs):
+        """
+        公共校验：集群操作互斥校验
+        """
+        super().validate(attrs)
+        return attrs
+
+
+class MySQLClustersTakeDownDetailsSerializer(
+    TicketBaseValidateSerializerMixin, SkipToRepresentationMixin, serializers.Serializer
+):
     cluster_ids = serializers.ListField(help_text=_("集群ID"), child=serializers.IntegerField())
     force = serializers.BooleanField(help_text=_("是否强制下架"), required=False, default=False)
 
@@ -192,6 +211,13 @@ class MySQLClustersTakeDownDetailsSerializer(SkipToRepresentationMixin, serializ
     def validate_cluster_ids(self, value):
         self.clusters_status_transfer_valid(cluster_ids=value, ticket_type=self.context["ticket_type"])
         return value
+
+    def validate(self, attrs):
+        """
+        公共校验：集群操作互斥校验
+        """
+        attrs = super().validate(attrs)
+        return attrs
 
 
 class MySQLBaseOperateResourceParamBuilder(BaseOperateResourceParamBuilder):

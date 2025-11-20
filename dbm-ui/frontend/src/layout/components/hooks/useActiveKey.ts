@@ -1,9 +1,15 @@
 import { Menu } from 'bkui-vue';
 import _ from 'lodash';
-import { nextTick, type Ref, ref, watch } from 'vue';
+import { type Ref, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-export const useActiveKey = (menuRef: Ref<InstanceType<typeof Menu>>, defaultKey: string, peending = ref(false)) => {
+export const useActiveKey = (
+  menuRef: Ref<InstanceType<typeof Menu>>,
+  defaultKey: string,
+  options = {} as {
+    checkMethod?: (routerName: string) => string;
+  },
+) => {
   const route = useRoute();
   const router = useRouter();
 
@@ -17,10 +23,10 @@ export const useActiveKey = (menuRef: Ref<InstanceType<typeof Menu>>, defaultKey
   };
 
   watch(
-    [menuRef, route, peending],
+    [menuRef, route],
     () => {
-      nextTick(() => {
-        if (!menuRef.value || peending.value) {
+      setTimeout(() => {
+        if (!menuRef.value) {
           return;
         }
         const allMenuItems = (
@@ -48,13 +54,15 @@ export const useActiveKey = (menuRef: Ref<InstanceType<typeof Menu>>, defaultKey
           if (currentRouteName.value) {
             return;
           }
+
           const routeName = routeItem.name as string;
-          if (routeName && _.has(allMunuRouteNameMap, routeName)) {
-            currentRouteName.value = routeName;
-            parentKey.value = allMunuRouteNameMap[routeName];
+
+          const currentActiveKey = _.isFunction(options.checkMethod) ? options.checkMethod(routeName) : routeName;
+          if (currentActiveKey && _.has(allMunuRouteNameMap, currentActiveKey)) {
+            currentRouteName.value = currentActiveKey;
+            parentKey.value = allMunuRouteNameMap[currentActiveKey];
           }
         });
-
         if (!currentRouteName.value) {
           router.push({
             name: defaultKey,

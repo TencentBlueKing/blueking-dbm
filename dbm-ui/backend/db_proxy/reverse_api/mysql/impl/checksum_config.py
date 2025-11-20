@@ -12,6 +12,7 @@ from typing import List, Optional, Union
 
 from django.db.models import Q
 
+from backend.components import DBConfigApi
 from backend.db_meta.enums import AccessLayer
 from backend.db_meta.models import Machine, ProxyInstance, StorageInstance
 from backend.flow.consts import ROLLBACK_DB_TAIL, STAGE_DB_HEADER, SYSTEM_DBS
@@ -51,6 +52,19 @@ def checksum_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]] = 
         )
         engine = get_engine_from_bk_mysql_config(cluster_config)
 
+        checksum_yaml = DBConfigApi.query_conf_item(
+            {
+                "bk_biz_id": f"{i.bk_biz_id}",
+                "level_name": "cluster",
+                "level_value": i.cluster.first().immute_domain,
+                "conf_file": "checksum.yaml",
+                "conf_type": "checksum",
+                "namespace": i.cluster.first().cluster_type.lower(),
+                "level_info": {"module": f"{i.db_module_id}"},
+                "format": "map",
+            }
+        )["content"]
+
         res.append(
             {
                 "bk_biz_id": i.bk_biz_id,
@@ -60,14 +74,23 @@ def checksum_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]] = 
                 "cluster_id": i.cluster.first().id,
                 "immute_domain": i.cluster.first().immute_domain,
                 "db_module_id": i.db_module_id,
-                "schedule": "0 5 2 * * 1-5",
-                "system_dbs": SYSTEM_DBS,
-                "stage_db_header": STAGE_DB_HEADER,
-                "rollback_db_tail": ROLLBACK_DB_TAIL,
+                "schedule": checksum_yaml.get("crond", "0 5 2 * * 1-5"),
                 "api_url": "http://127.0.0.1:9999",
                 "user": usermap["monitor_user"],
                 "password": usermap["monitor_pwd"],
-                "enable": engine.lower() not in ["rocksdb", "tokudb"],
+                "enable": engine.lower() not in ["rocksdb", "tokudb"] and checksum_yaml.get("enable", True),
+                "filter": {
+                    "databases": checksum_yaml.get("filter.databases", []),
+                    "databases_regex": checksum_yaml.get("filter.databases_regex", []),
+                    "tables": checksum_yaml.get("filter.tables", []),
+                    "tables_regex": checksum_yaml.get("filter.tables_regex", []),
+                    "ignore_databases": checksum_yaml.get("filter.ignore_databases", []) + SYSTEM_DBS,
+                    "ignore_databases_regex": checksum_yaml.get("filter.ignore_databases_regex", [])
+                    + [f"{STAGE_DB_HEADER}%", f"%{ROLLBACK_DB_TAIL}"],
+                    "ignore_tables": checksum_yaml.get("filter.ignore_tables", []),
+                    "ignore_tables_regex": checksum_yaml.get("filter.ignore_tables_regex", []),
+                },
+                "run-time": checksum_yaml.get("pt_checksum.args.run-time", "2h"),
             }
         )
 

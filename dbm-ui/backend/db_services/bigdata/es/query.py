@@ -9,20 +9,58 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.api.cluster.es.detail import scan_cluster
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Machine
 from backend.db_meta.models.cluster import Cluster
-from backend.db_services.bigdata.resources.query import BigDataBaseListRetrieveResource
+from backend.db_services.bigdata.resources.query import (
+    BigDataBaseExportQueryResourceMixin,
+    BigDataBaseListRetrieveResource,
+)
+from backend.db_services.dbbase.resources.query import CommonQueryResourceMixin
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 
 
+class ESExportQueryResourceMixin(BigDataBaseExportQueryResourceMixin):
+    """补充ES集群列表导出所需的header及数据"""
+
+    @classmethod
+    def update_headers(cls, headers, **kwargs):
+        # 补充实例为空未展示的字段
+        extra_headers = [
+            {"id": "clb", "name": _("clb")},
+            {"id": "polaris", "name": _("北极星")},
+            {"id": "es_master", "name": _("Master 节点")},
+            {"id": "es_client", "name": _("Client 节点")},
+            {"id": "es_datanode_hot", "name": _("热节点")},
+            {"id": "es_datanode_cold", "name": _("冷节点")},
+        ]
+
+        return super().update_headers(headers, extra_headers=extra_headers)
+
+    @classmethod
+    def update_cluster_info(cls, cluster, cluster_info, **kwargs):
+        """
+        补充额外的集群列表数据
+        """
+
+        # 补充clb/北极星
+        clb_entry, polaris_entry = CommonQueryResourceMixin.get_cluster_clb_polaris_entries(cluster)
+        cluster_info.update(
+            {
+                "clb": clb_entry,
+                "polaris": polaris_entry,
+            }
+        )
+        return cluster_info
+
+
 @register_resource_decorator()
-class ESListRetrieveResource(BigDataBaseListRetrieveResource):
+class ESListRetrieveResource(BigDataBaseListRetrieveResource, ESExportQueryResourceMixin):
     cluster_types = [ClusterType.Es]
     instance_roles = [
         InstanceRole.ES_MASTER.value,

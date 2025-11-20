@@ -116,14 +116,14 @@ func (c *SemanticDumpSchemaComp) cleanHistorySchemaFile() {
 	}
 	cleanCmd := fmt.Sprintf(`find %s -name "*%s.sql*" -type f -mtime +3 -delete `, c.Params.BackupDir,
 		c.Params.BackupFileNameSuffix)
-	logger.Warn("delete before 7 days dump schema file")
-	logger.Warn("will execute: %s", cleanCmd)
+	logger.Info("delete before 7 days dump schema file")
+	logger.Info("will execute: %s", cleanCmd)
 	out, err := osutil.StandardShellCommand(false, cleanCmd)
 	if err != nil {
-		logger.Error("clean schema file failed:%s,out:%s", err.Error(), out)
+		logger.Warn("clean schema file failed:%s,out:%s", err.Error(), out)
 		return
 	}
-	logger.Warn("clean schema file success")
+	logger.Info("clean schema file success")
 }
 
 // Init init

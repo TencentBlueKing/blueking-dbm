@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 from copy import deepcopy
 from typing import Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.flow.consts import MongoDBInstanceType, MongoInstanceDbmonType
@@ -153,7 +153,15 @@ def deinstall(
     # 删除保存在密码服务的密码
     kwargs = sub_get_kwargs.get_delete_pwd_kwargs()
     sub_pipeline.add_act(
-        act_name=_("MongoDB-删除密码"),
+        act_name=_("MongoDB-管理用户删除密码"),
+        act_component_code=ExecDeletePasswordFromDBOperationComponent.code,
+        kwargs=kwargs,
+    )
+
+    # 删除默认用户的密码
+    kwargs = sub_get_kwargs.get_del_user_pwd_kwargs()
+    sub_pipeline.add_act(
+        act_name=_("MongoDB-默认用户删除密码"),
         act_component_code=ExecDeletePasswordFromDBOperationComponent.code,
         kwargs=kwargs,
     )

@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.core.exceptions import ObjectDoesNotExist
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 
 from backend.constants import IP_PORT_DIVIDER
@@ -20,9 +20,15 @@ from backend.flow.plugins.components.collections.common.base_service import Base
 
 class MysqlMasterSlaveRelationshipCheckService(BaseService):
     def _execute(self, data, parent_data) -> bool:
+        kwargs = data.get_one_of_inputs("kwargs") or {}
         global_data = data.get_one_of_inputs("global_data") or {}
-        master = global_data["master"]
-        slaves = global_data["slaves"]
+
+        if "master" in kwargs and "slaves" in kwargs:
+            master = kwargs["master"]
+            slaves = kwargs["slaves"]
+        else:
+            master = global_data["master"]
+            slaves = global_data["slaves"]
 
         master_instance, ok = self._get_storage_instance(master["id"], global_data["bk_biz_id"])
         if not ok:

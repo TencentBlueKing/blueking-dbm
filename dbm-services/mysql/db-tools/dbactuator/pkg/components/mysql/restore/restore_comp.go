@@ -59,7 +59,8 @@ type RestoreOpt struct {
 	IgnoreDatabases []string `json:"ignore_databases"`
 	IgnoreTables    []string `json:"ignore_tables"`
 
-	RecoverPrivs bool `json:"recover_privs"`
+	// RecoverGrants 是否恢复权限，默认不恢复
+	RecoverGrants bool `json:"recover_grants"`
 	// 在指定时间点回档场景才需要，是否恢复 binlog。在 doSlave 场景，是不需要 recover_binlog。这个选项是控制下一步恢复binlog的行为
 	// 当 recover_binlog 时，要确保实例的所有库表结构都恢复。在逻辑回档场景，只回档部分库表数据时，依然要恢复所有表结构
 	WillRecoverBinlog bool `json:"recover_binlog"`
@@ -225,7 +226,7 @@ func (r *RestoreDRComp) Example() interface{} {
 					"index": {"10_123_x.x.x.x_3306_20241030030300_logical.index"},
 				},
 			},
-			//Tools:       *tools.NewToolSetWithPickNoValidate(tools.ToolMload, tools.ToolXLoad, tools.ToolMysqlclient),
+			// Tools:       *tools.NewToolSetWithPickNoValidate(tools.ToolMload, tools.ToolXLoad, tools.ToolMysqlclient),
 			TgtInstance: common.InstanceObjExample,
 			SrcInstance: common.InstanceExample,
 			WorkID:      "",

@@ -13,7 +13,7 @@ from collections import defaultdict
 from dataclasses import asdict
 from typing import Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceRole
@@ -82,7 +82,16 @@ class RedisClusterBackupFlow(object):
                     self.data["bk_biz_id"], rule["cluster_id"], InstanceRole.REDIS_SLAVE.value
                 )
             domain_name, bk_cloud_id = self.__get_domain_and_cloud_id(self.data["bk_biz_id"], rule["cluster_id"])
-            cluster = {**ip_ports, **rule, "domain_name": domain_name}
+            import time
+
+            cluster = {
+                **ip_ports,
+                **rule,
+                "domain_name": domain_name,
+                "backup_identify": "BILL{}-{}".format(
+                    self.data.get("uid"), time.strftime("%Y%m%d%H", time.localtime(time.time()))
+                ),
+            }  # 集群单据的备份标识
 
             exec_ip = list(ip_ports.keys())
 

@@ -16,12 +16,14 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
+
+	"dbm-services/common/reverseapi/pkg/core"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
-	"github.com/mohae/deepcopy"
 	"github.com/pkg/errors"
+
+	reapi "dbm-services/common/reverseapi/apis/common"
 
 	"dbm-services/common/go-pubpkg/backupclient"
 	"dbm-services/common/go-pubpkg/cmutil"
@@ -45,6 +47,8 @@ type BackupLogReport struct {
 	FileType string `json:"file_type"`
 	// TaskId backup task_id
 	TaskId string `json:"task_id"`
+	// RemoteSide 当前命令是否允许在远端机器上
+	RemoteSide bool `json:"-"`
 
 	cfg *config.BackupConfig
 }
@@ -121,6 +125,8 @@ func NewBackupLogReport(cfg *config.BackupConfig) (logReport *BackupLogReport, e
 			logger.Log.Warnf("Not safe because EncryptPublicKey is not set, key=%s", ekey)
 			logReport.EncryptedKey = ekey
 		} else {
+			// 这里本意是生产的临时密码打印到本机，本机管理员可以从这里拿到密码信息来做恢复
+			// 如果本机被登录，本身数据已经无法保证安全
 			logger.Log.Infof("Passphrase encrypted=%s passphrase=%s", ekey, cfg.Public.EncryptOpt.GetPassphrase())
 			logReport.EncryptedKey = ekey
 		}
@@ -167,8 +173,6 @@ func (r *BackupLogReport) ReportBackupStatus(status string) error {
 	nBackupStatus.Status = status
 	nBackupStatus.BillId = r.cfg.Public.BillId
 	nBackupStatus.ClusterId = r.cfg.Public.ClusterId
-	currentTime := time.Now().Format("2006-01-02 15:04:05")
-	nBackupStatus.ReportTime = currentTime
 
 	statusJson, err := json.Marshal(nBackupStatus)
 	if err != nil {
@@ -288,11 +292,12 @@ func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string) error {
 
 	binlogInfo, _ := json.Marshal(metaInfo.BinlogInfo)
 	extraFields, _ := json.Marshal(metaInfo.ExtraFields)
-	localBackupReport := ModelBackupReport{}.TableName()
+	localBackupReport := ModelLocalBackupReport{}.TableName()
 	sqlBuilder := sq.Replace(localBackupReport).Columns("backup_id", "backup_type", "cluster_id",
 		"cluster_address", "backup_host", "backup_port", "server_id", "mysql_role", "shard_value",
 		"bill_id", "bk_biz_id", "mysql_version", "data_schema_grant", "is_full_backup",
 		"backup_begin_time", "backup_end_time", "backup_consistent_time",
+		"backup_method",
 		"backup_meta_file",
 		"binlog_info", "extra_fields",
 		"file_list", "backup_config_file", "backup_status").Values(
@@ -311,6 +316,7 @@ func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string) error {
 		metaInfo.DataSchemaGrant,
 		metaInfo.IsFullBackup,
 		metaInfo.BackupBeginTime, metaInfo.BackupEndTime, metaInfo.BackupConsistentTime,
+		metaInfo.BackupMethod,
 		indexFilePath,
 		binlogInfo, extraFields,
 		fileListRaw, "", "")
@@ -318,10 +324,15 @@ func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string) error {
 	if err != nil {
 		return err
 	}
-
+	_, _ = conn.ExecContext(ctx, "set session sql_log_bin=0;")
 	_, err = conn.ExecContext(ctx, sqlStr, sqlArgs...)
 	if err != nil {
 		logger.Log.Warnf("failed to write %d local_backup_report, err: %s, fix it", metaInfo.BackupPort, err)
+		if _, err = conn.ExecContext(ctx, "set session sql_log_bin=0;"); err != nil {
+			logger.Log.Error("failed to set sql_log_bin=0, err: %s",
+				errors.WithMessage(err, "migrate local_backup_report"))
+			return err
+		}
 		if err = migrateLocalBackupSchema(err, conn); err != nil {
 			return err
 		}
@@ -341,7 +352,7 @@ func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string) error {
 }
 
 // ReportBackupResult Report BackupLogReport info
-// run ExecuteBackupClient to upload to remote
+// run ExecuteBackupClient to upload to backup-system
 // report backup to db
 // report backup to log file
 func (r *BackupLogReport) ReportBackupResult(indexFilePath string, index, upload bool) error {
@@ -357,38 +368,33 @@ func (r *BackupLogReport) ReportBackupResult(indexFilePath string, index, upload
 		// index file 里面不会包含自身信息(如 task_id)
 		metaInfo.AddIndexFileItem(indexFilePath)
 	}
-	var err2 error // 是否备份上传出错
+	var uploadErr error // 是否备份上传出错
 	if upload {
 		// 上传、上报备份文件
 		for _, f := range metaInfo.FileList {
+			if f.FileType == cst.FileDirectory {
+				continue
+			}
 			filePath := filepath.Join(r.cfg.Public.BackupDir, f.FileName)
 			var taskId string
 			var err22 error
 			if taskId, err22 = r.ExecuteBackupClient(filePath); err22 != nil {
-				err2 = errs.Join(err2, err22)
+				uploadErr = errs.Join(uploadErr, err22)
 				taskId = ""
 			}
 			f.TaskId = taskId
-			backupTaskResult := BackupLogReport{}
-			backupTaskResult.BackupMetaFileBase = deepcopy.Copy(metaInfo.BackupMetaFileBase).(BackupMetaFileBase)
-			backupTaskResult.ExtraFields = deepcopy.Copy(metaInfo.ExtraFields).(ExtraFields)
-			backupTaskResult.EncryptedKey = r.EncryptedKey
-			backupTaskResult.ConsistentBackupTime = metaInfo.BackupConsistentTime
-			backupTaskResult.TaskId = taskId
-			backupTaskResult.FileName = f.FileName
-			backupTaskResult.FileType = f.FileType
-			backupTaskResult.FileSize = f.FileSize
-			backupTaskResult.FileRetentionTag = metaInfo.FileRetentionTag
-			Report().Files.Println(backupTaskResult)
 		}
 		if r.cfg.BackupToRemote.EnableRemote {
 			// 注意：在执行 backup_client 上传之后，.index 文件的内容就不能再修改，也就是 .index 文件里不能记录自身的 task_id
 			// 上面修改的是 metaInfo 内存里面的数据，转存到文件系统 .index.remote，这个文件不上传
 			// .index.remote 会比 .index 多 task_id 信息。远程备份的发起方，需要这个 task_id 去上报备份记录
-			if _, err := metaInfo.SaveIndexContent(indexFilePath + ".remote"); err != nil {
+			if err := metaInfo.SaveIndexContent(indexFilePath + ".remote"); err != nil {
 				return err
 			}
 		}
+	}
+	if uploadErr != nil {
+		return uploadErr
 	}
 
 	// report backup record
@@ -401,8 +407,19 @@ func (r *BackupLogReport) ReportBackupResult(indexFilePath string, index, upload
 	metaInfo.FileList = fileListSimple
 	Report().Result.Println(metaInfo)
 
-	if err2 != nil {
-		return err2
+	if !r.RemoteSide {
+		reportCore, err := core.NewCore(int64(metaInfo.BkCloudId), core.DefaultRetryOpts...)
+		if err != nil {
+			return errors.WithMessagef(err, "report backup result")
+		}
+		var ev = MysqlBackupResultEvent(*metaInfo)
+		logger.Log.Infof("backup result event: %s", ev.String())
+		if resp, reportErr := reapi.SyncReport(reportCore, &ev); reportErr != nil {
+			// TODO if failed, need save to local and report it later
+			return reportErr
+		} else {
+			logger.Log.Infof("report backup result success, resp: %s", string(resp))
+		}
 	}
 
 	privFile := strings.Replace(indexFilePath, ".index", ".priv", 1)

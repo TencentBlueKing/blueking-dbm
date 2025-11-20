@@ -12,7 +12,7 @@ from collections import defaultdict
 from dataclasses import asdict, dataclass
 from typing import Dict, List, Union
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from iam import Action
 
 from backend.configuration.constants import DBType
@@ -279,6 +279,18 @@ class ActionEnum:
         id="platform_alert_event_view",
         name=_("全局告警事件查看"),
         name_en="platform_alert_event_view",
+        type="view",
+        related_actions=[],
+        related_resource_types=[],
+        group=_("平台管理"),
+        subgroup="",
+        common_labels=[],
+    )
+
+    PLATFROM_RISK_MEMO_VIEW = ActionMeta(
+        id="platform_risk_memo_view",
+        name=_("全局风险备忘录查看"),
+        name_en="platform_risk_memo_view",
         type="view",
         related_actions=[],
         related_resource_types=[],
@@ -1180,7 +1192,7 @@ class ActionEnum:
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("ES"),
+        group=_("ElasticSearch"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
@@ -1192,7 +1204,7 @@ class ActionEnum:
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.ES],
-        group=_("ES"),
+        group=_("ElasticSearch"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.ES_ACCESS],
     )
@@ -1204,7 +1216,7 @@ class ActionEnum:
         type="edit",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.ES],
-        group=_("ES"),
+        group=_("ElasticSearch"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
@@ -1252,7 +1264,7 @@ class ActionEnum:
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.ES],
-        group=_("ES"),
+        group=_("ElasticSearch"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.ES_ACCESS],
     )
@@ -1264,7 +1276,7 @@ class ActionEnum:
         type="execute",
         related_actions=[ES_VIEW.id],
         related_resource_types=[ResourceEnum.ES],
-        group=_("ES"),
+        group=_("ElasticSearch"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
@@ -1585,6 +1597,18 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    MONGODB_SOURCE_ACCESS_VIEW = ActionMeta(
+        id="mongodb_source_access_view",
+        name=_("Mongodb 访问来源查询"),
+        name_en="mongodb_source_access_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("MongoDB"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     MONGODB_APPLY = ActionMeta(
         id="mongodb_apply",
         name=_("MongoDB 部署"),
@@ -1822,6 +1846,52 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    ORACLE_VIEW = ActionMeta(
+        id="oracle_view",
+        name=_("Oracle 集群详情查看"),
+        name_en="oracle_view",
+        type="view",
+        related_resource_types=[ResourceEnum.ORACLE],
+        group=_("Oracle"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    ORACLE_EDIT = ActionMeta(
+        id="oracle_edit",
+        name=_("Oracle 集群编辑"),
+        name_en="oracle_edit",
+        type="edit",
+        related_resource_types=[ResourceEnum.ORACLE],
+        group=_("Oracle"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    ORACLE_ENABLE_DISABLE = ActionMeta(
+        id="oracle_enable_disable",
+        name=_("ORACLE 集群禁用和启用"),
+        name_en="ORACLE Enable Disable",
+        type="execute",
+        related_actions=[ORACLE_VIEW.id],
+        related_resource_types=[ResourceEnum.ORACLE],
+        group=_("Oracle"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    ORACLE_DESTROY = ActionMeta(
+        id="oracle_destroy",
+        name=_("Oracle 集群删除"),
+        name_en="Oracle Destroy",
+        type="execute",
+        related_actions=[ORACLE_VIEW.id],
+        related_resource_types=[ResourceEnum.ORACLE],
+        group=_("Oracle"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     RESOURCE_POLL_MANAGE = ActionMeta(
         id="resource_pool_manage",
         name=_("资源管理"),
@@ -1855,7 +1925,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("资源管理"),
         subgroup=_("标签"),
-        hidden=True,
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     HEALTHY_REPORT_VIEW = ActionMeta(
@@ -2057,6 +2127,30 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("业务配置"),
         subgroup=_("监控策略"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    RISK_MEMO_CREATE = ActionMeta(
+        id="risk_memo_create",
+        name=_("风险创建"),
+        name_en="risk_memo_create",
+        type="create",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("业务配置"),
+        subgroup=_("风险备忘录"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    RISK_MEMO_MANAGE = ActionMeta(
+        id="risk_memo_manage",
+        name=_("风险管理"),
+        name_en="risk_memo_manage",
+        type="manage",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("业务配置"),
+        subgroup=_("风险备忘录"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 

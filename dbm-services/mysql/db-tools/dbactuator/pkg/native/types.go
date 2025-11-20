@@ -6,6 +6,7 @@ package native
 
 import (
 	"database/sql"
+	"fmt"
 	"strings"
 )
 
@@ -115,6 +116,13 @@ type SelectProcessListResp struct {
 	RowsExamined uint64         `json:"ROWS_EXAMINED" db:"ROWS_EXAMINED"`
 	RowsRead     uint64         `json:"ROWS_READ" db:"ROWS_READ"`
 	OSThreadID   uint64         `json:"OS_THREAD_ID" db:"OS_THREAD_ID"`
+}
+
+func (r *SelectProcessListResp) String() string {
+	return fmt.Sprintf("{ID:%d, User:%s, Host:%s, DB:%s, Command:%s, Time:%s, State:%s, Info:%s, "+
+		"TimeMs:%f, RowsSent %d, RowsExamined:%d, RowsRead:%d, OSThreadID:%d}",
+		r.ID, r.User, r.Host, r.DB.String, r.Command, r.Time, r.State.String, r.Info.String,
+		r.TimeMs, r.RowsSent, r.RowsExamined, r.RowsRead, r.OSThreadID)
 }
 
 // ProxyAdminBackend TODO

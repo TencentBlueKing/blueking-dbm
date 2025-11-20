@@ -231,5 +231,7 @@ func (job *PredixyOperate) ClearMoreDirsWhenShutdown(port int) (err error) {
 		job.runtime.Logger.Error(err.Error())
 		return
 	}
+
+	// util.CleanProxyExporter()
 	return nil
 }

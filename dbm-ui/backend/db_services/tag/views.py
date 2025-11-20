@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.utils.decorators import method_decorator
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 from rest_framework.decorators import action
@@ -35,10 +35,6 @@ SWAGGER_TAG = _("标签")
         operation_summary=_("更新标签"), tags=[SWAGGER_TAG], request_body=serializers.UpdateTagSerializer()
     ),
 )
-@method_decorator(
-    name="list",
-    decorator=common_swagger_auto_schema(operation_summary=_("查询标签列表"), tags=[SWAGGER_TAG]),
-)
 class TagViewSet(AuditedModelViewSet):
     """
     标签视图
@@ -53,6 +49,13 @@ class TagViewSet(AuditedModelViewSet):
 
     action_permission_map = {("related_resources", "list", "verify_duplicated"): []}
     default_permission_class = [TagPermission()]
+
+    def get_queryset(self):
+        bk_biz_ids = self.request.query_params.get("bk_biz_ids", "")
+        if not bk_biz_ids:
+            return self.queryset
+        bk_biz_ids = [int(bk_biz_id) for bk_biz_id in bk_biz_ids.split(",")]
+        return self.queryset.filter(bk_biz_id__in=bk_biz_ids)
 
     @common_swagger_auto_schema(
         operation_summary=_("查询的标签列表"),
@@ -114,4 +117,6 @@ class TagViewSet(AuditedModelViewSet):
         校验
         """
         validated_data = self.params_validate(self.get_serializer_class())
-        return Response(TagHandler.verify_duplicated(validated_data["bk_biz_id"], validated_data["tags"]))
+        return Response(
+            TagHandler.verify_duplicated(validated_data["type"], validated_data["bk_biz_id"], validated_data["tags"])
+        )

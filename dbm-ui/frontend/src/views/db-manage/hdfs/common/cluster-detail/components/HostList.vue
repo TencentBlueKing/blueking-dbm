@@ -32,7 +32,7 @@
         <span v-bk-tooltips="batchShrinkDisabledInfo.tooltips">
           <AuthButton
             action-id="hdfs_shrink"
-            class="ml8"
+            class="ml-8"
             :disabled="batchShrinkDisabledInfo.disabled || clusterData?.operationDisabled"
             :resource="clusterData.id"
             @click="handleShowShrink">
@@ -46,7 +46,7 @@
         <span v-bk-tooltips="batchReplaceDisableInfo.tooltips">
           <AuthButton
             action-id="hdfs_replace"
-            class="ml8"
+            class="ml-8"
             :disabled="batchReplaceDisableInfo.disabled || clusterData?.operationDisabled"
             :resource="clusterData.id"
             @click="handleShowReplace">
@@ -55,7 +55,7 @@
         </span>
       </OperationBtnStatusTips>
       <BkDropdown
-        class="ml8"
+        class="ml-8"
         @hide="() => (isCopyDropdown = false)"
         @show="() => (isCopyDropdown = true)">
         <BkButton>
@@ -83,6 +83,7 @@
       </BkDropdown>
       <DbSearchSelect
         :data="searchSelectData"
+        :get-menu-list="getSearchMenuList"
         :model-value="searchSelectValue"
         :placeholder="t('请输入或选择条件搜索')"
         style="flex: 1; max-width: 560px; margin-left: auto"
@@ -91,7 +92,7 @@
     </div>
     <BkAlert
       v-if="clusterData?.operationStatusText"
-      class="mb16"
+      class="mb-16"
       theme="warning">
       <I18nT
         keypath="当前集群有xx暂时不能进行其他操作跳转xx查看进度"
@@ -157,7 +158,7 @@
               }">
               <AuthButton
                 action-id="hdfs_replace"
-                class="ml8"
+                class="ml-8"
                 :disabled="checkNodeReplaceDisable(data).disabled || clusterData?.operationDisabled"
                 :permission="clusterData.permission.hdfs_replace"
                 :resource="clusterData.id"
@@ -171,35 +172,19 @@
         </template>
       </BkTableColumn>
     </DbTable>
-    <DbSideslider
+    <ClusterExpansion
       v-model:is-show="isShowExpandsion"
-      quick-close
-      :title="t('xx扩容【name】', { title: 'HDFS', name: clusterData?.cluster_name })"
-      :width="960">
-      <ClusterExpansion
-        v-if="clusterData"
-        :data="clusterData"
-        @change="handleOperationChange" />
-    </DbSideslider>
-    <DbSideslider
-      v-model:is-show="isShowShrink"
-      :title="t('xx缩容【name】', { title: 'HDFS', name: clusterData?.cluster_name })"
-      :width="960">
-      <ClusterShrink
-        v-if="clusterData"
-        :data="clusterData"
-        :machine-list="operationNodeList" />
-    </DbSideslider>
-    <DbSideslider
+      :cluster-data="clusterData"
+      @change="handleOperationChange" />
+    <ClusterReplace
       v-model:is-show="isShowReplace"
-      :title="t('xx替换【name】', { title: 'HDFS', name: clusterData?.cluster_name })"
-      :width="960">
-      <ClusterReplace
-        v-if="clusterData"
-        :data="clusterData"
-        :machine-list="operationNodeList"
-        @change="handleOperationChange" />
-    </DbSideslider>
+      :cluster-data="clusterData"
+      :machine-list="operationMachineList"
+      @change="handleOperationChange" />
+    <ClusterShrink
+      v-model:is-show="isShowShrink"
+      :cluster-data="clusterData"
+      :machine-list="operationMachineList" />
   </div>
 </template>
 <script setup lang="tsx">
@@ -249,6 +234,21 @@
       cluster_ids: `${props.clusterData.id}`,
     });
 
+  const getSearchMenuList = (payload: { children: any[]; id: string }) => {
+    return Promise.resolve().then(() => {
+      if (payload.id === 'instance_role') {
+        return _.uniqBy(
+          tableRef.value?.getData<HdfsMachineModel>().map((item) => ({
+            id: item.instance_role,
+            name: item.instance_role,
+          })),
+          'id',
+        );
+      }
+      return payload.children || [];
+    });
+  };
+
   const searchSelectData = [
     {
       id: 'ip',
@@ -291,20 +291,6 @@
       options.disabled = true;
       options.tooltips.disabled = false;
       options.tooltips.content = t('节点类型不支持缩容');
-    } else {
-      // 其它类型的节点数不能全部被缩容，至少保留一个
-      let dataNodeNum = 0;
-      (tableRef.value.getData() as HdfsMachineModel[]).forEach((nodeItem) => {
-        if (nodeItem.isDataNode) {
-          dataNodeNum = dataNodeNum + 1;
-        }
-      });
-
-      if (dataNodeNum < 3) {
-        options.disabled = true;
-        options.tooltips.disabled = false;
-        options.tooltips.content = t('DataNode类型节点至少保留两个');
-      }
     }
     return options;
   };
@@ -327,23 +313,15 @@
     return options;
   };
 
-  const tableRef = ref();
+  const tableRef = useTemplateRef('tableRef');
   const isShowReplace = ref(false);
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
   const isCopyDropdown = ref(false);
   const searchSelectValue = shallowRef<ReturnType<typeof getSearchSelectValue>>([]);
 
-  const operationNodeList = shallowRef<Array<HdfsMachineModel>>([]);
+  const operationMachineList = shallowRef<Array<HdfsMachineModel>>([]);
   const selectedMachineList = shallowRef<Array<HdfsMachineModel>>([]);
-
-  const selectedMachineMap = computed(() => {
-    return selectedMachineList.value.reduce<Record<number, HdfsMachineModel>>((result, item) => {
-      return Object.assign(result, {
-        [item.bk_host_id]: item,
-      });
-    }, {});
-  });
 
   const batchShrinkDisabledInfo = computed(() => {
     const options = {
@@ -364,23 +342,6 @@
       options.tooltips.disabled = false;
       options.tooltips.content = t('仅DataNode类型的节点支持缩容');
       return options;
-    }
-
-    // 其它类型的节点数不能全部被缩容，至少保留一个
-    let dataNodeNum = 0;
-    (tableRef.value.getData() as HdfsMachineModel[]).forEach((machineItem) => {
-      if (selectedMachineMap.value[machineItem.bk_host_id]) {
-        return;
-      }
-      if (machineItem.isDataNode) {
-        dataNodeNum = dataNodeNum + 1;
-      }
-    });
-
-    if (dataNodeNum < 2) {
-      options.disabled = true;
-      options.tooltips.disabled = false;
-      options.tooltips.content = t('DataNode类型节点至少保留两个');
     }
 
     return options;
@@ -436,12 +397,12 @@
 
   // 复制所有 IP
   const handleCopyAll = () => {
-    copyAllIp(tableRef.value.getData());
+    copyAllIp(tableRef.value!.getData<HdfsMachineModel>());
   };
 
   // 复制异常 IP
   const handleCopeFailed = () => {
-    copyNotAliveIp(tableRef.value.getData());
+    copyNotAliveIp(tableRef.value!.getData<HdfsMachineModel>());
   };
 
   // 复制已选 IP
@@ -451,22 +412,22 @@
 
   // 批量缩容
   const handleShowShrink = () => {
-    operationNodeList.value = selectedMachineList.value;
+    operationMachineList.value = selectedMachineList.value;
     isShowShrink.value = true;
   };
 
   // 批量扩容
   const handleShowReplace = () => {
-    operationNodeList.value = selectedMachineList.value;
+    operationMachineList.value = selectedMachineList.value;
     isShowReplace.value = true;
   };
   const handleShrinkOne = (data: HdfsMachineModel) => {
-    operationNodeList.value = [data];
+    operationMachineList.value = [data];
     isShowShrink.value = true;
   };
 
   const handleReplaceOne = (data: HdfsMachineModel) => {
-    operationNodeList.value = [data];
+    operationMachineList.value = [data];
     isShowReplace.value = true;
   };
 

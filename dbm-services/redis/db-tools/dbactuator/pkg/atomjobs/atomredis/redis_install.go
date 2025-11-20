@@ -93,9 +93,9 @@ func (job *RedisInstall) Init(m *jobruntime.JobGenericRuntime) error {
 		job.runtime.Logger.Error(err.Error())
 		return err
 	}
-	// 6379<= start_port <= 55535
-	if job.params.InstNum > 0 && (job.params.StartPort > 55535 || job.params.StartPort < 6379) {
-		err = fmt.Errorf("RedisInstall start_port(%d) must range [6379,5535]", job.params.StartPort)
+	// 6379<= start_port <= 64534
+	if job.params.InstNum > 0 && (job.params.StartPort > 64534 || job.params.StartPort < 6379) {
+		err = fmt.Errorf("RedisInstall start_port(%d) must range [6379,64534]", job.params.StartPort)
 		job.runtime.Logger.Error(err.Error())
 		return err
 	}

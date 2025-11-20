@@ -193,15 +193,15 @@
   };
 
   const handleInputChange = (value: string) => {
-    modelValue.value = [];
-    if (value) {
-      queryHost({
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        hosts: value,
-        limit: -1,
-        offset: 0,
-      });
+    if (!value) {
+      return;
     }
+    modelValue.value = value.split(',').map((ip) => ({
+      bk_biz_id: 0,
+      bk_cloud_id: 0,
+      bk_host_id: 0,
+      ip: ip,
+    }));
   };
 
   const handleSelectorChange = (hostList: IValue[]) => {
@@ -216,6 +216,23 @@
   onBeforeUnmount(() => {
     destroyInst();
   });
+
+  watch(
+    modelValue,
+    () => {
+      if (modelValue.value?.[0]?.ip && !modelValue.value?.[0]?.bk_host_id) {
+        queryHost({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          hosts: localValue.value,
+          limit: props.limit,
+          offset: 0,
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 
 <style lang="less" scoped>

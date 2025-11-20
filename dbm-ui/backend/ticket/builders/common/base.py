@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import itertools
+import logging
 import operator
 import re
 from collections import defaultdict
@@ -17,14 +18,15 @@ from typing import Any, Dict, List, Set, Tuple, Union
 
 from django.db.models import F, Q
 from django.forms.models import model_to_dict
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext as _
 from rest_framework import serializers
 
 from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, PLAT_BIZ_ID, AffinityEnum
+from backend.constants import DOMAIN_PATTERN
 from backend.db_meta.enums import AccessLayer, ClusterPhase, ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.models import Cluster, ExtraProcessInstance, Machine, ProxyInstance, Spec, StorageInstance
-from backend.db_services.dbbase.constants import IpDest
+from backend.db_services.dbbase.constants import IpDest, IpSource
 from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.mysql.cluster.handlers import ClusterServiceHandler
@@ -39,10 +41,23 @@ from backend.ticket.constants import TicketType
 from backend.ticket.exceptions import TicketParamsVerifyException
 from backend.utils.basic import get_target_items_from_details
 
+logger = logging.getLogger("app")
+
 
 def get_filtered_items(details: Dict[str, Any], match_keys: List[str], valid_types: Union[type, tuple]) -> List:
     targets = get_target_items_from_details(obj=details, match_keys=match_keys)
     return [item for item in targets if isinstance(item, valid_types) and item]
+
+
+def get_ticket_zone_list(ticket_data, role="backend_group"):
+    zone_list = []
+    if ticket_data["ip_source"] == IpSource.RESOURCE_POOL and ticket_data["disaster_tolerance_level"] in [
+        AffinityEnum.CROS_SUBZONE,
+        AffinityEnum.SAME_SUBZONE,
+        AffinityEnum.SAME_SUBZONE_CROSS_SWTICH,
+    ]:
+        zone_list = ticket_data["resource_spec"][role]["location_spec"].get("sub_zone_ids", [])
+    return zone_list
 
 
 def fetch_cluster_ids(details: Dict[str, Any]) -> List[int]:
@@ -72,7 +87,7 @@ def fetch_host_ids(details: Dict[str, Any]) -> List[int]:
     return get_filtered_items(details, host_keys, int)
 
 
-def fetch_machine_ids(details: Dict[str, Any]) -> List[Union[int, str]]:
+def fetch_host_ips(details: Dict[str, Any]) -> List[Union[int, str]]:
     machine_keys = ["ip"]
     return get_filtered_items(details, machine_keys, (int, str))
 
@@ -129,6 +144,8 @@ class HostInfoSerializer(serializers.Serializer):
     ip = serializers.CharField(help_text=_("IP地址"))
     bk_host_id = serializers.IntegerField(help_text=_("主机ID"))
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
+    port = serializers.IntegerField(help_text=_("端口号"), required=False)
+    spec = serializers.JSONField(help_text=_("规格信息"), required=False)
 
 
 class DisplayInfoSerializer(serializers.Serializer):
@@ -140,7 +157,28 @@ class DisplayInfoSerializer(serializers.Serializer):
 
 
 class InstanceInfoSerializer(HostInfoSerializer):
-    port = serializers.IntegerField(help_text=_("端口号"))
+    port = serializers.IntegerField(help_text=_("端口号"), required=False)
+
+
+class TicketBaseValidateSerializerMixin(object):
+    # 检查提单集群所在业务是否与当前业务一致
+    def validated_biz(self, attrs):
+        if not self.context.get("bk_biz_id"):
+            return attrs
+        bk_biz_id = int(self.context["bk_biz_id"])
+        cluster_ids = fetch_cluster_ids(attrs)
+        if not cluster_ids:
+            return attrs
+
+        # 获取保持对应关系的元组列表
+        bk_biz_ids = list(Cluster.objects.filter(id__in=cluster_ids).values_list("bk_biz_id", flat=True))
+        if len(set(bk_biz_ids)) > 1 or list(set(bk_biz_ids)) != [bk_biz_id]:
+            raise TicketParamsVerifyException(_("提单涉及的集群业务不匹配当前业务"))
+        return attrs
+
+    def validate(self, attrs):
+        attrs = self.validated_biz(attrs)
+        return attrs
 
 
 class HostRecycleSerializer(serializers.Serializer):
@@ -175,18 +213,30 @@ class ParamValidateSerializerMixin(object):
             self.validator = ticket_flow_builder.inner_flow_builder.validator
 
         if not self.validator:
+            logger.info(_("单据类型 {} 没有配置验证器，跳过参数验证").format(ticket_type))
             return attrs
 
+        logger.info(_("开始执行单据类型 {} 的参数验证").format(ticket_type))
+        logger.debug(
+            _("验证器: {}，待验证参数: {}").format(
+                self.validator.__name__ if hasattr(self.validator, "__name__") else str(self.validator), attrs
+            )
+        )
+
         errors = self.validator(attrs)
+
         if errors:
+            logger.error(_("单据类型 {} 参数验证失败，错误信息: {}").format(ticket_type, errors))
             raise TicketParamsVerifyException(errors=errors, ticket_type=self.context["ticket_type"])
+
+        logger.info(_("单据类型 {} 参数验证成功").format(ticket_type))
         return attrs
 
 
 class CommonValidate(object):
     """存放单据的公共校验逻辑"""
 
-    domain_pattern = re.compile(r"^[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62}){2,8}\.*(#(\d+))?$")
+    domain_pattern = re.compile(DOMAIN_PATTERN)
 
     @classmethod
     def validate_destroy_temporary_cluster_ids(cls, cluster_ids):
@@ -577,7 +627,7 @@ class BaseTicketFlowBuilderPatchMixin(object):
 
     def patch_machine_details(self):
         """补充主机信息"""
-        machine_ips = [ip for info in self.ticket.details["infos"] for ip in fetch_machine_ids(info["old_nodes"])]
+        machine_ips = [ip for info in self.ticket.details["infos"] for ip in fetch_host_ips(info["old_nodes"])]
 
         if not machine_ips:
             return

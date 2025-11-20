@@ -29,13 +29,20 @@ class InstanceHandler:
         self.bk_biz_id = bk_biz_id
 
     def check_instances(
-        self, query_instances: List[Union[str, Dict]], cluster_ids: List[int] = None, db_type: str = None
+        self,
+        query_instances: List[Union[str, Dict]],
+        cluster_ids: List[int] = None,
+        db_type: str = None,
+        cluster_type: List[str] = None,
+        instance_role: List[str] = None,
     ) -> List[dict]:
         """
         查询实例的详细信息(包括实例本身信息+主机信息+关联集群信息)
         @param query_instances: ["0:127.0.0.1:10000", "127.0.0.1", "127.0.0.1:20000"]或者[{....}, [....}]
         @param cluster_ids: 实例所属的集群ID
+        @param cluster_type: 实例所属的集群类型
         @param db_type: 组件类型
+        @param instance_role: 实例角色
         :return
         """
 
@@ -47,30 +54,37 @@ class InstanceHandler:
         if isinstance(query_instances[0], Dict):
             storages_proxies_instances = query_instances
         else:
-            query_filter = Q()
+            address_filter = Q()
             for address in query_instances:
                 spilt_addr = address.split(IP_PORT_DIVIDER)
                 # 兼容ip, ip:port和cloud:ip:port三种格式
                 if len(spilt_addr) == 1:
-                    query_filter |= Q(machine__ip=spilt_addr[0])
+                    address_filter |= Q(machine__ip=spilt_addr[0])
                 elif len(spilt_addr) == 2:
-                    query_filter |= Q(machine__ip=spilt_addr[0], inst_port=spilt_addr[1])
+                    address_filter |= Q(machine__ip=spilt_addr[0], inst_port=spilt_addr[1])
                 else:
-                    query_filter |= Q(
+                    address_filter |= Q(
                         cluster__bk_cloud_id=spilt_addr[0], machine__ip=spilt_addr[1], inst_port=spilt_addr[2]
                     )
 
+            biz_cluster_filter = Q()
             # 补充业务和集群过滤
             if self.bk_biz_id:
-                query_filter &= Q(bk_biz_id=self.bk_biz_id)
+                biz_cluster_filter &= Q(bk_biz_id=self.bk_biz_id)
             if cluster_ids:
-                query_filter &= Q(cluster__id__in=cluster_ids)
+                biz_cluster_filter &= Q(cluster__id__in=cluster_ids)
+            if cluster_type:
+                biz_cluster_filter &= Q(cluster_type__in=cluster_type)
+
+            query_filter = address_filter & biz_cluster_filter
+            if instance_role:
+                query_filter &= Q(role__in=instance_role)
 
             # 由于不知道输入的是什么实例，因此把存储实例和 proxy 实例同时查询出来
             storages = (
                 StorageInstance.objects.select_related("machine")
                 .prefetch_related("cluster")
-                .annotate(role=F("instance_inner_role"), inst_port=F("port"))
+                .annotate(role=F("instance_role"), inst_port=F("port"))
                 .filter(query_filter)
             )
             proxies = (

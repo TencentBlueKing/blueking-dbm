@@ -23,12 +23,15 @@ import (
 
 // ClusterBackendSwitchAct TODO
 type ClusterBackendSwitchAct struct {
+	*subcmd.BaseOptions
 	Service spiderctl.SpiderClusterBackendSwitchComp
 }
 
 // NewClusterBackendSwitchCommand TODO
 func NewClusterBackendSwitchCommand() *cobra.Command {
-	act := ClusterBackendSwitchAct{}
+	act := ClusterBackendSwitchAct{
+		BaseOptions: subcmd.GBaseOptions,
+	}
 	cmd := &cobra.Command{
 		Use:   "cluster-backend-switch",
 		Short: "spider集群后端切换",
@@ -38,6 +41,25 @@ func NewClusterBackendSwitchCommand() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(act.Init())
 			util.CheckErr(act.Run())
+		},
+	}
+	return cmd
+}
+
+// NewSwitchSlaveRouterCmd create new subcommand
+func NewSwitchSlaveRouterCmd() *cobra.Command {
+	act := ClusterBackendSwitchAct{
+		BaseOptions: subcmd.GBaseOptions,
+	}
+	cmd := &cobra.Command{
+		Use:   "switch-slave-router",
+		Short: "spider集群 切换slave路由",
+		Example: fmt.Sprintf(`dbactuator spiderctl switch-slave-router %s %s`,
+			subcmd.CmdBaseExampleStr, subcmd.ToPrettyJson(act.Service.Example()),
+		),
+		Run: func(cmd *cobra.Command, args []string) {
+			util.CheckErr(act.Init())
+			util.CheckErr(act.SwitchSlaveRoute())
 		},
 	}
 	return cmd
@@ -53,7 +75,40 @@ func (d *ClusterBackendSwitchAct) Init() (err error) {
 	return nil
 }
 
-// Run TODO
+// SwitchSlaveRoute switch slave route
+func (d *ClusterBackendSwitchAct) SwitchSlaveRoute() (err error) {
+	steps := subcmd.Steps{
+		{
+			FunName: "[未切换]: 初始化",
+			Func:    d.Service.CommInit,
+		},
+		{
+			FunName: "Init SwitchSlaveRoute",
+			Func: func() error {
+				return d.Service.InitSwitchSlaveRt(d.Uid)
+			},
+		},
+		{
+			FunName: "[主分片切换成功]: 授权repl给OldMaster",
+			Func:    d.Service.GrantReplForNewSlave,
+		},
+		{
+			FunName: "[主分片切换成功]: 建立复制关系",
+			Func:    d.Service.ChangeMasterToNewMaster,
+		},
+		{
+			FunName: "[开始切换从分片]: 切换从分片",
+			Func:    d.Service.CutOverSlave,
+		},
+	}
+	if err = steps.Run(); err != nil {
+		return err
+	}
+	logger.Info("cluster switch slave route successfully")
+	return nil
+}
+
+// Run run subcommand
 func (d *ClusterBackendSwitchAct) Run() (err error) {
 	// 是一个切片
 	steps := subcmd.Steps{
@@ -66,16 +121,26 @@ func (d *ClusterBackendSwitchAct) Run() (err error) {
 			Func:    d.Service.PreCheck,
 		},
 		{
-			FunName: "[未切换]: 持久化回滚SQL",
-			Func:    d.Service.PersistenceRollbackFile,
-		},
-		{
 			FunName: "[未切换]: 生成切换路由的SQL",
 			Func:    d.Service.GenerateSwitchSqls,
 		},
 		{
+			FunName: "[未切换]: 持久化回滚SQL",
+			Func:    d.Service.PersistenceRollbackFile,
+		},
+		{
+			FunName: "[未切换]: 持久化切换Slave分片SQL",
+			Func: func() error {
+				return d.Service.PersistenceSwitchSlaveSptRtSQLFile(d.Uid)
+			},
+		},
+		{
 			FunName: "[主分片切换中]: 开始切换主分片",
 			Func:    d.Service.CutOver,
+		},
+		{
+			FunName: "输出切换时获取的binlog位点信息",
+			Func:    d.Service.OutputBinLogPosCtx,
 		},
 		{
 			FunName: "[主分片切换成功]: 断开NewMaster的同步",
@@ -86,26 +151,6 @@ func (d *ClusterBackendSwitchAct) Run() (err error) {
 		return err
 	}
 	logger.Info("master spt switching has been completed")
-	// 如果非强制切换，则需要执行互切的后续操作
-	if !d.Service.Params.Force {
-		flowSteps := subcmd.Steps{
-			{
-				FunName: "[主分片切换成功]: 授权repl给OldMaster",
-				Func:    d.Service.GrantReplForNewSlave,
-			},
-			{
-				FunName: "[主分片切换成功]: 建立复制关系",
-				Func:    d.Service.ChangeMasterToNewMaster,
-			},
-			{
-				FunName: "[开始切换从分片]: 切换从分片",
-				Func:    d.Service.CutOverSlave,
-			},
-		}
-		if err = flowSteps.Run(); err != nil {
-			return err
-		}
-	}
 	logger.Info("cluster backend switch successfully")
 	return nil
 }

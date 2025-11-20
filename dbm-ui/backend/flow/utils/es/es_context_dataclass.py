@@ -77,4 +77,27 @@ class DnsKwargs:
     dns_op_type: Optional[Any]  # 操作的域名方式
     delete_cluster_id: int = None  # 操作的集群，回收集群时需要
     domain_name: str = None  # 如果添加域名时,添加域名名称
+    exec_ip: Optional[Any] = None  # 表示执行的IP，多个IP传入list，单个IP传入str，空传入None
     dns_op_exec_port: int = None  # 如果做添加或者更新域名管理，执行实例的port
+
+
+@dataclass()
+class ClbKwargs:
+    """
+    定义clb管理的活动节点专属参数
+    """
+
+    clb_op_type: Optional[Any]  # 操作方式
+    clb_ip: str = None  # clb ip
+    clb_op_exec_port: int = None  # 如果做添加或者更新域名管理，执行实例的port
+
+
+@dataclass()
+class PolarisKwargs:
+    """
+    定义polaris管理的活动节点专属参数
+    """
+
+    polaris_op_type: Optional[Any]  # 操作方式
+    servicename: str = None
+    polaris_op_exec_port: int = None

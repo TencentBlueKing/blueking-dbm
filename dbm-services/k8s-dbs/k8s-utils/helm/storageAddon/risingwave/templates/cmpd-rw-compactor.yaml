@@ -1,10 +1,10 @@
 apiVersion: apps.kubeblocks.io/v1alpha1
 kind: ComponentDefinition
 metadata:
-  name: rw-compactor-{{ .Chart.Version}}
+  name: {{ include "risingwave-compactor.cmpdName" . }}
 spec:
   serviceKind: risingwave
-  serviceVersion: 2.2.1
+  serviceVersion: 2.2.1-2.0.0
   services:
     - name: compactor
       spec:
@@ -24,7 +24,7 @@ spec:
     - name: META_SVC
       valueFrom:
         serviceVarRef:
-          compDef: rw-meta-{{ .Chart.Version}}
+          compDef: {{ include "risingwave-meta.cmpdRegexpPattern" . }}
           optional: false
           host: Required
   runtime:

@@ -28,13 +28,14 @@ export default class SemanticData {
   execute_objects: Array<{
     dbnames: string[];
     ignore_dbnames: string[];
-    import_mode: string;
+    import_mode: 'manual' | 'file';
     sql_files: string[];
   }>;
   execute_sql_files: string[];
   is_auto_commit: boolean;
   job_root_id: string;
   path: string;
+  remark: string;
   sql_path: string;
   ticket_mode: {
     mode: string;
@@ -59,5 +60,6 @@ export default class SemanticData {
     this.ticket_mode = payload.ticket_mode;
     this.ticket_type = payload.ticket_type;
     this.uid = payload.uid;
+    this.remark = payload.remark;
   }
 }

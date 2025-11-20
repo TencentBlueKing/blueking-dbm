@@ -37,6 +37,7 @@ class TendbMasterSlaveSwitchDetailSerializer(TendbBaseOperateDetailSerializer):
     is_verify_checksum = serializers.BooleanField(help_text=_("是否检测历史数据检验结果"))
 
     def validate(self, attrs):
+        attrs = super(TendbBaseOperateDetailSerializer, self).validate(attrs)
         if attrs["force"] or not attrs["is_check_delay"]:
             raise serializers.ValidationError(_("主从互切场景：非强制执行，强制检查延时"))
 
@@ -45,6 +46,17 @@ class TendbMasterSlaveSwitchDetailSerializer(TendbBaseOperateDetailSerializer):
 
 class TendbMasterSlaveSwitchParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.tendb_cluster_remote_switch_scene
+
+    def format_ticket_data(self):
+        # 格式化主机信息
+        for info in self.ticket_data["infos"]:
+            for switch_tuple in info["switch_tuples"]:
+                for role in ["master", "slave"]:
+                    ip_address = switch_tuple[role]["ip"]
+                    # 如果有端口，则只保留地址部分
+                    if ":" in ip_address:
+                        ip_address = ip_address.split(":")[0]
+                    switch_tuple[role]["ip"] = ip_address
 
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_MASTER_SLAVE_SWITCH)

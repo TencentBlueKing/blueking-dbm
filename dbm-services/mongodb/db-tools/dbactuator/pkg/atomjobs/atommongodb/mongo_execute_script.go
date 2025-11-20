@@ -120,9 +120,11 @@ func (e *ExecScript) Init(runtime *jobruntime.JobGenericRuntime) error {
 	// 获取各种目录
 	e.Mongo = filepath.Join(e.BinDir, "mongodb", "bin", "mongo")
 	e.ScriptDir = filepath.Join("/", "data", "dbbak", "mongoscript", e.runtime.UID)
-	e.ScriptFilePath = filepath.Join(e.ScriptDir, strings.Join([]string{"script", "js"}, "."))
+	strPort := strconv.Itoa(e.ConfParams.Port)
+	e.ScriptFilePath = filepath.Join(e.ScriptDir, strings.Join([]string{
+		e.ConfParams.ScriptName + "_" + strPort + "_" + "script", "js"}, "."))
 	e.ResultFileName = strings.Join([]string{
-		e.ConfParams.ScriptName, strings.Join([]string{"result", "txt"}, ".")}, "_")
+		e.ConfParams.ScriptName, strPort, strings.Join([]string{"result", "txt"}, ".")}, "_")
 	e.ResultFilePath = filepath.Join(e.ScriptDir, e.ResultFileName)
 	e.runtime.Logger.Info("init successfully")
 
@@ -237,7 +239,7 @@ func (e *ExecScript) creatScriptFile() error {
 	// 修改配置文件属主
 	e.runtime.Logger.Info("start to execute chown command for script file")
 	if _, err = util.RunBashCmd(
-		fmt.Sprintf("chown -R %s.%s %s", e.OsUser, e.OsGroup, e.ScriptDir),
+		fmt.Sprintf("chown -R %s:%s %s", e.OsUser, e.OsGroup, e.ScriptDir),
 		"", nil,
 		60*time.Second); err != nil {
 		e.runtime.Logger.Error(fmt.Sprintf("chown script file fail, error:%s", err))
@@ -250,6 +252,7 @@ func (e *ExecScript) creatScriptFile() error {
 // execScript 执行脚本
 func (e *ExecScript) execScript() error {
 	e.runtime.Logger.Info("start to execute script")
+	timeout := 86400 * 3 * time.Second // 3天
 	cmd := fmt.Sprintf(
 		"%s -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet  %s > %s",
 		e.Mongo, e.ConfParams.AdminUsername, e.ConfParams.AdminPassword, e.execIP, e.execPort,
@@ -261,7 +264,7 @@ func (e *ExecScript) execScript() error {
 	if _, err := util.RunBashCmd(
 		cmd,
 		"", nil,
-		60*time.Second); err != nil {
+		timeout); err != nil {
 		e.runtime.Logger.Error("execute script:%s fail, error:%s", cmdX, err)
 		return fmt.Errorf("execute script:%s fail, error:%s", cmdX, err)
 	}

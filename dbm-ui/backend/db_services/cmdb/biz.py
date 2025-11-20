@@ -55,7 +55,7 @@ def list_bizs(user: str = "", action: ActionEnum = None) -> List[BIZModel]:
             is_allowed = biz.bk_biz_id in permission
             biz.permission[action.id] = is_allowed
 
-    return sorted(biz_list, key=lambda biz: biz.permission[ActionEnum.DB_MANAGE.id], reverse=True)
+    return sorted(biz_list, key=lambda biz: (-biz.permission[ActionEnum.DB_MANAGE.id], biz.bk_biz_id))
 
 
 def list_modules_by_biz(bk_biz_id: int, cluster_type: str) -> List[Dict]:
@@ -248,3 +248,13 @@ def get_or_create_resource_module():
 
 def get_or_create_pending_module():
     return get_or_create_dbm_module(PENDING_MODULE)
+
+
+def get_resource_biz():
+    """
+    获取资源池业务
+    所有主机导入都会放在该业务资源池模块
+    所有主机回收都会到该业务的待回收池模块(独立管控业务除外)
+    """
+    resource_biz = SystemSettings.get_setting_value(key=SystemSettingsEnum.RESOURCE_INDEPENDENT_BIZ)
+    return int(resource_biz or env.DBA_APP_BK_BIZ_ID)

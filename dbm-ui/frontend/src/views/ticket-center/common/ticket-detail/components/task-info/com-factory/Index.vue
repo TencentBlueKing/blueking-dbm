@@ -38,7 +38,7 @@
     default: {
       name: TicketTypes;
     };
-  }>(['./*/*.vue', '!./common', '!./components'], {
+  }>(['./*/*.vue', './*/*/*.vue', '!./common', '!./components'], {
     eager: true,
   });
 

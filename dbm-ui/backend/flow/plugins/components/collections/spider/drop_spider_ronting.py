@@ -7,7 +7,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from pipeline.component_framework.component import Component
 
 from backend.components import DRSApi
@@ -28,6 +28,11 @@ class DropSpiderRoutingService(BaseService):
             bk_cloud_id=bk_cloud_id,
         )
         self.log_info(f"exec flush_routing cmds:[{get_flush_routing_sql_list}]")
+
+        # 如果返回为空，直接返回
+        if not get_flush_routing_sql_list:
+            return True
+
         res = DRSApi.rpc(
             {
                 "addresses": [ctl_master],

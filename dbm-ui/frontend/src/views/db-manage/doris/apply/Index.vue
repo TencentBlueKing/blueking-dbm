@@ -210,7 +210,8 @@
                     :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="doris"
-                    machine-type="doris_follower" />
+                    machine-type="doris_follower"
+                    :subzone-ids="formData.details.sub_zone_ids" />
                 </BkFormItem>
                 <BkFormItem
                   :label="t('数量')"
@@ -235,7 +236,8 @@
                     :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="doris"
-                    machine-type="doris_observer" />
+                    machine-type="doris_observer"
+                    :subzone-ids="formData.details.sub_zone_ids" />
                 </BkFormItem>
                 <BkFormItem
                   :label="t('数量')"
@@ -265,7 +267,8 @@
                     :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="doris"
-                    machine-type="doris_backend" />
+                    machine-type="doris_backend"
+                    :subzone-ids="formData.details.sub_zone_ids" />
                 </BkFormItem>
                 <BkFormItem
                   :label="t('数量')"
@@ -289,7 +292,8 @@
                     :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="doris"
-                    machine-type="doris_backend" />
+                    machine-type="doris_backend"
+                    :subzone-ids="formData.details.sub_zone_ids" />
                 </BkFormItem>
                 <BkFormItem
                   :label="t('数量')"
@@ -363,13 +367,13 @@
           {{ t('提交') }}
         </BkButton>
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="baseState.isSubmitting"
           @click="handleReset">
           {{ t('重置') }}
         </BkButton>
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="baseState.isSubmitting"
           @click="handleCancel">
           {{ t('取消') }}
@@ -384,9 +388,10 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  import type { Doris } from '@services/model/ticket/ticket';
   import type { BizItem, HostInfo } from '@services/types';
 
-  import { useApplyBase } from '@hooks';
+  import { useApplyBase, useTicketDetail } from '@hooks';
 
   import { Affinity, DBTypes, TicketTypes } from '@common/const';
 
@@ -408,6 +413,47 @@
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
+
+  useTicketDetail<Doris.Apply>(TicketTypes.DORIS_APPLY, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+
+      Object.assign(formData, {
+        bk_biz_id: ticketDetail.bk_biz_id,
+        remark: ticketDetail.remark,
+      });
+      Object.assign(formData.details, {
+        bk_cloud_id: details.bk_cloud_id,
+        city_code: details.city_code,
+        cluster_alias: details.cluster_alias,
+        cluster_name: details.cluster_name,
+        db_version: details.db_version,
+        disaster_tolerance_level: details.disaster_tolerance_level,
+        http_port: details.http_port,
+        ip_source: details.ip_source,
+        query_port: details.query_port,
+      });
+
+      if (details.ip_source === 'resource_pool') {
+        const resourceSpec = Object.entries(details.resource_spec!).reduce((prev, [specType, specInfo]) => {
+          return Object.assign(prev, {
+            [specType]: {
+              count: specInfo.count,
+              spec_id: specInfo.spec_id,
+            },
+          });
+        }, {});
+        const subzoneIds = details.resource_spec!.follower.location_spec.sub_zone_ids || [];
+        Object.assign(formData.details, {
+          resource_spec: Object.assign(formData.details.resource_spec, resourceSpec),
+          sub_zone_ids: subzoneIds,
+        });
+        nextTick(() => {
+          regionRequirementsRef.value!.setInitSubzone(subzoneIds);
+        });
+      }
+    },
+  });
 
   const makeMapByHostId = (hostList: HostInfo[]) =>
     hostList.reduce(
@@ -661,8 +707,8 @@
       if (specHotRef.value && specColdRef.value) {
         const { storage_spec: hotStorageSpec = [] } = specHotRef.value.getData();
         const { storage_spec: coldStorageSpec = [] } = specColdRef.value.getData();
-        const hotDisk = hotStorageSpec.reduce((total, item) => total + Number(item.size || 0), 0);
-        const coldDisk = coldStorageSpec.reduce((total, item) => total + Number(item.size || 0), 0);
+        const hotDisk = hotStorageSpec.reduce((total, item) => total + Number(item.min || 0), 0);
+        const coldDisk = coldStorageSpec.reduce((total, item) => total + Number(item.min || 0), 0);
         totalCapacity.value = hotDisk * hotCount + coldCount * coldDisk;
       }
     },

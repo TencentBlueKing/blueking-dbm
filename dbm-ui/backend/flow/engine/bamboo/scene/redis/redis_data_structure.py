@@ -15,7 +15,7 @@ from copy import deepcopy
 from dataclasses import asdict
 from typing import Any, Dict, List, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
@@ -113,7 +113,6 @@ class RedisDataStructureFlow(object):
         self.cluster_cache = {}
 
     def redis_data_structure_flow(self):
-
         redis_pipeline_all = Builder(root_id=self.root_id, data=self.data)
 
         # 支持批量操作
@@ -183,7 +182,7 @@ class RedisDataStructureFlow(object):
                 remainder = int(len(cluster_src_instance) % len(info["redis"]))
                 logger.info("redis_data_structure_flow info['redis']: {}".format(info["redis"]))
             else:
-                raise ValueError("info['redis'] len < 0, please check!")
+                raise ValueError("info['redis'] len <= 0, please check!")
             # ### 部署redis ############################################################
             sub_pipelines_install = []
             cluster_dst_instance = []
@@ -214,7 +213,11 @@ class RedisDataStructureFlow(object):
             logger.info("redis_data_structure_flow cluster_dst_instance: {}".format(cluster_dst_instance))
             # 检查节点总数是否相等
             if len(info["master_instances"]) != len(cluster_dst_instance):
-                raise ValueError("The total number of nodes in both clusters must be equal.")
+                raise ValueError(
+                    "info ins num:{} != cluster dts ins:{}".format(
+                        len(info["master_instances"]), len(cluster_dst_instance)
+                    )
+                )
 
             # 使用zip函数将源集群和临时集群的节点一一对应
             node_pairs = list(zip(cluster_src_instance, cluster_dst_instance))
@@ -290,7 +293,7 @@ class RedisDataStructureFlow(object):
                 \\\"backup_dir\\\":\\\"${BACKUP_DIR}\\\",\\\"redis_backup_dir_data\\\":\\\"${REDIS_BACKUP_DIR_DATA}\\\"}</ctx>"
                 """
             redis_pipeline.add_act(
-                act_name=_("获取磁盘使用情况: {}").format(ip_list),
+                act_name=_("获取磁盘使用情况: {}").format(ip_list[:3]),
                 act_component_code=ExecuteShellScriptComponent.code,
                 kwargs=asdict(first_act_kwargs),
                 write_payload_var="disk_used",
@@ -304,7 +307,7 @@ class RedisDataStructureFlow(object):
             dest_dir = ""
             # 整理数据构造下发actuator 源节点和临时集群节点之间的对应关系，# 获取备份信息，用于磁盘空间是否足够的前置检查
             acts_list, acts_list_push_json = self.get_prod_temp_instance_pairs(
-                act_kwargs, node_pairs, info, tendis_type, dest_dir
+                act_kwargs, node_pairs, int(info["cluster_id"]), info["recovery_time_point"], tendis_type, dest_dir
             )
             logger.info(_("redis_data_structure_flow acts_list_push_json: {}".format(acts_list_push_json)))
 
@@ -343,7 +346,6 @@ class RedisDataStructureFlow(object):
             redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines_install)
 
             # # ###cc 转移机器模块 ################################################################
-            # 直接挪机器
             cluster_kwargs.cluster["meta_func_name"] = RedisDBMeta.redis_rollback_host_transfer.__name__
             cluster_kwargs.cluster["tendiss"] = []
             for instance in cluster_dst_instance:
@@ -357,81 +359,24 @@ class RedisDataStructureFlow(object):
             # # ### cc 转移机器模块完成 ############################################################
 
             # 人工确认文件下发完成的节点
-            redis_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
+            if not self.data.get("skip_mannual_confirm", False):
+                redis_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
             # ### 如果是tendisplus,需要构建tendis cluster关系 ############################################################
-            if is_redis_cluster_protocal(cluster_type):
-                logger.info("cluster_type is:{} need tendis cluster relation".format(cluster_type))
-                act_kwargs.cluster["all_instance"] = cluster_dst_instance
-                act_kwargs.get_redis_payload_func = RedisActPayload.rollback_clustermeet_payload.__name__
-                # 选第一台作为下发执行任务的机器
-                act_kwargs.exec_ip = info["redis"][0]["ip"]
-                redis_pipeline.add_act(
-                    act_name=_("建立meet关系"),
-                    act_component_code=ExecuteDBActuatorScriptComponent.code,
-                    kwargs=asdict(act_kwargs),
-                )
+            self._setup_cluster_meet(cluster_type, act_kwargs, cluster_dst_instance, info, redis_pipeline)
             # ### 构建tendisplus集群关系结束 #############################################################################
 
             # ### 部署proxy实例 #############################################################################
-            # 选第一台机器作为部署proxy的机器
-            act_kwargs.new_install_proxy_exec_ip = info["redis"][0]["ip"]
-            act_kwargs.get_trans_data_ip_var = RedisDataStructureContext.get_proxy_exec_ip_var_name()
-
-            if is_have_proxy(cluster_type):
-                trans_files = GetFileList(db_type=DBType.Redis)
-                if is_twemproxy_proxy_type(cluster_type):
-                    # 部署proxy pkg包
-                    act_kwargs.file_list = trans_files.redis_cluster_apply_proxy(cluster_type)
-                    proxy_payload = RedisActPayload.add_twemproxy_payload.__name__
-                elif is_predixy_proxy_type(cluster_type):
-                    act_kwargs.file_list = trans_files.tendisplus_apply_proxy()
-                    proxy_payload = RedisActPayload.add_predixy_payload.__name__
-                else:
-                    raise NotImplementedError("Not supported cluster type: %s" % cluster_type)
-
-                act_kwargs.get_trans_data_ip_var = RedisDataStructureContext.get_proxy_exec_ip_var_name()
-                act_kwargs.exec_ip = act_kwargs.new_install_proxy_exec_ip
-                redis_pipeline.add_act(
-                    act_name=_("{}proxy下发介质包").format(act_kwargs.exec_ip),
-                    act_component_code=TransFileComponent.code,
-                    kwargs=asdict(act_kwargs),
-                )
-
-                # 构造proxy server信息
-                if is_twemproxy_proxy_type(cluster_type):
-                    servers = self.cal_twemproxy_serveres("admin", redis_instance_set, node_pairs)
-                elif is_redis_cluster_protocal(cluster_type):
-                    servers = cluster_dst_instance
-                else:
-                    raise NotImplementedError("Not supported cluster type: %s" % cluster_type)
-
-                act_kwargs.cluster["servers"] = servers
-                logger.info("proxy servers: {}".format(act_kwargs.cluster["servers"]))
-                act_kwargs.get_redis_payload_func = proxy_payload
-                act_kwargs.exec_ip = act_kwargs.new_install_proxy_exec_ip
-                redis_pipeline.add_act(
-                    act_name=_("{}安装proxy实例").format(act_kwargs.new_install_proxy_exec_ip),
-                    act_component_code=ExecuteDBActuatorScriptComponent.code,
-                    kwargs=asdict(act_kwargs),
-                )
+            self._deploy_proxy_instance(
+                cluster_type, act_kwargs, info, redis_instance_set, node_pairs, cluster_dst_instance, redis_pipeline
+            )
             # ### 数据构造payload json下发 #########################################################################
             redis_pipeline.add_parallel_acts(acts_list=acts_list_push_json)
             # ### 数据构造下发actuator #############################################################################
             redis_pipeline.add_parallel_acts(acts_list=acts_list)
 
             # # ###  # ### 如果是tendisplus,需要重新构建 cluster关系,因为tendisplus数据构造需要reset集群关系  ##############
-            if is_redis_cluster_protocal(cluster_type):
-                logger.info("cluster_type is:{}  cluster  meet and check finish relation".format(cluster_type))
-                act_kwargs.cluster["all_instance"] = cluster_dst_instance
-                act_kwargs.get_redis_payload_func = RedisActPayload.clustermeet_check_payload.__name__
-                # 选第一台作为下发执行任务的机器
-                act_kwargs.exec_ip = info["redis"][0]["ip"]
-                redis_pipeline.add_act(
-                    act_name=_("meet建立集群关系并检查集群状态"),
-                    act_component_code=ExecuteDBActuatorScriptComponent.code,
-                    kwargs=asdict(act_kwargs),
-                )
+            self._check_cluster_meet(cluster_type, act_kwargs, cluster_dst_instance, info, redis_pipeline)
 
             # ### 写入构造记录元数据 ######################################################
             act_kwargs.cluster = {
@@ -747,6 +692,75 @@ class RedisDataStructureFlow(object):
         )
         return data["content"]
 
+    def _setup_cluster_meet(self, cluster_type, act_kwargs, cluster_dst_instance, info, redis_pipeline):
+        """Setup cluster meet relationship for tendisplus"""
+        if is_redis_cluster_protocal(cluster_type):
+            logger.info("cluster_type is:{} need tendis cluster relation".format(cluster_type))
+            act_kwargs.cluster["all_instance"] = cluster_dst_instance
+            act_kwargs.get_redis_payload_func = RedisActPayload.rollback_clustermeet_payload.__name__
+            act_kwargs.exec_ip = info["redis"][0]["ip"]
+            redis_pipeline.add_act(
+                act_name=_("建立meet关系"),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
+
+    def _deploy_proxy_instance(
+        self, cluster_type, act_kwargs, info, redis_instance_set, node_pairs, cluster_dst_instance, redis_pipeline
+    ):
+        """Deploy proxy instance"""
+        act_kwargs.new_install_proxy_exec_ip = info["redis"][0]["ip"]
+        act_kwargs.get_trans_data_ip_var = RedisDataStructureContext.get_proxy_exec_ip_var_name()
+
+        if is_have_proxy(cluster_type):
+            trans_files = GetFileList(db_type=DBType.Redis)
+            if is_twemproxy_proxy_type(cluster_type):
+                act_kwargs.file_list = trans_files.redis_cluster_apply_proxy(cluster_type)
+                proxy_payload = RedisActPayload.add_twemproxy_payload.__name__
+            elif is_predixy_proxy_type(cluster_type):
+                act_kwargs.file_list = trans_files.tendisplus_apply_proxy()
+                proxy_payload = RedisActPayload.add_predixy_payload.__name__
+            else:
+                raise NotImplementedError("Not supported cluster type: %s" % cluster_type)
+
+            act_kwargs.get_trans_data_ip_var = RedisDataStructureContext.get_proxy_exec_ip_var_name()
+            act_kwargs.exec_ip = act_kwargs.new_install_proxy_exec_ip
+            redis_pipeline.add_act(
+                act_name=_("{}proxy下发介质包").format(act_kwargs.exec_ip),
+                act_component_code=TransFileComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
+
+            if is_twemproxy_proxy_type(cluster_type):
+                servers = self.cal_twemproxy_serveres("admin", redis_instance_set, node_pairs)
+            elif is_redis_cluster_protocal(cluster_type):
+                servers = cluster_dst_instance
+            else:
+                raise NotImplementedError("Not supported cluster type: %s" % cluster_type)
+
+            act_kwargs.cluster["servers"] = servers
+            logger.info("proxy servers: {}".format(act_kwargs.cluster["servers"]))
+            act_kwargs.get_redis_payload_func = proxy_payload
+            act_kwargs.exec_ip = act_kwargs.new_install_proxy_exec_ip
+            redis_pipeline.add_act(
+                act_name=_("{}安装proxy实例").format(act_kwargs.new_install_proxy_exec_ip),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
+
+    def _check_cluster_meet(self, cluster_type, act_kwargs, cluster_dst_instance, info, redis_pipeline):
+        """Check cluster meet relationship for tendisplus"""
+        if is_redis_cluster_protocal(cluster_type):
+            logger.info("cluster_type is:{}  cluster  meet and check finish relation".format(cluster_type))
+            act_kwargs.cluster["all_instance"] = cluster_dst_instance
+            act_kwargs.get_redis_payload_func = RedisActPayload.clustermeet_check_payload.__name__
+            act_kwargs.exec_ip = info["redis"][0]["ip"]
+            redis_pipeline.add_act(
+                act_name=_("meet建立集群关系并检查集群状态"),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
+
     def cal_twemproxy_serveres(self, name, redis_instance_set, node_pairs) -> list:
         """
         计算twemproxy的servers 列表
@@ -766,7 +780,8 @@ class RedisDataStructureFlow(object):
         self,
         sub_kwargs: ActKwargs,
         node_pairs: list,
-        info: dict,
+        cluster_id: int,
+        recovery_time_point: str,
         tendis_type: str,
         dest_dir: str,
     ) -> (list, list):
@@ -839,90 +854,58 @@ class RedisDataStructureFlow(object):
         acts_list = []
         acts_list_push_json = []
 
-        rollback_time = info["recovery_time_point"]
+        rollback_time = recovery_time_point
         logger.info(_("get_prod_temp_instance_pairs rollback_time: {}".format(rollback_time)))
         kvstorecount = None
         if tendis_type == ClusterType.TendisplusInstance.value:
             kvstorecount = act_kwargs.cluster["kvstorecount"]
-        for new_temp_ip in [host["ip"] for host in info["redis"]]:
-            source_ports = []
-            new_temp_ports = []
-            # 遍历所有
-            new_temp_node_pairs = []
-            source_ip_map = set()
-            for pair in node_pairs:
-                # 找到新机器相同的对应关系,source_ip可能有多个
-                if new_temp_ip in str(pair):
-                    new_temp_node_pairs.append(pair)
-                    source_ip_map.add(pair[0].split(IP_PORT_DIVIDER)[0])
-                    source_ports.append(int(pair[0].split(IP_PORT_DIVIDER)[1]))
-                    new_temp_ports.append(int(pair[1].split(IP_PORT_DIVIDER)[1]))
-            logger.info(_("new_temp_node_pairs: {}".format(new_temp_node_pairs)))
-            # 将多个source_ip的情况继续拆分,每个source_ip是一个actuator
-            if len(source_ip_map) > 1:
-                logger.info(_("len(source_ip_map) > 1, source_ip_map: {}".format(source_ip_map)))
-                for source_temp_ip in source_ip_map:
-                    source_ports = []
-                    new_temp_ports = []
-                    full_backupinfo, binlog_backupinfo = [], []
-                    source_ip = ""
-                    for temp_pair in new_temp_node_pairs:
-                        # 找到新机器相同的对应关系,source_ip只有一个
-                        if source_temp_ip in str(temp_pair):
-                            source_ports.append(int(temp_pair[0].split(IP_PORT_DIVIDER)[1]))
-                            new_temp_ports.append(int(temp_pair[1].split(IP_PORT_DIVIDER)[1]))
-                        source_ip = source_temp_ip
 
-                    for source_port in source_ports:
-                        logger.info(_("source_ip_map_source_ports: {}".format(source_ports)))
-                        instance_full_backup, instance_binlog_backup = self.get_backupfile(
-                            info["cluster_id"], rollback_time, source_ip, source_port, tendis_type, kvstorecount
-                        )
-                        full_backupinfo.append(instance_full_backup)
-                        binlog_backupinfo.extend(instance_binlog_backup)
-                    acts_list_new_ip, acts_list_push_json_new_ip = self.get_acts_list(
-                        source_ip,
-                        source_ports,
-                        new_temp_ip,
-                        new_temp_ports,
-                        info["recovery_time_point"],
-                        tendis_type,
-                        dest_dir,
-                        full_backupinfo,
-                        binlog_backupinfo,
-                        act_kwargs,
-                    )
-                    acts_list.append(acts_list_new_ip)
-                    acts_list_push_json.append(acts_list_push_json_new_ip)
-                    logger.info(_("redis_data_structure_flow_full_backupinfo: {}".format(full_backupinfo)))
-                    logger.info(_("redis_data_structure_flow_binlog_backupinfo: {}".format(binlog_backupinfo)))
-            elif len(source_ip_map) == 1:
-                logger.info(_("get_prod_temp_instance_pairs len(source_ip_map) = 1"))
-                source_ip = next(iter(source_ip_map))
-                full_backupinfo, binlog_backupinfo = [], []
-                for source_port in source_ports:
-                    full_backup, binlog_backup = self.get_backupfile(
-                        info["cluster_id"], rollback_time, source_ip, source_port, tendis_type, kvstorecount
-                    )
-                    full_backupinfo.append(full_backup)
-                    binlog_backupinfo.extend(binlog_backup)
+        # 预处理：产出 [(source_ip,dts_ip)] = [dts_ports] and [source_ports]
+        pari_dest_ports = defaultdict(list)
+        pari_source_ports = defaultdict(list)
+        for pair in node_pairs:
+            source_ip, source_port = pair[0].split(IP_PORT_DIVIDER)
+            dest_ip, dest_port = pair[1].split(IP_PORT_DIVIDER)
+            # 如果是dts_ip的任务，则统计处理
+            pari_source_ports[(source_ip, dest_ip)].append(int(source_port))
+            pari_dest_ports[(source_ip, dest_ip)].append(int(dest_port))
 
-                acts_list_new_ip, acts_list_push_json_new_ip = self.get_acts_list(
-                    source_ip,
-                    source_ports,
-                    new_temp_ip,
-                    new_temp_ports,
-                    info["recovery_time_point"],
-                    tendis_type,
-                    dest_dir,
-                    full_backupinfo,
-                    binlog_backupinfo,
-                    act_kwargs,
+        # 遍历。 按照ip组合构成下发任务
+        for pari_ip, source_ports in pari_source_ports.items():
+            dest_ports = pari_dest_ports[pari_ip]
+            source_ip, dest_ip = pari_ip[0], pari_ip[1]
+            full_backup_info, binlog_backup_info = [], []
+
+            # 遍历端口，查询出备份
+            logger.info(
+                _(
+                    "source_ip: {},source_ports: {},dest_ip: {},dest_ports: {}".format(
+                        source_ip, source_ports, dest_ip, dest_ports
+                    )
                 )
-                acts_list.append(acts_list_new_ip)
-                acts_list_push_json.append(acts_list_push_json_new_ip)
-                logger.info(_("redis_data_structure_flow_full_backupinfo: {}".format(full_backupinfo)))
-                logger.info(_("redis_data_structure_flow_binlog_backupinfo: {}".format(binlog_backupinfo)))
+            )
+            for source_port in source_ports:
+                instance_full_backup, instance_binlog_backup = self.get_backupfile(
+                    cluster_id, rollback_time, source_ip, source_port, tendis_type, kvstorecount
+                )
+                full_backup_info.append(instance_full_backup)
+                binlog_backup_info.extend(instance_binlog_backup)
+            acts_list_new_ip, acts_list_push_json_new_ip = self.get_acts_list(
+                source_ip,
+                source_ports,
+                dest_ip,
+                dest_ports,
+                recovery_time_point,
+                tendis_type,
+                dest_dir,
+                full_backup_info,
+                binlog_backup_info,
+                act_kwargs,
+            )
+            acts_list.append(acts_list_new_ip)
+            acts_list_push_json.append(acts_list_push_json_new_ip)
+            logger.info(_("redis_data_structure_flow_full_backupinfo: {}".format(full_backup_info)))
+            logger.info(_("redis_data_structure_flow_binlog_backupinfo: {}".format(binlog_backup_info)))
         return acts_list, acts_list_push_json
 
     @staticmethod

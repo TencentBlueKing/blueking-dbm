@@ -189,7 +189,7 @@
     },
   };
 
-  const monthOptions = new Array(31).fill('').map((_, index) => ({
+  const monthOptions = Array.from({ length: 31 }, () => '').map((_, index) => ({
     label: `${index + 1}${t('号')}`,
     value: `${index + 1}`,
   }));

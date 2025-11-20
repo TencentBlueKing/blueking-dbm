@@ -140,8 +140,10 @@
         :cluster-type="ClusterTypes.PULSAR">
         <template #infoContent>
           <BaseInfo
+            :cluster-type="ClusterTypes.PULSAR"
             :data="data"
-            @refresh="fetchDetailData" />
+            @refresh="fetchDetailData">
+          </BaseInfo>
         </template>
         <template #hostContent>
           <HostList :cluster-data="data" />
@@ -152,24 +154,12 @@
             :cluster-type="ClusterTypes.PULSAR" />
         </template>
       </ActionPanel>
-      <DbSideslider
+      <ClusterExpansion
         v-model:is-show="isShowExpandsion"
-        background-color="#F5F7FA"
-        class="pulsar-manage-sideslider"
-        quick-close
-        :title="t('xx扩容【name】', { title: 'Pulsar', name: data?.cluster_name })"
-        :width="960">
-        <ClusterExpansion :data="data" />
-      </DbSideslider>
-      <DbSideslider
+        :cluster-data="data" />
+      <ClusterShrink
         v-model:is-show="isShowShrink"
-        background-color="#F5F7FA"
-        class="pulsar-manage-sideslider"
-        quick-close
-        :title="t('xx缩容【name】', { title: 'Pulsar', name: data?.cluster_name })"
-        :width="960">
-        <ClusterShrink :data="data" />
-      </DbSideslider>
+        :cluster-data="data" />
       <BkDialog
         v-model:is-show="isShowPassword"
         render-directive="if"
@@ -212,7 +202,7 @@
 
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
 
-  import { ActionPanel, BigDataInstanceList, DisplayBox } from '@views/db-manage/common/cluster-details';
+  import { ActionPanel, BaseInfo, BigDataInstanceList, DisplayBox } from '@views/db-manage/common/cluster-details';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
@@ -220,7 +210,6 @@
   import ClusterExpansion from '@views/db-manage/pulsar/common/expansion/Index.vue';
   import ClusterShrink from '@views/db-manage/pulsar/common/shrink/Index.vue';
 
-  import BaseInfo from './components/BaseInfo.vue';
   import HostList from './components/HostList.vue';
 
   interface Props {

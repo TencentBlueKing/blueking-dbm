@@ -20,22 +20,22 @@ limitations under the License.
 package dbaccess
 
 import (
-	"errors"
-	"k8s-dbs/common/entity"
-	models "k8s-dbs/metadata/dbaccess/model"
-	"log/slog"
+	commentity "k8s-dbs/common/entity"
+	metaentity "k8s-dbs/metadata/entity"
+	metamodel "k8s-dbs/metadata/model"
 
+	"github.com/pkg/errors"
 	"gorm.io/gorm"
 )
 
 // AddonHelmRepoDbAccess 定义 AddonClusterHelmRepo 元数据的数据库访问接口
 type AddonHelmRepoDbAccess interface {
-	Create(model *models.AddonHelmRepoModel) (*models.AddonHelmRepoModel, error)
+	Create(model *metamodel.AddonHelmRepoModel) (*metamodel.AddonHelmRepoModel, error)
 	DeleteByID(id uint64) (uint64, error)
-	FindByID(id uint64) (*models.AddonHelmRepoModel, error)
-	FindByParams(params map[string]interface{}) (*models.AddonHelmRepoModel, error)
-	Update(model *models.AddonHelmRepoModel) (uint64, error)
-	ListByPage(pagination entity.Pagination) ([]models.AddonHelmRepoModel, int64, error)
+	FindByID(id uint64) (*metamodel.AddonHelmRepoModel, error)
+	FindByParams(params *metaentity.HelmRepoQueryParams) (*metamodel.AddonHelmRepoModel, error)
+	Update(model *metamodel.AddonHelmRepoModel) (uint64, error)
+	ListByPage(pagination commentity.Pagination) ([]metamodel.AddonHelmRepoModel, int64, error)
 }
 
 // AddonHelmRepoDbAccessImpl AddonHelmRepoDbAccess 的具体实现
@@ -44,80 +44,69 @@ type AddonHelmRepoDbAccessImpl struct {
 }
 
 // Create 创建接口实现
-func (a *AddonHelmRepoDbAccessImpl) Create(model *models.AddonHelmRepoModel) (
-	*models.AddonHelmRepoModel,
+func (a *AddonHelmRepoDbAccessImpl) Create(model *metamodel.AddonHelmRepoModel) (
+	*metamodel.AddonHelmRepoModel,
 	error,
 ) {
 	if err := a.db.Create(model).Error; err != nil {
-		slog.Error("Create model error", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create addon helm repo with model %+v", model)
 	}
 	return model, nil
 }
 
 // DeleteByID 删除接口实现
 func (a *AddonHelmRepoDbAccessImpl) DeleteByID(id uint64) (uint64, error) {
-	result := a.db.Delete(&models.AddonHelmRepoModel{}, id)
+	result := a.db.Delete(&metamodel.AddonHelmRepoModel{}, id)
 	if result.Error != nil {
-		slog.Error("Delete model error", "error", result.Error.Error())
-		return 0, result.Error
+		return 0, errors.Wrapf(result.Error, "failed to delete addon helm repo with id %d", id)
 	}
 	return uint64(result.RowsAffected), nil
 }
 
 // FindByID 查找接口实现
-func (a *AddonHelmRepoDbAccessImpl) FindByID(id uint64) (*models.AddonHelmRepoModel, error) {
-	var model models.AddonHelmRepoModel
+func (a *AddonHelmRepoDbAccessImpl) FindByID(id uint64) (*metamodel.AddonHelmRepoModel, error) {
+	var model metamodel.AddonHelmRepoModel
 	result := a.db.First(&model, id)
 	if result.Error != nil {
-		slog.Error("Find model error", "error", result.Error.Error())
-		return nil, result.Error
+		return nil, errors.Wrapf(result.Error, "failed to find addon helm repo with id %d", id)
 	}
 	return &model, nil
 }
 
 // FindByParams 根据参数查找接口实现
-func (a *AddonHelmRepoDbAccessImpl) FindByParams(params map[string]interface{}) (
-	*models.AddonHelmRepoModel,
+func (a *AddonHelmRepoDbAccessImpl) FindByParams(params *metaentity.HelmRepoQueryParams) (
+	*metamodel.AddonHelmRepoModel,
 	error,
 ) {
-	var helmRepo models.AddonHelmRepoModel
-
-	// 动态条件查询
-	result := a.db.Where(params).First(&helmRepo)
-
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		slog.Error("Find model error", "error", result.Error.Error())
-		return nil, result.Error
+	var helmRepo metamodel.AddonHelmRepoModel
+	err := a.db.Where(params).First(&helmRepo).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
 	}
-	if result.Error != nil {
-		slog.Error("Find model error", "error", result.Error.Error())
-		return nil, result.Error
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to find addon helm repo with params %+v", params)
 	}
-
 	return &helmRepo, nil
 }
 
 // Update 更新接口实现
-func (a *AddonHelmRepoDbAccessImpl) Update(model *models.AddonHelmRepoModel) (uint64, error) {
+func (a *AddonHelmRepoDbAccessImpl) Update(model *metamodel.AddonHelmRepoModel) (uint64, error) {
 	result := a.db.Omit("CreatedAt", "CreatedBy").Save(model)
 	if result.Error != nil {
-		slog.Error("Update model error", "error", result.Error.Error())
-		return 0, result.Error
+		return 0, errors.Wrapf(result.Error, "failed to update addon helm repo with model %+v", model)
 	}
 	return uint64(result.RowsAffected), nil
 }
 
 // ListByPage 分页查询接口实现
-func (a *AddonHelmRepoDbAccessImpl) ListByPage(pagination entity.Pagination) (
-	[]models.AddonHelmRepoModel,
+func (a *AddonHelmRepoDbAccessImpl) ListByPage(pagination commentity.Pagination) (
+	[]metamodel.AddonHelmRepoModel,
 	int64,
 	error,
 ) {
-	var releaseModels []models.AddonHelmRepoModel
+	var releaseModels []metamodel.AddonHelmRepoModel
 	if err := a.db.Offset(pagination.Page).Limit(pagination.Limit).Find(&releaseModels).Error; err != nil {
-		slog.Error("List model error", "error", err.Error())
-		return nil, 0, err
+		return nil, 0, errors.Wrapf(err, "failed to list addon helm repo with pagination %+v", pagination)
 	}
 	return releaseModels, int64(len(releaseModels)), nil
 }

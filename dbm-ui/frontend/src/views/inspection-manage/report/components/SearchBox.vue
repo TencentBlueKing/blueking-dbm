@@ -1,40 +1,42 @@
 <template>
-  <div class="inspection-search-box">
-    <div class="search-operations">
-      <BkDatePicker
-        append-to-body
-        class="date-picker-main"
-        clearable
-        :model-value="dateValue"
-        @change="handleDatePickerChange" />
-      <DbSearchSelect
-        class="search-select-main"
-        :data="searchData"
-        :get-menu-list="getMenuList"
-        :model-value="searchValue"
-        unique-select
-        @change="handleSearchValueChange" />
-    </div>
+  <div class="inspection-search-operations">
+    <BkCheckbox
+      v-if="showOnlyAbnormal"
+      v-model="isOnlyAbnormal">
+      {{ t('仅显示预警 / 异常') }}
+    </BkCheckbox>
+    <BkDatePicker
+      append-to-body
+      class="date-picker-main"
+      clearable
+      :model-value="dateValue"
+      @change="handleDatePickerChange" />
+    <DbQuickSearch
+      v-model="searchValue"
+      class="search-select-main"
+      :data="searchData"
+      unique-select
+      value-split-code="," />
   </div>
 </template>
 <script setup lang="ts">
-  import type { ISearchItem, ISearchValue } from 'bkui-vue/lib/search-select/utils';
+  import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import dayjs from 'dayjs';
   import _ from 'lodash';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import { getUserList } from '@services/source/user';
 
   import { useGlobalBizs } from '@stores';
 
-  import { batchSplitRegex } from '@common/regex';
-
-  import { getMenuListSearch } from '@utils';
+  import DbQuickSearch from '@components/db-quick-search/Index.vue';
 
   interface Props {
     isAssist?: boolean;
     isShowAll?: boolean;
     isTodos?: boolean;
+    showOnlyAbnormal?: boolean;
   }
 
   type Emits = (e: 'change', value: Record<string, any>) => void;
@@ -43,6 +45,7 @@
     isAssist: false,
     isShowAll: false,
     isTodos: false,
+    showOnlyAbnormal: true,
   });
   const emits = defineEmits<Emits>();
 
@@ -50,40 +53,52 @@
   const route = useRoute();
   const globalBizsStore = useGlobalBizs();
 
+  const isOnlyAbnormal = ref(true);
   const dateValue = ref(dayjs().format('YYYY-MM-DD'));
-  const searchValue = ref<ISearchValue[]>([]);
+  const searchValue = ref<Record<string, any>>({});
 
-  const searchData = computed(() => {
+  const searchData = computed<ComponentProps<typeof DbQuickSearch>['data']>(() => {
     const bizFilter = {
-      children: globalBizsStore.bizs.map((biz) => ({
-        id: biz.bk_biz_id,
-        name: biz.name,
-      })),
       id: 'bk_biz_id',
+      list: globalBizsStore.bizs.map((biz) => ({
+        label: biz.name,
+        value: biz.bk_biz_id,
+      })),
       name: t('业务'),
+      type: 'single',
     };
     const statusFilter = {
-      children: [
+      id: 'state',
+      list: [
         {
-          id: 1,
-          name: t('正常'),
+          label: t('正常'),
+          value: 'normal',
         },
         {
-          id: 0,
-          name: t('异常'),
+          label: t('异常'),
+          value: 'abnormal',
+        },
+        {
+          label: t('预警'),
+          value: 'warning',
         },
       ],
-      id: 'status',
       name: t('状态'),
+      type: 'single',
     };
+    if (isOnlyAbnormal.value) {
+      statusFilter.list.splice(0, 1);
+    }
     const clusterFilter = {
       id: 'cluster',
-      multiple: true,
       name: t('集群'),
     };
     const dbaFilter = {
       id: 'dba',
       name: t('主DBA'),
+      remoteMethod: requestUserList,
+      remoteSearch: true,
+      type: 'single',
     };
     if (props.isShowAll) {
       return [bizFilter, dbaFilter, clusterFilter, statusFilter] as ISearchItem[];
@@ -99,28 +114,20 @@
     return [clusterFilter, statusFilter] as ISearchItem[];
   });
 
-  watchEffect(() => {
-    if (route.query.create_at__gte && route.query.create_at__lte) {
-      dateValue.value = dayjs(route.query.create_at__gte as string).format('YYYY-MM-DD');
-    }
-  });
-
   watch(
-    () => [searchValue.value, dateValue.value],
+    () => [searchValue.value, dateValue.value, isOnlyAbnormal.value],
     () => {
-      const searchObj = searchValue.value.reduce<Record<string, string>>((results, item) => {
-        Object.assign(results, {
-          [item.id]: item.values?.map((value) => value.id).join(',') || '',
-        });
-        return results;
-      }, {});
-
+      const searchObj = _.cloneDeep(searchValue.value);
       if (dateValue.value) {
         Object.assign(searchObj, {
           create_at__gte: dayjs(dateValue.value).startOf('day').format('YYYY-MM-DD HH:mm:ss'),
           create_at__lte: dayjs(dateValue.value).endOf('day').format('YYYY-MM-DD HH:mm:ss'),
         });
       }
+
+      Object.assign(searchObj, {
+        isOnlyAbnormal: isOnlyAbnormal.value,
+      });
       emits('change', searchObj);
     },
     {
@@ -128,99 +135,55 @@
     },
   );
 
-  const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
-    if (item?.id !== 'dba' && keyword) {
-      return getMenuListSearch(item, keyword, searchData.value, searchValue.value);
+  const initSearchSelect = () => {
+    if (route.query.create_at__gte && route.query.create_at__lte) {
+      dateValue.value = dayjs(route.query.create_at__gte as string).format('YYYY-MM-DD');
+    }
+    if (route.query.isOnlyAbnormal) {
+      isOnlyAbnormal.value = route.query.isOnlyAbnormal === 'true';
     }
 
-    // 没有选中过滤标签
-    if (!item) {
-      // 过滤掉已经选过的标签
-      const selected = (searchValue.value || []).map((value) => value.id);
-      return searchData.value.filter((item) => !selected.includes(item.id));
-    }
-
-    // 远程加载执行人
-    if (item.id === 'dba') {
-      if (!keyword) {
-        return [];
+    ['bk_biz_id', 'cluster', 'dba', 'state'].forEach((item) => {
+      if (route.query[item]) {
+        searchValue.value[item] = route.query[item];
       }
-      return getUserList({
-        fuzzy_lookups: keyword,
-      }).then((res) =>
-        res.results.map((item) => ({
-          id: item.username,
-          name: item.username,
-        })),
-      );
+    });
+  };
+
+  const requestUserList = (params: { defaultValue?: string; keyword?: string }) => {
+    const requestParams = {};
+    if (params.defaultValue) {
+      Object.assign(requestParams, { exact_lookups: params.defaultValue });
+    }
+    if (params.keyword) {
+      Object.assign(requestParams, { fuzzy_lookups: params.keyword });
     }
 
-    // 不需要远层加载
-    return searchData.value.find((set) => set.id === item.id)?.children || [];
+    return getUserList(requestParams).then((data) =>
+      data.results.map((item) => ({
+        label: `${item.username} (${item.display_name})`,
+        value: item.username,
+      })),
+    );
   };
 
   const handleDatePickerChange = (value: string) => {
     dateValue.value = value;
   };
 
-  const handleSearchValueChange = (valueList: ISearchValue[]) => {
-    // 防止方法由于searchValue的值改变而被循环触发
-    if (JSON.stringify(valueList) === JSON.stringify(searchValue.value)) {
-      return;
-    }
-    // 批量参数统一用,分隔符，展示的分隔符统一成 |
-    const handledValueList: ISearchValue[] = [];
-    valueList.forEach((item) => {
-      if (item.id !== 'cluster') {
-        // 原样返回
-        handledValueList.push(item);
-        return;
-      }
-      const values = item.values
-        ? item.values.reduce(
-            (results, value) => {
-              const idList = _.uniq(`${value.id.trim()}`.split(batchSplitRegex));
-              const nameList = _.uniq(`${value.name.trim()}`.split(batchSplitRegex));
-              results.push(
-                ...idList.map((id, index) => ({
-                  id,
-                  name: nameList[index],
-                })),
-              );
-              return results;
-            },
-            [] as {
-              id: string;
-              name: string;
-            }[],
-          )
-        : [];
-
-      const searchObj = {
-        ...item,
-        values,
-      };
-      handledValueList.push(searchObj);
-    });
-    searchValue.value = handledValueList;
-  };
+  initSearchSelect();
 </script>
 <style lang="less">
-  .inspection-search-box {
+  .inspection-search-operations {
     display: flex;
+    gap: 8px;
 
-    .search-operations {
-      display: flex;
-      gap: 8px;
+    .date-picker-main {
+      width: 150px;
+    }
 
-      .date-picker-main {
-        width: 150px;
-        margin-right: 8px;
-      }
-
-      .search-select-main {
-        width: 580px;
-      }
+    .search-select-main {
+      width: 580px;
     }
   }
 </style>

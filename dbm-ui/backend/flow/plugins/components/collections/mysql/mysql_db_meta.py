@@ -12,7 +12,7 @@ import copy
 import logging
 from dataclasses import asdict
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 
 from backend.flow.plugins.components.collections.common.base_service import BaseService
@@ -39,10 +39,10 @@ class MySQLDBMetaService(BaseService):
             cluster_info = {**kwargs["cluster"], **asdict(trans_data)}
 
         self.log_info(_("集群元信息:{}").format(cluster_info))
-
+        self.log_info(_("个性化参数体component_kwargs:{}").format(kwargs.get("component_kwargs", {})))
         mysql_meta = MySQLDBMeta(ticket_data=global_data, cluster=cluster_info)
 
-        result = getattr(mysql_meta, kwargs.get("db_meta_class_func"))()
+        result = getattr(mysql_meta, kwargs.get("db_meta_class_func"))(**kwargs.get("component_kwargs", {}))
 
         self.log_info("DBMata re successfully")
         data.outputs.ext_result = result

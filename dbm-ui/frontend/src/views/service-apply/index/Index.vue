@@ -17,14 +17,14 @@
     style="height: calc(100vh - var(--notice-height) - 124px)">
     <ScrollFaker style="height: calc(100% - 72px)">
       <ApplyCollapse
-        v-if="historyCacheIdList.length > 0"
+        v-if="historyCacheIdDisplayList.length > 0"
         class="apply-collapse">
         <template #title>
           {{ t('最近使用') }}
         </template>
         <div class="history-list">
           <div
-            v-for="id in historyCacheIdList"
+            v-for="id in historyCacheIdDisplayList"
             :key="id"
             class="history-item"
             @click="handleApply(serviceIdMap[id])">
@@ -50,10 +50,12 @@
         </div>
       </ApplyCollapse>
       <FunController
-        v-for="item of services"
+        v-for="item of displayServices"
         :key="item.name"
         :module-id="item.id">
-        <ApplyCollapse class="apply-collapse">
+        <ApplyCollapse
+          v-if="item.children.length > 0"
+          class="apply-collapse">
           <template #title>
             {{ item.name }}
             <BkTag class="apply-collapse-count">
@@ -66,32 +68,28 @@
               class="group-name">
               {{ item.groupName }}
             </div>
-            <FunController
+            <div
               v-for="child of item.children"
               :key="child.id"
-              :controller-id="child.controllerId"
-              :module-id="item.id">
-              <div
-                class="apply-item"
-                @click="handleApply(child)">
-                <BkPopover
-                  :disabled="!child.tipImgProps"
-                  placement="bottom"
-                  theme="light">
-                  <div class="apply-item-wrapper">
-                    <DbIcon
-                      class="apply-item-icon"
-                      :type="child.icon" />
-                    <span>
-                      {{ child.name }}
-                    </span>
-                  </div>
-                  <template #content>
-                    <img v-bind="child.tipImgProps" />
-                  </template>
-                </BkPopover>
-              </div>
-            </FunController>
+              class="apply-item"
+              @click="handleApply(child)">
+              <BkPopover
+                :disabled="!child.tipImgProps"
+                placement="bottom"
+                theme="light">
+                <div class="apply-item-wrapper">
+                  <DbIcon
+                    class="apply-item-icon"
+                    :type="child.icon" />
+                  <span>
+                    {{ child.name }}
+                  </span>
+                </div>
+                <template #content>
+                  <img v-bind="child.tipImgProps" />
+                </template>
+              </BkPopover>
+            </div>
           </div>
         </ApplyCollapse>
       </FunController>
@@ -109,7 +107,7 @@
     FunctionKeys,
   } from '@services/model/function-controller/functionController';
 
-  import { useUserProfile } from '@stores';
+  import { useFunController, useUserProfile } from '@stores';
 
   import {
     bigDataType,
@@ -150,6 +148,7 @@
   const router = useRouter();
   const { t } = useI18n();
   const userProfile = useUserProfile();
+  const funControllerStore = useFunController();
 
   const localHistroyKey = 'SERVICE_APPLY_HISTORY';
 
@@ -319,30 +318,58 @@
     },
   ];
 
-  const serviceIdMap = Object.values(services).reduce(
-    (result, groupItem) => {
-      groupItem.children.forEach((item) => {
-        Object.assign(result, {
-          [item.id]: item,
-        });
+  const serviceIdMap = Object.values(services).reduce<
+    Record<string, { moduleId: IService['id'] } & IService['children'][number]>
+  >((result, groupItem) => {
+    groupItem.children.forEach((item) => {
+      Object.assign(result, {
+        [item.id]: { ...item, moduleId: groupItem.id },
       });
-      return result;
-    },
-    {} as Record<string, IService['children'][number]>,
-  );
+    });
+    return result;
+  }, {});
 
   const lastFavorIdMap = makeMap(userProfile.profile[UserPersonalSettings.SERVICE_APPLY_FAVOR] || []);
+
+  const displayServices = services.map((serviceItem) => {
+    const displayChildren = serviceItem.children.filter((childItem) => {
+      const { controllerId } = childItem;
+      const { id: moduleId } = serviceItem;
+      const funControllerData = funControllerStore.funControllerData.getFlatData(moduleId);
+
+      if (controllerId) {
+        return funControllerData[controllerId];
+      }
+      return funControllerData[moduleId];
+    }, []);
+    return { ...serviceItem, children: displayChildren };
+  });
+
   const historyCacheIdList = ref<string[]>(
     _.sortBy(JSON.parse(localStorage.getItem(localHistroyKey) || '[]'), (item) => lastFavorIdMap[item]),
   );
   const favorIdMap = shallowRef({ ...lastFavorIdMap });
 
-  const handleApply = (item: IService['children'][0]) => {
+  const historyCacheIdDisplayList = computed(() =>
+    historyCacheIdList.value.filter((cacheItem) => {
+      const childItem = serviceIdMap[cacheItem];
+      const { controllerId, moduleId } = childItem;
+      const funControllerData = funControllerStore.funControllerData.getFlatData(moduleId);
+
+      if (controllerId) {
+        return funControllerData[controllerId];
+      }
+      return funControllerData[moduleId];
+    }),
+  );
+
+  const handleApply = (item: IService['children'][number]) => {
     localStorage.setItem(localHistroyKey, JSON.stringify(_.uniq([item.id, ...historyCacheIdList.value]).slice(0, 6)));
 
     router.push({
       name: item.routeName,
       query: {
+        bizId: route.name === 'BussinessServiceApplyIndex' ? window.PROJECT_CONFIG.BIZ_ID : undefined,
         from: route.name as string,
       },
     });
@@ -420,7 +447,7 @@
 
         .favor-btn {
           opacity: 0%;
-          transform: all 0.1s;
+          transition: all 0.1s;
         }
       }
     }

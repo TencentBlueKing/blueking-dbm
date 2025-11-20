@@ -12,9 +12,13 @@
 -->
 
 <template>
-  <DbOriginalTable
-    :columns="columns"
-    :data="dataList" />
+  <TicketInfoTable
+    :data="dataList"
+    row-key="name">
+    <TicketInfoTableColumn
+      col-key="name"
+      :title="t('临时集群名称')" />
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">
@@ -36,14 +40,6 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
-
-  const columns = [
-    {
-      field: 'name',
-      label: t('临时集群名称'),
-      showOverflowTooltip: false,
-    },
-  ];
 
   const dataList = computed(() => {
     const { cluster_ids: clusterIds, clusters } = props.ticketDetails.details;

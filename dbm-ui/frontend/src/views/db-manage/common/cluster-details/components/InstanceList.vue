@@ -86,6 +86,7 @@
       </BkDropdown>
       <DbSearchSelect
         :data="searchSelectData"
+        :get-menu-list="getSearchMenuList"
         :model-value="searchSelectValue"
         :placeholder="t('请输入或选择条件搜索')"
         style="flex: 1; max-width: 560px; margin-left: auto"
@@ -214,6 +215,21 @@
       cluster_id: props.clusterId,
     });
 
+  const getSearchMenuList = (payload: { children: any[]; id: string }) => {
+    return Promise.resolve().then(() => {
+      if (payload.id === 'role') {
+        return _.uniqBy(
+          dbTable.value?.getData<IColumnData>().map((item) => ({
+            id: item.role,
+            name: item.role,
+          })),
+          'id',
+        );
+      }
+      return payload.children || [];
+    });
+  };
+
   const dbTable = useTemplateRef('dbTable');
   const primaryTagMap = shallowRef<Record<string, boolean>>({});
   const standBdyTagMap = shallowRef<Record<string, boolean>>({});
@@ -244,7 +260,7 @@
   );
 
   const copyFieldData = (data: IColumnData[], field: 'ip' | 'instance_address') => {
-    const result = data.map((item) => item[field]) || [];
+    const result = _.uniq(data.map((item) => item[field]) || []);
 
     if (result.length < 1) {
       messageWarn(t('没有可复制数据'));

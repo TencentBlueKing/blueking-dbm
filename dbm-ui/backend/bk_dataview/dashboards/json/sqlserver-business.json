@@ -1,0 +1,2530 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "dashboard"
+        },
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 3,
+      "panels": [],
+      "title": "CoreView",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 1
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "$tag_cluster_domain",
+              "data_label": "exporter_dbm_mssql_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [
+                "cluster_domain"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "MAX",
+              "metric_field": "mssql_cpu_use_precent",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mssql_exporter",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "$dbrole"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "showLastPoint": false,
+          "source": "",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "CPU",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 7
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "$tag_cluster_domain",
+              "data_label": "exporter_dbm_mssql_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "rate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [
+                "cluster_domain"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "MAX",
+              "metric_field": "mssql_requests",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mssql_exporter",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "$dbrole"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "showLastPoint": false,
+          "source": "",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "QPS",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 13
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "$tag_cluster_domain",
+              "data_label": "exporter_dbm_mssql_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [
+                "cluster_domain"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "MAX",
+              "metric_field": "mssql_slow_queries",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mssql_exporter",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "$dbrole"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "showLastPoint": false,
+          "source": "",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "Slow queries/min",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 19
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "$tag_cluster_domain",
+              "data_label": "exporter_dbm_mssql_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [
+                "cluster_domain"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "MAX",
+              "metric_field": "mssql_blocked_processes",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mssql_exporter",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "$dbrole"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "showLastPoint": false,
+          "source": "",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "Processes blocked",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 25
+      },
+      "id": 7,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [
+            {
+              "active": true,
+              "alias": "$tag_cluster_domain",
+              "expression": "a/60",
+              "functions": []
+            }
+          ],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "$tag_cluster_domain",
+              "data_label": "exporter_dbm_mssql_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "delta",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "1m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [
+                "cluster_domain"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "MAX",
+              "metric_field": "mssql_disk_iops",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mssql_exporter",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "$dbrole"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "showLastPoint": false,
+          "source": "",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "IOPS",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 31
+      },
+      "id": 9,
+      "panels": [],
+      "title": "OtherView",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "$tag_cluster_domain",
+              "data_label": "exporter_dbm_mssql_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [
+                "cluster_domain"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "MAX",
+              "metric_field": "mssql_connections",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mssql_exporter",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "$dbrole"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "showLastPoint": false,
+          "source": "",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "Connections",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 38
+      },
+      "id": 11,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "$tag_cluster_domain",
+              "data_label": "exporter_dbm_mssql_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "delta",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [
+                "cluster_domain"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "MAX",
+              "metric_field": "mssql_number_of_deadlocks",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mssql_exporter",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "$dbrole"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "showLastPoint": false,
+          "source": "",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "Number of deadlocks/min",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 44
+      },
+      "id": 13,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [
+            {
+              "active": true,
+              "alias": "$tag_cluster_domain",
+              "expression": "a/b*100",
+              "functions": []
+            }
+          ],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "$tag_instance[$tag_instance_role]",
+              "data_label": "exporter_dbm_mssql_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [
+                "cluster_domain"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "MAX",
+              "metric_field": "mssql_buffer_cache_hit_ratio",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mssql_exporter",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "$dbrole"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                }
+              ]
+            },
+            {
+              "alias": "$tag_instance[$tag_instance_role]",
+              "data_label": "exporter_dbm_mssql_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [
+                "cluster_domain"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "MAX",
+              "metric_field": "mssql_buffer_cache_hit_ratio_base",
+              "refId": "b",
+              "result_table_id": "exporter_dbm_mssql_exporter",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "$dbrole"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "showLastPoint": false,
+          "source": "",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "Buffer cache hit ratio",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 50
+      },
+      "id": 12,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [
+            {
+              "active": true,
+              "alias": "$tag_cluster_domain",
+              "expression": "a/60",
+              "functions": []
+            }
+          ],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "$tag_cluster_domain",
+              "data_label": "exporter_dbm_mssql_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "delta",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "1m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [
+                "cluster_domain"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "MAX",
+              "metric_field": "mssql_full_scans",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mssql_exporter",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "$dbrole"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "showLastPoint": false,
+          "source": "",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "Full Scans/sec",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 56
+      },
+      "id": 14,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "$tag_cluster_domain",
+              "data_label": "exporter_dbm_mssql_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "delta",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "1m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [
+                "cluster_domain"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "MAX",
+              "metric_field": "mssql_checkpoint_pages",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mssql_exporter",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "$dbrole"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "showLastPoint": false,
+          "source": "",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "Checkpoint pages/min",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 62
+      },
+      "id": 15,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [
+            {
+              "active": true,
+              "alias": "$tag_cluster_domain",
+              "expression": "a/60",
+              "functions": []
+            }
+          ],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "$tag_cluster_domain",
+              "data_label": "exporter_dbm_mssql_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "delta",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "1m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [
+                "cluster_domain"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "MAX",
+              "metric_field": "mssql_transactions",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mssql_exporter",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "$dbrole"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "showLastPoint": false,
+          "source": "",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "Transactions/sec",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 68
+      },
+      "id": 18,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "$tag_cluster_domain",
+              "data_label": "exporter_dbm_mssql_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "rate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [
+                "cluster_domain"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "MAX",
+              "metric_field": "mssql_page_life_expectancy",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mssql_exporter",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "$dbrole"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "showLastPoint": false,
+          "source": "",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "Page Life Expectancy",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 74
+      },
+      "id": 16,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [
+            {
+              "active": true,
+              "alias": "$tag_cluster_domain",
+              "expression": "a/60",
+              "functions": []
+            }
+          ],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "$tag_cluster_domain",
+              "data_label": "exporter_dbm_mssql_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "delta",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "1m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [
+                "cluster_domain"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "MAX",
+              "metric_field": "mssql_user_errors",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mssql_exporter",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "$dbrole"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "showLastPoint": false,
+          "source": "",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "User Error/sec",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_-_指标数据}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 80
+      },
+      "id": 17,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_-_指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "$tag_cluster_domain",
+              "data_label": "exporter_dbm_mssql_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [
+                "cluster_domain"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "MAX",
+              "metric_field": "mssql_network_io_waits",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mssql_exporter",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "$dbrole"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "showLastPoint": false,
+          "source": "",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "Network IO waits",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "",
+  "schemaVersion": 39,
+  "tags": [
+    "sqlserver",
+    "business"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "datasource": {
+          "type": "bkmonitor-timeseries-datasource",
+          "uid": "${DS_蓝鲸监控_-_指标数据}"
+        },
+        "definition": "- Blueking Monitor - 维度",
+        "hide": 0,
+        "includeAll": false,
+        "label": "app",
+        "multi": false,
+        "name": "app",
+        "options": [],
+        "query": {
+          "metricConfig": {
+            "data_label": "exporter_dbm_mssql_exporter",
+            "data_source_label": "bk_monitor",
+            "data_type_label": "time_series",
+            "group_by": "app",
+            "metric_field": "mssql_connections",
+            "result_table_id": "exporter_dbm_mssql_exporter.__default__",
+            "result_table_label": "component",
+            "where": []
+          },
+          "queryType": "dimension",
+          "variables": ""
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "current": {},
+        "datasource": {
+          "type": "bkmonitor-timeseries-datasource",
+          "uid": "${DS_蓝鲸监控_-_指标数据}"
+        },
+        "definition": "- Blueking Monitor - 维度",
+        "hide": 0,
+        "includeAll": true,
+        "label": "cluster_name",
+        "multi": false,
+        "name": "cluster_name",
+        "options": [],
+        "query": {
+          "metricConfig": {
+            "data_label": "exporter_dbm_mssql_exporter",
+            "data_source_label": "bk_monitor",
+            "data_type_label": "time_series",
+            "group_by": "cluster_name",
+            "metric_field": "mssql_connections",
+            "result_table_id": "exporter_dbm_mssql_exporter.__default__",
+            "result_table_label": "component",
+            "where": [
+              {
+                "key": "app",
+                "method": "eq",
+                "value": [
+                  "$app"
+                ]
+              },
+              {
+                "condition": "and",
+                "key": "cluster_type",
+                "method": "eq",
+                "value": [
+                  "sqlserver_ha",
+                  "sqlserver_single"
+                ]
+              }
+            ]
+          },
+          "queryType": "dimension",
+          "variables": "$app"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "current": {},
+        "datasource": {
+          "type": "bkmonitor-timeseries-datasource",
+          "uid": "${DS_蓝鲸监控_-_指标数据}"
+        },
+        "definition": "- Blueking Monitor - 维度",
+        "hide": 0,
+        "includeAll": true,
+        "label": "cluster_domain",
+        "multi": true,
+        "name": "cluster_domain",
+        "options": [],
+        "query": {
+          "metricConfig": {
+            "data_label": "exporter_dbm_mssql_exporter",
+            "data_source_label": "bk_monitor",
+            "data_type_label": "time_series",
+            "group_by": "cluster_domain",
+            "metric_field": "mssql_connections",
+            "result_table_id": "exporter_dbm_mssql_exporter.__default__",
+            "result_table_label": "component",
+            "where": [
+              {
+                "key": "app",
+                "method": "eq",
+                "value": [
+                  "$app"
+                ]
+              },
+              {
+                "condition": "and",
+                "key": "cluster_name",
+                "method": "eq",
+                "value": [
+                  "$cluster_name"
+                ]
+              }
+            ]
+          },
+          "queryType": "dimension",
+          "variables": "$app $cluster_name"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "current": {},
+        "hide": 1,
+        "includeAll": false,
+        "label": "dbrole",
+        "multi": false,
+        "name": "dbrole",
+        "options": [],
+        "query": "backend_master,backend_slave,orphan",
+        "queryValue": "",
+        "skipUrlSync": false,
+        "type": "custom",
+        "refresh": 1
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "MSSQL-AppReview",
+  "version": 17,
+  "weekStart": "",
+  "__inputs": [
+    {
+      "name": "DS_蓝鲸监控_-_指标数据",
+      "label": "蓝鲸监控 - 指标数据",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "bkmonitor-timeseries-datasource",
+      "pluginName": "蓝鲸监控 - 指标数据"
+    }
+  ],
+  "__requires": [
+    {
+      "type": "datasource",
+      "id": "bkmonitor-timeseries-datasource",
+      "name": "蓝鲸监控 - 指标数据"
+    }
+  ]
+}

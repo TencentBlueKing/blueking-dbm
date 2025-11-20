@@ -145,6 +145,11 @@
         name: 'SqlServer',
         value: 'sqlserver',
       },
+      {
+        icon: 'mysql',
+        name: 'Oracle',
+        value: 'oracle',
+      },
     ],
     [t('大数据存储')]: [
       {

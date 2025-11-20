@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 from copy import deepcopy
 from typing import Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
@@ -53,17 +53,6 @@ def cluster_reduce_node(root_id: str, ticket_data: Optional[Dict], sub_kwargs: A
     sub_pipeline.add_act(
         act_name=_("MongoDB-创建原子任务执行目录"), act_component_code=ExecuteDBActuatorJobComponent.code, kwargs=kwargs
     )
-
-    # 获取mongos信息
-    mongos_host = sub_get_kwargs.payload["mongos_nodes"][0]
-    sub_get_kwargs.payload["nodes"] = [
-        {"ip": mongos_host["ip"], "port": mongos_host["port"], "bk_cloud_id": mongos_host["bk_cloud_id"]}
-    ]
-
-    # 获取密码
-    get_password = {}
-    get_password["usernames"] = sub_get_kwargs.manager_users
-    sub_get_kwargs.payload["passwords"] = sub_get_kwargs.get_password_from_db(info=get_password)["passwords"]
 
     # shard进行减少node——子流程并行
     sub_pipelines = []

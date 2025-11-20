@@ -7,7 +7,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.exceptions import AppBaseException, ErrorCode
 
@@ -32,4 +32,10 @@ class TenDBGetBackupInfoFailedException(TenDBFlowBaseException):
 class TenDBGetBinlogFailedException(TenDBFlowBaseException):
     ERROR_CODE = "007"
     MESSAGE = _("获取binlog失败")
+    MESSAGE_TPL = _("{message}")
+
+
+class ProxyFlowFailedException(TenDBFlowBaseException):
+    ERROR_CODE = "008"
+    MESSAGE = _("构建Proxy流程失败")
     MESSAGE_TPL = _("{message}")

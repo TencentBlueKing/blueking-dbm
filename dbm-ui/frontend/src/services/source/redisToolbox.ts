@@ -12,27 +12,31 @@
  */
 import http from '@services/http';
 import RedisModel from '@services/model/redis/redis';
-import type { ListBase } from '@services/types';
+import type { InstanceRelatedCluster, ListBase, MachineRelatedCluster, MachineSpecConfig } from '@services/types';
 
-const getRootPath = () => `/apis/redis/bizs/${window.PROJECT_CONFIG.BIZ_ID}/toolbox`;
+const getRootPath = (bizId = window.PROJECT_CONFIG.BIZ_ID) => `/apis/redis/bizs/${bizId}/toolbox`;
 
 interface MachineInstancePairItem {
   bk_biz_id: number;
   bk_cloud_id: number;
   bk_host_id: number;
   bk_instance_id: number;
+  cluster_type: string;
   instance: string;
   ip: string;
+  is_stand_by: boolean;
   name: string;
   phase: string;
   port: number;
+  related_clusters: (InstanceRelatedCluster | MachineRelatedCluster)[];
+  spec_config: MachineSpecConfig;
   status: string;
 }
 
 /**
  * 根据cluster_id查询主从关系对
  */
-export function queryMasterSlavePairs(params: { cluster_id: number }) {
+export function queryMasterSlavePairs(params: { bk_biz_id?: number; cluster_id: number }) {
   return http.post<
     {
       master_ip: string;
@@ -40,7 +44,7 @@ export function queryMasterSlavePairs(params: { cluster_id: number }) {
       slave_ip: string;
       slaves: MachineInstancePairItem;
     }[]
-  >(`${getRootPath()}/query_master_slave_pairs/`, params);
+  >(`${getRootPath(params.bk_biz_id)}/query_master_slave_pairs/`, params);
 }
 
 // 获取集群列表(重建从库)
@@ -63,6 +67,13 @@ export function getClusterVersions(params: {
   type: string;
 }) {
   return http.get<string[]>(`${getRootPath()}/get_cluster_versions/`, params);
+}
+
+/**
+ * 查询主机版本信息
+ */
+export function getClusterVersionsByIp(params: { cluster_id?: number; ip: string; node_type: string; type: string }) {
+  return http.get<string[]>(`${getRootPath()}/get_cluster_version_by_ip/`, params);
 }
 
 /**
@@ -179,4 +190,16 @@ export function getClusterNetTcpResult(params: { job_instance_id: number }) {
     }[];
     finished: boolean;
   }>(`${getRootPath()}/get_cluster_net_tcp_result/`, params);
+}
+
+/**
+ * 查询删除key速率
+ */
+export function getClusterDelKeyRate(params: { cluster_id: number }) {
+  return http.get<{
+    delete_rate: {
+      default: number;
+      rate_list: number[];
+    };
+  }>(`${getRootPath()}/get_cluster_del_key_rate/`, params);
 }

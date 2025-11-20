@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from django.db.transaction import atomic
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.db_meta import api
 from backend.db_meta.enums import InstanceRole, MachineType
@@ -90,6 +90,7 @@ class EsDBMeta(object):
                             "port": self.ticket_data["http_port"] + i,
                             "instance_role": self.role_instance_dict[role],
                             "name": f'{role_name}-{node["ip"]}_{i+1}',
+                            "db_version": self.ticket_data.get("db_version", ""),
                         }
                     )
         return instances
@@ -117,6 +118,7 @@ class EsDBMeta(object):
             "creator": self.ticket_data["created_by"],
             "major_version": self.ticket_data["db_version"],
             "region": self.ticket_data["city_code"],
+            "disaster_tolerance_level": self.ticket_data["disaster_tolerance_level"],
         }
 
         with atomic():

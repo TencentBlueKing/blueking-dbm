@@ -1,13 +1,14 @@
 <template>
   <AppSelect
     v-bind="{ ...attrs, ...props }"
+    :custom-list-filter-render-method="customListFilterRenderMethod"
     :data="dataList"
     :generate-key="(item: IAppItem) => item.bk_biz_id"
     :generate-name="(item: IAppItem) => item.display_name"
     :search-extension-method="searchExtensionMethod"
     :value="modelValue"
     @change="handleAppChange">
-    <template #value="{ data }">
+    <template #value="{ data }: { data: IAppItem }">
       <slot
         :data="data"
         name="value">
@@ -19,7 +20,7 @@
         </TextOverflowLayout>
       </slot>
     </template>
-    <template #default="{ data }">
+    <template #default="{ data }: { data: IAppItem }">
       <TextOverflowLayout class="db-select-no-permission-item">
         <span>{{ data.name }}</span>
         <span style="color: #979ba5">
@@ -44,7 +45,7 @@
     </template>
   </AppSelect>
 </template>
-<script setup lang="ts">
+<script lang="ts">
   import _ from 'lodash';
   import type { VNode } from 'vue';
   import { computed } from 'vue';
@@ -72,6 +73,58 @@
 
   type Emits = (e: 'change', value?: IAppItem) => void;
 
+  export const customListFilterRenderMethod = (
+    data: {
+      data: IAppItem;
+      headLetter: string;
+      key: string | number;
+      name: string;
+      sentence: string;
+    }[],
+    keyword: string,
+    exactMatch: boolean,
+  ) => {
+    if (!keyword) {
+      return data;
+    }
+
+    const exactMatchList: typeof data = [];
+    const appIdList: typeof data = [];
+    const firstAppCodeList: typeof data = [];
+    const appCodeList: typeof data = [];
+    const sentenceList: typeof data = [];
+    const headLetterList: typeof data = [];
+
+    const rule = new RegExp(encodeRegexp(keyword), 'i');
+    const firstRule = new RegExp(`^${encodeRegexp(keyword)}`, 'i');
+
+    const exactMatchRule = new RegExp(`^${encodeRegexp(keyword)}$`, 'i');
+
+    for (const item of data) {
+      if (
+        (exactMatch && rule.test(item.name)) ||
+        exactMatchRule.test(`${item.key}`) ||
+        exactMatchRule.test(item.data.english_name) ||
+        exactMatchRule.test(item.data.name)
+      ) {
+        exactMatchList.push(item);
+      } else if (rule.test(`${item.key}`)) {
+        appIdList.push(item);
+      } else if (firstRule.test(item.data.english_name)) {
+        firstAppCodeList.push(item);
+      } else if (rule.test(item.data.english_name)) {
+        appCodeList.push(item);
+      } else if (rule.test(item.sentence)) {
+        sentenceList.push(item);
+      } else if (rule.test(item.headLetter)) {
+        headLetterList.push(item);
+      }
+    }
+
+    return exactMatchList.concat(appIdList, firstAppCodeList, appCodeList, sentenceList, headLetterList);
+  };
+</script>
+<script setup lang="ts">
   const props = withDefaults(defineProps<Props>(), {
     showPublicBiz: true,
   });

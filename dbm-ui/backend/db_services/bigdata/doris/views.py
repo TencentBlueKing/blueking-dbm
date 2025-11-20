@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.utils.decorators import method_decorator
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -91,3 +91,14 @@ class DorisClusterViewSetBigdata(BigdataResourceViewSet):
         """获取特定角色的节点"""
         params = self.params_validate(self.get_serializer_class())
         return Response(self.query_class.get_nodes(bk_biz_id, cluster_id, params["role"], params.get("keyword")))
+
+    @action(methods=["POST"], detail=False, url_path="get_clusters_master")
+    def get_clusters_master(self, request, bk_biz_id: int):
+        """获取 Doris 集群 Master 节点"""
+        cluster_ids = request.data.get("cluster_ids")
+        return Response(self.query_class.get_clusters_master(bk_biz_id, cluster_ids))
+
+    @action(methods=["GET"], detail=True, url_path="get_cold_resource")
+    def get_cold_resource(self, request, bk_biz_id: int, cluster_id: int):
+        """获取 Doris 集群绑定的独立存储资源"""
+        return Response(self.query_class.get_cold_resource(bk_biz_id, cluster_id))

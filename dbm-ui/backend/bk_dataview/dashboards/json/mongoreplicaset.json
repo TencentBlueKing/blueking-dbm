@@ -62,7 +62,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "description": "Host cpu",
           "fieldConfig": {
@@ -126,7 +126,7 @@
             "y": 1
           },
           "id": 184,
-          "interval": "60s",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -200,7 +200,7 @@
               ],
               "refId": "A",
               "source": "avg by (instance_role, bk_target_ip, instance_port) (bkmonitor:dbm_system:cpu_summary:usage{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role$\"})",
-              "step": 300,
+              "step": "1m",
               "type": "range"
             }
           ],
@@ -210,7 +210,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "description": "bkmonitor:dbm_system:mem:pct_used",
           "fieldConfig": {
@@ -273,7 +273,7 @@
             "y": 1
           },
           "id": 363,
-          "interval": "60s",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -347,7 +347,7 @@
               ],
               "refId": "A",
               "source": "avg by (instance_role, bk_target_ip, instance_port) (bkmonitor:dbm_system:mem:pct_used{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role$\"})",
-              "step": 300,
+              "step": "1m",
               "type": "range"
             }
           ],
@@ -357,7 +357,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "description": "shardsvr DiskUsed% 主机磁盘使用率",
           "fieldConfig": {
@@ -418,7 +418,7 @@
             "y": 9
           },
           "id": 380,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -443,7 +443,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "enableDownSampling": true,
               "expressionList": [],
@@ -492,7 +492,7 @@
               ],
               "refId": "A",
               "source": "bkmonitor:dbm_system:disk:in_use{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}",
-              "step": "",
+              "step": "1m",
               "type": "range"
             }
           ],
@@ -502,7 +502,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "description": "流量使用率：每核分配48M或96MB(<=2core)\n包量使用率：每核分配9w或15w(<=2core)\n适用于大部分腾讯云cvm",
           "fieldConfig": {
@@ -563,7 +563,7 @@
             "y": 9
           },
           "id": 381,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -588,7 +588,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "enableDownSampling": false,
               "expressionList": [
@@ -842,14 +842,14 @@
               ],
               "refId": "A",
               "source": "(\n  100 * (\n    max by(ip, bk_target_cloud_id, instance_role) (\n        bkmonitor:dbm_system:net:speed_recv{\n          cluster_domain=\"$cluster_domain\",\n          device_name=\"eth1\",\n          instance_role=~\"$instance_role\"\n        }\n      \n    ) +\n    max by(ip, bk_target_cloud_id, instance_role) (\n        bkmonitor:dbm_system:net:speed_sent{\n          cluster_domain=\"$cluster_domain\",\n          device_name=\"eth1\",\n          instance_role=~\"$instance_role\"\n        }\n      \n    )\n  ) /  (96 * 1024 * 1024)  / \n  sum by(ip, bk_target_cloud_id, instance_role) (\n       bkmonitor:dbm_system:cpu_detail:usage{\n        cluster_domain=\"$cluster_domain\",\n        instance_role=~\"$instance_role\"\n      } \n  )   and\n    sum by(ip, bk_target_cloud_id, instance_role) (\n        bkmonitor:dbm_system:cpu_detail:usage{\n          cluster_domain=\"$cluster_domain\",\n          instance_role=~\"$instance_role\"\n        } \n    ) <= 2\n   or\n  (\n    100 * (\n      max by(ip, bk_target_cloud_id, instance_role) (\n          bkmonitor:dbm_system:net:speed_recv{\n            cluster_domain=\"$cluster_domain\",\n            device_name=\"eth1\",\n            instance_role=~\"$instance_role\"\n          } \n      ) +\n      max by(ip, bk_target_cloud_id, instance_role) (\n          bkmonitor:dbm_system:net:speed_sent{\n            cluster_domain=\"$cluster_domain\",\n            device_name=\"eth1\",\n            instance_role=~\"$instance_role\"\n          } \n      )\n    ) / (48 * 1024 * 1024)/\n    sum by(ip, bk_target_cloud_id, instance_role) (\n         bkmonitor:dbm_system:cpu_detail:usage{\n          cluster_domain=\"$cluster_domain\",\n          instance_role=~\"$instance_role\"\n        } \n    )  and \n\n    sum by(ip, bk_target_cloud_id, instance_role) (\n        bkmonitor:dbm_system:cpu_detail:usage{\n          cluster_domain=\"$cluster_domain\",\n          instance_role=~\"$instance_role\"\n        } \n    ) > 2\n  )\n)",
-              "step": "",
+              "step": "1m",
               "type": "range"
             },
             {
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "enableDownSampling": false,
               "expressionList": [
@@ -1103,7 +1103,7 @@
               ],
               "refId": "B",
               "source": "(\n  100 * (\n    max by(ip, bk_target_cloud_id, instance_role) (\n        bkmonitor:dbm_system:net:speed_packets_recv{\n          cluster_domain=\"$cluster_domain\",\n          device_name=\"eth1\",\n          instance_role=~\"$instance_role\"\n        }\n\n    ) +\n    max by(ip, bk_target_cloud_id, instance_role) (\n        bkmonitor:dbm_system:net:speed_packets_sent{\n          cluster_domain=\"$cluster_domain\",\n          device_name=\"eth1\",\n          instance_role=~\"$instance_role\"\n        }\n\n    )\n  ) /  (96 * 1024 * 1024)  /\n  sum by(ip, bk_target_cloud_id, instance_role) (\n       bkmonitor:dbm_system:cpu_detail:usage{\n        cluster_domain=\"$cluster_domain\",\n        instance_role=~\"$instance_role\"\n      }\n  )   and\n    sum by(ip, bk_target_cloud_id, instance_role) (\n        bkmonitor:dbm_system:cpu_detail:usage{\n          cluster_domain=\"$cluster_domain\",\n          instance_role=~\"$instance_role\"\n        }\n    ) <= 2\n   or\n  (\n    100 * (\n      max by(ip, bk_target_cloud_id, instance_role) (\n          bkmonitor:dbm_system:net:speed_packets_recv{\n            cluster_domain=\"$cluster_domain\",\n            device_name=\"eth1\",\n            instance_role=~\"$instance_role\"\n          }\n      ) +\n      max by(ip, bk_target_cloud_id, instance_role) (\n          bkmonitor:dbm_system:net:speed_packets_sent{\n            cluster_domain=\"$cluster_domain\",\n            device_name=\"eth1\",\n            instance_role=~\"$instance_role\"\n          }\n      )\n    ) / (48 * 1024 * 1024)/\n    sum by(ip, bk_target_cloud_id, instance_role) (\n         bkmonitor:dbm_system:cpu_detail:usage{\n          cluster_domain=\"$cluster_domain\",\n          instance_role=~\"$instance_role\"\n        }\n    )  and\n\n    sum by(ip, bk_target_cloud_id, instance_role) (\n        bkmonitor:dbm_system:cpu_detail:usage{\n          cluster_domain=\"$cluster_domain\",\n          instance_role=~\"$instance_role\"\n        }\n    ) > 2\n  )\n)",
-              "step": "",
+              "step": "1m",
               "type": "range"
             }
           ],
@@ -1113,7 +1113,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "description": "shardsvr 磁盘读写速率",
           "fieldConfig": {
@@ -1174,7 +1174,7 @@
             "y": 17
           },
           "id": 385,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -1200,7 +1200,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "enableDownSampling": true,
               "expressionList": [],
@@ -1250,14 +1250,14 @@
               ],
               "refId": "A",
               "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "",
+              "step": "1m",
               "type": "range"
             },
             {
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "enableDownSampling": true,
               "expressionList": [],
@@ -1307,7 +1307,7 @@
               ],
               "refId": "B",
               "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "",
+              "step": "1m",
               "type": "range"
             }
           ],
@@ -1317,7 +1317,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "description": "主机流量",
           "fieldConfig": {
@@ -1378,7 +1378,7 @@
             "y": 17
           },
           "id": 383,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -1403,7 +1403,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "enableDownSampling": true,
               "expressionList": [],
@@ -1453,14 +1453,14 @@
               ],
               "refId": "A",
               "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "",
+              "step": "1m",
               "type": "range"
             },
             {
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "enableDownSampling": true,
               "expressionList": [],
@@ -1511,7 +1511,7 @@
               ],
               "refId": "B",
               "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "",
+              "step": "1m",
               "type": "range"
             }
           ],
@@ -1521,7 +1521,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "description": "主机包量",
           "fieldConfig": {
@@ -1582,7 +1582,7 @@
             "y": 25
           },
           "id": 384,
-          "interval": "2m",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [
@@ -1607,7 +1607,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "enableDownSampling": true,
               "expressionList": [],
@@ -1656,14 +1656,14 @@
               ],
               "refId": "A",
               "source": "max by (ip, instance_role) (bkmonitor:dbm_system:net:speed_packets_sent{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"})",
-              "step": "",
+              "step": "1m",
               "type": "range"
             },
             {
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "${DS_蓝鲸监控_- 指标数据}"
+                "uid": "bkmonitor_timeseries"
               },
               "enableDownSampling": true,
               "expressionList": [],
@@ -1714,7 +1714,7 @@
               ],
               "refId": "B",
               "source": "max by (ip, instance_role) (bkmonitor:dbm_system:net:speed_packets_recv{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"})",
-              "step": "",
+              "step": "1m",
               "type": "range"
             }
           ],
@@ -1729,7 +1729,7 @@
       "collapsed": false,
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
       "gridPos": {
         "h": 1,
@@ -1743,7 +1743,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
           "refId": "A"
         }
@@ -1754,7 +1754,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "Version",
       "fieldConfig": {
@@ -1785,6 +1785,7 @@
       },
       "hideTimeOverride": true,
       "id": 78,
+      "interval": "1m",
       "maxDataPoints": 100,
       "options": {
         "colorMode": "none",
@@ -1811,8 +1812,9 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "${DS_蓝鲸监控_- 指标数据}"
+            "uid": "bkmonitor_timeseries"
           },
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "host": [],
@@ -1850,7 +1852,7 @@
           ],
           "refId": "A",
           "source": "topk(1,max(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_version_info{cluster_domain=\"$cluster_domain\"} ) by (mongodb) or max(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_version_info{cluster_domain=\"$cluster_domain\"} ) by (mongodb) )",
-          "step": 300,
+          "step": "1m",
           "type": "instant"
         }
       ],
@@ -1861,7 +1863,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "Shows the storage engine used on the instance",
       "fieldConfig": {
@@ -1896,6 +1898,7 @@
       },
       "hideTimeOverride": true,
       "id": 183,
+      "interval": "1m",
       "maxDataPoints": 100,
       "options": {
         "colorMode": "none",
@@ -1929,7 +1932,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "sum(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_storage_engine{cluster_domain=\"$cluster_domain\"} ) by (engine)",
-          "step": 300,
+          "step": "1m",
           "type": "instant"
         }
       ],
@@ -1940,7 +1943,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "Shows the number of members in the replica set",
       "fieldConfig": {
@@ -1975,6 +1978,7 @@
       },
       "hideTimeOverride": false,
       "id": 59,
+      "interval": "1m",
       "maxDataPoints": 100,
       "options": {
         "colorMode": "none",
@@ -2008,7 +2012,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "max(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_number_of_members{cluster_domain=\"$cluster_domain\"})",
-          "step": 300,
+          "step": "1m",
           "type": "range"
         }
       ],
@@ -2018,7 +2022,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "Shows the number of members in the replica set",
       "fieldConfig": {
@@ -2053,6 +2057,7 @@
       },
       "hideTimeOverride": false,
       "id": 317,
+      "interval": "1m",
       "maxDataPoints": 100,
       "options": {
         "colorMode": "none",
@@ -2086,7 +2091,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "count(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_up{cluster_domain=\"$cluster_domain\"}==1)",
-          "step": 300,
+          "step": "1m",
           "type": "range"
         }
       ],
@@ -2096,7 +2101,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "max(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_member_replication_lag)",
       "fieldConfig": {
@@ -2131,6 +2136,7 @@
       },
       "hideTimeOverride": true,
       "id": 77,
+      "interval": "1m",
       "maxDataPoints": 100,
       "options": {
         "colorMode": "none",
@@ -2165,7 +2171,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "max(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_member_replication_lag{cluster_domain=\"$cluster_domain\"}) ",
-          "step": 300,
+          "step": "1m",
           "type": "instant"
         }
       ],
@@ -2176,7 +2182,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "max(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_member_replication_lag)",
       "fieldConfig": {
@@ -2211,6 +2217,7 @@
       },
       "hideTimeOverride": true,
       "id": 387,
+      "interval": "1m",
       "maxDataPoints": 100,
       "options": {
         "colorMode": "none",
@@ -2245,7 +2252,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "max(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_oplog_latestOptime{cluster_domain=\"$cluster_domain\"} - bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_oplog_earliestOptime{cluster_domain=\"$cluster_domain\"} )  ",
-          "step": 300,
+          "step": "1m",
           "type": "instant"
         }
       ],
@@ -2256,7 +2263,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "Shows how long ago the last election occurred",
       "fieldConfig": {
@@ -2291,6 +2298,7 @@
       },
       "hideTimeOverride": true,
       "id": 65,
+      "interval": "1m",
       "maxDataPoints": 100,
       "options": {
         "colorMode": "none",
@@ -2325,7 +2333,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "max(time() - bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_member_election_date{cluster_domain=\"$cluster_domain\"})",
-          "step": 300,
+          "step": "1m",
           "type": "instant"
         }
       ],
@@ -2336,9 +2344,9 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
-      "description": "实例所在硬件的cpu核数和内存。\ntodo: 显示同一主机上的实例数量。",
+      "description": "实例所在硬件的cpu核数和内存。要注意有时候是和别的mongo共用主机\n ",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2489,6 +2497,7 @@
         "y": 5
       },
       "id": 378,
+      "interval": "1m",
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -2552,7 +2561,7 @@
           ],
           "refId": "A",
           "source": "count(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}) by (bk_target_ip,instance_role,instance_port)",
-          "step": "",
+          "step": "1m",
           "type": "instant"
         },
         {
@@ -2600,7 +2609,7 @@
           ],
           "refId": "B",
           "source": "sum by (bk_target_ip,instance_role,instance_port) (bkmonitor:dbm_system:mem:total{cluster_domain=\"$cluster_domain\"})   ",
-          "step": "",
+          "step": "1m",
           "type": "instant"
         }
       ],
@@ -2618,7 +2627,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "Host cpu",
       "fieldConfig": {
@@ -2658,7 +2667,7 @@
         "y": 5
       },
       "id": 396,
-      "interval": "60s",
+      "interval": "1m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -2732,7 +2741,7 @@
           ],
           "refId": "A",
           "source": "avg by (instance_role, bk_target_ip, instance_port) (bkmonitor:dbm_system:cpu_summary:usage{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role$\"})",
-          "step": 300,
+          "step": "1m",
           "type": "range"
         }
       ],
@@ -2749,15 +2758,15 @@
       },
       "id": 325,
       "panels": [],
-      "title": "command",
+      "title": "QPS && CONN",
       "type": "row"
     },
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
-      "description": "Operations",
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2796,6 +2805,237 @@
               "mode": "off"
             }
           },
+          "links": [],
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 11
+      },
+      "id": 398,
+      "interval": "1m",
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true,
+          "width": 350
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "9.1.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "uid": "dba_mongo_proxy"
+          },
+          "enableDownSampling": false,
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "$tag_type",
+          "query_configs": [],
+          "refId": "B",
+          "source": "sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_counters_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role$\"}[2m]) ) by (type)\nor \nsum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_total{cluster_domain=\"$cluster_domain\",cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role$\"}[2m])) by (type)",
+          "step": "1m",
+          "type": "range"
+        }
+      ],
+      "title": "ReplicaSet Operations",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "bkmonitor_timeseries"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "left",
+            "axisWidth": 40,
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "links": [],
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 11
+      },
+      "id": 87,
+      "interval": "1m",
+      "options": {
+        "legend": {
+          "calcs": [
+            "max",
+            "min"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "width": 350
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "9.1.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "uid": "dba_mongo_proxy"
+          },
+          "enableDownSampling": false,
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "connection $tag_instance_role",
+          "query_configs": [],
+          "refId": "A",
+          "source": "max by (instance,instance_role) (bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_connections{cluster_domain=\"$cluster_domain\",state=\"current\",instance_role=~\"$instance_role\"}) or max by (instance,instance_role) (bkmonitor:exporter_dbm_mongodb_exporter:mongodb_connections{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\",state=\"current\"})",
+          "step": "1m",
+          "type": "range"
+        }
+      ],
+      "title": "connection",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "bkmonitor_timeseries"
+      },
+      "description": "Operations suffix 1表示primary 2表示secondary",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisGridShow": false,
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "axisSoftMin": 0,
+            "axisWidth": 40,
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "log": 10,
+              "type": "log"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
           "decimals": 1,
           "links": [],
           "mappings": [],
@@ -2817,11 +3057,10 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 11
+        "y": 19
       },
       "id": 377,
       "interval": "1m",
-      "maxPerRow": 2,
       "options": {
         "legend": {
           "calcs": [
@@ -2831,7 +3070,7 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
-          "sortBy": "Last *",
+          "sortBy": "Max",
           "sortDesc": true,
           "width": 350
         },
@@ -2841,8 +3080,6 @@
         }
       },
       "pluginVersion": "9.1.0",
-      "repeat": "instance_role",
-      "repeatDirection": "h",
       "targets": [
         {
           "cluster": [],
@@ -2863,7 +3100,7 @@
           "host": [],
           "mode": "code",
           "module": [],
-          "promqlAlias": "$tag_instance_role $tag_type",
+          "promqlAlias": "$tag_instance_role $tag_type $tag_rs_state",
           "query_configs": [
             {
               "alias": "$tag_type",
@@ -2914,18 +3151,18 @@
             }
           ],
           "refId": "B",
-          "source": "sum by (type,instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_counters_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role$\"}[2m])) \nor \nsum by (type,instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role$\"}[2m]))",
-          "step": "",
+          "source": "sum by (type,instance_role,rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_counters_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role$\"}[2m])) \nor \nsum by (type,instance_role,rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role$\"}[2m]))",
+          "step": "1m",
           "type": "range"
         }
       ],
-      "title": "Operations",
+      "title": "Member Operations",
       "type": "timeseries"
     },
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "",
       "fieldConfig": {
@@ -2966,6 +3203,7 @@
               "mode": "off"
             }
           },
+          "decimals": 1,
           "links": [],
           "mappings": [],
           "min": 0,
@@ -2973,7 +3211,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -2988,11 +3227,11 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
+        "x": 12,
         "y": 19
       },
       "id": 63,
-      "interval": "2m",
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -3016,6 +3255,7 @@
           "datasource": {
             "uid": "dba_mongo_proxy"
           },
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
@@ -3026,23 +3266,23 @@
           "query_configs": [],
           "refId": "B",
           "source": "irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_counters_repl_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role$\"}[2m])  \nor \nirate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_repl_total{cluster_domain=\"$cluster_domain\",cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role$\"}[2m])  ",
-          "step": 300,
+          "step": "1m",
           "type": "range"
         }
       ],
-      "title": "Replication Operations",
+      "title": "Member Replication  Operations",
       "type": "timeseries"
     },
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
-      "description": "mongodb_mongod_replset_my_state",
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "continuous-greens"
+            "mode": "palette-classic"
           },
           "custom": {
             "axisBorderShow": false,
@@ -3077,6 +3317,118 @@
               "mode": "off"
             }
           },
+          "decimals": 1,
+          "links": [],
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 27
+      },
+      "id": 354,
+      "interval": "1m",
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "width": 350
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "9.1.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "uid": "dba_mongo_proxy"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "Apply $tag_instance_role",
+          "query_configs": [],
+          "refId": "B",
+          "source": "irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_metrics_repl_apply_ops_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[2m])",
+          "step": "1m",
+          "type": "range"
+        }
+      ],
+      "title": "oplog Operations",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "bkmonitor_timeseries"
+      },
+      "description": "mongodb_mongod_replset_my_state",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-greens"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "left",
+            "axisWidth": 40,
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
           "decimals": 0,
           "links": [],
           "mappings": [],
@@ -3097,7 +3449,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 19
+        "y": 27
       },
       "id": 86,
       "interval": "1m",
@@ -3191,7 +3543,7 @@
           ],
           "refId": "B",
           "source": "bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_my_state{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}",
-          "step": "",
+          "step": "1m",
           "type": "range"
         }
       ],
@@ -3201,231 +3553,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
-      },
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "left",
-            "axisWidth": 40,
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "normal"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "decimals": 1,
-          "links": [],
-          "mappings": [],
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green"
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 27
-      },
-      "id": 354,
-      "interval": "2m",
-      "options": {
-        "legend": {
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true,
-          "width": 350
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "pluginVersion": "9.1.0",
-      "targets": [
-        {
-          "cluster": [],
-          "datasource": {
-            "uid": "dba_mongo_proxy"
-          },
-          "expressionList": [],
-          "format": "time_series",
-          "hide": false,
-          "host": [],
-          "mode": "code",
-          "module": [],
-          "promqlAlias": "Apply $tag_instance_role",
-          "query_configs": [],
-          "refId": "B",
-          "source": "irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_metrics_repl_apply_ops_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[2m])",
-          "step": 300,
-          "type": "range"
-        }
-      ],
-      "title": "oplog Operations",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
-      },
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "left",
-            "axisWidth": 40,
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "links": [],
-          "mappings": [],
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green"
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "none"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 27
-      },
-      "id": 87,
-      "interval": "2m",
-      "options": {
-        "legend": {
-          "calcs": [
-            "max",
-            "min"
-          ],
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true,
-          "width": 350
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "9.1.0",
-      "targets": [
-        {
-          "cluster": [],
-          "datasource": {
-            "uid": "dba_mongo_proxy"
-          },
-          "enableDownSampling": false,
-          "expressionList": [],
-          "format": "time_series",
-          "hide": false,
-          "host": [],
-          "mode": "code",
-          "module": [],
-          "promqlAlias": "connection $tag_instance_role",
-          "query_configs": [],
-          "refId": "A",
-          "source": "max by (instance,instance_role) (bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_connections{cluster_domain=\"$cluster_domain\",state=\"current\",instance_role=~\"$instance_role\"}) or max by (instance,instance_role) (bkmonitor:exporter_dbm_mongodb_exporter:mongodb_connections{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\",state=\"current\"})",
-          "step": "",
-          "type": "range"
-        }
-      ],
-      "title": "connection",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "Shows the time range in the oplog and the oldest backed up operation.",
       "fieldConfig": {
@@ -3492,7 +3620,7 @@
         "y": 35
       },
       "id": 27,
-      "interval": "60s",
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -3527,7 +3655,7 @@
           "query_configs": [],
           "refId": "J",
           "source": "time()-bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_oplog_tail_timestamp{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}\n",
-          "step": 300,
+          "step": "1m",
           "type": "range"
         },
         {
@@ -3545,7 +3673,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_oplog_head_timestamp{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}- \nbkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_oplog_tail_timestamp{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}",
-          "step": 300,
+          "step": "1m",
           "type": "range"
         }
       ],
@@ -3555,7 +3683,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "",
       "fieldConfig": {
@@ -3622,7 +3750,7 @@
         "y": 35
       },
       "id": 90,
-      "interval": "2m",
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -3657,7 +3785,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "increase(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_connections{cluster_domain=\"$cluster_domain\",conn_type=\"totalCreated\",instance_role=~\"$instance_role\"}[2m])  or  increase(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_connections_metrics_created_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[2m]) ",
-          "step": "",
+          "step": "1m",
           "type": "range"
         }
       ],
@@ -3667,7 +3795,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "Shows the delay between an operation occurring on the primary and that same operation getting applied on the selected member",
       "fieldConfig": {
@@ -3734,7 +3862,7 @@
         "y": 43
       },
       "id": 14,
-      "interval": "60s",
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -3770,7 +3898,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "max(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_member_replication_lag{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}) by (instance_role)",
-          "step": 300,
+          "step": "1m",
           "type": "range"
         }
       ],
@@ -3780,7 +3908,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "du  -s  {datadir}，数据会有10分钟的延迟",
       "fieldConfig": {
@@ -3792,7 +3920,7 @@
             "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
-            "axisLabel": "diskSize",
+            "axisLabel": "",
             "axisPlacement": "auto",
             "axisWidth": 40,
             "barAlignment": 0,
@@ -3848,7 +3976,7 @@
         "y": 43
       },
       "id": 189,
-      "interval": "60s",
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -3882,7 +4010,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_datadir_size_kb{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}",
-          "step": 300,
+          "step": "1m",
           "type": "range"
         }
       ],
@@ -3905,7 +4033,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "mongodb_mongod_global_lock_current_queue\nrequire version >=3.6",
       "fieldConfig": {
@@ -3970,6 +4098,7 @@
         "y": 52
       },
       "id": 389,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -4023,7 +4152,7 @@
           ],
           "refId": "A",
           "source": "bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_global_lock_current_queue{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\",type!=\"total\"}",
-          "step": "",
+          "step": "1m",
           "type": "range"
         }
       ],
@@ -4033,7 +4162,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "mongodb_mongod_wiredtiger_session_open_sessions_total \nrequire version >=3.6",
       "fieldConfig": {
@@ -4098,6 +4227,7 @@
         "y": 52
       },
       "id": 392,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -4152,7 +4282,7 @@
           ],
           "refId": "A",
           "source": "bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_wiredtiger_session_open_sessions_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\",type!=\"total\"}",
-          "step": "",
+          "step": "1m",
           "type": "range"
         }
       ],
@@ -4162,7 +4292,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "mongodb_mongod_wiredtiger_session_open_sessions_total \n\nrequire version >=3.6",
       "fieldConfig": {
@@ -4227,6 +4357,7 @@
         "y": 60
       },
       "id": 393,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -4281,7 +4412,7 @@
           ],
           "refId": "A",
           "source": "bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_wiredtiger_cache_pages{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\",type=\"dirty\" } / ignoring(type) bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_wiredtiger_cache_pages{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\",type=\"total\" }",
-          "step": "",
+          "step": "1m",
           "type": "range"
         }
       ],
@@ -4291,7 +4422,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "${DS_蓝鲸监控_- 指标数据}"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "avg(irate(mongodb_mongod_metrics_query_executor_total))",
       "fieldConfig": {
@@ -4303,8 +4434,9 @@
             "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
+            "axisGridShow": false,
             "axisLabel": "",
-            "axisPlacement": "auto",
+            "axisPlacement": "left",
             "barAlignment": 0,
             "drawStyle": "line",
             "fillOpacity": 10,
@@ -4316,10 +4448,14 @@
             },
             "insertNulls": false,
             "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
             "lineWidth": 1,
             "pointSize": 5,
             "scaleDistribution": {
-              "type": "linear"
+              "log": 10,
+              "type": "log"
             },
             "showPoints": "never",
             "spanNulls": false,
@@ -4339,10 +4475,6 @@
             "steps": [
               {
                 "color": "green"
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
           },
@@ -4357,6 +4489,7 @@
         "y": 60
       },
       "id": 394,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -4433,7 +4566,7 @@
           ],
           "refId": "A",
           "source": "avg by (state, instance,instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_metrics_query_executor_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[2m]))",
-          "step": "",
+          "step": "1m",
           "type": "range"
         }
       ],
@@ -4441,7 +4574,7 @@
       "type": "timeseries"
     }
   ],
-  "refresh": false,
+  "refresh": "",
   "schemaVersion": 39,
   "tags": [
     "MongoReplicaSet"
@@ -4468,6 +4601,7 @@
           }
         ],
         "query": "ReplicaSet",
+        "queryValue": "",
         "skipUrlSync": false,
         "type": "custom"
       },
@@ -4475,12 +4609,12 @@
         "allFormat": "glob",
         "current": {
           "selected": false,
-          "text": "unknown",
-          "value": "unknown"
+          "text": "",
+          "value": ""
         },
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "${DS_蓝鲸监控_- 指标数据}"
+          "uid": "bkmonitor_timeseries"
         },
         "definition": "- Blueking Monitor - 维度",
         "description": "app",
@@ -4531,7 +4665,7 @@
         },
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "${DS_蓝鲸监控_- 指标数据}"
+          "uid": "bkmonitor_timeseries"
         },
         "definition": "- Blueking Monitor - 维度",
         "hide": 0,
@@ -4596,7 +4730,7 @@
         },
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "${DS_蓝鲸监控_- 指标数据}"
+          "uid": "bkmonitor_timeseries"
         },
         "definition": "- Blueking Monitor - 维度",
         "description": "instance_role",
@@ -4679,9 +4813,9 @@
     ]
   },
   "timezone": "browser",
-  "title": "ReplicaSet",
+  "title": "mongoreplicaset",
   "uid": "MongoReplicaSet",
-  "version": 59,
+  "version": 84,
   "weekStart": "",
   "__inputs": [
     {

@@ -18,6 +18,7 @@
     :columns="columns"
     :data-source="dataSource"
     :max-height="700"
+    :show-overflow="false"
     @clear-search="handleClearSearch" />
 </template>
 
@@ -264,9 +265,11 @@
 <style lang="less" scoped>
   :deep(.mongo-permission-cell) {
     position: relative;
+    height: 42px;
     padding: 0 15px;
     overflow: hidden;
     line-height: calc(var(--row-height) - 1px);
+    line-height: 42px;
     text-overflow: ellipsis;
     white-space: nowrap;
     border-bottom: 1px solid @border-disable;
@@ -275,7 +278,6 @@
   :deep(.access-db) {
     display: flex;
     align-items: center;
-    height: 42px;
   }
 
   :deep(.mongo-permission-cell:last-child) {

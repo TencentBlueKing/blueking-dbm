@@ -19,6 +19,8 @@ import { deleteUserSemanticTasks, getUserSemanticTasks } from '@services/source/
 
 import { useSQLTaskCount } from '@stores';
 
+import { DBTypes, TicketTypes } from '@common/const';
+
 import { useTimeoutPoll } from '@vueuse/core';
 
 export const useTaskCount = (clusterType: string) => {
@@ -99,7 +101,7 @@ export const useTaskCount = (clusterType: string) => {
 
   const handleGoTaskLog = (taskData: UserSemanticTaskModel) => {
     router.push({
-      name: clusterType === 'mysql' ? 'MySQLExecute' : 'spiderSqlExecute',
+      name: clusterType === DBTypes.MYSQL ? TicketTypes.MYSQL_IMPORT_SQLFILE : TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE,
       params: {
         step: 'log',
       },

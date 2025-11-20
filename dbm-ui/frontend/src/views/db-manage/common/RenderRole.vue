@@ -16,7 +16,7 @@
     <template v-if="data.length < 1"> -- </template>
     <template v-else>
       <BkTag
-        v-for="item in renderList"
+        v-for="item in data"
         :key="item"
         class="mr-4">
         {{ item }}
@@ -25,30 +25,30 @@
   </div>
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
-  import { computed } from 'vue';
-  import { useI18n } from 'vue-i18n';
+  // import _ from 'lodash';
+  // import { computed } from 'vue';
+  // import { useI18n } from 'vue-i18n';
 
   interface Props {
     data: Array<string>;
   }
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
-  const { t } = useI18n();
+  // const { t } = useI18n();
 
-  const codeMap = {
-    Cold: t('冷节点'),
-    Hot: t('热节点'),
-  } as Record<string, string>;
+  // const codeMap = {
+  //   Cold: t('冷节点'),
+  //   Hot: t('热节点'),
+  // } as Record<string, string>;
 
-  const renderList = computed(() =>
-    props.data.map((item) => {
-      const word = _.last(item.split('_'));
-      const code = `${word?.charAt(0).toUpperCase()}${word?.slice(1)}`;
-      return codeMap[code] ? codeMap[code] : code;
-    }),
-  );
+  // const renderList = computed(() =>
+  //   props.data.map((item) => {
+  //     const word = _.last(item.split('_'));
+  //     const code = `${word?.charAt(0).toUpperCase()}${word?.slice(1)}`;
+  //     return codeMap[code] ? codeMap[code] : code;
+  //   }),
+  // );
 </script>
 <style lang="less">
   .render-cluster-role {

@@ -16,7 +16,7 @@ from copy import deepcopy
 from dataclasses import asdict
 
 from django.db.models import Q
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components import DRSApi
 from backend.configuration.constants import DBType
@@ -368,6 +368,7 @@ class RedisClusterDataCopyFlow(object):
         install_param["resource_spec"] = info["resource_spec"]
         cluster = Cluster.objects.get(id=int(info["src_cluster"]))
         install_param["disaster_tolerance_level"] = cluster.disaster_tolerance_level
+        install_param["zone_list"] = cluster.zone_list
         return install_param
 
     def shard_num_or_cluster_type_update_precheck(self):
@@ -917,6 +918,18 @@ class RedisClusterDataCopyFlow(object):
             }
             redis_pipeline.add_act(
                 act_name=_("交换源集群、目标集群的storageinstance 元数据"),
+                act_component_code=RedisDBMetaComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
+
+            # 交换源集群、目标集群的CC信息
+            act_kwargs.cluster = {
+                "src_cluster_id": src_cluster_info["cluster_id"],
+                "dst_cluster_id": dst_cluster_info["cluster_id"],
+                "meta_func_name": RedisDBMeta.dts_online_switch_swap_cc.__name__,
+            }
+            redis_pipeline.add_act(
+                act_name=_("交换源集群、目标集群的storageinstance CC数据"),
                 act_component_code=RedisDBMetaComponent.code,
                 kwargs=asdict(act_kwargs),
             )

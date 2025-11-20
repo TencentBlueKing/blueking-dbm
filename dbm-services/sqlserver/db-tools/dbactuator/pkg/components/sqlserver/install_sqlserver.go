@@ -30,7 +30,6 @@ import (
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util/sqlserver"
 
-	"github.com/artdarek/go-unzip"
 	"github.com/shirou/gopsutil/mem"
 )
 
@@ -309,14 +308,8 @@ func (i *InstallSqlServerComp) DecompressPkg() error {
 		if err := osutil.Extract7zArchive(i.Params.GetAbsolutePath(), cst.BASE_DATA_PATH); err != nil {
 			return err
 		}
-	case strings.Contains(i.Params.Pkg, ".zip"):
-		// 安装包属于zip文件包，选择zip的解压方式
-		uz := unzip.New(i.Params.GetAbsolutePath(), cst.BASE_DATA_PATH)
-		if err := uz.Extract(); err != nil {
-			fmt.Println(err)
-		}
 	default:
-		return fmt.Errorf("[%s] Currently only supports decompression of .7z files and .zip files. check", i.Params.Pkg)
+		return fmt.Errorf("[%s] Currently only supports decompression of .7z files, check", i.Params.Pkg)
 	}
 
 	logger.Info("decompress mysql pkg successfully")

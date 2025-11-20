@@ -12,9 +12,12 @@
 -->
 
 <template>
+  <BatchInput
+    :config="batchInputConfig"
+    @change="handleBatchInput" />
   <EditableTable
     ref="table"
-    class="mb-20"
+    class="mt-16 mb-20"
     :model="tableData">
     <EditableRow
       v-for="(item, index) in tableData"
@@ -39,12 +42,17 @@
 <script lang="ts" setup>
   import _ from 'lodash';
   import { useTemplateRef } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
   import { type Mysql } from '@services/model/ticket/ticket';
   import type { BackupLogRecord } from '@services/source/fixpointRollback';
 
   import { ClusterTypes } from '@common/const';
+
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+
+  import { random } from '@utils';
 
   import BackupModeColumn, { ROLLBACK_TYPE } from '../backup-mode-column/Index.vue';
   import BackupSourceColumn, { BACKUP_SOURCE } from '../backup-source-column/Index.vue';
@@ -90,22 +98,48 @@
 
   const props = defineProps<Props>();
 
+  const { t } = useI18n();
   const tableRef = useTemplateRef('table');
+
+  const batchInputConfig = [
+    {
+      case: 'tendbha.test.dba.db',
+      key: 'master_domain',
+      label: t('待回档集群'),
+    },
+    {
+      case: t('远程备份'),
+      key: 'backup_source',
+      label: t('备份源'),
+    },
+    {
+      case: 'NULL',
+      key: 'rollback',
+      label: t('回档类型'),
+    },
+  ];
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
     backup_source: data.backup_source || BACKUP_SOURCE.REMOTE,
-    cluster: data.cluster || {
-      cluster_type: ClusterTypes.TENDBHA,
-      id: 0,
-      master_domain: '',
-    },
-    rollback: data.rollback || {
-      backupid: '',
-      rollback_type: ROLLBACK_TYPE.BACKUPID,
-    },
+    cluster: Object.assign(
+      {
+        cluster_type: ClusterTypes.TENDBHA,
+        id: 0,
+        master_domain: '',
+      },
+      data.cluster,
+    ),
+    rollback: Object.assign(
+      {
+        backupid: '',
+        rollback_type: ROLLBACK_TYPE.BACKUPID,
+      },
+      data.rollback,
+    ),
   });
 
   const tableData = ref<RowData[]>([createTableRow()]);
+  const tableKey = ref(random());
 
   const selected = computed(() => tableData.value.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
@@ -162,6 +196,31 @@
         [field as keyof RowData]: _.cloneDeep(value),
       });
     });
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) =>
+      createTableRow({
+        backup_source:
+          item.backup_source === t('远程备份')
+            ? BACKUP_SOURCE.REMOTE
+            : item.backup_source === t('本地备份')
+              ? BACKUP_SOURCE.LOCAL
+              : '',
+        cluster: {
+          master_domain: item.master_domain,
+        } as TendbhaModel,
+      }),
+    );
+    if (isClear) {
+      tableKey.value = random();
+      tableData.value = [...dataList];
+    } else {
+      tableData.value = [...(tableData.value[0].cluster.id ? tableData.value : []), ...dataList];
+    }
+    setTimeout(() => {
+      tableRef.value?.validate();
+    }, 200);
   };
 
   defineExpose<Exposes>({

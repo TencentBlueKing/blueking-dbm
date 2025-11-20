@@ -41,7 +41,7 @@ import (
 type LogicalDumperMysqldump struct {
 	cnf            *config.BackupConfig
 	backupInfo     dbareport.IndexContent // for mysqldump backup
-	dbConn         *sqlx.Conn
+	dbConn         *sqlx.DB
 	dbbackupHome   string
 	logBinDisabled bool
 
@@ -90,7 +90,8 @@ func (l *LogicalDumperMysqldump) buildArgsTableFilter() (args []string, err erro
 		defer func() {
 			_ = l.dbConn.Close()
 		}()
-		dbListFiltered, err = filter.GetDbsByConn(l.dbConn)
+		connx, _ := l.dbConn.Connx(context.Background())
+		dbListFiltered, err = filter.GetDbsByConn(connx)
 		if err != nil {
 			return nil, errors.WithMessage(err, "get database from instance")
 		}
@@ -292,7 +293,7 @@ func (l *LogicalDumperMysqldump) Execute(ctx context.Context) (err error) {
 			MasterPort: l.cnf.Public.MysqlPort,
 		}
 	}
-	masterHost, masterPort, err := mysqlconn.ShowMysqlSlaveStatus(db)
+	masterHost, masterPort, err := mysqlconn.GetSlaveStatusMasterInfo(db)
 	if err != nil {
 		logger.Log.Warnf("can not get show slave status, host:%s, port:%d, errmsg:%s",
 			l.cnf.Public.MysqlHost, l.cnf.Public.MysqlPort, err)
@@ -362,7 +363,8 @@ func (l *LogicalDumperMysqldump) PrepareBackupMetaInfo(cnf *config.BackupConfig,
 			MasterPort: l.slaveStatus.MasterPort,
 		}
 	}
-	metaInfo.JudgeIsFullBackup(&cnf.Public)
+	metaInfo.JudgeBackupMethod(cnf)
+	metaInfo.JudgeLogicalFilter(cnf)
 	return nil
 }
 

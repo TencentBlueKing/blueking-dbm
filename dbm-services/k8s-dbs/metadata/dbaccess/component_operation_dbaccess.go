@@ -21,8 +21,9 @@ package dbaccess
 
 import (
 	"k8s-dbs/common/entity"
-	models "k8s-dbs/metadata/dbaccess/model"
-	"log/slog"
+	models "k8s-dbs/metadata/model"
+
+	"github.com/pkg/errors"
 
 	"gorm.io/gorm"
 )
@@ -44,19 +45,9 @@ func (c *ComponentOperationDbAccessImpl) Create(model *models.ComponentOperation
 	error,
 ) {
 	if err := c.db.Create(model).Error; err != nil {
-		slog.Error("Create component operation error", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create component operation with model: %+v", model)
 	}
-	var addedModel models.ComponentOperationModel
-	if err := c.db.First(&addedModel,
-		"addon_type = ? and addon_version= ? "+
-			"and component_name= ? and component_version= ? and operation_id= ?",
-		model.AddonType, model.AddonVersion, model.ComponentName,
-		model.ComponentVersion, model.OperationID).Error; err != nil {
-		slog.Error("Find component operation error", "error", err)
-		return nil, err
-	}
-	return &addedModel, nil
+	return model, nil
 }
 
 // ListByPage 分页查询 component operation 元数据接口实现
@@ -70,8 +61,7 @@ func (c *ComponentOperationDbAccessImpl) ListByPage(pagination entity.Pagination
 		Offset(pagination.Page).
 		Limit(pagination.Limit).
 		Where("active=1").Find(&cmpOpsDefModels).Error; err != nil {
-		slog.Error("List component operation error", "error", err.Error())
-		return nil, 0, err
+		return nil, 0, errors.Wrapf(err, "failed to list component operations with pagination: %+v", pagination)
 	}
 	return cmpOpsDefModels, int64(len(cmpOpsDefModels)), nil
 }

@@ -59,6 +59,9 @@ func MySQLComplexHandler(c *gin.Context) {
 		if postReq.QueryTimeout <= 0 {
 			postReq.QueryTimeout = 600
 		}
+		if postReq.Charset == "" {
+			postReq.Charset = "default"
+		}
 
 		dupAddrs := findDuplicateAddresses(postReq.Addresses)
 
@@ -105,7 +108,7 @@ func MySQLComplexHandler(c *gin.Context) {
 				rpcWrapper := rpc_core.NewRPCWrapper(
 					postReq.Addresses, postReq.Cmds,
 					config.RuntimeConfig.MySQLAdminUser, config.RuntimeConfig.MySQLAdminPassword,
-					postReq.ConnectTimeout, postReq.QueryTimeout, postReq.Timezone, postReq.Force,
+					postReq.ConnectTimeout, postReq.QueryTimeout, postReq.Timezone, postReq.Charset, postReq.Force,
 					&mysql_rpc.MySQLRPCEmbed{},
 					requestId,
 				)

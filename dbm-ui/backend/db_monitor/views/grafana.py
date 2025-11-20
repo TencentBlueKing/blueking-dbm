@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -74,15 +74,22 @@ class MonitorGrafanaViewSet(viewsets.SystemViewSet):
         validated_data = self.params_validate(self.get_serializer_class())
         bk_biz_id = validated_data.get("bk_biz_id")
         dashes = Dashboard.objects.filter(
-            org_id=DEFAULT_ORG_ID, org_name=DEFAULT_ORG_NAME, type=DashboardType.BUSINESS
+            org_id=DEFAULT_ORG_ID, org_name=DEFAULT_ORG_NAME, type__in=[DashboardType.BUSINESS, DashboardType.OVERVIEW]
         )
 
         if dashes.exists():
             dash_urls = [
-                {"view": dash.view, "url": dash.get_business_url(bk_biz_id), "db_type": dash.db_type}
+                {
+                    "view": dash.view,
+                    "url": dash.get_business_url(bk_biz_id),
+                    "db_type": dash.db_type,
+                    "type": dash.type,
+                }
                 for dash in dashes
             ]
-            url = dash_urls[0]["url"]
+            # 优先返回概览url
+            overview = dashes.filter(type=DashboardType.OVERVIEW).first()
+            url = overview.get_business_url(bk_biz_id) if overview else dash_urls[0]["url"]
         else:
             dash_urls, url = [], "#"
 

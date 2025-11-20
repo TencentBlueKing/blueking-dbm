@@ -1,0 +1,349 @@
+openapi: 3.0.3
+info:
+  title: ''
+  version: 0.0.0
+paths:
+  /apis/ai/mcp_tools/common/cluster/filter_clusters/:
+    post:
+      operationId: mcp_common_cluster_filter_clusters
+      description: 获取集群详细信息
+      tags:
+      - read
+      - mcp-tools
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FilterClusterInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/FilterClusterInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FilterClusterInputRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FilterClusterOutput'
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: false
+        matchSubpath: false
+        backend:
+          name: default
+          method: post
+          path: /apis/ai/mcp_tools/common/cluster/filter_clusters/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs:
+        - type: bk-header-rewrite
+          yaml: |
+            remove: []
+            set:
+            - key: X-Bkdbm-Mcp-Tag
+              value: read,mcp-tools
+        allowApplyPermission: false
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn: 获取集群详细信息
+  /apis/ai/mcp_tools/common/cluster/get_cluster_base_info/:
+    post:
+      operationId: mcp_common_cluster_get_cluster_base_info
+      description: 获取集群的业务和类型基础信息(无鉴权)
+      tags:
+      - read
+      - mcp-tools
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetClusterBaseInfoInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/GetClusterBaseInfoInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GetClusterBaseInfoInputRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetClusterBaseInfoOutput'
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: false
+        matchSubpath: false
+        backend:
+          name: default
+          method: post
+          path: /apis/ai/mcp_tools/common/cluster/get_cluster_base_info/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs:
+        - type: bk-header-rewrite
+          yaml: |
+            remove: []
+            set:
+            - key: X-Bkdbm-Mcp-Tag
+              value: read,mcp-tools
+        allowApplyPermission: false
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn: 获取集群的业务和类型基础信息(无鉴权)
+components:
+  schemas:
+    ClusterEntry:
+      type: object
+      description: 集群访问入口
+      properties:
+        cluster_entry_type:
+          type: string
+          description: 入口类型
+        entry:
+          type: string
+          description: 入口地址
+        role:
+          type: string
+          description: 角色
+      required:
+      - cluster_entry_type
+      - entry
+      - role
+    ClusterStats:
+      type: object
+      description: 集群统计信息
+      properties:
+        used:
+          type: integer
+          description: 已使用容量
+        total:
+          type: integer
+          description: 总容量
+        in_use:
+          type: number
+          format: double
+          description: 使用率
+      required:
+      - in_use
+      - total
+      - used
+    FilterClusterInputRequest:
+      type: object
+      properties:
+        bk_biz_id:
+          type: integer
+          description: 业务ID
+        cluster_ids:
+          type: string
+          minLength: 1
+          description: 集群ID(逗号分割)
+        cluster_type:
+          type: string
+          minLength: 1
+          description: 集群类型
+        db_type:
+          type: string
+          minLength: 1
+          description: DB类型
+        limit:
+          type: integer
+          default: -1
+          description: 分页限制
+        offset:
+          type: integer
+          default: 0
+          description: 分页起始
+    FilterClusterOutput:
+      type: object
+      description: 集群详细信息响应序列化器
+      properties:
+        creator:
+          type: string
+          readOnly: true
+          maxLength: 64
+        create_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updater:
+          type: string
+          readOnly: true
+          maxLength: 64
+        update_at:
+          type: string
+          format: date-time
+          readOnly: true
+        id:
+          type: integer
+          description: 集群ID
+        db_type:
+          type: string
+          description: 数据库类型
+        phase:
+          type: string
+          description: 阶段
+        phase_name:
+          type: string
+          description: 阶段名称
+        status:
+          type: string
+          description: 状态
+        cluster_time_zone:
+          type: string
+          description: 集群时区
+        cluster_name:
+          type: string
+          description: 集群名称
+        cluster_alias:
+          type: string
+          description: 集群别名
+        cluster_access_port:
+          type: integer
+          description: 集群访问端口
+        cluster_stats:
+          allOf:
+          - $ref: '#/components/schemas/ClusterStats'
+          description: 集群统计信息
+        cluster_type:
+          type: string
+          description: 集群类型
+        cluster_type_name:
+          type: string
+          description: 集群类型名称
+        cluster_subzones:
+          type: array
+          items:
+            type: string
+          description: 集群子区域列表
+        cluster_subzone_ids:
+          type: array
+          items:
+            type: integer
+          description: 集群子区域ID列表
+        disaster_tolerance_level:
+          type: string
+          description: 容灾级别
+        master_domain:
+          type: string
+          description: 主域名
+        slave_domain:
+          type: string
+          description: 从域名
+        cluster_entry:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClusterEntry'
+          description: 集群访问入口列表
+        bk_biz_id:
+          type: integer
+          description: 业务ID
+        bk_biz_name:
+          type: string
+          description: 业务名称
+        bk_cloud_id:
+          type: integer
+          description: 管控区域ID
+        bk_cloud_name:
+          type: string
+          description: 管控区域名称
+        major_version:
+          type: string
+          description: 主版本号
+        region:
+          type: string
+          description: 地域
+        city:
+          type: string
+          description: 城市
+        db_module_name:
+          type: string
+          description: DB模块名称
+        db_module_id:
+          type: integer
+          description: DB模块ID
+        tags:
+          type: array
+          items:
+            type: string
+          description: 标签列表
+      required:
+      - bk_biz_id
+      - bk_biz_name
+      - bk_cloud_id
+      - bk_cloud_name
+      - city
+      - cluster_access_port
+      - cluster_alias
+      - cluster_entry
+      - cluster_name
+      - cluster_stats
+      - cluster_subzone_ids
+      - cluster_subzones
+      - cluster_time_zone
+      - cluster_type
+      - cluster_type_name
+      - create_at
+      - creator
+      - db_module_id
+      - db_module_name
+      - db_type
+      - disaster_tolerance_level
+      - id
+      - major_version
+      - master_domain
+      - phase
+      - phase_name
+      - region
+      - slave_domain
+      - status
+      - tags
+      - update_at
+      - updater
+    GetClusterBaseInfoInputRequest:
+      type: object
+      properties:
+        cluster_domain:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            description: 集群域名
+      required:
+      - cluster_domain
+    GetClusterBaseInfoOutput:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 集群ID
+        bk_biz_id:
+          type: integer
+          description: 业务ID
+        cluster_domain:
+          type: string
+          description: 集群域名
+        cluster_type:
+          type: string
+          description: 集群类型
+      required:
+      - bk_biz_id
+      - cluster_domain
+      - cluster_type
+      - id
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: dbm_sessionid

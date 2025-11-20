@@ -10,5 +10,6 @@ export interface FullBackup extends DetailBase {
   infos: {
     backup_local: string;
     cluster_id: number;
+    spider_mnt_address: string;
   }[];
 }

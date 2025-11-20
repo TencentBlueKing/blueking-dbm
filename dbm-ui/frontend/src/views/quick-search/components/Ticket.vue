@@ -40,7 +40,7 @@
   import { useLocation } from '@hooks';
 
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
-  import HightLightText from '@components/system-search/components/search-result/render-result/components/HightLightText.vue';
+  import TextHighlight from '@components/text-highlight/Index.vue';
   import TicketStatusTag from '@components/ticket-status-tag/Index.vue';
 
   interface Props {
@@ -95,8 +95,8 @@
           theme='primary'
           text
           onclick={() => handleToTicket(data)}>
-          <HightLightText
-            keyWord={props.keyword}
+          <TextHighlight
+            keyword={props.keyword}
             highLightColor='#FF9C01'
             text={String(data.id)}
           />

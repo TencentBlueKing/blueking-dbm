@@ -42,6 +42,7 @@ func UnMarshalMySQLInstanceByCmdb(instances []interface{},
 				ClusterType: ins.ClusterType,
 				MetaType:    ins.MachineType,
 				Cluster:     ins.Cluster,
+				DbRole:      ins.InstanceRole,
 			}
 		}
 	}
@@ -124,10 +125,12 @@ func NewMySQLSwitchInstance(instances []interface{}, conf *config.Config) ([]dbu
 			swIns := &MySQLSwitch{
 				MySQLCommonSwitch: mysqlCommon,
 			}
+			swIns.IsStandBy = ins.IsStandBy
 			swIns.SetStandbySlave(ins.Receiver)
 			swIns.SetInstanceRole(ins.InstanceRole)
 			swIns.Proxy = ins.ProxyInstanceSet
 			swIns.Dumper = ins.BinlogDumperSet
+			swIns.Entry = ins.BindEntry
 			return swIns, nil
 		case constvar.TenDBProxyType:
 			swIns := &MySQLProxySwitch{

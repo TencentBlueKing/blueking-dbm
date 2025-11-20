@@ -12,23 +12,23 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.clone_data">
-    <BkTableColumn :label="t('源实例')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.source }}
-      </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('所属集群')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.cluster_domain }}
-      </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('新实例')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.target }}
-      </template>
-    </BkTableColumn>
-  </BkTable>
+  <TicketInfoTable
+    :data="ticketDetails.details.clone_data"
+    row-key="cluster_id">
+    <TicketInfoTableColumn
+      col-key="source"
+      :get-copy-value="(row: Props['ticketDetails']['details']['clone_data'][number]) => row.source"
+      :title="t('源实例')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_domain"
+      :title="t('所属集群')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="target"
+      :title="t('新实例')">
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -40,8 +40,6 @@
   interface Props {
     ticketDetails: TicketModel<Mysql.InstanceCloneRules>;
   }
-
-  type RowData = Props['ticketDetails']['details']['infos'][number];
 
   defineOptions({
     name: TicketTypes.MYSQL_INSTANCE_CLONE_RULES,

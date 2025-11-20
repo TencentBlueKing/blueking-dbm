@@ -34,7 +34,7 @@ export default function () {
       'sub_zone',
       'bk_cpu',
       'bk_mem',
-      'bk_disk',
+      'total_data_storage_cap',
       'os_type',
     ],
     fields: [
@@ -90,8 +90,8 @@ export default function () {
         label: t('内存(G)'),
       },
       {
-        field: 'bk_disk',
-        label: t('磁盘容量(G)'),
+        field: 'total_data_storage_cap',
+        label: t('数据盘容量(G)'),
       },
     ],
     size: cache.size || 'small',

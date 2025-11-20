@@ -9,6 +9,7 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	errs "errors"
@@ -21,6 +22,9 @@ import (
 	"syscall"
 	"text/template"
 	"time"
+
+	reapi "dbm-services/common/reverseapi/apis/common"
+	recore "dbm-services/common/reverseapi/pkg/core"
 
 	sshgo "github.com/melbahja/goph"
 	"github.com/pkg/errors"
@@ -39,7 +43,6 @@ import (
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/backupexe"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/precheck"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 )
 
@@ -95,6 +98,24 @@ func init() {
 	dumpCmd.AddCommand(dumpLogicalCmd)
 }
 
+type backupTask struct {
+	backupId      string
+	backupConfig  *config.BackupConfig
+	logReport     *dbareport.BackupLogReport
+	indexFilePath string
+	statusReport  *dbareport.MysqlBackupStatusEvent
+	//SshClient    *sshgo.Client
+}
+
+func newBackupTask(backupId string) *backupTask {
+	if backupId == "" {
+		backupId, _ = dbareport.GenerateUUid()
+	}
+	return &backupTask{
+		backupId: backupId,
+	}
+}
+
 var dumpCmd = &cobra.Command{
 	Use:          "dumpbackup",
 	Short:        "Run backup",
@@ -110,7 +131,7 @@ var dumpCmd = &cobra.Command{
 		}
 		backupexe.ExecuteHome = filepath.Dir(exePath)
 		if err = dumpExecute(cmd, args); err != nil {
-			logger.Log.Error("dumpbackup failed", err.Error())
+			logger.Log.Error("dumpbackup failed: ", err.Error())
 			manager := ma.NewManager(cst.MysqlCrondUrl)
 			body := struct {
 				Name      string
@@ -159,15 +180,38 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 	}
 	var errList error
 	for _, f := range cnfFiles {
+		task := newBackupTask("")
 		config.SetDefaults()
 		var cnf = config.BackupConfig{}
 		if err := initConfig(f, &cnf, logger.Log); err != nil {
 			errList = errs.Join(errList, errors.WithMessagef(err, "init failed for %d", cnf.Public.MysqlPort))
 			logger.Log.Error("Create Dbbackup: fail to parse ", f)
+			// 配置初始化失败了，sync report 目前无法上报!!!
 			continue
 		}
+		if cnf.Public.BackupId != "" {
+			task.backupId = cnf.Public.BackupId // 使用传入的 backup_id 覆盖临时生成的 id
+		}
+		if cnf.Public.BackupId == "" {
+			cnf.Public.BackupId = task.backupId
+		}
+		task.statusReport = dbareport.NewMysqlBackupStatusEvent(&cnf)
+		reportCore, err := recore.NewCore(0, recore.DefaultRetryOpts...)
+		if err != nil {
+			logger.Log.Error("report NewCore failed", err.Error()) // reportCore is nil
+		}
+
+		body.Dimension["bk_biz_id"] = cnf.Public.BkBizId
+		body.Dimension["cluster_id"] = cnf.Public.ClusterId
+		body.Dimension["cluster_domain"] = cnf.Public.ClusterAddress
+		body.Dimension["instance"] = fmt.Sprintf("%s:%d", cnf.Public.MysqlHost, cnf.Public.MysqlPort)
+
 		if remoteConfig.EnableRemote {
 			cnf.BackupToRemote = *remoteConfig
+		}
+		if cnf.BackupToRemote.EnableRemote {
+			// 备份到远程时，关闭本地磁盘空间检查
+			cnf.Public.NoCheckDiskSpace = true
 		}
 		cnf.SetConfigFilePath(f) // 给 remote backup 用的
 
@@ -187,27 +231,38 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 		ctx := context.Background()
 		done := make(chan error, 1)
 		go func() {
-			err := backupData(ctx, &cnf)
+			err := task.run(ctx, &cnf)
 			if err != nil {
 				logger.Log.Error("Create Dbbackup: Failure for ", f)
-				body.Dimension["bk_biz_id"] = cnf.Public.BkBizId
-				body.Dimension["cluster_domain"] = cnf.Public.ClusterAddress
-				body.Dimension["instance"] = fmt.Sprintf("%s:%d", cnf.Public.MysqlHost, cnf.Public.MysqlPort)
-				body.Content = fmt.Sprintf("run dbbackup failed for %s", f)
-				if sendErr := manager.SendEvent(body.Name, body.Content, body.Dimension); sendErr != nil {
-					logger.Log.Error("SendEvent failed for ", f, sendErr.Error())
-				}
 			}
 			done <- err
 		}()
 
 		select {
 		case doneErr := <-done:
-			errList = errs.Join(errList, doneErr)
+			if doneErr != nil {
+				if resp, err := reapi.SyncReport(reportCore,
+					task.statusReport.SetStatus("Failed", doneErr.Error())); err != nil {
+					logger.Log.Warnf("report backup status, resp: err=%s, resp=%s", err, string(resp))
+				}
+				body.Content = fmt.Sprintf("run dbbackup failed for %s, err=%s", f, doneErr.Error())
+				if sendErr := manager.SendEvent(body.Name, body.Content, body.Dimension); sendErr != nil {
+					logger.Log.Error("SendEvent failed for ", f, sendErr.Error())
+				}
+				errList = errs.Join(errList, doneErr)
+			}
 			continue
 		case <-time.After(time.Duration(maxTimeoutSeconds) * time.Second):
 			doneErr := fmt.Errorf("backup timeout exceed %s for port %d",
 				cnf.Public.BackupTimeOut, cnf.Public.MysqlPort)
+			if resp, err := reapi.SyncReport(reportCore,
+				task.statusReport.SetStatus("Failed", doneErr.Error())); err != nil {
+				logger.Log.Warnf("report backup status, resp: err=%s, resp=%s", err, string(resp))
+			}
+			body.Content = fmt.Sprintf("run dbbackup failed for %s, error=%s", f, doneErr.Error())
+			if sendErr := manager.SendEvent(body.Name, body.Content, body.Dimension); sendErr != nil {
+				logger.Log.Error("SendEvent failed for ", f, sendErr.Error())
+			}
 			errList = errs.Join(errList, doneErr)
 			time.Sleep(cst.KillDelayMilliSec * time.Millisecond)
 			syscall.Kill(os.Getpid(), syscall.SIGINT) // 确保子进程能够获取到中断信号
@@ -220,7 +275,10 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 	return nil
 }
 
-func backupData(ctx context.Context, cnf *config.BackupConfig) (err error) {
+// run backup
+// BeforeDump -> ExecuteBackup -> backupTarAndUpload(report)
+func (t *backupTask) run(ctx context.Context, cnf *config.BackupConfig) (err error) {
+	runner := backupexe.BackupRunner{}
 	logger.Log.Infof("Dbbackup begin for %d", cnf.Public.MysqlPort)
 	// validate dumpBackup
 	if err = validate.GoValidateStructTag(cnf.Public, "ini"); err != nil {
@@ -248,17 +306,19 @@ func backupData(ctx context.Context, cnf *config.BackupConfig) (err error) {
 	if err = dbareport.InitReporter(cnf.Public.ReportPath); err != nil {
 		return err
 	}
-	err = logReport.ReportBackupStatus("Begin")
+	reportCore, err := recore.NewCore(0, recore.DefaultRetryOpts...)
 	if err != nil {
-		logger.Log.Error("report begin failed: ", err)
-		return err
+		logger.Log.Error("report NewCore failed", err.Error()) // reportCore is nil
+	}
+	if resp, reportErr := reapi.SyncReport(reportCore, t.statusReport.SetStatus("Begin", "")); reportErr != nil {
+		logger.Log.Warnf("report backup status, resp: %s", string(resp))
 	}
 	logger.Log.Info("parse config file: end")
 	if cnf.Public.DataSchemaGrant == cst.BackupNone {
 		logger.Log.Infof("backup nothing for %d, exit", cnf.Public.MysqlPort)
 		return nil
 	}
-	if err := precheck.BeforeDump(ctx, cnf); err != nil {
+	if err := runner.BeforeDump(ctx, cnf); err != nil {
 		return err
 	}
 	// 备份权限 backup priv info
@@ -266,20 +326,27 @@ func backupData(ctx context.Context, cnf *config.BackupConfig) (err error) {
 	//  如果还备份 schema/data，则走下面这个逻辑
 	if cnf.Public.IfBackupGrant() && !cnf.Public.IfBackupGrantOnly() {
 		logger.Log.Infof("backup grant for %d: begin", cnf.Public.MysqlPort)
-		if err := backupexe.BackupGrant(&cnf.Public); err != nil {
+		if err := runner.BackupGrant(&cnf.Public); err != nil {
 			logger.Log.Error("Failed to backup Grant information")
 			return err
 		}
 		logger.Log.Info("backup Grant information: end")
 	}
+	if cnf.BackupToRemote.EnableRemote && !cnf.Public.IfBackupData() {
+		err = errors.Errorf("backup-to-remote=true only works with DataSchemaGrant include data")
+		logger.Log.Warnf("%s. set EnableRemote=false", err.Error())
+		return err
+	}
+	if cnf.BackupToRemote.EnableRemote && cnf.Public.BackupType != cst.BackupPhysical {
+		return errors.Errorf("backup stream to remote only support physical but got %s for port=%d",
+			cnf.Public.BackupType, cnf.Public.MysqlPort)
+	}
 	// long_slow_query
 	// check slave status
 
 	// execute backup
-	err = logReport.ReportBackupStatus("Backup")
-	if err != nil {
-		logger.Log.Error("report backup failed: ", err)
-		return err
+	if resp, reportErr := reapi.SyncReport(reportCore, t.statusReport.SetStatus("Running", "")); reportErr != nil {
+		logger.Log.Warnf("report backup status, resp: %s", string(resp))
 	}
 	var sshClient *sshgo.Client
 	if cnf.BackupToRemote.EnableRemote {
@@ -295,19 +362,23 @@ func backupData(ctx context.Context, cnf *config.BackupConfig) (err error) {
 	}
 	// ExecuteBackup 执行备份后，返回备份元数据信息
 	logger.Log.Info("backup main run:", cnf.Public.MysqlPort)
-	metaInfo, exeErr := backupexe.ExecuteBackup(ctx, cnf)
+	metaInfo, exeErr := runner.ExecuteBackup(ctx, cnf)
 	if exeErr != nil {
 		return exeErr
 	}
+
 	indexFilePath := path.Join(cnf.Public.BackupDir, cnf.Public.TargetName()+".index")
-	indexFilePath, err = metaInfo.SaveIndexContent(indexFilePath)
+	err = metaInfo.SaveIndexContent(indexFilePath)
 	if err != nil {
 		return err
 	}
 	logger.Log.Info("backup main finish:", cnf.Public.MysqlPort, indexFilePath)
 
+	if resp, reportErr := reapi.SyncReport(reportCore, t.statusReport.SetStatus("Tarball", "")); reportErr != nil {
+		logger.Log.Warnf("report backup status, resp: %s", string(resp))
+	}
 	if cnf.BackupToRemote.EnableRemote {
-		if err = runBackupToRemote(cnf, indexFilePath, logReport, sshClient); err != nil {
+		if err = t.runBackupToRemote(cnf, indexFilePath, logReport, sshClient); err != nil {
 			return err
 		}
 	} else {
@@ -317,18 +388,14 @@ func backupData(ctx context.Context, cnf *config.BackupConfig) (err error) {
 		}
 	}
 	fmt.Printf("backup_index_file:%s\n", indexFilePath)
-	err = logReport.ReportBackupStatus("Success")
-	if err != nil {
-		logger.Log.Error("report success failed: ", err)
-		return err
+	if resp, reportErr := reapi.SyncReport(reportCore, t.statusReport.SetStatus("Success", "")); reportErr != nil {
+		logger.Log.Warnf("report backup status, resp: %s", string(resp))
 	}
 	logger.Log.Infof("Dbbackup Success for %d", cnf.Public.MysqlPort)
 	return nil
 }
 
 func initSshClient(cnf *config.BackupConfig) (sshClient *sshgo.Client, err error) {
-	// 备份到远程时，关闭本地磁盘空间检查
-	cnf.Public.NoCheckDiskSpace = true
 	logger.Log.Infof("Save backup to remote: %s:%d %s",
 		cnf.BackupToRemote.SshHost, cnf.BackupToRemote.SshPort, cnf.BackupToRemote.SaveDir)
 	// write metaInfo to draft file
@@ -359,8 +426,10 @@ func prepareBackupToRemote(cnf *config.BackupConfig, sshClient *sshgo.Client) (e
 	if cnf.BackupToRemote.NcPort == 0 {
 		cnf.BackupToRemote.NcPort = cnf.Public.MysqlPort + 100
 	}
+	remoteDbbackupHome := backupexe.ExecuteHome + "-remote" // /home/mysql/dbbackup-go-remote
+	remoteDbbackupBin := filepath.Join(remoteDbbackupHome, "dbbackup")
 	param := map[string]string{
-		"dbbackupHome": backupexe.ExecuteHome,
+		"dbbackupHome": remoteDbbackupHome,
 	}
 	tpl, err := template.ParseFS(assets.TemplateFS, "nc_starter.sh.tmpl")
 	if err != nil {
@@ -382,9 +451,8 @@ func prepareBackupToRemote(cnf *config.BackupConfig, sshClient *sshgo.Client) (e
 	if err = sshClient.Upload(ncStarterScriptName, remoteNcStarterScriptName); err != nil {
 		return err
 	}
+	_, _ = sshClient.Run("chmod +x " + remoteNcStarterScriptName)
 	// 如果目标机器 dbbackup-go 介质不存在，传输过去
-	remoteDbbackupHome := backupexe.ExecuteHome + "-remote" // /home/mysql/dbbackup-go-remote
-	remoteDbbackupBin := filepath.Join(remoteDbbackupHome, "dbbackup")
 	if output, err := sshClient.Run("ls " + remoteDbbackupBin); err != nil {
 		if !strings.Contains(string(output), "No such file or directory") {
 			return errors.WithMessagef(err, "check bin exists %s, output: %s", remoteDbbackupBin, string(output))
@@ -458,7 +526,7 @@ func prepareBackupToRemote(cnf *config.BackupConfig, sshClient *sshgo.Client) (e
 }
 
 // runBackupToRemote 上远程机器打包
-func runBackupToRemote(cnf *config.BackupConfig, indexFilePath string,
+func (t *backupTask) runBackupToRemote(cnf *config.BackupConfig, indexFilePath string,
 	logReport *dbareport.BackupLogReport, sshClient *sshgo.Client) (err error) {
 	remoteIndexFile := filepath.Join(cnf.BackupToRemote.SaveDir, filepath.Base(indexFilePath))
 	var remoteConfigFile string
@@ -488,19 +556,23 @@ func runBackupToRemote(cnf *config.BackupConfig, indexFilePath string,
 		return errors.Errorf("config file path is empty")
 	}
 
-	// tar and split by remote
+	// tar and split on remote
 	remoteDbbackupBin := filepath.Join(backupexe.ExecuteHome+"-remote", "dbbackup")
 	remoteCmd, _ := sshClient.Command(remoteDbbackupBin, "tar-upload",
 		"--config", remoteConfigFile,
-		"--backup-index-file", remoteIndexFile)
+		"--backup-index-file", remoteIndexFile,
+		"--backup-target-dir", cnf.BackupToRemote.SaveDir,
+		"--with-remote-enabled")
 	logger.Log.Infof("run command in remote:%s ", remoteCmd.String())
+	var cmdErr bytes.Buffer
+	remoteCmd.Stderr = &cmdErr
 	if err = remoteCmd.Run(); err != nil {
-		return err
+		return errors.WithMessagef(err, cmdErr.String())
 	}
 
 	// .index.remote 里面肯定会补充备份文件列表
 	if err = sshClient.Download(remoteIndexFile+".remote", indexFilePath); err != nil {
-		return err
+		return errors.WithMessagef(err, "download remote index file failed:%s", remoteIndexFile+".remote")
 	}
 	newIndexFileMd5, err := cmutil.GetFileMd5(indexFilePath)
 	if err != nil {
@@ -509,6 +581,7 @@ func runBackupToRemote(cnf *config.BackupConfig, indexFilePath string,
 	if oldIndexFileMd5 == newIndexFileMd5 {
 		return errors.Errorf("index file %s md5 expect to be changed by remote, please check", indexFilePath)
 	}
+	logReport.RemoteSide = false
 	if err = logReport.ReportBackupResult(indexFilePath, false, false); err != nil {
 		logger.Log.Error("failed to report backup result, err: ", err)
 		return err
@@ -517,10 +590,12 @@ func runBackupToRemote(cnf *config.BackupConfig, indexFilePath string,
 	return nil
 }
 
+// backupTarAndUpload 上传备份文件到远程
+// Tar + ReportBackupResult(upload)
 func backupTarAndUpload(
 	cnf *config.BackupConfig,
 	indexFilePath string,
-	logReport *dbareport.BackupLogReport) error {
+	logReport *dbareport.BackupLogReport) (err error) {
 
 	metaInfo := &dbareport.IndexContent{}
 	if buf, err := os.ReadFile(indexFilePath); err != nil {
@@ -531,35 +606,40 @@ func backupTarAndUpload(
 		}
 	}
 	targetDirName := strings.TrimSuffix(filepath.Base(indexFilePath), ".index")
+	targetDir := path.Join(cnf.Public.BackupDir, targetDirName)
 	cnf.Public.SetTargetName(targetDirName)
 	cnf.Public.BackupDir = filepath.Dir(indexFilePath)
-	cnf.Public.BackupType = metaInfo.BackupType
+	cnf.Public.BackupType = metaInfo.BackupType // this is real backup type
+	cnf.Public.DataSchemaGrant = metaInfo.DataSchemaGrant
 
-	err := logReport.ReportBackupStatus("Tar")
-	if err != nil {
-		logger.Log.Error("report tar failed: ", err)
-		return err
-	}
 	// build regex used for package
 	if err = logReport.BuildMetaInfo(cnf, metaInfo); err != nil {
 		return err
 	}
 
 	// 如果 index 里面的文件列表全都存在，说明已经完成了打包切分，不需要再执行 PackageBackupFiles
-	allFileExists := true
-	if len(metaInfo.FileList) == 0 {
-		allFileExists = false
+	alreadyTarballed := false
+	if cnf.Public.IfBackupGrantOnly() && !cnf.BackupToRemote.EnableRemote {
+		alreadyTarballed = true
+		metaInfo.AddPrivFileItem(targetDir)
+		if err = metaInfo.SaveIndexContent(indexFilePath); err != nil {
+			return err
+		}
+	} else if len(metaInfo.FileList) == 0 {
+		alreadyTarballed = false
 	} else {
 		for _, tarFile := range metaInfo.FileList {
+			if tarFile.FileType == cst.FilePriv || tarFile.FileType == cst.FileIndex {
+				continue
+			}
+			// 如果已经存在 tar file，我们认为已经打包过了. 但我们也要检查tar文件是否还存在本地
+			alreadyTarballed = true
 			if f := filepath.Join(cnf.Public.BackupDir, tarFile.FileName); !cmutil.FileExists(f) {
-				allFileExists = false
-				logger.Log.Warnf("file not exists %s from index file", f)
-			} else {
-				logger.Log.Infof("file exists %s from index file", f)
+				return errors.Errorf("file not exists %s from index file", f)
 			}
 		}
 	}
-	if !allFileExists {
+	if !alreadyTarballed {
 		// PackageBackupFiles 会把打包后的文件信息，更新到 metaInfo
 		logger.Log.Infof("start to tar files, Index BackupMetaInfo:%+v", metaInfo)
 		_, tarErr := backupexe.PackageBackupFiles(cnf, metaInfo)
@@ -568,11 +648,14 @@ func backupTarAndUpload(
 			return tarErr
 		}
 	}
-	// report backup info to dba
-	logger.Log.Info("report backup info: begin")
-	if err = logReport.ReportBackupStatus("Report"); err != nil {
-		return err
-	}
+	defer func() {
+		if !logReport.RemoteSide {
+			err2 := logReport.ReportToLocalBackup(indexFilePath)
+			if err2 != nil {
+				logger.Log.Warnf("failed to write %d local_backup_report, err: %s. ignore", metaInfo.BackupPort, err2)
+			}
+		}
+	}()
 	// 只有 standby 实例 才需要上报（非 standby 默认是不 report, 不 upload）
 	if cnf.BackupClient.EnableBackupClient == "yes" {
 		// run backup_client
@@ -581,11 +664,6 @@ func backupTarAndUpload(
 			return err
 		}
 	}
-	if err = logReport.ReportToLocalBackup(indexFilePath); err != nil {
-		logger.Log.Warnf("failed to write %d local_backup_report, err: %s. ignore", metaInfo.BackupPort, err)
-		// return err
-	}
 
-	logger.Log.Info("report backup info: end")
 	return nil
 }

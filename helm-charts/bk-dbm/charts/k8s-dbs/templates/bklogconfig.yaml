@@ -1,0 +1,61 @@
+{{- if .Values.bkLogConfig.enabled }}
+apiVersion: bk.tencent.com/v1alpha1
+kind: BkLogConfig
+metadata:
+  name: k8s-dbs-log-api
+  {{- if not (eq .Values.bkLogConfig.bkEnv "")}}
+  labels:
+    bk_env: {{ .Values.bkLogConfig.bkEnv }}
+  {{- end}}
+spec:
+  dataId: {{ .Values.bkLogConfig.dataIdForApi }}
+  logConfigType: container_log_config
+  namespace: {{ .Release.Namespace | quote }}
+  containerNameMatch:
+    - dbs
+  path:
+    - /app/logs/api.log
+  encoding: 'utf-8'
+  labelSelector:
+    matchLabels:
+      app: {{ .Release.Name }}
+---
+apiVersion: bk.tencent.com/v1alpha1
+kind: BkLogConfig
+metadata:
+  name: k8s-dbs-log-sys
+  {{- if not (eq .Values.bkLogConfig.bkEnv "") }}
+  labels:
+    bk_env: {{ .Values.bkLogConfig.bkEnv }}
+  {{- end}}
+spec:
+  dataId: {{ .Values.bkLogConfig.dataIdForSys }}
+  logConfigType: container_log_config
+  namespace: {{ .Release.Namespace | quote }}
+  containerNameMatch:
+    - dbs
+  path:
+    - /app/logs/logs/sys.log
+    - /app/logs/access_log.*
+  encoding: 'utf-8'
+  labelSelector:
+    matchLabels:
+      app: {{ .Release.Name }}
+---
+apiVersion: bk.tencent.com/v1alpha1
+kind: BkLogConfig
+metadata:
+  name: k8s-dbs-log-stdout
+  {{- if not (eq .Values.bkLogConfig.bkEnv "") }}
+  labels:
+    bk_env: {{ .Values.bkLogConfig.bkEnv }}
+  {{- end}}
+spec:
+  dataId: {{ .Values.bkLogConfig.dataId }}
+  logConfigType: std_log_config
+  namespace: {{ .Release.Namespace | quote }}
+  encoding: 'utf-8'
+  labelSelector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  {{- end }}

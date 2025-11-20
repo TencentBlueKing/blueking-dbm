@@ -3,7 +3,6 @@ package kafka
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -56,6 +55,7 @@ type InstallKafkaParams struct {
 	ServiceType    string          `json:"service_type"`
 	NoSecurity     int             `json:"no_security"`     // 兼容现有,0:有鉴权,1:无鉴权
 	RetentionBytes int             `json:"retention_bytes"` // log.retention.bytes 默认-1
+	Rack           string          `json:"rack"`            // 所属机架
 }
 
 // InitDirs TODO
@@ -139,29 +139,37 @@ func (i *InstallKafkaComp) InitKafkaNode() error {
 		return err
 	}
 
-	logger.Info("写入/etc/profile")
-	scripts := []byte(`sed -i '/500000/d' /etc/profile
-sed -i '/JAVA_HOME/d' /etc/profile
-sed -i '/LC_ALL/d' /etc/profile
-sed -i '/mysql/d' /etc/profile
-sed -i '/USERNAME/d' /etc/profile
-sed -i '/PASSWORD/d' /etc/profile
-echo 'ulimit -n 500000
+	// 假设此处能访问 i.Params.Port
+	kafkaPort := fmt.Sprint(i.Params.Port) // 如果 Port 是 int 会转成字符串
+
+	logger.Info("写入 /etc/profile.d/kafkaenv.sh")
+
+	scriptFile := "/etc/profile.d/kafkaenv.sh"
+	scripts := []byte(fmt.Sprintf(`# kafkaenv 设置
+# 提高文件描述符限制
+ulimit -n 500000
+
+# Java 环境
 export JAVA_HOME=/data/kafkaenv/jdk
 export JRE=$JAVA_HOME/jre
-export PATH=$JAVA_HOME/bin:$JRE_HOME/bin:$PATH
+
+# Kafka 端口
+export KAFKA_PORT=%s
+
+# PATH 优先包含 mysql 和 jdk/jre bin
+export PATH=/usr/local/mysql/bin:$JAVA_HOME/bin:$JRE/bin:$PATH
+
+# 类路径
 export CLASSPATH=".:$JAVA_HOME/lib:$JRE/lib:$CLASSPATH"
-export LC_ALL=en_US
-export PATH=/usr/local/mysql/bin/:$PATH'>> /etc/profile
+`, kafkaPort))
 
-source /etc/profile`)
-
-	scriptFile := "/data/kafkaenv/init.sh"
-	if err := ioutil.WriteFile(scriptFile, scripts, 0644); err != nil {
+	if err := os.WriteFile(scriptFile, scripts, 0644); err != nil {
 		logger.Error("write %s failed, %v", scriptFile, err)
+		return err
 	}
 
-	extraCmd = fmt.Sprintf("bash %s", scriptFile)
+	// 设置权限并立即在当前 shell（子进程）中生效
+	extraCmd = fmt.Sprintf("chmod 0755 %s && bash -c 'source %s || true'", scriptFile, scriptFile)
 	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("修改系统参数失败:%s", err.Error())
 		return err
@@ -340,7 +348,7 @@ func (i *InstallKafkaComp) InstallZookeeper() error {
 		ZookeeperBaseDir = fmt.Sprintf("%s/zookeeper-%s", cst.DefaultKafkaEnv, cst.DefaultZookeeperVersion)
 	)
 
-	if _, err := net.Dial("tcp", fmt.Sprintf("%s:%d", nodeIP, 2181)); err == nil {
+	if _, err := net.Dial("tcp", net.JoinHostPort(nodeIP, "2181")); err == nil {
 		logger.Error("zookeeper process exist")
 		return errors.New("zookeeper process exist")
 	}
@@ -380,7 +388,7 @@ func (i *InstallKafkaComp) InstallZookeeper() error {
 	logger.Info("生成zookeeper.ini文件")
 	zookeeperini := esutil.GenZookeeperini()
 	zookeeperiniFile := fmt.Sprintf("%s/zookeeper.ini", cst.DefaultKafkaSupervisorConf)
-	if err := ioutil.WriteFile(zookeeperiniFile, zookeeperini, 0); err != nil {
+	if err := os.WriteFile(zookeeperiniFile, zookeeperini, 0); err != nil {
 		logger.Error("write %s failed, %v", zookeeperiniFile, err)
 	}
 
@@ -403,7 +411,7 @@ func (i *InstallKafkaComp) InstallZookeeper() error {
 	// sleep 30
 	time.Sleep(30 * time.Second)
 
-	if _, err := net.Dial("tcp", fmt.Sprintf("%s:%d", nodeIP, 2181)); err != nil {
+	if _, err := net.Dial("tcp", net.JoinHostPort(nodeIP, "2181")); err != nil {
 		logger.Error("zookeeper start failed %v", err)
 		return err
 	}
@@ -485,7 +493,19 @@ func (i *InstallKafkaComp) InitKafkaUser() (err error) {
 		username)
 	if output, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("copy basedir failed, %s, %s", output, err.Error())
-		return err
+	}
+
+	extraCmd = fmt.Sprintf(
+		"%s/bin/kafka-acls.sh --authorizer-properties zookeeper.connect=%s:2181 "+
+			" --add --allow-principal User:%s --operation All "+
+			" --topic '*' --group '*' --cluster",
+		kafkaBaseDir,
+		zookeeperIPList[0],
+		username,
+	)
+	logger.Info(extraCmd)
+	if output, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+		logger.Error("kafka-acls.sh failed, %s, %s", output, err.Error())
 	}
 
 	return nil
@@ -515,6 +535,7 @@ func (i *InstallKafkaComp) InstallBroker() error {
 		noSecurity     = i.Params.NoSecurity
 		brokerConfig   = i.Params.KafkaConfigs
 		retentionBytes = i.Params.RetentionBytes
+		rack           = i.Params.Rack
 	)
 
 	if retentionBytes == 0 {
@@ -587,6 +608,7 @@ func (i *InstallKafkaComp) InstallBroker() error {
 			Listeners:                listeners,
 			ZookeeperConnect:         zookeeperConnect,
 			LogRetentionBytes:        retentionBytes,
+			BrokerRack:               rack,
 		}
 		if err := kafkautil.CreateServerPropertiesFile(brokerConfig, templateData, cst.KafkaTmpConfig); err != nil {
 			return err
@@ -624,7 +646,7 @@ func (i *InstallKafkaComp) InstallBroker() error {
 	// sleep 60s for wating kafka up
 	time.Sleep(30 * time.Second)
 
-	if _, err := net.Dial("tcp", fmt.Sprintf("%s:%d", nodeIP, port)); err != nil {
+	if _, err := net.Dial("tcp", net.JoinHostPort(nodeIP, fmt.Sprintf("%d", port))); err != nil {
 		logger.Error("broker start failed %v", err)
 		return err
 	}
@@ -728,7 +750,7 @@ func startKafka(kafkaEnvDir string, noSecurity int) (err error) {
 	logger.Info("生成kafka.ini文件")
 	kafkaini := esutil.GenKafkaini()
 	kafkainiFile := fmt.Sprintf("%s/kafka.ini", cst.DefaultKafkaSupervisorConf)
-	if err = ioutil.WriteFile(kafkainiFile, kafkaini, 0); err != nil {
+	if err = os.WriteFile(kafkainiFile, kafkaini, 0); err != nil {
 		logger.Error("write %s failed, %v", kafkainiFile, err)
 	}
 
@@ -805,7 +827,7 @@ func (i *InstallKafkaComp) InstallManager() error {
 
 	var (
 		nodeIP           = i.Params.Host
-		port             = i.Params.Port
+		port             = cst.KafkaUIPort
 		clusterName      = i.Params.ClusterName
 		zookeeperIP      = i.Params.ZookeeperIP
 		version          = i.Params.Version
@@ -830,8 +852,8 @@ func (i *InstallKafkaComp) InstallManager() error {
 	// Sleep 10 secs
 	time.Sleep(10 * time.Second)
 
-	extraCmd := fmt.Sprintf("sed -i 's/kafka-manager-zookeeper/%s/g' %s", nodeIP,
-		i.KafkaEnvDir+"/cmak-3.0.0.5/conf/application.conf")
+	cmakConfPath := i.KafkaEnvDir + "/cmak-3.0.0.5/conf/application.conf"
+	extraCmd := fmt.Sprintf("sed -i 's/kafka-manager-zookeeper/%s/g' %s", nodeIP, cmakConfPath)
 	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
@@ -839,9 +861,7 @@ func (i *InstallKafkaComp) InstallManager() error {
 
 	// 修改 play.http.contex="/{bkid}/{dbtype}/{cluster}/kafka_manager"
 	httpPath := fmt.Sprintf("/%d/%s/%s/%s", bkBizID, dbType, clusterName, serviceType)
-
-	extraCmd = fmt.Sprintf("sed -i '/play.http.context/s#/#%s#' %s", httpPath,
-		i.KafkaEnvDir+"/cmak-3.0.0.5/conf/application.conf")
+	extraCmd = fmt.Sprintf("sed -i '/play.http.context/s#/#%s#' %s", httpPath, cmakConfPath)
 	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
@@ -862,14 +882,19 @@ func (i *InstallKafkaComp) InstallManager() error {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
-
+	portConf := fmt.Sprintf("play.server.http.port=%d", port)
+	extraCmd = fmt.Sprintf(`grep -qxF '%s' %s || echo '%s' >> %s`, portConf, cmakConfPath, portConf, cmakConfPath)
+	if _, err := osutil.ExecShellCommandJ(false, extraCmd); err != nil {
+		logger.Error("%s execute failed, %v", extraCmd, err)
+		return err
+	}
 	if err := startManager(i.KafkaEnvDir); err != nil {
 		return err
 	}
 
 	for i := 0; i < 30; i++ {
 		time.Sleep(10 * time.Second)
-		if _, err := net.Dial("tcp", fmt.Sprintf("%s:%d", nodeIP, port)); err == nil {
+		if _, err := net.Dial("tcp", net.JoinHostPort(nodeIP, fmt.Sprintf("%d", port))); err == nil {
 			break
 		}
 	}
@@ -884,6 +909,13 @@ func (i *InstallKafkaComp) InstallManager() error {
 	}
 	if err := configCluster(cmak, noSecurity); err != nil {
 		return err
+	}
+
+	path := "/data/kafkaenv/kafkaui"
+	if osutil.FileExist(path) {
+		i.InstallKafkaUI()
+	} else {
+		logger.Info("kafkaui not exist, skip install kafkaui")
 	}
 
 	return nil
@@ -928,7 +960,7 @@ func installZookeeper(zookeeperBaseDir string, kafkaEnvDir string) error {
 	logger.Info("生成zookeeper.ini文件")
 	zookeeperini := esutil.GenZookeeperini()
 	zookeeperiniFile := fmt.Sprintf("%s/zookeeper.ini", cst.DefaultKafkaSupervisorConf)
-	if err := ioutil.WriteFile(zookeeperiniFile, zookeeperini, 0); err != nil {
+	if err := os.WriteFile(zookeeperiniFile, zookeeperini, 0); err != nil {
 		logger.Error("write %s failed, %v", zookeeperiniFile, err)
 	}
 
@@ -955,7 +987,7 @@ func startManager(kafkaEnvDir string) (err error) {
 	logger.Info("生成manager.ini文件")
 	managerini := esutil.GenManagerini()
 	manageriniFile := fmt.Sprintf("%s/manager.ini", cst.DefaultKafkaSupervisorConf)
-	if err = ioutil.WriteFile(manageriniFile, managerini, 0); err != nil {
+	if err = os.WriteFile(manageriniFile, managerini, 0); err != nil {
 		logger.Error("write %s failed, %v", manageriniFile, err)
 	}
 
@@ -1032,7 +1064,7 @@ func configCluster(cmak CmakConfig, noSecurity int) (err error) {
 		postData.Add("jaasConfig", "")
 	}
 	// http://localhost:9000/{prefix}/clusters
-	url := "http://" + cmak.NodeIP + ":9000" + cmak.HTTPPath + "/clusters"
+	url := fmt.Sprintf("http://%s:%d/%s/clusters", cmak.NodeIP, cst.KafkaUIPort, cmak.HTTPPath)
 	req, err := http.NewRequest("POST", url, strings.NewReader(postData.Encode()))
 	if err != nil {
 		return err
@@ -1046,4 +1078,113 @@ func configCluster(cmak CmakConfig, noSecurity int) (err error) {
 		return err
 	}
 	return nil
+}
+
+// InstallKafkaUI TODO
+func (i *InstallKafkaComp) InstallKafkaUI() error {
+	var (
+		servicePort      = i.Params.Port
+		clusterName      = i.Params.ClusterName
+		bootstrapServers = fmt.Sprintf("%s:%s", i.Params.Host, getenvOr("KAFKA_PORT", "9092"))
+		username         = i.Params.Username
+		password         = i.Params.Password
+		jaasConfig       = fmt.Sprintf(
+			`org.apache.kafka.common.security.scram.ScramLoginModule required username="%s" password="%s";`, username, password)
+		bkBizID        = i.Params.BkBizID
+		dbType         = i.Params.DbType
+		serviceType    = i.Params.ServiceType
+		httpPath       = fmt.Sprintf("/%d/%s/%s/%s", bkBizID, dbType, clusterName, serviceType)
+		kafkaEnvDir    = i.KafkaEnvDir
+		supervisorConf = cst.DefaultKafkaSupervisorConf + "/kafkaui.ini"
+		envFile        = "/etc/profile.d/kafkaui.sh"
+	)
+
+	// 1. 生成 kafkaui.sh
+	logger.Info("生成 kafkaui.sh")
+	envContent := fmt.Sprintf(`export KAFKA_CLUSTERS_0_NAME='%s'
+export KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS='%s'
+export KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL='SASL_PLAINTEXT'
+export KAFKA_CLUSTERS_0_PROPERTIES_SASL_MECHANISM='SCRAM-SHA-512'
+export KAFKA_CLUSTERS_0_PROPERTIES_SASL_JAAS_CONFIG='%s'
+export AUTH_TYPE='LOGIN_FORM'
+export SPRING_SECURITY_USER_NAME='%s'
+export SPRING_SECURITY_USER_PASSWORD='%s'
+export SERVER_SERVLET_CONTEXT_PATH='%s'
+export DYNAMIC_CONFIG_ENABLED='true'
+export SERVER_PORT='%d'
+`, clusterName, bootstrapServers, jaasConfig, username, password, httpPath, servicePort)
+
+	if err := os.WriteFile(envFile, []byte(envContent), 0644); err != nil {
+		logger.Error("write kafkaui.sh failed: %v", err)
+		return err
+	}
+
+	// 2. 生成 supervisor 配置
+	logger.Info("生成 supervisor 配置")
+	supervisorContent := fmt.Sprintf(`[program:kafkaui]
+command=/data/kafkaenv/kafkaui/start-kafkaui.sh ;
+numprocs=1 ;
+autostart=true ;
+autorestart=true ;
+startretries=99 ;
+exitcodes=0 ;
+stopsignal=TERM ;
+stopasgroup=true ;
+killasgroup=true ;
+user=mysql ;
+redirect_stderr=true ;
+stdout_logfile=%s/kafkaui/kafkaui.log ;
+stdout_logfile_maxbytes=50MB ;
+stdout_logfile_backups=10 ;
+`, kafkaEnvDir)
+
+	if err := os.WriteFile(supervisorConf, []byte(supervisorContent), 0644); err != nil {
+		logger.Error("write supervisor conf failed: %v", err)
+		return err
+	}
+
+	extraCmd := fmt.Sprintf("chown -R mysql %s ", kafkaEnvDir)
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+		logger.Error("[%s] execute failed, %v", extraCmd, err)
+		return err
+	}
+
+	extraCmd = "mkdir -p /etc/kafkaui && chown -R mysql /etc/kafkaui"
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+		logger.Error("[%s] execute failed, %v", extraCmd, err)
+		return err
+	}
+
+	// 3. 重载supervisor并启动
+	logger.Info("重载 supervisor 并启动 kafkaui")
+	if _, err := osutil.ExecShellCommand(false, "supervisorctl update"); err != nil {
+		logger.Error("supervisorctl update failed: %v", err)
+		return err
+	}
+
+	// 4. 检查端口
+	var lastErr error
+	for range 10 {
+		time.Sleep(10 * time.Second)
+		_, err := net.Dial("tcp", net.JoinHostPort(i.Params.Host, fmt.Sprintf("%d", servicePort)))
+		if err == nil {
+			lastErr = nil
+			break
+		}
+		lastErr = err
+	}
+	if lastErr != nil {
+		return fmt.Errorf("service start failed: cannot connect to %s:%d after 5 minutes, last error: %v",
+			i.Params.Host, servicePort, lastErr)
+	}
+
+	logger.Info("KafkaUI deployed successfully")
+	return nil
+}
+
+func getenvOr(key, def string) string {
+	if v, ok := os.LookupEnv(key); ok {
+		return v
+	}
+	return def
 }

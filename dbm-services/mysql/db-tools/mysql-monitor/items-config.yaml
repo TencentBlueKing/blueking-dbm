@@ -279,3 +279,12 @@
   machine_type:
   - proxy
   role: []
+- name: maintaingrantproc
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - spider
+  - remote
+  - backend
+  - single
+  role: []

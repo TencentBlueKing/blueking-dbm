@@ -32,13 +32,6 @@
           {{ t('重试') }}
         </BkButton>
       </ProcessResourceReplenish>
-      <ProcessTerminate :todo-data="data">
-        <BkButton
-          class="w-88 ml-8"
-          theme="danger">
-          {{ t('终止单据') }}
-        </BkButton>
-      </ProcessTerminate>
     </template>
   </div>
 </template>
@@ -53,7 +46,6 @@
   import CostTimer from '@components/cost-timer/CostTimer.vue';
 
   import ProcessResourceReplenish from '@views/ticket-center/common/action-confirm/ProcessResourceReplenish.vue';
-  import ProcessTerminate from '@views/ticket-center/common/action-confirm/ProcessTerminate.vue';
 
   import { utcDisplayTime, utcTimeToSeconds } from '@utils';
 

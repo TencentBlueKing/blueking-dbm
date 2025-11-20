@@ -6,11 +6,18 @@
       <TableCollapse
         v-for="(item, index) in abstractList"
         :key="index"
-        :title="item.table_name">
-        <BkTable
-          :columns="item.titles"
+        :title="item.table_display_name || item.table_name">
+        <TicketInfoTable
           :data="item.values"
-          header-row-class-name="abstract-table-header-row" />
+          header-row-class-name="abstract-table-header-row"
+          :row-key="item.titles[0].field">
+          <TicketInfoTableColumn
+            v-for="titleItem in item.titles"
+            :key="titleItem.field"
+            :col-key="titleItem.field"
+            :get-copy-value="titleItem.field === 'ip' ? (row) => row.ip : undefined"
+            :title="titleItem.label" />
+        </TicketInfoTable>
       </TableCollapse>
     </div>
   </FlowCollapse>
@@ -20,9 +27,9 @@
 
   import FlowMode from '@services/model/ticket/flow';
 
-  import FlowCollapse from '../FlowCollapse.vue';
+  import TableCollapse from '@components/table-collapse/Index.vue';
 
-  import TableCollapse from './components/TableCollapse.vue';
+  import FlowCollapse from '../FlowCollapse.vue';
 
   interface Props {
     data: FlowMode<unknown, any>;

@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Dict, List, Tuple
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.models import Cluster
 from backend.db_services.dbpermission.constants import AccountType

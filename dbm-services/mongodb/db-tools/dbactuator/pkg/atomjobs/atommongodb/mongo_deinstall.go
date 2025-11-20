@@ -176,8 +176,8 @@ func (d *DeInstall) checkConnection() error {
 	}
 	result = strings.Replace(result, "\n", "", -1)
 	if result != "" {
-		d.runtime.Logger.Error("check connection fail, there are some connections")
-		return fmt.Errorf("check connection fail, there are some connections")
+		d.runtime.Logger.Error("check connection fail, there are some connections:%s", result)
+		return fmt.Errorf("check connection fail, there are some connections:%s", result)
 	}
 	return nil
 }

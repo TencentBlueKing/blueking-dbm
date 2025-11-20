@@ -19,11 +19,11 @@ func RequestLoggerMiddleware() gin.HandlerFunc {
 			tee := io.TeeReader(c.Request.Body, &buf)
 			body, _ := ioutil.ReadAll(tee)
 			c.Request.Body = ioutil.NopCloser(&buf)
-			log.Println(c.Request.RequestURI, simplifyHeader(c.Request.Header))
+			//log.Println(c.Request.RequestURI, simplifyHeader(c.Request.Header))
 			log.Println("body:", string(body))
 		} else {
 			if !strings.HasPrefix(c.Request.RequestURI, "/ping") {
-				log.Println(c.Request.RequestURI, simplifyHeader(c.Request.Header))
+				//log.Println(c.Request.RequestURI, simplifyHeader(c.Request.Header))
 			}
 		}
 		c.Next()

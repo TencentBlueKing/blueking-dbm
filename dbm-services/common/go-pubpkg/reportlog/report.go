@@ -5,8 +5,10 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 
 	"github.com/pkg/errors"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -47,11 +49,13 @@ func NewReporter(reportDir, filename string, logOpt *LoggerOption) (*Reporter, e
 	var reporter *Reporter = &Reporter{
 		log: &log.Logger{},
 	}
-
 	if reportDir == "" {
 		return nil, errors.Errorf("invalid reportDir:%s", reportDir)
-	} else if link, _ := cmutil.IsSymLinkFile(reportDir); link {
-		_ = os.Remove(reportDir) // /home/mysql/dbareport 不使用软连
+	}
+	if strings.Contains(reportDir, "dbareport/mysql") { // mysql 的 /home/mysql/dbareport 不使用软连
+		if link, _ := cmutil.IsSymLinkFile(cst.DBAReportBase); link {
+			_ = os.Remove(cst.DBAReportBase)
+		}
 	}
 	if !cmutil.IsDirectory(reportDir) {
 		if err := os.MkdirAll(reportDir, 0755); err != nil {

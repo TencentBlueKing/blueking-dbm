@@ -29,11 +29,11 @@
     (e: 'change', value: T): void;
   }>();
 
+  const modelValue = defineModel<T>();
+
   const attrs = useAttrs();
 
   const columnContext = useColumn();
-
-  const modelValue = defineModel<T>();
 
   watch(modelValue, () => {
     columnContext?.validate('change');
@@ -55,6 +55,25 @@
   };
 </script>
 <style lang="less">
+  .bk-editable-table-body-column {
+    &.is-readonly,
+    &.is-disabled {
+      .bk-editable-time-picker {
+        .bk-date-picker {
+          pointer-events: none;
+
+          .clear-action {
+            display: none !important;
+          }
+
+          * {
+            pointer-events: none;
+          }
+        }
+      }
+    }
+  }
+
   .bk-editable-time-picker {
     &.bk-date-picker {
       width: 100%;

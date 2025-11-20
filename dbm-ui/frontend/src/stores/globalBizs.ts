@@ -50,6 +50,7 @@ export const useGlobalBizs = defineStore('GlobalBizs', {
     bizListWithPublic: (state) => {
       return [PUBLIC_BIZ_INFO].concat(state.bizs);
     },
+    bizNameMap: (state) => Object.fromEntries(state.bizs.map((item) => [item.name, item.bk_biz_id])),
     currentBizInfo: (state): BizItem | undefined => state.bizs.find((item) => item.bk_biz_id === state.currentBizId),
     publicBiz: () => PUBLIC_BIZ_INFO,
   },
@@ -110,6 +111,15 @@ export const useGlobalBizs = defineStore('GlobalBizs', {
         .finally(() => {
           this.loading = false;
         });
+    },
+    /**
+     * 通过业务ID 拿到业务信息
+     * @param bizId
+     * @returns
+     */
+    getBizInfoById(bizId: number) {
+      const targetBizItem = this.bizs.find((item) => item.bk_biz_id === bizId);
+      return targetBizItem;
     },
     /**
      * 判断是否存在业务且有业务权限

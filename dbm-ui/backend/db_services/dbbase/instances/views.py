@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -40,6 +40,8 @@ class InstanceViewSet(viewsets.SystemViewSet):
             InstanceHandler(bk_biz_id=bk_biz_id).check_instances(
                 query_instances=validated_data["instance_addresses"],
                 cluster_ids=validated_data["cluster_ids"],
+                cluster_type=validated_data["cluster_type"],
                 db_type=db_type,
+                instance_role=validated_data["instance_role"],
             )
         )

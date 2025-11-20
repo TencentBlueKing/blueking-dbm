@@ -12,7 +12,7 @@ from dataclasses import asdict
 from typing import Dict, List, Tuple, Union
 
 from bamboo_engine.builder import SubProcess
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend import env
 from backend.db_proxy.constants import ExtensionAccountEnum

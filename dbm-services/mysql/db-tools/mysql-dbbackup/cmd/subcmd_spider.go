@@ -43,15 +43,14 @@ func init() {
 	// spiderbackup query
 	spiderQueryCmd.Flags().StringSlice("BackupStatus", []string{}, "BackupStatus filter, comma separated")
 	spiderQueryCmd.Flags().String("BackupId", "", "BackupId filter")
+	spiderQueryCmd.Flags().Int("limit", 0, "limit number filter")
+	_ = viper.BindPFlag("query.limit", spiderQueryCmd.Flags().Lookup("limit"))
 	// format 只允许 json,table
 	formatOpt, _ := cmutil.NewPflagEnum("format", "table", []string{"table", "json"})
 	spiderQueryCmd.Flags().Var(formatOpt, formatOpt.Name(),
 		fmt.Sprintf("output format, allowed %v", formatOpt.Choices()))
 	_ = formatOpt.SetChoices(spiderQueryCmd.Flags())
 	_ = viper.BindPFlag("query.format", spiderQueryCmd.Flags().Lookup("format"))
-
-	//spiderCmd.MarkFlagsMutuallyExclusive("schedule", "check", "query")
-	//spiderCmd.MarkFlagRequired("config)
 
 	spiderCmd.AddCommand(spiderScheduleCmd)
 	spiderCmd.AddCommand(spiderCheckCmd)
@@ -153,7 +152,7 @@ var spiderCheckCmd = &cobra.Command{
 var spiderQueryCmd = &cobra.Command{
 	Use:          "query",
 	Short:        "spiderbackup query",
-	Long:         `Query spider backup task status, only run on spider master`,
+	Long:         `Query spider backup task status, only run on spider master. tdbctl schema backup is not included`,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := logger.InitLog("dbbackup_spider.log"); err != nil {

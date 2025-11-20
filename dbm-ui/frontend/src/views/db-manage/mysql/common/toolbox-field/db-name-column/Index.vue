@@ -12,18 +12,36 @@
 -->
 
 <template>
-  <DbNameColumn
-    v-model="modelValue"
+  <EditableColumn
+    :append-rules="localRules"
+    :disabled-method="disabledMethod"
     :field="field"
     :label="label"
-    :placeholder="t('请输入DB 名称，支持通配符“%”，含通配符的仅支持单个')"
-    :required="required"
-    :rules="localRules"
-    :show-batch-edit="showBatchEdit"
-    :single="single"
-    @batch-edit="handleBatchEdit"
-    @change="handleChange">
-    <template #tip>
+    :min-width="200"
+    :required="required">
+    <template #headAppend>
+      <div style="display: flex">
+        <slot name="tooltip" />
+        <BatchEditColumn
+          v-if="showBatchEdit"
+          :confirm-handler="handleBatchEditConfirm"
+          :label="label">
+          <BatchEditTagInput v-model="batchEditValue" />
+        </BatchEditColumn>
+      </div>
+    </template>
+    <EditableTagInput
+      v-model="modelValue"
+      allow-auto-match
+      allow-create
+      clearable
+      :disabled="disabled"
+      has-delete-icon
+      :max-data="single ? 1 : -1"
+      :paste-fn="tagInputPasteFn"
+      :placeholder="t('请输入DB 名称，支持通配符“%”，含通配符的仅支持单个')"
+      @change="handleChange" />
+    <template #tips>
       <div class="db-table-tag-tip">
         <div style="font-weight: 700">{{ t('库表输入说明') }}：</div>
         <div>
@@ -48,7 +66,7 @@
         </div>
       </div>
     </template>
-  </DbNameColumn>
+  </EditableColumn>
 </template>
 
 <script setup lang="ts">
@@ -58,6 +76,9 @@
 
   import { checkClusterDatabase } from '@services/source/dbbase';
 
+  import { batchSplitRegex } from '@common/regex';
+
+  import BatchEditColumn, { BatchEditTagInput } from '@views/db-manage/common/batch-edit-column-new/Index.vue';
   import DbNameColumn from '@views/db-manage/common/toolbox-field/column/db-table-name-column/Index.vue';
 
   interface Props {
@@ -82,6 +103,7 @@
      */
     checkNotExist?: boolean;
     clusterId?: number;
+    disabled?: boolean;
     field: string;
     label: string;
     required?: boolean;
@@ -99,7 +121,7 @@
     checkNotExist: false,
     clusterId: undefined,
     disabled: false,
-    required: true,
+    required: false,
     rules: () => [],
     showBatchEdit: true,
     single: false,
@@ -113,6 +135,8 @@
   const { t } = useI18n();
 
   let isInit = true;
+
+  const batchEditValue = ref<string[]>([]);
 
   const systemDbNames = ['mysql', 'db_infobase', 'information_schema', 'performance_schema', 'sys', 'infodba_schema'];
 
@@ -173,16 +197,16 @@
       trigger: 'change',
       validator: (value: string[]) => _.every(value, (item) => !/^%$/.test(item)),
     },
-    {
-      message: t('含通配符的单元格仅支持输入单个对象'),
-      trigger: 'change',
-      validator: (value: string[]) => {
-        if (_.some(value, (item) => /[*%?]/.test(item))) {
-          return value.length < 2;
-        }
-        return true;
-      },
-    },
+    // {
+    //   message: t('含通配符的单元格仅支持输入单个对象'),
+    //   trigger: 'change',
+    //   validator: (value: string[]) => {
+    //     if (_.some(value, (item) => /[*%?]/.test(item))) {
+    //       return value.length < 2;
+    //     }
+    //     return true;
+    //   },
+    // },
     {
       message: t('DB 已存在'),
       trigger: 'change',
@@ -264,9 +288,18 @@
     },
   );
 
-  const handleBatchEdit = (value: string[]) => {
+  const disabledMethod = () => {
+    if (!props.checkExist || !props.checkNotExist) {
+      return false;
+    }
+    return props.clusterId ? false : t('请先选择集群');
+  };
+
+  const tagInputPasteFn = (value: string) => value.split(batchSplitRegex).map((item) => ({ id: item }));
+
+  const handleBatchEditConfirm = () => {
     isInit = false;
-    emits('batch-edit', value, props.field);
+    emits('batch-edit', batchEditValue.value, props.field);
   };
 
   const handleChange = () => {

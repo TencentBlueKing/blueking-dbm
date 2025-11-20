@@ -57,6 +57,35 @@ def switch_slave(cluster_id: int, target_slave_ip: str, source_slave_ip: str, sl
 
 
 @transaction.atomic
+def switch_single(cluster_id: int, target_orphan_ip: str, source_orphan_ip: str, domains: list):
+    """
+    集群替换single场景元数据注册方式
+    """
+    cluster = Cluster.objects.get(id=cluster_id)
+    cluster_storage_port = StorageInstance.objects.filter(cluster=cluster).all()[0].port
+    target_storage_obj = StorageInstance.objects.get(
+        machine__ip=target_orphan_ip, port=cluster_storage_port, machine__bk_cloud_id=cluster.bk_cloud_id
+    )
+    source_storage_obj = StorageInstance.objects.get(
+        machine__ip=source_orphan_ip, port=cluster_storage_port, machine__bk_cloud_id=cluster.bk_cloud_id
+    )
+    cluster_entry_list = cluster.clusterentry_set.filter(entry__in=domains)
+    for cluster_entry in cluster_entry_list:
+        cluster_entry.storageinstance_set.remove(source_storage_obj)
+        cluster_entry.storageinstance_set.add(target_storage_obj)
+    # target实例需要继承source实例的is_standby特性
+    target_storage_obj.status = InstanceStatus.RUNNING.value
+    target_storage_obj.phase = InstancePhase.ONLINE.value
+    target_storage_obj.save()
+    if source_storage_obj.ip_port != target_storage_obj.ip_port:
+        cluster.storageinstance_set.remove(source_storage_obj)
+        source_storage_obj.status = InstanceStatus.UNAVAILABLE.value
+        source_storage_obj.phase = InstancePhase.OFFLINE.value
+        source_storage_obj.is_stand_by = False
+        source_storage_obj.save()
+
+
+@transaction.atomic
 def add_slave(cluster_id: int, target_slave_ip: str):
     """
     集群添加slave

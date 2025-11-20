@@ -15,8 +15,8 @@ import logging
 import re
 from typing import List
 
-from django.utils.translation import ugettext as _
-from jinja2 import Environment
+from django.utils.translation import gettext as _
+from jinja2.sandbox import SandboxedEnvironment as Environment
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
@@ -46,7 +46,7 @@ class _ExecBkJobService(BkJobService):
            root_id:  db-actuator任务必须参数，做录入日志平台的条件
            node_id:  db-actuator任务必须参数，做录入日志平台的条件
            node_name: db-actuator任务必须参数，做录入日志平台的条件
-           get_redis_payload_func : 表示获取执行 redis的db-actuator 参数方法名称，对应RedisActPayload类
+           payload_func : payload_func 参数，表示获取执行的db-actuator 参数方法名称，对应db-actuator的payload_func类
            exec_ip: 表示执行的ip节点
            get_trans_data_ip_name: 表示从上下文获取到执行ip的变量名，对应单据的获取到上下文dataclass类
            cluster: 操作的集群名称

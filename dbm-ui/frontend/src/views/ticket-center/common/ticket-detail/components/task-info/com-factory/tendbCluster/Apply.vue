@@ -26,6 +26,9 @@
     <InfoItem :label="t('集群别名')">
       {{ ticketDetails.details.cluster_alias || '--' }}
     </InfoItem>
+    <InfoItem :label="t('管控区域')">
+      {{ ticketDetails.details.bk_cloud_name || '--' }}
+    </InfoItem>
   </InfoList>
   <RegionRequirements :details="ticketDetails.details" />
   <div
@@ -47,11 +50,9 @@
       {{ ticketDetails.details.spider_port || '--' }}
     </InfoItem>
     <InfoItem :label="t('接入层Master')">
-      <BkPopover
-        disable-outside-click
-        :offset="16"
-        placement="top"
-        theme="light">
+      <SpecDetailPopover
+        :data="ticketDetails.details.resource_spec.spider"
+        placement="top">
         <span
           class="pb-2"
           style="cursor: pointer; border-bottom: 1px dashed #979ba5">
@@ -59,35 +60,34 @@
             `${ticketDetails.details.resource_spec.spider.count} ${t('台')}`
           }}）
         </span>
-        <template #content>
-          <SpecInfos :data="ticketDetails.details.resource_spec.spider" />
-        </template>
-      </BkPopover>
+      </SpecDetailPopover>
     </InfoItem>
     <InfoItem
-      :label="t('集群部署方案：')"
-      style="width: 100%">
-      <BkTable :data="[ticketDetails.details.resource_spec.backend_group.spec_info]">
-        <BkTableColumn
-          field="spec_name"
-          :label="t('资源规格')">
-        </BkTableColumn>
-        <BkTableColumn
-          field="machine_pair"
-          :label="t('需机器组数')">
-        </BkTableColumn>
-        <BkTableColumn
-          field="cluster_shard_num"
-          :label="t('集群分片')">
-        </BkTableColumn>
-        <BkTableColumn
-          field="qps"
-          :label="t('集群QPS每秒')">
-          <template #default="{data}: {data: ClusterSpecModel}">
-            {{ data.qps.min * data.machine_pair || '--' }}
+      :label="t('集群部署方案')"
+      style="flex: 1 0 100%">
+      <TicketInfoTable
+        :data="[ticketDetails.details.resource_spec.backend_group.spec_info]"
+        row-key="spec_name">
+        <TicketInfoTableColumn
+          col-key="spec_name"
+          :title="t('资源规格')">
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="machine_pair"
+          :title="t('需机器组数')">
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="cluster_shard_num"
+          :title="t('集群分片')">
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="qps"
+          :title="t('集群QPS每秒')">
+          <template #default="{ row }: { row: ClusterSpecModel }">
+            {{ row.qps.min * row.machine_pair || '--' }}
           </template>
-        </BkTableColumn>
-      </BkTable>
+        </TicketInfoTableColumn>
+      </TicketInfoTable>
     </InfoItem>
   </InfoList>
 </template>
@@ -100,9 +100,10 @@
 
   import { TicketTypes } from '@common/const';
 
+  import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
+
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
-  import SpecInfos from '../components/SpecInfos.vue';
 
   interface Props {
     ticketDetails: TicketModel<TendbCluster.Apply>;

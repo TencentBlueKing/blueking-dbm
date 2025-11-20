@@ -99,15 +99,16 @@ type SwitchSyncCheckParam struct {
 
 // ClusterInfo 集群信息，
 type ClusterInfo struct {
-	BkBizID         int      `json:"bk_biz_id"`
-	ImmuteDomain    string   `json:"immute_domain"`
-	ClusterType     string   `json:"cluster_type"`
-	MajorVersion    string   `json:"major_version"`
-	ProxySet        []string `json:"twemproxy_set"`    // addr ip:port
-	RedisMasterSet  []string `json:"redis_master_set"` // addr ip:port [seg_start seg_end]
-	RedisSlaveSet   []string `json:"redis_slave_set"`  // addr ip:port
-	ProxyPassword   string   `json:"proxy_pass"`
-	StoragePassword string   `json:"storage_pass"`
+	BkBizID      int    `json:"bk_biz_id"`
+	ImmuteDomain string `json:"immute_domain"`
+	ClusterType  string `json:"cluster_type"`
+	MajorVersion string `json:"major_version"`
+	// ProxySet        []string          `json:"twemproxy_set"`        // addr ip:port
+	ProxyStatusSet  map[string]string `json:"twemproxy_status_set"` // addr ip:port
+	RedisMasterSet  []string          `json:"redis_master_set"`     // addr ip:port [seg_start seg_end]
+	RedisSlaveSet   []string          `json:"redis_slave_set"`      // addr ip:port
+	ProxyPassword   string            `json:"proxy_pass"`
+	StoragePassword string            `json:"storage_pass"`
 }
 
 // SwitchParam cluster bind entry
@@ -224,12 +225,12 @@ func (job *RedisSwitch) Run() (err error) {
 		}
 	}()
 
-	// 前置检查
-	if err := job.precheckForSwitch(); err != nil {
-		job.runtime.Logger.Error("redisswitch precheck err:%v, params:%+v", err, job.params)
-		return err
-	}
-	job.runtime.Logger.Info("redisswitch precheck all success !")
+	// // 前置检查 - 独立出来
+	// if err := job.precheckForSwitch(); err != nil {
+	// 	job.runtime.Logger.Error("redisswitch precheck err:%v, params:%+v", err, job.params)
+	// 	return err
+	// }
+	// job.runtime.Logger.Info("redisswitch precheck all success !")
 
 	job.runtime.Logger.Info("redisswitch begin do storages switch .")
 	// 执行切换， proxy并行，instance 窜行
@@ -275,10 +276,11 @@ func (job *RedisSwitch) Run() (err error) {
 				job.runtime.Logger.Error("redisswitch slaveof no one failed when do %d:[%+v];with err:%+v", idx, storagePair, err)
 				return err
 			}
-			if err := job.checkProxyConsistency(); err != nil {
-				job.runtime.Logger.Error("redisswitch after check all proxy backends consistency with err:%+v", err)
-				return err
-			}
+			// 可能有 部分proxy 挂掉了（元数据里边时Unavaiable状态）， 会导致切换失败
+			// if err := job.checkProxyConsistency(); err != nil {
+			// 	job.runtime.Logger.Error("redisswitch after check all proxy backends consistency with err:%+v", err)
+			// 	return err
+			// }
 		} else if consts.IsClusterDbType(job.params.ClusterMeta.ClusterType) {
 			if err := job.doTendisStorageSwitch4Cluster(storagePair); err != nil {
 				job.runtime.Logger.Error("redisswitch switch failed when do %d:[%+v];with err:%+v", idx, storagePair, err)
@@ -460,10 +462,10 @@ func (job *RedisSwitch) trySetMasterAuth(sp InstanceSwitchParam) {
 // doTendisStorageSwitch4Twemproxy 刷新twemproxy 后端
 func (job *RedisSwitch) doTendisStorageSwitch4Twemproxy(storagePair InstanceSwitchParam) error {
 	wg := &sync.WaitGroup{}
-	errCh := make(chan error, len(job.params.ClusterMeta.ProxySet))
-	for _, proxy := range job.params.ClusterMeta.ProxySet {
+	errCh := make(chan error, len(job.params.ClusterMeta.ProxyStatusSet))
+	for proxy, status := range job.params.ClusterMeta.ProxyStatusSet {
 		wg.Add(1)
-		go func(wg *sync.WaitGroup, proxy string) {
+		go func(wg *sync.WaitGroup, proxy string, status string) {
 			defer wg.Done()
 			addrx := strings.Split(proxy, ":")
 			port, _ := strconv.Atoi(addrx[1])
@@ -471,15 +473,15 @@ func (job *RedisSwitch) doTendisStorageSwitch4Twemproxy(storagePair InstanceSwit
 				fmt.Sprintf("%s:%d", storagePair.MasterInfo.IP, storagePair.MasterInfo.Port),
 				fmt.Sprintf("%s:%d", storagePair.SlaveInfo.IP, storagePair.SlaveInfo.Port))
 			if err != nil || (!strings.Contains(rst, "success") &&
-				!strings.Contains(rst, "exits in server pool nosqlproxy")) {
-				errCh <- fmt.Errorf("[%s:%d]switch proxy [%s] to:%s:%d result:%s,err:%+v",
-					storagePair.MasterInfo.IP, storagePair.MasterInfo.Port, proxy,
+				!strings.Contains(rst, "exits in server pool nosqlproxy")) && status == "running" {
+				errCh <- fmt.Errorf("[%s:%d]switch proxy [%s:%s] to:%s:%d result:%s,err:%+v",
+					storagePair.MasterInfo.IP, storagePair.MasterInfo.Port, proxy, status,
 					storagePair.SlaveInfo.IP, storagePair.SlaveInfo.Port, rst, err)
 			}
-			job.runtime.Logger.Info("[%s:%d]switch proxy [%s] to:%s:%d result:%s",
-				storagePair.MasterInfo.IP, storagePair.MasterInfo.Port, proxy,
+			job.runtime.Logger.Info("[%s:%d]switch proxy [%s:%s] to:%s:%d result:%s",
+				storagePair.MasterInfo.IP, storagePair.MasterInfo.Port, proxy, status,
 				storagePair.SlaveInfo.IP, storagePair.SlaveInfo.Port, rst)
-		}(wg, proxy)
+		}(wg, proxy, status)
 	}
 	wg.Wait()
 	close(errCh)
@@ -488,14 +490,104 @@ func (job *RedisSwitch) doTendisStorageSwitch4Twemproxy(storagePair InstanceSwit
 		return someErr
 	}
 	job.setSwitchRst(storagePair, true)
-	job.runtime.Logger.Info("[%s:%d]all proxy switch succ to:%s:%d ^_^",
+	job.runtime.Logger.Info("[%s:%d]all proxy(running) switch succ to:%s:%d ^_^",
 		storagePair.MasterInfo.IP, storagePair.MasterInfo.Port,
 		storagePair.SlaveInfo.IP, storagePair.SlaveInfo.Port)
 	return nil
 }
 
+func (job *RedisSwitch) setSwitchRst(storagePair InstanceSwitchParam, isSucc bool) {
+	switchMaster := fmt.Sprintf("%s:%d", storagePair.MasterInfo.IP, storagePair.MasterInfo.Port)
+	job.SwitchFeild[switchMaster].Target.SwitchCount += 1
+	job.SwitchFeild[switchMaster].Target.IsSwitched = isSucc
+	job.SwitchFeild[switchMaster].Target.SwitchTime = time.Now().Unix()
+}
+
+// Name 原子任务名
+func (job *RedisSwitch) Name() string {
+	return "redis_switch"
+}
+
+// Retry times
+func (job *RedisSwitch) Retry() uint {
+	return 2
+}
+
+// Rollback rollback
+func (job *RedisSwitch) Rollback() error {
+	return nil
+}
+
+/******************************************************************************************************/
+// 独立 一个flow - node 出来
+type RedisSwitchPreCheck struct {
+	runtime *jobruntime.JobGenericRuntime
+	params  *SwitchParam
+
+	HasLastSwitched bool
+	SwitchRstFile   string
+	SwitchFeild     map[string]*SwitchInstacne
+
+	errChan chan error
+}
+
+// NewRedisSwitch 创建一个redis switch对象, 支持切换重试
+// 1. cluster模式下， cluster forget, 2.  切换逻辑验证, 3. 同步状态校验
+func NewRedisSwitchPreCheck() jobruntime.JobRunner {
+	return &RedisSwitchPreCheck{
+		SwitchFeild: map[string]*SwitchInstacne{},
+	}
+}
+
+// Init 初始化
+func (job *RedisSwitchPreCheck) Init(m *jobruntime.JobGenericRuntime) error {
+	job.runtime = m
+	err := json.Unmarshal([]byte(job.runtime.PayloadDecoded), &job.params)
+	if err != nil {
+		job.runtime.Logger.Error(fmt.Sprintf("json.Unmarshal failed,err:%+v", err))
+		return err
+	}
+
+	// 参数有效性检查
+	validate := validator.New()
+	err = validate.Struct(job.params)
+	if err != nil {
+		if _, ok := err.(*validator.InvalidValidationError); ok {
+			job.runtime.Logger.Error("RedisSwitchPreCheck Init params validate failed,err:%v,params:%+v",
+				err, job.params)
+			return err
+		}
+		for _, err := range err.(validator.ValidationErrors) {
+			job.runtime.Logger.Error("RedisSwitchPreCheck Init params validate failed,err:%v,params:%+v",
+				err, job.params)
+			return err
+		}
+	}
+
+	// 集群类型支持校验
+	if _, ok := supportedClusterType[job.params.ClusterMeta.ClusterType]; !ok {
+		job.runtime.Logger.Error("unsupported cluster type :%s", job.params.ClusterMeta.ClusterType)
+		return fmt.Errorf("unsupported cluster type :%s", job.params.ClusterMeta.ClusterType)
+	}
+	return nil
+}
+
+// Run 运行切换逻辑
+func (job *RedisSwitchPreCheck) Run() (err error) {
+	xx, _ := json.Marshal(job.params)
+	job.runtime.Logger.Info("redisswitch start; params:%s", xx)
+
+	// 前置检查
+	if err := job.precheckForSwitch(); err != nil {
+		job.runtime.Logger.Error("redisswitch precheck err:%v, params:%+v", err, job.params)
+		return err
+	}
+	job.runtime.Logger.Info("redisswitch precheck all success !")
+	return nil
+}
+
 // precheckForSwitch 切换前的检查
-func (job *RedisSwitch) precheckForSwitch() error {
+func (job *RedisSwitchPreCheck) precheckForSwitch() error {
 	// // 1. 检查密码相同 job.params.ClusterMeta.StoragePassword
 	// for _, pair := range job.params.SwitchRelation {
 	// 	if pair.MasterInfo.Passwrod != job.params.ClusterMeta.StoragePassword {
@@ -548,7 +640,7 @@ func (job *RedisSwitch) precheckForSwitch() error {
 	if consts.TendisTypeRedisInstance != job.params.ClusterMeta.ClusterType {
 		// 3. 检查 proxy 可登陆 & proxy 状态一致
 		job.runtime.Logger.Info("precheck for all proxies; domain:%s, proxies:%+v",
-			job.params.ClusterMeta.ImmuteDomain, job.params.ClusterMeta.ProxySet)
+			job.params.ClusterMeta.ImmuteDomain, job.params.ClusterMeta.ProxyStatusSet)
 		if err := job.precheckForProxy(); err != nil {
 			return err
 		}
@@ -570,7 +662,7 @@ func (job *RedisSwitch) precheckForSwitch() error {
 }
 
 // 获取集群当前运行状态的 Master 列表
-func (job *RedisSwitch) GetClusterRuntimeMasters() (map[string]string, error) {
+func (job *RedisSwitchPreCheck) GetClusterRuntimeMasters() (map[string]string, error) {
 	runtimeMasters := map[string]string{}
 	if len(job.params.SwitchRelation) < 1 {
 		return runtimeMasters, fmt.Errorf("where is switch todo ??:%s", job.params.ClusterMeta.ImmuteDomain)
@@ -580,14 +672,18 @@ func (job *RedisSwitch) GetClusterRuntimeMasters() (map[string]string, error) {
 
 	// Twemproxy架构
 	if consts.IsTwemproxyClusterType(job.params.ClusterMeta.ClusterType) {
-		if len(job.params.ClusterMeta.ProxySet) < 1 {
+		if len(job.params.ClusterMeta.ProxyStatusSet) < 1 {
 			return runtimeMasters, fmt.Errorf("where is proxies ??:%s", job.params.ClusterMeta.ImmuteDomain)
 		}
-		oneNutracker := job.params.ClusterMeta.ProxySet[0]
-		pinfo := strings.Split(oneNutracker, ":")
-		port, _ := strconv.Atoi(pinfo[1])
-		return util.GetTwemproxyBackends(pinfo[0], port)
-
+		// 只取一个就行， 默认所有的proxy的后端都是一致的，看个大概而已
+		for oneNutracker, status := range job.params.ClusterMeta.ProxyStatusSet {
+			if status != "running" {
+				continue
+			}
+			pinfo := strings.Split(oneNutracker, ":")
+			port, _ := strconv.Atoi(pinfo[1])
+			return util.GetTwemproxyBackends(pinfo[0], port)
+		}
 		// gossip cluster模式
 	} else if consts.IsPredixyClusterType(job.params.ClusterMeta.ClusterType) {
 		rconn, err := myredis.NewRedisClientWithTimeout(addr,
@@ -615,7 +711,7 @@ func (job *RedisSwitch) GetClusterRuntimeMasters() (map[string]string, error) {
 	return runtimeMasters, nil
 }
 
-func (job *RedisSwitch) precheckForProxy() error {
+func (job *RedisSwitchPreCheck) precheckForProxy() error {
 	if consts.IsTwemproxyClusterType(job.params.ClusterMeta.ClusterType) {
 		// 3.1 检查 proxy 可登陆
 		if err := job.precheckProxyLogin(); err != nil {
@@ -638,43 +734,61 @@ func (job *RedisSwitch) precheckForProxy() error {
 	return nil
 }
 
-func (job *RedisSwitch) checkProxyConsistency() error {
+func (job *RedisSwitchPreCheck) checkProxyConsistency() error {
 	wg := &sync.WaitGroup{}
-	md5Ch := make(chan string, len(job.params.ClusterMeta.ProxySet))
+	md5Ch := make(chan string, len(job.params.ClusterMeta.ProxyStatusSet))
 
-	for _, proxy := range job.params.ClusterMeta.ProxySet {
+	for proxy, status := range job.params.ClusterMeta.ProxyStatusSet {
 		wg.Add(1)
-		go func(proxy string, wg *sync.WaitGroup, md5Ch chan string) {
+		go func(proxy, status string, wg *sync.WaitGroup, md5Ch chan string) {
 			defer wg.Done()
-			pmd5, err := util.GetTwemProxyBackendsMd5Sum(proxy)
-			if err != nil {
-				md5Ch <- fmt.Sprintf("%v", err)
-			} else {
-				md5Ch <- pmd5
-			}
-		}(proxy, wg, md5Ch)
+			pmd5, _ := util.GetTwemProxyBackendsMd5Sum(proxy, status)
+			md5Ch <- pmd5
+		}(proxy, status, wg, md5Ch)
 	}
 	wg.Wait()
 	close(md5Ch)
 
-	proxyMd5s := map[string][]string{}
+	proxyRunningMd5s, proxyOtherMd5s := map[string][]string{}, map[string][]string{}
 	for pmd5 := range md5Ch {
 		rsts := strings.Split(pmd5, "||")
-		addr, md5x := rsts[0], rsts[1]
-		if _, ok := proxyMd5s[md5x]; !ok {
-			proxyMd5s[md5x] = []string{}
+		addr, status, md5x := rsts[0], rsts[1], rsts[2]
+		if status == "running" {
+			if _, ok := proxyRunningMd5s[md5x]; !ok {
+				proxyRunningMd5s[md5x] = []string{}
+			}
+			proxyRunningMd5s[md5x] = append(proxyRunningMd5s[md5x], addr)
+		} else {
+			if _, ok := proxyOtherMd5s[md5x]; !ok {
+				proxyOtherMd5s[md5x] = []string{}
+			}
+			proxyOtherMd5s[md5x] = append(proxyOtherMd5s[md5x], addr)
 		}
-		proxyMd5s[md5x] = append(proxyMd5s[md5x], addr)
 	}
-	if len(proxyMd5s) != 1 {
-		return fmt.Errorf("err mutil [proxy backends md5(‼️后端不一致啦😭😭😭)] got [%+v]", proxyMd5s)
+	if len(proxyRunningMd5s) != 1 {
+		return fmt.Errorf("err mutil [proxy(running) backends md5(‼️后端不一致啦😭😭😭)] got [%+v]", proxyRunningMd5s)
 	}
-	job.runtime.Logger.Info("all [proxy backends md5] consistency [%+v]", proxyMd5s)
+	// 看看 非Running状态的proxy 得状态情况
+	if len(proxyOtherMd5s) > 0 {
+		keys := make([]string, 0, len(proxyOtherMd5s))
+		for k := range proxyOtherMd5s {
+			keys = append(keys, k)
+		}
+		keys2 := make([]string, 0, len(proxyRunningMd5s))
+		for k := range proxyRunningMd5s {
+			keys2 = append(keys2, k)
+		}
+		if keys[0] != keys2[0] {
+			job.runtime.Logger.Warn("err mutil [proxy(!running) backends md5(有好几种状态哇？)] got [%+v]", keys)
+			job.runtime.Logger.Warn("err mutil [proxy(!running) backends md5(‼️后端不一致啦😢😓😳)] got [%+v]", proxyOtherMd5s)
+		}
+	}
+	job.runtime.Logger.Info("all [proxy backends md5] consistency [%+v]", proxyRunningMd5s)
 	return nil
 }
 
 // precheckStorageSync 检查节点间同步状态
-func (job *RedisSwitch) precheckStorageSync() error {
+func (job *RedisSwitchPreCheck) precheckStorageSync() error {
 	wg := &sync.WaitGroup{}
 	job.errChan = make(chan error, len(job.params.SwitchRelation)*3)
 
@@ -699,7 +813,8 @@ func (job *RedisSwitch) precheckStorageSync() error {
 			}
 			job.runtime.Logger.Info("[%s]new master node replication info :%+v", newMasterAddr, replic)
 
-			if replic["role"] == "master" {
+			// 如果有slave 已经是master了/ 或是是同步异常，或许是被DBHA切过了的情况
+			if replic["role"] == "master" && !job.params.SyncCondition.IsCheckSync {
 				job.runtime.Logger.Warn("[%s]is aleardy master, skip check syncStatus. maybe switched before.", newMasterAddr)
 				return
 			}
@@ -717,13 +832,17 @@ func (job *RedisSwitch) precheckStorageSync() error {
 			if consts.IsTwemproxyClusterType(job.params.ClusterMeta.ClusterType) ||
 				consts.TendisTypeRedisInstance == job.params.ClusterMeta.ClusterType {
 				// 3. 检查监控写入心跳 master:PORT:time 时间差。 【重要！！！】 Twemproxy/单实例 架构才有，其他架构没有这个
-				job.errChan <- job.checkReplicationSync(newMasterConn, storagePair, replic)
+				if err := job.checkReplicationSync(newMasterConn, storagePair, replic); err != nil {
+					job.errChan <- err
+				}
 			}
 
 			// 4. 检查信息对等 ，slave 的master 是真实的master
 			realMasterIP := replic["master_host"]
 			realMasterPort := replic["master_port"]
-			job.errChan <- job.checkReplicationDetail(storagePair, realMasterIP, realMasterPort)
+			if err := job.checkReplicationDetail(storagePair, realMasterIP, realMasterPort); err != nil {
+				job.errChan <- err
+			}
 		}(storagePair, wg)
 	}
 	wg.Wait()
@@ -731,15 +850,13 @@ func (job *RedisSwitch) precheckStorageSync() error {
 
 	var err error
 	for err = range job.errChan {
-		if err != nil {
-			job.runtime.Logger.Error("got err :%+v", err)
-		}
+		job.runtime.Logger.Error("got err :%+v", err)
 	}
 	return err
 }
 
 // checkReplicationDetail 检查redis运行状态上真实的主从关系
-func (job *RedisSwitch) checkReplicationDetail(
+func (job *RedisSwitchPreCheck) checkReplicationDetail(
 	storagePair InstanceSwitchParam, realIP, realPort string) error {
 
 	if job.params.SyncCondition.InstanceSyncType == "mms" ||
@@ -751,7 +868,7 @@ func (job *RedisSwitch) checkReplicationDetail(
 				realIP, realPort, storagePair.MasterInfo.IP, storagePair.MasterInfo.Port)
 		}
 		// check master && slave version compactiable.
-		job.runtime.Logger.Info("[%s:%d] storage really had running confied master %s:%s in [ms] mode !",
+		job.runtime.Logger.Info("[%s:%d] storage really had running confied master %s:%s in [ms] mode ! ok~",
 			storagePair.SlaveInfo.IP, storagePair.SlaveInfo.Port, realIP, realPort)
 	} else if job.params.SyncCondition.InstanceSyncType == "msms" {
 		oldSlaveConn, err := myredis.NewRedisClientWithTimeout(fmt.Sprintf("%s:%s", realIP, realPort),
@@ -806,7 +923,7 @@ func (job *RedisSwitch) checkReplicationDetail(
 }
 
 // checkReplicationSync # here we just check the master heartbeat:
-func (job *RedisSwitch) checkReplicationSync(newMasterConn *myredis.RedisClient,
+func (job *RedisSwitchPreCheck) checkReplicationSync(newMasterConn *myredis.RedisClient,
 	storagePair InstanceSwitchParam, replic map[string]string) error {
 	var err error
 	var masterTime, masterDbsize, slaveTime int64
@@ -818,7 +935,7 @@ func (job *RedisSwitch) checkReplicationSync(newMasterConn *myredis.RedisClient,
 	}
 	rst := newMasterConn.InstanceClient.Get(context.TODO(), fmt.Sprintf("%s:time", oldMasterAddr))
 	if rst.Err() != nil {
-		return fmt.Errorf("[%s]new master node, exec cmd err:%+v", newMasterAddr, err)
+		return fmt.Errorf("[%s]new master node, get old master time :%+v", newMasterAddr, rst)
 	}
 	if masterTime, err = rst.Int64(); err != nil {
 		return fmt.Errorf("[%s]new master node, time2Int64 err:%+v", newMasterAddr, err)
@@ -826,7 +943,7 @@ func (job *RedisSwitch) checkReplicationSync(newMasterConn *myredis.RedisClient,
 
 	if rst = newMasterConn.InstanceClient.Get(context.TODO(),
 		fmt.Sprintf("%s:0:dbsize", oldMasterAddr)); rst.Err() != nil {
-		return fmt.Errorf("[%s]new master node, exec cmd err:%+v", newMasterAddr, err)
+		return fmt.Errorf("[%s]new master node, get old master dbsize :%+v", newMasterAddr, rst)
 	}
 	if masterDbsize, err = rst.Int64(); err != nil {
 		job.runtime.Logger.Warn("[%s]new master node, get db0,dbsize2Int64 err:%+v", newMasterAddr, err)
@@ -860,7 +977,7 @@ func (job *RedisSwitch) checkReplicationSync(newMasterConn *myredis.RedisClient,
 }
 
 // precheckStorageLogin make sure all todo switch redis can login
-func (job *RedisSwitch) precheckStorageLogin() error {
+func (job *RedisSwitchPreCheck) precheckStorageLogin() error {
 	wg := &sync.WaitGroup{}
 	job.errChan = make(chan error, len(job.params.SwitchRelation))
 	for _, storagePair := range job.params.SwitchRelation {
@@ -883,41 +1000,36 @@ func (job *RedisSwitch) precheckStorageLogin() error {
 
 	var err error
 	for err = range job.errChan {
-		if err != nil {
-			job.runtime.Logger.Error("got err :%+v", err)
-		}
+		job.runtime.Logger.Error("got err :%+v", err)
 	}
 	return err
 }
 
 // precheckProxyLogin proxy 链接性检查
-func (job *RedisSwitch) precheckProxyLogin() error {
+func (job *RedisSwitchPreCheck) precheckProxyLogin() error {
 	wg := &sync.WaitGroup{}
-	job.errChan = make(chan error, len(job.params.ClusterMeta.ProxySet))
-	for _, proxy := range job.params.ClusterMeta.ProxySet {
+	job.errChan = make(chan error, len(job.params.ClusterMeta.ProxyStatusSet))
+	for proxy, status := range job.params.ClusterMeta.ProxyStatusSet {
 		wg.Add(1)
-		go func(proxy string, clusterType string, wg *sync.WaitGroup) {
+		go func(proxy, status string, clusterType string, wg *sync.WaitGroup) {
 			defer wg.Done()
 			if err := job.precheckLogin(proxy, job.params.ClusterMeta.ProxyPassword, clusterType); err != nil {
-				job.errChan <- fmt.Errorf("addr:%s,err:%+v", proxy, err)
+				job.errChan <- fmt.Errorf("addr:%s:%s,err:%+v", proxy, status, err)
 			}
-		}(proxy, job.params.ClusterMeta.ClusterType, wg)
+		}(proxy, status, job.params.ClusterMeta.ClusterType, wg)
 	}
 	wg.Wait()
 	close(job.errChan)
 
 	var err error
 	for err = range job.errChan {
-		if err != nil {
-			job.runtime.Logger.Error("precheck for [proxy login] got err :%+v", err)
-		}
+		job.runtime.Logger.Error("precheck for [proxy login] got err :%+v", err)
 	}
 	return err
-
 }
 
 // precheckLogin 检查 proxy/redis 可以登录
-func (job *RedisSwitch) precheckLogin(addr, pass, clusterType string) error {
+func (job *RedisSwitchPreCheck) precheckLogin(addr, pass, clusterType string) error {
 	rconn, err := myredis.NewRedisClientWithTimeout(addr, pass, 0, clusterType, time.Second*10)
 	if err != nil {
 		return fmt.Errorf("conn redis %s failed:%+v", addr, err)
@@ -934,24 +1046,17 @@ func (job *RedisSwitch) precheckLogin(addr, pass, clusterType string) error {
 	return nil
 }
 
-func (job *RedisSwitch) setSwitchRst(storagePair InstanceSwitchParam, isSucc bool) {
-	switchMaster := fmt.Sprintf("%s:%d", storagePair.MasterInfo.IP, storagePair.MasterInfo.Port)
-	job.SwitchFeild[switchMaster].Target.SwitchCount += 1
-	job.SwitchFeild[switchMaster].Target.IsSwitched = isSucc
-	job.SwitchFeild[switchMaster].Target.SwitchTime = time.Now().Unix()
-}
-
-// Name 原子任务名
-func (job *RedisSwitch) Name() string {
-	return "redis_switch"
+// Name 原子任务名 ; 把precheck 独立出来.
+func (job *RedisSwitchPreCheck) Name() string {
+	return "redis_switch_precheck"
 }
 
 // Retry times
-func (job *RedisSwitch) Retry() uint {
+func (job *RedisSwitchPreCheck) Retry() uint {
 	return 2
 }
 
 // Rollback rollback
-func (job *RedisSwitch) Rollback() error {
+func (job *RedisSwitchPreCheck) Rollback() error {
 	return nil
 }

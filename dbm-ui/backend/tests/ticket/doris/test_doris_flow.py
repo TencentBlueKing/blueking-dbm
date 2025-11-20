@@ -30,6 +30,7 @@ from backend.tests.mock_data.ticket.doris_flow import (
     SCALEUP_INPUT_TICKET_DATA,
     SCALEUP_POOL_TICKET_DATA,
 )
+from backend.tests.ticket.decorator import use_pipeline_mock
 from backend.tests.ticket.server_base import BaseTicketTest
 
 logger = logging.getLogger("test")
@@ -53,43 +54,55 @@ def setup_doris_database(django_db_setup, django_db_blocker):
         Machine.objects.filter(cluster_type=ClusterType.Doris.value).delete()
 
 
+#   都是API没有mock
+
+
 class TestDorisApplyFlow(BaseTicketTest):
     """
     DORIS APPLY测试类。
     """
 
     # DORIS apply: start --> itsm --> PAUSE --> RESOURC --> INNER_FLOW --> end
+    @use_pipeline_mock
     def test_doris_single_apply_flow(self):
         self.flow_test(DORIS_APPLY_TICKET_DATA)
 
+    @use_pipeline_mock
     # DORIS disable: start --> itsm --> PAUSE --> INNER_FLOW --> end
     def test_doris_disable_flow(self):
         self.flow_test(DORIS_DISABLE_TICKET_DATA)
 
+    @use_pipeline_mock
     # DORIS enable: start --> itsm --> PAUSE --> INNER_FLOW --> end
     def test_doris_enable_flow(self):
         self.flow_test(DORIS_ENABLE_TICKET_DATA)
 
+    @use_pipeline_mock
     # DORIS destroy: start --> itsm --> PAUSE --> INNER_FLOW --> end
     def test_doris_destroy_flow(self):
         self.flow_test(DORIS_DESTROY_TICKET_DATA)
 
+    @use_pipeline_mock
     # DORIS scale_up_pool: start --> itsm --> PAUSE --> INNER_FLOW --> end
     def test_scaleup_pool_flow(self):
         self.flow_test(SCALEUP_POOL_TICKET_DATA)
 
+    @use_pipeline_mock
     # DORIS scale_up_input: start --> itsm --> INNER_FLOW --> end
     def test_scaleup_input_flow(self):
         self.flow_test(SCALEUP_INPUT_TICKET_DATA)
 
+    @use_pipeline_mock
     # DORIS shrink: start --> itsm --> INNER_FLOW --> end
     def test_doris_shrink_flow(self):
         self.flow_test(DORIS_SHRINK_TICKET_DATA)
 
+    @use_pipeline_mock
     # DORIS reboot: start --> itsm --> PAUSE --> INNER_FLOW --> end
     def test_doris_reboot_flow(self):
         self.flow_test(DORIS_REBOOT_TICKET_DATA)
 
+    @use_pipeline_mock
     # DORIS replace: start --> itsm --> PAUSE --> INNER_FLOW --> end
     def test_doris_replace_flow(self):
         self.flow_test(DORIS_REPLACE_TICKET_DATA)

@@ -499,6 +499,7 @@ func (ins *RedisSwitch) DoSwitchTwemproxyBackends(ip string, port int, from, to 
 		return "nil", err
 	}
 	defer nc.Close()
+	nc.SetDeadline(time.Now().Add(5 * time.Second)) // 读写超时
 	_, err = nc.Write([]byte(fmt.Sprintf("change nosqlproxy %s %s", from, to)))
 	if err != nil {
 		return "nil", err
@@ -532,6 +533,7 @@ func (ins *RedisSwitch) GetTwemproxyBackends(ip string, adminPort int) (segs map
 		return nil, err
 	}
 	defer nc.Close()
+	nc.SetDeadline(time.Now().Add(5 * time.Second)) // 读写超时
 	if _, err = nc.Write([]byte("get nosqlproxy servers")); err != nil {
 		return nil, err
 	}

@@ -4,7 +4,7 @@ metadata:
   name: {{ include "victoriametrics-insert.cmpdName" . }}
 spec:
   serviceKind: victoriametrics
-  serviceVersion: 1.93.10
+  serviceVersion: 1.93.10-2.0.0
   updateStrategy: BestEffortParallel
   exporter:
     scrapePath: /metrics
@@ -21,7 +21,7 @@ spec:
     - name: VMSTORAGE_ADDR
       valueFrom:
         serviceVarRef:
-          compDef: {{ include "victoriametrics-storage.cmpdName" . }}
+          compDef: {{ include "victoriametrics-storage.cmpdRegexpPattern" . }}
           optional: false
           port:
             name: insert
@@ -79,3 +79,4 @@ spec:
           periodSeconds: 15
           timeoutSeconds: 5
           failureThreshold: 3
+    dnsConfig: {}

@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging.config
 from typing import Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.instance_deinstall import instance_deinstall
@@ -61,7 +61,7 @@ class MongoInstanceDeInstallFlow(object):
             act_name=_("MongoDB-创建原子任务执行目录"), act_component_code=ExecuteDBActuatorJobComponent.code, kwargs=kwargs
         )
 
-        # 复制集整机替换——子流程并行
+        # 实例下架——子流程并行
         sub_pipelines = []
         for instance in self.data["infos"]:
             sub_pipline = instance_deinstall(

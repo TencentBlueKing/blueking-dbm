@@ -14,14 +14,13 @@ from typing import Dict, List, Optional
 
 from django.db import IntegrityError, transaction
 from django.db.models import QuerySet
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta import request_validator
 from backend.db_meta.api import common
 from backend.db_meta.enums import AccessLayer, ClusterEntryType, ClusterPhase, ClusterStatus, ClusterType, MachineType
 from backend.db_meta.models import Cluster, ClusterEntry, ProxyInstance, StorageInstance
-from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
 from backend.flow.utils.redis.redis_module_operate import RedisCCTopoOperator
 
 from ....exceptions import (
@@ -51,6 +50,7 @@ def create_twemproxy_cluster(
     region: str = "",
     cluster_type: str = ClusterType.TendisTwemproxyRedisInstance.value,
     disaster_tolerance_level: str = "",
+    zone_list: list = None,
 ):
     """
     兼容 TendisCache/TendisSSD 集群
@@ -59,6 +59,7 @@ def create_twemproxy_cluster(
     2. proxy 不能有已绑定的后端
     3. 必须只有 1 个 master
     """
+    from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
 
     ip_port_storages = {"{}{}{}".format(s["ip"], IP_PORT_DIVIDER, s["port"]): s for s in storages}
 
@@ -87,6 +88,7 @@ def create_twemproxy_cluster(
             bk_cloud_id=bk_cloud_id,
             region=region,
             disaster_tolerance_level=disaster_tolerance_level,
+            zone_list=zone_list,
         )
         logger.info("cluster created {}".format(cluster))
         cluster.proxyinstance_set.add(*proxy_objs)
@@ -234,6 +236,7 @@ def update_storage_cluster_type(ins_obj: StorageInstance, cluster_type: str):
         ClusterType.MongoReplicaSet.value,
         ClusterType.MongoShardedCluster.value,
         ClusterType.OraclePrimaryStandby.value,
+        ClusterType.OracleSingleNone.value,
     ):
         slave_obj = ins_obj.as_ejector.get().receiver
         slave_obj.cluster_type = cluster_type

@@ -22,9 +22,10 @@ package provider
 import (
 	"k8s-dbs/common/entity"
 	"k8s-dbs/metadata/dbaccess"
-	models "k8s-dbs/metadata/dbaccess/model"
-	entitys "k8s-dbs/metadata/provider/entity"
-	"log/slog"
+	entitys "k8s-dbs/metadata/entity"
+	models "k8s-dbs/metadata/model"
+
+	"github.com/pkg/errors"
 
 	"github.com/jinzhu/copier"
 )
@@ -32,7 +33,7 @@ import (
 // OperationDefinitionProvider 定义 operation definition 业务逻辑层访问接口
 type OperationDefinitionProvider interface {
 	CreateOperationDefinition(entity *entitys.OperationDefinitionEntity) (*entitys.OperationDefinitionEntity, error)
-	ListOperationDefinitions(pagination entity.Pagination) ([]entitys.OperationDefinitionEntity, error)
+	ListOperationDefinitions(pagination entity.Pagination) ([]*entitys.OperationDefinitionEntity, error)
 }
 
 // OperationDefinitionProviderImpl OperationDefinitionProvider 具体实现
@@ -42,41 +43,37 @@ type OperationDefinitionProviderImpl struct {
 
 // CreateOperationDefinition 创建 operation definition
 func (o *OperationDefinitionProviderImpl) CreateOperationDefinition(entity *entitys.OperationDefinitionEntity) (
-	*entitys.OperationDefinitionEntity, error,
+	*entitys.OperationDefinitionEntity,
+	error,
 ) {
 	definitionModel := models.OperationDefinitionModel{}
-	err := copier.Copy(&definitionModel, entity)
-	if err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err := copier.Copy(&definitionModel, entity); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
+
 	addedModel, err := o.dbAccess.Create(&definitionModel)
 	if err != nil {
-		slog.Error("Failed to create model", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create operation definition with entity %+v", entity)
 	}
 	addedEntity := entitys.OperationDefinitionEntity{}
-	if err := copier.Copy(&addedEntity, addedModel); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err = copier.Copy(&addedEntity, addedModel); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
 	return &addedEntity, nil
 }
 
 // ListOperationDefinitions 获取 operation definition 列表
 func (o *OperationDefinitionProviderImpl) ListOperationDefinitions(pagination entity.Pagination) (
-	[]entitys.OperationDefinitionEntity,
+	[]*entitys.OperationDefinitionEntity,
 	error,
 ) {
 	definitionModels, _, err := o.dbAccess.ListByPage(pagination)
 	if err != nil {
-		slog.Error("Failed to find entity")
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to list operation definitions for pagination %+v", pagination)
 	}
-	var definitionEntities []entitys.OperationDefinitionEntity
-	if err := copier.Copy(&definitionEntities, definitionModels); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	var definitionEntities []*entitys.OperationDefinitionEntity
+	if err = copier.Copy(&definitionEntities, definitionModels); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
 	return definitionEntities, nil
 }

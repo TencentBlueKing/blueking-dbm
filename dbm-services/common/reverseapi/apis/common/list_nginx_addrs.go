@@ -1,7 +1,7 @@
 package common
 
 import (
-	"dbm-services/common/reverseapi/internal/core"
+	"dbm-services/common/reverseapi/pkg/core"
 	"encoding/json"
 
 	"github.com/pkg/errors"

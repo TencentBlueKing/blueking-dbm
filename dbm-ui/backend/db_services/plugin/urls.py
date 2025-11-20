@@ -10,15 +10,25 @@ specific language governing permissions and limitations under the License.
 """
 from rest_framework.routers import DefaultRouter
 
+from backend.db_services.plugin.redis.capacity_evaluate.views import CapacityEvaluateViewSet
+
 from .bf.views import BFPluginViewSet
+from .cluster.views import OpenClusterViewSet
 from .db_dirty.views import DBDirtyMachineViewSet
+from .mysql.apply.views import ApplyPluginViewSet
 from .mysql.authorize.views import AuthorizePluginViewSet
 from .ticket.views import TicketViewSet
 
 routers = DefaultRouter(trailing_slash=True)
-routers.register("mysql/authorize", AuthorizePluginViewSet, basename="authorize")
-routers.register("bf", BFPluginViewSet, basename="bfplugin")
-routers.register("ticket", TicketViewSet, basename="ticket")
-routers.register("db_dirty", DBDirtyMachineViewSet, basename="db_dirty")
 
+routers.register("cluster", OpenClusterViewSet, basename="cluster")
+routers.register("mysql/authorize", AuthorizePluginViewSet, basename="authorize")
+routers.register("mysql/apply", ApplyPluginViewSet, basename="apply")
+
+routers.register("bf", BFPluginViewSet, basename="bfplugin")
+
+routers.register("ticket", TicketViewSet, basename="ticket")
+
+routers.register("db_dirty", DBDirtyMachineViewSet, basename="db_dirty")
+routers.register("redis/capacity_evaluate", CapacityEvaluateViewSet, basename="capacity_evaluate")
 urlpatterns = routers.urls

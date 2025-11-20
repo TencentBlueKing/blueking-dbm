@@ -11,18 +11,25 @@
  * the specific language governing permissions and limitations under the License.
 -->
 <template>
-  <BkTable :data="tableData">
-    <BkTableColumn :label="t('目标集群')">
-      <template #default="{ data }: { data: RowData }">
+  <TicketInfoTable
+    :data="tableData"
+    row-key="cluster_id">
+    <TicketInfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
+      :title="t('目标集群')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('备份位置')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.backup_local }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="backup_local"
+      :title="t('备份位置')">
+      <template #default="{ row: data }: { row: RowData }">
+        {{ data.backup_local ? _.capitalize(data.backup_local) : '--' }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('备份类型')">
       {{ backupType }}

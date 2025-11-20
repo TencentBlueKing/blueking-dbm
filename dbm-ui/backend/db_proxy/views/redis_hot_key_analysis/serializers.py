@@ -10,8 +10,8 @@ specific language governing permissions and limitations under the License.
 """
 from rest_framework import serializers
 
-from backend.db_meta.models import RedisHotKeyDetail
 from backend.db_proxy.views.serialiers import BaseProxyPassSerializer
+from backend.db_services.redis.hot_key_analysis.models import RedisHotKeyRecordDetail
 
 
 class CreateHotKeyDetailSerializer(serializers.ModelSerializer):
@@ -19,7 +19,7 @@ class CreateHotKeyDetailSerializer(serializers.ModelSerializer):
     updater = serializers.CharField(read_only=True)
 
     class Meta:
-        model = RedisHotKeyDetail
+        model = RedisHotKeyRecordDetail
         fields = "__all__"
 
 

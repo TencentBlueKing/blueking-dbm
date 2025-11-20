@@ -17,7 +17,7 @@ type InitCommonConfigAct struct {
 	Service peripheraltools.InitCommonConfig
 }
 
-func NewInitNginxAddressesCommand() *cobra.Command {
+func NewInitCommonConfigCommand() *cobra.Command {
 	act := InitCommonConfigAct{
 		BaseOptions: subcmd.GBaseOptions,
 	}

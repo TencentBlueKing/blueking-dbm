@@ -33,6 +33,7 @@ var nameMySQLLockMetric string
 func init() {
 	lockThreshold = 5
 	nameMySQLLockMetric = strings.Replace(nameMySQLLock, "-", "_", -1)
+	nameMySQLTableSlow = strings.Replace(nameMySQLTableSlow, "-", "_", -1)
 }
 
 func mysqlLock() (string, error) {
@@ -57,8 +58,12 @@ func mysqlLock() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		if hasLongWait {
-			utils.SendMonitorMetrics(nameMySQLLockMetric, p.Time.Int64, map[string]interface{}{
+		hasAbnormalTableState, err := hasLongClosingOrOpeningTable(p)
+		if err != nil {
+			return "", err
+		}
+		if hasLongWait || hasAbnormalTableState {
+			utils.SendMonitorMetrics(nameMySQLTableSlow, p.Time.Int64, map[string]interface{}{
 				"lock_user":    p.User.String,
 				"lock_id":      p.Id.Int64,
 				"lock_db":      p.Db.String,
@@ -98,6 +103,27 @@ func hasLongWaitingForTableFlush(p *mysqlProcess) (bool, error) {
 		nil
 }
 
+// closing tables
+// Opening tables
+func hasLongClosingOrOpeningTable(p *mysqlProcess) (bool, error) {
+	if p.Time.Int64 < lockThreshold {
+		return false, nil
+	}
+	reStatePattern := regexp2.MustCompile(`closing tables|Opening table`, regexp2.IgnoreCase)
+	match, err := reStatePattern.MatchString(p.State.String)
+	if err != nil {
+		slog.Error("apply state pattern", slog.String("error", err.Error()))
+		return false, err
+	}
+	if !match {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+// hasNormalLock 检查是否为特定的锁
+// 忽略 system lock ，binlog|load data
 func hasNormalLock(p *mysqlProcess) (bool, error) {
 	reLockPattern := regexp2.MustCompile(`lock`, regexp2.IgnoreCase)
 	match, err := reLockPattern.MatchString(p.State.String)

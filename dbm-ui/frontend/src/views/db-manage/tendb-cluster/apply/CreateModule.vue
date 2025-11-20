@@ -172,7 +172,7 @@
   const bizId = computed(() => Number(route.params.bizId));
   const bizInfo = computed(() => globalBizsStore.bizs.find((info) => info.bk_biz_id === bizId.value) || { name: '' });
   // 模块信息
-  const moduleId = ref(Number(route.params.db_module_id) ?? '');
+  const moduleId = ref(Number(route.params.db_module_id));
   const isNewModule = computed(() => !route.params.db_module_id);
   const isReadonly = computed(() => (isNewModule.value ? !!moduleId.value : true));
 

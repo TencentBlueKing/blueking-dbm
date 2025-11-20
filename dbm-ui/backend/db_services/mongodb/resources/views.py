@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 from django.utils.decorators import method_decorator
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -107,6 +107,7 @@ class MongoDBViewSet(ResourceViewSet):
         ActionEnum.MONGODB_WEBCONSOLE,
         ActionEnum.MONGODB_EDIT,
         ActionEnum.MONGODB_DESTROY,
+        ActionEnum.MONGODB_SOURCE_ACCESS_VIEW,
     ]
     list_instance_perm_actions = [ActionEnum.MONGODB_VIEW]
 

@@ -12,6 +12,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/samber/lo"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
@@ -33,6 +35,7 @@ type PackageFile struct {
 	cnf           *config.BackupConfig
 	indexFile     *dbareport.IndexContent
 	indexFilePath string
+	datadirSizeMB uint64
 }
 
 // LogicalTarParts Package multiple backup files
@@ -72,6 +75,7 @@ func (p *PackageFile) LogicalTarParts() (string, error) {
 	// 把 schema 单独打包？
 
 	var tarFiles = make(map[string]*dbareport.TarFileItem, 0)
+	databaseUniq := make(map[string]struct{})
 	// The files are walked in lexical order
 	walkErr := filepath.Walk(p.srcDir, func(filename string, info fs.FileInfo, err error) error {
 		if err != nil {
@@ -92,9 +96,15 @@ func (p *PackageFile) LogicalTarParts() (string, error) {
 		tarFileName := filepath.Base(dstTarName)
 		if _, ok := tarFiles[tarFileName]; !ok {
 			tarFiles[tarFileName] = &dbareport.TarFileItem{FileName: tarFileName, FileType: cst.FileTar}
-		} else {
-			tarFiles[tarFileName].ContainFiles = append(tarFiles[tarFileName].ContainFiles,
-				strings.TrimPrefix(strings.TrimPrefix(filename, p.srcDir), "/"))
+		}
+		tarFiles[tarFileName].ContainFiles = append(tarFiles[tarFileName].ContainFiles,
+			strings.TrimPrefix(strings.TrimPrefix(filename, p.srcDir), "/"))
+
+		if tbSchema, _, _ := p.indexFile.ParseTableSchema(filepath.Base(filename)); tbSchema != "" {
+			if strings.HasPrefix(tbSchema, "mydumper_") {
+				logger.Log.Warnf("parsed name from dumper file may be not collect: %s. check in metadata", tbSchema)
+			}
+			databaseUniq[tbSchema] = struct{}{}
 		}
 		tarFiles[tarFileName].FileSize += written
 
@@ -137,7 +147,7 @@ func (p *PackageFile) LogicalTarParts() (string, error) {
 	logger.Log.Infof("need to tar file, accumulated tar size: %d bytes, dstFile: %s", tarSize, dstTarName)
 	p.indexFile.TotalSizeKBUncompress = totalSizeUncompress / 1024
 	p.indexFile.TotalFilesize = backupTotalFileSize + tarSize
-
+	p.indexFile.DatabaseList = lo.Keys(databaseUniq)
 	logger.Log.Infof("old srcDir removing io is limited to: %d MB/s", p.cnf.Public.IOLimitMBPerSec)
 	if err := cmutil.TruncateDir(p.srcDir, p.cnf.Public.IOLimitMBPerSec); err != nil {
 		// if err := os.RemoveAll(p.srcDir); err != nil {
@@ -237,11 +247,29 @@ func (p *PackageFile) PhysicalTarSplit(cnfPublic *config.Public) (string, error)
 	// tar -rf - /xxx | openssl... | split
 }
 
+// SkipTarball we record backupdir
+func (p *PackageFile) SkipTarball(cnfPublic *config.Public) error {
+	tarFile := &dbareport.TarFileItem{FileName: filepath.Base(p.srcDir), FileType: cst.FileDirectory, FileSize: 0}
+	p.indexFile.FileList = append(p.indexFile.FileList, tarFile)
+	return nil
+}
+
 // tarAndSplit 物理备份打包，切分
 // 只 tar，不 zip
 func (p *PackageFile) tarAndSplit(cnfPublic *config.Public) (string, error) {
 	logger.Log.Infof("Tarball Package: src dir %s, iolimit %d MB/s", p.srcDir, cnfPublic.IOLimitMBPerSec)
 
+	// 如果备份总大小大于 2TB, 增加单切片大小，提高切片速度
+	if p.datadirSizeMB > 8*1024*1024 {
+		cnfPublic.IOLimitMBPerSec *= 8
+		cnfPublic.TarSizeThreshold *= 8
+	} else if p.datadirSizeMB > 4*1024*1024 {
+		cnfPublic.IOLimitMBPerSec *= 4
+		cnfPublic.TarSizeThreshold *= 4
+	} else if p.datadirSizeMB > 2*1024*1024 {
+		cnfPublic.IOLimitMBPerSec *= 2
+		cnfPublic.TarSizeThreshold *= 2
+	}
 	var tarUtil = util.TarWriter{IOLimitMB: cnfPublic.IOLimitMBPerSec}
 	var dstTarName = fmt.Sprintf(`%s.tar`, p.dstDir) // full path
 	if cnfPublic.EncryptOpt.EncryptEnable {
@@ -390,15 +418,12 @@ func PackageBackupFiles(cnf *config.BackupConfig, metaInfo *dbareport.IndexConte
 		cnf:           cnf,
 		indexFile:     metaInfo,
 		indexFilePath: indexFilePath,
+		datadirSizeMB: metaInfo.DataDirSizeMB,
 	}
-	if cnf.Public.IfBackupGrantOnly() {
-		metaInfo.AddPrivFileItem(packageFile.dstDir)
-		return metaInfo.SaveIndexContent(indexFilePath)
-	}
-	//backupType := cnf.Public.BackupType
 	backupType := metaInfo.BackupType
-	// package files, and produce the index file at the same time
-	if strings.EqualFold(backupType, cst.BackupLogical) {
+	if cnf.Public.SkipTarball {
+		packageFile.SkipTarball(&cnf.Public)
+	} else if strings.EqualFold(backupType, cst.BackupLogical) {
 		if cnf.LogicalBackup.UseMysqldump == cst.LogicalMysqldumpYes {
 			if indexFilePath, err = packageFile.LogicalTarSplit(); err != nil {
 				return "", err
@@ -416,7 +441,10 @@ func PackageBackupFiles(cnf *config.BackupConfig, metaInfo *dbareport.IndexConte
 		return "", errors.New("backup type not support")
 	}
 	metaInfo.AddPrivFileItem(packageFile.dstDir)
-	return metaInfo.SaveIndexContent(indexFilePath)
+	if err = metaInfo.SaveIndexContent(indexFilePath); err != nil {
+		return "", err
+	}
+	return indexFilePath, nil
 }
 
 // readUncompressSizeForZstd godoc

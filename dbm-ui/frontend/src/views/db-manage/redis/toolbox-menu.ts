@@ -23,6 +23,7 @@ export interface MenuItem {
 }
 
 export interface MenuChild {
+  bind?: string[];
   dbConsoleValue: string;
   id: string;
   name: string;
@@ -36,6 +37,7 @@ export default [
       {
         children: [
           {
+            bind: [TicketTypes.REDIS_KEYS_EXTRACT, TicketTypes.REDIS_KEYS_DELETE],
             dbConsoleValue: 'redis.toolbox.keyExtract',
             id: TicketTypes.REDIS_KEYS_EXTRACT,
             name: t('Key 操作'),
@@ -72,6 +74,7 @@ export default [
             parentId: 'common-manage',
           },
           {
+            bind: [TicketTypes.REDIS_CLUSTER_INS_MIGRATE, TicketTypes.REDIS_SINGLE_INS_MIGRATE],
             dbConsoleValue: 'redis.toolbox.migrate',
             id: TicketTypes.REDIS_CLUSTER_INS_MIGRATE,
             name: t('迁移'),
@@ -89,6 +92,12 @@ export default [
             name: t('安装 Module'),
             parentId: 'cluster-manage',
           },
+          {
+            dbConsoleValue: 'redis.toolbox.clusterReinstallDbmon',
+            id: TicketTypes.REDIS_CLUSTER_REINSTALL_DBMON,
+            name: t('集群标准化'),
+            parentId: 'cluster-manage',
+          },
         ],
         icon: 'db-icon-cluster',
         id: 'common-manage',
@@ -98,7 +107,7 @@ export default [
         children: [
           {
             dbConsoleValue: 'redis.toolbox.rollback',
-            id: 'RedisDBStructure',
+            id: TicketTypes.REDIS_DATA_STRUCTURE,
             name: t('定点构造'),
             parentId: 'common-struct',
           },
@@ -110,7 +119,7 @@ export default [
           },
           {
             dbConsoleValue: 'redis.toolbox.recoverFromInstance',
-            id: 'RedisRecoverFromInstance',
+            id: TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY,
             name: t('以构造实例恢复'),
             parentId: 'common-struct',
           },

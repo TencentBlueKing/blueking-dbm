@@ -138,7 +138,10 @@ class ResourceViewSet(SystemViewSet):
     def export_cluster(self, request, bk_biz_id: int):
         """导出集群数据为 excel 文件"""
         cluster_ids = request.data.get("cluster_ids")
-        return self.query_class.export_cluster(bk_biz_id, cluster_ids)
+        cluster_types = (
+            request.data.get("cluster_types", "").split(",") if request.data.get("cluster_types", "") else []
+        )
+        return self.query_class.export_cluster(bk_biz_id, cluster_ids, cluster_types)
 
     @action(methods=["POST", "GET"], detail=False, url_path="export_instance")
     def export_instance(self, request, bk_biz_id: int):

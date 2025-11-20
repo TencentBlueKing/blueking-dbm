@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.db import models
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
 from backend.configuration.constants import PLAT_BIZ_ID
@@ -25,7 +25,7 @@ class Tag(AuditedModel):
     is_builtin = models.BooleanField(help_text=_("是否内置"), default=False)
 
     class Meta:
-        unique_together = ["bk_biz_id", "key", "value"]
+        unique_together = ["bk_biz_id", "key", "value", "type"]
 
     @property
     def system(self):

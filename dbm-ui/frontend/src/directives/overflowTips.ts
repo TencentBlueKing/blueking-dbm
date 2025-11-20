@@ -115,7 +115,7 @@ function setupOnShow(props: TippyProps, customProps: TippyProps) {
 }
 
 function setupTheme(props: TippyProps, customProps: TippyProps) {
-  const theme = ['db-tippy bk-overflow-tips'];
+  const theme = ['bk-overflow-tips'];
   if (customProps.theme) {
     theme.push(customProps.theme);
   }

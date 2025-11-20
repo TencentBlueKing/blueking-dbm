@@ -28,22 +28,22 @@
           fixed="left"
           label="IP"
           :width="150">
-          <template #default="{ data }: { data: FaultOrRecycleMachineModel }">
+          <template #default="{ data: rowData }: { data: FaultOrRecycleMachineModel }">
             <TextOverflowLayout>
               <BkButton
                 text
-                @click="() => handleGo(data)">
-                <HightLightText
+                @click="() => handleGo(rowData)">
+                <TextHighlight
                   high-light-color="#FF9C01"
-                  :key-word="props.keyword"
-                  :text="data.ip" />
+                  :keyword="props.keyword"
+                  :text="rowData.ip" />
               </BkButton>
               <template #append>
                 <BkButton
                   class="ml-4"
                   text
                   theme="primary"
-                  @click="() => handleCopy(data.ip)">
+                  @click="() => handleCopy(rowData.ip)">
                   <DbIcon type="copy" />
                 </BkButton>
               </template>
@@ -80,15 +80,15 @@
         <BkTableColumn
           field="bk_cpu"
           :label="t('CPU (核)')"
-          :width="80">
+          :width="160">
         </BkTableColumn>
         <BkTableColumn
           field="bkMemText"
           :label="t('内存')"
           show-overflow
-          :width="80">
-          <template #default="{ data }: { data: FaultOrRecycleMachineModel }">
-            {{ data.bkMemText || '0 M' }}
+          :width="120">
+          <template #default="{ data: rowData }: { data: FaultOrRecycleMachineModel }">
+            {{ rowData.bkMemText || '0 M' }}
           </template>
         </BkTableColumn>
         <BkTableColumn
@@ -117,7 +117,7 @@
   import { UserPersonalSettings } from '@common/const';
 
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
-  import HightLightText from '@components/system-search/components/search-result/render-result/components/HightLightText.vue';
+  import TextHighlight from '@components/text-highlight/Index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { execCopy } from '@utils';

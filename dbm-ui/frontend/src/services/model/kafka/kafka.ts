@@ -14,7 +14,7 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
 
-import { Affinity, affinityMap, ClusterTypes } from '@common/const';
+import { Affinity, affinityMap, ClusterTypes, DBTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
@@ -67,7 +67,6 @@ export default class Kafka extends ClusterBase {
   cluster_name: string;
   cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
-  cluster_subzons: string[];
   cluster_time_zone: string;
   cluster_type: ClusterTypes;
   cluster_type_name: string;
@@ -75,6 +74,7 @@ export default class Kafka extends ClusterBase {
   creator: string;
   db_module_id: number;
   db_module_name: number;
+  db_type: DBTypes.KAFKA;
   disaster_tolerance_level: Affinity;
   domain: string;
   id: number;
@@ -87,6 +87,7 @@ export default class Kafka extends ClusterBase {
     kafka_destroy: boolean;
     kafka_edit: boolean;
     kafka_enable_disable: boolean;
+    kafka_rebalance: boolean;
     kafka_reboot: boolean;
     kafka_replace: boolean;
     kafka_scale_up: boolean;
@@ -95,7 +96,6 @@ export default class Kafka extends ClusterBase {
   };
   phase: 'online' | 'offline';
   phase_name: string;
-  region: string;
   slave_domain: string;
   status: string;
   update_at: string;
@@ -108,7 +108,6 @@ export default class Kafka extends ClusterBase {
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
-    this.cluster_subzons = payload.cluster_subzons || [];
     this.broker = payload.broker;
     this.cluster_access_port = payload.cluster_access_port;
     this.cluster_alias = payload.cluster_alias;
@@ -123,6 +122,7 @@ export default class Kafka extends ClusterBase {
     this.creator = payload.creator;
     this.db_module_id = payload.db_module_id;
     this.db_module_name = payload.db_module_name;
+    this.db_type = payload.db_type;
     this.disaster_tolerance_level = payload.disaster_tolerance_level;
     this.domain = payload.domain;
     this.id = payload.id;
@@ -132,7 +132,6 @@ export default class Kafka extends ClusterBase {
     this.permission = payload.permission || {};
     this.phase = payload.phase;
     this.phase_name = payload.phase_name;
-    this.region = payload.region;
     this.slave_domain = payload.slave_domain;
     this.status = payload.status;
     this.update_at = payload.update_at;
@@ -200,19 +199,19 @@ export default class Kafka extends ClusterBase {
 
   // 操作中的状态 icon
   get operationStatusIcon() {
-    return Kafka.operationIconMap[this.operationRunningStatus];
+    return Kafka.operationIconMap[this.operationRunningStatus]!;
   }
 
   // 操作中的状态描述文本
   get operationStatusText() {
-    return Kafka.operationTextMap[this.operationRunningStatus];
+    return Kafka.operationTextMap[this.operationRunningStatus]!;
   }
 
   get operationTagTips() {
     return this.operations.map((item) => ({
-      icon: Kafka.operationIconMap[item.ticket_type],
+      icon: Kafka.operationIconMap[item.ticket_type]!,
       ticketId: item.ticket_id,
-      tip: Kafka.operationTextMap[item.ticket_type],
+      tip: Kafka.operationTextMap[item.ticket_type]!,
     }));
   }
 

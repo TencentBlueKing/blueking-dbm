@@ -1,11 +1,12 @@
 module dbm-services/sqlserver/db-tools/dbactuator
 
-go 1.23
+go 1.23.0
+
+toolchain go1.24.2
 
 require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/TylerBrock/colorjson v0.0.0-20200706003622-8a50f05110d2
-	github.com/artdarek/go-unzip v1.0.0
 	github.com/caarlos0/env/v6 v6.10.1
 	github.com/go-playground/locales v0.14.1
 	github.com/go-playground/universal-translator v0.18.1
@@ -18,7 +19,7 @@ require (
 	github.com/spf13/cast v1.5.1
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
-	golang.org/x/sys v0.10.0
+	golang.org/x/sys v0.33.0
 )
 
 require (
@@ -56,9 +57,9 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.4.2 // indirect
-	golang.org/x/crypto v0.9.0
-	golang.org/x/net v0.10.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/crypto v0.39.0
+	golang.org/x/net v0.21.0 // indirect
+	golang.org/x/text v0.26.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

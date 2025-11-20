@@ -28,15 +28,13 @@ func getStatToolParams(keys int64) (int64, int, int, int, int) {
 	step, slptime, sample, confidence, adjfactor := 1, 50, 3000, 400, 100
 
 	if keys >= 100000000 {
-		step, slptime, sample, confidence, adjfactor = 50, 10, 12000, 8000, 3000
+		step, slptime, sample, confidence, adjfactor = 50, 10, 25000, 8000, 3000
 	} else if keys >= 50000000 {
-		step, slptime, sample, confidence, adjfactor = 50, 10, 10000, 5000, 2200
+		step, slptime, sample, confidence, adjfactor = 30, 10, 22000, 5000, 2200
 	} else if keys >= 10000000 {
-		step, slptime, sample, confidence, adjfactor = 50, 10, 10000, 5000, 2000
-	} else if keys >= 100000 {
-		step, slptime, sample, confidence, adjfactor = 50, 0, 10000, 4000, 1200
-	} else if keys >= 10000 {
-		step, slptime, sample, confidence, adjfactor = 50, 0, 10000, 3000, 1000
+		step, slptime, sample, confidence, adjfactor = 20, 10, 16000, 4000, 2000
+	} else if keys >= 1000000 {
+		step, slptime, sample, confidence, adjfactor = 10, 0, 12000, 3000, 1200
 	}
 	mylog.Logger.Info(fmt.Sprintf("get tools params for %d:%d,%d,%d,%d,%d",
 		keys, step, slptime, sample, confidence, adjfactor))

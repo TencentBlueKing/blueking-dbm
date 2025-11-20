@@ -46,7 +46,7 @@
         :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
         :title="t('确认重置页面')">
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="isSubmitting">
           {{ t('重置') }}
         </BkButton>
@@ -70,7 +70,7 @@
   import MigrateFormItems, {
     ArchitectureType,
     MigrateType,
-  } from '@views/db-manage/redis/common/toolbox-field/migrate-form-items/Index.vue';
+  } from '@views/db-manage/redis/common/toolbox-common/migrate-form-items/Index.vue';
 
   import RenderMasterInstance from './components/master-slave-instance/Index.vue';
   import RenderMasterSlaveHost from './components/master-slave-machine/Index.vue';
@@ -82,50 +82,16 @@
   // 单据克隆
   useTicketDetail<Redis.MigrateSingle>(TicketTypes.REDIS_SINGLE_INS_MIGRATE, {
     onSuccess(ticketDetail) {
-      if (ticketDetail.details.infos[0].display_info.migrate_type === 'machine') {
+      if (ticketDetail.details.infos[0]?.migrate_type === 'machine') {
         formData.migrateType = MigrateType.MACHINE;
       }
-
-      nextTick(() => {
-        currentTableRef.value!.setTableByTicketClone(ticketDetail);
-        formData.payload = createTickePayload(ticketDetail);
-        window.changeConfirm = true;
-      });
+      formData.payload = createTickePayload(ticketDetail);
+      window.changeConfirm = true;
     },
   });
 
   const { loading: isSubmitting, run: createSingleTicketRun } = useCreateTicket<{
-    infos: {
-      cluster_id: number;
-      db_version: string;
-      display_info: {
-        domain: string;
-        ip: string;
-        migrate_type: string; // domain | machine
-      };
-      old_nodes: {
-        master: {
-          bk_biz_id: number;
-          bk_cloud_id: number;
-          bk_host_id: number;
-          ip: string;
-          port: number;
-        }[];
-        slave: {
-          bk_biz_id: number;
-          bk_cloud_id: number;
-          bk_host_id: number;
-          ip: string;
-          port: number;
-        }[];
-      };
-      resource_spec: {
-        backend_group: {
-          count: number;
-          spec_id: number;
-        };
-      };
-    }[];
+    infos: Redis.MigrateSingle['infos'];
   }>(TicketTypes.REDIS_SINGLE_INS_MIGRATE);
 
   const initFormData = () => ({

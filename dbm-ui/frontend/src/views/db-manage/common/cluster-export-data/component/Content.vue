@@ -112,16 +112,16 @@
 
   import TableNameFromItem from './TableNameFromItem.vue';
 
-  interface Props {
+  export interface Props<T> {
     data: T;
     ticketType: TicketTypes.MYSQL_DUMP_DATA | TicketTypes.TENDBCLUSTER_DUMP_DATA;
   }
 
-  interface Expose {
+  export interface Expose {
     submit(): Promise<any>;
   }
 
-  const props = defineProps<Props>();
+  const props = defineProps<Props<T>>();
 
   const initFormData = () => ({
     databases: [],

@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from ..base import BaseApi
 from ..domains import BKLOG_APIGW_DOMAIN
@@ -54,6 +54,11 @@ class _BKLogApi(BaseApi):
             method="POST",
             url="databus_collectors/{collector_config_id}/run/",
             description=_("日志平台-订阅IP下发"),
+        )
+        self.retrieve_databus_collector = self.generate_data_api(
+            method="GET",
+            url="databus_collectors/{collector_config_id}/",
+            description=_("获取采集项详情"),
         )
 
 

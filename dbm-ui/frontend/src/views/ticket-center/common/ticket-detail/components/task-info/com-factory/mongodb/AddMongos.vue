@@ -12,9 +12,23 @@
 -->
 
 <template>
-  <DbOriginalTable
-    :columns="columns"
-    :data="tableData" />
+  <TicketInfoTable
+    :data="tableData"
+    row-key="immute_domain">
+    <TicketInfoTableColumn
+      col-key="immute_domain"
+      :get-copy-value="(row: RowData) => row.immute_domain"
+      :title="t('目标分片集群')" />
+    <TicketInfoTableColumn
+      col-key="node_type"
+      :title="t('扩容节点类型')" />
+    <TicketInfoTableColumn
+      col-key="sepc_name"
+      :title="t('扩容规格')" />
+    <TicketInfoTableColumn
+      col-key="add_shard_num"
+      :title="t('扩容数量（台）')" />
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">
@@ -47,27 +61,6 @@
   const { clusters, infos, specs } = props.ticketDetails.details;
 
   const tableData = ref<RowData[]>([]);
-
-  const columns = [
-    {
-      field: 'immute_domain',
-      label: t('目标分片集群'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'node_type',
-      label: t('扩容节点类型'),
-    },
-    {
-      field: 'sepc_name',
-      label: t('扩容规格'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'add_shard_num',
-      label: t('扩容数量（台）'),
-    },
-  ];
 
   tableData.value = infos.map((item) => ({
     add_shard_num: item.resource_spec.mongos.count,

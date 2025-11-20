@@ -56,7 +56,6 @@ export default class Tendbsingle extends ClusterBase {
   cluster_name: string;
   cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
-  cluster_subzons: string[];
   cluster_time_zone: string;
   cluster_type: ClusterTypes;
   cluster_type_name: string;
@@ -81,7 +80,6 @@ export default class Tendbsingle extends ClusterBase {
   };
   phase: string;
   phase_name: string;
-  region: string;
   slave_domain: string;
   status: string;
   update_at: string;
@@ -93,7 +91,6 @@ export default class Tendbsingle extends ClusterBase {
     this.bk_biz_name = payload.bk_biz_name || '';
     this.bk_cloud_id = payload.bk_cloud_id || 0;
     this.bk_cloud_name = payload.bk_cloud_name || '';
-    this.cluster_subzons = payload.cluster_subzons || [];
     this.cluster_access_port = payload.cluster_access_port;
     this.cluster_alias = payload.cluster_alias;
     this.cluster_entry = payload.cluster_entry || [];
@@ -116,7 +113,6 @@ export default class Tendbsingle extends ClusterBase {
     this.permission = payload.permission || {};
     this.phase = payload.phase || '';
     this.phase_name = payload.phase_name || '';
-    this.region = payload.region || '';
     this.slave_domain = payload.slave_domain || '';
     this.status = payload.status || '';
     this.update_at = payload.update_at;
@@ -185,14 +181,14 @@ export default class Tendbsingle extends ClusterBase {
 
   // 操作中的状态描述文本
   get operationStatusText() {
-    return Tendbsingle.operationTextMap[this.operationRunningStatus];
+    return Tendbsingle.operationTextMap[this.operationRunningStatus]!;
   }
 
   get operationTagTips() {
     return this.operations.map((item) => ({
-      icon: Tendbsingle.operationIconMap[item.ticket_type],
+      icon: Tendbsingle.operationIconMap[item.ticket_type]!,
       ticketId: item.ticket_id,
-      tip: Tendbsingle.operationTextMap[item.ticket_type],
+      tip: Tendbsingle.operationTextMap[item.ticket_type]!,
     }));
   }
 

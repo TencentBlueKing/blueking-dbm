@@ -49,11 +49,11 @@
     prepend?: () => VNode;
   }>();
 
+  const modelValue = defineModel<string>();
+
   const attrs = useAttrs();
 
   const columnContext = useColumn();
-
-  const modelValue = defineModel<string>();
 
   watch(modelValue, () => {
     columnContext?.validate('change');
@@ -75,15 +75,34 @@
   };
 </script>
 <style lang="less">
+  .bk-editable-table-body-column {
+    &.is-readonly,
+    &.is-disabled {
+      .bk-editable-textarea {
+        .bk-textarea {
+          pointer-events: none;
+
+          .bk-input--clear-icon {
+            display: none !important;
+          }
+
+          * {
+            pointer-events: none;
+          }
+        }
+      }
+    }
+  }
+
   .bk-editable-textarea {
     position: relative;
     display: flex;
     width: 100%;
+    padding-top: 6px;
+    padding-bottom: 6px;
     overflow: hidden;
 
     .bk-textarea {
-      min-height: 40px;
-      padding-top: 6px;
       background: transparent;
       border: none;
       border-radius: 0;
@@ -96,6 +115,12 @@
 
       .bk-textarea--suffix-icon {
         align-items: center;
+      }
+
+      .bk-textarea--clear-icon {
+        top: 7px;
+        right: 0;
+        height: 14px;
       }
     }
   }

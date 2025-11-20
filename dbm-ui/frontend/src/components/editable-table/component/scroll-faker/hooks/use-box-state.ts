@@ -13,7 +13,7 @@
 
 import { type ComponentInternalInstance, getCurrentInstance, reactive } from 'vue';
 
-import type { IContext } from '../index.vue';
+import type { IContext } from '../Index.vue';
 
 export default function () {
   const { proxy } = getCurrentInstance() as { proxy: IContext } & ComponentInternalInstance;

@@ -11,6 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+export * from './addJsonToFormData';
 export * from './bytePretty';
 export * from './calcTextWidth';
 export * from './charRelate';
@@ -18,6 +19,7 @@ export * from './checkDbConsole';
 export * from './classes';
 export * from './compareVersions';
 export * from './convertStorageUnits';
+export * from './createDbaToolboxRoute';
 export * from './createToolboxRoute';
 export * from './dom';
 export * from './downloadFile';
@@ -41,6 +43,7 @@ export * from './permissionDialog';
 export * from './random';
 export * from './recentDays';
 export * from './time';
+export * from './transformDataToQuery';
 export * from './url';
 export * from './validateBrackets';
 export * from './vNodeToHtml';

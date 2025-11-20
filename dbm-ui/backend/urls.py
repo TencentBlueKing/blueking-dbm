@@ -20,6 +20,7 @@ from backend import env
 from backend.bk_web.swagger import BothHttpAndHttpsSchemaGenerator
 from backend.bk_web.viewsets import ExternalProxyViewSet
 from backend.homepage.views import HomeView, LoginSuccessView, LogOutView, VersionView, ping
+from blueking.bkvision import urls as bkvision_urls
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -35,6 +36,7 @@ api_patterns = [
     path("ipchooser/", include("backend.db_services.ipchooser.urls")),
     path("infras/", include("backend.db_services.infras.urls")),
     path("taskflow/", include("backend.db_services.taskflow.urls")),
+    path("risk_memo/", include("backend.db_services.risk_memo.urls")),
     path("cmdb/", include("backend.db_services.cmdb.urls")),
     path("users/", include("backend.db_services.user.urls")),
     path("group/", include("backend.db_services.group.urls")),
@@ -45,8 +47,8 @@ api_patterns = [
     path("partition/", include("backend.db_services.partition.urls")),
     path("packages/", include("backend.db_package.urls")),
     path("version/", include("backend.db_services.version.urls")),
-    path("metadata/", include("backend.db_services.meta_import.urls")),
     path("mysql/", include("backend.db_services.mysql.urls")),
+    path("oracle/", include("backend.db_services.oracle.urls")),
     path("sqlserver/", include("backend.db_services.sqlserver.urls")),
     path("redis/", include("backend.db_services.redis.urls")),
     path("bigdata/", include("backend.db_services.bigdata.urls")),
@@ -65,6 +67,7 @@ api_patterns = [
     path("tag/", include("backend.db_services.tag.urls")),
     path("plugin/", include("backend.db_services.plugin.urls")),
     path("legacy/", include("backend.legacy.urls")),
+    path("ai/", include("backend.dbm_aiagent.urls")),
 ]
 
 urlpatterns = [
@@ -81,6 +84,8 @@ urlpatterns = [
     path("db_report/", include("backend.db_report.urls")),
     # 接入消息通知
     path("{}".format(config.ENTRANCE_URL), include("bk_notice_sdk.urls")),
+    # 接入bkvision
+    path("bkvision/", include(bkvision_urls)),
 ]
 
 # TODO 正式环境屏蔽swagger访问路径，目前开发测试只使用了 prod

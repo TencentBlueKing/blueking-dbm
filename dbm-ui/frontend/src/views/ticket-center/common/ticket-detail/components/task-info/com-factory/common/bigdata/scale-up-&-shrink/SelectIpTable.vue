@@ -12,9 +12,29 @@
 -->
 
 <template>
-  <BkTable
-    :columns="tableColumns"
-    :data="data" />
+  <TicketInfoTable
+    :data="data"
+    ellipsis
+    row-key="ip">
+    <TicketInfoTableColumn
+      col-key="ip"
+      :get-copy-value="(row: Props['data'][number]) => row.ip"
+      :title="t('节点 IP')" />
+    <TicketInfoTableColumn
+      v-if="isShowInstanceColumn"
+      col-key="instance_num"
+      :title="t('每台主机实例数')" />
+    <TicketInfoTableColumn
+      col-key="alive"
+      :title="t('Agent状态')">
+      <template #default="{ row }: { row: Props['data'][number] }">
+        <span>{{ row.alive === 1 ? t('正常') : t('异常') }}</span>
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="bk_disk"
+      :title="t('磁盘_GB')" />
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">
@@ -34,26 +54,4 @@
   const { t } = useI18n();
 
   const isShowInstanceColumn = props.data.find((item) => item.instance_num !== undefined);
-
-  const tableColumns = [
-    {
-      field: 'ip',
-      label: t('节点 IP'),
-    },
-    {
-      field: 'alive',
-      label: t('Agent状态'),
-      render: ({ data }: { data: { alive: number } }) => <span>{data.alive === 1 ? t('正常') : t('异常')}</span>,
-    },
-    {
-      field: 'bk_disk',
-      label: t('磁盘_GB'),
-    },
-  ];
-  if (isShowInstanceColumn) {
-    tableColumns.splice(1, 0, {
-      field: 'instance_num',
-      label: t('每台主机实例数'),
-    });
-  }
 </script>

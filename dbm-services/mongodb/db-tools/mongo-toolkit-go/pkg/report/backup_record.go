@@ -40,6 +40,8 @@ type BackupRecord struct {
 	TotalFileNum    int    `json:"total_file_num"`    //
 	MyFileNum       int    `json:"my_file_num"`       //
 	ReleateBillInfo string `json:"releate_bill_info"` // 关联的Bill的内容，是一个Json数据.
+	IsEmptyBackup   int    `json:"is_empty_backup"`   // 是否是空备份
+	IsConfigBackup  int    `json:"is_config_backup"`  // 是否为mongodb configsvr 备份
 }
 
 // NewBackupRecord new backup record
@@ -76,12 +78,15 @@ func (b *BackupRecord) AppendBsInfo(taskId, tag string) {
 }
 
 // AppendBillSrc append bill src info
-func (b *BackupRecord) AppendBillSrc(billId, releateBillInfo string, totalFileNum, myFileIdx int) error {
+func (b *BackupRecord) AppendBillSrc(billId, releateBillInfo string, totalFileNum, myFileIdx int,
+	isEmptyBackup, isConfigBackup int) error {
 	b.Src = "bill"
 	b.RelatedBillId = billId
 	b.ReleateBillInfo = releateBillInfo
 	b.TotalFileNum = totalFileNum
 	b.MyFileNum = myFileIdx
+	b.IsEmptyBackup = isEmptyBackup
+	b.IsConfigBackup = isConfigBackup
 	return nil
 }
 

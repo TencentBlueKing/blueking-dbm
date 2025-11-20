@@ -13,6 +13,7 @@ from rest_framework import serializers
 
 from backend.configuration.models import DBAdministrator
 from backend.db_report import mock_data
+from backend.db_report.enums import ReportKind
 
 
 class ReportCommonFieldSerializerMixin(serializers.Serializer):
@@ -34,6 +35,8 @@ class ReportCommonFieldSerializerMixin(serializers.Serializer):
 
 
 class GetReportOverviewSerializer(serializers.Serializer):
+    kind = serializers.ChoiceField(help_text=_("类型"), choices=ReportKind.get_choices(), default=ReportKind.INSPECT)
+
     class Meta:
         swagger_schema_fields = {"example": mock_data.REPORT_OVERVIEW_DATA}
 

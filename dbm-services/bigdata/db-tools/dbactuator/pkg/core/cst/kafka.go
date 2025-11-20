@@ -57,4 +57,6 @@ const (
 	ReassignJSONFile = DefaultKafkaEnv + "/reassign.json"
 	// ThrottleFile 	限流文件
 	ThrottleFile = "./throttle_rate.txt"
+	// KafkaUIPort kafkaui默认监听端口
+	KafkaUIPort = 9001
 )

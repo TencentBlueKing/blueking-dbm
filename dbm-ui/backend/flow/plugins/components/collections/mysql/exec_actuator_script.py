@@ -16,8 +16,8 @@ import re
 from dataclasses import asdict, is_dataclass
 
 from django.conf import settings
-from django.utils.translation import ugettext as _
-from jinja2 import Environment
+from django.utils.translation import gettext as _
+from jinja2.sandbox import SandboxedEnvironment as Environment
 from pipeline.component_framework.component import Component
 
 from backend import env
@@ -104,7 +104,7 @@ class ExecuteDBActuatorScriptService(BkJobService):
             trans_data = asdict(trans_data)
 
         db_act_template = getattr(mysql_act_payload, kwargs["get_mysql_payload_func"])(
-            ip=exec_ips[0], trans_data=trans_data
+            ip=exec_ips[0], trans_data=trans_data, **kwargs.get("component_kwargs", {})
         )
         db_act_template["root_id"] = root_id
         db_act_template["node_id"] = node_id

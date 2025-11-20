@@ -201,6 +201,10 @@
       minWidth: 160,
     },
     {
+      field: 'instance_role',
+      label: t('角色'),
+    },
+    {
       field: 'related_instances',
       label: t('关联实例'),
       render: ({ data }: DataRow) => <RenderInstance data={data.related_instances || []}></RenderInstance>,

@@ -27,6 +27,7 @@ class MysqlMasterFailOverDetailSerializer(MysqlMasterSlaveSwitchDetailSerializer
 
 class MysqlMasterFailOverParamBuilder(MysqlMasterSlaveSwitchParamBuilder):
     controller = MySQLController.mysql_ha_master_fail_over_scene
+    validator = None
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_MASTER_FAIL_OVER)
@@ -37,3 +38,8 @@ class MysqlMasterFailOverFlowBuilder(MysqlMasterSlaveSwitchFlowBuilder):
     dumper_flow_builder = MysqlDumperMigrateParamBuilder
     retry_type = FlowRetryType.MANUAL_RETRY
     pause_node_builder = MySQLBasePauseParamBuilder
+
+
+@builders.BuilderFactory.register(TicketType.MYSQL_INSTANCE_FAIL_OVER)
+class MysqlInstanceFailOverFlowBuilder(MysqlMasterFailOverFlowBuilder):
+    inner_flow_name = TicketType.get_choice_label(TicketType.MYSQL_INSTANCE_FAIL_OVER)

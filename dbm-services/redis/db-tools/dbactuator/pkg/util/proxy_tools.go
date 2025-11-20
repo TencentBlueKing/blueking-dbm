@@ -4,6 +4,7 @@ package util
 import (
 	"bufio"
 	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -31,12 +32,12 @@ func init() {
 }
 
 // GetTwemProxyBackendsMd5Sum 获取MD5 sum
-func GetTwemProxyBackendsMd5Sum(addr string) (string, error) {
+func GetTwemProxyBackendsMd5Sum(addr, status string) (string, error) {
 	pinfo := strings.Split(addr, ":")
 	port, _ := strconv.Atoi(pinfo[1])
 	segsMap, err := GetTwemproxyBackends(pinfo[0], port)
 	if err != nil {
-		return "errFailed", err
+		return fmt.Sprintf("%s||%s||%v", addr, status, err), err
 	}
 	segList := []string{}
 	for addr, seg := range segsMap {
@@ -46,8 +47,11 @@ func GetTwemProxyBackendsMd5Sum(addr string) (string, error) {
 		return segList[i] > segList[j]
 	})
 
-	x, _ := json.Marshal(segList)
-	return fmt.Sprintf("%s||%x", addr, md5.Sum(x)), nil
+	data, _ := json.Marshal(segList)
+	md5er := md5.New()
+	md5er.Write(data)
+	hash2 := md5er.Sum(nil)
+	return fmt.Sprintf("%s||%s||%x", addr, status, hex.EncodeToString(hash2)), nil
 }
 
 // DoSwitchTwemproxyBackends "change nosqlproxy $mt:$mp $st:$sp"
@@ -55,7 +59,7 @@ func DoSwitchTwemproxyBackends(ip string, port int, from, to string) (rst string
 	addr := fmt.Sprintf("%s:%d", ip, port+1000)
 	for range 10 {
 		var nc net.Conn
-		nc, err = net.DialTimeout("tcp", addr, time.Second*10)
+		nc, err = net.DialTimeout("tcp", addr, 5*time.Second)
 		if err != nil {
 			fmt.Printf("dail with proxy:%s:%d failed:+%v\n", ip, port, err)
 			continue
@@ -63,6 +67,7 @@ func DoSwitchTwemproxyBackends(ip string, port int, from, to string) (rst string
 		//server xxxxx:30000 xxxx:30000 already exits in server pool nosqlproxy
 		//cannot find svr xxxx:30000 in server pool nosqlproxy
 		//change 1 banckends from ' xxxx:30000 ' to  ' xxxx:30000 ' success.
+		nc.SetDeadline(time.Now().Add(5 * time.Second)) // 读写超时
 		_, err = nc.Write([]byte(fmt.Sprintf("change nosqlproxy %s %s", from, to)))
 		if err != nil {
 			fmt.Printf("write changeInfo 2 proxy:%s:%d failed:+%v\n", ip, port, err)
@@ -80,7 +85,7 @@ func DoSwitchTwemproxyBackends(ip string, port int, from, to string) (rst string
 // GetTwemproxyBackends get nosqlproxy servers
 func GetTwemproxyBackends(ip string, port int) (segs map[string]string, err error) {
 	addr := fmt.Sprintf("%s:%d", ip, port+1000)
-	nc, err := net.DialTimeout("tcp", addr, time.Second*10)
+	nc, err := net.DialTimeout("tcp", addr, 5*time.Second) // 连接超时
 	if err != nil {
 		return nil, err
 	}
@@ -92,6 +97,7 @@ func GetTwemproxyBackends(ip string, port int) (segs map[string]string, err erro
 
 // GetSegDetails echo stats |nc twempip port
 func GetSegDetails(nc net.Conn) (map[string]string, error) {
+	nc.SetDeadline(time.Now().Add(5 * time.Second)) // 读写超时
 	_, err := nc.Write([]byte("get nosqlproxy servers"))
 	if err != nil {
 		return nil, err

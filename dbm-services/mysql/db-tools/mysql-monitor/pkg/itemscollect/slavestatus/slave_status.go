@@ -77,18 +77,36 @@ func (s *slaveStatusChecker) Run() (msg string, err error) {
 }
 
 func (s *slaveStatusChecker) skipErr() error {
-	_, err := s.db.Exec(
-		`STOP SLAVE SQL_THREAD;SET GLOBAL GTID_MODE=ON_PERMISSIVE;SET GLOBAL SQL_SLAVE_SKIP_COUNTER=1;START SLAVE SQL_THREAD;SET GLOBAL GTID_MODE=ON`,
-	)
+	var gtidOn int
+	err := s.db.QueryRow(`SELECT @@GTID_MODE = 1`).Scan(&gtidOn)
 	if err != nil {
-		slog.Error("skip err failed", err)
+		slog.Error("skip slave err", slog.String("err", err.Error()))
+		return err
+	}
+	slog.Info("skip slave err", slog.Int("gtidOn", gtidOn))
+
+	var skipSql string
+	if gtidOn == 0 {
+		skipSql = `STOP SLAVE SQL_THREAD;SET GLOBAL SQL_SLAVE_SKIP_COUNTER=1;START SLAVE SQL_THREAD;`
+	} else {
+		skipSql = `STOP SLAVE SQL_THREAD;
+					SET GLOBAL GTID_MODE=ON_PERMISSIVE;
+					SET GLOBAL SQL_SLAVE_SKIP_COUNTER=1;
+					START SLAVE SQL_THREAD;
+					SET GLOBAL GTID_MODE=ON`
+	}
+	slog.Info("skip slave err", slog.String("sql", skipSql))
+
+	_, err = s.db.Exec(skipSql)
+	if err != nil {
+		slog.Error("skip slave err", slog.String("err", err.Error()))
 		return err
 	}
 
 	time.Sleep(1 * time.Second)
 	err = s.fetchSlaveStatus()
 	if err != nil {
-		slog.Error("fetch slave status after skip failed", err)
+		slog.Error("skip slave err", slog.String("err", err.Error()))
 		return err
 	}
 

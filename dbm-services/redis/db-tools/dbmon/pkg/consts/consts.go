@@ -3,7 +3,7 @@ package consts
 
 // version
 const (
-	BkDbmonVersion = "v0.18"
+	BkDbmonVersion = "v0.19"
 )
 
 const (
@@ -267,14 +267,6 @@ func IsTendisSSDInstanceDbType(dbType string) bool {
 func IsRedisMetaRole(metaRole string) bool {
 	if metaRole == MetaRoleRedisMaster ||
 		metaRole == MetaRoleRedisSlave {
-		return true
-	}
-	return false
-}
-
-// IsMongo TODO
-func IsMongo(clusterType string) bool {
-	if clusterType == MongoTypeShardedCluster || clusterType == MongoTypeReplicaSet || clusterType == MongoTypeStandalone {
 		return true
 	}
 	return false

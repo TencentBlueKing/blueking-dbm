@@ -1,0 +1,44 @@
+{% extends "admin/change_list.html" %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    /* 让表格更易读 */
+    #result_list tbody tr:hover {
+        background-color: #e3f2fd !important;
+    }
+    
+    /* 密码字段样式 */
+    #result_list td {
+        font-family: monospace;
+    }
+</style>
+{% endblock %}
+
+{% block result_list %}
+{% if custom_help_text %}
+<div class="help-box" style="background-color: #f0f8ff; border-left: 4px solid #2196F3; padding: 15px; margin: 15px 0; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <h3 style="margin-top: 0; color: #1976D2;">📖 查询说明</h3>
+    <ul style="margin-bottom: 0; line-height: 1.8;">
+        <li><strong>格式1：</strong> IP:端口:云区域ID，例如：<code style="background: #e8f5e9; padding: 2px 6px; border-radius: 3px;">192.168.1.1:27017:0</code></li>
+        <li><strong>格式2：</strong> IP:端口（默认云区域0），例如：<code style="background: #e8f5e9; padding: 2px 6px; border-radius: 3px;">192.168.1.1:27017</code></li>
+        <li><strong>支持的用户：</strong> dba、monitor、appDba、appMonitor、defaultUser、webconsole 等</li>
+        <li><strong>数据来源：</strong> 实时从密码管理系统获取，非数据库存储</li>
+        <li style="color: #1976D2;">💡 <strong>提示：</strong> 支持全角字符输入（如 ：和全角数字），系统会自动转换</li>
+    </ul>
+</div>
+{% endif %}
+
+{% if error_message %}
+<div class="error-box" style="background-color: #ffebee; border-left: 4px solid #d32f2f; padding: 15px; margin: 15px 0; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <h3 style="margin-top: 0; color: #c62828;">⚠️ 查询失败</h3>
+    <div style="background-color: #fff; padding: 12px; border-radius: 4px; font-family: monospace; font-size: 13px; white-space: pre-wrap; color: #333; line-height: 1.6;">{{ error_message }}</div>
+    <p style="margin-bottom: 0; margin-top: 10px; color: #666; font-size: 13px;">
+        💡 <strong>提示：</strong>请检查输入格式、网络连接或联系管理员
+    </p>
+</div>
+{% else %}
+{{ block.super }}
+{% endif %}
+{% endblock %}
+

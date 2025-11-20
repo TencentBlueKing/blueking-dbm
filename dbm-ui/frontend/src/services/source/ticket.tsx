@@ -17,7 +17,7 @@ import TicketFlowDescribeModel from '@services/model/ticket-flow-describe/Ticket
 import type { HostNode, ListBase } from '@services/types';
 import type { FlowItem, FlowItemTodo } from '@services/types/ticket';
 
-import { getRouter } from '@router/index';
+import { getRouter } from '@router';
 
 import type { TicketTypes } from '@common/const';
 
@@ -26,6 +26,7 @@ import { messageError } from '@utils';
 import { locale, t } from '@locales/index';
 
 import http, { type IRequestPayload } from '../http';
+import type { DetailClusters } from '../model/ticket/details/common';
 
 const path = '/apis/tickets';
 
@@ -65,7 +66,32 @@ export function createTicketNew<T>(params: {
   remark: string;
   ticket_type: TicketTypes;
 }) {
-  return http.post<{ id: number }>(`${path}/`, params, { catchError: true });
+  return http.post<{ id: number }>(`${path}/`, params, {
+    catchError: true,
+    timeout: 300000,
+  });
+}
+
+/**
+ * 批量创建单据
+ */
+export function createTicketBatch<T>(params: {
+  tickets: {
+    bk_biz_id: number;
+    details: T;
+    ignore_duplication?: boolean;
+    remark: string;
+    ticket_type: TicketTypes;
+  }[];
+}) {
+  return http.post<{ bk_biz_id: number; clusters: DetailClusters; id: number }[]>(
+    `${path}/batch_create_ticket/`,
+    params,
+    {
+      catchError: true,
+      timeout: 300000,
+    },
+  );
 }
 
 /**
@@ -73,7 +99,10 @@ export function createTicketNew<T>(params: {
  */
 export function createTicket(formData: Record<string, any>) {
   return http
-    .post<{ id: number }>(`${path}/`, formData, { catchError: true })
+    .post<{ bk_biz_id: number; id: number }>(`${path}/`, formData, {
+      catchError: true,
+      timeout: 300000,
+    })
     .then((res) => res)
     .catch((e) => {
       const { code, data } = e;
@@ -82,15 +111,13 @@ export function createTicket(formData: Record<string, any>) {
         const id = data.duplicate_ticket_id;
         const router = getRouter();
 
-        console.log('router = ', router);
-
         const route = router.resolve({
-          name: 'bizTicketManage',
+          name: 'SelfServiceMyTickets',
           params: {
             ticketId: id,
           },
         });
-        return new Promise<{ id: number }>((resolve, reject) => {
+        return new Promise<{ bk_biz_id: number; id: number }>((resolve, reject) => {
           InfoBox({
             cancelText: t('取消提单'),
             confirmText: t('继续提单'),
@@ -98,7 +125,7 @@ export function createTicket(formData: Record<string, any>) {
               if (locale.value === 'en') {
                 return (
                   <span>
-                    You have already submitted a
+                    The system has detected that a similar ticket has already been submitted
                     <a
                       href={route.href}
                       target='_blank'>
@@ -112,7 +139,7 @@ export function createTicket(formData: Record<string, any>) {
 
               return (
                 <span>
-                  你已提交过包含相同目标集群的
+                  系统检测到已提交过包含相同集群的同类
                   <a
                     href={route.href}
                     target='_blank'>
@@ -158,6 +185,25 @@ export function getTicketTypes(params?: { is_apply: 0 | 1 }) {
       value: string;
     }[]
   >(`${path}/flow_types/`, params ?? {});
+}
+
+export function getTicketGroupTypes() {
+  return http.get<
+    {
+      children: {
+        label: string;
+        value: string;
+      }[];
+      label: string;
+      value: string;
+    }[]
+  >(
+    `${path}/ticket_group_types/`,
+    {},
+    {
+      cache: true,
+    },
+  );
 }
 
 /**
@@ -294,6 +340,7 @@ export function createTicketFlowConfig(params: {
   bk_biz_id: number;
   cluster_ids?: number[];
   configs: Record<string, boolean>;
+  remark?: string;
   ticket_types: string[];
 }) {
   return http.post<{
@@ -305,10 +352,11 @@ export function createTicketFlowConfig(params: {
  * 修改可编辑的单据流程规则
  */
 export function updateTicketFlowConfig(params: {
-  bk_biz_id?: number;
+  bk_biz_id: number;
   cluster_ids?: number[];
   config_ids?: number[];
   configs: Record<string, boolean>;
+  remark?: string;
   ticket_types: string[];
 }) {
   return http.post<{
@@ -330,74 +378,6 @@ export function deleteTicketFlowConfig(params: { config_ids: number[] }) {
     ticket_types: string[];
   }>(`${path}/delete_ticket_flow_config/`, params);
 }
-
-/**
- * 查询服务器资源的城市信息
- */
-export const getInfrasCities = () =>
-  http.get<
-    {
-      city_code: string;
-      city_name: string;
-      inventory: number;
-      inventory_tag: string;
-    }[]
-  >('/apis/infras/cities/');
-
-/**
- * 服务器规格列表
- */
-export const getInfrasHostSpecs = () =>
-  http.get<
-    {
-      cpu: string;
-      mem: string;
-      spec: string;
-      type: string;
-    }[]
-  >('/apis/infras/cities/host_specs/');
-
-/**
- * redis 容量列表
- */
-export const getCapSpecs = (params: {
-  cityCode: string;
-  cluster_type: string;
-  ip_source: string;
-  nodes: {
-    master: Array<{
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_cpu?: number;
-      bk_disk?: number;
-      bk_host_id: number;
-      bk_mem?: number;
-      ip: string;
-    }>;
-    slave: Array<{
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_cpu?: number;
-      bk_disk?: number;
-      bk_host_id: number;
-      bk_mem?: number;
-      ip: string;
-    }>;
-  };
-}) =>
-  http.post<
-    {
-      cap_key: string;
-      group_num: number;
-      max_disk: number;
-      maxmemory: number;
-      selected: boolean;
-      shard_num: number;
-      spec: string;
-      total_disk: string;
-      total_memory: number;
-    }[]
-  >('/apis/infras/cities/cap_specs/', params);
 
 /**
  * 创建业务英文缩写

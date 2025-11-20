@@ -12,7 +12,7 @@ import logging
 from typing import List
 
 from django.http import JsonResponse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_proxy.reverse_api.base_reverse_api_view import BaseReverseApiView
@@ -147,7 +147,6 @@ class MySQLReverseApiView(BaseReverseApiView):
     def exporter_config(self, bk_cloud_id: int, ip: str, port_list: List[int]):
         logger.info(f"bk_cloud_id: {bk_cloud_id}, ip: {ip}, port:{port_list}")
         res = exporter_config(bk_cloud_id=bk_cloud_id, ip=ip, port_list=port_list)
-        logger.info(f"exporter config: {res}")
         return JsonResponse(
             {
                 "result": True,

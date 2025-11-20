@@ -12,31 +12,37 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn :label="t('目标集群')">
-      <template #default="{ data }: { data: RowData }">
+  <TicketInfoTable
+    :data="ticketDetails.details.infos"
+    ellipsis
+    row-key="cluster_id">
+    <TicketInfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
+      :title="t('目标集群')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="from_database"
-      :label="t('原 DB 名')">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="from_database"
+      :title="t('原 DB 名')">
+      <template #default="{ row: data }: { row: RowData }">
         <BkTag v-if="data">
           {{ data.from_database }}
         </BkTag>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="to_database"
-      :label="t('新 DB 名')">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="to_database"
+      :title="t('新 DB 名')">
+      <template #default="{ row: data }: { row: RowData }">
         <BkTag v-if="data">
           {{ data.to_database }}
         </BkTag>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

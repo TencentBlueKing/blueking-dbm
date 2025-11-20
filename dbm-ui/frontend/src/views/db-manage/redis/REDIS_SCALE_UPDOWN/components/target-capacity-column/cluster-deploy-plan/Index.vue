@@ -71,7 +71,7 @@
 
   import { useBeforeClose } from '@hooks';
 
-  import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
+  import RenderSpec from '@components/spec-display/Index.vue';
 
   import { messageError } from '@utils';
 

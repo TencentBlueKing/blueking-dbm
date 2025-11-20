@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from typing import Any, Optional
 
 from backend.flow.consts import HdfsRoleEnum
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
 @dataclass()
@@ -201,6 +201,6 @@ class DnsKwargs:
     dns_op_exec_port: int = None  # 如果做添加或者更新域名管理，执行实例的port
 
 
-class UpdateDfsHostOperation(str, StructuredEnum):
+class UpdateDfsHostOperation(StrStructuredEnum):
     Add = EnumField("add", "add")
     Remove = EnumField("remove", "remove")

@@ -11,35 +11,35 @@ specific language governing permissions and limitations under the License.
 
 from django.utils.translation import gettext_lazy as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
-class SyncType(str, StructuredEnum):
+class SyncType(StrStructuredEnum):
     MS = EnumField("ms", _("ms"))
     SMS = EnumField("sms", _("sms"))
     MMS = EnumField("mms", _("mms"))
 
 
-class DBCCModule(str, StructuredEnum):
+class DBCCModule(StrStructuredEnum):
     REDIS = EnumField("redis", _("redis"))
     MONGODB = EnumField("mongodb", _("mongodb"))
 
 
-class RedisVerUpdateNodeType(str, StructuredEnum):
+class RedisVerUpdateNodeType(StrStructuredEnum):
     """redis版本升级节点类型"""
 
     Proxy = EnumField("Proxy", _("Proxy"))
     Backend = EnumField("Backend", _("Backend"))
 
 
-class TagType(str, StructuredEnum):
+class TagType(StrStructuredEnum):
     """标签类型"""
 
     RESOURCE = EnumField("resource", _("资源标签"))
     CLUSTER = EnumField("cluster", _("集群标签"))
 
 
-class SystemTagEnum(str, StructuredEnum):
+class SystemTagEnum(StrStructuredEnum):
     """系统内置的tag名称"""
 
     TEMPORARY = EnumField("temporary", _("临时集群"))

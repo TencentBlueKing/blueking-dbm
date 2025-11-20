@@ -75,13 +75,15 @@
   interface Props {
     theme?: string;
   }
+
+  type Emits = (e: 'scroll', event: Event, params: { left: number; top: number }) => void;
 </script>
 <script setup lang="ts">
   withDefaults(defineProps<Props>(), {
     theme: 'light',
   });
 
-  const emit = defineEmits(['scroll']);
+  const emit = defineEmits<Emits>();
 
   const scrollBox = ref();
   const scrollContent = ref();
@@ -111,7 +113,10 @@
     if (isContentScroll.value && horizontalScrollbar.value) {
       horizontalScrollbar.value.scrollLeft = scrollLeft;
     }
-    emit('scroll', event);
+    emit('scroll', event, {
+      left: scrollLeft,
+      top: scrollTop,
+    });
   }, 30);
   // 垂直滚动条滚动
   const handleVerticalScroll = _.throttle((event) => {

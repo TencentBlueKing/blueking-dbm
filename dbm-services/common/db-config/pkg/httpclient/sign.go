@@ -3,12 +3,12 @@ package httpclient
 import (
 	"time"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 )
 
 const (
-	secretId  string = "2d96cd392adb4d29bcd52fa48d5b4352"
-	secretKey string = "Xu1I~TDqB0dUR9Zj"
+	secretId  string = "test"
+	secretKey string = "test"
 )
 
 // Sign TODO

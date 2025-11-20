@@ -62,7 +62,17 @@ def get_engine_from_bk_mysql_config(mysql_config: dict) -> str:
 
 def get_mysql_version_and_charset(bk_biz_id, db_module_id, cluster_type) -> Any:
     """
-    根据业务id和模块id,通过bk—config获取版本号和字符集信息
+    根据业务ID和模块ID，通过bk-config服务获取MySQL的版本号和字符集信息。
+
+    Args:
+        bk_biz_id (int or str): 业务ID
+        db_module_id (int or str): 模块ID
+        cluster_type (str): 集群类型（如 "tendbcluster"）
+
+    Returns:
+        tuple: (charset, db_version)
+            charset (str): 字符集信息
+            db_version (str): 数据库版本号
     """
     data = DBConfigApi.query_conf_item(
         {

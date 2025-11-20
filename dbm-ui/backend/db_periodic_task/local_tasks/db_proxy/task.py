@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from celery.schedules import crontab
 
 from backend.db_periodic_task.local_tasks import register_periodic_task
+from backend.db_periodic_task.local_tasks.db_proxy.sync_cluster_nginx_conf import fill_cluster_service_nginx_conf
 from backend.db_periodic_task.local_tasks.db_proxy.sync_extension_stat import sync_db_extension_stat
 
 
@@ -20,3 +21,11 @@ def sync_db_extension_stat_task():
     定期同步云区域组件状态，每分钟1次
     """
     sync_db_extension_stat()
+
+
+@register_periodic_task(run_every=crontab(minute="*"))
+def sync_cluster_service_nginx_conf():
+    """
+    定期同步大数据集群服务nginx配置
+    """
+    fill_cluster_service_nginx_conf()

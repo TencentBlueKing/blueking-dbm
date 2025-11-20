@@ -28,7 +28,7 @@
           <BkTag
             class="ml-8"
             theme="info">
-            TenDB Cluster
+            Tendb Cluster
           </BkTag>
         </div>
         <div

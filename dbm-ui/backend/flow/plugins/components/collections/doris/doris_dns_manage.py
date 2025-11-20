@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 from typing import List
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
@@ -36,12 +36,14 @@ class DorisDnsManageService(BaseService):
             DorisRoleEnum.OBSERVER.value,
             DorisRoleEnum.FOLLOWER.value,
             DorisRoleEnum.HOT.value,
+            DorisRoleEnum.WARM.value,
             DorisRoleEnum.COLD.value,
         ]
         self.instance_role_map = {
             DorisRoleEnum.OBSERVER.value: InstanceRole.DORIS_OBSERVER.value,
             DorisRoleEnum.FOLLOWER.value: InstanceRole.DORIS_FOLLOWER.value,
             DorisRoleEnum.HOT.value: InstanceRole.DORIS_BACKEND_HOT.value,
+            DorisRoleEnum.WARM.value: InstanceRole.DORIS_BACKEND_WARM.value,
             DorisRoleEnum.COLD.value: InstanceRole.DORIS_BACKEND_COLD.value,
         }
 

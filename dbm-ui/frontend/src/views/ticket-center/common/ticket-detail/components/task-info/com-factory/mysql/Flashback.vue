@@ -13,69 +13,79 @@
 
 <template>
   <InfoList>
-    <InfoItem :label="t('闪回方式')">
-      {{ ticketDetails.details.flashback_type === 'RECORD_FLASHBACK' ? t('记录级闪回') : t('库表闪回') }}
+    <InfoItem :label="t('回档类型')">
+      {{ ticketDetails.details.flashback_type === 'RECORD_FLASHBACK' ? t('记录级闪回回档') : t('库表闪回回档') }}
     </InfoItem>
   </InfoList>
-  <BkTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn
+    row-key="cluster_id">
+    <TicketInfoTableColumn
+      col-key="cluster_id"
       fixed="left"
-      :label="t('目标集群')"
-      :min-width="220">
-      <template #default="{ data }: { data: RowData }">
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
+      :min-width="220"
+      :title="t('目标集群')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('回档时间')"
-      :min-width="250">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="start_time"
+      :min-width="250"
+      :title="t('回档时间')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ dayjs(data.start_time).format('YYYY-MM-DD HH:mm:ss ZZ') }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('截止时间')"
-      :min-width="250">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="end_time"
+      :min-width="250"
+      :title="t('截止时间')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ dayjs(data.end_time).format('YYYY-MM-DD HH:mm:ss ZZ') }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('目标库')">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="databases"
+      :title="t('目标库')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.databases" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       v-if="isTableFlashback"
-      :label="t('忽略库')">
-      <template #default="{ data }: { data: RowData }">
+      col-key="databases_ignore"
+      :title="t('忽略库')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.databases_ignore" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('目标表')">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="tables"
+      :title="t('目标表')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.tables" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       v-if="isTableFlashback"
-      :label="t('忽略表')">
-      <template #default="{ data }: { data: RowData }">
+      col-key="tables_ignore"
+      :title="t('忽略表')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.tables_ignore" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       v-if="isRecordFlashback"
-      :label="t('待闪回记录')"
+      col-key="rows_filter"
       :min-width="300"
-      :show-overflow="false">
-      <template #default="{ data }: { data: RowData }">
+      :title="t('待闪回记录')">
+      <template #default="{ row: data }: { row: RowData }">
         <div style="line-height: 26px; white-space: pre">{{ data.rows_filter }}</div>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList v-if="isRecordFlashback">
     <InfoItem :label="t('覆盖原始数据')">
       {{ ticketDetails.details.infos[0].direct_write_back ? t('是') : t('否') }}

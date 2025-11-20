@@ -29,6 +29,7 @@ from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.common.base import fetch_cluster_ids, fetch_instance_ids
 from backend.ticket.constants import (
     FLOW_FINISHED_STATUS,
+    SPECIAL_APPROVE_TICKETS,
     TODO_RUNNING_STATUS,
     FlowType,
     FlowTypeConfig,
@@ -228,8 +229,17 @@ class TicketHandler:
         if flow.flow_type != FlowType.BK_ITSM:
             return []
         itsm_fields = {field["key"]: field["value"] for field in flow.details["fields"]}
-        itsm_operators = itsm_fields["approver"].split(",")
-        return itsm_operators
+        approvers = itsm_fields["approver"].split(",")
+        return approvers
+
+    @classmethod
+    def get_itsm_todo_operators(cls, flow):
+        approvers = cls.get_itsm_approvers(flow)
+        # 对于特殊审批单据，所有人均是处理者
+        if flow.ticket.ticket_type in SPECIAL_APPROVE_TICKETS:
+            return approvers, []
+        # 审批首人是处理人，剩下是协助者
+        return approvers[:1], approvers[1:]
 
     @classmethod
     def operate_itsm_ticket(cls, ticket_id, action, operator, **kwargs):
@@ -283,7 +293,7 @@ class TicketHandler:
         getattr(flow_cls, func)(*args, **kwargs)
 
     @classmethod
-    def revoke_ticket(cls, ticket_ids, operator):
+    def revoke_ticket(cls, ticket_ids, operator, remark):
         """
         终止单据
         - 单据状态本身设置为 终止
@@ -303,7 +313,7 @@ class TicketHandler:
                 continue
 
             first_running_flow = ticket.running_flows[0]
-            cls.operate_flow(ticket.id, first_running_flow.id, func="revoke", operator=operator)
+            cls.operate_flow(ticket.id, first_running_flow.id, func="revoke", operator=operator, remark=remark)
             logger.info(_("操作人[{}]终止了单据[{}]").format(operator, ticket.id))
 
     @classmethod
@@ -347,7 +357,7 @@ class TicketHandler:
         return TicketHandler.batch_process_todo(user=username, action=action, operations=operations)
 
     @classmethod
-    def create_ticket_flow_config(cls, bk_biz_id, cluster_ids, ticket_types, configs, operator):
+    def create_ticket_flow_config(cls, bk_biz_id, cluster_ids, ticket_types, configs, operator, remark):
         """
         创建单据流程
         @param bk_biz_id: 业务ID，为0表示平台业务
@@ -355,6 +365,7 @@ class TicketHandler:
         @param ticket_types: 单据类型列表
         @param configs: 流程配置
         @param operator: 创建者
+        @param remark: 备注
         """
 
         def check_create_config(ticket_type):
@@ -395,13 +406,14 @@ class TicketHandler:
                 configs=configs,
                 creator=operator,
                 updater=operator,
+                remark=remark,
             )
             flows_config_list.append(flows_config)
 
         TicketFlowsConfig.objects.bulk_create(flows_config_list)
 
     @classmethod
-    def update_ticket_flow_config(cls, bk_biz_id, cluster_ids, ticket_types, configs, config_ids, operator):
+    def update_ticket_flow_config(cls, bk_biz_id, cluster_ids, ticket_types, configs, config_ids, operator, remark):
         """
         更新单据流程
         @param bk_biz_id: 业务ID，为0表示平台业务
@@ -410,6 +422,7 @@ class TicketHandler:
         @param configs: 流程配置
         @param config_ids: 更新的流程ID列表
         @param operator: 更新人
+        @param remark: 备注
         """
         cluster_ids = cluster_ids or []
         config_ids = config_ids or []
@@ -423,7 +436,7 @@ class TicketHandler:
         # 业务级别先删除，再创建，可以复用校验流程
         with transaction.atomic():
             config_qs.filter(id__in=config_ids).delete()
-            cls.create_ticket_flow_config(bk_biz_id, cluster_ids, ticket_types, configs, operator)
+            cls.create_ticket_flow_config(bk_biz_id, cluster_ids, ticket_types, configs, operator, remark)
 
     @classmethod
     def query_ticket_flows_describe(cls, bk_biz_id, db_type, ticket_types=None):

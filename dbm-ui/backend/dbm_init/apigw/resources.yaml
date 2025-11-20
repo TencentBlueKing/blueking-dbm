@@ -1,11 +1,10 @@
-swagger: '2.0'
-basePath: /
+openapi: 3.0.1
+servers:
+- url: /
 info:
   version: '2.0'
   title: API Gateway Resources
   description: ''
-schemes:
-- http
 paths:
   /tickets/:
     post:
@@ -13,9 +12,6 @@ paths:
       description: 创建单据
       tags:
       - ticket
-      responses:
-        default:
-          description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
@@ -32,23 +28,19 @@ paths:
           appVerifiedRequired: true
           resourcePermissionRequired: true
         descriptionEn:
-  /mysql/bizs/{bk_biz_id}/cluster/query_clusters/:
-    post:
-      operationId: query_clusters
-      description: ''
+    get:
+      operationId: list_tickets
+      description: 查询 dbm 数据库的单据列表
       tags:
-      - cluster
-      responses:
-        default:
-          description: ''
+      - ticket
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
         backend:
           name: default
-          method: post
-          path: /apis/mysql/bizs/{bk_biz_id}/cluster/query_clusters/
+          method: get
+          path: /apis/tickets/
           matchSubpath: false
           timeout: 0
         pluginConfigs: []
@@ -57,19 +49,18 @@ paths:
           appVerifiedRequired: true
           resourcePermissionRequired: true
         descriptionEn:
+        
   /tickets/{id}/:
     get:
       operationId: retrieve_ticket
       description: 查询单据详情
       tags:
       - ticket
-      responses:
-        default:
-          description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: get
@@ -88,13 +79,11 @@ paths:
       description: 查询单据的flow状态
       tags:
       - ticket
-      responses:
-        default:
-          description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: get
@@ -113,13 +102,11 @@ paths:
       description: retrieve_taskflow
       tags:
       - ticket
-      responses:
-        default:
-          description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: get
@@ -138,13 +125,11 @@ paths:
       description: 模拟执行
       tags:
       - sql变更
-      responses:
-        default:
-          description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: post
@@ -163,13 +148,11 @@ paths:
       description: grammar_check
       tags:
       - sql变更
-      responses:
-        default:
-          description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: post
@@ -188,13 +171,24 @@ paths:
       description: 查询spider集群详情
       tags:
       - cluster
-      responses:
-        default:
-          description: ''
+      parameters:
+      - in: path
+        name: bk_biz_id
+        schema:
+          type: string
+        required: true
+        description: ''
+      - in: path
+        name: cluster_id
+        schema:
+          type: string
+        required: true
+        description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: get
@@ -213,13 +207,30 @@ paths:
       description: 查询spider集群列表
       tags:
       - cluster
-      responses:
-        default:
-          description: ''
+      parameters:
+      - in: path
+        name: bk_biz_id
+        schema:
+          type: string
+        required: true
+        description: 蓝鲸业务 id
+      - in: query
+        name: limit
+        schema:
+          type: number
+          default: 20
+        description: 分页查询时每页数量
+      - in: query
+        name: offset
+        schema:
+          type: number
+          default: 0
+        description: 分页查询时的第几页
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: get
@@ -238,13 +249,11 @@ paths:
       description: 查询主机拓普信息
       tags:
       - ipchooser
-      responses:
-        default:
-          description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: post
@@ -263,13 +272,11 @@ paths:
       description: 查询业务列表
       tags:
       - ipchooser
-      responses:
-        default:
-          description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: get
@@ -288,13 +295,11 @@ paths:
       description: 列出账号的规则
       tags:
       - permission
-      responses:
-        default:
-          description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: get
@@ -313,13 +318,11 @@ paths:
       description: 权限前置检查
       tags:
       - permission
-      responses:
-        default:
-          description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: post
@@ -338,13 +341,18 @@ paths:
       description: 查询集群的数据库
       tags:
       - cluster
-      responses:
-        default:
-          description: ''
+      parameters:
+      - in: path
+        name: bk_biz_id
+        schema:
+          type: string
+        required: true
+        description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: post
@@ -363,13 +371,11 @@ paths:
       description: 查询所有redis集群
       tags:
       - redis
-      responses:
-        default:
-          description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: get
@@ -388,13 +394,11 @@ paths:
       description: SQL导入用户配置
       tags:
       - sql变更
-      responses:
-        default:
-          description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: post
@@ -413,13 +417,11 @@ paths:
       description: IP白名单列表
       tags:
       - ipchooser
-      responses:
-        default:
-          description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: post
@@ -438,16 +440,36 @@ paths:
       description: 开区模板列表
       tags:
       - openarea
-      responses:
-        default:
-          description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: get
+          path: /apis/mysql/bizs/{bk_biz_id}/openarea/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: false
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+    post:
+      operationId: create_openarea_template
+      description: 创建分区模板
+      tags:
+      - openarea
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: post
           path: /apis/mysql/bizs/{bk_biz_id}/openarea/
           matchSubpath: false
           timeout: 0
@@ -463,13 +485,11 @@ paths:
       description: 创建开区预览
       tags:
       - openarea
-      responses:
-        default:
-          description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: post
@@ -488,13 +508,11 @@ paths:
       description: 查询DBM平台相关环境变量
       tags:
       - environ
-      responses:
-        default:
-          description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: get
@@ -514,13 +532,11 @@ paths:
       tags:
       - permission
       - authorize
-      responses:
-        default:
-          description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: post
@@ -540,13 +556,11 @@ paths:
       tags:
       - permission
       - authorize
-      responses:
-        default:
-          description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: get
@@ -565,13 +579,11 @@ paths:
       description: 创建分区策略
       tags:
       - partition
-      responses:
-        default:
-          description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: post
@@ -589,13 +601,11 @@ paths:
       description: 获取分区策略列表
       tags:
       - partition
-      responses:
-        default:
-          description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: get
@@ -614,13 +624,11 @@ paths:
       description: 更新分区策略
       tags:
       - partition
-      responses:
-        default:
-          description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: put
@@ -639,13 +647,11 @@ paths:
       description: 业务下查询集群通用信息
       tags:
       - cluster
-      responses:
-        default:
-          description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: get
@@ -664,13 +670,11 @@ paths:
       description: todo节点确认
       tags:
       - ticket
-      responses:
-        default:
-          description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: post
@@ -689,13 +693,11 @@ paths:
       description: fast_create_cloud_component
       tags:
       - ticket
-      responses:
-        default:
-          description: ''
       x-bk-apigateway-resource:
         isPublic: false
         allowApplyPermission: false
         matchSubpath: false
+        
         backend:
           name: default
           method: post
@@ -714,13 +716,11 @@ paths:
       description: 推动节点
       tags:
       - taskflow
-      responses:
-        default:
-          description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: post
@@ -739,13 +739,11 @@ paths:
       description: 创建账号
       tags:
       - permission
-      responses:
-        default:
-          description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: post
@@ -764,13 +762,11 @@ paths:
       description: 添加授权规则
       tags:
       - permission
-      responses:
-        default:
-          description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: post
@@ -789,13 +785,11 @@ paths:
       description: 根据正则获取集群的DB列表
       tags:
       - cluster
-      responses:
-        default:
-          description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: post
@@ -814,13 +808,11 @@ paths:
       description: 创建单据(敏感类)
       tags:
       - ticket
-      responses:
-        default:
-          description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: post
@@ -839,13 +831,11 @@ paths:
       description: 集成授权接口
       tags:
       - authorize
-      responses:
-        default:
-          description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: post
@@ -864,13 +854,11 @@ paths:
       description: 查询集群简略信息(可不关联业务)
       tags:
       - cluster
-      responses:
-        default:
-          description: ''
       x-bk-apigateway-resource:
         isPublic: true
         allowApplyPermission: true
         matchSubpath: false
+        
         backend:
           name: default
           method: get
@@ -883,3 +871,766 @@ paths:
           appVerifiedRequired: true
           resourcePermissionRequired: true
         descriptionEn:
+  /plugin/bf/has_host_bf_access/:
+    post:
+      operationId: has_host_bf_access
+      description: 是否具有BF机器权限
+      tags: []
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: post
+          path: /apis/plugin/bf/has_host_bf_access/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: false
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+  /plugin/bf/list_bf_biz_whitelist/:
+    get:
+      operationId: list_bf_biz_whitelist
+      description: 放行BF申请的白名单业务
+      tags: []
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: get
+          path: /apis/plugin/bf/list_bf_biz_whitelist/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: false
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+  /sqlserver/bizs/{bk_biz_id}/permission/authorize/pre_check_rules/:
+    post:
+      operationId: sqlserver_pre_check_rules
+      description: sqlserver集群授权的前置检查
+      tags:
+      - permission
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: post
+          path: /apis/sqlserver/bizs/{bk_biz_id}/permission/authorize/pre_check_rules/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: false
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+  /sqlserver/bizs/{bk_biz_id}/cluster/multi_get_sqlserver_dbs/:
+    post:
+      operationId: multi_get_sqlserver_dbs
+      description: 通过库表匹配批量查询db
+      tags:
+      - cluster
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: post
+          path: /apis/sqlserver/bizs/{bk_biz_id}/cluster/multi_get_sqlserver_dbs/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: false
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+  /sqlserver/bizs/{bk_biz_id}/sql_import/grammar_check/:
+    post:
+      operationId: sqlserver_grammar_check
+      description: sqlserver语法检查（上传文件）
+      tags:
+      - sql变更
+      parameters:
+      - in: path
+        name: bk_biz_id
+        schema:
+          type: string
+        required: true
+        description: ''
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: post
+          path: /apis/sqlserver/bizs/{bk_biz_id}/sql_import/grammar_check/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: false
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+  /sqlserver/bizs/{bk_biz_id}/permission/account/list_account_rules/:
+    get:
+      operationId: sqlserver_list_account_rules
+      description: sqlserver获取账户授权规则
+      tags:
+      - permission
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: get
+          path: /apis/sqlserver/bizs/{bk_biz_id}/permission/account/list_account_rules/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: false
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+  /sqlserver/bizs/{bk_biz_id}/sqlserver_ha_resources/:
+    get:
+      operationId: sqlserver_ha_resources
+      description: sqlserver主从集群列表接口
+      tags:
+      - cluster
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: get
+          path: /apis/sqlserver/bizs/{bk_biz_id}/sqlserver_ha_resources/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: false
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+  /sqlserver/bizs/{bk_biz_id}/sqlserver_single_resources/:
+    get:
+      operationId: sqlserver_single_resources
+      description: sqlserver单节点集群列表接口
+      tags:
+      - cluster
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: get
+          path: /apis/sqlserver/bizs/{bk_biz_id}/sqlserver_single_resources/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: false
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+  /apis/metadata/tendbcluster_standardize/:
+    post:
+      operationId: tendbcluster_standardize
+      description: ''
+      tags: []
+      x-bk-apigateway-resource:
+        isPublic: false
+        allowApplyPermission: false
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: post
+          path: /apis/metadata/tendbcluster_standardize/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: false
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+  /tickets/batch_process_todo/:
+    post:
+      operationId: batch_process_todo
+      description: todo节点批量确认
+      tags:
+      - ticket
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: post
+          path: /apis/tickets/batch_process_todo/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: false
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+  /grafana/api/datasources/proxy/1/timeseries/time_series/unify_query/:
+    post:
+      operationId: grafana_unify_query
+      description: grafana 统一查询
+      tags:
+      - grafana
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: post
+          path: /grafana/api/datasources/proxy/1/timeseries/time_series/unify_query/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+  /grafana/api/datasources/proxy/1/timeseries/graph_promql_query/:
+    post:
+      operationId: grafana_graph_promql_query
+      description: grafana promql 查询
+      tags:
+      - grafana
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: post
+          path: /grafana/api/datasources/proxy/1/timeseries/graph_promql_query/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+  /dbbase/filter_clusters/:
+    get:
+      operationId: filter_clusters
+      description: ''
+      tags:
+      - cluster
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: get
+          path: /apis/dbbase/filter_clusters/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: false
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+  /grafana/api/datasources/proxy/3/timeseries/grafana/query_log/:
+    post:
+      operationId: grafana_query_log
+      description: grafanar 日志查询
+      tags:
+      - grafana
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: post
+          path: /grafana/api/datasources/proxy/3/timeseries/grafana/query_log/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+  /iam/assign_auth_to_dba/:
+    post:
+      operationId: assign_auth_to_dba
+      description: 对dba分配权限
+      tags:
+      - iam
+      x-bk-apigateway-resource:
+        isPublic: false
+        allowApplyPermission: false
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: post
+          path: /apis/iam/assign_auth_to_dba/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: false
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+  /grafana/api/datasources/proxy/3/timeseries/grafana/query/:
+    post:
+      operationId: grafana_query
+      description: grafanar 日志查询
+      tags:
+      - grafana
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: post
+          path: /grafana/api/datasources/proxy/3/timeseries/grafana/query/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+  /redis/bizs/{bk_biz_id}/rollback/:
+    get:
+      operationId: list_redis_rollback_tasks
+      description: redis构造实例列表
+      tags:
+      - redis
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: get
+          path: /apis/redis/bizs/{bk_biz_id}/rollback/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: false
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+  /dbresource/resource/import/:
+    post:
+      operationId: resource_import
+      description: 资源导入
+      tags:
+      - resource
+      x-bk-apigateway-resource:
+        isPublic: false
+        allowApplyPermission: false
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: post
+          path: /apis/dbresource/resource/import/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: false
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+  /legacy/dns/create_domain/:
+    put:
+      operationId: create_domain
+      description: ''
+      tags: []
+      x-bk-apigateway-resource:
+        isPublic: false
+        allowApplyPermission: false
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: put
+          path: /apis/legacy/dns/create_domain/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+  /legacy/dns/delete_domain/:
+    delete:
+      operationId: delete_domain
+      description: ''
+      tags: []
+      x-bk-apigateway-resource:
+        isPublic: false
+        allowApplyPermission: false
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: delete
+          path: /apis/legacy/dns/delete_domain/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+  /apis/packages/:
+    get:
+      operationId: list_packages
+      description: 查询版本包列表
+      tags: []
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: get
+          path: /apis/packages/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: false
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+  /conf/system_settings/update_external_cluster/:
+    post:
+      operationId: update_external_cluster
+      description: 更新外部可访问集群名单
+      tags: []
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: post
+          path: /conf/system_settings/update_external_cluster/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+  /tickets/batch_process_ticket/:
+    post:
+      operationId: batch_process_ticket
+      description: 批量操作单据代办
+      tags:
+      - ticket
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: post
+          path: /apis/plugin/ticket/batch_process_ticket/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: false
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+  /tickets/bkchat_process_todo/:
+    post:
+      operationId: bkchat_process_todo
+      description: 代办确认(bkchat专用)
+      tags:
+      - ticket
+      x-bk-apigateway-resource:
+        isPublic: false
+        allowApplyPermission: false
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: post
+          path: /apis/plugin/ticket/bkchat_process_todo/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: false
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+  /cluster_entry/get_cluster_entries/:
+    get:
+      operationId: get_cluster_entries
+      description: 获得集群访问入口列表
+      tags:
+      - cluster
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: get
+          path: /apis/cluster_entry/get_cluster_entries/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+  /db_dirty/query_machine_pool/:
+    get:
+      operationId: query_machine_pool
+      description: 查询主机池
+      tags:
+      - resource
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: false
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: get
+          path: /apis/db_dirty/query_machine_pool/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: false
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+  /db_report/exporter/get_redis_exporter_mismatch/:
+    post:
+      operationId: get_redis_exporter_mismatch
+      description: ''
+      tags:
+      - cluster
+      x-bk-apigateway-resource:
+        isPublic: false
+        allowApplyPermission: false
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: post
+          path: /db_report/exporter/get_redis_exporter_mismatch/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: false
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+  /dbbase/check_cluster_databases/:
+    post:
+      operationId: check_cluster_databases
+      description: 检测集群的库表是否存在
+      tags:
+      - cluster
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: post
+          path: /apis/dbbase/check_cluster_databases/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: false
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+        
+  /ping:
+    get:
+      operationId: ping
+      description: ping
+      tags: []
+      x-bk-apigateway-resource:
+        isPublic: false
+        allowApplyPermission: false
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: get
+          path: /ping
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: false
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+  /plugin/mysql/apply/mysql_ha_apply_quick_minor_pass/:
+    post:
+      operationId: mysql_ha_apply_quick_minor_pass
+      description: mysql主从集群部署小额绿通
+      tags:
+      - ticket
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: false
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: post
+          path: /apis/plugin/mysql/apply/mysql_ha_apply_quick_minor_pass/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: false
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+        
+  /tickets/flow_types/:
+    get:
+      operationId: get_ticket_types
+      description: 查询平台单据类型
+      tags:
+      - ticket
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: get
+          path: /apis/tickets/flow_types/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: false
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+        
+  /apis/plugin/redis/capacity_evaluate/v1/:
+    post:
+      operationId: redis_capacity_evaluate
+      description: redis性能容量评估接口
+      tags:
+      - redis
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: post
+          path: /apis/plugin/redis/capacity_evaluate/v1/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+        
+  /oracle/bizs/{bk_biz_id}/sql_import/grammar_check/:
+    post:
+      operationId: oracle_grammar_check
+      description: oracle语法检查（上传文件）
+      tags:
+      - sql变更
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: post
+          path: /apis/oracle/bizs/{bk_biz_id}/sql_import/grammar_check/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: false
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
+        

@@ -13,6 +13,7 @@
 
 <template>
   <EditableColumn
+    :disabled-method="() => !clusterId"
     field="load_modules"
     label="Module"
     required
@@ -21,7 +22,6 @@
       v-model="moduleValue"
       :clearable="false"
       collapse-tags
-      :disabled="!clusterId"
       :list="selectList"
       multiple
       multiple-mode="tag">

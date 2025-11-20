@@ -32,13 +32,20 @@ export function useTicketDetail<T extends DetailBase>(
     return;
   }
 
-  useRequest(getTicketDetails, {
-    defaultParams: [{ id: Number(ticketId) }, { permission: 'catch' }],
-    onSuccess(ticketData) {
-      if (ticketType !== ticketData.ticket_type) {
-        return;
-      }
-      options.onSuccess(ticketData as TicketModel<T>);
+  useRequest(
+    (params) =>
+      getTicketDetails(params, {
+        cache: 1000,
+        permission: 'catch',
+      }),
+    {
+      defaultParams: [{ id: Number(ticketId) }],
+      onSuccess(ticketData) {
+        if (ticketType !== ticketData.ticket_type) {
+          return;
+        }
+        options.onSuccess(ticketData as TicketModel<T>);
+      },
     },
-  });
+  );
 }

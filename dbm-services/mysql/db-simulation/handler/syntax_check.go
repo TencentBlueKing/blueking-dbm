@@ -147,10 +147,11 @@ func (s *SyntaxHandler) SyntaxCheckSQL(r *gin.Context) {
 
 // CheckFileParam 语法检查请求参数
 type CheckFileParam struct {
-	ClusterType string   `json:"cluster_type"`
-	Path        string   `json:"path" binding:"required"`
-	Versions    []string `json:"versions"`
-	Files       []string `json:"files" binding:"gt=0,dive,required"`
+	ClusterType    string                     `json:"cluster_type"`
+	Path           string                     `json:"path" binding:"required"`
+	Versions       []string                   `json:"versions"`
+	Files          []string                   `json:"files" binding:"gt=0,dive,required"`
+	ExecuteObjects []syntax.ExecuteSQLFileObj `json:"execute_objects"`
 }
 
 // SyntaxCheckFile 运行语法检查
@@ -179,6 +180,7 @@ func (s *SyntaxHandler) SyntaxCheckFile(r *gin.Context) {
 		Param: syntax.CheckSQLFileParam{
 			BkRepoBasePath: param.Path,
 			FileNames:      param.Files,
+			ExecuteObjects: param.ExecuteObjects,
 		},
 	}
 
@@ -191,7 +193,6 @@ func (s *SyntaxHandler) SyntaxCheckFile(r *gin.Context) {
 	default:
 		data, err = check.Do(app.MySQL, versions)
 	}
-
 	if err != nil {
 		s.SendResponse(r, err, data)
 		return
@@ -270,7 +271,6 @@ func (s SyntaxHandler) ParseSQLFileRelationDb(r *gin.Context) {
 	}
 	defer p.DelTempDir()
 	// 如果所有的命令都是alter table, dump指定库表
-	logger.Debug("debug: %v,%d", allCommands, len(allCommands))
 	if isAllOperateTable(allCommands) && !dumpall {
 		relationTbls, err := p.ParseSpecialTbls("")
 		if err != nil {
@@ -279,11 +279,13 @@ func (s SyntaxHandler) ParseSQLFileRelationDb(r *gin.Context) {
 		}
 		byteCount := 0
 		for _, tbl := range relationTbls {
-			byteCount += strings.Count(strings.Join(tbl.Tbls, ""), "") - 1
+			byteCount += len(strings.Join(tbl.Tbls, ""))
 		}
+		byteCount += len(strings.Join(dbs, ""))
+		byteCount += len(strings.Join(createDbs, ""))
 		// sql语句的变更表数量大于2000,防止mysqldump 拼接参数过长导致执行失败
-		// job 参数最大长度47k byte
-		if byteCount > 46000 {
+		// job 参数最大长度47k byte,base64 编码后, 1个字节变成1.33个字节 会经过
+		if byteCount > 28000 {
 			s.SendResponse(r, nil, gin.H{
 				"create_dbs": createDbs,
 				"dbs":        dbs,
@@ -332,7 +334,7 @@ func (s *SyntaxHandler) ParseSQLRelationDb(r *gin.Context) {
 	var param CheckSQLStringParam
 	// 将request中的数据按照json格式直接解析到结构体中
 	if err := s.Prepare(r, &param); err != nil {
-		logger.Error("Preare Error %s", err.Error())
+		logger.Error("Prepare Error %s", err.Error())
 		return
 	}
 	sqlContext := strings.Join(param.Sqls, "\n")

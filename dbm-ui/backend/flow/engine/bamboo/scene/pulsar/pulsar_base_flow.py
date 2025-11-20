@@ -14,7 +14,7 @@ import re
 from dataclasses import asdict
 from typing import Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DOMAIN_RESOLUTION_SUPPORT
 from backend.configuration.models import SystemSettings
@@ -89,6 +89,7 @@ class PulsarBaseFlow(object):
         self.username = data.get("username")
         self.password = data.get("password")
         self.city_code = data.get("city_code")
+        self.disaster_tolerance_level = data.get("disaster_tolerance_level")
         base_flow_data = copy.deepcopy(data)
         base_flow_data["cluster_type"] = ClusterType.Pulsar.value
         self.base_flow_data = base_flow_data

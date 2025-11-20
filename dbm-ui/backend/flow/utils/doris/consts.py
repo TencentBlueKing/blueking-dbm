@@ -10,10 +10,10 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import gettext_lazy as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
-class DorisConfigEnum(str, StructuredEnum):
+class DorisConfigEnum(StrStructuredEnum):
     FrontendHttpPort = EnumField("fe.http_port", _("fe http端口"))
     FrontendQueryPort = EnumField("fe.query_port", _("fe query 端口"))
     Frontend = EnumField("fe", _("fe"))
@@ -22,17 +22,46 @@ class DorisConfigEnum(str, StructuredEnum):
     Password = EnumField("password", _("访问Doris 管理员密码"))
 
 
-class DorisMetaOperation(str, StructuredEnum):
+class DorisMetaOperation(StrStructuredEnum):
     Add = EnumField("ADD", _("ADD"))
     Drop = EnumField("DROP", _("DROP"))
     Decommission = EnumField("DECOMMISSION", _("DECOMMISSION"))
     ForceDrop = EnumField("DROPP", _("DROPP"))
 
 
-class DorisNodeOperation(str, StructuredEnum):
+class DorisNodeOperation(StrStructuredEnum):
     Start = EnumField("start", _("start"))
     Stop = EnumField("stop", _("stop"))
     Restart = EnumField("restart", _("restart"))
+
+
+class DorisResOpType(StrStructuredEnum):
+    """
+    定义执行Doris资源的操作类型
+    """
+
+    CREATE_AND_BIND = EnumField("create_bind", _("创建资源及绑定集群"))
+    BIND_ONLY = EnumField("bind_only", _("仅绑定集群资源"))
+    UNTIE_AND_DELETE = EnumField("untie_delete", _("解绑及删除资源"))
+    UNTIE_ONLY = EnumField("untie_only", _("仅解绑集群资源"))
+
+
+class DorisResourceTag(StrStructuredEnum):
+    """
+    定义Doris 资源标记
+    """
+
+    PUBLIC = EnumField("public", _("公共资源"))
+    PRIVATE = EnumField("private", _("独立集群资源"))
+
+
+class DorisResourceGrant(StrStructuredEnum):
+    """
+    定义Doris 资源是否受DBM管控
+    """
+
+    DBM = EnumField("dbm", _("由DBM创建及删除"))
+    OTHERS = EnumField("others", _("其他"))
 
 
 DORIS_ROLE_ALL = "all"
@@ -42,3 +71,14 @@ DORIS_BACKEND_NOT_COUNT = 0
 
 DEFAULT_BE_WEB_PORT = 8040
 DEFAULT_FE_WEB_PORT = 8030
+
+# Doris资源名称最大长度，由Doris集群限制
+DORIS_RES_NAME_MAX_LENGTH = 64
+# Doris使用COS存储桶名称最大长度，由腾讯云COS限制
+DORIS_BUCKET_NAME_MAX_LENGTH = 30
+# DORIS资源名称模板
+DORIS_RES_NAME_TMPL = "dbm-{bk_biz_id}-{cluster_name}"
+
+# Doris集群监控缓存键常量
+CACHE_CLUSTER_MASTER = "doris_cluster_master"
+CACHE_DORIS_REMOTE_USED = "doris_remote_used"

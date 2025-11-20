@@ -65,6 +65,8 @@
 
   const emits = defineEmits<Emits>();
 
+  let observer: MutationObserver | null = null;
+
   const rootRef = useTemplateRef('root');
   const localText = ref(props.text);
 
@@ -132,6 +134,24 @@
 
   onMounted(() => {
     localText.value = rootRef.value!.innerText;
+
+    observer = new MutationObserver(() => {
+      if (rootRef.value) {
+        localText.value = rootRef.value.innerText;
+      }
+    });
+    observer.observe(rootRef.value!, {
+      characterData: true, // 监听文本内容变化
+      childList: true, // 监听子节点变化
+      subtree: true, // 监听所有后代节点
+    });
+  });
+
+  onBeforeUnmount(() => {
+    if (observer) {
+      observer.disconnect();
+      observer = null;
+    }
   });
 
   defineExpose<Expose>({

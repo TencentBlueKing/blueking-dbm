@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"math/rand"
+	"net"
 	"strconv"
 	"strings"
 	"time"
@@ -38,7 +39,8 @@ type DBInstanceInfoDetail struct {
 	AdminPort     int    `json:"admin_port"`
 	BKIdcCityID   int    `json:"bk_idc_city_id"`
 	LogicalCityID int    `json:"logical_city_id"`
-	InstanceRole  string `json:"instance_role"`
+	//only storage meta have this attribute
+	InstanceRole string `json:"instance_role"`
 	//only TenDBCluster's spider node used
 	SpiderRole       string       `json:"spider_role"`
 	Status           string       `json:"status"`
@@ -51,6 +53,8 @@ type DBInstanceInfoDetail struct {
 	BindEntry        BindEntry    `json:"bind_entry"`
 	ClusterId        int          `json:"cluster_id"`
 	BinlogDumperSet  []DumperInfo `json:"tbinlogdumpers"`
+	//only TenDBHA's backend node used
+	IsStandBy bool `json:"is_stand_by"`
 }
 
 // DataBaseDetect interface
@@ -62,6 +66,8 @@ type DataBaseDetect interface {
 	//NeedReportAgent detect info need report to ha_agent_logs
 	NeedReportAgent() bool
 	GetDBType() types.DBType
+	// GetDBRole return db instance role
+	GetDBRole() string
 	// GetDetectType agent send detect type to gm, gm use this key to find callback func
 	GetDetectType() string
 	GetStatus() types.CheckStatus
@@ -79,6 +85,8 @@ type BaseDetectDB struct {
 	Port   int
 	App    string
 	DBType types.DBType
+	//db instance role
+	DBRole string
 	//time for report ha_agent_logs
 	ReporterTime   time.Time
 	ReportInterval int
@@ -90,12 +98,15 @@ type BaseDetectDB struct {
 	//cluster id
 	ClusterId int
 	SshInfo   Ssh
+	//db detect retry times
+	RetryNumber int
 }
 
 // BaseDetectDBResponse agent do detect and response
 type BaseDetectDBResponse struct {
 	DBIp        string `json:"db_ip"`
 	DBPort      int    `json:"db_port"`
+	DBRole      string `json:"db_role"`
 	DBType      string `json:"db_type"`
 	App         string `json:"app"`
 	Status      string `json:"status"`
@@ -136,10 +147,10 @@ func (b *BaseDetectDB) DoSSH(shellStr string) error {
 // ClientConfig's timeout at some scenario may be not work
 func (b *BaseDetectDB) doRawSSH(shellStr string) error {
 	conf := &ssh.ClientConfig{
-		Timeout:         time.Second * time.Duration(b.SshInfo.Timeout), // ssh 连接time out 时间一秒钟, 如果ssh验证错误 会在一秒内返回
-		User:            b.SshInfo.User,
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // 这个可以， 但是不够安全
-		// HostKeyCallback: hostKeyCallBackFunc(h.Host),
+		Timeout: time.Second * time.Duration(b.SshInfo.Timeout), // ssh 连接time out 时间一秒钟, 如果ssh验证错误 会在一秒内返回
+		User:    b.SshInfo.User,
+		HostKeyCallback: ssh.HostKeyCallback(
+			func(hostname string, remote net.Addr, key ssh.PublicKey) error { return nil }),
 	}
 	conf.Auth = []ssh.AuthMethod{
 		ssh.KeyboardInteractive(b.ReturnSshInteractive()),
@@ -192,9 +203,10 @@ func (b *BaseDetectDB) DoExtendSSH(shellStr string) error {
 func (b *BaseDetectDB) doSSHWithUptime(shellStr string) error {
 	// 创建 SSH 配置
 	conf := &ssh.ClientConfig{
-		Timeout:         time.Second * time.Duration(b.SshInfo.Timeout),
-		User:            b.SshInfo.User,
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		Timeout: time.Second * time.Duration(b.SshInfo.Timeout),
+		User:    b.SshInfo.User,
+		HostKeyCallback: ssh.HostKeyCallback(
+			func(hostname string, remote net.Addr, key ssh.PublicKey) error { return nil }),
 		Auth: []ssh.AuthMethod{
 			ssh.KeyboardInteractive(b.ReturnSshInteractive()),
 			ssh.Password(b.SshInfo.Pass),
@@ -266,9 +278,12 @@ func (b *BaseDetectDB) doSSHWithUptime(shellStr string) error {
 // todo 后面需要考虑去掉cygwin的依赖
 func (b *BaseDetectDB) DoSSHForWindows(shellStr string) error {
 	conf := &ssh.ClientConfig{
-		Timeout:         time.Second * time.Duration(b.SshInfo.Timeout), // ssh 连接time out 时间一秒钟, 如果ssh验证错误 会在一秒内返回
-		User:            b.SshInfo.User,
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // 这个可以， 但是不够安全
+		Timeout: time.Second * time.Duration(b.SshInfo.Timeout), // ssh 连接time out 时间一秒钟, 如果ssh验证错误 会在一秒内返回
+		User:    b.SshInfo.User,
+		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+			log.Logger.Infof("connection to host %s, accepting temporary key (%s)", hostname, ssh.FingerprintSHA256(key))
+			return nil
+		},
 		Config: ssh.Config{
 			Ciphers: []string{"arcfour", "aes128-ctr", "aes192-ctr"}, // 指定加密算法，目前利用sygwin联调
 		},
@@ -339,6 +354,16 @@ func (b *BaseDetectDB) GetDBType() types.DBType {
 	return b.DBType
 }
 
+// GetDBRole return
+func (b *BaseDetectDB) GetDBRole() string {
+	return b.DBRole
+}
+
+// GetRetryNumber return retry number
+func (b *BaseDetectDB) GetRetryNumber() int {
+	return b.RetryNumber
+}
+
 // GetDetectType return detect type
 // prefer to use cluster type name, but consider compatibility with currently dbType
 func (b *BaseDetectDB) GetDetectType() string {
@@ -397,6 +422,7 @@ func (b *BaseDetectDB) NewDBResponse() BaseDetectDBResponse {
 		Status:      string(b.Status),
 		Cluster:     b.Cluster,
 		DBType:      string(b.DBType),
+		DBRole:      b.DBRole,
 		ClusterType: b.ClusterType,
 	}
 }

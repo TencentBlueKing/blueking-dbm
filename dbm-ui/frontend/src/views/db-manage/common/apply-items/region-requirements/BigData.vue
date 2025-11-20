@@ -19,6 +19,7 @@
     <CityCodeItem v-model="modelValue" />
     <SubzonesItem
       v-if="showSubZoneItem"
+      ref="subzoneRef"
       v-model="modelValue.sub_zone_ids"
       :city-code="modelValue.city_code"
       :disaster-tolerance-level="modelValue.disaster_tolerance_level" />
@@ -32,7 +33,7 @@
 
   import CityCodeItem from './components/CityCode.vue';
   import DisasterToleranceLevelItem from './components/DisasterToleranceLevel.vue';
-  import SubzonesItem from './components/Subzones.vue';
+  import SubzonesItem from './components/subzones/Index.vue';
 
   interface Expose {
     getValue: () => {
@@ -43,6 +44,7 @@
         sub_zone_ids?: number[];
       };
     };
+    setInitSubzone: (subzoneIds: number[]) => void;
   }
 
   const modelValue = defineModel<{
@@ -56,32 +58,36 @@
 
   const { t } = useI18n();
 
-  const showSubZoneItem = computed(
-    () => modelValue.value.disaster_tolerance_level === Affinity.NONE && modelValue.value.city_code !== 'default',
-  );
+  const subzoneRef = useTemplateRef('subzoneRef');
+
+  const showSubZoneItem = computed(() => modelValue.value.disaster_tolerance_level && modelValue.value.city_code);
 
   defineExpose<Expose>({
     getValue() {
       const { city_code: city, disaster_tolerance_level: affinity, sub_zone_ids: subZoneIds } = modelValue.value;
 
-      // 无容灾要求且指定地域
-      if (affinity === Affinity.NONE && subZoneIds.length > 0) {
+      // 无容灾要求-指定地域-指定园区
+      if (affinity === Affinity.NONE && city !== 'default' && subZoneIds.length > 0) {
         return {
           affinity,
           location_spec: {
             city,
-            include_or_exclue: true,
+            // include_or_exclue: true,
             sub_zone_ids: subZoneIds,
           },
         };
       }
 
+      // 尽量分散 / 无容灾要求-随机地域-随机园区
       return {
         affinity,
         location_spec: {
           city,
         },
       };
+    },
+    setInitSubzone(subzoneIds: number[]) {
+      subzoneRef.value?.setInitSubzone(subzoneIds);
     },
   });
 </script>

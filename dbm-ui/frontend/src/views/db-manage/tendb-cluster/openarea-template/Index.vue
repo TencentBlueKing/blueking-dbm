@@ -68,7 +68,7 @@
       label: t('模板名称'),
     },
     {
-      field: 'config_name',
+      field: 'source_cluster',
       label: t('源集群'),
       render: ({ data }: { data: OpenareaTemplateModel }) => data.source_cluster.immute_domain || '--',
     },

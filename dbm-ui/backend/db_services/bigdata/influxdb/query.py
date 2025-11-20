@@ -11,14 +11,16 @@ specific language governing permissions and limitations under the License.
 from typing import Dict
 
 from django.db.models import F, Q, Value
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Machine
 from backend.db_meta.models.group import Group, GroupInstance
 from backend.db_meta.models.instance import StorageInstance
-from backend.db_services.bigdata.resources.query import BigDataBaseListRetrieveResource
-from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
+from backend.db_services.bigdata.resources.query import (
+    BigDataBaseExportQueryResourceMixin,
+    BigDataBaseListRetrieveResource,
+)
 from backend.db_services.dbbase.resources import query
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
@@ -27,8 +29,21 @@ from backend.ticket.models import InstanceOperateRecord
 from backend.utils.time import datetime2str
 
 
+class InfluxDBExportQueryResourceMixin(BigDataBaseExportQueryResourceMixin):
+    """补充InfluxDB集群列表导出所需的header及数据"""
+
+    @classmethod
+    def update_headers(cls, headers, **kwargs):
+        # 补充实例为空未展示的字段
+        extra_headers = [
+            {"id": "influxdb", "name": _("influxdb")},
+        ]
+
+        return super().update_headers(headers, extra_headers=extra_headers)
+
+
 @register_resource_decorator()
-class InfluxDBListRetrieveResource(BigDataBaseListRetrieveResource):
+class InfluxDBListRetrieveResource(BigDataBaseListRetrieveResource, InfluxDBExportQueryResourceMixin):
     instance_roles = []
     cluster_types = [ClusterType.Influxdb]
     fields = [
@@ -129,6 +144,7 @@ class InfluxDBListRetrieveResource(BigDataBaseListRetrieveResource):
         cls, instance: dict, restart_map: dict, group_id_map: dict, group_name_map: dict, host_id__host_map: dict
     ) -> dict:
         """实例序列化"""
+        from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
 
         instance_id = instance["id"]
         restart_at = restart_map.get(instance_id, "")

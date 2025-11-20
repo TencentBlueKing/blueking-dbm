@@ -14,69 +14,87 @@
 <template>
   <EditableColumn
     :label="t('规格需求')"
-    :min-width="150">
+    :min-width="150"
+    readonly>
     <template #head>
       <div v-bk-tooltips="t('默认使用部署方案中选定的规格，将从资源池自动匹配机器')">
         <span class="spec-title">{{ t('规格需求') }}</span>
       </div>
     </template>
-    <EditableBlock
-      v-model="localValue.name"
-      :placeholder="t('自动生成')">
-      <template #append>
-        <SpecPanel
-          v-if="localValue.id"
-          :data="localValue"
-          :hide-qps="!localValue.qps.min">
-          <DbIcon
-            class="visible-icon ml-4"
-            type="visible1" />
-        </SpecPanel>
-      </template>
-    </EditableBlock>
+    <div style="flex: 1">
+      <EditableBlock
+        v-model="localValue.name"
+        :placeholder="t('自动生成')">
+        <template #append>
+          <SpecDetailPopover
+            v-if="localValue.id"
+            :data="localValue">
+            <DbIcon
+              class="visible-icon ml-4"
+              type="visible1" />
+          </SpecDetailPopover>
+        </template>
+      </EditableBlock>
+      <EditableBlock
+        v-if="relatedSlaveSpec.id"
+        v-model="relatedSlaveSpec.name"
+        class="related-cell"
+        :placeholder="t('自动生成')">
+        <template #append>
+          <SpecDetailPopover :data="relatedSlaveSpec">
+            <DbIcon
+              class="visible-icon ml-4"
+              type="visible1" />
+          </SpecDetailPopover>
+        </template>
+      </EditableBlock>
+    </div>
   </EditableColumn>
 </template>
 
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
 
-  import SpecPanel from '@components/render-table/columns/spec-display/Panel.vue';
+  import type { InstanceInfos, MachineSpecConfig } from '@services/types';
 
-  import type { SpecInfo } from '@views/db-manage/redis/common/spec-panel/Index.vue';
+  import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
-  const modelValue = defineModel<SpecInfo>({
+  const modelValue = defineModel<{
+    related_slave?: {
+      spec_config: MachineSpecConfig;
+    }; // 关联的从库ip，仅当role=redis_master时存在
+    spec_config: InstanceInfos['spec_config'];
+  }>({
     required: true,
   });
+
   const { t } = useI18n();
 
-  const localValue = computed<SpecInfo>(() =>
-    Object.assign(
-      {
-        count: 0,
-        cpu: {
-          max: 1,
-          min: 0,
-        },
-        id: 0,
-        mem: {
-          max: 1,
-          min: 0,
-        },
-        name: '--',
-        qps: {
-          max: 1,
-          min: 0,
-        },
-        storage_spec: [
-          {
-            mount_point: '/data',
-            size: 0,
-            type: '默认',
-          },
-        ],
-      },
-      modelValue.value,
-    ),
+  const createDefaultData = () => ({
+    count: 0,
+    cpu: {
+      max: 1,
+      min: 0,
+    },
+    id: 0,
+    mem: {
+      max: 1,
+      min: 0,
+    },
+    name: '',
+    qps: {
+      max: 1,
+      min: 0,
+    },
+    storage_spec: [],
+  });
+
+  const localValue = computed<InstanceInfos['spec_config']>(() =>
+    Object.assign(createDefaultData(), modelValue.value.spec_config),
+  );
+
+  const relatedSlaveSpec = computed<MachineSpecConfig>(() =>
+    Object.assign(createDefaultData(), modelValue.value.related_slave?.spec_config),
   );
 </script>
 

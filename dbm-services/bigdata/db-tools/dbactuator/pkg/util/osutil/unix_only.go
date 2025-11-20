@@ -4,11 +4,9 @@
 package osutil
 
 import (
-	"bytes"
 	"fmt"
 	"math/rand"
 	"os"
-	"os/exec"
 	"strings"
 	"syscall"
 	"time"
@@ -89,55 +87,6 @@ func FindFirstMountPointProxy(paths ...string) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("no available mountpoint found, choices: %#v", paths)
-}
-
-// RunShellCmdAsUser a simple wrapper of Cmd
-// NOTE(wangqingping) len(strings.Join(args, " ")) cannot
-// exceed MAX_ARG_STRLEN, checkout:
-// https://www.linuxjournal.com/article/6060
-func RunShellCmdAsUser(args []string, osuser string) (string, error) {
-	cmd := exec.Command("bash", "-c", strings.Join(args, " "))
-	var outbuff, errbuff bytes.Buffer
-	cmd.Stdout = &outbuff
-	cmd.Stderr = &errbuff
-	uid, gid, err := GetUidGid(osuser)
-	if err != nil {
-		return "", err
-	}
-	cmd.SysProcAttr = &syscall.SysProcAttr{}
-	cmd.SysProcAttr.Credential = &syscall.Credential{Uid: uint32(uid), Gid: uint32(gid)}
-	if err := cmd.Run(); err != nil {
-		logger.Info("Run command failed, cmd `%s` error %s, %s",
-			strings.Join(args, " "), errbuff.String(), err)
-		return "", err
-	} else {
-		logger.Info("Run command `%s` successfully", strings.Join(args, " "))
-	}
-	return outbuff.String(), nil
-}
-
-// RunShellCmdNoWaitAsUser TODO
-// starts the specified command but does not wait for it to complete.
-func RunShellCmdNoWaitAsUser(args []string, osuser string) (string, error) {
-	cmd := exec.Command("bash", "-c", strings.Join(args, " "))
-	var outbuff, errbuff bytes.Buffer
-	cmd.Stdout = &outbuff
-	cmd.Stderr = &errbuff
-	uid, gid, err := GetUidGid(osuser)
-	if err != nil {
-		return "", err
-	}
-	cmd.SysProcAttr = &syscall.SysProcAttr{}
-	cmd.SysProcAttr.Credential = &syscall.Credential{Uid: uint32(uid), Gid: uint32(gid)}
-	if err := cmd.Start(); err != nil {
-		logger.Info("Run command failed, cmd `%s` error %s, %s",
-			strings.Join(args, " "), errbuff.String(), err)
-		return "", err
-	} else {
-		logger.Info("Run command `%s` successfully", strings.Join(args, " "))
-	}
-
-	return outbuff.String(), nil
 }
 
 // Lock TODO

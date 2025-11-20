@@ -26,6 +26,7 @@ import { setGlobalComps } from '@common/importComps';
 
 import i18n from '@locales/index';
 import BkTrace from '@blueking/bk-trace-core';
+import { BkXssFilterDirective } from '@blueking/xss-filter';
 
 import App from './App.vue';
 import getRouter from './router';
@@ -49,6 +50,7 @@ dayjs.extend(duration);
 window.changeConfirm = false;
 
 const app = createApp(subEnv ? SubApp : App);
+
 // 自定义全局组件
 setGlobalComps(app);
 const piniaInstance = createPinia();
@@ -58,6 +60,11 @@ setGlobalDirectives(app);
 
 app.use(bkuiVue);
 app.use(i18n);
+app.use(BkXssFilterDirective, {
+  defaultOptions: {
+    imgSrcMode: 'none',
+  },
+});
 
 window.BKApp = app;
 

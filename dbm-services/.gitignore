@@ -1,3 +1,17 @@
 .codecc
 .idea
 .vscode
+# CodeBuddy
+.codebuddyignore
+.codebuddy/
+# Cursor
+.cursorignore
+.cursorrules
+.cursorrules.md
+.cursor/
+# Claude
+.claude/
+
+# Specify 
+.specify/
+.specify.md

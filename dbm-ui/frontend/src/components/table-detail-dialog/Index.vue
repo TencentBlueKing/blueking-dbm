@@ -21,6 +21,9 @@
       <div
         ref="resizeHandleRef"
         class="dbm-table-detail-dialog-resize" />
+      <div
+        v-if="isResizeing"
+        class="dbm-table-detail-dialog-resize-mask" />
     </div>
   </Teleport>
 </template>
@@ -57,7 +60,7 @@
   const rootRef = useTemplateRef('rootRef');
   const resizeHandleRef = useTemplateRef('resizeHandleRef');
 
-  useResize(rootRef, resizeHandleRef);
+  const { resizing: isResizeing } = useResize(rootRef, resizeHandleRef);
 
   const handleClose = () => {
     modelValue.value = false;
@@ -82,7 +85,8 @@
         ele.classList?.contains('dbm-table-detail-dialog') ||
         ele.classList?.contains('bk-popper') ||
         ele.classList?.contains('tippy-box') ||
-        ele.classList?.contains('db-navigation-side-menu')
+        ele.classList?.contains('db-navigation-side-menu') ||
+        ele.classList?.contains('bk-date-picker-dropdown')
       ) {
         return true;
       }
@@ -199,5 +203,11 @@
         0 -4px 0 0 currentcolor,
         0 -8px 0 0 currentcolor;
     }
+  }
+
+  .dbm-table-detail-dialog-resize-mask {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
   }
 </style>

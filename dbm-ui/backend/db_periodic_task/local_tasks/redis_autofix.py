@@ -14,7 +14,7 @@ import logging
 from celery.schedules import crontab
 from django.utils import timezone
 from django.utils import timezone as datetime
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.db_services.redis.autofix.bill import generate_autofix_ticket

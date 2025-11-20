@@ -12,6 +12,7 @@ from django.db import models
 
 from backend.bk_web.models import AuditedModel
 from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple
+from backend.db_meta.models.doris_resource import DorisResource
 from backend.flow.consts import SqlserverSyncMode
 
 
@@ -66,3 +67,15 @@ class SqlserverClusterSyncMode(ClusterStorageSetABS):
     """
 
     sync_mode = models.CharField(max_length=64, choices=SqlserverSyncMode.get_choices())
+
+
+class DorisResourceSet(ClusterStorageSetABS):
+    """
+    保存Doris集群与资源关系
+    由于存在公共存储桶，需要建立多对多关系
+    """
+
+    resource = models.ForeignKey(DorisResource, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ("cluster", "resource")

@@ -14,6 +14,7 @@ from celery.schedules import crontab
 
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 
+from .backup_failed_alert import mysql_backup_failed_alert
 from .check_binlog_backup import check_binlog_backup
 from .check_full_backup import check_full_backup
 
@@ -34,3 +35,11 @@ def mysql_binlog_check_task():
     mysql binlog巡检
     """
     check_binlog_backup("")
+
+
+@register_periodic_task(run_every=crontab(minute=1, hour=10))
+def mysql_backup_failed_alert_task():
+    """
+    mysql backup failed alert
+    """
+    mysql_backup_failed_alert()

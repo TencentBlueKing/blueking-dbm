@@ -12,75 +12,18 @@
         :key="item.spec_id"
         :label="item.spec_name"
         :value="item.spec_id">
-        <BkPopover
-          :offset="18"
-          placement="right-start"
-          :popover-delay="0"
-          theme="light">
+        <SpecDetailPopover
+          :data="item"
+          placement="right-start">
           <div class="spec-display">
             <span class="text-overflow">{{ item.spec_name }}</span>
             <span
-              v-if="typeof item.count === 'number'"
+              v-if="typeof item.availableCount === 'number'"
               class="spec-display-count">
-              {{ item.count }}
+              {{ item.availableCount }}
             </span>
           </div>
-          <template #content>
-            <div class="info-wrapper">
-              <strong class="info-name">{{ item.spec_name }}</strong>
-              <div
-                v-if="typeof item.count === 'number'"
-                class="info">
-                <span class="info-title">{{ t('可用主机数') }}：</span>
-                <span class="info-value">{{ item.count ?? 0 }}</span>
-              </div>
-              <div
-                v-if="item.device_class.length"
-                class="info">
-                <span class="info-title">{{ t('机型') }}：</span>
-                <span class="info-value">
-                  {{ item.device_class.join('，') }}
-                </span>
-              </div>
-              <template v-else>
-                <div class="info">
-                  <span class="info-title">CPU：</span>
-                  <span class="info-value">({{ item.cpu.min }} ~ {{ item.cpu.max }}) {{ t('核') }}</span>
-                </div>
-                <div class="info">
-                  <span class="info-title">{{ t('内存') }}：</span>
-                  <span class="info-value">({{ item.mem.min }} ~ {{ item.mem.max }}) G</span>
-                </div>
-              </template>
-
-              <div
-                class="info"
-                style="align-items: start">
-                <span class="info-title">{{ t('磁盘') }}：</span>
-                <span class="info-value">
-                  <DbOriginalTable
-                    class="custom-edit-table mt-8"
-                    :columns="columns"
-                    :data="item.storage_spec" />
-                </span>
-              </div>
-              <div
-                v-if="item.instance_num"
-                class="info"
-                style="align-items: start">
-                <span
-                  v-overflow-tips="{
-                    content: t('每台主机实例数量'),
-                    zIndex: 99999,
-                  }"
-                  class="info-title text-overflow">
-                  {{ t('每台主机实例数量') }}：
-                </span>
-                <span class="info-value">{{ item.instance_num }}</span>
-              </div>
-            </div>
-          </template>
-        </BkPopover>
+        </SpecDetailPopover>
       </BkOption>
     </BkSelect>
     <DbIcon
@@ -101,8 +44,10 @@
   import { getSpecResourceCount } from '@services/source/dbresourceResource';
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
 
+  import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
+
   interface ResourceSpecData extends ResourceSpecModel {
-    count?: number;
+    availableCount?: number;
   }
 
   interface Props {
@@ -114,6 +59,8 @@
     machineType: string;
     modelValue: number | string;
     showRefresh?: boolean;
+    // eslint-disable-next-line vue/require-default-prop
+    subzoneIds?: number[];
   }
 
   type Emits = (e: 'update:modelValue', value: number | string) => void;
@@ -146,11 +93,18 @@
     },
     onSuccess: () => {
       list.value = data.value?.results ?? [];
+      if (props.modelValue) {
+        const isExist = list.value.some((item) => item.spec_id === props.modelValue);
+        if (!isExist) {
+          handleChange('');
+        }
+      }
     },
   });
 
   const getData = () => {
     fetchData({
+      biz_ids: `${props.bizId}`,
       enable: true,
       limit: -1,
       spec_cluster_type: props.clusterType,
@@ -159,29 +113,14 @@
   };
 
   watch(
-    [() => props.clusterType, () => props.machineType],
+    () => [props.clusterType, props.machineType, props.bizId],
     () => {
-      if (props.clusterType && props.machineType) {
+      if (props.clusterType && props.machineType && props.bizId) {
         getData();
       }
     },
     { immediate: true },
   );
-
-  const columns = [
-    {
-      field: 'mount_point',
-      label: t('挂载点'),
-    },
-    {
-      field: 'size',
-      label: t('最小容量G'),
-    },
-    {
-      field: 'type',
-      label: t('磁盘类型'),
-    },
-  ];
 
   const handleChange = (value: number | string) => {
     emits('update:modelValue', value);
@@ -198,20 +137,26 @@
         city: props.city,
       });
     }
+    if (props.subzoneIds) {
+      Object.assign(params, {
+        sub_zone_ids: props.subzoneIds.map((item) => `${item}`),
+      });
+    }
     getSpecResourceCount(params).then((data) => {
-      list.value = list.value.map((item) => ({
-        ...item,
-        count: data[item.spec_id],
-        isRecentSeconds: item.isRecentSeconds ?? false,
-        name: item.spec_name,
-        qpsText: item.qpsText ?? '',
-        updateAtDisplay: item.updateAtDisplay ?? '',
-      }));
+      list.value = list.value.map((item) =>
+        Object.assign(item, {
+          availableCount: data[item.spec_id],
+          // isRecentSeconds: item.isRecentSeconds ?? false,
+          // name: item.spec_name,
+          // qpsText: item.qpsText ?? '',
+          // updateAtDisplay: item.updateAtDisplay ?? '',
+        }),
+      );
     });
   }, 100);
 
   watch(
-    [() => props.bizId, () => props.cloudId, () => props.city, data],
+    () => [props.bizId, props.cloudId, props.city, props.subzoneIds, data.value],
     () => {
       if (
         typeof props.bizId === 'number' &&

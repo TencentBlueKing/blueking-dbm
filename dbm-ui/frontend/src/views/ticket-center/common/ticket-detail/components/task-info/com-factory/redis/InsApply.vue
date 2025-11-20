@@ -20,16 +20,26 @@
     <InfoItem :label="t('业务英文名')">
       {{ ticketDetails.db_app_abbr || '--' }}
     </InfoItem>
+    <InfoItem :label="t('管控区域')">
+      {{ ticketDetails.details.bk_cloud_name || '--' }}
+    </InfoItem>
   </InfoList>
-  <RegionRequirements :details="ticketDetails.details" />
+  <RegionRequirements
+    v-if="!isAppend && resourceSpec"
+    :details="ticketDetails.details" />
   <div class="info-title mt-20">{{ t('数据库部署信息') }}</div>
   <InfoList>
-    <InfoItem :label="t('业务英文名')">
+    <InfoItem :label="t('部署方式')">
       {{ ticketDetails.details.append_apply ? t('已有主从所在主机追加部署') : t('全新主机部署') }}
     </InfoItem>
   </InfoList>
-  <div class="info-title mt-20">{{ t('数据库部署信息') }}</div>
+  <div class="info-title mt-20">{{ t('部署需求') }}</div>
   <InfoList>
+    <InfoItem
+      v-if="!isAppend"
+      :label="t('Redis 版本')">
+      {{ ticketDetails.details.db_version || '--' }}
+    </InfoItem>
     <InfoItem
       v-if="!isAppend"
       :label="t('Redis 起始端口')">
@@ -41,58 +51,59 @@
     <InfoItem
       v-if="!isAppend"
       :label="t('后端存储规格')">
-      <BkPopover
+      <SpecDetailPopover
         v-if="backendSpec"
-        placement="top"
-        theme="light">
+        :data="backendSpec"
+        placement="top">
         <span
           class="pb-2"
           style="cursor: pointer; border-bottom: 1px dashed #979ba5">
           {{ backendSpec.spec_name }}（{{ `${backendSpec.count} ${t('台')}` }}）
         </span>
-        <template #content>
-          <SpecInfos :data="backendSpec" />
-        </template>
-      </BkPopover>
+      </SpecDetailPopover>
       <span v-else>--</span>
     </InfoItem>
     <InfoItem
       :label="t('域名设置')"
-      style="width: 100%">
-      <BkTable :data="tableData">
-        <BkTableColumn
-          field="mainDomain"
-          :label="t('主域名')">
-        </BkTableColumn>
-        <BkTableColumn
-          field="databases"
-          label="Databases">
-        </BkTableColumn>
+      style="flex: 1 0 100%">
+      <TicketInfoTable
+        :data="tableData"
+        row-key="index">
+        <TicketInfoTableColumn
+          col-key="mainDomain"
+          :title="t('主域名')">
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="databases"
+          title="Databases">
+        </TicketInfoTableColumn>
         <template v-if="isAppend">
-          <BkTableColumn
-            field="masterIp"
-            :label="t('待部署主库主机')">
-          </BkTableColumn>
-          <BkTableColumn
-            field="slaveIp"
-            :label="t('待部署从库主机')">
-          </BkTableColumn>
+          <TicketInfoTableColumn
+            col-key="masterIp"
+            :title="t('待部署主库主机')">
+          </TicketInfoTableColumn>
+          <TicketInfoTableColumn
+            col-key="slaveIp"
+            :title="t('待部署从库主机')">
+          </TicketInfoTableColumn>
         </template>
-      </BkTable>
+      </TicketInfoTable>
     </InfoItem>
   </InfoList>
 </template>
 
 <script setup lang="tsx">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
 
+  import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
+
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
-  import SpecInfos from '../components/SpecInfos.vue';
 
   interface Props {
     ticketDetails: TicketModel<Redis.InsApply>;
@@ -109,14 +120,49 @@
 
   const { db_app_abbr: appAbbr, details } = props.ticketDetails;
   const { append_apply: isAppend, infos, port = 0, resource_spec: resourceSpec } = details;
-  const backendSpec = resourceSpec.backend_group;
+  const backendSpec = resourceSpec?.backend_group;
+
+  let portType = '' as string | number[];
+  if (!isAppend) {
+    const clusterCount = infos.length;
+    const groupCount = infos.length / (resourceSpec?.backend_group.count || 0);
+
+    if (clusterCount % groupCount !== 0) {
+      portType = '';
+    }
+    if (clusterCount === groupCount) {
+      portType = 'increment'; // 递增端口号
+    }
+    if (groupCount === 1) {
+      portType = 'same'; // 端口号相同
+    }
+    const ports = Array(groupCount)
+      .fill(0)
+      .map((_, index) => port + index);
+    const groups = clusterCount / groupCount;
+    portType = _.flatMap(
+      Array(groups)
+        .fill(0)
+        .map(() => ports),
+    );
+  }
+
+  const getMasterDomain = (index: number, clusterName: string) => {
+    if (typeof portType === 'string') {
+      return `ins.${clusterName}.${appAbbr}.db${isAppend ? '' : `#${portType === 'increment' ? port + index : port}`}`;
+    }
+    return `ins.${clusterName}.${appAbbr}.db${isAppend ? '' : `#${portType.length === infos.length ? portType[index] : ''}`}`;
+  };
+
   const tableData = infos.map((infoItem, index) => {
     const { cluster_name: clusterName } = infoItem;
     return {
       databases: infoItem.databases,
-      mainDomain: `ins.${clusterName}.${appAbbr}.db${isAppend ? '' : `#${port + index}`}`,
+      index,
+      // mainDomain: `ins.${clusterName}.${appAbbr}.db${isAppend ? '' : `#${port + index}`}`,
+      mainDomain: getMasterDomain(index, clusterName),
       masterIp: infoItem.backend_group?.master.ip,
-      slaveDomain: `ins.${clusterName}.${appAbbr}.dr#${isAppend ? '' : `#${port + index}`}`,
+      // slaveDomain: `ins.${clusterName}.${appAbbr}.dr#${isAppend ? '' : `#${port + index}`}`,
       slaveIp: infoItem.backend_group?.slave.ip,
     };
   });

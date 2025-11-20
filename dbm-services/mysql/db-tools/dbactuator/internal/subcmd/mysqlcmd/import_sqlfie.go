@@ -68,8 +68,8 @@ func (d *ExecSQLFileAct) Run() (err error) {
 			Func:    d.Payload.Init,
 		},
 		{
-			FunName: "Precheck",
-			Func:    d.Payload.Precheck,
+			FunName: "Pre-Check",
+			Func:    d.Payload.PreCheck,
 		},
 		{
 			FunName: "执行前预处理",
@@ -89,7 +89,7 @@ func (d *ExecSQLFileAct) Run() (err error) {
 			FunName: "执行DDL阻塞检查",
 			Func:    d.Payload.CheckBlockingDDLPcls,
 		})
-		msg = "precheck blocking ddl pcls successfully"
+		msg = "pre-check blocking ddl process list successfully"
 	} else {
 		steps = append(steps, subcmd.StepFunc{
 			FunName: "执行导入SQL文件",

@@ -8,14 +8,28 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.constants import DBType
+from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums.instance_role import InstanceRole
 
 
 class CheckInstancesSLZ(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False, default=0)
+    cluster_type = serializers.ListField(
+        help_text=_("集群类型"),
+        child=serializers.ChoiceField(choices=ClusterType.get_choices()),
+        required=False,
+        default=[],
+    )
+    instance_role = serializers.ListField(
+        help_text=_("实例角色"),
+        child=serializers.ChoiceField(choices=InstanceRole.get_choices()),
+        required=False,
+        default=[],
+    )
     instance_addresses = serializers.ListField(
         help_text=_("实例地址列表"), child=serializers.CharField(help_text=_("实例地址(ip:port)"), required=True)
     )

@@ -234,3 +234,48 @@ def create_tdbctl_user_for_remote(cluster: Cluster, ctl_primary: str, new_ip: st
     )
     logger.info(f"add tdbctl user in instance [f'{new_ip}{IP_PORT_DIVIDER}{new_port}'] success")
     return True
+
+
+def pre_check_proxy_host_in_definer(host: str, backend: StorageInstance):
+    """
+    根据传入的host，在backend实例中获取到与host相关的definer配置信息
+    检查命令目前支持到的版本有：
+    MySQL-8.0-Community
+    MySQL-5.7
+    MySQL-5.6
+    MySQL-5.5
+    MySQL-8.0
+    TXSQL-8.0
+
+    @param host: 待检测host
+    @param backend: 查询的backend实例
+    """
+    check_routines_definer = (
+        f"select ROUTINE_SCHEMA, ROUTINE_NAME, DEFINER from information_schema.ROUTINES  "
+        f"where DEFINER like '%@{host}'"
+    )
+    check_views_definer = (
+        f"select TABLE_SCHEMA, TABLE_NAME ,DEFINER from information_schema.VIEWS " f"where DEFINER like '%@{host}'"
+    )
+    check_triggers_definer = (
+        f"select TRIGGER_SCHEMA, TRIGGER_NAME, DEFINER from information_schema.TRIGGERS "
+        f"where DEFINER like '%@{host}'"
+    )
+    check_events_definer = (
+        f"select EVENT_SCHEMA, EVENT_NAME, DEFINER from information_schema.EVENTS " f"where DEFINER like '%@{host}'"
+    )
+
+    res = DRSApi.rpc(
+        {
+            "addresses": [backend.ip_port],
+            "cmds": [check_routines_definer, check_views_definer, check_triggers_definer, check_events_definer],
+            "force": False,
+            "bk_cloud_id": backend.machine.bk_cloud_id,
+        }
+    )
+    if res[0]["error_msg"]:
+        # 如果执行命令异常报错
+        raise Exception(res[0]["error_msg"])
+
+    # 遍历每个SQL返回的结果，如果返回都是空，则返回正常
+    return [i for r in res[0]["cmd_results"] for i in r["table_data"]]

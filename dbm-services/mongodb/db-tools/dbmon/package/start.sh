@@ -1,5 +1,9 @@
 #!/usr/bin/env sh
-
+# append /usr/local/mongodb/bin to PATH if not exists
+if ! echo $PATH | grep -q "/usr/local/mongodb/bin"; then
+    echo "append /usr/local/mongodb/bin to PATH"
+    export PATH=$PATH:/usr/local/mongodb/bin
+fi
 
 # cutLog 将日志文件大小控制在20M以内
 function cutLog() {

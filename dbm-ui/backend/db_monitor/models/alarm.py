@@ -35,6 +35,7 @@ from backend.db_monitor.constants import (
     BK_MONITOR_SAVE_USER_GROUP_TEMPLATE,
     DEFAULT_ALERT_NOTICE,
     PLAT_PRIORITY,
+    PRIORITY_KEY_PREFIX,
     TARGET_LEVEL_TO_PRIORITY,
     TPLS_ALARM_DIR,
     AlertSourceEnum,
@@ -58,6 +59,8 @@ from backend.db_monitor.utils import (
 )
 from backend.db_services.cmdb.biz import list_cc_obj_user
 from backend.exceptions import ApiError
+from backend.utils.md5 import count_md5
+from backend.utils.time import get_days_range, str2datetime
 
 __all__ = ["NoticeGroup", "AlertRule", "RuleTemplate", "DispatchGroup", "MonitorPolicy", "DutyRule"]
 
@@ -171,7 +174,9 @@ class NoticeGroup(AuditedModel):
                 self.monitor_duty_rule_id = resp["data"]["id"]
                 duty_rules = DutyRule.get_biz_db_duty_rules(self.bk_biz_id, self.db_type)
                 monitor_duty_rule_ids = [rule.monitor_duty_rule_id for rule in duty_rules]
+                # 内置告警开启轮值，并且轮值策略设置为不屏蔽，轮值策略 = 内置轮值 + 自定义轮值
                 save_monitor_group_params["need_duty"] = True
+                save_monitor_group_params["duty_notice"] = {"hit_first_duty": False}
                 save_monitor_group_params["duty_rules"] = list(monitor_duty_rule_ids) + [self.monitor_duty_rule_id]
             else:
                 if resp.get("code") == BKMonitorV3Api.ErrorCode.DUTY_RULE_NAME_ALREADY_EXISTS:
@@ -329,11 +334,11 @@ class DutyRule(AuditedModel):
                                 }
                             ],
                             "duty_users": [[{"id": member, "type": "user"} for member in arrange["members"]]],
+                            "group_type": "auto",
+                            "group_number": group_number,
                         }
                         for arrange in self.duty_arranges
                     ],
-                    "group_type": "auto",
-                    "group_number": group_number,
                 }
             )
         #  2. 判断是否存量的轮值规则，如果是，则走更新流程
@@ -360,6 +365,42 @@ class DutyRule(AuditedModel):
         """删除轮值"""
         super().delete()
         delete_monitor_duty_rule.delay(self.db_type, self.monitor_duty_rule_id)
+
+    def person_schedule(self) -> List:
+        """获取人员排班"""
+        arranges = self.duty_arranges
+
+        # 固定轮值，则直接返回duty_arranges，即是排班规则
+        if self.category == DutyRuleCategory.REGULAR.value:
+            return arranges
+
+        duty_number, members = arranges[0]["duty_number"], arranges[0]["members"]
+        work_days, duty_day = arranges[0]["work_days"], arranges[0]["duty_day"]
+        # 将轮值人员破环成链，便于索引计算
+        persons = members + members[:-1]
+
+        # 交替轮值，需要根据轮值时间和轮值人员计算
+        duty_arranges = []
+        for index, dt in enumerate(get_days_range(self.effective_time, self.end_time, weekdays=work_days)):
+            st = ((index // duty_day) * duty_number) % len(members)
+            on_duty = persons[st : st + duty_number]
+            duty_arranges.append({"date": dt, "work_times": arranges[0]["work_times"], "members": on_duty})
+
+        return duty_arranges
+
+    def get_date_schedule(self, date: str, after: int) -> list:
+        """获取指定日期后x天的排班"""
+        duty_arranges = self.person_schedule()
+        if not duty_arranges:
+            return []
+
+        start = str2datetime(date, aware_check=False).astimezone()
+        end = start + datetime.timedelta(days=after)
+        days_range = get_days_range(start, end)
+
+        arrange_map = {arrange["date"]: arrange for arrange in duty_arranges}
+        duty_arranges = [arrange_map[day] for day in days_range if day in arrange_map]
+        return duty_arranges
 
     @classmethod
     def priority_distinct(cls) -> list:
@@ -615,6 +656,7 @@ class MonitorPolicy(AuditedModel):
     )
     target_priority = models.PositiveIntegerField(verbose_name=_("监控策略优先级，跟随targets调整"))
     target_keyword = models.TextField(verbose_name=_("监控目标检索冗余字段"), default="")
+    priority_group_key = models.CharField(verbose_name=_("策略分组ID"), max_length=LEN_MIDDLE, default="")
 
     # [{"key": "abc", "method": "eq", "value": ["aa", "bb"], "condition": "and", "dimension_name": "abc"}]
     custom_conditions = models.JSONField(verbose_name=_("自定义过滤列表"), default=list)
@@ -675,9 +717,10 @@ class MonitorPolicy(AuditedModel):
     class Meta:
         verbose_name = _("告警策略(MonitorPolicy)")
 
-    def calc_from_targets(self):
+    def calc_from_targets(self, parent_policy):
         """根据目标计算优先级"""
 
+        # 根据监控目标获取策略优先级
         target_levels = list(map(lambda x: x["level"], self.targets))
 
         if TargetLevel.CUSTOM.value in target_levels:
@@ -694,6 +737,7 @@ class MonitorPolicy(AuditedModel):
         self.target_level = target_level
         self.target_priority = TARGET_LEVEL_TO_PRIORITY.get(target_level).value
 
+        # 生成监控目标检索冗余字段
         db_module_map = DBModule.db_module_map()
         self.target_keyword = ",".join(
             [
@@ -702,6 +746,12 @@ class MonitorPolicy(AuditedModel):
                 for value in t["rule"]["value"]
             ]
         )
+
+        # 平台策略首次生成分组key，所有子策略继承同一个key
+        if not self.parent_id and not self.priority_group_key:
+            self.priority_group_key = f"{PRIORITY_KEY_PREFIX}_{count_md5(self.name)}"
+        elif self.parent_id != 0:
+            self.priority_group_key = parent_policy.priority_group_key
 
         # self.local_save()
 
@@ -762,11 +812,13 @@ class MonitorPolicy(AuditedModel):
 
     def patch_priority_and_agg_conditions(self, details):
         """将监控目标映射为所有查询的where条件"""
+        parent_policy = MonitorPolicy.objects.filter(id=self.parent_id).first()
 
-        self.calc_from_targets()
+        self.calc_from_targets(parent_policy)
 
         # patch priority
         details["priority"] = self.target_priority
+        details["priority_group_key"] = self.priority_group_key
 
         # patch agg conditions
         agg_conditions = []
@@ -787,7 +839,6 @@ class MonitorPolicy(AuditedModel):
 
         # dbm 仅允许修改子策略的阈值，因此有修改时，需要先同步父亲的，再进行后续的 patch
         if self.parent_id != 0:
-            parent_policy = MonitorPolicy.objects.get(id=self.parent_id)
             details["items"] = copy.deepcopy(parent_policy.details["items"])
 
         for item in details["items"]:
@@ -883,13 +934,14 @@ class MonitorPolicy(AuditedModel):
         if self.pk is None and self.bk_biz_id == env.DBA_APP_BK_BIZ_ID:
             self.parent_details = self.details
 
-        # 父策略有变更时，把子策略也刷新一遍，以保证子策略的配置与父策略的指标、维度、周期一致，才能够使优先级计算生效
+        # step3. save to db
+        super().save(force_insert, force_update, using, update_fields)
+
+        # 父策略有变更时，把子策略也刷新一遍
+        # 以保证子策略的配置与父策略的分组、指标、维度、周期一致，
         if self.parent_id == 0:
             for sub_policy in MonitorPolicy.objects.filter(parent_id=self.id):
                 sub_policy.save()
-
-        # step3. save to db
-        super().save(force_insert, force_update, using, update_fields)
 
     def delete(self, using=None, keep_parents=False):
         """删除策略的同时，同步删除监控策略"""
@@ -1288,3 +1340,24 @@ class MonitorPolicy(AuditedModel):
             return event_counts
 
         return events
+
+    @staticmethod
+    def flatten_parent_policy():
+        """打平监控策略，所有的子策略都是指向平台策略"""
+
+        def _get_root_policy(p):
+            while p.parent_id:
+                if p.parent_id not in policy_map:
+                    print(f"{p.name} find parent id error: {p.parent_id}")
+                    break
+                p = policy_map[p.parent_id]
+            return p.id
+
+        policy_map = {p.id: p for p in MonitorPolicy.objects.all()}
+        sub_policy_list = MonitorPolicy.objects.exclude(parent_id=0)
+        for sub_policy in sub_policy_list:
+            parent_id = _get_root_policy(sub_policy)
+            if parent_id != sub_policy.parent_id:
+                print(f"{sub_policy.name} update parent id: {parent_id}")
+                sub_policy.parent_id = parent_id
+                sub_policy.save()

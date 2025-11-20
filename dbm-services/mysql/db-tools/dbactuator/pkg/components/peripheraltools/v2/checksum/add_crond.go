@@ -9,10 +9,6 @@ import (
 	"path/filepath"
 )
 
-func (c *MySQLChecksumComp) AddToCrond() (err error) {
-	return AddCrond(c.Params.Ports)
-}
-
 func AddCrond(ports []int) (err error) {
 	tl, err := tools.NewToolSetWithPick(tools.ToolMysqlTableChecksum)
 	if err != nil {

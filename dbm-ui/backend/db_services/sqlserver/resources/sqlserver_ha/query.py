@@ -10,19 +10,43 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Any, Dict, List
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.api.cluster.sqlserverha.detail import scan_cluster
 from backend.db_meta.enums import InstanceInnerRole, InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache
 from backend.db_meta.models.cluster import Cluster
+from backend.db_services.dbbase.resources.query import CommonExportQueryResourceMixin
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.sqlserver.resources.query import SqlserverListRetrieveResource
 
 
+class SqlserverHAExportQueryResourceMixin(CommonExportQueryResourceMixin):
+    """补充SqlserverHA集群列表导出所需的header及数据"""
+
+    @classmethod
+    def update_headers(cls, headers, **kwargs):
+        extra_headers = [
+            {"id": "sync_mode", "name": _("同步模式")},
+        ]
+        return headers, extra_headers
+
+    @classmethod
+    def update_cluster_info(cls, cluster, cluster_info, **kwargs):
+        """
+        更新的集群列表数据
+        """
+        cluster_info.update(
+            {
+                "sync_mode": cls.db_sync_mode_map.get(cluster.id, ""),
+            }
+        )
+        return cluster_info
+
+
 @register_resource_decorator()
-class ListRetrieveResource(SqlserverListRetrieveResource):
+class ListRetrieveResource(SqlserverListRetrieveResource, SqlserverHAExportQueryResourceMixin):
     """查看 sqlserver ha 架构的资源"""
 
     cluster_types = [ClusterType.SqlserverHA]
@@ -56,6 +80,8 @@ class ListRetrieveResource(SqlserverListRetrieveResource):
         cloud_info: Dict[str, Any],
         biz_info: AppCache,
         cluster_stats_map: Dict[str, Dict[str, int]],
+        cluster_zone_map: Dict[str, str],
+        dns_to_clb: bool = False,
         **kwargs
     ) -> Dict[str, Any]:
         """将集群对象转为可序列化的 dict 结构"""
@@ -72,6 +98,8 @@ class ListRetrieveResource(SqlserverListRetrieveResource):
             cloud_info,
             biz_info,
             cluster_stats_map,
+            cluster_zone_map,
+            dns_to_clb,
             **kwargs
         )
         cluster_info.update({**cluster_role_info, **sync_mode_info})

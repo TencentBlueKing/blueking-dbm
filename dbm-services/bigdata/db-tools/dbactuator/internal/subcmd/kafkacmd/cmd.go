@@ -44,6 +44,7 @@ func NewKafkaCommand() *cobra.Command {
 				CheckBrokerEmptyCommand(),
 				GenerateReassignmentCommand(),
 				ExecuteReassignmentCommand(),
+				InstallKafkaUICommand(),
 			},
 		},
 	}

@@ -37,11 +37,11 @@
     excludes: () => [],
   });
 
-  const funControllerStore = useFunController();
-
   const moduleValue = defineModel<ClusterTypes>({
     default: ClusterTypes.TENDBSINGLE,
   });
+
+  const funControllerStore = useFunController();
 
   const renderTabs = Object.values(clusterTypeInfos).reduce<
     {

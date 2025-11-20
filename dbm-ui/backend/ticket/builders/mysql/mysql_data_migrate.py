@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import itertools
 from collections import defaultdict
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
@@ -25,12 +25,18 @@ class MySQLDataMigrateDetailSerializer(MySQLBaseOperateDetailSerializer):
     class DataMigrateInfoSerializer(serializers.Serializer):
         source_cluster = serializers.IntegerField(help_text=_("源集群ID"))
         target_clusters = serializers.ListField(help_text=_("目标集群列表"), child=serializers.IntegerField())
-        db_list = serializers.ListField(help_text=_("迁移库列表"), child=serializers.CharField())
+        db_list = serializers.ListField(help_text=_("最终库列表"), child=serializers.CharField())
         data_schema_grant = serializers.CharField(help_text=_("克隆类型"), required=False, default="data,schema")
+        # display fields
+        clone_db_list = serializers.ListField(help_text=_("克隆库列表"), child=serializers.CharField(), required=False)
+        ignore_db_list = serializers.ListField(
+            help_text=_("忽略db列表"), child=serializers.CharField(allow_blank=True), required=False
+        )
 
     infos = serializers.ListField(help_text=_("数据迁移信息"), child=DataMigrateInfoSerializer())
 
     def validate(self, attrs):
+        attrs = super(MySQLBaseOperateDetailSerializer, self).validate(attrs)
         # 获取目标集群的库信息
         cluster_ids = [[*info["target_clusters"], info["source_cluster"]] for info in attrs["infos"]]
         cluster_ids = list(itertools.chain(*cluster_ids))
@@ -67,6 +73,9 @@ class MySQLDataMigrateFlowParamBuilder(builders.FlowParamBuilder):
         # 先按照克隆类型分类
         data_schema__migrate_infos = defaultdict(list)
         for info in self.ticket_data["infos"]:
+            # 清除多余协议字段
+            info.pop("clone_db_list", None)
+            info.pop("ignore_db_list", None)
             data_schema__migrate_infos[info["data_schema_grant"]].append(info)
 
         migrate_infos = []

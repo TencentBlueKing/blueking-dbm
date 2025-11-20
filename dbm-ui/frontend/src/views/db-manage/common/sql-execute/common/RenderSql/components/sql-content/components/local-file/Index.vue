@@ -105,12 +105,11 @@
 
   const emits = defineEmits<Emits>();
 
-  const { dbType: currentDbType, grammarCheckHandle } = useSqlImport();
-  const { t } = useI18n();
-
   const modelValue = defineModel<string[]>({
     required: true,
   });
+  const { dbType: currentDbType, grammarCheckHandle } = useSqlImport();
+  const { t } = useI18n();
 
   const {
     fetchFileContentByFileName,
@@ -184,7 +183,7 @@
     const currentFileDataMap = {} as Record<string, IFileData>;
     const params = new FormData();
 
-    Array.from(files).forEach((curFile) => {
+    Array.from(files).forEach((curFile, fileIndex) => {
       fileNameList.push(curFile.name);
       currentFileDataMap[curFile.name] = createFileData({
         file: curFile,
@@ -207,7 +206,7 @@
         };
         return;
       }
-      params.append('sql_files', curFile);
+      params.append(`sql_files[${fileIndex}]`, curFile);
     });
 
     // 同名文件覆盖(用新文件覆盖旧文件)

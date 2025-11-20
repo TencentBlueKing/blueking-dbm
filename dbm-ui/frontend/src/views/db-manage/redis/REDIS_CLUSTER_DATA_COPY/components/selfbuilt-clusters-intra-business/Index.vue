@@ -21,6 +21,7 @@
       <ClusterInputColumn
         v-model="item.src_cluster"
         field="src_cluster"
+        fixed="left"
         :label="t('源集群')">
       </ClusterInputColumn>
       <ClusterTypeColumn v-model="item.src_cluster_type" />
@@ -30,7 +31,7 @@
         field="src_cluster_password"
         :label="t('访问密码')"
         :params="{
-          dstCluster: item.dst_cluster.domain,
+          dstCluster: String(item.dst_cluster.id),
           srcCluster: item.src_cluster,
         }">
       </AccessCodeColumn>

@@ -4,8 +4,8 @@ export interface RemoveNs extends DetailBase {
   clusters: DetailClusters;
   infos: {
     cluster_ids: number[];
-    drop_index: boolean;
-    drop_type: string;
+    // drop_index: boolean;
+    // drop_type: string;
     ns_filter: {
       db_patterns: string[];
       ignore_dbs: string[];
@@ -13,5 +13,5 @@ export interface RemoveNs extends DetailBase {
       table_patterns: string[];
     };
   }[];
-  is_safe: boolean;
+  // is_safe: boolean;
 }

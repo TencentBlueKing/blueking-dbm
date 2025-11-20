@@ -6,16 +6,17 @@ import (
 	"fmt"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"time"
 )
 
-func (c *MySQLCrondComp) AddKeepAlive() (err error) {
+func AddKeepAlive() (err error) {
 	cmd := exec.Command(
 		"su", []string{
 			"-", "mysql", "-c",
 			fmt.Sprintf(
 				`/bin/sh %s`,
-				path.Join(cst.MySQLCrondInstallPath, "add_keep_alive.sh"),
+				filepath.Join(cst.MySQLCrondInstallPath, "add_keep_alive.sh"),
 			),
 		}...,
 	)
@@ -28,7 +29,7 @@ func (c *MySQLCrondComp) AddKeepAlive() (err error) {
 	return nil
 }
 
-func (c *MySQLCrondComp) RemoveKeepAlive() (err error) {
+func RemoveKeepAlive() (err error) {
 	cmd := exec.Command(
 		"su", []string{
 			"-", "mysql", "-c",

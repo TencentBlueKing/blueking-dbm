@@ -36,6 +36,7 @@ export default class kafkaMachine {
   related_instances: MachineRelatedInstance[];
   spec_config: MachineSpecConfig;
   spec_id: number;
+  spec_name: string;
 
   constructor(payload = {} as kafkaMachine) {
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -45,6 +46,7 @@ export default class kafkaMachine {
     this.bk_rack_id = payload.bk_rack_id;
     this.bk_sub_zone = payload.bk_sub_zone;
     this.bk_svr_device_cls_name = payload.bk_svr_device_cls_name;
+    this.spec_name = payload.spec_name;
     this.cluster_type = payload.cluster_type;
     this.create_at = payload.create_at;
     this.host_info = payload.host_info;

@@ -9,21 +9,30 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import copy
+import logging
 from typing import Dict, List, Optional, Set
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType
 from backend.db_meta.models import Cluster, ClusterEntry
 from backend.flow.engine.bamboo.scene.common.builder import Builder
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import ALLDEPARTS
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import (
+    standardize_mysql_cluster_by_cluster_subflow,
+)
 from backend.flow.plugins.components.collections.common.clone_priv_rules_to_other_biz import (
     ClonePrivRulesToOtherComponent,
 )
-from backend.flow.plugins.components.collections.common.pause import PauseComponent
+from backend.flow.plugins.components.collections.common.generate_config_version import GenerateConfigVersionComponent
 from backend.flow.plugins.components.collections.common.transfer_cluster_meta_to_other_biz import (
     TransferClusterMetaToOtherBizComponent,
     UpdateClusterDnsBelongAppComponent,
 )
+from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
+
+logger = logging.getLogger("flow")
 
 
 def find_other_relation_domains(immute_domains: List[str]) -> List[str]:
@@ -107,8 +116,55 @@ class TransferMySQLClusterToOtherBizFlow(object):
             },
         )
 
-        p.add_act(act_name=_("请先跑一下集群标准化，完成之后确认"), act_component_code=PauseComponent.code, kwargs={})
+        # 为每个集群生成配置版本
+        for cluster in clusters:
+            # 根据目标模块ID获取数据库版本
+            try:
+                charset, db_version = get_version_and_charset(
+                    bk_biz_id=self.target_biz_id,
+                    db_module_id=self.dest_db_module_id,
+                    cluster_type=cluster.cluster_type,
+                )
+                logger.info(_("获取模块 {} 的数据库版本: {}, {}").format(self.dest_db_module_id, charset, db_version))
+            except Exception as e:
+                raise Exception(_("获取模块 {} 的数据库版本失败: {}").format(self.dest_db_module_id, str(e)))
 
+            p.add_act(
+                act_name=_("生成集群 {} 配置版本").format(cluster.immute_domain),
+                act_component_code=GenerateConfigVersionComponent.code,
+                kwargs={
+                    "bk_biz_id": self.target_biz_id,  # 使用目标业务ID
+                    "level_name": "cluster",
+                    "level_value": cluster.immute_domain,
+                    "level_info": {"module": str(self.dest_db_module_id)},
+                    "conf_file": db_version,  # 使用从模块获取的数据库版本
+                    "conf_type": "dbconf",
+                    "namespace": "tendbha",
+                    "format": "map.",
+                    "method": "GenerateAndPublish",
+                },
+            )
+        # 标准化集群
+        cloud_cluster_ids = [cluster.id for cluster in clusters]
+        p.add_sub_pipeline(
+            sub_flow=standardize_mysql_cluster_by_cluster_subflow(
+                root_id=self.root_id,
+                data=copy.deepcopy(self.data),
+                bk_cloud_id=bk_cloud_id,
+                bk_biz_id=self.target_biz_id,
+                cluster_ids=list(set(cloud_cluster_ids)),
+                departs=ALLDEPARTS,
+                with_deploy_binary=self.data.get("with_deploy_binary", True),
+                with_push_config=self.data.get("with_push_config", True),
+                with_collect_sysinfo=False,
+                with_actuator=True,
+                with_bk_plugin=self.data.get("with_deploy_binary", True),
+                with_cc_standardize=self.data.get("with_cc_standardize", False),
+                with_instance_standardize=self.data.get("with_instance_standardize", False),
+                with_backup_client=self.data.get("with_deploy_binary", True),
+                with_exporter_config=self.data.get("with_push_config", True),
+            )
+        )
         p.add_act(
             act_name=_("更新dns记录归属业务"),
             act_component_code=UpdateClusterDnsBelongAppComponent.code,

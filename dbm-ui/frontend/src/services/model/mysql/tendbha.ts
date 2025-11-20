@@ -56,7 +56,6 @@ export default class Tendbha extends ClusterBase {
   cluster_name: string;
   cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
-  cluster_subzons: string[];
   cluster_time_zone: string;
   cluster_type: ClusterTypes;
   cluster_type_name: string;
@@ -65,6 +64,7 @@ export default class Tendbha extends ClusterBase {
   db_module_id: number;
   db_module_name: string;
   disaster_tolerance_level: Affinity;
+  dns_to_clb: boolean;
   id: number;
   immute_domain: string;
   major_version: string;
@@ -73,6 +73,8 @@ export default class Tendbha extends ClusterBase {
   operations: ClusterListOperation[];
   permission: {
     access_entry_edit: boolean;
+    mysql_add_clb: boolean;
+    mysql_clb_bind_domain: boolean;
     mysql_destroy: boolean;
     mysql_dump_data: boolean;
     mysql_edit: boolean;
@@ -84,7 +86,6 @@ export default class Tendbha extends ClusterBase {
   phase: string;
   phase_name: string;
   proxies: ClusterListNode[];
-  region: string;
   slave_domain: string;
   slaves: ({ is_stand_by: boolean } & ClusterListNode)[];
   status: string;
@@ -97,7 +98,6 @@ export default class Tendbha extends ClusterBase {
     this.bk_biz_name = payload.bk_biz_name || '';
     this.bk_cloud_id = payload.bk_cloud_id || 0;
     this.bk_cloud_name = payload.bk_cloud_name || '';
-    this.cluster_subzons = payload.cluster_subzons || [];
     this.cluster_access_port = payload.cluster_access_port;
     this.cluster_alias = payload.cluster_alias;
     this.cluster_entry = payload.cluster_entry || [];
@@ -112,6 +112,7 @@ export default class Tendbha extends ClusterBase {
     this.db_module_name = payload.db_module_name || '';
     this.db_module_id = payload.db_module_id || 0;
     this.disaster_tolerance_level = payload.disaster_tolerance_level;
+    this.dns_to_clb = payload.dns_to_clb;
     this.id = payload.id || 0;
     this.immute_domain = payload.immute_domain || '';
     this.master_domain = payload.master_domain || '';
@@ -122,7 +123,6 @@ export default class Tendbha extends ClusterBase {
     this.phase = payload.phase || '';
     this.phase_name = payload.phase_name || '';
     this.proxies = payload.proxies || [];
-    this.region = payload.region || '';
     this.slave_domain = payload.slave_domain || '';
     this.slaves = payload.slaves || [];
     this.status = payload.status || '';
@@ -150,6 +150,10 @@ export default class Tendbha extends ClusterBase {
 
   get disasterToleranceLevelName() {
     return affinityMap[this.disaster_tolerance_level];
+  }
+
+  get isOnlineCLB() {
+    return this.cluster_entry.some((item) => item.cluster_entry_type === 'clb');
   }
 
   get isStarting() {
@@ -192,16 +196,16 @@ export default class Tendbha extends ClusterBase {
 
   // 操作中的状态描述文本
   get operationStatusText() {
-    return Tendbha.operationTextMap[this.operationRunningStatus];
+    return Tendbha.operationTextMap[this.operationRunningStatus]!;
   }
 
   get operationTagTips() {
     return this.operations.reduce<{ icon: string; ticketId: number; tip: string }[]>((result, item) => {
       if (Tendbha.operationIconMap[item.ticket_type]) {
         result.push({
-          icon: Tendbha.operationIconMap[item.ticket_type],
+          icon: Tendbha.operationIconMap[item.ticket_type]!,
           ticketId: item.ticket_id,
-          tip: Tendbha.operationTextMap[item.ticket_type],
+          tip: Tendbha.operationTextMap[item.ticket_type]!,
         });
       }
       return result;
@@ -244,5 +248,19 @@ export default class Tendbha extends ClusterBase {
 
   get slaveList() {
     return this.slaves;
+  }
+
+  /**
+   * is_stand_by: true
+   */
+  get standbySlaveList() {
+    return this.slaves.filter((item) => item.is_stand_by);
+  }
+
+  /**
+   * is_stand_by: false
+   */
+  get readonlySlaveList() {
+    return this.slaves.filter((item) => !item.is_stand_by);
   }
 }

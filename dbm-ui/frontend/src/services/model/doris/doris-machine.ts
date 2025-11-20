@@ -33,6 +33,7 @@ export default class DorisMachine {
   related_instances: MachineRelatedInstance[];
   spec_config: MachineSpecConfig;
   spec_id: number;
+  spec_name: string;
 
   constructor(payload = {} as DorisMachine) {
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -52,6 +53,7 @@ export default class DorisMachine {
     this.related_instances = payload.related_instances;
     this.spec_config = payload.spec_config;
     this.spec_id = payload.spec_id;
+    this.spec_name = payload.spec_name;
   }
 
   get isCold() {

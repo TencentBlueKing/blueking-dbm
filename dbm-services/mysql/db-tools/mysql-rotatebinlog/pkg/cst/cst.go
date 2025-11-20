@@ -1,7 +1,10 @@
 // Package cst TODO
 package cst
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 // DBTimeLayout TODO
 const DBTimeLayout = time.RFC3339
@@ -40,3 +43,7 @@ const (
 var BackupEnableAllowed = []string{BackupEnableTrue, BackupEnableFalse, BackupEnableAuto, ""}
 
 const OldRotateDir = "/home/mysql/rotate_logbin"
+
+const BinlogUploadStageDir = "binlog_upload_stage"
+
+var BinlogDisabledError = fmt.Errorf("binlog disabled")

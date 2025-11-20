@@ -22,7 +22,7 @@
             fixed="left"
             :resizable="false"
             :width="60">
-            <template #default="{ data }">
+            <template #default="{ data }: { data: DbResourceModel }">
               <BkCheckbox
                 v-bk-tooltips="{
                   content: disableHostMethod(data) || t('已选够n台', { n: limit }),
@@ -50,7 +50,7 @@
             field="agent_status"
             :label="t('Agent 状态')"
             :min-width="120">
-            <template #default="{ data }">
+            <template #default="{ data }: { data: DbResourceModel }">
               <HostAgentStatus :data="data.agent_status" />
             </template>
           </BkTableColumn>
@@ -58,7 +58,7 @@
             field="bk_cpu"
             :label="t('资源归属')"
             :min-width="300">
-            <template #default="{ data }">
+            <template #default="{ data }: { data: DbResourceModel }">
               <ResourceHostOwner :data="data" />
             </template>
           </BkTableColumn>

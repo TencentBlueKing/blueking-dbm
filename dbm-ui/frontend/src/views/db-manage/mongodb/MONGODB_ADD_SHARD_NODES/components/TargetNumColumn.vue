@@ -1,6 +1,7 @@
 <template>
   <EditableColumn
     :append-rules="rules"
+    :disabled-method="() => !clusterId"
     field="target_num"
     :label="t('扩容至（节点数）')"
     required
@@ -21,7 +22,6 @@
     </template>
     <EditableInput
       v-model="modelValue"
-      :disabled="disabled"
       :min="min"
       type="number" />
   </EditableColumn>
@@ -32,7 +32,7 @@
   import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
   interface Props {
-    disabled: boolean;
+    clusterId: number;
     min: number;
   }
 

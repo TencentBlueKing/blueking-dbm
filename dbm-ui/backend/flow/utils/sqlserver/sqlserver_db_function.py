@@ -20,6 +20,7 @@ from backend.components import DRSApi
 from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
+from backend.db_report.enums import ReportStateType
 from backend.flow.consts import (
     SQLSERVER_CUSTOM_SYS_DB,
     SQLSERVER_CUSTOM_SYS_USER,
@@ -858,9 +859,9 @@ def fix_app_setting_data(cluster: Cluster, instance: StorageInstance, sync_mode:
 """
     ret = base_sqlserver_drs(bk_cloud_id=cluster.bk_cloud_id, instances=[instance.ip_port], sqls=[sql])
     if ret[0]["error_msg"]:
-        return False, f"fix app_setting failed: {ret[0]['error_msg']}"
+        return ReportStateType.ABNORMAL.value, f"fix app_setting failed: {ret[0]['error_msg']}"
 
-    return True, "fix successfully"
+    return ReportStateType.NORMAL.value, "fix successfully"
 
 
 def check_sys_job_status(cluster: Cluster, instance: StorageInstance):

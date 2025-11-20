@@ -14,7 +14,7 @@ from collections import defaultdict
 from typing import Dict, List
 
 from django.db import transaction
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.db_meta.api import common
 from backend.db_meta.enums import AccessLayer, ClusterType, InstanceStatus

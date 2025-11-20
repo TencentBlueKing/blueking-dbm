@@ -11,15 +11,13 @@
 package util
 
 import (
+	"fmt"
 	"slices"
 	"sort"
 	"strconv"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/samber/lo"
-
-	"dbm-services/common/go-pubpkg/cmutil"
 )
 
 // ContainElem 判断val 是否在elems 中
@@ -74,7 +72,6 @@ func UniqueInts(slice []int) []int {
 // 如果存在 空元素 则报错
 // 如果 isNumber=false, 则当做字符比较是否连续
 func IsConsecutiveStrings(strList []string, isNumber bool) ([]int, error) {
-	err := errors.New("not consecutive numbers")
 	intList := make([]int, len(strList))
 	if !isNumber {
 		// string to ascii
@@ -90,31 +87,34 @@ func IsConsecutiveStrings(strList []string, isNumber bool) ([]int, error) {
 	}
 	for i, s := range strList {
 		if d, e := strconv.Atoi(s); e != nil {
-			return nil, errors.Errorf("illegal number %s", s)
+			return nil, fmt.Errorf("illegal number %s", s)
 		} else {
 			intList[i] = d
 		}
 	}
-	intList = UniqueInts(intList)
-	sort.Ints(intList)
-	count := len(intList)
-	if (intList[count-1] - intList[0] + 1) != count {
-		leakInts := FindLeakNumbersFromSeq(intList)
-		return leakInts, err
+	ok, leakInts := CheckConsecutiveInts(intList)
+	if !ok {
+		return leakInts, fmt.Errorf("not consecutive numbers")
 	}
 	return nil, nil
 }
 
-func FindLeakNumbersFromSeq(intList []int) []int {
-	sort.Ints(intList)
-	var leakInts []int
-	for i, v := range intList {
-		vNext := v + 1
-		if (i > 0 && i < len(intList)-1) && !cmutil.HasElem(vNext, intList) {
-			leakInts = append(leakInts, vNext)
-		}
+// CheckConsecutiveInts 检查整数切片是否连续，并返回缺失的整数（如果有）
+func CheckConsecutiveInts(intList []int) (bool, []int) {
+	if len(intList) <= 1 {
+		return true, nil
 	}
-	return leakInts
+	intList = lo.Uniq(intList)
+	sort.Ints(intList)
+	if intList[len(intList)-1]-intList[0]+1 == len(intList) {
+		return true, nil
+	}
+	var targetList []int
+	for i := intList[0]; i <= intList[len(intList)-1]; i++ {
+		targetList = append(targetList, i)
+	}
+	leakInts, _ := lo.Difference(targetList, intList)
+	return false, leakInts
 }
 
 // StringSliceToInterfaceSlice 把字符串数组转换为interface{}数组

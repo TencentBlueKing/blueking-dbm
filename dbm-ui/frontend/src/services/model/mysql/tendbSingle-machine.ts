@@ -31,6 +31,7 @@ export default class TendbSingleMachine {
   related_instances: MachineRelatedInstance[];
   spec_config: MachineSpecConfig;
   spec_id: number;
+  spec_name: string;
 
   constructor(payload = {} as TendbSingleMachine) {
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -41,6 +42,7 @@ export default class TendbSingleMachine {
     this.bk_sub_zone = payload.bk_sub_zone;
     this.bk_svr_device_cls_name = payload.bk_svr_device_cls_name;
     this.cluster_type = payload.cluster_type;
+    this.spec_name = payload.spec_name;
     this.create_at = payload.create_at;
     this.host_info = payload.host_info;
     this.instance_role = payload.instance_role;

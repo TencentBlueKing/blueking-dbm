@@ -3,7 +3,7 @@
     <col
       v-for="item in columnList"
       :key="item.key"
-      :width="columnSizeMap[item.key].renderWidth ? columnSizeMap[item.key].renderWidth : ''" />
+      :width="columnSizeMap[item.key]!.renderWidth ? columnSizeMap[item.key]!.renderWidth : ''" />
   </colgroup>
 </template>
 <script setup lang="ts">

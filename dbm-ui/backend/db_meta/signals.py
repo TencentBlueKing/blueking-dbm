@@ -29,15 +29,13 @@ def update_cluster_status(sender, instance: Union[StorageInstance, ProxyInstance
     if kwargs.get("created"):
         return
     if kwargs.get("signal") == pre_delete and not isinstance(instance, Cluster):
+        # 提前卸载实例采集配置
+        db_type = ClusterType.cluster_type_to_db_type(instance.cluster_type)
+        action = OperateCollectorActionEnum.UNINSTALL.value
+        trigger_operate_collector(db_type, instance.machine_type, [instance.bk_instance_id], action)
         # 提前删除实例与cluster的关联关系
         cluster = instance.cluster.first()
         if cluster:
-            trigger_operate_collector(
-                ClusterType.cluster_type_to_db_type(cluster.cluster_type),
-                instance.machine_type,
-                bk_instance_ids=[instance.bk_instance_id],
-                action=OperateCollectorActionEnum.UNINSTALL.value,
-            )
             if sender == StorageInstance:
                 cluster.storageinstance_set.remove(instance)
             elif sender == ProxyInstance:

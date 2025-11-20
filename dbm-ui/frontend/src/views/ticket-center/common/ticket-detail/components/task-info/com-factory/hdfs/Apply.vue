@@ -26,6 +26,9 @@
     <InfoItem :label="t('集群别名')">
       {{ ticketDetails.details.cluster_alias || '--' }}
     </InfoItem>
+    <InfoItem :label="t('管控区域')">
+      {{ ticketDetails.details.bk_cloud_name || '--' }}
+    </InfoItem>
   </InfoList>
   <RegionRequirements :details="ticketDetails.details" />
   <div class="info-title mt-20">{{ t('部署需求') }}</div>
@@ -35,51 +38,42 @@
     </InfoItem>
     <template v-if="isFromResourcePool">
       <InfoItem label="NameNode">
-        <BkPopover
+        <SpecDetailPopover
           v-if="namenodeSpec"
-          placement="top"
-          theme="light">
+          :data="namenodeSpec"
+          placement="top">
           <span
             class="pb-2"
             style="cursor: pointer; border-bottom: 1px dashed #979ba5">
             {{ namenodeSpec.spec_name }}（{{ `${namenodeSpec.count} ${t('台')}` }}）
           </span>
-          <template #content>
-            <SpecInfos :data="namenodeSpec" />
-          </template>
-        </BkPopover>
+        </SpecDetailPopover>
         <span v-else>--</span>
       </InfoItem>
       <InfoItem label="Zookeepers/JournalNodes">
-        <BkPopover
+        <SpecDetailPopover
           v-if="zookeeperSpec"
-          placement="top"
-          theme="light">
+          :data="zookeeperSpec"
+          placement="top">
           <span
             class="pb-2"
             style="cursor: pointer; border-bottom: 1px dashed #979ba5">
             {{ zookeeperSpec.spec_name }}（{{ `${zookeeperSpec.count} ${t('台')}` }}）
           </span>
-          <template #content>
-            <SpecInfos :data="zookeeperSpec" />
-          </template>
-        </BkPopover>
+        </SpecDetailPopover>
         <span v-else>--</span>
       </InfoItem>
       <InfoItem label="DataNodes">
-        <BkPopover
+        <SpecDetailPopover
           v-if="datanodeSpec"
-          placement="top"
-          theme="light">
+          :data="datanodeSpec"
+          placement="top">
           <span
             class="pb-2"
             style="cursor: pointer; border-bottom: 1px dashed #979ba5">
             {{ datanodeSpec.spec_name }}（{{ `${datanodeSpec.count} ${t('台')}` }}）
           </span>
-          <template #content>
-            <SpecInfos :data="datanodeSpec" />
-          </template>
-        </BkPopover>
+        </SpecDetailPopover>
         <span v-else>--</span>
       </InfoItem>
     </template>
@@ -132,12 +126,12 @@
   import { TicketTypes } from '@common/const';
 
   import HostPreview from '@components/host-preview/HostPreview.vue';
+  import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
   import { firstLetterToUpper } from '@utils';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
-  import SpecInfos from '../components/SpecInfos.vue';
 
   interface Props {
     ticketDetails: TicketModel<Hdfs.Apply>;
@@ -152,9 +146,8 @@
 
   const isFromResourcePool = props.ticketDetails.details.ip_source === 'resource_pool';
 
-  const zookeeperSpec = computed(() => props.ticketDetails?.details?.resource_spec?.zookeeper || {});
-  const namenodeSpec = computed(() => props.ticketDetails?.details?.resource_spec?.namenode || {});
-  const datanodeSpec = computed(() => props.ticketDetails?.details?.resource_spec?.datanode || {});
+  const { resource_spec: resourceSpec } = props.ticketDetails?.details;
+  const { datanode: datanodeSpec, namenode: namenodeSpec, zookeeper: zookeeperSpec } = resourceSpec || {};
 
   /**
    * 获取服务器数量

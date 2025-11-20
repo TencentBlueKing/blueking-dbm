@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -68,7 +68,7 @@ class ClusterViewSet(BaseClusterViewSet):
         responses={status.HTTP_200_OK: GetMachineInstancePairResponseSerializer()},
     )
     @action(methods=["POST"], detail=False, serializer_class=GetMachineInstancePairSerializer)
-    def get_remote_machine_instance_pair(self, request, bk_biz_id):
+    def get_remote_machine_instance_pair(self, request: object, bk_biz_id: object) -> Response:
         validated_data = self.params_validate(self.get_serializer_class())
         return Response(ClusterServiceHandler(bk_biz_id).query_machine_instance_pair(validated_data))
 

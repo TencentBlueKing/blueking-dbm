@@ -11,10 +11,20 @@
     <template #content>
       <slot name="content">
         <I18nT
-          keypath="m_处理人_p_耗时_t"
+          keypath="m_处理人_p"
           scope="global">
           <span style="color: #ea3636">{{ t('执行失败') }}</span>
-          <span>{{ ticketDetail.todo_operators.join(',') }}</span>
+          {{ ticketDetail.todo_operators.join(',') }}
+        </I18nT>
+        <I18nT
+          v-if="ticketDetail.todo_helpers.length > 0"
+          keypath="_协助人_p"
+          scope="global">
+          {{ ticketDetail.todo_helpers.join(',') }}
+        </I18nT>
+        <I18nT
+          keypath="_耗时_t"
+          scope="global">
           <CostTimer
             :is-timing="false"
             :start-time="utcTimeToSeconds(data.start_time)"
@@ -28,28 +38,34 @@
             {{ t('查看详情') }}
           </a>
         </template>
-        <FlowCollapse
-          v-if="data.err_msg"
-          danger
-          :title="t('失败原因')">
-          <div style="padding-left: 16px">
-            {{ data.err_msg }}
-          </div>
-        </FlowCollapse>
-        <div
-          v-if="isCanOperation && isNeedOperation"
-          class="mt-12">
-          <ProcessRetry
-            :data="ticketDetail"
-            :flow-data="data">
-            <BkButton
-              class="w-88"
-              theme="primary">
-              {{ t('失败重试') }}
-            </BkButton>
-          </ProcessRetry>
-        </div>
       </slot>
+      <FlowCollapse
+        v-if="data.err_msg"
+        danger
+        :title="t('失败原因')">
+        <div
+          class="pl-16"
+          :style="{
+            'white-space': 'pre-wrap',
+            'max-height': `${errMessageMaxHeight}px`,
+            overflow: 'auto',
+          }">
+          {{ data.err_msg }}
+        </div>
+      </FlowCollapse>
+      <div
+        v-if="isCanOperation && isNeedOperation"
+        class="mt-12">
+        <ProcessRetry
+          :data="ticketDetail"
+          :flow-data="data">
+          <BkButton
+            class="w-88"
+            theme="primary">
+            {{ t('失败重试') }}
+          </BkButton>
+        </ProcessRetry>
+      </div>
       <!-- 系统自动终止 -->
       <template v-if="data.err_code === 3 && data.context.expire_time && renderTodoList.length === 0">
         <div style="margin-top: 8px; color: #ea3636">
@@ -106,6 +122,8 @@
 
   const { t } = useI18n();
   const { isSuperuser, username } = useUserProfile();
+
+  const errMessageMaxHeight = window.innerHeight * 0.4;
 
   const isCanOperation = computed(
     () =>

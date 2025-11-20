@@ -156,9 +156,9 @@ export default class Dumper {
 
   get operationTagTip() {
     return {
-      icon: Dumper.operationIconMap[this.operations[0]?.ticket_type ?? ''],
+      icon: Dumper.operationIconMap[this.operations[0]?.ticket_type ?? '']!,
       ticketId: this.operations[0]?.ticket_id ?? 0,
-      tip: Dumper.operationTextMap[this.operations[0]?.ticket_type ?? ''],
+      tip: Dumper.operationTextMap[this.operations[0]?.ticket_type ?? '']!,
     };
   }
 

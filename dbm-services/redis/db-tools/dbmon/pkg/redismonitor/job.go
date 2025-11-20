@@ -31,7 +31,7 @@ func GetGlobRedisMonitorJob(conf *config.Configuration) *Job {
 
 // Run new monitor tasks and run
 func (job *Job) Run() {
-	mylog.Logger.Info("redismonitor wakeup,start running...")
+	mylog.Logger.Debug("redismonitor wakeup,start running...")
 	defer func() {
 		if job.Err != nil {
 			mylog.Logger.Info(fmt.Sprintf("redismonitor end fail,err:%v", job.Err))

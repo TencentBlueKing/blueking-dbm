@@ -57,15 +57,18 @@ export function getTicketCount() {
       INNER_HELP: number;
       INNER_TODO: number;
       RESOURCE_REPLENISH: number;
+      TIMER: 0;
       TODO: number;
     };
     SELF_MANAGE: number;
+    TIMER: 0;
     to_help: {
       APPROVE: number;
       FAILED: number;
       INNER_HELP: number;
       INNER_TODO: number;
       RESOURCE_REPLENISH: number;
+      TIMER: 0;
       TODO: number;
     };
   }>(`${path}/get_tickets_count/`);
@@ -73,14 +76,14 @@ export function getTicketCount() {
 
 // 批量处理单据的待办
 export function batchProcessTicket(params: {
-  action: 'APPROVE' | 'TERMINATE';
+  action: 'APPROVE' | 'TERMINATE' | 'DELIVER' | 'SKIP' | 'CHANGE';
   params?: Record<string, any>;
   ticket_ids: number[];
 }) {
   return http.post(`${path}/batch_process_ticket/`, params);
 }
 
-// /apis/tickets/batch_process_todo/
+// 批量待办处理
 export function batchProcessTodo(params: {
   action: 'APPROVE' | 'TERMINATE' | 'SKIP' | 'CHANGE';
   operations: {

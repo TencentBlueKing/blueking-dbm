@@ -26,7 +26,8 @@
       <EditableColumn
         field="cluster.cluster_type_name"
         :label="t('架构版本')"
-        :min-width="150">
+        :min-width="150"
+        readonly>
         <EditableBlock
           v-model="item.cluster.cluster_type_name"
           :placeholder="t('自动生成')" />
@@ -34,7 +35,8 @@
       <EditableColumn
         field="cluster.proxyCount"
         :label="t('当前数量（台）')"
-        :min-width="200">
+        :min-width="200"
+        readonly>
         <EditableBlock :placeholder="t('自动生成')">
           {{ item.cluster.id ? item.cluster.proxyCount : '' }}
         </EditableBlock>
@@ -49,7 +51,8 @@
         :append-rules="targetCountRules"
         field="target_proxy_count"
         :label="t('剩余数量（台）')"
-        :min-width="200">
+        :min-width="200"
+        readonly>
         <EditableBlock :placeholder="t('自动生成')">
           {{
             item.target_proxy_count
@@ -114,13 +117,16 @@
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
 
-  const createTableRow = (data = {} as Partial<RowData>) => ({
-    cluster: data.cluster || {
-      cluster_type_name: '',
-      id: 0,
-      master_domain: '',
-      proxyCount: 0,
-    },
+  const createTableRow = (data = {} as DeepPartial<RowData>) => ({
+    cluster: Object.assign(
+      {
+        cluster_type_name: '',
+        id: 0,
+        master_domain: '',
+        proxyCount: 0,
+      },
+      data.cluster,
+    ),
     online_switch_type: data.online_switch_type || ONLINE_SWITCH_TYPE.USER_CONFIRM,
     reduced_count: data.reduced_count || '',
     target_proxy_count: data.target_proxy_count || '',
@@ -147,14 +153,10 @@
         const { clusters, infos } = props.ticketDetails;
         if (infos.length > 0) {
           tableData.value = infos.map((item) => {
-            const clusterInfo = clusters[item.cluster_id];
             return createTableRow({
               // 集群缺失信息会被ClusterColumn组件会填
               cluster: {
-                cluster_type_name: clusterInfo.cluster_type_name,
-                id: clusterInfo.id,
-                master_domain: clusterInfo.immute_domain,
-                proxyCount: 0,
+                master_domain: clusters[item.cluster_id].immute_domain,
               },
               online_switch_type: item.online_switch_type,
               reduced_count: `${item.old_nodes.proxy_reduced_hosts.length}`,
@@ -172,10 +174,7 @@
         acc.push(
           createTableRow({
             cluster: {
-              cluster_type_name: item.cluster_type_name,
-              id: item.id,
               master_domain: item.master_domain,
-              proxyCount: item.proxyCount || item.proxy.length,
             },
           }),
         );

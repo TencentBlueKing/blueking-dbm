@@ -278,7 +278,7 @@ func (p *PredixyInstall) mkdir() error {
 	}
 	// 修改属主
 	if _, err := util.RunBashCmd(
-		fmt.Sprintf("chown -R %s.%s %s/predixy", p.OsUser, p.OsGroup, p.DataDir),
+		fmt.Sprintf("chown -R %s:%s %s/predixy", p.OsUser, p.OsGroup, p.DataDir),
 		"", nil,
 		10*time.Second); err != nil {
 		p.runtime.Logger.Error(fmt.Sprintf("%s:chown directory fail, error:%s", p.Name(), err))
@@ -312,14 +312,14 @@ func (p *PredixyInstall) unTarAndCreateSoftLink() error {
 		}
 		// 修改属主
 		if _, err := util.RunBashCmd(
-			fmt.Sprintf("chown -R %s.%s %s/predixy", p.OsUser, p.OsGroup, p.BinDir),
+			fmt.Sprintf("chown -R %s:%s %s/predixy", p.OsUser, p.OsGroup, p.BinDir),
 			"", nil,
 			10*time.Second); err != nil {
 			p.runtime.Logger.Error(fmt.Sprintf("%s:chown softlink directory fail, error:%s", p.Name(), err))
 			return errors.New(fmt.Sprintf("%s:chown softlink directory fail, error:%s", p.Name(), err))
 		}
 		if _, err := util.RunBashCmd(
-			fmt.Sprintf("chown -R %s.%s %s/%s", p.OsUser, p.OsGroup, p.BinDir, p.ConfParams.MediaPkg.GePkgBaseName()),
+			fmt.Sprintf("chown -R %s:%s %s/%s", p.OsUser, p.OsGroup, p.BinDir, p.ConfParams.MediaPkg.GePkgBaseName()),
 			"", nil,
 			10*time.Second); err != nil {
 			p.runtime.Logger.Error(fmt.Sprintf("%s:chown untar directory fail, error:%s", p.Name(), err))
@@ -348,7 +348,7 @@ func (p *PredixyInstall) createConfFile() error {
 	}
 	// 修改配置文件属主
 	if _, err = util.RunBashCmd(
-		fmt.Sprintf("chown -R %s.%s %s", p.OsUser, p.OsGroup, p.ConfFilePath),
+		fmt.Sprintf("chown -R %s:%s %s", p.OsUser, p.OsGroup, p.ConfFilePath),
 		"", nil,
 		10*time.Second); err != nil {
 		p.runtime.Logger.Error(fmt.Sprintf("%s:chown configer file fail, error:%s", p.Name(), err))

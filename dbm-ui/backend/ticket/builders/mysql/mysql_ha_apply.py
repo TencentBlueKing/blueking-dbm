@@ -11,10 +11,10 @@ specific language governing permissions and limitations under the License.
 import itertools
 from typing import Dict, List
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, SLAVE_DOMAIN_INITIAL_VALUE, AffinityEnum
+from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, SLAVE_DOMAIN_INITIAL_VALUE
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, DBModule
 from backend.db_services.dbbase.constants import IpSource
@@ -33,9 +33,6 @@ from backend.ticket.constants import TicketType
 
 
 class MysqlHAApplyDetailSerializer(MysqlSingleApplyDetailSerializer):
-    disaster_tolerance_level = serializers.ChoiceField(
-        help_text=_("容灾级别"), choices=AffinityEnum.get_choices(), required=False, default=AffinityEnum.NONE.value
-    )
     start_proxy_port = serializers.IntegerField(
         help_text=_("Proxy起始端口"),
         required=False,
@@ -111,7 +108,7 @@ class MysqlHAApplyFlowParamBuilder(MysqlSingleApplyFlowParamBuilder):
 
 class MysqlHaApplyResourceParamBuilder(MysqlSingleApplyResourceParamBuilder):
     def format(self):
-        # 在跨机房亲和性要求下，接入层proxy的亲和性要求至少分布在2个机房
+        # 这里必须用group_count参数，因为需要分组申请后顺序分配
         self.ticket_data["resource_spec"]["proxy"]["group_count"] = 2
 
     @classmethod

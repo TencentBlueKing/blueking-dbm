@@ -1,5 +1,7 @@
 <template>
-  <StatusTerminated :data="data">
+  <StatusTerminated
+    :data="data"
+    :ticket-detail="ticketDetail">
     <template #content>
       <I18nT
         keypath="n 已处理_c_耗时 t"
@@ -19,10 +21,6 @@
           {{ t('查看详情') }}
         </a>
       </template>
-      <TodoList
-        v-if="data.todos.length > 0"
-        :data="data.todos"
-        :flow-data="data" />
     </template>
   </StatusTerminated>
 </template>
@@ -31,13 +29,13 @@
   import { useI18n } from 'vue-i18n';
 
   import FlowMode from '@services/model/ticket/flow';
+  import TicketModel from '@services/model/ticket/ticket';
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
 
   import { utcTimeToSeconds } from '@utils';
 
   import StatusTerminated from '../flow-type-common/StatusTerminated.vue';
-  import TodoList from '../todo-list/Index.vue';
 
   interface Props {
     data: FlowMode<
@@ -49,6 +47,7 @@
         status: string;
       }
     >;
+    ticketDetail: TicketModel<unknown>;
   }
 
   defineOptions({

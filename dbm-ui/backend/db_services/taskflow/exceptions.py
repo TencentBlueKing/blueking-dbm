@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.exceptions import AppBaseException, ErrorCode
 
@@ -41,3 +41,13 @@ class ForceFailNodeException(TaskFlowBaseException):
 class RevokePipelineException(TaskFlowBaseException):
     ERROR_CODE = "005"
     MESSAGE = _("撤销流程异常")
+
+
+class GetNodeDataException(TaskFlowBaseException):
+    ERROR_CODE = "006"
+    MESSAGE = _("获取节点数据异常")
+
+
+class OperateNodeException(TaskFlowBaseException):
+    ERROR_CODE = "007"
+    MESSAGE = _("操作节点异常")

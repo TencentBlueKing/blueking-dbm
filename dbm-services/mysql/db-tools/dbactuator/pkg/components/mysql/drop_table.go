@@ -60,6 +60,7 @@ type DropTableContext struct {
 	tableInfos         map[string]*tableInfo
 	innodbSysTables    string
 	innodbSysDatafiles string
+	mysqlVersion       uint64
 }
 
 func (d *DropTableComp) Init() (err error) {
@@ -77,6 +78,15 @@ func (d *DropTableComp) Init() (err error) {
 	}
 	d.db = dbWorker.GetSqlxDb()
 
+	innodbFilePerTable := ""
+	err = d.db.Get(&innodbFilePerTable, `SELECT @@innodb_file_per_table`)
+	if err != nil {
+		return err
+	}
+	if !cmutil.ToBoolExt(innodbFilePerTable) {
+		return fmt.Errorf("innodb_file_per_table is off")
+	}
+
 	err = d.db.Get(&d.dataDir, `SELECT @@datadir`)
 	if err != nil {
 		return err
@@ -88,13 +98,15 @@ func (d *DropTableComp) Init() (err error) {
 		return err
 	}
 
-	mysqlVersion := cmutil.MySQLVersionParse(versionStr)
-	if mysqlVersion < 5007000 {
-		return fmt.Errorf("%s not support", versionStr)
+	d.mysqlVersion = cmutil.MySQLVersionParse(versionStr)
+	if d.mysqlVersion < 5006000 {
+		return fmt.Errorf("version %s not support:%d", versionStr, d.mysqlVersion)
 	}
 
-	if mysqlVersion < 8000000 {
+	if d.mysqlVersion < 8000000 {
+		// TABLE_ID,NAME,FLAG,N_COLS,SPACE,FILE_FORMAT,ROW_FORMAT,ZIP_PAGE_SIZE
 		d.innodbSysTables = `INNODB_SYS_TABLES`
+		// SPACE,PATH
 		d.innodbSysDatafiles = `INNODB_SYS_DATAFILES`
 	} else {
 		d.innodbSysTables = `INNODB_TABLES`
@@ -174,14 +186,17 @@ func (d *DropTableComp) preCheckInnodb(innerName string, info *tableInfo) (err e
 			IdentifierName 是还原成 `db-a/tb-a`
 		*/
 	}
-	err = d.db.Select(
-		&res,
-		fmt.Sprintf(
-			`SELECT TABLE_ID, NAME, SPACE, SPACE_TYPE FROM INFORMATION_SCHEMA.%s WHERE NAME LIKE ?`,
-			d.innodbSysTables),
-		fmt.Sprintf("%s/%s%%",
-			identifiertrans.TablenameToFilename(info.tableSchema),
-			identifiertrans.TablenameToFilename(info.tableName)),
+	query := fmt.Sprintf(
+		`SELECT TABLE_ID, NAME, SPACE, SPACE_TYPE FROM INFORMATION_SCHEMA.%s WHERE NAME LIKE ?`,
+		d.innodbSysTables)
+	if d.mysqlVersion < 5007000 {
+		query = fmt.Sprintf(
+			`SELECT TABLE_ID, NAME, SPACE FROM INFORMATION_SCHEMA.%s WHERE NAME LIKE ?`,
+			d.innodbSysTables)
+	}
+	err = d.db.Select(&res, query, fmt.Sprintf("%s/%s%%",
+		identifiertrans.TablenameToFilename(info.tableSchema),
+		identifiertrans.TablenameToFilename(info.tableName)),
 	)
 	if err != nil {
 		return err
@@ -199,11 +214,17 @@ func (d *DropTableComp) preCheckInnodb(innerName string, info *tableInfo) (err e
 		for _, row := range res {
 			// 发现非分区表模式, 改成等值查询
 			if !isPartitionTablePattern.MatchString(row.Name) {
+				query = fmt.Sprintf(
+					`SELECT TABLE_ID, NAME, SPACE, SPACE_TYPE FROM INFORMATION_SCHEMA.%s WHERE NAME = ?`,
+					d.innodbSysTables)
+				if d.mysqlVersion < 5007000 {
+					query = fmt.Sprintf(
+						`SELECT TABLE_ID, NAME, SPACE FROM INFORMATION_SCHEMA.%s WHERE NAME = ?`,
+						d.innodbSysTables)
+				}
 				err := d.db.Select(
 					&res,
-					fmt.Sprintf(
-						`SELECT TABLE_ID, NAME, SPACE, SPACE_TYPE FROM INFORMATION_SCHEMA.%s WHERE NAME = ?`,
-						d.innodbSysTables),
+					query,
 					fmt.Sprintf("%s/%s",
 						identifiertrans.TablenameToFilename(info.tableSchema),
 						identifiertrans.TablenameToFilename(info.tableName)),
@@ -214,7 +235,6 @@ func (d *DropTableComp) preCheckInnodb(innerName string, info *tableInfo) (err e
 				break
 			}
 		}
-
 	}
 
 	for _, row := range res {
@@ -339,9 +359,15 @@ func (d *DropTableComp) innodbFindDatafiles(innerName string, info *tableInfo) (
 
 		return fmt.Errorf("%v space not found", missingSpaces)
 	}
-
+	// 再次做检查，确保路径包含正确的库表名
+	expectTableFileMatch := filepath.Join(identifiertrans.TablenameToFilename(info.tableSchema),
+		identifiertrans.TablenameToFilename(info.tableName))
 	for _, row := range res {
-		info.datafiles = append(info.datafiles, row.Path)
+		if strings.Contains(row.Path, expectTableFileMatch) {
+			info.datafiles = append(info.datafiles, row.Path)
+		} else {
+			return fmt.Errorf("unexpected datafile %s to match %s", row.Path, expectTableFileMatch)
+		}
 	}
 
 	return nil
@@ -393,7 +419,6 @@ func (d *DropTableComp) myisamFindDatafiles(innerName string, info *tableInfo) (
 
 func (d *DropTableComp) MakeHardlink() (err error) {
 	for _, info := range d.tableInfos {
-
 		for _, datafile := range info.datafiles {
 			datafilePath := filepath.Join(d.dataDir, datafile)
 			linkfile := fmt.Sprintf("%s.__HARDLINK__", datafile)
@@ -402,6 +427,7 @@ func (d *DropTableComp) MakeHardlink() (err error) {
 			_, err := os.Stat(linkpath)
 			if err != nil {
 				if errors.Is(err, os.ErrNotExist) {
+					logger.Info("making hardlink %s -> %s", linkpath, datafilePath)
 					err = os.Link(datafilePath, linkpath)
 					if err != nil {
 						return err
@@ -418,6 +444,7 @@ func (d *DropTableComp) MakeHardlink() (err error) {
 
 func (d *DropTableComp) DropTable() (err error) {
 	for _, info := range d.tableInfos {
+		logger.Info("dropping table `%s`.`%s`", info.tableSchema, info.tableName)
 		_, err := d.db.Exec(fmt.Sprintf("DROP TABLE IF EXISTS `%s`.`%s`", info.tableSchema, info.tableName))
 		if err != nil {
 			return err
@@ -516,6 +543,7 @@ func (d *DropTableComp) DeleteHardlink() (err error) {
 	*/
 	for _, info := range d.tableInfos {
 		for _, filename := range info.linkfiles {
+			logger.Info("removing hardlink file %s", filepath.Join(d.dataDir, filename))
 			if d.Params.LimitSpeed {
 				done := make(chan int, 1)
 				go func(chan int) {

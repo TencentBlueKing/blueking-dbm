@@ -13,7 +13,7 @@ import logging.config
 from dataclasses import asdict
 from typing import Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import AffinityEnum
 from backend.db_meta.enums import InstanceRole
@@ -26,6 +26,7 @@ from backend.flow.plugins.components.collections.redis.exec_actuator_script impo
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_config import RedisConfigComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
+from backend.flow.plugins.components.collections.redis.redis_update_version import RedisUpdateVersionComponent
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext, DnsKwargs
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
@@ -235,6 +236,7 @@ class TendisPlusApplyFlow(object):
             "new_proxy_ips": proxy_ips,
             "meta_func_name": RedisDBMeta.redis_origin_make_cluster.__name__,
             "disaster_tolerance_level": self.data.get("disaster_tolerance_level", AffinityEnum.CROS_SUBZONE),
+            "zone_list": self.data.get("zone_list", []),
         }
         redis_pipeline.add_act(
             act_name=_("建立集群 元数据"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
@@ -322,5 +324,15 @@ class TendisPlusApplyFlow(object):
                 }
             )
         redis_pipeline.add_parallel_acts(acts_list=acts_list)
+
+        # 更新集群 集群 版本
+        act_kwargs.cluster["update_all"] = True
+        act_kwargs.cluster["domain_name"] = self.data["domain_name"]
+        act_kwargs.cluster["bk_biz_id"] = self.data["bk_biz_id"]
+        redis_pipeline.add_act(
+            act_name=_("{}-更新版本").format(self.data["domain_name"]),
+            act_component_code=RedisUpdateVersionComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
 
         redis_pipeline.run_pipeline()

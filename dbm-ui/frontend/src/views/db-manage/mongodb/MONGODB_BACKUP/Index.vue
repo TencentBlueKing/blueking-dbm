@@ -15,17 +15,22 @@
   <SmartAction>
     <div class="mongo-db-table-backup-page">
       <BkAlert
+        class="mb-16"
         theme="info"
         :title="t('库表备份：指定库表备份，支持模糊匹配')" />
+      <BatchInput
+        :config="batchInputConfig"
+        @change="handleBatchInput" />
       <DbForm
         ref="form"
-        class="toolbox-form"
+        class="toolbox-form mt-16"
         form-type="vertical"
         :model="formData"
         style="margin-top: 16px">
         <EditableTable
+          :key="tableKey"
           ref="editableTable"
-          class="mt16 mb16"
+          class="mt-16 mb-16"
           :model="formData.tableData">
           <EditableRow
             v-for="(item, index) in formData.tableData"
@@ -37,6 +42,7 @@
             <EditableColumn
               field="cluster.cluster_type_name"
               :label="t('集群类型')"
+              readonly
               :width="150">
               <EditableBlock
                 v-model="item.cluster.cluster_type_name"
@@ -51,7 +57,6 @@
             <DbNameColumn
               v-model="item.ignore_dbs"
               :cluster-id="item.cluster.id"
-              :compare-data="item.ignore_tables"
               field="ignore_dbs"
               :label="t('忽略 DB 名')"
               :required="false"
@@ -63,7 +68,6 @@
               @batch-edit="handleDbTableBatchEdit" />
             <TableNameColumn
               v-model="item.ignore_tables"
-              :compare-data="item.ignore_dbs"
               field="ignore_tables"
               :label="t('忽略表名')"
               :required="false"
@@ -110,7 +114,7 @@
         :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
         :title="t('确认重置页面')">
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="isSubmitting">
           {{ t('重置') }}
         </BkButton>
@@ -129,12 +133,15 @@
 
   import { TicketTypes } from '@common/const';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import ClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/cluster-column/Index.vue';
   import DbNameColumn from '@views/db-manage/mongodb/common/toolbox-field/db-name-column/Index.vue';
   import TableNameColumn from '@views/db-manage/mongodb/common/toolbox-field/table-name-column/Index.vue';
+
+  import { random } from '@utils';
 
   interface IDataRow {
     cluster: {
@@ -172,6 +179,34 @@
   });
 
   const { t } = useI18n();
+
+  const batchInputConfig = [
+    {
+      case: 'mongodb.test.dba.db',
+      key: 'domain',
+      label: t('目标集群'),
+    },
+    {
+      case: 'db1,db2',
+      key: 'db_patterns',
+      label: t('指定 DB 名'),
+    },
+    {
+      case: 'db1,db2',
+      key: 'ignore_dbs',
+      label: t('忽略 DB 名'),
+    },
+    {
+      case: 'table1,table2',
+      key: 'table_patterns',
+      label: t('指定表名'),
+    },
+    {
+      case: 'table1,table2',
+      key: 'ignore_tables',
+      label: t('忽略表名'),
+    },
+  ];
 
   useTicketDetail<Mongodb.Backup>(TicketTypes.MONGODB_BACKUP, {
     onSuccess(ticketDetail) {
@@ -211,6 +246,8 @@
 
   const formRef = useTemplateRef('form');
   const editableTableRef = useTemplateRef('editableTable');
+
+  const tableKey = ref(random());
 
   const formData = reactive(createDefaultFormData());
 
@@ -259,6 +296,27 @@
 
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...newList];
     window.changeConfirm = true;
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) =>
+      createRowData({
+        cluster: {
+          master_domain: item.domain,
+        } as IDataRow['cluster'],
+        db_patterns: item.db_patterns ? item.db_patterns.split(',') : [],
+        ignore_dbs: item.ignore_dbs ? item.ignore_dbs.split(',') : [],
+        ignore_tables: item.ignore_tables ? item.ignore_tables.split(',') : [],
+        table_patterns: item.table_patterns ? item.table_patterns.split(',') : [],
+      }),
+    );
+
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = [...dataList];
+    } else {
+      formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    }
   };
 
   const handleDbTableBatchEdit = (value: string[], field: string) => {

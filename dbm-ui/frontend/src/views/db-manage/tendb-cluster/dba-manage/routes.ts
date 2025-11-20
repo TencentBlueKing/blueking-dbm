@@ -26,6 +26,11 @@ export default function getRoutes() {
       component: () => import('@views/db-manage/tendb-cluster/dba-manage/Index.vue'),
       children: [
         {
+          path: 'toolbox-result/:ticketType?/:ticketIds?',
+          name: 'DbaManageTendbClusterToolboxResult',
+          component: () => import('@views/db-manage/common/dba-toolbox-result/Index.vue'),
+        },
+        {
           path: 'web-query',
           name: 'DbaManageTendbClusterWebQuery',
           meta: {

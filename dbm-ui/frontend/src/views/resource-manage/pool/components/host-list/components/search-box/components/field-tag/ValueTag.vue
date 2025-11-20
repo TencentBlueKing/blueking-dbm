@@ -80,9 +80,9 @@
   import { isValueEmpty } from '../utils';
 
   interface Props {
+    model: Record<string, any>;
     name: string;
     value: any;
-    model: Record<string, any>;
   }
 
   interface Emits {
@@ -111,7 +111,7 @@
     if (isValueEmpty(props.value)) {
       return '--';
     }
-    if (['cpu', 'mem', 'disk'].includes(props.name)) {
+    if (['cpu', 'disk', 'mem'].includes(props.name)) {
       const [min, max] = props.value;
       return `${min} 至 ${max}`;
     }
@@ -202,23 +202,23 @@
 
   onMounted(() => {
     tippyIns = tippy(rootRef.value as SingleTarget, {
-      content: popRef.value,
-      placement: 'bottom-start',
       appendTo: () => document.body,
-      theme: 'search-value-edit-theme light',
-      maxWidth: 'none',
-      trigger: 'click',
-      interactive: true,
       arrow: true,
-      offset: [0, 8],
-      zIndex: 999,
+      content: popRef.value,
       hideOnClick: false,
+      interactive: true,
+      maxWidth: 'none',
+      offset: [0, 8],
       onShow() {
         if (singleIns) {
           singleIns.hide();
         }
         singleIns = tippyIns;
       },
+      placement: 'bottom-start',
+      theme: 'search-value-edit-theme light',
+      trigger: 'click',
+      zIndex: 999,
     });
   });
 

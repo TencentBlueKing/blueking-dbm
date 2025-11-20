@@ -6,6 +6,7 @@ import type { DetailBase, SpecInfo } from '../common';
 
 export interface ClusterApply extends DetailBase {
   bk_cloud_id: number;
+  bk_cloud_name: string;
   cap_key: string;
   cap_spec: string;
   city_code: string;

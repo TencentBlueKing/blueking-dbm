@@ -57,7 +57,7 @@
         </BkMenuGroup>
         <BkMenuGroup :name="t('监控告警')">
           <BkMenuItem
-            key="DBMonitorStrategy"
+            key="monitorStrategy"
             v-db-console="'bizConfigManage.monitorStrategy'">
             <template #icon>
               <DbIcon type="gaojingcelve" />
@@ -65,11 +65,11 @@
             <span
               v-overflow-tips.right
               class="text-overflow">
-              {{ t('监控策略') }}
+              {{ t('告警策略') }}
             </span>
           </BkMenuItem>
           <BkMenuItem
-            key="DBMonitorAlarmGroup"
+            key="alarmGroup"
             v-db-console="'bizConfigManage.alarmGroup'">
             <template #icon>
               <DbIcon type="yonghuzu" />

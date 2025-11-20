@@ -80,11 +80,11 @@
 
   const props = defineProps<Props>();
 
-  const { t } = useI18n();
-
   const isShow = defineModel<boolean>('isShow', {
     default: false,
   });
+
+  const { t } = useI18n();
 
   const searchKey = useDebouncedRef('');
   const abnormalCount = ref(0);

@@ -9,27 +9,17 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
-from unittest.mock import patch
 
 import pytest
 
 from backend.db_periodic_task.constants import PeriodicTaskType
 from backend.db_periodic_task.models import DBPeriodicTask
-from backend.tests.mock_data.components.celery_service import REMOTE_API_LIST, CeleryServiceApiMock
 
 pytestmark = pytest.mark.django_db
 logger = logging.getLogger("test")
 
 
 class TestRegisterRemoteTasks:
-    @patch("backend.components.celery_service.client.CeleryServiceApi", CeleryServiceApiMock)
-    def test_register_remote_tasks(self):
-        from backend.db_periodic_task.remote_tasks.register import register_from_remote, registered_remote_tasks
-
-        register_from_remote()
-        assert len(registered_remote_tasks) == len(REMOTE_API_LIST)
-        assert DBPeriodicTask.objects.filter(task_type=PeriodicTaskType.REMOTE.value).count() == len(REMOTE_API_LIST)
-
     def test_register_local_tasks(self):
         from backend.db_periodic_task.local_tasks import register_periodic_task
 

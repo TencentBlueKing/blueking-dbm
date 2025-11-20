@@ -302,7 +302,7 @@
       api({
         bk_biz_id: props.bizId,
         id: props.data?.id || 0,
-        ips: formdata.ips.split(batchSplitRegex),
+        ips: _.uniq(formdata.ips.split(batchSplitRegex)),
         remark: formdata.remark,
       })
         .then(() => {

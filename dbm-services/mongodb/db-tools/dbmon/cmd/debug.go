@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"dbm-services/mongodb/db-tools/dbmon/cmd/logparserjob"
-	"dbm-services/mongodb/db-tools/dbmon/cmd/mongojob"
 	"dbm-services/mongodb/db-tools/dbmon/config"
 	"dbm-services/mongodb/db-tools/dbmon/mylog"
 	"dbm-services/mongodb/db-tools/dbmon/pkg/linuxproc"
@@ -101,7 +100,7 @@ func sendmsgCmdMain() {
 		msgTargetIp = server.IP
 	}
 	beatConfig := &dbmonConf.Config.BkMonitorBeat
-	msgH, err := mongojob.GetBkMonitorBeatSender(beatConfig, &server)
+	msgH, err := config.GetBkMonitorBeatSender(beatConfig, &server)
 	if err != nil {
 		fmt.Printf("fatal err %s", err)
 		os.Exit(1)

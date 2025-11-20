@@ -44,7 +44,7 @@ def monitor_items_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int
                 "level_value": i.cluster.first().immute_domain,
                 "conf_file": "items-config.yaml",
                 "conf_type": "mysql_monitor",
-                "namespace": "tendbha",
+                "namespace": i.cluster.first().cluster_type.lower(),
                 "level_info": {"module": f"{i.db_module_id}"},
                 "format": "map",
             }

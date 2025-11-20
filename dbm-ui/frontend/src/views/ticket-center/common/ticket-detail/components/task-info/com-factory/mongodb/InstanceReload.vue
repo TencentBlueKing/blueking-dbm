@@ -12,27 +12,31 @@
 -->
 
 <template>
-  <BkTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn
-      :label="t('实例')"
+    row-key="cluster_id">
+    <TicketInfoTableColumn
+      col-key="instance_id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.instances[row.instance_id].instance"
+      :title="t('实例')"
       width="300">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.instances[data.instance_id].instance }}
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.instances[row.instance_id].instance }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="role"
-      :label="t('角色')"
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="role"
+      :title="t('角色')"
       width="100">
-    </BkTableColumn>
-    <BkTableColumn :label="t('所属集群')">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="immute_domain"
+      :title="t('所属集群')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">

@@ -12,13 +12,13 @@ import json
 import logging.config
 import os.path
 
-from django.utils import timezone
-from django.utils.translation import ugettext as _
+from django.db.models import Q
+from django.utils.translation import gettext as _
 
 from backend.components import DRSApi
 from backend.constants import IP_PORT_DIVIDER
+from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
-from backend.utils.time import compare_time, str2datetime
 
 logger = logging.getLogger("root")
 
@@ -80,38 +80,6 @@ def get_local_backup_list(instances: list, cluster: Cluster, query_cmds: str = N
     return backups
 
 
-def get_local_backup(instances: list, cluster: Cluster, end_time: str = None):
-    """
-    查询集群的最近备份记录
-    @param instances:实例列表 ip:port
-    @param cluster: 集群
-    @param end_time: 备份最大时间，这里的时间需要转换成UTC时间，因为sql语句中是转换为0时区进行比较的
-    @return: dict
-    """
-    #  为了兼容 backup_time和backup_consistent_time是一样的
-    if end_time:
-        end_time = str2datetime(end_time).astimezone(timezone.utc).isoformat()
-        cond = f"backup_consistent_time< CONVERT_TZ('{end_time}',@@time_zone,'+00:00') "
-        query_cmds = cmds.format(cond=cond, limit="limit 1")
-    else:
-        query_cmds = cmds.format(cond="true", limit="limit 1")
-
-    backups = get_local_backup_list(instances, cluster, query_cmds)
-    # 多份备份比较 backup map 列表....
-    backup_time = "1999-01-01T11:11:11+08:00"
-    if len(backups) > 0:
-        max_backup = backups[0]
-        for backup in backups:
-            if compare_time(backup["backup_consistent_time"], backup_time):
-                backup_time = backup["backup_consistent_time"]
-                max_backup = backup
-
-        logger.info(_("使用的备份信息: {}".format(max_backup)))
-        return max_backup
-    else:
-        return None
-
-
 def check_storage_database(bk_cloud_id: int, ip: str, port: int) -> bool:
     """
     检查数据库是否为空实例
@@ -139,3 +107,91 @@ def check_storage_database(bk_cloud_id: int, ip: str, port: int) -> bool:
         return True
     else:
         return False
+
+
+def check_rollback_databases(cluster_id: int, database_list: list[str], shard_id: int = None) -> (str, bool):
+    """
+    检查回档的数据库是否在源集群存在
+    @param cluster_id: 目标集群id
+    @param database_list: 逻辑备份数据库列表
+    """
+    target_cluster = Cluster.objects.get(id=cluster_id)
+    if target_cluster.cluster_type == ClusterType.TenDBCluster.value:
+        if shard_id is None:
+            spider_master = target_cluster.proxyinstance_set.filter(
+                status=InstanceStatus.RUNNING, tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
+            ).first()
+            rds_instance = spider_master.ip_port
+        else:
+            remote_master = target_cluster.storageinstance_set.filter(
+                status=InstanceStatus.RUNNING, as_ejector__tendbclusterstorageset__shard_id=shard_id
+            ).first()
+            rds_instance = remote_master.ip_port
+    else:
+        filters = Q(
+            cluster__cluster_type=ClusterType.TenDBSingle.value, instance_inner_role=InstanceInnerRole.ORPHAN.value
+        ) | Q(cluster__cluster_type=ClusterType.TenDBHA.value, instance_inner_role=InstanceInnerRole.MASTER.value)
+        master = target_cluster.storageinstance_set.get(filters)
+        rds_instance = master.ip_port
+    ignore_database_list = [
+        "information_schema",
+        "db_infobase",
+        "infodba_schema",
+        "mysql",
+        "test",
+        "sys",
+        "performance_schema",
+        "__cdb_recycle_bin__",
+    ]
+    ignore_database_list_str = "','".join(ignore_database_list)
+    database_list_str = "','".join(database_list)
+    query_cmds = """select SCHEMA_NAME from information_schema.schemata where
+    SCHEMA_NAME not in ('{}') and SCHEMA_NAME in ('{}')""".format(
+        ignore_database_list_str, database_list_str
+    )
+    logger.info(query_cmds)
+    res = DRSApi.rpc(
+        {
+            "addresses": [rds_instance],
+            "cmds": [query_cmds],
+            "force": False,
+            "bk_cloud_id": target_cluster.bk_cloud_id,
+        }
+    )
+    if res[0]["error_msg"]:
+        return _("获取目标集群 {} 的库列表失败").format(target_cluster.name, res[0]["error_msg"]), False
+    if isinstance(res[0]["cmd_results"][0]["table_data"], list) and len(res[0]["cmd_results"][0]["table_data"]) == 0:
+        logging.info(res[0]["cmd_results"])
+        return "", True
+    else:
+        return _("目标集群 {} 存在和指定回档备份相同的库名。回档会发生覆盖").format(target_cluster.name), False
+
+
+def check_binlog_missing(binlog_file_list: list[str]) -> (list[str], bool):
+    binlog_ids = []
+    missing_binlog_files = []
+    if len(binlog_file_list) == 0:
+        return [], True
+    binlog_pre = binlog_file_list[0].split(".")[0]
+    binlog_len = len(binlog_file_list[0].split(".")[-1])
+    for binlog_file in binlog_file_list:
+        binlog_file_split = binlog_file.split(".")
+        if len(binlog_file_split) < 2:
+            return [f"binlog {binlog_file} for is not binlogPORT.xxxx "], False
+        #  int 转换可能出错
+        try:
+            binlog_file_id = int(binlog_file_split[1])
+        except ValueError:
+            return [f" {binlog_file} binlog number str to int error "], False
+        binlog_ids.append(binlog_file_id)
+    binlog_ids.sort()
+    if len(binlog_ids) > 1:
+        for i in range(1, len(binlog_ids)):
+            diff = binlog_ids[i] - binlog_ids[i - 1]
+            if diff > 1:
+                for j in range(binlog_ids[i - 1] + 1, binlog_ids[i]):
+                    missing_binlog_files.append(f"{binlog_pre}.{str(j).zfill(binlog_len)}")
+    if len(missing_binlog_files) == 0:
+        return [], True
+    else:
+        return missing_binlog_files, False

@@ -13,7 +13,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Union
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components.bklog.handler import BKLogHandler
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
@@ -32,18 +32,23 @@ class FixPointRollbackHandler:
     封装定点回档相关接口
     """
 
-    def __init__(self, cluster_id: int, check_full_backup=False):
+    def __init__(self, cluster_id: int, check_full_backup=False, check_instance_exist=False):
         """
         @param cluster_id: 集群ID
         @param check_full_backup: 是否过滤为全备的记录
+        @param check_instance_exist: 是否检查实例是否存在当前集群
         """
         self.cluster = Cluster.objects.get(id=cluster_id)
         self.check_full_backup = check_full_backup
+        self.check_instance_exist = check_instance_exist
 
     def _check_data_schema_grant(self, log) -> bool:
         # 全备记录看is_full_backup
         if self.check_full_backup:
             return log["is_full_backup"]
+        # 如果是单节点类型，这只需判断是否包含schema
+        if self.cluster.cluster_type == ClusterType.TenDBSingle and "schema" in str(log["data_schema_grant"]).lower():
+            return True
         # 有效的备份记录看data_schema_grant
         if str(log["data_schema_grant"]).lower() == "all" or (
             "schema" in str(log["data_schema_grant"]).lower() and "data" in str(log["data_schema_grant"]).lower()
@@ -51,6 +56,16 @@ class FixPointRollbackHandler:
             return True
 
         return False
+
+    def _check_instance_in_cluster(self, log) -> bool:
+        # 没有实例属性，则先获取集群关联的实例
+        if not hasattr(self, "instances"):
+            storages = list(self.cluster.storageinstance_set.values("machine__ip", "port"))
+            proxies = list(self.cluster.proxyinstance_set.values("machine__ip", "port"))
+            self.instances = [f"{inst['machine__ip']}:{inst['port']}" for inst in storages + proxies]
+        # check备份实例是集群关联
+        backup_instance = f"{log['backup_host']}:{log['backup_port']}"
+        return backup_instance in self.instances
 
     @staticmethod
     def _check_backup_log_task_id(log) -> bool:
@@ -64,18 +79,28 @@ class FixPointRollbackHandler:
     ) -> List[Dict]:
         return BKLogHandler.query_logs(collector, start_time, end_time, query_string, size)
 
-    def aggregate_tendb_dbbackup_logs(self, backup_logs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def aggregate_tendb_dbbackup_logs(self, backup_logs: List[Dict[str, Any]], **kwargs) -> List[Dict[str, Any]]:
         """
         聚合tendb的mysql_backup_result日志，按照backup_id聚合mysql备份记录
         :param backup_logs: 备份记录列表
         """
         valid_backup_logs: List[Dict[str, Any]] = []
+        # 是否需要过滤
+        backup_method = kwargs.get("backup_method", "default")
+        is_filter = backup_method != "default"
         for log in backup_logs:
             # 过滤掉不合法的日志记录
             if not self._check_backup_log_task_id(log):
                 continue
 
             if not self._check_data_schema_grant(log):
+                continue
+
+            if self.check_instance_exist and not self._check_instance_in_cluster(log):
+                continue
+
+            # 过滤备份类型
+            if is_filter and log.get("backup_method", "default") != backup_method:
                 continue
 
             file_list_infos = log.pop("file_list")
@@ -95,7 +120,9 @@ class FixPointRollbackHandler:
 
         return valid_backup_logs
 
-    def aggregate_tendbcluster_dbbackup_logs(self, backup_logs: List[Dict], shard_list: List = None) -> List[Dict]:
+    def aggregate_tendbcluster_dbbackup_logs(  # noqa: C901
+        self, backup_logs: List[Dict], shard_list: List = None, **kwargs
+    ) -> List[Dict]:
         """
         聚合tendbcluster的mysql_backup_result日志，按照backup_id聚合tendb备份记录
         :param backup_logs: 备份记录列表
@@ -118,6 +145,9 @@ class FixPointRollbackHandler:
                 return None
 
             if not self._check_backup_log_task_id(log):
+                return None
+
+            if self.check_instance_exist and not self._check_instance_in_cluster(log):
                 return None
 
             if not _backup_node or (
@@ -167,8 +197,17 @@ class FixPointRollbackHandler:
 
             return _backup_node
 
+        # 是否需要过滤
+        backup_method = kwargs.get("backup_method", "default")
+        is_filter = backup_method != "default"
+
         backup_id__backup_logs_map = defaultdict(dict)
         for log in backup_logs:
+
+            # 过滤备份类型
+            if is_filter and log.get("backup_method", "default") != backup_method:
+                continue
+
             backup_id, log["backup_time"] = log["backup_id"], log["consistent_backup_time"]
             if not backup_id__backup_logs_map.get(backup_id):
                 # 初始化整体的角色信息
@@ -243,6 +282,26 @@ class FixPointRollbackHandler:
 
         return list(backup_id__valid_backup_logs.values())
 
+    def query_recover_backup_logs(self, start_time: datetime, end_time: datetime, **kwargs) -> List[Dict]:
+        """
+        Query backup logs from log platform for recovery exercise
+        For TenDBCluster, only query backup logs of shard 0
+
+        Args:
+            start_time: Start time of query range
+            end_time: End time of query range
+        """
+        query_string = f'log: "cluster_id: \\"{self.cluster.id}\\""'
+        if self.cluster.cluster_type == ClusterType.TenDBCluster:
+            query_string = f'log: "cluster_id: \\"{self.cluster.id}\\"" and "shard_value: 0 "'
+        backup_logs = self._get_log_from_bklog(
+            collector="mysql_dbbackup_result",
+            start_time=start_time,
+            end_time=end_time,
+            query_string=query_string,
+        )
+        return self.aggregate_tendb_dbbackup_logs(backup_logs)
+
     def query_backup_log_from_bklog(self, start_time: datetime, end_time: datetime, **kwargs) -> List[Dict]:
         """
         通过日志平台查询集群的时间范围内的备份记录
@@ -260,9 +319,9 @@ class FixPointRollbackHandler:
 
         if self.cluster.cluster_type == ClusterType.TenDBCluster:
             shard_list = kwargs.get("shard_list", [])
-            return self.aggregate_tendbcluster_dbbackup_logs(backup_logs, shard_list)
+            return self.aggregate_tendbcluster_dbbackup_logs(backup_logs, shard_list, **kwargs)
         else:
-            return self.aggregate_tendb_dbbackup_logs(backup_logs)
+            return self.aggregate_tendb_dbbackup_logs(backup_logs, **kwargs)
 
     def query_instance_backup_priv_logs(self, end_time: datetime, **kwargs) -> Dict:
         """
@@ -379,7 +438,10 @@ class FixPointRollbackHandler:
         return local_backup_logs
 
     def query_latest_backup_log(
-        self, rollback_time: datetime, backup_source: str = MySQLBackupSource.REMOTE.value, **kwargs
+        self,
+        rollback_time: datetime,
+        backup_source: str = MySQLBackupSource.REMOTE.value,
+        **kwargs,
     ) -> Dict[str, Any]:
         """
         根据回档时间查询最新一次的备份记录

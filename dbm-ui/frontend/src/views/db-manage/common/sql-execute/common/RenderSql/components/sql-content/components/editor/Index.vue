@@ -78,9 +78,9 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    messageList: () => [],
+    // messageList: () => [],
     readonly: false,
-    syntaxChecking: false,
+    // syntaxChecking: false,
   });
   const emits = defineEmits<Emits>();
 
@@ -171,7 +171,7 @@
           alwaysConsumeMouseWheel: false,
         },
         theme: 'vs-dark',
-        wordWrap: 'bounded',
+        wordWrap: 'on',
       });
       editor.onDidChangeModelContent(() => {
         const value = editor.getValue();

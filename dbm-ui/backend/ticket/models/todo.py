@@ -12,7 +12,7 @@ import logging
 
 from django.db import models
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend import env
 from backend.bk_web.constants import LEN_MIDDLE, LEN_SHORT
@@ -35,7 +35,7 @@ class TodoManager(models.Manager):
         # 从flow中获取单据审批人
         from backend.ticket.handler import TicketHandler
 
-        itsm_operators = TicketHandler.get_itsm_approvers(flow)
+        itsm_operators, itsm_helpers = TicketHandler.get_itsm_todo_operators(flow)
 
         # 构造单据状态与处理人之间的对应关系
         # - 审批中：提单人可撤销，dba可处理，
@@ -46,7 +46,7 @@ class TodoManager(models.Manager):
         # - 待补货：operators[提单人 + dba] + helpers[单据协助人 + second_dba + other_dba]
         # - 已失败：operators[提单人 + dba] + helpers[单据协助人 + second_dba + other_dba]
         todo_operators_map = {
-            TodoType.ITSM: itsm_operators[:1],
+            TodoType.ITSM: itsm_operators,
             TodoType.APPROVE: creator,
             TodoType.TIMER: creator,
             TodoType.INNER_APPROVE: creator + dba,
@@ -54,7 +54,7 @@ class TodoManager(models.Manager):
             TodoType.INNER_FAILED: creator + dba,
         }
         todo_helpers_map = {
-            TodoType.ITSM: itsm_operators[1:],
+            TodoType.ITSM: itsm_helpers,
             TodoType.APPROVE: ticket_helpers,
             TodoType.TIMER: ticket_helpers,
             TodoType.INNER_APPROVE: ticket_helpers + second_dba + other_dba,
@@ -129,6 +129,8 @@ class Todo(AuditedModel):
     def set_terminated(self, username, action):
         self.set_status(username, TodoStatus.DONE_FAILED)
         self.flow.update_status(TicketFlowStatus.TERMINATED)
+        self.ticket.updater = username
+        self.ticket.save(update_fields=["updater", "update_at"])
         TodoHistory.objects.create(creator=username, todo=self, action=action)
 
 

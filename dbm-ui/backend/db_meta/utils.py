@@ -14,7 +14,7 @@ from collections import defaultdict
 
 from django.conf import settings
 from django.core.cache import cache
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend import env
 from backend.components import CCApi, JobApi

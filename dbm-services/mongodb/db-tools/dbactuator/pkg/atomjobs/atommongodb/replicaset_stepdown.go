@@ -18,6 +18,7 @@ import (
 type StepDownConfParams struct {
 	IP            string `json:"ip" validate:"required"`
 	Port          int    `json:"port" validate:"required"`
+	TargetIP      string `json:"targetIP" validate:"required"`
 	AdminUsername string `json:"adminUsername" validate:"required"`
 	AdminPassword string `json:"adminPassword" validate:"required"`
 }
@@ -105,27 +106,29 @@ func (s *StepDown) Init(runtime *jobruntime.JobGenericRuntime) error {
 func (s *StepDown) checkParams() error {
 	// 校验配置参数
 	validate := validator.New()
-	s.runtime.Logger.Info("start to validate parameters of deleteUser")
+	s.runtime.Logger.Info("start to validate parameters of stepDown")
 	if err := validate.Struct(s.ConfParams); err != nil {
-		s.runtime.Logger.Error(fmt.Sprintf("validate parameters of deleteUser fail, error:%s", err))
-		return fmt.Errorf("validate parameters of deleteUser fail, error:%s", err)
+		s.runtime.Logger.Error(fmt.Sprintf("validate parameters of stepDown fail, error:%s", err))
+		return fmt.Errorf("validate parameters of stepDown fail, error:%s", err)
 	}
 	return nil
 }
 
 // execStepDown 执行切换
 func (s *StepDown) execStepDown() error {
-	s.runtime.Logger.Info("start to convert primary secondary db")
-	flag, err := common.AuthRsStepDown(s.Mongo, s.PrimaryIP, s.PrimaryPort, s.ConfParams.AdminUsername,
-		s.ConfParams.AdminPassword)
-	if err != nil {
-		s.runtime.Logger.Error("convert primary secondary db fail, error:%s", err)
-		return fmt.Errorf("convert primary secondary db fail, error:%s", err)
+	if s.ConfParams.TargetIP == s.PrimaryIP && s.ConfParams.Port == s.PrimaryPort {
+		s.runtime.Logger.Info("start to convert primary secondary db")
+		flag, err := common.AuthRsStepDown(s.Mongo, s.PrimaryIP, s.PrimaryPort, s.ConfParams.AdminUsername,
+			s.ConfParams.AdminPassword)
+		if err != nil {
+			s.runtime.Logger.Error("convert primary secondary db fail, error:%s", err)
+			return fmt.Errorf("convert primary secondary db fail, error:%s", err)
+		}
+		if flag == true {
+			s.runtime.Logger.Info("convert primary secondary db successfully")
+			return nil
+		}
 	}
-	if flag == true {
-		s.runtime.Logger.Info("convert primary secondary db successfully")
-		return nil
-	}
-
+	s.runtime.Logger.Info("target ip not to convert primary secondary db")
 	return nil
 }

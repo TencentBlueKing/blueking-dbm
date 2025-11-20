@@ -34,6 +34,8 @@ func DorisCommand() *cobra.Command {
 				CleanDataCommand(),
 				CheckDecommissionCommand(),
 				CheckProcessStartCommand(),
+				CreateResourceCommand(),
+				DropResourceCommand(),
 			},
 		},
 	}

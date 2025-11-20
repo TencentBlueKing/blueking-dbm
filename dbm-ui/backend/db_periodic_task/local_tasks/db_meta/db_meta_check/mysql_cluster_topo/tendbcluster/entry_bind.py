@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from typing import List
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.enums import ClusterEntryRole, InstancePhase, InstanceStatus, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
@@ -45,7 +45,7 @@ def _cluster_entry_on_spider(c: Cluster) -> List[CheckResponse]:
             bad.append(
                 CheckResponse(
                     msg=_("访问入口 {} 关联 {} 和集群 {} 数量不相等".format(ce.entry, spider_role, spider_role)),
-                    check_subtype=MetaCheckSubType.ClusterTopo,
+                    check_subtype=MetaCheckSubType.TenDBClusterSpiderCountNotMatch,
                 )
             )
 
@@ -62,7 +62,9 @@ def _cluster_entry_on_storage(c: Cluster) -> List[CheckResponse]:
         for si in ce.storageinstance_set.all():
             bad.append(
                 CheckResponse(
-                    msg=_("访问入口 {} 关联到存储实例".format(ce.entry)), check_subtype=MetaCheckSubType.ClusterTopo, instance=si
+                    msg=_("访问入口 {} 关联到存储实例".format(ce.entry)),
+                    check_subtype=MetaCheckSubType.TenDBClusterEntryBindStorage,
+                    instance=si,
                 )
             )
 

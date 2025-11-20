@@ -1,10 +1,12 @@
 <template>
   <BkTableColumn
     field="ip"
+    fixed="left"
     label="IP" />
   <BkTableColumn
     field="host_info.alive"
-    :label="t('Agent 状态')">
+    :label="t('Agent 状态')"
+    :width="100">
     <template #default="{ data }: { data: IData }">
       <HostAgentStatus :data="data?.host_info?.alive || 0" />
     </template>
@@ -35,6 +37,14 @@
     :label="t('操作系统')">
     <template #default="{ data }: { data: IData }">
       {{ data.bk_os_name || '--' }}
+    </template>
+  </BkTableColumn>
+  <BkTableColumn
+    field="spec_name"
+    :label="t('绑定规格')"
+    :width="150">
+    <template #default="{ data }: { data: IData }">
+      {{ data.spec_name || '--' }}
     </template>
   </BkTableColumn>
   <BkTableColumn

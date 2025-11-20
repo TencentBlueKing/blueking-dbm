@@ -23,3 +23,6 @@ export enum DBTypes {
 export enum DBTypes {
   SQLSERVER = 'sqlserver',
 }
+export enum DBTypes {
+  ORACLE = 'oracle',
+}

@@ -196,31 +196,27 @@
     }
     if (isSqlServer.value) {
       baseColumns[0].push(
-        ...[
-          {
-            key: 'buffer_percent',
-            label: t('实际内存分配比率'),
-          },
-          {
-            key: 'sync_type',
-            label: t('主从方式'),
-            render: () => (
-              <span> {detailData.value.sync_type === 'mirroring' ? t('镜像') : detailData.value.sync_type} </span>
-            ),
-          },
-        ],
+        {
+          key: 'buffer_percent',
+          label: t('实际内存分配比率'),
+        },
+        {
+          key: 'sync_type',
+          label: t('主从方式'),
+          render: () => (
+            <span> {detailData.value.sync_type === 'mirroring' ? t('镜像') : detailData.value.sync_type} </span>
+          ),
+        },
       );
       baseColumns[1].push(
-        ...[
-          {
-            key: 'max_remain_mem_gb',
-            label: t('最大系统保留内存'),
-          },
-          {
-            key: 'system_version',
-            label: t('操作系统版本'),
-          },
-        ],
+        {
+          key: 'max_remain_mem_gb',
+          label: t('最大系统保留内存'),
+        },
+        {
+          key: 'system_version',
+          label: t('操作系统版本'),
+        },
       );
     }
     if (state.version) {

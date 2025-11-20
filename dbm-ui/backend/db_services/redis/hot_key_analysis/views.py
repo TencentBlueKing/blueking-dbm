@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from collections import defaultdict
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -19,8 +19,9 @@ from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.configuration.constants import DBType
-from backend.db_meta.models import AppCache, RedisHotKeyDetail, RedisHotKeyInfo
+from backend.db_meta.models import AppCache
 from backend.db_services.redis.hot_key_analysis.filters import RedisHotKeyAnalysisFilter, RedisHotKeyDetailsFilter
+from backend.db_services.redis.hot_key_analysis.models import RedisHotKeyRecord, RedisHotKeyRecordDetail
 from backend.db_services.redis.hot_key_analysis.serializers import (
     AnalysisRecordsSerializer,
     ExportHotKeyDetailSerializer,
@@ -33,7 +34,7 @@ SWAGGER_TAG = "db_services/redis/hot_key_analysis"
 
 
 class RedisHotKeyAnalysisViewSet(viewsets.SystemViewSet):
-    queryset = RedisHotKeyInfo.objects.all()
+    queryset = RedisHotKeyRecord.objects.all()
     default_permission_class = [DBManagePermission()]
     pagination_class = AuditedLimitOffsetPagination
     filter_class = RedisHotKeyAnalysisFilter
@@ -54,7 +55,7 @@ class RedisHotKeyAnalysisViewSet(viewsets.SystemViewSet):
 
 class RedisHotKeyDetailsViewSet(viewsets.SystemViewSet):
     default_permission_class = [DBManagePermission()]
-    queryset = RedisHotKeyDetail.objects.all()
+    queryset = RedisHotKeyRecordDetail.objects.all()
     filter_class = RedisHotKeyDetailsFilter
     serializer_class = QueryHotKeyDetailSerializer
 

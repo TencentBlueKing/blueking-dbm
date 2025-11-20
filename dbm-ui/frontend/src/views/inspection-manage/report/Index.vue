@@ -1,35 +1,55 @@
 <template>
   <div class="inspection-manage-page">
-    <BkLoading :loading="overviewLoading">
-      <DbTab
-        v-model="tabType"
-        :exclude="excludeDbs"
-        :label-config="labelConfig" />
-    </BkLoading>
-    <div class="content-wrapper">
-      <div class="operation-main">
-        <BkButton
-          :loading="exportLoading"
-          style="width: 64px"
-          theme="primary"
-          @click="handleExport">
-          {{ t('导出') }}
-        </BkButton>
-        <SearchBox
-          :is-assist="isTodoAssist"
-          :is-show-all="isInspectionReportGlobal"
-          :is-todos="!isInspectionReport"
-          style="margin-bottom: 16px"
-          @change="handleSearchChange" />
+    <div
+      v-show="!isEmptyShow"
+      class="page-content">
+      <BkLoading :loading="overviewLoading">
+        <DbTabForBiz
+          v-if="isInspectionReport"
+          v-model="tabType"
+          v-model:is-show="isTabShow"
+          :exclude="excludeDbs"
+          :label-config="labelConfig" />
+        <DbTab
+          v-else
+          v-model="tabType"
+          :exclude="excludeDbs"
+          :label-config="labelConfig" />
+      </BkLoading>
+      <div class="content-wrapper">
+        <div class="operation-main">
+          <BkButton
+            :loading="exportLoading"
+            style="width: 64px"
+            theme="primary"
+            @click="handleExport">
+            {{ t('导出') }}
+          </BkButton>
+          <SearchBox
+            :is-assist="isTodoAssist"
+            :is-show-all="isPlatform"
+            :is-todos="!isInspectionReport"
+            :show-only-abnormal="!isTodoPage"
+            style="margin-bottom: 16px"
+            @change="handleSearchChange" />
+        </div>
+        <RenderDynamicTable
+          v-for="url in serviceList"
+          :key="url"
+          ref="dynamicTablesRef"
+          :is-only-abnormal="isOnlyAbnormal"
+          :is-platform="isPlatform"
+          :is-show-state-count="!isTodoPage"
+          :search-params="searchParams"
+          :service-url="url" />
       </div>
-      <RenderDynamicTable
-        v-for="url in serviceList"
-        :key="url"
-        ref="dynamicTablesRef"
-        :is-platform="isPlatform"
-        :search-params="searchParams"
-        :service-url="url" />
     </div>
+    <BkException
+      v-show="isEmptyShow"
+      class="empty-exception"
+      :description="t('暂无数据')"
+      scene="part"
+      type="empty" />
   </div>
 </template>
 <script setup lang="ts">
@@ -46,6 +66,7 @@
   import { DBTypeInfos, DBTypes } from '@common/const';
 
   import DbTab from '@components/db-tab/Index.vue';
+  import DbTabForBiz from '@components/db-tab-for-biz/Index.vue';
 
   import RenderDynamicTable from './components/render-dynamic-table/Index.vue';
   import SearchBox from './components/SearchBox.vue';
@@ -60,23 +81,28 @@
   const searchParams = ref<Record<string, any>>({});
   const excludeDbs = ref<DBTypes[]>([]);
   const dynamicTablesRef = ref<InstanceType<typeof RenderDynamicTable>[]>([]);
+  const isTabShow = ref(true);
+  const isOnlyAbnormal = ref(false);
 
   const isTodoAssist = computed(() => route.query.manage === 'assist');
   const isPlatform = computed(() => route.name === 'inspectionReportGlobal');
+  const isInspectionReport = computed(() => route.name === 'inspectionReport');
+  const isTodoPage = computed(() => route.name === 'InspectionTodos');
+  const isEmptyShow = computed(() => isInspectionReport.value && !isTabShow.value);
 
   const serviceList = computed(() => {
     if (!dbOverviewConfig.value?.[tabType.value]) {
       return [];
     }
 
-    const pathList = dbOverviewConfig.value[tabType.value];
+    const pathList = dbOverviewConfig.value[tabType.value]!;
     return pathList.map((path) => `/db_report/${tabType.value}/${path}/`);
   });
 
   const labelConfig = computed(() => {
     if (
-      isInspectionReport ||
-      isInspectionReportGlobal ||
+      isInspectionReport.value ||
+      isPlatform.value ||
       !dbOverviewConfig.value ||
       !Object.keys(dbReportCountMap.value).length
     ) {
@@ -102,12 +128,13 @@
     },
   });
 
-  const isInspectionReport = route.name === 'inspectionReport';
-  const isInspectionReportGlobal = route.name === 'inspectionReportGlobal';
-
   watch(
     () => route.query,
     () => {
+      if (!Object.keys(route.query).length) {
+        return;
+      }
+
       const queryObj = _.cloneDeep(route.query);
       delete queryObj.tabType;
       searchParams.value = queryObj;
@@ -134,13 +161,11 @@
     if (route.query.manage) {
       Object.assign(query, { manage: route.query.manage });
     }
-    if (isInspectionReport) {
+    if (isInspectionReport.value) {
       Object.assign(query, { bk_biz_id: window.PROJECT_CONFIG.BIZ_ID });
     }
 
-    if (!isInspectionReport && !isInspectionReportGlobal) {
-      Object.assign(query, { status: 0 });
-
+    if (!isInspectionReport.value && !isPlatform.value) {
       if (!route.query.manage) {
         Object.assign(query, { manage: 'todo' });
       }
@@ -151,7 +176,8 @@
     });
   };
 
-  const handleSearchChange = (payload: Record<string, string>) => {
+  const handleSearchChange = (payload: Record<string, any>) => {
+    isOnlyAbnormal.value = payload.isOnlyAbnormal;
     updateRouteQuery(payload);
   };
 
@@ -174,10 +200,14 @@
 </script>
 <style lang="less">
   .inspection-manage-page {
-    display: flex;
     height: 100%;
-    overflow: hidden;
-    flex-direction: column;
+
+    .page-content {
+      display: flex;
+      height: 100%;
+      overflow: hidden;
+      flex-direction: column;
+    }
 
     .bk-tab-header {
       width: 100%;
@@ -210,6 +240,14 @@
         display: flex;
         justify-content: space-between;
       }
+    }
+
+    .empty-exception {
+      display: flex;
+      height: 100%;
+      background-color: #fff;
+      align-items: center;
+      justify-content: center;
     }
   }
 </style>

@@ -12,10 +12,9 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.configuration.constants import AffinityEnum
-from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import StorageInstance
-from backend.db_services.dbbase.constants import IpSource
+from backend.db_services.dbbase.constants import IpSource, SourceType
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, HostInfoSerializer, fetch_cluster_ids
@@ -37,10 +36,12 @@ class MysqlAddSlaveDetailSerializer(MySQLBaseOperateDetailSerializer):
     ip_source = serializers.ChoiceField(
         help_text=_("机器来源"), choices=IpSource.get_choices(), required=False, default=IpSource.MANUAL_INPUT
     )
+    source_type = serializers.ChoiceField(
+        help_text=_("资源来源类型"), choices=SourceType.get_choices(), required=False, default=SourceType.RESOURCE_AUTO
+    )
 
     def validate(self, attrs):
-        # 校验集群是否可用，集群类型为高可用
-        super().validate_cluster_can_access(attrs)
+        attrs = super().validate(attrs)
         super().validated_cluster_type(attrs, ClusterType.TenDBHA)
 
         if attrs["ip_source"] == IpSource.RESOURCE_POOL:
@@ -73,23 +74,19 @@ class MysqlAddSlaveResourceParamBuilder(BaseOperateResourceParamBuilder):
         masters = (
             StorageInstance.objects.select_related("machine")
             .prefetch_related("cluster")
-            .filter(cluster__in=cluster_ids)
+            .filter(cluster__in=cluster_ids, instance_inner_role=InstanceInnerRole.MASTER)
         )
         cluster_id__master_map = {master.cluster.first().id: master for master in masters}
         for info in ticket_data["infos"]:
-            resource_spec = info["resource_spec"]["new_slave"]
-            master_subzone_id = cluster_id__master_map[info["cluster_ids"][0]].machine.bk_sub_zone_id
-            # 同城跨园区，要求slave和master在不同subzone
-            if resource_spec["affinity"] == AffinityEnum.CROS_SUBZONE:
-                resource_spec["location_spec"].update(sub_zone_ids=[master_subzone_id], include_or_exclue=False)
-            # 同城同园区，要求slave和master在一个subzone
-            elif resource_spec["affinity"] in [AffinityEnum.SAME_SUBZONE, AffinityEnum.SAME_SUBZONE_CROSS_SWTICH]:
-                resource_spec["location_spec"].update(sub_zone_ids=[master_subzone_id], include_or_exclue=True)
+            master = cluster_id__master_map[info["cluster_ids"][0]]
+            cls.patch_common_affinity(
+                info,
+                role="new_slave",
+                cluster=master.cluster.first(),
+                exclusive_hosts=[master.machine],
+            )
 
     def format(self):
-        # 补充城市和亲和性
-        self.patch_info_affinity_location()
-        # 新申请的slave需要根据master来保证在同一园区/不同园区
         self.patch_slave_subzone(self.ticket_data)
 
     def post_callback(self):

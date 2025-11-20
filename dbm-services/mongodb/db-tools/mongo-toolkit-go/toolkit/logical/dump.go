@@ -1,8 +1,8 @@
 package logical
 
 import (
+	"dbm-services/common/go-pubpkg/mycmd"
 	"dbm-services/mongodb/db-tools/dbmon/config"
-	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mycmd"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mymongo"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/util"
 	"fmt"
@@ -59,12 +59,12 @@ func Dump(option *DumpOption) {
 		filter := NewNsFilter(option.Args.PartialArgs.DbList, option.Args.PartialArgs.IgnoreDbList,
 			option.Args.PartialArgs.ColList, option.Args.PartialArgs.IgnoreColList)
 
-		cmdLineList, cmdLine, err, _ := helper.DumpPartial(tmpPath, "dump.log", filter)
+		cmdLineList, cmdLine, _, nCol, err := helper.DumpPartial(tmpPath, "dump.log", filter, nil)
 		if err != nil {
 			log.Errorf("exec cmd fail, cmd: %s, error:%s", cmdLine, err)
 			return
 		}
-		log.Errorf("exec cmd success, cmd: %s", cmdLineList)
+		log.Errorf("exec cmd success, nCol:%d cmd: %s", nCol, cmdLineList)
 	} else {
 		cmdLine, err := helper.LogicalDumpAll(tmpPath, "dump.log")
 		if err != nil {
@@ -124,32 +124,27 @@ func NewMongoDumpHelper(host *mymongo.MongoHost, dumpBin, user, pass, authDb str
 // 1. 备份一个表 : -c tableName
 // 2. 备份多个表 :  --excludeCollection tableName1 --excludeCollection tableName2 ...
 
-// LogicalDumpPartial  逻辑备份 指定库表
-// 有3种情况:
-// 1. 备份一个表 : -c tableName
-// 2. 备份多个表 :  --excludeCollection tableName1 --excludeCollection tableName2 ...
-
 // DumpPartial  逻辑备份 指定库表
-func (m *MongoDumpHelper) DumpPartial(outDir string, logFileName string, filter *NsFilter) (
-	cmdLineList []string, cmdLine string, err error, nCol int) {
+func (m *MongoDumpHelper) DumpPartial(outDir string, logFileName string, filter *NsFilter, query *string) (
+	cmdLineList []string, cmdLine string, dbColList []DbCollection, nCol int, err error) {
 	// 如果filter为nil，请使用LogicalDumpAll
 	if filter == nil {
 		panic("filter is nil")
 	}
-	fmt.Printf("debug DumpPartial filter: %+v\n", filter)
-	dbColList, err := GetDbCollectionWithFilter(m.MongoHost.Host, m.MongoHost.Port, m.User, m.Pass, m.AuthDb, filter)
+
+	dbColList, err = GetDbCollectionWithFilter(m.MongoHost.Host, m.MongoHost.Port, m.User, m.Pass, m.AuthDb,
+		filter, true)
 	if err != nil {
-		err = errors.Wrap(err, "GetDbCollectionWithFilter")
 		return
 	}
 
-	fmt.Printf("debug DumpPartial dbColList: %+v\n", dbColList)
 	for _, dbRow := range dbColList {
 		// 没有匹配的表，就不备份
 		if len(dbRow.Col) == 0 {
 			continue
 		}
-		if cmdLine, err = m.dumpDbCol(outDir, logFileName, dbRow.Db, dbRow.Col, dbRow.notMachCol); err != nil {
+		nCol += len(dbRow.Col)
+		if cmdLine, err = m.dumpDbCol(outDir, logFileName, dbRow.Db, dbRow.Col, dbRow.notMachCol, query); err != nil {
 			return
 		}
 		cmdLineList = append(cmdLineList, cmdLine)
@@ -158,7 +153,7 @@ func (m *MongoDumpHelper) DumpPartial(outDir string, logFileName string, filter 
 }
 
 func (m *MongoDumpHelper) dumpDbCol(outDir string, logFileName string,
-	dbName string, colList []string, excludeColList []string) (cmdLine string, err error) {
+	dbName string, colList []string, excludeColList []string, query *string) (cmdLine string, err error) {
 	dumpCmd := mycmd.New(m.MongoDumpBin,
 		"-u", m.User,
 		"-p", mycmd.Password(m.Pass),
@@ -169,6 +164,9 @@ func (m *MongoDumpHelper) dumpDbCol(outDir string, logFileName string,
 
 	if len(colList) == 1 {
 		dumpCmd.Append("--collection", mycmd.Val(colList[0]))
+		if query != nil {
+			dumpCmd.Append("--query", mycmd.Val(*query))
+		}
 	} else if len(excludeColList) > 0 {
 		for _, col := range excludeColList {
 			dumpCmd.Append("--excludeCollection", mycmd.Val(col))
@@ -201,7 +199,16 @@ func (m *MongoDumpHelper) RemoveAdminDir(tmpPath string) (err error) {
 	} else {
 		return errors.New("admin Dir not exists, path=" + adminDir)
 	}
+}
 
+// RemoveConfigDir  全量逻辑备份
+func (m *MongoDumpHelper) RemoveConfigDir(tmpPath string) (err error) {
+	confDir := path.Join(tmpPath, "config")
+	if util.FileExists(confDir) {
+		return os.RemoveAll(confDir)
+	} else {
+		return errors.New("config Dir not exists, path=" + confDir)
+	}
 }
 
 // Tar 打包

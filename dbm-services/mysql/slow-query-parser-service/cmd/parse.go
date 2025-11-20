@@ -61,7 +61,7 @@ func Execute() {
 			time.Sleep(1 * time.Second)
 			for _, class := range allClass {
 				//class.class.Finalize(0)
-				if class.class.Id == "eb7ff14619afa214" {
+				if class.class.Id == "xxxx" {
 					fmt.Println("--------------------------")
 					fmt.Println(class)
 				}
@@ -71,8 +71,11 @@ func Execute() {
 	for {
 		select {
 		case ev := <-sp.EventChan():
-			//fmt.Println(ev.Db, ev.User, ev.Host, " | ", ev.Query)
+			//fmt.Println(ev.Db, ev.User, ev.Host, " | len= ", len(ev.Query))
 			if resp, err := mysql.AnalyzeSql(ev.Db, ev.Query); err == nil {
+				fmt.Printf("db=%s table=%s user=%s, len=%d digist=%s\n",
+					ev.Db, resp.TableName, ev.User, resp.QueryLength, resp.QueryDigestText)
+
 				time.Sleep(20 * time.Millisecond)
 				// class 就是一个 finerprint
 				cl := event.NewClass(resp.QueryDigestMd5, ev.User, ev.Host, ev.Db, "", resp.QueryDigestText, false)
@@ -92,6 +95,8 @@ func Execute() {
 					allClass[resp.QueryDigestMd5].countStar++
 				}
 				cl.AddEvent(ev, false)
+			} else {
+				fmt.Println(err)
 			}
 		case <-time.After(100 * time.Millisecond):
 			fmt.Println("sleep 100ms")

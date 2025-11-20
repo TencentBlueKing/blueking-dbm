@@ -10,10 +10,10 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import gettext_lazy as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
-class DbmonHeartbeatReportSubType(str, StructuredEnum):
+class DbmonHeartbeatReportSubType(StrStructuredEnum):
     TWEMPROXY = EnumField("TWEMPROXY", _("TWEMPROXY"))
     PREDIXY = EnumField("PREDIXY", _("PREDIXY"))
     REDIS_SSD = EnumField("REDIS_SSD", _("REDIS_SSD"))

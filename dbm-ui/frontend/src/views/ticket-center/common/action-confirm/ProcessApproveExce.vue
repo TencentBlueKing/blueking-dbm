@@ -40,11 +40,12 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
-  const eventBus = useEventBus();
 
   const approveFormMode = reactive({
     remark: '',
   });
+
+  const eventBus = useEventBus();
 
   const isSubmitting = ref(false);
 

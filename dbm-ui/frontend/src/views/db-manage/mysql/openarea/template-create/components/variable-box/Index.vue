@@ -12,7 +12,7 @@
       <BkAlert
         class="mb-16"
         :title="t('可以在命名范式与 xxx 中使用')" />
-      <RenderTable class="mt16">
+      <RenderTable class="mt-16">
         <template
           v-for="(item, index) in variableList"
           :key="`${item.name}#${index}`">

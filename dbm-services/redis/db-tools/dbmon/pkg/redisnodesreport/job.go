@@ -89,7 +89,7 @@ func (c *ClusterNodesSchema) TableName() string {
 
 // Run new nodesreport tasks
 func (job *Job) Run() {
-	mylog.Logger.Info("redisnodesreport wakeup,start running...")
+	mylog.Logger.Debug("redisnodesreport wakeup,start running...")
 	defer func() {
 		if job.Err != nil {
 			mylog.Logger.Info(fmt.Sprintf("redisnodesreport end fail,err:%v", job.Err))

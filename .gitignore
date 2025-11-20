@@ -14,3 +14,15 @@ package-lock.json
 *.swp
 ### PreCI ###
 .codecc
+# CodeBuddy
+.codebuddyignore
+.codebuddy/
+# Cursor
+.cursorignore
+.cursorrules
+.cursor/
+# Claude
+.claude/
+.history/
+dbm-services/.history/
+dbm-ui/.history/

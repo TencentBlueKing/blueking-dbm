@@ -67,6 +67,7 @@ export default class DbResource {
   sub_zone: string;
   sub_zone_id: string;
   svr_type_name: string;
+  total_data_storage_cap: number;
   update_time: string;
   updater: string;
 
@@ -99,6 +100,7 @@ export default class DbResource {
     this.permission = payload.permission || '--';
     this.rack_id = payload.rack_id || '--';
     this.raid = payload.raid || '--';
+    this.total_data_storage_cap = payload.total_data_storage_cap;
     this.resource_type = payload.resource_type || '--';
     this.status = payload.status || '--';
     this.storage_device = payload.storage_device || {};

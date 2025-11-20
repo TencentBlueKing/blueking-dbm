@@ -145,7 +145,8 @@
                     :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="kafka"
-                    machine-type="zookeeper" />
+                    machine-type="zookeeper"
+                    :subzone-ids="formData.details.sub_zone_ids" />
                 </BkFormItem>
                 <BkFormItem
                   :label="t('数量')"
@@ -175,7 +176,8 @@
                     :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="kafka"
-                    machine-type="broker" />
+                    machine-type="broker"
+                    :subzone-ids="formData.details.sub_zone_ids" />
                 </BkFormItem>
                 <BkFormItem
                   :label="t('数量')"
@@ -307,13 +309,13 @@
           {{ t('提交') }}
         </BkButton>
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="baseState.isSubmitting"
           @click="handleReset">
           {{ t('重置') }}
         </BkButton>
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="baseState.isSubmitting"
           @click="handleCancel">
           {{ t('取消') }}
@@ -329,11 +331,12 @@
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
+  import type { Kafka } from '@services/model/ticket/ticket';
   import type { BizItem, HostInfo } from '@services/types';
 
-  import { useApplyBase } from '@hooks';
+  import { useApplyBase, useTicketDetail } from '@hooks';
 
-  import { Affinity, DBTypes, OSTypes } from '@common/const';
+  import { Affinity, DBTypes, OSTypes, TicketTypes } from '@common/const';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
@@ -350,6 +353,52 @@
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
+
+  useTicketDetail<Kafka.Apply>(TicketTypes.KAFKA_APPLY, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+
+      Object.assign(formData, {
+        bk_biz_id: ticketDetail.bk_biz_id,
+        remark: ticketDetail.remark,
+      });
+      Object.assign(formData.details, {
+        bk_cloud_id: details.bk_cloud_id,
+        city_code: details.city_code,
+        cluster_alias: details.cluster_alias,
+        cluster_name: details.cluster_name,
+        db_version: details.db_version,
+        disaster_tolerance_level: details.disaster_tolerance_level,
+        http_port: details.http_port,
+        ip_source: details.ip_source,
+        no_security: details.no_security || 0,
+        partition_num: details.partition_num,
+        port: details.port,
+        replication_num: details.replication_num,
+        retention_bytes: details.retention_bytes,
+        retention_hours: details.retention_hours,
+      });
+
+      if (details.ip_source === 'resource_pool') {
+        const resourceSpec = Object.entries(details.resource_spec!).reduce((prev, [specType, specInfo]) => {
+          return Object.assign(prev, {
+            [specType]: {
+              count: specInfo.count,
+              spec_id: specInfo.spec_id,
+            },
+          });
+        }, {});
+        const subzoneIds = details.resource_spec!.zookeeper.location_spec.sub_zone_ids || [];
+        Object.assign(formData.details, {
+          resource_spec: Object.assign(formData.details.resource_spec, resourceSpec),
+          sub_zone_ids: subzoneIds,
+        });
+        nextTick(() => {
+          regionRequirementsRef.value!.setInitSubzone(subzoneIds);
+        });
+      }
+    },
+  });
 
   const formatIpData = (data: HostInfo[]) =>
     data.map((item) => ({
@@ -391,7 +440,7 @@
       sub_zone_ids: [] as number[],
     },
     remark: '',
-    ticket_type: 'KAFKA_APPLY',
+    ticket_type: TicketTypes.KAFKA_APPLY,
   });
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
@@ -460,7 +509,7 @@
       const count = Number(formData.details.resource_spec.broker.count);
       if (specBrokerRef.value) {
         const { storage_spec: storageSpec = [] } = specBrokerRef.value.getData();
-        const disk = storageSpec.reduce((total: number, item: { size: number }) => total + Number(item.size || 0), 0);
+        const disk = storageSpec.reduce((total: number, item: { min: number }) => total + Number(item.min || 0), 0);
         totalCapacity.value = disk * count;
       }
     },

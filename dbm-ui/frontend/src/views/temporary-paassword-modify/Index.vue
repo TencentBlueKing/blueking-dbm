@@ -63,7 +63,7 @@
         :confirm-handler="handleReset"
         :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
         :title="t('确认重置页面')">
-        <BkButton class="ml8 w-88">
+        <BkButton class="ml-8 w-88">
           {{ t('重置') }}
         </BkButton>
       </DbPopconfirm>
@@ -106,7 +106,6 @@
   watch(
     formData,
     () => {
-      console.log('formData = ', formData);
       const { instanceList } = formData;
       if (instanceList.length > 0) {
         const instance = instanceList[0];

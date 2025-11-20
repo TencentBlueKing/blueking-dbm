@@ -90,6 +90,7 @@ class PulsarDBMeta(object):
                         "ip": ip,
                         "port": self.role_port_dict[role],
                         "instance_role": self.role_instance_dict[role],
+                        "db_version": self.ticket_data.get("db_version", ""),
                     }
                 )
 
@@ -118,6 +119,7 @@ class PulsarDBMeta(object):
             "creator": self.ticket_data["created_by"],
             "major_version": self.ticket_data["db_version"],
             "region": self.ticket_data["city_code"],
+            "disaster_tolerance_level": self.ticket_data["disaster_tolerance_level"],
         }
         with atomic():
             # 绑定事务更新cmdb
@@ -175,6 +177,7 @@ class PulsarDBMeta(object):
                     "ip": self.ticket_data["old_zk_ips"][i],
                     "port": self.role_port_dict[PulsarRoleEnum.ZooKeeper],
                     "instance_role": self.role_instance_dict[PulsarRoleEnum.ZooKeeper],
+                    "db_version": self.ticket_data.get("db_version", ""),
                 }
             )
             new_storages.append(
@@ -182,6 +185,7 @@ class PulsarDBMeta(object):
                     "ip": self.ticket_data["new_zk_ips"][i],
                     "port": self.role_port_dict[PulsarRoleEnum.ZooKeeper],
                     "instance_role": self.role_instance_dict[PulsarRoleEnum.ZooKeeper],
+                    "db_version": self.ticket_data.get("db_version", ""),
                 }
             )
         new_machines = []

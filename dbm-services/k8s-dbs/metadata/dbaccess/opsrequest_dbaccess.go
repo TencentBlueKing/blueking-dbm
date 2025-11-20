@@ -21,9 +21,12 @@ package dbaccess
 
 import (
 	"fmt"
+	commconst "k8s-dbs/common/constant"
 	"k8s-dbs/common/entity"
-	models "k8s-dbs/metadata/dbaccess/model"
-	"log/slog"
+	metaentity "k8s-dbs/metadata/entity"
+	models "k8s-dbs/metadata/model"
+
+	"github.com/pkg/errors"
 
 	"gorm.io/gorm"
 )
@@ -35,6 +38,7 @@ type K8sCrdOpsRequestDbAccess interface {
 	FindByID(id uint64) (*models.K8sCrdOpsRequestModel, error)
 	Update(model *models.K8sCrdOpsRequestModel) (uint64, error)
 	ListByPage(pagination entity.Pagination) ([]models.K8sCrdOpsRequestModel, int64, error)
+	FindByParams(params *metaentity.OpsRequestQueryParams) ([]*models.K8sCrdOpsRequestModel, error)
 }
 
 // K8sCrdOpsRequestDbAccessImpl K8sCrdOpsRequestDbAccess 的具体实现
@@ -42,28 +46,41 @@ type K8sCrdOpsRequestDbAccessImpl struct {
 	db *gorm.DB
 }
 
+// FindByParams 按照参数查询接口实现
+func (k *K8sCrdOpsRequestDbAccessImpl) FindByParams(params *metaentity.OpsRequestQueryParams) (
+	[]*models.K8sCrdOpsRequestModel,
+	error,
+) {
+	var opsRequestModels []*models.K8sCrdOpsRequestModel
+	err := k.db.
+		Where(params).
+		Order("id desc").
+		Limit(commconst.MaxFetchSize).
+		Find(&opsRequestModels).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to find opsRequest with params %+v", params)
+	}
+	return opsRequestModels, nil
+}
+
 // Create 创建元数据接口实现
 func (k *K8sCrdOpsRequestDbAccessImpl) Create(model *models.K8sCrdOpsRequestModel) (
 	*models.K8sCrdOpsRequestModel, error,
 ) {
 	if err := k.db.Create(model).Error; err != nil {
-		slog.Error("Create ops error", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create opsRequest with model %+v", model)
 	}
-	var addedOps models.K8sCrdOpsRequestModel
-	if err := k.db.First(&addedOps, "id=?", model.ID).Error; err != nil {
-		slog.Error("Find ops error", "error", err)
-		return nil, err
-	}
-	return &addedOps, nil
+	return model, nil
 }
 
 // DeleteByID 删除元数据接口实现
 func (k *K8sCrdOpsRequestDbAccessImpl) DeleteByID(id uint64) (uint64, error) {
 	result := k.db.Delete(&models.K8sCrdOpsRequestModel{}, id)
 	if result.Error != nil {
-		slog.Error("Delete ops error", "error", result.Error.Error())
-		return 0, result.Error
+		return 0, errors.Wrapf(result.Error, "failed to delete opsRequest with id %d", id)
 	}
 	return uint64(result.RowsAffected), nil
 }
@@ -73,18 +90,16 @@ func (k *K8sCrdOpsRequestDbAccessImpl) FindByID(id uint64) (*models.K8sCrdOpsReq
 	var ops models.K8sCrdOpsRequestModel
 	result := k.db.First(&ops, id)
 	if result.Error != nil {
-		slog.Error("Find ops error", "error", result.Error.Error())
-		return nil, result.Error
+		return nil, errors.Wrapf(result.Error, "failed to find opsRequest with id %d", id)
 	}
 	return &ops, nil
 }
 
 // Update 更新元数据接口实现
 func (k *K8sCrdOpsRequestDbAccessImpl) Update(model *models.K8sCrdOpsRequestModel) (uint64, error) {
-	result := k.db.Omit("CreatedAt", "CreatedBy").Save(model)
+	result := k.db.Debug().Omit("CreatedAt", "CreatedBy").Save(model)
 	if result.Error != nil {
-		slog.Error("Update ops error", "error", result.Error.Error())
-		return 0, result.Error
+		return 0, errors.Wrapf(result.Error, "failed to update opsRequest with model %+v", model)
 	}
 	return uint64(result.RowsAffected), nil
 }

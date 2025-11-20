@@ -61,16 +61,26 @@
   import screenfull from 'screenfull';
   import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-  import { grammarCheck } from '@services/source/mysqlSqlImport';
+  import type { Mysql } from '@services/model/ticket/ticket';
+  import { grammarCheck as mysqlGrammarCheck } from '@services/source/mysqlSqlImport';
+  import { grammarCheck as oracleGrammarCheck } from '@services/source/oracleSqlImport';
+  import { grammarCheck as sqlserverGrammarCheck } from '@services/source/sqlserverSqlImport';
+
+  import { DBTypes } from '@common/const';
 
   import { getSQLFilename } from '@utils';
 
   import RenderMessageList, { type IMessageList } from './MessageList.vue';
 
   interface Props {
+    dbTypes: keyof typeof grammarCheckMap;
+    // eslint-disable-next-line vue/require-default-prop
+    executeObject?: Mysql.ImportSqlFile['execute_objects'][number];
     modelValue: string;
     readonly?: boolean;
     title: string;
+    // eslint-disable-next-line vue/require-default-prop
+    versionList?: string[];
   }
 
   interface Emits {
@@ -86,11 +96,42 @@
 
   const emits = defineEmits<Emits>();
 
+  const grammarCheckMap = {
+    [DBTypes.MONGODB]: undefined,
+    [DBTypes.MYSQL]: mysqlGrammarCheck,
+    [DBTypes.ORACLE]: oracleGrammarCheck,
+    [DBTypes.SQLSERVER]: sqlserverGrammarCheck,
+    [DBTypes.TENDBCLUSTER]: mysqlGrammarCheck,
+  };
+
   const handleGrammarCheck = () => {
+    const grammarCheckApi = grammarCheckMap[props.dbTypes];
+    if (!grammarCheckApi) {
+      return;
+    }
     isChecking.value = true;
     const params = new FormData();
-    params.append('sql_content', props.modelValue);
-    grammarCheck(params)
+    params.append('sql_filenames[0]', props.title);
+    params.append('cluster_type', props.dbTypes);
+    if (props.versionList) {
+      props.versionList.forEach((version, index) => {
+        params.append(`versions[${index}]`, version);
+      });
+    }
+    if (props.executeObject) {
+      params.append(
+        'execute_objects',
+        JSON.stringify([
+          {
+            dbnames: props.executeObject.dbnames,
+            ignore_dbnames: props.executeObject.ignore_dbnames,
+            line_id: 1,
+            sql_files: ['/'],
+          },
+        ]),
+      );
+    }
+    grammarCheckApi(params)
       .then((data) => {
         const grammarCheckData = data;
         if (!grammarCheckData) {
@@ -197,7 +238,7 @@
         alwaysConsumeMouseWheel: false,
       },
       theme: 'vs-dark',
-      wordWrap: 'bounded',
+      wordWrap: 'on',
     });
     editor.onDidChangeModelContent(() => {
       const value = editor.getValue();

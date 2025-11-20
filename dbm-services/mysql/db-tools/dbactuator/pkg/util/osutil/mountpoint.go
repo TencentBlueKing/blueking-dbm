@@ -170,5 +170,8 @@ func GetMostSuitableMountPoint() (FileSystem, error) {
 			}
 		}
 	}
+	if maxAvFs == (FileSystem{}) {
+		return FileSystem{}, fmt.Errorf("no suitable data mount point found")
+	}
 	return maxAvFs, nil
 }

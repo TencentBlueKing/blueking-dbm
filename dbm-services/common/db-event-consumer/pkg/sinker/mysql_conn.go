@@ -1,0 +1,157 @@
+// TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+// Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+// Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at https://opensource.org/licenses/MIT
+// Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+// an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+// specific language governing permissions and limitations under the License.
+
+package sinker
+
+import (
+	"database/sql"
+	"fmt"
+	"log"
+	"log/slog"
+	"net/url"
+	"os"
+	"strings"
+	"time"
+
+	_ "github.com/gogf/gf/contrib/drivers/mysql/v2"
+	//_ "github.com/go-sql-driver/mysql"
+
+	"github.com/gogf/gf/v2/database/gdb"
+	"github.com/samber/lo"
+	"github.com/spf13/cast"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
+	"xorm.io/xorm"
+)
+
+func GetGormDB(dsn *InstanceDsn) (*gorm.DB, error) {
+	// loc=UTC&time_zone='+00:00' 对 timestamp 字段友好，对 datetime 字段会有 +8 市区差距
+	defaultSessionVars := map[string]interface{}{
+		"loc":       "UTC",
+		"time_zone": "'+00:00'",
+		"parseTime": "True",
+	}
+	dbc, err := GetConn(dsn, defaultSessionVars)
+	slowLogger := logger.New(
+		//将标准输出作为Writer
+		log.New(os.Stdout, "\r\n", log.LstdFlags),
+		logger.Config{
+			SlowThreshold: 0,
+			LogLevel:      logger.Warn,
+		},
+	)
+
+	db, err := gorm.Open(mysql.New(mysql.Config{
+		Conn: dbc,
+	}), &gorm.Config{
+		DisableForeignKeyConstraintWhenMigrating: true,
+		Logger:                                   slowLogger,
+		// TranslateError: true,
+	})
+
+	if err != nil {
+		slog.Error("connect db", err)
+		return nil, err
+	}
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		slog.Error("get sql db", err)
+		return nil, err
+	}
+	sqlDB.SetMaxOpenConns(2)
+	sqlDB.SetMaxIdleConns(4)
+	sqlDB.SetConnMaxLifetime(0)
+	return db, nil
+}
+
+// GetConn 内置 var: charset,parseTime,loc,time_zone
+func GetConn(dsn *InstanceDsn, sessionVars map[string]interface{}) (db *sql.DB, err error) {
+	if sessionVars == nil {
+		sessionVars = map[string]interface{}{}
+	}
+	dsn.SessionVariables = lo.Assign(sessionVars, dsn.SessionVariables)
+	sessionParams := []string{}
+	for k, v := range dsn.SessionVariables {
+		if val := cast.ToString(v); strings.Contains(val, "%") {
+			sessionParams = append(sessionParams, fmt.Sprintf("%s=%s", k, val))
+		} else {
+			sessionParams = append(sessionParams, fmt.Sprintf("%s=%s", k, url.QueryEscape(val)))
+		}
+	}
+	if dsn.Charset == "" {
+		dsn.Charset = "utf8mb4"
+	}
+	slog.Info("session variables", slog.String("db", dsn.Address), slog.Any("sessionVars", dsn.SessionVariables))
+
+	dsnUrl := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=%s&%s",
+		dsn.User,
+		dsn.Password,
+		dsn.Address,
+		dsn.Database,
+		dsn.Charset,
+		strings.Join(sessionParams, "&"),
+	)
+
+	dbc, err := sql.Open("mysql", dsnUrl)
+	if err != nil {
+		log.Fatalf("connect to mysql failed %s", err.Error())
+		return nil, err
+	}
+	return dbc, nil
+}
+
+func GetXormDB(dsn *InstanceDsn) (*xorm.Engine, error) {
+	dsnUrl := fmt.Sprintf("%s:%s@tcp(%s)/%s?parseTime=True&loc=Local",
+		dsn.User,
+		dsn.Password,
+		dsn.Address,
+		dsn.Database,
+	)
+	engine, err := xorm.NewEngine("mysql", dsnUrl)
+	if err != nil {
+		log.Fatalf("connect to mysql failed %s", err.Error())
+		return nil, err
+	}
+	// 连接池配置
+	engine.SetMaxOpenConns(30)                  // 最大 db 连接
+	engine.SetMaxIdleConns(10)                  // 最大 db 连接空闲数
+	engine.SetConnMaxLifetime(30 * time.Minute) // 超过空闲数连接存活时间
+
+	// 日志相关配置
+	engine.ShowSQL(true) // 打印日志
+	//engine.Logger().SetLevel(core.LOG_DEBUG) // 打印日志级别
+	//engine.SetLogger()                       // 设置日志输出 (控制台, 日志文件, 系统日志等)
+
+	// 测试连通性
+	if err = engine.Ping(); err != nil {
+		log.Fatalf("ping to db fail! err:%+v", err)
+	}
+	return engine, nil
+}
+
+func GetGoframeDB(dsn *InstanceDsn) (gdb.DB, error) {
+	dsnUrl := fmt.Sprintf("%s:%s@tcp(%s)/%s?parseTime=True&loc=Local",
+		dsn.User,
+		dsn.Password,
+		dsn.Address,
+		dsn.Database,
+	)
+	db, err := gdb.New(gdb.ConfigNode{
+		Link: "mysql:" + dsnUrl,
+	})
+	if err != nil {
+		log.Fatalf("connect to mysql failed %s", err.Error())
+		return nil, err
+	}
+	db.SetMaxIdleConnCount(10)
+	db.SetMaxOpenConnCount(30)
+	db.SetMaxConnLifeTime(30 * time.Minute)
+	return db, nil
+}

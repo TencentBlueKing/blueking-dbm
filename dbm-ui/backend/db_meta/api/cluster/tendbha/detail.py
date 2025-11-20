@@ -12,7 +12,8 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext as _
 
 from backend.db_meta.api.cluster.base.graph import ForeignRelationType, Graphic, Group, LineLabel
-from backend.db_meta.enums import InstanceInnerRole
+from backend.db_meta.api.common import get_clb_topo
+from backend.db_meta.enums import ClusterEntryRole, InstanceInnerRole
 from backend.db_meta.models import Cluster, StorageInstanceTuple
 
 
@@ -47,16 +48,20 @@ def scan_cluster(cluster: Cluster) -> Graphic:
         for foreign_proxy in receiver_instance.proxyinstance_set.prefetch_related("cluster").exclude(cluster=cluster):
             graph.add_foreign_cluster(ForeignRelationType.AccessFrom, foreign_proxy.cluster.get())
 
-        slave_be_group = Group(node_id="slave_bind_entry_group", group_name=_("访问入口（从）"))
+        slave_be_group = Group(node_id="slave_bind_entry_group", group_name=_("从域名"))
         for slave_be in receiver_instance.bind_entry.all():
             dummy_slave_be_node, slave_be_group = graph.add_node(slave_be, to_group=slave_be_group)
             graph.add_line(source=slave_be_group, target=receiver_instance_group, label=LineLabel.Bind)
 
         for otr in StorageInstanceTuple.objects.filter(ejector=ejector_instance).exclude(receiver__cluster=cluster):
+            if not otr.receiver.cluster.exists():
+                continue
             foreign_receiver_cluster = otr.receiver.cluster.get()
             graph.add_foreign_cluster(ForeignRelationType.RepTo, foreign_receiver_cluster)
 
         for otr in StorageInstanceTuple.objects.filter(receiver=ejector_instance).exclude(ejector__cluster=cluster):
+            if not otr.receiver.cluster.exists():
+                continue
             foreign_ejector_cluster = otr.ejector.cluster.get()
             graph.add_foreign_cluster(ForeignRelationType.RepFrom, foreign_ejector_cluster)
 
@@ -72,10 +77,7 @@ def scan_cluster(cluster: Cluster) -> Graphic:
                 graph.add_line(source=proxy_instance_group, target=backend_instance_grp, label=LineLabel.Access)
             else:
                 graph.add_foreign_cluster(ForeignRelationType.AccessTo, backend_instance_cluster)
-
-        master_be_group = Group(node_id="master_bind_entry_group", group_name=_("访问入口（主）"))
-        for be in proxy_instance.bind_entry.all():
-            dummy_be_node, master_be_group = graph.add_node(be, to_group=master_be_group)
-            graph.add_line(source=master_be_group, target=proxy_instance_group, label=LineLabel.Bind)
+        all_proxy_entrys = cluster.clusterentry_set.filter(role=ClusterEntryRole.MASTER_ENTRY.value).all()
+        graph = get_clb_topo(graph, all_proxy_entrys, proxy_instance_group)
 
     return graph

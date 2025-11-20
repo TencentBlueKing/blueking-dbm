@@ -12,7 +12,7 @@ import logging.config
 from dataclasses import asdict
 from typing import Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterEntryType
@@ -119,11 +119,11 @@ class MySQLHADestroyFlow(object):
             )
             # delete clb
             acts_list = []
-            cluster_enterys = ClusterEntry.objects.filter(
+            cluster_entries = ClusterEntry.objects.filter(
                 cluster__id=cluster_id,
                 cluster_entry_type=ClusterEntryType.CLB,
             ).all()
-            for ce in cluster_enterys:
+            for ce in cluster_entries:
                 acts_list.append(
                     {
                         "act_name": _("删除CLB"),
@@ -136,6 +136,7 @@ class MySQLHADestroyFlow(object):
                         ),
                     }
                 )
+            if len(acts_list) > 0:
                 sub_pipeline.add_parallel_acts(acts_list=acts_list)
             # 阶段1 下发db-actuator介质包
             sub_pipeline.add_act(
@@ -164,6 +165,10 @@ class MySQLHADestroyFlow(object):
                 )
 
                 exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_uninstall_proxy_payload.__name__
+                exec_act_kwargs.component_kwargs = {
+                    "proxy_port": cluster["proxy_port"],
+                    "force": self.data.get("force", False),
+                }
                 acts_list.append(
                     {
                         "act_name": _("卸载proxy实例"),

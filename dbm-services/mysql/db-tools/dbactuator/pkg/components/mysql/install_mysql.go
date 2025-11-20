@@ -1301,9 +1301,9 @@ func (i *InstallMySQLComp) generateDefaultSpiderAccount(realVersion string) (ini
  * @return {*}
  */
 func (i *InstallMySQLComp) getSuperUserAccountForSpider(ver string) (initAccountsql []string) {
-	var exptendGrant = ""
+	var superExtendGrant = ""
 	if cmutil.SpiderVersionParse(ver) >= cmutil.SpiderVersionParse("tspider-4.0.0") {
-		exptendGrant = "CONNECTION ADMIN,"
+		superExtendGrant = "CONNECTION ADMIN, BINLOG ADMIN,"
 	}
 	for _, host := range i.Params.SuperAccount.AccessHosts {
 		initAccountsql = append(initAccountsql,
@@ -1315,7 +1315,7 @@ func (i *InstallMySQLComp) getSuperUserAccountForSpider(ver string) (initAccount
 			fmt.Sprintf(
 				"GRANT RELOAD, PROCESS, SHOW DATABASES, SUPER, %s REPLICATION CLIENT, SHOW VIEW "+
 					"ON *.* TO '%s'@'%s' IDENTIFIED BY '%s' WITH GRANT OPTION;",
-				exptendGrant, i.Params.DBHAAccount.User, host, i.Params.DBHAAccount.Pwd))
+				superExtendGrant, i.Params.DBHAAccount.User, host, i.Params.DBHAAccount.Pwd))
 		initAccountsql = append(initAccountsql,
 			fmt.Sprintf(
 				"GRANT SELECT ON mysql.servers TO '%s'@'%s' ;", i.Params.DBHAAccount.User, host))
@@ -1335,7 +1335,7 @@ func (i *InstallMySQLComp) getSuperUserAccountForSpider(ver string) (initAccount
 				`GRANT SELECT, INSERT, UPDATE, DELETE, 
 								CREATE, DROP, ALTER, TRIGGER, 
 								PROCESS, SUPER, %s REPLICATION SLAVE ON *.* TO '%s'@'%s' IDENTIFIED BY '%s';`,
-				exptendGrant, i.Params.PartitionYWAccount.User, host, i.Params.PartitionYWAccount.Pwd,
+				superExtendGrant, i.Params.PartitionYWAccount.User, host, i.Params.PartitionYWAccount.Pwd,
 			),
 		)
 	}

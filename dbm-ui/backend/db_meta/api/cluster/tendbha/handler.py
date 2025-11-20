@@ -17,7 +17,14 @@ from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_meta import api
 from backend.db_meta.api.cluster.base.handler import ClusterHandler
-from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceRole, MachineType
+from backend.db_meta.enums import (
+    ClusterType,
+    InstanceInnerRole,
+    InstancePhase,
+    InstanceRole,
+    InstanceStatus,
+    MachineType,
+)
 from backend.db_meta.enums.extra_process_type import ExtraProcessType
 from backend.db_meta.models import StorageInstance
 from backend.db_meta.models.extra_process import ExtraProcessInstance
@@ -50,6 +57,7 @@ class TenDBHAClusterHandler(ClusterHandler):
         resource_spec: dict,
         region: str,
         disaster_tolerance_level: str,
+        zone_list: list,
     ):
         """「必须」创建集群,多实例录入方式"""
 
@@ -145,6 +153,7 @@ class TenDBHAClusterHandler(ClusterHandler):
                     major_version=major_version,
                     region=region,
                     disaster_tolerance_level=disaster_tolerance_level,
+                    zone_list=zone_list,
                 )
             )
 
@@ -171,11 +180,23 @@ class TenDBHAClusterHandler(ClusterHandler):
     def delete_slaves(self, slaves: List[Dict]):
         delete_slaves(self.cluster, slaves)
 
-    def get_remote_address(self) -> StorageInstance:
+    def get_remote_address(self, role=None) -> StorageInstance:
         """查询DRS访问远程数据库的地址"""
-        return StorageInstance.objects.get(
-            cluster=self.cluster, instance_inner_role=InstanceInnerRole.MASTER.value
-        ).ip_port
+        if not role:
+            return StorageInstance.objects.get(
+                cluster=self.cluster, instance_inner_role=InstanceInnerRole.MASTER.value
+            ).ip_port
+
+        query_set = StorageInstance.objects.filter(
+            cluster=self.cluster,
+            instance_role=role,
+            status=InstanceStatus.RUNNING.value,
+            phase=InstancePhase.ONLINE.value,
+        )
+        if role == InstanceRole.BACKEND_SLAVE.value and query_set.filter(is_stand_by=True).exists():
+            return query_set.filter(is_stand_by=True).first().ip_port
+
+        return query_set.first().ip_port
 
     @transaction.atomic
     def add_tbinlogdumper(self, add_confs: list):
@@ -251,25 +272,38 @@ class TenDBHAClusterHandler(ClusterHandler):
         cls,
         bk_biz_id: int,
         bk_cloud_id: int,
-        proxy_ip: str,
+        proxy: dict,
         proxy_ports: list,
         cluster_ids: list,
         created_by: str,
+        target_proxy_pkg_id: int,
         template_proxy_ip: str = None,
     ):
         """
         添加proxy节点，添加相关元信息
         @param bk_biz_id: 业务id
         @param bk_cloud_id: 云区域id
-        @param proxy_ip: 新proxy机器ip
-        @param template_proxy_ip: 模板机器ip
+        @param proxy: 新proxy
         @param proxy_ports: 待关联的proxy端口
         @param cluster_ids: 待关联的集群id列表
         @param created_by: 操作者
+        @param target_proxy_pkg_id: 安装的proxy介质包ID
+        @param template_proxy_ip: 模板proxy的ip
         """
 
-        machines = [{"ip": proxy_ip, "bk_biz_id": bk_biz_id, "machine_type": MachineType.PROXY.value}]
-        proxies = [{"ip": proxy_ip, "port": proxy_port} for proxy_port in proxy_ports]
+        machines = [
+            {
+                "ip": proxy["ip"],
+                "bk_biz_id": bk_biz_id,
+                "machine_type": MachineType.PROXY.value,
+                "spec_id": proxy["spec"]["id"],
+                "spec_config": proxy["spec"],
+            }
+        ]
+
+        proxy_pkg = Package.objects.get(id=target_proxy_pkg_id)
+        proxy_real_ver = get_proxy_real_version(proxy_pkg.name)
+        proxies = [{"ip": proxy["ip"], "port": proxy_port, "version": proxy_real_ver} for proxy_port in proxy_ports]
 
         # 初始化machine表
         api.machine.create(machines=machines, creator=created_by, bk_cloud_id=bk_cloud_id)
@@ -278,7 +312,9 @@ class TenDBHAClusterHandler(ClusterHandler):
         api.proxy_instance.create(proxies=proxies, creator=created_by)
 
         # 关联相关信息
-        api.cluster.tendbha.add_proxy(cluster_ids=cluster_ids, proxy_ip=proxy_ip, template_proxy_ip=template_proxy_ip)
+        api.cluster.tendbha.add_proxy(
+            cluster_ids=cluster_ids, proxy_ip=proxy["ip"], template_proxy_ip=template_proxy_ip
+        )
 
     @classmethod
     @transaction.atomic()

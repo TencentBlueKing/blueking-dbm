@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from django.db.transaction import atomic
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.db_meta import api
 from backend.db_meta.enums import InstanceRole, MachineType
@@ -88,6 +88,7 @@ class KafkaMeta(object):
                         "port": self.role_port_dict[role],
                         "instance_role": self.role_instance_dict[role],
                         "bk_cloud_id": node["bk_cloud_id"],
+                        "db_version": self.ticket_data.get("db_version", ""),
                     }
                 )
         return instances
@@ -199,7 +200,9 @@ class KafkaMeta(object):
             "creator": self.ticket_data["created_by"],
             "bk_cloud_id": bk_cloud_id,
             "region": self.ticket_data["city_code"],
+            "disaster_tolerance_level": self.ticket_data["disaster_tolerance_level"],
         }
+
         with atomic():
             # 兼容旧集群broker及zk混部的情况
             uniq_machines = []

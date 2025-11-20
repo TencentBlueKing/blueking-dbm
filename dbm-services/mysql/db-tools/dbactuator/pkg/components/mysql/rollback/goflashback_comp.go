@@ -70,22 +70,23 @@ func (f *GoFlashback) Init() error {
 		SourceBinlogFormat: "ROW", // 这里只代表 flashback 要求 ROW 模式，源实例 binlog_format 在 PreCheck 里会判断
 		ParseOnly:          true,
 		BinlogOpt: &restore.GoMySQLBinlogUtil{
-			Flashback:        true, // --flashback 模式
-			DisableLogBin:    false,
-			Idempotent:       true,
-			Autocommit:       true,
-			Databases:        f.FlashbackOpt.Databases,
-			Tables:           f.FlashbackOpt.Tables,
-			ExcludeDatabases: f.FlashbackOpt.DatabasesIgnore,
-			ExcludeTables:    f.FlashbackOpt.TablesIgnore,
-			//RowsFilter:            f.FlashbackOpt.RowsFilter,
-			RowsEventType:         f.FlashbackOpt.RowsEventType,
+			Flashback:             true, // --flashback 模式
+			DisableLogBin:         false,
+			Idempotent:            true,
+			Autocommit:            true,
+			Databases:             f.FlashbackOpt.Databases,
+			Tables:                f.FlashbackOpt.Tables,
+			ExcludeDatabases:      f.FlashbackOpt.DatabasesIgnore,
+			ExcludeTables:         f.FlashbackOpt.TablesIgnore,
 			ConvRowsUpdateToWrite: f.FlashbackOpt.ConvRowsUpdateToWrite,
 		},
 		MySQLClientOpt: &restore.MySQLClientOpt{
 			BinaryMode:       true,
 			MaxAllowedPacket: 1073741824,
 		},
+	}
+	if f.FlashbackOpt.FilterDeleteRowsOnly {
+		f.flashback.BinlogOpt.RowsEventType = "delete"
 	}
 	f.flashback.StartTime = f.TargetTime
 	if f.StopTime == "" {
@@ -110,8 +111,9 @@ func (f *GoFlashback) Init() error {
 }
 
 // downloadBinlogFiles 将文件软连接到 downloadDir
+// binlog 的目录样式: /data/dbbak/xxxxxx/20000/binlog_20000
 func (f *GoFlashback) downloadBinlogFiles() error {
-	f.binlogSaveDir = filepath.Join(f.flashback.GetTaskDir(), "binlog")
+	f.binlogSaveDir = filepath.Join(f.flashback.WorkDir, fmt.Sprintf("binlog_%d", f.TgtInstance.Port))
 	if err := osutil.CheckAndMkdir("", f.binlogSaveDir); err != nil {
 		return err
 	}

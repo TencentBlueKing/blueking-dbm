@@ -19,7 +19,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.db.models import Q, QuerySet
 from django.forms import model_to_dict
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
 from backend.components.db_remote_service.client import DRSApi
@@ -71,6 +71,7 @@ class Cluster(AuditedModel):
     )
     time_zone = models.CharField(max_length=16, default=DEFAULT_TIME_ZONE, help_text=_("集群所在的时区"))
     tags = models.ManyToManyField(Tag, blank=True, help_text=_("标签（外键）"))
+    zone_list = models.JSONField(default=list, help_text=_("指定机房列表，空列表代表随机"), blank=True, null=True)
 
     class Meta:
         unique_together = [("bk_biz_id", "immute_domain", "cluster_type", "db_module_id"), ("immute_domain",)]

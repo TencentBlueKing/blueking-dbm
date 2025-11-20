@@ -25,7 +25,7 @@
         :model="formData">
         <EditableTable
           ref="editableTable"
-          class="mt16 mb16"
+          class="mt-16 mb-16"
           :model="formData.tableData">
           <EditableRow
             v-for="(item, index) in formData.tableData"
@@ -40,6 +40,7 @@
               @batch-edit="handleClusterBatchEdit" />
             <EditableColumn
               :label="t('架构版本')"
+              readonly
               :width="200">
               <EditableBlock :placeholder="t('选择集群后自动生成')">
                 {{ item.cluster.cluster_type_name }}
@@ -47,6 +48,7 @@
             </EditableColumn>
             <EditableColumn
               :label="t('版本')"
+              readonly
               :width="200">
               <EditableBlock :placeholder="t('选择集群后自动生成')">
                 {{ item.cluster.major_version }}

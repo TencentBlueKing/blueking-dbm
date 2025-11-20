@@ -17,6 +17,7 @@ import type { ClusterTypes, DBTypes, MachineTypes } from '@common/const';
 import { utcDisplayTime } from '@utils';
 
 export default class ResourceSpec {
+  biz_scope: number[];
   capacity: number;
   cpu: {
     max: number;
@@ -48,8 +49,10 @@ export default class ResourceSpec {
   spec_machine_type: MachineTypes;
   spec_name: string;
   storage_spec: {
+    max: number;
+    min: number;
     mount_point: string;
-    size: number;
+    size?: number;
     type: string;
   }[];
   update_at: string;
@@ -70,6 +73,7 @@ export default class ResourceSpec {
     this.spec_machine_type = payload.spec_machine_type;
     this.spec_name = payload.spec_name;
     this.update_at = payload.update_at;
+    this.biz_scope = payload.biz_scope || [];
     this.updater = payload.updater;
     this.spec_id = payload.spec_id;
     this.is_refer = payload.is_refer;

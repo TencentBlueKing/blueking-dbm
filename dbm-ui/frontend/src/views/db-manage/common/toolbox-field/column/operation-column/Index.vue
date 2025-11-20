@@ -16,7 +16,6 @@
     ref="column"
     fixed="right"
     :label="t('操作')"
-    readonly
     :resizeable="false"
     :width="100">
     <div class="toolbox-operation-column">
@@ -50,9 +49,17 @@
 
   import { Column, useTable } from '@components/editable-table/Index.vue';
 
-  const props = defineProps<{
-    createRowMethod?: () => T;
-  }>();
+  export interface Props<IRow> {
+    // eslint-disable-next-line vue/require-default-prop
+    createRowMethod?: () => IRow;
+    // eslint-disable-next-line vue/require-default-prop
+    handleRowMerge?: () => void;
+    minRow?: number;
+  }
+
+  const props = withDefaults(defineProps<Props<T>>(), {
+    minRow: 1,
+  });
 
   const tableData = defineModel<T[]>('tableData', {
     required: true,
@@ -63,7 +70,7 @@
   const editTableContext = useTable();
   const columnRef = useTemplateRef('column');
 
-  const isRemoveable = computed(() => tableData.value.length > 1);
+  const isRemoveable = computed(() => tableData.value.length > props.minRow);
 
   const handleAppend = () => {
     const rowIndex = columnRef.value!.getRowIndex();
@@ -71,6 +78,10 @@
 
     if (newRowIndex > 0) {
       tableData.value.splice(newRowIndex, 0, props.createRowMethod!());
+    }
+
+    if (props.handleRowMerge) {
+      props.handleRowMerge();
     }
   };
 
@@ -82,6 +93,10 @@
     if (rowIndex > -1) {
       tableData.value.splice(rowIndex, 1);
     }
+
+    if (props.handleRowMerge) {
+      props.handleRowMerge();
+    }
   };
 
   const handleClone = () => {
@@ -90,15 +105,19 @@
     const newRowIndex = rowIndex + 1;
 
     if (newRowIndex > 0) {
-      tableData.value.splice(newRowIndex, 0, _.cloneDeep(tableData.value[rowIndex]));
+      tableData.value.splice(newRowIndex, 0, _.cloneDeep(tableData.value[rowIndex]!));
       editTableContext!.validateByRowIndex(newRowIndex);
+    }
+
+    if (props.handleRowMerge) {
+      props.handleRowMerge();
     }
   };
 </script>
 <style lang="less">
   .toolbox-operation-column {
     display: flex;
-    height: 42px;
+    min-height: 40px;
     padding: 0 10px;
     align-items: center;
 

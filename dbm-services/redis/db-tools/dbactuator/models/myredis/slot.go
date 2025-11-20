@@ -36,7 +36,7 @@ func (s SlotSlice) String() string {
 
 // DecodeSlot parse a string representation of a slot slot
 func DecodeSlot(s string) (Slot, error) {
-	slot, err := strconv.ParseUint(s, 10, 64)
+	slot, err := strconv.Atoi(s)
 	return Slot(slot), err
 }
 

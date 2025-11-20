@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType
@@ -44,7 +44,8 @@ class MySQLHaClearDetailSerializer(MySQLBaseOperateDetailSerializer):
 
     def validate(self, attrs):
         """校验库表选择器信息是否正确"""
-        super().validate_cluster_can_access(attrs)
+        attrs = super().validate(attrs)
+
         # 库表选择器校验
         super().validate_database_table_selector(attrs)
         # 校验集群类型只能是高可用

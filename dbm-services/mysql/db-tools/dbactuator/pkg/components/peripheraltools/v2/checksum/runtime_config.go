@@ -2,30 +2,15 @@ package checksum
 
 import (
 	"bytes"
-	"dbm-services/common/reverseapi/define"
-	"dbm-services/common/reverseapi/pkg"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
 	"fmt"
 	"os/exec"
-	"path/filepath"
 	"strings"
 
 	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/pkg/errors"
 )
-
-func (c *MySQLChecksumComp) GenerateRuntimeConfig() (err error) {
-	nginxAddrs, err := pkg.ReadNginxProxyAddrs(
-		filepath.Join(define.DefaultCommonConfigDir, define.DefaultNginxProxyAddrsFileName),
-	)
-	if err != nil {
-		logger.Error(err.Error())
-		return err
-	}
-
-	return GenConfig(c.Params.BkCloudId, nginxAddrs, c.Params.Ports)
-}
 
 func GenConfig(bkCloudId int64, nginxAddrs []string, ports []int) error {
 	t, err := tools.NewToolSetWithPick(tools.ToolMysqlTableChecksum)

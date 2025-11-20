@@ -22,10 +22,16 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
+	_ "k8s-dbs/common/validator"
 	"k8s-dbs/core"
-	"k8s-dbs/core/client"
+	_ "k8s-dbs/core/checker/addonoperation"
+	"k8s-dbs/core/util"
+	dbsinformer "k8s-dbs/informers"
 	"k8s-dbs/router"
+	_ "k8s-dbs/router/core"
+	_ "k8s-dbs/router/dataweb"
+	_ "k8s-dbs/router/metadata"
+	_ "k8s-dbs/router/terminal"
 	"log"
 	"log/slog"
 	"net/http"
@@ -35,6 +41,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+
+	middleHelper "k8s-dbs/middleware"
 )
 
 // main 函数是程序的入口点，执行以下步骤：
@@ -43,21 +51,34 @@ import (
 // 3. 启动 HTTP 服务并监听终止信号
 // 4. 在接收到终止信号时优雅关闭服务器
 func main() {
-	slog.Info("Start initial configuration...")
-
+	slog.Info("Dbs server starting...")
+	// 初始化核心配置
 	if err := core.Init(); err != nil {
 		log.Fatalf("Failed to initialize core: %v", err)
 	}
-
-	r := router.NewRouter(client.Db.GormDb)
-
 	slog.Info("Finish initial configuration...")
 
-	startServer(r.Engine)
+	engine := gin.Default()
+	// 注册中间件
+	middleHelper.RegisterMiddleWare(engine)
+
+	// 构建路由
+	router.BuildRouter(engine, util.Db.GormDb)
+	slog.Info("Finish initial router...")
+
+	// 启动 informers
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	dbsinformer.StartInformers(ctx)
+
+	// 启动 server
+	startServer(engine, cancel)
+	slog.Info("Dbs server stopped.")
+
 }
 
 // startServer 启动 HTTP 服务并处理优雅关闭
-func startServer(r *gin.Engine) {
+func startServer(r *gin.Engine, cancel context.CancelFunc) {
 	server := &http.Server{
 		Addr:    ":8000",
 		Handler: r,
@@ -72,16 +93,17 @@ func startServer(r *gin.Engine) {
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
+	sig := <-quit
 
-	slog.Info("Shutdown Server ...")
+	slog.Info("Shutdown Server ...", "signal", sig)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	ctx, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancelTimeout()
+
 	if err := server.Shutdown(ctx); err != nil {
 		slog.Error("Server forced to shutdown", "error", err)
-		panic(fmt.Errorf("fatal error: %w", err)) // 触发 panic
 	}
 
+	cancel()
 	slog.Info("Server exited properly")
 }

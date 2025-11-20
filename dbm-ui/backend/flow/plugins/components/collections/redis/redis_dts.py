@@ -17,7 +17,7 @@ from typing import List, Tuple
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service, StaticIntervalGenerator
 
@@ -940,6 +940,7 @@ class NewDstClusterInstallJobAndWatchStatus(BaseService):
             },
             "resource_spec": kwargs["cluster"]["dst_install_param"]["resource_spec"],
             "disaster_tolerance_level": kwargs["cluster"]["dst_install_param"]["disaster_tolerance_level"],
+            "zone_list": kwargs["cluster"]["dst_install_param"]["zone_list"],
         }
         if is_predixy_proxy_type(ticket_data["cluster_type"]):
             # 如果是predixy类型,则需要设置proxy_admin_pwd

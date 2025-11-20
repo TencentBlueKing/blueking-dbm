@@ -15,7 +15,7 @@ from copy import deepcopy
 from dataclasses import asdict
 from typing import Any, Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
@@ -47,6 +47,7 @@ from backend.flow.plugins.components.collections.redis.exec_shell_script import 
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.plugins.components.collections.redis.redis_ticket import RedisTicketComponent
+from backend.flow.plugins.components.collections.redis.redis_update_version import RedisUpdateVersionComponent
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
@@ -77,6 +78,7 @@ class RedisClusterAutoFixSceneFlow(object):
                  {"ip": "1.1.1.a","spec_id": 17,
                   "target": {"bk_cloud_id": 0,"bk_host_id": 216,"status": 1,"ip": "2.2.2.b"}
                  }],
+            "need_manual_confirm": True,
             }
         ]
     }
@@ -201,7 +203,7 @@ class RedisClusterAutoFixSceneFlow(object):
     # 这里整理替换所需要的参数
     def start_redis_auotfix(self):
         redis_pipeline, act_kwargs = self.__init_builder(_("REDIS-故障自愈"))
-        sub_pipelines = []
+        # sub_pipelines = []
         for cluster_fix in self.data["infos"]:
             for cluster_id in cluster_fix["cluster_ids"]:
                 cluster_kwargs = deepcopy(act_kwargs)
@@ -216,9 +218,11 @@ class RedisClusterAutoFixSceneFlow(object):
                     act_component_code=GetRedisActPayloadComponent.code,
                     kwargs=asdict(cluster_kwargs),
                 )
-                sub_pipelines.append(self.cluster_fix(flow_data, cluster_kwargs, cluster_fix))
+                # 单机多实例 ，让他串行跑吧
+                redis_pipeline.add_sub_pipeline(self.cluster_fix(flow_data, cluster_kwargs, cluster_fix))
+                # sub_pipelines.append(self.cluster_fix(flow_data, cluster_kwargs, cluster_fix))
 
-            redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+            # redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
             # 主从的， 是以机器维度发起的自愈， 那么也以机器维度发起下架，方便主机回收
             # # #### 下架旧实例 （生产Ticket单据） ################################################## 完毕 ###
@@ -246,6 +250,7 @@ class RedisClusterAutoFixSceneFlow(object):
 
         # 先补充slave
         if fix_params.get("redis_slave"):
+            act_kwargs.cluster["update_storage"] = True
             slave_kwargs = deepcopy(act_kwargs)
             sub_pipeline.add_sub_pipeline(
                 self.slave_fix(
@@ -260,6 +265,7 @@ class RedisClusterAutoFixSceneFlow(object):
 
         # 然后在搞定proxy
         if fix_params.get("proxy"):
+            act_kwargs.cluster["update_proxy"] = True
             proxy_kwargs = deepcopy(act_kwargs)
             sub_pipeline.add_sub_pipeline(
                 self.proxy_fix(
@@ -271,6 +277,11 @@ class RedisClusterAutoFixSceneFlow(object):
                     },
                 )
             )
+        sub_pipeline.add_act(
+            act_name=_("{}-更新版本").format(act_kwargs.cluster["immute_domain"]),
+            act_component_code=RedisUpdateVersionComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
 
         return sub_pipeline.build_sub_process(sub_name=_("故障自愈-{}").format(act_kwargs.cluster["immute_domain"]))
 
@@ -372,6 +383,7 @@ class RedisClusterAutoFixSceneFlow(object):
                             "immute_domain": act_kwargs.cluster["immute_domain"],
                             "bk_cloud_id": act_kwargs.cluster["bk_cloud_id"],
                             "proxy": old_proxies,
+                            "need_manual_confirm": flow_data["fix_info"].get("need_manual_confirm", True),
                         }
                     ],
                 },
@@ -559,6 +571,7 @@ class RedisClusterAutoFixSceneFlow(object):
                                 "immute_domain": sub_kwargs.cluster["immute_domain"],
                                 "bk_cloud_id": sub_kwargs.cluster["bk_cloud_id"],
                                 "redis_slave": old_slaves,
+                                "need_manual_confirm": flow_data["fix_info"].get("need_manual_confirm", True),
                             }
                         ],
                     },
@@ -571,6 +584,7 @@ class RedisClusterAutoFixSceneFlow(object):
                     "immute_domain": sub_kwargs.cluster["immute_domain"],
                     "bk_cloud_id": sub_kwargs.cluster["bk_cloud_id"],
                     "redis_slave": old_slaves,
+                    "need_manaul_confirm": flow_data["fix_info"].get("need_manual_confirm", True),
                 }
             )
         # # #### 下架旧实例 ###################################################################### 完毕 ###

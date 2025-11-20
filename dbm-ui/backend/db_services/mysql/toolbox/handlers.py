@@ -8,18 +8,27 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 import re
 
+from django.utils.translation import gettext as _
+
 from backend.configuration.constants import MYSQL8_VER_PARSE_NUM, DBType
-from backend.db_meta.enums import InstanceRole
-from backend.db_meta.models import Cluster, StorageInstance
+from backend.db_meta.enums import InstanceRole, TenDBClusterSpiderRole
+from backend.db_meta.models import Cluster, ProxyInstance, Spec, StorageInstance
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
 from backend.flow.utils.mysql.mysql_version_parse import (
     get_online_mysql_version,
     major_version_parse,
+    spider_cross_major_version,
+    spider_major_version_parse,
     tmysql_version_parse,
 )
+
+from .storage_upgrade_tool import get_storage_version_modules_api
+
+logger = logging.getLogger("root")
 
 
 class ToolboxHandler:
@@ -28,16 +37,68 @@ class ToolboxHandler:
     def __init__(self):
         self.available_pkg_list = []
 
-    #  select version()
-    #  tmysql:  select version();==> 5.7.20-tmysql-3.4.2-log
-    #  社区版本 mysql:> select version(); 8.0.32
-    #  txsql: select version(); 8.0.30-txsql
-
-    # tmysql pkg name: mysql-5.7.20-linux-x86_64-tmysql-3.3-gcs.tar.gz
-    # txsql pkg name: mysql-txsql-8.0.30-20230701-linux-x86_64.tar.gz
-    # 社区版本 pkg name: mysql-8.0.32-linux-glibc2.12-x86_64.tar.xz
+    def query_higher_spider_ver_pkgs(self, cluster_id: int, higher_major_version: bool, higher_sub_version: bool):
+        cluster = Cluster.objects.filter(id=cluster_id).get()
+        spiders = ProxyInstance.objects.filter(cluster=cluster).exclude(
+            tendbclusterspiderext__spider_role__in=[
+                TenDBClusterSpiderRole.SPIDER_MNT,
+                TenDBClusterSpiderRole.SPIDER_SLAVE_MNT,
+            ]
+        )
+        uniq_spider_version_list = list(set(spider.version for spider in spiders))
+        all_pkg_list = Package.objects.filter(pkg_type=MediumEnum.Spider, db_type=DBType.MySQL, enable=True).all()
+        # 如果版本统一,这是最好的情况
+        for pkg in all_pkg_list:
+            pkg_major_version_num, pkg_sub_version_num = spider_major_version_parse(pkg.name, True)
+            if len(uniq_spider_version_list) == 1:
+                refer_version = uniq_spider_version_list[0]
+                major_version_num, sub_version_num = spider_major_version_parse(refer_version, False)
+            else:
+                version_map = {}
+                version_num_list = []
+                for version in uniq_spider_version_list:
+                    version_num = tmysql_version_parse(version)
+                    version_map[version_num] = version
+                    version_num_list.append(version_num)
+                version_num_list.sort()
+                min_version_num = min(version_num_list)
+                max_version_num = max(version_num_list)
+                # 如果集中存在跨主版本的情况,则只能以最大的版本为参考版本
+                if spider_cross_major_version(max_version_num, min_version_num):
+                    refer_version = version_map[max_version_num]
+                    major_version_num, sub_version_num = spider_major_version_parse(refer_version, False)
+                else:
+                    refer_version = version_map[min_version_num]
+                    major_version_num, sub_version_num = spider_major_version_parse(refer_version, False)
+            # 参考的版本号和包的版本号进行比较
+            self.filter_spider_available_packages(
+                pkg,
+                higher_major_version,
+                higher_sub_version,
+                major_version_num,
+                pkg_major_version_num,
+                sub_version_num,
+                pkg_sub_version_num,
+            )
+        # return the available package list
+        return [
+            {
+                "version": item.version,
+                "pkg_name": item.name,
+                "pkg_id": item.id,
+            }
+            for item in self.available_pkg_list
+        ]
 
     def query_higher_version_pkg_list(self, cluster_id: int, higher_major_version: bool, higher_all_version: bool):
+        #  select version()
+        #  tmysql:  select version();==> 5.7.20-tmysql-3.4.2-log
+        #  社区版本 mysql:> select version(); 8.0.32
+        #  txsql: select version(); 8.0.30-txsql
+
+        # tmysql pkg name: mysql-5.7.20-linux-x86_64-tmysql-3.3-gcs.tar.gz
+        # txsql pkg name: mysql-txsql-8.0.30-20230701-linux-x86_64.tar.gz
+        # 社区版本 pkg name: mysql-8.0.32-linux-glibc2.12-x86_64.tar.xz
         cluster = Cluster.objects.filter(id=cluster_id).get()
         instance = StorageInstance.objects.filter(
             cluster=cluster,
@@ -64,8 +125,8 @@ class ToolboxHandler:
             refer_pkg_type = "txsql"
 
         for pkg in all_pkg_list:
-            pkg_major_vesion_num, pkg_sub_version_num = major_version_parse(pkg.name)
-            pkg_major_vesion_num = convert_mysql8_version_num(pkg_major_vesion_num)
+            pkg_major_version_num, pkg_sub_version_num = major_version_parse(pkg.name)
+            pkg_major_version_num = convert_mysql8_version_num(pkg_major_version_num)
             if refer_pkg_type == "tmysql":
                 # tmysql 可用用mysql 官方社区版本的介质
                 if re.search(tmysql_re_pattern, pkg.name) or (not re.search(pkgname_txsql_re_pattern, pkg.name)):
@@ -76,14 +137,14 @@ class ToolboxHandler:
                             higher_major_version,
                             higher_all_version,
                             major_version_num,
-                            pkg_major_vesion_num,
+                            pkg_major_version_num,
                             sub_version_num,
                             pkg_sub_version_num,
                         )
                         # 判断tmysql的子版本
                         if (
                             higher_all_version
-                            and pkg_major_vesion_num == major_version_num
+                            and pkg_major_version_num == major_version_num
                             and pkg_sub_version_num == sub_version_num
                         ):
                             tmysql_pkg_sub_version_num = tmysql_version_parse(pkg.name)
@@ -91,7 +152,7 @@ class ToolboxHandler:
                                 self.available_pkg_list.append(pkg)
                         continue
                     else:
-                        if pkg_major_vesion_num == major_version_num:
+                        if pkg_major_version_num == major_version_num:
                             tmysql_pkg_sub_version_num = tmysql_version_parse(pkg.name)
                             if tmysql_pkg_sub_version_num > tmysql_sub_version_num:
                                 self.available_pkg_list.append(pkg)
@@ -105,7 +166,7 @@ class ToolboxHandler:
                         higher_major_version,
                         higher_all_version,
                         major_version_num,
-                        pkg_major_vesion_num,
+                        pkg_major_version_num,
                         sub_version_num,
                         pkg_sub_version_num,
                     )
@@ -120,7 +181,7 @@ class ToolboxHandler:
                         higher_major_version,
                         higher_all_version,
                         major_version_num,
-                        pkg_major_vesion_num,
+                        pkg_major_version_num,
                         sub_version_num,
                         pkg_sub_version_num,
                     )
@@ -166,6 +227,116 @@ class ToolboxHandler:
         ):
             self.available_pkg_list.append(pkg)
 
+    def filter_spider_available_packages(
+        self,
+        pkg: Package,
+        higher_major_version: bool,
+        higher_sub_version: bool,
+        refer_major_version_num: int,
+        current_major_version_num: int,
+        refer_sub_version_num: int,
+        current_sub_version_num: int,
+    ):
+        """
+        根据包类型、版本号和是否要求更高主版本来过滤包列表
+        """
+        if higher_major_version:
+            if spider_cross_major_version(current_major_version_num, refer_major_version_num):
+                self.available_pkg_list.append(pkg)
+                return
+        if higher_sub_version:
+            if (current_major_version_num == refer_major_version_num) and (
+                current_sub_version_num > refer_sub_version_num
+            ):
+                self.available_pkg_list.append(pkg)
+                return
+
+    def change_cluster_spec(self, cluster_id: int, cluster_type: str, spec_id: int, machine_type: str):
+        """
+        更改集群规格
+
+        Args:
+            cluster_id: 集群ID
+            cluster_type: 集群类型 (tendbha/tendbcluster)
+            spec_id: 规格ID
+            machine_type: 机器类型
+
+        Returns:
+            dict: 包含操作结果的信息
+        """
+        # 验证集群存在
+        try:
+            Cluster.objects.get(id=cluster_id, cluster_type=cluster_type)
+        except Cluster.DoesNotExist:
+            return {"result": False, "message": _("集群不存在或集群类型不匹配")}
+
+        # 验证规格存在且机器类型匹配
+        try:
+            spec = Spec.objects.get(spec_id=spec_id, spec_machine_type=machine_type)
+        except Spec.DoesNotExist:
+            return {"result": False, "message": _("规格ID不存在或规格机器类型不匹配")}
+
+        # 获取集群关联的机器
+        machines = Cluster.get_cluster_related_machines([cluster_id])
+
+        # 过滤指定机器类型的机器
+        target_machines = machines.filter(machine_type=machine_type)
+
+        if not target_machines.exists():
+            return {"result": False, "message": _("集群中没有找到指定类型的机器: {}").format(machine_type)}
+
+        # 准备规格配置信息
+        spec_config = {
+            "spec_id": spec.spec_id,
+            "spec_name": spec.spec_name,
+            "cpu": spec.cpu,
+            "mem": spec.mem,
+            "device_class": spec.device_class,
+            "storage_spec": spec.storage_spec,
+            "qps": spec.qps,
+        }
+
+        # 更新机器规格
+        updated_count = target_machines.update(spec_id=spec_id, spec_config=spec_config)
+
+        return {
+            "result": True,
+            "message": _("成功更新了 {} 台机器的规格配置").format(updated_count),
+            "cluster_id": cluster_id,
+            "cluster_type": cluster_type,
+            "spec_id": spec_id,
+            "machine_type": machine_type,
+            "updated_machines": updated_count,
+        }
+
+    def query_storage_version_modules(
+        self, cluster_id: int, bk_biz_id: int, higher_major_version: bool = False, higher_sub_version: bool = False
+    ):
+        """
+        查询存储层升级的可选模块和版本
+
+        @param cluster_id: 集群ID
+        @param bk_biz_id: 业务ID
+        @param higher_major_version: 是否查找更高主版本的模块
+        @param higher_sub_version: 是否查找同大版本但子版本更高的模块
+        @return: 包含模块列表的响应
+        """
+        logger.info(
+            _(
+                "Handler调用存储层版本模块查询 - cluster_id: {}, bk_biz_id: {}, higher_major_version: {}, higher_sub_version: {}"
+            ).format(cluster_id, bk_biz_id, higher_major_version, higher_sub_version)
+        )
+
+        result = get_storage_version_modules_api(cluster_id, bk_biz_id, higher_major_version, higher_sub_version)
+
+        logger.info(
+            _("Handler返回结果 - code: {}, result: {}, data数量: {}").format(
+                result.get("code"), result.get("result"), len(result.get("data", []))
+            )
+        )
+
+        return result
+
 
 def convert_mysql8_version_num(major_version: int) -> int:
     # MySQL的发行版本号并不连续 MySQL 5.5 5.6 5.7 8.0
@@ -176,5 +347,4 @@ def convert_mysql8_version_num(major_version: int) -> int:
 
 
 def just_cross_one_major_version(current_version_num, refer_version_num) -> bool:
-    print(current_version_num // 1000 - refer_version_num // 1000)
     return (current_version_num // 1000 - refer_version_num // 1000) == 1

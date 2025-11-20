@@ -28,6 +28,7 @@ const routes: RouteRecordRaw[] = [
     path: 'sqlserver',
     name: 'SqlServerManage',
     meta: {
+      dbType: DBTypes.SQLSERVER,
       navName: t('SQlServer_工具箱'),
     },
     redirect: {
@@ -39,7 +40,6 @@ const routes: RouteRecordRaw[] = [
         path: 'ha-cluster',
         name: 'SqlServerHaCluster',
         meta: {
-          fullscreen: true,
           navName: t('SQLServer主从集群管理'),
         },
         redirect: {
@@ -51,7 +51,6 @@ const routes: RouteRecordRaw[] = [
             path: 'list/:clusterId?',
             name: 'SqlServerHaClusterList',
             meta: {
-              fullscreen: true,
               navName: t('SQLServer主从集群管理'),
             },
             component: () => import('@views/db-manage/sqlserver/ha-cluster-list/Index.vue'),
@@ -71,7 +70,6 @@ const routes: RouteRecordRaw[] = [
         path: 'single-cluster',
         name: 'SqlServerSingle',
         meta: {
-          fullscreen: true,
           navName: t('SQLServer单节点集群管理'),
         },
         redirect: {
@@ -83,7 +81,6 @@ const routes: RouteRecordRaw[] = [
             path: 'list/:clusterId?',
             name: 'SqlServerSingleClusterList',
             meta: {
-              fullscreen: true,
               navName: t('SQLServer单节点集群管理'),
             },
             component: () => import('@views/db-manage/sqlserver/single-cluster-list/Index.vue'),
@@ -121,7 +118,7 @@ const toolboxRouters: RouteRecordRaw[] = [
       navName: t('SQlServer_工具箱'),
     },
     redirect: {
-      name: 'sqlServerExecute',
+      name: TicketTypes.SQLSERVER_IMPORT_SQLFILE,
     },
     component: () => import('@views/db-manage/sqlserver/toolbox/Index.vue'),
     children: [
@@ -130,33 +127,12 @@ const toolboxRouters: RouteRecordRaw[] = [
         name: 'SqlserverToolboxResult',
         component: () => import('@views/db-manage/common/toolbox-result/Index.vue'),
       },
-      {
-        path: 'sql-execute/:page?',
-        name: 'sqlServerExecute',
-        meta: {
-          navName: t('变更SQL执行'),
-        },
-        component: () => import('@views/db-manage/sqlserver/sql-execute/index.vue'),
-      },
+      createRouteItem(TicketTypes.SQLSERVER_IMPORT_SQLFILE, t('变更SQL执行')),
       createRouteItem(TicketTypes.SQLSERVER_DBRENAME, t('DB重命名')),
       createRouteItem(TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE, t('重建从库')),
       createRouteItem(TicketTypes.SQLSERVER_ADD_SLAVE, t('添加从库')),
-      {
-        path: 'master-slave-swap/:page?',
-        name: 'sqlServerMasterSlaveSwap',
-        meta: {
-          navName: t('主从互切'),
-        },
-        component: () => import('@views/db-manage/sqlserver/master-slave-swap/index.vue'),
-      },
-      {
-        path: 'master-failover/:page?',
-        name: 'sqlServerMasterFailover',
-        meta: {
-          navName: t('主库故障切换'),
-        },
-        component: () => import('@views/db-manage/sqlserver/master-failover/index.vue'),
-      },
+      createRouteItem(TicketTypes.SQLSERVER_MASTER_SLAVE_SWITCH, t('主从互切')),
+      createRouteItem(TicketTypes.SQLSERVER_MASTER_FAIL_OVER, t('主库故障切换')),
       createRouteItem(TicketTypes.SQLSERVER_CLEAR_DBS, t('清档')),
       createRouteItem(TicketTypes.SQLSERVER_ROLLBACK, t('定点构造')),
       createRouteItem(TicketTypes.SQLSERVER_BACKUP_DBS, t('数据库备份')),

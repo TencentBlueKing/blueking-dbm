@@ -8,7 +8,6 @@ require (
 	github.com/caarlos0/env/v6 v6.10.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/gofrs/flock v0.8.1
-	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.7.0
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1

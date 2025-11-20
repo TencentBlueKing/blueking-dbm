@@ -21,11 +21,12 @@ type MySession struct {
 	logger       *slog.Logger
 	Name         string
 	stopped      bool
-	deleted      bool
 	stoppedMutex sync.Mutex
 	job          Job
 	RunningLock  sync.Mutex // 同一时刻只能有一个routine在运行
 	LastRunTime  time.Time
+	ReqCount     int
+	RespCount    int
 }
 
 // Run starts the routine.
@@ -66,10 +67,7 @@ func (r *MySession) Run(j Job) error {
 
 // IsTimeout todo check if the routine is timeout.
 func (r *MySession) IsTimeout(timeoutSecond int64) bool {
-	if time.Now().Sub(r.LastRunTime) > time.Duration(timeoutSecond)*time.Second {
-		return true
-	}
-	return false
+	return time.Since(r.LastRunTime) > time.Duration(timeoutSecond)*time.Second
 }
 
 // IsStopped stops the routine.
@@ -94,6 +92,7 @@ func (r *MySession) Stop() {
 
 // SendMsg send request to routine.
 func (r *MySession) SendMsg(in []byte) (n int, err error) {
+	r.ReqCount++
 	if !r.stoppedMutex.TryLock() {
 		return 0, fmt.Errorf("busy")
 	}
@@ -107,6 +106,7 @@ func (r *MySession) SendMsg(in []byte) (n int, err error) {
 
 // ReceiveMsg read response from routine.
 func (r *MySession) ReceiveMsg(timeout int64) (out []byte, err error) {
+	r.RespCount++
 	r.stoppedMutex.Lock()
 	defer r.stoppedMutex.Unlock()
 	if r.stopped {
@@ -142,7 +142,7 @@ func (p *Pool) CheckTimeout(timeout int64) {
 		var runningCount int
 		for _, r := range p.routines {
 			if r.IsTimeout(timeout) {
-				p.logger.Info(fmt.Sprintf("routine %s is stopped by timeout", r.Name))
+				p.logger.Info(fmt.Sprintf("routine %s is stopped by timeout (%d)", r.Name, timeout))
 				r.Stop()
 				delete(p.routines, r.Name)
 				stopped = append(stopped, r.Name)
@@ -221,7 +221,7 @@ func (p *Pool) RemoveStopped(name string) error {
 func (p *Pool) Status() {
 	p.logger.Info(fmt.Sprintf("len(p.routines): %d", len(p.routines)))
 	for i, r := range p.routines {
-		p.logger.Info(fmt.Sprintf("routine idx:%d %s %+v", i, r.Name, r))
+		p.logger.Info(fmt.Sprintf("routine idx:%s %s %+v", i, r.Name, r))
 	}
 }
 

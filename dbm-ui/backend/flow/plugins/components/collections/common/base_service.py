@@ -13,21 +13,21 @@ import json
 import logging
 import re
 from abc import ABCMeta
-from collections import defaultdict
 from typing import Any, Dict, List, Optional, Union
 
 from bamboo_engine import states
 from django.utils import translation
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from pipeline.core.flow.activity import Service, StaticIntervalGenerator
 
 from backend import env
+from backend.bk_dataview.prometheus import metrics
+from backend.bk_dataview.prometheus.handlers import node_label_func, setup_counter, setup_gauge, setup_histogram
 from backend.components import JobApi
 from backend.components.sops.client import BkSopsApi
-from backend.core.encrypt.constants import AsymmetricCipherConfigType
-from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.core.translation.constants import Language
-from backend.flow.consts import DEFAULT_FLOW_CACHE_EXPIRE_TIME, SUCCESS_LIST, WriteContextOpType
+from backend.flow.consts import DEFAULT_FLOW_CACHE_EXPIRE_TIME, SUCCESS_LIST, JobOperationCode, WriteContextOpType
+from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.ticket.models import Flow
 from backend.utils.excel import ExcelHandler
 from backend.utils.redis import RedisConn
@@ -90,34 +90,15 @@ class BaseService(Service, ServiceLogMixin, metaclass=ABCMeta):
         """
         if isinstance(flow, str):
             flow = Flow.objects.get(flow_obj_id=flow)
-        if flow.details.get("__flow_output") and not is_read_cache:
-            return flow.details.get("__flow_output")
 
-        # 获取缓存数据
-        flow_cache_key, flow_sensitive_key = f"{flow.flow_obj_id}_list", f"{flow.flow_obj_id}_is_sensitive"
-        flow_cache_data = [json.loads(item) for item in RedisConn.lrange(flow_cache_key, 0, -1)]
-        # 合并相同的key
-        merge_data = defaultdict(list)
-        for data in flow_cache_data:
-            for k, v in data.items():
-                merge_data[k].append(v)
-
-        # 如果是敏感数据，则整体加密
-        is_sensitive = int(RedisConn.get(flow_sensitive_key) or False)
-        if is_sensitive:
-            merge_data = json.dumps(merge_data)
-            merge_data = AsymmetricHandler.encrypt(name=AsymmetricCipherConfigType.PASSWORD.value, content=merge_data)
-
-        # 入库到flow的details中，并删除缓存key
-        flow.update_details(
-            __flow_output={"root_id": flow.flow_obj_id, "is_sensitive": is_sensitive, "data": merge_data}
-        )
-        RedisConn.delete(flow_cache_key, flow_sensitive_key)
-
-        return flow.details["__flow_output"]
+        # 优先从output取
+        if flow.output_data:
+            return flow.output_data
+        return flow.details.get("__flow_output", [])
 
     def set_flow_output(self, root_id: str, key: Union[int, str], value: Any, is_sensitive: bool = False):
         """
+        TODO: 该方法即将废弃，请使用FlowOutputHandler的insert_data
         在整个流程中存入缓存数据，只允许追加不支持修改，对相同的key会合并为list
         在流程执行成功后，缓存数据会入库到
         @param root_id: 流程id
@@ -142,21 +123,29 @@ class BaseService(Service, ServiceLogMixin, metaclass=ABCMeta):
         RedisConn.expire(flow_cache_key, DEFAULT_FLOW_CACHE_EXPIRE_TIME)
         RedisConn.expire(flow_sensitive_key, DEFAULT_FLOW_CACHE_EXPIRE_TIME)
 
-    def excel_download(self, root_id: str, key: Union[int, str], match_header: bool = False):
+    def excel_download(self, root_id: str, match_header: bool = False):
         """
         根据root_id下载Excel文件
         :param root_id: 流程id
         :param key: 缓存键值
         """
         # 获取root_id缓存数据
-        flow_details = self.get_flow_output(flow=root_id, is_read_cache=True)
+        flow_details = self.get_flow_output(flow=root_id)
 
         # 检查 flow_details 是否存在以及是否包含所需的 key
-        if not flow_details or key not in flow_details["data"]:
-            self.log_error(_("下载excel文件失败，未获取到{}相关的数据").format(key))
+        if not flow_details:
+            self.log_error(_("下载excel文件失败，未获取到流程id:{}相关的数据").format(root_id))
             return False
 
-        flow_detail = flow_details["data"][key]
+        # flow_details为列表且非空，提取第一个元素
+        if isinstance(flow_details, list) and flow_details:
+            flow_details = flow_details[0]
+
+        flow_detail = flow_details.get("values", [])
+
+        if not flow_detail:
+            self.log_error(_("下载excel文件失败，未获取到流程id:{}相关的数据").format(root_id))
+            return False
 
         # 如果 flow_detail 是一个双重列表，则去掉一个列表
         if isinstance(flow_detail[0], list):
@@ -175,6 +164,9 @@ class BaseService(Service, ServiceLogMixin, metaclass=ABCMeta):
         # 返回响应
         return ExcelHandler.response(wb, excel_name)
 
+    @setup_gauge([metrics.pipeline_node_execute_running_count], labels=node_label_func)
+    @setup_histogram([metrics.pipeline_node_execute_duration_histogram], labels=node_label_func)
+    @setup_counter([metrics.pipeline_node_execute_failed_total], labels=node_label_func, check=lambda res: not res)
     def execute(self, data, parent_data):
         self.active_language(data)
 
@@ -192,6 +184,9 @@ class BaseService(Service, ServiceLogMixin, metaclass=ABCMeta):
     def _execute(self, data, parent_data):
         raise NotImplementedError()
 
+    @setup_gauge([metrics.pipeline_node_execute_running_count], labels=node_label_func)
+    @setup_histogram([metrics.pipeline_node_schedule_duration_histogram], labels=node_label_func)
+    @setup_counter([metrics.pipeline_node_execute_failed_total], labels=node_label_func, check=lambda res: not res)
     def schedule(self, data, parent_data, callback_data=None):
         self.active_language(data)
 
@@ -244,6 +239,8 @@ class BaseService(Service, ServiceLogMixin, metaclass=ABCMeta):
 class BkJobService(BaseService, metaclass=ABCMeta):
     __need_schedule__ = True
     interval = StaticIntervalGenerator(5)
+    # 仅针对失败IP重试
+    only_failed_retry = False
 
     @staticmethod
     def __status__(instance_id: str) -> Optional[Dict]:
@@ -326,6 +323,35 @@ class BkJobService(BaseService, metaclass=ABCMeta):
             self.log_error(_("[写入上下文结果失败] failed: {}").format(e))
             return False
 
+    def _execute_fail_job(self, data, job_instance_id, step_instance_id):
+        """
+        针对一个任务进行失败IP重试
+        """
+        params = {
+            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+            "job_instance_id": job_instance_id,
+            "step_instance_id": step_instance_id,
+            "operation_code": JobOperationCode.FAILED_IP_RETRY.value,
+        }
+        resp = JobApi.operate_step_instance(params, raw=True)
+        self.log_info(f"retry job url: {self.__url__(job_instance_id)}")
+
+        # 传入调用结果，并单调监听任务状态
+        data.outputs.ext_result = resp
+        return True
+
+    def execute(self, data, parent_data):
+        self.active_language(data)
+
+        root_id, node_id = self.runtime_attrs.get("root_pipeline_id"), self.runtime_attrs.get("id")
+        outputs = BambooEngine(root_id).get_node_output_data(node_id).data
+        # 针对允许失败IP重试且上次执行失败的job节点，进行失败ip重试。
+        if self.only_failed_retry and outputs.get("job_execute") is False:
+            execute_info = outputs["job_execute_info"]
+            return self._execute_fail_job(data, execute_info["job_instance_id"], execute_info["step_instance_id"])
+        else:
+            return super().execute(data, parent_data)
+
     def _schedule(self, data, parent_data, callback_data=None) -> bool:
         ext_result = data.get_one_of_outputs("ext_result")
         exec_ips = data.get_one_of_outputs("exec_ips")
@@ -355,7 +381,7 @@ class BkJobService(BaseService, metaclass=ABCMeta):
 
         if not ext_result["result"]:
             # 调用结果检测到失败
-            self.log_error(f"[{node_name}] schedule  status failed: {ext_result['error']}")
+            self.log_error(f"[{node_name}] schedule  status failed: {ext_result.get('error')}")
             return False
 
         if not ext_result["data"]:
@@ -405,10 +431,16 @@ class BkJobService(BaseService, metaclass=ABCMeta):
                     if resp.get("result"):
                         self.log_error(f"{ip_dict}:{resp['data']['log_content']}")
 
+            # job失败后，记录失败的信息，可用于失败IP重试。
+            data.outputs.job_execute = False
+            data.outputs.job_execute_info = {"job_instance_id": job_instance_id, "step_instance_id": step_instance_id}
+
             self.finish_schedule()
             return False
 
         self.log_info(_("[{}]任务调度成功🥳︎").format(node_name))
+        data.outputs.job_execute = True
+
         if not write_payload_var:
             self.finish_schedule()
             return True

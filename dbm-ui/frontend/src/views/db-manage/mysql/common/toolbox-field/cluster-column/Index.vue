@@ -16,10 +16,11 @@
     :append-rules="rules"
     field="cluster.master_domain"
     fixed="left"
-    :label="t('目标集群')"
+    :label="t(label)"
     :loading="loading"
-    :min-width="200"
-    required>
+    :min-width="minWidth"
+    required
+    :rowspan="rowspan">
     <template #headAppend>
       <span
         v-bk-tooltips="t('批量选择')"
@@ -35,21 +36,21 @@
   </EditableColumn>
   <ClusterSelector
     v-model:is-show="showSelector"
-    :cluster-types="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]"
+    :cluster-types="clusterTypes"
     :only-one-type="onlyOneType"
-    :selected="selected"
+    :selected="selectedClusters"
     :support-offline-data="supportOfflineData"
     :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
-  import { getTendbhaList } from '@services/source/tendbha';
-  import { getTendbsingleList } from '@services/source/tendbsingle';
+  import { filterClusters } from '@services/source/dbbase';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
@@ -59,13 +60,24 @@
      * @description 是否允许重复选择集群
      * @default false
      */
-    allowsDuplicates?: boolean;
+    allowRepeat?: boolean;
+    /**
+     * 选择器tab集群类型
+     */
+    clusterTypes?: (ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE)[];
+    label?: string;
+    minWidth?: number;
     /**
      * @description 只允许选择单一类型的集群
      * @default false
      */
     onlyOneType?: boolean;
-    selected: Record<ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE, TendbhaModel[]>;
+    rowspan?: number;
+    selected: {
+      cluster_type: ClusterTypes;
+      id: number;
+      master_domain: string;
+    }[];
     /**
      * @description 是否支持离线数据
      * @default false
@@ -76,13 +88,13 @@
 
   type Emits = (e: 'batch-edit', list: TendbhaModel[]) => void;
 
-  interface Exposes {
-    fetch: (params: ServiceParameters<typeof getTendbhaList>) => Promise<void>;
-  }
-
   const props = withDefaults(defineProps<Props>(), {
-    allowsDuplicates: false,
+    allowRepeat: false,
+    clusterTypes: () => [ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE],
+    label: '目标集群',
+    minWidth: 350,
     onlyOneType: false,
+    rowspan: 1,
     supportOfflineData: false,
     tabListConfig: () =>
       ({
@@ -104,32 +116,31 @@
   const { t } = useI18n();
 
   const showSelector = ref(false);
-  const loading = ref(false);
+  const selectedClusters = computed<Record<string, TendbhaModel[]>>(() => ({
+    [ClusterTypes.TENDBHA]: props.selected.filter(
+      (item) => item.cluster_type === ClusterTypes.TENDBHA,
+    ) as TendbhaModel[],
+    [ClusterTypes.TENDBSINGLE]: props.selected.filter(
+      (item) => item.cluster_type === ClusterTypes.TENDBSINGLE,
+    ) as TendbhaModel[],
+  }));
 
   const rules = [
     {
       message: t('集群域名格式不正确'),
-      trigger: 'blur',
-      validator: (value: string) => domainRegex.test(value),
+      trigger: 'change',
+      validator: (value: string) => !value || domainRegex.test(value),
     },
     {
       message: t('目标集群重复'),
-      trigger: 'blur',
-      validator: (value: string) => {
-        if (props.allowsDuplicates) {
-          return true;
-        }
-        return (
-          [...props.selected[ClusterTypes.TENDBHA], ...props.selected[ClusterTypes.TENDBSINGLE]].filter(
-            (item) => item.master_domain === value,
-          ).length < 2
-        );
-      },
+      trigger: 'change',
+      validator: (value: string) =>
+        props.allowRepeat || !value || props.selected.filter((item) => item.master_domain === value).length < 2,
     },
     {
       message: t('目标集群不存在'),
       trigger: 'blur',
-      validator: () => Boolean(modelValue.value.id),
+      validator: (value: string) => !value || Boolean(modelValue.value.id),
     },
   ];
 
@@ -137,39 +148,44 @@
     showSelector.value = true;
   };
 
-  const queryCluster = async (params: ServiceParameters<typeof getTendbhaList>) => {
-    try {
-      loading.value = true;
-      const [haData, singleData] = await Promise.all([getTendbhaList(params), getTendbsingleList(params)]);
-      const [haCluster] = haData.results;
-      const [singleCluster] = singleData.results;
-      if (haCluster) {
-        modelValue.value = haCluster;
-      } else if (singleCluster) {
-        modelValue.value = singleCluster as unknown as TendbhaModel;
+  const { loading, run: queryCluster } = useRequest(filterClusters<TendbhaModel>, {
+    manual: true,
+    onSuccess: (data) => {
+      const [currentCluster] = data;
+      if (currentCluster) {
+        modelValue.value = currentCluster;
       }
-    } finally {
-      loading.value = false;
-    }
-  };
+    },
+  });
 
   const handleChange = (value: string) => {
-    modelValue.value.id = 0;
-    modelValue.value.master_domain = value;
-    if (value) {
-      queryCluster({
-        exact_domain: value,
-      });
-    }
+    modelValue.value = {
+      id: 0,
+      master_domain: value,
+    } as TendbhaModel;
   };
 
-  const handleSelectorChange = (selected: Props['selected']) => {
-    emits('batch-edit', [...selected[ClusterTypes.TENDBHA], ...selected[ClusterTypes.TENDBSINGLE]]);
+  const handleSelectorChange = (selected: Record<string, TendbhaModel[]>) => {
+    const dataList = props.clusterTypes.map((type) => selected[type] || []).flat() || [];
+    emits('batch-edit', dataList);
   };
 
-  defineExpose<Exposes>({
-    fetch: queryCluster,
-  });
+  watch(
+    modelValue,
+    () => {
+      if (modelValue.value.master_domain && !modelValue.value.id) {
+        queryCluster({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_type: props.clusterTypes.join(','),
+          db_type: DBTypes.MYSQL,
+          exact_domain: modelValue.value.master_domain,
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 <style lang="less" scoped>
   .batch-host-select {

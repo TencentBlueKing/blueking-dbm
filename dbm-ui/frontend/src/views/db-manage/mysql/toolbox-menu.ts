@@ -16,6 +16,7 @@ import { TicketTypes } from '@common/const';
 import { t } from '@locales/index';
 
 export interface MenuChild {
+  bind?: string[];
   dbConsoleValue: string;
   id: string;
   name: string;
@@ -27,7 +28,7 @@ export default [
     children: [
       {
         dbConsoleValue: 'mysql.toolbox.sqlExecute',
-        id: 'MySQLExecute',
+        id: TicketTypes.MYSQL_IMPORT_SQLFILE,
         name: t('变更SQL执行'),
         parentId: 'sql',
       },
@@ -46,13 +47,13 @@ export default [
     children: [
       {
         dbConsoleValue: 'mysql.toolbox.dbTableBackup',
-        id: 'MySQLDBTableBackup',
+        id: TicketTypes.MYSQL_HA_DB_TABLE_BACKUP,
         name: t('库表备份'),
         parentId: 'copy',
       },
       {
         dbConsoleValue: 'mysql.toolbox.dbBackup',
-        id: 'MySQLDBBackup',
+        id: TicketTypes.MYSQL_HA_FULL_BACKUP,
         name: t('全库备份'),
         parentId: 'copy',
       },
@@ -64,33 +65,41 @@ export default [
   {
     children: [
       {
-        dbConsoleValue: 'mysql.toolbox.rollback',
-        id: TicketTypes.MYSQL_ROLLBACK_CLUSTER,
-        name: t('定点构造'),
+        bind: [TicketTypes.MYSQL_FIXPOINT_EXIST_CLUSTER, TicketTypes.MYSQL_FIXPOINT_NEW_CLUSTER],
+        dbConsoleValue: 'mysql.toolbox.fixpoint',
+        id: TicketTypes.MYSQL_FIXPOINT_EXIST_CLUSTER,
+        name: t('构造'),
         parentId: 'fileback',
       },
       {
+        bind: [TicketTypes.MYSQL_FLASHBACK, TicketTypes.MYSQL_ROLLBACK],
         dbConsoleValue: 'mysql.toolbox.flashback',
-        id: 'MySQLDBFlashback',
-        name: t('闪回'),
+        id: TicketTypes.MYSQL_ROLLBACK,
+        name: t('回档'),
+        parentId: 'fileback',
+      },
+      {
+        dbConsoleValue: 'mysql.toolbox.rollback',
+        id: TicketTypes.MYSQL_ROLLBACK_CLUSTER,
+        name: t('定点构造（旧）'),
         parentId: 'fileback',
       },
     ],
     icon: 'db-icon-rollback',
     id: 'fileback',
-    name: t('回档'),
+    name: t('构造和回档'),
   },
   {
     children: [
       {
         dbConsoleValue: 'mysql.toolbox.clientPermissionClone',
-        id: 'MySQLPrivilegeCloneClient',
+        id: TicketTypes.MYSQL_CLIENT_CLONE_RULES,
         name: t('客户端权限克隆'),
         parentId: 'privilege',
       },
       {
         dbConsoleValue: 'mysql.toolbox.dbInstancePermissionClone',
-        id: 'MySQLPrivilegeCloneInst',
+        id: TicketTypes.MYSQL_INSTANCE_CLONE_RULES,
         name: t('DB实例权限克隆'),
         parentId: 'privilege',
       },
@@ -102,6 +111,7 @@ export default [
   {
     children: [
       {
+        bind: [TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE, TicketTypes.MYSQL_RESTORE_SLAVE],
         dbConsoleValue: 'mysql.toolbox.slaveRebuild',
         id: TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE,
         name: t('重建从库'),
@@ -121,32 +131,41 @@ export default [
       },
       {
         dbConsoleValue: 'mysql.toolbox.masterSlaveSwap',
-        id: 'MySQLMasterSlaveSwap',
+        id: TicketTypes.MYSQL_MASTER_SLAVE_SWITCH,
         name: t('主从互切'),
         parentId: 'migrate',
       },
       {
-        dbConsoleValue: 'mysql.toolbox.proxyReplace',
-        id: TicketTypes.MYSQL_PROXY_SWITCH,
-        name: t('替换Proxy'),
-        parentId: 'migrate',
-      },
-      {
+        bind: [
+          TicketTypes.MYSQL_PROXY_ADD,
+          TicketTypes.MYSQL_PROXY_REDUCE,
+          TicketTypes.MYSQL_PROXY_SWITCH,
+          TicketTypes.MYSQL_PROXY_CONF_CHANGE,
+          TicketTypes.MYSQL_PROXY_MIGRATE,
+        ],
         dbConsoleValue: 'mysql.toolbox.proxyAdd',
         id: TicketTypes.MYSQL_PROXY_ADD,
-        name: t('添加Proxy'),
+        name: t('接入层变更'),
         parentId: 'migrate',
       },
       {
-        dbConsoleValue: 'mysql.toolbox.masterFailover',
+        bind: [TicketTypes.MYSQL_MASTER_FAIL_OVER, TicketTypes.MYSQL_INSTANCE_FAIL_OVER],
+        dbConsoleValue: 'mysql.toolbox.instanceFailover',
         id: TicketTypes.MYSQL_MASTER_FAIL_OVER,
         name: t('主库故障切换'),
         parentId: 'migrate',
       },
       {
+        bind: [TicketTypes.MYSQL_LOCAL_UPGRADE, TicketTypes.MYSQL_MIGRATE_UPGRADE, TicketTypes.MYSQL_PROXY_UPGRADE],
         dbConsoleValue: 'mysql.toolbox.versionUpgrade',
         id: TicketTypes.MYSQL_PROXY_UPGRADE,
         name: t('版本升级'),
+        parentId: 'migrate',
+      },
+      {
+        dbConsoleValue: 'mysql.toolbox.clusterStandardize',
+        id: TicketTypes.MYSQL_CLUSTER_STANDARDIZE,
+        name: t('集群标准化'),
         parentId: 'migrate',
       },
     ],
@@ -157,20 +176,21 @@ export default [
   {
     children: [
       {
+        bind: [TicketTypes.MYSQL_HA_TRUNCATE_DATA, TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA],
         dbConsoleValue: 'mysql.toolbox.dbClear',
-        id: 'MySQLDBClear',
+        id: TicketTypes.MYSQL_HA_TRUNCATE_DATA,
         name: t('清档'),
         parentId: 'data',
       },
       {
         dbConsoleValue: 'mysql.toolbox.checksum',
-        id: 'MySQLChecksum',
+        id: TicketTypes.MYSQL_CHECKSUM,
         name: t('数据校验修复'),
         parentId: 'data',
       },
       {
         dbConsoleValue: 'mysql.toolbox.dataMigrate',
-        id: 'MySQLDataMigrate',
+        id: TicketTypes.MYSQL_DATA_MIGRATE,
         name: t('DB克隆'),
         parentId: 'data',
       },

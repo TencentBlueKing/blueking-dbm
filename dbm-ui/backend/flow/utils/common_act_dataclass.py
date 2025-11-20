@@ -43,3 +43,12 @@ class InstallNodemanPluginKwargs:
     bk_host_ids: List[int] = None
     ips: List[str] = None
     bk_cloud_id: int = None
+
+
+@dataclass()
+class FailoverDrillContext:
+    """
+    容灾演练相关上下文参数
+    """
+
+    schedule_count: int = 1

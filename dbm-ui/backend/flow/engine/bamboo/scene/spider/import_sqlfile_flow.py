@@ -14,7 +14,7 @@ import os
 from dataclasses import asdict
 from typing import Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
@@ -236,6 +236,7 @@ class ImportSQLFlow(object):
                     exec_ip=cluster["master_ctl_ip"],
                     cluster=cluster,
                     get_mysql_payload_func=MysqlActPayload.get_semantic_dump_schema_payload.__name__,
+                    job_timeout=LONG_JOB_TIMEOUT,
                 )
             ),
         )

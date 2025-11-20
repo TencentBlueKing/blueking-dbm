@@ -3,32 +3,13 @@ package monitor
 import (
 	"bytes"
 	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/common/reverseapi/define"
-	"dbm-services/common/reverseapi/pkg"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
 	"fmt"
 	"os/exec"
-	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
 )
-
-func (c *MySQLMonitorComp) GenConfig() error {
-	nginxAddrs, err := pkg.ReadNginxProxyAddrs(
-		filepath.Join(define.DefaultCommonConfigDir, define.DefaultNginxProxyAddrsFileName),
-	)
-	if err != nil {
-		logger.Error(err.Error())
-		return err
-	}
-
-	var ports []int
-	for _, ele := range c.Params.PortBkInstanceList {
-		ports = append(ports, ele.Port)
-	}
-	return GenConfig(int64(c.Params.BkCloudId), nginxAddrs, ports)
-}
 
 func GenConfig(bkCloudId int64, nginxAddrs []string, ports []int) error {
 	t, err := tools.NewToolSetWithPick(tools.ToolMySQLMonitor)

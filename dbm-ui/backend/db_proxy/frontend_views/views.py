@@ -61,6 +61,9 @@ class DBExtensionViewSet(SystemViewSet):
         db_extension_map: Dict[ExtensionType, List] = {e: [] for e in ExtensionType.get_values()}
         for db_extension in db_extensions:
             db_extension.update(db_extension["details"])
+            # 忽略不展示的组件
+            if not hasattr(self.serializer_class, db_extension["extension"]):
+                continue
             serializer = getattr(self.serializer_class, db_extension["extension"])(data=db_extension)
             serializer.is_valid()
             db_extension_map[db_extension["extension"]].append(serializer.data)

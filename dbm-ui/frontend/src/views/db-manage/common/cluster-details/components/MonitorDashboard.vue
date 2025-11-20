@@ -22,7 +22,10 @@
         <i
           v-bk-tooltips="screenIcon.text"
           class="action-btn"
-          :class="[screenIcon.icon]"
+          :class="{
+            [screenIcon.icon]: true,
+            'mr-20': isFullscreen,
+          }"
           @click.stop="toggle" />
       </div>
       <BkException
@@ -33,13 +36,13 @@
       <div
         v-else
         ref="iframeContainer"
-        style="display: flex; border: 1px solid #24292e1f">
+        style="position: relative; display: flex; border: 1px solid #24292e1f">
         <iframe :src="url" />
+        <div class="iframe-page-navigation-mask" />
       </div>
     </div>
   </BkLoading>
 </template>
-
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
@@ -68,6 +71,16 @@
     text: isFullscreen.value ? t('取消全屏') : t('全屏'),
   }));
 
+  watch(isFullscreen, (val) => {
+    if (val) {
+      offsettop.value = '46px';
+    } else {
+      setTimeout(() => {
+        offsettop.value = `${iframeContainerRef.value?.getBoundingClientRect().top || 0}px`;
+      });
+    }
+  });
+
   onMounted(() => {
     setTimeout(() => {
       offsettop.value = `${iframeContainerRef.value?.getBoundingClientRect().top || 0}px`;
@@ -95,6 +108,15 @@
       &:hover {
         color: @primary-color;
       }
+    }
+
+    .iframe-page-navigation-mask {
+      position: absolute;
+      top: 1px;
+      left: 1px;
+      width: calc(100% - 400px);
+      height: 50px;
+      background-color: transparent;
     }
 
     iframe {

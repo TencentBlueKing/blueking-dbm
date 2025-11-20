@@ -14,7 +14,7 @@ import (
 
 // TendisPlusMigrateSlotsTest slots 迁移测试
 type TendisPlusMigrateSlotsTest struct {
-	atomredis.TendisPlusMigrateSlotsParams
+	atomredis.ClusterMigrateSlotsParams
 	Err error `json:"-"`
 }
 
@@ -187,7 +187,7 @@ func (test *TendisPlusMigrateSlotsTest) RunTendisPlusMigrateSlotsTest() {
 	paramBytes, _ := json.Marshal(test)
 	// fmt.Printf("-------payload(raw)--------\n%s\n\n", string(paramBytes))
 	// encodeStr := base64.StdEncoding.EncodeToString(paramBytes)
-	instllCmd := fmt.Sprintf(consts.ActuatorTestCmd, atomredis.NewTendisPlusMigrateSlots().Name(), string(paramBytes))
+	instllCmd := fmt.Sprintf(consts.ActuatorTestCmd, atomredis.NewClusterMigrateSlots().Name(), string(paramBytes))
 	fmt.Println(instllCmd)
 	_, test.Err = util.RunBashCmd(instllCmd, "", nil, 1*time.Hour)
 	if test.Err != nil {

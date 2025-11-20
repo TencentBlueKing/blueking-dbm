@@ -14,6 +14,7 @@
 <template>
   <EditableColumn
     ref="editableTableColumn"
+    :disabled-method="() => !cluster.id"
     field="target_cluster_type"
     :label="t('新集群类型')"
     required
@@ -21,7 +22,6 @@
     <EditableSelect
       v-model="modelValue"
       :clearable="false"
-      :disabled="!cluster.id"
       :list="selectList" />
   </EditableColumn>
 </template>

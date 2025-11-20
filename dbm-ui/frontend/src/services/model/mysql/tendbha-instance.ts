@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { HostInfo, InstanceListSpecConfig, InstanceRelatedCluster } from '@services/types';
+import type { HostInfo, InstanceListSpecConfig, InstanceRelatedCluster, MachineRelatedInstance } from '@services/types';
 
 import { ClusterTypes } from '@common/const';
 
@@ -54,8 +54,11 @@ export default class TendbhaInstance {
   spce_config: InstanceListSpecConfig;
   status: string;
   version: string;
+  bk_biz_id: number;
+  related_pair_instance: MachineRelatedInstance;
 
   constructor(payload = {} as TendbhaInstance) {
+    this.bk_biz_id = payload.bk_biz_id || 0;
     this.bk_cloud_id = payload.bk_cloud_id || 0;
     this.bk_cloud_name = payload.bk_cloud_name || '';
     this.bk_host_id = payload.bk_host_id || 0;
@@ -79,6 +82,7 @@ export default class TendbhaInstance {
     this.id = payload.id || 0;
     this.instance_address = payload.instance_address || '';
     this.instance_name = payload.instance_name || '';
+    this.related_pair_instance = payload.related_pair_instance || {};
     this.ip = payload.ip || '';
     this.machine_type = payload.machine_type;
     this.master_domain = payload.master_domain || '';
