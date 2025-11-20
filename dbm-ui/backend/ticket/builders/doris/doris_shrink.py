@@ -24,10 +24,10 @@ logger = logging.getLogger("root")
 
 
 class DorisShrinkDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
-    # 目前只支持hot/cold/observer节点缩容，不支持follower节点缩容
+    # 目前只支持hot/warm/observer节点缩容，不支持follower节点缩容
     class NodesSerializer(serializers.Serializer):
         hot = serializers.ListField(help_text=_("hot信息列表"), child=serializers.DictField())
-        cold = serializers.ListField(help_text=_("cold信息列表"), child=serializers.DictField())
+        warm = serializers.ListField(help_text=_("warm信息列表"), child=serializers.DictField())
         observer = serializers.ListField(help_text=_("observer信息列表"), child=serializers.DictField())
 
     old_nodes = NodesSerializer(help_text=_("nodes节点列表"))
