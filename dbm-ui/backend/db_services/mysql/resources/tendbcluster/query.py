@@ -341,7 +341,8 @@ class ListRetrieveResource(MysqlListRetrieveResource, TenDBClusterCommonQueryRes
         **kwargs,
     ) -> ResourceList:
         filter_params_map = {
-            "spider_role": Q(proxyinstance__tendbclusterspiderext__spider_role=query_params.get("spider_role"))
+            "spider_role": Q(proxyinstance__tendbclusterspiderext__spider_role=query_params.get("spider_role")),
+            "instance_role": Q(proxyinstance__tendbclusterspiderext__spider_role=query_params.get("instance_role")),
         }
         return super()._list_machines(bk_biz_id, query_params, limit, offset, filter_params_map, **kwargs)
 
