@@ -14,9 +14,8 @@ export interface FlashBack extends DetailBase {
     databases_ignore: string[];
     direct_write_back: boolean;
     end_time: string;
-    message: string;
-    mysqlbinlog_rollback: string;
-    recored_file: string;
+    conv_rows_update_to_write: boolean;
+    filter_delete_rows_only: boolean;
     rows_filter: string;
     start_time: string;
     tables: string[];

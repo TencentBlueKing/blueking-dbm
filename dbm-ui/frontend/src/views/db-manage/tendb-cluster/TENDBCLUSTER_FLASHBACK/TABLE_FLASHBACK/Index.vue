@@ -18,18 +18,11 @@
           @batch-edit="handleClusterBatchEdit" />
         <DatetimeColumn
           v-model="item.start_time"
-          :disabled-date="(date) => handleStartTimeDisableCallback(date, getDateNow())"
+          :disabled-date="disableDate"
           field="start_time"
           :label="t('回档时间')"
           @batch-edit="handleBatchEdit"
           @change="() => handleDateChange(item)" />
-        <DatetimeColumn
-          v-model="item.end_time"
-          :disabled-date="(date) => handleEditTimeDisableCallback(date, item.start_time)"
-          field="end_time"
-          :label="t('截止时间')"
-          nowenable
-          @batch-edit="handleBatchEdit" />
         <DbNameColumn
           v-model="item.databases"
           :cluster-id="item.cluster?.id"
@@ -63,6 +56,35 @@
           :create-row-method="createTableRow" />
       </EditableRow>
     </EditableTable>
+    <BkFormItem
+      class="mb-8"
+      :label="t('日志追溯截止')"
+      required>
+      <BkRadioGroup v-model="formData.end_time_mode.mode">
+        <BkRadio label="ticket_execute_time">
+          {{ t('单据执行时间') }}
+        </BkRadio>
+        <BkRadio label="specified_time">
+          {{ t('指定时间') }}
+          <BkDatePicker
+            v-if="formData.end_time_mode.mode === 'specified_time'"
+            v-model="formData.end_time_mode.time"
+            class="ml-16"
+            :disabled-date="disableDate"
+            :placeholder="t('请选择指定时间')"
+            style="width: 240px"
+            type="datetime" />
+        </BkRadio>
+      </BkRadioGroup>
+    </BkFormItem>
+    <BkFormItem>
+      <BkCheckbox
+        v-model="formData.filter_delete_rows_only"
+        :false-label="false"
+        true-label>
+        {{ t('仅回滚 delete') }}
+      </BkCheckbox>
+    </BkFormItem>
     <TicketPayload v-model="formData.payload" />
     <template #action>
       <BkButton
@@ -111,7 +133,6 @@
     cluster: TendbclusterModel;
     databases: string[];
     databases_ignore: string[];
-    end_time: string;
     start_time: string;
     tables: string[];
     tables_ignore: string[];
@@ -130,11 +151,6 @@
       case: '2025-08-24T23:59:59',
       key: 'start_time',
       label: t('回档时间'),
-    },
-    {
-      case: 'now',
-      key: 'end_time',
-      label: t('截止时间'),
     },
     {
       case: 'db1',
@@ -168,7 +184,6 @@
     ),
     databases: (data.databases || []) as string[],
     databases_ignore: (data.databases_ignore || []) as string[],
-    end_time: data.end_time || '',
     start_time: data.start_time || '',
     tables: (data.tables || []) as string[],
     tables_ignore: (data.tables_ignore || []) as string[],
@@ -177,6 +192,11 @@
   const editableTableRef = useTemplateRef('editableTableRef');
 
   const defaultData = () => ({
+    end_time_mode: {
+      mode: 'ticket_execute_time',
+      time: '',
+    },
+    filter_delete_rows_only: false,
     flashback_type: 'TABLE_FLASHBACK',
     payload: createTickePayload(),
     tableData: [createTableRow()],
@@ -192,6 +212,16 @@
       const { details } = ticketDetail;
       formData.flashback_type = details.flashback_type;
       formData.payload.remark = ticketDetail.remark;
+      formData.filter_delete_rows_only = details.infos[0].filter_delete_rows_only;
+      formData.end_time_mode = details.infos[0].end_time
+        ? {
+            mode: 'specified_time',
+            time: dayjs(details.infos[0].end_time).format('YYYY-MM-DD HH:mm:ss'),
+          }
+        : {
+            mode: 'ticket_execute_time',
+            time: '',
+          };
       formData.tableData = details.infos.map((item) =>
         createTableRow({
           ...item,
@@ -217,13 +247,7 @@
     }[];
   }>(TicketTypes.TENDBCLUSTER_FLASHBACK);
 
-  const getDateNow = () => dayjs(Date.now()).format('YYYY-MM-DD HH:mm:ss');
-
-  const handleStartTimeDisableCallback = (date: Date | number, endDate: string) =>
-    dayjs(date).isAfter(dayjs(endDate), 'day');
-
-  const handleEditTimeDisableCallback = (date: Date | number, startDate: string) =>
-    dayjs(date).isBefore(dayjs(startDate));
+  const disableDate = (date?: number | Date) => dayjs(date).isAfter(dayjs(), 'day');
 
   const handleDateChange = (row: RowData) => {
     if (row.start_time) {
@@ -265,7 +289,6 @@
         } as TendbclusterModel,
         databases: item.databases ? item.databases.split(',') : [],
         databases_ignore: item.databases_ignore ? item.databases_ignore.split(',') : [],
-        end_time: item.end_time || '',
         start_time: item.start_time || '',
         tables: item.tables ? item.tables.split(',') : [],
         tables_ignore: item.tables_ignore ? item.tables_ignore.split(',') : [],
@@ -292,7 +315,9 @@
             cluster_id: item.cluster?.id as number,
             databases: item.databases,
             databases_ignore: [],
-            end_time: formatDateToUTC(item.end_time === 'now' ? '' : item.end_time),
+            end_time:
+              formData.end_time_mode.mode === 'ticket_execute_time' ? '' : formatDateToUTC(formData.end_time_mode.time),
+            filter_delete_rows_only: formData.filter_delete_rows_only,
             start_time: formatDateToUTC(item.start_time),
             tables: item.tables,
             tables_ignore: [],
