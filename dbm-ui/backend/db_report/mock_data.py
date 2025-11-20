@@ -313,3 +313,220 @@ REPORT_BACKUP_RECOVER_DATA = {
         {"name": "create_at", "display_name": "创建时间", "format": "text"},
     ],
 }
+# ES集群状态巡检报告
+ES_STATUS_CHECK_DATA = {
+    "count": 1,
+    "next": None,
+    "previous": None,
+    "results": [
+        {
+            "bk_biz_id": 1,
+            "app": "dba",
+            "domain": "aa.bb.cc",
+            "cluster_type": "es",
+            "dba": "aa:bb",
+            "created_at": "1111",
+            "msg": "aabb",
+            "state": "red",
+        }
+    ],
+    "title": [
+        {"name": "bk_biz_id", "display_name": "业务", "format": "text"},
+        {"name": "app", "display_name": "业务名", "format": "text"},
+        {"name": "domain", "display_name": "集群域名", "format": "text"},
+        {"name": "cluster_type", "display_name": "集群类型", "format": "text"},
+        {"name": "dba", "display_name": "业务所属dba", "format": "text"},
+        {"name": "create_at", "display_name": "巡检时间", "format": "text"},
+        {"name": "msg", "display_name": "检查结果", "format": "text"},
+        {"name": "state", "display_name": "检查状态", "format": "text"},
+    ],
+}
+
+# ES集群版本巡检报告
+ES_VERSION_CHECK_DATA = {
+    "count": 1,
+    "next": None,
+    "previous": None,
+    "results": [
+        {
+            "bk_biz_id": 1,
+            "app": "dba",
+            "domain": "aa.bb.cc",
+            "cluster_type": "es",
+            "dba": "aa:bb",
+            "created_at": "1111",
+            "msg": "aabb",
+            "state": "normal",
+            "major_version": "1.1.1",
+            "version_count": 1,
+        }
+    ],
+    "title": [
+        {"name": "bk_biz_id", "display_name": "业务", "format": "text"},
+        {"name": "app", "display_name": "业务名", "format": "text"},
+        {"name": "domain", "display_name": "集群域名", "format": "text"},
+        {"name": "cluster_type", "display_name": "集群类型", "format": "text"},
+        {"name": "dba", "display_name": "业务所属dba", "format": "text"},
+        {"name": "create_at", "display_name": "巡检时间", "format": "text"},
+        {"name": "msg", "display_name": "检查结果", "format": "text"},
+        {"name": "state", "display_name": "检查状态", "format": "text"},
+        {"name": "major_version", "display_name": "主版本", "format": "text"},
+        {"name": "version_count", "display_name": "实例版本数量", "format": "text"},
+    ],
+}
+
+# ES集群master巡检报告
+ES_MASTER_CHECK_DATA = {
+    "count": 1,
+    "next": None,
+    "previous": None,
+    "results": [
+        {
+            "bk_biz_id": 1,
+            "app": "dba",
+            "domain": "aa.bb.cc",
+            "cluster_type": "es",
+            "dba": "aa:bb",
+            "created_at": "1111",
+            "msg": "aabb",
+            "state": "normal",
+            "master_count": "3",
+            "idc_affinity": 1,
+            "rack_affinity": 1,
+        }
+    ],
+    "title": [
+        {"name": "bk_biz_id", "display_name": "业务", "format": "text"},
+        {"name": "app", "display_name": "业务名", "format": "text"},
+        {"name": "domain", "display_name": "集群域名", "format": "text"},
+        {"name": "cluster_type", "display_name": "集群类型", "format": "text"},
+        {"name": "dba", "display_name": "业务所属dba", "format": "text"},
+        {"name": "create_at", "display_name": "巡检时间", "format": "text"},
+        {"name": "msg", "display_name": "检查结果", "format": "text"},
+        {"name": "state", "display_name": "检查状态", "format": "text"},
+        {"name": "master_count", "display_name": "master节点数量", "format": "text"},
+        {"name": "idc_affinity", "display_name": "机房亲合度", "format": "text"},
+        {"name": "rack_affinity", "display_name": "机架亲合度", "format": "text"},
+    ],
+}
+
+# ES集群数据节点巡检报告
+ES_DATANODE_CHECK_DATA = {
+    "count": 1,
+    "next": None,
+    "previous": None,
+    "results": [
+        {
+            "bk_biz_id": 1,
+            "app": "dba",
+            "domain": "aa.bb.cc",
+            "cluster_type": "es",
+            "dba": "aa:bb",
+            "created_at": "1111",
+            "msg": "aabb",
+            "state": "normal",
+            "idc_affinity_hot": 1,
+            "rack_affinity_hot": 1,
+            "idc_affinity_cold": 1,
+            "rack_affinity_cold": 1,
+        }
+    ],
+    "title": [
+        {"name": "bk_biz_id", "display_name": "业务", "format": "text"},
+        {"name": "app", "display_name": "业务名", "format": "text"},
+        {"name": "domain", "display_name": "集群域名", "format": "text"},
+        {"name": "cluster_type", "display_name": "集群类型", "format": "text"},
+        {"name": "dba", "display_name": "业务所属dba", "format": "text"},
+        {"name": "create_at", "display_name": "巡检时间", "format": "text"},
+        {"name": "msg", "display_name": "检查结果", "format": "text"},
+        {"name": "state", "display_name": "检查状态", "format": "text"},
+        {"name": "idc_affinity_hot", "display_name": "热节点机房亲合度", "format": "text"},
+        {"name": "rack_affinity_hot", "display_name": "热节点机架亲合度", "format": "text"},
+        {"name": "idc_affinity_cold", "display_name": "冷节点机房亲合度", "format": "text"},
+        {"name": "rack_affinity_cold", "display_name": "冷节点机架亲合度", "format": "text"},
+    ],
+}
+
+# ES集群ADMIN账号巡检报告
+ES_ACCOUNT_CHECK_DATA = {
+    "count": 1,
+    "next": None,
+    "previous": None,
+    "results": [
+        {
+            "bk_biz_id": 1,
+            "app": "dba",
+            "domain": "aa.bb.cc",
+            "cluster_type": "es",
+            "dba": "aa:bb",
+            "created_at": "1111",
+            "msg": "aabb",
+            "state": "normal",
+            "have_admin": True,
+        }
+    ],
+    "title": [
+        {"name": "bk_biz_id", "display_name": "业务", "format": "text"},
+        {"name": "app", "display_name": "业务名", "format": "text"},
+        {"name": "domain", "display_name": "集群域名", "format": "text"},
+        {"name": "cluster_type", "display_name": "集群类型", "format": "text"},
+        {"name": "dba", "display_name": "业务所属dba", "format": "text"},
+        {"name": "create_at", "display_name": "巡检时间", "format": "text"},
+        {"name": "msg", "display_name": "检查结果", "format": "text"},
+        {"name": "state", "display_name": "检查状态", "format": "text"},
+        {"name": "have_admin", "display_name": "拥有ADMIN账号", "format": "text"},
+    ],
+}
+
+# ES集群域名巡检报告
+ES_DOMAIN_CHECK_DATA = {
+    "count": 3,
+    "next": None,
+    "previous": None,
+    "results": [
+        {
+            "bk_biz_id": 1,
+            "app": "dba",
+            "domain": "aa.bb.cc",
+            "cluster_type": "es",
+            "dba": "aa:bb",
+            "created_at": "1111",
+            "msg": "aabb",
+            "state": "normal",
+            "type": "DNS",
+        },
+        {
+            "bk_biz_id": 1,
+            "app": "dba",
+            "domain": "aa.bb.cc",
+            "cluster_type": "es",
+            "dba": "aa:bb",
+            "created_at": "1111",
+            "msg": "aabb",
+            "state": "normal",
+            "type": "CLB",
+        },
+        {
+            "bk_biz_id": 1,
+            "app": "dba",
+            "domain": "aa.bb.cc",
+            "cluster_type": "es",
+            "dba": "aa:bb",
+            "created_at": "1111",
+            "msg": "aabb",
+            "state": "normal",
+            "type": "POLARIS",
+        },
+    ],
+    "title": [
+        {"name": "bk_biz_id", "display_name": "业务", "format": "text"},
+        {"name": "app", "display_name": "业务名", "format": "text"},
+        {"name": "domain", "display_name": "集群域名", "format": "text"},
+        {"name": "cluster_type", "display_name": "集群类型", "format": "text"},
+        {"name": "dba", "display_name": "业务所属dba", "format": "text"},
+        {"name": "create_at", "display_name": "巡检时间", "format": "text"},
+        {"name": "msg", "display_name": "检查结果", "format": "text"},
+        {"name": "state", "display_name": "检查状态", "format": "text"},
+        {"name": "type", "display_name": "类型", "format": "text"},
+    ],
+}

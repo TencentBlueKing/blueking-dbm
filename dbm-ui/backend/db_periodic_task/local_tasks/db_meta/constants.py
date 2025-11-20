@@ -332,6 +332,16 @@ CLUSTER_TYPE_LOAD_RULES = {
     ClusterType.TwemproxyTendisSSDInstance: [MachineType.TENDISSSD, MachineType.TWEMPROXY],
 }
 
+# ES巡检相关表达式
+ES_DAILY_CHECK_TEMPLATE = {
+    "cluster_status": {
+        "range": 5,
+        "template": """
+        max by (cluster_domain) (bkmonitor:exporter_dbm_elasticsearch_exporter:elasticsearch_cluster_health_status{%s})
+        """,
+    }
+}
+
 
 class RedisLoadStatus(StrStructuredEnum):
     LOW = EnumField("low", _("低负载"))
