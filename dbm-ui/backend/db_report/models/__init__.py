@@ -11,6 +11,12 @@ specific language governing permissions and limitations under the License.
 from .affinity_check_report import AffinityCheckReport
 from .checksum_check_report import ChecksumCheckReport, ChecksumInstance
 from .dbmon_heartbeat_report import DbmonHeartbeatReport
+from .es_account_report import EsAccountReport
+from .es_datanode_report import EsDatanodeReport
+from .es_domain_report import EsDomainReport
+from .es_master_report import EsMasterReport
+from .es_status_report import EsStatusReport
+from .es_version_report import EsVersionReport
 from .failover_drill_report import FailoverDrillReport
 from .meta_check_report import MetaCheckReport
 from .monogdb_check_report import MongodbBackupCheckReport

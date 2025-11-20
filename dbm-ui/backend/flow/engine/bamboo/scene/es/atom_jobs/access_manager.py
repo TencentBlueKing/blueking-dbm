@@ -119,14 +119,14 @@ def get_access_ips_from_dns(bk_cloud_id: int, bk_biz_id: int, domain: str) -> li
     return dns_ips
 
 
-def _get_access_ips_from_clb(clb_ip: str) -> list:
+def get_access_ips_from_clb(clb_ip: str) -> list:
     """获取clb后端的rs ip"""
     clb_manager = get_clb_by_ip(clb_ip)
     rs_instances = clb_manager.get_clb_rs()
     return [instance.split(":")[0] for instance in rs_instances]
 
 
-def _get_access_ips_from_polaris(service_name: str) -> list:
+def get_access_ips_from_polaris(service_name: str) -> list:
     """获取北极星后端的rs ip"""
     polaris_manager = GetPolarisManageByName(service_name)
     rs_instances = polaris_manager.get_polaris_rs()
@@ -290,7 +290,7 @@ def gen_clb_atom_job(root_id, ticket_data, param: Dict) -> Optional[SubProcess]:
             kwargs={**asdict(act_kwargs), **asdict(clb_kwargs)},
         )
     elif param["op_type"] == DnsOpType.ADD_AND_DELETE:
-        old_ips = _get_access_ips_from_clb(param["entry"])
+        old_ips = get_access_ips_from_clb(param["entry"])
         add_ips, del_ips = _get_add_and_del_ips(old_ips, param["new_ips"])
         if len(add_ips + del_ips) == 0:
             return None
@@ -353,7 +353,7 @@ def gen_polaris_atom_job(root_id, ticket_data, param: Dict) -> Optional[SubProce
             kwargs={**asdict(act_kwargs), **asdict(polaris_kwargs)},
         )
     elif param["op_type"] == DnsOpType.ADD_AND_DELETE:
-        old_ips = _get_access_ips_from_polaris(param["entry"])
+        old_ips = get_access_ips_from_polaris(param["entry"])
         add_ips, del_ips = _get_add_and_del_ips(old_ips, param["new_ips"])
         if len(add_ips + del_ips) == 0:
             return None
