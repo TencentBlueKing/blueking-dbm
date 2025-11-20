@@ -2,11 +2,11 @@ package atommongodb
 
 import (
 	"dbm-services/common/go-pubpkg/bkrepo"
+	"dbm-services/common/go-pubpkg/mycmd"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/consts"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/jobruntime"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/util"
 	"dbm-services/mongodb/db-tools/dbmon/config"
-	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mycmd"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mymongo"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/toolkit/logical"
 	"encoding/json"
@@ -437,10 +437,10 @@ func (s *mongoDataExport) compressOutput(outputPath string) error {
 	tarPath := path.Join(path.Dir(outputPath), tarFile)
 
 	tarCmd := mycmd.New("tar", "cvf", tarPath, "-C", path.Dir(outputPath), targetFolder)
-	exitCode, _, _, err := tarCmd.Run(time.Hour * 2)
-	s.runtime.Logger.Info("exec cmd: %q, exitCode:%d, err:%v", tarCmd.GetCmdLine2(true), exitCode, err)
+	execResult, err := tarCmd.Run(time.Hour * 2)
+	s.runtime.Logger.Info("exec cmd: %q, exitCode:%d, err:%v", tarCmd.GetCmdLine2(true), execResult.ExitCode, err)
 
-	if exitCode != 0 {
+	if execResult.ExitCode != 0 {
 		return errors.Wrap(err, "tar compression failed")
 	}
 
