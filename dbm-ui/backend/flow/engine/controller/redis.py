@@ -480,4 +480,3 @@ class RedisController(BaseController):
         """
         flow = RedisKeystatFlow(root_id=self.root_id, data=self.ticket_data)
         flow.run_flow()
-
