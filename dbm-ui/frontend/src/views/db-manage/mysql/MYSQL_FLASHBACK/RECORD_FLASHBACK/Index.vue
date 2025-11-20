@@ -19,18 +19,11 @@
           @batch-edit="handleClusterBatchEdit" />
         <DatetimeColumn
           v-model="item.start_time"
-          :disabled-date="(date) => handleStartTimeDisableCallback(date, getDateNow())"
+          :disabled-date="disableDate"
           field="start_time"
           :label="t('回档时间')"
           @batch-edit="handleBatchEdit"
           @change="() => handleDateChange(item)" />
-        <DatetimeColumn
-          v-model="item.end_time"
-          :disabled-date="(date) => handleEditTimeDisableCallback(date, item.start_time)"
-          field="end_time"
-          :label="t('截止时间')"
-          nowenable
-          @batch-edit="handleBatchEdit" />
         <DbNameColumn
           v-model="item.databases"
           :allow-asterisk="false"
@@ -56,12 +49,41 @@
           :create-row-method="createTableRow" />
       </EditableRow>
     </EditableTable>
-    <BkFormItem class="mt-20">
+    <BkFormItem
+      class="mb-8"
+      :label="t('日志追溯截止')"
+      required>
+      <BkRadioGroup v-model="formData.end_time_mode.mode">
+        <BkRadio label="ticket_execute_time">
+          {{ t('单据执行时间') }}
+        </BkRadio>
+        <BkRadio label="specified_time">
+          {{ t('指定时间') }}
+          <BkDatePicker
+            v-if="formData.end_time_mode.mode === 'specified_time'"
+            v-model="formData.end_time_mode.time"
+            class="ml-16"
+            :disabled-date="disableDate"
+            :placeholder="t('请选择指定时间')"
+            style="width: 240px"
+            type="datetime" />
+        </BkRadio>
+      </BkRadioGroup>
+    </BkFormItem>
+    <BkFormItem class="mb-8">
       <BkCheckbox
         v-model="formData.direct_write_back"
         :false-label="false"
         true-label>
         {{ t('覆盖原始数据') }}
+      </BkCheckbox>
+    </BkFormItem>
+    <BkFormItem>
+      <BkCheckbox
+        v-model="formData.conv_rows_update_to_write"
+        :false-label="false"
+        true-label>
+        {{ t('update 转 replace') }}
       </BkCheckbox>
     </BkFormItem>
     <TicketPayload v-model="formData.payload" />
@@ -113,8 +135,6 @@
   interface RowData {
     cluster: TendbhaModel;
     databases: string[];
-    direct_write_back: boolean;
-    end_time: string;
     rows_filter: string;
     start_time: string;
     tables: string[];
@@ -133,11 +153,6 @@
       case: '2025-08-24T23:59:59',
       key: 'start_time',
       label: t('回档时间'),
-    },
-    {
-      case: 'now',
-      key: 'end_time',
-      label: t('截止时间'),
     },
     {
       case: 'db1',
@@ -165,8 +180,6 @@
       data.cluster,
     ),
     databases: (data.databases || []) as string[],
-    direct_write_back: data.direct_write_back || false,
-    end_time: data.end_time || '',
     rows_filter: data.rows_filter || '',
     start_time: data.start_time || '',
     tables: (data.tables || []) as string[],
@@ -175,7 +188,12 @@
   const editableTableRef = useTemplateRef('editableTableRef');
 
   const defaultData = () => ({
+    conv_rows_update_to_write: false,
     direct_write_back: true,
+    end_time_mode: {
+      mode: 'ticket_execute_time',
+      time: '',
+    },
     flashback_type: 'RECORD_FLASHBACK',
     payload: createTickePayload(),
     tableData: [createTableRow()],
@@ -192,6 +210,16 @@
       formData.flashback_type = details.flashback_type;
       formData.payload.remark = ticketDetail.remark;
       formData.direct_write_back = details.infos[0].direct_write_back;
+      formData.conv_rows_update_to_write = details.infos[0].conv_rows_update_to_write;
+      formData.end_time_mode = details.infos[0].end_time
+        ? {
+            mode: 'specified_time',
+            time: dayjs(details.infos[0].end_time).format('YYYY-MM-DD HH:mm:ss'),
+          }
+        : {
+            mode: 'ticket_execute_time',
+            time: '',
+          };
       formData.tableData = details.infos.map((item) =>
         createTableRow({
           ...item,
@@ -209,6 +237,7 @@
     force: boolean;
     infos: {
       cluster_id: number;
+      conv_rows_update_to_write: boolean;
       databases: string[];
       databases_ignore: string[];
       direct_write_back: boolean;
@@ -220,13 +249,7 @@
     }[];
   }>(TicketTypes.MYSQL_FLASHBACK);
 
-  const getDateNow = () => dayjs(Date.now()).format('YYYY-MM-DD HH:mm:ss');
-
-  const handleStartTimeDisableCallback = (date: Date | number, endDate: string) =>
-    dayjs(date).isAfter(dayjs(endDate), 'day');
-
-  const handleEditTimeDisableCallback = (date: Date | number, startDate: string) =>
-    dayjs(date).isBefore(dayjs(startDate));
+  const disableDate = (date?: number | Date) => dayjs(date).isAfter(dayjs(), 'day');
 
   const handleDateChange = (row: RowData) => {
     if (row.start_time) {
@@ -267,7 +290,6 @@
           master_domain: item.master_domain,
         } as TendbhaModel,
         databases: item.databases ? item.databases.split(',') : [],
-        end_time: item.end_time || '',
         rows_filter: item.rows_filter?.replaceAll('\\n', '\n') || '',
         start_time: item.start_time || '',
       }),
@@ -288,10 +310,12 @@
           force: true,
           infos: formData.tableData.map((item) => ({
             cluster_id: item.cluster?.id as number,
+            conv_rows_update_to_write: formData.conv_rows_update_to_write,
             databases: item.databases,
             databases_ignore: [],
             direct_write_back: formData.direct_write_back,
-            end_time: formatDateToUTC(item.end_time === 'now' ? '' : item.end_time),
+            end_time:
+              formData.end_time_mode.mode === 'ticket_execute_time' ? '' : formatDateToUTC(formData.end_time_mode.time),
             rows_filter: item.rows_filter,
             start_time: formatDateToUTC(item.start_time),
             tables: item.tables,
