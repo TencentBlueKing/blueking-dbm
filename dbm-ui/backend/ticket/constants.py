@@ -387,8 +387,10 @@ class TicketType(StrStructuredEnum):
     TENDBCLUSTER_NODE_REBALANCE = TicketEnumField("TENDBCLUSTER_NODE_REBALANCE", _("TenDB Cluster 集群容量变更"),
                                                   _("集群维护"))  # noqa
     TENDBCLUSTER_FULL_BACKUP = TicketEnumField("TENDBCLUSTER_FULL_BACKUP", _("TenDB Cluster 全库备份"), _("备份"))
-    TENDBCLUSTER_ROLLBACK_CLUSTER = TicketEnumField("TENDBCLUSTER_ROLLBACK_CLUSTER", _("TenDB Cluster 定点构造"),
-                                                    _("回档"))  # noqa
+    TENDBCLUSTER_ROLLBACK_CLUSTER = TicketEnumField("TENDBCLUSTER_ROLLBACK_CLUSTER", _("TenDB Cluster 定点构造"), _("回档"))  # noqa
+    TENDBCLUSTER_ROLLBACK = TicketEnumField("TENDBCLUSTER_ROLLBACK", _("TENDBCLUSTER 构造回档"), _("回档"))
+    TENDBCLUSTER_FIXPOINT_NEW = TicketEnumField("TENDBCLUSTER_FIXPOINT_NEW", _("TENDBCLUSTER 数据构造到新集群"), _("构造"))
+    TENDBCLUSTER_FIXPOINT_EXIST = TicketEnumField("TENDBCLUSTER_FIXPOINT_EXIST", _("TENDBCLUSTER 数据构造到已有集群"), _("构造"))
     TENDBCLUSTER_FLASHBACK = TicketEnumField("TENDBCLUSTER_FLASHBACK", _("TenDB Cluster 闪回"), _("回档"))
     TENDBCLUSTER_CLIENT_CLONE_RULES = TicketEnumField("TENDBCLUSTER_CLIENT_CLONE_RULES",
                                                       _("TenDB Cluster 客户端权限克隆"), _("权限管理"))  # noqa
