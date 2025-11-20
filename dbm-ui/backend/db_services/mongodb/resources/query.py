@@ -278,7 +278,7 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource, MongoDBExportQuery
             "shard_num": shard_num,  # 集群分片数
             "shard_node_count": shard_node_count,  # 每分片节点数
             "single_host_shard_num": single_host_shard_num,  # 获取单机分片数
-            "temporary_info": cls.get_temporary_cluster_info(cluster, TicketType.MONGODB_PITR_RESTORE),
+            "temporary_info": cls.get_temporary_cluster_info(cluster, [TicketType.MONGODB_PITR_RESTORE]),
             "disaster_tolerance_level": cluster.disaster_tolerance_level,
         }
         cluster_info = super()._to_cluster_representation(

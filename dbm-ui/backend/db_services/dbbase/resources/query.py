@@ -345,12 +345,14 @@ class CommonQueryResourceMixin(abc.ABC):
         return ExcelHandler.response(wb, f"{biz_name}({bk_biz_id}){db_type}_instances.xlsx")
 
     @classmethod
-    def get_temporary_cluster_info(cls, cluster, ticket_type):
+    def get_temporary_cluster_info(cls, cluster, ticket_types):
         """如果当前集群是临时集群，则补充临时集群相关信息。"""
         tags = [tag.key for tag in cluster.tags.all() if tag.system]
         if SystemTagEnum.TEMPORARY.value not in tags:
             return {}
-        record = ClusterOperateRecord.objects.filter(cluster_id=cluster.id, ticket__ticket_type=ticket_type).first()
+        record = ClusterOperateRecord.objects.filter(
+            cluster_id=cluster.id, ticket__ticket_type__in=ticket_types
+        ).first()
         # 临时集群名称的构造规则是: {cluster_name}_{20201212}_{ticket_id}
         source_cluster_name = cluster.alias.rsplit("-", 2)[0]
         # 获取回档源集群信息，如果源集群已被卸载，则忽略
