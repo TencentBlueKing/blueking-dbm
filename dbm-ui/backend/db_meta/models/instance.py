@@ -59,6 +59,7 @@ class InstanceMixin(object):
             "spec_config": self.machine.spec_config,
             "bk_sub_zone": self.machine.bk_sub_zone,
             "bk_biz_id": self.bk_biz_id,
+            "bk_rack_id": self.machine.bk_rack_id,
         }
 
     @property
