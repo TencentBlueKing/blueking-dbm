@@ -20,7 +20,7 @@ from backend.db_meta.api.cluster.tendbcluster.handler import TenDBClusterCluster
 from backend.db_meta.enums import InstanceRole, TenDBClusterSpiderRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.exceptions import DBMetaException
-from backend.db_meta.models import AppCache
+from backend.db_meta.models import AppCache, Machine
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import ProxyInstance, StorageInstance
 from backend.db_services.dbbase.resources.query import (
@@ -337,7 +337,23 @@ class ListRetrieveResource(MysqlListRetrieveResource, TenDBClusterCommonQueryRes
         filter_params_map = {
             "spider_role": Q(proxyinstance__tendbclusterspiderext__spider_role=query_params.get("spider_role"))
         }
-        return super()._list_machines(bk_biz_id, query_params, limit, offset, filter_params_map, **kwargs)
+        resource_list = super()._list_machines(bk_biz_id, query_params, limit, offset, filter_params_map, **kwargs)
+        proxy_ips = [
+            machine.get("ip")
+            for machine in resource_list.data
+            if machine.get("instance_role") == "proxy" and machine.get("ip")
+        ]
+        if proxy_ips:
+            machines = Machine.objects.filter(ip__in=proxy_ips).prefetch_related(
+                "proxyinstance_set__tendbclusterspiderext"
+            )
+            machine_map = {machine.ip: machine for machine in machines}
+            for machine in resource_list.data:
+                if machine.get("instance_role") == "proxy":
+                    ip = machine.get("ip")
+                    machine_obj = machine_map.get(ip)
+                    machine["instance_role"] = machine_obj.proxyinstance_set.all()[0].tendbclusterspiderext.spider_role
+        return resource_list
 
     @classmethod
     def get_topo_graph(cls, bk_biz_id: int, cluster_id: int) -> dict:
