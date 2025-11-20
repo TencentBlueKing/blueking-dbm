@@ -68,7 +68,7 @@ class ClusterViewSet(BaseClusterViewSet):
         responses={status.HTTP_200_OK: GetMachineInstancePairResponseSerializer()},
     )
     @action(methods=["POST"], detail=False, serializer_class=GetMachineInstancePairSerializer)
-    def get_remote_machine_instance_pair(self, request, bk_biz_id):
+    def get_remote_machine_instance_pair(self, request: object, bk_biz_id: object) -> Response:
         validated_data = self.params_validate(self.get_serializer_class())
         return Response(ClusterServiceHandler(bk_biz_id).query_machine_instance_pair(validated_data))
 

@@ -15,13 +15,13 @@ from backend.db_services.taskflow import task as TaskFlow
 from backend.ticket.tasks.ticket_tasks import TicketTask
 
 
-@register_periodic_task(run_every=5)
+@register_periodic_task(run_every=30)
 def auto_retry_exclusive_inner_flow():
     TicketTask.retry_exclusive_inner_flow()
 
 
 # 数据修复跳过周一，因为周一取得checksum是上周五记录，会造成修复失效
-@register_periodic_task(run_every=crontab(minute=0, hour=6, day_of_week="0,2,3,4,5,6"))
+@register_periodic_task(run_every=crontab(minute="0", hour="6", day_of_week="0,2,3,4,5,6"))
 def auto_create_data_repair_ticket():
     TicketTask.auto_create_data_repair_ticket()
 
@@ -31,6 +31,6 @@ def clean_bamboo_engine_expired_data():
     TaskFlow.clean_bamboo_engine_expired_data()
 
 
-@register_periodic_task(run_every=crontab(hour="*/1", minute=0))
+@register_periodic_task(run_every=crontab(hour="*/1", minute="0"))
 def auto_clear_expire_flow():
     TicketTask.auto_clear_expire_flow()

@@ -12,18 +12,19 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="cluster_id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
       :min-width="200"
       :title="t('目标集群')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="current_version"
       :min-width="300"
       :title="t('当前版本')">
@@ -36,8 +37,8 @@
             moduleName: row.current_version.db_module_name,
           }" />
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="target_version"
       :min-width="300"
       :title="t('目标版本')">
@@ -50,14 +51,11 @@
             moduleName: row.target_version.db_module_name,
           }" />
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('检查业务连接')">
       {{ ticketDetails.details.is_check_process ? t('是') : t('否') }}
-    </InfoItem>
-    <InfoItem :label="t('检查主从数据校验结果')">
-      {{ ticketDetails.details.is_verify_checksum ? t('是') : t('否') }}
     </InfoItem>
   </InfoList>
 </template>

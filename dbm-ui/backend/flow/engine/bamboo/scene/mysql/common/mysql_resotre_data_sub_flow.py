@@ -20,9 +20,10 @@ from backend.configuration.constants import MYSQL_DATA_RESTORE_TIME, MYSQL_USUAL
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster
 from backend.db_report.mysql_backup.handers import MySQLBackupHandler
-from backend.flow.consts import DBA_SYSTEM_USER, MySQLBackupTypeEnum, MysqlChangeMasterType, RollbackType
+from backend.flow.consts import DBA_ROOT_USER, MySQLBackupTypeEnum, MysqlChangeMasterType, RollbackType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.engine.bamboo.scene.mysql.common.get_local_backup import check_binlog_missing
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_restore_download_sub_flow import (
     mysql_restore_download_sub_flow,
 )
@@ -76,6 +77,7 @@ def mysql_restore_data_sub_flow(
                    - shard_id: 分片ID（TenDB Cluster专用）
                    - restore_privilege: 是否恢复权限
                    - privilege_ips: 权限来源IP列表
+                   - backup_method 备份方法,这里专门给TendbSingle使用
     @param cluster_model: 集群元数据模型对象
     @param filter_ips: 过滤的IP列表，用于指定备份查询范围
     @return: 返回构建好的子流程对象，包含完整的恢复流程
@@ -99,7 +101,9 @@ def mysql_restore_data_sub_flow(
 
     # 如果是TenDB Single类型，设置为增量备份
     if cluster_model.cluster_type == ClusterType.TenDBSingle:
-        backup_handler.is_full_backup = False
+        if cluster.get("backup_method", None) is not None:
+            backup_handler.is_full_backup = False
+            backup_handler.backup_method = cluster["backup_method"]
 
     # 阶段1: 查询备份信息
     # 如果是TenDB Cluster类型，需要设置分片ID
@@ -205,7 +209,7 @@ def mysql_restore_data_sub_flow(
             kwargs=asdict(exec_act_kwargs),
         )
         sub_pipeline.add_act(
-            act_name=_("检查主从复制链路"),
+            act_name=_("检查主从复制链路 {}".format(exec_act_kwargs.exec_ip)),
             act_component_code=MySQLCheckSlaveDelayComponent.code,
             kwargs=asdict(
                 CheckSlaveStatusKwargs(
@@ -423,7 +427,7 @@ def mysql_restore_master_slave_sub_flow(
     )
 
     sub_pipeline.add_act(
-        act_name=_("检查主从复制链路"),
+        act_name=_("检查主从复制链路 {}".format(exec_act_kwargs.exec_ip)),
         act_component_code=MySQLCheckSlaveDelayComponent.code,
         kwargs=asdict(
             CheckSlaveStatusKwargs(
@@ -591,6 +595,7 @@ def tendbha_rollback_data_sub_flow(
                 )
             )
     logger.info(_("回档的备份信息如下:  {}".format(backup_info)))
+    backup_id = backup_info["backup_id"]
     cluster_info["backupinfo"] = copy.deepcopy(backup_info)
     cluster_info["backup_time"] = backup_info["backup_time"]
     backup_time = str2datetime(backup_info["backup_time"])
@@ -606,12 +611,14 @@ def tendbha_rollback_data_sub_flow(
         task_ids = backup_info["task_ids"]
 
     # 阶段2 下载备份文件
+    backup_id_for_restore = uuid.uuid1().__str__()
     cluster_info["uid"] = uid
     cluster_info["ip"] = cluster_info["rollback_ip"]
     cluster_info["port"] = cluster_info["rollback_port"]
     cluster_info["backup_type"] = MySQLBackupTypeEnum.LOGICAL.value
     cluster_info["backup_gsd"] = ["grant"]
     cluster_info["role"] = InstanceInnerRole.MASTER.value
+    cluster_info["backup_id_for_restore"] = backup_id_for_restore
 
     sub_pipeline = SubBuilder(root_id=root_id, data=copy.deepcopy(cluster_info))
 
@@ -621,14 +628,14 @@ def tendbha_rollback_data_sub_flow(
     ):
         # tendbHa 使用物理备份恢复在开始恢复之前先备份目标实例的权限
         sub_pipeline.add_act(
-            act_name=_("备份权限 {}".format(cluster_info["rollback_ip"])),
+            act_name=_("备份权限 {} {}".format(cluster_info["rollback_ip"], backup_id_for_restore)),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(
                 ExecActuatorKwargs(
                     bk_cloud_id=cluster_model.bk_cloud_id,
-                    run_as_system_user=DBA_SYSTEM_USER,
+                    run_as_system_user=DBA_ROOT_USER,
                     exec_ip=cluster_info["rollback_ip"],
-                    get_mysql_payload_func=MysqlActPayload.mysql_backup_demand_payload.__name__,
+                    get_mysql_payload_func=MysqlActPayload.mysql_backup_for_restore_payload.__name__,
                 )
             ),
             write_payload_var="backup_index_file",
@@ -658,7 +665,7 @@ def tendbha_rollback_data_sub_flow(
         get_mysql_payload_func=MysqlActPayload.get_rollback_data_restore_payload.__name__,
     )
     sub_pipeline.add_act(
-        act_name=_("恢复数据 {}").format(exec_act_kwargs.exec_ip),
+        act_name=_("恢复数据 {} {}").format(exec_act_kwargs.exec_ip, backup_id),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(exec_act_kwargs),
         write_payload_var="change_master_info",
@@ -684,7 +691,7 @@ def tendbha_rollback_data_sub_flow(
             exec_ip=cluster_info["rollback_ip"],
         )
         sub_pipeline.add_act(
-            act_name=_("权限恢复 {} ".format(cluster_info["rollback_ip"])),
+            act_name=_("恢复本地备份的权限 {} {}".format(cluster_info["rollback_ip"], backup_id_for_restore)),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(exec_act_kwargs_priv),
         )
@@ -700,7 +707,9 @@ def tendbha_rollback_data_sub_flow(
                 message="{} binlog sql: {}".format(binlog_result["query_binlog_error"], backup_handler.query)
             )
         cluster_info.update(binlog_result)
-
+        missing_binlog_files, check_binlog = check_binlog_missing(binlog_result["binlog_files_list"])
+        if not check_binlog:
+            raise TendbGetBinlogFailedException(message="binlog missing: {}".format(missing_binlog_files))
         sub_pipeline.add_sub_pipeline(
             sub_flow=mysql_restore_download_sub_flow(
                 root_id=root_id,
@@ -765,7 +774,7 @@ def change_master_by_master_status(root_id: str, uid: str, cluster_info: dict):
         kwargs=asdict(exec_act_kwargs),
     )
     change_master_pipeline.add_act(
-        act_name=_("检查主从复制链路"),
+        act_name=_("检查主从复制链路 {}".format(exec_act_kwargs.exec_ip)),
         act_component_code=MySQLCheckSlaveDelayComponent.code,
         kwargs=asdict(
             CheckSlaveStatusKwargs(
@@ -821,10 +830,10 @@ def mysql_backup_restore_sub_flow(
     @return: 返回构建好的子流程对象，包含完整的恢复流程
     """
     # 子流程ticket_data信息
-    backup_id = uuid.uuid1().hex
+    backup_id_for_restore = uuid.uuid1().__str__()
     binlog_sync = cluster.get("binlog_sync", False)
     cluster["uid"] = uid
-    cluster["backup_id"] = backup_id
+    cluster["backup_id_for_restore"] = backup_id_for_restore
     cluster["ip"] = cluster["master_ip"]
     cluster["port"] = cluster["master_port"]
     cluster["backup_type"] = MySQLBackupTypeEnum.LOGICAL.value
@@ -849,9 +858,9 @@ def mysql_backup_restore_sub_flow(
         kwargs=asdict(
             ExecActuatorKwargs(
                 bk_cloud_id=cluster_model.bk_cloud_id,
-                run_as_system_user=DBA_SYSTEM_USER,
+                run_as_system_user=DBA_ROOT_USER,
                 exec_ip=cluster["ip"],
-                get_mysql_payload_func=MysqlActPayload.mysql_backup_demand_payload.__name__,
+                get_mysql_payload_func=MysqlActPayload.mysql_backup_for_restore_payload.__name__,
             )
         ),
         write_payload_var="backup_index_file",
@@ -867,7 +876,9 @@ def mysql_backup_restore_sub_flow(
                 source_ip_list=[cluster["master_ip"]],
                 exec_ip=cluster["new_slave_ip"],
                 cluster_id=cluster_model.id,
-                backup_id=backup_id,
+                backup_id=backup_id_for_restore,
+                # file_list 传输空,在flow node里面查询备份并写入。
+                file_list=[],
             )
         ),
     )
@@ -893,7 +904,9 @@ def mysql_backup_restore_sub_flow(
     # 添加数据恢复任务
     sub_pipeline.add_act(
         act_name=_(
-            "恢复新从节点数据 {}:{} 备份backup_id: {}".format(exec_act_kwargs.exec_ip, cluster["restore_port"], backup_id)
+            "恢复新从节点数据 {}:{} 备份backup_id: {}".format(
+                exec_act_kwargs.exec_ip, cluster["restore_port"], backup_id_for_restore
+            )
         ),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(exec_act_kwargs),
@@ -926,7 +939,7 @@ def mysql_backup_restore_sub_flow(
             kwargs=asdict(exec_act_kwargs),
         )
         sub_pipeline.add_act(
-            act_name=_("检查主从复制链路"),
+            act_name=_("检查主从复制链路 {}".format(exec_act_kwargs.exec_ip)),
             act_component_code=MySQLCheckSlaveDelayComponent.code,
             kwargs=asdict(
                 CheckSlaveStatusKwargs(
@@ -943,5 +956,5 @@ def mysql_backup_restore_sub_flow(
 
     # 构建并返回完整的子流程
     return sub_pipeline.build_sub_process(
-        sub_name=_("恢复数据{} backup_id: {}".format(exec_act_kwargs.exec_ip, backup_id))
+        sub_name=_("恢复数据{} backup_id: {}".format(exec_act_kwargs.exec_ip, backup_id_for_restore))
     )

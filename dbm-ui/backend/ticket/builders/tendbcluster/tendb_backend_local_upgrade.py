@@ -20,7 +20,7 @@ from backend.ticket.constants import TicketType
 
 
 class TenDBBackendLocalUpgradeSerializer(TenDBLocalUpgradeSerializer):
-    is_verify_checksum = serializers.BooleanField(help_text=_("是否检查主从数据校验结果"), default=True)
+    is_verify_checksum = serializers.BooleanField(help_text=_("是否检查主从数据校验结果"), default=True, required=False)
 
 
 class TenDBBackendLocalUpgradeParamBuilder(builders.FlowParamBuilder):

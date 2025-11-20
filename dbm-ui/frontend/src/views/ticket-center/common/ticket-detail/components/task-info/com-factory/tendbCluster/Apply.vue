@@ -64,30 +64,30 @@
     </InfoItem>
     <InfoItem
       :label="t('集群部署方案')"
-      style="width: 100%">
-      <PrimaryTable
+      style="flex: 1 0 100%">
+      <TicketInfoTable
         :data="[ticketDetails.details.resource_spec.backend_group.spec_info]"
         row-key="spec_name">
-        <TableColumn
+        <TicketInfoTableColumn
           col-key="spec_name"
           :title="t('资源规格')">
-        </TableColumn>
-        <TableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="machine_pair"
           :title="t('需机器组数')">
-        </TableColumn>
-        <TableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="cluster_shard_num"
           :title="t('集群分片')">
-        </TableColumn>
-        <TableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="qps"
           :title="t('集群QPS每秒')">
-          <template #default="{row:data}: {row: ClusterSpecModel}">
-            {{ data.qps.min * data.machine_pair || '--' }}
+          <template #default="{ row }: { row: ClusterSpecModel }">
+            {{ row.qps.min * row.machine_pair || '--' }}
           </template>
-        </TableColumn>
-      </PrimaryTable>
+        </TicketInfoTableColumn>
+      </TicketInfoTable>
     </InfoItem>
   </InfoList>
 </template>

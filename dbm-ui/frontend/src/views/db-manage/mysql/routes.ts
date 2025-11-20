@@ -32,12 +32,12 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   createRouteItem(TicketTypes.MYSQL_ADD_SLAVE, t('添加从库')),
   createRouteItem(TicketTypes.MYSQL_MIGRATE_CLUSTER, t('迁移主从')),
   createRouteItem(TicketTypes.MYSQL_MASTER_SLAVE_SWITCH, t('主从互切')),
-  createRouteItem(TicketTypes.MYSQL_PROXY_ADD, t('添加 Proxy')),
-  createRouteItem(TicketTypes.MYSQL_PROXY_REDUCE, t('减少 Proxy')),
-  createRouteItem(TicketTypes.MYSQL_PROXY_CONF_CHANGE, t('Proxy 升降配')),
-  createRouteItem(TicketTypes.MYSQL_PROXY_SWITCH, t('替换 Proxy')),
-  createRouteItem(TicketTypes.MYSQL_PROXY_MIGRATE, t('迁移 Proxy (按集群)')),
-  createRouteItem(TicketTypes.MYSQL_PROXY_MIGRATE_INS, t('迁移 Proxy (按实例)')),
+  createRouteItem(TicketTypes.MYSQL_PROXY_ADD, t('接入层变更')),
+  createRouteItem(TicketTypes.MYSQL_PROXY_REDUCE, t('接入层变更')),
+  createRouteItem(TicketTypes.MYSQL_PROXY_CONF_CHANGE, t('接入层变更')),
+  createRouteItem(TicketTypes.MYSQL_PROXY_SWITCH, t('接入层变更')),
+  createRouteItem(TicketTypes.MYSQL_PROXY_MIGRATE, t('接入层变更')),
+  createRouteItem(TicketTypes.MYSQL_PROXY_MIGRATE_INS, t('接入层变更')),
   createRouteItem(TicketTypes.MYSQL_MASTER_FAIL_OVER, t('主库故障切换')),
   createRouteItem(TicketTypes.MYSQL_INSTANCE_FAIL_OVER, t('主库故障切换')),
   createRouteItem(TicketTypes.MYSQL_HA_DB_TABLE_BACKUP, t('库表备份')),
@@ -82,7 +82,6 @@ const singleRoutes: RouteRecordRaw[] = [
     path: 'tendbsingle',
     name: 'tendbsingle',
     meta: {
-      fullscreen: true,
       navName: t('MySQL单节点_集群管理'),
       skeleton: 'clusterList',
     },
@@ -95,7 +94,6 @@ const singleRoutes: RouteRecordRaw[] = [
         path: 'list/:clusterId?',
         name: 'DatabaseTendbsingle',
         meta: {
-          fullscreen: true,
           navName: t('MySQL单节点_集群管理'),
           skeleton: 'clusterList',
         },
@@ -119,7 +117,6 @@ const haRoutes: RouteRecordRaw[] = [
     path: 'tendbha',
     name: 'tendbha',
     meta: {
-      fullscreen: true,
       navName: t('MySQL主从集群_集群管理'),
       skeleton: 'clusterList',
     },
@@ -132,7 +129,6 @@ const haRoutes: RouteRecordRaw[] = [
         path: 'list/:clusterId?',
         name: 'DatabaseTendbha',
         meta: {
-          fullscreen: true,
           navName: t('MySQL主从集群_集群管理'),
           skeleton: 'clusterList',
         },
@@ -198,6 +194,7 @@ const commonRouters: RouteRecordRaw[] = [
     path: 'mysql',
     name: 'MysqlManage',
     meta: {
+      dbType: DBTypes.MYSQL,
       navName: t('Mysql 集群管理'),
     },
     redirect: {

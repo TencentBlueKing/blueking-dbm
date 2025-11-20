@@ -12,17 +12,18 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.cluster_ids.map((item) => ({ cluster_id: item }))"
     row-key="cluster_id">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="cluster_id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
       :title="t('目标集群')">
       <template #default="{ row }: { row: { cluster_id: number } }">
         {{ ticketDetails.details.clusters?.[row.cluster_id]?.immute_domain || '--' }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('重新下发GSE配置')">
       {{ ticketDetails.details.restart_exporter ? t('是') : t('否') }}
@@ -41,6 +42,10 @@
   interface Props {
     ticketDetails: TicketModel<Redis.ClusterReinstallDbmon>;
   }
+
+  type RowData = {
+    cluster_id: number;
+  };
 
   defineOptions({
     name: TicketTypes.REDIS_CLUSTER_REINSTALL_DBMON,

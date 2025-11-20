@@ -20,6 +20,7 @@ from backend.flow.engine.bamboo.scene.mongodb.mongodb_fake_install import MongoF
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install import MongoDBInstallFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install_dbmon import MongoInstallDBMonFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_instance_deinstall import MongoInstanceDeInstallFlow
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_instance_fix_status import MongoDBInstanceFixStatusFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_instance_migrate import MongoDBInstanceMigrateFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_instance_restart import MongoRestartInstanceFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_migrate import MongoDBMigrateMetaFlow
@@ -231,3 +232,11 @@ class MongoDBController(BaseController):
         MongoDB数据导出
         """
         MongoDataExportFlow(root_id=self.root_id, data=self.ticket_data).export_flow()
+
+    def instance_fix_status(self):
+        """
+        instance状态修复
+        """
+
+        flow = MongoDBInstanceFixStatusFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.start()

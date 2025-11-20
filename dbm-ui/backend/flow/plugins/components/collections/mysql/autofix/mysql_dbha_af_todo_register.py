@@ -9,12 +9,13 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+from datetime import datetime, timezone
 
 from django.db import transaction
 from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 
-from backend.db_meta.enums import ClusterType, InstanceRole, MachineType
+from backend.db_meta.enums import MachineType
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.db_monitor.models import MySQLDBHAEvent
 from backend.flow.plugins.components.collections.common.base_service import BaseService
@@ -29,26 +30,28 @@ class MySQLDBHAAFTodoRegisterService(BaseService):
 
         for row in kwargs["infos"]:
             self.log_info("[{}] mysql autofix info row: {}".format(kwargs["node_name"], row))
-            # ToDo 这是防御代码, 目前只开发一个自愈场景
-            if not (
-                row["cluster_type"] == ClusterType.TenDBHA
-                and row["machine_type"] == MachineType.BACKEND
-                and row["instance_role"] == InstanceRole.BACKEND_MASTER
-            ):
-                self.log_info("{} not supported now".format(row))
-                continue
 
             cluster_obj = Cluster.objects.get(
                 bk_cloud_id=row["bk_cloud_id"], bk_biz_id=row["bk_biz_id"], immute_domain=row["immute_domain"]
             )
 
-            if row["machine_type"] in [MachineType.SPIDER, MachineType.PROXY]:
+            if row["machine_type"] == MachineType.SPIDER:
+                # ToDo
+                self.log_info("replace spider/proxy bill not complete, skip autofix now")
+                continue
+            elif row["machine_type"] == MachineType.PROXY:
                 ProxyInstance.objects.get(cluster=cluster_obj, machine__ip=row["ip"], port=row["port"])
-            elif row["machine_type"] in [MachineType.BACKEND, MachineType.SINGLE, MachineType.REMOTE]:
+            elif row["machine_type"] in [MachineType.BACKEND, MachineType.REMOTE]:
                 StorageInstance.objects.get(cluster=cluster_obj, machine__ip=row["ip"], port=row["port"])
             else:
                 self.log_error("unsupported machine_type: {}".format(row["machine_type"]))
                 continue
+
+            # 蓝鲸监控默认使用 utc 时区, 但是时间又没有时区信息
+            event_create_time_str = row["event_create_time"]
+            event_create_time_dt = datetime.strptime(event_create_time_str, "%Y-%m-%d %H:%M:%S").replace(
+                tzinfo=timezone.utc
+            )
 
             new_record = {
                 "bk_cloud_id": row["bk_cloud_id"],
@@ -60,7 +63,7 @@ class MySQLDBHAAFTodoRegisterService(BaseService):
                 "machine_type": row["machine_type"],
                 "ip": row["ip"],
                 "port": row["port"],
-                "event_create_time": row["event_create_time"],
+                "event_create_time": event_create_time_dt,  # row["event_create_time"],
                 "instance_role": row["instance_role"],
                 "new_master_host": row["new_master_host"],
                 "new_master_port": row["new_master_port"],

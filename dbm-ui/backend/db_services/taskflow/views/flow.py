@@ -30,6 +30,7 @@ from backend.db_services.taskflow.serializers import (
     NodeSerializer,
     VersionSerializer,
 )
+from backend.db_services.taskflow.views.filters import TaskFlowFilter
 from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.models import FlowTree
@@ -52,14 +53,7 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
     lookup_field = "root_id"
     serializer_class = FlowTaskSerializer
     queryset = FlowTree.objects.all()
-    filter_fields = {
-        "uid": ["exact"],
-        "bk_biz_id": ["exact"],
-        "status": ["exact", "in"],
-        "ticket_type": ["exact", "in"],
-        "created_at": ["gte", "lte"],
-        "created_by": ["exact", "in"],
-    }
+    filter_class = TaskFlowFilter
 
     action_permission_map = {("list",): [DBManagePermission()]}
     default_permission_class = [TaskFlowPermission([ActionEnum.FLOW_DETAIL], ResourceEnum.TASKFLOW)]
@@ -67,11 +61,6 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
     def get_queryset(self):
         if self.action != self.list.__name__:
             return super().get_queryset()
-
-        # 对root_ids支持批量过滤
-        root_ids = self.request.query_params.get("root_ids", None)
-        if root_ids:
-            self.queryset = self.queryset.filter(root_id__in=root_ids.split(","))
 
         return self.queryset
 
@@ -290,7 +279,7 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
         query_serializer=DownloadExcelSerializer(),
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["GET"], detail=False, serializer_class=DownloadExcelSerializer)
+    @action(methods=["GET"], detail=False, serializer_class=DownloadExcelSerializer, filter_class=None)
     def excel_download(self, request):
         # 获取root_id缓存数据
         validated_data = self.params_validate(self.get_serializer_class())

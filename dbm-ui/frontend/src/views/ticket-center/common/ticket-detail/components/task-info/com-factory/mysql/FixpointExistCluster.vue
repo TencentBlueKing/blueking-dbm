@@ -23,20 +23,20 @@
       {{ ticketDetails.details.infos[0].backup_source === 'local' ? t('本地备份') : t('远程备份') }}
     </InfoItem>
   </InfoList>
-  <InfoTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
-    <InfoTableColumn
+    <TicketInfoTableColumn
       col-key="cluster_id"
       fixed="left"
-      :get-copy-value="(item: RowData) => ticketDetails.details.clusters[item.cluster_id].immute_domain"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
       :min-width="300"
       :title="t('源集群')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       v-if="ticketDetails.details.infos[0]?.rollback_time"
       col-key="rollback_time"
       :min-width="300"
@@ -44,8 +44,8 @@
       <template #default="{ row }: { row: RowData }">
         {{ utcDisplayTime(row.rollback_time) }}
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="backupinfo"
       :min-width="370"
       :title="t('备份记录')">
@@ -102,8 +102,8 @@
           </div>
         </div>
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="databases"
       :min-width="120"
       :title="t('源 DB')">
@@ -115,8 +115,8 @@
         </BkTag>
         <span v-if="row.databases.length < 1">--</span>
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="tables"
       :min-width="120"
       :title="t('源表')">
@@ -128,31 +128,31 @@
         </BkTag>
         <span v-if="row.tables.length < 1">--</span>
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="target_cluster_id"
       :min-width="180"
       :title="t('目标集群')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.target_cluster_id]?.immute_domain || '--' }}
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
-      col-key="affect_db"
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="affect_database_list"
       :min-width="180"
       :title="t('受影响的 DB')">
       <template #default="{ row }: { row: RowData }">
-        <span v-if="!row.affect_db?.length">--</span>
+        <span v-if="!row.affect_database_list?.length">--</span>
         <BkButton
           v-else
           text
           theme="primary"
           @click="() => handleClick(row)">
-          {{ row.affect_db.length }}
+          {{ row.affect_database_list.length }}
         </BkButton>
       </template>
-    </InfoTableColumn>
-  </InfoTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <BkSideslider
     v-if="rowData"
     v-model:is-show="isShowSlider"
@@ -188,10 +188,10 @@
           })
         }}
       </BkAlert>
-      <InfoTable
+      <TicketInfoTable
         :data="tableData"
         row-key="dbname">
-        <InfoTableColumn
+        <TicketInfoTableColumn
           col-key="dbname"
           :title="t('受影响的 DB')">
           <template #title>
@@ -200,8 +200,8 @@
           <template #default="{ row }">
             <span>{{ row.dbname }}</span>
           </template>
-        </InfoTableColumn>
-      </InfoTable>
+        </TicketInfoTableColumn>
+      </TicketInfoTable>
     </div>
   </BkSideslider>
 </template>
@@ -216,7 +216,6 @@
   import { bytePretty, utcDisplayTime } from '@utils';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
-  import InfoTable, { InfoTableColumn } from '../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.RollbackCluster>;
@@ -268,7 +267,7 @@
 
   const handleClick = (data: RowData) => {
     rowData.value = data;
-    tableData.value = (data.affect_db || []).map((dbname) => ({ dbname }));
+    tableData.value = (data.affect_database_list || []).map((dbname) => ({ dbname }));
     if (data.backupinfo?.backup_type === 'physical') {
       disabled.value = true;
     }

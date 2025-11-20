@@ -12,10 +12,15 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
-    row-key="id">
-    <TableColumn :title="t('集群')">
+    row-key="cluster_ids">
+    <TicketInfoTableColumn
+      col-key=""
+      :get-copy-value="
+        (row: RowData) => row.cluster_ids.map((clusterId) => ticketDetails.details.clusters[clusterId].immute_domain)
+      "
+      :title="t('集群')">
       <template #default="{ row: data }: { row: RowData }">
         <div
           v-for="clusterId in data.cluster_ids"
@@ -24,13 +29,15 @@
           {{ ticketDetails.details.clusters[clusterId].immute_domain }}
         </div>
       </template>
-    </TableColumn>
-    <TableColumn :title="t('新从库主机')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="new_slave_host"
+      :title="t('新从库主机')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.new_slave_host.ip }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

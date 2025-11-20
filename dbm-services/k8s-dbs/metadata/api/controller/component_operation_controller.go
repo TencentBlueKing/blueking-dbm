@@ -46,6 +46,7 @@ func NewComponentOperationController(provider provider.ComponentOperationProvide
 
 // ListComponentOperations list component operations
 func (c *ComponentOperationController) ListComponentOperations(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaComponentOpDefList)
 	sizeStr := ctx.DefaultQuery("size", commconst.DefaultFetchSizeStr)
 	fetchSize, err := strconv.Atoi(sizeStr)
 	if err != nil {
@@ -68,6 +69,7 @@ func (c *ComponentOperationController) ListComponentOperations(ctx *gin.Context)
 
 // CreateComponentOperation creates a new component operation.
 func (c *ComponentOperationController) CreateComponentOperation(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaComponentOpDefCreate)
 	var reqVo request.ComponentOperationRequest
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))

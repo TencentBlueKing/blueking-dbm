@@ -26,7 +26,7 @@ BillId  =
 BackupId        =
 StatusReportPath        =       /home/mysql/dbareport/mysql/dbbackup/status
 ReportPath      =       /home/mysql/dbareport/mysql/dbbackup
-IsFullBackup    =   0
+IsFullBackup    =   auto
 
 [PhysicalBackup]
 Threads =       2

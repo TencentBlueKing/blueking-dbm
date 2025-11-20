@@ -421,6 +421,71 @@ def _check_package_type_compatibility(pkg_name: str, actual_version: str) -> boo
         return False
 
 
+def _check_mysql80_cross_module_compatibility(
+    module_storage_version: str, pkg_name: str, pkg_version: str, actual_version: str
+) -> bool:
+    """
+    检查MySQL-8.0模块跨模块包兼容性
+
+    允许MySQL-8.0模块匹配TXSQL-8.0和MySQL-8.0-Community模块的包
+
+    @param module_storage_version: 模块配置版本（如 MySQL-8.0）
+    @param pkg_name: 包名
+    @param pkg_version: 包所属的模块版本（如 TXSQL-8.0）
+    @param actual_version: 当前实际MySQL版本字符串
+    @return: 是否兼容
+    """
+    try:
+        logger.debug(
+            _("检查MySQL-8.0跨模块兼容性: 模块版本={}, 包名={}, 包版本={}, 实际版本={}").format(
+                module_storage_version, pkg_name, pkg_version, actual_version
+            )
+        )
+
+        # 只处理MySQL-8.0模块
+        if module_storage_version != "MySQL-8.0":
+            logger.debug(_("模块版本不是MySQL-8.0，跳过跨模块兼容性检查"))
+            return False
+
+        # 检查包版本是否为TXSQL-8.0或MySQL-8.0-Community
+        if pkg_version not in ["TXSQL-8.0", "MySQL-8.0-Community"]:
+            logger.debug(_("包版本 {} 不在允许的跨模块版本列表中").format(pkg_version))
+            return False
+
+        # 检查实际版本是否为标准MySQL（非tmysql和txsql）
+        if "tmysql" not in actual_version:
+            logger.debug(_("实际版本不包含tmysql，不允许跨模块升级"))
+            return False
+
+        # 解析实际版本号
+        actual_version_num = _parse_actual_mysql_version(actual_version)
+        if actual_version_num == 0:
+            logger.warning(_("无法解析实际版本号: {}").format(actual_version))
+            return False
+
+        # 解析包版本号
+        pkg_version_num = _parse_package_version(pkg_name)
+        if pkg_version_num == 0:
+            logger.warning(_("无法解析包版本号: {}").format(pkg_name))
+            return False
+
+        # 包版本必须高于实际版本
+        if pkg_version_num > actual_version_num:
+            logger.info(
+                _("✓ MySQL-8.0跨模块兼容: {} -> {} (包版本号: {} > 实际版本号: {})").format(
+                    module_storage_version, pkg_version, pkg_version_num, actual_version_num
+                )
+            )
+            return True
+        else:
+            logger.debug(_("✗ 包版本不够高: {} ({} <= {})").format(pkg_name, pkg_version_num, actual_version_num))
+            return False
+
+    except Exception as e:
+        logger.error(_("检查MySQL-8.0跨模块兼容性失败: {} - {}").format(pkg_name, e))
+        return False
+
+
 def get_storage_version_modules_api(
     cluster_id: int, bk_biz_id: int, higher_major_version: bool = False, higher_sub_version: bool = False
 ) -> Dict:
@@ -483,13 +548,20 @@ def get_storage_version_modules_api(
             sub_version_modules_compatible = _find_same_major_storage_version_higher_sub_version_modules(
                 cluster_id, module_list, _check_tmysql_upgrade_compatibility
             )
+            # 获取MySQL-8.0跨模块的更高子版本包
+            sub_version_modules_cross_module = (
+                _find_same_major_storage_version_higher_sub_version_modules_cross_module(cluster_id, module_list)
+            )
 
             # 合并相同db_module_id的模块，将pkg_list相加
             merged_sub_version_modules = _merge_modules_by_id(sub_version_modules, sub_version_modules_compatible)
+            merged_sub_version_modules = _merge_modules_by_id(
+                merged_sub_version_modules, sub_version_modules_cross_module
+            )
             # 合并结果
             result_modules = major_version_modules + merged_sub_version_modules
             logger.info(
-                _("合并结果: 更高主版本模块 {} 个，合并后子版本模块 {} 个，总计 {} 个").format(
+                _("合并结果: 更高主版本模块 {} 个，合并后子版本模块 {} 个（包含跨模块），总计 {} 个").format(
                     len(major_version_modules), len(merged_sub_version_modules), len(result_modules)
                 )
             )
@@ -498,7 +570,14 @@ def get_storage_version_modules_api(
             result_modules = _find_higher_storage_version_modules(cluster_id, module_list, cluster_type)
         elif higher_sub_version:
             logger.info(_("执行策略: 查找同大版本但子版本更高的模块"))
-            result_modules = _find_same_major_storage_version_higher_sub_version_modules(cluster_id, module_list)
+            sub_version_modules = _find_same_major_storage_version_higher_sub_version_modules(cluster_id, module_list)
+            # 获取MySQL-8.0跨模块的更高子版本包
+            sub_version_modules_cross_module = (
+                _find_same_major_storage_version_higher_sub_version_modules_cross_module(cluster_id, module_list)
+            )
+            # 合并相同db_module_id的模块，将pkg_list相加
+            result_modules = _merge_modules_by_id(sub_version_modules, sub_version_modules_cross_module)
+            logger.info(_("合并结果: 子版本模块 {} 个（包含跨模块），总计 {} 个").format(len(sub_version_modules), len(result_modules)))
         else:
             # 默认行为：如果两个参数都为False，返回空列表
             logger.warning(_("higher_major_version 和 higher_sub_version 都为False，返回空列表"))
@@ -805,6 +884,150 @@ def _find_same_major_storage_version_higher_sub_version_modules(
         return []
 
 
+def _find_same_major_storage_version_higher_sub_version_modules_cross_module(
+    cluster_id: int, module_list: List[Dict]
+) -> List[Dict]:
+    """
+    找出MySQL-8.0模块兼容的跨模块（TXSQL-8.0和MySQL-8.0-Community）及其更高子版本包
+
+    当当前模块为MySQL-8.0时，返回TXSQL-8.0和MySQL-8.0-Community这两个兼容模块，
+    以及这些模块中版本更高的子版本包
+
+    @param cluster_id: 当前集群ID
+    @param module_list: 模块列表，格式如list_modules_by_biz返回的数据
+    @return: 兼容模块列表，每个模块包含其更高子版本包
+    """
+    try:
+        # 获取当前集群的存储层信息
+        (
+            cluster,
+            current_module_storage_version,
+            current_charset,
+            current_module_spider_version,
+        ) = _get_current_cluster_storage_info(cluster_id)
+        if not current_module_storage_version:
+            return []
+
+        # 只处理MySQL-8.0模块
+        if current_module_storage_version != "MySQL-8.0":
+            logger.debug(_("集群 {} 模块版本不是MySQL-8.0，跳过跨模块查找").format(cluster_id))
+            return []
+
+        # 获取集群存储实际运行版本（用于与包版本比较）
+        actual_storage_version = get_storage_actual_version(cluster_id)
+        if not actual_storage_version:
+            logger.warning(_("获取集群 {} 的实际存储层版本失败").format(cluster_id))
+            return []
+
+        logger.info(
+            _("集群 {} 模块配置版本: {}, 实际运行版本: {} (跨模块查找)").format(
+                cluster_id, current_module_storage_version, actual_storage_version
+            )
+        )
+
+        # 兼容的模块版本列表
+        compatible_module_versions = ["TXSQL-8.0", "MySQL-8.0-Community"]
+        compatible_modules = []
+        processed_count = 0
+        matched_count = 0
+
+        logger.info(_("开始遍历 {} 个模块，寻找兼容的跨模块").format(len(module_list)))
+
+        # 遍历模块列表，找出版本为TXSQL-8.0或MySQL-8.0-Community的模块
+        for module in module_list:
+            module_id = module.get("db_module_id")
+            module_name = module.get("name", "")
+            processed_count += 1
+
+            logger.debug(
+                _("处理模块 {}/{}: ID={}, Name={}").format(processed_count, len(module_list), module_id, module_name)
+            )
+
+            # 跳过当前集群所在的模块
+            if module_id == cluster.db_module_id:
+                logger.debug(_("跳过当前集群所在模块: {}").format(module_name))
+                continue
+
+            # 获取模块的存储层版本和字符集
+            try:
+                module_charset, module_storage_version = _get_module_storage_version_and_charset(
+                    cluster.bk_biz_id, module_id, cluster.cluster_type
+                )
+
+                logger.debug(
+                    _("模块 {} 配置信息 - 存储版本: {}, 字符集: {}").format(module_name, module_storage_version, module_charset)
+                )
+
+                # 检查模块版本是否为兼容的跨模块版本
+                if module_storage_version not in compatible_module_versions:
+                    logger.debug(_("✗ 模块 {} 版本 {} 不在兼容列表中，跳过").format(module_name, module_storage_version))
+                    continue
+
+                # 检查字符集是否匹配
+                if module_charset != current_charset:
+                    logger.debug(_("✗ 模块 {} 字符集不匹配: {} != {}，跳过").format(module_name, module_charset, current_charset))
+                    continue
+
+                # 如果是tendbcluster，还需要检查模块的spider版本配置是否与当前模块spider版本配置匹配
+                if cluster.cluster_type == ClusterType.TenDBCluster.value and current_module_spider_version:
+                    module_spider_version, *unused = _get_module_spider_version_and_charset(
+                        cluster.bk_biz_id, module_id, cluster.cluster_type
+                    )
+
+                    logger.debug(
+                        _("TenDBCluster检查 - 模块spider版本: {}, 当前spider版本: {}").format(
+                            module_spider_version, current_module_spider_version
+                        )
+                    )
+
+                    if module_spider_version != current_module_spider_version:
+                        logger.debug(
+                            _("✗ 模块 {} spider版本配置不匹配: {} != {}，跳过").format(
+                                module_name, module_spider_version, current_module_spider_version
+                            )
+                        )
+                        continue
+
+                # 找到兼容的模块，获取该模块的更高子版本包
+                matched_count += 1
+                logger.info(_("✓ 找到兼容的跨模块: {} (版本: {})").format(module_name, module_storage_version))
+
+                # 获取该模块的更高子版本包
+                pkg_list = _get_higher_sub_version_packages_for_cross_module(
+                    module_storage_version, actual_storage_version
+                )
+
+                logger.debug(_("模块 {} 获得 {} 个可用包").format(module_name, len(pkg_list)))
+                if len(pkg_list) > 0:
+                    compatible_modules.append(
+                        {
+                            "db_module_id": module_id,
+                            "db_module_name": module_name,
+                            "db_version": module_storage_version,
+                            "charset": module_charset,
+                            "pkg_list": pkg_list,
+                        }
+                    )
+
+            except Exception as e:
+                logger.warning(_("✗ 处理模块 {} 时发生错误: {}").format(module_id, e))
+                continue
+
+        logger.info(
+            _("跨模块查找完成 - 总处理: {}, 匹配: {}, 最终结果: {}").format(processed_count, matched_count, len(compatible_modules))
+        )
+
+        logger.info(_("找到 {} 个兼容的跨模块").format(len(compatible_modules)))
+        return compatible_modules
+
+    except Cluster.DoesNotExist:
+        logger.error(_("集群 {} 不存在").format(cluster_id))
+        return []
+    except Exception as e:
+        logger.error(_("查找跨模块更高子版本包时发生错误: {}").format(e))
+        return []
+
+
 def get_storage_actual_version(cluster_id: int) -> str:
     """
     获取存储层的实际版本 select version();
@@ -970,6 +1193,99 @@ def _get_higher_sub_version_packages(
 
     except Exception as e:
         logger.error(_("获取子版本更高的包失败: {}").format(e))
+        return []
+
+
+def _get_higher_sub_version_packages_for_cross_module(
+    module_storage_version: str, actual_storage_version: str
+) -> List[Dict]:
+    """
+    获取跨模块（TXSQL-8.0或MySQL-8.0-Community）的更高子版本包列表
+
+    用于跨模块场景：获取指定模块版本中版本高于实际运行版本的包
+
+    @param module_storage_version: 目标模块的存储层配置版本（如 TXSQL-8.0 或 MySQL-8.0-Community）
+    @param actual_storage_version: 当前集群的实际运行版本（用于比较包版本）
+    @return: 包列表
+    """
+    try:
+        logger.info(_("开始获取跨模块 {} 的子版本更高的包 - 实际运行版本: {}").format(module_storage_version, actual_storage_version))
+
+        # 查询指定模块版本的包
+        packages = Package.objects.filter(
+            pkg_type=MediumEnum.MySQL,
+            db_type=DBType.MySQL,
+            enable=True,
+            version=module_storage_version,
+        ).order_by("-priority", "-create_at")
+
+        logger.info(_("数据库中共找到 {} 个启用的 {} 模块包").format(packages.count(), module_storage_version))
+
+        if not packages.exists():
+            logger.warning(_("没有找到可用的 {} 模块存储层包").format(module_storage_version))
+            return []
+
+        # 解析实际版本号
+        actual_version_num = _parse_actual_mysql_version(actual_storage_version)
+        if actual_version_num == 0:
+            logger.warning(_("实际存储层版本解析失败: {}").format(actual_storage_version))
+            return []
+
+        logger.info(_("版本解析完成 - 实际版本: {} -> 版本号: {}").format(actual_storage_version, actual_version_num))
+        filtered_packages = []
+        compatible_count = 0
+        higher_version_count = 0
+
+        for idx, pkg in enumerate(packages):
+            logger.debug(_("处理跨模块包 {}/{}: {} (版本: {})").format(idx + 1, packages.count(), pkg.name, pkg.version))
+
+            # 使用新的包版本解析函数
+            pkg_version_num = _parse_package_version(pkg.name)
+
+            logger.debug(_("包版本解析结果: {} -> {}").format(pkg.name, pkg_version_num))
+
+            # 包版本必须高于实际版本
+            if pkg_version_num > actual_version_num:
+                higher_version_count += 1
+                logger.debug(_("包版本更高: {} ({} > {})").format(pkg.name, pkg_version_num, actual_version_num))
+
+                # 检查跨模块兼容性（从MySQL-8.0的角度检查）
+                is_compatible = _check_mysql80_cross_module_compatibility(
+                    "MySQL-8.0", pkg.name, module_storage_version, actual_storage_version
+                )
+                logger.debug(
+                    _("跨模块包兼容性检查: {} (版本: {}) 与 {} -> {}").format(
+                        pkg.name, module_storage_version, actual_storage_version, is_compatible
+                    )
+                )
+
+                if is_compatible:
+                    compatible_count += 1
+                    logger.info(
+                        _("✓ 找到跨模块子版本更高且兼容的包: {} (版本: {}, 版本号: {} > {})").format(
+                            pkg.name, module_storage_version, pkg_version_num, actual_version_num
+                        )
+                    )
+                    filtered_packages.append({"pkg_id": pkg.id, "pkg_name": pkg.name, "version_num": pkg_version_num})
+                else:
+                    logger.debug(_("✗ 跨模块包类型不兼容: {} (版本: {})").format(pkg.name, module_storage_version))
+            else:
+                logger.debug(_("✗ 包版本不够高: {} ({} <= {})").format(pkg.name, pkg_version_num, actual_version_num))
+
+        # 按版本号排序，版本高的在前
+        filtered_packages.sort(key=lambda x: x["version_num"], reverse=True)
+
+        logger.info(
+            _("跨模块筛选结果汇总 - 总包数: {}, 版本更高: {}, 类型兼容: {}, 最终筛选: {}").format(
+                packages.count(), higher_version_count, compatible_count, len(filtered_packages)
+            )
+        )
+
+        logger.info(_("为跨模块 {} 找到 {} 个子版本更高的包").format(module_storage_version, len(filtered_packages)))
+        return [{"pkg_id": pkg["pkg_id"], "pkg_name": pkg["pkg_name"]} for pkg in filtered_packages]
+
+    except Exception as e:
+        logger.error(_("获取跨模块子版本更高的包失败: {}").format(e))
         return []
 
 

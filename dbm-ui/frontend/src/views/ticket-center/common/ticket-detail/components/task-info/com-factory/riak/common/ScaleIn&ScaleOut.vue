@@ -36,20 +36,20 @@
           <InfoItem
             :label="t('已选IP')"
             style="width: 100%">
-            <PrimaryTable
+            <TicketInfoTable
               :data="ipList"
               row-key="ip">
-              <TableColumn
+              <TicketInfoTableColumn
                 col-key="alive"
                 :title="t('Agent状态')">
                 <template #default="{ row }">
                   <span>{{ row.alive === 1 ? t('正常') : t('异常') }}</span>
                 </template>
-              </TableColumn>
-              <TableColumn
+              </TicketInfoTableColumn>
+              <TicketInfoTableColumn
                 col-key="bk_disk"
                 :title="t('磁盘_GB')" />
-            </PrimaryTable>
+            </TicketInfoTable>
           </InfoItem>
         </template>
       </template>
@@ -57,13 +57,13 @@
         v-else
         :label="t('缩容主机：')"
         style="width: 100%">
-        <PrimaryTable
+        <TicketInfoTable
           :data="ticketDetails.details?.nodes?.riak"
           row-key="ip">
-          <TableColumn
+          <TicketInfoTableColumn
             col-key="ip"
             :title="t('节点 IP')" />
-        </PrimaryTable>
+        </TicketInfoTable>
       </InfoItem>
     </InfoList>
   </BkLoading>

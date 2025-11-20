@@ -30,6 +30,12 @@ import (
 var DB *gorm.DB
 
 func init() {
+	// 在测试环境下跳过数据库初始化
+	if os.Getenv("TESTING") == "true" || os.Getenv("SKIP_DB_INIT") == "true" {
+		log.Println("Skipping database initialization in test environment")
+		return
+	}
+
 	user := config.GAppConfig.DbConf.User
 	pwd := config.GAppConfig.DbConf.Pwd
 	addr := fmt.Sprintf("%s:%d", config.GAppConfig.DbConf.Host, config.GAppConfig.DbConf.Port)

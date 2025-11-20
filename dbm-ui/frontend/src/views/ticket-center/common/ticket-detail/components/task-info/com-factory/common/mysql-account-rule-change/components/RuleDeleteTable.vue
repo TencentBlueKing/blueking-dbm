@@ -18,19 +18,19 @@
         {{ t('删除规则') }}
       </InfoItem>
     </InfoList>
-    <PrimaryTable
+    <TicketInfoTable
       :data="[ticketDetails.details.last_account_rules]"
       row-key="username">
-      <TableColumn
+      <TicketInfoTableColumn
         col-key="userName"
         :title="t('账户名称')" />
-      <TableColumn
+      <TicketInfoTableColumn
         col-key="access_db"
         :title="t('访问DB')" />
-      <TableColumn
+      <TicketInfoTableColumn
         col-key="privilege"
         :title="t('权限')" />
-    </PrimaryTable>
+    </TicketInfoTable>
   </div>
 </template>
 

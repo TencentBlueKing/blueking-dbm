@@ -12,10 +12,10 @@
 -->
 
 <template>
-  <InfoTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="cluster_ids">
-    <InfoTableColumn
+    <TicketInfoTableColumn
       col-key="cluster_ids"
       :get-copy-value="
         (item: RowData) => item.cluster_ids.map((clusterId) => ticketDetails.details.clusters[clusterId].immute_domain)
@@ -29,24 +29,24 @@
           {{ ticketDetails.details.clusters[clusterId].immute_domain }}
         </p>
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="current_proxy_num"
       :min-width="120"
       :title="t('当前数量（台）')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data?.current_proxy_num || '--' }}
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="resource_spec.new_proxies.count"
       :min-width="120"
       :title="t('扩容数量（台）')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.resource_spec.new_proxies?.count || '--' }}
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="current_proxy_num"
       :min-width="120"
       :title="t('最终数量（台）')">
@@ -57,16 +57,16 @@
             : '--'
         }}
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="spec_id"
       :min-width="120"
       :title="t('规格')">
       <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.specs?.[data.resource_spec.new_proxies.spec_id]?.name || '--' }}
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="label_names"
       :min-width="200"
       :title="t('资源标签')">
@@ -84,8 +84,8 @@
           {{ t('通用无标签') }}
         </BkTag>
       </template>
-    </InfoTableColumn>
-  </InfoTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -93,8 +93,6 @@
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
-
-  import InfoTable, { InfoTableColumn } from '../../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.ResourcePool.ProxyAdd>;

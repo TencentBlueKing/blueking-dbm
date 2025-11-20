@@ -49,6 +49,7 @@ func NewClusterHelmRepoController(
 
 // GetClusterHelmRepoByID retrieves a cluster helm repo by its ID.
 func (c *ClusterHelmRepoController) GetClusterHelmRepoByID(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaAddonClusterRepoDetail)
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
@@ -70,6 +71,7 @@ func (c *ClusterHelmRepoController) GetClusterHelmRepoByID(ctx *gin.Context) {
 
 // CreateClusterHelmRepo create cluster helm repo
 func (c *ClusterHelmRepoController) CreateClusterHelmRepo(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaAddonClusterRepoCreate)
 	var reqVo request.AddonClusterHelmRepoRequest
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
@@ -98,6 +100,7 @@ func (c *ClusterHelmRepoController) CreateClusterHelmRepo(ctx *gin.Context) {
 
 // GetClusterHelmRepoByParam get addon cluster helm repo by its Param.
 func (c *ClusterHelmRepoController) GetClusterHelmRepoByParam(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaAddonClusterRepoSearch)
 	chartName := ctx.Param("chartName")
 	chartVersion := ctx.Param("chartVersion")
 	if chartName == "" || chartVersion == "" {

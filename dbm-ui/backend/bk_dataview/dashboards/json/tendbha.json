@@ -984,7 +984,8 @@
       "options": {
         "legend": {
           "calcs": [
-            "last"
+            "last",
+            "max"
           ],
           "displayMode": "table",
           "placement": "right",
@@ -1002,6 +1003,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "${DS_蓝鲸监控_-_指标数据}"
           },
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
@@ -1012,6 +1014,7 @@
           "query_configs": [
             {
               "alias": "",
+              "data_label": "exporter_dbm_mysqld_exporter",
               "data_source_label": "bk_monitor",
               "data_type_label": "time_series",
               "display": true,
@@ -1035,9 +1038,9 @@
               "method": "AVG",
               "metric_field": "mysql_global_status_commands_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+              "result_table_id": "exporter_dbm_mysqld_exporter",
               "result_table_label": "component",
-              "time_field": "",
+              "time_field": "time",
               "where": [
                 {
                   "key": "cluster_domain",
@@ -1066,7 +1069,8 @@
             }
           ],
           "refId": "B",
-          "source": "sum by(command) (rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_commands_total{cluster_domain=\"$cluster_domain\",command=~\"select|insert|update|delete|replace|commit\",instance_role=\"$dbrole\"}[2m])) >0",
+          "showLastPoint": false,
+          "source": "sum by(command) (rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_commands_total{cluster_domain=\"$cluster_domain\",command=~\"select|insert|update|delete|replace|commit|stmt_execute\",instance_role=\"$dbrole\"}[2m])) >0",
           "step": "",
           "type": "range"
         }
@@ -9713,7 +9717,7 @@
   "timepicker": {},
   "timezone": "default",
   "title": "MySQL-HA",
-  "version": 45,
+  "version": 46,
   "weekStart": "",
   "__inputs": [
     {

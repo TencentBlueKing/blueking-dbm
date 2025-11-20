@@ -12,38 +12,37 @@
 -->
 
 <template>
-  <SmartAction class="db-toolbox">
-    <BkAlert
-      class="mb-20"
-      closable
-      :title="t('替换接入层：对集群的接入层进行替换，支持Spider Master 和Slave')" />
-    <BatchInput
-      :config="batchInputConfig"
-      @change="handleBatchInput" />
-    <BkForm
-      class="mt-16 mb-16"
-      form-type="vertical"
-      :model="formData">
+  <SpiderWrapper>
+    <SmartAction>
+      <BatchInput
+        :config="batchInputConfig"
+        @change="handleBatchInput" />
       <EditableTable
         :key="tableKey"
         ref="table"
-        class="mb-20"
-        :model="formData.tableData">
+        class="mt-16 mb-20"
+        :model="formData.tableData"
+        :rules="rules">
         <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
           <HostColumn
             v-model="item.host"
+            :handle-row-merge="handleRowMerge"
+            :role-rowspan="item.same_role"
+            :rowspan="item.same_cluster"
             :selected="selected"
             @batch-edit="handleBatchEditCluster" />
           <SpecColumn
-            v-model="item.host.spec_id"
+            v-model="item.host.spec.id"
             :cluster-type="ClusterTypes.TENDBCLUSTER"
-            field="host.spec_id"
+            field="host.spec.id"
             :machine-type="MachineTypes.TENDBCLUSTER_PROXY"
-            required />
+            required
+            :rowspan="item.same_spec" />
           <ResourceTagColumn
             v-model="item.labels"
+            :rowspan="item.same_cluster"
             @batch-edit="handleBatchEditColumn" />
           <AvailableResourceColumn
             :params="{
@@ -51,12 +50,14 @@
               subzones: item.host.bk_sub_zone,
               for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
-              spec_id: item.host.spec_id,
+              spec_id: item.host.spec.id,
               labels: item.labels.map((item) => item.id).join(','),
-            }" />
+            }"
+            :rowspan="item.same_cluster" />
           <OperationColumn
             v-model:table-data="formData.tableData"
-            :create-row-method="createTableRow" />
+            :create-row-method="createTableRow"
+            :handle-row-merge="handleRowMerge" />
         </EditableRow>
       </EditableTable>
       <BkFormItem>
@@ -72,27 +73,27 @@
         </BkCheckbox>
       </BkFormItem>
       <TicketPayload v-model="formData.payload" />
-    </BkForm>
-    <template #action>
-      <BkButton
-        class="mr-8 w-88"
-        :loading="isSubmitting"
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('提交') }}
-      </BkButton>
-      <DbPopconfirm
-        :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="t('确认重置页面')">
+      <template #action>
         <BkButton
-          class="ml8 w-88"
-          :disabled="isSubmitting">
-          {{ t('重置') }}
+          class="mr-8 w-88"
+          :loading="isSubmitting"
+          theme="primary"
+          @click="handleSubmit">
+          {{ t('提交') }}
         </BkButton>
-      </DbPopconfirm>
-    </template>
-  </SmartAction>
+        <DbPopconfirm
+          :confirm-handler="handleReset"
+          :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+          :title="t('确认重置页面')">
+          <BkButton
+            class="ml8 w-88"
+            :disabled="isSubmitting">
+            {{ t('重置') }}
+          </BkButton>
+        </DbPopconfirm>
+      </template>
+    </SmartAction>
+  </SpiderWrapper>
 </template>
 <script lang="ts" setup>
   import _ from 'lodash';
@@ -114,14 +115,18 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+  import SpiderWrapper from '@views/db-manage/tendb-cluster/TENDBCLUSTER_SPIDER_ADD_NODES/components/SpiderWrapper.vue';
 
   import { random } from '@utils';
 
-  import HostColumn, { type SelectorHost } from './components/HostColumn.vue';
+  import HostColumn, { type SelectorHost, type SpecConfig } from './components/HostColumnGroup.vue';
 
   interface RowData {
     host: ComponentProps<typeof HostColumn>['modelValue'];
     labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
+    same_cluster: number;
+    same_role: number;
+    same_spec: number;
   }
 
   const { t } = useI18n();
@@ -155,11 +160,16 @@
         master_domain: '',
         port: 0,
         role: '',
-        spec_id: 0,
+        spec: {
+          id: 0,
+        } as SpecConfig,
       },
       data.host,
     ),
     labels: (data.labels || []) as RowData['labels'],
+    same_cluster: data.same_cluster || 1,
+    same_role: data.same_role || 1,
+    same_spec: data.same_spec || 1,
   });
 
   const defaultData = () => ({
@@ -174,29 +184,89 @@
   const selected = computed(() => formData.tableData.filter((item) => item.host.bk_host_id).map((item) => item.host));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
 
+  // 具备完全相同的集群id列的行数组map
+  let sameClusterIdsRowsMap: Record<string, RowData[]> = {};
+  // 相同集群id，相同role的行数组map
+  let sameRoleRowsMap: Record<string, RowData[]> = {};
+
+  // 行合并
+  const handleRowMerge = () => {
+    // 接口都响应后再合并
+    const isRespsoned = formData.tableData.every((item) => !!item.host.cluster_id);
+    if (!isRespsoned) {
+      return;
+    }
+
+    const sortedData = _.sortBy(formData.tableData, [(item) => item.host.cluster_id, (item) => item.host.role]);
+
+    sameClusterIdsRowsMap = _.groupBy(sortedData, (item) => item.host.cluster_id);
+    sameRoleRowsMap = _.groupBy(sortedData, (item) => `${item.host.cluster_id}-${item.host.role}`);
+
+    Object.values(sameClusterIdsRowsMap).forEach((list) => {
+      const isSameSpecId = list.every((item) => item.host.spec.id === list[0].host.spec.id);
+      Object.assign(list[0], {
+        same_cluster: list.length,
+        same_spec: isSameSpecId ? list.length : 1, // 同集群下所有主机都是同一规格才合并
+      });
+    });
+    Object.values(sameRoleRowsMap).forEach((list) => {
+      Object.assign(list[0], {
+        same_role: list.length,
+      });
+    });
+
+    formData.tableData = sortedData;
+  };
+
+  const rules = {
+    'host.role': [
+      {
+        message: t('同集群不允许同时操作 Spider Master 和 Spider Slave'),
+        trigger: 'blur',
+        validator: (
+          value: string,
+          row: {
+            rowData: RowData;
+            rowIndex: number;
+          },
+        ) => sameClusterIdsRowsMap[row.rowData.host.cluster_id].every((item) => item.host.role === value),
+      },
+    ],
+    'host.spec.id': [
+      {
+        message: t('主机规格不一致'),
+        trigger: 'blur',
+        validator: (
+          value: number,
+          row: {
+            rowData: RowData;
+            rowIndex: number;
+          },
+        ) => sameClusterIdsRowsMap[row.rowData.host.cluster_id].every((item) => item.host.spec.id === value),
+      },
+    ],
+  };
+
   useTicketDetail<TendbCluster.ResourcePool.SpiderSwitchNodes>(TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
-      const { clusters } = details;
       Object.assign(formData, {
         payload: createTickePayload(ticketDetail),
-        tableData: details.infos.map((item) => {
-          const [host] = item.spider_old_ip_list;
-          const cluster = clusters[item.cluster_id]!;
-          return createTableRow({
-            host: {
-              ...host,
-              cluster_id: cluster.id,
-              instance_address: `${host!.ip}:${host!.port}`,
-              master_domain: cluster.immute_domain,
-              role: item.switch_spider_role,
-              spec_id: item.resource_spec[`${item.switch_spider_role}_${host!.ip}`]!.spec_id,
-            },
-            labels: (item.resource_spec[`${item.switch_spider_role}_${host!.ip}`]!.labels || []).map((item) => ({
-              id: Number(item),
-            })),
+        tableData: details.infos.reduce<RowData[]>((acc, item) => {
+          item.spider_old_ip_list.forEach((host) => {
+            acc.push(
+              createTableRow({
+                host: {
+                  ip: host.ip,
+                },
+                labels: (item.resource_spec[item.switch_spider_role]!.labels || []).map((item) => ({
+                  id: Number(item),
+                })),
+              }),
+            );
           });
-        }),
+          return acc;
+        }, []),
       });
     },
   });
@@ -204,6 +274,13 @@
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     infos: {
       cluster_id: number;
+      old_nodes: {
+        [x in string]: {
+          bk_cloud_id: number;
+          bk_host_id: number;
+          ip: string;
+        }[];
+      };
       resource_spec: {
         [x in string]: {
           count: number;
@@ -216,24 +293,12 @@
         bk_cloud_id: number;
         bk_host_id: number;
         ip: string;
-        port: number;
+        spec: SpecConfig;
       }[];
       switch_spider_role: string;
     }[];
     ip_source: 'resource_pool';
     is_safe: boolean;
-    old_nodes: {
-      spider_master: {
-        bk_cloud_id: number;
-        bk_host_id: number;
-        ip: string;
-      }[];
-      spider_slave: {
-        bk_cloud_id: number;
-        bk_host_id: number;
-        ip: string;
-      }[];
-    };
   }>(TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES);
 
   const handleSubmit = async () => {
@@ -241,43 +306,43 @@
     if (!result) {
       return;
     }
-    const oldNodes = _.groupBy(formData.tableData, (item) => item.host.role);
+    const generateHostInfo = (data: RowData['host']) => ({
+      bk_cloud_id: data.bk_cloud_id,
+      bk_host_id: data.bk_host_id,
+      ip: data.ip,
+    });
+    const generateSpecInfo = (data: RowData[]) => ({
+      count: data.length,
+      label_names: data[0].labels.map((item) => item.value),
+      labels: data[0].labels.map((item) => String(item.id)),
+      spec_id: data[0].host.spec.id,
+    });
     createTicketRun({
       details: {
-        infos: formData.tableData.map((item) => ({
-          cluster_id: item.host.cluster_id,
-          resource_spec: {
-            [`${item.host.role}_${item.host.ip}`]: {
-              count: 1,
-              label_names: item.labels.map((item) => item.value),
-              labels: item.labels.map((item) => String(item.id)),
-              spec_id: item.host.spec_id,
+        infos: Object.values(sameClusterIdsRowsMap).map((rows) => {
+          const masters = rows.filter((item) => item.host.role === 'spider_master');
+          const slaves = rows.filter((item) => item.host.role === 'spider_slave');
+          const hostList = slaves.length > 0 ? slaves : masters;
+          const currentRole = hostList[0].host.role;
+          return {
+            cluster_id: rows[0].host.cluster_id,
+            old_nodes: {
+              [currentRole]: hostList.map((item) => generateHostInfo(item.host)),
             },
-          },
-          spider_old_ip_list: [
-            {
+            resource_spec: {
+              [currentRole]: generateSpecInfo(hostList),
+            },
+            spider_old_ip_list: hostList.map((item) => ({
               bk_cloud_id: item.host.bk_cloud_id,
               bk_host_id: item.host.bk_host_id,
               ip: item.host.ip,
-              port: item.host.port,
-            },
-          ],
-          switch_spider_role: item.host.role,
-        })),
+              spec: item.host.spec,
+            })),
+            switch_spider_role: currentRole,
+          };
+        }),
         ip_source: 'resource_pool',
         is_safe: formData.is_safe,
-        old_nodes: {
-          spider_master: (oldNodes['spider_master'] || []).map((item) => ({
-            bk_cloud_id: item.host.bk_cloud_id,
-            bk_host_id: item.host.bk_host_id,
-            ip: item.host.ip,
-          })),
-          spider_slave: (oldNodes['spider_slave'] || []).map((item) => ({
-            bk_cloud_id: item.host.bk_cloud_id,
-            bk_host_id: item.host.bk_host_id,
-            ip: item.host.ip,
-          })),
-        },
       },
       ...formData.payload,
     });
@@ -319,6 +384,9 @@
     } else {
       formData.tableData = [...(formData.tableData[0]!.host.bk_host_id ? formData.tableData : []), ...dataList];
     }
+    setTimeout(() => {
+      tableRef.value?.validate();
+    }, 200);
   };
 
   const handleBatchEditColumn = (value: any, field: string) => {

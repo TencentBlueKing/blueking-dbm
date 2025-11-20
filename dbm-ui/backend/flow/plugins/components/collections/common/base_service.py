@@ -381,7 +381,7 @@ class BkJobService(BaseService, metaclass=ABCMeta):
 
         if not ext_result["result"]:
             # 调用结果检测到失败
-            self.log_error(f"[{node_name}] schedule  status failed: {ext_result['error']}")
+            self.log_error(f"[{node_name}] schedule  status failed: {ext_result.get('error')}")
             return False
 
         if not ext_result["data"]:

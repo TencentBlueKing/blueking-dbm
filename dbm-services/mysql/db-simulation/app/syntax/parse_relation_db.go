@@ -50,53 +50,62 @@ func (tf *TmysqlParseFile) DoParseRelationDbs(version string) (createDbs, relati
 			return nil, nil, nil, false, err
 		}
 	}
-	logger.Info("all sqlfiles download ok ~")
-	alreadExecutedSqlfileChan := make(chan string, len(tf.Param.FileNames))
+	logger.Info("all sql files download ok ~")
+	executedSqlFileChan := make(chan string, len(tf.Param.FileNames))
 	go func() {
-		if err = tf.Execute(alreadExecutedSqlfileChan, version); err != nil {
+		if err = tf.Execute(executedSqlFileChan, version); err != nil {
 			logger.Error("failed to execute tmysqlparse: %s", err.Error())
 		}
-		close(alreadExecutedSqlfileChan)
+		close(executedSqlFileChan)
 	}()
 
 	logger.Info("start to analyze the parsing result")
-	createDbs, relationDbs, allCommands, dumpAll, err = tf.doParseInchan(alreadExecutedSqlfileChan, version)
+	createDbs, relationDbs, allCommands, dumpAll, err = tf.doParseInchan(executedSqlFileChan, version)
 	if err != nil {
 		logger.Error("failed to analyze the parsing result:%s", err.Error())
 		return nil, nil, nil, false, err
 	}
-	logger.Info("createDbs:%v,relationDbs:%v,allcomands%v,dumpAll:%v,err:%v", createDbs, relationDbs, allCommands, dumpAll,
-		err)
-	dumpdbs := []string{}
+	logger.Info("createDbs:%v", createDbs)
+	logger.Info("relationDbs:%v", relationDbs)
+	logger.Info("all commands: %v", allCommands)
+	logger.Info("dumpAll:%v", dumpAll)
+	dumpDbs := []string{}
 	for _, d := range relationDbs {
 		if slices.Contains(createDbs, d) {
 			continue
 		}
-		dumpdbs = append(dumpdbs, d)
+		dumpDbs = append(dumpDbs, d)
 	}
-	return lo.Uniq(createDbs), lo.Uniq(dumpdbs), lo.Uniq(allCommands), dumpAll, nil
+	return lo.Uniq(createDbs), lo.Uniq(dumpDbs), lo.Uniq(allCommands), dumpAll, nil
 }
 
 // doParseInchan RelationDbs do parse relation db
-func (t *TmysqlParse) doParseInchan(alreadExecutedSqlfileCh chan string,
+func (t *TmysqlParse) doParseInchan(executedSqlFileCh chan string,
 	mysqlVersion string) (createDbs []string, relationDbs []string, allCommands []string, dumpAll bool, err error) {
 	var errs []error
 	c := make(chan struct{}, AnalyzeConcurrency)
 	errChan := make(chan error)
 	wg := &sync.WaitGroup{}
-	//  stopchan len 必须要和 AnalyzeConcurrency 保持一致
+	//  stopChan len 必须要和 AnalyzeConcurrency 保持一致
 	stopChan := make(chan struct{}, AnalyzeConcurrency)
 
-	for sqlfile := range alreadExecutedSqlfileCh {
+	for sqlfile := range executedSqlFileCh {
 		wg.Add(1)
 		go func(fileName string) {
+			defer wg.Done()
+
 			c <- struct{}{}
-			defer func() { <-c; wg.Done() }()
+			defer func() { <-c }()
+
 			cdbs, dbs, commands, dumpAllDbs, err := t.analyzeRelationDbs(fileName, mysqlVersion)
 			logger.Info("createDbs:%v,dbs:%v,dumpAllDbs:%v,err:%v", cdbs, dbs, dumpAllDbs, err)
 			if err != nil {
 				logger.Error("analyzeRelationDbs failed %s", err.Error())
-				errChan <- err
+				select {
+				case errChan <- err:
+				default:
+					logger.Warn("errChan full, error dropped")
+				}
 				return
 			}
 			// 如果有dumpall 则直接返回退出,不在继续分析
@@ -104,10 +113,8 @@ func (t *TmysqlParse) doParseInchan(alreadExecutedSqlfileCh chan string,
 				t.mu.Lock()
 				dumpAll = true
 				t.mu.Unlock()
-				// stop chan 可能会直接主协程退出
-				<-c
-				wg.Done()
 				stopChan <- struct{}{}
+				return
 			}
 			t.mu.Lock()
 			relationDbs = append(relationDbs, dbs...)
@@ -140,12 +147,19 @@ func (t *TmysqlParse) analyzeRelationDbs(inputfileName, mysqlVersion string) (
 	allCommandType []string,
 	dumpAll bool,
 	err error) {
+	// 使用 defer 统一处理返回值去重，避免在每个 return 语句中重复调用
+	defer func() {
+		createDbs = lo.Uniq(createDbs)
+		relationDbs = lo.Uniq(relationDbs)
+		allCommandType = lo.Uniq(allCommandType)
+	}()
+
 	defer func() {
 		if r := recover(); r != nil {
 			logger.Error("panic error:%v,stack:%s", r, string(debug.Stack()))
 		}
 	}()
-	f, err := os.Open(t.getAbsoutputfilePath(inputfileName, mysqlVersion))
+	f, err := os.Open(t.getAbsOutputFilePath(inputfileName, mysqlVersion))
 	if err != nil {
 		logger.Error("open file failed %s", err.Error())
 		return nil, nil, nil, false, err
@@ -166,7 +180,7 @@ func (t *TmysqlParse) analyzeRelationDbs(inputfileName, mysqlVersion string) (
 		}
 		var res ParseLineQueryBase
 		if err = json.Unmarshal(line, &res); err != nil {
-			logger.Error("json unmasrshal line:%s failed %s", string(line), err.Error())
+			logger.Error("json unmarshal line:%s failed %s", string(line), err.Error())
 			return nil, nil, nil, false, err
 		}
 		//  ErrorCode !=0 就是语法错误
@@ -188,14 +202,14 @@ func (t *TmysqlParse) analyzeRelationDbs(inputfileName, mysqlVersion string) (
 			return nil, relationDbs, allCommandType, true, nil
 		}
 		if slices.Contains([]string{SQLTypeCreateProcedure, SQLTypeCreateFunction, SQLTypeCreateView, SQLTypeCreateTrigger,
-			SQLTypeInsertSelect, SQLTypeRelaceSelect},
+			SQLTypeInsertSelect, SQLTypeReplaceSelect},
 			res.Command) {
 			return nil, relationDbs, allCommandType, true, nil
 		}
 		if res.Command == SQLTypeCreateTable {
 			var c CreateTableResult
 			if err = json.Unmarshal(line, &c); err != nil {
-				logger.Error("json unmasrshal line:%s failed %s", string(line), err.Error())
+				logger.Error("json unmarshal line:%s failed %s", string(line), err.Error())
 				return nil, nil, nil, false, err
 			}
 			// 需要排除create table like
@@ -237,9 +251,9 @@ type RelationTbl struct {
 }
 
 // parseSpecialSQLFile 解析指定库表
-func (t *TmysqlParse) parseSpecialSQLFile(inputfileName, mysqlVersion string) (m map[string][]string, err error) {
+func (t *TmysqlParse) parseSpecialSQLFile(inputFileName, mysqlVersion string) (m map[string][]string, err error) {
 	// Secure file path handling
-	filePath := t.getAbsoutputfilePath(inputfileName, mysqlVersion)
+	filePath := t.getAbsOutputFilePath(inputFileName, mysqlVersion)
 
 	// Validate file path is clean and within expected directory
 	cleanPath := filepath.Clean(filePath)
@@ -283,7 +297,7 @@ func (t *TmysqlParse) parseSpecialSQLFile(inputfileName, mysqlVersion string) (m
 		}
 		var baseRes ParseIncludeTableBase
 		if err = json.Unmarshal(line, &baseRes); err != nil {
-			logger.Error("json unmasrshal line:%s failed %s", string(line), err.Error())
+			logger.Error("json unmarshal line:%s failed %s", string(line), err.Error())
 			return nil, err
 		}
 		dbName := ""

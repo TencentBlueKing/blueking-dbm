@@ -35,7 +35,6 @@ class TransFileFromBackupService(TransFileService):
         cluster_id = kwargs["cluster_id"]
         backup_handler = MySQLBackupHandler(
             cluster_id=cluster_id,
-            is_full_backup=True,
             backup_id=backup_id,
             backup_source=MySQLBackupSource.LOCAL,
         )
@@ -47,7 +46,7 @@ class TransFileFromBackupService(TransFileService):
         # 传到父类
         data.get_one_of_inputs("kwargs")["backup_id"] = kwargs["backup_id"]
         data.get_one_of_inputs("kwargs")["cluster_id"] = kwargs["cluster_id"]
-        data.get_one_of_inputs("kwargs")["file_list"] = backup_info["task_ids"]
+        data.get_one_of_inputs("kwargs")["file_list"] = backup_info["local_files"]
 
         # 作为上下文传到下一个节点
         trans_data["backup_info"] = backup_info

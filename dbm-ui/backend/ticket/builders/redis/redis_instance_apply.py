@@ -161,12 +161,14 @@ class RedisInstanceApplyResourceParamBuilder(builders.ResourceApplyParamBuilder)
     def format_apply_cluster_info(self, ticket_data):
         """补充部署集群的信息"""
         cluster_num, machine_group = len(ticket_data["infos"]), len(ticket_data["nodes"]["backend_group"])
+        # 分配数
+        distribute_num = cluster_num // machine_group
         for index, info in enumerate(ticket_data["infos"]):
-            backend_group = ticket_data["nodes"]["backend_group"][index % machine_group]
+            backend_group = ticket_data["nodes"]["backend_group"][index // distribute_num]
             info.update(
                 backend_group=backend_group,
                 # 在同一台机器部署的实例端口号要递增
-                port=ticket_data["port"] + (index // machine_group),
+                port=ticket_data["port"] + (index % distribute_num),
                 db_version=ticket_data["db_version"],
                 resource_spec=ticket_data["resource_spec"]["master"],
                 # maxmemory = 机器内存 * 0.9 / 单机实例数 * 1024 * 1024 (MB --> 字节)

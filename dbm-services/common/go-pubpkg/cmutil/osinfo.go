@@ -61,10 +61,10 @@ type DiskPartInfo struct {
 	Free uint64 `json:"free"`
 	// Used 真实使用量, 不包含 fs reserved
 	Used uint64 `json:"used"`
-	// UsedTotal 总使用量，Used + Reserved
-	UsedTotal uint64 `json:"used_total"`
 	// Reserved = Total - Free - Used
 	Reserved uint64 `json:"reserved"`
+	// UsedTotal 总使用量，Used + Reserved
+	UsedTotal uint64 `json:"used_total"`
 	// UsedPercent 在os层面看到的磁盘利用率，包括 reserved (Used + Reserved) / Total
 	UsedPercent float64 `json:"used_percent"`
 	// UsedPercentReal Used / (Total - Reserved), stat.UsedPercent
@@ -78,6 +78,12 @@ func (i *DiskPartInfo) String() string {
 	return fmt.Sprintf("DiskPartInfo{Path:%s,Mountpoint:%s Total: %d, Free:%d, Used:%d, UsedTotal:%d, Reserved:%d, "+
 		"UsedPercent:%.4f, InodesUsedPercent:%.4f}",
 		i.Path, i.Mountpoint, i.Total, i.Free, i.Used, i.UsedTotal, i.Reserved, i.UsedPercent, i.InodesUsedPercent)
+}
+
+// TotalAvailable not include reserved (total - reserved)
+func (i *DiskPartInfo) TotalAvailable() uint64 {
+	return i.Total - i.Reserved
+	//return i.Free + i.Used
 }
 
 // GetDiskPartInfo 获取目录的信息

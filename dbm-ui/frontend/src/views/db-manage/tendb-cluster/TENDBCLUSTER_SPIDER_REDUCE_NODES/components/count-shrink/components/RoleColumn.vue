@@ -1,6 +1,6 @@
 <template>
   <EditableColumn
-    field="cluster.role"
+    field="role"
     :label="t('缩容节点类型')"
     :min-width="200"
     required>
@@ -22,8 +22,7 @@
     <EditableSelect
       v-model="modelValue"
       :input-search="false"
-      :list="nodeTypeOptions"
-      @change="handleChange" />
+      :list="nodeTypeOptions" />
   </EditableColumn>
 </template>
 <script setup lang="ts">
@@ -63,9 +62,9 @@
     emits('batch-edit', value as string[]);
   };
 
-  const handleChange = () => {
+  watch(modelValue, () => {
     emits('change');
-  };
+  });
 </script>
 
 <style lang="less">

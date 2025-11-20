@@ -19,7 +19,7 @@ from backend.db_meta.models import Cluster, ProxyInstance
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import fetch_cluster_ids
+from backend.ticket.builders.common.base import HostInfoSerializer, fetch_cluster_ids
 from backend.ticket.builders.tendbcluster.base import (
     BaseTendbTicketFlowBuilder,
     TendbBaseOperateDetailSerializer,
@@ -34,16 +34,17 @@ class SpiderSwitchNodesDetailSerializer(TendbBaseOperateDetailSerializer):
         resource_spec = serializers.DictField(help_text=_("规格参数"))
         row_key = serializers.CharField(help_text=_("唯一值"), required=False)
         switch_spider_role = serializers.ChoiceField(
-            help_text=_("接入层类型"), choices=TenDBClusterSpiderRole.get_choices()
+            help_text=_("接入层类型"), choices=TenDBClusterSpiderRole.get_choices(), required=False
         )
-        spider_old_ip_list = serializers.JSONField(help_text=_("替换的节点信息"))
+        # spider_old_ip_list = serializers.JSONField(help_text=_("替换的节点信息"))
+        spider_old_ip_list = serializers.ListSerializer(help_text=_("待回收spider主机信息"), child=HostInfoSerializer())
+        old_nodes = serializers.DictField(help_text=_("旧节点信息集合"), child=serializers.ListField(help_text=_("节点信息")))
 
     ip_source = serializers.ChoiceField(
         help_text=_("机器来源"), choices=IpSource.get_choices(), required=False, default=IpSource.MANUAL_INPUT
     )
     infos = serializers.ListSerializer(help_text=_("克隆主从信息"), child=SpiderSwitchNodesInfoSerializer())
     is_safe = serializers.BooleanField(help_text=_("是否做安全检测"), default=True, required=False)
-    old_nodes = serializers.DictField(help_text=_("旧节点信息集合"), child=serializers.ListField(help_text=_("节点信息")))
 
 
 class SpiderSwitchNodesFlowParamBuilder(builders.FlowParamBuilder):
@@ -55,7 +56,7 @@ class SpiderSwitchNodesFlowParamBuilder(builders.FlowParamBuilder):
 class TendbSpiderSwitchNodesResourceParamBuilder(TendbBaseOperateResourceParamBuilder):
     def format(self):
         infos = self.ticket_data["infos"]
-        host_ids = [info["spider_old_ip_list"][0]["bk_host_id"] for info in infos]
+        host_ids = [host["bk_host_id"] for info in infos for host in info["spider_old_ip_list"]]
         cluster_ids = fetch_cluster_ids(infos)
         # 获取集群下剩余的spider master
         remain_spiders = ProxyInstance.objects.select_related("machine").filter(
@@ -72,7 +73,7 @@ class TendbSpiderSwitchNodesResourceParamBuilder(TendbBaseOperateResourceParamBu
         for info in infos:
             self.patch_common_affinity(
                 info,
-                role=f'{info["switch_spider_role"]}_{info["spider_old_ip_list"][0]["ip"]}',
+                role=info["switch_spider_role"],
                 cluster=cluster_map[info["cluster_id"]],
                 exclusive_hosts=cluster__spider_inst_map.get(info["cluster_id"], []),
                 tolerance=0.5,
@@ -83,9 +84,8 @@ class TendbSpiderSwitchNodesResourceParamBuilder(TendbBaseOperateResourceParamBu
         next_flow = self.ticket.next_flow()
         for info in next_flow.details["ticket_data"]["infos"]:
             # 格式化规格信息
-            role = f'{info["switch_spider_role"]}_{info["spider_old_ip_list"][0]["ip"]}'
+            role = info["switch_spider_role"]
             info["spider_new_ip_list"] = info.pop(role)
-            info["resource_spec"]["spider"] = info["resource_spec"].pop(role)
 
         next_flow.save(update_fields=["details"])
 

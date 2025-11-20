@@ -140,8 +140,13 @@ REDIS_META_CHECK_DATA = {
         {"name": "bk_biz_id", "display_name": "业务", "format": "text"},
         {"name": "cluster", "display_name": "集群名", "format": "text"},
         {"name": "cluster_type", "display_name": "集群类型", "format": "text"},
-        {"name": "status", "display_name": "元数据状态", "format": "status"},
+        {"name": "ip", "display_name": "IP", "format": "text"},
+        {"name": "port", "display_name": "Port", "format": "text"},
+        {"name": "state", "display_name": "元数据状态", "format": "status"},
         {"name": "msg", "display_name": "详情", "format": "text"},
+        {"name": "ip", "display_name": "IP", "format": "text"},
+        {"name": "create_at", "display_name": "巡检时间", "format": "text"},
+        {"name": "failed_days", "display_name": "失败天数", "format": "text"},
     ],
 }
 

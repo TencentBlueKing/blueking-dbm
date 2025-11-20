@@ -26,17 +26,17 @@
       :is-active="collapseActive.accessDb"
       mode="collapse"
       :title="t('访问DB变更前后对比')">
-      <PrimaryTable
+      <TicketInfoTable
         :data="accessDbData"
         ellipsis
         row-key="oldAccessDb">
-        <TableColumn
+        <TicketInfoTableColumn
           col-key="oldAccessDb"
           :title="t('变更前')" />
-        <TableColumn
+        <TicketInfoTableColumn
           col-key="newAccessDb"
           :title="t('变更后')" />
-      </PrimaryTable>
+      </TicketInfoTable>
     </DbCard>
     <DbCard
       v-model:collapse="collapseActive.privilege"
@@ -52,17 +52,17 @@
           <span style="color: #ea3636">{{ deleteCount }}</span>
         </I18nT>
       </template>
-      <PrimaryTable
+      <TicketInfoTable
         class="privilege-table"
         :data="privilegeData"
         ellipsis
         row-key="beforePrivilege"
         :rowspan-and-colspan="rowspanAndColspan">
-        <TableColumn
+        <TicketInfoTableColumn
           class-name="cell-bold"
           col-key="privilegeDisplay"
           :title="t('权限类型')" />
-        <TableColumn
+        <TicketInfoTableColumn
           col-key="beforePrivilege"
           :title="t('变更前')">
           <template #default="{ row: data }: { row: PrivilegeRow }">
@@ -76,8 +76,8 @@
             </div>
             <span v-else>--</span>
           </template>
-        </TableColumn>
-        <TableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           class-name="cell-privilege"
           col-key="afterPrivilege"
           :title="t('变更后')">
@@ -94,8 +94,8 @@
             </div>
             <span v-else>--</span>
           </template>
-        </TableColumn>
-      </PrimaryTable>
+        </TicketInfoTableColumn>
+      </TicketInfoTable>
     </DbCard>
   </div>
 </template>

@@ -59,9 +59,8 @@ type FlashbackOpt struct {
 	TablesIgnore []string `json:"tables_ignore,omitempty"`
 
 	// RowsFilter max length 60000
-	RowsFilter string `json:"rows_filter"`
-	//RowsFilter            string `json:"rows_filter"`
-	RowsEventType         string `json:"rows_event_type"`
+	RowsFilter            string `json:"rows_filter"`
+	FilterDeleteRowsOnly  bool   `json:"filter_delete_rows_only"`
 	ConvRowsUpdateToWrite bool   `json:"conv_rows_update_to_write"`
 }
 

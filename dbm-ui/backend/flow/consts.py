@@ -86,6 +86,9 @@ MAX_SPIDER_MASTER_COUNT = 64
 MIN_SPIDER_MASTER_COUNT = 1
 MIN_SPIDER_SLAVE_COUNT = 1
 
+# 定义每个TenDB-Cluster集群最小spider-master数量，在单据提单场景
+MIN_SPIDER_MASTER_COUNT_IN_TICKET = 2
+
 # 定义TenDB-HA的最少proxy实例数量
 MIN_TENDB_PROXY_COUNT = 1
 
@@ -564,6 +567,7 @@ class RedisActuatorActionEnum(StrStructuredEnum):
     RESTART_EXPORTER = EnumField("restart_exporter", _("restart_exporter"))
     HOTKEY_ANALYSIS = EnumField("hotkey_analysis", _("hotkey_analysis"))
     KEYSTAT = EnumField("keystat", _("keystat"))
+    PROXY_REUSE = EnumField("proxy_reuse", _("proxy_reuse"))
 
 
 class MongoDBActuatorActionEnum(StrStructuredEnum):
@@ -591,6 +595,7 @@ class MongoDBActuatorActionEnum(StrStructuredEnum):
     ReplicasetStepDown = EnumField("replicaset_stepdown", _("replicaset_stepdown"))
     ClusterBalancer = EnumField("cluster_balancer", _("cluster_balancer"))
     MongodNodeHidden = EnumField("mongod_node_hidden", _("mongod_node_hidden"))
+    FixServiceStatus = EnumField("fix_service_status", _("fix_service_status"))
 
 
 class EsActuatorActionEnum(StrStructuredEnum):
@@ -1668,7 +1673,9 @@ class OracleDBActuatorActionEnum(StrStructuredEnum):
     OracleExecuteScript = EnumField("execute_script", _("execute_script"))
 
 
-class TendbSingleRestoreEnum(StrStructuredEnum):
-    RemoteBackupAndNewest = EnumField("remote_backup_newest", _("remote_backup_newest"))
-    LocalBackupAndSchema = EnumField("local_backup_and_schema", _("local_backup_and_schema"))
-    LocalBackupAndData = EnumField("local_backup_and_data", _("local_backup_and_data"))
+class TendbSingleRestoreType(StrStructuredEnum):
+    REPLICATE_WITH_STRUCT = EnumField("REPLICATE_WITH_STRUCT", _("主从同步表结构,需Binlog"))
+    REPLICATE_WITH_DATA = EnumField("REPLICATE_WITH_DATA", _("主从同步数据,需Binlog"))
+    RESTORE_FROM_FLOW_BACKUP = EnumField("RESTORE_FROM_FLOW_BACKUP", _("流程中实时发起表结构备份&恢复,没有主从同步"))
+    RESTORE_WITH_DATA = EnumField("RESTORE_FROM_BACKUP", _("包含数据的恢复,没有主从同步"))
+    RESTORE_WITH_STRUCT = EnumField("RESTORE_ONLY_STRUCT", _("仅表结构的恢复,没有主从同步"))

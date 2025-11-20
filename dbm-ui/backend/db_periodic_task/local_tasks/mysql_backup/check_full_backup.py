@@ -25,6 +25,7 @@ from backend.db_report.models import MysqlBackupCheckReport, MysqlBackupProgress
 from backend.db_report.models.mysql_backup_result import MysqlBackupResult
 
 from .bklog_query import ClusterBackup
+from .check_ignore import CheckIgnore
 
 logger = logging.getLogger("root")
 
@@ -178,9 +179,10 @@ def _check_tendbha_full_backup(date_str: str):
     """
     tendbha 必须有一份完整的备份
     """
-
     # 清理过期的报表
     MysqlBackupCheckReport.objects.filter(create_at__lte=timezone.now() - timedelta(days=60)).delete()
+    # 获取忽略配置
+    ignore_configs = CheckIgnore(subtype=MysqlBackupCheckSubType.FullBackup)
 
     # 检查前一天的全备
     start_time, end_time = get_query_date_time(date_str)
@@ -192,6 +194,10 @@ def _check_tendbha_full_backup(date_str: str):
     query = Q(cluster_type=ClusterType.TenDBHA) & Q(create_at__lt=timezone.now() - timedelta(days=1))
     for c in Cluster.objects.filter(query):
         try:
+            if ignore_configs.should_ignore_check_cluster(c.bk_biz_id, c.cluster, ClusterType.TenDBHA):
+                logger.info(f"==== skip check full backup for cluster {c.immute_domain} (ignored by config) ====")
+                continue
+
             logger.info("==== start check full backup for cluster {} ====".format(c.immute_domain))
             backup = ClusterBackup(c.id, c.immute_domain)
 
@@ -242,6 +248,8 @@ def _check_tendbcluster_full_backup(date_str: str):
     """
     tendbcluster 集群必须有完整的备份
     """
+    # 获取忽略配置
+    ignore_configs = CheckIgnore(subtype=MysqlBackupCheckSubType.FullBackup)
     start_time, end_time = get_query_date_time(date_str)
     logger.info(
         "==== start check full backup for cluster type {}, time range[{},{}] ====".format(
@@ -251,6 +259,11 @@ def _check_tendbcluster_full_backup(date_str: str):
 
     for c in Cluster.objects.filter(cluster_type=ClusterType.TenDBCluster):
         try:
+            # 检查是否应该忽略该集群的全备巡检
+            if ignore_configs.should_ignore_check_cluster(c.bk_biz_id, c.immute_domain, ClusterType.TenDBCluster):
+                logger.info(f"==== skip check full backup for tendbcluster {c.immute_domain} (ignored by config) ====")
+                continue
+
             logger.info("==== start check full backup for tendbcluster {} ====".format(c.immute_domain))
             backup = ClusterBackup(c.id, c.immute_domain)
             items = backup.query_backup_from_dbreport(start_time, end_time)
@@ -275,8 +288,9 @@ def _check_tendbcluster_full_backup(date_str: str):
                 if stat.get("spider_master") and stat.get("TDBCTL") and len(stat.get("remote")) == shard_num:
                     backup.success = True
                     break
-                shard_id_list = [int(i) for i in stat.get("remote").keys()]
-                stat["remote"] = find_discontinuous_numbers(shard_id_list)
+                if len(stat.get("remote")) != shard_num:
+                    shard_id_list = [int(i) for i in stat.get("remote").keys()]
+                    stat["remote"] = find_discontinuous_numbers(shard_id_list)
                 message = "backup_id={}:{}".format(backup_id, json.dumps(stat))
 
             # 持续天数，只记录失败的

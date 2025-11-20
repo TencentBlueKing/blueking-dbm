@@ -219,7 +219,7 @@ class TicketFlowSerializer(TranslationSerializerMixin, serializers.ModelSerializ
         return obj.output_data
 
     def get_remark(self, obj):
-        return obj.context.get("remark")
+        return obj.context.get("remark") if obj.context else ""
 
     @property
     def translated_fields(self):

@@ -25,20 +25,19 @@
       {{ ticketDetails.details.runtime_hour }}
     </InfoItem>
   </InfoList>
-  <InfoTable
-    :data="tableData"
-    row-key="cluster_id"
-    :rowspan-and-colspan="rowspanAndColspan">
-    <InfoTableColumn
+  <TicketInfoTable
+    :data="props.ticketDetails.details.infos"
+    row-key="cluster_id">
+    <TicketInfoTableColumn
       col-key="cluster_id"
-      :get-copy-value="(item: RowData) => ticketDetails.details.clusters[item.cluster_id].immute_domain"
-      :min-width="220"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
+      :min-width="280"
       :title="t('目标集群')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="slave"
       :min-width="150"
       :title="t('校验从库')">
@@ -62,8 +61,8 @@
           <p class="pt-2 pb-2">{{ item.ip }}:{{ item.port }}</p>
         </div>
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="master"
       :min-width="150"
       :title="t('校验主库')">
@@ -81,36 +80,36 @@
         </span>
       </template>
       <template #default="{ row }: { row: RowData }"> {{ row.master.ip }}:{{ row.master.port }} </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="db_patterns"
       :title="t('校验 DB 名')">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="row.db_patterns" />
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="ignore_dbs"
       :title="t('忽略 DB 名')">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="row.ignore_dbs" />
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="table_patterns"
       :title="t('校验表名')">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="row.table_patterns" />
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="ignore_tables"
       :title="t('忽略表名')">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="row.ignore_tables" />
       </template>
-    </InfoTableColumn>
-  </InfoTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -122,10 +121,9 @@
   import PopoverCopy from '@components/popover-copy/Index.vue';
   import TagBlock from '@components/tag-block/Index.vue';
 
-  import { execCopy, random, utcDisplayTime } from '@utils';
+  import { execCopy, utcDisplayTime } from '@utils';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
-  import InfoTable, { InfoTableColumn } from '../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.CheckSum>;
@@ -142,47 +140,8 @@
 
   const { t } = useI18n();
 
-  const tableData = shallowRef<RowData[]>([]);
-
-  const spanInfo: {
-    rowIndex: number;
-    rowspan: number;
-  }[] = [];
-  const clusterMap: Record<string, RowData[]> = {};
-  props.ticketDetails.details.infos.forEach((item) => {
-    const clusterItem = Object.assign(item, { rowKey: random() });
-    const clusterId = item.cluster_id;
-    if (!clusterMap[clusterId]) {
-      clusterMap[clusterId] = [clusterItem];
-    } else {
-      clusterMap[clusterId].push(clusterItem);
-    }
-  });
-
-  Object.values(clusterMap).forEach((list) => {
-    const preRow = spanInfo[spanInfo.length - 1] || {
-      rowIndex: 0,
-      rowspan: 1,
-    };
-    spanInfo.push({
-      rowIndex: preRow.rowIndex + preRow.rowspan - 1,
-      rowspan: list.length,
-    });
-    tableData.value.push(...list);
-  });
-
-  const rowspanAndColspan = ({ colIndex, rowIndex }: { colIndex: number; rowIndex: number }) => {
-    const spanItem = spanInfo.find((item) => colIndex === 0 && item.rowIndex === rowIndex);
-    if (spanItem) {
-      return {
-        rowspan: spanItem.rowspan,
-      };
-    }
-    return {};
-  };
-
   const handleCopySlave = (field: 'ip' | 'instance') => {
-    const slaves = tableData.value.reduce<RowData['slaves']>((acc, item) => {
+    const slaves = props.ticketDetails.details.infos.reduce<RowData['slaves']>((acc, item) => {
       if (item.slaves.length) {
         return [...acc, ...item.slaves];
       }
@@ -195,7 +154,7 @@
   };
 
   const handleCopyMaster = (field: 'ip' | 'instance') => {
-    const items = tableData.value.map((item) =>
+    const items = props.ticketDetails.details.infos.map((item) =>
       item.master && field === 'instance' ? `${item.master.ip}:${item.master.port}` : item.master.ip,
     );
     if (items.length > 0) {

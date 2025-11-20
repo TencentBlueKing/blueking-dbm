@@ -12,18 +12,25 @@
 -->
 
 <template>
-  <PrimaryTable :data="tableData" row-key="id">
-    <TableColumn :label="t('集群')">
+  <TicketInfoTable
+    :data="tableData"
+    row-key="id">
+    <TicketInfoTableColumn
+      col-key="id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.id].immute_domain"
+      :title="t('集群')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.id].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn :label="t('集群类型')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_type_name"
+      :title="t('集群类型')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.id].cluster_type_name }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="ts">

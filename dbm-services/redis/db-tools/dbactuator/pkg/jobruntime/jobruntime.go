@@ -103,9 +103,8 @@ func (r *JobGenericRuntime) SetLogger() {
 	r.Logger = logger.New(file, true, logger.InfoLevel, extMap)
 	r.Logger.Sync()
 	mylog.SetDefaultLogger(r.Logger)
-
 	// 修改日志目录owner
-	chownCmd := fmt.Sprintf("chown -R %s.%s %s", consts.MysqlAaccount, consts.MysqlGroup, logDir)
+	chownCmd := fmt.Sprintf("chown -R %s:%s %s", consts.MysqlAaccount, consts.MysqlGroup, logDir)
 	cmd := exec.Command("bash", "-c", chownCmd)
 	cmd.Run()
 }

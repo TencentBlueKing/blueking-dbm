@@ -3,7 +3,9 @@
     ref="menuRef"
     class="db-table-filter-type-mult-cascader"
     :style="{ 'min-width': contentMinWidth > 0 ? `${contentMinWidth}px` : '' }">
-    <div class="t-table__filter-pop-search">
+    <div
+      ref="searchBox"
+      class="t-table__filter-pop-search">
       <Input
         v-model="filterKey"
         autofocus
@@ -82,7 +84,7 @@
 
   import useMenuList from './hooks/useMenuList';
 
-  interface IListItem {
+  export interface IListItem {
     children: {
       label: string;
       value: string | number;
@@ -118,6 +120,7 @@
   const { filterKey, list, loading: isRemoteListLoading } = useMenuList<IListItem>(props);
 
   const layoutWrapperRef = useTemplateRef('layoutWrapper');
+  const searchBoxRef = useTemplateRef('searchBox');
   const contentMinWidth = ref(0);
   const expanedParent = ref<IListItem>();
   const localValueIdMap = shallowRef<Record<string, IListItem['value']>>({});
@@ -148,6 +151,12 @@
   });
 
   const calcParentCheckStatus = (parentData: IListItem) => {
+    if (props.checkStrictly) {
+      return {
+        checked: Boolean(localValueIdMap.value[parentData.value]),
+        indeterminate: false,
+      };
+    }
     let indeterminate = false;
     let checked = true;
     parentData.children.forEach((item) => {
@@ -165,7 +174,7 @@
   };
 
   const calcPanelWidth = () => {
-    setTimeout(() => {
+    nextTick(() => {
       contentMinWidth.value = Math.max(layoutWrapperRef.value!.getBoundingClientRect().width, contentMinWidth.value);
     });
   };
@@ -174,6 +183,7 @@
   watch(
     () => props.value,
     () => {
+      console.log('props.valueprops.valueprops.value = ', props.value);
       if (isInnerSelfChange) {
         isInnerSelfChange = false;
         return;
@@ -235,6 +245,8 @@
 
   const handleParentChange = (checked: boolean, data: IListItem) => {
     const latestValueMap = { ...localValueIdMap.value };
+
+    console.log('checkedcheckedcheckedchecked = ', checked);
     if (props.checkStrictly) {
       // 父级可以作为值被选中
       if (checked) {
@@ -270,6 +282,9 @@
 
   onMounted(() => {
     calcPanelWidth();
+    setTimeout(() => {
+      searchBoxRef.value!.querySelector('input')?.focus();
+    }, 100);
   });
 </script>
 <style lang="less">
@@ -277,6 +292,7 @@
     .layout-wrapper {
       display: flex;
       max-height: 280px;
+      min-width: max-content;
       margin-top: 8px;
       margin-bottom: 8px;
       overflow: hidden;

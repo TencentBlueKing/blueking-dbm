@@ -9,6 +9,7 @@ import { useGlobalBizs } from '@stores';
 
 import DatetimeRange from '@components/db-table/components/DatetimeRange.vue';
 import MultCascader from '@components/db-table/components/MultCascader.vue';
+import MultipleInput from '@components/db-table/components/MultipleInput.vue';
 
 import MultipleSelect from '@/components/db-table/components/MultipleSelect.vue';
 
@@ -54,12 +55,12 @@ export default () => {
         showConfirmAndReset: true,
       },
       cluster: {
+        component: markRaw(MultipleInput),
         name: t('集群'),
         props: {
           autofocus: true,
         },
         showConfirmAndReset: true,
-        type: 'input',
       },
       create_at: {
         component: markRaw(DatetimeRange),
@@ -122,12 +123,12 @@ export default () => {
         showConfirmAndReset: true,
       },
       ids: {
+        component: markRaw(MultipleInput),
         name: t('单号'),
         props: {
           autofocus: true,
         },
         showConfirmAndReset: true,
-        type: 'input',
       },
       remark: {
         name: t('备注'),
@@ -151,11 +152,27 @@ export default () => {
         },
         showConfirmAndReset: true,
       },
-      ticket_type: {
+      ticket_type_search: {
         component: markRaw(MultCascader),
         name: t('单据类型'),
         props: {
-          remoteMethod: getTicketGroupTypes,
+          checkStrictly: true,
+          remoteMethod: () =>
+            getTicketGroupTypes().then((data) =>
+              data.map((item) => {
+                return {
+                  children: item.children.map((child) => {
+                    return {
+                      label: child.label,
+                      value: `ticket_type__in#${child.value}`,
+                    };
+                  }),
+                  label: item.label,
+                  value: `db_type#${item.value}`,
+                };
+              }),
+            ),
+          showAllLevels: true,
         },
         showConfirmAndReset: true,
       },

@@ -71,6 +71,11 @@ func (i *ServerObj) Rotate() (lastFileBefore *models.BinlogFileModel, err error)
 	if i.dbWorker, err = i.instance.Conn(); err != nil {
 		return nil, err
 	}
+	if binlogEnabled, err := i.dbWorker.GetSingleGlobalVar("log_bin"); err != nil {
+		return nil, err
+	} else if !cmutil.ToBoolExt(binlogEnabled) {
+		return nil, cst.BinlogDisabledError
+	}
 	if i.binlogDir, _, err = i.dbWorker.GetBinlogDir(i.Port); err != nil {
 		return nil, err
 	}
@@ -110,10 +115,10 @@ func (i *ServerObj) Rotate() (lastFileBefore *models.BinlogFileModel, err error)
 // FreeSpace 实例 rotate 主逻辑
 // Remove, Backup, Purge
 func (i *ServerObj) FreeSpace() (err error) {
-	sizeToFreeBytes := i.rotate.sizeToFreeMB * 1024 * 1024           // MB to bytes
-	sizeToFreeBytesBurst := i.rotate.sizeToFreeMBBurst * 1024 * 1024 // MB to bytes
+	sizeToFreeBytes := i.rotate.sizeToFreeMB * 1024 * 1024       // MB to bytes
+	sizeToFreeBytesHard := i.rotate.hardSizeToFree * 1024 * 1024 // MB to bytes
 	logger.Info("plan to free port %d binlog bytes %d", i.Port, sizeToFreeBytes)
-	if err = i.rotate.Remove(sizeToFreeBytes, sizeToFreeBytesBurst, i); err != nil {
+	if err = i.rotate.Remove(sizeToFreeBytes, sizeToFreeBytesHard, i); err != nil {
 		logger.Error("Remove %+v", err)
 	}
 	if err = i.PurgeIndex(); err != nil {

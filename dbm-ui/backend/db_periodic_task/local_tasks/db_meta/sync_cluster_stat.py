@@ -66,7 +66,7 @@ def query_cluster_exporter_up(db_type, exporter):
     return cluster_exporter_up_map
 
 
-def query_cap(bk_biz_id, cluster_type, cap_key="used", clusters=None):
+def query_cap(bk_biz_id, cluster_type, cap_key="used", immute_domains=None):
     """查询某类集群的某种容量: used/total"""
 
     cluster_type = SAME_QUERY_TEMPLATE_CLUSTER_TYPE_MAP.get(cluster_type, cluster_type)
@@ -91,23 +91,27 @@ def query_cap(bk_biz_id, cluster_type, cap_key="used", clusters=None):
     filters = 'appid="{}"'.format(bk_biz_id)
 
     # 获取指定域名的指标数据
-    if clusters:
-        filters = '{}, cluster_domain=~"{}"'.format(filters, "|".join(c for c in clusters))
+    if immute_domains:
+        filters = '{}, cluster_domain=~"{}"'.format(filters, "|".join(c for c in immute_domains))
     params["query_configs"][0]["promql"] = query_template[cap_key] % filters
+
     series = BKMonitorV3Api.unify_query(params)["series"]
 
     cluster_bytes = {}
+    extra_info = defaultdict(dict)
     for serie in series:
         # 集群：cluster_domain | influxdb: instance_host
-        cluster_domain = list(serie["dimensions"].values())[0]
+        cluster_domain = serie["dimensions"]["cluster_domain"]
         datapoints = list(filter(lambda dp: dp[0] is not None, serie["datapoints"]))
 
         if not datapoints:
             logger.info("No datapoints for cluster: %s -> %s", cluster_domain, serie["datapoints"])
             continue
         cluster_bytes[cluster_domain] = datapoints[-1][0]
-
-    return cluster_bytes
+        if cluster_type == ClusterType.TenDBHA.value or cluster_type == ClusterType.TenDBSingle.value:
+            extra_info[cluster_domain]["mount_point"] = serie["dimensions"].get("mount_point", "")
+            extra_info[cluster_domain]["instance_host"] = serie["dimensions"].get("instance", "").split("-")[0]
+    return cluster_bytes, extra_info
 
 
 def query_cluster_capacity(bk_biz_id, cluster_type):
@@ -120,14 +124,14 @@ def query_cluster_capacity(bk_biz_id, cluster_type):
         .distinct()
     )
 
-    used_data = query_cap(bk_biz_id, cluster_type, "used")
+    used_data, _ = query_cap(bk_biz_id, cluster_type, "used")
     for cluster, used in used_data.items():
         # 排除无效集群
         if cluster not in domains:
             continue
         cluster_cap_bytes[cluster]["used"] = used
 
-    total_data = query_cap(bk_biz_id, cluster_type, "total")
+    total_data, _ = query_cap(bk_biz_id, cluster_type, "total")
     for cluster, used in total_data.items():
         # 排除无效集群
         if cluster not in domains:
@@ -137,24 +141,34 @@ def query_cluster_capacity(bk_biz_id, cluster_type):
     return cluster_cap_bytes
 
 
-def query_capacity_for_clusters(bk_biz_id, cluster_type, clusters) -> dict:
+def query_capacity_for_clusters(bk_biz_id, cluster_type, immute_domains) -> (dict, list):
     """查询指定的集群的容量"""
 
-    if not clusters:
-        raise Exception(_("参数clusters不应该为空"))
+    if not immute_domains:
+        raise Exception("immute_domains parameter is empty")
     cluster_cap_bytes = defaultdict(dict)
     no_stats = []
-    used_data = query_cap(bk_biz_id, cluster_type, "used", clusters)
-    total_data = query_cap(bk_biz_id, cluster_type, "total", clusters)
-    for cluster in clusters:
-        if cluster in used_data and cluster in total_data:
+    used_data, extra_info = query_cap(bk_biz_id, cluster_type, "used", immute_domains)
+    total_data, _ = query_cap(bk_biz_id, cluster_type, "total", immute_domains)
+    for cluster in immute_domains:
+        if cluster in used_data and cluster in total_data and cluster in extra_info:
             cluster_cap_bytes[cluster]["used"] = used_data[cluster]
             cluster_cap_bytes[cluster]["total"] = total_data[cluster]
+            cluster_cap_bytes[cluster]["mount_point"] = extra_info[cluster]["mount_point"]
+            cluster_cap_bytes[cluster]["host"] = extra_info[cluster]["instance_host"]
+            cluster_cap_bytes[cluster]["used_percent"] = "{}%".format(
+                round(used_data[cluster] / total_data[cluster] * 100.0, 2)
+            )
         else:
+            logger.error(
+                "No capacity stats for cluster: %s, used: %s, total: %s, mount_point: %s",
+                cluster,
+                used_data.get(cluster),
+                total_data.get(cluster),
+                extra_info.get(cluster),
+            )
             no_stats.append(cluster)
-    if no_stats:
-        raise Exception(_("没有[{}]集群的统计信息").format(no_stats))
-    return cluster_cap_bytes
+    return cluster_cap_bytes, no_stats
 
 
 def query_cluster_load(cluster_type, clusters) -> (dict, dict):

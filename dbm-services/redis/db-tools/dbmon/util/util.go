@@ -209,7 +209,7 @@ func LocalDirChownMysql(localDir string) (err error) {
 	if !strings.HasSuffix(localDir, "/") {
 		localDir += string(filepath.Separator)
 	}
-	cmd := fmt.Sprintf("chown -R %s.%s %s", consts.MysqlAaccount, consts.MysqlGroup, localDir)
+	cmd := fmt.Sprintf("chown -R %s:%s %s", consts.MysqlAaccount, consts.MysqlGroup, localDir)
 	_, err = RunBashCmd(cmd, "", nil, 1*time.Hour)
 	return
 }

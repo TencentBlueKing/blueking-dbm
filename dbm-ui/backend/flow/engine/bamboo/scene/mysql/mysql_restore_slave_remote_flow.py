@@ -524,7 +524,19 @@ class MySQLRestoreSlaveRemoteFlow(object):
             tendb_migrate_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
 
             tendb_migrate_pipeline.add_act(
-                act_name=_("下发db-actor到节点{}".format(target_slave.machine.ip)),
+                act_name=_("检查重做节点是否存在从库{}").format(target_slave.ip_port),
+                act_component_code=MySQLCheckBinlogDumpComponent.code,
+                kwargs=asdict(
+                    ExecuteRdsKwargs(
+                        bk_cloud_id=cluster_model.bk_cloud_id,
+                        instance_ip=target_slave.machine.ip,
+                        instance_port=target_slave.port,
+                    )
+                ),
+            )
+
+            tendb_migrate_pipeline.add_act(
+                act_name=_("下发db-actor到节点 {} {}".format(target_slave.machine.ip, master.machine.ip)),
                 act_component_code=TransFileComponent.code,
                 kwargs=asdict(
                     DownloadMediaKwargs(
@@ -553,6 +565,18 @@ class MySQLRestoreSlaveRemoteFlow(object):
             )
 
             tendb_migrate_pipeline.add_act(
+                act_name=_("检查数据库链接{}").format(target_slave.ip_port),
+                act_component_code=MySQLCheckProcesslistComponent.code,
+                kwargs=asdict(
+                    ExecuteRdsKwargs(
+                        bk_cloud_id=cluster_model.bk_cloud_id,
+                        instance_ip=target_slave.machine.ip,
+                        instance_port=target_slave.port,
+                    )
+                ),
+            )
+
+            tendb_migrate_pipeline.add_act(
                 act_name=_("屏蔽告警24小时"),
                 act_component_code=AddAlarmShieldComponent.code,
                 kwargs={
@@ -570,30 +594,6 @@ class MySQLRestoreSlaveRemoteFlow(object):
                         },
                     ],
                 },
-            )
-
-            tendb_migrate_pipeline.add_act(
-                act_name=_("检查重做节点是否存在从库{}").format(target_slave.ip_port),
-                act_component_code=MySQLCheckBinlogDumpComponent.code,
-                kwargs=asdict(
-                    ExecuteRdsKwargs(
-                        bk_cloud_id=cluster_model.bk_cloud_id,
-                        instance_ip=target_slave.machine.ip,
-                        instance_port=target_slave.port,
-                    )
-                ),
-            )
-
-            tendb_migrate_pipeline.add_act(
-                act_name=_("检查数据库链接{}").format(target_slave.ip_port),
-                act_component_code=MySQLCheckProcesslistComponent.code,
-                kwargs=asdict(
-                    ExecuteRdsKwargs(
-                        bk_cloud_id=cluster_model.bk_cloud_id,
-                        instance_ip=target_slave.machine.ip,
-                        instance_port=target_slave.port,
-                    )
-                ),
             )
 
             tendb_migrate_pipeline.add_act(

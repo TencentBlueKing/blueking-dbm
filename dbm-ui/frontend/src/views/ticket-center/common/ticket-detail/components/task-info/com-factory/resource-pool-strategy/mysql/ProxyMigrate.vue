@@ -12,11 +12,14 @@
 -->
 
 <template>
-  <InfoTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="cluster_ids">
-    <InfoTableColumn
+    <TicketInfoTableColumn
       col-key="cluster_ids"
+      :get-copy-value="
+        (row: RowData) => row.cluster_ids.map((clusterId) => ticketDetails.details.clusters[clusterId].immute_domain)
+      "
       :min-width="250"
       :title="t('目标集群')">
       <template #default="{ row: data }: { row: RowData }">
@@ -26,8 +29,8 @@
           {{ ticketDetails.details.clusters[clusterId].immute_domain }}
         </p>
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="related_instances"
       :min-width="200"
       :title="t('关联实例')">
@@ -46,16 +49,16 @@
           </p>
         </div>
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="resource_spec.target_proxies.spec_id"
       :min-width="120"
       :title="t('目标规格')">
       <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.specs?.[data.resource_spec.target_proxies?.spec_id]?.name || '--' }}
       </template>
-    </InfoTableColumn>
-    <InfoTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="resource_spec.target_proxies.label_names"
       :min-width="200"
       :title="t('资源标签')">
@@ -73,8 +76,8 @@
           {{ t('通用无标签') }}
         </BkTag>
       </template>
-    </InfoTableColumn>
-  </InfoTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -82,8 +85,6 @@
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
-
-  import InfoTable, { InfoTableColumn } from '../../components/info-table/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.ResourcePool.ProxyMigrate>;

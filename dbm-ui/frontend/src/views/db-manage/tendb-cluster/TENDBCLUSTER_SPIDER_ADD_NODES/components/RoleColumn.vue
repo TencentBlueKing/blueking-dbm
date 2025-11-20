@@ -17,16 +17,34 @@
     :label="t('扩容节点类型')"
     :min-width="150"
     required>
+    <template #headAppend>
+      <BatchEditColumn
+        v-model="showBatchEdit"
+        :data-list="defaultOptions"
+        :title="t('扩容节点类型')"
+        type="select"
+        @change="handleBatchEditChange">
+        <span
+          v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
+          class="batch-edit-btn"
+          @click="handleBatchEditShow">
+          <DbIcon type="bulk-edit" />
+        </span>
+      </BatchEditColumn>
+    </template>
     <EditableSelect
       v-model="modelValue"
       :input-search="false"
-      :list="renderList" />
+      :list="renderList"
+      @change="handleChange" />
   </EditableColumn>
 </template>
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
+
+  import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
   interface Props {
     cluster: {
@@ -35,9 +53,17 @@
     };
   }
 
+  type Emits = (e: 'batch-edit', value: string[], field: string) => void;
+
   const props = defineProps<Props>();
 
+  const emits = defineEmits<Emits>();
+
   const modelValue = defineModel<string>({
+    required: true,
+  });
+
+  const roleCount = defineModel<number>('roleCount', {
     required: true,
   });
 
@@ -60,7 +86,33 @@
 
   watch(renderList, () => {
     if (!modelValue.value) {
-      modelValue.value = renderList.value?.[0]?.value || '';
+      const role = renderList.value?.[0]?.value;
+      if (role) {
+        modelValue.value = role;
+        roleCount.value = props.cluster[role as keyof Props['cluster']].length;
+      }
     }
   });
+
+  const showBatchEdit = ref(false);
+
+  const handleBatchEditShow = () => {
+    showBatchEdit.value = true;
+  };
+
+  const handleBatchEditChange = (value: string[] | string) => {
+    emits('batch-edit', value as string[], 'role');
+  };
+
+  const handleChange = (role: string) => {
+    roleCount.value = props.cluster[role as keyof Props['cluster']].length;
+  };
 </script>
+
+<style lang="less" scoped>
+  .batch-edit-btn {
+    font-size: 14px;
+    color: #3a84ff;
+    cursor: pointer;
+  }
+</style>

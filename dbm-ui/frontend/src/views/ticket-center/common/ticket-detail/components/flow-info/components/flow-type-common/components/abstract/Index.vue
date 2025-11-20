@@ -6,17 +6,18 @@
       <TableCollapse
         v-for="(item, index) in abstractList"
         :key="index"
-        :title="item.table_name">
-        <PrimaryTable
+        :title="item.table_display_name || item.table_name">
+        <TicketInfoTable
           :data="item.values"
           header-row-class-name="abstract-table-header-row"
           :row-key="item.titles[0].field">
-          <TableColumn
+          <TicketInfoTableColumn
             v-for="titleItem in item.titles"
             :key="titleItem.field"
             :col-key="titleItem.field"
+            :get-copy-value="titleItem.field === 'ip' ? (row) => row.ip : undefined"
             :title="titleItem.label" />
-        </PrimaryTable>
+        </TicketInfoTable>
       </TableCollapse>
     </div>
   </FlowCollapse>
@@ -50,7 +51,7 @@
           ...item,
           titles: item.titles.map((item) => ({
             field: item.id,
-            label: item.table_display_name || item.display_name,
+            label: item.display_name,
           })),
         };
       });

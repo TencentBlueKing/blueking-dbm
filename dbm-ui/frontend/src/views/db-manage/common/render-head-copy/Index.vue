@@ -94,6 +94,7 @@
         appendTo: () => document.body,
         arrow: false,
         content: popRef.value,
+        delay: [200, 0],
         hideOnClick: true,
         interactive: true,
         maxWidth: 'none',
@@ -124,18 +125,16 @@
   .render-head-copy {
     width: 100%;
 
-    &:hover {
-      [class*='db-icon'] {
-        display: inline !important;
-      }
-    }
-
     [class*='db-icon'] {
-      display: none;
       margin-top: 1px;
       margin-left: 4px;
-      color: @primary-color;
       cursor: pointer;
+
+      &:hover {
+        [class*='db-icon'] {
+          color: @primary-color;
+        }
+      }
     }
 
     .is-active {

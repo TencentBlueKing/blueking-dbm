@@ -49,19 +49,30 @@ def _format_process_infos(rows: list[dict], info_max_len: int = 120) -> str:
         return ""
 
     # Candidate columns and mapping to display headers
+    # Support both lowercase and uppercase field names from different data sources
     candidates = [
-        ("check_address", "check_address"),
-        ("Command", "COMMAND"),
-        ("Db", "DB"),
-        ("Rows_examined", "EXAMINED_ROWS"),
-        ("Host", "HOST"),
-        ("Id", "ID"),
-        ("Info", "INFO"),
-        ("Time", "TIME"),
-        ("State", "STATE"),
+        (["check_address"], "check_address"),
+        (["Command", "COMMAND"], "COMMAND"),
+        (["Db", "DB"], "DB"),
+        (["Rows_examined", "ROWS_EXAMINED"], "EXAMINED_ROWS"),
+        (["Host", "HOST"], "HOST"),
+        (["Id", "ID"], "ID"),
+        (["Info", "INFO"], "INFO"),
+        (["Time", "TIME"], "TIME"),
+        (["State", "STATE"], "STATE"),
     ]
-    # Pick columns that exist in any row
-    cols = [(k, hdr) for (k, hdr) in candidates if any(k in r for r in rows) or k == "check_address"]
+
+    # Build column list with actual field names found in data
+    cols = []
+    for field_variants, display_name in candidates:
+        # Find which variant exists in the data
+        actual_field = None
+        for variant in field_variants:
+            if any(variant in r for r in rows):
+                actual_field = variant
+                break
+        if actual_field or field_variants[0] == "check_address":
+            cols.append((actual_field or field_variants[0], display_name))
 
     # Prepare values and compute widths
     values = []
@@ -70,7 +81,7 @@ def _format_process_infos(rows: list[dict], info_max_len: int = 120) -> str:
         row_vals = []
         for idx, (k, hdr) in enumerate(cols):
             v = r.get(k, "")
-            if k == "Info":
+            if k in ["Info", "INFO"]:
                 v = _truncate_middle(v, max_len=info_max_len)
             v_str = "" if v is None else str(v)
             row_vals.append(v_str)

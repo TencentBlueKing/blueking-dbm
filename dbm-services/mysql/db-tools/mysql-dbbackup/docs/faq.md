@@ -280,3 +280,10 @@ mydumper 备份发起的时候，检测到长 sql 执行中（但还没超过`--
 执行逻辑备份的时候刚开始的时候，有慢查询没结束。可以在 `logs/dbbackup_dump.log` 备份日志里看到当时的 processlist, 关键字 _get processlist for backup failed_
 
 #### 7. DDLoperation has been performed
+
+#### 8. InnoDB: Error: could not open single-table tablespace file xxx
+ibd 文件太多了，超过 os 打开文件数量的现在。
+可以给 mysql 用户设置更大的 ulimit，比如修改：`/etc/security/limits.conf`
+```
+mysql   -       nofile          512000
+```

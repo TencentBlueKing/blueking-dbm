@@ -861,7 +861,7 @@ func (task *RedisInsKeyPatternTask) tendisSSDAllKeys() {
 		return
 	}
 	task.runtime.Logger.Info("grepCommand:%s success", grepCmd)
-	util.RunLocalCmd("bash", []string{"-c", fmt.Sprintf("chown -R mysql.mysql %s", task.SaveDir)}, "", nil, 10*time.Second)
+	util.RunLocalCmd("bash", []string{"-c", fmt.Sprintf("chown -R mysql:mysql %s", task.SaveDir)}, "", nil, 10*time.Second)
 
 	// 清理task.KeysFile
 	task.ClearKeysFile()
@@ -1191,7 +1191,7 @@ func (task *RedisInsKeyPatternTask) GetTendisKeys() {
 // getKeysFromRegex 根据正则获取key
 func (task *RedisInsKeyPatternTask) getKeysFromRegex() {
 	task.setResultFile()
-	file, err := os.OpenFile(task.ResultFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0755)
+	file, err := os.OpenFile(task.ResultFile, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0755)
 	if err != nil {
 		task.Err = fmt.Errorf("getKeysFromRegex os.OpenFile fail,err:%v,resultFile:%s", err, task.ResultFile)
 		task.runtime.Logger.Error(task.Err.Error())

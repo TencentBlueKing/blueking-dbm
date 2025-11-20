@@ -89,3 +89,15 @@ func InitTestTable(connStr string, table string, modelPtr interface{}) {
 		log.Fatal(err)
 	}
 }
+
+// ExecSQL 初始化测试数据库
+func ExecSQL(connStr string, sql string) *gorm.DB {
+	db, err := gorm.Open(mysqldriver.Open(connStr), &gorm.Config{})
+	if err != nil {
+		log.Fatalf("failed to connect database: %v", err)
+	}
+	if err := db.Exec(sql).Error; err != nil {
+		log.Fatalf("failed to create database bkdata_basic: %v", err)
+	}
+	return db
+}

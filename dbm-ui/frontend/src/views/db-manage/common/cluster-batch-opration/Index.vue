@@ -54,6 +54,7 @@
   import MongodbModel from '@services/model/mongodb/mongodb';
   import TendbHaModel from '@services/model/mysql/tendbha';
   import TendbSingleModel from '@services/model/mysql/tendbsingle';
+  import PulsarModel from '@services/model/pulsar/pulsar';
   import RedisModel from '@services/model/redis/redis';
   import RiakModel from '@services/model/riak/riak';
   import SqlserverHaModel from '@services/model/sqlserver/sqlserver-ha';
@@ -69,6 +70,7 @@
     [ClusterTypes.KAFKA]: KafkaModel;
     [ClusterTypes.MONGO_REPLICA_SET]: MongodbModel;
     [ClusterTypes.MONGO_SHARED_CLUSTER]: MongodbModel;
+    [ClusterTypes.PULSAR]: PulsarModel;
     [ClusterTypes.REDIS_INSTANCE]: RedisModel;
     [ClusterTypes.REDIS]: RedisModel;
     [ClusterTypes.RIAK]: RiakModel;

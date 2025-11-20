@@ -7,6 +7,13 @@ import type { ResourcePoolDetailBase } from '../../common';
 export interface SpiderSwitchNodes extends ResourcePoolDetailBase {
   infos: {
     cluster_id: number;
+    old_nodes: {
+      [x in string]: {
+        bk_cloud_id: number;
+        bk_host_id: number;
+        ip: string;
+      }[];
+    };
     resource_spec: {
       [x in string]: {
         count: number;
@@ -24,16 +31,4 @@ export interface SpiderSwitchNodes extends ResourcePoolDetailBase {
     switch_spider_role: string;
   }[];
   is_safe: boolean;
-  old_nodes: {
-    spider_master: {
-      bk_cloud_id: number;
-      bk_host_id: number;
-      ip: string;
-    }[];
-    spider_slave: {
-      bk_cloud_id: number;
-      bk_host_id: number;
-      ip: string;
-    }[];
-  };
 }

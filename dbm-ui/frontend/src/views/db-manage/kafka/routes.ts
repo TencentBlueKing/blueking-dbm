@@ -16,6 +16,8 @@ import type { RouteRecordRaw } from 'vue-router';
 import type { BigdataFunctions } from '@services/model/function-controller/functionController';
 import FunctionControllModel from '@services/model/function-controller/functionController';
 
+import { DBTypes } from '@common/const';
+
 import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
@@ -23,6 +25,7 @@ const routes: RouteRecordRaw[] = [
     path: 'kafka',
     name: 'KafkaManage',
     meta: {
+      dbType: DBTypes.KAFKA,
       navName: t('Kafka_集群管理'),
     },
     redirect: {
@@ -30,19 +33,10 @@ const routes: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/kafka/Index.vue'),
     children: [
-      // {
-      //   name: 'KafkaApply',
-      //   path: 'apply',
-      //   meta: {
-      //     navName: t('申请Kafka集群部署'),
-      //   },
-      //   component: () => import('@views/db-manage/kafka/apply/Index.vue'),
-      // },
       {
         path: 'list/:clusterId?',
         name: 'KafkaList',
         meta: {
-          fullscreen: true,
           navName: t('Kafka_集群管理'),
         },
         component: () => import('@views/db-manage/kafka/list/Index.vue'),

@@ -77,7 +77,7 @@ class AffinityEnum(StrStructuredEnum):
     NONE = EnumField("NONE", _("无"))
     MAX_EACH_ZONE_EQUAL = EnumField("MAX_EACH_ZONE_EQUAL", _("每个subzone尽量均匀分布"))
     # mongodb专属
-    MAJORITY_ELECTION_DISTRI = EnumField("MAJORITY_ELECTION_DISTRI", _("跨园区(至少跨2个园区,mongo专属)"))
+    MAJORITY_ELECTION_DISTRI = EnumField("MAJORITY_ELECTION_DISTRI", _("跨园区(弱)"))
 
 
 class DBType(StrStructuredEnum):
@@ -115,7 +115,6 @@ class SystemSettingsEnum(StrStructuredEnum):
     # 主机默认统一转移到 DBM 业务下托管，若业务 ID 属于这个列表，则转移到对应的业务下
     INDEPENDENT_HOSTING_BIZS = EnumField("INDEPENDENT_HOSTING_BIZS", _("独立托管机器的业务列表"))
     BF_WHITELIST_BIZS = EnumField("BF_WHITELIST_BIZS", _("BF业务白名单"))
-    EXTERNAL_WHITELIST_CLUSTER_IDS = EnumField("EXTERNAL_WHITELIST_CLUSTER_IDS", _("外部访问集群ID白名单列表"))
     SPEC_OFFSET = EnumField("SPEC_OFFSET", _("默认的规格参数偏移量"))
     DEVICE_CLASSES = EnumField("DEVICE_CLASSES", _("机型列表"))
     BKM_DUTY_NOTICE = EnumField("BKM_DUTY_NOTICE", _("轮值通知设置"))
@@ -125,6 +124,8 @@ class SystemSettingsEnum(StrStructuredEnum):
     SYSTEM_MSG_TYPE = EnumField("SYSTEM_MSG_TYPE", _("系统消息通知方式"))
     PADDING_PROXY_CLUSTER_LIST = EnumField("PADDING_PROXY_CLUSTER_LIST", _("补全proxy的集群域名列表"))
     EXCLUSIVE_TICKET_MAP = EnumField("EXCLUSIVE_TICKET_MAP", _("单据互斥表(全局)"))
+    # 巡检配置
+    DB_REPORT_EXCLUDE_BIZS = EnumField("DB_REPORT_EXCLUDE_BIZS", _("巡检报告排除业务列表"))
     # ITSM配置
     BK_ITSM_SERVICE_ID = EnumField("BK_ITSM_SERVICE_ID", _("DBM的流程服务ID"))
     ITSM_APPROVAL_KEY = EnumField("ITSM_APPROVAL_KEY", _("ITSM审批意见key"))
@@ -159,6 +160,10 @@ class SystemSettingsEnum(StrStructuredEnum):
     OPERATION_DATA_SWITCH = EnumField("OPERATION_DATA_SWITCH", _("运营数据开关"))
     # 常用城市配置
     COMMON_CITIES = EnumField("COMMON_CITIES", _("常用城市配置"))
+    # 各组件负责的机器人
+    DBA_ROBOT = EnumField("DBA_ROBOT", _("各组件负责的机器人"))
+    # Redis 回档演练配置
+    REDIS_ROLLBACK_EXERCISE = EnumField("REDIS_ROLLBACK_EXERCISE", _("Redis回档演练配置"))
 
 
 class BizSettingsEnum(StrStructuredEnum):
@@ -172,6 +177,14 @@ class BizSettingsEnum(StrStructuredEnum):
     BIZ_ASSISTANCE_VARS = EnumField("BIZ_ASSISTANCE_VARS", _("业务协助人员变量"))
     BIZ_ASSISTANCE_SWITCH = EnumField("BIZ_ASSISTANCE_SWITCH", _("业务协助开关"))
     NOTIFY_CONFIG = EnumField("NOTIFY_CONFIG", _("业务通知渠道配置"))
+
+
+class RedisFastRecoverEnum(StrStructuredEnum):
+    """Redis 快速剔除、恢复 统一入口管理"""
+
+    PROXY_ENTRY_KICKOFF = EnumField("PROXY_ENTRY_KICKOFF", _("踢掉所有接入层"))
+    PROXY_ENTRY_FIX = EnumField("PROXY_ENTRY_FIX", _("修复接入层"))
+    SLAVE_REUSE_FIX = EnumField("SLAVE_REUSE_FIX", _("SLAVE重启后复用"))
 
 
 DEFAULT_DB_ADMINISTRATORS = ["admin"]

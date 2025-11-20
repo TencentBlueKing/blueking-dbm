@@ -98,22 +98,22 @@
         <InfoItem
           :label="t('集群部署方案')"
           style="flex: 1 0 100%">
-          <PrimaryTable
+          <TicketInfoTable
             :data="[ticketDetails.details.resource_spec.backend_group.spec_info]"
             row-key="spec_name">
-            <TableColumn
+            <TicketInfoTableColumn
               col-key="spec_name"
               :title="t('资源规格')" />
-            <TableColumn
+            <TicketInfoTableColumn
               col-key="machine_pair"
               :title="t('需机器组数')" />
-            <TableColumn
+            <TicketInfoTableColumn
               col-key="cluster_shard_num"
               :title="t('集群分片')" />
-            <TableColumn
+            <TicketInfoTableColumn
               col-key="cluster_capacity"
               :title="t('集群容量G')" />
-          </PrimaryTable>
+          </TicketInfoTable>
         </InfoItem>
       </template>
     </InfoList>

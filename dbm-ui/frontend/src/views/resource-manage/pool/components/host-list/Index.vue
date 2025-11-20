@@ -105,6 +105,7 @@
         :to="{
           name: props.type === ResourcePool.global ? 'ticketPlatformManage' : 'bizTicketManage',
           query: {
+            ticket_type_search: `ticket_type__in#${TicketTypes.RESOURCE_IMPORT}`,
             ticket_type__in: TicketTypes.RESOURCE_IMPORT,
           },
         }">

@@ -117,15 +117,6 @@ class SystemSettings(AbstractSettings):
             desc=constants.SystemSettingsEnum.get_choice_label(key),
         )
 
-    @classmethod
-    def get_external_whitelist_cluster_ids(cls) -> List:
-        return [
-            conf["cluster_id"]
-            for conf in cls.get_setting_value(
-                key=constants.SystemSettingsEnum.EXTERNAL_WHITELIST_CLUSTER_IDS.value, default=[]
-            )
-        ]
-
 
 class BizSettings(AbstractSettings):
     """业务配置表"""

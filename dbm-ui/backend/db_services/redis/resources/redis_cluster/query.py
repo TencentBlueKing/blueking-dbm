@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List
 
 from django.db import connection
 from django.db.models import Q, QuerySet
@@ -148,6 +148,27 @@ class RedisListRetrieveResource(query.ListRetrieveResource, RedisExportQueryReso
     ]
 
     redis_cluster_module_map = {}
+
+    @classmethod
+    def _list_clusters(
+        cls,
+        bk_biz_id: int,
+        query_params: Dict,
+        limit: int,
+        offset: int,
+        filter_params_map: Dict[str, Q] = None,
+        filter_func_map: Dict[str, Callable] = None,
+        **kwargs,
+    ) -> ResourceList:
+        """查询集群信息"""
+        filter_params_map = {
+            # 查询集群架构
+            "redis_cluster_type": Q(cluster_type__in=query_params.get("redis_cluster_type", "").split(",")),
+        }
+
+        return super()._list_clusters(
+            bk_biz_id, query_params, limit, offset, filter_params_map, filter_func_map, **kwargs
+        )
 
     @classmethod
     def get_topo_graph(cls, bk_biz_id: int, cluster_id: int) -> dict:

@@ -12,32 +12,33 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     class="details-reboot__table"
-    :data="dataList">
-    <TableColumn
+    :data="dataList"
+    row-key="cluster_id">
+    <TicketInfoTableColumn
       col-key="cluster_id"
       :title="t('集群ID')">
       <template #default="{ row }">
         <span>{{ row.cluster_id || '--' }}</span>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="immute_domain"
       :ellipsis="false"
       :title="t('集群名称')">
       <template #default="{ row }">
         {{ row.immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="cluster_type_name"
       :title="t('集群类型')">
       <template #default="{ row }">
         <span>{{ row.cluster_type_name || '--' }}</span>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="node_ip"
       :title="t('节点IP')">
       <template #default="{ row }">
@@ -56,8 +57,8 @@
         </div>
         <span v-else>--</span>
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">

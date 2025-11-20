@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	rf "github.com/gin-gonic/gin"
+	"github.com/samber/lo"
 	"gorm.io/gorm"
 
 	"dbm-services/common/db-resource/internal/model"
@@ -49,6 +50,7 @@ type MachineResourceGetterInputParam struct {
 	OsNames       []string          `json:"os_names"`
 	ExcludeOsName bool              `json:"exclude_os_name"`
 	StorageSpecs  []meta.DiskSpec   `json:"storage_spec"`
+	CreateTime    string            `json:"create_time"`
 	// true,false,""
 	GseAgentAlive string `json:"gse_agent_alive"`
 	Limit         int    `json:"limit"`
@@ -229,7 +231,7 @@ func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) (err error) {
 	if len(c.Labels) > 0 {
 		db.Where(model.JSONQuery("labels").JointOrContains(c.Labels))
 	}
-	if cmutil.IsNotEmpty(c.OsType) {
+	if lo.IsNotEmpty(c.OsType) {
 		db.Where("os_type = ?", c.OsType)
 	}
 	if len(c.OsNames) > 0 {
@@ -238,6 +240,9 @@ func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) (err error) {
 		} else {
 			db.Where("os_name in (?)", c.OsNames)
 		}
+	}
+	if !lo.IsNotEmpty(c.CreateTime) {
+		db.Where("create_time >= ?", c.CreateTime)
 	}
 	db.Order("create_time desc")
 	return nil

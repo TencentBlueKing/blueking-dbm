@@ -25,47 +25,47 @@
     <InfoItem
       :label="t('权限明细')"
       style="flex: 1 0 100%">
-      <PrimaryTable
+      <TicketInfoTable
         class="mongo-permission-table"
         :data="ruleList"
         row-key="username">
-        <TableColumn
+        <TicketInfoTableColumn
           col-key="user"
           :title="t('账号名称')"
           :width="200">
-          <template #default="{ row:data }: { row: dataItem }">
+          <template #default="{ row }: { row: dataItem }">
             <div
               class="mongo-permission-cell"
-              @click="() => handleToggleExpand(data)">
+              @click="() => handleToggleExpand(row)">
               <DbIcon
-                v-if="data.rule_sets.length > 1"
+                v-if="row.rule_sets.length > 1"
                 class="user-icon"
-                :class="[{ 'user-icon-expand': data.isExpand }]"
+                :class="[{ 'user-icon-expand': row.isExpand }]"
                 type="down-shape" />
-              <div class="user-name">{{ data.username }}</div>
+              <div class="user-name">{{ row.username }}</div>
             </div>
           </template>
-        </TableColumn>
-        <TableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="access_db"
           :title="t('访问 DB')"
           :width="300">
-          <template #default="{ row:data }: { row: dataItem }">
+          <template #default="{ row }: { row: dataItem }">
             <div
-              v-for="(rule, ruleIndex) in getRenderList(data)"
+              v-for="(rule, ruleIndex) in getRenderList(row)"
               :key="ruleIndex"
               class="mongo-permission-cell">
               <BkTag>{{ rule.db }}</BkTag>
             </div>
           </template>
-        </TableColumn>
-        <TableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="privilege"
           :min-width="300"
           :title="t('权限')">
-          <template #default="{ row:data }: { row: dataItem }">
+          <template #default="{ row }: { row: dataItem }">
             <div
-              v-for="(rule, ruleIndex) in getRenderList(data)"
+              v-for="(rule, ruleIndex) in getRenderList(row)"
               :key="ruleIndex"
               class="mongo-permission-cell">
               <TextOverflowLayout>
@@ -73,8 +73,8 @@
               </TextOverflowLayout>
             </div>
           </template>
-        </TableColumn>
-      </PrimaryTable>
+        </TicketInfoTableColumn>
+      </TicketInfoTable>
     </InfoItem>
   </InfoList>
   <TargetClusterPreview

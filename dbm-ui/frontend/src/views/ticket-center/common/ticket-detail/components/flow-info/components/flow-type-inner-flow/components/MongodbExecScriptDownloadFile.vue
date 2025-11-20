@@ -9,14 +9,13 @@
     v-model:is-show="isShow"
     :title="t('查看结果文件')"
     :width="1140">
-    <PrimaryTable
+    <TicketInfoTable
       :data="details.ticket_data.rules"
-      :height="460"
       row-key="path">
-      <TableColumn
+      <TicketInfoTableColumn
         col-key="path"
         :title="t('路径')" />
-      <TableColumn
+      <TicketInfoTableColumn
         col-key="operation"
         :title="t('操作')"
         :width="100">
@@ -28,8 +27,8 @@
             {{ t('下载') }}
           </BkButton>
         </template>
-      </TableColumn>
-    </PrimaryTable>
+      </TicketInfoTableColumn>
+    </TicketInfoTable>
     <template #footer>
       <BkButton @click="handleClose">{{ t('关闭') }}</BkButton>
     </template>

@@ -14,6 +14,7 @@ from django.db.models import F, Value
 from django.db.models.functions import Concat
 
 from backend.components.hadb.client import HADBApi
+from backend.db_report.enums import ReportStateType
 from backend.db_report.models.failover_drill_report import FailoverDrillReport
 from backend.utils.basic import generate_root_id
 
@@ -78,12 +79,12 @@ class BaseFailoverDrill:
         resp = HADBApi.switch_queue(params={"name": "query_switch_queue", "query_args": kwargs}, raw=True)
         return resp
 
-    def update_drill_task_report(self, info: str, status: bool = False, task_status: str = "failed"):
+    def update_drill_task_report(self, info: str, state=ReportStateType.ABNORMAL, task_status: str = "failed"):
         """
         用来更新于容灾演练任务有关的信息，不涉及DBHA相关信息
         """
         FailoverDrillReport.objects.filter(main_task_id=self.main_task_id).update(
-            status=status, task_info=Concat(F("task_info"), Value("\n-- "), Value(info)), task_status=task_status
+            state=state, task_info=Concat(F("task_info"), Value("\n-- "), Value(info)), task_status=task_status
         )
 
     def update_drill_report(self, dbha_infos):
@@ -91,3 +92,20 @@ class BaseFailoverDrill:
         更新DBHA相关信息
         """
         raise NotImplementedError
+
+
+def delete_old_failover_drill_records(cluster_types: list = None, days_look_back: int = 365) -> int:
+    """
+    Delete failover drill records older than specified days.
+    """
+    cutoff_date = datetime.now() - timedelta(days=days_look_back)
+    query = FailoverDrillReport.objects.filter(
+        create_at__lt=cutoff_date,
+    )
+
+    if cluster_types:
+        query = query.filter(cluster_type__in=cluster_types)
+
+    deleted_count, _d = query.delete()
+
+    return deleted_count

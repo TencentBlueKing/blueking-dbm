@@ -17,65 +17,66 @@
       {{ ticketDetails.details.shrink_type === 'HOST' ? t('指定主机缩容') : t('指定数量缩容') }}
     </InfoItem>
   </InfoList>
-  <PrimaryTable
+  <TicketInfoTable
     v-if="ticketDetails.details.shrink_type === 'HOST'"
     :data="tableData"
     row-key="ip"
     :rowspan-and-colspan="rowspanAndColspan">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="ip"
+      :get-copy-value="(row: HostTableRow) => row.ip"
       :min-width="200"
       :title="t('目标主机')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="role"
       :min-width="150"
       :title="t('缩容节点类型')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="domain"
       :min-width="250"
       :title="t('关联集群')" />
-  </PrimaryTable>
-  <PrimaryTable
+  </TicketInfoTable>
+  <TicketInfoTable
     v-else
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="immute_domain"
       :min-width="200"
       :title="t('目标集群')">
       <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters?.[data.cluster_id]?.immute_domain || '--' }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="reduce_spider_role"
       :min-width="150"
       :title="t('缩容节点类型')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.reduce_spider_role === 'spider_master' ? 'Spider Master' : 'Spider Slave' }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="total"
       :min-width="100"
       :title="t('当前数量(台)')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.old_nodes.spider_reduced_hosts.length + data.spider_reduced_to_count }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="spider_reduced_hosts"
       :min-width="100"
       :title="t('缩容数量(台)')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.old_nodes.spider_reduced_hosts.length }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="spider_reduced_to_count"
       :min-width="100"
       :title="t('剩余数量(台)')" />
-  </PrimaryTable>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('检查业务连接')">
       {{ ticketDetails.details.is_safe ? t('是') : t('否') }}
@@ -136,7 +137,7 @@
   });
 
   const rowspanAndColspan = ({ colIndex, rowIndex }: { colIndex: number; rowIndex: number }) => {
-    const spanItem = spanInfo.find((item) => colIndex === 2 && item.rowIndex === rowIndex);
+    const spanItem = spanInfo.find((item) => (colIndex === 2 || colIndex === 1) && item.rowIndex === rowIndex);
     if (spanItem) {
       return {
         rowspan: spanItem.rowspan,

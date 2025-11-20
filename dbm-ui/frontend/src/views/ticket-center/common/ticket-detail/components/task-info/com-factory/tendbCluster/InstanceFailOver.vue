@@ -12,25 +12,32 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
-    <TableColumn :title="t('故障主库实例')">
+    <TicketInfoTableColumn
+      col-key="master"
+      :get-copy-value="(row: RowData) => `${row.switch_tuples[0]?.master?.ip}:${row.switch_tuples[0]?.master?.port}`"
+      :title="t('故障主库实例')">
       <template #default="{ row: data }: { row: RowData }">
         {{ `${data.switch_tuples[0]?.master?.ip}:${data.switch_tuples[0]?.master?.port}` }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('从库实例')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="slave"
+      :title="t('从库实例')">
       <template #default="{ row: data }: { row: RowData }">
         {{ `${data.switch_tuples[0]?.slave?.ip}:${data.switch_tuples[0]?.slave?.port}` }}
       </template>
-    </TableColumn>
-    <TableColumn :title="t('所属集群')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="immute_domain"
+      :title="t('所属集群')">
       <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('检查业务来源的连接')">
       {{ ticketDetails.details.is_check_process ? t('是') : t('否') }}

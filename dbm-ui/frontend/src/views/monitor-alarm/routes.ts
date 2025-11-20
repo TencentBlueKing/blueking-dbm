@@ -50,7 +50,7 @@ export default function getRoutes() {
           name: 'PlatGlobalStrategy',
           meta: {
             fullscreen: true,
-            navName: t('全局策略'),
+            navName: t('全局告警策略'),
           },
           component: () => import('@views/monitor-alarm/global-strategy/Index.vue'),
         },
@@ -91,7 +91,7 @@ export default function getRoutes() {
           name: 'monitorStrategy',
           meta: {
             fullscreen: true,
-            navName: t('监控策略'),
+            navName: t('告警策略'),
             tags: [
               {
                 text: t('业务'),

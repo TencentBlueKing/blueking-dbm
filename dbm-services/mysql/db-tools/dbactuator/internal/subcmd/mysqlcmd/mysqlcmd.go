@@ -39,7 +39,7 @@ func NewMysqlCommand() *cobra.Command {
 				MycnfChangeCommand(),
 				FindLocalBackupCommand(),
 				MycnfCloneCommand(),
-				NewCutOverToSlaveCommnad(),
+				NewCutOverToSlaveCommand(),
 				CleanMysqlCommand(),
 				PtTableSyncCommand(),
 				ParseBinlogTimeCommand(),

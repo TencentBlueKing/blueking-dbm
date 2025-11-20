@@ -4,6 +4,7 @@
     :loading="isLoading">
     <div ref="tableWrapper">
       <PrimaryTable
+        :key="tableKey"
         ref="table"
         :bk-ui-settings="tableSettings"
         :data="dataList"
@@ -11,6 +12,7 @@
         :filter-row="(null as any)"
         :filter-value="quickSearchValue"
         :max-height="tableMaxHeight"
+        resizable
         :row-class-name="rowClass"
         row-key="id"
         title-ellipsis
@@ -109,8 +111,8 @@
           </template>
         </TableColumn>
         <TableColumn
-          col-key="ticket_type__in"
-          :filter="tableFilter['ticket_type']"
+          col-key="ticket_type_search"
+          :filter="tableFilter['ticket_type_search']"
           :min-width="200"
           :title="t('单据类型')">
           <template #default="{ row }: { row: IRowData }">
@@ -370,6 +372,7 @@
   const table = ref();
 
   const rootRef = useTemplateRef('tableWrapper');
+  const tableKey = ref(Date.now().toString());
   const tableMaxHeight = ref<number | 'auto'>('auto');
   const isWholeChecked = ref(false);
   const isCurrentPageAllSelected = ref(false);
@@ -394,6 +397,7 @@
 
   const fetchData = () => {
     fetchTicketList(transfromDataToQuery(quickSearchValue.value));
+    tableKey.value = Date.now().toString();
   };
 
   const { run: fetchInnerFlowInfo } = useRequest(getInnerFlowInfo, {

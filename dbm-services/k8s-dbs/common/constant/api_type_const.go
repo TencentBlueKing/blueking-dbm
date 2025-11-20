@@ -84,10 +84,88 @@ const (
 	APIK8sPodRawLog  = "v4_dbs_k8s_pod_raw_log"
 )
 
-// meta api
+// addon category meta api
 const (
-	APIMetaAddonCategoryCreate = "v4_dbs_metadata_addon_category_create"
-	APIMetaAddonCategoryList   = "v4_dbs_metadata_addon_category_list"
+	APIMetaAddonCategoryCreate = "v4_dbs_meta_addon_category_create"
+	APIMetaAddonCategoryList   = "v4_dbs_meta_addon_category_list"
+)
+
+// addon meta api
+const (
+	APIMetaAddonList     = "v4_dbs_meta_addon_list"
+	APIMetaAddonDetail   = "v4_dbs_meta_addon_detail"
+	APIMetaAddonVersions = "v4_dbs_meta_addon_versions"
+	APIMetaAddonCreate   = "v4_dbs_meta_addon_create"
+	APIMetaAddonDelete   = "v4_dbs_meta_addon_delete"
+	APIMetaAddonUpdate   = "v4_dbs_meta_addon_update"
+)
+
+// addon repo meta api
+const (
+	APIMetaAddonRepoDetail = "v4_dbs_meta_addon_repo_detail"
+	APIMetaAddonRepoSearch = "v4_dbs_meta_addon_repo_search"
+	APIMetaAddonRepoCreate = "v4_dbs_meta_addon_repo_create"
+)
+
+// addon cluster repo meta api
+const (
+	APIMetaAddonClusterRepoDetail = "v4_dbs_meta_addon_cluster_repo_detail"
+	APIMetaAddonClusterRepoSearch = "v4_dbs_meta_addon_cluster_repo_search"
+	APIMetaAddonClusterRepoCreate = "v4_dbs_meta_addon_cluster_repo_create"
+)
+
+// addon topo meta api
+const (
+	APIMetaAddonTopoCreate = "v4_dbs_meta_addon_topo_create"
+	APIMetaAddonTopoDetail = "v4_dbs_meta_addon_topo_detail"
+	APIMetaAddonTopoSearch = "v4_dbs_meta_addon_topo_search"
+)
+
+// addon type meta api
+const (
+	APIMetaAddonTypeList   = "v4_dbs_meta_addon_type_list"
+	APIMetaAddonTypeCreate = "v4_dbs_meta_addon_type_create"
+)
+
+// APIMetaClusterRequestList cluster request meta api
+const (
+	APIMetaClusterRequestList = "v4_dbs_meta_cluster_request_list"
+)
+
+// cluster meta api
+const (
+	APIMetaClusterDetail         = "v4_dbs_meta_cluster_detail"
+	APIMetaClusterList           = "v4_dbs_meta_cluster_list"
+	APIMetaClusterTopologyDetail = "v4_dbs_meta_cluster_topology_detail"
+)
+
+// APIMetaComponentDetail component meta api
+const (
+	APIMetaComponentDetail = "v4_dbs_meta_component_detail"
+)
+
+// cluster addon meta api
+const (
+	APIMetaClusterAddonDetail = "v4_dbs_meta_cluster_addon_detail"
+	APIMetaClusterAddonByName = "v4_dbs_meta_cluster_addon_name"
+)
+
+// operation meta api
+const (
+	APIMetaOpDefList   = "v4_dbs_meta_op_def_list"
+	APIMetaOpDefCreate = "v4_dbs_meta_op_def_create"
+)
+
+// cluster operation meta api
+const (
+	APIMetaClusterOpDefList   = "v4_dbs_meta_cluster_op_def_list"
+	APIMetaClusterOpDefCreate = "v4_dbs_meta_cluster_op_def_create"
+)
+
+// component operation meta api
+const (
+	APIMetaComponentOpDefList   = "v4_dbs_meta_component_op_def_list"
+	APIMetaComponentOpDefCreate = "v4_dbs_meta_component_op_def_create"
 )
 
 // APIGroups 存储 API 名称到分组的映射
@@ -152,6 +230,23 @@ func initAPIGroups() map[string]string {
 	add(APIGroupMeta,
 		APIMetaAddonCategoryCreate,
 		APIMetaAddonCategoryList,
+		APIMetaAddonList,
+		APIMetaAddonDetail,
+		APIMetaAddonVersions,
+		APIMetaAddonCreate,
+		APIMetaAddonDelete,
+		APIMetaAddonUpdate,
+		APIMetaAddonRepoDetail,
+		APIMetaAddonRepoSearch,
+		APIMetaAddonRepoCreate,
+		APIMetaAddonClusterRepoDetail,
+		APIMetaAddonClusterRepoSearch,
+		APIMetaAddonClusterRepoCreate,
+		APIMetaAddonTopoCreate,
+		APIMetaAddonTopoDetail,
+		APIMetaAddonTopoSearch,
+		APIMetaAddonTypeList,
+		APIMetaAddonTypeCreate,
 	)
 
 	return groups

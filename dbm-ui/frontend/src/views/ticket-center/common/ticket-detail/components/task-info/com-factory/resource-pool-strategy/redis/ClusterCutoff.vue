@@ -12,14 +12,15 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     bordered
     :data="tableData"
     :row-class-name="generateRowClass"
     row-key="ip"
     :rowspan-and-colspan="rowspanAndColspan">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="ip"
+      :get-copy-value="(row: RowData) => row.ip"
       :min-width="150"
       :title="t('目标主机')">
       <template #default="{ row: data }: { row: RowData }">
@@ -31,8 +32,8 @@
           <p>-- {{ data?.related_slave_ip }}</p>
         </div>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="role"
       :min-width="150"
       :title="t('角色类型')">
@@ -44,16 +45,16 @@
           redis_slave
         </p>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="cluster_domain"
       :min-width="250"
       :title="t('所属集群')">
       <template #default="{ row: data }: { row: RowData }">
         <p class="has-related">{{ data.cluster_domain || '--' }}</p>
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="spec_config"
       :min-width="200"
       :title="t('规格需求')">
@@ -81,8 +82,8 @@
           </SpecDetailPopover>
         </div>
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="ts">

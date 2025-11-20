@@ -1,13 +1,13 @@
 package crond
 
 import (
+	"bytes"
+	"dbm-services/common/go-pubpkg/cmutil"
 	"fmt"
 	"os/exec"
 	"os/user"
 	"path"
 	"path/filepath"
-
-	"dbm-services/common/go-pubpkg/cmutil"
 
 	"github.com/pkg/errors"
 
@@ -52,10 +52,12 @@ func Start() (err error) {
 		logger.Error("chown %s to mysql failed: %s", cst.MySQLCrondInstallPath, err.Error())
 		return err
 	}
+	logger.Info("chown %s to mysql success", cst.MySQLCrondInstallPath)
 
+	var stderr bytes.Buffer
 	cmd := exec.Command(
-		"su", []string{
-			"-", "mysql", "-c", // mysql 写死
+		"sh", []string{
+			"-c",
 			fmt.Sprintf(
 				`%s -c %s`,
 				path.Join(cst.MySQLCrondInstallPath, "start.sh"),
@@ -63,14 +65,16 @@ func Start() (err error) {
 			),
 		}...,
 	)
+
 	err = cmd.Run()
 	if err != nil {
-		logger.Error("start mysql-crond failed: %s", err.Error())
+		logger.Error("start mysql-crond failed: %s", stderr.String())
 
 		startErrFilePath := path.Join(cst.MySQLCrondInstallPath, "start-crond.err")
 		errStrPrefix := fmt.Sprintf("grep error from %s", startErrFilePath)
 		errStrDetail, _ := cmutil.NewGrepLines(startErrFilePath, true, false).MatchWords(
-			[]string{"ERROR", "panic"}, 5)
+			[]string{"ERROR", "panic"}, 5,
+		)
 		if len(errStrDetail) > 0 {
 			logger.Info(errStrPrefix)
 			logger.Error(errStrDetail)

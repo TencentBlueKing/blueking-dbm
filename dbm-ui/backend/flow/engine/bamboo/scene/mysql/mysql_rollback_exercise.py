@@ -27,6 +27,7 @@ from backend.db_services.cmdb.biz import get_or_create_resource_module, get_reso
 from backend.flow.consts import MediumEnum, RollbackType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, Conditions, SubBuilder
 from backend.flow.engine.bamboo.scene.common.machine_os_init import insert_host_event
+from backend.flow.engine.bamboo.scene.mysql.common.domain_util import generate_valid_domain
 from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_cluster_config
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_restore_download_sub_flow import (
     mysql_restore_download_sub_flow,
@@ -47,9 +48,7 @@ from backend.flow.plugins.components.collections.mysql.mysql_os_init import Clea
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
-from backend.flow.utils.mysql.mysql_context_dataclass import SingleApplyManualContext
-
-# from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
+from backend.flow.utils.mysql.mysql_context_dataclass import MySQLRollbackExerciseContext
 
 
 class MySQLRollbackExerciseFlow(object):
@@ -129,7 +128,7 @@ class MySQLRollbackExerciseFlow(object):
         sub_flow = self.build_rollback_exercise_flow()
         pipeline.add_sub_pipeline(sub_flow)
         # run pipeline
-        pipeline.run_pipeline(init_trans_data_class=SingleApplyManualContext())
+        pipeline.run_pipeline(init_trans_data_class=MySQLRollbackExerciseContext())
 
     def build_rollback_exercise_flow(self):
         sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.ticket_data))
@@ -167,7 +166,10 @@ class MySQLRollbackExerciseFlow(object):
         cluster_name = "{}-{}".format(cluster_class.name, datetime_str).replace("_", "")
         if len(cluster_name) > 48:
             cluster_name = get_random_string(24)
-        master_domain = "rollback.{}.dba.db".format(cluster_name)
+
+        # 生成符合规则的域名
+        master_domain = generate_valid_domain(cluster_name, prefix="rb", suffix="db", max_length=48)
+
         install_ticket["start_mysql_port"] = self.rollback_port
         install_ticket["inst_num"] = 1
         install_ticket["ticket_type"] = self.ticket_data["ticket_type"]

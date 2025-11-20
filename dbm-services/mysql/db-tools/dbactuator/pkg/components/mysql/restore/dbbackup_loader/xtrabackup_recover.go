@@ -1,9 +1,11 @@
 package dbbackup_loader
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/mohae/deepcopy"
 
@@ -168,7 +170,10 @@ func (x *Xtrabackup) repairAndStart() (err error) {
 	}
 
 	logger.Info("repair myisam tables for non-system")
-	if err := x.RepairNonSysMyIsamTables(); err != nil {
+	err = cmutil.WithPeriodicLogging("修复非系统MyISAM表", func(ctx context.Context) error {
+		return x.RepairNonSysMyIsamTables(ctx)
+	}, time.Minute, 12*time.Hour, logger.Default())
+	if err != nil {
 		return err
 	}
 	return nil

@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from typing import List
 
-from backend.db_meta.enums import ClusterType, ClusterTypeMachineTypeDefine, MachineTypeInstanceRoleMap
+from backend.db_meta.enums import ClusterType, ClusterTypeMachineTypeDefine, MachineType, MachineTypeInstanceRoleMap
 from backend.db_monitor.models import MySQLDBHAEvent
 
 
@@ -22,13 +22,18 @@ def validate_event_fields(events: List[MySQLDBHAEvent]) -> List[MySQLDBHAEvent]:
     for ev in events:
         if ev.cluster_type not in [ClusterType.TenDBSingle, ClusterType.TenDBHA, ClusterType.TenDBCluster]:
             ev.failed_validate_it(f"{ev.cluster_type} not supported")
+
             continue
 
         if ev.machine_type not in ClusterTypeMachineTypeDefine[ev.cluster_type]:
             ev.failed_validate_it(f"{ev.machine_type} and {ev.cluster_type} not match")
             continue
 
-        if ev.instance_role not in MachineTypeInstanceRoleMap[ev.machine_type]:
+        if ev.machine_type in [
+            MachineType.BACKEND,
+            MachineType.REMOTE,
+            MachineType.SINGLE,
+        ] and ev.instance_role not in MachineTypeInstanceRoleMap.get(ev.machine_type, []):
             ev.failed_validate_it(f"{ev.instance_role} and {ev.machine_type} not match")
             continue
 

@@ -27,7 +27,13 @@ class MysqlBaseValidator(BaseValidator):
 
     @classmethod
     def pre_check_spider_master_count(
-        cls, bk_biz_id: int, db_module_id: int, ready_to_add_count: int, existing_count: int, immute_domain: str = None
+        cls,
+        bk_biz_id: int,
+        db_module_id: int,
+        ready_to_add_count: int,
+        existing_count: int,
+        immute_domain: str = None,
+        divisor: int = 1,
     ) -> (bool, int):
         """
         校验spider_master/mnt节点数量是否超过集群的设置上限
@@ -36,27 +42,18 @@ class MysqlBaseValidator(BaseValidator):
         @param ready_to_add_count: 待加入的节点数量
         @param existing_count: 已经存在的节点数量
         @param immute_domain: 集群主域名信息, 默认是None，如果是None的情况下，则表示集群部署阶段检验，需要转化传 is_init = True
+        @param divisor: 算法除数，默认等于1，假设传2，则代表不能超时上限的一半，以此类推
         """
         # 获取Spider版本号
         _, spider_version = get_spider_version_and_charset(bk_biz_id, db_module_id)
-        # 判断immute_domain是否为空
-        if not immute_domain:
-            upper_limit_count = calc_spider_max_count(
-                bk_biz_id=bk_biz_id,
-                db_module_id=db_module_id,
-                db_version=spider_version,
-                immute_domain="",
-                is_init=True,
-            )
-        # 获取集群spider_master数量理论值
-        else:
-            upper_limit_count = calc_spider_max_count(
-                bk_biz_id=bk_biz_id,
-                db_module_id=db_module_id,
-                db_version=spider_version,
-                immute_domain=immute_domain,
-            )
-        if ready_to_add_count + existing_count > upper_limit_count:
+        upper_limit_count = calc_spider_max_count(
+            bk_biz_id=bk_biz_id,
+            db_module_id=db_module_id,
+            db_version=spider_version,
+            immute_domain=immute_domain,
+        )
+
+        if ready_to_add_count + existing_count > upper_limit_count / divisor:
             # 表示已经超过了设置的理论值上限
             return False, upper_limit_count
 

@@ -12,20 +12,23 @@
 -->
 
 <template>
-  <PrimaryTable :data="tableData">
-    <TableColumn
+  <TicketInfoTable
+    :data="tableData"
+    row-key="immute_domain">
+    <TicketInfoTableColumn
       col-key="immute_domain"
+      :get-copy-value="(row: RowData) => row.immute_domain"
       :title="t('目标分片集群')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="node_type"
       :title="t('缩容节点类型')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="reduce_ips"
       :title="t('缩容的IP')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="reduce_shard_num"
       :title="t('缩容数量（台）')" />
-  </PrimaryTable>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">

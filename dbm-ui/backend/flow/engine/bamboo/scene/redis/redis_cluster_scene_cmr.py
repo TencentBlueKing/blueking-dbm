@@ -237,9 +237,13 @@ class RedisClusterCMRSceneFlow(object):
                 flow_data["replace_info"] = cluster_replacement
 
                 sub_pipeline = self.generate_cluster_replacement(flow_data, cluster_kwargs, cluster_replacement)
-                sub_pipelines.append(sub_pipeline)
-
-        redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+                # 如果有单实例的集群，那么先让他串行搞；完成后再搞非单实例集群
+                if cluster_info["cluster_type"] == ClusterType.RedisInstance.value:
+                    redis_pipeline.add_sub_pipeline(sub_pipeline)
+                else:
+                    sub_pipelines.append(sub_pipeline)
+        if len(sub_pipelines) > 0:
+            redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         return redis_pipeline.run_pipeline()
 
     # 组装&控制 集群替换流程

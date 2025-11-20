@@ -61,34 +61,35 @@
     <InfoItem
       :label="t('域名设置')"
       style="flex: 1 0 100%">
-      <PrimaryTable
+      <TicketInfoTable
         :data="ticketDetails.details.domains"
         ellipsis
         row-key="key">
-        <TableColumn
+        <TicketInfoTableColumn
           col-key="master"
           fixed="left"
+          :get-copy-value="(row: Props['ticketDetails']['details']['domains'][number]) => row.master"
           :min-width="240"
           :title="t('主访问入口')" />
-        <TableColumn
+        <TicketInfoTableColumn
           col-key="deployStructure"
           :min-width="120"
           :title="t('部署架构')">
           {{ t('单节点部署') }}
-        </TableColumn>
-        <TableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="version"
           :min-width="120"
           :title="t('数据库版本')">
           {{ ticketDetails.details.db_version }}
-        </TableColumn>
-        <TableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           col-key="charset"
           :min-width="120"
           :title="t('字符集')">
           {{ ticketDetails.details.charset }}
-        </TableColumn>
-        <TableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           v-if="ticketDetails.details.nodes?.backend"
           col-key="backend"
           :min-width="180"
@@ -96,8 +97,8 @@
           <template #default="{ rowIndex }">
             {{ ticketDetails.details.nodes.backend[rowIndex].ip }}
           </template>
-        </TableColumn>
-      </PrimaryTable>
+        </TicketInfoTableColumn>
+      </TicketInfoTable>
     </InfoItem>
   </InfoList>
 </template>

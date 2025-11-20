@@ -12,49 +12,50 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
     row-key="src_cluster">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="src_cluster"
       fixed="left"
+      :get-copy-value="(row: RowData) => row.src_cluster"
       :min-width="220"
       :title="t('构造产物访问入口')">
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="dst_cluster"
       :title="t('目标集群')"
       :width="150">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.dst_cluster].immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="cluster_type_name"
       :title="t('架构版本')"
       :width="150">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.dst_cluster].cluster_type_name }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="recovery_time_point"
       :title="t('构造到指定时间')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="key_white_regex"
       :title="t('包含 Key')">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="generateSplitList(row.key_white_regex)" />
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="key_black_regex"
       :title="t('排除 Key')">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="generateSplitList(row.key_black_regex)" />
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('写入类型')">
       {{ writeTypesMap[ticketDetails.details.write_mode] }}

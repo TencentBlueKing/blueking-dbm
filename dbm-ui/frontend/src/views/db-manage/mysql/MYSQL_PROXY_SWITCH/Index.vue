@@ -193,6 +193,12 @@
 
   // 行合并
   const handleRowMerge = () => {
+    // 接口都响应后再合并
+    const isRespsoned = formData.tableData.every((item) => !!item.originProxy.merge_key);
+    if (!isRespsoned) {
+      return;
+    }
+
     formData.tableData = [..._.sortBy(formData.tableData, (item) => item.originProxy.merge_key)];
 
     sameClusterIdsRowsMap = {};
@@ -209,7 +215,7 @@
       const isSameSpecId = list.every((item) => item.specId === list[0].specId);
       Object.assign(list[0], {
         rowspan: list.length,
-        specRowspan: isSameSpecId ? list.length : 1, // 相同规格合并
+        specRowspan: isSameSpecId ? list.length : 1, // 同集群下所有主机都是同一规格才合并
       });
     });
   };

@@ -11,6 +11,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -86,63 +87,84 @@ func (m *ManageRuleHandler) UpdateRule(r *gin.Context) {
 		logger.Error("ShouldBind failed %s", err)
 		return
 	}
-	var tsr model.TbSyntaxRule
-	model.DB.Select("item_type").First(&tsr, param.ID)
 
-	var err error
-	switch v := param.Item.(type) {
-	case float64:
-		// 判断float64存的是整数
-		if v == float64(int64(v)) {
-			if !(tsr.ItemType == "int") {
-				m.errReturn(r, &tsr)
-				return
-			}
-			updateTable(param.ID, int(v))
-		} else {
-			err = errors.New("not int")
-			logger.Error("Type of error: %s", err)
-			m.SendResponse(r, err, nil)
-			return
-		}
-	case bool:
-		if tsr.ItemType == "bool" {
-			updateTable(param.ID, fmt.Sprintf("%t", v))
-		} else {
-			m.errReturn(r, &tsr)
-			return
-		}
-	case string:
-		if tsr.ItemType == "string" {
-			updateTable(param.ID, fmt.Sprintf("%+q", v))
-		} else {
-			m.errReturn(r, &tsr)
-			return
-		}
-	case []interface{}:
-		if tsr.ItemType == "arry" {
-			updateTable(param.ID, fmt.Sprintf("%+q", v))
-		} else {
-			m.errReturn(r, &tsr)
-			return
-		}
-	default:
-		err = errors.New("illegal type")
-		logger.Error("%s", err)
+	// 查询规则的类型信息
+	var tsr model.TbSyntaxRule
+	if err := model.DB.Select("item_type").First(&tsr, param.ID).Error; err != nil {
+		logger.Error("query rule failed: %s", err)
 		m.SendResponse(r, err, nil)
 		return
 	}
-	m.SendResponse(r, nil, "sucessed")
+
+	// 验证并转换值
+	value, err := m.validateAndConvertValue(param.Item, tsr.ItemType)
+	if err != nil {
+		logger.Error("validate value failed: %s", err)
+		m.SendResponse(r, err, nil)
+		return
+	}
+
+	// 更新数据库
+	if err := updateTableWithError(param.ID, value); err != nil {
+		logger.Error("update rule failed: %s", err)
+		m.SendResponse(r, err, nil)
+		return
+	}
+
+	m.SendResponse(r, nil, "succeeded")
 }
 
-func updateTable(id int, item interface{}) {
-	model.DB.Model(&model.TbSyntaxRule{}).Where("id", id).Update("item", item)
+// validateAndConvertValue 验证并转换参数值为合适的存储格式
+func (m *ManageRuleHandler) validateAndConvertValue(item interface{}, expectedType string) (interface{}, error) {
+	switch v := item.(type) {
+	case float64:
+		// JSON 数字默认解析为 float64，需要判断是否为整数
+		if v != float64(int64(v)) {
+			return nil, errors.New("value is not an integer")
+		}
+		if expectedType != model.IntItem {
+			return nil, fmt.Errorf("%s type required, but got number", expectedType)
+		}
+		return int(v), nil
+
+	case bool:
+		if expectedType != model.BoolItem {
+			return nil, fmt.Errorf("%s type required, but got boolean", expectedType)
+		}
+		return v, nil
+
+	case string:
+		if expectedType != model.StringItem {
+			return nil, fmt.Errorf("%s type required, but got string", expectedType)
+		}
+		return v, nil
+
+	case []interface{}:
+		if expectedType != model.ArryItem {
+			return nil, fmt.Errorf("%s type required, but got array", expectedType)
+		}
+		// 将数组序列化为 JSON 字符串存储
+		jsonBytes, err := json.Marshal(v)
+		if err != nil {
+			return nil, fmt.Errorf("serialize array failed: %w", err)
+		}
+		return string(jsonBytes), nil
+
+	default:
+		return nil, fmt.Errorf("unsupported type: %T", item)
+	}
 }
 
-func (m *ManageRuleHandler) errReturn(r *gin.Context, tsr *model.TbSyntaxRule) {
-	err := fmt.Errorf("%s type required", tsr.ItemType)
-	logger.Error("Item type error: %s", err)
-	m.SendResponse(r, err, nil)
+// updateTableWithError 更新规则表并返回错误
+func updateTableWithError(id int, item interface{}) error {
+	result := model.DB.Model(&model.TbSyntaxRule{}).Where("id", id).Update("item", item)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return errors.New("no rows affected, rule may not exist")
+	}
+	return nil
 }
 
 // ReloadRule  trigger reload rule

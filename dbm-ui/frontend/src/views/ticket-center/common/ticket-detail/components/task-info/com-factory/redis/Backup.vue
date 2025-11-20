@@ -12,38 +12,39 @@
 -->
 
 <template>
-  <PrimaryTable
+  <TicketInfoTable
     :data="ticketDetails.details.rules"
     row-key="cluster_id">
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="cluster_id"
+      :get-copy-value="(row: IRowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
       :min-width="220"
       :title="t('集群')">
       <template #default="{ row }: { row: IRowData }">
         {{ ticketDetails.details.clusters[row.cluster_id]?.immute_domain }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="cluster_type_name"
       :title="t('架构版本')"
       :width="200">
       <template #default="{ row }: { row: IRowData }">
         {{ ticketDetails.details.clusters[row.cluster_id]?.cluster_type_name }}
       </template>
-    </TableColumn>
-    <TableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="target"
       :min-width="130"
       :title="t('备份目标')" />
-    <TableColumn
+    <TicketInfoTableColumn
       col-key="backup_type"
       :min-width="130"
       :title="t('备份保存时间')">
       <template #default="{ row }: { row: IRowData }">
         {{ backupTypeMap[row.backup_type as keyof typeof backupTypeMap] }}
       </template>
-    </TableColumn>
-  </PrimaryTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="ts">

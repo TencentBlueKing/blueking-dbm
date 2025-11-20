@@ -51,23 +51,19 @@ func CheckCharset(cnf *config.BackupConfig, mysqlVersion string, dbh *sql.DB) er
 			logger.Log.Error("can't select mysql server charset , error :", err)
 			return errors.WithMessagef(err, "failed to get charset from %d", cnf.Public.MysqlPort)
 		}
-		if len(serverCharset) == 2 &&
-			lo.Contains(serverCharset, "utf8") && lo.Contains(serverCharset, "utf8mb4") {
-			// "utf8", "utf8mb4" -> utf8mb4
-			logger.Log.Infof("use charset 'utf8mb4' for %+v", serverCharset)
-			superCharset = "utf8mb4"
-		} else if len(serverCharset) >= 3 {
-			logger.Log.Infof("use charset 'binary' for %+v", serverCharset)
-			superCharset = "binary"
-		} else if lo.Contains(goodCharset, serverCharset[0]) {
+		useCharset := ""
+		if len(serverCharset) >= 2 && len(lo.Union(goodCharset, serverCharset)) == 3 {
+			// "utf8", "utf8mb4", "latin1" -> utf8mb4
+			logger.Log.Infof("use super charset %s for :%s", superCharset, serverCharset)
+			useCharset = superCharset
+		} else if len(serverCharset) == 1 && lo.Contains(goodCharset, serverCharset[0]) {
 			logger.Log.Infof("use charset '%s' for good charset", serverCharset)
-			superCharset = serverCharset[0]
+			useCharset = serverCharset[0]
 		} else {
 			logger.Log.Infof("use charset 'binary' for bad charset:%s", serverCharset)
-			superCharset = "binary"
+			useCharset = "binary"
 		}
-		cnf.Public.MysqlCharset = superCharset
-		return nil
+		cnf.Public.MysqlCharset = useCharset
 	}
 	logger.Log.Info("use character set:", cnf.Public.MysqlCharset, "  to backup")
 	return nil

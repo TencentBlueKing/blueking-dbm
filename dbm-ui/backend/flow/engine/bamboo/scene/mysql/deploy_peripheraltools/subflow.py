@@ -51,6 +51,10 @@ def standardize_mysql_cluster_subflow(
     只要知道实例地址, 去机器上执行配置生成就行
     参数输入了 bk_cloud_id, 所以隐式的约束是 instances 都是这个 bk_cloud_id
     """
+
+    # 强制下发actuator, 因为版本覆盖太烦了
+    with_actuator = True
+
     if not instances or not departs:
         # ToDo
         raise Exception  # noqa

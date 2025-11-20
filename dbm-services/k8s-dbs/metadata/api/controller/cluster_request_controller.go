@@ -47,6 +47,7 @@ func NewClusterRequestRecordController(
 
 // ListClusterRecords 根据 k8s_cluster_name, cluster_name, namespace 分页检索集群操作记录.
 func (k *ClusterRequestRecordController) ListClusterRecords(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaClusterRequestList)
 	pagination, err := commutil.BuildPagination(ctx)
 	if err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))

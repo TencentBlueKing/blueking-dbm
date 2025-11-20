@@ -267,6 +267,8 @@ class MonitorEventType(StrStructuredEnum):
     声明后不要轻易修改，如果要修改记得修改对应的监控策略
     """
 
-    MYSQL_DBHA_AUTOFIX_FAILED = EnumField("mysql-dbha-autofix-failed", _("MySQL DBHA自愈失败"))
+    MYSQL_DBHA_AUTOFIX_TICKET_FAILED = EnumField("mysql-dbha-autofix-ticket-failed", _("MySQL DBHA自愈单据失败"))
     MYSQL_BACKUP_FAILED = EnumField("mysql-backup-failed", _("MySQL 备份失败"))
     MYSQL_BACKUP_INSPECT_FAILED = EnumField("mysql-backup-inspect-failed", _("MySQL 备份巡检结果异常"))
+    DRS_REQUEST_FAILED = EnumField("drs-request-failed", _("drs 请求异常"))
+    MYSQL_DBHA_AUTOFIX_VALIDATE_FAILED = EnumField("mysql-dbha-autofix-validate-failed", _("MySQL DBHA 事件校验失败"))

@@ -18,12 +18,12 @@ func (c CreateDBResult) Checker(mysqlVersion string) (r *CheckerResult) {
 	}
 	// 检查库名规范
 	if R.BuiltInRule.TableNameSpecification.KeyWord {
-		r.ParseBultinRisk(func() (bool, string) {
+		r.ParseBuiltinRisk(func() (bool, string) {
 			return KeyWordValidator(mysqlVersion, c.DbName)
 		})
 	}
-	if R.BuiltInRule.TableNameSpecification.SpeicalChar {
-		r.ParseBultinBan(func() (bool, string) {
+	if R.BuiltInRule.TableNameSpecification.SpecialChar {
+		r.ParseBuiltinBan(func() (bool, string) {
 			return SpecialCharValidator(c.DbName)
 		})
 	}

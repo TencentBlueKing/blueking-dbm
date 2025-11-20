@@ -1161,6 +1161,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                         "tables": tables,
                         "tables_ignore": [],
                         "filter_rows": "",
+                        "conv_rows_update_to_write": self.cluster.get("conv_rows_update_to_write", False),
+                        "filter_delete_rows_only": self.cluster.get("filter_delete_rows_only", False),
                     },
                     # 原始 binlog 目录，如果不提供，则自动为实例 binlog 目录
                     "binlog_dir": "",
@@ -1468,6 +1470,10 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             },
         }
 
+    def mysql_backup_for_restore_payload(self, **kwargs):
+        self.ticket_data["backup_id"] = self.ticket_data.get("backup_id_for_restore", uuid.uuid1()).__str__()
+        return self.mysql_backup_demand_payload(**kwargs)
+
     def spider_priv_backup_demand_payload(self, **kwargs):
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
@@ -1477,7 +1483,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 "extend": {
                     "host": self.cluster["host"],
                     "port": self.cluster["port"],
-                    "backup_id": self.cluster["backup_id"],
+                    "backup_id": self.cluster["backup_id_for_restore"],
                     "role": TenDBClusterSpiderRole.SPIDER_MASTER.value,
                     "backup_type": MySQLBackupTypeEnum.LOGICAL.value,
                     "backup_gsd": ["grant"],

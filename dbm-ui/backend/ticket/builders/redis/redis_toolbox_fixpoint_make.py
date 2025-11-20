@@ -83,6 +83,7 @@ class RedisFixPointMakeDetailSerializer(RedisBaseOperateDetailSerializer):
 
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
+    skip_mannual_confirm = serializers.BooleanField(help_text=_("跳过人工确认"), default=False)
 
 
 class RedisFixPointMakeParamBuilder(builders.FlowParamBuilder):

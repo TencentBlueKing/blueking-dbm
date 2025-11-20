@@ -171,7 +171,7 @@ def send_drill_alert_to_qywx(
         content += _("业务DBA : @{}\n".format(redis_dba[0]))
         content += _("演练城市 : {}\n".format(city))
         content += _("集群域名 : {}\n".format(cluster_domain))
-        content += _("演练类型 : {} - {}".format(instance_type, drill_ip))
+        content += _("演练类型 : {} - {}\n".format(instance_type, drill_ip))
         content += _("演练状态 : {}\n".format(task_status))
         content += _("失败原因 : {}\n".format(failure_reason))
         content += _("消息时间 : {}".format(date2str(datetime.datetime.now(), "%Y-%m-%d %H:%M:%S")))
