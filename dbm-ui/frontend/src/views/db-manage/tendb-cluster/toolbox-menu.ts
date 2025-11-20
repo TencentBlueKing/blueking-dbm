@@ -64,26 +64,9 @@ export default [
         name: t('集群容量变更'),
         parentId: 'spider_cluster_maintain',
       },
-      // {
-      //   dbConsoleValue: 'tendbCluster.toolbox.proxyScaleUp',
-      //   id: TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES,
-      //   name: t('扩容接入层'),
-      //   parentId: 'spider_cluster_maintain',
-      // },
-      // {
-      //   dbConsoleValue: 'tendbCluster.toolbox.proxyScaleDown',
-      //   id: TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES,
-      //   name: t('缩容接入层'),
-      //   parentId: 'spider_cluster_maintain',
-      // },
-      // {
-      //   dbConsoleValue: 'tendbCluster.toolbox.switchNodes',
-      //   id: TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES,
-      //   name: t('替换接入层'),
-      //   parentId: 'spider_cluster_maintain',
-      // },
       {
         bind: [
+          TicketTypes.TENDBCLUSTER_SPIDER_CONF_UP_DOWN,
           TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES,
           TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES,
           TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES,
