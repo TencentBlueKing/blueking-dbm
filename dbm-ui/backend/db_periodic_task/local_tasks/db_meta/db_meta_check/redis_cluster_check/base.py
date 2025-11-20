@@ -39,7 +39,12 @@ def is_cluster_labeled_with(cluster: Cluster, label: dict) -> bool:
 
 
 def get_last_record(
-    cluster_domain: str, ip: str, port: int, subtype: str, current_state: str, lookback_hours: int = 25
+    cluster_domain: str,
+    ip: str,
+    port: int,
+    subtype: str,
+    current_state: str,
+    lookback_hours: int = 36,  # half-day redundancy
 ) -> Optional[MetaCheckReport]:
     """
     Get the last meta check report record within the lookback period

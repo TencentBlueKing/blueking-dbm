@@ -8,8 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import logging
 import time
+from datetime import datetime
+from typing import Optional
 
 from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
@@ -25,10 +26,59 @@ from backend.flow.utils.redis import redis_context_dataclass as flow_context
 from backend.flow.utils.redis.redis_context_dataclass import RedisRollbackExerciseContext
 from backend.utils.basic import generate_root_id
 
-logger = logging.getLogger("flow")
+
+class RedisLogCapturingService(BaseService):
+    """
+    Enhanced BaseService that automatically captures all log messages to trans_data.task_info.
+    Only works with `RedisRollbackExerciseContext`.
+    """
+
+    trans_data: Optional[RedisRollbackExerciseContext] = None
+
+    def init_trans_data(self, data):
+        kwargs = data.get_one_of_inputs("kwargs")
+        trans_data: RedisRollbackExerciseContext = data.get_one_of_inputs("trans_data")
+        if trans_data is None or trans_data == "${trans_data}":
+            trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
+        self.trans_data = trans_data
+
+    def _append_to_task_info(self, msg: str, log_level: str):
+        """Internal method to append formatted message to task_info"""
+        if self.trans_data is None:
+            return
+
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        formatted_msg = f"[{current_time}] [{log_level.upper()}]: {msg}"
+
+        if self.trans_data.task_info is None:
+            self.trans_data.task_info = []
+        self.trans_data.task_info.append(formatted_msg)
+
+    def log_info(self, msg: str):
+        """Override to auto-capture info logs"""
+        super().log_info(msg)
+        self._append_to_task_info(msg, "info")
+
+    def log_warning(self, msg: str):
+        """Override to auto-capture warning logs"""
+        super().log_warning(msg)
+        self._append_to_task_info(msg, "warning")
+
+    def log_error(self, msg: str):
+        """Override to auto-capture error logs and set error_occurred flag"""
+        super().log_error(msg)
+        self._append_to_task_info(msg, "error")
+        # Automatically set error flag when logging errors
+        if self.trans_data is not None:
+            self.trans_data.error_occurred = True
+
+    def log_debug(self, msg: str):
+        """Override to auto-capture debug logs"""
+        super().log_debug(msg)
+        self._append_to_task_info(msg, "debug")
 
 
-class RedisFlowPollingService(BaseService):
+class RedisFlowPollingService(RedisLogCapturingService):
     """
     Component to poll a single Redis rollback flow status
 
@@ -46,23 +96,22 @@ class RedisFlowPollingService(BaseService):
     interval = StaticIntervalGenerator(10)
     polling_timeout = 3600
 
-    def _execute(self, data, parent_data) -> bool:
+    def __execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
-        trans_data: RedisRollbackExerciseContext = data.get_one_of_inputs("trans_data")
 
-        if trans_data is None or trans_data == "${trans_data}":
-            trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
+        if self.trans_data.error_occurred:
+            self.log_warning("Skipping RedisFlowPollingService due to previous error")
+            return True
 
         flow_type = kwargs["cluster"].get("flow_type")
         if not flow_type:
-            self.log_warning("Flow type not specified")
-            return False
+            self.log_error("Flow type not specified")
+            return True
 
         self.interval = StaticIntervalGenerator(kwargs["cluster"]["polling_interval"])
         self.polling_timeout = kwargs["cluster"].get("polling_timeout", self.polling_timeout)
 
-        trans_data.polling_start_time = time.time()
-        data.outputs["trans_data"] = trans_data
+        self.trans_data.polling_start_time = time.time()
 
         self.log_info(
             _("Starting to poll flow {} with {} minute timeout every {} secs").format(
@@ -71,21 +120,23 @@ class RedisFlowPollingService(BaseService):
         )
         return True
 
-    def _schedule(self, data, parent_data, callback_data=None) -> bool:
-        kwargs = data.get_one_of_inputs("kwargs")
-        trans_data: RedisRollbackExerciseContext = data.get_one_of_inputs("trans_data")
+    def _execute(self, data, parent_data) -> bool:
+        self.init_trans_data(data)
+        result = self.__execute(data, parent_data)
+        data.outputs["trans_data"] = self.trans_data
+        return result
 
-        if trans_data is None or trans_data == "${trans_data}":
-            trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
+    def __schedule(self, data, parent_data, callback_data=None) -> bool:
+        kwargs = data.get_one_of_inputs("kwargs")
 
         flow_type = kwargs["cluster"].get("flow_type")
         if not flow_type:
-            self.log_warning("Flow type to poll is not set")
+            self.log_error("Flow type to poll is not set")
             self.finish_schedule()
-            return False
+            return True
 
         # Check timeout
-        polling_start_time = trans_data.polling_start_time if trans_data.polling_start_time else time.time()
+        polling_start_time = self.trans_data.polling_start_time if self.trans_data.polling_start_time else time.time()
         elapsed_time = time.time() - polling_start_time
 
         if elapsed_time > self.polling_timeout:
@@ -94,34 +145,34 @@ class RedisFlowPollingService(BaseService):
             )
 
             # Update task status to failed on timeout
-            if trans_data.task_id:
+            if self.trans_data.task_id:
                 try:
                     if flow_type == "rollback_flow_id":
                         self.log_info(
                             _("Dry-run: changing task {} state to ROLLBACK_FAILED due to timeout").format(
-                                trans_data.task_id
+                                self.trans_data.task_id
                             )
                         )
                     elif flow_type == "delete_flow_id":
                         self.log_info(
                             _("Dry-run: changing task {} state to DELETE_FAILED due to timeout").format(
-                                trans_data.task_id
+                                self.trans_data.task_id
                             )
                         )
                 except Exception as e:
                     self.log_error(
-                        _("Failed to update task {} status on timeout: {}").format(trans_data.task_id, str(e))
+                        _("Failed to update task {} status on timeout: {}").format(self.trans_data.task_id, str(e))
                     )
 
             self.finish_schedule()
-            return False
+            return True
 
         # Get flow ID to poll based on flow type
-        flow_id = getattr(trans_data, flow_type)
+        flow_id = getattr(self.trans_data, flow_type)
         if not flow_id:
             self.log_warning(_("No flow ID found for type {}").format(flow_type))
             self.finish_schedule()
-            return False
+            return True
 
         # Poll flow status
         try:
@@ -139,37 +190,47 @@ class RedisFlowPollingService(BaseService):
                 self.log_error(_("Flow {} failed").format(flow_id))
 
                 # Update task status to failed
-                if trans_data.task_id:
+                if self.trans_data.task_id:
                     if flow_type == "rollback_flow_id":
                         self.log_info(
-                            _("Dry-run: changing task {} state to ROLLBACK_FAILED").format(trans_data.task_id)
+                            _("Dry-run: changing task {} state to ROLLBACK_FAILED").format(self.trans_data.task_id)
                         )
                     elif flow_type == "delete_flow_id":
-                        self.log_info(_("Dry-run: changing task {} state to DELETE_FAILED").format(trans_data.task_id))
-                return False
+                        self.log_info(
+                            _("Dry-run: changing task {} state to DELETE_FAILED").format(self.trans_data.task_id)
+                        )
+                return True
 
             # Flow succeeded
             self.log_info(_("Flow {} finished successfully").format(flow_id))
 
             # Update task status to succeeded
-            if trans_data.task_id:
+            if self.trans_data.task_id:
                 if flow_type == "rollback_flow_id":
                     self.log_info(
-                        _("Dry-run: changing task {} state to ROLLBACK_SUCCEEDED").format(trans_data.task_id)
+                        _("Dry-run: changing task {} state to ROLLBACK_SUCCEEDED").format(self.trans_data.task_id)
                     )
                 elif flow_type == "delete_flow_id":
-                    self.log_info(_("Dry-run: changing task {} state to DELETE_SUCCEEDED").format(trans_data.task_id))
+                    self.log_info(
+                        _("Dry-run: changing task {} state to DELETE_SUCCEEDED").format(self.trans_data.task_id)
+                    )
 
             return True
 
         except FlowTree.DoesNotExist:
             self.log_error(_("Flow {} not found in FlowTree").format(flow_id))
             self.finish_schedule()
-            return False
+            return True
         except Exception as e:
             self.log_error(_("Error checking flow {} status: {}").format(flow_id, str(e)))
             self.finish_schedule()
-            return False
+            return True
+
+    def _schedule(self, data, parent_data, callback_data=None) -> bool:
+        self.init_trans_data(data)
+        result = self.__schedule(data, parent_data, callback_data)
+        data.outputs["trans_data"] = self.trans_data
+        return result
 
 
 class RedisFlowPollingComponent(Component):
@@ -178,20 +239,22 @@ class RedisFlowPollingComponent(Component):
     bound_service = RedisFlowPollingService
 
 
-class RedisRollbackFlowCreateSerivce(BaseService):
+class RedisRollbackFlowCreateSerivce(RedisLogCapturingService):
     """
     Component to execute REDIS_DATA_STRUCTURE flow directly as sub-flow
     """
 
-    def _execute(self, data, parent_data) -> bool:
+    def __execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
         global_data = data.get_one_of_inputs("global_data")
-        trans_data: RedisRollbackExerciseContext = data.get_one_of_inputs("trans_data")
 
-        if trans_data is None or trans_data == "${trans_data}":
-            trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
+        # Check if error occurred in previous steps
+        if self.trans_data.error_occurred:
+            self.log_warning("Skipping RedisRollbackFlowCreateSerivce due to previous error")
+            return True
 
         task_id = kwargs["cluster"].get("task_id")
+        self.trans_data.task_id = task_id
 
         cluster_id = kwargs["cluster"].get("cluster_id")
         instance_ip = kwargs["cluster"].get("instance_ip")
@@ -229,9 +292,7 @@ class RedisRollbackFlowCreateSerivce(BaseService):
             flow = RedisDataStructureFlow(root_id=rollback_flow_id, data=data_structure_data)
             flow.redis_data_structure_flow()
 
-            trans_data.rollback_flow_id = rollback_flow_id
-            trans_data.task_id = task_id
-            data.outputs["trans_data"] = trans_data
+            self.trans_data.rollback_flow_id = rollback_flow_id
 
             self.log_info(
                 _("REDIS_DATA_STRUCTURE flow {} created successfully for task {}").format(rollback_flow_id, task_id)
@@ -243,12 +304,17 @@ class RedisRollbackFlowCreateSerivce(BaseService):
 
         except Cluster.DoesNotExist:
             self.log_error(_("Cluster {} not found").format(cluster_id))
-            return False
+            return True
         except Exception as e:
             self.log_error(_("Generate REDIS_DATA_STRUCTURE flow failed: {}").format(str(e)))
             self.log_info(_("Dry-run: changing task {} state to ROLLBACK_FAILED due to exception").format(task_id))
+            return True
 
-            return False
+    def _execute(self, data, parent_data) -> bool:
+        self.init_trans_data(data)
+        result = self.__execute(data, parent_data)
+        data.outputs["trans_data"] = self.trans_data
+        return result
 
 
 class RedisRollbackFlowCreateComponent(Component):
@@ -257,19 +323,20 @@ class RedisRollbackFlowCreateComponent(Component):
     bound_service = RedisRollbackFlowCreateSerivce
 
 
-class RedisTempInstanceDeleteService(BaseService):
+class RedisTempInstanceDeleteService(RedisLogCapturingService):
     """
     Component to execute a flow deleting temporary instance
     """
 
-    def _execute(self, data, parent_data) -> bool:
+    def __execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
-        trans_data: RedisRollbackExerciseContext = data.get_one_of_inputs("trans_data")
 
-        if trans_data is None or trans_data == "${trans_data}":
-            trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
+        # Check if error occurred in previous steps
+        if self.trans_data.error_occurred:
+            self.log_warning("Skipping RedisTempInstanceDeleteService due to previous error")
+            return True
 
-        if not trans_data.rollback_flow_id:
+        if not self.trans_data.rollback_flow_id:
             self.log_warning("No temp instance to delete")
             return True
 
@@ -303,12 +370,11 @@ class RedisTempInstanceDeleteService(BaseService):
             flow.redis_rollback_task_delete_flow()
 
             # Store deletion flow ID in trans_data
-            trans_data.delete_flow_id = delete_flow_id
-            data.outputs["trans_data"] = trans_data
+            self.trans_data.delete_flow_id = delete_flow_id
 
             self.log_info(
                 _("Successfully created delete flow {} for rollback flow {}").format(
-                    delete_flow_id, trans_data.rollback_flow_id
+                    delete_flow_id, self.trans_data.rollback_flow_id
                 )
             )
 
@@ -319,7 +385,13 @@ class RedisTempInstanceDeleteService(BaseService):
         except Exception as e:
             self.log_error(_("Failed to delete resources: {}").format(str(e)))
             self.log_info(_("Dry-run changing task {} state to DELETE_FAILED due to exception").format(task_id))
-            return False
+            return True
+
+    def _execute(self, data, parent_data) -> bool:
+        self.init_trans_data(data)
+        result = self.__execute(data, parent_data)
+        data.outputs["trans_data"] = self.trans_data
+        return result
 
 
 class RedisTempInstanceDeleteComponent(Component):

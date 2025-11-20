@@ -24,12 +24,12 @@ from backend.flow.engine.bamboo.scene.common.machine_os_init import insert_host_
 from backend.flow.plugins.components.collections.common.exec_clear_machine import ClearMachineScriptComponent
 from backend.flow.plugins.components.collections.common.external_service import ExternalServiceComponent
 from backend.flow.plugins.components.collections.common.transfer_host_service import TransferHostServiceComponent
-from backend.flow.plugins.components.collections.redis.redis_backup_recovery_exercise import (
+from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
+from backend.flow.plugins.components.collections.redis.redis_rollback_exercise import (
     RedisFlowPollingComponent,
     RedisRollbackFlowCreateComponent,
     RedisTempInstanceDeleteComponent,
 )
-from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext, RedisRollbackExerciseContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 

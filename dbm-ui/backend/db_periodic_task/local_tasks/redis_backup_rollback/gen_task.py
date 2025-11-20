@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+import random
 from datetime import timedelta
 from typing import List
 
@@ -22,9 +23,20 @@ from backend.ticket.builders.common.base import IpSource
 from backend.ticket.constants import TicketType
 from backend.ticket.models import SystemSettings, Ticket
 
-from .config import RedisRollbackExerciseConfig
+from .config import RedisRollbackExerciseConfig, RedisRollbackExerciseMode
 
 logger = logging.getLogger("root")
+
+
+def probabilistic_selection(machines, weights, check_counts, n, decay_factor=1.0):
+    scores = []
+    for i, machine in enumerate(machines):
+        base_score = max(0.1, 1 / (1 + check_counts[i] * decay_factor))
+        final_score = weights[i] * base_score
+        scores.append(final_score)
+
+    selected = random.choices(population=machines, weights=scores, k=n)
+    return selected
 
 
 def pick_target_instances(config: RedisRollbackExerciseConfig, num: int) -> List[dict]:
@@ -32,26 +44,41 @@ def pick_target_instances(config: RedisRollbackExerciseConfig, num: int) -> List
     Pick target instances for rollback exercise
 
     TODO: Strategy:
-    0. Pick 1 bk_biz_id
-    1. Pick n(default 10) clusters
+    0. Collect biz_ids into [HIGH, MEDIUM, LOW] classes
+        - LOW: biz that has exercised within 48h or is in process
+        - MEDIUM: biz that has exercising records but not in 48h
+        - HIGH: biz that has never exerised before
+        - extra: should filter out biz/cluster with blacklist
+    1. Pick 2*num clusters from HIGH -> MEDUM -> LOW bizs
     2. Pick 1 master instance from each cluster selected
-    3. Exclude clusters with recent tasks (24h)
-    4. Exclude clusters with running tasks
-    5. Exclude clusters whose age < 20 days
-    6. Exclude clusters with 容量变更 tickets in 20 days
-    7. Support multiple Redis cluster types
+    3. Validations
+        - Backup Check: make sure instance has backup before look back days
+    4. Keep the instances passing the validations as `valid_instances`(no more than `num`)
 
     Returns:
         List[dict]: List of selected instances with cluster info
         Format: [{"cluster": Cluster, "instance": StorageInstance}, ...]
     """
     result = []
-    for domains in config.targets.values():
-        for domain in domains:
-            cluster = Cluster.objects.get(immute_domain=domain)
-            instance = cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.MASTER).first()
-            logger.info(_("Selected instance {} from cluster {}").format(instance.ip_port, cluster.immute_domain))
-            result.append({"cluster": cluster, "instance": instance})
+    match config.mode:
+        case RedisRollbackExerciseMode.MIXED:
+            raise NotImplementedError
+        case RedisRollbackExerciseMode.SPECIFIED:
+            for domains in config.targets.values():
+                for domain in domains:
+                    cluster = Cluster.objects.get(immute_domain=domain)
+                    instance = (
+                        cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.MASTER)
+                        .order_by("?")
+                        .first()
+                    )
+                    logger.info(
+                        _("Selected instance {} from cluster {}").format(instance.ip_port, cluster.immute_domain)
+                    )
+                    result.append({"cluster": cluster, "instance": instance})
+        case RedisRollbackExerciseMode.RANDOM:
+            raise NotImplementedError
+
     return result
 
 
@@ -117,7 +144,7 @@ def create_drill_ticket(config: RedisRollbackExerciseConfig, valid_instances: Li
             "cluster_id": cluster.id,
             "instance_ip": instance.machine.ip,
             "instance_port": instance.port,
-            "recovery_time_point": backup_info.get("start_time", ""),
+            "recovery_time_point": backup_info.get("start_time", "") + timedelta(minutes=30),
             "task_id": 0,  # Link to task record for status updates, currently dry-run
             "resource_spec": {
                 "redis": {
@@ -132,7 +159,7 @@ def create_drill_ticket(config: RedisRollbackExerciseConfig, valid_instances: Li
         ticket = Ticket.create_ticket(
             ticket_type=TicketType.REDIS_ROLLBACK_EXERCISE,
             creator="system",
-            remark=_("Redis 回档演练执行单据"),
+            remark=_("[自动发起] Redis 回档演练"),
             bk_biz_id=config.bk_biz_id,
             details={
                 "infos": infos,
@@ -159,6 +186,13 @@ def create_drill_ticket(config: RedisRollbackExerciseConfig, valid_instances: Li
         )
 
 
+def init_config() -> RedisRollbackExerciseConfig:
+    config_dict = SystemSettings.get_setting_value("REDIS_ROLLBACK_EXERCISE", {})
+    config = RedisRollbackExerciseConfig(**config_dict) if config_dict else RedisRollbackExerciseConfig()
+    logger.info(_("Redis rollback exercise settings: {}").format(config))
+    return config
+
+
 def gen_rollback_task():
     """
     Generate Redis rollback exercise tasks
@@ -178,22 +212,17 @@ def gen_rollback_task():
     """
     logger.info(_("Starting Redis rollback exercise task generation"))
 
-    config_dict = SystemSettings.get_setting_value("REDIS_ROLLBACK_EXERCISE", {})
-    config = RedisRollbackExerciseConfig(**config_dict) if config_dict else RedisRollbackExerciseConfig()
-    logger.info(_("Redis rollback exercise settings: {}").format(config))
-
+    config = init_config()
     if not config.switch:
         logger.info(_("Redis rollback exercise is disabled, exiting..."))
         return
 
-    selected_instances = pick_target_instances(config, 10)
-
+    selected_instances = pick_target_instances(config, config.max_instances)
     if not selected_instances:
         logger.info(_("No instances selected for exercise"))
         return
 
     logger.info(_("Selected {} instances for exercise").format(len(selected_instances)))
-
     valid_instances = []
     for item in selected_instances:
         cluster = item["cluster"]
@@ -205,8 +234,8 @@ def gen_rollback_task():
                 instance.port,
                 cluster.id,
                 cluster.cluster_type,
+                days_before=config.rollback_days,
             )
-            has_backup, backup_info = True, {}
 
             if has_backup:
                 valid_instances.append(
@@ -236,7 +265,7 @@ def gen_rollback_task():
         logger.info(_("No instances with valid backup found"))
         return
 
-    logger.info(_("Found {} instances with valid backup").format(len(valid_instances)))
+    logger.info(_("Found {} instances with valid backup: {}").format(len(valid_instances), valid_instances))
 
     try:
         create_drill_ticket(config, valid_instances)

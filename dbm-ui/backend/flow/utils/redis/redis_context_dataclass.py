@@ -197,7 +197,8 @@ class RedisRollbackExerciseContext:
     delete_flow_id: str = None  # 销毁 Flow ID
     task_id: int = None  # Task record ID for status updates
     polling_start_time: float = None  # 轮询开始时间
-    info: list = None  # 执行情况
+    task_info: list = field(default_factory=list)  # 执行情况
+    error_occurred: bool = False  # 发生异常
 
 
 @dataclass()
