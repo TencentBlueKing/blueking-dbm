@@ -94,16 +94,17 @@ class ExcelHandler:
         return matrix_data
 
     @classmethod
-    def serialize(
+    def serialize_handler(
         cls,
         data_dict__list: List[Dict],
+        sheet: Worksheet,
         template: str = None,
         headers: List = None,
         header_style: List = None,
         match_header: bool = False,
-    ) -> Workbook:
+    ):
         """
-        - 将数据字典序列化为excel对象
+        - 处理excel对象数据写入单元格
         :param data_dict__list: 数据字典
         :param template: excel模板路径(优先以模板的头部样式作为excel的头部)
         :param headers: excel数据头 [{"id": "header_id", "name": "header_name"}]
@@ -111,8 +112,6 @@ class ExcelHandler:
         :param match_header: 数据是否匹配表头，如果为True，则根据 header 严格匹配列名，若不存在，则在该 cell 填充空
         """
 
-        wb: Workbook = Workbook()
-        sheet: Worksheet = wb.active
         first_data_row: int = 2
 
         if template:
@@ -146,7 +145,57 @@ class ExcelHandler:
         # 自适应设置行高和列宽
         cls._adapt_sheet_weight_height(sheet=sheet, first_header_row=first_data_row - 1)
 
+    @classmethod
+    def serialize(
+        cls,
+        data_dict__list: List[Dict],
+        template: str = None,
+        headers: List = None,
+        header_style: List = None,
+        match_header: bool = False,
+        sheet_name: str = None,
+    ) -> Workbook:
+        """
+        - 将数据字典序列化为excel对象
+        :param data_dict__list: 数据字典
+        :param template: excel模板路径(优先以模板的头部样式作为excel的头部)
+        :param headers: excel数据头 [{"id": "header_id", "name": "header_name"}]
+        :param header_style: excel的头部样式(颜色)
+        :param match_header: 数据是否匹配表头，如果为True，则根据 header 严格匹配列名，若不存在，则在该 cell 填充空
+        """
+
+        wb: Workbook = Workbook()
+        sheet: Worksheet = wb.active
+        if sheet_name:
+            sheet.title = sheet_name
+        cls.serialize_handler(data_dict__list, sheet, template, headers, header_style, match_header)
+
         return wb
+
+    @classmethod
+    def add_sheet(
+        cls,
+        wb: Workbook,
+        sheet_name: str,
+        data_dict__list: List[Dict],
+        template: str = None,
+        headers: List = None,
+        header_style: List = None,
+        match_header: bool = False,
+    ):
+        """
+        - 将excel对象追加新的sheet
+        :param wb: excel对象
+        :param sheet_name: sheet名
+        :param data_dict__list: 数据字典
+        :param template: excel模板路径(优先以模板的头部样式作为excel的头部)
+        :param headers: excel数据头 [{"id": "header_id", "name": "header_name"}]
+        :param header_style: excel的头部样式(颜色)
+        :param match_header: 数据是否匹配表头，如果为True，则根据 header 严格匹配列名，若不存在，则在该 cell 填充空
+        """
+
+        sheet: Worksheet = wb.create_sheet(title=sheet_name)
+        cls.serialize_handler(data_dict__list, sheet, template, headers, header_style, match_header)
 
     @classmethod
     def response(cls, wb: Workbook, excel_name: str) -> HttpResponse:

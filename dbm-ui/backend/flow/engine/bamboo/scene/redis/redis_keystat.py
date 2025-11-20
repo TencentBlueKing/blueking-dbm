@@ -134,7 +134,6 @@ class RedisKeystatFlow(object):
             act_name=_("下发介质包"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
         )
 
-        seen_ins = set()
         # 检查ins是否在shard中
         for info in self.data["infos"]:
             cluster = clusters[info["cluster_id"]]
@@ -142,28 +141,6 @@ class RedisKeystatFlow(object):
             shard_list = DbmClusterRepository.build_shard_list_by_instance_list(storage_list)
             info["cluster_shard_num"] = len(shard_list)
             info["analyzed_shard_num"] = len(info["ins"])
-            for addr in info["ins"]:
-                found = False
-                for shard in shard_list:
-                    if len(shard["members"]) == 0:
-                        logger.error(f"cluster_id:{info['cluster_id']} shard:{shard} not have members")
-                        continue
-
-                    # 按master_addr来去重. 避免同一个分片添加多次.
-                    master_addr = f"{shard['members'][0]['ip']}:{shard['members'][0]['port']}"
-                    if master_addr in seen_ins:
-                        raise Exception(f"cluster_id:{info['cluster_id']} ins:{addr['addr']} is duplicated")
-
-                    seen_ins.add(master_addr)
-                    if addr["addr"] == master_addr:
-                        found = True
-                        addr["shard_name"] = shard["shard_name"]
-                        if len(shard["members"]) > 1:
-                            addr["slave_addr"] = f"{shard['members'][1]['ip']}:{shard['members'][1]['port']}"
-                        break
-
-                if not found:
-                    raise Exception(f"cluster_id:{info['cluster_id']} ins:{addr} not in cluster")
 
         # 生成下发任务
         acts_list = []
