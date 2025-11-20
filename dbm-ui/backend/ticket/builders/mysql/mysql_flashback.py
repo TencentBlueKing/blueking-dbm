@@ -34,7 +34,7 @@ class MySQLFlashbackDetailSerializer(MySQLBaseOperateDetailSerializer):
     class FlashbackSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         start_time = DBTimezoneField(help_text=_("开始时间"))
-        end_time = DBTimezoneField(help_text=_("结束时间"), allow_blank=True)
+        end_time = DBTimezoneField(help_text=_("结束时间"), allow_blank=True, required=False, default="")
         databases = serializers.ListField(help_text=_("目标库列表"), child=DBTableField(db_field=True))
         databases_ignore = serializers.ListField(help_text=_("忽略库列表"), child=DBTableField(db_field=True))
         tables = serializers.ListField(help_text=_("目标table列表"), child=DBTableField())
@@ -45,6 +45,10 @@ class MySQLFlashbackDetailSerializer(MySQLBaseOperateDetailSerializer):
         recored_file = serializers.CharField(help_text=_("记录文件"), required=False, default="")
         rows_filter = serializers.CharField(help_text=_("待闪回记录"), required=False, default="")
         direct_write_back = serializers.BooleanField(help_text=_("是否覆盖原始数据"), required=False, default=False)
+        conv_rows_update_to_write = serializers.BooleanField(
+            help_text=_("update转replace"), required=False, default=False
+        )
+        filter_delete_rows_only = serializers.BooleanField(help_text=_("仅回滚delete"), required=False, default=False)
 
     infos = serializers.ListSerializer(help_text=_("flashback信息"), child=FlashbackSerializer(), allow_empty=False)
     force = serializers.BooleanField(help_text=_("是否强制执行"), required=False, default=False)
