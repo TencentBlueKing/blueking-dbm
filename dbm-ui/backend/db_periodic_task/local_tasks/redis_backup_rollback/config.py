@@ -10,14 +10,28 @@ specific language governing permissions and limitations under the License.
 """
 
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Dict, List, Optional
+
+
+class RedisRollbackExerciseMode(StrEnum):
+    SPECIFIED = "specified"
+    RANDOM = "random"
+    MIXED = "mixed"
 
 
 @dataclass
 class RedisRollbackExerciseConfig:
     switch: bool = False
     bk_biz_id: int = 0  # The biz where the drill ticket locates
+    cluster_types: Optional[List[str]] = None
+
+    max_instances: int = 10
+    rollback_days: int = 20
+
     polling_interval: int = 10  # sec
     polling_timeout: int = 3600  # sec
 
+    mode: RedisRollbackExerciseMode = RedisRollbackExerciseMode.RANDOM
     targets: Optional[Dict[int, List[str]]] = None  # Mannually specified targets
+    high_priority_bizs: Optional[List[int]] = None  # Mannually specified high priority bizs
