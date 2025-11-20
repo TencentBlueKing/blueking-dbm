@@ -342,7 +342,14 @@ class ListRetrieveResource(MysqlListRetrieveResource, TenDBClusterCommonQueryRes
     ) -> ResourceList:
         filter_params_map = {
             "spider_role": Q(proxyinstance__tendbclusterspiderext__spider_role=query_params.get("spider_role")),
-            "instance_role": Q(proxyinstance__tendbclusterspiderext__spider_role=query_params.get("instance_role")),
+            "instance_role": (
+                Q(storageinstance__instance_role__in=query_params.get("instance_role", "").split(","))
+                | Q(
+                    proxyinstance__tendbclusterspiderext__spider_role__in=query_params.get("instance_role", "").split(
+                        ","
+                    )
+                )
+            ),
         }
         return super()._list_machines(bk_biz_id, query_params, limit, offset, filter_params_map, **kwargs)
 
