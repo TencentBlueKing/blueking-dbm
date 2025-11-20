@@ -22,6 +22,7 @@ from rest_framework import permissions
 from backend import env
 from backend.iam_app.dataclass.actions import ActionEnum, ActionMeta
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta
+from backend.iam_app.exceptions import PermissionDeniedError
 from backend.iam_app.handlers.permission import Permission
 from backend.utils.string import str2bool
 
@@ -176,7 +177,7 @@ class ResourceActionPermission(IAMPermission):
         super(ResourceActionPermission, self).__init__(actions)
 
     def get_key_id(self, request, view, key, many=False):
-        if hasattr(self, key):
+        if getattr(self, key, None):
             key_id = getattr(self, key)
         else:
             key_id = view.kwargs.get(key) or get_request_key_id(request, key)
@@ -276,7 +277,15 @@ class DBManagePermission(ResourceActionPermission):
         super().__init__(self.actions, self.resource_meta, instance_ids_getter=self.instance_biz_id_getter)
 
     def instance_biz_id_getter(self, request, view):
-        return self.get_key_id(request, view, self.resource_meta.id, many=True)
+        return self.get_key_id(request, view, self.resource_meta.lookup_field, many=True)
+
+    def has_permission(self, request, view):
+        try:
+            return super().has_permission(request, view)
+        except PermissionDeniedError:
+            # TODO: 先记录那些请求跳过了鉴权，统一处理后删除该逻辑
+            logger.error(f"api: {request.path}, user: {Permission(request=request).username} has no db-manage")
+            return True
 
 
 class BizOrGlobalResourceActionPermission(ResourceActionPermission):
