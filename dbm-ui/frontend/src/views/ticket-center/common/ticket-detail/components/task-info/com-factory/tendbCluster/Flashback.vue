@@ -39,14 +39,6 @@
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
-      col-key="end_time"
-      :min-width="250"
-      :title="t('截止时间')">
-      <template #default="{ row: data }: { row: RowData }">
-        {{ utcDisplayTime(data.end_time) }}
-      </template>
-    </TicketInfoTableColumn>
-    <TicketInfoTableColumn
       col-key="databases"
       :min-width="120"
       :title="t('目标库')">
@@ -102,9 +94,28 @@
       </template>
     </TicketInfoTableColumn>
   </TicketInfoTable>
-  <InfoList v-if="isRecordFlashback">
-    <InfoItem :label="t('覆盖原始数据')">
+  <InfoList>
+    <InfoItem :label="t('日志追溯截止')">
+      {{
+        ticketDetails.details.infos[0].end_time
+          ? `${t('指定时间')}(${ticketDetails.details.infos[0].end_time})`
+          : t('单据执行时间')
+      }}
+    </InfoItem>
+    <InfoItem
+      v-if="isRecordFlashback"
+      :label="t('覆盖原始数据')">
       {{ ticketDetails.details.infos[0].direct_write_back ? t('是') : t('否') }}
+    </InfoItem>
+    <InfoItem
+      v-if="isRecordFlashback"
+      :label="t('update 转 replace')">
+      {{ ticketDetails.details.infos[0].conv_rows_update_to_write ? t('是') : t('否') }}
+    </InfoItem>
+    <InfoItem
+      v-if="isTableFlashback"
+      :label="t('仅回滚 delete')">
+      {{ ticketDetails.details.infos[0].filter_delete_rows_only ? t('是') : t('否') }}
     </InfoItem>
   </InfoList>
 </template>
