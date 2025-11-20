@@ -205,6 +205,12 @@ class ListRetrieveResource(MysqlListRetrieveResource, TenDBClusterCommonQueryRes
         # 获取集群规格
         spec_id = cluster.storages[0].machine.spec_id
         spec = kwargs["remote_spec_map"].get(spec_id)
+        temporary_ticket_type = [
+            TicketType.TENDBCLUSTER_ROLLBACK_CLUSTER,
+            TicketType.TENDBCLUSTER_ROLLBACK,
+            TicketType.TENDBCLUSTER_FIXPOINT_NEW,
+            TicketType.TENDBCLUSTER_FIXPOINT_EXIST,
+        ]
         cluster_extra_info = {
             "cluster_spec": model_to_dict(spec) if spec else None,
             "cluster_capacity": spec.capacity * machine_pair_cnt if spec else None,
@@ -216,7 +222,7 @@ class ListRetrieveResource(MysqlListRetrieveResource, TenDBClusterCommonQueryRes
             "machine_pair_cnt": machine_pair_cnt,
             "remote_db": remote_db,
             "remote_dr": remote_dr,
-            "temporary_info": cls.get_temporary_cluster_info(cluster, TicketType.TENDBCLUSTER_ROLLBACK_CLUSTER),
+            "temporary_info": cls.get_temporary_cluster_info(cluster, temporary_ticket_type),
         }
         cluster_info = super()._to_cluster_representation(
             cluster,
