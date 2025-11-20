@@ -17,11 +17,21 @@ class MigrateTask(object):
     数据迁移任务
     """
 
-    def __init__(self, source: int, target: int, db_list: list, data_schema_grant: str):
+    def __init__(
+        self,
+        source: int,
+        target: int,
+        db_list: list,
+        clone_db_list: list,
+        ignore_db_list: list,
+        data_schema_grant: str,
+    ):
         self.source = Cluster.objects.get(id=source).immute_domain
         self.target = Cluster.objects.get(id=target).immute_domain
         self.target_cluster_type = Cluster.objects.get(id=target).cluster_type
         self.db_list = db_list
+        self.clone_db_list = clone_db_list
+        self.ignore_db_list = ignore_db_list
         self.data_schema_grant = data_schema_grant  # 可选"data,schema"或者"schema"
         self.db_size = {}  # GB
         self.same_target_sum_size = 0  # 和当前迁移任务目标主机相同、data盘符相同的迁移任务db大小总和，GB
@@ -97,15 +107,14 @@ def same_target_host_disk(tasks: list, disk_size: dict, no_disk_stats: list) -> 
     same_cluster = defaultdict(list)
     same_disk = defaultdict(list)
     for index, task in enumerate(tasks):
-        if task.data_schema_grant == "schema":
-            task.disk_size = disk_size[task.target]
-            task.assess_suggestion(total_db_size=0)
-            continue
         if task.target in no_disk_stats:
             task.db_size = {db: 0 for db in task.db_list}
             task.suggestion = _("无目标集群磁盘上报数据")
             continue
         task.disk_size = disk_size[task.target]
+        if task.data_schema_grant == "schema":
+            task.assess_suggestion(total_db_size=0)
+            continue
         same_cluster[task.target].append(index)
     for immute_domain, disk in disk_size.items():
         same_disk["{}_{}".format(disk["host"], disk["mount_point"])].extend(same_cluster[immute_domain])
@@ -122,7 +131,14 @@ def parameters_from_data_migrate(migrations: list = None) -> (list, str, list, d
     targets = defaultdict(list)
     for info in migrations:
         for target in info["target_clusters"]:
-            task = MigrateTask(info["source_cluster"], target, info["db_list"], info["data_schema_grant"])
+            task = MigrateTask(
+                info["source_cluster"],
+                target,
+                info["db_list"],
+                info["clone_db_list"],
+                info["ignore_db_list"],
+                info["data_schema_grant"],
+            )
             targets[task.target_cluster_type].append(task.target)
             if info["data_schema_grant"] == "schema":
                 task.db_size = {db: 0 for db in info["db_list"]}
