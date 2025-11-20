@@ -327,23 +327,44 @@ class DBBaseViewSet(viewsets.SystemViewSet):
     @action(methods=["GET"], detail=False, serializer_class=QueryBizClusterAttrsSerializer)
     def query_biz_machine_attrs(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
-        Machines = Machine.objects.filter(bk_biz_id=data["bk_biz_id"], cluster_type__in=data["cluster_type"])
+        machines = Machine.objects.filter(bk_biz_id=data["bk_biz_id"], cluster_type__in=data["cluster_type"])
         # 聚合每个属性字段
         machine_attrs: Dict[str, Union[List, Set]] = defaultdict(list)
         existing_values: Dict[str, Set[str]] = defaultdict(set)
         # 过滤一些不合格的数据
+        instance_role_flag = False
         if data["machine_attrs"]:
+            if "instance_role" in data["machine_attrs"]:
+                data["machine_attrs"].remove("instance_role")
+                instance_role_flag = True
             # 获取choice map
             field__choice_map = {
                 attr: {value: label for value, label in getattr(Machine, attr).field.choices or []}
                 for attr in data["machine_attrs"]
             }
-            for attr in Machines.values(*data["machine_attrs"]):
+            for attr in machines.values(*data["machine_attrs"]):
                 for key, value in attr.items():
                     # 保留bk_cloud_id有等于0的情况
                     if value is not None and value not in existing_values[key]:
                         existing_values[key].add(value)
                         machine_attrs[key].append({"value": value, "text": field__choice_map[key].get(value, value)})
+
+            if instance_role_flag:
+                proxy_access_layers = (
+                    ProxyInstance.objects.filter(machine__in=machines)
+                    .values_list("access_layer", flat=True)
+                    .distinct()
+                )
+
+                storage_roles = (
+                    StorageInstance.objects.filter(machine__in=machines)
+                    .values_list("instance_role", flat=True)
+                    .distinct()
+                )
+                instance_roles = list(proxy_access_layers) + list(storage_roles)
+                machine_attrs["instance_role"] = [
+                    {"value": instance_role, "text": instance_role} for instance_role in instance_roles
+                ]
 
             if "bk_city_id" in machine_attrs:
                 cities = BKCity.objects.all()
