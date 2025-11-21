@@ -4,6 +4,8 @@ export interface ScaleUpdown extends ResourcePoolDetailBase {
   infos: {
     cluster_id: number;
     cluster_type: string;
+    db_version: string;
+    disaster_tolerance_level: string;
     old_nodes: {
       mongodb: {
         bk_cloud_id: number;
