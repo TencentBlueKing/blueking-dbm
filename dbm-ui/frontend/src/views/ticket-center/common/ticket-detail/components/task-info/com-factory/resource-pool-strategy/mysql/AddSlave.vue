@@ -12,14 +12,18 @@
 -->
 
 <template>
-  <BkTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn
+    row-key="id">
+    <TicketInfoTableColumn
+      col-key="cluster_ids"
       fixed="left"
-      :label="t('目标集群')"
-      :min-width="250">
-      <template #default="{ data }: { data: RowData }">
+      :get-copy-value="
+        (item: RowData) => item.cluster_ids.map((clusterId) => ticketDetails.details.clusters[clusterId].immute_domain)
+      "
+      :min-width="250"
+      :title="t('目标集群')">
+      <template #default="{ row: data }: { row: RowData }">
         <div
           v-for="clusterId in data.cluster_ids"
           :key="clusterId"
@@ -27,15 +31,16 @@
           {{ ticketDetails.details.clusters[clusterId].immute_domain }}
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('新从库主机')"
-      :min-width="120">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="resource_spec"
+      :min-width="120"
+      :title="t('新从库主机')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.resource_spec.new_slave.hosts?.[0]?.ip || '--' }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('备份源')">
       {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}

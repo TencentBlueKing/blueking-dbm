@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.bamboo.scene.mysql.mysql_machine_clear_flow import ClearMysqlMachineFlow
+from backend.flow.engine.bamboo.scene.mysql.validate.mysql_rollback_validator import TenDbClusterRollbackFlowValidator
 from backend.flow.engine.bamboo.scene.spider.append_deploy_ctl_flow import AppendDeployCTLFlow
 from backend.flow.engine.bamboo.scene.spider.db_table_backup import TenDBClusterDBTableBackupFlow
 from backend.flow.engine.bamboo.scene.spider.full_backup import TenDBClusterFullBackupFlow
@@ -27,6 +28,7 @@ from backend.flow.engine.bamboo.scene.spider.spider_cluster_flashback import Ten
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_rollback_flow import TenDBRollBackDataFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_truncate_database import SpiderTruncateDatabaseFlow
 from backend.flow.engine.bamboo.scene.spider.spider_keyword_check_flow import SpiderKeywordCheckFlow
+from backend.flow.engine.bamboo.scene.spider.spider_nodes_change_spec import TenDBClusterNodesChangeSpecFlow
 from backend.flow.engine.bamboo.scene.spider.spider_partition import SpiderPartitionFlow
 from backend.flow.engine.bamboo.scene.spider.spider_partition_cron import SpiderPartitionCronFlow
 from backend.flow.engine.bamboo.scene.spider.spider_reduce_mnt import TenDBClusterReduceMNTFlow
@@ -42,6 +44,15 @@ from backend.flow.engine.bamboo.scene.spider.spider_switch_nodes import TenDBClu
 from backend.flow.engine.bamboo.scene.spider.upgrade.upgrade_backend_storage import UpgradeRemoteFlow
 from backend.flow.engine.bamboo.scene.spider.upgrade.upgrade_spider_node import UpgradeSpiderFlow
 from backend.flow.engine.bamboo.scene.spider.validate.remote_upgrade_validate import TenDBClusterRemoteUpgradeValidator
+from backend.flow.engine.bamboo.scene.spider.validate.spider_add_nodes_validate import (
+    TenDBClusterAddNodesFlowValidator,
+)
+from backend.flow.engine.bamboo.scene.spider.validate.spider_nodes_change_spec_validate import (
+    TenDBClusterNodesChangeSpecValidator,
+)
+from backend.flow.engine.bamboo.scene.spider.validate.spider_reduce_nodes_validate import (
+    TenDBClusterReduceNodesFlowValidator,
+)
 from backend.flow.engine.bamboo.scene.spider.validate.spider_switch_nodes_validate import (
     TenDBClusterSwitchNodesFlowValidator,
 )
@@ -149,6 +160,7 @@ class SpiderController(BaseController):
         flow = TenDBClusterDBTableBackupFlow(root_id=self.root_id, data=self.ticket_data)
         flow.backup_flow()
 
+    @validates_with(TenDBClusterAddNodesFlowValidator)
     def add_spider_nodes_scene(self):
         """
         扩容接入层的场景
@@ -160,6 +172,7 @@ class SpiderController(BaseController):
         flow = TenDBClusterFullBackupFlow(root_id=self.root_id, data=self.ticket_data)
         flow.full_backup_flow()
 
+    @validates_with(TenDBClusterReduceNodesFlowValidator)
     def reduce_spider_nodes_scene(self):
         """
         缩容接入层的场景
@@ -215,6 +228,7 @@ class SpiderController(BaseController):
         flow = TenDBRemoteSlaveLocalRecoverFlow(root_id=self.root_id, ticket_data=self.ticket_data)
         flow.tendb_remote_slave_local_recover()
 
+    @validates_with(TenDbClusterRollbackFlowValidator)
     def tendb_cluster_rollback_data(self):
         """
         tendb cluster 定点回档
@@ -273,6 +287,14 @@ class SpiderController(BaseController):
         """
         flow = TenDBClusterSwitchNodesFlow(root_id=self.root_id, data=self.ticket_data)
         flow.switch_spider_nodes()
+
+    @validates_with(TenDBClusterNodesChangeSpecValidator)
+    def tendbcluster_nodes_change_spec_scene(self):
+        """
+        tendbcluster spider整体升降配
+        """
+        flow = TenDBClusterNodesChangeSpecFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.run_flow()
 
     def spider_keyword_check_scene(self):
         """

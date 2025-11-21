@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { useRequest } from 'vue-request';
 
 import { fetchDeviceClass, fetchMountPoints, getOsTypeList } from '@services/source/dbresourceResource';
-import { fetchDbTypeList, getInfrasCities, getInfrasSubzonesByCity } from '@services/source/infras';
+import { fetchDbTypeList, getCommonCities, getInfrasSubzonesByCity } from '@services/source/infras';
 import { getCloudList, searchDeviceClass } from '@services/source/ipchooser';
 
 import { useGlobalBizs } from '@stores';
@@ -144,10 +144,10 @@ export default (props: any) => {
     initialData: [],
   });
 
-  const cityList = shallowRef<ServiceReturnType<typeof getInfrasCities>>([]);
-  useRequest(getInfrasCities, {
+  const cityList = shallowRef<ServiceReturnType<typeof getCommonCities>['common']>([]);
+  useRequest(getCommonCities, {
     onSuccess(data) {
-      cityList.value = data.filter((item) => item.city_code !== 'default');
+      cityList.value = data.common.concat(data.internal).filter((item) => item.city_code !== 'default');
     },
   });
 

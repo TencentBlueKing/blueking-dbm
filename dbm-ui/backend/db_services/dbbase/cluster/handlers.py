@@ -16,7 +16,7 @@ from functools import reduce
 from typing import Any, Callable, Dict, List, Set
 
 from django.db.models import F, Prefetch, Q
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
 from backend import env

@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import django.db.models.deletion
 from django.db import models
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.bk_web.models import AuditedModel
 from backend.db_meta.enums import ClusterType

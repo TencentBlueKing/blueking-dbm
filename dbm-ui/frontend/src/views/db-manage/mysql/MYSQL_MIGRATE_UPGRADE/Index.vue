@@ -53,9 +53,9 @@
             :create-row-method="createTableRow" />
         </EditableRow>
       </EditableTable>
-      <BkFormItem>
+      <BkFormItem class="mb-8">
         <BkCheckbox
-          v-model="formData.force"
+          v-model="formData.is_check_process"
           :false-label="false"
           true-label>
           <span
@@ -66,6 +66,13 @@
         </BkCheckbox>
       </BkFormItem>
       <BackupSource v-model="formData.backup_source" />
+      <BkFormItem
+        :label="t('数据校验')"
+        property="need_checksum">
+        <BkSwitcher
+          v-model="formData.need_checksum"
+          theme="primary" />
+      </BkFormItem>
       <TicketPayload v-model="formData.payload" />
       <template #action>
         <BkButton
@@ -183,7 +190,8 @@
 
   const defaultData = () => ({
     backup_source: BackupSourceType.REMOTE,
-    force: true,
+    is_check_process: true,
+    need_checksum: true,
     payload: createTickePayload(),
     tableData: [createTableRow()],
   });
@@ -226,27 +234,30 @@
   };
 
   useTicketDetail<Mysql.ResourcePool.MigrateUpgrade>(TicketTypes.MYSQL_MIGRATE_UPGRADE, {
-    onSuccess(ticketDetails) {
-      const { clusters, force, infos } = ticketDetails.details;
+    onSuccess(ticketDetail) {
+      const { clusters, infos } = ticketDetail.details;
       if (infos.length > 0) {
-        formData.force = force;
-        formData.tableData = infos.map((item) => {
-          const clusterInfo = clusters[item.cluster_ids[0]];
-          return createTableRow({
-            cluster: {
-              master_domain: clusterInfo.immute_domain,
-            },
-            new_db_module_id: item.new_db_module_id,
-            new_master_slave_host: [item.resource_spec.new_master.hosts[0], item.resource_spec.new_slave.hosts[0]],
-            new_readonly_host: item.read_only_slaves.map((item) => item.new_slave),
-            pkg_id: item.pkg_id,
-            target_version: {
-              charset: item.display_info.charset,
-              db_module_name: item.display_info.target_module_name,
-              db_version: item.display_info.target_version,
-              pkg_name: item.display_info.target_package,
-            },
-          });
+        Object.assign(formData, {
+          ...createTickePayload(ticketDetail),
+          is_check_process: ticketDetail.details.is_check_process,
+          need_checksum: ticketDetail.details.need_checksum,
+          tableData: ticketDetail.details.infos.map((item) =>
+            createTableRow({
+              cluster: {
+                master_domain: clusters[item.cluster_ids[0]].immute_domain,
+              },
+              new_db_module_id: item.new_db_module_id,
+              new_master_slave_host: [item.resource_spec.new_master.hosts[0], item.resource_spec.new_slave.hosts[0]],
+              new_readonly_host: item.read_only_slaves.map((item) => item.new_slave),
+              pkg_id: item.pkg_id,
+              target_version: {
+                charset: item.display_info.charset,
+                db_module_name: item.display_info.target_module_name,
+                db_version: item.display_info.target_version,
+                pkg_name: item.display_info.target_package,
+              },
+            }),
+          ),
         });
       }
     },
@@ -254,7 +265,6 @@
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     backup_source: string;
-    force: boolean;
     infos: {
       cluster_ids: number[];
       display_info: {
@@ -286,6 +296,8 @@
       };
     }[];
     ip_source: 'resource_pool';
+    is_check_process: boolean;
+    need_checksum: boolean;
   }>(TicketTypes.MYSQL_MIGRATE_UPGRADE);
 
   const handleBatchEdit = (list: TendbhaModel[]) => {
@@ -310,7 +322,6 @@
       createTicketRun({
         details: {
           backup_source: formData.backup_source,
-          force: formData.force,
           infos: formData.tableData.map((item) => ({
             cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
             display_info: {
@@ -347,6 +358,8 @@
             },
           })),
           ip_source: 'resource_pool',
+          is_check_process: formData.is_check_process,
+          need_checksum: formData.need_checksum,
         },
         ...formData.payload,
       });

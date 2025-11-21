@@ -33,6 +33,9 @@ class TendbSpiderReduceNodesDetailSerializer(TendbBaseOperateDetailSerializer):
 
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         spider_reduced_to_count = serializers.IntegerField(help_text=_("剩余spider数量"), required=False)
+        spider_reduced_hosts = serializers.ListSerializer(
+            help_text=_("待回收spider主机信息"), required=False, child=HostInfoSerializer()
+        )
         old_nodes = OldSpiderSerializer(help_text=_("缩容指定主机"), required=False)
         reduce_spider_role = serializers.ChoiceField(help_text=_("角色"), choices=TenDBClusterSpiderRole.get_choices())
 
@@ -44,14 +47,10 @@ class TendbSpiderReduceNodesDetailSerializer(TendbBaseOperateDetailSerializer):
     )
     disable_manual_confirm = serializers.BooleanField(help_text=(_("自愈单据禁用人工确认")), default=False)
 
-    def validate(self, attrs):
-        super().validate(attrs)
-        self.validate_min_spider_count(attrs)
-        return attrs
-
 
 class TendbSpiderReduceNodesFlowParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.reduce_spider_nodes_scene
+    validator = SpiderController.reduce_spider_nodes_scene.validator
 
     def format_ticket_data(self):
         for info in self.ticket_data["infos"]:

@@ -12,9 +12,49 @@
 -->
 
 <template>
-  <DbOriginalTable
-    :columns="columns"
-    :data="tableData" />
+  <TicketInfoTable
+    :data="tableData"
+    row-key="id">
+    <TicketInfoTableColumn
+      col-key="ip"
+      fixed="left"
+      :get-copy-value="(row: RowData) => `${row.ip}:${row.listen_port}`"
+      min-width="150"
+      :title="t('实例')"
+      width="200">
+      <template #default="{ row: data }: { row: RowData }"> {{ data.ip }}:{{ data.listen_port }} </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="dumper_id"
+      :title="t('实例 ID')"
+      width="80">
+      <template #default="{ row: data }: { row: RowData }"> {{ data.dumper_id }} </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="immute_domain"
+      min-width="200"
+      :title="t('数据源集群')"
+      width="250">
+      <template #default="{ row: data }: { row: RowData }">
+        {{ data.source_cluster.immute_domain }}:{{ data.source_cluster.master_port }}
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="protocol_type"
+      :title="t('接收端类型')">
+      <template #default="{ row: data }: { row: RowData }"> {{ data.protocol_type }} </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="target_address"
+      :title="t('接收端地址')">
+      <template #default="{ row: data }: { row: RowData }"> {{ data.target_address }}:{{ data.target_port }} </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="add_type"
+      :title="t('同步方式')">
+      <template #default="{ row: data }: { row: RowData }"> {{ syncTypeMap[data.add_type] }} </template>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">
@@ -40,53 +80,4 @@
     full_sync: t('全量同步'),
     incr_sync: t('增量同步'),
   } as Record<string, string>;
-
-  const columns = [
-    {
-      field: 'ip',
-      fixed: 'left',
-      label: t('实例'),
-      minWidth: 150,
-      render: ({ data }: { data: RowData }) => (
-        <span>
-          {data.ip}:{data.listen_port}
-        </span>
-      ),
-      width: 200,
-    },
-    {
-      field: 'dumper_id',
-      label: t('实例 ID'),
-      width: 80,
-    },
-    {
-      field: 'source_cluster',
-      label: t('数据源集群'),
-      minWidth: 200,
-      render: ({ data }: { data: RowData }) => (
-        <span>
-          {data.source_cluster.immute_domain}:{data.source_cluster.master_port}
-        </span>
-      ),
-      width: 250,
-    },
-    {
-      field: 'protocol_type',
-      label: t('接收端类型'),
-    },
-    {
-      field: 'target_address',
-      label: t('接收端地址'),
-      render: ({ data }: { data: RowData }) => (
-        <span>
-          {data.target_address}:{data.target_port}
-        </span>
-      ),
-    },
-    {
-      field: 'add_type',
-      label: t('同步方式'),
-      render: ({ data }: { data: RowData }) => <span>{syncTypeMap[data.add_type]}</span>,
-    },
-  ];
 </script>

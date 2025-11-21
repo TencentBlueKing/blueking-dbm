@@ -98,7 +98,17 @@
       });
   };
 
-  fetchHostDetail();
+  watch(
+    isShow,
+    () => {
+      if (isShow.value) {
+        fetchHostDetail();
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChange = () => {
     emits('change');

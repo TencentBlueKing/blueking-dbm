@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from django.db.transaction import atomic
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend import env
 from backend.db_meta.models.cluster import Cluster

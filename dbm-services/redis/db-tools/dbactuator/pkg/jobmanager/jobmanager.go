@@ -184,6 +184,7 @@ func (m *JobGenericManager) atomjobsMapperLoading() {
 		m.atomJobMapper[atomredis.NewTendisKeysPatternDelete().Name()] = atomredis.NewTendisKeysPatternDelete
 		m.atomJobMapper[atomredis.NewTendisKeysFilesDelete().Name()] = atomredis.NewTendisKeysFilesDelete
 		m.atomJobMapper[atomproxy.NewPredixyInstall().Name()] = atomproxy.NewPredixyInstall
+		m.atomJobMapper[atomproxy.NewProxyReUse().Name()] = atomproxy.NewProxyReUse
 		m.atomJobMapper[atomredis.NewTendisssdDrRestore().Name()] = atomredis.NewTendisssdDrRestore
 		m.atomJobMapper[atomproxy.NewTwemproxyOperate().Name()] = atomproxy.NewTwemproxyOperate
 		m.atomJobMapper[atomproxy.NewPredixyOperate().Name()] = atomproxy.NewPredixyOperate
@@ -226,7 +227,10 @@ func (m *JobGenericManager) atomjobsMapperLoading() {
 		m.atomJobMapper[atomredis.NewRedisSceneSyncPrams().Name()] = atomredis.NewRedisSceneSyncPrams
 		m.atomJobMapper[atomsys.NewRestartExporter().Name()] = atomsys.NewRestartExporter
 		// 迁移
-		m.atomJobMapper[atomredis.NewRedisReuploadOldBackupRecords().Name()] = atomredis.NewRedisReuploadOldBackupRecords
+		m.atomJobMapper[atomredis.NewRedisReuploadOldBackupRecords().Name()] =
+			atomredis.NewRedisReuploadOldBackupRecords
+		// 内存分析
+		m.atomJobMapper[atomsys.NewKeyStat().Name()] = atomsys.NewKeyStat
 
 	})
 }

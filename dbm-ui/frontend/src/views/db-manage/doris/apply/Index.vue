@@ -210,7 +210,8 @@
                     :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="doris"
-                    machine-type="doris_follower" />
+                    machine-type="doris_follower"
+                    :subzone-ids="formData.details.sub_zone_ids" />
                 </BkFormItem>
                 <BkFormItem
                   :label="t('数量')"
@@ -235,7 +236,8 @@
                     :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="doris"
-                    machine-type="doris_observer" />
+                    machine-type="doris_observer"
+                    :subzone-ids="formData.details.sub_zone_ids" />
                 </BkFormItem>
                 <BkFormItem
                   :label="t('数量')"
@@ -265,7 +267,8 @@
                     :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="doris"
-                    machine-type="doris_backend" />
+                    machine-type="doris_backend"
+                    :subzone-ids="formData.details.sub_zone_ids" />
                 </BkFormItem>
                 <BkFormItem
                   :label="t('数量')"
@@ -289,7 +292,8 @@
                     :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="doris"
-                    machine-type="doris_backend" />
+                    machine-type="doris_backend"
+                    :subzone-ids="formData.details.sub_zone_ids" />
                 </BkFormItem>
                 <BkFormItem
                   :label="t('数量')"

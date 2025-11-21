@@ -1,7 +1,7 @@
 <template>
   <div
     class="bk-quick-search-type-select"
-    :style="{ width: contentMinWidth > 0 ? `${contentMinWidth}px` : '' }">
+    :style="{ 'min-width': contentMinWidth > 0 ? `${contentMinWidth}px` : '' }">
     <div class="bk-quick-search-value-panel-filter-box">
       <Input
         v-model="filterKey"
@@ -29,7 +29,7 @@
         </div>
       </div>
       <div
-        v-if="filterKey && renderList.length < 1"
+        v-if="filterKey && renderList.length < 1 && !isRemoteListLoading"
         class="bk-quick-search-value-panel-filter-empty">
         <BkException
           description="搜索为空"

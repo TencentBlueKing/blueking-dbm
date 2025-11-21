@@ -15,7 +15,7 @@ from copy import deepcopy
 from dataclasses import asdict
 from typing import Any, Dict, List, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
@@ -113,7 +113,6 @@ class RedisDataStructureFlow(object):
         self.cluster_cache = {}
 
     def redis_data_structure_flow(self):
-
         redis_pipeline_all = Builder(root_id=self.root_id, data=self.data)
 
         # 支持批量操作
@@ -347,7 +346,6 @@ class RedisDataStructureFlow(object):
             redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines_install)
 
             # # ###cc 转移机器模块 ################################################################
-            # 直接挪机器
             cluster_kwargs.cluster["meta_func_name"] = RedisDBMeta.redis_rollback_host_transfer.__name__
             cluster_kwargs.cluster["tendiss"] = []
             for instance in cluster_dst_instance:
@@ -361,81 +359,24 @@ class RedisDataStructureFlow(object):
             # # ### cc 转移机器模块完成 ############################################################
 
             # 人工确认文件下发完成的节点
-            redis_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
+            if not self.data.get("skip_mannual_confirm", False):
+                redis_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
             # ### 如果是tendisplus,需要构建tendis cluster关系 ############################################################
-            if is_redis_cluster_protocal(cluster_type):
-                logger.info("cluster_type is:{} need tendis cluster relation".format(cluster_type))
-                act_kwargs.cluster["all_instance"] = cluster_dst_instance
-                act_kwargs.get_redis_payload_func = RedisActPayload.rollback_clustermeet_payload.__name__
-                # 选第一台作为下发执行任务的机器
-                act_kwargs.exec_ip = info["redis"][0]["ip"]
-                redis_pipeline.add_act(
-                    act_name=_("建立meet关系"),
-                    act_component_code=ExecuteDBActuatorScriptComponent.code,
-                    kwargs=asdict(act_kwargs),
-                )
+            self._setup_cluster_meet(cluster_type, act_kwargs, cluster_dst_instance, info, redis_pipeline)
             # ### 构建tendisplus集群关系结束 #############################################################################
 
             # ### 部署proxy实例 #############################################################################
-            # 选第一台机器作为部署proxy的机器
-            act_kwargs.new_install_proxy_exec_ip = info["redis"][0]["ip"]
-            act_kwargs.get_trans_data_ip_var = RedisDataStructureContext.get_proxy_exec_ip_var_name()
-
-            if is_have_proxy(cluster_type):
-                trans_files = GetFileList(db_type=DBType.Redis)
-                if is_twemproxy_proxy_type(cluster_type):
-                    # 部署proxy pkg包
-                    act_kwargs.file_list = trans_files.redis_cluster_apply_proxy(cluster_type)
-                    proxy_payload = RedisActPayload.add_twemproxy_payload.__name__
-                elif is_predixy_proxy_type(cluster_type):
-                    act_kwargs.file_list = trans_files.tendisplus_apply_proxy()
-                    proxy_payload = RedisActPayload.add_predixy_payload.__name__
-                else:
-                    raise NotImplementedError("Not supported cluster type: %s" % cluster_type)
-
-                act_kwargs.get_trans_data_ip_var = RedisDataStructureContext.get_proxy_exec_ip_var_name()
-                act_kwargs.exec_ip = act_kwargs.new_install_proxy_exec_ip
-                redis_pipeline.add_act(
-                    act_name=_("{}proxy下发介质包").format(act_kwargs.exec_ip),
-                    act_component_code=TransFileComponent.code,
-                    kwargs=asdict(act_kwargs),
-                )
-
-                # 构造proxy server信息
-                if is_twemproxy_proxy_type(cluster_type):
-                    servers = self.cal_twemproxy_serveres("admin", redis_instance_set, node_pairs)
-                elif is_redis_cluster_protocal(cluster_type):
-                    servers = cluster_dst_instance
-                else:
-                    raise NotImplementedError("Not supported cluster type: %s" % cluster_type)
-
-                act_kwargs.cluster["servers"] = servers
-                logger.info("proxy servers: {}".format(act_kwargs.cluster["servers"]))
-                act_kwargs.get_redis_payload_func = proxy_payload
-                act_kwargs.exec_ip = act_kwargs.new_install_proxy_exec_ip
-                redis_pipeline.add_act(
-                    act_name=_("{}安装proxy实例").format(act_kwargs.new_install_proxy_exec_ip),
-                    act_component_code=ExecuteDBActuatorScriptComponent.code,
-                    kwargs=asdict(act_kwargs),
-                )
+            self._deploy_proxy_instance(
+                cluster_type, act_kwargs, info, redis_instance_set, node_pairs, cluster_dst_instance, redis_pipeline
+            )
             # ### 数据构造payload json下发 #########################################################################
             redis_pipeline.add_parallel_acts(acts_list=acts_list_push_json)
             # ### 数据构造下发actuator #############################################################################
             redis_pipeline.add_parallel_acts(acts_list=acts_list)
 
             # # ###  # ### 如果是tendisplus,需要重新构建 cluster关系,因为tendisplus数据构造需要reset集群关系  ##############
-            if is_redis_cluster_protocal(cluster_type):
-                logger.info("cluster_type is:{}  cluster  meet and check finish relation".format(cluster_type))
-                act_kwargs.cluster["all_instance"] = cluster_dst_instance
-                act_kwargs.get_redis_payload_func = RedisActPayload.clustermeet_check_payload.__name__
-                # 选第一台作为下发执行任务的机器
-                act_kwargs.exec_ip = info["redis"][0]["ip"]
-                redis_pipeline.add_act(
-                    act_name=_("meet建立集群关系并检查集群状态"),
-                    act_component_code=ExecuteDBActuatorScriptComponent.code,
-                    kwargs=asdict(act_kwargs),
-                )
+            self._check_cluster_meet(cluster_type, act_kwargs, cluster_dst_instance, info, redis_pipeline)
 
             # ### 写入构造记录元数据 ######################################################
             act_kwargs.cluster = {
@@ -750,6 +691,75 @@ class RedisDataStructureFlow(object):
             }
         )
         return data["content"]
+
+    def _setup_cluster_meet(self, cluster_type, act_kwargs, cluster_dst_instance, info, redis_pipeline):
+        """Setup cluster meet relationship for tendisplus"""
+        if is_redis_cluster_protocal(cluster_type):
+            logger.info("cluster_type is:{} need tendis cluster relation".format(cluster_type))
+            act_kwargs.cluster["all_instance"] = cluster_dst_instance
+            act_kwargs.get_redis_payload_func = RedisActPayload.rollback_clustermeet_payload.__name__
+            act_kwargs.exec_ip = info["redis"][0]["ip"]
+            redis_pipeline.add_act(
+                act_name=_("建立meet关系"),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
+
+    def _deploy_proxy_instance(
+        self, cluster_type, act_kwargs, info, redis_instance_set, node_pairs, cluster_dst_instance, redis_pipeline
+    ):
+        """Deploy proxy instance"""
+        act_kwargs.new_install_proxy_exec_ip = info["redis"][0]["ip"]
+        act_kwargs.get_trans_data_ip_var = RedisDataStructureContext.get_proxy_exec_ip_var_name()
+
+        if is_have_proxy(cluster_type):
+            trans_files = GetFileList(db_type=DBType.Redis)
+            if is_twemproxy_proxy_type(cluster_type):
+                act_kwargs.file_list = trans_files.redis_cluster_apply_proxy(cluster_type)
+                proxy_payload = RedisActPayload.add_twemproxy_payload.__name__
+            elif is_predixy_proxy_type(cluster_type):
+                act_kwargs.file_list = trans_files.tendisplus_apply_proxy()
+                proxy_payload = RedisActPayload.add_predixy_payload.__name__
+            else:
+                raise NotImplementedError("Not supported cluster type: %s" % cluster_type)
+
+            act_kwargs.get_trans_data_ip_var = RedisDataStructureContext.get_proxy_exec_ip_var_name()
+            act_kwargs.exec_ip = act_kwargs.new_install_proxy_exec_ip
+            redis_pipeline.add_act(
+                act_name=_("{}proxy下发介质包").format(act_kwargs.exec_ip),
+                act_component_code=TransFileComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
+
+            if is_twemproxy_proxy_type(cluster_type):
+                servers = self.cal_twemproxy_serveres("admin", redis_instance_set, node_pairs)
+            elif is_redis_cluster_protocal(cluster_type):
+                servers = cluster_dst_instance
+            else:
+                raise NotImplementedError("Not supported cluster type: %s" % cluster_type)
+
+            act_kwargs.cluster["servers"] = servers
+            logger.info("proxy servers: {}".format(act_kwargs.cluster["servers"]))
+            act_kwargs.get_redis_payload_func = proxy_payload
+            act_kwargs.exec_ip = act_kwargs.new_install_proxy_exec_ip
+            redis_pipeline.add_act(
+                act_name=_("{}安装proxy实例").format(act_kwargs.new_install_proxy_exec_ip),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
+
+    def _check_cluster_meet(self, cluster_type, act_kwargs, cluster_dst_instance, info, redis_pipeline):
+        """Check cluster meet relationship for tendisplus"""
+        if is_redis_cluster_protocal(cluster_type):
+            logger.info("cluster_type is:{}  cluster  meet and check finish relation".format(cluster_type))
+            act_kwargs.cluster["all_instance"] = cluster_dst_instance
+            act_kwargs.get_redis_payload_func = RedisActPayload.clustermeet_check_payload.__name__
+            act_kwargs.exec_ip = info["redis"][0]["ip"]
+            redis_pipeline.add_act(
+                act_name=_("meet建立集群关系并检查集群状态"),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
 
     def cal_twemproxy_serveres(self, name, redis_instance_set, node_pairs) -> list:
         """

@@ -2,7 +2,7 @@
   <BkLoading
     class="render-dynamic-table"
     :loading="loading">
-    <BlockCard>
+    <CollapseCard>
       <template #title>
         <span style="font-weight: 700">{{ tableName }}</span>
         <template v-if="isShowStateCount">
@@ -10,23 +10,26 @@
           <template v-if="!isOnlyAbnormal">
             <span>{{ t('正常') }}</span>
             <span class="ml-4 mr-4">:</span>
-            <span style="color: #2caf5e; font-weight: 700">{{ stateCountsMap.normal }}</span>
+            <span style="font-weight: 700; color: #2caf5e">{{ stateCountsMap.normal }}</span>
             <span class="ml-4 mr-4">,</span>
           </template>
           <span>{{ t('预警') }}</span>
           <span class="ml-4 mr-4">:</span>
-          <span style="color: #f59500; font-weight: 700">{{ stateCountsMap.warning }}</span>
+          <span style="font-weight: 700; color: #f59500">{{ stateCountsMap.warning }}</span>
           <span class="ml-4 mr-4">,</span>
           <span>{{ t('异常') }}</span>
           <span class="ml-4 mr-4">:</span>
-          <span style="color: #ea3636; font-weight: 700">{{ stateCountsMap.abnormal }}</span>
+          <span style="font-weight: 700; color: #ea3636">{{ stateCountsMap.abnormal }}</span>
           <span class="ml-2">)</span>
         </template>
       </template>
       <PrimaryTable
+        class="dynamic-table-main"
         :data="tableData"
-        header-row-class-name="dynamic-table-head"
+        :max-height="485"
         :pagination="pagination"
+        resizable
+        row-key="__uuid"
         @page-change="handlePageChange">
         <template #empty>
           <slot name="empty">
@@ -42,7 +45,9 @@
           :col-key="item.name"
           ellipsis
           ellipsis-title
-          :title="item.display_name">
+          resizable
+          :title="item.display_name"
+          :width="columnWidthMap[item.name] || 120">
           <template #default="{ row }: { row: ReportInfo['results'][number] }">
             <template v-if="item.format === 'status'">
               <!-- 兼容旧状态，需要保留 -->
@@ -71,7 +76,7 @@
           </template>
         </TableColumn>
       </PrimaryTable>
-    </BlockCard>
+    </CollapseCard>
     <FailSlaveInstance
       :id="failSlaveInstanceReportId"
       v-model="isShowFailSlaveInstance" />
@@ -86,11 +91,11 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import CollapseCard from '@components/collapse-card/Index.vue';
   import DbStatus from '@components/db-status/index.vue';
 
-  import { utcDisplayTime } from '@utils';
+  import { calcTextWidth, random, utcDisplayTime } from '@utils';
 
-  import BlockCard from './components/BlockCard.vue';
   import FailSlaveInstance from './components/FailSlaveInstance.vue';
 
   interface Props {
@@ -123,8 +128,7 @@
 
   const pagination = reactive({
     current: 1,
-    limit: 10,
-    remote: true,
+    pageSize: 10,
     total: 0,
   });
 
@@ -137,6 +141,7 @@
     warning: 0,
   });
   const titleList = ref<ReportInfo['title']>([]);
+  const columnWidthMap = ref<Record<string, number>>({});
 
   const tableData = shallowRef<any[]>([]);
 
@@ -155,8 +160,27 @@
       stateCountsMap.value = result.state_count;
       pagination.total = result.count;
       tableName.value = result.name;
-      titleList.value = result.title;
-      tableData.value = result.results;
+      const rawTitleList = result.title;
+      const failedDaysIndex = rawTitleList.findIndex((item) => item.name === 'failed_days');
+      const msgIndex = rawTitleList.findIndex((item) => item.name === 'msg');
+      if (failedDaysIndex !== -1 && msgIndex !== -1) {
+        [rawTitleList[failedDaysIndex], rawTitleList[msgIndex]] = [
+          rawTitleList[msgIndex],
+          rawTitleList[failedDaysIndex],
+        ];
+      }
+      if (result.count > 0 && !Object.keys(columnWidthMap.value).length) {
+        Object.entries(result.results[0]).forEach(([key, value]) => {
+          const width = calcTextWidth(value);
+          columnWidthMap.value[key] = width > 120 ? width : 120;
+        });
+      }
+      titleList.value = rawTitleList;
+      tableData.value = result.results.map((item) =>
+        Object.assign(item, {
+          __uuid: random(),
+        }),
+      );
     },
   });
 
@@ -205,8 +229,8 @@
     fetchInspectionData(
       props.serviceUrl,
       {
-        limit: pagination.limit,
-        offset: (pagination.current - 1) * pagination.limit,
+        limit: pagination.pageSize,
+        offset: (pagination.current - 1) * pagination.pageSize,
         // 默认排序，优先按失败天数排序，其次按创建时间排序
         ordering: '-failed_days,-create_at',
         platform: props.isPlatform,
@@ -234,8 +258,8 @@
   };
 
   const handlePageChange = (pageInfo: { current: number; pageSize: number; previous: number }) => {
-    if (pagination.limit !== pageInfo.pageSize) {
-      pagination.limit = pageInfo.pageSize;
+    if (pagination.pageSize !== pageInfo.pageSize) {
+      pagination.pageSize = pageInfo.pageSize;
       pagination.current = 1;
       fetchData();
       return;
@@ -249,6 +273,11 @@
 
   defineExpose<Exposes>({
     async getExportExcelSheetData() {
+      const searchParams = _.cloneDeep(props.searchParams);
+      if (searchParams.isOnlyAbnormal === 'true') {
+        searchParams.state__in = 'warning,abnormal';
+      }
+      delete searchParams.isOnlyAbnormal;
       const {
         name: fileName,
         results,
@@ -258,8 +287,9 @@
         {
           limit: -1,
           offset: 0,
+          ordering: '-failed_days,-create_at',
           platform: props.isPlatform,
-          ...props.searchParams,
+          ...searchParams,
         },
         {
           permission: 'page',
@@ -298,9 +328,19 @@
     & ~ .render-dynamic-table {
       margin-top: 16px;
     }
-  }
 
-  .dynamic-table-head {
-    background-color: #fafbfd;
+    .dynamic-table-main {
+      .t-table__header {
+        th {
+          background-color: #fafbfd;
+          border-top: none !important;
+          border-right: none !important;
+
+          &:hover {
+            background-color: #eaebf0;
+          }
+        }
+      }
+    }
   }
 </style>

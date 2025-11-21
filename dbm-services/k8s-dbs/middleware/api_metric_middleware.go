@@ -41,9 +41,9 @@ var IgnoreAPINames = map[string]bool{
 // APIMetricsMiddleware 收集 API 请求的指标数据并上报
 func APIMetricsMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		basicMetricTags := dbsmetrics.BaseMetricTags{}
 		// 记录请求开始时间
 		start := time.Now()
+		basicMetricTags := dbsmetrics.BaseMetricTags{}
 
 		// 设置用户标签
 		if err := setAPISourceTags(c, &basicMetricTags); err != nil {
@@ -75,8 +75,14 @@ func APIMetricsMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// 指标上报
+		// 通用 API 指标上报
 		reportAPIMetrics(&basicMetricTags, start)
+
+		// 集群操作指标上报
+		dbsmetrics.ReportClusterAPIMetrics(c, basicMetricTags)
+
+		// addon 操作指标上报
+		dbsmetrics.ReportAddonAPIMetrics(c, basicMetricTags)
 	}
 }
 

@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 import logging.config
+import time
 import traceback
 from typing import List
 
@@ -69,7 +70,28 @@ class MongoDBCapcityMetaService(BaseService):
         except Exception as e:
             logger.error(traceback.format_exc())
             logger.error("cluster specs changs 4 meta fail, {}error:{}".format(kwargs, str(e)))
-            return False
+            # 5秒后重试一次
+            time.sleep(5)
+            try:
+                mongo_cluster = Cluster.objects.get(bk_biz_id=kwargs["bk_biz_id"], id=kwargs["cluster_id"])
+
+                # 仅支持 MongoDB 实例级的容量变更
+                if kwargs.get("mongodb"):
+                    logger.info(
+                        "mongo cluster capcity specs changes {} mongodb : {} ".format(
+                            mongo_cluster.immute_domain, kwargs.get("mongodb")
+                        )
+                    )
+                    self.mongdb_instance_spec_modify(
+                        mongo_cluster,
+                        kwargs.get("mongodb"),
+                        MachineType.MONGODB.value,
+                        kwargs.get("created_by"),
+                    )
+            except Exception as e:
+                logger.error(traceback.format_exc())
+                logger.error("cluster specs changs 4 meta fail, {}error:{}".format(kwargs, str(e)))
+                return False
         logger.info("cluster specs changs 4 meta successfully {}".format(kwargs))
         return True
 

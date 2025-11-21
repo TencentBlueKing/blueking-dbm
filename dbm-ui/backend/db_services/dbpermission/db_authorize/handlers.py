@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Tuple, Union
 from django.conf import settings
 from django.core.cache import cache
 from django.http.response import HttpResponse
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend import env
 from backend.components.mysql_priv_manager.client import DBPrivManagerApi

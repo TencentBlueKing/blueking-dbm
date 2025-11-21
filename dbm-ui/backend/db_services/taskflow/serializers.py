@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.models import AppCache
@@ -97,7 +97,6 @@ class CallbackNodeSerializer(NodeSerializer):
 
 class DownloadExcelSerializer(serializers.Serializer):
     root_id = serializers.CharField(help_text=_("流程ID"))
-    key = serializers.CharField(help_text=_("查询key"))
     match_header = serializers.BooleanField(help_text=_("是否严格匹配列名"), required=False)
 
 

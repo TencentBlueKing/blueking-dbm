@@ -90,6 +90,7 @@ class PulsarDBMeta(object):
                         "ip": ip,
                         "port": self.role_port_dict[role],
                         "instance_role": self.role_instance_dict[role],
+                        "db_version": self.ticket_data.get("db_version", ""),
                     }
                 )
 
@@ -176,6 +177,7 @@ class PulsarDBMeta(object):
                     "ip": self.ticket_data["old_zk_ips"][i],
                     "port": self.role_port_dict[PulsarRoleEnum.ZooKeeper],
                     "instance_role": self.role_instance_dict[PulsarRoleEnum.ZooKeeper],
+                    "db_version": self.ticket_data.get("db_version", ""),
                 }
             )
             new_storages.append(
@@ -183,6 +185,7 @@ class PulsarDBMeta(object):
                     "ip": self.ticket_data["new_zk_ips"][i],
                     "port": self.role_port_dict[PulsarRoleEnum.ZooKeeper],
                     "instance_role": self.role_instance_dict[PulsarRoleEnum.ZooKeeper],
+                    "db_version": self.ticket_data.get("db_version", ""),
                 }
             )
         new_machines = []

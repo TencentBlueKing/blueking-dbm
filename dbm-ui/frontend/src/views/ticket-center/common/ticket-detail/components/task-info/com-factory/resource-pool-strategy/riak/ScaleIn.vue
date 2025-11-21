@@ -32,27 +32,31 @@
       {{ ticketDetails.details.clusters[ticketDetails.details.cluster_id].id || '--' }}
     </InfoItem>
     <InfoItem :label="t('缩容主机：')">
-      <BkTable :data="ticketDetails.details.recycle_hosts">
-        <BkTableColumn
-          field="ip"
-          :label="t('节点 IP')"
+      <TicketInfoTable
+        :data="ticketDetails.details.recycle_hosts"
+        ellipsis
+        row-key="ip">
+        <TicketInfoTableColumn
+          col-key="ip"
+          :get-copy-value="(row: RowData) => row.ip"
           :min-width="150"
+          :title="t('节点 IP')"
           :width="250" />
-        <BkTableColumn
-          field="status"
-          :label="t('Agent状态')"
+        <TicketInfoTableColumn
+          col-key="status"
           :min-width="150"
+          :title="t('Agent状态')"
           :width="150">
           <template #default="{ row }">
             <RenderHostStatus :data="row.status" />
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="bk_disk"
-          :label="t('磁盘容量(G)')"
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="bk_disk"
           :min-width="150"
+          :title="t('磁盘容量(G)')"
           :width="150" />
-      </BkTable>
+      </TicketInfoTable>
     </InfoItem>
   </InfoList>
 </template>
@@ -70,6 +74,8 @@
   interface Props {
     ticketDetails: TicketModel<Riak.ResourcePool.ScaleIn>;
   }
+
+  type RowData = Props['ticketDetails']['details']['recycle_hosts'][number];
 
   defineOptions({
     name: TicketTypes.RIAK_CLUSTER_SCALE_IN,

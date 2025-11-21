@@ -24,3 +24,6 @@ const SystemUser = "system"
 
 // AdminUser 超级管理员账户，一般用来记录内部 api 调用发起人
 const AdminUser = "admin"
+
+// AdminUserAuthRoleID 超级管理员角色 ID
+const AdminUserAuthRoleID = "bkdata.superuser"

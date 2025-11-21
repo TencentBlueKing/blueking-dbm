@@ -12,7 +12,13 @@
 -->
 
 <template>
+  <div class="mt-16 mb-16">
+    <BatchInput
+      :config="batchInputConfig"
+      @change="handleBatchInput" />
+  </div>
   <EditableTable
+    :key="tableKey"
     ref="table"
     class="mb-20"
     :model="tableData">
@@ -21,10 +27,11 @@
       :key="index">
       <ClusterColumn
         v-model="item.cluster"
+        v-model:role="item.role"
         :selected="selected"
         @batch-edit="handleBatchEdit" />
       <RoleColumn
-        v-model="item.cluster.role"
+        v-model="item.role"
         @batch-edit="handleRoleBatchEdit"
         @change="handleChange(item)" />
       <EditableColumn
@@ -33,17 +40,13 @@
         readonly>
         <EditableBlock :placeholder="t('自动生成')">
           {{
-            !item.cluster.id
-              ? ''
-              : item.cluster.role === 'spider_master'
-                ? item.cluster.master_count
-                : item.cluster.slave_count
+            !item.cluster.id ? '' : item.role === 'spider_master' ? item.cluster.master_count : item.cluster.slave_count
           }}
         </EditableBlock>
       </EditableColumn>
       <ReducedCountColumn
         v-model="item.reduced_count"
-        :cluster="item.cluster"
+        :max="item.role === 'spider_master' ? item.cluster.master_count : item.cluster.slave_count"
         @batch-edit="handleRedecedCountBatchEdit"
         @change="handleChange(item)" />
       <EditableColumn
@@ -52,9 +55,9 @@
         :label="t('剩余数量（台）')"
         :min-width="200"
         readonly>
-        <EditableBlock
-          v-model="item.spider_reduced_to_count"
-          :placeholder="t('自动生成')" />
+        <EditableBlock :placeholder="t('自动生成')">
+          {{ item.spider_reduced_to_count }}
+        </EditableBlock>
       </EditableColumn>
       <OperationColumn
         v-model:table-data="tableData"
@@ -70,6 +73,10 @@
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import type { TendbCluster } from '@services/model/ticket/ticket';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+
+  import { random } from '@utils';
+
   import ClusterColumn from './components/ClusterColumn.vue';
   import ReducedCountColumn from './components/ReducedCountColumn.vue';
   import RoleColumn from './components/RoleColumn.vue';
@@ -77,6 +84,7 @@
   interface RowData {
     cluster: ComponentProps<typeof ClusterColumn>['modelValue'];
     reduced_count: string;
+    role: string;
     spider_reduced_to_count: string;
   }
 
@@ -100,6 +108,24 @@
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
 
+  const batchInputConfig = [
+    {
+      case: 'spider.test.dba.db',
+      key: 'master_domain',
+      label: t('目标集群'),
+    },
+    {
+      case: 'spider_master',
+      key: 'role',
+      label: t('缩容节点类型'),
+    },
+    {
+      case: '1',
+      key: 'reduced_count',
+      label: t('剩余数量（台）'),
+    },
+  ];
+
   const createTableRow = (data = {} as DeepPartial<RowData>) => ({
     cluster: Object.assign(
       {
@@ -112,9 +138,11 @@
       data.cluster,
     ),
     reduced_count: data.reduced_count || '',
+    role: data.role || '',
     spider_reduced_to_count: data.spider_reduced_to_count || '',
   });
 
+  const tableKey = ref(random());
   const tableData = ref<RowData[]>([createTableRow()]);
   const selected = computed(() => tableData.value.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() =>
@@ -180,12 +208,12 @@
   };
 
   const handleChange = (row: RowData) => {
-    if (row.cluster.role === 'spider_master') {
+    if (row.role === 'spider_master') {
       Object.assign(row, {
         spider_reduced_to_count: row.cluster.master_count - (Number(row.reduced_count) || 0),
       });
     }
-    if (row.cluster.role === 'spider_slave') {
+    if (row.role === 'spider_slave') {
       Object.assign(row, {
         spider_reduced_to_count: row.cluster.slave_count - (Number(row.reduced_count) || 0),
       });
@@ -194,7 +222,7 @@
 
   const handleRoleBatchEdit = (value: string | string[]) => {
     tableData.value.forEach((item) => {
-      Object.assign(item.cluster, {
+      Object.assign(item, {
         role: value,
       });
       handleChange(item);
@@ -210,6 +238,28 @@
     });
   };
 
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) =>
+      createTableRow({
+        cluster: {
+          master_domain: item.master_domain,
+        },
+        reduced_count: item.reduced_count,
+        role: item.role,
+      }),
+    );
+
+    if (isClear) {
+      tableKey.value = random();
+      tableData.value = [...dataList];
+    } else {
+      tableData.value = [...(tableData.value[0]!.cluster.id ? tableData.value : []), ...dataList];
+    }
+    setTimeout(() => {
+      tableRef.value?.validate();
+    }, 200);
+  };
+
   defineExpose<Exposes>({
     async getValue() {
       const validateResult = await tableRef.value?.validate();
@@ -222,7 +272,7 @@
       return {
         infos: tableData.value.map((item) => ({
           cluster_id: item.cluster.id,
-          reduce_spider_role: item.cluster.role,
+          reduce_spider_role: item.role,
           spider_reduced_to_count: Number(item.spider_reduced_to_count),
         })),
       };

@@ -221,3 +221,21 @@ func GetFileSize(filename string) (size int64, err error) {
 	}
 	return fileInfo.Size(), nil
 }
+
+// GetDirSize 获取目录大小(单位byte)
+func GetDirSize(dirPath string) (size int64, err error) {
+	err = filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			size += info.Size()
+		}
+		return nil
+	})
+	if err != nil {
+		err = fmt.Errorf("dir:%s filepath.Walk fail,err:%v", dirPath, err)
+		return
+	}
+	return size, nil
+}

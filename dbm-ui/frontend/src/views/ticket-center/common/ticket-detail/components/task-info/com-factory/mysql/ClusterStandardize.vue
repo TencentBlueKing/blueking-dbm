@@ -12,20 +12,25 @@
 -->
 
 <template>
-  <BkTable
-    :data="ticketDetails.details.cluster_ids.map((item) => ({ cluster_id: item }))"
-    :show-overflow="false">
-    <BkTableColumn :label="t('目标集群')">
-      <template #default="{ data }: { data: { cluster_id: number } }">
-        {{ ticketDetails.details.clusters?.[data.cluster_id]?.immute_domain || '--' }}
+  <TicketInfoTable
+    :data="data"
+    row-key="cluster_id">
+    <TicketInfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters?.[row.cluster_id]?.immute_domain"
+      :title="t('目标集群')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters?.[row.cluster_id]?.immute_domain || '--' }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('集群类型')">
-      <template #default="{ data }: { data: { cluster_id: number } }">
-        {{ ticketDetails.details.clusters?.[data.cluster_id]?.cluster_type_name || '--' }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_type_name"
+      :title="t('集群类型')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters?.[row.cluster_id]?.cluster_type_name || '--' }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('下发配置')">
       {{ ticketDetails.details.with_push_config ? t('是') : t('否') }}
@@ -47,6 +52,8 @@
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 
+  type RowData = { cluster_id: number };
+
   interface Props {
     ticketDetails: TicketModel<Mysql.ClusterStandardize>;
   }
@@ -56,7 +63,9 @@
     inheritAttrs: false,
   });
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  const data = props.ticketDetails.details.cluster_ids.map((item) => ({ cluster_id: item }));
 </script>

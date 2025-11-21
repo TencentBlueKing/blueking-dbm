@@ -12,36 +12,45 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
-      :label="t('主库主机')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.pairs[0].redis_master }}
+  <TicketInfoTable
+    :data="ticketDetails.details.infos"
+    row-key="cluster_ids">
+    <TicketInfoTableColumn
+      col-key="redis_master"
+      :get-copy-value="(row: RowData) => row.pairs[0].redis_master"
+      :min-width="200"
+      :title="t('主库主机')">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.pairs[0].redis_master }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('所属集群')"
-      :min-width="300">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_ids"
+      :min-width="300"
+      :title="t('所属集群')">
+      <template #default="{ row }: { row: RowData }">
         <p
-          v-for="item in data.cluster_ids"
+          v-for="item in row.cluster_ids"
           :key="item">
           {{ ticketDetails.details.clusters[item].immute_domain }}
         </p>
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('待切换的从库主机')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.pairs[0].redis_slave }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_ids"
+      :title="t('待切换的从库主机')">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.pairs[0].redis_slave }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('切换模式')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.online_switch_type === 'user_confirm' ? t('需人工确认') : t('无需确认') }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="online_switch_type"
+      :title="t('切换模式')">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.online_switch_type === 'user_confirm' ? t('需人工确认') : t('无需确认') }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('是否强制切换')">
       {{ ticketDetails.details.force ? t('是') : t('否') }}

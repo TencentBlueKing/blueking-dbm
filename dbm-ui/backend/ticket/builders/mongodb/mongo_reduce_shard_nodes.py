@@ -12,7 +12,7 @@ import itertools
 from collections import defaultdict
 from typing import Dict, List
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType
@@ -38,6 +38,7 @@ class MongoDBReduceShardNodesDetailSerializer(BaseMongoDBOperateDetailSerializer
     ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         cluster_ids = list(itertools.chain(*[info["cluster_ids"] for info in attrs["infos"]]))
         clusters = Cluster.objects.filter(id__in=cluster_ids)
 

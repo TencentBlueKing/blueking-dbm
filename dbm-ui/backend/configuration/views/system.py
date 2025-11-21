@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -111,6 +111,7 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
             "CC_MANAGE_TOPO": SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO),
             "AFFINITY": SystemSettings.get_setting_value(key=SystemSettingsEnum.AFFINITY.value),
             "ENABLE_EXTERNAL_PROXY": env.ENABLE_EXTERNAL_PROXY,
+            "DBA_ROBOT": SystemSettings.get_setting_value(key=SystemSettingsEnum.DBA_ROBOT.value, default={}),
         }
         # 非外部环境，补充额外环境变量
         if not env.ENABLE_EXTERNAL_PROXY and not env.ENABLE_OPEN_EXTERNAL_PROXY:
@@ -124,6 +125,7 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
                     "BK_NODEMAN_URL": env.BK_NODEMAN_URL,
                     "BK_SCR_URL": env.BK_SCR_URL,
                     "BKDATA_FRONTEND_REPORT_URL": BKBaseApi.get_bkdata_frontend_report_url(),
+                    "BK_AIDEV_URL": env.BK_AIDEV_URL,
                     "BKMONITOR_URL": env.BKMONITOR_URL,
                     "BK_HCM_URL": env.BK_HCM_URL,
                 }

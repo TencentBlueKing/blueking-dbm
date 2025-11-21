@@ -88,8 +88,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               },
@@ -132,10 +131,11 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "bkmonitor_timeseries"
               },
+              "enableDownSampling": true,
               "expressionList": [],
               "format": "time_series",
               "host": [],
-              "mode": "ui",
+              "mode": "code",
               "module": [],
               "promqlAlias": "$tag_ip",
               "query_configs": [
@@ -156,7 +156,7 @@
                   "refId": "a",
                   "result_table_id": "dbm_system.cpu_detail",
                   "result_table_label": "os",
-                  "time_field": "",
+                  "time_field": "time",
                   "where": [
                     {
                       "key": "cluster_domain",
@@ -177,12 +177,12 @@
                 }
               ],
               "refId": "A",
-              "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "1m",
+              "source": "max by (ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[1m]))",
+              "step": "2m",
               "type": "range"
             }
           ],
-          "title": "twemproxy cpu使用率",
+          "title": "twemproxy 主机cpu单核使用率",
           "type": "timeseries"
         },
         {
@@ -234,8 +234,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               },
@@ -380,8 +379,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               },
@@ -526,8 +524,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               },
@@ -672,8 +669,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               },
@@ -1283,8 +1279,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               },
@@ -4125,15 +4120,17 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "bkmonitor_timeseries"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "time_series",
           "host": [],
-          "mode": "ui",
+          "mode": "code",
           "module": [],
           "promqlAlias": "",
           "query_configs": [
             {
               "alias": "",
+              "data_label": "exporter_dbm_twemproxy_exporter",
               "data_source_label": "bk_monitor",
               "data_type_label": "time_series",
               "display": true,
@@ -4147,7 +4144,7 @@
               "refId": "a",
               "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
               "result_table_label": "component",
-              "time_field": "",
+              "time_field": "time",
               "where": [
                 {
                   "key": "cluster_domain",
@@ -4160,7 +4157,7 @@
             }
           ],
           "refId": "A",
-          "source": "sum(bkmonitor:exporter_dbm_twemproxy_exporter:__default__:twemproxy_connections_curr{cluster_domain=\"$cluster_domain\"})",
+          "source": "sum(bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_client_connections{cluster_domain=\"$cluster_domain\"})",
           "step": "1m",
           "type": "instant"
         }
@@ -4333,15 +4330,17 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "bkmonitor_timeseries"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "time_series",
           "host": [],
-          "mode": "ui",
+          "mode": "code",
           "module": [],
           "promqlAlias": "",
           "query_configs": [
             {
               "alias": "",
+              "data_label": "exporter_dbm_twemproxy_exporter",
               "data_source_label": "bk_monitor",
               "data_type_label": "time_series",
               "display": true,
@@ -4365,7 +4364,7 @@
               "refId": "a",
               "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
               "result_table_label": "component",
-              "time_field": "",
+              "time_field": "time",
               "where": [
                 {
                   "key": "cluster_domain",
@@ -4378,7 +4377,7 @@
             }
           ],
           "refId": "A",
-          "source": "sum(irate(bkmonitor:exporter_dbm_twemproxy_exporter:__default__:twemproxy_cmdstat_calls_total{cluster_domain=\"$cluster_domain\"}[2m]))",
+          "source": "sum(irate(bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_cmdstat_calls_total{cluster_domain=\"$cluster_domain\"}[2m]))",
           "step": "1m",
           "type": "instant"
         }
@@ -6289,6 +6288,529 @@
         "type": "bkmonitor-timeseries-datasource",
         "uid": "bkmonitor_timeseries"
       },
+      "description": "Dbsize/expired/evicted",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "id": 40,
+      "interval": "2m",
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true,
+          "width": 300
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "9.1.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [
+            {
+              "active": true,
+              "alias": "not-expiring",
+              "expression": "a-b",
+              "functions": []
+            }
+          ],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "$tag_ip",
+          "query_configs": [
+            {
+              "alias": "Total",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "sum_without_time",
+              "metric_field": "redis_db_keys",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "redis_master"
+                  ]
+                }
+              ]
+            },
+            {
+              "alias": "expiring",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "sum_without_time",
+              "metric_field": "redis_db_keys_expiring",
+              "refId": "b",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "redis_master"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "sum by(ip) (sum_over_time(bkmonitor:exporter_redis_exporter_v1450:group1:redis_memory_used_bytes{cluster_domain=\"$cluster_name\"}[1m]))",
+          "step": "1m",
+          "type": "range"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "redis_expired_keys_total",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "sum_without_time",
+              "metric_field": "redis_expired_keys_total",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "redis_master"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "B",
+          "source": "",
+          "step": "1m",
+          "type": "range"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "redis_evicted_keys_total",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [],
+              "interval": 300,
+              "interval_unit": "s",
+              "method": "sum_without_time",
+              "metric_field": "redis_evicted_keys_total",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "redis_master"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "C",
+          "source": "",
+          "step": "1m",
+          "type": "range"
+        }
+      ],
+      "title": "Keys Info",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "bkmonitor_timeseries"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "id": 5,
+      "interval": "2m",
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true,
+          "width": 300
+        },
+        "timezones": [
+          "Asia/Hong_Kong"
+        ],
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "9.1.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "memory_rss_used",
+          "query_configs": [
+            {
+              "alias": "memory_rss_used",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [
+                "instance_host"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "sum_without_time",
+              "metric_field": "redis_memory_used_rss_bytes",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "redis_master"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "sum by (cluster_domain) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_rss_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
+          "step": "2m",
+          "type": "range"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "memory_used",
+          "query_configs": [
+            {
+              "alias": "memory_used_rss",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [
+                "cluster_domain"
+              ],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "sum_without_time",
+              "metric_field": "redis_memory_used_bytes",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "redis_master"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "B",
+          "source": "sum by(cluster_domain) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
+          "step": "2m",
+          "type": "range"
+        }
+      ],
+      "title": "Cluster Memory",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "bkmonitor_timeseries"
+      },
       "description": "proxy 访问延迟分布 twemproxy_server_latency_bucket",
       "fieldConfig": {
         "defaults": {
@@ -6347,7 +6869,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 16
+        "y": 24
       },
       "id": 85,
       "interval": "2m",
@@ -6949,7 +7471,7 @@
           "type": "range"
         }
       ],
-      "title": "proxy 访问延迟分布/每秒",
+      "title": "proxy 访问延迟分布/每秒 (所有分段)",
       "type": "timeseries"
     },
     {
@@ -6957,7 +7479,7 @@
         "type": "bkmonitor-timeseries-datasource",
         "uid": "bkmonitor_timeseries"
       },
-      "description": "",
+      "description": "只显示大于32ms的延迟数据",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -6966,7 +7488,7 @@
           "custom": {
             "axisBorderShow": false,
             "axisCenteredZero": false,
-            "axisColorMode": "text",
+            "axisColorMode": "series",
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
@@ -6981,11 +7503,11 @@
             "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
-            "pointSize": 5,
+            "pointSize": 1,
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "always",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -6995,21 +7517,19 @@
               "mode": "off"
             }
           },
+          "decimals": 1,
           "mappings": [],
+          "noValue": "0",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
           },
-          "unit": "bytes"
+          "unit": "short"
         },
         "overrides": []
       },
@@ -7017,9 +7537,9 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 16
+        "y": 24
       },
-      "id": 5,
+      "id": 87,
       "interval": "2m",
       "options": {
         "legend": {
@@ -7034,9 +7554,6 @@
           "sortDesc": true,
           "width": 300
         },
-        "timezones": [
-          "Asia/Hong_Kong"
-        ],
         "tooltip": {
           "mode": "multi",
           "sort": "none"
@@ -7050,87 +7567,103 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "bkmonitor_timeseries"
           },
-          "expressionList": [],
-          "format": "time_series",
-          "host": [],
-          "mode": "code",
-          "module": [],
-          "promqlAlias": "memory_rss_used",
-          "query_configs": [
+          "enableDownSampling": true,
+          "expressionList": [
             {
-              "alias": "memory_rss_used",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [
-                "instance_host"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "redis_memory_used_rss_bytes",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
+              "active": true,
+              "alias": "(2s,+Inf)",
+              "expression": "a-b",
+              "functions": []
+            },
+            {
+              "active": true,
+              "alias": "(1s,2s]",
+              "expression": "b-c",
+              "functions": []
+            },
+            {
+              "active": true,
+              "alias": "(512ms,1s]",
+              "expression": "c-d",
+              "functions": []
+            },
+            {
+              "active": true,
+              "alias": "(256ms,512ms]",
+              "expression": "d-e",
+              "functions": []
+            },
+            {
+              "active": true,
+              "alias": "(128ms,256ms]",
+              "expression": "e-f",
+              "functions": []
+            },
+            {
+              "active": true,
+              "alias": "(64ms,128ms]",
+              "expression": "f-g",
+              "functions": []
+            },
+            {
+              "active": true,
+              "alias": "(32ms,64ms]",
+              "expression": "g-h",
+              "functions": []
+            },
+            {
+              "active": false,
+              "alias": "(16ms,32ms]",
+              "expression": "h-i",
+              "functions": []
+            },
+            {
+              "active": false,
+              "alias": "(8ms,16ms]",
+              "expression": "i-j",
+              "functions": []
+            },
+            {
+              "active": false,
+              "alias": "(4ms,8ms]",
+              "expression": "j-k",
+              "functions": []
             }
           ],
-          "refId": "A",
-          "source": "sum by (cluster_domain) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_rss_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
-          "step": "2m",
-          "type": "range"
-        },
-        {
-          "cluster": [],
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
-          },
-          "expressionList": [],
           "format": "time_series",
           "hide": false,
           "host": [],
-          "mode": "code",
+          "mode": "ui",
           "module": [],
-          "promqlAlias": "memory_used",
+          "promqlAlias": "$tag_le",
           "query_configs": [
             {
-              "alias": "memory_used_rss",
+              "alias": "Total",
+              "data_label": "exporter_dbm_twemproxy_exporter",
               "data_source_label": "bk_monitor",
               "data_type_label": "time_series",
-              "display": true,
+              "display": false,
               "filter_dict": {},
-              "functions": [],
-              "group_by": [
-                "cluster_domain"
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
               ],
-              "interval": "auto",
+              "group_by": [],
+              "interval": 60,
               "interval_unit": "s",
               "method": "sum_without_time",
-              "metric_field": "redis_memory_used_bytes",
+              "metric_field": "twemproxy_cmdstat_response_latency_bucket",
               "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
               "result_table_label": "component",
-              "time_field": "",
+              "time_field": "time",
               "where": [
                 {
                   "key": "cluster_domain",
@@ -7141,22 +7674,472 @@
                 },
                 {
                   "condition": "and",
-                  "key": "instance_role",
+                  "key": "le",
                   "method": "eq",
                   "value": [
-                    "redis_master"
+                    "+Inf"
+                  ]
+                }
+              ]
+            },
+            {
+              "alias": "<2s",
+              "data_label": "exporter_dbm_twemproxy_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "sum_without_time",
+              "metric_field": "twemproxy_cmdstat_response_latency_bucket",
+              "refId": "b",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "le",
+                  "method": "eq",
+                  "value": [
+                    "2.048e+06"
+                  ]
+                }
+              ]
+            },
+            {
+              "alias": "<1s",
+              "data_label": "exporter_dbm_twemproxy_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "sum_without_time",
+              "metric_field": "twemproxy_cmdstat_response_latency_bucket",
+              "refId": "c",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "le",
+                  "method": "eq",
+                  "value": [
+                    "1.024e+06"
+                  ]
+                }
+              ]
+            },
+            {
+              "alias": "<512ms",
+              "data_label": "exporter_dbm_twemproxy_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "sum_without_time",
+              "metric_field": "twemproxy_cmdstat_response_latency_bucket",
+              "refId": "d",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "le",
+                  "method": "eq",
+                  "value": [
+                    "512000"
+                  ]
+                }
+              ]
+            },
+            {
+              "alias": "<256ms",
+              "data_label": "exporter_dbm_twemproxy_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "sum_without_time",
+              "metric_field": "twemproxy_cmdstat_response_latency_bucket",
+              "refId": "e",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "le",
+                  "method": "eq",
+                  "value": [
+                    "256000"
+                  ]
+                }
+              ]
+            },
+            {
+              "alias": "<128ms",
+              "data_label": "exporter_dbm_twemproxy_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "sum_without_time",
+              "metric_field": "twemproxy_cmdstat_response_latency_bucket",
+              "refId": "f",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "le",
+                  "method": "eq",
+                  "value": [
+                    "128000"
+                  ]
+                }
+              ]
+            },
+            {
+              "alias": "<64ms",
+              "data_label": "exporter_dbm_twemproxy_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "sum_without_time",
+              "metric_field": "twemproxy_cmdstat_response_latency_bucket",
+              "refId": "g",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "le",
+                  "method": "eq",
+                  "value": [
+                    "64000"
+                  ]
+                }
+              ]
+            },
+            {
+              "alias": "<32ms",
+              "data_label": "exporter_dbm_twemproxy_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "sum_without_time",
+              "metric_field": "twemproxy_cmdstat_response_latency_bucket",
+              "refId": "h",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "le",
+                  "method": "eq",
+                  "value": [
+                    "32000"
+                  ]
+                }
+              ]
+            },
+            {
+              "alias": "<16ms",
+              "data_label": "exporter_dbm_twemproxy_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "sum_without_time",
+              "metric_field": "twemproxy_cmdstat_response_latency_bucket",
+              "refId": "i",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "le",
+                  "method": "eq",
+                  "value": [
+                    "16000"
+                  ]
+                }
+              ]
+            },
+            {
+              "alias": "<8ms",
+              "data_label": "exporter_dbm_twemproxy_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "sum_without_time",
+              "metric_field": "twemproxy_cmdstat_response_latency_bucket",
+              "refId": "j",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "le",
+                  "method": "eq",
+                  "value": [
+                    "8000"
+                  ]
+                }
+              ]
+            },
+            {
+              "alias": "<4ms",
+              "data_label": "exporter_dbm_twemproxy_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "sum_without_time",
+              "metric_field": "twemproxy_cmdstat_response_latency_bucket",
+              "refId": "k",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "le",
+                  "method": "eq",
+                  "value": [
+                    "4000"
                   ]
                 }
               ]
             }
           ],
           "refId": "B",
-          "source": "sum by(cluster_domain) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
-          "step": "2m",
+          "source": "sum(irate(bkmonitor:exporter_dbm_twemproxy_exporter:__default__:twemproxy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"+Inf\"}[2m])) by (le)",
+          "step": "1m",
           "type": "range"
         }
       ],
-      "title": "Cluster Memory",
+      "title": "proxy 访问延迟分布/每秒 (大于32ms)",
       "type": "timeseries"
     },
     {
@@ -7207,7 +8190,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -7219,7 +8203,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 24
+        "y": 32
       },
       "id": 22,
       "interval": "2m",
@@ -7402,7 +8386,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -7414,7 +8399,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 24
+        "y": 32
       },
       "id": 50,
       "interval": "2m",
@@ -7596,7 +8581,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -7608,7 +8594,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 32
+        "y": 40
       },
       "id": 53,
       "interval": "2m",
@@ -7791,7 +8777,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -7803,7 +8790,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 32
+        "y": 40
       },
       "id": 54,
       "interval": "2m",
@@ -7986,7 +8973,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -8002,7 +8990,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 40
+        "y": 48
       },
       "id": 33,
       "interval": "2m",
@@ -8199,7 +9187,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -8211,7 +9200,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 40
+        "y": 48
       },
       "id": 34,
       "interval": "2m",
@@ -8288,7 +9277,7 @@
             }
           ],
           "refId": "B",
-          "source": "sum(sum by (instance_host) (bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_connections_curr{cluster_domain=\"$cluster_domain\"}))",
+          "source": "sum(sum by (instance_host) (bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_client_connections{cluster_domain=\"$cluster_domain\"}))",
           "step": "2m",
           "type": "range"
         },
@@ -8345,7 +9334,7 @@
             }
           ],
           "refId": "A",
-          "source": "sum by (instance_host) (bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_connections_curr{cluster_domain=\"$cluster_domain\"})",
+          "source": "sum by (instance_host) (bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_client_connections{cluster_domain=\"$cluster_domain\"})",
           "step": "2m",
           "type": "range"
         }
@@ -8402,7 +9391,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -8414,7 +9404,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 48
+        "y": 56
       },
       "id": 41,
       "interval": "2m",
@@ -8549,7 +9539,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -8561,7 +9552,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 48
+        "y": 56
       },
       "id": 81,
       "interval": "2m",
@@ -8607,321 +9598,6 @@
         }
       ],
       "title": "twemproxy process cpu",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
-      },
-      "description": "Dbsize/expired/evicted",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "decimals": 1,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green"
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 56
-      },
-      "id": 40,
-      "interval": "2m",
-      "options": {
-        "legend": {
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true,
-          "sortBy": "Max",
-          "sortDesc": true,
-          "width": 300
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "9.1.0",
-      "targets": [
-        {
-          "cluster": [],
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
-          },
-          "expressionList": [
-            {
-              "active": true,
-              "alias": "not-expiring",
-              "expression": "a-b",
-              "functions": []
-            }
-          ],
-          "format": "time_series",
-          "host": [],
-          "mode": "ui",
-          "module": [],
-          "promqlAlias": "$tag_ip",
-          "query_configs": [
-            {
-              "alias": "Total",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": false,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "redis_db_keys",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            },
-            {
-              "alias": "expiring",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "redis_db_keys_expiring",
-              "refId": "b",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "A",
-          "source": "sum by(ip) (sum_over_time(bkmonitor:exporter_redis_exporter_v1450:group1:redis_memory_used_bytes{cluster_domain=\"$cluster_name\"}[1m]))",
-          "step": "1m",
-          "type": "range"
-        },
-        {
-          "cluster": [],
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
-          },
-          "expressionList": [],
-          "format": "time_series",
-          "hide": false,
-          "host": [],
-          "mode": "ui",
-          "module": [],
-          "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "redis_expired_keys_total",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "irate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "redis_expired_keys_total",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "B",
-          "source": "",
-          "step": "1m",
-          "type": "range"
-        },
-        {
-          "cluster": [],
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
-          },
-          "expressionList": [],
-          "format": "time_series",
-          "hide": false,
-          "host": [],
-          "mode": "ui",
-          "module": [],
-          "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "redis_evicted_keys_total",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "irate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [],
-              "interval": 300,
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "redis_evicted_keys_total",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "C",
-          "source": "",
-          "step": "1m",
-          "type": "range"
-        }
-      ],
-      "title": "Keys Info",
       "type": "timeseries"
     },
     {
@@ -8986,7 +9662,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -9194,7 +9871,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -9350,7 +10028,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -9495,7 +10174,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -9712,7 +10392,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -9861,7 +10542,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -10016,7 +10698,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -10237,7 +10920,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -10406,7 +11090,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -10737,7 +11422,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -11279,7 +11965,7 @@
   "timezone": "",
   "title": "tendis-TwemproxyRedisInstance",
   "uid": "6nXM8aF42xx",
-  "version": 27,
+  "version": 35,
   "weekStart": "",
   "__inputs": [
     {

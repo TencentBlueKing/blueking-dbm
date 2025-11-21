@@ -18,12 +18,11 @@ class MySQLProxySwitchForExtendValidator(MysqlBaseValidator):
     判断传入flow的data参数合法性
     每行校验：
     检验1：每一行的传入集群的合法性
-    校验2：每一行的传入机器ipv4的合法性
-    校验3：每一行的传入集群和ip，是否是所属关系
-    校验4：每一行的cluster_ids属性，是同关联集群信息，必须都关联出来，如果有漏，或者不满足“同组关联”，则校验不通过。
-    校验5：每一行的中待替换机器origin_proxy_ips列表信息， 是否传入所有集群的全部
+    校验2：每一行的传入集群和ip，是否是所属关系
+    校验3：每一行的cluster_ids属性，是同关联集群信息，必须都关联出来，如果有漏，或者不满足“同组关联”，则校验不通过。
+    校验4：每一行的中待替换机器origin_proxy_ips列表信息， 是否传入所有集群的全部
     聚合校验：
-    检验3：同一个flow，不能传入重复的集群
+    检验1：同一个flow，不能传入重复的集群
 
     """
 
@@ -35,12 +34,6 @@ class MySQLProxySwitchForExtendValidator(MysqlBaseValidator):
         """
         row_key = info.get("row_key", "")
 
-        # 检查每一行ip传入是否合法
-        log_format_tag = self.create_log_tag(field="origin_proxy_ips", index=index, row_key=row_key)
-        error_msg = self.pre_check_ip([i["ip"] for i in info["origin_proxy_ips"]], **log_format_tag)
-        if error_msg:
-            return [error_msg]
-
         # 检查每一行集群是否存在
         log_format_tag = self.create_log_tag(field="cluster_ids", index=index, row_key=row_key)
         error_msg = self.pre_check_cluster_exist(info["cluster_ids"], **log_format_tag)
@@ -48,9 +41,9 @@ class MySQLProxySwitchForExtendValidator(MysqlBaseValidator):
             return [error_msg]
 
         # 检查每一行传入的ip和集群信息，是否是所属关系
-        log_format_tag = self.create_log_tag(field="origin_proxy_ips", index=index, row_key=row_key)
+        log_format_tag = self.create_log_tag(field="cluster_ids", index=index, row_key=row_key)
         error_msg = self.pre_check_mysql_proxy_in_cluster(
-            [i["ip"] for i in info["origin_proxy_ips"]], info["cluster_ids"], **log_format_tag
+            [i["ip"] for i in info["origin_proxies"]], info["cluster_ids"], **log_format_tag
         )
         if error_msg:
             return [error_msg]
@@ -62,8 +55,8 @@ class MySQLProxySwitchForExtendValidator(MysqlBaseValidator):
         if error_msg:
             return [{"field": "cluster_ids", "index": index, "row_key": row_key, "errors": error_msg}]
 
-        # 检查每一行中待替换机器origin_proxy_ips列表信息， 是否传入所有集群的全部
-        machines_set = set([i["ip"] for i in info["origin_proxy_ips"]])
+        # 检查每一行中待替换机器origin_proxies列表信息， 是否传入所有集群的全部
+        machines_set = set([i["ip"] for i in info["origin_proxies"]])
         error_msgs = ""
         for cluster_id in info["cluster_ids"]:
             error_msg = self.per_check_all_machine_in_cluster(cluster_id, machines_set, AccessLayer.PROXY)

@@ -26,6 +26,7 @@ import { setGlobalComps } from '@common/importComps';
 
 import i18n from '@locales/index';
 import BkTrace from '@blueking/bk-trace-core';
+import { BkXssFilterDirective } from '@blueking/xss-filter';
 
 import App from './App.vue';
 import getRouter from './router';
@@ -59,6 +60,11 @@ setGlobalDirectives(app);
 
 app.use(bkuiVue);
 app.use(i18n);
+app.use(BkXssFilterDirective, {
+  defaultOptions: {
+    imgSrcMode: 'none',
+  },
+});
 
 window.BKApp = app;
 

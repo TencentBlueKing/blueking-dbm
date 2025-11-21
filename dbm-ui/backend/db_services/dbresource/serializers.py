@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend import env
@@ -523,6 +523,9 @@ class GetDiskTypeResponseSerializer(serializers.Serializer):
 class SpecCountResourceSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
+    sub_zone_ids = serializers.ListField(
+        help_text=_("云区域ID列表"), child=serializers.CharField(), required=False, default=[]
+    )
     spec_ids = serializers.ListField(help_text=_("规格ID列表"), child=serializers.IntegerField())
     city = serializers.CharField(help_text=_("城市"), default="default", required=False)
 

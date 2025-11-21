@@ -1,0 +1,29 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ClusterDefinition
+metadata:
+  name: {{ include "milvus.cdName" . }}
+spec:
+  topologies:
+    - name: cluster
+      components:
+        - name: attu
+          compDef: {{ include "milvus.attu.cmpdRegexpPattern" . }}
+        - name: proxy
+          compDef: {{ include "milvus.proxy.cmpdRegexpPattern" . }}
+        - name: mixcoord
+          compDef: {{ include "milvus.mixcoord.cmpdRegexpPattern" . }}
+        - name: datanode
+          compDef: {{ include "milvus.datanode.cmpdRegexpPattern" . }}
+        - name: querynode
+          compDef: {{ include "milvus.querynode.cmpdRegexpPattern" . }}
+        - name: streamingnode
+          compDef: {{ include "milvus.streamingnode.cmpdRegexpPattern" . }}
+      orders:
+        provision:
+          - mixcoord
+          - querynode,datanode,streamingnode
+          - proxy,attu
+        terminate:
+          - proxy,attu
+          - querynode,datanode,streamingnode
+          - mixcoord

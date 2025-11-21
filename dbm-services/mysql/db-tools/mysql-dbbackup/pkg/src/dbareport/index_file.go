@@ -198,11 +198,14 @@ func (i *IndexContent) JudgeBackupMethod(cnf *config.BackupConfig) {
 	} else {
 		if i.IsFullBackup {
 			i.BackupMethod = config.BackupFullByRegular
+			if !cnf.Public.IfBackupData() {
+				i.BackupMethod = config.BackupFullWithNodata
+			}
 		} else {
 			i.BackupMethod = config.BackupNonFullByRegular
 		}
 	}
-	i.IsStandby = VarIsStandby
+	//i.IsStandby = VarIsStandby
 }
 
 func (i *IndexContent) JudgeLogicalFilter(cnf *config.BackupConfig) string {

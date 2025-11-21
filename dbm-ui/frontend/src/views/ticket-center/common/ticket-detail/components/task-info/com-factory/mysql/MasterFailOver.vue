@@ -12,21 +12,28 @@
 -->
 
 <template>
-  <BkTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn :label="t('故障主库主机')">
-      <template #default="{ data }: { data: RowData }">
+    row-key="master_ip.ip">
+    <TicketInfoTableColumn
+      col-key="master_ip"
+      :get-copy-value="(row: RowData) => row.master_ip.ip"
+      :title="t('故障主库主机')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.master_ip.ip }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('从库主机')">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="slave"
+      :title="t('从库主机')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.slave_ip.ip }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('同机关联的集群')">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_ids"
+      :title="t('同机关联的集群')">
+      <template #default="{ row: data }: { row: RowData }">
         <div
           v-for="clusterId in data.cluster_ids"
           :key="clusterId"
@@ -34,8 +41,8 @@
           {{ ticketDetails.details.clusters[clusterId].immute_domain }}
         </div>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('检查业务来源的连接')">
       {{ ticketDetails.details.is_check_process ? t('是') : t('否') }}

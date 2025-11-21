@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 from backend.exceptions import AppBaseException
 
@@ -17,7 +17,7 @@ class DataAPIException(AppBaseException):
     """Exception for Component API"""
 
     def __init__(self, error_message, response=None):
-        self.error_message = force_text(error_message)
+        self.error_message = force_str(error_message)
         self.response = response
 
         if self.response is not None:

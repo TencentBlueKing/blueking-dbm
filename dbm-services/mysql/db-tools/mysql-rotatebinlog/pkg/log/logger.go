@@ -25,7 +25,7 @@ func InitLogger() error {
 	fiw := &lumberjack.Logger{
 		Filename:   fileName,
 		MaxAge:     7,
-		MaxSize:    100,
+		MaxSize:    1024,
 		MaxBackups: 7,
 		Compress:   false,
 	}

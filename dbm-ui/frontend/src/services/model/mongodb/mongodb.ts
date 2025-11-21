@@ -56,14 +56,14 @@ export default class Mongodb extends ClusterBase {
   db_module_name: string;
   disaster_tolerance_level: Affinity;
   id: number;
-  machine_instance_num: number;
+  machine_instance_num: number; // 单机部署实例数
   machine_type: string;
   major_version: string;
   master_domain: string;
   mongo_config: ClusterListNode[];
   mongodb: ClusterListNode[];
-  mongodb_machine_num: number;
-  mongodb_machine_pair: number;
+  mongodb_machine_num: number; // 机器台数
+  mongodb_machine_pair: number; // 机器组数
   mongos: ClusterListNode[];
   operations: {
     cluster_id: number;
@@ -89,8 +89,9 @@ export default class Mongodb extends ClusterBase {
   replicaset_machine_num: number;
   seg_range: Record<string, string[]>;
   shard_node_count: number; // 分片节点数
-  shard_num: number; // 分片数
+  shard_num: number; // 集群分片数
   shard_spec: string;
+  single_host_shard_num: number; // 单机分片数
   slave_domain: string;
   status: string;
   temporary_info: {
@@ -120,7 +121,6 @@ export default class Mongodb extends ClusterBase {
     this.creator = payload.creator;
     this.db_module_id = payload.db_module_id;
     this.db_module_name = payload.db_module_name;
-
     this.id = payload.id;
     this.major_version = payload.major_version;
     this.master_domain = payload.master_domain;
@@ -139,6 +139,7 @@ export default class Mongodb extends ClusterBase {
     this.seg_range = payload.seg_range;
     this.slave_domain = payload.slave_domain;
     this.shard_node_count = payload.shard_node_count;
+    this.single_host_shard_num = payload.single_host_shard_num;
     this.shard_num = payload.shard_num;
     this.temporary_info = payload.temporary_info;
     this.shard_spec = payload.shard_spec;

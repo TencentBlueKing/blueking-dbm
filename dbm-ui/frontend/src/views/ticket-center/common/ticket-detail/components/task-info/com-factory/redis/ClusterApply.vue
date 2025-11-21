@@ -98,20 +98,22 @@
         <InfoItem
           :label="t('集群部署方案')"
           style="flex: 1 0 100%">
-          <BkTable :data="[ticketDetails.details.resource_spec.backend_group.spec_info]">
-            <BkTableColumn
-              field="spec_name"
-              :label="t('资源规格')" />
-            <BkTableColumn
-              field="machine_pair"
-              :label="t('需机器组数')" />
-            <BkTableColumn
-              field="cluster_shard_num"
-              :label="t('集群分片')" />
-            <BkTableColumn
-              field="cluster_capacity"
-              :label="t('集群容量G')" />
-          </BkTable>
+          <TicketInfoTable
+            :data="[ticketDetails.details.resource_spec.backend_group.spec_info]"
+            row-key="spec_name">
+            <TicketInfoTableColumn
+              col-key="spec_name"
+              :title="t('资源规格')" />
+            <TicketInfoTableColumn
+              col-key="machine_pair"
+              :title="t('需机器组数')" />
+            <TicketInfoTableColumn
+              col-key="cluster_shard_num"
+              :title="t('集群分片')" />
+            <TicketInfoTableColumn
+              col-key="cluster_capacity"
+              :title="t('集群容量G')" />
+          </TicketInfoTable>
         </InfoItem>
       </template>
     </InfoList>

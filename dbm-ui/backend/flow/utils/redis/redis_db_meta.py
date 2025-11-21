@@ -16,7 +16,7 @@ from typing import Any
 from django.db import transaction
 from django.db.models import Q
 from django.db.transaction import atomic
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
@@ -768,6 +768,18 @@ class RedisDBMeta(object):
             if self.cluster["origin_db_version"] != self.cluster["db_version"]:
                 cluster.major_version = self.cluster["db_version"]
                 cluster.save()
+
+    def update_cluster_proxy_status(self) -> bool:
+        """
+        更新proxy 状态
+        """
+        #         act_kwargs.cluster["proxy_ips"] = op_proxies
+        # act_kwargs.cluster["meta_update_status"] = InstanceStatus.RUNNING.value
+        cluster = Cluster.objects.get(id=self.cluster["cluster_id"])
+        for proxy in cluster.proxyinstance_set.all():
+            if proxy.machine.ip in self.cluster["proxy_ips"]:
+                proxy.status = self.cluster["meta_update_status"]
+                proxy.save()
 
     def update_rollback_task_status(self) -> bool:
         """

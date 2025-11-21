@@ -16,6 +16,8 @@ import type { RouteRecordRaw } from 'vue-router';
 import type { BigdataFunctions } from '@services/model/function-controller/functionController';
 import FunctionControllModel from '@services/model/function-controller/functionController';
 
+import { DBTypes } from '@common/const';
+
 import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
@@ -23,6 +25,7 @@ const routes: RouteRecordRaw[] = [
     path: 'pulsar',
     name: 'PulsarManage',
     meta: {
+      dbType: DBTypes.PULSAR,
       navName: t('Pulsar集群管理'),
     },
     redirect: {
@@ -42,7 +45,6 @@ const routes: RouteRecordRaw[] = [
         path: 'list/:clusterId?',
         name: 'PulsarList',
         meta: {
-          fullscreen: true,
           navName: t('Pulsar集群管理'),
         },
         component: () => import('@/views/db-manage/pulsar/list/Index.vue'),

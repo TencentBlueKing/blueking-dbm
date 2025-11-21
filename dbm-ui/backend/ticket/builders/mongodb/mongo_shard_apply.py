@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.constants import AffinityEnum
@@ -18,7 +18,7 @@ from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.common.base import get_ticket_zone_list
+from backend.ticket.builders.common.base import TicketBaseValidateSerializerMixin, get_ticket_zone_list
 from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateResourceParamBuilder,
     BaseMongoShardedTicketFlowBuilder,
@@ -26,7 +26,7 @@ from backend.ticket.builders.mongodb.base import (
 from backend.ticket.constants import TicketType
 
 
-class MongoShardedClusterApplyDetailSerializer(serializers.Serializer):
+class MongoShardedClusterApplyDetailSerializer(TicketBaseValidateSerializerMixin, serializers.Serializer):
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
     db_app_abbr = serializers.CharField(help_text=_("业务英文缩写"))
     city_code = serializers.CharField(
@@ -64,6 +64,7 @@ class MongoShardedClusterApplyDetailSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         """TODO: validate"""
+        attrs = super().validate(attrs)
         return attrs
 
 

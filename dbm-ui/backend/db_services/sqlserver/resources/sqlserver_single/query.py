@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Any, Dict, List
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.api.cluster.sqlserversingle.detail import scan_cluster
 from backend.db_meta.enums import InstanceInnerRole, InstanceRole

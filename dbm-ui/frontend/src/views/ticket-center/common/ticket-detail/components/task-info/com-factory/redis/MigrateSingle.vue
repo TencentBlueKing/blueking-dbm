@@ -12,47 +12,48 @@
 -->
 
 <template>
-  <BkTable
+  <TicketInfoTable
     class="single-migrate-table"
     :data="tableData"
-    :show-overflow="false">
-    <BkTableColumn
-      field="primary_key"
+    row-key="primary_key">
+    <TicketInfoTableColumn
+      col-key="primary_key"
       fixed="left"
-      :label="isDomain ? t('目标集群') : t('目标 Master 主机')">
-      <template #default="{ data }: { data: RowData }">
+      :get-copy-value="(row: RowData) => row.primary_key"
+      :title="isDomain ? t('目标集群') : t('目标 Master 主机')">
+      <template #default="{ row }: { row: RowData }">
         <div
-          v-for="(item, index) in data.primary_key"
+          v-for="(item, index) in row.primary_key"
           :key="index">
           {{ item }}
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="origin_old_nodes"
-      :label="t('关联的主从实例')"
-      min-width="400">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="origin_old_nodes"
+      min-width="400"
+      :title="t('关联的主从实例')">
+      <template #default="{ row }: { row: RowData }">
         <div
-          v-for="(item, index) in data.instances"
+          v-for="(item, index) in row.instances"
           :key="index">
           <div class="domain-item">{{ item.domain }}</div>
           <div class="instance-item">--{{ item.master_ins }}</div>
           <div class="instance-item">--{{ item.slave_ins }}</div>
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="spec_name"
-      :label="t('规格')"
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="spec_name"
+      :title="t('规格')"
       :width="150">
-    </BkTableColumn>
-    <BkTableColumn
-      field="db_version"
-      :label="t('版本')"
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="db_version"
+      :title="t('版本')"
       :width="200">
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

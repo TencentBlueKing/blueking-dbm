@@ -12,25 +12,43 @@
 -->
 
 <template>
-  <BkTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn :label="t('目标主机')">
-      <template #default="{ data }: { data: RowData }">
+    row-key="origin_proxy_ip.ip">
+    <TicketInfoTableColumn
+      col-key="origin_proxy_ip"
+      :get-copy-value="(row: RowData) => row.origin_proxy_ip.ip"
+      :title="t('目标主机')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.origin_proxy_ip.ip }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('同机关联集群')">
-      <template #default="{ data }: { data: RowData }">
-        <div
-          v-for="clusterId in data.cluster_ids"
-          :key="clusterId"
-          style="line-height: 20px">
-          {{ ticketDetails.details.clusters[clusterId].immute_domain }}
-        </div>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="related_instances"
+      :title="t('关联集群实例')">
+      <template #default="{ row: data }: { row: RowData }">
+        <template v-if="data?.related_instances">
+          <div
+            v-for="item in data.related_instances"
+            :key="item.instance_address">
+            <p>
+              {{ ticketDetails.details.clusters[item.cluster_id].immute_domain }}
+            </p>
+            <p style="color: #979ba5">--{{ item.instance_address }}</p>
+          </div>
+        </template>
+        <template v-else>
+          <div
+            v-for="clusterId in data.cluster_ids"
+            :key="clusterId">
+            <p>
+              {{ ticketDetails.details.clusters[clusterId].immute_domain }}
+            </p>
+          </div>
+        </template>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('检查业务连接')">
       {{ ticketDetails.details.is_safe ? t('是') : t('否') }}

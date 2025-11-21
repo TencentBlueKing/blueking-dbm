@@ -65,21 +65,29 @@ export default [
   {
     children: [
       {
-        dbConsoleValue: 'mysql.toolbox.rollback',
-        id: TicketTypes.MYSQL_ROLLBACK_CLUSTER,
-        name: t('定点构造'),
+        bind: [TicketTypes.MYSQL_FIXPOINT_EXIST_CLUSTER, TicketTypes.MYSQL_FIXPOINT_NEW_CLUSTER],
+        dbConsoleValue: 'mysql.toolbox.fixpoint',
+        id: TicketTypes.MYSQL_FIXPOINT_EXIST_CLUSTER,
+        name: t('构造'),
         parentId: 'fileback',
       },
       {
+        bind: [TicketTypes.MYSQL_FLASHBACK, TicketTypes.MYSQL_ROLLBACK],
         dbConsoleValue: 'mysql.toolbox.flashback',
-        id: TicketTypes.MYSQL_FLASHBACK,
-        name: t('闪回'),
+        id: TicketTypes.MYSQL_ROLLBACK,
+        name: t('回档'),
+        parentId: 'fileback',
+      },
+      {
+        dbConsoleValue: 'mysql.toolbox.rollback',
+        id: TicketTypes.MYSQL_ROLLBACK_CLUSTER,
+        name: t('定点构造（旧）'),
         parentId: 'fileback',
       },
     ],
     icon: 'db-icon-rollback',
     id: 'fileback',
-    name: t('回档'),
+    name: t('构造和回档'),
   },
   {
     children: [
@@ -128,21 +136,16 @@ export default [
         parentId: 'migrate',
       },
       {
-        dbConsoleValue: 'mysql.toolbox.proxyReplace',
-        id: TicketTypes.MYSQL_PROXY_SWITCH,
-        name: t('替换Proxy'),
-        parentId: 'migrate',
-      },
-      {
-        dbConsoleValue: 'mysql.toolbox.proxyReduce',
-        id: TicketTypes.MYSQL_PROXY_REDUCE,
-        name: t('缩容Proxy'),
-        parentId: 'migrate',
-      },
-      {
+        bind: [
+          TicketTypes.MYSQL_PROXY_ADD,
+          TicketTypes.MYSQL_PROXY_REDUCE,
+          TicketTypes.MYSQL_PROXY_SWITCH,
+          TicketTypes.MYSQL_PROXY_CONF_CHANGE,
+          TicketTypes.MYSQL_PROXY_MIGRATE,
+        ],
         dbConsoleValue: 'mysql.toolbox.proxyAdd',
         id: TicketTypes.MYSQL_PROXY_ADD,
-        name: t('添加Proxy'),
+        name: t('接入层变更'),
         parentId: 'migrate',
       },
       {

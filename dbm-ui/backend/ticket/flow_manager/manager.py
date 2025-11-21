@@ -14,6 +14,7 @@ from django.db import transaction
 from django.utils.translation import gettext as _
 
 from backend.core import notify
+from backend.iam_app.handlers.drf_perm.ticket import add_ticket_audit_event, audit_ticket_status
 from backend.ticket import constants
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.constants import FLOW_FINISHED_STATUS, FlowType, TicketStatus, TicketType
@@ -122,10 +123,15 @@ class TicketFlowManager(object):
     def ticket_status_trigger(self, origin_status, target_status):
         """单据状态更新后的钩子函数。注：如果钩子函数非关键链路，请异步发起"""
 
+        # 上报单据状态流转事件，针对任务运行、成功、失败、终止状态上报
+        if target_status in audit_ticket_status:
+            add_ticket_audit_event.apply_async(args=(self.ticket.id,))
+
         # 单据状态变更后，发送通知。
         # 忽略运行中：流转到内置任务无需通知，待继续在todo创建时才触发通知
         # 忽略待补货：到资源申请节点，单据状态总会流转为待补货，但是只有待补货todo创建才触发通知
-        if target_status not in [TicketStatus.RUNNING, TicketStatus.RESOURCE_REPLENISH]:
+        # 忽略审批：创建itsm单据后，发送通知
+        if target_status not in [TicketStatus.RUNNING, TicketStatus.RESOURCE_REPLENISH, TicketStatus.APPROVE]:
             notify.send_msg.apply_async(args=(self.ticket.id,))
 
         # 如果是待下架单据，正常结束要联动回收主机

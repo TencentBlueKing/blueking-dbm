@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import Any, Dict, List
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.db_services.dbbase.cluster.handlers import ClusterServiceHandler as BaseClusterServiceHandler
 from backend.db_services.dbbase.dataclass import DBInstance

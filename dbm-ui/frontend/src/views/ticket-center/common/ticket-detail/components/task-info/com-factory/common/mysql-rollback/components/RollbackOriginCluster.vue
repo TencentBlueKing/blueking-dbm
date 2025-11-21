@@ -12,19 +12,61 @@
 -->
 
 <template>
-  <RenderTableBase
-    :show-db-name="false"
-    :ticket-details="ticketDetails" />
+  <TicketInfoTable
+    :data="ticketDetails.details.infos"
+    row-key="cluster_id">
+    <TicketInfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
+      :min-width="220"
+      :title="t('集群')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
+      </template>
+    </TicketInfoTableColumn>
+    <slot />
+    <TicketInfoTableColumn
+      col-key="backup_source"
+      :min-width="150"
+      :title="t('备份源')">
+      <template #default="{ row }: { row: RowData }">
+        {{ backupSourceMap[row.backup_source as keyof typeof backupSourceMap] }}
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="rollback_time"
+      :title="t('回档类型')">
+      <template #default="{ row }: { row: RowData }">
+        <span v-if="row.rollback_time">{{ t('回档到指定时间') }} - {{ utcDisplayTime(row.rollback_time) }}</span>
+        <span v-else-if="row.backupinfo.backup_time && row.backupinfo.mysql_role">
+          {{ t('备份记录') }} - {{ row.backupinfo?.mysql_role }}
+          {{ utcDisplayTime(row.backupinfo?.backup_time) }}
+        </span>
+        <span v-else>--</span>
+      </template>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">
+  import { useI18n } from 'vue-i18n';
+
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
-  import RenderTableBase from './RenderTableBase.vue';
+  import { utcDisplayTime } from '@utils';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.RollbackCluster>;
   }
 
+  type RowData = Props['ticketDetails']['details']['infos'][number];
+
   defineProps<Props>();
+
+  const { t } = useI18n();
+
+  const backupSourceMap = {
+    local: t('本地备份'),
+    remote: t('远程备份'),
+  };
 </script>

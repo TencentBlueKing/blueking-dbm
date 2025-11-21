@@ -12,7 +12,7 @@ import logging
 from typing import Dict
 
 from django.db import transaction
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.db_meta import request_validator
 from backend.db_meta.api import common

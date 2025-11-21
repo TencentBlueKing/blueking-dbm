@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from django.conf import settings
 from django.db import connection, models
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend import env
 from backend.bk_web.constants import LEN_LONG, LEN_NORMAL
@@ -116,15 +116,6 @@ class SystemSettings(AbstractSettings):
             user=user,
             desc=constants.SystemSettingsEnum.get_choice_label(key),
         )
-
-    @classmethod
-    def get_external_whitelist_cluster_ids(cls) -> List:
-        return [
-            conf["cluster_id"]
-            for conf in cls.get_setting_value(
-                key=constants.SystemSettingsEnum.EXTERNAL_WHITELIST_CLUSTER_IDS.value, default=[]
-            )
-        ]
 
 
 class BizSettings(AbstractSettings):

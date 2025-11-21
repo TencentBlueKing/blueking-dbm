@@ -15,7 +15,7 @@ from datetime import timedelta
 from typing import Dict
 
 from django.utils import timezone
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components import DBPrivManagerApi
 from backend.configuration.constants import DB_ADMIN_USER_MAP, AdminPasswordRole, DBPrivSecurityType, DBType

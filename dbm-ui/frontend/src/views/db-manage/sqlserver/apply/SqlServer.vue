@@ -143,7 +143,8 @@
                   :cloud-id="formData.details.bk_cloud_id"
                   cluster-type="sqlserver"
                   machine-type="sqlserver"
-                  style="width: 435px" />
+                  style="width: 435px"
+                  :subzone-ids="formData.details.sub_zone_ids" />
               </BkFormItem>
             </div>
           </Transition>

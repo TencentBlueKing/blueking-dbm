@@ -8,11 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
-class DeployPlanChangeType(str, StructuredEnum):
+class DeployPlanChangeType(StrStructuredEnum):
     inplace_change = EnumField("inplace_change", _("原地变更"))
     replace_change = EnumField("replace_change", _("替换变更"))

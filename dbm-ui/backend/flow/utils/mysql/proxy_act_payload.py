@@ -82,7 +82,7 @@ class ProxyActPayload(object):
         """
         拼接安装proxy的payload参数, 扩容或者替换proxy专属，指定介质包处理
         """
-        proxy_pkg = Package.objects.get(id=kwargs["custom_params"]["pkg_id"], pkg_type=MediumEnum.MySQLProxy)
+        proxy_pkg = Package.objects.get(id=kwargs["pkg_id"], pkg_type=MediumEnum.MySQLProxy)
         return {
             "db_type": DBActuatorTypeEnum.Proxy.value,
             "action": DBActuatorActionEnum.Deploy.value,
@@ -94,6 +94,25 @@ class ProxyActPayload(object):
                     "pkg_md5": proxy_pkg.md5,
                     "ports": self.ticket_data.get("proxy_ports", []),
                     "proxy_configs": {"mysql-proxy": self.__get_proxy_config()},
+                },
+            },
+        }
+
+    def get_proxy_upgrade_relink_payload(self, **kwargs) -> dict:
+        """
+        local upgrade mysql proxy
+        """
+        proxy_pkg = Package.objects.get(id=self.cluster["pkg_id"], pkg_type=MediumEnum.MySQLProxy)
+        return {
+            "db_type": DBActuatorTypeEnum.Proxy.value,
+            "action": DBActuatorActionEnum.UpgradeRelink.value,
+            "payload": {
+                "general": {"runtime_account": self.proxy_account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "ports": self.cluster["proxy_ports"],
+                    "pkg": proxy_pkg.name,
+                    "pkg_md5": proxy_pkg.md5,
                 },
             },
         }
@@ -149,7 +168,7 @@ class ProxyActPayload(object):
         应用在proxy替换、添加单据上
         """
         master = ""
-        cluster = Cluster.objects.get(id=self.cluster["id"])
+        cluster = Cluster.objects.get(id=kwargs["cluster_id"])
         proxy_port = cluster.proxyinstance_set.first().port
         try:
             master = cluster.storageinstance_set.get(
@@ -172,9 +191,11 @@ class ProxyActPayload(object):
             },
         }
 
-    def get_uninstall_proxy_payload(self, **kwargs) -> dict:
+    def get_uninstall_proxy_payload(self, proxy_port: int, force: bool = False, **kwargs) -> dict:
         """
         卸载proxy进程的payload 参数
+        @param proxy_port: 下架的端口号
+        @param force: 是否强制下架
         """
         return {
             "db_type": DBActuatorTypeEnum.Proxy.value,
@@ -183,8 +204,8 @@ class ProxyActPayload(object):
                 "general": {"runtime_account": self.proxy_account},
                 "extend": {
                     "host": kwargs["ip"],
-                    "force": self.ticket_data.get("force", False),
-                    "ports": [self.cluster["proxy_port"]],
+                    "force": force,
+                    "ports": [proxy_port],
                 },
             },
         }

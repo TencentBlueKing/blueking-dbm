@@ -25,7 +25,7 @@ export function useBatchCreateTicket<T>(ticketType: TicketTypes) {
         SQLSERVER: 'DbaManageSqlserverToolboxResult',
         TENDBCLUSTER: 'DbaManageTendbClusterToolboxResult',
       };
-      const targetTicketType = route.meta.routeName as string;
+      const targetTicketType = route.meta.ticketType as string;
       const [targetDb] = targetTicketType.split('_');
       const resultRouteName = toolboxResultMap[targetDb as keyof typeof toolboxResultMap];
       if (resultRouteName) {

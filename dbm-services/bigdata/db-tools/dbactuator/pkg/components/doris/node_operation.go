@@ -52,7 +52,7 @@ func (i *NodeOperationService) CleanData() (err error) {
 	}
 
 	// 强杀进程
-	extraCmd := `ps -ef | egrep 'supervisord|java'|grep -v grep |awk {'print "kill -9 " $2'}|sh`
+	extraCmd := `ps -ef | grep -E 'supervisord|java'|grep -v grep |awk {'print "kill -9 " $2'}|sh`
 	logger.Info("强杀进程, [%s]", extraCmd)
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("[%s] execute failed, %v", extraCmd, err)

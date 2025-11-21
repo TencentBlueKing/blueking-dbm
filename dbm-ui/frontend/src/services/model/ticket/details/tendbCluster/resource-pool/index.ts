@@ -3,6 +3,8 @@ export * from './nodeRebalance';
 export * from './restoreSlave';
 export * from './rollBackCluster';
 export * from './spiderAddNodes';
+export * from './spiderConfUpdown';
+export * from './spiderConfUpdown';
 export * from './spiderMntApply';
 export * from './spiderMntDestroy';
 export * from './spiderReduceNodes';

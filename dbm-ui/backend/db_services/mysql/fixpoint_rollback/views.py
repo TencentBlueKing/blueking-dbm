@@ -12,16 +12,18 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
 from django.utils import timezone
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.models import Cluster
+from backend.db_report.mysql_backup.handers import MySQLBackupHandler
 from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
 from backend.db_services.mysql.fixpoint_rollback.serializers import (
     BackupLocalLogMySQLResponseSerializer,
@@ -31,6 +33,7 @@ from backend.db_services.mysql.fixpoint_rollback.serializers import (
     BackupLogRollbackTimeTendbResponseSerializer,
     BackupLogSerializer,
     BackupLogTendbResponseSerializer,
+    FilterBackupLogSerializer,
     QueryFixpointLogResponseSerializer,
     QueryFixpointLogSerializer,
 )
@@ -47,7 +50,9 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
     default_permission_class = [DBManagePermission()]
 
     @common_swagger_auto_schema(
-        operation_summary=_("通过日志平台获取集群备份记录"),
+        operation_summary=_(
+            "通过日志平台获取集群备份记录 # TODO: 当前api已废弃，替换为query_backup_log_from_handler接口(backup_source传remote)"
+        ),
         query_serializer=BackupLogSerializer(),
         responses={
             status.HTTP_200_OK: BackupLogTendbResponseSerializer(),
@@ -60,13 +65,14 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
         validated_data = self.params_validate(self.get_serializer_class())
         end_time = datetime.now(timezone.utc)
         start_time = end_time - timedelta(days=validated_data["days"])
-        handler = FixPointRollbackHandler(validated_data["cluster_id"], check_full_backup=True)
-        logs = handler.query_backup_log_from_bklog(start_time, end_time)
+        handler = FixPointRollbackHandler(validated_data["cluster_id"])
+        kwargs.update({"backup_method": validated_data.pop("backup_method", "")})
+        logs = handler.query_backup_log_from_bklog(start_time, end_time, **kwargs)
         logs.sort(key=lambda x: x["backup_time"], reverse=True)
         return Response(logs)
 
     @common_swagger_auto_schema(
-        operation_summary=_("查询集群的本地备份记录"),
+        operation_summary=_("查询集群的本地备份记录 # TODO: 当前api已废弃，替换为query_backup_log_from_handler接口(backup_source传local)"),
         query_serializer=BackupLogSerializer(),
         responses={status.HTTP_200_OK: BackupLocalLogMySQLResponseSerializer()},
         tags=[SWAGGER_TAG],
@@ -78,7 +84,7 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
         return Response(logs)
 
     @common_swagger_auto_schema(
-        operation_summary=_("查询小于回档时间点最近的备份记录"),
+        operation_summary=_("查询小于回档时间点最近的备份记录 # TODO: 部分接口还在使用， 新需求替换为latest_time_backup_log接口"),
         query_serializer=BackupLogRollbackTimeSerializer(),
         responses={
             status.HTTP_200_OK: BackupLogRollbackTimeTendbResponseSerializer(),
@@ -96,6 +102,60 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
                 backup_source=validated_data.get("backup_source"),
             )
         )
+
+    @common_swagger_auto_schema(
+        operation_summary=_("通过handler获取集群备份记录"),
+        query_serializer=FilterBackupLogSerializer(),
+        responses={
+            status.HTTP_200_OK: BackupLogTendbResponseSerializer(),
+            status.HTTP_202_ACCEPTED: BackupLogMySQLResponseSerializer(),
+        },
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=FilterBackupLogSerializer)
+    def query_backup_log_from_handler(self, requests, *args, **kwargs):
+        validated_data = self.params_validate(self.get_serializer_class())
+        cluster_id = validated_data["cluster_id"]
+        cluster = Cluster.objects.get(id=cluster_id)
+        db_type = ClusterType.cluster_type_to_db_type(cluster.cluster_type)
+        latest_time = validated_data.pop("latest_time", None)
+        # 初始化备份文件对象
+        handler = MySQLBackupHandler(**validated_data)
+
+        # 获取备份结果
+        result = {}
+        if db_type == DBType.MySQL.value:
+            result = handler.get_tendbha_rollback_backup_info(latest_time)
+        elif db_type == DBType.TenDBCluster.value:
+            result = handler.get_spider_rollback_backup_info(latest_time)
+        return Response(result)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("通过获取集群最迟时间的最新一条备份记录"),
+        query_serializer=FilterBackupLogSerializer(),
+        responses={
+            status.HTTP_200_OK: BackupLogTendbResponseSerializer(),
+            status.HTTP_202_ACCEPTED: BackupLogMySQLResponseSerializer(),
+        },
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=FilterBackupLogSerializer)
+    def latest_time_backup_log(self, request, *args, **kwargs):
+        validated_data = self.params_validate(self.get_serializer_class())
+        cluster_id = validated_data["cluster_id"]
+        cluster = Cluster.objects.get(id=cluster_id)
+        db_type = ClusterType.cluster_type_to_db_type(cluster.cluster_type)
+        latest_time = validated_data.pop("latest_time")
+        # 初始化备份文件对象
+        handler = MySQLBackupHandler(**validated_data)
+
+        # 获取备份结果
+        result = {}
+        if db_type == DBType.MySQL.value:
+            result = handler.get_tendb_latest_backup_info(latest_time)
+        elif db_type == DBType.TenDBCluster.value:
+            result = handler.get_spider_rollback_backup_info(latest_time, limit_one=True)
+        return Response(result)
 
     @common_swagger_auto_schema(
         operation_summary=_("获取定点构造记录"),

@@ -16,7 +16,7 @@ from datetime import timedelta
 from django.db import models, transaction
 from django.utils import timezone
 from django.utils.translation import gettext
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django_celery_beat.models import PeriodicTask
 from django_celery_beat.schedulers import ModelEntry
 
@@ -106,6 +106,8 @@ class TaskStatus:
     DEPLOY_SUCCESS = "deploy_success"
     # 演练恢复成功
     RECOVER_SUCCESS = "recover_success"
+    # 演练恢复失败
+    RECOVER_FAILED = "recover_failed"
     # 资源归还成功
     RESOURCE_RETURN_SUCCESS = "resource_return_success"
 
@@ -149,7 +151,6 @@ class MySQLBackupRecoverTask(BaseReportABS):
     task_info = models.TextField(_("任务信息"), default="")
     # 定义任务的运行阶段
     phase = models.CharField(_("阶段"), max_length=constants.LEN_SHORT, default="")
-    status = models.BooleanField(default=False, help_text=_("巡检结果状态, 默认正常"))  # True = 正常, False = 异常
 
     class Meta:
         indexes = [
@@ -228,9 +229,9 @@ class MySQLBackupRecoverTask(BaseReportABS):
             return []
 
     @classmethod
-    def get_recent_2h_exercise_cluster_type_stats(cls):
+    def get_recent_24h_exercise_cluster_type_stats(cls):
         """
-        获取最近2小时内演练的集群类型统计
+        获取最近24小时内演练的集群类型统计
 
         Returns:
             dict: {
@@ -239,7 +240,7 @@ class MySQLBackupRecoverTask(BaseReportABS):
                 'total_count': int          # 总演练次数
             }
         """
-        recent_time = timezone.now() - timedelta(hours=2)
+        recent_time = timezone.now() - timedelta(hours=24)
         recent_tasks = MySQLBackupRecoverTask.objects.filter(
             create_at__gte=recent_time,
         ).values_list("cluster_type", flat=True)
@@ -252,6 +253,25 @@ class MySQLBackupRecoverTask(BaseReportABS):
             "tendbha_count": tendbha_count,
             "total_count": tendbcluster_count + tendbha_count,
         }
+
+    @classmethod
+    def get_recent_2days_failed_cluster_ids(cls):
+        """
+        获取最近2天内失败的演练集群ID列表
+        失败指的是task_status为RECOVER_FAILED状态的任务
+        """
+        try:
+            recent_time = timezone.now() - timedelta(days=2)
+            return list(
+                MySQLBackupRecoverTask.objects.filter(
+                    create_at__gte=recent_time, task_status=TaskStatus.RECOVER_FAILED
+                )
+                .values_list("cluster_id", flat=True)
+                .distinct()
+            )
+        except Exception as e:
+            logger.warning(gettext("获取最近2天失败演练集群ID列表时发生数据库连接错误: {}").format(str(e)))
+            return []
 
 
 class FailoverDrillConfig(AuditedModel):

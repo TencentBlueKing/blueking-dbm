@@ -16,74 +16,70 @@
     <InfoItem
       :label="t('导入主机')"
       style="flex: 1 0 100%">
-      <BkTable :data="ticketDetails.details.hosts">
-        <BkTableColumn
-          field="ip"
+      <TicketInfoTable
+        :data="ticketDetails.details.hosts"
+        ellipsis
+        row-key="ip">
+        <TicketInfoTableColumn
+          col-key="ip"
           fixed="left"
-          label="IP"
-          :min-width="150">
-          <template #header>
-            <div class="ip-header">
-              IP
-              <DbIcon
-                type="copy"
-                @click="copyAllIp" />
-            </div>
-          </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="bk_cloud_name"
-          :label="t('管控区域')"
-          :min-width="120" />
-        <BkTableColumn
-          field="status"
-          :label="t('Agent 状态')"
-          :min-width="120">
-          <template #default="{ data }: { data: RowData }">
+          :get-copy-value="(row: RowData) => row.ip"
+          :min-width="150"
+          title="IP">
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="bk_cloud_name"
+          :min-width="120"
+          :title="t('管控区域')" />
+        <TicketInfoTableColumn
+          col-key="status"
+          :min-width="120"
+          :title="t('Agent 状态')">
+          <template #default="{ row: data }: { row: RowData }">
             <HostAgentStatus :data="data.status" />
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="city_name"
-          :label="t('地域')"
-          :min-width="120">
-          <template #default="{ data }: { data: RowData }">
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="city_name"
+          :min-width="120"
+          :title="t('地域')">
+          <template #default="{ row: data }: { row: RowData }">
             {{ data.city_name || '--' }}
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="sub_zone"
-          :label="t('园区')"
-          :min-width="120">
-          <template #default="{ data }: { data: RowData }">
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="sub_zone"
+          :min-width="120"
+          :title="t('园区')">
+          <template #default="{ row: data }: { row: RowData }">
             {{ data.sub_zone || '--' }}
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="rack_id"
-          :label="t('机架')"
-          :min-width="120">
-          <template #default="{ data }: { data: RowData }">
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="rack_id"
+          :min-width="120"
+          :title="t('机架')">
+          <template #default="{ row: data }: { row: RowData }">
             {{ data.rack_id || '--' }}
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="bk_os_name"
-          :label="t('操作系统')"
-          :min-width="120">
-          <template #default="{ data }: { data: RowData }">
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="bk_os_name"
+          :min-width="120"
+          :title="t('操作系统')">
+          <template #default="{ row: data }: { row: RowData }">
             {{ data.bk_os_name || '--' }}
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="svr_device_class"
-          :label="t('机型')"
-          :min-width="120">
-          <template #default="{ data }: { data: RowData }">
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="svr_device_class"
+          :min-width="120"
+          :title="t('机型')">
+          <template #default="{ row: data }: { row: RowData }">
             {{ data.svr_device_class || '--' }}
           </template>
-        </BkTableColumn>
-      </BkTable>
+        </TicketInfoTableColumn>
+      </TicketInfoTable>
     </InfoItem>
     <InfoItem :label="t('所属业务')">
       {{
@@ -114,8 +110,6 @@
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
   import TagBlock from '@components/tag-block/Index.vue';
 
-  import { execCopy } from '@utils';
-
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 
   interface Props {
@@ -143,13 +137,6 @@
       return 'Vm';
     }
     return DBTypeInfos[resourceType as DBTypes]?.name;
-  };
-
-  const copyAllIp = () => {
-    const ips = props.ticketDetails.details.hosts.map((item) => item.ip);
-    if (ips.length > 0) {
-      execCopy(ips.join('\n'), t('复制成功，共n条', { n: ips.length }));
-    }
   };
 </script>
 <style lang="less" scoped>

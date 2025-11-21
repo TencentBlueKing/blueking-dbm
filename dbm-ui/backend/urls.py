@@ -36,6 +36,7 @@ api_patterns = [
     path("ipchooser/", include("backend.db_services.ipchooser.urls")),
     path("infras/", include("backend.db_services.infras.urls")),
     path("taskflow/", include("backend.db_services.taskflow.urls")),
+    path("risk_memo/", include("backend.db_services.risk_memo.urls")),
     path("cmdb/", include("backend.db_services.cmdb.urls")),
     path("users/", include("backend.db_services.user.urls")),
     path("group/", include("backend.db_services.group.urls")),
@@ -66,6 +67,7 @@ api_patterns = [
     path("tag/", include("backend.db_services.tag.urls")),
     path("plugin/", include("backend.db_services.plugin.urls")),
     path("legacy/", include("backend.legacy.urls")),
+    path("ai/", include("backend.dbm_aiagent.urls")),
 ]
 
 urlpatterns = [

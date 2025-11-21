@@ -1,7 +1,7 @@
 <template>
   <Teleport
     v-if="openareaTemplateData"
-    to="#dbContentHeaderAppend">
+    to="#dbContentTitleAppend">
     <span style="font-size: 16px">【{{ openareaTemplateData.config_name }}】</span>
   </Teleport>
   <SmartAction

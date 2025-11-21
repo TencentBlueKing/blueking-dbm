@@ -8,10 +8,12 @@
         ref="specSelectorRef"
         v-model="modelValue.spec_id"
         :biz-id="bizId"
+        :city="cityCode"
         :cloud-id="cloudId"
         cluster-type="redis"
         :machine-type="machineType"
-        style="width: 314px" />
+        style="width: 314px"
+        :subzone-ids="subzoneIds" />
     </DbFormItem>
     <DbFormItem
       :label="t('数量')"
@@ -73,10 +75,12 @@
 
   interface Props {
     bizId: number | string;
+    cityCode: string;
     cloudId: number | string;
     clusterType: string;
     machineType: string;
     shardNumDisabled?: boolean;
+    subzoneIds: number[];
   }
 
   interface ModelValue {

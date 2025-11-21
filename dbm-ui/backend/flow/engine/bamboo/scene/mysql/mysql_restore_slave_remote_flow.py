@@ -11,12 +11,13 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging.config
 from dataclasses import asdict
+from datetime import datetime, timedelta
 from typing import Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components import DRSApi
-from backend.configuration.constants import DBType, MySQLMonitorPauseTime
+from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import InstanceInnerRole, InstancePhase, InstanceStatus
 from backend.db_meta.exceptions import InstanceNotExistException
@@ -40,6 +41,8 @@ from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow impor
     standardize_mysql_cluster_by_ip_subflow,
     standardize_mysql_cluster_subflow,
 )
+from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
+from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
@@ -161,8 +164,6 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 "install_ip": self.data["new_slave_ip"],
                 "cluster_ids": self.data["cluster_ids"],
                 "package": self.data["package"],
-                # "spec_config": self.data["resource_spec"]["new_slave"],
-                # "spec_id": self.data["resource_spec"]["new_slave"]["id"],
             }
             install_sub_pipeline.add_act(
                 act_name=_("写入初始化实例的db_meta元信息"),
@@ -204,6 +205,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
             install_sub_pipeline_list.append(install_sub_pipeline.build_sub_process(sub_name=_("安装从节点")))
 
             sync_data_sub_pipeline_list = []
+            master_instances = []
             for cluster_id in info["cluster_ids"]:
                 cluster_model = Cluster.objects.get(id=cluster_id)
                 master = cluster_model.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
@@ -222,6 +224,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                     "backup_source": self.ticket_data.get("backup_source"),
                     "change_master_force": True,
                 }
+                master_instances.append(master.ip_port)
                 if not self.add_slave_only:
                     cluster["restore_privilege"] = True
                     cluster["privilege_ips"] = [self.data["old_slave_ip"]]
@@ -361,50 +364,30 @@ class MySQLRestoreSlaveRemoteFlow(object):
                         sub_name=_("卸载remote节点{}".format(self.data["old_slave_ip"]))
                     )
                 )
-
+            # === 主流程 ===
             # 安装实例
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=install_sub_pipeline_list)
+            instances = ["{}:{}".format(self.data["new_slave_ip"], port) for port in self.data["ports"]]
+            tendb_migrate_pipeline.add_act(
+                act_name=_("屏蔽告警24小时"),
+                act_component_code=AddAlarmShieldComponent.code,
+                kwargs={
+                    "begin_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "end_time": (datetime.now() + timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S"),
+                    "description": str(instances),
+                    "dimensions": [
+                        {
+                            "name": "instance_host",
+                            "values": [self.data["new_slave_ip"]],
+                        }
+                    ],
+                },
+            )
             # 数据同步
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=sync_data_sub_pipeline_list)
-            #  新机器安装周边组件
-            instances = ["{}:{}".format(self.data["new_slave_ip"], port) for port in self.data["ports"]]
-            tendb_migrate_pipeline.add_sub_pipeline(
-                sub_flow=standardize_mysql_cluster_subflow(
-                    root_id=self.root_id,
-                    data=copy.deepcopy(self.data),
-                    bk_cloud_id=cluster_class.bk_cloud_id,
-                    bk_biz_id=cluster_class.bk_biz_id,
-                    instances=instances,
-                    departs=remove_departs(ALLDEPARTS, DeployPeripheralToolsDepart.MySQLDBBackup),
-                    with_actuator=False,
-                    with_bk_plugin=False,
-                    with_instance_standardize=False,
-                    with_cc_standardize=False,
-                    with_collect_sysinfo=False,
-                )
-            )
-            tendb_migrate_pipeline.add_act(
-                act_name=_("屏蔽监控 {}").format(self.data["new_slave_ip"]),
-                act_component_code=MysqlCrondMonitorControlComponent.code,
-                kwargs=asdict(
-                    CrondMonitorKwargs(
-                        bk_cloud_id=cluster_class.bk_cloud_id,
-                        exec_ips=[self.data["new_slave_ip"]],
-                        port=0,
-                        minutes=MySQLMonitorPauseTime.SLAVE_DELAY,
-                    )
-                ),
-            )
-
-            if not self.add_slave_only:
-                # 人工确认切换迁移实例
-                if not disable_manual_confirm:
-                    tendb_migrate_pipeline.add_act(
-                        act_name=_("人工确认切换"), act_component_code=PauseComponent.code, kwargs={}
-                    )
-                # 切换迁移实例
-                tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=switch_sub_pipeline_list)
-                # 切换后再次刷新周边
+            if self.add_slave_only:
+                # 如果是仅添加从库,则接下来 安装周边>解除屏蔽监控 即刻完成。
+                # todo 后续这里可能需要添加域名用于作为只读从库组。
                 tendb_migrate_pipeline.add_sub_pipeline(
                     sub_flow=standardize_mysql_cluster_subflow(
                         root_id=self.root_id,
@@ -416,30 +399,69 @@ class MySQLRestoreSlaveRemoteFlow(object):
                         with_bk_plugin=False,
                         with_instance_standardize=False,
                         with_cc_standardize=False,
+                        with_collect_sysinfo=False,
+                    )
+                )
+                tendb_migrate_pipeline.add_act(
+                    act_name=_("解除告警屏蔽"), act_component_code=DisableAlarmShieldComponent.code, kwargs={}
+                )
+            else:
+                # 如果是替换从库。后续的动作则为：安装周边>切换主从>刷新安装周边>解除监控>卸载实例
+                if not disable_manual_confirm:
+                    tendb_migrate_pipeline.add_sub_pipeline(
+                        sub_flow=standardize_mysql_cluster_subflow(
+                            root_id=self.root_id,
+                            data=copy.deepcopy(self.data),
+                            bk_cloud_id=cluster_class.bk_cloud_id,
+                            bk_biz_id=cluster_class.bk_biz_id,
+                            instances=instances,
+                            departs=remove_departs(ALLDEPARTS, DeployPeripheralToolsDepart.MySQLDBBackup),
+                            with_actuator=False,
+                            with_bk_plugin=False,
+                            with_instance_standardize=False,
+                            with_cc_standardize=False,
+                            with_collect_sysinfo=False,
+                        )
+                    )
+                    tendb_migrate_pipeline.add_act(
+                        act_name=_("人工确认切换"), act_component_code=PauseComponent.code, kwargs={}
+                    )
+                # 切换迁移实例
+                tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=switch_sub_pipeline_list)
+                # 切换后再次刷新周边
+                # 标志重建机器是否为is_stand_by
+                standardize_instances = instances
+                slaves = cluster_class.storageinstance_set.filter(machine__ip=self.data["old_slave_ip"])
+                for slave in slaves:
+                    if slave.is_stand_by:
+                        standardize_instances = instances + master_instances
+                        break
+                tendb_migrate_pipeline.add_sub_pipeline(
+                    sub_flow=standardize_mysql_cluster_subflow(
+                        root_id=self.root_id,
+                        data=copy.deepcopy(self.data),
+                        bk_cloud_id=cluster_class.bk_cloud_id,
+                        bk_biz_id=cluster_class.bk_biz_id,
+                        instances=standardize_instances,
+                        with_actuator=False,
+                        with_bk_plugin=False,
+                        with_instance_standardize=False,
+                        with_cc_standardize=False,
                         with_collect_sysinfo=True,
                         with_backup_client=False,
                     )
                 )
-
                 tendb_migrate_pipeline.add_act(
-                    act_name=_("切换后解除屏蔽监控 {}").format(self.data["new_slave_ip"]),
-                    act_component_code=MysqlCrondMonitorControlComponent.code,
-                    kwargs=asdict(
-                        CrondMonitorKwargs(
-                            bk_cloud_id=cluster_class.bk_cloud_id,
-                            exec_ips=[self.data["new_slave_ip"]],
-                            port=0,
-                            enable=True,
-                        )
-                    ),
+                    act_name=_("解除告警屏蔽"), act_component_code=DisableAlarmShieldComponent.code, kwargs={}
                 )
                 # 卸载流程人工确认
                 if not disable_manual_confirm:
                     tendb_migrate_pipeline.add_act(
                         act_name=_("人工确认卸载实例"), act_component_code=PauseComponent.code, kwargs={}
                     )
-                # # 卸载remote节点
+                # 卸载remote节点
                 tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=uninstall_svr_sub_pipeline_list)
+
             tendb_migrate_pipeline_list.append(
                 tendb_migrate_pipeline.build_sub_process(_("slave重建迁移{}").format(self.data["new_slave_ip"]))
             )
@@ -502,7 +524,19 @@ class MySQLRestoreSlaveRemoteFlow(object):
             tendb_migrate_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
 
             tendb_migrate_pipeline.add_act(
-                act_name=_("下发db-actor到节点{}".format(target_slave.machine.ip)),
+                act_name=_("检查重做节点是否存在从库{}").format(target_slave.ip_port),
+                act_component_code=MySQLCheckBinlogDumpComponent.code,
+                kwargs=asdict(
+                    ExecuteRdsKwargs(
+                        bk_cloud_id=cluster_model.bk_cloud_id,
+                        instance_ip=target_slave.machine.ip,
+                        instance_port=target_slave.port,
+                    )
+                ),
+            )
+
+            tendb_migrate_pipeline.add_act(
+                act_name=_("下发db-actor到节点 {} {}".format(target_slave.machine.ip, master.machine.ip)),
                 act_component_code=TransFileComponent.code,
                 kwargs=asdict(
                     DownloadMediaKwargs(
@@ -530,32 +564,6 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 ),
             )
 
-            # 屏蔽
-            tendb_migrate_pipeline.add_act(
-                act_name=_("数据恢复屏蔽监控 {}").format(target_slave.ip_port),
-                act_component_code=MysqlCrondMonitorControlComponent.code,
-                kwargs=asdict(
-                    CrondMonitorKwargs(
-                        bk_cloud_id=cluster_model.bk_cloud_id,
-                        exec_ips=[target_slave.machine.ip],
-                        port=target_slave.port,
-                        minutes=MySQLMonitorPauseTime.RESTORE_DATA,
-                    )
-                ),
-            )
-
-            tendb_migrate_pipeline.add_act(
-                act_name=_("检查重做节点是否存在从库{}").format(target_slave.ip_port),
-                act_component_code=MySQLCheckBinlogDumpComponent.code,
-                kwargs=asdict(
-                    ExecuteRdsKwargs(
-                        bk_cloud_id=cluster_model.bk_cloud_id,
-                        instance_ip=target_slave.machine.ip,
-                        instance_port=target_slave.port,
-                    )
-                ),
-            )
-
             tendb_migrate_pipeline.add_act(
                 act_name=_("检查数据库链接{}").format(target_slave.ip_port),
                 act_component_code=MySQLCheckProcesslistComponent.code,
@@ -566,6 +574,26 @@ class MySQLRestoreSlaveRemoteFlow(object):
                         instance_port=target_slave.port,
                     )
                 ),
+            )
+
+            tendb_migrate_pipeline.add_act(
+                act_name=_("屏蔽告警24小时"),
+                act_component_code=AddAlarmShieldComponent.code,
+                kwargs={
+                    "begin_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "end_time": (datetime.now() + timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S"),
+                    "description": cluster_model.immute_domain,
+                    "dimensions": [
+                        {
+                            "name": "instance_host",
+                            "values": [target_slave.machine.ip],
+                        },
+                        {
+                            "name": "instance_port",
+                            "values": [target_slave.port],
+                        },
+                    ],
+                },
             )
 
             tendb_migrate_pipeline.add_act(
@@ -664,19 +692,6 @@ class MySQLRestoreSlaveRemoteFlow(object):
                     cluster_model=cluster_model,
                     filter_ips=filter_ips,
                 )
-            )
-            # 屏蔽
-            tendb_migrate_pipeline.add_act(
-                act_name=_("数据同步屏蔽监控 {}").format(target_slave.ip_port),
-                act_component_code=MysqlCrondMonitorControlComponent.code,
-                kwargs=asdict(
-                    CrondMonitorKwargs(
-                        bk_cloud_id=cluster_model.bk_cloud_id,
-                        exec_ips=[target_slave.machine.ip],
-                        port=target_slave.port,
-                        minutes=MySQLMonitorPauseTime.SLAVE_DELAY,
-                    )
-                ),
             )
             # 卸载流程人工确认
             tendb_migrate_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
@@ -788,18 +803,8 @@ class MySQLRestoreSlaveRemoteFlow(object):
                     with_actuator=False,
                 )
             )
-
             tendb_migrate_pipeline.add_act(
-                act_name=_("切换后解除屏蔽监控 {}").format(self.data["new_slave_ip"]),
-                act_component_code=MysqlCrondMonitorControlComponent.code,
-                kwargs=asdict(
-                    CrondMonitorKwargs(
-                        bk_cloud_id=cluster_model.bk_cloud_id,
-                        exec_ips=[target_slave.machine.ip],
-                        port=target_slave.port,
-                        enable=True,
-                    )
-                ),
+                act_name=_("解除告警屏蔽"), act_component_code=DisableAlarmShieldComponent.code, kwargs={}
             )
 
             tendb_migrate_pipeline_list.append(

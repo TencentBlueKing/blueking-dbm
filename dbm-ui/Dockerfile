@@ -17,7 +17,7 @@ ENV NODE_OPTIONS="--max_old_space_size=4096"
 RUN yarn build
 
 #FROM python:3.6.12-slim-buster AS base
-FROM python:3.10.13-slim AS base
+FROM python:3.11.10-slim AS base
 
 WORKDIR /
 ENV LC_ALL=C.UTF-8  LANG=C.UTF-8

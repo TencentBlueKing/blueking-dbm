@@ -22,7 +22,7 @@ const (
 	// AlterTypeAddColumn add_column
 	AlterTypeAddColumn = "add_column"
 
-	// SQLTypeCreateTable is creat table sql
+	// SQLTypeCreateTable is create table sql
 	SQLTypeCreateTable = "create_table"
 	// SQLTypeCreateDb ise create database sql
 	SQLTypeCreateDb = "create_db"
@@ -53,19 +53,19 @@ const (
 	SQLTypeUseDb = "change_db"
 	// SQLTypeInsertSelect insert select sql
 	SQLTypeInsertSelect = "insert_select"
-	// SQLTypeRelaceSelect replace select sql
-	SQLTypeRelaceSelect = "replace_select"
+	// SQLTypeReplaceSelect replace select sql
+	SQLTypeReplaceSelect = "replace_select"
 	// SQLTypeDropTable drop table sql
 	SQLTypeDropTable = "drop_table"
-	// SQLTypeCreateIndex is creat table sql
+	// SQLTypeCreateIndex is create table sql
 	SQLTypeCreateIndex = "create_index"
 )
 
-// NotAllowedDefaulValColMap 不允许默认值的字段
-var NotAllowedDefaulValColMap map[string]struct{}
+// NotAllowedDefaultValColMap 不允许默认值的字段
+var NotAllowedDefaultValColMap map[string]struct{}
 
 func init() {
-	NotAllowedDefaulValColMap = lo.SliceToMap([]string{"json", "tinyblob", "blob", "mediumblob", "longblob"},
+	NotAllowedDefaultValColMap = lo.SliceToMap([]string{"json", "tinyblob", "blob", "mediumblob", "longblob"},
 		func(s string) (string, struct{}) {
 			return s, struct{}{}
 		})
@@ -88,9 +88,9 @@ type ColDef struct {
 	ReferenceDefinition interface{} `json:"reference_definition"`
 }
 
-// IsNotAllowDefaulValCol tendbcluster 不允许某些类型的字段存在默认值的字段
-func (c ColDef) IsNotAllowDefaulValCol() bool {
-	if _, ok := NotAllowedDefaulValColMap[c.DataType]; ok {
+// IsNotAllowDefaultValCol tendbcluster 不允许某些类型的字段存在默认值的字段
+func (c ColDef) IsNotAllowDefaultValCol() bool {
+	if _, ok := NotAllowedDefaultValColMap[c.DataType]; ok {
 		if c.DefaultVal != nil {
 			return true
 		}
@@ -126,8 +126,8 @@ type TableOption struct {
 	Value interface{} `json:"value"`
 }
 
-// ConverTableOptionToMap convert table option to map
-func ConverTableOptionToMap(options []TableOption) map[string]interface{} {
+// ConvertTableOptionToMap convert table option to map
+func ConvertTableOptionToMap(options []TableOption) map[string]interface{} {
 	r := make(map[string]interface{})
 	for _, v := range options {
 		if !util.IsEmpty(v.Key) {
@@ -200,7 +200,7 @@ type AlterCommand struct {
 	Lock         string        `json:"lock,omitempty"`
 }
 
-// ChangeDbResult mysqlparse change db result
+// ChangeDbResult TmysqlParse change db result
 type ChangeDbResult struct {
 	QueryID int    `json:"query_id"`
 	Command string `json:"command"`
@@ -259,7 +259,7 @@ type CreateView struct {
 	CheckOption string   `json:"check_option,omitempty"`
 }
 
-// CreateProcedure tmysqlparse create proceduce result
+// CreateProcedure tmysqlparse create procedure result
 type CreateProcedure struct {
 	ParseBase
 	Definer     UserHost `json:"definer,omitempty"`

@@ -20,6 +20,10 @@ from blueapps.core.celery.celery import app
 
 from backend import env
 from backend.core.encrypt.interceptors import SymmetricInterceptor
+from django.db.backends.mysql.features import DatabaseFeatures
+from blueking.mysql_patch import PatchFeatures
+
+DatabaseFeatures.minimum_database_version = PatchFeatures.minimum_database_version
 
 if env.RUN_VER == "open":
     from blueapps.patch.settings_open_saas import *  # pylint: disable=wildcard-import
@@ -97,6 +101,7 @@ INSTALLED_APPS += (
     "blueapps.opentelemetry.instrument_app",
     # apigw
     "apigw_manager.apigw",
+    "apigw_manager.drf",
     # DB重连
     "backend.django_dbconn_retry",
     # 动态 raw-id
@@ -117,6 +122,7 @@ INSTALLED_APPS += (
     "backend.db_services.mysql.permission.clone",
     "backend.db_services.mysql.open_area",
     "backend.db_services.ipchooser",
+    "backend.db_services.risk_memo",
     "backend.dbm_tools",
     "backend.db_proxy",
     "backend.db_monitor",
@@ -131,8 +137,10 @@ INSTALLED_APPS += (
     "backend.db_services.redis.slots_migrate",
     "backend.db_services.redis.redis_modules",
     "backend.db_services.redis.hot_key_analysis",
+    "backend.db_services.redis.redis_keystat_report",
     "backend.db_services.mysql.dumper",
     "backend.dbm_init",
+    "backend.db_services.mongodb.password",
 )
 
 MIDDLEWARE = (
@@ -317,16 +325,21 @@ BK_APIGW_MANAGER_MAINTAINERS = env.BK_APIGW_MANAGER_MAINTAINERS
 BK_APIGW_STAGE_NAME = env.BK_APIGW_STAGE_NAME
 BK_APIGATEWAY_DOMAIN = env.BK_APIGATEWAY_DOMAIN
 BK_API_URL_TMPL = env.BK_API_URL_TMPL
-BK_APIGW_NAME = "bkdbm"
+BK_APIGW_NAME = env.BK_APIGW_NAME
+BK_APIGW_MCP_NAME = env.BK_APIGW_MCP_NAME
 BK_APIGW_GRANT_APPS = env.BK_APIGW_GRANT_APPS
 # TODO: apigw文档待补充
 BK_APIGW_RESOURCE_DOCS_BASE_DIR = env.BK_APIGW_RESOURCE_DOCS_BASE_DIR
+BK_APIGW_STAGE_BACKEND_SUBPATH = ""
 
 BK_NOTICE = {
     "BK_API_URL_TMPL": BK_API_URL_TMPL,
 }
 
 BKAPP_BKVISION_APIGW_URL = env.BKAPP_BKVISION_APIGW_URL
+
+# 跨域信任请求源
+CSRF_TRUSTED_ORIGINS = env.get_csrf_trusted_origins()
 
 # 需将 bkapi.example.com 替换为真实的云 API 域名，在 PaaS 3.0 部署的应用，可从环境变量中获取 BK_API_URL_TMPL
 
@@ -414,6 +427,7 @@ REST_FRAMEWORK = {
     "DATETIME_FORMAT": None,
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
     "EXCEPTION_HANDLER": "backend.bk_web.handlers.drf_exception_handler",
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -433,6 +447,7 @@ CELERY_IMPORTS = (
 app.conf.enable_utc = False
 app.conf.timezone = "Asia/Shanghai"
 app.conf.broker_url = env.BROKER_URL
+app.conf.broker_connection_retry_on_startup = True
 
 # 版本日志
 VERSION_LOG = {"MD_FILES_DIR": os.path.join(PROJECT_ROOT, "release")}
@@ -604,6 +619,12 @@ GRAFANA = {
     "BACKEND_CLASS": "backend.bk_dataview.grafana.backends.api.APIHandler",
 }
 
+# 自定义上报监控配置
+if env.BKAPP_MONITOR_REPORTER_ENABLE:
+    from backend.bk_dataview.prometheus import config
+    config.monitor_celery_report_config()
+    config.monitor_web_report_config()
+
 # 全局启用 pyinstrument，或者在url后面加上?profile=1
 # PYINSTRUMENT_PROFILE_DIR = os.path.join(STATIC_ROOT, 'assets/perf')
 
@@ -611,4 +632,20 @@ GRAFANA = {
 if env.DEBUG_TOOL_BAR:
     INTERNAL_IPS = ["127.0.0.1", "localhost"]
 
-
+# 开启MCP server
+BK_APIGW_STAGE_ENABLE_MCP_SERVERS = env.BK_APIGW_STAGE_ENABLE_MCP_SERVERS
+BK_APIGW_STAGE_MCP_SERVERS = [
+    {
+        "name": "dbm-mcp",
+        "description": "dbm-mcp",
+        # 主动授权 app_code
+        "target_app_codes": [APP_CODE],
+        "labels": ["dbm"],
+        # 是否启用：1-启用，0-停止
+        "status": 1,
+        # 是否公开
+        "is_public": False,
+        # 自动发现并填充该 MCP 服务器对应的工具
+        "tools": [],
+    }
+]

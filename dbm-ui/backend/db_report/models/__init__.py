@@ -8,12 +8,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from .affinity_check_report import AffinityCheckReport
 from .checksum_check_report import ChecksumCheckReport, ChecksumInstance
 from .dbmon_heartbeat_report import DbmonHeartbeatReport
 from .failover_drill_report import FailoverDrillReport
 from .meta_check_report import MetaCheckReport
 from .monogdb_check_report import MongodbBackupCheckReport
 from .mysql_backup_progress import MysqlBackupProgress
+from .mysql_inspect_ignore import MysqlInspectIgnore
 from .mysqlbackup_check_report import MysqlBackupCheckReport
 from .redisbackup_check_report import RedisBackupCheckReport
 from .sqlserver_check_report import (

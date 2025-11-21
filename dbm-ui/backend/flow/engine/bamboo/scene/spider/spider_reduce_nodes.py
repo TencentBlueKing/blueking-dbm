@@ -13,7 +13,7 @@ import logging.config
 from dataclasses import asdict
 from typing import Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryRole, TenDBClusterSpiderRole
@@ -145,6 +145,7 @@ class TenDBClusterReduceNodesFlow(object):
         spider_reduced_to_count_snapshot: int,
         is_check_min_count: bool = True,
         is_check_disaster_tolerance_level: bool = True,
+        is_check_process: bool = True,
     ):
         """
         根据cluster维度处理缩容子流程
@@ -190,7 +191,7 @@ class TenDBClusterReduceNodesFlow(object):
         sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
 
         # 预检测
-        if self.data["is_safe"]:
+        if is_check_process:
             sub_pipeline.add_act(
                 act_name=_("检测回收Spider端连接情况"),
                 act_component_code=CheckClientConnComponent.code,
@@ -246,7 +247,9 @@ class TenDBClusterReduceNodesFlow(object):
                 spider_role=reduce_spider_role,
             )
         )
-        return sub_pipeline.build_sub_process(sub_name=_("[{}]减少spider节点流程".format(cluster.immute_domain)))
+        return sub_pipeline.build_sub_process(
+            sub_name=_("[{}]减少{}节点流程".format(cluster.immute_domain, reduce_spider_role))
+        )
 
     def reduce_spider_nodes(self):
         """
@@ -262,6 +265,7 @@ class TenDBClusterReduceNodesFlow(object):
                     spider_reduced_hosts=info["spider_reduced_hosts"],
                     reduce_spider_role=info["reduce_spider_role"],
                     spider_reduced_to_count_snapshot=info["spider_reduced_to_count"],
+                    is_check_process=self.data.get("is_check_process", True),
                 )
             )
 

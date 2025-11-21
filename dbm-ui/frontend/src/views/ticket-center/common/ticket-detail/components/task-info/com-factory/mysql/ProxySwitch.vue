@@ -17,43 +17,51 @@
       {{ displayInfoTypeMap[ticketDetails.details.infos[0].display_info.type] }}
     </InfoItem>
   </InfoList>
-  <BkTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn :label="t('目标Proxy')">
-      <template #default="{ data }: { data: RowData }">
+    row-key="origin_proxy.ip">
+    <TicketInfoTableColumn
+      col-key="origin_proxy_ip"
+      :get-copy-value="(row: RowData) => row.origin_proxy.ip"
+      :title="t('目标Proxy')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.origin_proxy.ip }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       v-if="isHostReplace"
-      :label="t('关联实例')">
-      <template #default="{ data }: { data: RowData }">
+      col-key="related_instances"
+      :title="t('关联实例')">
+      <template #default="{ row: data }: { row: RowData }">
         <p
           v-for="item in data.display_info.related_instances"
           :key="item">
           {{ item }}
         </p>
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('关联集群')">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="related_clusters"
+      :title="t('关联集群')">
+      <template #default="{ row: data }: { row: RowData }">
         <p
           v-for="item in data.display_info.related_clusters"
           :key="item">
           {{ item }}
         </p>
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('新Proxy主机')">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="target_proxy"
+      :title="t('新Proxy主机')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.target_proxy.ip }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('检查业务连接')">
-      {{ ticketDetails.details.force ? t('是') : t('否') }}
+      {{ !ticketDetails.details.force ? t('是') : t('否') }}
     </InfoItem>
   </InfoList>
 </template>

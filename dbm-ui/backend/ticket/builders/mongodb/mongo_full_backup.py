@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.flow.consts import MongoDBBackupFileTagEnum
@@ -26,9 +26,6 @@ class MongoDBFullBackupDetailSerializer(BaseMongoDBOperateDetailSerializer):
     oplog = serializers.BooleanField(help_text=_("是否需要oplog备份"))
     file_tag = serializers.ChoiceField(help_text=_("备份保存时间"), choices=MongoDBBackupFileTagEnum.get_choices())
     infos = serializers.ListSerializer(help_text=_("备份信息"), child=FullBackupDetailSerializer())
-
-    def validate(self, attrs):
-        return attrs
 
 
 class MongoDBFullBackupFlowParamBuilder(builders.FlowParamBuilder):

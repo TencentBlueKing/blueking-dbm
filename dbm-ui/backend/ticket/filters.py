@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.db.models import Exists, OuterRef, Q
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django_filters import rest_framework as filters
 
 from backend.db_meta.models import Cluster
@@ -26,6 +26,7 @@ class TicketListFilter(filters.FilterSet):
     ordering = filters.CharFilter(field_name="ordering", method="order_ticket", label=_("排序字段"))
     is_assist = filters.BooleanFilter(field_name="is_assist", method="filter_is_assist", label=_("是否协助"))
     bk_biz_ids = filters.CharFilter(field_name="bk_biz_ids", method="filter_bk_biz_ids", label=_("业务ID列表(逗号分隔)"))
+    db_type = filters.CharFilter(field_name="db_type", method="filter_db_type", label=_("db类型"))
 
     class Meta:
         model = Ticket
@@ -34,13 +35,17 @@ class TicketListFilter(filters.FilterSet):
             "bk_biz_id": ["exact"],
             "ticket_type": ["exact", "in"],
             "create_at": ["gte", "lte"],
-            "creator": ["exact"],
+            "creator": ["exact", "in"],
         }
 
     def filter_cluster(self, queryset, name, value):
         clusters = Cluster.objects.filter(immute_domain__icontains=value).values_list("id", flat=True)
         records = ClusterOperateRecord.objects.filter(cluster_id__in=clusters).values_list("id", flat=True)
         return queryset.filter(clusteroperaterecord__in=records)
+
+    def filter_db_type(self, queryset, name, value):
+        db_types = [db_type for db_type in value.split(",")]
+        return queryset.filter(group__in=db_types)
 
     def filter_ids(self, queryset, name, value):
         ids = list(map(int, value.split(",")))

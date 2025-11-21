@@ -13,7 +13,7 @@ import logging.config
 from dataclasses import asdict
 from typing import Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
@@ -204,7 +204,7 @@ class MySQLProxyClusterReduceFlow(object):
                             bk_cloud_id=cluster.bk_cloud_id,
                             exec_ip=origin_proxy.machine.ip,
                             get_mysql_payload_func=MysqlActPayload.get_uninstall_proxy_payload.__name__,
-                            cluster={"proxy_port": origin_proxy.port},
+                            component_kwargs={"proxy_port": origin_proxy.port, "force": self.data.get("force", False)},
                         )
                     ),
                 )
@@ -215,7 +215,10 @@ class MySQLProxyClusterReduceFlow(object):
                     kwargs=asdict(
                         DBMetaOPKwargs(
                             db_meta_class_func=MySQLDBMeta.mysql_proxy_reduce.__name__,
-                            cluster={"cluster_ids": [cluster_id], "origin_proxy_ip": info["origin_proxy_ip"]},
+                            component_kwargs={
+                                "cluster_ids": [cluster_id],
+                                "origin_proxy_ip": info["origin_proxy_ip"]["ip"],
+                            },
                         )
                     ),
                 )

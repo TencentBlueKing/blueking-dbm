@@ -14,7 +14,7 @@ import time
 import traceback
 from enum import Enum
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.db_services.redis.capacity_evaluate_service.models.tb_capacity_evaluate import CapacityEvaluateRecord
 from backend.db_services.redis.capacity_evaluate_service.repositories.cluster_topo_repo import (

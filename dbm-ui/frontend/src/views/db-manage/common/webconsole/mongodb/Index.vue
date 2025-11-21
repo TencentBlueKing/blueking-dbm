@@ -233,6 +233,7 @@
       .using-help-wrap {
         position: fixed;
         top: 40px;
+        right: 0;
         z-index: 99;
         height: calc(100% - 40px);
         background: transparent;

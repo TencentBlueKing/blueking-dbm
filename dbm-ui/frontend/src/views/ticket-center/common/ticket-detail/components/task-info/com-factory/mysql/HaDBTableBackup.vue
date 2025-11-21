@@ -11,56 +11,65 @@
  * the specific language governing permissions and limitations under the License.
 -->
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
-      :label="t('目标集群')"
+  <TicketInfoTable
+    :data="ticketDetails.details.infos"
+    row-key="cluster_id">
+    <TicketInfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
+      :title="t('目标集群')"
       :width="240">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('备份位置')"
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="backup_on"
+      :title="t('备份位置')"
       :width="180">
-      <template #default="{ data }: { data: RowData }">
+      <template #default="{ row }: { row: RowData }">
         {{
-          ticketDetails.details.clusters[data.cluster_id]
-            ? ticketDetails.details.clusters[data.cluster_id].cluster_type === ClusterTypes.TENDBHA
+          ticketDetails.details.clusters[row.cluster_id]
+            ? ticketDetails.details.clusters[row.cluster_id].cluster_type === ClusterTypes.TENDBHA
               ? 'Slave'
               : 'Master'
             : '--'
         }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('备份DB名')"
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="db_patterns"
+      :title="t('备份DB名')"
       :width="180">
-      <template #default="{ data }: { data: RowData }">
-        <TagBlock :data="data.db_patterns" />
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="row.db_patterns" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('忽略DB名')"
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="ignore_dbs"
+      :title="t('忽略DB名')"
       :width="180">
-      <template #default="{ data }: { data: RowData }">
-        <TagBlock :data="data.ignore_dbs" />
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="row.ignore_dbs" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('备份表名')"
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="table_patterns"
+      :title="t('备份表名')"
       :width="180">
-      <template #default="{ data }: { data: RowData }">
-        <TagBlock :data="data.table_patterns" />
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="row.table_patterns" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('忽略表名')"
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="ignore_tables"
+      :title="t('忽略表名')"
       :width="180">
-      <template #default="{ data }: { data: RowData }">
-        <TagBlock :data="data.ignore_tables" />
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="row.ignore_tables" />
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

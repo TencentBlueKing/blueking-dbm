@@ -15,7 +15,7 @@ from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_services.redis.capacity_evaluate_service import util
-from backend.db_services.redis.capacity_evaluate_service.repositories.redis_cluster_repo import DbmClusterRepository
+from backend.db_meta.api.cluster.nosqlcomm.redis_cluster_repo import DbmClusterRepository
 from backend.db_services.redis.capacity_evaluate_service.services.evaluate_service import (
     CapacityEvaluateService,
     ResultCode,

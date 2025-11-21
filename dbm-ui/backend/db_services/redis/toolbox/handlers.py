@@ -13,6 +13,8 @@ import json
 from django.db import connection
 
 from backend.components import DRSApi
+from backend.configuration.constants import SystemSettingsEnum
+from backend.configuration.models import SystemSettings
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.enums.comm import RedisVerUpdateNodeType
 from backend.db_meta.exceptions import InstanceNotExistException
@@ -20,9 +22,14 @@ from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.cluster.handlers import ClusterServiceHandler
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
+from backend.db_services.redis.redis_dts.util import get_redis_type_by_cluster_type
 from backend.db_services.redis.redis_modules.models import TbRedisModuleSupport
 from backend.db_services.redis.redis_modules.models.redis_module_support import ClusterRedisModuleAssociate
-from backend.db_services.redis.resources.constants import SQL_QUERY_COUNT_INSTANCES, SQL_QUERY_INSTANCES
+from backend.db_services.redis.resources.constants import (
+    REDIS_DELETE_RATE,
+    SQL_QUERY_COUNT_INSTANCES,
+    SQL_QUERY_INSTANCES,
+)
 from backend.db_services.redis.resources.redis_cluster.query import RedisListRetrieveResource
 from backend.exceptions import ApiResultError
 from backend.flow.utils.base.payload_handler import PayloadHandler
@@ -207,6 +214,17 @@ class ToolboxHandler(ClusterServiceHandler):
         # 字典输出集群是否安装的module列表
         results = {item: (item in cluster_modules) for item in support_modules}
         return {"results": results}
+
+    @classmethod
+    def get_cluster_del_key_rate(cls, cluster_id: int):
+        cluster = Cluster.objects.get(id=cluster_id)
+
+        # 获取redis集群删除率的配置
+        delete_rate_configs = (
+            SystemSettings.get_setting_value(key=SystemSettingsEnum.REDIS_DELETE_RATE.value, default=REDIS_DELETE_RATE)
+            or REDIS_DELETE_RATE
+        )
+        return {"delete_rate": delete_rate_configs[get_redis_type_by_cluster_type(cluster.cluster_type)]}
 
     @classmethod
     def get_execute_net_tcp_cluster_hosts(cls, cluster):

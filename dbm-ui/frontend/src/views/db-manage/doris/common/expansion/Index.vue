@@ -143,7 +143,17 @@
       });
   };
 
-  fetchMachineDetail();
+  watch(
+    isShow,
+    () => {
+      if (isShow.value) {
+        fetchMachineDetail();
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChange = () => {
     emits('change');

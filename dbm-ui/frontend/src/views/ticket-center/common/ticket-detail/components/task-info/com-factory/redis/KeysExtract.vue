@@ -12,48 +12,55 @@
 -->
 
 <template>
-  <BkTable
+  <TicketInfoTable
     :data="ticketDetails.details.rules"
-    :show-overflow="false">
-    <BkTableColumn
-      :label="t('集群')"
-      :min-width="220">
-      <template #default="{ data }: { data: IRowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id]?.immute_domain }}
+    row-key="cluster_id">
+    <TicketInfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(row: IRowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
+      :min-width="220"
+      :title="t('集群')">
+      <template #default="{ row }: { row: IRowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id]?.immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('架构版本')"
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_type_name"
+      :title="t('架构版本')"
       :width="200">
-      <template #default="{ data }: { data: IRowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id]?.cluster_type_name }}
+      <template #default="{ row }: { row: IRowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id]?.cluster_type_name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('包含Key')">
-      <template #default="{ data }: { data: IRowData }">
-        <span v-if="!data.white_regex">--</span>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="white_regex"
+      :title="t('包含Key')">
+      <template #default="{ row }: { row: IRowData }">
+        <span v-if="!row.white_regex">--</span>
         <template v-else>
           <p
-            v-for="item in data.white_regex.split('\n')"
+            v-for="item in row.white_regex.split('\n')"
             :key="item">
             <BkTag>{{ item }}</BkTag>
           </p>
         </template>
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('排除Key')">
-      <template #default="{ data }: { data: IRowData }">
-        <span v-if="!data.black_regex">--</span>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="black_regex"
+      :title="t('排除Key')">
+      <template #default="{ row }: { row: IRowData }">
+        <span v-if="!row.black_regex">--</span>
         <template v-else>
           <p
-            v-for="item in data.black_regex.split('\n')"
+            v-for="item in row.black_regex.split('\n')"
             :key="item">
             <BkTag>{{ item }}</BkTag>
           </p>
         </template>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

@@ -29,3 +29,19 @@ type BaseMetricTags struct {
 	ResultCode string
 	Result     string
 }
+
+// ClusterAPIMetricTags 集群 API 标签
+type ClusterAPIMetricTags struct {
+	K8sClusterName string
+	Namespace      string
+	ClusterName    string
+	BaseMetricTags
+}
+
+// AddonAPIMetricTags Addon API 标签
+type AddonAPIMetricTags struct {
+	K8sClusterName string
+	AddonType      string
+	AddonVersion   string
+	BaseMetricTags
+}

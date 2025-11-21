@@ -10,22 +10,22 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import gettext_lazy as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
-class VmConfigEnum(str, StructuredEnum):
+class VmConfigEnum(StrStructuredEnum):
     VmstorageRetentionPeriod = EnumField("vmstorage.retentionPeriod", _("数据过期时间"))
     VminsertReplicationFactor = EnumField("vminsert.replicationFactor", _("数据副本数"))
 
 
-class VmMetaOperation(str, StructuredEnum):
+class VmMetaOperation(StrStructuredEnum):
     Add = EnumField("ADD", _("ADD"))
     Drop = EnumField("DROP", _("DROP"))
     Decommission = EnumField("DECOMMISSION", _("DECOMMISSION"))
     ForceDrop = EnumField("DROPP", _("DROPP"))
 
 
-class VmNodeOperation(str, StructuredEnum):
+class VmNodeOperation(StrStructuredEnum):
     Start = EnumField("start", _("start"))
     Stop = EnumField("stop", _("stop"))
     Restart = EnumField("restart", _("restart"))

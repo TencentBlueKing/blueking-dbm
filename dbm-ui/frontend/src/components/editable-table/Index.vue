@@ -160,7 +160,9 @@
         // 重新计算滚动显示状态
         isShowScrollX.value = false;
         setTimeout(() => {
-          isShowScrollX.value = scrollXRef.value!.offsetWidth + 2 < scrollXRef.value!.scrollWidth;
+          if (scrollXRef.value) {
+            isShowScrollX.value = scrollXRef.value.offsetWidth + 2 < scrollXRef.value.scrollWidth;
+          }
         });
         initalScroll();
       });

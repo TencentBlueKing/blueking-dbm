@@ -12,23 +12,26 @@
 -->
 
 <template>
-  <BkTable :data="tableData">
-    <BkTableColumn
-      field="slaveIp"
-      :label="t('待重建从库主机')" />
-    <BkTableColumn
-      field="hostIp"
-      :label="t('关联主库主机')" />
-    <BkTableColumn
-      field="clusterName"
-      :label="t('所属集群')" />
-    <BkTableColumn
-      field="sepcName"
-      :label="t('规格需求')" />
-    <BkTableColumn
-      field="targetNum"
-      :label="t('新增从库主机数量')" />
-  </BkTable>
+  <TicketInfoTable
+    :data="tableData"
+    row-key="slaveIp">
+    <TicketInfoTableColumn
+      col-key="slaveIp"
+      :get-copy-value="(row: RowData) => row.slaveIp"
+      :title="t('待重建从库主机')" />
+    <TicketInfoTableColumn
+      col-key="hostIp"
+      :title="t('关联主库主机')" />
+    <TicketInfoTableColumn
+      col-key="clusterName"
+      :title="t('所属集群')" />
+    <TicketInfoTableColumn
+      col-key="sepcName"
+      :title="t('规格需求')" />
+    <TicketInfoTableColumn
+      col-key="targetNum"
+      :title="t('新增从库主机数量')" />
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">

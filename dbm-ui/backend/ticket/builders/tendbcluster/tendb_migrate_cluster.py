@@ -49,8 +49,7 @@ class TendbClusterMigrateClusterDetailSerializer(TendbBaseOperateDetailSerialize
     need_checksum = serializers.BooleanField(help_text=_("执行前是否需要数据校验"), default=True)
 
     def validate(self, attrs):
-        # 校验集群是否可用，集群类型为高可用
-        super().validate_cluster_can_access(attrs)
+        attrs = super().validate(attrs)
         # TODO: 校验old_master/old_slave是一对主从
         return attrs
 

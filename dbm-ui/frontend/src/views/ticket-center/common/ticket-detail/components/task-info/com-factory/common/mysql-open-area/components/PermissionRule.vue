@@ -13,10 +13,65 @@
 
 <template>
   <BkLoading :loading="isLoading">
-    <DbOriginalTable
+    <TicketInfoTable
       class="permission-table"
-      :columns="columns"
-      :data="tableData" />
+      :data="tableData"
+      row-key="user">
+      <TicketInfoTableColumn
+        col-key="user"
+        :ellipsis="false"
+        :title="t('账号名称')"
+        :width="220">
+        <template #default="{ row }:{ row:IDataRow }">
+          <div class="account-box">
+            <DbIcon
+              v-if="row.rules.length > 1"
+              class="flod-flag"
+              :class="{
+                'is-flod': rowFlodMap[row.user],
+              }"
+              type="down-shape"
+              @click="handleToogleExpand(row.user)" />
+            {{ row.user }}
+          </div>
+        </template>
+      </TicketInfoTableColumn>
+      <TicketInfoTableColumn
+        col-key="access_db"
+        ellipsis
+        :title="t('访问的DB名')"
+        :width="300">
+        <template #default="{ row }:{ row:IDataRow }">
+          <div
+            v-for="(item, index) in rowFlodMap[row.user] ? row.rules.slice(0, 1) : row.rules"
+            :key="index"
+            class="inner-row">
+            <BkTag>{{ item.access_db }}</BkTag>
+          </div>
+        </template>
+      </TicketInfoTableColumn>
+      <TicketInfoTableColumn
+        col-key="priv"
+        :show-overflow-tooltip="false"
+        :title="t('权限')">
+        <template #default="{ row }:{ row:IDataRow }">
+          <div
+            v-if="row.rules.length === 0"
+            class="inner-row">
+            --
+          </div>
+          <div
+            v-for="(item, index) in rowFlodMap[row.user] ? row.rules.slice(0, 1) : row.rules"
+            v-else
+            :key="index"
+            class="inner-row cell-privilege">
+            <TextOverflowLayout>
+              {{ item.priv.replace(/,/g, '，') }}
+            </TextOverflowLayout>
+          </div>
+        </template>
+      </TicketInfoTableColumn>
+    </TicketInfoTable>
   </BkLoading>
 </template>
 
@@ -51,64 +106,6 @@
 
   const rowFlodMap = ref<Record<string, boolean>>({});
   const tableData = shallowRef<IDataRow[]>([]);
-
-  const columns = computed(() => [
-    {
-      field: 'user',
-      label: t('账号名称'),
-      render: ({ data }: { data: IDataRow }) => (
-        <div class='account-box'>
-          {data.rules.length > 1 && (
-            <db-icon
-              class={{
-                'flod-flag': true,
-                'is-flod': rowFlodMap.value[data.user],
-              }}
-              type='down-shape'
-              onClick={() => handleToogleExpand(data.user)}
-            />
-          )}
-          {data.user}
-        </div>
-      ),
-      showOverflowTooltip: false,
-      width: 220,
-    },
-    {
-      field: 'access_db',
-      label: t('访问的DB名'),
-      render: ({ data }: { data: IDataRow }) => {
-        const renderRules = rowFlodMap.value[data.user] ? data.rules.slice(0, 1) : data.rules;
-        return renderRules.map((item) => (
-          <div class='inner-row'>
-            <bk-tag>{item.access_db}</bk-tag>
-          </div>
-        ));
-      },
-      showOverflowTooltip: true,
-      width: 300,
-    },
-    {
-      field: 'priv',
-      label: t('权限'),
-      render: ({ data }: { data: IDataRow }) => {
-        if (data.rules.length === 0) {
-          return <div class='inner-row'>--</div>;
-        }
-        const renderRules = rowFlodMap.value[data.user] ? data.rules.slice(0, 1) : data.rules;
-        return renderRules.map((item) => (
-          <div class='inner-row cell-privilege'>
-            <TextOverflowLayout>
-              {{
-                default: () => item.priv.replace(/,/g, '，'),
-              }}
-            </TextOverflowLayout>
-          </div>
-        ));
-      },
-      showOverflowTooltip: false,
-    },
-  ]);
 
   const { loading: isLoading, run: getPermissionRulesRun } = useRequest(getPermissionRules, {
     manual: true,

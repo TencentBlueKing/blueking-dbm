@@ -74,7 +74,7 @@ func (t *TopicReassignComp) GenerateReassignmentPlans() error {
 	// Get list of topics
 	cmd := fmt.Sprintf("%s --list --zookeeper %s", cst.DefaultTopicBin, zkStr)
 	logger.Info("Executing command to get topic list: %s", cmd)
-	output, err := osutil.ExecShellCommand(false, cmd)
+	output, err := osutil.ExecShellCommandJ(false, cmd)
 	if err != nil {
 		return fmt.Errorf("failed to get topic list: %w", err)
 	}
@@ -163,9 +163,25 @@ func (t *TopicReassignComp) GenerateReassignmentPlans() error {
 		cmd = fmt.Sprintf("%s --broker-list %s --topics-to-move-json-file %s --generate --zookeeper %s",
 			cst.DefaultReassignPartitionsBin, brokerListStr, topicJSONFile, zkStr)
 		logger.Info("Executing command to generate reassignment plan: %s", cmd)
-		output, err := osutil.ExecShellCommand(false, cmd)
-		if err != nil {
-			return fmt.Errorf("failed to generate reassignment plan: %w", err)
+		output, err := osutil.ExecShellCommandJ(false, cmd)
+
+		// 检查输出中是否包含 rack 相关的错误提示
+		needRetry := strings.Contains(output, "Not all brokers have rack information") ||
+			strings.Contains(output, "Add --disable-rack-aware")
+
+		if err != nil && !needRetry {
+			return fmt.Errorf("failed to generate reassignment plan: %w; output: %s", err, output)
+		}
+
+		if needRetry {
+			logger.Warn("Detected missing broker.rack info; retrying with --disable-rack-aware")
+			cmd = fmt.Sprintf("%s --broker-list %s --topics-to-move-json-file %s --generate --zookeeper %s --disable-rack-aware",
+				cst.DefaultReassignPartitionsBin, brokerListStr, topicJSONFile, zkStr)
+			logger.Info("Executing command to generate reassignment plan (disable rack aware): %s", cmd)
+			output, err = osutil.ExecShellCommandJ(false, cmd)
+			if err != nil {
+				return fmt.Errorf("failed to generate reassignment plan with --disable-rack-aware: %w; output: %s", err, output)
+			}
 		}
 
 		// 3. 解析current assignment
@@ -232,8 +248,16 @@ func (t *TopicReassignComp) ExecuteReassignment() error {
 		}
 
 		// Skip if already done
-		doneContent, _ := os.ReadFile(doneFile)
-		if strings.Contains(string(doneContent), topic) {
+		doneContentBytes, _ := os.ReadFile(doneFile)
+		doneLines := strings.Split(strings.TrimSpace(string(doneContentBytes)), "\n")
+		isDone := false
+		for _, line := range doneLines {
+			if strings.TrimSpace(line) == topic {
+				isDone = true
+				break
+			}
+		}
+		if isDone {
 			logger.Info("Skipping reassignment for topic %s (already done)", topic)
 			continue
 		}

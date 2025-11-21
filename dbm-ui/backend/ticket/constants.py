@@ -11,22 +11,22 @@ specific language governing permissions and limitations under the License.
 import os
 from typing import Any, Optional
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.exceptions import ClusterExclusiveOperateException
 from backend.flow.consts import StateType
 from backend.ticket.exceptions import TicketBaseException
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, IntStructuredEnum, StrStructuredEnum
 from config import BASE_DIR
 
 
-class InstanceType(str, StructuredEnum):
+class InstanceType(StrStructuredEnum):
     STORAGE = EnumField("storage", _("storage"))
     PROXY = EnumField("proxy", _("proxy"))
 
 
-class TodoType(str, StructuredEnum):
+class TodoType(StrStructuredEnum):
     """
     待办类型
     """
@@ -39,7 +39,7 @@ class TodoType(str, StructuredEnum):
     TIMER = EnumField("TIMER", _("定时"))
 
 
-class CountType(str, StructuredEnum):
+class CountType(StrStructuredEnum):
     """
     单据计数类型
     """
@@ -55,7 +55,7 @@ class CountType(str, StructuredEnum):
     TIMER = EnumField("TIMER", _("定时"))
 
 
-class TodoStatus(str, StructuredEnum):
+class TodoStatus(StrStructuredEnum):
     """
     待办状态枚举
     TODO -> (RUNNING，可选) -> DONE_SUCCESS
@@ -67,7 +67,7 @@ class TodoStatus(str, StructuredEnum):
     DONE_FAILED = EnumField("DONE_FAILED", _("已终止"))
 
 
-class ResourceApplyErrCode(int, StructuredEnum):
+class ResourceApplyErrCode(IntStructuredEnum):
     """
     资源申请错误码
     """
@@ -82,7 +82,7 @@ TODO_DONE_STATUS = [TodoStatus.DONE_SUCCESS, TodoStatus.DONE_FAILED]
 TODO_RUNNING_STATUS = [TodoStatus.TODO]
 
 
-class TicketStatus(str, StructuredEnum):
+class TicketStatus(StrStructuredEnum):
     """单据状态枚举"""
 
     PENDING = EnumField("PENDING", _("等待中"))
@@ -100,6 +100,8 @@ class TicketStatus(str, StructuredEnum):
 
 
 # 单据[正在进行]的状态合集
+# MySQL 自愈引用了这个
+# 如果有改动需要确认是否会影响自愈调度
 TICKET_RUNNING_STATUS_SET = [
     TicketStatus.APPROVE,
     TicketStatus.TODO,
@@ -122,7 +124,7 @@ TICKET_TODO_STATUS_SET = [
 TICKET_FINISHED_STATUS_SET = [TicketStatus.SUCCEEDED, TicketStatus.REVOKED, TicketStatus.TERMINATED]
 
 
-class TicketFlowStatus(str, StructuredEnum):
+class TicketFlowStatus(StrStructuredEnum):
     """单据流程状态枚举类"""
 
     PENDING = EnumField("PENDING", _("等待中"))
@@ -173,7 +175,7 @@ class TicketEnumField(EnumField):
         self.__iam__init__(subgroup, register_iam)
 
 
-class TicketType(str, StructuredEnum):
+class TicketType(StrStructuredEnum):
     @classmethod
     def get_choice_value(cls, label: str) -> str:
         """Get the value of field member by label"""
@@ -230,6 +232,7 @@ class TicketType(str, StructuredEnum):
     MYSQL_RESTORE_SLAVE = TicketEnumField("MYSQL_RESTORE_SLAVE", _("MySQL Slave重建"), _("集群维护"))
     MYSQL_RESTORE_LOCAL_SLAVE = TicketEnumField("MYSQL_RESTORE_LOCAL_SLAVE", _("MySQL Slave原地重建"), _("集群维护"))
     MYSQL_MIGRATE_CLUSTER = TicketEnumField("MYSQL_MIGRATE_CLUSTER", _("MySQL 主从迁移"), _("集群维护"))
+    MYSQL_MIGRATE_SINGLE = TicketEnumField("MYSQL_MIGRATE_SINGLE", _("MySQL 单节点迁移"), _("集群维护"))
     MYSQL_MASTER_SLAVE_SWITCH = TicketEnumField("MYSQL_MASTER_SLAVE_SWITCH", _("MySQL 主从互换"), _("集群维护"))
     MYSQL_MASTER_FAIL_OVER = TicketEnumField("MYSQL_MASTER_FAIL_OVER", _("MySQL 主库主机故障切换"), _("集群维护"))
     MYSQL_INSTANCE_FAIL_OVER = TicketEnumField("MYSQL_INSTANCE_FAIL_OVER", _("MySQL 主库实例故障切换"), _("集群维护"))
@@ -241,7 +244,10 @@ class TicketType(str, StructuredEnum):
     MYSQL_SEMANTIC_CHECK = TicketEnumField("MYSQL_SEMANTIC_CHECK", _("MySQL 模拟执行"), register_iam=False)
     MYSQL_PROXY_ADD = TicketEnumField("MYSQL_PROXY_ADD", _("MySQL 添加Proxy"), _("集群维护"))
     MYSQL_PROXY_SWITCH = TicketEnumField("MYSQL_PROXY_SWITCH", _("MySQL 替换Proxy"), _("集群维护"))
-    MYSQL_PROXY_REDUCE = TicketEnumField("MYSQL_PROXY_REDUCE", _("MySQL 缩容Proxy"), _("集群维护"))
+    MYSQL_PROXY_CONF_CHANGE = TicketEnumField("MYSQL_PROXY_CONF_CHANGE", _("MySQL Proxy升降配"), _("集群维护"))  # noqa
+    MYSQL_PROXY_MIGRATE = TicketEnumField("MYSQL_PROXY_MIGRATE", _("MySQL 按集群Proxy迁移"), _("集群维护"))  # noqa
+    MYSQL_PROXY_MIGRATE_INS = TicketEnumField("MYSQL_PROXY_MIGRATE_INS", _("MySQL 按实例Proxy迁移"), _("集群维护"))  # noqa
+    MYSQL_PROXY_REDUCE = TicketEnumField("MYSQL_PROXY_REDUCE", _("MySQL 减少Proxy"), _("集群维护"))
     MYSQL_SINGLE_DESTROY = TicketEnumField("MYSQL_SINGLE_DESTROY", _("MySQL 单节点删除"), register_iam=False)
     MYSQL_SINGLE_ENABLE = TicketEnumField("MYSQL_SINGLE_ENABLE", _("MySQL 单节点启用"), register_iam=False)
     MYSQL_SINGLE_DISABLE = TicketEnumField("MYSQL_SINGLE_DISABLE", _("MySQL 单节点禁用"), register_iam=False)
@@ -262,6 +268,9 @@ class TicketType(str, StructuredEnum):
     MYSQL_DATA_REPAIR = TicketEnumField("MYSQL_DATA_REPAIR", _("MySQL 数据修复"), register_iam=False)
     MYSQL_FLASHBACK = TicketEnumField("MYSQL_FLASHBACK", _("MySQL 闪回"), _("回档"))
     MYSQL_ROLLBACK_CLUSTER = TicketEnumField("MYSQL_ROLLBACK_CLUSTER", _("MySQL 定点构造"), _("回档"))
+    MYSQL_ROLLBACK = TicketEnumField("MYSQL_ROLLBACK", _("MySQL 构造回档"), _("回档"))
+    MYSQL_FIXPOINT_NEW_CLUSTER = TicketEnumField("MYSQL_FIXPOINT_NEW_CLUSTER", _("MySQL 数据构造到新集群"), _("构造"))
+    MYSQL_FIXPOINT_EXIST_CLUSTER = TicketEnumField("MYSQL_FIXPOINT_EXIST_CLUSTER", _("MySQL 数据构造到已有集群"), _("构造"))
     MYSQL_HA_FULL_BACKUP = TicketEnumField("MYSQL_HA_FULL_BACKUP", _("MySQL 全库备份"), _("备份"))
     MYSQL_SINGLE_TRUNCATE_DATA = TicketEnumField("MYSQL_SINGLE_TRUNCATE_DATA", _("MySQL 单节点清档"), _("数据处理"))
     # deprecated
@@ -287,6 +296,7 @@ class TicketType(str, StructuredEnum):
     MYSQL_DBHA_AF_BACKEND_REPLACE = TicketEnumField("MYSQL_DBHA_AF_BACKEND_REPLACE", _("MySQL BACKEND DBHA 自愈替换"))
     MYSQL_DBHA_AF_REMOTE_REPLACE = TicketEnumField("MYSQL_DBHA_AF_REMOTE_REPLACE", _("MySQL REMOTE DBHA 自愈替换"))
     MYSQL_DBHA_AF_REPAIR_REPLICATE = TicketEnumField("MYSQL_DBHA_AF_REPAIR_REPLICATE", _("MySQL SLAVE 同步自愈修复"))
+    MYSQL_DBHA_AF_SCHEDULE = TicketEnumField("MYSQL_DBHA_AF_SCHEDULE", _("MySQL DBHA 自愈调度"))
 
     # mysql backup recover task
     MYSQL_ROLLBACK_EXERCISE = TicketEnumField("MYSQL_ROLLBACK_EXERCISE", _("MySQL 备份恢复演练"), register_iam=False)
@@ -325,6 +335,7 @@ class TicketType(str, StructuredEnum):
     TENDBCLUSTER_SPIDER_SLAVE_APPLY = TicketEnumField("TENDBCLUSTER_SPIDER_SLAVE_APPLY", _("TenDB Cluster 部署只读接入层"), _("访问入口"))  # noqa
     TENDBCLUSTER_SPIDER_SLAVE_DESTROY = TicketEnumField("TENDBCLUSTER_SPIDER_SLAVE_DESTROY", _("TenDB Cluster 只读接入层下架"), _("访问入口"))  # noqa
     TENDBCLUSTER_SPIDER_SWITCH_NODES = TicketEnumField("TENDBCLUSTER_SPIDER_SWITCH_NODES", _("TenDB Cluster 替换接入层"), _("运维 Spider 管理"))  # noqa
+    TENDBCLUSTER_SPIDER_CONF_UP_DOWN = TicketEnumField("TENDBCLUSTER_SPIDER_CONF_UP_DOWN", _("TenDB Cluster 接入层升降配"), _("运维 Spider 管理"))  # noqa
     TENDBCLUSTER_RESTORE_SLAVE = TicketEnumField("TENDBCLUSTER_RESTORE_SLAVE", _("TenDB Cluster Slave重建"), _("集群维护"))  # noqa
     TENDBCLUSTER_RESTORE_LOCAL_SLAVE = TicketEnumField("TENDBCLUSTER_RESTORE_LOCAL_SLAVE", _("TenDB Cluster Slave原地重建"), _("集群维护"))  # noqa
     TENDBCLUSTER_MIGRATE_CLUSTER = TicketEnumField("TENDBCLUSTER_MIGRATE_CLUSTER", _("TenDB Cluster 主从迁移"), _("集群维护"))  # noqa
@@ -401,6 +412,7 @@ class TicketType(str, StructuredEnum):
     REDIS_DESTROY = TicketEnumField("REDIS_DESTROY", _("Redis 集群删除"), _("集群管理"))
     REDIS_INSTANCE_DESTROY = TicketEnumField("REDIS_INSTANCE_DESTROY", _("Redis 主从集群删除"), _("集群管理"))
     REDIS_PURGE = TicketEnumField("REDIS_PURGE", _("Redis 集群清档"), _("集群管理"))
+    REDIS_PROXY_FAST_FIX = TicketEnumField("REDIS_PROXY_FAST_FIX", _("Redis 集群Proxy快速恢复"), _("集群管理"))
 
     REDIS_SCALE_UPDOWN = TicketEnumField("REDIS_SCALE_UPDOWN", _("Redis 集群容量变更"), _("集群维护"))
     REDIS_CLUSTER_CUTOFF = TicketEnumField("REDIS_CLUSTER_CUTOFF", _("Redis 整机替换"), _("集群维护"))
@@ -436,6 +448,7 @@ class TicketType(str, StructuredEnum):
     REDIS_SINGLE_INS_MIGRATE = TicketEnumField("REDIS_SINGLE_INS_MIGRATE", _("Redis 主从指定实例迁移"), _("集群管理"))
     REDIS_HOT_KEY_ANALYSIS = TicketEnumField("REDIS_HOT_KEY_ANALYSIS", _("Redis 热key分析"), _("集群管理"))
     REDIS_FAILOVER_DRILL = TicketEnumField("REDIS_FAILOVER_DRILL", _("Redis 容灾演练"), register_iam=False)
+    REDIS_ROLLBACK_EXERCISE = TicketEnumField("REDIS_ROLLBACK_EXERCISE", _("Redis 回档演练"))
 
     # 大数据
     KAFKA_APPLY = TicketEnumField("KAFKA_APPLY", _("Kafka 集群部署"), register_iam=False)
@@ -517,9 +530,13 @@ class TicketType(str, StructuredEnum):
     MONGODB_REMOVE_NS = TicketEnumField("MONGODB_REMOVE_NS", _("MongoDB 清档"), _("数据处理"))
     MONGODB_FULL_BACKUP = TicketEnumField("MONGODB_FULL_BACKUP", _("MongoDB 全库备份"), _("备份"))
     MONGODB_BACKUP = TicketEnumField("MONGODB_BACKUP", _("MongoDB 库表备份"), _("备份"))
+    MONGODB_DATA_EXPORT = TicketEnumField("MONGODB_DATA_EXPORT", _("MongoDB 数据导出"), _("数据处理"))
     MONGODB_ADD_MONGOS = TicketEnumField("MONGODB_ADD_MONGOS", _("MongoDB 扩容接入层"), _("集群维护"))
     MONGODB_REDUCE_MONGOS = TicketEnumField("MONGODB_REDUCE_MONGOS", _("MongoDB 缩容接入层"), _("集群维护"))
+    MONGODB_ADD_SHARD = TicketEnumField("MONGODB_ADD_SHARD", _("MongoDB 增加分片数"), _("集群维护"))
     MONGODB_ADD_SHARD_NODES = TicketEnumField("MONGODB_ADD_SHARD_NODES", _("MongoDB 扩容shard节点数"), _("集群维护"))
+    MONGODB_REPLICASET_MIGRATE = TicketEnumField("MONGODB_REPLICASET_MIGRATE", _("MongoDB 副本集集群迁移"), _("回档"))
+    MONGODB_SHARD_MIGRATE = TicketEnumField("MONGODB_SHARD_MIGRATE", _("MongoDB 分片集群迁移"), _("回档"))
     MONGODB_REDUCE_SHARD_NODES = TicketEnumField("MONGODB_REDUCE_SHARD_NODES", _("MongoDB 缩容shard节点数"), _("集群维护"))  # noqa
     MONGODB_SCALE_UPDOWN = TicketEnumField("MONGODB_SCALE_UPDOWN", _("MongoDB 集群容量变更"), _("集群维护"))
     MONGODB_ENABLE = TicketEnumField("MONGODB_ENABLE", _("MongoDB 集群启用"), register_iam=False)
@@ -585,7 +602,7 @@ class TicketType(str, StructuredEnum):
     FAKE_TICKET = TicketEnumField("FAKE_TICKET", _("测试专用单据"), register_iam=False)
 
 
-class FlowType(str, StructuredEnum):
+class FlowType(StrStructuredEnum):
     """流程类型枚举"""
 
     # 蓝鲸ITSM流程服务
@@ -619,7 +636,7 @@ class FlowType(str, StructuredEnum):
 FLOW_TASK_TYPES = [FlowType.INNER_FLOW, FlowType.HOST_RECYCLE]
 
 
-class FlowContext(str, StructuredEnum):
+class FlowContext(StrStructuredEnum):
     """流程上下文枚举"""
 
     ACK = EnumField("ack", _("当前流程是否确认执行"))
@@ -627,7 +644,7 @@ class FlowContext(str, StructuredEnum):
     REMARK = EnumField("remark", _("流程备注"))
 
 
-class FlowTypeConfig(str, StructuredEnum):
+class FlowTypeConfig(StrStructuredEnum):
     """可配置的流程类型枚举。注：请流程触发顺序，倒序定义配置项"""
 
     # 是否支持人工确认
@@ -638,21 +655,21 @@ class FlowTypeConfig(str, StructuredEnum):
     EXPIRE_CONFIG = EnumField("expire_config", _("单据过期配置"))
 
 
-class FlowCallbackType(str, StructuredEnum):
+class FlowCallbackType(StrStructuredEnum):
     """flow钩子工作类型"""
 
     PRE_CALLBACK = EnumField("pre", _("前置动作"))
     POST_CALLBACK = EnumField("post", _("后继动作"))
 
 
-class FlowRetryType(str, StructuredEnum):
+class FlowRetryType(StrStructuredEnum):
     """inner flow的重试类型(目前用于互斥执行)"""
 
     AUTO_RETRY = EnumField("auto_retry", _("自动重试"))
     MANUAL_RETRY = EnumField("manual_retry", _("手动重试"))
 
 
-class FlowErrCode(int, StructuredEnum):
+class FlowErrCode(IntStructuredEnum):
     """flow的错误代码"""
 
     GENERAL_ERROR = EnumField(0, _("通用错误代码"))
@@ -671,7 +688,7 @@ class FlowErrCode(int, StructuredEnum):
             return cls.AUTO_EXCLUSIVE_ERROR
 
 
-class SwitchConfirmType(str, StructuredEnum):
+class SwitchConfirmType(StrStructuredEnum):
     """
     切换方式类型
     """
@@ -680,7 +697,7 @@ class SwitchConfirmType(str, StructuredEnum):
     NO_CONFIRM = EnumField("no_confirm", _("无需确认"))
 
 
-class LoadConfirmType(str, StructuredEnum):
+class LoadConfirmType(StrStructuredEnum):
     """
     加载Module类型
     """
@@ -694,7 +711,7 @@ class LoadConfirmType(str, StructuredEnum):
     REDIS_JSON = EnumField("redisjson", _("redisjson"))
 
 
-class SyncDisconnectSettingType(str, StructuredEnum):
+class SyncDisconnectSettingType(StrStructuredEnum):
     """
     同步断开设置
     """
@@ -703,7 +720,7 @@ class SyncDisconnectSettingType(str, StructuredEnum):
     KEEP_SYNC = EnumField("keep_sync_with_reminder", _("数据复制完成后保持同步关系，定时发送断开同步提醒"))
 
 
-class DataCheckRepairSettingType(str, StructuredEnum):
+class DataCheckRepairSettingType(StrStructuredEnum):
     """
     数据校验与修复设置
     """
@@ -713,7 +730,7 @@ class DataCheckRepairSettingType(str, StructuredEnum):
     NO_CHECK_NO_REPAIR = EnumField("no_check_no_repair", _("不校验不修复"))
 
 
-class RemindFrequencyType(str, StructuredEnum):
+class RemindFrequencyType(StrStructuredEnum):
     """
     提醒频率
     """
@@ -722,7 +739,7 @@ class RemindFrequencyType(str, StructuredEnum):
     ONCE_WEEKLY = EnumField("once_weekly", _("一周一次"))
 
 
-class CheckRepairFrequencyType(str, StructuredEnum):
+class CheckRepairFrequencyType(StrStructuredEnum):
     """
     校验修复频率
     """
@@ -732,7 +749,7 @@ class CheckRepairFrequencyType(str, StructuredEnum):
     ONCE_WEEKLY = EnumField("once_weekly", _("一周一次"))
 
 
-class WriteModeType(str, StructuredEnum):
+class WriteModeType(StrStructuredEnum):
     """
     写入方式
     """
@@ -742,7 +759,7 @@ class WriteModeType(str, StructuredEnum):
     FLUSH_WRITE = EnumField("flushall_and_write_to_redis", _("清空集群后写入"))
 
 
-class TriggerChecksumType(str, StructuredEnum):
+class TriggerChecksumType(StrStructuredEnum):
     """
     触发数据校验的类型
     """
@@ -751,7 +768,7 @@ class TriggerChecksumType(str, StructuredEnum):
     TIMER = EnumField("timer", _("定时触发"))
 
 
-class TicketInfoActionType(str, StructuredEnum):
+class TicketInfoActionType(StrStructuredEnum):
     """Itsm get_ticket_info单据类型"""
 
     TRANSITION = EnumField("TRANSITION", _("审批"))
@@ -760,7 +777,7 @@ class TicketInfoActionType(str, StructuredEnum):
     AUTOMATIC = EnumField("AUTOMATIC", _("自动处理"))
 
 
-class OperateNodeActionType(str, StructuredEnum):
+class OperateNodeActionType(StrStructuredEnum):
     """Itsm operate_node单据类型"""
 
     TRANSITION = EnumField("TRANSITION", _("审批"))
@@ -771,23 +788,12 @@ class OperateNodeActionType(str, StructuredEnum):
     WITHDRAW = EnumField("WITHDRAW", _("撤销单据"))
 
 
-class ItsmApproveMode(int, StructuredEnum):
+class ItsmApproveMode(IntStructuredEnum):
     OrSign = EnumField(0, _("或签模式"))
     CounterSign = EnumField(1, _("会签模式"))
 
 
-class FlowMsgType(str, StructuredEnum):
-    DONE = EnumField(_("完成"), _("完成"))
-    TODO = EnumField(_("待办"), _("待办"))
-
-
-class FlowMsgStatus(str, StructuredEnum):
-    DONE = EnumField(_("完成"), _("完成"))
-    UNCONFIRMED = EnumField(_("待确认"), _("待确认"))
-    PENDING = EnumField(_("待审批"), _("待审批"))
-
-
-class TicketExpireType(str, StructuredEnum):
+class TicketExpireType(StrStructuredEnum):
     """单据过期类型"""
 
     PAUSE = EnumField("pause", _("待确认"))

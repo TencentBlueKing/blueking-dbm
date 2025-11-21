@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import InstanceRole
@@ -18,7 +18,7 @@ from backend.db_monitor.serializers import AlarmCallBackDataSerializer
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import SkipToRepresentationMixin
+from backend.ticket.builders.redis.base import RedisBaseOperateDetailSerializer
 from backend.ticket.builders.redis.redis_toolbox_cut_off import (
     RedisClusterCutOffFlowBuilder,
     RedisClusterCutOffResourceParamBuilder,
@@ -26,7 +26,7 @@ from backend.ticket.builders.redis.redis_toolbox_cut_off import (
 from backend.ticket.constants import TicketType
 
 
-class RedisClusterAutofixDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class RedisClusterAutofixDetailSerializer(RedisBaseOperateDetailSerializer):
     """故障自愈"""
 
     class InfoSerializer(serializers.Serializer):

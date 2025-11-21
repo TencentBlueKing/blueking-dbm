@@ -10,9 +10,9 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
-from backend.flow.consts import MongoDBActuatorActionEnum
+from backend.flow.consts import MongoDBActuatorActionEnum, MongoDBManagerUser
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.base_subtask import BaseSubTask
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job2 import ExecJobComponent2
@@ -30,8 +30,10 @@ class InstanceOpSubTask(BaseSubTask):
     """
 
     @classmethod
-    def make_kwargs(cls, file_path, exec_node: MongoNode, op: str) -> dict:
-        dba_user, dba_pwd = MongoUtil.get_dba_user_password(exec_node.ip, exec_node.port, exec_node.bk_cloud_id)
+    def make_kwargs(cls, file_path, exec_node: MongoNode, op: str, username: str = None) -> dict:
+        if username is None:
+            username = MongoDBManagerUser.DbaUser.value
+        user, pwd = MongoUtil.get_mongo_user_password(exec_node.ip, exec_node.port, exec_node.bk_cloud_id, username)
         return {
             "set_trans_data_dataclass": CommonContext.__name__,
             "get_trans_data_ip_var": None,
@@ -45,8 +47,8 @@ class InstanceOpSubTask(BaseSubTask):
                 "payload": {
                     "ip": exec_node.ip,
                     "port": int(exec_node.port),
-                    "adminUsername": dba_user,
-                    "adminPassword": dba_pwd,
+                    "adminUsername": user,
+                    "adminPassword": pwd,
                     "op": op,
                 },
             },

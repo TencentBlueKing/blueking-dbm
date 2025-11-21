@@ -10,12 +10,12 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import gettext_lazy as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 DEPLOY_FILE_NAME = "deploy_info"
 
 
-class LevelName(str, StructuredEnum):
+class LevelName(StrStructuredEnum):
     """层级名称枚举"""
 
     PLAT = EnumField("plat", _("平台层级"))
@@ -25,7 +25,7 @@ class LevelName(str, StructuredEnum):
     INSTANCE = EnumField("instance", _("实例层级"))
 
 
-class ConfType(str, StructuredEnum):
+class ConfType(StrStructuredEnum):
     """配置类型枚举"""
 
     DEPLOY = EnumField("deploy", _("部署配置"))
@@ -34,7 +34,7 @@ class ConfType(str, StructuredEnum):
     PROXY = EnumField("proxyconf", _("Proxy配置"))
 
 
-class OpType(str, StructuredEnum):
+class OpType(StrStructuredEnum):
     """操作类型枚举"""
 
     ADD = EnumField("add", _("新增"))
@@ -42,7 +42,7 @@ class OpType(str, StructuredEnum):
     REMOVE = EnumField("remove", _("删除"))
 
 
-class ReqType(str, StructuredEnum):
+class ReqType(StrStructuredEnum):
     """请求类型枚举"""
 
     SAVE_ONLY = EnumField("SaveOnly", _("仅保存"))
@@ -51,7 +51,7 @@ class ReqType(str, StructuredEnum):
     GENERATE_AND_PUBLISH = EnumField("GenerateAndPublish", _("生成并发布"))
 
 
-class FormatType(str, StructuredEnum):
+class FormatType(StrStructuredEnum):
     """格式枚举"""
 
     LIST = EnumField("list", _("列表"))

@@ -13,14 +13,15 @@
 
 <template>
   <BkDialog
-    :is-show="isShow"
+    v-model:is-show="isShow"
+    quick-close
     :title="t('手动添加节点 IP')"
     :width="1100">
     <BkTable
       class="mb-16"
       :columns="tableColumns"
       :data="originalNodeList"
-      style="max-height: calc(100vh - 300px)"
+      :max-height="tableMaxHeight"
       @row-click="handleRowClick" />
     <template #footer>
       <I18nT
@@ -78,24 +79,25 @@
   import type { TShrinkNode } from '../Index.vue';
 
   export interface Props {
-    isShow: boolean;
     minHost: number;
     modelValue: TShrinkNode['hostList'];
     originalNodeList: TShrinkNode['originalNodeList'];
   }
 
-  export interface Emits {
-    (e: 'change', value: TShrinkNode['originalNodeList']): void;
-    (e: 'update:isShow', value: boolean): void;
-  }
+  export type Emits = (e: 'change', value: TShrinkNode['originalNodeList']) => void;
 
   type IRowData = TShrinkNode['originalNodeList'][number];
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
+  const isShow = defineModel<boolean>('isShow', {
+    default: false,
+  });
+
   const { t } = useI18n();
 
+  const tableMaxHeight = ref<number | 'auto'>('auto');
   const checkedNodeMap = shallowRef<Record<number, IRowData>>({});
   const selectNodeDiskTotal = computed(() =>
     Object.values(checkedNodeMap.value).reduce((result, item) => result + item.disk, 0),
@@ -233,6 +235,10 @@
   };
 
   const handleClose = () => {
-    emits('update:isShow', false);
+    isShow.value = false;
   };
+
+  onMounted(() => {
+    tableMaxHeight.value = window.innerHeight - 350;
+  });
 </script>

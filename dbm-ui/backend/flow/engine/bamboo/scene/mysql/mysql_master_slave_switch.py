@@ -14,7 +14,7 @@ from dataclasses import asdict
 from typing import Dict, Optional
 
 from django.utils.crypto import get_random_string
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
@@ -25,7 +25,11 @@ from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.flow.consts import ACCOUNT_PREFIX, AUTH_ADDRESS_DIVIDER
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import check_sub_flow
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
+    check_long_active_process_sub_flow,
+    check_sub_flow,
+    master_slave_variable_consistency_check_sub_flow,
+)
 from backend.flow.engine.bamboo.scene.mysql.common.exceptions import NormalTenDBFlowException
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import (
     standardize_mysql_cluster_by_ip_subflow,
@@ -153,6 +157,7 @@ class MySQLMasterSlaveSwitchFlow(object):
                 )
 
                 # 切换前做预检测
+                precheck_sub_flows = []
                 sub_flow = check_sub_flow(
                     uid=self.data["uid"],
                     root_id=self.root_id,
@@ -171,7 +176,26 @@ class MySQLMasterSlaveSwitchFlow(object):
                     ],
                 )
                 if sub_flow:
-                    cluster_switch_sub_pipeline.add_sub_pipeline(sub_flow=sub_flow)
+                    # cluster_switch_sub_pipeline.add_sub_pipeline(sub_flow=sub_flow)
+                    precheck_sub_flows.append(sub_flow)
+                check_active_process_sub_flow = check_long_active_process_sub_flow(
+                    uid=self.data["uid"],
+                    root_id=self.root_id,
+                    cluster=Cluster.objects.get(id=cluster_id, bk_biz_id=sub_sub_flow_context["bk_biz_id"]),
+                    node_insts=[f"{cluster['old_master_ip']}{IP_PORT_DIVIDER}{cluster['mysql_port']}"],
+                    long_process_time=10,
+                    filter_hosts=cluster.get("proxy_ip_list", []),
+                )
+                precheck_sub_flows.append(check_active_process_sub_flow)
+                check_variable_consistency_sub_flow = master_slave_variable_consistency_check_sub_flow(
+                    uid=self.data["uid"],
+                    root_id=self.root_id,
+                    bk_cloud_id=cluster["bk_cloud_id"],
+                    reference_instance=f"{cluster['old_master_ip']}{IP_PORT_DIVIDER}{cluster['mysql_port']}",
+                    compare_instance=f"{cluster['new_master_ip']}{IP_PORT_DIVIDER}{cluster['mysql_port']}",
+                )
+                precheck_sub_flows.append(check_variable_consistency_sub_flow)
+                cluster_switch_sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=precheck_sub_flows)
 
                 # 阶段1 添加切换的临时账号
                 cluster_switch_sub_pipeline.add_act(
@@ -476,6 +500,7 @@ def master_slave_mutual_switch_subflow(
         mutual_switch_sub_pipeline = SubBuilder(root_id=root_id, data=copy.deepcopy(switch_sub_flow_context))
 
         # 切换前做预检测
+        precheck_sub_flows = []
         sub_flow = check_sub_flow(
             uid=uid,
             root_id=root_id,
@@ -494,8 +519,18 @@ def master_slave_mutual_switch_subflow(
             ],
         )
         if sub_flow:
-            mutual_switch_sub_pipeline.add_sub_pipeline(sub_flow=sub_flow)
-
+            precheck_sub_flows.append(sub_flow)
+            # mutual_switch_sub_pipeline.add_sub_pipeline(sub_flow=sub_flow)
+        check_active_process_sub_flow = check_long_active_process_sub_flow(
+            uid=uid,
+            root_id=root_id,
+            cluster=cluster,
+            node_insts=[f"{cluster_info['old_master_ip']}{IP_PORT_DIVIDER}{cluster_info['mysql_port']}"],
+            long_process_time=10,
+            filter_hosts=cluster_info.get("proxy_ip_list", []),
+        )
+        precheck_sub_flows.append(check_active_process_sub_flow)
+        mutual_switch_sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=precheck_sub_flows)
         # 阶段1 添加切换的临时账号
         mutual_switch_sub_pipeline.add_act(
             act_name=_("旧master添加切换临时账号"),

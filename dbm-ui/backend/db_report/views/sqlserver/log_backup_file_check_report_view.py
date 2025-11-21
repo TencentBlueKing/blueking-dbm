@@ -17,7 +17,7 @@ from rest_framework import serializers, status
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.configuration.constants import DBType
 from backend.db_report import mock_data
-from backend.db_report.enums import SWAGGER_TAG, ReportFieldFormat, ReportType
+from backend.db_report.enums import SWAGGER_TAG, ReportFieldFormat, ReportStateType, ReportType
 from backend.db_report.models import SqlserverLogBackupInfoReport
 from backend.db_report.register import register_report
 from backend.db_report.report_baseview import ReportBaseViewSet
@@ -29,13 +29,15 @@ logger = logging.getLogger("root")
 class LogBackupInfoReportSerializer(serializers.ModelSerializer, ReportCommonFieldSerializerMixin):
     class Meta:
         model = SqlserverLogBackupInfoReport
-        fields = ("bk_biz_id", "cluster", "cluster_type", "msg", "create_at", "dba")
+        fields = ("bk_biz_id", "cluster", "cluster_type", "msg", "create_at", "dba", "failed_days", "state")
         swagger_schema_fields = {"example": mock_data.SQLSERVER_BACKUP_CHECK_DATA}
 
 
 @register_report(DBType.Sqlserver)
 class LogBackupInfoReportBaseViewSet(ReportBaseViewSet):
-    queryset = SqlserverLogBackupInfoReport.objects.filter(status=False).order_by("-create_at")
+    queryset = SqlserverLogBackupInfoReport.objects.filter(
+        state__in=[ReportStateType.ABNORMAL.value, ReportStateType.WARNING.value]
+    ).order_by("-create_at")
     serializer_class = LogBackupInfoReportSerializer
     report_type = ReportType.SQLSERVER_LOG_BACKUP_CHECK
     report_title = [
@@ -73,6 +75,11 @@ class LogBackupInfoReportBaseViewSet(ReportBaseViewSet):
             "name": "failed_days",
             "display_name": _("持续天数"),
             "format": ReportFieldFormat.TEXT.value,
+        },
+        {
+            "name": "state",
+            "display_name": _("检查状态"),
+            "format": ReportFieldFormat.STATUS.value,
         },
     ]
 

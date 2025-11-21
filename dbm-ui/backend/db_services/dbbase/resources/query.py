@@ -16,7 +16,7 @@ import attr
 from django.db.models import F, Prefetch, Q, QuerySet
 from django.forms import model_to_dict
 from django.http import HttpResponse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole
@@ -34,6 +34,7 @@ from backend.db_meta.models import (
 from backend.db_meta.models.city_map import BKSubzone
 from backend.db_services.dbbase.instances.handlers import InstanceHandler
 from backend.db_services.dbbase.resources.query_base import (
+    build_q_for_cluster_name_or_alias,
     build_q_for_domain_by_cluster,
     build_q_for_domain_by_instance,
     build_q_for_instance_filter,
@@ -195,8 +196,8 @@ class CommonQueryResourceMixin(abc.ABC):
         # 获取DB模块的映射信息
         db_module_queryset = DBModule.objects.filter(cluster_type__in=cluster_types, bk_biz_id=bk_biz_id)
         db_module_names_map = {
-            module["db_module_id"]: module["db_module_name"]
-            for module in db_module_queryset.values("db_module_id", "db_module_name")
+            module["db_module_id"]: module["alias_name"]
+            for module in db_module_queryset.values("db_module_id", "alias_name")
         }
 
         # 预取remote的spec
@@ -521,12 +522,9 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
         filter_params_map = filter_params_map or {}
         inner_filter_params_map = {
             # 集群id
-            "id": Q(id=query_params.get("id")),
+            "id": Q(id__in=query_params.get("id", "").split(",")),
             # 集群名/别名
-            "name": (
-                Q(name__in=query_params.get("name", "").split(","))
-                | Q(alias__in=query_params.get("name", "").split(","))
-            ),
+            "name": build_q_for_cluster_name_or_alias(query_params.get("name", "")),
             # 集群类型
             "cluster_type": Q(cluster_type__in=query_params.get("cluster_type", "").split(",")),
             # 版本
@@ -537,7 +535,7 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             # 集群id列表
             "cluster_ids": Q(id__in=query_params.get("cluster_ids", "").split(",")),
             # 创建者
-            "creator": Q(creator__icontains=query_params.get("creator")),
+            "creator": Q(creator__in=query_params.get("creator", "").split(",")),
             # 所属DB模块
             "db_module_id": Q(db_module_id__in=query_params.get("db_module_id", "").split(",")),
             # 管控区域
@@ -545,7 +543,7 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             # 状态
             "status": Q(status__in=query_params.get("status", "").split(",")),
             # 时区
-            "time_zone": Q(time_zone=query_params.get("time_zone", "").split(",")),
+            "time_zone": Q(time_zone__in=query_params.get("time_zone", "").split(",")),
             # 主域名精确查询，主要用于工具箱手动填入域名查询
             "exact_domain": Q(immute_domain__in=query_params.get("exact_domain", "").split(",")),
             # 域名
@@ -554,6 +552,14 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             "tag_ids": Q(tags__in=query_params.get("tag_ids", "").split(",")),
             # 标签key过滤
             "tag_keys": Q(tags__key__in=query_params.get("tag_keys", "").split(",")),
+            # 起始时间
+            "create_at__gte": Q(create_at__gte=query_params.get("create_at__gte", "")),
+            # 截至时间
+            "create_at__lte": Q(create_at__lte=query_params.get("create_at__lte", "")),
+            # 集群容灾
+            "disaster_tolerance_level": Q(
+                disaster_tolerance_level__in=query_params.get("disaster_tolerance_level", "").split(",")
+            ),
         }
 
         filter_params_map.update(inner_filter_params_map)
@@ -646,8 +652,8 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             db_module_queryset = db_module_queryset.filter(bk_biz_id=bk_biz_id)
         # 提取所需的字段和构建映射
         db_module_names_map = {
-            module["db_module_id"]: module["db_module_name"]
-            for module in db_module_queryset.values("db_module_id", "db_module_name")
+            module["db_module_id"]: module["alias_name"]
+            for module in db_module_queryset.values("db_module_id", "alias_name")
         }
 
         # 获取集群操作记录的映射关系
@@ -857,8 +863,8 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             db_module_queryset = db_module_queryset.filter(bk_biz_id=bk_biz_id)
         # 提取所需的字段和构建映射
         db_module_names_map = {
-            module["db_module_id"]: module["db_module_name"]
-            for module in db_module_queryset.values("db_module_id", "db_module_name")
+            module["db_module_id"]: module["alias_name"]
+            for module in db_module_queryset.values("db_module_id", "alias_name")
         }
 
         # 将实例的查询结果序列化为实例字典信息

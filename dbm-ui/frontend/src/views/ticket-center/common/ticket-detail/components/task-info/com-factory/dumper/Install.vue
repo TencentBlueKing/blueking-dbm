@@ -16,16 +16,78 @@
     <InfoItem
       :label="t('订阅的库表')"
       style="flex: 0 0 100%">
-      <BkTable
-        :columns="subscribeColumns"
-        :data="subscribeTableData" />
+      <TicketInfoTable
+        :data="subscribeTableData"
+        ellipsis
+        row-key="db_name">
+        <TicketInfoTableColumn
+          col-key="db_name"
+          :title="t('DB 名')" />
+        <TicketInfoTableColumn
+          col-key="table_names"
+          :title="t('表名')">
+          <template #default="{ row }: { row: { table_names: string[] } }">
+            <div class="table-names-box">
+              <div
+                v-for="(item, index) in row.table_names"
+                :key="index"
+                class="name-item">
+                {{ item }}
+              </div>
+            </div>
+          </template>
+        </TicketInfoTableColumn>
+      </TicketInfoTable>
     </InfoItem>
     <InfoItem
       :label="t('数据源与接收端')"
       style="flex: 0 0 100%">
-      <BkTable
-        :columns="receiverColumns"
-        :data="receiverTableData" />
+      <TicketInfoTable
+        :data="receiverTableData"
+        ellipsis
+        row-key="cluster_id">
+        <TicketInfoTableColumn
+          col-key="source_cluster_domain"
+          ellipsis
+          :title="t('数据源集群')" />
+        <TicketInfoTableColumn
+          col-key="dumper_id"
+          ellipsis
+          :title="t('部署dumper实例ID')" />
+        <TicketInfoTableColumn
+          col-key="protocol_type"
+          :title="t('接收端类型')" />
+        <TicketInfoTableColumn
+          col-key="target_address"
+          :title="t('接收端集群与端口')">
+          <template #default="{ row }:{ row:RowData }">
+            <span>{{ row.target_address }}:{{ row.target_port }}</span>
+          </template>
+        </TicketInfoTableColumn>
+        <template v-if="protocolType === 'L5_AGENT'">
+          <TicketInfoTableColumn
+            col-key="l5_modid"
+            title="l5_modid" />
+          <TicketInfoTableColumn
+            col-key="l5_cmdid"
+            title="l5_cmdid" />
+        </template>
+        <template v-if="protocolType === 'KAFKA'">
+          <TicketInfoTableColumn
+            col-key="kafka_user"
+            :title="t('账号')" />
+          <TicketInfoTableColumn
+            col-key="kafka_pwd"
+            :title="t('密码')">
+            <template #default="{ row }:{ row:RowData }">
+              <BkInput
+                disabled
+                :model-value="row.kafka_pwd"
+                type="password" />
+            </template>
+          </TicketInfoTableColumn>
+        </template>
+      </TicketInfoTable>
     </InfoItem>
     <InfoItem
       :label="t('订阅名称')"
@@ -72,99 +134,6 @@
   const { add_type: addType, clusters, infos, name } = props.ticketDetails.details;
 
   const protocolType = infos[0].protocol_type;
-
-  const subscribeColumns = [
-    {
-      field: 'db_name',
-      label: t('DB 名'),
-      width: 300,
-    },
-    {
-      field: 'table_names',
-      label: t('表名'),
-      minWidth: 100,
-      render: ({ data }: { data: { table_names: string[] } }) => (
-        <div class='table-names-box'>
-          {data.table_names.map((item, index) => (
-            <div
-              key={index}
-              class='name-item'>
-              {item}
-            </div>
-          ))}
-        </div>
-      ),
-    },
-  ];
-  const receiverColumns = computed(() => {
-    const basicColumns = [
-      {
-        field: 'source_cluster_domain',
-        label: t('数据源集群'),
-        showOverflowTooltip: true,
-      },
-      {
-        field: 'dumper_id',
-        label: t('部署dumper实例ID'),
-        showOverflowTooltip: true,
-      },
-      {
-        field: 'protocol_type',
-        label: t('接收端类型'),
-        showOverflowTooltip: true,
-      },
-    ] as {
-      field: string;
-      label: string;
-      render?: any;
-      showOverflowTooltip?: boolean;
-    }[];
-    if (protocolType === 'L5_AGENT') {
-      const l5Columns = [
-        {
-          field: 'l5_modid',
-          label: 'l5_modid',
-        },
-        {
-          field: 'l5_modid',
-          label: 'l5_cmdid',
-        },
-      ];
-      return [...basicColumns, ...l5Columns];
-    }
-    basicColumns.push({
-      field: 'target_address',
-      label: t('接收端集群与端口'),
-      render: ({ data }: { data: RowData }) => (
-        <span>
-          {data.target_address}:{data.target_port}
-        </span>
-      ),
-      showOverflowTooltip: true,
-    });
-    if (protocolType === 'KAFKA') {
-      const kafkaColumns = [
-        {
-          field: 'kafka_user',
-          label: t('账号'),
-          showOverflowTooltip: true,
-        },
-        {
-          field: 'kafka_pwd',
-          label: t('密码'),
-          render: ({ data }: { data: RowData }) => (
-            <bk-input
-              model-value={data.kafka_pwd}
-              type='password'
-              disabled
-            />
-          ),
-        },
-      ];
-      return [...basicColumns, ...kafkaColumns];
-    }
-    return basicColumns;
-  });
 
   const subscribeTableMap = props.ticketDetails.details.repl_tables.reduce(
     (results, item) => {

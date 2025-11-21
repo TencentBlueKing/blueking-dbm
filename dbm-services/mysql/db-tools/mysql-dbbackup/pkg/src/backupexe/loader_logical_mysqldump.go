@@ -140,7 +140,7 @@ func (l *LogicalLoaderMysqldump) Execute() (err error) {
 		"-P" + strconv.Itoa(l.cnf.LogicalLoad.MysqlPort),
 		"-u" + l.cnf.LogicalLoad.MysqlUser,
 		"-p" + l.cnf.LogicalLoad.MysqlPasswd,
-		"-v",
+		// "-v", // too much log
 	}
 	if l.cnf.LogicalLoad.MysqlCharset != "" {
 		args = append(args, fmt.Sprintf("--default-character-set=%s", l.cnf.LogicalLoad.MysqlCharset))

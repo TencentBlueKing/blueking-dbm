@@ -9,12 +9,15 @@ specific language governing permissions and limitations under the License.
 """
 from collections import defaultdict
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.db_meta.enums import TenDBClusterSpiderRole
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster
-from backend.flow.engine.bamboo.scene.spider.validate.exception import SpiderRoleFailedException
+from backend.flow.engine.bamboo.scene.spider.validate.exception import (
+    SpiderCountFailedException,
+    SpiderRoleFailedException,
+)
 from backend.flow.engine.validate.base_validate import validator_log_format
 from backend.flow.engine.validate.exceptions import DuplicateIPException
 from backend.flow.engine.validate.mysql_base_validate import MysqlBaseValidator
@@ -69,7 +72,10 @@ class TenDBClusterSwitchNodesFlowValidator(MysqlBaseValidator):
 
             # 计算当前spider集群已经有了多少个spider_master/mnt节点
             cluster_spider_master_count = cluster.proxyinstance_set.filter(
-                tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
+                tendbclusterspiderext__spider_role__in=[
+                    TenDBClusterSpiderRole.SPIDER_MASTER,
+                    TenDBClusterSpiderRole.SPIDER_MNT,
+                ]
             ).count()
 
             check_result, upper_limit_count = self.pre_check_spider_master_count(
@@ -106,7 +112,7 @@ class TenDBClusterSwitchNodesFlowValidator(MysqlBaseValidator):
 
         return err_msg
 
-    def __run_check_for_info(self, info: dict, index: int) -> list:
+    def run_check_for_info(self, info: dict, index: int) -> list:
         """
         @param info
         @param index
@@ -142,7 +148,7 @@ class TenDBClusterSwitchNodesFlowValidator(MysqlBaseValidator):
         # 阶段1 检测每个行的数据合法性
         error_msgs = []
         for index, info in enumerate(self.data["infos"]):
-            error_msgs += self.__run_check_for_info(info, index)
+            error_msgs += self.run_check_for_info(info, index)
         if error_msgs:
             return error_msgs
 
@@ -163,6 +169,6 @@ class TenDBClusterSwitchNodesFlowValidator(MysqlBaseValidator):
         # 传入替换节点过程中，在同一集群内，不能会超过集群spider节点部署上限
         err = self.pre_check_spider_upper_limit()
         if err:
-            raise SpiderRoleFailedException(err)
+            raise SpiderCountFailedException(err)
 
         return None

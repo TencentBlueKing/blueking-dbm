@@ -140,6 +140,7 @@
 
   interface Props {
     clusterIds: number[];
+    clusterType: DBTypes.MYSQL | DBTypes.TENDBCLUSTER;
     uploadFilePath: string;
   }
 
@@ -159,7 +160,7 @@
   const { t } = useI18n();
   const { updateDbType, updateUploadFilePath } = useSqlImport();
 
-  updateDbType(DBTypes.MYSQL);
+  updateDbType(props.clusterType);
 
   let sqlFileCache = [] as Record<string, SqlFileModel>[];
 

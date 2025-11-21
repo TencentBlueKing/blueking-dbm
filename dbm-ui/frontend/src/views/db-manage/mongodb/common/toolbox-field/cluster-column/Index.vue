@@ -50,6 +50,8 @@
       id: number;
       master_domain: string;
     }[];
+    // eslint-disable-next-line vue/require-default-prop
+    setCurrentSpecIdMethod?: (data: MongodbModel) => number;
     tabListConfig?: Record<string, TabConfig>;
   }
 
@@ -63,7 +65,13 @@
   });
   const emits = defineEmits<Emits>();
 
-  const modelValue = defineModel<Partial<ServiceReturnType<typeof filterClusters>[number]>>({
+  const modelValue = defineModel<
+    Partial<
+      {
+        current_spec_id: number;
+      } & ServiceReturnType<typeof filterClusters>[number]
+    >
+  >({
     required: true,
   });
 
@@ -102,7 +110,9 @@
     manual: true,
     onSuccess(data) {
       if (data.length > 0) {
-        [modelValue.value] = data;
+        modelValue.value = Object.assign(data[0]!, {
+          current_spec_id: props.setCurrentSpecIdMethod ? props.setCurrentSpecIdMethod(data[0]!) : 0,
+        });
       }
     },
   });

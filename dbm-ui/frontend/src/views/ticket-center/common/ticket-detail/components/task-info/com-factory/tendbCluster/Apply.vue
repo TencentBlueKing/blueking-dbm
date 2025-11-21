@@ -64,28 +64,30 @@
     </InfoItem>
     <InfoItem
       :label="t('集群部署方案')"
-      style="width: 100%">
-      <BkTable :data="[ticketDetails.details.resource_spec.backend_group.spec_info]">
-        <BkTableColumn
-          field="spec_name"
-          :label="t('资源规格')">
-        </BkTableColumn>
-        <BkTableColumn
-          field="machine_pair"
-          :label="t('需机器组数')">
-        </BkTableColumn>
-        <BkTableColumn
-          field="cluster_shard_num"
-          :label="t('集群分片')">
-        </BkTableColumn>
-        <BkTableColumn
-          field="qps"
-          :label="t('集群QPS每秒')">
-          <template #default="{data}: {data: ClusterSpecModel}">
-            {{ data.qps.min * data.machine_pair || '--' }}
+      style="flex: 1 0 100%">
+      <TicketInfoTable
+        :data="[ticketDetails.details.resource_spec.backend_group.spec_info]"
+        row-key="spec_name">
+        <TicketInfoTableColumn
+          col-key="spec_name"
+          :title="t('资源规格')">
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="machine_pair"
+          :title="t('需机器组数')">
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="cluster_shard_num"
+          :title="t('集群分片')">
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="qps"
+          :title="t('集群QPS每秒')">
+          <template #default="{ row }: { row: ClusterSpecModel }">
+            {{ row.qps.min * row.machine_pair || '--' }}
           </template>
-        </BkTableColumn>
-      </BkTable>
+        </TicketInfoTableColumn>
+      </TicketInfoTable>
     </InfoItem>
   </InfoList>
 </template>

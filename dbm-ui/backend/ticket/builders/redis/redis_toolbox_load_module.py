@@ -8,17 +8,21 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import DisplayInfoSerializer, SkipToRepresentationMixin
-from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
+from backend.ticket.builders.common.base import DisplayInfoSerializer
+from backend.ticket.builders.redis.base import (
+    BaseRedisTicketFlowBuilder,
+    ClusterValidateMixin,
+    RedisBaseOperateDetailSerializer,
+)
 from backend.ticket.constants import LoadConfirmType, TicketType
 
 
-class RedisLoadModuleSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class RedisLoadModuleSerializer(RedisBaseOperateDetailSerializer):
     """redis集群加载module"""
 
     class InfoSerializer(DisplayInfoSerializer, ClusterValidateMixin, serializers.Serializer):

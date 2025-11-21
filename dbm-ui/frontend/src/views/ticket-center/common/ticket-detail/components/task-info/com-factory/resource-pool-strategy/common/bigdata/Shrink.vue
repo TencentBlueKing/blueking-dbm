@@ -38,18 +38,22 @@
         v-if="item.isManulSelect"
         :label="t('已选IP')"
         style="flex: 1 0 100%">
-        <BkTable :data="item.hostList">
-          <BkTableColumn
-            field="ip"
-            :label="t('节点 IP')" />
-          <BkTableColumn
-            field="bk_disk"
-            :label="t('磁盘容量(G)')">
-            <template #default="{ data: rowData }: { data: InfoData['hostList'][0] }">
+        <TicketInfoTable
+          :data="item.hostList"
+          ellipsis
+          row-key="ip">
+          <TicketInfoTableColumn
+            col-key="ip"
+            :get-copy-value="(row: RowData['hostList'][number]) => row.ip"
+            :title="t('节点 IP')" />
+          <TicketInfoTableColumn
+            col-key="bk_disk"
+            :title="t('磁盘容量(G)')">
+            <template #default="{ row: rowData }: { row: RowData['hostList'][0] }">
               {{ hostInfoMap[rowData.ip] }}
             </template>
-          </BkTableColumn>
-        </BkTable>
+          </TicketInfoTableColumn>
+        </TicketInfoTable>
       </InfoItem>
     </InfoList>
   </div>
@@ -66,7 +70,7 @@
     ticketDetails: TicketModel<Bigdata.ResourcePool.Shrink>;
   }
 
-  interface InfoData {
+  interface RowData {
     clusterId: number;
     clusterName: string;
     count: number;
@@ -98,7 +102,7 @@
   let hostInfoMap: Record<string, number> = {};
 
   const dataList = computed(() => {
-    const list: InfoData[] = [];
+    const list: RowData[] = [];
     const {
       cluster_id: clusterId,
       clusters,

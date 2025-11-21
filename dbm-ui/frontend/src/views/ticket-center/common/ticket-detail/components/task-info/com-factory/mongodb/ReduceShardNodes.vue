@@ -12,13 +12,31 @@
 -->
 
 <template>
-  <DbOriginalTable
+  <TicketInfoTable
     class="details-backup__table"
-    :columns="columns"
-    :data="tableData" />
+    :data="tableData"
+    row-key="immute_domain">
+    <TicketInfoTableColumn
+      col-key="immute_domain"
+      ellipsis
+      :get-copy-value="(row: RowData) => row.immute_domain"
+      :title="t('目标集群')" />
+    <TicketInfoTableColumn
+      col-key="cluster_type"
+      ellipsis
+      :title="t('集群类型')" />
+    <TicketInfoTableColumn
+      col-key="current_nodes"
+      ellipsis
+      :title="t('当前Shard的节点数')" />
+    <TicketInfoTableColumn
+      col-key="reduce_shard_nodes"
+      ellipsis
+      :title="t('缩容至（节点数）')" />
+  </TicketInfoTable>
   <div class="ticket-details-list">
     <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('忽略业务连接') }}：</span>
+      <span class="ticket-details-item-title">{{ t('忽略业务连接') }}：</span>
       <span class="ticket-details-item-value">
         {{ ticketDetails.details.is_safe ? t('否') : t('是') }}
       </span>
@@ -56,29 +74,6 @@
   const tableData = ref<RowData[]>([]);
 
   const { clusters, infos } = props.ticketDetails.details;
-
-  const columns = [
-    {
-      field: 'immute_domain',
-      label: t('目标集群'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'cluster_type',
-      label: t('集群类型'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'current_nodes',
-      label: t('当前Shard的节点数'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'reduce_shard_nodes',
-      label: t('缩容至（节点数）'),
-      showOverflowTooltip: true,
-    },
-  ];
 
   tableData.value = infos.map((item) => {
     const cluster = clusters[item.cluster_ids[0]];

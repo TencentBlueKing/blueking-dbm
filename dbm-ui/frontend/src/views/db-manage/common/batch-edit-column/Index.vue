@@ -2,7 +2,7 @@
   <BkPopConfirm
     :is-show="isShow"
     trigger="manual"
-    width="395"
+    :width="width"
     @after-show="handleAfterShow"
     @cancel="() => (isShow = false)"
     @confirm="handleConfirm">
@@ -107,8 +107,9 @@
     placeholder?: string;
     single?: boolean;
     title: string;
-    titlePrefixType?: 'edit' | 'entry';
+    titlePrefixType?: 'edit' | 'entry' | 'select';
     type?: 'select' | 'textarea' | 'input' | 'taginput' | 'datetime' | 'number-input';
+    width?: number;
   }
 
   type Emits = (e: 'change', value: UnwrapRef<typeof localValue>) => void;
@@ -120,6 +121,7 @@
     single: false,
     titlePrefixType: 'edit',
     type: 'select',
+    width: 395,
   });
 
   const emits = defineEmits<Emits>();
@@ -135,6 +137,7 @@
   const titlePrefixTypeMap = {
     edit: t('统一设置'),
     entry: t('批量录入'),
+    select: t('批量选择'),
   };
 
   const inputRef = ref();

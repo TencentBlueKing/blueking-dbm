@@ -12,7 +12,7 @@ import logging.config
 from dataclasses import asdict
 from typing import Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterEntryType
@@ -165,6 +165,10 @@ class MySQLHADestroyFlow(object):
                 )
 
                 exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_uninstall_proxy_payload.__name__
+                exec_act_kwargs.component_kwargs = {
+                    "proxy_port": cluster["proxy_port"],
+                    "force": self.data.get("force", False),
+                }
                 acts_list.append(
                     {
                         "act_name": _("卸载proxy实例"),

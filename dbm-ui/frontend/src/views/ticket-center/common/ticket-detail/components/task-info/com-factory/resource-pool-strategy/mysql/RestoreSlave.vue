@@ -17,20 +17,23 @@
       {{ ticketDetails.details.source_type === SourceType.RESOURCE_AUTO ? t('资源池自动匹配') : t('资源池手动选择') }}
     </InfoItem>
   </InfoList>
-  <BkTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn
-      :label="t('目标从库主机')"
-      :min-width="220">
-      <template #default="{ data }: { data: RowData }">
+    row-key="id">
+    <TicketInfoTableColumn
+      col-key="old_nodes"
+      :get-copy-value="(row: RowData) => row.old_nodes.old_slave[0].ip"
+      :min-width="220"
+      :title="t('目标从库主机')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.old_nodes.old_slave[0].ip }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('同机关联集群')"
-      :min-width="220">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_ids"
+      :min-width="220"
+      :title="t('同机关联集群')">
+      <template #default="{ row: data }: { row: RowData }">
         <div
           v-for="clusterId in data.cluster_ids"
           :key="clusterId"
@@ -38,19 +41,21 @@
           {{ ticketDetails.details.clusters[clusterId].immute_domain }}
         </div>
       </template>
-    </BkTableColumn>
+    </TicketInfoTableColumn>
     <template v-if="ticketDetails.details.source_type === SourceType.RESOURCE_AUTO">
-      <BkTableColumn
-        :label="t('规格')"
-        :min-width="120">
-        <template #default="{ data }: { data: RowData }">
+      <TicketInfoTableColumn
+        col-key="resource_spec.new_slave.spec_id"
+        :min-width="120"
+        :title="t('规格')">
+        <template #default="{ row: data }: { row: RowData }">
           {{ ticketDetails.details.specs?.[data.resource_spec.new_slave.spec_id]?.name || '--' }}
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        :label="t('资源标签')"
-        :min-width="200">
-        <template #default="{ data }: { data: RowData }">
+      </TicketInfoTableColumn>
+      <TicketInfoTableColumn
+        col-key="resource_spec.new_slave.label_names"
+        :min-width="200"
+        :title="t('资源标签')">
+        <template #default="{ row: data }: { row: RowData }">
           <template v-if="data.resource_spec.new_slave?.label_names?.length">
             <BkTag
               v-for="item in data.resource_spec.new_slave.label_names"
@@ -64,18 +69,19 @@
             {{ t('通用无标签') }}
           </BkTag>
         </template>
-      </BkTableColumn>
+      </TicketInfoTableColumn>
     </template>
     <template v-if="ticketDetails.details.source_type === SourceType.RESOURCE_MANUAL">
-      <BkTableColumn
-        :label="t('新从库主机')"
-        :min-width="120">
-        <template #default="{ data }: { data: RowData }">
+      <TicketInfoTableColumn
+        col-key="resource_spec.new_slave.hosts"
+        :min-width="120"
+        :title="t('新从库主机')">
+        <template #default="{ row: data }: { row: RowData }">
           {{ data.resource_spec.new_slave.hosts?.[0]?.ip || '--' }}
         </template>
-      </BkTableColumn>
+      </TicketInfoTableColumn>
     </template>
-  </BkTable>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('备份源')">
       {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}

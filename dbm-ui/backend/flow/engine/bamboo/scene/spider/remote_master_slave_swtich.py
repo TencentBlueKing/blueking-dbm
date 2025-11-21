@@ -15,7 +15,7 @@ from dataclasses import asdict
 from datetime import timedelta
 from typing import Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceStatus
@@ -23,7 +23,10 @@ from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import check_sub_flow
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
+    check_sub_flow,
+    master_slave_variable_consistency_check_sub_flow,
+)
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import (
     standardize_mysql_cluster_by_ip_subflow,
 )
@@ -168,8 +171,7 @@ class RemoteMasterSlaveSwitchFlow(object):
         if sub_flow_context["is_check_process"]:
             check_client_conn_inst = [s.ip_port for s in spiders]
 
-        if sub_flow_context["is_verify_checksum"]:
-            verify_checksum_tuples, slave_addr_tuples = self.build_checksum_tuples(cluster, switch_tuples)
+        verify_checksum_tuples, slave_addr_tuples = self.build_checksum_tuples(cluster, switch_tuples)
 
         return check_client_conn_inst, verify_checksum_tuples, slave_addr_tuples
 
@@ -197,6 +199,7 @@ class RemoteMasterSlaveSwitchFlow(object):
         slave_addr_tuples,
     ):
         """添加预检测子流程"""
+        precheck_sub_flows = []
         sub_flow = check_sub_flow(
             uid=self.data["uid"],
             root_id=self.root_id,
@@ -209,7 +212,22 @@ class RemoteMasterSlaveSwitchFlow(object):
             slave_addr_tuples=slave_addr_tuples,
         )
         if sub_flow:
-            sub_pipeline.add_sub_pipeline(sub_flow=sub_flow)
+            # sub_pipeline.add_sub_pipeline(sub_flow=sub_flow)
+            precheck_sub_flows.append(sub_flow)
+
+        for checksum_tuple in verify_checksum_tuples:
+            check_variable_consistency_sub_flow = master_slave_variable_consistency_check_sub_flow(
+                uid=self.data["uid"],
+                root_id=self.root_id,
+                bk_cloud_id=cluster.bk_cloud_id,
+                reference_instance=checksum_tuple["master"],
+                compare_instance=checksum_tuple["slave"],
+            )
+            precheck_sub_flows.append(check_variable_consistency_sub_flow)
+
+        # 并行执行所有的变量一致性检查
+        if precheck_sub_flows:
+            sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=precheck_sub_flows)
 
     def add_download_media_act(self, sub_pipeline, cluster, ctl_primary):
         """添加下发介质活动"""

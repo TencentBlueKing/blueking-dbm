@@ -60,41 +60,45 @@
     </InfoItem>
     <InfoItem
       :label="t('域名设置')"
-      whole-line>
-      <BkTable :data="ticketDetails.details.domains">
-        <BkTableColumn
-          field="master"
+      style="flex: 1 0 100%">
+      <TicketInfoTable
+        :data="ticketDetails.details.domains"
+        ellipsis
+        row-key="key">
+        <TicketInfoTableColumn
+          col-key="master"
           fixed="left"
-          :label="t('主访问入口')"
-          :min-width="240" />
-        <BkTableColumn
-          field="deployStructure"
-          :label="t('部署架构')"
-          :min-width="120">
+          :get-copy-value="(row: Props['ticketDetails']['details']['domains'][number]) => row.master"
+          :min-width="240"
+          :title="t('主访问入口')" />
+        <TicketInfoTableColumn
+          col-key="deployStructure"
+          :min-width="120"
+          :title="t('部署架构')">
           {{ t('单节点部署') }}
-        </BkTableColumn>
-        <BkTableColumn
-          field="version"
-          :label="t('数据库版本')"
-          :min-width="120">
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="version"
+          :min-width="120"
+          :title="t('数据库版本')">
           {{ ticketDetails.details.db_version }}
-        </BkTableColumn>
-        <BkTableColumn
-          field="charset"
-          :label="t('字符集')"
-          :min-width="120">
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="charset"
+          :min-width="120"
+          :title="t('字符集')">
           {{ ticketDetails.details.charset }}
-        </BkTableColumn>
-        <BkTableColumn
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
           v-if="ticketDetails.details.nodes?.backend"
-          field="backend"
-          :label="t('服务器')"
-          :min-width="180">
+          col-key="backend"
+          :min-width="180"
+          :title="t('服务器')">
           <template #default="{ rowIndex }">
             {{ ticketDetails.details.nodes.backend[rowIndex].ip }}
           </template>
-        </BkTableColumn>
-      </BkTable>
+        </TicketInfoTableColumn>
+      </TicketInfoTable>
     </InfoItem>
   </InfoList>
 </template>

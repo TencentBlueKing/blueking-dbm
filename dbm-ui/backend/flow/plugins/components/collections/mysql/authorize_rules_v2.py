@@ -12,7 +12,7 @@ import itertools
 import logging
 from typing import List
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 from rest_framework import serializers
@@ -33,8 +33,9 @@ logger = logging.getLogger("flow")
 class AuthResultSerializer(BaseFlowOutputSerializer):
     hidden = True
     table_name = "authorize_results"
+    table_display_name = _("授权摘要")
 
-    message = serializers.CharField(label=_("授权结果"))
+    message = serializers.CharField(help_text=_("授权结果"))
 
 
 class AuthorizeRulesV2(BaseService):

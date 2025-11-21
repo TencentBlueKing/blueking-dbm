@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from django.utils.crypto import get_random_string
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework import serializers
 
 from backend.configuration.constants import AffinityEnum, DBPrivSecurityType
@@ -44,6 +44,7 @@ class InfluxDBApplyDetailSerializer(BigDataDetailsSerializer):
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         # 判断主机是否来自手工输入，从资源池拿到的主机不需要校验
         if attrs["ip_source"] == IpSource.RESOURCE_POOL:
             format_bigdata_resource_spec(attrs)

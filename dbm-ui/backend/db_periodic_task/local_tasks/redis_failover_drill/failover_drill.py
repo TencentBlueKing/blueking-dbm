@@ -11,11 +11,12 @@ specific language governing permissions and limitations under the License.
 from copy import deepcopy
 from typing import Dict, List
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import AppCache, BKCity, Cluster, Machine, ProxyInstance, StorageInstance
+from backend.db_report.enums import ReportStateType
 from backend.db_report.models import FailoverDrillReport
 from backend.db_services.redis.autofix.enums import DBHASwitchResult
 from backend.ticket.constants import TicketType
@@ -75,7 +76,8 @@ class RedisFailoverDrill(BaseFailoverDrill):
         FailoverDrillReport.objects.create(
             bk_biz_id=self.bk_biz_id,
             bk_cloud_id=self.bk_cloud_id,
-            status=False,
+            state=ReportStateType.ABNORMAL,
+            dbha_status=DBHASwitchResult.INFO,
             main_task_id=self.main_task_id,
             cluster_domain=self.get_immute_domain(),
             cluster_type=self.cluster_type(),
@@ -260,9 +262,17 @@ class RedisFailoverDrill(BaseFailoverDrill):
         if len(dbha_infos["error"]) != 0:
             rpt.dbha_info += f"error found: {dbha_infos['error']}\n"
 
-        rpt.dbha_status = dbha_status  # dbha status
+        rpt.dbha_status = DBHASwitchResult.SUCC if dbha_status else DBHASwitchResult.FAIL  # dbha status
         rpt.switch_start_time = min(start_times) if start_times else None
         rpt.switch_finished_time = max(finished_times) if finished_times else None
+        rpt.save(
+            update_fields=[
+                "dbha_info",
+                "dbha_status",
+                "switch_start_time",
+                "switch_finished_time",
+            ]
+        )
 
     def send_alert(self, failure_reason: str, task_status: str):
         send_drill_alert_to_qywx(

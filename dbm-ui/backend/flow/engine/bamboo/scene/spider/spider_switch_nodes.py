@@ -12,7 +12,7 @@ import logging.config
 from dataclasses import asdict
 from typing import Any, Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import TenDBClusterSpiderRole
@@ -247,6 +247,7 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
                 spider_reduced_to_count_snapshot=spider_count - len(old_spider_hosts),
                 is_check_min_count=False,
                 is_check_disaster_tolerance_level=False,
+                is_check_process=self.data.get("is_check_process", True),
             )
         )
         return sub_pipeline.build_sub_process(sub_name=_("[{}]替换spider节点流程".format(cluster.immute_domain)))

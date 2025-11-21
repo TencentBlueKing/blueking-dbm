@@ -9,11 +9,18 @@ specific language governing permissions and limitations under the License.
 """
 
 from dataclasses import dataclass, field
+from typing import List
 
-from backend.flow.utils.base.validate_handler import ValidateHandler
+from backend.flow.utils.base.validate_handler import (
+    ValidateHandler,
+    validate_int,
+    validate_ip_in_list,
+    validate_list,
+    validate_string,
+)
 
 
-@dataclass()
+@dataclass
 class Instance:
     """
     定义实例通用结构体
@@ -33,15 +40,7 @@ class Instance:
             setattr(self, _field, kwargs.get(_field))
 
 
-def validate_list(value) -> None:
-    """
-    判断传入的类型变量是否是list
-    """
-    if not isinstance(value, list):
-        raise ValueError(f"{value} variable is not a list")
-
-
-@dataclass()
+@dataclass
 class AddUnLockTicketTypeKwargs(ValidateHandler):
     """
     定义解除单据互斥锁定义
@@ -56,7 +55,7 @@ class AddUnLockTicketTypeKwargs(ValidateHandler):
     unlock_ticket_type_list: list = field(default_factory=list, metadata={"validate": validate_list})
 
 
-@dataclass()
+@dataclass
 class ReleaseUnLockTicketTypeKwargs(ValidateHandler):
     """
     定义释放解除单据互斥锁定义
@@ -67,3 +66,15 @@ class ReleaseUnLockTicketTypeKwargs(ValidateHandler):
 
     cluster_ids: list = field(default_factory=list, metadata={"validate": validate_list})
     release_unlock_ticket_type_list: list = field(default_factory=list, metadata={"validate": validate_list})
+
+
+@dataclass
+class SAUdnsAddKwargs(ValidateHandler):
+    """
+    定义强制添加udns的私有变量的结构体
+    """
+
+    bk_cloud_id: int = field(metadata={"validate": validate_int})
+    ips: List[str] = field(metadata={"validate": validate_ip_in_list})
+    account_name: str = field(metadata={"validate": validate_string})
+    template_id: int = field(metadata={"validate": validate_int})

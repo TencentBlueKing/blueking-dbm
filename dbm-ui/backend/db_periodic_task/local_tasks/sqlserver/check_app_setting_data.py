@@ -12,6 +12,7 @@ import logging
 from backend.db_meta.enums import ClusterPhase, ClusterType, InstanceInnerRole, InstanceRole, InstanceStatus
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
+from backend.db_report.enums import ReportStateType
 from backend.db_report.models.sqlserver_check_report import (
     SqlserverCheckAppSettingReport,
     SqlserverCheckJobSyncReport,
@@ -51,18 +52,31 @@ class CheckAppSettingData(object):
     def check_task(self):
         """
         定义巡检逻辑
+        report表只记录异常结果，不记录校验正常的结果（ReportStateType.NORMAL）
+        目前这块计算异常持续时间，不分异常类型，一旦是出现异常，failed_days + 1
         """
         for cluster in self.clusters:
+            # 检测app_setting表的元数据是否正常
             self.check_app_setting_data(cluster)
+
+            # 检测实例的系统作业是否正常
             self.check_job_is_disabled(cluster)
+
+            # 如果集群类型是主从结构，需要多校验一些检测项
             if cluster.cluster_type == ClusterType.SqlserverHA:
                 master = cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER)
                 for s in cluster.storageinstance_set.filter(
                     status=InstanceStatus.RUNNING, instance_inner_role=InstanceInnerRole.SLAVE
                 ):
+                    # 检查主从集群中账号是否一致
                     self.check_user(master_instance=master, slave_instance=s, cluster=cluster)
+
+                    # 检查主从集群中业务job是否一致
                     self.check_job(master_instance=master, slave_instance=s, cluster=cluster)
+
+                    # 检查主从集群中LinkServer的配置是否一致
                     self.check_link_server(master_instance=master, slave_instance=s, cluster=cluster)
+
             logger.info(f"[db_periodic_task] the cluster [{cluster.immute_domain}] check task completed")
 
     @staticmethod
@@ -71,10 +85,10 @@ class CheckAppSettingData(object):
         存在不一致元数据，进行修复
         """
         is_fix = 0
-        status, msg = fix_app_setting_data(cluster=cluster, instance=instance, sync_mode=sync_mode, master=master)
-        if status:
+        state, msg = fix_app_setting_data(cluster=cluster, instance=instance, sync_mode=sync_mode, master=master)
+        if state == ReportStateType.NORMAL.value:
             is_fix = 1
-        SqlserverCheckAppSettingReport.objects.create(
+        report = SqlserverCheckAppSettingReport.objects.create(
             bk_cloud_id=cluster.bk_cloud_id,
             bk_biz_id=cluster.bk_biz_id,
             cluster=cluster.immute_domain,
@@ -83,9 +97,11 @@ class CheckAppSettingData(object):
             instance_port=instance.port,
             is_inconsistent=1,
             is_fix=is_fix,
-            status=status,
+            state=state,
             msg=msg,
         )
+        # 计算失败持续时间
+        report.calc_failed_days()
         return True
 
     @staticmethod
@@ -96,6 +112,7 @@ class CheckAppSettingData(object):
         is_fix = 0
         fix_status = False
         msg = "fix failed"
+        report_state = ReportStateType.ABNORMAL.value
         # 获取集群字符集配置
         charset = get_module_infos(
             bk_biz_id=cluster.bk_biz_id,
@@ -131,9 +148,10 @@ class CheckAppSettingData(object):
 
         if fix_status:
             is_fix = 1
+            report_state = ReportStateType.NORMAL.value
             msg = "fix successfully"
 
-        SqlserverCheckAppSettingReport.objects.create(
+        report = SqlserverCheckAppSettingReport.objects.create(
             bk_cloud_id=cluster.bk_cloud_id,
             bk_biz_id=cluster.bk_biz_id,
             cluster=cluster.immute_domain,
@@ -142,9 +160,11 @@ class CheckAppSettingData(object):
             instance_port=instance.port,
             is_inconsistent=1,
             is_fix=is_fix,
-            status=fix_status,
+            state=report_state,
             msg=msg,
         )
+        # 计算失败持续时间
+        report.calc_failed_days()
         return True
 
     def check_app_setting_data(self, cluster: Cluster):
@@ -159,7 +179,7 @@ class CheckAppSettingData(object):
             data, err = get_app_setting_data(instance=instance, bk_cloud_id=cluster.bk_cloud_id)
             if data is None:
                 # 如果返回是空则,则大概率是访问异常，录入异常信息,跳过这次的校验
-                SqlserverCheckAppSettingReport.objects.create(
+                report = SqlserverCheckAppSettingReport.objects.create(
                     bk_cloud_id=cluster.bk_cloud_id,
                     bk_biz_id=cluster.bk_biz_id,
                     cluster=cluster.immute_domain,
@@ -168,9 +188,11 @@ class CheckAppSettingData(object):
                     instance_port=instance.port,
                     is_inconsistent=1,
                     is_fix=0,
-                    status=False,
+                    state=ReportStateType.ABNORMAL.value,
                     msg=err,
                 )
+                # 计算失败持续时间
+                report.calc_failed_days()
                 continue
 
             if len(data) == 0:
@@ -206,7 +228,7 @@ class CheckAppSettingData(object):
             check_tag="user",
         )
         if not status:
-            SqlserverCheckUserSyncReport.objects.create(
+            report = SqlserverCheckUserSyncReport.objects.create(
                 bk_cloud_id=cluster.bk_cloud_id,
                 bk_biz_id=cluster.bk_biz_id,
                 cluster=cluster.immute_domain,
@@ -214,9 +236,11 @@ class CheckAppSettingData(object):
                 instance_host=slave_instance.machine.ip,
                 instance_port=slave_instance.port,
                 is_user_inconsistent=1,
-                status=status,
+                state=ReportStateType.ABNORMAL.value,
                 msg=msg,
             )
+            # 计算失败持续时间
+            report.calc_failed_days()
         logger.info(f"[check_user] the cluster [{cluster.immute_domain}] check task completed")
 
     @staticmethod
@@ -231,7 +255,7 @@ class CheckAppSettingData(object):
             check_tag="job",
         )
         if not status:
-            SqlserverCheckJobSyncReport.objects.create(
+            report = SqlserverCheckJobSyncReport.objects.create(
                 bk_cloud_id=cluster.bk_cloud_id,
                 bk_biz_id=cluster.bk_biz_id,
                 cluster=cluster.immute_domain,
@@ -239,9 +263,11 @@ class CheckAppSettingData(object):
                 instance_host=slave_instance.machine.ip,
                 instance_port=slave_instance.port,
                 is_job_inconsistent=1,
-                status=status,
+                state=ReportStateType.ABNORMAL.value,
                 msg=msg,
             )
+            # 计算失败持续时间
+            report.calc_failed_days()
         logger.info(f"[check_job] the cluster [{cluster.immute_domain}] check task completed")
 
     @staticmethod
@@ -256,7 +282,7 @@ class CheckAppSettingData(object):
             check_tag="link_server",
         )
         if not status:
-            SqlserverCheckLinkServerReport.objects.create(
+            report = SqlserverCheckLinkServerReport.objects.create(
                 bk_cloud_id=cluster.bk_cloud_id,
                 bk_biz_id=cluster.bk_biz_id,
                 cluster=cluster.immute_domain,
@@ -264,9 +290,11 @@ class CheckAppSettingData(object):
                 instance_host=slave_instance.machine.ip,
                 instance_port=slave_instance.port,
                 is_link_server_inconsistent=1,
-                status=status,
+                state=ReportStateType.ABNORMAL.value,
                 msg=msg,
             )
+            # 计算失败持续时间
+            report.calc_failed_days()
         logger.info(f"[check_link_server] the cluster [{cluster.immute_domain}] check task completed")
 
     @staticmethod
@@ -276,7 +304,7 @@ class CheckAppSettingData(object):
             status, msg = check_sys_job_status(cluster=cluster, instance=instance)
             if not status:
                 # 只有异常才记录
-                SqlserverCheckSysJobStatuReport.objects.create(
+                report = SqlserverCheckSysJobStatuReport.objects.create(
                     bk_cloud_id=cluster.bk_cloud_id,
                     bk_biz_id=cluster.bk_biz_id,
                     cluster=cluster.immute_domain,
@@ -284,7 +312,9 @@ class CheckAppSettingData(object):
                     instance_host=instance.machine.ip,
                     instance_port=instance.port,
                     is_job_disable=1,
-                    status=status,
+                    state=ReportStateType.ABNORMAL.value,
                     msg=msg,
                 )
+                # 计算失败持续时间
+                report.calc_failed_days()
         logger.info(f"[check_job_is_disabled] the cluster [{cluster.immute_domain}] check task completed")

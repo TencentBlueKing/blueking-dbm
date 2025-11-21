@@ -12,7 +12,7 @@ import logging
 from dataclasses import dataclass
 
 from django.db import transaction
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.core import notify
 from backend.flow.consts import FlowNodeOperateType

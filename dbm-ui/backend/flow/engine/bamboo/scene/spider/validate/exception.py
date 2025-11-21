@@ -7,7 +7,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.flow.engine.validate.exceptions import FlowValidateBaseException
 
@@ -39,4 +39,10 @@ class StorageVersionFailedException(FlowValidateBaseException):
 class UpgradeVersionFailedException(FlowValidateBaseException):
     ERROR_CODE = "36005"
     MESSAGE = _("升级版本检查失败")
+    MESSAGE_TPL = _("{message}")
+
+
+class SpiderMinCountFailedException(FlowValidateBaseException):
+    ERROR_CODE = "36006"
+    MESSAGE = _("预估集群spider数量低于系统管理的下限")
     MESSAGE_TPL = _("{message}")

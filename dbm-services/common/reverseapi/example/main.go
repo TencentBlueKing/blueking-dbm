@@ -27,8 +27,8 @@ func (c *demoEvent) EventType() string {
 	return "mysql-backup"
 }
 
-func (c *demoEvent) EventCreateTimeStamp() int64 {
-	return time.Now().UnixMicro()
+func (c *demoEvent) EventCreateTime() time.Time {
+	return time.Now()
 }
 
 func (c *demoEvent) EventBkBizId() int64 {

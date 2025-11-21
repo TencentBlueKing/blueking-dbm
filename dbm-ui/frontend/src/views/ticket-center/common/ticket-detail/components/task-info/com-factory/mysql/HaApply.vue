@@ -58,7 +58,7 @@
     </InfoItem>
     <InfoItem
       v-if="ticketDetails.details.resource_spec?.backend_group"
-      :label="t('后端存储资源规格：')">
+      :label="t('后端存储资源规格')">
       <SpecDetailPopover
         :data="ticketDetails.details.resource_spec.backend_group"
         placement="top">
@@ -73,38 +73,39 @@
     </InfoItem>
     <InfoItem
       :label="t('域名设置')"
-      whole-line>
-      <BkTable
+      style="flex: 1 0 100%">
+      <TicketInfoTable
         :data="ticketDetails.details.domains"
-        :show-overflow="false">
-        <BkTableColumn
-          field="master"
+        row-key="key">
+        <TicketInfoTableColumn
+          col-key="master"
           fixed="left"
-          :label="t('主访问入口')"
-          :min-width="240" />
-        <BkTableColumn
-          field="slave"
-          :label="t('从访问入口')"
-          :min-width="240" />
-        <BkTableColumn
-          field="deployStructure"
-          :label="t('部署架构')"
-          :min-width="120">
+          :get-copy-value="(row: Props['ticketDetails']['details']['domains'][number]) => row.master"
+          :min-width="240"
+          :title="t('主访问入口')" />
+        <TicketInfoTableColumn
+          col-key="slave"
+          :min-width="240"
+          :title="t('从访问入口')" />
+        <TicketInfoTableColumn
+          col-key="deployStructure"
+          :min-width="120"
+          :title="t('部署架构')">
           {{ mysqlType[ticketDetails.ticket_type as MysqlTypeString].name }}
-        </BkTableColumn>
-        <BkTableColumn
-          field="version"
-          :label="t('数据库版本')"
-          :min-width="120">
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="version"
+          :min-width="120"
+          :title="t('数据库版本')">
           {{ ticketDetails.details.db_version }}
-        </BkTableColumn>
-        <BkTableColumn
-          field="charset"
-          :label="t('字符集')"
-          :min-width="120">
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="charset"
+          :min-width="120"
+          :title="t('字符集')">
           {{ ticketDetails.details.charset }}
-        </BkTableColumn>
-      </BkTable>
+        </TicketInfoTableColumn>
+      </TicketInfoTable>
     </InfoItem>
   </InfoList>
 </template>

@@ -12,4 +12,4 @@ specific language governing permissions and limitations under the License.
 from .alarm import *
 from .collect import *
 from .dashboard import *
-from .mysql_dbha_autofix_todo import *
+from .mysql_dbha_autofix_event import *

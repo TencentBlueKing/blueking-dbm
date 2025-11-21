@@ -14,108 +14,118 @@
 <template>
   <InfoList>
     <InfoItem :label="t('构造类型')">
-      {{ rollbackTypeLabel[ticketDetails.details.rollback_cluster_type] }}
+      {{ rollbackTypetitle[ticketDetails.details.rollback_cluster_type] }}
     </InfoItem>
   </InfoList>
-  <BkTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
-    show-overflow>
-    <BkTableColumn
+    row-key="cluster_id">
+    <TicketInfoTableColumn
+      col-key="cluster_id"
       fixed="left"
-      :label="t('待回档集群')"
-      :min-width="180">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
+      :min-width="180"
+      :title="t('待回档集群')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       v-if="['BUILD_INTO_EXIST_CLUSTER'].includes(ticketDetails.details.rollback_cluster_type)"
-      :label="t('目标集群')"
-      :min-width="180">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.target_cluster_id]?.immute_domain }}
+      col-key="target_cluster_id"
+      :min-width="180"
+      :title="t('目标集群')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.target_cluster_id]?.immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       v-if="['BUILD_INTO_NEW_CLUSTER'].includes(ticketDetails.details.rollback_cluster_type)"
-      :label="t('回档到新主机')"
-      :min-width="180">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.resource_spec.rollback_host.hosts[0].ip }}
+      col-key="rollback_host"
+      :min-width="180"
+      :title="t('回档到新主机')">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.resource_spec.rollback_host.hosts[0].ip }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('备份源')"
-      :min-width="100">
-      <template #default="{ data }: { data: RowData }">
-        {{ backupSourceLabel[data.backup_source] }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="backup_source"
+      :min-width="100"
+      :title="t('备份源')">
+      <template #default="{ row }: { row: RowData }">
+        {{ backupSourcetitle[row.backup_source] }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('回档类型')"
-      :min-width="300">
-      <template #default="{ data }: { data: RowData }">
-        <div v-if="data.rollback_time">{{ t('回档到指定时间：') }}{{ data.rollback_time }}</div>
-        <div v-else-if="data.backupinfo.backup_id">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="rollback_time"
+      :min-width="300"
+      :title="t('回档类型')">
+      <template #default="{ row }: { row: RowData }">
+        <div v-if="row.rollback_time">{{ t('回档到指定时间：') }}{{ row.rollback_time }}</div>
+        <div v-else-if="row.backupinfo.backup_id">
           {{ t('备份记录：') }}
-          {{ dayjs(data.backupinfo.backup_time).format('YYYY-MM-DD HH:mm:ss ZZ') }}
+          {{ dayjs(row.backupinfo.backup_time).format('YYYY-MM-DD HH:mm:ss ZZ') }}
         </div>
       </template>
-    </BkTableColumn>
+    </TicketInfoTableColumn>
     <template
       v-if="
         ['BUILD_INTO_NEW_CLUSTER', 'BUILD_INTO_EXIST_CLUSTER'].includes(ticketDetails.details.rollback_cluster_type)
       ">
-      <BkTableColumn
-        :label="t('回档DB')"
-        :min-width="120">
-        <template #default="{ data }: { data: RowData }">
+      <TicketInfoTableColumn
+        col-key="databases"
+        :min-width="120"
+        :title="t('回档DB')">
+        <template #default="{ row }: { row: RowData }">
           <BkTag
-            v-for="item in data.databases"
+            v-for="item in row.databases"
             :key="item">
             {{ item }}
           </BkTag>
-          <span v-if="data.databases.length < 1">--</span>
+          <span v-if="row.databases.length < 1">--</span>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        :label="t('忽略 DB')"
-        :min-width="120">
-        <template #default="{ data }: { data: RowData }">
+      </TicketInfoTableColumn>
+      <TicketInfoTableColumn
+        col-key="databases_ignore"
+        :min-width="120"
+        :title="t('忽略 DB')">
+        <template #default="{ row }: { row: RowData }">
           <BkTag
-            v-for="item in data.databases_ignore"
+            v-for="item in row.databases_ignore"
             :key="item">
             {{ item }}
           </BkTag>
-          <span v-if="data.databases_ignore.length < 1">--</span>
+          <span v-if="row.databases_ignore.length < 1">--</span>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        :label="t('回档表名')"
-        :min-width="120">
-        <template #default="{ data }: { data: RowData }">
+      </TicketInfoTableColumn>
+      <TicketInfoTableColumn
+        col-key="tables"
+        :min-width="120"
+        :title="t('回档表名')">
+        <template #default="{ row }: { row: RowData }">
           <BkTag
-            v-for="item in data.tables"
+            v-for="item in row.tables"
             :key="item">
             {{ item }}
           </BkTag>
-          <span v-if="data.tables.length < 1">--</span>
+          <span v-if="row.tables.length < 1">--</span>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        :label="t('忽略表名')"
-        :min-width="120">
-        <template #default="{ data }: { data: RowData }">
+      </TicketInfoTableColumn>
+      <TicketInfoTableColumn
+        col-key="tables_ignore"
+        :min-width="120"
+        :title="t('忽略表名')">
+        <template #default="{ row }: { row: RowData }">
           <BkTag
-            v-for="item in data.tables_ignore"
+            v-for="item in row.tables_ignore"
             :key="item">
             {{ item }}
           </BkTag>
-          <span v-if="data.tables_ignore.length < 1">--</span>
+          <span v-if="row.tables_ignore.length < 1">--</span>
         </template>
-      </BkTableColumn>
+      </TicketInfoTableColumn>
     </template>
-  </BkTable>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">
@@ -143,13 +153,13 @@
 
   const { t } = useI18n();
 
-  const rollbackTypeLabel = {
+  const rollbackTypetitle = {
     BUILD_INTO_EXIST_CLUSTER: t('构造到已有集群'),
     BUILD_INTO_METACLUSTER: t('构造到原集群'),
     BUILD_INTO_NEW_CLUSTER: t('构造到新集群'),
   } as Record<string, string>;
 
-  const backupSourceLabel = {
+  const backupSourcetitle = {
     local: t('本地备份'),
     remote: t('远程备份'),
   } as Record<string, string>;

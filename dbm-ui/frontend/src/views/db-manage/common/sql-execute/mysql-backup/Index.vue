@@ -45,6 +45,7 @@
           :disabled-method="() => false"
           field="table_patterns"
           :label="t('备份表名')"
+          required
           @batch-edit="handleColumnBatchEdit" />
         <OperationColumn
           :create-row-method="createRowData"

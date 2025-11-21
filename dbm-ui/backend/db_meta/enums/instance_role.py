@@ -12,10 +12,10 @@ from django.db.models import Case, Value, When
 from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.enums import ClusterType
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
-class InstanceRole(str, StructuredEnum):
+class InstanceRole(StrStructuredEnum):
     # 单节点
     ORPHAN = EnumField("orphan", _("orphan"))
 
@@ -92,7 +92,7 @@ class InstanceRole(str, StructuredEnum):
     STANDBY = EnumField("standby", _("standby"))
 
 
-class TenDBClusterSpiderRole(str, StructuredEnum):
+class TenDBClusterSpiderRole(StrStructuredEnum):
     # 主集群的接入层
     SPIDER_MASTER = EnumField("spider_master", _("spider_master"))
     # 从集群的接入层

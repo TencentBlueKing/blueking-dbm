@@ -21,9 +21,9 @@
           style="width: 450px"
           type="card"
           @change="handleFlashbackTypeChange">
-          <!-- <BkRadioButton label="BUILD_INTO_METACLUSTER">
+          <BkRadioButton label="ROLLBACK_FLASHBACK">
             {{ t('构造回档') }}
-          </BkRadioButton> -->
+          </BkRadioButton>
           <BkRadioButton label="TABLE_FLASHBACK">
             {{ t('库表闪回回档') }}
           </BkRadioButton>
@@ -79,11 +79,10 @@
           type,
         },
       });
+    } else if (type === 'ROLLBACK_FLASHBACK') {
+      router.push({
+        name: TicketTypes.MYSQL_ROLLBACK,
+      });
     }
-    // } else if (type === 'BUILD_INTO_METACLUSTER') {
-    //   router.push({
-    //     name: TicketTypes.MYSQL_ROLLBACK,
-    //   });
-    // }
   };
 </script>

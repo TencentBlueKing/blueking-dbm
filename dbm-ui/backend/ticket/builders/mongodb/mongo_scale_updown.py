@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from collections import defaultdict
 from typing import Dict, List
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType, MachineType
@@ -44,6 +44,7 @@ class MongoDBScaleUpDownDetailSerializer(BaseMongoDBOperateDetailSerializer):
     ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         # 校验count = 机器组数 * 集群分片节点数
         for info in attrs["infos"]:
             mongo_count = info["resource_spec"]["mongodb"]["count"]

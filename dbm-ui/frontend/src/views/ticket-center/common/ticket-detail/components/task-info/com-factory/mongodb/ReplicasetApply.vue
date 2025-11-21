@@ -63,21 +63,27 @@
     </InfoItem>
     <InfoItem
       :label="t('域名设置')"
-      whole-line>
-      <BkTable :data="tableData">
-        <BkTableColumn
-          field="mainDomain"
-          :label="t('主域名')">
-        </BkTableColumn>
-        <BkTableColumn
-          field="clusterId"
-          :label="t('集群ID')">
-        </BkTableColumn>
-        <BkTableColumn
-          field="clusterName"
-          :label="t('集群名称')">
-        </BkTableColumn>
-      </BkTable>
+      style="flex: 1 0 100%">
+      <TicketInfoTable
+        :data="replicaSets"
+        row-key="set_id">
+        <TicketInfoTableColumn
+          col-key="domain"
+          :get-copy-value="(row: RowData) => row.domain"
+          :title="t('主域名')">
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="set_id"
+          :title="t('集群ID')">
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="name"
+          :title="t('集群名称')">
+          <template #default="{ row }: { row: RowData }">
+            {{ row.name || '--' }}
+          </template>
+        </TicketInfoTableColumn>
+      </TicketInfoTable>
     </InfoItem>
   </InfoList>
 </template>
@@ -98,6 +104,8 @@
     ticketDetails: TicketModel<Mongodb.ReplicasetApply>;
   }
 
+  type RowData = Props['ticketDetails']['details']['replica_sets'][number];
+
   defineOptions({
     name: TicketTypes.MONGODB_REPLICASET_APPLY,
     inheritAttrs: false,
@@ -109,11 +117,6 @@
 
   const { replica_sets: replicaSets, resource_spec: resourceSpec } = props.ticketDetails.details;
   const backendSpec = resourceSpec.mongo_machine_set;
-  const tableData = replicaSets.map((domainItem) => ({
-    clusterId: domainItem.set_id,
-    clusterName: domainItem.name,
-    mainDomain: domainItem.domain,
-  }));
 </script>
 
 <style lang="less" scoped>

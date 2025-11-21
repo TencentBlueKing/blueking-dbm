@@ -9,7 +9,6 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/go-viper/mapstructure/v2"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -88,14 +87,15 @@ type BinlogFileModel struct {
 	BackupStatusInfo string `json:"backup_status_info" db:"backup_status_info"`
 	BackupTaskid     string `json:"task_id,omitempty" db:"task_id"`
 	FileRetentionTag string `json:"file_retention_tag" db:"file_retention_tag"`
+	BinlogDir        string `json:"binlog_dir" db:"binlog_dir"`
 	*ModelAutoDatetime
 }
 
 // String 用于打印
 func (m *BinlogFileModel) String() string {
 	return fmt.Sprintf(
-		"{filename:%s, start_time: %s, stop_time: %s, backup_status:%d, task_id: %s}",
-		m.Filename, m.StartTime, m.StopTime, m.BackupStatus, m.BackupTaskid,
+		"{filename:%s, start_time: %s, stop_time: %s, backup_status:%d, task_id: %s, binlog_dir: %s}",
+		m.Filename, m.StartTime, m.StopTime, m.BackupStatus, m.BackupTaskid, m.BinlogDir,
 	)
 }
 
@@ -148,13 +148,13 @@ func (m *BinlogFileModel) Save(db *sqlx.DB, replace bool) error {
 		Columns(
 			"bk_biz_id", "cluster_id", "cluster_domain", "db_role", "host", "port", "filename",
 			"filesize", "start_time", "stop_time", "file_mtime", "backup_enable", "backup_status", "task_id",
-			"file_retention_tag",
+			"file_retention_tag", "binlog_dir",
 			"created_at", "updated_at",
 		).
 		Values(
 			m.BkBizId, m.ClusterId, m.ClusterDomain, m.DBRole, m.Host, m.Port, m.Filename,
 			m.Filesize, m.StartTime, m.StopTime, m.FileMtime, m.BackupEnable, m.BackupStatus, m.BackupTaskid,
-			m.FileRetentionTag,
+			m.FileRetentionTag, m.BinlogDir,
 			m.CreatedAt, m.UpdatedAt,
 		)
 	sqlStr, args, err := sqlBuilder.ToSql()
@@ -183,14 +183,14 @@ func (m *BinlogFileModel) BatchSave(models []*BinlogFileModel, db *sqlx.DB) erro
 			Columns(
 				"bk_biz_id", "cluster_id", "cluster_domain", "db_role", "host", "port", "filename",
 				"filesize", "start_time", "stop_time", "file_mtime", "backup_enable", "backup_status", "task_id",
-				"file_retention_tag",
+				"file_retention_tag", "binlog_dir",
 				"created_at", "updated_at",
 			)
 		o.autoTime()
 		sqlBuilder = sqlBuilder.Values(
 			o.BkBizId, o.ClusterId, o.ClusterDomain, o.DBRole, o.Host, o.Port, o.Filename,
 			o.Filesize, o.StartTime, o.StopTime, o.FileMtime, o.BackupEnable, o.BackupStatus, o.BackupTaskid,
-			o.FileRetentionTag,
+			o.FileRetentionTag, o.BinlogDir,
 			o.CreatedAt, o.UpdatedAt,
 		)
 		sqlStr, args, err := sqlBuilder.ToSql()
@@ -216,7 +216,9 @@ func (m *BinlogFileModel) HandleSwitchRole(backupEnable bool, db *sqlx.DB) error
 		Set("backup_status_info", "switch to master").
 		Set("updated_at", m.UpdatedAt).Set("db_role", cst.RoleMaster)
 
-	timeBefore := time.Now().Add(-24 * time.Hour).Format(time.RFC3339)
+	timeNow := time.Now()
+	todayZero := time.Date(timeNow.Year(), timeNow.Month(), timeNow.Day(), 0, 0, 0, 0, timeNow.Location())
+	timeBefore := todayZero.Format(time.RFC3339)
 	sqlBuilder = sqlBuilder.Where(
 		"host=? and port=? and cluster_id=? "+
 			"and db_role=? and start_time > ? and backup_status!=4",
@@ -358,10 +360,27 @@ func (m *BinlogFileModel) DeleteExpired(db *sqlx.DB, mTime time.Time) (int64, er
 	}
 }
 
-func mapStructureDecodeJson(input interface{}, output interface{}) error {
-	msCfg := &mapstructure.DecoderConfig{TagName: "json", Result: output}
-	mapStruct, _ := mapstructure.NewDecoder(msCfg)
-	return mapStruct.Decode(input)
+var StatusSuccess = []int{IBStatusSuccess, FileStatusNoNeedUpload, FileStatusTooOldToRegister}
+
+// QueryToRemove 查询上传成功的文件，或者不需要上传的文件
+func (m *BinlogFileModel) QueryToRemove(db *sqlx.DB) ([]*BinlogFileModel, error) {
+	removeWhere := sq.Or{
+		sq.Eq{"backup_status": StatusSuccess},
+		sq.Lt{"backup_status": IBStatusSuccess},
+	}
+	return m.Query(db, removeWhere)
+}
+
+func (m *BinlogFileModel) QueryStage(db *sqlx.DB) ([]*BinlogFileModel, error) {
+	removeWhere := sq.Or{
+		sq.Eq{"backup_status": StatusSuccess},
+		sq.Lt{"backup_status": IBStatusSuccess},
+	}
+	cond := sq.And{
+		sq.Like{"binlog_dir": "%binlog_upload_stage%"},
+		removeWhere,
+	}
+	return m.Query(db, cond)
 }
 
 // QueryUnfinished 查询待上传、上传未完成的列表
@@ -375,7 +394,7 @@ func (m *BinlogFileModel) QueryUnfinished(db *sqlx.DB) ([]*BinlogFileModel, erro
 
 // QuerySuccess 查询上传成功的文件，或者不需要上传的文件
 func (m *BinlogFileModel) QuerySuccess(db *sqlx.DB) ([]*BinlogFileModel, error) {
-	inWhere := sq.Eq{"backup_status": []int{IBStatusSuccess, FileStatusNoNeedUpload, FileStatusTooOldToRegister}}
+	inWhere := sq.Eq{"backup_status": StatusSuccess}
 	return m.Query(db, inWhere)
 }
 
@@ -391,9 +410,10 @@ func (m *BinlogFileModel) Query(db *sqlx.DB, pred interface{}, params ...interfa
 	sqlBuilder := sq.Select(
 		"bk_biz_id", "cluster_id", "cluster_domain", "db_role", "host", "port", "filename", "filesize",
 		"start_time", "stop_time", "file_mtime", "backup_enable", "backup_status", "task_id", "file_retention_tag",
+		"binlog_dir",
 	).
 		From(m.TableName()).Where(m.instanceWhere())
-	sqlBuilder = sqlBuilder.Where(pred, params...).OrderBy("filename asc")
+	sqlBuilder = sqlBuilder.Where(pred, params...).OrderBy("start_time asc")
 	sqlStr, args, err := sqlBuilder.ToSql()
 	if err != nil {
 		return nil, err
@@ -439,7 +459,7 @@ func (m *BinlogFileModel) QueryWithBuildWhere(db *sqlx.DB, builder *sq.SelectBui
 func (m *BinlogFileModel) QueryLastFileReport(db *sqlx.DB) (*BinlogFileModel, error) {
 	sqlBuilder := sq.Select("filename", "backup_enable", "backup_status", "db_role", "start_time", "file_mtime").
 		From(m.TableName()).
-		Where(m.instanceWhere()).OrderBy("filename desc").Limit(1)
+		Where(m.instanceWhere()).OrderBy("start_time desc").Limit(1)
 	sqlStr, args, err := sqlBuilder.ToSql()
 	if err != nil {
 		return nil, err

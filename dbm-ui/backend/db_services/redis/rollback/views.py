@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 from django.utils.decorators import method_decorator
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from django_filters import rest_framework as filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -42,10 +42,6 @@ class RollbackListFilter(filters.FilterSet):
         fields = ["prod_cluster_id", "prod_cluster", "related_rollback_bill_id", "temp_cluster_proxy"]
 
 
-@method_decorator(
-    name="list",
-    decorator=common_swagger_auto_schema(tags=[constants.RESOURCE_TAG]),
-)
 @method_decorator(
     name="retrieve",
     decorator=common_swagger_auto_schema(tags=[constants.RESOURCE_TAG]),

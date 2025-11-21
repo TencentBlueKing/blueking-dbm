@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.constants import AffinityEnum
@@ -19,7 +19,7 @@ from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.common.base import get_ticket_zone_list
+from backend.ticket.builders.common.base import TicketBaseValidateSerializerMixin, get_ticket_zone_list
 from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateResourceParamBuilder,
     BaseMongoReplicaSetTicketFlowBuilder,
@@ -27,7 +27,7 @@ from backend.ticket.builders.mongodb.base import (
 from backend.ticket.constants import TicketType
 
 
-class MongoReplicaSetApplyDetailSerializer(serializers.Serializer):
+class MongoReplicaSetApplyDetailSerializer(TicketBaseValidateSerializerMixin, serializers.Serializer):
     class ReplicaSet(serializers.Serializer):
         set_id = serializers.CharField(help_text=_("复制集群ID（英文数字及下划线）"))
         name = serializers.CharField(help_text=_("集群别名"), allow_blank=True, allow_null=True)
@@ -74,6 +74,7 @@ class MongoReplicaSetApplyDetailSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         """TODO: validate"""
+        attrs = super().validate(attrs)
         return attrs
 
 

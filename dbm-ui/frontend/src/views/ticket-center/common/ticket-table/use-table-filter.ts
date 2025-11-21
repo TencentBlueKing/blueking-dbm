@@ -1,6 +1,5 @@
 import dayjs from 'dayjs';
 import { useI18n } from 'vue-i18n';
-import { useRequest } from 'vue-request';
 
 import TicketModel from '@services/model/ticket/ticket';
 import { getTicketGroupTypes } from '@services/source/ticket';
@@ -10,6 +9,7 @@ import { useGlobalBizs } from '@stores';
 
 import DatetimeRange from '@components/db-table/components/DatetimeRange.vue';
 import MultCascader from '@components/db-table/components/MultCascader.vue';
+import MultipleInput from '@components/db-table/components/MultipleInput.vue';
 
 import MultipleSelect from '@/components/db-table/components/MultipleSelect.vue';
 
@@ -41,42 +41,26 @@ export default () => {
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
 
-  const ticketTypeGroupList = shallowRef<
-    {
-      children: {
-        label: string;
-        value: string;
-      }[];
-      label: string;
-      value: string;
-    }[]
-  >([]);
-
-  const userList = shallowRef<
-    {
-      label: string;
-      value: string;
-    }[]
-  >([]);
-
   const tableFilter = computed<ITableFilter>(() => {
     return {
       bk_biz_ids: {
-        list: globalBizsStore.bizs.map((item) => ({
-          label: item.name,
-          value: `${item.bk_biz_id}`,
-        })),
+        component: markRaw(MultipleSelect),
         name: t('业务'),
+        props: {
+          list: globalBizsStore.bizs.map((item) => ({
+            label: item.name,
+            value: `${item.bk_biz_id}`,
+          })),
+        },
         showConfirmAndReset: true,
-        type: 'multiple',
       },
       cluster: {
+        component: markRaw(MultipleInput),
         name: t('集群'),
         props: {
           autofocus: true,
         },
         showConfirmAndReset: true,
-        type: 'input',
       },
       create_at: {
         component: markRaw(DatetimeRange),
@@ -115,7 +99,7 @@ export default () => {
         },
         showConfirmAndReset: true,
       },
-      creator: {
+      creator__in: {
         component: markRaw(MultipleSelect),
         name: t('申请人'),
         props: {
@@ -139,12 +123,12 @@ export default () => {
         showConfirmAndReset: true,
       },
       ids: {
+        component: markRaw(MultipleInput),
         name: t('单号'),
         props: {
           autofocus: true,
         },
         showConfirmAndReset: true,
-        type: 'input',
       },
       remark: {
         name: t('备注'),
@@ -155,40 +139,44 @@ export default () => {
         type: 'input',
       },
       status: {
-        list: Object.keys(TicketModel.statusTextMap).reduce<Record<'label' | 'value', string>[]>((acc, key) => {
-          acc.push({
-            label: TicketModel.statusTextMap[key as keyof typeof TicketModel.statusTextMap],
-            value: key,
-          });
-          return acc;
-        }, []),
+        component: markRaw(MultipleSelect),
         name: t('单据状态'),
+        props: {
+          list: Object.keys(TicketModel.statusTextMap).reduce<Record<'label' | 'value', string>[]>((acc, key) => {
+            acc.push({
+              label: TicketModel.statusTextMap[key as keyof typeof TicketModel.statusTextMap],
+              value: key,
+            });
+            return acc;
+          }, []),
+        },
         showConfirmAndReset: true,
-        type: 'multiple',
       },
-      ticket_type: {
+      ticket_type_search: {
         component: markRaw(MultCascader),
         name: t('单据类型'),
         props: {
-          list: ticketTypeGroupList.value,
+          checkStrictly: true,
+          remoteMethod: () =>
+            getTicketGroupTypes().then((data) =>
+              data.map((item) => {
+                return {
+                  children: item.children.map((child) => {
+                    return {
+                      label: child.label,
+                      value: `ticket_type__in#${child.value}`,
+                    };
+                  }),
+                  label: item.label,
+                  value: `db_type#${item.value}`,
+                };
+              }),
+            ),
+          showAllLevels: true,
         },
         showConfirmAndReset: true,
       },
     };
-  });
-
-  useRequest(getTicketGroupTypes, {
-    onSuccess(data) {
-      ticketTypeGroupList.value = data;
-    },
-  });
-  useRequest(getUserList, {
-    onSuccess(data) {
-      userList.value = data.results.map((item) => ({
-        label: item.display_name,
-        value: item.username,
-      }));
-    },
   });
 
   return tableFilter;

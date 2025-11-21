@@ -15,6 +15,6 @@ from . import models
 
 @admin.register(models.Package)
 class PackageAdmin(admin.ModelAdmin):
-    list_display = [field.name for field in models.Package._meta.get_fields()]
+    list_display = [field.name for field in models.Package._meta.concrete_fields]
     search_fields = ("name", "version", "path", "md5")
     list_filter = ("db_type", "pkg_type", "mode")

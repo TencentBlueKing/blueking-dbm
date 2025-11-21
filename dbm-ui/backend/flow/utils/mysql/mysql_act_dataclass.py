@@ -48,7 +48,7 @@ class ExecActuatorBaseKwargs:
     cluster: dict = field(default_factory=dict)  # 表示单据执行的集群信息，比如集群名称，集群域名等, 后续需要废弃，尽量不要用这个属性，用custom_params属性
     job_timeout: int = DEFAULT_JOB_TIMEOUT  # 执行job单据的超时时间，默认是7200s
     write_op: str = None  # 控制上下文写方式，WriteContextOpType类型，有REWRITE和APPEND模式，如果不填默认是采用REWRITE模式
-    custom_params: dict = field(default_factory=dict)  # 隐性参数，传入参数时作为额外参数传入，自定义拼接， 逐步代替cluster属性
+    component_kwargs: dict = field(default_factory=dict)  # 隐性参数，传入参数时作为额外参数传入，自定义拼接， 逐步代替cluster属性
 
 
 @dataclass()
@@ -82,6 +82,12 @@ class P2PFileKwargs(P2PFileBaseKwargs):
     """
 
     exec_ip: Optional[Any] = None  # 表示执行的ip，多个ip传入list类型，当个ip传入str类型，空则传入None，针对手输ip场景
+
+
+@dataclass
+class P2PFileFromBackupKwargs(P2PFileKwargs):
+    backup_id: str = None
+    cluster_id: int = None
 
 
 @dataclass()
@@ -259,6 +265,7 @@ class DBMetaOPKwargs:
     db_meta_class_func: str
     cluster: dict = field(default_factory=dict)  # 表示单据执行的集群信息，比如集群名称，集群域名等
     is_update_trans_data: bool = False  # 表示是否把流程中上下文trans_data合并到cluster信息，默认不合并
+    component_kwargs: dict = field(default_factory=dict)  # 额外参数传入，对应每个场景应用，自定义拼接， 逐步代替cluster属性
 
 
 @dataclass()
@@ -454,6 +461,18 @@ class CrondMonitorKwargs:
 
 
 @dataclass
+class MySQLCheckVariableConsistencyKwargs:
+    """
+    定义检测变量一致性的私有变量结构体
+    """
+
+    bk_cloud_id: int
+    reference_instance: str  # 格式: ip:port
+    compare_instance: str  # 格式: ip:port
+    variable_names: list
+
+
+@dataclass
 class CheckClientConnKwargs:
     """
     定义检测客户端连接的私有变量结构体
@@ -461,12 +480,15 @@ class CheckClientConnKwargs:
     @attributes check_instances: 检测实例
     @attributes is_filter_sleep: 是否过滤sleep状态的线程， 默认否
     @attributes is_proxy: 检测实例是否都是mysql-proxy，默认否
+    @attributes filter_hosts: 需要过滤的主机列表，默认空列表
     """
 
     bk_cloud_id: int
     check_instances: list
     is_filter_sleep: bool = False
     is_proxy: bool = False
+    long_process_time: int = -1
+    filter_hosts: list = field(default_factory=list)
 
 
 @dataclass

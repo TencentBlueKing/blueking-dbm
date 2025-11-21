@@ -5,15 +5,15 @@
 type ISyncReportEvent interface {
 	ClusterType() string
 	EventType() string
-	EventCreateTimeStamp() int64  // EventCreateTimeStamp 微妙
+	EventCreateTime() time.Time
 	EventBkBizId() int64
 }
 ```
 
 - EventType()
   上报的事件名，直接对应的就是一个 topic name. 事件名需要先在管理入口配置 `REVERSE_REPORT_EVENT_TYPES`允许列表，才能上报
-- EventCreateTimeStamp()
-  事件产生时间，单位微妙。通常返回 `time.Now().UnixMicro()` 就行
+- EventCreateTime()
+  事件产生时间，带时区，上报时会自动转成 UTC 的微妙
 - ClusterType()
   必须是合法的 cluster_type 名字(不一定需要跟真实 cluster所属 cluster_type相同)
 - EventBkBizId()

@@ -12,7 +12,7 @@ import itertools
 from collections import defaultdict
 
 from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType, MachineType
@@ -51,6 +51,7 @@ class MongoDBCutoffDetailSerializer(BaseMongoDBOperateDetailSerializer):
     ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         # 校验替换的mongodb机器不在同一分片中
         machines_ips = []
         for info in attrs["infos"]:

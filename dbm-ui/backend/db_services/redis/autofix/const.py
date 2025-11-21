@@ -15,7 +15,7 @@ from dataclasses import dataclass
 # 等待切换成功的机器列表
 REDIS_SWITCH_WAITER = {}
 # 等待的最长时间
-SWITCH_MAX_WAIT_SECONDS = 60 * 6
+SWITCH_MAX_WAIT_SECONDS = 60
 # 来个默认值吧
 SWITCH_SMALL = 999999
 

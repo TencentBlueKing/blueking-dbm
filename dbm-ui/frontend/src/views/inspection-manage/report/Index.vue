@@ -131,6 +131,10 @@
   watch(
     () => route.query,
     () => {
+      if (!Object.keys(route.query).length) {
+        return;
+      }
+
       const queryObj = _.cloneDeep(route.query);
       delete queryObj.tabType;
       searchParams.value = queryObj;
@@ -162,8 +166,6 @@
     }
 
     if (!isInspectionReport.value && !isPlatform.value) {
-      Object.assign(query, { status: 0 });
-
       if (!route.query.manage) {
         Object.assign(query, { manage: 'todo' });
       }

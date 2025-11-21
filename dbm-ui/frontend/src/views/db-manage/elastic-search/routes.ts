@@ -16,6 +16,8 @@ import type { RouteRecordRaw } from 'vue-router';
 import type { BigdataFunctions } from '@services/model/function-controller/functionController';
 import FunctionControllModel from '@services/model/function-controller/functionController';
 
+import { DBTypes } from '@common/const';
+
 import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
@@ -23,6 +25,7 @@ const routes: RouteRecordRaw[] = [
     path: 'elastic-search',
     name: 'EsManage',
     meta: {
+      dbType: DBTypes.ES,
       navName: t('ES_集群管理'),
     },
     redirect: {
@@ -34,7 +37,6 @@ const routes: RouteRecordRaw[] = [
         path: 'list/:clusterId?',
         name: 'EsList',
         meta: {
-          fullscreen: true,
           navName: t('ES_集群管理'),
         },
         component: () => import('@views/db-manage/elastic-search/list/Index.vue'),

@@ -15,7 +15,7 @@ from typing import Dict
 
 from django.utils import timezone
 from django.utils.crypto import get_random_string
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.components.hadb.client import HADBApi
 from backend.constants import DEFAULT_BK_CLOUD_ID

@@ -9,25 +9,20 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.redis.redis_proxy_scale import RedisProxyScaleFlow
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import (
-    HostInfoSerializer,
-    HostRecycleSerializer,
-    SkipToRepresentationMixin,
-    fetch_cluster_ids,
-)
+from backend.ticket.builders.common.base import HostInfoSerializer, HostRecycleSerializer, fetch_cluster_ids
 from backend.ticket.builders.common.constants import ShrinkType
-from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
+from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, RedisBaseOperateDetailSerializer
 from backend.ticket.constants import SwitchConfirmType, TicketType
 
 
-class ProxyScaleDownDetailSerializer(SkipToRepresentationMixin, ClusterValidateMixin, serializers.Serializer):
+class ProxyScaleDownDetailSerializer(RedisBaseOperateDetailSerializer):
     """proxy缩容"""
 
     class InfoSerializer(serializers.Serializer):
@@ -50,6 +45,7 @@ class ProxyScaleDownDetailSerializer(SkipToRepresentationMixin, ClusterValidateM
     )
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         cluster_ids = fetch_cluster_ids(attrs)
         cluster_map = Cluster.objects.prefetch_related("proxyinstance_set").in_bulk(cluster_ids, field_name="id")
         # 验证缩容后数量至少为2

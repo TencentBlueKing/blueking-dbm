@@ -1,0 +1,106 @@
+## Expand the name of the chart
+nameOverride: ""
+
+## Default fully qualified app name
+fullnameOverride: ""
+
+## Declare components image version
+image:
+  registry: docker.io
+  pullPolicy: IfNotPresent
+  all:
+    repository: milvusdb/milvus
+    tag: v2.6.0
+    pullPolicy: IfNotPresent
+  tools:
+    repository: milvusdb/milvus-config-tool
+    tag: v0.1.2
+    pullPolicy: IfNotPresent
+  attu:
+    repository: zilliz/attu
+    tag: v2.5.6
+    pullPolicy: IfNotPresent
+  python:
+    registry: ""
+    repository: python
+    tag: 3.11-alpine
+
+metrics:
+  enabled: true
+
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 90
+  periodSeconds: 30
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 5
+
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 90
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 5
+
+log:
+  level: "info"
+  file:
+    maxSize: 300    # MB
+    maxAge: 10    # day
+    maxBackups: 20
+  format: "text"    # text/json
+
+  persistence:
+    mountPath: "/milvus/logs"
+    ## If true, create/use a Persistent Volume Claim
+    ## If false, use emptyDir
+    ##
+    enabled: false
+    annotations:
+      helm.sh/resource-policy: keep
+    persistentVolumeClaim:
+      existingClaim: ""
+      ## Milvus Logs Persistent Volume Storage Class
+      ## If defined, storageClassName: <storageClass>
+      ## If set to "-", storageClassName: "", which disables dynamic provisioning
+      ## If undefined (the default) or set to null, no storageClassName spec is
+      ##   set, choosing the default provisioner.
+      ## ReadWriteMany access mode required for milvus cluster.
+      ##
+      storageClass:
+      accessModes: ReadWriteMany
+      size: 10Gi
+      subPath: ""
+
+
+queryNode:
+  enabled: true
+  disk:
+    enabled: true  # Enable querynode load disk index, and search on disk index
+
+
+indexNode:
+  enabled: true
+  disk:
+    enabled: true  # Enable index node build disk vector index
+
+## If you want to use mixcoord, enable this and disable all of other coords
+mixCoordinator:
+  enabled: true
+  replicas: 1
+
+# Disable datacoord since we're using mixcoord
+# Disable individual coordinators since we're using mixcoord
+rootCoordinator:
+  enabled: false
+
+queryCoordinator:
+  enabled: false
+
+indexCoordinator:
+  enabled: false
+
+dataCoordinator:
+  enabled: false

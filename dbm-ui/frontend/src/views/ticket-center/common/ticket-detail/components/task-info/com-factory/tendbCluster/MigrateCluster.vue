@@ -12,21 +12,24 @@
 -->
 
 <template>
-  <BkTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn
+    row-key="cluster_id">
+    <TicketInfoTableColumn
+      col-key="old_master"
       fixed="left"
-      :label="t('目标主库主机')"
-      :min-width="150">
-      <template #default="{ data }: { data: RowData }">
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
+      :min-width="150"
+      :title="t('目标主库主机')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.old_master.ip }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('主库主机关联实例')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="old_master_instance"
+      :min-width="200"
+      :title="t('主库主机关联实例')">
+      <template #default="{ row: data }: { row: RowData }">
         <template
           v-for="relateClusterItem in relateClusterMap[data.old_master.ip]"
           :key="relateClusterItem.instance_address">
@@ -42,18 +45,20 @@
             type="sync-pending" />
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('目标从库主机')"
-      :min-width="150">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="old_slave"
+      :min-width="150"
+      :title="t('目标从库主机')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.old_slave.ip }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('从库主机关联实例')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="old_slave_instance"
+      :min-width="200"
+      :title="t('从库主机关联实例')">
+      <template #default="{ row: data }: { row: RowData }">
         <template
           v-for="relateClusterItem in relateClusterMap[data.old_slave.ip]"
           :key="relateClusterItem.instance_address">
@@ -69,19 +74,21 @@
             type="sync-pending" />
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('所属集群')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_id"
+      :min-width="200"
+      :title="t('所属集群')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="new_instance"
       fixed="right"
-      :label="t('新实例')"
-      :min-width="150">
-      <template #default="{ data }: { data: RowData }">
+      :min-width="150"
+      :title="t('新实例')">
+      <template #default="{ row: data }: { row: RowData }">
         <div>
           <BkTag
             size="small"
@@ -99,8 +106,8 @@
           <span>{{ data.new_slave.ip }}</span>
         </div>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('备份源')">
       {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}

@@ -47,6 +47,10 @@ class MySQLFixPointRollbackDetailSerializer(MySQLBaseOperateDetailSerializer):
         tables = serializers.ListField(help_text=_("目标table列表"), child=DBTableField())
         tables_ignore = serializers.ListField(help_text=_("忽略table列表"), child=DBTableField())
 
+        affect_database_list = serializers.ListField(
+            help_text=_("影响的DB"), child=serializers.CharField(), allow_null=True, required=False
+        )
+
     rollback_cluster_type = serializers.ChoiceField(
         help_text=_("回档集群类型"), choices=RollbackBuildClusterType.get_choices()
     )
@@ -79,9 +83,20 @@ class MySQLFixPointRollbackDetailSerializer(MySQLBaseOperateDetailSerializer):
         if rollback_time > now:
             raise serializers.ValidationError(_("定点时间{}不能晚于当前时间{}").format(rollback_time, now))
 
+        # 指定时间构造需要检查binlog是否完整 todo
+        # backup_handler = MySQLBackupHandler(cluster_id=info["cluster_id"])
+        # backup_info = backup_handler.get_tendb_latest_backup_info(latest_time=rollback_time)
+        # if backup_info is None:
+        #     raise serializers.ValidationError(_("最近一次备份时间：{}没有备份信息").format(rollback_time))
+        # backup_time = str2datetime(backup_info["backup_time"])
+        # binlog_result = backup_handler.get_binlog_for_rollback(backup_info, backup_time, rollback_time)
+        # if "query_binlog_error" in binlog_result.keys():
+        #     raise serializers.ValidationError(
+        #         _("{} binlog sql: {}").format(binlog_result["query_binlog_error"], backup_handler.query)
+        #     )
+
     def validate(self, attrs):
-        # 校验集群是否可用
-        super().validate_cluster_can_access(attrs)
+        attrs = super().validate(attrs)
 
         now = datetime.datetime.now(timezone.utc)
         for info in attrs["infos"]:
@@ -95,12 +110,13 @@ class MySQLFixPointRollbackDetailSerializer(MySQLBaseOperateDetailSerializer):
 class MySQLFixPointRollbackFlowParamBuilder(builders.FlowParamBuilder):
     rollback_to_new_controller = MySQLController.mysql_rollback_data_cluster_scene
     rollback_to_exist_controller = MySQLController.mysql_rollback_to_cluster_scene
+    validator = MySQLController.mysql_rollback_to_cluster_scene.validator
 
     def format_ticket_data(self):
         rollback_cluster_type = self.ticket_data["rollback_cluster_type"]
         for info in self.ticket_data["infos"]:
             # 获取定点回档的类型
-            op_type = "BACKUPID" if info.get("backupinfo") else "TIME"
+            op_type = "TIME" if info.get("rollback_time") else "BACKUPID"
             info["rollback_type"] = f"{info['backup_source'].upper()}_AND_{op_type}"
             # 格式化定点回档部署的信息
             if rollback_cluster_type == RollbackBuildClusterType.BUILD_INTO_NEW_CLUSTER:
@@ -138,3 +154,18 @@ class MysqlFixPointRollbackFlowBuilder(BaseMySQLTicketFlowBuilder):
     resource_batch_apply_builder = MysqlFixPointRollbackResourceParamBuilder
     inner_flow_name = _("定点构造执行")
     retry_type = FlowRetryType.MANUAL_RETRY
+
+
+@builders.BuilderFactory.register(TicketType.MYSQL_FIXPOINT_NEW_CLUSTER, is_apply=True)
+class MysqlFixPointFlowNewClusterBuilder(MysqlFixPointRollbackFlowBuilder):
+    inner_flow_name = _("定点构造执行")
+
+
+@builders.BuilderFactory.register(TicketType.MYSQL_FIXPOINT_EXIST_CLUSTER, is_apply=True)
+class MysqlFixPointFlowExistClusterBuilder(MysqlFixPointRollbackFlowBuilder):
+    inner_flow_name = _("定点构造执行")
+
+
+@builders.BuilderFactory.register(TicketType.MYSQL_ROLLBACK, is_apply=True)
+class MysqlRollbackFlowBuilder(MysqlFixPointRollbackFlowBuilder):
+    inner_flow_name = _("定点回档执行")

@@ -17,7 +17,12 @@ from config import BASE_DIR
 
 logger = logging.getLogger("root")
 
+# 巡检报告注册器
 db_report_maps: Dict[str, List] = defaultdict(list)
+# 演练报告注册器
+drill_report_maps: Dict[str, List] = defaultdict(list)
+
+report_kind_register_map = {"inspect": db_report_maps, "drill": drill_report_maps}
 
 
 def register_report(db_type):
@@ -25,6 +30,17 @@ def register_report(db_type):
 
     def decorator(report_cls):
         db_report_maps[db_type].append(report_cls)
+        setattr(report_cls, "db_type", db_type)
+        return report_cls
+
+    return decorator
+
+
+def register_drill_report(db_type):
+    """演练视图的注册器"""
+
+    def decorator(report_cls):
+        drill_report_maps[db_type].append(report_cls)
         setattr(report_cls, "db_type", db_type)
         return report_cls
 

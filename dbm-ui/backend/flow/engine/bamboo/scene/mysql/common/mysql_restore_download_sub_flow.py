@@ -9,7 +9,7 @@ specific language governing permissions and limitations under the License.
 """
 from dataclasses import asdict
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder

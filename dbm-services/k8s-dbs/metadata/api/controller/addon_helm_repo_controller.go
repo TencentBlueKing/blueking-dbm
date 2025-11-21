@@ -47,8 +47,9 @@ func NewAddonHelmRepoController(
 	return &AddonHelmRepoController{addonHelmRepoProvider}
 }
 
-// GetAddonHelmRepoByID retrieves a addon helm repo by its ID.
+// GetAddonHelmRepoByID retrieves an addon helm repo by its ID.
 func (c *AddonHelmRepoController) GetAddonHelmRepoByID(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaAddonRepoDetail)
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
@@ -70,6 +71,7 @@ func (c *AddonHelmRepoController) GetAddonHelmRepoByID(ctx *gin.Context) {
 
 // CreateAddonHelmRepo create addon helm repo
 func (c *AddonHelmRepoController) CreateAddonHelmRepo(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaAddonRepoCreate)
 	var reqVo metareq.AddonHelmRepoRequest
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
@@ -98,6 +100,7 @@ func (c *AddonHelmRepoController) CreateAddonHelmRepo(ctx *gin.Context) {
 
 // GetAddonHelmRepoByParam get addon helm repo by its Param.
 func (c *AddonHelmRepoController) GetAddonHelmRepoByParam(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaAddonRepoSearch)
 	chartName := ctx.Param("chartName")
 	chartVersion := ctx.Param("chartVersion")
 	if chartName == "" || chartVersion == "" {

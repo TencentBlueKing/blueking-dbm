@@ -18,12 +18,12 @@ from pipeline.core.flow.activity import Service
 import backend.flow.utils.name_service.name_service_dataclass as flow_context
 from backend.db_services.plugin.nameservice import mysql_clb
 from backend.flow.plugins.components.collections.common.base_service import BaseService
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 logger = logging.getLogger("json")
 
 
-class ClbOperationType(str, StructuredEnum):
+class ClbOperationType(StrStructuredEnum):
     CREATE_CLB = EnumField("create_clb", _("create_clb"))
     DELETE_CLB = EnumField("delete_clb", _("delete_clb"))
     CLB_REGISTER_PART_TARGET = EnumField("clb_register_part_target", _("clb_register_part_target"))

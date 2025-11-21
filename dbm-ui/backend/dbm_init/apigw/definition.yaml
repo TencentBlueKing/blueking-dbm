@@ -1,3 +1,5 @@
+spec_version: 2
+
 release:
   version: {{ settings.BK_APIGW_STATIC_VERSION }}
   comment: "auto release by bk-dbm"
@@ -10,20 +12,21 @@ apigateway:
     - "{{ member }}"
     {% endfor %}
 
-stage:
-  name: {{ settings.BK_APIGW_STAGE_NAME }}
-  proxy_http:
-    timeout: 120
-    upstreams:
-      loadbalance: roundrobin
-      hosts:
-        - host: {{ settings.BK_SAAS_HOST }}
-          weight: 100
-  rate_limit:
-    enabled: false
-    rate:
-      tokens: 5000
-      period: 60
+stages:
+  - name: {{ settings.BK_APIGW_STAGE_NAME }}
+    backends:
+      - name: "default"
+        config:
+          timeout: 120
+          loadbalance: roundrobin
+          hosts:
+            - host: {{ settings.BK_SAAS_HOST }}
+              weight: 100
+    rate_limit:
+      enabled: false
+      rate:
+        tokens: 5000
+        period: 60
 
 # 主动授权，网关主动给应用，添加访问网关所有资源的权限
 grant_permissions:

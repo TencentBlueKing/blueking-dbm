@@ -12,59 +12,64 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
+  <TicketInfoTable
+    :data="ticketDetails.details.infos"
+    row-key="src_cluster">
+    <TicketInfoTableColumn
+      col-key="immute_domain"
       fixed="left"
-      :label="t('源集群')"
-      :min-width="180">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.src_cluster].immute_domain }}
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.src_cluster].immute_domain"
+      :min-width="180"
+      :title="t('源集群')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.src_cluster].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('源集群类型')"
-      :min-width="130">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.src_cluster].cluster_type_name }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_type_name"
+      :min-width="130"
+      :title="t('源集群类型')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.src_cluster].cluster_type_name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('源集群容量')"
-      :min-width="150">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      :min-width="150"
+      :title="t('源集群容量')">
+      <template #default="{ row }: { row: RowData }">
         {{
-          `${data.capacity}G_${ticketDetails.details.specs[data.resource_spec.backend_group.spec_id].qps.max || 0}/s(${data.current_shard_num}分片)`
+          `${row.capacity}G_${ticketDetails.details.specs[row.resource_spec.backend_group.spec_id].qps.max || 0}/s(${row.current_shard_num}分片)`
         }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="target_cluster_type"
-      :label="t('新集群类型')"
-      :min-width="130" />
-    <!-- <BkTableColumn
-      field="capacity"
-      :label="t('当前容量需求')" />
-    <BkTableColumn
-      field="future_capacity"
-      :label="t('未来容量需求')" /> -->
-    <BkTableColumn
-      field="db_version"
-      :label="t('新集群版本')" />
-    <BkTableColumn
-      :label="t('新集群部署方案')"
-      :min-width="150">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.specs[data.resource_spec.backend_group.spec_id].name }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="target_cluster_type"
+      :min-width="130"
+      :title="t('新集群类型')" />
+    <!-- <TicketInfoTableColumn
+      col-key="capacity"
+      :title="t('当前容量需求')" />
+    <TicketInfoTableColumn
+      col-key="future_capacity"
+      :title="t('未来容量需求')" /> -->
+    <TicketInfoTableColumn
+      col-key="db_version"
+      :title="t('新集群版本')" />
+    <TicketInfoTableColumn
+      :min-width="150"
+      :title="t('新集群部署方案')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.specs[row.resource_spec.backend_group.spec_id].name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('切换模式')"
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      :title="t('切换模式')"
       :width="100">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.online_switch_type === 'user_confirm' ? t('需人工确认') : t('无需确认') }}
+      <template #default="{ row }: { row: RowData }">
+        {{ row.online_switch_type === 'user_confirm' ? t('需人工确认') : t('无需确认') }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('校验与修复类型')">
       {{ repairAndVerifyTypesMap[ticketDetails.details.data_check_repair_setting.type] }}

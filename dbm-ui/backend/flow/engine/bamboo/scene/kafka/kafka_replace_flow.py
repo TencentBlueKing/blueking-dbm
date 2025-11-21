@@ -13,7 +13,7 @@ import logging.config
 from dataclasses import asdict
 from typing import Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import ConfType, FormatType, LevelName, ReqType
@@ -125,6 +125,7 @@ class KafkaReplaceFlow(object):
         self.data["factor"] = int(kafka_config["factor"])
         self.data["old_zookeeper_conf"] = kafka_config["zookeeper_conf"]
         self.data["zookeeper_conf"] = self.data["old_zookeeper_conf"]
+        self.data["no_security"] = int(kafka_config["no_security"])
 
         # get username
         query_params = {

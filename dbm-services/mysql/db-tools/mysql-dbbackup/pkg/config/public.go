@@ -174,6 +174,8 @@ const (
 	BackupNonFullByRegular = "non_full_by_regular"
 	// BackupFullByTicket 单据全库备份
 	BackupFullByTicket = "full_by_ticket"
+	// BackupFullWithNodata 只备份表结构，但当做 full backup。用于只做结构迁移的同步
+	BackupFullWithNodata = "full_with_nodata"
 	// BackupPartialByTicket 单据库表备份
 	BackupPartialByTicket = "partial_by_ticket"
 )

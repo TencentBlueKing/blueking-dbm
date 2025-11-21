@@ -10,12 +10,12 @@ specific language governing permissions and limitations under the License.
 """
 
 from django.db import models
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.bk_web.constants import LEN_LONG, LEN_NORMAL, LEN_XX_LONG
 from backend.bk_web.models import AuditedModel
 from backend.db_meta.enums import ClusterType
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 from .enums import AutofixStatus
 
@@ -67,7 +67,7 @@ class RedisIgnoreAutofix(AuditedModel):
         index_together = [("bk_biz_id", "ip")]
 
 
-class NodeUpdateTaskStatus(str, StructuredEnum):
+class NodeUpdateTaskStatus(StrStructuredEnum):
     TODO = EnumField("todo", _("待处理"))
     CANCELED = EnumField("canceled", _("已取消"))
     FAILED = EnumField("failed", _("失败"))

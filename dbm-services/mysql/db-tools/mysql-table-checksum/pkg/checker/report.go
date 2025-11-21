@@ -62,11 +62,23 @@ func (r *Checker) Report() error {
 		slog.Error("get master hosts: ", slog.String("error", err.Error()))
 		return err
 	}
-	slog.Info("query master info",
-		slog.String("master ip", masterIP), slog.Int("master port", masterPort))
+	slog.Info(
+		"query master info",
+		slog.String("master ip", masterIP), slog.Int("master port", masterPort),
+	)
 
-	rows, err := r.db.Queryx(
-		fmt.Sprintf(`SELECT master_ip, master_port,
+	tx, err := r.conn.BeginTxx(context.Background(), nil)
+	if err != nil {
+		slog.Error("start transaction: ", slog.String("error", err.Error()))
+		return err
+	}
+	defer func() {
+		_ = tx.Commit()
+	}()
+
+	rows, err := tx.Queryx(
+		fmt.Sprintf(
+			`SELECT master_ip, master_port,
 									db, tbl,
 									chunk, chunk_time, chunk_index,
 									lower_boundary, upper_boundary,
@@ -80,7 +92,8 @@ func (r *Checker) Report() error {
 							       lower_boundary, upper_boundary,
 							       this_crc, this_cnt, master_crc, master_cnt, ts
 							FROM %s WHERE master_ip = ? AND master_port = ? AND reported = 0
-										AND (db = ? OR db = ?)`, r.resultHistoryTable, r.resultHistoryTable),
+										AND (db = ? OR db = ?)`, r.resultHistoryTable, r.resultHistoryTable,
+		),
 		masterIP, masterPort, masterIP, masterPort,
 		dailyStr, roundStartStr,
 	)
@@ -105,11 +118,14 @@ func (r *Checker) Report() error {
 		}
 	}
 
-	_, err = r.conn.ExecContext(
+	_, err = tx.ExecContext(
 		context.Background(),
-		fmt.Sprintf(`UPDATE %s.%s SET reported = 1
+		fmt.Sprintf(
+			`UPDATE %s.%s SET reported = 1
 								WHERE master_ip = ? AND master_port = ? AND reported = 0`,
-			r.resultDB, r.resultHistoryTable), masterIP, masterPort)
+			r.resultDB, r.resultHistoryTable,
+		), masterIP, masterPort,
+	)
 	if err != nil {
 		slog.Error("update reported", slog.String("error", err.Error()))
 		return err

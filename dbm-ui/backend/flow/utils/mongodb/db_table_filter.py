@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import re
 from typing import List
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.flow.utils.mysql.db_table_filter.exception import DbTableFilterValidateException
 

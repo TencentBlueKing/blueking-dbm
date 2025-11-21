@@ -12,7 +12,7 @@ import logging
 from dataclasses import dataclass, field
 from functools import wraps
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_package.models import Package

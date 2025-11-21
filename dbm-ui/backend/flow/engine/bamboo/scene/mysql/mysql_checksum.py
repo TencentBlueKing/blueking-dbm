@@ -15,14 +15,16 @@ from dataclasses import asdict
 from typing import Dict, Optional
 
 from django.utils.crypto import get_random_string
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
-from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.models import Cluster
-from backend.flow.consts import ACCOUNT_PREFIX, DBA_SYSTEM_USER, MAX_LONG_JOB_TIMEOUT
+from backend.flow.consts import ACCOUNT_PREFIX, DBA_ROOT_USER, MAX_LONG_JOB_TIMEOUT
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
-from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import DeployPeripheralToolsDepart
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import (
+    standardize_mysql_cluster_by_cluster_subflow,
+)
 from backend.flow.plugins.components.collections.common.sleep_time_service import SleepTimerComponent
 from backend.flow.plugins.components.collections.mysql.create_user import CreateUserComponent
 from backend.flow.plugins.components.collections.mysql.drop_user import DropUserComponent
@@ -31,11 +33,9 @@ from backend.flow.plugins.components.collections.mysql.mysql_checksum_report imp
 from backend.flow.plugins.components.collections.mysql.mysql_master_slave_relationship_check import (
     MysqlMasterSlaveRelationshipCheckServiceComponent,
 )
-from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     AddTempUserKwargs,
     BKCloudIdKwargs,
-    DownloadMediaKwargs,
     DropUserKwargs,
     ExecActuatorKwargs,
     IfTimingAfterNowKwargs,
@@ -95,6 +95,40 @@ class MysqlChecksumFlow(object):
         checksum_pipeline = Builder(
             root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids))
         )
+
+        bk_biz_id = 0
+        cloud_cluster_map = {}
+        for cluster_obj in Cluster.objects.filter(pk__in=cluster_ids):
+            bk_biz_id = cluster_obj.bk_biz_id
+            if cluster_obj.bk_cloud_id not in cloud_cluster_map:
+                cloud_cluster_map[cluster_obj.bk_cloud_id] = set()
+
+            cloud_cluster_map[cluster_obj.bk_cloud_id].add(cluster_obj.pk)
+
+        standardize_subs = []
+        for bk_cloud_id, cluster_ids_set in cloud_cluster_map.items():
+            standardize_subs.append(
+                standardize_mysql_cluster_by_cluster_subflow(
+                    root_id=self.root_id,
+                    data=copy.deepcopy(self.data),
+                    bk_cloud_id=bk_cloud_id,
+                    bk_biz_id=bk_biz_id,
+                    cluster_ids=list(cluster_ids_set),
+                    departs=[DeployPeripheralToolsDepart.MySQLTableChecksum],
+                    with_deploy_binary=True,
+                    with_push_config=True,
+                    with_collect_sysinfo=False,
+                    with_actuator=True,
+                    with_bk_plugin=False,
+                    with_cc_standardize=False,
+                    with_instance_standardize=False,
+                    with_backup_client=False,
+                    with_exporter_config=False,
+                )
+            )
+
+        checksum_pipeline.add_parallel_sub_pipeline(sub_flow_list=standardize_subs)
+
         sub_pipelines = []
 
         # 一个单据里多行任务的cluster不能重复
@@ -153,18 +187,6 @@ class MysqlChecksumFlow(object):
             sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
             sub_pipeline.add_act(
-                act_name=_("下发actuator介质"),
-                act_component_code=TransFileComponent.code,
-                kwargs=asdict(
-                    DownloadMediaKwargs(
-                        bk_cloud_id=bk_cloud_id,
-                        exec_ip=info["master"]["ip"],
-                        file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
-                    )
-                ),
-            )
-
-            sub_pipeline.add_act(
                 act_name=_("actuator执行checksum"),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(
@@ -172,7 +194,7 @@ class MysqlChecksumFlow(object):
                         job_timeout=MAX_LONG_JOB_TIMEOUT,
                         exec_ip=info["master"]["ip"],
                         bk_cloud_id=bk_cloud_id,
-                        run_as_system_user=DBA_SYSTEM_USER,
+                        run_as_system_user=DBA_ROOT_USER,
                         get_mysql_payload_func=MysqlActPayload.get_checksum_payload.__name__,
                     )
                 ),

@@ -36,8 +36,8 @@ func (e *DynamicEvent) ClusterType() string {
 func (e *DynamicEvent) EventType() string {
 	return e.EventName
 }
-func (e *DynamicEvent) EventCreateTimeStamp() int64 {
-	return time.Now().UnixMicro()
+func (e *DynamicEvent) EventCreateTime() time.Time {
+	return time.Now()
 }
 func (e *DynamicEvent) EventBkBizId() int64 {
 	return e.bkBizId

@@ -11,12 +11,12 @@ specific language governing permissions and limitations under the License.
 from enum import Enum
 from typing import Dict
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.utils import env
 from backend.utils.basic import choices_to_namedtuple, tuple_choices
 from backend.utils.enum import EnhanceEnum
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
 class CommonEnum(EnhanceEnum):
@@ -64,7 +64,7 @@ class CommonEnum(EnhanceEnum):
         }
 
 
-class BkOsType(str, StructuredEnum):
+class BkOsType(StrStructuredEnum):
     """蓝鲸操作系统类型"""
 
     LINUX = EnumField("Linux", "Linux")
@@ -84,7 +84,7 @@ class BkOsType(str, StructuredEnum):
         return cls.LINUX.value
 
 
-class BkOsTypeCode(str, StructuredEnum):
+class BkOsTypeCode(StrStructuredEnum):
     """蓝鲸操作系统代码"""
 
     LINUX = EnumField("1", "Linux")

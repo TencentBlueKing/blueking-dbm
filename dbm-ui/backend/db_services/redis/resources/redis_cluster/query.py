@@ -8,15 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List
 
 from django.db import connection
 from django.db.models import Q, QuerySet
 from django.forms import model_to_dict
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
-from backend.configuration.constants import SystemSettingsEnum
-from backend.configuration.models import SystemSettings
 from backend.db_meta.api.cluster.rediscluster.handler import RedisClusterHandler
 from backend.db_meta.api.cluster.redisinstance.handler import RedisInstanceHandler
 from backend.db_meta.api.cluster.tendiscache.handler import TendisCacheClusterHandler
@@ -34,13 +32,8 @@ from backend.db_services.dbbase.resources.query import (
 )
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
-from backend.db_services.redis.redis_dts.util import get_redis_type_by_cluster_type
 from backend.db_services.redis.redis_modules.models.redis_module_support import ClusterRedisModuleAssociate
-from backend.db_services.redis.resources.constants import (
-    REDIS_DELETE_RATE,
-    REDIS_LIST_CLUSTER_TYPE,
-    SQL_QUERY_MASTER_SLAVE_STATUS,
-)
+from backend.db_services.redis.resources.constants import REDIS_LIST_CLUSTER_TYPE, SQL_QUERY_MASTER_SLAVE_STATUS
 from backend.utils.basic import dictfetchall
 
 
@@ -157,6 +150,27 @@ class RedisListRetrieveResource(query.ListRetrieveResource, RedisExportQueryReso
     redis_cluster_module_map = {}
 
     @classmethod
+    def _list_clusters(
+        cls,
+        bk_biz_id: int,
+        query_params: Dict,
+        limit: int,
+        offset: int,
+        filter_params_map: Dict[str, Q] = None,
+        filter_func_map: Dict[str, Callable] = None,
+        **kwargs,
+    ) -> ResourceList:
+        """查询集群信息"""
+        filter_params_map = {
+            # 查询集群架构
+            "redis_cluster_type": Q(cluster_type__in=query_params.get("redis_cluster_type", "").split(",")),
+        }
+
+        return super()._list_clusters(
+            bk_biz_id, query_params, limit, offset, filter_params_map, filter_func_map, **kwargs
+        )
+
+    @classmethod
     def get_topo_graph(cls, bk_biz_id: int, cluster_id: int) -> dict:
         cluster = Cluster.objects.get(id=cluster_id)
         handler_cls = cls.handler_map.get(cluster.cluster_type)
@@ -200,11 +214,6 @@ class RedisListRetrieveResource(query.ListRetrieveResource, RedisExportQueryReso
             .distinct()
             .values("cluster_id", "module_names")
         }
-        # 获取redis集群删除率的配置
-        delete_rate_configs = SystemSettings.get_setting_value(
-            key=SystemSettingsEnum.REDIS_DELETE_RATE.value,
-            default=REDIS_DELETE_RATE,
-        )
 
         return super()._filter_cluster_hook(
             bk_biz_id,
@@ -215,7 +224,6 @@ class RedisListRetrieveResource(query.ListRetrieveResource, RedisExportQueryReso
             offset,
             seg_range_map=seg_range_map,
             instance_tuple=list(instance_tuple),
-            delete_rate_configs=delete_rate_configs,
             **kwargs,
         )
 
@@ -232,13 +240,11 @@ class RedisListRetrieveResource(query.ListRetrieveResource, RedisExportQueryReso
         cluster_stats_map: Dict[str, Dict[str, int]],
         cluster_zone_map: Dict[str, str],
         dns_to_clb: bool = False,
-        delete_rate_configs: dict = None,
         **kwargs,
     ) -> Dict[str, Any]:
         """集群序列化"""
         seg_range_map = kwargs["seg_range_map"]
         instance_tuple = kwargs["instance_tuple"]
-        delete_rate_configs = delete_rate_configs or REDIS_DELETE_RATE
         # 填充分片信息
         machine_list, remote_infos = remote_tuple_info(
             seg_range_map, instance_tuple, cluster.cluster_type, cluster.storages
@@ -266,7 +272,6 @@ class RedisListRetrieveResource(query.ListRetrieveResource, RedisExportQueryReso
             "cluster_shard_num": len(remote_infos[InstanceRole.REDIS_MASTER.value]),
             "machine_pair_cnt": machine_pair_cnt,
             "module_names": cls.redis_cluster_module_map.get(cluster.id, []),
-            "delete_rate": delete_rate_configs[get_redis_type_by_cluster_type(cluster.cluster_type)],
         }
         cluster_info = super()._to_cluster_representation(
             cluster,

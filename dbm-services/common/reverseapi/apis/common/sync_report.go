@@ -59,8 +59,8 @@ func SyncReport[T common.ISyncReportEvent](core *core.Core, events ...T) ([]byte
 			BkBizId:              e.EventBkBizId(),
 			ClusterType:          e.ClusterType(),
 			EventType:            e.EventType(),
-			EventCreateTimestamp: e.EventCreateTimeStamp(),
-			EventReportTimestamp: time.Now().UnixMicro(),
+			EventCreateTimestamp: e.EventCreateTime().UTC().UnixMicro(),
+			EventReportTimestamp: time.Now().UTC().UnixMicro(),
 			EventUUID:            uuid.New().String(),
 		})
 	}

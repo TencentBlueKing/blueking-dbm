@@ -25,7 +25,7 @@ from backend.flow.consts import SqlserverSyncMode
 
 
 class ListResourceSLZ(serializers.Serializer):
-    id = serializers.IntegerField(required=False)
+    id = serializers.CharField(required=False)
     name = serializers.CharField(required=False)
     instance = serializers.CharField(required=False)
     domain = serializers.CharField(required=False)
@@ -33,6 +33,7 @@ class ListResourceSLZ(serializers.Serializer):
     major_version = serializers.CharField(required=False)
     region = serializers.CharField(required=False)
     city = serializers.CharField(required=False)
+    disaster_tolerance_level = serializers.CharField(required=False)
     cluster_ids = serializers.CharField(help_text=_("集群ID(多个过滤以逗号分隔)"), required=False)
     exact_domain = serializers.CharField(help_text=_("精确域名查询"), required=False)
     status = serializers.CharField(required=False, help_text=_("状态"))
@@ -42,6 +43,8 @@ class ListResourceSLZ(serializers.Serializer):
     ordering = serializers.CharField(required=False, help_text=_("排序字段,非必填"))
     tag_ids = serializers.CharField(required=False, help_text=_("标签"))
     tag_keys = serializers.CharField(required=False, help_text=_("标签键"))
+    create_at__gte = serializers.DateTimeField(required=False, help_text=_("创建时间"))
+    create_at__lte = serializers.DateTimeField(required=False, help_text=_("创建时间"))
 
 
 class ListMySQLResourceSLZ(ListResourceSLZ):
@@ -54,7 +57,7 @@ class ListTendbClusterResourceSLZ(ListMySQLResourceSLZ):
 
 
 class ListRedisResourceSLZ(ListResourceSLZ):
-    pass
+    redis_cluster_type = serializers.CharField(help_text=_("集群架构"), required=False)
 
 
 class ListSQLServerResourceSLZ(ListResourceSLZ):

@@ -164,7 +164,7 @@
         {
           case: '2核_4G_50G',
           key: 'spec_name',
-          label: t('规格'),
+          label: t('目标规格'),
         },
         {
           case: '标签1,标签2',

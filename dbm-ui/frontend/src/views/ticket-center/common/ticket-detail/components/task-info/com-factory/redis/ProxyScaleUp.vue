@@ -12,31 +12,45 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
-      :label="t('目标集群')"
-      :min-width="250">
-      <template #default="{data}: {data: IRowData}">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+  <TicketInfoTable
+    :data="ticketDetails.details.infos"
+    row-key="cluster_id">
+    <TicketInfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(row: IRowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
+      :min-width="250"
+      :title="t('目标集群')">
+      <template #default="{ row }: { row: IRowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('架构版本')">
-      <template #default="{data}: {data: IRowData}">
-        {{ ticketDetails.details.clusters[data.cluster_id].cluster_type_name }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_type_name"
+      :title="t('架构版本')">
+      <template #default="{ row }: { row: IRowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].cluster_type_name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('扩容节点类型')"> Proxy </BkTableColumn>
-    <BkTableColumn :label="t('当前规格')">
-      <template #default="{data}: {data: IRowData}">
-        {{ ticketDetails.details.specs[data.resource_spec.proxy.spec_id].name }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="node_type"
+      :title="t('扩容节点类型')">
+      Proxy
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="spec_id"
+      :title="t('当前规格')">
+      <template #default="{ row }: { row: IRowData }">
+        {{ ticketDetails.details.specs[row.resource_spec.proxy.spec_id].name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('扩容数量（台）')">
-      <template #default="{data}: {data: IRowData}">
-        {{ data.resource_spec.proxy.count }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="count"
+      :title="t('扩容数量（台）')">
+      <template #default="{ row }: { row: IRowData }">
+        {{ row.resource_spec.proxy.count }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">

@@ -11,28 +11,28 @@ specific language governing permissions and limitations under the License.
 from enum import Enum
 from typing import Any, Dict, List
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.utils.cache import class_member_cache
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, IntStructuredEnum, StrStructuredEnum
 
 
-class CosBucketEnum(StructuredEnum):
+class CosBucketEnum(StrStructuredEnum):
     """对象存储仓库枚举"""
 
-    # TODO 这里如果加 ugettext_lazy 会有 AppRegistryNotReady 异常，怀疑是 StructuredEnum 的问题，待解决
+    # TODO 这里如果加 gettext_lazy 会有 AppRegistryNotReady 异常，怀疑是 StructuredEnum 的问题，待解决
     PUBLIC = EnumField("public", _("公开仓库"))
     PRIVATE = EnumField("private", _("私有仓库"))
 
 
-class JobFileType(StructuredEnum):
+class JobFileType(IntStructuredEnum):
     """作业平台源文件类型"""
 
     SERVER = EnumField(1, _("服务器文件"))
     THIRD_PART = EnumField(3, _("第三方源文件"))
 
 
-class StorageType(StructuredEnum):
+class StorageType(StrStructuredEnum):
     """文件存储类型枚举"""
 
     FILE_SYSTEM = EnumField("FILE_SYSTEM", _("本地文件系统"))
@@ -77,7 +77,7 @@ class StorageType(StructuredEnum):
         return member_value__alias_map
 
 
-class FileCredentialType(StructuredEnum):
+class FileCredentialType(StrStructuredEnum):
     """文件凭证类型"""
 
     SECRET_KEY = EnumField("SECRET_KEY", _("单一SecretKey"))

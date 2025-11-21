@@ -11,7 +11,7 @@ from typing import Dict, List
 
 from django.db.models import F, Value
 from django.db.models.functions import Concat
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components.dbresource.client import DBResourceApi
 from backend.db_meta.enums import ClusterType, InstanceInnerRole

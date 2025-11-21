@@ -191,3 +191,15 @@ export function getClusterNetTcpResult(params: { job_instance_id: number }) {
     finished: boolean;
   }>(`${getRootPath()}/get_cluster_net_tcp_result/`, params);
 }
+
+/**
+ * 查询删除key速率
+ */
+export function getClusterDelKeyRate(params: { cluster_id: number }) {
+  return http.get<{
+    delete_rate: {
+      default: number;
+      rate_list: number[];
+    };
+  }>(`${getRootPath()}/get_cluster_del_key_rate/`, params);
+}

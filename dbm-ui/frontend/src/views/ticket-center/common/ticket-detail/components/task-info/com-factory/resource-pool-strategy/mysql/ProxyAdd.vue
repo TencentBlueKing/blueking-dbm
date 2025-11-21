@@ -12,74 +12,87 @@
 -->
 
 <template>
-  <InfoList>
-    <InfoItem :label="t('主机选择方式')">
-      {{ ticketDetails.details.source_type === SourceType.RESOURCE_AUTO ? t('资源池自动匹配') : t('资源池手动选择') }}
-    </InfoItem>
-  </InfoList>
-  <BkTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn
-      fixed="left"
-      :label="t('目标集群')"
-      :min-width="250">
-      <template #default="{ data }: { data: RowData }">
-        <div
+    row-key="cluster_ids">
+    <TicketInfoTableColumn
+      col-key="cluster_ids"
+      :get-copy-value="
+        (item: RowData) => item.cluster_ids.map((clusterId) => ticketDetails.details.clusters[clusterId].immute_domain)
+      "
+      :min-width="250"
+      :title="t('目标集群')">
+      <template #default="{ row: data }: { row: RowData }">
+        <p
           v-for="clusterId in data.cluster_ids"
-          :key="clusterId"
-          style="line-height: 20px">
+          :key="clusterId">
           {{ ticketDetails.details.clusters[clusterId].immute_domain }}
-        </div>
+        </p>
       </template>
-    </BkTableColumn>
-    <template v-if="ticketDetails.details.source_type === SourceType.RESOURCE_AUTO">
-      <BkTableColumn
-        :label="t('规格')"
-        :min-width="120">
-        <template #default="{ data }: { data: RowData }">
-          {{ ticketDetails.details.specs?.[data.resource_spec.new_proxy.spec_id]?.name || '--' }}
-        </template>
-      </BkTableColumn>
-      <BkTableColumn
-        :label="t('资源标签')"
-        :min-width="200">
-        <template #default="{ data }: { data: RowData }">
-          <template v-if="data.resource_spec.new_proxy?.label_names?.length">
-            <BkTag
-              v-for="item in data.resource_spec.new_proxy.label_names"
-              :key="item">
-              {{ item }}
-            </BkTag>
-          </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="current_proxy_num"
+      :min-width="120"
+      :title="t('当前数量（台）')">
+      <template #default="{ row: data }: { row: RowData }">
+        {{ data?.current_proxy_num || '--' }}
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="resource_spec.new_proxies.count"
+      :min-width="120"
+      :title="t('扩容数量（台）')">
+      <template #default="{ row: data }: { row: RowData }">
+        {{ data.resource_spec.new_proxies?.count || '--' }}
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="current_proxy_num"
+      :min-width="120"
+      :title="t('最终数量（台）')">
+      <template #default="{ row: data }: { row: RowData }">
+        {{
+          data?.current_proxy_num && data.resource_spec.new_proxies?.count
+            ? data.current_proxy_num + data.resource_spec.new_proxies.count
+            : '--'
+        }}
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="spec_id"
+      :min-width="120"
+      :title="t('规格')">
+      <template #default="{ row: data }: { row: RowData }">
+        {{ ticketDetails.details.specs?.[data.resource_spec.new_proxies.spec_id]?.name || '--' }}
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="label_names"
+      :min-width="200"
+      :title="t('资源标签')">
+      <template #default="{ row: data }: { row: RowData }">
+        <template v-if="data.resource_spec.new_proxies?.label_names?.length">
           <BkTag
-            v-else
-            theme="success">
-            {{ t('通用无标签') }}
+            v-for="item in data.resource_spec.new_proxies.label_names"
+            :key="item">
+            {{ item }}
           </BkTag>
         </template>
-      </BkTableColumn>
-    </template>
-    <template v-if="ticketDetails.details.source_type === SourceType.RESOURCE_MANUAL">
-      <BkTableColumn
-        :label="t('新Proxy主机')"
-        :min-width="120">
-        <template #default="{ data }: { data: RowData }">
-          {{ data.resource_spec.new_proxy.hosts?.[0]?.ip || '--' }}
-        </template>
-      </BkTableColumn>
-    </template>
-  </BkTable>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
+      </template>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
-  import { SourceType } from '@services/types';
 
   import { TicketTypes } from '@common/const';
-
-  import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.ResourcePool.ProxyAdd>;

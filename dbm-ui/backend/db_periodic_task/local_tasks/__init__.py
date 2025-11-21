@@ -8,16 +8,25 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from backend.db_periodic_task.local_tasks.check_checksum import *
+# 先导入注册器和工具函数，避免循环导入
+from backend.db_periodic_task.local_tasks.context_manager import start_new_span  # isort:skip
+from backend.db_periodic_task.local_tasks.register import register_periodic_task, registered_local_tasks  # isort:skip
+from backend.db_periodic_task.constants import PeriodicTaskType  # isort:skip
+
+# 再导入各个任务模块
 from backend.db_periodic_task.local_tasks.check_expired_job_users import *
 from backend.db_periodic_task.local_tasks.db_meta import *
 from backend.db_periodic_task.local_tasks.db_monitor import *
 from backend.db_periodic_task.local_tasks.db_proxy import *
 from backend.db_periodic_task.local_tasks.dbmon_heartbeat import *
+from backend.db_periodic_task.local_tasks.disable_dbha import *
+from backend.db_periodic_task.local_tasks.doris import *
+from backend.db_periodic_task.local_tasks.iam import *
 from backend.db_periodic_task.local_tasks.mongodb_tasks import mongodb_backup_check_task, mongodb_metric_check_task
 from backend.db_periodic_task.local_tasks.mysql_backup import *
 from backend.db_periodic_task.local_tasks.mysql_backup_rollback import backup_data_recovery_task
 from backend.db_periodic_task.local_tasks.mysql_check_partition import *
+from backend.db_periodic_task.local_tasks.mysql_checksum import check_checksum_task
 from backend.db_periodic_task.local_tasks.mysql_failover_drill import *
 from backend.db_periodic_task.local_tasks.randomize_password import *
 from backend.db_periodic_task.local_tasks.redis_autofix import *
@@ -26,10 +35,8 @@ from backend.db_periodic_task.local_tasks.redis_clusternodes_update import *
 from backend.db_periodic_task.local_tasks.redis_failover_drill import *
 from backend.db_periodic_task.local_tasks.sqlserver import *
 from backend.db_periodic_task.local_tasks.ticket import *
+from backend.db_periodic_task.local_tasks.update_host_property import *
 from backend.db_periodic_task.models import DBPeriodicTask
-
-from ..constants import PeriodicTaskType
-from .register import registered_local_tasks
 
 # 注册动态创建的定时任务
 # 添加轮值排版发送定时任务

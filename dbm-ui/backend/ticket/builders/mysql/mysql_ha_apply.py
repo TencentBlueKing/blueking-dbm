@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import itertools
 from typing import Dict, List
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, SLAVE_DOMAIN_INITIAL_VALUE
@@ -108,6 +108,7 @@ class MysqlHAApplyFlowParamBuilder(MysqlSingleApplyFlowParamBuilder):
 
 class MysqlHaApplyResourceParamBuilder(MysqlSingleApplyResourceParamBuilder):
     def format(self):
+        # 这里必须用group_count参数，因为需要分组申请后顺序分配
         self.ticket_data["resource_spec"]["proxy"]["group_count"] = 2
 
     @classmethod

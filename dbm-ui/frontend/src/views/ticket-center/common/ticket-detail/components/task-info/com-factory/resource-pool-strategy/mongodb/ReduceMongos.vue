@@ -12,23 +12,30 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
+  <TicketInfoTable
+    :data="ticketDetails.details.infos"
+    ellipsis
+    row-key="cluster_id">
+    <TicketInfoTableColumn
+      col-key="cluster_id"
       fixed="left"
-      :label="t('目标分片集群')"
-      :min-width="200">
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters?.[row.cluster_id]?.immute_domain || ''"
+      :min-width="200"
+      :title="t('目标分片集群')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters?.[row.cluster_id]?.immute_domain || '--' }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('缩容节点类型')"
-      :min-width="150">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="node_type"
+      :min-width="150"
+      :title="t('缩容节点类型')">
       <template #default> mongos </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('当前规格')"
-      :min-width="150">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="spec"
+      :min-width="150"
+      :title="t('当前规格')">
       <template #default>
         {{ specInfo?.name || '--' }}
         <SpecDetailPopover
@@ -39,15 +46,16 @@
             type="visible1" />
         </SpecDetailPopover>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('缩容的IP')"
-      :min-width="150">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="old_nodes"
+      :min-width="150"
+      :title="t('缩容的IP')">
       <template #default="{ row }: { row: RowData }">
         {{ row.old_nodes.mongos?.length > 0 ? row.old_nodes.mongos.map((item) => item.ip).join(',') : '--' }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

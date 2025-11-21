@@ -39,6 +39,8 @@ class AppSettingCheckReportSerializer(serializers.ModelSerializer, ReportCommonF
             "is_fix",
             "create_at",
             "dba",
+            "failed_days",
+            "state",
         )
         swagger_schema_fields = {"example": mock_data.SQLSERVER_APP_SETTING_CHECK_DATA}
 
@@ -98,6 +100,11 @@ class AppSettingCheckReportBaseViewSet(ReportBaseViewSet):
             "name": "failed_days",
             "display_name": _("持续天数"),
             "format": ReportFieldFormat.TEXT.value,
+        },
+        {
+            "name": "state",
+            "display_name": _("检查状态"),
+            "format": ReportFieldFormat.STATUS.value,
         },
     ]
 

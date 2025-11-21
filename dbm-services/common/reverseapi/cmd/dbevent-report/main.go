@@ -87,8 +87,8 @@ type oneEvent struct {
 	eventBody    map[string]interface{}
 }
 
-func (c *oneEvent) EventCreateTimeStamp() int64 {
-	return time.Now().UnixMicro()
+func (c *oneEvent) EventCreateTime() time.Time {
+	return time.Now()
 }
 
 func (c *oneEvent) ClusterType() string {

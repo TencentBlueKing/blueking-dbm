@@ -70,7 +70,7 @@ MYSQL_ROLLBACK_CLUSTER_DATA = {
                 "cluster_id": CLUSTER_ID,
                 "databases": ["*"],
                 "databases_ignore": [],
-                "rollback_time": "2025-06-11T23:59:59+08:00",
+                "backupinfo": {"priv": {"size": 3104, "task_id": "1234"}},
                 "rollback_type": "REMOTE_AND_TIME",
                 "tables": ["*"],
                 "tables_ignore": [],
@@ -317,7 +317,7 @@ SQL_IMPORT_DATA = {
         "charset": "default",
         "force": False,
         "path": "/bk-dbm/mysql/sqlfile",
-        "cluster_ids": [110],
+        "cluster_ids": [CLUSTER_ID],
         "execute_objects": [
             {
                 "sql_files": ["bar.sql", "foo.sql"],
@@ -412,7 +412,7 @@ MYSQL_PROXY_SWITCH_DATA = {
                 "bk_cloud_id": 0,
                 "cluster_ids": [CLUSTER_ID],
                 "old_nodes": {
-                    "origin_proxy": [
+                    "proxy": [
                         {
                             "bk_biz_id": BK_BIZ_ID,
                             "bk_cloud_id": 0,
@@ -423,8 +423,18 @@ MYSQL_PROXY_SWITCH_DATA = {
                         }
                     ]
                 },
+                "origin_proxies": [
+                    {
+                        "bk_biz_id": BK_BIZ_ID,
+                        "bk_cloud_id": 0,
+                        "bk_host_id": 446,
+                        "instance_address": "5.5.5.6:20001",
+                        "ip": "5.5.5.6",
+                        "port": 20001,
+                    }
+                ],
                 "resource_spec": {
-                    "target_proxy": {
+                    "target_proxies": {
                         "hosts": [{"bk_biz_id": BK_BIZ_ID, "bk_cloud_id": 0, "bk_host_id": 447, "ip": "5.5.5.7"}]
                     }
                 },

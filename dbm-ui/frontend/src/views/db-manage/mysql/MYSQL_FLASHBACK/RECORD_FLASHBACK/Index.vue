@@ -270,7 +270,6 @@
         end_time: item.end_time || '',
         rows_filter: item.rows_filter?.replaceAll('\\n', '\n') || '',
         start_time: item.start_time || '',
-        tables: item.tables ? item.tables.split(',') : [],
       }),
     );
     if (isClear) {

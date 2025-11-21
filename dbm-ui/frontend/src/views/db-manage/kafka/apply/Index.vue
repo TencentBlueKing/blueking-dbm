@@ -145,7 +145,8 @@
                     :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="kafka"
-                    machine-type="zookeeper" />
+                    machine-type="zookeeper"
+                    :subzone-ids="formData.details.sub_zone_ids" />
                 </BkFormItem>
                 <BkFormItem
                   :label="t('数量')"
@@ -175,7 +176,8 @@
                     :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="kafka"
-                    machine-type="broker" />
+                    machine-type="broker"
+                    :subzone-ids="formData.details.sub_zone_ids" />
                 </BkFormItem>
                 <BkFormItem
                   :label="t('数量')"

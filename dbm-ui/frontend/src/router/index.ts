@@ -23,6 +23,7 @@ import getDbConfRoutes from '@views/db-configure/routes';
 import getDbManageRoutes from '@views/db-manage/routes';
 import getDbhaSwitchEventsRouters from '@views/dbha-switch-events/routes';
 import getDutyRuleManageRoutes from '@views/duty-rule-manage/routes';
+import getExerciseReportRoutes from '@views/exercise-report/routes';
 import getInspectionRoutes from '@views/inspection-manage/routes';
 import getMonitorAlarmRoutes from '@views/monitor-alarm/routes';
 import getNotificationSettingRoutes from '@views/notification-setting/routes';
@@ -30,6 +31,7 @@ import getPasswordManageRoutes from '@views/password-manage/routes';
 import getPlatformDbConfigureRoutes from '@views/platform-db-configure/routes';
 import getQuickSearchRoutes from '@views/quick-search/routes';
 import getResourceManageRoutes from '@views/resource-manage/routes';
+import getRiskMemoRoutes from '@views/risk-memo/routes';
 import getServiceApplyRoutes from '@views/service-apply/routes';
 import getServiceStatusRoutes from '@views/service-status/routes';
 import getStaffManageRoutes from '@views/staff-manage/routes';
@@ -103,6 +105,7 @@ export default () => {
   getResourceManageRoutes();
   getDashborderRoutes();
   getDbManageRoutes();
+  getRiskMemoRoutes();
 
   const routes = [
     {
@@ -114,6 +117,7 @@ export default () => {
         ...getQuickSearchRoutes(),
         ...getDutyRuleManageRoutes(),
         ...getServiceStatusRoutes(),
+        ...getExerciseReportRoutes(),
         ...moduleList,
         {
           component: () => import('@/demo/Index.vue'),

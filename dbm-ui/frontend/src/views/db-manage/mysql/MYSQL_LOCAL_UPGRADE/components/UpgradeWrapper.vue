@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="mysql-version-upgrade-page">
+  <div class="db-toolbox">
     <BkAlert
       class="mb-20"
       closable
@@ -22,7 +22,7 @@
         )
       " />
     <BkForm
-      class="upgrade-form"
+      class="toolbox-form"
       form-type="vertical"
       :model="modelValue">
       <BkFormItem
@@ -123,19 +123,3 @@
     },
   );
 </script>
-
-<style lang="less" scoped>
-  .mysql-version-upgrade-page {
-    padding-bottom: 20px;
-
-    .upgrade-form {
-      margin: 24px 0;
-
-      :deep(.bk-form-label) {
-        font-size: 12px;
-        font-weight: 700;
-        color: #313238;
-      }
-    }
-  }
-</style>

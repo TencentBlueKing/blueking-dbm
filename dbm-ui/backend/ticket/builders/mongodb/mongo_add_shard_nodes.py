@@ -12,7 +12,7 @@ import itertools
 from collections import defaultdict
 from typing import Dict, List
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType
@@ -44,6 +44,7 @@ class MongoDBAddShardNodesDetailSerializer(BaseMongoDBOperateDetailSerializer):
     infos = serializers.ListSerializer(help_text=_("扩容shard节点数申请信息"), child=AddShardNodesDetailSerializer())
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         cluster_ids = list(itertools.chain(*[info["cluster_ids"] for info in attrs["infos"]]))
         clusters = Cluster.objects.filter(id__in=cluster_ids)
 

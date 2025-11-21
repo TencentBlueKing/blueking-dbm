@@ -43,15 +43,14 @@ func init() {
 	// spiderbackup query
 	spiderQueryCmd.Flags().StringSlice("BackupStatus", []string{}, "BackupStatus filter, comma separated")
 	spiderQueryCmd.Flags().String("BackupId", "", "BackupId filter")
+	spiderQueryCmd.Flags().Int("limit", 0, "limit number filter")
+	_ = viper.BindPFlag("query.limit", spiderQueryCmd.Flags().Lookup("limit"))
 	// format 只允许 json,table
 	formatOpt, _ := cmutil.NewPflagEnum("format", "table", []string{"table", "json"})
 	spiderQueryCmd.Flags().Var(formatOpt, formatOpt.Name(),
 		fmt.Sprintf("output format, allowed %v", formatOpt.Choices()))
 	_ = formatOpt.SetChoices(spiderQueryCmd.Flags())
 	_ = viper.BindPFlag("query.format", spiderQueryCmd.Flags().Lookup("format"))
-
-	//spiderCmd.MarkFlagsMutuallyExclusive("schedule", "check", "query")
-	//spiderCmd.MarkFlagRequired("config)
 
 	spiderCmd.AddCommand(spiderScheduleCmd)
 	spiderCmd.AddCommand(spiderCheckCmd)

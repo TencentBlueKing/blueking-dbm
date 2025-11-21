@@ -24,10 +24,22 @@ def GetOrSaveSwitchWait(ip, srst):
     if not RedisConn.exists(k):
         RedisConn.hset(k, "ip", ip)
         RedisConn.hset(k, "start", datetime2timestamp(datetime.datetime.now(timezone.utc)))
-        RedisConn.hset(k, "err", srst)
+        RedisConn.hset(k, "err", str(srst))  # log: redis.exceptions.DataError: Invalid input of type: 'dict'.
         RedisConn.hset(k, "counter", 1)
-        RedisConn.expire(k, SWITCH_MAX_WAIT_SECONDS * 10)
+        RedisConn.expire(k, SWITCH_MAX_WAIT_SECONDS * 30)  # 30 分钟
     else:
         RedisConn.hincrby(k, "counter", 1)
     vals = RedisConn.hgetall(k)
     return vals
+
+
+# cluster 模式 集群｜机器 发起自愈需要有锁
+def CanClusterStartAutoFix(immute_domain, ip):
+    k = "redis|autofix|cluster|lock|{}|{}".format(immute_domain, ip)
+    if RedisConn.setnx(
+        k, "{}|{}|{}".format(immute_domain, ip, datetime2timestamp(datetime.datetime.now(timezone.utc)))
+    ):
+        RedisConn.expire(k, SWITCH_MAX_WAIT_SECONDS * 15)  # 15 分钟
+        return True
+    else:
+        return False

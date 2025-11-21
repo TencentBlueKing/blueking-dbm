@@ -13,7 +13,7 @@ import math
 from typing import Any, Dict, List
 
 from django.forms import model_to_dict
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components import CCApi
 from backend.components.dbresource.client import DBResourceApi
@@ -399,7 +399,9 @@ class ResourceHandler(object):
     """资源池接口的处理函数"""
 
     @classmethod
-    def spec_resource_count(cls, bk_biz_id: int, bk_cloud_id: int, spec_ids: List[int], city: str):
+    def spec_resource_count(
+        cls, bk_biz_id: int, bk_cloud_id: int, sub_zone_ids: List[int], spec_ids: List[int], city: str
+    ):
         """规格预估资源数量"""
         specs = Spec.objects.filter(spec_id__in=spec_ids)
         if not specs.exists():
@@ -416,7 +418,7 @@ class ResourceHandler(object):
         ]
         spec_count_details = list(itertools.chain(*spec_count_details))
         spec_count_params = {
-            "location_spec": {"city": "" if city == "default" else city, "sub_zone_ids": []},
+            "location_spec": {"city": "" if city == "default" else city, "sub_zone_ids": sub_zone_ids},
             "for_biz_id": bk_biz_id,
             "resource_type": resource_type,
             "bk_cloud_id": bk_cloud_id,

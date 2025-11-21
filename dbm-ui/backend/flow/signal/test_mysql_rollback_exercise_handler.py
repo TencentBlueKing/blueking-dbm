@@ -16,6 +16,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from backend.db_periodic_task.models import MySQLBackupRecoverTask, TaskPhase, TaskStatus
+from backend.db_report.enums import ReportStateType
 from backend.flow.consts import StateType
 from backend.flow.signal.callback_map import TICKET_TYPE_HANDLERS
 from backend.ticket.constants import TicketType
@@ -40,7 +41,7 @@ class TestMySQLRollbackExerciseHandler(TestCase):
             task_id="test_root_id_001",
             task_status=TaskStatus.COMMIT_SUCCESS,
             phase=TaskPhase.RUNNING,
-            status=False,  # 默认异常状态
+            state="",  # 默认状态为空
             creator="test_user",
             updater="test_user",
         )
@@ -66,7 +67,7 @@ class TestMySQLRollbackExerciseHandler(TestCase):
         self.test_task.refresh_from_db()
         self.assertEqual(self.test_task.phase, TaskPhase.DONE)
         self.assertEqual(self.test_task.task_info, _("测试错误信息"))
-        self.assertFalse(self.test_task.status)  # 巡检结果状态为异常
+        self.assertEqual(self.test_task.state, ReportStateType.ABNORMAL.value)  # 备份恢复失败，state 应为 abnormal
 
     @patch("backend.flow.signal.mysql_rollback_exercise_handler.BambooEngine")
     def test_revoked_status_update(self, mock_engine):
@@ -84,7 +85,7 @@ class TestMySQLRollbackExerciseHandler(TestCase):
         self.test_task.refresh_from_db()
         self.assertEqual(self.test_task.phase, TaskPhase.DONE)
         self.assertEqual(self.test_task.task_info, _("任务被撤销"))
-        self.assertFalse(self.test_task.status)  # 巡检结果状态为异常
+        self.assertEqual(self.test_task.state, ReportStateType.ABNORMAL.value)  # 备份恢复失败，state 应为 abnormal
 
     def test_finished_status_update(self):
         """测试完成状态更新"""
@@ -95,7 +96,7 @@ class TestMySQLRollbackExerciseHandler(TestCase):
         # 验证任务状态更新
         self.test_task.refresh_from_db()
         self.assertEqual(self.test_task.phase, TaskPhase.DONE)
-        self.assertTrue(self.test_task.status)  # 巡检结果状态为正常
+        self.assertEqual(self.test_task.state, "")  # 备份恢复成功，state 保持为空
         self.assertIsNotNone(self.test_task.recover_end_time)
 
     def test_running_status_update(self):
@@ -165,7 +166,7 @@ class TestMySQLRollbackExerciseHandler(TestCase):
         # 验证任务状态更新（即使引擎异常，状态仍应更新）
         self.test_task.refresh_from_db()
         self.assertEqual(self.test_task.phase, TaskPhase.DONE)
-        self.assertFalse(self.test_task.status)  # 巡检结果状态为异常
+        self.assertEqual(self.test_task.state, ReportStateType.ABNORMAL.value)  # 备份恢复失败，state 应为 abnormal
 
     def test_multiple_status_transitions(self):
         """测试多次状态转换"""
@@ -180,7 +181,7 @@ class TestMySQLRollbackExerciseHandler(TestCase):
         handler(root_id="test_root_id_001", node_id="test_node_001", status=StateType.FINISHED)
         self.test_task.refresh_from_db()
         self.assertEqual(self.test_task.phase, TaskPhase.DONE)
-        self.assertTrue(self.test_task.status)
+        self.assertEqual(self.test_task.state, "")  # 备份恢复成功，state 保持为空
 
     def test_task_fields_preservation(self):
         """测试任务其他字段保持不变"""
@@ -214,4 +215,4 @@ class TestMySQLRollbackExerciseHandler(TestCase):
         # 验证任务状态更新（处理器应该忽略额外参数）
         self.test_task.refresh_from_db()
         self.assertEqual(self.test_task.phase, TaskPhase.DONE)
-        self.assertTrue(self.test_task.status)
+        self.assertEqual(self.test_task.state, "")  # 备份恢复成功，state 保持为空

@@ -12,35 +12,59 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
-      :label="t('目标集群')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+  <TicketInfoTable
+    :data="ticketDetails.details.infos"
+    row-key="cluster_id">
+    <TicketInfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
+      :min-width="200"
+      :title="t('目标集群')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('扩容节点类型')">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="add_spider_role"
+      :title="t('扩容节点类型')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.add_spider_role === 'spider_slave' ? 'Spider Slave' : 'Spider Master' }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('规格')"
-      :min-width="120">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="current_spider_num"
+      :title="t('当前数量（台）')">
+      <template #default="{ row: data }: { row: RowData }">
+        {{ data.current_spider_num }}
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="add_spider_num"
+      :title="t('扩容数量（台）')">
+      <template #default="{ row: data }: { row: RowData }">
+        {{ data.add_spider_num || data.resource_spec.spider_ip_list.count }}
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="count"
+      :title="t('最终数量（台）')">
+      <template #default="{ row: data }: { row: RowData }">
+        {{ data.current_spider_num + (data.add_spider_num || data.resource_spec.spider_ip_list.count) }}
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="spec_id"
+      :min-width="120"
+      :title="t('规格')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.specs?.[data.resource_spec.spider_ip_list.spec_id]?.name || '--' }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('扩容数量')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.resource_spec.spider_ip_list.count }}
-      </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('资源标签')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="label_names"
+      :min-width="200"
+      :title="t('资源标签')">
+      <template #default="{ row: data }: { row: RowData }">
         <template v-if="data.resource_spec.spider_ip_list?.label_names?.length">
           <BkTag
             v-for="item in data.resource_spec.spider_ip_list.label_names"
@@ -54,8 +78,8 @@
           {{ t('通用无标签') }}
         </BkTag>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

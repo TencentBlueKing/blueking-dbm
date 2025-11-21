@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import gettext_lazy as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 BKREPO_SQLFILE_PATH = "mysql/sqlfile/{biz}"
 BKREPO_DBCONSOLE_DUMPFILE_PATH = "dbconsole/dump/{biz}"
@@ -25,7 +25,7 @@ MAX_PREVIEW_SQL_FILE_SIZE = 200 * 1024 * 1024
 MAX_UPLOAD_SQL_FILE_SIZE = 1024 * 1024 * 1024
 
 
-class SQLCharset(str, StructuredEnum):
+class SQLCharset(StrStructuredEnum):
     """sql语句的字符集类型"""
 
     DEFAULT = EnumField("default", _("DEFAULT"))
@@ -36,7 +36,7 @@ class SQLCharset(str, StructuredEnum):
     GB2312 = EnumField("gb2312", _("gb2312"))
 
 
-class SQLExecuteTicketMode(str, StructuredEnum):
+class SQLExecuteTicketMode(StrStructuredEnum):
     """
     SQL执行单据的执行模式
     """
@@ -46,7 +46,7 @@ class SQLExecuteTicketMode(str, StructuredEnum):
     TIMER = EnumField("timer", _("定时执行"))
 
 
-class SQLImportMode(str, StructuredEnum):
+class SQLImportMode(StrStructuredEnum):
     """
     SQL导入的模式
     """
@@ -55,7 +55,7 @@ class SQLImportMode(str, StructuredEnum):
     MANUAL = EnumField("manual", _("手动输入"))
 
 
-class SemanticExecStatus(str, StructuredEnum):
+class SemanticExecStatus(StrStructuredEnum):
     """
     SQL语义执行状态
     """

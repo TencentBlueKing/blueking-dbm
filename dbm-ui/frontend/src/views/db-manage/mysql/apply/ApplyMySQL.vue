@@ -203,7 +203,8 @@
                   :cloud-id="formdata.details.bk_cloud_id"
                   cluster-type="mysql"
                   machine-type="backend"
-                  style="width: 435px" />
+                  style="width: 435px"
+                  :subzone-ids="formdata.details.sub_zone_ids" />
               </BkFormItem>
               <template v-else>
                 <BkFormItem
@@ -218,7 +219,8 @@
                     :cloud-id="formdata.details.bk_cloud_id"
                     cluster-type="mysql"
                     machine-type="proxy"
-                    style="width: 435px" />
+                    style="width: 435px"
+                    :subzone-ids="formdata.details.sub_zone_ids" />
                 </BkFormItem>
                 <BkFormItem
                   :label="t('后端存储资源规格')"
@@ -232,7 +234,8 @@
                     :cloud-id="formdata.details.bk_cloud_id"
                     cluster-type="mysql"
                     machine-type="backend"
-                    style="width: 435px" />
+                    style="width: 435px"
+                    :subzone-ids="formdata.details.sub_zone_ids" />
                 </BkFormItem>
               </template>
             </div>

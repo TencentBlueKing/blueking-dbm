@@ -12,13 +12,18 @@
 -->
 
 <template>
-  <BkTable :data="tableData">
-    <BkTableColumn :label="t('目标集群')">
-      <template #default="{ data }: { data: RowData }">
+  <TicketInfoTable
+    :data="tableData"
+    row-key="id">
+    <TicketInfoTableColumn
+      col-key="immute_domain"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.id].immute_domain"
+      :title="t('目标集群')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.id].immute_domain }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">

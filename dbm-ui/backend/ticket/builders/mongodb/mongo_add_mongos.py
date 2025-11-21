@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType, MachineType
@@ -39,6 +39,7 @@ class MongoDBAddMongosDetailSerializer(BaseMongoDBOperateDetailSerializer):
     infos = serializers.ListSerializer(help_text=_("扩容接入层申请信息"), child=AddMongosDetailSerializer())
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         cluster_ids = [info["cluster_id"] for info in attrs["infos"]]
         CommonValidate.validated_cluster_type(cluster_ids, ClusterType.MongoShardedCluster)
         return attrs

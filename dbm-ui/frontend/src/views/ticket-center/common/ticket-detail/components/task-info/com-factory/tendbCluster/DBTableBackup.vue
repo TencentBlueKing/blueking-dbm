@@ -12,51 +12,60 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
+  <TicketInfoTable
+    :data="ticketDetails.details.infos"
+    row-key="cluster_id">
+    <TicketInfoTableColumn
+      col-key="cluster_id"
       fixed="left"
-      :label="t('目标集群')"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
+      :title="t('目标集群')"
       :width="200">
-      <template #default="{ data }: { data: RowData }">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('备份位置')"
-      :min-width="120">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="spider_mnt_address"
+      :min-width="120"
+      :title="t('备份位置')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.spider_mnt_address || 'RemoteDR' }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('备份DB名')"
-      :min-width="120">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="db_patterns"
+      :min-width="120"
+      :title="t('备份DB名')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.db_patterns" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('忽略DB名')"
-      :min-width="120">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="ignore_dbs"
+      :min-width="120"
+      :title="t('忽略DB名')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.ignore_dbs" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('备份表名')"
-      :min-width="120">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="table_patterns"
+      :min-width="120"
+      :title="t('备份表名')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.table_patterns" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('忽略表名')"
-      :min-width="120">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="ignore_tables"
+      :min-width="120"
+      :title="t('忽略表名')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.ignore_tables" />
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

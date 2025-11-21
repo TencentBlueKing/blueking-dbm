@@ -13,7 +13,7 @@ import logging
 from typing import Dict, List
 
 from django.db import models
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from iam.resource.provider import ListResult
 from iam.resource.utils import Page
 

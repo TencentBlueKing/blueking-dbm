@@ -135,24 +135,26 @@
     ]);
 
     if (intersectedArrayList.length === 0) {
-      recommendArchitectrue.value = ClusterTypes.PREDIXY_REDIS_CLUSTER;
+      recommendArchitectrue.value = ClusterTypes.TWEMPROXY_REDIS_INSTANCE;
       return;
     }
+
     if (intersectedArrayList.length === 1) {
       recommendArchitectrue.value = intersectedArrayList[0] as string;
       return;
     }
+
     if (
       _.isEqual(
         intersectedArrayList.sort(),
         [ClusterTypes.PREDIXY_REDIS_CLUSTER, ClusterTypes.TWEMPROXY_REDIS_INSTANCE].sort(),
       )
     ) {
-      recommendArchitectrue.value = ClusterTypes.PREDIXY_REDIS_CLUSTER;
+      recommendArchitectrue.value = ClusterTypes.TWEMPROXY_REDIS_INSTANCE;
       return;
     }
 
-    recommendArchitectrue.value = ClusterTypes.PREDIXY_REDIS_CLUSTER;
+    recommendArchitectrue.value = ClusterTypes.TWEMPROXY_REDIS_INSTANCE;
   };
 
   const handleClear = () => {
@@ -166,8 +168,8 @@
 
 <style lang="less" scoped>
   .recommend-architecture-form {
-    background: #f5f7fa;
     padding: 12px 16px;
+    background: #f5f7fa;
 
     :deep(.bk-form-label) {
       font-size: 12px;
@@ -187,9 +189,9 @@
     }
 
     .recommend-architecture {
-      font-size: 12px;
-      margin-bottom: 8px;
       display: flex;
+      margin-bottom: 8px;
+      font-size: 12px;
 
       .recommend-architecture-item {
         .item-text {

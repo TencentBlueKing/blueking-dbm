@@ -12,43 +12,46 @@
 -->
 
 <template>
-  <BkTable
+  <TicketInfoTable
     :data="dataList"
-    :show-overflow="false">
-    <BkTableColumn
-      field="ip"
+    row-key="ip">
+    <TicketInfoTableColumn
+      col-key="ip"
       fixed="left"
-      :label="t('目标主机')"
-      :min-width="250">
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('所属集群')"
+      :get-copy-value="(row: RowData) => row.ip"
+      :min-width="250"
+      :title="t('目标主机')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="related_clusters"
+      :title="t('所属集群')"
       :width="200">
-      <template #default="{ data }: { data: RowData }">
+      <template #default="{ row }: { row: RowData }">
         <div
-          v-for="item in data.related_clusters"
+          v-for="item in row.related_clusters"
           :key="item">
           {{ item }}
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('当前版本')"
-      :min-width="250">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="current_versions"
+      :min-width="250"
+      :title="t('当前版本')">
+      <template #default="{ row }: { row: RowData }">
         <div
-          v-for="item in data.current_versions"
+          v-for="item in row.current_versions"
           :key="item">
           {{ item }}
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="target_version"
-      :label="t('目标版本')"
-      :min-width="250">
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="target_version"
+      :min-width="250"
+      :title="t('目标版本')">
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">

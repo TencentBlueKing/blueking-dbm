@@ -186,6 +186,20 @@ class RedisDataStructureContext:
         return "new_install_proxy_exec_ip"
 
 
+@dataclass
+class RedisRollbackExerciseContext:
+    """
+    回档演练上下文
+    """
+
+    # Flow tracking
+    rollback_flow_id: str = None  # 回滚 Flow ID
+    delete_flow_id: str = None  # 销毁 Flow ID
+    task_id: int = None  # Task record ID for status updates
+    polling_start_time: float = None  # 轮询开始时间
+    info: list = None  # 执行情况
+
+
 @dataclass()
 class DownloadBackupFileKwargs:
     """

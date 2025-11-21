@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from collections import defaultdict
 from typing import List
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType
@@ -19,12 +19,16 @@ from backend.db_services.redis.hot_key_analysis.models import RedisHotKeyRecord
 from backend.flow.consts import StateType
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import DisplayInfoSerializer, SkipToRepresentationMixin
-from backend.ticket.builders.redis.base import ClusterValidateMixin, RedisALLInstanceTicketFlowBuilder
+from backend.ticket.builders.common.base import DisplayInfoSerializer
+from backend.ticket.builders.redis.base import (
+    ClusterValidateMixin,
+    RedisALLInstanceTicketFlowBuilder,
+    RedisBaseOperateDetailSerializer,
+)
 from backend.ticket.constants import TicketFlowStatus, TicketType
 
 
-class RedisHotKeyAnalysisDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class RedisHotKeyAnalysisDetailSerializer(RedisBaseOperateDetailSerializer):
     """热key分析参数序列化器"""
 
     class InfoSerializer(DisplayInfoSerializer, ClusterValidateMixin, serializers.Serializer):

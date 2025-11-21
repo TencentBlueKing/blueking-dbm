@@ -13,7 +13,7 @@ from contextlib import contextmanager
 from typing import Dict, List
 
 from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.constants import AffinityEnum, DBType
@@ -26,7 +26,9 @@ from backend.ticket.builders import TicketFlowBuilder
 from backend.ticket.builders.common.base import (
     BaseOperateResourceParamBuilder,
     MongoDBTicketFlowBuilderPatchMixin,
+    ParamValidateSerializerMixin,
     SkipToRepresentationMixin,
+    TicketBaseValidateSerializerMixin,
 )
 
 MONGODB_SHARD_GROUP_COUNT = 3
@@ -59,7 +61,9 @@ class BaseMongoShardedTicketFlowBuilder(MongoDBTicketFlowBuilderPatchMixin, Tick
     cluster_types = [ClusterType.MongoShardedCluster.value]
 
 
-class BaseMongoDBOperateDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class BaseMongoDBOperateDetailSerializer(
+    TicketBaseValidateSerializerMixin, ParamValidateSerializerMixin, SkipToRepresentationMixin, serializers.Serializer
+):
     @classmethod
     def validate_shrink_spec_machine_affinity(
         cls, cluster: Cluster, machines: List[Machine], spec_id: int, count: int
@@ -116,6 +120,8 @@ class BaseMongoDBOperateDetailSerializer(SkipToRepresentationMixin, serializers.
                 raise serializers.ValidationError(_("请保证这一批集群的属性: {}是一致的").format(attr))
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
+        attrs = super().validated_params(attrs=attrs)
         return attrs
 
 
@@ -123,6 +129,7 @@ class BaseMongoDBPluginDetailSerializer(BaseMongoDBOperateDetailSerializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         return attrs
 
 

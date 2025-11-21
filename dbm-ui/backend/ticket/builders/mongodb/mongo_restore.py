@@ -12,7 +12,7 @@ import datetime
 from typing import Any, Dict, List
 
 from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.constants import AffinityEnum
@@ -50,6 +50,7 @@ class MongoDBRestoreDetailSerializer(BaseMongoDBOperateDetailSerializer):
     resource_spec = serializers.JSONField(help_text=_("资源池规格"))
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         clusters = Cluster.objects.filter(id__in=attrs["cluster_ids"])
         cluster_type = clusters.first().cluster_type
         attrs["cluster_type"] = cluster_type

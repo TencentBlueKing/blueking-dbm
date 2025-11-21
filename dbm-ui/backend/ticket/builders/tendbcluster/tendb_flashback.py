@@ -24,6 +24,7 @@ from backend.ticket.constants import FlowRetryType, TicketType
 
 class TendbFlashbackDetailSerializer(MySQLFlashbackDetailSerializer, TendbBaseOperateDetailSerializer):
     def validate(self, attrs):
+        attrs = super(TendbBaseOperateDetailSerializer, self).validate(attrs)
         # 校验闪回时间
         super().validate_flash_time(attrs)
         # 校验集群是否可用

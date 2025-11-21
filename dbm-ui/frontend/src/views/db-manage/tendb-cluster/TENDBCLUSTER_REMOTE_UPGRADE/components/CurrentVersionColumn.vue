@@ -17,6 +17,7 @@
     :label="t('当前版本')"
     :loading="loading"
     :min-width="200"
+    readonly
     required>
     <EditableBlock :placeholder="t('自动生成')">
       <div

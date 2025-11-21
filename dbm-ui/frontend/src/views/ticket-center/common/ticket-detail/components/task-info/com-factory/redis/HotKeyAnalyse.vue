@@ -12,30 +12,32 @@
 -->
 
 <template>
-  <BkTable
+  <TicketInfoTable
     :data="tableData"
-    :merge-cells="mergeCells"
-    show-overflow-tooltip>
-    <BkTableColumn
-      field="instance"
-      :label="t('目标实例')"
-      :min-width="220">
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('所属集群')"
-      :min-width="130">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+    row-key="instance">
+    <TicketInfoTableColumn
+      col-key="instance"
+      :get-copy-value="(row: RowData) => row.instance"
+      :min-width="220"
+      :title="t('目标实例')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="immute_domain"
+      :min-width="130"
+      :title="t('所属集群')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('架构版本')"
-      :min-width="130">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].cluster_type_name }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_type_name"
+      :min-width="130"
+      :title="t('架构版本')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].cluster_type_name }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('分析时长')">
       {{ `${ticketDetails.details.analysis_time}s` }}
@@ -46,8 +48,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type { VxeTablePropTypes } from '@blueking/vxe-table';
-
+  // import type { TableProps } from '@blueking/tdesign-ui';
   import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
@@ -69,7 +70,7 @@
 
   const { t } = useI18n();
 
-  const mergeCells = ref<VxeTablePropTypes.MergeCells>([]);
+  // const rowspanAndColspan: TableProps['rowspanAndColspan'] = () => {};
 
   const tableData = props.ticketDetails.details.infos.flatMap((infoItem) =>
     infoItem.ins.map((insItem) => ({

@@ -92,7 +92,7 @@ func NewTwemproxyInstall() jobruntime.JobRunner {
 
 // GetUserGroup user group
 func (ti *twemproxyInstall) GetUserGroup() string {
-	return fmt.Sprintf("%s.%s", ti.ExecUser, ti.ExecGroup)
+	return fmt.Sprintf("%s:%s", ti.ExecUser, ti.ExecGroup)
 }
 
 // Init 初始化 主要是检查参数

@@ -12,24 +12,27 @@
 -->
 
 <template>
-  <BkTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
-    show-overflow-tooltip>
-    <BkTableColumn
-      field="domain"
-      :label="t('集群')" />
-    <BkTableColumn
-      field="role"
-      :label="t('角色')" />
-    <BkTableColumn :label="t('实例')">
-      <template #default="{ data }: { data: RowData }">
+    ellipsis
+    row-key="domain">
+    <TicketInfoTableColumn
+      col-key="domain"
+      :get-copy-value="(row: RowData) => row.domain"
+      :title="t('集群')" />
+    <TicketInfoTableColumn
+      col-key="role"
+      :title="t('角色')" />
+    <TicketInfoTableColumn
+      col-key="instance"
+      :title="t('实例')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ `${data.ip}:${data.port}` }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
-  import BkTable from 'bkui-vue/lib/table';
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Mongodb } from '@services/model/ticket/ticket';

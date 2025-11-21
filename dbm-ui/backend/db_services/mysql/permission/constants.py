@@ -9,26 +9,26 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
-class CloneClusterType(str, StructuredEnum):
+class CloneClusterType(StrStructuredEnum):
     """克隆的集群类型"""
 
     MYSQL = EnumField("mysql", _("MySQL"))
     TendbCluster = EnumField("tendbcluster", _("TendbCluster"))
 
 
-class CloneType(str, StructuredEnum):
+class CloneType(StrStructuredEnum):
     """权限克隆类型"""
 
     INSTANCE = EnumField("instance", _("实例克隆"))
     CLIENT = EnumField("client", _("客户端克隆"))
 
 
-class CloneExcelTypeID(str, StructuredEnum):
+class CloneExcelTypeID(StrStructuredEnum):
     """下载权限克隆excel提供的id类型"""
 
     TICKET_ID = EnumField("ticket_id", _("单据ID"))

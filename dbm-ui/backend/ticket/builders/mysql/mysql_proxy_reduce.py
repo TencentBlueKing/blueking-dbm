@@ -28,6 +28,9 @@ class MysqlProxyReduceDetailSerializer(MySQLBaseOperateDetailSerializer):
         row_key = serializers.CharField(help_text=_("唯一值"), required=False)
         origin_proxy_ip = HostInfoSerializer(help_text=_("缩容主机信息"))
         old_nodes = OldProxySerializer(help_text=_("缩容指定主机"), required=False)
+        related_instances = serializers.ListSerializer(
+            help_text=_("关联的实例"), child=serializers.JSONField(), required=False
+        )
 
     is_safe = serializers.BooleanField(help_text=_("是否做安全检测"))
     infos = serializers.ListField(help_text=_("替换信息"), child=ProxyInfoSerializer())
@@ -43,7 +46,7 @@ class MysqlProxyReduceFlowParamBuilder(builders.FlowParamBuilder):
 class MysqlProxyReduceFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlProxyReduceDetailSerializer
     inner_flow_builder = MysqlProxyReduceFlowParamBuilder
-    inner_flow_name = _("Mysql proxy 缩容")
+    inner_flow_name = _("Mysql 减少proxy")
     need_patch_recycle_host_details = True
     need_patch_machine_details = True
 

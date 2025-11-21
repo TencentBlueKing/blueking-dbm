@@ -7,8 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"slices"
-	"sort"
 	"strings"
 	"text/template"
 	"time"
@@ -257,8 +255,8 @@ exit $retcode
 	}
 	defer fi.Close()
 	if r.BinlogOpt.Flashback {
-		sort.Sort(sort.Reverse(sort.StringSlice(r.BinlogFiles))) // 降序
-		// sort.Slice(sqlFiles, func(i, j int) bool { return sqlFiles[i] > sqlFiles[j] }) // 降序
+		//sort.Sort(sort.Reverse(sort.StringSlice(r.BinlogFiles))) // 降序
+		r.BinlogFiles = util.SortStringWithSuffixDesc(r.BinlogFiles, ".")
 	}
 	if tpl, err := template.New("").Parse(importBinlogTmpl); err != nil {
 		return errors.Wrap(err, "write import script")
@@ -437,7 +435,7 @@ func (r *GoApplyBinlog) checkBinlogFiles() error {
 	}
 
 	// 检查 binlog 文件连续性
-	sort.Strings(r.BinlogFiles)
+	r.BinlogFiles = util.SortStringWithSuffixAsc(r.BinlogFiles, ".")
 	fileSeqList := util.GetSuffixWithLenAndSep(r.BinlogFiles, ".", 0)
 	if leakInts, err := util.IsConsecutiveStrings(fileSeqList, true); err != nil {
 		logger.Warn("binlog leak number: %v", leakInts)
@@ -455,7 +453,7 @@ func (r *GoApplyBinlog) checkBinlogFiles() error {
 			return errors.WithMessage(err, util.SliceErrorsToError(binlogFilesErrs).Error())
 		} else {
 			r.BinlogFiles = append(r.BinlogFiles, leakFiles...)
-			slices.Sort(r.BinlogFiles)
+			r.BinlogFiles = util.SortStringWithSuffixAsc(r.BinlogFiles, ".")
 		}
 		//return err
 	}
@@ -538,7 +536,7 @@ func (r *GoApplyBinlog) PreCheck() error {
 // binlog结束点：最后一个binlog end_time > 过滤条件 stop_time
 func (r *GoApplyBinlog) FilterBinlogFiles() (totalSize int64, err error) {
 	logger.Info("BinlogFiles before filter: %v", r.BinlogFiles)
-	sort.Strings(r.BinlogFiles)
+	r.BinlogFiles = util.SortStringWithSuffixAsc(r.BinlogFiles, ".")
 
 	// 如果传入了 start_file，第一个binlog很好找
 	if r.BinlogStartFile != "" {

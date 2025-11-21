@@ -12,9 +12,27 @@
 -->
 
 <template>
-  <DbOriginalTable
-    :columns="columns"
-    :data="tableData" />
+  <TicketInfoTable
+    :data="tableData"
+    row-key="host">
+    <TicketInfoTableColumn
+      col-key="host"
+      :get-copy-value="(row: RowData) => `${row.host}:${row.port}`"
+      :title="t('源实例')">
+      <template #default="{ row }:{ row: RowData }">
+        <span>{{ row.host }}:{{ row.port }}</span>
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="target_pos"
+      :title="t('迁移目标位置')" />
+    <TicketInfoTableColumn
+      col-key="repl_binlog_file"
+      title="binlog file" />
+    <TicketInfoTableColumn
+      col-key="repl_binlog_pos"
+      title="binlog pos" />
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">
@@ -28,6 +46,8 @@
     ticketDetails: TicketModel<Dumper.SwitchNodes>;
   }
 
+  type RowData = Props['ticketDetails']['details']['infos'][number]['switch_instances'][number];
+
   defineOptions({
     name: TicketTypes.TBINLOGDUMPER_SWITCH_NODES,
     inheritAttrs: false,
@@ -39,28 +59,4 @@
 
   const { infos } = props.ticketDetails.details;
   const tableData = infos[0].switch_instances;
-
-  const columns = [
-    {
-      field: 'host',
-      label: t('源实例'),
-      render: ({ data }: { data: { host: string; port: number } }) => (
-        <span>
-          {data.host}:{data.port}
-        </span>
-      ),
-    },
-    {
-      field: 'target_pos',
-      label: t('迁移目标位置'),
-    },
-    {
-      field: 'repl_binlog_file',
-      label: 'binlog file',
-    },
-    {
-      field: 'repl_binlog_pos',
-      label: 'binlog pos',
-    },
-  ];
 </script>

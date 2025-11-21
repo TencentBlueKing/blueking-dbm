@@ -624,7 +624,7 @@ func GetShardChunkNum(mongoBin string, ip string, port int, username string, pas
 	cmd := fmt.Sprintf(
 		"%s  -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet --eval '%s'",
 		mongoBin, username, password, ip, port,
-		"db.getSiblingDB(\"config\").chunks.aggregate([{ $group: { _id: \"$shard\", count: { $sum: 1 } } }])")
+		"db.getSiblingDB(\"config\").chunks.aggregate([{ $group: { _id: \"$shard\", count: { $sum: 1 } } }]).forEach(printjson)")
 	result, err := util.RunBashCmd(
 		cmd,
 		"", nil,
@@ -689,7 +689,7 @@ func GetFCV(mongoBin string, ip string, port int, username string, password stri
 // GetShardInfo 获取shard信息
 func GetShardInfo(mongoBin string, ip string, port int, username string, password string) (string, error) {
 	cmd := fmt.Sprintf(
-		"%s -u %s -p '%s' --host %s --port %d --quiet --authenticationDatabase=admin --eval \"db.getMongo().getDB('config').shards.find()\" admin",
+		"%s -u %s -p '%s' --host %s --port %d --quiet --authenticationDatabase=admin --eval \"db.getMongo().getDB('config').shards.find().forEach(printjson)\" admin",
 		mongoBin, username, password, ip, port)
 	result, err := util.RunBashCmd(
 		cmd,

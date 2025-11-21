@@ -12,19 +12,40 @@
 -->
 
 <template>
-  <DbOriginalTable
+  <TicketInfoTable
     class="target-cluster-table"
-    :columns="columns"
-    :data="tableData" />
+    :data="tableData"
+    row-key="targetCluster"
+    :rowspan-and-colspan="rowspanAndColspan">
+    <TicketInfoTableColumn
+      col-key="targetCluster"
+      :get-copy-value="(row: RowData) => row.targetCluster"
+      :min-width="200"
+      :title="t('目标集群')"
+      :width="250" />
+    <TicketInfoTableColumn
+      col-key="newDb"
+      :min-width="150"
+      :title="t('新DB')"
+      :width="200" />
+    <TicketInfoTableColumn
+      col-key="ips"
+      ellipsis
+      :get-copy-value="(row: RowData) => row.ips.split(',')"
+      :title="t('授权的IP')">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.ips || '--' }}
+      </template>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">
   import _ from 'lodash';
+  import type { BaseTableCellParams, TableRowData } from 'tdesign-vue-next/es/table/type';
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
-
-  import { execCopy } from '@utils';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.OpenArea>;
@@ -66,44 +87,14 @@
     ),
   );
 
-  const columns = computed(() => [
-    {
-      field: 'targetCluster',
-      label: t('目标集群'),
-      minWidth: 200,
-      rowspan: ({ row }: { row: RowData }) => {
-        const { targetCluster } = row;
-        const rowSpan = tableData.value.filter((item) => item.targetCluster === targetCluster).length;
-        return rowSpan > 1 ? rowSpan : 1;
-      },
-      width: 250,
-    },
-    {
-      field: 'newDb',
-      label: t('新DB'),
-      minWidth: 150,
-      width: 200,
-    },
-    {
-      field: 'ips',
-      label: t('授权的IP'),
-      render: ({ data }: { data: RowData }) => {
-        const ipList = data.ips.replace(/,/g, '\n');
-        return (
-          <span>
-            {data.ips || '--'}
-            <db-icon
-              class='copy-btn'
-              is-show={data.ips.length > 0}
-              type='copy'
-              onClick={() => execCopy(ipList, t('复制成功，共n条', { n: ipList.split('\n').length }))}
-            />
-          </span>
-        );
-      },
-      showOverflowTooltip: true,
-    },
-  ]);
+  const rowspanAndColspan = (params: BaseTableCellParams<TableRowData>) => {
+    const { col, row } = params;
+    if (col.colKey === 'targetCluster') {
+      const rowSpan = tableData.value.filter((item: RowData) => item.targetCluster === row.targetCluster).length;
+      return { colspan: 1, rowspan: rowSpan > 1 ? rowSpan : 1 };
+    }
+    return {};
+  };
 </script>
 
 <style lang="less" scoped>

@@ -275,7 +275,8 @@
                       :cloud-id="state.formdata.details.bk_cloud_id"
                       :cluster-type="DBTypes.REDIS"
                       machine-type="proxy"
-                      style="width: 314px" />
+                      style="width: 314px"
+                      :subzone-ids="state.formdata.details.sub_zone_ids" />
                   </BkFormItem>
                   <BkFormItem
                     :label="t('数量')"
@@ -297,9 +298,11 @@
                   v-model="state.formdata.details.resource_spec.backend_group"
                   v-model:apply-schema="applySchema"
                   :biz-id="state.formdata.bk_biz_id"
+                  :city-code="state.formdata.details.city_code"
                   :cloud-id="state.formdata.details.bk_cloud_id"
                   :cluster-type="typeInfos.cluster_type"
-                  :machine-type="backendMachineType" />
+                  :machine-type="backendMachineType"
+                  :subzone-ids="state.formdata.details.sub_zone_ids" />
               </BkFormItem>
               <BkFormItem
                 :label="t('访问端口')"
@@ -1000,15 +1003,6 @@
     p {
       padding-bottom: 12px;
       color: @default-color;
-    }
-  }
-</style>
-
-<style lang="less">
-  .recommend-architecture-sideslider {
-    .bk-modal-content {
-      max-height: calc(100vh - 51px);
-      overflow-y: auto;
     }
   }
 </style>

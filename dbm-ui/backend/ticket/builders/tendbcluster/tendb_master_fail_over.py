@@ -24,6 +24,7 @@ class TendbMasterFailOverDetailSerializer(TendbMasterSlaveSwitchDetailSerializer
     serializers.BooleanField(help_text=_("是否检测数据同步延时情况"))
 
     def validate(self, attrs):
+        attrs = super(TendbBaseOperateDetailSerializer, self).validate(attrs)
         # 校验集群是否可用，集群类型为tendbcluster
         super(TendbBaseOperateDetailSerializer, self).validate_cluster_can_access(attrs)
         if not attrs["force"]:

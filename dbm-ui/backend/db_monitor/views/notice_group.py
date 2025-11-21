@@ -12,7 +12,7 @@ from collections import Counter
 
 from django.db.models import OuterRef, Q, Subquery
 from django.utils.decorators import method_decorator
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework.decorators import action
 from rest_framework.response import Response
 

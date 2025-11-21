@@ -16,6 +16,8 @@ import type { RouteRecordRaw } from 'vue-router';
 import type { BigdataFunctions } from '@services/model/function-controller/functionController';
 import FunctionControllModel from '@services/model/function-controller/functionController';
 
+import { DBTypes } from '@common/const';
+
 import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
@@ -23,6 +25,7 @@ const routes: RouteRecordRaw[] = [
     path: 'hdfs',
     name: 'HdfsManage',
     meta: {
+      dbType: DBTypes.HDFS,
       navName: t('HDFS_集群管理'),
     },
     redirect: {
@@ -30,19 +33,10 @@ const routes: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/hdfs/Index.vue'),
     children: [
-      // {
-      //   name: 'HdfsApply',
-      //   path: 'apply',
-      //   meta: {
-      //     navName: t('申请HDFS集群部署'),
-      //   },
-      //   component: () => import('@views/db-manage/hdfs/apply/Index.vue'),
-      // },
       {
         path: 'list/:clusterId?',
         name: 'HdfsList',
         meta: {
-          fullscreen: true,
           navName: t('HDFS_集群管理'),
         },
         component: () => import('@/views/db-manage/hdfs/list/Index.vue'),

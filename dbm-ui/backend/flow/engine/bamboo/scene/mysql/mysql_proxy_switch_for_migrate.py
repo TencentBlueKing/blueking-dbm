@@ -7,18 +7,17 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_cluster_switch import MySQLProxyClusterSwitchFlow
 
-from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_switch_for_extend import ProxySwitchForExtendFlow
 
-
-class ProxySwitchForMigrateFlow(ProxySwitchForExtendFlow):
+class ProxySwitchForMigrateFlow(MySQLProxyClusterSwitchFlow):
     """
     构建mysql集群整体proxy实例拆分的流程类
-    因为proxy实例拆分和proxy扩缩容的入参结构体、流程行为是一致的，所有这里完全复用proxy扩缩容流程
+    flow协议参考proxy替换单据
     """
 
     def switch_proxy_for_migrate_flow(self):
         """
-        定义迁移proxy流程, 复用扩缩容proxy流程
+        定义迁移proxy流程, 复用替换proxy流程
         """
         self.switch_mysql_cluster_proxy_flow()

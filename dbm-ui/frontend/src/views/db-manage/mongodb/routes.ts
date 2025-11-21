@@ -13,6 +13,7 @@ const { createRouteItem } = createToolboxRoute(DBTypes.MONGODB);
 
 export const mongoToolboxChildrenRoutes: RouteRecordRaw[] = [
   createRouteItem(TicketTypes.MONGODB_EXEC_SCRIPT_APPLY, t('变更脚本执行')),
+  createRouteItem(TicketTypes.MONGODB_ADD_SHARD, t('分片集群增加分片数')),
   createRouteItem(TicketTypes.MONGODB_ADD_SHARD_NODES, t('扩容Shard节点数')),
   createRouteItem(TicketTypes.MONGODB_REDUCE_SHARD_NODES, t('缩容Shard节点数')),
   createRouteItem(TicketTypes.MONGODB_SCALE_UPDOWN, t('集群容量变更')),
@@ -77,7 +78,6 @@ const replicaSetListRouters: RouteRecordRaw[] = [
     path: 'replica-set',
     name: 'MongoDBReplicaSet',
     meta: {
-      fullscreen: true,
       navName: t('【MongoDB】副本集集群管理'),
     },
     redirect: {
@@ -89,7 +89,6 @@ const replicaSetListRouters: RouteRecordRaw[] = [
         path: 'list/:clusterId?',
         name: 'MongoDBReplicaSetList',
         meta: {
-          fullscreen: true,
           navName: t('【MongoDB】副本集集群管理'),
         },
         component: () => import('@views/db-manage/mongodb/replica-set-list/Index.vue'),
@@ -124,7 +123,6 @@ const sharedClusterListRouters: RouteRecordRaw[] = [
     path: 'shared-cluster',
     name: 'MongoDBSharedCluster',
     meta: {
-      fullscreen: true,
       navName: t('【MongoDB】分片集群管理'),
     },
     redirect: {
@@ -136,7 +134,6 @@ const sharedClusterListRouters: RouteRecordRaw[] = [
         path: 'list/:clusterId?',
         name: 'MongoDBSharedClusterList',
         meta: {
-          fullscreen: true,
           navName: t('【MongoDB】分片集群管理'),
         },
         component: () => import('@views/db-manage/mongodb/shared-cluster-list/Index.vue'),
@@ -182,6 +179,7 @@ const commonRouters: RouteRecordRaw[] = [
     path: 'mongodb',
     name: 'MongoDBManage',
     meta: {
+      dbType: DBTypes.MONGODB,
       navName: t('集群管理'),
     },
     redirect: {

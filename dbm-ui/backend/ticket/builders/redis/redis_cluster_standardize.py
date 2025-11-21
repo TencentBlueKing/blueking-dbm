@@ -8,17 +8,16 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import SkipToRepresentationMixin
-from backend.ticket.builders.redis.base import BaseRedisInstanceTicketFlowBuilder
+from backend.ticket.builders.redis.base import BaseRedisInstanceTicketFlowBuilder, RedisBaseOperateDetailSerializer
 from backend.ticket.constants import FlowRetryType, TicketType
 
 
-class RedisClusterStandardizeDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class RedisClusterStandardizeDetailSerializer(RedisBaseOperateDetailSerializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
     cluster_ids = serializers.ListField(child=serializers.IntegerField())

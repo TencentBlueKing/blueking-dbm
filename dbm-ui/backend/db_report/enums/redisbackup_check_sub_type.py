@@ -10,9 +10,9 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import gettext_lazy as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
-class RedisBackupCheckSubType(str, StructuredEnum):
+class RedisBackupCheckSubType(StrStructuredEnum):
     FullBackup = EnumField("full_backup", _("集群全备"))
     BinlogBackup = EnumField("binlog_slave", _("从库binlog备份"))

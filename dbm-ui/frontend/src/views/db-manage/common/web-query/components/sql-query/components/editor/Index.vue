@@ -325,7 +325,7 @@
           alwaysConsumeMouseWheel: false,
         },
         theme: 'vs-dark',
-        wordWrap: 'bounded',
+        wordWrap: 'on',
       });
       editor.onDidChangeModelContent(() => {
         const value = editor.getValue();

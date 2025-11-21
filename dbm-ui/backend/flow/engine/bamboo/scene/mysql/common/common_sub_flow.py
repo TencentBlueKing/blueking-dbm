@@ -12,7 +12,7 @@ import logging.config
 from dataclasses import asdict
 from typing import List
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend import env
 from backend.components import DBConfigApi
@@ -35,6 +35,9 @@ from backend.flow.plugins.components.collections.mysql.check_client_connections 
 from backend.flow.plugins.components.collections.mysql.check_slaves_delay import CheckSlavesDelayComponent
 from backend.flow.plugins.components.collections.mysql.clone_rules import CloneRulesComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.mysql_check_variable_consistency import (
+    MySQLCheckVariableConsistencyComponent,
+)
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.mysql_os_init import (
     GetOsSysParamComponent,
@@ -53,6 +56,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     DownloadMediaKwargs,
     ExecActuatorKwargs,
     InitCheckKwargs,
+    MySQLCheckVariableConsistencyKwargs,
     VerifyChecksumKwargs,
     YumInstallPerlKwargs,
 )
@@ -304,17 +308,22 @@ def check_sub_flow(
 
     act_list = []
     if is_check_client_conn:
-        act_list.append(
-            {
-                "act_name": _("检测客户端连接情况"),
-                "act_component_code": CheckClientConnComponent.code,
-                "kwargs": asdict(
-                    CheckClientConnKwargs(
-                        bk_cloud_id=cluster.bk_cloud_id, check_instances=check_client_conn_inst, is_proxy=is_proxy
-                    )
-                ),
-            }
-        )
+        for inst in check_client_conn_inst:
+            if is_proxy:
+                act_name = _("[Proxy]{}的客户端连接情况".format(inst))
+            else:
+                act_name = _("[MySQL]{}的客户端连接情况".format(inst))
+            act_list.append(
+                {
+                    "act_name": act_name,
+                    "act_component_code": CheckClientConnComponent.code,
+                    "kwargs": asdict(
+                        CheckClientConnKwargs(
+                            bk_cloud_id=cluster.bk_cloud_id, check_instances=[inst], is_proxy=is_proxy
+                        )
+                    ),
+                }
+            )
 
     if is_verify_checksum:
         act_list.append(
@@ -351,6 +360,85 @@ def check_sub_flow(
     sub_pipeline.add_parallel_acts(acts_list=act_list)
 
     return sub_pipeline.build_sub_process(sub_name=_("[{}]预检测".format(cluster.name)))
+
+
+def master_slave_variable_consistency_check_sub_flow(
+    uid: str,
+    root_id: str,
+    bk_cloud_id: int,
+    reference_instance: str,
+    compare_instance: str,
+):
+    """
+    设计变量一致性检测的公共子流程，主要服务于切换类的流程，做前置检查，方便管控
+    """
+    check_variable_names = [
+        "character_set_server",
+        "collation_server",
+        "collation_connection",
+        "character_set_connection",
+        "lower_case_table_names",
+        "time_zone",
+        "max_connections",
+    ]
+    sub_pipeline = SubBuilder(root_id=root_id, data={"uid": uid})
+    sub_pipeline.add_act(
+        act_name=_("检测变量一致性"),
+        act_component_code=MySQLCheckVariableConsistencyComponent.code,
+        kwargs=asdict(
+            MySQLCheckVariableConsistencyKwargs(
+                bk_cloud_id=bk_cloud_id,
+                reference_instance=reference_instance,
+                compare_instance=compare_instance,
+                variable_names=check_variable_names,
+            )
+        ),
+    )
+    return sub_pipeline.build_sub_process(sub_name=_("主从参数一致性检测[{}->{}]").format(reference_instance, compare_instance))
+
+
+def check_long_active_process_sub_flow(
+    uid: str,
+    root_id: str,
+    cluster: Cluster,
+    node_insts: list = None,
+    long_process_time: int = 10,
+    filter_hosts: list = None,
+):
+    """
+    设计长连接检测的公共子流程，主要服务于切换类的流程，做前置检查，方便管控
+    @param uid: 流程单据的uid
+    @param root_id: flow流程的root_id
+    @param cluster: 关联的cluster对象
+    @param node_insts: 待检测的实例列表，["ip:port"...]
+    @param long_process_time: 多少秒以上的连接认为是长连接
+    """
+    act_list = []
+    for inst in node_insts:
+        # Base title includes the instance identifier
+        act_name = _("检测{}MySQL的活跃长连接情况").format(inst)
+        # If filter_hosts provided, append a comma-separated list to the title
+        if filter_hosts:
+            hosts_str = ",".join([str(h) for h in filter_hosts])
+            act_name = _("检测{}MySQL的活跃长连接情况,过滤掉{}").format(inst, hosts_str)
+        act_list.append(
+            {
+                "act_name": act_name,
+                "act_component_code": CheckClientConnComponent.code,
+                "kwargs": asdict(
+                    CheckClientConnKwargs(
+                        bk_cloud_id=cluster.bk_cloud_id,
+                        check_instances=[inst],
+                        is_filter_sleep=True,
+                        long_process_time=long_process_time,
+                        filter_hosts=filter_hosts,
+                    )
+                ),
+            }
+        )
+    sub_pipeline = SubBuilder(root_id=root_id, data={"uid": uid})
+    sub_pipeline.add_parallel_acts(acts_list=act_list)
+    return sub_pipeline.build_sub_process(sub_name=_("[{}]活跃长连接检测").format(cluster.name))
 
 
 def init_machine_sub_flow(

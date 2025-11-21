@@ -15,7 +15,7 @@ from copy import deepcopy
 from dataclasses import asdict
 from typing import Any, Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
@@ -47,6 +47,7 @@ from backend.flow.plugins.components.collections.redis.exec_shell_script import 
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.plugins.components.collections.redis.redis_ticket import RedisTicketComponent
+from backend.flow.plugins.components.collections.redis.redis_update_version import RedisUpdateVersionComponent
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
@@ -249,6 +250,7 @@ class RedisClusterAutoFixSceneFlow(object):
 
         # 先补充slave
         if fix_params.get("redis_slave"):
+            act_kwargs.cluster["update_storage"] = True
             slave_kwargs = deepcopy(act_kwargs)
             sub_pipeline.add_sub_pipeline(
                 self.slave_fix(
@@ -263,6 +265,7 @@ class RedisClusterAutoFixSceneFlow(object):
 
         # 然后在搞定proxy
         if fix_params.get("proxy"):
+            act_kwargs.cluster["update_proxy"] = True
             proxy_kwargs = deepcopy(act_kwargs)
             sub_pipeline.add_sub_pipeline(
                 self.proxy_fix(
@@ -274,6 +277,11 @@ class RedisClusterAutoFixSceneFlow(object):
                     },
                 )
             )
+        sub_pipeline.add_act(
+            act_name=_("{}-更新版本").format(act_kwargs.cluster["immute_domain"]),
+            act_component_code=RedisUpdateVersionComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
 
         return sub_pipeline.build_sub_process(sub_name=_("故障自愈-{}").format(act_kwargs.cluster["immute_domain"]))
 

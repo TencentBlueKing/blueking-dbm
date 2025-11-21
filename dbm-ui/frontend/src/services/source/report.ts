@@ -77,8 +77,8 @@ export const getRedisMetaCheckStatusAbnormal = function (params: Record<string, 
 };
 
 // 巡检通用接口视图
-export function getReportOverview() {
-  return http.get<Record<string, string[]>>(`${path}/get_report_overview/`);
+export function getReportOverview(params?: { kind?: 'inspect' | 'drill' }) {
+  return http.get<Record<string, string[]>>(`${path}/get_report_overview/`, params);
 }
 
 // 巡检总览统计接口
@@ -114,10 +114,22 @@ export function getReport(path: string, params: Record<string, any>, payload = {
       normal: number;
       warning: number;
     };
+    time_filter: {
+      field: string;
+      type: 'day' | 'range';
+    };
     title: {
       display_name: string;
+      filter: {
+        enums?: {
+          label: string;
+          value: string;
+        }[];
+        type: 'text' | 'enum' | 'biz';
+      };
       format: string;
       name: string;
+      ordering: boolean;
     }[];
   }>(path, params, payload);
 }

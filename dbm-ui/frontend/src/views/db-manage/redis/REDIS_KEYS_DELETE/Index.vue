@@ -60,7 +60,7 @@
             </KeyOperationColumn>
             <DeleteRateColumn
               v-model="rowData.delete_rate"
-              :cluster="rowData.cluster" />
+              :cluster-id="rowData.cluster.id" />
             <OperationColumn
               :create-row-method="createRowData"
               :table-data="formData.tableData" />
@@ -115,7 +115,6 @@
       bk_cloud_id: number;
       cluster_type: string;
       cluster_type_name: string;
-      delete_rate: RedisModel['delete_rate'];
       id: number;
       master_domain: string;
     };
@@ -130,7 +129,6 @@
         bk_cloud_id: 0,
         cluster_type: '',
         cluster_type_name: '',
-        delete_rate: {} as RedisModel['delete_rate'],
         id: 0,
         master_domain: '',
       },
@@ -221,7 +219,7 @@
               bk_cloud_id: item.bk_cloud_id,
               cluster_type: item.cluster_type,
               cluster_type_name: item.cluster_type_name,
-              delete_rate: item.delete_rate,
+
               id: item.id,
               master_domain: item.master_domain,
             },

@@ -153,10 +153,12 @@
           ref="specSelectorRef"
           v-model="modelValue.spec_id"
           :biz-id="params.bk_biz_id"
+          :city="params.city_code"
           :cloud-id="params.bk_cloud_id"
           :cluster-type="ClusterTypes.MONGODB"
           :machine-type="MachineTypes.MONGODB"
           style="width: 314px"
+          :subzone-ids="params.sub_zone_ids"
           @update:model-value="handleSpecChange" />
       </BkFormItem>
       <BkFormItem
@@ -256,6 +258,8 @@
     params: {
       bk_biz_id: number | '';
       bk_cloud_id: number;
+      city_code: string;
+      sub_zone_ids: number[];
     };
   }
 
@@ -305,7 +309,9 @@
       getSpecResourceCountRun({
         bk_biz_id: Number(props.params.bk_biz_id),
         bk_cloud_id: props.params.bk_cloud_id,
+        city: props.params.city_code,
         spec_ids: specList.value.map((item) => item.spec_id),
+        sub_zone_ids: props.params.sub_zone_ids.map((item) => `${item}`),
       });
     },
   });

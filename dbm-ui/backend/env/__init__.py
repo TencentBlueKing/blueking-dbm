@@ -17,6 +17,7 @@ from .bkrepo import *  # pylint: disable=wildcard-import
 from .dev import *  # pylint: disable=wildcard-import
 from .nameservice import *  # pylint: disable=wildcard-import
 from .sync_meta import *  # pylint: disable=wildcard-import
+from .tools import *  # pylint: disable=wildcard-import
 
 APP_CODE = get_type_env(key="APP_ID", default="bk-dbm", _type=str)
 SECRET_KEY = get_type_env(key="APP_TOKEN", default="xxxx", _type=str)
@@ -73,22 +74,30 @@ BK_IAM_RESOURCE_API_HOST = get_type_env(key="BK_IAM_RESOURCE_API_HOST", _type=st
 BK_IAM_GRADE_MANAGER_ID = get_type_env(key="BK_IAM_GRADE_MANAGER_ID", _type=int, default=0)
 
 # APIGW 相关配置
+BK_APIGW_NAME = get_type_env(key="BK_APIGW_NAME", _type=str, default="bkdbm")
+BK_APIGW_MCP_NAME = get_type_env(key="BK_APIGW_MCP_NAME", _type=str, default="bkdbm-mcp")
 BK_APIGATEWAY_DOMAIN = get_type_env(key="BK_APIGATEWAY_DOMAIN", _type=str, default=BK_COMPONENT_API_URL)
 BK_API_URL_TMPL = get_type_env(key="BK_API_URL_TMPL", _type=str, default=f"{BK_APIGATEWAY_DOMAIN}/api/{{api_name}}/")
 BK_APIGW_STATIC_VERSION = get_type_env(key="BK_APIGW_STATIC_VERSION", _type=str, default="1.0.0")
 BK_APIGW_MANAGER_MAINTAINERS = get_type_env(key="BK_APIGW_MANAGER_MAINTAINERS", _type=list, default=["admin"])
-BK_APIGW_STAGE_NAME = get_type_env(key="BK_APIGW_STAGE_NAME", _type=str, default="test")
+BK_APIGW_STAGE_NAME = get_type_env(key="BK_APIGW_STAGE_NAME", _type=str, default="prod")
 BK_APIGW_GRANT_APPS = get_type_env(key="BK_APIGW_GRANT_APPS", _type=list, default=[])
 BK_APIGW_RESOURCE_DOCS_BASE_DIR = get_type_env(
     key="BK_APIGW_RESOURCE_DOCS_BASE_DIR", _type=str, default="backend/docs/apigw"
 )
 APIGW_PUBLIC_KEY = get_type_env(key="APIGW_PUBLIC_KEY", _type=str, default="")
+BK_APIGW_STAGE_ENABLE_MCP_SERVERS = get_type_env(key="BK_APIGW_STAGE_ENABLE_MCP_SERVERS", _type=bool, default=False)
+BK_APIGW_STAGE_ENABLE_SERVERS = get_type_env(key="BK_APIGW_STAGE_ENABLE_SERVERS", _type=bool, default=True)
+
 BKAPP_BKVISION_APIGW_URL = get_type_env(key="BKAPP_BKVISION_APIGW_URL", _type=str, default="")
 
 ENVIRONMENT = get_type_env(key="BKPAAS_ENVIRONMENT", default="prod", _type=str)
 
+# 跨域信任请求源
+CSRF_TRUSTED_ORIGINS = get_type_env(key="CSRF_TRUSTED_ORIGINS", _type=list, default=[])
+
 # SaaS访问地址，用于用户访问/第三方应用跳转/Iframe/Grafana 等场景
-BK_SAAS_HOST = get_type_env(key="BK_SAAS_HOST", _type=str, default="http://bk-dbm")
+BK_SAAS_HOST = get_type_env(key="BK_SAAS_HOST", _type=str, default="http://bk-dbm.example.com")
 # BK_SAAS_CALLBACK_URL 用于 接口回调/权限中心访问 等场景
 # 通常因证书问题，这里需要使用 http
 BK_SAAS_CALLBACK_URL = get_type_env(key="BK_SAAS_CALLBACK_URL", _type=str, default="") or BK_SAAS_HOST.replace(
@@ -107,6 +116,8 @@ BK_SCR_URL = get_type_env(key="BK_SCR_URL", _type=str, default="http://scr.examp
 BK_HCM_URL = get_type_env(key="BK_HCM_URL", _type=str, default="")
 BK_SOPS_URL = get_type_env(key="BK_SOPS_HOST", _type=str, default=None)
 BK_HELPER_URL = get_type_env(key="BK_HELPER_URL", _type=str, default=None)
+BK_AIDEV_URL = get_type_env(key="BK_AIDEV_URL", _type=str, default=None)
+
 # 北极星服务
 POLARIS_URL = get_type_env(key="POLARIS_URL", _type=str, default="http://polaris.example.com")
 
@@ -126,6 +137,8 @@ SA_L5_AGENT_TEMPLATE_ID = get_type_env(key="SA_L5_AGENT_TEMPLATE_ID", _type=int)
 BK_SOPS_PROJECT_ID = get_type_env(key="BK_SOPS_PROJECT_ID", _type=int, default=1)
 # 标准运维更新window机器的模板ID
 UPDATE_WINDOW_GSE_CONFIG = get_type_env(key="UPDATE_WINDOW_GSE_CONFIG", _type=int)
+# window系统添加udns模版ID
+UPDATE_WINDOW_UDNS_CONFIG = get_type_env(key="UPDATE_WINDOW_UDNS_CONFIG", _type=int)
 
 # Bamboo
 ENABLE_CLEAN_EXPIRED_BAMBOO_TASK = get_type_env(key="ENABLE_CLEAN_EXPIRED_BAMBOO_TASK", _type=bool, default=False)
@@ -146,6 +159,24 @@ BKMONITOR_URL = get_type_env(key="BKMONITOR_URL", _type=str, default="")
 
 # 监控处理套餐 Bearer Token
 BKMONITOR_BEARER_TOKEN = get_type_env(key="BKMONITOR_BEARER_TOKEN", _type=str, default=SECRET_KEY[:16])
+
+# 可观测配置
+# 是否启用自定义上报
+BKAPP_MONITOR_REPORTER_ENABLE = get_type_env(key="BKAPP_MONITOR_REPORTER_ENABLE", default=False, _type=bool)
+# 监控 Data ID
+BKAPP_MONITOR_REPORTER_DATA_ID = get_type_env(key="BKAPP_MONITOR_REPORTER_DATA_ID", default=0, _type=int)
+# 自定义上报 Token
+BKAPP_MONITOR_REPORTER_ACCESS_TOKEN = get_type_env(key="BKAPP_MONITOR_REPORTER_ACCESS_TOKEN", default="", _type=str)
+# 上报唯一标志符
+BKAPP_MONITOR_REPORTER_TARGET = get_type_env(key="BKAPP_MONITOR_REPORTER_TARGET", default="prod", _type=str)
+# 上报地址
+BKAPP_MONITOR_REPORTER_URL = get_type_env(key="BKAPP_MONITOR_REPORTER_URL", default="", _type=str)
+# 上报间隔
+BKAPP_MONITOR_REPORTER_REPORT_INTERVAL = get_type_env(
+    key="BKAPP_MONITOR_REPORTER_REPORT_INTERVAL", default=10, _type=int
+)
+# 块大小
+BKAPP_MONITOR_REPORTER_CHUNK_SIZE = get_type_env(key="BKAPP_MONITOR_REPORTER_CHUNK_SIZE", default=200, _type=int)
 
 # mysql-crond 相关
 MYSQL_CROND_BEAT_PATH = get_type_env(
@@ -199,7 +230,6 @@ DEBUG_TOOL_BAR = get_type_env(key="DEBUG_TOOL_BAR", _type=bool, default=False)
 WINDOW_SSH_PORT = get_type_env(key="WINDOW_SSH_PORT", _type=int, default=22)
 # 本地测试人员优先使用的版本
 REPO_VERSION_FOR_DEV = get_type_env(key="REPO_VERSION_FOR_DEV", _type=str, default="")
-
 # 机器主动下载文件
 INITIATIVE_DOWNLOAD = get_type_env(key="INITIATIVE_DOWNLOAD", _type=bool, default=False)
 

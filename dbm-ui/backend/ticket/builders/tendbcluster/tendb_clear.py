@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.controller.spider import SpiderController
@@ -22,6 +22,7 @@ from backend.ticket.constants import TicketType
 class TendbClearDetailSerializer(MySQLHaClearDetailSerializer):
     def validate(self, attrs):
         """校验库表选择器信息是否正确"""
+        attrs = super(MySQLHaClearDetailSerializer, self).validate(attrs)
         super().validate_cluster_can_access(attrs)
         # 库表选择器校验
         super().validate_database_table_selector(attrs)

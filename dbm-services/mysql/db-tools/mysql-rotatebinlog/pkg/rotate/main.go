@@ -22,7 +22,6 @@ import (
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/models"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/util"
 
-	gyaml "github.com/ghodss/yaml"
 	errs "github.com/pkg/errors"
 	"github.com/spf13/cast"
 	"github.com/spf13/viper"
@@ -105,21 +104,25 @@ func (c *RotateBinlogComp) Start() (err error) {
 			continue
 		}
 		var backupClient backup.BackupClient
-		if inst.backupEnable {
-			if backupClient, err = backup.InitBackupClient(); err != nil {
-				err = errs.WithMessagef(err, "init backup_client")
-				logger.Error("%+v", err.Error())
-				errRet = errors.Join(errRet, err)
-				continue
-			}
-			inst.backupClient = backupClient // if nil, ignore backup
-		} else {
+
+		if backupClient, err = backup.InitBackupClient(); err != nil {
+			err = errs.WithMessagef(err, "init backup_client")
+			logger.Error("%+v", err.Error())
+			errRet = errors.Join(errRet, err)
+			continue
+		}
+		inst.backupClient = backupClient // if nil, ignore backup
+		if !inst.backupEnable {
 			logger.Info("instance %d backup_client is disabled", inst.Port)
 		}
 
 		if lastFileBefore, err := inst.Rotate(); err != nil {
 			err = errs.WithMessagef(err, "run rotatebinlog %d", inst.Port)
 			logger.Error("%+v", err)
+			if errors.Is(err, cst.BinlogDisabledError) {
+				// we consider it does not report a error
+				continue
+			}
 			errRet = errors.Join(errRet, err)
 			continue
 		} else {
@@ -128,13 +131,13 @@ func (c *RotateBinlogComp) Start() (err error) {
 			}
 		}
 	}
+	servers = lo.Filter(servers, func(item *ServerObj, index int) bool {
+		return item.rotate != nil
+	})
 	if err = c.decideSizeToFree(servers); err != nil {
 		return errors.Join(errRet, err)
 	}
 	for _, inst := range servers {
-		if inst.rotate == nil {
-			continue
-		}
 		if err = inst.FreeSpace(); err != nil {
 			logger.Error("FreeSpace %+v", err)
 			errRet = errors.Join(errRet, err)
@@ -146,53 +149,6 @@ func (c *RotateBinlogComp) Start() (err error) {
 		}
 	}
 	return errRet
-}
-
-// RemoveConfig 删除某个 binlog 实例的 rotate 配置
-func (c *RotateBinlogComp) RemoveConfig(ports []int) (err error) {
-	// remove file server.<port>.yaml
-	for _, port := range ports {
-		serverConfigFile := filepath.Join(filepath.Dir(c.Config), fmt.Sprintf("server.%d.yaml", port))
-		if cmutil.FileExists(serverConfigFile) {
-			logger.Info("remove config file %s", serverConfigFile)
-			if err = os.Remove(serverConfigFile); err != nil {
-				return err
-			}
-		}
-	}
-
-	// remove server from main config if possible
-	if c.ConfigObj, err = ReadMainConfig(c.Config); err != nil {
-		logger.Warn("remove ReadMainConfig %s with err=%s", c.Config, err.Error())
-	}
-	if c.ConfigObj == nil {
-		return nil
-	}
-	newServers := make([]*ServerObj, 0)
-	for _, binlogInst := range c.ConfigObj.Servers {
-		if !lo.Contains(ports, binlogInst.Port) {
-			newServers = append(newServers, binlogInst)
-		}
-	}
-	if len(newServers) == len(c.ConfigObj.Servers) {
-		// no change
-		return nil
-	} else {
-		c.ConfigObj.Servers = newServers
-	}
-
-	yamlData, err := gyaml.Marshal(c.ConfigObj) // use json tag
-	if err != nil {
-		return err
-	}
-	cfgFile := c.Config // viper.ConfigFileUsed()
-	if err = cmutil.FileExistsErr(cfgFile); err != nil {
-		return err
-	}
-	if err := os.WriteFile(cfgFile, yamlData, 0644); err != nil {
-		return err
-	}
-	return nil
 }
 
 // HandleScheduler 处理调度选项，返回 handled=true 代表 add/del 选项工作中
@@ -237,23 +193,21 @@ func (c *RotateBinlogComp) HandleScheduler(addSchedule, delSchedule bool) (handl
 // 再挑选出可以删除的 binlog 进行删除
 // 计算的结果在 i.rotate.sizeToFreeMB 里，表示该实例需要释放的binlog空间
 func (c *RotateBinlogComp) decideSizeToFree(servers []*ServerObj) error {
-	keepPolicy := viper.GetString("public.keep_policy")
-	if keepPolicy == KeepPolicyLeast {
+	if PublicConfig.KeepPolicy == KeepPolicyLeast {
 		for _, inst := range servers {
 			inst.rotate.sizeToFreeMB = PolicyLeastMaxSize
 		}
-		logger.Info("keep_policy=%s will try to delete binlog files as much as possible", keepPolicy)
+		logger.Info("keep_policy=%s will try to delete binlog files as much as possible", PublicConfig.KeepPolicy)
 		return nil
-	} else if keepPolicy == "" || keepPolicy == KeepPolicyMost {
-		logger.Info("keep_policy=%s will calculate size to delete for every binlog instance", keepPolicy)
+	} else if PublicConfig.KeepPolicy == "" || PublicConfig.KeepPolicy == KeepPolicyMost {
+		logger.Info("keep_policy=%s will calculate size to delete for every binlog instance", PublicConfig.KeepPolicy)
 	} else {
-		return fmt.Errorf("unknown keep_policy %s", keepPolicy)
+		return fmt.Errorf("unknown keep_policy %s", PublicConfig.KeepPolicy)
 	}
 	if requestSizeToFree, err := cmutil.ViperGetSizeInBytesE("request-size-to-free"); err != nil {
 		return err
 	} else {
 		for _, inst := range servers {
-			// inst.rotate 会是 nil ???
 			inst.rotate.sizeToFreeMB = requestSizeToFree / 1024 / 1024
 		}
 	}
@@ -261,9 +215,6 @@ func (c *RotateBinlogComp) decideSizeToFree(servers []*ServerObj) error {
 	var diskPartInst = make(map[string][]*ServerObj)      // 每个挂载目录上，放了哪些binlog实例以及对应的binlog空间
 	var diskParts = make(map[string]*cmutil.DiskPartInfo) // 目录对应的空间信息
 	for _, inst := range servers {
-		if inst.rotate == nil {
-			continue
-		}
 		diskPart, err := util.GetDiskPartitionWithDir(inst.binlogDir)
 		if err != nil {
 			logger.Warn("fail to get binlog_dir %s disk partition info, err:%s", inst.binlogDir, err.Error())
@@ -282,7 +233,7 @@ func (c *RotateBinlogComp) decideSizeToFree(servers []*ServerObj) error {
 		maxBinlogSizeAllowedMB = maxBinlogSizeAllowed / 1024 / 1024
 	}
 	logger.Info("viper config:%s, parsed_mb:%d",
-		viper.GetString("public.max_binlog_total_size"),
+		PublicConfig.MaxBinlogTotalSize,
 		maxBinlogSizeAllowedMB,
 	)
 
@@ -301,7 +252,7 @@ func (c *RotateBinlogComp) decideSizeToFree(servers []*ServerObj) error {
 				sizeToFree := binlogSizeMB - maxBinlogSizeAllowedMB
 				if sizeToFree > inst.rotate.sizeToFreeMB {
 					inst.rotate.sizeToFreeMB = sizeToFree
-					inst.rotate.sizeToFreeBurstMB = sizeToFree // 一定会清理这么多，不论是否上传
+					inst.rotate.hardSizeToFree = sizeToFree // 一定会清理这么多，不论是否上传
 				}
 				logger.Info("plan to free space: %+v", inst.rotate)
 			}
@@ -310,19 +261,26 @@ func (c *RotateBinlogComp) decideSizeToFree(servers []*ServerObj) error {
 		// 根据磁盘使用率来决定删除空间
 		maxDiskUsedPctAllowed := viper.GetFloat64("public.max_disk_used_pct") / float64(100)
 		maxDiskUsedAllowedMB := cast.ToUint64(maxDiskUsedPctAllowed*float64(diskPart.Total)) / 1024 / 1024
-		logger.Info("diskPart %s TotalMB:%d UsedPercent:%.2f, maxDiskUsedPctAllowed:%.2f",
-			diskPartName, diskPart.Total/1024/1024, diskPart.UsedPercent, maxDiskUsedPctAllowed)
+		diskPartSizeToFreeMB := int64((diskPart.UsedTotal / 1024 / 1024) - maxDiskUsedAllowedMB)
+		softSizeToFreeMap := util.DecideSizeToRemove(instBinlogSizeMB, diskPartSizeToFreeMB)
+
+		hardUsedPctAllowed := PublicConfig.MaxDiskUsedPctHard / float64(100)
+		hardUsedAllowedMB := cast.ToUint64(hardUsedPctAllowed*float64(diskPart.Total)) / 1024 / 1024 // larger
+		hardDiskPartSizeToFreeMB := int64((diskPart.UsedTotal / 1024 / 1024) - hardUsedAllowedMB)    // 可能为负
+		hardSizeToFreeMap := util.DecideSizeToRemove(instBinlogSizeMB, hardDiskPartSizeToFreeMB)
+		logger.Info("diskPart %s TotalMB:%d UsedTotalMB:%d UsedPercent:%.2f, maxDiskUsedPctAllowed:%.2f",
+			diskPartName, diskPart.Total/1024/1024,
+			diskPart.UsedTotal/1024/1024, diskPart.UsedPercent, maxDiskUsedPctAllowed)
+		logger.Info("diskPart %s maxDiskUsedAllowedMB:%d hardAllowed:%d expectFreeMB:%d hardFreeMB:%d",
+			diskPartName, maxDiskUsedAllowedMB, hardUsedAllowedMB, diskPartSizeToFreeMB, hardDiskPartSizeToFreeMB)
+		logger.Info("plan to free spaceMB:%+v", softSizeToFreeMap)
 		if diskPart.UsedPercent < maxDiskUsedPctAllowed {
 			continue
 		}
-		diskPartSizeToFreeMB := int64((diskPart.UsedTotal / 1024 / 1024) - maxDiskUsedAllowedMB)
-		portSizeToFreeMB := util.DecideSizeToRemove(instBinlogSizeMB, diskPartSizeToFreeMB)
-		logger.Info("diskPart %s maxDiskUsedAllowedMB:%d UsedTotalMB:%d expectFreeMB:%d",
-			diskPartName, maxDiskUsedAllowedMB, diskPart.UsedTotal/1024/1024, diskPartSizeToFreeMB)
-		logger.Info("plan to free spaceMB:%+v", portSizeToFreeMB)
 		for _, inst := range diskPartInst[diskPartName] {
-			if portSizeToFreeMB[inst.Port] > inst.rotate.sizeToFreeMB {
-				inst.rotate.sizeToFreeMB = portSizeToFreeMB[inst.Port]
+			if softSizeToFreeMap[inst.Port] > inst.rotate.sizeToFreeMB {
+				inst.rotate.sizeToFreeMB = softSizeToFreeMap[inst.Port]
+				inst.rotate.hardSizeToFree = hardSizeToFreeMap[inst.Port]
 				logger.Info("plan to free space fixed: %+v", inst.rotate)
 			}
 		}

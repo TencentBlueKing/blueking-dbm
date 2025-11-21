@@ -12,35 +12,40 @@
 -->
 
 <template>
-  <BkTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
-    show-overflow>
-    <BkTableColumn
-      :label="t('目标集群')"
-      :min-width="220">
-      <template #default="{ data }: { data: RowData }">
+    ellipsis
+    row-key="cluster_id">
+    <TicketInfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
+      :min-width="220"
+      :title="t('目标集群')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('所属管控区域')"
-      :min-width="150">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="bk_cloud_name"
+      :min-width="150"
+      :title="t('所属管控区域')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].bk_cloud_name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('运维节点 IP')"
-      :min-width="180">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="spider_ip_list"
+      :min-width="180"
+      :title="t('运维节点 IP')">
+      <template #default="{ row: data }: { row: RowData }">
         <div
           v-for="item in data.resource_spec.spider_ip_list.hosts"
           :key="item.bk_host_id">
           {{ item.ip }}
         </div>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

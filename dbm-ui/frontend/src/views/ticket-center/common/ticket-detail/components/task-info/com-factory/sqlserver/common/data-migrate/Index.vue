@@ -12,20 +12,23 @@
 -->
 
 <template>
-  <BkTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn
-      :label="t('源集群')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+    row-key="dts_id">
+    <TicketInfoTableColumn
+      col-key="src_cluster"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.src_cluster].immute_domain"
+      :min-width="200"
+      :title="t('源集群')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.src_cluster].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('目标集群')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="dst_cluster_list"
+      :min-width="200"
+      :title="t('目标集群')">
+      <template #default="{ row: data }: { row: RowData }">
         <div v-if="data.dst_cluster_list.length > 0">
           <p
             v-for="clusterId in data.dst_cluster_list"
@@ -35,25 +38,28 @@
         </div>
         <span v-else>{{ ticketDetails.details.clusters[data.dst_cluster].immute_domain }}</span>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('迁移 DB 名')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="db_list"
+      :min-width="200"
+      :title="t('迁移 DB 名')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.db_list" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('忽略 DB 名')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="ignore_db_list"
+      :min-width="200"
+      :title="t('忽略 DB 名')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.ignore_db_list" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('迁移后 DB 名')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="rename_infos"
+      :min-width="200"
+      :title="t('迁移后 DB 名')">
+      <template #default="{ row: data }: { row: RowData }">
         <div
           v-if="data.rename_infos.length"
           v-bk-tooltips="t('点击查看详情')"
@@ -67,8 +73,8 @@
         </div>
         <span v-else>--</span>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('DB 名处理')">
       {{

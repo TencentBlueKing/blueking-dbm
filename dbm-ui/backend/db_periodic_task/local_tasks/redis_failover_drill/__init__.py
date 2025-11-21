@@ -8,4 +8,4 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from .task import proxy_failover_drill_task, redis_failover_drill_task
+from .task import delete_outdated_drill_records, proxy_failover_drill_task, redis_failover_drill_task

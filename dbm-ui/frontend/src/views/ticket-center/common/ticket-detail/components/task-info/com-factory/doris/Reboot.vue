@@ -12,23 +12,33 @@
 -->
 
 <template>
-  <BkTable :data="tableData">
-    <BkTableColumn :label="t('集群')">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.id].immute_domain }}
+  <TicketInfoTable
+    :data="tableData"
+    ellipsis
+    row-key="id">
+    <TicketInfoTableColumn
+      col-key="id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.id].immute_domain"
+      :title="t('集群')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('集群类型')">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.id].cluster_type_name }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_type_name"
+      :title="t('集群类型')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.id].cluster_type_name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('节点IP')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.node_ip.join(',') }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="node_ip"
+      :title="t('节点IP')">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.node_ip.join(',') }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">

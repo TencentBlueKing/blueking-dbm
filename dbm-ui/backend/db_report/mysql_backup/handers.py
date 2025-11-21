@@ -17,7 +17,7 @@ from typing import Any, Dict
 
 from django.db.models import Q
 from django.forms.models import model_to_dict
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.components import DRSApi
 from backend.constants import IP_PORT_DIVIDER
@@ -27,7 +27,7 @@ from backend.db_report.models.mysql_backup_result import MysqlBackupResult
 from backend.db_report.models.mysql_binlog_backup_result import MysqlBinlogResult
 from backend.db_report.mysql_backup.constants import BACKUP_FILE_DEADLINE_DAYS
 from backend.ticket.builders.common.constants import MySQLBackupSource
-from backend.utils.time import compare_time, str2datetime
+from backend.utils.time import compare_time, datetime2str, str2datetime
 
 logger = logging.getLogger("flow")
 
@@ -57,7 +57,7 @@ class MySQLBackupHandler:
         @param deadlines_days:检查获取截止时间为n天前
         @param backup_id: 指定backup_id,
         @param shard_id: 分片ID。只有tendbCluster有。本地备份时不需要指定
-        @param filter_ips: 过滤ip列表。在指定本地备份时，filster_ips即指定在哪些实例查询
+        @param filter_ips: 过滤ip列表。在指定本地备份时，filter_ips即指定在哪些实例查询
         @param backup_method: 备份方法
         @param is_standby: 是否为备机
         @param backup_source: 是否从本地备份获取
@@ -101,6 +101,16 @@ class MySQLBackupHandler:
         backup_info["backup_charset"] = backup_info["extra_fields"]["backup_charset"]
         backup_info["backup_tool"] = backup_info["extra_fields"]["backup_tool"]
         backup_info["file_list_details"] = backup_info["file_list"]
+        # 从 extra_fields 挪出来的字段
+        backup_info["database_list"] = backup_info["extra_fields"].get("database_list", [])
+        backup_info["total_filesize"] = backup_info["extra_fields"].get("total_filesize", 0)
+        backup_info["file_retention_tag"] = backup_info["extra_fields"].get("file_retention_tag", "")
+        backup_info["backup_tool"] = backup_info["extra_fields"].get("backup_tool", "")
+        backup_info["storage_engine"] = backup_info["extra_fields"]["storage_engine"]
+        backup_info["time_zone"] = backup_info["extra_fields"]["time_zone"]
+        backup_info["backup_charset"] = backup_info["extra_fields"]["backup_charset"]
+        backup_info["bk_cloud_id"] = backup_info["extra_fields"]["bk_cloud_id"]
+
         task_ids = []
         local_files = []
         for file in backup_info["file_list_details"]:
@@ -127,7 +137,7 @@ class MySQLBackupHandler:
         conditions = Q(cluster_id=self.cluster.id, cluster_address=self.cluster.immute_domain)
         if self.backup_id is not None and self.backup_id != "":
             logger.info(_("指定了backup_id {} 查询,其他条件失效".format(self.backup_id)))
-            conditions = Q(backup_id=self.backup_id)
+            conditions &= Q(backup_id=self.backup_id)
         else:
             if self.is_full_backup:
                 # spider dbctl 节点只是备份权限。
@@ -233,6 +243,19 @@ class MySQLBackupHandler:
             logger.info("{} only part of storage instance get privilege file".format(self.cluster.id))
         return backup_priv_info
 
+    def get_tendbha_rollback_backup_info(self, latest_time: datetime = None):
+        """
+        tendbha 获取指定集群的备份信息，根据备份时间排序
+        @param latest_time: 查询备份最迟时间
+        @param limit_one: 是否限制只返回一条备份记录
+        @return: 返回集群的各个数据节点的备份记录，且backup_id必须一致
+        """
+        if self.backup_source == MySQLBackupSource.LOCAL:
+            backup_infos = self.get_local_backup_infos(latest_time=latest_time)
+        else:
+            backup_infos = self.get_backup_infos(latest_time)
+        return backup_infos
+
     def get_spider_rollback_backup_info(self, latest_time: datetime = None, limit_one: bool = False) -> Dict[str, Any]:
         """
         tendbCluster 查询当前集群集群各个remote节点点的最新一份远程备份,且要求所有的分片backup_id是一致的。
@@ -257,8 +280,10 @@ class MySQLBackupHandler:
             #  判断影响取 remote 并集? _xxx
             "database_list": [],
             "backup_method_list": [],
+            "bill_id_list": [],
             "backup_tool_list": [],
             "backup_type_list": [],
+            "backup_consistent_time_list": [],
             "total_filesize": 0,
             #  如果有多个就忽略
             "backup_method": "",
@@ -272,9 +297,6 @@ class MySQLBackupHandler:
             if backup_info["backup_id"] not in cluster_backup_info_map:
                 cluster_backup_id_list.append(backup_info["backup_id"])
                 cluster_backup_info_map[backup_info["backup_id"]] = copy.deepcopy(cluster_backup_info)
-                cluster_backup_info_map[backup_info["backup_id"]]["backup_consistent_time"] = backup_info[
-                    "backup_consistent_time"
-                ]
                 cluster_backup_info_map[backup_info["backup_id"]]["backup_id"] = backup_info["backup_id"]
                 cluster_backup_info_map[backup_info["backup_id"]]["shard_list"] = copy.deepcopy(shard_list)
 
@@ -290,6 +312,9 @@ class MySQLBackupHandler:
                     )
                 )
             ):
+                cluster_backup_info_map[backup_info["backup_id"]]["backup_consistent_time_list"].append(
+                    backup_info["backup_consistent_time"]
+                )
                 cluster_backup_info_map[backup_info["backup_id"]]["shard_list"].remove(int(backup_info["shard_value"]))
                 cluster_backup_info_map[backup_info["backup_id"]]["backup_type_list"].append(
                     backup_info["backup_type"]
@@ -300,6 +325,7 @@ class MySQLBackupHandler:
                 cluster_backup_info_map[backup_info["backup_id"]]["backup_method_list"].append(
                     backup_info["backup_method"]
                 )
+                cluster_backup_info_map[backup_info["backup_id"]]["bill_id_list"].append(backup_info["bill_id"])
                 cluster_backup_info_map[backup_info["backup_id"]]["total_filesize"] += backup_info.get(
                     "extra_fields", {}
                 ).get("total_filesize", 0)
@@ -339,10 +365,16 @@ class MySQLBackupHandler:
         cluster_backup_info_map_tmp = copy.deepcopy(cluster_backup_info_map)
         for backup_id, backup_map in cluster_backup_info_map_tmp.items():
             cluster_backup_info_map[backup_id]["backup_method_list"] = list(set(backup_map["backup_method_list"]))
+            cluster_backup_info_map[backup_id]["bill_id_list"] = list(set(backup_map["bill_id_list"]))
             if len(cluster_backup_info_map[backup_id]["backup_method_list"]) > 0:
                 cluster_backup_info_map[backup_id]["backup_method"] = cluster_backup_info_map[backup_id][
                     "backup_method_list"
                 ][0]
+                if len(cluster_backup_info_map[backup_id]["bill_id_list"]) > 0:
+                    cluster_backup_info_map[backup_id]["bill_id"] = cluster_backup_info_map[backup_id]["bill_id_list"][
+                        0
+                    ]
+
             cluster_backup_info_map[backup_id]["backup_type_list"] = list(set(backup_map["backup_type_list"]))
             cluster_backup_info_map[backup_id]["backup_type"] = ",".join(
                 cluster_backup_info_map[backup_id]["backup_type_list"]
@@ -352,12 +384,19 @@ class MySQLBackupHandler:
             cluster_backup_info_map[backup_id]["backup_tool"] = ",".join(
                 cluster_backup_info_map[backup_id]["backup_tool_list"]
             )
+            # 处理时间,选择backup_consistent_time_list中最小的时间
+            if len(cluster_backup_info_map[backup_id]["backup_consistent_time_list"]) > 0:
+                time_list_datetime = [
+                    str2datetime(t) for t in cluster_backup_info_map[backup_id]["backup_consistent_time_list"]
+                ]
+                cluster_backup_info_map[backup_id]["backup_consistent_time"] = datetime2str(min(time_list_datetime))
 
             if (
                 len(backup_map["shard_list"]) > 0
                 or len(backup_map.get("tdbctl_node", {})) == 0
                 or len(backup_map.get("spider_node", {})) == 0
                 or len(cluster_backup_info_map[backup_id]["backup_method_list"]) != 1
+                or len(cluster_backup_info_map[backup_id]["bill_id_list"]) != 1
             ):
                 logger.info(
                     "backup_id: {} not include all nodes: shards: {} spider_node: {} tdbctl_node: {}".format(
@@ -365,6 +404,12 @@ class MySQLBackupHandler:
                         backup_map["shard_list"],
                         len(backup_map.get("spider_node", {})),
                         len(backup_map.get("tdbctl_node", {})),
+                    )
+                )
+                logger.info(
+                    "backup backup_method_list: {} bill_id_list: {}".format(
+                        cluster_backup_info_map[backup_id]["backup_method_list"],
+                        cluster_backup_info_map[backup_id]["bill_id_list"],
                     )
                 )
                 cluster_backup_id_list.remove(backup_id)
@@ -424,12 +469,15 @@ class MySQLBackupHandler:
         """
         获取指定备份信息用于别分使用
         """
+        backup_id = backup_info["backup_id"]
         binlog_info = backup_info["binlog_info"]
         result = {}
         if end_time is None:
             end_time = datetime.now().astimezone()
         if start_time > end_time:
-            result["query_binlog_error"] = _("备份时间点:{} 大于 回滚时间点:{}".format(start_time, end_time))
+            result["query_binlog_error"] = _(
+                "backup_id {} 备份时间点:{} 大于 回滚时间点:{}".format(backup_id, start_time, end_time)
+            )
             return result
         if minute_range > 0:
             logger.info(_("指定binlog查询时间冗余宽度 {} 分钟").format(minute_range))
@@ -446,9 +494,7 @@ class MySQLBackupHandler:
 
             if binlog_info is None or len(binlog_list) == 0:
                 if binlog_list is None or len(binlog_list) == 0:
-                    result["query_binlog_error"] = _("原备份节点{} 查询不到binlog").format(
-                        binlog_info["show_master_status"]["master_host"]
-                    )
+                    result["query_binlog_error"] = _("backup_id {} 备份信息查询不到show_master_status信息").format(backup_id)
                     return result
             result["binlog_start_file"] = binlog_info["show_master_status"]["binlog_file"]
             result["binlog_start_pos"] = binlog_info["show_master_status"]["binlog_pos"]
@@ -457,7 +503,9 @@ class MySQLBackupHandler:
             if "show_slave_status" in binlog_info.keys() and binlog_info.get("show_slave_status", None) is not None:
                 # 备份信息来自从节点，从 show_slave_status 中获取主节点信息
                 if binlog_info["show_slave_status"].get("master_host", "") == "":
-                    result["query_binlog_error"] = _("show slave status 没有 master_host 信息")
+                    result["query_binlog_error"] = _("backup_id {} show slave status 没有 master_host 信息").format(
+                        backup_id
+                    )
                     return result
                 binlog_list = self.get_binlog_backup_infos(
                     binlog_info["show_slave_status"]["master_host"],
@@ -468,20 +516,20 @@ class MySQLBackupHandler:
                 )
                 if binlog_info is None or len(binlog_list) == 0:
                     if binlog_list is None or len(binlog_list) == 0:
-                        result["query_binlog_error"] = _("原备份节点{} 查询不到binlog").format(
-                            binlog_info["show_slave_status"]["master_host"]
-                        )
+                        result["query_binlog_error"] = _("backup_id {} 备份信息查询不到show_slave_status").format(backup_id)
                         return result
                 result["binlog_start_file"] = binlog_info["show_slave_status"]["binlog_file"]
                 result["binlog_start_pos"] = binlog_info["show_slave_status"]["binlog_pos"]
             else:
-                result["query_binlog_error"] = _("找不到 show slave status 信息")
+                result["query_binlog_error"] = _("backup_id {} 找不到 show slave status 信息").format(backup_id)
                 return result
         logger.info("master binlog is:", binlog_list)
         result["binlog_task_ids"] = [i["task_id"] for i in binlog_list]
         binlog_files = [i["filename"] for i in binlog_list]
         if result["binlog_start_file"] not in binlog_files:
-            result["query_binlog_error"] = _("查不到起始binlog文件 {}").format(result["binlog_start_file"])
+            result["query_binlog_error"] = _("backup_id {} 查不到起始binlog文件 {}").format(
+                backup_id, result["binlog_start_file"]
+            )
         # 可添加从binlog_start_file开始完后判断日志连续性...
         result["binlog_files_list"] = binlog_files
         # result["binlog_files"] = ",".join(binlog_files)
@@ -503,8 +551,11 @@ class MySQLBackupHandler:
         DATE_FORMAT(CONVERT_TZ(backup_consistent_time,@@time_zone,"+00:00"),'%Y-%m-%dT%H:%i:%s+00:00')
         as backup_consistent_time
         from infodba_schema.local_backup_report r
-        where server_id=@@server_id {condition} order by backup_consistent_time desc {limit}"""
-        conditions = f" and r.cluster_id={self.cluster.id} and r.cluster_address='{self.cluster.immute_domain}' "
+        where 1=1 {condition} order by backup_consistent_time desc {limit}"""
+        conditions = (
+            f" and r.cluster_id={self.cluster.id} and r.cluster_address='{self.cluster.immute_domain}' "
+            f" and backup_status!='local_removed' "
+        )
 
         if self.backup_id is not None and self.backup_id != "":
             logger.info(_("指定了backup_id {} 查询,其他条件失效".format(self.backup_id)))
@@ -520,22 +571,20 @@ class MySQLBackupHandler:
                 begin_time = datetime.now().astimezone(timezone.utc) - timedelta(days=self.deadlines_days)
                 begin_time_str = begin_time.isoformat()
                 conditions = (
-                    f" {conditions} and backup_consistent_time >= CONVERT_TZ('{begin_time_str}',@@time_zone,'+00:00') "
+                    f" {conditions} and backup_consistent_time >= CONVERT_TZ('{begin_time_str}','+00:00',@@time_zone) "
                 )
 
             if latest_time is not None:
                 logger.info(_("指定备份最迟时间 {} ").format(latest_time))
                 latest_time = latest_time.astimezone(timezone.utc)
                 latest_time_str = latest_time.isoformat()
-                conditions = f" {conditions} and backup_consistent_time <= CONVERT_TZ('{latest_time_str}',@@time_zone,'+00:00') "
+                conditions = f" {conditions} and backup_consistent_time <= CONVERT_TZ('{latest_time_str}','+00:00',@@time_zone) "
 
             if self.backup_method is not None and len(self.backup_method) > 0:
                 logger.info(_("指定备份方法 {} 查询").format(self.backup_method))
                 backup_method_str = "','".join(self.backup_method)
                 conditions = f" {conditions} and backup_method in ('{backup_method_str}') "
-        query_cmds = cmds.format(condition=conditions, limit=limit)
-        self.query = query_cmds
-        logger.info(query_cmds)
+
         backup_infos = []
 
         # 获取实例信息
@@ -558,10 +607,14 @@ class MySQLBackupHandler:
             this_instances.append(primary_map[self.cluster.id])
         logger.info(this_instances)
 
-        for addr in this_instances:
+        for storage in storages:
+            conditions_tmp = f" {conditions} and backup_host='{storage.machine.ip}' and backup_port={storage.port} "
+            query_cmds = cmds.format(condition=conditions_tmp, limit=limit)
+            self.query = query_cmds
+            logger.info(query_cmds)
             res = DRSApi.rpc(
                 {
-                    "addresses": [addr],
+                    "addresses": [storage.ip_port],
                     "cmds": [query_cmds],
                     "force": False,
                     "bk_cloud_id": self.cluster.bk_cloud_id,
@@ -569,15 +622,16 @@ class MySQLBackupHandler:
             )
 
             if res[0]["error_msg"]:
-                logging.error("{} get backup info error {}".format(addr, res[0]["error_msg"]))
+                logging.error("{} get backup info error {}".format(storage.ip_port, res[0]["error_msg"]))
                 continue
             if (
                 isinstance(res[0]["cmd_results"][0]["table_data"], list)
                 and len(res[0]["cmd_results"][0]["table_data"]) > 0
             ):
                 backup_tmps = res[0]["cmd_results"][0]["table_data"]
-                ip, port = addr.split(IP_PORT_DIVIDER)
-                backup_tmps = [{"instance_ip": ip, "instance_port": port, **info} for info in backup_tmps]
+                backup_tmps = [
+                    {"instance_ip": storage.machine.ip, "instance_port": storage.port, **info} for info in backup_tmps
+                ]
                 backup_infos.extend(backup_tmps)
         if backup_infos is None or len(backup_infos) == 0:
             logger.error("{} has no backup info".format(self.cluster.id))

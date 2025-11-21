@@ -19,7 +19,7 @@ from collections import defaultdict
 from typing import Callable, Dict, List, Union
 
 from django.db.models import Count, Q
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework import serializers
 
 from backend import env
@@ -331,7 +331,7 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
             # 如果机器类型是spider，则考虑spider master
             elif remain_machine_type == MachineType.SPIDER.value:
                 spider_masters = ProxyInstance.objects.select_related("machine").filter(
-                    common_filters, tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE
+                    common_filters, tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
                 )
                 for spider_master in spider_masters:
                     cluster__remain_hosts_map[spider_master.cluster.first().id].append(spider_master.machine)

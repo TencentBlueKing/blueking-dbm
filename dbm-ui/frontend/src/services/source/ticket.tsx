@@ -17,7 +17,7 @@ import TicketFlowDescribeModel from '@services/model/ticket-flow-describe/Ticket
 import type { HostNode, ListBase } from '@services/types';
 import type { FlowItem, FlowItemTodo } from '@services/types/ticket';
 
-import { getRouter } from '@router/index';
+import { getRouter } from '@router';
 
 import type { TicketTypes } from '@common/const';
 
@@ -378,74 +378,6 @@ export function deleteTicketFlowConfig(params: { config_ids: number[] }) {
     ticket_types: string[];
   }>(`${path}/delete_ticket_flow_config/`, params);
 }
-
-/**
- * 查询服务器资源的城市信息
- */
-export const getInfrasCities = () =>
-  http.get<
-    {
-      city_code: string;
-      city_name: string;
-      inventory: number;
-      inventory_tag: string;
-    }[]
-  >('/apis/infras/cities/');
-
-/**
- * 服务器规格列表
- */
-export const getInfrasHostSpecs = () =>
-  http.get<
-    {
-      cpu: string;
-      mem: string;
-      spec: string;
-      type: string;
-    }[]
-  >('/apis/infras/cities/host_specs/');
-
-/**
- * redis 容量列表
- */
-export const getCapSpecs = (params: {
-  cityCode: string;
-  cluster_type: string;
-  ip_source: string;
-  nodes: {
-    master: Array<{
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_cpu?: number;
-      bk_disk?: number;
-      bk_host_id: number;
-      bk_mem?: number;
-      ip: string;
-    }>;
-    slave: Array<{
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_cpu?: number;
-      bk_disk?: number;
-      bk_host_id: number;
-      bk_mem?: number;
-      ip: string;
-    }>;
-  };
-}) =>
-  http.post<
-    {
-      cap_key: string;
-      group_num: number;
-      max_disk: number;
-      maxmemory: number;
-      selected: boolean;
-      shard_num: number;
-      spec: string;
-      total_disk: string;
-      total_memory: number;
-    }[]
-  >('/apis/infras/cities/cap_specs/', params);
 
 /**
  * 创建业务英文缩写

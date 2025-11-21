@@ -16,6 +16,8 @@ from typing import Any, Dict, Union
 from django.utils.translation import gettext as _
 
 from backend import env
+from backend.bk_dataview.prometheus import metrics
+from backend.bk_dataview.prometheus.handlers import pipeline_build_label_func, setup_histogram
 from backend.db_meta.exceptions import ClusterExclusiveOperateException
 from backend.db_meta.models import Cluster
 from backend.db_meta.models.sqlserver_dts import SqlserverDtsInfo
@@ -193,6 +195,7 @@ class InnerFlow(BaseTicketFlow):
             self.create_cluster_operate_records()
             self.create_instance_operate_records()
 
+    @setup_histogram([metrics.pipeline_tree_build_duration_histogram], labels=pipeline_build_label_func)
     def _run(self) -> None:
         # 创建并执行后台任务流程
         self.flow_obj.refresh_from_db()

@@ -19,9 +19,12 @@ import (
 )
 
 type BaseModel struct {
-	ID        uint64    `db:"id" gorm:"primaryKey;autoIncrement:true"  xorm:"id pk autoincr"`
+	ID uint64 `db:"id" gorm:"primaryKey;autoIncrement:true"  xorm:"id pk autoincr"`
+	// CreatedAt write timestamp(with timezone) to datetime
 	CreatedAt time.Time `db:"created_at" gorm:"autoCreateTime" xorm:"created"`
+	// UpdatedAt write timestamp(with timezone) to datetime
 	UpdatedAt time.Time `db:"updated_at" gorm:"autoUpdateTime" xorm:"updated"`
+	// EventSinkTime time.Time `db:"event_sink_time" gorm:"autoUpdateTime;type:timestamp;NOT NULL" xorm:"updated"`
 
 	EventCreateTimestamp  int64 `json:"event_create_timestamp"`
 	EventReportTimestamp  int64 `json:"event_report_timestamp"`

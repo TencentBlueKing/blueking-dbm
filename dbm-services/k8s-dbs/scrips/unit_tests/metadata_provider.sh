@@ -17,5 +17,6 @@ go test -v -run ClusterTagProvider ./k8s-dbs/metadata/provider/testsuite/
 go test -v -run ComponentOperationProvider ./k8s-dbs/metadata/provider/testsuite/
 go test -v -run K8sClusterAddonsProvider ./k8s-dbs/metadata/provider/testsuite/
 go test -v -run OpsrequestProvider ./k8s-dbs/metadata/provider/testsuite/
+go test -v -run AuthUserRoleProvider ./k8s-dbs/metadata/provider/testsuite/
 
 

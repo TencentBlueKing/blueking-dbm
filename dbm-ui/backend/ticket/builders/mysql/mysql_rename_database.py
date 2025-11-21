@@ -35,6 +35,7 @@ class MySQLRenameDatabaseSerializer(MySQLBaseOperateDetailSerializer):
     force = serializers.BooleanField(help_text=_("强制执行"), default=False)
 
     def validate(self, attrs):
+        attrs = super(MySQLBaseOperateDetailSerializer, self).validate(attrs)
         super().validate_cluster_can_access(attrs)
 
         cluster_ids = [info["cluster_id"] for info in attrs["infos"]]

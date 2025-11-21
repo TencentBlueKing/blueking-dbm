@@ -12,47 +12,59 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
-      :label="t('集群')"
-      :min-width="220">
-      <template #default="{data}: {data: RowData}">
+  <TicketInfoTable
+    :data="ticketDetails.details.infos"
+    row-key="cluster_ids">
+    <TicketInfoTableColumn
+      col-key="cluster_ids"
+      :get-copy-value="(row: RowData) => row.cluster_ids.map(clusterId => ticketDetails.details.clusters[clusterId].immute_domain)"
+      :min-width="220"
+      :title="t('集群')">
+      <template #default="{ row }: { row: RowData }">
         <div
-          v-for="item in data.cluster_ids"
+          v-for="item in row.cluster_ids"
           :key="item">
           {{ ticketDetails.details.clusters[item].immute_domain }}
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="drop_type"
-      :label="t('集群类型')"
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="drop_type"
+      :title="t('集群类型')"
       :width="150">
-      <template #default="{data}: {data: RowData}">
-        {{ ticketDetails.details.clusters[data.cluster_ids[0]].cluster_type_name }}
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_ids[0]].cluster_type_name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('备份DB名')">
-      <template #default="{ data }: { data: RowData }">
-        <TagBlock :data="data.ns_filter.db_patterns" />
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="db_patterns"
+      :title="t('备份DB名')">
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="row.ns_filter.db_patterns" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('忽略DB名')">
-      <template #default="{ data }: { data: RowData }">
-        <TagBlock :data="data.ns_filter.ignore_dbs" />
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="ignore_dbs"
+      :title="t('忽略DB名')">
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="row.ns_filter.ignore_dbs" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('备份表名')">
-      <template #default="{ data }: { data: RowData }">
-        <TagBlock :data="data.ns_filter.table_patterns" />
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="table_patterns"
+      :title="t('备份表名')">
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="row.ns_filter.table_patterns" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('忽略表名')">
-      <template #default="{ data }: { data: RowData }">
-        <TagBlock :data="data.ns_filter.ignore_tables" />
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="ignore_tables"
+      :title="t('忽略表名')">
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="row.ns_filter.ignore_tables" />
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('备份保存时间')">
       {{ fileTagMap[ticketDetails.details.file_tag] }}

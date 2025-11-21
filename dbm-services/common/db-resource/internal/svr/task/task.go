@@ -19,6 +19,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"dbm-services/common/db-resource/internal/config"
 	"dbm-services/common/db-resource/internal/model"
 	"dbm-services/common/db-resource/internal/svr/bk"
 	"dbm-services/common/db-resource/internal/util"
@@ -138,6 +139,10 @@ func recordRsOperationInfo(data model.TbRpOperationInfo) (err error) {
 
 // UpdateResourceGseAgentStatus 更新gse状态
 func UpdateResourceGseAgentStatus(bkHostIds ...int) (err error) {
+	if config.AppConfig.BkNodeManApiUrl == "" {
+		logger.Warn("BK NodeMan API URL 为空，不更新 GSE 状态")
+		return nil
+	}
 	var unUsedRsList []model.TbRpDetail
 	db := model.DB.Self.Table(model.TbRpDetailName()).Where(
 		"status = ? and agent_status_update_time > date_sub(now(),INTERVAL 30 MINUTE)", model.Unused)

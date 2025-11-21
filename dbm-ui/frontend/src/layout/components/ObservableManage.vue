@@ -32,6 +32,16 @@
               {{ t('告警事件') }}
             </span>
           </BkMenuItem>
+          <BkMenuItem key="RiskMemo">
+            <template #icon>
+              <DbIcon type="file" />
+            </template>
+            <span
+              v-overflow-tips.right
+              class="text-overflow">
+              {{ t('风险备忘录') }}
+            </span>
+          </BkMenuItem>
         </BkMenuGroup>
         <BkMenuGroup
           v-db-console="'observableManage.DBHASwitchEvents'"

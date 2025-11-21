@@ -12,52 +12,53 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
-      :label="t('目标主机')"
-      :min-width="150">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.spider_old_ip_list[0].ip }}
+  <TicketInfoTable
+    :data="ticketDetails.details.infos"
+    ellipsis
+    row-key="cluster_id">
+    <TicketInfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(row: RowData) => row.spider_old_ip_list[0].ip"
+      :min-width="150"
+      :title="t('目标主机')">
+      <template #default="{ row: data }: { row: RowData }">
+        <p
+          v-for="item in data.spider_old_ip_list"
+          :key="item.ip">
+          {{ item.ip }}
+        </p>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('关联实例')"
-      :min-width="150">
-      <template #default="{ data }: { data: RowData }">
-        {{ `${data.spider_old_ip_list[0].ip}:${data.spider_old_ip_list[0].port}` }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="switch_spider_role"
+      :min-width="150"
+      :title="t('实例角色')">
+      <template #default="{ row: data }: { row: RowData }">
+        {{ roleLabelMap[data.switch_spider_role] }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('实例角色')"
-      :min-width="150">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.switch_spider_role }}
-      </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('关联集群')"
-      :min-width="150">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="immute_domain"
+      :min-width="150"
+      :title="t('关联集群')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('规格')"
-      :min-width="150">
-      <template #default="{ data }: { data: RowData }">
-        {{
-          ticketDetails.details.specs[
-            data.resource_spec[`${data.switch_spider_role}_${data.spider_old_ip_list[0].ip}`].spec_id
-          ].name
-        }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="spec_id"
+      :min-width="150"
+      :title="t('规格')">
+      <template #default="{ row: data }: { row: RowData }">
+        {{ ticketDetails.details.specs[data.resource_spec[data.switch_spider_role]?.spec_id]?.name || '--' }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('资源标签')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
-        <template
-          v-if="data.resource_spec[`${data.switch_spider_role}_${data.spider_old_ip_list[0].ip}`]?.label_names?.length">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="label_names"
+      :min-width="200"
+      :title="t('资源标签')">
+      <template #default="{ row: data }: { row: RowData }">
+        <template v-if="data.resource_spec[data.switch_spider_role]?.label_names?.length">
           <BkTag
             v-for="item in data.resource_spec.new_slave.label_names"
             :key="item">
@@ -70,8 +71,8 @@
           {{ t('通用无标签') }}
         </BkTag>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('检查业务连接')">
       {{ ticketDetails.details.is_safe ? t('是') : t('否') }}
@@ -87,6 +88,8 @@
 
   import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
 
+  type RowData = Props['ticketDetails']['details']['infos'][number];
+
   interface Props {
     ticketDetails: TicketModel<TendbCluster.ResourcePool.SpiderSwitchNodes>;
   }
@@ -100,5 +103,8 @@
 
   const { t } = useI18n();
 
-  type RowData = Props['ticketDetails']['details']['infos'][number];
+  const roleLabelMap = {
+    spider_master: 'Spider Master',
+    spider_slave: 'Spider Slave',
+  } as Record<string, string>;
 </script>

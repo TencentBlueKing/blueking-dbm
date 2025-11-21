@@ -12,4 +12,4 @@ specific language governing permissions and limitations under the License.
 from django.dispatch import Signal
 
 # 创建账号的信号
-create_account_signal = Signal(providing_args=["account"])
+create_account_signal = Signal()

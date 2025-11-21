@@ -12,54 +12,60 @@
 -->
 
 <template>
-  <BkTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn
-      :label="t('目标集群')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+    row-key="pkg_id">
+    <TicketInfoTableColumn
+      col-key="cluster_ids"
+      :get-copy-value="
+        (item: RowData) => item.cluster_ids.map((clusterId) => ticketDetails.details.clusters[clusterId].immute_domain)
+      "
+      :min-width="200"
+      :title="t('目标集群')">
+      <template #default="{ row }: { row: RowData }">
         <p
-          v-for="item in data.cluster_ids"
+          v-for="item in row.cluster_ids"
           :key="item">
           {{ ticketDetails.details.clusters[item].immute_domain }}
         </p>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('当前版本')"
-      :min-width="300">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="current_version"
+      :min-width="300"
+      :title="t('当前版本')">
+      <template #default="{ row }: { row: RowData }">
         <VersionContent
           :data="{
-            version: data.display_info.current_version,
-            package: data.display_info.current_package,
-            charSet: data.display_info.charset,
-            moduleName: data.display_info.current_module_name,
+            version: row.display_info.current_version,
+            package: row.display_info.current_package,
+            charSet: row.display_info.charset,
+            moduleName: row.display_info.current_module_name,
           }" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('目标版本')"
-      :min-width="300">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="target_version"
+      :min-width="300"
+      :title="t('目标版本')">
+      <template #default="{ row }: { row: RowData }">
         <VersionContent
           :data="{
-            version: data.display_info.target_version
-              ? data.display_info.target_version
-              : data.display_info.current_version,
-            package: data.display_info.target_package,
-            charSet: data.display_info.charset,
-            moduleName: data.display_info.target_module_name
-              ? data.display_info.target_module_name
-              : data.display_info.current_module_name,
+            version: row.display_info.target_version
+              ? row.display_info.target_version
+              : row.display_info.current_version,
+            package: row.display_info.target_package,
+            charSet: row.display_info.charset,
+            moduleName: row.display_info.target_module_name
+              ? row.display_info.target_module_name
+              : row.display_info.current_module_name,
           }" />
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('检查业务连接')">
-      {{ ticketDetails.details.force ? t('是') : t('否') }}
+      {{ ticketDetails.details.is_check_process ? t('是') : t('否') }}
     </InfoItem>
   </InfoList>
 </template>

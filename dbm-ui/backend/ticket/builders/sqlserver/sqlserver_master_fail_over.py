@@ -24,6 +24,7 @@ class SQLServerMasterFailOverDetailSerializer(SQLServerMasterSlaveSwitchDetailSe
     force = serializers.BooleanField(help_text=_("是否强制切换(强切固定为true)"), default=True, required=False)
 
     def validate(self, attrs):
+        attrs = super(SQLServerMasterSlaveSwitchDetailSerializer, self).validate(attrs)
         # 校验集群是否可用，集群类型为高可用
         super().validate_cluster_can_access(attrs)
         super().validated_cluster_type(attrs, ClusterType.SqlserverHA)

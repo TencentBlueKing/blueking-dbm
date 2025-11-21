@@ -17,32 +17,30 @@ from typing import Dict, List
 from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import InstancePhase, InstanceStatus
+from backend.db_meta.enums import ClusterEntryRole, InstancePhase, InstanceStatus, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
+from backend.flow.consts import DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
+from backend.flow.engine.bamboo.scene.common.entrys_manager import BuildEntrysManageSubflow
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_upgrade_subflow import mysql_upgrade_subflow
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
 from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
 from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.mysql.check_client_connections import CheckClientConnComponent
-from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.spider.upgrade_key_word_check import UpgradeKeyWordCheckComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CheckClientConnKwargs,
-    CreateDnsKwargs,
     DBMetaOPKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
-    RecycleDnsRecordKwargs,
     UpgradeKeyWordCheckKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
-from backend.flow.utils.mysql.mysql_version_parse import get_sub_version_by_pkg_name
 from backend.flow.utils.spider.spider_check_constants import BASIC_CHECK_TYPES
 
 
@@ -54,6 +52,7 @@ def build_mysql_upgrade_pipelines(
     root_id: str,
     ticket_data: Dict,
     pkg_id: int,
+    new_mysql_version: str,
     cluster: Cluster,
     is_check_process: bool,
 ) -> List:
@@ -107,7 +106,16 @@ def build_mysql_upgrade_pipelines(
 
         # 创建升级子流程，传递所有端口
         upgrade_pipeline = build_upgrade_mysql_subflow(
-            ip, ports, sub_name, is_same_tmysql_version, root_id, ticket_data, pkg_id, cluster, is_check_process
+            ip,
+            ports,
+            sub_name,
+            is_same_tmysql_version,
+            root_id,
+            ticket_data,
+            pkg_id,
+            new_mysql_version,
+            cluster,
+            is_check_process,
         )
         upgrade_pipelines.append(upgrade_pipeline)
         processed_instances.append(f"{ip}:{','.join(map(str, ports))}")
@@ -134,6 +142,7 @@ def build_upgrade_mysql_subflow(
     root_id: str,
     ticket_data: Dict,
     pkg_id: int,
+    new_mysql_version: str,
     cluster: Cluster,
     is_check_process: bool,
 ):
@@ -148,7 +157,9 @@ def build_upgrade_mysql_subflow(
         root_id: 根ID
         ticket_data: 单据数据
         pkg_id: 包ID
+        new_mysql_version: 新的MySQL版本号
         cluster: 集群对象
+        is_check_process: 是否检查客户端连接
 
     Returns:
         SubBuilder: 升级子流程
@@ -181,7 +192,6 @@ def build_upgrade_mysql_subflow(
             is_same_tmysql_version=is_same_tmysql_version,
         )
     )
-
     # 更新mysql instance version信息
     sub_pipeline.add_act(
         act_name=_("更新mysql instance version meta信息 {}").format(ip),
@@ -189,7 +199,7 @@ def build_upgrade_mysql_subflow(
         kwargs=asdict(
             DBMetaOPKwargs(
                 db_meta_class_func=MySQLDBMeta.update_mysql_instance_version.__name__,
-                cluster={"ip": ip, "version": get_sub_version_by_pkg_name(cluster.major_version)},
+                cluster={"ip": ip, "version": new_mysql_version},
             )
         ),
     )
@@ -201,9 +211,10 @@ def build_spider_upgrade_subflow(
     ip: str,
     bk_cloud_id: int,
     pkg_id: int,
-    domain: str,
     spider_version: str,
     spider_port: int,
+    spider_role: str,
+    cluster_id: int,
     force_upgrade: bool,
     sub_flow_context: Dict,
     root_id: str,
@@ -229,18 +240,32 @@ def build_spider_upgrade_subflow(
 
     # 执行本地升级
     # 回收对应的域名关系
-    sub_pipeline.add_act(
-        act_name=_("回收对应spider域名解析"),
-        act_component_code=MySQLDnsManageComponent.code,
-        kwargs=asdict(
-            RecycleDnsRecordKwargs(
-                bk_cloud_id=bk_cloud_id,
-                dns_op_exec_port=spider_port,
-                exec_ip=[ip],
-            ),
-        ),
-    )
+    entry_role = ClusterEntryRole.MASTER_ENTRY.value
+    if spider_role == TenDBClusterSpiderRole.SPIDER_SLAVE.value:
+        entry_role = ClusterEntryRole.SLAVE_ENTRY.value
 
+    disable_entry_process = BuildEntrysManageSubflow(
+        root_id=root_id,
+        ticket_data=copy.deepcopy(sub_flow_context),
+        op_type=DnsOpType.DISABLE,
+        param={
+            "cluster_id": cluster_id,
+            "port": spider_port,
+            "del_ips": [ip],
+        },
+    )
+    enable_entry_process = BuildEntrysManageSubflow(
+        root_id=root_id,
+        ticket_data=copy.deepcopy(sub_flow_context),
+        op_type=DnsOpType.ENABLE,
+        param={
+            "cluster_id": cluster_id,
+            "port": spider_port,
+            "add_ips": [ip],
+            "entry_role": [entry_role],
+        },
+    )
+    sub_pipeline.add_sub_pipeline(sub_flow=disable_entry_process)
     cluster = {"proxy_ports": [spider_port], "pkg_id": pkg_id, "force_upgrade": force_upgrade}
     exec_act_kwargs = ExecActuatorKwargs(cluster=cluster, bk_cloud_id=bk_cloud_id)
     exec_act_kwargs.exec_ip = ip
@@ -291,20 +316,8 @@ def build_spider_upgrade_subflow(
     )
     sub_pipeline.add_parallel_acts(act_list)
 
-    sub_pipeline.add_act(
-        act_name=_("添加集群域名"),
-        act_component_code=MySQLDnsManageComponent.code,
-        kwargs=asdict(
-            CreateDnsKwargs(
-                bk_cloud_id=bk_cloud_id,
-                add_domain_name=domain,
-                dns_op_exec_port=spider_port,
-                exec_ip=[ip],
-            ),
-        ),
-    )
-
-    return sub_pipeline.build_sub_process(sub_name=_("{}spider实例升级").format(ip))
+    sub_pipeline.add_sub_pipeline(sub_flow=enable_entry_process)
+    return sub_pipeline.build_sub_process(sub_name=_("[{}]{}升级").format(spider_role, ip))
 
 
 def add_spider_alarm_shield_act(sub_pipeline, cluster: Cluster, shield_hours: int = 2) -> None:
@@ -346,9 +359,7 @@ def add_spider_disable_alarm_shield_act(sub_pipeline) -> None:
     sub_pipeline.add_act(act_name=_("解除告警屏蔽"), act_component_code=DisableAlarmShieldComponent.code, kwargs={})
 
 
-def add_spider_upgrade_check_act(
-    sub_pipeline, cluster_id: int, spider_master_ins: List, bk_cloud_id: int, force_upgrade: bool
-) -> None:
+def add_spider_upgrade_check_act(sub_pipeline, spider_master_ins: List, bk_cloud_id: int, check_process: bool) -> None:
     """
     添加spider升级检查活动
 
@@ -359,7 +370,7 @@ def add_spider_upgrade_check_act(
         bk_cloud_id: 云区域ID
         force_upgrade: 是否强制升级
     """
-    if not force_upgrade:
+    if check_process:
         sub_pipeline.add_act(
             act_name=_("检查Master Spider端连接情况"),
             act_component_code=CheckClientConnComponent.code,

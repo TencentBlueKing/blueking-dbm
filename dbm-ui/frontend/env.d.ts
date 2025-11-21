@@ -109,6 +109,15 @@ declare interface Window {
         waterMark?: {
           content?: string;
         };
+        chartToolMenu: {
+          build_in: boolean;
+          id: string;
+          type: 'tool' | 'menu';
+        }[];
+        toolMenu: {
+          build_in: boolean;
+          id: string;
+        }[];
       },
     ) => Promise<{
       unmount: () => void;

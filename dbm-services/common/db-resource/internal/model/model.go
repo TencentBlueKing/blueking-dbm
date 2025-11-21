@@ -45,7 +45,7 @@ var (
 	once         sync.Once
 )
 
-func init() {
+func InitModel() {
 	createSysDb()
 	ormDB := initSelfDB()
 	sqlDB, err := ormDB.DB()

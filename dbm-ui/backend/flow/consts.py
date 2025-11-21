@@ -15,7 +15,13 @@ from backend import env
 from backend.configuration.constants import SQLSERVER_ADMIN_USER
 from backend.db_meta.enums import MachineType
 from backend.db_services.version.constants import SqlserverVersion
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import (
+    EnumField,
+    FloatStructuredEnum,
+    IntStructuredEnum,
+    ListStructuredEnum,
+    StrStructuredEnum,
+)
 
 GenerateAndPublish = "GenerateAndPublish"
 HOST = "host"
@@ -80,6 +86,9 @@ MAX_SPIDER_MASTER_COUNT = 64
 MIN_SPIDER_MASTER_COUNT = 1
 MIN_SPIDER_SLAVE_COUNT = 1
 
+# 定义每个TenDB-Cluster集群最小spider-master数量，在单据提单场景
+MIN_SPIDER_MASTER_COUNT_IN_TICKET = 2
+
 # 定义TenDB-HA的最少proxy实例数量
 MIN_TENDB_PROXY_COUNT = 1
 
@@ -140,7 +149,7 @@ DEFAULT_TWEMPROXY_SEG_MIN_NUM = 0
 
 
 # JOB操作类型code
-class JobOperationCode(int, StructuredEnum):
+class JobOperationCode(IntStructuredEnum):
     FAILED_IP_RETRY = EnumField(2, _("失败IP重试"))
     IGNORE_ERROR = EnumField(3, _("忽略错误"))
     EXECUTE = EnumField(4, _("执行"))
@@ -152,7 +161,7 @@ class JobOperationCode(int, StructuredEnum):
 
 
 # JOB主机任务状态码
-class JobHostErrorCode(int, StructuredEnum):
+class JobHostErrorCode(IntStructuredEnum):
     """
     主机任务状态码，1.Agent异常; 3.上次已成功; 5.等待执行; 7.正在执行; 9.执行成功; 11.任务失败; 12.任务下发失败; 13.任务超时;
     15.任务日志错误; 101.脚本执行失败; 102.脚本执行超时; 103.脚本执行被终止; 104.脚本返回码非零; 202.文件传输失败;
@@ -197,7 +206,7 @@ VM_DEFAULT_INSTANCE_NUM = 1
 MYSQL_SYS_USER = ["system user", "event_scheduler"]
 
 
-class StateType(str, StructuredEnum):
+class StateType(StrStructuredEnum):
     CREATED = EnumField("CREATED", _("创建态"))
     READY = EnumField("READY", _("准备态"))
     RUNNING = EnumField("RUNNING", _("运行态"))
@@ -228,12 +237,12 @@ TBINLOGDUMPER_PORT = 27000
 DEFAULT_INSTANCE = {"ip": "0.0.0.0", "port": 0, "bk_cloud_id": 0}
 
 
-class OperateCollectorActionEnum(str, StructuredEnum):
+class OperateCollectorActionEnum(StrStructuredEnum):
     INSTALL = EnumField("INSTALL", _("安装"))
     UNINSTALL = EnumField("UNINSTALL", _("卸载"))
 
 
-class FlowNodeOperateType(str, StructuredEnum):
+class FlowNodeOperateType(StrStructuredEnum):
     RETRY = EnumField("retry", _("重试"))
     SKIP = EnumField("skip", _("跳过"))
     FORCE_FAIL = EnumField("force_fail", _("强制失败"))
@@ -241,7 +250,7 @@ class FlowNodeOperateType(str, StructuredEnum):
     PIPELINE_TERMINATE = EnumField("pipeline_terminate", _("流程终止"))
 
 
-class NameSpaceEnum(str, StructuredEnum):
+class NameSpaceEnum(StrStructuredEnum):
     Common = EnumField("common", _("共用参数"))
     RedisCommon = EnumField("rediscomm", _("redis共用参数"))
     TenDBHA = EnumField("tendbha", _("TenDBHA"))
@@ -261,7 +270,7 @@ class NameSpaceEnum(str, StructuredEnum):
     Vm = EnumField("vm", _("Vm"))
 
 
-class ConfigTypeEnum(str, StructuredEnum):
+class ConfigTypeEnum(StrStructuredEnum):
     InitUser = EnumField("init_user", _("初始化帐户"))
     MySQLAndUser = EnumField("mysql#user", _("实例和帐户"))
     OSConf = EnumField("osconf", _("系统配置"))
@@ -280,7 +289,7 @@ class ConfigTypeEnum(str, StructuredEnum):
     MongoS = EnumField("mongos", _("mongos配置"))
 
 
-class ConfigFileEnum(str, StructuredEnum):
+class ConfigFileEnum(StrStructuredEnum):
     OS = EnumField("os", _("系统"))
     Twemproxy = EnumField("Twemproxy-latest", _("twemproxy config file"))
     Predixy = EnumField("Predixy-latest", _("predixy config file"))
@@ -297,12 +306,12 @@ class ConfigFileEnum(str, StructuredEnum):
     MaxMemorySet = EnumField("maxmemory_set", _("maxmemory配置"))
 
 
-class DbBackupRoleEnum(str, StructuredEnum):
+class DbBackupRoleEnum(StrStructuredEnum):
     Master = EnumField("MASTER", _("MASTER"))
     Slave = EnumField("SLAVE", _("SLAVE"))
 
 
-class MediumEnum(str, StructuredEnum):
+class MediumEnum(StrStructuredEnum):
     MySQL = EnumField("mysql", _("mysql"))
     MySQLProxy = EnumField("mysql-proxy", _("mysql-proxy"))
     Redis = EnumField("redis", _("redis"))
@@ -350,7 +359,7 @@ class MediumEnum(str, StructuredEnum):
     Oracle = EnumField("oracle", _("oracle"))
 
 
-class CloudServiceName(str, StructuredEnum):
+class CloudServiceName(StrStructuredEnum):
     Nginx = EnumField("nginx", _("nginx服务"))
     DNS = EnumField("dns", _("dns服务"))
     DRS = EnumField("drs", _("drs服务"))
@@ -358,14 +367,14 @@ class CloudServiceName(str, StructuredEnum):
     RedisDTS = EnumField("redis_dts", _("redis 数据传输服务"))
 
 
-class CloudServiceConfFileEnum(str, StructuredEnum):
+class CloudServiceConfFileEnum(StrStructuredEnum):
     PullCrond = EnumField("pull-crond.conf", _("pull-crond.conf"))
     HA_GM = EnumField("ha-gm.conf", _("ha-gm.conf"))
     HA_AGENT = EnumField("ha-agent.conf", _("ha-agent.conf"))
     DRS_ENV = EnumField("drs.env", _("drs.env"))
 
 
-class CloudDBHATypeEnum(str, StructuredEnum):
+class CloudDBHATypeEnum(StrStructuredEnum):
     GM = EnumField("gm", _("GM"))
     AGENT = EnumField("agent", _("AGENT"))
     MySQLMonitor = EnumField("mysql-monitor", _("mysql-monitor"))
@@ -376,7 +385,7 @@ CLOUD_NGINX_DBM_DEFAULT_PORT = 80
 CLOUD_NGINX_MANAGE_DEFAULT_HOST = 8080
 
 
-class CloudServiceModuleName(str, StructuredEnum):
+class CloudServiceModuleName(StrStructuredEnum):
     NGINX = EnumField("nginx.service.module", _("nginx服务模块"))
     DNS = EnumField("dns.service.module", _("dns服务模块"))
     DRS = EnumField("drs.service.module", _("drs服务模块"))
@@ -384,17 +393,17 @@ class CloudServiceModuleName(str, StructuredEnum):
     REDIS_DTS = EnumField("redis_dts.service.module", _("redis_dts服务模块"))
 
 
-class MediumFileTypeEnum(int, StructuredEnum):
+class MediumFileTypeEnum(IntStructuredEnum):
     Server = EnumField(1, _("服务器文件"))
     Repo = EnumField(3, _("蓝盾制品库"))
 
 
-class RDMSApplyEnum(str, StructuredEnum):
+class RDMSApplyEnum(StrStructuredEnum):
     MySQL = EnumField("MySQL", _("MySQL"))
     Version = EnumField("v1", _("V1"))
 
 
-class DBActuatorTypeEnum(str, StructuredEnum):
+class DBActuatorTypeEnum(StrStructuredEnum):
     Default = EnumField("", "")
     MySQL = EnumField("mysql", _("mysql"))
     Proxy = EnumField("proxy", _("proxy"))
@@ -421,7 +430,7 @@ class DBActuatorTypeEnum(str, StructuredEnum):
     Vm = EnumField("vm", _("vm"))
 
 
-class DBActuatorActionEnum(str, StructuredEnum):
+class DBActuatorActionEnum(StrStructuredEnum):
     Sysinit = EnumField("sysinit", _("sysinit"))
     Deploy = EnumField("deploy", _("deploy"))
     AppendDeploy = EnumField("append-deploy", _("append-deploy"))
@@ -508,7 +517,7 @@ class DBActuatorActionEnum(str, StructuredEnum):
     InitCommonConfig = EnumField("init-common-config", _("初始化公共配置"))
 
 
-class RedisActuatorActionEnum(str, StructuredEnum):
+class RedisActuatorActionEnum(StrStructuredEnum):
     Sysinit = EnumField("sysinit", _("sysinit"))
     Install = EnumField("install", _("install"))
     REPLICA_BATCH = EnumField("replica_batch", _("replica_batch"))
@@ -557,9 +566,11 @@ class RedisActuatorActionEnum(str, StructuredEnum):
     REPLICAS_FORCE_RESYNC = EnumField("replicas_force_resync", _("replicas_force_resync"))
     RESTART_EXPORTER = EnumField("restart_exporter", _("restart_exporter"))
     HOTKEY_ANALYSIS = EnumField("hotkey_analysis", _("hotkey_analysis"))
+    PROXY_REUSE = EnumField("proxy_reuse", _("proxy_reuse"))
+    KEYSTAT = EnumField("keystat", _("keystat"))
 
 
-class MongoDBActuatorActionEnum(str, StructuredEnum):
+class MongoDBActuatorActionEnum(StrStructuredEnum):
     OsInit = EnumField("os_mongo_init", _("os_mongo_init"))
     mongoDInstall = EnumField("mongod_install", _("mongod_install"))
     mongoSInstall = EnumField("mongos_install", _("mongos_install"))
@@ -569,6 +580,7 @@ class MongoDBActuatorActionEnum(str, StructuredEnum):
     DeleteUser = EnumField("delete_user", _("delete_user"))
     MongoExecuteScript = EnumField("mongo_execute_script", _("mongo_execute_script"))
     Backup = EnumField("mongodb_backup", _("mongodb_backup"))
+    DataExport = EnumField("mongodb_data_export")
     RemoveNs = EnumField("mongodb_remove_ns", _("mongodb_remove_ns"))
     Restore = EnumField("mongodb_restore", _("mongodb_restore"))
     PitRestore = EnumField("mongodb_pitr_restore", _("mongodb_pitr_restore"))
@@ -582,9 +594,11 @@ class MongoDBActuatorActionEnum(str, StructuredEnum):
     MongoInstanceOp = EnumField("mongodb_instance_op", _("mongodb_instance_op"))
     ReplicasetStepDown = EnumField("replicaset_stepdown", _("replicaset_stepdown"))
     ClusterBalancer = EnumField("cluster_balancer", _("cluster_balancer"))
+    MongodNodeHidden = EnumField("mongod_node_hidden", _("mongod_node_hidden"))
+    FixServiceStatus = EnumField("fix_service_status", _("fix_service_status"))
 
 
-class EsActuatorActionEnum(str, StructuredEnum):
+class EsActuatorActionEnum(StrStructuredEnum):
     Init = EnumField("init", _("init"))
     DecompressPkg = EnumField("decompress_pkg", _("decompress_pkg"))
     InstallSupervisor = EnumField("install_supervisor", _("install_supervisor"))
@@ -609,7 +623,7 @@ class EsActuatorActionEnum(str, StructuredEnum):
     PackCertificate = EnumField("pack_certificate", _("pack_certificate"))
 
 
-class KafkaActuatorActionEnum(str, StructuredEnum):
+class KafkaActuatorActionEnum(StrStructuredEnum):
     initKafka = EnumField("init", _("init"))
     decompressKafkaPkg = EnumField("decompress_pkg", _("decompress_pkg"))
     installKafkaSupervisor = EnumField("install_supervisor", _("install_supervisor"))
@@ -631,7 +645,7 @@ class KafkaActuatorActionEnum(str, StructuredEnum):
     ExecuteReassignment = EnumField("execute_reassignment", _("execute_reassignment"))
 
 
-class InfluxdbActuatorActionEnum(str, StructuredEnum):
+class InfluxdbActuatorActionEnum(StrStructuredEnum):
     init = EnumField("init", _("init"))
     decompressPkg = EnumField("decompress_pkg", _("decompress_pkg"))
     installSupervisor = EnumField("install_supervisor", _("install_supervisor"))
@@ -644,7 +658,7 @@ class InfluxdbActuatorActionEnum(str, StructuredEnum):
     CleanData = EnumField("clean_data", _("clean_data"))
 
 
-class PulsarActuatorActionEnum(str, StructuredEnum):
+class PulsarActuatorActionEnum(StrStructuredEnum):
     CheckBrokerConfig = EnumField("check_broker_config", _("check_broker_config"))
     CheckNamespaceConfig = EnumField("check_namespace_config", _("check_namespace_config"))
     CheckUnderReplicated = EnumField("check_under_replicated", _("check_under_replicated"))
@@ -668,7 +682,7 @@ class PulsarActuatorActionEnum(str, StructuredEnum):
     ModifyHosts = EnumField("modify_hosts", _("modify_hosts"))
 
 
-class RiakActuatorActionEnum(str, StructuredEnum):
+class RiakActuatorActionEnum(StrStructuredEnum):
     SysinitRiak = EnumField("sysinit-riak", _("sysinit-riak"))
     Deploy = EnumField("deploy", _("deploy"))
     GetConfig = EnumField("get-config", _("get-config"))
@@ -690,7 +704,7 @@ class RiakActuatorActionEnum(str, StructuredEnum):
     StopMonitor = EnumField("stop-monitor", _("stop-monitor"))
 
 
-class SqlserverActuatorActionEnum(str, StructuredEnum):
+class SqlserverActuatorActionEnum(StrStructuredEnum):
     SysInit = EnumField("sysinit", _("机器初始化"))
     Deploy = EnumField("deploy", _("实例安装"))
     ExecSQLFiles = EnumField("ExecSQLFiles", _("SQL文件执行"))
@@ -720,7 +734,7 @@ class SqlserverActuatorActionEnum(str, StructuredEnum):
     MssqlServiceCheck = EnumField("MssqlServiceCheck", _("检测进程是否注册"))
 
 
-class DorisActuatorActionEnum(str, StructuredEnum):
+class DorisActuatorActionEnum(StrStructuredEnum):
     Init = EnumField("init", _("init"))
     DecompressPkg = EnumField("decompress_pkg", _("decompress_pkg"))
     InstallSupervisor = EnumField("install_supervisor", _("install_supervisor"))
@@ -739,7 +753,7 @@ class DorisActuatorActionEnum(str, StructuredEnum):
     DropResource = EnumField("drop_resource", _("drop_resource"))
 
 
-class RiakModuleId(int, StructuredEnum):
+class RiakModuleId(IntStructuredEnum):
     """
     Riak模块id
     """
@@ -751,7 +765,7 @@ class RiakModuleId(int, StructuredEnum):
     mixed = EnumField(4, _("mixed"))
 
 
-class JobStatusEnum(int, StructuredEnum):
+class JobStatusEnum(IntStructuredEnum):
     NOT_RUNNING = EnumField(1, _("NOT_RUNNING"))
     RUNNING = EnumField(2, _("RUNNING"))
     SUCCESS = EnumField(3, _("SUCCESS"))
@@ -765,26 +779,26 @@ class JobStatusEnum(int, StructuredEnum):
     ForciblyTerminatedSucceeded = EnumField(11, _("步骤强制终止成功"))
 
 
-class PipelineStatus(str, StructuredEnum):
+class PipelineStatus(StrStructuredEnum):
     READY = EnumField("READY", _("准备中"))
     RUNNING = EnumField("RUNNING", _("运行中"))
     FINISHED = EnumField("FINISHED", _("完成"))
     FAILED = EnumField("FAILED", _("失败"))
 
 
-class InstanceStatus(str, StructuredEnum):
+class InstanceStatus(StrStructuredEnum):
     RUNNING = EnumField("running", _("running"))
     AVAILABLE = EnumField("available", _("available"))
     UNAVAILABLE = EnumField("unavailable", _("unavailable"))
     LOCKED = EnumField("locked", _("locked"))
 
 
-class ClusterStatus(str, StructuredEnum):
+class ClusterStatus(StrStructuredEnum):
     REDIS_CLUSTER_NO = EnumField("no", _("cluster no"))
     REDIS_CLUSTER_YES = EnumField("yes", _("cluster yes"))
 
 
-class DnsOpType(str, StructuredEnum):
+class DnsOpType(StrStructuredEnum):
     CREATE = EnumField("create", _("create"))
     CLUSTER_DELETE = EnumField("cluster_delete", _("cluster_delete"))
     RECYCLE_RECORD = EnumField("recycle_record", _("recycle_record"))
@@ -795,15 +809,17 @@ class DnsOpType(str, StructuredEnum):
     CLB_CHANGE_WEIGHT = EnumField("clb_change_weight", _("clb修改权重"))
     CLB_DISABLE_RS = EnumField("clb_disable_rs", _("clb_disable_rs"))
     CLB_ENABLE_RS = EnumField("clb_enable_rs", _("clb_enable_rs"))
+    DISABLE = EnumField("disable", _("disable"))
+    ENABLE = EnumField("enable", _("enable"))
 
 
-class ManagerOpType(str, StructuredEnum):
+class ManagerOpType(StrStructuredEnum):
     CREATE = EnumField("create", _("create"))
     UPDATE = EnumField("update", _("update"))
     DELETE = EnumField("delete", _("delete"))
 
 
-class ManagerServiceType(str, StructuredEnum):
+class ManagerServiceType(StrStructuredEnum):
     KIBANA = EnumField("kibana", _("kibana"))
     KAFKA_MANAGER = EnumField("kafka_manager", _("kafka_manager"))
     PULSAR_MANAGER = EnumField("pulsar_manager", _("pulsar_manager"))
@@ -811,33 +827,33 @@ class ManagerServiceType(str, StructuredEnum):
     DORIS_WEB_UI = EnumField("doris_web_ui", _("doris_web_ui"))
 
 
-class ManagerDefaultPort(int, StructuredEnum):
+class ManagerDefaultPort(IntStructuredEnum):
     KIBANA = EnumField(5601, _("KIBANA_PORT"))
     KAFKA_MANAGER = EnumField(9000, _("KAFKA_MANAGER_PORT"))
 
 
-class AuthorizeStatus(int, StructuredEnum):
+class AuthorizeStatus(IntStructuredEnum):
     RUNNING = EnumField(1, _("RUNNING"))
     SUCCESS = EnumField(0, _("SUCCESS"))
     FAILED = EnumField(2, _("FAILED"))
 
 
-class DBConstNumEnum(int, StructuredEnum):
+class DBConstNumEnum(IntStructuredEnum):
     PROXY_DEFAULT_NUM = EnumField(3, _("proxy默认实例个数"))
     REDIS_ROLE_NUM = EnumField(2, _("redis角色数"))
 
 
-class ConfigDefaultEnum(list, StructuredEnum):
+class ConfigDefaultEnum(ListStructuredEnum):
     DATA_DIRS = EnumField(["/data", "/data1"], _("DB安装目录"))
 
 
-class DirEnum(str, StructuredEnum):
+class DirEnum(StrStructuredEnum):
     GSE_DIR = EnumField("/usr/local/gse_bkte", _("gcs 安装路径"))
     REDIS_KEY_LIFE_DIR = EnumField("/data/dbbak/keylifecycle", _("key生命周期路径"))
     MONGO_RECOVER_DIR = EnumField("/data/dbbak/recover_mg", _("mongo恢复路径"))
 
 
-class TruncateDataTypeEnum(str, StructuredEnum):
+class TruncateDataTypeEnum(StrStructuredEnum):
     TRUNCATE_TABLE = EnumField("truncate_table", _("truncate_table"))
     DROP_DATABASE = EnumField("drop_database", _("drop_database"))
     DROP_TABLE = EnumField("drop_table", _("drop_table"))
@@ -908,40 +924,40 @@ TBINLOGDUMPER_KAFKA_GLOBAL_CONF = {
 TBINLOGDUMPER_KAFKA_TOPIC_CONF = {"message.timeout.ms": "100000"}
 
 
-class DBRoleEnum(str, StructuredEnum):
+class DBRoleEnum(StrStructuredEnum):
     Proxy = EnumField("proxy", _("proxy"))
     Master = EnumField("master", _("master"))
     Slave = EnumField("slave", _("slave"))
 
 
-class LevelInfoEnum(str, StructuredEnum):
+class LevelInfoEnum(StrStructuredEnum):
     TendataModuleDefault = EnumField("0", _("TendataModuleDefault"))
     RiakModuleDefault = EnumField("0", _("RiakModuleDefault"))
 
 
-class ESRoleEnum(str, StructuredEnum):
+class ESRoleEnum(StrStructuredEnum):
     HOT = EnumField("hot", _("hot"))
     COLD = EnumField("cold", _("cold"))
     CLIENT = EnumField("client", _("client"))
     MASTER = EnumField("master", _("master"))
 
 
-class OperateTypeEnum(str, StructuredEnum):
+class OperateTypeEnum(StrStructuredEnum):
     DELETE_KEY_REGEX = EnumField("regex", _("redis key删除正则方式"))
     DELETE_KEY_FILES = EnumField("files", _("redis key删除文件方式"))
 
 
-class SemanticInsOpType(str, StructuredEnum):
+class SemanticInsOpType(StrStructuredEnum):
     GET = EnumField("get", _("get"))
     RELEASE = EnumField("release", _("release"))
 
 
-class WriteContextOpType(str, StructuredEnum):
+class WriteContextOpType(StrStructuredEnum):
     REWRITE = EnumField("rewrite", _("覆盖写入上下文变量"))
     APPEND = EnumField("append", _("追加写入上下文变量"))
 
 
-class HdfsDBActuatorActionEnum(str, StructuredEnum):
+class HdfsDBActuatorActionEnum(StrStructuredEnum):
     InstallSupervisor = EnumField("install-supervisor", _("install-supervisor"))
     RenderConfig = EnumField("render-config", _("render-config"))
     InitSystemConfig = EnumField("init", _("init"))
@@ -968,7 +984,7 @@ class HdfsDBActuatorActionEnum(str, StructuredEnum):
     UpdateZooKeeperConfig = EnumField("update-zk-conf", "update-zk-conf")
 
 
-class HdfsRoleEnum(str, StructuredEnum):
+class HdfsRoleEnum(StrStructuredEnum):
     NameNode = EnumField("namenode", _("namenode"))
     DataNode = EnumField("datanode", _("datanode"))
     JournalNode = EnumField("journalnode", _("journalnode"))
@@ -976,28 +992,28 @@ class HdfsRoleEnum(str, StructuredEnum):
     ZKFailController = EnumField("zkfc", _("zkfc"))
 
 
-class PulsarRoleEnum(str, StructuredEnum):
+class PulsarRoleEnum(StrStructuredEnum):
     BookKeeper = EnumField("bookkeeper", _("bookkeeper"))
     Broker = EnumField("broker", _("broker"))
     ZooKeeper = EnumField("zookeeper", _("zookeeper"))
     # All = EnumField("all", _("all"))
 
 
-class RedisBackupEnum(str, StructuredEnum):
+class RedisBackupEnum(StrStructuredEnum):
     NORMAL_BACKUP = EnumField("normal_backup", _("常规备份"))
     FOREVER_BACKUP = EnumField("forever_backup", _("长期备份"))
 
 
-class KafkaFlowEnum(str, StructuredEnum):
+class KafkaFlowEnum(StrStructuredEnum):
     KAFKA_REPLACE = EnumField("KAFKA_REPLACE", _("KAFKA_REPLACE"))
     KAFKA_SCALE_UP = EnumField("KAFKA_SCALE_UP", _("KAFKA_SCALE_UP"))
 
 
-class InfluxdbFlowEnum(str, StructuredEnum):
+class InfluxdbFlowEnum(StrStructuredEnum):
     INFLUXDB_REPLACE = EnumField("INFLUXDB_REPLACE", _("INFLUXDB_REPLACE"))
 
 
-class MySQLBackupTypeEnum(str, StructuredEnum):
+class MySQLBackupTypeEnum(StrStructuredEnum):
     LOGICAL = EnumField("logical", _("逻辑备份"))
     PHYSICAL = EnumField("physical", _("物理备份"))
 
@@ -1020,21 +1036,24 @@ MysqlVersionToDBBackupForMap = {
 }
 
 
-class MySQLBackupFileTagEnum(str, StructuredEnum):
+class MySQLBackupFileTagEnum(StrStructuredEnum):
     DBFILE1M = EnumField("DBFILE1M", _("备份1个月"))
     DBFILE6M = EnumField("DBFILE6M", _("备份6个月"))
     DBFILE1Y = EnumField("DBFILE1Y", _("备份1年"))
     DBFILE3Y = EnumField("DBFILE3Y", _("备份3年"))
 
 
-class MongoDBBackupFileTagEnum(str, StructuredEnum):
+class MongoDBBackupFileTagEnum(StrStructuredEnum):
     NORMAL_BACKUP = EnumField("normal_backup", _("常规备份(25天)"))
     HALF_YEAR_BACKUP = EnumField("half_year_backup", _("6个月"))
     A_YEAR_BACKUP = EnumField("a_year_backup", _("1年"))
     FOREVER_BACKUP = EnumField("forever_backup", _("长期备份(3年)"))
 
 
-class InstanceFuncAliasEnum(str, StructuredEnum):
+MONGODB_DATA_EXPORT_PATH = "mongodb-data-export/{biz}"
+
+
+class InstanceFuncAliasEnum(StrStructuredEnum):
     """
     定义实例对应的进程别名，用于注册服务实例
     """
@@ -1052,7 +1071,7 @@ class InstanceFuncAliasEnum(str, StructuredEnum):
     RIAK_FUNC_ALIAS = EnumField("riak", _("Riak的进程名称"))
 
 
-class RollbackType(str, StructuredEnum):
+class RollbackType(StrStructuredEnum):
     """
     回滚类型
     """
@@ -1063,7 +1082,7 @@ class RollbackType(str, StructuredEnum):
     LOCAL_AND_BACKUPID = EnumField("LOCAL_AND_BACKUPID", _("本地备份+备份ID"))
 
 
-class DataSyncSource(str, StructuredEnum):
+class DataSyncSource(StrStructuredEnum):
     """
     定义触发数据修复单据来源
     """
@@ -1072,7 +1091,7 @@ class DataSyncSource(str, StructuredEnum):
     ROUTINE = EnumField("routine", _("例行校验单据发起"))
 
 
-class SyncType(str, StructuredEnum):
+class SyncType(StrStructuredEnum):
     """数据同步类型"""
 
     SYNC_MS = EnumField("ms", _("ms"))
@@ -1080,7 +1099,7 @@ class SyncType(str, StructuredEnum):
     SYNC_SMS = EnumField("msms", _("msms"))
 
 
-class SwitchType(str, StructuredEnum):
+class SwitchType(StrStructuredEnum):
     """
     切换时是否需要,用户确认
     """
@@ -1089,7 +1108,7 @@ class SwitchType(str, StructuredEnum):
     SWITCH_WITHOUT_CONFIRM = "no_confirm"
 
 
-class RedisSlotSep(str, StructuredEnum):
+class RedisSlotSep(StrStructuredEnum):
     """
     redis slot分隔符
     """
@@ -1099,7 +1118,7 @@ class RedisSlotSep(str, StructuredEnum):
     MIGRATING_SEPARATOR = EnumField("->-", _("redis slot迁移分隔符"))
 
 
-class RedisSlotNum(int, StructuredEnum):
+class RedisSlotNum(IntStructuredEnum):
     """
     redis slot数量
     """
@@ -1109,7 +1128,7 @@ class RedisSlotNum(int, StructuredEnum):
     TOTAL_SLOT = EnumField(16384, _("redis total slot"))
 
 
-class ClusterNodeFailStatus(str, StructuredEnum):
+class ClusterNodeFailStatus(StrStructuredEnum):
     """
     redis节点状态
     """
@@ -1121,7 +1140,7 @@ class ClusterNodeFailStatus(str, StructuredEnum):
     NOFLAGS = EnumField("noflags", _("redis noflags state"))
 
 
-class RedisRole(str, StructuredEnum):
+class RedisRole(StrStructuredEnum):
     """
     redis节点角色
     """
@@ -1131,7 +1150,7 @@ class RedisRole(str, StructuredEnum):
     UNKNOWN = EnumField("unknown", _("redis unknown role"))
 
 
-class RedisLinkStatus(str, StructuredEnum):
+class RedisLinkStatus(StrStructuredEnum):
     """
     redis节点连接状态
     """
@@ -1144,7 +1163,7 @@ class RedisLinkStatus(str, StructuredEnum):
     DISCONNECTED = EnumField("disconnected", _("redis disconnected status"))
 
 
-class RedisClusterState(str, StructuredEnum):
+class RedisClusterState(StrStructuredEnum):
     """
     redis集群状态
     """
@@ -1153,7 +1172,7 @@ class RedisClusterState(str, StructuredEnum):
     FAIL = EnumField("fail", _("redis cluster state fail,not all slots are covered.通过 cluster info 命令获取"))
 
 
-class RedisCapacityUpdateType(str, StructuredEnum):
+class RedisCapacityUpdateType(StrStructuredEnum):
     """
     redis容量变更类型
     """
@@ -1163,7 +1182,7 @@ class RedisCapacityUpdateType(str, StructuredEnum):
     SLOT_MIGRATE = EnumField("slot_migrate", _("slot搬迁"))
 
 
-class RedisMaxmemoryConfigType(str, StructuredEnum):
+class RedisMaxmemoryConfigType(StrStructuredEnum):
     """
     redis maxmemory配置类型
     """
@@ -1174,12 +1193,12 @@ class RedisMaxmemoryConfigType(str, StructuredEnum):
     USED_MEMORY_CHANGE_PERCENT = EnumField("used_memory_change_percent", _("used_memory变更百分比"))
 
 
-class KafkaRoleEnum(str, StructuredEnum):
+class KafkaRoleEnum(StrStructuredEnum):
     ZOOKEEPER = EnumField("zookeeper", _("zookeeper"))
     BROKER = EnumField("broker", _("broker"))
 
 
-class PrivRole(str, StructuredEnum):
+class PrivRole(StrStructuredEnum):
     """
     定义授权实例角色
     """
@@ -1189,12 +1208,12 @@ class PrivRole(str, StructuredEnum):
     MYSQL = EnumField("mysql", _("mysql"))
 
 
-class MysqlChangeMasterType(str, StructuredEnum):
+class MysqlChangeMasterType(StrStructuredEnum):
     MASTERSTATUS = EnumField("MasterStatus", _("from show master status"))
     BACKUPFILE = EnumField("BackFile", _("from backup file"))
 
 
-class TenDBBackUpLocation(str, StructuredEnum):
+class TenDBBackUpLocation(StrStructuredEnum):
     """
     TendbCluster的库表备份位置
     """
@@ -1203,7 +1222,7 @@ class TenDBBackUpLocation(str, StructuredEnum):
     SPIDER_MNT = EnumField("spider_mnt", _("spider_mnt"))
 
 
-class TBinlogDumperAddType(str, StructuredEnum):
+class TBinlogDumperAddType(StrStructuredEnum):
     """
     TBinlogDumper添加类型
     """
@@ -1212,7 +1231,7 @@ class TBinlogDumperAddType(str, StructuredEnum):
     INCR_SYNC = EnumField("incr_sync", _("增量同步"))
 
 
-class DorisRoleEnum(str, StructuredEnum):
+class DorisRoleEnum(StrStructuredEnum):
     HOT = EnumField("hot", _("hot"))
     WARM = EnumField("warm", _("warm"))
     COLD = EnumField("cold", _("cold"))
@@ -1229,7 +1248,7 @@ MachinePrivRoleMap = {
 }
 
 
-class UserName(str, StructuredEnum):
+class UserName(StrStructuredEnum):
     """
     定义密码服务的用户名称
     """
@@ -1247,7 +1266,7 @@ class UserName(str, StructuredEnum):
     PARTITION_YW = EnumField("partition_yw", _("分区实例账号"))
 
 
-class MySQLPrivComponent(str, StructuredEnum):
+class MySQLPrivComponent(StrStructuredEnum):
     """
     定义密码服务的用户component类型
     """
@@ -1268,7 +1287,7 @@ class MySQLPrivComponent(str, StructuredEnum):
     DORIS_CLOUD_APP_ID = EnumField("doris_cloud_app_id", _("doris_cloud_app_id"))
 
 
-class RequestResultCode(int, StructuredEnum):
+class RequestResultCode(IntStructuredEnum):
     """
     请求结果code状态
     """
@@ -1276,7 +1295,7 @@ class RequestResultCode(int, StructuredEnum):
     Success = EnumField(0, _("success"))
 
 
-class MongoDBPasswordRule(str, StructuredEnum):
+class MongoDBPasswordRule(StrStructuredEnum):
     """
     mongodb密码规则名
     """
@@ -1284,7 +1303,7 @@ class MongoDBPasswordRule(str, StructuredEnum):
     RULE = EnumField("mongodb_password", _("MongoDB密码规则"))
 
 
-class MongoDBClusterRole(str, StructuredEnum):
+class MongoDBClusterRole(StrStructuredEnum):
     """
     mongodb cluster role
     """
@@ -1295,7 +1314,7 @@ class MongoDBClusterRole(str, StructuredEnum):
     Replicaset = EnumField("replicaset", _("replicaset"))
 
 
-class MongoDBTotalCache(float, StructuredEnum):
+class MongoDBTotalCache(FloatStructuredEnum):
     """
     cache占机器内存的百分比
     """
@@ -1303,7 +1322,7 @@ class MongoDBTotalCache(float, StructuredEnum):
     Cache_Percent = EnumField(0.65, _("cache_percent"))
 
 
-class MongoDBDomainPrefix(str, StructuredEnum):
+class MongoDBDomainPrefix(StrStructuredEnum):
     """
     mongodb domain Prefix
     """
@@ -1322,7 +1341,7 @@ class MongoDBDomainPrefix(str, StructuredEnum):
     BACKUP = EnumField("backup", _("backup"))
 
 
-class TBinlogDumperProtocolType(str, StructuredEnum):
+class TBinlogDumperProtocolType(StrStructuredEnum):
     """
     定义tbinlogdumper的对端协议
     """
@@ -1332,7 +1351,7 @@ class TBinlogDumperProtocolType(str, StructuredEnum):
     TCP_IP = EnumField("TCP/IP", _("TCP/IP"))
 
 
-class SqlserverUserName(str, StructuredEnum):
+class SqlserverUserName(StrStructuredEnum):
     """
     定义Sqlserver密码服务的用户名称
     """
@@ -1342,7 +1361,7 @@ class SqlserverUserName(str, StructuredEnum):
     SA = EnumField("sa", _("sa实例账号"))
 
 
-class SqlserverComponent(str, StructuredEnum):
+class SqlserverComponent(StrStructuredEnum):
     """
     定义sqlserver的密码component
     """
@@ -1350,7 +1369,7 @@ class SqlserverComponent(str, StructuredEnum):
     SQLSERVER = EnumField("sqlserver", _("sqlserver"))
 
 
-class SqlserverSysVersion(str, StructuredEnum):
+class SqlserverSysVersion(StrStructuredEnum):
     """
     定义Sqlserver支持操作系统版本名称
     """
@@ -1410,7 +1429,7 @@ MssqlSystemVersionSupportMap = {
 }
 
 
-class SqlserverCharSet(str, StructuredEnum):
+class SqlserverCharSet(StrStructuredEnum):
     """
     目前支持的Sqlserver的字符集
     """
@@ -1424,7 +1443,7 @@ class SqlserverCharSet(str, StructuredEnum):
 SQlCmdFileFormatNOMap = {"GBK": 936}
 
 
-class SqlserverSyncMode(str, StructuredEnum):
+class SqlserverSyncMode(StrStructuredEnum):
     """
     定义Sqlserver 数据库同步模式
     """
@@ -1443,7 +1462,7 @@ SqlserverSyncModeMaps = {
 NoSync = 3
 
 
-class SqlserverCleanMode(str, StructuredEnum):
+class SqlserverCleanMode(StrStructuredEnum):
     """
     Sqlserver清档模式
     """
@@ -1453,7 +1472,7 @@ class SqlserverCleanMode(str, StructuredEnum):
     DROP_DBS = EnumField("drop_dbs", _("删除库"))
 
 
-class SqlserverBackupMode(str, StructuredEnum):
+class SqlserverBackupMode(StrStructuredEnum):
     """
     Sqlserver备份触发模式
     """
@@ -1462,7 +1481,7 @@ class SqlserverBackupMode(str, StructuredEnum):
     LOG_BACKUP = EnumField("log_backup", _("增量备份"))
 
 
-class SqlserverBackupJobExecMode(str, StructuredEnum):
+class SqlserverBackupJobExecMode(IntStructuredEnum):
     """
     Sqlserver例行备份操作方式
     """
@@ -1471,7 +1490,7 @@ class SqlserverBackupJobExecMode(str, StructuredEnum):
     DISABLE = EnumField(0, _("关闭"))
 
 
-class SqlserverRestoreMode(str, StructuredEnum):
+class SqlserverRestoreMode(StrStructuredEnum):
     """
     Sqlserver 恢复类型
     """
@@ -1480,7 +1499,7 @@ class SqlserverRestoreMode(str, StructuredEnum):
     LOG = EnumField("L", _("选择日志备份恢复"))
 
 
-class SqlserverLoginExecMode(str, StructuredEnum):
+class SqlserverLoginExecMode(StrStructuredEnum):
     """
     Sqlserver账号操作方式
     """
@@ -1490,7 +1509,7 @@ class SqlserverLoginExecMode(str, StructuredEnum):
     DROP = EnumField("drop", _("删除"))
 
 
-class SqlserverDtsMode(str, StructuredEnum):
+class SqlserverDtsMode(StrStructuredEnum):
     """
     Sqlserver数据迁移模式
     """
@@ -1499,7 +1518,7 @@ class SqlserverDtsMode(str, StructuredEnum):
     INCR = EnumField("incr", _("增量备份迁移(持续的)"))
 
 
-class SqlserverRestoreDBStatus(str, StructuredEnum):
+class SqlserverRestoreDBStatus(StrStructuredEnum):
     """
     Sqlserver 执行恢复后db的状态
     """
@@ -1508,14 +1527,14 @@ class SqlserverRestoreDBStatus(str, StructuredEnum):
     RECOVERY = EnumField("RECOVERY", "RECOVERY")
 
 
-class MongoDBClusterDefaultPort(int, StructuredEnum):
+class MongoDBClusterDefaultPort(IntStructuredEnum):
     """mongodb cluster默认端口"""
 
     CONFIG_PORT = EnumField(28021, _("config_port"))
     SHARD_START_PORT = EnumField(27001, _("shard_start_port"))
 
 
-class MongoDBManagerUser(str, StructuredEnum):
+class MongoDBManagerUser(StrStructuredEnum):
     """mongodb 管理用户"""
 
     DbaUser = EnumField("dba", _("dba"))
@@ -1525,13 +1544,13 @@ class MongoDBManagerUser(str, StructuredEnum):
     WebconsoleUser = EnumField("_webconsoleuser", _("_webconsoleuser"))
 
 
-class MongoDBDefaultUser(str, StructuredEnum):
+class MongoDBDefaultUser(StrStructuredEnum):
     """mongodb 默认用户"""
 
     DefaultUser = EnumField("gameuser", _("gameuser"))
 
 
-class MongoDBUserPrivileges(str, StructuredEnum):
+class MongoDBUserPrivileges(StrStructuredEnum):
     """mongodb 用户权限"""
 
     RootRole = EnumField("root", _("root"))
@@ -1547,34 +1566,34 @@ class MongoDBUserPrivileges(str, StructuredEnum):
     ClusterAdminRole = EnumField("clusterAdmin", _("clusterAdmin"))
 
 
-class MongoDBTask(str, StructuredEnum):
+class MongoDBTask(StrStructuredEnum):
     """mongodb 任务"""
 
     MongoDBInitSet = EnumField("mongodb_init_set", _("mongodb_init_set"))
     MongoDBExtraUserCreate = EnumField("mongodb_extra_user_create", _("mongodb_extra_user_create"))
 
 
-class MongoDBInstanceType(str, StructuredEnum):
+class MongoDBInstanceType(StrStructuredEnum):
     """mongodb 实例类型"""
 
     MongoD = EnumField("mongod", _("mongod"))
     MongoS = EnumField("mongos", _("mongos"))
 
 
-class MongoDBDefaultAuthDB(str, StructuredEnum):
+class MongoDBDefaultAuthDB(StrStructuredEnum):
     """mongodb 默认验证db"""
 
     AuthDB = EnumField("admin", _("admin"))
 
 
-class MongoDBShardType(str, StructuredEnum):
+class MongoDBShardType(StrStructuredEnum):
     """mongodb shard类型"""
 
     MongoShardSvr = EnumField("shardsvr", _("shardsvr"))
     MongoConfigSvr = EnumField("configsvr", _("configsvr"))
 
 
-class MongoDBDropType(str, StructuredEnum):
+class MongoDBDropType(StrStructuredEnum):
     """
     定义mongodb清档的删除方式
     """
@@ -1583,7 +1602,7 @@ class MongoDBDropType(str, StructuredEnum):
     RENAME_COLLECTION = EnumField("rename_collection", _("将表暂时重命名"))
 
 
-class MongoOplogSizePercent(float, StructuredEnum):
+class MongoOplogSizePercent(FloatStructuredEnum):
     """
     oplog默认占机器磁盘的百分比
     """
@@ -1591,7 +1610,7 @@ class MongoOplogSizePercent(float, StructuredEnum):
     Oplog_Percent = EnumField(0.10, _("oplog_percent"))
 
 
-class SqlserverBackupFileTagEnum(str, StructuredEnum):
+class SqlserverBackupFileTagEnum(StrStructuredEnum):
     DBFILE1M = EnumField("DBFILE1M", _("全备-保留1个月"))
     DBFILE6M = EnumField("DBFILE6M", _("全备-保留6个月"))
     DBFILE1Y = EnumField("DBFILE1Y", _("全备-保留1年"))
@@ -1599,7 +1618,7 @@ class SqlserverBackupFileTagEnum(str, StructuredEnum):
     INCREMENT_BACKUP = EnumField("INCREMENT_BACKUP", _("增量备份-保留15天"))
 
 
-class VmActuatorActionEnum(str, StructuredEnum):
+class VmActuatorActionEnum(StrStructuredEnum):
     """
     定义vm dbactuator
     """
@@ -1619,7 +1638,7 @@ class VmActuatorActionEnum(str, StructuredEnum):
     ReloadVmInsert = EnumField("reload_vminsert", _("reload_vminsert"))
 
 
-class VmRoleEnum(str, StructuredEnum):
+class VmRoleEnum(StrStructuredEnum):
     """
     定义vm角色
     """
@@ -1630,7 +1649,7 @@ class VmRoleEnum(str, StructuredEnum):
     VMSTORAGE = EnumField("vmstorage", _("vmstorage"))
 
 
-class MongoInstanceDbmonType(str, StructuredEnum):
+class MongoInstanceDbmonType(StrStructuredEnum):
     """
     定义mongodb实例的dbmon操作
     """
@@ -1640,7 +1659,7 @@ class MongoInstanceDbmonType(str, StructuredEnum):
     DeleteDbmon = EnumField("delete", _("delete"))
 
 
-class ExecuteShellScriptUser(str, StructuredEnum):
+class ExecuteShellScriptUser(StrStructuredEnum):
     """
     定义执行shell脚本的osuser操作
     """
@@ -1651,12 +1670,14 @@ class ExecuteShellScriptUser(str, StructuredEnum):
     Oracle = EnumField("oracle", _("oracle"))
 
 
-class OracleDBActuatorActionEnum(str, StructuredEnum):
+class OracleDBActuatorActionEnum(StrStructuredEnum):
     OsInit = EnumField("os_oracle_init", _("os_oracle_init"))
     OracleExecuteScript = EnumField("execute_script", _("execute_script"))
 
 
-class TendbSingleRestoreEnum(str, StructuredEnum):
-    RemoteBackupAndNewest = EnumField("remote_backup_newest", _("remote_backup_newest"))
-    LocalBackupAndSchema = EnumField("local_backup_and_schema", _("local_backup_and_schema"))
-    LocalBackupAndData = EnumField("local_backup_and_data", _("local_backup_and_data"))
+class TendbSingleRestoreType(StrStructuredEnum):
+    REPLICATE_WITH_STRUCT = EnumField("REPLICATE_WITH_STRUCT", _("主从同步表结构,需Binlog"))
+    REPLICATE_WITH_DATA = EnumField("REPLICATE_WITH_DATA", _("主从同步数据,需Binlog"))
+    RESTORE_FROM_FLOW_BACKUP = EnumField("RESTORE_FROM_FLOW_BACKUP", _("流程中实时发起表结构备份&恢复,没有主从同步"))
+    RESTORE_WITH_DATA = EnumField("RESTORE_FROM_BACKUP", _("包含数据的恢复,没有主从同步"))
+    RESTORE_WITH_STRUCT = EnumField("RESTORE_ONLY_STRUCT", _("仅表结构的恢复,没有主从同步"))

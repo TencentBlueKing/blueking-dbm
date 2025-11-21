@@ -45,6 +45,7 @@ func NewAddonTypeController(provider provider.AddonTypeProvider) *AddonTypeContr
 
 // ListByLimit 获取 addon type 列表
 func (a *AddonTypeController) ListByLimit(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaAddonTypeList)
 	sizeStr := ctx.DefaultQuery("size", commconst.DefaultFetchSizeStr)
 	fetchSize, err := strconv.Atoi(sizeStr)
 	if err != nil {
@@ -66,6 +67,7 @@ func (a *AddonTypeController) ListByLimit(ctx *gin.Context) {
 
 // Create 创建 addon type
 func (a *AddonTypeController) Create(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaAddonTypeCreate)
 	var reqVo request.AddonTypeRequest
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))

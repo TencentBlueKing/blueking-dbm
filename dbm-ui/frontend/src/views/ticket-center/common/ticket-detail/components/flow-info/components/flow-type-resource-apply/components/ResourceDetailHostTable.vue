@@ -1,93 +1,91 @@
 <template>
-  <BkTable
+  <TicketInfoTable
     :data="data"
-    :row-config="{
-      useKey: true,
-      keyField: 'ip',
-    }">
-    <BkTableColumn
-      field="ip"
+    row-key="ip">
+    <TicketInfoTableColumn
+      col-key="ip"
       fixed="left"
-      label="IP"
+      :get-copy-value="(row: IResouce) => row.ip"
+      title="IP"
       :width="200">
-      <template #default="{ data: rowData }: { data: IResouce & { tag: string } }">
+      <template #default="{ row: rowData }: { row: IResouce & { tag: string } }">
         {{ rowData.ip }}
         <BkTag v-if="rowData.tag">{{ rowData.tag }}</BkTag>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="for_biz"
-      :label="t('资源归属')"
-      :min-width="300">
-      <template #default="{ data: rowData }: { data: IResouce }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="for_biz"
+      :min-width="300"
+      :title="t('资源归属')">
+      <template #default="{ row: rowData }: { row: IResouce }">
         <ResourceHostOwner :data="getResourceHostOwnerData(rowData)" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="city"
-      :label="t('地域')"
-      :min-width="100">
-      <template #default="{ data: rowData }: { data: IResouce }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="city"
+      :min-width="100"
+      :title="t('地域')">
+      <template #default="{ row: rowData }: { row: IResouce }">
         {{ rowData.city || '--' }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="sub_zone"
-      :label="t('园区')"
-      :min-width="100">
-      <template #default="{ data: rowData }: { data: IResouce }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="sub_zone"
+      :min-width="100"
+      :title="t('园区')">
+      <template #default="{ row: rowData }: { row: IResouce }">
         {{ rowData.sub_zone || '--' }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="rack_id"
-      :label="t('机架')"
-      :min-width="100">
-      <template #default="{ data: rowData }: { data: IResouce }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="rack_id"
+      :min-width="100"
+      :title="t('机架')">
+      <template #default="{ row: rowData }: { row: IResouce }">
         {{ rowData.rack_id || '--' }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="os_name"
-      :label="t('操作系统名称')"
-      :min-width="180">
-      <template #default="{ data: rowData }: { data: IResouce }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="os_name"
+      :min-width="180"
+      :title="t('操作系统名称')">
+      <template #default="{ row: rowData }: { row: IResouce }">
         {{ rowData.os_name || '--' }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="os_type"
-      :label="t('操作系统')"
-      :min-width="180">
-      <template #default="{ data: rowData }: { data: IResouce }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="os_type"
+      :min-width="180"
+      :title="t('操作系统')">
+      <template #default="{ row: rowData }: { row: IResouce }">
         {{ rowData.os_type || '--' }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="device_class"
-      :label="t('机型')"
-      :min-width="100">
-      <template #default="{ data: rowData }: { data: IResouce }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="device_class"
+      :min-width="100"
+      :title="t('机型')">
+      <template #default="{ row: rowData }: { row: IResouce }">
         {{ rowData.device_class || '--' }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="bk_cpu"
-      :label="t('CPU_核_')"
-      :min-width="100" />
-    <BkTableColumn
-      field="bk_mem"
-      :label="t('内存G')"
-      :min-width="100">
-      <template #default="{ data: rowData }: { data: IResouce }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="bk_cpu"
+      :min-width="100"
+      :title="t('CPU_核_')" />
+    <TicketInfoTableColumn
+      col-key="bk_mem"
+      :min-width="100"
+      :title="t('内存G')">
+      <template #default="{ row: rowData }: { row: IResouce }">
         {{ transformMToG(rowData.bk_mem) }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="bk_disk"
-      :label="t('磁盘G')"
-      :min-width="100" />
-  </BkTable>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="bk_disk"
+      :min-width="100"
+      :title="t('磁盘G')" />
+  </TicketInfoTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -110,11 +108,16 @@
           bk_biz_id: number;
           bk_biz_name: string;
         };
+    for_biz_info: {
+      bk_biz_id: number;
+      bk_biz_name: string;
+    };
     ip: string;
-    labels: {
+    label_info: {
       id: number;
       name: string;
     }[];
+    labels: string[];
     os_name: string;
     os_type: string;
     rack_id: string;
@@ -136,8 +139,16 @@
   };
 
   const getResourceHostOwnerData = (data: IResouce) => {
+    if (data.for_biz_info) {
+      return {
+        for_biz: data.for_biz_info,
+        labels: data.label_info,
+        resource_type: data.resource_type,
+      };
+    }
+
     const baseData = {
-      labels: data.labels,
+      labels: [],
       resource_type: data.resource_type,
     };
     // 兼容历史单据数据结构
@@ -150,6 +161,7 @@
         },
       };
     }
+
     return {
       ...baseData,
       for_biz: data.for_biz,

@@ -422,7 +422,7 @@ class Migration(migrations.Migration):
                 ("db_module_id", models.BigAutoField(primary_key=True, serialize=False)),
                 (
                     "cluster_type",
-                    models.CharField(choices=ClusterEntryType.get_choices(), default="", max_length=64),
+                    models.CharField(choices=ClusterType.get_choices(), default="", max_length=64),
                 ),
             ],
             options={

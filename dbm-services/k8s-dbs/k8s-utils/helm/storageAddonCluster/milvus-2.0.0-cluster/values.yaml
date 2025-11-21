@@ -1,0 +1,213 @@
+# 引用的addon版本
+addonVersion: 2.0.0
+
+# 元数据
+clusterName: milvus-cluster
+namespace: demo
+labels: {}
+annotations: {}
+
+# 集群规格
+terminationPolicy: Delete
+topoName: cluster
+componentList:
+  - componentName: attu
+    serviceVersion: "2.6.0"
+    env:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+  - componentName: proxy
+    serviceVersion: "2.6.0"
+    env:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+  - componentName: mixcoord
+    serviceVersion: "2.6.0"
+    env:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+  - componentName: datanode
+    serviceVersion: "2.6.0"
+    env:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+  - componentName: querynode
+    serviceVersion: "2.6.0"
+    env:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+  - componentName: streamingnode
+    serviceVersion: "2.6.0"
+    env:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+
+observeConfig:
+  bkLogConfig:
+    enabled: false
+    labels: {}
+    dataId:
+  svcMonitor:
+    enabled: false
+    labels: {}
+    interval: "15s"
+
+## Expand the name of the chart
+nameOverride: ""
+
+## Default fully qualified app name
+fullnameOverride: ""
+
+# Global node selector
+# If set, this will apply to all milvus components
+# Individual components can be set to a different node selector
+nodeSelector: {}
+
+# Global tolerations
+# If set, this will apply to all milvus components
+# Individual components can be set to a different tolerations
+tolerations: []
+
+# Global affinity
+# If set, this will apply to all milvus components
+# Individual components can be set to a different affinity
+affinity: {}
+
+# Extra configs for milvus.yaml
+# If set, this config will merge into milvus.yaml
+# Please follow the config structure in the milvus.yaml
+# at https://github.com/milvus-io/milvus/blob/master/configs/milvus.yaml
+# Note: this config will be the top priority which will override the config
+# in the image and helm chart.
+extraConfigFiles:
+  user.yaml: |+
+    common:
+      security:
+        authorizationEnabled: true
+    #    For example enable rest http for milvus proxy
+    #proxy:
+    #  http:
+    #    enabled: true
+    #      maxUserNum: 100
+    #      maxRoleNum: 10
+    ##  Enable tlsMode and set the tls cert and key
+    #  tls:
+    #    serverPemPath: /etc/milvus/certs/tls.crt
+    #    serverKeyPath: /etc/milvus/certs/tls.key
+    #   common:
+    #     security:
+    #       tlsMode: 1
+
+log:
+  level: "info"
+  file:
+    maxSize: 300    # MB
+    maxAge: 10    # day
+    maxBackups: 20
+  format: "text"    # text/json
+
+  persistence:
+    mountPath: "/milvus/logs"
+    ## If true, create/use a Persistent Volume Claim
+    ## If false, use emptyDir
+    ##
+    enabled: false
+    annotations:
+      helm.sh/resource-policy: keep
+    persistentVolumeClaim:
+      existingClaim: ""
+      storageClass:
+      accessModes: ReadWriteMany
+      size: 10Gi
+      subPath: ""
+
+###################################
+# External S3
+# - these configs are only used when `externalS3.enabled` is true
+###################################
+externalS3:
+  enabled: #true
+  host: ""
+  port: #"443"
+  accessKey: ""
+  secretKey: ""
+  useSSL: #true
+  bucketName: #"milvus"
+  rootPath: ""
+  useIAM: #false
+  cloudProvider: #"aws"
+  iamEndpoint: ""
+  region: #""
+  useVirtualHost: #false
+  
+###################################
+# External etcd
+# - these configs are only used when `externalEtcd.enabled` is true
+###################################
+externalEtcd:
+  enabled: #true
+  ## the endpoints of the external etcd
+  ##
+  endpoints: []
+  rootPath: ""
+
+###################################
+# External kafka
+# - these configs are only used when `externalKafka.enabled` is true
+# - note that the following are just examples, you should confirm the
+#   value of brokerList and mechanisms according to the actual external
+#   Kafka configuration. E.g. If you select the AWS MSK, the configuration
+#   should look something like this:
+#   externalKafka:
+#     enabled: true
+#     brokerList: "xxxx:9096"
+#     securityProtocol: SASL_SSL
+#     sasl:
+#       mechanisms: SCRAM-SHA-512
+#       password: "xxx"
+#       username: "xxx"
+###################################
+externalKafka:
+  enabled:
+  brokerList:
+  securityProtocol:
+  sasl:
+    mechanisms:
+    username:
+    password:

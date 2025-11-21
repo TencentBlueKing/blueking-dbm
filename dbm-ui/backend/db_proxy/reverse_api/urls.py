@@ -14,7 +14,7 @@ from backend.db_proxy.reverse_api.common import CommonReverseApiView
 from backend.db_proxy.reverse_api.mysql import MySQLReverseApiView
 
 routers = DefaultRouter(trailing_slash=True)
-routers.register("mysql", MySQLReverseApiView, basename="")
-routers.register("common", CommonReverseApiView, basename="")
+routers.register("mysql", MySQLReverseApiView, basename="mysql-reverse-api")
+routers.register("common", CommonReverseApiView, basename="common-reverse-api")
 
 urlpatterns = routers.urls

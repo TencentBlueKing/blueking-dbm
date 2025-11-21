@@ -6903,7 +6903,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "mysql_proxy_reduce",
-                "name": "MySQL 缩容Proxy",
+                "name": "MySQL 减少Proxy",
                 "name_en": "MYSQL_PROXY_REDUCE",
                 "type": "execute",
                 "related_resource_types": [
@@ -6924,7 +6924,7 @@
                 "hidden": false,
                 "group": "MySQL",
                 "subgroup": "集群维护",
-                "description": "MySQL 缩容Proxy",
+                "description": "MySQL 减少Proxy",
                 "description_en": "MYSQL_PROXY_REDUCE"
             }
         },

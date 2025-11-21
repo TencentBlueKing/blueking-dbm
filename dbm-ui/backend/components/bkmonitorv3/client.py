@@ -13,7 +13,7 @@ import time
 from dataclasses import asdict
 from typing import List
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from ...db_monitor.dataclass import MonitorEvent
 from ..base import BaseApi
@@ -289,10 +289,9 @@ class _BKMonitorV3EventApi(BaseApi):
         now_ms = int(time.time() * 1000)
         formatted_events = []
         for event in events:
-            event = asdict(event) if isinstance(event, MonitorEvent) else event
-            event["target"] = event.get("target", "dbm_event")
-            event["timestamp"] = event.get("timestamp", now_ms)
-            formatted_events.append(event)
+            event.target = event.target if event.target else "dbm_event"
+            event.timestamp = event.timestamp if event.timestamp else now_ms
+            formatted_events.append(asdict(event))
         # 上报事件
         self.send_monitor_event(
             params={"data": formatted_events, "access_token": self.ACCESS_TOKEN, "data_id": self.DATA_ID},

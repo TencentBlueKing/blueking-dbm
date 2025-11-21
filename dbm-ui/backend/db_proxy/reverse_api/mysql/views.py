@@ -12,7 +12,7 @@ import logging
 from typing import List
 
 from django.http import JsonResponse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_proxy.reverse_api.base_reverse_api_view import BaseReverseApiView

@@ -191,3 +191,23 @@ func ExecShellCommandBd(isSudo bool, param string) (stdoutStr string, stderrStr 
 	}
 	return stdoutStr, stderrStr, exitCode
 }
+
+// ExecShellCommandJ 执行 shell 命令(大数据专用)
+// 如果有 err, 返回 stderr; 如果没有 err 返回的是 stdout
+func ExecShellCommandJ(isSudo bool, param string) (stdoutStr string, err error) {
+	if isSudo {
+		param = "sudo " + param
+	}
+	cmd := exec.Command("bash", "-c", param)
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err = cmd.Run()
+	if err != nil {
+		// 只在 exitcode 非 0 时返回错误，把 stderr 作为错误提示
+		return stderr.String(), errors.WithMessage(err, stderr.String())
+	}
+	// exitcode为0，则认为执行成功，即便有stderr输出也不算失败
+	return stdout.String(), nil
+}

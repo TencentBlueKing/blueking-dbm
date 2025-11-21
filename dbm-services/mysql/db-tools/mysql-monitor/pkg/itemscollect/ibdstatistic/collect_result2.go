@@ -18,6 +18,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 
 	"dbm-services/common/go-pubpkg/cmutil"
 )
@@ -80,10 +81,10 @@ func (c *ibdStatistic) collectResult2(dataDir string) (map[string]int64, map[str
 			if err != nil {
 				return fs.SkipDir
 			}
-			if !d.IsDir() && strings.ToLower(filepath.Ext(d.Name())) == ibdExt {
+			if !d.IsDir() && lo.Contains(tableSpaceExt, strings.ToLower(filepath.Ext(d.Name()))) {
 				dir := filepath.Dir(path)
 				dbName := filepath.Base(dir)
-				tableName := strings.TrimSuffix(d.Name(), ibdExt)
+				tableName := strings.TrimSuffix(d.Name(), filepath.Ext(d.Name()))
 				dbName, tableName, err = c.rewriteMergeTableName(dbName, tableName)
 				if err != nil {
 					slog.Error("ibd-statistic collect result", slog.String("error", err.Error()))

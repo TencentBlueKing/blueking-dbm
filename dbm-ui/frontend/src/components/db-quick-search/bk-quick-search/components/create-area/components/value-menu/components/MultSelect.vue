@@ -2,7 +2,7 @@
   <div
     ref="root"
     class="bk-quick-search-type-mult-select"
-    :style="{ width: contentMinWidth > 0 ? `${contentMinWidth}px` : '' }">
+    :style="{ 'min-width': contentMinWidth > 0 ? `${contentMinWidth}px` : '' }">
     <div class="bk-quick-search-value-panel-filter-box">
       <Input
         v-model="filterKey"
@@ -90,12 +90,14 @@
   );
 
   const renderList = computed(() => {
+    if (props.config.remoteSearch) {
+      return list.value;
+    }
     const keyword = `${filterKey.value || ''}`.trim().toLowerCase();
     if (!keyword) {
       const modelValueMap = makeMap(defaultModelValue.map((item) => item.value));
       return [...defaultModelValue, ..._.filter(list.value, (item) => !modelValueMap[item.value])];
     }
-
     return _.filter(list.value, (item) => item.label.toLowerCase().includes(keyword));
   });
 

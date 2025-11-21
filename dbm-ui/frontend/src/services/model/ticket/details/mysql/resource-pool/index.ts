@@ -5,3 +5,6 @@ export * from './proxyAdd';
 export * from './proxySwitch';
 export * from './restoreSlave';
 export * from './rollBackCluster';
+export * from './proxyConfChange';
+export * from './proxyMigrate';
+export * from './proxyMigrateIns';

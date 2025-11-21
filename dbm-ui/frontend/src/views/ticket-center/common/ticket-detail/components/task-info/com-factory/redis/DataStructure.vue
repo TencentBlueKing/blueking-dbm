@@ -12,46 +12,58 @@
 -->
 
 <template>
-  <BkTable
+  <TicketInfoTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn
-      :label="t('待构造的集群')"
-      :min-width="180">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+    row-key="bk_cloud_id">
+    <TicketInfoTableColumn
+      col-key="cluster_id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
+      :min-width="180"
+      :title="t('待构造的集群')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('架构版本')">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].cluster_type_name }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="cluster_type_name"
+      :title="t('架构版本')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].cluster_type_name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('待构造的实例')">
-      <template #default="{ data }: { data: RowData }">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="master_instance"
+      :title="t('待构造的实例')">
+      <template #default="{ row }: { row: RowData }">
         <p
-          v-for="item in data.master_instances"
+          v-for="item in row.master_instances"
           :key="item">
           {{ item }}
         </p>
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('规格需求')">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.specs[data.resource_spec.redis.spec_id].name }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="spec"
+      :title="t('规格需求')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.specs[row.resource_spec.redis.spec_id].name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('构造主机数量')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.resource_spec.redis.count }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="count"
+      :title="t('构造主机数量')">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.resource_spec.redis.count }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('构造到指定时间')">
-      <template #default="{ data }: { data: RowData }">
-        {{ utcDisplayTime(data.recovery_time_point) }}
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="recovery_time_point"
+      :title="t('构造到指定时间')">
+      <template #default="{ row }: { row: RowData }">
+        {{ utcDisplayTime(row.recovery_time_point) }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TicketInfoTableColumn>
+  </TicketInfoTable>
 </template>
 
 <script setup lang="tsx">

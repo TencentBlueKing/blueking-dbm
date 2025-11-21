@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 GET_MESSAGE_TYPE = [
     {"type": "rtx", "label": _("企业微信"), "is_active": True, "icon": "base64xxxxxxx"},

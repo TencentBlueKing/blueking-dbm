@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from blueapps.account.models import User
 from django.db import models
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.bk_web.constants import LEN_NORMAL
 from backend.bk_web.exceptions import ExternalUserNotExistException

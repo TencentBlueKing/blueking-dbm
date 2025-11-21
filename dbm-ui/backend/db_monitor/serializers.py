@@ -332,7 +332,7 @@ class ListAlertSerializer(serializers.Serializer):
 class CreateAlarmShieldSerializer(serializers.Serializer):
     category = serializers.CharField(help_text=_("屏蔽类型"))
     dimension_config = serializers.DictField(help_text=_("屏蔽维度配置"))
-    shield_notice = serializers.BaseSerializer(help_text=_("告警屏蔽通知"), default=False)
+    shield_notice = serializers.BooleanField(help_text=_("告警屏蔽通知"), default=False)
     begin_time = serializers.CharField(help_text=_("开始时间"))
     end_time = serializers.CharField(help_text=_("结束时间"))
     description = serializers.CharField(help_text=_("屏蔽原因"))

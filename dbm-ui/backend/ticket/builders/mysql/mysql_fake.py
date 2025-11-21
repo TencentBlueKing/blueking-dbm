@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 # 此单据用于各种线上的后台流程测试，可以保留
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.flow.engine.controller.mysql import MySQLController

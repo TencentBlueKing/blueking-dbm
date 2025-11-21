@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: milvus-scripts
+  namespace: {{ .Release.Namespace }}
+data:   
+  config-generator.py: |
+    #!/usr/bin/env python3
+    import os
+    import yaml
+    from pathlib import Path
+
+    def set_nested_value(config, key_path, value):
+        """通过点分路径设置嵌套配置值"""
+        keys = key_path.split('.')
+        current = config
+        
+        for key in keys[:-1]:
+            if key not in current:
+                current[key] = {}
+            current = current[key]
+        
+        current[keys[-1]] = value
+
+    def main():
+        # 加载原有配置
+        config = {}
+        base_config = '/milvus/configs/user.yaml'
+        if Path(base_config).exists():
+            with open(base_config, 'r') as f:
+                config = yaml.safe_load(f) or {}
+        
+        # 转换所有包含点的环境变量为YAML配置
+        for env_key, env_value in os.environ.items():
+            if '.' in env_key:
+                set_nested_value(config, env_key, env_value)
+        
+        # 保存配置
+        Path('/shared-config').mkdir(exist_ok=True)
+        with open('/shared-config/user.yaml', 'w') as f:
+            yaml.dump(config, f, default_flow_style=False)
+        
+        print("Configuration converted!")
+
+    if __name__ == '__main__':
+        main()

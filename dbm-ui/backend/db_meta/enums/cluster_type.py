@@ -13,10 +13,10 @@ from typing import Dict, List
 from django.utils.translation import gettext_lazy as _
 
 from backend.configuration.constants import DBType
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
-class ClusterType(str, StructuredEnum):
+class ClusterType(StrStructuredEnum):
     TenDBSingle = EnumField("tendbsingle", _("MySQL单节点集群"))
     TenDBHA = EnumField("tendbha", _("MySQL高可用集群"))
     TenDBCluster = EnumField("tendbcluster", _("TendbCluster集群"))
@@ -59,6 +59,12 @@ class ClusterType(str, StructuredEnum):
 
     OraclePrimaryStandby = EnumField("oracle_primary_standby", _("oracle主从版"))
     OracleSingleNone = EnumField("oracle_single_none", _("oracle单节点版"))
+
+    # k8s集群
+    K8sSurreal = EnumField("k8s_surreal", _("k8s surrealdb集群"))
+    K8sVM = EnumField("k8s_vm", _("k8s Victoria metrics集群"))
+    K8sRW = EnumField("k8s_rw", _("k8s Risingwave集群"))
+    K8sMV = EnumField("k8s_mv", _("k8s Milvus集群"))
 
     @classmethod
     def db_type_cluster_types_map(cls) -> Dict[str, List]:

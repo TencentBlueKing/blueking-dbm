@@ -8,7 +8,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.conf.urls import url
+from django.urls import re_path as url
 
 from backend.flow.views.client_set_dns_server import ClientSetDnsServerSceneApiView
 from backend.flow.views.cloud_dbha_apply import CloudDBHAApplySceneApiView
@@ -89,6 +89,7 @@ from backend.flow.views.migrate_views.riak_migrate import RiakClusterMigrateApiV
 from backend.flow.views.mongodb_scene import (
     ClusterInstallApiView,
     MongoBackupApiView,
+    MongoDataExportApiView,
     MongoDBClusterAddShardView,
     MongoDBClusterMigrateView,
     MongoDBCreateUserView,
@@ -100,6 +101,8 @@ from backend.flow.views.mongodb_scene import (
     MongoDBIncreaseMongoSView,
     MongoDBIncreaseNodeView,
     MongoDBInstanceDeInstallView,
+    MongoDBInstanceFixStatusView,
+    MongoDBInstanceMigrateView,
     MongoDBInstanceRestartView,
     MongoDBReduceMongoSView,
     MongoDBReduceNodeView,
@@ -210,6 +213,7 @@ from backend.flow.views.redis_cluster import (
     RedisSlotsMigrateForHotkeySceneApiView,
     RedisSlotsMigrateScaleSceneApiView,
     SingleProxyShutdownSceneApiView,
+    RedisKeystatApiView,
 )
 from backend.flow.views.redis_keys import RedisKeysDeleteSceneApiView, RedisKeysExtractSceneApiView
 from backend.flow.views.redis_scene import (
@@ -340,6 +344,7 @@ urlpatterns = [
     url(r"^scene/redis_cluster_proxys_upgrade$", RedisClusterProxysUpgradeApiView.as_view()),
     url(r"^scene/redis_slots_migrate_for_hotkey$", RedisSlotsMigrateForHotkeySceneApiView.as_view()),
     url(r"^scene/redis_slots_migrate_scale$", RedisSlotsMigrateScaleSceneApiView.as_view()),
+    url(r"^scene/redis_keystat$", RedisKeystatApiView.as_view()),
     # redis api url end
     # dns api
     url(r"^scene/client_set_dns_server$", ClientSetDnsServerSceneApiView.as_view()),
@@ -363,6 +368,7 @@ urlpatterns = [
     url(r"^scene/multi_replicaset_create$", MultiReplicasetInstallApiView.as_view()),
     url(r"^scene/cluster_create$", ClusterInstallApiView.as_view()),
     url(r"^scene/mongo_backup$", MongoBackupApiView.as_view()),
+    url(r"^scene/mongo_data_export$", MongoDataExportApiView.as_view()),
     url(r"^scene/mongo_restore$", MongoRestoreApiView.as_view()),
     url(r"^scene/mongo_pitr_restore$", MongoPitrRestoreApiView.as_view()),
     url(r"^scene/mongo_remove_ns$", MongoRemoveNsApiView.as_view()),
@@ -384,6 +390,8 @@ urlpatterns = [
     url(r"^scene/multi_cluster_migrate_meta$", MongoDBClusterMigrateView.as_view()),
     url(r"^scene/multi_instance_deinstall$", MongoDBInstanceDeInstallView.as_view()),
     url(r"^scene/multi_cluster_add_shard$", MongoDBClusterAddShardView.as_view()),
+    url(r"^scene/multi_instance_migrate$", MongoDBInstanceMigrateView.as_view()),
+    url(r"^scene/mongo_instance_fix_status$", MongoDBInstanceFixStatusView.as_view()),
     # mongodb end
     # oracle start
     url(r"^scene/multi_oracle_execute_script$", MultiOracleExecuteScriptApiView.as_view()),

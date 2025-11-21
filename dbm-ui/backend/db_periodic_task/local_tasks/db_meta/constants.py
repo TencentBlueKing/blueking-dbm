@@ -13,7 +13,7 @@ from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, MachineType
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 UNIFY_QUERY_PARAMS = {
     "bk_biz_id": 3,
@@ -43,7 +43,28 @@ EXPORTER_UP_QUERY_TEMPLATE = {
         "dbm_redis_exporter": """count by (cluster_domain) (
             bkmonitor:exporter_dbm_redis_exporter:redis_up{instance_role='redis_master'}
         )""",
-    }
+    },
+    ClusterType.TenDBHA: {
+        "range": 5,
+        "dbm_mysqld_exporter": """count by (appid,cluster_domain,instance,instance_role) (
+            bkmonitor:exporter_dbm_mysqld_exporter:mysql_up{cluster_type='tendbha'}
+        )""",
+        "dbm_mysqlproxy_exporter": """count by (appid,cluster_domain,instance,instance_role) (
+            bkmonitor:exporter_dbm_mysqlproxy_exporter:mysqlproxy_up{cluster_type='tendbha'}
+        )""",
+    },
+    ClusterType.TenDBCluster: {
+        "range": 5,
+        "dbm_mysqld_exporter": """count by (appid,cluster_domain,instance,instance_role) (
+            bkmonitor:exporter_dbm_mysqld_exporter:mysql_up{cluster_type='tendbcluster'}
+        )""",
+    },
+    ClusterType.TenDBSingle: {
+        "range": 5,
+        "dbm_mysqld_exporter": """count by (appid,cluster_domain,instance,instance_role) (
+            bkmonitor:exporter_dbm_mysqld_exporter:mysql_up{cluster_type='tendbsingle'}
+        )""",
+    },
 }
 
 QUERY_TEMPLATE = {
@@ -68,39 +89,39 @@ QUERY_TEMPLATE = {
     },
     ClusterType.TenDBSingle: {
         "range": 129,
-        "used": """sum by (cluster_domain) (
+        "used": """max by (cluster_domain, instance, mount_point) (
                     max_over_time(
                         bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_df_used_mb{instance_role="orphan",%s}[5m]
-                    ) * 1024 * 1024 )""",
-        "total": """max by (cluster_domain) (
+                    ) * 1024 * 1024
+            )""",
+        "total": """max by (cluster_domain, instance, mount_point) (
                     max_over_time(
                         bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_df_total_mb{instance_role="orphan",%s}[5m]
-                    ) * 1024 * 1024 )""",
+                    ) * 1024 * 1024
+            )""",
     },
     ClusterType.TenDBHA: {
         "range": 129,
-        "used": """sum by (cluster_domain) (
-            max by (cluster_domain, ip) (
+        "used": """max by (cluster_domain, instance, mount_point) (
                 max_over_time(
                     bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_df_used_mb{instance_role="backend_master",%s}[124m]
                 ) * 1024 * 1024
-            ))""",
-        "total": """sum by (cluster_domain) (
-            max by (cluster_domain, ip) (
+            )""",
+        "total": """max by (cluster_domain, instance, mount_point) (
                 max_over_time(
                     bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_df_total_mb{instance_role="backend_master",%s}[124m]
                 ) * 1024 * 1024
-            ))""",
+            )""",
     },
     ClusterType.TenDBCluster: {
         "range": 129,
         "used": """sum by (cluster_domain) (
-            avg by (cluster_domain, instance) (
+            avg by (cluster_domain, instance, mount_point) (
                 avg_over_time(
                     bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_du_used_mb{instance_role="remote_master",%s}[124m]
                 ) * 1024 * 1024))""",
         "total": """sum by (cluster_domain) (
-            avg by (cluster_domain, ip) (
+            avg by (cluster_domain, ip, mount_point) (
                 avg_over_time(
                     bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_df_total_mb{instance_role="remote_master",%s}[124m]
                 ) * 1024 * 1024))""",
@@ -210,6 +231,13 @@ QUERY_TEMPLATE = {
             {cluster_domain="{cluster_domain}",%s}
         }[1m]))""",
     },
+    ClusterType.Doris: {
+        "range": 5,
+        "used": """sum by (cluster_domain)(
+            bkmonitor:pushgateway_dbm_doris_bkpull:doris_be_disks_local_used_capacity{%s})""",
+        "total": """sum by (cluster_domain) (
+            bkmonitor:pushgateway_dbm_doris_bkpull:doris_be_disks_total_capacity{%s})""",
+    },
 }
 
 # 使用相同容量查询模板的集群类型映射
@@ -305,6 +333,6 @@ CLUSTER_TYPE_LOAD_RULES = {
 }
 
 
-class RedisLoadStatus(str, StructuredEnum):
+class RedisLoadStatus(StrStructuredEnum):
     LOW = EnumField("low", _("低负载"))
     HIGH = EnumField("high", _("高负载"))

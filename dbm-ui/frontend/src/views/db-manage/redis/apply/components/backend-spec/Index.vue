@@ -61,9 +61,11 @@
       ref="customSchemaRef"
       v-model="modelValue"
       :biz-id="bizId"
+      :city-code="cityCode"
       :cloud-id="cloudId"
       :cluster-type="clusterType"
-      :machine-type="machineType" />
+      :machine-type="machineType"
+      :subzone-ids="subzoneIds" />
   </div>
 </template>
 
@@ -92,9 +94,11 @@
 
   interface Props {
     bizId: number | string;
+    cityCode: string;
     cloudId: number | string;
     clusterType: string;
     machineType: string;
+    subzoneIds: number[];
   }
 
   const props = defineProps<Props>();
@@ -187,13 +191,15 @@
   );
 
   watch(
-    () => [props.bizId, props.cloudId, specs],
+    () => [props.bizId, props.cloudId, props.cityCode, props.subzoneIds, specs.value],
     () => {
       if (
         typeof props.bizId === 'number' &&
         props.bizId > 0 &&
         typeof props.cloudId === 'number' &&
-        specs.value.length > 0
+        specs.value.length > 0 &&
+        props.cityCode &&
+        props.subzoneIds.length > 0
       ) {
         fetchSpecResourceCount();
       }
@@ -282,7 +288,9 @@
     getSpecResourceCount({
       bk_biz_id: Number(props.bizId),
       bk_cloud_id: Number(props.cloudId),
+      city: props.cityCode,
       spec_ids: specs.value.map((item) => item.spec_id),
+      sub_zone_ids: props.subzoneIds.map((item) => `${item}`),
     }).then((data) => {
       countMap.value = data;
     });

@@ -251,6 +251,10 @@ class GetClusterModuleInfoSerializer(serializers.Serializer):
     version = serializers.CharField(help_text=_("版本"))
 
 
+class GetClusterDelKeyRateSerializer(serializers.Serializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+
+
 class ExecuteClusterTcpCmdSerializer(serializers.Serializer):
     cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
 

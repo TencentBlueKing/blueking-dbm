@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import base64
 
-from Crypto.Cipher import AES
+from Cryptodome.Cipher import AES
 
 from backend.core.encrypt.constants import AES_BLOCK_SIZE, AES_PADDING
 from backend.utils.string import base64_encode

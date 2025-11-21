@@ -24,6 +24,7 @@ from backend.flow.engine.bamboo.scene.spider.spider_switch_nodes import TenDBClu
 from backend.flow.plugins.components.collections.common.add_unlock_ticket_type_config import (
     AddUnlockTicketTypeConfigComponent,
 )
+from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.common.pause_with_ticket_lock_check import (
     PauseWithTicketLockCheckComponent,
 )
@@ -105,8 +106,11 @@ class UpgradeSpiderFlow(TenDBClusterSwitchNodesFlow):
         self.uid = data["uid"]  # 用户ID
         self.bk_biz_id = data["bk_biz_id"]  # 业务ID
         self.force_upgrade = data.get("force", False)  # 是否强制升级
+        self.is_check_process = data.get("is_check_process", True)
+        self.is_safe = data.get("is_check_process", True)
         self.data = data  # 原始数据
         self.upgrade_local = data.get("upgrade_local", False)  # 是否本地升级
+        self.pause_when_upgrade_half = data.get("pause_when_upgrade_half", False)
         # 提取所有涉及的集群ID，去重后保存
         self.cluster_ids = list(set([i["cluster_id"] for i in self.data["infos"]]))
 
@@ -189,7 +193,7 @@ class UpgradeSpiderFlow(TenDBClusterSwitchNodesFlow):
             spider_master_ins = get_spider_master_instances(spiders_to_upgrade)
 
             # 切换前做预检测
-            add_spider_upgrade_check_act(sub_pipeline, cluster_id, spider_master_ins, bk_cloud_id, self.force_upgrade)
+            add_spider_upgrade_check_act(sub_pipeline, spider_master_ins, bk_cloud_id, self.is_check_process)
 
             # 提前下发文件
             add_spider_media_download_act(sub_pipeline, spider_ips, pkg_id, bk_cloud_id)
@@ -210,7 +214,8 @@ class UpgradeSpiderFlow(TenDBClusterSwitchNodesFlow):
                             ip=spider_ip,
                             bk_cloud_id=bk_cloud_id,
                             pkg_id=pkg_id,
-                            domain=cluster.immute_domain,
+                            spider_role=spider_role,
+                            cluster_id=cluster_id,
                             spider_version=new_spider_version,
                             spider_port=spider_port,
                             force_upgrade=True,
@@ -224,7 +229,8 @@ class UpgradeSpiderFlow(TenDBClusterSwitchNodesFlow):
                             ip=spider_ip,
                             bk_cloud_id=bk_cloud_id,
                             pkg_id=pkg_id,
-                            domain=cluster.immute_domain,
+                            spider_role=spider_role,
+                            cluster_id=cluster_id,
                             spider_version=new_spider_version,
                             spider_port=spider_port,
                             force_upgrade=True,
@@ -240,6 +246,8 @@ class UpgradeSpiderFlow(TenDBClusterSwitchNodesFlow):
             part1 = spider_master_upgrade_pipelines[:mid]
             part2 = spider_master_upgrade_pipelines[mid:]
             sub_pipeline.add_parallel_sub_pipeline(part1)
+            if self.pause_when_upgrade_half:
+                sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
             sub_pipeline.add_parallel_sub_pipeline(part2)
             # 更新集群模块信息
             if new_db_module_id != cluster.db_module_id:
@@ -326,10 +334,11 @@ class UpgradeSpiderFlow(TenDBClusterSwitchNodesFlow):
             )
 
         # 先执行扩容spider master实例
-        sub_pipeline.add_sub_pipeline(
+        expand_sub_pipelines = []
+        expand_sub_pipelines.append(
             self.add_spider_nodes_with_cluster(
                 cluster_id=cluster_id,
-                add_spider_role=TenDBClusterSpiderRole.SPIDER_MASTER.value,
+                add_spider_role=TenDBClusterSpiderRole.SPIDER_MASTER,
                 add_spider_hosts=spider_master_ip_list,
                 new_db_module_id=new_db_module_id,
                 global_pkg_id=new_pkg_id,
@@ -338,7 +347,7 @@ class UpgradeSpiderFlow(TenDBClusterSwitchNodesFlow):
 
         # 再执行扩容spider slave实例, 如果spider slave集群存在
         if spider_slave_ip_list:
-            sub_pipeline.add_sub_pipeline(
+            expand_sub_pipelines.append(
                 self.add_spider_nodes_with_cluster(
                     cluster_id=cluster_id,
                     add_spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE.value,
@@ -347,7 +356,7 @@ class UpgradeSpiderFlow(TenDBClusterSwitchNodesFlow):
                     global_pkg_id=new_pkg_id,
                 )
             )
-
+        sub_pipeline.add_parallel_sub_pipeline(expand_sub_pipelines)
         # 释放对单据的互斥锁
         # 单据类型：TenDBCLuster的SQL变更/强制变更/模拟执行/授权
         sub_pipeline.add_act(
@@ -371,9 +380,9 @@ class UpgradeSpiderFlow(TenDBClusterSwitchNodesFlow):
                 )
             ),
         )
-
+        reduce_sub_pipelines = []
         # 缩容spider master 节点
-        sub_pipeline.add_sub_pipeline(
+        reduce_sub_pipelines.append(
             self.reduce_spider_nodes_with_cluster(
                 cluster_id=cluster_id,
                 spider_reduced_hosts=[{"ip": s.machine.ip} for s in old_spider_master],
@@ -385,16 +394,17 @@ class UpgradeSpiderFlow(TenDBClusterSwitchNodesFlow):
 
         # 缩容spider slave 节点
         if old_spider_slave:
-            sub_pipeline.add_sub_pipeline(
+            reduce_sub_pipelines.append(
                 self.reduce_spider_nodes_with_cluster(
                     cluster_id=cluster_id,
                     spider_reduced_hosts=[{"ip": s.machine.ip} for s in old_spider_slave],
                     reduce_spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE.value,
                     spider_reduced_to_count_snapshot=0,
                     is_check_min_count=False,
+                    is_check_process=self.is_check_process,
                 )
             )
-
+        sub_pipeline.add_parallel_sub_pipeline(reduce_sub_pipelines)
         # 更新集群模块信息
         add_cluster_module_update_act(sub_pipeline, cluster_id, new_db_module_id)
 

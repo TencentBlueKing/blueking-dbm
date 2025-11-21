@@ -122,7 +122,7 @@ func QueryBackup(cnf *config.Public, backupStatus []string) error {
 			return err
 		}
 		sort.Sort(sort.Reverse(GlobalBackupList(tasks)))
-		printBackup(tasks, viper.GetString("query.format"))
+		printBackup(tasks, viper.GetString("query.format"), viper.GetInt("query.limit"))
 	}
 	return nil
 }
@@ -219,7 +219,7 @@ func RunBackupTasks(cnfList []*config.Public) error {
 			for i, t := range backupIdTasks {
 				tasks[i] = t.earliestBackupTask
 			}
-			printBackup(tasks, "")
+			printBackup(tasks, "", 0)
 		}
 	} else {
 		logger.Log.Info("no backup tasks for this host")
@@ -230,7 +230,7 @@ func RunBackupTasks(cnfList []*config.Public) error {
 	return nil
 }
 
-func printBackup(tasks []*GlobalBackupModel, format string) {
+func printBackup(tasks []*GlobalBackupModel, format string, limit int) {
 	if format == "json" {
 		jsonBytes, _ := json.Marshal(tasks)
 		fmt.Println(string(jsonBytes))
@@ -251,7 +251,10 @@ func printBackup(tasks []*GlobalBackupModel, format string) {
 	tw.AppendHeader(table.Row{
 		"BackupId", "ServerName", "BackupStatus", "Host", "Port", "ShardValue", "Wrapper", "CreatedAt",
 	})
-	for _, t := range tasks {
+	for idx, t := range tasks {
+		if idx >= limit && limit > 0 {
+			break
+		}
 		if t != nil {
 			tw.AppendRow([]interface{}{
 				t.BackupId,

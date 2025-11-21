@@ -16,12 +16,10 @@
     field="labels"
     :label="t('资源标签')"
     :min-width="200"
+    :rowspan="rowspan"
     :rules="rules">
     <template #head>
-      {{ t('资源标签') }}
-      <span class="custom-required" />
-    </template>
-    <template #headAppend>
+      <span class="mr-4">{{ t('资源标签') }}</span>
       <BatchEditColumn
         v-model="showBatchEdit"
         :all-option-id="DEFAULT_TAG_ID"
@@ -57,6 +55,7 @@
           </BkTag>
         </template>
       </BatchEditColumn>
+      <span class="custom-required" />
     </template>
     <EditableSelect
       v-model="ids"
@@ -97,7 +96,15 @@
 
   type IValue = ServiceReturnType<typeof listTag>['results'][0];
 
+  interface Props {
+    rowspan?: number;
+  }
+
   type Emits = (e: 'batch-edit', value: any, field: string) => void;
+
+  withDefaults(defineProps<Props>(), {
+    rowspan: 1,
+  });
 
   const emits = defineEmits<Emits>();
 

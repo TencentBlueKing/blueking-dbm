@@ -29,7 +29,7 @@
         ref="table"
         class="mb-20"
         :model="formData.tableData">
-        <EditableTableRow
+        <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
           <ClusterColumn
@@ -45,9 +45,10 @@
             v-model:slaves="item.slaves"
             v-model:table-data="formData.tableData"
             :cluster="item.cluster"
+            :create-table-row="createTableRow"
+            :handle-row-merge="handleRowMerge"
             :rowspan="item.rowspan"
-            @batch-edit="handleBatchEdit"
-            @change="handleRowMerge" />
+            @batch-edit="handleBatchEdit" />
           <DbNameColumn
             v-model="item.db_patterns"
             :cluster-id="item.cluster?.id"
@@ -76,8 +77,9 @@
             @batch-edit="handleBatchEdit" />
           <OperationColumn
             v-model:table-data="formData.tableData"
-            :create-row-method="createTableRow" />
-        </EditableTableRow>
+            :create-row-method="createTableRow"
+            :handle-row-merge="handleRowMerge" />
+        </EditableRow>
       </EditableTable>
       <BkFormItem
         :label="t('定时执行时间')"
@@ -185,11 +187,9 @@
 
   import { TicketTypes } from '@common/const';
 
-  import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
-  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
@@ -222,7 +222,7 @@
 
   const batchInputConfig = [
     {
-      case: 'tendbha.test.dba.db',
+      case: 'tendbcluster.test.dba.db',
       key: 'master_domain',
       label: t('目标集群'),
     },
@@ -328,6 +328,8 @@
 
   // 行合并
   const handleRowMerge = () => {
+    formData.tableData = [..._.sortBy(formData.tableData, (item) => item.cluster.id)];
+
     const clusterMap: Record<string, RowData[]> = {};
     formData.tableData.forEach((item) => {
       Object.assign(item, { rowspan: 1 });
@@ -437,7 +439,9 @@
       if (!selectedMap.value[cluster.master_domain]) {
         acc.push(
           createTableRow({
-            cluster,
+            cluster: {
+              master_domain: cluster.master_domain,
+            } as TendbClusterModel,
           }),
         );
       }

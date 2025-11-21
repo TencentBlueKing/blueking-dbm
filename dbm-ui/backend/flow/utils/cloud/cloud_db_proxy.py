@@ -13,7 +13,7 @@ from dataclasses import asdict
 from typing import List
 
 from django.db.transaction import atomic
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.db_proxy.constants import ExtensionServiceStatus, ExtensionType
 from backend.db_proxy.models import DBCloudProxy, DBExtension

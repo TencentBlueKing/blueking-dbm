@@ -10,10 +10,10 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import gettext_lazy as _
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
-class ReverseReportEventTypeEnum(str, StructuredEnum):
+class ReverseReportEventTypeEnum(StrStructuredEnum):
     MySQLDbbackupResult = EnumField("mysql_dbbackup_result", _("mysql_dbbackup_result"))
     MySQLDbbackupProgress = EnumField("mysql_dbbackup_progress", _("mysql_dbbackup_progress"))
     MySQLBinlogResult = EnumField("mysql_binlog_result", _("mysql_binlog_result"))

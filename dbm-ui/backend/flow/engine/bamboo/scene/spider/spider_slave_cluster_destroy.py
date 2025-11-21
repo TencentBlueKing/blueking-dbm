@@ -12,7 +12,7 @@ import logging
 from dataclasses import asdict
 from typing import Dict, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, ProxyInstance

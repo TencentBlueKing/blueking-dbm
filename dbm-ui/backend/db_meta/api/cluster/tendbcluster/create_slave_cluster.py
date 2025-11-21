@@ -9,7 +9,7 @@ specific language governing permissions and limitations under the License.
 """
 
 from django.db import transaction
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.db_meta.enums import ClusterEntryType
 from backend.db_meta.exceptions import DBMetaException
