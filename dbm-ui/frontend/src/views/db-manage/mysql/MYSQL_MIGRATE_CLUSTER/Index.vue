@@ -44,6 +44,7 @@
       <div class="title-spot mt-12 mb-10">{{ t('主机选择方式') }}<span class="required" /></div>
       <BkRadioGroup
         v-model="sourceType"
+        data-test-id="sourceTypeRadioGroup"
         class="mb-16"
         :class="{
           'alert-show': sourceType === SourceType.RESOURCE_MANUAL,
@@ -82,6 +83,7 @@
     <template #action>
       <BkButton
         class="mr-8 w-88"
+        data-test-id="submitTicket"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
