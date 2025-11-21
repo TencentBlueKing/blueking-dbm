@@ -35,6 +35,7 @@ class _HADBApi(BaseApi):
             method="POST",
             url="hastatus/",
             description=_("上报和查询ha服务的状态"),
+            default_timeout=120,
         )
         self.switch_queue = self.generate_data_api(
             method="POST",
