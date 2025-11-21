@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -104,9 +105,36 @@ func (job *KeyStat) useLocalPlayLoadFile() (payload string, err error) {
 	return payload, nil
 }
 
+// tryLockFile 尝试获取文件锁. 返回文件锁对象.
+// 如果获取失败，则尝试等待10秒后重试，最多重试360*8=2880次，即8小时.
+// 重试时，每60次重试打印一次日志.
+
+func (job *KeyStat) tryLockFile(workDir string, maxConcurrent int, retryTimes int) (lock *os.File, err error) {
+	for i := 0; i < retryTimes; i++ {
+		for j := 0; j < maxConcurrent; j++ {
+			lockFile := filepath.Join(workDir, fmt.Sprintf("keystat.lock.%d", i))
+			if _, err := os.Stat(lockFile); os.IsNotExist(err) {
+				lock, err = os.Create(lockFile)
+				if err != nil {
+					return nil, err
+				}
+				err = syscall.Flock(int(lock.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
+				if err != nil {
+					return nil, err
+				}
+				return lock, nil
+			}
+		}
+		time.Sleep(1 * time.Second)
+		if i%60 == 1 {
+			job.runtime.Logger.Info("try lock file failed, try again, retryTimes:(%d of %d)", i, retryTimes)
+		}
+	}
+	return nil, fmt.Errorf("try lock file failed, retryTimes:(%d of %d)", retryTimes, retryTimes)
+}
+
 // Init 初始化
 func (job *KeyStat) Init(m *jobruntime.JobGenericRuntime) error {
-
 	job.runtime = m
 	var err error
 	if s, err := job.useLocalPlayLoadFile(); err == nil {
@@ -153,8 +181,26 @@ func (job *KeyStat) Init(m *jobruntime.JobGenericRuntime) error {
 	return nil
 }
 
+const maxRetryTimes = 3600 * 8
+const maxConcurrent = 4
+
 // Run 运行监听请求任务
 func (job *KeyStat) Run() (err error) {
+	// 1. 尝试获取文件锁
+	keystatDir := filepath.Join(consts.GetRedisBackupDir(), "dbbak/keystat")
+	lock, err := job.tryLockFile(keystatDir, maxConcurrent, maxRetryTimes)
+	if err != nil {
+		job.runtime.Logger.Error("tryLockFile failed, err:%s", err)
+		err = job.updateReportStatus(statusFailed, map[string]any{
+			"error": err.Error(),
+		})
+		if err != nil {
+			job.runtime.Logger.Error("update report status to failed failed, err:%s", err)
+		}
+		return err
+	}
+	defer lock.Close()
+
 	err = job.updateReportStatus(statusRunning, nil)
 	if err != nil {
 		job.runtime.Logger.Error("update report status failed, err:%s", err)
@@ -162,7 +208,7 @@ func (job *KeyStat) Run() (err error) {
 	}
 	job.runtime.Logger.Info("update report status success, status:%s", statusRunning)
 	// 1. 创建工作目录
-	workDir := filepath.Join(consts.GetRedisBackupDir(), "dbbak/keystat", job.runtime.UID)
+	workDir := filepath.Join(keystatDir, job.runtime.UID)
 	util.MkDirsIfNotExists([]string{workDir})
 	util.LocalDirChownMysql(workDir)
 	job.runtime.Logger.Info("KeyStat Run, workDir:%s", workDir)
@@ -170,6 +216,19 @@ func (job *KeyStat) Run() (err error) {
 	versionInfo, err := job.getRedisVersion()
 	if err != nil {
 		job.runtime.Logger.Error("getRedisVersion failed, err:%s", err)
+		return err
+	}
+
+	// if >= 7.4 暂不支持
+
+	if versionInfo.Major >= 7 && versionInfo.Minor >= 4 {
+		job.runtime.Logger.Error("redis version >= 7.4, version:%s, will not support", versionInfo.Str)
+		err = job.updateReportStatus(statusFailed, map[string]any{
+			"error": "redis version >= 7.4, will not support",
+		})
+		if err != nil {
+			job.runtime.Logger.Error("update report status to failed failed, err:%s", err)
+		}
 		return err
 	}
 
@@ -516,7 +575,11 @@ func (job *KeyStat) uploadReport(workDir string) (err error) {
 		return errors.New("rankReportFile is empty")
 	}
 
-	reportRows, rankRows, err := keystat_report.LoadReport(reportFile, rankReportFile)
+	reportRows, err := keystat_report.LoadReport(reportFile)
+	if err != nil {
+		return err
+	}
+	rankRows, err := keystat_report.LoadRankReport(rankReportFile)
 	if err != nil {
 		return err
 	}
@@ -577,6 +640,7 @@ class StateType(str, StructuredEnum):
 */
 
 const statusReady = "READY"
+const statusInqueue = "INQUEUE"
 const statusRunning = "RUNNING"
 const statusSuccess = "FINISHED"
 const statusFailed = "FAILED"
@@ -617,27 +681,38 @@ func (job *KeyStat) sendReportToDB(
 	}
 
 	// 2. upload key report.
-	ret, err := cli.Do(http.MethodPost, KeyStatReportItemUrl, map[string]any{
-		"keystat_report_item": reportRows,
-		"record_id":           job.params.RecordId,
-		"truncate":            true,
-	})
-	if err != nil {
-		return errors.New("upload key report failed, err:" + err.Error())
+	// 这里改为分批上传，一次上传200条.
+	for i := 0; i < len(reportRows); i += 200 {
+		batchReportRows := reportRows[i:int(math.Min(float64(i+200), float64(len(reportRows))))]
+		_, err := cli.Do(http.MethodPost, KeyStatReportItemUrl, map[string]any{
+			"keystat_report_item": batchReportRows,
+			"record_id":           job.params.RecordId,
+			"truncate":            i == 0, // 第一次上传时，清空记录.
+		})
+		if err != nil {
+			return errors.New("upload key report failed, err:" + err.Error())
+		}
+		job.runtime.Logger.Info("upload %d key report items batch %d success", len(batchReportRows), i/200+1)
 	}
-	job.runtime.Logger.Info("upload key report success, ret:%+v", ret)
+
+	job.runtime.Logger.Info("upload %d key report items success", len(reportRows))
 
 	// 3. upload rank report.
-	ret, err = cli.Do(http.MethodPost, KeyStatRankReportUrl, map[string]any{
-		"keystat_rank_item": rankRows,
-		"record_id":         job.params.RecordId,
-		"truncate":          true,
-	})
-	if err != nil {
-		return errors.New("upload rank report failed, err:" + err.Error())
+	// 这里改为分批上传，一次上传200条.
+	for i := 0; i < len(rankRows); i += 200 {
+		batchRankRows := rankRows[i:int(math.Min(float64(i+200), float64(len(rankRows))))]
+		_, err := cli.Do(http.MethodPost, KeyStatRankReportUrl, map[string]any{
+			"keystat_rank_item": batchRankRows,
+			"record_id":         job.params.RecordId,
+			"truncate":          i == 0, // 第一次上传时，清空记录.
+		})
+		if err != nil {
+			return errors.New("upload rank report failed, err:" + err.Error())
+		}
+		job.runtime.Logger.Info("upload %d rank report items batch %d success", len(batchRankRows), i/200+1)
 	}
-	job.runtime.Logger.Info("upload rank report success, ret:%+v", ret)
 
+	job.runtime.Logger.Info("upload %d rank report success", len(rankRows))
 	return nil
 }
 
