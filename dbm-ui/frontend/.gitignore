@@ -32,8 +32,10 @@ public/.DS_Store
 *.bak.*
 .codecc
 bkcodeai.json
-.what-is-this
-
+cypress.env.json
+multi-reporter-config.json
+cypress/parallel-weights.json
+runner-results/
 cypress/parallel-weights.json
 
 cypress.env.json

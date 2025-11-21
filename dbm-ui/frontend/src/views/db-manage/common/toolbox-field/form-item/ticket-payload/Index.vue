@@ -2,6 +2,7 @@
   <BkFormItem :label="t('备注')">
     <BkInput
       v-model="modelValue.remark"
+      data-test-id="ticketRemarkInput"
       :maxlength="500"
       :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
       style="width: 700px"
