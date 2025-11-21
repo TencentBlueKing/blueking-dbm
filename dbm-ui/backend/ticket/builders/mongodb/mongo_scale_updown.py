@@ -17,7 +17,7 @@ from backend.db_meta.models import AppCache, Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostRecycleSerializer
+from backend.ticket.builders.common.base import HostRecycleSerializer, get_mongodb_cluster_tolerance
 from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateDetailSerializer,
     BaseMongoDBOperateResourceParamBuilder,
@@ -32,6 +32,10 @@ class MongoDBScaleUpDownDetailSerializer(BaseMongoDBOperateDetailSerializer):
         shards_num = serializers.IntegerField(help_text=_("集群分片数"), required=False)
         shard_machine_group = serializers.IntegerField(help_text=_("机器组数"))
         shard_node_count = serializers.IntegerField(help_text=_("集群每分片节点数"))
+        db_version = serializers.CharField(help_text=_("DB版本"))
+        disaster_tolerance_level = serializers.ChoiceField(
+            help_text=_("容灾级别"), choices=AffinityEnum.get_choices(), required=False, default=AffinityEnum.NONE.value
+        )
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         cluster_type = serializers.CharField(help_text=_("集群类型"))
         resource_spec = serializers.JSONField(help_text=_("资源规格"))
@@ -75,10 +79,7 @@ class MongoDBScaleUpDownResourceParamBuilder(BaseMongoDBOperateResourceParamBuil
             shard_machine_group, shard_node_count = info["shard_machine_group"], info["shard_node_count"]
             self.format_mongo_resource_spec(resource_spec, shard_machine_group, shard_node_count)
             cluster = Cluster.objects.get(id=info["cluster_id"])
-            if cluster.disaster_tolerance_level == AffinityEnum.CROS_SUBZONE.value:
-                tolerance = 0.33
-            else:
-                tolerance = 0.5
+            tolerance = get_mongodb_cluster_tolerance(cluster.disaster_tolerance_level, "mongodb")
             for role in info["resource_spec"]:
                 self.patch_common_affinity(
                     info,
