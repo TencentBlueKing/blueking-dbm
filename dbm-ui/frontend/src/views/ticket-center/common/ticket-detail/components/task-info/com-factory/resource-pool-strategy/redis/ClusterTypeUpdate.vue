@@ -65,28 +65,9 @@
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
-      col-key="proxy_label_names"
+      col-key="label_names"
       :min-width="200"
-      :title="t('Proxy 资源标签')">
-      <template #default="{ row }: { row: RowData }">
-        <template v-if="row.resource_spec.proxy?.label_names?.length">
-          <BkTag
-            v-for="item in row.resource_spec.proxy.label_names"
-            :key="item">
-            {{ item }}
-          </BkTag>
-        </template>
-        <BkTag
-          v-else
-          theme="success">
-          {{ t('通用无标签') }}
-        </BkTag>
-      </template>
-    </TicketInfoTableColumn>
-    <TicketInfoTableColumn
-      col-key="backend_label_names"
-      :min-width="200"
-      :title="t('后端存储资源标签')">
+      :title="t('资源标签')">
       <template #default="{ row }: { row: RowData }">
         <template v-if="row.resource_spec.backend_group?.label_names?.length">
           <BkTag

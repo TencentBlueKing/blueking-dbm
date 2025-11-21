@@ -74,34 +74,6 @@
               :cluster="item.cluster"
               :target-cluster-type="item.target_cluster_type"
               :title="t('选择集群类型变更部署方案')" />
-            <ResourceTagColumn
-              v-model="item.proxyLabels"
-              field="proxyLabels"
-              :label="t('Proxy 资源标签')"
-              @batch-edit="handleBatchEdit" />
-            <AvailableResourceColumn
-              :label="t('Proxy 可用资源')"
-              :params="{
-                city: item.cluster.region,
-                for_bizs: [currentBizId, 0],
-                resource_types: [DBTypes.REDIS, 'PUBLIC'],
-                spec_id: item.cluster.proxy.length ? item.cluster.proxy[0].spec_config.id : undefined,
-                labels: item.proxyLabels.map((item) => item.id).join(','),
-              }" />
-            <ResourceTagColumn
-              v-model="item.backendLabels"
-              field="backendLabels"
-              :label="t('后端存储资源标签')"
-              @batch-edit="handleBatchEdit" />
-            <AvailableResourceColumn
-              :label="t('后端存储可用资源')"
-              :params="{
-                city: item.cluster.region,
-                for_bizs: [currentBizId, 0],
-                resource_types: [DBTypes.REDIS, 'PUBLIC'],
-                spec_id: item.target_capacity.spec_id,
-                labels: item.backendLabels.map((item) => item.id).join(','),
-              }" />
             <EditableColumn
               :label="t('切换模式')"
               readonly
@@ -203,12 +175,11 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { Affinity, ClusterTypes, DBTypes, TicketTypes } from '@common/const';
+  import { Affinity, ClusterTypes, TicketTypes } from '@common/const';
 
   import { type TabItem } from '@components/cluster-selector/Index.vue';
 
   // import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
-  import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
   import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
@@ -223,7 +194,6 @@
   import TargetVersionSelectColumn from './components/TargetVersionSelectColumn.vue';
 
   interface IDataRow {
-    backendLabels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     cluster: {
       bk_cloud_id: number;
       cluster_capacity: number;
@@ -240,19 +210,18 @@
       region: string;
     };
     db_version: string;
-    proxyLabels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     target_capacity: {
       capacity: number;
       cluster_shard_num: number;
       count: string | number;
       future_capacity: number;
+      labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
       spec_id: number;
     };
     target_cluster_type: string;
   }
 
   const createRowData = (values: DeepPartial<IDataRow> = {}) => ({
-    backendLabels: (values.backendLabels || []) as IDataRow['backendLabels'],
     cluster: Object.assign(
       {
         bk_cloud_id: 0,
@@ -272,13 +241,13 @@
       values.cluster,
     ),
     db_version: values?.db_version || '',
-    proxyLabels: (values.proxyLabels || []) as IDataRow['proxyLabels'],
     target_capacity: Object.assign(
       {
         capacity: 0,
         cluster_shard_num: 0,
         count: '' as string | number,
         future_capacity: 0,
+        labels: [] as IDataRow['target_capacity']['labels'],
         spec_id: 0,
       },
       values.target_capacity,
@@ -306,12 +275,10 @@
         data_check_repair_setting_type: details.data_check_repair_setting.type,
         tableData: infos.map((infoItem) =>
           createRowData({
-            backendLabels: (infoItem.resource_spec.backend_group.labels || []).map((item) => ({ id: Number(item) })),
             cluster: {
               master_domain: clusters[infoItem.src_cluster].immute_domain,
             } as IDataRow['cluster'],
             db_version: infoItem.db_version,
-            proxyLabels: (infoItem.resource_spec.proxy.labels || []).map((item) => ({ id: Number(item) })),
             target_cluster_type: infoItem.target_cluster_type,
           }),
         ),
@@ -332,34 +299,7 @@
       execution_frequency: string;
       type: string;
     };
-    infos: {
-      capacity: number;
-      cluster_shard_num: number;
-      current_cluster_type: string;
-      current_shard_num: number;
-      current_spec_id: number;
-      db_version: string;
-      future_capacity: number;
-      online_switch_type: 'user_confirm';
-      resource_spec: {
-        backend_group: {
-          affinity: string;
-          count: number; // 机器组数
-          label_names: string[]; // 标签名称列表，单据详情回显用
-          labels: string[]; // 标签id列表
-          spec_id: number;
-        };
-        proxy: {
-          affinity: string;
-          count: number;
-          label_names: string[]; // 标签名称列表，单据详情回显用
-          labels: string[]; // 标签id列表
-          spec_id: number;
-        };
-      };
-      src_cluster: number;
-      target_cluster_type: string;
-    }[];
+    infos: Redis.ResourcePool.ClusterTypeUpdate['infos'];
     ip_source: 'resource_pool';
   }>(TicketTypes.REDIS_CLUSTER_TYPE_UPDATE);
 
@@ -381,19 +321,7 @@
   //     key: 'version',
   //     label: t('Redis 版本'),
   //   },
-  //   {
-  //     case: '标签1,标签2',
-  //     key: 'proxyLabels',
-  //     label: t('Proxy 资源标签'),
-  //   },
-  //   {
-  //     case: '标签1,标签2',
-  //     key: 'backendLabels',
-  //     label: t('后端存储资源标签'),
-  //   },
   // ];
-
-  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const tableKey = ref(random());
 
@@ -446,26 +374,19 @@
     formData.tableData = newList;
   };
 
-  const handleBatchEdit = (value: string | number, field: string) => {
-    formData.tableData.forEach((item) => {
-      Object.assign(item, { [field]: value });
-    });
-  };
+  // const handleBatchEdit = (value: string | number, field: string) => {
+  //   formData.tableData.forEach((item) => {
+  //     Object.assign(item, { [field]: value });
+  //   });
+  // };
 
   // const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
   //   const dataList = data.map((item) =>
   //     createRowData({
-  //       backendLabels: (item.backendLabels as string)
-  //         ?.split(',')
-  //         .map((item) => ({ value: item })) as IDataRow['backendLabels'],
   //       cluster: {
   //         master_domain: item.domain,
   //       } as IDataRow['cluster'],
   //       db_version: item.version || '',
-  //       proxyLabels: (item.proxyLabels as string)
-  //         ?.split(',')
-  //         .map((item) => ({ value: item })) as IDataRow['proxyLabels'],
-  //       target_cluster_type: item.type || '',
   //     }),
   //   );
   //   if (isClear) {
@@ -498,15 +419,13 @@
               backend_group: {
                 affinity: tableItem.cluster.disaster_tolerance_level || Affinity.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
                 count: Number(tableItem.target_capacity.count), // 机器组数
-                label_names: tableItem.backendLabels.map((item) => item.value),
-                labels: tableItem.backendLabels.map((item) => String(item.id)),
+                label_names: tableItem.target_capacity.labels.map((item) => item.value),
+                labels: tableItem.target_capacity.labels.map((item) => String(item.id)),
                 spec_id: tableItem.target_capacity.spec_id,
               },
               proxy: {
                 affinity: Affinity.CROS_SUBZONE,
                 count: Math.min(new Set(tableItem.cluster.proxy.map((item) => item.ip)).size, 5), // 最大5台
-                label_names: tableItem.proxyLabels.map((item) => item.value),
-                labels: tableItem.proxyLabels.map((item) => String(item.id)),
                 spec_id: tableItem.cluster.proxy[0].spec_config.id,
               },
             },

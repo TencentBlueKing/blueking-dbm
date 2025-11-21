@@ -59,44 +59,6 @@
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
-      col-key="proxy_label_names"
-      :min-width="200"
-      :title="t('Proxy 资源标签')">
-      <template #default="{ row }: { row: RowData }">
-        <template v-if="row.resource_spec.proxy?.label_names?.length">
-          <BkTag
-            v-for="item in row.resource_spec.proxy.label_names"
-            :key="item">
-            {{ item }}
-          </BkTag>
-        </template>
-        <BkTag
-          v-else
-          theme="success">
-          {{ t('通用无标签') }}
-        </BkTag>
-      </template>
-    </TicketInfoTableColumn>
-    <TicketInfoTableColumn
-      col-key="backend_label_names"
-      :min-width="200"
-      :title="t('后端存储资源标签')">
-      <template #default="{ row }: { row: RowData }">
-        <template v-if="row.resource_spec.backend_group?.label_names?.length">
-          <BkTag
-            v-for="item in row.resource_spec.backend_group.label_names"
-            :key="item">
-            {{ item }}
-          </BkTag>
-        </template>
-        <BkTag
-          v-else
-          theme="success">
-          {{ t('通用无标签') }}
-        </BkTag>
-      </template>
-    </TicketInfoTableColumn>
-    <TicketInfoTableColumn
       col-key="online_switch_type"
       :title="t('切换模式')"
       :width="150">
@@ -179,6 +141,10 @@
       title: t('Proxy 规格'),
     },
     {
+      render: () => '--',
+      title: t('资源标签'),
+    },
+    {
       render: () => {
         if (data.proxy) {
           return <span style='font-weight: bolder'>{data.proxy.length}</span>;
@@ -210,6 +176,10 @@
         return '--';
       },
       title: t('后端存储规格'),
+    },
+    {
+      render: () => '--',
+      title: t('资源标签'),
     },
     {
       render: () => {
@@ -247,6 +217,19 @@
         );
       },
       title: t('Proxy 规格'),
+    },
+
+    {
+      render: () => {
+        if (data.resource_spec.proxy.label_names?.length) {
+          const tags = data.resource_spec.proxy.label_names.map((labelItem) => (
+            <bk-tag key={labelItem}>{labelItem}</bk-tag>
+          ));
+          return <>{tags}</>;
+        }
+        return <bk-tag theme='success'>{t('通用无标签')}</bk-tag>;
+      },
+      title: t('资源标签'),
     },
     {
       render: () => (
@@ -299,6 +282,18 @@
         );
       },
       title: t('后端存储规格'),
+    },
+    {
+      render: () => {
+        if (data.resource_spec.backend_group.label_names?.length) {
+          const tags = data.resource_spec.backend_group.label_names.map((labelItem) => (
+            <bk-tag key={labelItem}>{labelItem}</bk-tag>
+          ));
+          return <>{tags}</>;
+        }
+        return <bk-tag theme='success'>{t('通用无标签')}</bk-tag>;
+      },
+      title: t('资源标签'),
     },
     {
       render: () => (

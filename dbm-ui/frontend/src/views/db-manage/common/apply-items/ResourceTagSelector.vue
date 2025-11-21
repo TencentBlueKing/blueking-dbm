@@ -43,6 +43,7 @@
     </template>
   </BkSelect>
 </template>
+
 <script lang="ts" setup>
   import BkSelect from 'bkui-vue/lib/select';
   import type { UnwrapRef } from 'vue';
@@ -132,10 +133,11 @@
   );
 
   const handleChange = (values: number[]) => {
+    const newValue = ids.value.filter((id) => id !== DEFAULT_TAG_ID).map((item) => tagMap.value[item]);
     ids.value = values;
-    modelValue.value = ids.value.filter((id) => id !== DEFAULT_TAG_ID).map((item) => tagMap.value[item]);
+    modelValue.value = newValue;
     tagTheme.value = values[0] === DEFAULT_TAG_ID ? 'success' : '';
-    emits('change', modelValue.value);
+    emits('change', newValue);
   };
 
   const updateModel = (data: UnwrapRef<typeof modelValue>) => {
