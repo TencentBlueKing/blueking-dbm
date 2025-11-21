@@ -85,6 +85,11 @@ export default [
         name: t('主库故障切换'),
         parentId: 'migrate',
       },
+      {
+        id: TicketTypes.SQLSERVER_CLUSTER_MIGRATE,
+        name: t('迁移'),
+        parentId: 'migrate',
+      },
     ],
     icon: 'db-icon-cluster',
     id: 'migrate',
