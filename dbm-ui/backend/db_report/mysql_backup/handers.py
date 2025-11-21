@@ -168,7 +168,7 @@ class MySQLBackupHandler:
 
             if self.backup_method is not None and len(self.backup_method) > 0:
                 logger.info(_("指定备份方法 {} 查询").format(self.backup_method))
-                conditions &= Q(backup_method__in=self.backup_method)
+                conditions &= Q(backup_method__in=self.backup_method) | Q(mysql_role__in=["spider_master", "TDBCTL"])
             # 当前必须用is_standby备份来恢复数据。
             if self.is_standby:
                 logger.info(_("指定查询必须从is_standby实例查询。spider_master/TDBCTL/orphan除外"))
@@ -583,7 +583,10 @@ class MySQLBackupHandler:
             if self.backup_method is not None and len(self.backup_method) > 0:
                 logger.info(_("指定备份方法 {} 查询").format(self.backup_method))
                 backup_method_str = "','".join(self.backup_method)
-                conditions = f" {conditions} and backup_method in ('{backup_method_str}') "
+                conditions = (
+                    f" {conditions} and (backup_method in ('{backup_method_str}')"
+                    f" or mysql_role in ('spider_master','TDBCTL'))"
+                )
 
         backup_infos = []
 
