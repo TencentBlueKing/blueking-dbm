@@ -45,6 +45,7 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_machine_clear_flow import Clea
 from backend.flow.engine.bamboo.scene.mysql.mysql_master_fail_over import MySQLMasterFailOverFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_master_slave_switch import MySQLMasterSlaveSwitchFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_migrate_cluster_remote_flow import MySQLMigrateClusterRemoteFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_migrate_single_flow import MySQLMigrateSingleFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_open_area_flow import MysqlOpenAreaFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_partition import MysqlPartitionFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_partition_cron import MysqlPartitionCronFlow
@@ -406,6 +407,13 @@ class MySQLController(BaseController):
         """
         flow = MySQLMigrateClusterRemoteFlow(root_id=self.root_id, ticket_data=self.ticket_data)
         flow.migrate_cluster_flow()
+
+    def mysql_migrate_single_scene(self):
+        """
+        主从成对迁移flow编排
+        """
+        flow = MySQLMigrateSingleFlow(root_id=self.root_id, ticket_data=self.ticket_data)
+        flow.migrate_single_flow()
 
     def mysql_db_table_backup_scene(self):
         """

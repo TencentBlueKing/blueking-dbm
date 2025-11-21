@@ -1160,17 +1160,13 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                         "databases_ignore": [],
                         "tables": tables,
                         "tables_ignore": [],
-                        "filter_rows": "",
-                        "conv_rows_update_to_write": self.cluster.get("conv_rows_update_to_write", False),
-                        "filter_delete_rows_only": self.cluster.get("filter_delete_rows_only", False),
                     },
-                    # 原始 binlog 目录，如果不提供，则自动为实例 binlog 目录
+                    # 原始binlog目录，默认为实例binlog目录
                     "binlog_dir": "",
-                    # binlog列表，如果不提供，则自动从本地查找符合时间范围的 binlog
+                    # binlog列表，默认从本地查找符合时间范围的binlog
                     "binlog_files": None,
                     "work_dir": self.cluster["work_dir"],
-                    # "tools": {"mysqlbinlog": self.cluster["mysqlbinlog_rollback"]},
-                    # 闪回的目标时间点，对应 recover-binlog 的 start_time, 精确到秒。
+                    # 闪回的目标时间点，对应 recover-binlog 的 start_time, 精确到秒
                     "target_time": self.cluster["start_time"],
                     "stop_time": self.cluster["end_time"],
                 },
@@ -1178,13 +1174,20 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         }
         # 如果指定了行级别的回档,需添加4个参数,使用GoFlashBackBinlog工具回档
         rows_filter = self.cluster.get("rows_filter", "").strip()
-        direct_write_back = self.cluster.get("direct_write_back", True)
         if rows_filter != "":
             payload["action"] = DBActuatorActionEnum.GoFlashBackBinlog.value
-            payload["payload"]["extend"]["recover_opt"]["rows_event_type"] = ""
-            payload["payload"]["extend"]["recover_opt"]["conv_rows_update_to_write"] = False
             payload["payload"]["extend"]["recover_opt"]["rows_filter"] = rows_filter
-            payload["payload"]["extend"]["recover_opt"]["direct_write_back"] = direct_write_back
+            payload["payload"]["extend"]["recover_opt"]["conv_rows_update_to_write"] = self.cluster.get(
+                "conv_rows_update_to_write", False
+            )
+            payload["payload"]["extend"]["recover_opt"]["direct_write_back"] = self.cluster.get(
+                "direct_write_back", True
+            )
+        else:
+            payload["payload"]["extend"]["recover_opt"]["filter_delete_rows_only"] = self.cluster.get(
+                "filter_delete_rows_only", False
+            )
+            payload["payload"]["extend"]["recover_opt"]["direct_write_back"] = True
         return payload
 
     def get_mysql_edit_config_payload(self, **kwargs) -> dict:

@@ -77,9 +77,9 @@ class MySQLMigrateSingleFlow(object):
         self.root_id = root_id
         self.ticket_data = ticket_data
         self.data = {}
-
         # 定义备份文件存放到目标机器目录位置
         self.backup_target_path = f"/data/dbbak/{self.root_id}"
+        print(self.ticket_data)
 
     def migrate_single_flow(self, use_for_upgrade=False):
         """
@@ -121,6 +121,8 @@ class MySQLMigrateSingleFlow(object):
                 db_module_id=db_module_id,
                 cluster_type=cluster_class.cluster_type,
             )
+            self.data["backup_source"] = self.ticket_data["backup_source"]
+            self.data["orphan_restore_type"] = self.ticket_data["orphan_restore_type"]
 
             self.data["new_orphan_ip"] = self.data["bk_new_orphan"]["ip"]
             self.data["new_orphan_port"] = master_model.port
