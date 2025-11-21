@@ -33,6 +33,7 @@
           class="result-item">
           <span
             v-overflow-tips
+            data-test-id="clusterSelectorPreviewItem"
             class="text-overflow">
             {{ clusterItem[displayKey] }}
           </span>
