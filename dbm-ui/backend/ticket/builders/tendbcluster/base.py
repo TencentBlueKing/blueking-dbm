@@ -99,7 +99,7 @@ class TendbBaseOperateDetailSerializer(MySQLBaseOperateDetailSerializer):
             # 获取集群当前spider_master部署数量上限
             # 获取Spider版本号
             __, spider_version = get_spider_version_and_charset(cluster.bk_biz_id, cluster.db_module_id)
-            upper_limit_count = calc_spider_max_count(
+            __, upper_limit_count = calc_spider_max_count(
                 bk_biz_id=cluster.bk_biz_id,
                 db_module_id=cluster.db_module_id,
                 db_version=spider_version,

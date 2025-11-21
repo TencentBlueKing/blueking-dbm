@@ -38,7 +38,7 @@ def get_spider_version_and_charset(bk_biz_id, db_module_id) -> Any:
     return data["charset"], data["spider_version"]
 
 
-def calc_spider_max_count(bk_biz_id, db_module_id, db_version, immute_domain: str) -> int:
+def calc_spider_max_count(bk_biz_id, db_module_id, db_version, immute_domain: str) -> tuple[str, int]:
     """
     如果集群配置没有开启spider_auto_increment_mode_switch
     则这里直接返回平台硬限制，返回128
@@ -68,7 +68,7 @@ def calc_spider_max_count(bk_biz_id, db_module_id, db_version, immute_domain: st
 
     if int(config["spider_auto_increment_mode_switch"]):
         # spider_auto_increment_step 值作为集群理论上限
-        return int(config["spider_auto_increment_step"])
+        return "ON", int(config["spider_auto_increment_step"])
 
     # 没有开启全局自增，返回硬上限
-    return 1024
+    return "OFF", int(config["spider_auto_increment_step"])

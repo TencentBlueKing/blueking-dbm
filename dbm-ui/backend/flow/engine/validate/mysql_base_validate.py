@@ -46,12 +46,16 @@ class MysqlBaseValidator(BaseValidator):
         """
         # 获取Spider版本号
         _, spider_version = get_spider_version_and_charset(bk_biz_id, db_module_id)
-        upper_limit_count = calc_spider_max_count(
+        spider_auto_increment_mode_switch, upper_limit_count = calc_spider_max_count(
             bk_biz_id=bk_biz_id,
             db_module_id=db_module_id,
             db_version=spider_version,
             immute_domain=immute_domain,
         )
+
+        if spider_auto_increment_mode_switch == "OFF":
+            # 表示全局自增列没有打开，直接返回True
+            return True, upper_limit_count
 
         if ready_to_add_count + existing_count > upper_limit_count / divisor:
             # 表示已经超过了设置的理论值上限
