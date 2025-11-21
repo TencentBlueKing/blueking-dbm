@@ -929,7 +929,10 @@ func (job *RedisSwitchPreCheck) checkReplicationSync(newMasterConn *myredis.Redi
 	var masterTime, masterDbsize, slaveTime int64
 	oldMasterAddr := fmt.Sprintf("%s:%d", storagePair.MasterInfo.IP, storagePair.MasterInfo.Port)
 	newMasterAddr := fmt.Sprintf("%s:%d", storagePair.SlaveInfo.IP, storagePair.SlaveInfo.Port)
-
+	if err := job.trySetHeartBeatWhenDbmonStoped(storagePair); err != nil {
+		time.Sleep(time.Second * 2)
+		job.trySetHeartBeatWhenDbmonStoped(storagePair)
+	}
 	if err := newMasterConn.SelectDB(1); err != nil {
 		return fmt.Errorf("[%s] select db 1, exec cmd err:%+v", newMasterAddr, err)
 	}
@@ -973,6 +976,30 @@ func (job *RedisSwitchPreCheck) checkReplicationSync(newMasterConn *myredis.Redi
 	job.runtime.Logger.Info(
 		"[%s]new master node, master on slave time:%d, diff:%.0f dbsize:%d; slave time:%d, master_last_io_seconds_ago:%d",
 		newMasterAddr, masterTime, slaveMasterDiffTime, masterDbsize, slaveTime, lastIOseconds)
+	return nil
+}
+
+// setHeartBeatWhenDbmonStoped # here we just set on the master heartbeat:
+func (job *RedisSwitchPreCheck) trySetHeartBeatWhenDbmonStoped(storagePair InstanceSwitchParam) error {
+	oldMasterAddr := fmt.Sprintf("%s:%d", storagePair.MasterInfo.IP, storagePair.MasterInfo.Port)
+	oldMasterConn, err := myredis.NewRedisClientWithTimeout(oldMasterAddr,
+		job.params.ClusterMeta.StoragePassword, 0, job.params.ClusterMeta.ClusterType, time.Second*10)
+	if err != nil {
+		job.runtime.Logger.Warn("[%s] conntect 2 old master failed :%+v", oldMasterAddr, err)
+		return err
+	}
+	defer oldMasterConn.Close()
+
+	if err := oldMasterConn.SelectDB(1); err != nil {
+		job.runtime.Logger.Warn("[%s] select db 1 on  master failed :%+v", oldMasterAddr, err)
+		return err
+	}
+	job.runtime.Logger.Info("[%s] try reset dbmon heartbeat key [%s] value 2 current", oldMasterAddr, fmt.Sprintf("%s:time", oldMasterAddr))
+	rst := oldMasterConn.InstanceClient.Set(context.TODO(), fmt.Sprintf("%s:time", oldMasterAddr), time.Now().Unix(), 0)
+	if rst.Err() != nil {
+		job.runtime.Logger.Warn("[%s] set on old master failed :%+v", oldMasterAddr, err)
+		return err
+	}
 	return nil
 }
 
