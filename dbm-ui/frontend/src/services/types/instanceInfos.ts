@@ -11,6 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import type { ClusterTypes } from '@common/const';
 import type { HostInfo } from '@services/types';
 
 /**
@@ -22,7 +23,7 @@ export interface InstanceInfos {
   bk_host_id: number;
   cluster_id: number;
   cluster_name: string;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   create_at: string;
   db_module_id: number;
   host_info: HostInfo;
