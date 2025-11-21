@@ -433,12 +433,11 @@ class TicketType(StrStructuredEnum):
     SQLSERVER_DISABLE = TicketEnumField("SQLSERVER_DISABLE", _("SQLServer 集群禁用"), register_iam=False)
     SQLSERVER_ENABLE = TicketEnumField("SQLSERVER_ENABLE", _("SQLServer 集群启用"), register_iam=False)
     SQLSERVER_DBRENAME = TicketEnumField("SQLSERVER_DBRENAME", _("SQLServer DB重命名"), _("集群维护"))
-    SQLSERVER_MASTER_SLAVE_SWITCH = TicketEnumField("SQLSERVER_MASTER_SLAVE_SWITCH", _("SQLServer 主从互切"),
-                                                    _("集群维护"))  # noqa
-    SQLSERVER_MASTER_FAIL_OVER = TicketEnumField("SQLSERVER_MASTER_FAIL_OVER", _("SQLServer 主库故障切换"),
-                                                 _("集群维护"))
-    SQLSERVER_RESTORE_LOCAL_SLAVE = TicketEnumField("SQLSERVER_RESTORE_LOCAL_SLAVE", _("SQLServer 原地重建"),
-                                                    _("集群维护"))  # noqa
+    SQLSERVER_MASTER_SLAVE_SWITCH = TicketEnumField("SQLSERVER_MASTER_SLAVE_SWITCH", _("SQLServer 主从互切"), _("集群维护"))  # noqa
+    SQLSERVER_CLUSTER_MIGRATE = TicketEnumField("SQLSERVER_CLUSTER_MIGRATE", _("SQLServer 集群迁移"), _("集群维护"))  # noqa
+    SQLSERVER_HOST_MIGRATE = TicketEnumField("SQLSERVER_HOST_MIGRATE", _("SQLServer 整机迁移"), _("集群维护"))  # noqa
+    SQLSERVER_MASTER_FAIL_OVER = TicketEnumField("SQLSERVER_MASTER_FAIL_OVER", _("SQLServer 主库故障切换"), _("集群维护"))
+    SQLSERVER_RESTORE_LOCAL_SLAVE = TicketEnumField("SQLSERVER_RESTORE_LOCAL_SLAVE", _("SQLServer 原地重建"), _("集群维护"))  # noqa
     SQLSERVER_RESTORE_SLAVE = TicketEnumField("SQLSERVER_RESTORE_SLAVE", _("SQLServer 新机重建"), _("集群维护"))
     SQLSERVER_ADD_SLAVE = TicketEnumField("SQLSERVER_ADD_SLAVE", _("SQLServer 添加从库"), _("集群维护"))
     SQLSERVER_RESET = TicketEnumField("SQLSERVER_RESET", _("SQLServer 集群重置"), _("集群维护"))
