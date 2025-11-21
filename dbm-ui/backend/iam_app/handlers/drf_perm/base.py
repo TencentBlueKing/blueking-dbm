@@ -284,7 +284,9 @@ class DBManagePermission(ResourceActionPermission):
             return super().has_permission(request, view)
         except PermissionDeniedError:
             # TODO: 先记录那些请求跳过了鉴权，统一处理后删除该逻辑
-            logger.error(f"api: {request.path}, user: {Permission(request=request).username} has no db-manage")
+            username = Permission(request=request).username
+            bk_biz_id = self.instance_biz_id_getter(request, view)
+            logger.error(f"api: {request.path}, bk_biz_id: {bk_biz_id}, user: {username} has no db-manage, ")
             return True
 
 

@@ -125,7 +125,9 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
                     "BK_NODEMAN_URL": env.BK_NODEMAN_URL,
                     "BK_SCR_URL": env.BK_SCR_URL,
                     "BKDATA_FRONTEND_REPORT_URL": BKBaseApi.get_bkdata_frontend_report_url(),
+                    # TODO: ai-agent临时配置多个url，后续二次开发做成api接口模式
                     "BK_AIDEV_URL": env.BK_AIDEV_URL,
+                    "BK_AIDEV_LOG_ANALYSIS_URL": env.BK_AIDEV_LOG_ANALYSIS_URL,
                     "BKMONITOR_URL": env.BKMONITOR_URL,
                     "BK_HCM_URL": env.BK_HCM_URL,
                 }
