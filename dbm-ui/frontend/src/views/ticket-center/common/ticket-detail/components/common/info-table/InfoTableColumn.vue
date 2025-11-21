@@ -74,7 +74,6 @@
   .info-table-column-copy-button {
     [class*='db-icon'] {
       font-size: 14px;
-      // margin-left: 4px;
       color: #979ba5;
       cursor: pointer;
 

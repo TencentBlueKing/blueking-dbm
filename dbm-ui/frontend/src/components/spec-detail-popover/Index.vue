@@ -2,7 +2,7 @@
   <BkPopover
     :offset="18"
     :placement="placement"
-    :popover-delay="0"
+    :popover-delay="[0, 50]"
     theme="light"
     :width="600">
     <div class="spec-detail-popover-default-container">
