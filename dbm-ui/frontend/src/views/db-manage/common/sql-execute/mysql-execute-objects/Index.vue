@@ -24,6 +24,7 @@
           content: t('请先选择目标集群'),
           disabled: clusterIds.length > 0,
         }"
+        data-test-id="addSqlContentBtn"
         :disabled="clusterIds.length === 0"
         @click="handleShowSideSlider">
         <DbIcon

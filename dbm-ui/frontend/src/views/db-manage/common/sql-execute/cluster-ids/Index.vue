@@ -19,7 +19,9 @@
       property="cluster_ids"
       required
       :rules="rules">
-      <BkButton @click="handleShowClusterSelector">
+      <BkButton
+        @click="handleShowClusterSelector"
+        data-test-id="addTargetClustersBtn">
         <DbIcon
           style="margin-right: 3px"
           type="add" />
