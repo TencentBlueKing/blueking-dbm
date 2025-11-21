@@ -135,6 +135,12 @@
     manual: true,
     onSuccess(data) {
       tableData.value = data.results;
+      rowFlodMap.value = data.results.reduce<typeof rowFlodMap.value>((acc, item: MysqlPermissionAccountModel) => {
+        Object.assign(acc, {
+          [item.account.user]: item.rules.length > 1, // 默认展开
+        });
+        return acc;
+      }, {});
     },
   });
 
