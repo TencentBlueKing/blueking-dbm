@@ -139,6 +139,8 @@ const toolboxRouters: RouteRecordRaw[] = [
       createRouteItem(TicketTypes.SQLSERVER_BACKUP_DBS, t('数据库备份')),
       createRouteItem(TicketTypes.SQLSERVER_FULL_MIGRATE, t('数据迁移')),
       createRouteItem(TicketTypes.SQLSERVER_INCR_MIGRATE, t('数据迁移')),
+      createRouteItem(TicketTypes.SQLSERVER_CLUSTER_MIGRATE, t('迁移')),
+      createRouteItem(TicketTypes.SQLSERVER_HOST_MIGRATE, t('迁移')),
       {
         path: 'data-migrate-record',
         name: 'sqlServerDataMigrateRecord',
