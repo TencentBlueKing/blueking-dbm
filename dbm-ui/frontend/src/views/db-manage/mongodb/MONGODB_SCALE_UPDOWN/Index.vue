@@ -115,7 +115,9 @@
       bk_cloud_id: number;
       cluster_name: string;
       cluster_type: string;
+      disaster_tolerance_level: string;
       id: number;
+      major_version: string;
       master_domain: string;
       mongodb: MongodbModel['mongodb'];
       mongodb_machine_num: number;
@@ -146,7 +148,9 @@
         bk_cloud_id: 0,
         cluster_name: '',
         cluster_type: '',
+        disaster_tolerance_level: '',
         id: 0,
+        major_version: '',
         master_domain: '',
         mongodb: [] as MongodbModel['mongodb'],
         mongodb_machine_num: 0,
@@ -216,28 +220,7 @@
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
-    infos: {
-      cluster_id: number;
-      cluster_type: string;
-      old_nodes: {
-        mongodb: {
-          bk_cloud_id: number;
-          bk_host_id: number;
-          ip: string;
-        }[];
-      };
-      resource_spec: {
-        mongodb: {
-          count: number;
-          label_names: string[]; // 标签名称列表，单据详情回显用
-          labels: string[]; // 标签id列表
-          spec_id: number;
-        };
-      };
-      shard_machine_group: number;
-      shard_node_count: number;
-      shards_num: number;
-    }[];
+    infos: Mongodb.ResourcePool.ScaleUpdown['infos'];
     ip_source: string;
   }>(TicketTypes.MONGODB_SCALE_UPDOWN);
 
@@ -278,7 +261,9 @@
               bk_cloud_id: item.bk_cloud_id,
               cluster_name: item.cluster_name,
               cluster_type: item.cluster_type,
+              disaster_tolerance_level: item.disaster_tolerance_level,
               id: item.id,
+              major_version: item.major_version,
               master_domain: item.master_domain,
               mongodb: item.mongodb,
               mongodb_machine_num: item.mongodb_machine_num,
@@ -337,6 +322,8 @@
               ...tableRow.target_capacity,
               cluster_id: tableRow.cluster.id,
               cluster_type: tableRow.cluster.cluster_type,
+              db_version: tableRow.cluster.major_version,
+              disaster_tolerance_level: tableRow.cluster.disaster_tolerance_level,
               old_nodes: {
                 mongodb: tableRow.cluster.mongodb.map((item) => ({
                   bk_cloud_id: item.bk_cloud_id,
