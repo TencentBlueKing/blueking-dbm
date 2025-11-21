@@ -1101,7 +1101,7 @@
     const titleMap = Object.keys(clusterTabListMap.value).reduce(
       (results, key) => {
         Object.assign(results, {
-          [key]: clusterTabListMap.value[key][0].previewConfig?.title ?? '',
+          [key]: clusterTabListMap.value[key][0].previewConfig?.title ?? clusterTabListMap.value[key][0]?.name ?? '',
         });
         return results;
       },
