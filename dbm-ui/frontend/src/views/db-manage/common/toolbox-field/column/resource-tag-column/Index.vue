@@ -13,13 +13,13 @@
 
 <template>
   <EditableColumn
-    :field="field"
-    :label="labelText"
+    field="labels"
+    :label="t('资源标签')"
     :min-width="200"
     :rowspan="rowspan"
     :rules="rules">
     <template #head>
-      {{ labelText }}
+      <span class="mr-4">{{ t('资源标签') }}</span>
       <span class="custom-required" />
     </template>
     <template #headAppend>
@@ -37,7 +37,7 @@
         :placeholder="t('请选择')"
         :popover-min-width="200"
         show-all
-        :title="labelText"
+        :title="t('资源标签')"
         type="select"
         @change="handleBatchEditChange">
         <span
@@ -46,8 +46,8 @@
           @click="handleBatchEditShow">
           <DbIcon type="bulk-edit" />
         </span>
-        <template #tagRender="{ label: tagLabel, value }">
-          {{ value === DEFAULT_TAG_ID ? t('通用无标签') : tagLabel }}
+        <template #tagRender="{ label, value }">
+          {{ value === DEFAULT_TAG_ID ? t('通用无标签') : label }}
         </template>
         <template #allOptionIcon>
           <BkTag
@@ -103,8 +103,6 @@
 
   interface Props {
     bizId?: number;
-    field?: string;
-    label?: string;
     rowspan?: number;
   }
 
@@ -112,8 +110,6 @@
 
   const props = withDefaults(defineProps<Props>(), {
     bizId: window.PROJECT_CONFIG.BIZ_ID,
-    field: 'labels',
-    label: '',
     rowspan: 1,
   });
 
@@ -148,8 +144,6 @@
       },
     },
   ];
-
-  const labelText = computed(() => (props.label ? props.label : t('资源标签')));
 
   const { loading, run: runListTag } = useRequest(listTag, {
     manual: true,
@@ -206,7 +200,7 @@
 
   const handleBatchEditChange = (values: number[]) => {
     const labels = values.map((id) => tagMap.value[id]);
-    emits('batch-edit', labels, props.field);
+    emits('batch-edit', labels, 'labels');
   };
 
   const updateModel = (data: UnwrapRef<typeof modelValue>) => {

@@ -52,17 +52,6 @@
           <TargetCapacityColumn
             v-model="item.backend_group"
             :row-data="item" />
-          <ResourceTagColumn
-            v-model="item.labels"
-            @batch-edit="handleBatchEdit" />
-          <AvailableResourceColumn
-            :params="{
-              city: item.cluster.region,
-              for_bizs: [currentBizId, 0],
-              resource_types: [DBTypes.REDIS, 'PUBLIC'],
-              spec_id: item.backend_group.spec_id,
-              labels: item.labels.map((item) => item.id).join(','),
-            }" />
           <OnlineSwitchTypeColumn
             v-model="item.online_switch_type"
             :cluster-id="item.cluster.id"
@@ -105,11 +94,9 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { Affinity, ClusterTypes, DBTypes, TicketTypes } from '@common/const';
+  import { Affinity, ClusterTypes, TicketTypes } from '@common/const';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
-  import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
-  import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
@@ -123,25 +110,9 @@
   import TargetCapacityColumn from './components/target-capacity-column/Index.vue';
 
   interface RowData {
-    backend_group: {
-      affinity: string;
-      capacity: number;
-      count: number;
-      future_capacity: number;
-      group_num: number;
-      old_machine_info: {
-        bk_biz_id: number;
-        bk_cloud_id: number;
-        bk_host_id: number;
-        ip: string;
-      }[];
-      shard_num: number;
-      spec_id: number;
-      update_mode: string;
-    };
+    backend_group: ComponentProps<typeof TargetCapacityColumn>['modelValue'];
     cluster: RedisModel;
     db_version: string;
-    labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     online_switch_type: string;
   }
 
@@ -156,6 +127,7 @@
         count: 0,
         future_capacity: 1,
         group_num: 0,
+        labels: [] as RowData['backend_group']['labels'],
         old_machine_info: [] as RowData['backend_group']['old_machine_info'],
         shard_num: 0,
         spec_id: 0,
@@ -182,7 +154,6 @@
       data.cluster,
     ),
     db_version: data.db_version || '',
-    labels: (data.labels || []) as RowData['labels'],
     online_switch_type: data.online_switch_type || '',
   });
 
@@ -203,18 +174,11 @@
       label: t('Redis版本'),
     },
     {
-      case: '标签1,标签2',
-      key: 'labels',
-      label: t('资源标签'),
-    },
-    {
       case: 'no_confirm',
       key: 'online_switch_type',
       label: t('切换模式'),
     },
   ];
-
-  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const tableKey = ref(random());
 
@@ -237,7 +201,6 @@
               master_domain: clusterInfo.immute_domain,
             } as RedisModel,
             db_version: item.db_version,
-            labels: (item.resource_spec.backend_group.labels || []).map((item) => ({ id: Number(item), value: '' })),
             online_switch_type: item.online_switch_type,
           });
         }),
@@ -309,8 +272,8 @@
             backend_group: {
               affinity: item.backend_group.affinity as Affinity,
               count: item.backend_group.count,
-              label_names: item.labels.map((item) => item.value),
-              labels: item.labels.map((item) => String(item.id)),
+              label_names: item.backend_group.labels.map((item) => item.value),
+              labels: item.backend_group.labels.map((item) => String(item.id)),
               spec_id: item.backend_group.spec_id,
             },
           },
@@ -356,7 +319,6 @@
           master_domain: item.domain,
         } as RowData['cluster'],
         db_version: item.version || '',
-        labels: (item.labels as string)?.split(',').map((item) => ({ value: item })) as RowData['labels'],
         online_switch_type: item?.online_switch_type || '',
       }),
     );

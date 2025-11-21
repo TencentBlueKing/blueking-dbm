@@ -44,6 +44,31 @@
         class="panel-row"
         style="margin-top: 12px">
         <div class="panel-column">
+          <div class="panel-title">{{ t('资源标签') }}：</div>
+          <div class="panel-content">--</div>
+        </div>
+        <div class="panel-column">
+          <div class="panel-title">{{ t('资源标签') }}：</div>
+          <div class="panel-content">
+            <template v-if="specInfo.labels.length">
+              <BkTag
+                v-for="labelItem in specInfo.labels"
+                :key="labelItem.id">
+                {{ labelItem.value }}
+              </BkTag>
+            </template>
+            <BkTag
+              v-else
+              theme="success">
+              {{ t('通用无标签') }}
+            </BkTag>
+          </div>
+        </div>
+      </div>
+      <div
+        class="panel-row"
+        style="margin-top: 12px">
+        <div class="panel-column">
           <div
             class="panel-title"
             style="min-width: 70px">
@@ -81,7 +106,7 @@
     </div>
     <div class="title-spot mb-8">{{ t('集群部署方案') }}<span class="required" /></div>
     <DbForm
-      ref="formRef"
+      ref="form"
       class="plan-form"
       :label-width="200"
       :model="specInfo">
@@ -116,6 +141,16 @@
             <div class="panel-unit">G</div>
           </div>
         </DbFormItem>
+        <DbFormItem
+          :label="t('资源标签')"
+          property="labels"
+          required
+          :rules="backendResourceTagRules">
+          <ResourceTagSelector
+            ref="backendResourceTagSelector"
+            v-model="specInfo.labels"
+            style="width: 314px" />
+        </DbFormItem>
         <div class="deploy-box">
           <BkLoading :loading="isTableLoading">
             <DbOriginalTable
@@ -146,7 +181,7 @@
       </template>
       <CustomSchema
         v-else
-        ref="customSchemaRef"
+        ref="customSchema"
         v-model="specInfo"
         :cluster-info="clusterInfo" />
     </DbForm>
@@ -154,6 +189,7 @@
 </template>
 <script setup lang="tsx">
   import _ from 'lodash';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import RedisModel from '@services/model/redis/redis';
@@ -164,6 +200,7 @@
 
   import DbForm from '@components/db-form/index.vue';
 
+  import ResourceTagSelector from '@views/db-manage/common/apply-items/ResourceTagSelector.vue';
   import ApplySchema, { APPLY_SCHEME } from '@views/db-manage/common/apply-schema/Index.vue';
   import { specClusterMachineMap } from '@views/db-manage/redis/common/const';
   import CustomSchema from '@views/db-manage/redis/common/toolbox-common/custom-schema/Index.vue';
@@ -195,6 +232,7 @@
   export interface SpecResultInfo {
     cluster_capacity: number;
     cluster_shard_num: number;
+    labels: ComponentProps<typeof ResourceTagSelector>['modelValue'];
     machine_pair: number;
     max: number;
     spec_id: number;
@@ -219,8 +257,10 @@
 
   const { t } = useI18n();
 
-  const formRef = ref<InstanceType<typeof DbForm>>();
-  const customSchemaRef = ref<InstanceType<typeof CustomSchema>>();
+  const formRef = useTemplateRef('form');
+  const customSchemaRef = useTemplateRef('customSchema');
+  const backendResourceTagSelectorRef = useTemplateRef('backendResourceTagSelector');
+
   const radioValue = ref(-1);
   const radioChoosedId = ref(''); // 标记，sort重新定位index用
   const isTableLoading = ref(false);
@@ -237,6 +277,7 @@
     capacityNeed: '' as number | '',
     clusterShardNum: 0,
     count: '' as string | number,
+    labels: [] as ComponentProps<typeof ResourceTagSelector>['modelValue'],
     shardNum: '' as number | '',
     specId: '',
     totalCapcity: 0,
@@ -254,6 +295,15 @@
       message: t('未来容量必须大于等于目标容量'),
       trigger: 'change',
       validator: (value: number) => value < Number(specInfo.capacityNeed || 0),
+    },
+  ];
+
+  const backendResourceTagRules = [
+    {
+      message: t('请选择资源标签'),
+      required: true,
+      trigger: 'change',
+      validator: () => backendResourceTagSelectorRef.value?.validate(),
     },
   ];
 
@@ -459,6 +509,7 @@
       Object.assign(result, {
         cluster_capacity: choosedObj.cluster_capacity,
         cluster_shard_num: choosedObj.cluster_shard_num,
+        labels: specInfo.labels,
         machine_pair: choosedObj.machine_pair,
         max: choosedObj.qps.max,
         spec_id: choosedObj.spec_id,
@@ -471,6 +522,7 @@
       Object.assign(result, {
         cluster_capacity: specInfo.totalCapcity,
         cluster_shard_num: specInfo.clusterShardNum,
+        labels: specInfo.labels,
         machine_pair: specInfo.count,
         max: 0,
         spec_id: specInfo.specId,
@@ -487,7 +539,9 @@
     async submit() {
       if (applySchema.value === APPLY_SCHEME.AUTO) {
         if (radioValue.value !== -1) {
-          handleClickConfirm();
+          return formRef.value!.validate().then(() => {
+            handleClickConfirm();
+          });
         }
       } else {
         return formRef.value!.validate().then(() => {

@@ -59,25 +59,6 @@
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
-      col-key="label_names"
-      :min-width="200"
-      :title="t('资源标签')">
-      <template #default="{ row }: { row: RowData }">
-        <template v-if="row.resource_spec.backend_group?.label_names?.length">
-          <BkTag
-            v-for="item in row.resource_spec.backend_group.label_names"
-            :key="item">
-            {{ item }}
-          </BkTag>
-        </template>
-        <BkTag
-          v-else
-          theme="success">
-          {{ t('通用无标签') }}
-        </BkTag>
-      </template>
-    </TicketInfoTableColumn>
-    <TicketInfoTableColumn
       col-key="online_switch_type"
       :min-width="120"
       :title="t('切换模式')">
@@ -143,6 +124,10 @@
       title: t('资源规格'),
     },
     {
+      render: () => '--',
+      title: t('资源标签'),
+    },
+    {
       render: () => data.display_info?.machine_pair_cnt || '--',
       title: t('机器组数'),
     },
@@ -186,6 +171,18 @@
         );
       },
       title: t('资源规格'),
+    },
+    {
+      render: () => {
+        if (data.resource_spec.backend_group.label_names?.length) {
+          const tags = data.resource_spec.backend_group.label_names.map((labelItem) => (
+            <bk-tag key={labelItem}>{labelItem}</bk-tag>
+          ));
+          return <>{tags}</>;
+        }
+        return <bk-tag theme='success'>{t('通用无标签')}</bk-tag>;
+      },
+      title: t('资源标签'),
     },
     {
       render: () => {

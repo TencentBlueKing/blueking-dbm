@@ -29,6 +29,10 @@
           </div>
         </div>
         <div class="info-item">
+          <div class="item-title">{{ t('资源标签') }}：</div>
+          <div class="item-content item-count">--</div>
+        </div>
+        <div class="info-item">
           <div class="item-title">{{ t('Proxy 数量') }}：</div>
           <div class="item-content item-count">
             {{ cluster.proxy.length }}
@@ -47,6 +51,10 @@
               :data="backendSpec"
               is-ignore-counts />
           </div>
+        </div>
+        <div class="info-item">
+          <div class="item-title">{{ t('资源标签') }}：</div>
+          <div class="item-content item-count">--</div>
         </div>
         <div class="info-item">
           <div class="item-title">{{ t('机器组数') }}：</div>

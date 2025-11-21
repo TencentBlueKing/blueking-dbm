@@ -61,34 +61,6 @@
               v-model="item.target_capacity"
               :cluster="item.cluster"
               :title="t('选择集群分片变更部署方案')" />
-            <ResourceTagColumn
-              v-model="item.proxyLabels"
-              field="proxyLabels"
-              :label="t('Proxy 资源标签')"
-              @batch-edit="handleBatchEdit" />
-            <AvailableResourceColumn
-              :label="t('Proxy 可用资源')"
-              :params="{
-                city: item.cluster.region,
-                for_bizs: [currentBizId, 0],
-                resource_types: [DBTypes.REDIS, 'PUBLIC'],
-                spec_id: item.target_capacity.backend_group.id,
-                labels: item.proxyLabels.map((item) => item.id).join(','),
-              }" />
-            <ResourceTagColumn
-              v-model="item.backendLabels"
-              field="backendLabels"
-              :label="t('后端存储资源标签')"
-              @batch-edit="handleBatchEdit" />
-            <AvailableResourceColumn
-              :label="t('后端存储可用资源')"
-              :params="{
-                city: item.cluster.region,
-                for_bizs: [currentBizId, 0],
-                resource_types: [DBTypes.REDIS, 'PUBLIC'],
-                spec_id: item.target_capacity.proxy.id,
-                labels: item.backendLabels.map((item) => item.id).join(','),
-              }" />
             <EditableColumn
               :label="t('切换模式')"
               readonly
@@ -190,13 +162,11 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { Affinity, ClusterTypes, DBTypes, TicketTypes } from '@common/const';
+  import { Affinity, ClusterTypes, TicketTypes } from '@common/const';
 
   import { type TabItem } from '@components/cluster-selector/Index.vue';
 
   // import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
-  import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
-  import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
@@ -210,7 +180,6 @@
   import TargetCapacityColumn from './components/target-capacity-column/Index.vue';
 
   interface IDataRow {
-    backendLabels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     cluster: {
       bk_biz_id: number;
       bk_cloud_id: number;
@@ -230,24 +199,10 @@
       region: string;
     };
     db_version: string;
-    proxyLabels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
-    target_capacity: {
-      backend_group: {
-        count: string | number;
-        id: number;
-      };
-      capacity: number;
-      cluster_shard_num: number;
-      future_capacity: number;
-      proxy: {
-        count: number;
-        id: number;
-      };
-    };
+    target_capacity: ComponentProps<typeof TargetCapacityColumn>['modelValue'];
   }
 
   const createRowData = (values: DeepPartial<IDataRow> = {}) => ({
-    backendLabels: (values.backendLabels || []) as IDataRow['backendLabels'],
     cluster: Object.assign(
       {
         bk_biz_id: 0,
@@ -270,12 +225,12 @@
       values.cluster,
     ),
     db_version: values?.db_version || '',
-    proxyLabels: (values.proxyLabels || []) as IDataRow['proxyLabels'],
     target_capacity: Object.assign(
       {
         backend_group: {
           count: '' as string | number,
           id: 0,
+          labels: [] as IDataRow['target_capacity']['backend_group']['labels'],
         },
         capacity: 0,
         cluster_shard_num: 0,
@@ -283,6 +238,7 @@
         proxy: {
           count: 0,
           id: 0,
+          labels: [] as IDataRow['target_capacity']['proxy']['labels'],
         },
       },
       values.target_capacity,
@@ -308,12 +264,10 @@
         payload: createTickePayload(ticketDetail),
         tableData: infos.map((infoItem) =>
           createRowData({
-            backendLabels: (infoItem.resource_spec.backend_group.labels || []).map((item) => ({ id: Number(item) })),
             cluster: {
               master_domain: clusters[infoItem.src_cluster].immute_domain,
             } as IDataRow['cluster'],
             db_version: infoItem.db_version,
-            proxyLabels: (infoItem.resource_spec.proxy.labels || []).map((item) => ({ id: Number(item) })),
           }),
         ),
       });
@@ -371,19 +325,7 @@
   //     key: 'version',
   //     label: t('Redis版本'),
   //   },
-  //   {
-  //     case: '标签1,标签2',
-  //     key: 'proxyLabels',
-  //     label: t('Proxy 资源标签'),
-  //   },
-  //   {
-  //     case: '标签1,标签2',
-  //     key: 'backendLabels',
-  //     label: t('后端存储资源标签'),
-  //   },
   // ];
-
-  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const tableKey = ref(random());
 
@@ -441,11 +383,11 @@
     formData.tableData = newList;
   };
 
-  const handleBatchEdit = (value: string | number, field: string) => {
-    formData.tableData.forEach((item) => {
-      Object.assign(item, { [field]: value });
-    });
-  };
+  // const handleBatchEdit = (value: string | number, field: string) => {
+  //   formData.tableData.forEach((item) => {
+  //     Object.assign(item, { [field]: value });
+  //   });
+  // };
 
   // const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
   //   const dataList = data.map((item) =>
@@ -495,15 +437,15 @@
               backend_group: {
                 affinity: tableItem.cluster.disaster_tolerance_level || Affinity.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
                 count: Number(tableItem.target_capacity.backend_group.count), // 机器组数
-                label_names: tableItem.backendLabels.map((item) => item.value),
-                labels: tableItem.backendLabels.map((item) => String(item.id)),
+                label_names: tableItem.target_capacity.backend_group.labels.map((item) => item.value),
+                labels: tableItem.target_capacity.backend_group.labels.map((item) => String(item.id)),
                 spec_id: tableItem.target_capacity.backend_group.id,
               },
               proxy: {
                 affinity: tableItem.cluster.disaster_tolerance_level || Affinity.CROS_SUBZONE,
                 count: tableItem.target_capacity.proxy.count, // 机器组数
-                label_names: tableItem.proxyLabels.map((item) => item.value),
-                labels: tableItem.proxyLabels.map((item) => String(item.id)),
+                label_names: tableItem.target_capacity.proxy.labels.map((item) => item.value),
+                labels: tableItem.target_capacity.proxy.labels.map((item) => String(item.id)),
                 spec_id: tableItem.target_capacity.proxy.id,
               },
             },

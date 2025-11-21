@@ -94,6 +94,7 @@
     .content {
       display: flex;
       color: #313238;
+      align-items: center;
       // padding-bottom: 2px;
       cursor: pointer;
       // border-bottom: 1px dotted #979ba5;
