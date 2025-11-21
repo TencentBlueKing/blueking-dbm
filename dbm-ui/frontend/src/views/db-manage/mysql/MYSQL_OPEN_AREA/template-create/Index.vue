@@ -190,10 +190,6 @@
   const handleChangeCluster = () => {
     configRuleRef.value?.reset();
     permissionRuleRef.value?.reset();
-    nextTick(() => {
-      window.changeConfirm = false;
-      formDataChanged.value = false;
-    });
   };
 
   const handleReset = () => {

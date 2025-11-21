@@ -25,6 +25,7 @@
       :key="index">
       <ClusterColumn
         v-model="item.cluster"
+        allow-repeat
         :selected="selected"
         @batch-edit="handleBatchEditCluster" />
       <VariableColumn
@@ -39,6 +40,9 @@
         :cluster="item.cluster"
         :selected-ips="selectedIps"
         @batch-edit="handleBatchEdit" />
+      <OperationColumn
+        v-model:table-data="tableData"
+        :create-row-method="createTableRow" />
     </EditableRow>
   </EditableTable>
 </template>
@@ -124,8 +128,8 @@
         key: 'master_domain',
         label: t('目标集群'),
       },
-      ...props.variableList.map((variableName) => ({
-        case: variableName,
+      ...props.variableList.map((variableName, index) => ({
+        case: `${10 ** index}`, // 1,10,100...
         key: variableName,
         label: variableName,
       })),

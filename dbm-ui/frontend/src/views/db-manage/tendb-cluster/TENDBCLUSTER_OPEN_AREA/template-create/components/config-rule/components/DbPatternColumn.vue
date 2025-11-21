@@ -20,7 +20,7 @@
     required>
     <template #head>
       <BkPopover
-        :content="t('可使用 { } 占位，如db_{id} ；_{id}的实际值在执行开区时传入', { x: '{ }', y: '{id}' })"
+        :content="t('可使用 { } 占位，如db_{id} ；{id}的实际值在执行开区时传入', { x: '{ }', y: '{id}' })"
         placement="top"
         theme="dark">
         <span style="border-bottom: 1px dashed #979ba5">{{ t('生成的目标DB名') }}</span>
@@ -41,7 +41,7 @@
     </template>
     <EditableInput
       v-model="modelValue"
-      :placeholder="t('可使用 { } 占位，如db_{id} ；_{id}的实际值在执行开区时传入', { x: '{ }', y: '{id}' })">
+      :placeholder="t('可使用 { } 占位，如db_{id} ；{id}的实际值在执行开区时传入', { x: '{ }', y: '{id}' })">
     </EditableInput>
   </EditableColumn>
 </template>
@@ -66,6 +66,8 @@
   });
 
   const { t } = useI18n();
+  const route = useRoute();
+  const isEditMode = route.name === 'TendbClusterOpenareaTemplateEdit';
 
   const disabledMethod = () => {
     if (!props.clusterId) {
@@ -87,7 +89,7 @@
   watch(
     () => props.sourceDb,
     () => {
-      if (props.sourceDb) {
+      if (!isEditMode && props.sourceDb && !modelValue.value) {
         modelValue.value = `${props.sourceDb}_{ID}`;
       }
     },

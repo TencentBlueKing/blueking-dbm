@@ -56,7 +56,10 @@
 </template>
 
 <script lang="ts" setup>
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
+
+  import { batchSplitRegex } from '@common/regex';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TableNameColumn from '@views/db-manage/tendb-cluster/common/toolbox-field/table-name-column/Index.vue';
@@ -103,11 +106,6 @@
       case: 'db1',
       key: 'source_db',
       label: t('克隆 DB'),
-    },
-    {
-      case: t('所有表'),
-      key: 'data_tblist',
-      label: t('克隆表结构'),
     },
     {
       case: 'schema1',

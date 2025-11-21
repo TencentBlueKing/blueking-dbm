@@ -24,7 +24,7 @@
         :placeholder="t('只能包含英文字母、数字，多个换行分隔')"
         :title="variableName"
         title-prefix-type="edit"
-        type="textarea"
+        type="input"
         @change="handleBatchEditChange">
         <span
           v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"

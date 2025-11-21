@@ -37,7 +37,8 @@
         :max-height="700"
         :row-class-name="rowClass"
         :show-overflow="false"
-        @clear-search="handleClearSearch">
+        @clear-search="handleClearSearch"
+        @request-success="initRowFlodMap">
         <BkTableColumn
           field="user"
           :label="t('账号名称')"
@@ -222,6 +223,15 @@
   const handleClearSearch = () => {
     searchSelectValue.value = [];
     fetchTableData();
+  };
+
+  const initRowFlodMap = (data: ServiceReturnType<typeof getPermissionRules>) => {
+    rowFlodMap.value = data.results.reduce<typeof rowFlodMap.value>((acc, item: MysqlPermissionAccountModel) => {
+      Object.assign(acc, {
+        [item.account.user]: item.rules.length > 1, // 默认展开
+      });
+      return acc;
+    }, {});
   };
 
   const handleToogleExpand = (user: string) => {

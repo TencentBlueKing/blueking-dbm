@@ -109,11 +109,6 @@
       label: t('克隆 DB'),
     },
     {
-      case: t('所有表'),
-      key: 'data_tblist',
-      label: t('克隆表结构'),
-    },
-    {
       case: 'schema1',
       key: 'schema_tblist',
       label: t('克隆表数据'),
