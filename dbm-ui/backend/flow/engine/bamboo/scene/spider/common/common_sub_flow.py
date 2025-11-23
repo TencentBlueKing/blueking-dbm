@@ -33,6 +33,9 @@ from backend.flow.plugins.components.collections.mysql.exec_actuator_script impo
 from backend.flow.plugins.components.collections.mysql.sync_master import SyncMasterComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.spider.add_spider_routing import AddSpiderRoutingComponent
+from backend.flow.plugins.components.collections.spider.check_tdbctl_secondary_health import (
+    CheckTDBCTlSecondaryHealthComponent,
+)
 from backend.flow.plugins.components.collections.spider.ctl_switch_to_slave import CtlSwitchToSlaveComponent
 from backend.flow.plugins.components.collections.spider.drop_spider_ronting import DropSpiderRoutingComponent
 from backend.flow.plugins.components.collections.spider.remote_migrate_cut_over import RemoteMigrateCutOverComponent
@@ -712,6 +715,13 @@ def reduce_ctls_routing(root_id: str, parent_global_data: dict, cluster: Cluster
                     reduce_ctl_secondary_list=reduce_ctl_secondary_list,
                 )
             ),
+        )
+
+        # 检测中控同步是否正常
+        sub_pipeline.add_act(
+            act_name=_("检测中控集群切换后同步是否健康"),
+            act_component_code=CheckTDBCTlSecondaryHealthComponent.code,
+            kwargs=asdict(CheckTDBCTlSecondaryHealthComponent.kwargs(cluster_id=cluster.id)),
         )
 
     if reduce_ctl_secondary_list:

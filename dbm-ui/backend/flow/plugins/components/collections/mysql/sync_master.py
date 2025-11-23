@@ -74,7 +74,8 @@ class SyncMasterService(BaseService):
             self.log_info(_("在[{}]创建添加同步账号成功, priv_hosts:{}").format(address, priv_hosts))
         return True
 
-    def get_bin_position(self, address: str, bk_cloud_id: int) -> (str, str):
+    @staticmethod
+    def get_bin_position(address: str, bk_cloud_id: int) -> (str, str):
         """
         获取位点信息
         """
@@ -88,8 +89,8 @@ class SyncMasterService(BaseService):
         )
         if res[0]["error_msg"]:
             raise NormalTenDBFlowException(message=_(f"exec show master status failed: {res[0]['error_msg']}"))
-        self.log_info("get bin position successfully")
-        return res[0]["cmd_results"][1]["table_data"][0]["File"], res[0]["cmd_results"][1]["table_data"][0]["Position"]
+
+        return res[0]["cmd_results"][0]["table_data"][0]["File"], res[0]["cmd_results"][0]["table_data"][0]["Position"]
 
     def _execute(self, data, parent_data) -> bool:
         """

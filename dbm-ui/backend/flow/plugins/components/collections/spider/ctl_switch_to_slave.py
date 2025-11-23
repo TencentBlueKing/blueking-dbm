@@ -22,6 +22,7 @@ from backend.db_meta.models import Cluster, ProxyInstance
 from backend.flow.consts import TDBCTL_USER, ConfigTypeEnum, NameSpaceEnum
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import CtlSwitchToSlaveFailedException
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.flow.plugins.components.collections.mysql.sync_master import SyncMasterService
 from backend.flow.utils.spider.spider_db_function import get_flush_routing_sql_for_server
 
 
@@ -324,7 +325,7 @@ class CtlSwitchToSlaveService(BaseService):
             )
         return True
 
-    def _sync_to_new_master(self, cluster: Cluster, new_primary, other_secondary):
+    def _sync_to_new_master(self, cluster: Cluster, new_primary: ProxyInstance, other_secondary: List[ProxyInstance]):
         """
         其余的slave节点同步新的master
         """
@@ -342,6 +343,11 @@ class CtlSwitchToSlaveService(BaseService):
         )["content"]
 
         # 基于GTID建立同步
+        # 采用指定position的方式来同步数据
+        file, position = SyncMasterService.get_bin_position(
+            address=f"{new_primary.machine.ip}{IP_PORT_DIVIDER}{new_primary.admin_port}",
+            bk_cloud_id=cluster.bk_cloud_id,
+        )
         for secondary in other_secondary:
             repl_sql = (
                 f"CHANGE MASTER TO "
@@ -349,7 +355,9 @@ class CtlSwitchToSlaveService(BaseService):
                 f"MASTER_PORT={new_primary.admin_port},"
                 f"MASTER_USER ='{data['repl_user']}',"
                 f"MASTER_PASSWORD='{data['repl_pwd']}',"
-                "MASTER_AUTO_POSITION = 1;"
+                f"MASTER_LOG_FILE = '{file}',"
+                f"MASTER_LOG_POS = {position},"
+                "MASTER_AUTO_POSITION = 0;"
             )
 
             res = DRSApi.rpc(
