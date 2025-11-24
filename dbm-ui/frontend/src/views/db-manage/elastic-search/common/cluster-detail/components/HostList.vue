@@ -90,8 +90,7 @@
         v-model="quickSearchValue"
         :data="quickSearchData"
         :placeholder="t('请输入或选择条件搜索')"
-        style="flex: 1; max-width: 560px; margin-left: auto"
-        @change="handleSearchValueChange" />
+        style="flex: 1; max-width: 560px; margin-left: auto" />
     </div>
     <BkAlert
       v-if="clusterData?.operationStatusText"
@@ -119,14 +118,11 @@
       ref="hostTableRef"
       :data-source="dataSource"
       :filter-value="quickSearchValue"
-      releate-url-query
       row-key="bk_host_id"
       selectable
-      @request-success="handleRequestSuccess"
+      @filter-change="handleFilterChange"
       @selection="handleSelectChange">
-      <HostListFieldColumn
-        :db-type="DBTypes.ES"
-        :role-list="roleList" />
+      <HostListFieldColumn :cluster-type="ClusterTypes.ES" />
       <TableColumn
         col-key="row-operation"
         fixed="right"
@@ -195,9 +191,8 @@
 
   import EsModel from '@services/model/es/es';
   import EsMachineModel from '@services/model/es/es-machine';
-  import type { ListBase } from '@services/types';
 
-  import { ClusterTypes, DBTypes } from '@common/const';
+  import { ClusterTypes } from '@common/const';
 
   import DbTable from '@components/db-table/IndexNew.vue';
 
@@ -220,8 +215,10 @@
   const { copyAllIp, copyNotAliveIp } = useCopyMachineIp();
 
   const hostTableRef = ref<InstanceType<typeof DbTable>>();
-  const { fetchData, handleSearchValueChange, quickSearchData, quickSearchValue } = useHostSearchSelect(DBTypes.ES, {
-    tableRef: hostTableRef,
+  const { quickSearchData, quickSearchValue } = useHostSearchSelect(ClusterTypes.ES, {
+    serviceHandler: () => {
+      fetchData();
+    },
   });
 
   const dataSource = (params: Parameters<typeof fetchClusterMachineList>[0]) =>
@@ -256,12 +253,6 @@
 
   const operationNodeList = shallowRef<Array<EsMachineModel>>([]);
   const selectedMachineList = shallowRef<Array<EsMachineModel>>([]);
-  const roleList = shallowRef<
-    {
-      label: string;
-      value: string;
-    }[]
-  >([]);
 
   const isBatchReplaceDisabeld = computed(() => selectedMachineList.value.length < 1);
 
@@ -293,14 +284,10 @@
     return options;
   });
 
-  const handleRequestSuccess = (list: ListBase<EsMachineModel[]>) => {
-    roleList.value = _.uniqBy(
-      list.results.map((item) => ({
-        label: item.instance_role,
-        value: item.instance_role,
-      })),
-      'value',
-    );
+  const fetchData = () => {
+    hostTableRef?.value?.fetchData({
+      ...quickSearchValue.value,
+    });
   };
 
   const handleSelectChange = (_key: string[], list: EsMachineModel[]) => {
@@ -350,6 +337,10 @@
   const handleReplaceOne = (data: EsMachineModel) => {
     operationNodeList.value = [data];
     isShowReplace.value = true;
+  };
+
+  const handleFilterChange = (filterValue: Record<string, any>) => {
+    quickSearchValue.value = filterValue;
   };
 </script>
 <style lang="less">

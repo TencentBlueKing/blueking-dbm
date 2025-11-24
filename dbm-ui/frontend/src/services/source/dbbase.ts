@@ -343,3 +343,17 @@ export function queryClusterLoad(params: { bk_biz_id: number; cluster_type: stri
     };
   }>(`${path}/query_cluster_load/`, params, payload);
 }
+
+export function queryBizMachineAttrs(params: { bk_biz_id: number; cluster_type: ClusterTypes; machine_attrs: string }) {
+  return http.get<
+    Record<
+      string,
+      {
+        text: string;
+        value: string;
+      }[]
+    >
+  >(`${path}/query_biz_machine_attrs/`, params, {
+    cache: 3000,
+  });
+}

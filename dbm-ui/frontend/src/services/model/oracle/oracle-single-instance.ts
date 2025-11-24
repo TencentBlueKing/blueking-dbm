@@ -29,7 +29,9 @@ export default class OracleHaInstance {
   bk_idc_id: number;
   bk_idc_name: string;
   bk_mem: number;
+  bk_os_name: string;
   bk_sub_zone: string;
+  bk_svr_device_cls_name: string;
   cluster_id: number;
   cluster_name: string;
   cluster_type: ClusterTypes;
@@ -40,6 +42,7 @@ export default class OracleHaInstance {
   host_info: HostInfo;
   id: number;
   instance_address: string;
+  instance_name: string;
   ip: string;
   machine_type: string;
   master_domain: string;
@@ -66,7 +69,9 @@ export default class OracleHaInstance {
     this.bk_idc_city_id = payload.bk_idc_city_id || '';
     this.bk_idc_city_name = payload.bk_idc_city_name || '';
     this.bk_mem = payload.bk_mem;
+    this.bk_os_name = payload.bk_os_name;
     this.bk_sub_zone = payload.bk_sub_zone;
+    this.bk_svr_device_cls_name = payload.bk_svr_device_cls_name;
     this.cluster_id = payload.cluster_id;
     this.cluster_name = payload.cluster_name;
     this.cluster_type = payload.cluster_type;
@@ -77,6 +82,7 @@ export default class OracleHaInstance {
     this.host_info = payload.host_info || {};
     this.id = payload.id;
     this.instance_address = payload.instance_address;
+    this.instance_name = payload.instance_name;
     this.ip = payload.ip;
     this.machine_type = payload.machine_type;
     this.master_domain = payload.master_domain;

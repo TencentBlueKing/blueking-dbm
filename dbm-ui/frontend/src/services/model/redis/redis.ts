@@ -60,7 +60,12 @@ export default class Redis extends ClusterBase {
   cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_time_zone: string;
-  cluster_type: ClusterTypes;
+  cluster_type:
+    | ClusterTypes.PREDIXY_REDIS_CLUSTER
+    | ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER
+    | ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE
+    | ClusterTypes.REDIS_INSTANCE
+    | ClusterTypes.TWEMPROXY_REDIS_INSTANCE;
   cluster_type_name: string;
   create_at: string;
   creator: string;
