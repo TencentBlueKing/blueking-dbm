@@ -48,6 +48,7 @@ func NewClusterReleaseController(
 
 // GetClusterRelease retrieves a cluster release by its ID.
 func (c *ClusterReleaseController) GetClusterRelease(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaAcReleaseDetail)
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
@@ -69,6 +70,7 @@ func (c *ClusterReleaseController) GetClusterRelease(ctx *gin.Context) {
 
 // GetClusterReleaseByParam get addon cluster release by its Param.
 func (c *ClusterReleaseController) GetClusterReleaseByParam(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaAcReleaseSearch)
 	releaseName := ctx.Param("releaseName")
 	namespace := ctx.Param("namespace")
 	if releaseName == "" || namespace == "" {
