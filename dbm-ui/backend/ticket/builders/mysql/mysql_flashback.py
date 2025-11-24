@@ -27,7 +27,7 @@ from backend.ticket.builders.mysql.base import (
     MySQLBaseOperateDetailSerializer,
 )
 from backend.ticket.constants import FlowRetryType, TicketType
-from backend.utils.time import datetime2str, str2datetime
+from backend.utils.time import str2datetime
 
 
 class MySQLFlashbackDetailSerializer(MySQLBaseOperateDetailSerializer):
@@ -58,12 +58,12 @@ class MySQLFlashbackDetailSerializer(MySQLBaseOperateDetailSerializer):
         # 校验start time和end time的合法性
         for info in attrs["infos"]:
             now = datetime.datetime.now(timezone.utc)
-            info["end_time"] = info["end_time"] or datetime2str(now)
-            start_time, end_time = str2datetime(info["start_time"]), str2datetime(info["end_time"])
-            if start_time > end_time or start_time > now or end_time > now:
-                raise serializers.ValidationError(
-                    _("flash的起止时间{}--{}不合法，请保证开始时间小于结束时间，并且二者不大于当前时间").format(start_time, end_time)
-                )
+            if info["end_time"]:
+                start_time, end_time = str2datetime(info["start_time"]), str2datetime(info["end_time"])
+                if start_time > end_time or start_time > now or end_time > now:
+                    raise serializers.ValidationError(
+                        _("flash的起止时间{}--{}不合法，请保证开始时间小于结束时间，并且二者不大于当前时间").format(start_time, end_time)
+                    )
 
     def validate_rows_filter(self, attrs):
         if attrs["flashback_type"] not in FlashbackBuildType.get_values():
