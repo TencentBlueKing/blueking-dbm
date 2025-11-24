@@ -174,6 +174,7 @@ func (h *DbWorker) Get(data interface{}, query string, args ...interface{}) erro
 }
 
 // QueryOneColumn query one column rows to slice
+// if not row found, return error
 func (h *DbWorker) QueryOneColumn(columnName string, query string) ([]string, error) {
 	logger.Info("QueryOneColumn: %s, params:%v", query)
 	if ret, err := h.Query(query); err != nil {

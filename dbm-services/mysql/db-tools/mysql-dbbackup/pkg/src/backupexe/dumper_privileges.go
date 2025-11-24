@@ -124,7 +124,7 @@ func (r *BackupRunner) BackupGrant(cfg *config.Public) error {
 			gRows, err := db.Query(sqlString)
 			if err != nil {
 				logger.Log.Warn("failed to get grants about `", user, "`@`", host, "` err:", err)
-				continue
+				return err
 			}
 
 			for gRows.Next() {
@@ -145,7 +145,7 @@ func (r *BackupRunner) BackupGrant(cfg *config.Public) error {
 		gRows, err := db.Query(sqlString)
 		if err != nil {
 			logger.Log.Warn("failed to get grants about `", user, "`@`", host, "` err:", err)
-			continue
+			return err
 		}
 		for gRows.Next() {
 			err := gRows.Scan(&grantInfo)
