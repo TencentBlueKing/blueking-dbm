@@ -7,6 +7,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("db_meta", "0055_auto_20250826_1423"),
+        ("db_meta", "0055_auto_20250825_1524"),
     ]
 
     operations = [
