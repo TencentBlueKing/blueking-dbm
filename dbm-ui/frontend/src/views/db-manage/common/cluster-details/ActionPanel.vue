@@ -178,16 +178,21 @@
     [ClusterTypes.MONGO_SHARED_CLUSTER]: MongodbModel;
     [ClusterTypes.ORACLE_PRIMARY_STANDBY]: OracleHaModel;
     [ClusterTypes.ORACLE_SINGLE_NONE]: OracleSingleModel;
+    [ClusterTypes.PREDIXY_REDIS_CLUSTER]: RedisModel;
+    [ClusterTypes.PREDIXY_REDIS_CLUSTER]: RedisModel;
+    [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: RedisModel;
     [ClusterTypes.PULSAR]: PulsarModel;
-    [ClusterTypes.REDIS_CLUSTER]: RedisModel;
+    // [ClusterTypes.REDIS_CLUSTER]: RedisModel;
     [ClusterTypes.REDIS_INSTANCE]: RedisModel;
-    [ClusterTypes.REDIS]: RedisModel;
+    // [ClusterTypes.REDIS]: RedisModel;
     [ClusterTypes.RIAK]: RiakModel;
     [ClusterTypes.SQLSERVER_HA]: SqlserverHaModel;
     [ClusterTypes.SQLSERVER_SINGLE]: SqlserverSingleModel;
     [ClusterTypes.TENDBCLUSTER]: TendbClusterModel;
     [ClusterTypes.TENDBHA]: TendbhaModel;
     [ClusterTypes.TENDBSINGLE]: TendbsingleModel;
+    [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: RedisModel;
+    [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: RedisModel;
   }
 
   const fixedTabList = ['topo', 'info', 'instance', 'host', 'record', 'alarmSubscription'];

@@ -83,8 +83,7 @@
         v-model="quickSearchValue"
         :data="quickSearchData"
         :placeholder="t('请输入或选择条件搜索')"
-        style="flex: 1; max-width: 560px; margin-left: auto"
-        @change="handleSearchValueChange" />
+        style="flex: 1; max-width: 560px; margin-left: auto" />
     </div>
     <BkAlert
       v-if="clusterData?.operationStatusText"
@@ -110,14 +109,12 @@
       ref="hostTableRef"
       :data-source="dataSource"
       :filter-value="quickSearchValue"
-      releate-url-query
+      :releate-url-query="false"
       row-key="bk_host_id"
       selectable
-      @request-success="handleRequestSuccess"
+      @filter-change="handleFilterChange"
       @selection="handleSelectChange">
-      <HostListFieldColumn
-        :db-type="DBTypes.DORIS"
-        :role-list="roleList" />
+      <HostListFieldColumn :cluster-type="clusterData.cluster_type" />
       <TableColumn
         col-key="row-operation"
         fixed="right"
@@ -177,14 +174,12 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import DorisDetailModel from '@services/model/doris/doris-detail';
   import DorisMachineModel from '@services/model/doris/doris-machine';
-  import type { ListBase } from '@services/types';
 
-  import { ClusterTypes, DBTypes } from '@common/const';
+  import { ClusterTypes } from '@common/const';
 
   import DbTable from '@components/db-table/IndexNew.vue';
 
@@ -206,8 +201,10 @@
   const { copyAllIp, copyNotAliveIp } = useCopyMachineIp();
 
   const hostTableRef = ref<InstanceType<typeof DbTable>>();
-  const { fetchData, handleSearchValueChange, quickSearchData, quickSearchValue } = useHostSearchSelect(DBTypes.DORIS, {
-    tableRef: hostTableRef,
+  const { quickSearchData, quickSearchValue } = useHostSearchSelect(ClusterTypes.DORIS, {
+    serviceHandler: () => {
+      fetchData();
+    },
   });
 
   const dataSource = (params: Parameters<typeof fetchClusterMachineList>[0]) =>
@@ -270,12 +267,6 @@
 
   const operationMachineList = shallowRef<Array<DorisMachineModel>>([]);
   const selectedMachineList = shallowRef<Array<DorisMachineModel>>([]);
-  const roleList = shallowRef<
-    {
-      label: string;
-      value: string;
-    }[]
-  >([]);
 
   const isBatchReplaceDisabeld = computed(() => selectedMachineList.value.length < 1);
 
@@ -307,14 +298,8 @@
     return options;
   });
 
-  const handleRequestSuccess = (list: ListBase<DorisMachineModel[]>) => {
-    roleList.value = _.uniqBy(
-      list.results.map((item) => ({
-        label: item.instance_role,
-        value: item.instance_role,
-      })),
-      'value',
-    );
+  const fetchData = () => {
+    hostTableRef?.value?.fetchData({ ...quickSearchValue.value });
   };
 
   const handleSelectChange = (_key: string[], list: DorisMachineModel[]) => {
@@ -364,6 +349,10 @@
   const handleReplaceOne = (data: DorisMachineModel) => {
     operationMachineList.value = [data];
     isShowReplace.value = true;
+  };
+
+  const handleFilterChange = (filterValue: Record<string, any>) => {
+    quickSearchValue.value = filterValue;
   };
 </script>
 

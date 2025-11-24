@@ -24,7 +24,7 @@ export type ISupportClusterType =
   | ClusterTypes.TENDBHA
   | ClusterTypes.TENDBSINGLE
   | ClusterTypes.PULSAR
-  | ClusterTypes.REDIS
+  // | ClusterTypes.REDIS
   | ClusterTypes.REDIS_INSTANCE
   | ClusterTypes.RIAK
   | ClusterTypes.KAFKA
@@ -33,7 +33,12 @@ export type ISupportClusterType =
   | ClusterTypes.MONGO_REPLICA_SET
   | ClusterTypes.MONGO_SHARED_CLUSTER
   | ClusterTypes.ORACLE_PRIMARY_STANDBY
-  | ClusterTypes.ORACLE_SINGLE_NONE;
+  | ClusterTypes.ORACLE_SINGLE_NONE
+  | ClusterTypes.PREDIXY_REDIS_CLUSTER
+  | ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER
+  | ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE
+  | ClusterTypes.REDIS_INSTANCE
+  | ClusterTypes.TWEMPROXY_REDIS_INSTANCE;
 
 export interface ClusterTypeRelateClusterModelDetail {
   [ClusterTypes.DORIS]: DorisModelDetail;
@@ -44,15 +49,20 @@ export interface ClusterTypeRelateClusterModelDetail {
   [ClusterTypes.MONGO_SHARED_CLUSTER]: MongodbModelDetail;
   [ClusterTypes.ORACLE_PRIMARY_STANDBY]: OracleHaModelDetail;
   [ClusterTypes.ORACLE_SINGLE_NONE]: OracleSingleModelDetail;
+  // [ClusterTypes.REDIS]: RedisModelDetail;
+  [ClusterTypes.PREDIXY_REDIS_CLUSTER]: RedisModelDetail;
+  [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: RedisModelDetail;
   [ClusterTypes.PULSAR]: PulsarModelDetail;
   [ClusterTypes.REDIS_INSTANCE]: RedisModelDetail;
-  [ClusterTypes.REDIS]: RedisModelDetail;
+  [ClusterTypes.REDIS_INSTANCE]: RedisModelDetail;
   [ClusterTypes.RIAK]: RiakModelDetail;
   [ClusterTypes.SQLSERVER_HA]: SqlserverHaModelDetail;
   [ClusterTypes.SQLSERVER_SINGLE]: SqlserverSingleModelDetail;
   [ClusterTypes.TENDBCLUSTER]: TendbClusterModelDetail;
   [ClusterTypes.TENDBHA]: TendbhaModelDetail;
   [ClusterTypes.TENDBSINGLE]: TendbsingleModelDetail;
+  [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: RedisModelDetail;
+  [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: RedisModelDetail;
 }
 
 export type ClusterDetailModel<T extends keyof ClusterTypeRelateClusterModelDetail> =

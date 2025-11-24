@@ -106,17 +106,7 @@
       roleFailedInstanceInfo: Record<string, ClusterListNode[]>;
     } & Pick<
       TendbhaModel,
-      | 'masterDomain'
-      | 'master_domain'
-      | 'cluster_name'
-      | 'region'
-      // | 'operationTagTips'
-      | 'id'
-      | 'isOffline'
-      // | 'isStarting'
-      | 'operations'
-      | 'id'
-      | 'status'
+      'masterDomain' | 'cluster_name' | 'region' | 'id' | 'isOffline' | 'operations' | 'id' | 'status'
     >;
   }
 

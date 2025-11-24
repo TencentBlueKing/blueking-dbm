@@ -24,8 +24,8 @@
     </template>
   </TableColumn>
   <TableColumn
-    col-key="host_info.bk_idc_city_name"
-    :filter="tableFilter['region']"
+    col-key="bk_city_id"
+    :filter="tableFilter['bk_city_id']"
     :title="t('地域')">
     <template #default="{ row }: { row: IRowData }">
       {{ row.host_info.bk_idc_city_name || '--' }}
@@ -40,6 +40,13 @@
     </template>
   </TableColumn>
   <TableColumn
+    col-key="bk_rack_id"
+    :title="t('机架 ID')">
+    <template #default="{ row }: { row: IRowData }">
+      {{ row.bk_rack_id || '--' }}
+    </template>
+  </TableColumn>
+  <TableColumn
     col-key="bk_os_name"
     :filter="tableFilter['bk_os_name']"
     :title="t('操作系统')"
@@ -49,8 +56,8 @@
     </template>
   </TableColumn>
   <TableColumn
-    col-key="spec_ids"
-    :filter="tableFilter['spec_ids']"
+    col-key="spec_id"
+    :filter="tableFilter['spec_id']"
     :title="t('绑定规格')"
     :width="150">
     <template #default="{ row }: { row: IRowData }">
@@ -98,7 +105,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type { DBTypes } from '@common/const';
+  import type { ClusterTypes } from '@common/const';
 
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
   import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
@@ -106,26 +113,19 @@
   import RenderClusterRole from '@views/db-manage/common/RenderRole.vue';
   import useClusterMachineList from '@views/db-manage/hooks/useClusterMachineList';
 
-  import { useTableFilter } from './hooks';
+  import { useHostListTableFilter } from './hooks';
 
   type IRowData = ServiceReturnType<ReturnType<typeof useClusterMachineList>>['results'][number];
 
   interface Props {
-    dbType: DBTypes;
-    // eslint-disable-next-line vue/no-unused-properties
-    roleList: {
-      label: string;
-      value: string;
-    }[];
+    clusterType: ClusterTypes;
   }
 
   const props = defineProps<Props>();
 
   const { t } = useI18n();
 
-  const tableFilter = useTableFilter(props.dbType, {
-    roleList: toRef(props, 'roleList'),
-  });
+  const tableFilter = useHostListTableFilter(props.clusterType);
 
   const transformMToG = (value: number) => {
     return value ? (value / 1024).toFixed(2) : '--';
