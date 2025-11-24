@@ -43,29 +43,35 @@ class KafkaConfigService(BaseService):
                 "format": FormatType.MAP,
             }
         )
-        # 公共配置项
-        config_map = {
-            "retention_hours": str(global_data["retention_hours"]),
-            "partition_num": str(global_data["partition_num"]),
-            "replication_num": str(global_data["replication_num"]),
-            "factor": str(global_data["factor"]),
-            "zookeeper_conf": global_data["zookeeper_conf"],
-            "no_security": str(global_data["no_security"]),
-        }
 
-        # 兼容旧的配置项
-        if "log.retention.hours" in content["content"]:
-            config_map.update(
-                {
-                    "log.retention.hours": str(global_data["retention_hours"]),
-                    "num.partitions": str(global_data["partition_num"]),
-                    "default.replication.factor": str(global_data["replication_num"]),
-                    "offsets.topic.replication.factor": str(global_data["factor"]),
-                    "transaction.state.log.replication.factor": str(global_data["replication_num"]),
-                    "transaction.state.log.min.isr": str(global_data["replication_num"]),
-                    "log.retention.bytes": str(global_data["retention_bytes"]),
-                }
-            )
+        # 确保 content 和 content["content"] 存在并为 dict
+        exist_conf = {}
+        if content and isinstance(content.get("content"), dict):
+            exist_conf = content["content"]
+
+        # 仅在目标配置项存在时才更新（新配置项）
+        config_map = {}
+        key_getters = {
+            "log.retention.hours": lambda gd: str(gd.get("retention_hours", "")),
+            "num.partitions": lambda gd: str(gd.get("partition_num", "")),
+            "default.replication.factor": lambda gd: str(gd.get("replication_num", "")),
+            "offsets.topic.replication.factor": lambda gd: str(gd.get("factor", "")),
+            "transaction.state.log.replication.factor": lambda gd: str(gd.get("replication_num", "")),
+            "transaction.state.log.min.isr": lambda gd: str(gd.get("replication_num", "")),
+            "log.retention.bytes": lambda gd: str(gd.get("retention_bytes", "")),
+            "no_security": lambda gd: str(gd.get("no_security", "")),
+            # kafka 4.0新增
+            "controller.quorum.bootstrap.servers": lambda gd: str(gd.get("controller_servers", "")),
+            # 旧配置项
+            "retention_hours": lambda gd: str(gd.get("retention_hours", "")),
+            "partition_num": lambda gd: str(gd.get("partition_num", "")),
+            "replication_num": lambda gd: str(gd.get("replication_num", "")),
+            "factor": lambda gd: str(gd.get("factor", "")),
+            "zookeeper_conf": lambda gd: gd.get("zookeeper_conf", ""),
+        }
+        for conf_name, value_getter in key_getters.items():
+            if conf_name in exist_conf:
+                config_map[conf_name] = value_getter(global_data)
 
         conf_items = []
         for conf_name, conf_value in config_map.items():

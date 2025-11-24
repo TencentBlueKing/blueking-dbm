@@ -34,28 +34,32 @@ type InstallKafkaComp struct {
 
 // InstallKafkaParams TODO
 type InstallKafkaParams struct {
-	KafkaConfigs   json.RawMessage `json:"kafka_configs" `  // server.properties
-	Version        string          `json:"version" `        // 版本号eg
-	Port           int             `json:"port" `           // 连接端口
-	JmxPort        int             `json:"jmx_port" `       // 连接端口
-	Retention      int             `json:"retention" `      // 保存时间
-	Replication    int             `json:"replication" `    // 默认副本数
-	Partition      int             `json:"partition" `      // 默认分区数
-	Factor         int             `json:"factor" `         // __consumer_offsets副本数
-	ZookeeperIP    string          `json:"zookeeper_ip" `   // zookeeper ip, eg: ip1,ip2,ip3
-	ZookeeperConf  string          `json:"zookeeper_conf" ` // zookeeper ip, eg: ip1,ip2,ip3
-	MyID           int             `json:"my_id" `          // 默认副本数
-	JvmMem         string          `json:"jvm_mem"`         //  eg: 10g
-	Host           string          `json:"host" `
-	ClusterName    string          `json:"cluster_name" ` // 集群名
-	Username       string          `json:"username" `
-	Password       string          `json:"password" `
-	BkBizID        int             `json:"bk_biz_id"`
-	DbType         string          `json:"db_type"`
-	ServiceType    string          `json:"service_type"`
-	NoSecurity     int             `json:"no_security"`     // 兼容现有,0:有鉴权,1:无鉴权
-	RetentionBytes int             `json:"retention_bytes"` // log.retention.bytes 默认-1
-	Rack           string          `json:"rack"`            // 所属机架
+	KafkaConfigs      json.RawMessage `json:"kafka_configs" `  // server.properties
+	Version           string          `json:"version" `        // 版本号eg
+	Port              int             `json:"port" `           // 连接端口
+	JmxPort           int             `json:"jmx_port" `       // 连接端口
+	Retention         int             `json:"retention" `      // 保存时间
+	Replication       int             `json:"replication" `    // 默认副本数
+	Partition         int             `json:"partition" `      // 默认分区数
+	Factor            int             `json:"factor" `         // __consumer_offsets副本数
+	ZookeeperIP       string          `json:"zookeeper_ip" `   // zookeeper ip, eg: ip1,ip2,ip3
+	ZookeeperConf     string          `json:"zookeeper_conf" ` // zookeeper ip, eg: ip1,ip2,ip3
+	MyID              int             `json:"my_id" `          // 默认副本数
+	JvmMem            string          `json:"jvm_mem"`         //  eg: 10g
+	Host              string          `json:"host" `
+	ClusterName       string          `json:"cluster_name" ` // 集群名
+	Username          string          `json:"username" `
+	Password          string          `json:"password" `
+	BkBizID           int             `json:"bk_biz_id"`
+	DbType            string          `json:"db_type"`
+	ServiceType       string          `json:"service_type"`
+	NoSecurity        int             `json:"no_security"`        // 兼容现有,0:有鉴权,1:无鉴权
+	RetentionBytes    int             `json:"retention_bytes"`    // log.retention.bytes 默认-1
+	Rack              string          `json:"rack"`               // 所属机架
+	NodeID            int             `json:"node_id"`            // 节点ID
+	Role              string          `json:"role"`               // 节点角色
+	ControllerVoters  string          `json:"controller_voters"`  // 控制器选举节点列表
+	ControllerServers string          `json:"controller_servers"` // 控制器节点列表
 }
 
 // InitDirs TODO
@@ -70,17 +74,6 @@ type KfConfig struct {
 	KafkaEnvDir  string `json:"kafkaenv_dir"` //  /data/kafkaenv
 	KafkaDir     string
 	ZookeeperDir string
-}
-
-// RenderConfig 需要替换的配置值 Todo
-type RenderConfig struct {
-	ClusterName          string
-	NodeName             string
-	HTTPPort             int
-	CharacterSetServer   string
-	InnodbBufferPoolSize string
-	Logdir               string
-	ServerID             uint64
 }
 
 // CmakConfig Kafka manager config
@@ -518,29 +511,36 @@ func (i *InstallKafkaComp) InitKafkaUser() (err error) {
  */
 func (i *InstallKafkaComp) InstallBroker() error {
 	var (
-		retentionHours = i.Params.Retention
-		replicationNum = i.Params.Replication
-		partitionNum   = i.Params.Partition
-		factor         = i.Params.Factor
-		nodeIP         = i.Params.Host
-		port           = i.Params.Port
-		jmxPort        = i.Params.JmxPort
-		listeners      = fmt.Sprintf("%s:%d", nodeIP, port)
-		version        = i.Params.Version
-		processors     = runtime.NumCPU()
-		zookeeperIP    = i.Params.ZookeeperIP
-		kafkaBaseDir   = fmt.Sprintf("%s/kafka-%s", cst.DefaultKafkaEnv, version)
-		username       = i.Params.Username
-		password       = i.Params.Password
-		noSecurity     = i.Params.NoSecurity
-		brokerConfig   = i.Params.KafkaConfigs
-		retentionBytes = i.Params.RetentionBytes
-		rack           = i.Params.Rack
+		retentionHours    = i.Params.Retention
+		replicationNum    = i.Params.Replication
+		partitionNum      = i.Params.Partition
+		factor            = i.Params.Factor
+		nodeIP            = i.Params.Host
+		port              = i.Params.Port
+		jmxPort           = i.Params.JmxPort
+		version           = i.Params.Version
+		processors        = runtime.NumCPU()
+		zookeeperIP       = i.Params.ZookeeperIP
+		kafkaBaseDir      = fmt.Sprintf("%s/kafka-%s", cst.DefaultKafkaEnv, version)
+		username          = i.Params.Username
+		password          = i.Params.Password
+		noSecurity        = i.Params.NoSecurity
+		brokerConfig      = i.Params.KafkaConfigs
+		retentionBytes    = i.Params.RetentionBytes
+		rack              = i.Params.Rack
+		nodeID            = i.Params.NodeID
+		processRoles      = i.Params.Role
+		controllerServers = i.Params.ControllerServers
 	)
 
 	if retentionBytes == 0 {
 		retentionBytes = -1
 	}
+	// controller指定端口2181
+	if processRoles == cst.KafkaRoleController {
+		port = cst.KafkaControllerPort
+	}
+	listeners := fmt.Sprintf("%s:%d", nodeIP, port)
 
 	// ln -s /data/kafkaenv/kafka-$version /data/kafkaenv/kafka
 	kafkaLink := fmt.Sprintf("%s/kafka", cst.DefaultKafkaEnv)
@@ -598,20 +598,34 @@ func (i *InstallKafkaComp) InstallBroker() error {
 		}
 	} else {
 		templateData := kafkautil.TemplateData{
-			NumNetWorkThreads:        processors,
-			LogRetentionHours:        retentionHours,
-			DefaultReplicationFactor: replicationNum,
-			NumPartitions:            partitionNum,
-			NumIOThreads:             processors * 2,
-			NumReplicaFetchers:       processors,
-			LogDirs:                  kafkaDataDir,
-			Listeners:                listeners,
-			ZookeeperConnect:         zookeeperConnect,
-			LogRetentionBytes:        retentionBytes,
-			BrokerRack:               rack,
+			NumNetWorkThreads:                processors,
+			LogRetentionHours:                retentionHours,
+			DefaultReplicationFactor:         replicationNum,
+			NumPartitions:                    partitionNum,
+			NumIOThreads:                     processors * 2,
+			NumReplicaFetchers:               processors,
+			LogDirs:                          kafkaDataDir,
+			Listeners:                        listeners,
+			ZookeeperConnect:                 zookeeperConnect,
+			LogRetentionBytes:                retentionBytes,
+			BrokerRack:                       rack,
+			ControllerQuorumBootstrapServers: controllerServers,
+			NodeId:                           nodeID,
+			ProcessRoles:                     processRoles,
+			UpperProcessRoles:                strings.ToUpper(processRoles),
 		}
 		if err := kafkautil.CreateServerPropertiesFile(brokerConfig, templateData, cst.KafkaTmpConfig); err != nil {
 			return err
+		}
+		if processRoles == cst.KafkaRoleController {
+			logger.Info("controller mode, 去掉sasl配置")
+			extraCmd = fmt.Sprintf(`sed -i -e "/sasl.enabled.mechanisms=/d" \
+			-e "/sasl.mechanism.inter.broker.protocol=/d" \
+			-e "/inter.broker.listener.name=/d" %s`, cst.KafkaTmpConfig)
+			if _, err := osutil.ExecShellCommandJ(false, extraCmd); err != nil {
+				logger.Error("[%s] execute failed, %v", extraCmd, err)
+				return err
+			}
 		}
 		// copy to server.properties
 		extraCmd = fmt.Sprintf("cp %s %s", cst.KafkaTmpConfig, cst.KafkaConfigFile)
@@ -635,11 +649,17 @@ func (i *InstallKafkaComp) InstallBroker() error {
 		}
 	}
 
+	if kafkautil.CompareVersion(version, cst.Kafka400) >= 0 {
+		if err := i.FormatDir(); err != nil {
+			return err
+		}
+	}
+
 	if err := configKafka(username, password, kafkaLink, jmxPort); err != nil {
 		return err
 	}
 
-	if err := startKafka(i.KafkaEnvDir, noSecurity); err != nil {
+	if err := startKafka(i.KafkaEnvDir, noSecurity, processRoles); err != nil {
 		return err
 	}
 
@@ -746,7 +766,7 @@ func configJVM(kafkaLink string) (err error) {
 	return nil
 }
 
-func startKafka(kafkaEnvDir string, noSecurity int) (err error) {
+func startKafka(kafkaEnvDir string, noSecurity int, role string) (err error) {
 	logger.Info("生成kafka.ini文件")
 	kafkaini := esutil.GenKafkaini()
 	kafkainiFile := fmt.Sprintf("%s/kafka.ini", cst.DefaultKafkaSupervisorConf)
@@ -767,7 +787,7 @@ func startKafka(kafkaEnvDir string, noSecurity int) (err error) {
 	}
 
 	// Security related
-	if noSecurity == 1 {
+	if noSecurity == 1 || role == cst.KafkaRoleController {
 		extraCmd = fmt.Sprintf("sed -i 's/kafka-server-scram-start.sh/kafka-server-start.sh/' %s/kafka.ini",
 			cst.DefaultKafkaSupervisorConf)
 		if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
@@ -1187,4 +1207,52 @@ func getenvOr(key, def string) string {
 		return v
 	}
 	return def
+}
+
+// FormatDir TODO
+func (i *InstallKafkaComp) FormatDir() error {
+	clusterName := i.Params.ClusterName
+	username := i.Params.Username
+	password := i.Params.Password
+	role := i.Params.Role
+	controllerQuorumVoters := i.Params.ControllerVoters
+
+	// bin/kafka-storage.sh format -t cluster -c config/server.properties --no-initial-controllers  \
+	// --add-scram "SCRAM-SHA-512=[name=***,password=***]"
+	extraCmd := fmt.Sprintf(
+		`%s format -t %s -c %s --no-initial-controllers --add-scram "SCRAM-SHA-512=[name=%s,password=%s]"`,
+		cst.KafkaStorageBin,
+		clusterName, cst.KafkaConfigFile, username, password)
+
+	if role == cst.KafkaRoleController {
+		// bin/kafka-storage.sh format -t cluster -c config/server.properties --initial-controllers ""  \
+		// --add-scram "SCRAM-SHA-512=[name=***,password=***]"
+		extraCmd = fmt.Sprintf(
+			`%s format -t %s -c %s --initial-controllers "%s" --add-scram "SCRAM-SHA-512=[name=%s,password=%s]"`,
+			cst.KafkaStorageBin,
+			clusterName,
+			cst.KafkaConfigFile,
+			controllerQuorumVoters,
+			username,
+			password)
+	}
+
+	logger.Info("Format dir: [%s]", extraCmd)
+	if output, err := osutil.ExecShellCommandJ(false, extraCmd); err != nil {
+		logger.Error("Format dir failed, %s, %s", output, err.Error())
+		return err
+	}
+	dataDir, err := kafkautil.ReadDataDirs(cst.KafkaConfigFile)
+	if err != nil {
+		logger.Error("Read data dir from config failed, %s", err.Error())
+		return err
+	}
+	for _, dir := range dataDir {
+		extraCmd = fmt.Sprintf("chown -R mysql %s", dir)
+		if _, err := osutil.ExecShellCommandJ(false, extraCmd); err != nil {
+			logger.Error("%s execute failed, %v", extraCmd, err)
+			return err
+		}
+	}
+	return nil
 }

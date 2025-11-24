@@ -13,6 +13,7 @@ import logging.config
 from dataclasses import asdict
 from typing import Dict, Optional
 
+from django.db.models import Max
 from django.utils.translation import gettext as _
 
 from backend.components import DBConfigApi
@@ -62,11 +63,16 @@ class KafkaScaleUpFlow(object):
         zookeeper_list = StorageInstance.objects.filter(cluster=cluster, instance_role=InstanceRole.ZOOKEEPER).all()
         zookeeper_ip = ",".join([zookeeper.machine.ip for zookeeper in zookeeper_list])
         self.data["zookeeper_ip"] = zookeeper_ip
-        broker_list = StorageInstance.objects.filter(cluster=cluster, instance_role=InstanceRole.BROKER).all()
+        # broker 查询 queryset（复用）
+        broker_qs = StorageInstance.objects.filter(cluster=cluster, instance_role=InstanceRole.BROKER)
+        # 获取该条件下最大的 id
+        max_id = broker_qs.aggregate(max_id=Max("id"))["max_id"]
+        self.data["broker_max_id"] = int(max_id)
+        broker_first = broker_qs.first()
         self.data["db_version"] = cluster.major_version
         self.data["domain"] = cluster.immute_domain
         self.data["cluster_name"] = cluster.name
-        self.data["port"] = broker_list[0].port
+        self.data["port"] = broker_first.port
         # 写入cluster_type，转模块会使用
         self.data["cluster_type"] = ClusterType.Kafka.value
 
@@ -86,10 +92,10 @@ class KafkaScaleUpFlow(object):
 
         kafka_config = content["content"]
         self.data["kafka_config"] = kafka_config
-        self.data["retention_hours"] = int(kafka_config["retention_hours"])
-        self.data["replication_num"] = int(kafka_config["replication_num"])
-        self.data["partition_num"] = int(kafka_config["partition_num"])
-        self.data["factor"] = int(kafka_config["factor"])
+        self.data["retention_hours"] = int(kafka_config.get("retention_hours", 4))
+        self.data["replication_num"] = int(kafka_config.get("replication_num", 2))
+        self.data["partition_num"] = int(kafka_config.get("partition_num", 2))
+        self.data["factor"] = int(kafka_config.get("factor", 2))
         self.data["no_security"] = int(kafka_config["no_security"])
 
         # get username
@@ -194,11 +200,15 @@ class KafkaScaleUpFlow(object):
 
         # 安装broker
         broker_act_list = []
-        for broker in self.data["nodes"]["broker"]:
+        for i, broker in enumerate(self.data["nodes"]["broker"], self.data["broker_max_id"] + 1):
             act_kwargs.exec_ip = [broker]
             rack = broker.get("rack_id", "RACK1")
             act_kwargs.template = act_payload.get_payload(
-                action=KafkaActuatorActionEnum.installBroker.value, host=broker["ip"], rack=rack
+                action=KafkaActuatorActionEnum.installBroker.value,
+                host=broker["ip"],
+                rack=rack,
+                role="broker",
+                node_id=i,
             )
             ip = broker["ip"]
             broker_act = {

@@ -8,11 +8,16 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import base64
 import logging.config
+import re
+import uuid
 from dataclasses import asdict
 from typing import Dict, Optional
 
 from django.utils.translation import gettext as _
+from packaging import version
+from packaging.version import InvalidVersion
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
@@ -64,6 +69,32 @@ class KafkaApplyFlow(object):
             self.data["factor"] = DEFAULT_FACTOR
         else:
             self.data["factor"] = broker_num
+        raw_ver = (self.data.get("db_version") or "").strip()
+        parsed_version = self._normalize_and_parse(raw_ver)
+        self.is_kafka_4 = parsed_version >= version.parse("4.0")
+
+        # --- 新增兼容逻辑 ---
+        if self.is_kafka_4:
+            # 1. 如果没传 controller，则用 zookeeper节点代替
+            if not self.data["nodes"].get("controller"):
+                self.data["nodes"]["controller"] = self.data["nodes"].get("zookeeper", [])
+            # 2. controller_voters 构建, 格式为 "1@ip:port:UUID,2@ip:port:UUID"
+            controller_port = int(self.data.get("controller_port", 2181))
+            voters = []
+            controller = []
+            for i, c in enumerate(self.data["nodes"]["controller"], start=1):
+                ip = c.get("ip")
+                if not ip:
+                    raise ValueError(f"controller node at index {i-1} missing 'ip' field")
+                # 生成真实的 Kafka-style UUID 并写回节点字典，便于后续使用
+                c_uuid = self._generate_kafka_style_uuid()
+                c["node_id"] = i
+                c["controller_uuid"] = c_uuid
+                voters.append(f"{i}@{ip}:{controller_port}:{c_uuid}")
+                controller.append(f"{ip}:{controller_port}")
+
+            self.data["controller_voters"] = ",".join(voters)
+            self.data["controller_servers"] = ",".join(controller)
 
     def __get_node_ips_by_role(self, role: str) -> list:
         if role not in self.data["nodes"]:
@@ -87,6 +118,33 @@ class KafkaApplyFlow(object):
     def __get_zookeeper_connect(self) -> str:
         zookeeper_ips = [f'{zookeeper["ip"]}:2181' for zookeeper in self.data["nodes"]["zookeeper"]]
         return ",".join(zookeeper_ips) + "/"
+
+    def _normalize_and_parse(self, ver_str: str) -> version.Version:
+        ver_str = (ver_str or "").strip()
+        if not ver_str:
+            return version.parse("0")
+        try:
+            return version.parse(ver_str)
+        except InvalidVersion:
+            m = re.match(r"^(\d+(?:\.\d+)*)(?:\.([A-Za-z][A-Za-z0-9._-]*))?$", ver_str)
+            if m:
+                core = m.group(1)
+                local = m.group(2)
+                if local:
+                    try:
+                        return version.parse(f"{core}+{local}")
+                    except InvalidVersion:
+                        return version.parse(core)
+                return version.parse(core)
+            m2 = re.match(r"^(\d+(?:\.\d+)*)", ver_str)
+            if m2:
+                return version.parse(m2.group(1))
+        return version.parse("0")
+
+    @staticmethod
+    def _generate_kafka_style_uuid() -> str:
+        """生成 Kafka 风格的 UUID（16 字节的 URL-safe base64，无 '=' 填充），长度为 22。"""
+        return base64.urlsafe_b64encode(uuid.uuid4().bytes).rstrip(b"=").decode("ascii")
 
     def deploy_kafka_flow(self):
         """
@@ -147,48 +205,78 @@ class KafkaApplyFlow(object):
             kwargs=asdict(act_kwargs),
         )
 
-        # 安装zookeeper
-        zk_act_list = []
-        for i, zookeeper in enumerate(self.data["nodes"]["zookeeper"]):
-            act_kwargs.exec_ip = [zookeeper]
-            act_kwargs.template = act_payload.get_zookeeper_payload(
-                action=KafkaActuatorActionEnum.installZookeeper.value,
-                my_id=i,
-                host=zookeeper["ip"],
-                zookeeper_conf=self.data["zookeeper_conf"],
+        # ---- 部署 zookeeper（仅 < 4.0） ----
+        if not self.is_kafka_4:
+            # 安装zookeeper
+            zk_act_list = []
+            for i, zookeeper in enumerate(self.data["nodes"]["zookeeper"]):
+                act_kwargs.exec_ip = [zookeeper]
+                act_kwargs.template = act_payload.get_zookeeper_payload(
+                    action=KafkaActuatorActionEnum.installZookeeper.value,
+                    my_id=i,
+                    host=zookeeper["ip"],
+                    zookeeper_conf=self.data["zookeeper_conf"],
+                )
+                ip = zookeeper["ip"]
+                zookeeper_act = {
+                    "act_name": _("安装zookeeper-{}").format(ip),
+                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                    "kwargs": asdict(act_kwargs),
+                }
+                zk_act_list.append(zookeeper_act)
+            kafka_pipeline.add_parallel_acts(acts_list=zk_act_list)
+
+            # 配置账号
+            act_kwargs.exec_ip = [self.data["nodes"]["zookeeper"][0]]
+            act_kwargs.template = act_payload.get_admin_user_payload(
+                action=KafkaActuatorActionEnum.initKafkaUser.value
             )
-            ip = zookeeper["ip"]
-            zookeeper_act = {
-                "act_name": _("安装zookeeper-{}").format(ip),
-                "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                "kwargs": asdict(act_kwargs),
-            }
-            zk_act_list.append(zookeeper_act)
-        kafka_pipeline.add_parallel_acts(acts_list=zk_act_list)
+            kafka_pipeline.add_act(
+                act_name=_("初始化系统kafkaUser"),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
 
-        # 配置账号
-        act_kwargs.exec_ip = [self.data["nodes"]["zookeeper"][0]]
-        act_kwargs.template = act_payload.get_admin_user_payload(action=KafkaActuatorActionEnum.initKafkaUser.value)
-        kafka_pipeline.add_act(
-            act_name=_("初始化系统kafkaUser"),
-            act_component_code=ExecuteDBActuatorScriptComponent.code,
-            kwargs=asdict(act_kwargs),
-        )
+            act_kwargs.template = act_payload.get_user_payload(action=KafkaActuatorActionEnum.initKafkaUser.value)
+            kafka_pipeline.add_act(
+                act_name=_("初始化kafkaUser"),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
 
-        act_kwargs.template = act_payload.get_user_payload(action=KafkaActuatorActionEnum.initKafkaUser.value)
-        kafka_pipeline.add_act(
-            act_name=_("初始化kafkaUser"),
-            act_component_code=ExecuteDBActuatorScriptComponent.code,
-            kwargs=asdict(act_kwargs),
-        )
-
+        # ---- 部署 controller（仅 >= 4.0） ----
+        if self.is_kafka_4:
+            controller_act_list = []
+            for controller in self.data["nodes"]["controller"]:
+                act_kwargs.exec_ip = [controller]
+                rack = controller.get("rack_id", "RACK1")
+                node_id = controller["node_id"]
+                act_kwargs.template = act_payload.get_payload(
+                    action=KafkaActuatorActionEnum.installBroker.value,
+                    host=controller["ip"],
+                    rack=rack,
+                    role="controller",
+                    node_id=node_id,
+                )
+                ip = controller["ip"]
+                controller_act = {
+                    "act_name": _("安装controller-{}").format(ip),
+                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                    "kwargs": asdict(act_kwargs),
+                }
+                controller_act_list.append(controller_act)
+            kafka_pipeline.add_parallel_acts(acts_list=controller_act_list)
         # 安装broker
         broker_act_list = []
-        for broker in self.data["nodes"]["broker"]:
+        for i, broker in enumerate(self.data["nodes"]["broker"], 4):
             act_kwargs.exec_ip = [broker]
             rack = broker.get("rack_id", "RACK1")
             act_kwargs.template = act_payload.get_payload(
-                action=KafkaActuatorActionEnum.installBroker.value, host=broker["ip"], rack=rack
+                action=KafkaActuatorActionEnum.installBroker.value,
+                host=broker["ip"],
+                rack=rack,
+                role="broker",
+                node_id=i,
             )
             ip = broker["ip"]
             broker_act = {
