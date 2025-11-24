@@ -45,6 +45,7 @@ class SpiderSwitchNodesDetailSerializer(TendbBaseOperateDetailSerializer):
     )
     infos = serializers.ListSerializer(help_text=_("克隆主从信息"), child=SpiderSwitchNodesInfoSerializer())
     is_safe = serializers.BooleanField(help_text=_("是否做安全检测"), default=True, required=False)
+    disable_manual_confirm = serializers.BooleanField(help_text=(_("自愈单据禁用人工确认")), default=False)
 
 
 class SpiderSwitchNodesFlowParamBuilder(builders.FlowParamBuilder):

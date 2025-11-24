@@ -159,6 +159,7 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
         old_spider_hosts: list,
         new_spider_hosts: list,
         sub_flow_context: dict,
+        disable_manual_confirm: bool = False,
     ):
         """
         根据集群维度，并发处理每个集群的替换节点信息
@@ -227,16 +228,17 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
         )
 
         # 人工确认前，解除释放互斥锁，重新互斥
-        sub_pipeline.add_act(
-            act_name=_("人工确认，解除释放，重新判断互斥条件"),
-            act_component_code=PauseWithTicketLockCheckComponent.code,
-            kwargs=asdict(
-                ReleaseUnLockTicketTypeKwargs(
-                    cluster_ids=[cluster_id],
-                    release_unlock_ticket_type_list=self.temporary_unlock_ticket_type_list,
-                )
-            ),
-        )
+        if not disable_manual_confirm:
+            sub_pipeline.add_act(
+                act_name=_("人工确认，解除释放，重新判断互斥条件"),
+                act_component_code=PauseWithTicketLockCheckComponent.code,
+                kwargs=asdict(
+                    ReleaseUnLockTicketTypeKwargs(
+                        cluster_ids=[cluster_id],
+                        release_unlock_ticket_type_list=self.temporary_unlock_ticket_type_list,
+                    )
+                ),
+            )
 
         # 执行缩容实例
         sub_pipeline.add_sub_pipeline(
@@ -248,6 +250,7 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
                 is_check_min_count=False,
                 is_check_disaster_tolerance_level=False,
                 is_check_process=self.data.get("is_check_process", True),
+                disable_manual_confirm=disable_manual_confirm,
             )
         )
         return sub_pipeline.build_sub_process(sub_name=_("[{}]替换spider节点流程".format(cluster.immute_domain)))
@@ -263,6 +266,10 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
         global_data = self.trans_ticket_data()
         pipeline = Builder(root_id=self.root_id, data=global_data)
 
+        # DB_HA 自愈复用了这个 flow, 需要禁用人工确认节点才能全自动化
+        # 为了不影响已有单据, 增加一个 default = False 的控制变量
+        disable_manual_confirm = self.data.get("disable_manual_confirm", False)
+
         sub_pipelines = []
         for info in global_data["infos"]:
             sub_pipelines.append(
@@ -272,6 +279,7 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
                     old_spider_hosts=info["spider_old_ip_list"],
                     new_spider_hosts=info["spider_new_ip_list"],
                     sub_flow_context={"uid": self.data["uid"]},
+                    disable_manual_confirm=disable_manual_confirm,
                 )
             )
 

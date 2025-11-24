@@ -35,11 +35,7 @@ class MySQLDBHAAFTodoRegisterService(BaseService):
                 bk_cloud_id=row["bk_cloud_id"], bk_biz_id=row["bk_biz_id"], immute_domain=row["immute_domain"]
             )
 
-            if row["machine_type"] == MachineType.SPIDER:
-                # ToDo
-                self.log_info("replace spider/proxy bill not complete, skip autofix now")
-                continue
-            elif row["machine_type"] == MachineType.PROXY:
+            if row["machine_type"] in [MachineType.PROXY, MachineType.SPIDER]:
                 ProxyInstance.objects.get(cluster=cluster_obj, machine__ip=row["ip"], port=row["port"])
             elif row["machine_type"] in [MachineType.BACKEND, MachineType.REMOTE]:
                 StorageInstance.objects.get(cluster=cluster_obj, machine__ip=row["ip"], port=row["port"])

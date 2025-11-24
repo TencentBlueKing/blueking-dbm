@@ -36,7 +36,7 @@ def filter_ready_events(events: List[MySQLDBHAEvent]) -> List[MySQLDBHAEvent]:
         cnt = len(v)
         check_id, ip, machine_type, bk_cloud_id = __restore_from_compound_key(k)
 
-        if machine_type in [MachineType.PROXY, MachineType.SINGLE]:
+        if machine_type in [MachineType.PROXY, MachineType.SPIDER]:
             insts = ProxyInstance.objects.filter(machine__ip=ip, machine__bk_cloud_id=bk_cloud_id)
         else:
             insts = StorageInstance.objects.filter(machine__ip=ip, machine__bk_cloud_id=bk_cloud_id)
