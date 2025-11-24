@@ -24,7 +24,7 @@ const routes: RouteRecordRaw[] = [
       fullscreen: true,
       navName: t('版本文件'),
     },
-    component: () => import('@views/version-files/list/Index.vue'),
+    component: () => import('@/views/version-files/Index.vue'),
   },
 ];
 
