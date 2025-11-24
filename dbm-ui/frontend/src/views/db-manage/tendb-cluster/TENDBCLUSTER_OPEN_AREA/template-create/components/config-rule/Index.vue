@@ -108,12 +108,12 @@
       label: t('克隆 DB'),
     },
     {
-      case: 'schema1',
+      case: 'table1',
       key: 'schema_tblist',
       label: t('克隆表数据'),
     },
     {
-      case: 'db_1',
+      case: 'db_{ID}',
       key: 'target_db_pattern',
       label: t('生成的目标DB名'),
     },
