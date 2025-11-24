@@ -59,4 +59,22 @@ const (
 	ThrottleFile = "./throttle_rate.txt"
 	// KafkaUIPort kafkaui默认监听端口
 	KafkaUIPort = 9001
+	// KafkaStorageBin 执行路径
+	KafkaStorageBin = DefaultKafkaDir + "/bin/kafka-storage.sh"
+	// KafkaControllerPort 默认监听端口
+	KafkaControllerPort = 2181
+	// KafkaRoleController controller角色标识
+	KafkaRoleController = "controller"
+	// KafkaZKFlag TODO
+	KafkaZKFlag = "--zookeeper"
+	// KafkaBootstrapFlag TODO
+	KafkaBootstrapFlag = "--bootstrap-server"
+	// KafkaJaasFilePath TODO
+	KafkaJaasFilePath = DefaultKafkaDir + "/config/kafka_server_scram_jaas.conf"
+	// KafkaClientProperties TODO
+	KafkaClientProperties = DefaultKafkaDir + "/client.properties"
+	// Kafka400 TODO
+	Kafka400 = "4.0.0"
+	// KafkaClusterBin TODO
+	KafkaClusterBin = DefaultKafkaDir + "/bin/kafka-cluster.sh"
 )
