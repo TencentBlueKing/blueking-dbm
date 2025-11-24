@@ -26,6 +26,7 @@ package process
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 
@@ -48,11 +49,12 @@ var (
 	ErrIsDir           = gerrors.Newf(gerrors.Failure, "the input PID file is a directory, not a file")
 	ErrPidFileNotExist = gerrors.Newf(gerrors.NotExist, "the PID file is not exist")
 	ErrInvalidFile     = gerrors.Newf(gerrors.InvalidParameter, "the input filename is invalid")
+	ErrInvalidPid      = gerrors.Newf(gerrors.InvalidParameter, "the PID is invalid")
 )
 
 // Name is used to obtain the process name.
-func Name(pid int) (string, error) {
-	proc, err := process.NewProcess(int32(pid))
+func Name(pid int32) (string, error) {
+	proc, err := process.NewProcess(pid)
 	if err != nil {
 		return "", gerrors.NewE(gerrors.Failure, err)
 	}
@@ -94,7 +96,7 @@ func SavePid(filename string) error {
 }
 
 // ReadPid is used to recover the PID from the file.
-func ReadPid(filename string) (int, error) {
+func ReadPid(filename string) (int32, error) {
 	if filename == "" {
 		return InvalidPid, ErrInvalidFile
 	}
@@ -122,17 +124,21 @@ func ReadPid(filename string) (int, error) {
 		return InvalidPid, gerrors.NewE(gerrors.Failure, err)
 	}
 
-	return pid, nil
+	if pid <= 0 || pid > math.MaxInt32 {
+		return InvalidPid, ErrInvalidPid
+	}
+
+	return int32(pid), nil
 }
 
 // IsAlive is used to check whether the process is running.
-func IsAlive(pid int) (bool, error) {
-	return process.PidExists(int32(pid))
+func IsAlive(pid int32) (bool, error) {
+	return process.PidExists(pid)
 }
 
 // IsAliveWithProcessName is used to check whether the process is running by the PID and name.
-func IsAliveWithProcessName(pid int, name string) (bool, error) {
-	proc, err := process.NewProcess(int32(pid))
+func IsAliveWithProcessName(pid int32, name string) (bool, error) {
+	proc, err := process.NewProcess(pid)
 	if err != nil {
 		return false, gerrors.NewE(gerrors.Failure, err)
 	}

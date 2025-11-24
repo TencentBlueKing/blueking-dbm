@@ -38,7 +38,7 @@ const (
 
 // HealthInfo health information.
 type HealthInfo struct {
-	Pid      int    `json:"pid"`
+	Pid      int32  `json:"pid"`
 	ProcName string `json:"procName"`
 	Status   Status `json:"status"`
 	ErrMsg   string `json:"errmsg"`
