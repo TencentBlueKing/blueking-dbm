@@ -21,8 +21,8 @@ from django.utils.translation import gettext as _
 from backend.configuration.constants import DBType
 from backend.configuration.models.dba import DBAdministrator
 from backend.db_meta.api.cluster.apis import query_cluster_by_hosts
-from backend.db_meta.enums import ClusterType, MachineType, MachineTypeInstanceRoleMap
-from backend.db_meta.models import Machine
+from backend.db_meta.enums import ClusterType, InstanceRole, MachineType, MachineTypeInstanceRoleMap
+from backend.db_meta.models import Cluster, Machine
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.mongodb.autofix.mongodb_autofix_ticket import mongo_create_ticket
 from backend.db_services.redis.util import is_support_redis_auotfix
@@ -70,7 +70,58 @@ def generate_autofix_ticket(fault_clusters: QuerySet):
             cluster.save(update_fields=["status_version", "deal_status", "update_at"])
             continue
 
+        # 忽略 一个机器上有多种角色的实例自愈; 理论上不应该存在这种
+        if will_ignore_autofix_by_mutil_role(cluster):
+            # cluster.status_version = _("ignore_by_mutil_role:{}".format(get_random_string(12)))
+            cluster.update_at = datetime2str(datetime.datetime.now(timezone.utc))
+            cluster.deal_status = AutofixStatus.AF_IGNORE.value
+            cluster.save(update_fields=["status_version", "deal_status", "update_at"])
+            continue
+
         generate_single_autofix_ticket(cluster)
+
+
+# 忽略 一个机器上有多种角色的实例自愈; 理论上不应该存在这种
+def will_ignore_autofix_by_mutil_role(tofix: RedisAutofixCore):
+    cluster = Cluster.objects.prefetch_related("storageinstance_set", "storageinstance_set__machine").get(
+        id=tofix.cluster_id
+    )
+    master_ips = set(
+        [
+            master.machine.ip
+            for master in cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value)
+        ]
+    )
+    slave_ips = set(
+        [
+            slave.machine.ip
+            for slave in cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_SLAVE.value)
+        ]
+    )
+    slave_ips2 = set(
+        [
+            obj.as_ejector.get().receiver.machine.ip
+            for obj in cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value)
+        ]
+    )
+    mutil_role, diff_slave = {x for x in master_ips if x in slave_ips}, slave_ips ^ slave_ips2
+    logger.info(
+        """cluster_4_autofix before start check: {}#{}; mutile_role:{},diff_slaves:{};
+master_ips:{},slave_ips:{},slave_ips_by_tuple:{}""".format(
+            tofix.cluster_id, tofix.immute_domain, mutil_role, diff_slave, master_ips, slave_ips, slave_ips2
+        )
+    )
+    if mutil_role or diff_slave:
+        cluster.status_version = _("集群中存在同时是Master和Slave的IP:{} or {}".format(mutil_role, diff_slave))
+        msgs, title = {}, _("{} - 🥸🥸忽略自愈🥸🥸".format(cluster.immute_domain))
+        msgs[_("BKID")] = cluster.bk_biz_id
+        msgs[_("集群类型")] = cluster.cluster_type
+        msgs[_("故障机S")] = json.dumps(cluster.fault_machines)
+        msgs[_("忽略原因")] = _("屮-集群中存在同时是Master和Slave的IP:{} or {}".format(mutil_role, diff_slave))
+        send_msg_2_qywx(title, msgs)
+        return True
+    else:
+        return False
 
 
 # 如果 proxy 和后端master 同时挂， proxy自愈应该忽略
