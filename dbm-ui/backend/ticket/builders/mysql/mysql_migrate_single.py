@@ -47,13 +47,13 @@ class MysqlMigrateSingleParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_migrate_single_scene
 
 
-class MysqlMigrateClusterResourceParamBuilder(BaseOperateResourceParamBuilder):
+class MysqlMigrateSingleResourceParamBuilder(BaseOperateResourceParamBuilder):
     pass
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_MIGRATE_CLUSTER, is_apply=True, is_recycle=True)
-class MysqlMigrateClusterFlowBuilder(MysqlMasterSlaveSwitchFlowBuilder):
+@builders.BuilderFactory.register(TicketType.MYSQL_MIGRATE_SINGLE, is_apply=True, is_recycle=True)
+class MysqlMigrateSingleFlowBuilder(MysqlMasterSlaveSwitchFlowBuilder):
     serializer = MysqlMigrateSingleDetailSerializer
     inner_flow_builder = MysqlMigrateSingleParamBuilder
-    resource_batch_apply_builder = MysqlMigrateClusterResourceParamBuilder
+    resource_batch_apply_builder = MysqlMigrateSingleResourceParamBuilder
     need_patch_recycle_cluster_details = True
