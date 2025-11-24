@@ -84,7 +84,7 @@
 
   import EditHostInstance from '@views/db-manage/common/big-data-host-table/es-host-table/components/EditHostInstance.vue';
 
-  import type { TExpansionNode } from '../MachinePanel.vue';
+  import type { TExpansionNode } from '../Index.vue';
 
   interface Props {
     data: TExpansionNode;
@@ -126,32 +126,23 @@
 
   const handleHostChange = (data: IValue[]) => {
     hostList.value = data.map((hostItem) => {
-      const item = {
-        agent_status: hostItem.agent_status,
-        bk_biz_id: hostItem.dedicated_biz,
-        bk_cloud_id: hostItem.bk_cloud_id,
-        bk_disk: hostItem.bk_disk,
-        bk_host_id: hostItem.bk_host_id,
-        ip: hostItem.ip,
-      };
       if (!isClientNode.value) {
-        return Object.assign({}, item, {
+        return Object.assign({}, hostItem, {
           instance_num: 1,
         });
       }
-      return item;
+      return hostItem;
     });
   };
 
   const handleInstanceNumChange = (value: number, data: TExpansionNode['hostList'][number]) => {
-    hostList.value = hostList.value.map((item) => {
-      if (item.bk_host_id === data.bk_host_id) {
-        return {
-          ...item,
-          instance_num: value,
-        };
+    hostList.value = hostList.value.map((hostItem) => {
+      if (hostItem.bk_host_id === data.bk_host_id) {
+        return Object.assign({}, hostItem, {
+          instance_num: 1,
+        });
       }
-      return item;
+      return hostItem;
     });
   };
 </script>

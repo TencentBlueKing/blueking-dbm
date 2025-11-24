@@ -45,9 +45,10 @@
   const isShow = defineModel<boolean>('isShow', {
     default: false,
   });
+
   const { t } = useI18n();
 
-  const nodeInfoMap = reactive<Record<'client' | 'cold' | 'hot', TShrinkNode>>({
+  const getInitInfo = (): Record<'client' | 'cold' | 'hot', TShrinkNode> => ({
     client: {
       hostList: [],
       label: 'Client',
@@ -76,6 +77,8 @@
       totalDisk: 0,
     },
   });
+
+  const nodeInfoMap = reactive(getInitInfo());
 
   const isLoading = ref(false);
   const nodeType = ref('cold');
@@ -123,53 +126,59 @@
       });
   };
 
-  fetchListNode();
-
   // 默认选中的缩容节点
+  const setInitShrinkNodes = () => {
+    const hotHostList: TShrinkNode['hostList'] = [];
+    const coldHostList: TShrinkNode['hostList'] = [];
+    const clientHostList: TShrinkNode['hostList'] = [];
+
+    let hotShrinkDisk = 0;
+    let coldShrinkDisk = 0;
+    let clientShrinkDisk = 0;
+
+    props.machineList.forEach((machineItem) => {
+      const machineDisk = machineItem.host_info?.bk_disk || 0;
+      const machineHost = {
+        alive: machineItem.host_info?.alive || 0,
+        bk_cloud_id: machineItem.bk_cloud_id,
+        bk_disk: machineDisk,
+        bk_host_id: machineItem.bk_host_id,
+        ip: machineItem.ip,
+      };
+      if (machineItem.isHot) {
+        hotShrinkDisk += machineDisk;
+        hotHostList.push(machineHost);
+      } else if (machineItem.isCold) {
+        coldShrinkDisk += machineDisk;
+        coldHostList.push(machineHost);
+      } else if (machineItem.isClient) {
+        clientShrinkDisk += machineDisk;
+        clientHostList.push(machineHost);
+      }
+    });
+    nodeInfoMap.hot.hostList = hotHostList;
+    nodeInfoMap.hot.shrinkDisk = hotShrinkDisk;
+    nodeInfoMap.cold.hostList = coldHostList;
+    nodeInfoMap.cold.shrinkDisk = coldShrinkDisk;
+    nodeInfoMap.client.hostList = clientHostList;
+    nodeInfoMap.client.shrinkDisk = clientShrinkDisk;
+
+    if (coldHostList.length) {
+      nodeType.value = 'cold';
+    } else if (hotHostList.length) {
+      nodeType.value = 'hot';
+    } else if (clientHostList.length) {
+      nodeType.value = 'client';
+    }
+  };
+
   watch(
-    () => props.machineList,
+    isShow,
     () => {
-      const hotHostList: TShrinkNode['hostList'] = [];
-      const coldHostList: TShrinkNode['hostList'] = [];
-      const clientHostList: TShrinkNode['hostList'] = [];
-
-      let hotShrinkDisk = 0;
-      let coldShrinkDisk = 0;
-      let clientShrinkDisk = 0;
-
-      props.machineList.forEach((machineItem) => {
-        const machineDisk = machineItem.host_info?.bk_disk || 0;
-        const machineHost = {
-          alive: machineItem.host_info?.alive || 0,
-          bk_cloud_id: machineItem.bk_cloud_id,
-          bk_disk: machineDisk,
-          bk_host_id: machineItem.bk_host_id,
-          ip: machineItem.ip,
-        };
-        if (machineItem.isHot) {
-          hotShrinkDisk += machineDisk;
-          hotHostList.push(machineHost);
-        } else if (machineItem.isCold) {
-          coldShrinkDisk += machineDisk;
-          coldHostList.push(machineHost);
-        } else if (machineItem.isClient) {
-          clientShrinkDisk += machineDisk;
-          clientHostList.push(machineHost);
-        }
-      });
-      nodeInfoMap.hot.hostList = hotHostList;
-      nodeInfoMap.hot.shrinkDisk = hotShrinkDisk;
-      nodeInfoMap.cold.hostList = coldHostList;
-      nodeInfoMap.cold.shrinkDisk = coldShrinkDisk;
-      nodeInfoMap.client.hostList = clientHostList;
-      nodeInfoMap.client.shrinkDisk = clientShrinkDisk;
-
-      if (coldHostList.length) {
-        nodeType.value = 'cold';
-      } else if (hotHostList.length) {
-        nodeType.value = 'hot';
-      } else if (clientHostList.length) {
-        nodeType.value = 'client';
+      if (isShow.value) {
+        Object.assign(nodeInfoMap, getInitInfo());
+        setInitShrinkNodes();
+        fetchListNode();
       }
     },
     {

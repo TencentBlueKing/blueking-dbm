@@ -47,7 +47,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = reactive<Record<'client' | 'cold' | 'hot', TExpansionNode>>({
+  const getInitInfo = (): Record<'client' | 'cold' | 'hot', TExpansionNode> => ({
     client: {
       clusterId: props.clusterData.id,
       expansionDisk: 0,
@@ -110,6 +110,8 @@
     },
   });
 
+  const nodeInfoMap = reactive(getInitInfo());
+
   const isLoading = ref(false);
   // 获取主机详情
   const fetchHostDetail = () => {
@@ -157,7 +159,18 @@
       });
   };
 
-  fetchHostDetail();
+  watch(
+    isShow,
+    () => {
+      if (isShow.value) {
+        Object.assign(nodeInfoMap, getInitInfo());
+        fetchHostDetail();
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChange = () => {
     emits('change');

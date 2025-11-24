@@ -117,7 +117,7 @@
   };
 
   const specId = ref(props.data.resourceSpec.spec_id);
-  const machinePairCnt = ref(props.data.resourceSpec.count);
+  const machinePairCnt = ref(props.data.resourceSpec.count || '');
   const tagList = ref(getTagList());
   const specCountMap = shallowRef<Record<number, number>>({});
 
@@ -130,16 +130,16 @@
 
   // 资源池预估容量
   const estimateCapacity = computed(() => {
-    if (machinePairCnt.value < 1 || !currentSelectSpec.value) {
+    if (Number(machinePairCnt.value) < 1 || !currentSelectSpec.value) {
       return 0;
     }
 
     const storage = currentSelectSpec.value.storage_spec.reduce((result, item) => result + item.min, 0);
-    return storage * machinePairCnt.value;
+    return storage * Number(machinePairCnt.value);
   });
 
   const triggerChange = () => {
-    const count = machinePairCnt.value;
+    const count = Number(machinePairCnt.value);
     resourceSpec.value = {
       count,
       instance_num: currentSelectSpec.value ? (currentSelectSpec.value.instance_num as number) : 0,

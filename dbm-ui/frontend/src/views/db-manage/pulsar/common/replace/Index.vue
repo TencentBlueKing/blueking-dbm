@@ -51,7 +51,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = ref<Record<'bookkeeper' | 'broker' | 'zookeeper', TReplaceNode>>({
+  const getInitInfo = (): Record<'bookkeeper' | 'broker' | 'zookeeper', TReplaceNode> => ({
     bookkeeper: {
       clusterId: props.clusterData.id,
       hostList: [],
@@ -96,26 +96,35 @@
     },
   });
 
+  const nodeInfoMap = reactive(getInitInfo());
+
+  const setInitReplaceNodes = () => {
+    const bookkeeperList: TReplaceNode['oldHostList'] = [];
+    const brokerList: TReplaceNode['oldHostList'] = [];
+    const zookeeperList: TReplaceNode['oldHostList'] = [];
+
+    props.machineList.forEach((nodeItem) => {
+      if (nodeItem.isBookkeeper) {
+        bookkeeperList.push(nodeItem);
+      } else if (nodeItem.isBroker) {
+        brokerList.push(nodeItem);
+      } else if (nodeItem.isZookeeper) {
+        zookeeperList.push(nodeItem);
+      }
+    });
+
+    nodeInfoMap.bookkeeper.oldHostList = bookkeeperList;
+    nodeInfoMap.broker.oldHostList = brokerList;
+    nodeInfoMap.zookeeper.oldHostList = zookeeperList;
+  };
+
   watch(
-    () => props.machineList,
+    isShow,
     () => {
-      const bookkeeperList: TReplaceNode['oldHostList'] = [];
-      const brokerList: TReplaceNode['oldHostList'] = [];
-      const zookeeperList: TReplaceNode['oldHostList'] = [];
-
-      props.machineList.forEach((nodeItem) => {
-        if (nodeItem.isBookkeeper) {
-          bookkeeperList.push(nodeItem);
-        } else if (nodeItem.isBroker) {
-          brokerList.push(nodeItem);
-        } else if (nodeItem.isZookeeper) {
-          zookeeperList.push(nodeItem);
-        }
-      });
-
-      nodeInfoMap.value.bookkeeper.oldHostList = bookkeeperList;
-      nodeInfoMap.value.broker.oldHostList = brokerList;
-      nodeInfoMap.value.zookeeper.oldHostList = zookeeperList;
+      if (isShow.value) {
+        Object.assign(nodeInfoMap, getInitInfo());
+        setInitReplaceNodes();
+      }
     },
     {
       immediate: true,
