@@ -168,7 +168,7 @@
 
     .header-tab {
       position: relative;
-      z-index: 999;
+      // z-index: 999;
       padding-left: 24px;
       margin-top: 2px;
       background: #fff;
