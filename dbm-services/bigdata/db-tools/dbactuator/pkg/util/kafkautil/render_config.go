@@ -11,17 +11,21 @@ import (
 
 // TemplateData struct to hold the data for template rendering
 type TemplateData struct {
-	NumNetWorkThreads        int
-	LogRetentionHours        int
-	DefaultReplicationFactor int
-	NumPartitions            int
-	NumIOThreads             int
-	NumReplicaFetchers       int
-	LogDirs                  string
-	Listeners                string
-	ZookeeperConnect         string
-	LogRetentionBytes        int
-	BrokerRack               string
+	NumNetWorkThreads                int
+	LogRetentionHours                int
+	DefaultReplicationFactor         int
+	NumPartitions                    int
+	NumIOThreads                     int
+	NumReplicaFetchers               int
+	LogDirs                          string
+	Listeners                        string
+	ZookeeperConnect                 string
+	LogRetentionBytes                int
+	BrokerRack                       string
+	ControllerQuorumBootstrapServers string
+	NodeId                           int
+	ProcessRoles                     string
+	UpperProcessRoles                string
 }
 
 func renderTemplate(value string, data TemplateData) (string, error) {

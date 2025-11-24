@@ -92,7 +92,7 @@ class KafkaActPayload(object):
             },
         }
 
-    def get_payload(self, action, host, rack="RACK1") -> dict:
+    def get_payload(self, action, host, rack="RACK1", node_id=1, role="broker") -> dict:
         """
         拼接安装payload参数
         """
@@ -132,6 +132,10 @@ class KafkaActPayload(object):
                     "no_security": int(self.ticket_data["no_security"]),
                     "retention_bytes": int(self.ticket_data["retention_bytes"]),
                     "rack": rack,
+                    "node_id": node_id,
+                    "role": role,
+                    "controller_voters": self.ticket_data.get("controller_voters", ""),
+                    "controller_servers": self.ticket_data.get("controller_servers", ""),
                 },
             },
         }

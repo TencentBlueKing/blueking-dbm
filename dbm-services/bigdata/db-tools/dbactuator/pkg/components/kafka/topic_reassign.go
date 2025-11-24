@@ -50,6 +50,22 @@ type Topic struct {
 // Init initializes the TopicReassignComp
 func (t *TopicReassignComp) Init() error {
 	logger.Info("Initializing topic reassignment component")
+	jaas := cst.KafkaJaasFilePath
+	clientProps := cst.KafkaClientProperties
+
+	if _, err := os.Stat(clientProps); err == nil {
+		// 已存在，直接返回
+		return nil
+	} else if !os.IsNotExist(err) {
+		// 发生其它错误（例如权限问题），返回错误以便上层处理
+		return fmt.Errorf("stat %s: %w", clientProps, err)
+	}
+
+	// 文件不存在，创建之
+	if err := kafkautil.GetClientProperties(jaas, clientProps); err != nil {
+		logger.Error("Failed to create client properties: %v", err)
+		return fmt.Errorf("create client properties: %w", err)
+	}
 	return nil
 }
 
@@ -63,16 +79,61 @@ func (t *TopicReassignComp) GenerateReassignmentPlans() error {
 		return fmt.Errorf("failed to write throttle rate file: %w", err)
 	}
 
-	// Get Zookeeper connection string
-	zkHost, zkPath, err := kafkautil.GetZookeeperConnect(cst.KafkaConfigFile)
-	if err != nil {
-		return fmt.Errorf("failed to get zookeeper connection string: %w", err)
+	// Determine whether topic and reassignment binaries support --zookeeper or need --bootstrap-server
+	topicBinHasZk, _ := supportsZookeeper(cst.DefaultTopicBin)
+	reassignBinHasZk, _ := supportsZookeeper(cst.DefaultReassignPartitionsBin)
+	topicFlag := cst.KafkaZKFlag
+	if !topicBinHasZk {
+		topicFlag = cst.KafkaBootstrapFlag
 	}
-	zkStr := zkHost + zkPath
-	logger.Info("zk: %s", zkStr)
+	reassignFlag := cst.KafkaZKFlag
+	if !reassignBinHasZk {
+		reassignFlag = cst.KafkaBootstrapFlag
+	}
 
-	// Get list of topics
-	cmd := fmt.Sprintf("%s --list --zookeeper %s", cst.DefaultTopicBin, zkStr)
+	var bootstrapStr string
+	var zkHost, zkPath, zkStr string
+	var conn *zk.Conn
+	var err error
+	if topicFlag == cst.KafkaBootstrapFlag || reassignFlag == cst.KafkaBootstrapFlag {
+		bootstrapStr, err = kafkautil.GetBootstrapServers(cst.KafkaConfigFile)
+		if err != nil {
+			return fmt.Errorf("failed to get bootstrap servers: %w", err)
+		}
+		logger.Info("bootstrap servers: %s", bootstrapStr)
+	}
+	useBootstrapAPI := false
+	version, verErr := kafkautil.GetKafkaVersion(cst.DefaultTopicBin)
+	logger.Info("Detected Kafka version: %s", version)
+	if verErr == nil {
+		if kafkautil.CompareVersion(version, cst.Kafka400) >= 0 {
+			useBootstrapAPI = true
+		}
+	}
+
+	// 3) 只在需要 ZK API 时才获取 zkHost/zkPath 和 建立连接
+	if !useBootstrapAPI {
+		zkHost, zkPath, err = kafkautil.GetZookeeperConnect(cst.KafkaConfigFile)
+		if err != nil {
+			return fmt.Errorf("failed to get zookeeper connection string: %w", err)
+		}
+		conn, _, err = zk.Connect([]string{zkHost}, 10*time.Second)
+		if err != nil {
+			return fmt.Errorf("connect zk failed: %w", err)
+		}
+		defer conn.Close()
+		zkStr = zkHost + zkPath
+		logger.Info("zk: %s", zkStr)
+	}
+
+	// Get list of topics (use correct endpoint)
+	topicEndpoint := zkStr
+	if topicFlag == cst.KafkaBootstrapFlag {
+		logger.Info(bootstrapStr)
+		topicEndpoint = bootstrapStr + fmt.Sprintf(" --command-config %s ", cst.KafkaClientProperties)
+	}
+	logger.Info(topicEndpoint)
+	cmd := fmt.Sprintf("%s --list %s %s", cst.DefaultTopicBin, topicFlag, topicEndpoint)
 	logger.Info("Executing command to get topic list: %s", cmd)
 	output, err := osutil.ExecShellCommandJ(false, cmd)
 	if err != nil {
@@ -83,61 +144,216 @@ func (t *TopicReassignComp) GenerateReassignmentPlans() error {
 	// Filter topics based on patterns if provided
 	filterTopics := filterTopics(topics, t.Params.Topics)
 	logger.Info("filterTopics: %v", filterTopics)
-
 	// Write filtered topics to list file
 	if err := os.WriteFile(cst.TopicListFilePath, []byte(strings.Join(filterTopics, "\n")), 0644); err != nil {
 		return fmt.Errorf("failed to write topic list file: %w", err)
 	}
 
-	conn, _, err := zk.Connect([]string{zkHost}, 10*time.Second)
-	if err != nil {
-		logger.Error("Connect zk failed, %s", err)
-		return err
+	// 获取各 broker 当前的分区数
+	var partitionCount map[string]int
+	endPoint := topicFlag + " " + topicEndpoint
+	if partitionCount, err = kafkautil.GetBrokerPartitionCounts(endPoint); err != nil {
+		return fmt.Errorf("failed to get broker partition counts: %w", err)
 	}
-	defer conn.Close()
+	logger.Info("Broker partition counts: %v", partitionCount)
 
-	replaceMode := len(t.Params.ExcludeBrokers) > 0
-	logger.Info("Replace mode: %v", replaceMode)
+	excludeCount := len(t.Params.ExcludeBrokers)
+	newCount := len(t.Params.NewBrokers)
+
+	replaceMode := false
+	shrinkMode := false
+	if excludeCount > 0 && newCount > 0 {
+		replaceMode = true
+	} else if excludeCount > 0 && newCount == 0 {
+		shrinkMode = true
+	}
 
 	var brokerListStr string
 	var excludeIDs, newIDs []int
-	if replaceMode {
-		// 获取 exclude/new broker 的ID
-		bIDs := make([]string, 0)
-		for _, ip := range t.Params.ExcludeBrokers {
-			id, err := kafkautil.GetBrokerIDByHost(conn, ip, zkPath)
-			if err != nil {
-				return fmt.Errorf("failed to get broker ID for exclude %s: %w", ip, err)
-			}
-			bIDs = append(bIDs, id)
-			intID, _ := strconv.Atoi(id)
-			excludeIDs = append(excludeIDs, intID)
-		}
-		for _, ip := range t.Params.NewBrokers {
-			id, err := kafkautil.GetBrokerIDByHost(conn, ip, zkPath)
-			if err != nil {
-				return fmt.Errorf("failed to get broker ID for new %s: %w", ip, err)
-			}
-			intID, _ := strconv.Atoi(id)
-			newIDs = append(newIDs, intID)
-		}
-		allBrokerIDs, err := kafkautil.GetBrokerIds(conn, zkPath)
+	var clusterOutput string
+	if useBootstrapAPI {
+		// 使用 kafka-cluster.sh list-endpoints 获取 broker 列表
+		// 请确保 cst.KafkaClusterBin 存在并指向 kafka-cluster.sh 路径
+		clusterCmd := fmt.Sprintf("%s list-endpoints --bootstrap-server %s --config %s",
+			cst.KafkaClusterBin, bootstrapStr, cst.KafkaClientProperties)
+		logger.Info("Executing cluster list-endpoints command: %s", clusterCmd)
+		var out string
+		out, err = osutil.ExecShellCommandJ(false, clusterCmd)
 		if err != nil {
-			return fmt.Errorf("failed to get all broker IDs: %w", err)
+			return fmt.Errorf("failed to exec list-endpoints: %w; output: %s", err, out)
 		}
-		remainBrokers := difference(allBrokerIDs, bIDs)
-		brokerListStr = strings.Join(remainBrokers, ",")
+		clusterOutput = out
+	}
+	if replaceMode {
+		if useBootstrapAPI {
+			var allBrokerIDs []string
+			allBrokerIDs, err = kafkautil.KraftBrokerIDs(clusterOutput)
+			if err != nil {
+				return fmt.Errorf("failed to parse broker ids from cluster output: %w", err)
+			}
+			// exclude -> ids (string & int)
+			excludeStrs := make([]string, 0, len(t.Params.ExcludeBrokers))
+			for _, ip := range t.Params.ExcludeBrokers {
+				idStr, err := kafkautil.KraftBrokerIDByIP(clusterOutput, ip)
+				if err != nil {
+					return fmt.Errorf("failed to get broker ID for exclude %s via bootstrap: %w", ip, err)
+				}
+				excludeStrs = append(excludeStrs, idStr)
+				if n, e := strconv.Atoi(idStr); e == nil {
+					excludeIDs = append(excludeIDs, n)
+				}
+			}
+			for _, ip := range t.Params.NewBrokers {
+				idStr, err := kafkautil.KraftBrokerIDByIP(clusterOutput, ip)
+				if err != nil {
+					return fmt.Errorf("failed to get broker ID for new %s via bootstrap: %w", ip, err)
+				}
+				if n, e := strconv.Atoi(idStr); e == nil {
+					newIDs = append(newIDs, n)
+				}
+			}
+			remainBrokers := difference(allBrokerIDs, excludeStrs)
+			brokerListStr = strings.Join(remainBrokers, ",")
+		} else {
+			// 获取 exclude/new broker 的ID
+			bIDs := make([]string, 0)
+			for _, ip := range t.Params.ExcludeBrokers {
+				id, err := kafkautil.GetBrokerIDByHost(conn, ip, zkPath)
+				if err != nil {
+					return fmt.Errorf("failed to get broker ID for exclude %s: %w", ip, err)
+				}
+				bIDs = append(bIDs, id)
+				intID, _ := strconv.Atoi(id)
+				excludeIDs = append(excludeIDs, intID)
+			}
+			for _, ip := range t.Params.NewBrokers {
+				id, err := kafkautil.GetBrokerIDByHost(conn, ip, zkPath)
+				if err != nil {
+					return fmt.Errorf("failed to get broker ID for new %s: %w", ip, err)
+				}
+				intID, _ := strconv.Atoi(id)
+				newIDs = append(newIDs, intID)
+			}
+			allBrokerIDs, err := kafkautil.GetBrokerIds(conn, zkPath)
+			if err != nil {
+				return fmt.Errorf("failed to get all broker IDs: %w", err)
+			}
+			remainBrokers := difference(allBrokerIDs, bIDs)
+			brokerListStr = strings.Join(remainBrokers, ",")
+		}
+	} else if shrinkMode {
+		// 1) 检查 exclude_brokers 是否在 kafka broker 列表里：
+		//    如果所有 exclude_brokers 都不存在于集群中，则直接返回 nil（nothing to shrink）。
+		//    如果部分存在，则以存在的那些作为要排除的目标继续后续流程。
+		var allBrokerIDs []string
+		excludeStrs := make([]string, 0, len(t.Params.ExcludeBrokers)) // 用于 KRaft 分支（string IDs）
+		bIDs := make([]string, 0, len(t.Params.ExcludeBrokers))        // 用于 ZK 分支（string IDs）
+		// a) collect exclude IDs from cluster (only collect those that actually exist)
+		if useBootstrapAPI {
+			allBrokerIDs, err = kafkautil.KraftBrokerIDs(clusterOutput)
+			if err != nil {
+				return fmt.Errorf("failed to parse broker ids from cluster output: %w", err)
+			}
+			// collect only those exclude brokers that exist in cluster
+			foundExcludeStrs := make([]string, 0, len(t.Params.ExcludeBrokers))
+			for _, ip := range t.Params.ExcludeBrokers {
+				idStr, e := kafkautil.KraftBrokerIDByIP(clusterOutput, ip)
+				if e != nil {
+					logger.Warn("Exclude broker %s not found in cluster (via bootstrap), will ignore it: %v", ip, e)
+					continue
+				}
+				foundExcludeStrs = append(foundExcludeStrs, idStr)
+				if n, e2 := strconv.Atoi(idStr); e2 == nil {
+					excludeIDs = append(excludeIDs, n)
+				}
+			}
+			if len(foundExcludeStrs) == 0 {
+				logger.Info("none of exclude brokers found in cluster (via bootstrap), nothing to shrink")
+				if err = copyToDoneFile(); err != nil {
+					return err
+				}
+				return nil
+			}
+			excludeStrs = foundExcludeStrs
+			pCount := sumPartitionCounts(partitionCount, excludeStrs)
+			if pCount == 0 {
+				logger.Info("all exclude brokers have zero partitions, nothing to shrink")
+				if err = copyToDoneFile(); err != nil {
+					return err
+				}
+				return nil
+			}
+		} else {
+			// ZK 分支：只收集实际存在的 exclude brokers
+			foundBIDs := make([]string, 0, len(t.Params.ExcludeBrokers))
+			for _, ip := range t.Params.ExcludeBrokers {
+				id, e := kafkautil.GetBrokerIDByHost(conn, ip, zkPath)
+				if e != nil {
+					logger.Warn("Exclude broker %s not found in cluster (via zookeeper), will ignore it: %v", ip, e)
+					continue
+				}
+				foundBIDs = append(foundBIDs, id)
+				intID, _ := strconv.Atoi(id)
+				excludeIDs = append(excludeIDs, intID)
+			}
+			if len(foundBIDs) == 0 {
+				logger.Info("none of exclude brokers found in cluster (via zookeeper), nothing to shrink")
+				if err = copyToDoneFile(); err != nil {
+					return err
+				}
+				return nil
+			}
+			bIDs = foundBIDs
+			pCount := sumPartitionCounts(partitionCount, bIDs)
+			if pCount == 0 {
+				logger.Info("all exclude brokers have zero partitions, nothing to shrink")
+				if err = copyToDoneFile(); err != nil {
+					return err
+				}
+				return nil
+			}
+			var allIDs []string
+			allIDs, err = kafkautil.GetBrokerIds(conn, zkPath)
+			if err != nil {
+				return fmt.Errorf("failed to get all broker IDs: %w", err)
+			}
+			allBrokerIDs = allIDs
+		}
+
+		// c) 通过排除 excludeStrs / bIDs 获取 remain brokers（跟 replaceMode 相似），构造 brokerListStr
+		if useBootstrapAPI {
+			remainBrokers := difference(allBrokerIDs, excludeStrs)
+			brokerListStr = strings.Join(remainBrokers, ",")
+		} else {
+			remainBrokers := difference(allBrokerIDs, bIDs)
+			brokerListStr = strings.Join(remainBrokers, ",")
+		}
+		// 检查exclude_brokers在partitionCount里面的分区数是否都为0
+		if useBootstrapAPI {
+
+		}
 	} else {
 		// 普通模式，获取所有 broker 的ID
 		brokerIDs := make([]string, 0)
+		var id string
 		for _, brokerIP := range t.Params.Brokers {
-			id, err := kafkautil.GetBrokerIDByHost(conn, brokerIP, zkPath)
+			if useBootstrapAPI {
+				id, err = kafkautil.KraftBrokerIDByIP(clusterOutput, brokerIP)
+			} else {
+				id, err = kafkautil.GetBrokerIDByHost(conn, brokerIP, zkPath)
+			}
 			if err != nil {
 				return fmt.Errorf("failed to get broker ID for %s: %w", brokerIP, err)
 			}
 			brokerIDs = append(brokerIDs, id)
 		}
 		brokerListStr = strings.Join(brokerIDs, ",")
+	}
+
+	// reassign endpoint depending on flag
+	reassignEndpoint := zkStr
+	if reassignFlag == cst.KafkaBootstrapFlag {
+		reassignEndpoint = bootstrapStr + fmt.Sprintf(" --command-config %s ", cst.KafkaClientProperties)
 	}
 
 	for _, topic := range filterTopics {
@@ -160,8 +376,8 @@ func (t *TopicReassignComp) GenerateReassignmentPlans() error {
 		}
 
 		// 2. 生成分配计划
-		cmd = fmt.Sprintf("%s --broker-list %s --topics-to-move-json-file %s --generate --zookeeper %s",
-			cst.DefaultReassignPartitionsBin, brokerListStr, topicJSONFile, zkStr)
+		cmd = fmt.Sprintf("%s --broker-list %s --topics-to-move-json-file %s --generate %s %s",
+			cst.DefaultReassignPartitionsBin, brokerListStr, topicJSONFile, reassignFlag, reassignEndpoint)
 		logger.Info("Executing command to generate reassignment plan: %s", cmd)
 		output, err := osutil.ExecShellCommandJ(false, cmd)
 
@@ -175,8 +391,8 @@ func (t *TopicReassignComp) GenerateReassignmentPlans() error {
 
 		if needRetry {
 			logger.Warn("Detected missing broker.rack info; retrying with --disable-rack-aware")
-			cmd = fmt.Sprintf("%s --broker-list %s --topics-to-move-json-file %s --generate --zookeeper %s --disable-rack-aware",
-				cst.DefaultReassignPartitionsBin, brokerListStr, topicJSONFile, zkStr)
+			cmd = fmt.Sprintf("%s --broker-list %s --topics-to-move-json-file %s --generate %s %s --disable-rack-aware",
+				cst.DefaultReassignPartitionsBin, brokerListStr, topicJSONFile, reassignFlag, reassignEndpoint)
 			logger.Info("Executing command to generate reassignment plan (disable rack aware): %s", cmd)
 			output, err = osutil.ExecShellCommandJ(false, cmd)
 			if err != nil {
@@ -224,12 +440,40 @@ func (t *TopicReassignComp) GenerateReassignmentPlans() error {
 
 // ExecuteReassignment executes the reassignment plans for all topics
 func (t *TopicReassignComp) ExecuteReassignment() error {
-	// Get Zookeeper connection string
-	zkHost, zkPath, err := kafkautil.GetZookeeperConnect(cst.KafkaConfigFile)
-	if err != nil {
-		return fmt.Errorf("failed to get zookeeper connection string: %w", err)
+	version, verErr := kafkautil.GetKafkaVersion(cst.DefaultTopicBin)
+	logger.Info("Detected Kafka version: %s", version)
+	useBootstrapAPI := false
+	if verErr == nil {
+		if kafkautil.CompareVersion(version, cst.Kafka400) >= 0 {
+			useBootstrapAPI = true
+		}
 	}
-	zkStr := zkHost + zkPath
+	var err error
+	var zkStr string
+	if !useBootstrapAPI {
+		// Get Zookeeper connection string
+		zkHost, zkPath, err := kafkautil.GetZookeeperConnect(cst.KafkaConfigFile)
+		if err != nil {
+			return fmt.Errorf("failed to get zookeeper connection string: %w", err)
+		}
+		zkStr = zkHost + zkPath
+	}
+
+	// Determine whether reassign binary supports --zookeeper or needs --bootstrap-server
+	reassignBinHasZk, _ := supportsZookeeper(cst.DefaultReassignPartitionsBin)
+	reassignFlag := cst.KafkaZKFlag
+	if !reassignBinHasZk {
+		reassignFlag = cst.KafkaBootstrapFlag
+	}
+	// If bootstrap-server needed, fetch it
+	var bootstrapStr string
+	if reassignFlag == cst.KafkaBootstrapFlag {
+		bootstrapStr, err = kafkautil.GetBootstrapServers(cst.KafkaConfigFile)
+		if err != nil {
+			return fmt.Errorf("failed to get bootstrap servers: %w", err)
+		}
+		logger.Info("bootstrap servers: %s", bootstrapStr)
+	}
 
 	// Read list of topics
 	topics, err := os.ReadFile(cst.TopicListFilePath)
@@ -241,6 +485,12 @@ func (t *TopicReassignComp) ExecuteReassignment() error {
 	total := len(topicList)
 	doneFile := cst.DoneFile
 	logger.Info("Total topics to reassign: %d", total)
+
+	// reassign endpoint
+	reassignEndpoint := zkStr
+	if reassignFlag == cst.KafkaBootstrapFlag {
+		reassignEndpoint = bootstrapStr + fmt.Sprintf(" --command-config %s ", cst.KafkaClientProperties)
+	}
 
 	for i, topic := range topicList {
 		if topic == "" {
@@ -275,8 +525,8 @@ func (t *TopicReassignComp) ExecuteReassignment() error {
 		// Execute reassignment
 		planJSONFile := fmt.Sprintf("reassign-%s.json", topic)
 
-		cmd := fmt.Sprintf("%s --execute --reassignment-json-file %s --throttle %s --zookeeper %s",
-			cst.DefaultReassignPartitionsBin, planJSONFile, throttleStr, zkStr)
+		cmd := fmt.Sprintf("%s --execute --reassignment-json-file %s --throttle %s %s %s",
+			cst.DefaultReassignPartitionsBin, planJSONFile, throttleStr, reassignFlag, reassignEndpoint)
 
 		logger.Info("Executing reassignment command: [%s]", cmd)
 		if output, err, exitCode := osutil.ExecShellCommandBd(false, cmd); exitCode != 0 {
@@ -285,8 +535,8 @@ func (t *TopicReassignComp) ExecuteReassignment() error {
 
 		// Wait for reassignment to complete
 		for {
-			cmd = fmt.Sprintf("%s --verify --reassignment-json-file %s --zookeeper %s",
-				cst.DefaultReassignPartitionsBin, planJSONFile, zkStr)
+			cmd = fmt.Sprintf("%s --verify --reassignment-json-file %s %s %s",
+				cst.DefaultReassignPartitionsBin, planJSONFile, reassignFlag, reassignEndpoint)
 			logger.Info("Verifying reassignment status for topic %s: [%s]", topic, cmd)
 			output, err, exitCode := osutil.ExecShellCommandBd(false, cmd)
 			if exitCode != 0 {
@@ -299,7 +549,7 @@ func (t *TopicReassignComp) ExecuteReassignment() error {
 			}
 
 			logger.Info("[%d/%d] Topic %s reassignment in progress, waiting 10 seconds...", i+1, total, topic)
-			time.Sleep(10 * time.Second)
+			time.Sleep(5 * time.Second)
 		}
 
 		// Mark as done
@@ -381,4 +631,42 @@ func difference(a, b []string) []string {
 		}
 	}
 	return diff
+}
+
+// supportsZookeeper checks if the given binary's help output contains "zookeeper".
+// If executing the help command fails, it logs a warning and returns false without error
+// (so the caller can fallback to using --bootstrap-server).
+func supportsZookeeper(bin string) (bool, error) {
+	helpCmd := bin
+	output, _ := osutil.ExecShellCommandJ(false, helpCmd)
+	logger.Warn("failed to exec help for %s, output: %s", bin, output)
+
+	return strings.Contains(output, "--zookeeper"), nil
+}
+
+func copyToDoneFile() error {
+	// 复制cst.TopicListFilePath到cst.DoneFilePath，表示操作成功完成但无实际变更
+	doneFile := cst.DoneFile
+	input, readErr := os.ReadFile(cst.TopicListFilePath)
+	if readErr != nil {
+		return fmt.Errorf("failed to read topic list file for done file creation: %w", readErr)
+	}
+	if writeErr := os.WriteFile(doneFile, input, 0644); writeErr != nil {
+		return fmt.Errorf("failed to write done file: %w", writeErr)
+	}
+
+	return nil
+}
+
+func sumPartitionCounts(counts map[string]int, keys []string) int {
+	if counts == nil {
+		return 0
+	}
+	sum := 0
+	for _, k := range keys {
+		if v, ok := counts[k]; ok {
+			sum += v
+		}
+	}
+	return sum
 }

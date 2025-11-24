@@ -132,22 +132,25 @@ class KafkaShrinkFlow(object):
         # 执行搬迁数据调度，只在一台机器上执行
         act_kwargs.exec_ip = [{"ip": exec_ip}]
         act_payload = KafkaActPayload(ticket_data=self.data, zookeeper_ip=self.data["zookeeper_ip"])
+
         act_kwargs.template = act_payload.get_shrink_payload(
-            action=KafkaActuatorActionEnum.ReduceBroker.value, host=exclude_brokers
+            action=KafkaActuatorActionEnum.GenerateReassignment.value,
+            host=exclude_brokers,
         )
         kafka_pipeline.add_act(
-            act_name=_("Kafka搬迁数据"),
+            act_name=_("生成替换计划"),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(act_kwargs),
         )
 
-        # 检查搬迁进度，只在一台机器上执行
+        # 检查搬迁进度
         act_kwargs.exec_ip = [{"ip": exec_ip}]
         act_kwargs.template = act_payload.get_shrink_payload(
-            action=KafkaActuatorActionEnum.CheckReassign.value, host=exclude_brokers
+            action=KafkaActuatorActionEnum.ExecuteReassignment.value,
+            host=exclude_brokers,
         )
         kafka_pipeline.add_act(
-            act_name=_("Kafka检查搬迁进度"),
+            act_name=_("执行替换计划"),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(act_kwargs),
         )
