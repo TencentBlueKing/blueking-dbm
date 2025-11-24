@@ -43,6 +43,7 @@ func NewOpsController(opsProvider provider.K8sCrdOpsRequestProvider) *OpsControl
 
 // GetOps get an OpsController by its ID.
 func (o *OpsController) GetOps(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaOpsRequestDetail)
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {

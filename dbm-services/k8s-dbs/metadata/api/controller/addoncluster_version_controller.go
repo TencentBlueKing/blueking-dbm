@@ -48,6 +48,7 @@ func NewAddonClusterVersionController(
 
 // ListAcVersions 获取 addon cluster version 列表
 func (a *AddonClusterVersionController) ListAcVersions(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaAcVersionList)
 	sizeStr := ctx.DefaultQuery("size", commconst.DefaultFetchSizeStr)
 	fetchSize, err := strconv.Atoi(sizeStr)
 	if err != nil {
@@ -70,6 +71,7 @@ func (a *AddonClusterVersionController) ListAcVersions(ctx *gin.Context) {
 
 // GetAcVersion 根据 ID 查找 addon cluster version
 func (a *AddonClusterVersionController) GetAcVersion(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaAcVersionDetail)
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
@@ -91,6 +93,7 @@ func (a *AddonClusterVersionController) GetAcVersion(ctx *gin.Context) {
 
 // CreateAcVersion 创建 addon cluster version
 func (a *AddonClusterVersionController) CreateAcVersion(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaAcVersionCreate)
 	var acVersionVo request.AddonClusterVersionRequest
 	if err := ctx.ShouldBindJSON(&acVersionVo); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
@@ -116,6 +119,7 @@ func (a *AddonClusterVersionController) CreateAcVersion(ctx *gin.Context) {
 
 // UpdateAcVersion 更新 addon cluster version.
 func (a *AddonClusterVersionController) UpdateAcVersion(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaAcVersionUpdate)
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
@@ -143,6 +147,7 @@ func (a *AddonClusterVersionController) UpdateAcVersion(ctx *gin.Context) {
 
 // DeleteAcVersion 删除 addon cluster version.
 func (a *AddonClusterVersionController) DeleteAcVersion(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaAcVersionDelete)
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {

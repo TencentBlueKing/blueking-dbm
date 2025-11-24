@@ -46,6 +46,7 @@ func NewK8sClusterConfigController(configProvider provider.K8sClusterConfigProvi
 
 // GetK8sClusterConfigByID get clusterConfig by its ID.
 func (k *K8sClusterConfigController) GetK8sClusterConfigByID(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaK8sConfigDetail)
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
@@ -67,6 +68,8 @@ func (k *K8sClusterConfigController) GetK8sClusterConfigByID(ctx *gin.Context) {
 
 // GetRegionsByVisibility 按照k8s集群可见性来获取集群区域列表
 func (k *K8sClusterConfigController) GetRegionsByVisibility(ctx *gin.Context) {
+	// TODO 待优化合并成 search by params
+	ctx.Set(commconst.APIName, commconst.APIMetaK8sConfigDetailByVis)
 	isPublicStr := ctx.Query("isPublic")
 	isPublic, err := strconv.ParseBool(isPublicStr)
 	if err != nil {
@@ -88,6 +91,8 @@ func (k *K8sClusterConfigController) GetRegionsByVisibility(ctx *gin.Context) {
 
 // GetK8sClusterConfigByName get clusterConfig by its Name.
 func (k *K8sClusterConfigController) GetK8sClusterConfigByName(ctx *gin.Context) {
+	// TODO 待优化合并成 search by params
+	ctx.Set(commconst.APIName, commconst.APIMetaK8sConfigDetailByName)
 	nameParam := ctx.Param("clusterName")
 	if nameParam == "" {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, fmt.Errorf("clusterName 参数不能为空")))
@@ -108,6 +113,7 @@ func (k *K8sClusterConfigController) GetK8sClusterConfigByName(ctx *gin.Context)
 
 // CreateK8sClusterConfig create a new clusterConfig.
 func (k *K8sClusterConfigController) CreateK8sClusterConfig(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaK8sConfigCreate)
 	var reqVo request.K8sClusterConfigRequest
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
@@ -133,6 +139,7 @@ func (k *K8sClusterConfigController) CreateK8sClusterConfig(ctx *gin.Context) {
 
 // UpdateK8sClusterConfig update existing clusterConfig.
 func (k *K8sClusterConfigController) UpdateK8sClusterConfig(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaK8sConfigUpdate)
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
@@ -160,6 +167,7 @@ func (k *K8sClusterConfigController) UpdateK8sClusterConfig(ctx *gin.Context) {
 
 // DeleteK8sClusterConfig delete a clusterConfig by its ID.
 func (k *K8sClusterConfigController) DeleteK8sClusterConfig(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaK8sConfigDelete)
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
