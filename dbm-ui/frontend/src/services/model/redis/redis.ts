@@ -88,6 +88,7 @@ export default class Redis extends ClusterBase {
     redis_plugin_dns_bind_clb: boolean;
     redis_purge: boolean;
     redis_source_access_view: boolean;
+    redis_subscribe_monitor: boolean;
     redis_view: boolean;
     redis_webconsole: boolean;
   };
