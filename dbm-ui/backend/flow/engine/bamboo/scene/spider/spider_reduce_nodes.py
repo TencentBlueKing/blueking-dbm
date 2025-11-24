@@ -102,7 +102,6 @@ class TenDBClusterReduceNodesFlow(object):
             and (spiders_count - len(spider_reduced_hosts) < self.mix_spider_master_count)
             and is_check_min_count
         ):
-
             raise NormalSpiderFlowException(
                 message=_("[{}]集群最后不能少于{}个spider_master实例".format(cluster.immute_domain, self.mix_spider_master_count))
             )
@@ -112,7 +111,6 @@ class TenDBClusterReduceNodesFlow(object):
             and (spiders_count - len(spider_reduced_hosts) < self.mix_spider_slave_count)
             and is_check_min_count
         ):
-
             raise NormalSpiderFlowException(
                 message=_("[{}]集群最后不能少于{}个spider_slave实例".format(cluster.immute_domain, self.mix_spider_slave_count))
             )
@@ -146,6 +144,7 @@ class TenDBClusterReduceNodesFlow(object):
         is_check_min_count: bool = True,
         is_check_disaster_tolerance_level: bool = True,
         is_check_process: bool = True,
+        disable_manual_confirm: bool = False,
     ):
         """
         根据cluster维度处理缩容子流程
@@ -156,8 +155,6 @@ class TenDBClusterReduceNodesFlow(object):
         @param is_check_min_count 是否要做下架后spider角色的数量的检测，默认是检测的。但特殊情况可以不检测，比如替换spider实例
         @param is_check_disaster_tolerance_level: 是否评估缩容后的是否满足容灾要求，默认是检测的。但特殊情况可以不检测，比如替换spider实例
         """
-        disable_manual_confirm = self.data.get("disable_manual_confirm", False)
-
         # 获取对应集群相关对象
         try:
             cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=int(self.data["bk_biz_id"]))
@@ -191,7 +188,7 @@ class TenDBClusterReduceNodesFlow(object):
         sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
 
         # 预检测
-        if is_check_process:
+        if is_check_process and not disable_manual_confirm:
             sub_pipeline.add_act(
                 act_name=_("检测回收Spider端连接情况"),
                 act_component_code=CheckClientConnComponent.code,

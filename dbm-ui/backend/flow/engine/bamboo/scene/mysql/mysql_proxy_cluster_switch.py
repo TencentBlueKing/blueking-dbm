@@ -212,16 +212,16 @@ class MySQLProxyClusterSwitchFlow(object):
             )
 
             # 解除对主从迁移的单据互斥锁，这个阶段到下一个暂停节点，允许主从迁移单据进入执行
-            if not disable_manual_confirm:
-                sub_pipeline.add_act(
-                    act_name=_("解锁部分单据互斥锁"),
-                    act_component_code=AddUnlockTicketTypeConfigComponent.code,
-                    kwargs=asdict(
-                        AddUnLockTicketTypeKwargs(
-                            cluster_ids=info["cluster_ids"], unlock_ticket_type_list=[TicketType.MYSQL_MIGRATE_CLUSTER]
-                        )
-                    ),
-                )
+            # if not disable_manual_confirm:
+            sub_pipeline.add_act(
+                act_name=_("解锁部分单据互斥锁"),
+                act_component_code=AddUnlockTicketTypeConfigComponent.code,
+                kwargs=asdict(
+                    AddUnLockTicketTypeKwargs(
+                        cluster_ids=info["cluster_ids"], unlock_ticket_type_list=[TicketType.MYSQL_MIGRATE_CLUSTER]
+                    )
+                ),
+            )
 
             # 初始新机器
             sub_pipeline.add_sub_pipeline(
@@ -433,6 +433,7 @@ class MySQLProxyClusterSwitchFlow(object):
                         admin_proxy_port=ProxyInstance.objects.filter(cluster=cluster)
                         .values_list("admin_port", flat=True)
                         .first(),
+                        disable_manual_confirm=disable_manual_confirm,
                     )
                 )
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=reduce_proxy_sub_list)
@@ -472,7 +473,13 @@ class MySQLProxyClusterSwitchFlow(object):
         mysql_proxy_cluster_add_pipeline.run_pipeline(init_trans_data_class=SystemInfoContext())
 
     def proxy_reduce_sub_flow(
-        self, cluster_id: int, bk_cloud_id: int, origin_proxy_ip: str, origin_proxy_port: int, admin_proxy_port: int
+        self,
+        cluster_id: int,
+        bk_cloud_id: int,
+        origin_proxy_ip: str,
+        origin_proxy_port: int,
+        admin_proxy_port: int,
+        disable_manual_confirm: bool = False,
     ):
         """
         回收proxy实例的子流程
@@ -496,7 +503,7 @@ class MySQLProxyClusterSwitchFlow(object):
         sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(flow_context))
 
         # 非强制条件下：检查proxy实例是否在连接，是连接则报异常
-        if self.data["is_safe"]:
+        if self.data["is_safe"] and not disable_manual_confirm:
             sub_pipeline.add_act(
                 act_name=_("检测Proxy端连接情况"),
                 act_component_code=CheckClientConnComponent.code,

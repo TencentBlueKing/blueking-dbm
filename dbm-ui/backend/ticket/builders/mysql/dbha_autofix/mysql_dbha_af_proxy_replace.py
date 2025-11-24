@@ -14,7 +14,7 @@ from backend.ticket.constants import TicketType
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_DBHA_AF_PROXY_REPLACE, is_apply=True, is_recycle=True)
-class MysqlDBHAAutofixProxyReplaceFlowBuilder(MysqlProxySwitchFlowBuilder):
+class MySQLDBHAAFProxyReplaceFlowBuilder(MysqlProxySwitchFlowBuilder):
     """
     自愈专用
     """
