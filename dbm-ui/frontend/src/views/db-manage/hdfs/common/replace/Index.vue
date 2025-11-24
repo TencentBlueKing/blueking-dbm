@@ -52,7 +52,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = ref<Record<'datanode', TReplaceNode>>({
+  const getInitInfo = (): Record<'datanode', TReplaceNode> => ({
     datanode: {
       clusterId: props.clusterData.id,
       hostList: [],
@@ -69,18 +69,27 @@
     },
   });
 
+  const nodeInfoMap = reactive(getInitInfo());
+
+  const setInitReplaceNodes = () => {
+    const datanodeList: TReplaceNode['oldHostList'] = [];
+
+    props.machineList.forEach((machineItem) => {
+      if (machineItem.isDataNode) {
+        datanodeList.push(machineItem);
+      }
+    });
+
+    nodeInfoMap.datanode.oldHostList = datanodeList;
+  };
+
   watch(
-    () => props.machineList,
+    isShow,
     () => {
-      const datanodeList: TReplaceNode['oldHostList'] = [];
-
-      props.machineList.forEach((machineItem) => {
-        if (machineItem.isDataNode) {
-          datanodeList.push(machineItem);
-        }
-      });
-
-      nodeInfoMap.value.datanode.oldHostList = datanodeList;
+      if (isShow.value) {
+        Object.assign(nodeInfoMap, getInitInfo());
+        setInitReplaceNodes();
+      }
     },
     {
       immediate: true,

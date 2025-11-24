@@ -48,6 +48,8 @@
     default: false,
   });
 
+  const { t } = useI18n();
+
   const generateNodeInfo = (values: Pick<TReplaceNode, 'role' | 'specMachineType' | 'label'>): TReplaceNode => ({
     ...values,
     clusterId: props.clusterData.id,
@@ -61,9 +63,7 @@
     specClusterType: ClusterTypes.DORIS,
   });
 
-  const { t } = useI18n();
-
-  const nodeInfoMap = ref<Record<'warm' | 'hot' | 'observer' | 'follower', TReplaceNode>>({
+  const getInitInfo = (): Record<'warm' | 'hot' | 'observer' | 'follower', TReplaceNode> => ({
     follower: generateNodeInfo({
       label: 'Follower',
       role: 'doris_follower',
@@ -87,30 +87,39 @@
     }),
   });
 
+  const nodeInfoMap = reactive(getInitInfo());
+
+  const setInitReplaceNodes = () => {
+    const hotList: TReplaceNode['oldHostList'] = [];
+    const warmList: TReplaceNode['oldHostList'] = [];
+    const observerList: TReplaceNode['oldHostList'] = [];
+    const followerList: TReplaceNode['oldHostList'] = [];
+
+    props.machineList.forEach((machineItem) => {
+      if (machineItem.isHot) {
+        hotList.push(machineItem);
+      } else if (machineItem.isWarm) {
+        warmList.push(machineItem);
+      } else if (machineItem.isObserver) {
+        observerList.push(machineItem);
+      } else if (machineItem.isFollower) {
+        followerList.push(machineItem);
+      }
+    });
+
+    nodeInfoMap.hot.oldHostList = hotList;
+    nodeInfoMap.warm.oldHostList = warmList;
+    nodeInfoMap.observer.oldHostList = observerList;
+    nodeInfoMap.follower.oldHostList = followerList;
+  };
+
   watch(
-    () => props.machineList,
+    isShow,
     () => {
-      const hotList: TReplaceNode['oldHostList'] = [];
-      const warmList: TReplaceNode['oldHostList'] = [];
-      const observerList: TReplaceNode['oldHostList'] = [];
-      const followerList: TReplaceNode['oldHostList'] = [];
-
-      props.machineList.forEach((machineItem) => {
-        if (machineItem.isHot) {
-          hotList.push(machineItem);
-        } else if (machineItem.isWarm) {
-          warmList.push(machineItem);
-        } else if (machineItem.isObserver) {
-          observerList.push(machineItem);
-        } else if (machineItem.isFollower) {
-          followerList.push(machineItem);
-        }
-      });
-
-      nodeInfoMap.value.hot.oldHostList = hotList;
-      nodeInfoMap.value.warm.oldHostList = warmList;
-      nodeInfoMap.value.observer.oldHostList = observerList;
-      nodeInfoMap.value.follower.oldHostList = followerList;
+      if (isShow.value) {
+        Object.assign(nodeInfoMap, getInitInfo());
+        setInitReplaceNodes();
+      }
     },
     {
       immediate: true,

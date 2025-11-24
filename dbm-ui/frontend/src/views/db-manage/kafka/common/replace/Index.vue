@@ -51,7 +51,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = ref<Record<'broker' | 'zookeeper', TReplaceNode>>({
+  const getInitInfo = (): Record<'broker' | 'zookeeper', TReplaceNode> => ({
     broker: {
       clusterId: props.clusterData.id,
       hostList: [],
@@ -82,22 +82,31 @@
     },
   });
 
+  const nodeInfoMap = reactive(getInitInfo());
+
+  const setInitReplaceNodes = () => {
+    const brokerList: TReplaceNode['oldHostList'] = [];
+    const zookeeperList: TReplaceNode['oldHostList'] = [];
+
+    props.machineList.forEach((machineItem) => {
+      if (machineItem.isBroker) {
+        brokerList.push(machineItem);
+      } else if (machineItem.isZookeeper) {
+        zookeeperList.push(machineItem);
+      }
+    });
+
+    nodeInfoMap.broker.oldHostList = brokerList;
+    nodeInfoMap.zookeeper.oldHostList = zookeeperList;
+  };
+
   watch(
-    () => props.machineList,
+    isShow,
     () => {
-      const brokerList: TReplaceNode['oldHostList'] = [];
-      const zookeeperList: TReplaceNode['oldHostList'] = [];
-
-      props.machineList.forEach((machineItem) => {
-        if (machineItem.isBroker) {
-          brokerList.push(machineItem);
-        } else if (machineItem.isZookeeper) {
-          zookeeperList.push(machineItem);
-        }
-      });
-
-      nodeInfoMap.value.broker.oldHostList = brokerList;
-      nodeInfoMap.value.zookeeper.oldHostList = zookeeperList;
+      if (isShow.value) {
+        Object.assign(nodeInfoMap, getInitInfo());
+        setInitReplaceNodes();
+      }
     },
     {
       immediate: true,

@@ -48,7 +48,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = ref<Record<'bookkeeper' | 'broker', TShrinkNode>>({
+  const getInitInfo = (): Record<'bookkeeper' | 'broker', TShrinkNode> => ({
     bookkeeper: {
       hostList: [],
       label: 'Bookkeeper',
@@ -73,6 +73,8 @@
       totalDisk: 0,
     },
   });
+
+  const nodeInfoMap = reactive(getInitInfo());
 
   const isLoading = ref(false);
   const nodeType = ref('broker');
@@ -101,59 +103,65 @@
           }
         });
 
-        nodeInfoMap.value.bookkeeper.originalNodeList = bookkeeperOriginalNodeList;
-        nodeInfoMap.value.bookkeeper.totalDisk = bookkeeperDiskTotal;
+        nodeInfoMap.bookkeeper.originalNodeList = bookkeeperOriginalNodeList;
+        nodeInfoMap.bookkeeper.totalDisk = bookkeeperDiskTotal;
 
-        nodeInfoMap.value.broker.originalNodeList = brokerOriginalNodeList;
-        nodeInfoMap.value.broker.totalDisk = brokerDiskTotal;
+        nodeInfoMap.broker.originalNodeList = brokerOriginalNodeList;
+        nodeInfoMap.broker.totalDisk = brokerDiskTotal;
       })
       .finally(() => {
         isLoading.value = false;
       });
   };
 
-  fetchListNode();
-
   // 默认选中的缩容节点
+  const setInitShrinkNodes = () => {
+    const bookkeeperHostList: TShrinkNode['hostList'] = [];
+    const brokerHostList: TShrinkNode['hostList'] = [];
+
+    let bookkeeperShrinkDisk = 0;
+    let brokerShrinkDisk = 0;
+
+    props.machineList.forEach((machineItem) => {
+      if (machineItem.isBookkeeper) {
+        bookkeeperShrinkDisk += machineItem.host_info?.bk_disk || 0;
+        bookkeeperHostList.push({
+          alive: machineItem.host_info?.alive || 0,
+          bk_cloud_id: machineItem.bk_cloud_id,
+          bk_disk: machineItem.host_info.bk_disk,
+          bk_host_id: machineItem.bk_host_id,
+          ip: machineItem.ip,
+        });
+      } else if (machineItem.isBroker) {
+        brokerShrinkDisk += machineItem.host_info?.bk_disk || 0;
+        brokerHostList.push({
+          alive: machineItem.host_info?.alive || 0,
+          bk_cloud_id: machineItem.bk_cloud_id,
+          bk_disk: machineItem.host_info.bk_disk,
+          bk_host_id: machineItem.bk_host_id,
+          ip: machineItem.ip,
+        });
+      }
+    });
+    nodeInfoMap.bookkeeper.hostList = bookkeeperHostList;
+    nodeInfoMap.bookkeeper.shrinkDisk = bookkeeperShrinkDisk;
+    nodeInfoMap.broker.hostList = brokerHostList;
+    nodeInfoMap.broker.shrinkDisk = brokerShrinkDisk;
+
+    if (bookkeeperHostList.length) {
+      nodeType.value = 'bookkeeper';
+    } else if (brokerHostList.length) {
+      nodeType.value = 'broker';
+    }
+  };
+
   watch(
-    () => props.machineList,
+    isShow,
     () => {
-      const bookkeeperHostList: TShrinkNode['hostList'] = [];
-      const brokerHostList: TShrinkNode['hostList'] = [];
-
-      let bookkeeperShrinkDisk = 0;
-      let brokerShrinkDisk = 0;
-
-      props.machineList.forEach((machineItem) => {
-        if (machineItem.isBookkeeper) {
-          bookkeeperShrinkDisk += machineItem.host_info?.bk_disk || 0;
-          bookkeeperHostList.push({
-            alive: machineItem.host_info?.alive || 0,
-            bk_cloud_id: machineItem.bk_cloud_id,
-            bk_disk: machineItem.host_info.bk_disk,
-            bk_host_id: machineItem.bk_host_id,
-            ip: machineItem.ip,
-          });
-        } else if (machineItem.isBroker) {
-          brokerShrinkDisk += machineItem.host_info?.bk_disk || 0;
-          brokerHostList.push({
-            alive: machineItem.host_info?.alive || 0,
-            bk_cloud_id: machineItem.bk_cloud_id,
-            bk_disk: machineItem.host_info.bk_disk,
-            bk_host_id: machineItem.bk_host_id,
-            ip: machineItem.ip,
-          });
-        }
-      });
-      nodeInfoMap.value.bookkeeper.hostList = bookkeeperHostList;
-      nodeInfoMap.value.bookkeeper.shrinkDisk = bookkeeperShrinkDisk;
-      nodeInfoMap.value.broker.hostList = brokerHostList;
-      nodeInfoMap.value.broker.shrinkDisk = brokerShrinkDisk;
-
-      if (bookkeeperHostList.length) {
-        nodeType.value = 'bookkeeper';
-      } else if (brokerHostList.length) {
-        nodeType.value = 'broker';
+      if (isShow.value) {
+        Object.assign(nodeInfoMap, getInitInfo());
+        setInitShrinkNodes();
+        fetchListNode();
       }
     },
     {

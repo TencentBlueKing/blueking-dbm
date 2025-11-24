@@ -45,7 +45,7 @@
   });
   const { t } = useI18n();
 
-  const nodeInfoMap = ref<Record<'datanode', TExpansionNode>>({
+  const getInitInfo = (): Record<'datanode', TExpansionNode> => ({
     datanode: {
       clusterId: props.clusterData.id,
       // targetDisk: 0,
@@ -67,6 +67,8 @@
       totalDisk: 0,
     },
   });
+
+  const nodeInfoMap = reactive(getInitInfo());
 
   const isLoading = ref(false);
 
@@ -90,15 +92,26 @@
           }
         });
 
-        nodeInfoMap.value.datanode.totalDisk = datanodeDiskTotal;
-        nodeInfoMap.value.datanode.originalHostList = datanodeOriginalHostList;
+        nodeInfoMap.datanode.totalDisk = datanodeDiskTotal;
+        nodeInfoMap.datanode.originalHostList = datanodeOriginalHostList;
       })
       .finally(() => {
         isLoading.value = false;
       });
   };
 
-  fetchHostDetail();
+  watch(
+    isShow,
+    () => {
+      if (isShow.value) {
+        Object.assign(nodeInfoMap, getInitInfo());
+        fetchHostDetail();
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChange = () => {
     emits('change');

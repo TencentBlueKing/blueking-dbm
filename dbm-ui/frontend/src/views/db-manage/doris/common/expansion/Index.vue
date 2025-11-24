@@ -48,6 +48,8 @@
     default: false,
   });
 
+  const { t } = useI18n();
+
   const generateNodeInfo = (
     values: Pick<
       TDorisExpansionNode,
@@ -71,9 +73,7 @@
     totalDisk: 0,
   });
 
-  const { t } = useI18n();
-
-  const nodeInfoMap = ref<Record<'warm' | 'hot' | 'observer', TDorisExpansionNode>>({
+  const getInitInfo = (): Record<'warm' | 'hot' | 'observer', TDorisExpansionNode> => ({
     hot: generateNodeInfo({
       label: t('热节点'),
       mutexNodeTypes: ['warm', 'observer'],
@@ -97,6 +97,8 @@
       tagText: t('存储层'),
     }),
   });
+
+  const nodeInfoMap = reactive(getInitInfo());
 
   const isLoading = ref(false);
 
@@ -131,21 +133,32 @@
           }
         });
 
-        nodeInfoMap.value.hot.totalDisk = hotDiskTotal;
-        nodeInfoMap.value.hot.originalHostList = hotOriginalHostList;
+        nodeInfoMap.hot.totalDisk = hotDiskTotal;
+        nodeInfoMap.hot.originalHostList = hotOriginalHostList;
 
-        nodeInfoMap.value.warm.totalDisk = warmDiskTotal;
-        nodeInfoMap.value.warm.originalHostList = warmOriginalHostList;
+        nodeInfoMap.warm.totalDisk = warmDiskTotal;
+        nodeInfoMap.warm.originalHostList = warmOriginalHostList;
 
-        nodeInfoMap.value.observer.totalDisk = observerDiskTotal;
-        nodeInfoMap.value.observer.originalHostList = observerOriginalHostList;
+        nodeInfoMap.observer.totalDisk = observerDiskTotal;
+        nodeInfoMap.observer.originalHostList = observerOriginalHostList;
       })
       .finally(() => {
         isLoading.value = false;
       });
   };
 
-  fetchMachineDetail();
+  watch(
+    isShow,
+    () => {
+      if (isShow.value) {
+        Object.assign(nodeInfoMap, getInitInfo());
+        fetchMachineDetail();
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChange = () => {
     emits('change');

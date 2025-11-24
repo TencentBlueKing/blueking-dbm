@@ -187,7 +187,7 @@
       >,
     );
 
-  const getResourceSpce = () => {
+  const getResourceSpec = () => {
     if (ipSource.value === 'manual_input') {
       return Object.entries(modelValue.value).reduce(
         (result, [nodeName, nodeInfo]) => {
@@ -230,7 +230,7 @@
     cluster_id: number;
     ext_info: ReturnType<typeof generateExtInfo>;
     ip_source: string;
-    resource_spec: ReturnType<typeof getResourceSpce>;
+    resource_spec: ReturnType<typeof getResourceSpec>;
   }>(ticketTypeMap[props.clusterData.db_type], {
     onSuccess() {
       emits('submit');
@@ -266,7 +266,7 @@
             cluster_id: props.clusterData.id,
             ext_info: generateExtInfo(),
             ip_source: ipSource.value,
-            resource_spec: getResourceSpce(),
+            resource_spec: getResourceSpec(),
           },
         }),
       subTitle: () => {

@@ -47,7 +47,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = ref<Record<'bookkeeper' | 'broker', TExpansionNode>>({
+  const getInitInfo = (): Record<'bookkeeper' | 'broker', TExpansionNode> => ({
     bookkeeper: {
       clusterId: props.clusterData.id,
       // targetDisk: 0,
@@ -90,6 +90,8 @@
     },
   });
 
+  const nodeInfoMap = reactive(getInitInfo());
+
   const isLoading = ref(false);
 
   // 获取主机详情
@@ -117,18 +119,29 @@
           }
         });
 
-        nodeInfoMap.value.bookkeeper.totalDisk = bookkeeperDiskTotal;
-        nodeInfoMap.value.bookkeeper.originalHostList = bookkeeperOriginalHostList;
+        nodeInfoMap.bookkeeper.totalDisk = bookkeeperDiskTotal;
+        nodeInfoMap.bookkeeper.originalHostList = bookkeeperOriginalHostList;
 
-        nodeInfoMap.value.broker.totalDisk = brokerDiskTotal;
-        nodeInfoMap.value.broker.originalHostList = brokerOriginalHostList;
+        nodeInfoMap.broker.totalDisk = brokerDiskTotal;
+        nodeInfoMap.broker.originalHostList = brokerOriginalHostList;
       })
       .finally(() => {
         isLoading.value = false;
       });
   };
 
-  fetchHostDetail();
+  watch(
+    isShow,
+    () => {
+      if (isShow.value) {
+        Object.assign(nodeInfoMap, getInitInfo());
+        fetchHostDetail();
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChange = () => {
     emits('change');
