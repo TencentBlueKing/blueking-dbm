@@ -19,7 +19,7 @@
           @batch-edit="handleClusterBatchEdit" />
         <DatetimeColumn
           v-model="item.start_time"
-          :disabled-date="(date) => handleStartTimeDisableCallback(date, getDateNow())"
+          :disabled-date="disableDate"
           field="start_time"
           :label="t('回档时间')"
           @batch-edit="handleBatchEdit"
@@ -63,6 +63,7 @@
             v-if="formData.end_time_mode.mode === 'specified_time'"
             v-model="formData.end_time_mode.time"
             class="ml-16"
+            :disabled-date="disableDate"
             :placeholder="t('请选择指定时间')"
             style="width: 240px"
             type="datetime" />
@@ -248,10 +249,7 @@
     }[];
   }>(TicketTypes.MYSQL_FLASHBACK);
 
-  const getDateNow = () => dayjs(Date.now()).format('YYYY-MM-DD HH:mm:ss');
-
-  const handleStartTimeDisableCallback = (date: Date | number, endDate: string) =>
-    dayjs(date).isAfter(dayjs(endDate), 'day');
+  const disableDate = (date?: number | Date) => dayjs(date).isAfter(dayjs(), 'day');
 
   const handleDateChange = (row: RowData) => {
     if (row.start_time) {
