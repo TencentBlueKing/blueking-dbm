@@ -51,15 +51,6 @@
       }>
     >
   >({});
-</script>
-<script setup lang="ts">
-  import _ from 'lodash';
-
-  import { queryAllTypeCluster, queryWebconsole } from '@services/source/dbbase';
-
-  import { downloadText } from '@utils';
-
-  import { useTextSelection } from './hooks/useTextSelection';
 
   export interface Props {
     checkLineBreak?: (value: string, cursorIndex: number) => boolean;
@@ -82,6 +73,15 @@
     isInputed: (id?: number) => boolean;
     updateCommand: () => void;
   }
+</script>
+<script setup lang="ts">
+  import _ from 'lodash';
+
+  import { queryAllTypeCluster, queryWebconsole } from '@services/source/dbbase';
+
+  import { downloadText } from '@utils';
+
+  import { useTextSelection } from './hooks/useTextSelection';
 
   const props = withDefaults(defineProps<Props>(), {
     checkLineBreak: () => false,
@@ -379,7 +379,7 @@
       lines.forEach((item) => {
         if (Array.isArray(item)) {
           // mysql 数据表
-          const titles = Object.keys(item[0]);
+          const titles = item[0] ? Object.keys(item[0]) : [];
           exportTxt += titles.join('\t');
           exportTxt += '\n';
           item.forEach((row) => {
