@@ -60,6 +60,19 @@
           :label="t('访问DB')"
           :width="300">
           <template #default="{ row }: {row: MysqlPermissionAccountModel}">
+            <div v-if="row.rules.length === 0">
+              <span>{{ t('暂无规则') }}，</span>
+              <AuthButton
+                action-id="tendbcluster_add_account_rule"
+                :permission="row.permission.tendbcluster_add_account_rule"
+                :resource="row.account.account_id"
+                size="small"
+                text
+                theme="primary"
+                @click="handleGoCreateRules">
+                {{ t('立即新建') }}
+              </AuthButton>
+            </div>
             <p
               v-for="item in rowFlodMap[row.account.user] ? row.rules : row.rules.slice(0, 1)"
               :key="item.rule_id"
@@ -269,7 +282,7 @@
 
   const handleGoCreateRules = () => {
     const route = router.resolve({
-      name: 'PermissionRules',
+      name: 'spiderPermission',
     });
     window.open(route.href);
   };

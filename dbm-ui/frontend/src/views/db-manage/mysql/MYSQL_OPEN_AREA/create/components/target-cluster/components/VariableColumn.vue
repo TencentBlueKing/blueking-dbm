@@ -21,7 +21,7 @@
     <template #headAppend>
       <BatchEditColumn
         v-model="showBatchEdit"
-        :placeholder="t('只能包含英文字母、数字，多个换行分隔')"
+        :placeholder="t('只能包含英文字母、数字')"
         :title="variableName"
         title-prefix-type="edit"
         type="input"

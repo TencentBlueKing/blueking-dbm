@@ -31,6 +31,7 @@
           :label="t('新 DB')"
           :width="300" />
         <BkTableColumn
+          field="data_tblist"
           :label="t('表结构')"
           :width="180">
           <template #default>
@@ -38,10 +39,14 @@
           </template>
         </BkTableColumn>
         <BkTableColumn
+          field="schema_tblist"
           :label="t('表数据')"
           :width="180">
           <template #default="{ row }: { row: RowData }">
-            <RenderTagOverflow :data="_.flatMap(row.data_tblist)" />
+            <span v-if="row.schema_tblist.length === 0">--</span>
+            <RenderTagOverflow
+              v-else
+              :data="_.flatMap(row.schema_tblist)" />
           </template>
         </BkTableColumn>
         <BkTableColumn :label="t('授权 IP')">
