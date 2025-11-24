@@ -114,8 +114,10 @@
 
 <style lang="less">
   .spec-detail-popover-default-container {
-    width: 100%;
+    display: inline-block;
+    padding-bottom: 2px;
     cursor: pointer;
+    border-bottom: 1px dashed #979ba5;
   }
 
   .spec-detail-popover-content {
