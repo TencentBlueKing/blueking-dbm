@@ -116,9 +116,9 @@
     [ClusterTypes.MONGO_SHARED_CLUSTER]: getMongoClustersTopoGraph,
     [ClusterTypes.ORACLE_PRIMARY_STANDBY]: getOracleHaClusterTopoGraph,
     [ClusterTypes.ORACLE_SINGLE_NONE]: getOracleSingleClusterTopoGraph,
+    [ClusterTypes.PREDIXY_REDIS_CLUSTER]: getRedisTopoGraph,
+    [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: getRedisTopoGraph,
     [ClusterTypes.PULSAR]: getPulsarTopoGraph,
-    [ClusterTypes.REDIS]: getRedisTopoGraph,
-    [ClusterTypes.REDIS_CLUSTER]: getRedisTopoGraph,
     [ClusterTypes.REDIS_INSTANCE]: getRedisTopoGraph,
     [ClusterTypes.RIAK]: getRiakTopoGraph,
     [ClusterTypes.SQLSERVER_HA]: getHaClusterTopoGraph,
@@ -126,10 +126,12 @@
     [ClusterTypes.TENDBCLUSTER]: getTendbclusterTopoGraph,
     [ClusterTypes.TENDBHA]: getTendbhaTopoGraph,
     [ClusterTypes.TENDBSINGLE]: getTendbsingleTopoGraph,
+    [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: getRedisTopoGraph,
+    [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: getRedisTopoGraph,
   };
 </script>
 <script setup lang="tsx">
-  interface Props {
+  export interface Props {
     clusterType: keyof typeof apiMap;
     // eslint-disable-next-line vue/no-unused-properties
     dbType: string;

@@ -27,31 +27,22 @@
         v-model="quickSearchValue"
         :data="quickSearchData"
         :placeholder="t('请输入或选择条件搜索')"
-        style="flex: 1; max-width: 560px; margin-left: auto"
-        @change="handleSearchValueChange" />
+        style="flex: 1; max-width: 560px; margin-left: auto" />
     </div>
     <DbTable
       ref="hostTableRef"
       :data-source="dataSource"
       :filter-value="quickSearchValue"
-      releate-url-query
       row-key="bk_host_id"
       selectable
-      @request-success="handleRequestSuccess"
+      @filter-change="handleFilterChange"
       @selection="handleSelectChange">
-      <HostListFieldColumn
-        :db-type="dbType"
-        :role-list="roleList" />
+      <HostListFieldColumn :cluster-type="clusterType" />
     </DbTable>
   </div>
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
-
-  import type { ListBase } from '@services/types';
-
-  import { clusterTypeInfos, ClusterTypes, DBTypes } from '@common/const';
 
   import DbTable from '@components/db-table/IndexNew.vue';
 
@@ -68,8 +59,6 @@
   type IData = ServiceReturnType<ReturnType<typeof useClusterMachineList>>['results'][number];
 
   const props = defineProps<Props>();
-  const dbType =
-    props.clusterType === ClusterTypes.REDIS_CLUSTER ? DBTypes.REDIS : clusterTypeInfos[props.clusterType].dbType;
 
   const { t } = useI18n();
 
@@ -77,8 +66,10 @@
   const requestHandler = useClusterMachineList(props.clusterType);
 
   const hostTableRef = ref<InstanceType<typeof DbTable>>();
-  const { handleSearchValueChange, quickSearchData, quickSearchValue } = useHostSearchSelect(dbType, {
-    tableRef: hostTableRef,
+  const { quickSearchData, quickSearchValue } = useHostSearchSelect(props.clusterType, {
+    serviceHandler: () => {
+      fetchData();
+    },
   });
 
   const dataSource = (params: ServiceParameters<typeof requestHandler>) =>
@@ -88,25 +79,13 @@
     });
 
   const selectedHostList = shallowRef<IData[]>([]);
-  const roleList = shallowRef<
-    {
-      label: string;
-      value: string;
-    }[]
-  >([]);
+
+  const fetchData = () => {
+    hostTableRef?.value?.fetchData({ ...quickSearchValue.value });
+  };
 
   const handleSelectChange = (_key: string[], list: IData[]) => {
     selectedHostList.value = list;
-  };
-
-  const handleRequestSuccess = (list: ListBase<IData[]>) => {
-    roleList.value = _.uniqBy(
-      list.results.map((item) => ({
-        label: item.instance_role,
-        value: item.instance_role,
-      })),
-      'value',
-    );
   };
 
   const handleSelectedHostIp = () => {
@@ -119,6 +98,10 @@
 
   const handleAllHostIp = () => {
     copyAllIp(hostTableRef.value!.getData() || []);
+  };
+
+  const handleFilterChange = (filterValue: Record<string, any>) => {
+    quickSearchValue.value = filterValue;
   };
 </script>
 <style lang="less">

@@ -5264,5 +5264,6 @@
   "单据执行时间": "单据执行时间",
   "update 转 replace": "update 转 replace",
   "仅回滚 delete": "仅回滚 delete",
+  "机架 ID": "机架 ID",
   "这行勿动！新增翻译请在上一行添加！": ""
 }
