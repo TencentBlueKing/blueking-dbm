@@ -41,7 +41,6 @@ def ha_failover_drill_unit(city: str):
     city_map = conf.city_map
     max_retry = conf.max_retry
     interval = conf.interval
-
     mfod = MysqlFailoverDrill(
         city=city,
         labels=labels,

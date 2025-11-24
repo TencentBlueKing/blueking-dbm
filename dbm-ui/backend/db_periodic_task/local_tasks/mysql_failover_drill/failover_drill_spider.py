@@ -13,6 +13,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks.mysql_failover_drill.failover_drill import MysqlFailoverDrill
+from backend.db_report.enums import ReportStateType
 from backend.db_report.models import FailoverDrillReport
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket.constants import TicketType
@@ -36,6 +37,7 @@ class TendbclusterFailoverDrill(MysqlFailoverDrill):
     def init_report(self):
         # 默认任务是失败的，只有跑到最后才确认状态为True
         report = {
+            "state": ReportStateType.WARNING.value,
             "bk_biz_id": self.bk_biz_id,
             "bk_cloud_id": self.bk_cloud_id,
             "status": False,
