@@ -51,7 +51,9 @@
       @filter-change="handleFilterChange"
       @selection="handleSelection">
       <template #operation>
-        <OperationColumn :cluster-type="ClusterTypes.REDIS_INSTANCE">
+        <OperationColumn
+          ref="operationColumnRef"
+          :cluster-type="ClusterTypes.REDIS_INSTANCE">
           <template #default="{ data }: { data: RedisModel }">
             <div v-db-console="'redis.haClusterManage.extractKey'">
               <OperationBtnStatusTips
@@ -160,6 +162,11 @@
                 </AuthButton>
               </OperationBtnStatusTips>
             </div>
+            <ClusterAlarmSubscribe
+              :data="data"
+              db-console-prefix="redis.haClusterManage"
+              @click="hideOperationColumn"
+              @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
             <div v-db-console="'redis.haClusterManage.queryAccessSource'">
               <OperationBtnStatusTips
                 :data="data"
@@ -314,6 +321,7 @@
 
   import TagBlock from '@components/tag-block/Index.vue';
 
+  import ClusterAlarmSubscribe from '@views/db-manage/common/cluster-alarm-subscribe/Index.vue';
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
@@ -357,6 +365,8 @@
     showDetail: isShowDetail,
   } = useGoClusterDetail('redisClusterHaDetail');
   const { handleSelection, selectedIdList, selectedList } = useClusterTableSelect<RedisModel>();
+
+  const operationColumnRef = ref<ComponentExposed<typeof OperationColumn>>();
 
   const disableSelectMethod = (data: RedisModel) => {
     if (data.operations?.length > 0) {
@@ -403,7 +413,12 @@
     });
   };
 
+  const hideOperationColumn = () => {
+    operationColumnRef.value?.hide();
+  };
+
   const handleShowPassword = (id: number) => {
+    hideOperationColumn();
     passwordState.isShow = true;
     passwordState.fetchParams.cluster_id = id;
   };
