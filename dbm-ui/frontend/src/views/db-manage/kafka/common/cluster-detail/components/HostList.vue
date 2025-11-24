@@ -89,8 +89,7 @@
         v-model="quickSearchValue"
         :data="quickSearchData"
         :placeholder="t('请输入或选择条件搜索')"
-        style="flex: 1; max-width: 560px; margin-left: auto"
-        @change="handleSearchValueChange" />
+        style="flex: 1; max-width: 560px; margin-left: auto" />
     </div>
     <BkAlert
       v-if="clusterData?.operationStatusText"
@@ -118,14 +117,11 @@
       ref="hostTableRef"
       :data-source="dataSource"
       :filter-value="quickSearchValue"
-      releate-url-query
       row-key="bk_host_id"
       selectable
-      @request-success="handleRequestSuccess"
+      @filter-change="handleFilterChange"
       @selection="handleSelectChange">
-      <HostListFieldColumn
-        :db-type="DBTypes.ES"
-        :role-list="roleList" />
+      <HostListFieldColumn :cluster-type="ClusterTypes.KAFKA" />
       <TableColumn
         col-key="row-operation"
         fixed="right"
@@ -196,9 +192,8 @@
 
   import KafkaDetailModel from '@services/model/kafka/kafka-detail';
   import KafkaMachineModel from '@services/model/kafka/kafka-machine';
-  import type { ListBase } from '@services/types';
 
-  import { ClusterTypes, DBTypes } from '@common/const';
+  import { ClusterTypes } from '@common/const';
 
   import DbTable from '@components/db-table/IndexNew.vue';
 
@@ -239,8 +234,10 @@
   const fetchClusterMachineList = useClusterMachineList(ClusterTypes.KAFKA);
 
   const hostTableRef = ref<InstanceType<typeof DbTable>>();
-  const { fetchData, handleSearchValueChange, quickSearchData, quickSearchValue } = useHostSearchSelect(DBTypes.KAFKA, {
-    tableRef: hostTableRef,
+  const { quickSearchData, quickSearchValue } = useHostSearchSelect(ClusterTypes.KAFKA, {
+    serviceHandler: () => {
+      fetchData();
+    },
   });
 
   const dataSource = (params: Parameters<typeof fetchClusterMachineList>[0]) =>
@@ -256,12 +253,6 @@
 
   const operationNodeList = shallowRef<Array<KafkaMachineModel>>([]);
   const selectedMachineList = shallowRef<Array<KafkaMachineModel>>([]);
-  const roleList = shallowRef<
-    {
-      label: string;
-      value: string;
-    }[]
-  >([]);
 
   const isBatchReplaceDisabeld = computed(() => selectedMachineList.value.length < 1);
 
@@ -289,14 +280,10 @@
     return options;
   });
 
-  const handleRequestSuccess = (list: ListBase<KafkaMachineModel[]>) => {
-    roleList.value = _.uniqBy(
-      list.results.map((item) => ({
-        label: item.instance_role,
-        value: item.instance_role,
-      })),
-      'value',
-    );
+  const fetchData = () => {
+    hostTableRef?.value?.fetchData({
+      ...quickSearchValue.value,
+    });
   };
 
   const handleSelectChange = (_key: string[], list: KafkaMachineModel[]) => {
@@ -346,6 +333,10 @@
   const handleReplaceOne = (data: KafkaMachineModel) => {
     operationNodeList.value = [data];
     isShowReplace.value = true;
+  };
+
+  const handleFilterChange = (filterValue: Record<string, any>) => {
+    quickSearchValue.value = filterValue;
   };
 </script>
 <style lang="less">

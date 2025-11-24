@@ -13,7 +13,18 @@
     </a>
   </InfoItem>
 </template>
-<script setup lang="ts" generic="T extends ClusterTypes.ES | ClusterTypes.REDIS">
+<script
+  setup
+  lang="ts"
+  generic="
+    T extends
+      | ClusterTypes.ES
+      | ClusterTypes.REDIS_INSTANCE
+      | ClusterTypes.PREDIXY_REDIS_CLUSTER
+      | ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER
+      | ClusterTypes.TWEMPROXY_REDIS_INSTANCE
+      | ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE
+  ">
   import { useI18n } from 'vue-i18n';
 
   import ClusterEntryDetailModel, {

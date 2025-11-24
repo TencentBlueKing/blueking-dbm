@@ -274,25 +274,25 @@
       <ActionPanel
         :cluster-data="data"
         :cluster-role-node-group="clusterRoleNodeGroup"
-        :cluster-type="ClusterTypes.REDIS_CLUSTER">
+        :cluster-type="data.cluster_type">
         <template #infoContent>
           <BaseInfo
-            :cluster-type="ClusterTypes.REDIS"
+            :cluster-type="data.cluster_type"
             :data="data"
             @refresh="fetchDetailData">
             <template #clbMaster>
               <ClbInfo
-                :cluster-type="ClusterTypes.REDIS"
+                :cluster-type="data.cluster_type"
                 :data="data" />
             </template>
             <template #polaris>
               <PolarisInfo
-                :cluster-type="ClusterTypes.REDIS"
+                :cluster-type="data.cluster_type"
                 :data="data" />
             </template>
             <template #load>
               <ClusterLoad
-                :cluster-type="ClusterTypes.REDIS"
+                :cluster-type="data.cluster_type"
                 :domain="data.master_domain"
                 type="text" />
             </template>

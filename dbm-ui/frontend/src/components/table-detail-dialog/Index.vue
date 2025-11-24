@@ -86,7 +86,8 @@
         ele.classList?.contains('bk-popper') ||
         ele.classList?.contains('tippy-box') ||
         ele.classList?.contains('db-navigation-side-menu') ||
-        ele.classList?.contains('bk-date-picker-dropdown')
+        ele.classList?.contains('bk-date-picker-dropdown') ||
+        ele.classList?.contains('t-popup')
       ) {
         return true;
       }

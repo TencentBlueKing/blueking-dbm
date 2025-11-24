@@ -15,8 +15,12 @@
       | ClusterTypes.ES
       | ClusterTypes.MONGO_SHARED_CLUSTER
       | ClusterTypes.TENDBHA
-      | ClusterTypes.REDIS
       | ClusterTypes.TENDBCLUSTER
+      | ClusterTypes.REDIS_INSTANCE
+      | ClusterTypes.PREDIXY_REDIS_CLUSTER
+      | ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER
+      | ClusterTypes.TWEMPROXY_REDIS_INSTANCE
+      | ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE
   ">
   import ClusterEntryDetailModel, { type ClbTargetDetails } from '@services/model/cluster-entry/cluster-entry-details';
 

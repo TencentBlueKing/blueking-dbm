@@ -21,8 +21,6 @@ const clusterAttrs = [
   'disaster_tolerance_level',
 ] as const;
 
-console.log(clusterTypeInfos);
-
 export const useClusterQuickSearch = (cluster_type: ClusterTypes | ClusterTypes[]) => {
   const { t } = useI18n();
 
