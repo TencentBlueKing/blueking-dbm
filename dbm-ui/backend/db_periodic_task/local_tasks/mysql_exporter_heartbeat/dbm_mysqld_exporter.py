@@ -131,6 +131,7 @@ def check_tendbha_exporter_up():
     检查 集群里的每个实例 是否有上报 mysql_up 指标，且上报的 instance_role 是正确的
     query_cluster_exporter_up
     """
+    logger.info("tendbha_exporter_up checking")
     # tendbha backend use mysql_up
     tendbha_exporter_up_map = query_cluster_exporter_up(ClusterType.TenDBHA, "dbm_mysqld_exporter")
     if len(tendbha_exporter_up_map) <= 2:
@@ -164,6 +165,7 @@ def check_tendbha_exporter_up():
 
 
 def check_tendbcluster_exporter_up():
+    logger.info("tendbcluster_exporter_up checking")
     # tendbcluster backend and proxy both use mysql_up
     tendbcluster_exporter_up_map = query_cluster_exporter_up(ClusterType.TenDBCluster, "dbm_mysqld_exporter")
     if len(tendbcluster_exporter_up_map) <= 2:
@@ -194,6 +196,7 @@ def check_tendbcluster_exporter_up():
 
 
 def check_tendbsingle_exporter_up():
+    logger.info("tendbsingle_exporter_up checking")
     # tendbsingle use mysql_up
     tendbsingle_exporter_up_map = query_cluster_exporter_up(ClusterType.TenDBSingle, "dbm_mysqld_exporter")
     if len(tendbsingle_exporter_up_map) <= 2:

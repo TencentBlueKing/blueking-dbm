@@ -323,12 +323,15 @@ func (t *backupTask) run(ctx context.Context, cnf *config.BackupConfig) (err err
 	}
 	// 备份权限 backup priv info
 	// 注意：如果只备份权限，则走 backupexe.ExecuteBackup(cnf) 逻辑
-	//  如果还备份 schema/data，则走下面这个逻辑
+	//  如果还备份 schema/data，则走下面这个逻辑。这种情况如果权限备份失败，还是会继续备份数据
 	if cnf.Public.IfBackupGrant() && !cnf.Public.IfBackupGrantOnly() {
 		logger.Log.Infof("backup grant for %d: begin", cnf.Public.MysqlPort)
 		if err := runner.BackupGrant(&cnf.Public); err != nil {
 			logger.Log.Error("Failed to backup Grant information")
-			return err
+			if resp, reportErr := reapi.SyncReport(
+				reportCore, t.statusReport.SetStatus("Failed", "backup grant failed")); reportErr != nil {
+				logger.Log.Warnf("report backup status, resp: %s", string(resp))
+			}
 		}
 		logger.Log.Info("backup Grant information: end")
 	}

@@ -42,7 +42,7 @@ func (x *Xtrabackup) RepairUserAdmin(userAdmin, password string, version string)
 	var dropUserHosts []string
 	var keepUserHosts []string // 不在这些列表里的 admin host 将会被 DELETE
 	if adminHosts, err := x.dbWorker.QueryOneColumn("host", adminHostsQuery); err != nil {
-		logger.Warn("failed to query admin account '%s': %s", userAdmin, err.Error())
+		logger.Warn("failed to query admin account '%s': %v", userAdmin, err)
 		if errors.Is(err, sql.ErrNoRows) || err.Error() == native.NotRowFound {
 			adminAccount := components.MySQLAdminAccount{AdminUser: userAdmin, AdminPwd: password}.
 				GetAccountPrivs(x.TgtInstance.Host)
@@ -187,7 +187,7 @@ func (x *Xtrabackup) RepairNonSysMyIsamTables(ctx context.Context) error {
 				return ctx.Err()
 			default:
 			}
-			repairSql := fmt.Sprintf("repair table %s.%s", row.TableSchema, row.TableName)
+			repairSql := fmt.Sprintf("repair table `%s`.`%s`", row.TableSchema, row.TableName)
 			if _, internalErr := x.dbWorker.Exec(repairSql); internalErr != nil {
 				logger.Error("repair myisam table error,sql:%s,error:%w", repairSql, internalErr.Error())
 				return internalErr
