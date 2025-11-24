@@ -17,6 +17,7 @@ from backend.components.dbresource.client import DBResourceApi
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.exceptions import ClusterNotExistException, DBMetaException
 from backend.db_meta.models import BKCity, Cluster, Machine, ProxyInstance
+from backend.db_report.enums import ReportStateType
 from backend.db_report.models.failover_drill_report import FailoverDrillReport
 from backend.db_services.cmdb.biz import get_or_create_resource_module, get_resource_biz
 from backend.db_services.dbresource.exceptions import (
@@ -72,7 +73,16 @@ class MysqlFailoverDrill(BaseFailoverDrill):
         return ClusterType.TenDBHA.value
 
     def init_report(self):
+        """
+        state 说明：
+          abnormal: dbha切换失败
+          normal: dbha切换成功
+          warning: 容灾演练流程有问题（不代表dbha的状态）
+        只有在有dbha切换信息时，才更新state为 normal 或 abnormal；
+        非dbha切换信息时，其余全部更新为 warning。
+        """
         report = {
+            "state": ReportStateType.WARNING.value,
             "bk_biz_id": self.bk_biz_id,
             "bk_cloud_id": self.bk_cloud_id,
             "status": False,
@@ -482,6 +492,7 @@ class MysqlFailoverDrill(BaseFailoverDrill):
                 dbha_info = dbha_infos[instance_type]
                 q.dbha_info = dbha_info
                 q.dbha_status = dbha_info.get("status", "failed")
+                q.state = ReportStateType.ABNORMAL.value if q.dbha_status == "failed" else ReportStateType.NORMAL.value
                 q.switch_start_time = dbha_info.get("switch_start_time", None)
                 q.switch_finished_time = dbha_info.get("switch_finished_time", None)
 
