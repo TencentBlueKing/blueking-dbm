@@ -12,24 +12,39 @@
 -->
 
 <template>
-  <div class="version-files-view">
-    <DbTab v-model="tabActive" />
-    <FileContent
-      :key="tabActive"
-      :info="activeTabInfo"
-      :pkg-type-list="pkgList" />
+  <div class="version-files-page">
+    <DbTab
+      v-model="dbTypeActive"
+      :exclude="[DBTypes.TENDBCLUSTER]" />
+    <div class="veriosn-content-main">
+      <BkTab
+        v-model:active="pkgActive"
+        class="pkg-tab-main"
+        type="card-tab">
+        <BkTabPanel
+          v-for="tab of activeTabInfo?.children"
+          :key="tab.name"
+          :label="tab.label"
+          :name="tab.name" />
+      </BkTab>
+      <div class="content-main">
+        <List
+          :db-type="dbTypeActive"
+          :pkg-label-map="pkgLabelMap"
+          :pkg-type="pkgActive"
+          :tabs="renderTabs" />
+      </div>
+    </div>
   </div>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import type {
     ControllerBaseInfo,
     ExtractedControllerDataKeys,
     FunctionKeys,
   } from '@services/model/function-controller/functionController';
-  import { listPackageTypes } from '@services/source/package';
 
   import { useFunController } from '@stores';
 
@@ -37,9 +52,9 @@
 
   import DbTab from '@components/db-tab/Index.vue';
 
-  import FileContent from './components/FileContent.vue';
+  import List from './components/list/Index.vue';
 
-  interface TabItem {
+  export interface TabItem {
     children: {
       controllerId?: FunctionKeys;
       label: string;
@@ -55,6 +70,8 @@
 
   const { t } = useI18n();
   const funControllerStore = useFunController();
+
+  const pkgActive = ref('');
 
   const tabs: TabItem[] = [
     {
@@ -118,19 +135,19 @@
       label: 'MySQL',
       name: DBTypes.MYSQL,
     },
-    {
-      children: [
-        {
-          label: 'TenDBCluster',
-          name: DBTypes.TENDBCLUSTER,
-        },
-      ],
-      controller: {
-        moduleId: 'mysql',
-      },
-      label: 'TenDBCluster',
-      name: DBTypes.TENDBCLUSTER,
-    },
+    // {
+    //   children: [
+    //     {
+    //       label: 'TenDBCluster',
+    //       name: DBTypes.TENDBCLUSTER,
+    //     },
+    //   ],
+    //   controller: {
+    //     moduleId: 'mysql',
+    //   },
+    //   label: 'TenDBCluster',
+    //   name: DBTypes.TENDBCLUSTER,
+    // },
     {
       children: [
         {
@@ -378,9 +395,18 @@
     },
   ];
 
+  const pkgLabelMap = tabs.reduce<Record<string, string>>((dataMap, item) => {
+    item.children.forEach((child) => {
+      Object.assign(dataMap, {
+        [child.name]: child.label,
+      });
+    });
+    return dataMap;
+  }, {});
+
   const renderTabs = tabs.filter((item) => {
     const { id, moduleId } = item.controller;
-    const data = funControllerStore.funControllerData[moduleId];
+    const data = funControllerStore.funControllerData[moduleId] as any;
     // 整个模块没有开启
     if (!data || data.is_enabled !== true) {
       return false;
@@ -407,41 +433,51 @@
     return true;
   });
 
-  const tabActive = ref<DBTypes>(DBTypes.MYSQL);
-  const packageTypeMap = ref<Record<string, string[]>>({});
+  const dbTypeActive = ref<DBTypes>(DBTypes.MYSQL);
   const activeTabInfo = computed(() => {
-    const tabList = renderTabs.find((item) => item.name === tabActive.value);
+    const tabList = renderTabs.find((item) => item.name === dbTypeActive.value);
     return tabList
       ? tabList
       : {
+          children: [],
           label: '',
           name: '',
         };
   });
 
-  const pkgList = computed(() => packageTypeMap.value![tabActive.value] ?? []);
-
-  useRequest(listPackageTypes, {
-    defaultParams: [
-      {
-        limit: -1,
-        offset: 0,
-      },
-    ],
-    onSuccess(data) {
-      packageTypeMap.value = data;
+  watch(
+    dbTypeActive,
+    () => {
+      pkgActive.value = activeTabInfo.value?.children[0]?.name || '';
     },
-  });
+    {
+      immediate: true,
+    },
+  );
 </script>
 <style lang="less">
-  .version-files-view {
-    .top-tabs {
-      padding: 0 24px;
-      background: #fff;
-      box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
+  .version-files-page {
+    display: flex;
+    height: 100%;
+    flex-direction: column;
 
-      .bk-tab-content {
-        display: none;
+    .veriosn-content-main {
+      flex: 1;
+      display: flex;
+      padding: 20px 24px;
+      flex-direction: column;
+      overflow: hidden;
+
+      .pkg-tab-main {
+        .bk-tab-content {
+          display: none;
+        }
+      }
+
+      .content-main {
+        overflow: hidden;
+        background-color: #fff;
+        flex: 1;
       }
     }
   }
