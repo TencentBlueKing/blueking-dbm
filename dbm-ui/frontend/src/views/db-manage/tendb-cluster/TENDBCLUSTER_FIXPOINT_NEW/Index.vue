@@ -34,6 +34,7 @@
             allow-repeat
             :label="t('源集群')"
             :selected="selected"
+            :tab-list-config="tabListConfig"
             @batch-edit="handleClusterBatchEdit" />
           <BackupRecordColumn
             v-if="formData.rollbackMethod === 'BACKUPID'"
@@ -82,9 +83,6 @@
               for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
             }" />
-          <OperationColumn
-            v-model:table-data="formData.tableData"
-            :create-row-method="createTableRow" />
         </EditableRow>
       </EditableTable>
       <TicketPayload v-model="formData.payload" />
@@ -122,7 +120,7 @@
 
   import { useCreateTicket, useTicketDetail, useTimeZoneFormat } from '@hooks';
 
-  import { DBTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
@@ -155,6 +153,14 @@
   const { format: formatDateToUTC } = useTimeZoneFormat();
 
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
+
+  const tabListConfig = {
+    [ClusterTypes.TENDBCLUSTER]: {
+      id: ClusterTypes.TENDBCLUSTER,
+      multiple: false,
+      name: t('集群选择'),
+    },
+  };
 
   const batchInputConfig = computed(() => {
     const base = [
@@ -231,7 +237,6 @@
   let isTicketLoaded = false;
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
   useTicketDetail<TendbCluster.ResourcePool.RollbackCluster>(TicketTypes.TENDBCLUSTER_FIXPOINT_NEW, {
     onSuccess(ticketDetail) {
@@ -357,19 +362,11 @@
   };
 
   const handleClusterBatchEdit = (list: TendbClusterModel[]) => {
-    const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.master_domain]) {
-        acc.push(
-          createTableRow({
-            cluster: {
-              master_domain: item.master_domain,
-            },
-          }),
-        );
-      }
-      return acc;
-    }, []);
-    formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
+    Object.assign(formData.tableData[0], {
+      cluster: {
+        master_domain: list[0].master_domain,
+      },
+    });
   };
 
   const handleBatchEdit = (value: any, field: string) => {
