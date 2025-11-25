@@ -106,8 +106,7 @@ location /{{bk_biz_id}}/{{db_type}}/{{cluster_name}}/{{service_type}} {
     proxy_set_header X-Forwarded-Host $http_host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_pass {{service_url}}/{{bk_biz_id}}/{{db_type}}/{{cluster_name}}/{{service_type}};
-    proxy_cookie_path / /{{bk_biz_id}}/{{db_type}}/{{cluster_name}}/{{service_type}};
+    proxy_pass {{service_url}};
     client_max_body_size 100m;
     proxy_connect_timeout 120;
     proxy_send_timeout 120;

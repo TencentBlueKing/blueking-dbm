@@ -2,6 +2,8 @@
 
 from django.db import migrations, models
 
+from backend.db_meta.enums import ClusterType
+
 
 class Migration(migrations.Migration):
 
@@ -18,41 +20,7 @@ class Migration(migrations.Migration):
                 (
                     "cluster_type",
                     models.CharField(
-                        choices=[
-                            ("tendbsingle", "MySQL单节点集群"),
-                            ("tendbha", "MySQL高可用集群"),
-                            ("tendbcluster", "TendbCluster集群"),
-                            ("tbinlogdumper", "TBinlogDumper"),
-                            ("redis", "Redis"),
-                            ("PredixyRedisCluster", "RedisCluster集群"),
-                            ("PredixyTendisplusCluster", "Tendisplus存储版集群"),
-                            ("TwemproxyRedisInstance", "TendisCache集群"),
-                            ("TwemproxyTendisSSDInstance", "TendisSSD集群"),
-                            ("TwemproxyTendisplusInstance", "Tendis存储版集群"),
-                            ("RedisInstance", "RedisCache主从版"),
-                            ("TendisSSDInstance", "TendisSSD主从版"),
-                            ("TendisplusInstance", "Tendisplus主从版"),
-                            ("RedisCluster", "RedisCluster集群"),
-                            ("TendisplusCluster", "TendisplusCluster集群"),
-                            ("TendisplusInstance", "Tendisplus存储版集群"),
-                            ("RedisInstance", "TendisCache集群"),
-                            ("TendisSSDInstance", "TendisSSD集群"),
-                            ("es", "ES集群"),
-                            ("kafka", "Kafka集群"),
-                            ("hdfs", "Hdfs集群"),
-                            ("influxdb", "Influxdb实例"),
-                            ("pulsar", "Pulsar集群"),
-                            ("doris", "Doris集群"),
-                            ("vm", "vm集群"),
-                            ("dbmon", "redis监控"),
-                            ("MongoReplicaSet", "Mongo副本集"),
-                            ("MongoShardedCluster", "Mongo分片集群"),
-                            ("riak", "Riak集群"),
-                            ("sqlserver_single", "sqlserver单节点版"),
-                            ("sqlserver_ha", "sqlserver主从版"),
-                            ("oracle_primary_standby", "oracle主从版"),
-                            ("oracle_single_none", "oracle单节点版"),
-                        ],
+                        choices=ClusterType.get_choices(),
                         default="",
                         max_length=64,
                     ),
@@ -69,6 +37,48 @@ class Migration(migrations.Migration):
                 "managed": True,
                 "unique_together": {("cluster", "bk_biz_id", "subtype")},
                 "index_together": {("subtype", "cluster_type")},
+            },
+        ),
+        migrations.CreateModel(
+            name="MysqlExporterCheckReport",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("creator", models.CharField(max_length=64, verbose_name="创建人")),
+                ("create_at", models.DateTimeField(auto_now_add=True, verbose_name="创建时间")),
+                ("updater", models.CharField(max_length=64, verbose_name="修改人")),
+                ("update_at", models.DateTimeField(auto_now=True, verbose_name="更新时间")),
+                ("bk_biz_id", models.IntegerField(default=0, help_text="业务的 cmdb id")),
+                ("bk_cloud_id", models.IntegerField(default=0, help_text="云区域 id")),
+                ("status", models.BooleanField(default=True, help_text="巡检结果状态, 默认正常")),
+                ("state", models.CharField(default="", help_text="巡检结果状态", max_length=64)),
+                ("failed_days", models.IntegerField(default=0, help_text="失败持续天数")),
+                ("msg", models.TextField(default="", help_text="备注信息")),
+                ("cluster", models.CharField(default="", max_length=255)),
+                (
+                    "cluster_type",
+                    models.CharField(
+                        choices=ClusterType.get_choices(),
+                        default="",
+                        max_length=64,
+                    ),
+                ),
+                (
+                    "subtype",
+                    models.CharField(
+                        choices=[
+                            ("mysqld_exporter_up", "mysqld_exporter上报检查"),
+                            ("mysqlproxy_exporter_up", "mysqlproxy_exporter上报检查"),
+                        ],
+                        default="",
+                        help_text="exporter检查子项",
+                        max_length=64,
+                    ),
+                ),
+                ("instance", models.CharField(default="", help_text="实例地址", max_length=255)),
+            ],
+            options={
+                "managed": True,
+                "index_together": {("cluster", "subtype"), ("cluster", "instance")},
             },
         ),
     ]
