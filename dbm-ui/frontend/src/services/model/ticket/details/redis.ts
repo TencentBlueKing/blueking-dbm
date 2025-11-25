@@ -23,7 +23,7 @@ import type { ExecuteModes, HostInfo, OnlineSwitchType, RepairModes } from '@ser
 import type { ClusterTypes } from '@common/const';
 import { Affinity } from '@common/const';
 
-import type { DetailBase, DetailClusters, DetailSpecs, SpecInfo } from './common';
+import type { ApplySpecInfo, DetailBase, DetailClusters, DetailSpecs } from './common';
 
 // redis 新建从库
 export interface RedisAddSlaveDetails extends DetailBase {
@@ -310,7 +310,7 @@ export interface RedisDetails extends DetailBase {
         spec_name: string;
       };
     };
-    proxy: SpecInfo;
+    proxy: ApplySpecInfo;
   };
 }
 

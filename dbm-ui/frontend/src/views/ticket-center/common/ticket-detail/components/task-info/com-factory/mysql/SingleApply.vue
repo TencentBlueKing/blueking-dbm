@@ -35,21 +35,35 @@
   </InfoList>
   <div class="info-title mt-20">{{ t('需求信息') }}</div>
   <InfoList>
-    <InfoItem
-      v-if="ticketDetails.details.resource_spec?.backend"
-      :label="t('后端存储资源规格')">
-      <SpecDetailPopover
-        :data="ticketDetails.details.resource_spec.backend"
-        placement="top">
-        <span
-          class="pb-2"
-          style="cursor: pointer; border-bottom: 1px dashed #979ba5">
-          {{ ticketDetails.details.resource_spec.backend.spec_name }}（{{
-            `${ticketDetails.details.resource_spec.backend.count} ${t('台')}`
-          }}）
-        </span>
-      </SpecDetailPopover>
-    </InfoItem>
+    <template v-if="ticketDetails.details.resource_spec?.backend">
+      <InfoItem :label="t('后端存储资源规格')">
+        <SpecDetailPopover
+          :data="ticketDetails.details.resource_spec.backend"
+          placement="top">
+          <span
+            class="pb-2"
+            style="cursor: pointer; border-bottom: 1px dashed #979ba5">
+            {{ ticketDetails.details.resource_spec.backend.spec_name }}（{{
+              `${ticketDetails.details.resource_spec.backend.count} ${t('台')}`
+            }}）
+          </span>
+        </SpecDetailPopover>
+      </InfoItem>
+      <InfoItem :label="t('后端存储资源标签')">
+        <template v-if="ticketDetails.details.resource_spec.backend.label_names?.length">
+          <BkTag
+            v-for="item in ticketDetails.details.resource_spec.backend.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
+      </InfoItem>
+    </template>
     <InfoItem
       :label="t('域名设置')"
       style="flex: 1 0 100%">

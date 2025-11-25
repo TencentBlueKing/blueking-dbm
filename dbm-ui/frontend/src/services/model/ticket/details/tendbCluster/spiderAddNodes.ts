@@ -1,4 +1,4 @@
-import type { DetailBase, DetailClusters, SpecInfo } from '../common';
+import type { ApplySpecInfo, DetailBase, DetailClusters } from '../common';
 
 /**
  *  TenDB Cluster 扩容接入层
@@ -17,5 +17,5 @@ export interface SpiderAddNodes extends DetailBase {
     };
   }[];
   ip_source: string;
-  specs: Record<string, SpecInfo>;
+  specs: Record<string, ApplySpecInfo>;
 }

@@ -64,6 +64,22 @@
       <span v-else>--</span>
     </InfoItem>
     <InfoItem
+      v-if="!isAppend"
+      :label="t('资源标签')">
+      <template v-if="backendSpec && backendSpec.label_names?.length">
+        <BkTag
+          v-for="item in backendSpec.label_names"
+          :key="item">
+          {{ item }}
+        </BkTag>
+      </template>
+      <BkTag
+        v-else
+        theme="success">
+        {{ t('通用无标签') }}
+      </BkTag>
+    </InfoItem>
+    <InfoItem
       :label="t('域名设置')"
       style="flex: 1 0 100%">
       <TicketInfoTable

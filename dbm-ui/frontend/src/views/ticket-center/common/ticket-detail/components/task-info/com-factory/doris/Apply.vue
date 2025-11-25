@@ -46,7 +46,7 @@
       {{ ticketDetails.details.http_port || '--' }}
     </InfoItem>
     <template v-if="isFromResourcePool">
-      <InfoItem :label="t('Follower节点')">
+      <InfoItem :label="t('Follower节点规格')">
         <SpecDetailPopover
           v-if="followerSpec"
           :data="followerSpec"
@@ -59,7 +59,21 @@
         </SpecDetailPopover>
         <span v-else>--</span>
       </InfoItem>
-      <InfoItem :label="t('Observer节点')">
+      <InfoItem :label="t('Follower 节点资源标签')">
+        <template v-if="followerSpec && followerSpec.label_names?.length">
+          <BkTag
+            v-for="item in followerSpec.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
+      </InfoItem>
+      <InfoItem :label="t('Observer 节点标签')">
         <SpecDetailPopover
           v-if="observerSpec"
           :data="observerSpec"
@@ -72,7 +86,21 @@
         </SpecDetailPopover>
         <span v-else>--</span>
       </InfoItem>
-      <InfoItem :label="t('热节点')">
+      <InfoItem :label="t('Observer节点资源标签')">
+        <template v-if="observerSpec && observerSpec.label_names?.length">
+          <BkTag
+            v-for="item in observerSpec.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
+      </InfoItem>
+      <InfoItem :label="t('热节点规格')">
         <SpecDetailPopover
           v-if="hotSpec"
           :data="hotSpec"
@@ -85,7 +113,21 @@
         </SpecDetailPopover>
         <span v-else>--</span>
       </InfoItem>
-      <InfoItem :label="t('温节点')">
+      <InfoItem :label="t('热节点资源标签')">
+        <template v-if="hotSpec && hotSpec.label_names?.length">
+          <BkTag
+            v-for="item in hotSpec.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
+      </InfoItem>
+      <InfoItem :label="t('温节点规格')">
         <SpecDetailPopover
           v-if="warmSpec"
           :data="warmSpec"
@@ -97,6 +139,20 @@
           </span>
         </SpecDetailPopover>
         <span v-else>--</span>
+      </InfoItem>
+      <InfoItem :label="t('温节点资源标签')">
+        <template v-if="warmSpec && warmSpec.label_names?.length">
+          <BkTag
+            v-for="item in warmSpec.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
       </InfoItem>
       <InfoItem
         v-db-console="'common.dorisColdResource'"

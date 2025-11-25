@@ -86,9 +86,21 @@
                   :cloud-id="formData.details.bk_cloud_id"
                   :cluster-type="DBTypes.MONGODB"
                   :machine-type="MachineTypes.MONGO_CONFIG"
-                  style="width: 314px"
                   :subzone-ids="formData.details.sub_zone_ids" />
               </BkFormItem>
+              <ResourcePreview
+                v-model:tag-list="formData.details.resource_spec.mongo_config.labels"
+                :biz-id="formData.bk_biz_id"
+                :params="{
+                  city: formData.details.city_name,
+                  subzones: formData.details.sub_zone_names.join('，'),
+                  subzone_ids: formData.details.sub_zone_ids.join(','),
+                  for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
+                  resource_types: [DBTypes.MONGODB, 'PUBLIC'],
+                  spec_id: Number(formData.details.resource_spec.mongo_config.spec_id),
+                  labels: formData.details.resource_spec.mongo_config.labels.map((item) => item.id).join(','),
+                }"
+                property="details.resource_spec.mongo_config.labels" />
               <BkFormItem
                 :label="t('数量')"
                 property="details.resource_spec.mongo_config.count"
@@ -117,9 +129,21 @@
                   :cloud-id="formData.details.bk_cloud_id"
                   :cluster-type="DBTypes.MONGODB"
                   :machine-type="MachineTypes.MONGOS"
-                  style="width: 314px"
                   :subzone-ids="formData.details.sub_zone_ids" />
               </BkFormItem>
+              <ResourcePreview
+                v-model:tag-list="formData.details.resource_spec.mongos.labels"
+                :biz-id="formData.bk_biz_id"
+                :params="{
+                  city: formData.details.city_name,
+                  subzones: formData.details.sub_zone_names.join('，'),
+                  subzone_ids: formData.details.sub_zone_ids.join(','),
+                  for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
+                  resource_types: [DBTypes.MONGODB, 'PUBLIC'],
+                  spec_id: Number(formData.details.resource_spec.mongos.spec_id),
+                  labels: formData.details.resource_spec.mongos.labels.map((item) => item.id).join(','),
+                }"
+                property="details.resource_spec.mongos.labels" />
               <BkFormItem
                 :label="t('数量')"
                 property="details.resource_spec.mongos.count"
@@ -140,9 +164,11 @@
               v-model:apply-schema="applySchema"
               v-model:spec-data="mongoConfigSpecData"
               :params="{
+                city_name: formData.details.city_name,
                 city_code: formData.details.city_code,
                 bk_biz_id: formData.bk_biz_id,
                 sub_zone_ids: formData.details.sub_zone_ids,
+                sub_zone_names: formData.details.sub_zone_names,
                 bk_cloud_id: formData.details.bk_cloud_id,
               }" />
           </BkFormItem>
@@ -225,6 +251,7 @@
   import ClusterName from '@views/db-manage/common/apply-items/ClusterName.vue';
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements-mongodb/Index.vue';
+  import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
   import { APPLY_SCHEME } from '@views/db-manage/common/apply-schema/Index.vue';
 
@@ -235,6 +262,7 @@
     details: {
       bk_cloud_id: 0,
       city_code: '',
+      city_name: '',
       cluster_alias: '',
       cluster_name: '',
       cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER,
@@ -246,11 +274,19 @@
       resource_spec: {
         mongo_config: {
           count: 3,
+          labels: [] as {
+            id: number;
+            value: string;
+          }[],
           spec_id: '',
         },
         mongodb: {
           capacity: 0,
           count: 0,
+          labels: [] as {
+            id: number;
+            value: string;
+          }[],
           machine_group_shard_num: 0,
           shard_machine_group: 0,
           shard_node_count: 3,
@@ -259,11 +295,16 @@
         },
         mongos: {
           count: 2,
+          labels: [] as {
+            id: number;
+            value: string;
+          }[],
           spec_id: '',
         },
       },
       start_port: 27021,
       sub_zone_ids: [] as number[],
+      sub_zone_names: [] as string[],
     },
     remark: '',
     ticket_type: TicketTypes.MONGODB_SHARD_APPLY,
@@ -297,9 +338,17 @@
 
       if (details.ip_source === 'resource_pool') {
         const resourceSpec = Object.entries(details.resource_spec!).reduce((prev, [specType, specInfo]) => {
+          const labels = (specInfo.labels || []).map((labelItem, labelIndex) => ({
+            id: Number(labelItem),
+            value: specInfo.label_names[labelIndex],
+          }));
           return Object.assign(prev, {
             [specType]: {
+              ...formData.details.resource_spec[
+                specType as keyof UnwrapRef<typeof formData>['details']['resource_spec']
+              ],
               count: specInfo.count,
+              labels,
               spec_id: specInfo.spec_id,
             },
           });
@@ -483,6 +532,8 @@
             // spec_id: mongoConfig.spec_id,
             ...mongoCofigSpecRef.value!.getData(),
             ...regionAndDisasterParams,
+            label_names: mongoConfig.labels.map((item: { value: string }) => item.value),
+            labels: mongoConfig.labels.map((item: { id: number }) => String(item.id)),
           },
           mongodb: {
             // ...mongodb,
@@ -491,6 +542,8 @@
             count: mongodb.count,
             cpu: mongodbSpecData.cpu,
             instance_num: mongodbSpecData.instance_num,
+            label_names: mongodb.labels.map((item: { value: string }) => item.value),
+            labels: mongodb.labels.map((item: { id: number }) => String(item.id)),
             mem: mongodbSpecData.mem,
             spec_id: mongodb.spec_id,
             spec_name: mongodbSpecData.spec_name,
@@ -500,6 +553,8 @@
             ...mongos,
             ...mongosSpecRef.value!.getData(),
             ...regionAndDisasterParams,
+            label_names: mongos.labels.map((item: { value: string }) => item.value),
+            labels: mongos.labels.map((item: { id: number }) => String(item.id)),
           },
         },
         shard_machine_group: mongodb.shard_machine_group,
@@ -508,7 +563,11 @@
     };
 
     // 若业务没有英文名称则先创建业务英文名称再创建单据，反正直接创建单据
-    bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
+    if (bizState.hasEnglishName) {
+      handleCreateTicket(params);
+    } else {
+      handleCreateAppAbbr(params);
+    }
   };
 
   defineExpose({
@@ -524,7 +583,7 @@
   });
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
   @import '@styles/applyInstance.less';
 
   .shared-cluster-apply {
@@ -534,7 +593,7 @@
       color: #63656e;
     }
 
-    :deep(.item-input) {
+    .item-input {
       width: 435px;
     }
 
@@ -554,7 +613,7 @@
 
           .bk-select,
           .bk-input {
-            width: 314px;
+            width: 314px !important;
           }
         }
       }

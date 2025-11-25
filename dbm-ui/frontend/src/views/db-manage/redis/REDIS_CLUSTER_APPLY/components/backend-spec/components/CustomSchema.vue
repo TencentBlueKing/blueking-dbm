@@ -1,5 +1,5 @@
 <template>
-  <div class="custom-schema">
+  <div class="redis-custom-schema">
     <DbFormItem
       :label="t('规格')"
       property="details.resource_spec.backend_group.spec_id"
@@ -15,6 +15,19 @@
         style="width: 314px"
         :subzone-ids="subzoneIds" />
     </DbFormItem>
+    <ResourcePreview
+      v-model:tag-list="modelValue.labels"
+      :biz-id="bizId"
+      :params="{
+        city: cityName,
+        subzones: subzoneNames.join('，'),
+        subzone_ids: subzoneIds.join(','),
+        for_bizs: bizId ? [bizId, 0] : [0],
+        resource_types: [DBTypes.REDIS, 'PUBLIC'],
+        spec_id: Number(modelValue.spec_id),
+        labels: modelValue.labels.map((item) => item.id).join(','),
+      }"
+      property="details.resource_spec.backend_group.labels" />
     <DbFormItem
       :label="t('数量')"
       property="details.resource_spec.backend_group.count"
@@ -69,22 +82,29 @@
   import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
 
+  import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
   interface Props {
-    bizId: number | string;
+    bizId: number | '';
     cityCode: string;
+    cityName: string;
     cloudId: number | string;
     clusterType: string;
     machineType: string;
     shardNumDisabled?: boolean;
     subzoneIds: number[];
+    subzoneNames: string[];
   }
 
   interface ModelValue {
     count: number | string;
+    labels: {
+      id: number;
+      value: string;
+    }[];
     spec_id: number | string;
   }
 
@@ -155,12 +175,21 @@
   });
 </script>
 
-<style lang="less" scoped>
-  .custom-schema {
+<style lang="less">
+  .redis-custom-schema {
     // max-width: 1200px;
     // padding: 24px 24px 24px 10px;
     // background-color: #f5f7fa;
     // border-radius: 2px;
+
+    .bk-form-item {
+      .bk-form-content {
+        .bk-select,
+        .bk-input {
+          width: 314px !important;
+        }
+      }
+    }
 
     .input-desc {
       padding-left: 12px;

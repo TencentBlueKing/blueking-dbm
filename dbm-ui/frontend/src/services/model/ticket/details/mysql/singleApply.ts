@@ -1,4 +1,4 @@
-import type { DetailBase, SpecInfo } from '../common';
+import type { ApplySpecInfo, DetailBase } from '../common';
 
 export interface SingleApply extends DetailBase {
   bk_cloud_id: number;
@@ -22,7 +22,7 @@ export interface SingleApply extends DetailBase {
     backend: { bk_cloud_id: number; bk_host_id: number; ip: string }[];
   };
   resource_spec?: {
-    backend: SpecInfo;
+    backend: ApplySpecInfo;
   };
   spec: string;
   spec_display: string;

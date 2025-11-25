@@ -1,4 +1,4 @@
-import type { DetailBase, SpecInfo } from '../common';
+import type { ApplySpecInfo, DetailBase } from '../common';
 
 export interface Apply extends DetailBase {
   bk_cloud_id: string;
@@ -14,6 +14,6 @@ export interface Apply extends DetailBase {
   };
   port: number;
   resource_spec: {
-    influxdb: SpecInfo;
+    influxdb: ApplySpecInfo;
   };
 }

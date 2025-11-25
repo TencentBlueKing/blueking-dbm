@@ -1,5 +1,5 @@
 <template>
-  <div class="redis-backend-spec">
+  <div class="tendbcluster-backend-spec">
     <BkFormItem
       :label="t('部署方案选择')"
       required>
@@ -31,7 +31,6 @@
         <BkInput
           :min="1"
           :model-value="modelValue.capacity"
-          style="width: 314px"
           type="number"
           @blur="handleBlurCapacity"
           @change="handleChangeCapacity"
@@ -45,13 +44,25 @@
         <BkInput
           :min="Number(modelValue.capacity)"
           :model-value="modelValue.future_capacity"
-          style="width: 314px"
           type="number"
           @blur="handleBlurCapacity"
           @change="handleChangeFutureCapacity"
           @focus="handleFocusCapacity" />
         <span class="input-desc">G</span>
       </BkFormItem>
+      <ResourcePreview
+        v-model:tag-list="modelValue.labels"
+        :biz-id="bizId"
+        :params="{
+          city: cityName,
+          subzones: subzoneNames.join('，'),
+          subzone_ids: subzoneIds.join(','),
+          for_bizs: bizId ? [bizId, 0] : [0],
+          resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
+          spec_id: Number(modelValue.spec_id),
+          labels: modelValue.labels.map((item) => item.id).join(','),
+        }"
+        property="details.resource_spec.backend_group.labels" />
       <BkFormItem
         :label="t('QPS预估范围')"
         required>
@@ -110,9 +121,21 @@
           :cloud-id="cloudId"
           :cluster-type="ClusterTypes.TENDBCLUSTER"
           machine-type="backend"
-          style="width: 314px"
           :subzone-ids="subzoneIds" />
       </BkFormItem>
+      <ResourcePreview
+        v-model:tag-list="modelValue.labels"
+        :biz-id="bizId"
+        :params="{
+          city: cityName,
+          subzones: subzoneNames.join('，'),
+          subzone_ids: subzoneIds.join(','),
+          for_bizs: bizId ? [bizId, 0] : [0],
+          resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
+          spec_id: Number(modelValue.spec_id),
+          labels: modelValue.labels.map((item) => item.id).join(','),
+        }"
+        property="details.resource_spec.backend_group.labels" />
       <BkFormItem
         :label="t('数量')"
         property="details.resource_spec.backend_group.count"
@@ -122,7 +145,6 @@
           clearable
           :min="1"
           show-clear-only-hover
-          style="width: 314px"
           type="number" />
         <span class="input-desc">{{ t('组') }}</span>
       </BkFormItem>
@@ -132,7 +154,6 @@
         <BkInput
           v-model="shardNum"
           :min="1"
-          style="width: 314px"
           type="number" />
       </BkFormItem>
       <BkFormItem
@@ -142,7 +163,6 @@
           v-model="clusterShardNum"
           disabled
           :placeholder="t('自动生成')"
-          style="width: 314px"
           type="number" />
       </BkFormItem>
       <BkFormItem
@@ -152,7 +172,6 @@
           v-model="specInfo.totalCapcity"
           disabled
           :placeholder="t('自动生成')"
-          style="width: 314px"
           type="number" />
         <span class="input-desc">G</span>
       </BkFormItem>
@@ -163,7 +182,6 @@
           v-model="specInfo.qps"
           disabled
           :placeholder="t('自动生成')"
-          style="width: 314px"
           type="number" />
         <span class="input-desc">/s</span>
       </BkFormItem>
@@ -180,24 +198,31 @@
   import { getSpecResourceCount } from '@services/source/dbresourceResource';
   import { getFilterClusterSpec, queryQPSRange } from '@services/source/dbresourceSpec';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
 
+  import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
   interface ModelValue {
     capacity: number | string;
     count: number;
     future_capacity: number | string;
+    labels: {
+      id: number;
+      value: string;
+    }[];
     spec_id: number | string;
   }
 
   interface Props {
-    bizId: number | string;
+    bizId: number | '';
     cityCode: string;
+    cityName: string;
     cloudId: number | string;
     dbType: string;
     machineType: string;
     subzoneIds: number[];
+    subzoneNames: string[];
   }
 
   const props = defineProps<Props>();
@@ -503,12 +528,21 @@
   });
 </script>
 
-<style lang="less" scoped>
-  .redis-backend-spec {
+<style lang="less">
+  .tendbcluster-backend-spec {
     max-width: 1200px;
     padding: 24px 24px 24px 10px;
     background-color: #f5f7fa;
     border-radius: 2px;
+
+    .bk-form-item {
+      .bk-form-content {
+        .bk-select,
+        .bk-input {
+          width: 314px !important;
+        }
+      }
+    }
 
     .input-desc {
       padding-left: 12px;
@@ -517,7 +551,7 @@
       color: #63656e;
     }
 
-    :deep(.spec-radio) {
+    .spec-radio {
       max-width: 100%;
       overflow: hidden;
 

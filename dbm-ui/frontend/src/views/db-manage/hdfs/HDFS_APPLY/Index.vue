@@ -202,6 +202,19 @@
                     machine-type="hdfs_master"
                     :subzone-ids="formData.details.sub_zone_ids" />
                 </BkFormItem>
+                <ResourcePreview
+                  v-model:tag-list="formData.details.resource_spec.namenode.labels"
+                  :biz-id="formData.bk_biz_id"
+                  :params="{
+                    city: formData.details.city_name,
+                    subzones: formData.details.sub_zone_names.join('，'),
+                    subzone_ids: formData.details.sub_zone_ids.join(','),
+                    for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
+                    resource_types: [DBTypes.HDFS, 'PUBLIC'],
+                    spec_id: Number(formData.details.resource_spec.namenode.spec_id),
+                    labels: formData.details.resource_spec.namenode.labels.map((item) => item.id).join(','),
+                  }"
+                  property="details.resource_spec.namenode.labels" />
                 <BkFormItem
                   :label="t('数量')"
                   property="details.resource_spec.namenode.count"
@@ -232,6 +245,19 @@
                     machine-type="hdfs_master"
                     :subzone-ids="formData.details.sub_zone_ids" />
                 </BkFormItem>
+                <ResourcePreview
+                  v-model:tag-list="formData.details.resource_spec.zookeeper.labels"
+                  :biz-id="formData.bk_biz_id"
+                  :params="{
+                    city: formData.details.city_name,
+                    subzones: formData.details.sub_zone_names.join('，'),
+                    subzone_ids: formData.details.sub_zone_ids.join(','),
+                    for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
+                    resource_types: [DBTypes.HDFS, 'PUBLIC'],
+                    spec_id: Number(formData.details.resource_spec.zookeeper.spec_id),
+                    labels: formData.details.resource_spec.zookeeper.labels.map((item) => item.id).join(','),
+                  }"
+                  property="details.resource_spec.zookeeper.labels" />
                 <BkFormItem
                   :label="t('数量')"
                   property="details.resource_spec.zookeeper.count"
@@ -271,6 +297,19 @@
                     machine-type="hdfs_datanode"
                     :subzone-ids="formData.details.sub_zone_ids" />
                 </BkFormItem>
+                <ResourcePreview
+                  v-model:tag-list="formData.details.resource_spec.datanode.labels"
+                  :biz-id="formData.bk_biz_id"
+                  :params="{
+                    city: formData.details.city_name,
+                    subzones: formData.details.sub_zone_names.join('，'),
+                    subzone_ids: formData.details.sub_zone_ids.join(','),
+                    for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
+                    resource_types: [DBTypes.HDFS, 'PUBLIC'],
+                    spec_id: Number(formData.details.resource_spec.datanode.spec_id),
+                    labels: formData.details.resource_spec.datanode.labels.map((item) => item.id).join(','),
+                  }"
+                  property="details.resource_spec.datanode.labels" />
                 <BkFormItem
                   :label="t('数量')"
                   property="details.resource_spec.datanode.count"
@@ -361,6 +400,7 @@
   import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/BigData.vue';
+  import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
   import HdfsHostTable from '@views/db-manage/common/big-data-host-table/HdfsHostTable.vue';
   import RenderHostTable from '@views/db-manage/common/big-data-host-table/RenderHostTable.vue';
@@ -390,9 +430,14 @@
 
       if (details.ip_source === 'resource_pool') {
         const resourceSpec = Object.entries(details.resource_spec!).reduce((prev, [specType, specInfo]) => {
+          const labels = (specInfo.labels || []).map((labelItem, labelIndex) => ({
+            id: Number(labelItem),
+            value: specInfo.label_names[labelIndex],
+          }));
           return Object.assign(prev, {
             [specType]: {
               count: specInfo.count,
+              labels,
               spec_id: specInfo.spec_id,
             },
           });
@@ -414,6 +459,7 @@
     details: {
       bk_cloud_id: 0,
       city_code: '',
+      city_name: '',
       cluster_alias: '',
       cluster_name: '',
       db_app_abbr: '',
@@ -429,19 +475,35 @@
       resource_spec: {
         datanode: {
           count: 2,
+
+          labels: [] as {
+            id: number;
+            value: string;
+          }[],
           spec_id: '',
         },
         namenode: {
           count: 2,
+          labels: [] as {
+            id: number;
+            value: string;
+          }[],
+
           spec_id: '',
         },
         zookeeper: {
           count: 3,
+          labels: [] as {
+            id: number;
+            value: string;
+          }[],
+
           spec_id: '',
         },
       },
       rpc_port: 9000,
       sub_zone_ids: [] as number[],
+      sub_zone_names: [] as string[],
     },
     remark: '',
     ticket_type: TicketTypes.HDFS_APPLY,
@@ -612,18 +674,25 @@
                 ...specDatanodeRef.value.getData(),
                 ...regionAndDisasterParams,
                 count: Number(details.resource_spec.datanode.count),
+                label_names: details.resource_spec.datanode.labels.map((item: { value: string }) => item.value),
+                labels: details.resource_spec.datanode.labels.map((item: { id: number }) => String(item.id)),
               },
               namenode: {
                 ...details.resource_spec.namenode,
                 ...specNamenodeRef.value.getData(),
                 ...regionAndDisasterParams,
                 count: Number(details.resource_spec.namenode.count),
+                label_names: details.resource_spec.namenode.labels.map((item: { value: string }) => item.value),
+                labels: details.resource_spec.namenode.labels.map((item: { id: number }) => String(item.id)),
               },
               zookeeper: {
                 ...details.resource_spec.zookeeper,
                 ...specZookeeperRef.value.getData(),
                 ...regionAndDisasterParams,
                 count: Number(details.resource_spec.zookeeper.count),
+
+                label_names: details.resource_spec.zookeeper.labels.map((item: { value: string }) => item.value),
+                labels: details.resource_spec.zookeeper.labels.map((item: { id: number }) => String(item.id)),
               },
             },
           };
@@ -645,7 +714,11 @@
         details: getDetails(),
       };
       // 若业务没有英文名称则先创建业务英文名称再创建单据，否则直接创建单据
-      bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
+      if (bizState.hasEnglishName) {
+        handleCreateTicket(params);
+      } else {
+        handleCreateAppAbbr(params);
+      }
     });
   };
 
@@ -722,7 +795,7 @@
 
           .bk-select,
           .bk-input {
-            width: 314px;
+            width: 314px !important;
           }
         }
       }

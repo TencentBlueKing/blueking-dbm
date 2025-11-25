@@ -95,6 +95,20 @@
             </span>
           </SpecDetailPopover>
         </InfoItem>
+        <InfoItem :label="t('Proxy 资源标签')">
+          <template v-if="ticketDetails.details.resource_spec.proxy.label_names?.length">
+            <BkTag
+              v-for="item in ticketDetails.details.resource_spec.proxy.label_names"
+              :key="item">
+              {{ item }}
+            </BkTag>
+          </template>
+          <BkTag
+            v-else
+            theme="success">
+            {{ t('通用无标签') }}
+          </BkTag>
+        </InfoItem>
         <InfoItem
           :label="t('集群部署方案')"
           style="flex: 1 0 100%">
@@ -104,6 +118,25 @@
             <TicketInfoTableColumn
               col-key="spec_name"
               :title="t('资源规格')" />
+            <TicketInfoTableColumn
+              col-key="label_names"
+              :min-width="200"
+              :title="t('资源标签')">
+              <template #default>
+                <template v-if="ticketDetails.details.resource_spec.backend_group.label_names?.length">
+                  <BkTag
+                    v-for="item in ticketDetails.details.resource_spec.backend_group.label_names"
+                    :key="item">
+                    {{ item }}
+                  </BkTag>
+                </template>
+                <BkTag
+                  v-else
+                  theme="success">
+                  {{ t('通用无标签') }}
+                </BkTag>
+              </template>
+            </TicketInfoTableColumn>
             <TicketInfoTableColumn
               col-key="machine_pair"
               :title="t('需机器组数')" />

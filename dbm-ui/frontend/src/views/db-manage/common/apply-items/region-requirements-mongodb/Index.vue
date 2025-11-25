@@ -18,7 +18,7 @@
     <SubzonesItem
       v-if="showSubZoneItem"
       ref="subzoneRef"
-      v-model="modelValue.sub_zone_ids"
+      v-model="modelValue"
       :city-code="modelValue.city_code"
       :disaster-tolerance-level="modelValue.disaster_tolerance_level" />
   </DbCard>
@@ -50,6 +50,7 @@
     city_name?: string;
     disaster_tolerance_level: string;
     sub_zone_ids: number[];
+    sub_zone_names: string[];
   }>({
     required: true,
   });
