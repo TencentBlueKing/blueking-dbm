@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import importlib
 import json
 import logging
 from collections import defaultdict
@@ -27,6 +28,7 @@ from backend.configuration.models import DBAdministrator, SystemSettings
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_monitor.exceptions import AutofixException
+from backend.flow.engine.revoke.base import RevokeFlowBase
 from backend.ticket.constants import (
     EXCLUSIVE_TICKET_EXCEL_PATH,
     TICKET_RUNNING_STATUS_SET,
@@ -110,6 +112,15 @@ class Flow(models.Model):
         self.context.update(kwargs)
         self.save(update_fields=["context", "update_at"])
         return self.context
+
+    def get_inner_controller_func(self):
+        if self.flow_type != FlowType.INNER_FLOW:
+            return None
+        controller_info = self.details["controller_info"]
+        controller_class = getattr(importlib.import_module(controller_info["module"]), controller_info["class_name"])
+        controller_inst = controller_class(root_id=self.flow_obj_id, ticket_data=self.details["ticket_data"])
+        controller_func = getattr(controller_inst, controller_info["func_name"])
+        return controller_func
 
 
 class FlowSummary(models.Model):
@@ -327,29 +338,32 @@ class Ticket(AuditedModel):
         :param hosts: 回收机器列表
         :param ticket_type: 回收单据类型
         """
-        if not hosts:
-            return
 
         from backend.db_meta.models import Machine
-        from backend.flow.engine.controller.revoke import RevokeController
 
         revoke_ticket = Ticket.objects.get(id=revoke_ticket_id)
-        host_ids = [host["bk_host_id"] for host in hosts]
 
-        if not host_ids:
-            logger.error(_("不存在回收主机"))
-            return
+        # 已下架回收单据，如果存在元数据主机或者不存在回收主机，则不允许发起回收单据
+        if ticket_type == TicketType.RECYCLE_OLD_HOST:
+            host_ids = [host["bk_host_id"] for host in hosts]
+            if not host_ids:
+                logger.error(_("不存在可回收主机，跳过旧主机回收"))
+                return
 
-        # 已下架回收单据，如果存在元数据主机，则不允许发起回收单据
-        if ticket_type == TicketType.RECYCLE_OLD_HOST and Machine.objects.filter(bk_host_id__in=host_ids).exists():
-            logger.error(_("流程校验不通过，存在元数据主机: {}").format(host_ids))
-            return
+            if Machine.objects.filter(bk_host_id__in=host_ids).exists():
+                logger.error(_("回收校验不通过，存在元数据主机: {}").format(host_ids))
+                return
 
-        # 对应正常流程下架的主机，可以直接发起回收单据
         # 对于新机回收，如果未定义revoke flow，则不发起回收单
         if ticket_type == TicketType.RECYCLE_APPLY_HOST:
-            has_revoke_flow = hasattr(RevokeController, revoke_ticket.ticket_type.lower())
-            if not has_revoke_flow:
+            flow = revoke_ticket.current_flow()
+            if flow.flow_type != FlowType.INNER_FLOW:
+                logger.error(_("当前流程并非inner flow，跳过新机回收").format(flow))
+                return
+
+            func = flow.get_inner_controller_func()
+            if not hasattr(func, RevokeFlowBase.revoke_flow.__name__):
+                logger.error(_("{} 未定义revoke_flow，跳过新机回收").format(func.__name__))
                 return
 
         # 回收单的创建者为业务第一DBA，协助人为其他DBA，如果没有dba则取原单据创建者
