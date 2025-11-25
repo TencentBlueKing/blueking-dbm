@@ -54,7 +54,7 @@ func TestPid(t *testing.T) {
 
 	t.Logf("process name is: %s bound with the pid: %d", procName, pid)
 
-	if pid != currentPid {
+	if pid != int32(currentPid) {
 		t.Errorf("the read pid is invalid, errmsg: %s", err)
 	}
 

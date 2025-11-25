@@ -32,7 +32,7 @@ import (
 func TestGlobalStatus(t *testing.T) {
 	gstats := []globalStatus{}
 
-	dbMetrics := convertToMetric(gstats)
+	dbMetrics := convertToMySqlStatus(gstats)
 
 	fmt.Println("db-metrics: ", dbMetrics)
 }

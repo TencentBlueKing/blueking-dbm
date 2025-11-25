@@ -34,8 +34,8 @@ import (
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
-	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
 // TODO: remove those variables and get them dynamically
@@ -209,13 +209,13 @@ func NewMySQLSwitchInstance(metadata *MySQLInstanceMetadata) (SwitchableInstance
 	mysqlBaseInstance.SetStandbySlave(metadata.Receiver)
 
 	switch metadata.MachineType {
-	case hamodel.DbmMetadataMachineTypeBackend:
+	case haprobe.DbmMetadataMachineTypeBackend:
 		res := &MySQLStorageSwitchInstance{
 			MySQLBaseSwitchInstance: mysqlBaseInstance,
 		}
 		return res, nil
 
-	case hamodel.DbmMetadataMachineTypeProxy:
+	case haprobe.DbmMetadataMachineTypeProxy:
 		res := &MySQLProxySwitchInstance{
 			MySQLBaseSwitchInstance: mysqlBaseInstance,
 		}

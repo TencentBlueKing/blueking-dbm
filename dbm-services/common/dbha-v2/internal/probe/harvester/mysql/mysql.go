@@ -26,9 +26,6 @@ package mysql
 
 import (
 	"context"
-	"os"
-	"path/filepath"
-	"regexp"
 	"sync"
 	"time"
 
@@ -62,12 +59,10 @@ type MySql struct {
 	// NOTE: Must include UnimplementedMethod
 	plugin.UnimplementedMethod
 
-	machineID      string
-	serviceID      string
-	wg             sync.WaitGroup
-	cfg            *config.MySqlHarvesterConfig
-	historyMetrics map[string]*haprobe.DatabaseMetric
-
+	machineID string
+	serviceID string
+	wg        sync.WaitGroup
+	cfg       *config.MySqlHarvesterConfig
 	// key: the mysql endpoint
 	collectors map[string]*collector
 }
@@ -75,8 +70,7 @@ type MySql struct {
 // NewMySql constructor
 func NewMySql(cfg *config.MySqlHarvesterConfig) (*MySql, error) {
 	msql := &MySql{
-		cfg:            cfg,
-		historyMetrics: make(map[string]*haprobe.DatabaseMetric),
+		cfg: cfg,
 	}
 
 	return msql, nil
@@ -141,33 +135,53 @@ func (m *MySql) Harvest(ctx context.Context, machineID, serviceID string) (<-cha
 	return dataC, nil
 }
 
-func (m *MySql) loadConfigFile(rootDir, pattern string) ([]string, error) {
-	var matches []string
+func (m *MySql) makeCollector(epoint config.DbEndpointConfig, eport int) *collector {
+	c := &collector{}
 
-	reg, err := regexp.Compile(pattern)
-	if err != nil {
-		return nil, err
-	}
+	c.accessLayer = epoint.AccessLayer
+	c.machineType = epoint.MachineType
+	c.clusterType = epoint.ClusterType
 
-	err = filepath.Walk(rootDir, func(path string, info os.FileInfo, err error) error {
+	c.user = m.cfg.User
+	c.password = m.cfg.Password
+
+	c.endpoint = &hanet.Endpoint{}
+	c.endpoint.Proto = epoint.Proto
+	c.endpoint.Host = epoint.Ip
+	c.endpoint.Port = eport
+
+	return c
+}
+
+func (m *MySql) loadAdminCollectors(epoint config.DbEndpointConfig) {
+	for _, ports := range epoint.AdminPorts {
+		eports, err := parsePorts(ports)
 		if err != nil {
-			return err
+			continue
 		}
 
-		if !info.IsDir() && reg.MatchString(info.Name()) {
-			fileName := filepath.Join(rootDir, info.Name())
-			logger.Info("found the file: %s", fileName)
-			matches = append(matches, fileName)
+		for _, eport := range eports {
+			c := m.makeCollector(epoint, eport)
+			m.collectors[c.endpoint.String()] = c
 		}
 
-		return nil
-	})
+	}
+}
 
-	if err != nil {
-		return nil, err
+func (m *MySql) loadStorageCollector(epoint config.DbEndpointConfig) {
+	for _, ports := range epoint.Ports {
+
+		eports, err := parsePorts(ports)
+		if err != nil {
+			continue
+		}
+
+		for _, eport := range eports {
+			c := m.makeCollector(epoint, eport)
+			m.collectors[c.endpoint.String()] = c
+		}
 	}
 
-	return matches, nil
 }
 
 func (m *MySql) loadCollectors() {
@@ -176,43 +190,35 @@ func (m *MySql) loadCollectors() {
 	}
 
 	for _, epoint := range m.cfg.Endpoints {
-		for _, ports := range epoint.Ports {
 
-			eports, err := parsePorts(ports)
-			if err != nil {
-				continue
-			}
+		if len(epoint.AdminPorts) != 0 {
+			m.loadAdminCollectors(epoint)
+		}
 
-			for _, eport := range eports {
-				c := &collector{}
-				c.user = m.cfg.User
-				c.password = m.cfg.Password
-
-				c.endpoint = &hanet.Endpoint{}
-				c.endpoint.Proto = epoint.Proto
-				c.endpoint.Host = epoint.Ip
-				c.endpoint.Port = eport
-
-				m.collectors[c.endpoint.String()] = c
-			}
+		if len(epoint.Ports) != 0 {
+			m.loadStorageCollector(epoint)
 		}
 	}
 }
 
 func (m *MySql) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
-	metrics := &haprobe.MySQLMetric{
+	metrics := &haprobe.MySqlMetric{
 		SequenceID:      machine.NewSequenceID(),
 		MachineID:       m.machineID,
 		MessageID:       machine.NewMessageID(),
 		ServiceID:       m.serviceID,
 		ReportTimestamp: uint64(time.Now().Unix()),
+		Status:          &haprobe.MySqlStatus{},
 	}
 
 	defer func() {
 		c.close()
 
 		dataC <- &plugin.HarvestData{
-			Value: metrics,
+			AccessLayer: c.accessLayer,
+			ClusterType: c.clusterType,
+			MachineType: c.machineType,
+			Value:       metrics,
 		}
 	}()
 
@@ -224,15 +230,39 @@ func (m *MySql) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
 
 	dbEvent, err := c.open()
 	if err != nil {
-		metrics.Events = []*haprobe.DbEvent{dbEvent}
+		metrics.Event = dbEvent
 		logger.Error("failed to open the collector for the db: %s", c.endpoint)
 		return
 	}
 
-	if dbStatus, err := c.obtainMySqlGlobalStatus(); err != nil {
+	if c.isTendbHaProxy() {
+		dbStatus, err := c.obtainTendbHaProxyStatus()
+		if err != nil {
+			logger.Warn("failed to obtain the MySQL(TendbHaProxy) status, errmsg: %s", err)
+			return
+		}
+
+		metrics.Status.ProxyStatus = dbStatus
+		return
+	}
+
+	if c.isTendbClusterProxy() {
+		dbStatus, err := c.obtainTendbClusterProxyStatus()
+		if err != nil {
+			logger.Warn("failed to obtain the MySQL(TendbClusterProxy) status, errmsg: %s", err)
+			return
+		}
+
+		metrics.Status.SpiderCtlStatus = dbStatus
+		return
+	}
+
+	// Get the global status.
+	// TendbHa and TendbCluster both support the global status.
+	if dbStatus, err := c.obtainGlobalStatus(); err != nil {
 		logger.Warn("failed to obtain the MySQL status, errmsg: %s", err)
 	} else {
-		metrics.Databases = []*haprobe.DatabaseMetric{dbStatus}
+		metrics.Status.GlobalStatus = dbStatus
 	}
 }
 

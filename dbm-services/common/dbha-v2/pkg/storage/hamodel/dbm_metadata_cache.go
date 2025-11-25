@@ -30,71 +30,7 @@ import (
 	"time"
 
 	"dbm-services/common/dbha-v2/pkg/gerrors"
-)
-
-// DbmMetadataClusterType the cluster type for the metadata.
-type DbmMetadataClusterType string
-
-func (m DbmMetadataClusterType) String() string {
-	return string(m)
-}
-
-// DbmMetadataMachineType the machine type for the metadata.
-type DbmMetadataMachineType string
-
-func (m DbmMetadataMachineType) String() string {
-	return string(m)
-}
-
-const (
-	// Cluster Type
-	DbmMetadataClusterTypeTendb                    DbmMetadataClusterType = "tendbha"
-	DbmMetadataClusterTypeSqlServer                DbmMetadataClusterType = "sqlserver_ha"
-	DbmMetadataClusterTypeTendbCluster             DbmMetadataClusterType = "tendbcluster"
-	DbmMetadataClusterTypeSqlServerSingle          DbmMetadataClusterType = "sqlserver_single"
-	DbmMetadataClusterTypeMongoReplicaSet          DbmMetadataClusterType = "MongoReplicaSet"
-	DbmMetadataClusterTypeRiak                     DbmMetadataClusterType = "riak"
-	DbmMetadataClusterTypeHdfs                     DbmMetadataClusterType = "hdfs"
-	DbmMetadataClusterTypeTwemproxyRedis           DbmMetadataClusterType = "TwemproxyRedisInstance"
-	DbmMetadataClusterTypeRedis                    DbmMetadataClusterType = "RedisInstance"
-	DbmMetadataClusterTypeEs                       DbmMetadataClusterType = "es"
-	DbmMetadataClusterTypeTwemproxyTendisSSD       DbmMetadataClusterType = "TwemproxyTendisSSDInstance"
-	DbmMetadataClusterTypeKafka                    DbmMetadataClusterType = "kafka"
-	DbmMetadataClusterTypeMongoShardeCluster       DbmMetadataClusterType = "MongoShardedCluster"
-	DbmMetadataClusterTypeDoris                    DbmMetadataClusterType = "doris"
-	DbmMetadataClusterTypePredixyTendisplusCluster DbmMetadataClusterType = "PredixyTendisplusCluster"
-	DbmMetadataClusterTypePredixyRedisCluster      DbmMetadataClusterType = "PredixyRedisCluster"
-	DbmMetadataClusterTypePulsar                   DbmMetadataClusterType = "pulsar"
-
-	// Machine Type
-	DbmMetadataMachineTypeSingle           DbmMetadataMachineType = "single"
-	DbmMetadataMachineTypeSqlServer        DbmMetadataMachineType = "sqlserver_ha"
-	DbmMetadataMachineTypeProxy            DbmMetadataMachineType = "proxy"
-	DbmMetadataMachineTypeBackend          DbmMetadataMachineType = "backend"
-	DbmMetadataMachineTypeRemote           DbmMetadataMachineType = "remote"
-	DbmMetadataMachineTypeSqlServerSingle  DbmMetadataMachineType = "sqlserver_single"
-	DbmMetadataMachineTypeMongoDB          DbmMetadataMachineType = "mongodb"
-	DbmMetadataMachineTypeRiak             DbmMetadataMachineType = "riak"
-	DbmMetadataMachineTypeHdfsDataNode     DbmMetadataMachineType = "hdfs_datanode"
-	DbmMetadataMachineTypeTwemProxy        DbmMetadataMachineType = "twemproxy"
-	DbmMetadataMachineTypeTendisCache      DbmMetadataMachineType = "tendiscache"
-	DbmMetadataMachineTypeEsDataNode       DbmMetadataMachineType = "es_datanode"
-	DbmMetadataMachineTypeZookeeper        DbmMetadataMachineType = "zookeeper"
-	DbmMetadataMachineTypeBroker           DbmMetadataMachineType = "broker"
-	DbmMetadataMachineTypeTendisSSD        DbmMetadataMachineType = "tendisssd"
-	DbmMetadataMachineTypeHdfsMaster       DbmMetadataMachineType = "hdfs_master"
-	DbmMetadataMachineTypeDorisBackend     DbmMetadataMachineType = "doris_backend"
-	DbmMetadataMachineTypeSpider           DbmMetadataMachineType = "spider"
-	DbmMetadataMachineTypeMongos           DbmMetadataMachineType = "mongos"
-	DbmMetadataMachineTypeEsClient         DbmMetadataMachineType = "es_client"
-	DbmMetadataMachineTypeEsMaster         DbmMetadataMachineType = "es_master"
-	DbmMetadataMachineTypeMongoConfig      DbmMetadataMachineType = "mongo_config"
-	DbmMetadataMachineTypeTendisPlus       DbmMetadataMachineType = "tendisplus"
-	DbmMetadataMachineTypePredixy          DbmMetadataMachineType = "predixy"
-	DbmMetadataMachineTypePulsarBookKeeper DbmMetadataMachineType = "pulsar_bookkeeper"
-	DbmMetadataMachineTypeDorisFollower    DbmMetadataMachineType = "doris_follower"
-	DbmMetadataMachineTypePulsarBroker     DbmMetadataMachineType = "doris_broker"
-	DbmMetadataMachineTypePulsarZookeeper  DbmMetadataMachineType = "pulsar_zookeeper"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
 const (
@@ -166,28 +102,28 @@ func (be BindEntryType) Value() (driver.Value, error) {
 
 // DbmMetadata is a model for the t_dbm_metadata table.
 type DbmMetadata struct {
-	BkCloudID        int                    `gorm:"column:bk_cloud_id;primaryKey"`
-	IP               string                 `gorm:"column:ip;primaryKey"`
-	Port             int                    `gorm:"column:port;primaryKey"`
-	AdminPort        int                    `gorm:"column:admin_port"`
-	BkIdcCityID      int                    `gorm:"column:bk_idc_city_id"`
-	BkBizID          int                    `gorm:"column:bk_biz_id"`
-	LogicalCityID    int                    `gorm:"column:logical_city_id"`
-	LogicalCityName  string                 `gorm:"column:logcial_city_name"`
-	Cluster          string                 `gorm:"column:cluster"`
-	ClusterID        int                    `gorm:"column:cluster_id"`
-	ClusterType      DbmMetadataClusterType `gorm:"column:cluster_type"`
-	MachineType      DbmMetadataMachineType `gorm:"column:machine_type"`
-	Status           string                 `gorm:"column:status"`
-	InstanceRole     string                 `gorm:"column:instance_role"`
-	Receiver         string                 `gorm:"column:receiver;type:mediumtext"`
-	BindEntry        string                 `gorm:"column:bind_entry;type:mediumtext"`
-	ProxyInstanceSet string                 `gorm:"column:proxy_insts;type:mediumtext"`
-	BinlogDumperSet  string                 `gorm:"column:binlog_dumpers;type:mediumtext"`
-	CreatedAt        time.Time              `gorm:"column:created_at;autoCreateTime"`
-	UpdatedAt        time.Time              `gorm:"column:updated_at;autoUpdateTime"`
-	DeletedAt        time.Time              `gorm:"column:deleted_at;index"`
-	SyncDuration     time.Duration          `gorm:"column:sync_duration;type:bigint"`
+	BkCloudID        int                            `gorm:"column:bk_cloud_id;primaryKey"`
+	IP               string                         `gorm:"column:ip;primaryKey"`
+	Port             int                            `gorm:"column:port;primaryKey"`
+	AdminPort        int                            `gorm:"column:admin_port"`
+	BkIdcCityID      int                            `gorm:"column:bk_idc_city_id"`
+	BkBizID          int                            `gorm:"column:bk_biz_id"`
+	LogicalCityID    int                            `gorm:"column:logical_city_id"`
+	LogicalCityName  string                         `gorm:"column:logcial_city_name"`
+	Cluster          string                         `gorm:"column:cluster"`
+	ClusterID        int                            `gorm:"column:cluster_id"`
+	ClusterType      haprobe.DbmMetadataClusterType `gorm:"column:cluster_type"`
+	MachineType      haprobe.DbmMetadataMachineType `gorm:"column:machine_type"`
+	Status           string                         `gorm:"column:status"`
+	InstanceRole     string                         `gorm:"column:instance_role"`
+	Receiver         string                         `gorm:"column:receiver;type:mediumtext"`
+	BindEntry        string                         `gorm:"column:bind_entry;type:mediumtext"`
+	ProxyInstanceSet string                         `gorm:"column:proxy_insts;type:mediumtext"`
+	BinlogDumperSet  string                         `gorm:"column:binlog_dumpers;type:mediumtext"`
+	CreatedAt        time.Time                      `gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt        time.Time                      `gorm:"column:updated_at;autoUpdateTime"`
+	DeletedAt        time.Time                      `gorm:"column:deleted_at;index"`
+	SyncDuration     time.Duration                  `gorm:"column:sync_duration;type:bigint"`
 }
 
 // TableName returns the table name for the DbmMetadata model.

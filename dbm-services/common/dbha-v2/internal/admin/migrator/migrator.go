@@ -32,9 +32,9 @@ import (
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 )
 
-var tables = []interface{}{
+var tables = []any{
 	&hamodel.DbhaData{},
-	&hamodel.DatabaseMetric{},
+	&hamodel.MySqlStatus{},
 	&hamodel.HostMetric{},
 	&hamodel.SkipDbInstance{},
 	&hamodel.DbmMetadata{},

@@ -34,6 +34,7 @@ import (
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
 const (
@@ -62,8 +63,8 @@ type BaseSwitchInstance struct {
 	BkBizID      int
 	Cluster      string
 	ClusterID    int
-	ClusterType  hamodel.DbmMetadataClusterType
-	MachineType  hamodel.DbmMetadataMachineType
+	ClusterType  haprobe.DbmMetadataClusterType
+	MachineType  haprobe.DbmMetadataMachineType
 	InstanceRole dbm.DbmMetadataInstanceRole
 
 	// Http client for DBM
@@ -108,8 +109,8 @@ func (sw *BaseSwitchInstance) releaseDNSEntry(dnsEntries []dbm.BindEntryDnsInfo)
 
 	sw.ReportLog(SwitchInfo, fmt.Sprintf("try to release dns entry (%s:%d)", sw.IP, sw.Port))
 	for _, dns := range dnsEntries {
-		if (sw.MachineType == hamodel.DbmMetadataMachineTypeProxy) ||
-			(sw.MachineType == hamodel.DbmMetadataMachineTypeSpider) {
+		if (sw.MachineType == haprobe.DbmMetadataMachineTypeProxy) ||
+			(sw.MachineType == haprobe.DbmMetadataMachineTypeSpider) {
 			addressNum, err := sw.dbmClient.GetAddressNumberOfDomain(dns.DomainName)
 			if err != nil {
 				sw.ReportLog(SwitchFail,
@@ -125,6 +126,7 @@ func (sw *BaseSwitchInstance) releaseDNSEntry(dnsEntries []dbm.BindEntryDnsInfo)
 				continue
 			}
 		}
+
 		for _, ip := range dns.BindIps {
 			if ip != sw.IP || dns.BindPort != sw.Port {
 				continue

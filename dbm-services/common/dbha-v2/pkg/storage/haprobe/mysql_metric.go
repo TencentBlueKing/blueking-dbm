@@ -25,15 +25,15 @@
 package haprobe
 
 // MySQLMetric contains system and databases metrics
-type MySQLMetric struct {
-	SequenceID      uint64            `json:"sequence_id"`
-	MachineID       string            `json:"machine_id"`
-	AgentID         string            `json:"agent_id"`
-	BkCloudID       int               `json:"bk_cloud_id"`
-	MessageID       string            `json:"message_id"`
-	ServiceID       string            `json:"service_id"`
-	ReportTimestamp uint64            `json:"report_timestamp"`
-	Host            *HostMetric       `json:"system"`
-	Events          []*DbEvent        `json:"events"`
-	Databases       []*DatabaseMetric `json:"databases"`
+type MySqlMetric struct {
+	SequenceID      uint64       `json:"sequence_id"`
+	MachineID       string       `json:"machine_id"`
+	AgentID         string       `json:"agent_id"`
+	BkCloudID       int          `json:"bk_cloud_id"`
+	MessageID       string       `json:"message_id"`
+	ServiceID       string       `json:"service_id"`
+	ReportTimestamp uint64       `json:"report_timestamp"`
+	Host            *HostMetric  `json:"system"`
+	Event           *DbEvent     `json:"events"`
+	Status          *MySqlStatus `json:"status"`
 }
