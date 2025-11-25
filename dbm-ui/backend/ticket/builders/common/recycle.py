@@ -20,7 +20,6 @@ from backend.configuration.models import BizSettings
 from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.exceptions import AppBaseException
 from backend.flow.engine.controller.base import BaseController
-from backend.flow.engine.controller.revoke import RevokeController
 from backend.flow.utils.cc_manage import CcManage
 from backend.ticket import builders
 from backend.ticket.builders import (
@@ -78,7 +77,8 @@ class CalcRecycleApplyHostParamBuilder(FlowParamBuilder):
     controller = None
 
     def build_controller_info(self):
-        self.controller = getattr(RevokeController, self.ticket_data["parent_ticket_type"].lower())
+        parent_flow = Flow.objects.get(status=TicketFlowStatus.TERMINATED, ticket_id=self.ticket_data["parent_ticket"])
+        self.controller = parent_flow.get_inner_controller_func().revoke_flow
         return super().build_controller_info()
 
     def format_ticket_data(self):

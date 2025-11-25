@@ -11,7 +11,7 @@ from dataclasses import asdict
 from typing import List
 
 from bamboo_engine.builder import SubProcess
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_services.ipchooser.constants import BkOsTypeCode
@@ -40,7 +40,10 @@ class MySQLSingleApplyRevokeFlow(RevokeFlowBase):
     # 声明类变量，定义条件分支的结果判断的输出名称
     conditions_var_name = "check_result"
 
-    def __call__(self):
+    def __init__(self, root_id: str, ticket_data: dict):
+        super().__init__(root_id=root_id, ticket_data=ticket_data)
+
+    def revoke_flow(self):
         revoke_pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_flow_list = []
         for info in self.data["apply_infos"]:
