@@ -14,10 +14,11 @@ from typing import List, Optional
 from django.db import transaction
 from django.db.models import Q
 
+from backend.configuration.constants import DBType
 from backend.db_meta import request_validator
 from backend.db_meta.enums import ClusterType, InstanceRole, MachineType
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance
-from backend.flow.utils.cc_manage import CcManage
+from backend.flow.utils.cc_manage import CcManage, trigger_operate_collector
 from backend.flow.utils.es.es_module_operate import EsCCTopoOperator
 
 logger = logging.getLogger("root")
@@ -78,4 +79,5 @@ def shrink(
         else:
             cluster_entry.storageinstance_set.clear()
     # 判断服务实例是否还存在，不存在则安装
-    EsCCTopoOperator(cluster).init_instances_service(MachineType.ES_DATANODE.value)
+    bk_instance_ids = EsCCTopoOperator(cluster).init_instances_service(MachineType.ES_DATANODE.value)
+    trigger_operate_collector(DBType.Es, MachineType.ES_DATANODE.value, bk_instance_ids)
