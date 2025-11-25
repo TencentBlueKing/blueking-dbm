@@ -853,7 +853,7 @@ def mysql_backup_restore_sub_flow(
     )
     # 阶段1: 备份权限和表结构
     sub_pipeline.add_act(
-        act_name=_("备份权限 {}".format(cluster["ip"])),
+        act_name=_("备份表结构 {}".format(cluster["ip"])),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(
             ExecActuatorKwargs(

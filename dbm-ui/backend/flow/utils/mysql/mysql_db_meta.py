@@ -276,8 +276,8 @@ class MySQLDBMeta(object):
         with atomic():
             api.cluster.tendbha.switch_single(
                 cluster_id=self.cluster["cluster_id"],
-                target_slave_ip=self.cluster["new_orphan_ip"],
-                source_slave_ip=self.cluster["orphan_ip"],
+                target_orphan_ip=self.cluster["new_orphan_ip"],
+                source_orphan_ip=self.cluster["orphan_ip"],
                 domains=self.cluster["domains"],
             )
             if self.cluster.get("add_tuple_relation", False):
@@ -1080,8 +1080,8 @@ class MySQLDBMeta(object):
                 "ip": self.cluster["new_orphan_ip"],
                 "bk_biz_id": int(self.bk_biz_id),
                 "machine_type": MachineType.SINGLE.value,
-                "spec_config": self.ticket_data["resource_spec"]["orphan"],
-                "spec_id": self.ticket_data["resource_spec"]["orphan"]["id"],
+                "spec_config": self.cluster["spec_config"],
+                "spec_id": self.cluster["spec_id"],
             },
         ]
         storage_instances = []
