@@ -93,8 +93,8 @@ def fetch_host_ips(details: Dict[str, Any]) -> List[Union[int, str]]:
 
 
 def fetch_apply_hosts(details: Dict[str, Any]) -> List[Dict]:
-    role_hosts = get_target_items_from_details(details, match_keys=["nodes"])
-    hosts = list(itertools.chain(*[h for hosts in role_hosts for h in hosts.values()]))
+    role_hosts = details["nodes"]
+    hosts = list(itertools.chain(*[h for h in role_hosts.values()]))
     # 适配backend_group分组
     master_slave_hosts = get_target_items_from_details(hosts, match_keys=["master", "slave"])
     apply_hosts = [host for host in hosts if "master" not in host] + master_slave_hosts
