@@ -35,7 +35,14 @@
       :min-width="100"
       :title="t('当前版本')">
       <template #default="{ row }: { row: RowData }">
-        {{ row.display_info.current_version || '--' }}
+        <span v-if="!row.display_info.current_version">--</span>
+        <span v-else-if="!Array.isArray(row.display_info.current_version)">{{ row.display_info.current_version }}</span>
+        <p
+          v-for="item in row.display_info.current_version"
+          v-else
+          :key="item">
+          {{ item }}
+        </p>
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn

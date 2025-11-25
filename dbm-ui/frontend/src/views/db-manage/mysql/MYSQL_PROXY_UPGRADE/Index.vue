@@ -34,9 +34,13 @@
             :min-width="200"
             readonly
             required>
-            <EditableBlock
-              v-model="item.current_version"
-              :placeholder="t('自动生成')" />
+            <EditableBlock :placeholder="t('自动生成')">
+              <p
+                v-for="proxyVersion in item.current_version"
+                :key="proxyVersion">
+                {{ proxyVersion }}
+              </p>
+            </EditableBlock>
           </EditableColumn>
           <TargetVersionColumn
             v-model="item.target_version"
@@ -82,6 +86,7 @@
   </UpgradeWrapper>
 </template>
 <script lang="ts" setup>
+  import _ from 'lodash';
   import { useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -110,7 +115,7 @@
         master_domain: string;
       }[];
     } & TendbhaModel;
-    current_version: string;
+    current_version: string[];
     target_version: {
       pkg_id: number;
       target_package: string;
@@ -130,7 +135,7 @@
       } as unknown as RowData['cluster'],
       data.cluster,
     ),
-    current_version: data.current_version || '',
+    current_version: (data.current_version || []) as string[],
     target_version: Object.assign(
       {
         pkg_id: 0,
@@ -194,7 +199,7 @@
               cluster: {
                 master_domain: clusters[item.cluster_ids[0]].immute_domain,
               },
-              current_version: item.display_info.current_version,
+              current_version: item.display_info.current_version as string[],
               target_version: {
                 pkg_id: item.pkg_id,
                 target_package: item.display_info.target_package,
@@ -210,7 +215,7 @@
     infos: {
       cluster_ids: number[];
       display_info: {
-        current_version: string;
+        current_version: string[];
         target_package: string;
       };
       pkg_id: number;
@@ -221,7 +226,7 @@
   const handleInputFinish = (item: RowData) => {
     if (!item.current_version && item.cluster.proxies.length > 0) {
       Object.assign(item, {
-        current_version: item.cluster.proxies[0].version,
+        current_version: _.uniq(item.cluster.proxies.map((proxy) => proxy.version)),
       });
     }
   };
@@ -234,7 +239,7 @@
             cluster: {
               master_domain: item.master_domain,
             },
-            current_version: item.proxies[0]?.version,
+            current_version: _.uniq(item.proxies.map((proxy) => proxy.version)),
           }),
         );
       }
