@@ -168,6 +168,15 @@ class EsScaleUpFlow(EsFlow):
         # 并发执行所有子流程
         es_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
+        # 校验扩容是否成功
+        act_kwargs.get_es_payload_func = EsActPayload.get_check_nodes_payload.__name__
+        act_kwargs.exec_ip = self.master_exec_ip
+        es_pipeline.add_act(
+            act_name=_("校验扩容结果"),
+            act_component_code=ExecuteEsActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
+
         # 添加到DBMeta
         es_pipeline.add_act(
             act_name=_("添加到DBMeta"), act_component_code=EsMetaComponent.code, kwargs=asdict(act_kwargs)
