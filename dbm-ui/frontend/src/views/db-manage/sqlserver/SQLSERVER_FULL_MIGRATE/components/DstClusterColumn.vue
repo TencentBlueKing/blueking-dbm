@@ -115,14 +115,14 @@
           handler: (data: SqlServerHaModel) => data.isOffline,
           tip: t('集群已禁用'),
         },
-        {
-          handler: (data: SqlServerHaModel) => data.id === props.srcCluster.id,
-          tip: t('不允许选择源集群'),
-        },
-        {
-          handler: (data: SqlServerHaModel) => props.selectedMap[data.master_domain],
-          tip: t('集群是已被选中的源集群'),
-        },
+        // {
+        //   handler: (data: SqlServerHaModel) => data.id === props.srcCluster.id,
+        //   tip: t('不允许选择源集群'),
+        // },
+        // {
+        //   handler: (data: SqlServerHaModel) => props.selectedMap[data.master_domain],
+        //   tip: t('集群是已被选中的源集群'),
+        // },
         {
           handler: (data: SqlServerHaModel) => compareVersion(data.major_version, props.srcCluster.major_version),
           tip: t('不允许高版本往低版本迁移'),
@@ -138,14 +138,14 @@
           handler: (data: SqlServerSingleModel) => data.isOffline,
           tip: t('集群已禁用'),
         },
-        {
-          handler: (data: SqlServerHaModel) => data.id === props.srcCluster.id,
-          tip: t('不允许选择源集群'),
-        },
-        {
-          handler: (data: SqlServerHaModel) => props.selectedMap[data.master_domain],
-          tip: t('集群是已被选中的源集群'),
-        },
+        // {
+        //   handler: (data: SqlServerSingleModel) => data.id === props.srcCluster.id,
+        //   tip: t('不允许选择源集群'),
+        // },
+        // {
+        //   handler: (data: SqlServerSingleModel) => props.selectedMap[data.master_domain],
+        //   tip: t('集群是已被选中的源集群'),
+        // },
         {
           handler: (data: SqlServerSingleModel) => compareVersion(data.major_version, props.srcCluster!.major_version),
           tip: t('不允许高版本往低版本迁移'),
@@ -177,19 +177,19 @@
       trigger: 'change',
       validator: () => modelValue.value.every((item) => domainRegex.test(item.master_domain)),
     },
-    {
-      message: '',
-      trigger: 'change',
-      validator: () => {
-        const conflictList: string[] = [];
-        modelValue.value.forEach((item) => {
-          if (props.selectedMap[item.master_domain]) {
-            conflictList.push(item.master_domain);
-          }
-        });
-        return conflictList.length > 0 ? t('集群xx是已被选中的源集群', [conflictList.join(',')]) : true;
-      },
-    },
+    // {
+    //   message: '',
+    //   trigger: 'change',
+    //   validator: () => {
+    //     const conflictList: string[] = [];
+    //     modelValue.value.forEach((item) => {
+    //       if (props.selectedMap[item.master_domain]) {
+    //         conflictList.push(item.master_domain);
+    //       }
+    //     });
+    //     return conflictList.length > 0 ? t('集群xx是已被选中的源集群', [conflictList.join(',')]) : true;
+    //   },
+    // },
     {
       message: t('目标集群不存在'),
       trigger: 'blur',
