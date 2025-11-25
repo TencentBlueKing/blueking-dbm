@@ -61,7 +61,10 @@ class MongoDBAddMongosResourceParamBuilder(BaseMongoDBOperateResourceParamBuilde
     def format(self):
         # 扩容接入层亲和性需要和集群亲和性保持一致
         self.patch_info_common_affinity(
-            role="mongos", remain_machine_type=MachineType.MONGOS, tolerance=get_mongodb_cluster_tolerance
+            role="mongos",
+            remain_machine_type=MachineType.MONGOS,
+            tolerance=get_mongodb_cluster_tolerance,
+            tolerance_type="mongos",
         )
         super().format()
 
