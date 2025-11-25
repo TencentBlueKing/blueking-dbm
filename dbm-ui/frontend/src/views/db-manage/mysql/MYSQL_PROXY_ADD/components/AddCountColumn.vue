@@ -32,7 +32,7 @@
   import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
   interface Emits {
-    (e: 'batch-edit', value: string[]): void;
+    (e: 'batch-edit', value: string[], field: string): void;
     (e: 'change'): void;
   }
 
@@ -57,7 +57,7 @@
   };
 
   const handleBatchEditChange = (value: string[] | string) => {
-    emits('batch-edit', value as string[]);
+    emits('batch-edit', value as string[], 'count');
   };
 
   const handleChange = () => {
