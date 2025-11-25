@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
 var Cfg = Configuration{
@@ -51,13 +52,13 @@ type ReporterConfig struct {
 
 // DbEndpointConfig db instance endpoint config
 type DbEndpointConfig struct {
-	Proto       string   `yaml:"proto"       mapstructure:"proto"`
-	ClusterType string   `yaml:"clusterType" mapstructure:"clusterType"`
-	MachineType string   `yaml:"machineType" mapstructure:"machineType"`
-	AccessLayer string   `yaml:"accessLayer" mapstructure:"accessLayer"`
-	Ip          string   `yaml:"ip"          mapstructure:"ip"`
-	Ports       []string `yaml:"ports"       mapstructure:"ports"`
-	AdminPorts  []string `yaml:"adminPorts"  mapstructure:"adminPorts"`
+	Proto       string                             `yaml:"proto"       mapstructure:"proto"`
+	ClusterType haprobe.DbmMetadataClusterType     `yaml:"clusterType" mapstructure:"clusterType"`
+	MachineType haprobe.DbmMetadataMachineType     `yaml:"machineType" mapstructure:"machineType"`
+	AccessLayer haprobe.DbmMetadataAccessLayerType `yaml:"accessLayer" mapstructure:"accessLayer"`
+	Ip          string                             `yaml:"ip"          mapstructure:"ip"`
+	Ports       []string                           `yaml:"ports"       mapstructure:"ports"`
+	AdminPorts  []string                           `yaml:"adminPorts"  mapstructure:"adminPorts"`
 }
 
 // MySqlHarvesterConfig MySQL harvester config

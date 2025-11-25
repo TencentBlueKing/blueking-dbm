@@ -28,12 +28,11 @@ import (
 	"context"
 
 	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
 // HarvestData harvst data from a db
-type HarvestData struct {
-	Value any
-}
+type HarvestData haprobe.HarvestData
 
 // Plugin probe plugin interface
 type Plugin interface {

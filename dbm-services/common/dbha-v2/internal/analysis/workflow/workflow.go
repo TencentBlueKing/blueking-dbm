@@ -428,7 +428,7 @@ func (w *Workflow) checkEventWithBizId(bizId int, dbEvents []*hamodel.DbEvent,
 	w.databaseLivenessDoubleCheck(badInsts)
 }
 
-func (w *Workflow) checkMissedProbe(dbMetrics []*hamodel.DatabaseMetric,
+func (w *Workflow) checkMissedProbe(dbMetrics []*hamodel.MySqlStatus,
 	skipDbInsts map[string]*hamodel.SkipDbInstance, metaInsts map[string]*hamodel.DbmMetadata) {
 
 	// Read the DB instance information reported by the probe.
@@ -466,7 +466,7 @@ func (w *Workflow) checkMissedProbe(dbMetrics []*hamodel.DatabaseMetric,
 	w.databaseLivenessDoubleCheck(missedProbeInsts)
 }
 
-func (w *Workflow) checkDbMetricWithBizId(ctx context.Context, bizId int, dbMetrics []*hamodel.DatabaseMetric) {
+func (w *Workflow) checkDbMetricWithBizId(ctx context.Context, bizId int, dbMetrics []*hamodel.MySqlStatus) {
 	// TODO: Base on the metric data from the database, an in-depth analysis is conducted.
 	//       If any abnormal events occur, the switching strategy will be triggered.
 }

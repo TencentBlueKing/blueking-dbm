@@ -47,11 +47,14 @@ import (
 )
 
 type collector struct {
-	user     string
-	password string
-	endpoint *hanet.Endpoint
-	db       *gorm.DB
-	dbCloser func()
+	clusterType haprobe.DbmMetadataClusterType
+	machineType haprobe.DbmMetadataMachineType
+	accessLayer haprobe.DbmMetadataAccessLayerType
+	user        string
+	password    string
+	endpoint    *hanet.Endpoint
+	db          *gorm.DB
+	dbCloser    func()
 }
 
 func (c *collector) open() (*haprobe.DbEvent, error) {
@@ -108,19 +111,41 @@ func (c *collector) close() {
 	}
 }
 
-func (c *collector) obtainMySqlGlobalStatus() (*haprobe.DatabaseMetric, error) {
+func (c *collector) isTendbHaProxy() bool {
+	return c.accessLayer == haprobe.DbmMetadataAccessLayerTypeProxy &&
+		c.machineType == haprobe.DbmMetadataMachineTypeProxy &&
+		c.clusterType == haprobe.DbmMetadataClusterTypeTendb
+}
+
+func (c *collector) isTendbClusterProxy() bool {
+	return c.accessLayer == haprobe.DbmMetadataAccessLayerTypeProxy &&
+		c.machineType == haprobe.DbmMetadataMachineTypeSpider &&
+		c.clusterType == haprobe.DbmMetadataClusterTypeTendbCluster
+}
+
+func (c *collector) obtainTendbClusterProxyStatus() (*haprobe.MySqlSpiderCtlStatus, error) {
+	// TODO: implement get spider proxy status
+	return nil, nil
+}
+
+func (c *collector) obtainTendbHaProxyStatus() (*haprobe.MySqlProxyStatus, error) {
+	// TODO: implement get TendbHaProxy proxy status
+	return nil, nil
+}
+
+func (c *collector) obtainGlobalStatus() (*haprobe.MySqlGlobalStatus, error) {
 	var statusResults []globalStatus
 	err := c.db.Raw("SHOW GLOBAL STATUS").Scan(&statusResults).Error
 	if err != nil {
 		return nil, err
 	}
 
-	dbMetric := convertToMetric(statusResults)
+	dbStatus := convertToMySqlStatus(statusResults)
 
 	var version string
 	err = c.db.Raw("SELECT VERSION() as version").Scan(&version).Error
 	if err == nil {
-		dbMetric.Version = version
+		dbStatus.Version = version
 	}
 
 	var portResult globalStatus
@@ -138,14 +163,14 @@ func (c *collector) obtainMySqlGlobalStatus() (*haprobe.DatabaseMetric, error) {
 
 	logger.Debug("mysql listen port:%v", port)
 
-	dbMetric.ListenPort = port
+	dbStatus.ListenPort = port
 
 	// Key buffer read hit rate
-	if dbMetric.KeyReadRequests != 0 {
-		dbMetric.KeyBufferHitRate = float64(dbMetric.KeyReads) / float64(dbMetric.KeyReadRequests)
+	if dbStatus.KeyReadRequests != 0 {
+		dbStatus.KeyBufferHitRate = float64(dbStatus.KeyReads) / float64(dbStatus.KeyReadRequests)
 	}
 
-	return dbMetric, err
+	return dbStatus, err
 }
 
 // obtainlHostStatus obtain this host status

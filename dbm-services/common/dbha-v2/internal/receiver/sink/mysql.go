@@ -50,7 +50,7 @@ type mysql struct {
 	dbs []*hamysql.DB
 }
 
-func newMysql(endpoints, user, password string) (*mysql, error) {
+func newMySql(endpoints, user, password string) (*mysql, error) {
 	epoints, err := hanet.NewEndpoints(endpoints)
 	if err != nil {
 		return nil, err
@@ -79,27 +79,47 @@ func newMysql(endpoints, user, password string) (*mysql, error) {
 }
 
 func (s *mysql) Save(msg *Message) error {
-	mysqlMetric := &haprobe.MySQLMetric{}
-	if err := json.Unmarshal([]byte(msg.Data), mysqlMetric); err != nil {
+	data := &haprobe.HarvestData{}
+	if err := json.Unmarshal([]byte(msg.Data), data); err != nil {
 		return gerrors.Newf(gerrors.InvalidJson, "unmarshal a mysql metric message failed, topic(%s), %v", msg.Topic, err)
 	}
 
 	logger.Debug("outputter(mysql) save msg(%v)", string(msg.Data))
 
-	data := hamodel.NewDbhaData(mysqlMetric)
-
-	for _, db := range s.dbs {
-		err := db.DB().Session(&gorm.Session{FullSaveAssociations: true}).
-			Clauses(clause.OnConflict{UpdateAll: true}).
-			Create(data).Error
-
+	switch data.ClusterType {
+	case haprobe.DbmMetadataClusterTypeTendb, haprobe.DbmMetadataClusterTypeTendbCluster:
+		value, err := json.Marshal(data.Value)
 		if err != nil {
-			logger.Warn("save the mysql metric failed, %v", err)
+			logger.Warn("failed to marshal harvest data value, errmsg: %s", err)
+			return err
 		}
+
+		mysqlMetric := &haprobe.MySqlMetric{}
+		if err = json.Unmarshal(value, mysqlMetric); err != nil {
+			logger.Warn("failed to unmarshal harvest data value, errmsg: %s", err)
+			return gerrors.Newf(gerrors.InvalidParameter, "can not convert the harvest data to MySQL metrics")
+		}
+
+		data := hamodel.NewDbhaData(mysqlMetric)
+
+		for _, db := range s.dbs {
+			err := db.DB().Session(&gorm.Session{FullSaveAssociations: true}).
+				Clauses(clause.OnConflict{UpdateAll: true}).
+				Create(data).Error
+
+			if err != nil {
+				logger.Warn("save the mysql metric failed, %v", err)
+			}
+		}
+
+		return nil
 	}
 
-	return nil
+	return gerrors.Newf(gerrors.Unsupported, "unsupported the cluster type: %s", data.ClusterType)
 }
 
 func (s *mysql) Close() {
+	for _, db := range s.dbs {
+		db.Close()
+	}
 }

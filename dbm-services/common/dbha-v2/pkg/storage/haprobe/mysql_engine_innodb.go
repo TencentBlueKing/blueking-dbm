@@ -24,8 +24,8 @@
 
 package haprobe
 
-// InnoDBMetric InnoDB performance metrics
-type InnoDBMetric struct {
+// InnoDBStatus InnoDB engine status
+type InnoDBStatus struct {
 	InnodbBackgroundLogSync       uint64  `json:"innodb_background_log_sync"`
 	InnodbLogWriteRequests        uint64  `json:"innodb_log_write_requests"`
 	InnodbLogWrites               uint64  `json:"innodb_log_write_times"`

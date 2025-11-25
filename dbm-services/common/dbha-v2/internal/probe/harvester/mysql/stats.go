@@ -39,20 +39,27 @@ type globalStatus struct {
 	Value    string `gorm:"column:Value"`
 }
 
-// convertToMetric convert the global status to database metric
-func convertToMetric(status []globalStatus) *haprobe.DatabaseMetric {
+// convertToMySqlStatus convert the global status to status
+func convertToMySqlStatus(status []globalStatus) *haprobe.MySqlGlobalStatus {
 	statusMaps := map[string]string{}
 	for _, s := range status {
 		statusMaps[strings.ToLower(s.Variable)] = s.Value
 	}
 
-	dbMetric := haprobe.DatabaseMetric{}
-	t := reflect.TypeOf(dbMetric)
-	v := reflect.ValueOf(&dbMetric).Elem()
+	dbStatus := haprobe.MySqlGlobalStatus{}
+	t := reflect.TypeOf(dbStatus)
+	v := reflect.ValueOf(&dbStatus).Elem()
 
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
-		jTagName := field.Tag.Get("json")
+
+		jTag := field.Tag.Get("json")
+		if jTag == "" {
+			logger.Debug("the field: %s has no tag", field.Name)
+			continue
+		}
+
+		jTagName := strings.Split(jTag, ",")[0]
 
 		statusValue, exists := statusMaps[strings.ToLower(jTagName)]
 		if !exists {
@@ -101,5 +108,5 @@ func convertToMetric(status []globalStatus) *haprobe.DatabaseMetric {
 		}
 	}
 
-	return &dbMetric
+	return &dbStatus
 }
