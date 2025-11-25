@@ -101,12 +101,12 @@ class RedisFlowPollingService(RedisLogCapturingService):
 
         if self.trans_data.error_occurred:
             self.log_warning("Skipping RedisFlowPollingService due to previous error")
-            return True
+            return False
 
         flow_type = kwargs["cluster"].get("flow_type")
         if not flow_type:
             self.log_error("Flow type not specified")
-            return True
+            return False
 
         self.interval = StaticIntervalGenerator(kwargs["cluster"]["polling_interval"])
         self.polling_timeout = kwargs["cluster"].get("polling_timeout", self.polling_timeout)
@@ -129,11 +129,15 @@ class RedisFlowPollingService(RedisLogCapturingService):
     def __schedule(self, data, parent_data, callback_data=None) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
 
+        if self.trans_data.error_occurred:
+            self.log_warning("Skipping RedisFlowPollingService due to previous error")
+            return False
+
         flow_type = kwargs["cluster"].get("flow_type")
         if not flow_type:
             self.log_error("Flow type to poll is not set")
             self.finish_schedule()
-            return True
+            return False
 
         # Check timeout
         polling_start_time = self.trans_data.polling_start_time if self.trans_data.polling_start_time else time.time()
@@ -165,14 +169,14 @@ class RedisFlowPollingService(RedisLogCapturingService):
                     )
 
             self.finish_schedule()
-            return True
+            return False
 
         # Get flow ID to poll based on flow type
         flow_id = getattr(self.trans_data, flow_type)
         if not flow_id:
-            self.log_warning(_("No flow ID found for type {}").format(flow_type))
+            self.log_error(_("No flow ID found for type {}").format(flow_type))
             self.finish_schedule()
-            return True
+            return False
 
         # Poll flow status
         try:
@@ -199,7 +203,7 @@ class RedisFlowPollingService(RedisLogCapturingService):
                         self.log_info(
                             _("Dry-run: changing task {} state to DELETE_FAILED").format(self.trans_data.task_id)
                         )
-                return True
+                return False
 
             # Flow succeeded
             self.log_info(_("Flow {} finished successfully").format(flow_id))
@@ -220,11 +224,11 @@ class RedisFlowPollingService(RedisLogCapturingService):
         except FlowTree.DoesNotExist:
             self.log_error(_("Flow {} not found in FlowTree").format(flow_id))
             self.finish_schedule()
-            return True
+            return False
         except Exception as e:
             self.log_error(_("Error checking flow {} status: {}").format(flow_id, str(e)))
             self.finish_schedule()
-            return True
+            return False
 
     def _schedule(self, data, parent_data, callback_data=None) -> bool:
         self.init_trans_data(data)
@@ -337,7 +341,7 @@ class RedisTempInstanceDeleteService(RedisLogCapturingService):
             return True
 
         if not self.trans_data.rollback_flow_id:
-            self.log_warning("No temp instance to delete")
+            self.log_error("No temp instance to delete")
             return True
 
         try:
@@ -359,6 +363,7 @@ class RedisTempInstanceDeleteService(RedisLogCapturingService):
                         "related_rollback_bill_id": global_data["uid"],
                         "cluster_id": cluster.id,
                         "bk_cloud_id": cluster.bk_cloud_id,
+                        "prod_cluster": cluster.immute_domain,
                     }
                 ],
             }
