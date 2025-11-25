@@ -191,6 +191,7 @@ class MySQLRollbackExerciseFlow(object):
                 with_collect_sysinfo=False,
                 with_push_config=False,
                 with_exporter_config=False,
+                skip_add_domain=True,
             )
         )
         # 屏蔽告警
