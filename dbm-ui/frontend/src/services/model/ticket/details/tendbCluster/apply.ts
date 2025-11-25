@@ -1,4 +1,4 @@
-import type { DetailBase, SpecInfo } from '../common';
+import type { ApplySpecInfo, DetailBase } from '../common';
 
 export interface Apply extends DetailBase {
   bk_cloud_id: number;
@@ -20,9 +20,9 @@ export interface Apply extends DetailBase {
     backend_group: {
       capacity: string;
       future_capacity: string;
-      spec_info: SpecInfo;
-    } & SpecInfo;
-    spider: SpecInfo;
+      spec_info: ApplySpecInfo;
+    } & ApplySpecInfo;
+    spider: ApplySpecInfo;
   };
   spider_port: number;
   version: {

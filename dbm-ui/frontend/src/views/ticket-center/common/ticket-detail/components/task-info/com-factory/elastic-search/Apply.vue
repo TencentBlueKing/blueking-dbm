@@ -50,6 +50,20 @@
         </SpecDetailPopover>
         <span v-else>--</span>
       </InfoItem>
+      <InfoItem :label="t('Master 节点资源标签')">
+        <template v-if="masterSpec && masterSpec.label_names?.length">
+          <BkTag
+            v-for="item in masterSpec.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
+      </InfoItem>
       <InfoItem :label="t('Client节点规格')">
         <SpecDetailPopover
           v-if="clientSpec"
@@ -62,6 +76,20 @@
           </span>
         </SpecDetailPopover>
         <span v-else>--</span>
+      </InfoItem>
+      <InfoItem :label="t('Client 节点资源标签')">
+        <template v-if="clientSpec && clientSpec.label_names?.length">
+          <BkTag
+            v-for="item in clientSpec.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
       </InfoItem>
       <InfoItem :label="t('热节点规格')">
         <SpecDetailPopover
@@ -76,6 +104,20 @@
         </SpecDetailPopover>
         <span v-else>--</span>
       </InfoItem>
+      <InfoItem :label="t('热节点资源标签')">
+        <template v-if="hotSpec && hotSpec.label_names?.length">
+          <BkTag
+            v-for="item in hotSpec.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
+      </InfoItem>
       <InfoItem :label="t('冷节点规格')">
         <SpecDetailPopover
           v-if="coldSpec"
@@ -88,6 +130,20 @@
           </span>
         </SpecDetailPopover>
         <span v-else>--</span>
+      </InfoItem>
+      <InfoItem :label="t('冷节点资源标签')">
+        <template v-if="coldSpec && coldSpec.label_names?.length">
+          <BkTag
+            v-for="item in coldSpec.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
       </InfoItem>
     </template>
     <template v-else>

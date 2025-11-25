@@ -27,7 +27,7 @@
       </BkButton>
     </EditableBlock>
   </EditableColumn>
-  <ResourcePreview
+  <ResourcePreviewSiderslider
     v-model:is-show="showSlider"
     :params="params" />
 </template>
@@ -35,10 +35,10 @@
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
-  import ResourcePreview from './components/ResourcePreview.vue';
+  import ResourcePreviewSiderslider from '@components/resource-preview-sideslider/Index.vue';
 
   interface Props {
-    params: ComponentProps<typeof ResourcePreview>['params'];
+    params: ComponentProps<typeof ResourcePreviewSiderslider>['params'];
     rowspan?: number;
   }
 

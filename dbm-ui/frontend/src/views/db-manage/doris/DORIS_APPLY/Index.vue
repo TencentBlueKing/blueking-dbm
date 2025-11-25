@@ -46,10 +46,10 @@
           required>
           <DeployVersion
             v-model="formData.details.db_version"
-            db-type="doris"
+            :db-type="DBTypes.DORIS"
             query-key="doris" />
         </BkFormItem>
-        <BkFormItem
+        <!-- <BkFormItem
           :label="t('服务器选择')"
           property="details.ip_source"
           required>
@@ -57,11 +57,11 @@
             <BkRadioButton label="resource_pool">
               {{ t('自动从资源池匹配') }}
             </BkRadioButton>
-            <!-- <BkRadioButton label="manual_input">
+            <BkRadioButton label="manual_input">
               {{ t('业务空闲机') }}
-            </BkRadioButton> -->
+            </BkRadioButton>
           </BkRadioGroup>
-        </BkFormItem>
+        </BkFormItem> -->
         <Transition
           mode="out-in"
           name="dbm-fade">
@@ -213,6 +213,19 @@
                     machine-type="doris_follower"
                     :subzone-ids="formData.details.sub_zone_ids" />
                 </BkFormItem>
+                <ResourcePreview
+                  v-model:tag-list="formData.details.resource_spec.follower.labels"
+                  :biz-id="formData.bk_biz_id"
+                  :params="{
+                    city: formData.details.city_name,
+                    subzones: formData.details.sub_zone_names.join('，'),
+                    subzone_ids: formData.details.sub_zone_ids.join(','),
+                    for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
+                    resource_types: [DBTypes.DORIS, 'PUBLIC'],
+                    spec_id: Number(formData.details.resource_spec.follower.spec_id),
+                    labels: formData.details.resource_spec.follower.labels.map((item) => item.id).join(','),
+                  }"
+                  property="details.resource_spec.follower.labels" />
                 <BkFormItem
                   :label="t('数量')"
                   property="details.resource_spec.follower.count"
@@ -239,6 +252,19 @@
                     machine-type="doris_observer"
                     :subzone-ids="formData.details.sub_zone_ids" />
                 </BkFormItem>
+                <ResourcePreview
+                  v-model:tag-list="formData.details.resource_spec.observer.labels"
+                  :biz-id="formData.bk_biz_id"
+                  :params="{
+                    city: formData.details.city_name,
+                    subzones: formData.details.sub_zone_names.join('，'),
+                    subzone_ids: formData.details.sub_zone_ids.join(','),
+                    for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
+                    resource_types: [DBTypes.DORIS, 'PUBLIC'],
+                    spec_id: Number(formData.details.resource_spec.observer.spec_id),
+                    labels: formData.details.resource_spec.observer.labels.map((item) => item.id).join(','),
+                  }"
+                  property="details.resource_spec.observer.labels" />
                 <BkFormItem
                   :label="t('数量')"
                   property="details.resource_spec.observer.count">
@@ -270,6 +296,19 @@
                     machine-type="doris_backend"
                     :subzone-ids="formData.details.sub_zone_ids" />
                 </BkFormItem>
+                <ResourcePreview
+                  v-model:tag-list="formData.details.resource_spec.hot.labels"
+                  :biz-id="formData.bk_biz_id"
+                  :params="{
+                    city: formData.details.city_name,
+                    subzones: formData.details.sub_zone_names.join('，'),
+                    subzone_ids: formData.details.sub_zone_ids.join(','),
+                    for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
+                    resource_types: [DBTypes.DORIS, 'PUBLIC'],
+                    spec_id: Number(formData.details.resource_spec.hot.spec_id),
+                    labels: formData.details.resource_spec.hot.labels.map((item) => item.id).join(','),
+                  }"
+                  property="details.resource_spec.hot.labels" />
                 <BkFormItem
                   :label="t('数量')"
                   property="details.resource_spec.hot.count">
@@ -295,6 +334,19 @@
                     machine-type="doris_backend"
                     :subzone-ids="formData.details.sub_zone_ids" />
                 </BkFormItem>
+                <ResourcePreview
+                  v-model:tag-list="formData.details.resource_spec.warm.labels"
+                  :biz-id="formData.bk_biz_id"
+                  :params="{
+                    city: formData.details.city_name,
+                    subzones: formData.details.sub_zone_names.join('，'),
+                    subzone_ids: formData.details.sub_zone_ids.join(','),
+                    for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
+                    resource_types: [DBTypes.DORIS, 'PUBLIC'],
+                    spec_id: Number(formData.details.resource_spec.warm.spec_id),
+                    labels: formData.details.resource_spec.warm.labels.map((item) => item.id).join(','),
+                  }"
+                  property="details.resource_spec.warm.labels" />
                 <BkFormItem
                   :label="t('数量')"
                   property="details.resource_spec.warm.count">
@@ -411,6 +463,7 @@
   import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/BigData.vue';
+  import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
   import RenderHostTable from '@views/db-manage/common/big-data-host-table/RenderHostTable.vue';
 
@@ -444,11 +497,16 @@
 
       if (details.ip_source === 'resource_pool') {
         const resourceSpec = Object.entries(details.resource_spec!).reduce((prev, [specType, specInfo]) => {
+          const labels = (specInfo.labels || []).map((labelItem, labelIndex) => ({
+            id: Number(labelItem),
+            value: specInfo.label_names[labelIndex],
+          }));
           // 兼容历史数据
           if (specType === 'cold') {
             return Object.assign(prev, {
               warm: {
                 count: specInfo.count,
+                labels,
                 spec_id: specInfo.spec_id,
               },
             });
@@ -456,6 +514,7 @@
           return Object.assign(prev, {
             [specType]: {
               count: specInfo.count,
+              labels,
               spec_id: specInfo.spec_id,
             },
           });
@@ -486,6 +545,7 @@
     details: {
       bk_cloud_id: 0,
       city_code: '',
+      city_name: '',
       cluster_alias: '',
       cluster_name: '',
       db_app_abbr: '',
@@ -504,22 +564,39 @@
       resource_spec: {
         follower: {
           count: 3,
+          labels: [] as {
+            id: number;
+            value: string;
+          }[],
           spec_id: '',
         },
         hot: {
           count: 0,
+          labels: [] as {
+            id: number;
+            value: string;
+          }[],
           spec_id: '',
         },
         observer: {
           count: 0,
+          labels: [] as {
+            id: number;
+            value: string;
+          }[],
           spec_id: '',
         },
         warm: {
           count: 0,
+          labels: [] as {
+            id: number;
+            value: string;
+          }[],
           spec_id: '',
         },
       },
       sub_zone_ids: [] as number[],
+      sub_zone_names: [] as string[],
     },
     remark: '',
     ticket_type: TicketTypes.DORIS_APPLY,
@@ -831,6 +908,8 @@
                 ...specFollowerRef.value!.getData(),
                 ...regionAndDisasterParams,
                 count: Number(details.resource_spec.follower.count),
+                label_names: details.resource_spec.follower.labels.map((item: { value: string }) => item.value),
+                labels: details.resource_spec.follower.labels.map((item: { id: number }) => String(item.id)),
               },
             },
           };
@@ -845,6 +924,8 @@
                 ...specObserverRef.value!.getData(),
                 ...regionAndDisasterParams,
                 count: observerCount,
+                label_names: details.resource_spec.observer.labels.map((item: { value: string }) => item.value),
+                labels: details.resource_spec.observer.labels.map((item: { id: number }) => String(item.id)),
               },
             });
           }
@@ -855,6 +936,8 @@
                 ...specHotRef.value!.getData(),
                 ...regionAndDisasterParams,
                 count: hotCount,
+                label_names: details.resource_spec.hot.labels.map((item: { value: string }) => item.value),
+                labels: details.resource_spec.hot.labels.map((item: { id: number }) => String(item.id)),
               },
             });
           }
@@ -865,6 +948,8 @@
                 ...specWarmRef.value!.getData(),
                 ...regionAndDisasterParams,
                 count: warmCount,
+                label_names: details.resource_spec.warm.labels.map((item: { value: string }) => item.value),
+                labels: details.resource_spec.warm.labels.map((item: { id: number }) => String(item.id)),
               },
             });
           }
@@ -889,7 +974,11 @@
         details: getDetails(),
       };
       // 若业务没有英文名称则先创建业务英文名称再创建单据，否则直接创建单据
-      bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
+      if (bizState.hasEnglishName) {
+        handleCreateTicket(params);
+      } else {
+        handleCreateAppAbbr(params);
+      }
     });
   };
 
@@ -967,7 +1056,7 @@
 
           .bk-select,
           .bk-input {
-            width: 314px;
+            width: 314px !important;
           }
         }
       }

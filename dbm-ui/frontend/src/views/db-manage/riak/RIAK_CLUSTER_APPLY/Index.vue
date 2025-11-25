@@ -74,7 +74,7 @@
         </BkFormItem> -->
       </DbCard>
       <DbCard :title="t('部署需求')">
-        <BkFormItem
+        <!-- <BkFormItem
           :label="t('服务器选择')"
           property="details.ip_source"
           required>
@@ -82,11 +82,11 @@
             <BkRadioButton label="resource_pool">
               {{ t('自动从资源池匹配') }}
             </BkRadioButton>
-            <!-- <BkRadioButton label="manual_input">
+            <BkRadioButton label="manual_input">
               {{ t('业务空闲机') }}
-            </BkRadioButton> -->
+            </BkRadioButton>
           </BkRadioGroup>
-        </BkFormItem>
+        </BkFormItem> -->
         <Transition
           mode="out-in"
           name="dbm-fade">
@@ -95,11 +95,11 @@
             class="mb-24">
             <BkFormItem
               :label="t('资源规格')"
-              property="spec_id"
+              property="details.resource_spec.riak.spec_id"
               required>
               <SpecSelector
                 ref="specRef"
-                v-model="formData.spec_id"
+                v-model="formData.details.resource_spec.riak.spec_id"
                 :biz-id="formData.bk_biz_id"
                 :city="formData.details.city_code"
                 :cloud-id="formData.details.bk_cloud_id"
@@ -108,12 +108,25 @@
                 style="width: 435px"
                 :subzone-ids="formData.details.sub_zone_ids" />
             </BkFormItem>
+            <ResourcePreview
+              v-model:tag-list="formData.details.resource_spec.riak.labels"
+              :biz-id="formData.bk_biz_id"
+              :params="{
+                city: formData.details.city_name,
+                subzones: formData.details.sub_zone_names.join('，'),
+                subzone_ids: formData.details.sub_zone_ids.join(','),
+                for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
+                resource_types: [DBTypes.RIAK, 'PUBLIC'],
+                spec_id: Number(formData.details.resource_spec.riak.spec_id),
+                labels: formData.details.resource_spec.riak.labels.map((item) => item.id).join(','),
+              }"
+              property="details.resource_spec.riak.labels" />
             <BkFormItem
               :label="t('节点数量')"
-              property="nodes_num"
+              property="details.resource_spec.riak.count"
               required>
               <BkInput
-                v-model="formData.nodes_num"
+                v-model="formData.details.resource_spec.riak.count"
                 clearable
                 :min="3"
                 show-clear-only-hover
@@ -213,6 +226,7 @@
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
   import ModuleItem from '@views/db-manage/common/apply-items/ModuleItem.vue';
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/BigData.vue';
+  import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
   // 目前固定为此版本
@@ -223,6 +237,7 @@
     details: {
       bk_cloud_id: 0,
       city_code: '',
+      city_name: '',
       cluster_alias: '',
       cluster_name: '',
       db_app_abbr: '',
@@ -231,12 +246,21 @@
       disaster_tolerance_level: Affinity.MAX_EACH_ZONE_EQUAL, // 同 affinity
       ip_source: 'resource_pool',
       nodes: [] as HostInfo[],
+      resource_spec: {
+        riak: {
+          count: 3,
+          labels: [] as {
+            id: number;
+            value: string;
+          }[],
+          spec_id: '',
+        },
+      },
       sub_zone_ids: [] as number[],
+      sub_zone_names: [] as string[],
       // http_port: 8087,
     },
-    nodes_num: 3, // resource_pool
     remark: '',
-    spec_id: '' as number | '', // resource_pool
     ticket_type: TicketTypes.RIAK_CLUSTER_APPLY,
   });
 
@@ -266,11 +290,24 @@
 
       if (details.ip_source === 'resource_pool') {
         const { riak } = details.resource_spec!;
-        Object.assign(formData, {
-          nodes_num: riak.count,
-          spec_id: riak.spec_id,
+        const resourceSpec = Object.entries(details.resource_spec!).reduce((prev, [specType, specInfo]) => {
+          const labels = (specInfo.labels || []).map((labelItem, labelIndex) => ({
+            id: Number(labelItem),
+            value: specInfo.label_names[labelIndex],
+          }));
+          return Object.assign(prev, {
+            [specType]: {
+              count: specInfo.count,
+              labels,
+              spec_id: specInfo.spec_id,
+            },
+          });
+        }, {});
+        const subzoneIds = riak.location_spec.sub_zone_ids || [];
+        Object.assign(formData.details, {
+          resource_spec: Object.assign(formData.details.resource_spec, resourceSpec),
+          sub_zone_ids: subzoneIds,
         });
-        const subzoneIds = details.resource_spec!.riak.location_spec.sub_zone_ids || [];
         nextTick(() => {
           regionRequirementsRef.value!.setInitSubzone(subzoneIds);
         });
@@ -298,7 +335,7 @@
         validator: (value: HostInfo[]) => value.length >= 3,
       },
     ],
-    nodes_num: [
+    'details.resource_spec.riak.count': [
       {
         message: t('节点数至少为n台', [3]),
         trigger: 'change',
@@ -311,8 +348,8 @@
     () =>
       ({
         riak: {
-          count: formData.nodes_num,
-          spec_id: formData.spec_id,
+          count: formData.details.resource_spec.riak.count,
+          spec_id: formData.details.resource_spec.riak.spec_id,
         },
       }) as ComponentProps<typeof EstimatedCost>['params']['resource_spec'],
   );
@@ -357,10 +394,11 @@
         Object.assign(params.details, {
           resource_spec: {
             riak: {
-              count: formData.nodes_num,
-              spec_id: formData.spec_id,
               ...specRef.value.getData(),
               ...regionRequirementsRef.value!.getValue(),
+              count: formData.details.resource_spec.riak.count,
+              label_names: formData.details.resource_spec.riak.labels.map((item: { value: string }) => item.value),
+              labels: formData.details.resource_spec.riak.labels.map((item: { id: number }) => String(item.id)),
             },
           },
         });
@@ -377,7 +415,11 @@
       }
 
       // 若业务没有英文名称则先创建业务英文名称再创建单据，否则直接创建单据
-      bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
+      if (bizState.hasEnglishName) {
+        handleCreateTicket(params);
+      } else {
+        handleCreateAppAbbr(params);
+      }
     });
   };
 

@@ -1,4 +1,4 @@
-import type { DetailBase, SpecInfo } from '../common';
+import type { ApplySpecInfo, DetailBase } from '../common';
 
 export interface InsApply extends DetailBase {
   append_apply: boolean; // 是否是追加部署
@@ -31,6 +31,6 @@ export interface InsApply extends DetailBase {
   redis_pwd: string;
   // 如果是新部署，则一定从资源池部署
   resource_spec?: {
-    backend_group: SpecInfo;
+    backend_group: ApplySpecInfo;
   };
 }
