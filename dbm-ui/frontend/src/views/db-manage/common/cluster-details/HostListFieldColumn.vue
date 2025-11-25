@@ -64,7 +64,7 @@
       <SpecDetailPopover
         v-if="row.spec_name"
         :data="row.spec_config">
-        {{ row.spec_name }}
+        <span style="padding-bottom: 2px; border-bottom: 1px dashed #979ba5">{{ row.spec_name }}</span>
       </SpecDetailPopover>
       <span v-else>--</span>
     </template>
