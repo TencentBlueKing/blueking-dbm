@@ -26,6 +26,9 @@ class SQLServerHostMigrateDetailSerializer(SQLServerBaseOperateDetailSerializer)
     class InfoSerializer(serializers.Serializer):
         cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
         origin_ip = serializers.JSONField(help_text=_("源主机信息"))
+        related_cluster_infos = serializers.ListField(
+            help_text=_("展示字段"), child=serializers.DictField(), required=False
+        )
         resource_spec = serializers.JSONField(help_text=_("资源规格"))
 
     infos = serializers.ListField(help_text=_("单据信息"), child=InfoSerializer())
