@@ -150,7 +150,6 @@ class TicketFlowManager(object):
 
         # 如果是部署类单据，异常终止要联动回收主机
         is_apply = self.ticket.ticket_type in BuilderFactory.apply_ticket_type
-        is_inner_flow = self.current_flow_obj.flow_type == FlowType.INNER_FLOW
-        if target_status == TicketStatus.TERMINATED and is_inner_flow and is_apply:
+        if target_status == TicketStatus.TERMINATED and is_apply:
             recycle_hosts = fetch_apply_hosts({"nodes": self.ticket.details["nodes"]})
             create_recycle_ticket.apply_async(args=(self.ticket.id, recycle_hosts, TicketType.RECYCLE_APPLY_HOST))
