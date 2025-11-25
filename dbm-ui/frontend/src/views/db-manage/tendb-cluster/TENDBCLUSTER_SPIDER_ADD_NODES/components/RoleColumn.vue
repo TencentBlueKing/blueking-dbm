@@ -80,19 +80,12 @@
     },
   ];
 
-  const renderList = computed(() =>
-    defaultOptions.filter((item) => props.cluster[item.value as 'spider_master' | 'spider_slave'].length > 0),
-  );
-
-  watch(renderList, () => {
-    if (!modelValue.value) {
-      const role = renderList.value?.[0]?.value;
-      if (role) {
-        modelValue.value = role;
-        roleCount.value = props.cluster[role as keyof Props['cluster']].length;
-      }
-    }
-  });
+  const renderList = ref<
+    {
+      label: string;
+      value: string;
+    }[]
+  >([]);
 
   const showBatchEdit = ref(false);
 
@@ -105,8 +98,37 @@
   };
 
   const handleChange = (role: string) => {
-    roleCount.value = props.cluster[role as keyof Props['cluster']].length;
+    modelValue.value = role;
+    roleCount.value = props.cluster[role as keyof Props['cluster']]?.length || 0;
   };
+
+  watch(
+    () => props.cluster,
+    () => {
+      const list = defaultOptions.filter(
+        (item) => props.cluster[item.value as 'spider_master' | 'spider_slave'].length > 0,
+      );
+      const firstRole = list?.[0]?.value;
+      renderList.value = list;
+      handleChange(firstRole);
+    },
+  );
+
+  watch(
+    modelValue,
+    (newVal) => {
+      const isExist = renderList.value.some((item) => item.value === newVal);
+      if (isExist) {
+        handleChange(newVal);
+      } else {
+        modelValue.value = '';
+        roleCount.value = 0;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 
 <style lang="less" scoped>
