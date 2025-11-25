@@ -2,3 +2,4 @@ checksum.sqlite
 .idea
 *.log
 build
+test

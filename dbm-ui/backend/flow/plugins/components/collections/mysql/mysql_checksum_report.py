@@ -8,6 +8,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import base64
+import gzip
+import json
+
 from django.db.transaction import atomic
 from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
@@ -29,11 +33,26 @@ class MySQLChecksumReportService(BaseService):
         kwargs = data.get_one_of_inputs("kwargs")
 
         skip_tables = []
-        if trans_data.checksum_report:
-            if trans_data.checksum_report["summaries"]:
-                for table_checksum in trans_data.checksum_report["summaries"]:
-                    if table_checksum["skipped"] != 0:
-                        skip_tables.append(table_checksum["table"])
+        try:
+            if trans_data.checksum_report:
+                raw_checksum_report = trans_data.checksum_report["raw_checksum_report"]
+                self.log_info(f"raw checksum report: {raw_checksum_report}")
+
+                checksum_report_byte = base64.b64decode(raw_checksum_report)
+
+                checksum_report_str = gzip.decompress(checksum_report_byte).decode("utf-8")
+                self.log_info(f"checksum report str: {checksum_report_str}")
+
+                checksum_report = json.loads(checksum_report_str)
+                self.log_info(f"checksum report: {checksum_report}")
+
+                if checksum_report["summaries"]:
+                    for table_checksum in checksum_report["summaries"]:
+                        if table_checksum["skipped"] != 0:
+                            skip_tables.append(table_checksum["table"])
+        except Exception as e:  # noqa
+            self.log_error(f"{e}")
+            return False
 
         diff_sql, consistent_sql = self._generate_sql(
             global_data["master_ip"],

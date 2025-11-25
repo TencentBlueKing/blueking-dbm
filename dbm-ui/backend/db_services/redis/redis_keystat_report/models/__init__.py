@@ -9,8 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from .redis_keystat_report import ReportRecord, ReportItem, RankItem
-
+from .redis_keystat_report import RankItem, ReportItem, ReportRecord
 
 # 导出所有模型，用于在其他模块中使用.
 __all__ = ["ReportRecord", "ReportItem", "RankItem"]

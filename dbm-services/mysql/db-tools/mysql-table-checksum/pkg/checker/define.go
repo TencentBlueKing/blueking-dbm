@@ -1,8 +1,12 @@
 package checker
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
+	"encoding/base64"
 	"encoding/json"
+	"log/slog"
 	"time"
 
 	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
@@ -57,4 +61,39 @@ type Output struct {
 func (c *Output) String() string {
 	b, _ := json.Marshal(*c)
 	return string(b)
+}
+
+func (c *Output) ZipString() (string, error) {
+	b, _ := json.Marshal(*c)
+	slog.Info("run checksum", slog.String("raw report", string(b)))
+
+	var zb bytes.Buffer
+	gz, err := gzip.NewWriterLevel(&zb, gzip.BestCompression)
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		_ = gz.Close()
+	}()
+
+	_, err = gz.Write(b)
+	if err != nil {
+		return "", err
+	}
+
+	err = gz.Flush()
+	if err != nil {
+		return "", err
+	}
+
+	err = gz.Close()
+	if err != nil {
+		return "", err
+	}
+
+	slog.Info("run checksum", slog.Any("zipped report", zb.Bytes()))
+
+	encodeReport := base64.StdEncoding.EncodeToString(zb.Bytes())
+	slog.Info("run checksum", slog.String("encoded report", encodeReport))
+	return encodeReport, nil
 }
