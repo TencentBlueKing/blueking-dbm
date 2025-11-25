@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from rest_framework.routers import DefaultRouter
 
-from backend.db_services.redis.keystat_report.views import KeyStatReportViewSet, KeyStatReportDetailsViewSet
+from backend.db_services.redis.keystat_report.views import KeyStatReportDetailsViewSet, KeyStatReportViewSet
 
 router = DefaultRouter(trailing_slash=True)
 

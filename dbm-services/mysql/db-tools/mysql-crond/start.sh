@@ -10,9 +10,9 @@ pgrep -x 'mysql-crond' && echo "mysql-crond process already running" && exit 1
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 if [ $# -eq 0 ];then
   # echo "run default ./mysql-crond -c runtime.yaml" 
-  START_CMD="cd $SCRIPT_DIR && nohup ./mysql-crond -c runtime.yaml 1>/dev/null 2>start-crond.err &"
+  START_CMD="cd $SCRIPT_DIR && rm -f start-crond.err && nohup ./mysql-crond -c runtime.yaml 1>/dev/null 2>start-crond.err &"
 else
-  START_CMD="cd $SCRIPT_DIR && nohup ./mysql-crond ${@:1} 1>/dev/null 2>start-crond.err &"
+  START_CMD="cd $SCRIPT_DIR && rm -f start-crond.err && nohup ./mysql-crond ${@:1} 1>/dev/null 2>start-crond.err &"
 fi
 
 

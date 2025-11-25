@@ -208,6 +208,10 @@ class MysqlChecksumContext:
     "diff_rows":0,"chunks":1,"skipped":0,"time":0,"table":"mysql.columns_priv"}
     ],
     "pt_exit_flags":[{"flag":"TABLE_DIFF","meaning":"At least one diff was found","bit_value":16}]}
+    gzip+base64 后的字符串, 然后包成
+    {
+      "raw_checksum_report": str
+    }
     """
     checksum_report: dict = None
 

@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from backend.db_proxy.views.redis_keystat_report.views import KeyStatReportViewSet
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
@@ -27,6 +26,7 @@ from backend.db_proxy.views.k8s.views import K8sClusterApiProxyPassViewSet
 from backend.db_proxy.views.nameservice.views import NameServiceProxyPassViewSet
 from backend.db_proxy.views.redis_dts.views import DtsApiProxyPassViewSet
 from backend.db_proxy.views.redis_hot_key_analysis.views import HotKeyAnalysisViewSet
+from backend.db_proxy.views.redis_keystat_report.views import KeyStatReportViewSet
 
 routers = DefaultRouter(trailing_slash=True)
 routers.register(r"", DnsProxyPassViewSet, basename="dns")
