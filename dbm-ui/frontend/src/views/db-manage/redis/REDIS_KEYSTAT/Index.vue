@@ -138,7 +138,7 @@
               ...params,
               cluster_type: [
                 ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-                ClusterTypes.REDIS_CLUSTER,
+                ClusterTypes.PREDIXY_REDIS_CLUSTER,
                 ClusterTypes.REDIS_INSTANCE,
               ].join(','),
             }),
@@ -149,7 +149,7 @@
               ...params,
               cluster_type: [
                 ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-                ClusterTypes.REDIS_CLUSTER,
+                ClusterTypes.PREDIXY_REDIS_CLUSTER,
                 ClusterTypes.REDIS_INSTANCE,
               ].join(','),
             }),
