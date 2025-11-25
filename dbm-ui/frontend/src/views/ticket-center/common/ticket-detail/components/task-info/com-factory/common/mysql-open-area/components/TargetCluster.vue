@@ -15,8 +15,7 @@
   <TicketInfoTable
     class="target-cluster-table"
     :data="tableData"
-    row-key="row_key"
-    :rowspan-and-colspan="rowspanAndColspan">
+    row-key="row_key">
     <TicketInfoTableColumn
       col-key="cluster_domain"
       :get-copy-value="(row: RowData) => row.cluster_domain"
@@ -42,7 +41,6 @@
 
 <script setup lang="tsx">
   import _ from 'lodash';
-  import type { BaseTableCellParams, TableRowData } from 'tdesign-vue-next/es/table/type';
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
@@ -94,15 +92,6 @@
       ),
     ),
   );
-
-  const rowspanAndColspan = (params: BaseTableCellParams<TableRowData>) => {
-    const { col, row } = params;
-    if (col.colKey === 'cluster_domain') {
-      const rowSpan = tableData.value.filter((item: RowData) => item.cluster_domain === row.cluster_domain).length;
-      return { colspan: 1, rowspan: rowSpan > 1 ? rowSpan : 1 };
-    }
-    return {};
-  };
 </script>
 
 <style lang="less" scoped>
