@@ -15,7 +15,7 @@ def revoke_with(flow_func):
 
     def decorator(main_func):
         # 添加校验函数信息到主函数的元数据中
-        main_func.revoke_flow = flow_func
+        main_func.revoke_flow = flow_func.revoke_flow
         return main_func
 
     return decorator
@@ -27,7 +27,7 @@ class RevokeFlowBase:
     改造一些魔方方法，可以让继承的类直接函数方法化
     """
 
-    def __new__(cls, root_id: str, ticket_data: dict):
+    def __init__(self, root_id: str, ticket_data: dict):
         """
         @param root_id:
         @param ticket_data: 单据参数结构
@@ -37,14 +37,12 @@ class RevokeFlowBase:
             raise RevokeFlowBaseException("ticket_data is not dict, check")
         if not isinstance(root_id, str):
             raise RevokeFlowBaseException("root_id is not str, check")
-        # 执行callable方法
-        instance = super().__new__(cls)
-        instance.data = ticket_data
-        instance.root_id = root_id
-        return instance()  # 返回 __call__ 的结果
+        # 初始化
+        self.data = ticket_data
+        self.root_id = root_id
 
-    def __call__(self):
+    def revoke_flow(self):
         """
-        初始callable方法，不同validator定义重写__call__逻辑
+        初始callable方法，不同revoke定义重写revoke逻辑
         """
-        return None
+        raise NotImplementedError
