@@ -17,10 +17,10 @@ from bkcrypto.asymmetric.options import RSAAsymmetricOptions, SM2AsymmetricOptio
 from bkcrypto.symmetric.options import AESSymmetricOptions, SM4SymmetricOptions
 from blueapps.conf.default_settings import *  # pylint: disable=wildcard-import
 from blueapps.core.celery.celery import app
+from django.db.backends.mysql.features import DatabaseFeatures
 
 from backend import env
 from backend.core.encrypt.interceptors import SymmetricInterceptor
-from django.db.backends.mysql.features import DatabaseFeatures
 from blueking.mysql_patch import PatchFeatures
 
 DatabaseFeatures.minimum_database_version = PatchFeatures.minimum_database_version
@@ -455,7 +455,7 @@ def get_logging_config(log_dir: str, log_level: str = "ERROR") -> Dict:
         "formatters": {
             "verbose": {
                 "format": "%(levelname)s [%(asctime)s] [%(request_id)s] %(name)s %(pathname)s %(lineno)d %(funcName)s "
-                "%(process)d %(thread)d \n \t %(message)s \n",
+                          "%(process)d %(thread)d \n \t %(message)s \n",
                 # noqa
                 "datefmt": "%Y-%m-%d %H:%M:%S",
             },
@@ -617,6 +617,7 @@ GRAFANA = {
 # 自定义上报监控配置
 if env.BKAPP_MONITOR_REPORTER_ENABLE:
     from backend.bk_dataview.prometheus import config
+
     config.monitor_celery_report_config()
     config.monitor_web_report_config()
 
@@ -644,3 +645,7 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "tools": [],
     }
 ]
+
+# 接入告警屏蔽的延迟秒, 默认 10s 无延迟
+# 最小 10s
+DISABLE_ALARM_SHIELD_DELAY = max(int(os.getenv("DISABLE_ALARM_SHIELD_DELAY", 10)), 10)
