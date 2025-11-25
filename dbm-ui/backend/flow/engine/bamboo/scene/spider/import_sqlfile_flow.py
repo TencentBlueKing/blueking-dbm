@@ -16,16 +16,19 @@ from typing import Dict, Optional
 
 from django.utils.translation import gettext as _
 
+from backend.components import DBConfigApi
+from backend.components.dbconfig.constants import FormatType, LevelName, ReqType
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.core import consts
 from backend.db_meta.enums import TenDBClusterSpiderRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.instance_role import InstanceRole
+from backend.db_meta.enums.instance_status import InstanceStatus
 from backend.db_meta.enums.machine_type import MachineType
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.db_services.mysql.sql_import.constants import BKREPO_SQLFILE_PATH
-from backend.flow.consts import LONG_JOB_TIMEOUT
+from backend.flow.consts import LONG_JOB_TIMEOUT, ConfigTypeEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.download_file import (
     add_db_actuator_download_act,
@@ -39,7 +42,12 @@ from backend.flow.plugins.components.collections.mysql.trans_flies import TransF
 from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_bk_config import get_cluster_config, get_engine_from_bk_mysql_config
-from backend.flow.utils.mysql.mysql_commom_query import merge_resp_to_cluster, parse_db_from_sqlfile
+from backend.flow.utils.mysql.mysql_commom_query import (
+    get_mysql_start_configs,
+    merge_resp_to_cluster,
+    parse_db_from_sqlfile,
+    query_mysql_variables,
+)
 from backend.flow.utils.mysql.mysql_version_parse import major_version_parse
 from backend.flow.utils.spider.spider_bk_config import get_spider_version_and_charset
 from backend.ticket.constants import TicketType
@@ -206,14 +214,23 @@ class ImportSQLFlow(object):
         )
         cluster_id = self.data["cluster_ids"][0]
         cluster = self.__get_master_ctl_info(cluster_id)
-        remotedb_version = self.__get_remotedb_version(cluster_id)
-        spider_version = self.__get_spider_version(cluster_id)
+        remotedb_version, remotedb_ip, remotedb_port = self.__get_remotedb_version_and_instance(cluster_id)
+        spider_real_version = self.__get_spider_version(cluster_id)
+        # 获取 spider 配置
         spider_charset = self.data["charset"]
+        spider_module_charset, spider_module_version = get_spider_version_and_charset(
+            bk_biz_id=cluster["bk_biz_id"], db_module_id=cluster["db_module_id"]
+        )
         if self.data["charset"] == "default":
-            spider_charset, config_spider_ver = get_spider_version_and_charset(
-                bk_biz_id=cluster["bk_biz_id"], db_module_id=cluster["db_module_id"]
-            )
-            # Add db-actuator download action to pipeline
+            spider_charset = spider_module_charset
+        spider_start_config = self.__get_spider_config(cluster_id, spider_module_version)
+        # 获取 remotedb 的 MySQL 变量配置，用于模拟执行
+        origin_mysql_var_map = query_mysql_variables(
+            host=remotedb_ip, port=remotedb_port, bk_cloud_id=cluster["bk_cloud_id"]
+        )
+        start_mysqld_configs = get_mysql_start_configs(origin_mysql_var_map)
+
+        # Add db-actuator download action to pipeline
         add_db_actuator_download_to_pipeline(
             pipeline=semantic_check_pipeline, bk_cloud_id=cluster["bk_cloud_id"], exec_ip=cluster["master_ctl_ip"]
         )
@@ -248,13 +265,15 @@ class ImportSQLFlow(object):
                 "cluster_type": ClusterType.TenDBCluster,
                 "payload": {
                     "uid": self.data["uid"],
-                    "spider_version": spider_version,
+                    "spider_version": spider_real_version,
                     "mysql_version": remotedb_version,
                     "mysql_charset": spider_charset,
                     "path": BKREPO_SQLFILE_PATH.format(biz=self.data["bk_biz_id"]),
                     "task_id": self.root_id,
                     "schema_sql_file": self.semantic_dump_schema_file_name,
                     "execute_objects": self.data["execute_objects"],
+                    "mysql_start_config": start_mysqld_configs,
+                    "spider_start_config": spider_start_config,
                 },
             },
         )
@@ -291,21 +310,36 @@ class ImportSQLFlow(object):
             "semantic_dump_schema_file_name": self.semantic_dump_schema_file_name,
         }
 
-    def __get_remotedb_version(self, cluster_id: int) -> str:
+    def __get_remotedb_version_and_instance(self, cluster_id: int) -> tuple:
+        """
+        获取 remotedb 版本和实例信息
+
+        @param cluster_id: 集群ID
+        @return: (version, ip, port) 元组
+        """
         cluster = Cluster.objects.get(id=cluster_id)
         remotedb_list = StorageInstance.objects.filter(
             cluster=cluster,
             instance_role__in=[InstanceRole.REMOTE_MASTER],
+            status=InstanceStatus.RUNNING,
         ).all()
         if not remotedb_list:
             raise Exception(_("查询remotedb version 失败"))
-        logger.info(f"get backend info: {remotedb_list}")
+        logger.info(_("get backend info: {}").format(remotedb_list))
         version = set()
+        first_remotedb = None
         for remotedb in remotedb_list:
-            version.add(remotedb.version)
+            # 清理 version 字符串：去除首尾空格和末尾的点号等非法字符
+            cleaned_version = remotedb.version.strip().rstrip(".")
+            if cleaned_version:
+                version.add(cleaned_version)
+            if first_remotedb is None:
+                first_remotedb = remotedb
         if len(version) > 1:
             raise Exception(_("backend remote 存在多个版本:{}").format(version))
-        return version.pop()
+
+        # 返回第一个 remotedb 的 IP 和端口用于查询变量
+        return version.pop(), first_remotedb.machine.ip, first_remotedb.port
 
     def __get_spider_version(self, cluster_id: int) -> str:
         cluster = Cluster.objects.get(id=cluster_id)
@@ -323,7 +357,55 @@ class ImportSQLFlow(object):
             if major_version > current_major_version:
                 current_major_version = major_version
                 version = spider.version
-        return version
+        return version.strip().rstrip(".")
+
+    def __get_spider_config(self, cluster_id: int, spider_module_version: str) -> dict:
+        """
+        从模块配置中获取 spider 启动配置参数
+
+        @param cluster_id: 集群ID
+        @param spider_version: spider版本
+        @return: spider 启动配置字典，与 get_mysql_start_configs 返回格式一致
+        """
+        cluster = Cluster.objects.get(id=cluster_id)
+        data = DBConfigApi.get_or_generate_instance_config(
+            {
+                "bk_biz_id": str(cluster.bk_biz_id),
+                "level_name": LevelName.CLUSTER,
+                "level_value": cluster.immute_domain,
+                "level_info": {"module": str(cluster.db_module_id)},
+                "conf_file": spider_module_version,
+                "conf_type": ConfigTypeEnum.DBConf,
+                "namespace": ClusterType.TenDBCluster,
+                "format": FormatType.MAP_LEVEL,
+                "method": ReqType.GENERATE_AND_PUBLISH,
+            }
+        )
+        # 从 mysqld 部分提取需要的启动配置项
+        mysqld_config = data["content"].get("mysqld", {})
+        ignore_sync_config_vars = [
+            "socket",
+            "datadir",
+            "innodb_data_home_dir",
+            "innodb_log_group_home_dir",
+            "log_bin",
+            "relay_log",
+            "log_error",
+            "tmpdir",
+            "server_id",
+            "port",
+            "init_connect",
+            "innodb_buffer_pool_size",
+            "sort_buffer_size",
+            "bind-address",
+            "bind_address",
+        ]
+        start_configs = {}
+        for var, value in mysqld_config.items():
+            # 忽略指定的配置项和包含模板变量 {{}} 的配置项
+            if var not in ignore_sync_config_vars and "{{" not in str(value):
+                start_configs[var] = value
+        return start_configs
 
     def __get_sql_file_name_list(self) -> list:
         file_list = []

@@ -14,7 +14,8 @@ package service
 // SpiderSimulationExecParam tendbcluster request param
 type SpiderSimulationExecParam struct {
 	BaseParam
-	SpiderVersion string `json:"spider_version"`
+	SpiderVersion      string            `json:"spider_version"`
+	SpiderStartConfigs map[string]string `json:"spider_start_config"`
 }
 
 // ExcuteSQLFileObj execution object of a single file

@@ -37,6 +37,7 @@ from backend.flow.plugins.components.collections.mysql.trans_flies import TransF
 from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_commom_query import (
+    get_mysql_start_configs,
     merge_resp_to_cluster,
     parse_db_from_sqlfile,
     query_mysql_variables,
@@ -172,12 +173,8 @@ class ImportSQLFlow(object):
         bk_cloud_id = template_cluster["bk_cloud_id"]
         origin_mysql_var_map = query_mysql_variables(host=backend_ip, port=backend_port, bk_cloud_id=bk_cloud_id)
         backend_charset = origin_mysql_var_map.get("character_set_client")
-        start_mysqld_configs = {}
-        logger.info(f"backend_charset: {backend_charset}")
-
-        for var in ["sql_mode", "log_bin_trust_function_creators"]:
-            if origin_mysql_var_map.__contains__(var):
-                start_mysqld_configs[var] = origin_mysql_var_map.get(var)
+        start_mysqld_configs = get_mysql_start_configs(origin_mysql_var_map)
+        logger.info(_("backend_charset: {}").format(backend_charset))
 
         semantic_check_pipeline = Builder(
             root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=[templ_cluster_id]
