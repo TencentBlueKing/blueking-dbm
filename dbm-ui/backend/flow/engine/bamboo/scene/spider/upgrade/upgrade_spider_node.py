@@ -41,13 +41,7 @@ from .upgrade_components import (
     add_spider_upgrade_check_act,
     build_spider_upgrade_subflow,
 )
-from .upgrade_utils import (
-    check_cross_major_version_upgrade,
-    check_spider_node_count_compatibility,
-    check_spider_upgrade_version_compatibility,
-    get_spider_master_instances,
-    get_spider_upgrade_instances,
-)
+from .upgrade_utils import check_cross_major_version_upgrade, get_spider_master_instances, get_spider_upgrade_instances
 
 logger = logging.getLogger("flow")
 
@@ -119,7 +113,7 @@ class UpgradeSpiderFlow(TenDBClusterSwitchNodesFlow):
         执行spider升级流程的主入口方法
 
         执行流程：
-        1. 执行前置检查(__pre_check)：验证升级版本和节点数量
+        1. 前置校验已由 TenDBClusterSpiderUpgradeValidator 完成（包括版本兼容性和节点数量检查）
         2. 根据upgrade_local参数选择升级模式：
            - True: 执行本地升级(local_upgrade)
            - False: 执行迁移升级(migrate_upgrade)
@@ -128,9 +122,6 @@ class UpgradeSpiderFlow(TenDBClusterSwitchNodesFlow):
         - 本地升级：在现有机器上直接升级spider版本，适用于版本兼容性好的场景
         - 迁移升级：通过新增机器替换旧机器的方式进行升级，适用于需要保证服务连续性的场景
         """
-        # 执行前置检查：验证升级版本和节点数量
-        self.__pre_check()
-
         # 根据升级模式选择执行路径
         if self.upgrade_local:
             # 本地升级：在现有机器上直接升级版本
@@ -138,17 +129,6 @@ class UpgradeSpiderFlow(TenDBClusterSwitchNodesFlow):
         else:
             # 迁移升级：通过新增机器替换旧机器进行升级
             self.migrate_upgrade()
-
-    # spider_ins.tendbclusterspiderext.spider_role
-    def __pre_check(self):
-        """
-        检查升级版本和源版本
-        """
-        # 检查版本兼容性
-        check_spider_upgrade_version_compatibility(self.data)
-
-        # 检查节点数量兼容性
-        check_spider_node_count_compatibility(self.data)
 
     def local_upgrade(self):
         """

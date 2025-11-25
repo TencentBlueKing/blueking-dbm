@@ -10,9 +10,15 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext as _
 
 from backend.db_meta.enums import TenDBClusterSpiderRole
-from backend.db_meta.models import Cluster, Machine
-from backend.flow.engine.bamboo.scene.spider.validate.exception import SpiderRoleFailedException
+from backend.db_meta.models import Cluster, Machine, ProxyInstance
+from backend.db_package.models import Package
+from backend.flow.consts import MediumEnum
+from backend.flow.engine.bamboo.scene.spider.validate.exception import (
+    SpiderRoleFailedException,
+    UpgradeVersionFailedException,
+)
 from backend.flow.engine.validate.mysql_base_validate import MysqlBaseValidator
+from backend.flow.utils.mysql.mysql_version_parse import spider_cross_major_version, tspider_version_parse
 
 
 class TenDBClusterSpiderUpgradeValidator(MysqlBaseValidator):
@@ -119,27 +125,167 @@ class TenDBClusterSpiderUpgradeValidator(MysqlBaseValidator):
 
         return error_msgs
 
+    def pre_check_spider_upgrade_version_compatibility(self):
+        """
+        检查spider升级版本兼容性
+
+        校验逻辑：
+        1. 遍历所有待升级的集群信息
+        2. 获取目标版本包信息和当前集群所有spider实例版本
+        3. 确保目标版本大于所有当前版本
+
+        返回：
+        - list: 错误信息列表，如果没有错误则返回空列表
+        """
+        error_msgs = []
+
+        for info in self.data["infos"]:
+            pkg_id = info["pkg_id"]
+            cluster_id = info["cluster_id"]
+            spider_pkg = Package.objects.get(id=pkg_id, pkg_type=MediumEnum.Spider)
+            new_spider_version_num = tspider_version_parse(spider_pkg.name)
+            cluster = Cluster.objects.get(id=cluster_id)
+            spiders = ProxyInstance.objects.filter(cluster=cluster)
+
+            for spider_ins in spiders:
+                current_version = tspider_version_parse(spider_ins.version)
+                if current_version > new_spider_version_num:
+                    error_msg = _("集群 {} 待升级版本 {} 需要大于当前版本 {}").format(
+                        cluster.immute_domain, new_spider_version_num, current_version
+                    )
+                    error_msgs.append(error_msg)
+                    break  # 一个集群发现一个不兼容版本就跳出
+
+        return error_msgs
+
+    def pre_check_spider_node_count_compatibility(self):
+        """
+        检查spider节点数量兼容性（仅迁移升级场景）
+
+        校验逻辑：
+        1. 仅在非本地升级（迁移升级）场景下进行检查
+        2. 检查新传入的spider master IP数量与现有节点数量是否一致
+        3. 检查新传入的spider slave IP数量与现有节点数量是否一致
+
+        返回：
+        - list: 错误信息列表，如果没有错误则返回空列表
+        """
+        error_msgs = []
+
+        # 仅在迁移升级场景下进行检查
+        if self.data.get("upgrade_local", False):
+            return error_msgs
+
+        for info in self.data["infos"]:
+            cluster_id = info["cluster_id"]
+            cluster = Cluster.objects.get(id=cluster_id)
+
+            spider_master_ip_list = info.get("spider_master_ip_list", [])
+            spider_slave_ip_list = info.get("spider_slave_ip_list", [])
+
+            master_spiders_count = cluster.proxyinstance_set.filter(
+                tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
+            ).count()
+            if master_spiders_count != len(spider_master_ip_list):
+                error_msg = _("集群 {} 待升级spiderMaster节点数({})与传入ip节点数({})不一致,请确认").format(
+                    cluster.immute_domain, master_spiders_count, len(spider_master_ip_list)
+                )
+                error_msgs.append(error_msg)
+
+            slave_spiders_count = cluster.proxyinstance_set.filter(
+                tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE
+            ).count()
+            if slave_spiders_count > 0 and len(spider_slave_ip_list) != slave_spiders_count:
+                error_msg = _("集群 {} 待升级spiderSlave节点数({})与传入ip节点数({})不一致,请确认").format(
+                    cluster.immute_domain, slave_spiders_count, len(spider_slave_ip_list)
+                )
+                error_msgs.append(error_msg)
+
+        return error_msgs
+
+    def pre_check_local_upgrade_cross_major_version(self):
+        """
+        检查本地升级时spider实例之间是否存在跨主版本
+
+        校验逻辑：
+        1. 仅在本地升级场景（upgrade_local=True）下进行检查
+        2. 遍历所有待升级的集群信息
+        3. 获取每个集群的所有spider实例版本
+        4. 比较最大版本和最小版本是否跨主版本
+        5. 如果发现跨主版本，记录错误信息
+
+        返回：
+        - list: 错误信息列表，如果没有错误则返回空列表
+        """
+        error_msgs = []
+
+        # 仅在本地升级场景下进行检查
+        if not self.data.get("upgrade_local", False):
+            return error_msgs
+
+        for info in self.data["infos"]:
+            cluster_id = info["cluster_id"]
+            cluster = Cluster.objects.get(id=cluster_id)
+            spiders = ProxyInstance.objects.filter(cluster=cluster)
+
+            if not spiders.exists():
+                continue
+
+            # 收集所有spider实例的版本号
+            version_nums = [tspider_version_parse(spider.version) for spider in spiders]
+
+            # 比较最大版本和最小版本是否跨主版本
+            max_version = max(version_nums)
+            min_version = min(version_nums)
+
+            if spider_cross_major_version(max_version, min_version):
+                all_versions = set(spider.version for spider in spiders)
+                error_msg = _("集群 {} 本地升级不允许spider实例之间存在跨主版本，当前存在版本: {}").format(
+                    cluster.immute_domain, ", ".join(all_versions)
+                )
+                error_msgs.append(error_msg)
+
+        return error_msgs
+
     def __call__(self):
         """
         发起校验，实例函数化
 
         执行流程：
-        1. 调用pre_check_spider_master_spec_consistency方法检查规格一致性
-        2. 如果发现错误，抛出SpiderRoleFailedException异常
-        3. 如果没有错误，返回None表示校验通过
+        1. 调用pre_check_spider_spec_consistency方法检查规格一致性
+        2. 调用pre_check_spider_upgrade_version_compatibility方法检查版本兼容性
+        3. 调用pre_check_spider_node_count_compatibility方法检查节点数量兼容性
+        4. 如果发现错误，抛出对应的异常
+        5. 如果没有错误，返回None表示校验通过
 
         异常处理：
         - 当发现规格不一致时，抛出SpiderRoleFailedException
-        - 异常消息包含所有发现的规格不一致问题
+        - 当发现版本不兼容时，抛出UpgradeVersionFailedException
+        - 异常消息包含所有发现的问题
 
         返回：
         - None: 校验通过
-        - 异常: 校验失败时抛出SpiderRoleFailedException
+        - 异常: 校验失败时抛出对应异常
         """
         # 检查spider机器规格一致性（包括spider_master和spider_slave）
         error_msgs = self.pre_check_spider_spec_consistency()
         if error_msgs:
             # 将所有错误信息合并为一个字符串，并抛出异常
             raise SpiderRoleFailedException("\n".join(error_msgs))
+
+        # 检查spider升级版本兼容性
+        error_msgs = self.pre_check_spider_upgrade_version_compatibility()
+        if error_msgs:
+            raise UpgradeVersionFailedException("\n".join(error_msgs))
+
+        # 检查spider节点数量兼容性（仅迁移升级场景）
+        error_msgs = self.pre_check_spider_node_count_compatibility()
+        if error_msgs:
+            raise UpgradeVersionFailedException("\n".join(error_msgs))
+
+        # 检查本地升级时是否跨主版本
+        error_msgs = self.pre_check_local_upgrade_cross_major_version()
+        if error_msgs:
+            raise UpgradeVersionFailedException("\n".join(error_msgs))
 
         return None

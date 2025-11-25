@@ -86,6 +86,29 @@ class MySQLProxyLocalUpgradeFlow(object):
             for proxy_instance in proxies:
                 proxy_ips.append(proxy_instance.machine.ip)
             proxy_ips = list(set(proxy_ips))
+
+            # 获取目标版本
+            target_version = get_sub_version_by_pkg_name(proxy_pkg.name)
+
+            # 筛选需要升级的 proxy IP（跳过所有 proxy 版本都等于目标版本的机器）
+            upgrade_proxy_ips = []
+            for proxy_ip in proxy_ips:
+                ip_proxies = ProxyInstance.objects.filter(cluster__in=clusters, machine__ip=proxy_ip)
+                all_version_match = all(p.version == target_version for p in ip_proxies)
+                if all_version_match:
+                    logger.info(_("机器 {} 上所有 proxy 版本已是目标版本 {}, 跳过升级").format(proxy_ip, target_version))
+                else:
+                    upgrade_proxy_ips.append(proxy_ip)
+
+            # 如果没有需要升级的机器，跳过整个集群
+            if not upgrade_proxy_ips:
+                logger.info(
+                    _("集群 {} 所有 proxy 已是目标版本 {}, 跳过升级").format(
+                        ",".join([c.immute_domain for c in clusters]), target_version
+                    )
+                )
+                continue
+
             # 切换前做预检测
             check_db_connect_sub_flow_list = []
             for cluster_id in cluster_ids:
@@ -114,27 +137,33 @@ class MySQLProxyLocalUpgradeFlow(object):
                 kwargs=asdict(
                     DownloadMediaKwargs(
                         bk_cloud_id=bk_cloud_id,
-                        exec_ip=proxy_ips,
+                        exec_ip=upgrade_proxy_ips,
                         file_list=GetFileList(db_type=DBType.MySQL).mysql_proxy_upgrade_package(pkg_id=pkg_id),
                     )
                 ),
             )
-            for index, proxy_ip in enumerate(proxy_ips):
+            for index, proxy_ip in enumerate(upgrade_proxy_ips):
                 sub_pipeline.add_sub_pipeline(
                     sub_flow=self.upgrade_mysql_proxy_subflow(
                         bk_cloud_id=bk_cloud_id,
                         ip=proxy_ip,
                         pkg_id=pkg_id,
-                        proxy_version=get_sub_version_by_pkg_name(proxy_pkg.name),
+                        proxy_version=target_version,
                         cluster_ids=cluster_ids,
                         force_upgrade=True,
                     )
                 )
                 # 最后一个节点无需再确认
-                if index < len(proxy_ips) - 1:
+                if index < len(upgrade_proxy_ips) - 1:
                     sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=sub_process_name))
+
+        # 如果所有集群都跳过了升级，则不执行流水线
+        if not sub_pipelines:
+            logger.info(_("所有集群的 proxy 都已是目标版本, 无需升级"))
+            return
+
         proxy_upgrade_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         proxy_upgrade_pipeline.run_pipeline()
         return

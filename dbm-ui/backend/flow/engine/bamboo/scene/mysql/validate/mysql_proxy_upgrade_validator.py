@@ -112,7 +112,7 @@ class MySQLProxyUpgradeValidator(MysqlBaseValidator):
         # 检查proxy版本升级合法性
         try:
             new_proxy_version_num = proxy_version_parse(package.name)
-            proxies = ProxyInstance.objects.filter(cluster__in=clusters)
+            proxies = ProxyInstance.objects.filter(cluster__in=clusters).prefetch_related("cluster")
 
             if len(proxies) <= 0:
                 error_msg = _("第{}行根据cluster_ids {}无法找到对应的proxy实例").format(index + 1, cluster_ids)
@@ -120,15 +120,21 @@ class MySQLProxyUpgradeValidator(MysqlBaseValidator):
                 return error_msgs
 
             for proxy_instance in proxies:
+                cluster = proxy_instance.cluster.first()
+                if not cluster:
+                    error_msg = _("第{}行proxy实例 {} 未关联任何集群").format(index + 1, proxy_instance.ip_port)
+                    error_msgs.append(error_msg)
+                    continue
+
                 current_version = proxy_version_parse(proxy_instance.version)
-                if current_version >= new_proxy_version_num:
+                if current_version > new_proxy_version_num:
                     logger.error(
-                        _("集群 {} 的proxy实例 {} 当前版本 {} 大于等于升级版本 {}").format(
-                            proxy_instance.cluster.id, proxy_instance.ip_port, current_version, new_proxy_version_num
+                        _("集群 {} 的proxy实例 {} 当前版本 {} 大于升级版本 {}").format(
+                            cluster.id, proxy_instance.ip_port, current_version, new_proxy_version_num
                         )
                     )
                     error_msg = _("第{}行集群 {} 的proxy实例 {} 待升级版本大于等于当前版本，请确认升级的版本").format(
-                        index + 1, proxy_instance.cluster.id, proxy_instance.ip_port
+                        index + 1, cluster.id, proxy_instance.ip_port
                     )
                     error_msgs.append(error_msg)
 
