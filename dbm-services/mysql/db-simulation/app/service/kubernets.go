@@ -126,6 +126,11 @@ func (k *DbPodSets) getCreateClusterSqls() []string {
 // getClusterPodContainerSpec create cluster pod container spec
 // nolint
 func (k *DbPodSets) getClusterPodContainerSpec(mysqlVersion string) []v1.Container {
+	// 简化启动参数，配置通过 ConfigMap 挂载的 my.cnf 提供
+	backendArgs := []string{"mysqld", "--defaults-file=/etc/my.cnf", "--user=mysql"}
+	spiderArgs := []string{"mysqld", "--defaults-file=/etc/my.cnf", "--user=mysql"}
+	tdbctlArgs := []string{"mysqld", "--defaults-file=/etc/my.cnf", "--user=mysql"}
+
 	return []v1.Container{
 		{
 			Name: "backend",
@@ -136,11 +141,17 @@ func (k *DbPodSets) getClusterPodContainerSpec(mysqlVersion string) []v1.Contain
 			Resources:       k.getResourceLimit(),
 			ImagePullPolicy: v1.PullIfNotPresent,
 			Image:           k.DbImage,
-			Args:            k.getbackendStartArgs(mysqlVersion),
+			Args:            backendArgs,
+			VolumeMounts: []v1.VolumeMount{{
+				Name:      "cluster-config",
+				MountPath: "/etc/my.cnf",
+				SubPath:   "backend-my.cnf",
+			}},
 			ReadinessProbe: &v1.Probe{
 				ProbeHandler: v1.ProbeHandler{
 					Exec: &v1.ExecAction{
-						Command: []string{"/bin/bash", "-c", fmt.Sprintf("mysql -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
+						Command: []string{"/bin/bash", "-c",
+							fmt.Sprintf("mysql -S/data1/mysqldata/mysql.sock -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
 					},
 				},
 				InitialDelaySeconds: 3,
@@ -155,11 +166,17 @@ func (k *DbPodSets) getClusterPodContainerSpec(mysqlVersion string) []v1.Contain
 			Resources:       k.getResourceLimit(),
 			ImagePullPolicy: v1.PullIfNotPresent,
 			Image:           k.SpiderImage,
-			Args:            k.getSpiderStartArgs(),
+			Args:            spiderArgs,
+			VolumeMounts: []v1.VolumeMount{{
+				Name:      "cluster-config",
+				MountPath: "/etc/my.cnf",
+				SubPath:   "spider-my.cnf",
+			}},
 			ReadinessProbe: &v1.Probe{
 				ProbeHandler: v1.ProbeHandler{
 					Exec: &v1.ExecAction{
-						Command: []string{"/bin/bash", "-c", fmt.Sprintf("mysql -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
+						Command: []string{"/bin/bash", "-c",
+							fmt.Sprintf("mysql -S/data1/mysqldata/mysql.sock -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
 					},
 				},
 				InitialDelaySeconds: 3,
@@ -175,11 +192,17 @@ func (k *DbPodSets) getClusterPodContainerSpec(mysqlVersion string) []v1.Contain
 			Resources:       k.gettdbctlResourceLimit(),
 			ImagePullPolicy: v1.PullIfNotPresent,
 			Image:           k.TdbCtlImage,
-			Args:            k.getTdbctlStartArgs(),
+			Args:            tdbctlArgs,
+			VolumeMounts: []v1.VolumeMount{{
+				Name:      "cluster-config",
+				MountPath: "/etc/my.cnf",
+				SubPath:   "tdbctl-my.cnf",
+			}},
 			ReadinessProbe: &v1.Probe{
 				ProbeHandler: v1.ProbeHandler{
 					Exec: &v1.ExecAction{
-						Command: []string{"/bin/bash", "-c", fmt.Sprintf("mysql -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
+						Command: []string{"/bin/bash", "-c",
+							fmt.Sprintf("mysql -S/data1/mysqldata/mysql.sock -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
 					},
 				},
 				InitialDelaySeconds: 3,
@@ -262,6 +285,14 @@ func (k *DbPodSets) getbackendStartArgs(mysqlVersion string) (args []string) {
 
 // CreateClusterPod create tendbcluster simulation pod
 func (k *DbPodSets) CreateClusterPod(mySQLVersion string) (err error) {
+	// 创建 ConfigMap 存储 my.cnf 配置
+	if err = k.createClusterConfigMap(mySQLVersion); err != nil {
+		return err
+	}
+
+	configMapName := k.getClusterConfigMapName()
+	logger.Info("created cluster configmap: %s", configMapName)
+
 	c := &v1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
@@ -278,7 +309,18 @@ func (k *DbPodSets) CreateClusterPod(mySQLVersion string) (err error) {
 					item.Value
 			}),
 			Tolerations: k.getToleration(),
-			Containers:  k.getClusterPodContainerSpec(mySQLVersion),
+			// 定义 ConfigMap Volume
+			Volumes: []v1.Volume{{
+				Name: "cluster-config",
+				VolumeSource: v1.VolumeSource{
+					ConfigMap: &v1.ConfigMapVolumeSource{
+						LocalObjectReference: v1.LocalObjectReference{
+							Name: configMapName,
+						},
+					},
+				},
+			}},
+			Containers: k.getClusterPodContainerSpec(mySQLVersion),
 		},
 	}
 	if err = k.createpod(c, 26000); err != nil {
@@ -407,6 +449,319 @@ func (k *DbPodSets) gettdbctlResourceLimit() v1.ResourceRequirements {
 	return v1.ResourceRequirements{}
 }
 
+// getConfigMapName returns the ConfigMap name for the pod
+func (k *DbPodSets) getConfigMapName() string {
+	return fmt.Sprintf("%s-mycnf", k.BaseInfo.PodName)
+}
+
+// generateMyCnfContent generates my.cnf content from MySQL start arguments
+func (k *DbPodSets) generateMyCnfContent(mysqlVersion string) string {
+	var lines []string
+
+	// [client] section
+	lines = append(lines, "[client]")
+	lines = append(lines, "socket=/data1/mysqldata/mysql.sock")
+	lines = append(lines, "")
+
+	// [mysqld] section
+	lines = append(lines, "[mysqld]")
+	// 数据目录和日志配置
+	lines = append(lines, "datadir=/data1/mysqldata/data")
+	lines = append(lines, "innodb_data_home_dir=/data1/mysqldata/innodb/data")
+	lines = append(lines, "innodb_log_group_home_dir=/data1/mysqldata/innodb/log")
+	lines = append(lines, "log_bin=/data1/mysqldata/binlog/binlog.bin")
+	lines = append(lines, "relay_log=/data1/mysqldata/relay-log/relay-log.bin")
+	lines = append(lines, "log_error=/data1/mysqldata/data/server_error.log")
+	lines = append(lines, "tmpdir=/data1/mysqldata/tmp")
+	lines = append(lines, "socket=/data1/mysqldata/mysql.sock")
+	lines = append(lines, "server_id=123")
+
+	// 基础配置
+	lines = append(lines, "port=3306")
+	lines = append(lines, "skip-log-bin")
+	lines = append(lines, "max_allowed_packet=1073741824")
+	lines = append(lines, fmt.Sprintf("character-set-server=%s", k.BaseInfo.Charset))
+
+	// MySQL 8.0+ 专用配置
+	if cmutil.MySQLVersionParse(mysqlVersion) >= cmutil.MySQLVersionParse("8.0.0") {
+		lines = append(lines, "default-authentication-plugin=mysql_native_password")
+	}
+
+	// 从数据库获取额外的启动参数
+	dbArgs, err := model.GetStartArgs("mysql", mysqlVersion)
+	if err != nil {
+		logger.Warn("get mysql start args failed %s", err.Error())
+	} else {
+		for _, arg := range startArgsSplitRe.Split(dbArgs, -1) {
+			arg = strings.TrimSpace(arg)
+			if lo.IsNotEmpty(arg) {
+				// 去掉 -- 前缀
+				arg = strings.TrimPrefix(arg, "--")
+				lines = append(lines, arg)
+			}
+		}
+	}
+
+	// 添加用户自定义的启动参数
+	for _, arg := range k.BaseInfo.Args {
+		arg = strings.TrimSpace(arg)
+		if lo.IsNotEmpty(arg) {
+			// 去掉 -- 前缀
+			arg = strings.TrimPrefix(arg, "--")
+			lines = append(lines, arg)
+		}
+	}
+
+	// [mysqld-5.7] section - MySQL 5.7 专用配置
+	lines = append(lines, "")
+	lines = append(lines, "[mysqld-5.7]")
+	lines = append(lines, "log_timestamps=1")
+
+	return strings.Join(lines, "\n")
+}
+
+// createMySQLConfigMap creates a ConfigMap containing my.cnf for the MySQL pod
+func (k *DbPodSets) createMySQLConfigMap(mysqlVersion string) error {
+	configMapName := k.getConfigMapName()
+	myCnfContent := k.generateMyCnfContent(mysqlVersion)
+
+	configMap := &v1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      configMapName,
+			Namespace: k.K8S.Namespace,
+			Labels:    k.BaseInfo.Labels,
+		},
+		Data: map[string]string{
+			"my.cnf": myCnfContent,
+		},
+	}
+
+	_, err := k.K8S.Cli.CoreV1().ConfigMaps(k.K8S.Namespace).Create(context.TODO(), configMap, metav1.CreateOptions{})
+	if err != nil {
+		logger.Error("create configmap %s failed: %s", configMapName, err.Error())
+		return errors.Wrap(err, "create mysql configmap failed")
+	}
+	logger.Info("created configmap %s with my.cnf content", configMapName)
+	return nil
+}
+
+// deleteConfigMap deletes the ConfigMap associated with the pod
+func (k *DbPodSets) deleteConfigMap() error {
+	configMapName := k.getConfigMapName()
+	err := k.K8S.Cli.CoreV1().ConfigMaps(k.K8S.Namespace).Delete(context.TODO(), configMapName, metav1.DeleteOptions{})
+	if err != nil {
+		logger.Warn("delete configmap %s failed: %s", configMapName, err.Error())
+		return err
+	}
+	logger.Info("deleted configmap %s", configMapName)
+	return nil
+}
+
+// getClusterConfigMapName returns the ConfigMap name for cluster pod
+func (k *DbPodSets) getClusterConfigMapName() string {
+	return fmt.Sprintf("%s-cluster-mycnf", k.BaseInfo.PodName)
+}
+
+// generateBackendMyCnfContent generates my.cnf content for backend container
+func (k *DbPodSets) generateBackendMyCnfContent(mysqlVersion string) string {
+	var lines []string
+
+	// [client] section
+	lines = append(lines, "[client]")
+	lines = append(lines, "socket=/data1/mysqldata/mysql.sock")
+	lines = append(lines, "")
+
+	// [mysqld] section
+	lines = append(lines, "[mysqld]")
+	lines = append(lines, "datadir=/data1/mysqldata/data")
+	lines = append(lines, "innodb_data_home_dir=/data1/mysqldata/innodb/data")
+	lines = append(lines, "innodb_log_group_home_dir=/data1/mysqldata/innodb/log")
+	lines = append(lines, "log_bin=/data1/mysqldata/binlog/binlog.bin")
+	lines = append(lines, "relay_log=/data1/mysqldata/relay-log/relay-log.bin")
+	lines = append(lines, "log_error=/data1/mysqldata/data/server_error.log")
+	lines = append(lines, "tmpdir=/data1/mysqldata/tmp")
+	lines = append(lines, "socket=/data1/mysqldata/mysql.sock")
+	lines = append(lines, "server_id=123")
+	lines = append(lines, "port=20000")
+	lines = append(lines, "log_bin_trust_function_creators=1")
+	lines = append(lines, "sql-mode=")
+	lines = append(lines, "max_allowed_packet=1073741824")
+	lines = append(lines, fmt.Sprintf("character-set-server=%s", k.BaseInfo.Charset))
+
+	if cmutil.MySQLVersionParse(mysqlVersion) >= cmutil.MySQLVersionParse("8.0.0") {
+		lines = append(lines, "default-authentication-plugin=mysql_native_password")
+	}
+
+	// 从数据库获取额外的启动参数
+	dbArgs, err := model.GetStartArgs("mysql", mysqlVersion)
+	if err != nil {
+		logger.Warn("get mysql start args failed %s", err.Error())
+	} else {
+		for _, arg := range startArgsSplitRe.Split(dbArgs, -1) {
+			arg = strings.TrimSpace(arg)
+			if lo.IsNotEmpty(arg) {
+				arg = strings.TrimPrefix(arg, "--")
+				lines = append(lines, arg)
+			}
+		}
+	}
+
+	// [mysqld-5.7] section
+	lines = append(lines, "")
+	lines = append(lines, "[mysqld-5.7]")
+	lines = append(lines, "log_timestamps=1")
+
+	return strings.Join(lines, "\n")
+}
+
+// generateSpiderMyCnfContent generates my.cnf content for spider container
+func (k *DbPodSets) generateSpiderMyCnfContent() string {
+	var lines []string
+
+	// [client] section
+	lines = append(lines, "[client]")
+	lines = append(lines, "socket=/data1/mysqldata/mysql.sock")
+	lines = append(lines, "")
+
+	// [mysqld] section
+	lines = append(lines, "[mysqld]")
+	lines = append(lines, "datadir=/data1/mysqldata/data")
+	lines = append(lines, "innodb_data_home_dir=/data1/mysqldata/innodb/data")
+	lines = append(lines, "innodb_log_group_home_dir=/data1/mysqldata/innodb/log")
+	lines = append(lines, "log_bin=/data1/mysqldata/binlog/binlog.bin")
+	lines = append(lines, "log_error=/data1/mysqldata/data/server_error.log")
+	lines = append(lines, "tmpdir=/data1/mysqldata/tmp")
+	lines = append(lines, "socket=/data1/mysqldata/mysql.sock")
+	lines = append(lines, "server_id=124")
+	lines = append(lines, "port=25000")
+	lines = append(lines, "log_bin_trust_function_creators=1")
+	lines = append(lines, "max_allowed_packet=1073741824")
+	lines = append(lines, fmt.Sprintf("character-set-server=%s", k.BaseInfo.Charset))
+
+	// 从数据库获取 spider 额外的启动参数
+	dbArgs, err := model.GetStartArgs("spider", LatestVersion)
+	if err != nil {
+		logger.Warn("get spider start args failed %s", err.Error())
+	} else {
+		for _, arg := range startArgsSplitRe.Split(dbArgs, -1) {
+			arg = strings.TrimSpace(arg)
+			if lo.IsNotEmpty(arg) {
+				arg = strings.TrimPrefix(arg, "--")
+				lines = append(lines, arg)
+			}
+		}
+	}
+
+	// 添加用户自定义的启动参数
+	for _, arg := range k.BaseInfo.Args {
+		arg = strings.TrimSpace(arg)
+		if lo.IsNotEmpty(arg) {
+			arg = strings.TrimPrefix(arg, "--")
+			lines = append(lines, arg)
+		}
+	}
+
+	// [mysqld-5.7] section
+	lines = append(lines, "")
+	lines = append(lines, "[mysqld-5.7]")
+	lines = append(lines, "log_timestamps=1")
+
+	return strings.Join(lines, "\n")
+}
+
+// generateTdbctlMyCnfContent generates my.cnf content for tdbctl container
+func (k *DbPodSets) generateTdbctlMyCnfContent() string {
+	var lines []string
+
+	// [client] section
+	lines = append(lines, "[client]")
+	lines = append(lines, "socket=/data1/mysqldata/mysql.sock")
+	lines = append(lines, "")
+
+	// [mysqld] section
+	lines = append(lines, "[mysqld]")
+	lines = append(lines, "datadir=/data1/mysqldata/data")
+	lines = append(lines, "innodb_data_home_dir=/data1/mysqldata/innodb/data")
+	lines = append(lines, "innodb_log_group_home_dir=/data1/mysqldata/innodb/log")
+	lines = append(lines, "log_bin=/data1/mysqldata/binlog/binlog.bin")
+	lines = append(lines, "log_error=/data1/mysqldata/data/server_error.log")
+	lines = append(lines, "tmpdir=/data1/mysqldata/tmp")
+	lines = append(lines, "socket=/data1/mysqldata/mysql.sock")
+	lines = append(lines, "server_id=125")
+	lines = append(lines, "port=26000")
+	lines = append(lines, "tc-admin=1")
+	lines = append(lines, "dbm-allow-standalone-primary")
+	lines = append(lines, "max_allowed_packet=1073741824")
+	lines = append(lines, fmt.Sprintf("character-set-server=%s", k.BaseInfo.Charset))
+
+	// 从数据库获取 tdbctl 额外的启动参数
+	dbArgs, err := model.GetStartArgs("tdbctl", LatestVersion)
+	if err != nil {
+		logger.Warn("get tdbctl start args failed %s", err.Error())
+	} else {
+		for _, arg := range startArgsSplitRe.Split(dbArgs, -1) {
+			arg = strings.TrimSpace(arg)
+			if lo.IsNotEmpty(arg) {
+				arg = strings.TrimPrefix(arg, "--")
+				lines = append(lines, arg)
+			}
+		}
+	}
+
+	// [mysqld-5.7] section
+	lines = append(lines, "")
+	lines = append(lines, "[mysqld-5.7]")
+	lines = append(lines, "log_timestamps=1")
+
+	return strings.Join(lines, "\n")
+}
+
+// createClusterConfigMap creates a ConfigMap containing my.cnf for all cluster containers
+func (k *DbPodSets) createClusterConfigMap(mysqlVersion string) error {
+	configMapName := k.getClusterConfigMapName()
+
+	configMap := &v1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      configMapName,
+			Namespace: k.K8S.Namespace,
+			Labels:    k.BaseInfo.Labels,
+		},
+		Data: map[string]string{
+			"backend-my.cnf": k.generateBackendMyCnfContent(mysqlVersion),
+			"spider-my.cnf":  k.generateSpiderMyCnfContent(),
+			"tdbctl-my.cnf":  k.generateTdbctlMyCnfContent(),
+		},
+	}
+
+	_, err := k.K8S.Cli.CoreV1().ConfigMaps(k.K8S.Namespace).Create(context.TODO(), configMap, metav1.CreateOptions{})
+	if err != nil {
+		logger.Error("create cluster configmap %s failed: %s", configMapName, err.Error())
+		return errors.Wrap(err, "create cluster configmap failed")
+	}
+	logger.Info("created cluster configmap %s", configMapName)
+	return nil
+}
+
+// deleteClusterConfigMap deletes the cluster ConfigMap
+func (k *DbPodSets) deleteClusterConfigMap() error {
+	configMapName := k.getClusterConfigMapName()
+	err := k.K8S.Cli.CoreV1().ConfigMaps(k.K8S.Namespace).Delete(context.TODO(), configMapName, metav1.DeleteOptions{})
+	if err != nil {
+		logger.Warn("delete cluster configmap %s failed: %s", configMapName, err.Error())
+		return err
+	}
+	logger.Info("deleted cluster configmap %s", configMapName)
+	return nil
+}
+
 func (k *DbPodSets) getTendbhaPodStartArgs(mysqlVersion string) (args []string) {
 	args = []string{
 		"mysqld",
@@ -432,10 +787,20 @@ func (k *DbPodSets) getTendbhaPodStartArgs(mysqlVersion string) (args []string) 
 
 // CreateMySQLPod create mysql pod
 func (k *DbPodSets) CreateMySQLPod(mysqlVersion string) (err error) {
-	startArgs := k.getTendbhaPodStartArgs(mysqlVersion)
-	startArgs = append(startArgs, k.BaseInfo.Args...)
-	startArgs = append(startArgs, "--user=mysql")
-	logger.Info("start pod args %v", startArgs)
+	// 创建 ConfigMap 存储 my.cnf 配置
+	if err = k.createMySQLConfigMap(mysqlVersion); err != nil {
+		return err
+	}
+
+	configMapName := k.getConfigMapName()
+	// 简化启动参数，配置通过 ConfigMap 挂载的 my.cnf 提供
+	startArgs := []string{
+		"mysqld",
+		"--defaults-file=/etc/my.cnf",
+		"--user=mysql",
+	}
+	logger.Info("start pod args %v, configmap: %s", startArgs, configMapName)
+
 	c := &v1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
@@ -452,6 +817,17 @@ func (k *DbPodSets) CreateMySQLPod(mysqlVersion string) (err error) {
 					item.Value
 			}),
 			Tolerations: k.getToleration(),
+			// 定义 ConfigMap Volume
+			Volumes: []v1.Volume{{
+				Name: "mysql-config",
+				VolumeSource: v1.VolumeSource{
+					ConfigMap: &v1.ConfigMapVolumeSource{
+						LocalObjectReference: v1.LocalObjectReference{
+							Name: configMapName,
+						},
+					},
+				},
+			}},
 			Containers: []v1.Container{{
 				Resources: k.getResourceLimit(),
 				Name:      app.MySQL,
@@ -465,10 +841,17 @@ func (k *DbPodSets) CreateMySQLPod(mysqlVersion string) (err error) {
 				ImagePullPolicy: v1.PullIfNotPresent,
 				Image:           k.DbImage,
 				Args:            startArgs,
+				// 挂载 ConfigMap 到 /etc/my.cnf
+				VolumeMounts: []v1.VolumeMount{{
+					Name:      "mysql-config",
+					MountPath: "/etc/my.cnf",
+					SubPath:   "my.cnf",
+				}},
 				ReadinessProbe: &v1.Probe{
 					ProbeHandler: v1.ProbeHandler{
 						Exec: &v1.ExecAction{
-							Command: []string{"/bin/bash", "-c", fmt.Sprintf("mysql -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
+							Command: []string{"/bin/bash", "-c",
+								fmt.Sprintf("mysql -S/data1/mysqldata/mysql.sock -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
 						},
 					},
 					InitialDelaySeconds: 2,
@@ -481,9 +864,18 @@ func (k *DbPodSets) CreateMySQLPod(mysqlVersion string) (err error) {
 	return k.createpod(c, 3306)
 }
 
-// DeletePod delete pod
+// DeletePod delete pod and associated ConfigMap
 func (k *DbPodSets) DeletePod() (err error) {
-	return k.K8S.Cli.CoreV1().Pods(k.K8S.Namespace).Delete(context.TODO(), k.BaseInfo.PodName, metav1.DeleteOptions{})
+	// 删除 Pod
+	err = k.K8S.Cli.CoreV1().Pods(k.K8S.Namespace).Delete(context.TODO(), k.BaseInfo.PodName, metav1.DeleteOptions{})
+	if err != nil {
+		logger.Error("delete pod %s failed: %s", k.BaseInfo.PodName, err.Error())
+	}
+	// 删除关联的 ConfigMap（忽略错误，因为 ConfigMap 可能不存在）
+	_ = k.deleteConfigMap()
+	// 删除 Cluster ConfigMap（忽略错误，因为可能不存在）
+	_ = k.deleteClusterConfigMap()
+	return err
 }
 
 // getLoadSchemaSQLCmd create load schema sql cmd

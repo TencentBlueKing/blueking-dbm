@@ -52,6 +52,41 @@ def query_mysql_variables(host: str, port: int, bk_cloud_id: int):
     return var_map
 
 
+def get_mysql_start_configs(mysql_var_map: dict) -> dict:
+    """
+    从 MySQL 变量映射中提取模拟执行需要的启动配置
+
+    @param mysql_var_map: MySQL 变量映射，由 query_mysql_variables 返回
+    @return: 模拟执行需要的 MySQL 启动配置字典
+    """
+    start_mysqld_configs = {}
+    config_vars = [
+        "sql_mode",
+        "lower_case_table_names",
+        "character_set_server",
+        "collation_server",
+        "default_storage_engine",
+        "default_tmp_storage_engine",
+        "explicit_defaults_for_timestamp",
+        "log_bin_trust_function_creators",
+        "innodb_file_format",
+        "innodb_file_per_table",
+        "innodb_large_prefix",
+        "innodb_default_row_format",
+        "innodb_strict_mode",
+        "innodb_autoinc_lock_mode",
+        "innodb_lock_wait_timeout",
+        "default_time_zone",
+        "loose_log_bin_compress",
+        "log_bin_compress",
+        "slave_exec_mode",
+    ]
+    for var in config_vars:
+        if var in mysql_var_map:
+            start_mysqld_configs[var] = mysql_var_map.get(var)
+    return start_mysqld_configs
+
+
 def show_user_host_for_host(host: str, instance: StorageInstance):
     """
     根据host查询账号信息
