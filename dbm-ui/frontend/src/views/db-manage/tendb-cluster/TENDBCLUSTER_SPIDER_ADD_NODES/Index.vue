@@ -110,6 +110,7 @@
   </SpiderWrapper>
 </template>
 <script lang="ts" setup>
+  import _ from 'lodash';
   import { reactive, useTemplateRef } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
@@ -326,7 +327,7 @@
   const handleBatchEditColumn = (value: any, field: string) => {
     formData.tableData.forEach((rowData) => {
       Object.assign(rowData, {
-        [field]: value,
+        [field]: _.cloneDeep(value),
       });
     });
   };
