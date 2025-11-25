@@ -43,15 +43,15 @@ class TransFileFromBackupService(TransFileService):
         logger.info(backup_info)
         if backup_info is None or len(backup_info["task_ids"]) == 0:
             raise Exception("backup_info is empty")
+
+        logger.info("set kwargs info")
         # 传到父类
-        data.get_one_of_inputs("kwargs")["backup_id"] = kwargs["backup_id"]
-        data.get_one_of_inputs("kwargs")["cluster_id"] = kwargs["cluster_id"]
         data.get_one_of_inputs("kwargs")["file_list"] = backup_info["local_files"]
 
         # 作为上下文传到下一个节点
-        trans_data["backup_info"] = backup_info
-        data.outputs.trans_data = trans_data
-
+        logger.info("set trans_data info")
+        trans_data.backupinfo = backup_info
+        data.outputs["trans_data"] = trans_data
         return super()._execute(data, parent_data)
 
 

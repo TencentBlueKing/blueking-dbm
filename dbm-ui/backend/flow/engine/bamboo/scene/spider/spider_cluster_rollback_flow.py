@@ -498,7 +498,7 @@ class TenDBRollBackDataFlow(object):
                 "cluster_phase": ClusterPhase.OFFLINE.value,
             }
             tendb_rollback_pipeline.add_act(
-                act_name=_("设置集群为禁用状态"),
+                act_name=_("修改集群元数据为禁用状态{} (仅元数据)".format(ClusterPhase.OFFLINE.value)),
                 act_component_code=SpiderDBMetaComponent.code,
                 kwargs=asdict(
                     DBMetaOPKwargs(
@@ -529,7 +529,7 @@ class TenDBRollBackDataFlow(object):
                 "cluster_phase": ClusterPhase.ONLINE.value,
             }
             tendb_rollback_pipeline.add_act(
-                act_name=_("设置集群为正常状态"),
+                act_name=_("修改集群元数据为正常状态{} (仅元数据)".format(ClusterPhase.ONLINE.value)),
                 act_component_code=SpiderDBMetaComponent.code,
                 kwargs=asdict(
                     DBMetaOPKwargs(

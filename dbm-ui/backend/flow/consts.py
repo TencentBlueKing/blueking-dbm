@@ -1676,8 +1676,8 @@ class OracleDBActuatorActionEnum(StrStructuredEnum):
 
 
 class TendbSingleRestoreType(StrStructuredEnum):
-    REPLICATE_WITH_STRUCT = EnumField("REPLICATE_WITH_STRUCT", _("主从同步表结构,需Binlog"))
-    REPLICATE_WITH_DATA = EnumField("REPLICATE_WITH_DATA", _("主从同步数据,需Binlog"))
-    RESTORE_FROM_FLOW_BACKUP = EnumField("RESTORE_FROM_FLOW_BACKUP", _("流程中实时发起表结构备份&恢复,没有主从同步"))
-    RESTORE_WITH_DATA = EnumField("RESTORE_FROM_BACKUP", _("包含数据的恢复,没有主从同步"))
-    RESTORE_WITH_STRUCT = EnumField("RESTORE_ONLY_STRUCT", _("仅表结构的恢复,没有主从同步"))
+    REPLICATE_WITH_STRUCT = EnumField("replicate_with_struct", _("主从同步表结构,需Binlog"))
+    REPLICATE_WITH_DATA = EnumField("replicate_with_data", _("主从同步数据,需Binlog"))
+    RESTORE_FROM_FLOW_BACKUP = EnumField("restore_from_flow_backup", _("流程中实时发起表结构备份&恢复,没有主从同步"))
+    RESTORE_WITH_DATA = EnumField("restore_with_data", _("包含数据的恢复,没有主从同步"))
+    RESTORE_WITH_STRUCT = EnumField("restore_with_struct", _("仅表结构的恢复,没有主从同步"))

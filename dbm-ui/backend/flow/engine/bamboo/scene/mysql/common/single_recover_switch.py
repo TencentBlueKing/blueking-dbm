@@ -7,13 +7,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import copy
 from dataclasses import asdict
 
 from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.flow.consts import TendbSingleRestoreType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
@@ -30,14 +30,10 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     RecycleDnsRecordKwargs,
 )
 
-"""
-tendb ha 从库恢复切换
-"""
-
 
 def single_migrate_switch_sub_flow(
     root_id: str,
-    uid: str,
+    ticket_data: dict,
     orphan_restore_type: str,
     cluster: Cluster,
     old_orphan_ip: str,
@@ -45,40 +41,63 @@ def single_migrate_switch_sub_flow(
     domains: list,
 ):
     """"""
-    # 默认预检测连接情况、同步延时、checksum校验结果
+    #  todo tendbSingle 切换过程:
+    #  1. 克隆权限(故障迁移跳过)
+    #  2. 设置原实例为readonly (故障迁移跳过)
+    #  3. 添加新节点域名
+    #  4. 删除旧节点域名
+    #  5. 停止目标实例同步 (实时同步单据适用)
+    #  6. 停止目标实例. ((故障迁移跳过)
+    #  7. 由于旧实例被停止,这里屏蔽旧实例告警15天。
+    #  附: tendbSingle不做链接检查/数据一致性检查(日常无检查), 主从同步数据是否要生成checksum单据。
     old_orphan_storage = cluster.storageinstance_set.get(
         machine__ip=old_orphan_ip, machine__bk_cloud_id=cluster.bk_cloud_id
     )
     old_orphan = "{}{}{}".format(old_orphan_ip, IP_PORT_DIVIDER, old_orphan_storage.port)
     new_orphan = "{}{}{}".format(new_orphan_ip, IP_PORT_DIVIDER, old_orphan_storage.port)
-    cluster_info = {"root_id": root_id, "uid": uid}
-    sub_pipeline = SubBuilder(root_id=root_id, data=cluster_info)
+    sub_pipeline = SubBuilder(root_id=root_id, data=copy.deepcopy(ticket_data))
 
-    if old_orphan_storage.status == InstanceStatus.RUNNING.value:
-        sub_pipeline.add_act(
-            act_name=_("下发db-actuator介质"),
-            act_component_code=TransFileComponent.code,
-            kwargs=asdict(
-                DownloadMediaKwargs(
-                    bk_cloud_id=cluster.bk_cloud_id,
-                    exec_ip=[old_orphan_ip, new_orphan_ip],
-                    file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
-                )
-            ),
-        )
-        clone_data = [
-            {
-                "source": old_orphan,
-                "target": new_orphan,
-                "bk_cloud_id": cluster.bk_cloud_id,
-            }
-        ]
+    # if orphan_restore_type not in [
+    #     TendbSingleRestoreType.RESTORE_WITH_STRUCT,
+    #     TendbSingleRestoreType.RESTORE_WITH_DATA,
+    # ]:
+    sub_pipeline.add_act(
+        act_name=_("下发db-actuator介质"),
+        act_component_code=TransFileComponent.code,
+        kwargs=asdict(
+            DownloadMediaKwargs(
+                bk_cloud_id=cluster.bk_cloud_id,
+                exec_ip=[old_orphan_ip, new_orphan_ip],
+                file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+            )
+        ),
+    )
+    clone_data = [
+        {
+            "source": old_orphan,
+            "target": new_orphan,
+            "bk_cloud_id": cluster.bk_cloud_id,
+        }
+    ]
 
-        sub_pipeline.add_act(
-            act_name=_("克隆权限"),
-            act_component_code=CloneUserComponent.code,
-            kwargs=asdict(InstanceUserCloneKwargs(clone_data=clone_data)),
-        )
+    sub_pipeline.add_act(
+        act_name=_("克隆权限"),
+        act_component_code=CloneUserComponent.code,
+        kwargs=asdict(InstanceUserCloneKwargs(clone_data=clone_data)),
+    )
+
+    sub_pipeline.add_act(
+        act_name=_("源节点{} set global read_only=ON ").format(old_orphan_storage.ip_port),
+        act_component_code=MySQLExecuteRdsComponent.code,
+        kwargs=asdict(
+            ExecuteRdsKwargs(
+                bk_cloud_id=cluster.bk_cloud_id,
+                instance_ip=old_orphan_storage.machine.ip,
+                instance_port=old_orphan_storage.port,
+                sqls=["set global read_only=ON"],
+            )
+        ),
+    )
 
     domain_add_list = []
     for domain in domains:
@@ -129,6 +148,12 @@ def single_migrate_switch_sub_flow(
                 )
             ),
         )
+    # todo 停止旧实例
+    # if orphan_restore_type not in [
+    #     TendbSingleRestoreType.RESTORE_WITH_STRUCT,
+    #     TendbSingleRestoreType.RESTORE_WITH_DATA,
+    # ]:
+    print("stop old orphan")
     return sub_pipeline.build_sub_process(
         sub_name=_("{}切换到新节点{}:{}".format(cluster.name, new_orphan_ip, old_orphan_storage.port))
     )

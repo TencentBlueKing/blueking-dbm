@@ -1665,7 +1665,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         return payload
 
     def tendb_restore_from_context_payload(self, **kwargs):
-        self.cluster["backupinfo"] = kwargs["trans_data"]["backup_info"]
+        self.cluster["backupinfo"] = kwargs["trans_data"]["backupinfo"]
         return self.tendb_restore_remotedb_payload()
 
     #      backup_info在flow上下问中

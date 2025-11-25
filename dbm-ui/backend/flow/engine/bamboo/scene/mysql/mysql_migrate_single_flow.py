@@ -59,6 +59,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import ClusterInfoContext
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
+from backend.ticket.builders.common.constants import MySQLBackupSource
 
 logger = logging.getLogger("flow")
 
@@ -121,6 +122,7 @@ class MySQLMigrateSingleFlow(object):
                 db_module_id=db_module_id,
                 cluster_type=cluster_class.cluster_type,
             )
+            self.data["bk_new_orphan"] = copy.deepcopy(self.data["bk_new_orphan"][0])
             self.data["backup_source"] = self.ticket_data["backup_source"]
             self.data["orphan_restore_type"] = self.ticket_data["orphan_restore_type"]
 
@@ -142,8 +144,16 @@ class MySQLMigrateSingleFlow(object):
             self.data["db_version"] = db_version
 
             tendb_migrate_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-            # 整机安装数据库
-            db_config = get_instance_config(cluster_class.bk_cloud_id, master_model.machine.ip, self.data["ports"])
+
+            # 获取主节点配置，如果是故障恢复，则获取不了。
+            db_config = None
+            if self.data["orphan_restore_type"] in [
+                TendbSingleRestoreType.RESTORE_WITH_STRUCT,
+                TendbSingleRestoreType.RESTORE_WITH_DATA,
+            ]:
+                self.data["backup_source"] = MySQLBackupSource.REMOTE.value
+            else:
+                db_config = get_instance_config(cluster_class.bk_cloud_id, master_model.machine.ip, self.data["ports"])
             install_sub_pipeline_list = []
             install_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
 
@@ -174,7 +184,7 @@ class MySQLMigrateSingleFlow(object):
                     install_ports=self.data["ports"],
                     bk_host_ids=[self.data["bk_new_orphan"]["bk_host_id"]],
                     pkg_id=pkg_id,
-                    db_module_id=db_module_id,
+                    db_module_id=str(db_module_id),
                     db_config=db_config,
                 )
             )
@@ -183,11 +193,11 @@ class MySQLMigrateSingleFlow(object):
                 "cluster_ports": self.data["ports"],
                 "new_orphan_ip": self.data["new_orphan_ip"],
                 "bk_cloud_id": cluster_class.bk_cloud_id,
-                "spec_config": self.data["resource_spec"]["orphan"],
-                "spec_id": self.data["resource_spec"]["orphan"]["id"],
+                "spec_config": self.data["resource_spec"]["bk_new_orphan"],
+                "spec_id": self.data["resource_spec"]["bk_new_orphan"]["id"],
             }
             install_sub_pipeline.add_act(
-                act_name=_("安装完毕,写入初始化实例的db_meta元信息"),
+                act_name=_("安装完毕,写入初始化实例的元数据"),
                 act_component_code=MySQLDBMetaComponent.code,
                 kwargs=asdict(
                     DBMetaOPKwargs(
@@ -243,6 +253,7 @@ class MySQLMigrateSingleFlow(object):
                 cluster["binlog_sync"] = False
                 cluster["add_tuple_relation"] = False
                 cluster["recover_grants"] = True
+                cluster["is_full_backup"] = False
 
                 # 查询备份。根据选择的恢复类型。分别从本地发起实时备份，和从远程查询备份。
                 sync_data_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
@@ -270,18 +281,23 @@ class MySQLMigrateSingleFlow(object):
                         TendbSingleRestoreType.REPLICATE_WITH_STRUCT,
                         TendbSingleRestoreType.RESTORE_WITH_STRUCT,
                     ]:
-                        cluster["backup_method"] = "full_with_nodata"
+                        cluster["backup_method"] = ["non_full_by_regular", "full_with_nodata"]
+                    if self.data["orphan_restore_type"] in [
+                        TendbSingleRestoreType.REPLICATE_WITH_DATA,
+                        TendbSingleRestoreType.RESTORE_WITH_DATA,
+                    ]:
+                        cluster["is_full_backup"] = True
 
                     cluster["backup_source"] = self.data["backup_source"]
-                    cluster["backup_id"] = self.data["backup_infos"][str(cluster_model.id)]
-                sync_data_sub_pipeline.add_sub_pipeline(
-                    sub_flow=mysql_restore_data_sub_flow(
-                        root_id=self.root_id,
-                        ticket_data=copy.deepcopy(self.data),
-                        cluster=copy.deepcopy(cluster),
-                        cluster_model=cluster_model,
+                    # cluster["backup_id"] = self.data["backup_infos"][str(cluster_model.id)]
+                    sync_data_sub_pipeline.add_sub_pipeline(
+                        sub_flow=mysql_restore_data_sub_flow(
+                            root_id=self.root_id,
+                            ticket_data=copy.deepcopy(self.data),
+                            cluster=copy.deepcopy(cluster),
+                            cluster_model=cluster_model,
+                        )
                     )
-                )
 
                 sync_data_sub_pipeline.add_act(
                     act_name=_("数据恢复完毕,修改实例状态"),
@@ -322,11 +338,10 @@ class MySQLMigrateSingleFlow(object):
                     TendbSingleRestoreType.REPLICATE_WITH_DATA,
                 ]:
                     cluster["add_tuple_relation"] = True
-
                 switch_sub_pipeline.add_sub_pipeline(
                     sub_flow=single_migrate_switch_sub_flow(
                         root_id=self.root_id,
-                        uid=self.ticket_data["uid"],
+                        ticket_data=self.ticket_data,
                         orphan_restore_type=self.data["orphan_restore_type"],
                         cluster=cluster_model,
                         old_orphan_ip=master_model.machine.ip,
@@ -473,9 +488,31 @@ class MySQLMigrateSingleFlow(object):
                     with_bk_plugin=False,
                 )
             )
-
+            tendb_migrate_pipeline.add_act(act_name=_("人工确认切换"), act_component_code=PauseComponent.code, kwargs={})
             # 切换迁移实例
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=switch_sub_pipeline_list)
+            tendb_migrate_pipeline.add_act(
+                act_name=_("解除新机告警屏蔽"), act_component_code=DisableAlarmShieldComponent.code, kwargs={}
+            )
+            tendb_migrate_pipeline.add_act(
+                act_name=_("屏蔽旧实例告警15天"),
+                act_component_code=AddAlarmShieldComponent.code,
+                kwargs={
+                    "begin_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "end_time": (datetime.now() + timedelta(days=15)).strftime("%Y-%m-%d %H:%M:%S"),
+                    "description": master_model.machine.ip,
+                    "dimensions": [
+                        {
+                            "name": "instance_host",
+                            "values": [master_model.machine.ip],
+                        },
+                        {
+                            "name": "instance_port",
+                            "values": self.data["ports"],
+                        },
+                    ],
+                },
+            )
             #  todo tendbSingle 安装周边选择哪些插件
             tendb_migrate_pipeline.add_sub_pipeline(
                 sub_flow=standardize_mysql_cluster_subflow(
@@ -497,16 +534,15 @@ class MySQLMigrateSingleFlow(object):
                     with_cc_standardize=False,
                 )
             )
-            tendb_migrate_pipeline.add_act(
-                act_name=_("解除告警屏蔽"), act_component_code=DisableAlarmShieldComponent.code, kwargs={}
-            )
 
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=uninstall_surrounding_sub_pipeline_list)
-
             # 卸载流程人工确认
             tendb_migrate_pipeline.add_act(act_name=_("人工确认卸载实例"), act_component_code=PauseComponent.code, kwargs={})
             # 卸载remote节点
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=uninstall_svr_sub_pipeline_list)
+            tendb_migrate_pipeline.add_act(
+                act_name=_("解除旧实例告警屏蔽"), act_component_code=DisableAlarmShieldComponent.code, kwargs={}
+            )
             tendb_migrate_pipeline_list.append(
                 tendb_migrate_pipeline.build_sub_process(
                     sub_name=_("{} > {} 单节点迁移".format(self.data["orphan_ip"], self.data["new_orphan_ip"]))

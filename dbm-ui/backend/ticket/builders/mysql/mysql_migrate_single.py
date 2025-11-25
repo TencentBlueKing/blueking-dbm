@@ -17,8 +17,7 @@ from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, HostInfoSerializer
 from backend.ticket.builders.common.constants import MySQLBackupSource
-from backend.ticket.builders.mysql.base import MySQLBaseOperateDetailSerializer
-from backend.ticket.builders.mysql.mysql_master_slave_switch import MysqlMasterSlaveSwitchFlowBuilder
+from backend.ticket.builders.mysql.base import MySQLBaseOperateDetailSerializer, BaseMySQLSingleTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 
@@ -52,7 +51,7 @@ class MysqlMigrateSingleResourceParamBuilder(BaseOperateResourceParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_MIGRATE_SINGLE, is_apply=True, is_recycle=True)
-class MysqlMigrateSingleFlowBuilder(MysqlMasterSlaveSwitchFlowBuilder):
+class MysqlMigrateSingleFlowBuilder(BaseMySQLSingleTicketFlowBuilder):
     serializer = MysqlMigrateSingleDetailSerializer
     inner_flow_builder = MysqlMigrateSingleParamBuilder
     resource_batch_apply_builder = MysqlMigrateSingleResourceParamBuilder
