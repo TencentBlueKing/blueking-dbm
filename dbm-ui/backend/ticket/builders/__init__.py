@@ -362,7 +362,11 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
 
         for info in infos:
             cluster = cluster_map[fetch_cluster_ids(info)[0]]
-            cluster_tolerance = tolerance(cluster, tolerance_type) if isinstance(tolerance, Callable) else tolerance
+            cluster_tolerance = (
+                tolerance(cluster.disaster_tolerance_level, tolerance_type)
+                if isinstance(tolerance, Callable)
+                else tolerance
+            )
             exclusive_hosts = cluster__remain_hosts_map.get(cluster.id, [])
             self.patch_common_affinity(info, role, cluster, exclusive_hosts, cluster_tolerance, no_need_affinity)
 
