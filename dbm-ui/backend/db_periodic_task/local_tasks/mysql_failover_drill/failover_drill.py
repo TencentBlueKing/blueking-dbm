@@ -15,6 +15,7 @@ from django.utils.translation import gettext as _
 
 from backend.components.dbresource.client import DBResourceApi
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
+from backend.db_meta.enums.instance_role import TenDBClusterSpiderRole
 from backend.db_meta.exceptions import ClusterNotExistException, DBMetaException
 from backend.db_meta.models import BKCity, Cluster, Machine, ProxyInstance
 from backend.db_report.enums import ReportStateType
@@ -233,7 +234,15 @@ class MysqlFailoverDrill(BaseFailoverDrill):
             ip = cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.MASTER).first().machine.ip
         elif instance_role == "spider":
             # spider类型的直接拿中控去验证
-            ip = cluster.tendbcluster_ctl_primary_address().split(":")[0]
+            # ip = cluster.tendbcluster_ctl_primary_address().split(":")[0]
+            # 取任意spider_master的ip，每次返回一样
+            ip = (
+                cluster.proxyinstance_set.filter(
+                    tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
+                )
+                .first()
+                .machine.ip
+            )
         elif instance_role == "proxy":
             # proxy取第一个，不关注具体实例
             ip = ProxyInstance.objects.filter(cluster=cluster).first().machine.ip
