@@ -56,7 +56,7 @@
       cluster: {
         id: number;
       };
-      current_version: string;
+      current_version: string[];
     };
   }
 
@@ -85,12 +85,15 @@
   const { loading, run: fetchClusterVersions } = useRequest(getPackages, {
     manual: true,
     onSuccess(versions) {
-      const currentVersion = props.rowData.current_version?.match(versionRegex)![0] || '';
+      const currentVersionList = props.rowData.current_version.map((item) => item.match(versionRegex)![0] || '');
       versionList.value = versions.results
         .reduce(
           (prevList, versionItem) => {
             const version = versionItem.name.match(versionRegex);
-            if (version && compareVersions(version[0], currentVersion) === 1) {
+            const isHigherThanAllCurrent = currentVersionList.every((currentVersion) => {
+              return compareVersions(version ? version[0] : '', currentVersion) === 1;
+            });
+            if (version && isHigherThanAllCurrent) {
               prevList.push({
                 label: versionItem.name,
                 value: versionItem.id,
