@@ -52,7 +52,11 @@ class SleepTimerService(BaseService):
         global_data = data.get_one_of_inputs("global_data")
         kwargs = data.get_one_of_inputs("kwargs")
 
-        timing = global_data["timing"]
+        if "timing" in kwargs:
+            timing = kwargs["timing"]
+        else:
+            timing = global_data["timing"]
+
         force_check = kwargs["force_check_timing"]
 
         now = datetime.datetime.now(timezone.utc)
