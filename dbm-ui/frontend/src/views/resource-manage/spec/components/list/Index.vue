@@ -59,7 +59,7 @@
         class="ml-8"
         :data="searchData"
         :model-value="searchValue"
-        :placeholder="t('搜索规格名称，应用范围，业务')"
+        :placeholder="t('搜索ID，规格名称，应用范围，业务')"
         style="width: 500px"
         @change="handleSearchValueChange" />
     </div>
@@ -340,9 +340,14 @@
 
   const searchData = computed(() => [
     {
+      id: 'spec_ids',
+      multiple: true,
+      name: 'ID',
+    },
+    {
       id: 'spec_name',
       multiple: true,
-      name: t('规格'),
+      name: t('规格名称'),
     },
     {
       children: BizScopesInfoList.map((bizScopeItem) => ({
