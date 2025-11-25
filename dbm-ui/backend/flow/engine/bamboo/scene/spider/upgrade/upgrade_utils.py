@@ -492,9 +492,9 @@ def check_spider_upgrade_version_compatibility(data: Dict) -> None:
         for spider_ins in spiders:
             current_version = tspider_version_parse(spider_ins.version)
             current_versions.add(spider_ins.version)
-            if current_version >= new_spider_version_num:
+            if current_version > new_spider_version_num:
                 logger.error(_("待升级版本 {} 需要大于当前版本 {}").format(new_spider_version_num, current_version))
-                raise DBMetaException(message=_("待升级版本大于等于新版本，请确认升级的版本"))
+                raise DBMetaException(message=_("待升级版本大于新版本，请确认升级的版本"))
 
 
 def check_spider_node_count_compatibility(data: Dict) -> None:
