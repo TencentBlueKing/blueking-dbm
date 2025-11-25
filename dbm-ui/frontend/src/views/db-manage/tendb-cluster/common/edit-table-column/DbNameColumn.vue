@@ -1,12 +1,16 @@
 <template>
   <EditableColumn
+    :disabled="disabled"
     :disabled-method="disabledMethod"
     :field="field"
     :label="label"
     :min-width="180"
+    :readonly="readonly"
     :required="required"
     :rules="rules">
-    <template #headAppend>
+    <template
+      v-if="showEditIcon"
+      #headAppend>
       <BatchEditColumn
         v-model="showBatchEdit"
         :title="label"
@@ -23,9 +27,10 @@
     <EditableTagInput
       v-model="modelValue"
       :max-data="single ? 1 : -1"
-      :placeholder="t('请输入DB 名称，支持通配符“%”，含通配符的仅支持单个')" />
+      :placeholder="t('请输入DB 名称，支持通配符“%”，含通配符的仅支持单个')"
+      v-bind="{ ...attrs, ...props }" />
     <template #tips>
-      <div class="tendbcluster-db-name-tips">
+      <div class="mysql-db-name-tips">
         <div style="font-weight: 700">{{ t('库表输入说明') }}：</div>
         <div>
           <div class="circle-dot"></div>
@@ -64,9 +69,12 @@
     checkExist?: boolean;
     checkNotExist?: boolean;
     clusterId?: number;
+    disabled?: boolean;
     field: string;
     label: string;
+    readonly?: boolean;
     required?: boolean;
+    showEditIcon?: boolean;
     single?: boolean;
   }
 
@@ -76,14 +84,18 @@
     allowAsterisk: true,
     checkExist: false,
     checkNotExist: false,
-    clusterId: undefined,
-    required: false,
+    disabled: false,
+    readonly: false,
+    required: true,
+    showEditIcon: true,
     single: false,
   });
 
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<string[]>();
+
+  const attrs = useAttrs();
 
   const { t } = useI18n();
 
@@ -223,7 +235,7 @@
     cursor: pointer;
   }
 
-  .tendbcluster-db-name-tips {
+  .mysql-db-name-tips {
     div {
       display: flex;
       align-items: center;
