@@ -59,6 +59,20 @@
         </SpecDetailPopover>
         <span v-else>--</span>
       </InfoItem>
+      <InfoItem :label="t('资源标签')">
+        <template v-if="riakSpec && riakSpec.label_names?.length">
+          <BkTag
+            v-for="item in riakSpec.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
+      </InfoItem>
       <InfoItem :label="t('节点数量')">
         {{ riakSpec?.count || '--' }}
       </InfoItem>

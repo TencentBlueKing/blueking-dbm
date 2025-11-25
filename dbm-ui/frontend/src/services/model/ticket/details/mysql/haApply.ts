@@ -1,4 +1,4 @@
-import type { DetailBase, SpecInfo } from '../common';
+import type { ApplySpecInfo, DetailBase } from '../common';
 
 export interface HaApply extends DetailBase {
   bk_cloud_id: number;
@@ -28,9 +28,9 @@ export interface HaApply extends DetailBase {
     proxy?: { bk_cloud_id: number; bk_host_id: number; ip: string }[];
   };
   resource_spec: {
-    backend?: SpecInfo;
-    backend_group?: SpecInfo;
-    proxy?: SpecInfo;
+    backend?: ApplySpecInfo;
+    backend_group?: ApplySpecInfo;
+    proxy?: ApplySpecInfo;
   };
   spec: string;
   spec_display: string;

@@ -41,36 +41,64 @@
     <InfoItem :label="t('数量')">
       {{ ticketDetails.details.cluster_count }}
     </InfoItem>
-    <InfoItem
-      v-if="ticketDetails.details.resource_spec?.proxy"
-      :label="t('Proxy存储资源规格')">
-      <SpecDetailPopover
-        :data="ticketDetails.details.resource_spec.proxy"
-        placement="top">
-        <span
-          class="pb-2"
-          style="cursor: pointer; border-bottom: 1px dashed #979ba5">
-          {{ ticketDetails.details.resource_spec.proxy.spec_name }}（{{
-            `${ticketDetails.details.resource_spec.proxy.count} ${t('台')}`
-          }}）
-        </span>
-      </SpecDetailPopover>
-    </InfoItem>
-    <InfoItem
-      v-if="ticketDetails.details.resource_spec?.backend_group"
-      :label="t('后端存储资源规格')">
-      <SpecDetailPopover
-        :data="ticketDetails.details.resource_spec.backend_group"
-        placement="top">
-        <span
-          class="pb-2"
-          style="cursor: pointer; border-bottom: 1px dashed #979ba5">
-          {{ ticketDetails.details.resource_spec.backend_group.spec_name }}（{{
-            `${ticketDetails.details.resource_spec.backend_group.count} ${t('组')}`
-          }}）
-        </span>
-      </SpecDetailPopover>
-    </InfoItem>
+    <template v-if="ticketDetails.details.resource_spec?.proxy">
+      <InfoItem :label="t('Proxy 存储资源规格')">
+        <SpecDetailPopover
+          :data="ticketDetails.details.resource_spec.proxy"
+          placement="top">
+          <span
+            class="pb-2"
+            style="cursor: pointer; border-bottom: 1px dashed #979ba5">
+            {{ ticketDetails.details.resource_spec.proxy.spec_name }}（{{
+              `${ticketDetails.details.resource_spec.proxy.count} ${t('台')}`
+            }}）
+          </span>
+        </SpecDetailPopover>
+      </InfoItem>
+      <InfoItem :label="t('Proxy 存储资源标签')">
+        <template v-if="ticketDetails.details.resource_spec.proxy.label_names?.length">
+          <BkTag
+            v-for="item in ticketDetails.details.resource_spec.proxy.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
+      </InfoItem>
+    </template>
+    <template v-if="ticketDetails.details.resource_spec?.backend_group">
+      <InfoItem :label="t('后端存储资源规格')">
+        <SpecDetailPopover
+          :data="ticketDetails.details.resource_spec.backend_group"
+          placement="top">
+          <span
+            class="pb-2"
+            style="cursor: pointer; border-bottom: 1px dashed #979ba5">
+            {{ ticketDetails.details.resource_spec.backend_group.spec_name }}（{{
+              `${ticketDetails.details.resource_spec.backend_group.count} ${t('组')}`
+            }}）
+          </span>
+        </SpecDetailPopover>
+      </InfoItem>
+      <InfoItem :label="t('后端存储资源标签')">
+        <template v-if="ticketDetails.details.resource_spec.backend_group.label_names?.length">
+          <BkTag
+            v-for="item in ticketDetails.details.resource_spec.backend_group.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
+      </InfoItem>
+    </template>
     <InfoItem
       :label="t('域名设置')"
       style="flex: 1 0 100%">

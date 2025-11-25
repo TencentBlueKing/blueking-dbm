@@ -75,7 +75,7 @@
               :is-sqlserver-single="isSingleType"
               :module-alias-name="moduleAliasName" />
           </BkFormItem>
-          <BkFormItem
+          <!-- <BkFormItem
             :label="t('服务器选择')"
             property="details.ip_source"
             required>
@@ -85,11 +85,11 @@
               <BkRadioButton label="resource_pool">
                 {{ t('自动从资源池匹配') }}
               </BkRadioButton>
-              <!-- <BkRadioButton label="manual_input">
+              <BkRadioButton label="manual_input">
                 {{ t('手动录入IP') }}
-              </BkRadioButton> -->
+              </BkRadioButton>
             </BkRadioGroup>
-          </BkFormItem>
+          </BkFormItem> -->
           <Transition
             mode="out-in"
             name="dbm-fade">
@@ -133,18 +133,36 @@
               class="mb-24">
               <BkFormItem
                 :label="t('后端存储资源规格')"
-                property="details.resource_spec.backend_group.spec_id"
                 required>
-                <SpecSelector
-                  ref="specBackendRef"
-                  v-model="formData.details.resource_spec.backend_group.spec_id"
-                  :biz-id="formData.bk_biz_id"
-                  :city="formData.details.city_code"
-                  :cloud-id="formData.details.bk_cloud_id"
-                  cluster-type="sqlserver"
-                  machine-type="sqlserver"
-                  style="width: 435px"
-                  :subzone-ids="formData.details.sub_zone_ids" />
+                <div class="resource-pool-item">
+                  <BkFormItem
+                    :label="t('规格')"
+                    property="details.resource_spec.backend_group.spec_id"
+                    required>
+                    <SpecSelector
+                      ref="specBackendRef"
+                      v-model="formData.details.resource_spec.backend_group.spec_id"
+                      :biz-id="formData.bk_biz_id"
+                      :city="formData.details.city_code"
+                      :cloud-id="formData.details.bk_cloud_id"
+                      cluster-type="sqlserver"
+                      machine-type="sqlserver"
+                      :subzone-ids="formData.details.sub_zone_ids" />
+                  </BkFormItem>
+                  <ResourcePreview
+                    v-model:tag-list="formData.details.resource_spec.backend_group.labels"
+                    :biz-id="formData.bk_biz_id"
+                    :params="{
+                      city: formData.details.city_name,
+                      subzones: formData.details.sub_zone_names.join('，'),
+                      subzone_ids: formData.details.sub_zone_ids.join(','),
+                      for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
+                      resource_types: [DBTypes.SQLSERVER, 'PUBLIC'],
+                      spec_id: Number(formData.details.resource_spec.backend_group.spec_id),
+                      labels: formData.details.resource_spec.backend_group.labels.map((item) => item.id).join(','),
+                    }"
+                    property="details.resource_spec.backend_group.labels" />
+                </div>
               </BkFormItem>
             </div>
           </Transition>
@@ -238,6 +256,7 @@
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
   import ModuleItem from '@views/db-manage/common/apply-items/ModuleItem.vue';
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/Index.vue';
+  import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
   import DomainTable from './components/DomainTable.vue';
@@ -269,9 +288,15 @@
 
       if (details.ip_source === 'resource_pool') {
         const { backend } = details.resource_spec!;
+        const labels = (backend.labels || []).map((labelItem, labelIndex) => ({
+          id: Number(labelItem),
+          value: backend.label_names[labelIndex],
+        }));
         const resourceSpec = {
           backend_group: {
+            ...formData.details.resource_spec.backend_group,
             count: backend.count,
+            labels,
             spec_id: backend.spec_id,
           },
         };
@@ -315,9 +340,15 @@
 
       if (details.ip_source === 'resource_pool') {
         const { backend_group: backendGroup } = details.resource_spec!;
+        const labels = (backendGroup.labels || []).map((labelItem, labelIndex) => ({
+          id: Number(labelItem),
+          value: backendGroup.label_names[labelIndex],
+        }));
         const resourceSpec = {
           backend_group: {
+            ...formData.details.resource_spec.backend_group,
             count: backendGroup.count,
+            labels,
             spec_id: backendGroup.spec_id,
           },
         };
@@ -345,11 +376,12 @@
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
-  const getDefaultformData = () => ({
+  const initData = () => ({
     bk_biz_id: '' as '' | number,
     details: {
       bk_cloud_id: 0,
       city_code: '',
+      city_name: '',
       cluster_count: 1,
       db_app_abbr: '', // 业务 Code
       db_module_id: null as null | number,
@@ -366,6 +398,10 @@
           // spec_machine_type: 'backend',
           affinity: '',
           count: 0,
+          labels: [] as {
+            id: number;
+            value: string;
+          }[],
           location_spec: {
             city: '', // 城市
             sub_zone_ids: [],
@@ -376,6 +412,7 @@
       },
       start_mssql_port: 48322, // SQLServer起始端口
       sub_zone_ids: [] as number[],
+      sub_zone_names: [] as string[],
     },
     remark: '',
     ticket_type: route.name,
@@ -403,7 +440,7 @@
     name: '',
   });
 
-  const formData = reactive(getDefaultformData());
+  const formData = reactive(initData());
 
   const rules = computed(() => ({
     'details.db_app_abbr': [
@@ -565,11 +602,13 @@
           nodes: undefined,
           resource_spec: {
             [resourceSpecKey]: {
-              spec_id: details.resource_spec.backend_group.spec_id,
               ...specBackendRef.value!.getData(),
               ...regionRequirementsRef.value!.getValue(),
               count: resourceSpecbackendGroupCount.value,
+              label_names: details.resource_spec.backend_group.labels.map((item: { value: string }) => item.value),
+              labels: details.resource_spec.backend_group.labels.map((item: { id: number }) => String(item.id)),
               spec_cluster_type: clusterType,
+              spec_id: details.resource_spec.backend_group.spec_id,
               spec_machine_type: clusterType,
             },
           },
@@ -589,7 +628,11 @@
       details: getDetails(),
     };
     // 若业务没有英文名称则先创建业务英文名称再创建单据，反正直接创建单据
-    bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
+    if (bizState.hasEnglishName) {
+      handleCreateTicket(params);
+    } else {
+      handleCreateAppAbbr(params);
+    }
   };
 
   /**
@@ -600,7 +643,7 @@
       cancelText: t('取消'),
       content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
-        Object.assign(formData, getDefaultformData());
+        Object.assign(formData, initData());
         nextTick(() => {
           window.changeConfirm = false;
         });
@@ -700,6 +743,28 @@
 
       > .bk-radio-button {
         width: 50%;
+      }
+    }
+
+    .resource-pool-item {
+      width: 655px;
+      padding: 24px 0;
+      background-color: #f5f7fa;
+      border-radius: 2px;
+
+      :deep(.bk-form-item) {
+        .bk-form-label {
+          width: 120px !important;
+        }
+
+        .bk-form-content {
+          margin-left: 120px !important;
+
+          .bk-select,
+          .bk-input {
+            width: 314px !important;
+          }
+        }
       }
     }
   }

@@ -26,6 +26,19 @@
           @change="handleChangeFutureCapacity" />
         <span class="input-desc">G</span>
       </BkFormItem>
+      <ResourcePreview
+        v-model:tag-list="modelValue.labels"
+        :biz-id="bizId"
+        :params="{
+          city: cityName,
+          subzones: subzoneNames.join('，'),
+          subzone_ids: subzoneIds.join(','),
+          for_bizs: bizId ? [bizId, 0] : [0],
+          resource_types: [DBTypes.REDIS, 'PUBLIC'],
+          spec_id: Number(modelValue.spec_id),
+          labels: modelValue.labels.map((item) => item.id).join(','),
+        }"
+        property="details.resource_spec.backend_group.labels" />
       <BkFormItem
         ref="specRef"
         :label="t('集群部署方案')"
@@ -62,10 +75,12 @@
       v-model="modelValue"
       :biz-id="bizId"
       :city-code="cityCode"
+      :city-name="cityName"
       :cloud-id="cloudId"
       :cluster-type="clusterType"
       :machine-type="machineType"
-      :subzone-ids="subzoneIds" />
+      :subzone-ids="subzoneIds"
+      :subzone-names="subzoneNames" />
   </div>
 </template>
 
@@ -77,10 +92,11 @@
   import { getSpecResourceCount } from '@services/source/dbresourceResource';
   import { getFilterClusterSpec } from '@services/source/dbresourceSpec';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
 
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
+  import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import ApplySchema, { APPLY_SCHEME } from '@views/db-manage/common/apply-schema/Index.vue';
 
   import CustomSchema from './components/CustomSchema.vue';
@@ -89,16 +105,22 @@
     capacity: number | string;
     count: number | string;
     future_capacity: number | string;
+    labels: {
+      id: number;
+      value: string;
+    }[];
     spec_id: number | '';
   }
 
   interface Props {
-    bizId: number | string;
+    bizId: number | '';
     cityCode: string;
+    cityName: string;
     cloudId: number | string;
     clusterType: string;
     machineType: string;
     subzoneIds: number[];
+    subzoneNames: string[];
   }
 
   const props = defineProps<Props>();
@@ -179,7 +201,7 @@
     },
   ];
 
-  let timer = 0;
+  let timer: NodeJS.Timeout;
 
   watch(
     () => modelValue.value.spec_id,
@@ -321,12 +343,21 @@
   });
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
   .redis-backend-spec {
     max-width: 1200px;
     padding: 24px 24px 24px 10px;
     background-color: #f5f7fa;
     border-radius: 2px;
+
+    .bk-form-item {
+      .bk-form-content {
+        .bk-select,
+        .bk-input {
+          width: 314px !important;
+        }
+      }
+    }
 
     .input-desc {
       padding-left: 12px;
@@ -335,7 +366,7 @@
       color: #63656e;
     }
 
-    :deep(.spec-radio) {
+    .spec-radio {
       display: flex !important;
       max-width: 100%;
 

@@ -131,6 +131,7 @@
   import useSearchSelectData from '@components/resource-host-selector/hooks/use-search-select-data';
 
   interface Props {
+    bizId?: number;
     params: {
       bk_cloud_ids?: string;
       city?: string;
@@ -149,7 +150,9 @@
     };
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    bizId: window.PROJECT_CONFIG.BIZ_ID,
+  });
 
   const isShow = defineModel<boolean>('isShow', {
     default: false,
@@ -176,13 +179,8 @@
     manual: true,
   });
 
-  useRequest(listTag, {
-    defaultParams: [
-      {
-        bk_biz_ids: [window.PROJECT_CONFIG.BIZ_ID, 0].join(','), // 0 表示公共资源池
-        type: 'resource',
-      },
-    ],
+  const { run: runListTag } = useRequest(listTag, {
+    manual: true,
     onSuccess: (data) => {
       tagList.value = data.results || [];
     },
@@ -202,9 +200,23 @@
       city: props.params.city || undefined,
       labels: labels || undefined, // 不传即为不限制（即通用无标签）
       spec_id: props.params.spec_id || undefined,
+      subzone_ids: props.params.subzone_ids || undefined,
       subzones: props.params.subzones || undefined,
     });
   };
+
+  watch(
+    () => props.bizId,
+    () => {
+      runListTag({
+        bk_biz_ids: [props.bizId, 0].join(','), // 0 表示公共资源池
+        type: 'resource',
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   watch(columnFilterValue, () => {
     dbTableRef.value?.fetchData({

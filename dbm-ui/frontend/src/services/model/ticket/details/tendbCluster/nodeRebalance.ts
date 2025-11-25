@@ -1,4 +1,4 @@
-import type { DetailBase, DetailClusters, NodeInfo, SpecInfo } from '../common';
+import type { ApplySpecInfo, DetailBase, DetailClusters, NodeInfo } from '../common';
 
 /**
  * TenDB Cluster 集群容量变更
@@ -34,7 +34,7 @@ export interface NodeRebalance extends DetailBase {
     }[]
   >;
   resource_request_id: string;
-  specs: Record<number, SpecInfo>;
+  specs: Record<number, ApplySpecInfo>;
   trigger_checksum_time: string;
   trigger_checksum_type: string;
 }

@@ -17,28 +17,28 @@
       <DbForm
         ref="formRef"
         auto-label-width
-        :model="formdata"
+        :model="formData"
         :rules="rules">
         <DbCard :title="t('业务信息')">
           <BusinessItems
-            v-model:app-abbr="formdata.details.db_app_abbr"
-            v-model:biz-id="formdata.bk_biz_id"
+            v-model:app-abbr="formData.details.db_app_abbr"
+            v-model:biz-id="formData.bk_biz_id"
             perrmision-action-id="tendbcluster_apply"
             @change-biz="handleChangeBiz" />
-          <ClusterName v-model="formdata.details.cluster_name" />
+          <ClusterName v-model="formData.details.cluster_name" />
           <ClusterAlias
-            v-model="formdata.details.cluster_alias"
-            :biz-id="formdata.bk_biz_id"
+            v-model="formData.details.cluster_alias"
+            :biz-id="formData.bk_biz_id"
             cluster-type="tendbcluster" />
-          <CloudItem v-model="formdata.details.bk_cloud_id" />
+          <CloudItem v-model="formData.details.bk_cloud_id" />
         </DbCard>
         <RegionRequirements
           ref="regionRequirements"
-          v-model="formdata.details" />
+          v-model="formData.details" />
         <DbCard :title="t('部署需求')">
           <ModuleItem
-            v-model="formdata.details.db_module_id"
-            :biz-id="formdata.bk_biz_id"
+            v-model="formData.details.db_module_id"
+            :biz-id="formData.bk_biz_id"
             :cluster-type="ClusterTypes.TENDBCLUSTER" />
           <BkFormItem
             :label="t('接入层Master')"
@@ -50,23 +50,38 @@
                 required>
                 <SpecSelector
                   ref="specProxyRef"
-                  v-model="formdata.details.resource_spec.spider.spec_id"
-                  :biz-id="formdata.bk_biz_id"
-                  :city="formdata.details.city_code"
-                  :cloud-id="formdata.details.bk_cloud_id"
+                  v-model="formData.details.resource_spec.spider.spec_id"
+                  :biz-id="formData.bk_biz_id"
+                  :city="formData.details.city_code"
+                  :cloud-id="formData.details.bk_cloud_id"
                   cluster-type="tendbcluster"
                   machine-type="proxy"
-                  :subzone-ids="formdata.details.sub_zone_ids" />
+                  :subzone-ids="formData.details.sub_zone_ids" />
               </BkFormItem>
+              <ResourcePreview
+                v-model:tag-list="formData.details.resource_spec.spider.labels"
+                :biz-id="formData.bk_biz_id"
+                :params="{
+                  city: formData.details.city_name,
+                  subzones: formData.details.sub_zone_names.join('，'),
+                  subzone_ids: formData.details.sub_zone_ids.join(','),
+                  for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
+                  resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
+                  spec_id: Number(formData.details.resource_spec.spider.spec_id),
+                  labels: formData.details.resource_spec.spider.labels.map((item) => item.id).join(','),
+                }"
+                property="details.resource_spec.spider.labels" />
               <BkFormItem
                 :label="t('数量')"
                 property="details.resource_spec.spider.count"
                 required>
-                <BkInput
-                  v-model="formdata.details.resource_spec.spider.count"
-                  :min="2"
-                  type="number" />
-                <span class="input-desc">{{ t('至少n台', { n: 2 }) }}</span>
+                <div>
+                  <BkInput
+                    v-model="formData.details.resource_spec.spider.count"
+                    :min="2"
+                    type="number" />
+                  <span class="input-desc">{{ t('至少n台', { n: 2 }) }}</span>
+                </div>
               </BkFormItem>
             </div>
           </BkFormItem>
@@ -75,20 +90,22 @@
             required>
             <BackendQPSSpec
               ref="specBackendRef"
-              v-model="formdata.details.resource_spec.backend_group"
-              :biz-id="formdata.bk_biz_id"
-              :city-code="formdata.details.city_code"
-              :cloud-id="formdata.details.bk_cloud_id"
+              v-model="formData.details.resource_spec.backend_group"
+              :biz-id="formData.bk_biz_id"
+              :city-code="formData.details.city_code"
+              :city-name="formData.details.city_name"
+              :cloud-id="formData.details.bk_cloud_id"
               db-type="tendbcluster"
               machine-type="backend"
-              :subzone-ids="formdata.details.sub_zone_ids" />
+              :subzone-ids="formData.details.sub_zone_ids"
+              :subzone-names="formData.details.sub_zone_names" />
           </BkFormItem>
           <BkFormItem
             :label="t('访问端口')"
             property="details.spider_port"
             required>
             <BkInput
-              v-model="formdata.details.spider_port"
+              v-model="formData.details.spider_port"
               clearable
               :max="65535"
               :min="3306"
@@ -105,7 +122,7 @@
             }" />
           <BkFormItem :label="t('备注')">
             <BkInput
-              v-model="formdata.remark"
+              v-model="formData.remark"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
               style="width: 655px"
@@ -160,6 +177,7 @@
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
   import ModuleItem from '@views/db-manage/common/apply-items/ModuleItem.vue';
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/Index.vue';
+  import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
   import BackendQPSSpec from './components/BackendQPSSpec.vue';
@@ -175,6 +193,7 @@
     details: {
       bk_cloud_id: 0,
       city_code: '',
+      city_name: '',
       cluster_alias: '',
       cluster_name: '',
       cluster_shard_num: 0,
@@ -188,6 +207,10 @@
           capacity: '',
           count: 0,
           future_capacity: '',
+          labels: [] as {
+            id: number;
+            value: string;
+          }[],
           location_spec: {
             city: '',
             sub_zone_ids: [],
@@ -196,11 +219,16 @@
         },
         spider: {
           count: 2,
+          labels: [] as {
+            id: number;
+            value: string;
+          }[],
           spec_id: '' as number | '',
         },
       },
       spider_port: 25000,
       sub_zone_ids: [] as number[],
+      sub_zone_names: [] as string[],
     },
     remark: '',
     ticket_type: TicketTypes.TENDBCLUSTER_APPLY,
@@ -213,11 +241,11 @@
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
 
-      Object.assign(formdata, {
+      Object.assign(formData, {
         bk_biz_id: ticketDetail.bk_biz_id,
         remark: ticketDetail.remark,
       });
-      Object.assign(formdata.details, {
+      Object.assign(formData.details, {
         bk_cloud_id: details.bk_cloud_id,
         city_code: details.city_code,
         cluster_alias: details.cluster_alias,
@@ -231,15 +259,20 @@
 
       if (details.ip_source === 'resource_pool') {
         const { spider } = details.resource_spec!;
+        const spiderLabels = (spider.labels || []).map((labelItem, labelIndex) => ({
+          id: Number(labelItem),
+          value: spider.label_names[labelIndex],
+        }));
         const resourceSpec = {
-          backend_group: formdata.details.resource_spec.backend_group,
+          backend_group: formData.details.resource_spec.backend_group,
           spider: {
             count: spider.count,
+            labels: spiderLabels,
             spec_id: spider.spec_id,
           },
         };
         const subzoneIds = details.resource_spec!.backend_group.location_spec.sub_zone_ids || [];
-        Object.assign(formdata.details, {
+        Object.assign(formData.details, {
           resource_spec: resourceSpec,
           sub_zone_ids: subzoneIds,
         });
@@ -249,7 +282,7 @@
       }
 
       nextTick(() => {
-        Object.assign(formdata.details, {
+        Object.assign(formData.details, {
           db_module_id: details.db_module_id,
         });
       });
@@ -262,7 +295,7 @@
   const specProxyRef = ref();
   const specBackendRef = ref<InstanceType<typeof BackendQPSSpec>>();
 
-  const formdata = reactive(initData());
+  const formData = reactive(initData());
 
   const rules = {
     'details.cluster_name': [
@@ -292,11 +325,11 @@
     return {
       backend_group: {
         count: specInfo?.machine_pair || 0,
-        spec_id: formdata.details.resource_spec.backend_group.spec_id,
+        spec_id: formData.details.resource_spec.backend_group.spec_id,
       },
       spider: {
-        count: formdata.details.resource_spec.spider.count,
-        spec_id: formdata.details.resource_spec.spider.spec_id,
+        count: formData.details.resource_spec.spider.count,
+        spec_id: formData.details.resource_spec.spider.spec_id,
       },
     } as ComponentProps<typeof EstimatedCost>['params']['resource_spec'];
   });
@@ -305,7 +338,7 @@
    * 变更业务
    */
   const handleChangeBiz = (info: BizItem) => {
-    formdata.details.db_module_id = null;
+    formData.details.db_module_id = null;
     bizState.info = info;
     bizState.hasEnglishName = !!info.english_name;
   };
@@ -316,7 +349,7 @@
       cancelText: t('取消'),
       content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
-        Object.assign(formdata, initData());
+        Object.assign(formData, initData());
         nextTick(() => {
           window.changeConfirm = false;
         });
@@ -326,13 +359,13 @@
     });
   };
 
-  async function handleSubmit() {
+  const handleSubmit = async () => {
     await formRef.value?.validate();
 
     baseState.isSubmitting = true;
 
     const getDetails = () => {
-      const details: Record<string, any> = _.cloneDeep(formdata.details);
+      const details: Record<string, any> = _.cloneDeep(formData.details);
       // 集群容量需求不需要提交
       // delete details.resource_spec.backend_group.capacity;
       // delete details.resource_spec.backend_group.future_capacity;
@@ -344,12 +377,14 @@
         ...details,
         cluster_shard_num: Number(specInfo.cluster_shard_num),
         // disaster_tolerance_level: details.resource_spec.backend_group.affinity,
-        remote_shard_num: Number(specInfo.cluster_shard_num) / specInfo.machine_pair,
+        remote_shard_num: Number(specInfo.cluster_shard_num) / specInfo.machine_pair!,
         resource_spec: {
           backend_group: {
             ...details.resource_spec.backend_group,
             ...regionAndDisasterParams,
             count: specInfo.machine_pair,
+            label_names: details.resource_spec.backend_group.labels.map((item: { value: string }) => item.value),
+            labels: details.resource_spec.backend_group.labels.map((item: { id: number }) => String(item.id)),
             spec_info: specInfo,
           },
           spider: {
@@ -357,18 +392,24 @@
             ...specProxyRef.value.getData(),
             ...regionAndDisasterParams,
             count: Number(details.resource_spec.spider.count),
+            label_names: details.resource_spec.spider.labels.map((item: { value: string }) => item.value),
+            labels: details.resource_spec.spider.labels.map((item: { id: number }) => String(item.id)),
           },
         },
       };
     };
     const params = {
-      ...formdata,
+      ...formData,
       details: getDetails(),
     };
 
     // 若业务没有英文名称则先创建业务英文名称再创建单据，反正直接创建单据
-    bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
-  }
+    if (bizState.hasEnglishName) {
+      handleCreateTicket(params);
+    } else {
+      handleCreateAppAbbr(params);
+    }
+  };
 
   defineExpose({
     routerBack() {
@@ -414,7 +455,7 @@
 
           .bk-select,
           .bk-input {
-            width: 314px;
+            width: 314px !important;
           }
         }
       }
