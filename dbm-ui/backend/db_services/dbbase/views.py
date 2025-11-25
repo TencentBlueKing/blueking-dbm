@@ -365,9 +365,9 @@ class DBBaseViewSet(viewsets.SystemViewSet):
                     .values_list("instance_role", flat=True)
                     .distinct()
                 )
-                if data["cluster_type"] == ClusterType.TenDBCluster.value:
+                if ClusterType.TenDBCluster.value in data["cluster_type"]:
                     spider_roles = (
-                        TenDBClusterSpiderExt.objects.filter(insance__machine__in=machines)
+                        TenDBClusterSpiderExt.objects.filter(instance__machine__in=machines)
                         .values_list("spider_role", flat=True)
                         .distinct()
                     )

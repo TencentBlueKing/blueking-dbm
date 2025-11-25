@@ -134,12 +134,12 @@ class ListMachineSLZ(serializers.Serializer):
     cluster_ids = serializers.CharField(help_text=_("集群ID(多个过滤以逗号分隔)"), required=False)
     cluster_status = serializers.ChoiceField(help_text=_("集群状态"), choices=ClusterStatus.get_choices(), required=False)
     cluster_type = serializers.CharField(help_text=_("集群类型"), required=False)
-    bk_city_id = serializers.IntegerField(help_text=_("城市id"), required=False)
+    bk_city_id = serializers.CharField(help_text=_("城市id"), required=False)
     bk_city_name = serializers.CharField(help_text=_("城市名(多个过滤以逗号分隔)"), required=False)
     machine_type = serializers.ChoiceField(help_text=_("机器类型"), choices=MachineType.get_choices(), required=False)
     bk_os_name = serializers.CharField(help_text=_("os名字"), required=False)
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"), required=False)
-    bk_sub_zone_id = serializers.IntegerField(help_text=_("园区ID"), required=False)
+    bk_sub_zone_id = serializers.CharField(help_text=_("园区ID"), required=False)
     bk_sub_zone = serializers.CharField(help_text=_("园区名称"), required=False)
     bk_svr_device_cls_name = serializers.CharField(help_text=_("机型"), required=False)
     bk_agent_id = serializers.CharField(help_text=_("agent id"), required=False)
@@ -147,8 +147,8 @@ class ListMachineSLZ(serializers.Serializer):
     instance_status = serializers.ChoiceField(
         help_text=_("集群状态"), choices=InstanceStatus.get_choices(), required=False
     )
-    spec_ids = serializers.CharField(help_text=_("规格ID(多个过滤以逗号分隔)"), required=False)
-    spec_names = serializers.CharField(help_text=_("规格名称(多个过滤以逗号分隔)"), required=False)
+    spec_id = serializers.CharField(help_text=_("规格ID(多个过滤以逗号分隔)"), required=False)
+    spec_name = serializers.CharField(help_text=_("规格名称(多个过滤以逗号分隔)"), required=False)
     creator = serializers.CharField(help_text=_("创建者"), required=False)
 
 
