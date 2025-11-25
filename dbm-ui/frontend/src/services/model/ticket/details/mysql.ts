@@ -12,7 +12,7 @@
  */
 import type { AccountRule, AccountRulePrivilege, AuthorizePreCheckData } from '@services/types/permission';
 
-import type { DetailBase, DetailClusters, SpecInfo } from './common';
+import type { ApplySpecInfo, DetailBase, DetailClusters } from './common';
 
 export interface MysqlIpItem extends DetailBase {
   bk_biz_id: number;
@@ -185,9 +185,9 @@ export interface MySQLDetails extends DetailBase {
     proxy: { bk_cloud_id: number; bk_host_id: number; ip: string }[];
   };
   resource_spec: {
-    backend: SpecInfo;
-    backend_group: SpecInfo;
-    proxy: SpecInfo;
+    backend: ApplySpecInfo;
+    backend_group: ApplySpecInfo;
+    proxy: ApplySpecInfo;
   };
   spec: string;
   spec_display: string;

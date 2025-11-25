@@ -155,9 +155,23 @@
               :cloud-id="formData.details.bk_cloud_id"
               :cluster-type="DBTypes.REDIS"
               :machine-type="MachineTypes.REDIS_TENDIS_CACHE"
-              style="width: 314px"
+              style="width: 435px"
               :subzone-ids="formData.details.sub_zone_ids" />
           </BkFormItem>
+          <ResourcePreview
+            v-if="!isAppend"
+            v-model:tag-list="formData.details.resource_spec.backend_group.labels"
+            :biz-id="formData.bk_biz_id"
+            :params="{
+              city: formData.details.city_name,
+              subzones: formData.details.sub_zone_names.join('，'),
+              subzone_ids: formData.details.sub_zone_ids.join(','),
+              for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
+              resource_types: [DBTypes.REDIS, 'PUBLIC'],
+              spec_id: Number(formData.details.resource_spec.backend_group.spec_id),
+              labels: formData.details.resource_spec.backend_group.labels.map((item) => item.id).join(','),
+            }"
+            property="details.resource_spec.backend_group.labels" />
           <BkFormItem
             class="service"
             :label="t('域名设置')"
@@ -244,6 +258,7 @@
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/Index.vue';
   import RegionRequirementsRedisHaAppend from '@views/db-manage/common/apply-items/region-requirements/RedisHaAppend.vue';
+  import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
   import PasswordInput from '@views/db-manage/common/password-input/Index.vue';
 
@@ -269,10 +284,15 @@
       resource_spec: {
         backend_group: {
           count: 2,
+          labels: [] as {
+            id: number;
+            value: string;
+          }[],
           spec_id: '',
         },
       },
       sub_zone_ids: [] as number[],
+      sub_zone_names: [] as string[],
     },
     remark: '',
     ticket_type: TicketTypes.REDIS_INS_APPLY,
@@ -305,9 +325,14 @@
 
       if (details.ip_source === 'resource_pool') {
         const resourceSpec = Object.entries(details.resource_spec!).reduce((prev, [specType, specInfo]) => {
+          const labels = (specInfo.labels || []).map((labelItem, labelIndex) => ({
+            id: Number(labelItem),
+            value: specInfo.label_names[labelIndex],
+          }));
           return Object.assign(prev, {
             [specType]: {
               count: specInfo.count,
+              labels,
               spec_id: specInfo.spec_id,
             },
           });
@@ -559,10 +584,12 @@
           })),
           resource_spec: {
             backend_group: {
-              count: Math.ceil(machineCount.value),
-              spec_id: details.resource_spec!.backend_group.spec_id,
               ...specRef.value!.getData(),
               ...regionRequirementsRef.value!.getValue(),
+              count: Math.ceil(machineCount.value),
+              label_names: details.resource_spec!.backend_group.labels.map((item: { value: string }) => item.value),
+              labels: details.resource_spec!.backend_group.labels.map((item: { id: number }) => String(item.id)),
+              spec_id: details.resource_spec!.backend_group.spec_id,
             },
           },
         });
@@ -602,7 +629,11 @@
     };
 
     // 若业务没有英文名称则先创建业务英文名称再创建单据，反正直接创建单据
-    bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
+    if (bizState.hasEnglishName) {
+      handleCreateTicket(params);
+    } else {
+      handleCreateAppAbbr(params);
+    }
   };
 
   defineExpose({

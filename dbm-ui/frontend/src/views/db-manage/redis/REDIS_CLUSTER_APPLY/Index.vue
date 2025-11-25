@@ -13,38 +13,38 @@
 
 <template>
   <SmartAction :offset-target="getSmartActionOffsetTarget">
-    <div class="apply-instance">
+    <div class="redis-cluster-apply">
       <DbForm
         ref="formRef"
         class="apply-form"
         :label-width="200"
-        :model="state.formdata"
+        :model="formData"
         :rules="rules">
         <DbCard :title="t('业务信息')">
           <BusinessItems
-            v-model:app-abbr="state.formdata.details.db_app_abbr"
-            v-model:biz-id="state.formdata.bk_biz_id"
+            v-model:app-abbr="formData.details.db_app_abbr"
+            v-model:biz-id="formData.bk_biz_id"
             perrmision-action-id="redis_cluster_apply"
             @change-biz="handleChangeBiz" />
-          <ClusterName v-model="state.formdata.details.cluster_name" />
+          <ClusterName v-model="formData.details.cluster_name" />
           <ClusterAlias
-            v-model="state.formdata.details.cluster_alias"
-            :biz-id="state.formdata.bk_biz_id"
+            v-model="formData.details.cluster_alias"
+            :biz-id="formData.bk_biz_id"
             cluster-type="redis" />
           <CloudItem
-            v-model="state.formdata.details.bk_cloud_id"
+            v-model="formData.details.bk_cloud_id"
             @change="handleChangeCloud" />
         </DbCard>
         <RegionRequirements
           ref="regionRequirements"
-          v-model="state.formdata.details" />
+          v-model="formData.details" />
         <DbCard :title="t('部署需求')">
           <BkFormItem
             :label="t('部署架构')"
             property="details.cluster_type"
             required>
             <BkRadioGroup
-              v-model="state.formdata.details.cluster_type"
+              v-model="formData.details.cluster_type"
               class="item-input"
               @change="handleChangeClusterType">
               <BkPopover
@@ -58,7 +58,7 @@
                   {{ item.text }}
                 </BkRadioButton>
                 <template #content>
-                  <div class="apply-instance-content">
+                  <div class="redis-cluster-apply-instance-content">
                     <h4>{{ item.tipContent.title }}</h4>
                     <p>{{ item.tipContent.title }}：{{ item.tipContent.desc }}</p>
                     <img
@@ -81,7 +81,7 @@
             property="details.db_version"
             required>
             <DeployVersion
-              v-model="state.formdata.details.db_version"
+              v-model="formData.details.db_version"
               db-type="redis"
               :query-key="typeInfos.pkg_type" />
           </BkFormItem>
@@ -91,7 +91,7 @@
             required>
             <PasswordInput
               ref="passwordRef"
-              v-model="state.formdata.details.proxy_pwd"
+              v-model="formData.details.proxy_pwd"
               :db-type="DBTypes.REDIS"
               @verify-result="verifyResult" />
           </BkFormItem>
@@ -100,9 +100,9 @@
             property="details.ip_source"
             required>
             <BkRadioGroup
-              v-model="state.formdata.details.ip_source"
+              v-model="formData.details.ip_source"
               class="item-input"
-              @change="fetchCapSpecs(state.formdata.details.city_code)">
+              @change="fetchCapSpecs(formData.details.city_code)">
               <!-- 暂时去掉手动录入IP -->
               <BkRadioButton
                 :key="redisIpSources.resource_pool.id"
@@ -128,9 +128,9 @@
                 property="details.nodes.proxy"
                 required>
                 <IpSelector
-                  :biz-id="state.formdata.bk_biz_id"
+                  :biz-id="formData.bk_biz_id"
                   :cloud-info="cloudInfo"
-                  :data="state.formdata.details.nodes.proxy"
+                  :data="formData.details.nodes.proxy"
                   :disable-dialog-submit-method="ipSelectorDisableSubmitMethods.proxy"
                   :disable-host-method="proxyDisableHostMethod"
                   :os-types="[OSTypes.Linux]"
@@ -150,7 +150,7 @@
                 </IpSelector>
               </DbFormItem>
               <BkFormItem
-                v-if="state.formdata.details.nodes.proxy.length > 0"
+                v-if="formData.details.nodes.proxy.length > 0"
                 label="">
                 <div class="apply-instance-inline">
                   <BkFormItem
@@ -159,12 +159,12 @@
                     property="details.proxy_port"
                     required>
                     <BkInput
-                      v-model="state.formdata.details.proxy_port"
+                      v-model="formData.details.proxy_port"
                       :max="65535"
                       :min="1025"
                       style="width: 120px"
                       type="number" />
-                    <span class="ml-16">{{ t('从n起', { n: state.formdata.details.proxy_port }) }}</span>
+                    <span class="ml-16">{{ t('从n起', { n: formData.details.proxy_port }) }}</span>
                   </BkFormItem>
                 </div>
               </BkFormItem>
@@ -174,9 +174,9 @@
                 property="details.nodes.master"
                 required>
                 <IpSelector
-                  :biz-id="state.formdata.bk_biz_id"
+                  :biz-id="formData.bk_biz_id"
                   :cloud-info="cloudInfo"
-                  :data="state.formdata.details.nodes.master"
+                  :data="formData.details.nodes.master"
                   :disable-dialog-submit-method="ipSelectorDisableSubmitMethods.master"
                   :disable-host-method="masterDisableHostMethod"
                   :os-types="[OSTypes.Linux]"
@@ -201,9 +201,9 @@
                 property="details.nodes.slave"
                 required>
                 <IpSelector
-                  :biz-id="state.formdata.bk_biz_id"
+                  :biz-id="formData.bk_biz_id"
                   :cloud-info="cloudInfo"
-                  :data="state.formdata.details.nodes.slave"
+                  :data="formData.details.nodes.slave"
                   :disable-dialog-submit-method="ipSelectorDisableSubmitMethods.slave"
                   :disable-host-method="slaveDisableHostMethod"
                   :os-types="[OSTypes.Linux]"
@@ -235,7 +235,7 @@
                   }"
                   class="item-input">
                   <BkSelect
-                    v-model="state.formdata.details.cap_key"
+                    v-model="formData.details.cap_key"
                     class="item-input"
                     :clearable="false"
                     :disabled="disableCapSpecs"
@@ -269,21 +269,34 @@
                     required>
                     <SpecSelector
                       ref="specProxyRef"
-                      v-model="state.formdata.details.resource_spec.proxy.spec_id"
-                      :biz-id="state.formdata.bk_biz_id"
-                      :city="state.formdata.details.city_code"
-                      :cloud-id="state.formdata.details.bk_cloud_id"
+                      v-model="formData.details.resource_spec.proxy.spec_id"
+                      :biz-id="formData.bk_biz_id"
+                      :city="formData.details.city_code"
+                      :cloud-id="formData.details.bk_cloud_id"
                       :cluster-type="DBTypes.REDIS"
                       machine-type="proxy"
                       style="width: 314px"
-                      :subzone-ids="state.formdata.details.sub_zone_ids" />
+                      :subzone-ids="formData.details.sub_zone_ids" />
                   </BkFormItem>
+                  <ResourcePreview
+                    v-model:tag-list="formData.details.resource_spec.proxy.labels"
+                    :biz-id="formData.bk_biz_id"
+                    :params="{
+                      city: formData.details.city_name,
+                      subzones: formData.details.sub_zone_names.join('，'),
+                      subzone_ids: formData.details.sub_zone_ids.join(','),
+                      for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
+                      resource_types: [DBTypes.REDIS, 'PUBLIC'],
+                      spec_id: Number(formData.details.resource_spec.proxy.spec_id),
+                      labels: formData.details.resource_spec.proxy.labels.map((item) => item.id).join(','),
+                    }"
+                    property="details.resource_spec.proxy.labels" />
                   <BkFormItem
                     :label="t('数量')"
                     property="details.resource_spec.proxy.count"
                     required>
                     <BkInput
-                      v-model="state.formdata.details.resource_spec.proxy.count"
+                      v-model="formData.details.resource_spec.proxy.count"
                       :min="2"
                       type="number" />
                     <span class="input-desc">{{ t('至少n台', { n: 2 }) }}</span>
@@ -295,21 +308,23 @@
                 required>
                 <BackendQPSSpec
                   ref="specBackendRef"
-                  v-model="state.formdata.details.resource_spec.backend_group"
+                  v-model="formData.details.resource_spec.backend_group"
                   v-model:apply-schema="applySchema"
-                  :biz-id="state.formdata.bk_biz_id"
-                  :city-code="state.formdata.details.city_code"
-                  :cloud-id="state.formdata.details.bk_cloud_id"
+                  :biz-id="formData.bk_biz_id"
+                  :city-code="formData.details.city_code"
+                  :city-name="formData.details.city_name"
+                  :cloud-id="formData.details.bk_cloud_id"
                   :cluster-type="typeInfos.cluster_type"
                   :machine-type="backendMachineType"
-                  :subzone-ids="state.formdata.details.sub_zone_ids" />
+                  :subzone-ids="formData.details.sub_zone_ids"
+                  :subzone-names="formData.details.sub_zone_names" />
               </BkFormItem>
               <BkFormItem
                 :label="t('访问端口')"
                 property="details.proxy_port"
                 required>
                 <BkInput
-                  v-model="state.formdata.details.proxy_port"
+                  v-model="formData.details.proxy_port"
                   clearable
                   :max="60000"
                   :min="50000"
@@ -328,7 +343,7 @@
             }" />
           <BkFormItem :label="t('备注')">
             <BkInput
-              v-model="state.formdata.remark"
+              v-model="formData.remark"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
               style="width: 655px"
@@ -341,7 +356,7 @@
       <BkButton
         v-bk-tooltips="{
           content: t('密码不符合要求'),
-          disabled: !Boolean(state.formdata.details.proxy_pwd) || passwordIsPass,
+          disabled: !Boolean(formData.details.proxy_pwd) || passwordIsPass,
         }"
         class="w-88"
         :disabled="!passwordIsPass"
@@ -402,6 +417,7 @@
   import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/Index.vue';
+  import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
   import { APPLY_SCHEME } from '@views/db-manage/common/apply-schema/Index.vue';
   import PasswordInput from '@views/db-manage/common/password-input/Index.vue';
@@ -433,11 +449,11 @@
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
 
-      Object.assign(state.formdata, {
+      Object.assign(formData, {
         bk_biz_id: ticketDetail.bk_biz_id,
         remark: ticketDetail.remark,
       });
-      Object.assign(state.formdata.details, {
+      Object.assign(formData.details, {
         bk_cloud_id: details.bk_cloud_id,
         city_code: details.city_code,
         cluster_alias: details.cluster_alias,
@@ -450,16 +466,28 @@
       });
 
       if (details.ip_source === 'resource_pool') {
-        const { proxy } = details.resource_spec!;
+        const { backend_group: backendGroup, proxy } = details.resource_spec!;
+        const backendGroupLabels = (backendGroup.labels || []).map((labelItem, labelIndex) => ({
+          id: Number(labelItem),
+          value: backendGroup.label_names[labelIndex],
+        }));
+        const proxyLabels = (proxy.labels || []).map((labelItem, labelIndex) => ({
+          id: Number(labelItem),
+          value: proxy.label_names[labelIndex],
+        }));
         const resourceSpec = {
-          backend_group: state.formdata.details.resource_spec.backend_group,
+          backend_group: {
+            ...formData.details.resource_spec.backend_group,
+            labels: backendGroupLabels,
+          },
           proxy: {
             count: proxy.count,
+            labels: proxyLabels,
             spec_id: proxy.spec_id,
           },
         };
         const subzoneIds = details.resource_spec!.backend_group.location_spec.sub_zone_ids || [];
-        Object.assign(state.formdata.details, {
+        Object.assign(formData.details, {
           resource_spec: resourceSpec,
           sub_zone_ids: subzoneIds,
         });
@@ -484,6 +512,7 @@
       bk_cloud_id: 0,
       cap_key: '',
       city_code: '',
+      city_name: '',
       cluster_alias: '',
       cluster_name: '',
       cluster_type: renderRedisClusterTypes.value[0].id,
@@ -504,6 +533,10 @@
           capacity: '' as number | string,
           count: '' as number | string,
           future_capacity: '' as number | string,
+          labels: [] as {
+            id: number;
+            value: string;
+          }[],
           location_spec: {
             city: '',
             sub_zone_ids: [] as number[],
@@ -512,10 +545,15 @@
         },
         proxy: {
           count: 2,
+          labels: [] as {
+            id: number;
+            value: string;
+          }[],
           spec_id: '' as number | '',
         },
       },
       sub_zone_ids: [] as number[],
+      sub_zone_names: [] as string[],
     },
     remark: '',
     ticket_type: TicketTypes.REDIS_CLUSTER_APPLY,
@@ -538,9 +576,10 @@
   const passwordIsPass = ref(false);
   const applySchema = ref(APPLY_SCHEME.AUTO);
 
+  const formData = reactive(initData());
+
   const state = reactive({
     capSpecs: [] as CapSepcs[],
-    formdata: initData(),
     isLoadCapSpecs: false,
     isLoadVersion: false,
     versions: [] as Version[],
@@ -558,8 +597,7 @@
       {
         message: t('Master数量至少为1台_且机器数要和Slave相等'),
         trigger: 'change',
-        validator: (value: HostInfo[]) =>
-          value.length > 0 && state.formdata.details.nodes.slave.length === value.length,
+        validator: (value: HostInfo[]) => value.length > 0 && formData.details.nodes.slave.length === value.length,
       },
     ],
     'details.nodes.proxy': [
@@ -573,8 +611,7 @@
       {
         message: t('Slave数量至少为1台_且机器数要和Master相等'),
         trigger: 'change',
-        validator: (value: HostInfo[]) =>
-          value.length > 0 && state.formdata.details.nodes.master.length === value.length,
+        validator: (value: HostInfo[]) => value.length > 0 && formData.details.nodes.master.length === value.length,
       },
     ],
     'details.proxy_pwd': [
@@ -591,10 +628,10 @@
     ],
   };
 
-  const isManualInput = computed(() => state.formdata.details.ip_source === redisIpSources.manual_input.id);
+  const isManualInput = computed(() => formData.details.ip_source === redisIpSources.manual_input.id);
 
   const disableCapSpecs = computed(() => {
-    const { master, slave } = state.formdata.details.nodes;
+    const { master, slave } = formData.details.nodes;
     // 资源池模式不需要判断
     if (!isManualInput.value) {
       return false;
@@ -629,7 +666,7 @@
         pkg_type: QueryKeyMap[ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE],
       },
     };
-    return types[state.formdata.details.cluster_type as keyof typeof types];
+    return types[formData.details.cluster_type as keyof typeof types];
   });
 
   const backendMachineType = computed(() =>
@@ -643,11 +680,11 @@
     return {
       backend_group: {
         count: Number(specInfo?.machine_pair || 0),
-        spec_id: state.formdata.details.resource_spec.backend_group.spec_id,
+        spec_id: formData.details.resource_spec.backend_group.spec_id,
       },
       proxy: {
-        count: Number(state.formdata.details.resource_spec.proxy.count || 0),
-        spec_id: state.formdata.details.resource_spec.proxy.spec_id,
+        count: Number(formData.details.resource_spec.proxy.count || 0),
+        spec_id: formData.details.resource_spec.proxy.spec_id,
       },
     } as ComponentProps<typeof EstimatedCost>['params']['resource_spec'];
   });
@@ -659,7 +696,7 @@
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
   const getDispalyCapSpecs = (item: CapSepcs) => {
-    if (state.formdata.details.cluster_type === ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE) {
+    if (formData.details.cluster_type === ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE) {
       return `${item.total_disk}(${item.max_disk} GB x ${item.shard_num}${t('分片')})`;
     }
     return `${item.total_memory}(${getMaxMemoryToGb(item.maxmemory)} x ${item.shard_num}${t('分片')})`;
@@ -674,16 +711,16 @@
    * 获取 redis 容量信息
    */
   const fetchCapSpecs = (cityCode: string) => {
-    state.formdata.details.cap_key = '';
-    const { master, slave } = state.formdata.details.nodes;
+    formData.details.cap_key = '';
+    const { master, slave } = formData.details.nodes;
     if (isManualInput.value && (master.length === 0 || master.length !== slave.length)) {
       return;
     }
     state.isLoadCapSpecs = true;
     getCapSpecs({
       cityCode,
-      cluster_type: state.formdata.details.cluster_type,
-      ip_source: state.formdata.details.ip_source,
+      cluster_type: formData.details.cluster_type,
+      ip_source: formData.details.ip_source,
       nodes: {
         master: formatNodes(master),
         slave: formatNodes(slave),
@@ -693,9 +730,9 @@
         state.capSpecs = res;
         const suggestItem = res.find((item) => item.selected);
         if (suggestItem) {
-          state.formdata.details.cap_key = suggestItem.cap_key;
+          formData.details.cap_key = suggestItem.cap_key;
         } else if (res.length > 0) {
-          state.formdata.details.cap_key = res[0].cap_key;
+          formData.details.cap_key = res[0].cap_key;
         }
       })
       .finally(() => {
@@ -705,20 +742,22 @@
 
   const handleChangeClusterType = () => {
     // const count = [ClusterTypes.PREDIXY_REDIS_CLUSTER, ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER].includes(
-    //   state.formdata.details.cluster_type,
+    //   formData.details.cluster_type,
     // )
     //   ? 3
     //   : 1;
-    state.formdata.details.db_version = '';
-    state.formdata.details.resource_spec.proxy.spec_id = '';
-    state.formdata.details.resource_spec.backend_group = {
-      ...state.formdata.details.resource_spec.backend_group,
+    formData.details.db_version = '';
+    formData.details.resource_spec.proxy.spec_id = '';
+    formData.details.resource_spec.backend_group = {
+      ...formData.details.resource_spec.backend_group,
       capacity: '',
       count: '',
       future_capacity: '',
       spec_id: '',
     };
-    isManualInput.value && fetchCapSpecs('');
+    if (isManualInput.value) {
+      fetchCapSpecs('');
+    }
   };
 
   /**
@@ -729,9 +768,9 @@
     bizState.hasEnglishName = !!info.english_name;
 
     // 清空 ip 选择器
-    state.formdata.details.nodes.proxy = [];
-    state.formdata.details.nodes.master = [];
-    state.formdata.details.nodes.slave = [];
+    formData.details.nodes.proxy = [];
+    formData.details.nodes.master = [];
+    formData.details.nodes.slave = [];
   };
 
   /**
@@ -741,9 +780,9 @@
     cloudInfo.value = info;
 
     // 清空 ip 选择器
-    state.formdata.details.nodes.proxy = [];
-    state.formdata.details.nodes.master = [];
-    state.formdata.details.nodes.slave = [];
+    formData.details.nodes.proxy = [];
+    formData.details.nodes.master = [];
+    formData.details.nodes.slave = [];
   };
 
   /** 重置表单 */
@@ -752,7 +791,7 @@
       cancelText: t('取消'),
       content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
-        state.formdata = initData();
+        Object.assign(formData, initData());
         nextTick(() => {
           window.changeConfirm = false;
         });
@@ -779,11 +818,11 @@
 
   // proxy、master、slave 互斥
   const proxyDisableHostMethod = (data: any) => {
-    const masterHostMap = makeMapByHostId(state.formdata.details.nodes.master);
+    const masterHostMap = makeMapByHostId(formData.details.nodes.master);
     if (masterHostMap[data.host_id]) {
       return t('主机已被Master使用');
     }
-    const slaveHostMap = makeMapByHostId(state.formdata.details.nodes.slave);
+    const slaveHostMap = makeMapByHostId(formData.details.nodes.slave);
     if (slaveHostMap[data.host_id]) {
       return t('主机已被Slave使用');
     }
@@ -793,11 +832,11 @@
 
   // proxy、master、slave 互斥
   const masterDisableHostMethod = (data: any) => {
-    const proxyHostMap = makeMapByHostId(state.formdata.details.nodes.proxy);
+    const proxyHostMap = makeMapByHostId(formData.details.nodes.proxy);
     if (proxyHostMap[data.host_id]) {
       return t('主机已被Proxy使用');
     }
-    const slaveHostMap = makeMapByHostId(state.formdata.details.nodes.slave);
+    const slaveHostMap = makeMapByHostId(formData.details.nodes.slave);
     if (slaveHostMap[data.host_id]) {
       return t('主机已被Slave使用');
     }
@@ -807,11 +846,11 @@
 
   // proxy、master、slave 互斥
   const slaveDisableHostMethod = (data: any) => {
-    const proxyHostMap = makeMapByHostId(state.formdata.details.nodes.proxy);
+    const proxyHostMap = makeMapByHostId(formData.details.nodes.proxy);
     if (proxyHostMap[data.host_id]) {
       return t('主机已被Proxy使用');
     }
-    const masterHostMap = makeMapByHostId(state.formdata.details.nodes.master);
+    const masterHostMap = makeMapByHostId(formData.details.nodes.master);
     if (masterHostMap[data.host_id]) {
       return t('主机已被Master使用');
     }
@@ -823,15 +862,15 @@
    * 更新 Proxy IP
    */
   const handleProxyIpChange = (data: HostInfo[]) => {
-    state.formdata.details.nodes.proxy = [...data];
+    formData.details.nodes.proxy = [...data];
   };
 
   /**
    * 更新 Master IP
    */
   const handleMasterIpChange = (data: HostInfo[]) => {
-    state.formdata.details.nodes.master = [...data];
-    fetchCapSpecs(state.formdata.details.city_code);
+    formData.details.nodes.master = [...data];
+    fetchCapSpecs(formData.details.city_code);
     masterRef.value?.validate?.();
     slaveRef.value?.validate?.();
     capSpecsKey.value = generateId('CLUSTER_APPLAY_CAP_');
@@ -841,8 +880,8 @@
    * 更新 Slave IP
    */
   const handleSlaveIpChange = (data: HostInfo[]) => {
-    state.formdata.details.nodes.slave = [...data];
-    fetchCapSpecs(state.formdata.details.city_code);
+    formData.details.nodes.slave = [...data];
+    fetchCapSpecs(formData.details.city_code);
     masterRef.value?.validate?.();
     slaveRef.value?.validate?.();
     capSpecsKey.value = generateId('CLUSTER_APPLAY_CAP_');
@@ -872,10 +911,10 @@
     baseState.isSubmitting = true;
 
     const getDetails = () => {
-      const details: Record<string, any> = _.cloneDeep(state.formdata.details);
+      const details: Record<string, any> = _.cloneDeep(formData.details);
       const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
 
-      if (state.formdata.details.ip_source === 'resource_pool') {
+      if (formData.details.ip_source === 'resource_pool') {
         delete details.nodes;
         // 集群容量需求不需要提交
         delete details.resource_spec.backend_group.capacity;
@@ -891,6 +930,8 @@
               ...details.resource_spec.backend_group,
               ...regionAndDisasterParams,
               count: Number(specInfo.machine_pair),
+              label_names: details.resource_spec.backend_group.labels.map((item: { value: string }) => item.value),
+              labels: details.resource_spec.backend_group.labels.map((item: { id: number }) => String(item.id)),
               spec_info: specInfo,
             },
             proxy: {
@@ -898,6 +939,8 @@
               ...specProxyRef.value.getData(),
               ...regionAndDisasterParams,
               count: Number(details.resource_spec.proxy.count),
+              label_names: details.resource_spec.proxy.labels.map((item: { value: string }) => item.value),
+              labels: details.resource_spec.proxy.labels.map((item: { id: number }) => String(item.id)),
               spec_cluster_type: typeInfos.value.cluster_type,
               spec_machine_type: typeInfos.value.machine_type,
             },
@@ -910,19 +953,23 @@
         ...details,
         // disaster_tolerance_level: affinity,
         nodes: {
-          master: formatNodes(state.formdata.details.nodes.master),
-          proxy: formatNodes(state.formdata.details.nodes.proxy),
-          slave: formatNodes(state.formdata.details.nodes.slave),
+          master: formatNodes(formData.details.nodes.master),
+          proxy: formatNodes(formData.details.nodes.proxy),
+          slave: formatNodes(formData.details.nodes.slave),
         },
       };
     };
     const params = {
-      ...state.formdata,
+      ...formData,
       details: getDetails(),
     };
 
     // 若业务没有英文名称则先创建业务英文名称再创建单据，反正直接创建单据
-    bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
+    if (bizState.hasEnglishName) {
+      handleCreateTicket(params);
+    } else {
+      handleCreateAppAbbr(params);
+    }
   };
 
   defineExpose({
@@ -938,11 +985,11 @@
   });
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
   @import '@styles/applyInstance.less';
 
-  .apply-instance {
-    :deep(.item-input) {
+  .redis-cluster-apply {
+    .item-input {
       width: 435px;
     }
 
@@ -960,7 +1007,7 @@
       color: #63656e;
     }
 
-    :deep(.password-form-item) {
+    .password-form-item {
       width: 435px;
     }
 
@@ -980,7 +1027,7 @@
 
           .bk-select,
           .bk-input {
-            width: 314px;
+            width: 314px !important;
           }
         }
       }
@@ -991,7 +1038,7 @@
     }
   }
 
-  .apply-instance-content {
+  .redis-cluster-apply-instance-content {
     max-width: 550px;
 
     h4 {

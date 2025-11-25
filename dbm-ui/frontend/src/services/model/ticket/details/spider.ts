@@ -13,7 +13,7 @@
 
 import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
 
-import type { DetailClusters, DetailSpecs, SpecInfo } from './common';
+import type { ApplySpecInfo, DetailClusters, DetailSpecs } from './common';
 import type { RollbackClusterTypes } from './mysql';
 
 // spider 部署
@@ -41,7 +41,7 @@ export interface SpiderApplyDetails {
       spec_id: number;
       spec_info: ClusterSpecModel;
     };
-    spider: SpecInfo;
+    spider: ApplySpecInfo;
   };
   spider_port: number;
   version: {

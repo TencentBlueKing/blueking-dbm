@@ -19,32 +19,32 @@
       ref="formRef"
       auto-label-width
       class="mb-16"
-      :model="formdata"
+      :model="formData"
       :rules="rules">
       <DbCard :title="t('业务信息')">
         <BusinessItems
-          v-model:app-abbr="formdata.details.db_app_abbr"
-          v-model:biz-id="formdata.bk_biz_id"
+          v-model:app-abbr="formData.details.db_app_abbr"
+          v-model:biz-id="formData.bk_biz_id"
           perrmision-action-id="influxdb_apply"
           @change-biz="handleChangeBiz" />
         <GroupItem
-          v-model="formdata.details.group_id"
-          :biz-id="formdata.bk_biz_id"
+          v-model="formData.details.group_id"
+          :biz-id="formData.bk_biz_id"
           @change="handleChangeGroup" />
         <CloudItem
-          v-model="formdata.details.bk_cloud_id"
+          v-model="formData.details.bk_cloud_id"
           @change="handleChangeCloud" />
       </DbCard>
       <RegionRequirements
         ref="regionRequirements"
-        v-model="formdata.details" />
+        v-model="formData.details" />
       <DbCard :title="t('部署需求')">
         <BkFormItem
           :label="t('InfluxDB版本')"
           property="details.db_version"
           required>
           <DeployVersion
-            v-model="formdata.details.db_version"
+            v-model="formData.details.db_version"
             db-type="influxdb"
             query-key="influxdb" />
         </BkFormItem>
@@ -52,7 +52,7 @@
           :label="t('服务器选择')"
           property="details.ip_source"
           required>
-          <BkRadioGroup v-model="formdata.details.ip_source">
+          <BkRadioGroup v-model="formData.details.ip_source">
             <BkRadioButton label="resource_pool">
               {{ t('自动从资源池匹配') }}
             </BkRadioButton>
@@ -65,16 +65,16 @@
           mode="out-in"
           name="dbm-fade">
           <BkFormItem
-            v-if="formdata.details.ip_source === 'manual_input'"
+            v-if="formData.details.ip_source === 'manual_input'"
             class="service-item"
             label=" "
             property="details.nodes.influxdb"
             required>
             <div>
               <IpSelector
-                :biz-id="formdata.bk_biz_id"
+                :biz-id="formData.bk_biz_id"
                 :cloud-info="cloudInfo"
-                :data="formdata.details.nodes.influxdb"
+                :data="formData.details.nodes.influxdb"
                 :os-types="[OSTypes.Linux]"
                 required
                 style="display: inline-block"
@@ -96,21 +96,34 @@
                 required>
                 <SpecSelector
                   ref="specRef"
-                  v-model="formdata.details.resource_spec.influxdb.spec_id"
-                  :biz-id="formdata.bk_biz_id"
-                  :city="formdata.details.city_code"
-                  :cloud-id="formdata.details.bk_cloud_id"
+                  v-model="formData.details.resource_spec.influxdb.spec_id"
+                  :biz-id="formData.bk_biz_id"
+                  :city="formData.details.city_code"
+                  :cloud-id="formData.details.bk_cloud_id"
                   cluster-type="influxdb"
                   machine-type="influxdb"
                   style="width: 314px"
-                  :subzone-ids="formdata.details.sub_zone_ids" />
+                  :subzone-ids="formData.details.sub_zone_ids" />
               </BkFormItem>
+              <ResourcePreview
+                v-model:tag-list="formData.details.resource_spec.influxdb.labels"
+                :biz-id="formData.bk_biz_id"
+                :params="{
+                  city: formData.details.city_name,
+                  subzones: formData.details.sub_zone_names.join('，'),
+                  subzone_ids: formData.details.sub_zone_ids.join(','),
+                  for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
+                  resource_types: [DBTypes.INFLUXDB, 'PUBLIC'],
+                  spec_id: Number(formData.details.resource_spec.influxdb.spec_id),
+                  labels: formData.details.resource_spec.influxdb.labels.map((item) => item.id).join(','),
+                }"
+                property="details.resource_spec.influxdb.labels" />
               <BkFormItem
                 :label="t('数量')"
                 property="details.resource_spec.influxdb.count"
                 required>
                 <BkInput
-                  v-model="formdata.details.resource_spec.influxdb.count"
+                  v-model="formData.details.resource_spec.influxdb.count"
                   :min="1"
                   type="number" />
               </BkFormItem>
@@ -122,7 +135,7 @@
           property="details.port"
           required>
           <BkInput
-            v-model="formdata.details.port"
+            v-model="formData.details.port"
             clearable
             :min="1"
             style="width: 185px"
@@ -131,11 +144,11 @@
         <EstimatedCost
           :params="{
             db_type: DBTypes.INFLUXDB,
-            resource_spec: formdata.details.resource_spec,
+            resource_spec: formData.details.resource_spec,
           }" />
         <BkFormItem :label="t('备注')">
           <BkInput
-            v-model="formdata.remark"
+            v-model="formData.remark"
             :maxlength="100"
             :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
             style="width: 655px"
@@ -189,6 +202,7 @@
   import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/BigData.vue';
+  import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
   import GroupItem from './components/GroupItem.vue';
@@ -196,10 +210,11 @@
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
   const getInitFormdata = () => ({
-    bk_biz_id: '',
+    bk_biz_id: '' as number | '',
     details: {
       bk_cloud_id: 0,
       city_code: '',
+      city_name: '',
       db_app_abbr: '',
       db_version: '',
       disaster_tolerance_level: Affinity.MAX_EACH_ZONE_EQUAL, // 同 affinity
@@ -212,10 +227,15 @@
       resource_spec: {
         influxdb: {
           count: 1,
+          labels: [] as {
+            id: number;
+            value: string;
+          }[],
           spec_id: '',
         },
       },
       sub_zone_ids: [] as number[],
+      sub_zone_names: [] as string[],
     },
     remark: '',
     ticket_type: TicketTypes.INFLUXDB_APPLY,
@@ -231,11 +251,11 @@
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
 
-      Object.assign(formdata, {
+      Object.assign(formData, {
         bk_biz_id: ticketDetail.bk_biz_id,
         remark: ticketDetail.remark,
       });
-      Object.assign(formdata.details, {
+      Object.assign(formData.details, {
         bk_cloud_id: details.bk_cloud_id,
         city_code: details.city_code,
         db_version: details.db_version,
@@ -247,14 +267,19 @@
 
       if (details.ip_source === 'resource_pool') {
         const resourceSpec = Object.entries(details.resource_spec!).reduce((prev, [specType, specInfo]) => {
+          const labels = (specInfo.labels || []).map((labelItem, labelIndex) => ({
+            id: Number(labelItem),
+            value: specInfo.label_names[labelIndex],
+          }));
           return Object.assign(prev, {
             [specType]: {
               count: specInfo.count,
+              labels,
               spec_id: specInfo.spec_id,
             },
           });
         }, {});
-        Object.assign(formdata.details.resource_spec, resourceSpec);
+        Object.assign(formData.details.resource_spec, resourceSpec);
       }
     },
   });
@@ -265,7 +290,7 @@
   const formRef = ref();
   const specRef = ref();
 
-  const formdata = reactive(getInitFormdata());
+  const formData = reactive(getInitFormdata());
   const cloudInfo = reactive({
     id: '' as number | string,
     name: '',
@@ -296,8 +321,8 @@
     bizState.info = info;
     bizState.hasEnglishName = !!info.english_name;
 
-    formdata.details.group_id = '';
-    formdata.details.nodes.influxdb = [];
+    formData.details.group_id = '';
+    formData.details.nodes.influxdb = [];
   }
   /**
    * 变更所属管控区域
@@ -306,7 +331,7 @@
     cloudInfo.id = info.id;
     cloudInfo.name = info.name;
 
-    formdata.details.nodes.influxdb = [];
+    formData.details.nodes.influxdb = [];
   }
 
   function handleChangeGroup({ name }: { name: string }) {
@@ -315,7 +340,7 @@
 
   // 更新 bookkeeper 节点
   const handleIpChange = (data: ServiceReturnType<typeof checkHost>) => {
-    formdata.details.nodes.influxdb = data;
+    formData.details.nodes.influxdb = data;
   };
 
   const handleSubmit = () => {
@@ -324,11 +349,11 @@
 
       const getDetails = () => {
         const details: Record<string, any> = {
-          ...markRaw(formdata.details),
+          ...markRaw(formData.details),
           group_name: groupName.value,
         };
 
-        if (formdata.details.ip_source === 'resource_pool') {
+        if (formData.details.ip_source === 'resource_pool') {
           delete details.nodes;
           const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
           return {
@@ -339,6 +364,8 @@
                 ...specRef.value.getData(),
                 ...regionAndDisasterParams,
                 count: Number(details.resource_spec.influxdb.count),
+                label_names: details.resource_spec.influxdb.labels.map((item: { value: string }) => item.value),
+                labels: details.resource_spec.influxdb.labels.map((item: { id: number }) => String(item.id)),
               },
             },
           };
@@ -348,7 +375,7 @@
         return {
           ...details,
           nodes: {
-            influxdb: formdata.details.nodes.influxdb.map((item) => ({
+            influxdb: formData.details.nodes.influxdb.map((item) => ({
               bk_biz_id: item.biz.id,
               bk_cloud_id: item.cloud_area.id,
               bk_host_id: item.host_id,
@@ -359,12 +386,16 @@
       };
 
       const params = {
-        ...formdata,
+        ...formData,
         details: getDetails(),
       };
 
       // 若业务没有英文名称则先创建业务英文名称再创建单据，否则直接创建单据
-      bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
+      if (bizState.hasEnglishName) {
+        handleCreateTicket(params);
+      } else {
+        handleCreateAppAbbr(params);
+      }
     });
   };
 
@@ -376,7 +407,7 @@
       cancelText: t('取消'),
       content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
-        Object.assign(formdata, getInitFormdata());
+        Object.assign(formData, getInitFormdata());
         formRef.value.clearValidate();
         nextTick(() => {
           window.changeConfirm = false;
@@ -451,6 +482,11 @@
         .bk-form-content {
           width: 314px;
           margin-left: 120px !important;
+
+          .bk-select,
+          .bk-input {
+            width: 314px !important;
+          }
         }
       }
     }

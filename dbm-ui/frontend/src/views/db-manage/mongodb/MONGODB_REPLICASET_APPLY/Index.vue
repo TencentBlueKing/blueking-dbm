@@ -116,17 +116,17 @@
           </BkFormItem>
           <BkFormItem
             :label="t('后端存储规格')"
-            property="details.resource_spec.spec_id"
+            property="details.resource_spec.mongo_machine_set.spec_id"
             required>
             <SpecSelector
               ref="specRef"
-              v-model="formData.details.resource_spec.spec_id"
+              v-model="formData.details.resource_spec.mongo_machine_set.spec_id"
               :biz-id="formData.bk_biz_id"
               :city="formData.details.city_code"
               :cloud-id="formData.details.bk_cloud_id"
               :cluster-type="DBTypes.MONGODB"
               :machine-type="MachineTypes.MONGODB"
-              style="width: 314px"
+              style="width: 435px"
               :subzone-ids="formData.details.sub_zone_ids" />
             <span class="input-desc ml-32">
               {{ t('共需n台', [hostNumber]) }} ,
@@ -148,6 +148,19 @@
               </div>
             </div>
           </BkFormItem>
+          <ResourcePreview
+            v-model:tag-list="formData.details.resource_spec.mongo_machine_set.labels"
+            :biz-id="formData.bk_biz_id"
+            :params="{
+              city: formData.details.city_name,
+              subzones: formData.details.sub_zone_names.join('，'),
+              subzone_ids: formData.details.sub_zone_ids.join(','),
+              for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
+              resource_types: [DBTypes.MONGODB, 'PUBLIC'],
+              spec_id: Number(formData.details.resource_spec.mongo_machine_set.spec_id),
+              labels: formData.details.resource_spec.mongo_machine_set.labels.map((item) => item.id).join(','),
+            }"
+            property="details.resource_spec.mongo_machine_set.labels" />
           <BkFormItem
             :label="t('每台主机 oplog 容量占比')"
             property="details.oplog_percent"
@@ -222,6 +235,7 @@
   import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements-mongodb/Index.vue';
+  import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
   import DomainTable from './components/DomainTable.vue';
@@ -231,6 +245,7 @@
     details: {
       bk_cloud_id: 0,
       city_code: '',
+      city_name: '',
       cluster_type: ClusterTypes.MONGO_REPLICA_SET,
       db_app_abbr: '',
       db_version: '',
@@ -246,11 +261,18 @@
         set_id: string;
       }>,
       resource_spec: {
-        count: 2,
-        spec_id: '',
+        mongo_machine_set: {
+          count: 2,
+          labels: [] as {
+            id: number;
+            value: string;
+          }[],
+          spec_id: '',
+        },
       },
       start_port: 27001,
       sub_zone_ids: [] as number[],
+      sub_zone_names: [] as string[],
     },
     remark: '',
     ticket_type: TicketTypes.MONGODB_REPLICASET_APPLY,
@@ -285,11 +307,19 @@
       });
 
       if (details.ip_source === 'resource_pool') {
+        const { mongo_machine_set: mongoMachineSet } = details.resource_spec;
+        const labels = (mongoMachineSet.labels || []).map((labelItem, labelIndex) => ({
+          id: Number(labelItem),
+          value: mongoMachineSet.label_names[labelIndex],
+        }));
         const resourceSpec = {
-          count: details.resource_spec.mongo_machine_set.count,
-          spec_id: details.resource_spec.mongo_machine_set.spec_id,
+          mongo_machine_set: {
+            count: mongoMachineSet.count,
+            labels,
+            spec_id: mongoMachineSet.spec_id,
+          },
         };
-        const subzoneIds = details.resource_spec!.mongo_machine_set.location_spec.sub_zone_ids || [];
+        const subzoneIds = mongoMachineSet.location_spec.sub_zone_ids || [];
         Object.assign(formData.details, {
           resource_spec: resourceSpec,
           sub_zone_ids: subzoneIds,
@@ -345,7 +375,7 @@
       ({
         mongo_machine_set: {
           count: formData.details.node_count,
-          spec_id: formData.details.resource_spec.spec_id,
+          spec_id: formData.details.resource_spec.mongo_machine_set.spec_id,
         },
       }) as ComponentProps<typeof EstimatedCost>['params']['resource_spec'],
   );
@@ -416,18 +446,24 @@
         ...details,
         resource_spec: {
           mongo_machine_set: {
-            count: details.node_count,
             // spec_id: details.resource_spec.spec_id,
             ...specRef.value!.getData(),
             ...regionRequirementsRef.value!.getValue(),
+            count: details.node_count,
+            label_names: details.resource_spec.mongo_machine_set.labels.map((item: { value: string }) => item.value),
+            labels: details.resource_spec.mongo_machine_set.labels.map((item: { id: number }) => String(item.id)),
           },
         },
-        spec_id: details.resource_spec.spec_id,
+        spec_id: details.resource_spec.mongo_machine_set.spec_id,
       },
     };
 
     // 若业务没有英文名称则先创建业务英文名称再创建单据，反正直接创建单据
-    bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
+    if (bizState.hasEnglishName) {
+      handleCreateTicket(params);
+    } else {
+      handleCreateAppAbbr(params);
+    }
   };
 
   defineExpose({

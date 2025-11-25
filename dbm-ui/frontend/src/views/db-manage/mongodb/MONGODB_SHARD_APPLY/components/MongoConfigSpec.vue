@@ -24,11 +24,23 @@
         <BkInput
           v-model="modelValue.capacity"
           :min="0"
-          style="width: 314px"
           type="number"
           @change="handleCapacityChange" />
         <span class="input-desc">G</span>
       </BkFormItem>
+      <ResourcePreview
+        v-model:tag-list="modelValue.labels"
+        :biz-id="params.bk_biz_id"
+        :params="{
+          city: params.city_name,
+          subzones: params.sub_zone_names.join('，'),
+          subzone_ids: params.sub_zone_ids.join(','),
+          for_bizs: params.bk_biz_id ? [params.bk_biz_id, 0] : [0],
+          resource_types: [DBTypes.MONGODB, 'PUBLIC'],
+          spec_id: Number(modelValue.spec_id),
+          labels: modelValue.labels.map((item) => item.id).join(','),
+        }"
+        property="details.resource_spec.mongodb.labels" />
       <BkFormItem
         ref="specRef"
         :label="t('集群部署方案')"
@@ -157,10 +169,22 @@
           :cloud-id="params.bk_cloud_id"
           :cluster-type="ClusterTypes.MONGODB"
           :machine-type="MachineTypes.MONGODB"
-          style="width: 314px"
           :subzone-ids="params.sub_zone_ids"
           @update:model-value="handleSpecChange" />
       </BkFormItem>
+      <ResourcePreview
+        v-model:tag-list="modelValue.labels"
+        :biz-id="params.bk_biz_id"
+        :params="{
+          city: params.city_name,
+          subzones: params.sub_zone_names.join('，'),
+          subzone_ids: params.sub_zone_ids.join(','),
+          for_bizs: params.bk_biz_id ? [params.bk_biz_id, 0] : [0],
+          resource_types: [DBTypes.MONGODB, 'PUBLIC'],
+          spec_id: Number(modelValue.spec_id),
+          labels: modelValue.labels.map((item) => item.id).join(','),
+        }"
+        property="details.resource_spec.mongodb.labels" />
       <BkFormItem
         :label="t('每个 Shard 节点数')"
         property="details.resource_spec.mongodb.shard_node_count"
@@ -168,7 +192,6 @@
         <BkInput
           v-model="modelValue.shard_node_count"
           :min="0"
-          style="width: 314px"
           type="number" />
       </BkFormItem>
       <BkFormItem
@@ -178,7 +201,6 @@
         <BkInput
           v-model="modelValue.shards_num"
           :min="0"
-          style="width: 314px"
           type="number" />
       </BkFormItem>
       <BkFormItem
@@ -188,7 +210,6 @@
         <BkInput
           v-model="modelValue.shard_machine_group"
           :min="0"
-          style="width: 314px"
           type="number" />
         <span class="input-desc">{{ t('组') }}</span>
       </BkFormItem>
@@ -199,14 +220,12 @@
           v-if="modelValue.machine_group_shard_num === 0"
           disabled
           :placeholder="t('自动生成')"
-          style="width: 314px"
           type="number" />
         <BkInput
           v-else
           v-model="modelValue.machine_group_shard_num"
           disabled
           :placeholder="t('自动生成')"
-          style="width: 314px"
           type="number" />
       </BkFormItem>
       <BkFormItem :label="t('总机器数')">
@@ -214,14 +233,12 @@
           v-if="modelValue.count === 0"
           disabled
           :placeholder="t('自动生成')"
-          style="width: 314px"
           type="number" />
         <BkInput
           v-else
           v-model="modelValue.count"
           disabled
           :placeholder="t('自动生成')"
-          style="width: 314px"
           type="number" />
         <span class="input-desc">{{ t('台') }}</span>
       </BkFormItem>
@@ -230,6 +247,7 @@
 </template>
 
 <script setup lang="tsx">
+  import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -241,6 +259,7 @@
 
   import MiniTag from '@components/mini-tag/index.vue';
 
+  import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
   import ApplySchema, { APPLY_SCHEME } from '@views/db-manage/common/apply-schema/Index.vue';
 
@@ -259,7 +278,9 @@
       bk_biz_id: number | '';
       bk_cloud_id: number;
       city_code: string;
+      city_name: string;
       sub_zone_ids: number[];
+      sub_zone_names: string[];
     };
   }
 
@@ -268,6 +289,10 @@
   const modelValue = defineModel<{
     capacity: number;
     count: number;
+    labels: {
+      id: number;
+      value: string;
+    }[];
     machine_group_shard_num: number;
     shard_machine_group: number;
     shard_node_count: number;
@@ -279,8 +304,7 @@
 
   const applySchema = defineModel<APPLY_SCHEME>('applySchema', { required: true });
 
-  const specData =
-    defineModel<Pick<ClusterSpecModel, 'cpu' | 'instance_num' | 'mem' | 'spec_name' | 'storage_spec'>>('specData');
+  const specData = defineModel<ReturnType<ComponentExposed<typeof SpecSelector>['getData']>>('specData');
 
   const { t } = useI18n();
 
@@ -289,7 +313,7 @@
 
   const specList = ref<MongoConfigSpecRow[]>([]);
 
-  let timer = 0;
+  let timer: NodeJS.Timeout;
 
   const { loading: isLoading, run: getFilterClusterSpecRun } = useRequest(getFilterClusterSpec, {
     manual: true,
@@ -454,6 +478,15 @@
       font-size: 12px;
       line-height: 20px;
       color: #63656e;
+    }
+
+    :deep(.bk-form-item) {
+      .bk-form-content {
+        .bk-select,
+        .bk-input {
+          width: 314px !important;
+        }
+      }
     }
   }
 </style>
