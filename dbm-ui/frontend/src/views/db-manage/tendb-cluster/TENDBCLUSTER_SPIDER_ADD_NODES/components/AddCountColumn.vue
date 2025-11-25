@@ -64,7 +64,7 @@
   };
 
   const handleBatchEditChange = (value: string[] | string) => {
-    emits('batch-edit', value as string[], 'count');
+    emits('batch-edit', value as string[], 'add_spider_num');
   };
 
   const handleChange = () => {

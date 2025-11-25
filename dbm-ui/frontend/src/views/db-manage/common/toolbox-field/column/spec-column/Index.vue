@@ -208,15 +208,15 @@
   watch(
     () => [modelValue.value, props.currentSpecIdList],
     (newValue, oldValue) => {
-      if (oldValue && _.isEqual(newValue[1], oldValue[1])) {
-        return;
-      }
       if (props.selectable && modelValue.value) {
-        const isExist = specList.value.some((item) => item.spec_id === modelValue.value);
-        if (!isExist && specList.value.length) {
+        const isExist = sortedSpecList.value.some((item) => item.spec_id === modelValue.value);
+        if (!isExist) {
           modelValue.value = 0;
           return;
         }
+      }
+      if (oldValue && _.isEqual(newValue[1], oldValue[1])) {
+        return;
       }
       const currentSpecIdList = _.uniq(props.currentSpecIdList);
       const isSame = currentSpecIdList.length === 1;
@@ -228,7 +228,7 @@
 
       // 如果 modelValue 被设置为 字符串 时，若在规格列表中匹配到对应规格则选中（用于批量录入）
       if (modelValue.value && typeof modelValue.value === 'string') {
-        const matchedSpecId = specList.value.filter(
+        const matchedSpecId = sortedSpecList.value.filter(
           (item) => item.spec_name === (modelValue.value as unknown as string),
         )?.[0]?.spec_id;
         if (matchedSpecId) {
