@@ -77,6 +77,7 @@ class MySQLSingleApplyFlow(object):
         with_collect_sysinfo: bool = True,
         with_push_config: bool = True,
         with_exporter_config: bool = True,
+        skip_add_domain: bool = False,
     ) -> SubBuilder:
         """
         定义部署单节点集群的流程，资源是通过手动录入方式，兼容单机多实例的部署
@@ -154,26 +155,26 @@ class MySQLSingleApplyFlow(object):
                 kwargs=asdict(exec_act_kwargs),
                 write_payload_var=SingleApplyManualContext.get_time_zone_var_name(),
             )
+            if not skip_add_domain:
+                dns_act_list = []
+                for cluster in sub_flow_context["clusters"]:
+                    # 以集群维度并发处理 集群内容：比如添加对应的域名
+                    dns_act_list.append(
+                        {
+                            "act_name": _("添加集群域名"),
+                            "act_component_code": MySQLDnsManageComponent.code,
+                            "kwargs": asdict(
+                                CreateDnsKwargs(
+                                    bk_cloud_id=self.data["bk_cloud_id"],
+                                    add_domain_name=cluster["master"],
+                                    dns_op_exec_port=cluster["mysql_port"],
+                                    exec_ip=info["new_ip"]["ip"],
+                                )
+                            ),
+                        }
+                    )
 
-            dns_act_list = []
-            for cluster in sub_flow_context["clusters"]:
-                # 以集群维度并发处理 集群内容：比如添加对应的域名
-                dns_act_list.append(
-                    {
-                        "act_name": _("添加集群域名"),
-                        "act_component_code": MySQLDnsManageComponent.code,
-                        "kwargs": asdict(
-                            CreateDnsKwargs(
-                                bk_cloud_id=self.data["bk_cloud_id"],
-                                add_domain_name=cluster["master"],
-                                dns_op_exec_port=cluster["mysql_port"],
-                                exec_ip=info["new_ip"]["ip"],
-                            )
-                        ),
-                    }
-                )
-
-            sub_pipeline.add_parallel_acts(acts_list=dns_act_list)
+                sub_pipeline.add_parallel_acts(acts_list=dns_act_list)
 
             # 拼接db-meta的新ip信息私有变量cluster,为了兼容机器属于多组cluster的录入场景，clusters信息通过子流程的上下文获取即可
             sub_pipeline.add_act(

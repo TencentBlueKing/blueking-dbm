@@ -180,9 +180,9 @@ def get_recent_5days_range():
     """
     now = datetime.now(django_timezone.utc)
     # 往前推5天
-    start_time = now - timedelta(days=5)
+    start_time = now - timedelta(days=7)
     # 结束时间为当前时间
-    end_time = now
+    end_time = now - timedelta(days=1)
 
     return start_time, end_time
 
