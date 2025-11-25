@@ -43,7 +43,7 @@
           required>
           <DeployVersion
             v-model="formData.version"
-            db-type="sqlserver"
+            :db-type="DBTypes.SQLSERVER"
             :placeholder="t('请选择数据库版本')"
             query-key="sqlserver" />
         </BkFormItem>
@@ -176,7 +176,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { sqlServerType } from '@common/const';
+  import { DBTypes, sqlServerType } from '@common/const';
 
   import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
 

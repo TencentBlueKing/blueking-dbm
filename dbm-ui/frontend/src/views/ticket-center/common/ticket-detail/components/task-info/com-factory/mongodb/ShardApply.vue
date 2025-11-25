@@ -55,6 +55,20 @@
       </SpecDetailPopover>
       <span v-else>--</span>
     </InfoItem>
+    <InfoItem :label="t('Config Server 资源标签')">
+      <template v-if="configServerSpec && configServerSpec.label_names?.length">
+        <BkTag
+          v-for="item in configServerSpec.label_names"
+          :key="item">
+          {{ item }}
+        </BkTag>
+      </template>
+      <BkTag
+        v-else
+        theme="success">
+        {{ t('通用无标签') }}
+      </BkTag>
+    </InfoItem>
     <InfoItem :label="t('Mongos资源规格')">
       <SpecDetailPopover
         v-if="mongosSpec"
@@ -68,19 +82,20 @@
       </SpecDetailPopover>
       <span v-else>--</span>
     </InfoItem>
-    <!-- <InfoItem :label="t('ShardSvr资源规格')">
-      <BkPopover
-        v-if="shardSvrSpec"
-        :data="shardSvrSpec"
-        placement="top">
-        <span
-          class="pb-2"
-          style="cursor: pointer; border-bottom: 1px dashed #979ba5">
-          {{ shardSvrSpec.spec_name }}（{{ `${shardSvrSpec.count} ${t('台')}` }}）
-        </span>
-      </SpecDetailPopover>
-      <span v-else>--</span>
-    </InfoItem> -->
+    <InfoItem :label="t('Mongos 资源标签')">
+      <template v-if="mongosSpec && mongosSpec.label_names?.length">
+        <BkTag
+          v-for="item in mongosSpec.label_names"
+          :key="item">
+          {{ item }}
+        </BkTag>
+      </template>
+      <BkTag
+        v-else
+        theme="success">
+        {{ t('通用无标签') }}
+      </BkTag>
+    </InfoItem>
     <InfoItem
       :label="t('ShardSvr 部署方案')"
       style="flex: 1 0 100%">
@@ -90,6 +105,25 @@
         <TicketInfoTableColumn
           col-key="spec_name"
           :title="t('规格')">
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="label_names"
+          :min-width="200"
+          :title="t('资源标签')">
+          <template #default>
+            <template v-if="ticketDetails.details.resource_spec.mongodb.label_names?.length">
+              <BkTag
+                v-for="item in ticketDetails.details.resource_spec.mongodb.label_names"
+                :key="item">
+                {{ item }}
+              </BkTag>
+            </template>
+            <BkTag
+              v-else
+              theme="success">
+              {{ t('通用无标签') }}
+            </BkTag>
+          </template>
         </TicketInfoTableColumn>
         <TicketInfoTableColumn
           col-key="machine_pair"

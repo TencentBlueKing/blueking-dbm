@@ -9,7 +9,7 @@
         <Component
           :is="itemInfo.content"
           ref="subzoneRef"
-          v-model="modelValue"
+          v-model="modelValue.sub_zone_ids"
           :city-code="cityCode"
           :subzone-list="subzoneList" />
       </div>
@@ -40,7 +40,10 @@
 
   const props = defineProps<Props>();
 
-  const modelValue = defineModel<number[]>({
+  const modelValue = defineModel<{
+    sub_zone_ids: number[];
+    sub_zone_names: string[];
+  }>({
     required: true,
   });
 
@@ -127,9 +130,20 @@
   });
 
   watch(
+    () => [subzoneList.value, modelValue.value.sub_zone_ids],
+    () => {
+      const subzoneMap = Object.fromEntries(
+        (subzoneList.value || []).map((subzoneItem) => [subzoneItem.bk_sub_zone_id, subzoneItem.bk_sub_zone]),
+      );
+      modelValue.value.sub_zone_names = modelValue.value.sub_zone_ids.map((subzoneId) => subzoneMap[subzoneId]);
+    },
+  );
+
+  watch(
     () => [props.disasterToleranceLevel, props.cityCode],
     () => {
-      modelValue.value = [];
+      modelValue.value.sub_zone_ids = [];
+      modelValue.value.sub_zone_names = [];
     },
   );
 

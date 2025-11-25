@@ -55,7 +55,7 @@
           required>
           <DeployVersion
             v-model="formdata.version"
-            db-type="mysql"
+            :db-type="DBTypes.MYSQL"
             :placeholder="t('请选择数据库版本')"
             query-key="mysql" />
         </BkFormItem>
@@ -65,7 +65,7 @@
           required>
           <DeployVersion
             v-model="formdata.spider_version"
-            db-type="mysql"
+            :db-type="DBTypes.MYSQL"
             :placeholder="t('请选择xx', [t('Spider版本')])"
             query-key="spider" />
         </BkFormItem>
@@ -139,6 +139,8 @@
   import { saveModulesDeployInfo } from '@services/source/configs';
 
   import { useGlobalBizs } from '@stores';
+
+  import { DBTypes } from '@common/const';
 
   import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
 

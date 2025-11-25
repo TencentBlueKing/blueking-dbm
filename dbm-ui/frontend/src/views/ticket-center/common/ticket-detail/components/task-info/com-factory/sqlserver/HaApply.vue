@@ -45,19 +45,33 @@
     <InfoItem :label="t('服务器选择')">
       {{ ticketDetails.details.ip_source === 'resource_pool' ? t('自动从资源池匹配') : t('业务空闲机') }}
     </InfoItem>
-    <InfoItem
-      v-if="resourceSpecs"
-      :label="t('后端存储规格')">
-      <SpecDetailPopover
-        :data="resourceSpecs"
-        placement="top">
-        <span
-          class="pb-2"
-          style="cursor: pointer; border-bottom: 1px dashed #979ba5">
-          {{ resourceSpecs.spec_name }}（{{ resourceSpecs.count }} {{ t('组') }}）
-        </span>
-      </SpecDetailPopover>
-    </InfoItem>
+    <template v-if="resourceSpecs">
+      <InfoItem :label="t('后端存储规格')">
+        <SpecDetailPopover
+          :data="resourceSpecs"
+          placement="top">
+          <span
+            class="pb-2"
+            style="cursor: pointer; border-bottom: 1px dashed #979ba5">
+            {{ resourceSpecs.spec_name }}（{{ resourceSpecs.count }} {{ t('组') }}）
+          </span>
+        </SpecDetailPopover>
+      </InfoItem>
+      <InfoItem :label="t('Proxy 资源标签')">
+        <template v-if="resourceSpecs.label_names?.length">
+          <BkTag
+            v-for="item in resourceSpecs.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
+      </InfoItem>
+    </template>
     <InfoItem
       :label="t('域名设置')"
       style="flex: 1 0 100%">

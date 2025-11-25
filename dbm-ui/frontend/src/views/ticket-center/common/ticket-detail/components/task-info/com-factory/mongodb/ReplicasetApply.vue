@@ -58,6 +58,20 @@
       </SpecDetailPopover>
       <span v-else>--</span>
     </InfoItem>
+    <InfoItem :label="t('资源标签')">
+      <template v-if="backendSpec && backendSpec.label_names?.length">
+        <BkTag
+          v-for="item in backendSpec.label_names"
+          :key="item">
+          {{ item }}
+        </BkTag>
+      </template>
+      <BkTag
+        v-else
+        theme="success">
+        {{ t('通用无标签') }}
+      </BkTag>
+    </InfoItem>
     <InfoItem :label="t('每台主机 oplog 容量占比')">
       {{ ticketDetails.details.oplog_percent ? `${ticketDetails.details.oplog_percent} %` : '--' }}
     </InfoItem>

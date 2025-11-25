@@ -18,54 +18,54 @@
     <DbForm
       ref="formRef"
       auto-label-width
-      :model="formdata"
+      :model="formData"
       :rules="rules">
       <DbCard :title="t('业务信息')">
         <BusinessItems
-          v-model:app-abbr="formdata.details.db_app_abbr"
-          v-model:biz-id="formdata.bk_biz_id"
+          v-model:app-abbr="formData.details.db_app_abbr"
+          v-model:biz-id="formData.bk_biz_id"
           perrmision-action-id="pulsar_apply"
           @change-biz="handleChangeBiz" />
-        <ClusterName v-model="formdata.details.cluster_name" />
+        <ClusterName v-model="formData.details.cluster_name" />
         <ClusterAlias
-          v-model="formdata.details.cluster_alias"
-          :biz-id="formdata.bk_biz_id"
+          v-model="formData.details.cluster_alias"
+          :biz-id="formData.bk_biz_id"
           cluster-type="pulsar" />
         <CloudItem
-          v-model="formdata.details.bk_cloud_id"
+          v-model="formData.details.bk_cloud_id"
           @change="handleChangeCloud" />
       </DbCard>
       <RegionRequirements
         ref="regionRequirements"
-        v-model="formdata.details" />
+        v-model="formData.details" />
       <DbCard :title="t('部署需求')">
         <BkFormItem
           :label="t('Pulsar版本')"
           property="details.db_version"
           required>
           <DeployVersion
-            v-model="formdata.details.db_version"
-            db-type="pulsar"
+            v-model="formData.details.db_version"
+            :db-type="DBTypes.PULSAR"
             query-key="pulsar" />
         </BkFormItem>
-        <BkFormItem
+        <!-- <BkFormItem
           :label="t('服务器选择')"
           property="details.ip_source"
           required>
-          <BkRadioGroup v-model="formdata.details.ip_source">
+          <BkRadioGroup v-model="formData.details.ip_source">
             <BkRadioButton label="resource_pool">
               {{ t('自动从资源池匹配') }}
             </BkRadioButton>
-            <!-- <BkRadioButton label="manual_input">
+            <BkRadioButton label="manual_input">
               {{ t('业务空闲机') }}
-            </BkRadioButton> -->
+            </BkRadioButton>
           </BkRadioGroup>
-        </BkFormItem>
+        </BkFormItem> -->
         <Transition
           mode="out-in"
           name="dbm-fade">
           <div
-            v-if="formdata.details.ip_source === 'manual_input'"
+            v-if="formData.details.ip_source === 'manual_input'"
             class="mb-24">
             <BkFormItem
               :label="t('Bookkeeper节点')"
@@ -73,9 +73,9 @@
               required>
               <div>
                 <IpSelector
-                  :biz-id="formdata.bk_biz_id"
+                  :biz-id="formData.bk_biz_id"
                   :cloud-info="cloudInfo"
-                  :data="formdata.details.nodes.bookkeeper"
+                  :data="formData.details.nodes.bookkeeper"
                   :disable-dialog-submit-method="ipSelectorDisabledSubmitMethods.bookkeeper"
                   :disable-host-method="bookkeeperDisableHostMethod"
                   :os-types="[OSTypes.Linux]"
@@ -102,9 +102,9 @@
               property="details.nodes.zookeeper"
               required>
               <IpSelector
-                :biz-id="formdata.bk_biz_id"
+                :biz-id="formData.bk_biz_id"
                 :cloud-info="cloudInfo"
-                :data="formdata.details.nodes.zookeeper"
+                :data="formData.details.nodes.zookeeper"
                 :disable-dialog-submit-method="ipSelectorDisabledSubmitMethods.zookeeper"
                 :disable-host-method="zookeeperDisableHostMethod"
                 :os-types="[OSTypes.Linux]"
@@ -129,9 +129,9 @@
               property="details.nodes.broker"
               required>
               <IpSelector
-                :biz-id="formdata.bk_biz_id"
+                :biz-id="formData.bk_biz_id"
                 :cloud-info="cloudInfo"
-                :data="formdata.details.nodes.broker"
+                :data="formData.details.nodes.broker"
                 :disable-dialog-submit-method="ipSelectorDisabledSubmitMethods.broker"
                 :disable-host-method="brokerDisableHostMethod"
                 :os-types="[OSTypes.Linux]"
@@ -165,21 +165,34 @@
                   required>
                   <SpecSelector
                     ref="specBookkeeperRef"
-                    v-model="formdata.details.resource_spec.bookkeeper.spec_id"
-                    :biz-id="formdata.bk_biz_id"
-                    :city="formdata.details.city_code"
-                    :cloud-id="formdata.details.bk_cloud_id"
+                    v-model="formData.details.resource_spec.bookkeeper.spec_id"
+                    :biz-id="formData.bk_biz_id"
+                    :city="formData.details.city_code"
+                    :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="pulsar"
                     machine-type="pulsar_bookkeeper"
                     style="width: 314px"
-                    :subzone-ids="formdata.details.sub_zone_ids" />
+                    :subzone-ids="formData.details.sub_zone_ids" />
                 </BkFormItem>
+                <ResourcePreview
+                  v-model:tag-list="formData.details.resource_spec.bookkeeper.labels"
+                  :biz-id="formData.bk_biz_id"
+                  :params="{
+                    city: formData.details.city_name,
+                    subzones: formData.details.sub_zone_names.join('，'),
+                    subzone_ids: formData.details.sub_zone_ids.join(','),
+                    for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
+                    resource_types: [DBTypes.PULSAR, 'PUBLIC'],
+                    spec_id: Number(formData.details.resource_spec.bookkeeper.spec_id),
+                    labels: formData.details.resource_spec.bookkeeper.labels.map((item) => item.id).join(','),
+                  }"
+                  property="details.resource_spec.bookkeeper.labels" />
                 <BkFormItem
                   :label="t('数量')"
                   property="details.resource_spec.bookkeeper.count"
                   required>
                   <BkInput
-                    v-model="formdata.details.resource_spec.bookkeeper.count"
+                    v-model="formData.details.resource_spec.bookkeeper.count"
                     :min="2"
                     style="width: 314px"
                     type="number" />
@@ -196,21 +209,34 @@
                   required>
                   <SpecSelector
                     ref="specZookeeperRef"
-                    v-model="formdata.details.resource_spec.zookeeper.spec_id"
-                    :biz-id="formdata.bk_biz_id"
-                    :city="formdata.details.city_code"
-                    :cloud-id="formdata.details.bk_cloud_id"
+                    v-model="formData.details.resource_spec.zookeeper.spec_id"
+                    :biz-id="formData.bk_biz_id"
+                    :city="formData.details.city_code"
+                    :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="pulsar"
                     machine-type="pulsar_zookeeper"
                     style="width: 314px"
-                    :subzone-ids="formdata.details.sub_zone_ids" />
+                    :subzone-ids="formData.details.sub_zone_ids" />
                 </BkFormItem>
+                <ResourcePreview
+                  v-model:tag-list="formData.details.resource_spec.zookeeper.labels"
+                  :biz-id="formData.bk_biz_id"
+                  :params="{
+                    city: formData.details.city_name,
+                    subzones: formData.details.sub_zone_names.join('，'),
+                    subzone_ids: formData.details.sub_zone_ids.join(','),
+                    for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
+                    resource_types: [DBTypes.PULSAR, 'PUBLIC'],
+                    spec_id: Number(formData.details.resource_spec.zookeeper.spec_id),
+                    labels: formData.details.resource_spec.zookeeper.labels.map((item) => item.id).join(','),
+                  }"
+                  property="details.resource_spec.zookeeper.labels" />
                 <BkFormItem
                   :label="t('数量')"
                   property="details.resource_spec.zookeeper.count"
                   required>
                   <BkInput
-                    v-model="formdata.details.resource_spec.zookeeper.count"
+                    v-model="formData.details.resource_spec.zookeeper.count"
                     disabled
                     :min="3"
                     style="width: 314px"
@@ -229,21 +255,34 @@
                   required>
                   <SpecSelector
                     ref="specBrokerRef"
-                    v-model="formdata.details.resource_spec.broker.spec_id"
-                    :biz-id="formdata.bk_biz_id"
-                    :city="formdata.details.city_code"
-                    :cloud-id="formdata.details.bk_cloud_id"
+                    v-model="formData.details.resource_spec.broker.spec_id"
+                    :biz-id="formData.bk_biz_id"
+                    :city="formData.details.city_code"
+                    :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="pulsar"
                     machine-type="pulsar_broker"
                     style="width: 314px"
-                    :subzone-ids="formdata.details.sub_zone_ids" />
+                    :subzone-ids="formData.details.sub_zone_ids" />
                 </BkFormItem>
+                <ResourcePreview
+                  v-model:tag-list="formData.details.resource_spec.broker.labels"
+                  :biz-id="formData.bk_biz_id"
+                  :params="{
+                    city: formData.details.city_name,
+                    subzones: formData.details.sub_zone_names.join('，'),
+                    subzone_ids: formData.details.sub_zone_ids.join(','),
+                    for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
+                    resource_types: [DBTypes.PULSAR, 'PUBLIC'],
+                    spec_id: Number(formData.details.resource_spec.broker.spec_id),
+                    labels: formData.details.resource_spec.broker.labels.map((item) => item.id).join(','),
+                  }"
+                  property="details.resource_spec.broker.labels" />
                 <BkFormItem
                   :label="t('数量')"
                   property="details.resource_spec.broker.count"
                   required>
                   <BkInput
-                    v-model="formdata.details.resource_spec.broker.count"
+                    v-model="formData.details.resource_spec.broker.count"
                     :min="1"
                     style="width: 314px"
                     type="number" />
@@ -266,7 +305,7 @@
           property="details.partition_num"
           required>
           <BkInput
-            v-model="formdata.details.partition_num"
+            v-model="formData.details.partition_num"
             clearable
             :min="1"
             style="width: 185px"
@@ -277,7 +316,7 @@
           property="details.retention_hours"
           required>
           <BkInput
-            v-model="formdata.details.retention_hours"
+            v-model="formData.details.retention_hours"
             clearable
             :min="1"
             style="width: 185px"
@@ -289,7 +328,7 @@
           property="details.replication_num"
           required>
           <BkInput
-            v-model="formdata.details.replication_num"
+            v-model="formData.details.replication_num"
             clearable
             :max="ackQuorumMax"
             :min="2"
@@ -302,9 +341,9 @@
           property="details.ack_quorum"
           required>
           <BkInput
-            v-model="formdata.details.ack_quorum"
+            v-model="formData.details.ack_quorum"
             clearable
-            :max="formdata.details.replication_num || 2"
+            :max="formData.details.replication_num || 2"
             :min="1"
             style="width: 185px"
             type="number" />
@@ -315,7 +354,7 @@
           property="details.port"
           required>
           <BkInput
-            v-model="formdata.details.port"
+            v-model="formData.details.port"
             clearable
             :min="1"
             style="width: 185px"
@@ -324,11 +363,11 @@
         <EstimatedCost
           :params="{
             db_type: DBTypes.PULSAR,
-            resource_spec: formdata.details.resource_spec,
+            resource_spec: formData.details.resource_spec,
           }" />
         <BkFormItem :label="t('备注')">
           <BkInput
-            v-model="formdata.remark"
+            v-model="formData.remark"
             :maxlength="100"
             :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
             style="width: 655px"
@@ -384,6 +423,7 @@
   import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/BigData.vue';
+  import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
@@ -394,6 +434,7 @@
       ack_quorum: 1,
       bk_cloud_id: 0,
       city_code: '',
+      city_name: '',
       cluster_alias: '',
       cluster_name: '',
       db_app_abbr: '',
@@ -412,19 +453,36 @@
       resource_spec: {
         bookkeeper: {
           count: 2,
+
+          labels: [] as {
+            id: number;
+            value: string;
+          }[],
+
           spec_id: '',
         },
         broker: {
           count: 1,
+          labels: [] as {
+            id: number;
+            value: string;
+          }[],
+
           spec_id: '',
         },
         zookeeper: {
           count: 3,
+          labels: [] as {
+            id: number;
+            value: string;
+          }[],
+
           spec_id: '',
         },
       },
       retention_hours: 1,
       sub_zone_ids: [] as number[],
+      sub_zone_names: [] as string[],
       username: '',
     },
     remark: '',
@@ -440,11 +498,11 @@
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
 
-      Object.assign(formdata, {
+      Object.assign(formData, {
         bk_biz_id: ticketDetail.bk_biz_id,
         remark: ticketDetail.remark,
       });
-      Object.assign(formdata.details, {
+      Object.assign(formData.details, {
         ack_quorum: details.ack_quorum,
         bk_cloud_id: details.bk_cloud_id,
         city_code: details.city_code,
@@ -463,16 +521,21 @@
 
       if (details.ip_source === 'resource_pool') {
         const resourceSpec = Object.entries(details.resource_spec!).reduce((prev, [specType, specInfo]) => {
+          const labels = (specInfo.labels || []).map((labelItem, labelIndex) => ({
+            id: Number(labelItem),
+            value: specInfo.label_names[labelIndex],
+          }));
           return Object.assign(prev, {
             [specType]: {
               count: specInfo.count,
+              labels,
               spec_id: specInfo.spec_id,
             },
           });
         }, {});
         const subzoneIds = details.resource_spec!.zookeeper.location_spec.sub_zone_ids || [];
-        Object.assign(formdata.details, {
-          resource_spec: Object.assign(formdata.details.resource_spec, resourceSpec),
+        Object.assign(formData.details, {
+          resource_spec: Object.assign(formData.details.resource_spec, resourceSpec),
           sub_zone_ids: subzoneIds,
         });
         nextTick(() => {
@@ -488,7 +551,7 @@
     id: '' as number | string,
     name: '',
   });
-  const formdata = reactive(getInitFormdata());
+  const formData = reactive(getInitFormdata());
   const formRef = ref();
   const specBookkeeperRef = ref();
   const specZookeeperRef = ref();
@@ -497,9 +560,9 @@
 
   const ackQuorumMax = computed(() => {
     const max =
-      formdata.details.ip_source === 'resource_pool'
-        ? formdata.details.resource_spec.bookkeeper.count
-        : formdata.details.replication_num;
+      formData.details.ip_source === 'resource_pool'
+        ? formData.details.resource_spec.bookkeeper.count
+        : formData.details.replication_num;
     return max || 2;
   });
 
@@ -508,7 +571,7 @@
       {
         message: t('写入成功副本数量小于等于副本数量'),
         trigger: 'change',
-        validator: (value: number) => value <= formdata.details.replication_num,
+        validator: (value: number) => value <= formData.details.replication_num,
       },
     ],
     'details.nodes.bookkeeper': [
@@ -542,9 +605,9 @@
   };
 
   watch(
-    () => formdata.details.resource_spec.bookkeeper,
+    () => formData.details.resource_spec.bookkeeper,
     () => {
-      const count = Number(formdata.details.resource_spec.bookkeeper.count);
+      const count = Number(formData.details.resource_spec.bookkeeper.count);
       if (specBookkeeperRef.value) {
         const { storage_spec: storageSpec = [] } = specBookkeeperRef.value.getData();
         const disk = storageSpec.reduce((total: number, item: { min: number }) => total + Number(item.min || 0), 0);
@@ -561,9 +624,9 @@
     bizState.info = info;
     bizState.hasEnglishName = !!info.english_name;
 
-    formdata.details.nodes.bookkeeper = [];
-    formdata.details.nodes.broker = [];
-    formdata.details.nodes.zookeeper = [];
+    formData.details.nodes.bookkeeper = [];
+    formData.details.nodes.broker = [];
+    formData.details.nodes.zookeeper = [];
   };
   /**
    * 变更所属管控区域
@@ -572,9 +635,9 @@
     cloudInfo.id = info.id;
     cloudInfo.name = info.name;
 
-    formdata.details.nodes.bookkeeper = [];
-    formdata.details.nodes.broker = [];
-    formdata.details.nodes.zookeeper = [];
+    formData.details.nodes.bookkeeper = [];
+    formData.details.nodes.broker = [];
+    formData.details.nodes.zookeeper = [];
   };
 
   const makeMapByHostId = (hostList: HostInfo[]) =>
@@ -593,11 +656,11 @@
   };
   // bookkeeper、zookeeper、broker 互斥
   const bookkeeperDisableHostMethod = (data: any) => {
-    const zookeeperHostMap = makeMapByHostId(formdata.details.nodes.zookeeper);
+    const zookeeperHostMap = makeMapByHostId(formData.details.nodes.zookeeper);
     if (zookeeperHostMap[data.host_id]) {
       return t('主机已被xx节点使用', ['Zookeeper']);
     }
-    const brokerHostMap = makeMapByHostId(formdata.details.nodes.broker);
+    const brokerHostMap = makeMapByHostId(formData.details.nodes.broker);
     if (brokerHostMap[data.host_id]) {
       return t('主机已被xx节点使用', ['Broker']);
     }
@@ -606,11 +669,11 @@
   };
   // bookkeeper、zookeeper、broker 互斥
   const zookeeperDisableHostMethod = (data: any, list: any[] = []) => {
-    const bookkeeperHostMap = makeMapByHostId(formdata.details.nodes.bookkeeper);
+    const bookkeeperHostMap = makeMapByHostId(formData.details.nodes.bookkeeper);
     if (bookkeeperHostMap[data.host_id]) {
       return t('主机已被xx节点使用', ['Bookkeeper']);
     }
-    const brokerHostMap = makeMapByHostId(formdata.details.nodes.broker);
+    const brokerHostMap = makeMapByHostId(formData.details.nodes.broker);
     if (brokerHostMap[data.host_id]) {
       return t('主机已被xx节点使用', ['Broker']);
     }
@@ -623,11 +686,11 @@
   };
   // bookkeeper、zookeeper、broker 互斥
   const brokerDisableHostMethod = (data: any) => {
-    const bookkeeperHostMap = makeMapByHostId(formdata.details.nodes.bookkeeper);
+    const bookkeeperHostMap = makeMapByHostId(formData.details.nodes.bookkeeper);
     if (bookkeeperHostMap[data.host_id]) {
       return t('主机已被xx节点使用', ['Bookkeeper']);
     }
-    const zookeeperHostMap = makeMapByHostId(formdata.details.nodes.zookeeper);
+    const zookeeperHostMap = makeMapByHostId(formData.details.nodes.zookeeper);
     if (zookeeperHostMap[data.host_id]) {
       return t('主机已被xx节点使用', ['Zookeeper']);
     }
@@ -636,15 +699,15 @@
   };
   // 更新 bookkeeper 节点
   const handleBookkeeperIpListChange = (data: HostInfo[]) => {
-    formdata.details.nodes.bookkeeper = data;
+    formData.details.nodes.bookkeeper = data;
   };
   // 更新 zookeeper 节点
   const handleZookeeperIpListChange = (data: HostInfo[]) => {
-    formdata.details.nodes.zookeeper = data;
+    formData.details.nodes.zookeeper = data;
   };
   // 更新 broker 节点
   const handleBrokerIpListChange = (data: HostInfo[]) => {
-    formdata.details.nodes.broker = data;
+    formData.details.nodes.broker = data;
   };
 
   const handleSubmit = () => {
@@ -659,9 +722,9 @@
         }));
 
       const getDetails = () => {
-        const details: Record<string, any> = _.cloneDeep(formdata.details);
+        const details: Record<string, any> = _.cloneDeep(formData.details);
 
-        if (formdata.details.ip_source === 'resource_pool') {
+        if (formData.details.ip_source === 'resource_pool') {
           delete details.nodes;
           const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
           return {
@@ -672,18 +735,25 @@
                 ...specBookkeeperRef.value.getData(),
                 ...regionAndDisasterParams,
                 count: Number(details.resource_spec.bookkeeper.count),
+                label_names: details.resource_spec.bookkeeper.labels.map((item: { value: string }) => item.value),
+                labels: details.resource_spec.bookkeeper.labels.map((item: { id: number }) => String(item.id)),
               },
               broker: {
                 ...details.resource_spec.broker,
                 ...specBrokerRef.value.getData(),
                 ...regionAndDisasterParams,
+
                 count: Number(details.resource_spec.broker.count),
+                label_names: details.resource_spec.broker.labels.map((item: { value: string }) => item.value),
+                labels: details.resource_spec.broker.labels.map((item: { id: number }) => String(item.id)),
               },
               zookeeper: {
                 ...details.resource_spec.zookeeper,
                 ...specZookeeperRef.value.getData(),
                 ...regionAndDisasterParams,
                 count: Number(details.resource_spec.zookeeper.count),
+                label_names: details.resource_spec.zookeeper.labels.map((item: { value: string }) => item.value),
+                labels: details.resource_spec.zookeeper.labels.map((item: { id: number }) => String(item.id)),
               },
             },
           };
@@ -693,19 +763,23 @@
         return {
           ...details,
           nodes: {
-            bookkeeper: mapIpField(formdata.details.nodes.bookkeeper),
-            broker: mapIpField(formdata.details.nodes.broker),
-            zookeeper: mapIpField(formdata.details.nodes.zookeeper),
+            bookkeeper: mapIpField(formData.details.nodes.bookkeeper),
+            broker: mapIpField(formData.details.nodes.broker),
+            zookeeper: mapIpField(formData.details.nodes.zookeeper),
           },
         };
       };
 
       const params = {
-        ...formdata,
+        ...formData,
         details: getDetails(),
       };
       // 若业务没有英文名称则先创建业务英文名称再创建单据，否则直接创建单据
-      bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
+      if (bizState.hasEnglishName) {
+        handleCreateTicket(params);
+      } else {
+        handleCreateAppAbbr(params);
+      }
     });
   };
 
@@ -717,7 +791,7 @@
       cancelText: t('取消'),
       content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
-        Object.assign(formdata, getInitFormdata());
+        Object.assign(formData, getInitFormdata());
         formRef.value.clearValidate();
         nextTick(() => {
           window.changeConfirm = false;
@@ -783,6 +857,11 @@
 
         .bk-form-content {
           margin-left: 120px !important;
+
+          .bk-select,
+          .bk-input {
+            width: 314px !important;
+          }
         }
       }
     }

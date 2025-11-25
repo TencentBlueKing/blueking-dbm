@@ -76,7 +76,12 @@ export const useApplyBase = () => {
   }
 
   function handleCreateTicket(formdata: any) {
-    createTicket(formdata)
+    const params = { ...formdata };
+    delete params.sub_zone_ids;
+    delete params.sub_zone_names;
+    delete params.city_name;
+
+    createTicket(params)
       .then((data) => {
         Message({
           message: t('申请成功'),

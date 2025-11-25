@@ -116,13 +116,15 @@ export interface DetailMachines {
   };
 }
 
-export interface SpecInfo {
+export interface ApplySpecInfo {
   affinity: string;
   count: number;
   cpu: {
     max: number;
     min: number;
   };
+  label_names: string[]; // 标签名称列表，单据详情回显用
+  labels: string[]; // 标签id列表
   location_spec: {
     city: string;
     include_or_exclue?: boolean;

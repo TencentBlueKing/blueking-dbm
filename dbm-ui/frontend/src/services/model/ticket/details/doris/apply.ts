@@ -1,6 +1,6 @@
 import type { HostInfo } from '@services/types';
 
-import type { DetailBase, SpecInfo } from '../common';
+import type { ApplySpecInfo, DetailBase } from '../common';
 
 export interface Apply extends DetailBase {
   bk_cloud_id: number;
@@ -23,10 +23,10 @@ export interface Apply extends DetailBase {
   };
   query_port: number;
   resource_spec?: {
-    cold?: SpecInfo; // 历史协议，替换为warm
-    follower: SpecInfo;
-    hot?: SpecInfo;
-    observer?: SpecInfo;
-    warm?: SpecInfo;
+    cold?: ApplySpecInfo; // 历史协议，替换为warm
+    follower: ApplySpecInfo;
+    hot?: ApplySpecInfo;
+    observer?: ApplySpecInfo;
+    warm?: ApplySpecInfo;
   };
 }

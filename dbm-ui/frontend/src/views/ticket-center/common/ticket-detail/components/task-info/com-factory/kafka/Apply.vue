@@ -50,6 +50,20 @@
         </SpecDetailPopover>
         <span v-else>--</span>
       </InfoItem>
+      <InfoItem :label="t('Broker 节点资源标签')">
+        <template v-if="brokerSpec && brokerSpec.label_names?.length">
+          <BkTag
+            v-for="item in brokerSpec.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
+      </InfoItem>
       <InfoItem :label="t('Zookeeper节点规格')">
         <SpecDetailPopover
           v-if="zookeeperSpec"
@@ -62,6 +76,20 @@
           </span>
         </SpecDetailPopover>
         <span v-else>--</span>
+      </InfoItem>
+      <InfoItem :label="t('Zookeeper 节点资源标签')">
+        <template v-if="zookeeperSpec && zookeeperSpec.label_names?.length">
+          <BkTag
+            v-for="item in zookeeperSpec.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
       </InfoItem>
     </template>
     <template v-else>

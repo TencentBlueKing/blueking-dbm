@@ -62,6 +62,20 @@
         </span>
       </SpecDetailPopover>
     </InfoItem>
+    <InfoItem :label="t('接入层（Master）资源标签')">
+      <template v-if="ticketDetails.details.resource_spec.spider.label_names?.length">
+        <BkTag
+          v-for="item in ticketDetails.details.resource_spec.spider.label_names"
+          :key="item">
+          {{ item }}
+        </BkTag>
+      </template>
+      <BkTag
+        v-else
+        theme="success">
+        {{ t('通用无标签') }}
+      </BkTag>
+    </InfoItem>
     <InfoItem
       :label="t('集群部署方案')"
       style="flex: 1 0 100%">
@@ -71,6 +85,25 @@
         <TicketInfoTableColumn
           col-key="spec_name"
           :title="t('资源规格')">
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="label_names"
+          :min-width="200"
+          :title="t('资源标签')">
+          <template #default>
+            <template v-if="ticketDetails.details.resource_spec.backend_group.label_names?.length">
+              <BkTag
+                v-for="item in ticketDetails.details.resource_spec.backend_group.label_names"
+                :key="item">
+                {{ item }}
+              </BkTag>
+            </template>
+            <BkTag
+              v-else
+              theme="success">
+              {{ t('通用无标签') }}
+            </BkTag>
+          </template>
         </TicketInfoTableColumn>
         <TicketInfoTableColumn
           col-key="machine_pair"
