@@ -39,7 +39,9 @@
               {{ item.cluster.id ? item.cluster.proxies?.length : '' }}
             </EditableBlock>
           </EditableColumn>
-          <AddCountColumn v-model="item.count" />
+          <AddCountColumn
+            v-model="item.count"
+            @batch-edit="handleBatchEditColumn" />
           <EditableColumn
             :label="t('最终数量（台）')"
             :min-width="150"
@@ -97,6 +99,7 @@
   </ProxyWrapper>
 </template>
 <script lang="ts" setup>
+  import _ from 'lodash';
   import { reactive, useTemplateRef } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
@@ -315,7 +318,7 @@
   const handleBatchEditColumn = (value: any, field: string) => {
     formData.tableData.forEach((rowData) => {
       Object.assign(rowData, {
-        [field]: value,
+        [field]: _.cloneDeep(value),
       });
     });
   };
