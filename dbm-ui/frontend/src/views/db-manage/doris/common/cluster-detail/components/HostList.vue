@@ -106,7 +106,7 @@
       </I18nT>
     </BkAlert>
     <DbTable
-      ref="tableRef"
+      ref="hostTableRef"
       :data-source="dataSource"
       :filter-value="quickSearchValue"
       :releate-url-query="false"
