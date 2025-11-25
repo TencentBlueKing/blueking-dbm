@@ -34,7 +34,6 @@ import (
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/process"
-	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 
 	"golang.org/x/net/context"
@@ -73,8 +72,8 @@ type EventData struct {
 		IP                string                         `json:"ip,omitempty"`
 		Port              int                            `json:"port,omitempty"`
 		BkBizId           int                            `json:"bk_biz_id,omitempty"`
-		DbClusterType     hamodel.DbmMetadataClusterType `json:"dbm_cluster_type,omitempty"`
-		DbMachineType     hamodel.DbmMetadataMachineType `json:"dbm_machine_type,omitempty"`
+		DbClusterType     haprobe.DbmMetadataClusterType `json:"dbm_cluster_type,omitempty"`
+		DbMachineType     haprobe.DbmMetadataMachineType `json:"dbm_machine_type,omitempty"`
 		DbTypeName        haprobe.DbType                 `json:"db_type_name,omitempty"`
 		DbEventName       haprobe.DbEventName            `json:"db_event_name,omitempty"`
 		DbEventNameReason haprobe.DbEventNameReasonStr   `json:"db_event_name_reason,omitempty"`

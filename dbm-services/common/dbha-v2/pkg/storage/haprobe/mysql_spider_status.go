@@ -22,28 +22,33 @@
  * SOFTWARE.
  */
 
-package sink
+package haprobe
 
-import (
-	"strings"
-
-	"dbm-services/common/dbha-v2/internal/receiver/config"
-	"dbm-services/common/dbha-v2/pkg/gerrors"
-)
-
-// Outputter Define the interface for storing data.
-type Outputter interface {
-	Save(msg *Message) error
-	Close()
+// MySqlSpiderCtlRoute MySQL spider node information.
+type MySqlSpiderCtlRoute struct {
+	ServerName string `json:"server_name"`
+	Host       string `json:"host"`
+	Db         string `json:"db"`
+	UserName   string `json:"user_name"`
+	Port       int    `json:"port"`
+	Wrapper    string `json:"wrapper"`
+	Owner      string `json:"owner"`
 }
 
-// NewOutputter create a new saver
-func NewOutputter(cfg config.SinkConfig) (Outputter, error) {
-	switch strings.ToLower(cfg.Name) {
-	case strings.ToLower(mySQLName):
-		return newMySql(cfg.Endpoints, cfg.User, cfg.Password)
+// MySqlSpiderCtlNode MySQL spider controller node information.
+type MySqlSpiderCtlNode struct {
+	ServerName        string `json:"server_name"`
+	Host              string `json:"host"`
+	Port              int    `json:"port"`
+	ReplicationMaster string `json:"replication_master"`
+	ReplicationInfo   string `json:"replication_info"`
+	ClusterRole       string `json:"cluster_role"`
+	Status            string `json:"status"`
+	Message           string `json:"message"`
+}
 
-	default:
-		return nil, gerrors.Newf(gerrors.Unsupported, "unsupported storage(%s)", cfg.Name)
-	}
+// MySqlSpiderCtlStatus MySQL spider status for the TendbCluster.
+type MySqlSpiderCtlStatus struct {
+	Routes   []*MySqlSpiderCtlRoute `json:"routes"`
+	CtlNodes []*MySqlSpiderCtlNode  `json:"ctl_nodes"`
 }

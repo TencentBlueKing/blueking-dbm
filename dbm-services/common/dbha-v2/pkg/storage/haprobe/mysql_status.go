@@ -22,28 +22,19 @@
  * SOFTWARE.
  */
 
-package sink
+package haprobe
 
-import (
-	"strings"
+// MySqlStatus MySQL status
+type MySqlStatus struct {
+	// Spider Controller Status
+	SpiderCtlStatus *MySqlSpiderCtlStatus `json:"spider_ctl_status,omitempty"`
 
-	"dbm-services/common/dbha-v2/internal/receiver/config"
-	"dbm-services/common/dbha-v2/pkg/gerrors"
-)
+	// Proxy Status
+	ProxyStatus *MySqlProxyStatus `json:"proxy_status,omitempty"`
 
-// Outputter Define the interface for storing data.
-type Outputter interface {
-	Save(msg *Message) error
-	Close()
-}
+	// Global Status
+	GlobalStatus *MySqlGlobalStatus `json:"global_status,omitempty"`
 
-// NewOutputter create a new saver
-func NewOutputter(cfg config.SinkConfig) (Outputter, error) {
-	switch strings.ToLower(cfg.Name) {
-	case strings.ToLower(mySQLName):
-		return newMySql(cfg.Endpoints, cfg.User, cfg.Password)
-
-	default:
-		return nil, gerrors.Newf(gerrors.Unsupported, "unsupported storage(%s)", cfg.Name)
-	}
+	// Storage Engines
+	InnoDB *InnoDBStatus `json:"innodb,omitempty"`
 }

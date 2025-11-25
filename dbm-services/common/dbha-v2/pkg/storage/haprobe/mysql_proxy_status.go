@@ -22,38 +22,15 @@
  * SOFTWARE.
  */
 
-package haprobe_test
+package haprobe
 
-import (
-	"encoding/json"
-	"testing"
-	"time"
-
-	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
-
-	"github.com/google/uuid"
-)
-
-func TestMySQLMetric(t *testing.T) {
-
-	msqlMetric := &haprobe.MySQLMetric{}
-
-	msqlMetric.SequenceID = 0
-	msqlMetric.ServiceID = uuid.New().String()
-	msqlMetric.MessageID = uuid.New().String()
-	msqlMetric.MachineID = uuid.New().String()
-	msqlMetric.ReportTimestamp = uint64(time.Now().Unix())
-
-	msqlMetric.Host = &haprobe.HostMetric{}
-	msqlMetric.Databases = make([]*haprobe.DatabaseMetric, 1)
-	msqlMetric.Databases = append(msqlMetric.Databases, &haprobe.DatabaseMetric{
-		ListenPort: 3306,
-	})
-
-	data, err := json.Marshal(&msqlMetric)
-	if err != nil {
-		t.Fatalf("marshal failed, %v", err)
-	}
-
-	t.Logf("generated data:%s", string(data))
+// MySqlProxyStatus MySQL proxy status for the TendbHA cluster.
+type MySqlProxyStatus struct {
+	BackendNdx       int    `json:"backend_ndx"`
+	Address          string `json:"address"`
+	State            string `json:"state"`
+	Type             string `json:"type"`
+	UUID             string `json:"uuid"`
+	ConnectedClients int    `json:"connected_clients"`
+	RefreshTime      int    `json:"refresh_time"`
 }

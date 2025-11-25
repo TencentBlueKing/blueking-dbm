@@ -30,7 +30,6 @@ import (
 	"time"
 
 	"dbm-services/common/dbha-v2/pkg/constant"
-	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
@@ -185,8 +184,8 @@ func (t HostMetric) TableName() string {
 	return HostMetricTableName
 }
 
-// DatabaseMetric Databases metric
-type DatabaseMetric struct {
+// MySqlStatus MySQL status
+type MySqlStatus struct {
 	// Keys
 	BkCloudID  int    `gorm:"column:bk_cloud_id;primaryKey"`
 	MachineID  string `gorm:"column:machine_id;primaryKey"`
@@ -273,7 +272,7 @@ type DatabaseMetric struct {
 	DeletedAt time.Time `gorm:"column:deleted_at"`
 }
 
-func (t DatabaseMetric) TableName() string {
+func (t MySqlStatus) TableName() string {
 	return DatabaseMetricTableName
 }
 
@@ -288,9 +287,9 @@ type DbhaData struct {
 	ServiceID       string `gorm:"column:service_id"`
 	ReportTimestamp uint64 `gorm:"column:report_timestamp"`
 
-	Host      *HostMetric       `gorm:"foreignKey:machine_id;references:machine_id"`
-	Events    []*DbEvent        `gorm:"foreignKey:machine_id;references:machine_id"`
-	Databases []*DatabaseMetric `gorm:"foreignKey:machine_id;references:machine_id"`
+	Host   *HostMetric    `gorm:"foreignKey:machine_id;references:machine_id"`
+	Events []*DbEvent     `gorm:"foreignKey:machine_id;references:machine_id"`
+	Status []*MySqlStatus `gorm:"foreignKey:machine_id;references:machine_id"`
 
 	// Time automatically managed by GORM
 	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
@@ -298,7 +297,7 @@ type DbhaData struct {
 	DeletedAt time.Time `gorm:"column:deleted_at"`
 }
 
-func NewDbhaData(msg *haprobe.MySQLMetric) *DbhaData {
+func NewDbhaData(msg *haprobe.MySqlMetric) *DbhaData {
 	data := &DbhaData{}
 
 	data.SequenceID = msg.SequenceID
@@ -341,32 +340,22 @@ func NewDbhaData(msg *haprobe.MySQLMetric) *DbhaData {
 		}
 	}
 
-	for _, event := range msg.Events {
-		if event == nil {
-			logger.Warn("skip this recored, event is nil, machine-id: %s", msg.MachineID)
-			continue
-		}
-
+	if msg.Event != nil {
 		data.Events = append(data.Events, &DbEvent{
 			MachineID:  msg.MachineID,
 			BkCloudID:  msg.BkCloudID,
-			IP:         event.Endpoint.Host,
-			Port:       event.Endpoint.Port,
-			Endpoint:   event.Endpoint.String(),
-			DbTypeName: event.DbTypeName,
-			Name:       event.Name,
-			Reason:     event.Reason,
-			Message:    event.Message,
+			IP:         msg.Event.Endpoint.Host,
+			Port:       msg.Event.Endpoint.Port,
+			Endpoint:   msg.Event.Endpoint.String(),
+			DbTypeName: msg.Event.DbTypeName,
+			Name:       msg.Event.Name,
+			Reason:     msg.Event.Reason,
+			Message:    msg.Event.Message,
 		})
 	}
 
-	for _, db := range msg.Databases {
-		if db == nil {
-			logger.Warn("skip this record, db is nil, machine-id: %s", msg.MachineID)
-			continue
-		}
-
-		data.loadDatabase(db)
+	if msg.Status != nil && msg.Status.GlobalStatus != nil {
+		data.loadDatabase(msg.Status.GlobalStatus)
 	}
 
 	return data
@@ -376,8 +365,8 @@ func (t DbhaData) TableName() string {
 	return DbhaDataTableName
 }
 
-func (t *DbhaData) loadDatabase(db *haprobe.DatabaseMetric) {
-	t.Databases = append(t.Databases, &DatabaseMetric{
+func (t *DbhaData) loadDatabase(db *haprobe.MySqlGlobalStatus) {
+	t.Status = append(t.Status, &MySqlStatus{
 		// copy base info
 		BkCloudID:  t.BkCloudID,
 		MachineID:  t.MachineID,

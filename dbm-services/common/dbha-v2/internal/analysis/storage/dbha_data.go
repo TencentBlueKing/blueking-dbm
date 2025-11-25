@@ -68,7 +68,7 @@ func (ha *DbhaData) ReadMetadataCacheWithBizID(bizID int, batchCnt int,
 
 		err := ha.DB.DB().Model(&hamodel.DbmMetadata{}).
 			Where(fmt.Sprintf("%s > @updatedAt", hamodel.DbmMetadataFieldUpdatedAt),
-				map[string]interface{}{"updatedAt": lastUpdateTime}).
+				map[string]any{"updatedAt": lastUpdateTime}).
 			Where(hamodel.DbmMetadataFieldBkBizID, bizID).
 			Order(fmt.Sprintf("%s asc", hamodel.DbmMetadataFieldUpdatedAt)).
 			Limit(batchCnt).Find(&batches).Error
@@ -94,7 +94,7 @@ func (ha *DbhaData) ReadMetadataCacheWithBizID(bizID int, batchCnt int,
 }
 
 func (ha *DbhaData) ReadDbMetricsWithDbInstances(dbInstances []*DbInstance,
-	offsetDuration time.Duration) (dbMetrics []*hamodel.DatabaseMetric, err error) {
+	offsetDuration time.Duration) (dbMetrics []*hamodel.MySqlStatus, err error) {
 
 	if len(dbInstances) == 0 {
 		return nil, gerrors.New(gerrors.InvalidParameter, "no db instances")
@@ -103,7 +103,7 @@ func (ha *DbhaData) ReadDbMetricsWithDbInstances(dbInstances []*DbInstance,
 	lastUpdateTime := time.Now().Local().Add(offsetDuration)
 	logger.Debug("read db metric from the datetime point: %v", lastUpdateTime)
 
-	query := ha.DB.DB().Model(&hamodel.DatabaseMetric{})
+	query := ha.DB.DB().Model(&hamodel.MySqlStatus{})
 	hasCondition := false
 
 	for _, inst := range dbInstances {
