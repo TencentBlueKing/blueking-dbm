@@ -11,15 +11,18 @@ specific language governing permissions and limitations under the License.
 
 import copy
 import datetime
+
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+
 from backend import env
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.components import BKMonitorV3Api
 from backend.configuration.constants import DBType
 from backend.db_meta.models import AppCache
 from backend.db_services.redis.redis_keystat_report.filters import (
@@ -38,8 +41,6 @@ from backend.db_services.redis.redis_keystat_report.serializers import (
 )
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.utils.excel import ExcelHandler
-from backend.components import BKMonitorV3Api
-from backend.db_periodic_task.local_tasks.db_meta.constants import UNIFY_QUERY_PARAMS
 
 SWAGGER_TAG = "db_services/redis/redis_keystat_report"
 
@@ -95,6 +96,8 @@ class KeyStatReportViewSet(viewsets.SystemViewSet):
 
     def _fetch_metric(self, addr, metric_name):
         """获取redis实例的监控指标"""
+        from backend.db_periodic_task.local_tasks.db_meta.constants import UNIFY_QUERY_PARAMS
+
         try:
             ip_port = addr.replace(":", "-")
             promql = f'sum by (instance) (exporter_dbm_redis_exporter:{metric_name}{{instance="{ip_port}"}})'
