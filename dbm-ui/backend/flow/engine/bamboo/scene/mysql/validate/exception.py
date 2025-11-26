@@ -40,3 +40,9 @@ class MySQLMasterSlaveVersionFailedException(FlowValidateBaseException):
     ERROR_CODE = "35005"
     MESSAGE = _("MySQL主从实例版本不一致")
     MESSAGE_TPL = _("{message}")
+
+
+class TenDBHAUpgradeParamCheckFailedException(FlowValidateBaseException):
+    ERROR_CODE = "35006"
+    MESSAGE = _("TenDBHA升级参数检查失败")
+    MESSAGE_TPL = _("{message}")

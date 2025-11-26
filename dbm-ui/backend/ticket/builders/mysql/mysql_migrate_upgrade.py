@@ -83,6 +83,7 @@ class MysqlMigrateUpgradeDetailSerializer(MySQLBaseOperateDetailSerializer):
 
 class MysqlMigrateUpgradeParamBuilder(MysqlMasterSlaveSwitchParamBuilder):
     controller = MySQLController.tendbha_upgrade_scene
+    validator = MySQLController.tendbha_upgrade_scene.validator
 
     def format_ticket_data(self):
         if self.ticket_data["ip_source"] == IpSource.RESOURCE_POOL:

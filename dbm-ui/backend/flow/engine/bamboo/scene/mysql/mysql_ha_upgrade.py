@@ -90,28 +90,42 @@ class TendbClusterUpgradeFlow(object):
         升级前置检查
         """
         for info in self.ticket_data["infos"]:
-            cluster_class = Cluster.objects.get(id=info["cluster_ids"][0])
-            origin_charset, origin_mysql_ver = get_version_and_charset(
-                self.ticket_data["bk_biz_id"],
-                db_module_id=cluster_class.db_module_id,
-                cluster_type=cluster_class.cluster_type,
-            )
+            # 检查操作系统版本（如果升级到 8.0）
+            pkg_id = info.get("pkg_id")
+            if pkg_id:
+                try:
+                    pkg = Package.objects.get(id=pkg_id, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL)
+                    pkg_name = pkg.name
 
-            new_charset, new_mysql_ver = get_version_and_charset(
-                self.ticket_data["bk_biz_id"],
-                db_module_id=info["new_db_module_id"],
-                cluster_type=cluster_class.cluster_type,
-            )
-            if new_charset != origin_charset:
-                raise DBMetaException(
-                    message=_("{}升级前后字符集不一致,原字符集：{},新模块的字符集{}").format(
-                        cluster_class.immute_domain, origin_charset, new_charset
-                    )
-                )
-            # upgrade_version_check(origin_mysql_ver, new_mysql_ver)
+                    if mysql_version_parse(pkg_name) >= mysql_version_parse("8.0.0"):
+                        # 检查新节点操作系统版本
+                        new_master = info.get("new_master", {})
+                        new_slave = info.get("new_slave", {})
+                        ro_slaves = info.get("ro_slaves", [])
+
+                        nodes_to_check = []
+                        if new_master:
+                            nodes_to_check.append(new_master)
+                        if new_slave:
+                            nodes_to_check.append(new_slave)
+                        for ro_slave in ro_slaves:
+                            if ro_slave.get("new_ro_slave"):
+                                nodes_to_check.append(ro_slave["new_ro_slave"])
+
+                        for node in nodes_to_check:
+                            os_name = node.get("os_name", "").strip()
+                            ip = node.get("ip", "")
+
+                            if os_name == "tlinux-1.2":
+                                raise DBMetaException(
+                                    message=_(
+                                        "节点 {} (操作系统: {}) 的 tlinux 版本不满足要求。" "升级到 MySQL 8.0 版本需要 tlinux 版本大于 1.2"
+                                    ).format(ip, os_name)
+                                )
+                except Package.DoesNotExist:
+                    logger.warning(_("包ID {} 不存在，跳过操作系统版本检查").format(pkg_id))
 
     def upgrade_ro_slaves(self):
-        self.__pre_check()
         cluster_ids = []
         for info in self.ticket_data["infos"]:
             cluster_ids.extend(info["cluster_ids"])
