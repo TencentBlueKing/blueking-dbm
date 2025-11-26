@@ -97,6 +97,7 @@ func (bm *BkMonitorEventSender) SendEventMsg(dataId int64, token string, eventNa
 }
 
 // SendTimeSeriesMsg dbmon心跳上报. "mongo_dbmon_heart_beat"
+// 成功时记录debug日志，失败时记录error日志
 func (bm *BkMonitorEventSender) SendTimeSeriesMsg(dataId int64, token string, targetIP string,
 	metricName string, val float64, logger *zap.Logger) (err error) {
 	bm.newDimenSion()
@@ -118,7 +119,7 @@ func (bm *BkMonitorEventSender) SendTimeSeriesMsg(dataId int64, token string, ta
 		"-report.message.body", string(tempBytes))
 	o, err := sendCmd.Run(60 * time.Second)
 	if err == nil {
-		logger.Info("SendTimeSeriesMsg",
+		logger.Debug("SendTimeSeriesMsg",
 			zap.String("cmd", sendCmd.GetCmdLine("", false)),
 			zap.String("stdout", o.GetStdout()),
 			zap.String("stderr", o.GetStderr()),

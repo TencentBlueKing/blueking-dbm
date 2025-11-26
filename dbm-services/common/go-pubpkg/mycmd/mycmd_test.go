@@ -24,7 +24,7 @@ func TestCmd(t *testing.T) {
 			cb.Append(vv)
 		}
 
-		o, err := cb.Run2(5 * time.Second)
+		o, err := cb.Run(5 * time.Second)
 		t.Logf("cmd: %s", cb.GetCmdLine("", true))
 		t.Logf("return %+q", o)
 		assert.NoError(t, err)
@@ -49,7 +49,7 @@ func TestCmdRun2(t *testing.T) {
 			cb.Append(vv)
 		}
 
-		o, err := cb.Run2(5 * time.Second)
+		o, err := cb.Run(5 * time.Second)
 		assert.NoError(t, err)
 		assert.Equal(t, true, strings.Contains(o.Stdout.(*bytes.Buffer).String(), v.out))
 		assert.Equal(t, "", o.Stderr.(*bytes.Buffer).String())

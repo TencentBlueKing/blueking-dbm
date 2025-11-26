@@ -45,17 +45,27 @@ func init() {
 	rootCmd.AddCommand(debugCmd)
 	rootCmd.AddCommand(alarmCmd)
 	rootCmd.AddCommand(metaCmd)
+	rootCmd.AddCommand(versionCmd)
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "dbmon-config.yaml",
 		"required,config file (default is ./dbmon-config.yaml)")
 	rootCmd.PersistentFlags().StringVar(&clusterConfigFile, "cluster-config", "cluster-config.yaml",
 		"required,cluster-config.yaml file (default is $(dir of bin)/cluster-config.yaml)")
 	rootCmd.PersistentFlags().StringVar(&logLevel, "logLevel", "info",
-		"log level, default is info, support debug,info")
+		"log level, default is info, support debug,info. use SIGUSR1 to toggle log level")
 	rootCmd.PersistentFlags().BoolVar(&stdout, "stdout", false,
 		"output log to stdout, default is to log file")
 
 	rootCmd.PersistentFlags().BoolVarP(&showVersion, "version", "v", false,
 		"show bk-dbmon version")
+}
+
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "version",
+	Long:  "version info",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Printf("bk-dbmon\n%s\n", buildinfo.VersionInfo())
+	},
 }
 
 // rootCmd represents the base command when called without any subcommands
@@ -218,23 +228,27 @@ func checkDbType(servers []config.ConfServerItem) (err error) {
 
 // watchSignal 监听信号
 func watchSignal() context.Context {
-	mylog.Logger.Info("signal.Notify SIGUSR2 SIGABRT")
+	mylog.Logger.Info("signal.Notify SIGUSR1 SIGUSR2 SIGABRT")
 	// 创建可取消的 Context
 	ctx, cancel := context.WithCancel(context.Background())
 	// defer cancel()
-	// 监听 SIGUSR2 信号
 	signalCh := make(chan os.Signal, 1)
-	signal.Notify(signalCh, syscall.SIGUSR2, syscall.SIGABRT)
+	signal.Notify(signalCh, syscall.SIGUSR1, syscall.SIGUSR2, syscall.SIGABRT)
 
 	// 启动一个协程处理信号
 	go func() {
 		for {
 			select {
 			case sig := <-signalCh:
-				mylog.Logger.Info("receive SIGUSR2 signal.", zap.String("signal", sig.String()))
-				// 待0.1秒再发送取消信号
-				time.Sleep(100 * time.Millisecond)
-				cancel() // 广播取消信号
+				mylog.Logger.Info("receive signal.", zap.String("signal", sig.String()))
+				if sig == syscall.SIGUSR2 {
+					// SIGUSR2 用于切换日志级别
+					mylog.ToggleLogLevel()
+				} else {
+					// SIGUSR1 和 SIGABRT 用于取消 context
+					time.Sleep(100 * time.Millisecond) // 待0.1秒再发送取消信号
+					cancel()                           // 广播取消信号
+				}
 			case <-ctx.Done():
 				return
 			}

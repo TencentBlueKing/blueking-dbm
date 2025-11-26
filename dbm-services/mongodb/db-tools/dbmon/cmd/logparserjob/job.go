@@ -56,7 +56,6 @@ func GetJob(conf *config.DbMonConfig, logger *zap.Logger, jobName string,
 	return globJob
 }
 
-// Run do log parser 如果是 v4.4以上，用soft link
 // 配置更新后，相应的Job会有Stop或Start或Restart操作
 func (job *Job) Run() {
 	job.RootWgInit()
@@ -79,6 +78,7 @@ func (job *Job) Run() {
 // WatchConfigUpdate 监控配置更新. 如果有更新，发信号给相应的Job停止，并重新开始。
 func (job *Job) watchConfigUpdate(p *myroutine.Pool) {
 	ticker := time.NewTicker(time.Second * 5)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-job.OsCtx.Done():
@@ -88,7 +88,7 @@ func (job *Job) watchConfigUpdate(p *myroutine.Pool) {
 			job.RootWgDone()
 			return
 		case <-ticker.C:
-			job.Logger.Info("watch config update")
+			job.Logger.Debug("watch config update")
 			todoServer := job.getServers()
 			routines := p.GetRoutineNames()
 
@@ -120,7 +120,10 @@ func (job *Job) watchConfigUpdate(p *myroutine.Pool) {
 			}
 
 			p.StartAll() // 启动新增的，或者已Stop的. 保证所有的worker都在运行
-			p.Status()
+			// if debug loglevel, print the status of all routines in the pool
+			if job.Logger.Level() == zap.DebugLevel {
+				p.Status()
+			}
 		}
 	}
 }

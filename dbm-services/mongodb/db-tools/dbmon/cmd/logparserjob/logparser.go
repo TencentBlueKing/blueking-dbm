@@ -96,7 +96,11 @@ func LoadSeekInfoFromCacheFile(cacheFileName string, fileName string) *FileSeekI
 	}
 
 	cacheSi.CacheFileName = cacheFileName
-	offset, _ := fileutil.GetFileSize(fileName)
+	offset, err := fileutil.GetFileSize(fileName)
+	if err != nil {
+		// 如果文件不存在或无法获取大小，使用缓存中的offset
+		offset = cacheSi.Offset
+	}
 	if cacheSi.Inode > 0 {
 		ino := fileinfo.GetFileIno(fileName)
 		// 当文件存在，Inode没有变化，并且offset未重置的情况下，才使用缓存文件
@@ -108,6 +112,11 @@ func LoadSeekInfoFromCacheFile(cacheFileName string, fileName string) *FileSeekI
 	return si
 }
 
+// precheck 检查输入参数
+// @param srcFileName 源文件名
+// @param dirName 输出目录
+// @param outFileName 输出文件名
+// @return err 错误信息
 func precheck(srcFileName, dirName, outFileName string) (err error) {
 	fileAbsPath, err := filepath.Abs(srcFileName)
 	if err != nil {
@@ -142,9 +151,7 @@ func precheck(srcFileName, dirName, outFileName string) (err error) {
 // ParseFile parse the log file and write the parsed log messages to the output file
 // ParseFile 要保证ctx.Done()时能正确退出。
 func ParseFile(srcFileName string, dirName, outFileName string, follow bool,
-	ctx, osCtx context.Context, metaInfo []byte, logger *zap.Logger) (
-
-	succ int, fail int, err error) {
+	ctx, osCtx context.Context, metaInfo []byte, logger *zap.Logger) (succ int, fail int, err error) {
 	if err = precheck(srcFileName, dirName, outFileName); err != nil {
 		return
 	}
@@ -161,16 +168,18 @@ func ParseFile(srcFileName string, dirName, outFileName string, follow bool,
 		rotatelogs.WithRotationTime(time.Minute*10),
 	)
 	if err != nil {
-		fmt.Printf("failed to create rotatelogs: %s", err)
+		err = errors.Wrap(err, "failed to create rotatelogs")
+		logger.Error("failed to create rotatelogs", zap.Error(err))
 		return
 	}
 
+	// 如果文件不存在: seekInfo.Offset = 0
+	// 如果文件小于Offset: seekInfo.Offset = 0
 	seekCache := LoadSeekInfoFromCacheFile(seekCacheFile, srcFileName)
 	logger.Info(fmt.Sprintf("using seek info: %+v", seekCache))
 	seekInfo := tail.SeekInfo{Offset: seekCache.Offset, Whence: io.SeekStart}
-	// 如果文件不存在: seekInfo.Offset = 0
-	// 如果文件小于Offset: seekInfo.Offset = 0
-	t, err := tail.TailFile(
+
+	tailHandle, err := tail.TailFile(
 		srcFileName, tail.Config{
 			Location:      &seekInfo,
 			Follow:        follow,
@@ -189,6 +198,7 @@ func ParseFile(srcFileName string, dirName, outFileName string, follow bool,
 	}
 
 	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
 	// Print the text of each received line
 	prevNum := -1
 	prevOffset := int64(0)
@@ -205,7 +215,7 @@ func ParseFile(srcFileName string, dirName, outFileName string, follow bool,
 			// 每秒保存一次.
 			err = seekCache.Save(true)
 			logger.Debug(fmt.Sprintf("save seekinfo %+v", seekCache), zap.Error(err))
-		case line := <-t.Lines:
+		case line := <-tailHandle.Lines:
 			if line == nil {
 				if follow {
 					continue
@@ -223,13 +233,13 @@ func ParseFile(srcFileName string, dirName, outFileName string, follow bool,
 
 			p, err := mongologparser.GetParser([]byte(line.Text))
 			if err != nil {
-				logger.Warn("failed to get parser: %s", zap.Error(err))
+				logger.Warn("failed to get parser", zap.Error(err))
 				continue
 			}
 
 			msg, err := p.Parse([]byte(line.Text))
 			if err != nil {
-				logger.Warn("failed to parse: %s\n", zap.Error(err))
+				logger.Warn("failed to parse", zap.Error(err))
 				fail++
 				continue
 			}
@@ -275,6 +285,16 @@ func ParseFile(srcFileName string, dirName, outFileName string, follow bool,
 
 END:
 	seekCache.Save(true)
+	logger.Info("cleanup tail handle")
+	tailHandle.Cleanup()
+	err = tailHandle.Stop()
+	if err != nil {
+		logger.Error("stop tail handle failed", zap.Error(err))
+	}
+	err = dstWriter.Close()
+	if err != nil {
+		logger.Error("close dst writer failed", zap.Error(err))
+	}
 	logger.Info("ParseFile done")
 	return
 }

@@ -38,7 +38,7 @@ func version(c *gin.Context) {
 func stop(c *gin.Context) {
 	pid := os.Getpid()
 	mylog.Logger.Info("send stop signal to process", zap.Int32("pid", int32(pid)))
-	syscall.Kill(pid, syscall.SIGUSR2)
+	syscall.Kill(pid, syscall.SIGABRT)
 	c.JSON(http.StatusOK, gin.H{
 		"msg": "send stop signal to process",
 	})

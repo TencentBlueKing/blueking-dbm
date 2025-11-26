@@ -46,4 +46,11 @@ servers:
 ./bk-dbmon debug sendmsg   --config ./bk-dbmon-config.yaml  --port 27001 --type event --msg "test msg"
 ./bk-dbmon debug sendmsg   --config ./bk-dbmon-config.yaml  --port 27001 --type ts
 ```
-#### 架构
+- **事件** 
+check_health job每分钟连接一次mongod/mongos. 
+1. 认证失败，发送"login failed"事件，消息内容: authentication failed (critical)
+2. mongod 状态不为[primary,secondary,arbiter]之一，发送"login failed"事件，消息内容: bad state  (critical)
+3  如果端口还在监听状态，发送"login failed"事件，消息内容: "login failed" (critical)
+4  如果端口已经不在监听状态尝试启动mongod/mongos，再连接一次mongod/mongos.  
+   - 连接失败，发送"login failed"事件，消息内容: restart failed (critical)
+   - 连接成功，发送"login failed"事件，消息内容: restarted (warning)

@@ -1,35 +1,68 @@
-const mi = db.isMaster();
-db = db.getSiblingDB('admin');
+var connect_success = false;
+var connect_error = '';
 var mongo_type = '';
-if (typeof mi['setName'] != 'undefined') {
-    if (mi.arbiterOnly) {
-        mongo_type = 'arbiter';
-    } else if (mi.secondary) {
-        db.auth(user, pwd);
-        mongo_type = 'secondary';
-    } else if (mi.ismaster) {
-        db.auth(user, pwd);
-        mongo_type = 'primary';
-    } else {
-        mongo_type = 'unknown';
-    }
-} else if (mi.ismaster) {
-    if (typeof mi['msg'] != 'undefined') {
+var state_string = '';
+var state = -1;
+var db ;
+try {
+    db = connect(addr);
+    connect_success = true;
+    const mi = db.isMaster();
+    db = db.getSiblingDB('admin');
+    auth_success = db.auth(user, pwd); // auth_success is 1 or 0
+    // if mongos 
+    if (mi.msg == 'isdbgrid') {
         mongo_type = 'mongos';
+        state_string = 'mongos';
+        state = 1;
     } else {
-        mongo_type = 'configsvr';
+        mongo_type = 'mongod';
+        state_string = 'unknown';
+        state = -1;
+        if (mi.arbiterOnly) {
+            state_string = 'arbiter';
+            state = 7;
+        } else if (mi.secondary) {
+            state_string = 'secondary';
+            state = 2;
+        } else if (mi.ismaster) {
+            state_string = 'primary';
+            state = 1;
+        } else {
+            var rs_status = db.adminCommand({ replSetGetStatus: 1 });
+            if (rs_status.ok == 1) {
+                state = rs_status.myState;
+                status_map = [
+                    "startup", "primary", "secondary", "recovering","unknown",  // 0-4
+                    "startup2", "unknown", "arbiter", "down",  // 5-8
+                    "rollback", "removed"]  // 9-12
+                if (state >= 0 && state < status_map.length) {
+                    state_string = status_map[state];
+                } else {
+                    state_string = 'unknown(' + state.toString() + ')';
+                }
+            }
+        }
     }
-} else {
-    mongo_type = 'unknown2';
+} catch (e) {
+    connect_success = false;
+    connect_error = e;
 }
 
-db.auth(user, pwd);
-print('mongo_type:' + mongo_type);
-
-if (mongo_type == 'primary') {
-    print("me ", mi.me, "connect ok");
-    // var testdb = db.getSisterDB('test');
-    // testdb.dbmon_heartbeat.update({_id: 'hb'}, {"$set": {mi: mi}}, true, true);
-} else {
-    print("me ", mongo_type, "connect ok");
+if (!connect_success) {
+    print('connect failed:');
+    quit(1);
 }
+
+print('addr', addr);
+print('user', user);
+if (auth_success !== 1) {
+    print('pwd', pwd);
+} else {
+    print('pwd', 'masked');
+}
+print('connect_success', connect_success);
+print('mongo_type', mongo_type);
+print('state', state);
+print('state_string', state_string);
+print('auth_success', auth_success);

@@ -52,7 +52,6 @@ func (basejob *BaseJob) RootWgInit() {
 	basejob.Logger.Info("debug: RootWgInit")
 	basejob.rootWgStatus = WgStatusRunning
 	basejob.RootWg.Add(1)
-
 }
 
 // WatchOsCtx  等待结束信号
