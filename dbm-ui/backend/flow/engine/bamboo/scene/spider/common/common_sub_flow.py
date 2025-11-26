@@ -717,13 +717,6 @@ def reduce_ctls_routing(root_id: str, parent_global_data: dict, cluster: Cluster
             ),
         )
 
-        # 检测中控同步是否正常
-        sub_pipeline.add_act(
-            act_name=_("检测中控集群切换后同步是否健康"),
-            act_component_code=CheckTDBCTlSecondaryHealthComponent.code,
-            kwargs=asdict(CheckTDBCTlSecondaryHealthComponent.kwargs(cluster_id=cluster.id)),
-        )
-
     if reduce_ctl_secondary_list:
         sub_pipeline.add_act(
             act_name=_("回收中控实例路由信息"),
@@ -735,6 +728,14 @@ def reduce_ctls_routing(root_id: str, parent_global_data: dict, cluster: Cluster
                     is_reduce_tdbctl=True,
                 )
             ),
+        )
+
+    if reduce_ctl_primary:
+        # 检测中控同步是否正常
+        sub_pipeline.add_act(
+            act_name=_("检测中控集群切换后同步是否健康"),
+            act_component_code=CheckTDBCTlSecondaryHealthComponent.code,
+            kwargs=asdict(CheckTDBCTlSecondaryHealthComponent.kwargs(cluster_id=cluster.id)),
         )
 
     return sub_pipeline.build_sub_process(sub_name=_("删除中控的路由节点"))
