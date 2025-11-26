@@ -158,51 +158,6 @@ class TenDBClusterSpiderUpgradeValidator(MysqlBaseValidator):
 
         return error_msgs
 
-    def pre_check_spider_node_count_compatibility(self):
-        """
-        检查spider节点数量兼容性（仅迁移升级场景）
-
-        校验逻辑：
-        1. 仅在非本地升级（迁移升级）场景下进行检查
-        2. 检查新传入的spider master IP数量与现有节点数量是否一致
-        3. 检查新传入的spider slave IP数量与现有节点数量是否一致
-
-        返回：
-        - list: 错误信息列表，如果没有错误则返回空列表
-        """
-        error_msgs = []
-
-        # 仅在迁移升级场景下进行检查
-        if self.data.get("upgrade_local", False):
-            return error_msgs
-
-        for info in self.data["infos"]:
-            cluster_id = info["cluster_id"]
-            cluster = Cluster.objects.get(id=cluster_id)
-
-            spider_master_ip_list = info.get("spider_master_ip_list", [])
-            spider_slave_ip_list = info.get("spider_slave_ip_list", [])
-
-            master_spiders_count = cluster.proxyinstance_set.filter(
-                tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
-            ).count()
-            if master_spiders_count != len(spider_master_ip_list):
-                error_msg = _("集群 {} 待升级spiderMaster节点数({})与传入ip节点数({})不一致,请确认").format(
-                    cluster.immute_domain, master_spiders_count, len(spider_master_ip_list)
-                )
-                error_msgs.append(error_msg)
-
-            slave_spiders_count = cluster.proxyinstance_set.filter(
-                tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE
-            ).count()
-            if slave_spiders_count > 0 and len(spider_slave_ip_list) != slave_spiders_count:
-                error_msg = _("集群 {} 待升级spiderSlave节点数({})与传入ip节点数({})不一致,请确认").format(
-                    cluster.immute_domain, slave_spiders_count, len(spider_slave_ip_list)
-                )
-                error_msgs.append(error_msg)
-
-        return error_msgs
-
     def pre_check_local_upgrade_cross_major_version(self):
         """
         检查本地升级时spider实例之间是否存在跨主版本
@@ -279,9 +234,9 @@ class TenDBClusterSpiderUpgradeValidator(MysqlBaseValidator):
             raise UpgradeVersionFailedException("\n".join(error_msgs))
 
         # 检查spider节点数量兼容性（仅迁移升级场景）
-        error_msgs = self.pre_check_spider_node_count_compatibility()
-        if error_msgs:
-            raise UpgradeVersionFailedException("\n".join(error_msgs))
+        # error_msgs = self.pre_check_spider_node_count_compatibility()
+        # if error_msgs:
+        #     raise UpgradeVersionFailedException("\n".join(error_msgs))
 
         # 检查本地升级时是否跨主版本
         error_msgs = self.pre_check_local_upgrade_cross_major_version()
