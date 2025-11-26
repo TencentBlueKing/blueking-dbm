@@ -21,7 +21,7 @@
       <BkRadio label="restore_with_data">
         {{ t('包含数据') }}
       </BkRadio>
-      <BkRadio label="restore_with_struc">
+      <BkRadio label="restore_with_struct">
         {{ t('仅表结构') }}
       </BkRadio>
     </BkRadioGroup>

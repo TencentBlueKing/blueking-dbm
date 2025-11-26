@@ -100,6 +100,6 @@
 
   const restoreTypeMap: Record<string, string> = {
     restore_with_data: t('包含数据'),
-    restore_with_struc: t('仅表结构'),
+    restore_with_struct: t('仅表结构'),
   };
 </script>
