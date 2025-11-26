@@ -1,5 +1,30 @@
 import { useSystemEnviron } from '@stores';
 
+interface ShortCutInfo {
+  agent_code: string;
+  agent_id: number;
+  agent_name: string;
+  components: {
+    default: string;
+    fill_back: boolean;
+    fill_regx: string;
+    key: string;
+    max: null;
+    min: null;
+    name: string;
+    options: any[];
+    placeholder: string;
+    required: boolean;
+    rows: number;
+    type: string;
+  }[];
+  content: string;
+  icon: string;
+  id: string;
+  name: string;
+  status: string;
+}
+
 export const enum AiBluekingModeEnum {
   COMMON = 'common',
   LOG_ANALYSIS = 'logAnalysis',
@@ -8,6 +33,9 @@ export const enum AiBluekingModeEnum {
 // 全局单实例
 const aiBluekingRef = ref();
 const aiBluekingMode = ref<AiBluekingModeEnum>(AiBluekingModeEnum['COMMON']);
+
+let currentIsLogAnalysisMode = false;
+let aiLogAnalysisShortCut: ShortCutInfo | null = null;
 
 export const useState = () => {
   const systemEnvironStore = useSystemEnviron();
@@ -18,7 +46,7 @@ export const useState = () => {
   const showMoreIcon = ref(true);
 
   const isLogAnalysisMode = computed(() => aiBluekingMode.value === AiBluekingModeEnum['LOG_ANALYSIS']);
-  const apiUrl = computed(() => (isLogAnalysisMode ? logAnalysisUrl : aidevUrl));
+  const apiUrl = computed(() => (isLogAnalysisMode.value ? logAnalysisUrl : aidevUrl));
 
   const { BK_AIDEV_LOG_ANALYSIS_URL: logAnalysisUrl, BK_AIDEV_URL: aidevUrl } = systemEnvironStore.urls;
 
@@ -42,6 +70,23 @@ export const useState = () => {
     },
   );
 
+  watch(isLogAnalysisMode, async () => {
+    if (isLogAnalysisMode.value === currentIsLogAnalysisMode) {
+      return;
+    }
+    currentIsLogAnalysisMode = isLogAnalysisMode.value;
+    if (isLogAnalysisMode.value) {
+      // 读取智能体info接口
+      const infoUrl = `${apiUrl.value}/agent/info/`;
+      const response = await fetch(infoUrl, {
+        credentials: 'include',
+        method: 'GET',
+      });
+      const infoData = (await response.json()) as { data: { conversation_settings: { commands: ShortCutInfo[] } } };
+      aiLogAnalysisShortCut = infoData.data.conversation_settings.commands[0];
+    }
+  });
+
   const show = async () => {
     await aiBluekingRef.value?.handleShow();
   };
@@ -51,7 +96,13 @@ export const useState = () => {
   };
 
   const sendMessage = async (message: string) => {
-    await aiBluekingRef.value?.handleSendMessage(message);
+    if (aiLogAnalysisShortCut) {
+      aiLogAnalysisShortCut.components[0].default = message;
+      await aiBluekingRef.value?.handleShortcutClick({
+        shortcut: aiLogAnalysisShortCut,
+        source: 'popup',
+      });
+    }
   };
 
   const changeMode = (mode: AiBluekingModeEnum) => {
