@@ -25,7 +25,7 @@ func CleanOsName(osName string) string {
 	tr := regexp.MustCompile(`(?i)^tencent`)
 	if tr.MatchString(strings.TrimSpace(osName)) {
 		r := regexp.MustCompile(`\d+(\.\d+)*`)
-		return "tliunx-" + r.FindString(osName)
+		return "tlinux-" + r.FindString(osName)
 	}
 	wr := regexp.MustCompile(`(?i)Windows\s*Server\s*\d\d\d\d`)
 	if wr.MatchString(osName) {
