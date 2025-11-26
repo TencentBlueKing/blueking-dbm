@@ -627,20 +627,22 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                         domain_name=domain_name,
                     )
                 ),
-            },
-            {
-                "act_name": _("回收slave[{}]的域名映射".format(old_slave_instance.host)),
-                "act_component_code": MySQLDnsManageComponent.code,
-                "kwargs": asdict(
-                    IpDnsRecordRecycleKwargs(
-                        instance_list=[f"{old_slave_instance.host}#{old_slave_instance.port}"],
-                        bk_cloud_id=old_slave_instance.bk_cloud_id,
-                        domain_name=domain_name,
-                    )
-                ),
-            },
+            }
         ]
-
+        if old_slave_instance:
+            acts_list.append(
+                {
+                    "act_name": _("回收slave[{}]的域名映射".format(old_slave_instance.host)),
+                    "act_component_code": MySQLDnsManageComponent.code,
+                    "kwargs": asdict(
+                        IpDnsRecordRecycleKwargs(
+                            instance_list=[f"{old_slave_instance.host}#{old_slave_instance.port}"],
+                            bk_cloud_id=old_slave_instance.bk_cloud_id,
+                            domain_name=domain_name,
+                        )
+                    ),
+                }
+            )
         dns_manage = DnsManage(bk_biz_id=bk_biz_id, bk_cloud_id=master_instance.bk_cloud_id)
 
         # 检查新slave是否已经存在域名映射关系
