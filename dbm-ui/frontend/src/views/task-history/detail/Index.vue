@@ -187,7 +187,7 @@
   });
 
   watch(
-    () => [baseInfo.value.status, todoNodesCount.value],
+    () => baseInfo.value.status,
     () => {
       setTimeout(() => {
         if (baseInfo.value.status === 'FAILED') {
@@ -195,13 +195,27 @@
           return;
         }
 
-        if (todoNodesCount.value) {
-          taskFlowRef.value!.setTreeStatus('TODO');
-          return;
-        }
-
         if (baseInfo.value.status === 'RUNNING') {
           taskFlowRef.value!.setTreeStatus('RUNNING');
+          return;
+        }
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  watch(
+    todoNodesCount,
+    () => {
+      if (baseInfo.value.status === 'FAILED') {
+        return;
+      }
+
+      setTimeout(() => {
+        if (todoNodesCount.value) {
+          taskFlowRef.value!.setTreeStatus('TODO');
           return;
         }
       });
