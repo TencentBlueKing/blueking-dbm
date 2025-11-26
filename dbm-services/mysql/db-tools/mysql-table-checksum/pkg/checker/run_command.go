@@ -34,7 +34,17 @@ func (r *Checker) Run() error {
 			return nil
 		}
 
-		return r.runGeneral(1)
+		err = r.runGeneral(1)
+		if err != nil {
+			slog.Error("run checksum", slog.String("error", err.Error()))
+			return err
+		}
+		err = r.moveResult()
+		if err != nil {
+			slog.Error("run checksum", slog.String("error", err.Error()))
+			return err
+		}
+		return nil
 	case config.DemandMode:
 		return r.runDemand()
 	default:
