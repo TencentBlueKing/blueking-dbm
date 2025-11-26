@@ -55,14 +55,14 @@ class CheckTDBCTlSecondaryHealthService(BaseService):
         is_error = False
         for node in res[0]["cmd_results"][0]["table_data"]:
             if node["STATUS"] != "Online":
-                self.log_error(f"check node error: {node['address']} is abnormal, the status is {node['STATUS']} ")
+                self.log_error(f"check node error: {node['HOST']} is abnormal, the status is {node['STATUS']} ")
                 continue
 
             replication_info = json.loads(node["REPLICATION_INFO"])
             if f"{replication_info['Master_Host']}:{replication_info['Master_Port']}" != cluster_primary:
                 # 表示同步源，和当前集群的primary不一致，则认为是同步异常
                 self.log_error(
-                    f"check node error: {node['address']} is abnormal, "
+                    f"check node error: {node['HOST']} is abnormal, "
                     f"Master_Host: {replication_info['Master_Host']},"
                     f"Master_Port: {replication_info['Master_Port']},"
                     f"current_primary: {cluster_primary}"
@@ -71,7 +71,7 @@ class CheckTDBCTlSecondaryHealthService(BaseService):
 
             if replication_info["Slave_IO_Running"] != "Yes" or replication_info["Slave_SQL_Running"] != "Yes":
                 self.log_error(
-                    f"check node error: {node['address']} is abnormal, Slave_IO_Running: "
+                    f"check node error: {node['HOST']} is abnormal, Slave_IO_Running: "
                     f"{node['Slave_IO_Running']}, "
                     f"Slave_SQL_Running: {node['Slave_SQL_Running']}"
                 )
