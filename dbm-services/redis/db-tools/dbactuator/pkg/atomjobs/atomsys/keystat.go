@@ -480,6 +480,68 @@ func (job *KeyStat) safeDumpRdb(workDir string) (err error) {
 	return nil
 }
 
+// getMaxmemoryPolicy 获取当前的 maxmemory-policy 配置值
+func (job *KeyStat) getMaxmemoryPolicy(ip string, port int, pwd string) (string, error) {
+	host := fmt.Sprintf("%s:%d", ip, port)
+	// using confxx get to replace config get
+	result, err := redisinfo.ExecRedisCommand(host, pwd, "confxx", "get", "maxmemory-policy")
+	if err != nil {
+		job.runtime.Logger.Error("getMaxmemoryPolicy failed, err:%s", err)
+		return "", err
+	}
+
+	// config get 返回格式: []interface{}，如 ["maxmemory-policy", "volatile-lru"]
+	confInfos, ok := result.([]any)
+	if !ok {
+		return "", fmt.Errorf("getMaxmemoryPolicy result is not []interface{}, result type: %T, value: %v",
+			result, result)
+	}
+
+	// 遍历结果，找到 maxmemory-policy 对应的值
+	// 格式是键值对交替出现: [key1, value1, key2, value2, ...]
+	for i := 0; i < len(confInfos); i += 2 {
+		if i+1 >= len(confInfos) {
+			break
+		}
+		key, ok := confInfos[i].(string)
+		if !ok {
+			continue
+		}
+		if key == "maxmemory-policy" {
+			value, ok := confInfos[i+1].(string)
+			if !ok {
+				return "", fmt.Errorf("getMaxmemoryPolicy value is not string, value type: %T, value: %v",
+					confInfos[i+1], confInfos[i+1])
+			}
+			job.runtime.Logger.Info("getMaxmemoryPolicy success, policy:%s", value)
+			return value, nil
+		}
+	}
+
+	return "", fmt.Errorf("maxmemory-policy not found in config get result: %v", confInfos)
+}
+
+// setMaxmemoryPolicy 设置 maxmemory-policy 配置值
+func (job *KeyStat) setMaxmemoryPolicy(ip string, port int, pwd string, policy string) error {
+	host := fmt.Sprintf("%s:%d", ip, port)
+	// using confxx set to replace config set
+	result, err := redisinfo.ExecRedisCommand(host, pwd, "confxx", "set", "maxmemory-policy", policy)
+	if err != nil {
+		job.runtime.Logger.Error("setMaxmemoryPolicy failed, err:%s", err)
+		return err
+	}
+	// confxx set 返回 "OK" 字符串表示成功
+	resultStr, ok := result.(string)
+	if ok && resultStr == "OK" {
+		job.runtime.Logger.Info("setMaxmemoryPolicy success, ip:%s, port:%d, policy:%s", ip, port, policy)
+		return nil
+	}
+	// 如果返回的不是 "OK"，也记录日志但不报错（某些 Redis 版本可能返回不同的格式）
+	job.runtime.Logger.Info("setMaxmemoryPolicy completed, ip:%s, port:%d, policy:%s, result:%v",
+		ip, port, policy, result)
+	return nil
+}
+
 // safeDumpRdbOne dump rdb to workDir
 func (job *KeyStat) safeDumpRdbOne(workDir string, ins KeyStatIns, pwd string) (err error) {
 	job.runtime.Logger.Info("safeDumpRdbOne, addr:%s, startBucket:%d, endBucket:%d",
@@ -491,7 +553,40 @@ func (job *KeyStat) safeDumpRdbOne(workDir string, ins KeyStatIns, pwd string) (
 		job.runtime.Logger.Error("safeDumpRdbOne failed, err:%s", err)
 		return err
 	}
-	cmd := mycmd.New(RedisCli, "-h", ip, "-p", port, "-a", mycmd.Password(pwd), "--rdb", rdbPath)
+
+	// 获取当前的 maxmemory-policy 值
+	originalPolicy, err := job.getMaxmemoryPolicy(ip, port, pwd)
+	if err != nil {
+		job.runtime.Logger.Warn("getMaxmemoryPolicy failed, err:%s, will continue without restoring", err)
+		originalPolicy = "" // 如果获取失败，标记为空，不进行恢复
+	} else {
+		job.runtime.Logger.Info("getMaxmemoryPolicy success, original policy:%s", originalPolicy)
+	}
+
+	// 设置 maxmemory-policy 为 volatile-lru
+	// 设置为volatile-lru的原因是，volatile-lru模式下，导出来的rdb文件会带有每个key的atime信息，便于后续分析。
+	// 在设置之前，先获取当前的 maxmemory-policy 值，在设置之后，再恢复原来的值。
+	// 在checkRedisLoad中会检查redis是否负载较低，如果负载高，也是不行的.
+	err = job.setMaxmemoryPolicy(ip, port, pwd, "volatile-lru")
+	if err != nil {
+		job.runtime.Logger.Error("setMaxmemoryPolicy to volatile-lru failed, err:%s", err)
+		return err
+	}
+
+	// 确保在函数返回前恢复原值
+	defer func() {
+		if originalPolicy != "" {
+			restoreErr := job.setMaxmemoryPolicy(ip, port, pwd, originalPolicy)
+			if restoreErr != nil {
+				job.runtime.Logger.Error("restore maxmemory-policy failed, err:%s, original policy:%s", restoreErr, originalPolicy)
+				// 不返回错误，只记录日志，因为 dump 可能已经成功
+			} else {
+				job.runtime.Logger.Info("restore maxmemory-policy success, original policy:%s", originalPolicy)
+			}
+		}
+	}()
+
+	cmd := mycmd.New(RedisCli, "-h", ip, "-p", strconv.Itoa(port), "-a", mycmd.Password(pwd), "--rdb", rdbPath)
 	// rdb 导出时间
 	result, err := cmd.Run(1 * time.Hour)
 	if err != nil {
