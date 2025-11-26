@@ -22,6 +22,7 @@ export interface MigrateSingle extends ResourcePoolDetailBase {
         spec_id: number;
         labels: string[];
         label_names: string[];
+        count: number;
       };
     };
     related_cluster_infos: {
