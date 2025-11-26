@@ -12,11 +12,35 @@ const aiBluekingMode = ref<AiBluekingModeEnum>(AiBluekingModeEnum['COMMON']);
 export const useState = () => {
   const systemEnvironStore = useSystemEnviron();
 
-  const apiUrl = computed(() =>
-    aiBluekingMode.value === AiBluekingModeEnum['LOG_ANALYSIS'] ? logAnalysisUrl : aidevUrl,
-  );
+  const hideNimbus = ref(false);
+  const showNewChatIcon = ref(true);
+  const showHistoryIcon = ref(true);
+  const showMoreIcon = ref(true);
+
+  const isLogAnalysisMode = computed(() => aiBluekingMode.value === AiBluekingModeEnum['LOG_ANALYSIS']);
+  const apiUrl = computed(() => (isLogAnalysisMode ? logAnalysisUrl : aidevUrl));
 
   const { BK_AIDEV_LOG_ANALYSIS_URL: logAnalysisUrl, BK_AIDEV_URL: aidevUrl } = systemEnvironStore.urls;
+
+  watch(
+    isLogAnalysisMode,
+    () => {
+      if (isLogAnalysisMode.value) {
+        showNewChatIcon.value = false;
+        showHistoryIcon.value = false;
+        showMoreIcon.value = false;
+        hideNimbus.value = true;
+      } else {
+        showNewChatIcon.value = true;
+        showHistoryIcon.value = true;
+        showMoreIcon.value = true;
+        hideNimbus.value = false;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const show = async () => {
     await aiBluekingRef.value?.handleShow();
@@ -40,7 +64,11 @@ export const useState = () => {
     apiUrl,
     changeMode,
     hide,
+    hideNimbus,
     sendMessage,
     show,
+    showHistoryIcon,
+    showMoreIcon,
+    showNewChatIcon,
   };
 };

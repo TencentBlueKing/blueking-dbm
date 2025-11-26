@@ -3,7 +3,11 @@
     v-if="apiUrl"
     ref="aiBluekingRef"
     :enable-popup="false"
+    :hide-nimbus="hideNimbus"
     load-recent-session-on-mount
+    :show-history-icon="showHistoryIcon"
+    :show-more-icon="showMoreIcon"
+    :show-new-chat-icon="showNewChatIcon"
     :url="apiUrl" />
 </template>
 
@@ -14,5 +18,6 @@
 
   import { useState } from './hooks/useState';
 
-  const { aiBluekingRef, apiUrl } = useState();
+  const { aiBluekingRef, apiUrl, hideNimbus, showHistoryIcon, showMoreIcon, showNewChatIcon } = useState();
 </script>
+=
