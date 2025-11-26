@@ -9,16 +9,20 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from collections import defaultdict
+import copy
+import datetime
 
+from django.utils import timezone
 from django.utils.translation import gettext as _
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from backend import env
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.components import BKMonitorV3Api
 from backend.configuration.constants import DBType
 from backend.db_services.redis.capacity_evaluate_service.util import UNIFY_QUERY_PARAMS
 from backend.db_services.redis.redis_keystat_report.filters import (
@@ -75,34 +79,39 @@ class KeyStatReportViewSet(viewsets.SystemViewSet):
     def keystat_info_by_instance(self, request, bk_biz_id):
         data = self.params_validate(self.get_serializer_class())
         instances = data.get("instances", "")
+        metric_result = {}
 
-        # todo: 假数据构造 后面蔡总补充
-        metric_result = defaultdict(dict)
-        series = []
-        ff = {
-            "dimensions": {"bk_target_ip": "1.1.1.1", "cluster_domain": "ins.test.kio.db", "instance_port": "30000"},
-            "target": "a{bk_target_ip=1.1.1.1, cluster_domain=ins.test.kio.db, instance_port=30000}",
-            "metric_field": "_result_",
-            "datapoints": [[111, 1111]],
-            "alias": "_result_",
-            "type": "line",
-            "dimensions_translation": {},
-            "instanc" "unit": "",
-        }
+        for addr in instances.split("|"):
+            if not addr or addr.count(":") != 1:
+                continue
 
-        for series_ in instances.split("|"):
-            series.append(ff)
-
-        for index, item in enumerate(series):
-            ip_port = item["dimensions"]["bk_target_ip"] + ":" + str(int(item["dimensions"]["instance_port"]) + index)
-            metric_result[ip_port] = {
-                "instance": ip_port,
-                "cluster_domain": item["dimensions"]["cluster_domain"],
-                "value": item["datapoints"][0][0],
-                "key_num": 1000,
-                "memory_total": 1024 * 1024 * 1024,
+            metric_result[addr] = {
+                "instance": addr,
+                "key_num": self._fetch_metric(addr, "redis_db_keys"),
+                "memory_total": self._fetch_metric(addr, "redis_memory_used_bytes"),
+                "value": 111,
             }
+
         return Response(metric_result)
+
+    def _fetch_metric(self, addr, metric_name):
+        """获取redis实例的监控指标"""
+        try:
+            ip_port = addr.replace(":", "-")
+            promql = f'sum by (instance) (exporter_dbm_redis_exporter:{metric_name}{{instance="{ip_port}"}})'
+
+            params = copy.deepcopy(UNIFY_QUERY_PARAMS)
+            params["bk_biz_id"] = env.DBA_APP_BK_BIZ_ID
+            end_time = datetime.datetime.now(timezone.utc)
+            start_time = end_time - datetime.timedelta(minutes=5)
+            params["start_time"] = int(start_time.timestamp())
+            params["end_time"] = int(end_time.timestamp())
+            params["query_configs"][0]["promql"] = promql
+
+            out = BKMonitorV3Api.unify_query(params, use_admin=True)
+            return out["series"][0]["datapoints"][0][0] if out.get("series") else -1
+        except Exception:
+            return -1
 
 
 class KeyStatReportDetailsViewSet(viewsets.SystemViewSet):
