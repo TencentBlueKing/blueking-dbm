@@ -92,6 +92,15 @@
                 type="tiaoguo" />{{ t('跳过') }}
             </BkButton>
           </BkPopConfirm>
+          <BkButton
+            class="ai-blueking-btn"
+            :disabled="!logContent"
+            @click="handleAiLogAnalysis">
+            <img
+              class="mr-5"
+              :src="AiBluekingImage" />
+            <span>{{ t('日志解析') }}</span>
+          </BkButton>
         </template>
         <template v-else>
           <BkPopConfirm
@@ -155,9 +164,11 @@
           :label="t('执行日志')"
           name="log">
           <ExecuteLog
+            :auto-open-ai-log="autoOpenAiLog"
             :is-show="isShow"
             :node="node"
-            :root-id="rootId" />
+            :root-id="rootId"
+            @log-change="handleLogChange" />
         </BkTabPanel>
         <BkTabPanel
           v-if="userProfileStore.isSuperuser"
@@ -188,10 +199,13 @@
 
   import { useUserProfile } from '@stores';
 
+  import { useState as useAiBluekingState } from '@components/ai-blueking/hooks/useState';
   import CostTimer from '@components/cost-timer/CostTimer.vue';
   import DbLog from '@components/db-log/index.vue';
 
   import { messageSuccess } from '@utils';
+
+  import AiBluekingImage from '@images/ai-blueking.svg';
 
   import { type Node } from '../flow-canvas/utils';
 
@@ -200,6 +214,7 @@
   import OperationRecord from './components/OperationRecord.vue';
 
   interface Props {
+    autoOpenAiLog: boolean;
     node?: Node;
     rootId: string;
   }
@@ -220,6 +235,7 @@
 
   const { t } = useI18n();
   const userProfileStore = useUserProfile();
+  const { sendMessage, show } = useAiBluekingState();
 
   const NODE_STATUS_TEXT: Record<string, string> = {
     CREATED: t('待执行'),
@@ -234,6 +250,7 @@
   const dbLogRef = ref<InstanceType<typeof DbLog>>();
   const activePanelId = ref('log');
   const todoLoading = ref(false);
+  const logContent = ref('');
 
   const nodeData = computed(() => props.node || {});
   const STATUS_RUNNING = computed(() => nodeData.value.status === 'RUNNING');
@@ -338,6 +355,18 @@
     emits('close');
     activePanelId.value = 'log';
   };
+
+  const handleLogChange = async (log: string) => {
+    logContent.value = log;
+    if (props.autoOpenAiLog) {
+      await handleAiLogAnalysis();
+    }
+  };
+
+  const handleAiLogAnalysis = async () => {
+    await show();
+    await sendMessage(logContent.value);
+  };
 </script>
 
 <style lang="less" scoped>
@@ -362,6 +391,15 @@
       width: 100%;
       padding-right: 16px;
       .flex-center();
+
+      .ai-blueking-btn {
+        margin-left: 8px;
+
+        img {
+          width: 20px;
+          height: 20px;
+        }
+      }
 
       .log-header-left {
         flex: 1;
