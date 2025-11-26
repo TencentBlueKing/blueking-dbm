@@ -276,9 +276,9 @@ func (job *ProxyReUse) reGeneratePredixyConfig(port int) error {
 	// 配置文件
 	conf := common.PredixConf
 	// 修改配置文件
-	instance_base := fmt.Sprintf("%s/%d", consts.GetRedisDataDir(), job.params.Port)
+	instance_base := fmt.Sprintf("%s/predixy/%d", consts.GetRedisDataDir(), job.params.Port)
 	config_path := fmt.Sprintf("%s/predixy.conf", instance_base)
-	log := fmt.Sprintf("%s/predixy/%d/logs/log", consts.GetRedisDataDir(), job.params.Port)
+	log := fmt.Sprintf("%s/logs/log", instance_base)
 
 	bind := fmt.Sprintf("%s:%s", job.params.IP, strconv.Itoa(job.params.Port))
 	var servers string
