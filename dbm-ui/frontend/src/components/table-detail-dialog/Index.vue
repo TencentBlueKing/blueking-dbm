@@ -83,7 +83,7 @@
       if (
         ele.classList?.contains('bk-modal') ||
         ele.classList?.contains('dbm-table-detail-dialog') ||
-        ele.classList?.contains('bk-popper') ||
+        ele.classList?.contains('bk-popover') ||
         ele.classList?.contains('tippy-box') ||
         ele.classList?.contains('db-navigation-side-menu') ||
         ele.classList?.contains('bk-date-picker-dropdown') ||
