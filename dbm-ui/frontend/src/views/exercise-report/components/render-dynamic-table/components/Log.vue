@@ -38,13 +38,17 @@
       setTimeout(() => {
         logRef.value?.init();
         setTimeout(() => {
-          logRef.value?.setLog([
-            {
-              levelname: '',
-              message: props.log,
-              timestamp: 0,
-            },
-          ]);
+          const logList = props.log
+            .trim()
+            .split('\n')
+            .map((item) => {
+              return {
+                levelname: '',
+                message: item,
+                timestamp: 0,
+              };
+            });
+          logRef.value?.setLog(logList);
           initLoading.value = false;
         });
       }, 300);
