@@ -220,7 +220,7 @@
 
   const statusDisplay = computed(() => statusList.value.find((item) => item.value === statusValue.value)!.label);
   const showBatchOperation = computed(
-    () => ['FAILED', 'RUNNING', 'TODO'].includes(statusValue.value) && renderTreeData.value.length,
+    () => ['FAILED', 'RUNNING', 'TODO'].includes(statusValue.value) && renderTreeData.value.length > 0,
   );
 
   const openedTreeNodesSet = new Set<string>();
@@ -473,6 +473,7 @@
     .status-select-main {
       display: flex;
       width: 100%;
+      min-height: 32px;
       overflow: hidden;
 
       .select-title {
