@@ -94,7 +94,7 @@ class ReportItem(models.Model):
     min_idletime_human = models.CharField(max_length=255, default="", help_text=_("最小空闲时间人类化描述"))
     so_min_idletime_human = models.CharField(max_length=255, default="", help_text=_("最小空闲时间人类化描述ForSo"))
     min_idletime = models.IntegerField(default=0, help_text=_("最小空闲时间"))
-    min_idletime_show = models.IntegerField(default=0, help_text=_("最近访问时间（带单位）"))
+    min_idletime_show = models.CharField(max_length=255, default="", help_text=_("最近访问时间（带单位）"))
     avg_key_used_bytes = models.IntegerField(default=0, help_text=_("单key平均占用内存"))
     mem_used_bytes = models.BigIntegerField(default=0, help_text=_("内存使用量字节数"))
     mem_used_pct = models.FloatField(max_length=255, default=0, help_text=_("内存使用量字节数占比"))
