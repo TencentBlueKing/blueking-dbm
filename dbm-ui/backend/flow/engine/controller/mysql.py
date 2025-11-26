@@ -83,6 +83,7 @@ from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_switch_for_migr
 from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_switch_validator import MySQLProxySwitchValidator
 from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_upgrade_validator import MySQLProxyUpgradeValidator
 from backend.flow.engine.bamboo.scene.mysql.validate.mysql_rollback_validator import TenDbHaRollbackFlowValidator
+from backend.flow.engine.bamboo.scene.mysql.validate.tendbha_upgrade_validator import TenDBHAUpgradeValidator
 from backend.flow.engine.controller.base import BaseController
 from backend.flow.engine.validate.base_validate import validates_with
 
@@ -682,6 +683,7 @@ class MySQLController(BaseController):
         flow = TendbClusterUpgradeFlow(root_id=self.root_id, ticket_data=self.ticket_data)
         flow.upgrade_ro_slaves()
 
+    @validates_with(TenDBHAUpgradeValidator)
     def tendbha_upgrade_scene(self):
         """
         tendbha 迁移升级,兼容一主多从的场景
