@@ -268,6 +268,7 @@
               },
               resource_spec: {
                 bk_new_orphan: {
+                  count: 1,
                   label_names: item.labels.map((item) => item.value),
                   labels: item.labels.map((item) => String(item.id)),
                   spec_id: item.specId,
