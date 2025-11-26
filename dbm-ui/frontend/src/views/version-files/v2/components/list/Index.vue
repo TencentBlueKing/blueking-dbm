@@ -26,7 +26,7 @@
 
   import { DBTypes } from '@common/const';
 
-  import type { TabItem } from '../../Index.vue';
+  import type { TabItem } from '../Index.vue';
 
   import ReleaseVersionList from './components/release-version-list/Index.vue';
   import SubVersionList from './components/sub-version-list/Index.vue';
