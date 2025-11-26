@@ -88,6 +88,10 @@ func (c *PtTableChecksumAct) Run() (err error) {
 			FunName: "执行校验",
 			Func:    c.Service.DoChecksum,
 		},
+		{
+			FunName: "复制校验结果",
+			Func:    c.Service.CopyResult,
+		},
 	}
 	if err := steps.Run(); err != nil {
 		return err
