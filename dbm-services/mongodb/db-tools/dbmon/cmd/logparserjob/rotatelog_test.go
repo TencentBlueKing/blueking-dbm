@@ -18,7 +18,7 @@ func TestGetLastRotate(t *testing.T) {
 	}
 	got := getLastRotate(mongoFilePath)
 	if got != -1 {
-		t.Errorf("getLastRotate() = %v; want 0", got)
+		t.Errorf("getLastRotate() = %v; want -1", got)
 	} else {
 		t.Log("TestGetLastRotate passed")
 	}

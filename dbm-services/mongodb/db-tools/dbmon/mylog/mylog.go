@@ -16,6 +16,8 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
+var globalAtomicLevel zap.AtomicLevel
+
 // Logger 全局logger
 var Logger *zap.Logger
 
@@ -26,7 +28,7 @@ var AdapterLog *LogAdapter
 func getCurrentDirectory() string {
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
-		log.Panicf(fmt.Sprintf("GetCurrentDirectory failed,os.Args[0]=%s, err: %+v", os.Args[0], err))
+		log.Panicf("GetCurrentDirectory failed,os.Args[0]=%s, err:%v", os.Args[0], err)
 		return dir
 	}
 	dir = strings.Replace(dir, "\\", "/", -1)
@@ -39,7 +41,7 @@ func mkdirIfNotExistsWithPerm(dir string, perm os.FileMode) {
 	if err == nil {
 		return
 	}
-	if os.IsNotExist(err) == true {
+	if os.IsNotExist(err) {
 		err = os.MkdirAll(dir, perm)
 		if err != nil {
 			log.Panicf("MkdirAll fail,err:%v,dir:%s", err, dir)
@@ -47,14 +49,25 @@ func mkdirIfNotExistsWithPerm(dir string, perm os.FileMode) {
 	}
 }
 
+// ToggleLogLevel 切换日志级别，在debug和info之间切换
+func ToggleLogLevel() {
+	currentLevel := globalAtomicLevel.Level()
+	if currentLevel == zapcore.DebugLevel {
+		globalAtomicLevel.SetLevel(zapcore.InfoLevel)
+	} else {
+		globalAtomicLevel.SetLevel(zapcore.DebugLevel)
+	}
+	Logger.Info("toggle log level", zap.String("old_level", currentLevel.String()),
+		zap.String("new_level", globalAtomicLevel.Level().String()))
+}
+
 // InitLoggerStdout 初始化日志 InitLoggerStdout
 func InitLoggerStdout(debug bool) {
 	debugEnv := viper.GetBool("BK_DBMON_DEBUG")
-	var level zap.AtomicLevel
 	if debug || debugEnv {
-		level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
+		globalAtomicLevel = zap.NewAtomicLevelAt(zapcore.DebugLevel)
 	} else {
-		level = zap.NewAtomicLevelAt(zapcore.InfoLevel)
+		globalAtomicLevel = zap.NewAtomicLevelAt(zapcore.InfoLevel)
 	}
 
 	cfg := zap.NewProductionConfig()
@@ -74,7 +87,7 @@ func InitLoggerStdout(debug bool) {
 		EncodeName:     zapcore.FullNameEncoder,
 	}
 
-	core := zapcore.NewCore(zapcore.NewJSONEncoder(cfg.EncoderConfig), zapcore.AddSync(os.Stdout), level)
+	core := zapcore.NewCore(zapcore.NewJSONEncoder(cfg.EncoderConfig), zapcore.AddSync(os.Stdout), globalAtomicLevel)
 	Logger = zap.New(core, zap.AddCaller())
 	AdapterLog = &LogAdapter{}
 	AdapterLog.Logger = Logger
@@ -83,11 +96,10 @@ func InitLoggerStdout(debug bool) {
 // InitRotateLoger 初始化日志logger
 func InitRotateLoger(debug bool) {
 	debugEnv := viper.GetBool("BK_DBMON_DEBUG")
-	var level zap.AtomicLevel
 	if debug || debugEnv {
-		level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
+		globalAtomicLevel = zap.NewAtomicLevelAt(zapcore.DebugLevel)
 	} else {
-		level = zap.NewAtomicLevelAt(zapcore.InfoLevel)
+		globalAtomicLevel = zap.NewAtomicLevelAt(zapcore.InfoLevel)
 	}
 	currDir := getCurrentDirectory()
 	logDir := filepath.Join(currDir, "logs")
@@ -119,7 +131,7 @@ func InitRotateLoger(debug bool) {
 		Compress:   true,
 	})
 
-	core := zapcore.NewCore(zapcore.NewJSONEncoder(cfg.EncoderConfig), zapcore.NewMultiWriteSyncer(lj), level)
+	core := zapcore.NewCore(zapcore.NewJSONEncoder(cfg.EncoderConfig), zapcore.NewMultiWriteSyncer(lj), globalAtomicLevel)
 	Logger = zap.New(core, zap.AddCaller())
 
 	AdapterLog = &LogAdapter{}

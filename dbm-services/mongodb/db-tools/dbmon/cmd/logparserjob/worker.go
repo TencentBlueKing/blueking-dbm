@@ -45,7 +45,7 @@ func getMongoLogDir(port int, isMongos bool, logger *zap.Logger) string {
 func NewWorker(server *config.ConfServerItem, maxTime int64, logger *zap.Logger, osCtx context.Context) *Worker {
 	mongoLogFile := getMongoLogDir(server.Port, server.MetaRole == "mongos", logger)
 	logDir := path.Dir(mongoLogFile)
-	jsonDir := path.Join(logDir + "/jsonlog/")
+	jsonDir := path.Join(logDir, "jsonlog")
 	if maxTime <= 0 {
 		logger.Warn("NewWorker: maxTime is 0, set to 300")
 		maxTime = 300
@@ -101,5 +101,7 @@ func (w *Worker) Run() {
 // Stop 解析日志文件
 func (w *Worker) Stop() {
 	w.Logger.Info("stop")
-	w.CancelFunc()
+	if w.CancelFunc != nil {
+		w.CancelFunc()
+	}
 }

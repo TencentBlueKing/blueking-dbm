@@ -1,6 +1,8 @@
 package checkhealthjob
 
 import (
+	"bk-dbconfig/pkg/core/logger"
+	"dbm-services/common/go-pubpkg/mycmd"
 	"dbm-services/mongodb/db-tools/dbmon/cmd/basejob"
 	"dbm-services/mongodb/db-tools/dbmon/pkg/linuxproc"
 	"fmt"
@@ -26,6 +28,11 @@ import (
 // checkHealthHandle 全局任务句柄
 var checkHealthHandle *CheckHealthJob
 var onceGetCheckHealthHandle sync.Once
+
+var errNoOutputFromMongo = errors.New("no output from mongo")
+var errAuthenticationFailed = errors.New("authentication failed")
+var errBadState = errors.New("bad state")
+var errConnectionFailed = errors.New("connection failed")
 
 // GetCheckHealthHandle 获取任务句柄
 func GetCheckHealthHandle(conf *config.DbMonConfig, logger *zap.Logger, jobName string) *CheckHealthJob {
@@ -80,32 +87,41 @@ func (job *CheckHealthJob) runOneServer(svrItem *config.ConfServerItem) {
 	}
 
 	startTime := time.Now()
-	loginTimeoutVal, err := config.ClusterConfig.GetInt64(svrItem, config.SegmentMonitor, config.KeyLoginTimeout, 10)
-	if err != nil {
-		logger.Error(fmt.Sprintf("get loginTimeout from config failed: %v", err))
-	}
-	// loginTimeoutVal < 5, loginTimeoutVal = 5
-	if loginTimeoutVal < 5 {
-		loginTimeoutVal = 5
-	} else if loginTimeoutVal > 300 {
-		loginTimeoutVal = 300
-	}
 
-	loginTimeout := int(loginTimeoutVal)
-	if err := checkService(loginTimeout, svrItem, logger); err == nil {
+	loginTimeout := getLoginTimeout(svrItem)
+	err := checkService(loginTimeout, svrItem, logger)
+	logger.Info("checkService result", zap.Int("loginTimeout", loginTimeout), zap.Any("err", err))
+	if err == nil {
 		return
 	}
+	// checkService 返回的几种情况：
+	/*
+		1. 连接失败
+		2. 认证失败
+		3. 状态异常 (mongod)
+	*/
+	logger.Error("checkService failed, err: " + err.Error())
+	if errors.Is(err, errAuthenticationFailed) {
+		// 认证失败
+		config.SendEvent(&job.MyConf.BkMonitorBeat, svrItem, consts.EventMongoLogin, consts.WarnLevelCritical,
+			err.Error(), logger)
+		return
+	}
+	if errors.Is(err, errBadState) {
+		// 状态异常
+		config.SendEvent(&job.MyConf.BkMonitorBeat, svrItem, consts.EventMongoLogin, consts.WarnLevelCritical,
+			err.Error(), logger)
+		return
+	}
+
 	elapsedTime := time.Since(startTime).Seconds()
 	// 检查 进程是否存在，存在： 发送消息LoginTimeout
 	// Port被别的进程占用，此处算是误告，但问题不大，反正都需要人工处理.
 	using, err := checkPortInUse(svrItem.Port)
-	logger.Debug(fmt.Sprintf("checkPortInUse %d return using:%v, err: %v", svrItem.Port, using, err))
-	if err != nil {
-		logger.Info(fmt.Sprintf("checkPortInUse took %0.1f seconds, err: %v", elapsedTime, err))
-	}
+	logger.Info("checkPortInUse", zap.Int("port", svrItem.Port), zap.Bool("using", using), zap.Error(err))
 	if using {
 		// 进程存在 发送消息LoginTimeout
-		config.SendEvent(&job.MyConf.BkMonitorBeat, svrItem, consts.EventMongoLogin, consts.WarnLevelError,
+		config.SendEvent(&job.MyConf.BkMonitorBeat, svrItem, consts.EventMongoLogin, consts.WarnLevelCritical,
 			fmt.Sprintf("login timeout, taking %0.1f seconds", elapsedTime), logger)
 		return
 	}
@@ -131,10 +147,25 @@ func (job *CheckHealthJob) runOneServer(svrItem *config.ConfServerItem) {
 	} else {
 		// 发送消息LoginFailed
 		config.SendEvent(&job.MyConf.BkMonitorBeat,
-			svrItem, consts.EventMongoRestart, consts.WarnLevelError,
-			"restart failed", logger)
+			svrItem, consts.EventMongoRestart, consts.WarnLevelCritical,
+			"restart failed with error: "+job.Err.Error(), logger)
 	}
 
+}
+
+func getLoginTimeout(svrItem *config.ConfServerItem) int {
+	loginTimeoutVal, err := config.ClusterConfig.GetInt64(svrItem, config.SegmentMonitor, config.KeyLoginTimeout, 10)
+	if err != nil {
+		logger.Error("get loginTimeout from config failed", zap.Error(err))
+		return 10
+	}
+	// loginTimeoutVal < 5, loginTimeoutVal = 5
+	if loginTimeoutVal < 5 {
+		loginTimeoutVal = 5
+	} else if loginTimeoutVal > 300 {
+		loginTimeoutVal = 300
+	}
+	return int(loginTimeoutVal)
 }
 
 const secondsDay = 86400
@@ -204,27 +235,78 @@ func checkService(loginTimeout int, svrItem *config.ConfServerItem, logger *zap.
 	pass := svrItem.Password
 	authDb := "admin"
 	port := fmt.Sprintf("%d", svrItem.Port)
-	outBuf, errBuf, err := ExecLoginJs(mongoBin, loginTimeout, svrItem.IP, port, user, pass, authDb,
+	out, errOut, err := ExecLoginJsNoDb(mongoBin, loginTimeout, svrItem.IP, port, user, pass, authDb,
 		embedfiles.MongoLoginJs, logger)
-	logger.Info(fmt.Sprintf("ExecLoginJs %s timeout:%d stdout: %q, stderr: %q", port, loginTimeout, outBuf, errBuf))
-	if err == nil {
-		return nil
+
+	// if err is
+	// not nil, return error, and log the error
+	logger.Info(fmt.Sprintf("ExecLoginJs %s timeout:%d stdout: %s, stderr: %s, err:%v",
+		port, loginTimeout, out, errOut, err))
+
+	if len(out) == 0 {
+		return errNoOutputFromMongo
 	}
-	if len(outBuf) == 0 {
-		return errors.New("login failed")
+
+	connectSuccess := false
+	authSuccess := false
+	stateOK := false
+	stateVal := ""
+
+	// split out by '\n'
+	lines := strings.Split(out, "\n")
+	for _, line := range lines {
+		if strings.Contains(line, "connect_success true") {
+			connectSuccess = true
+		} else if strings.Contains(line, "auth_success 1") {
+			authSuccess = true
+		} else if strings.Contains(line, "state ") {
+			parts := strings.Split(line, " ")
+			if len(parts) == 2 {
+				stateVal = strings.TrimSpace(parts[1])
+				stateOK = (stateVal == "1" || stateVal == "2" || stateVal == "7")
+			}
+		}
 	}
-	// ExecLoginJs
-	if strings.Contains(string(outBuf), "connect ok") {
-		return nil
+	logger.Info(fmt.Sprintf("authSuccess: %v, stateOK: %v, stateVal: %s", authSuccess, stateOK, stateVal))
+
+	if !connectSuccess {
+		return errConnectionFailed
 	}
-	return errors.New("login failed")
+	if !authSuccess {
+		return errAuthenticationFailed
+	}
+	if !stateOK {
+		return errors.Wrapf(errBadState, "state is %s", parseState(stateVal))
+	}
+	return nil
 }
 
 func startMongo(port int, logger *zap.Logger) error {
-	ret, err := DoCommandWithTimeout(60, startMongoScript, fmt.Sprintf("%d", port))
-	logger.Info(fmt.Sprintf("exec %s return err:%v", ret.Cmdline, err))
+	startMongoCmd := mycmd.New(startMongoScript, fmt.Sprintf("%d", port))
+	ret, err := startMongoCmd.Run(60 * time.Second)
+	logger.Info(fmt.Sprintf("exec %s return stdout: %s, stderr: %s, err:%v",
+		startMongoCmd.GetCmdLine("", false), ret.GetStdout(), ret.GetStderr(), err))
 	if err != nil {
-		return err
+		return errors.Wrap(err, "startMongo failed")
 	}
 	return nil
+}
+
+func parseState(state string) string {
+	stateMap := map[string]string{
+		"0":  "startup",
+		"1":  "primary",
+		"2":  "secondary",
+		"3":  "recovering",
+		"5":  "startup2",
+		"6":  "unknown",
+		"7":  "arbiter",
+		"8":  "down",
+		"9":  "rollback",
+		"10": "removed",
+	}
+	if state, ok := stateMap[state]; ok {
+		return state
+	}
+	return "unknown-code(" + state + ")"
 }

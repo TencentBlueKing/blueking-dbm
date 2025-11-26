@@ -497,6 +497,25 @@ func TestNewNsFilterInV2(t *testing.T) {
 				newCollection("db2", []string{"tb_aa1", "tb_aa2"}),
 			},
 		},
+		{
+			name: "case9: 指定所有库下tb1 和tb2的集合",
+			dbColList: []DbCollection{
+				newCollection("db1", []string{"tb_aa1", "abc"}),
+				newCollection("db2", []string{"tb_aa1", "tb_aa2"}),
+				newCollection("db22", []string{"tb_aa1", "tb_aa2"}),
+			},
+			conf: tmpConf{
+				WhiteDbList: []string{"*"},
+				WhiteTbList: []string{"tb_aa1", "tb_aa2"},
+				BlackDbList: []string{""},
+				BlackTbList: []string{""},
+			},
+			retColList: []DbCollection{
+				newCollection("db1", []string{"tb_aa1"}),
+				newCollection("db2", []string{"tb_aa2"}),
+				newCollection("db22", []string{"tb_aa1", "tb_aa2"}),
+			},
+		},
 	}
 
 	for i, item := range input {
@@ -695,6 +714,25 @@ func TestNewNsFilterInV2_Cartesian(t *testing.T) {
 			retColList: []DbCollection{
 				newCollection("db1", []string{"tb_aa1", "abc"}),
 				newCollection("db2", []string{"tb_aa1", "tb_aa2"}),
+			},
+		},
+		{
+			name: "case9: 指定所有库下tb1 和tb2的集合",
+			dbColList: []DbCollection{
+				newCollection("db1", []string{"tb_aa1", "abc"}),
+				newCollection("db2", []string{"tb_aa1", "tb_aa2"}),
+				newCollection("db22", []string{"tb_aa1", "tb_aa2"}),
+			},
+			conf: tmpConf{
+				WhiteDbList: []string{"db1", "db2"},
+				WhiteTbList: []string{"tb_aa1", "tb_aa2"},
+				BlackDbList: []string{""},
+				BlackTbList: []string{""},
+			},
+			// match db1.* and not match db1.abc => db1.tb_aa1
+			retColList: []DbCollection{
+				newCollection("db1", []string{"tb_aa1"}),
+				newCollection("db2", []string{"tb_aa2"}),
 			},
 		},
 	}

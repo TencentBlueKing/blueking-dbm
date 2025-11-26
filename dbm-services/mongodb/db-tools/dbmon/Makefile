@@ -4,7 +4,7 @@ SRV_NAME=bk-dbmon
 ifneq ($(BUILDSTAMP),)
 	BUILDSTAMP := $(BUILDSTAMP)
 else
-	BUILDSTAMP := $(shell date +%FT%T%z)
+	BUILDSTAMP := $(shell date +%Y%m%d%H%M%S)
 endif
 
 ifneq ($(VERSION),)
@@ -14,7 +14,8 @@ else
 endif
 
 ifneq ($(GITHASH),)
-	GITHASH := $(GITHASH)
+	# 如果GITHASH不为空，则使用GITHASH, 使用前9个字符。
+	GITHASH := $(shell echo $(GITHASH) | cut -c 1-9)
 else
 	GITHASH := $(shell git rev-parse --short HEAD)
 endif

@@ -10,7 +10,9 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -78,6 +80,7 @@ func (job *BackupJob) Run() {
 	if nowTime.Unix()-cleanReportLastTime > 24*3600 {
 		// 清理过期的报告文件. 每天执行一次.
 		_ = job.cleanReport(nowTime, 90)
+		_ = job.cleanOldDumpLogs(nowTime, 90)
 		cleanReportLastTime = nowTime.Unix()
 	}
 
@@ -232,4 +235,40 @@ func (job *BackupJob) PrepareDir() (dirs []string, err error) {
 	}
 	dirs = append(dirs, dir, job.ReportDir)
 	return
+}
+
+// cleanOldDumpLogs clean old dump logs if mtime > dumpLogsSavedDays
+// dumpLogsDir is /data/dbbak/mg/mongodump/, file name is 'mongodump-*.dump.log'
+func (job *BackupJob) cleanOldDumpLogs(nowTime time.Time, dumpLogsSavedDays int) error {
+	dumpLogsDir := path.Join(consts.GetMongoBackupDir(), "dbbak", "mg")
+	if _, err := os.Stat(dumpLogsDir); os.IsNotExist(err) {
+		return nil
+	}
+	// get file by glob pattern 'mongodump-*.dump.log'
+	globFiles, err := filepath.Glob(path.Join(dumpLogsDir, "mongodump-*.dump.log"))
+	if err != nil {
+		job.Logger.Warn(fmt.Sprintf("glob dump logs dir %s failed", dumpLogsDir))
+		return err
+	}
+	// if file name is 'mongodump-*.dump.log' and mtime > dumpLogsSavedDays days, delete it
+	for _, file := range globFiles {
+		// file must end with '.dump.log' and start with 'mongodump-' and mtime > dumpLogsSavedDays days, delete it
+		if !strings.HasSuffix(file, ".dump.log") || !strings.HasPrefix(file, "mongodump-") {
+			continue
+		}
+		fileInfo, err := os.Stat(file)
+		if err != nil {
+			job.Logger.Warn(fmt.Sprintf("get file %s info failed", file))
+			continue
+		}
+		if nowTime.Unix()-fileInfo.ModTime().Unix() > int64(dumpLogsSavedDays)*24*3600 {
+			if err := os.Remove(file); err != nil {
+				job.Logger.Warn(fmt.Sprintf("delete dump log file %s failed", file))
+			} else {
+				job.Logger.Info(fmt.Sprintf("delete dump log file %s success", file))
+			}
+		}
+	}
+	job.Logger.Info("cleanOldDumpLogs end")
+	return nil
 }
