@@ -1739,7 +1739,11 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.SQLSERVER],
         group=_("SQLServer"),
         subgroup=_("集群管理"),
-        common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN],
+        common_labels=[
+            CommonActionLabel.BIZ_READ_ONLY,
+            CommonActionLabel.BIZ_MAINTAIN,
+            CommonActionLabel.EXTERNAL_DEVELOPER,
+        ],
     )
 
     SQLSERVER_EDIT = ActionMeta(
