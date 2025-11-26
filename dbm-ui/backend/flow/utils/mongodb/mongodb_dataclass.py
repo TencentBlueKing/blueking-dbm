@@ -2880,7 +2880,7 @@ class ActKwargs:
         primary_ip = result.split(":")[0]
         primary_port = int(result.split(":")[1])
 
-        primary_instance_relationship, secondary_instance_relationship, backup_instance_relationship = {}, {}, {}
+        primary_instance_relationship, all_secondary_instance_relationship, backup_instance_relationship = {}, [], {}
         for instance_relationship in instance_relationships:
             instance_relationship["instances"][0]["primary_ip"] = primary_ip
             instance_relationship["instances"][0]["primary_port"] = primary_port
@@ -2893,12 +2893,12 @@ class ActKwargs:
                 if instance_relationship["instances"][0]["instance_role"] == InstanceRole.MONGO_BACKUP.value:
                     backup_instance_relationship = instance_relationship
                 else:
-                    secondary_instance_relationship = instance_relationship
+                    all_secondary_instance_relationship.append(instance_relationship)
         # backup secondary primary
         if backup_instance_relationship:
             role_instance_relationships.append(backup_instance_relationship)
-        if secondary_instance_relationship:
-            role_instance_relationships.append(secondary_instance_relationship)
+        if all_secondary_instance_relationship:
+            role_instance_relationships.extend(all_secondary_instance_relationship)
         if primary_instance_relationship:
             role_instance_relationships.append(primary_instance_relationship)
 
