@@ -48,6 +48,7 @@
   </div>
   <NodeDetail
     v-model:is-show="nodeOperationState.log.isShow"
+    :auto-open-ai-log="nodeOperationState.log.isShowAiLog"
     :node="nodeOperationState.currentNode"
     :root-id="rootId"
     :tree-data="treeData"
@@ -95,6 +96,7 @@
     currentNode: undefined as Node | undefined,
     log: {
       isShow: false,
+      isShowAiLog: false,
     },
   });
 
@@ -191,11 +193,12 @@
     });
   };
 
-  const handleShowLog = (node: any) => {
+  const handleShowLog = (node: any, isShowAiLog = false) => {
     if (node.data?.status === 'CREATED' || node.status === 'CREATED') {
       return;
     }
     nodeOperationState.log.isShow = true;
+    nodeOperationState.log.isShowAiLog = isShowAiLog;
     const targetNode = nodesMap[node.id];
     if (targetNode) {
       nodeOperationState.currentNode = targetNode;

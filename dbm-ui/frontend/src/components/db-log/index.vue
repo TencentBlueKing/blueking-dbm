@@ -19,7 +19,7 @@
       <BkLoading
         :loading="loading"
         mode="spin"
-        :title="t('日志加载中...')">
+        :title="loadingText">
       </BkLoading>
     </div>
     <div id="nodeLogLineNumbers"></div>
@@ -44,9 +44,10 @@
 <script setup lang="tsx">
   import { format } from 'date-fns';
   import _ from 'lodash';
-  import { useI18n } from 'vue-i18n';
 
   import { execCopy } from '@utils';
+
+  import { t } from '@locales';
 
   import { FitAddon } from '@xterm/addon-fit';
   import { WebLinksAddon } from '@xterm/addon-web-links';
@@ -54,6 +55,7 @@
 
   interface Props {
     loading?: boolean;
+    loadingText?: string;
   }
 
   interface NodeLog {
@@ -73,6 +75,7 @@
 
   withDefaults(defineProps<Props>(), {
     loading: false,
+    loadingText: t('日志加载中...'),
   });
 
   let terminal: Terminal | null;
@@ -145,8 +148,6 @@
       checkTermScroll();
     });
   };
-
-  const { t } = useI18n();
 
   const isTermAtTop = ref(false);
   const isTermAtBottom = ref(false);
@@ -329,6 +330,10 @@
       height: 100%;
       justify-content: center;
       align-items: center;
+
+      .bk-loading-indicator {
+        align-items: center;
+      }
     }
 
     .quick-switch {

@@ -1,6 +1,7 @@
 <template>
   <AIBlueking
-    default-minimize
+    v-if="apiUrl"
+    ref="aiBluekingRef"
     :enable-popup="false"
     load-recent-session-on-mount
     :url="apiUrl" />
@@ -9,11 +10,9 @@
 <script setup lang="ts">
   import AIBlueking from '@blueking/ai-blueking';
 
-  import { useSystemEnviron } from '@stores';
-
   import '@blueking/ai-blueking/dist/vue3/style.css';
 
-  const systemEnvironStore = useSystemEnviron();
+  import { useState } from './hooks/useState';
 
-  const { BK_AIDEV_URL: apiUrl } = systemEnvironStore.urls;
+  const { aiBluekingRef, apiUrl } = useState();
 </script>

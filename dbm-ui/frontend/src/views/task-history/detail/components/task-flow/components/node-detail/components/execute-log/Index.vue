@@ -46,6 +46,7 @@
     <DbLog
       ref="dbLogRef"
       :loading="logState.loading"
+      :loading-text="autoOpenAiLog ? t('日志加载中，加载完成将自动解析日志') : t('日志加载中...')"
       style="height: calc(100% - 42px)" />
   </div>
 </template>
@@ -68,14 +69,18 @@
   type NodeLog = ServiceReturnType<typeof getNodeLog>[number];
 
   interface Props {
+    autoOpenAiLog: boolean;
     node?: Node;
     rootId?: string;
   }
+
+  type Emits = (e: 'logChange', content: string) => void;
 
   const props = withDefaults(defineProps<Props>(), {
     node: () => ({}) as NonNullable<Props['node']>,
     rootId: '',
   });
+  const emits = defineEmits<Emits>();
 
   const isShow = defineModel<boolean>('isShow', {
     default: false,
@@ -97,6 +102,9 @@
       .then((data) => {
         logState.data = data;
         dbLogRef.value!.setLog(data);
+        setTimeout(() => {
+          emits('logChange', getLogContent());
+        });
       })
       .finally(() => {
         logState.loading = false;
@@ -207,9 +215,14 @@
     });
   });
 
-  const handleDownLoaderLog = () => {
+  const getLogContent = () => {
     const messageList = dbLogRef.value!.getValue();
-    downloadText(`${nodeData.value.id}.log`, messageList.join('\n'));
+    return messageList.join('\n');
+  };
+
+  const handleDownLoaderLog = () => {
+    const content = getLogContent();
+    downloadText(`${nodeData.value.id}.log`, content);
   };
 
   const handleChangeDate = (data: ServiceReturnType<typeof getRetryNodeHistories>[number]) => {
@@ -221,8 +234,8 @@
   };
 
   const handleCopyLog = () => {
-    const messageList = dbLogRef.value!.getValue();
-    execCopy(messageList.join('\n'));
+    const content = getLogContent();
+    execCopy(content);
   };
 </script>
 

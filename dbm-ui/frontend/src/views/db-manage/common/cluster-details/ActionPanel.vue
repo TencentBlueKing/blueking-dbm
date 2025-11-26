@@ -79,17 +79,6 @@
               :url="monirotItem.url" />
           </BkTabPanel>
         </template>
-        <slot name="record">
-          <BkTabPanel
-            :key="clusterData.id"
-            :label="t('单据记录')"
-            name="record">
-            <OperationRecord
-              v-if="activePanel === 'record'"
-              :id="clusterData.id"
-              :key="clusterData.id" />
-          </BkTabPanel>
-        </slot>
         <slot
           v-if="isAbleSubscribe"
           name="alarmSubscription">
@@ -100,6 +89,17 @@
             <AlarmSubscription
               :cluster-type="clusterData.cluster_type"
               :domain="clusterData.master_domain" />
+          </BkTabPanel>
+        </slot>
+        <slot name="record">
+          <BkTabPanel
+            :key="clusterData.id"
+            :label="t('单据记录')"
+            name="record">
+            <OperationRecord
+              v-if="activePanel === 'record'"
+              :id="clusterData.id"
+              :key="clusterData.id" />
           </BkTabPanel>
         </slot>
       </BkTab>
