@@ -16,7 +16,7 @@
     v-model="nodeInfoMap"
     v-model:is-show="isShow"
     :cluster-data="clusterData"
-    :title="t('xx替换【name】', { title: 'ES', name: clusterData?.cluster_name })"
+    :title="t('xx替换【name】', { title: 'ES', name: clusterData?.master_domain })"
     @remove-node="handleRemoveNode"
     @submit="handleChange" />
 </template>
