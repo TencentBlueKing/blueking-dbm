@@ -13,20 +13,19 @@
 
 <template>
   <div class="sqlserver-ha-instance-list-page">
-    <div class="operation-box">
+    <div class="operation-box mb-16">
       <BkButton
-        class="mb-16"
         theme="primary"
         @click="handleApply">
         {{ t('申请实例') }}
       </BkButton>
       <DropdownExportExcel
+        class="ml-8"
         export-type="instance"
         :has-selected="hasSelected"
         :ids="selectedIds"
         type="sqlserver_ha" />
       <DbSearchSelect
-        class="mb-16"
         :data="searchSelectData"
         :model-value="searchValue"
         :placeholder="t('请输入或选择条件搜索')"
