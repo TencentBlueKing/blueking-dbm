@@ -11,27 +11,22 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging
 from dataclasses import asdict
+from datetime import datetime, timedelta
 from typing import Dict, Optional
 
 from django.utils.translation import gettext as _
 
-from backend.components.dbresource.client import DBResourceApi
 from backend.db_meta.models import Cluster
-from backend.db_services.cmdb.biz import get_or_create_resource_module, get_resource_biz
 from backend.db_services.ipchooser.constants import BkOsTypeCode
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
-from backend.flow.engine.bamboo.scene.common.machine_os_init import insert_host_event
-from backend.flow.plugins.components.collections.common.exec_clear_machine import ClearMachineScriptComponent
-from backend.flow.plugins.components.collections.common.external_service import ExternalServiceComponent
-from backend.flow.plugins.components.collections.common.transfer_host_service import TransferHostServiceComponent
-from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
+from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
+from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.redis.redis_rollback_exercise import (
     RedisFlowPollingComponent,
     RedisRollbackFlowCreateComponent,
     RedisTempInstanceDeleteComponent,
 )
-from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext, RedisRollbackExerciseContext
-from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
+from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, RedisRollbackExerciseContext
 
 logger = logging.getLogger("flow")
 
@@ -119,6 +114,7 @@ class RedisRollbackExerciseFlow(object):
             act_kwargs = ActKwargs()
             act_kwargs.set_trans_data_dataclass = RedisRollbackExerciseContext.__name__
             act_kwargs.cluster = {
+                "bk_biz_id": self.ticket_data["bk_biz_id"],
                 "task_id": task_record_id,
                 "cluster_id": cluster.id,
                 "instance_ip": ip,
@@ -130,14 +126,31 @@ class RedisRollbackExerciseFlow(object):
                 "polling_timeout": config.get("polling_timeout", 3600),
             }
 
-            # Step 2: RollbackFlowCreate - Generate a rollback flow
+            # Step 2: Add alert shield for the applied machine
+            sub_flow.add_act(
+                act_name=_("屏蔽主机 {} 告警(超时1h)").format(resource_applied[0]["ip"]),
+                act_component_code=AddAlarmShieldComponent.code,
+                kwargs={
+                    "begin_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "end_time": (datetime.now() + timedelta(hours=1)).strftime("%Y-%m-%d %H:%M:%S"),
+                    "description": _("主机 {} Redis回档演练操作").format(resource_applied[0]["ip"]),
+                    "dimensions": [
+                        {
+                            "name": "instance_host",
+                            "values": [resource_applied[0]["ip"]],
+                        }
+                    ],
+                },
+            )
+
+            # Step 3: RollbackFlowCreate - Generate a rollback flow
             sub_flow.add_act(
                 act_name=_("生成构造任务"),
                 act_component_code=RedisRollbackFlowCreateComponent.code,
                 kwargs=asdict(act_kwargs),
             )
 
-            # Step 3: FlowPoll - Poll until the creation is done
+            # Step 4: FlowPoll - Poll until the creation is done
             act_kwargs.cluster["flow_type"] = "rollback_flow_id"
             sub_flow.add_act(
                 act_name=_("等待构造完成"),
@@ -145,14 +158,14 @@ class RedisRollbackExerciseFlow(object):
                 kwargs=asdict(act_kwargs),
             )
 
-            # Step 4: TempInstanceDelete - Delete temp instance
+            # Step 5: TempInstanceDelete - Delete temp instance
             sub_flow.add_act(
                 act_name=_("销毁临时实例"),
                 act_component_code=RedisTempInstanceDeleteComponent.code,
                 kwargs=asdict(act_kwargs),
             )
 
-            # Step 5: FlowPoll - Poll until the deletion is done
+            # Step 6: FlowPoll - Poll until the deletion is done
             act_kwargs.cluster["flow_type"] = "delete_flow_id"
             sub_flow.add_act(
                 act_name=_("等待销毁完成"),
@@ -160,61 +173,11 @@ class RedisRollbackExerciseFlow(object):
                 kwargs=asdict(act_kwargs),
             )
 
-            # Step 6: Clear meta info and delete data on machine
-            clear_host = resource_applied[0]
-            clear_hosts = [{"ip": clear_host["ip"], "bk_cloud_id": clear_host["bk_cloud_id"]}]
-            # Note: RedisDBMeta.clear_machines expects ticket_data["clear_hosts"]
-            self.ticket_data["clear_hosts"] = clear_hosts
-            clear_meta_kwargs = ActKwargs(
-                cluster={"meta_func_name": RedisDBMeta.clear_machines.__name__},
-                set_trans_data_dataclass=CommonContext.__name__,
-            )
+            # Step 7: Remove alert shield for the applied machine
             sub_flow.add_act(
-                act_name=_("删除元数据 - {}").format(clear_host["ip"]),
-                act_component_code=RedisDBMetaComponent.code,
-                kwargs=asdict(clear_meta_kwargs),
-            )
-            sub_flow.add_act(
-                act_name=_("清理机器上的数据"),
-                act_component_code=ClearMachineScriptComponent.code,
-                kwargs={"exec_ips": clear_hosts},
-            )
-
-            # Step 7: Return machine to resource pool
-            import_data = {
-                "resource_type": self.ticket_data["db_type"],
-                "for_biz": 0,  # Return to public resource pool
-                "bk_biz_id": get_resource_biz(),
-                "hosts": [
-                    {
-                        "ip": clear_host["ip"],
-                        "host_id": clear_host["bk_host_id"],
-                        "bk_cloud_id": clear_host["bk_cloud_id"],
-                    }
-                ],
-                "labels": {},
-                "operator": self.ticket_data["created_by"],
-            }
-            sub_flow.add_act(
-                act_name=_("退回资源池"),
-                act_component_code=ExternalServiceComponent.code,
-                kwargs={
-                    "params": import_data,
-                    "api_import_path": DBResourceApi.__module__,
-                    "api_import_module": "DBResourceApi",
-                    "api_call_func": "resource_import",
-                    "success_callback_path": f"{insert_host_event.__module__}.{insert_host_event.__name__}",
-                },
-            )
-            sub_flow.add_act(
-                act_name=_("转移CC模块"),
-                act_component_code=TransferHostServiceComponent.code,
-                kwargs={
-                    "bk_biz_id": get_resource_biz(),
-                    "bk_module_ids": [get_or_create_resource_module()],
-                    "bk_host_ids": [clear_host["bk_host_id"]],
-                    "update_host_properties": {"dbm_meta": [], "need_monitor": False, "update_operator": False},
-                },
+                act_name=_("解除主机 {} 告警屏蔽").format(resource_applied[0]["ip"]),
+                act_component_code=DisableAlarmShieldComponent.code,
+                kwargs={},
             )
 
             sub_flows.append(

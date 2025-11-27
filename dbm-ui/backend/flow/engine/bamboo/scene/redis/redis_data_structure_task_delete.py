@@ -8,13 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
-import logging.config
+import logging
 from copy import deepcopy
 from dataclasses import asdict
 from datetime import datetime
 from typing import Dict, Optional
 
+from django.forms.models import model_to_dict
 from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
@@ -68,26 +68,27 @@ class RedisDataStructureTaskDeleteFlow(object):
         1、删除构造记录：需要提供哪些参数呢？ （bk_cloud_id，源集群名，记录id （related_rollback_bill_id））
         """
 
-        task = TbTendisRollbackTasks.objects.filter(
-            related_rollback_bill_id=related_rollback_bill_id, bk_biz_id=bk_biz_id, prod_cluster=prod_cluster
-        ).order_by("-update_at")
-        task_list = list(task.values())
-        # 这里需要加吗
-        # if len(task_list) != 1:
-        #     raise Exception(
-        #         "单据{},构造源集群{},返回{}条记录不唯一，请检查！！！".format(related_rollback_bill_id, prod_cluster, len(task_list))
-        #     )
-        formatted_tasks = []
-        for task in task_list:
-            formatted_task = {}
-            for key, value in task.items():
-                if isinstance(value, datetime):
-                    # TODO: 改为带时区的时间字符串是否影响？
-                    formatted_task[key] = value.strftime("%Y-%m-%d %H:%M:%S")
-                else:
-                    formatted_task[key] = value
-            formatted_tasks.append(formatted_task)
-        return dict(formatted_tasks[0])
+        task = (
+            TbTendisRollbackTasks.objects.filter(
+                related_rollback_bill_id=related_rollback_bill_id, bk_biz_id=bk_biz_id, prod_cluster=prod_cluster
+            )
+            .order_by("-update_at")
+            .first()
+        )
+
+        if not task:
+            raise Exception(
+                "No rollback task found for bill_id={}, cluster={}, bk_biz_id={}".format(
+                    related_rollback_bill_id, prod_cluster, bk_biz_id
+                )
+            )
+
+        formatted_task = model_to_dict(task)
+        for key, value in formatted_task.items():
+            if isinstance(value, datetime):
+                formatted_task[key] = value.strftime("%Y-%m-%d %H:%M:%S")
+
+        return formatted_task
 
     def redis_rollback_task_delete_flow(self):
         """
@@ -99,10 +100,14 @@ class RedisDataStructureTaskDeleteFlow(object):
         redis_pipeline_all = Builder(root_id=self.root_id, data=self.data)
         trans_files = GetFileList(db_type=DBType.Redis)
         sub_pipelines_multi_cluster = []
-        for info in self.data["infos"]:
 
+        ticket_bk_biz_id = self.data["bk_biz_id"]
+
+        for info in self.data["infos"]:
             tasks_info = self.__get_cluster_info(
-                self.data["bk_biz_id"], info["related_rollback_bill_id"], info["prod_cluster"]
+                bk_biz_id=ticket_bk_biz_id,
+                related_rollback_bill_id=info["related_rollback_bill_id"],
+                prod_cluster=info["prod_cluster"],
             )
 
             logger.info("redis_rollback_task_delete_flow tasks_info:{}".format(tasks_info))
@@ -118,10 +123,9 @@ class RedisDataStructureTaskDeleteFlow(object):
             act_kwargs.cluster["cluster_type"] = act_kwargs.cluster["temp_cluster_type"]
 
             cluster_kwargs = deepcopy(act_kwargs)
-            # 更新构造记录为销毁中
             cluster_kwargs.cluster = {
                 "related_rollback_bill_id": info["related_rollback_bill_id"],
-                "bk_biz_id": self.data["bk_biz_id"],
+                "bk_biz_id": ticket_bk_biz_id,
                 "prod_cluster": info["prod_cluster"],
                 "meta_func_name": RedisDBMeta.update_rollback_task_status.__name__,
                 "cluster_type": cluster_kwargs.cluster["cluster_type"],
@@ -193,10 +197,9 @@ class RedisDataStructureTaskDeleteFlow(object):
                 kwargs=asdict(act_kwargs),
             )
             # #### 下架旧实例完成 #############################################################################
-            # 更新构造记录为已销毁
             act_kwargs.cluster = {
                 "related_rollback_bill_id": info["related_rollback_bill_id"],
-                "bk_biz_id": self.data["bk_biz_id"],
+                "bk_biz_id": ticket_bk_biz_id,
                 "prod_cluster": info["prod_cluster"],
                 "meta_func_name": RedisDBMeta.update_rollback_task_status.__name__,
                 "cluster_type": act_kwargs.cluster["cluster_type"],

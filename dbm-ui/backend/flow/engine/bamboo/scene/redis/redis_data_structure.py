@@ -124,6 +124,7 @@ class RedisDataStructureFlow(object):
             cluster_type = act_kwargs.cluster["cluster_type"]
             # 获取 kvstorecount
             redis_config = self.__get_cluster_config(
+                str(act_kwargs.cluster["bk_biz_id"]),
                 act_kwargs.cluster["domain_name"],
                 act_kwargs.cluster["db_version"],
                 ConfigTypeEnum.DBConf,
@@ -193,7 +194,7 @@ class RedisDataStructureFlow(object):
                 sub_builder = RedisBatchInstallAtomJob(
                     self.root_id,
                     self.data,
-                    act_kwargs,
+                    self.get_ticket_biz_based_kwargs(act_kwargs),
                     {
                         "ip": new_master,
                         "meta_role": InstanceRole.REDIS_MASTER.value,
@@ -267,7 +268,7 @@ class RedisDataStructureFlow(object):
                 kwargs=asdict(
                     DownloadBackupClientKwargs(
                         bk_cloud_id=act_kwargs.cluster["bk_cloud_id"],
-                        bk_biz_id=int(act_kwargs.cluster["bk_biz_id"]),
+                        bk_biz_id=int(self.data["bk_biz_id"]),
                         download_host_list=new_master_list,
                     ),
                 ),
@@ -585,7 +586,7 @@ class RedisDataStructureFlow(object):
         logger.info(_("cluster_id: {},所有的redis_instance_set:{}".format(info["cluster_id"], redis_instance_set)))
         return cluster_backup_instance, redis_instance_set
 
-    def __get_cluster_info(self, bk_biz_id: int, cluster_id: int) -> dict:
+    def __get_cluster_info(self, cluster_id: int) -> dict:
         """获取集群现有信息
         1. slave 对应 master 机器
         2. slave 上的端口列表
@@ -594,7 +595,7 @@ class RedisDataStructureFlow(object):
         if self.cluster_cache.get(cluster_id):
             return self.cluster_cache[cluster_id]
 
-        cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
+        cluster = Cluster.objects.get(id=cluster_id)
         slave_master_map = defaultdict()
         slave_ports = defaultdict(list)
         slave_ins_map = defaultdict()
@@ -651,7 +652,7 @@ class RedisDataStructureFlow(object):
         return self.cluster_cache[cluster_id]
 
     def __init_builder(self, operate_name: str, info: dict):
-        cluster_info = self.__get_cluster_info(self.data["bk_biz_id"], info["cluster_id"])
+        cluster_info = self.__get_cluster_info(info["cluster_id"])
         logger.info(_("__init_builder_cluster_info: {}".format(cluster_info)))
         flow_data = self.data
         flow_data.update(cluster_info)
@@ -674,13 +675,15 @@ class RedisDataStructureFlow(object):
         )
         return redis_pipeline, act_kwargs
 
-    def __get_cluster_config(self, domain_name: str, db_version: str, conf_type: str, namespace: str) -> Any:
+    def __get_cluster_config(
+        self, bk_biz_id: str, domain_name: str, db_version: str, conf_type: str, namespace: str
+    ) -> Any:
         """
         获取已部署的实例配置
         """
         data = DBConfigApi.query_conf_item(
             params={
-                "bk_biz_id": str(self.data["bk_biz_id"]),
+                "bk_biz_id": bk_biz_id,
                 "level_name": LevelName.CLUSTER,
                 "level_value": domain_name,
                 "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
@@ -907,6 +910,11 @@ class RedisDataStructureFlow(object):
             logger.info(_("redis_data_structure_flow_full_backupinfo: {}".format(full_backup_info)))
             logger.info(_("redis_data_structure_flow_binlog_backupinfo: {}".format(binlog_backup_info)))
         return acts_list, acts_list_push_json
+
+    def get_ticket_biz_based_kwargs(self, act_kwargs: ActKwargs) -> ActKwargs:
+        new_kwargs = deepcopy(act_kwargs)
+        new_kwargs.cluster["bk_biz_id"] = self.data["bk_biz_id"]
+        return new_kwargs
 
     @staticmethod
     def get_backupfile(cluster_id, rollback_time, source_ip, source_port, tendis_type, kvstorecount) -> (dict, dict):

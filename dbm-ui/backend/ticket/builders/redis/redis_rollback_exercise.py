@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import AffinityEnum, BaseOperateResourceParamBuilder, IpSource
@@ -45,7 +46,23 @@ class RedisRollbackExerciseParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
     def post_callback(self):
-        return super().post_callback()
+        applied_hosts = []
+        for info in self.ticket_data.get("infos", []):
+            if "redis" in info:
+                for host in info["redis"]:
+                    applied_hosts.append(
+                        {
+                            "bk_host_id": host["bk_host_id"],
+                            "ip": host["ip"],
+                            "bk_cloud_id": host["bk_cloud_id"],
+                        }
+                    )
+
+        if applied_hosts:
+            self.ticket.details["recycle_hosts"] = ResourceHandler.standardized_resource_host(applied_hosts)
+            # Set immediate_recycle flag for rollback exercise to skip timer delay
+            self.ticket.details["immediate_recycle"] = True
+            self.ticket.save(update_fields=["details"])
 
 
 class RedisRollbackExerciseResourceParamBuilder(BaseOperateResourceParamBuilder):
@@ -61,7 +78,11 @@ class RedisRollbackExerciseResourceParamBuilder(BaseOperateResourceParamBuilder)
             info.update(bk_cloud_id=cluster.bk_cloud_id, bk_biz_id=self.ticket.bk_biz_id)
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_ROLLBACK_EXERCISE)
+@builders.BuilderFactory.register(
+    TicketType.REDIS_ROLLBACK_EXERCISE,
+    is_apply=True,
+    is_recycle=True,
+)
 class RedisRollbackExerciseFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisRollbackExerciseDetailSerializer
     inner_flow_builder = RedisRollbackExerciseParamBuilder

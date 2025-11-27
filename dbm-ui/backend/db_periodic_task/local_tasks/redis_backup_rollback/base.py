@@ -27,6 +27,7 @@ from backend.ticket.builders.common.base import IpSource
 from backend.ticket.constants import TICKET_RUNNING_STATUS_SET, TicketType
 from backend.ticket.models import ClusterOperateRecord, SystemSettings, Ticket
 from backend.utils.redis import RedisConn
+from backend.utils.time import datetime2str, str2datetime
 
 logger = logging.getLogger("root")
 
@@ -403,6 +404,8 @@ class RedisRollbackExercise:
             instance: StorageInstance = item["instance"]
             backup_info = item["backup_info"]
 
+            recovery_time_point = str2datetime(backup_info["uptime"]) + timedelta(minutes=30)
+
             logger.info(_("instance: {}").format(instance))
 
             # Prepare instance info for ticket
@@ -410,7 +413,7 @@ class RedisRollbackExercise:
                 "cluster_id": cluster.id,
                 "instance_ip": instance.machine.ip,
                 "instance_port": instance.port,
-                "recovery_time_point": backup_info.get("uptime", "") + timedelta(minutes=30),
+                "recovery_time_point": datetime2str(recovery_time_point),
                 "task_id": 0,  # Link to task record for status updates, currently dry-run
                 "resource_spec": {
                     "redis": {
