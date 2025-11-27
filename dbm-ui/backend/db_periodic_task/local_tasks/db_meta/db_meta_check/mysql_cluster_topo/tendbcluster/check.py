@@ -20,6 +20,9 @@ from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_to
     _cluster_entry_on_spider,
     _cluster_entry_on_storage,
 )
+from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.tendbcluster.routing import (
+    _cluster_routing_check,
+)
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.tendbcluster.status import (
     _cluster_master_remote_count,
     _cluster_master_spider_count,
@@ -91,4 +94,6 @@ def health_check(cluster_id: int) -> List[CheckResponse]:
     res.extend(cluster_master_as_ejector(cluster_obj))
     res.extend(cluster_slave_as_receiver(cluster_obj))
     res.extend(cluster_replicate_out(cluster_obj))
+    # routing
+    res.extend(_cluster_routing_check(cluster_obj))
     return res

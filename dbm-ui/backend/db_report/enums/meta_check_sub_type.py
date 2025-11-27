@@ -51,3 +51,6 @@ class MetaCheckSubType(StrStructuredEnum):
     TenDBClusterShardCountNotMatch = EnumField("shard_count_not_match", _("分片数和实例数不相等"))
     TenDBClusterNoStandbySlave = EnumField("no_standby_slave", _("没有 standby slave"))
     TenDBClusterTooManyStandbySlave = EnumField("too_many_standby_slave", _("大于 1 个 standby slave"))
+    TenDBClusterRoutingSpiderNotMatch = EnumField("routing_spider_not_match", _("spider 节点在路由中不存在或多余"))
+    TenDBClusterRoutingShardNotMatch = EnumField("routing_shard_not_match", _("后端分片序号不一致"))
+    TenDBClusterRoutingTdbctlNotMatch = EnumField("routing_tdbctl_not_match", _("中控节点与元数据不一致"))
