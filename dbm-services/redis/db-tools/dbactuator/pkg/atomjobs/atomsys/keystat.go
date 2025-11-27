@@ -208,7 +208,7 @@ func (job *KeyStat) Run() (err error) {
 	}
 	job.runtime.Logger.Info("update report status success, status:%s", statusRunning)
 	// 1. 创建工作目录
-	workDir := filepath.Join(keystatDir, job.runtime.UID)
+	workDir := filepath.Join(keystatDir, job.runtime.UID, job.runtime.NodeID)
 	util.MkDirsIfNotExists([]string{workDir})
 	util.LocalDirChownMysql(workDir)
 	job.runtime.Logger.Info("KeyStat Run, workDir:%s", workDir)
@@ -240,8 +240,22 @@ func (job *KeyStat) Run() (err error) {
 		job.atimeRequired = false
 	}
 
-	// 1.1 check redis load
+	// 确定是否使用Slave
+	// 如果使用Slave，则需要获取Slave的Addr
+	if !job.atimeRequired {
+		for i, ins := range job.params.InsList {
+			slaveAddr, err := job.getRedisSlaveAddr(ins.Addr)
+			if err != nil {
+				job.runtime.Logger.Error("getRedisSlaveAddr failed, err:%s", err)
+				return err
+			}
+			job.runtime.Logger.Info("getRedisSlaveAddr success, addr:%s, slaveAddr:%s", ins.Addr, slaveAddr)
+			ins.SlaveAddr = slaveAddr
+			job.params.InsList[i] = ins
+		}
+	}
 
+	// 1.1 check redis load
 	if err = job.checkRedisLoad(time.Duration(job.params.CheckInterval) * time.Second); err != nil {
 		job.runtime.Logger.Error("checkRedisLoad failed, err:%s", err)
 		return err
@@ -270,6 +284,31 @@ func (job *KeyStat) Run() (err error) {
 	return nil
 }
 
+func (job *KeyStat) getRedisSlaveAddr(addr string) (string, error) {
+	result, err := redisinfo.ExecRedisCommand(addr, job.params.RedisPassword, "info")
+	if err != nil {
+		job.runtime.Logger.Error("execRedisCommand failed, err:%s", err)
+		return "", err
+	}
+	info, err := redisinfo.Parse(result.(string))
+	if err != nil {
+		job.runtime.Logger.Error("parse info failed, err:%s", err)
+		return "", err
+	}
+
+	if info.Replication.Role == "slave" {
+		return addr, nil // 如果是slave，则直接返回addr
+	} else if info.Replication.Role == "master" && info.Replication.ConnectedSlaves > 0 {
+		for _, slave := range info.Replication.Slaves {
+			if slave.State == "online" {
+				return fmt.Sprintf("%s:%d", slave.IP, slave.Port), nil
+			}
+		}
+		return "", fmt.Errorf("addr %s is master, but has no online slave, info:%+v", addr, info)
+	}
+	return "", fmt.Errorf("addr %s is not a slave or master, info:%+v", addr, info)
+}
+
 func (job *KeyStat) getRedisVersion() (*redisinfo.RedisVersion, error) {
 	// 1. get redis info
 	infoMap, err := job.getRedisInfo(consts.RedisMasterRole)
@@ -277,6 +316,7 @@ func (job *KeyStat) getRedisVersion() (*redisinfo.RedisVersion, error) {
 		job.runtime.Logger.Error("getRedisInfo failed, err:%s", err)
 		return nil, err
 	}
+
 	var versionInfo *redisinfo.RedisVersion
 	for addr, info := range infoMap {
 		ver, err := redisinfo.ParseRedisVersion(info.Server.RedisVersion)
@@ -321,7 +361,6 @@ func (job *KeyStat) checkRedisLoad(timeout time.Duration) (err error) {
 		}
 
 		// node 内存. 暂不检查
-
 		if v2.Memory.Maxmemory == 0 {
 			return fmt.Errorf("node %s redis memory maxmemory is 0", addr)
 		}
@@ -372,8 +411,8 @@ func (job *KeyStat) getRedisInfo(role string) (redisInfo map[string]*redisinfo.I
 			})
 		case consts.RedisSlaveRole:
 			if ins.SlaveAddr == "" {
-				job.runtime.Logger.Error("getRedisInfo failed, slave addr is empty, role:%s", role)
-				return nil, errors.New("slave addr is empty")
+				job.runtime.Logger.Error("getRedisInfo failed, addr is empty, role:%s", role)
+				return nil, errors.New("addr is empty")
 			}
 			commandIn = append(commandIn, redisinfo.RedisCommandIn{
 				Host: ins.SlaveAddr,
@@ -554,23 +593,28 @@ func (job *KeyStat) safeDumpRdbOne(workDir string, ins KeyStatIns, pwd string) (
 		return err
 	}
 
-	// 获取当前的 maxmemory-policy 值
-	originalPolicy, err := job.getMaxmemoryPolicy(ip, port, pwd)
-	if err != nil {
-		job.runtime.Logger.Warn("getMaxmemoryPolicy failed, err:%s, will continue without restoring", err)
-		originalPolicy = "" // 如果获取失败，标记为空，不进行恢复
+	var originalPolicy string
+	if job.atimeRequired {
+		// 获取当前的 maxmemory-policy 值
+		originalPolicy, err := job.getMaxmemoryPolicy(ip, port, pwd)
+		if err != nil {
+			job.runtime.Logger.Warn("getMaxmemoryPolicy failed, err:%s, will continue without restoring", err)
+			originalPolicy = "" // 如果获取失败，标记为空，不进行恢复
+		} else {
+			job.runtime.Logger.Info("getMaxmemoryPolicy success, original policy:%s", originalPolicy)
+		}
+		// 设置 maxmemory-policy 为 volatile-lru
+		// 设置为volatile-lru的原因是，volatile-lru模式下，导出来的rdb文件会带有每个key的atime信息，便于后续分析。
+		// 在设置之前，先获取当前的 maxmemory-policy 值，在设置之后，再恢复原来的值。
+		// 在checkRedisLoad中会检查redis是否负载较低，如果负载高，也是不行的.
+		err = job.setMaxmemoryPolicy(ip, port, pwd, "volatile-lru")
+		if err != nil {
+			job.runtime.Logger.Error("setMaxmemoryPolicy to volatile-lru failed, err:%s", err)
+			return err
+		}
 	} else {
-		job.runtime.Logger.Info("getMaxmemoryPolicy success, original policy:%s", originalPolicy)
-	}
-
-	// 设置 maxmemory-policy 为 volatile-lru
-	// 设置为volatile-lru的原因是，volatile-lru模式下，导出来的rdb文件会带有每个key的atime信息，便于后续分析。
-	// 在设置之前，先获取当前的 maxmemory-policy 值，在设置之后，再恢复原来的值。
-	// 在checkRedisLoad中会检查redis是否负载较低，如果负载高，也是不行的.
-	err = job.setMaxmemoryPolicy(ip, port, pwd, "volatile-lru")
-	if err != nil {
-		job.runtime.Logger.Error("setMaxmemoryPolicy to volatile-lru failed, err:%s", err)
-		return err
+		// 如果不需要检查atime，则不进行maxmemory-policy的设置和恢复
+		originalPolicy = ""
 	}
 
 	// 确保在函数返回前恢复原值

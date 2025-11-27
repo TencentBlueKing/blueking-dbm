@@ -296,6 +296,17 @@ func parseStruct(c category, content string) error {
 		if jsonTag := field.Tag.Get("json"); jsonTag != "-" && jsonTag != "" {
 			splitJSONTag := strings.Split(jsonTag, ",")
 			fieldName := splitJSONTag[0]
+			fieldVal := val.Field(idx)
+
+			// 对于 slice 类型的字段，需要特殊处理，因为它们的键是带索引的（如 slave0, slave1）
+			// 所以不需要检查 parsed[fieldName] 是否存在
+			if field.Type.Kind() == reflect.Slice {
+				if err := parseSlice(parsed, fieldVal, fieldName); err != nil {
+					return err
+				}
+				continue
+			}
+
 			stringVal, e := parsed[fieldName]
 			if !e {
 				continue
@@ -304,7 +315,6 @@ func parseStruct(c category, content string) error {
 			if len(splitJSONTag) == 2 && splitJSONTag[1] == "omitempty" && stringVal == "" {
 				continue
 			}
-			fieldVal := val.Field(idx)
 			switch field.Type.Kind() {
 			case reflect.String:
 				fieldVal.Set(reflect.ValueOf(stringVal))
@@ -340,10 +350,6 @@ func parseStruct(c category, content string) error {
 					return fmt.Errorf("cannot parse float64 for %s: %w", fieldName, err)
 				}
 				fieldVal.Set(reflect.ValueOf(val))
-			case reflect.Slice:
-				if err := parseSlice(parsed, fieldVal, fieldName); err != nil {
-					return err
-				}
 			default:
 				return fmt.Errorf("unhandled type %s for %s", field.Type.Kind(), fieldName)
 			}
