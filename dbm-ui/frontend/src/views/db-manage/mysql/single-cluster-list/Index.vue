@@ -283,7 +283,7 @@
    */
   const handleApply = () => {
     router.push({
-      name: 'SelfServiceApplySingle',
+      name: TicketTypes.MYSQL_SINGLE_APPLY,
       query: {
         bizId: window.PROJECT_CONFIG.BIZ_ID,
         from: route.name as string,

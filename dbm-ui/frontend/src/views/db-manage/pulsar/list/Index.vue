@@ -291,7 +291,7 @@
 
   const handleGoApply = () => {
     router.push({
-      name: 'PulsarApply',
+      name: TicketTypes.PULSAR_APPLY,
       query: {
         bizId: window.PROJECT_CONFIG.BIZ_ID,
         from: route.name as string,

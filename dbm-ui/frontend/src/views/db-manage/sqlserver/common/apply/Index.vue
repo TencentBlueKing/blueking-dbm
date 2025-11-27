@@ -340,8 +340,7 @@
     },
   });
 
-  const isSingleType = route.name === 'SqlServiceSingleApply';
-
+  const isSingleType = route.name === TicketTypes.SQLSERVER_SINGLE_APPLY;
   const clusterType = isSingleType ? ClusterTypes.SQLSERVER_SINGLE : ClusterTypes.SQLSERVER_HA;
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
@@ -379,7 +378,7 @@
       sub_zone_ids: [] as number[],
     },
     remark: '',
-    ticket_type: isSingleType ? TicketTypes.SQLSERVER_SINGLE_APPLY : TicketTypes.SQLSERVER_HA_APPLY,
+    ticket_type: route.name,
   });
 
   const regionRequirementsRef = useTemplateRef('regionRequirements');

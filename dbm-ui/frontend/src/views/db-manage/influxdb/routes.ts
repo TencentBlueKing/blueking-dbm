@@ -30,14 +30,6 @@ const routes: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/influxdb/Index.vue'),
     children: [
-      // {
-      //   name: 'SelfServiceApplyInfluxDB',
-      //   path: 'apply',
-      //   meta: {
-      //     navName: t('申请InfluxDB集群部署'),
-      //   },
-      //   component: () => import('@views/db-manage/influxdb/apply/index.vue'),
-      // },
       {
         path: 'instance-list/:groupId(\\d+)?',
         name: 'InfluxDBInstances',

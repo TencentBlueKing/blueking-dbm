@@ -19,6 +19,7 @@ export * from './checkDbConsole';
 export * from './classes';
 export * from './compareVersions';
 export * from './convertStorageUnits';
+export * from './createApplyRoute';
 export * from './createDbaToolboxRoute';
 export * from './createToolboxRoute';
 export * from './dom';

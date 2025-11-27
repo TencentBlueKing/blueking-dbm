@@ -63,8 +63,8 @@
   import { nameRegx } from '@common/regex';
 
   interface Props {
-    appName: string;
-    moduleAliasName: string;
+    appName?: string;
+    moduleAliasName?: string;
   }
 
   type Emits = (e: 'change', value: string[]) => void;
@@ -182,7 +182,7 @@
       color: @default-color;
 
       .batch-edit-domain-name {
-        word-wrap: break-word;
+        overflow-wrap: break-word;
       }
 
       .batch-edit-domain-underline {
