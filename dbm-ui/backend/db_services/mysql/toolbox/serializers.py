@@ -115,3 +115,21 @@ class GetStorageVersionModulesSerializer(serializers.Serializer):
             "higher_major_version": True,
             "higher_sub_version": False,
         }
+
+
+class RollbackHostSerializer(serializers.Serializer):
+    """回档主机序列化器"""
+
+    ip = serializers.CharField(help_text=_("IP地址"), required=True)
+    bk_host_id = serializers.IntegerField(help_text=_("主机ID"), required=True)
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"), required=True)
+
+
+class MySQLRollbackExerciseByClusterSerializer(serializers.Serializer):
+    """MySQL回档演练按集群序列化器"""
+
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"), required=True)
+    pause_after_restore = serializers.BooleanField(help_text=_("是否在恢复后暂停"), required=True)
+    rollback_host = RollbackHostSerializer(help_text=_("回档主机信息"), required=True)
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=True)
+    backup_id = serializers.CharField(help_text=_("备份ID"), required=False, allow_blank=True, allow_null=True)

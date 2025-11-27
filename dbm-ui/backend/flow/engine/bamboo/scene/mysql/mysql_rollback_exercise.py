@@ -36,6 +36,7 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_single_apply_flow import MySQL
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_destroy_flow import MySQLSingleDestroyFlow
 from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
 from backend.flow.plugins.components.collections.common.external_service import ExternalServiceComponent
+from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.common.transfer_host_service import TransferHostServiceComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.exec_switch_for_source_act import (
@@ -96,6 +97,7 @@ class MySQLRollbackExerciseFlow(object):
         self.rollback_host = self.ticket_data["rollback_host"]
         self.rollback_to_bk_biz_id = self.ticket_data["bk_biz_id"]
         self.labels = self.ticket_data.get("labels", [])
+        self.pause_after_restore = self.ticket_data.get("pause_after_restore", False)
 
     def run(self):
         """
@@ -315,7 +317,12 @@ class MySQLRollbackExerciseFlow(object):
             conditions_param="rollback_code",
             name=_("判断恢复数据状态"),
         )
-
+        if self.pause_after_restore:
+            sub_pipeline.add_act(
+                act_name=_("暂停"),
+                act_component_code=PauseComponent.code,
+                kwargs={},
+            )
         # 回档成功,回收资源
         uninstall_data = copy.deepcopy(self.data)
         uninstall_data["force"] = True

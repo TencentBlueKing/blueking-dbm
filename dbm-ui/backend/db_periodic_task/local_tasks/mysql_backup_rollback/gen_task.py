@@ -721,22 +721,53 @@ def _prepare_cluster_data(num: int):
     return exclude_biz_ids, exclude_cluster_id, target_tendbcluster, target_tendbha, recover_success_map
 
 
+def _get_ignore_configs():
+    """
+    获取需要忽略的业务ID和集群ID配置
+    包括：忽略配置、最近2天失败的集群、正在运行任务的集群
+
+    Returns:
+        tuple: (ignored_biz_ids, ignored_cluster_ids)
+            ignored_biz_ids: 需要忽略的业务ID列表
+            ignored_cluster_ids: 需要忽略的集群ID列表（已包含失败和运行中的集群）
+    """
+    ignored_biz_ids = ExerciseIgnoreConfig.get_ignored_biz_ids()
+    ignored_cluster_ids = ExerciseIgnoreConfig.get_ignored_cluster_ids()
+    failed_cluster_ids = MySQLBackupRecoverTask.get_recent_2days_failed_cluster_ids()
+    running_task_cluster_ids = MySQLBackupRecoverTask.get_running_task_cluster_ids()
+    ignored_cluster_ids.extend(failed_cluster_ids)
+    ignored_cluster_ids.extend(running_task_cluster_ids)
+    return ignored_biz_ids, ignored_cluster_ids
+
+
+def _build_exclude_condition(biz_ids=None, cluster_ids=None):
+    """
+    构建排除条件的Q对象
+
+    Args:
+        biz_ids: 需要排除的业务ID列表
+        cluster_ids: 需要排除的集群ID列表
+
+    Returns:
+        Q: Django Q对象，用于排除指定的业务或集群
+    """
+    exclude_condition = Q()
+    if biz_ids:
+        exclude_condition |= Q(bk_biz_id__in=biz_ids)
+    if cluster_ids:
+        exclude_condition |= Q(id__in=cluster_ids)
+    return exclude_condition
+
+
 def _collect_unpracticed_clusters(exclude_biz_ids, exclude_cluster_id, global_priority_queue):
     """收集从未演练过的业务的集群 - 最高优先级"""
     count = 0
     unpracticed_biz_clusters = 0
-    ignored_biz_ids = ExerciseIgnoreConfig.get_ignored_biz_ids()
-    ignored_cluster_ids = ExerciseIgnoreConfig.get_ignored_cluster_ids()
-    failed_cluster_ids = MySQLBackupRecoverTask.get_recent_2days_failed_cluster_ids()
-    ignored_cluster_ids.extend(failed_cluster_ids)
+    ignored_biz_ids, ignored_cluster_ids = _get_ignore_configs()
     exclude_biz_ids.extend(ignored_biz_ids)
     exclude_cluster_id.extend(ignored_cluster_ids)
     # 使用 Q 对象实现 OR 逻辑：排除业务ID在列表中 OR 集群ID在列表中的集群
-    exclude_condition = Q()
-    if exclude_biz_ids:
-        exclude_condition |= Q(bk_biz_id__in=exclude_biz_ids)
-    if exclude_cluster_id:
-        exclude_condition |= Q(id__in=exclude_cluster_id)
+    exclude_condition = _build_exclude_condition(exclude_biz_ids, exclude_cluster_id)
 
     clusters = Cluster.objects.exclude(exclude_condition).filter(
         cluster_type__in=[ClusterType.TenDBCluster, ClusterType.TenDBHA]
@@ -763,15 +794,8 @@ def _collect_unpracticed_clusters(exclude_biz_ids, exclude_cluster_id, global_pr
 
 def _collect_all_clusters(global_priority_queue, recover_success_map, count, num, unpracticed_biz_ids):
     """收集所有集群 - 最低优先级兜底，排除从未演练过的业务（已以最高优先级添加）"""
-    ignored_biz_ids = ExerciseIgnoreConfig.get_ignored_biz_ids()
-    ignored_cluster_ids = ExerciseIgnoreConfig.get_ignored_cluster_ids()
-    failed_cluster_ids = MySQLBackupRecoverTask.get_recent_2days_failed_cluster_ids()
-    ignored_cluster_ids.extend(failed_cluster_ids)
-    exclude_condition = Q()
-    if ignored_biz_ids:
-        exclude_condition |= Q(bk_biz_id__in=ignored_biz_ids)
-    if ignored_cluster_ids:
-        exclude_condition |= Q(id__in=ignored_cluster_ids)
+    ignored_biz_ids, ignored_cluster_ids = _get_ignore_configs()
+    exclude_condition = _build_exclude_condition(ignored_biz_ids, ignored_cluster_ids)
     # 排除从未演练过的业务，因为这些集群已经在 _collect_unpracticed_clusters 中以最高优先级添加了
     if unpracticed_biz_ids:
         exclude_condition |= Q(bk_biz_id__in=unpracticed_biz_ids)
