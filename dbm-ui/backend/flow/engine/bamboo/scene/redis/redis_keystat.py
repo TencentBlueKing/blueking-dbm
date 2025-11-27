@@ -29,6 +29,7 @@ from backend.flow.plugins.components.collections.redis.exec_actuator_job2 import
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
+from backend.db_meta.enums import InstanceRole
 
 logger = logging.getLogger("flow")
 
@@ -85,7 +86,13 @@ class RedisKeystatFlow(object):
         if len(clusters) != len(cluster_ids):
             raise Exception("input records contain invalid cluster_ids")
 
-        # 检查输入的记录是否合法
+        # 支持的集群类型
+        support_cluster_types = [
+            ClusterType.TendisTwemproxyRedisInstance.value,
+            ClusterType.TendisPredixyRedisCluster.value,
+            ClusterType.TendisRedisInstance.value,
+        ]
+        # check input records is valid
         for info in self.data["infos"]:
             cluster = clusters[info["cluster_id"]]
             if not cluster:
@@ -95,25 +102,42 @@ class RedisKeystatFlow(object):
             if cluster.bk_biz_id != self.data["bk_biz_id"]:
                 msg = f"cluster_id:{info['cluster_id']} not belong to bk_biz_id:{self.data['bk_biz_id']}, "
                 raise Exception(msg + f"but belong to bk_biz_id:{cluster.bk_biz_id}")
-
             # check cluster type is supported
-            if not ClusterType.is_memory_redis(cluster.cluster_type):
-                msg = f"cluster_id:{info['cluster_id']} cluster_type:{cluster.cluster_type} not support "
-                raise Exception(msg)
+            if cluster.cluster_type not in support_cluster_types:
+                raise Exception(f"cluster_type:{cluster.cluster_type} not supported")
 
-            # check role is supported
-            # if info["role"] not in [RedisRole.MASTER.value, RedisRole.SLAVE.value]:
-            #    msg = f"cluster_id:{info['cluster_id']} ins:{info['ins']} role:{info['role']} not valid"
-            #    raise Exception(msg)
+        # check input records is valid, include ins, storage_list, cluster_shard_num, analyzed_shard_num
+        for info in self.data["infos"]:
+            cluster = clusters[info["cluster_id"]]
+            if info["ins"] is None or len(info["ins"]) == 0:
+                raise Exception(f"cluster_id:{cluster.id} no ins list")
+            storage_list = DbmClusterRepository.fetch_storage_list(cluster_id=cluster.id)
+            if not storage_list or len(storage_list) == 0:
+                raise Exception(f"cluster_id:{cluster.id} no storage list")
 
-            # check check_last_visit is boolean
-            # if info["check_last_visit"] not in [True, False]:
-            #    msg = f"cluster_id:{info['cluster_id']} check_last_visit:{info['check_last_visit']} not valid"
-            #    raise Exception(msg)
+            # check if all ins in storage_list, 如果不在，则抛出异常
+            # 注意：ins 中的 addr 是 ip:port 格式，storage_list 中的 addr 是 ip:port 格式
+            for ins in info["ins"]:
+                if ins["addr"] not in [item["ip"] + ":" + str(item["port"]) for item in storage_list]:
+                    raise Exception(f"ins:{ins['addr']} not in storage_list, storage_list: {storage_list}")
+
+            if cluster.cluster_type == ClusterType.TendisTwemproxyRedisInstance.value:
+                shard_list = DbmClusterRepository.build_shard_list_by_instance_list(storage_list)
+                info["cluster_shard_num"] = len(shard_list)
+                info["analyzed_shard_num"] = len(info["ins"])
+            elif cluster.cluster_type == ClusterType.TendisPredixyRedisCluster.value:
+                # TendisPredixyRedisCluster 没有分片信息，所以cluster_shard_num就是master数量
+                master_num = sum(item["instance_role"] == InstanceRole.REDIS_MASTER.value for item in storage_list)
+                info["cluster_shard_num"] = master_num
+                info["analyzed_shard_num"] = len(info["ins"])
+            elif cluster.cluster_type == ClusterType.TendisRedisInstance:
+                # TendisRedisInstance 主从版，只有一个主节点，所以cluster_shard_num就是1
+                info["cluster_shard_num"] = 1
+                info["analyzed_shard_num"] = len(info["ins"])
+            else:
+                raise Exception(f"cluster_type:{cluster.cluster_type} not supported")
 
         bk_cloud_id = self.data["bk_cloud_id"]
-
-        # todo add keysplitter to GetFileList
         trans_files = GetFileList(db_type=DBType.Redis)
         act_kwargs = ActKwargs()
         act_kwargs.set_trans_data_dataclass = CommonContext.__name__
@@ -122,25 +146,11 @@ class RedisKeystatFlow(object):
         act_kwargs.bk_cloud_id = bk_cloud_id
 
         redis_pipeline = Builder(root_id=self.root_id, data=self.data)
-        # exec ip for init config
-        # act_kwargs.exec_ip = self.__get_exec_ip(bk_cloud_id)
-        # redis_pipeline.add_act(
-        #    act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
-        # )
-
         # exec ip for file transfer
-        act_kwargs.exec_ip = self.__get_exec_ip(cluster.bk_cloud_id)
+        act_kwargs.exec_ip = self.__get_exec_ip(bk_cloud_id)
         redis_pipeline.add_act(
             act_name=_("下发介质包"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
         )
-
-        # 检查ins是否在shard中
-        for info in self.data["infos"]:
-            cluster = clusters[info["cluster_id"]]
-            storage_list = DbmClusterRepository.fetch_storage_list(cluster_id=cluster.id)
-            shard_list = DbmClusterRepository.build_shard_list_by_instance_list(storage_list)
-            info["cluster_shard_num"] = len(shard_list)
-            info["analyzed_shard_num"] = len(info["ins"])
 
         # 生成下发任务
         acts_list = []

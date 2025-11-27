@@ -41,6 +41,7 @@ from backend.db_services.redis.redis_keystat_report.serializers import (
 )
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.utils.excel import ExcelHandler
+from backend.db_services.redis.capacity_evaluate_service.util import UNIFY_QUERY_PARAMS
 
 SWAGGER_TAG = "db_services/redis/redis_keystat_report"
 
@@ -96,8 +97,6 @@ class KeyStatReportViewSet(viewsets.SystemViewSet):
 
     def _fetch_metric(self, addr, metric_name):
         """获取redis实例的监控指标"""
-        from backend.db_periodic_task.local_tasks.db_meta.constants import UNIFY_QUERY_PARAMS
-
         try:
             ip_port = addr.replace(":", "-")
             promql = f'sum by (instance) (exporter_dbm_redis_exporter:{metric_name}{{instance="{ip_port}"}})'

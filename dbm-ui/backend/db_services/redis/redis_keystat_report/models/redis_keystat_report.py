@@ -96,7 +96,7 @@ class ReportItem(models.Model):
     min_idletime = models.IntegerField(default=0, help_text=_("最小空闲时间"))
     min_idletime_show = models.CharField(max_length=255, default="", help_text=_("最近访问时间（带单位）"))
     avg_key_used_bytes = models.IntegerField(default=0, help_text=_("单key平均占用内存"))
-    mem_used_bytes = models.IntegerField(default=0, help_text=_("内存使用量字节数"))
+    mem_used_bytes = models.BigIntegerField(default=0, help_text=_("内存使用量字节数"))
     mem_used_pct = models.FloatField(max_length=255, default=0, help_text=_("内存使用量字节数占比"))
 
     class Meta:
@@ -123,9 +123,9 @@ class RankItem(models.Model):
     member = models.IntegerField(default=0, help_text=_("成员的数量"))
     member_len = models.IntegerField(default=0, help_text=_("成员的平均长度"))
     key_length = models.IntegerField(default=0, help_text=_("key的长度"))
-    value_size = models.IntegerField(default=0, help_text=_("value的长度或者成员value的长度"))
+    value_size = models.BigIntegerField(default=0, help_text=_("value的长度或者成员value的长度"))
     db = models.IntegerField(default=0, help_text=_("db"))
-    memory_size = models.IntegerField(default=0, help_text=_("基础内存占用, 复合类型中是采样计算结果"))
+    memory_size = models.BigIntegerField(default=0, help_text=_("基础内存占用, 复合类型中是采样计算结果"))
 
     class Meta:
         verbose_name = verbose_name_plural = _("内存分析统计排行详情表")
