@@ -119,11 +119,11 @@
             </template>
           </TableColumn>
           <TableColumn
-            col-key="machine_count"
+            col-key="resource_count"
             :title="t('当前数量（台）')"
             width="120">
             <template #default="{ row }: { row: IRowData }">
-              <span class="bold-number blue-number">{{ row.machine_count }}</span>
+              <span class="bold-number blue-number">{{ row.resource_count }}</span>
             </template>
           </TableColumn>
           <TableColumn
