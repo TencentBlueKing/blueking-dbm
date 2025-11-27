@@ -226,6 +226,7 @@
             >((acc, inst) => {
               Object.assign(acc, {
                 [inst?.cluster_type === ClusterTypes.SQLSERVER_SINGLE ? 'new_hosts' : 'backend_group']: {
+                  count: 1,
                   label_names: item.labels.map((item) => item.value),
                   labels: item.labels.map((item) => String(item.id)),
                   spec_id: item.specId,
