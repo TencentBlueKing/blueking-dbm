@@ -32,7 +32,7 @@ from backend.flow.engine.bamboo.scene.sqlserver.validate.sqlserver_cluster_migra
     SqlserverClusterMigrateForInsFlowValidator,
 )
 from backend.flow.engine.bamboo.scene.sqlserver.validate.sqlserver_cluster_migrate_validator import (
-    SqlserverClusterMigrateFlowValidator,
+    SqlserverClusterMigrateFlowForHostValidator,
 )
 from backend.flow.engine.controller.base import BaseController
 from backend.flow.engine.validate.base_validate import validates_with
@@ -132,8 +132,8 @@ class SqlserverController(BaseController):
         flow = SqlserverModifyStatusFlow(root_id=self.root_id, data=self.ticket_data)
         flow.run_flow()
 
-    @validates_with(SqlserverClusterMigrateFlowValidator)
-    def sqlserver_cluster_migrate_scene(self):
+    @validates_with(SqlserverClusterMigrateFlowForHostValidator)
+    def sqlserver_cluster_migrate_for_host_scene(self):
         # 集群迁移流程单据(整机迁移)
         flow = SqlserverClusterMigrateFlow(root_id=self.root_id, data=self.ticket_data)
         flow.run_flow()
