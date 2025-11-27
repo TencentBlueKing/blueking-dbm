@@ -1,19 +1,23 @@
 <template>
   <AIBlueking
     v-if="apiUrl"
+    ref="aiBluekingRef"
     :enable-popup="false"
+    :hide-nimbus="hideNimbus"
     load-recent-session-on-mount
+    :show-history-icon="showHistoryIcon"
+    :show-more-icon="showMoreIcon"
+    :show-new-chat-icon="showNewChatIcon"
     :url="apiUrl" />
 </template>
 
 <script setup lang="ts">
   import AIBlueking from '@blueking/ai-blueking';
 
-  import { useSystemEnviron } from '@stores';
-
   import '@blueking/ai-blueking/dist/vue3/style.css';
 
-  const systemEnvironStore = useSystemEnviron();
+  import { useState } from './hooks/useState';
 
-  const { BK_AIDEV_URL: apiUrl } = systemEnvironStore.urls;
+  const { aiBluekingRef, apiUrl, hideNimbus, showHistoryIcon, showMoreIcon, showNewChatIcon } = useState();
 </script>
+=

@@ -94,6 +94,7 @@ declare interface Window {
   PROJECT_CONFIG: {
     BIZ_ID: number;
     TICKET_DETAIL_REQUEST_CONTROLLER: AbortController;
+    AI_LOG_ANALYSIS_OPEN: boolean;
   };
   PROJECT_ENV: {
     VITE_AJAX_URL_PREFIX: string;

@@ -55,7 +55,7 @@
   }
 
   interface Emits {
-    (e: 'clickSingleNode', data: any): void;
+    (e: 'clickSingleNode', data: any, isShowAiLog?: boolean): void;
     (e: 'refresh'): void;
     (
       e: 'ready',
@@ -85,9 +85,9 @@
   });
   const emits = defineEmits<Emits>();
 
-  const { t } = useI18n();
-
   let flowGraphInstance: FlowGraph;
+
+  const { t } = useI18n();
 
   const toolsRef = ref<InstanceType<typeof Tools>>();
   const flowCanvasContainerRef = ref<HTMLDivElement | null>(null);
@@ -216,6 +216,11 @@
       if (className.startsWith('retry')) {
         // 失败重试
         handleOperationShowTip('retry', e);
+        return;
+      }
+      if (className.startsWith('aiLogAnalysis')) {
+        // 日志解析
+        emits('clickSingleNode', target, true);
         return;
       }
       if (target.data.type === FlowTypes.ServiceActivity) {
