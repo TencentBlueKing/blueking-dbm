@@ -14,7 +14,9 @@ import type { RouteRecordRaw } from 'vue-router';
 
 import { registerBusinessModule } from '@router';
 
-import { checkDbConsole } from '@utils';
+import { DBTypes, TicketTypes } from '@common/const';
+
+import { checkDbConsole, createApplyRoute } from '@utils';
 
 import { t } from '@locales/index';
 
@@ -37,125 +39,29 @@ const routes: RouteRecordRaw[] = [
         },
         component: () => import('@views/service-apply/index/Index.vue'),
       },
-      {
-        path: 'single',
-        name: 'SelfServiceApplySingle',
-        meta: {
-          navName: t('申请MySQL单节点部署'),
-        },
-        component: () => import('@views/db-manage/mysql/apply/ApplyMySQL.vue'),
-      },
-      {
-        path: 'ha',
-        name: 'SelfServiceApplyHa',
-        meta: {
-          navName: t('申请MySQL主从部署'),
-        },
-        component: () => import('@views/db-manage/mysql/apply/ApplyMySQL.vue'),
-      },
-      {
-        path: 'tendbcluster',
-        name: 'spiderApply',
-        meta: {
-          navName: t('申请TendbCluster分布式集群部署'),
-        },
-        component: () => import('@views/db-manage/tendb-cluster/apply/Index.vue'),
-      },
-      {
-        path: 'redis',
-        name: 'SelfServiceApplyRedis',
-        meta: {
-          navName: t('申请Redis集群部署'),
-        },
-        component: () => import('@views/db-manage/redis/apply/ApplyRedis.vue'),
-      },
-      {
-        path: 'redis-ha',
-        name: 'SelfServiceApplyRedisHa',
-        meta: {
-          navName: t('申请 Redis 主从部署'),
-        },
-        component: () => import('@views/db-manage/redis/apply-ha/Index.vue'),
-      },
-      {
-        path: 'es',
-        name: 'EsApply',
-        meta: {
-          navName: t('申请ES集群部署'),
-        },
-        component: () => import('@views/db-manage/elastic-search/apply/Index.vue'),
-      },
-      {
-        path: 'kafka',
-        name: 'KafkaApply',
-        meta: {
-          navName: t('申请Kafka集群部署'),
-        },
-        component: () => import('@views/db-manage/kafka/apply/Index.vue'),
-      },
-      {
-        path: 'hdfs',
-        name: 'HdfsApply',
-        meta: {
-          navName: t('申请HDFS集群部署'),
-        },
-        component: () => import('@views/db-manage/hdfs/apply/Index.vue'),
-      },
-      {
-        path: 'pulsar',
-        name: 'PulsarApply',
-        meta: {
-          navName: t('申请Pulsar集群部署'),
-        },
-        component: () => import('@views/db-manage/pulsar/apply/index.vue'),
-      },
-      {
-        path: 'influxdb',
-        name: 'SelfServiceApplyInfluxDB',
-        meta: {
-          navName: t('申请InfluxDB集群部署'),
-        },
-        component: () => import('@views/db-manage/influxdb/apply/index.vue'),
-      },
-      {
-        path: 'riak',
-        name: 'RiakApply',
-        meta: {
-          navName: t('申请Riak集群部署'),
-        },
-        component: () => import('@views/db-manage/riak/apply/Index.vue'),
-      },
-      {
-        path: 'mongodb-shared-cluster-apply',
-        name: 'MongoDBSharedClusterApply',
-        meta: {
-          navName: t('申请MongoDB分片集群部署'),
-        },
-        component: () => import('@views/db-manage/mongodb/shared-cluster-apply/Index.vue'),
-      },
-      {
-        path: 'mongodb-replica-set-apply',
-        name: 'MongoDBReplicaSetApply',
-        meta: {
-          navName: t('申请MongoDB副本集部署'),
-        },
-        component: () => import('@views/db-manage/mongodb/replica-set-apply/Index.vue'),
-      },
-      {
-        path: 'doris',
-        name: 'DorisApply',
-        meta: {
-          navName: t('申请Doris集群部署'),
-        },
-        component: () => import('@views/db-manage/doris/apply/Index.vue'),
-      },
+      createApplyRoute(DBTypes.MYSQL, TicketTypes.MYSQL_SINGLE_APPLY, t('申请MySQL单节点部署')),
+      createApplyRoute(DBTypes.MYSQL, TicketTypes.MYSQL_HA_APPLY, t('申请MySQL主从部署')),
+      createApplyRoute(DBTypes.TENDBCLUSTER, TicketTypes.TENDBCLUSTER_APPLY, t('申请TendbCluster分布式集群部署')),
+      createApplyRoute(DBTypes.SQLSERVER, TicketTypes.SQLSERVER_SINGLE_APPLY, t('申请SQLServer单节点部署')),
+      createApplyRoute(DBTypes.SQLSERVER, TicketTypes.SQLSERVER_HA_APPLY, t('申请SQLServer主从部署')),
+      createApplyRoute(DBTypes.REDIS, TicketTypes.REDIS_CLUSTER_APPLY, t('申请Redis集群部署')),
+      createApplyRoute(DBTypes.REDIS, TicketTypes.REDIS_INS_APPLY, t('申请 Redis 主从部署')),
+      createApplyRoute(DBTypes.MONGODB, TicketTypes.MONGODB_REPLICASET_APPLY, t('申请MongoDB副本集部署')),
+      createApplyRoute(DBTypes.MONGODB, TicketTypes.MONGODB_SHARD_APPLY, t('申请MongoDB分片集群部署')),
+      createApplyRoute(DBTypes.ES, TicketTypes.ES_APPLY, t('申请ES集群部署')),
+      createApplyRoute(DBTypes.KAFKA, TicketTypes.KAFKA_APPLY, t('申请Kafka集群部署')),
+      createApplyRoute(DBTypes.HDFS, TicketTypes.HDFS_APPLY, t('申请HDFS集群部署')),
+      createApplyRoute(DBTypes.PULSAR, TicketTypes.PULSAR_APPLY, t('申请Pulsar集群部署')),
+      createApplyRoute(DBTypes.INFLUXDB, TicketTypes.INFLUXDB_APPLY, t('申请InfluxDB集群部署')),
+      createApplyRoute(DBTypes.RIAK, TicketTypes.RIAK_CLUSTER_APPLY, t('申请Riak集群部署')),
+      createApplyRoute(DBTypes.DORIS, TicketTypes.DORIS_APPLY, t('申请Doris集群部署')),
       {
         path: 'create-db-module/:type/:bk_biz_id/',
         name: 'SelfServiceCreateDbModule',
         meta: {
           navName: t('新建模块'),
         },
-        component: () => import('@views/service-apply/create-db-module/Index.vue'),
+        component: () => import('@views/service-apply/create-db-module/Mysql.vue'),
       },
       {
         path: 'bind-db-module/:type/:bk_biz_id/:db_module_id',
@@ -163,23 +69,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           navName: t('绑定配置'),
         },
-        component: () => import('@views/service-apply/create-db-module/Index.vue'),
-      },
-      {
-        path: 'sqlserver-single',
-        name: 'SqlServiceSingleApply',
-        meta: {
-          navName: t('申请SQLServer单节点部署'),
-        },
-        component: () => import('@views/db-manage/sqlserver/apply/SqlServer.vue'),
-      },
-      {
-        path: 'sqlserver-ha',
-        name: 'SqlServiceHaApply',
-        meta: {
-          navName: t('申请SQLServer主从部署'),
-        },
-        component: () => import('@views/db-manage//sqlserver/apply/SqlServer.vue'),
+        component: () => import('@views/service-apply/create-db-module/Mysql.vue'),
       },
       {
         path: 'sqlserver-create-db-module/:ticketType/:bizId/',
@@ -187,7 +77,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           navName: t('新建模块'),
         },
-        component: () => import('@views/service-apply/create-db-module/SqlServerCreateDbModule.vue'),
+        component: () => import('@views/service-apply/create-db-module/SqlServer.vue'),
       },
     ],
   },

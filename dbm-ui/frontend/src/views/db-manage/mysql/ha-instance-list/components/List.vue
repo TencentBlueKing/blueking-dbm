@@ -54,7 +54,13 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { type ClusterInstStatus, clusterInstStatus, ClusterTypes, UserPersonalSettings } from '@common/const';
+  import {
+    type ClusterInstStatus,
+    clusterInstStatus,
+    ClusterTypes,
+    TicketTypes,
+    UserPersonalSettings,
+  } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
@@ -352,7 +358,7 @@
    */
   const handleApply = () => {
     router.push({
-      name: 'SelfServiceApplyHa',
+      name: TicketTypes.MYSQL_HA_APPLY,
       query: {
         bizId: globalBizsStore.currentBizId,
       },

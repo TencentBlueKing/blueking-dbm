@@ -107,7 +107,7 @@
     FunctionKeys,
   } from '@services/model/function-controller/functionController';
 
-  import { useFunController, useGlobalBizs, useUserProfile } from '@stores';
+  import { useFunController, useUserProfile } from '@stores';
 
   import {
     bigDataType,
@@ -149,7 +149,6 @@
   const { t } = useI18n();
   const userProfile = useUserProfile();
   const funControllerStore = useFunController();
-  const { currentBizId } = useGlobalBizs();
 
   const localHistroyKey = 'SERVICE_APPLY_HISTORY';
 
@@ -162,7 +161,7 @@
           icon: 'mysql',
           id: mysqlType[TicketTypes.MYSQL_SINGLE_APPLY].id,
           name: mysqlType[TicketTypes.MYSQL_SINGLE_APPLY].name,
-          routeName: 'SelfServiceApplySingle',
+          routeName: TicketTypes.MYSQL_SINGLE_APPLY,
           tipImgProps: {
             src: singleTipImg,
             width: 150,
@@ -173,7 +172,7 @@
           icon: 'mysql',
           id: mysqlType[TicketTypes.MYSQL_HA_APPLY].id,
           name: mysqlType[TicketTypes.MYSQL_HA_APPLY].name,
-          routeName: 'SelfServiceApplyHa',
+          routeName: TicketTypes.MYSQL_HA_APPLY,
           tipImgProps: {
             src: haTipImg,
             width: 362,
@@ -184,7 +183,7 @@
           icon: 'mysql',
           id: mysqlType[TicketTypes.TENDBCLUSTER_APPLY].id,
           name: mysqlType[TicketTypes.TENDBCLUSTER_APPLY].name,
-          routeName: 'spiderApply',
+          routeName: TicketTypes.TENDBCLUSTER_APPLY,
         },
       ],
       groupName: 'MySQL',
@@ -198,14 +197,14 @@
           icon: 'sqlserver',
           id: sqlServerType[TicketTypes.SQLSERVER_SINGLE_APPLY].id,
           name: sqlServerType[TicketTypes.SQLSERVER_SINGLE_APPLY].name,
-          routeName: 'SqlServiceSingleApply',
+          routeName: TicketTypes.SQLSERVER_SINGLE_APPLY,
         },
         {
           controllerId: 'sqlserver_ha',
           icon: 'sqlserver',
           id: sqlServerType[TicketTypes.SQLSERVER_HA_APPLY].id,
           name: sqlServerType[TicketTypes.SQLSERVER_HA_APPLY].name,
-          routeName: 'SqlServiceHaApply',
+          routeName: TicketTypes.SQLSERVER_HA_APPLY,
         },
       ],
       groupName: 'SQLServer',
@@ -218,13 +217,13 @@
           icon: 'redis',
           id: redisType[TicketTypes.REDIS_CLUSTER_APPLY].id,
           name: redisType[TicketTypes.REDIS_CLUSTER_APPLY].name,
-          routeName: 'SelfServiceApplyRedis',
+          routeName: TicketTypes.REDIS_CLUSTER_APPLY,
         },
         {
           icon: 'redis',
           id: redisType[TicketTypes.REDIS_INS_APPLY].id,
           name: redisType[TicketTypes.REDIS_INS_APPLY].name,
-          routeName: 'SelfServiceApplyRedisHa',
+          routeName: TicketTypes.REDIS_INS_APPLY,
         },
       ],
       groupName: 'Redis',
@@ -237,13 +236,13 @@
           icon: 'mongo-db',
           id: mongoType[TicketTypes.MONGODB_SHARD_APPLY].id,
           name: mongoType[TicketTypes.MONGODB_SHARD_APPLY].name,
-          routeName: 'MongoDBSharedClusterApply',
+          routeName: TicketTypes.MONGODB_SHARD_APPLY,
         },
         {
           icon: 'mongo-db',
           id: mongoType[TicketTypes.MONGODB_REPLICASET_APPLY].id,
           name: mongoType[TicketTypes.MONGODB_REPLICASET_APPLY].name,
-          routeName: 'MongoDBReplicaSetApply',
+          routeName: TicketTypes.MONGODB_REPLICASET_APPLY,
         },
       ],
       groupName: 'Mongodb',
@@ -257,7 +256,7 @@
           icon: 'influxdb',
           id: bigDataType[TicketTypes.INFLUXDB_APPLY].id,
           name: bigDataType[TicketTypes.INFLUXDB_APPLY].name,
-          routeName: 'SelfServiceApplyInfluxDB',
+          routeName: TicketTypes.INFLUXDB_APPLY,
         },
       ],
       id: 'bigdata',
@@ -270,21 +269,21 @@
           icon: 'es',
           id: bigDataType[TicketTypes.ES_APPLY].id,
           name: bigDataType[TicketTypes.ES_APPLY].name,
-          routeName: 'EsApply',
+          routeName: TicketTypes.ES_APPLY,
         },
         {
           controllerId: 'hdfs',
           icon: 'hdfs',
           id: bigDataType[TicketTypes.HDFS_APPLY].id,
           name: bigDataType[TicketTypes.HDFS_APPLY].name,
-          routeName: 'HdfsApply',
+          routeName: TicketTypes.HDFS_APPLY,
         },
         {
           controllerId: 'doris',
           icon: 'doris',
           id: bigDataType[TicketTypes.DORIS_APPLY].id,
           name: bigDataType[TicketTypes.DORIS_APPLY].name,
-          routeName: 'DorisApply',
+          routeName: TicketTypes.DORIS_APPLY,
         },
       ],
       id: 'bigdata',
@@ -297,21 +296,21 @@
           icon: 'pulsar',
           id: bigDataType[TicketTypes.PULSAR_APPLY].id,
           name: bigDataType[TicketTypes.PULSAR_APPLY].name,
-          routeName: 'PulsarApply',
+          routeName: TicketTypes.PULSAR_APPLY,
         },
         {
           controllerId: 'kafka',
           icon: 'kafka',
           id: bigDataType[TicketTypes.KAFKA_APPLY].id,
           name: bigDataType[TicketTypes.KAFKA_APPLY].name,
-          routeName: 'KafkaApply',
+          routeName: TicketTypes.KAFKA_APPLY,
         },
         {
           controllerId: 'riak',
           icon: 'cluster',
           id: bigDataType[TicketTypes.RIAK_CLUSTER_APPLY].id,
           name: bigDataType[TicketTypes.RIAK_CLUSTER_APPLY].name,
-          routeName: 'RiakApply',
+          routeName: TicketTypes.RIAK_CLUSTER_APPLY,
         },
       ],
       id: 'bigdata',
