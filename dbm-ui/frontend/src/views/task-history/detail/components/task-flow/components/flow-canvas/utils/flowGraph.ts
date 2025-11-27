@@ -21,6 +21,7 @@ import { StartEndNode } from './startEndNode';
 const roundFlowTypes = [FlowTypes.EmptyEndEvent, FlowTypes.EmptyStartEvent, ...getewayTypes];
 
 const targetNameHoverTypeMap: Record<string, string> = {
+  aiLogAnalysisWraper: 'aiLogHover',
   forceFailWraper: 'forceFailHover',
   manualConfirmWraper: 'manualHover',
   retryWraper: 'retryHover',
@@ -142,6 +143,9 @@ export class FlowGraph {
       },
       node: {
         state: {
+          aiLogHover: {
+            aiLogOptFill: '#DCDEE5',
+          },
           // collapseBackgroundHover: {
           //   collapseBackgroundColor: '#979BA5',
           // },
@@ -180,6 +184,7 @@ export class FlowGraph {
           },
         },
         style: {
+          aiLogOptFill: '#EAEBF0',
           // collapseBackgroundColor: '#C4C6CC',
           cursor: 'pointer',
           failedImageBackgroundColor: '#FF4D4D',
