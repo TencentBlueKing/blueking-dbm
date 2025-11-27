@@ -12,7 +12,7 @@ from backend.flow.engine.validate.exceptions import DuplicateIPException
 from backend.flow.engine.validate.sqlserver_base_validate import SqlserverBaseValidator
 
 
-class SqlserverClusterMigrateFlowValidator(SqlserverBaseValidator):
+class SqlserverClusterMigrateFlowForHostValidator(SqlserverBaseValidator):
     """
     SqlserverClusterMigrateFlow类对应的validate类
     判断传入flow的data参数合法性

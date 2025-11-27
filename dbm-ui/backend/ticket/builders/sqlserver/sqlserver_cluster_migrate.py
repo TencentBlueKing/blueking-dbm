@@ -60,8 +60,8 @@ class SQLServerClusterMigrateResourceParamBuilder(SQLServerBaseOperateResourcePa
 
 
 class SQLServerClusterMigrateParamBuilder(builders.FlowParamBuilder):
-    controller = SqlserverController.ha_switch_scene
-    validator = None
+    controller = SqlserverController.sqlserver_cluster_migrate_for_ins_scene
+    validator = SqlserverController.sqlserver_cluster_migrate_for_ins_scene.validator
 
 
 @builders.BuilderFactory.register(TicketType.SQLSERVER_CLUSTER_MIGRATE)
