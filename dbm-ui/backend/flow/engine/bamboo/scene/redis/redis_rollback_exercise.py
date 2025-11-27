@@ -14,6 +14,7 @@ from dataclasses import asdict
 from datetime import datetime, timedelta
 from typing import Dict, Optional
 
+from django.conf import settings
 from django.utils.translation import gettext as _
 
 from backend.db_meta.models import Cluster
@@ -111,6 +112,8 @@ class RedisRollbackExerciseFlow(object):
             else:
                 logger.info(_("Dry-run: Changing task state to RESOURCE_APPLI_SUCCEEDED"))
 
+            polling_timeout = config.get("polling_timeout", 3600)
+
             act_kwargs = ActKwargs()
             act_kwargs.set_trans_data_dataclass = RedisRollbackExerciseContext.__name__
             act_kwargs.cluster = {
@@ -123,20 +126,23 @@ class RedisRollbackExerciseFlow(object):
                 "resource_spec": info.get("resource_spec"),
                 "resource_applied": resource_applied,
                 "polling_interval": config.get("polling_interval", 10),
-                "polling_timeout": config.get("polling_timeout", 3600),
+                "polling_timeout": polling_timeout,
             }
 
             # Step 2: Add alert shield for the applied machine
+            shield_duration_seconds = polling_timeout + settings.DISABLE_ALARM_SHIELD_DELAY
             sub_flow.add_act(
-                act_name=_("屏蔽主机 {} 告警(超时1h)").format(resource_applied[0]["ip"]),
+                act_name=_("屏蔽主机 {} 告警(超时 {:.1f} mins)").format(
+                    resource_applied[0]["ip"], shield_duration_seconds / 60
+                ),
                 act_component_code=AddAlarmShieldComponent.code,
                 kwargs={
                     "begin_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "end_time": (datetime.now() + timedelta(hours=1)).strftime("%Y-%m-%d %H:%M:%S"),
+                    "end_time": (datetime.now() + timedelta(seconds=polling_timeout)).strftime("%Y-%m-%d %H:%M:%S"),
                     "description": _("主机 {} Redis回档演练操作").format(resource_applied[0]["ip"]),
                     "dimensions": [
                         {
-                            "name": "instance_host",
+                            "name": "bk_target_ip",
                             "values": [resource_applied[0]["ip"]],
                         }
                     ],
