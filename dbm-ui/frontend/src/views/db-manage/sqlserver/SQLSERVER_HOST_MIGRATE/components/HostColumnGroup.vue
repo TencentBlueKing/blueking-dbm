@@ -108,10 +108,12 @@
   const tabListConfig = {
     [ClusterTypes.SQLSERVER_HA]: [
       {
-        id: [ClusterTypes.SQLSERVER_HA],
+        id: ClusterTypes.SQLSERVER_HA,
         tableConfig: {
           firsrColumn: {
             field: 'ip',
+            label: t('目标主机'),
+            role: 'backend_master',
           },
         },
         topoConfig: {
@@ -122,10 +124,12 @@
     ],
     [ClusterTypes.SQLSERVER_SINGLE]: [
       {
-        id: [ClusterTypes.SQLSERVER_SINGLE],
+        id: ClusterTypes.SQLSERVER_SINGLE,
         tableConfig: {
           firsrColumn: {
             field: 'ip',
+            label: t('目标主机'),
+            role: 'orphan',
           },
         },
       },
@@ -224,6 +228,7 @@
           cluster_type: [ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE],
           db_type: DBTypes.SQLSERVER,
           instance_addresses: [modelValue.value.ip],
+          instance_role: ['backend_master', 'orphan'],
         });
       }
     },

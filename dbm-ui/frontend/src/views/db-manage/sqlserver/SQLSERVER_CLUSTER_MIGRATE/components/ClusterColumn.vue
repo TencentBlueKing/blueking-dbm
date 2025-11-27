@@ -72,12 +72,6 @@
       string,
       {
         cluster_type: ClusterTypes;
-        hostList: {
-          bk_biz_id: number;
-          bk_cloud_id: number;
-          bk_host_id: number;
-          ip: string;
-        }[];
         id: number;
         master_domain: string;
         region: string;
@@ -157,12 +151,6 @@
             ...clusters,
             [item.master_domain]: {
               cluster_type: item.cluster_type,
-              hostList: item.masters.map((host) => ({
-                bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-                bk_cloud_id: host.bk_cloud_id,
-                bk_host_id: host.bk_host_id,
-                ip: host.ip,
-              })),
               id: item.id,
               master_domain: item.master_domain,
               region: item.region,
