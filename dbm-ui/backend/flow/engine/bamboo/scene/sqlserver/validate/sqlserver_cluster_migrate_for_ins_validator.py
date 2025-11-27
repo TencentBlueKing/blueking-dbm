@@ -9,12 +9,12 @@ specific language governing permissions and limitations under the License.
 """
 
 from backend.flow.engine.bamboo.scene.sqlserver.validate.sqlserver_cluster_migrate_validator import (
-    SqlserverClusterMigrateFlowValidator,
+    SqlserverClusterMigrateFlowForHostValidator,
 )
 from backend.flow.engine.validate.exceptions import DuplicateIPException
 
 
-class SqlserverClusterMigrateForInsFlowValidator(SqlserverClusterMigrateFlowValidator):
+class SqlserverClusterMigrateForInsFlowValidator(SqlserverClusterMigrateFlowForHostValidator):
     """
     SqlserverClusterMigrateFlow类对应的validate类(集群拆分)
     判断传入flow的data参数合法性
