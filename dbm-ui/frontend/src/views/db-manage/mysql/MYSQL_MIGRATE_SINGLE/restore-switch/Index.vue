@@ -134,7 +134,7 @@
   });
 
   const formData = reactive({
-    backup_source: BackupSourceType.LOCAL,
+    backup_source: BackupSourceType.REMOTE, // 固定传remote, 页面不展示
     orphan_restore_type: 'restore_with_data',
     payload: createTickePayload(),
     tableData: [createTableRow()],
