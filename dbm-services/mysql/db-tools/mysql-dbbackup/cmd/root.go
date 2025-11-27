@@ -92,10 +92,9 @@ func initConfig(confFile string, cnf *config.BackupConfig, log *logrus.Logger) e
 			log.Infof("use role from common_config:%s, config:%s",
 				instInfo.InstanceInnerRole, cnf.Public.MysqlRole)
 		}
-		if instInfo.AccessLayer == meta.AccessLayerStorage && !instInfo.IsStandBy {
+		if instInfo.AccessLayer == meta.AccessLayerStorage && !instInfo.IsStandBy && cnf.Public.IfBackupData() {
 			log.Infof("the standby flag from common_config is %v, not upload to backup system",
 				instInfo.IsStandBy)
-			//cnf.BackupClient.Enable = false
 			// is_standby = false 且 EnableBackupClient = auto 则禁用备份客户端
 			if cnf.BackupClient.EnableBackupClient == "" || cnf.BackupClient.EnableBackupClient == "auto" {
 				cnf.BackupClient.EnableBackupClient = "no"

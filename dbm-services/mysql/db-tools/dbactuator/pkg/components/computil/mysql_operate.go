@@ -63,8 +63,8 @@ func RestartMysqlInstanceNormal(inst native.InsObject) error {
 	return nil
 }
 
-// IsInstanceRunning mysqld process exist
-func IsInstanceRunning(inst native.InsObject) bool {
+// IsInstanceRunning mysqld process exist or not
+func IsInstanceRunning(inst native.InsObject) (bool, error) {
 	mycnf := util.GetMyCnfFileName(inst.Port)
 	startParam := StartMySQLParam{
 		Host:      inst.Host,
@@ -77,9 +77,12 @@ func IsInstanceRunning(inst native.InsObject) bool {
 		MediaDir:  cst.MysqldInstallPath,
 	}
 	if err := startParam.CheckMysqlProcess(); err != nil {
-		return false
+		if errors.Is(err, cst.MysqldIsNotRunning) {
+			return false, nil
+		}
+		return false, err
 	}
-	return true
+	return true, nil
 }
 
 // RestartMysqlInstance restart mysql instance
@@ -206,7 +209,7 @@ func (p *StartMySQLParam) CheckMysqlProcess() (err error) {
 	regStr := fmt.Sprintf("mysqld_safe\\s+--defaults-file=%s", p.MyCnfName)
 	if !regexp.MustCompile(regStr).MatchString(out) {
 		logger.Info("regStr[%s] not match result[%s] ", regStr, out)
-		return fmt.Errorf("ps grep 不到相关进程，可能没有完全启动请稍等")
+		return errors.WithMessagef(cst.MysqldIsNotRunning, "ps grep %s 不到相关进程，可能没有完全启动请稍等", p.MyCnfName)
 	}
 
 	if p.MySQLUser == "" {
@@ -219,12 +222,14 @@ func (p *StartMySQLParam) CheckMysqlProcess() (err error) {
 		dsn = native.DsnBySocket(p.Socket, p.MySQLUser, p.MySQLPwd)
 	}
 	// 没有 error 可以认为连接成功
-	if _, err = native.NewDbWorker(dsn); err != nil {
+	if dbw, err := native.NewDbWorker(dsn); err != nil {
 		logger.Error("test conn mysql %d failed:%v", p.Port, err)
 		return err
+	} else {
+		logger.Info("connect %s successfully", addr)
+		dbw.Close()
+		return nil
 	}
-	logger.Info("connect %s successfully", addr)
-	return err
 }
 
 // ShutdownMySQLParam TODO
