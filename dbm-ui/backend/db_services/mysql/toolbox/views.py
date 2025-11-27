@@ -27,6 +27,7 @@ from backend.db_services.mysql.toolbox.serializers import GetSpiderVersionModule
 from backend.db_services.mysql.toolbox.serializers import (
     ChangeClusterSpecSerializer,
     GetStorageVersionModulesSerializer,
+    MySQLRollbackExerciseByClusterSerializer,
     QueryPkgListByCompareVersionSerializer,
     QuerySpiderPkgListByCompareVersionSerializer,
     TendbhaAddSlaveDomainSerializer,
@@ -34,10 +35,12 @@ from backend.db_services.mysql.toolbox.serializers import (
 )
 from backend.db_services.mysql.toolbox.storage_upgrade_tool import get_storage_version_modules_api
 from backend.db_services.mysql.toolbox.upgrade_tool import get_spider_version_modules_api
+from backend.flow.engine.controller.mysql_backup_data_recovery_exercise import MySQLBackupDataRecoveryController
 from backend.flow.utils.dns_manage import DnsManage
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
+from backend.utils.basic import generate_root_id
 
 logger = logging.getLogger("root")
 
@@ -205,6 +208,37 @@ class ToolboxViewSet(viewsets.SystemViewSet):
         )
 
         return Response(result)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("按集群执行MySQL回档演练"),
+        request_body=MySQLRollbackExerciseByClusterSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=MySQLRollbackExerciseByClusterSerializer)
+    def rollback_exercise_by_cluster(self, request, **kwargs):
+        """
+        按集群执行MySQL回档演练
+        支持指定备份ID或自动查询最近3天的备份记录
+        """
+        data = self.params_validate(self.get_serializer_class())
+        logger.info(_("开始按集群执行MySQL回档演练: cluster_id={}").format(data["cluster_id"]))
+
+        root_id = generate_root_id()
+        logger.info(_("生成root_id: {}").format(root_id))
+
+        # 调用Controller处理业务逻辑
+        try:
+            flow = MySQLBackupDataRecoveryController(root_id, data)
+            flow.mysql_rollback_exercise_by_cluster()
+            return Response({"root_id": root_id, "result": True, "message": _("回档演练任务已启动")})
+        except ValueError as e:
+            logger.error(_("回档演练失败: {}").format(str(e)))
+            return Response({"root_id": root_id, "result": False, "message": str(e)}, status=400)
+        except Exception as e:
+            logger.exception(_("回档演练异常: {}").format(str(e)))
+            return Response(
+                {"root_id": root_id, "result": False, "message": _("回档演练异常: {}").format(str(e))}, status=500
+            )
 
 
 class TendbHaSlaveInstanceAddDomainSet(viewsets.SystemViewSet):
