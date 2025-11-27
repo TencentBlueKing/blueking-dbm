@@ -56,6 +56,7 @@ class RedisRollbackDataCopyDetailSerializer(RedisBaseOperateDetailSerializer):
             ClusterValidateMixin.check_cluster_phase(dst_cluster)
 
             if not TbTendisRollbackTasks.objects.filter(
+                bk_biz_id=self.context["bk_biz_id"],
                 prod_cluster_id=dst_cluster,
                 temp_cluster_proxy=src_cluster,
                 recovery_time_point=info.get("recovery_time_point"),

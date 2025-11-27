@@ -260,6 +260,7 @@ class RedisRollbackFlowCreateSerivce(RedisLogCapturingService):
         task_id = kwargs["cluster"].get("task_id")
         self.trans_data.task_id = task_id
 
+        bk_biz_id = kwargs["cluster"].get("bk_biz_id")  # biz_id of the ticket, not cluster
         cluster_id = kwargs["cluster"].get("cluster_id")
         instance_ip = kwargs["cluster"].get("instance_ip")
         instance_port = kwargs["cluster"].get("instance_port")
@@ -273,7 +274,7 @@ class RedisRollbackFlowCreateSerivce(RedisLogCapturingService):
             rollback_flow_id = generate_root_id()
             # Prepare data structure flow data
             data_structure_data = {
-                "bk_biz_id": cluster.bk_biz_id,
+                "bk_biz_id": bk_biz_id,
                 "uid": global_data["uid"],
                 "created_by": global_data["created_by"],
                 "ticket_type": "REDIS_DATA_STRUCTURE",
@@ -348,9 +349,9 @@ class RedisTempInstanceDeleteService(RedisLogCapturingService):
             cluster_id = kwargs["cluster"].get("cluster_id")
             cluster = Cluster.objects.get(id=cluster_id)
 
-            bk_biz_id = cluster.bk_biz_id
             delete_flow_id = generate_root_id()
             global_data = data.get_one_of_inputs("global_data")
+            bk_biz_id = kwargs["cluster"].get("bk_biz_id")  # biz_id of the ticket, not cluster
             task_id = kwargs["cluster"].get("task_id")
 
             flow_data = {

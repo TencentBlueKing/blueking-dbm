@@ -340,6 +340,8 @@ class Ticket(AuditedModel):
         dba, second_dba, other_dba = DBAdministrator.get_dba_for_db_type(revoke_ticket.bk_biz_id, revoke_ticket.group)
         creator = dba[0] if dba else revoke_ticket.creator
         helpers = [*second_dba, *other_dba]
+        # 支持通过终止单据设置立刻执行清理单据
+        immediate_recycle = revoke_ticket.details.get("immediate_recycle", False)
         # 创建回收单据流程
         recycle_ticket = Ticket.create_ticket(
             ticket_type=ticket_type,
@@ -351,6 +353,7 @@ class Ticket(AuditedModel):
                 "parent_ticket": revoke_ticket_id,
                 "group": revoke_ticket.group,
                 "recycle_hosts": hosts,
+                "immediate_recycle": immediate_recycle,
             },
         )
 

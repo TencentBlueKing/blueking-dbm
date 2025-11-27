@@ -31,6 +31,7 @@ class RecycleHostDetailSerializer(serializers.Serializer):
     recycle_hosts = serializers.JSONField(help_text=_("下架机器的回收信息"), default=[])
     group = serializers.ChoiceField(help_text=_("所属组件"), choices=DBType.get_choices())
     parent_ticket = serializers.IntegerField(help_text=_("发起单据号"))
+    immediate_recycle = serializers.BooleanField(help_text=_("立即回收", default=False))
 
 
 class MachineIdleCheckParamBuilder(FlowParamBuilder):
@@ -74,8 +75,9 @@ class RecycleHostFlowBuilder(TicketFlowBuilder):
 
         # 对于独立管控的回收单，跳过空闲检查和数据清理
         if not self.check_independent_recycle():
-            # 定时执行
-            if env.HOST_RECYCLE_RETENTION_DAYS:
+            # 定时执行 - 如果父单据设置了immediate_recycle标志，则跳过定时器
+            immediate_recycle = self.ticket.details.get("immediate_recycle", False)
+            if env.HOST_RECYCLE_RETENTION_DAYS and not immediate_recycle:
                 flows.append(
                     Flow(ticket=self.ticket, flow_type=FlowType.TIMER.value, flow_alias=_("定时执行")),
                 )
