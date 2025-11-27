@@ -85,31 +85,22 @@
   const { loading, run: fetchClusterVersions } = useRequest(getPackages, {
     manual: true,
     onSuccess(versions) {
-      const currentVersionList = props.rowData.current_version.map((item) => item.match(versionRegex)![0] || '');
+      const minCurrentVersion =
+        props.rowData.current_version
+          .map((item) => item.match(versionRegex)?.[0])
+          .filter((version): version is string => Boolean(version))
+          .sort(compareVersions)[0] || '';
+
       versionList.value = versions.results
-        .reduce(
-          (prevList, versionItem) => {
-            const version = versionItem.name.match(versionRegex);
-            const isHigherThanAllCurrent = currentVersionList.every((currentVersion) => {
-              return compareVersions(version ? version[0] : '', currentVersion) === 1;
-            });
-            if (version && isHigherThanAllCurrent) {
-              prevList.push({
-                label: versionItem.name,
-                value: versionItem.id,
-              });
-              return prevList;
-            }
-            return prevList;
-          },
-          [] as {
-            label: string;
-            value: number;
-          }[],
-        )
-        .sort((a, b) => {
-          return compareVersions(b.label, a.label);
-        });
+        .filter((item) => {
+          const version = item.name.match(versionRegex)?.[0];
+          return version && compareVersions(version, minCurrentVersion) === 1;
+        })
+        .map((item) => ({
+          label: item.name,
+          value: item.id,
+        }))
+        .sort((a, b) => compareVersions(b.label || '', a.label || ''));
 
       if (versionList.value.length) {
         const [lastestVersion] = versionList.value;
