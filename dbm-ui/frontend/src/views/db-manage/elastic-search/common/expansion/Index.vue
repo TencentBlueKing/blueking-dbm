@@ -17,7 +17,7 @@
     v-model:is-show="isShow"
     :cluster-data="clusterData"
     :loading="isLoading"
-    :title="t('xx扩容【name】', { title: 'ES', name: clusterData.cluster_name })"
+    :title="t('xx扩容【name】', { title: 'ES', name: clusterData.master_domain })"
     @submit="handleChange" />
 </template>
 <script setup lang="tsx">
