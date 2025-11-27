@@ -42,8 +42,8 @@ class SQLServerHostMigrateResourceParamBuilder(SQLServerClusterMigrateResourcePa
 
 
 class SQLServerHostMigrateParamBuilder(builders.FlowParamBuilder):
-    controller = SqlserverController.ha_switch_scene
-    validator = None
+    controller = SqlserverController.sqlserver_cluster_migrate_for_host_scene
+    validator = SqlserverController.sqlserver_cluster_migrate_for_host_scene.validator
 
 
 @builders.BuilderFactory.register(TicketType.SQLSERVER_HOST_MIGRATE)
