@@ -155,6 +155,8 @@
 
   import { createResourceReplenish } from '@services/source/dbresourceReplenish';
 
+  import { useSystemEnviron } from '@stores';
+
   import { DBTypeInfos } from '@common/const';
 
   import { getOffset, messageSuccess } from '@utils';
@@ -166,6 +168,7 @@
   const { t } = useI18n();
   const rootRef = useTemplateRef('tableWrapper');
   const router = useRouter();
+  const systemEnvironStore = useSystemEnviron();
   const {
     dataList,
     flushTime,
@@ -223,6 +226,7 @@
         spec_id: item.spec_id,
         subzone: item.subzone,
       }));
+    const totalReplenish = replenishList.reduce((total, item) => total + item.count, 0);
 
     InfoBox({
       cancelText: t('取消'),
@@ -240,12 +244,12 @@
       ),
       onConfirm: () => {
         return replenish({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          bk_biz_id: systemEnvironStore.urls.RESOURCE_INDEPENDENT_BIZ,
           infos: replenishList,
           remark: t('手动补货'),
         });
       },
-      title: t('确认一键补货 n 台？', [replenishList.length]),
+      title: t('确认一键补货 n 台？', [totalReplenish]),
       type: 'warning',
     });
   };
