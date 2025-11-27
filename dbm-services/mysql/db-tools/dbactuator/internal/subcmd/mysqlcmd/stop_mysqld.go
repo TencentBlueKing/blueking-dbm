@@ -19,30 +19,30 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// RestartMysqldAct TODO
-type RestartMysqldAct struct {
+// StopMysqldAct TODO
+type StopMysqldAct struct {
 	*subcmd.BaseOptions
-	Payload mysql.RestartMysqldComp
+	Payload mysql.StopMysqldComp
 }
 
-// RestartMysqldCommand godoc
+// StopMysqldCommand godoc
 //
-// @Summary      重启 mysqld
-// @Description  重启 mysqld
+// @Summary      停止 mysqld
+// @Description  停止 mysqld
 // @Tags         mysql
 // @Accept       json
 // @Produce      json
-// @Param        body body      mysql.RestartMysqldComp  true  "description"
-// @Router       /mysql/restart-mysqld[post]
-func RestartMysqldCommand() *cobra.Command {
-	act := RestartMysqldAct{
+// @Param        body body      mysql.StopMysqldComp  true  "description"
+// @Router       /mysql/stop-mysqld[post]
+func StopMysqldCommand() *cobra.Command {
+	act := StopMysqldAct{
 		BaseOptions: subcmd.GBaseOptions,
 	}
 	cmd := &cobra.Command{
-		Use:   "restart-mysqld",
-		Short: "重启 mysqld 进程",
+		Use:   "stop-mysqld",
+		Short: "停止 mysqld进程",
 		Example: fmt.Sprintf(
-			`dbactuator mysql restart-mysqld %s %s`,
+			`dbactuator mysql stop-mysqld %s %s`,
 			subcmd.CmdBaseExampleStr, subcmd.ToPrettyJson(act.Payload.Example()),
 		),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -55,7 +55,7 @@ func RestartMysqldCommand() *cobra.Command {
 }
 
 // Init TODO
-func (d *RestartMysqldAct) Init() (err error) {
+func (d *StopMysqldAct) Init() (err error) {
 	if err = d.BaseOptions.Validate(); err != nil { // @todo 应该在一开始就validate
 		return err
 	}
@@ -69,12 +69,12 @@ func (d *RestartMysqldAct) Init() (err error) {
 }
 
 // Validate TODO
-func (d *RestartMysqldAct) Validate() error {
+func (d *StopMysqldAct) Validate() error {
 	return nil
 }
 
 // Run TODO
-func (d *RestartMysqldAct) Run() (err error) {
+func (d *StopMysqldAct) Run() (err error) {
 	defer util.LoggerErrorStack(logger.Error, err)
 	steps := subcmd.Steps{
 		{
@@ -86,7 +86,7 @@ func (d *RestartMysqldAct) Run() (err error) {
 			Func:    d.Payload.PreCheck,
 		},
 		{
-			FunName: "重启 mysqld",
+			FunName: "关闭 mysqld",
 			Func:    d.Payload.Start,
 		},
 	}
@@ -95,6 +95,6 @@ func (d *RestartMysqldAct) Run() (err error) {
 		return err
 	}
 
-	logger.Info("restart mysqld successfully")
+	logger.Info("stop mysqld successfully")
 	return nil
 }

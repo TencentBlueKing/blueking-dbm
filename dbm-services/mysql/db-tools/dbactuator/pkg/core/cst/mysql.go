@@ -1,6 +1,10 @@
 package cst
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/pkg/errors"
+)
 
 const (
 	// UsrLocal 系统路径
@@ -158,3 +162,5 @@ const (
 
 // MySQLCrondPort crond 端口
 const MySQLCrondPort = 9999
+
+var MysqldIsNotRunning = errors.New("mysqld is not running")
