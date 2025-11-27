@@ -13,7 +13,7 @@ import logging.config
 from collections import defaultdict
 from copy import deepcopy
 from dataclasses import asdict
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from django.utils.translation import gettext as _
 
@@ -522,7 +522,7 @@ class RedisDataStructureFlow(object):
         return len(diff) == 0
 
     @staticmethod
-    def get_backup_instance_by_bklog(info: dict, cluster_type: str) -> (list, list):
+    def get_backup_instance_by_bklog(info: dict, cluster_type: str) -> Tuple[list, list]:
         # 根据传入的集群和时间获取其backup_instance
         rollback_handler = DataStructureHandler(info["cluster_id"])
         cluster_full_instance_backup = rollback_handler.query_donmain_backup_log(
@@ -787,7 +787,7 @@ class RedisDataStructureFlow(object):
         recovery_time_point: str,
         tendis_type: str,
         dest_dir: str,
-    ) -> (list, list):
+    ) -> Tuple[list, list]:
         # ### 整理 数据构造源节点和临时集群节点之间的对应关系 ######################################################
         """
         1、有一对多：1台源主机对应多台临时主机->加快数据构造进度
@@ -917,7 +917,9 @@ class RedisDataStructureFlow(object):
         return new_kwargs
 
     @staticmethod
-    def get_backupfile(cluster_id, rollback_time, source_ip, source_port, tendis_type, kvstorecount) -> (dict, dict):
+    def get_backupfile(
+        cluster_id, rollback_time, source_ip, source_port, tendis_type, kvstorecount
+    ) -> Tuple[dict, dict]:
         rollback_handler = DataStructureHandler(cluster_id)
         instance_binlog_backup = []
         instance_full_backup = rollback_handler.query_latest_backup_log(
@@ -960,7 +962,7 @@ class RedisDataStructureFlow(object):
         full_backupinfo,
         binlog_backupinfo,
         act_kwargs,
-    ) -> (dict, dict):
+    ) -> Tuple[dict, dict]:
         act_kwargs.cluster["source_ip"] = source_ip
         act_kwargs.cluster["source_ports"] = source_ports
         act_kwargs.cluster["new_temp_ip"] = new_temp_ip
