@@ -2,6 +2,7 @@ import _ from 'lodash';
 
 import { encodeRegexp, getCostTimeDisplay } from '@utils';
 
+import AiBluekingImage from '@images/ai-blueking.svg';
 import SuccessImage from '@images/check-line.png';
 import FailImage from '@images/close.png';
 import FileImage from '@images/file.png';
@@ -315,7 +316,41 @@ export class NormalNode extends Rect {
         };
         this.upsert('retryText', GText, retryTextStyle, container);
       }
-      return;
+      // ai日志分析
+      if (window.PROJECT_CONFIG.AI_LOG_ANALYSIS_OPEN) {
+        const aiLogAnalysisWraperStyle = {
+          fill: attributes.aiLogOptFill,
+          height: 24,
+          radius: 2,
+          width: 76,
+          x: skippable && skippable ? -width / 2 + 132 : -width / 2 + 68,
+          y: 34,
+        };
+        this.upsert('aiLogAnalysisWraper', GRect, aiLogAnalysisWraperStyle, container);
+        const {
+          attributes: { x: aX, y: aY },
+        } = this.getShape('aiLogAnalysisWraper');
+        const aiLogAnalysisIconStyle = {
+          height: 12,
+          src: AiBluekingImage,
+          width: 12,
+          x: aX + 5,
+          y: aY + 6,
+        };
+        this.upsert('aiLogAnalysisIcon', GImage, aiLogAnalysisIconStyle, container);
+        const {
+          attributes: { x: aiiX, y: aiiY },
+        } = this.getShape('aiLogAnalysisIcon');
+        const aiLogAnalysisTextStyle = {
+          fill: '#4D4F56',
+          fontSize: 12,
+          text: '日志解析',
+          x: aiiX + 15,
+          y: aiiY + 14,
+        };
+        this.upsert('aiLogAnalysisText', GText, aiLogAnalysisTextStyle, container);
+        return;
+      }
     }
     if (todoId) {
       // 人工确认

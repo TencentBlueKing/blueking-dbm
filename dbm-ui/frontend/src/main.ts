@@ -76,6 +76,7 @@ Promise.all([fetchFunController(), fetchBizs(), systemEnvironStore.fetchSystemEn
   app.use(getRouter());
   const { urls } = systemEnvironStore;
   const reportUrl = urls.BKDATA_FRONTEND_REPORT_URL;
+  window.PROJECT_CONFIG.AI_LOG_ANALYSIS_OPEN = !!urls.BK_AIDEV_LOG_ANALYSIS_URL;
   if (reportUrl) {
     // 监控数据上报
     app.use(BkTrace, {

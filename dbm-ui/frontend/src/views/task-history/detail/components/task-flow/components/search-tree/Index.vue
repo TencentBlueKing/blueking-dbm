@@ -68,7 +68,7 @@
             :status="item.todoId ? 'TODO' : item.status"
             :type="item.type" />
           <span
-            v-overflow-tips
+            v-overflow-tips="{ content: item.name, placement: 'right' }"
             class="text-overflow node-name">
             {{ item.name }}
           </span>

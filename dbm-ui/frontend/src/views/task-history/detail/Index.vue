@@ -125,6 +125,7 @@
 
   import { getTaskflowDetails } from '@services/source/taskflow';
 
+  import { AiBluekingModeEnum, useState as useAiBluekingState } from '@components/ai-blueking/hooks/useState';
   import CostTimer from '@components/cost-timer/CostTimer.vue';
   import TicketDetail from '@components/ticket-detail/index.vue';
 
@@ -143,6 +144,8 @@
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
+
+  const { changeMode, hide: hideAiBlueking } = useAiBluekingState();
 
   let isInitCanvas = false;
   let requestInterval = 10000;
@@ -270,10 +273,14 @@
   const { pause } = useTimeoutPoll(fetchTaskflowDetails, () => requestInterval);
 
   onMounted(() => {
+    hideAiBlueking();
+    changeMode(AiBluekingModeEnum['LOG_ANALYSIS']);
     fetchTaskflowDetails();
   });
 
   onBeforeUnmount(() => {
+    hideAiBlueking();
+    changeMode(AiBluekingModeEnum['COMMON']);
     pause();
   });
 
