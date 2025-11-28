@@ -16,6 +16,7 @@ from typing import Dict, Optional
 
 from django.utils.translation import gettext as _
 
+from backend.components import DRSApi
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryType, InstanceInnerRole
@@ -273,6 +274,25 @@ class MySQLMigrateSingleFlow(object):
                         TendbSingleRestoreType.REPLICATE_WITH_STRUCT,
                         TendbSingleRestoreType.REPLICATE_WITH_DATA,
                     ]:
+                        res = DRSApi.rpc(
+                            {
+                                "addresses": [master_model.ip_port],
+                                "cmds": ["show global variables like 'log_bin'"],
+                                "force": False,
+                                "bk_cloud_id": cluster_class.bk_cloud_id,
+                            }
+                        )
+                        if res[0]["error_msg"] or len(res[0]["cmd_results"][0]["table_data"]) == 0:
+                            raise Exception(_("查询 {} log_bin 参数失败".format(master_model.ip_port)))
+                        if res[0]["cmd_results"][0]["table_data"][0]["Value"] == "OFF":
+                            raise Exception(
+                                _(
+                                    "{} 使用迁移类型 {}  log_bin 参数必须为ON".format(
+                                        master_model.ip_port, self.data["orphan_restore_type"]
+                                    )
+                                )
+                            )
+
                         cluster["binlog_sync"] = True
                         cluster["change_master_force"] = True
                         cluster["add_tuple_relation"] = True
