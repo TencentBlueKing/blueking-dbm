@@ -1,14 +1,18 @@
 import { reactive, ref } from 'vue';
 
 import { useUrlSearch } from '@hooks';
+import { transfromDataToQuery } from '@utils';
 import { useStorage } from '@vueuse/core';
 import { fetchReplenish } from '@services/source/dbresourceReplenish';
 import { useRequest } from 'vue-request';
 
 export default () => {
-  const { getSearchParams, replaceSearchParams } = useUrlSearch();
+  const route = useRoute();
   const paginationLimitCache = useStorage('resource_pool_replenish_operation_view_pagination', 20);
+  const { getSearchParams, replaceSearchParams } = useUrlSearch();
   const searchParams = getSearchParams();
+
+  const URL_REPLENISH_MEMO_KEY = '__replenish_payload__';
 
   const tableData = ref<ServiceReturnType<typeof fetchReplenish>['results']>([]);
   const pagination = reactive({
@@ -37,11 +41,11 @@ export default () => {
     },
   });
 
-  const fetchData = (params?: ServiceParameters<typeof fetchReplenish>) => {
+  const fetchData = () => {
     dataSource({
       limit: pagination.limit,
       offset: (pagination.current - 1) * pagination.limit,
-      ...params,
+      ...transfromDataToQuery(JSON.parse(decodeURIComponent(String(route.query[URL_REPLENISH_MEMO_KEY] || '{}')))),
     });
   };
 
