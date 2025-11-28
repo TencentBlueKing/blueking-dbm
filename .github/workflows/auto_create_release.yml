@@ -74,16 +74,6 @@ jobs:
         draft: false
         prerelease: true
 
-    - id: cpr
-      name: Create Pull Request
-      uses: peter-evans/create-pull-request@v3
-      with:
-        token: "${{ secrets.WORKFLOW_ACTION_TOKEN }}"
-        title: 'chore: update medium.lock #1'
-        body: ''
-        branch: 'medium_lock'
-        base: '${{ steps.get-current-branch.outputs.current_branch }}'
-
     - name: Auto Add Release File
       id: add-release-file
       env:
@@ -97,11 +87,24 @@ jobs:
         cat ${filename}
         git config --global user.email 826035498@qq.com
         git config --global user.name zhangzhw8
-        git remote add upstream https://$WORKFLOW_ACTION_TOKEN@github.com/TencentBlueKing/blueking-dbm
+        git remote set-url origin https://$WORKFLOW_ACTION_TOKEN@github.com/TencentBlueKing/blueking-dbm.git
         git remote -v
         git status
+        # 只添加文件到暂存区，不提交，让 peter-evans/create-pull-request 自己提交
         git add ${filename}
-        git commit -m "chore: release version ${{ steps.yaml-data.outputs.data }} #1"
-        git status
-        git push --set-upstream upstream ${{ steps.get-current-branch.outputs.current_branch }}
-        git push
+        release_branch="release/add-release-file-${{ steps.yaml-data.outputs.data }}"
+        echo "release_branch=${release_branch}" >> $GITHUB_OUTPUT
+
+    - id: create-release-file-pr
+      name: Create Pull Request for Release File
+      uses: peter-evans/create-pull-request@v6
+      with:
+        token: ${{ secrets.WORKFLOW_ACTION_TOKEN }}
+        title: 'chore: release version ${{ steps.yaml-data.outputs.data }} #1'
+        body: 'Auto-generated PR to add release file for version ${{ steps.yaml-data.outputs.data }}'
+        branch: ${{ steps.add-release-file.outputs.release_branch }}
+        base: ${{ steps.get-current-branch.outputs.current_branch }}
+        delete-branch: true
+        commit-message: 'chore: release version ${{ steps.yaml-data.outputs.data }} #1'
+        committer: 'zhangzhw8 <826035498@qq.com>'
+        author: 'zhangzhw8 <826035498@qq.com>'
