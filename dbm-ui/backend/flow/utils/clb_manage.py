@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+from typing import Tuple
 
 from backend.components import NameServiceApi
 from backend.db_meta.models import CLBEntryDetail
@@ -122,3 +123,74 @@ class CLBManage(object):
             return []
         else:
             return res["data"]["ips"]
+
+    def del_clb_rs_with_response(self, instance_list: list) -> Tuple[bool, dict]:
+        """
+        删除clb后端的rs记录;适用场景：proxy下架的时候需要删除
+        """
+        res = NameServiceApi.clb_deregister_part_target(
+            {
+                "region": self.clb_region,
+                "loadbalancerid": self.clb_id,
+                "listenerid": self.listener_id,
+                "ips": instance_list,
+            },
+            raw=True,
+        )
+        if "code" in res and res["code"] != 0:
+            return False, res
+        return True, res
+
+    def add_clb_rs_with_response(self, instance_list: list) -> Tuple[bool, dict]:
+        """
+        增加clb后端的rs记录;适用场景：proxy上架的时候需要新增
+        """
+        res = NameServiceApi.clb_register_part_target(
+            {
+                "region": self.clb_region,
+                "loadbalancerid": self.clb_id,
+                "listenerid": self.listener_id,
+                "ips": instance_list,
+            },
+            raw=True,
+        )
+        if "code" in res and res["code"] != 0:
+            return False, res
+        return True, res
+
+    def deregiste_clb_with_response(self) -> Tuple[bool, dict]:
+        """
+        删除clb后端的rs记录，并删除clb；
+        适用场景：集群下架
+        """
+        res = NameServiceApi.clb_deregister_target_and_del_lb(
+            {
+                "region": self.clb_region,
+                "loadbalancerid": self.clb_id,
+                "listenerid": self.listener_id,
+            },
+            raw=True,
+        )
+        if "code" in res and res["code"] != 0:
+            logger.error(res)
+            return False, res
+        return True, res
+
+    def update_clb_rs_weight_with_response(self, instance_list: list, weight: int) -> Tuple[bool, dict]:
+        """
+        修改clb权重;适用场景：proxy缩容前置行为
+        """
+        res = NameServiceApi.clb_change_target_weight(
+            {
+                "region": self.clb_region,
+                "loadbalancerid": self.clb_id,
+                "listenerid": self.listener_id,
+                "ips": instance_list,
+                "weight": weight,
+            },
+            raw=True,
+        )
+        if "code" in res and res["code"] != 0:
+            logger.error(res)
+            return False, res
+        return True, res
