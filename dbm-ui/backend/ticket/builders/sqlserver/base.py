@@ -15,6 +15,8 @@ from rest_framework import serializers
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterSqlserverStatusFlags, ClusterType
 from backend.db_meta.models import Cluster
+from backend.db_services.ipchooser.constants import BkOsType
+from backend.flow.utils.sqlserver.sqlserver_bk_config import get_module_infos
 from backend.ticket import builders
 from backend.ticket.builders import TicketFlowBuilder
 from backend.ticket.builders.common.base import (
@@ -130,7 +132,28 @@ class SQLServerBaseOperateDetailSerializer(
 
 class SQLServerBaseOperateResourceParamBuilder(BaseOperateResourceParamBuilder):
     def format(self):
-        super().format()
+        # 忽略没有infos的单据
+        if "infos" not in self.ticket_data:
+            return
+
+        cluster_infos_map = {}
+        clusters = Cluster.objects.filter(id__in=fetch_cluster_ids(self.ticket_data))
+        # 查询集群云区域，业务，操作系统模块
+        for cluster in clusters:
+            db_config = get_module_infos(
+                bk_biz_id=cluster.bk_biz_id, db_module_id=cluster.db_module_id, cluster_type=cluster.cluster_type
+            )
+            cluster_infos_map[cluster.id] = {
+                "bk_cloud_id": cluster.bk_cloud_id,
+                "bk_biz_id": cluster.bk_biz_id,
+                "resource_params": {"os_names": db_config["system_version"].split(","), "os_type": BkOsType.WINDOWS},
+            }
+
+        # 对每个info补充操作系统，云区域和业务ID
+        for info in self.ticket_data.get("infos", []):
+            cluster_id = fetch_cluster_ids(info)[0]
+            cluster_info = cluster_infos_map[cluster_id]
+            info.update(**cluster_info)
 
     def post_callback(self):
         super().post_callback()

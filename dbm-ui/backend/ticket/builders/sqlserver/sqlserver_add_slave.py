@@ -53,6 +53,7 @@ class SQLServerAddSlaveFlowParamBuilder(builders.FlowParamBuilder):
 
 class SQLServerAddSlaveResourceParamBuilder(SQLServerBaseOperateResourceParamBuilder):
     def format(self):
+        super().format()
         # 新增slave亲和性同mysql一致
         MysqlAddSlaveResourceParamBuilder.patch_slave_subzone(self.ticket_data)
 

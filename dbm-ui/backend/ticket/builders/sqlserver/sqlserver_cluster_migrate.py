@@ -15,10 +15,10 @@ from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
 from backend.ticket.builders.sqlserver.base import (
     BaseSQLServerHATicketFlowBuilder,
     SQLServerBaseOperateDetailSerializer,
+    SQLServerBaseOperateResourceParamBuilder,
 )
 from backend.ticket.constants import TicketType
 
@@ -34,7 +34,7 @@ class SQLServerClusterMigrateDetailSerializer(SQLServerBaseOperateDetailSerializ
     )
 
 
-class SQLServerClusterMigrateResourceParamBuilder(BaseOperateResourceParamBuilder):
+class SQLServerClusterMigrateResourceParamBuilder(SQLServerBaseOperateResourceParamBuilder):
     def format(self):
         super().format()
         for info in self.ticket_data["infos"]:
