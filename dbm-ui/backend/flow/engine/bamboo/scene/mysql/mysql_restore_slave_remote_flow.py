@@ -51,6 +51,7 @@ from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDn
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_check_binlog_dump import MySQLCheckBinlogDumpComponent
 from backend.flow.plugins.components.collections.mysql.mysql_check_processlist import MySQLCheckProcesslistComponent
+from backend.flow.plugins.components.collections.mysql.mysql_check_slave_delay import MySQLCheckSlaveDelayComponent
 from backend.flow.plugins.components.collections.mysql.mysql_crond_control import MysqlCrondMonitorControlComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.mysql_rds_execute import MySQLExecuteRdsComponent
@@ -58,6 +59,7 @@ from backend.flow.plugins.components.collections.mysql.trans_flies import TransF
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_ports, get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import (
+    CheckSlaveStatusKwargs,
     ClearMachineKwargs,
     CreateDnsKwargs,
     CrondMonitorKwargs,
@@ -696,7 +698,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
             # 卸载流程人工确认
             tendb_migrate_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
             #  克隆权限
-            new_slave = "{}{}{}".format(target_slave.machine.ip, IP_PORT_DIVIDER, master.port)
+            new_slave = "{}{}{}".format(target_slave.machine.ip, IP_PORT_DIVIDER, target_slave.port)
             old_master = "{}{}{}".format(master.machine.ip, IP_PORT_DIVIDER, master.port)
             clone_data = [
                 {
@@ -709,6 +711,18 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 act_name=_("克隆权限"),
                 act_component_code=CloneUserComponent.code,
                 kwargs=asdict(InstanceUserCloneKwargs(clone_data=clone_data)),
+            )
+            tendb_migrate_pipeline.add_act(
+                act_name=_("检查主/从延迟 {}").format(new_slave),
+                act_component_code=MySQLCheckSlaveDelayComponent.code,
+                kwargs=asdict(
+                    CheckSlaveStatusKwargs(
+                        bk_cloud_id=cluster_model.bk_cloud_id,
+                        instance_ip=target_slave.machine.ip,
+                        instance_port=target_slave.port,
+                        slave_delay_threshold=7200,
+                    )
+                ),
             )
 
             # 这里区分是standby还是普通slave添加域名

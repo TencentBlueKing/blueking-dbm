@@ -1668,6 +1668,25 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         self.cluster["backupinfo"] = kwargs["trans_data"]["backupinfo"]
         return self.tendb_restore_remotedb_payload()
 
+    def tendb_stop_remotedb_payload(self, **kwargs):
+        """
+        tendb 停止remote实例
+        """
+        payload = {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.StopMysqld.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "instances": [{"host": kwargs["ip"], "port": self.cluster["port"]}],
+                    "force_shutdown": True,
+                    "already_stopped_as_error": False,
+                    "continue_on_other_instance_error": False,
+                },
+            },
+        }
+        return payload
+
     #      backup_info在flow上下问中
     def tendb_restore_priv_payload(self, **kwargs):
         """

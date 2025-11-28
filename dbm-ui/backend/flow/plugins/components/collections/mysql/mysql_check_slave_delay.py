@@ -51,7 +51,7 @@ class MySQLCheckSlaveDelayService(BaseService):
                     return False
                 else:
                     slave_info = res[0]["cmd_results"][0]["table_data"][0]
-                    slave_delay = 0
+                    file_delay = True
 
                     if kwargs["master_ip"] != "" or int(kwargs["master_port"]) != 0:
                         if slave_info["Master_Host"] != kwargs["master_ip"] or int(slave_info["Master_Port"]) != int(
@@ -59,14 +59,38 @@ class MySQLCheckSlaveDelayService(BaseService):
                         ):
                             self.log_info(_("请确定实例对应的主节点是否正确"))
                             return False
+                    # 查看主节点位点
+                    res = DRSApi.rpc(
+                        {
+                            "addresses": [
+                                "{}{}{}".format(slave_info["Master_Host"], IP_PORT_DIVIDER, slave_info["Master_Port"])
+                            ],
+                            "cmds": ["show master status"],
+                            "force": False,
+                            "bk_cloud_id": kwargs["bk_cloud_id"],
+                        }
+                    )
+                    if res[0]["error_msg"]:
+                        self.log_info("execute master sql error {}".format(res[0]["error_msg"]))
+                        return False
+                    if len(res[0]["cmd_results"][0]["table_data"]) == 0:
+                        self.log_info("show master status is empty")
+                        return False
+                    master_info = res[0]["cmd_results"][0]["table_data"][0]
+                    slave_delay = int(master_info["Position"]) - int(slave_info["Exec_Master_Log_Pos"])
+                    if master_info["File"] == slave_info["Relay_Master_Log_File"]:
+                        file_delay = False
+                    # if slave_info["Seconds_Behind_Master"] is not None:
+                    # seconds_behind_master = int(slave_info["Seconds_Behind_Master"])
 
-                    if slave_info["Seconds_Behind_Master"] is not None:
-                        slave_delay = int(slave_info["Seconds_Behind_Master"])
                     if (
                         slave_info["Slave_IO_Running"] == "Yes"
                         and slave_info["Slave_SQL_Running"] == "Yes"
                         and slave_delay <= kwargs["slave_delay_threshold"]
                     ):
+                        if kwargs["check_file_delay"] and file_delay:
+                            self.log_info(_("主从 文件级别延迟 不满足"))
+                            return False
                         return True
                     else:
                         self.log_info(

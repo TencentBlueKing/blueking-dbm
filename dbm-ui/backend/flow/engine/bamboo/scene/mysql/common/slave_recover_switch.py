@@ -21,9 +21,11 @@ from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.cluster_entrys import get_tendb_ha_entry
 from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
+from backend.flow.plugins.components.collections.mysql.mysql_check_slave_delay import MySQLCheckSlaveDelayComponent
 from backend.flow.plugins.components.collections.mysql.mysql_rds_execute import MySQLExecuteRdsComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import (
+    CheckSlaveStatusKwargs,
     CreateDnsKwargs,
     DownloadMediaKwargs,
     ExecuteRdsKwargs,
@@ -126,6 +128,18 @@ def slave_migrate_switch_sub_flow(
     else:
         logging.info("{} old slave is not running".format(old_slave_storage.ip_port))
     logging.info(clone_data)
+    sub_pipeline.add_act(
+        act_name=_("检查主/新从延迟 {}").format(new_slave),
+        act_component_code=MySQLCheckSlaveDelayComponent.code,
+        kwargs=asdict(
+            CheckSlaveStatusKwargs(
+                bk_cloud_id=cluster.bk_cloud_id,
+                instance_ip=new_slave_ip,
+                instance_port=master.port,
+                slave_delay_threshold=7200,
+            )
+        ),
+    )
     if len(clone_data) > 0:
         sub_pipeline.add_act(
             act_name=_("克隆权限"),

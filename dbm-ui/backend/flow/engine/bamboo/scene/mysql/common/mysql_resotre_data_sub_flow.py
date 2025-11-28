@@ -949,6 +949,7 @@ def mysql_backup_restore_sub_flow(
                     master_ip=cluster["target_ip"],
                     master_port=cluster["target_port"],
                     slave_delay_threshold=900000000,
+                    check_file_delay=False,
                     rounds=3,
                 )
             ),
