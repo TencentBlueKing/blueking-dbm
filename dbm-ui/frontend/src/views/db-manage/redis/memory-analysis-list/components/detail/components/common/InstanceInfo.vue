@@ -14,16 +14,18 @@
 <template>
   <div class="memory-analysis-instance-info mb-16">
     <div class="total-info">
-      <span>
-        {{ t('Key 数量：') }}
-        <span class="info-item">{{ count }}</span>
-      </span>
-      ，
-      <span>
-        {{ t('内存占比：') }}
-        <span class="info-item">{{ memoryUnsed }}%</span>
-      </span>
-      ，
+      <template v-if="statisticsInfo">
+        <span>
+          {{ t('Key 数量：') }}
+          <span class="info-item">{{ statisticsInfo.count }}</span>
+        </span>
+        ，
+        <span>
+          {{ t('内存占比：') }}
+          <span class="info-item">{{ statisticsInfo.memoryUnsed }}%</span>
+        </span>
+        ，
+      </template>
       <span>
         {{ t('分析实例：') }}
         <span class="info-item">{{ instaceList.length }}</span>
@@ -60,9 +62,11 @@
   import { useI18n } from 'vue-i18n';
 
   interface Props {
-    count: number;
     instaceList: string[];
-    memoryUnsed: number;
+    statisticsInfo?: {
+      count: number;
+      memoryUnsed: number;
+    };
   }
 
   type Emits = (e: 'change', value: boolean) => void;
