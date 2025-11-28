@@ -5,7 +5,9 @@
     <div class="title">
       {{ t('确认跳过当前失败节点？') }}
     </div>
-    <div class="sub-title">{{ t('跳过将忽略当前节点的失败状态，直接执行后续节点，当前节点将被标记为 “已跳过”') }}</div>
+    <div class="sub-title">
+      {{ t('跳过将忽略当前节点失败状态，直接执行后续节点，当前节点标记为“执行成功(失败手动跳过)”') }}
+    </div>
     <div class="btn">
       <BkButton
         class="mr-8"
