@@ -17,7 +17,7 @@
     class="replenish-record-details-slider"
     :width="900">
     <template #header>
-      <span>{{ t('记录详情') }}</span>
+      <span>{{ t('操作详情') }}</span>
       <span class="header-desc">ID : {{ data.id }}</span>
     </template>
     <div class="replenish-record-details">
@@ -72,16 +72,12 @@
             :label="t('关联补货单')"
             :width="100">
             <template #default="{ row }: { row: RowData }">
-              <RouterLink
-                target="_blank"
-                :to="{
-                  name: 'bizTicketManage',
-                  params: {
-                    ticketId: row.ticket_id,
-                  },
-                }">
+              <BkButton
+                text
+                theme="primary"
+                @click="() => handleOpenBizTicket(row)">
                 {{ row.ticket_id }}
-              </RouterLink>
+              </BkButton>
             </template>
           </BkTableColumn>
           <BkTableColumn
@@ -110,6 +106,8 @@
   import { fetchReplenish } from '@services/source/dbresourceReplenish';
   import { getTicketDetails } from '@services/source/ticket';
 
+  import { useSystemEnviron } from '@stores';
+
   import { DBTypeInfos } from '@common/const';
 
   type RowData = {
@@ -131,6 +129,8 @@
   });
 
   const { t } = useI18n();
+  const router = useRouter();
+  const systemEnvironStore = useSystemEnviron();
 
   const tableData = shallowRef<RowData[]>([]);
   const isLoading = shallowRef(false);
@@ -156,6 +156,19 @@
     [TicketModel.STATUS_TERMINATED]: 'sync-failed',
     [TicketModel.STATUS_TIMER]: 'sync-pending',
     [TicketModel.STATUS_TODO]: 'sync-default',
+  };
+
+  const handleOpenBizTicket = (rowData: RowData) => {
+    const path = router
+      .resolve({
+        name: 'bizTicketManage',
+        params: {
+          ticketId: rowData.ticket_id,
+        },
+      })
+      .href.replace(/^\/(\d+)/, `${systemEnvironStore.urls.RESOURCE_INDEPENDENT_BIZ}`);
+
+    window.open(`${window.location.origin}/${path}`, '_blank');
   };
 
   watch(

@@ -5,11 +5,15 @@ import { useStorage } from '@vueuse/core';
 import { useRequest } from 'vue-request';
 import { getTickets } from '@services/source/ticket';
 import { TicketTypes } from '@common/const';
+import { transfromDataToQuery } from '@utils';
 
 export default () => {
-  const { getSearchParams, replaceSearchParams } = useUrlSearch();
+  const route = useRoute();
   const paginationLimitCache = useStorage('resource_pool_replenish_ticket_view_pagination', 20);
+  const { getSearchParams, replaceSearchParams } = useUrlSearch();
   const searchParams = getSearchParams();
+
+  const URL_REPLENISH_MEMO_KEY = '__replenish_payload__';
 
   const tableData = ref<ServiceReturnType<typeof getTickets>['results']>([]);
   const pagination = reactive({
@@ -38,12 +42,12 @@ export default () => {
     },
   });
 
-  const fetchData = (params?: ServiceParameters<typeof getTickets>) => {
+  const fetchData = () => {
     dataSource({
       ticket_type: TicketTypes.RESOURCE_HCM_REPLENISH,
       limit: pagination.limit,
       offset: (pagination.current - 1) * pagination.limit,
-      ...params,
+      ...transfromDataToQuery(JSON.parse(decodeURIComponent(String(route.query[URL_REPLENISH_MEMO_KEY] || '{}')))),
     });
   };
 
