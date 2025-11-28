@@ -252,6 +252,7 @@ def build_spider_upgrade_subflow(
             "cluster_id": cluster_id,
             "port": spider_port,
             "del_ips": [ip],
+            "entry_role": [entry_role],
         },
     )
     enable_entry_process = BuildEntrysManageSubflow(

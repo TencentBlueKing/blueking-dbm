@@ -60,7 +60,11 @@ class MySQLClbManageService(BaseService):
                 return False
 
             add_instance_list = [f"{ip}:{kwargs['clb_op_exec_port']}" for ip in exec_ips]
-            result = clb_manager.add_clb_rs(instance_list=add_instance_list)
+            result, response = clb_manager.add_clb_rs_with_response(instance_list=add_instance_list)
+            if not result:
+                error_msg = response.get("message", str(response))
+                self.log_error(_("添加CLB后端主机失败: {}").format(error_msg))
+            return result
         elif dns_op_type == DnsOpType.CLB_DISABLE_RS:
             # 安全删除CLB，前置行为：修改权重
             exec_ips = self.__get_exec_ips(kwargs=kwargs, trans_data=trans_data)
@@ -69,7 +73,13 @@ class MySQLClbManageService(BaseService):
                 return False
 
             change_instance_list = [f"{ip}:{kwargs['clb_op_exec_port']}" for ip in exec_ips]
-            result = clb_manager.update_clb_rs_weight(instance_list=change_instance_list, weight=0)
+            result, response = clb_manager.update_clb_rs_weight_with_response(
+                instance_list=change_instance_list, weight=0
+            )
+            if not result:
+                error_msg = response.get("message", str(response))
+                self.log_error(_("修改CLB后端主机权重失败: {}").format(error_msg))
+            return result
         elif dns_op_type == DnsOpType.CLB_ENABLE_RS:
             # 安全删除CLB，前置行为：修改权重
             exec_ips = self.__get_exec_ips(kwargs=kwargs, trans_data=trans_data)
@@ -79,7 +89,13 @@ class MySQLClbManageService(BaseService):
 
             change_instance_list = [f"{ip}:{kwargs['clb_op_exec_port']}" for ip in exec_ips]
             # default weight is 10
-            result = clb_manager.update_clb_rs_weight(instance_list=change_instance_list, weight=10)
+            result, response = clb_manager.update_clb_rs_weight_with_response(
+                instance_list=change_instance_list, weight=10
+            )
+            if not result:
+                error_msg = response.get("message", str(response))
+                self.log_error(_("修改CLB后端主机权重失败: {}").format(error_msg))
+            return result
         elif dns_op_type == DnsOpType.RECYCLE_RECORD:
             # 删除CLB映射,proxy缩容场景
             exec_ips = self.__get_exec_ips(kwargs=kwargs, trans_data=trans_data)
@@ -88,16 +104,21 @@ class MySQLClbManageService(BaseService):
                 return False
 
             delete_instance_list = [f"{ip}:{kwargs['clb_op_exec_port']}" for ip in exec_ips]
-            result = clb_manager.del_clb_rs(instance_list=delete_instance_list)
+            result, response = clb_manager.del_clb_rs_with_response(instance_list=delete_instance_list)
+            if not result:
+                error_msg = response.get("message", str(response))
+                self.log_error(_("删除CLB后端主机失败: {}").format(error_msg))
+            return result
         elif dns_op_type == DnsOpType.CLUSTER_DELETE:
             # 删除CLB,集群下架场景
-            result = clb_manager.deregiste_clb()
+            result, response = clb_manager.deregiste_clb_with_response()
+            if not result:
+                error_msg = response.get("message", str(response))
+                self.log_error(_("删除CLB失败: {}").format(error_msg))
+            return result
         else:
             self.log_error(_("无法适配到传入的域名处理类型,请联系系统管理员:{}").format(dns_op_type))
             return False
-
-        self.log_info("successfully")
-        return result
 
     def inputs_format(self) -> List:
         return [
