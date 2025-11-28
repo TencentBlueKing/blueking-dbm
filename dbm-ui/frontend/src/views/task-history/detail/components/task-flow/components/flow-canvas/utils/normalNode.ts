@@ -89,6 +89,10 @@ export class NormalNode extends Rect {
     return this.data.status === 'RUNNING';
   }
 
+  get isSkiped() {
+    return this.data.skip || this.data.error_ignorable;
+  }
+
   get isSubProcess() {
     return !!this.data.pipeline;
   }
@@ -98,12 +102,11 @@ export class NormalNode extends Rect {
   }
 
   drawBackgroundShape(attributes: any, container: Group) {
-    const isSkiped = this.data.skip;
     let strokeColor = '#A1E3BA';
     if (this.isFailed) {
       strokeColor = '#FF4D4D';
     } else {
-      if (isSkiped) {
+      if (this.isSkiped) {
         strokeColor = '#7FBB44';
       }
       if (this.isRunning) {
@@ -499,12 +502,11 @@ export class NormalNode extends Rect {
   }
 
   drawStatusShape(attributes: any, container: Group) {
-    const isSkiped = this.data.skip;
     let strokeColor = '#3DC2A6';
     if (this.isFailed) {
       strokeColor = '#FF4D4D';
     } else {
-      if (isSkiped) {
+      if (this.isSkiped) {
         strokeColor = '#7FBB44';
       }
       if (this.isRunning) {
@@ -613,7 +615,7 @@ export class NormalNode extends Rect {
       this.upsert('rightTopLoadingImage', GImage, loadingImageStyle, container);
       return;
     }
-    if (this.data.skip) {
+    if (this.isSkiped) {
       // 绘制已跳过
       const skipedTipWraperStyle = {
         fill: '#8EBF76',
@@ -676,7 +678,7 @@ export class NormalNode extends Rect {
   }
 
   drawTimeDisplayShape(attributes: any, container: Group) {
-    if (!this.data.started_at || this.data.skip) {
+    if (!this.data.started_at || this.isSkiped) {
       return;
     }
 
