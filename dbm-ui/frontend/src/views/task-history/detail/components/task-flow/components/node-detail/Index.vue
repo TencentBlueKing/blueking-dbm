@@ -44,12 +44,12 @@
               <span class="display-count">{{ nodeData.retry }}</span>
             </div>
             <BkTag
-              v-if="nodeData.skip"
+              v-if="nodeData.error_ignorable || nodeData.skip"
               class="ml-4 mr-4"
               style="background: #7cb560"
               theme="success"
               type="filled">
-              {{ t('已跳过') }}
+              {{ nodeData.error_ignorable ? t('失败自动跳过') : t('失败手动跳过') }}
             </BkTag>
             <BkTag>
               {{ t('耗时') }}
@@ -264,6 +264,7 @@
         theme: 'warning',
       };
     }
+
     const themesMap = {
       CREATED: 'default',
       FAILED: 'danger',
