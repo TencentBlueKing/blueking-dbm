@@ -621,7 +621,7 @@ export class NormalNode extends Rect {
         fill: '#8EBF76',
         height: 14,
         radius: 2,
-        width: 34,
+        width: 60,
         x: -height * 2 - 12,
         y: -40,
       };
@@ -632,9 +632,9 @@ export class NormalNode extends Rect {
       const skipTextStyle = {
         fill: '#fff',
         fontSize: 9,
-        text: '已跳过',
+        text: this.data.error_ignorable ? '失败自动跳过' : '失败手动跳过',
         x: stwX + 3,
-        y: stwY + 14,
+        y: stwY + 13,
       };
       this.upsert('rightTopSkipText', GText, skipTextStyle, container);
 

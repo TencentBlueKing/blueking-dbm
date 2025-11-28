@@ -81,7 +81,7 @@
           <BkPopConfirm
             v-if="nodeData.skippable"
             :confirm-text="t('跳过节点')"
-            :content="t('跳过将忽略当前节点的失败状态，直接执行后续节点，当前节点将被标记为 “已跳过”')"
+            :content="t('跳过将忽略当前节点失败状态，直接执行后续节点，当前节点标记为“执行成功(失败手动跳过)”')"
             :title="t('确认跳过当前失败节点？')"
             trigger="click"
             width="288"
