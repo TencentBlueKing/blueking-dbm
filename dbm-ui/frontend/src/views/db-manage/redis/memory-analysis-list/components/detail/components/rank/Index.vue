@@ -14,9 +14,7 @@
 <template>
   <div>
     <InstanceInfo
-      :count="listInfo.count"
       :instace-list="instaceList"
-      :memory-unsed="listInfo.memoryUnsed"
       @change="handleShowChange" />
     <DbQuickSearch
       v-model="quickSearchValue"
@@ -137,18 +135,6 @@
   const tableMaxHeight = useTableMaxHeight(occupiedHeight);
 
   const dataLength = computed(() => rankData.value?.length || 0);
-  const listInfo = computed(() =>
-    (rankData.value || []).reduce(
-      (prevCount, item) => ({
-        count: prevCount.count + item.member,
-        memoryUnsed: prevCount.memoryUnsed + item.memory_size,
-      }),
-      {
-        count: 0,
-        memoryUnsed: 0,
-      },
-    ),
-  );
 
   const {
     data: rankData,
