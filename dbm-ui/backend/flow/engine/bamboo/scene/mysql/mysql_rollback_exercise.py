@@ -177,12 +177,13 @@ class MySQLRollbackExerciseFlow(object):
         install_ticket["ticket_type"] = self.ticket_data["ticket_type"]
         sql = """show global variables where Variable_name in ('sql_mode','max_allowed_packet','lower_case_table_names',
         'innodb_strict_mode','max_heap_table_size','tmp_table_size','character_set_server','collation_server',
-        'default_storage_engine','default-storage-engine')"""
+        'default_storage_engine','default-storage-engine','log_bin_trust_function_creators','innodb_large_prefix',
+        'innodb_file_format','innodb_default_row_format')"""
         old_instance_configs = get_cluster_config(cluster_class, query_cmds=sql)
         install_ticket["apply_infos"] = [
             {
                 "new_ip": self.rollback_host,
-                "old_instance_configs": {str(master.port): old_instance_configs},
+                "old_instance_configs": {str(self.rollback_port): old_instance_configs},
                 "clusters": [{"name": cluster_name, "master": master_domain}],
             }
         ]
