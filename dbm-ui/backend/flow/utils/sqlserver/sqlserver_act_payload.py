@@ -11,14 +11,26 @@ import copy
 import logging
 from dataclasses import dataclass, field
 from functools import wraps
+from typing import List
 
+from django.conf import settings
 from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
+from backend.core.encrypt.constants import AsymmetricCipherConfigType
+from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_package.models import Package
+from backend.db_services.mysql.sql_import.constants import BKREPO_SQLSERVER_DATA_EXPORT_PATH
 from backend.env import WINDOW_SSH_PORT
-from backend.flow.consts import SQLSERVER_CUSTOM_SYS_USER, DBActuatorTypeEnum, MediumEnum, SqlserverActuatorActionEnum
+from backend.flow.consts import (
+    MSSQL_DATA_READ_DRS_USER,
+    SQLSERVER_CUSTOM_SYS_USER,
+    DBActuatorTypeEnum,
+    MediumEnum,
+    SqlserverActuatorActionEnum,
+)
 from backend.flow.engine.bamboo.scene.sqlserver.common.exceptions import ActPayloadFlowException
+from backend.flow.utils.base.bkrepo import get_bk_repo_url
 from backend.flow.utils.sqlserver.payload_handler import PayloadHandler
 from backend.flow.utils.sqlserver.sqlserver_bk_config import (
     get_module_infos,
@@ -713,6 +725,52 @@ class SqlserverActPayload(PayloadHandler):
                     "host": kwargs["ips"][0]["ip"],
                     "port": kwargs["custom_params"]["port"],
                     "remotes_slaves": kwargs["custom_params"]["remotes_slaves"],
+                },
+            },
+        }
+
+    @wrap_sqlserver_act_return
+    def get_data_export_payload(
+        self,
+        bk_biz_id: int,
+        bk_cloud_id: int,
+        exec_ports: List[int],
+        sql_file_path: str,
+        execute_objects: dict,
+        zip_file_name: str,
+        **kwargs,
+    ) -> dict:
+        """
+        执行数据导出的payload
+        """
+        # 获取db_cloud_token
+        db_cloud_token = AsymmetricHandler.encrypt(
+            name=AsymmetricCipherConfigType.PROXYPASS.value, content=f"{bk_cloud_id}_dbactuator_token"
+        )
+
+        return {
+            "db_type": DBActuatorTypeEnum.Sqlserver.value,
+            "action": SqlserverActuatorActionEnum.DataExport.value,
+            "payload": {
+                "general": {"runtime_account": self.get_sqlserver_drs_account(bk_cloud_id, MSSQL_DATA_READ_DRS_USER)},
+                "extend": {
+                    "host": kwargs["ips"][0]["ip"],
+                    "ports": exec_ports,
+                    "file_path": sql_file_path,
+                    "execute_objects": execute_objects,
+                    "zip_file_name": zip_file_name,
+                    "upload_detail": {
+                        "bk_cloud_id": bk_cloud_id,
+                        "db_cloud_token": db_cloud_token,
+                        "fileserver": {
+                            "url": get_bk_repo_url(bk_cloud_id),
+                            "bucket": settings.BKREPO_BUCKET,
+                            "username": settings.BKREPO_USERNAME,
+                            "password": settings.BKREPO_PASSWORD,
+                            "project": settings.BKREPO_PROJECT,
+                            "upload_path": BKREPO_SQLSERVER_DATA_EXPORT_PATH.format(biz=bk_biz_id),
+                        },
+                    },
                 },
             },
         }
