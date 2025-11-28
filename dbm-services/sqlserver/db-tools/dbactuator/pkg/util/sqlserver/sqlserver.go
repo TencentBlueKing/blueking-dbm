@@ -13,7 +13,10 @@ package sqlserver
 import (
 	"context"
 	"database/sql"
+	"encoding/csv"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -61,8 +64,30 @@ type DefaultPathInfo struct {
 	DefaultLogPath  string `db:"Default_Log_Path"`
 }
 
+// CSVExportOptions CSV导出选项
+type CSVExportOptions struct {
+	FileName   string // 文件名
+	Directory  string // 导出目录
+	WithHeader bool   // 是否包含表头
+	Encoding   string // 文件编码
+	AutoName   bool   // 是否自动生成文件名
+}
+
+// DefaultExportOptions 默认导出选项
+func DefaultExportOptions() *CSVExportOptions {
+	return &CSVExportOptions{
+		WithHeader: true,
+		Encoding:   "utf-8",
+		AutoName:   true,
+		Directory:  "./exports",
+	}
+}
+
 // NewDbWorker 初始化SQLserver实例对象
 func NewDbWorker(user string, pass string, server string, port int) (dbw *DbWorker, err error) {
+	if strings.TrimSpace(user) == "" || strings.TrimSpace(pass) == "" {
+		return nil, fmt.Errorf("user or pass is null, check")
+	}
 	dsn := fmt.Sprintf(
 		"server=%s;port=%d;user id=%s;password=%s;database=master;encrypt=disable;collation=utf8mb4_unicode_ci",
 		server, port, user, pass,
@@ -177,6 +202,26 @@ func (h *DbWorker) Queryxs(data interface{}, query string) error {
 		return err
 	}
 	return nil
+}
+
+func (h *DbWorker) ExportToCSVWithSelect(query string) (string, error) {
+	db, err := sqlx.Connect("mssql", h.Dsn)
+	if err != nil {
+		return "", fmt.Errorf("connect db failed, err:%w", err)
+	}
+	defer db.Close()
+	udb := db.Unsafe()
+	var results []map[string]interface{}
+	if err := udb.Select(&results, query); err != nil {
+		return "", fmt.Errorf("查询失败: %v", err)
+	}
+
+	// 使用默认选项导出
+	options := DefaultExportOptions()
+	options.AutoName = true
+	options.WithHeader = true
+
+	return h.ExportToCSVFile(results, options)
 }
 
 // ShowDatabases 执行show database 获取所有的dbName
@@ -420,15 +465,117 @@ func (h *DbWorker) GetTableListOnDB(
 
 }
 
-// ExecLocalSQLFile TODO
-// 调用本地的sqlcmd执行本地sql脚本，识别smss的语法（主要是go语法）
-// 适配sql脚本执行、初始化等相关大脚本操作
-// 目前执行sql脚本出现错误则异常退出
-func ExecLocalSQLFile(sqlVersion string, dbName string, charsetNO int, filenames []string, port int) error {
-	var cmdSql string
-	if charsetNO == 0 {
-		charsetNO = 936
+// ExportToCSVFile 将结果导出到CSV文件
+func (h *DbWorker) ExportToCSVFile(results []map[string]interface{}, options *CSVExportOptions) (string, error) {
+	if options == nil {
+		options = DefaultExportOptions()
 	}
+
+	// 生成文件名
+	fileName, err := h.generateFileName(options)
+	if err != nil {
+		return "", fmt.Errorf("生成文件名失败: %v", err)
+	}
+
+	// 确保目录存在
+	if err := os.MkdirAll(options.Directory, 0755); err != nil {
+		return "", fmt.Errorf("创建目录失败: %v", err)
+	}
+
+	// 创建文件
+	filePath := filepath.Join(options.Directory, fileName)
+	file, err := os.Create(filePath)
+	if err != nil {
+		return "", fmt.Errorf("创建文件失败: %v", err)
+	}
+	defer file.Close()
+
+	// 写入CSV内容
+	if err := h.writeCSVToFile(file, results, options); err != nil {
+		return "", fmt.Errorf("写入CSV失败: %v", err)
+	}
+
+	logger.Info("成功导出CSV文件: %s", filePath)
+	return filePath, nil
+}
+
+// generateFileName 生成文件名
+func (h *DbWorker) generateFileName(options *CSVExportOptions) (string, error) {
+	if options.FileName != "" {
+		// 确保有.csv扩展名
+		if !strings.HasSuffix(strings.ToLower(options.FileName), ".csv") {
+			options.FileName += ".csv"
+		}
+		return options.FileName, nil
+	}
+
+	if options.AutoName {
+		// 自动生成文件名：export_YYYYMMDD_HHMMSS.csv
+		timestamp := time.Now().Format("20060102_150405")
+		return fmt.Sprintf("export_%s.csv", timestamp), nil
+	}
+
+	return "", fmt.Errorf("未指定文件名且未启用自动命名")
+}
+
+// writeCSVToFile 写入CSV到文件
+func (h *DbWorker) writeCSVToFile(file *os.File, results []map[string]interface{}, options *CSVExportOptions) error {
+	writer := csv.NewWriter(file)
+	defer writer.Flush()
+
+	if len(results) == 0 {
+		// 如果结果为空且需要表头，创建空文件或只包含表头
+		if options.WithHeader {
+			// 可以在这里添加空表头逻辑 todo
+		}
+		return nil
+	}
+
+	// 获取列名
+	columns := h.getColumnNames(results)
+
+	// 写入表头
+	if options.WithHeader {
+		if err := writer.Write(columns); err != nil {
+			return fmt.Errorf("写入表头失败: %v", err)
+		}
+	}
+
+	// 写入数据行
+	for _, result := range results {
+		record := make([]string, len(columns))
+		for i, col := range columns {
+			if val := result[col]; val == nil {
+				record[i] = "NULL"
+			} else {
+				record[i] = fmt.Sprintf("%v", val)
+			}
+		}
+
+		if err := writer.Write(record); err != nil {
+			return fmt.Errorf("写入数据行失败: %v", err)
+		}
+	}
+
+	return writer.Error()
+}
+
+// getColumnNames 获取列名
+func (h *DbWorker) getColumnNames(results []map[string]interface{}) []string {
+	if len(results) == 0 {
+		return []string{}
+	}
+
+	columns := make([]string, 0, len(results[0]))
+	for col := range results[0] {
+		columns = append(columns, col)
+	}
+	return columns
+}
+
+// GetCmdSql 获取sqlcmd的路径
+func GetCmdSql(sqlVersion string) (string, error) {
+	var cmdSql string
 	switch {
 	case strings.Contains(sqlVersion, "2008"):
 		cmdSql = cst.SQLCMD_2008
@@ -445,7 +592,23 @@ func ExecLocalSQLFile(sqlVersion string, dbName string, charsetNO int, filenames
 	case strings.Contains(sqlVersion, "2022"):
 		cmdSql = cst.SQLCMD_2022
 	default:
-		return fmt.Errorf("this version [%s] is not supported", sqlVersion)
+		return cmdSql, fmt.Errorf("this version [%s] is not supported", sqlVersion)
+	}
+	return cmdSql, nil
+}
+
+// ExecLocalSQLFile TODO
+// 调用本地的sqlcmd执行本地sql脚本，识别smss的语法（主要是go语法）
+// 适配sql脚本执行、初始化等相关大脚本操作
+// 目前执行sql脚本出现错误则异常退出
+func ExecLocalSQLFile(sqlVersion string, dbName string, charsetNO int, filenames []string, port int) error {
+	var cmdSql string
+	if charsetNO == 0 {
+		charsetNO = 936
+	}
+	cmdSql, err := GetCmdSql(sqlVersion)
+	if err != nil {
+		return err
 	}
 	for _, filename := range filenames {
 		var ret string
@@ -454,7 +617,6 @@ func ExecLocalSQLFile(sqlVersion string, dbName string, charsetNO int, filenames
 			"& '%s' -S \"127.0.0.1,%d\" -C -I -d %s -f %d -b -i %s",
 			cmdSql, port, dbName, charsetNO, filename,
 		)
-		fmt.Println(cmd)
 		logger.Info("exec cmd: %s", cmd)
 		if ret, err = osutil.StandardPowerShellCommand(cmd); err != nil {
 			logger.Error("the db [%s] exec sql script failed %s, result: %s ", dbName, err.Error(), ret)
@@ -465,6 +627,36 @@ func ExecLocalSQLFile(sqlVersion string, dbName string, charsetNO int, filenames
 	}
 
 	return nil
+}
+
+// ExecLocalSQLFileForDataExport 执行本地sql脚本，导出数据
+func ExecLocalSQLFileForDataExport(sqlVersion string, dbName string, filenames []string, port int, userName string, pwd string) ([]string, error) {
+	var cmdSql string
+	var outPutFiles []string
+	cmdSql, err := GetCmdSql(sqlVersion)
+	if err != nil {
+		return outPutFiles, err
+	}
+	for _, filename := range filenames {
+		var ret string
+		var err error
+		outPutFile := strings.Replace(filename, ".sql", fmt.Sprintf("_%d.csv", port), -1)
+		outPutFiles = append(outPutFiles, outPutFile)
+		cmd := fmt.Sprintf(
+			"& '%s' -S '127.0.0.1,%d' -C -I -d %s -f %d -b -i %s -U '%s' -P '%s' -s ',' -W | Out-File -FilePath '%s' -Encoding UTF8",
+			cmdSql, port, dbName, 936, filename, userName, pwd, outPutFile,
+		)
+
+		logger.Info("exec cmd: %s", strings.Replace(cmd, pwd, "xxx", -1))
+		if ret, err = osutil.StandardPowerShellCommand(cmd); err != nil {
+			logger.Error("the db [%s] exec sql script failed %s, result: %s ", dbName, err.Error(), ret)
+			return outPutFiles, err
+		}
+		logger.Info("exec result: %s", ret)
+		logger.Info("ths db [%s] exec sql select script success  [%d:%s]", dbName, port, filename)
+	}
+
+	return outPutFiles, nil
 }
 
 // exec_switch_sp todo

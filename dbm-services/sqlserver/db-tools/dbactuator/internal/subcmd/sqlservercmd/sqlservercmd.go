@@ -68,6 +68,8 @@ func NewSQLserverCommand() *cobra.Command {
 				NewRemoteSlavesCommand(),
 				// init instance
 				NewInitSqlServerCommand(),
+				// data export
+				DataExportCommand(),
 			},
 		},
 	}

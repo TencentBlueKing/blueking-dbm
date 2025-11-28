@@ -14,6 +14,7 @@ from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 BKREPO_SQLFILE_PATH = "mysql/sqlfile/{biz}"
 BKREPO_DBCONSOLE_DUMPFILE_PATH = "dbconsole/dump/{biz}"
+BKREPO_SQLSERVER_DATA_EXPORT_PATH = "data_export/{biz}"
 
 CACHE_SEMANTIC_TASK_FIELD = "{user}_{cluster_type}_semantic_check_task"
 CACHE_SEMANTIC_DATA_FIELD = "{root_id}_semantic_data"
