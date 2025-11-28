@@ -4769,7 +4769,7 @@
   "Topic 均衡": "Topic 均衡",
   "已选数量：n": "Selected数量：{0}",
   "确认跳过当前失败节点？": "Confirm to skip the current failed node?",
-  "跳过将忽略当前节点的失败状态，直接执行后续节点，当前节点将被标记为 “已跳过”": "跳过将忽略当前节点的失败状态，Directly执行后续节点，当前节点将被标记To “已跳过”",
+  "跳过将忽略当前节点失败状态，直接执行后续节点，当前节点标记为“执行成功(失败手动跳过)”": "Skip will ignore the current node's failure status, directly execute subsequent nodes, and the current node will be marked as “Execution Success (Manual Skip on Failure)”",
   "确认重试当前失败节点？": "Confirm to retry the current failed node?",
   "重试将重新执行当前节点": "Retry will re-execute the current node",
   "确认继续执行当前待继续节点？": "Confirm to continue executing the current pending node?",
@@ -4781,7 +4781,7 @@
   "确认重试n个失败节点？": "Confirm to retry {n} failed nodes?",
   "重试将重新执行这n个节点": "Retry will re-execute these {n} nodes",
   "确认跳过n个失败节点？": "Confirm to skip {n} failed nodes?",
-  "跳过将忽略这n个节点的失败状态，直接执行后续节点，当前节点将被标记为 “已跳过”": "跳过将忽略这 {n} 个节点的失败状态，Directly执行后续节点，当前节点将被标记To “已跳过”",
+  "跳过将忽略这n个节点的失败状态，直接执行后续节点，当前节点将被标记为“执行成功（失败手动跳过）”": "Skip will ignore the failure status of these {n} nodes, directly execute subsequent nodes, and the current node will be marked as “Execution Success (Manual Skip on Failure)”",
   "数据盘容量（G）": "Data盘容量（G）",
   "绑定规格": "绑定规格",
   "缩容Proxy": "Scale Down Proxy",
@@ -5140,5 +5140,7 @@
   "暂未添加告警订阅": "No alarm subscription added yet",
   "删除订阅将停止发送告警通知并删除配置，如有需要可再次订阅。": "Deleting the subscription will stop sending alarm notifications and delete the configuration, if needed, you can subscribe again.",
   "日志加载中，加载完成将自动解析日志": "Log loading, parsing will be automatically started after loading is complete",
+  "失败自动跳过": "Failed auto skip",
+  "失败手动跳过": "Failed manual skip",
   "这行勿动！新增翻译请在上一行添加！": ""
 }
