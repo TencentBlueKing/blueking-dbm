@@ -253,7 +253,7 @@
             handleShowTooltip('failed', e);
             break;
           case 'FINISHED':
-            if (target.data.skip) {
+            if (target.data.skip || target.data.error_ignorable) {
               handleShowTooltip('skip', e);
             } else {
               handleShowTooltip('finished', e);

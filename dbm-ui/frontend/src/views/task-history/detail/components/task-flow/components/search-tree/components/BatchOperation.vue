@@ -49,7 +49,9 @@
         <BkPopConfirm
           :confirm-text="t('批量跳过')"
           :content="
-            t('跳过将忽略这n个节点的失败状态，直接执行后续节点，当前节点将被标记为 “已跳过”', { n: data.length })
+            t('跳过将忽略这n个节点的失败状态，直接执行后续节点，当前节点将被标记为“执行成功（失败手动跳过）”', {
+              n: data.length,
+            })
           "
           :popover-options="{
             disabled: isDisabled,
