@@ -14,9 +14,8 @@
 <template>
   <div>
     <InstanceInfo
-      :count="listInfo.count"
       :instace-list="instaceList"
-      :memory-unsed="listInfo.memoryUnsed" />
+      :statistics-info="statisticsInfo" />
     <DbQuickSearch
       v-model="quickSearchValue"
       :data="quickSearchData"
@@ -182,7 +181,7 @@
   const detailDataLength = computed(() => detailData.value?.length || 0);
   const isLoading = computed(() => tableRef.value?.loading || false);
 
-  const listInfo = computed(() =>
+  const statisticsInfo = computed(() =>
     (detailData.value || []).reduce(
       (prevCount, item) => ({
         count: prevCount.count + item.count,
