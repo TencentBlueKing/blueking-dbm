@@ -15,13 +15,35 @@
   <div class="resource-pool-replenish-list">
     <div class="top-operation mb-12">
       <div>
-        <BkButton
-          :disabled="isSubmitting"
-          :loading="isSubmitting"
-          theme="primary"
-          @click="handleReplenish">
-          {{ t('一键补货') }}
-        </BkButton>
+        <div style="display: none">
+          <div ref="popRef">
+            {{ t('补货正在进行中，') }}
+            <BkButton
+              text
+              theme="primary"
+              @click="handleForward">
+              {{ t('跳转查看') }}
+              <DbIcon
+                class="ml-6"
+                type="bk-dbm-icon db-icon-link" />
+            </BkButton>
+          </div>
+        </div>
+        <span ref="handleRef">
+          <BkButton
+            :disabled="isSubmitting || Boolean(runningReplenishRecord)"
+            :loading="isSubmitting"
+            theme="primary"
+            @click="handleReplenish">
+            <span v-if="!runningReplenishRecord">{{ t('一键补货') }}</span>
+            <template v-else>
+              <DbIcon
+                class="mr-6"
+                type="bk-dbm-icon db-icon-sync-pending" />
+              {{ t('补货中') }}
+            </template>
+          </BkButton>
+        </span>
         <DbIcon
           class="ml-16"
           type="bk-dbm-icon db-icon-dingshichufa" />
@@ -150,6 +172,7 @@
 </template>
 <script setup lang="tsx">
   import InfoBox from 'bkui-vue/lib/info-box';
+  import tippy, { type Instance, type SingleTarget } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -177,11 +200,16 @@
     loading: isLoading,
     pagination,
     run: fetchData,
+    runningReplenishRecord,
     tableData,
     updateTime,
   } = useFetchData();
 
   const tableHeight = ref<number | 'auto'>('auto');
+  const handleRef = ref();
+  const popRef = ref();
+  let tippyIns: Instance;
+  const URL_REPLENISH_MEMO_KEY = '__replenish_payload__';
 
   const dbNameMap: Record<string, string> = {};
   const machineTypeMap: Record<string, string> = {};
@@ -203,6 +231,13 @@
       name: 'resourcePoolOperationRecord',
       params: {
         page: 'replenish',
+      },
+      query: {
+        [URL_REPLENISH_MEMO_KEY]: encodeURIComponent(
+          JSON.stringify({
+            id: String(runningReplenishRecord.value),
+          }),
+        ),
       },
     });
   };
@@ -259,6 +294,33 @@
     fetchData({
       cache: true,
     });
+  });
+
+  watch(runningReplenishRecord, () => {
+    if (runningReplenishRecord.value && handleRef.value && popRef.value) {
+      tippyIns = tippy(handleRef.value as SingleTarget, {
+        allowHTML: true,
+        appendTo: () => document.body,
+        arrow: true,
+        content: popRef.value,
+        hideOnClick: true,
+        interactive: true,
+        maxWidth: 'none',
+        offset: [0, 8],
+        placement: 'top',
+        theme: 'black',
+        trigger: 'mouseenter click',
+        zIndex: 999999,
+      });
+    }
+  });
+
+  onBeforeUnmount(() => {
+    if (tippyIns) {
+      tippyIns.hide();
+      tippyIns.unmount();
+      tippyIns.destroy();
+    }
   });
 </script>
 <style lang="less">
