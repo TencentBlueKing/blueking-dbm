@@ -439,6 +439,7 @@ class DBActuatorActionEnum(StrStructuredEnum):
     CheckTdbctlWithSpiderRouter = EnumField("check-tdbctl-with-spider-router", _("check-tdbctl-with-spider-router"))
     GetBackupFile = EnumField("find-local-backup", _("find-local-backup"))
     RestoreSlave = EnumField("restore-dr", _("restore-dr"))
+    StopMysqld = EnumField("stop-mysqld", _("stop-mysqld"))
     FastExecuteSqlFile = EnumField("fast-execute-sql-file", _("fast-execute-sql-file"))
     RecoverBinlog = EnumField("recover-binlog", _("recover-binlog"))
     GrantRepl = EnumField("grant-repl", _("grant-repl"))

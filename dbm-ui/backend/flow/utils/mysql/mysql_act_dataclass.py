@@ -433,6 +433,7 @@ class CheckSlaveStatusKwargs(ExecuteRdsKwargs):
     master_ip: str = ""
     master_port: int = 0
     slave_delay_threshold: int = 360
+    check_file_delay: bool = True
     rounds: int = 1
 
 
