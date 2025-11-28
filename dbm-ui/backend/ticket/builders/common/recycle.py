@@ -31,7 +31,7 @@ class RecycleHostDetailSerializer(serializers.Serializer):
     recycle_hosts = serializers.JSONField(help_text=_("下架机器的回收信息"), default=[])
     group = serializers.ChoiceField(help_text=_("所属组件"), choices=DBType.get_choices())
     parent_ticket = serializers.IntegerField(help_text=_("发起单据号"))
-    immediate_recycle = serializers.BooleanField(help_text=_("立即回收", default=False))
+    immediate_recycle = serializers.BooleanField(help_text=_("立即回收"), default=False)
 
 
 class MachineIdleCheckParamBuilder(FlowParamBuilder):
