@@ -219,18 +219,7 @@ func (job *KeyStat) Run() (err error) {
 		return err
 	}
 
-	// if >= 7.4 暂不支持
-
-	if versionInfo.Major >= 7 && versionInfo.Minor >= 4 {
-		job.runtime.Logger.Error("redis version >= 7.4, version:%s, will not support", versionInfo.Str)
-		err = job.updateReportStatus(statusFailed, map[string]any{
-			"error": "redis version >= 7.4, will not support",
-		})
-		if err != nil {
-			job.runtime.Logger.Error("update report status to failed failed, err:%s", err)
-		}
-		return err
-	}
+	// 支持到最新的rdb 12. 不检查版本了
 
 	if versionInfo.Major >= 6 {
 		job.runtime.Logger.Info("redis version >= 6, version:%s, will check atime", versionInfo.Str)
