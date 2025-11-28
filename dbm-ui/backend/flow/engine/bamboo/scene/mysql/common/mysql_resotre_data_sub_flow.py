@@ -437,6 +437,7 @@ def mysql_restore_master_slave_sub_flow(
                 master_ip=cluster["target_ip"],
                 master_port=cluster["target_port"],
                 slave_delay_threshold=900000000,
+                check_file_delay=False,
                 rounds=3,
             )
         ),
@@ -784,6 +785,7 @@ def change_master_by_master_status(root_id: str, uid: str, cluster_info: dict):
                 master_ip=cluster_info["target_ip"],
                 master_port=cluster_info["target_port"],
                 slave_delay_threshold=900000000,
+                check_file_delay=False,
                 rounds=3,
             )
         ),
