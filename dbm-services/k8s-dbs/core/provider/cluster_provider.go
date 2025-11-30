@@ -428,8 +428,13 @@ func (c *ClusterProvider) UpdateClusterRelease(
 		return dbserrors.NewK8sDbsError(dbserrors.CreateK8sClientError, err)
 	}
 
-	err = c.fillClusterMetaInfo(k8sClusterConfig.ID, request)
+	clusterEntity, err := c.fillClusterMetaInfo(k8sClusterConfig.ID, request)
 	if err != nil {
+		return err
+	}
+
+	// 检查 addonClusterVersion 是否在支持的版本列表中
+	if err := c.validateAddonClusterVersion(request, clusterEntity); err != nil {
 		return err
 	}
 
@@ -452,7 +457,10 @@ func (c *ClusterProvider) UpdateClusterRelease(
 }
 
 // fillClusterMetaInfo 补全 cluster 元信息
-func (c *ClusterProvider) fillClusterMetaInfo(k8sClusterConfigID uint64, request *coreentity.Request) error {
+func (c *ClusterProvider) fillClusterMetaInfo(
+	k8sClusterConfigID uint64,
+	request *coreentity.Request,
+) (*metaentity.K8sCrdClusterEntity, error) {
 	// check cluster
 	clusterEntity, err := c.clusterMetaProvider.FindByParams(&metaentity.ClusterQueryParams{
 		K8sClusterConfigID: k8sClusterConfigID,
@@ -460,17 +468,17 @@ func (c *ClusterProvider) fillClusterMetaInfo(k8sClusterConfigID uint64, request
 		Namespace:          request.Namespace,
 	})
 	if err != nil {
-		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
+		return nil, dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
 	}
 	if clusterEntity == nil {
-		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError,
+		return nil, dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError,
 			fmt.Errorf("集群 %s 元数据不存在，操作失败", request.ClusterName))
 	}
 	if request.AddonClusterVersion == "" {
 		request.AddonClusterVersion = clusterEntity.AddonClusterVersion
 	}
 	request.StorageAddonType = clusterEntity.AddonInfo.AddonType
-	return nil
+	return clusterEntity, nil
 }
 
 // updateReleaseMeta 更新 release meta 元数据
@@ -1041,4 +1049,52 @@ func mergeAndSortEvents(eventLists ...*corev1.EventList) *corev1.EventList {
 	})
 
 	return &corev1.EventList{Items: allEvents}
+}
+
+// validateAddonClusterVersion 检查 addonClusterVersion 是否在支持的版本列表中
+func (c *ClusterProvider) validateAddonClusterVersion(
+	request *coreentity.Request,
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+) error {
+	// 检查支持的版本列表是否为空
+	if clusterEntity.AddonInfo.SupportedAcVersions == "" {
+		slog.Error("supported ac versions is empty",
+			"cluster_name", request.ClusterName,
+			"addon_type", clusterEntity.AddonInfo.AddonType)
+		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError,
+			fmt.Errorf("插件类型 %s 的 supported ac versions 配置为空", clusterEntity.AddonInfo.AddonType))
+	}
+
+	// 反序列化支持的版本列表
+	var supportedAcVersions []string
+	if err := json.Unmarshal([]byte(clusterEntity.AddonInfo.SupportedAcVersions), &supportedAcVersions); err != nil {
+		slog.Error("failed to unmarshal supported ac versions",
+			"cluster_name", request.ClusterName,
+			"supported_versions", clusterEntity.AddonInfo.SupportedAcVersions,
+			"error", err)
+		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError,
+			fmt.Errorf("supported ac versions 反序列化失败: %w", err))
+	}
+
+	// 检查版本列表是否为空
+	if len(supportedAcVersions) == 0 {
+		slog.Error("supported ac versions list is empty",
+			"cluster_name", request.ClusterName,
+			"addon_type", clusterEntity.AddonInfo.AddonType)
+		return dbserrors.NewK8sDbsError(dbserrors.UpdateClusterError,
+			fmt.Errorf("插件类型 %s 的 supported ac versions 列表为空", clusterEntity.AddonInfo.AddonType))
+	}
+
+	// 检查请求的版本是否在支持的版本列表中
+	requestedVersion := request.AddonClusterVersion
+	if !lo.Contains(supportedAcVersions, requestedVersion) {
+		slog.Error("addon cluster version not supported",
+			"cluster_name", request.ClusterName,
+			"requested_version", requestedVersion,
+			"supported_versions", supportedAcVersions)
+		return dbserrors.NewK8sDbsError(dbserrors.UpdateClusterError,
+			fmt.Errorf("addonClusterVersion 版本 %s 不在支持的版本列表中，支持的版本: %v",
+				requestedVersion, supportedAcVersions))
+	}
+	return nil
 }
