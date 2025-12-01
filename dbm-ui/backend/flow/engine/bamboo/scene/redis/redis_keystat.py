@@ -18,6 +18,7 @@ from backend.configuration.constants import DBType
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_meta.api.cluster.nosqlcomm.redis_cluster_repo import DbmClusterRepository
+from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models.cluster import Cluster
 from backend.db_proxy.constants import ExtensionType
@@ -29,7 +30,6 @@ from backend.flow.plugins.components.collections.redis.exec_actuator_job2 import
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
-from backend.db_meta.enums import InstanceRole
 
 logger = logging.getLogger("flow")
 

@@ -238,7 +238,8 @@
     "labels": [
       "DBM",
       "DBM_MYSQL",
-      "NO_MONITOR_TARGET"
+      "NO_MONITOR_TARGET",
+      "NEED_AUTOFIX/MYSQL_DBHA_AF_TODO_REGISTER"
     ],
     "app": "",
     "path": "",
