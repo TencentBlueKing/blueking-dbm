@@ -119,6 +119,9 @@ func (c *ClusterHelmRepoController) GetClusterHelmRepoByParam(ctx *gin.Context) 
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
+	if repo == nil {
+		api.SuccessResponse(ctx, nil, commconst.Success)
+	}
 	var respVo response.AddonClusterHelmRepoResponse
 	if err = copier.Copy(&respVo, repo); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))

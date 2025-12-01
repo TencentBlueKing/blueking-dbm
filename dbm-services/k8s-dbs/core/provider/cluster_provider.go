@@ -220,6 +220,7 @@ func (c *ClusterProvider) CreateCluster(ctx *commentity.DbsContext, request *cor
 			fmt.Errorf("集群 %s 已存在，请勿重复创建", request.ClusterName))
 	}
 
+	// 设置默认删除策略为 Delete
 	if request.TerminationPolicy == "" {
 		request.TerminationPolicy = coreconst.Delete
 	}
@@ -790,14 +791,19 @@ func (c *ClusterProvider) installHelmRelease(
 ) (map[string]interface{}, error) {
 	actionConfig, err := coreutil.BuildHelmActionConfig(request.Namespace, k8sClient)
 	if err != nil {
-		slog.Error("failed to build helm action config", "error", err)
-		return nil, err
+		slog.Error("获取集群配置信息失败", "error", err)
+		return nil, errors.Wrapf(err, "获取集群 %s 配置信息失败", request.K8sClusterName)
 	}
+
 	helmRepo, err := c.getClusterHelmRepository(request)
 	if err != nil {
-		slog.Error("failed to get helm repo", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "获取集群存储 %s 的 Helm 仓库信息失败", request.StorageAddonType)
 	}
+	if helmRepo == nil {
+		return nil, fmt.Errorf("集群 %s 的 Helm 仓库信息为空，请检查插件类型 %s 版本 %s 的仓库配置",
+			request.ClusterName, request.StorageAddonType, request.AddonClusterVersion)
+	}
+
 	addonClusterVersion := request.AddonClusterVersion
 	if addonClusterVersion == "" {
 		addonClusterVersion = request.StorageAddonVersion
@@ -831,7 +837,8 @@ func (c *ClusterProvider) installHelmRelease(
 	_, err = install.Run(chart, values)
 	if err != nil {
 		slog.Error("cluster install failed", "clusterName", request.ClusterName, "error", err)
-		return nil, fmt.Errorf("failed to install cluster %s: %w", request.ClusterName, err)
+		return nil, dbserrors.NewK8sDbsError(dbserrors.InstallHelmChartErr,
+			fmt.Errorf("failed to install cluster %s: %w", request.ClusterName, err))
 	}
 	return values, nil
 }
@@ -867,6 +874,10 @@ func (c *ClusterProvider) doUpdateClusterRelease(
 	if err != nil {
 		slog.Error("failed to get helm repo", "error", err)
 		return nil, err
+	}
+	if helmRepo == nil {
+		return nil, fmt.Errorf("集群 %s 的 Helm 仓库信息为空，请检查插件类型 %s 版本 %s 的仓库配置",
+			request.ClusterName, request.StorageAddonType, request.AddonClusterVersion)
 	}
 	upgrade := action.NewUpgrade(actionConfig)
 	upgrade.Namespace = request.Namespace

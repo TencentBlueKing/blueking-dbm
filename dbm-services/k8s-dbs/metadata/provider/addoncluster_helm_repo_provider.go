@@ -103,6 +103,9 @@ func (a *AddonClusterHelmRepoProviderImpl) FindByParams(params *metaentity.HelmR
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to find addoncluster helm repo with params %+v", params)
 	}
+	if model == nil {
+		return nil, nil
+	}
 	repoEntity := metaentity.AddonClusterHelmRepoEntity{}
 	if err = copier.Copy(&repoEntity, model); err != nil {
 		return nil, errors.Wrap(err, "failed to copy")

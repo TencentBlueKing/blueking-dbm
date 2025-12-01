@@ -93,6 +93,7 @@ const (
 	GetPodDetailError
 	CreateK8sClientError
 	DeleteK8sPodError
+	InstallHelmChartErr
 )
 
 // addon 管理操作异常
@@ -151,6 +152,7 @@ var codeTag = map[ErrorCode]string{
 	GetPodDetailError:        "获取 Pod 详情失败",
 	CreateK8sClientError:     "获取 K8s Client 失败",
 	DeleteK8sPodError:        "删除实例节点失败",
+	InstallHelmChartErr:      "安装 Helm chart 失败",
 
 	// 存储插件部署操作异常
 	InstallAddonError:   "插件安装失败",
