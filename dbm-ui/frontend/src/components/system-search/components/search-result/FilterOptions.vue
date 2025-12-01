@@ -115,11 +115,11 @@
   const resourceList = [
     {
       id: 'entry',
-      name: t('访问入口'),
+      name: t('访问入口（域名 / CLB / 北极星）'),
     },
     {
       id: 'instance',
-      name: t('实例（IP、IP:Port）'),
+      name: t('实例（IP / IP:Port）'),
     },
     {
       id: 'machine',
@@ -131,7 +131,7 @@
     },
     {
       id: 'ticket',
-      name: t('单据'),
+      name: t('单据ID'),
     },
   ];
 
