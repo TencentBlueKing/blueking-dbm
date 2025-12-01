@@ -10,32 +10,31 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-import type { RedisSingleMigrate } from '@services/model/ticket/details/redis';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 
 import { random } from '@utils';
 
 // Redis 主从迁移
-export async function generateRedisMigrateSingleCloneData(ticketData: TicketModel<RedisSingleMigrate>) {
+export async function generateRedisMigrateSingleCloneData(ticketData: TicketModel<Redis.MigrateSingle>) {
   const { clusters, infos } = ticketData.details;
-  const isDomain = infos[0].display_info.migrate_type === 'domain';
+  const isDomain = infos[0].display_info?.migrate_type === 'domain';
   const mapKey = isDomain ? 'domain' : 'ip';
 
-  const rowMap = infos.reduce<Record<string, RedisSingleMigrate['infos']>>((prevMap, infoItem) => {
-    if (prevMap[infoItem.display_info[mapKey]]) {
+  const rowMap = infos.reduce<Record<string, Redis.MigrateSingle['infos']>>((prevMap, infoItem) => {
+    if (prevMap[infoItem.display_info![mapKey]]) {
       return Object.assign({}, prevMap, {
-        [infoItem.display_info[mapKey]]: prevMap[infoItem.display_info[mapKey]].concat(infoItem),
+        [infoItem.display_info![mapKey]]: prevMap[infoItem.display_info![mapKey]].concat(infoItem),
       });
     }
     return Object.assign({}, prevMap, {
-      [infoItem.display_info[mapKey]]: [infoItem],
+      [infoItem.display_info![mapKey]]: [infoItem],
     });
   }, {});
   const tableDataList = Object.values(rowMap).map((infoList) => {
     const rowItem = infoList[0];
-    const clusterItem = clusters[rowItem.cluster_id];
+    const clusterItem = clusters[rowItem.cluster_id!];
     const relatedInstanceList = infoList.map((infoItem) => {
-      const masterItem = infoItem.old_nodes.master[0];
+      const masterItem = infoItem.old_nodes!.master[0];
       return {
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         bk_cloud_id: masterItem.bk_cloud_id,
@@ -51,13 +50,13 @@ export async function generateRedisMigrateSingleCloneData(ticketData: TicketMode
           cloudId: clusterItem.bk_cloud_id,
           clusterId: rowItem.cluster_id,
           clusterType: clusterItem.cluster_type,
-          domain: rowItem.display_info.domain,
+          domain: rowItem.display_info!.domain,
           relatedInstance: relatedInstanceList,
         }
       : {
           cloudId: clusterItem.bk_cloud_id,
           clusterType: clusterItem.cluster_type,
-          ip: rowItem.display_info.ip,
+          ip: rowItem.display_info!.ip,
           relatedInstance: relatedInstanceList,
         };
     return {
