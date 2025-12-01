@@ -131,7 +131,7 @@
   const panelList = reactive([
     {
       count: 0,
-      label: t('访问入口'),
+      label: t('访问入口（域名 / CLB / 北极星）'),
       name: 'entry',
     },
     {
