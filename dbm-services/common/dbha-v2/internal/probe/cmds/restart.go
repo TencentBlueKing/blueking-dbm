@@ -27,5 +27,8 @@ package cmds
 import "github.com/spf13/cobra"
 
 func RestartCmdRunE(cmd *cobra.Command, args []string) error {
-	return nil
+	if err := StopCmdRunE(cmd, nil); err != nil {
+		return err
+	}
+	return StartCmdRunE(cmd, nil)
 }

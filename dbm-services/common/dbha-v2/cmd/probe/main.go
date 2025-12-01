@@ -33,10 +33,11 @@ import (
 
 func main() {
 	rootCmd := &cobra.Command{
-		Use:          "probe",
-		Short:        "DBHA Probe",
-		SilenceUsage: true,
-		RunE:         probe.Run,
+		Use:           "probe",
+		Short:         "DBHA Probe",
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		RunE:          probe.Run,
 	}
 
 	rootCmd.PersistentFlags().StringVarP(&probe.ConfigFilePath, "config", "c", "./etc/probe.yaml", "")
@@ -44,6 +45,7 @@ func main() {
 
 	rootCmd.AddCommand(probe.VersionCmd)
 	rootCmd.AddCommand(probe.HealthCmd)
+	rootCmd.AddCommand(probe.StartCmd)
 	rootCmd.AddCommand(probe.StopCmd)
 	rootCmd.AddCommand(probe.RestartCmd)
 	rootCmd.AddCommand(probe.ReloadCmd)
