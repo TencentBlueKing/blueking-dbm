@@ -421,7 +421,7 @@ class MySQLStorageLocalUpgradeFlow(object):
             "standby_slave",
         )
         # 阶段3: 主从切换
-        self._add_master_slave_switch(sub_pipeline, cluster_ids, master_ip, stand_by_slave_ip, bk_biz_id)
+        self._add_master_slave_switch(sub_pipeline, cluster_ids, master_ip, stand_by_slave_ip, bk_biz_id, bk_cloud_id)
         # 人工确认升级原master实例
         # 阶段4: 升级原master实例（现在是slave）
         sub_pipeline.add_act(act_name=_("人工确认升级原master实例"), act_component_code=PauseComponent.code, kwargs={})
@@ -562,7 +562,7 @@ class MySQLStorageLocalUpgradeFlow(object):
                 )
             )
 
-    def _add_master_slave_switch(self, sub_pipeline, cluster_ids, master_ip, slave_ip, bk_biz_id):
+    def _add_master_slave_switch(self, sub_pipeline, cluster_ids, master_ip, slave_ip, bk_biz_id, bk_cloud_id):
         """添加主从切换逻辑"""
         sub_pipeline.add_act(act_name=_("人工确认切换"), act_component_code=PauseComponent.code, kwargs={})
         sub_pipeline.add_sub_pipeline(
@@ -576,6 +576,19 @@ class MySQLStorageLocalUpgradeFlow(object):
                 slave_ip=slave_ip,
                 is_verify_checksum=False,
                 check_client_conn=self.force_upgrade,
+            )
+        )
+        # 先做标准化集群,后面可能会暂停很久
+        sub_pipeline.add_sub_pipeline(
+            sub_flow=standardize_mysql_cluster_by_ip_subflow(
+                root_id=self.root_id,
+                data=copy.deepcopy(self.data),
+                bk_cloud_id=int(bk_cloud_id),
+                bk_biz_id=self.data["bk_biz_id"],
+                ips=[master_ip, slave_ip],
+                with_collect_sysinfo=False,
+                with_actuator=False,
+                with_bk_plugin=False,
             )
         )
 
