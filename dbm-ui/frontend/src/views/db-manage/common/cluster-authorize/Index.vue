@@ -45,7 +45,7 @@
 
   import { useBeforeClose, useTicketMessage } from '@hooks';
 
-  import { AccountTypes, ClusterTypes } from '@common/const';
+  import { AccountTypes } from '@common/const';
 
   import ErrorMessage from './components/ErrorMessage.vue';
   import RulesPreview from './components/RulesPreview.vue';
@@ -61,7 +61,7 @@
     rules?: PermissionRule['rules'];
     selected?: {
       cluster_name: string;
-      cluster_type: ClusterTypes;
+      cluster_type: string;
       db_module_name?: string;
       isMaster?: boolean;
       master_domain: string;
@@ -74,7 +74,7 @@
   interface Exposes {
     init: (data: {
       clusterList: NonNullable<Props['selected']>;
-      clusterType: ClusterTypes;
+      clusterType: string;
       sourceIpList: HostInfo[];
     }) => void;
   }
@@ -178,8 +178,8 @@
 
   defineExpose<Exposes>({
     init(data: Parameters<Exposes['init']>[number]) {
-      if (props.accountType === AccountTypes.MYSQL) {
-        dbComRef.value.init(data);
+      if (props.accountType === AccountTypes.MYSQL || props.accountType === AccountTypes.TENDBCLUSTER) {
+        dbComRef.value?.init(data);
       }
     },
   });

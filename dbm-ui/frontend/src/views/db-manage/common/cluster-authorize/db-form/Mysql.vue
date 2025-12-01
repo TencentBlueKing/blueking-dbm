@@ -32,10 +32,10 @@
 
   interface Props {
     accessDbs?: string[];
-    clusterTypes: string[];
-    selected: {
+    clusterTypes?: string[];
+    selected?: {
       cluster_name: string;
-      cluster_type: ClusterTypes;
+      cluster_type: string;
       db_module_name?: string;
       isMaster?: boolean;
       master_domain: string;

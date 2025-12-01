@@ -35,7 +35,7 @@ export function filterClusters<
     bk_cloud_id: number;
     bk_cloud_name: string;
     cluster_name: string;
-    cluster_type: string;
+    cluster_type: ClusterTypes;
     db_module_id: number;
     db_module_name: string;
     db_type: string;
