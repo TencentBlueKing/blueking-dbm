@@ -101,7 +101,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import TicketModel, { type Common } from '@services/model/ticket/ticket';
+  import TicketModel, { type ResourcePool } from '@services/model/ticket/ticket';
 
   import { useGlobalBizs } from '@stores';
 
@@ -113,7 +113,7 @@
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 
   interface Props {
-    ticketDetails: TicketModel<Common.ImportResource>;
+    ticketDetails: TicketModel<ResourcePool.ImportResource>;
   }
 
   type RowData = Props['ticketDetails']['details']['hosts'][number];

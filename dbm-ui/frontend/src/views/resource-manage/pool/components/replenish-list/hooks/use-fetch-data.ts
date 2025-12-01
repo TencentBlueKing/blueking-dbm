@@ -5,6 +5,7 @@ import { useUrlSearch } from '@hooks';
 import { useStorage } from '@vueuse/core';
 import { calcResourceWaterLevel } from '@services/source/dbresourceResource';
 import { useRequest } from 'vue-request';
+import { getRunningReplenishRecord } from '@services/source/dbresourceReplenish';
 
 type ResourceWaterLevel = ServiceReturnType<typeof calcResourceWaterLevel>;
 
@@ -32,20 +33,29 @@ export default () => {
     pagination.current = Number(searchParams.current);
   }
 
+  const { run: fetchRunningReplenishRecord } = useRequest(getRunningReplenishRecord, {
+    manual: true,
+    onSuccess: (data: number) => {
+      runningReplenishRecord.value = data;
+    },
+  });
+
   const { loading, run } = useRequest(calcResourceWaterLevel, {
     manual: true,
     onSuccess: (data: ResourceWaterLevel) => {
       flushTime.value = data.flush_time;
       updateTime.value = data.update_time;
-      runningReplenishRecord.value = data.running_replenish_record;
       dataList.value = data.water_level;
       pagination.count = data.water_level.length;
 
       // 分页
       const offset = (pagination.current - 1) * pagination.limit;
       tableData.value = data.water_level.slice(offset, offset + pagination.limit);
+
+      fetchRunningReplenishRecord();
     },
   });
+
   // 切换每页条数
   const handlePageLimitChange = (pageLimit: number) => {
     pagination.limit = pageLimit;

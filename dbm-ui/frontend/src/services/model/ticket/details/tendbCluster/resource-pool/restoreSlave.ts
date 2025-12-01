@@ -1,6 +1,8 @@
 import type { BackupSourceType } from '@services/types';
 
-import type { DetailMachines, ResourcePoolDetailBase } from '../../common';
+import type { DetailMachines } from '../../common';
+
+import type { ResourcePoolDetailBase } from '../../resource-pool';
 
 /**
  * TenDB Cluster Slave重建

@@ -1,6 +1,6 @@
 import type { BackupLogRecord } from '@services/source/fixpointRollback';
 
-import type { ResourcePoolDetailBase } from '../../common';
+import type { ResourcePoolDetailBase } from '../../resource-pool';
 
 /**
  * TenDB Cluster 定点构造

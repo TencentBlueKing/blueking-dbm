@@ -1,4 +1,4 @@
-import type { ResourcePoolDetailBase } from '../../common';
+import type { ResourcePoolDetailBase } from '../../resource-pool';
 
 export interface MigrateUpgrade extends ResourcePoolDetailBase {
   backup_source: 'local' | 'remote';

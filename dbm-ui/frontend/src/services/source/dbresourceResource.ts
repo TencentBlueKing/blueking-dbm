@@ -280,7 +280,6 @@ export function calcResourceWaterLevel(params: { cache: boolean }) {
   return http.post<{
     update_time: string;
     flush_time: string;
-    running_replenish_record: number; // 补货中的记录ID
     water_level: {
       spec_id: number;
       spec_name: string;
