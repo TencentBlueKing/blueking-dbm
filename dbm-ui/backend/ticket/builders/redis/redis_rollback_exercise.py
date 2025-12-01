@@ -47,20 +47,20 @@ class RedisRollbackExerciseParamBuilder(builders.FlowParamBuilder):
 
     def post_callback(self):
         applied_hosts = []
-        for info in self.ticket_data.get("infos", []):
-            if "redis" in info:
-                for host in info["redis"]:
-                    applied_hosts.append(
-                        {
-                            "bk_host_id": host["bk_host_id"],
-                            "ip": host["ip"],
-                            "bk_cloud_id": host["bk_cloud_id"],
-                        }
-                    )
+        nodes = self.ticket_data.get("nodes", {})
+
+        for hosts in nodes.values():
+            for host in hosts:
+                applied_hosts.append(
+                    {
+                        "bk_host_id": host["bk_host_id"],
+                        "ip": host["ip"],
+                        "bk_cloud_id": host["bk_cloud_id"],
+                    }
+                )
 
         if applied_hosts:
             self.ticket.details["recycle_hosts"] = ResourceHandler.standardized_resource_host(applied_hosts)
-            # Set immediate_recycle flag for rollback exercise to skip timer delay
             self.ticket.details["immediate_recycle"] = True
             self.ticket.save(update_fields=["details"])
 

@@ -25,6 +25,7 @@ from backend.flow.plugins.components.collections.common.disable_alarm_shield imp
 from backend.flow.plugins.components.collections.redis.redis_rollback_exercise import (
     RedisFlowPollingComponent,
     RedisRollbackFlowCreateComponent,
+    RedisRollbackTaskCleanupComponent,
     RedisTempInstanceDeleteComponent,
 )
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, RedisRollbackExerciseContext
@@ -184,6 +185,13 @@ class RedisRollbackExerciseFlow(object):
                 act_name=_("解除主机 {} 告警屏蔽").format(resource_applied[0]["ip"]),
                 act_component_code=DisableAlarmShieldComponent.code,
                 kwargs={},
+            )
+
+            # Step 8: Clean up task records for this rollback exercise ticket to prevent accumulation
+            sub_flow.add_act(
+                act_name=_("清理任务记录"),
+                act_component_code=RedisRollbackTaskCleanupComponent.code,
+                kwargs=asdict(act_kwargs),
             )
 
             sub_flows.append(
