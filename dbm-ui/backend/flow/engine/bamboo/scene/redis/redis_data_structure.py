@@ -654,10 +654,12 @@ class RedisDataStructureFlow(object):
     def __init_builder(self, operate_name: str, info: dict):
         cluster_info = self.__get_cluster_info(info["cluster_id"])
         logger.info(_("__init_builder_cluster_info: {}".format(cluster_info)))
-        flow_data = self.data
-        flow_data.update(cluster_info)
 
-        redis_pipeline = SubBuilder(root_id=self.root_id, data=flow_data)
+        ticket_bk_biz_id = self.data["bk_biz_id"]
+        self.data.update(cluster_info)
+        self.data["bk_biz_id"] = ticket_bk_biz_id  # self.data should keeps the bk_biz_id of the ticket
+
+        redis_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
         trans_files = GetFileList(db_type=DBType.Redis)
         act_kwargs = ActKwargs()
         act_kwargs.set_trans_data_dataclass = RedisDataStructureContext.__name__

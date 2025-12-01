@@ -17,6 +17,7 @@ from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import StaticIntervalGenerator
 
 from backend.db_meta.models import Cluster
+from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.scene.redis.redis_data_structure import RedisDataStructureFlow
 from backend.flow.engine.bamboo.scene.redis.redis_data_structure_task_delete import RedisDataStructureTaskDeleteFlow
@@ -96,6 +97,9 @@ class RedisFlowPollingService(RedisLogCapturingService):
     interval = StaticIntervalGenerator(10)
     polling_timeout = 3600
 
+    FAILED = "FAILED"
+    SUCCEEDED = "SUCCEEDED"
+
     def __execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
 
@@ -126,6 +130,49 @@ class RedisFlowPollingService(RedisLogCapturingService):
         data.outputs["trans_data"] = self.trans_data
         return result
 
+    def _update_task_status(self, flow_type: str, status: str):
+        """Update task status"""
+        if not self.trans_data.task_id:
+            return
+
+        if flow_type == "rollback_flow_id":
+            self.log_info(_("Dry-run: changing task {} state to ROLLBACK_{}").format(self.trans_data.task_id, status))
+        elif flow_type == "delete_flow_id":
+            self.log_info(_("Dry-run: changing task {} state to DELETE_{}").format(self.trans_data.task_id, status))
+
+    def _check_timeout(self, flow_type: str) -> bool:
+        """Check if polling has timed out"""
+        polling_start_time = self.trans_data.polling_start_time if self.trans_data.polling_start_time else time.time()
+        elapsed_time = time.time() - polling_start_time
+
+        if elapsed_time > self.polling_timeout:
+            self.log_error(
+                _("Polling timeout after {} seconds for flow type {}").format(self.polling_timeout, flow_type)
+            )
+            self._update_task_status(flow_type, self.FAILED)
+            return True
+        return False
+
+    def _handle_flow_status(self, flow_id: str, status: StateType, flow_type: str) -> bool:
+        """Handle different flow statuses. Returns True if should continue polling."""
+        match status:
+            case StateType.FINISHED:
+                self.log_info(_("Flow {} finished successfully").format(flow_id))
+                self._update_task_status(flow_type, self.SUCCEEDED)
+                self.finish_schedule()
+                return True
+            case StateType.FAILED:
+                self.log_error(_("Flow {} failed").format(flow_id))
+                self._update_task_status(flow_type, self.FAILED)
+                return False
+            case StateType.REVOKED:
+                self.log_error(_("Flow {} was cancelled or stopped with state: {}").format(flow_id, status))
+                self._update_task_status(flow_type, self.FAILED)
+                return False
+            case _:
+                self.log_info(_("Flow {} status: {}").format(flow_id, status))
+                return True
+
     def __schedule(self, data, parent_data, callback_data=None) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
 
@@ -136,90 +183,19 @@ class RedisFlowPollingService(RedisLogCapturingService):
         flow_type = kwargs["cluster"].get("flow_type")
         if not flow_type:
             self.log_error("Flow type to poll is not set")
-            self.finish_schedule()
             return False
 
-        # Check timeout
-        polling_start_time = self.trans_data.polling_start_time if self.trans_data.polling_start_time else time.time()
-        elapsed_time = time.time() - polling_start_time
-
-        if elapsed_time > self.polling_timeout:
-            self.log_error(
-                _("Polling timeout after {} seconds for flow type {}").format(self.polling_timeout, flow_type)
-            )
-
-            # Update task status to failed on timeout
-            if self.trans_data.task_id:
-                try:
-                    if flow_type == "rollback_flow_id":
-                        self.log_info(
-                            _("Dry-run: changing task {} state to ROLLBACK_FAILED due to timeout").format(
-                                self.trans_data.task_id
-                            )
-                        )
-                    elif flow_type == "delete_flow_id":
-                        self.log_info(
-                            _("Dry-run: changing task {} state to DELETE_FAILED due to timeout").format(
-                                self.trans_data.task_id
-                            )
-                        )
-                except Exception as e:
-                    self.log_error(
-                        _("Failed to update task {} status on timeout: {}").format(self.trans_data.task_id, str(e))
-                    )
-
-            self.finish_schedule()
+        if self._check_timeout(flow_type):
             return False
 
-        # Get flow ID to poll based on flow type
         flow_id = getattr(self.trans_data, flow_type)
         if not flow_id:
             self.log_error(_("No flow ID found for type {}").format(flow_type))
-            self.finish_schedule()
             return False
 
-        # Poll flow status
         try:
             flow_tree = FlowTree.objects.get(root_id=flow_id)
-            status = flow_tree.status
-
-            if status not in [StateType.FINISHED.value, StateType.FAILED.value]:
-                self.log_info(_("Flow {} status: {}").format(flow_id, status))
-                return True
-
-            # Flow finished
-            self.finish_schedule()
-
-            if status == StateType.FAILED.value:
-                self.log_error(_("Flow {} failed").format(flow_id))
-
-                # Update task status to failed
-                if self.trans_data.task_id:
-                    if flow_type == "rollback_flow_id":
-                        self.log_info(
-                            _("Dry-run: changing task {} state to ROLLBACK_FAILED").format(self.trans_data.task_id)
-                        )
-                    elif flow_type == "delete_flow_id":
-                        self.log_info(
-                            _("Dry-run: changing task {} state to DELETE_FAILED").format(self.trans_data.task_id)
-                        )
-                return False
-
-            # Flow succeeded
-            self.log_info(_("Flow {} finished successfully").format(flow_id))
-
-            # Update task status to succeeded
-            if self.trans_data.task_id:
-                if flow_type == "rollback_flow_id":
-                    self.log_info(
-                        _("Dry-run: changing task {} state to ROLLBACK_SUCCEEDED").format(self.trans_data.task_id)
-                    )
-                elif flow_type == "delete_flow_id":
-                    self.log_info(
-                        _("Dry-run: changing task {} state to DELETE_SUCCEEDED").format(self.trans_data.task_id)
-                    )
-
-            return True
+            return self._handle_flow_status(flow_id, flow_tree.status, flow_type)
 
         except FlowTree.DoesNotExist:
             self.log_error(_("Flow {} not found in FlowTree").format(flow_id))
@@ -404,3 +380,50 @@ class RedisTempInstanceDeleteComponent(Component):
     name = __name__
     code = "redis_temp_instance_delete"
     bound_service = RedisTempInstanceDeleteService
+
+
+class RedisRollbackTaskCleanupService(RedisLogCapturingService):
+    """
+    Component to clean up task records after successful rollback exercise completion.
+    """
+
+    def __execute(self, data, parent_data) -> bool:
+        global_data = data.get_one_of_inputs("global_data")
+
+        # Check if error occurred in previous steps - skip cleanup on errors
+        if self.trans_data.error_occurred:
+            self.log_warning("Skipping task cleanup due to previous error - preserving records for debugging")
+            return True
+
+        ticket_id = global_data.get("uid")
+        if not ticket_id:
+            self.log_error("No ticket ID found for cleanup")
+            return True
+
+        try:
+            deleted_count, _d = TbTendisRollbackTasks.objects.filter(related_rollback_bill_id=ticket_id).delete()
+
+            if deleted_count > 0:
+                self.log_info(
+                    _("Successfully cleaned up {} task record(s) for ticket {}").format(deleted_count, ticket_id)
+                )
+            else:
+                self.log_info(_("No task records found to clean up for ticket {}").format(ticket_id))
+
+            return True
+
+        except Exception as e:
+            self.log_error(_("Failed to clean up task records: {}").format(str(e)))
+            return True
+
+    def _execute(self, data, parent_data) -> bool:
+        self.init_trans_data(data)
+        result = self.__execute(data, parent_data)
+        data.outputs["trans_data"] = self.trans_data
+        return result
+
+
+class RedisRollbackTaskCleanupComponent(Component):
+    name = __name__
+    code = "redis_rollback_task_cleanup"
+    bound_service = RedisRollbackTaskCleanupService
