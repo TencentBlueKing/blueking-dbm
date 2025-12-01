@@ -86,6 +86,7 @@ export default [
         parentId: 'migrate',
       },
       {
+        bind: [TicketTypes.SQLSERVER_CLUSTER_MIGRATE, TicketTypes.SQLSERVER_HOST_MIGRATE],
         id: TicketTypes.SQLSERVER_CLUSTER_MIGRATE,
         name: t('迁移'),
         parentId: 'migrate',
