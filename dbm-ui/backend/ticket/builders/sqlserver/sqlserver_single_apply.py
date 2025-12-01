@@ -204,7 +204,8 @@ class SQLServerSingleApplyResourceParamBuilder(SQLServerBaseOperateResourceParam
         os_names = self.ticket_data["system_version"]
         os_type = BkOsType.db_type_to_os_type(TicketType.get_db_type_by_ticket(self.ticket.ticket_type))
         # 增加os_names和os_type过滤
-        self.ticket_data["resource_params"] = {"os_names": os_names, "os_type": os_type}
+        for role, resource_info in self.ticket_data["resource_spec"].items():
+            resource_info.update({"os_names": os_names, "os_type": os_type})
         super().format()
 
     def post_callback(self):
