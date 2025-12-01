@@ -8,11 +8,9 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
-import datetime
 import logging.config
 from collections import defaultdict
 from dataclasses import asdict
-from datetime import timedelta
 from typing import Dict, Optional
 
 from django.utils.translation import gettext as _
@@ -327,8 +325,7 @@ class RemoteMasterSlaveSwitchFlow(object):
             act_name=_("屏蔽集群 {} 告警2小时").format(cluster.name),
             act_component_code=AddAlarmShieldComponent.code,
             kwargs={
-                "begin_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "end_time": (datetime.datetime.now() + timedelta(hours=2)).strftime("%Y-%m-%d %H:%M:%S"),
+                "duration_seconds": 2 * 3600,
                 "description": _("集群 {} 主从切换操作").format(cluster.immute_domain),
                 "dimensions": [
                     {

@@ -85,15 +85,6 @@
   - remote
   - spider
   role: []
-- name: mysql-connlog-size
-  enable: false
-  schedule: 0 0 12 * * *
-  machine_type:
-  - single
-  - backend
-  - remote
-  - spider
-  role: []
 - name: mysql-connlog-rotate
   enable: false
   schedule: 0 30 23 * * *
