@@ -136,7 +136,7 @@
     },
     {
       count: 0,
-      label: t('实例（IP、IP:Port）'),
+      label: t('实例'),
       name: 'instance',
     },
     {
@@ -146,7 +146,7 @@
     },
     {
       count: 0,
-      label: t('历史任务'),
+      label: t('任务'),
       name: 'task',
     },
     {

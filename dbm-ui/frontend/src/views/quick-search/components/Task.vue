@@ -4,7 +4,7 @@
       v-if="data.length"
       class="search-result-task search-result-card"
       mode="collapse"
-      :title="t('历史任务')">
+      :title="t('任务')">
       <template #desc>
         <I18nT
           class="ml-8"
