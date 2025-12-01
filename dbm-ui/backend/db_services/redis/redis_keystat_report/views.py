@@ -170,9 +170,7 @@ class KeyStatReportDetailsViewSet(viewsets.SystemViewSet):
         record_ids = data.get("record_ids", "")
 
         # 处理内存分析导出报告
-        key_stat_querysets = self.paginate_queryset(
-            self.filter_queryset(self.queryset.filter(record_id__in=record_ids.split(",")))
-        )
+        key_stat_querysets = self.filter_queryset(self.queryset.filter(record_id__in=record_ids.split(",")))
         headers = [
             {"id": "key_type", "name": _("Key类型")},
             {"id": "key_class", "name": _("Key模式")},
