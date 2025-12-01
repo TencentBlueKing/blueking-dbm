@@ -1,7 +1,9 @@
 <template>
   <div class="system-serach-box">
     <div class="result-list">
-      <BkLoading :loading="quickSearchLoading">
+      <BkLoading
+        :loading="quickSearchLoading"
+        style="height: 100%">
         <slot>
           <BkAlert
             v-if="showAlert"
@@ -33,7 +35,7 @@
           </BkException>
           <ScrollFaker
             v-else
-            style="height: calc(100% - 16px)">
+            style="height: calc(100% - 32px)">
             <div v-if="serachResult">
               <template
                 v-for="resultType in serachResultKeyList"
@@ -111,9 +113,9 @@
 
   const resultTypeTextMap: Record<ResultKeys, string> = {
     entry: t('访问入口'),
-    instance: t('实例（IP、IP:Port）'),
+    instance: t('实例'),
     machine: t('主机'),
-    task: t('任务ID'),
+    task: t('任务'),
     ticket: t('单据'),
   };
 
@@ -150,7 +152,7 @@
   const {
     data: serachResult,
     loading: quickSearchLoading,
-    run: handleSerach,
+    run: runQuickSearch,
   } = useRequest(quickSearch, {
     manual: true,
     onSuccess(data) {
@@ -162,11 +164,30 @@
     },
   });
 
-  const handleSerachDebounce = _.debounce(handleSerach, 200);
+  const handleSerachDebounce = _.debounce(runQuickSearch, 200);
+
+  const handleSearch = () => {
+    serachResult.value = {} as ServiceReturnType<typeof quickSearch>;
+    if (!modelValue.value) {
+      return;
+    }
+
+    if (props.getSearchOptions) {
+      handleSerachDebounce({
+        ...props.getSearchOptions(),
+        keyword: modelValue.value.replace(batchSplitRegex, ' '),
+      });
+    } else {
+      handleSerachDebounce({
+        ...formData.value,
+        keyword: modelValue.value.replace(batchSplitRegex, ' '),
+      });
+    }
+  };
 
   watch(
-    [modelValue, formData],
-    ([newKeyword], [oldKeyword]) => {
+    modelValue,
+    (newKeyword, oldKeyword) => {
       console.log('from watch = ', modelValue.value);
       const newKeywordArr = newKeyword.split(batchSplitRegex);
       const oldKeywordArr = (oldKeyword || '').split(batchSplitRegex);
@@ -174,22 +195,17 @@
         return;
       }
 
-      serachResult.value = {} as ServiceReturnType<typeof quickSearch>;
-      if (!modelValue.value) {
-        return;
-      }
+      handleSearch();
+    },
+    {
+      immediate: true,
+    },
+  );
 
-      if (props.getSearchOptions) {
-        handleSerachDebounce({
-          ...props.getSearchOptions(),
-          keyword: modelValue.value.replace(batchSplitRegex, ' '),
-        });
-      } else {
-        handleSerachDebounce({
-          ...formData.value,
-          keyword: modelValue.value.replace(batchSplitRegex, ' '),
-        });
-      }
+  watch(
+    formData,
+    () => {
+      handleSearch();
     },
     {
       deep: true,
@@ -299,7 +315,7 @@
     .filter-wrapper {
       padding: 10px 12px;
       border-left: 1px solid #dcdee5;
-      flex: 0 0 170px;
+      flex: 0 0 230px;
     }
   }
 </style>
