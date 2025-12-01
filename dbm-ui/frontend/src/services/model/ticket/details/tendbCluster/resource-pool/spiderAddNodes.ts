@@ -1,4 +1,4 @@
-import type { ResourcePoolDetailBase } from '../../common';
+import type { ResourcePoolDetailBase } from '../../resource-pool';
 
 /**
  *  TenDB Cluster 扩容接入层
@@ -6,7 +6,6 @@ import type { ResourcePoolDetailBase } from '../../common';
 
 export interface SpiderAddNodes extends ResourcePoolDetailBase {
   infos: {
-    add_spider_num: number;
     add_spider_num: number;
     add_spider_role: string;
     cluster_id: number;

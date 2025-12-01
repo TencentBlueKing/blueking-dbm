@@ -1,6 +1,6 @@
 import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
 
-import type { ResourcePoolDetailBase } from '../../common';
+import type { ResourcePoolDetailBase } from '../../resource-pool';
 
 /**
  *  TenDB Cluster 接入层升降配

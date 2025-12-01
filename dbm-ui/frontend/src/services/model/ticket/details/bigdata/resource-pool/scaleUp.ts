@@ -1,4 +1,4 @@
-import type { ResourcePoolDetailBase } from '../../common';
+import type { ResourcePoolDetailBase } from '../../resource-pool';
 
 import type { ResourceSpec } from './common';
 

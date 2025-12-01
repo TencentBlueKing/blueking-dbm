@@ -62,3 +62,10 @@ export function listTicketApplyCount(params: { ticket_ids: string; offset?: numb
     >
   >(`${path}/list_ticket_apply_count/`, params);
 }
+
+/**
+ * 查询正在运行的补货记录
+ */
+export function getRunningReplenishRecord() {
+  return http.get<number>(`${path}/get_running_replenish_record/`);
+}

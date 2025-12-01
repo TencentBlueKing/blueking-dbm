@@ -1,7 +1,7 @@
 import type { OperaObejctType } from '@services/types';
 import TendbhaModel from '@services/model/mysql/tendbha';
-import type { DetailMachines, ResourcePoolDetailBase } from '../../common';
-
+import type { DetailMachines } from '../../common';
+import type { ResourcePoolDetailBase } from '../../resource-pool';
 /**
  * MySQL 迁移Proxy（按实例）
  */

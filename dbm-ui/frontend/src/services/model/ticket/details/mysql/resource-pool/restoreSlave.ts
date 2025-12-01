@@ -1,6 +1,6 @@
 import type { BackupSourceType, SourceType } from '@services/types';
 
-import type { ResourcePoolDetailBase } from '../../common';
+import type { ResourcePoolDetailBase } from '../../resource-pool';
 
 /**
  * MySQL Slave重建

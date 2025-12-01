@@ -1,6 +1,8 @@
 import type { OperaObejctType, SourceType } from '@services/types';
 
-import type { DetailMachines, ResourcePoolDetailBase, ResourcePoolRecycleHost } from '../../common';
+import type { DetailMachines } from '../../common';
+
+import type { ResourcePoolDetailBase, ResourcePoolRecycleHost } from '../../resource-pool';
 
 /**
  * MySQL 迁移主从
