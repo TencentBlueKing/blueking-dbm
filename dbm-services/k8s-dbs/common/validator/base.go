@@ -37,6 +37,10 @@ func GetNestedField(t reflect.Type, path []string) (reflect.StructField, bool) {
 	if strings.Contains(name, "[") {
 		name = strings.Split(name, "[")[0]
 	}
+	// 处理指针类型
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
 	field, ok := t.FieldByName(name)
 	if !ok {
 		return reflect.StructField{}, false
@@ -47,9 +51,11 @@ func GetNestedField(t reflect.Type, path []string) (reflect.StructField, bool) {
 	}
 
 	fieldType := field.Type
+	// 处理指针类型
 	if fieldType.Kind() == reflect.Ptr {
 		fieldType = fieldType.Elem()
 	}
+	// 处理切片类型
 	if fieldType.Kind() == reflect.Slice {
 		fieldType = fieldType.Elem()
 	}

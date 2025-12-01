@@ -7,15 +7,20 @@ import (
 	commconst "k8s-dbs/common/constant"
 	"k8s-dbs/common/util"
 	apierrors "k8s-dbs/errors"
+	metadbaccess "k8s-dbs/metadata/dbaccess"
 	metaentity "k8s-dbs/metadata/entity"
 	metaprovider "k8s-dbs/metadata/provider"
 	"log/slog"
+
+	"gorm.io/gorm"
 
 	"github.com/gin-gonic/gin"
 )
 
 // APIAuthMiddleware API权限校验中间件
-func APIAuthMiddleware(provider metaprovider.AuthUserRoleProvider) gin.HandlerFunc {
+func APIAuthMiddleware(db *gorm.DB) gin.HandlerFunc {
+	authUserRoleDbAccess := metadbaccess.NewAuthUserRoleDbAccess(db)
+	authUserRoleProvider := metaprovider.NewAuthUserRoleProvider(authUserRoleDbAccess)
 	return func(c *gin.Context) {
 		// 获取请求路径
 		path := c.FullPath()
@@ -56,7 +61,7 @@ func APIAuthMiddleware(provider metaprovider.AuthUserRoleProvider) gin.HandlerFu
 			RoleID: commconst.AdminUserAuthRoleID,
 		}
 
-		ok := provider.CheckUserRole(params)
+		ok := authUserRoleProvider.CheckUserRole(params)
 		// 没有权限
 		if !ok {
 			api.ErrorResponse(c, apierrors.NewK8sDbsError(apierrors.NotPermissionError, fmt.Errorf("您没有当前操作的权限")))

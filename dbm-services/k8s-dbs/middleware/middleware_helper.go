@@ -26,8 +26,6 @@ import (
 	"io"
 	"k8s-dbs/core/util"
 	dbslogger "k8s-dbs/logger"
-	metadbaccess "k8s-dbs/metadata/dbaccess"
-	metaprovider "k8s-dbs/metadata/provider"
 	"log/slog"
 
 	"github.com/gin-gonic/gin"
@@ -37,8 +35,7 @@ import (
 // RegisterMiddleWare 注册 MiddleWave
 func RegisterMiddleWare(engine *gin.Engine) {
 	// 注册 logger 中间件
-	dbsLogger := dbslogger.InitLogger()
-	engine.Use(LogMiddleware(dbsLogger))
+	engine.Use(LogMiddleware(dbslogger.InitLogger()))
 	slog.Info("Finish initial logger...")
 
 	// 注册 trace 中间件
@@ -54,9 +51,8 @@ func RegisterMiddleWare(engine *gin.Engine) {
 	engine.Use(APIMetricsMiddleware())
 	slog.Info("Finish initial metric...")
 
-	authUserRoleDbAccess := metadbaccess.NewAuthUserRoleDbAccess(util.Db.GormDb)
-	authUserRoleProvider := metaprovider.NewAuthUserRoleProvider(authUserRoleDbAccess)
-	engine.Use(APIAuthMiddleware(authUserRoleProvider))
+	// 注册 auth 中间件
+	engine.Use(APIAuthMiddleware(util.Db.GormDb))
 	slog.Info("Finish initial auth...")
 }
 
