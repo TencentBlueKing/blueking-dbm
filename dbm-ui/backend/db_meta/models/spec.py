@@ -93,6 +93,8 @@ class Spec(AuditedModel):
         location_spec=None,
         tolerance=0,
         current_hosts=None,
+        os_names=None,
+        os_type=None,
     ):
         # 如果没有城市信息，default表示无城市信息
         if location_spec and location_spec["city"] == "default":
@@ -120,6 +122,8 @@ class Spec(AuditedModel):
             "count": count,
             "affinity": affinity,
             "location_spec": location_spec,
+            "os_names": os_names,
+            "os_type": os_type,
             "labels": labels,
             "tolerance": tolerance,
             "current_hosts": current_hosts or [],
@@ -161,6 +165,8 @@ class Spec(AuditedModel):
         location_spec=None,
         tolerance=0,
         current_hosts=None,
+        os_names=None,
+        os_type=None,
     ):
         """
         根据规格和分组要求，获取资源申请参数
@@ -177,6 +183,8 @@ class Spec(AuditedModel):
         @param labels: 位置参数
         @param tolerance: 亲和性容忍度(代替group_count)
         @param current_hosts: 存量主机，和tolerance一起使用可以让资源池整体分配机型
+        @param os_names: 操作系统名称
+        @param os_type: 操作系统类型
         """
         group_count_list = [group_count] * (count // group_count)
         if count % group_count:
@@ -189,6 +197,8 @@ class Spec(AuditedModel):
                 bk_cloud_id=bk_cloud_id,
                 affinity=affinity,
                 labels=labels,
+                os_names=os_names,
+                os_type=os_type,
                 location_spec=location_spec,
                 tolerance=tolerance,
                 current_hosts=current_hosts,

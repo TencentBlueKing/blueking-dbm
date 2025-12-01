@@ -146,14 +146,15 @@ class SQLServerBaseOperateResourceParamBuilder(BaseOperateResourceParamBuilder):
             cluster_infos_map[cluster.id] = {
                 "bk_cloud_id": cluster.bk_cloud_id,
                 "bk_biz_id": cluster.bk_biz_id,
-                "resource_params": {"os_names": db_config["system_version"].split(","), "os_type": BkOsType.WINDOWS},
+                "os_info": {"os_names": db_config["system_version"].split(","), "os_type": BkOsType.WINDOWS},
             }
 
         # 对每个info补充操作系统，云区域和业务ID
         for info in self.ticket_data.get("infos", []):
-            cluster_id = fetch_cluster_ids(info)[0]
-            cluster_info = cluster_infos_map[cluster_id]
-            info.update(**cluster_info)
+            cluster_info = cluster_infos_map[fetch_cluster_ids(info)[0]]
+            info.update(bk_cloud_id=cluster_info["bk_cloud_id"], bk_biz_id=cluster_info["bk_biz_id"])
+            for role, resource_info in info.get("resource_spec", {}).items():
+                resource_info.update(**cluster_info["os_info"])
 
     def post_callback(self):
         super().post_callback()

@@ -113,10 +113,11 @@ class SQLServerRestoreSlaveResourceParamBuilder(SQLServerBaseOperateResourcePara
             info.update(bk_cloud_id=master_machine.bk_cloud_id)
 
             # 补充操作系统、亲和性和城市信息
-            info["resource_params"] = {"os_type": BkOsType.WINDOWS.value, "os_names": info["system_version"]}
             info["resource_spec"]["sqlserver_ha"].update(
                 affinity=cluster.disaster_tolerance_level,
                 location_spec={"city": master_machine.bk_city.logical_city.name, "sub_zone_ids": []},
+                os_type=BkOsType.WINDOWS.value,
+                os_names=info["system_version"],
             )
 
             # 根据亲和性补充园区信息
