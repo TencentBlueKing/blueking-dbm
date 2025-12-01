@@ -64,7 +64,6 @@
 
   import SqlserverHaModel from '@services/model/sqlserver/sqlserver-ha';
   import { checkInstance } from '@services/source/dbbase';
-  import { getHaClusterWholeList as getSqlServerHaCluster } from '@services/source/sqlserveHaCluster';
 
   import { ClusterTypes, DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
@@ -109,6 +108,11 @@
     [ClusterTypes.SQLSERVER_HA]: [
       {
         id: ClusterTypes.SQLSERVER_HA,
+        name: t('SqlServer 主从'),
+        previewConfig: {
+          displayKey: 'ip',
+          showTitle: true,
+        },
         tableConfig: {
           firsrColumn: {
             field: 'ip',
@@ -116,15 +120,16 @@
             role: 'backend_master',
           },
         },
-        topoConfig: {
-          countFunc: (item: ServiceReturnType<typeof getSqlServerHaCluster>[number]) =>
-            item.masters.length + item.slaves.length,
-        },
       },
     ],
     [ClusterTypes.SQLSERVER_SINGLE]: [
       {
         id: ClusterTypes.SQLSERVER_SINGLE,
+        name: t('SqlServer 单节点'),
+        previewConfig: {
+          displayKey: 'ip',
+          showTitle: true,
+        },
         tableConfig: {
           firsrColumn: {
             field: 'ip',
