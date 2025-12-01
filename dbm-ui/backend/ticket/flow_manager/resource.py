@@ -49,8 +49,6 @@ class ResourceApplyFlow(BaseTicketFlow):
         self.resource_apply_status = flow_obj.details.get("resource_apply_status", None)
         # 是否允许资源申请为空
         self.allow_resource_empty = flow_obj.details.get("allow_resource_empty", False)
-        # 资源申请额外参数
-        self.extra_resource_params = flow_obj.details.get("resource_params", {})
 
     @property
     def _start_time(self) -> str:
@@ -296,7 +294,6 @@ class ResourceApplyFlow(BaseTicketFlow):
         """
         构造资源申请参数, ticket_data主要包含两项信息：
         resource_spec: 资源申请的规格信息
-        resource_params: 资源申请的额外过滤信息, 主要用于拓展资源申请的维度(比如操作系统，网卡等等)
         """
         bk_cloud_id: int = ticket_data["bk_cloud_id"]
         details: List[Dict[str, Any]] = []
@@ -326,6 +323,8 @@ class ResourceApplyFlow(BaseTicketFlow):
                     group_count=group_count,
                     affinity=role_spec.get("affinity", AffinityEnum.NONE.value),
                     labels=role_spec.get("labels", []),
+                    os_type=role_spec.get("os_type"),
+                    os_names=role_spec.get("os_names"),
                     location_spec=role_spec.get("location_spec"),
                     tolerance=role_spec.get("tolerance", 0),
                     current_hosts=role_spec.get("current_hosts", []),
@@ -337,10 +336,6 @@ class ResourceApplyFlow(BaseTicketFlow):
             return []
         elif not details and not self.allow_resource_empty:
             raise ResourceApplyException(_("申请的资源总数为0，资源申请不合法"))
-
-        # 如果有额外的过滤条件，则补充到每个申请group的details中
-        if self.extra_resource_params:
-            details = [{**detail, **self.extra_resource_params} for detail in details]
 
         return details
 
