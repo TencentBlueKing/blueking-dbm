@@ -26,6 +26,11 @@
       v-for="item in dropdownList"
       :id="item.value"
       :key="item.value"
+      v-bk-tooltips="{
+        placement: 'right',
+        content: item.tooltips,
+        disabled: !item.tooltips,
+      }"
       :name="item.label" />
   </BkSelect>
 </template>
@@ -60,6 +65,7 @@
     },
     {
       label: t('模糊搜索'),
+      tooltips: t('仅支持搜索有权限业务'),
       value: FilterType.CONTAINS,
     },
   ];

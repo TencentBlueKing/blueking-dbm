@@ -115,7 +115,7 @@
   const resourceList = [
     {
       id: 'entry',
-      name: t('访问入口'),
+      name: t('访问入口（域名 / CLB / 北极星）'),
     },
     {
       id: 'instance',
