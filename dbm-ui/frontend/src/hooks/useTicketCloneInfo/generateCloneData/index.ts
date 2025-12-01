@@ -3,7 +3,6 @@ import TicketModel from '@services/model/ticket/ticket';
 import { TicketTypes } from '@common/const';
 
 import {
-  generateMysqlAuthorizeRuleCloneData,
   generateMysqlChecksumCloneData,
   generateMysqlClientCloneData,
   generateMysqlDataMigrateCloneData,
@@ -53,7 +52,6 @@ import {
 import {
   generateSpiderAddMntDataCloneData,
   generateSpiderApplyCloneData,
-  generateSpiderAuthorizeRuleCloneData,
   generateSpiderCapacityChangeCloneData,
   generateSpiderChecksumCloneData,
   generateSpiderDbBackupCloneData,
@@ -78,7 +76,6 @@ import { generateSpiderRollbackCloneData } from './tendbcluster/rollback';
 
 export const generateCloneDataHandlerMap = {
   [TicketTypes.MYSQL_ADD_SLAVE]: generateMysqlSlaveAddCloneData, // MySQL 添加从库
-  [TicketTypes.MYSQL_AUTHORIZE_RULES]: generateMysqlAuthorizeRuleCloneData, // Mysql 集群授权
   [TicketTypes.MYSQL_CHECKSUM]: generateMysqlChecksumCloneData, // Mysql 数据校验
   [TicketTypes.MYSQL_CLIENT_CLONE_RULES]: generateMysqlClientCloneData, // Mysql 客户端权限克隆
   [TicketTypes.MYSQL_DATA_MIGRATE]: generateMysqlDataMigrateCloneData, // Mysql DB克隆
@@ -127,7 +124,6 @@ export const generateCloneDataHandlerMap = {
   [TicketTypes.REDIS_SINGLE_INS_MIGRATE]: generateRedisMigrateSingleCloneData, // Redis 主从迁移
   [TicketTypes.REDIS_VERSION_UPDATE_ONLINE]: generateRedisRedisVersionUpgradeCloneData, // Redis 版本升级
   [TicketTypes.TENDBCLUSTER_APPLY]: generateSpiderApplyCloneData, // spider 集群部署
-  [TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES]: generateSpiderAuthorizeRuleCloneData, // Spider 集群授权
   [TicketTypes.TENDBCLUSTER_CHECKSUM]: generateSpiderChecksumCloneData, // Spider checksum
   [TicketTypes.TENDBCLUSTER_CLIENT_CLONE_RULES]: generateSpiderPrivilegeCloneClientCloneData, // Spider 客户端权限克隆
   [TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP]: generateSpiderDbTableBackupCloneData, // Spider TenDBCluster 库表备份

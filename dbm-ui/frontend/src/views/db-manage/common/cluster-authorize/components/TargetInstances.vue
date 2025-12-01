@@ -52,7 +52,7 @@
     clusterTypes: string[];
     data: {
       cluster_name: string;
-      cluster_type: ClusterTypes;
+      cluster_type: string;
       db_module_name?: string;
       isMaster?: boolean;
       master_domain: string;
@@ -158,7 +158,7 @@
   } as unknown as Record<string, TabConfig>;
 
   const state = reactive({
-    clusterType: ClusterTypes.TENDBHA,
+    clusterType: ClusterTypes.TENDBHA as string,
     isShow: false,
     operations: [
       {
