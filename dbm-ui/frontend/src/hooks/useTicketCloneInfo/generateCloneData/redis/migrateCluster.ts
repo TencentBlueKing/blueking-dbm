@@ -10,13 +10,12 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-import type { RedisClusterMigrate } from '@services/model/ticket/details/redis';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 
 import { random } from '@utils';
 
 // Redis 集群迁移
-export async function generateRedisMigrateClusterCloneData(ticketData: TicketModel<RedisClusterMigrate>) {
+export async function generateRedisMigrateClusterCloneData(ticketData: TicketModel<Redis.MigrateCluster>) {
   const { clusters, infos, specs } = ticketData.details;
   const tableDataList = infos.map((infoItem) => {
     const clusterItem = clusters[infoItem.cluster_id];
@@ -26,14 +25,14 @@ export async function generateRedisMigrateClusterCloneData(ticketData: TicketMod
         clusterId: clusterItem.id,
         clusterType: clusterItem.cluster_type,
         domain: clusterItem.immute_domain,
-        instance: infoItem.display_info.instance,
+        instance: infoItem.display_info?.instance,
         specId: specItem.id,
         specName: specItem.name,
       },
       isLoading: false,
-      master: infoItem.old_nodes.master[0],
+      master: infoItem.old_nodes?.master[0],
       rowKey: random(),
-      slave: infoItem.old_nodes.slave[0],
+      slave: infoItem.old_nodes?.slave[0],
       spanData: {
         isGeneral: true,
         isStart: false,
