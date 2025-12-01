@@ -62,7 +62,8 @@
         v-model="item.specId"
         :cluster-type="DBTypes.MYSQL"
         :current-spec-id-list="[item.host.spec.id]"
-        readonly
+        required
+        selectable
         @batch-edit="handleBatchEdit" />
       <ResourceTagColumn
         v-model="item.labels"
