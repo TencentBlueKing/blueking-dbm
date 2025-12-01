@@ -21,6 +21,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+// 废弃
 func mysqlConnLogSize(db *sqlx.DB) (string, error) {
 	var dataDir string
 	err := db.QueryRowx(`SELECT @@datadir`).Scan(&dataDir)

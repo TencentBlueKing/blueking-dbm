@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import datetime
 import json
 
 from pipeline.component_framework.component import Component
@@ -29,12 +30,24 @@ class AddAlarmShieldService(BaseService):
         trans_data = data.get_one_of_inputs("trans_data")
         global_data = data.get_one_of_inputs("global_data")
 
+        if "duration_seconds" in kwargs:
+            begin_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            end_time = (
+                datetime.datetime.now() + datetime.timedelta(seconds=int(kwargs["duration_seconds"]))
+            ).strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            if "begin_time" in kwargs and "end_time" in kwargs:
+                begin_time = kwargs["begin_time"]
+                end_time = kwargs["end_time"]
+            else:
+                raise Exception("add alarm shield missing args")
+
         bk_biz_id = global_data["bk_biz_id"]
 
         shield_param = {
             "category": "dimension",
-            "begin_time": kwargs["begin_time"],
-            "end_time": kwargs["end_time"],
+            "begin_time": begin_time,
+            "end_time": end_time,
             "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
             "cycle_config": {"begin_time": "", "end_time": "", "day_list": [], "week_list": [], "type": 1},
             "shield_notice": False,

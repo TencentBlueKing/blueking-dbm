@@ -10,7 +10,6 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging.config
 from dataclasses import asdict
-from datetime import datetime, timedelta
 
 from django.utils.crypto import get_random_string
 from django.utils.translation import gettext as _
@@ -186,8 +185,7 @@ def master_and_slave_switch_v2(
         act_name=_("切换期间屏蔽新实例告警30分钟"),
         act_component_code=AddAlarmShieldComponent.code,
         kwargs={
-            "begin_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "end_time": (datetime.now() + timedelta(minutes=30)).strftime("%Y-%m-%d %H:%M:%S"),
+            "duration_seconds": 30 * 60,
             "description": cluster.immute_domain,
             "dimensions": [
                 {
@@ -297,7 +295,6 @@ def master_and_slave_switch_v2(
 def exec_switch_for_force_sub_flow(
     root_id: str, bk_biz_id: int, uid: str, cluster_info: dict, switch_pwd: str, switch_account: str
 ):
-
     global_data = {
         "bk_biz_id": bk_biz_id,
         "uid": uid,

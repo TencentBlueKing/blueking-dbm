@@ -82,7 +82,7 @@ func init() {
 	_ = registerItemConstructor(mysqlprocesslist.RegisterMySQLLock())
 	_ = registerItemConstructor(mysqlprocesslist.RegisterMySQLInject())
 	_ = registerItemConstructor(rotateslowlog.RegisterRotateSlowLog())
-	_ = registerItemConstructor(mysqlconnlog.RegisterMySQLConnLogSize())
+	//_ = registerItemConstructor(mysqlconnlog.RegisterMySQLConnLogSize()) // 废弃
 	_ = registerItemConstructor(mysqlconnlog.RegisterMySQLConnLogRotate())
 	//_ = registerItemConstructor(mysqlconnlog.RegisterMySQLConnLogReport())
 	_ = registerItemConstructor(mysqlconfigdiff.Register())

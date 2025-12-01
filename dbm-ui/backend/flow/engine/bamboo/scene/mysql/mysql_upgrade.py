@@ -9,11 +9,9 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
-import datetime
 import logging.config
 from collections import defaultdict
 from dataclasses import asdict
-from datetime import timedelta
 from typing import Dict, Optional
 
 from django.utils.translation import gettext as _
@@ -620,8 +618,7 @@ class MySQLStorageLocalUpgradeFlow(object):
                 act_name=_("屏蔽集群 {} 告警4小时").format(cluster_names_str),
                 act_component_code=AddAlarmShieldComponent.code,
                 kwargs={
-                    "begin_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "end_time": (datetime.datetime.now() + timedelta(hours=4)).strftime("%Y-%m-%d %H:%M:%S"),
+                    "duration_seconds": 4 * 3600,
                     "description": _("集群 {} MySQL升级操作").format(cluster_names_str),
                     "dimensions": [
                         {

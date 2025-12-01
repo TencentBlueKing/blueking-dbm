@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging
 from dataclasses import asdict
-from datetime import datetime, timedelta
 from typing import Dict, Optional
 
 from django.conf import settings
@@ -137,8 +136,7 @@ class RedisRollbackExerciseFlow(object):
                 ),
                 act_component_code=AddAlarmShieldComponent.code,
                 kwargs={
-                    "begin_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "end_time": (datetime.now() + timedelta(seconds=polling_timeout)).strftime("%Y-%m-%d %H:%M:%S"),
+                    "duration_seconds": polling_timeout,
                     "description": _("主机 {} Redis回档演练操作").format(resource_applied[0]["ip"]),
                     "dimensions": [
                         {

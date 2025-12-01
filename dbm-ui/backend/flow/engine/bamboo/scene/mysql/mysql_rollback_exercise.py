@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 from dataclasses import asdict
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, Optional
 
 from django.db.models import Q
@@ -202,8 +202,7 @@ class MySQLRollbackExerciseFlow(object):
             act_name=_("屏蔽集群 {} 告警12小时").format(cluster_class.name),
             act_component_code=AddAlarmShieldComponent.code,
             kwargs={
-                "begin_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "end_time": (datetime.now() + timedelta(hours=12)).strftime("%Y-%m-%d %H:%M:%S"),
+                "duration_seconds": 12 * 3600,
                 "description": _("集群 {} MySQL回档演练操作").format(cluster_class.immute_domain),
                 "dimensions": [
                     {

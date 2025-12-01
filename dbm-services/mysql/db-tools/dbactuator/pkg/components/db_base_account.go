@@ -40,22 +40,36 @@ type PartitionAccoutParam struct {
 
 var allPriv = []string{"ALL PRIVILEGES"}
 var ywUserPriv = []string{"SELECT", "CREATE", "RELOAD", "PROCESS", "SHOW DATABASES", "REPLICATION CLIENT"}
-var backupUserPriv = []string{"SELECT", "RELOAD", "PROCESS", "SHOW DATABASES", "REPLICATION CLIENT", "SHOW VIEW",
-	"TRIGGER", "EVENT", "SUPER", "EXECUTE"}
+var backupUserPriv = []string{
+	"SELECT", "RELOAD", "PROCESS", "SHOW DATABASES", "REPLICATION CLIENT", "SHOW VIEW",
+	"TRIGGER", "EVENT", "SUPER", "EXECUTE",
+}
 
 // performance_schema.log_status
-var backupUserPriv80 = []string{"SELECT", "RELOAD", "PROCESS", "SHOW DATABASES", "REPLICATION CLIENT", "SHOW VIEW",
-	"TRIGGER", "EVENT", "SUPER", "BACKUP_ADMIN", "EXECUTE"} // SUPER is deprecated
+var backupUserPriv80 = []string{
+	"SELECT", "RELOAD", "PROCESS", "SHOW DATABASES", "REPLICATION CLIENT", "SHOW VIEW",
+	"TRIGGER", "EVENT", "SUPER", "BACKUP_ADMIN", "EXECUTE",
+} // SUPER is deprecated
 var replUserPriv = []string{"REPLICATION SLAVE", "REPLICATION CLIENT"}
-var monitorUserPriv = []string{"SELECT", "RELOAD", "PROCESS", "SHOW DATABASES", "SUPER", "REPLICATION CLIENT",
-	"SHOW VIEW", "EVENT", "TRIGGER", "CREATE TABLESPACE"}
+var monitorUserPriv = []string{
+	"SELECT", "RELOAD", "PROCESS", "SHOW DATABASES", "SUPER", "REPLICATION CLIENT",
+	"SHOW VIEW", "EVENT", "TRIGGER", "CREATE TABLESPACE",
+}
 var monitorAccessallPriv = []string{"SELECT,INSERT,DELETE"}
 
 // spider4.x
-var backupUserPrivSpider40 = []string{"SELECT", "RELOAD", "PROCESS", "SHOW DATABASES", "REPLICATION CLIENT",
-	"SHOW VIEW", "TRIGGER", "EVENT", "SUPER", "CONNECTION ADMIN", "EXECUTE"} // SUPER is deprecated
-var monitorUserPrivSpider40 = []string{"SELECT", "RELOAD", "PROCESS", "SHOW DATABASES", "SUPER", "CONNECTION ADMIN",
-	"REPLICATION CLIENT", "SHOW VIEW", "EVENT", "TRIGGER", "CREATE TABLESPACE"} // SUPER is deprecated
+var backupUserPrivSpider40 = []string{
+	"SELECT", "RELOAD", "PROCESS", "SHOW DATABASES", "REPLICATION CLIENT",
+	"SHOW VIEW", "TRIGGER", "EVENT", "SUPER", "CONNECTION ADMIN", "EXECUTE", "SET USER", "FEDERATED ADMIN",
+	"REPLICATION SLAVE ADMIN", "BINLOG ADMIN", "BINLOG REPLAY", "REPLICA MONITOR", "BINLOG MONITOR", "READ_ONLY ADMIN",
+	"REPLICATION MASTER ADMIN",
+} // SUPER is deprecated
+var monitorUserPrivSpider40 = []string{
+	"SELECT", "RELOAD", "PROCESS", "SHOW DATABASES", "SUPER", "CONNECTION ADMIN",
+	"REPLICATION CLIENT", "SHOW VIEW", "EVENT", "TRIGGER", "CREATE TABLESPACE", "SET USER", "FEDERATED ADMIN",
+	"REPLICATION SLAVE ADMIN", "BINLOG ADMIN", "BINLOG REPLAY", "REPLICA MONITOR", "BINLOG MONITOR", "READ_ONLY ADMIN",
+	"REPLICATION MASTER ADMIN",
+} // SUPER is deprecated
 
 // MySQLAccountPrivs TODO
 type MySQLAccountPrivs struct {
@@ -98,13 +112,25 @@ func (p *MySQLAccountPrivs) GenerateInitSql(version string) (initPrivSqls []stri
 	for _, accHost := range p.AccessObjects {
 		for _, pp := range p.PrivPairs {
 			if needCreate {
-				initPrivSqls = append(initPrivSqls, fmt.Sprintf(
-					"CREATE USER IF NOT EXISTS  %s@'%s'  IDENTIFIED WITH mysql_native_password  %s '%s'", p.User, accHost, encr, pwd))
-				initPrivSqls = append(initPrivSqls, fmt.Sprintf("GRANT %s ON %s TO %s@'%s' %s;", strings.Join(pp.Privs, ","),
-					pp.Object, p.User, accHost, withGrant))
+				initPrivSqls = append(
+					initPrivSqls, fmt.Sprintf(
+						"CREATE USER IF NOT EXISTS  %s@'%s'  IDENTIFIED WITH mysql_native_password  %s '%s'", p.User,
+						accHost, encr, pwd,
+					),
+				)
+				initPrivSqls = append(
+					initPrivSqls, fmt.Sprintf(
+						"GRANT %s ON %s TO %s@'%s' %s;", strings.Join(pp.Privs, ","),
+						pp.Object, p.User, accHost, withGrant,
+					),
+				)
 			} else {
-				initPrivSqls = append(initPrivSqls, fmt.Sprintf("GRANT %s ON %s TO %s@'%s'  IDENTIFIED %s '%s' %s;",
-					strings.Join(pp.Privs, ","), pp.Object, p.User, accHost, encr, pwd, withGrant))
+				initPrivSqls = append(
+					initPrivSqls, fmt.Sprintf(
+						"GRANT %s ON %s TO %s@'%s'  IDENTIFIED %s '%s' %s;",
+						strings.Join(pp.Privs, ","), pp.Object, p.User, accHost, encr, pwd, withGrant,
+					),
+				)
 			}
 		}
 	}

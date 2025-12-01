@@ -201,7 +201,9 @@ func (i *InstallMySQLComp) InitDefaultParam() (err error) {
 		ok, _ := osutil.IsMountPoint(cst.DefaultMysqlDataRootPath)
 		if ok {
 			var errx error
-			mountpoint, errx = osutil.FindFirstMountPointProxy(cst.DefaultMysqlDataRootPath, cst.AlterNativeMysqlDataRootPath)
+			mountpoint, errx = osutil.FindFirstMountPointProxy(
+				cst.DefaultMysqlDataRootPath, cst.AlterNativeMysqlDataRootPath,
+			)
 			if errx == nil {
 				i.DataRootPath = mountpoint
 				i.DataBaseDir = path.Join(mountpoint, cst.DefaultMysqlDataBasePath)
@@ -267,7 +269,9 @@ func (i *InstallMySQLComp) InitDefaultParam() (err error) {
 					logger.Error("增加tokudb插件失败:%s", err.Error())
 					return err
 				}
-				if err = replenishTokudbCnf(cnftpl, i.Params.InstMem, path.Join(i.DataBaseDir, strconv.Itoa(port))); err != nil {
+				if err = replenishTokudbCnf(
+					cnftpl, i.Params.InstMem, path.Join(i.DataBaseDir, strconv.Itoa(port)),
+				); err != nil {
 					// 重新渲染my.cnf
 					logger.Error("重新渲染tokudb my.cnf失败:%s", err.Error())
 					return err
@@ -478,43 +482,49 @@ func (i *InstallMySQLComp) initInsReplaceMyConfigs() error {
 		i.InsInitDirs[port] = append(i.InsInitDirs[port], []string{insBaseDataDir, insBaseLogDir}...)
 		switch strings.ToUpper(i.Params.Engine) {
 		case cst.RocksDBEngine:
-			i.RenderConfigs[port] = RenderConfigs{Mysqld{
-				Datadir:                      insBaseDataDir,
-				Logdir:                       insBaseLogDir,
-				ServerId:                     serverId,
-				Port:                         strconv.Itoa(port),
-				CharacterSetServer:           i.Params.CharSet,
-				RocksdbBlockCacheSize:        fmt.Sprintf("%dM", i.Params.InstMem/2),
-				InnodbBufferPoolSize:         "100M",
-				BindAddress:                  i.Params.Host,
-				SpiderAutoIncrementModeValue: i.SpiderAutoIncrModeMap[port],
-			}}
+			i.RenderConfigs[port] = RenderConfigs{
+				Mysqld{
+					Datadir:                      insBaseDataDir,
+					Logdir:                       insBaseLogDir,
+					ServerId:                     serverId,
+					Port:                         strconv.Itoa(port),
+					CharacterSetServer:           i.Params.CharSet,
+					RocksdbBlockCacheSize:        fmt.Sprintf("%dM", i.Params.InstMem/2),
+					InnodbBufferPoolSize:         "100M",
+					BindAddress:                  i.Params.Host,
+					SpiderAutoIncrementModeValue: i.SpiderAutoIncrModeMap[port],
+				},
+			}
 		case cst.TokudbEngine:
-			i.RenderConfigs[port] = RenderConfigs{Mysqld{
-				Datadir:                      insBaseDataDir,
-				Logdir:                       insBaseLogDir,
-				ServerId:                     serverId,
-				Port:                         strconv.Itoa(port),
-				CharacterSetServer:           i.Params.CharSet,
-				TokudbCacheSize:              fmt.Sprintf("%dM", i.Params.InstMem/2),
-				InnodbBufferPoolSize:         "100M",
-				TokudbDataDir:                insBaseDataDir,
-				TokudbTmpDir:                 insBaseDataDir,
-				TokudbLogDir:                 insBaseDataDir,
-				BindAddress:                  i.Params.Host,
-				SpiderAutoIncrementModeValue: i.SpiderAutoIncrModeMap[port],
-			}}
+			i.RenderConfigs[port] = RenderConfigs{
+				Mysqld{
+					Datadir:                      insBaseDataDir,
+					Logdir:                       insBaseLogDir,
+					ServerId:                     serverId,
+					Port:                         strconv.Itoa(port),
+					CharacterSetServer:           i.Params.CharSet,
+					TokudbCacheSize:              fmt.Sprintf("%dM", i.Params.InstMem/2),
+					InnodbBufferPoolSize:         "100M",
+					TokudbDataDir:                insBaseDataDir,
+					TokudbTmpDir:                 insBaseDataDir,
+					TokudbLogDir:                 insBaseDataDir,
+					BindAddress:                  i.Params.Host,
+					SpiderAutoIncrementModeValue: i.SpiderAutoIncrModeMap[port],
+				},
+			}
 		default:
-			i.RenderConfigs[port] = RenderConfigs{Mysqld{
-				Datadir:                      insBaseDataDir,
-				Logdir:                       insBaseLogDir,
-				ServerId:                     serverId,
-				Port:                         strconv.Itoa(port),
-				CharacterSetServer:           i.Params.CharSet,
-				InnodbBufferPoolSize:         fmt.Sprintf("%dM", i.Params.InstMem),
-				BindAddress:                  i.Params.Host,
-				SpiderAutoIncrementModeValue: i.SpiderAutoIncrModeMap[port],
-			}}
+			i.RenderConfigs[port] = RenderConfigs{
+				Mysqld{
+					Datadir:                      insBaseDataDir,
+					Logdir:                       insBaseLogDir,
+					ServerId:                     serverId,
+					Port:                         strconv.Itoa(port),
+					CharacterSetServer:           i.Params.CharSet,
+					InnodbBufferPoolSize:         fmt.Sprintf("%dM", i.Params.InstMem),
+					BindAddress:                  i.Params.Host,
+					SpiderAutoIncrementModeValue: i.SpiderAutoIncrModeMap[port],
+				},
+			}
 		}
 
 	}
@@ -595,9 +605,11 @@ func (i *InstallMySQLComp) generateMycnfOnePort(port Port, tmplFileName string) 
 		return err
 	}
 	// 防止过快读取到的是空文件
-	if err := util.Retry(util.RetryConfig{Times: 3, DelayTime: 100 * time.Millisecond}, func() error {
-		return util.FileIsEmpty(tmplFileName)
-	}); err != nil {
+	if err := util.Retry(
+		util.RetryConfig{Times: 3, DelayTime: 100 * time.Millisecond}, func() error {
+			return util.FileIsEmpty(tmplFileName)
+		},
+	); err != nil {
 		return err
 	}
 	tmpl, err := template.ParseFiles(tmplFileName)
@@ -705,7 +717,8 @@ func (i *InstallMySQLComp) Install() (err error) {
 		// mysql5.7.18以下版本或者spider版本的初始化命令
 		initialMysql = fmt.Sprintf(
 			"su - mysql -c \"cd /usr/local/mysql && ./scripts/mysql_install_db --defaults-file=%s --user=mysql --force &>%s\"",
-			myCnf, initialLogFile)
+			myCnf, initialLogFile,
+		)
 
 		i.Params.MysqlVersion = i.Params.Medium.GetPkgVersion()
 		// mysql5.7.18以上的版本
@@ -713,13 +726,15 @@ func (i *InstallMySQLComp) Install() (err error) {
 			i.Params.Medium.GetPkgTypeName() == "mysql" {
 			initialMysql = fmt.Sprintf(
 				"su - mysql -c \"cd /usr/local/mysql && ./bin/mysqld --defaults-file=%s --initialize-insecure --user=mysql &>%s\"",
-				myCnf, initialLogFile)
+				myCnf, initialLogFile,
+			)
 		}
 		// 拼接tdbctl专属初始化命令
 		if i.Params.GetPkgTypeName() == cst.PkgTypeTdbctl {
 			initialMysql = fmt.Sprintf(
 				"su - mysql -c \"cd %s && ./bin/mysqld --defaults-file=%s  --tc-admin=0 --initialize-insecure --user=mysql &>%s\"",
-				i.TdbctlInstallDir, myCnf, initialLogFile)
+				i.TdbctlInstallDir, myCnf, initialLogFile,
+			)
 		}
 		// 避免错误: /etc/profile: line 87: ulimit: open files: cannot modify limit: Operation not permitted
 		if _, errStr, err := cmutil.ExecBashCommand(isSudo, "", initialMysql); err != nil {
@@ -849,10 +864,12 @@ func (i *InstallMySQLComp) generateDefaultMysqlAccount(realVersion string) (init
 	privPairs = append(privPairs, runp.MySQLAdminAccount.GetAccountPrivs(i.Params.Host))
 	// 这里做一个处理，传入的AdminUser 不一定是真正的ADMIN账号，如果不是则手动添加一个,保证新实例有ADMIN账号
 	if runp.AdminUser != "ADMIN" {
-		privPairs = append(privPairs, components.MySQLAdminAccount{
-			AdminUser: "ADMIN",
-			AdminPwd:  runp.AdminPwd,
-		}.GetAccountPrivs(i.Params.Host))
+		privPairs = append(
+			privPairs, components.MySQLAdminAccount{
+				AdminUser: "ADMIN",
+				AdminPwd:  runp.AdminPwd,
+			}.GetAccountPrivs(i.Params.Host),
+		)
 
 	}
 	privPairs = append(privPairs, runp.MySQLMonitorAccessAllAccount.GetAccountPrivs(realVersion))
@@ -891,15 +908,27 @@ type AdditionalAccount struct {
 func (a *AdditionalAccount) GetSuperUserAccount(realVersion string) (initAccountsql []string) {
 	for _, host := range cmutil.RemoveDuplicate(a.AccessHosts) {
 		if cmutil.MySQLVersionParse(realVersion) >= cmutil.MySQLVersionParse("5.7.18") {
-			initAccountsql = append(initAccountsql,
-				fmt.Sprintf("CREATE USER IF NOT EXISTS '%s'@'%s' IDENTIFIED WITH mysql_native_password BY '%s' ;",
-					a.User, host, a.Pwd))
-			initAccountsql = append(initAccountsql, fmt.Sprintf("GRANT ALL PRIVILEGES ON *.* TO '%s'@'%s' WITH GRANT OPTION ; ",
-				a.User, host))
+			initAccountsql = append(
+				initAccountsql,
+				fmt.Sprintf(
+					"CREATE USER IF NOT EXISTS '%s'@'%s' IDENTIFIED WITH mysql_native_password BY '%s' ;",
+					a.User, host, a.Pwd,
+				),
+			)
+			initAccountsql = append(
+				initAccountsql, fmt.Sprintf(
+					"GRANT ALL PRIVILEGES ON *.* TO '%s'@'%s' WITH GRANT OPTION ; ",
+					a.User, host,
+				),
+			)
 		} else {
-			initAccountsql = append(initAccountsql,
-				fmt.Sprintf("GRANT ALL PRIVILEGES ON *.* TO '%s'@'%s' IDENTIFIED BY '%s' WITH GRANT OPTION ;",
-					a.User, host, a.Pwd))
+			initAccountsql = append(
+				initAccountsql,
+				fmt.Sprintf(
+					"GRANT ALL PRIVILEGES ON *.* TO '%s'@'%s' IDENTIFIED BY '%s' WITH GRANT OPTION ;",
+					a.User, host, a.Pwd,
+				),
+			)
 		}
 	}
 	return
@@ -963,7 +992,9 @@ func (a *AdditionalAccount) GetWEBCONSOLERSAccount(realVersion string) (initAcco
 				initAccountsql,
 				fmt.Sprintf(
 					`GRANT SELECT, RELOAD, PROCESS, SHOW DATABASES ON *.* TO '%s'@'%s' IDENTIFIED BY '%s';`,
-					a.User, host, a.Pwd))
+					a.User, host, a.Pwd,
+				),
+			)
 		}
 	}
 	return
@@ -973,26 +1004,40 @@ func (a *AdditionalAccount) GetWEBCONSOLERSAccount(realVersion string) (initAcco
 // 统一给%授权
 func (a *AdditionalAccount) GetDBHAAccount(realVersion string) (initAccountsql []string) {
 	if cmutil.MySQLVersionParse(realVersion) >= cmutil.MySQLVersionParse("5.7.18") {
-		initAccountsql = append(initAccountsql,
-			fmt.Sprintf("CREATE USER IF NOT EXISTS '%s'@'%%' IDENTIFIED WITH mysql_native_password BY '%s' ;",
-				a.User, a.Pwd))
-		initAccountsql = append(initAccountsql, fmt.Sprintf(
-			"GRANT RELOAD, PROCESS, SHOW DATABASES, SUPER, REPLICATION CLIENT, SHOW VIEW "+
-				"ON *.* TO '%s'@'%%' WITH GRANT OPTION ;",
-			a.User))
+		initAccountsql = append(
+			initAccountsql,
+			fmt.Sprintf(
+				"CREATE USER IF NOT EXISTS '%s'@'%%' IDENTIFIED WITH mysql_native_password BY '%s' ;",
+				a.User, a.Pwd,
+			),
+		)
+		initAccountsql = append(
+			initAccountsql, fmt.Sprintf(
+				"GRANT RELOAD, PROCESS, SHOW DATABASES, SUPER, REPLICATION CLIENT, SHOW VIEW "+
+					"ON *.* TO '%s'@'%%' WITH GRANT OPTION ;",
+				a.User,
+			),
+		)
 	} else {
-		initAccountsql = append(initAccountsql,
+		initAccountsql = append(
+			initAccountsql,
 			fmt.Sprintf(
 				"GRANT RELOAD, PROCESS, SHOW DATABASES, SUPER, REPLICATION CLIENT, SHOW VIEW "+
 					"ON *.* TO '%s'@'%%' IDENTIFIED BY '%s' WITH GRANT OPTION ;",
-				a.User, a.Pwd))
+				a.User, a.Pwd,
+			),
+		)
 	}
 
-	initAccountsql = append(initAccountsql,
-		fmt.Sprintf("GRANT SELECT, INSERT, DELETE ON `infodba_schema`.* TO '%s'@'%%' ;", a.User))
+	initAccountsql = append(
+		initAccountsql,
+		fmt.Sprintf("GRANT SELECT, INSERT, DELETE ON `infodba_schema`.* TO '%s'@'%%' ;", a.User),
+	)
 
-	initAccountsql = append(initAccountsql,
-		fmt.Sprintf(" GRANT SELECT ON `mysql`.* TO '%s'@'%%' ;", a.User))
+	initAccountsql = append(
+		initAccountsql,
+		fmt.Sprintf(" GRANT SELECT ON `mysql`.* TO '%s'@'%%' ;", a.User),
+	)
 	return
 }
 
@@ -1056,7 +1101,8 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchemaWithResetMaster() (err error)
 		logger.Info("do init on %d", port)
 		var dbWork *native.DbWorker
 		if dbWork, err = native.NewDbWorker(
-			native.DsnBySocket(i.InsSockets[port] /*"root", ""*/, i.WorkUser, i.WorkPassword)); err != nil {
+			native.DsnBySocket(i.InsSockets[port] /*"root", ""*/, i.WorkUser, i.WorkPassword),
+		); err != nil {
 			logger.Error("connect by %s failed,err:%s", port, err.Error())
 			return err
 		}
@@ -1134,14 +1180,18 @@ func (i *InstallMySQLComp) CheckTimeZoneSetting() (err error) {
 				return err
 			}
 			if instanceTimeZone == "" {
-				logger.Warn("[%d] default_time_zone cannot find a value, it is recommended to set a specific value", port)
+				logger.Warn(
+					"[%d] default_time_zone cannot find a value, it is recommended to set a specific value", port,
+				)
 				continue
 			}
 		}
 		// 如果系统和实例配置不一致,且mysql实例设置不是SYSTEM，则退出
 		if i.TimeZone != instanceTimeZone && instanceTimeZone != "SYSTEM" {
 			return fmt.Errorf(
-				"the time zone is inconsistent with the configuration of the operating system and mysqld[%d], check", port)
+				"the time zone is inconsistent with the configuration of the operating system and mysqld[%d], check",
+				port,
+			)
 		}
 	}
 	return nil
@@ -1201,8 +1251,11 @@ func (i *InstallMySQLComp) DecompressTdbctlPkg() (err error) {
 	pkgAbPath := i.Params.Medium.GetAbsolutePath()
 	if output, ierr := osutil.ExecShellCommand(
 		false,
-		fmt.Sprintf("mkdir %s && tar -xf %s -C %s --strip-components 1 ", tdbctlBinaryFile, pkgAbPath,
-			tdbctlBinaryFile)); ierr != nil {
+		fmt.Sprintf(
+			"mkdir %s && tar -xf %s -C %s --strip-components 1 ", tdbctlBinaryFile, pkgAbPath,
+			tdbctlBinaryFile,
+		),
+	); ierr != nil {
 		logger.Error("tar -xf %s error:%s,%s", pkgAbPath, output, ierr.Error())
 		return ierr
 	}
@@ -1267,10 +1320,12 @@ func (i *InstallMySQLComp) generateDefaultSpiderAccount(realVersion string) (ini
 	privPairs = append(privPairs, runp.MySQLAdminAccount.GetAccountPrivs(i.Params.Host))
 	// 这里做一个处理，传入的AdminUser 不一定是真正的ADMIN账号，如果不是则手动添加一个,保证新实例有ADMIN账号
 	if runp.AdminUser != "ADMIN" {
-		privPairs = append(privPairs, components.MySQLAdminAccount{
-			AdminUser: "ADMIN",
-			AdminPwd:  runp.AdminPwd,
-		}.GetAccountPrivs(i.Params.Host))
+		privPairs = append(
+			privPairs, components.MySQLAdminAccount{
+				AdminUser: "ADMIN",
+				AdminPwd:  runp.AdminPwd,
+			}.GetAccountPrivs(i.Params.Host),
+		)
 
 	}
 	// 做系统账号的添加处理
@@ -1303,34 +1358,54 @@ func (i *InstallMySQLComp) generateDefaultSpiderAccount(realVersion string) (ini
 func (i *InstallMySQLComp) getSuperUserAccountForSpider(ver string) (initAccountsql []string) {
 	var superExtendGrant = ""
 	if cmutil.SpiderVersionParse(ver) >= cmutil.SpiderVersionParse("tspider-4.0.0") {
-		superExtendGrant = "CONNECTION ADMIN, BINLOG ADMIN,"
+		superExtendGrant = "CONNECTION ADMIN, BINLOG ADMIN, SET USER, FEDERATED ADMIN, " +
+			"REPLICATION SLAVE ADMIN, BINLOG REPLAY, REPLICA MONITOR, BINLOG MONITOR, " +
+			"REPLICATION MASTER ADMIN, READ_ONLY ADMIN, "
 	}
 	for _, host := range i.Params.SuperAccount.AccessHosts {
-		initAccountsql = append(initAccountsql,
-			fmt.Sprintf("GRANT ALL PRIVILEGES ON *.* TO '%s'@'%s' IDENTIFIED BY '%s' WITH GRANT OPTION;",
-				i.Params.SuperAccount.User, host, i.Params.SuperAccount.Pwd))
+		initAccountsql = append(
+			initAccountsql,
+			fmt.Sprintf(
+				"GRANT ALL PRIVILEGES ON *.* TO '%s'@'%s' IDENTIFIED BY '%s' WITH GRANT OPTION;",
+				i.Params.SuperAccount.User, host, i.Params.SuperAccount.Pwd,
+			),
+		)
 	}
 	for _, host := range i.Params.DBHAAccount.AccessHosts {
-		initAccountsql = append(initAccountsql,
+		initAccountsql = append(
+			initAccountsql,
 			fmt.Sprintf(
 				"GRANT RELOAD, PROCESS, SHOW DATABASES, SUPER, %s REPLICATION CLIENT, SHOW VIEW "+
 					"ON *.* TO '%s'@'%s' IDENTIFIED BY '%s' WITH GRANT OPTION;",
-				superExtendGrant, i.Params.DBHAAccount.User, host, i.Params.DBHAAccount.Pwd))
-		initAccountsql = append(initAccountsql,
+				superExtendGrant, i.Params.DBHAAccount.User, host, i.Params.DBHAAccount.Pwd,
+			),
+		)
+		initAccountsql = append(
+			initAccountsql,
 			fmt.Sprintf(
-				"GRANT SELECT ON mysql.servers TO '%s'@'%s' ;", i.Params.DBHAAccount.User, host))
-		initAccountsql = append(initAccountsql,
+				"GRANT SELECT ON mysql.servers TO '%s'@'%s' ;", i.Params.DBHAAccount.User, host,
+			),
+		)
+		initAccountsql = append(
+			initAccountsql,
 			fmt.Sprintf(
 				" GRANT SELECT, INSERT, DELETE ON `infodba_schema`.* TO '%s'@'%s';",
-				i.Params.DBHAAccount.User, host))
+				i.Params.DBHAAccount.User, host,
+			),
+		)
 	}
 	for _, host := range i.Params.WEBCONSOLERSAccount.AccessHosts {
-		initAccountsql = append(initAccountsql,
-			fmt.Sprintf(`GRANT SELECT, RELOAD, PROCESS, SHOW DATABASES ON *.* TO '%s'@'%s' IDENTIFIED BY '%s';`,
-				i.Params.WEBCONSOLERSAccount.User, host, i.Params.WEBCONSOLERSAccount.Pwd))
+		initAccountsql = append(
+			initAccountsql,
+			fmt.Sprintf(
+				`GRANT SELECT, RELOAD, PROCESS, SHOW DATABASES ON *.* TO '%s'@'%s' IDENTIFIED BY '%s';`,
+				i.Params.WEBCONSOLERSAccount.User, host, i.Params.WEBCONSOLERSAccount.Pwd,
+			),
+		)
 	}
 	for _, host := range i.Params.PartitionYWAccount.AccessHosts {
-		initAccountsql = append(initAccountsql,
+		initAccountsql = append(
+			initAccountsql,
 			fmt.Sprintf(
 				`GRANT SELECT, INSERT, UPDATE, DELETE, 
 								CREATE, DROP, ALTER, TRIGGER, 

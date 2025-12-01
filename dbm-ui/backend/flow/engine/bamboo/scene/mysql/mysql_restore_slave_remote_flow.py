@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging.config
 from dataclasses import asdict
-from datetime import datetime, timedelta
 from typing import Dict, Optional
 
 from django.utils.translation import gettext as _
@@ -374,8 +373,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 act_name=_("屏蔽告警24小时"),
                 act_component_code=AddAlarmShieldComponent.code,
                 kwargs={
-                    "begin_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "end_time": (datetime.now() + timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S"),
+                    "duration_seconds": 24 * 3600,
                     "description": str(instances),
                     "dimensions": [
                         {
@@ -582,8 +580,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 act_name=_("屏蔽告警24小时"),
                 act_component_code=AddAlarmShieldComponent.code,
                 kwargs={
-                    "begin_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "end_time": (datetime.now() + timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S"),
+                    "duration_seconds": 24 * 3600,
                     "description": cluster_model.immute_domain,
                     "dimensions": [
                         {
