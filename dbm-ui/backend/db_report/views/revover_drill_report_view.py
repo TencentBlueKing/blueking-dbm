@@ -132,7 +132,7 @@ class RecoverDrillTaskViewSet(BaseDrillReportViewSet):
         },
         {
             "name": "backup_total_size",
-            "display_name": _("备份大小"),
+            "display_name": _("备份大小(G)"),
             "format": ReportFieldFormat.TEXT.value,
         },
         {
@@ -147,8 +147,8 @@ class RecoverDrillTaskViewSet(BaseDrillReportViewSet):
             "format": ReportFieldFormat.TEXT.value,
         },
         {
-            "name": "status",
-            "display_name": _("任务状态"),
+            "name": "state",
+            "display_name": _("状态"),
             "format": ReportFieldFormat.STATUS.value,
         },
         {
