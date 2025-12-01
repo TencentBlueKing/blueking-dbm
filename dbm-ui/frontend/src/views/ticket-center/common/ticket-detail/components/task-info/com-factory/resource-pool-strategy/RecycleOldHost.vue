@@ -95,7 +95,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import TicketModel, { type Common } from '@services/model/ticket/ticket';
+  import TicketModel, { type ResourcePool } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
 
@@ -106,7 +106,7 @@
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 
   interface Props {
-    ticketDetails: TicketModel<Common.ResourcePoolRecycle>;
+    ticketDetails: TicketModel<ResourcePool.ResourcePoolRecycle>;
   }
 
   type RowData = Props['ticketDetails']['details']['recycle_hosts'][number];

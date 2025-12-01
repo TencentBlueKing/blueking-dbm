@@ -1,4 +1,4 @@
-import type { ResourcePoolDetailBase } from '../../common';
+import type { ResourcePoolDetailBase } from '../../resource-pool';
 
 type MongoInstanceInfo = {
   cluster_id?: number; // 分片集群

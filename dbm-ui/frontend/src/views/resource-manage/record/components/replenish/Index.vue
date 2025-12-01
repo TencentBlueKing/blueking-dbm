@@ -17,7 +17,8 @@
       <div>
         <BkRadioGroup
           v-model="activeTab"
-          type="capsule">
+          type="capsule"
+          @change="handleChange">
           <BkRadioButton label="operation-view">
             <DbIcon
               class="mr-4"
@@ -142,6 +143,10 @@
         page: 'replenish-list',
       },
     });
+  };
+
+  const handleChange = () => {
+    quickSearchValue.value = {};
   };
 
   watch(

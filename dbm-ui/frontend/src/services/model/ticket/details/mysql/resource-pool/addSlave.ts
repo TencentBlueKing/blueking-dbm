@@ -1,6 +1,6 @@
 import { BackupSourceType } from '@services/types';
 
-import type { ResourcePoolDetailBase } from '../../common';
+import type { ResourcePoolDetailBase } from '../../resource-pool';
 
 /**
  * MySQL 添加从库
