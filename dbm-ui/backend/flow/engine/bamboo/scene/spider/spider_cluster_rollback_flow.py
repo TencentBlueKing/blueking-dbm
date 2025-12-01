@@ -347,7 +347,13 @@ class TenDBRollBackDataFlow(object):
                         )
                     ),
                 )
-
+                #  shard_id
+                rollback_dbs = []
+                for db in self.data["databases"]:
+                    if db == "*":
+                        rollback_dbs.append("*")
+                    else:
+                        rollback_dbs.append("{}_{}".format(db, shard_id))
                 data_restore_sub_list = []
                 master_cluster_info = {
                     "rollback_ip": remote_node["new_master"]["ip"],
@@ -355,7 +361,7 @@ class TenDBRollBackDataFlow(object):
                     "file_target_path": f'{self.backup_target_path}/{remote_node["new_master"]["port"]}',
                     "rollback_type": self.data["rollback_type"],
                     "charset": charset,
-                    "databases": self.data["databases"],
+                    "databases": rollback_dbs,
                     "tables": self.data["tables"],
                     "databases_ignore": self.data["databases_ignore"],
                     "tables_ignore": self.data["tables_ignore"],
@@ -379,7 +385,7 @@ class TenDBRollBackDataFlow(object):
                         "file_target_path": f'{self.backup_target_path}/{remote_node["new_slave"]["port"]}',
                         "rollback_type": self.data["rollback_type"],
                         "charset": charset,
-                        "databases": self.data["databases"],
+                        "databases": rollback_dbs,
                         "tables": self.data["tables"],
                         "databases_ignore": self.data["databases_ignore"],
                         "tables_ignore": self.data["tables_ignore"],
