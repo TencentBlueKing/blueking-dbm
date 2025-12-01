@@ -24,8 +24,56 @@
 
 package cmds
 
-import "github.com/spf13/cobra"
+import (
+	"errors"
+	"fmt"
+	"os"
+
+	"dbm-services/common/dbha-v2/internal/probe/config"
+	"dbm-services/common/dbha-v2/pkg/process"
+
+	"github.com/spf13/cobra"
+)
 
 func StartCmdRunE(cmd *cobra.Command, args []string) error {
+	pid, err := process.ReadPid(config.Cfg.PidFile)
+	if err == nil {
+		alive, aliveErr := process.IsAliveWithProcessName(pid, process.NameProbe)
+		if aliveErr == nil && alive {
+			_, printErr := fmt.Fprintf(cmd.OutOrStdout(), "%s is already running, pid:%d\n", process.NameProbe, pid)
+			if printErr != nil {
+				return printErr
+			}
+			return nil
+		}
+	} else if !errors.Is(err, process.ErrPidFileNotExist) &&
+		!errors.Is(err, process.ErrInvalidFile) {
+		return err
+	}
+
+	exePath, err := os.Executable()
+	if err != nil {
+		return err
+	}
+
+	rootCmd := cmd.Root()
+	configPath, err := rootCmd.PersistentFlags().GetString("config")
+	if err != nil {
+		return err
+	}
+
+	var childArgs []string
+	if configPath != "" {
+		childArgs = append(childArgs, "-c", configPath)
+	}
+
+	_, err = process.StartDaemon(process.DaemonOptions{
+		Executable: exePath,
+		Args:       childArgs,
+	})
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

@@ -24,7 +24,16 @@
 
 package cmds
 
-import "github.com/spf13/cobra"
+import (
+	"errors"
+	"fmt"
+	"time"
+
+	"dbm-services/common/dbha-v2/internal/probe/config"
+	"dbm-services/common/dbha-v2/pkg/process"
+
+	"github.com/spf13/cobra"
+)
 
 var (
 	ForceStop   bool
@@ -32,5 +41,23 @@ var (
 )
 
 func StopCmdRunE(cmd *cobra.Command, args []string) error {
+	opt := process.StopOptions{
+		PidFile:  config.Cfg.PidFile,
+		ProcName: process.NameProbe,
+		Timeout:  time.Duration(StopTimeout) * time.Second,
+		Force:    ForceStop,
+	}
+
+	if err := process.StopWithPidFile(opt); err != nil {
+		if errors.Is(err, process.ErrProcessNotRunning) {
+			_, printErr := fmt.Fprintf(cmd.OutOrStdout(), "%s is not running, nothing to stop\n", process.NameProbe)
+			if printErr != nil {
+				return printErr
+			}
+			return nil
+		}
+		return err
+	}
+
 	return nil
 }
