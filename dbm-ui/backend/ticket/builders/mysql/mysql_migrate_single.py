@@ -17,7 +17,7 @@ from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, HostInfoSerializer
 from backend.ticket.builders.common.constants import MySQLBackupSource
-from backend.ticket.builders.mysql.base import MySQLBaseOperateDetailSerializer, BaseMySQLSingleTicketFlowBuilder
+from backend.ticket.builders.mysql.base import BaseMySQLSingleTicketFlowBuilder, MySQLBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
 

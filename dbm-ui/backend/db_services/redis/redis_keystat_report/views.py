@@ -25,6 +25,7 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components import BKMonitorV3Api
 from backend.configuration.constants import DBType
 from backend.db_meta.models import AppCache
+from backend.db_services.redis.capacity_evaluate_service.util import UNIFY_QUERY_PARAMS
 from backend.db_services.redis.redis_keystat_report.filters import (
     KeyStatRecordDetailFilter,
     KeyStatReportRecordFilter,
@@ -41,7 +42,6 @@ from backend.db_services.redis.redis_keystat_report.serializers import (
 )
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.utils.excel import ExcelHandler
-from backend.db_services.redis.capacity_evaluate_service.util import UNIFY_QUERY_PARAMS
 
 SWAGGER_TAG = "db_services/redis/redis_keystat_report"
 
