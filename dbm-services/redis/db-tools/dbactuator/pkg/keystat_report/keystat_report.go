@@ -108,6 +108,13 @@ func LoadReport(reportFile string) (keyReportRowItems []KeyStatReportItem, err e
 	// 计算CountWithTtl
 	for i := range keyReportRowItems {
 		updateAvgTtlHuman(&keyReportRowItems[i])
+		// 将KeyName长度控制在250个字符, 超过240个字符时, 截取前240个字符, 并添加...(truncated)
+		if len(keyReportRowItems[i].KeyName) > 255 {
+			keyReportRowItems[i].KeyName = keyReportRowItems[i].KeyName[:240] + "...(truncated)"
+		}
+		if len(keyReportRowItems[i].Class) > 255 {
+			keyReportRowItems[i].Class = keyReportRowItems[i].Class[:240] + "...(truncated)"
+		}
 	}
 
 	return keyReportRowItems, nil
@@ -147,6 +154,10 @@ func LoadRankReport(rankReportFile string) (rankKeyReportRow map[string]RankKeyR
 			item := rankKeyReportRow[t].KeyList[i]
 			rankKeyReportRow[t].KeyList[i].TtlHuman = getTtlHuman(item.Ttl)
 			rankKeyReportRow[t].KeyList[i].KeyLen = len(item.Key)
+			// 将KeyName长度控制在250个字符
+			if len(item.KeyName) > 255 {
+				rankKeyReportRow[t].KeyList[i].KeyName = item.KeyName[:240] + "...(truncated)"
+			}
 		}
 	}
 
