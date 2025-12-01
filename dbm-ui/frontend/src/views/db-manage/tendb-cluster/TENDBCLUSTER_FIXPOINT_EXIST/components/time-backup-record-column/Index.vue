@@ -123,6 +123,15 @@
         class="content-icon"
         type="down-big" />
     </EditableBlock>
+    <EditableSelect
+      v-else-if="backupTime"
+      :placeholder="t('未匹配到备份记录，请选择')"
+      :popover-options="{
+        boundary: 'parent',
+        trigger: 'manual',
+        isShow: false,
+      }"
+      @click="handleShowSelector" />
     <EditableBlock
       v-else
       :placeholder="t('自动生成')" />
