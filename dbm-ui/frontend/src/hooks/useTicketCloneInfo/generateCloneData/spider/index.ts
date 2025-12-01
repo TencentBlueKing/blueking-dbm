@@ -13,7 +13,6 @@
 
 export * from './addMnt';
 export * from './apply';
-export * from './authorizeRule';
 export * from './capacityChange';
 export * from './checksum';
 export * from './dbBackup';

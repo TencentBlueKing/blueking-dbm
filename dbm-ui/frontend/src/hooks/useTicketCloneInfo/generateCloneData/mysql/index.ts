@@ -1,4 +1,3 @@
-export * from './authorizeRule';
 export * from './checksum';
 export * from './clientClone';
 export * from './dataMigrate';

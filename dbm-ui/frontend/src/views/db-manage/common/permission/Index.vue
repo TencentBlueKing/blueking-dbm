@@ -93,6 +93,9 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import { type Mysql } from '@services/model/ticket/ticket';
+  import { filterClusters } from '@services/source/dbbase';
+  import { checkHost } from '@services/source/ipchooser';
   import {
     deleteAccount as deleteMongodbAccount,
     deleteAccountRule as deleteMongodbAccountRule,
@@ -109,8 +112,7 @@
   import { createTicket } from '@services/source/ticket';
   import type { PermissionRule, PermissionRuleInfo } from '@services/types/permission';
 
-  import { useTicketCloneInfo, useTicketMessage } from '@hooks';
-  import type { CloneDataHandlerMapKeys } from '@hooks/useTicketCloneInfo/generateCloneData';
+  import { useTicketDetail, useTicketMessage } from '@hooks';
 
   import { AccountTypes, ClusterTypes, TicketTypes } from '@common/const';
 
@@ -207,20 +209,47 @@
   const { t } = useI18n();
   const ticketMessage = useTicketMessage();
 
-  useTicketCloneInfo({
-    onSuccess(cloneData) {
-      const { clusterList, clusterType, dbs, sourceIpList, user } = cloneData;
-      authorizeState.isShow = true;
-      authorizeState.dbs = dbs;
-      authorizeState.user = user;
-      clusterAuthorizeRef.value!.init({
-        clusterList,
-        clusterType,
-        sourceIpList,
+  useTicketDetail<Mysql.AuthorizeRules>(configMap[props.accountType].ticketType, {
+    async onSuccess(ticketData) {
+      const { authorize_data: data } = ticketData.details;
+
+      const [sourceIpList, clusterList] = await Promise.all([
+        checkHost({
+          ip_list: data.source_ips?.map((item) => item.ip) || [],
+          scope_list: [{ scope_id: ticketData.bk_biz_id, scope_type: 'biz' }],
+        }),
+        filterClusters({
+          bk_biz_id: ticketData.bk_biz_id,
+          cluster_ids: data.cluster_ids.join(','),
+        }).then((clusters) =>
+          clusters.map((cluster) =>
+            Object.assign(cluster, {
+              isMaster: [ClusterTypes.TENDBCLUSTER, ClusterTypes.TENDBHA].includes(cluster.cluster_type)
+                ? true
+                : ['tendbclusterSlave', 'tendbhaSlave'].includes(cluster.cluster_type)
+                  ? false
+                  : undefined,
+            }),
+          ),
+        ),
+      ]);
+
+      Object.assign(authorizeState, {
+        dbs: data.access_dbs,
+        isShow: true,
+        user: data.user,
       });
+
       window.changeConfirm = true;
+
+      setTimeout(() => {
+        clusterAuthorizeRef.value?.init({
+          clusterList,
+          clusterType: data.cluster_type,
+          sourceIpList,
+        });
+      }, 100);
     },
-    type: configMap[props.accountType].ticketType as CloneDataHandlerMapKeys,
   });
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
@@ -259,7 +288,9 @@
    */
   const ddlSensitiveWordsMap = computed(() =>
     configMap[props.accountType].ddlSensitiveWords.reduce<Record<string, boolean>>((acc, item) => {
-      acc[item] = true;
+      Object.assign(acc, {
+        [item]: true,
+      });
       return acc;
     }, {}),
   );
