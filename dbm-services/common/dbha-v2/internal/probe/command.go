@@ -47,6 +47,13 @@ var HealthCmd = &cobra.Command{
 	RunE:  cmds.HealthCmdRunE,
 }
 
+// StartCmd is used to start this process in background (daemon mode).
+var StartCmd = &cobra.Command{
+	Use:   "start",
+	Short: "Start this process.",
+	RunE:  cmds.StartCmdRunE,
+}
+
 // StopCmd is used to stop this process.
 var StopCmd = &cobra.Command{
 	Use:   "stop",

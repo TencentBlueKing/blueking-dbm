@@ -24,8 +24,48 @@
 
 package cmds
 
-import "github.com/spf13/cobra"
+import (
+	"errors"
+	"fmt"
+	"syscall"
+
+	"dbm-services/common/dbha-v2/internal/probe/config"
+	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/process"
+
+	"github.com/spf13/cobra"
+)
 
 func ReloadCmdRunE(cmd *cobra.Command, args []string) error {
+	pid, err := process.ReadPid(config.Cfg.PidFile)
+	if err != nil {
+		if errors.Is(err, process.ErrPidFileNotExist) || errors.Is(err, process.ErrInvalidFile) {
+			_, printErr := fmt.Fprintf(cmd.OutOrStdout(), "%s is not running (no valid pid file)\n", process.NameProbe)
+			if printErr != nil {
+				return printErr
+			}
+			return nil
+		}
+
+		return err
+	}
+
+	alive, err := process.IsAliveWithProcessName(pid, process.NameProbe)
+	if err != nil {
+		return err
+	}
+
+	if !alive {
+		_, printErr := fmt.Fprintf(cmd.OutOrStdout(), "%s is not running, stale pid=%d\n", process.NameProbe, pid)
+		if printErr != nil {
+			return printErr
+		}
+		return nil
+	}
+
+	if err := syscall.Kill(int(pid), syscall.SIGHUP); err != nil {
+		return gerrors.Newf(gerrors.Failure, "failed to stop the process: %s, errmsg: %s", process.NameProbe, err)
+	}
+
 	return nil
 }
