@@ -33,7 +33,7 @@ type OpsRequestParams struct {
 
 // Request Receive request structure
 type Request struct {
-	K8sClusterName    string   `json:"k8sClusterName,omitempty" required:"true"`
+	K8sClusterName    string   `json:"k8sClusterName,omitempty" binding:"required" msg:"k8sClusterName 字段不能为空"`
 	BkBizID           uint64   `json:"bkBizId,omitempty"`
 	BkBizName         string   `json:"bkBizName,omitempty"`
 	BkAppAbbr         string   `json:"bkAppAbbr,omitempty"`

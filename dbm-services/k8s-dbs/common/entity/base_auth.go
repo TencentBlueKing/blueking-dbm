@@ -23,5 +23,5 @@ package entity
 type BKAuth struct {
 	BkAppCode   string `json:"bk_app_code,omitempty"`
 	BkAppSecret string `json:"bk_app_secret,omitempty"`
-	BkUserName  string `json:"bk_username,omitempty"`
+	BkUserName  string `json:"bk_username,omitempty" binding:"required" msg:"bk_username 字段不能为空"`
 }
