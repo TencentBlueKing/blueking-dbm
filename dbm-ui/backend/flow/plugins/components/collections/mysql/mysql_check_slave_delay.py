@@ -51,6 +51,7 @@ class MySQLCheckSlaveDelayService(BaseService):
                     return False
                 else:
                     slave_info = res[0]["cmd_results"][0]["table_data"][0]
+                    self.log_info(slave_info)
                     file_delay = True
 
                     if kwargs["master_ip"] != "" or int(kwargs["master_port"]) != 0:
@@ -77,6 +78,7 @@ class MySQLCheckSlaveDelayService(BaseService):
                         self.log_info("show master status is empty")
                         return False
                     master_info = res[0]["cmd_results"][0]["table_data"][0]
+                    self.log_info(master_info)
                     slave_delay = int(master_info["Position"]) - int(slave_info["Exec_Master_Log_Pos"])
                     if master_info["File"] == slave_info["Relay_Master_Log_File"]:
                         file_delay = False
@@ -89,14 +91,20 @@ class MySQLCheckSlaveDelayService(BaseService):
                         and slave_delay <= kwargs["slave_delay_threshold"]
                     ):
                         if kwargs["check_file_delay"] and file_delay:
-                            self.log_info(_("主从 文件级别延迟 不满足"))
+                            self.log_info(
+                                _(
+                                    "主从文件级别延迟不满足: master: {} slave: {}".format(
+                                        master_info["File"], slave_info["Relay_Master_Log_File"]
+                                    )
+                                )
+                            )
                             return False
                         return True
                     else:
                         self.log_info(
                             _(
-                                "Slave_IO_Running!=Yes or Slave_SQL_Running=!Yes or Seconds_Behind_Master>300,"
-                                "请确定slave复制链路正常且延迟不能超过300s。"
+                                "Slave_IO_Running!=Yes or Slave_SQL_Running=!Yes or Seconds_Behind_Master>{},"
+                                "请确定slave复制链路正常且延迟不能超过阈值。目前延迟{}".format(kwargs["slave_delay_threshold"], slave_delay)
                             )
                         )
                         return False
