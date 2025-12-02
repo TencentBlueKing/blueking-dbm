@@ -140,6 +140,7 @@
     v-model="backupRecord"
     v-model:is-show="isShowSelector"
     v-bind="props"
+    :lastest-time="backupTime"
     only-full />
 </template>
 <script lang="ts" setup>
