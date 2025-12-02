@@ -15,6 +15,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_services.dbbase.constants import IpSource
+from backend.flow.consts import RollbackType
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, HostInfoSerializer
@@ -36,6 +37,7 @@ class MySQLFixPointRollbackDetailSerializer(MySQLBaseOperateDetailSerializer):
         rollback_host = HostInfoSerializer(help_text=_("备份新机器"), default=False)
         resource_spec = serializers.JSONField(help_text=_("资源规格"), required=False)
         backup_source = serializers.ChoiceField(help_text=_("备份源"), choices=MySQLBackupSource.get_choices())
+        rollback_type = serializers.ChoiceField(help_text=_("回档类型"), choices=RollbackType.get_choices())
         rollback_time = DBTimezoneField(
             help_text=_("回档时间"), required=False, allow_blank=True, allow_null=True, default=""
         )
@@ -115,9 +117,6 @@ class MySQLFixPointRollbackFlowParamBuilder(builders.FlowParamBuilder):
     def format_ticket_data(self):
         rollback_cluster_type = self.ticket_data["rollback_cluster_type"]
         for info in self.ticket_data["infos"]:
-            # 获取定点回档的类型
-            op_type = "TIME" if info.get("rollback_time") else "BACKUPID"
-            info["rollback_type"] = f"{info['backup_source'].upper()}_AND_{op_type}"
             # 格式化定点回档部署的信息
             if rollback_cluster_type == RollbackBuildClusterType.BUILD_INTO_NEW_CLUSTER:
                 if self.ticket_data["ip_source"] == IpSource.MANUAL_INPUT:

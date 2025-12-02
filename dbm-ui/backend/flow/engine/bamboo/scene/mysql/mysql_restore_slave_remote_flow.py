@@ -721,7 +721,8 @@ class MySQLRestoreSlaveRemoteFlow(object):
                         bk_cloud_id=cluster_model.bk_cloud_id,
                         instance_ip=target_slave.machine.ip,
                         instance_port=target_slave.port,
-                        slave_delay_threshold=7200,
+                        slave_delay_threshold=100000,
+                        check_file_delay=1,
                     )
                 ),
             )

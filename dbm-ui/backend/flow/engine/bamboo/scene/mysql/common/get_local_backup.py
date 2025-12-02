@@ -114,6 +114,7 @@ def check_rollback_databases(cluster_id: int, database_list: list[str], shard_id
     检查回档的数据库是否在源集群存在
     @param cluster_id: 目标集群id
     @param database_list: 逻辑备份数据库列表
+    @param shard_id: 分片id
     """
     target_cluster = Cluster.objects.get(id=cluster_id)
     if target_cluster.cluster_type == ClusterType.TenDBCluster.value:
