@@ -192,7 +192,7 @@ def mysql_dbha_af_schedule():
             # af_uuid 字段默认是 "", 不要用 is null 查询
             # 给筛出来的 events 打上一个唯一标签, 这样 qs 的惰性求值可以模拟下事务的样子, 不会被新增的 event 污染
             # 后续新增的 event 在这一轮不可见
-            MySQLDBHAEvent.objects.filter(af_uuid="").update(af_uuid=af_uuid)
+            MySQLDBHAEvent.objects.filter(af_uuid="").update(af_uuid=af_uuid, validated=True)
 
             # 强制求值, 不然后面的 sql 优化简直是灾难
             candidate_events_list = list(MySQLDBHAEvent.objects.filter(af_uuid=af_uuid))
