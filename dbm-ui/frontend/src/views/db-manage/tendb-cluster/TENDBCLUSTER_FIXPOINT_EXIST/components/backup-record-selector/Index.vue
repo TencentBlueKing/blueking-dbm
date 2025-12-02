@@ -24,6 +24,7 @@
     @closed="handleClose">
     <div class="align-center mb-12">
       <div
+        v-if="!onlyFull"
         class="align-center mr-8"
         style="flex: 1">
         <div class="backup-time-picker">{{ t('备份时间') }}</div>
@@ -204,6 +205,7 @@
     cluster: {
       id: number;
     };
+    lastestTime?: string;
     /**
      * 仅全备
      */
@@ -410,6 +412,8 @@
       const data = await queryBackupLogFromHandler({
         backup_source: props.backupSource,
         cluster_id: props.cluster.id,
+        is_full_backup: props.onlyFull,
+        latest_time: props.lastestTime,
         limit: -1,
       });
 
