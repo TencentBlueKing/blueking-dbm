@@ -307,7 +307,7 @@ class MySQLAffinityChecker:
         """检查 CROS_SUBZONE 级别的 proxy 分布"""
         proxy_count = sum(machines_map.values())
         # 单个园区最多允许 n*0.5 向上取整的数量
-        max_proxies_per_subzone = ceil(proxy_count * 0.5)
+        max_proxies_per_subzone = ceil(proxy_count * 0.5) + 1
 
         # 检查城市I
         if expected_city_ids:
@@ -378,7 +378,7 @@ class MySQLAffinityChecker:
     @classmethod
     def _cross_rack_check_and_get_limits(cls, n_proxy, n_rack) -> tuple:
         """基于 proxy 数量和机架数量，判断是否满足跨机架要求"""
-        min_required_racks = ceil(n_proxy * 0.5)
+        min_required_racks = ceil(n_proxy * 0.5) + 1
         return n_rack >= min_required_racks, min_required_racks
 
     @classmethod
