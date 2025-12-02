@@ -9,86 +9,102 @@
       <PanelTab v-model="currentPanelTab" />
     </template>
     <div>
-      <DbSearchSelect
-        v-model="searchSelectValue"
-        :data="searchSelectData" />
-      <div class="host-list-wrapper mt-16">
-        <DbTable
-          ref="table"
-          :container-height="contentHeight"
-          :data-source="dataSource"
+      <DbQuickSearch
+        v-model="quickSearchValue"
+        :data="quickSearchData" />
+      <div class="mt-16 host-list-wrapper">
+        <PrimaryTable
+          :data="tableData"
           :height="contentHeight"
-          @column-filter="handleFilter">
-          <BkTableColumn
+          :loading="isLoading"
+          row-key="ip"
+          title-ellipsis
+          @filter-change="handleFilterChange">
+          <TableColumn
+            col-key="ip"
             fixed="left"
-            :resizable="false"
-            :width="60">
-            <template #default="{ data }: { data: DbResourceModel }">
+            title="IP"
+            width="180">
+            <template #title>
+              <span class="ml-40">IP</span>
+            </template>
+            <template #default="{ row }: { row: DbResourceModel }">
               <BkCheckbox
                 v-bk-tooltips="{
-                  content: disableHostMethod(data) || t('已选够n台', { n: limit }),
-                  disabled: !disableHostMethod(data) && (isInfinity || selectedNum < limit),
+                  content: disableHostMethod(row) || t('已选够n台', { n: limit }),
+                  disabled: !disableHostMethod(row) && (isInfinity || selectedNum < limit),
                 }"
                 v-test="{ type: 'checkbox', value: 'resourceHostSelectorRow' }"
+                class="host-list-checkbox"
                 :disabled="
-                  !!disableHostMethod(data) ||
-                  (!isInfinity && selectedNum === limit && !Boolean(rowSelectMemo[data.bk_host_id]))
+                  !!disableHostMethod(row) ||
+                  (!isInfinity && selectedNum === limit && !Boolean(rowSelectMemo[row.bk_host_id]))
                 "
                 label
-                :model-value="Boolean(rowSelectMemo[data.bk_host_id])"
-                @change="() => handleSelectChange(data)" />
+                :model-value="Boolean(rowSelectMemo[row.bk_host_id])"
+                @change="() => handleSelectChange(row)" />
+              <span class="ml-20">{{ row.ip }}</span>
             </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="ip"
-            fixed="left"
-            label="IP"
-            :min-width="150" />
-          <BkTableColumn
-            field="bk_cloud_name"
-            :label="t('管控区域')"
-            :min-width="120" />
-          <BkTableColumn
-            field="agent_status"
-            :label="t('Agent 状态')"
-            :min-width="120">
-            <template #default="{ data }: { data: DbResourceModel }">
-              <HostAgentStatus :data="data.agent_status" />
+          </TableColumn>
+          <TableColumn
+            col-key="bk_cloud_name"
+            :title="t('管控区域')"
+            width="120" />
+          <TableColumn
+            col-key="agent_status"
+            :title="t('Agent 状态')"
+            width="120">
+            <template #default="{ row }: { row: DbResourceModel }">
+              <HostAgentStatus :data="row.agent_status" />
             </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="bk_cpu"
-            :label="t('资源归属')"
-            :min-width="300">
-            <template #default="{ data }: { data: DbResourceModel }">
-              <ResourceHostOwner :data="data" />
+          </TableColumn>
+          <TableColumn
+            col-key="bk_cpu"
+            :title="t('资源归属')"
+            width="300">
+            <template #default="{ row }: { row: DbResourceModel }">
+              <ResourceHostOwner :data="row" />
             </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="city"
+          </TableColumn>
+          <TableColumn
+            col-key="city"
             :filter="filterOption.city"
-            :label="t('地域')"
-            :min-width="120" />
-          <BkTableColumn
-            field="sub_zone"
-            :filter="filterOption.sub_zone"
-            :label="t('园区')"
-            :min-width="120" />
-          <BkTableColumn
-            field="rack_id"
-            :label="t('机架')"
-            :min-width="120" />
-          <BkTableColumn
-            field="os_name"
-            :filter="filterOption.os_name"
-            :label="t('操作系统名称')"
-            :min-width="180" />
-          <BkTableColumn
-            field="device_class"
+            :title="t('地域')"
+            width="120" />
+          <TableColumn
+            col-key="subzone_ids"
+            :filter="filterOption.subzone_ids"
+            :title="t('园区')"
+            width="120">
+            <template #default="{ row }: { row: DbResourceModel }">
+              {{ row.sub_zone || '--' }}
+            </template>
+          </TableColumn>
+          <TableColumn
+            col-key="rack_id"
+            :title="t('机架')"
+            width="120" />
+          <TableColumn
+            col-key="os_name"
+            :title="t('操作系统名称')"
+            width="180">
+            <template #default="{ row }: { row: DbResourceModel }">
+              {{ row.os_name || '--' }}
+            </template>
+          </TableColumn>
+          <TableColumn
+            col-key="device_class"
             :filter="filterOption.device_class"
-            :label="t('机型')"
-            :min-width="120" />
-        </DbTable>
+            :title="t('机型')"
+            width="120" />
+        </PrimaryTable>
+        <div class="table-footer">
+          <BkPagination
+            v-bind="pagination"
+            :layout="['total', 'limit', 'list']"
+            @change="handlePageValueChange"
+            @limit-change="handlePageLimitChange" />
+        </div>
       </div>
     </div>
     <template #footer>
@@ -121,18 +137,17 @@
   </BkDialog>
 </template>
 <script setup lang="ts">
-  import { useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import DbResourceModel from '@services/model/db-resource/DbResource';
-  import { fetchList } from '@services/source/dbresourceResource';
   import type { HostInfo } from '@services/types';
 
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
   import ResourceHostOwner from '@components/resource-host-owner/Index.vue';
 
   import PanelTab from './components/PanelTab.vue';
-  import useSearchSelectData from './hooks/use-search-select-data';
+  import useFetchData from './hooks/use-fetch-data';
+  import usequickSearchData from './hooks/use-search-select-data';
 
   export type IValue = DbResourceModel;
 
@@ -168,40 +183,39 @@
     default: () => [],
   });
   const dialogWidth = Math.max(window.innerWidth * 0.8, 800);
-  const contentHeight = window.innerHeight * 0.8 - 100;
+  const contentHeight = window.innerHeight * 0.8 - 200;
 
   const { t } = useI18n();
+  const { filterOption, quickSearchData, quickSearchValue } = usequickSearchData(props);
   const {
-    columnFilterValue,
-    filterOption,
-    formatSearchValue,
-    handleFilter,
-    searchSelectData,
-    value: searchSelectValue,
-  } = useSearchSelectData(props);
-  const dbTableRef = useTemplateRef('table');
+    fetchData,
+    handlePageLimitChange,
+    handlePageValueChange,
+    loading: isLoading,
+    pagination,
+    tableData,
+  } = useFetchData(props.params);
   const currentPanelTab = ref('host');
   const rowSelectMemo = shallowRef<Record<number, DbResourceModel>>({});
 
   const selectedNum = computed(() => Object.keys(rowSelectMemo.value).length);
   const isInfinity = computed(() => props.limit === -1);
 
-  const dataSource = (params: ServiceParameters<typeof fetchList>) =>
-    fetchList({
-      ...params,
-      ...props.params,
-      bk_biz_id: undefined, // 资源池参数用for_biz,把db-table内置的bk_biz_id去掉
+  const handleFilterChange = (filterValue: Record<string, string>) => {
+    // 剔除空值，剔除多余逗号
+    const formatFilterValue = Object.fromEntries(
+      Object.entries(filterValue)
+        .map(([key, value]) => [key, value.replace(/^,+|,+$/g, '').trim()])
+        .filter(([, value]) => value !== ''),
+    );
+    fetchData({
+      ...quickSearchValue.value,
+      ...formatFilterValue,
     });
+  };
 
-  watch(searchSelectValue, () => {
-    dbTableRef.value?.fetchData(formatSearchValue.value);
-  });
-
-  watch(columnFilterValue, () => {
-    dbTableRef.value?.fetchData({
-      ...formatSearchValue.value,
-      ...columnFilterValue,
-    });
+  watch(quickSearchValue, () => {
+    fetchData(quickSearchValue.value);
   });
 
   watch(isShow, () => {
@@ -254,7 +268,31 @@
     }
 
     .host-list-wrapper {
-      padding: 0;
+      border: 1px solid var(--td-component-border);
+
+      .host-list-checkbox {
+        transform: translateY(2px);
+      }
+    }
+
+    .table-footer {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      height: 60px;
+      padding: 0 16px;
+      margin-top: -1px;
+      background: #fff;
+      border-top: 1px solid var(--td-component-border);
+      align-items: center;
+
+      .bk-pagination {
+        width: 100%;
+
+        & > .is-last {
+          margin-left: auto;
+        }
+      }
     }
   }
 </style>
