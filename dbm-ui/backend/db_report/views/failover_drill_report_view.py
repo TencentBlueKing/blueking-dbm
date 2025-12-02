@@ -35,6 +35,7 @@ class FailoverDrillSerializer(serializers.ModelSerializer, ReportCommonFieldSeri
             "cluster_type",
             "instance_type",
             "state",
+            "create_at",
             "trigger_dbha_time",
             "switch_start_time",
             "switch_finished_time",
@@ -58,7 +59,7 @@ class FailoverDrillReportViewSet(BaseDrillReportViewSet):
         "dbha_status": ["exact", "in"],
         "create_at": ["gte", "lte"],
     }
-    ordering_fields = ["trigger_dbha_time", "switch_start_time", "switch_finished_time"]
+    ordering_fields = ["create_at", "trigger_dbha_time", "switch_start_time", "switch_finished_time"]
 
     report_type = ReportType.FAIL_OVER_DRILL.value
     report_title = [
@@ -90,6 +91,12 @@ class FailoverDrillReportViewSet(BaseDrillReportViewSet):
             "name": "state",
             "display_name": _("状态"),
             "format": ReportFieldFormat.STATUS.value,
+        },
+        {
+            "name": "create_at",
+            "display_name": _("任务创建时间"),
+            "format": ReportFieldFormat.TIME.value,
+            "ordering": True,
         },
         {
             "name": "trigger_dbha_time",
