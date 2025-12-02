@@ -148,6 +148,8 @@ class FailoverDrillFlow:
                 "cloud_id": exec_info.get("bk_cloud_id"),
                 "app": str(self.data.get("bk_biz_id")),
                 "ip": exec_info.get("ip"),
+                "main_task_id": drill_info.get("main_task_id", 0),
+                "instance_role": instance_role,
             },
         )
 

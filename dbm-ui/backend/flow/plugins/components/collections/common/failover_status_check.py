@@ -18,6 +18,7 @@ from pipeline.core.flow import Service, StaticIntervalGenerator
 
 import backend.flow.utils.common_act_dataclass as flow_context
 from backend.components.hadb.client import HADBApi
+from backend.db_report.models.failover_drill_report import FailoverDrillReport
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
 logger = logging.getLogger("flow")
@@ -35,6 +36,13 @@ class FailoverStatusCheckService(BaseService):
 
     __need_schedule__ = True
     interval = StaticIntervalGenerator(SCHEDULE_INTERVAL)
+
+    def report_trigger_time(self, main_task_id, instance_type):
+        utc8_timezone = timezone(timedelta(hours=8))
+        trigger_time = datetime.now().astimezone(utc8_timezone)
+        FailoverDrillReport.objects.filter(main_task_id=main_task_id, instance_type=instance_type).update(
+            trigger_dbha_time=trigger_time
+        )
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
@@ -55,6 +63,10 @@ class FailoverStatusCheckService(BaseService):
         loop_count = data.get_one_of_outputs("loop_count")
         if not loop_count:
             loop_count = 0
+
+        if loop_count == 0:
+            # 第一次轮询，记录开始触发dbha时间，这个时间点比较靠近触发dbha的时间点
+            self.report_trigger_time(kwargs["main_task_id"], kwargs["instance_role"])
 
         self.log_info(
             "schedule:{}/{},schedule interval:{} seconds".format(loop_count, MAX_SCHEDULE_COUNT, SCHEDULE_INTERVAL)
