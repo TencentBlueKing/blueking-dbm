@@ -354,7 +354,9 @@ def add_spider_disable_alarm_shield_act(sub_pipeline) -> None:
     Args:
         sub_pipeline: 子流程
     """
-    sub_pipeline.add_act(act_name=_("解除告警屏蔽"), act_component_code=DisableAlarmShieldComponent.code, kwargs={})
+    sub_pipeline.add_act(
+        act_name=DisableAlarmShieldComponent.node_name, act_component_code=DisableAlarmShieldComponent.code, kwargs={}
+    )
 
 
 def add_spider_upgrade_check_act(sub_pipeline, spider_master_ins: List, bk_cloud_id: int, check_process: bool) -> None:

@@ -645,5 +645,9 @@ class MySQLStorageLocalUpgradeFlow(object):
 
     def _add_alarm_unshield_act(self, sub_pipeline):
         """添加解除告警屏蔽活动"""
-        sub_pipeline.add_act(act_name=_("解除告警屏蔽"), act_component_code=DisableAlarmShieldComponent.code, kwargs={})
+        sub_pipeline.add_act(
+            act_name=DisableAlarmShieldComponent.node_name,
+            act_component_code=DisableAlarmShieldComponent.code,
+            kwargs={},
+        )
         logger.info(_("添加解除告警屏蔽活动"))

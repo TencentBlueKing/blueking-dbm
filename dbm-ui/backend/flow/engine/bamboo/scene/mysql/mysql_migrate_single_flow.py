@@ -514,7 +514,7 @@ class MySQLMigrateSingleFlow(object):
             # 切换迁移实例
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=switch_sub_pipeline_list)
             tendb_migrate_pipeline.add_act(
-                act_name=_("解除新机告警屏蔽"), act_component_code=DisableAlarmShieldComponent.code, kwargs={}
+                act_name=_("15 分钟后解除新机告警屏蔽"), act_component_code=DisableAlarmShieldComponent.code, kwargs={}
             )
             tendb_migrate_pipeline.add_act(
                 act_name=_("屏蔽旧实例告警15天"),
@@ -557,7 +557,7 @@ class MySQLMigrateSingleFlow(object):
             # 卸载remote节点
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=uninstall_svr_sub_pipeline_list)
             tendb_migrate_pipeline.add_act(
-                act_name=_("解除旧实例告警屏蔽"), act_component_code=DisableAlarmShieldComponent.code, kwargs={}
+                act_name=_("15 分钟后解除旧实例告警屏蔽"), act_component_code=DisableAlarmShieldComponent.code, kwargs={}
             )
             tendb_migrate_pipeline_list.append(
                 tendb_migrate_pipeline.build_sub_process(

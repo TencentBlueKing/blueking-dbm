@@ -180,7 +180,7 @@ class RedisRollbackExerciseFlow(object):
 
             # Step 7: Remove alert shield for the applied machine
             sub_flow.add_act(
-                act_name=_("解除主机 {} 告警屏蔽").format(resource_applied[0]["ip"]),
+                act_name=_("15 分钟后解除主机 {} 告警屏蔽").format(resource_applied[0]["ip"]),
                 act_component_code=DisableAlarmShieldComponent.code,
                 kwargs={},
             )

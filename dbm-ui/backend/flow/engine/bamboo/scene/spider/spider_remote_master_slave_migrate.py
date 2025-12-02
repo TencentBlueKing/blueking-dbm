@@ -443,7 +443,9 @@ class TendbClusterMigrateRemoteFlow(object):
                 )
             )
             tendb_migrate_pipeline.add_act(
-                act_name=_("解除告警屏蔽"), act_component_code=DisableAlarmShieldComponent.code, kwargs={}
+                act_name=DisableAlarmShieldComponent.node_name,
+                act_component_code=DisableAlarmShieldComponent.code,
+                kwargs={},
             )
             # 卸载流程人工确认
             tendb_migrate_pipeline.add_act(act_name=_("人工确认卸载实例"), act_component_code=PauseComponent.code, kwargs={})

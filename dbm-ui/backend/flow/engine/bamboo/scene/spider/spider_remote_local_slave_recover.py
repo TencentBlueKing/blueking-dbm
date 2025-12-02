@@ -297,7 +297,9 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                     ),
                 )
                 sync_data_sub_pipeline.add_act(
-                    act_name=_("解除告警屏蔽"), act_component_code=DisableAlarmShieldComponent.code, kwargs={}
+                    act_name=DisableAlarmShieldComponent.node_name,
+                    act_component_code=DisableAlarmShieldComponent.code,
+                    kwargs={},
                 )
                 sync_data_sub_pipeline_list.append(
                     sync_data_sub_pipeline.build_sub_process(
