@@ -283,9 +283,11 @@ func (m *CutOverToSlaveComp) CutOver() (binPos string, err error) {
 		if err != nil {
 			e := m.cluster.UpdateProxiesBackend(m.cluster.MasterIns.Host, m.cluster.MasterIns.Port)
 			if e != nil {
-				logger.Warn("rollback proxy backends failed  %s", err.Error())
+				logger.Error("回滚proxy指向到原来的实例 %s:%d失败,需要人工介入确认proxy的指向是 %s:%d 后在重试,错误信息: %s",
+					m.cluster.MasterIns.Host, m.cluster.MasterIns.Port, m.cluster.MasterIns.Host, m.cluster.MasterIns.Port, e.Error())
 				return
 			}
+			logger.Warn("proxy指向成功回滚到原状态 ,检查后且解决切换失败的问题后,可以重试该节点", m.cluster.MasterIns.Addr())
 			logger.Info("rollback proxy backend to %s successfully", m.cluster.MasterIns.Addr())
 		}
 	}()
@@ -303,7 +305,7 @@ func (m *CutOverToSlaveComp) CutOver() (binPos string, err error) {
 	//  尝试在源主库加锁
 	if m.Params.LockedSwitch {
 		if err = m.cluster.MasterIns.FlushTablesWithReadLock(); err != nil {
-			logger.Error("locked %s tables failed:%s", m.cluster.MasterIns.Addr(), err.Error())
+			logger.Error("【可重试】locked %s tables failed:%s", m.cluster.MasterIns.Addr(), err.Error())
 			return "", err
 		}
 	}
@@ -312,7 +314,7 @@ func (m *CutOverToSlaveComp) CutOver() (binPos string, err error) {
 		if err = m.cluster.AltSlaveIns.dbConn.CheckSlaveReplStatus(func() (resp native.ShowSlaveStatusResp, err error) {
 			return m.cluster.AltSlaveIns.dbConn.ShowSlaveStatus()
 		}); err != nil {
-			logger.Error("再次检查下主从状态 %s", err.Error())
+			logger.Error("【可重试】再次检查下主从状态 %s", err.Error())
 			return "", err
 		}
 		fn := func() error {
@@ -320,14 +322,14 @@ func (m *CutOverToSlaveComp) CutOver() (binPos string, err error) {
 		}
 		err = util.Retry(util.RetryConfig{Times: 10, DelayTime: 100 * time.Millisecond}, fn)
 		if err != nil {
-			logger.Error("主从binlog位点有差异 %s", err.Error())
+			logger.Error("【可重试】主从binlog位点有差异 %s", err.Error())
 			return "", err
 		}
 	}
 
 	// record cutover bin pos
 	if binPos, err = m.cluster.AltSlaveIns.RecordBinPos(); err != nil {
-		logger.Error("获取切换时候的位点信息失败: %s", err.Error())
+		logger.Error("【可重试】获取切换时候的位点信息失败: %s", err.Error())
 		return EmptyContext, err
 	}
 	// proxy switch 待切换slave
