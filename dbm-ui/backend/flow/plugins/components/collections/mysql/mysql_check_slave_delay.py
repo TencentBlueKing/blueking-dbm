@@ -52,7 +52,6 @@ class MySQLCheckSlaveDelayService(BaseService):
                 else:
                     slave_info = res[0]["cmd_results"][0]["table_data"][0]
                     self.log_info(slave_info)
-                    file_delay = True
 
                     if kwargs["master_ip"] != "" or int(kwargs["master_port"]) != 0:
                         if slave_info["Master_Host"] != kwargs["master_ip"] or int(slave_info["Master_Port"]) != int(
@@ -80,8 +79,9 @@ class MySQLCheckSlaveDelayService(BaseService):
                     master_info = res[0]["cmd_results"][0]["table_data"][0]
                     self.log_info(master_info)
                     slave_delay = int(master_info["Position"]) - int(slave_info["Exec_Master_Log_Pos"])
-                    if master_info["File"] == slave_info["Relay_Master_Log_File"]:
-                        file_delay = False
+                    master_file_num = master_info["File"].strip().split(".")[-1]
+                    slave_file_num = slave_info["Relay_Master_Log_File"].strip().split(".")[-1]
+                    file_delay = int(master_file_num) - int(slave_file_num)
                     # if slave_info["Seconds_Behind_Master"] is not None:
                     # seconds_behind_master = int(slave_info["Seconds_Behind_Master"])
 
@@ -90,7 +90,7 @@ class MySQLCheckSlaveDelayService(BaseService):
                         and slave_info["Slave_SQL_Running"] == "Yes"
                         and slave_delay <= kwargs["slave_delay_threshold"]
                     ):
-                        if kwargs["check_file_delay"] and file_delay:
+                        if 0 <= kwargs["check_file_delay"] < file_delay:
                             self.log_info(
                                 _(
                                     "主从文件级别延迟不满足: master: {} slave: {}".format(

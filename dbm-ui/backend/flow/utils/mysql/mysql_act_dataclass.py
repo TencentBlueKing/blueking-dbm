@@ -433,7 +433,8 @@ class CheckSlaveStatusKwargs(ExecuteRdsKwargs):
     master_ip: str = ""
     master_port: int = 0
     slave_delay_threshold: int = 360
-    check_file_delay: bool = True
+    # >=0表示检查文件延迟,延迟文件个数 <0表示不检查
+    check_file_delay: int = 0
     rounds: int = 1
 
 

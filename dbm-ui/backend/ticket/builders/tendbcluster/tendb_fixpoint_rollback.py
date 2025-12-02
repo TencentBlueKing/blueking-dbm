@@ -144,6 +144,7 @@ class TendbFixPointRollbackResourceParamBuilder(BaseOperateResourceParamBuilder)
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_ROLLBACK_CLUSTER, is_apply=True)
 class TendbFixPointRollbackFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbFixPointRollbackDetailSerializer
+    inner_flow_builder = TendbFixPointRollbackFlowParamBuilder
     # 这里不要用batch_builder，因为下一节点是部署临时集群
     resource_apply_builder = TendbFixPointRollbackResourceParamBuilder
 
