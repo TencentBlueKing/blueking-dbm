@@ -271,7 +271,7 @@ def master_and_slave_switch_v2(
             }
         )
     cluster_switch_sub_pipeline.add_act(
-        act_name=_("解除告警屏蔽"), act_component_code=DisableAlarmShieldComponent.code, kwargs={}
+        act_name=DisableAlarmShieldComponent.node_name, act_component_code=DisableAlarmShieldComponent.code, kwargs={}
     )
     # 增加tbinlogdumper实例部署切换联动
     if ExtraProcessInstance.objects.filter(cluster_id=cluster.id).exists():

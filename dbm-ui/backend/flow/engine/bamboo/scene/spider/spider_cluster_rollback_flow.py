@@ -544,7 +544,9 @@ class TenDBRollBackDataFlow(object):
                 ),
             )
             tendb_rollback_pipeline.add_act(
-                act_name=_("解除告警屏蔽"), act_component_code=DisableAlarmShieldComponent.code, kwargs={}
+                act_name=DisableAlarmShieldComponent.node_name,
+                act_component_code=DisableAlarmShieldComponent.code,
+                kwargs={},
             )
             tendb_rollback_list.append(
                 tendb_rollback_pipeline.build_sub_process(

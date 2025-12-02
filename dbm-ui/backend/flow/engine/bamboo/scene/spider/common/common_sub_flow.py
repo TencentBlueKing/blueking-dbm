@@ -859,6 +859,8 @@ def remote_migrate_switch_sub_flow(
         act_component_code=RemoteMigrateCutOverComponent.code,
         kwargs={},
     )
-    sub_pipeline.add_act(act_name=_("解除告警屏蔽"), act_component_code=DisableAlarmShieldComponent.code, kwargs={})
+    sub_pipeline.add_act(
+        act_name=DisableAlarmShieldComponent.node_name, act_component_code=DisableAlarmShieldComponent.code, kwargs={}
+    )
 
     return sub_pipeline.build_sub_process(sub_name=_("[{}]成对切换".format(cluster.name)))
