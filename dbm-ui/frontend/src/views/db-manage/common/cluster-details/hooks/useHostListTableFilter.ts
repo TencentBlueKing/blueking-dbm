@@ -26,7 +26,7 @@ export const useHostListTableFilter = (clusterType: ClusterTypes) => {
       machine_attrs: machineAttrs.join(','),
     }).then((data) => {
       return data[attr].map((item) => ({
-        label: item.text,
+        label: attr === 'spec_id' ? `${item.text} [${item.value}]` : item.text,
         value: item.value,
       }));
     });

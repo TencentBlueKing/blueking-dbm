@@ -399,6 +399,7 @@
   // 情况搜索条件
   const handleClearFilter = () => {
     emits('filterChange', {});
+    emits('clearSearch');
   };
 
   const calcTableHeight = () => {
