@@ -219,7 +219,7 @@ class ImportResourceInitStepFlow(object):
         __add_host_remark(recycled_hosts, _("检测该业务为独立管控业务"))
 
         # sqlserver机器直接转移到待回收
-        if self.data["ticket_type"] == TicketType.RECYCLE_OLD_HOST and revoke_ticket.group == DBType.Sqlserver:
+        if self.data["ticket_type"] == TicketType.RECYCLE_OLD_HOST and self.data["group"] == DBType.Sqlserver:
             recycle_hosts.extend(hosts)
             hosts = []
         __add_host_remark(recycle_hosts, _("检测主机为Windows机器"))

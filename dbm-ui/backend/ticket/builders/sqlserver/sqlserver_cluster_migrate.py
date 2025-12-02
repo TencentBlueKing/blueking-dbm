@@ -64,7 +64,7 @@ class SQLServerClusterMigrateParamBuilder(builders.FlowParamBuilder):
     validator = SqlserverController.sqlserver_cluster_migrate_for_ins_scene.validator
 
 
-@builders.BuilderFactory.register(TicketType.SQLSERVER_CLUSTER_MIGRATE)
+@builders.BuilderFactory.register(TicketType.SQLSERVER_CLUSTER_MIGRATE, is_apply=True, is_recycle=True)
 class SQLServerClusterMigrateFlowBuilder(BaseSQLServerHATicketFlowBuilder):
     serializer = SQLServerClusterMigrateDetailSerializer
     inner_flow_builder = SQLServerClusterMigrateParamBuilder

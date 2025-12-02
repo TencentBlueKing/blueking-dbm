@@ -37,6 +37,9 @@ from backend.flow.engine.bamboo.scene.sqlserver.common_sub_flow import (
 )
 from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_add_slave import SqlserverAddSlaveFlow
 from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_slave_rebuild import SqlserverSlaveRebuildFlow
+from backend.flow.plugins.components.collections.common.calc_hosts_is_write_recycle_list import (
+    CalcHostIsWriteRecycleListComponent,
+)
 from backend.flow.plugins.components.collections.common.delete_cc_service_instance import DelCCServiceInstComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.sqlserver.copy_app_setting import CopyAppSettingComponent
@@ -164,6 +167,18 @@ class SqlserverClusterMigrateFlow(BaseFlow):
                         "cluster_type": cluster_type,
                         "bk_biz_id": self.data["bk_biz_id"],
                     },
+                )
+            ),
+        )
+
+        # 计算退回主机列表
+        sub_pipeline.add_act(
+            act_name=_("计算退回主机列表"),
+            act_component_code=CalcHostIsWriteRecycleListComponent.code,
+            kwargs=asdict(
+                CalcHostIsWriteRecycleListComponent.kwargs(
+                    ticket_id=self.data["uid"],
+                    calc_host_list=old_hosts,
                 )
             ),
         )
@@ -677,12 +692,12 @@ class SqlserverClusterMigrateFlow(BaseFlow):
                     old_master_host=Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id),
                     new_master_host=new_master_host,
                     port=master_instance.port,
-                    old_master_dns_list=master_instance.bind_entry.filter(
-                        cluster_entry_type=ClusterEntryType.DNS.value
-                    ).all(),
-                    new_master_dns_list=stand_by_instance.bind_entry.filter(
-                        cluster_entry_type=ClusterEntryType.DNS.value
-                    ).all(),
+                    old_master_dns_list=list(
+                        master_instance.bind_entry.filter(cluster_entry_type=ClusterEntryType.DNS.value).all()
+                    ),
+                    new_master_dns_list=list(
+                        stand_by_instance.bind_entry.filter(cluster_entry_type=ClusterEntryType.DNS.value).all()
+                    ),
                 )
             )
 
