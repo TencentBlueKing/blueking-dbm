@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Self
 
 from bamboo_engine import api, builder
 from bamboo_engine.builder import (
@@ -75,6 +75,7 @@ class Builder(object):
         self.data = data
         self.need_random_pass_cluster_ids = need_random_pass_cluster_ids
         self.need_random_pass_instances = need_random_pass_instances
+
         self.start_act = EmptyStartEvent()
         self.end_act = EmptyEndEvent()
         if not self.data:
@@ -100,6 +101,28 @@ class Builder(object):
         # 判断是否添加临时账号的流程逻辑
         if self.need_random_pass_cluster_ids:
             self.create_random_pass_act()
+
+    def with_sidecar_acts(self, worker_name: str, sidecar_acts: List) -> Self:
+        if sidecar_acts and isinstance(sidecar_acts, list) and len(sidecar_acts) > 0:
+            sidecar_subpipe = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+            sidecar_subpipe.add_parallel_acts(acts_list=sidecar_acts)
+
+            pipe = Builder(
+                root_id=self.root_id,
+                data=copy.deepcopy(self.data),
+                need_random_pass_cluster_ids=self.need_random_pass_cluster_ids,
+                need_random_pass_instances=self.need_random_pass_instances,
+            )
+
+            pipe.add_parallel_sub_pipeline(
+                sub_flow_list=[
+                    sidecar_subpipe.build_sub_process(_("旁路子流程")),
+                    SubBuilder.from_builder(self).build_sub_process(worker_name),
+                ]
+            )
+            return pipe
+        else:
+            return self
 
     def create_random_pass_act(self):
         """
@@ -295,8 +318,10 @@ class Builder(object):
             self.global_data.inputs[f"${{{i['conditions_param']}}}"] = NodeOutput(
                 type=Var.SPLICE, source_act=i["source_act_id"], source_key=f"{i['conditions_param']}"
             )
+
         self.pipe.extend(self.end_act)
         pipeline = builder.build_tree(self.start_act, id=self.root_id, data=self.global_data)
+
         pipeline_copy = copy.deepcopy(pipeline)
         insensitive_data = self.hide_sensitive_data(pipeline_copy)
         # 考虑到有些任务没有单据关联，因此uid一般为root_id，此时创建FlowTree的时候uid应该为null
@@ -357,6 +382,24 @@ class SubBuilder(Builder):
         sub_params = Params({"${trans_data}": Var(type=Var.SPLICE, value="${trans_data}")})
         self.pipe.extend(self.end_act)
         return SubProcess(start=self.start_act, data=sub_data, params=sub_params, name=sub_name)
+
+    @classmethod
+    def from_builder(cls, b: Builder) -> Self:
+        sb = SubBuilder(root_id=b.root_id, data=b.data)
+        sb.need_random_pass_cluster_ids = None
+        sb.need_random_pass_instances = None
+
+        sb.start_act = b.start_act
+        # worker 子流程删除原有的临时账号部分
+        if b.need_random_pass_instances or b.need_random_pass_cluster_ids:
+            sb.start_act.outgoing = b.start_act.outgoing[0].outgoing
+
+        sb.end_act = b.end_act
+        sb.global_data = b.global_data
+        sb.pipe = b.pipe
+        sb.rewritable_node_source_keys = b.rewritable_node_source_keys
+        sb.node_output_list = b.node_output_list
+        return sb
 
 
 class RewritableNode(RewritableNodeOutput):
