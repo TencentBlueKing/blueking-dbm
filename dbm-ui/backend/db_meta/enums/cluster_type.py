@@ -101,6 +101,7 @@ class ClusterType(StrStructuredEnum):
             DBType.Doris.value: [cls.Doris],
             DBType.Vm.value: [cls.Vm],
             DBType.Oracle.value: [cls.OraclePrimaryStandby, cls.OracleSingleNone],
+            DBType.K8s.value: [cls.K8sSurreal, cls.K8sVM, cls.K8sRW, cls.K8sMV],
         }
 
     @classmethod

@@ -20,7 +20,7 @@ from rest_framework.permissions import BasePermission
 from backend.configuration.models import DBAdministrator
 from backend.db_meta.models import ExtraProcessInstance
 from backend.iam_app.dataclass.actions import ActionEnum
-from backend.iam_app.dataclass.resources import ResourceEnum
+from backend.iam_app.dataclass.resources import ClusterResourceMeta, ResourceEnum
 from backend.iam_app.handlers.drf_perm.base import (
     BizDBTypeResourceActionPermission,
     CommonInstance,
@@ -253,13 +253,19 @@ def add_ticket_audit_event(ticket_id):
     # 非审计状态，忽略
     if ticket.status not in audit_ticket_status:
         return
+
     # 无集群ID，忽略
     cluster_ids = fetch_cluster_ids(ticket.details)
     if not cluster_ids:
         return
+
     # 获取单据执行相关的iam资源
     action = BuilderFactory.ticket_type__iam_action.get(ticket.ticket_type)
-    resource_meta = action.related_resource_types[0]
+    resource_meta = action.related_resource_types[0] if action.related_resource_types else None
+    # 如果资源不为集群类型，则忽略
+    if not issubclass(resource_meta.__class__, ClusterResourceMeta):
+        return
+
     resources = resource_meta.batch_create_instances(cluster_ids)
     # 按照资源上报事件
     event_data = {

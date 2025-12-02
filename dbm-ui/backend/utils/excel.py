@@ -17,6 +17,7 @@ import openpyxl
 from django.http.response import HttpResponse, StreamingHttpResponse
 from django.utils.encoding import escape_uri_path
 from openpyxl import Workbook
+from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
 from openpyxl.styles import Alignment, PatternFill
 from openpyxl.worksheet.worksheet import Worksheet
 from openpyxl.writer.excel import save_virtual_workbook
@@ -26,6 +27,18 @@ class ExcelHandler:
     """
     封装常用的excel处理函数
     """
+
+    @classmethod
+    def _clean_illegal_char(cls, value: Any) -> str:
+        """
+        清理 Excel 不支持的非法字符，将非法字符替换为空字符串
+        :param value: 原始值（可以是任何类型）
+        :return: 清理后的字符串
+        """
+        if value is None:
+            return ""
+        cleaned_value = ILLEGAL_CHARACTERS_RE.sub("", str(value))
+        return cleaned_value
 
     @classmethod
     def _adapt_sheet_weight_height(cls, sheet: Worksheet, first_header_row: int = 1):
@@ -97,6 +110,7 @@ class ExcelHandler:
     def serialize_handler(
         cls,
         data_dict__list: List[Dict],
+        wb: Workbook,
         sheet: Worksheet,
         template: str = None,
         headers: List = None,
@@ -106,6 +120,8 @@ class ExcelHandler:
         """
         - 处理excel对象数据写入单元格
         :param data_dict__list: 数据字典
+        :param wb: excel对象
+        :param sheet: excel工作表
         :param template: excel模板路径(优先以模板的头部样式作为excel的头部)
         :param headers: excel数据头 [{"id": "header_id", "name": "header_name"}]
         :param header_style: excel的头部样式(颜色)
@@ -124,7 +140,7 @@ class ExcelHandler:
             # 如果没有template，则根据给定的header和header颜色来设置头部和样式
             for col, header in enumerate(headers):
                 header = header if isinstance(header, str) else header["name"]
-                cell = sheet.cell(1, col + 1, str(header))
+                cell = sheet.cell(1, col + 1, cls._clean_illegal_char(header))
                 if header_style:
                     cell.fill = PatternFill("solid", fgColor=header_style[header])
 
@@ -137,13 +153,14 @@ class ExcelHandler:
                     if header_id not in data_dict:
                         sheet.cell(row + first_data_row, col + 1).value = ""
                     else:
-                        sheet.cell(row + first_data_row, col + 1, str(data_dict[header_id]))
+                        sheet.cell(row + first_data_row, col + 1, cls._clean_illegal_char(data_dict[header_id]))
             else:
                 for col, value in enumerate(list(data_dict.values())):
-                    sheet.cell(row + first_data_row, col + 1, str(value))
+                    sheet.cell(row + first_data_row, col + 1, cls._clean_illegal_char(value))
 
         # 自适应设置行高和列宽
         cls._adapt_sheet_weight_height(sheet=sheet, first_header_row=first_data_row - 1)
+        return wb
 
     @classmethod
     def serialize(
@@ -168,7 +185,7 @@ class ExcelHandler:
         sheet: Worksheet = wb.active
         if sheet_name:
             sheet.title = sheet_name
-        cls.serialize_handler(data_dict__list, sheet, template, headers, header_style, match_header)
+        wb = cls.serialize_handler(data_dict__list, wb, sheet, template, headers, header_style, match_header)
 
         return wb
 
@@ -195,7 +212,7 @@ class ExcelHandler:
         """
 
         sheet: Worksheet = wb.create_sheet(title=sheet_name)
-        cls.serialize_handler(data_dict__list, sheet, template, headers, header_style, match_header)
+        cls.serialize_handler(data_dict__list, wb, sheet, template, headers, header_style, match_header)
 
     @classmethod
     def response(cls, wb: Workbook, excel_name: str) -> HttpResponse:

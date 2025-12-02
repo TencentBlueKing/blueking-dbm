@@ -141,7 +141,7 @@ class ResourceListSerializer(serializers.Serializer):
     subzone_ids = serializers.CharField(help_text=_("园区ID"), required=False)
 
     os_type = serializers.CharField(help_text=_("操作系统类型"), required=False)
-    os_names = serializers.ListField(help_text=_("操作系统版本"), child=serializers.CharField(), required=False)
+    os_names = serializers.CharField(help_text=_("操作系统版本"), required=False)
     cpu = serializers.CharField(help_text=_("cpu资源限制"), required=False)
     mem = serializers.CharField(help_text=_("内存资源限制"), required=False)
     disk = serializers.CharField(help_text=_("磁盘资源限制"), required=False)
@@ -218,6 +218,7 @@ class ResourceListSerializer(serializers.Serializer):
             attrs,
             fields=[
                 "device_class",
+                "os_names",
                 "hosts",
                 "city",
                 "subzones",
