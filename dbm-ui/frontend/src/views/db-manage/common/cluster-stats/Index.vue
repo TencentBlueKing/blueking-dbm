@@ -42,7 +42,15 @@
       defaultParams: [
         {
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_type: props.clusterType,
+          cluster_type:
+            props.clusterType === ClusterTypes.REDIS
+              ? [
+                  ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+                  ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+                  ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+                  ClusterTypes.PREDIXY_REDIS_CLUSTER,
+                ].join(',')
+              : props.clusterType,
         },
       ],
     },

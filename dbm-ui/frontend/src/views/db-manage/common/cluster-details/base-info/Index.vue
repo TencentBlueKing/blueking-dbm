@@ -28,7 +28,7 @@
       <slot name="load" />
     </InfoItem>
     <InfoItem :label="t('容量使用率')">
-      <ClusterStatsCell
+      <ClusterStats
         :cluster-id="data.id"
         :cluster-type="clusterType" />
     </InfoItem>
@@ -59,7 +59,7 @@
 
   import ClusterTag from '@components/cluster-tag/index.vue';
 
-  import ClusterStatsCell from '@views/db-manage/common/cluster-stats-cell/Index.vue';
+  import ClusterStats from '@views/db-manage/common/cluster-stats/Index.vue';
   import UpdateClusterAliasName from '@views/db-manage/common/UpdateClusterAliasName.vue';
 
   import ClbInfo from './ClbInfo.vue';

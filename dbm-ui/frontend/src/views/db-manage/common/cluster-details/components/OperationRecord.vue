@@ -17,7 +17,7 @@
       <BkDatePicker
         v-model="daterange"
         append-to-body
-        :placeholder="$t('请选择')"
+        :placeholder="t('请选择')"
         style="width: 410px"
         type="datetimerange"
         @change="handleDateChange" />
@@ -25,66 +25,67 @@
     <DbTable
       ref="tableRef"
       :data-source="dataSource"
+      row-key="ticket_id"
       @clear-search="handleClearFilters">
-      <BkTableColumn
-        field="ticket_id"
-        :label="t('单号')"
-        :min-width="80">
-        <template #default="{data}: {data: IRowData}">
+      <TableColumn
+        col-key="ticket_id"
+        :min-width="80"
+        :title="t('单号')">
+        <template #default="{ row }: { row: IRowData }">
           <RouterLink
             target="_blank"
             :to="{
               name: 'bizTicketManage',
               params: {
-                ticketId: data.ticket_id,
+                ticketId: row.ticket_id,
               },
             }">
-            {{ data.ticket_id }}
+            {{ row.ticket_id }}
           </RouterLink>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="op_type"
-        :label="t('单据类型')"
-        :min-width="300">
-        <template #default="{data}: {data: IRowData}">
-          {{ data.op_type || '--' }}
+      </TableColumn>
+      <TableColumn
+        col-key="op_type"
+        :min-width="300"
+        :title="t('单据类型')">
+        <template #default="{ row }: { row: IRowData }">
+          {{ row.op_type || '--' }}
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="op_status"
-        :label="t('单据状态')"
-        :min-width="120">
-        <template #default="{data}: {data: IRowData}">
+      </TableColumn>
+      <TableColumn
+        col-key="op_status"
+        :min-width="120"
+        :title="t('单据状态')">
+        <template #default="{ row }: { row: IRowData }">
           <TicketStatusTag
             :data="{
-              status: data.op_status as TicketModel['status'],
-              statusText: TicketModel.statusTextMap[data.op_status as TicketModel['status']],
+              status: row.op_status as TicketModel['status'],
+              statusText: TicketModel.statusTextMap[row.op_status as TicketModel['status']],
             }" />
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="creator"
-        :label="t('提单人')"
-        :min-width="150">
-        <template #default="{data}: {data: IRowData}">
-          {{ data.creator || '--' }}
+      </TableColumn>
+      <TableColumn
+        col-key="creator"
+        :min-width="150"
+        :title="t('提单人')">
+        <template #default="{ row }: { row: IRowData }">
+          {{ row.creator || '--' }}
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="create_at"
+      </TableColumn>
+      <TableColumn
+        col-key="create_at"
         fixed="left"
-        :label="t('提单时间')"
-        :min-width="250">
-        <template #default="{data}: {data: IRowData}">
-          {{ data.create_at || '--' }}
+        :min-width="250"
+        :title="t('提单时间')">
+        <template #default="{ row }: { row: IRowData }">
+          {{ row.create_at || '--' }}
         </template>
-      </BkTableColumn>
+      </TableColumn>
     </DbTable>
   </div>
 </template>
 
-<script setup lang="tsx">
+<script setup lang="ts">
   import dayjs from 'dayjs';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
@@ -95,6 +96,7 @@
 
   import { useUrlSearch } from '@hooks';
 
+  import DbTable from '@components/db-table/IndexNew.vue';
   import TicketStatusTag from '@components/ticket-status-tag/Index.vue';
 
   import { URL_RECORD_MEMO_KEY } from '../constants';
@@ -124,7 +126,12 @@
     daterange.value = [urlPaylaod.start_time, urlPaylaod.end_time];
   }
 
-  const dataSource = getClusterOperateRecords;
+  const dataSource = (params: ServiceParameters<typeof getClusterOperateRecords>) =>
+    getClusterOperateRecords({
+      ...params,
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      cluster_id: props.id,
+    });
 
   const fetchData = () => {
     const [startTime, endTime] = daterange.value;
