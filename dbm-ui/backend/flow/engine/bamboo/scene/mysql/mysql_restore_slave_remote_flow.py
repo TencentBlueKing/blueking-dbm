@@ -481,6 +481,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
             data=copy.deepcopy(self.ticket_data),
             need_random_pass_cluster_ids=list(set(cluster_ids)),
         )
+
         tendb_migrate_pipeline_list = []
         for info in self.ticket_data["infos"]:
             self.data = copy.deepcopy(info)
@@ -823,4 +824,8 @@ class MySQLRestoreSlaveRemoteFlow(object):
             )
 
         tendb_migrate_pipeline_all.add_parallel_sub_pipeline(sub_flow_list=tendb_migrate_pipeline_list)
-        tendb_migrate_pipeline_all.run_pipeline(init_trans_data_class=ClusterInfoContext(), is_drop_random_user=True)
+
+        tendb_migrate_pipeline_all.run_pipeline(
+            init_trans_data_class=ClusterInfoContext(),
+            is_drop_random_user=True,
+        )
