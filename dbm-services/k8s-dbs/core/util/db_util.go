@@ -23,13 +23,10 @@ import (
 	"fmt"
 	"k8s-dbs/config"
 	"log/slog"
-	"os"
-	"strconv"
 	"sync"
-	"time"
 
+	"github.com/caarlos0/env/v6"
 	"gorm.io/driver/mysql"
-
 	"gorm.io/gorm"
 )
 
@@ -45,16 +42,9 @@ type database struct {
 
 func dbConfig() (*config.DatabaseConfig, error) {
 	dbCfg := &config.DatabaseConfig{}
-	dbCfg.Host = os.Getenv("MYSQL_HOST")
-	dbCfg.Port, _ = strconv.Atoi(os.Getenv("MYSQL_PORT"))
-	dbCfg.User = os.Getenv("MYSQL_USER")
-	dbCfg.Password = os.Getenv("MYSQL_PASSWORD")
-	dbCfg.DBName = os.Getenv("MYSQL_DBNAME")
-	dbCfg.TLSMode = os.Getenv("MYSQL_TLSMODE")
-	dbCfg.MaxOpenConns, _ = strconv.Atoi(os.Getenv("MYSQL_MAX_OPEN_CONN"))
-	dbCfg.MaxIdleConns, _ = strconv.Atoi(os.Getenv("MYSQL_MAX_IDLE_CONN"))
-	dbCfg.MaxLifetime, _ = time.ParseDuration(os.Getenv("MYSQL_MAX_LIFETIME"))
-	dbCfg.MaxIdleTime, _ = time.ParseDuration(os.Getenv("MYSQL_MAX_IDLE_TIME"))
+	if err := env.Parse(dbCfg); err != nil {
+		return nil, fmt.Errorf("failed to parse environment variables: %w", err)
+	}
 	return dbCfg, nil
 }
 

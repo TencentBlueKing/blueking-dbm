@@ -5,6 +5,7 @@ go 1.24.2
 require (
 	github.com/apecloud/kbcli v0.9.3
 	github.com/apecloud/kubeblocks v1.0.0
+	github.com/caarlos0/env/v6 v6.10.1
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-playground/validator/v10 v10.25.0
 	github.com/go-resty/resty/v2 v2.16.5
@@ -22,6 +23,7 @@ require (
 	github.com/testcontainers/testcontainers-go/modules/mysql v0.38.0
 	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.60.0
 	go.uber.org/zap v1.27.0
+	golang.org/x/sync v0.16.0
 	golang.org/x/text v0.28.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gorm.io/driver/mysql v1.5.7
@@ -183,7 +185,6 @@ require (
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
 	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
-	golang.org/x/sync v0.16.0 // indirect
 	golang.org/x/sys v0.35.0 // indirect
 	golang.org/x/term v0.34.0 // indirect
 	golang.org/x/time v0.9.0 // indirect

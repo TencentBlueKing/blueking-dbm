@@ -21,6 +21,7 @@ package util
 
 import (
 	"encoding/json"
+	"net/http"
 	"time"
 
 	"github.com/go-resty/resty/v2"
@@ -59,9 +60,36 @@ func (c *HTTPClient) Get(url string) ([]byte, error) {
 	return response.Body(), nil
 }
 
+// applyRequestOptions 应用请求选项到resty请求
+func applyRequestOptions(req *resty.Request, options *RequestOptions) {
+	if options == nil {
+		return
+	}
+
+	// 设置自定义请求头
+	if options.Headers != nil {
+		for key, value := range options.Headers {
+			req.SetHeader(key, value)
+		}
+	}
+
+	// 设置自定义Cookie
+	if options.Cookies != nil {
+		for key, value := range options.Cookies {
+			req.SetCookie(&http.Cookie{
+				Name:  key,
+				Value: value,
+			})
+		}
+	}
+}
+
 // GetWithResponse 发送GET请求并返回完整响应
-func (c *HTTPClient) GetWithResponse(url string) (*resty.Response, error) {
-	return c.client.R().Get(url)
+// options: 可选的请求选项，包含headers和cookies
+func (c *HTTPClient) GetWithResponse(url string, options *RequestOptions) (*resty.Response, error) {
+	req := c.client.R()
+	applyRequestOptions(req, options)
+	return req.Get(url)
 }
 
 // Post 发送POST请求(JSON数据)
@@ -76,12 +104,21 @@ func (c *HTTPClient) Post(url string, body interface{}) ([]byte, error) {
 	return response.Body(), nil
 }
 
+// RequestOptions HTTP请求选项
+type RequestOptions struct {
+	Headers map[string]string // 自定义请求头
+	Cookies map[string]string // 自定义Cookie
+}
+
 // PostWithResponse 发送POST请求(JSON数据)并返回完整响应
-func (c *HTTPClient) PostWithResponse(url string, body interface{}) (*resty.Response, error) {
-	return c.client.R().
+// options: 可选的请求选项，包含headers和cookies
+func (c *HTTPClient) PostWithResponse(url string, body interface{}, options *RequestOptions) (*resty.Response, error) {
+	req := c.client.R().
 		SetHeader("Content-Type", "application/json").
-		SetBody(body).
-		Post(url)
+		SetBody(body)
+
+	applyRequestOptions(req, options)
+	return req.Post(url)
 }
 
 // Put 发送PUT请求(JSON数据)
@@ -97,11 +134,14 @@ func (c *HTTPClient) Put(url string, body interface{}) ([]byte, error) {
 }
 
 // PutWithResponse 发送PUT请求(JSON数据)并返回完整响应
-func (c *HTTPClient) PutWithResponse(url string, body interface{}) (*resty.Response, error) {
-	return c.client.R().
+// options: 可选的请求选项，包含headers和cookies
+func (c *HTTPClient) PutWithResponse(url string, body interface{}, options *RequestOptions) (*resty.Response, error) {
+	req := c.client.R().
 		SetHeader("Content-Type", "application/json").
-		SetBody(body).
-		Put(url)
+		SetBody(body)
+
+	applyRequestOptions(req, options)
+	return req.Put(url)
 }
 
 // Delete 发送DELETE请求
@@ -114,8 +154,11 @@ func (c *HTTPClient) Delete(url string) ([]byte, error) {
 }
 
 // DeleteWithResponse 发送DELETE请求并返回完整响应
-func (c *HTTPClient) DeleteWithResponse(url string) (*resty.Response, error) {
-	return c.client.R().Delete(url)
+// options: 可选的请求选项，包含headers和cookies
+func (c *HTTPClient) DeleteWithResponse(url string, options *RequestOptions) (*resty.Response, error) {
+	req := c.client.R()
+	applyRequestOptions(req, options)
+	return req.Delete(url)
 }
 
 // PostForm 发送POST表单请求
@@ -131,11 +174,18 @@ func (c *HTTPClient) PostForm(url string, formData map[string]string) ([]byte, e
 }
 
 // PostFormWithResponse 发送POST表单请求并返回完整响应
-func (c *HTTPClient) PostFormWithResponse(url string, formData map[string]string) (*resty.Response, error) {
-	return c.client.R().
+// options: 可选的请求选项，包含headers和cookies
+func (c *HTTPClient) PostFormWithResponse(
+	url string,
+	formData map[string]string,
+	options *RequestOptions,
+) (*resty.Response, error) {
+	req := c.client.R().
 		SetHeader("Content-Type", "application/x-www-form-urlencoded").
-		SetFormData(formData).
-		Post(url)
+		SetFormData(formData)
+
+	applyRequestOptions(req, options)
+	return req.Post(url)
 }
 
 // ParseResponse 解析响应到指定结构体
