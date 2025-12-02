@@ -29,11 +29,14 @@ import (
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
 	coreutil "k8s-dbs/core/util"
+	"k8s-dbs/infrastructure/util"
 	metaentity "k8s-dbs/metadata/entity"
 	metaprovider "k8s-dbs/metadata/provider"
 	metautil "k8s-dbs/metadata/util"
 	"log/slog"
+	"os"
 	"sort"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -49,8 +52,13 @@ import (
 	kbappv1 "github.com/apecloud/kubeblocks/apis/apps/v1alpha1"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
+	"golang.org/x/sync/errgroup"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	// 新增导入
+	infreq "k8s-dbs/infrastructure/request"
+	thirdapi "k8s-dbs/infrastructure/thirdapi"
 )
 
 // ClusterProvider 集群管理核心服务
@@ -63,6 +71,7 @@ type ClusterProvider struct {
 	releaseMetaProvider     metaprovider.AddonClusterReleaseProvider
 	clusterHelmRepoProvider metaprovider.AddonClusterHelmRepoProvider
 	ClusterTagProvider      metaprovider.K8sCrdClusterTagProvider
+	dbmAPIService           *thirdapi.DbmAPIService
 }
 
 // ClusterProviderOptions ClusterProvider 的函数选项
@@ -143,6 +152,15 @@ func (c *ClusterProviderBuilder) WithClusterTagsMeta(
 	}
 }
 
+// WithDbmAPIService 设置 DbmAPIService
+func (c *ClusterProviderBuilder) WithDbmAPIService(
+	service *thirdapi.DbmAPIService,
+) ClusterProviderOptions {
+	return func(c *ClusterProvider) {
+		c.dbmAPIService = service
+	}
+}
+
 // validateProvider 验证 ClusterProvider 必要字段
 func (c *ClusterProvider) validateProvider() error {
 	if c.clusterMetaProvider == nil {
@@ -168,6 +186,10 @@ func (c *ClusterProvider) validateProvider() error {
 	}
 	if c.ClusterTagProvider == nil {
 		return errors.New("ClusterTagProvider is required")
+	}
+	// 新增dbmAPIService验证
+	if c.dbmAPIService == nil {
+		return errors.New("dbmAPIService is required")
 	}
 	return nil
 }
@@ -201,7 +223,6 @@ func (c *ClusterProvider) CreateCluster(ctx *commentity.DbsContext, request *cor
 	if err := c.checkClusterVersion(request); err != nil {
 		return err
 	}
-
 	// 检查是否重复创建
 	k8sClusterConfig, err := c.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
 	if err != nil {
@@ -219,12 +240,10 @@ func (c *ClusterProvider) CreateCluster(ctx *commentity.DbsContext, request *cor
 		return dbserrors.NewK8sDbsError(dbserrors.CreateClusterError,
 			fmt.Errorf("集群 %s 已存在，请勿重复创建", request.ClusterName))
 	}
-
 	// 设置默认删除策略为 Delete
 	if request.TerminationPolicy == "" {
 		request.TerminationPolicy = coreconst.Delete
 	}
-
 	// 保存审计日志
 	addedRequestEntity, err := metautil.SaveAuditLog(c.reqRecordProvider, request, ctx.RequestType)
 	if err != nil {
@@ -234,7 +253,6 @@ func (c *ClusterProvider) CreateCluster(ctx *commentity.DbsContext, request *cor
 	if err != nil {
 		return dbserrors.NewK8sDbsError(dbserrors.CreateK8sClientError, err)
 	}
-
 	// 安装集群
 	values, err := c.installHelmRelease(request, k8sClient)
 	if err != nil {
@@ -253,24 +271,184 @@ func (c *ClusterProvider) CreateCluster(ctx *commentity.DbsContext, request *cor
 		}
 		return dbserrors.NewK8sDbsError(dbserrors.CreateClusterError, err)
 	}
-
 	// 保存集群元数据
 	clusterEntity, err := c.saveClusterCRMetaData(request, addedRequestEntity.RequestID, k8sClusterConfig.ID)
 	if err != nil {
 		return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
 	}
-
 	// 保存集群标签元数据
 	if len(request.Tags) > 0 {
 		if err = c.saveClusterTagsMeta(request, clusterEntity); err != nil {
 			return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
 		}
 	}
-
 	// 保存集群 release 元数据
 	if err = c.saveClusterReleaseMeta(request, k8sClusterConfig, values); err != nil {
 		return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
 	}
+	// 检查环境变量ASYNC_TO_DBM，控制是否启用异步处理
+	asyncToDBM := os.Getenv("ASYNC_TO_DBM")
+	if asyncToDBM == "true" {
+		c.asyncClusterCreated(clusterEntity)
+	}
+	return nil
+}
+
+// asyncClusterOperation 通用的异步集群操作函数，支持创建和删除操作
+func (c *ClusterProvider) asyncClusterOperation(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	operationType string,
+	syncFunc func(context.Context, *metaentity.K8sCrdClusterEntity) error,
+) {
+	// 创建带超时的context，避免异步任务无限期运行
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// 使用errgroup管理异步任务
+	g := &errgroup.Group{}
+
+	// 启动异步同步任务
+	g.Go(func() error {
+		return syncFunc(ctx, clusterEntity)
+	})
+
+	// 在单独的goroutine中等待任务完成并处理结果
+	go func() {
+		// 等待任务完成或context超时
+		select {
+		case <-ctx.Done():
+			// context超时或被取消
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				slog.Warn("同步集群"+operationType+"信息超时",
+					"k8s_cluster_name", clusterEntity.K8sClusterConfig.ClusterName,
+					"cluster_name", clusterEntity.ClusterName,
+					"namespace", clusterEntity.Namespace,
+					"timeout", "30s",
+				)
+			} else {
+				slog.Warn("同步集群"+operationType+"信息被取消",
+					"k8s_cluster_name", clusterEntity.K8sClusterConfig.ClusterName,
+					"cluster_name", clusterEntity.ClusterName,
+					"namespace", clusterEntity.Namespace,
+					"error", ctx.Err(),
+				)
+			}
+		default:
+			// 正常等待任务完成
+			if err := g.Wait(); err != nil {
+				slog.Error("同步集群"+operationType+"信息失败",
+					"k8s_cluster_name", clusterEntity.K8sClusterConfig.ClusterName,
+					"cluster_name", clusterEntity.ClusterName,
+					"namespace", clusterEntity.Namespace,
+					"error", err,
+				)
+			} else {
+				slog.Info("同步集群"+operationType+"信息成功",
+					"k8s_cluster_name", clusterEntity.K8sClusterConfig.ClusterName,
+					"cluster_name", clusterEntity.ClusterName,
+					"namespace", clusterEntity.Namespace,
+				)
+			}
+		}
+	}()
+}
+
+// asyncClusterCreated 同步集群创建信息到DBM
+func (c *ClusterProvider) asyncClusterCreated(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+) {
+	slog.Info("开始同步集群创建信息", "cluster_name", clusterEntity.ClusterName)
+	c.asyncClusterOperation(clusterEntity, "create", c.syncClusterCreatedWithContext)
+}
+
+// asyncClusterDeleted 同步集群删除信息到DBM
+// nolint: unused
+func (c *ClusterProvider) asyncClusterDeleted(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+) {
+	slog.Info("开始同步集群删除信息", "cluster_name", clusterEntity.ClusterName)
+	c.asyncClusterOperation(clusterEntity, "delete", c.syncClusterDeletedWithContext)
+}
+
+// syncClusterDeletedWithContext 带context的同步集群删除信息到DBM
+// nolint: unused
+func (c *ClusterProvider) syncClusterDeletedWithContext(
+	ctx context.Context,
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+) error {
+	// 检查context是否已取消
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("同步任务被取消: %w", ctx.Err())
+	default:
+	}
+
+	dbmClusterType, err := util.GetDbmClusterType(clusterEntity.AddonInfo.AddonType)
+	if err != nil {
+		return fmt.Errorf("未找到对应的 dbm cluster type: %w", err)
+	}
+
+	// 构建同步请求
+	syncRequest := &infreq.DeleteClusterRequest{
+		Name:        clusterEntity.ClusterName,
+		BkBizID:     clusterEntity.BkBizID,
+		ClusterType: dbmClusterType,
+	}
+
+	// 调用同步接口，支持context取消
+	response, err := c.dbmAPIService.SyncClusterDeleted(syncRequest)
+	if err != nil {
+		return fmt.Errorf("调用同步接口失败: %w", err)
+	}
+
+	if !response.Result {
+		return fmt.Errorf("DBM API返回同步失败: %s", response.Message)
+	}
+
+	return nil
+}
+
+// syncClusterCreatedWithContext 带context的同步集群创建信息到DBM
+func (c *ClusterProvider) syncClusterCreatedWithContext(
+	ctx context.Context,
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+) error {
+	// 检查context是否已取消
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("同步任务被取消: %w", ctx.Err())
+	default:
+	}
+
+	dbmClusterType, err := util.GetDbmClusterType(clusterEntity.AddonInfo.AddonType)
+	if err != nil {
+		return fmt.Errorf("未找到对应的 dbm cluster type: %w", err)
+	}
+
+	// 构建同步请求
+	syncRequest := &infreq.CreateClusterRequest{
+		Name:         clusterEntity.ClusterName,
+		Alias:        clusterEntity.ClusterAlias,
+		BkBizID:      clusterEntity.BkBizID,
+		ClusterType:  dbmClusterType,
+		ImmuteDomain: fmt.Sprintf("%d_%s_%s", clusterEntity.BkBizID, dbmClusterType, clusterEntity.ClusterName),
+		MajorVersion: clusterEntity.ServiceVersion,
+		Phase:        "online",
+		Status:       "normal",
+		Region:       "default",
+		Operator:     clusterEntity.CreatedBy,
+	}
+
+	// 调用同步接口，支持context取消
+	response, err := c.dbmAPIService.SyncClusterCreated(syncRequest)
+	if err != nil {
+		return fmt.Errorf("调用同步接口失败: %w", err)
+	}
+
+	if !response.Result {
+		return fmt.Errorf("DBM API返回同步失败: %s", response.Message)
+	}
+
 	return nil
 }
 
@@ -549,8 +727,9 @@ func (c *ClusterProvider) DeleteCluster(ctx *commentity.DbsContext, request *cor
 	if err = coreutil.UninstallClusterRelease(k8sClient, request.Namespace,
 		request.ClusterName, metav1.DeletePropagationBackground); err != nil {
 		return dbserrors.NewK8sDbsError(dbserrors.DeleteClusterError,
-			fmt.Errorf("清理 release 元数据失败: %w", err))
+			fmt.Errorf("删除集群 release 失败: %w", err))
 	}
+
 	return nil
 }
 

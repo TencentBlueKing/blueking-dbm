@@ -41,7 +41,25 @@ var pvcStorageUsageTemplate = `sum(vm_data_size_bytes_value{bcs_cluster_id="{{.C
 job="{{.JobName}}", namespace="{{.Namespace}}", pod="{{.PodName}}"})`
 
 // VMClusterMetricFetcher VictoriaMetrics 获取集群指标实现
-type VMClusterMetricFetcher struct{}
+type VMClusterMetricFetcher struct {
+	vmMetricServerHost string
+	vmMetricServerPort string
+}
+
+// NewVMClusterMetricFetcher 创建 VMClusterMetricFetcher 实例
+func NewVMClusterMetricFetcher() (*VMClusterMetricFetcher, error) {
+	host := env.GetString("VM_METRIC_SERVER_HOST", "localhost")
+	port := env.GetString("VM_METRIC_SERVER_PORT", "8080")
+
+	if host == "" || port == "" {
+		return nil, fmt.Errorf("VM metric server configuration is required")
+	}
+
+	return &VMClusterMetricFetcher{
+		vmMetricServerHost: host,
+		vmMetricServerPort: port,
+	}, nil
+}
 
 // buildPvcStorageUsagePromQL 构建获取 Pvc 使用量的查询 PromQL
 func (v *VMClusterMetricFetcher) buildPvcStorageUsagePromQL(params *ClusterMetricQueryParams) (string, error) {
@@ -64,9 +82,7 @@ func (v *VMClusterMetricFetcher) buildPvcStorageUsagePromQL(params *ClusterMetri
 
 // GetStorageUsage 获取存储使用量
 func (v *VMClusterMetricFetcher) GetStorageUsage(params *ClusterMetricQueryParams) (float64, error) {
-	vmMetricServerHost := env.GetString("VM_METRIC_SERVER_HOST", "localhost")
-	vmMetricServerPort := env.GetString("VM_METRIC_SERVER_PORT", "8080")
-	url := fmt.Sprintf(VMApiV1QueryPattern, vmMetricServerHost, vmMetricServerPort)
+	url := fmt.Sprintf(VMApiV1QueryPattern, v.vmMetricServerHost, v.vmMetricServerPort)
 	promQL, err := v.buildPvcStorageUsagePromQL(params)
 	if err != nil {
 		return 0, err

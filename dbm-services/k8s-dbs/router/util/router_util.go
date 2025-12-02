@@ -22,6 +22,7 @@ package util
 import (
 	"k8s-dbs/common/api"
 	coreprovider "k8s-dbs/core/provider"
+	"k8s-dbs/infrastructure/thirdapi"
 	metadbaccess "k8s-dbs/metadata/dbaccess"
 	metaprovider "k8s-dbs/metadata/provider"
 	"log/slog"
@@ -96,6 +97,7 @@ func BuildClusterProvider(db *gorm.DB) *coreprovider.ClusterProvider {
 		clusterProviderBuilder.WithReleaseMeta(coreAPIProviders.ClusterReleaseProvider),
 		clusterProviderBuilder.WithAddonMeta(coreAPIProviders.AddonMetaProvider),
 		clusterProviderBuilder.WithClusterTagsMeta(coreAPIProviders.ClusterTagProvider),
+		clusterProviderBuilder.WithDbmAPIService(coreAPIProviders.DbmAPIService),
 	)
 	if err != nil {
 		slog.Error("failed to build cluster provider", "error", err)
@@ -132,6 +134,7 @@ func BuildCoreAPIProviders(db *gorm.DB) (*CoreAPIProviders, error) {
 
 	clusterTagProvider := metaprovider.NewK8sCrdClusterTagProvider(metadbaccess.NewK8sCrdClusterTagDbAccess(db))
 
+	dbmAPIService := thirdapi.NewDbmAPIService()
 	return &CoreAPIProviders{
 		ClusterMetaProvider:    clusterMetaProvider,
 		ComponentMetaProvider:  componentMetaProvider,
@@ -141,6 +144,7 @@ func BuildCoreAPIProviders(db *gorm.DB) (*CoreAPIProviders, error) {
 		HelmRepoProvider:       helmRepoProvider,
 		AddonMetaProvider:      addonMetaProvider,
 		ClusterTagProvider:     clusterTagProvider,
+		DbmAPIService:          dbmAPIService,
 	}, nil
 }
 
@@ -154,6 +158,7 @@ type CoreAPIProviders struct {
 	HelmRepoProvider       metaprovider.AddonClusterHelmRepoProvider
 	AddonMetaProvider      metaprovider.K8sCrdStorageAddonProvider
 	ClusterTagProvider     metaprovider.K8sCrdClusterTagProvider
+	DbmAPIService          *thirdapi.DbmAPIService
 }
 
 // CustomRouterBuilder 自定义 Router 构建函数
