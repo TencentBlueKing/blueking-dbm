@@ -9,6 +9,8 @@ specific language governing permissions and limitations under the License.
 """
 from typing import List
 
+from django.db import transaction
+
 from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.ticket.models import Ticket
 
@@ -28,7 +30,21 @@ def write_recycle_hosts_into_ticket(ticket_id: int, hosts: List):
     hosts = HostInfoSerializer(hosts, many=True).data
     hosts = ResourceHandler.standardized_resource_host(hosts)
 
-    # 强制覆盖单据原本的recycle hosts信息
-    ticket = Ticket.objects.get(id=ticket_id)
-    ticket.details.update({"recycle_hosts": hosts})
-    ticket.save()
+    # 追加到单据的recycle hosts信息
+    # 绑定事务操作
+    with transaction.atomic():
+        # 使用 select_for_update 在事务内锁定这条记录，防止并发修改
+        ticket = Ticket.objects.select_for_update().get(id=ticket_id)
+
+        # 获取当前的 recycle_hosts 列表，如果不存在则使用空列表
+        current_hosts = ticket.details.get("recycle_hosts", [])
+
+        # 将新的 hosts 列表追加到现有列表中
+        # 注意：这里假设 hosts 本身也是一个列表。如果是单个元素，请用 [hosts]
+        updated_hosts = current_hosts + hosts
+
+        # 更新 details 字典中的 recycle_hosts 键
+        ticket.details["recycle_hosts"] = updated_hosts
+
+        # 保存到数据库
+        ticket.save()
