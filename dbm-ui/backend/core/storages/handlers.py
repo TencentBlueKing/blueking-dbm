@@ -44,6 +44,7 @@ class StorageHandler(object):
         TODO: 是否需要限制文件大小，比如文件太大就不支持提供文件内容，只提供url下载链接
         :param file_path_list: 文件列表
         """
+        file_path_list = list(set(file_path_list))
 
         file_content_list: List[Dict[str, Any]] = []
         resp = self.validate_response(self.storage.client.batch_download(file_path_list))
