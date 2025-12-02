@@ -20,6 +20,7 @@ from backend.db_report.models.sqlserver_check_report import (
     SqlserverCheckSysJobStatuReport,
     SqlserverCheckUserSyncReport,
 )
+from backend.flow.consts import SqlserverSyncMode
 from backend.flow.utils.sqlserver.sqlserver_bk_config import (
     get_module_infos,
     get_sqlserver_alarm_config,
@@ -172,7 +173,7 @@ class CheckAppSettingData(object):
         if cluster.cluster_type == ClusterType.SqlserverHA:
             sync_mode = SqlserverClusterSyncMode.objects.get(cluster_id=cluster.id).sync_mode
         else:
-            sync_mode = ""
+            sync_mode = SqlserverSyncMode.MIRRORING.value
 
         # 按照集群维度查询所有的实例，状态running中的
         for instance in cluster.storageinstance_set.filter(status=InstanceStatus.RUNNING):
