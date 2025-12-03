@@ -114,7 +114,7 @@ class _HCMApi(BaseApi):
 
         return has_uwork_hosts_map
 
-    def create_recycle(self, bk_host_ids: list):
+    def create_recycle(self, bk_host_ids: list, operator: str):
         params = {
             # 所有待回收的机器一定在资源池管控业务
             "bk_biz_id": get_resource_biz(),
@@ -122,8 +122,9 @@ class _HCMApi(BaseApi):
             "remark": "dbm auto create",
             # 回收策略固定是：立刻销毁
             "return_plan": {"cvm": "IMMEDIATE", "pm": "IMMEDIATE"},
+            "bk_username": operator,
         }
-        resp = self.create_biz_recycle(params=params)
+        resp = self.create_biz_recycle(params=params, use_param_user=True)
         return resp["info"][0]["order_id"]
 
     def create_apply(
