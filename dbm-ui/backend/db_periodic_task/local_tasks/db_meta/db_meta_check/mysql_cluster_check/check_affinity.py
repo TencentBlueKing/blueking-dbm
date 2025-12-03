@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging
+import math
 from collections import defaultdict
 from typing import Dict, List, Optional, Set
 
@@ -322,9 +323,7 @@ class MySQLAffinityChecker:
     ) -> tuple:
         """检查 CROS_SUBZONE 级别的 proxy 分布"""
         proxy_count = sum(machines_map.values())
-        # 单个园区最多允许 n*0.5 向上取整的数量
-        max_proxies_per_subzone = proxy_count // 2 + 1
-
+        max_proxies_per_subzone = math.ceil(proxy_count * 0.5)
         # 检查城市I
         if expected_city_ids:
             for proxy_obj in proxy_instances:
@@ -352,8 +351,8 @@ class MySQLAffinityChecker:
                     proxy_details.append(f"{proxy_obj.machine.ip} ({city_name}/{subzone}/{_('机架ID')}:{rack_id})")
             proxies_info = ", ".join(proxy_details)
 
-            if sub_proxy_count >= max_proxies_per_subzone:
-                msg = _("亲和性违规: {} 个 proxies 在园区(id:{}) 中达到或超过限制 {}\n详情: {}").format(
+            if sub_proxy_count > max_proxies_per_subzone:
+                msg = _("亲和性违规: {} 个 proxies 在园区(id:{}) 中超过限制 {}\n详情: {}").format(
                     sub_proxy_count, subzone_id, max_proxies_per_subzone, proxies_info
                 )
                 return msg, ReportStateType.ABNORMAL
@@ -437,8 +436,8 @@ class MySQLAffinityChecker:
         基于 proxy 数量和机架信息，判断是否满足跨机架要求
 
         检查两个条件：
-        1. 机架数量 >= limit (n_proxy // 2 + 1)
-        2. 每个机架的机器数量 <= limit (n_proxy // 2 + 1)
+        1. 机架数量 >= limit (n_proxy * 0.5 向上取整)
+        2. 每个机架的机器数量 <= limit (n_proxy * 0.5 向上取整)
 
         Args:
             n_proxy: proxy 总数
@@ -448,11 +447,10 @@ class MySQLAffinityChecker:
         Returns:
             tuple: (is_ok, limit, violating_rack)
             - is_ok: 是否满足所有要求
-            - limit: 限制值 (n_proxy // 2 + 1)，既是最小机架数，也是每个机架最大机器数
+            - limit: 限制值 (n_proxy * 0.5 向上取整)，既是最小机架数，也是每个机架最大机器数
             - violating_rack: 第一个违规的机架 (rack_id, count)，无违规时为 None
         """
-        limit = n_proxy // 2 + 1
-
+        limit = math.ceil(n_proxy * 0.5)
         # 检查机架数量是否足够
         if n_rack < limit:
             return False, limit, None
