@@ -35,7 +35,7 @@
       }"
       style="flex: 1">
       <EditableInput
-        v-model="modelValue.master_domain"
+        v-model.trim="modelValue.master_domain"
         :placeholder="t('请输入集群域名')"
         @change="handleChange" />
       <BkLoading
@@ -70,15 +70,24 @@
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
 
+  interface ClusterBase {
+    cluster_type?: ClusterTypes;
+    id: number;
+    master_domain: string;
+  }
+
+  type WithRelatedClusterItem = {
+    region?: string;
+    related_clusters: ClusterBase[];
+    spec_id_list?: number[];
+  } & ClusterBase &
+    Partial<TendbhaModel>;
+
   interface Props {
     /**
      * 是否允许重复
      */
     allowRepeat?: boolean;
-    /**
-     * 编辑完成后的回调
-     */
-    callback?: () => void;
     /**
      * 选择器tab集群类型，不传默认 TENDBHA
      */
@@ -88,32 +97,19 @@
      * @example 单节点升级的场景，多加一个请求参数role: orphan  表示以orphan维度查询关联集群
      */
     role?: 'proxy' | 'orphan';
-    selected: {
-      cluster_type: ClusterTypes;
-      id: number;
-      master_domain: string;
-    }[];
+    selected: WithRelatedClusterItem[];
   }
 
-  type Emits = (e: 'batch-edit', list: any[]) => void;
+  interface Emits {
+    (e: 'batch-edit', list: any[]): void;
+    (e: 'request-success'): void;
+  }
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
-  const modelValue = defineModel<
-    {
-      cluster_type: ClusterTypes;
-      id: number;
-      master_domain: string;
-      region?: string;
-      related_clusters: {
-        id: number;
-        master_domain: string;
-      }[];
-      spec_id_list?: number[];
-    } & Partial<TendbhaModel>
-  >({
+  const modelValue = defineModel<WithRelatedClusterItem>({
     required: true,
   });
 
@@ -126,14 +122,48 @@
     }
     return [ClusterTypes.TENDBHA];
   });
-  const selectedClusters = computed<Record<string, TendbhaModel[]>>(() => ({
-    [ClusterTypes.TENDBHA]: props.selected.filter(
-      (item) => item.cluster_type === ClusterTypes.TENDBHA,
-    ) as TendbhaModel[],
-    [ClusterTypes.TENDBSINGLE]: props.selected.filter(
-      (item) => item.cluster_type === ClusterTypes.TENDBSINGLE,
-    ) as TendbhaModel[],
-  }));
+
+  const clusterMap = computed(() => {
+    return props.selected.reduce<Record<string, ClusterBase>>((acc, cluster) => {
+      Object.assign(acc, {
+        [cluster.master_domain]: cluster,
+      });
+      cluster.related_clusters.forEach((item) => {
+        Object.assign(acc, {
+          [item.master_domain]: cluster, // 关联集群映射到所属集群
+        });
+      });
+      return acc;
+    }, {});
+  });
+
+  const selectedClusters = computed<Record<string, TendbhaModel[]>>(() => {
+    const clusterMemo = new Set<string>();
+    const result = {
+      [ClusterTypes.TENDBHA]: [] as TendbhaModel[],
+      [ClusterTypes.TENDBSINGLE]: [] as TendbhaModel[],
+    };
+
+    const addCluster = (cluster: TendbhaModel) => {
+      if (!clusterMemo.has(cluster.master_domain)) {
+        const targetList =
+          cluster.cluster_type === ClusterTypes.TENDBHA
+            ? result[ClusterTypes.TENDBHA]
+            : result[ClusterTypes.TENDBSINGLE];
+        targetList.push(cluster);
+        clusterMemo.add(cluster.master_domain);
+      }
+    };
+
+    props.selected.forEach((cluster) => {
+      addCluster(cluster as TendbhaModel);
+      cluster.related_clusters.forEach((item) => {
+        addCluster(item as TendbhaModel);
+      });
+    });
+
+    return result;
+  });
 
   const rules = [
     {
@@ -143,9 +173,20 @@
     },
     {
       message: t('目标集群重复'),
-      trigger: 'change',
+      trigger: 'blur',
       validator: (value: string) =>
         props.allowRepeat || !value || props.selected.filter((item) => item.master_domain === value).length < 2,
+    },
+    {
+      message: '',
+      trigger: 'blur',
+      validator: (value: string) => {
+        const target = clusterMap.value[value].master_domain;
+        if (target && target !== value) {
+          return t('目标集群是集群target的关联集群_请勿重复添加', { target });
+        }
+        return true;
+      },
     },
     {
       message: t('目标集群不存在'),
@@ -159,10 +200,7 @@
     onSuccess: (data) => {
       const [currentCluster] = data;
       if (currentCluster) {
-        modelValue.value.related_clusters = currentCluster.related_clusters.map((item) => ({
-          id: item.id,
-          master_domain: item.master_domain,
-        }));
+        modelValue.value.related_clusters = currentCluster.related_clusters;
       }
     },
   });
@@ -179,7 +217,8 @@
             .map((item) => item.spec_config.id)
             .filter((specId) => Boolean(specId)),
         });
-        props.callback?.();
+        emits('request-success');
+
         queryRelatedClusters({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           cluster_ids: [currentCluster.id],

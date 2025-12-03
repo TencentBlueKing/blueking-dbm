@@ -129,9 +129,9 @@
         id: 0,
         master_domain: '',
         region: '',
-        related_clusters: [] as RowData['cluster']['related_clusters'],
-        spec_id_list: [] as RowData['cluster']['spec_id_list'],
-      },
+        related_clusters: [],
+        spec_id_list: [],
+      } as RowData['cluster'],
       data.cluster,
     ),
     newSlave: Object.assign(
@@ -178,19 +178,6 @@
   });
 
   const rules = {
-    'cluster.master_domain': [
-      {
-        message: '',
-        trigger: 'blur',
-        validator: (value: string) => {
-          const target = clusterMap.value[value];
-          if (target && target !== value) {
-            return t('目标集群是集群target的关联集群_请勿重复添加', { target });
-          }
-          return true;
-        },
-      },
-    ],
     'newSlave.ip': [
       {
         message: t('IP 重复'),
@@ -270,7 +257,7 @@
           resource_spec: {
             new_slave: {
               hosts: [item.newSlave],
-              spec_id: item.cluster.spec_id_list[0],
+              spec_id: item.cluster?.spec_id_list?.[0] || 0,
             },
           },
         })),
