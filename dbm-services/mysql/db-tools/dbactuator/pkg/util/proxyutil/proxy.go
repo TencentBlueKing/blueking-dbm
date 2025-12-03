@@ -44,7 +44,7 @@ func (s StartProxyParam) Start(port int) (err error) {
 	if _, err = osutil.ExecShellCommand(false, scmd); err != nil {
 		return err
 	}
-	return util.Retry(util.RetryConfig{Times: 6, DelayTime: 5 * time.Second}, func() error { return s.checkStart() })
+	return util.Retry(util.RetryConfig{Times: 30, DelayTime: 1 * time.Second}, s.checkStart)
 }
 
 func (s StartProxyParam) StartAsMySQL(port int) (err error) {
@@ -56,7 +56,7 @@ func (s StartProxyParam) StartAsMySQL(port int) (err error) {
 	if _, err = osutil.ExecShellCommand(false, scmd); err != nil {
 		return err
 	}
-	return s.checkStart() //util.Retry(util.RetryConfig{Times: 3, DelayTime: 1 * time.Second}, func() error { return s.checkStart() })
+	return s.checkStart()
 }
 
 // checkStart 检查mysql proxy 是否启成功
@@ -120,7 +120,44 @@ func KillDownProxy(port int) (err error) {
 			}
 		}
 	}
-	return nil
+
+	// 检查进程是否被成功关闭
+	proxyCnfName := util.GetProxyCnfName(port)
+	logger.Info("开始检查proxy进程是否完全关闭, proxy_cnf:%s, port:%d", proxyCnfName, port)
+
+	// 等待进程退出，最多等待30秒
+	ot := time.NewTimer(30 * time.Second)
+	defer ot.Stop()
+	tk := time.NewTicker(500 * time.Millisecond)
+	defer tk.Stop()
+
+	checkCount := 0
+	for {
+		select {
+		case <-ot.C:
+			logger.Error("proxy进程关闭超时, proxy_cnf:%s, port:%d, check_count:%d", proxyCnfName, port, checkCount)
+			return fmt.Errorf("kill proxy timeout after 30s, proxy_cnf:%s, port:%d", proxyCnfName, port)
+		case <-tk.C:
+			checkCount++
+			// 检查进程是否还存在
+			checkCMD := fmt.Sprintf("ps -ef | grep mysql-proxy |grep %s |grep -v grep|wc -l", proxyCnfName)
+			checkOutput, checkErr := osutil.ExecShellCommand(false, checkCMD)
+			if checkErr != nil {
+				logger.Info("执行进程检查命令失败, command:%s, error:%s", checkCMD, checkErr.Error())
+				continue
+			}
+
+			processCount := strings.TrimSpace(checkOutput)
+			if processCount == "0" {
+				logger.Info("proxy进程已成功关闭, proxy_cnf:%s, port:%d, check_count:%d", proxyCnfName, port, checkCount)
+				// 等待1秒确保进程完全清理
+				time.Sleep(500 * time.Millisecond)
+				return nil
+			}
+			logger.Info("proxy进程仍在运行, proxy_cnf:%s, port:%d, process_count:%s, check_count:%d",
+				proxyCnfName, port, processCount, checkCount)
+		}
+	}
 }
 
 // ProxyVersionParse  proxy version 解析
