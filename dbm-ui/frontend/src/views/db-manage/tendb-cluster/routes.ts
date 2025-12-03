@@ -30,7 +30,6 @@ const tendbClusterInstanceRoute = {
   path: 'instance-list',
   name: 'tendbClusterInstance',
   meta: {
-    fullscreen: true,
     navName: t('TendbCluster分布式集群_实例视图'),
   },
   component: () => import('@views/db-manage/tendb-cluster/instance-list/Index.vue'),

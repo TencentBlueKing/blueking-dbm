@@ -115,10 +115,9 @@ const replicaSetInstanceRouters: RouteRecordRaw[] = [
     path: 'instance-list',
     name: 'mongodbReplicaSetInstanceList',
     meta: {
-      fullscreen: true,
       navName: t('【MongoDB】副本集集群实例视图'),
     },
-    component: () => import('@views/db-manage/mongodb/instance-list/Index.vue'),
+    component: () => import('@views/db-manage/mongodb/replica-set-instance-list/Index.vue'),
   },
 ];
 
@@ -160,10 +159,9 @@ const sharedClusterInstanceRouters: RouteRecordRaw[] = [
     path: 'instance-list',
     name: 'mongodbShareClusterInstanceList',
     meta: {
-      fullscreen: true,
       navName: t('【MongoDB】分片集群实例视图'),
     },
-    component: () => import('@views/db-manage/mongodb/instance-list/Index.vue'),
+    component: () => import('@views/db-manage/mongodb/shared-cluster-instance-list/Index.vue'),
   },
 ];
 

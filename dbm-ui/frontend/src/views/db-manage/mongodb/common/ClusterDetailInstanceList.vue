@@ -9,138 +9,71 @@
         @click="handleBatchRestart">
         {{ t('批量重启') }}
       </BkButton>
-      <BkDropdown
-        :popover-options="{
-          clickContentAutoHide: true,
-          hideIgnoreReference: true,
-        }">
-        <template #default="{ popoverShow }">
-          <BkButton
-            class="ml-8"
-            style="width: 105px">
-            {{ t('复制实例') }}
-            <DbIcon
-              :class="{ 'is-show': popoverShow }"
-              type="right-big" />
-          </BkButton>
-        </template>
-        <template #content>
-          <BkDropdownMenu>
-            <BkDropdownItem>
-              <BkButton
-                :disabled="selectedList.length < 1"
-                text
-                @click="handleCopySelectedInstance">
-                {{ t('已选实例') }}
-              </BkButton>
-            </BkDropdownItem>
-            <BkDropdownItem>
-              <BkButton
-                text
-                @click="handleCopyAbnormalInstance">
-                {{ t('异常实例') }}
-              </BkButton>
-            </BkDropdownItem>
-            <BkDropdownItem>
-              <BkButton
-                text
-                @click="handleCopyAllInstance">
-                {{ t('全部实例') }}
-              </BkButton>
-            </BkDropdownItem>
-          </BkDropdownMenu>
-        </template>
-      </BkDropdown>
-      <BkDropdown
-        :popover-options="{
-          clickContentAutoHide: true,
-          hideIgnoreReference: true,
-        }">
-        <template #default="{ popoverShow }">
-          <BkButton
-            class="ml-8"
-            style="width: 105px">
-            {{ t('复制 IP') }}
-            <DbIcon
-              :class="{ 'is-show': popoverShow }"
-              type="right-big" />
-          </BkButton>
-        </template>
-        <template #content>
-          <BkDropdownMenu>
-            <BkDropdownItem>
-              <BkButton
-                :disabled="selectedList.length < 1"
-                text
-                @click="handleCopySelectedIp">
-                {{ t('已选 IP') }}
-              </BkButton>
-            </BkDropdownItem>
-            <BkDropdownItem>
-              <BkButton
-                text
-                @click="handleCopyAbnormalIp">
-                {{ t('异常 IP') }}
-              </BkButton>
-            </BkDropdownItem>
-            <BkDropdownItem>
-              <BkButton
-                text
-                @click="handleAllIp">
-                {{ t('全部 IP') }}
-              </BkButton>
-            </BkDropdownItem>
-          </BkDropdownMenu>
-        </template>
-      </BkDropdown>
-      <DbSearchSelect
-        :data="searchSelectData"
-        :get-menu-list="getSearchMenuList"
+      <InstanceBatchCopy
+        class="ml-8"
+        field="instance_address"
+        :get-table-data="getBatchCopyData"
+        :selected="selectedList" />
+      <InstanceBatchCopy
+        class="ml-8"
+        field="ip"
+        :get-table-data="getBatchCopyData"
+        :selected="selectedList" />
+      <DbQuickSearch
+        v-model="quickSearchValue"
+        :data="quickSearchData"
         :placeholder="t('请输入或选择条件搜索')"
-        style="flex: 1; max-width: 560px; margin-left: auto"
-        unique-select
-        @change="handleSearchValueChange" />
+        style="width: 500px; margin-left: auto"
+        @change="handleQuickSearchChange" />
     </div>
     <DbTable
-      ref="dbTable"
+      ref="instanceTable"
       :data-source="dataSource"
+      :filter-value="quickSearchValue"
+      releate-url-query
+      row-key="id"
       selectable
-      @selection="handleSelectionChange">
-      <BkTableColumn
-        field="instance_address"
+      @filter-change="handleFilterChange"
+      @selection="handleSelection">
+      <TableColumn
+        col-key="instance_address"
         fixed="left"
-        :min-width="250"
+        :min-width="200"
         :title="t('实例')" />
-      <BkTableColumn
-        field="instance_domain"
+      <TableColumn
+        col-key="instance_domain"
         :min-width="300"
         :title="t('域名')">
-        <template #default="{ data }: { data: MongodbInstanceModel }">
-          {{ data.instance_domain || '--' }}
+        <template #default="{ row }: { row: MongodbInstanceModel }">
+          {{ row.instance_domain || '--' }}
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="shard"
-        :min-width="300"
-        :title="t('分片名')">
-        <template #default="{ data }: { data: MongodbInstanceModel }">
-          {{ data.shard || '--' }}
+      </TableColumn>
+      <TableColumn
+        col-key="shard"
+        :filter="columnFilter?.['shard']"
+        :title="t('分片名')"
+        :width="150">
+        <template #default="{ row }: { row: MongodbInstanceModel }">
+          {{ row.shard || '--' }}
         </template>
-      </BkTableColumn>
-      <InstanceListFieldColumn />
-      <BkTableColumn
-        field="action"
+      </TableColumn>
+      <InstanceListFieldColumn
+        :cluster-id="clusterId"
+        :cluster-type="clusterType" />
+      <TableColumn
+        col-key="action"
         fixed="right"
-        :title="t('操作')">
-        <template #default="{ data }: { data: MongodbInstanceModel }">
+        :title="t('操作')"
+        :width="60">
+        <template #default="{ row }: { row: MongodbInstanceModel }">
           <BkButton
             text
             theme="primary"
-            @click="handleRestart([data])">
+            @click="handleRestart([row])">
             {{ t('重启') }}
           </BkButton>
         </template>
-      </BkTableColumn>
+      </TableColumn>
     </DbTable>
   </div>
 </template>
@@ -152,14 +85,16 @@
   import MongodbInstanceModel from '@services/model/mongodb/mongodb-instance';
   import { createTicket } from '@services/source/ticket';
 
-  import { useTicketMessage } from '@hooks';
+  import { useInstanceColumnFilter, useInstanceQuickSearch, useTicketMessage, useUrlSearch } from '@hooks';
 
-  import { ClusterInstStatusKeys, ClusterTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import { InstanceListFieldColumn } from '@views/db-manage/common/cluster-details';
+  import DbTable from '@components/db-table/IndexNew.vue';
+
+  import { InstanceListFieldColumn, URL_INSTANCE_MEMO_KEY } from '@views/db-manage/common/cluster-details';
+  import InstanceBatchCopy from '@views/db-manage/common/instance-batch-copy/Index.vue';
   import useClusterInstanceList from '@views/db-manage/hooks/useClusterInstaceList';
-
-  import { execCopy, getSearchSelectorParams, messageWarn } from '@utils';
+  import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
 
   interface Props {
     clusterId: number;
@@ -169,51 +104,18 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
+  const route = useRoute();
+  const router = useRouter();
+  const { getSearchParams } = useUrlSearch();
   const ticketMessage = useTicketMessage();
 
   const requestHandler = useClusterInstanceList(props.clusterType);
-
-  const searchSelectData = [
-    {
-      id: 'instance',
-      name: t('实例'),
-    },
-    {
-      id: 'ip',
-      name: 'IP',
-    },
-    {
-      children: [
-        {
-          id: 'restoring',
-          name: t('恢复中'),
-        },
-        {
-          id: 'running',
-          name: t('运行中'),
-        },
-        {
-          id: 'unavailable',
-          name: t('不可用'),
-        },
-        {
-          id: 'upgrading',
-          name: t('升级中'),
-        },
-      ],
-      id: 'status',
-      multiple: true,
-      name: t('状态'),
-    },
-    {
-      id: 'role',
-      name: t('部署角色'),
-    },
-    {
-      id: 'version',
-      name: t('版本'),
-    },
-  ];
+  const { handleSelection, selectedList } = useClusterTableSelect<MongodbInstanceModel>();
+  const { quickSearchData, quickSearchValue } = useInstanceQuickSearch({ cluster_type: props.clusterType });
+  const { data: columnFilter } = useInstanceColumnFilter({
+    cluster_id: props.clusterId,
+    cluster_type: props.clusterType,
+  });
 
   const dataSource = (params: ServiceParameters<typeof requestHandler>) =>
     requestHandler({
@@ -222,27 +124,31 @@
       cluster_type: props.clusterType,
     });
 
-  const getSearchMenuList = (payload: { children: any[]; id: string }) => {
-    return Promise.resolve().then(() => {
-      if (payload.id === 'role') {
-        return _.uniqBy(
-          dbTable.value?.getData<MongodbInstanceModel>().map((item) => ({
-            id: item.role,
-            name: item.role,
-          })),
-          'id',
-        );
-      }
-      return payload.children || [];
-    });
-  };
-
-  const dbTable = useTemplateRef('dbTable');
-  const selectedList = shallowRef<MongodbInstanceModel[]>([]);
+  const instanceTableRef = useTemplateRef('instanceTable');
   const isRestartLoading = ref(false);
 
   const fetchData = () => {
-    dbTable.value?.fetchData();
+    instanceTableRef.value?.fetchData(quickSearchValue.value);
+    instanceTableRef.value?.clearSelected();
+  };
+
+  const getBatchCopyData = () => {
+    return instanceTableRef.value!.fetchAllData<MongodbInstanceModel>();
+  };
+
+  const handleQuickSearchChange = _.debounce(() => {
+    fetchData();
+    router.replace({
+      query: {
+        ...getSearchParams(),
+        [URL_INSTANCE_MEMO_KEY]: encodeURIComponent(JSON.stringify(quickSearchValue.value)),
+      },
+    });
+  }, 100);
+
+  const handleFilterChange = (filterValue: Record<string, string>) => {
+    quickSearchValue.value = filterValue;
+    fetchData();
   };
 
   const handleRestart = (data: MongodbInstanceModel[]) => {
@@ -294,64 +200,10 @@
     handleRestart(selectedList.value);
   };
 
-  const copyFieldData = (data: MongodbInstanceModel[], field: 'ip' | 'instance_address') => {
-    const result = data.map((item) => item[field]) || [];
-
-    if (result.length < 1) {
-      messageWarn(t('没有可复制数据'));
-      return;
-    }
-    execCopy(
-      result.join('\n'),
-      t('复制成功，共n条', {
-        n: result.length,
-      }),
-    );
-  };
-
-  const handleCopySelectedInstance = () => {
-    copyFieldData(selectedList.value, 'instance_address');
-  };
-
-  const handleCopyAbnormalInstance = () => {
-    copyFieldData(
-      _.filter(
-        dbTable.value?.getData<MongodbInstanceModel>() || [],
-        (item) => item.status !== ClusterInstStatusKeys.RUNNING,
-      ),
-      'instance_address',
-    );
-  };
-
-  const handleCopyAllInstance = () => {
-    copyFieldData(dbTable.value?.getData<MongodbInstanceModel>() || [], 'instance_address');
-  };
-
-  const handleCopySelectedIp = () => {
-    copyFieldData(selectedList.value, 'ip');
-  };
-
-  const handleCopyAbnormalIp = () => {
-    copyFieldData(
-      _.filter(
-        dbTable.value?.getData<MongodbInstanceModel>() || [],
-        (item) => item.status !== ClusterInstStatusKeys.RUNNING,
-      ),
-      'ip',
-    );
-  };
-
-  const handleAllIp = () => {
-    copyFieldData(dbTable.value?.getData<MongodbInstanceModel>() || [], 'ip');
-  };
-
-  const handleSearchValueChange = (payload: any) => {
-    dbTable.value?.fetchData(getSearchSelectorParams(payload));
-  };
-
-  const handleSelectionChange = (_: any[], selectList: MongodbInstanceModel[]) => {
-    selectedList.value = selectList;
-  };
+  onMounted(() => {
+    quickSearchValue.value = JSON.parse(decodeURIComponent(String(route.query[URL_INSTANCE_MEMO_KEY] || '{}')));
+    fetchData();
+  });
 </script>
 <style lang="less">
   .cluster-detail-instance-list-box {

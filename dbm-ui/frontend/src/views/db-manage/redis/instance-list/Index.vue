@@ -12,25 +12,11 @@
 -->
 
 <template>
-  <StretchLayout
-    :left-width="368"
-    name="RedisInstanceList">
-    <template #list>
-      <List v-model:instance-data="instanceData" />
-    </template>
-    <template
-      v-if="instanceData"
-      #right>
-      <Detail :instance-data="instanceData" />
-    </template>
-  </StretchLayout>
+  <InstanceList :cluster-type="ClusterTypes.REDIS_CLUSTER" />
 </template>
 
-<script setup lang="ts">
-  import StretchLayout from '@components/stretch-layout/StretchLayout.vue';
+<script setup lang="tsx">
+  import { ClusterTypes } from '@common/const';
 
-  import Detail from './components/detail/Index.vue';
-  import List from './components/list/Index.vue';
-
-  const instanceData = ref<{ clusterId: number; clusterType: string; instanceAddress: string; version: string }>();
+  import InstanceList from '@views/db-manage/redis/common/instance-list/Index.vue';
 </script>

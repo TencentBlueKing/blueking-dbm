@@ -36,7 +36,7 @@
             </span>
             <CountTag
               :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
-              role="cluster" />
+              role="instance" />
           </BkMenuItem>
         </BkSubmenu>
       </FunController>
@@ -73,7 +73,7 @@
             </span>
             <CountTag
               :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
-              role="cluster" />
+              role="instance" />
           </BkMenuItem>
         </BkSubmenu>
       </FunController>

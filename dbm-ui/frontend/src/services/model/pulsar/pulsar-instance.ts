@@ -17,7 +17,9 @@ import { ClusterTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
-export default class PulsarInstance {
+import InstanceBase from '../_instanceBase';
+
+export default class PulsarInstance extends InstanceBase {
   static PULSAR_REBOOT = 'PULSAR_REBOOT';
 
   static operationIconMap = {
@@ -38,7 +40,6 @@ export default class PulsarInstance {
   bk_svr_device_cls_name: string;
   cluster_id: number;
   cluster_type: ClusterTypes;
-  create_at: string;
   domain: string;
   host_info: HostInfo;
   id: number;
@@ -49,10 +50,10 @@ export default class PulsarInstance {
   related_clusters: InstanceRelatedCluster[];
   restart_at: string;
   role: string;
-  status: string;
   version: string;
 
   constructor(payload = {} as PulsarInstance) {
+    super(payload);
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
     this.bk_host_id = payload.bk_host_id;
@@ -63,7 +64,6 @@ export default class PulsarInstance {
     this.bk_svr_device_cls_name = payload.bk_svr_device_cls_name;
     this.cluster_id = payload.cluster_id;
     this.cluster_type = payload.cluster_type;
-    this.create_at = payload.create_at;
     this.restart_at = payload.restart_at;
     this.domain = payload.domain;
     this.host_info = payload.host_info;
@@ -74,7 +74,6 @@ export default class PulsarInstance {
     this.operations = payload.operations || [];
     this.related_clusters = payload.related_clusters || [];
     this.role = payload.role;
-    this.status = payload.status;
     this.version = payload.version;
   }
 
@@ -85,6 +84,7 @@ export default class PulsarInstance {
     }
     return false;
   }
+
   // 操作中的状态
   get operationRunningStatus() {
     if (this.operations.length < 1) {
@@ -100,6 +100,7 @@ export default class PulsarInstance {
   get operationStatusIcon() {
     return PulsarInstance.operationIconMap[this.operationRunningStatus];
   }
+
   // 操作中的状态描述文本
   get operationStatusText() {
     return PulsarInstance.operationTextMap[this.operationRunningStatus];
@@ -112,7 +113,6 @@ export default class PulsarInstance {
       tip: PulsarInstance.operationTextMap[item.ticket_type],
     }));
   }
-
   // 操作中的单据 ID
   get operationTicketId() {
     if (this.operations.length < 1) {
