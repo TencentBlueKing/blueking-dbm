@@ -41,7 +41,6 @@ import (
 	"github.com/shirou/gopsutil/disk"
 	"github.com/shirou/gopsutil/load"
 	"github.com/shirou/gopsutil/mem"
-	"gorm.io/gorm"
 
 	gopsutilnet "github.com/shirou/gopsutil/v4/net"
 )
@@ -53,17 +52,19 @@ type collector struct {
 	user        string
 	password    string
 	endpoint    *hanet.Endpoint
-	db          *gorm.DB
-	dbCloser    func()
+	db          *hamysql.GormDB
 }
 
 func (c *collector) open() (*haprobe.DbEvent, error) {
-	db, err := hamysql.New(
+	db, err := hamysql.NewGormDB(
 		hamysql.OptionProto(c.endpoint.Proto),
 		hamysql.OptionIP(c.endpoint.Host),
 		hamysql.OptionPort(c.endpoint.Port),
 		hamysql.OptionUser(c.user),
 		hamysql.OptionPassword(c.password),
+		hamysql.OptionSkipInitializeWithVersion(false),
+		hamysql.OptionDisableDatetimePrecision(true),
+		hamysql.OptionCharset(""),
 	)
 
 	if err != nil {
@@ -79,8 +80,7 @@ func (c *collector) open() (*haprobe.DbEvent, error) {
 		return event, err
 	}
 
-	c.db = db.DB()
-	sqlDb, err := c.db.DB()
+	sqlDb, err := db.DB().DB()
 
 	if err != nil {
 		event := &haprobe.DbEvent{
@@ -98,16 +98,13 @@ func (c *collector) open() (*haprobe.DbEvent, error) {
 	sqlDb.SetMaxOpenConns(3)
 	sqlDb.SetConnMaxLifetime(time.Minute * 3)
 
-	c.dbCloser = func() {
-		sqlDb.Close()
-	}
-
+	c.db = db
 	return nil, nil
 }
 
 func (c *collector) close() {
-	if c.dbCloser != nil {
-		c.dbCloser()
+	if c.db != nil {
+		c.db.Close()
 	}
 }
 
@@ -129,13 +126,20 @@ func (c *collector) obtainTendbClusterProxyStatus() (*haprobe.MySqlSpiderCtlStat
 }
 
 func (c *collector) obtainTendbHaProxyStatus() (*haprobe.MySqlProxyStatus, error) {
-	// TODO: implement get TendbHaProxy proxy status
-	return nil, nil
+	var backends []haprobe.MySqlProxyBackend
+	err := c.db.DB().Raw("select * from backends").Scan(&backends).Error
+
+	if err != nil {
+		logger.Warn("failed to get MySQL proxy status, errmsg: %s", err)
+		return nil, err
+	}
+
+	return &haprobe.MySqlProxyStatus{Backends: backends}, nil
 }
 
 func (c *collector) obtainGlobalStatus() (*haprobe.MySqlGlobalStatus, error) {
 	var statusResults []globalStatus
-	err := c.db.Raw("SHOW GLOBAL STATUS").Scan(&statusResults).Error
+	err := c.db.DB().Raw("SHOW GLOBAL STATUS").Scan(&statusResults).Error
 	if err != nil {
 		return nil, err
 	}
@@ -143,13 +147,15 @@ func (c *collector) obtainGlobalStatus() (*haprobe.MySqlGlobalStatus, error) {
 	dbStatus := convertToMySqlStatus(statusResults)
 
 	var version string
-	err = c.db.Raw("SELECT VERSION() as version").Scan(&version).Error
-	if err == nil {
-		dbStatus.Version = version
+	err = c.db.DB().Raw("SELECT VERSION() as version").Scan(&version).Error
+	if err != nil {
+		logger.Warn("failed to get mysql version, errmsg: %s", err)
+		return nil, err
 	}
+	dbStatus.Version = version
 
 	var portResult globalStatus
-	err = c.db.Raw("SHOW VARIABLES LIKE 'port'").Scan(&portResult).Error
+	err = c.db.DB().Raw("SHOW VARIABLES LIKE 'port'").Scan(&portResult).Error
 	if err != nil {
 		logger.Warn("failed to get mysql listen port, result: %s, errmsg: %s", portResult, err)
 		return nil, err

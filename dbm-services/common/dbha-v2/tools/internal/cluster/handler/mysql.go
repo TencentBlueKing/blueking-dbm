@@ -208,7 +208,7 @@ func (hdl *MysqlClusterHandler) switchAllProxiesBackend(proxyList []config.Proxy
 }
 
 // StopSlave stops slave replication
-func (hdl *MysqlClusterHandler) StopSlave(slaveDB *hamysql.DB) error {
+func (hdl *MysqlClusterHandler) StopSlave(slaveDB *hamysql.GormDB) error {
 	if slaveDB == nil {
 		return gerrors.New(gerrors.InvalidParameter, "ResetSlave got nil slaveDB")
 	}
@@ -225,7 +225,7 @@ func (hdl *MysqlClusterHandler) StopSlave(slaveDB *hamysql.DB) error {
 }
 
 // StartSlave starts slave replication
-func (hdl *MysqlClusterHandler) StartSlave(slaveDB *hamysql.DB) error {
+func (hdl *MysqlClusterHandler) StartSlave(slaveDB *hamysql.GormDB) error {
 	if slaveDB == nil {
 		return gerrors.New(gerrors.InvalidParameter, "StartSlave got nil slaveDB")
 	}
@@ -242,7 +242,7 @@ func (hdl *MysqlClusterHandler) StartSlave(slaveDB *hamysql.DB) error {
 }
 
 // ShowMasterStatus retrieves master status information
-func (hdl *MysqlClusterHandler) ShowMasterStatus(db *hamysql.DB) (*MasterStatusInfo, error) {
+func (hdl *MysqlClusterHandler) ShowMasterStatus(db *hamysql.GormDB) (*MasterStatusInfo, error) {
 	if db == nil {
 		return nil, gerrors.New(gerrors.InvalidParameter, "ShowMasterStatus got nil db")
 	}
@@ -261,7 +261,7 @@ func (hdl *MysqlClusterHandler) ShowMasterStatus(db *hamysql.DB) (*MasterStatusI
 }
 
 // ShowSlaveStatus retrieves slave status information
-func (hdl *MysqlClusterHandler) ShowSlaveStatus(slaveDB *hamysql.DB) (*SlaveStatusInfo, error) {
+func (hdl *MysqlClusterHandler) ShowSlaveStatus(slaveDB *hamysql.GormDB) (*SlaveStatusInfo, error) {
 	if slaveDB == nil {
 		return nil, gerrors.New(gerrors.InvalidParameter, "ShowSlaveStatus got nil slaveDB")
 	}
@@ -280,7 +280,7 @@ func (hdl *MysqlClusterHandler) ShowSlaveStatus(slaveDB *hamysql.DB) (*SlaveStat
 }
 
 // ResetSlave resets slave replication settings
-func (hdl *MysqlClusterHandler) ResetSlave(slaveDB *hamysql.DB) error {
+func (hdl *MysqlClusterHandler) ResetSlave(slaveDB *hamysql.GormDB) error {
 	if slaveDB == nil {
 		return gerrors.New(gerrors.InvalidParameter, "ResetSlave got nil slaveDB")
 	}
@@ -298,7 +298,7 @@ func (hdl *MysqlClusterHandler) ResetSlave(slaveDB *hamysql.DB) error {
 }
 
 func (hdl *MysqlClusterHandler) stopSlaveForMaster(ip string, port int) (string, uint64, error) {
-	masterDB, err := hamysql.New(
+	masterDB, err := hamysql.NewGormDB(
 		hamysql.OptionProto(MySQLProtocol),
 		hamysql.OptionIP(ip),
 		hamysql.OptionPort(port),
@@ -337,7 +337,7 @@ func (hdl *MysqlClusterHandler) stopSlaveForMaster(ip string, port int) (string,
 }
 
 func (hdl *MysqlClusterHandler) changeMasterForSlave(slaveIp string, slavePort int, changeMasterSQL string) error {
-	slaveDB, err := hamysql.New(
+	slaveDB, err := hamysql.NewGormDB(
 		hamysql.OptionProto(MySQLProtocol),
 		hamysql.OptionIP(slaveIp),
 		hamysql.OptionPort(slavePort),
@@ -374,7 +374,7 @@ func (hdl *MysqlClusterHandler) changeMasterForSlave(slaveIp string, slavePort i
 
 func (hdl *MysqlClusterHandler) checkSlaveStatus(slaveList []config.InstanceAddress, targetIp string, targetPort int) error {
 	for _, slave := range slaveList {
-		slaveDB, err := hamysql.New(
+		slaveDB, err := hamysql.NewGormDB(
 			hamysql.OptionProto(MySQLProtocol),
 			hamysql.OptionIP(slave.Host),
 			hamysql.OptionPort(slave.Port),

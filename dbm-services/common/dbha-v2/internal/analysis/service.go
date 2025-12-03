@@ -66,7 +66,7 @@ type Service struct {
 	discoveryCli *discovery.Client
 	regCli       *discovery.Registry
 	wflow        *workflow.Workflow
-	db           *hamysql.DB
+	db           *hamysql.GormDB
 	wg           sync.WaitGroup
 	etcdLogger   *zap.Logger
 	gormLogger   logger.Logger
@@ -230,7 +230,7 @@ func (s *Service) createStorage() error {
 		return gerrors.Newf(gerrors.InvalidConfiguration, "invalid storage configuration, %v", err)
 	}
 
-	db, err := hamysql.New(
+	db, err := hamysql.NewGormDB(
 		hamysql.OptionProto(epoint.Proto),
 		hamysql.OptionIP(epoint.Host),
 		hamysql.OptionPort(epoint.Port),

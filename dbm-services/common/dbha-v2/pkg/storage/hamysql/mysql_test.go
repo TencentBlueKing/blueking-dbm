@@ -41,7 +41,7 @@ func TestNew(t *testing.T) {
 	log.Println("user:", user)
 	log.Println("password:", password)
 
-	hadb, err := hamysql.New()
+	hadb, err := hamysql.NewGormDB()
 	if err != nil {
 		t.Fatalf("create mysql instance failed, errmsg(%v)", err)
 	}

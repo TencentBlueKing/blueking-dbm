@@ -25,19 +25,39 @@
 package hamysql
 
 import (
-	"fmt"
-
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 
+	"github.com/jmoiron/sqlx"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
 )
 
-func New(opts ...Option) (*DB, error) {
-	db := &DB{
-		opts: defaultOptions,
+type DBType interface {
+	gorm.DB | sqlx.DB
+}
+
+// Base the database base information
+type Base[T DBType] struct {
+	db    *T
+	opts  options
+	close func()
+}
+
+type GormDB struct {
+	Base[gorm.DB]
+}
+
+type SqlxDB struct {
+	Base[sqlx.DB]
+}
+
+func NewGormDB(opts ...Option) (*GormDB, error) {
+	db := &GormDB{
+		Base: Base[gorm.DB]{
+			opts: defaultOptions,
+		},
 	}
 
 	for _, opt := range opts {
@@ -46,7 +66,10 @@ func New(opts ...Option) (*DB, error) {
 		}
 	}
 
-	gormCfg := &gorm.Config{}
+	gormCfg := &gorm.Config{
+		DisableAutomaticPing: db.opts.disableAutomaticPing,
+	}
+
 	var gormLogger *logger.GormLogger
 	if db.opts.logger != nil {
 		gormLogger = logger.NewGormLogger(db.opts.logger, &gormlogger.Config{
@@ -58,67 +81,70 @@ func New(opts ...Option) (*DB, error) {
 		gormCfg.Logger = gormLogger
 	}
 
+	logger.Debug("dsn:%s", db.opts.DSN())
+
 	gdb, err := gorm.Open(mysql.New(db.opts.Config()), gormCfg)
-	if err == nil {
-		db.gdb = gdb
-		return db, nil
-	}
-
-	gdb, err = createDatabase(&db.opts)
 	if err != nil {
-		if db.opts.dbName == "" {
-			return nil, gerrors.NewE(gerrors.MysqlFailure, err)
-		}
-
-		return nil, gerrors.Newf(gerrors.MysqlFailure, "gorm open the db(%s) failure, %v", db.opts.dbName, err)
+		return nil, gerrors.Newf(gerrors.MysqlFailure, "failed to open the db:%s errmsg: %s", db.opts.dbName, err)
 	}
 
-	db.gdb = gdb
+	db.db = gdb
+	db.close = func() {
+		if sqlDb, err := db.db.DB(); err == nil {
+			sqlDb.Close()
+		}
+	}
+
 	return db, nil
 }
 
-type DB struct {
-	gdb  *gorm.DB
-	opts options
+func NewSqlxDB(opts ...Option) (*SqlxDB, error) {
+	db := &SqlxDB{
+		Base: Base[sqlx.DB]{
+			opts: defaultOptions,
+		},
+	}
+
+	for _, opt := range opts {
+		if err := opt.apply(&db.opts); err != nil {
+			return nil, err
+		}
+	}
+
+	sqlDb, err := sqlx.Open("mysql", db.opts.DSN())
+	if err != nil {
+		return nil, gerrors.Newf(gerrors.MysqlFailure, "failed to open the db:%s errmsg: %s", db.opts.dbName, err)
+	}
+
+	if _, err = sqlDb.Queryx("select version();"); err != nil {
+		return nil, gerrors.Newf(gerrors.MysqlFailure, "check that the connection to db:%s is abnormal, errmsg: %s",
+			db.opts.dbName, err)
+	}
+
+	db.db = sqlDb
+	db.close = func() {
+		sqlDb.Close()
+	}
+
+	return db, nil
 }
 
-func (db DB) DB() *gorm.DB {
-	return db.gdb
+func (db Base[T]) DB() *T {
+	return db.db
 }
 
-func (db DB) Host() string {
+func (db Base[T]) Host() string {
 	return db.opts.ip
 }
 
-func (db DB) Port() int {
+func (db Base[T]) Port() int {
 	return db.opts.port
 }
 
-func (db DB) Close() {
-	if db.gdb == nil {
+func (db Base[T]) Close() {
+	if db.close == nil {
 		return
 	}
 
-	if sqlDb, err := db.gdb.DB(); err == nil {
-		sqlDb.Close()
-	}
-}
-
-func createDatabase(opts *options) (*gorm.DB, error) {
-	gdb, err := gorm.Open(mysql.New(opts.RootDBConfig()), &gorm.Config{})
-	if err != nil {
-		return nil, gerrors.Newf(gerrors.MysqlFailure, "failed to connect the mysql, %v", err)
-	}
-
-	if opts.dbName == "" {
-		return gdb, nil
-	}
-
-	sql := fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci", opts.dbName)
-	err = gdb.Exec(sql).Error
-	if err != nil {
-		return nil, gerrors.Newf(gerrors.MysqlFailure, "failed to create the database(%s), %v", opts.dbName, err)
-	}
-
-	return gorm.Open(mysql.New(opts.Config()), &gorm.Config{})
+	db.close()
 }

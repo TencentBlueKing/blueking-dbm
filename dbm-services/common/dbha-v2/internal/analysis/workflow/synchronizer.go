@@ -48,7 +48,7 @@ const (
 )
 
 type Synchronizer struct {
-	db           *hamysql.DB
+	db           *hamysql.GormDB
 	cli          *dbm.Client
 	wg           sync.WaitGroup
 	discoveryCli *discovery.Client
