@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 
 import logging
 from collections import defaultdict
-from math import ceil
 from typing import Dict, List, Optional, Set
 
 from django.db.models import Q
@@ -282,7 +281,14 @@ class MySQLAffinityChecker:
 
         subzone_id = list(racks_map.keys())[0]
         rack_count = len(list(racks_map.values())[0])
-        ok, min_required_racks = cls._cross_rack_check_and_get_limits(proxy_count, rack_count)
+
+        # 计算该园区内每个机架的机器数量
+        rack_machine_counts = {}
+        for (sz_id, r_id), ips in ips_map.items():
+            if sz_id == subzone_id:
+                rack_machine_counts[r_id] = len(ips)
+
+        ok, limit, violating_rack = cls._cross_rack_check_and_get_limits(proxy_count, rack_count, rack_machine_counts)
         if not ok:
             # 收集该园区内所有 proxy 的详细信息
             proxy_details = []
@@ -294,9 +300,19 @@ class MySQLAffinityChecker:
                     rack_id = proxy_obj.machine.bk_rack_id
                     proxy_details.append(f"{proxy_obj.machine.ip} ({city_name}/{subzone}/{_('机架ID')}:{rack_id})")
             proxies_info = ", ".join(proxy_details)
-            msg = _("亲和性违规: {} 个 proxies 在园区 {} 中分布在 {} 个机架，期望至少 {} 个机架\n详情: {}").format(
-                proxy_count, subzone_id, rack_count, min_required_racks, proxies_info
-            )
+
+            # 根据不同的违规类型生成错误信息
+            if rack_count < limit:
+                msg = _("亲和性违规: {} 个 proxies 在园区 {} 中分布在 {} 个机架，期望至少 {} 个机架\n详情: {}").format(
+                    proxy_count, subzone_id, rack_count, limit, proxies_info
+                )
+            elif violating_rack:
+                r_id, cnt = violating_rack
+                msg = _("亲和性违规: {} 个 proxies 在园区 {} 中，机架机器数达到或超过限制 {}\n" "超限机架: {}\n详情: {}").format(
+                    proxy_count, subzone_id, limit, _("机架ID {} 有 {} 台").format(r_id, cnt), proxies_info
+                )
+            else:
+                msg = _("亲和性违规: {} 个 proxies 在园区 {} 中分布不符合要求\n详情: {}").format(proxy_count, subzone_id, proxies_info)
             return msg, ReportStateType.WARNING
         return None, ReportStateType.NORMAL
 
@@ -307,7 +323,7 @@ class MySQLAffinityChecker:
         """检查 CROS_SUBZONE 级别的 proxy 分布"""
         proxy_count = sum(machines_map.values())
         # 单个园区最多允许 n*0.5 向上取整的数量
-        max_proxies_per_subzone = ceil(proxy_count * 0.5) + 1
+        max_proxies_per_subzone = proxy_count // 2 + 1
 
         # 检查城市I
         if expected_city_ids:
@@ -336,18 +352,36 @@ class MySQLAffinityChecker:
                     proxy_details.append(f"{proxy_obj.machine.ip} ({city_name}/{subzone}/{_('机架ID')}:{rack_id})")
             proxies_info = ", ".join(proxy_details)
 
-            if sub_proxy_count > max_proxies_per_subzone:
-                msg = _("亲和性违规: {} 个 proxies 在园区(id:{}) 中超过限制 {}\n详情: {}").format(
+            if sub_proxy_count >= max_proxies_per_subzone:
+                msg = _("亲和性违规: {} 个 proxies 在园区(id:{}) 中达到或超过限制 {}\n详情: {}").format(
                     sub_proxy_count, subzone_id, max_proxies_per_subzone, proxies_info
                 )
                 return msg, ReportStateType.ABNORMAL
 
+            # 计算该园区内每个机架的机器数量
+            rack_machine_counts = {}
+            for (sz_id, r_id), ips in ips_map.items():
+                if sz_id == subzone_id:
+                    rack_machine_counts[r_id] = len(ips)
+
             rack_count = len(rack_set)
-            ok, min_required_racks = cls._cross_rack_check_and_get_limits(sub_proxy_count, rack_count)
+            ok, limit, violating_rack = cls._cross_rack_check_and_get_limits(
+                sub_proxy_count, rack_count, rack_machine_counts
+            )
             if not ok:
-                msg = _("亲和性违规: {} 个 proxies 在园区(id:{}) 中分布在 {} 个机架，期望至少 {} 个机架\n详情: {}").format(
-                    sub_proxy_count, subzone_id, rack_count, min_required_racks, proxies_info
-                )
+                if rack_count < limit:
+                    msg = _("亲和性违规: {} 个 proxies 在园区(id:{}) 中分布在 {} 个机架，期望至少 {} 个机架\n详情: {}").format(
+                        sub_proxy_count, subzone_id, rack_count, limit, proxies_info
+                    )
+                elif violating_rack:
+                    r_id, cnt = violating_rack
+                    msg = _("亲和性违规: {} 个 proxies 在园区(id:{}) 中，机架机器数达到或超过限制 {}\n" "超限机架: {}\n详情: {}").format(
+                        sub_proxy_count, subzone_id, limit, _("机架ID {} 有 {} 台").format(r_id, cnt), proxies_info
+                    )
+                else:
+                    msg = _("亲和性违规: {} 个 proxies 在园区(id:{}) 中分布不符合要求\n详情: {}").format(
+                        sub_proxy_count, subzone_id, proxies_info
+                    )
                 return msg, ReportStateType.WARNING
 
         return None, ReportStateType.NORMAL
@@ -359,7 +393,16 @@ class MySQLAffinityChecker:
         for subzone_id, rack_set in racks_map.items():
             rack_count = len(rack_set)
             sub_proxy_count = machines_map[subzone_id]
-            ok, min_required_racks = cls._cross_rack_check_and_get_limits(sub_proxy_count, rack_count)
+
+            # 计算该园区内每个机架的机器数量
+            rack_machine_counts = {}
+            for (sz_id, r_id), ips in ips_map.items():
+                if sz_id == subzone_id:
+                    rack_machine_counts[r_id] = len(ips)
+
+            ok, limit, violating_rack = cls._cross_rack_check_and_get_limits(
+                sub_proxy_count, rack_count, rack_machine_counts
+            )
             if not ok:
                 # 收集该园区内的 proxy 详细信息
                 proxy_details = []
@@ -370,16 +413,57 @@ class MySQLAffinityChecker:
                         rack_id = proxy_obj.machine.bk_rack_id
                         proxy_details.append(f"{proxy_obj.machine.ip} ({city_name}/{subzone}/{_('机架ID')}:{rack_id})")
                 proxies_info = ", ".join(proxy_details)
-                msg += _("亲和性违规: {} 个 proxies 在园区(id:{}) 中分布在 {} 个机架，期望至少 {} 个机架\n详情: {}\n").format(
-                    sub_proxy_count, subzone_id, rack_count, min_required_racks, proxies_info
-                )
+
+                if rack_count < limit:
+                    msg += _("亲和性违规: {} 个 proxies 在园区(id:{}) 中分布在 {} 个机架，期望至少 {} 个机架\n详情: {}\n").format(
+                        sub_proxy_count, subzone_id, rack_count, limit, proxies_info
+                    )
+                elif violating_rack:
+                    r_id, cnt = violating_rack
+                    msg += _("亲和性违规: {} 个 proxies 在园区(id:{}) 中，机架机器数达到或超过限制 {}\n" "超限机架: {}\n详情: {}\n").format(
+                        sub_proxy_count, subzone_id, limit, _("机架ID {} 有 {} 台").format(r_id, cnt), proxies_info
+                    )
+                else:
+                    msg += _("亲和性违规: {} 个 proxies 在园区(id:{}) 中分布不符合要求\n详情: {}\n").format(
+                        sub_proxy_count, subzone_id, proxies_info
+                    )
         return msg, ReportStateType.ABNORMAL if msg else ReportStateType.NORMAL
 
     @classmethod
-    def _cross_rack_check_and_get_limits(cls, n_proxy, n_rack) -> tuple:
-        """基于 proxy 数量和机架数量，判断是否满足跨机架要求"""
-        min_required_racks = ceil(n_proxy * 0.5) + 1
-        return n_rack >= min_required_racks, min_required_racks
+    def _cross_rack_check_and_get_limits(
+        cls, n_proxy: int, n_rack: int, rack_machine_counts: Optional[Dict[any, int]] = None
+    ) -> tuple:
+        """
+        基于 proxy 数量和机架信息，判断是否满足跨机架要求
+
+        检查两个条件：
+        1. 机架数量 >= limit (n_proxy // 2 + 1)
+        2. 每个机架的机器数量 <= limit (n_proxy // 2 + 1)
+
+        Args:
+            n_proxy: proxy 总数
+            n_rack: 机架数量
+            rack_machine_counts: 每个机架的机器数量字典 {rack_id: count}，可选
+
+        Returns:
+            tuple: (is_ok, limit, violating_rack)
+            - is_ok: 是否满足所有要求
+            - limit: 限制值 (n_proxy // 2 + 1)，既是最小机架数，也是每个机架最大机器数
+            - violating_rack: 第一个违规的机架 (rack_id, count)，无违规时为 None
+        """
+        limit = n_proxy // 2 + 1
+
+        # 检查机架数量是否足够
+        if n_rack < limit:
+            return False, limit, None
+
+        # 检查每个机架的机器数量是否超限，发现第一个违规即返回
+        if rack_machine_counts:
+            for rack_id, count in rack_machine_counts.items():
+                if count > limit:
+                    return False, limit, (rack_id, count)
+
+        return True, limit, None
 
     @classmethod
     def _validate_backends_affinity(
