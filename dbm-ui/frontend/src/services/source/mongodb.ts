@@ -15,7 +15,6 @@ import BizConfTopoTreeModel from '@services/model/config/biz-conf-topo-tree';
 import MongodbModel from '@services/model/mongodb/mongodb';
 import MongodbDetailModel from '@services/model/mongodb/mongodb-detail';
 import MongodbInstanceModel from '@services/model/mongodb/mongodb-instance';
-import MongodbInstanceDetailModel from '@services/model/mongodb/mongodb-instance-detail';
 import MongodbMachineModel from '@services/model/mongodb/mongodb-machine';
 import type { ListBase } from '@services/types';
 
@@ -167,8 +166,8 @@ export function retrieveMongoInstanceDetail(params: {
   port?: string;
 }) {
   return http
-    .get<MongodbInstanceDetailModel>(`${getRootPath()}/retrieve_instance/`, params)
-    .then((data) => new MongodbInstanceDetailModel(data));
+    .get<MongodbInstanceModel>(`${getRootPath()}/retrieve_instance/`, params)
+    .then((data) => new MongodbInstanceModel(data));
 }
 
 /**

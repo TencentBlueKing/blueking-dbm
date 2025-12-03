@@ -170,7 +170,6 @@ const redisInstanceListRoute = {
   path: 'instance-list',
   name: 'DatabaseRedisInstanceList',
   meta: {
-    fullscreen: true,
     navName: t('Redis 集群实例视图'),
   },
   component: () => import('@views/db-manage/redis/instance-list/Index.vue'),
@@ -180,7 +179,6 @@ const redisHaInstanceListRoute = {
   path: 'instance-ha-list',
   name: 'DatabaseRedisHaInstanceList',
   meta: {
-    fullscreen: true,
     navName: t('Redis 主从实例视图'),
   },
   component: () => import('@views/db-manage/redis/instance-ha-list/Index.vue'),

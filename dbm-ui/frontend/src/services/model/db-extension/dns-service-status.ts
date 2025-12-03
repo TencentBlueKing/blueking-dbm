@@ -11,8 +11,6 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import { clusterInstStatus, ClusterInstStatusKeys } from '@common/const';
-
 import { utcDisplayTime } from '@utils';
 
 import { t } from '@/locales';
@@ -40,12 +38,6 @@ export default class DnsServiceStatus {
 
   get isAccessDisplay() {
     return this.is_access ? t('是') : t('否');
-  }
-
-  get statusInfo() {
-    return (
-      clusterInstStatus[this.status as ClusterInstStatusKeys] || clusterInstStatus[ClusterInstStatusKeys.UNAVAILABLE]
-    );
   }
 
   get updateAtDisplay() {

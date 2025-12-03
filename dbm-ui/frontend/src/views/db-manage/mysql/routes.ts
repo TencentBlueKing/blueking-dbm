@@ -149,7 +149,6 @@ const haRoutes: RouteRecordRaw[] = [
         path: 'instance-list',
         name: 'DatabaseTendbhaInstance',
         meta: {
-          fullscreen: true,
           navName: t('MySQL主从集群_实例视图'),
         },
         component: () => import('@views/db-manage/mysql/ha-instance-list/Index.vue'),
