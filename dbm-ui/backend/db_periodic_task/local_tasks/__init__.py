@@ -16,6 +16,7 @@ from backend.db_periodic_task.constants import PeriodicTaskType  # isort:skip
 # 再导入各个任务模块
 from backend.db_periodic_task.local_tasks.backup_files_expire import *
 from backend.db_periodic_task.local_tasks.check_expired_job_users import *
+from backend.db_periodic_task.local_tasks.db_dirty import *
 from backend.db_periodic_task.local_tasks.db_meta import *
 from backend.db_periodic_task.local_tasks.db_monitor import *
 from backend.db_periodic_task.local_tasks.db_proxy import *
