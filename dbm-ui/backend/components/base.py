@@ -129,6 +129,7 @@ class DataAPI(object):
         @param {int} cache_time 缓存时间
         @param {int} default_timeout 默认超时时间
         @param {int} max_retry_times 最大自动重试次数
+        @param {bool} use_param_user 是否使用参数中的user
         """
         self.base = base
         self.url = f'{base.rstrip("/")}/{url.lstrip("/")}'
@@ -137,7 +138,7 @@ class DataAPI(object):
         self.ssl = ssl
         self.default_return_value = default_return_value
         self.freeze_params = freeze_params
-
+        self.use_param_user = False
         self.before_request = before_request
         self.after_request = after_request
 
@@ -166,6 +167,7 @@ class DataAPI(object):
         headers=None,
         current_retry_times=0,
         retry_times=None,
+        use_param_user=False,
     ):
         """
         调用传参
@@ -179,6 +181,7 @@ class DataAPI(object):
         if headers is None:
             headers = {}
         self.timeout = timeout or self.default_timeout
+        self.use_param_user = use_param_user
         self.max_retry_times = retry_times or self.max_retry_times
         self.request_id = None
 
@@ -428,8 +431,11 @@ class DataAPI(object):
             "bk_app_secret": params.pop("bk_app_secret", env.SECRET_KEY),
             "bk_username": params.get("bk_username", "Anonymous"),
         }
-        if use_admin or self.is_backend_request(local_request):
+        if use_admin:
             # 使用管理员/平台身份调用接口
+            bkapi_auth_headers["bk_username"] = env.DEFAULT_USERNAME
+        elif self.is_backend_request(local_request) and not self.use_param_user:
+            # 后台调用(且不明确用户)，使用管理员/平台身份调用接口
             bkapi_auth_headers["bk_username"] = env.DEFAULT_USERNAME
         elif local_request and local_request.COOKIES:
             # 根据不同环境，传递认证信息
