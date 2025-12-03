@@ -28,7 +28,8 @@ from backend.flow.utils.mysql.mysql_version_parse import mysql_version_parse
 logger = logging.getLogger("flow")
 
 # 需要检查的参数及其关闭状态的值
-UPGRADE_CHECK_PARAMS = ["log_bin_compress", "binlog_checksum"]
+# UPGRADE_CHECK_PARAMS = ["log_bin_compress", "binlog_checksum"]
+UPGRADE_CHECK_PARAMS = ["log_bin_compress"]
 PARAM_OFF_VALUES = ["0", "off", "OFF", "NONE", "none", ""]
 
 # 升级到 MySQL 8.0 需要的最低 tlinux 版本
