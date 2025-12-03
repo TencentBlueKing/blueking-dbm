@@ -21,8 +21,7 @@
         :key="tableKey"
         ref="table"
         class="mt-16 mb-20"
-        :model="formData.tableData"
-        :rules="rules">
+        :model="formData.tableData">
         <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
@@ -182,22 +181,6 @@
       return acc;
     }, {});
   });
-
-  const rules = {
-    'cluster.master_domain': [
-      {
-        message: '',
-        trigger: 'blur',
-        validator: (value: string) => {
-          const target = clusterMap.value[value];
-          if (target && target !== value) {
-            return t('目标集群是集群target的关联集群_请勿重复添加', { target });
-          }
-          return true;
-        },
-      },
-    ],
-  };
 
   useTicketDetail<Mysql.ResourcePool.ProxyConfChange>(TicketTypes.MYSQL_PROXY_CONF_CHANGE, {
     onSuccess(ticketDetail) {
