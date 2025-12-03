@@ -120,18 +120,18 @@ func UpdateClusterMeta(
 	clusterMetaProvider metaprovider.K8sCrdClusterProvider,
 	dbsCtx *commentity.DbsContext,
 	request *coreentity.Request,
-) error {
+) (*metaentity.K8sCrdClusterEntity, error) {
 	clusterEntity, err := clusterMetaProvider.FindByParams(&metaentity.ClusterQueryParams{
 		K8sClusterConfigID: dbsCtx.K8sClusterConfigID,
 		ClusterName:        request.ClusterName,
 		Namespace:          request.Namespace,
 	})
 	if err != nil {
-		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError,
+		return nil, dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError,
 			fmt.Errorf("检索集群 %s 元数据失败 %w ", request.ClusterName, err))
 	}
 	if clusterEntity == nil {
-		return dbserrors.NewK8sDbsError(dbserrors.GetClusterError,
+		return nil, dbserrors.NewK8sDbsError(dbserrors.GetClusterError,
 			fmt.Errorf("集群 %s 不存在", request.ClusterName))
 	}
 	if request.BkUserName != "" {
@@ -145,10 +145,10 @@ func UpdateClusterMeta(
 	}
 	_, err = clusterMetaProvider.UpdateCluster(clusterEntity)
 	if err != nil {
-		return dbserrors.NewK8sDbsError(dbserrors.UpdateMetaDataError,
+		return nil, dbserrors.NewK8sDbsError(dbserrors.UpdateMetaDataError,
 			fmt.Errorf("更新集群 %s 元数据失败 %w ", request.ClusterName, err))
 	}
-	return nil
+	return clusterEntity, nil
 }
 
 // UpdateClusterLastUpdatedV2 v2版本 更新 cluster 元数据最近一次更新时间和更新人
