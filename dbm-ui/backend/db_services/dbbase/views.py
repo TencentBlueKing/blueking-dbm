@@ -100,6 +100,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
     action_permission_map = {
         (
             "verify_duplicated_cluster_name",
+            "query_cluster_instance_count",
             "check_instances",
         ): [],
         (

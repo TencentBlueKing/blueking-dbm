@@ -261,8 +261,11 @@ def add_ticket_audit_event(ticket_id):
 
     # 获取单据执行相关的iam资源
     action = BuilderFactory.ticket_type__iam_action.get(ticket.ticket_type)
-    resource_meta = action.related_resource_types[0] if action.related_resource_types else None
+    if not action:
+        return
+
     # 如果资源不为集群类型，则忽略
+    resource_meta = action.related_resource_types[0] if action.related_resource_types else None
     if not issubclass(resource_meta.__class__, ClusterResourceMeta):
         return
 

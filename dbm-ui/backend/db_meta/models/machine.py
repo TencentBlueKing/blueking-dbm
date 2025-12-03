@@ -109,6 +109,7 @@ class Machine(AuditedModel):
                             cluster_domain=cluster.immute_domain,
                             db_type=ClusterType.cluster_type_to_db_type(cluster.cluster_type),
                             # tendbcluster中扩展了proxy的类型，需要特殊处理
+                            instance_host=self.ip,
                             instance_role=tendb_cluster_spider_ext.spider_role
                             if tendb_cluster_spider_ext
                             else "proxy",
@@ -128,6 +129,7 @@ class Machine(AuditedModel):
                             cluster_domain=storage.machine.ip,
                             cluster_type=storage.cluster_type,
                             db_type=ClusterType.cluster_type_to_db_type(storage.cluster_type),
+                            instance_host=self.ip,
                             instance_role=storage.instance_role,
                             instance_port=str(storage.port),
                         )
@@ -143,6 +145,7 @@ class Machine(AuditedModel):
                         cluster_domain=cluster.immute_domain,
                         cluster_type=cluster.cluster_type,
                         db_type=ClusterType.cluster_type_to_db_type(cluster.cluster_type),
+                        instance_host=self.ip,
                         instance_role=storage.instance_role,
                         instance_port=str(storage.port),
                     )

@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 from collections import defaultdict
 from typing import Dict, List, Tuple
 
@@ -26,6 +27,8 @@ from backend.flow.models import FlowTree
 from backend.iam_app.dataclass.resources import ResourceEnum
 from backend.iam_app.handlers.permission import Permission
 from backend.ticket.models import Ticket
+
+logger = logging.getLogger("root")
 
 # 缓存已经授权过的资源属性
 __cache_resource_attr: Dict[str, List[Tuple]] = defaultdict(list)
@@ -48,8 +51,11 @@ def post_save_grant_iam(resource_meta, model, instance, creator, created):
         return
 
     # 新建关联属性授权
-    Permission(username="admin").grant_creator_actions_attr(resource, creator)
-    __cache_resource_attr[resource.type].append(attr_tuple)
+    try:
+        Permission(username="admin").grant_creator_actions_attr(resource, creator)
+        __cache_resource_attr[resource.type].append(attr_tuple)
+    except Exception as e:
+        logger.error(f"Grant creator actions attr failed: {e}")
 
 
 @receiver(post_save, sender=FlowTree)

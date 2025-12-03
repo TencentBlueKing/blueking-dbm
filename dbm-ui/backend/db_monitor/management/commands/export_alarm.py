@@ -142,6 +142,7 @@ class Command(BaseCommand):
             strategy_template["source"] = "dbm"
             strategy_template["bk_biz_id"] = ""
             strategy_template["priority"] = TargetPriority.PLATFORM.value
+            strategy_template["actions"] = []
 
             # 平台策略仅开启基于分派通知
             strategy_template["notice"]["options"]["assign_mode"] = ["by_rule"]

@@ -24,7 +24,6 @@ from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components import BKMonitorV3Api
 from backend.configuration.constants import DBType
-from backend.db_meta.models import AppCache
 from backend.db_services.redis.capacity_evaluate_service.util import UNIFY_QUERY_PARAMS
 from backend.db_services.redis.redis_keystat_report.filters import (
     KeyStatRecordDetailFilter,
@@ -240,6 +239,5 @@ class KeyStatReportDetailsViewSet(viewsets.SystemViewSet):
             wb=wb, sheet_name=_("大Key排行榜"), data_dict__list=rank_data, headers=rank_headers, match_header=True
         )
 
-        biz_name = AppCache.get_biz_name(bk_biz_id)
         db_type = DBType.Redis
-        return ExcelHandler.response(wb, f"{biz_name}({bk_biz_id}){db_type}_keystat_analysis.xlsx")
+        return ExcelHandler.response(wb, f"{bk_biz_id}_{db_type}_keystat_analysis.xlsx")

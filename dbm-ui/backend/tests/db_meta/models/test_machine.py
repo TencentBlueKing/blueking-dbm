@@ -46,9 +46,11 @@ class TestMachine:
         dbm_meta = machine.dbm_meta
         assert dbm_meta == {
             "version": "v2",
-            "content": "H4sIAAAAAAAC/9WPUQrCMAyGrzLyLNINfPFN8RYiJWsrDtemth04yu5uMkT0CAYC+f8vCUkFQ95TgH"
-            "1Tl00DZsqFPKtzBYyRCzgdD8CE1WBFd0rtlEQnthl5wiVtyeMga+CKd6f9nB+jfsOt7ZHzu73M0Ulz"
-            "ccH2NxRk+4+7Tos3hFwwGKcTjSuJiZ7zD4mUipCWL2qBf/jHwxUsl+UFcz1vj4wBAAA=",
+            "content": "H4sIAAAAAAAC/92PYQrCMAyFrzLyW0Y3EMF/irc"
+            "QKV1b2XBtalvBMnZ3kynirmBDoe99eSWZQKNz6GFfTfOm"
+            "Av1IGR2p8wQqBHrA6XgAIqQGw7oVYiv4tGzrkRI2SoNODfw"
+            "NXNXNSlfSfZQfWJtO0f1tzyVYbs7Wm65XjEz3dZc0e4NPWXlt"
+            "ZY8pM2naXS2omhWNOC65EPFZViRgfOdo3gZow/9bS8B8mV/wuIJ5yAEAAA==",
         }
 
         # 将Base64字符串解码回压缩的字节数据
@@ -69,6 +71,7 @@ class TestMachine:
                     "cluster_domain": "fake_mysql_cluster.dba.db",
                     "cluster_type": "tendbha",
                     "db_type": "mysql",
+                    "instance_host": "127.0.0.1",
                     "instance_role": "proxy",
                     "instance_port": "10001",
                 },
@@ -78,6 +81,7 @@ class TestMachine:
                     "cluster_domain": "fake_mysql_cluster.dba.db",
                     "cluster_type": "tendbha",
                     "db_type": "mysql",
+                    "instance_host": "127.0.0.1",
                     "instance_role": "proxy",
                     "instance_port": "10000",
                 },

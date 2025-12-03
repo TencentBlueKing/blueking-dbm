@@ -130,6 +130,7 @@ class _BKMonitorV3Api(BaseApi):
             method="POST",
             url="app/user_group/save/",
             description=_("保存用户组"),
+            default_timeout=120,
         )
         self.save_duty_rule = self.generate_data_api(
             method="POST",

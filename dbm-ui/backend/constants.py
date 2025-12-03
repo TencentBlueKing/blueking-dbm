@@ -72,6 +72,7 @@ class CommonHostDBMeta:
     cluster_domain: str
     cluster_type: str
     db_type: str
+    instance_host: str
     instance_role: str
     instance_port: str
 
