@@ -26,19 +26,19 @@ from backend.utils.string import base64_encode
 cpl = re.compile("<ctx>(?P<context>.+?)</ctx>")
 
 cenos_script_content = """
-    #/bin/bash 
-    FOUND=$(grep nofile /etc/security/limits.conf |grep -v "#") 
-    if [ ! -z "$FOUND" ]; then 
-        sed -i '/ nofile /s/^/#/' /etc/security/limits.conf 
-    fi 
+    #/bin/bash
+    FOUND=$(grep nofile /etc/security/limits.conf |grep -v "#")
+    if [ ! -z "$FOUND" ]; then
+        sed -i '/ nofile /s/^/#/' /etc/security/limits.conf
+    fi
     PKGS=("perl" "perl-Digest-MD5" "perl-Test-Simple" "perl-DBI" "perl-DBD-MySQL" "perl-Data-Dumper" "perl-Encode" "perl-Time-HiRes" "perl-JSON")
-    for pkg in  ${PKGS[@]} 
-    do 
-        if rpm -q ${pkg} &> /dev/null;then 
-            echo "$pkg already install" 
-            continue 
-        fi 
-        yum install -y ${pkg}   
+    for pkg in  ${PKGS[@]}
+    do
+        if rpm -q ${pkg} &> /dev/null;then
+            echo "$pkg already install"
+            continue
+        fi
+        yum install -y ${pkg}
     done
     ret=`perldoc -l Digest::MD5`
     if [[  $ret =~ "No documentation found" ]]
@@ -128,7 +128,7 @@ class MySQLOsInitComponent(Component):
 # 异步 I/O（AIO）操作的最大并发请求数
 # fs.aio-max-nr=1024000
 os_sysctl_init = """
-    #/bin/bash 
+    #/bin/bash
     egrep "^mysql" /etc/group >& /dev/null
     if [ $? -ne 0 ]
     then
@@ -139,7 +139,7 @@ os_sysctl_init = """
     then
             useradd -m -d /home/mysql -g 202 -G users -u 30019 mysql
             chage -M 99999 mysql
-            if [ ! -d /home/mysql ]; 
+            if [ ! -d /home/mysql ];
             then
                     mkdir -p /home/mysql
             fi
@@ -280,7 +280,7 @@ class SysInitComponent(Component):
 
 
 get_os_sys_param = """
-#!/bin/bash 
+#!/bin/bash
     sys_max_open_file=`cat /proc/sys/fs/file-max`
     user_max_open_file=`ulimit -n`
     glibc_version=$(ldd --version | head -n 1 | awk '{print $NF}')
@@ -325,13 +325,17 @@ class GetOsSysParamComponent(Component):
 class CleanDataBakDirSvr(BkJobService):
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
-        script_content = """ 
+        script_content = """
         echo "clean mysqllog bak dir"
         find /data/ -type d -name "mysqllog_2*_bak_*"  -exec rm -rf {} + || true
         find /data/mysqldata/ -mindepth 1 -maxdepth 1 -type d   ! -regex '.*/200[0-9][0-9]$' -exec rm -rf {} + || true
         find /data1/mysqldata/ -mindepth 1 -maxdepth 1 -type d   ! -regex '.*/200[0-9][0-9]$' -exec rm -rf {} + || true
-        rm -rf /data/dbbak || true
-        rm -rf /data1/dbbak || true
+        find /data/dbbak -type f ! \( -name "*.log" -o -name "*.err" \) -delete 2>/dev/null || true
+        find /data/dbbak -depth -type d -empty -delete 2>/dev/null || true
+        find /data1/dbbak -type f ! \( -name "*.log" -o -name "*.err" \) -delete 2>/dev/null || true
+        find /data1/dbbak -depth -type d -empty -delete 2>/dev/null || true
+        find /data/dbbak -mindepth 1 -maxdepth 1 -type d -ctime +3 -exec rm -rf {} + 2>/dev/null || true
+        find /data1/dbbak -mindepth 1 -maxdepth 1 -type d -ctime +3 -exec rm -rf {} + 2>/dev/null || true
         ps -ef | grep 'db.*exporter' | grep -v grep | awk '{print $2}' | while read PID
         do
             export_install_path=$(pwdx "${PID}" 2>/dev/null | awk '{print $2}')
