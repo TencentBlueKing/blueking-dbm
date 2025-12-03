@@ -1,15 +1,16 @@
 package exporter
 
 import (
+	"encoding/json"
+	"fmt"
+	"os"
+
 	"dbm-services/common/go-pubpkg/logger"
 	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
 	reversemysqldef "dbm-services/common/reverseapi/define/mysql"
 	"dbm-services/common/reverseapi/pkg/core"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
-	"encoding/json"
-	"fmt"
-	"os"
 )
 
 type exporterConfig struct {
@@ -71,6 +72,7 @@ func GenConfig(bkCloudId int64, nginxAddrs []string, ports ...int) error {
 
 		if isSpiderMaster {
 			cfg.Port += 1000
+			cfg.InstanceRole = "tdbctl"
 			err = genOne(&cfg)
 			if err != nil {
 				logger.Error(err.Error())
