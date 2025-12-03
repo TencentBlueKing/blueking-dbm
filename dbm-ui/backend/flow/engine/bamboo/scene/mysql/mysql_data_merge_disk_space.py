@@ -4,7 +4,6 @@ from collections import defaultdict
 from django.utils.translation import gettext as _
 
 from backend.db_meta.models import Cluster
-from backend.db_periodic_task.local_tasks.db_meta.sync_cluster_stat import query_capacity_for_clusters
 from backend.flow.engine.bamboo.scene.mysql.common.statsdb_client import DB_QUERY_TEMPLATE, StatsDBClient
 
 logger = logging.getLogger("root")
@@ -179,6 +178,8 @@ def get_disk_size(bk_biz_id: int, domains: dict) -> (dict, list):
     no_stats = []
     for cluster_type, immute_domains in domains.items():
         if immute_domains:
+            from backend.db_periodic_task.local_tasks.db_meta.sync_cluster_stat import query_capacity_for_clusters
+
             disk, no_data = query_capacity_for_clusters(bk_biz_id, cluster_type, list(set(immute_domains)))
             cluster_cap_bytes.update(disk)
             no_stats.extend(no_data)
