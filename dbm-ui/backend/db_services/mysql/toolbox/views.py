@@ -27,6 +27,7 @@ from backend.db_services.mysql.toolbox.serializers import GetSpiderVersionModule
 from backend.db_services.mysql.toolbox.serializers import (
     ChangeClusterSpecSerializer,
     GetStorageVersionModulesSerializer,
+    MysqlDiskSpace,
     MySQLRollbackExerciseByClusterSerializer,
     QueryPkgListByCompareVersionSerializer,
     QuerySpiderPkgListByCompareVersionSerializer,
@@ -35,6 +36,7 @@ from backend.db_services.mysql.toolbox.serializers import (
 )
 from backend.db_services.mysql.toolbox.storage_upgrade_tool import get_storage_version_modules_api
 from backend.db_services.mysql.toolbox.upgrade_tool import get_spider_version_modules_api
+from backend.flow.engine.bamboo.scene.mysql.mysql_data_merge_disk_space import mysql_data_merge_disk_space
 from backend.flow.engine.controller.mysql_backup_data_recovery_exercise import MySQLBackupDataRecoveryController
 from backend.flow.utils.dns_manage import DnsManage
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
@@ -239,6 +241,22 @@ class ToolboxViewSet(viewsets.SystemViewSet):
             return Response(
                 {"root_id": root_id, "result": False, "message": _("回档演练异常: {}").format(str(e))}, status=500
             )
+
+    @common_swagger_auto_schema(
+        operation_summary=_("待办处理"),
+        request_body=MysqlDiskSpace(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=MysqlDiskSpace)
+    def mysql_disk_space(self, request, *args, **kwargs):
+        """
+        评估 MySQL数据融合磁盘空间大小
+        """
+        validated_data = self.params_validate(self.get_serializer_class())
+        check_data = mysql_data_merge_disk_space(
+            validated_data["bk_biz_id"], validated_data["migrations"], validated_data["factor"]
+        )
+        return Response(data=check_data)
 
 
 class TendbHaSlaveInstanceAddDomainSet(viewsets.SystemViewSet):
