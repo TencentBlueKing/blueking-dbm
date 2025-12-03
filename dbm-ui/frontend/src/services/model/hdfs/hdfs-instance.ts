@@ -17,7 +17,9 @@ import { ClusterTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
-export default class HdfsInstance {
+import InstanceBase from '../_instanceBase';
+
+export default class HdfsInstance extends InstanceBase {
   static HDFS_REBOOT = 'HDFS_REBOOT';
 
   static operationIconMap = {
@@ -40,7 +42,6 @@ export default class HdfsInstance {
   cluster_name: string;
   cluster_type: ClusterTypes;
   cluster_type_name: string;
-  create_at: string;
   db_module_id: number;
   db_module_name: string;
   host_info: HostInfo;
@@ -60,10 +61,10 @@ export default class HdfsInstance {
   role: string;
   slave_domain: string;
   spec_config: InstanceListSpecConfig;
-  status: string;
   version: string;
 
   constructor(payload = {} as HdfsInstance) {
+    super(payload);
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
     this.bk_host_id = payload.bk_host_id;
@@ -116,15 +117,16 @@ export default class HdfsInstance {
     }
     return operation.ticket_type;
   }
+
   // 操作中的状态 icon
   get operationStatusIcon() {
     return HdfsInstance.operationIconMap[this.operationRunningStatus];
   }
+
   // 操作中的状态描述文本
   get operationStatusText() {
     return HdfsInstance.operationTextMap[this.operationRunningStatus];
   }
-
   get operationTagTips() {
     return this.operations.map((item) => ({
       icon: HdfsInstance.operationIconMap[item.ticket_type],

@@ -2,11 +2,11 @@ import type { HostInfo, InstanceListOperation, InstanceListSpecConfig, InstanceR
 
 import { ClusterTypes } from '@common/const';
 
-import { isRecentDays, utcDisplayTime } from '@utils';
-
 import { t } from '@locales/index';
 
-export default class MongodbInstance {
+import InstanceBase from '../_instanceBase';
+
+export default class MongodbInstance extends InstanceBase {
   static MONGODB_DESTROY = 'MONGODB_DESTROY';
   static MONGODB_DISABLE = 'MONGODB_DISABLE';
   static MONGODB_ENABLE = 'MONGODB_ENABLE';
@@ -45,7 +45,6 @@ export default class MongodbInstance {
   cluster_id: number;
   cluster_name: string;
   cluster_type: ClusterTypes;
-  create_at: string;
   db_module_id: number;
   db_module_name: string;
   host_info: HostInfo;
@@ -57,16 +56,19 @@ export default class MongodbInstance {
   machine_type: string;
   master_domain: string;
   operations: InstanceListOperation[];
+  permission: {
+    mongodb_view: boolean;
+  };
   port: number;
   related_clusters: InstanceRelatedCluster[];
   role: string;
   shard: string;
   slave_domain: string;
   spec_config: InstanceListSpecConfig;
-  status: 'unavailable' | 'running';
   version: string;
 
   constructor(payload = {} as MongodbInstance) {
+    super(payload);
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
     this.bk_host_id = payload.bk_host_id;
@@ -78,7 +80,6 @@ export default class MongodbInstance {
     this.cluster_id = payload.cluster_id;
     this.cluster_name = payload.cluster_name;
     this.cluster_type = payload.cluster_type;
-    this.create_at = payload.create_at;
     this.db_module_id = payload.db_module_id;
     this.db_module_name = payload.db_module_name;
     this.host_info = payload.host_info || {};
@@ -87,6 +88,7 @@ export default class MongodbInstance {
     this.instance_domain = payload.instance_domain;
     this.instance_name = payload.instance_name;
     this.ip = payload.ip;
+    this.permission = payload.permission || {};
     this.machine_type = payload.machine_type;
     this.master_domain = payload.master_domain;
     this.operations = payload.operations || [];
@@ -96,7 +98,6 @@ export default class MongodbInstance {
     this.shard = payload.shard;
     this.slave_domain = payload.slave_domain;
     this.spec_config = payload.spec_config;
-    this.status = payload.status;
     this.version = payload.version;
   }
 
@@ -104,18 +105,10 @@ export default class MongodbInstance {
     return this.cluster_type === 'MongoReplicaSet' ? t('副本集') : t('分片集群');
   }
 
-  get createAtDisplay() {
-    return utcDisplayTime(this.create_at);
-  }
-
   get dbStatusConfigureObj() {
     const text = MongodbInstance.statusMap[this.status] || '--';
     const theme = MongodbInstance.themes[this.status] || 'danger';
     return { text, theme };
-  }
-
-  get isNew() {
-    return isRecentDays(this.create_at, 24 * 3);
   }
 
   get isRebooting() {
