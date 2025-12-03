@@ -17,8 +17,7 @@
       <EditableTable
         ref="table"
         class="mb-20"
-        :model="formData.tableData"
-        :rules="rules">
+        :model="formData.tableData">
         <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
@@ -135,6 +134,7 @@
       id: number;
       master_domain: string;
       related_clusters: {
+        cluster_type: ClusterTypes;
         id: number;
         master_domain: string;
       }[];
@@ -216,22 +216,6 @@
       return acc;
     }, {});
   });
-
-  const rules = {
-    'cluster.master_domain': [
-      {
-        message: '',
-        trigger: 'blur',
-        validator: (value: string) => {
-          const target = clusterMap.value[value];
-          if (target && target !== value) {
-            return t('目标集群是集群target的关联集群_请勿重复添加', { target });
-          }
-          return true;
-        },
-      },
-    ],
-  };
 
   useTicketDetail<Mysql.ResourcePool.MigrateUpgrade>(TicketTypes.MYSQL_MIGRATE_UPGRADE, {
     onSuccess(ticketDetail) {
