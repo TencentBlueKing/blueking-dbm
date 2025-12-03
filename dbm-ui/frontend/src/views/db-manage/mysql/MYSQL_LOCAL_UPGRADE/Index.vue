@@ -20,8 +20,7 @@
         :key="tableKey"
         ref="table"
         class="mb-20"
-        :model="formData.tableData"
-        :rules="rules">
+        :model="formData.tableData">
         <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
@@ -88,12 +87,14 @@
   </UpgradeWrapper>
 </template>
 <script lang="ts" setup>
+  import _ from 'lodash';
   import { useTemplateRef } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
   import type { Mysql } from '@services/model/ticket/ticket';
+  import { findRelatedClustersByClusterIds } from '@services/source/mysqlCluster';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
@@ -117,6 +118,7 @@
       id: number;
       master_domain: string;
       related_clusters: {
+        cluster_type: ClusterTypes;
         id: number;
         master_domain: string;
       }[];
@@ -191,35 +193,6 @@
       wrapperController.value.updateType === TicketTypes.MYSQL_MIGRATE_UPGRADE,
   );
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
-  const clusterMap = computed(() => {
-    return formData.tableData.reduce<Record<string, string>>((acc, cur) => {
-      Object.assign(acc, {
-        [cur.cluster.master_domain]: cur.cluster.master_domain,
-      });
-      cur.cluster.related_clusters.forEach((item) => {
-        Object.assign(acc, {
-          [item.master_domain]: cur.cluster.master_domain, // 关联集群映射到所属集群
-        });
-      });
-      return acc;
-    }, {});
-  });
-
-  const rules = {
-    'cluster.master_domain': [
-      {
-        message: '',
-        trigger: 'blur',
-        validator: (value: string) => {
-          const target = clusterMap.value[value];
-          if (target && target !== value) {
-            return t('目标集群是集群target的关联集群_请勿重复添加', { target });
-          }
-          return true;
-        },
-      },
-    ],
-  };
 
   useTicketDetail<Mysql.LocalUpgrade>(TicketTypes.MYSQL_LOCAL_UPGRADE, {
     onSuccess(ticketDetail) {
@@ -268,9 +241,34 @@
     is_check_process: boolean;
   }>(TicketTypes.MYSQL_LOCAL_UPGRADE);
 
-  const handleBatchEdit = (list: TendbhaModel[]) => {
+  const getSortedClusterIds = (clusters: { id: number }[]) =>
+    _.sortBy(clusters, (cluster) => cluster.id)
+      .map((cluster) => cluster.id)
+      .join(',');
+
+  const handleBatchEdit = async (list: TendbhaModel[]) => {
+    const isSingle = list[0].cluster_type === (ClusterTypes.TENDBSINGLE as string);
+    // 查询关联集群
+    const relatedClusters = await findRelatedClustersByClusterIds({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      cluster_ids: list.map((item) => item.id),
+      role: isSingle ? 'orphan' : undefined,
+    });
+
+    const clusterMap = relatedClusters.reduce<Record<string, string>>((acc, item) => {
+      Object.assign(acc, {
+        [item.cluster_info.master_domain]: getSortedClusterIds([item.cluster_info, ...item.related_clusters]),
+      });
+      return acc;
+    }, {});
+
+    const clusterMemo = new Set(
+      formData.tableData.map((item) => getSortedClusterIds([item.cluster, ...item.cluster.related_clusters])),
+    );
+
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!clusterMap.value[item.master_domain]) {
+      const clusterKey = clusterMap[item.master_domain];
+      if (clusterKey && !clusterMemo.has(clusterKey)) {
         acc.push(
           createTableRow({
             cluster: {
@@ -278,6 +276,7 @@
             },
           }),
         );
+        clusterMemo.add(clusterKey);
       }
       return acc;
     }, []);
