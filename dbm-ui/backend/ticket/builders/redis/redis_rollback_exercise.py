@@ -11,12 +11,13 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.core.notify.constants import MsgType
 from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import AffinityEnum, BaseOperateResourceParamBuilder, IpSource
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, Cluster, RedisOpsBaseDetailSerializer
-from backend.ticket.constants import TicketType
+from backend.ticket.constants import TicketStatus, TicketType
 
 
 class RedisRollbackExerciseDetailSerializer(RedisOpsBaseDetailSerializer):
@@ -62,6 +63,11 @@ class RedisRollbackExerciseParamBuilder(builders.FlowParamBuilder):
         if applied_hosts:
             self.ticket.details["recycle_hosts"] = ResourceHandler.standardized_resource_host(applied_hosts)
             self.ticket.details["immediate_recycle"] = True
+            # Only send notification when recycle ticket fails, explicitly disable all other statuses
+            self.ticket.details["send_msg_config"] = {
+                status: {MsgType.RTX: True} if status == TicketStatus.FAILED else {}
+                for status in TicketStatus.get_values()
+            }
             self.ticket.save(update_fields=["details"])
 
 
