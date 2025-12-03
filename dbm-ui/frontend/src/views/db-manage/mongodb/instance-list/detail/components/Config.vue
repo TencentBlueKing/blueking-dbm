@@ -13,13 +13,13 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import MongodbInstanceDetailModel from '@services/model/mongodb/mongodb-instance-detail';
+  import MongodbInstanceModel from '@services/model/mongodb/mongodb-instance';
   import { getLevelConfig } from '@services/source/configs';
 
   import { useGlobalBizs } from '@stores';
 
   interface Props {
-    data: MongodbInstanceDetailModel;
+    data: MongodbInstanceModel;
   }
 
   const props = defineProps<Props>();

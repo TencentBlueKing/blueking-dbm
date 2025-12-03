@@ -121,7 +121,9 @@
       selectable
       @filter-change="handleFilterChange"
       @selection="handleSelectChange">
-      <HostListFieldColumn :cluster-type="ClusterTypes.KAFKA" />
+      <HostListFieldColumn
+        :cluster-id="clusterData.id"
+        :cluster-type="ClusterTypes.KAFKA" />
       <TableColumn
         col-key="row-operation"
         fixed="right"
@@ -235,6 +237,7 @@
 
   const hostTableRef = ref<InstanceType<typeof DbTable>>();
   const { quickSearchData, quickSearchValue } = useHostSearchSelect(ClusterTypes.KAFKA, {
+    clusterId: props.clusterData.id,
     serviceHandler: () => {
       fetchData();
     },
