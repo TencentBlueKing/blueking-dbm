@@ -58,7 +58,7 @@ import (
 
 	// 新增导入
 	infreq "k8s-dbs/infrastructure/request"
-	thirdapi "k8s-dbs/infrastructure/thirdapi"
+	"k8s-dbs/infrastructure/thirdapi"
 )
 
 // ClusterProvider 集群管理核心服务
@@ -728,6 +728,12 @@ func (c *ClusterProvider) DeleteCluster(ctx *commentity.DbsContext, request *cor
 		request.ClusterName, metav1.DeletePropagationBackground); err != nil {
 		return dbserrors.NewK8sDbsError(dbserrors.DeleteClusterError,
 			fmt.Errorf("删除集群 release 失败: %w", err))
+	}
+
+	// 检查环境变量ASYNC_TO_DBM，控制是否启用异步处理
+	asyncToDBM := os.Getenv("ASYNC_TO_DBM")
+	if asyncToDBM == "true" {
+		c.asyncClusterDeleted(clusterEntity)
 	}
 
 	return nil
