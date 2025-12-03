@@ -82,9 +82,13 @@ class BaseFailoverDrill:
     def update_drill_task_report(self, info: str, state=ReportStateType.ABNORMAL, task_status: str = "failed"):
         """
         用来更新于容灾演练任务有关的信息，不涉及DBHA相关信息
+        Msg format: [YYYY-MM-DD HH:MM:SS] message
         """
+        timestamp = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S")
+        msg_entry = f"[{timestamp}] {info}"
+
         FailoverDrillReport.objects.filter(main_task_id=self.main_task_id).update(
-            state=state, task_info=Concat(F("task_info"), Value("\n-- "), Value(info)), task_status=task_status
+            state=state, task_info=Concat(F("task_info"), Value("\n"), Value(msg_entry)), task_status=task_status
         )
 
     def update_drill_report(self, dbha_infos):

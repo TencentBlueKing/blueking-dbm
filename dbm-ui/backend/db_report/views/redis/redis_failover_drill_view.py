@@ -12,37 +12,28 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from django.utils.translation import gettext as _
-from rest_framework import serializers
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.db_report.enums import ReportFieldFormat
 from backend.db_report.models import FailoverDrillReport
 from backend.db_report.register import register_drill_report
-from backend.db_report.serializers import ReportCommonFieldSerializerMixin
-from backend.db_report.views.failover_drill_report_view import FailoverDrillReportViewSet
+from backend.db_report.views.failover_drill_report_view import FailoverDrillReportViewSet, FailoverDrillSerializer
 
 logger = logging.getLogger("root")
 
+REDIS_CUSTOM_FIELDS = [
+    {
+        "name": "task_info",
+        "display_name": _("任务信息"),
+        "format": ReportFieldFormat.LOG.value,
+    },
+]
 
-class RedisFailoverDrillSerializer(serializers.ModelSerializer, ReportCommonFieldSerializerMixin):
-    """Redis-specific serializer with `task_status` field"""
 
-    class Meta:
-        model = FailoverDrillReport
-        fields = (
-            "city",
-            "cluster_domain",
-            "cluster_type",
-            "instance_type",
-            "state",
-            "trigger_dbha_time",
-            "switch_start_time",
-            "switch_finished_time",
-            "dbha_status",
-            "task_info",
-            "dbha_info",
-        )
+class RedisFailoverDrillSerializer(FailoverDrillSerializer):
+    class Meta(FailoverDrillSerializer.Meta):
+        fields = FailoverDrillSerializer.Meta.fields + ("task_info",)
 
 
 @register_drill_report(DBType.Redis)
@@ -59,10 +50,4 @@ class RedisFailoverDrillReportViewSet(FailoverDrillReportViewSet):
         "dbha_status": ["exact", "in"],
         "create_at": ["gte", "lte"],
     }
-    report_title = FailoverDrillReportViewSet.report_title + [
-        {
-            "name": "task_info",
-            "display_name": _("任务信息"),
-            "format": ReportFieldFormat.LOG.value,
-        },
-    ]
+    report_title = FailoverDrillReportViewSet.report_title + REDIS_CUSTOM_FIELDS

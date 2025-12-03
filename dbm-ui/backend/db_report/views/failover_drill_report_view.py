@@ -15,7 +15,7 @@ from django.utils.translation import gettext as _
 from rest_framework import serializers, status
 
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.db_report.enums import DrillFilterType, ReportFieldFormat, ReportStateType, ReportType
+from backend.db_report.enums import DrillFilterType, ReportFieldFormat, ReportType
 from backend.db_report.models import FailoverDrillReport
 from backend.db_report.report_baseview import BaseDrillReportViewSet
 from backend.db_report.serializers import ReportCommonFieldSerializerMixin
@@ -25,29 +25,8 @@ logger = logging.getLogger("root")
 
 SWAGGER_TAG = _("演练报告")
 
-TRIGGER_DBHA_TIMEOUT = 70
-
 
 class FailoverDrillSerializer(serializers.ModelSerializer, ReportCommonFieldSerializerMixin):
-
-    duration = serializers.SerializerMethodField(help_text=_("触发dbha到切换完成耗时"))
-    dbha_health_status = serializers.SerializerMethodField(help_text=_("dbha健康状态"))
-
-    def get_duration(self, obj):
-        if obj.trigger_dbha_time and obj.switch_finished_time:
-            return round((obj.switch_finished_time - obj.trigger_dbha_time).total_seconds(), 2)
-        return 0
-
-    def get_dbha_health_status(self, obj):
-        # 触发dbha超时时间阈值为70秒
-        if self.get_duration(obj) > TRIGGER_DBHA_TIMEOUT:
-            return ReportStateType.ABNORMAL.value
-
-        if self.get_duration(obj) == 0:
-            return ReportStateType.WARNING.value
-
-        return ReportStateType.NORMAL.value
-
     class Meta:
         model = FailoverDrillReport
         fields = (
@@ -61,8 +40,6 @@ class FailoverDrillSerializer(serializers.ModelSerializer, ReportCommonFieldSeri
             "switch_start_time",
             "switch_finished_time",
             "dbha_status",
-            "duration",
-            "dbha_health_status",
             "dbha_info",
         )
 
@@ -112,7 +89,7 @@ class FailoverDrillReportViewSet(BaseDrillReportViewSet):
         },
         {
             "name": "state",
-            "display_name": _("DBHA 切换状态"),
+            "display_name": _("状态"),
             "format": ReportFieldFormat.STATUS.value,
         },
         {
@@ -141,24 +118,12 @@ class FailoverDrillReportViewSet(BaseDrillReportViewSet):
         },
         {
             "name": "dbha_status",
-            "display_name": _("DBHA 切换状态"),
+            "display_name": _("DBHA 切换结果"),
             "format": ReportFieldFormat.TEXT.value,
             "filter": {
                 "type": DrillFilterType.ENUM,
                 "enums": [{"value": item[0], "label": item[1]} for item in DBHASwitchResult.get_choices()],
             },
-        },
-        {
-            "name": "duration",
-            "display_name": _("切换恢复耗时(秒)"),
-            "format": ReportFieldFormat.TEXT.value,
-            "ordering": True,
-        },
-        {
-            "name": "dbha_health_status",
-            "display_name": _("DBHA 健康状态"),
-            "format": ReportFieldFormat.STATUS.value,
-            "ordering": True,
         },
         {
             "name": "dbha_info",
