@@ -100,8 +100,8 @@ class MongoDBShardAddShardNodesResourceParamBuilder(BaseMongoDBOperateResourcePa
             index = 0
             for shard_names_t in same_ip_shards:
                 role = f"mongodb_{index}"
+                info[f"shards_{index}"] = list(shard_names_t)
                 info["resource_spec"][role] = old_shard_nodes
-                info["resource_spec"][role]["shards"] = list(shard_names_t)
                 exclusive_hosts = shard_name_inst_map[shard_names_t[0]]
                 self.patch_common_affinity(
                     info,
@@ -112,14 +112,18 @@ class MongoDBShardAddShardNodesResourceParamBuilder(BaseMongoDBOperateResourcePa
                 )
                 index += 1
 
+    def get_current_shard_names(self, index, key_name):
+        rollback_flow = self.ticket.current_flow()
+        infos = rollback_flow.details["ticket_data"]["infos"]
+        return infos[index][key_name] if infos[index].get(key_name) else []
+
     def post_callback(self):
         with self.next_flow_manager() as next_flow:
-            for info in next_flow.details["ticket_data"]["infos"]:
+            for index, info in enumerate(next_flow.details["ticket_data"]["infos"]):
                 info["add_shard_nodes"] = []
                 group_num = info["shards_num"] // info["node_replica_count"]
                 for num in range(group_num):
-                    role = f"mongodb_{num}"
-                    shards = info["resource_spec"][role]["shards"]
+                    shards = self.get_current_shard_names(index, f"shards_{num}")
                     info["add_shard_nodes"].append({"shards": shards, "mongodb": info.pop(f"mongodb_{num}")})
 
 
