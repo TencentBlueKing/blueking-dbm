@@ -34,6 +34,10 @@ import (
 
 // RegisterMiddleWare 注册 MiddleWave
 func RegisterMiddleWare(engine *gin.Engine) {
+	// 注册 i18n 中间件（需要在其他中间件之前注册，以便后续中间件可以使用翻译功能）
+	engine.Use(I18nMiddleware())
+	slog.Info("Finish initial i18n middleware...")
+
 	// 注册 logger 中间件
 	engine.Use(LogMiddleware(dbslogger.InitLogger()))
 	slog.Info("Finish initial logger...")

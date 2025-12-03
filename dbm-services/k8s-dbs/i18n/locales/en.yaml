@@ -1,0 +1,127 @@
+# English translations for k8s-dbs
+# Format: message_key: { other: "message text" }
+
+# System errors
+error.auth:
+  other: "Permission denied, please contact administrator"
+error.server:
+  other: "Internal server error"
+error.engine_type:
+  other: "Invalid database engine type"
+error.authorization:
+  other: "Invalid signature"
+error.third_api:
+  other: "Failed to call third-party API"
+error.resubmit:
+  other: "Please do not submit repeatedly"
+error.login:
+  other: "Login failed"
+error.logout:
+  other: "Logout failed"
+error.create_metadata:
+  other: "Failed to create metadata"
+error.update_metadata:
+  other: "Failed to update metadata"
+error.get_metadata:
+  other: "Failed to get metadata"
+error.delete_metadata:
+  other: "Failed to delete metadata"
+error.parameter_invalid:
+  other: "Parameter validation failed"
+error.parameter_type:
+  other: "Parameter type validation failed"
+error.parameter_value:
+  other: "Parameter value validation failed"
+error.operation_forbidden:
+  other: "Operation is forbidden"
+error.not_permission:
+  other: "Permission denied"
+
+# Cluster operations
+error.cluster.describe:
+  other: "Failed to describe cluster"
+error.cluster.create:
+  other: "Failed to create cluster"
+error.cluster.get:
+  other: "Failed to get cluster"
+error.cluster.delete:
+  other: "Failed to delete cluster"
+error.cluster.get_status:
+  other: "Failed to get cluster status"
+error.cluster.get_event:
+  other: "Failed to get cluster events"
+error.cluster.vertical_scaling:
+  other: "Failed to vertically scale cluster"
+error.cluster.horizontal_scaling:
+  other: "Failed to horizontally scale cluster"
+error.cluster.start:
+  other: "Failed to start cluster"
+error.cluster.stop:
+  other: "Failed to stop cluster"
+error.cluster.restart:
+  other: "Failed to restart cluster"
+error.cluster.upgrade:
+  other: "Failed to upgrade cluster"
+error.cluster.volume_expansion:
+  other: "Failed to expand cluster volume"
+error.cluster.expose:
+  other: "Failed to expose cluster service"
+error.cluster.describe_ops:
+  other: "Failed to describe ops request"
+error.cluster.get_ops_status:
+  other: "Failed to get ops request status"
+error.cluster.update:
+  other: "Failed to update cluster"
+error.cluster.partial_update:
+  other: "Failed to partially update cluster"
+error.cluster.get_svc:
+  other: "Failed to get cluster connection"
+
+# Kubernetes operations
+error.k8s.create_ns:
+  other: "Failed to create namespace"
+error.k8s.delete_ns:
+  other: "Failed to delete namespace"
+error.k8s.get_pod_log:
+  other: "Failed to get pod logs"
+error.k8s.api_timeout:
+  other: "Kubernetes API server request timeout"
+error.k8s.get_pod_detail:
+  other: "Failed to get pod details"
+error.k8s.create_client:
+  other: "Failed to create Kubernetes client"
+error.k8s.delete_pod:
+  other: "Failed to delete pod"
+error.k8s.install_helm:
+  other: "Failed to install Helm chart"
+
+# Addon operations
+error.addon.install:
+  other: "Failed to install addon"
+error.addon.uninstall:
+  other: "Failed to uninstall addon"
+error.addon.upgrade:
+  other: "Failed to upgrade addon"
+
+# Component operations
+error.component.describe:
+  other: "Failed to describe component"
+error.component.get_svc:
+  other: "Failed to get component service info"
+error.component.get_pods:
+  other: "Failed to get component pod list"
+
+# Validation messages
+validation.required:
+  other: "{{.Field}} is required"
+validation.invalid:
+  other: "{{.Field}} is invalid"
+validation.min_length:
+  other: "{{.Field}} must be at least {{.Min}} characters"
+validation.max_length:
+  other: "{{.Field}} must be at most {{.Max}} characters"
+
+# Formatting
+format.separator:
+  other: ". "
+
