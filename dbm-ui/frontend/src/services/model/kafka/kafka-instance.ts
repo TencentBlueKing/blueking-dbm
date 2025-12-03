@@ -17,7 +17,9 @@ import { ClusterTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
-export default class KafkaInstance {
+import InstanceBase from '../_instanceBase';
+
+export default class KafkaInstance extends InstanceBase {
   static KAFKA_REBOOT = 'KAFKA_REBOOT';
 
   static operationIconMap = {
@@ -40,7 +42,6 @@ export default class KafkaInstance {
   cluster_name: string;
   cluster_type: ClusterTypes;
   cluster_type_name: string;
-  create_at: string;
   db_module_id: number;
   db_module_name: string;
   host_info: HostInfo;
@@ -60,10 +61,10 @@ export default class KafkaInstance {
   role: string;
   slave_domain: string;
   spec_config: InstanceListSpecConfig;
-  status: string;
   version: string;
 
   constructor(payload = {} as KafkaInstance) {
+    super(payload);
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
     this.bk_host_id = payload.bk_host_id;
@@ -76,7 +77,6 @@ export default class KafkaInstance {
     this.cluster_name = payload.cluster_name;
     this.cluster_type = payload.cluster_type;
     this.cluster_type_name = payload.cluster_type_name;
-    this.create_at = payload.create_at;
     this.db_module_id = payload.db_module_id;
     this.db_module_name = payload.db_module_name;
     this.host_info = payload.host_info || {};
@@ -94,7 +94,6 @@ export default class KafkaInstance {
     this.role = payload.role;
     this.slave_domain = payload.slave_domain;
     this.spec_config = payload.spec_config || {};
-    this.status = payload.status;
     this.version = payload.version;
   }
 
@@ -116,15 +115,16 @@ export default class KafkaInstance {
     }
     return operation.ticket_type;
   }
+
   // 操作中的状态 icon
   get operationStatusIcon() {
     return KafkaInstance.operationIconMap[this.operationRunningStatus];
   }
+
   // 操作中的状态描述文本
   get operationStatusText() {
     return KafkaInstance.operationTextMap[this.operationRunningStatus];
   }
-
   get operationTagTips() {
     return this.operations.map((item) => ({
       icon: KafkaInstance.operationIconMap[item.ticket_type],

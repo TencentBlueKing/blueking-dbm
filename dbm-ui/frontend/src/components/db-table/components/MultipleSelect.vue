@@ -89,7 +89,7 @@
   const defaultValue = shallowRef<{ label: string; value: number | string }[]>([]);
 
   const wrapperRef = useTemplateRef('wrapper');
-  const localValue = shallowRef(props.value.split(','));
+  const localValue = shallowRef(props.value ? props.value.split(',') : []);
   const searchBoxRef = useTemplateRef('searchBox');
   const contentMinWidth = ref(0);
 
