@@ -175,7 +175,7 @@ class Ticket(AuditedModel):
     def msg_config(self):
         """单据通知配置"""
         self.config = self.config or {}
-        return self.config.get("msg_config", {})
+        return self.config.get("send_msg_config", {})
 
     def set_status(self, status):
         self.status = status
@@ -342,6 +342,7 @@ class Ticket(AuditedModel):
         helpers = [*second_dba, *other_dba]
         # 支持通过终止单据设置立刻执行清理单据
         immediate_recycle = revoke_ticket.details.get("immediate_recycle", False)
+        send_msg_config = revoke_ticket.details.get("send_msg_config", None)
         # 创建回收单据流程
         recycle_ticket = Ticket.create_ticket(
             ticket_type=ticket_type,
@@ -355,6 +356,7 @@ class Ticket(AuditedModel):
                 "recycle_hosts": hosts,
                 "immediate_recycle": immediate_recycle,
             },
+            send_msg_config=send_msg_config,
         )
 
         # 对原单据动态插入一个描述flow，关联这个回收单

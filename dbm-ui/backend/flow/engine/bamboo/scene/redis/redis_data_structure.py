@@ -193,8 +193,8 @@ class RedisDataStructureFlow(object):
                 instance_numb = avg + 1 if index < remainder else avg
                 sub_builder = RedisBatchInstallAtomJob(
                     self.root_id,
-                    self.data,
-                    self.get_ticket_biz_based_kwargs(act_kwargs),
+                    self.data,  # Cluster bk_biz_id for config query
+                    self.get_ticket_biz_based_kwargs(act_kwargs),  # Ticket bk_biz_id as default
                     {
                         "ip": new_master,
                         "meta_role": InstanceRole.REDIS_MASTER.value,
@@ -268,7 +268,7 @@ class RedisDataStructureFlow(object):
                 kwargs=asdict(
                     DownloadBackupClientKwargs(
                         bk_cloud_id=act_kwargs.cluster["bk_cloud_id"],
-                        bk_biz_id=int(self.data["bk_biz_id"]),
+                        bk_biz_id=int(self.data.get("ticket_bk_biz_id", self.data["bk_biz_id"])),
                         download_host_list=new_master_list,
                     ),
                 ),
@@ -655,9 +655,11 @@ class RedisDataStructureFlow(object):
         cluster_info = self.__get_cluster_info(info["cluster_id"])
         logger.info(_("__init_builder_cluster_info: {}".format(cluster_info)))
 
-        ticket_bk_biz_id = self.data["bk_biz_id"]
+        # Store ticket's bk_biz_id before it gets overwritten by cluster_info
+        # We'll use this via get_ticket_biz_based_kwargs() for flow/machine creation
+        # but keep cluster's bk_biz_id in self.data for configuration queries
+        self.data["ticket_bk_biz_id"] = self.data["bk_biz_id"]
         self.data.update(cluster_info)
-        self.data["bk_biz_id"] = ticket_bk_biz_id  # self.data should keeps the bk_biz_id of the ticket
 
         redis_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
         trans_files = GetFileList(db_type=DBType.Redis)
@@ -915,7 +917,8 @@ class RedisDataStructureFlow(object):
 
     def get_ticket_biz_based_kwargs(self, act_kwargs: ActKwargs) -> ActKwargs:
         new_kwargs = deepcopy(act_kwargs)
-        new_kwargs.cluster["bk_biz_id"] = self.data["bk_biz_id"]
+        # Use ticket's bk_biz_id for flow and machine creation
+        new_kwargs.cluster["bk_biz_id"] = self.data.get("ticket_bk_biz_id", self.data["bk_biz_id"])
         return new_kwargs
 
     @staticmethod
