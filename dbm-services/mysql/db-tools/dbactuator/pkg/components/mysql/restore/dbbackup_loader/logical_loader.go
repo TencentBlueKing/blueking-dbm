@@ -129,7 +129,7 @@ func (l *LogicalLoader) loadBackup() error {
 	logger.Info("dbLoader cmd: %s", strings.Join(cmd, " "))
 	_, errStr, err := cmutil.ExecCommand(false, l.TaskDir, cmd[0], cmd[1:]...)
 	if err != nil {
-		logger.Error("logical dbbackup loadbackup stderr: ", errStr)
+		logger.Error("logical dbbackup loadbackup stderr: %s", errStr)
 		return errors.Wrap(err, errStr)
 	}
 

@@ -34,12 +34,12 @@
             "agg_dimension": [
               "appid",
               "bk_cloud_id",
+              "bk_target_ip",
               "cluster_domain",
               "machine_type",
               "instance_port",
               "instance_role",
-              "instance_host",
-              "bk_target_service_instance_id"
+              "instance_host"
             ],
             "agg_condition": [
                {
@@ -228,7 +228,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "COUNT(slave-status-dbm_report_channel)",
-  "version": 27,
+  "version": 28,
   "alert_source": "event",
   "custom_conditions": [],
   "export_at": "2024-12-06T15:52:08+08:00"
