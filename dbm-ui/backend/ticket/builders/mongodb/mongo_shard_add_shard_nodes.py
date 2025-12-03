@@ -114,7 +114,7 @@ class MongoDBShardAddShardNodesResourceParamBuilder(BaseMongoDBOperateResourcePa
 
     def get_current_shard_names(self, index, key_name):
         rollback_flow = self.ticket.current_flow()
-        infos = rollback_flow.details["ticket_data"]["infos"]
+        infos = rollback_flow.details["infos"]
         return infos[index][key_name] if infos[index].get(key_name) else []
 
     def post_callback(self):
