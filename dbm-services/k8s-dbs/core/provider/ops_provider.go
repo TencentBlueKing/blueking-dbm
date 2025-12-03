@@ -176,7 +176,8 @@ func (o *OpsRequestProvider) withMetaDataSync(
 	}
 
 	// 更新 cluster 元数据
-	if err = metautil.UpdateClusterMeta(o.clusterMetaProvider, dbsCtx, request); err != nil {
+	_, err = metautil.UpdateClusterMeta(o.clusterMetaProvider, dbsCtx, request)
+	if err != nil {
 		return nil, err
 	}
 	return result, nil

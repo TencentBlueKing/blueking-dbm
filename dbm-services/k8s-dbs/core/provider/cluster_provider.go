@@ -23,6 +23,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
+	"os"
+	"sort"
+	"time"
+
 	commentity "k8s-dbs/common/entity"
 	commutil "k8s-dbs/common/util"
 	addonopschecker "k8s-dbs/core/checker/addonoperation"
@@ -33,28 +38,24 @@ import (
 	metaentity "k8s-dbs/metadata/entity"
 	metaprovider "k8s-dbs/metadata/provider"
 	metautil "k8s-dbs/metadata/util"
-	"log/slog"
-	"os"
-	"sort"
-	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
+	kbappv1 "github.com/apecloud/kubeblocks/apis/apps/v1alpha1"
 	kbworkloadv1 "github.com/apecloud/kubeblocks/apis/workloads/v1alpha1"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	helmcli "helm.sh/helm/v3/pkg/cli"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	dbserrors "k8s-dbs/errors"
 
 	kbtypes "github.com/apecloud/kbcli/pkg/types"
-	kbappv1 "github.com/apecloud/kubeblocks/apis/apps/v1alpha1"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 	"golang.org/x/sync/errgroup"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 
 	// 新增导入
 	infreq "k8s-dbs/infrastructure/request"
@@ -287,8 +288,8 @@ func (c *ClusterProvider) CreateCluster(ctx *commentity.DbsContext, request *cor
 		return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
 	}
 	// 检查环境变量ASYNC_TO_DBM，控制是否启用异步处理
-	asyncToDBM := os.Getenv("ASYNC_TO_DBM")
-	if asyncToDBM == "true" {
+	asyncToDBM := os.Getenv(coreconst.AsyncToDBMEnv)
+	if asyncToDBM == coreconst.AsyncToDBMEnabled {
 		c.asyncClusterCreated(clusterEntity)
 	}
 	return nil
@@ -362,7 +363,6 @@ func (c *ClusterProvider) asyncClusterCreated(
 }
 
 // asyncClusterDeleted 同步集群删除信息到DBM
-// nolint: unused
 func (c *ClusterProvider) asyncClusterDeleted(
 	clusterEntity *metaentity.K8sCrdClusterEntity,
 ) {
@@ -370,8 +370,15 @@ func (c *ClusterProvider) asyncClusterDeleted(
 	c.asyncClusterOperation(clusterEntity, "delete", c.syncClusterDeletedWithContext)
 }
 
+// asyncClusterDeleted 同步集群删除信息到DBM
+func (c *ClusterProvider) asyncClusterUpdated(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+) {
+	slog.Info("开始同步集群更新信息", "cluster_name", clusterEntity.ClusterName)
+	c.asyncClusterOperation(clusterEntity, "update", c.syncClusterUpdatedWithContext)
+}
+
 // syncClusterDeletedWithContext 带context的同步集群删除信息到DBM
-// nolint: unused
 func (c *ClusterProvider) syncClusterDeletedWithContext(
 	ctx context.Context,
 	clusterEntity *metaentity.K8sCrdClusterEntity,
@@ -441,6 +448,50 @@ func (c *ClusterProvider) syncClusterCreatedWithContext(
 
 	// 调用同步接口，支持context取消
 	response, err := c.dbmAPIService.SyncClusterCreated(syncRequest)
+	if err != nil {
+		return fmt.Errorf("调用同步接口失败: %w", err)
+	}
+
+	if !response.Result {
+		return fmt.Errorf("DBM API返回同步失败: %s", response.Message)
+	}
+
+	return nil
+}
+
+// syncClusterUpdatedWithContext 带context的同步集群更新信息到DBM
+func (c *ClusterProvider) syncClusterUpdatedWithContext(
+	ctx context.Context,
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+) error {
+	// 检查context是否已取消
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("同步任务被取消: %w", ctx.Err())
+	default:
+	}
+
+	dbmClusterType, err := util.GetDbmClusterType(clusterEntity.AddonInfo.AddonType)
+	if err != nil {
+		return fmt.Errorf("未找到对应的 dbm cluster type: %w", err)
+	}
+
+	// 构建同步请求
+	syncRequest := &infreq.UpdateClusterRequest{
+		Name:         clusterEntity.ClusterName,
+		Alias:        clusterEntity.ClusterAlias,
+		BkBizID:      clusterEntity.BkBizID,
+		ClusterType:  dbmClusterType,
+		ImmuteDomain: fmt.Sprintf("%d_%s_%s", clusterEntity.BkBizID, dbmClusterType, clusterEntity.ClusterName),
+		MajorVersion: clusterEntity.ServiceVersion,
+		Phase:        "online",
+		Status:       "normal",
+		Region:       "default",
+		Operator:     clusterEntity.UpdatedBy,
+	}
+
+	// 调用同步接口，支持context取消
+	response, err := c.dbmAPIService.SyncClusterUpdated(syncRequest)
 	if err != nil {
 		return fmt.Errorf("调用同步接口失败: %w", err)
 	}
@@ -606,31 +657,31 @@ func (c *ClusterProvider) UpdateClusterRelease(
 	if err != nil {
 		return dbserrors.NewK8sDbsError(dbserrors.CreateK8sClientError, err)
 	}
-
 	clusterEntity, err := c.fillClusterMetaInfo(k8sClusterConfig.ID, request)
 	if err != nil {
 		return err
 	}
-
 	// 检查 addonClusterVersion 是否在支持的版本列表中
 	if err := c.validateAddonClusterVersion(request, clusterEntity); err != nil {
 		return err
 	}
-
 	// 更新 cluster release
 	values, err := c.updateClusterRelease(ctx, request, k8sClient, isPartial)
 	if err != nil {
 		slog.Error("failed to update cluster", "error", err)
 		return dbserrors.NewK8sDbsError(dbserrors.UpdateClusterError, err)
 	}
-
 	if err = c.updateReleaseMeta(values, k8sClusterConfig, request); err != nil {
 		return dbserrors.NewK8sDbsError(dbserrors.UpdateMetaDataError, err)
 	}
-
 	// 更新集群 cluster 元数据
-	if err = metautil.UpdateClusterMeta(c.clusterMetaProvider, ctx, request); err != nil {
+	updateClusterEntity, err := metautil.UpdateClusterMeta(c.clusterMetaProvider, ctx, request)
+	if err != nil {
 		return dbserrors.NewK8sDbsError(dbserrors.UpdateMetaDataError, err)
+	}
+	asyncToDBM := os.Getenv(coreconst.AsyncToDBMEnv)
+	if asyncToDBM == coreconst.AsyncToDBMEnabled {
+		c.asyncClusterUpdated(updateClusterEntity)
 	}
 	return nil
 }
@@ -731,8 +782,8 @@ func (c *ClusterProvider) DeleteCluster(ctx *commentity.DbsContext, request *cor
 	}
 
 	// 检查环境变量ASYNC_TO_DBM，控制是否启用异步处理
-	asyncToDBM := os.Getenv("ASYNC_TO_DBM")
-	if asyncToDBM == "true" {
+	asyncToDBM := os.Getenv(coreconst.AsyncToDBMEnv)
+	if asyncToDBM == coreconst.AsyncToDBMEnabled {
 		c.asyncClusterDeleted(clusterEntity)
 	}
 
