@@ -114,7 +114,9 @@
       selectable
       @filter-change="handleFilterChange"
       @selection="handleSelectChange">
-      <HostListFieldColumn :cluster-type="clusterData.cluster_type" />
+      <HostListFieldColumn
+        :cluster-id="clusterData.id"
+        :cluster-type="clusterData.cluster_type" />
       <TableColumn
         col-key="row-operation"
         fixed="right"
@@ -202,6 +204,7 @@
 
   const hostTableRef = ref<InstanceType<typeof DbTable>>();
   const { quickSearchData, quickSearchValue } = useHostSearchSelect(ClusterTypes.DORIS, {
+    clusterId: props.clusterData.id,
     serviceHandler: () => {
       fetchData();
     },

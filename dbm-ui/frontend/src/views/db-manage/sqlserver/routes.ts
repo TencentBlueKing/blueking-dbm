@@ -68,7 +68,6 @@ const routes: RouteRecordRaw[] = [
             path: 'instance-list',
             name: 'SqlServerHaInstanceList',
             meta: {
-              fullscreen: true,
               navName: t('SQLServer 主从集群实例视图'),
             },
             component: () => import('@views/db-manage/sqlserver/ha-instance-list/Index.vue'),
