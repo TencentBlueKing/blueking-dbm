@@ -133,3 +133,23 @@ class MySQLRollbackExerciseByClusterSerializer(serializers.Serializer):
     rollback_host = RollbackHostSerializer(help_text=_("回档主机信息"), required=True)
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=True)
     backup_id = serializers.CharField(help_text=_("备份ID"), required=False, allow_blank=True, allow_null=True)
+
+
+class MysqlDiskSpace(serializers.Serializer):
+    """
+    mysql 磁盘空间估算
+    """
+
+    class DataMigrateInfoSerializer(serializers.Serializer):
+        source_cluster = serializers.IntegerField(help_text=_("源集群ID"))
+        target_clusters = serializers.ListField(help_text=_("目标集群列表"), child=serializers.IntegerField())
+        db_list = serializers.ListField(help_text=_("最终库列表"), child=serializers.CharField())
+        data_schema_grant = serializers.CharField(help_text=_("克隆类型"), required=False, default="data,schema")
+        clone_db_list = serializers.ListField(help_text=_("克隆库列表"), child=serializers.CharField(), required=False)
+        ignore_db_list = serializers.ListField(
+            help_text=_("忽略db列表"), child=serializers.CharField(allow_blank=True), required=False
+        )
+
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    factor = serializers.IntegerField(help_text=_("标识"))
+    migrations = serializers.ListSerializer(help_text=_("集群信息"), child=DataMigrateInfoSerializer())
