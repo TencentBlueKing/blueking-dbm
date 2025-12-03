@@ -47,7 +47,7 @@ type Message struct {
 }
 
 type mysql struct {
-	dbs []*hamysql.DB
+	dbs []*hamysql.GormDB
 }
 
 func newMySql(endpoints, user, password string) (*mysql, error) {
@@ -60,7 +60,7 @@ func newMySql(endpoints, user, password string) (*mysql, error) {
 
 	for _, epoint := range epoints {
 
-		db, err := hamysql.New(
+		db, err := hamysql.NewGormDB(
 			hamysql.OptionIP(epoint.Host),
 			hamysql.OptionPort(epoint.Port),
 			hamysql.OptionProto(epoint.Proto),

@@ -300,7 +300,7 @@ func parseMasterLogFileIndex(masterLogFile string) (int, error) {
 }
 
 // GetSlaveStatusPartialInfo retrieves partial slave status information
-func (sw *MySQLBaseSwitchInstance) GetSlaveStatusPartialInfo(slaveDB *hamysql.DB) (*SlaveStatusPartialInfo, error) {
+func (sw *MySQLBaseSwitchInstance) GetSlaveStatusPartialInfo(slaveDB *hamysql.GormDB) (*SlaveStatusPartialInfo, error) {
 	if slaveDB == nil {
 		return nil, gerrors.New(gerrors.InvalidParameter, "GetSlaveStatusPartialInfo got nil slaveDB")
 	}
@@ -342,7 +342,7 @@ func (sw *MySQLBaseSwitchInstance) GetSlaveStatusPartialInfo(slaveDB *hamysql.DB
 }
 
 // CheckSqlReplicationDelay checks if slave replication is delayed
-func (sw *MySQLBaseSwitchInstance) CheckSqlReplicationDelay(slaveDB *hamysql.DB, ignoreDelay bool) error {
+func (sw *MySQLBaseSwitchInstance) CheckSqlReplicationDelay(slaveDB *hamysql.GormDB, ignoreDelay bool) error {
 	if slaveDB == nil {
 		return gerrors.New(gerrors.InvalidParameter, "CheckReplicationDelay got nil slaveDB")
 	}
@@ -423,7 +423,7 @@ func (sw *MySQLBaseSwitchInstance) CheckSqlReplicationDelay(slaveDB *hamysql.DB,
 }
 
 // GetSlaveCheckSum returns checksum count and failure count
-func (sw *MySQLBaseSwitchInstance) GetSlaveCheckSum(db *hamysql.DB) (int, int, error) {
+func (sw *MySQLBaseSwitchInstance) GetSlaveCheckSum(db *hamysql.GormDB) (int, int, error) {
 	if db == nil {
 		return 0, 0, gerrors.New(gerrors.InvalidParameter, "GetSlaveCheckSum got nil db")
 	}
@@ -450,7 +450,7 @@ func (sw *MySQLBaseSwitchInstance) GetSlaveCheckSum(db *hamysql.DB) (int, int, e
 }
 
 // GetSlaveTimeDelay retrieves slave replication delay information
-func (sw *MySQLBaseSwitchInstance) GetSlaveTimeDelay(slaveDB *hamysql.DB) (int, int, error) {
+func (sw *MySQLBaseSwitchInstance) GetSlaveTimeDelay(slaveDB *hamysql.GormDB) (int, int, error) {
 	if slaveDB == nil {
 		return 0, 0, gerrors.New(gerrors.InvalidParameter, "GetSlaveDelay got nil db")
 	}
@@ -476,7 +476,7 @@ func (sw *MySQLBaseSwitchInstance) GetSlaveTimeDelay(slaveDB *hamysql.DB) (int, 
 }
 
 // HasUserCreatedDatabase checks if user-created databases exist
-func (sw *MySQLBaseSwitchInstance) HasUserCreatedDatabase(db *hamysql.DB) (bool, error) {
+func (sw *MySQLBaseSwitchInstance) HasUserCreatedDatabase(db *hamysql.GormDB) (bool, error) {
 	if db == nil {
 		return false, gerrors.New(gerrors.InvalidParameter, "HasUserCreatedDatabase got nil db")
 	}
@@ -553,7 +553,7 @@ func (sw *MySQLBaseSwitchInstance) CheckSlaveStatus() error {
 	ip := sw.StandBySlave.Ip
 	port := sw.StandBySlave.Port
 
-	slaveDB, err := hamysql.New(
+	slaveDB, err := hamysql.NewGormDB(
 		hamysql.OptionProto(MySQLProtocol),
 		hamysql.OptionIP(ip),
 		hamysql.OptionPort(port),
@@ -622,7 +622,7 @@ func (sw *MySQLBaseSwitchInstance) CheckSlaveStatus() error {
 }
 
 // StopSlave stops slave replication
-func (sw *MySQLBaseSwitchInstance) StopSlave(slaveDB *hamysql.DB) error {
+func (sw *MySQLBaseSwitchInstance) StopSlave(slaveDB *hamysql.GormDB) error {
 	if slaveDB == nil {
 		return gerrors.New(gerrors.InvalidParameter, "ResetSlave got nil slaveDB")
 	}
@@ -641,7 +641,7 @@ func (sw *MySQLBaseSwitchInstance) StopSlave(slaveDB *hamysql.DB) error {
 }
 
 // StartSlave starts slave replication
-func (sw *MySQLBaseSwitchInstance) StartSlave(slaveDB *hamysql.DB) error {
+func (sw *MySQLBaseSwitchInstance) StartSlave(slaveDB *hamysql.GormDB) error {
 	if slaveDB == nil {
 		return gerrors.New(gerrors.InvalidParameter, "StartSlave got nil slaveDB")
 	}
@@ -660,7 +660,7 @@ func (sw *MySQLBaseSwitchInstance) StartSlave(slaveDB *hamysql.DB) error {
 }
 
 // ShowMasterStatus retrieves master status information
-func (sw *MySQLBaseSwitchInstance) ShowMasterStatus(db *hamysql.DB) (*MasterStatusInfo, error) {
+func (sw *MySQLBaseSwitchInstance) ShowMasterStatus(db *hamysql.GormDB) (*MasterStatusInfo, error) {
 	if db == nil {
 		return nil, gerrors.New(gerrors.InvalidParameter, "ShowMasterStatus got nil db")
 	}
@@ -681,7 +681,7 @@ func (sw *MySQLBaseSwitchInstance) ShowMasterStatus(db *hamysql.DB) (*MasterStat
 }
 
 // ShowSlaveStatus retrieves slave status information
-func (sw *MySQLBaseSwitchInstance) ShowSlaveStatus(slaveDB *hamysql.DB) (*SlaveStatusInfo, error) {
+func (sw *MySQLBaseSwitchInstance) ShowSlaveStatus(slaveDB *hamysql.GormDB) (*SlaveStatusInfo, error) {
 	if slaveDB == nil {
 		return nil, gerrors.New(gerrors.InvalidParameter, "ShowSlaveStatus got nil slaveDB")
 	}
@@ -702,7 +702,7 @@ func (sw *MySQLBaseSwitchInstance) ShowSlaveStatus(slaveDB *hamysql.DB) (*SlaveS
 }
 
 // ResetSlave resets slave replication settings
-func (sw *MySQLBaseSwitchInstance) ResetSlave(slaveDB *hamysql.DB) error {
+func (sw *MySQLBaseSwitchInstance) ResetSlave(slaveDB *hamysql.GormDB) error {
 	if slaveDB == nil {
 		return gerrors.New(gerrors.InvalidParameter, "ResetSlave got nil slaveDB")
 	}
@@ -723,7 +723,7 @@ func (sw *MySQLBaseSwitchInstance) ResetSlave(slaveDB *hamysql.DB) error {
 
 // ResetSlaveWithBinlogPos resets slave and gets consistent binlog position
 func (sw *MySQLBaseSwitchInstance) ResetSlaveWithBinlogPos(slaveIp string, slavePort int) (string, uint64, error) {
-	slaveDB, err := hamysql.New(
+	slaveDB, err := hamysql.NewGormDB(
 		hamysql.OptionProto(MySQLProtocol),
 		hamysql.OptionIP(slaveIp),
 		hamysql.OptionPort(slavePort),
@@ -763,7 +763,7 @@ func (sw *MySQLBaseSwitchInstance) ResetSlaveWithBinlogPos(slaveIp string, slave
 
 // ChangeMasterAuto automatically changes master configuration
 func (sw *MySQLBaseSwitchInstance) ChangeMasterAuto(slaveIp string, slavePort int, changeMasterSQL string) error {
-	slaveDB, err := hamysql.New(
+	slaveDB, err := hamysql.NewGormDB(
 		hamysql.OptionProto(MySQLProtocol),
 		hamysql.OptionIP(slaveIp),
 		hamysql.OptionPort(slavePort),

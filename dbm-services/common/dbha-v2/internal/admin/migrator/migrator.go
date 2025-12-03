@@ -30,6 +30,9 @@ import (
 	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
+	"fmt"
+
+	"gorm.io/gorm"
 )
 
 var tables = []any{
@@ -44,15 +47,7 @@ var tables = []any{
 }
 
 type Migrator struct {
-	dbs []*hamysql.DB
-}
-
-func (m *Migrator) createDatabase(db *hamysql.DB) error {
-	if err := db.DB().AutoMigrate(tables...); err != nil {
-		return gerrors.Newf(gerrors.MysqlFailure, "auto migrate failed, %v", err)
-	}
-
-	return nil
+	dbs []*hamysql.GormDB
 }
 
 func (m *Migrator) InitDbhaData() error {
@@ -62,13 +57,12 @@ func (m *Migrator) InitDbhaData() error {
 	}
 
 	for _, epoint := range epoints {
-		db, err := hamysql.New(
+		db, err := hamysql.NewGormDB(
 			hamysql.OptionProto(epoint.Proto),
 			hamysql.OptionIP(epoint.Host),
 			hamysql.OptionPort(epoint.Port),
 			hamysql.OptionUser(config.Cfg.Storage.User),
 			hamysql.OptionPassword(config.Cfg.Storage.Password),
-			hamysql.OptionDBName(hamodel.DatabaseName),
 		)
 
 		if err != nil {
@@ -79,9 +73,29 @@ func (m *Migrator) InitDbhaData() error {
 	}
 
 	for _, db := range m.dbs {
-		if err := m.createDatabase(db); err != nil {
+		if err := m.createOrUseDatabase(db); err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (m *Migrator) switchDatabase(db *gorm.DB, dbName string) *gorm.DB {
+	return db.Session(&gorm.Session{}).Exec("USE " + dbName)
+}
+
+func (m *Migrator) createOrUseDatabase(db *hamysql.GormDB) error {
+	sql := fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci", hamodel.DatabaseName)
+	err := db.DB().Exec(sql).Error
+	if err != nil {
+		return gerrors.Newf(gerrors.MysqlFailure, "failed to create the database(%s), %v", hamodel.DatabaseName, err)
+	}
+
+	gdb := m.switchDatabase(db.DB(), hamodel.DatabaseName)
+
+	if err := gdb.AutoMigrate(tables...); err != nil {
+		return gerrors.Newf(gerrors.MysqlFailure, "auto migrate failed, %v", err)
 	}
 
 	return nil

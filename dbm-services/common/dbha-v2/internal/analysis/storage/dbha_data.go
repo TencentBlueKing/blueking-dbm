@@ -41,7 +41,7 @@ type DbInstance struct {
 }
 
 type DbhaData struct {
-	DB *hamysql.DB
+	DB *hamysql.GormDB
 }
 
 func (ha *DbhaData) GetBizIDs() ([]int, error) {

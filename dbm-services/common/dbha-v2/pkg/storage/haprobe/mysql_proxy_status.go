@@ -24,13 +24,18 @@
 
 package haprobe
 
+// MySqlProxyBackend MySQL proxy backend
+type MySqlProxyBackend struct {
+	BackendNdx       int    `gorm:"column:backend_ndx"       json:"backend_ndx"`
+	Address          string `gorm:"column:address"           json:"address"`
+	State            string `gorm:"column:state"             json:"state"`
+	Type             string `gorm:"column:type"              json:"type"`
+	UUID             string `gorm:"column:uuid"              json:"uuid"`
+	ConnectedClients int    `gorm:"column:connected_clients" json:"connected_clients"`
+	RefreshTime      int    `gorm:"column:refresh_time"      json:"refresh_time"`
+}
+
 // MySqlProxyStatus MySQL proxy status for the TendbHA cluster.
 type MySqlProxyStatus struct {
-	BackendNdx       int    `json:"backend_ndx"`
-	Address          string `json:"address"`
-	State            string `json:"state"`
-	Type             string `json:"type"`
-	UUID             string `json:"uuid"`
-	ConnectedClients int    `json:"connected_clients"`
-	RefreshTime      int    `json:"refresh_time"`
+	Backends []MySqlProxyBackend `json:"backends"`
 }

@@ -65,7 +65,7 @@ var (
 )
 
 // New create a workflow instance.
-func New(cli *discovery.Client, db *hamysql.DB) (*Workflow, error) {
+func New(cli *discovery.Client, db *hamysql.GormDB) (*Workflow, error) {
 	wflow := &Workflow{
 		hadata: &storage.DbhaData{
 			DB: db,
