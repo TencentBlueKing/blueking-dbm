@@ -155,7 +155,8 @@ def sync_custom_monitor_policy():
                 logger.error("sync_custom_monitor_policy error: %s", e)
 
 
-@register_periodic_task(run_every=crontab(minute="*/5"))
+# TODO: 暂时去掉，cache没生效，频繁刷新
+# @register_periodic_task(run_every=crontab(minute="*/5"))
 def sync_monitor_policy_events():
     """
     同步各监控策略的告警事件数量

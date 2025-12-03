@@ -432,6 +432,18 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    MYSQL_SUBSCRIBE_MONITOR = ActionMeta(
+        id="mysql_subscribe_monitor",
+        name=_("MySQL 集群告警订阅"),
+        name_en="mysql_subscribe_monitor",
+        type="manage",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("MySQL"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     MYSQL_IMPORT_SQLFILE = ActionMeta(
         id=TicketType.MYSQL_IMPORT_SQLFILE.lower(),
         related_resource_types=[ResourceEnum.MYSQL],
@@ -788,6 +800,18 @@ class ActionEnum:
         name=_("TenDB Cluster 集群编辑"),
         name_en="tendbcluster_edit",
         type="edit",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("TenDBCluster"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    TENDBCLUSTER_SUBSCRIBE_MONITOR = ActionMeta(
+        id="tendbcluster_subscribe_monitor",
+        name=_("TendbCluster 集群告警订阅"),
+        name_en="tendbcluster_subscribe_monitor",
+        type="manage",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.TENDBCLUSTER],
         group=_("TenDBCluster"),
@@ -1233,6 +1257,18 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    ES_SUBSCRIBE_MONITOR = ActionMeta(
+        id="es_subscribe_monitor",
+        name=_("ES 集群告警订阅"),
+        name_en="es_subscribe_monitor",
+        type="manage",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.ES],
+        group=_("ElasticSearch"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     VM_APPLY = ActionMeta(
         id="vm_apply",
         name=_("VM 集群部署"),
@@ -1336,6 +1372,18 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    DORIS_SUBSCRIBE_MONITOR = ActionMeta(
+        id="doris_subscribe_monitor",
+        name=_("Doris 集群告警订阅"),
+        name_en="doris_subscribe_monitor",
+        type="manage",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.DORIS],
+        group=_("Doris"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     DORIS_ACCESS_ENTRY_VIEW = ActionMeta(
         id="doris_access_entry_view",
         name=_("Doris 集群访问"),
@@ -1377,6 +1425,18 @@ class ActionEnum:
         name=_("Kafka 集群编辑"),
         name_en="kafka_edit",
         type="edit",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.KAFKA],
+        group=_("Kafka"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    KAFKA_SUBSCRIBE_MONITOR = ActionMeta(
+        id="kafka_subscribe_monitor",
+        name=_("Kafka 集群告警订阅"),
+        name_en="kafka_subscribe_monitor",
+        type="manage",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.KAFKA],
         group=_("Kafka"),
@@ -1448,6 +1508,18 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    HDFS_SUBSCRIBE_MONITOR = ActionMeta(
+        id="hdfs_subscribe_monitor",
+        name=_("HDFS 集群告警订阅"),
+        name_en="hdfs_subscribe_monitor",
+        type="manage",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.HDFS],
+        group=_("HDFS"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     HDFS_ACCESS_ENTRY_VIEW = ActionMeta(
         id="hdfs_access_entry_view",
         name=_("HDFS 集群访问"),
@@ -1497,6 +1569,18 @@ class ActionEnum:
         name=_("Pulsar 集群编辑"),
         name_en="pulsar_edit",
         type="edit",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.PULSAR],
+        group=_("Pulsar"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    PULSAR_SUBSCRIBE_MONITOR = ActionMeta(
+        id="pulsar_subscribe_monitor",
+        name=_("Pulsar 集群告警订阅"),
+        name_en="pulsar_subscribe_monitor",
+        type="manage",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.PULSAR],
         group=_("Pulsar"),
@@ -1602,6 +1686,18 @@ class ActionEnum:
         name=_("Mongodb 集群编辑"),
         name_en="mongodb_edit",
         type="edit",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("MongoDB"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    MONGODB_SUBSCRIBE_MONITOR = ActionMeta(
+        id="mongodb_subscribe_monitor",
+        name=_("Mongodb 集群告警订阅"),
+        name_en="mongodb_subscribe_monitor",
+        type="manage",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MONGODB],
         group=_("MongoDB"),
@@ -1757,6 +1853,18 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    SQLSERVER_SUBSCRIBE_MONITOR = ActionMeta(
+        id="sqlserver_subscribe_monitor",
+        name=_("SQLServer 集群告警订阅"),
+        name_en="sqlserver_subscribe_monitor",
+        type="manage",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.SQLSERVER],
+        group=_("SQLServer"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     SQLSERVER_ADMIN_PWD_MODIFY = ActionMeta(
         id="sqlserver_admin_pwd_modify",
         name=_("SQLServer 临时密码修改"),
@@ -1884,10 +1992,22 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    ORACLE_SUBSCRIBE_MONITOR = ActionMeta(
+        id="oracle_subscribe_monitor",
+        name=_("Oracle 集群告警订阅"),
+        name_en="oracle_subscribe_monitor",
+        type="manage",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.ORACLE],
+        group=_("Oracle"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     ORACLE_ENABLE_DISABLE = ActionMeta(
         id="oracle_enable_disable",
-        name=_("ORACLE 集群禁用和启用"),
-        name_en="ORACLE Enable Disable",
+        name=_("Oracle 集群禁用和启用"),
+        name_en="Oracle Enable Disable",
         type="execute",
         related_actions=[ORACLE_VIEW.id],
         related_resource_types=[ResourceEnum.ORACLE],
