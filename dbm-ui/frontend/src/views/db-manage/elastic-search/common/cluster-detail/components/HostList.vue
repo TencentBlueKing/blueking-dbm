@@ -122,7 +122,9 @@
       selectable
       @filter-change="handleFilterChange"
       @selection="handleSelectChange">
-      <HostListFieldColumn :cluster-type="ClusterTypes.ES" />
+      <HostListFieldColumn
+        :cluster-id="clusterData.id"
+        :cluster-type="ClusterTypes.ES" />
       <TableColumn
         col-key="row-operation"
         fixed="right"
@@ -216,6 +218,7 @@
 
   const hostTableRef = ref<InstanceType<typeof DbTable>>();
   const { quickSearchData, quickSearchValue } = useHostSearchSelect(ClusterTypes.ES, {
+    clusterId: props.clusterData.id,
     serviceHandler: () => {
       fetchData();
     },

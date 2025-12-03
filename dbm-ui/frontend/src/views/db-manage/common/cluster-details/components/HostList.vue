@@ -37,7 +37,9 @@
       selectable
       @filter-change="handleFilterChange"
       @selection="handleSelectChange">
-      <HostListFieldColumn :cluster-type="clusterType" />
+      <HostListFieldColumn
+        :cluster-id="clusterId"
+        :cluster-type="clusterType" />
     </DbTable>
   </div>
 </template>
@@ -66,6 +68,7 @@
 
   const hostTableRef = ref<InstanceType<typeof DbTable>>();
   const { quickSearchData, quickSearchValue } = useHostSearchSelect(props.clusterType, {
+    clusterId: props.clusterId,
     serviceHandler: () => {
       fetchData();
     },
