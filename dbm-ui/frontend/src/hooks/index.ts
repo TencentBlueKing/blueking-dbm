@@ -25,6 +25,8 @@ export * from './useDebouncedRef';
 export * from './useDefaultPagination';
 export * from './useEventBus';
 export * from './useFormItem';
+export * from './useInstanceColumnFilter';
+export * from './useInstanceQuickSearch';
 export * from './useIsWidthOverflow';
 export * from './useLinkQueryColumnSerach';
 export * from './useListeners';

@@ -26,6 +26,7 @@ const quickSearchValue = ref<Record<string, any>>({});
 export const useHostSearchSelect = (
   clusterType: ClusterTypes,
   options: {
+    clusterId: number;
     serviceHandler: () => void;
   },
 ) => {
@@ -37,6 +38,7 @@ export const useHostSearchSelect = (
   const getBizMachineAttrs = (attr: (typeof machineAttrs)[number]) => {
     return queryBizMachineAttrs({
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      cluster_id: options.clusterId,
       cluster_type: clusterType,
       machine_attrs: machineAttrs.join(','),
     }).then((data) => {

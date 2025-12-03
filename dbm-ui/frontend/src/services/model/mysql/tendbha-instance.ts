@@ -15,9 +15,10 @@ import type { HostInfo, InstanceListSpecConfig, InstanceRelatedCluster, MachineR
 
 import { ClusterTypes } from '@common/const';
 
-import { utcDisplayTime } from '@utils';
+import InstanceBase from '../_instanceBase';
 
-export default class TendbhaInstance {
+export default class TendbhaInstance extends InstanceBase {
+  bk_biz_id: number;
   bk_cloud_id: number;
   bk_cloud_name: string;
   bk_cpu: number;
@@ -34,7 +35,7 @@ export default class TendbhaInstance {
   cluster_name: string;
   cluster_type: ClusterTypes;
   cluster_type_name: string;
-  create_at: string;
+
   db_module_id: number;
   db_module_name: string;
   host_info: HostInfo;
@@ -49,15 +50,14 @@ export default class TendbhaInstance {
   };
   port: number;
   related_clusters: InstanceRelatedCluster[];
+  related_pair_instance: MachineRelatedInstance;
   role: string;
   slave_domain: string;
   spce_config: InstanceListSpecConfig;
-  status: string;
   version: string;
-  bk_biz_id: number;
-  related_pair_instance: MachineRelatedInstance;
 
   constructor(payload = {} as TendbhaInstance) {
+    super(payload);
     this.bk_biz_id = payload.bk_biz_id || 0;
     this.bk_cloud_id = payload.bk_cloud_id || 0;
     this.bk_cloud_name = payload.bk_cloud_name || '';
@@ -75,7 +75,6 @@ export default class TendbhaInstance {
     this.cluster_name = payload.cluster_name || '';
     this.cluster_type = payload.cluster_type || '';
     this.cluster_type_name = payload.cluster_type_name || '';
-    this.create_at = payload.create_at || '';
     this.db_module_id = payload.db_module_id || 0;
     this.db_module_name = payload.db_module_name || '';
     this.host_info = payload.host_info || {};
@@ -92,11 +91,6 @@ export default class TendbhaInstance {
     this.role = payload.role || '';
     this.slave_domain = payload.slave_domain || '';
     this.spce_config = payload.spce_config || {};
-    this.status = payload.status || '';
     this.version = payload.version || '';
-  }
-
-  get createAtDisplay() {
-    return utcDisplayTime(this.create_at);
   }
 }

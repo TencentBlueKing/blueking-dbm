@@ -84,7 +84,6 @@ const haRoutes: RouteRecordRaw[] = [
         path: 'ha-instance-list',
         name: 'OracleHaInstanceList',
         meta: {
-          fullscreen: true,
           navName: t('【Oracle】实例视图'),
         },
         component: () => import('@views/db-manage/oracle/ha-instance-list/Index.vue'),
