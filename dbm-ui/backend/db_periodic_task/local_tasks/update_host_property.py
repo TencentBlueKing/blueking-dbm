@@ -11,7 +11,9 @@ specific language governing permissions and limitations under the License.
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
+from itertools import islice
 
+from blueapps.core.celery.celery import app
 from celery.schedules import crontab
 from django.core.cache import cache
 from django.utils.translation import gettext as _
@@ -19,7 +21,9 @@ from django.utils.translation import gettext as _
 from backend.components import CCApi
 from backend.db_dirty.models import DirtyMachine
 from backend.db_meta.models import Machine
+from backend.db_periodic_task.local_tasks.context_manager import start_new_span
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
+from backend.db_periodic_task.utils import TimeUnit, calculate_countdown
 from backend.db_proxy.constants import DB_CLOUD_MACHINE_EXPIRE_TIME
 from backend.utils.redis import RedisConn
 
@@ -159,6 +163,71 @@ def update_host_property():
 
     except Exception as e:
         logger.exception(f"Error during sync_update_host_property: {e}")
+
+
+def batch_generator_large(queryset, batch_size=500):
+    iterator = queryset.iterator()
+    while batch := list(islice(iterator, batch_size)):
+        yield batch
+
+
+@register_periodic_task(run_every=crontab(hour=1, minute=10))
+def update_all_host_property():
+    try:
+        machines = Machine.objects.all()
+        machine_count = machines.count()
+        task_count = machine_count // 500 if not machine_count % 500 else machine_count // 500 + 1
+
+        for index, batch in enumerate(batch_generator_large(machines, 500)):
+            countdown = calculate_countdown(count=task_count, index=index, duration=3 * TimeUnit.HOUR)
+            with start_new_span(update_machine_field):
+                bk_host_ids = [machine.bk_host_id for machine in batch]
+                update_machine_field.apply_async(kwargs={"bk_host_ids": bk_host_ids}, countdown=countdown)
+
+    except Exception as e:
+        logger.exception(f"Error during sync_update_host_property: {e}")
+
+
+@app.task
+def update_machine_field(bk_host_ids):
+    # 初始化请求参数
+    params = {"bk_fields": DEFAULT_BK_FIELDS, "page": {"start": 0, "limit": 500}}
+    batch_machines = Machine.objects.filter(bk_host_id__in=bk_host_ids)
+    machine_ip_map = {machine.bk_host_id: machine for machine in batch_machines}
+    machine_fields = [
+        ("bk_os_name", "bk_os_name"),
+        ("bk_idc_area", "bk_idc_area"),
+        ("bk_idc_area_id", "bk_idc_area_id"),
+        ("bk_sub_zone", "sub_zone"),
+        ("bk_sub_zone_id", "sub_zone_id"),
+        ("bk_rack", "rack"),
+        ("bk_rack_id", "rack_id"),
+        ("bk_svr_device_cls_name", "bk_svr_device_cls_name"),
+        ("bk_city_id", "idc_city_id"),
+        ("bk_idc_id", "idc_id"),
+        ("bk_idc_name", "idc_name"),
+    ]
+
+    params["host_property_filter"] = {
+        "condition": "AND",
+        "rules": [{"field": "bk_host_id", "operator": "in", "value": bk_host_ids}],
+    }
+    res = CCApi.list_hosts_without_biz(params, use_admin=True)
+    host_infos = res.get("info", [])
+    host_updates = {
+        host["bk_host_id"]: {
+            # 确保包含_id的字段不为None 否则更新会出错
+            field_name: 0 if (field_name.endswith("_id") and host.get(detail_name) is None) else host.get(detail_name)
+            for field_name, detail_name in machine_fields
+        }
+        for host in host_infos
+    }
+    # 批量更新machine属性
+    machines_to_update = update_hosts(machine_ip_map, host_updates)
+    if machines_to_update:
+        Machine.objects.bulk_update(
+            machines_to_update, fields=[field for field, __ in machine_fields if hasattr(Machine, field)]
+        )
 
 
 @register_periodic_task(run_every=crontab(hour=1, minute=0))
