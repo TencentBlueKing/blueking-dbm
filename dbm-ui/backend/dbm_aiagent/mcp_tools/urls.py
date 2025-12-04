@@ -13,4 +13,5 @@ from django.urls import include, path
 # common mcp tools
 urlpatterns = [
     path("common/", include("backend.dbm_aiagent.mcp_tools.common.urls")),
+    path("mysql/", include("backend.dbm_aiagent.mcp_tools.mysql.urls")),
 ]

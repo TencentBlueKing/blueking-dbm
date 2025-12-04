@@ -267,3 +267,6 @@ DBM_STATSDB_USER = get_type_env(key="DBM_STATSDB_USER", _type=str, default="")
 DBM_STATSDB_PASSWORD = get_type_env(key="DBM_STATSDB_PASSWORD", _type=str, default="")
 DBM_STATSDB_URL = get_type_env(key="DBM_STATSDB_URL", _type=str, default="")
 DBM_STATSDB_NAME = get_type_env(key="DBM_STATSDB_NAME", _type=str, default="")
+
+# 本地调试 MCP 用于跳过鉴权
+DEBUG_MCP = get_type_env(key="DEBUG_MCP", _type=bool, default=False)

@@ -94,6 +94,7 @@ def mcp_tools_api_decorator(
     """
 
     def decorator(func: Callable) -> Callable:
+        setattr(func, "is_mcp_tool", True)
         # 先用 rest-action 装饰
         func = action(methods=methods, detail=False, serializer_class=request_slz)(func)
 
