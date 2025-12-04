@@ -125,6 +125,7 @@ from backend.flow.views.mysql_clb_operation import (
     MysqlDomainBindClbIpSceneApiView,
     MysqlDomainUnBindClbIpSceneApiView,
 )
+from backend.flow.views.mysql_clone_cluster import MysqlCloneClusterSceneApiView
 from backend.flow.views.mysql_data_migrate import MysqlDataMigrateSceneApiView
 from backend.flow.views.mysql_edit_config import MysqlEditConfigSceneApiView
 from backend.flow.views.mysql_failover_drill import MysqlFailoverDrillSceneApiView
@@ -474,6 +475,7 @@ urlpatterns = [
     url(r"^scene/add_slave_remote$", AddMysqlSlaveRemoteSceneApiView.as_view()),
     url(r"^scene/restore_local_slave_remote$", RestoreMysqlLocalRemoteSceneApiView.as_view()),
     url(r"^scene/migrate_cluster_remote$", MysqlMigrateRemoteSceneApiView.as_view()),
+    url(r"^scene/mysql/clone_cluster$", MysqlCloneClusterSceneApiView.as_view()),
     url(r"^scene/mysql_rollback_data", MysqlRollbackDataSceneApiView.as_view()),
     url(r"^scene/mysql_rollback_to_cluster", MysqlRollbackToClusterSceneApiView.as_view()),
     url(r"^scene/install_es$", InstallEsSceneApiView.as_view()),

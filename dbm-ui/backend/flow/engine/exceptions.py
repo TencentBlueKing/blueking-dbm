@@ -41,3 +41,8 @@ class IncompatibleBackupTypeAndLocal(AppBaseException):
 class MySQLFlowFailedException(AppBaseException):
     MESSAGE = _("MySQL组件FLOW执行异常")
     MESSAGE_TPL = _("{msg}")
+
+
+class CloneClusterException(AppBaseException):
+    MESSAGE = _("集群克隆异常")
+    MESSAGE_TPL = _("{message}")

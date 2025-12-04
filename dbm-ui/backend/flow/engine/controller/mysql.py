@@ -27,6 +27,7 @@ from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.flow import M
 from backend.flow.engine.bamboo.scene.mysql.import_sqlfile_flow import ImportSQLFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_authorize_rules import MySQLAuthorizeRulesFlows
 from backend.flow.engine.bamboo.scene.mysql.mysql_checksum import MysqlChecksumFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_clone_cluster_flow import MySQLCloneClusterFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_data_migrate_flow import MysqlDataMigrateFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_db_table_backup import MySQLDBTableBackupFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_edit_config_flow import MysqlEditConfigFlow
@@ -751,3 +752,33 @@ class MySQLController(BaseController):
     def mysql_partition_scene_v2(self):
         flow = MysqlPartitionV2Flow(root_id=self.root_id, data=self.ticket_data)
         flow.mysql_partition_v2_flow()
+
+    def mysql_clone_cluster_scene(self):
+        """
+        MySQL 集群克隆 flow 编排
+
+        将源集群的数据克隆到已存在的目标集群，主要步骤包括：
+        1. 前置校验：版本和字符集一致性校验、目标集群空集群校验
+        2. 数据恢复：从源集群备份恢复数据到目标集群的 master 和 slave
+        3. 人工确认后断开同步：目标集群 master 执行 reset slave all 断开与源集群的同步关系
+
+        ticket_data 参数结构体样例:
+        {
+            "uid": "2022051612120001",
+            "created_by": "xxx",
+            "bk_biz_id": "152",
+            "backup_source": "REMOTE",  # REMOTE 或 LOCAL，默认 REMOTE
+            "infos": [
+                {
+                    "cluster_ids": [1, 2, 3],  # 源集群ID列表
+                    "dest_cluster_id": 100,    # 目标集群ID
+                }
+            ]
+        }
+
+        注意事项：
+        - 源集群和目标集群的版本和字符集必须一致
+        - 目标集群必须为空集群（不含用户数据库）
+        """
+        flow = MySQLCloneClusterFlow(root_id=self.root_id, ticket_data=self.ticket_data)
+        flow.clone_cluster_flow()
