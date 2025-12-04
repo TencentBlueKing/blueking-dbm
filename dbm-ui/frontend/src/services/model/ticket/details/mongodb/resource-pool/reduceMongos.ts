@@ -1,4 +1,5 @@
-import type { DetailMachines, ResourcePoolDetailBase } from '../../common';
+import type { DetailMachines } from '../../common';
+import type { ResourcePoolDetailBase } from '../../resource-pool';
 
 export interface ReduceMongos extends ResourcePoolDetailBase {
   infos: {

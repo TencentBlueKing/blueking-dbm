@@ -21,7 +21,6 @@ import type { DetailBase } from './details/common';
 
 export type * as Bigdata from './details/bigdata/index';
 export type * as Common from './details/common';
-export type * as ResourcePool from './details/resource-pool';
 export type * as Doris from './details/doris';
 export type * as Dumper from './details/dumper';
 export type * as Es from './details/elastic-search';
@@ -33,6 +32,7 @@ export type * as Mysql from './details/mysql/index';
 export type * as Oracle from './details/oracle';
 export type * as Pulsar from './details/pulsar';
 export type * as Redis from './details/redis/index';
+export type * as ResourcePool from './details/resource-pool';
 export type * as Riak from './details/riak';
 export type * as Sqlserver from './details/sqlserver';
 export type * as TendbCluster from './details/tendbCluster';
@@ -55,12 +55,12 @@ export default class Ticket<T extends unknown | DetailBase = unknown> {
   static STATUS_INNER_TODO = STATUS_INNER_TODO;
   static STATUS_PENDING = STATUS_PENDING;
   static STATUS_RESOURCE_REPLENISH = STATUS_RESOURCE_REPLENISH;
+  static STATUS_REVOKED = STATUS_REVOKED;
   static STATUS_RUNNING = STATUS_RUNNING;
   static STATUS_SUCCEEDED = STATUS_SUCCEEDED;
   static STATUS_TERMINATED = STATUS_TERMINATED;
   static STATUS_TIMER = STATUS_TIMER;
   static STATUS_TODO = STATUS_TODO;
-  static STATUS_REVOKED = STATUS_REVOKED;
 
   static statusTextMap = {
     [STATUS_APPROVE]: t('待审批'),
@@ -68,12 +68,12 @@ export default class Ticket<T extends unknown | DetailBase = unknown> {
     [STATUS_INNER_TODO]: t('待继续'),
     [STATUS_PENDING]: t('待调度'),
     [STATUS_RESOURCE_REPLENISH]: t('待补货'),
+    [STATUS_REVOKED]: t('已撤销'),
     [STATUS_RUNNING]: t('执行中'),
     [STATUS_SUCCEEDED]: t('已完成'),
     [STATUS_TERMINATED]: t('已终止'),
     [STATUS_TIMER]: t('定时中'),
     [STATUS_TODO]: t('待执行'),
-    [STATUS_REVOKED]: t('已撤销'),
   };
 
   bk_biz_id: number;

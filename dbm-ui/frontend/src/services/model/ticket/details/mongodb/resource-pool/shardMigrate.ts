@@ -1,6 +1,6 @@
 import type { ClusterTypes } from '@common/const';
 
-import type { ResourcePoolDetailBase } from '../../common';
+import type { ResourcePoolDetailBase } from '../../resource-pool';
 
 export interface ShardMigrate extends ResourcePoolDetailBase {
   cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER;
@@ -11,14 +11,12 @@ export interface ShardMigrate extends ResourcePoolDetailBase {
     db_version: string;
     disaster_tolerance_level: string;
     old_nodes: {
-      shard: [
-        {
-          bk_biz_id: number;
-          bk_cloud_id: number;
-          bk_host_id: number;
-          ip: string;
-        },
-      ];
+      shard: {
+        bk_biz_id: number;
+        bk_cloud_id: number;
+        bk_host_id: number;
+        ip: string;
+      }[];
     };
     related_instances: {
       domain: string;

@@ -1,4 +1,4 @@
-import type { ResourcePoolDetailBase } from '../../common';
+import type { ResourcePoolDetailBase } from '../../resource-pool';
 
 export interface AddMongos extends ResourcePoolDetailBase {
   infos: {
