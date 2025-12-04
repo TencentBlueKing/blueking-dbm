@@ -41,6 +41,11 @@ containerPorts:
 
 # @section dbs 服务配置
 server:
+  dbmConfig:
+    asyncToDbm: "false"
+    dbmApiUrl: ""
+    dbmBkAppCode: ""
+    dbmBkAppSecret: ""
   log:
     max_size_mb: "10"
     max_backups: "5"

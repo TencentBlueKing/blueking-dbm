@@ -57,5 +57,11 @@ spec:
             value: "{{ .Values.server.datasource.maxIdelConns }}"
           - name: MYSQL_MAX_LIFETIME
             value: "{{ .Values.server.datasource.maxLifeTime }}"
-          - name: MYSQL_MAX_IDLE_TIME
-            value: "{{ .Values.server.datasource.maxIdleTime }}"
+          - name: ASYNC_TO_DBM
+            value: "{{ .Values.server.dbmConfig.asyncToDbm }}"
+          - name: DBM_API_URL
+            value: "{{ .Values.server.dbmConfig.dbmApiUrl }}"
+          - name: DBM_BK_APP_CODE
+            value: "{{ .Values.server.dbmConfig.dbmBkAppCode }}"
+          - name: DBM_BK_APP_SECRET
+            value: "{{ .Values.server.dbmConfig.dbmBkAppSecret }}"
