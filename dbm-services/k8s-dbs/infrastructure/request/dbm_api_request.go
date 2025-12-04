@@ -35,16 +35,17 @@ type CreateClusterRequest struct {
 
 // UpdateClusterRequest 更新集群请求（全量更新）
 type UpdateClusterRequest struct {
-	Name         string `json:"name"`
-	Alias        string `json:"alias"`
-	BkBizID      uint64 `json:"bk_biz_id"`
-	ClusterType  string `json:"cluster_type"`
-	ImmuteDomain string `json:"immute_domain"`
-	MajorVersion string `json:"major_version"`
-	Phase        string `json:"phase"`
-	Status       string `json:"status"`
-	Region       string `json:"region"`
-	Operator     string `json:"operator"`
+	Name             string `json:"name"`
+	Alias            string `json:"alias"`
+	BkBizID          uint64 `json:"bk_biz_id"`
+	ClusterType      string `json:"cluster_type"`
+	ImmuteDomain     string `json:"immute_domain"`
+	MajorVersion     string `json:"major_version"`
+	Phase            string `json:"phase"`
+	Status           string `json:"status"`
+	Region           string `json:"region"`
+	Operator         string `json:"operator"`
+	ClusterEntryType string `json:"cluster_entry_type"`
 }
 
 // DeleteClusterRequest 删除集群请求

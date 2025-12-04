@@ -303,7 +303,6 @@ func (c *ClusterProvider) asyncClusterOperation(
 ) {
 	// 创建带超时的context，避免异步任务无限期运行
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
 
 	// 使用errgroup管理异步任务
 	g := &errgroup.Group{}
@@ -315,41 +314,31 @@ func (c *ClusterProvider) asyncClusterOperation(
 
 	// 在单独的goroutine中等待任务完成并处理结果
 	go func() {
-		// 等待任务完成或context超时
-		select {
-		case <-ctx.Done():
-			// context超时或被取消
-			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+		// 确保在goroutine结束时取消context
+		defer cancel()
+
+		// 等待所有任务完成
+		err := g.Wait()
+
+		if err != nil {
+			if errors.Is(err, context.DeadlineExceeded) {
 				slog.Warn("同步集群"+operationType+"信息超时",
-					"k8s_cluster_name", clusterEntity.K8sClusterConfig.ClusterName,
 					"cluster_name", clusterEntity.ClusterName,
 					"namespace", clusterEntity.Namespace,
 					"timeout", "30s",
 				)
 			} else {
-				slog.Warn("同步集群"+operationType+"信息被取消",
-					"k8s_cluster_name", clusterEntity.K8sClusterConfig.ClusterName,
-					"cluster_name", clusterEntity.ClusterName,
-					"namespace", clusterEntity.Namespace,
-					"error", ctx.Err(),
-				)
-			}
-		default:
-			// 正常等待任务完成
-			if err := g.Wait(); err != nil {
 				slog.Error("同步集群"+operationType+"信息失败",
-					"k8s_cluster_name", clusterEntity.K8sClusterConfig.ClusterName,
 					"cluster_name", clusterEntity.ClusterName,
 					"namespace", clusterEntity.Namespace,
 					"error", err,
 				)
-			} else {
-				slog.Info("同步集群"+operationType+"信息成功",
-					"k8s_cluster_name", clusterEntity.K8sClusterConfig.ClusterName,
-					"cluster_name", clusterEntity.ClusterName,
-					"namespace", clusterEntity.Namespace,
-				)
 			}
+		} else {
+			slog.Info("同步集群"+operationType+"信息成功",
+				"cluster_name", clusterEntity.ClusterName,
+				"namespace", clusterEntity.Namespace,
+			)
 		}
 	}()
 }
@@ -411,7 +400,7 @@ func (c *ClusterProvider) syncClusterDeletedWithContext(
 	if !response.Result {
 		return fmt.Errorf("DBM API返回同步失败: %s", response.Message)
 	}
-
+	slog.Info("DBM API 返回同步删除成功", "cluster_name", clusterEntity.ClusterName)
 	return nil
 }
 
@@ -455,7 +444,7 @@ func (c *ClusterProvider) syncClusterCreatedWithContext(
 	if !response.Result {
 		return fmt.Errorf("DBM API返回同步失败: %s", response.Message)
 	}
-
+	slog.Info("DBM API 返回同步创建成功", "cluster_name", clusterEntity.ClusterName)
 	return nil
 }
 
@@ -478,16 +467,17 @@ func (c *ClusterProvider) syncClusterUpdatedWithContext(
 
 	// 构建同步请求
 	syncRequest := &infreq.UpdateClusterRequest{
-		Name:         clusterEntity.ClusterName,
-		Alias:        clusterEntity.ClusterAlias,
-		BkBizID:      clusterEntity.BkBizID,
-		ClusterType:  dbmClusterType,
-		ImmuteDomain: fmt.Sprintf("%d_%s_%s", clusterEntity.BkBizID, dbmClusterType, clusterEntity.ClusterName),
-		MajorVersion: clusterEntity.ServiceVersion,
-		Phase:        "online",
-		Status:       "normal",
-		Region:       "default",
-		Operator:     clusterEntity.UpdatedBy,
+		Name:             clusterEntity.ClusterName,
+		Alias:            clusterEntity.ClusterAlias,
+		BkBizID:          clusterEntity.BkBizID,
+		ClusterType:      dbmClusterType,
+		ImmuteDomain:     fmt.Sprintf("%d_%s_%s", clusterEntity.BkBizID, dbmClusterType, clusterEntity.ClusterName),
+		MajorVersion:     clusterEntity.ServiceVersion,
+		Phase:            "online",
+		Status:           "normal",
+		Region:           "default",
+		Operator:         clusterEntity.UpdatedBy,
+		ClusterEntryType: "clb",
 	}
 
 	// 调用同步接口，支持context取消
@@ -499,7 +489,7 @@ func (c *ClusterProvider) syncClusterUpdatedWithContext(
 	if !response.Result {
 		return fmt.Errorf("DBM API返回同步失败: %s", response.Message)
 	}
-
+	slog.Info("DBM API 返回同步更新成功", "cluster_name", clusterEntity.ClusterName)
 	return nil
 }
 
@@ -931,6 +921,7 @@ func (c *ClusterProvider) saveClusterMeta(
 		slog.Error("failed to create cluster entity", "error", err)
 		return nil, err
 	}
+	addedClusterEntity.AddonInfo = storageAddon[0]
 	return addedClusterEntity, nil
 }
 
