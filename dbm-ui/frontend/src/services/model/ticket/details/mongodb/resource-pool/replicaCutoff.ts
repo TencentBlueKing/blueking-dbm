@@ -1,6 +1,7 @@
 import type { ClusterTypes } from '@common/const';
 
-import type { DetailSpecs, ResourcePoolDetailBase } from '../../common';
+import type { DetailSpecs } from '../../common';
+import type { ResourcePoolDetailBase } from '../../resource-pool';
 
 interface RoleInfo {
   bk_cloud_id: number;

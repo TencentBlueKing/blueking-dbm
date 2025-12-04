@@ -1,6 +1,6 @@
 import type { ClusterTypes } from '@common/const';
 
-import type { ResourcePoolDetailBase } from '../../common';
+import type { ResourcePoolDetailBase } from '../../resource-pool';
 
 export interface ReplicaAddShardNodes extends ResourcePoolDetailBase {
   cluster_type: ClusterTypes.MONGO_REPLICA_SET;
