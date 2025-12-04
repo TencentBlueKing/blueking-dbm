@@ -15,7 +15,7 @@ export default () => {
 
   const URL_REPLENISH_MEMO_KEY = '__replenish_payload__';
 
-  const tableData = ref<ServiceReturnType<typeof getTickets>['results']>([]);
+  const dataList = ref<ServiceReturnType<typeof getTickets>['results']>([]);
   const pagination = reactive({
     count: 0,
     current: 1,
@@ -32,7 +32,7 @@ export default () => {
   const { loading, run: dataSource } = useRequest(getTickets, {
     manual: true,
     onSuccess: (data: ServiceReturnType<typeof getTickets>) => {
-      tableData.value = data.results;
+      dataList.value = data.results;
       pagination.count = data.count;
       replaceSearchParams({
         ...searchParams,
@@ -65,7 +65,7 @@ export default () => {
   };
 
   return {
-    tableData,
+    dataList,
     fetchData,
     loading,
     pagination,
