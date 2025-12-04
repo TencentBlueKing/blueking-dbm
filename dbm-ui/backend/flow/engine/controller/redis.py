@@ -69,6 +69,7 @@ from backend.flow.engine.bamboo.scene.redis.validate.redis_migrate_validator imp
     RedisClusterInsMigrateFlowValidator,
     RedisSingleInsMigrateFlowValidator,
 )
+from backend.flow.engine.bamboo.scene.redis.validate.redis_slot_migrate_validator import SlotMigrateFlowValidator
 from backend.flow.engine.controller.base import BaseController
 from backend.flow.engine.validate.base_validate import validates_with
 
@@ -346,6 +347,7 @@ class RedisController(BaseController):
         flow = RedisClusterVersionUpdateOnline(root_id=self.root_id, data=self.ticket_data)
         flow.version_update_flow()
 
+    @validates_with(SlotMigrateFlowValidator)
     def redis_slots_migrate_for_expansion(self):
         """
         redis slots migrate for 扩容
@@ -353,6 +355,7 @@ class RedisController(BaseController):
         flow = RedisSlotsMigrateFlow(root_id=self.root_id, data=self.ticket_data)
         flow.redis_migrate_4_expansion_flow()
 
+    @validates_with(SlotMigrateFlowValidator)
     def redis_slots_migrate_for_contraction(self):
         """
         redis slots migrate for 缩容

@@ -42,7 +42,7 @@ class RedisShardAddDetailSerializer(RedisBaseOperateDetailSerializer):
 
 class RedisShardAddParamBuilder(builders.FlowParamBuilder):
     controller = RedisController.redis_slots_migrate_for_expansion
-    validator = None
+    validator = RedisController.redis_slots_migrate_for_expansion.validator
 
     def format_ticket_data(self):
         for info in self.ticket_data["infos"]:
