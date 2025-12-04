@@ -6,6 +6,7 @@
     allow-create
     class="bk-editable-tag-input"
     clearable
+    :copyable="false"
     has-delete-icon
     v-bind="{ ...attrs, ...props }"
     @blur="handleBlur"
