@@ -177,13 +177,10 @@ export default class FunctionController {
   'resourceManage.allHost': ControllerItem<string>;
   'resourceManage.dirtyHostManage': ControllerItem<string>;
   'resourceManage.faultPool': ControllerItem<string>;
+  'resourceManage.replenishList': ControllerItem<string>;
+  'resourceManage.replenishRecord': ControllerItem<string>;
   'resourceManage.resourceOperationRecord': ControllerItem<string>;
-  'resourceManage.resourceOperationRecord.flow': ControllerItem<string>;
-  'resourceManage.resourceOperationRecord.replenish': ControllerItem<string>;
   'resourceManage.resourcePool': ControllerItem<string>;
-  'resourceManage.resourcePool.replenishList': ControllerItem<string>;
-  'resourceManage.resourcePool.hostList': ControllerItem<string>;
-  'resourceManage.resourcePool.summaryView': ControllerItem<string>;
   'resourceManage.resourceSpec': ControllerItem<string>;
   'resourceManage.resourceTagsManagement': ControllerItem<string>;
   'resourceManage.toRecyclePool': ControllerItem<string>;
@@ -275,12 +272,12 @@ export default class FunctionController {
     const item = this[key] as ControllerItem<T>;
 
     if (!item) {
-      return {} as Record<T | K, boolean>;
+      return {} as Record<string, boolean>;
     }
 
     const flatData = {
       [key]: item.is_enabled,
-    } as Record<T | K, boolean>;
+    } as Record<string, boolean>;
 
     const { children } = item;
     const keys = Object.keys(children) as T[];
