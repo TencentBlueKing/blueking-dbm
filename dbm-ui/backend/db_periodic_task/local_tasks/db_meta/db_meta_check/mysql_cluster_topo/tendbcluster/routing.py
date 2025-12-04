@@ -137,42 +137,82 @@ def _cluster_routing_check(c: Cluster) -> List[CheckResponse]:
 
 def _check_spider_routing(c: Cluster, routing_data: List[dict]) -> List[CheckResponse]:
     """
-    检查 spider 节点在路由中是否存在
+    检查 spider_master 和 spider_slave 节点在中控路由中是否存在
+    - spider_master 对应路由中 Wrapper="SPIDER"
+    - spider_slave 对应路由中 Wrapper="SPIDER_SLAVE"
     """
     bad = []
 
-    # 从元数据获取所有 spider 节点
-    metadata_spiders = set()
-    for spider in c.proxyinstance_set.all():
+    # 从元数据获取 SPIDER_MASTER 节点
+    metadata_master_spiders = set()
+    for spider in c.proxyinstance_set.filter(
+        tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER.value
+    ):
         spider_address = f"{spider.machine.ip}{IP_PORT_DIVIDER}{spider.port}"
-        metadata_spiders.add(spider_address)
+        metadata_master_spiders.add(spider_address)
 
-    # 从路由表提取 SPIDER 记录
-    routing_spiders = set()
+    # 从元数据获取 SPIDER_SLAVE 节点
+    metadata_slave_spiders = set()
+    for spider in c.proxyinstance_set.filter(
+        tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE.value
+    ):
+        spider_address = f"{spider.machine.ip}{IP_PORT_DIVIDER}{spider.port}"
+        metadata_slave_spiders.add(spider_address)
+
+    # 从路由表提取 SPIDER 记录（对应 spider_master）
+    routing_master_spiders = set()
     for row in routing_data:
         if row.get("Wrapper") == "SPIDER":
             host = row.get("Host", "")
             port = row.get("Port", "")
             if host and port:
                 routing_address = f"{host}{IP_PORT_DIVIDER}{port}"
-                routing_spiders.add(routing_address)
+                routing_master_spiders.add(routing_address)
 
-    # 检查元数据中的 spider 是否都在路由中存在
-    missing_spiders = metadata_spiders - routing_spiders
-    if missing_spiders:
+    # 从路由表提取 SPIDER_SLAVE 记录（对应 spider_slave）
+    routing_slave_spiders = set()
+    for row in routing_data:
+        if row.get("Wrapper") == "SPIDER_SLAVE":
+            host = row.get("Host", "")
+            port = row.get("Port", "")
+            if host and port:
+                routing_address = f"{host}{IP_PORT_DIVIDER}{port}"
+                routing_slave_spiders.add(routing_address)
+
+    # 检查 spider_master 节点
+    missing_master_spiders = metadata_master_spiders - routing_master_spiders
+    if missing_master_spiders:
         bad.append(
             CheckResponse(
-                msg=_("spider 节点在路由中不存在: {}").format(", ".join(sorted(missing_spiders))),
+                msg=_("spider_master 节点在中控路由中不存在: {}").format(", ".join(sorted(missing_master_spiders))),
                 check_subtype=MetaCheckSubType.TenDBClusterRoutingSpiderNotMatch,
             )
         )
 
-    # 检查路由中是否有多余的 spider
-    extra_spiders = routing_spiders - metadata_spiders
-    if extra_spiders:
+    extra_master_spiders = routing_master_spiders - metadata_master_spiders
+    if extra_master_spiders:
         bad.append(
             CheckResponse(
-                msg=_("路由中存在多余的 spider 节点: {}").format(", ".join(sorted(extra_spiders))),
+                msg=_("中控路由中存在多余的 spider_master 节点: {}").format(", ".join(sorted(extra_master_spiders))),
+                check_subtype=MetaCheckSubType.TenDBClusterRoutingSpiderNotMatch,
+            )
+        )
+
+    # 检查 spider_slave 节点
+    missing_slave_spiders = metadata_slave_spiders - routing_slave_spiders
+    if missing_slave_spiders:
+        bad.append(
+            CheckResponse(
+                msg=_("spider_slave 节点在中控路由中不存在: {}").format(", ".join(sorted(missing_slave_spiders))),
+                check_subtype=MetaCheckSubType.TenDBClusterRoutingSpiderNotMatch,
+            )
+        )
+
+    extra_slave_spiders = routing_slave_spiders - metadata_slave_spiders
+    if extra_slave_spiders:
+        bad.append(
+            CheckResponse(
+                msg=_("中控路由中存在多余的 spider_slave 节点: {}").format(", ".join(sorted(extra_slave_spiders))),
                 check_subtype=MetaCheckSubType.TenDBClusterRoutingSpiderNotMatch,
             )
         )
