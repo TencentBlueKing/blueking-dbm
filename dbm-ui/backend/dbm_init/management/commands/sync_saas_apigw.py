@@ -45,6 +45,7 @@ class Command(BaseCommand):
             action="store_true",
             help="同时执行 APIGW 和 MCP 逻辑",
         )
+        parser.add_argument("--only_mcp_resource", action="store_true", help="生成 mcp 资源描述")
 
     @staticmethod
     def __preprocess_exclude_mcp_views(endpoints, **kwargs):
@@ -138,7 +139,7 @@ class Command(BaseCommand):
         resources_file_path = "backend/dbm_init/apigw/resources.yaml"
         self.sync_apigw(settings.BK_APIGW_NAME, definition_file_path, resources_file_path)
 
-    def sync_mcp_apigw(self):
+    def sync_mcp_apigw(self, only_mcp_resource: bool = False):
         """执行 MCP 同步逻辑"""
         if not getattr(settings, "BK_APIGW_STAGE_ENABLE_MCP_SERVERS", None):
             return
@@ -162,16 +163,18 @@ class Command(BaseCommand):
                 spectacular_settings.PREPROCESSING_HOOKS.remove(Command.__preprocess_exclude_mcp_views)
 
         # 同步网关基本信息
-        self.sync_apigw(settings.BK_APIGW_MCP_NAME, definition_file_path, resources_file_path)
+        if not only_mcp_resource:
+            self.sync_apigw(settings.BK_APIGW_MCP_NAME, definition_file_path, resources_file_path)
 
     def handle(self, *args, **options):
         apigw = options.get("apigw", False)
         mcp = options.get("mcp", False)
         all_mode = options.get("all", False)
+        only_mcp_resource = options.get("only_mcp_resource", False)
 
         # 如果没有指定任何参数，默认执行 apigw 逻辑（保持向后兼容）
         if apigw or all_mode:
             self.sync_dbm_apigw()
 
-        if mcp or all_mode:
-            self.sync_mcp_apigw()
+        if mcp or all_mode or only_mcp_resource:
+            self.sync_mcp_apigw(only_mcp_resource)

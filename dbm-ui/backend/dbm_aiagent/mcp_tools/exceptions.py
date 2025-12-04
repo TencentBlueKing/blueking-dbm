@@ -10,15 +10,16 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import gettext_lazy as _
 
-from blue_krill.data_types.enum import EnumField, StrStructuredEnum
+from backend.exceptions import AppBaseException, ErrorCode
 
 
-class DBMAMcpTools(StrStructuredEnum):
-    DBM = EnumField("dbm-mcp", "DBM")
-    MYSQL_SQL_TUNING = EnumField("mysql-sql-tuning", "mysql-sql-tuning")
+class DBMMcpBaseException(AppBaseException):
+    MODULE_CODE = ErrorCode.MCP_CODE
+    MESSAGE = _("mcp tools 异常")
+    MESSAGE_TPL = "{msg}"
 
 
-class DBMMCPTags(StrStructuredEnum):
-    READ = EnumField("read", _("只读"))
-    WRITE = EnumField("write", _("可写"))
-    MCP_TOOLS = EnumField("mcp-tools", _("MCP工具"))
+class DBMMcpDuplicateToolNameException(DBMMcpBaseException):
+    ERROR_CODE = "001"
+    MESSAGE = _("mcp tools 重名")
+    MESSAGE_TPL = _("{tool_name} 重名")

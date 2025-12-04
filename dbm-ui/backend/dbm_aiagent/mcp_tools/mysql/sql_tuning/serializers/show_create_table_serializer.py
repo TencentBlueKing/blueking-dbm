@@ -9,16 +9,19 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import gettext_lazy as _
-
-from blue_krill.data_types.enum import EnumField, StrStructuredEnum
-
-
-class DBMAMcpTools(StrStructuredEnum):
-    DBM = EnumField("dbm-mcp", "DBM")
-    MYSQL_SQL_TUNING = EnumField("mysql-sql-tuning", "mysql-sql-tuning")
+from rest_framework import serializers
 
 
-class DBMMCPTags(StrStructuredEnum):
-    READ = EnumField("read", _("只读"))
-    WRITE = EnumField("write", _("可写"))
-    MCP_TOOLS = EnumField("mcp-tools", _("MCP工具"))
+class ShowCreateTableInputSerializer(serializers.Serializer):
+    cluster_domain = serializers.CharField(help_text=_("集群域名"))
+    cluster_type = serializers.CharField(help_text=_("集群类型"))
+    dbname = serializers.CharField(help_text=_("库名"))
+    tablename = serializers.CharField(help_text=_("表名"))
+
+
+class ShowCreateTableOutputSerializer(serializers.Serializer):
+    cluster_domain = serializers.CharField(help_text=_("集群域名"))
+    cluster_type = serializers.CharField(help_text=_("集群类型"))
+    dbname = serializers.CharField(help_text=_("库名"))
+    tablename = serializers.CharField(help_text=_("表名"))
+    create_sql = serializers.CharField(help_text=_("表结构, 建表语句"))

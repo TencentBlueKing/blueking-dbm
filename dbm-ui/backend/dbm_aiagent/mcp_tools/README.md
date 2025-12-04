@@ -163,3 +163,32 @@ BK_APIGW_STAGE_MCP_SERVERS = [
 ```bash
 python manage.py sync_saas_apigw --mcp
 ```
+
+## 开发调试
+
+* 目前 paas 环境没有 bkai 基建, 没办法验证 mcp 和 llm 的结合效果
+* 即使是想单独验证 mcp 也要在 paas 环境发布两次
+* 发布正式环境验证联调效果是不合理的
+
+所以需要能在开发环境简便联调验证
+
+### 本地 mcp-server 搭建
+在 `blueking-dbm/dbm-services/common/db-mcp-server` 执行 `make dev-bin VERSION=0 GITDATE=$(date +%y%m%d%H%M)` 编译 mcp-server
+
+1. 修改 mcp 代码后, 执行 `python manage.py sync_saas_apigw --gen-local-mcp` 更新本地描述文件
+2. `export DEBUG_MCP=1; python manage.py runserver appdev.aaa.bbb.com:8080` 以调试模式启动 django 服务, server url 没啥要求, 随便
+3. `build/db-mcp-server --bind-address 0.0.0.0:9191  --mcp-backend-base-url http://appdev.aaa.bbb.com:8080/` 启动 mcp-server
+
+### 联调配置
+基于 `CodeBuddy`
+
+```json
+{
+  "mcpServers": {
+    "my-custom-mcp": {
+      "type": "sse",
+      "url": "http://localhost:9191/sse"
+    }
+  }
+}
+```

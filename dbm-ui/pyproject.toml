@@ -76,6 +76,7 @@ django-db-connection-pool = {version = "1.2.6", extras = ["mysql"]}
 urllib3 = "2.5.0"
 django-stubs-ext = "^5.2.7"
 bk-monitor-report = "^1.2.2"
+jsonref = "^1.1.0"
 
 [tool.poetry.dev-dependencies]
 flake8 = "7.1.1"

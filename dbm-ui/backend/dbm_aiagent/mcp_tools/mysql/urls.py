@@ -8,17 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import gettext_lazy as _
+from django.urls import include, path
 
-from blue_krill.data_types.enum import EnumField, StrStructuredEnum
-
-
-class DBMAMcpTools(StrStructuredEnum):
-    DBM = EnumField("dbm-mcp", "DBM")
-    MYSQL_SQL_TUNING = EnumField("mysql-sql-tuning", "mysql-sql-tuning")
-
-
-class DBMMCPTags(StrStructuredEnum):
-    READ = EnumField("read", _("只读"))
-    WRITE = EnumField("write", _("可写"))
-    MCP_TOOLS = EnumField("mcp-tools", _("MCP工具"))
+urlpatterns = [path("sql-tuning/", include("backend.dbm_aiagent.mcp_tools.mysql.sql_tuning.urls"))]

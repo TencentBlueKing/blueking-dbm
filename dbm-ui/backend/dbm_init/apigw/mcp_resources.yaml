@@ -102,6 +102,106 @@ paths:
           appVerifiedRequired: true
           resourcePermissionRequired: true
         descriptionEn: 获取集群的业务和类型基础信息(无鉴权)
+  /apis/ai/mcp_tools/mysql/sql-tuning/explain_sql/:
+    post:
+      operationId: mcp_mysql_sql_tuning_explain_sql
+      description: 查询 SQL 执行计划
+      tags:
+      - read
+      - mcp-tools
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExplainSQLInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ExplainSQLInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ExplainSQLInputRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExplainSQLOutput'
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: false
+        matchSubpath: false
+        backend:
+          name: default
+          method: post
+          path: /apis/ai/mcp_tools/mysql/sql-tuning/explain_sql/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs:
+        - type: bk-header-rewrite
+          yaml: |
+            remove: []
+            set:
+            - key: X-Bkdbm-Mcp-Tag
+              value: read,mcp-tools
+        allowApplyPermission: false
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn: 查询 SQL 执行计划
+  /apis/ai/mcp_tools/mysql/sql-tuning/show_create_table/:
+    post:
+      operationId: mcp_mysql_sql_tuning_show_create_table
+      description: 获取表结构
+      tags:
+      - read
+      - mcp-tools
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShowCreateTableInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ShowCreateTableInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ShowCreateTableInputRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShowCreateTableOutput'
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: false
+        matchSubpath: false
+        backend:
+          name: default
+          method: post
+          path: /apis/ai/mcp_tools/mysql/sql-tuning/show_create_table/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs:
+        - type: bk-header-rewrite
+          yaml: |
+            remove: []
+            set:
+            - key: X-Bkdbm-Mcp-Tag
+              value: read,mcp-tools
+        allowApplyPermission: false
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn: 获取表结构
 components:
   schemas:
     ClusterEntry:
@@ -139,6 +239,55 @@ components:
       - in_use
       - total
       - used
+    ExplainSQLInputRequest:
+      type: object
+      properties:
+        cluster_domain:
+          type: string
+          minLength: 1
+          description: 集群域名
+        cluster_type:
+          type: string
+          minLength: 1
+          description: 集群类型
+        dbname:
+          type: string
+          minLength: 1
+          description: 库名
+        query_sql:
+          type: string
+          minLength: 1
+          description: 需要查询执行计划的 SQL 语句
+      required:
+      - cluster_domain
+      - cluster_type
+      - dbname
+      - query_sql
+    ExplainSQLOutput:
+      type: object
+      properties:
+        cluster_domain:
+          type: string
+          description: 集群域名
+        cluster_type:
+          type: string
+          description: 集群类型
+        dbname:
+          type: string
+          description: 库名
+        query_sql:
+          type: string
+          description: 需要分析的 SQL 语句
+        explain_result:
+          type: object
+          additionalProperties: {}
+          description: explain sql 的执行计划结果
+      required:
+      - cluster_domain
+      - cluster_type
+      - dbname
+      - explain_result
+      - query_sql
     FilterClusterInputRequest:
       type: object
       properties:
@@ -342,6 +491,54 @@ components:
       - cluster_domain
       - cluster_type
       - id
+    ShowCreateTableInputRequest:
+      type: object
+      properties:
+        cluster_domain:
+          type: string
+          minLength: 1
+          description: 集群域名
+        cluster_type:
+          type: string
+          minLength: 1
+          description: 集群类型
+        dbname:
+          type: string
+          minLength: 1
+          description: 库名
+        tablename:
+          type: string
+          minLength: 1
+          description: 表名
+      required:
+      - cluster_domain
+      - cluster_type
+      - dbname
+      - tablename
+    ShowCreateTableOutput:
+      type: object
+      properties:
+        cluster_domain:
+          type: string
+          description: 集群域名
+        cluster_type:
+          type: string
+          description: 集群类型
+        dbname:
+          type: string
+          description: 库名
+        tablename:
+          type: string
+          description: 表名
+        create_sql:
+          type: string
+          description: 表结构, 建表语句
+      required:
+      - cluster_domain
+      - cluster_type
+      - create_sql
+      - dbname
+      - tablename
   securitySchemes:
     cookieAuth:
       type: apiKey

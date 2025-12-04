@@ -8,12 +8,43 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from drf_spectacular.openapi import AutoSchema
+from types import FunctionType
+from typing import Any
 
+from drf_spectacular.openapi import AutoSchema
+from rest_framework.permissions import AllowAny
+
+from backend import env
 from backend.bk_web import viewsets
 
 
-class McpToolsViewSet(viewsets.SystemViewSet):
+class McpToolsViewSetMeta(type):
+    def __new__(cls, name, base, attrs):
+        if env.DEBUG_MCP:
+            attrs["user_verified_required"] = False
+            attrs["app_verified_required"] = False
+            attrs["default_permission_class"] = []
+
+            def get_permissions(cls_instance):
+                return [AllowAny()]
+
+            def _get_login_exempt_view_func(cls_obj):
+                fs = []
+                for x, y in cls_obj.__dict__.items():
+                    if isinstance(y, FunctionType):
+                        m = getattr(y, "is_mcp_tool", False)
+                        if m:
+                            fs.append(x)
+
+                return {"post": fs}
+
+            attrs["get_permissions"] = get_permissions
+            attrs["_get_login_exempt_view_func"] = classmethod(_get_login_exempt_view_func)
+
+        return super().__new__(cls, name, base, attrs)
+
+
+class McpToolsViewSet(viewsets.SystemViewSet, metaclass=McpToolsViewSetMeta):
     """MCP 工具视图基类，所有的MCP工具视图都继承自这个类"""
 
     # 设置 schema_class 为 drf-spectacular 的 AutoSchema
@@ -25,3 +56,6 @@ class McpToolsViewSet(viewsets.SystemViewSet):
     # 如果确实无需某个认证，则类定义和 mcp_tools_api_decorator 都要改写为False
     user_verified_required = True
     app_verified_required = True
+
+    def get_param(self, pname) -> Any:
+        return self.params_validate(self.get_serializer_class())[pname]
