@@ -42,8 +42,8 @@ type DbmAPIService struct {
 // NewDbmAPIService DbmAPIService 构造函数
 func NewDbmAPIService() *DbmAPIService {
 	dbmAPIURL := env.GetString("DBM_API_URL", "localhost:8080")
-	bkAppCode := env.GetString("BK_APP_CODE", "default_app_code")
-	bkAppSecret := env.GetString("BK_APP_SECRET", "default_app_secret")
+	bkAppCode := env.GetString("DBM_BK_APP_CODE", "default_app_code")
+	bkAppSecret := env.GetString("DBM_BK_APP_SECRET", "default_app_secret")
 
 	if dbmAPIURL == "" {
 		slog.Warn("DBM API URL configuration is required")
