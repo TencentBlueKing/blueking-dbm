@@ -209,7 +209,7 @@
   const handleRef = ref();
   const popRef = ref();
   let tippyIns: Instance;
-  const URL_REPLENISH_MEMO_KEY = '__replenish_payload__';
+  const URL_REPLENISH_MEMO_KEY = '__replenish_operation_view_payload__';
 
   const dbNameMap: Record<string, string> = {};
   const machineTypeMap: Record<string, string> = {};
@@ -228,9 +228,9 @@
 
   const handleForward = () => {
     router.push({
-      name: 'resourcePoolOperationRecord',
+      name: 'resourceReplenishRecord',
       params: {
-        page: 'replenish',
+        page: 'operation-view',
       },
       query: {
         [URL_REPLENISH_MEMO_KEY]: encodeURIComponent(

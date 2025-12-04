@@ -25,9 +25,7 @@
         :name="item.name" />
     </BkTab>
     <div class="pool-content">
-      <KeepAlive>
-        <Component :is="renderComponent" />
-      </KeepAlive>
+      <Component :is="renderComponent" />
     </div>
   </div>
 </template>
@@ -47,61 +45,38 @@
   const route = useRoute();
   const funControllerStore = useFunController();
 
-  const panels = [
-    {
-      label: t('资源流转记录'), // 默认开启
-      name: 'flow',
-    },
-    {
-      functionControllerKey: 'replenish', // 默认关闭，仅特定环境开启
-      label: t('资源补货记录'),
-      name: 'replenish',
-    },
-  ];
+  const renderPanels = computed(() => {
+    const panels = [
+      {
+        label: t('资源流转记录'),
+        name: 'resourceFlowRecord',
+      },
+    ];
 
-  const renderPanels = computed(() =>
-    panels.filter((item) => {
-      if (!item.functionControllerKey) {
-        return true;
-      }
+    const resourceManage = funControllerStore.funControllerData?.getFlatData('resourceManage');
 
-      const data = funControllerStore.funControllerData?.resourceManage?.children?.resourceOperationRecord;
-      if (!data) {
-        return false;
-      }
+    if (resourceManage?.replenishRecord) {
+      panels.push({
+        label: t('资源补货记录'),
+        name: 'resourceReplenishRecord',
+      });
+    }
 
-      const childItem = data.children[item.functionControllerKey];
+    return panels;
+  });
 
-      // 若有对应的模块子功能，判断是否开启
-      if (childItem) {
-        return data && data.is_enabled && childItem.is_enabled;
-      }
-
-      return false;
-    }),
-  );
-
-  const activeTab = useDebouncedRef(route.params.page as string);
+  const activeTab = useDebouncedRef(route.name as string);
 
   const renderComponentMap = {
-    flow: Flow,
-    replenish: Replenish,
+    resourceFlowRecord: Flow,
+    resourceReplenishRecord: Replenish,
   };
 
   const renderComponent = computed(() => renderComponentMap[activeTab.value as keyof typeof renderComponentMap]);
 
-  watch(
-    () => route.params,
-    () => {
-      activeTab.value = route.params.page as string;
-    },
-  );
-
   const handleChange = (value: string) => {
-    router.replace({
-      params: {
-        page: value,
-      },
+    router.push({
+      name: value,
     });
   };
 </script>

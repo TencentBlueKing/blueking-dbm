@@ -80,13 +80,35 @@ export default function getRoutes() {
           component: () => import('@views/resource-manage/resource-tag/Index.vue'),
         },
         checkDbConsole('resourceManage.resourceOperationRecord') && {
-          path: 'record/:page?',
+          path: 'record',
           name: 'resourcePoolOperationRecord',
           meta: {
             fullscreen: true,
             navName: t('资源操作记录'),
           },
-          component: () => import('@views/resource-manage/record/Index.vue'),
+          redirect: {
+            name: 'resourceFlowRecord',
+          },
+          children: [
+            {
+              path: 'flow',
+              name: 'resourceFlowRecord',
+              meta: {
+                fullscreen: true,
+                navName: t('资源流转记录'),
+              },
+              component: () => import('@views/resource-manage/record/Index.vue'),
+            },
+            {
+              path: 'replenish/:page?',
+              name: 'resourceReplenishRecord',
+              meta: {
+                fullscreen: true,
+                navName: t('资源补货记录'),
+              },
+              component: () => import('@views/resource-manage/record/Index.vue'),
+            },
+          ],
         },
       ].filter((_) => _) as RouteRecordRaw[],
     },

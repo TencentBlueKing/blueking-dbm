@@ -8,11 +8,11 @@ import { useRequest } from 'vue-request';
 
 export default () => {
   const route = useRoute();
-  const paginationLimitCache = useStorage('resource_pool_replenish_operation_view_pagination', 20);
+  const paginationLimitCache = useStorage('replenish_operation_view_pagination', 20);
   const { getSearchParams, replaceSearchParams } = useUrlSearch();
   const searchParams = getSearchParams();
 
-  const URL_REPLENISH_MEMO_KEY = '__replenish_payload__';
+  const URL_REPLENISH_MEMO_KEY = '__replenish_operation_view_payload__';
 
   const tableData = ref<ServiceReturnType<typeof fetchReplenish>['results']>([]);
   const pagination = reactive({
