@@ -14,6 +14,7 @@
 import http from '../http';
 import type { CreateReplenish } from '@services/model/db-resource/Replenish';
 import type { ListBase } from '../types';
+import type ReplenishModel from '@services/model/db-resource/Replenish';
 
 const path = '/apis/dbresource/replenish';
 
@@ -49,18 +50,19 @@ export function createResourceReplenish(params: { infos: CreateReplenish[]; bk_b
 }
 
 /**
- * 获取资源池单据申请交付数量
+ * 获取资源池单据申请交付信息
  */
-export function listTicketApplyCount(params: { ticket_ids: string; offset?: number; limit?: number }) {
+export function listTicketApplyInfo(params: { ticket_ids: string; offset?: number; limit?: number }) {
   return http.get<
     Record<
       number,
       {
         apply_count: number;
         delivery_count: number;
+        details: ReplenishModel;
       }
     >
-  >(`${path}/list_ticket_apply_count/`, params);
+  >(`${path}/list_ticket_apply_info/`, params);
 }
 
 /**
