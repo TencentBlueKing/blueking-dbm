@@ -69,43 +69,29 @@
 
   const isShowImportHost = ref(false);
 
-  const panels = [
-    {
-      label: t('主机列表'), // 默认开启
-      name: 'host-list',
-    },
-    {
-      label: t('统计视图'), // 默认开启
-      name: 'summary-view',
-    },
-    {
-      functionControllerKey: 'replenishList', // 默认关闭，仅特定环境开启
-      label: t('待补货列表'),
-      name: 'replenish-list',
-    },
-  ];
+  const renderPanels = computed(() => {
+    const panels = [
+      {
+        label: t('主机列表'),
+        name: 'host-list',
+      },
+      {
+        label: t('统计视图'),
+        name: 'summary-view',
+      },
+    ];
 
-  const renderPanels = computed(() =>
-    panels.filter((item) => {
-      if (!item.functionControllerKey) {
-        return true;
-      }
+    const resourceManage = funControllerStore.funControllerData?.getFlatData('resourceManage');
 
-      const data = funControllerStore.funControllerData?.resourceManage?.children?.resourcePool;
-      if (!data) {
-        return false;
-      }
+    if (resourceManage?.replenishList) {
+      panels.push({
+        label: t('待补货列表'),
+        name: 'replenish-list',
+      });
+    }
 
-      const childItem = data.children[item.functionControllerKey];
-
-      // 若有对应的模块子功能，判断是否开启
-      if (childItem) {
-        return data && data.is_enabled && childItem.is_enabled;
-      }
-
-      return false;
-    }),
-  );
+    return panels;
+  });
 
   const activeTab = useDebouncedRef(route.params.page as string);
 

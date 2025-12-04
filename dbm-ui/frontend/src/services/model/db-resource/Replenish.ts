@@ -21,6 +21,7 @@ export default class Replenish implements CreateReplenish {
   os_name: string;
   count: number;
   operator: string;
+  record_id: number;
   spec: {
     cpu: {
       max: number;
@@ -62,5 +63,6 @@ export default class Replenish implements CreateReplenish {
     this.count = payload.count || 0;
     this.operator = payload.operator || '';
     this.spec = payload.spec || {};
+    this.record_id = payload.record_id || 0;
   }
 }

@@ -13,165 +13,35 @@
 
 <template>
   <div class="replenish-record-page">
-    <div class="header-action">
-      <div>
-        <BkRadioGroup
-          v-model="activeTab"
-          type="capsule"
-          @change="handleChange">
-          <BkRadioButton label="operation-view">
-            <DbIcon
-              class="mr-4"
-              type="bk-dbm-icon db-icon-legend" />
-            {{ t('补货操作视角') }}
-          </BkRadioButton>
-          <BkRadioButton label="ticket-view">
-            <DbIcon
-              class="mr-4"
-              type="bk-dbm-icon db-icon-danju" />
-            {{ t('补货单据视角') }}
-          </BkRadioButton>
-        </BkRadioGroup>
-        <BkButton
-          class="ml-12 forward-btn"
-          text
-          theme="primary"
-          @click="handleForward">
-          {{ t('跳转待补货列表') }}
-          <DbIcon
-            class="ml-6"
-            type="bk-dbm-icon db-icon-link" />
-        </BkButton>
-      </div>
-      <div class="header-filters">
-        <DbDateTimePicker
-          class="date-time-picker mr-8"
-          clearable
-          mode="previous"
-          :model-value="filterDateRange"
-          @change="handleDateTimeClear"
-          @finish="handleDateTimePick" />
-        <DbQuickSearch
-          v-model="quickSearchValue"
-          :data="quickSearchData"
-          :placeholder="t('搜索 ID，DB 类型，申请人')"
-          style="width: 450px" />
-      </div>
-    </div>
-    <div class="replenish-record-list">
-      <Component
-        :is="renderComponentMap[activeTab]"
-        :key="activeTab"
-        ref="tableRef" />
-    </div>
+    <Component
+      :is="renderComponentMap[activeTab]"
+      :key="activeTab" />
   </div>
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
-  import { useI18n } from 'vue-i18n';
-
-  import { useUrlSearch } from '@hooks';
+  import { useDebouncedRef } from '@hooks';
 
   import OperationView from './components/operation-view/Index.vue';
   import TicketView from './components/ticket-view/Index.vue';
 
-  const { t } = useI18n();
   const route = useRoute();
-  const router = useRouter();
-  const { getSearchParams } = useUrlSearch();
 
   const renderComponentMap = {
     'operation-view': OperationView,
     'ticket-view': TicketView,
-  };
+  } as Record<string, any>;
 
-  const quickSearchData = [
-    {
-      id: 'id',
-      name: 'ID',
-    },
-    {
-      id: 'db_type',
-      name: t('DB 类型'),
-    },
-    {
-      id: 'creator',
-      name: t('申请人'),
-    },
-  ];
-
-  const URL_REPLENISH_MEMO_KEY = '__replenish_payload__';
-  const filterDateRange = ref<[string, string]>(['', '']);
-  const quickSearchValue = ref<Record<string, any>>({});
-  const tableRef = ref();
-  const activeTab = ref<keyof typeof renderComponentMap>('operation-view');
-  // 缓存变更，减少多余请求
-  let timeCache: [string, string] = ['', ''];
-
-  const handleDateTimePick = (value?: [string, string]) => {
-    const [start, end] = value || [undefined, undefined];
-    const params = Object.assign({}, quickSearchValue.value, {
-      create_at__gte: start,
-      create_at__lte: end,
-    });
-    router.replace({
-      query: {
-        ...getSearchParams(),
-        [URL_REPLENISH_MEMO_KEY]: encodeURIComponent(JSON.stringify(params)),
-      },
-    });
-    setTimeout(() => {
-      tableRef.value?.fetchData();
-    }, 30);
-  };
-
-  const handleDateTimeClear = (value: [string, string]) => {
-    if (_.isEqual(timeCache, value)) {
-      return;
-    }
-    const [start, end] = value;
-    if (!start && !end) {
-      handleDateTimePick();
-    }
-    timeCache = value;
-  };
-
-  const handleForward = () => {
-    router.push({
-      name: 'resourcePool',
-      params: {
-        page: 'replenish-list',
-      },
-    });
-  };
-
-  const handleChange = () => {
-    quickSearchValue.value = {};
-  };
+  const activeTab = useDebouncedRef('');
 
   watch(
-    quickSearchValue,
-    _.debounce(() => {
-      router.replace({
-        query: {
-          ...getSearchParams(),
-          [URL_REPLENISH_MEMO_KEY]: encodeURIComponent(JSON.stringify(quickSearchValue.value)),
-        },
-      });
-      setTimeout(() => {
-        tableRef.value?.fetchData();
-      }, 30);
-    }, 200),
+    () => route.params,
+    () => {
+      activeTab.value = (route.params.page as string) || 'operation-view';
+    },
+    {
+      immediate: true,
+    },
   );
-
-  onMounted(() => {
-    quickSearchValue.value = JSON.parse(decodeURIComponent(String(route.query[URL_REPLENISH_MEMO_KEY] || '{}')));
-    filterDateRange.value = [quickSearchValue.value.create_at__gte, quickSearchValue.value.create_at__lte];
-  });
-
-  onBeforeUnmount(() => {
-    quickSearchValue.value = {};
-  });
 </script>
 <style lang="less">
   .replenish-record-page {
