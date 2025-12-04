@@ -24,6 +24,9 @@ class ClusterPhase(StrStructuredEnum):
     # scr, gcs 迁移的中间阶段
     TRANS_STAGE = EnumField("trans_stage", _("scr/gcs迁移中"))
 
+    # 克隆的中间阶段
+    CLONE_STAGE = EnumField("clone_stage", _("克隆中"))
+
     @classmethod
     def cluster_status_transfer_valid(cls, source_phase, target_phase) -> bool:
         """

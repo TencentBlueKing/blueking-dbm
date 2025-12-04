@@ -301,6 +301,8 @@ class TicketType(StrStructuredEnum):
                                                 register_iam=False)
     MYSQL_RENAME_DATABASE = TicketEnumField("MYSQL_RENAME_DATABASE", _("MySQL DB重命名"))
 
+    MYSQL_CLONE_CLUSTER = TicketEnumField("MYSQL_CLONE_CLUSTER", _("MySQL 集群克隆"), _("集群维护"))
+
     # mysql autofix
     MYSQL_DBHA_AF_TODO_REGISTER = TicketEnumField("MYSQL_DBHA_AF_TODO_REGISTER", _("MySQL DBHA 故障自愈任务注册"))
     MYSQL_DBHA_AF_PROXY_REPLACE = TicketEnumField("MYSQL_DBHA_AF_PROXY_REPLACE", _("MySQL PROXY DBHA 自愈替换"))
