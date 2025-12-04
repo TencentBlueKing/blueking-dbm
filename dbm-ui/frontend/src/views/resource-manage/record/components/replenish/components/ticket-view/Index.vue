@@ -82,7 +82,7 @@
               :data="row" />
           </template>
         </TableColumn>
-        <TableColumn
+        <!-- <TableColumn
           col-key="db_type"
           :title="t('DB 类型')"
           width="120">
@@ -113,8 +113,8 @@
           <template #default="{ row }: { row: IRowData }">
             {{ ticketDetailsInfo[row.id]?.city || '--' }}
           </template>
-        </TableColumn>
-        <TableColumn
+        </TableColumn> -->
+        <!-- <TableColumn
           col-key="subzone"
           :title="t('园区')"
           width="120">
@@ -129,8 +129,8 @@
           <template #default="{ row }: { row: IRowData }">
             {{ ticketDetailsInfo[row.id]?.os_name || '--' }}
           </template>
-        </TableColumn>
-        <TableColumn
+        </TableColumn> -->
+        <!-- <TableColumn
           col-key="count"
           :title="t('申请数量')"
           width="120">
@@ -152,7 +152,7 @@
               {{ ticketApplyCount[row.id]?.delivery_count || 0 }}
             </span>
           </template>
-        </TableColumn>
+        </TableColumn> -->
         <!-- <TableColumn
           col-key="id"
           :title="t('已导入')"
@@ -163,14 +163,14 @@
             </span>
           </template>
         </TableColumn> -->
-        <TableColumn
+        <!-- <TableColumn
           col-key="creator"
           :title="t('申请人')"
           width="150">
           <template #default="{ row }: { row: IRowData }">
             <span>{{ ticketDetailsInfo[row.id]?.operator || '--' }}</span>
           </template>
-        </TableColumn>
+        </TableColumn> -->
         <TableColumn
           col-key="create_at"
           :title="t('申请时间')"
@@ -202,10 +202,9 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type ReplenishModel from '@services/model/db-resource/Replenish';
+  // import type ReplenishModel from '@services/model/db-resource/Replenish';
   import TicketModel from '@services/model/ticket/ticket';
-  import { listTicketApplyCount } from '@services/source/dbresourceReplenish';
-  import { getTicketDetails } from '@services/source/ticket';
+  import { listTicketApplyInfo } from '@services/source/dbresourceReplenish';
   import { getInnerFlowInfo } from '@services/source/ticketFlow';
 
   import { useUrlSearch } from '@hooks';
@@ -219,7 +218,22 @@
 
   import useFetchData from './hooks/use-fetch-data';
 
-  type IRowData = NonNullable<(typeof tableData.value)[0]>;
+  interface IRowData extends TicketModel {
+    apply_count: number;
+    city: string;
+    count: number;
+    create_at: string;
+    db_type: string;
+    delivery_count: number;
+    id: number;
+    operator: string;
+    os_name: string;
+    spec: {
+      spec_machine_type: string;
+      spec_name: string;
+    };
+    subzone: string;
+  }
 
   const { t } = useI18n();
   const router = useRouter();
@@ -227,20 +241,20 @@
   const { getSearchParams } = useUrlSearch();
 
   const {
+    dataList,
     fetchData,
     handlePageLimitChange,
     handlePageValueChange,
     loading: isLoading,
     pagination,
-    tableData,
   } = useFetchData();
 
   const tableHeight = ref<number | 'auto'>('auto');
   const ticketId = ref<number>();
   const isShowDetail = ref(false);
   const ticketInnerFlowInfo = shallowRef<ServiceReturnType<typeof getInnerFlowInfo>>({});
-  const ticketDetailsInfo = shallowRef<Record<number, ReplenishModel>>({});
-  const ticketApplyCount = shallowRef<ServiceReturnType<typeof listTicketApplyCount>>({});
+  // const ticketApplyInfo = shallowRef<ServiceReturnType<typeof listTicketApplyInfo>>({});
+  const tableData = shallowRef<IRowData[]>([]);
 
   const dbNameMap: Record<string, string> = {};
   const machineTypeMap: Record<string, string> = {};
@@ -251,29 +265,30 @@
     });
   });
 
-  watch(tableData, () => {
-    if (tableData.value.length < 1) {
+  watch(dataList, () => {
+    if (dataList.value.length < 1) {
       return;
     }
-    const ticketIds = tableData.value.map((item) => item.id).join(',');
+    const ticketIds = dataList.value.map((item) => item.id).join(',');
 
     // 使用 Promise.all 处理多个异步请求
-    Promise.all([
-      getInnerFlowInfo({ ticket_ids: ticketIds }),
-      listTicketApplyCount({ ticket_ids: ticketIds }),
-      ...tableData.value.map(({ id }) => getTicketDetails({ id })),
-    ]).then(([innerFlowInfo, applyCount, ...ticketDetails]) => {
-      // 更新子任务信息
-      ticketInnerFlowInfo.value = innerFlowInfo;
+    Promise.all([getInnerFlowInfo({ ticket_ids: ticketIds }), listTicketApplyInfo({ ticket_ids: ticketIds })]).then(
+      ([innerFlowInfo, applyInfo]) => {
+        // 更新子任务信息
+        ticketInnerFlowInfo.value = innerFlowInfo;
 
-      // 更新申请交付数量
-      ticketApplyCount.value = applyCount;
+        console.log(applyInfo, dataList.value, 'wwwww');
 
-      // 更新单据详情信息
-      ticketDetails.forEach((ticketDetail) => {
-        ticketDetailsInfo.value[ticketDetail.id] = ticketDetail.details as ReplenishModel;
-      });
-    });
+        // tableData.value = dataList.value.map((item) => {
+        //   const applyInfoItem = applyInfo.find((applyInfoItem) => applyInfoItem.id === item.id);
+        //   return {
+        //     ...item,
+        //     apply_count: applyInfoItem?.apply_count || 0,
+        //     delivery_count: applyInfoItem?.delivery_count || 0,
+        //   };
+        // });
+      },
+    );
   });
 
   const handleGoDetail = (ticketData: TicketModel, event: MouseEvent) => {
