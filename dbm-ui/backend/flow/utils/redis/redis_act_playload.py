@@ -464,14 +464,14 @@ class RedisActPayload(object):
         )
         return data
 
-    def __get_cluster_config(self, domain_name: str, db_version: str, conf_type: str) -> Any:
+    def __get_cluster_config(self, bk_biz_id: int, domain_name: str, db_version: str, conf_type: str) -> Any:
         """
         获取已部署的实例配置
         """
         passwd_ret = PayloadHandler.redis_get_password_by_domain(domain_name)
         data = DBConfigApi.query_conf_item(
             params={
-                "bk_biz_id": self.bk_biz_id,
+                "bk_biz_id": str(bk_biz_id),
                 "level_name": LevelName.CLUSTER,
                 "level_value": domain_name,
                 "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
@@ -709,7 +709,10 @@ class RedisActPayload(object):
         if is_twemproxy_proxy_type(cluster.cluster_type):
             proxy_version = ConfigFileEnum.Twemproxy.value
         proxy_config = self.__get_cluster_config(
-            domain_name=cluster.immute_domain, db_version=proxy_version, conf_type=ConfigTypeEnum.ProxyConf.value
+            bk_biz_id=cluster.bk_biz_id,
+            domain_name=cluster.immute_domain,
+            db_version=proxy_version,
+            conf_type=ConfigTypeEnum.ProxyConf.value,
         )
 
         cluster_info = metaApi.cluster.nosqlcomm.other.get_cluster_detail(cluster_id=cluster.id)[0]
@@ -789,7 +792,7 @@ class RedisActPayload(object):
             version=PredixyVersion.PredixyLatest, pkg_type=MediumEnum.Predixy, db_type=DBType.Redis
         )
         proxy_config = self.__get_cluster_config(
-            self.cluster["domain_name"], self.proxy_version, ConfigTypeEnum.ProxyConf
+            self.cluster["bk_biz_id"], self.cluster["domain_name"], self.proxy_version, ConfigTypeEnum.ProxyConf
         )
 
         return {
@@ -837,7 +840,7 @@ class RedisActPayload(object):
             version=TwemproxyVersion.TwemproxyLatest, pkg_type=MediumEnum.Twemproxy, db_type=DBType.Redis
         )
         proxy_config = self.__get_cluster_config(
-            self.cluster["domain_name"], self.proxy_version, ConfigTypeEnum.ProxyConf
+            self.cluster["bk_biz_id"], self.cluster["domain_name"], self.proxy_version, ConfigTypeEnum.ProxyConf
         )
 
         return {
@@ -973,7 +976,7 @@ class RedisActPayload(object):
             version=MediumEnum.Latest, pkg_type=MediumEnum.RedisTools, db_type=DBType.Redis
         )
         proxy_config = self.__get_cluster_config(
-            self.cluster["domain_name"], self.proxy_version, ConfigTypeEnum.ProxyConf
+            self.cluster["bk_biz_id"], self.cluster["domain_name"], self.proxy_version, ConfigTypeEnum.ProxyConf
         )
 
         return {
@@ -1457,11 +1460,11 @@ class RedisActPayload(object):
         self.__get_redis_pkg(params["cluster_type"], params["db_version"])
         if "origin_db_version" in params:
             redis_config = self.__get_cluster_config(
-                params["immute_domain"], params["origin_db_version"], ConfigTypeEnum.DBConf
+                params["bk_biz_id"], params["immute_domain"], params["origin_db_version"], ConfigTypeEnum.DBConf
             )
         else:
             redis_config = self.__get_cluster_config(
-                params["immute_domain"], params["db_version"], ConfigTypeEnum.DBConf
+                params["bk_biz_id"], params["immute_domain"], params["db_version"], ConfigTypeEnum.DBConf
             )
         cluster = Cluster.objects.get(immute_domain=params["immute_domain"])
 
