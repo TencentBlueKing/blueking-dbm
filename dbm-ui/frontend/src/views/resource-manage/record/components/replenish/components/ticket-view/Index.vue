@@ -12,181 +12,194 @@
 -->
 
 <template>
-  <BkLoading :loading="isLoading">
-    <div
-      ref="tableWrapper"
-      class="replenish-ticket-view">
-      <PrimaryTable
-        :data="tableData"
-        :height="tableHeight"
-        row-key="id"
-        title-ellipsis>
-        <TableColumn
-          col-key="ids"
-          fixed="left"
-          :title="t('单号')"
-          width="80">
-          <template #default="{ row }: { row: IRowData }">
-            <AuthRouterLink
-              action-id="ticket_view"
-              :permission="row.permission.ticket_view"
-              :resource="row.id"
-              target="_blank"
-              :to="{
-                name: 'ticketDetail',
-                params: {
-                  ticketId: row.id,
-                },
-              }"
-              @click="(event: MouseEvent) => handleGoDetail(row, event)">
-              {{ row.id }}
-            </AuthRouterLink>
-          </template>
-        </TableColumn>
-        <TableColumn
-          col-key="ticket_type__in"
-          :title="t('子任务')"
-          width="120">
-          <template #default="{ row }: { row: IRowData }">
-            <template v-if="ticketInnerFlowInfo[row.id]">
-              <div
-                v-for="(flowItem, index) in ticketInnerFlowInfo[row.id]"
-                :key="index"
-                style="line-height: 26px">
-                <BkButton
-                  text
-                  theme="primary"
-                  @click="() => handleGoTaskHistoryDetail(row, flowItem)">
-                  {{ flowItem.flow_alias }}
-                </BkButton>
-              </div>
-              <span v-if="ticketInnerFlowInfo[row.id]!.length < 1">--</span>
-            </template>
+  <div class="header-action">
+    <ViewController />
+    <div class="header-filters">
+      <DbDateTimePicker
+        class="date-time-picker mr-8"
+        clearable
+        mode="previous"
+        :model-value="filterDateRange"
+        @change="handleDateRangeChange" />
+      <DbQuickSearch
+        v-model="quickSearchValue"
+        :data="quickSearchData"
+        :placeholder="t('搜索单号，单据状态，申请人，申请时间')"
+        style="width: 450px" />
+    </div>
+  </div>
+  <div
+    ref="tableWrapper"
+    class="replenish-record-list">
+    <PrimaryTable
+      :data="tableData"
+      :loading="isLoading"
+      :max-height="tableMaxHeight"
+      row-key="id"
+      title-ellipsis>
+      <TableColumn
+        col-key="id"
+        fixed="left"
+        :title="t('单号')"
+        width="80">
+        <template #default="{ row }: { row: IRowData }">
+          <AuthRouterLink
+            action-id="ticket_view"
+            :permission="row.permission.ticket_view"
+            :resource="row.id"
+            target="_blank"
+            :to="{
+              name: 'ticketDetail',
+              params: {
+                ticketId: row.id,
+              },
+            }"
+            @click="(event: MouseEvent) => handleGoDetail(row, event)">
+            {{ row.id }}
+          </AuthRouterLink>
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="ticket_type__in"
+        :title="t('子任务')"
+        width="120">
+        <template #default="{ row }: { row: IRowData }">
+          <template v-if="ticketInnerFlowInfo[row.id]">
             <div
-              v-else
-              class="rotate-loading"
-              style="display: inline-block">
-              <DbIcon
-                svg
-                type="sync-pending" />
+              v-for="(flowItem, index) in ticketInnerFlowInfo[row.id]"
+              :key="index"
+              style="line-height: 26px">
+              <BkButton
+                text
+                theme="primary"
+                @click="() => handleGoTaskHistoryDetail(row, flowItem)">
+                {{ flowItem.flow_alias }}
+              </BkButton>
             </div>
+            <span v-if="ticketInnerFlowInfo[row.id]!.length < 1">--</span>
           </template>
-        </TableColumn>
-        <TableColumn
-          col-key="status"
-          :title="t('状态')"
-          width="180">
-          <template #default="{ row }: { row: IRowData }">
-            <TicketStatusTag
-              v-if="row"
-              :data="row" />
-          </template>
-        </TableColumn>
-        <!-- <TableColumn
-          col-key="db_type"
-          :title="t('DB 类型')"
-          width="120">
-          <template #default="{ row }: { row: IRowData }">
-            {{ dbNameMap[ticketDetailsInfo[row.id]?.db_type] || '--' }}
-          </template>
-        </TableColumn>
-        <TableColumn
-          col-key="spec.spec_machine_type"
-          :title="t('规格类型')"
-          width="120">
-          <template #default="{ row }: { row: IRowData }">
-            {{ machineTypeMap[ticketDetailsInfo[row.id]?.spec?.spec_machine_type] || '--' }}
-          </template>
-        </TableColumn>
-        <TableColumn
-          col-key="spec.spec_name"
-          :title="t('规格')"
-          width="180">
-          <template #default="{ row }: { row: IRowData }">
-            {{ ticketDetailsInfo[row.id]?.spec?.spec_name || '--' }}
-          </template>
-        </TableColumn>
-        <TableColumn
-          col-key="city"
-          :title="t('地域')"
-          width="120">
-          <template #default="{ row }: { row: IRowData }">
-            {{ ticketDetailsInfo[row.id]?.city || '--' }}
-          </template>
-        </TableColumn> -->
-        <!-- <TableColumn
-          col-key="subzone"
-          :title="t('园区')"
-          width="120">
-          <template #default="{ row }: { row: IRowData }">
-            {{ ticketDetailsInfo[row.id]?.subzone || '--' }}
-          </template>
-        </TableColumn>
-        <TableColumn
-          col-key="os_name"
-          :title="t('操作系统')"
-          width="120">
-          <template #default="{ row }: { row: IRowData }">
-            {{ ticketDetailsInfo[row.id]?.os_name || '--' }}
-          </template>
-        </TableColumn> -->
-        <!-- <TableColumn
-          col-key="count"
-          :title="t('申请数量')"
-          width="120">
-          <template #default="{ row }: { row: IRowData }">
-            <span class="bold-number">{{ ticketDetailsInfo[row.id]?.count || 0 }}</span>
-          </template>
-        </TableColumn>
-        <TableColumn
-          col-key="apply_count"
-          :title="t('已交付')"
-          width="120">
-          <template #default="{ row }: { row: IRowData }">
-            <span
-              class="bold-number"
-              :class="{
-                'green-number': ticketApplyCount[row.id]?.delivery_count === ticketApplyCount[row.id]?.apply_count,
-                'red-number': ticketApplyCount[row.id]?.delivery_count < ticketApplyCount[row.id]?.apply_count,
-              }">
-              {{ ticketApplyCount[row.id]?.delivery_count || 0 }}
-            </span>
-          </template>
-        </TableColumn> -->
-        <!-- <TableColumn
-          col-key="id"
-          :title="t('已导入')"
-          width="150">
-          <template #default="{ row }: { row: IRowData }">
-            <span class="bold-number red-number">
-              <span class="bold-number">{{ ticketDetailsInfo[row.id]?.count || 0 }}</span>
-            </span>
-          </template>
-        </TableColumn> -->
-        <!-- <TableColumn
-          col-key="creator"
-          :title="t('申请人')"
-          width="150">
-          <template #default="{ row }: { row: IRowData }">
-            <span>{{ ticketDetailsInfo[row.id]?.operator || '--' }}</span>
-          </template>
-        </TableColumn> -->
-        <TableColumn
-          col-key="create_at"
-          :title="t('申请时间')"
-          width="220">
-          <template #default="{ row }: { row: IRowData }">
-            <span>{{ row.create_at ? utcDisplayTime(row.create_at) : '--' }}</span>
-          </template>
-        </TableColumn>
-      </PrimaryTable>
-      <div class="table-footer">
-        <BkPagination
-          v-bind="pagination"
-          :layout="['total', 'limit', 'list']"
-          @change="handlePageValueChange"
-          @limit-change="handlePageLimitChange" />
-      </div>
+          <div
+            v-else
+            class="rotate-loading"
+            style="display: inline-block">
+            <DbIcon
+              svg
+              type="sync-pending" />
+          </div>
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="status"
+        :title="t('状态')"
+        width="120">
+        <template #default="{ row }: { row: IRowData }">
+          <TicketStatusTag
+            v-if="row"
+            :data="row" />
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="record_id"
+        :title="t('补货操作')"
+        width="120">
+        <template #default="{ row }: { row: IRowData }">
+          {{ row?.record_id || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="db_type"
+        :title="t('DB 类型')"
+        width="120">
+        <template #default="{ row }: { row: IRowData }">
+          {{ dbNameMap[row?.db_type] || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="spec.spec_machine_type"
+        :title="t('规格类型')"
+        width="120">
+        <template #default="{ row }: { row: IRowData }">
+          {{ machineTypeMap[row?.spec?.spec_machine_type] || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="spec.spec_name"
+        :title="t('规格')"
+        width="180">
+        <template #default="{ row }: { row: IRowData }">
+          {{ row?.spec?.spec_name || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="city"
+        :title="t('地域')"
+        width="120">
+        <template #default="{ row }: { row: IRowData }">
+          {{ row?.city || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="subzone"
+        :title="t('园区')"
+        width="120">
+        <template #default="{ row }: { row: IRowData }">
+          {{ row?.subzone || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="os_name"
+        :title="t('操作系统')"
+        width="120">
+        <template #default="{ row }: { row: IRowData }">
+          {{ row?.os_name || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="count"
+        :title="t('申请数量')"
+        width="120">
+        <template #default="{ row }: { row: IRowData }">
+          <span class="bold-number">{{ row?.count || 0 }}</span>
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="apply_count"
+        :title="t('已交付')"
+        width="120">
+        <template #default="{ row }: { row: IRowData }">
+          <span
+            class="bold-number"
+            :class="{
+              'green-number': row?.delivery_count === row?.apply_count,
+              'red-number': row?.delivery_count < row?.apply_count,
+            }">
+            {{ row?.delivery_count || 0 }}
+          </span>
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="creator"
+        :title="t('申请人')"
+        width="150">
+        <template #default="{ row }: { row: IRowData }">
+          <span>{{ row?.operator || '--' }}</span>
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="create_at"
+        :title="t('申请时间')"
+        width="220">
+        <template #default="{ row }: { row: IRowData }">
+          <span>{{ row.create_at ? utcDisplayTime(row.create_at) : '--' }}</span>
+        </template>
+      </TableColumn>
+    </PrimaryTable>
+    <div class="table-footer">
+      <BkPagination
+        v-bind="pagination"
+        :layout="['total', 'limit', 'list']"
+        @change="handlePageValueChange"
+        @limit-change="handlePageLimitChange" />
     </div>
     <TableDetailDialog
       v-model="isShowDetail"
@@ -197,12 +210,13 @@
         v-if="ticketId"
         :ticket-id="ticketId" />
     </TableDetailDialog>
-  </BkLoading>
+  </div>
 </template>
 <script setup lang="tsx">
+  import dayjs from 'dayjs';
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  // import type ReplenishModel from '@services/model/db-resource/Replenish';
   import TicketModel from '@services/model/ticket/ticket';
   import { listTicketApplyInfo } from '@services/source/dbresourceReplenish';
   import { getInnerFlowInfo } from '@services/source/ticketFlow';
@@ -216,7 +230,10 @@
 
   import { getBusinessHref, getOffset, utcDisplayTime } from '@utils';
 
+  import ViewController from '../common/ViewController.vue';
+
   import useFetchData from './hooks/use-fetch-data';
+  import useSearchSelect from './hooks/use-search-select';
 
   interface IRowData extends TicketModel {
     apply_count: number;
@@ -225,9 +242,9 @@
     create_at: string;
     db_type: string;
     delivery_count: number;
-    id: number;
     operator: string;
     os_name: string;
+    record_id: number;
     spec: {
       spec_machine_type: string;
       spec_name: string;
@@ -236,9 +253,12 @@
   }
 
   const { t } = useI18n();
+  const route = useRoute();
   const router = useRouter();
   const rootRef = useTemplateRef('tableWrapper');
   const { getSearchParams } = useUrlSearch();
+
+  const { quickSearchData, quickSearchValue } = useSearchSelect();
 
   const {
     dataList,
@@ -249,13 +269,6 @@
     pagination,
   } = useFetchData();
 
-  const tableHeight = ref<number | 'auto'>('auto');
-  const ticketId = ref<number>();
-  const isShowDetail = ref(false);
-  const ticketInnerFlowInfo = shallowRef<ServiceReturnType<typeof getInnerFlowInfo>>({});
-  // const ticketApplyInfo = shallowRef<ServiceReturnType<typeof listTicketApplyInfo>>({});
-  const tableData = shallowRef<IRowData[]>([]);
-
   const dbNameMap: Record<string, string> = {};
   const machineTypeMap: Record<string, string> = {};
   Object.values(DBTypeInfos).forEach((db) => {
@@ -265,31 +278,17 @@
     });
   });
 
-  watch(dataList, () => {
-    if (dataList.value.length < 1) {
-      return;
-    }
-    const ticketIds = dataList.value.map((item) => item.id).join(',');
+  const URL_REPLENISH_MEMO_KEY = '__replenish_ticket_view_payload__';
 
-    // 使用 Promise.all 处理多个异步请求
-    Promise.all([getInnerFlowInfo({ ticket_ids: ticketIds }), listTicketApplyInfo({ ticket_ids: ticketIds })]).then(
-      ([innerFlowInfo, applyInfo]) => {
-        // 更新子任务信息
-        ticketInnerFlowInfo.value = innerFlowInfo;
-
-        console.log(applyInfo, dataList.value, 'wwwww');
-
-        // tableData.value = dataList.value.map((item) => {
-        //   const applyInfoItem = applyInfo.find((applyInfoItem) => applyInfoItem.id === item.id);
-        //   return {
-        //     ...item,
-        //     apply_count: applyInfoItem?.apply_count || 0,
-        //     delivery_count: applyInfoItem?.delivery_count || 0,
-        //   };
-        // });
-      },
-    );
-  });
+  const filterDateRange = ref<[string, string]>([
+    dayjs().subtract(1, 'day').format('YYYY-MM-DD HH:mm:ss'),
+    dayjs().format('YYYY-MM-DD HH:mm:ss'),
+  ]);
+  const tableMaxHeight = ref<number | 'auto'>('auto');
+  const ticketId = ref<number>();
+  const isShowDetail = ref(false);
+  const ticketInnerFlowInfo = shallowRef<ServiceReturnType<typeof getInnerFlowInfo>>({});
+  const tableData = shallowRef<IRowData[]>([]);
 
   const handleGoDetail = (ticketData: TicketModel, event: MouseEvent) => {
     if (event.ctrlKey || event.metaKey) {
@@ -334,26 +333,64 @@
     });
   };
 
-  onMounted(() => {
-    setTimeout(() => {
-      tableHeight.value = window.innerHeight - getOffset(rootRef.value as HTMLElement).top - 80;
-    });
-    handlePageValueChange(1);
+  const handleDateRangeChange = (value: [string, string]) => {
+    filterDateRange.value = value;
+  };
+
+  watch(dataList, () => {
+    if (dataList.value.length < 1) {
+      ticketInnerFlowInfo.value = {};
+      tableData.value = [];
+      return;
+    }
+    const ticketIds = dataList.value.map((item) => item.id).join(',');
+
+    Promise.all([getInnerFlowInfo({ ticket_ids: ticketIds }), listTicketApplyInfo({ ticket_ids: ticketIds })]).then(
+      ([innerFlowInfo, applyInfo]) => {
+        // 更新子任务信息
+        ticketInnerFlowInfo.value = innerFlowInfo;
+
+        tableData.value = dataList.value.map((item) => {
+          const applyInfoItem = applyInfo[item.id];
+          return Object.assign(item, applyInfoItem, applyInfoItem.details);
+        });
+      },
+    );
   });
 
-  defineExpose({
-    fetchData,
+  watch(
+    () => [filterDateRange.value, quickSearchValue.value],
+    _.debounce(() => {
+      router.replace({
+        query: {
+          ...getSearchParams(),
+          [URL_REPLENISH_MEMO_KEY]: encodeURIComponent(
+            JSON.stringify(
+              Object.assign(
+                {
+                  create_at__gte: filterDateRange.value[0] || undefined, // 去除空字符串避免污染url参数
+                  create_at__lte: filterDateRange.value[1] || undefined,
+                },
+                quickSearchValue.value,
+              ),
+            ),
+          ),
+        },
+      });
+      setTimeout(() => {
+        fetchData();
+      }, 30);
+    }, 200),
+  );
+
+  onMounted(() => {
+    setTimeout(() => {
+      tableMaxHeight.value = window.innerHeight - getOffset(rootRef.value as HTMLElement).top - 80;
+    });
+    const urlParams = JSON.parse(decodeURIComponent(String(route.query[URL_REPLENISH_MEMO_KEY] || '{}')));
+    if (urlParams?.id) {
+      filterDateRange.value = ['', '']; // 从“待补货列表”跳转时因为带了ID，需要去掉时间区间
+    }
+    quickSearchValue.value = urlParams;
   });
 </script>
-<style lang="less">
-  .replenish-confirm-tip {
-    background: #f5f7fa;
-    border-radius: 2px;
-    font-size: 14px;
-    color: #4d4f56;
-    letter-spacing: 0;
-    width: 100%;
-    line-height: 22px;
-    padding: 12px 16px;
-  }
-</style>

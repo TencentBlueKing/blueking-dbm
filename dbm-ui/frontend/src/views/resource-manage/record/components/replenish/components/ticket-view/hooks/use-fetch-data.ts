@@ -9,11 +9,11 @@ import { transfromDataToQuery } from '@utils';
 
 export default () => {
   const route = useRoute();
-  const paginationLimitCache = useStorage('resource_pool_replenish_ticket_view_pagination', 20);
+  const paginationLimitCache = useStorage('replenish_ticket_view_pagination', 20);
   const { getSearchParams, replaceSearchParams } = useUrlSearch();
   const searchParams = getSearchParams();
 
-  const URL_REPLENISH_MEMO_KEY = '__replenish_payload__';
+  const URL_REPLENISH_MEMO_KEY = '__replenish_ticket_view_payload__';
 
   const dataList = ref<ServiceReturnType<typeof getTickets>['results']>([]);
   const pagination = reactive({
