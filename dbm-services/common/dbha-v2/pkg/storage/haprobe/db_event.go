@@ -73,6 +73,7 @@ func (v DbEventNameReasonStr) String() string {
 
 type DbEventNameReason int
 
+// Str return string of specific event reason
 func (t DbEventNameReason) Str() DbEventNameReasonStr {
 	switch t {
 	case DbEventNameReasonConnectionException:
@@ -116,7 +117,8 @@ const (
 type DbType string
 
 const (
-	DbTypeMysql DbType = "mysql"
+	DbTypeMysql        DbType = "mysql"
+	DbTypeTendbCluster DbType = "tendbcluster"
 )
 
 func (t DbType) String() string {

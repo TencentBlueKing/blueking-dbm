@@ -32,37 +32,35 @@ import (
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
-var _ Switcher = (*Mysql)(nil)
-
-// Mysql implements the Switcher interface for MySQL database instances
-type Mysql struct {
+// TendbCluster implements the Switcher interface for TenDBCluster database instances
+type TendbCluster struct {
 }
 
-// DbTypeName returns the MySQL database type identifier
-func (m *Mysql) DbTypeName() haprobe.DbType {
+// DbTypeName returns the TenDBCluster database type identifier
+func (m *TendbCluster) DbTypeName() haprobe.DbType {
 	return haprobe.DbTypeMysql
 }
 
-// Switch handles MySQL instance switching operations
+// Switch handles TenDBCluster instance switching operations
 // Note: This function may be called concurrently, avoid unnecessary duplicate switching
 // Note: Handle partial switch failures when multiple instances on same host
-func (m *Mysql) Switch(ctx context.Context, req *Request) *Response {
+func (m *TendbCluster) Switch(ctx context.Context, req *Request) *Response {
 	rsp := &Response{
-		MySqlFailureInsts: map[MetadataKey]*MySQLInstanceMetadata{},
+		TendbClusterFailureInsts: map[MetadataKey]*TendbClusterInstanceMetadata{},
 	}
 
 	if req == nil {
-		rsp.Err = gerrors.Newf(gerrors.Failure, "Mysql switcher get nil request")
+		rsp.Err = gerrors.Newf(gerrors.Failure, "TendbCluster switcher get nil request")
 		return rsp
 	}
 
-	for _, inst := range req.MySqlInstData {
+	for _, inst := range req.TendbClusterInstData {
 		instKey := GenerateMetadataKey(inst.BkCloudID, inst.IP, inst.Port)
-		swInst, newErr := NewMySQLSwitchInstance(inst)
+		swInst, newErr := NewTendbClusterSwitchInstance(inst)
 
 		if newErr != nil {
-			logger.Warn("failed to create mysql switcher, inst: %s, errmsg: %s", instKey, newErr)
-			rsp.MySqlFailureInsts[instKey] = inst
+			logger.Warn("failed to create TenDBCluster switcher, inst: %s, errmsg: %s", instKey, newErr)
+			rsp.TendbClusterFailureInsts[instKey] = inst
 			continue
 		}
 
@@ -73,10 +71,10 @@ func (m *Mysql) Switch(ctx context.Context, req *Request) *Response {
 		}
 
 		logger.Warn("failed to switch the single instance: %s, errmsg: %s", instKey, swErr)
-		rsp.MySqlFailureInsts[instKey] = inst
+		rsp.TendbClusterFailureInsts[instKey] = inst
 	}
 
-	if len(rsp.MySqlFailureInsts) == 0 {
+	if len(rsp.TendbClusterFailureInsts) == 0 {
 		return rsp
 	}
 
