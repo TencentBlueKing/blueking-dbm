@@ -8,5 +8,5 @@ metadata:
     {{- end }}
 data:
   DB_CLOUD_TOKEN: "{{ .Values.dbm.envs.bkAppCode }}:{{ .Values.dbm.envs.bkAppToken }}"
-  BK_DBM_URL: "{{ .Values.dbm.envs.dbmApigwDomain }}"
-  DBM_NGINX_DOMAIN: "{{ index .Values "db-nginx" "ingress" "hosts" 0 "host" }}"
+  BK_DBM_URL: "{{ .Values.dbm.envs.dbmBackendApigwDomain }}"
+  DBM_NGINX_DOMAIN: "{{ index .Values "db-nginx" "ingress" "hostname" }}"

@@ -86,8 +86,9 @@ dbm:
     bkjobEnabled: true
     mediumEnabled: true
     bkmonitorEnabled: true
-    sslEnabled: true
     bknoticeEnabled: true
+    # TODO: 验证后开启
+    dbmServicesEnabled: false
 
   image:
     registry: "mirrors.tencent.com"
@@ -132,6 +133,7 @@ dbm:
     dbResourceApigwDomain: "http://bk-dbm-db-resource"
     dbRemoteServiceApigwDomain: "http://bk-dbm-db-remote-service"
     slowQueryParseApigwDomain: ""
+    reverseReportKafkaOptions: ""
 
   ingress:
     enabled: true
@@ -387,11 +389,10 @@ db-nginx:
         real_ip_recursive on;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Real-IP $remote_addr;
-    hosts:
-      - host: bk-dbm-nginx
-        paths:
-          - path: /
-            pathType: ImplementationSpecific
+    hostname: bk-dbm-nginx
+    paths:
+      - path: /
+        pathType: ImplementationSpecific
 
 db-dbha:
   extraEnvVarsCM: db-dbha-configmap
@@ -475,7 +476,7 @@ db-remote-service:
     dataId: 1
 
 db-celery-service:
-  enabled: true
+  enabled: false
   envs:
     # apm
     TRACE_SERVICE_NAME: db-celery-service
@@ -532,10 +533,10 @@ backup-server:
     bkrepo_public_bucket: "bkdbm"
   backup_client:
     cos_default_dns: ""
-    default_storage: "cos"
+    default_storage: "bkrepo"
 
 bkdata-kafka-consumer:
-  enabled: true
+  enabled: false
   resources:
     limits:
       cpu: 1000m

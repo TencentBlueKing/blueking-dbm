@@ -35,7 +35,6 @@ def get_client_ip(request: Request):
 
 
 def validate_nginx_ip(bk_cloud_id: int, request: Request):
-    # TODO: 在容器化场景会有问题，因为此时nginx ip是一个域名
     x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
     if x_forwarded_for:
         nginx_ip = x_forwarded_for.split(", ")[1]

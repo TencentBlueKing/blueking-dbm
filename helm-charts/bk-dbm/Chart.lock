@@ -67,12 +67,12 @@ dependencies:
   version: 0.1.0
 - name: db-nginx
   repository: file://charts/db-nginx
-  version: 0.1.0
+  version: 0.1.2
 - name: db-dbha
   repository: file://charts/db-dbha
   version: 0.1.0
 - name: k8s-dbs
   repository: file://charts/k8s-dbs
   version: 2.1.7
-digest: sha256:f9f2d61b310a9d474d6f6841fce9ea9a6d8eeae06926253f0884b55245c60e60
-generated: "2026-06-12T14:23:20.051365+08:00"
+digest: sha256:0648b3c8701f045baf4a29deb43e555959ed18dc6fae6d172737f9756fe23e43
+generated: "2026-06-12T19:54:25.016685+08:00"

@@ -32,6 +32,7 @@ class Command(BaseCommand):
                 "register_application",
                 "grafana",
                 "bkjob",
+                "dbm_services",
                 "ssl",
                 "sync_dbconfig",
                 "create_job_user",
@@ -47,7 +48,9 @@ class Command(BaseCommand):
             "register_application: register applications into bk_notice"
             "grafana: initialize grafana services"
             "sync_dbconfig: sync dbconfig to bkrepo"
-            "create_job_user: create job user",
+            "create_job_user: create job user"
+            "dbm_services: initialize dbm micro services"
+            "register_application: register applications into bk_notice",
         )
         parser.add_argument("--namespace", type=str, required=False, help="Namespace for dbconfig")
         parser.add_argument("--conf_type", type=str, required=False, help="Type of configuration")
@@ -75,6 +78,9 @@ class Command(BaseCommand):
 
         if srv_type == "all" or srv_type == "bkjob":
             Services.auto_create_bkjob_service()
+
+        if srv_type == "all" or srv_type == "dbm_services":
+            Services.auto_create_dbm_services()
 
         if srv_type == "all" or srv_type == "bkmonitor_alarm":
             Services.auto_create_bkmonitor_alarm()

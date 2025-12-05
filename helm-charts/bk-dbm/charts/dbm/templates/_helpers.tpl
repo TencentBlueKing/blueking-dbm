@@ -95,8 +95,8 @@ environment variables
 {{- printf "%s-%s-%d"  (include "dbm.fullname" .) "db-job-init" .Release.Revision }}
 {{- end }}
 
-{{- define "dbm.sslInitJobName" -}}
-{{- printf "%s-%s-%d"  (include "dbm.fullname" .) "db-ssl-init" .Release.Revision }}
+{{- define "dbm.dbmServicesInitJobName" -}}
+{{- printf "%s-%s-%d"  (include "dbm.fullname" .) "db-dbmservices-init" .Release.Revision }}
 {{- end }}
 
 {{- define "dbm.iamInitJobName" -}}

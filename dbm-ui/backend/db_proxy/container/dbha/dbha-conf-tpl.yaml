@@ -1,8 +1,8 @@
 log_conf:
-  log_path: "./log"
+  log_path: "./logs/log"
   log_level: "LOG_DEBUG"
   log_maxsize: 512
-  log_maxbackups: 100
+  log_maxbackups: 1000
   log_maxage: 30
   log_compress: true
 agent_conf:
@@ -12,7 +12,11 @@ agent_conf:
     "tendbcluster",
     "TwemproxyRedisInstance",
     "PredixyTendisplusCluster",
-    "TwemproxyTendisSSDInstance"
+    "TwemproxyTendisSSDInstance",
+    "PredixyRedisCluster",
+    "RedisInstance",
+    "MongoShardedCluster",
+    "sqlserver_ha",
   ]
   city_id: -1
   campus: "all"
@@ -72,6 +76,12 @@ db_conf:
     timeout: 10
   riak:
     timeout: 10
+  mongodb:
+    timeout: 5
+  sqlserver:
+    user: "mssql_dbha"
+    pass: "$DBHA_PASSWORD"
+    timeout: 10
 name_services:
   dns_conf:
     host: "$BK_DBM_URL"
@@ -117,7 +127,10 @@ monitor:
   local_ip: "$NODE_IP"
 ssh:
   port: "$DBHA_SSH_PORT"
+  max_uptime: 300
   user: "mysql"
   pass: "$MYSQL_OS_PASSWORD"
+  sqlserver_ssh_user: "$SQLSERVER_OS_USER"
+  sqlserver_ssh_pass: "$SQLSERVER_OS_PASSWORD"
   dest: "agent"
   timeout: 10
