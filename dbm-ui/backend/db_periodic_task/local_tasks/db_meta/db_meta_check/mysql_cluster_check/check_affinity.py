@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 import logging
 import math
+import re
 from collections import defaultdict
 from typing import Dict, List, Optional, Set
 
@@ -35,6 +36,13 @@ def check_mysql_affinity():
     检查 MySQL 集群的亲和性
     """
     MySQLAffinityChecker().check_all_clusters()
+
+
+def check_single_mysql_affinity(cluster_id: int):
+    """
+    检查单个 MySQL 集群的亲和性
+    """
+    MySQLAffinityChecker().check_single_cluster(cluster_id)
 
 
 class MySQLAffinityChecker:
@@ -80,17 +88,56 @@ class MySQLAffinityChecker:
         """检查所有 MySQL 集群的亲和性"""
         # 删除旧记录
         delete_old_affinity_reports(self._supported_cluster_types, 30)
-
+        pattern = r"^.*-tmp[0-9]{8}-[0-9]{7}.*$"
         # 只查询支持的集群类型和亲和性级别，且 phase 为 online
         for cluster in Cluster.objects.filter(
             Q(cluster_type__in=self._supported_cluster_types),
             Q(disaster_tolerance_level__in=self._supported_levels),
             Q(phase=ClusterPhase.ONLINE.value),
         ):
+            # 忽略临时集群
+            if re.match(pattern=pattern, string=cluster.immute_domain.lower()):
+                continue
             try:
                 self._check_cluster_affinity(cluster)
             except Exception as e:
                 logger.error(_("亲和性检查: 检查集群 {} 时发生错误: {}").format(cluster.immute_domain, str(e)), exc_info=True)
+
+    def check_single_cluster(self, cluster_id: int) -> None:
+        """
+        检查单个 MySQL 集群的亲和性
+
+        @param cluster_id: 集群ID
+        """
+        try:
+            cluster = Cluster.objects.get(id=cluster_id)
+        except Cluster.DoesNotExist:
+            logger.error(_("亲和性检查: 集群ID {} 不存在").format(cluster_id))
+            return
+
+        # 检查集群类型是否支持
+        if cluster.cluster_type not in self._supported_cluster_types:
+            logger.warning(
+                _("亲和性检查: 集群 {} 的类型 {} 不在支持的类型列表中: {}").format(
+                    cluster.immute_domain, cluster.cluster_type, self._supported_cluster_types
+                )
+            )
+            return
+
+        # 检查亲和性级别是否支持
+        if cluster.disaster_tolerance_level not in self._supported_levels:
+            logger.warning(
+                _("亲和性检查: 集群 {} 的亲和性级别 {} 不在支持的级别列表中: {}").format(
+                    cluster.immute_domain, cluster.disaster_tolerance_level, self._supported_levels
+                )
+            )
+            return
+
+        try:
+            self._check_cluster_affinity(cluster)
+            logger.info(_("亲和性检查: 集群 {} (ID:{}) 检查完成").format(cluster.immute_domain, cluster_id))
+        except Exception as e:
+            logger.error(_("亲和性检查: 检查集群 {} 时发生错误: {}").format(cluster.immute_domain, str(e)), exc_info=True)
 
     def _check_cluster_affinity(self, cluster: Cluster) -> None:
         """检查单个集群的亲和性"""
@@ -289,7 +336,9 @@ class MySQLAffinityChecker:
             if sz_id == subzone_id:
                 rack_machine_counts[r_id] = len(ips)
 
-        ok, limit, violating_rack = cls._cross_rack_check_and_get_limits(proxy_count, rack_count, rack_machine_counts)
+        ok, max_machine_per_rack, violating_rack = cls._cross_rack_check_and_get_limits(
+            proxy_count, rack_count, rack_machine_counts
+        )
         if not ok:
             # 收集该园区内所有 proxy 的详细信息
             proxy_details = []
@@ -301,20 +350,11 @@ class MySQLAffinityChecker:
                     rack_id = proxy_obj.machine.bk_rack_id
                     proxy_details.append(f"{proxy_obj.machine.ip} ({city_name}/{subzone}/{_('机架ID')}:{rack_id})")
             proxies_info = ", ".join(proxy_details)
-
-            # 根据不同的违规类型生成错误信息
-            if rack_count < limit:
-                msg = _("亲和性违规: {} 个 proxies 在园区 {} 中分布在 {} 个机架，期望至少 {} 个机架\n详情: {}").format(
-                    proxy_count, subzone_id, rack_count, limit, proxies_info
-                )
-            elif violating_rack:
-                r_id, cnt = violating_rack
-                msg = _("亲和性违规: {} 个 proxies 在园区 {} 中，机架机器数达到或超过限制 {}\n" "超限机架: {}\n详情: {}").format(
-                    proxy_count, subzone_id, limit, _("机架ID {} 有 {} 台").format(r_id, cnt), proxies_info
-                )
-            else:
-                msg = _("亲和性违规: {} 个 proxies 在园区 {} 中分布不符合要求\n详情: {}").format(proxy_count, subzone_id, proxies_info)
-            return msg, ReportStateType.WARNING
+            r_id, cnt = violating_rack
+            msg = _("亲和性违规: {} 个 proxies 在园区 {} 中，机架机器数超过限制 {}\n" "超限机架: {}\n详情: {}").format(
+                proxy_count, subzone_id, max_machine_per_rack, _("机架ID {} 有 {} 台").format(r_id, cnt), proxies_info
+            )
+            return msg, ReportStateType.ABNORMAL
         return None, ReportStateType.NORMAL
 
     @classmethod
@@ -357,32 +397,6 @@ class MySQLAffinityChecker:
                 )
                 return msg, ReportStateType.ABNORMAL
 
-            # 计算该园区内每个机架的机器数量
-            rack_machine_counts = {}
-            for (sz_id, r_id), ips in ips_map.items():
-                if sz_id == subzone_id:
-                    rack_machine_counts[r_id] = len(ips)
-
-            rack_count = len(rack_set)
-            ok, limit, violating_rack = cls._cross_rack_check_and_get_limits(
-                sub_proxy_count, rack_count, rack_machine_counts
-            )
-            if not ok:
-                if rack_count < limit:
-                    msg = _("亲和性违规: {} 个 proxies 在园区(id:{}) 中分布在 {} 个机架，期望至少 {} 个机架\n详情: {}").format(
-                        sub_proxy_count, subzone_id, rack_count, limit, proxies_info
-                    )
-                elif violating_rack:
-                    r_id, cnt = violating_rack
-                    msg = _("亲和性违规: {} 个 proxies 在园区(id:{}) 中，机架机器数达到或超过限制 {}\n" "超限机架: {}\n详情: {}").format(
-                        sub_proxy_count, subzone_id, limit, _("机架ID {} 有 {} 台").format(r_id, cnt), proxies_info
-                    )
-                else:
-                    msg = _("亲和性违规: {} 个 proxies 在园区(id:{}) 中分布不符合要求\n详情: {}").format(
-                        sub_proxy_count, subzone_id, proxies_info
-                    )
-                return msg, ReportStateType.WARNING
-
         return None, ReportStateType.NORMAL
 
     @classmethod
@@ -399,7 +413,7 @@ class MySQLAffinityChecker:
                 if sz_id == subzone_id:
                     rack_machine_counts[r_id] = len(ips)
 
-            ok, limit, violating_rack = cls._cross_rack_check_and_get_limits(
+            ok, max_machine_per_rack, violating_rack = cls._cross_rack_check_and_get_limits(
                 sub_proxy_count, rack_count, rack_machine_counts
             )
             if not ok:
@@ -412,21 +426,16 @@ class MySQLAffinityChecker:
                         rack_id = proxy_obj.machine.bk_rack_id
                         proxy_details.append(f"{proxy_obj.machine.ip} ({city_name}/{subzone}/{_('机架ID')}:{rack_id})")
                 proxies_info = ", ".join(proxy_details)
-
-                if rack_count < limit:
-                    msg += _("亲和性违规: {} 个 proxies 在园区(id:{}) 中分布在 {} 个机架，期望至少 {} 个机架\n详情: {}\n").format(
-                        sub_proxy_count, subzone_id, rack_count, limit, proxies_info
-                    )
-                elif violating_rack:
-                    r_id, cnt = violating_rack
-                    msg += _("亲和性违规: {} 个 proxies 在园区(id:{}) 中，机架机器数达到或超过限制 {}\n" "超限机架: {}\n详情: {}\n").format(
-                        sub_proxy_count, subzone_id, limit, _("机架ID {} 有 {} 台").format(r_id, cnt), proxies_info
-                    )
-                else:
-                    msg += _("亲和性违规: {} 个 proxies 在园区(id:{}) 中分布不符合要求\n详情: {}\n").format(
-                        sub_proxy_count, subzone_id, proxies_info
-                    )
-        return msg, ReportStateType.ABNORMAL if msg else ReportStateType.NORMAL
+                r_id, cnt = violating_rack
+                msg += _("亲和性违规: {} 个 proxies 在园区(id:{}) 中，机架机器数超过限制 {}\n" "超限机架: {}\n详情: {}\n").format(
+                    sub_proxy_count,
+                    subzone_id,
+                    max_machine_per_rack,
+                    _("机架ID {} 有 {} 台").format(r_id, cnt),
+                    proxies_info,
+                )
+                return msg, ReportStateType.ABNORMAL
+        return None, ReportStateType.NORMAL
 
     @classmethod
     def _cross_rack_check_and_get_limits(
@@ -450,18 +459,15 @@ class MySQLAffinityChecker:
             - limit: 限制值 (n_proxy * 0.5 向上取整)，既是最小机架数，也是每个机架最大机器数
             - violating_rack: 第一个违规的机架 (rack_id, count)，无违规时为 None
         """
-        limit = math.ceil(n_proxy * 0.5)
-        # 检查机架数量是否足够
-        if n_rack < limit:
-            return False, limit, None
+        max_machine_per_rack = math.ceil(n_proxy * 0.5)
 
         # 检查每个机架的机器数量是否超限，发现第一个违规即返回
         if rack_machine_counts:
             for rack_id, count in rack_machine_counts.items():
-                if count > limit:
-                    return False, limit, (rack_id, count)
+                if count > max_machine_per_rack:
+                    return False, max_machine_per_rack, (rack_id, count)
 
-        return True, limit, None
+        return True, max_machine_per_rack, None
 
     @classmethod
     def _validate_backends_affinity(
