@@ -146,7 +146,10 @@ def _check_spider_routing(c: Cluster, routing_data: List[dict]) -> List[CheckRes
     # 从元数据获取 SPIDER_MASTER 节点
     metadata_master_spiders = set()
     for spider in c.proxyinstance_set.filter(
-        tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER.value
+        tendbclusterspiderext__spider_role__in=[
+            TenDBClusterSpiderRole.SPIDER_MASTER.value,
+            TenDBClusterSpiderRole.SPIDER_MNT.value,
+        ]
     ):
         spider_address = f"{spider.machine.ip}{IP_PORT_DIVIDER}{spider.port}"
         metadata_master_spiders.add(spider_address)
