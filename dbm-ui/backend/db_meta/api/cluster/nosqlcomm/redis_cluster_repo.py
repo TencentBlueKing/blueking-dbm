@@ -155,34 +155,35 @@ class DbmClusterRepository:
         return cluster
 
     @classmethod
-    def get_cluster_by_id(cls, cluster_id: str) -> Cluster:
+    def get_cluster_by_id(cls, cluster_id: int) -> Cluster:
         """根据集群ID获取集群信息"""
-        cluster = Cluster.objects.get(id=cluster_id)
+        cluster = Cluster.objects.filter(id=cluster_id).first()
         return cluster
 
     @classmethod
     def fetch_many_cluster(cls, **kwargs) -> List[Cluster]:
         clusters = Cluster.objects.filter(**kwargs)
-        return [cls.get_cluster_by_id(cluster.id) for cluster in clusters]
+        return list(clusters)
 
     @classmethod
     def fetch_many_cluster_dict(cls, **kwargs) -> Dict[str, Cluster]:
         clusters = Cluster.objects.filter(**kwargs)
-        return {cluster.id: cls.get_cluster_by_id(cluster.id) for cluster in clusters}
+        return {cluster.id: cluster for cluster in clusters}
 
     @classmethod
     def fetch_one_cluster(cls, **kwargs) -> Cluster:
-        return cls.fetch_many_cluster(**kwargs)[0]
+        clusters = cls.fetch_many_cluster(**kwargs)
+        if not clusters:
+            return None
+        return clusters[0]
 
     @classmethod
     def fetch_ip_instance_count(cls, ip_list: List[str], bk_cloud_id: int) -> Dict[str, int]:
         """查询每个ip的instance数量"""
-        print(f"fetch_ip_instance_count: ip_list: {ip_list}, bk_cloud_id: {bk_cloud_id}")
         queryset = ProxyInstance.objects.select_related("machine").filter(
             machine__ip__in=ip_list, machine__bk_cloud_id=bk_cloud_id
         )
         # queryset = Machine.objects.select_related("proxy_instance").filter(ip__in=ip_list, bk_cloud_id=bk_cloud_id)
-        print(f"queryset: {queryset.query}")
         ip_instance_count_map = defaultdict(int)
         for machine in queryset.all():
             ip_instance_count_map[machine.machine.ip] += 1
@@ -210,6 +211,7 @@ class DbmClusterRepository:
                     "bk_host_id": proxy.machine.bk_host_id,
                     "bk_biz_id": proxy.bk_biz_id,
                     "instance_role": proxy.instance_role,
+                    "status": proxy.status,
                 }
             )
         return instances
@@ -250,6 +252,7 @@ class DbmClusterRepository:
                 "port": instance.port,
                 "instance_role": instance.instance_role,
                 "seg_range": seg_range,  # shardName
+                "status": instance.status,
             }
             result.append(instance_data)
 
