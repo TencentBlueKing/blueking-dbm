@@ -136,7 +136,7 @@
     },
     {
       count: 0,
-      label: t('实例（IP、IP:Port）'),
+      label: t('实例（IP / IP:Port）'),
       name: 'instance',
     },
     {

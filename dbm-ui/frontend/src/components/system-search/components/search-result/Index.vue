@@ -111,7 +111,7 @@
 
   const resultTypeTextMap: Record<ResultKeys, string> = {
     entry: t('访问入口（域名 / CLB / 北极星）'),
-    instance: t('实例（IP、IP:Port）'),
+    instance: t('实例（IP / IP:Port）'),
     machine: t('主机'),
     task: t('任务ID'),
     ticket: t('单据'),

@@ -119,7 +119,7 @@
     },
     {
       id: 'instance',
-      name: t('实例（IP、IP:Port）'),
+      name: t('实例（IP / IP:Port）'),
     },
     {
       id: 'machine',

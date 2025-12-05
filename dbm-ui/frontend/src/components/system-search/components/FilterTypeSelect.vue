@@ -31,7 +31,8 @@
         content: item.tooltips,
         disabled: !item.tooltips,
       }"
-      :name="item.label" />
+      :name="item.label"
+      @click.stop />
   </BkSelect>
 </template>
 
