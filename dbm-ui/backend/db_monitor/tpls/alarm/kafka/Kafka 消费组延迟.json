@@ -37,6 +37,7 @@
               "app",
               "cluster_name",
               "consumergroup",
+              "topic",
               "appid"
             ],
             "agg_condition": [
@@ -87,7 +88,7 @@
         "level": 1,
         "expression": "",
         "trigger_config": {
-          "count": 1,
+          "count": 6,
           "uptime": {
             "calendars": [],
             "time_ranges": [
@@ -97,7 +98,7 @@
               }
             ]
           },
-          "check_window": 5
+          "check_window": 10
         },
         "recovery_config": {
           "check_window": 5,
@@ -271,16 +272,14 @@
   "custom_conditions": [
     {
       "key": "consumergroup",
-      "value": [
-      ],
+      "value": [],
       "method": "eq",
       "condition": "and",
       "dimension_name": "consumergroup"
     },
     {
       "key": "topic",
-      "value": [
-      ],
+      "value": [],
       "method": "eq",
       "condition": "and",
       "dimension_name": "topic"
