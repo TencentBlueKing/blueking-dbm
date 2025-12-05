@@ -247,10 +247,12 @@
       .join(',');
 
   const handleBatchEdit = async (list: TendbhaModel[]) => {
+    const isSingle = list[0].cluster_type === (ClusterTypes.TENDBSINGLE as string);
     // 查询关联集群
     const relatedClusters = await findRelatedClustersByClusterIds({
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_ids: list.map((item) => item.id),
+      role: isSingle ? 'orphan' : undefined,
     });
 
     const clusterMap = relatedClusters.reduce<Record<string, string>>((acc, item) => {
