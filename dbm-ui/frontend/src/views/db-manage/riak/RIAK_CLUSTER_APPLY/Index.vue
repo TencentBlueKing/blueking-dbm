@@ -74,7 +74,7 @@
         </BkFormItem> -->
       </DbCard>
       <DbCard :title="t('部署需求')">
-        <BkFormItem
+        <!-- <BkFormItem
           :label="t('服务器选择')"
           property="details.ip_source"
           required>
@@ -82,11 +82,11 @@
             <BkRadioButton label="resource_pool">
               {{ t('自动从资源池匹配') }}
             </BkRadioButton>
-            <!-- <BkRadioButton label="manual_input">
+            <BkRadioButton label="manual_input">
               {{ t('业务空闲机') }}
-            </BkRadioButton> -->
+            </BkRadioButton>
           </BkRadioGroup>
-        </BkFormItem>
+        </BkFormItem> -->
         <Transition
           mode="out-in"
           name="dbm-fade">

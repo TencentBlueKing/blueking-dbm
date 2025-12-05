@@ -50,19 +50,6 @@
           @focus="handleFocusCapacity" />
         <span class="input-desc">G</span>
       </BkFormItem>
-      <ResourcePreview
-        v-model:tag-list="modelValue.labels"
-        :biz-id="bizId"
-        :params="{
-          city: cityName,
-          subzones: subzoneNames.join('，'),
-          subzone_ids: subzoneIds.join(','),
-          for_bizs: bizId ? [bizId, 0] : [0],
-          resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
-          spec_id: Number(modelValue.spec_id),
-          labels: modelValue.labels.map((item) => item.id).join(','),
-        }"
-        property="details.resource_spec.backend_group.labels" />
       <BkFormItem
         :label="t('QPS预估范围')"
         required>
@@ -78,6 +65,19 @@
           show-tip
           style="width: 800px; font-size: 12px" />
       </BkFormItem>
+      <ResourcePreview
+        v-model:tag-list="modelValue.labels"
+        :biz-id="bizId"
+        :params="{
+          city: cityName,
+          subzones: subzoneNames.join('，'),
+          subzone_ids: subzoneIds.join(','),
+          for_bizs: bizId ? [bizId, 0] : [0],
+          resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
+          spec_id: Number(modelValue.spec_id),
+          labels: modelValue.labels.map((item) => item.id).join(','),
+        }"
+        property="details.resource_spec.backend_group.labels" />
       <BkFormItem
         ref="specRef"
         :label="t('集群部署方案')"
