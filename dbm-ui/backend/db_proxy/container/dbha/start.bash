@@ -24,12 +24,14 @@ export DBHA_PROXY_PASSWORD=$(echo $data | jq -r '.data.proxy_password')
 export MYSQL_OS_PASSWORD=$(echo $data | jq -r '.data.mysql_os_password')
 # DBHA ssh端口：优先环境变量，否则默认36000
 export DBHA_SSH_PORT=${DBHA_SSH_PORT:-36000}
+export SQLSERVER_OS_USER=$(echo $data | jq -r '.data.sqlserver_os_user')
+export SQLSERVER_OS_PASSWORD=$(echo $data | jq -r '.data.sqlserver_os_password')
 # 导出监控环境变量
 export BKMONITOR_EVENT_DATA_ID=$(echo $data | jq -r '.data.bkm_dbm_report.event.data_id')
 export BKMONITOR_EVENT_TOKEN=$(echo $data | jq -r '.data.bkm_dbm_report.event.token')
 
 # 配置文件注入环境变量，启动dbha服务
-touch log
+mkdir logs && touch logs/log
 envsubst < ./dbha-conf-tpl.yaml > ./dbha.conf
 nohup ./dbha -config_file=dbha.conf -type=$DBHA_TYPE -> dbha-apply.log 2>&1 &
-tail -f log
+tail -f logs/log

@@ -1,8 +1,8 @@
-{{- if .Values.serviceInit.sslEnabled -}}
+{{- if .Values.serviceInit.dbmServicesEnabled -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "dbm.sslInitJobName" . }}
+  name: {{ include "dbm.dbmServicesInitJobName" . }}
   labels:
     {{- include "dbm.labels" . | nindent 4 }}
 spec:
@@ -18,16 +18,16 @@ spec:
       serviceAccountName: {{ include "dbm.serviceAccountName" . }}
       restartPolicy: Never
       containers:
-        - name: dbm-ssl-init
+        - name: dbm-services-init
           image: "{{ .Values.global.imageRegistry | default .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command:
             - /bin/bash
             - -c
           args:
-            - "python manage.py services_init ssl"
+            - "python manage.py services_init dbm_services"
           {{- include "dbm.container_env" . | nindent 10 }}
           resources:
             {{- toYaml .Values.initJob.resources | nindent 12 }}
-      {{- include "dbm.initContainersWaitForMigrate" . | nindent 6 }}
+      {{- include "dbm.initContainersWaitForSaaS" . | nindent 6 }}
 {{- end }}

@@ -415,7 +415,7 @@ mysql:
 - mysql:
     buildPath: /install/mysql/mysql-8.0.32-linux-glibc2.12-x86_64.tar.xz
     name: mysql-8.0.32-linux-glibc2.12-x86_64.tar.xz
-    version: MySQL-8.0
+    version: MySQL-8.0-Community
     installation: true
     distribution_name: Community
     version_series: MySQL-8.0-Community
@@ -430,6 +430,26 @@ mysql:
     distribution_name: DBM
     version_series: latest
     full_version: 0.82.15
+    os_type: "Linux"
+    os_version:
+- tdbctl:
+    buildPath: /install/mysql/mysql-5.7.20-linux-x86_64-tdbctl-2.4.12.tar.gz
+    name: mysql-5.7.20-linux-x86_64-tdbctl-2.4.12.tar.gz
+    version: latest
+    installation: true
+    distribution_name: TMySQL
+    version_series: latest
+    full_version: 5.7.20.2.4.12
+    os_type: "Linux"
+    os_version:
+- spider:
+    buildPath: /install/mysql/mariadb-10.3.7-linux-x86_64-tspider-3.7.12-gcs.tar.gz
+    name: mariadb-10.3.7-linux-x86_64-tspider-3.7.12-gcs.tar.gz
+    version: Spider-3
+    installation: true
+    distribution_name: TMySQL
+    version_series: Spider-3
+    full_version: 10.3.7.3.7.12
     os_type: "Linux"
     os_version:
 - exporter:
@@ -620,4 +640,15 @@ sqlserver:
     version_series: latest
     full_version: 26.5.20.0.0.1
     os_type: "Windows"
+    os_version:
+backupstm:
+- backup-client:
+    buildPath: /toolkit/backup_client.tar.gz
+    name: backup_client.tar.gz
+    version: 1.0.0
+    installation: true
+    distribution_name: DBM
+    version_series: latest
+    full_version: 1.0.0
+    os_type: "Linux"
     os_version:

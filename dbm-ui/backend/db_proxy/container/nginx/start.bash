@@ -11,7 +11,8 @@ curl -XPOST "$BK_DBM_URL/apis/proxypass/cloud/insert/" \
     "details": {
       "ip": "'"$DBM_NGINX_DOMAIN"'",
       "bk_host_id": 0,
-      "bk_cloud_id": 0
+      "bk_cloud_id": 0,
+      "dbm_port": 80
     }
   }'
 
@@ -20,7 +21,7 @@ tar xvf /data/install/nginx-portable.tgz -C $path;
 chmod -R 755 $path/nginx-portable/;
 mkdir -p $path/nginx-portable/conf/cluster_service/
 
-envsubst < /data/install/nginx-tpl.conf > /data/install/nginx.conf
+envsubst '${DBM_NGINX_DOMAIN} ${BK_DBM_URL}' < /data/install/nginx-tpl.conf > /data/install/nginx.conf
 mv /data/install/nginx.conf /data/install/crond.bash $path/nginx-portable/conf/
 
 # 注入测试location

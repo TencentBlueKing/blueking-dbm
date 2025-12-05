@@ -26,6 +26,7 @@ from backend.bk_dataview.grafana.views import SwitchOrgView
 from backend.components import BKMonitorV3Api, CCApi, ItsmApi, JobApi
 from backend.components.constants import SSL_KEY
 from backend.components.dbconfig.sync_dbconfig import sync_dbconfig
+from backend.components.mysql_backup.client import MysqlBackupApi
 from backend.configuration.constants import DBM_REPORT_INITIAL_VALUE, SystemSettingsEnum
 from backend.configuration.models.system import SystemSettings
 from backend.core.storages.constants import FileCredentialType, StorageType
@@ -407,6 +408,55 @@ class Services:
         return True
 
     @classmethod
+    def auto_create_backup_bucket(cls) -> bool:
+        """初始化 backup 服务使用的 BKRepo 桶配置"""
+
+        bucket_name = "dbm-backup-bkrepo"
+        try:
+            payload = {
+                "bucket_name": bucket_name,
+                "region": f"{settings.BKREPO_PROJECT}/{settings.BKREPO_BUCKET}",
+                "storage_type": "bkrepo",
+            }
+            check_bucket = MysqlBackupApi.check_bucket(params=payload)
+        except Exception as e:
+            logger.error("auto_create_backup_bucket check_bucket failed, %s", str(e))
+            return False
+
+        if check_bucket.get("exists"):
+            logger.info("backup_bucket is already exists, skip create bucket")
+            return True
+
+        try:
+            payload = {
+                "bucket_name": bucket_name,
+                "secret_id": settings.BKREPO_USERNAME,
+                "secret_key": settings.BKREPO_PASSWORD,
+                "region": f"{settings.BKREPO_PROJECT}/{settings.BKREPO_BUCKET}",
+                "bk_cloud_id": 0,
+                "bk_biz_id": -1,
+                "storage_type": "bkrepo",
+                "endpoint": settings.BKREPO_ENDPOINT_URL,
+            }
+            MysqlBackupApi.add_bucket(params=payload)
+            logger.info("auto_create_backup_bucket success, bucket_name=%s", bucket_name)
+            return True
+        except Exception as e:
+            logger.error("auto_create_backup_bucket add_bucket failed, %s", str(e))
+            return False
+
+    @classmethod
+    def auto_create_dbm_services(cls) -> bool:
+        """初始化 DBM 各个微服务"""
+        # 初始化ssl
+        cls.auto_create_ssl_service()
+        # 初始化备份桶
+        cls.auto_create_backup_bucket()
+        # 初始化dbconfig服务
+        cls.auto_sync_dbconfig()
+        return True
+
+    @classmethod
     def auto_create_bkjob_service(cls):
         """初始化文件源和凭证"""
 
@@ -446,7 +496,7 @@ class Services:
             logger.info("dbm生成iam模型异常: %s" % str(e))
 
     @classmethod
-    def auto_sync_dbconfig(cls, namespace, conf_type, conf_file, max_workers=1):
+    def auto_sync_dbconfig(cls, namespace=None, conf_type=None, conf_file=None, max_workers=1):
         """自动同步dbconfig"""
         try:
             sync_dbconfig(namespace=namespace, conf_type=conf_type, conf_file=conf_file, max_workers=max_workers)

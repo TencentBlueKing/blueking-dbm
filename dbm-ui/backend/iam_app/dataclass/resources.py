@@ -477,7 +477,7 @@ class AccountResourceMeta(ResourceMeta):
 
     def batch_create_instances(self, instance_ids: list, attr=None) -> List[Resource]:
         # 批量查询多个账号信息
-        accounts = DBPrivManagerApi.get_account(params={"ids": list(map(int, instance_ids))})["results"]
+        accounts = DBPrivManagerApi.get_account(params={"ids": list(map(int, instance_ids))})["results"] or []
         id__account = {item["id"]: item for item in accounts}
         # 批量创建实例
         resources: List[Resource] = [

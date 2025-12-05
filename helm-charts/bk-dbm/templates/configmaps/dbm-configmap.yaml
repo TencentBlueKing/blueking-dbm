@@ -33,6 +33,8 @@ data:
   DBA_APP_BK_BIZ_ID: "{{ .Values.dbm.envs.dbaAppBkBizId }}"
   CORS_ALLOWED_ORIGINS: "{{ .Values.dbm.envs.corsAllowedOrigins | default "" }}"
   WINDOW_SSH_PORT: "{{ .Values.dbm.envs.windowSSHPort | default 36000 }}"
+  # 云区域容器化
+  CLOUD_CONTAINER_ENABLE: "{{ .Values.global.cloudContainer }}"
   # REDIS
   REDIS_HOST: "{{ .Values.externalRedis.host }}"
   REDIS_PORT: "{{ .Values.externalRedis.port }}"
@@ -52,6 +54,7 @@ data:
   JOB_BLUEKING_BIZ_ID: "{{ .Values.bk.bluekingBizId }}"
   # 蓝鲸节点管理
   BK_NODEMAN_URL: "{{ .Values.bk.bkNodemanUrl}}"
+  BKNODEMAN_APIGW_DOMAIN: "{{ .Values.bk.bkNodemanApiUrl }}"
   # gcs/scr平台
   BK_SCR_URL: "{{ .Values.bk.bkScrUrl}}"
   SCR_APIGW_DOMAIN: "{{ .Values.bk.bkScrApigwDomain }}"
@@ -70,6 +73,7 @@ data:
   # 蓝鲸监控平台
   GRAFANA_URL: "{{ .Values.bk.grafanaUrl }}"
   BKMONITOR_URL: "{{ .Values.bk.bkMonitorUrl }}"
+  BKMONITORV3_APIGW_DOMAIN: "{{ .Values.bk.bkMonitorApiUrl }}"
   BKM_DBM_TOKEN: "{{ .Values.bk.bkmDbmToken }}"
   MYSQL_CROND_BEAT_PATH: "{{ .Values.bk.mysqlCrondBeatPath }}"
   MYSQL_CROND_AGENT_ADDRESS: "{{ .Values.bk.mysqlCrondAgentAddress }}"
@@ -102,4 +106,5 @@ data:
   STATS_DB_PORT: "{{ $dbmStatsDB.port }}"
   STATS_DB_USER: "{{ $dbmStatsDB.user }}"
   STATS_DB_PASSWORD: "{{ $dbmStatsDB.password }}"
-
+  # 反向上报
+  REVERSE_REPORT_KAFKA_OPTIONS: "{{ .Values.dbm.envs.reverseReportKafkaOptions }}"

@@ -35,6 +35,10 @@ logger = logging.getLogger("celery")
 def fill_cluster_service_nginx_conf():
     """填充集群额外服务的配置信息"""
 
+    # 容器化场景不走job下发
+    if env.CLOUD_CONTAINER_ENABLE:
+        return
+
     def _job_push_config_file(_cloud_id, _file_list, _nginx_list):
         # 如果当前nginx的机器agent异常，则抛出日志且不下发。避免阻塞job
         nginx_ip_list = [
