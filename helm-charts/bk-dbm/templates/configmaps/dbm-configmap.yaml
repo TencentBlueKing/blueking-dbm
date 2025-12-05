@@ -70,6 +70,7 @@ data:
   # 蓝鲸监控平台
   GRAFANA_URL: "{{ .Values.bk.grafanaUrl }}"
   BKMONITOR_URL: "{{ .Values.bk.bkMonitorUrl }}"
+  BKMONITORV3_APIGW_DOMAIN: "{{ .Values.bk.bkMonitorApiUrl }}"
   BKM_DBM_TOKEN: "{{ .Values.bk.bkmDbmToken }}"
   MYSQL_CROND_BEAT_PATH: "{{ .Values.bk.mysqlCrondBeatPath }}"
   MYSQL_CROND_AGENT_ADDRESS: "{{ .Values.bk.mysqlCrondAgentAddress }}"
@@ -102,4 +103,4 @@ data:
   STATS_DB_PORT: "{{ $dbmStatsDB.port }}"
   STATS_DB_USER: "{{ $dbmStatsDB.user }}"
   STATS_DB_PASSWORD: "{{ $dbmStatsDB.password }}"
-
+  REVERSE_REPORT_KAFKA_OPTIONS: "{{ .Values.dbm.envs.reverseReportKafkaOptions }}"

@@ -177,6 +177,16 @@ mysql:
     name: mysql-proxy-0.82.15.tar.gz
     version: latest
     installation: true
+- tdbctl:
+    buildPath: /install/mysql/mysql-5.7.20-linux-x86_64-tdbctl-2.4.12.tar.gz
+    name: mysql-5.7.20-linux-x86_64-tdbctl-2.4.12.tar.gz
+    version: latest
+    installation: true
+- spider:
+    buildPath: /install/mysql/mariadb-10.3.7-linux-x86_64-tspider-3.7.12-gcs.tar.gz
+    name: mariadb-10.3.7-linux-x86_64-tspider-3.7.12-gcs.tar.gz
+    version: Spider-3
+    installation: true
 - exporter:
     buildPath: /install/mysql/dbm_tbinlogdumper_exporter.tgz
     name: dbm_tbinlogdumper_exporter.tgz
@@ -276,3 +286,8 @@ sqlserver:
     commitId: 5ef190b024c7b5fe0862eb10c029cd7041056650
     name: dbactuator.exe
     version: 1.0.1
+backupstm:
+- backup-client:
+    buildPath: /toolkit/backup_client.tar.gz
+    name: backup_client.tar.gz
+    version: 1.0.0

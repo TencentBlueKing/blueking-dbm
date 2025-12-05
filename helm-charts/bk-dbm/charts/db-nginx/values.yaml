@@ -38,17 +38,11 @@ ingress:
   enabled: true
   className: ""
   annotations: {}
-    # kubernetes.io/ingress.class: db-nginx
-    # kubernetes.io/tls-acme: "true"
-  hosts:
-    - host: chart-example.local
-      paths:
-        - path: /
-          pathType: ImplementationSpecific
+  hostname: chart-example.local
+  paths:
+    - path: /
+      pathType: ImplementationSpecific
   tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious

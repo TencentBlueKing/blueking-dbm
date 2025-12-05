@@ -24,7 +24,7 @@ from backend.db_proxy.models import ClusterExtension, DBCloudProxy, DBExtension
 from backend.db_proxy.views.cloud.serializers import InsertDBExtensionSerializer
 from backend.db_proxy.views.serialiers import BaseProxyPassSerializer
 from backend.db_proxy.views.views import BaseProxyPassViewSet
-from backend.flow.consts import MySQLPrivComponent, UserName
+from backend.flow.consts import MySQLPrivComponent, SqlserverComponent, SqlserverUserName, UserName
 
 
 class CloudProxyPassViewSet(BaseProxyPassViewSet):
@@ -101,12 +101,15 @@ class CloudProxyPassViewSet(BaseProxyPassViewSet):
                 components=[
                     {"username": UserName.PROXY, "component": MySQLPrivComponent.PROXY},
                     {"username": UserName.OS_MYSQL, "component": MySQLPrivComponent.MYSQL},
+                    {"username": SqlserverUserName.MSSQL.value, "component": SqlserverComponent.SQLSERVER.value},
                 ]
             )
             output_info.update(
                 dbha_account=dbha_account,
                 proxy_password=dbha_password_map[UserName.PROXY][MySQLPrivComponent.PROXY],
                 mysql_os_password=dbha_password_map[UserName.OS_MYSQL][MySQLPrivComponent.MYSQL],
+                sqlserver_os_user=SqlserverUserName.MSSQL.value,
+                sqlserver_os_password=dbha_password_map[SqlserverUserName.MSSQL][SqlserverComponent.SQLSERVER],
                 bkm_dbm_report=bkm_dbm_report,
             )
 

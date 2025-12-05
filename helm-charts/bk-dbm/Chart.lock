@@ -67,7 +67,7 @@ dependencies:
   version: 0.1.0
 - name: db-nginx
   repository: file://charts/db-nginx
-  version: 0.1.0
+  version: 0.1.2
 - name: db-dbha
   repository: file://charts/db-dbha
   version: 0.1.0
