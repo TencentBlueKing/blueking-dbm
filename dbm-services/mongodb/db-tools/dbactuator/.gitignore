@@ -30,3 +30,5 @@ preci.port
 build.yml
 build/
 tests/dbactuator-test
+pkg/atomjobs/atommongodb/logs/*
+pkg/atomjobs/atommongodb/logs

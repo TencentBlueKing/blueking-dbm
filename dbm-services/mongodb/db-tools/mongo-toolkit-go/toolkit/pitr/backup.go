@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"context"
 	"dbm-services/common/go-pubpkg/mycmd"
-	"dbm-services/mongodb/db-tools/dbmon/pkg/consts"
+	dbmonconsts "dbm-services/mongodb/db-tools/dbmon/pkg/consts"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mymongo"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/util"
 	"fmt"
@@ -267,7 +267,7 @@ func DoBackupFull(connInfo *mymongo.MongoHost, backupType, dir string, zip bool,
 
 	if archive && zip {
 		exec2, err := mycmd.NewMyExec(
-			mycmd.New(MustFindBinPath("zstd", consts.GetDbTool("mongotools")), "-", "-o", archiveFile),
+			mycmd.New(dbmonconsts.MustFindBinPath("zstd", dbmonconsts.GetDbTool("mongotools")), "-", "-o", archiveFile),
 			cmdMaxTimeout, nil, os.DevNull, false)
 		if err != nil {
 			return nil, err
@@ -518,7 +518,7 @@ func DoBackupIncr(connInfo *mymongo.MongoHost, backupType, dir string, zip bool,
 	if archive {
 		// doCommand 会使用zstd压缩.
 		zstdCmd := mycmd.New(
-			MustFindBinPath("zstd", consts.GetDbTool("mongotools")), "--rm", path.Join(workdir, originFile))
+			dbmonconsts.MustFindBinPath("zstd", dbmonconsts.GetDbTool("mongotools")), "--rm", path.Join(workdir, originFile))
 		log.Infof("DoCommand %s workdir: %s", zstdCmd.GetCmdLine("", true), workdir)
 		o, err := zstdCmd.Run(cmdMaxTimeout)
 		if err != nil {
