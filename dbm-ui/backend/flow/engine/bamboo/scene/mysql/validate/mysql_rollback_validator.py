@@ -7,7 +7,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import json
 import logging
 import re
 
@@ -31,10 +30,6 @@ class TenDbHaRollbackFlowValidator(MysqlBaseValidator):
 
 class TenDbHaRollbackFlowValidatorBak(MysqlBaseValidator):
     def __call__(self):
-        logging.info("tendbCluster rollback flow validator xxxxxxxxxx")
-        logging.info(self.data)
-        logging.info("tendbCluster rollback flow validator zzzzzzzzzz")
-        print(json.dumps(self.data))
         error_msgs = []
         for index, info in enumerate(self.data["infos"]):
             # source_cluster_id = info["cluster_id"]
@@ -98,10 +93,6 @@ class TenDbClusterRollbackFlowValidatorBak(MysqlBaseValidator):
     """
 
     def __call__(self):
-        logging.info("tendbCluster rollback flow validator xxxxxxxxxx")
-        logging.info(self.data)
-        logging.info("tendbCluster rollback flow validator zzzzzzzzzz")
-        print(json.dumps(self.data))
         error_msgs = []
         for index, info in enumerate(self.data["infos"]):
             # source_cluster_id = info["cluster_id"]

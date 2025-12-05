@@ -100,7 +100,7 @@ def mysql_restore_data_sub_flow(
     )
 
     # 如果是TenDB Single类型，设置为增量备份
-    if cluster_model.cluster_type == ClusterType.TenDBSingle:
+    if cluster_model.cluster_type == ClusterType.TenDBSingle.value:
         if cluster.get("backup_method", None) is not None:
             backup_handler.is_full_backup = False
             backup_handler.backup_method = cluster["backup_method"]
