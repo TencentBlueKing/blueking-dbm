@@ -46,7 +46,24 @@ class RedisRollbackExerciseParamBuilder(builders.FlowParamBuilder):
     def format_ticket_data(self):
         super().format_ticket_data()
 
+
+class RedisRollbackExerciseResourceParamBuilder(BaseOperateResourceParamBuilder):
+    def format(self):
+        infos = self.ticket_data["infos"]
+        cluster_ids = [info["cluster_id"] for info in infos]
+        id__cluster = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
+        for info in infos:
+            cluster: Cluster = id__cluster[info["cluster_id"]]
+            info["resource_spec"]["redis"].update(
+                affinity=AffinityEnum.NONE.value, location_spec={"city": cluster.region, "sub_zone_ids": []}
+            )
+            info.update(bk_cloud_id=cluster.bk_cloud_id, bk_biz_id=self.ticket.bk_biz_id)
+
     def post_callback(self):
+        """
+        Set recycle_hosts after resource application but before inner flow starts.
+        This ensures recycle_hosts is available when ticket_status_trigger is called with SUCCEEDED.
+        """
         applied_hosts = []
         nodes = self.ticket_data.get("nodes", {})
 
@@ -69,19 +86,6 @@ class RedisRollbackExerciseParamBuilder(builders.FlowParamBuilder):
                 for status in TicketStatus.get_values()
             }
             self.ticket.save(update_fields=["details"])
-
-
-class RedisRollbackExerciseResourceParamBuilder(BaseOperateResourceParamBuilder):
-    def format(self):
-        infos = self.ticket_data["infos"]
-        cluster_ids = [info["cluster_id"] for info in infos]
-        id__cluster = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
-        for info in infos:
-            cluster: Cluster = id__cluster[info["cluster_id"]]
-            info["resource_spec"]["redis"].update(
-                affinity=AffinityEnum.NONE.value, location_spec={"city": cluster.region, "sub_zone_ids": []}
-            )
-            info.update(bk_cloud_id=cluster.bk_cloud_id, bk_biz_id=self.ticket.bk_biz_id)
 
 
 @builders.BuilderFactory.register(
