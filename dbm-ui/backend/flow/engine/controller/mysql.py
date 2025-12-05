@@ -84,6 +84,9 @@ from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_switch_validato
 from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_upgrade_validator import MySQLProxyUpgradeValidator
 from backend.flow.engine.bamboo.scene.mysql.validate.mysql_rollback_validator import TenDbHaRollbackFlowValidator
 from backend.flow.engine.bamboo.scene.mysql.validate.tendbha_upgrade_validator import TenDBHAUpgradeValidator
+from backend.flow.engine.bamboo.scene.mysql.validate.tendbsingle_migrate_validator import (
+    TendbSingleMigrateFlowValidator,
+)
 from backend.flow.engine.controller.base import BaseController
 from backend.flow.engine.validate.base_validate import validates_with
 
@@ -409,6 +412,7 @@ class MySQLController(BaseController):
         flow = MySQLMigrateClusterRemoteFlow(root_id=self.root_id, ticket_data=self.ticket_data)
         flow.migrate_cluster_flow()
 
+    @validates_with(TendbSingleMigrateFlowValidator)
     def mysql_migrate_single_scene(self):
         """
         主从成对迁移flow编排
@@ -481,6 +485,7 @@ class MySQLController(BaseController):
         flow = MySQLMasterFailOverFlow(root_id=self.root_id, data=self.ticket_data)
         flow.master_fail_over_flow()
 
+    @validates_with(TenDbHaRollbackFlowValidator)
     def mysql_rollback_data_cluster_scene(self):
         """
         数据定点回档

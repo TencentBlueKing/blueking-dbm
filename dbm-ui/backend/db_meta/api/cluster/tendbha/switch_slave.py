@@ -76,6 +76,7 @@ def switch_single(cluster_id: int, target_orphan_ip: str, source_orphan_ip: str,
     # target实例需要继承source实例的is_standby特性
     target_storage_obj.status = InstanceStatus.RUNNING.value
     target_storage_obj.phase = InstancePhase.ONLINE.value
+    target_storage_obj.is_stand_by = source_storage_obj.is_stand_by
     target_storage_obj.save()
     if source_storage_obj.ip_port != target_storage_obj.ip_port:
         cluster.storageinstance_set.remove(source_storage_obj)

@@ -44,6 +44,7 @@ class MysqlMigrateSingleDetailSerializer(MySQLBaseOperateDetailSerializer):
 
 class MysqlMigrateSingleParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_migrate_single_scene
+    validator = MySQLController.mysql_migrate_single_scene.validator
 
 
 class MysqlMigrateSingleResourceParamBuilder(BaseOperateResourceParamBuilder):

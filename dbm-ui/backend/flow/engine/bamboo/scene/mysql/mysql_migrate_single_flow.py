@@ -281,7 +281,11 @@ class MySQLMigrateSingleFlow(object):
                                 "bk_cloud_id": cluster_class.bk_cloud_id,
                             }
                         )
-                        if res[0]["error_msg"] or len(res[0]["cmd_results"][0]["table_data"]) == 0:
+                        if (
+                            res[0]["error_msg"]
+                            or res[0]["cmd_results"] is None
+                            or len(res[0]["cmd_results"][0]["table_data"]) == 0
+                        ):
                             raise Exception(_("查询 {} log_bin 参数失败".format(master_model.ip_port)))
                         if res[0]["cmd_results"][0]["table_data"][0]["Value"] == "OFF":
                             raise Exception(
