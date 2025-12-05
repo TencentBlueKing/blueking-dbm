@@ -19,13 +19,13 @@
       v-model="formData.orphan_restore_type"
       @change="handleChange">
       <BkRadio label="replicate_with_data">
-        {{ t('包含数据+主从同步') }}
+        {{ t('包含数据+实时同步') }}
       </BkRadio>
       <BkRadio label="replicate_with_struct">
-        {{ t('仅表结构+主从同步') }}
+        {{ t('仅表结构+实时同步') }}
       </BkRadio>
       <BkRadio label="restore_from_flow_backup">
-        {{ t('仅表结构') }}
+        {{ t('仅表结构(本地实时导出)') }}
       </BkRadio>
     </BkRadioGroup>
   </BkFormItem>
@@ -151,7 +151,7 @@
   });
 
   const formData = reactive({
-    backup_source: BackupSourceType.LOCAL,
+    backup_source: BackupSourceType.REMOTE,
     orphan_restore_type: 'replicate_with_data',
     payload: createTickePayload(),
     tableData: [createTableRow()],

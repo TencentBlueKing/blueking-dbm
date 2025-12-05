@@ -13,13 +13,13 @@
 
 <template>
   <InfoList>
-    <InfoItem :label="t('变更方式')">
+    <InfoItem :label="t('迁移方式')">
       {{ t('整机迁移') }}
     </InfoItem>
-    <InfoItem :label="t('迁移方式')">
+    <InfoItem :label="t('迁移内容')">
       {{ restoreTypeMap[ticketDetails.details.orphan_restore_type] }}
     </InfoItem>
-    <InfoList>
+    <InfoList v-if="ticketDetails.details.orphan_restore_type !== 'restore_from_flow_backup'">
       <InfoItem :label="t('备份源')">
         {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
       </InfoItem>
@@ -104,8 +104,8 @@
   const { t } = useI18n();
 
   const restoreTypeMap: Record<string, string> = {
-    replicate_with_data: t('包含数据+主从同步'),
-    replicate_with_struct: t('仅表结构+主从同步'),
-    restore_from_flow_backup: t('仅表结构'),
+    replicate_with_data: t('包含数据+实时同步'),
+    replicate_with_struct: t('仅表结构+实时同步'),
+    restore_from_flow_backup: t('仅表结构(本地实时导出)'),
   };
 </script>

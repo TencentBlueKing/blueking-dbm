@@ -13,8 +13,8 @@
 
 <template>
   <InfoList>
-    <InfoItem :label="t('变更方式')">
-      {{ t('故障替换') }}
+    <InfoItem :label="t('迁移方式')">
+      {{ t('故障迁移') }}
     </InfoItem>
     <InfoItem :label="t('新机所需数据')">
       {{ restoreTypeMap[ticketDetails.details.orphan_restore_type] }}
@@ -100,6 +100,6 @@
 
   const restoreTypeMap: Record<string, string> = {
     restore_with_data: t('包含数据'),
-    restore_with_struct: t('仅表结构'),
+    restore_with_struct: t('仅表结构(最近1次远程备份)'),
   };
 </script>
