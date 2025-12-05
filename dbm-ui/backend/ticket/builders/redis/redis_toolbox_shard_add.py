@@ -33,6 +33,7 @@ class RedisShardAddDetailSerializer(RedisBaseOperateDetailSerializer):
         future_capacity = serializers.FloatField(help_text=_("未来容量需求"))
         update_mode = serializers.CharField(help_text=_("容量变更类型"), required=False)
         resource_spec = serializers.JSONField(help_text=_("资源申请"))
+        row_key = serializers.CharField(help_text=_("唯一值"), required=False)
 
     ip_source = serializers.ChoiceField(
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL
