@@ -530,3 +530,35 @@ ES_DOMAIN_CHECK_DATA = {
         {"name": "type", "display_name": "类型", "format": "text"},
     ],
 }
+
+# redis exporter检查报告
+REDIS_EXPORTER_CHECK_DATA = {
+    "count": 1,
+    "next": None,
+    "previous": None,
+    "results": [
+        {
+            "bk_biz_id": 3,
+            "cluster": "aa.bb.cc",
+            "cluster_type": "TendisRedTisInstance",
+            "shard": "aa",
+            "instance": "-",
+            "subtype": "redis_exporter",
+            "state": "normal",
+            "msg": "ok",
+            "create_at": "2024-04-01T01:00:00Z",
+            "failed_days": 0,
+        }
+    ],
+    "name": "mongodb备份检查",
+    "title": [
+        {"name": "bk_biz_id", "display_name": "业务", "format": "text"},
+        {"name": "cluster", "display_name": "集群域名", "format": "text"},
+        {"name": "cluster_type", "display_name": "集群类型", "format": "text"},
+        {"name": "shard", "display_name": "节点类型", "format": "text"},
+        {"name": "instance", "display_name": "实例节点", "format": "text"},
+        {"name": "subtype", "display_name": "检查子类型", "format": "text"},
+        {"name": "state", "display_name": "检查状态", "format": "text"},
+        {"name": "msg", "display_name": "详情", "format": "text"},
+    ],
+}

@@ -1,0 +1,466 @@
+# -*- coding: utf-8 -*-
+"""
+TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+You may obtain a copy of the License at https://opensource.org/licenses/MIT
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+"""
+import copy
+import datetime
+import logging
+from collections import defaultdict
+from datetime import timedelta
+from backend.configuration.constants import DBType
+from django.db.models import Q
+from django.utils import timezone
+from backend import env
+from backend.components import BKMonitorV3Api
+from backend.db_meta.enums import ClusterType, InstanceStatus
+from backend.db_meta.models import Cluster
+from backend.db_periodic_task.local_tasks.db_meta.constants import UNIFY_QUERY_PARAMS
+from backend.db_periodic_task.local_tasks.redis_tasks.report_op import RedisCheckReportBatchOps, RedisClusterReport
+from backend.db_report.enums import ReportStateType
+from backend.db_report.enums.redis_sub_type import RedisExporterCheckSubType
+from backend.db_meta.api.cluster.nosqlcomm.redis_cluster_repo import DbmClusterRepository
+
+logger = logging.getLogger("root")
+
+
+def check_one_cluster(cluster_domain: str, print_result: bool = False) -> list:
+    """
+    检查一个集群, 返回检查结果,用于shell发起检查
+    """
+    report_day = int(timezone.now().date().strftime("%Y%m%d"))
+    cluster = Cluster.objects.get(immute_domain=cluster_domain)
+    checker = CheckRedisUpMetricTask()
+    rows = checker.check_cluster(cluster, report_day)
+    if print_result:
+        print(f"check_one_cluster {cluster_domain} result:")
+        for row in rows:
+            # print all fields of row
+            for key, value in vars(row).items():
+                print(f"{key}: {value}")
+            print("-" * 100)
+    return rows
+
+
+class CheckRedisUpMetricTask:
+    """检查redis_exporter的up指标, 每个节点的redis_exporter的up指标值为1, 否则认为异常"""
+
+    check_type: str
+
+    def __init__(self):
+        self.check_type = RedisExporterCheckSubType.Exporter.value
+
+    def start(self, report_day: int = None, batch_size: int = 20):
+        """
+        redis cluster：
+        1, list all cluster
+        2, filter failed, write to db
+        """
+        if report_day is None:
+            report_day = int(timezone.now().date().strftime("%Y%m%d"))
+        record_batch_ops = RedisCheckReportBatchOps(self.check_type, report_day)
+        deleted_count = record_batch_ops.delete_old_record(360)
+        logger.info(
+            f"CheckRedisUpMetricTask report_day: {report_day} "
+            f"sub_type: {self.check_type} "
+            f"deleted_count: {deleted_count}"
+        )
+        deleted_count = record_batch_ops.delete_today_record()
+        logger.info(
+            f"CheckRedisUpMetricTask report_day: {report_day} "
+            f"sub_type: {self.check_type} "
+            f"deleted_count: {deleted_count}"
+        )
+        redis_cluster_types = ClusterType.db_type_to_cluster_types(DBType.Redis.value)
+        # 构建查询条件: 集群创建时间大于1小时
+        query = Q(cluster_type__in=redis_cluster_types) & Q(create_at__lt=timezone.now() - timedelta(hours=1))
+        cluster_list = Cluster.objects.filter(query).prefetch_related("tags")
+
+        # app_total 统计每个状态的集群数量
+        app_total = {
+            ReportStateType.NORMAL.value: 0,
+            ReportStateType.WARNING.value: 0,
+            ReportStateType.ABNORMAL.value: 0,
+        }
+
+        for i in range(0, len(cluster_list), batch_size):
+            for cluster in cluster_list[i : i + batch_size]:
+                rows = self.check_cluster(cluster, report_day)
+                app_total[rows[0].state] += 1
+                for record in rows:
+                    record_batch_ops.append(record)
+            record_batch_ops.bulk_create()
+        logger.info(
+            f"CheckRedisUpMetricTask report_day: {report_day} "
+            f"sub_type: {self.check_type} "
+            f"app_total: {app_total}"
+        )
+
+    def is_skip_check(self, cluster: Cluster) -> tuple[bool, str]:
+        """
+        检查集群的tags是否为skip_check=true
+        如果为true，则返回True, "skipped by skip_check:true"
+        如果为false，则返回False, ""
+        """
+        tags = {tag.key: tag.value for tag in cluster.tags.all()} if cluster.tags else {}
+        v = tags.get("temporary", "")
+        if v in ["true", "yes", "True", "Yes", "1"]:
+            return True, "skipped by temporary:{}".format(v)
+        return False, ""
+
+    def check_cluster(self, cluster: Cluster, report_day: int):
+        """
+        1. 获得所有的redis_up metric.
+        2. 对比bk_target_ip, instance_port 是否一致
+        3. 异常情况:
+        - down               # exporter down. should not happen.
+        - duplicate          # 重复的节点. 本集群的节点上报了相同的指标
+        - redundant          # 多余的节点. 存在集群外的节点上报本集群的指标
+        - redundant2         # 多余的metric. 本集群的节点上报了其他集群的指标
+        """
+        cluster_report = RedisClusterReport(cluster, report_day, self.check_type)
+
+        # 检查是否跳过检查
+        skipped, reason = self.is_skip_check(cluster)
+        if skipped:
+            return cluster_report.make_skip_record(reason)
+
+        all_node = get_all_storage_nodes(cluster)
+        # meta里没有storage节点，跳过检查，这种情况也属于异常，但不在这个报告的范围内，所以直接跳过
+        if len(all_node) == 0:
+            return cluster_report.make_skip_record("skipped by no storage node")
+
+        # 如果所有的node都为异常，则认为集群异常, 跳过检查
+        all_node_status = [node.get("status") for node in all_node]
+        if all(node_status != InstanceStatus.RUNNING.value for node_status in all_node_status):
+            return cluster_report.make_skip_record("skipped by no running node")
+
+        self.check_storage(cluster, all_node, cluster_report)
+        self.check_proxy(cluster, cluster_report)
+        return cluster_report.make_records()
+
+    def check_storage(self, cluster: Cluster, all_node: list, cluster_report: RedisClusterReport):
+        """
+        检查storage
+        """
+
+        metric_val = fetch_metric_by_cluster(cluster.immute_domain)
+        msg_list = defaultdict(list)
+        for node in all_node:
+            msg = "ok"
+            addr = "{}:{}".format(node["ip"], node["port"])
+            item = metric_val.get(addr)
+            if item is None or item["value"] == 0:  # metric not found or exporter down. should not happen.
+                if node["status"] == InstanceStatus.RUNNING.value:
+                    msg = "redis_exporter_down"
+                    state = ReportStateType.ABNORMAL.value
+                else:
+                    pass
+                    # 其它状态下，没有上报是正常的，不处理
+            elif item["value"] > 1:  # duplicate
+                msg = "redis_exporter_duplicate"
+                state = ReportStateType.ABNORMAL.value
+            else:
+                msg = "ok"
+                state = ReportStateType.NORMAL.value
+            msg_list[msg].append(node)
+
+        # 多余的节点. 存在集群外的节点上报本集群的指标
+        all_node_addr_list = set(["{}:{}".format(node["ip"], node["port"]) for node in all_node])  # 去重
+        redundant_node_list = []
+        for addr, val in metric_val.items():
+            if addr not in all_node_addr_list:
+                ip, port = addr.split(":")
+                redundant_node_list.append({"ip": ip, "port": port})
+
+        if len(redundant_node_list) > 0:
+            msg = "redis_exporter_redundant"
+            msg_list[msg].extend(redundant_node_list)
+
+        # 如果集群类型不是TendisRedisInstance，则检查是否存在多余的metric
+        # 多余的metric. 本集群的节点上报了其他集群的指标
+        redundant2_addr_list = []
+        if cluster.cluster_type != ClusterType.TendisRedisInstance.value:
+            node_addr_map = {"{}:{}".format(node["ip"], node["port"]): node for node in all_node}
+            iplist = set([node["ip"] for node in all_node])
+            metric_val = fetch_metric_by_iplist(list(iplist))
+            for addr, val in metric_val.items():
+                if addr not in node_addr_map:
+                    ip, port = addr.split(":")
+                    redundant2_addr_list.append({"ip": ip, "port": port})
+        if len(redundant2_addr_list) > 0:
+            msg = "redis_exporter_redundant2"
+            msg_list[msg].extend(redundant2_addr_list)
+
+        # 生成报告记录
+        for msg, node_list in msg_list.items():
+            if msg == "ok":
+                continue
+            state = ReportStateType.ABNORMAL.value
+            full_msg = f"{msg}: " + ",".join(_short_addr_list(node_list))
+            cluster_report.append(state, "storage", "-", full_msg)
+
+    def check_proxy(self, cluster: Cluster, cluster_report: RedisClusterReport):
+        """
+        检查proxy
+        1. 获得所有的proxy_up metric.
+        2. 对比bk_target_ip, instance_port 是否一致
+        3. 异常情况:
+        - down               # exporter down. should not happen.
+        - duplicate          # 重复的proxy节点. 本集群的proxy节点上报了相同的指标
+        - redundant          # 多余的proxy节点. 存在集群外的proxy节点上报本集群的指标
+        - redundant2         # 多余的metric. 本集群的proxy节点上报了其他集群的指标
+        """
+        proxy_type = get_proxy_type(cluster)
+        if proxy_type == "":
+            return
+
+        # check for proxy node
+        proxy_node_list = get_all_proxy_nodes(cluster)
+        proxy_metric_val = fetch_proxy_metric_by_cluster(cluster)
+        proxy_msg_list = defaultdict(list)
+        for proxy_node in proxy_node_list:
+            addr = "{}:{}".format(proxy_node["ip"], proxy_node["port"])
+            item = proxy_metric_val.get(addr)
+            if item is None or item["value"] == 0:
+                if proxy_node.get("status") == InstanceStatus.RUNNING.value:
+                    msg = f"{proxy_type}_exporter_down"
+                    state = ReportStateType.ABNORMAL.value
+                else:
+                    pass
+                    # 其它状态下，没有上报是正常的，不处理
+            elif item["value"] > 1:  # duplicate
+                msg = f"{proxy_type}_exporter_duplicate"
+                state = ReportStateType.ABNORMAL.value
+            else:
+                msg = "ok"
+                state = ReportStateType.NORMAL.value
+            proxy_msg_list[msg].append(proxy_node)
+
+        # 多余的proxy节点. 存在集群外的proxy节点上报本集群的指标
+        all_proxy_node_addr_list = set(
+            ["{}:{}".format(proxy_node["ip"], proxy_node["port"]) for proxy_node in proxy_node_list]
+        )  # 去重
+        redundant_proxy_node_list = []
+        for addr, val in proxy_metric_val.items():
+            if addr not in all_proxy_node_addr_list:
+                ip, port = addr.split(":")
+                redundant_proxy_node_list.append({"ip": ip, "port": port})
+
+        # 多余的metric. 本集群的proxy节点上报了其他集群的指标
+        # proxy节点：同一个ip只会属于同一个集群的proxy
+        redundant2_proxy_node_list = []
+        proxy_node_addr_map = {
+            "{}:{}".format(proxy_node["ip"], proxy_node["port"]): proxy_node for proxy_node in proxy_node_list
+        }
+        proxy_iplist = set([proxy_node["ip"] for proxy_node in proxy_node_list])
+        proxy_metric_val = fetch_proxy_metric_by_iplist(cluster.cluster_type, list(proxy_iplist))
+        # 多余的metric. 本集群的proxy节点上报了其他集群的指标
+        for addr, val in proxy_metric_val.items():
+            if addr not in proxy_node_addr_map:
+                ip, port = addr.split(":")
+                redundant2_proxy_node_list.append({"ip": ip, "port": port})
+        if len(redundant2_proxy_node_list) > 0:
+            msg = f"{proxy_type}_exporter_redundant2"
+            proxy_msg_list[msg].append(redundant2_proxy_node_list)
+
+            # 生成报告记录
+        for msg, proxy_node_list in proxy_msg_list.items():
+            if msg == "ok":
+                continue
+            state = ReportStateType.ABNORMAL.value
+            full_msg = f"{msg}: " + ",".join(_short_addr_list(proxy_node_list))
+            cluster_report.append(state, proxy_type, "-", full_msg)
+        return
+
+
+def get_proxy_type(cluster: Cluster) -> str:
+    """
+    获取proxy类型
+    """
+    if "twemproxy" in cluster.cluster_type.lower():
+        return "twemproxy"
+    elif "predixy" in cluster.cluster_type.lower():
+        return "predixy"
+    else:
+        return ""
+
+
+def _short_addr_list(node_list: list) -> list:
+    """
+    将ip:port列表转换为ip列表
+    1. 只有一个端口时，使用ip:port
+    2. 有多个端口时，使用ip:[port1, port2, ...]
+    3. 有多个端口且连续时，使用ip:[port1-port2]
+    4. 有多个端口且不连续时，使用ip:[port1, port2, ...]
+    """
+    # sort node_list by ip, port
+    node_list.sort(key=lambda x: (x["ip"], int(x["port"])))
+    ip_port_map = {}
+    for node in node_list:
+        ip = node["ip"]
+        port = node["port"]
+        if ip not in ip_port_map:
+            ip_port_map[ip] = []
+        ip_port_map[ip].append(port)
+    short_addr_list = []
+    for ip, ports in ip_port_map.items():
+        if len(ports) == 1:
+            short_addr_list.append(ip + ":" + str(ports[0]))
+        elif len(ports) > 1:
+            # if ports are continuous, use ip:[port1-port2]
+            # if ports are not continuous, use ip:[port1, port2, ...]
+            start = ports[0]
+            end = start
+            for port in ports[1:]:
+                if port == end + 1:
+                    end = port
+                else:
+                    short_addr_list.append(ip + ":" + str(start) + "-" + str(end))
+                    start = port
+                    end = port
+            short_addr_list.append(ip + ":" + str(start) + "-" + str(end))
+    return short_addr_list
+
+
+def get_all_storage_nodes(cluster: Cluster) -> list:
+    """
+        获取所有节点的ip和端口信息
+        {
+        "bk_cloud_id": instance.machine.bk_cloud_id if instance.machine else None,
+        "machine_type": instance.machine.machine_type if instance.machine else None,
+        "id": instance.id,
+        "bk_biz_id": instance.bk_biz_id,
+        "bk_host_id": instance.machine.bk_host_id if instance.machine else None,
+        "ip": instance.machine.ip if instance.machine else None,
+        "port": instance.port,
+        "instance_role": instance.instance_role,
+        "seg_range": seg_range,  # shardName
+    }
+    """
+    return DbmClusterRepository.fetch_storage_list(cluster_id=cluster.id)
+
+
+def get_all_proxy_nodes(cluster: Cluster) -> list:
+    """
+    获取所有proxy节点的ip和端口信息
+    """
+    return DbmClusterRepository.fetch_proxy_list(bk_biz_id=cluster.bk_biz_id, cluster_id=cluster.id)
+
+
+def fetch_metric_by_iplist(iplist: list) -> dict:
+    """
+    查询ip列表的redis_up metric
+    return [] or None(error)
+    """
+    end_time = datetime.datetime.now(timezone.utc)
+    start_time = end_time - datetime.timedelta(minutes=5)
+    metrics_name = "bkmonitor:exporter_dbm_redis_exporter:redis_up"
+    iplist_str = "|".join(iplist)
+    promql = """count by (cluster_domain,instance,instance_role,instance_port,bk_target_ip)
+        ({metrics_name}{{bk_target_ip=~"{iplist_str}"}}
+        ) """.format(
+        metrics_name=metrics_name, iplist_str=iplist_str
+    )
+    return _instant_query_metric(start_time, end_time, promql)
+
+
+def fetch_metric_by_cluster(cluster_domain) -> dict:
+    """
+    查询集群的redis_up metric
+    return [] or None(error)
+    """
+    logger.info("fetch_metric_by_cluster cluster : {} ".format(cluster_domain))
+    end_time = datetime.datetime.now(timezone.utc)
+    start_time = end_time - datetime.timedelta(minutes=5)
+    metrics_name = "bkmonitor:exporter_dbm_redis_exporter:redis_up"
+    promql = """count by (cluster_domain,instance,instance_role,instance_port,bk_target_ip)
+        ({metrics_name}{{cluster_domain="{cluster_domain}"}}
+        ) """.format(
+        metrics_name=metrics_name, cluster_domain=cluster_domain
+    )
+    return _instant_query_metric(start_time, end_time, promql)
+
+
+def get_proxy_metrics_name(cluster_type: str) -> str:
+    """
+    获取proxy的metrics名称
+    """
+    if "twemproxy" in cluster_type.lower():
+        return "bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_up"
+    elif "predixy" in cluster_type.lower():
+        return "bkmonitor:exporter_dbm_predixy_exporter:predixy_up"
+    else:
+        return ""
+
+
+def fetch_proxy_metric_by_cluster(cluster: Cluster) -> dict:
+    """
+    查询集群的proxy_up metric
+    return [] or None(error)
+    """
+    metrics_name = get_proxy_metrics_name(cluster.cluster_type)
+    if metrics_name == "":
+        return {}
+    logger.info("fetch_proxy_metric_by_cluster cluster : {} ".format(cluster.immute_domain))
+    end_time = datetime.datetime.now(timezone.utc)
+    start_time = end_time - datetime.timedelta(minutes=5)
+    promql = """count by (cluster_domain,instance,instance_role,instance_port,bk_target_ip)
+        ({metrics_name}{{cluster_domain="{cluster_domain}"}})""".format(
+        metrics_name=metrics_name, cluster_domain=cluster.immute_domain
+    )
+    return _instant_query_metric(start_time, end_time, promql)
+
+
+def fetch_proxy_metric_by_iplist(cluster_type: str, iplist: list) -> dict:
+    """
+    查询ip列表的proxy_up metric
+    return [] or None(error)
+    """
+    metrics_name = get_proxy_metrics_name(cluster_type)
+    if metrics_name == "":
+        return {}
+    end_time = datetime.datetime.now(timezone.utc)
+    start_time = end_time - datetime.timedelta(minutes=5)
+    iplist_str = "|".join(iplist)
+    promql = """count by (cluster_domain,instance,instance_role,instance_port,bk_target_ip)
+        ({metrics_name}{{bk_target_ip=~"{iplist_str}"}}) """.format(
+        metrics_name=metrics_name, iplist_str=iplist_str
+    )
+    return _instant_query_metric(start_time, end_time, promql)
+
+
+# 封装查询metric的函数, return value by ip_port
+def _instant_query_metric(start_time: datetime.datetime, end_time: datetime.datetime, promql: str) -> dict:
+    """
+    查询metric
+    return value by ip_port or None(error)
+    """
+    params = copy.deepcopy(UNIFY_QUERY_PARAMS)
+    params["bk_biz_id"] = env.DBA_APP_BK_BIZ_ID
+    params["start_time"] = int(start_time.timestamp())
+    params["end_time"] = int(end_time.timestamp())
+    params["query_configs"][0]["promql"] = promql
+    metric_result = {}
+    try:
+        out = BKMonitorV3Api.unify_query(params, use_admin=True)
+        series = out["series"]
+    except Exception as e:
+        logger.error("query metric error: {}".format(e))
+        return None
+    for item in series:
+        ip_port = item["dimensions"]["bk_target_ip"] + ":" + str(item["dimensions"]["instance_port"])
+        metric_result[ip_port] = {
+            "instance": ip_port,
+            "instance_role": item["dimensions"]["instance_role"],
+            "instance_port": item["dimensions"]["instance_port"],
+            "bk_target_ip": item["dimensions"]["bk_target_ip"],
+            "cluster_domain": item["dimensions"]["cluster_domain"],
+            "value": item["datapoints"][0][0],
+        }
+    return metric_result

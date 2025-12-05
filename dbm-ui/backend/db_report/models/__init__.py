@@ -33,3 +33,4 @@ from .sqlserver_check_report import (
     SqlserverFullBackupInfoReport,
     SqlserverLogBackupInfoReport,
 )
+from .redis_check_report import RedisCheckReport
