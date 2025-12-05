@@ -36,6 +36,7 @@ class RedisShardReduceDetailSerializer(RedisBaseOperateDetailSerializer):
         future_capacity = serializers.FloatField(help_text=_("未来容量需求"))
         update_mode = serializers.CharField(help_text=_("容量变更类型"), required=False)
         old_nodes = serializers.JSONField(help_text=_("主机回收信息"), required=False)
+        row_key = serializers.CharField(help_text=_("唯一值"), required=False)
 
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
 
