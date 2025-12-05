@@ -108,3 +108,23 @@ func GetMongoDataDir(port string) string {
 	}
 	return dataDir
 }
+
+// MustFindBinPath 获取zstd的二进制文件路径
+func MustFindBinPath(bin string, pathList ...string) (binPath string) {
+	bin, err := FindBinPath(bin, pathList...)
+	if err != nil {
+		panic(err)
+	}
+	return bin
+}
+
+// FindBinPath 获取zstd的二进制文件路径
+func FindBinPath(bin string, pathList ...string) (binPath string, err error) {
+	for _, ex := range pathList {
+		bin = path.Join(ex, bin)
+		if _, err := os.Stat(bin); err == nil {
+			return bin, nil
+		}
+	}
+	return "", errors.Errorf("bin %s not found in pathList %v", bin, pathList)
+}

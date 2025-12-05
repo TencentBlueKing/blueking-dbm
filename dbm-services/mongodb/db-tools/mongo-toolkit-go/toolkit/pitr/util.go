@@ -1,15 +1,13 @@
 package pitr
 
 import (
-	"dbm-services/mongodb/db-tools/dbmon/pkg/consts"
+	dbmonconsts "dbm-services/mongodb/db-tools/dbmon/pkg/consts"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mymongo"
 	"fmt"
 	"os"
 	"os/exec"
-	"path"
 
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 )
 
 // FileExists https://stackoverflow.com/questions/12518876/how-to-check-if-a-file-exists-in-go
@@ -71,7 +69,7 @@ func GetMongoDumpBin(version *mymongo.MongoVersion) (bin string, err error) {
 		bin = fmt.Sprintf("mongodump.%s", MongoVersionV100) // 100.7
 	}
 
-	binPath, err := FindBinPath(bin, consts.GetDbTool("mongotools"))
+	binPath, err := dbmonconsts.FindBinPath(bin, dbmonconsts.GetDbTool("mongotools"))
 	if err != nil {
 		return "", err
 	}
@@ -104,29 +102,9 @@ func GetMongoRestoreBin(version *mymongo.MongoVersion) (bin string, err error) {
 		bin = fmt.Sprintf("mongorestore.%s", MongoVersionV100) // 100.7
 	}
 
-	binPath, err := FindBinPath(bin, consts.GetDbTool("mongotools"))
+	binPath, err := dbmonconsts.FindBinPath(bin, dbmonconsts.GetDbTool("mongotools"))
 	if err != nil {
 		return "", err
 	}
 	return binPath, nil
-}
-
-// MustFindBinPath 获取zstd的二进制文件路径
-func MustFindBinPath(bin string, pathList ...string) (binPath string) {
-	bin, err := FindBinPath(bin, pathList...)
-	if err != nil {
-		log.Fatalf("find bin %s failed, err: %v", bin, err)
-	}
-	return bin
-}
-
-// FindBinPath 获取zstd的二进制文件路径
-func FindBinPath(bin string, pathList ...string) (binPath string, err error) {
-	for _, ex := range pathList {
-		bin = path.Join(ex, bin)
-		if _, err := os.Stat(bin); err == nil {
-			return bin, nil
-		}
-	}
-	return "", errors.Errorf("bin %s not found in pathList %v", bin, pathList)
 }

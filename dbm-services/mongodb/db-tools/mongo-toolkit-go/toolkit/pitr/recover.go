@@ -3,7 +3,7 @@ package pitr
 import (
 	"bytes"
 	"dbm-services/common/go-pubpkg/mycmd"
-	"dbm-services/mongodb/db-tools/dbmon/pkg/consts"
+	dbmonconsts "dbm-services/mongodb/db-tools/dbmon/pkg/consts"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mymongo"
 	"fmt"
 	"os"
@@ -215,7 +215,7 @@ func DoMongoRestoreFULL(bin string, conn *mymongo.MongoHost, file *BackupFileNam
 		// zstdcat file.archive.zstd | mongorestore --archive=-
 
 		zstdcatExec, err = mycmd.NewMyExec(mycmd.New(
-			MustFindBinPath("zstd", consts.GetDbTool("mongotools")),
+			dbmonconsts.MustFindBinPath("zstd", dbmonconsts.GetDbTool("mongotools")),
 			"-dcf", file.FileName), 7*24*time.Hour, nil, os.DevNull, false)
 		if err != nil {
 			return "", errors.Wrap(err, "NewMyExec")
@@ -438,7 +438,7 @@ func DoMongoRestoreINCR(bin string, conn *mymongo.MongoHost, full *BackupFileNam
 }
 
 func ZstdCmd(args ...any) error {
-	zstdBin, err := FindBinPath("zstd", consts.GetDbTool("mongotools"))
+	zstdBin, err := dbmonconsts.FindBinPath("zstd", dbmonconsts.GetDbTool("mongotools"))
 	if err != nil {
 		return errors.Wrap(err, "GetDbToolsBin")
 	}

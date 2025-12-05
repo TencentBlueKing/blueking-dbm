@@ -56,6 +56,7 @@ class BackupSubTask(BaseSubTask):
             raise Exception(_("oplog为True时, 不支持partial备份"))
         bk_dbm_instance = MongoNodeWithLabel.from_node(node, rs, cluster)
         sudo_account = MongoUtil().get_mongodb_os_conf()["user"]
+        file_tag = payload["file_tag"]
         return {
             "set_trans_data_dataclass": CommonContext.__name__,
             "get_trans_data_ip_var": None,
@@ -75,6 +76,7 @@ class BackupSubTask(BaseSubTask):
                     "skipBackupSysDb": True,
                     "waitBackupSysTaskDone": True,
                     "backupType": "logical",
+                    "fileTag": file_tag,
                     "args": {"backupNode": "", "isPartial": is_partial, "oplog": oplog, "nsFilter": ns_filter},
                 },
             },

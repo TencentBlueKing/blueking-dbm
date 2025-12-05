@@ -67,22 +67,28 @@ func UploadFile(file, tag string) (task *TaskInfo, err error) {
 		if err == nil {
 			return
 		}
+		if errors.Is(err, ErrPreCheckFailed) {
+			return nil, err
+		}
 		log.Warnf("_uploadFileOnce failed, err: %v. sleep 60 seconds and try again (%d of %d)", err, i+1, maxRetryTimes)
 		time.Sleep(time.Second * 60)
 	}
 	return
 }
 
+var ErrPreCheckFailed = errors.New("precheck failed")
+
+// _uploadFileOnce 上传一个文件 重试3次 每次60秒超时.
 func _uploadFileOnce(file, tag string) (*TaskInfo, error) {
-	absPath, err := filepath.Abs(file)
+	absPath, _ := filepath.Abs(file)
 	if absPath == "" {
-		return nil, errors.Wrap(err, "filepath.Abs")
+		return nil, errors.Wrap(ErrPreCheckFailed, "filepath.Abs")
 	}
 	if !FileExists(file) {
-		return nil, fmt.Errorf("file %s not exists", file)
+		return nil, errors.Wrap(ErrPreCheckFailed, fmt.Sprintf("file %s not exists", file))
 	}
 	if !FileExists(BackupClient) {
-		return nil, fmt.Errorf("BackupClient %s is not exists", BackupClient)
+		return nil, errors.Wrap(ErrPreCheckFailed, fmt.Sprintf("backup_client %s not exists", BackupClient))
 	}
 	fileSize, _ := util.GetFileSize(absPath)
 	timeoutSecond := fileSize/1024/1024/100 + 180 // --with-md5 会计算md5. 每秒100M
@@ -107,14 +113,7 @@ func md5String(s string) string {
 }
 
 // LoadInfoFile 获得一个文件的备份系统信息
-func LoadInfoFile(fileFullPath string) (*TaskInfo, error) {
-	if fileFullPath == "" {
-		return nil, fmt.Errorf("empty file path")
-	}
-	taskInfoFile := getInfoFilePath(fileFullPath)
-	if !FileExists(taskInfoFile) {
-		return nil, fmt.Errorf("file %s not exists", taskInfoFile)
-	}
+func LoadTaskInfoFile(taskInfoFile string) (*TaskInfo, error) {
 	f, err := os.Open(taskInfoFile)
 	if err != nil {
 		return nil, err
@@ -125,6 +124,15 @@ func LoadInfoFile(fileFullPath string) (*TaskInfo, error) {
 		return nil, err
 	}
 	return &info, nil
+}
+
+// LoadInfoFile 获得一个文件的备份系统信息
+func LoadInfoFile(fileFullPath string) (*TaskInfo, error) {
+	if fileFullPath == "" {
+		return nil, fmt.Errorf("empty file path")
+	}
+	taskInfoFile := getInfoFilePath(fileFullPath)
+	return LoadTaskInfoFile(taskInfoFile)
 }
 
 func getInfoFilePath(fileFullPath string) string {
