@@ -99,10 +99,17 @@ class ListInstancesSerializer(InstanceAddressSerializer):
     cluster_id = serializers.CharField(help_text=_("集群ID"), required=False)
     cluster_type = serializers.CharField(required=False, help_text=_("集群类型"))
     ip = serializers.CharField(required=False)
+    id = serializers.CharField(required=False)
+    bk_sub_zone = serializers.CharField(help_text=_("园区"), required=False)
+    bk_os_name = serializers.CharField(help_text=_("操作系统"), required=False)
+    cluster_name = serializers.CharField(help_text=_("集群名称"), required=False)
+    create_at__gte = serializers.DateTimeField(required=False, help_text=_("创建时间"))
+    create_at__lte = serializers.DateTimeField(required=False, help_text=_("创建时间"))
     region = serializers.CharField(help_text=_("区域"), required=False)
     name = serializers.CharField(help_text=_("名称"), required=False)
     version = serializers.CharField(help_text=_("版本"), required=False)
     extra = serializers.IntegerField(help_text=_("额外信息"), required=False)
+    ordering = serializers.CharField(help_text=_("排序字段"), required=False)
     # spider额外参数
     spider_ctl = serializers.BooleanField(help_text=_("中控节点"), required=False)
     # 额外过滤角色参数

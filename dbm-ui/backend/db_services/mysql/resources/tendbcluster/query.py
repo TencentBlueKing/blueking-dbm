@@ -305,11 +305,11 @@ class ListRetrieveResource(MysqlListRetrieveResource, TenDBClusterCommonQueryRes
                 .filter(query_filters & filter_spider_master)
             )
             # ⚠️这里的union不要用链式union(eg: s1.union(s2).union(s3))，否则django解析sql语句会生成额外的扩号导致mysql语法错误。
-            instances = remote_insts.union(spider_insts, controller_insts).values(*fields).order_by("-create_at")
+            instances = remote_insts.union(spider_insts, controller_insts).values(*fields)
         else:
-            instances = remote_insts.union(spider_insts).values(*fields).order_by("-create_at")
+            instances = remote_insts.union(spider_insts).values(*fields)
 
-        return instances
+        return instances.order_by(query_params.get("ordering", "-create_at"))
 
     @classmethod
     def _filter_instance_hook(cls, bk_biz_id, query_params, instances, **kwargs):
