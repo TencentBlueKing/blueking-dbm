@@ -364,8 +364,10 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource, MongoDBExportQuery
                 "cluster", "as_receiver__ejector__nosqlstoragesetdtl", "as_ejector__ejector__nosqlstoragesetdtl"
             )
             .filter(query_filters)
-            .values(*fields)
         )
+        if query_params.get("shard"):
+            return storage_instance.filter(shard__in=query_params["shard"].split(",")).distinct().values(*fields)
+        storage_instance = storage_instance.values(*fields)
         proxy_instance = (
             ProxyInstance.objects.annotate(role=F("access_layer"), shard=Value(""))
             .select_related("machine")
@@ -373,7 +375,7 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource, MongoDBExportQuery
             .filter(query_filters & Q(bind_entry__cluster_entry_type=ClusterEntryType.DNS.value))  # 过滤实例域名
             .values(*fields)
         )
-        return storage_instance.union(proxy_instance)
+        return storage_instance.union(proxy_instance).order_by(query_params.get("ordering", "-create_at"))
 
     @classmethod
     def _filter_instance_hook(cls, bk_biz_id, query_params, instances, **kwargs):
