@@ -29,24 +29,32 @@ import (
 	"context"
 	"fmt"
 
+	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
 type MetadataKey string
 
+var (
+	ErrSwitchPartialSuccess = gerrors.Newf(gerrors.Failure, "the switching achieved partial success")
+)
+
 // Request contains all data needed for database switching operation
 type Request struct {
-	MySqlInstData []*MySQLInstanceMetadata
+	MySqlInstData        []*MySQLInstanceMetadata
+	TendbClusterInstData []*TendbClusterInstanceMetadata
 }
 
+// AddDbInstMetadata TODO: Need to adapt to different types of DB instance data
 func (req *Request) AddDbInstMetadata(metadata *MySQLInstanceMetadata) {
 	req.MySqlInstData = append(req.MySqlInstData, metadata)
 }
 
 // Response contains the result of switching operation
 type Response struct {
-	MySqlFailureInsts map[MetadataKey]*MySQLInstanceMetadata
-	Err               error
+	MySqlFailureInsts        map[MetadataKey]*MySQLInstanceMetadata
+	TendbClusterFailureInsts map[MetadataKey]*TendbClusterInstanceMetadata
+	Err                      error
 }
 
 // Switcher defines the interface for database switching implementations
@@ -55,6 +63,7 @@ type Switcher interface {
 	Switch(ctx context.Context, req *Request) *Response
 }
 
+// GenerateMetadataKey generates a unique key for instance metadata
 func GenerateMetadataKey(bkCloudId int, ip string, port int) MetadataKey {
 	return MetadataKey(fmt.Sprintf("%d:%s:%d", bkCloudId, ip, port))
 }

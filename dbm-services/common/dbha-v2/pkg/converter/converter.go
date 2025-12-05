@@ -22,18 +22,25 @@
  * SOFTWARE.
  */
 
+// Package converter provides type conversion utilities for common data types.
+// It includes safe conversion functions for numbers, strings, and JSON serialization.
 package converter
 
 import (
+	"encoding/json"
+	"fmt"
 	"strconv"
 
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 )
 
+// Number defines supported numeric types for conversion functions.
+// It includes integer, unsigned integer, float, and string representations.
 type Number interface {
 	int | uint | int64 | uint64 | float64 | string
 }
 
+// ToInt converts a value to an integer.
 func ToInt[T Number](value T) (int, error) {
 	switch v := any(value).(type) {
 	case int:
@@ -53,6 +60,7 @@ func ToInt[T Number](value T) (int, error) {
 	}
 }
 
+// ToInt64 converts a value to an int64.
 func ToInt64[T Number](value T) (int64, error) {
 	switch v := any(value).(type) {
 	case int:
@@ -72,6 +80,7 @@ func ToInt64[T Number](value T) (int64, error) {
 	}
 }
 
+// ToUint64 converts a value to an uint64.
 func ToUint64[T Number](value T) (uint64, error) {
 	switch v := any(value).(type) {
 	case int:
@@ -91,6 +100,7 @@ func ToUint64[T Number](value T) (uint64, error) {
 	}
 }
 
+// ToFloat64 converts a value to an float64.
 func ToFloat64[T Number](value T) (float64, error) {
 	switch v := any(value).(type) {
 	case float32:
@@ -111,6 +121,7 @@ func ToFloat64[T Number](value T) (float64, error) {
 	}
 }
 
+// ToUint converts a value to an uint.
 func ToUint[T Number](value T) (uint, error) {
 	switch v := any(value).(type) {
 	case int:
@@ -134,6 +145,7 @@ func ToUint[T Number](value T) (uint, error) {
 	}
 }
 
+// To converts a value to the specified type.
 func To[T any](v interface{}) (T, error) {
 	if t, ok := v.(T); ok {
 		return t, nil
@@ -141,4 +153,33 @@ func To[T any](v interface{}) (T, error) {
 
 	var zero T
 	return zero, gerrors.Newf(gerrors.Failure, "can not convert %T to %T", v, zero)
+}
+
+// ToJsonStr converts any value to formatted JSON string with indentation
+func ToJsonStr(v interface{}) (string, error) {
+	data, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return "", gerrors.Newf(gerrors.InvalidParameter,
+			"failed to marshal data: %s", err.Error())
+	}
+	return string(data), nil
+}
+
+// ToJsonLine converts any value to compact single-line JSON string
+func ToJsonLine(v interface{}) (string, error) {
+	data, err := json.Marshal(v)
+	if err != nil {
+		return "", gerrors.Newf(gerrors.InvalidParameter,
+			"failed to marshal data: %s", err.Error())
+	}
+	return string(data), nil
+}
+
+// ToStrIgnoreErr safely converts any value to string, ignoring JSON marshaling errors.
+func ToStrIgnoreErr(v interface{}) string {
+	vStr, err := ToJsonLine(v)
+	if err != nil {
+		return fmt.Sprintf("%v", v)
+	}
+	return vStr
 }

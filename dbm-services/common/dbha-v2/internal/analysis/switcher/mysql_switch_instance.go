@@ -199,19 +199,21 @@ func NewMySQLSwitchInstance(metadata *MySQLInstanceMetadata) (SwitchableInstance
 			ClusterType:  metadata.ClusterType,
 			MachineType:  metadata.MachineType,
 			InstanceRole: metadata.InstanceRole,
-			dbmClient:    &dbm.Client{},
+			dbmClient:    &dbm.Client{BkCloudID: metadata.BkCloudID},
 		},
 		AdminPort:        metadata.AdminPort,
 		BindEntry:        metadata.BindEntry,
 		ProxyInstanceSet: metadata.ProxyInstanceSet,
 		BinlogDumperSet:  metadata.BinlogDumpers,
 	}
-	mysqlBaseInstance.SetStandbySlave(metadata.Receiver)
 
 	switch metadata.MachineType {
 	case haprobe.DbmMetadataMachineTypeBackend:
 		res := &MySQLStorageSwitchInstance{
 			MySQLBaseSwitchInstance: mysqlBaseInstance,
+		}
+		if metadata.InstanceRole == dbm.MySQLStorageMaster {
+			res.SetStandbySlave(metadata.Receiver)
 		}
 		return res, nil
 
@@ -796,6 +798,7 @@ func (sw *MySQLBaseSwitchInstance) ChangeMasterAuto(slaveIp string, slavePort in
 		"the actual synchronization position of the slave node(%s:%d) is: [binlog_file:%s, binlog_pos:%d]",
 		slaveIp, slavePort, slaveStatus.RelayMasterLogFile, slaveStatus.ExecMasterLogPos))
 
+	sw.ReportLogf(SwitchInfo, "Try to execute sql(%s) on node(%s:%d)", changeMasterSQL, slaveIp, slavePort)
 	err = slaveDB.DB().Exec(changeMasterSQL).Error
 	if err != nil {
 		return gerrors.Newf(gerrors.Failure, "failed to change master on node(%s:%d), errmsg: %s",
@@ -1068,4 +1071,13 @@ func (sw *MySQLProxySwitchInstance) DoSwitch() error {
 	sw.ReportLogf(SwitchInfo, "try to delete the proxy instance(%s:%d) from all bound entries",
 		sw.IP, sw.Port)
 	return sw.DeleteNameService(sw.BindEntry)
+}
+
+// GetInstanceInfo returns instance information as string
+func (sw *MySQLProxySwitchInstance) GetInstanceInfo() string {
+	infoStr := fmt.Sprintf("{bk_cloud_id:%d, ip:%s, port:%d, admin_port:%d, bk_idc_city_id:%d, "+
+		"bk_biz_id:%d, status:%s, cluster:%s, cluster_id:%d, cluster_type:%s, machine_type:%s, role:%s}",
+		sw.BkCloudID, sw.IP, sw.Port, sw.AdminPort, sw.BkIdcCityID, sw.BkBizID, sw.Status, sw.Cluster,
+		sw.ClusterID, sw.ClusterType, sw.MachineType, sw.InstanceRole)
+	return infoStr
 }
