@@ -241,44 +241,40 @@
     is_check_process: boolean;
   }>(TicketTypes.MYSQL_LOCAL_UPGRADE);
 
+  const getSortedClusterIds = (clusters: { id: number }[]) =>
+    _.sortBy(clusters, (cluster) => cluster.id)
+      .map((cluster) => cluster.id)
+      .join(',');
+
   const handleBatchEdit = async (list: TendbhaModel[]) => {
     // 查询关联集群
     const relatedClusters = await findRelatedClustersByClusterIds({
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_ids: list.map((item) => item.id),
     });
-    /**
-     * 关联集群映射到所属集群
-     * 关联集群A、B、C(三者相互关联), 均指向A(集群ID排在最前面的为A)
-     */
+
     const clusterMap = relatedClusters.reduce<Record<string, string>>((acc, item) => {
-      const [firstCluster] = _.sortBy([item.cluster_info, ...item.related_clusters], (cluster) => cluster.id);
       Object.assign(acc, {
-        [item.cluster_info.master_domain]: firstCluster.master_domain,
-      });
-      item.related_clusters.forEach((item) => {
-        Object.assign(acc, {
-          [item.master_domain]: firstCluster.master_domain,
-        });
+        [item.cluster_info.master_domain]: getSortedClusterIds([item.cluster_info, ...item.related_clusters]),
       });
       return acc;
     }, {});
 
-    const clusterMemo: Record<string, boolean> = {};
-    formData.tableData.forEach((item) => {
-      clusterMemo[item.cluster.master_domain] = true;
-    });
+    const clusterMemo = new Set(
+      formData.tableData.map((item) => getSortedClusterIds([item.cluster, ...item.cluster.related_clusters])),
+    );
 
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!clusterMemo[clusterMap[item.master_domain]]) {
+      const clusterKey = clusterMap[item.master_domain];
+      if (clusterKey && !clusterMemo.has(clusterKey)) {
         acc.push(
           createTableRow({
             cluster: {
-              master_domain: clusterMap[item.master_domain], // 实际是把集群A填入表格
+              master_domain: item.master_domain,
             },
           }),
         );
-        clusterMemo[clusterMap[item.master_domain]] = true;
+        clusterMemo.add(clusterKey);
       }
       return acc;
     }, []);
