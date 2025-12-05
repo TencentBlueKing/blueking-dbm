@@ -210,6 +210,7 @@
     const relatedClusters = await findRelatedClustersByClusterIds({
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_ids: list.map((item) => item.id),
+      role: 'proxy',
     });
 
     const clusterMap = relatedClusters.reduce<Record<string, string>>((acc, item) => {
