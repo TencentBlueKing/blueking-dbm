@@ -309,21 +309,46 @@ class DBBaseViewSet(viewsets.SystemViewSet):
             ]
 
         # 实例的部署角色
-        if "role" in data["instances_attrs"]:
+        if data["instances_attrs"]:
             query_filters = Q(bk_biz_id=data["bk_biz_id"], cluster_type__in=data["cluster_type"])
             # 获取proxy实例的查询集
-            proxy_roles = ProxyInstance.objects.filter(query_filters).values_list("access_layer", flat=True)
+            proxy_query = ProxyInstance.objects.filter(query_filters)
             # 获取storage实例的查询集
             storage_queryset = StorageInstance.objects.filter(query_filters)
-            # mysql的实例角色返回的是InstanceInnerRole 其他集群实例InstanceRole
-            if data["cluster_type"] in [ClusterType.TenDBSingle.value, ClusterType.TenDBHA.value]:
-                storage_roles = storage_queryset.values_list("instance_inner_role", flat=True)
-            else:
-                storage_roles = storage_queryset.values_list("instance_role", flat=True)
 
-            unique_roles = set(storage_roles) | (set(proxy_roles))
-            roles_dicts = [{"value": role, "text": role} for role in unique_roles]
-            cluster_attrs["role"] = roles_dicts
+            if "role" in data["instances_attrs"]:
+                # mysql的实例角色返回的是InstanceInnerRole 其他集群实例InstanceRole
+                if data["cluster_type"] in [ClusterType.TenDBSingle.value, ClusterType.TenDBHA.value]:
+                    storage_roles = storage_queryset.values_list("instance_inner_role", flat=True)
+                else:
+                    storage_roles = storage_queryset.values_list("instance_role", flat=True)
+                proxy_roles = proxy_query.values_list("access_layer", flat=True)
+
+                unique_roles = set(storage_roles) | (set(proxy_roles))
+                roles_dicts = [{"value": role, "text": role} for role in unique_roles]
+                cluster_attrs["role"] = roles_dicts
+
+            if "version" in data["instances_attrs"]:
+                proxy_versions = proxy_query.values_list("version", flat=True)
+                storage_versions = storage_queryset.values_list("version", flat=True)
+                versions = set(proxy_versions) | (set(storage_versions))
+                cluster_attrs["version"] = [
+                    {"value": version, "text": version if version else "--"} for version in versions
+                ]
+
+            if "bk_os_name" in data["instances_attrs"]:
+                proxy_os_names = proxy_query.values_list("machine__bk_os_name", flat=True)
+                storage_os_names = storage_queryset.values_list("machine__bk_os_name", flat=True)
+                os_names = set(proxy_os_names) | (set(storage_os_names))
+                cluster_attrs["bk_os_name"] = [
+                    {"value": os_name, "text": os_name if os_name else "--"} for os_name in os_names
+                ]
+
+            if "bk_sub_zone" in data["instances_attrs"]:
+                proxy_zones = proxy_query.values_list("machine__bk_sub_zone", flat=True)
+                storage_zones = storage_queryset.values_list("machine__bk_sub_zone", flat=True)
+                zones = set(proxy_zones) | (set(storage_zones))
+                cluster_attrs["bk_sub_zone"] = [{"value": zone, "text": zone if zone else "--"} for zone in zones]
 
         return Response(cluster_attrs)
 
@@ -337,7 +362,20 @@ class DBBaseViewSet(viewsets.SystemViewSet):
     @action(methods=["GET"], detail=False, serializer_class=QueryBizClusterAttrsSerializer)
     def query_biz_machine_attrs(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
-        machines = Machine.objects.filter(bk_biz_id=data["bk_biz_id"], cluster_type__in=data["cluster_type"])
+        if data.get("cluster_id"):
+            cluster = (
+                Cluster.objects.prefetch_related("storageinstance_set__machine", "proxyinstance_set__machine")
+                .filter(bk_biz_id=data["bk_biz_id"], id=data["cluster_id"])
+                .first()
+            )
+            storage_machines = [si.machine.bk_host_id for si in cluster.storageinstance_set.all() if si.machine]
+            proxy_machines = [pi.machine.bk_host_id for pi in cluster.proxyinstance_set.all() if pi.machine]
+
+            bk_host_ids = storage_machines + proxy_machines
+            machines = Machine.objects.filter(bk_host_id__in=bk_host_ids)
+
+        else:
+            machines = Machine.objects.filter(bk_biz_id=data["bk_biz_id"], cluster_type__in=data["cluster_type"])
         # 聚合每个属性字段
         machine_attrs: Dict[str, Union[List, Set]] = defaultdict(list)
         existing_values: Dict[str, Set[str]] = defaultdict(set)
@@ -357,7 +395,15 @@ class DBBaseViewSet(viewsets.SystemViewSet):
                     # 保留bk_cloud_id有等于0的情况
                     if value is not None and value not in existing_values[key]:
                         existing_values[key].add(value)
-                        machine_attrs[key].append({"value": value, "text": field__choice_map[key].get(value, value)})
+                        machine_attrs[key].append(
+                            {
+                                "value": value,
+                                "text": field__choice_map[key].get(value, value)
+                                if field__choice_map[key].get(value, value)
+                                or field__choice_map[key].get(value, value) == 0
+                                else "--",
+                            }
+                        )
 
             if instance_role_flag:
                 storage_roles = (

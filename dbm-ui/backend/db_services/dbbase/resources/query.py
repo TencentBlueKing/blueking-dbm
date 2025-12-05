@@ -819,6 +819,12 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
         # 定义内置的过滤参数map
         inner_filter_params_map = {
             "ip": Q(machine__ip__in=query_params.get("ip", "").split(",")),
+            "id": Q(id__in=query_params.get("id", "").split(",")),
+            "bk_sub_zone": Q(machine__bk_sub_zone__in=query_params.get("bk_sub_zone", "").split(",")),
+            "bk_os_name": Q(machine__bk_os_name__in=query_params.get("bk_os_name", "").split(",")),
+            "cluster_name": Q(cluster__name__in=query_params.get("cluster_name", "").split(",")),
+            "create_at__gte": Q(create_at__gte=query_params.get("create_at__gte", "")),
+            "create_at__lte": Q(create_at__lte=query_params.get("create_at__lte", "")),
             "port": Q(port__in=query_params.get("port", "").split(",")),
             "status": Q(status__in=query_params.get("status", "").split(",")),
             "cluster_id": Q(cluster__id=query_params.get("cluster_id")),
@@ -1035,7 +1041,7 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             ),
             "bk_city_id": Q(bk_city__bk_idc_city_id__in=query_params.get("bk_city_id", "").split(",")),
             # 操作系统
-            "bk_os_name": Q(bk_os_name=query_params.get("bk_os_name", "").split(",")),
+            "bk_os_name": Q(bk_os_name__in=query_params.get("bk_os_name", "").split(",")),
             "bk_cloud_id": Q(bk_cloud_id=query_params.get("bk_cloud_id")),
             "bk_agent_id": Q(bk_agent_id=query_params.get("bk_agent_id")),
             "cluster_type": Q(cluster_type=query_params.get("cluster_type")),
