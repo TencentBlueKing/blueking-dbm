@@ -44,7 +44,7 @@ class QSearchHandler(object):
             for db_type in self.db_types:
                 self.cluster_types.extend(ClusterType.db_type_to_cluster_types(db_type))
 
-        self.bk_biz_ids, self.permission = self.get_permission_biz_ids(bk_biz_ids)
+        self.bk_biz_ids, self.permission = self.get_permission_biz_ids(bk_biz_ids, self.filter_type)
 
     def search(self, keyword: str):
         result = {}
@@ -63,13 +63,15 @@ class QSearchHandler(object):
 
         return result
 
-    def get_permission_biz_ids(self, bk_biz_ids):
+    def get_permission_biz_ids(self, bk_biz_ids, filter_type):
         """获取有权限的业务id"""
         bk_biz_ids = bk_biz_ids or []
         all_bk_biz_ids = AppCache.objects.all().values_list("bk_biz_id", flat=True)
         permission = Permission(username=self.user, request={}).policy_query(
             action=ActionEnum.DB_MANAGE, obj_list=all_bk_biz_ids
         )
+        if filter_type == FilterType.EXACT.value:
+            return bk_biz_ids or all_bk_biz_ids, all_bk_biz_ids
         if len(permission) != len(all_bk_biz_ids):
             bk_biz_ids = (
                 list(set(bk_biz_ids) & set(permission)) if bk_biz_ids and permission else bk_biz_ids or permission
