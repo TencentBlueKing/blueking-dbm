@@ -120,7 +120,7 @@
               :db-type="DBTypes.REDIS"
               @verify-result="verifyResult" />
           </BkFormItem>
-          <BkFormItem
+          <!-- <BkFormItem
             v-if="!isAppend"
             :label="t('服务器选择')"
             property="details.ip_source"
@@ -133,15 +133,14 @@
                 label="resource_pool">
                 {{ t('自动从资源池匹配') }}
               </BkRadioButton>
-              <!-- 暂时去掉手动录入IP -->
-              <!-- <BkRadioButton
+              <BkRadioButton
                 v-for="item of Object.values(redisIpSources)"
                 :key="item.id"
                 :label="item.id">
                 {{ item.text }}
-              </BkRadioButton> -->
+              </BkRadioButton>
             </BkRadioGroup>
-          </BkFormItem>
+          </BkFormItem> -->
           <BkFormItem
             v-if="!isAppend"
             :label="t('后端存储规格')"

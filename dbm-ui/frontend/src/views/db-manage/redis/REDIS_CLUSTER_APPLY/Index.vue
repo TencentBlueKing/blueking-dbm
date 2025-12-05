@@ -95,7 +95,7 @@
               :db-type="DBTypes.REDIS"
               @verify-result="verifyResult" />
           </BkFormItem>
-          <BkFormItem
+          <!-- <BkFormItem
             :label="t('服务器选择')"
             property="details.ip_source"
             required>
@@ -103,20 +103,19 @@
               v-model="formData.details.ip_source"
               class="item-input"
               @change="fetchCapSpecs(formData.details.city_code)">
-              <!-- 暂时去掉手动录入IP -->
               <BkRadioButton
                 :key="redisIpSources.resource_pool.id"
                 :label="redisIpSources.resource_pool.id">
                 {{ redisIpSources.resource_pool.text }}
               </BkRadioButton>
-              <!-- <BkRadioButton
+              <BkRadioButton
                 v-for="item of Object.values(redisIpSources)"
                 :key="item.id"
                 :label="item.id">
                 {{ item.text }}
-              </BkRadioButton> -->
+              </BkRadioButton>
             </BkRadioGroup>
-          </BkFormItem>
+          </BkFormItem> -->
           <Transition
             mode="out-in"
             name="dbm-fade">
