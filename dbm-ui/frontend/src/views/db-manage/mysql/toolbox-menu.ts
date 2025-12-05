@@ -165,7 +165,7 @@ export default [
       {
         dbConsoleValue: 'mysql.toolbox.migrateSingle',
         id: TicketTypes.MYSQL_MIGRATE_SINGLE,
-        name: t('单节点变更'),
+        name: t('单节点迁移'),
         parentId: 'migrate',
       },
       {

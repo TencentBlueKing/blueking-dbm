@@ -22,7 +22,7 @@
         {{ t('包含数据') }}
       </BkRadio>
       <BkRadio label="restore_with_struct">
-        {{ t('仅表结构') }}
+        {{ t('仅表结构(最近1次远程备份)') }}
       </BkRadio>
     </BkRadioGroup>
   </BkFormItem>
@@ -107,6 +107,11 @@
       case: '192.168.10.2',
       key: 'ip',
       label: t('目标主机'),
+    },
+    {
+      case: '2核_4G_50G',
+      key: 'spec_name',
+      label: t('目标规格'),
     },
     {
       case: '标签1,标签2',
@@ -205,6 +210,7 @@
             ip: item.ip,
           },
           labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
+          specId: item.spec_name,
         }),
       );
       return acc;

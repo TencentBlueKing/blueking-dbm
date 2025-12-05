@@ -21,7 +21,7 @@
       class="toolbox-form mb-20"
       form-type="vertical">
       <BkFormItem
-        :label="t('变更方式')"
+        :label="t('迁移方式')"
         required>
         <div class="card-checkbox-block">
           <CardCheckbox
@@ -52,7 +52,7 @@
               t('应用场景：用于故障主机替换'),
             ]"
             icon="bk-dbm-icon db-icon-shengji"
-            :title="t('故障替换')"
+            :title="t('故障迁移')"
             true-value="failover" />
         </div>
       </BkFormItem>
