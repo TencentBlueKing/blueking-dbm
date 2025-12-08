@@ -48,6 +48,31 @@ func StopCmdRunE(cmd *cobra.Command, args []string) error {
 		Force:    ForceStop,
 	}
 
+	pid, err := process.ReadPid(opt.PidFile)
+	if err != nil {
+		if errors.Is(err, process.ErrPidFileNotExist) || errors.Is(err, process.ErrInvalidFile) {
+			_, printErr := fmt.Fprintf(cmd.OutOrStdout(), "%s is not running, nothing to stop\n", process.NameProbe)
+			if printErr != nil {
+				return printErr
+			}
+			return nil
+		}
+		return err
+	}
+
+	alive, err := process.IsAliveWithProcessName(pid, opt.ProcName)
+	if err != nil {
+		return err
+	}
+
+	if !alive {
+		_, printErr := fmt.Fprintf(cmd.OutOrStdout(), "%s is not running, nothing to stop\n", process.NameProbe)
+		if printErr != nil {
+			return printErr
+		}
+		return nil
+	}
+
 	if err := process.StopWithPidFile(opt); err != nil {
 		if errors.Is(err, process.ErrProcessNotRunning) {
 			_, printErr := fmt.Fprintf(cmd.OutOrStdout(), "%s is not running, nothing to stop\n", process.NameProbe)

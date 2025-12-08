@@ -25,6 +25,7 @@
 package process
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"os"
@@ -50,6 +51,7 @@ var (
 	ErrPidFileNotExist = gerrors.Newf(gerrors.NotExist, "the PID file is not exist")
 	ErrInvalidFile     = gerrors.Newf(gerrors.InvalidParameter, "the input filename is invalid")
 	ErrInvalidPid      = gerrors.Newf(gerrors.InvalidParameter, "the PID is invalid")
+	ErrInvalidProcName = gerrors.Newf(gerrors.InvalidParameter, "the process name is invalid")
 )
 
 // Name is used to obtain the process name.
@@ -138,13 +140,33 @@ func IsAlive(pid int32) (bool, error) {
 
 // IsAliveWithProcessName is used to check whether the process is running by the PID and name.
 func IsAliveWithProcessName(pid int32, name string) (bool, error) {
+	if pid <= 0 {
+		return false, ErrInvalidPid
+	}
+
+	if name == "" {
+		return false, ErrInvalidProcName
+	}
+
 	proc, err := process.NewProcess(pid)
 	if err != nil {
+		if errors.Is(err, process.ErrorProcessNotRunning) {
+			return false, nil
+		}
+		if errors.Is(err, process.ErrorNotPermitted) {
+			return false, gerrors.NewE(gerrors.Failure, err)
+		}
 		return false, gerrors.NewE(gerrors.Failure, err)
 	}
 
 	procName, err := proc.Name()
 	if err != nil {
+		if errors.Is(err, process.ErrorProcessNotRunning) {
+			return false, nil
+		}
+		if errors.Is(err, process.ErrorNotPermitted) {
+			return false, gerrors.NewE(gerrors.Failure, err)
+		}
 		return false, gerrors.Newf(gerrors.Failure,
 			"failed to obtain the proc name by the PID: %d, errmsg: %s", pid, err)
 	}
