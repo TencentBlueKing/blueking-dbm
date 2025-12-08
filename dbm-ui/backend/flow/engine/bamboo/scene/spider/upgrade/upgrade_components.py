@@ -7,6 +7,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 import copy
 from collections import defaultdict
 from dataclasses import asdict
@@ -455,7 +456,7 @@ def add_standardize_act(sub_pipeline, instances: List, root_id: str, ticket_data
             with_actuator=False,
             with_bk_plugin=False,
             with_collect_sysinfo=False,
-            with_cc_standardize=False,
+            with_cc_standardize=True,
             with_instance_standardize=False,
         )
     )

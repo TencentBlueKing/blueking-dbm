@@ -159,7 +159,7 @@ class TransferMySQLClusterToOtherBizFlow(object):
                 with_collect_sysinfo=False,
                 with_actuator=True,
                 with_bk_plugin=self.data.get("with_deploy_binary", True),
-                with_cc_standardize=self.data.get("with_cc_standardize", False),
+                with_cc_standardize=self.data.get("with_cc_standardize", True),
                 with_instance_standardize=self.data.get("with_instance_standardize", False),
                 with_backup_client=self.data.get("with_deploy_binary", True),
                 with_exporter_config=self.data.get("with_push_config", True),
