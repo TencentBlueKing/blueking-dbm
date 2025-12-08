@@ -25,6 +25,7 @@
 package process_test
 
 import (
+	"errors"
 	"os"
 	"testing"
 
@@ -83,4 +84,35 @@ func TestPid(t *testing.T) {
 	}
 
 	os.Remove(pidFile)
+}
+
+func TestIsAliveWithProcessName(t *testing.T) {
+	currentPid := int32(os.Getpid())
+
+	procName, err := process.Name(currentPid)
+	if err != nil {
+		t.Fatalf("failed to get current process name: %s", err)
+	}
+
+	_, err = process.IsAliveWithProcessName(0, "test")
+	if !errors.Is(err, process.ErrInvalidPid) {
+		t.Errorf("expected ErrInvalidPid for pid=0, got: %v", err)
+	}
+
+	_, err = process.IsAliveWithProcessName(currentPid, "")
+	if !errors.Is(err, process.ErrInvalidProcName) {
+		t.Errorf("expected ErrInvalidProcName for empty name, got: %v", err)
+	}
+
+	alive, err := process.IsAliveWithProcessName(99999999, "test")
+	if err != nil || alive {
+		t.Errorf("expected alive=false and no error for non-existent pid, got: alive=%v, err=%v", alive, err)
+	}
+
+	alive, err = process.IsAliveWithProcessName(currentPid, procName)
+	if err != nil || !alive {
+		t.Errorf("expected alive=true and no error for matching process, got: alive=%v, err=%v", alive, err)
+	}
+
+	t.Logf("TestIsAliveWithProcessName passed, current pid: %d, proc name: %s", currentPid, procName)
 }
