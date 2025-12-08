@@ -6,10 +6,14 @@ metadata:
     {{- include "tidb.labels" . | nindent 4 }}
 spec:
   releases:
+    - name: "8.5.2"
+      serviceVersion: "8.5.2"
+      images:
+        pd: {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.pd.repository }}:v8.5.2
     - name: "8.4.0"
       serviceVersion: "8.4.0"
       images:
-        pd: { { .Values.image.registry | default "docker.io" } }/{{ .Values.image.pd.repository }}:v8.4.0
+        pd: {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.pd.repository }}:v8.4.0
     - name: "7.5.2"
       serviceVersion: "7.5.2"
       images:
@@ -22,6 +26,7 @@ spec:
     - compDefs:
         - "pd-{{ .Chart.Version}}"
       releases:
+        - "8.5.2"
         - "8.4.0"
         - "7.1.5"
         - "7.5.2"

@@ -7,11 +7,13 @@ image:
   br:
     repository: apecloud/br
   pd:
-    repository: apecloud/pd
+    #repository: apecloud/pd
+    repository: pingcap/pd
   tidb:
     repository: apecloud/tidb
   tikv:
-    repository: apecloud/tikv
+    #repository: apecloud/tikv
+    repository: pingcap/tikv
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: "v7.1.5"
