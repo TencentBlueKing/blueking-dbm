@@ -38,7 +38,7 @@
           }">
           <BkTableColumn
             field="entry"
-            :label="t('访问入口（域名、CLB、北极星）')"
+            :label="t('访问入口')"
             :min-width="250">
             <template #default="{data: rowData}: {data: QuickSearchEntryModel}">
               <TextOverflowLayout>

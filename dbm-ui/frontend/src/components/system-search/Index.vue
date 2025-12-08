@@ -23,7 +23,8 @@
       v-model="serach"
       class="search-input"
       clearable
-      :placeholder="t('不清楚 DB 所属业务？试试全站搜索（支持域名 / IP 维度，回车直达结果页）')"
+      :placeholder="t('不清楚 DB 所属业务？试试全站搜索（支持域名 / IP，回车直达结果页）')"
+      :show-overflow-tooltips="false"
       :type="isFocused ? 'text' : 'search'"
       @enter="handleEnter"
       @focus="handleFocus"
