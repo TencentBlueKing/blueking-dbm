@@ -734,11 +734,6 @@ class MySQLController(BaseController):
         flow = MySQLDBHAAFRepairROSlaveReplicateFlow(root_id=self.root_id, data=self.ticket_data)
         flow.do_repair()
 
-    def dbha_autofix_schedule_scene(self):
-        pass
-        # flow = MySQLDBHAAFScheduleFlow(root_id=self.root_id, data=self.ticket_data)
-        # flow.schedule()
-
     def mysql_rename_database_scene(self):
         """
         tendbsingle 和 tendbha db 重命名

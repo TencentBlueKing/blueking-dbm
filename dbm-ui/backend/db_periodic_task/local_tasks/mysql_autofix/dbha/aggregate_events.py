@@ -11,9 +11,8 @@ specific language governing permissions and limitations under the License.
 __all__ = ["aggregate_events"]
 
 import json
+from collections import defaultdict
 from typing import Dict, List, Tuple
-
-from black.trans import defaultdict
 
 from backend.db_monitor.models import MySQLDBHAEvent
 

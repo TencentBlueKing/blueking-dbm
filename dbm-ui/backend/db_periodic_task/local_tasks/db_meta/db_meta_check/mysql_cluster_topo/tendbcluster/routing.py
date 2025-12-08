@@ -309,7 +309,10 @@ def _check_tdbctl_routing(c: Cluster, routing_data: List[dict]) -> List[CheckRes
     # 从元数据获取所有 spider master 节点，计算中控地址
     metadata_tdbctl_addresses = set()
     for spider_master in c.proxyinstance_set.filter(
-        tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
+        tendbclusterspiderext__spider_role__in=[
+            TenDBClusterSpiderRole.SPIDER_MASTER,
+            TenDBClusterSpiderRole.SPIDER_MNT,
+        ]
     ):
         tdbctl_address = f"{spider_master.machine.ip}{IP_PORT_DIVIDER}{spider_master.port + 1000}"
         metadata_tdbctl_addresses.add(tdbctl_address)
