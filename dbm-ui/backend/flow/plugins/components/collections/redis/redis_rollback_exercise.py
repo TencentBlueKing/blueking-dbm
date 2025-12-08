@@ -165,7 +165,7 @@ class RedisFlowPollingService(RedisLogCapturingService):
             case StateType.FAILED:
                 self.log_error(_("Flow {} failed").format(flow_id))
                 self._update_task_status(flow_type, self.FAILED)
-                return False
+                return flow_type == "rollback_flow_id"  # We don't allow delete failure
             case StateType.REVOKED:
                 self.log_error(_("Flow {} was cancelled or stopped with state: {}").format(flow_id, status))
                 self._update_task_status(flow_type, self.FAILED)
@@ -384,18 +384,13 @@ class RedisTempInstanceDeleteComponent(Component):
     bound_service = RedisTempInstanceDeleteService
 
 
-class RedisRollbackTaskCleanupService(RedisLogCapturingService):
+class RedisRollbackTaskCleanupService(BaseService):
     """
     Component to clean up task records after successful rollback exercise completion.
     """
 
-    def __execute(self, data, parent_data) -> bool:
+    def _execute(self, data, parent_data) -> bool:
         global_data = data.get_one_of_inputs("global_data")
-
-        # Check if error occurred in previous steps - skip cleanup on errors
-        if self.trans_data.error_occurred:
-            self.log_warning("Skipping task cleanup due to previous error - preserving records for debugging")
-            return True
 
         ticket_id = global_data.get("uid")
         if not ticket_id:
@@ -417,12 +412,6 @@ class RedisRollbackTaskCleanupService(RedisLogCapturingService):
         except Exception as e:
             self.log_error(_("Failed to clean up task records: {}").format(str(e)))
             return True
-
-    def _execute(self, data, parent_data) -> bool:
-        self.init_trans_data(data)
-        result = self.__execute(data, parent_data)
-        data.outputs["trans_data"] = self.trans_data
-        return result
 
 
 class RedisRollbackTaskCleanupComponent(Component):

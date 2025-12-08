@@ -82,6 +82,13 @@ class RedisRollbackExerciseFlow(object):
         sub_flows = self._build_sub_flows()
         pipeline.add_parallel_sub_pipeline(sub_flows)
 
+        # Clean up task records for this rollback exercise ticket to prevent accumulation
+        pipeline.add_act(
+            act_name=_("清理任务记录"),
+            act_component_code=RedisRollbackTaskCleanupComponent.code,
+            kwargs={},
+        )
+
         pipeline.run_pipeline(init_trans_data_class=RedisRollbackExerciseContext())
 
     def _build_sub_flows(self):
@@ -183,13 +190,6 @@ class RedisRollbackExerciseFlow(object):
                 act_name=_("15 分钟后解除主机 {} 告警屏蔽").format(resource_applied[0]["ip"]),
                 act_component_code=DisableAlarmShieldComponent.code,
                 kwargs={},
-            )
-
-            # Step 8: Clean up task records for this rollback exercise ticket to prevent accumulation
-            sub_flow.add_act(
-                act_name=_("清理任务记录"),
-                act_component_code=RedisRollbackTaskCleanupComponent.code,
-                kwargs=asdict(act_kwargs),
             )
 
             sub_flows.append(
