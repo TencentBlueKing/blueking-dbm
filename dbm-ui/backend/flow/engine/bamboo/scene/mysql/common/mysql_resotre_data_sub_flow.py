@@ -31,6 +31,8 @@ from backend.flow.engine.bamboo.scene.spider.common.exceptions import (
     TendbGetBackupInfoFailedException,
     TendbGetBinlogFailedException,
 )
+from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
+from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_check_slave_delay import MySQLCheckSlaveDelayComponent
 from backend.flow.plugins.components.collections.mysql.trans_files_for_context import TransFileFromBackupComponent
@@ -623,7 +625,18 @@ def tendbha_rollback_data_sub_flow(
     cluster_info["backup_id_for_restore"] = backup_id_for_restore
 
     sub_pipeline = SubBuilder(root_id=root_id, data=copy.deepcopy(cluster_info))
-
+    sub_pipeline.add_sub_pipeline(
+        sub_flow=mysql_restore_download_sub_flow(
+            root_id=root_id,
+            uid=uid,
+            bk_cloud_id=cluster_model.bk_cloud_id,
+            file_target_path=cluster_info["file_target_path"],
+            task_ids=task_ids,
+            dest_ips=[cluster_info["rollback_ip"]],
+            source_ip=download_source_ip,
+        )
+    )
+    alarm_shield = False
     if (
         cluster_model.cluster_type == ClusterType.TenDBHA
         and backup_info.get("backup_type", "") == MySQLBackupTypeEnum.PHYSICAL.value
@@ -642,18 +655,30 @@ def tendbha_rollback_data_sub_flow(
             ),
             write_payload_var="backup_index_file",
         )
-
-    sub_pipeline.add_sub_pipeline(
-        sub_flow=mysql_restore_download_sub_flow(
-            root_id=root_id,
-            uid=uid,
-            bk_cloud_id=cluster_model.bk_cloud_id,
-            file_target_path=cluster_info["file_target_path"],
-            task_ids=task_ids,
-            dest_ips=[cluster_info["rollback_ip"]],
-            source_ip=download_source_ip,
-        )
-    )
+        # 只在master节点屏蔽
+        master = cluster_model.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
+        if cluster_info["rollback_ip"] == master.machine.ip and cluster_info["rollback_port"] == master.port:
+            tendbha_proxys = cluster_model.proxyinstance_set.all()
+            if tendbha_proxys is not None and len(tendbha_proxys) > 0:
+                alarm_shield = True
+                sub_pipeline.add_act(
+                    act_name=_("使用物理备份恢复,屏蔽TendbHa proxy告警24小时"),
+                    act_component_code=AddAlarmShieldComponent.code,
+                    kwargs={
+                        "duration_seconds": 24 * 3600,
+                        "description": cluster_model.immute_domain,
+                        "dimensions": [
+                            {
+                                "name": "instance_host",
+                                "values": [proxy.machine.ip for proxy in tendbha_proxys],
+                            },
+                            {
+                                "name": "instance_port",
+                                "values": [tendbha_proxys[0].port],
+                            },
+                        ],
+                    },
+                )
 
     # 阶段3 恢复数据
     # 恢复数据完毕不自动 change master
@@ -697,6 +722,12 @@ def tendbha_rollback_data_sub_flow(
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(exec_act_kwargs_priv),
         )
+        if alarm_shield:
+            sub_pipeline.add_act(
+                act_name=DisableAlarmShieldComponent.node_name,
+                act_component_code=DisableAlarmShieldComponent.code,
+                kwargs={},
+            )
 
     # 阶段4 如果指定了时间，则前滚binlog
     if (
