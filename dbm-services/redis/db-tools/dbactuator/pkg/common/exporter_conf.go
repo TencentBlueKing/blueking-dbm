@@ -17,6 +17,10 @@ func getConfFileName(port int) string {
 	return filepath.Join(consts.ExporterConfDir, fmt.Sprintf("%d.conf", port))
 }
 
+func GetResrveAPIConfig() string {
+	return filepath.Join(consts.BkDbmonPath, consts.ReverseAPIConfigName)
+}
+
 // setExporterConfig 写入ExporterConfig文件
 // 目录固定:. consts.ExporterConfDir
 // 文件名称:. $port.conf

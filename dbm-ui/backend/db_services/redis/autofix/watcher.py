@@ -26,7 +26,7 @@ from backend.utils.time import datetime2timestamp
 
 from .const import SWITCH_MAX_WAIT_SECONDS, SWITCH_SMALL, RedisSwitchHost
 from .enums import AutofixItem, AutofixStatus, DBHASwitchResult
-from .global_msg import GetOrSaveSwitchWait
+from .global_msg import GetOrSaveSwitchWait, NeedStartAutofix
 from .message import send_msg_2_qywx
 from .models import RedisAutofixCore, RedisAutofixCtl, RedisIgnoreAutofix
 
@@ -116,11 +116,94 @@ def watcher_get_by_hosts() -> (int, dict):
     return batch_small_id, switch_hosts
 
 
+# 一但有IP 的所有实例完成切换, 那么就先对他发起自愈,没有的继续等
+def check_and_process(batch_small: int, switch_hosts: Dict):
+    """
+    1. 检查IP 是否所有实例完成切换
+    2. 检查30分钟内,是否已经发起过自愈
+    3. 完全切换 & 没有发起自愈的---> 送入自愈队列
+    4. 拿到需要等待的最小ID,等待进行下一次检查
+    """
+    succ_max_uid, wait_small_uid, ignore_max_uid, will_autofix = batch_small, 0, SWITCH_SMALL, {}
+    now_timestamp = datetime2timestamp(datetime.datetime.now(timezone.utc))
+    succ_cnt, wait_cnt, ignore_cnt = 0, 0, 0
+    for swiched_host in switch_hosts.values():
+        logger.info(
+            "range check_and_process succ_max_uid:{}, wait_small_uid:{}, ignore_max_uid:{} ==".format(
+                succ_max_uid, wait_small_uid, ignore_max_uid
+            )
+        )
+        if (  # 这个IP 已经全部切换
+            len(swiched_host.cluster_ports) == len(swiched_host.switch_ports)
+            and len(swiched_host.sw_result) == 1
+            and swiched_host.sw_result.get(DBHASwitchResult.SUCC.value)
+        ):
+            logger.info("machine all instance swithed success -_- {} {} ".format(swiched_host.ip, swiched_host))
+            succ_cnt += 1
+            # check if aleardy autofixed .
+            if NeedStartAutofix(swiched_host):
+                will_autofix[swiched_host.ip] = swiched_host
+                logger.info("autofix_will_start ip:{}".format(swiched_host.ip))
+            else:
+                logger.info("autofix_aleardy_started, this time will ignore :{}".format(swiched_host.ip))
+            # 推进下一批轮询ID
+            if succ_max_uid < swiched_host.sw_max_id:
+                succ_max_uid = swiched_host.sw_max_id
+        else:  # 没有切换完成的
+            waiter = GetOrSaveSwitchWait(swiched_host.ip, swiched_host.sw_result)
+            if (now_timestamp - float(waiter["start"])) > SWITCH_MAX_WAIT_SECONDS * 5:
+                # 等待切换超时
+                logger.info(
+                    "machine NOT all instance swithed ,{} {}  wait timeout entry time : {} {}".format(
+                        swiched_host.ip, swiched_host.switch_ports, waiter, swiched_host
+                    )
+                )
+                ignore_cnt += 1
+                swiched_host.ignore_fix = True
+                # save ignore swithed host
+                save_ignore_host(swiched_host, "wait_timeout")
+                if wait_small_uid < swiched_host.sw_max_id:  # 不等了，跳过去
+                    wait_small_uid = swiched_host.sw_max_id
+            else:
+                wait_cnt += 1
+                logger.info(
+                    "waiting switched_host:{} tobe all succ,min_id:{},max_id:{}".format(
+                        swiched_host.ip, swiched_host.sw_min_id, swiched_host.sw_max_id
+                    )
+                )
+
+    if succ_cnt == len(switch_hosts):
+        logger.info(
+            """all host switched all_completed, entry next foreach last_batch_small:{},current:{}""".format(
+                batch_small, succ_max_uid
+            )
+        )
+        batch_small = succ_max_uid
+    elif succ_cnt + ignore_cnt == len(switch_hosts):
+        logger.info(
+            """host will skiped, entry next foreach last_batch_small:{},current:{}""".format(
+                batch_small, wait_small_uid
+            )
+        )
+        batch_small = wait_small_uid
+    logger.info(
+        "finally switch: succ_cnt:{},wait_cnt:{},ignore_cnt:{},all_switch:{},batch_small==>{}".format(
+            succ_cnt, wait_cnt, ignore_cnt, len(switch_hosts), batch_small
+        )
+    )
+    return batch_small, will_autofix
+
+
 # 根据切换信息，获取下一次探测切换队列ID
 def get_4_next_watch_ID(batch_small: int, switch_hosts: Dict) -> int:
     succ_max_uid, wait_small_uid, ignore_max_uid = batch_small, 0, SWITCH_SMALL
     now_timestamp = datetime2timestamp(datetime.datetime.now(timezone.utc))
     for swiched_host in switch_hosts.values():
+        logger.info(
+            "range get_4_next_watch_ID succ_max_uid:{}, wait_small_uid:{}, ignore_max_uid:{} ==".format(
+                succ_max_uid, wait_small_uid, ignore_max_uid
+            )
+        )
         # 已经全部切换
         if (
             len(swiched_host.cluster_ports) == len(swiched_host.switch_ports)
@@ -146,6 +229,12 @@ def get_4_next_watch_ID(batch_small: int, switch_hosts: Dict) -> int:
         if waiter["counter"] == 1:
             if wait_small_uid <= swiched_host.sw_min_id:
                 wait_small_uid = swiched_host.sw_min_id
+            else:
+                logger.info(
+                    "current wait_small_uid:{}, switched_host:{},min_id:{},max_id:{}".format(
+                        wait_small_uid, swiched_host.ip, swiched_host.sw_min_id, swiched_host.sw_max_id
+                    )
+                )
         elif (now_timestamp - float(waiter["start"])) > SWITCH_MAX_WAIT_SECONDS:
             # 等待切换超时
             logger.info(
@@ -158,9 +247,19 @@ def get_4_next_watch_ID(batch_small: int, switch_hosts: Dict) -> int:
             save_ignore_host(swiched_host, "wait_timeout")
             if ignore_max_uid >= swiched_host.sw_max_id:
                 ignore_max_uid = swiched_host.sw_max_id + 1
+        else:
+            logger.info(
+                "waiting switched_host:{} tobe all succ,min_id:{},max_id:{}".format(
+                    swiched_host.ip, swiched_host.sw_min_id, swiched_host.sw_max_id
+                )
+            )
 
     # end for
     next_watch_id = succ_max_uid
+    if wait_small_uid != 0:
+        if wait_small_uid < succ_max_uid:
+            next_watch_id = wait_small_uid
+            logger.info("need 2 wait; somthing succd:{} >, but wait_small_uid:{}".format(succ_max_uid, wait_small_uid))
     logger.warn(
         "get watch uids, ignore_max_uid:{},wait_small_uid:{},next_watch_id:{},switch_hosts:{}".format(
             ignore_max_uid, wait_small_uid, next_watch_id, switch_hosts.keys()
@@ -178,27 +277,26 @@ def get_4_next_watch_ID(batch_small: int, switch_hosts: Dict) -> int:
 
 
 # 把故障切换成功后的机器/集群信息保存起来
-def save_swithed_host_by_cluster(batch_small: int, switch_hosts: Dict):
+def save_swithed_host_by_cluster(switch_hosts: Dict):
     switched_cluster = {}
     # 以集群维度聚合故障信息
     for swiched_host in switch_hosts.values():
-        if swiched_host.sw_max_id < batch_small and not swiched_host.ignore_fix:
-            cluster = swiched_host.immute_domain
-            if swiched_host.cluster_type == ClusterType.TendisRedisInstance.value:
-                cluster = swiched_host.ip  # 主从集群 ； 用机器来聚合
-            if not switched_cluster.get(cluster):
-                switched_cluster[cluster] = {
-                    "bk_biz_id": swiched_host.bk_biz_id,
-                    "cluster_id": swiched_host.cluster_id,
-                    "cluster_type": swiched_host.cluster_type,
-                    "immute_domain": cluster,
-                    "fault_machines": [],
-                    "deal_status": AutofixStatus.AF_TICKET.value,
-                    "status_version": get_random_string(length=12),
-                }
-            switched_cluster[cluster]["fault_machines"].append(
-                {"instance_type": swiched_host.instance_type, "ip": swiched_host.ip}
-            )
+        cluster = swiched_host.immute_domain
+        if swiched_host.cluster_type == ClusterType.TendisRedisInstance.value:
+            cluster = swiched_host.ip  # 主从集群 ； 用机器来聚合
+        if not switched_cluster.get(cluster):
+            switched_cluster[cluster] = {
+                "bk_biz_id": swiched_host.bk_biz_id,
+                "cluster_id": swiched_host.cluster_id,
+                "cluster_type": swiched_host.cluster_type,
+                "immute_domain": cluster,
+                "fault_machines": [],
+                "deal_status": AutofixStatus.AF_TICKET.value,
+                "status_version": get_random_string(length=12),
+            }
+        switched_cluster[cluster]["fault_machines"].append(
+            {"instance_type": swiched_host.instance_type, "ip": swiched_host.ip}
+        )
     # 按照集群维度保存信息
     for cluster in switched_cluster.values():
         logger.info(

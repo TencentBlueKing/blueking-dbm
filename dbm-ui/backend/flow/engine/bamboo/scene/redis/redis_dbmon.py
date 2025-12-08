@@ -52,7 +52,6 @@ class RedisDbmonSceneFlow(object):
 
     def batch_ips_update_dbmon(self):
         """### 适用于 集群中Master 机房裁撤/迁移替换场景 (成对替换)
-
         步骤：   获取机器实例列表--> 按照机器重装dbmon
         self.data (Dict):
         {
