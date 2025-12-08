@@ -210,13 +210,16 @@ func (sw *TenDBClusterBaseSwitchInstance) GetNodeRoute(host string, port int) *T
 }
 
 // ConnectTdbctlNode connect tdbctl node
-func (sw *TenDBClusterBaseSwitchInstance) ConnectTdbctlNode(tdbctlHost string, tdbctlPort int) (*hamysql.Proxy, error) {
+func (sw *TenDBClusterBaseSwitchInstance) ConnectTdbctlNode(tdbctlHost string, tdbctlPort int) (*hamysql.SqlxDB, error) {
 	sw.ReportLogf(SwitchInfo, "Try to connect tdbctl node(%s:%d)", tdbctlHost, tdbctlPort)
-	tdbctlDB, connErr := hamysql.NewProxy(
-		tdbctlHost,
-		tdbctlPort,
-		config.Cfg.Database.Mysql.User,
-		config.Cfg.Database.Mysql.Password,
+	tdbctlUser := config.Cfg.Database.Mysql.User
+	tdbctlPassword := config.Cfg.Database.Mysql.Password
+
+	tdbctlDB, connErr := hamysql.NewSqlxDB(
+		hamysql.OptionIP(tdbctlHost),
+		hamysql.OptionPort(tdbctlPort),
+		hamysql.OptionUser(tdbctlUser),
+		hamysql.OptionPassword(tdbctlPassword),
 	)
 
 	if connErr != nil {
@@ -228,7 +231,7 @@ func (sw *TenDBClusterBaseSwitchInstance) ConnectTdbctlNode(tdbctlHost string, t
 }
 
 // DisconnectTdbctlNode disconnect tdbctl node
-func (sw *TenDBClusterBaseSwitchInstance) DisconnectTdbctlNode(tdbctlDB *hamysql.Proxy) {
+func (sw *TenDBClusterBaseSwitchInstance) DisconnectTdbctlNode(tdbctlDB *hamysql.SqlxDB) {
 	con := tdbctlDB.DB()
 	if err := con.Close(); err != nil {
 		logger.Errorf("Failed to close tdbctl connect(%s:%d): %s",
@@ -239,7 +242,7 @@ func (sw *TenDBClusterBaseSwitchInstance) DisconnectTdbctlNode(tdbctlDB *hamysql
 }
 
 // SelectTdbctlNodes query tdbctl nodes info from information_schema.TDBCTL_NODES
-func (sw *TenDBClusterBaseSwitchInstance) SelectTdbctlNodes(tdbctlDB *hamysql.Proxy) ([]TdbctlNodeInfo, error) {
+func (sw *TenDBClusterBaseSwitchInstance) SelectTdbctlNodes(tdbctlDB *hamysql.SqlxDB) ([]TdbctlNodeInfo, error) {
 	if tdbctlDB == nil {
 		return nil, gerrors.New(gerrors.Failure, "tdbctl connection is nil")
 	}
@@ -267,7 +270,7 @@ func (sw *TenDBClusterBaseSwitchInstance) SelectTdbctlNodes(tdbctlDB *hamysql.Pr
 }
 
 // SelectRouteInfo query route info from mysql.servers
-func (sw *TenDBClusterBaseSwitchInstance) SelectRouteInfo(tdbctlDB *hamysql.Proxy) ([]TdbctlRouteInfo, error) {
+func (sw *TenDBClusterBaseSwitchInstance) SelectRouteInfo(tdbctlDB *hamysql.SqlxDB) ([]TdbctlRouteInfo, error) {
 	if tdbctlDB == nil {
 		return nil, gerrors.New(gerrors.Failure, "tdbctl connection is nil")
 	}
@@ -297,7 +300,7 @@ func (sw *TenDBClusterBaseSwitchInstance) SelectRouteInfo(tdbctlDB *hamysql.Prox
 }
 
 // TdbctlDropNode drop node from tdbctl
-func (sw *TenDBClusterBaseSwitchInstance) TdbctlDropNode(tdbctlDB *hamysql.Proxy, nodeName string) error {
+func (sw *TenDBClusterBaseSwitchInstance) TdbctlDropNode(tdbctlDB *hamysql.SqlxDB, nodeName string) error {
 	if tdbctlDB == nil {
 		return gerrors.New(gerrors.Failure, "tdbctl connection is nil")
 	}
@@ -325,7 +328,7 @@ func (sw *TenDBClusterBaseSwitchInstance) TdbctlDropNode(tdbctlDB *hamysql.Proxy
 }
 
 // TdbctlFlushRouting flush routing on tdbctl
-func (sw *TenDBClusterBaseSwitchInstance) TdbctlFlushRouting(tdbctlDB *hamysql.Proxy, force bool) error {
+func (sw *TenDBClusterBaseSwitchInstance) TdbctlFlushRouting(tdbctlDB *hamysql.SqlxDB, force bool) error {
 	if tdbctlDB == nil {
 		return gerrors.New(gerrors.Failure, "tdbctl connection is nil")
 	}
@@ -433,7 +436,7 @@ func (sw *TenDBClusterBaseSwitchInstance) FindPrimaryTdbctl() error {
 func (sw *TenDBClusterBaseSwitchInstance) QuerySpiderNodesOfCluster() error {
 	sw.ReportLogf(SwitchInfo, "Try to query spider nodes of cluster(%s) from DBM", sw.Cluster)
 
-	instInfoList, err := sw.dbmClient.QueryInstanceInfoByDomain(sw.Cluster)
+	instInfoList, err := sw.dbmClient.QueryInstanceInfoByDomain(sw.BkCloudID, sw.Cluster)
 	if err != nil {
 		sw.ReportLogf(SwitchWarn, "Failed to query instance info of cluster(%s) from DBM: %s",
 			sw.Cluster, err.Error())
@@ -503,7 +506,7 @@ func (sw *TenDBClusterBaseSwitchInstance) QueryTdbctlNodesOfCluster() error {
 }
 
 // QueryRouteInfoOfCluster query route info of current cluster from primary tdbctl node
-func (sw *TenDBClusterBaseSwitchInstance) QueryRouteInfoOfCluster(primaryTdbctlDB *hamysql.Proxy) error {
+func (sw *TenDBClusterBaseSwitchInstance) QueryRouteInfoOfCluster(primaryTdbctlDB *hamysql.SqlxDB) error {
 	if primaryTdbctlDB == nil {
 		return gerrors.Newf(gerrors.Failure, "primary tdbctl connection is nil when querying route info")
 	}
@@ -752,7 +755,7 @@ func (sw *TenDBClusterSpiderSwitchInstance) HandleInvolvedPrimaryTdbctl() error 
 }
 
 // DeleteOwnRoutes remove two route items of current broken spider and its tdbctl from cluster route table
-func (sw *TenDBClusterSpiderSwitchInstance) DeleteOwnRoutes(primaryTdbctlDB *hamysql.Proxy) error {
+func (sw *TenDBClusterSpiderSwitchInstance) DeleteOwnRoutes(primaryTdbctlDB *hamysql.SqlxDB) error {
 	curSpiderRoute, curSpiderExists := sw.GetRouteInfoFromCache(sw.IP, sw.Port)
 	if !curSpiderExists {
 		errMsg := fmt.Sprintf("failed to get route info of current spider(%s:%d) from route cache", sw.IP, sw.Port)

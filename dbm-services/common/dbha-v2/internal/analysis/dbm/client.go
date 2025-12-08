@@ -40,8 +40,7 @@ import (
 // Client provides HTTP client for communicating with DBM API services
 // Handles database instance management operations including status updates, domain management, and role switching
 type Client struct {
-	cli       *hanet.HttpClient
-	BkCloudID int
+	cli *hanet.HttpClient
 }
 
 // SendRequest sends HTTP request to DBM API with specified method and timeout
@@ -131,10 +130,10 @@ func (c *Client) QueryMetadataFromDbm(ctx context.Context, bkCloudId int, ips []
 }
 
 // QueryInstanceInfoByDomain queries instance info from DBM by domain
-func (c *Client) QueryInstanceInfoByDomain(clusterDomainName string) ([]*DbInstMetadata, error) {
+func (c *Client) QueryInstanceInfoByDomain(bkCloudId int, clusterDomainName string) ([]*DbInstMetadata, error) {
 
 	req := Request{
-		BkCloudId:    c.BkCloudID,
+		BkCloudId:    bkCloudId,
 		DbCloudToken: config.Cfg.Workflow.DbmApiMetadata.Token,
 		Addresses:    []string{clusterDomainName},
 	}
@@ -148,9 +147,9 @@ func (c *Client) QueryInstanceInfoByDomain(clusterDomainName string) ([]*DbInstM
 }
 
 // GetAddressNumberOfDomain retrieves the number of addresses in a specific domain
-func (c *Client) GetAddressNumberOfDomain(domainName string) (int, error) {
+func (c *Client) GetAddressNumberOfDomain(bkCloudId int, domainName string) (int, error) {
 	req := DomainGetRequest{
-		BkCloudID:    c.BkCloudID,
+		BkCloudID:    bkCloudId,
 		DbCloudToken: config.Cfg.Workflow.DbmApiDomainGet.Token,
 		DomainName:   []string{domainName},
 	}
@@ -176,9 +175,9 @@ func (c *Client) GetAddressNumberOfDomain(domainName string) (int, error) {
 }
 
 // UpdateInstanceStatus updates the status of a database instance
-func (c *Client) UpdateInstanceStatus(ip string, port int, status DbmMetadataStatus) error {
+func (c *Client) UpdateInstanceStatus(bkCloudId int, ip string, port int, status DbmMetadataStatus) error {
 	req := UpdateInstanceStatusRequest{
-		BkCloudID:    c.BkCloudID,
+		BkCloudID:    bkCloudId,
 		DbCloudToken: config.Cfg.Workflow.DbmApiUpdateStatus.Token,
 		Payloads: []UpdateInstanceStatusPayload{
 			{
@@ -213,9 +212,9 @@ func (c *Client) UpdateInstanceStatus(ip string, port int, status DbmMetadataSta
 }
 
 // DeleteFromDomain removes an instance from the specified domain
-func (c *Client) DeleteFromDomain(domainName string, instance string, app string) error {
+func (c *Client) DeleteFromDomain(bkCloudId int, domainName string, instance string, app string) error {
 	req := DomainDeleteRequest{
-		BkCloudID:    c.BkCloudID,
+		BkCloudID:    bkCloudId,
 		DbCloudToken: config.Cfg.Workflow.DbmApiDomainDelete.Token,
 		App:          app,
 		InstancesToDelete: []InstancesOfDomain{
@@ -252,9 +251,9 @@ func (c *Client) DeleteFromDomain(domainName string, instance string, app string
 }
 
 // DeleteFromCLB deregisters an instance from Cloud Load Balancer
-func (c *Client) DeleteFromCLB(region string, lbid string, lnid string, ins string) error {
+func (c *Client) DeleteFromCLB(bkCloudId int, region string, lbid string, lnid string, ins string) error {
 	req := ClbDeleteRequest{
-		BkCloudID:      c.BkCloudID,
+		BkCloudID:      bkCloudId,
 		DbCloudToken:   config.Cfg.Workflow.DbmApiCLBDeregister.Token,
 		Region:         region,
 		LoadBalancerID: lbid,
@@ -279,9 +278,9 @@ func (c *Client) DeleteFromCLB(region string, lbid string, lnid string, ins stri
 }
 
 // DeleteFromPolaris unbinds an instance from Polaris service discovery
-func (c *Client) DeleteFromPolaris(servname string, servtoken string, ins string) error {
+func (c *Client) DeleteFromPolaris(bkCloudId int, servname string, servtoken string, ins string) error {
 	req := PolarisDeleteRequest{
-		BkCloudID:    c.BkCloudID,
+		BkCloudID:    bkCloudId,
 		DbCloudToken: config.Cfg.Workflow.DbmApiPolarisUnbind.Token,
 		ServiceName:  servname,
 		ServiceToken: servtoken,
@@ -305,7 +304,7 @@ func (c *Client) DeleteFromPolaris(servname string, servtoken string, ins string
 }
 
 // SwapMySQLRole swaps master-slave roles between two MySQL instances
-func (c *Client) SwapMySQLRole(masterIp string, masterPort int, slaveIp string, slavePort int) error {
+func (c *Client) SwapMySQLRole(bkCloudId int, masterIp string, masterPort int, slaveIp string, slavePort int) error {
 	payload := SwapMySQLRolePayload{
 		Instance1: SwapMySQLRoleInstance{
 			IP:   masterIp,
@@ -318,7 +317,7 @@ func (c *Client) SwapMySQLRole(masterIp string, masterPort int, slaveIp string, 
 	}
 
 	req := SwapMySQLRoleRequest{
-		BkCloudID:    c.BkCloudID,
+		BkCloudID:    bkCloudId,
 		DbCloudToken: config.Cfg.Workflow.DbmApiSwapMysqlRole.Token,
 		Payloads:     []SwapMySQLRolePayload{payload},
 	}
@@ -348,9 +347,9 @@ func (c *Client) SwapMySQLRole(masterIp string, masterPort int, slaveIp string, 
 }
 
 // SwitchBinlogDumper switches binlog dumper configuration for an application
-func (c *Client) SwitchBinlogDumper(app string, switchInfos []DumperSwitchInfo) error {
+func (c *Client) SwitchBinlogDumper(bkCloudId int, app string, switchInfos []DumperSwitchInfo) error {
 	req := DumperSwitchRequest{
-		BkCloudID:    c.BkCloudID,
+		BkCloudID:    bkCloudId,
 		DbCloudToken: config.Cfg.Workflow.DbmApiDumperSwitch.Token,
 		IsSafe:       true,
 		BKBizID:      app,
