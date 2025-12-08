@@ -527,7 +527,8 @@ class RedisDataStructureTaskDeleteSceneApiView(FlowTestView):
                 {"ip": "3.3.3.2", "bk_cloud_id": 0, "bk_host_id": 2},
             ]
           }
-        ]
+        ],
+        "skip_connections_check": False,
     }
     """
 

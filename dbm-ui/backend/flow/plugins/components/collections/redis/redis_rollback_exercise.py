@@ -25,6 +25,7 @@ from backend.flow.models import FlowTree
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.redis import redis_context_dataclass as flow_context
 from backend.flow.utils.redis.redis_context_dataclass import RedisRollbackExerciseContext
+from backend.ticket.models import TicketType
 from backend.utils.basic import generate_root_id
 
 
@@ -253,7 +254,7 @@ class RedisRollbackFlowCreateSerivce(RedisLogCapturingService):
                 "bk_biz_id": bk_biz_id,
                 "uid": global_data["uid"],
                 "created_by": global_data["created_by"],
-                "ticket_type": "REDIS_DATA_STRUCTURE",
+                "ticket_type": TicketType.REDIS_DATA_STRUCTURE.value,
                 "infos": [
                     {
                         "cluster_id": cluster_id,
@@ -334,7 +335,7 @@ class RedisTempInstanceDeleteService(RedisLogCapturingService):
                 "bk_biz_id": bk_biz_id,
                 "uid": global_data["uid"],
                 "created_by": global_data["created_by"],
-                "ticket_type": "REDIS_DATA_STRUCTURE_TASK_DELETE",
+                "ticket_type": TicketType.REDIS_DATA_STRUCTURE_TASK_DELETE.value,
                 "infos": [
                     {
                         "related_rollback_bill_id": global_data["uid"],
@@ -343,6 +344,7 @@ class RedisTempInstanceDeleteService(RedisLogCapturingService):
                         "prod_cluster": cluster.immute_domain,
                     }
                 ],
+                "skip_connections_check": True,
             }
 
             self.log_info(_("Executing REDIS_DATA_STRUCTURE_TASK_DELETE flow with data: {}").format(flow_data))

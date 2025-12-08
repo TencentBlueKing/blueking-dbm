@@ -50,7 +50,7 @@ class RedisDataStructureTaskDeleteFlow(object):
              "bk_cloud_id":2
         }
       ]
-
+      "skip_connections_check":False,
     }
     """
 
@@ -172,6 +172,7 @@ class RedisDataStructureTaskDeleteFlow(object):
                 params = {
                     "ip": ip_address,
                     "ports": ports,
+                    "skip_connections_check": self.data.get("skip_connections_check", False),
                 }
                 sub_builder = RedisBatchShutdownAtomJob(self.root_id, self.data, act_kwargs, params)
                 sub_pipelines.append(sub_builder)
