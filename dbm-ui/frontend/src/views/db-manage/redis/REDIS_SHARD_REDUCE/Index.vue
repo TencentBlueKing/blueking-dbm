@@ -138,7 +138,7 @@
       cluster_shard_num: number;
       cluster_spec: RedisModel['cluster_spec'];
       cluster_stats: RedisModel['cluster_stats'];
-      cluster_type: string;
+      cluster_type: ClusterTypes;
       cluster_type_name: string;
       id: number;
       machine_pair_cnt: number;

@@ -1,4 +1,4 @@
-import type { ResourcePoolDetailBase } from '../../common';
+import type { ResourcePoolDetailBase } from '../../resource-pool';
 
 // redis 集群迁移
 export interface MigrateCluster extends ResourcePoolDetailBase {

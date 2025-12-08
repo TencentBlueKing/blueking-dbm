@@ -156,7 +156,7 @@
       cluster_spec: {
         id: number;
       };
-      cluster_type: string;
+      cluster_type: ClusterTypes;
       cluster_type_name: string;
       id: number;
       master_domain: string;

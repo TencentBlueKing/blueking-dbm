@@ -1,6 +1,6 @@
 import type { MachineSpecConfig } from '@services/types';
 
-import type { ResourcePoolDetailBase } from '../../common';
+import type { ResourcePoolDetailBase } from '../../resource-pool';
 
 export interface ClusterAddSlave extends ResourcePoolDetailBase {
   infos: {

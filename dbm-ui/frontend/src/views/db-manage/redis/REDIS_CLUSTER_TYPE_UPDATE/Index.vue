@@ -199,7 +199,7 @@
       cluster_capacity: number;
       cluster_shard_num: number;
       cluster_spec: RedisModel['cluster_spec'];
-      cluster_type: string;
+      cluster_type: ClusterTypes;
       cluster_type_name: string;
       disaster_tolerance_level: string;
       id: number;
@@ -426,6 +426,8 @@
               proxy: {
                 affinity: Affinity.CROS_SUBZONE,
                 count: Math.min(new Set(tableItem.cluster.proxy.map((item) => item.ip)).size, 5), // 最大5台
+                label_names: tableItem.target_capacity.labels.map((item) => item.value),
+                labels: tableItem.target_capacity.labels.map((item) => String(item.id)),
                 spec_id: tableItem.cluster.proxy[0].spec_config.id,
               },
             },
