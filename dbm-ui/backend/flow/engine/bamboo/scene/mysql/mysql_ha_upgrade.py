@@ -413,7 +413,7 @@ def tendbha_cluster_upgrade_subflow(
             with_actuator=False,
             with_bk_plugin=False,
             with_collect_sysinfo=False,
-            with_cc_standardize=False,
+            with_cc_standardize=True,
             with_instance_standardize=False,
         )
     )
@@ -453,7 +453,7 @@ def tendbha_cluster_upgrade_subflow(
             with_bk_plugin=False,
             with_backup_client=False,
             with_collect_sysinfo=False,
-            with_cc_standardize=False,
+            with_cc_standardize=True,
             with_instance_standardize=False,
         )
     )

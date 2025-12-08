@@ -7,6 +7,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 import copy
 import datetime
 import logging.config
@@ -289,7 +290,7 @@ class TenDBClusterStorageMigrateUpgradeFlow(object):
                         with_actuator=False,
                         with_bk_plugin=False,
                         with_collect_sysinfo=False,
-                        with_cc_standardize=False,
+                        with_cc_standardize=True,
                         with_instance_standardize=False,
                     )
                 )
@@ -322,7 +323,7 @@ class TenDBClusterStorageMigrateUpgradeFlow(object):
                         with_backup_client=False,
                         with_collect_sysinfo=False,
                         with_instance_standardize=False,
-                        with_cc_standardize=False,
+                        with_cc_standardize=True,
                     )
                 )
                 re_surrounding_sub_pipeline.add_act(
