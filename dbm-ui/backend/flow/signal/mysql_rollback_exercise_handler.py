@@ -12,7 +12,7 @@ import logging
 
 from django.utils.translation import gettext as _
 
-from backend.db_periodic_task.models import MySQLBackupRecoverTask, TaskPhase
+from backend.db_periodic_task.models import MySQLBackupRecoverTask, TaskPhase, TaskStatus
 from backend.db_report.enums import ReportStateType
 from backend.flow.consts import StateType
 from backend.flow.signal.callback_map import create_ticket_handler
@@ -79,7 +79,7 @@ def mysql_rollback_exercise_callback_handler(root_id: str, node_id: str, status:
         elif status in [StateType.FAILED, StateType.REVOKED]:
             task.phase = TaskPhase.DONE
             # 备份恢复失败时，设置 state 为 abnormal，且后续不再改变
-            if task.state != ReportStateType.ABNORMAL.value:
+            if task.task_status != TaskStatus.RECOVER_SUCCESS and task.state != ReportStateType.NORMAL.value:
                 task.state = ReportStateType.ABNORMAL.value
                 update_fields.append("state")
             logger.warning(_("MySQL备份恢复演练失败，task_id={}, status={}").format(root_id, status))
