@@ -5,6 +5,7 @@ metadata:
 spec:
   compatibilityRules:
     - releases:
+        - surreal-2.4.0
         - surreal-2.3.7
         - surreal-2.3.2
         - surreal-2.2.1
@@ -12,6 +13,10 @@ spec:
       compDefs:
         - surreal-rocksdb-{{ .Chart.Version}}
   releases:
+    - name: surreal-2.4.0
+      serviceVersion: 2.4.0
+      images:
+        surreal: docker.io/surrealdb/surrealdb:v2.4.0
     - name: surreal-2.3.7
       serviceVersion: 2.3.7
       images:
