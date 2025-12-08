@@ -24,7 +24,10 @@
 
 package gerrors
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 // Code dbha global error code type
 type Code int
@@ -38,11 +41,9 @@ func (c Code) Int() int {
 const (
 	Unknown Code = iota - 2
 	Failure
-	Success
 	Timeout
 	Exited
 
-	NotFound
 	NotExist
 	NetException
 	QueueFull
@@ -77,7 +78,7 @@ func New(c Code, msg string) *Error {
 }
 
 // Newf create a internal error with format.
-func Newf(c Code, format string, args ...interface{}) *Error {
+func Newf(c Code, format string, args ...any) *Error {
 	return NewCustomf(c.Int(), format, args...)
 }
 
@@ -92,7 +93,7 @@ func NewCustom(c int, msg string) *Error {
 }
 
 // NewCustomf is used to create an error with custom code value.
-func NewCustomf(c int, format string, args ...interface{}) *Error {
+func NewCustomf(c int, format string, args ...any) *Error {
 	msg := fmt.Sprintf(format, args...)
 	return &Error{code: c, message: msg}
 }
@@ -103,13 +104,14 @@ func NewCustomE(c int, err error) *Error {
 		return nil
 	}
 
-	return &Error{code: c, message: err.Error()}
+	return &Error{code: c, message: err.Error(), origin: err}
 }
 
 // Error represents a custom error with code and message
 type Error struct {
 	code    int
 	message string
+	origin  error
 }
 
 // Code returns the error code
@@ -117,12 +119,59 @@ func (e *Error) Code() int {
 	return e.code
 }
 
-// CodeIs checks if the error code matches the given code
-func (e *Error) CodeIs(c Code) bool {
+// HasCode checks if the error has the specified code
+func (e *Error) HasCode(c Code) bool {
 	return e.code == c.Int()
+}
+
+// RootCause returns the root cause of the error
+func (e *Error) RootCause() error {
+	visited := make(map[*Error]bool)
+	current := e
+
+	for {
+		if visited[current] {
+			// found a cycle
+			return current
+		}
+		visited[current] = true
+
+		if current.origin == nil {
+			return current
+		}
+
+		if rootErr, ok := current.origin.(*Error); ok {
+			current = rootErr
+			continue
+		}
+
+		return current.origin
+	}
 }
 
 // Error returns the error message string
 func (e *Error) Error() string {
 	return e.message
+}
+
+// Is checks if the error is the specified error
+func (e *Error) Is(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	if targetErr, ok := err.(*Error); ok {
+		return targetErr.code == e.code
+	}
+
+	if e.origin != nil {
+		return errors.Is(e.origin, err)
+	}
+
+	return false
+}
+
+// Unwrap returns the wrapped error
+func (e *Error) Unwrap() error {
+	return e.origin
 }

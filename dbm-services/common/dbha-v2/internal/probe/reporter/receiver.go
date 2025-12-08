@@ -215,7 +215,7 @@ func (r *ReceiverClient) monitorConnection() {
 					return
 				}
 
-				if e, ok := err.(*gerrors.Error); ok && !e.CodeIs(gerrors.NetException) {
+				if e, ok := err.(*gerrors.Error); ok && !e.HasCode(gerrors.NetException) {
 					return
 				}
 
