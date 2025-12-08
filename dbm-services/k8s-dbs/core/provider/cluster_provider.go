@@ -23,21 +23,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
-	"os"
-	"sort"
-	"time"
-
 	commentity "k8s-dbs/common/entity"
 	commutil "k8s-dbs/common/util"
 	addonopschecker "k8s-dbs/core/checker/addonoperation"
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
 	coreutil "k8s-dbs/core/util"
-	"k8s-dbs/infrastructure/util"
+	infrautil "k8s-dbs/infrastructure/util"
 	metaentity "k8s-dbs/metadata/entity"
 	metaprovider "k8s-dbs/metadata/provider"
 	metautil "k8s-dbs/metadata/util"
+	"log/slog"
+	"os"
+	"sort"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -55,10 +53,7 @@ import (
 	kbtypes "github.com/apecloud/kbcli/pkg/types"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
-	"golang.org/x/sync/errgroup"
 
-	// 新增导入
-	infreq "k8s-dbs/infrastructure/request"
 	"k8s-dbs/infrastructure/thirdapi"
 )
 
@@ -290,12 +285,12 @@ func (c *ClusterProvider) CreateCluster(ctx *commentity.DbsContext, request *cor
 	// 检查环境变量ASYNC_TO_DBM，控制是否启用异步处理
 	asyncToDBM := os.Getenv(coreconst.AsyncToDBMEnv)
 	if asyncToDBM == coreconst.AsyncToDBMEnabled {
-		c.asyncClusterCreated(clusterEntity)
+		infrautil.AsyncClusterCreated(clusterEntity, c.dbmAPIService)
 	}
 	return nil
 }
 
-// asyncClusterOperation 通用的异步集群操作函数，支持创建和删除操作
+/*// asyncClusterOperation 通用的异步集群操作函数，支持创建和删除操作
 func (c *ClusterProvider) asyncClusterOperation(
 	clusterEntity *metaentity.K8sCrdClusterEntity,
 	operationType string,
@@ -491,7 +486,7 @@ func (c *ClusterProvider) syncClusterUpdatedWithContext(
 	}
 	slog.Info("DBM API 返回同步更新成功", "cluster_name", clusterEntity.ClusterName)
 	return nil
-}
+}*/
 
 // checkClusterVersion 检查集群版本是否与存储插件的支持版本匹配
 // 参数:
@@ -665,13 +660,9 @@ func (c *ClusterProvider) UpdateClusterRelease(
 		return dbserrors.NewK8sDbsError(dbserrors.UpdateMetaDataError, err)
 	}
 	// 更新集群 cluster 元数据
-	updateClusterEntity, err := metautil.UpdateClusterMeta(c.clusterMetaProvider, ctx, request)
+	_, err = metautil.UpdateClusterMeta(c.clusterMetaProvider, ctx, request)
 	if err != nil {
 		return dbserrors.NewK8sDbsError(dbserrors.UpdateMetaDataError, err)
-	}
-	asyncToDBM := os.Getenv(coreconst.AsyncToDBMEnv)
-	if asyncToDBM == coreconst.AsyncToDBMEnabled {
-		c.asyncClusterUpdated(updateClusterEntity)
 	}
 	return nil
 }
@@ -774,7 +765,7 @@ func (c *ClusterProvider) DeleteCluster(ctx *commentity.DbsContext, request *cor
 	// 检查环境变量ASYNC_TO_DBM，控制是否启用异步处理
 	asyncToDBM := os.Getenv(coreconst.AsyncToDBMEnv)
 	if asyncToDBM == coreconst.AsyncToDBMEnabled {
-		c.asyncClusterDeleted(clusterEntity)
+		infrautil.AsyncClusterDeleted(clusterEntity, c.dbmAPIService)
 	}
 
 	return nil

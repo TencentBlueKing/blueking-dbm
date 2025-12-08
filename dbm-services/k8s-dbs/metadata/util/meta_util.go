@@ -148,6 +148,9 @@ func UpdateClusterMeta(
 		return nil, dbserrors.NewK8sDbsError(dbserrors.UpdateMetaDataError,
 			fmt.Errorf("更新集群 %s 元数据失败 %w ", request.ClusterName, err))
 	}
+	if request.Spec.OpsService.Service.VIP != "" {
+		clusterEntity.VIP = request.Spec.OpsService.Service.VIP
+	}
 	return clusterEntity, nil
 }
 

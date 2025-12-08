@@ -115,7 +115,9 @@ func BuildOpsRequestProvider(
 		opsRequestProviderBuilder.WithClusterConfigMeta(coreAPIProviders.ClusterConfigProvider),
 		opsRequestProviderBuilder.WithReqRecordMeta(coreAPIProviders.RequestRecordProvider),
 		opsRequestProviderBuilder.WithReleaseMeta(coreAPIProviders.ClusterReleaseProvider),
-		opsRequestProviderBuilder.WithClusterProvider(clusterProvider))
+		opsRequestProviderBuilder.WithClusterProvider(clusterProvider),
+		opsRequestProviderBuilder.WithDbmAPIService(coreAPIProviders.DbmAPIService),
+	)
 
 	if err != nil {
 		slog.Error("build ops request provider error", "error", err)

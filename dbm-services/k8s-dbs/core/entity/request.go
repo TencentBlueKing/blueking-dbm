@@ -55,6 +55,7 @@ type OpsService struct {
 type ClusterService struct {
 	Name         string             `json:"name,omitempty"`
 	ServiceType  corev1.ServiceType `json:"serviceType,omitempty"`
+	VIP          string             `json:"vip,omitempty"`
 	Annotations  map[string]string  `json:"annotations,omitempty"`
 	Ports        []int32            `json:"ports,omitempty"`
 	RoleSelector string             `json:"roleSelector,omitempty"`
