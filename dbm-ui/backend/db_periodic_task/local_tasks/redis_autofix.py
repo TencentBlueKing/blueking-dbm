@@ -22,7 +22,7 @@ from backend.db_services.redis.autofix.enums import AutofixItem, AutofixStatus
 from backend.db_services.redis.autofix.message import send_msg_2_qywx
 from backend.db_services.redis.autofix.models import RedisAutofixCore, RedisAutofixCtl
 from backend.db_services.redis.autofix.watcher import (
-    get_4_next_watch_ID,
+    check_and_process,
     save_swithed_host_by_cluster,
     watcher_get_by_hosts,
 )
@@ -58,12 +58,13 @@ def watch_dbha_switch():
         return
 
     logger.info("query switch logs :: {}:{}".format(current_id, switch_hosts))
-    next_id = get_4_next_watch_ID(current_id, switch_hosts)
+
+    next_id, wstart_autofix = check_and_process(current_id, switch_hosts)
     RedisAutofixCtl.objects.filter(ctl_name=AutofixItem.DBHA_ID.value).update(
         ctl_value=next_id, update_at=datetime2str(datetime.datetime.now(datetime.utc))
     )
     # 以集群维度聚合 # AutofixStatus.AF_REQRES.value
-    save_swithed_host_by_cluster(next_id, switch_hosts)
+    save_swithed_host_by_cluster(wstart_autofix)
 
 
 @register_periodic_task(run_every=crontab(minute="*/1"))

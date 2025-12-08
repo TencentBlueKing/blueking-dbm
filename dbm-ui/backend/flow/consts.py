@@ -568,6 +568,7 @@ class RedisActuatorActionEnum(StrStructuredEnum):
     CLUSTER_RESET_FLUSH_MEET = EnumField("cluster_reset_flush_meet", _("cluster_reset_flush_meet"))
     REPLICAS_FORCE_RESYNC = EnumField("replicas_force_resync", _("replicas_force_resync"))
     RESTART_EXPORTER = EnumField("restart_exporter", _("restart_exporter"))
+    REVERSE_API_CONFIG = EnumField("reverse_config", _("reverse_config"))
     HOTKEY_ANALYSIS = EnumField("hotkey_analysis", _("hotkey_analysis"))
     PROXY_REUSE = EnumField("proxy_reuse", _("proxy_reuse"))
     KEYSTAT = EnumField("keystat", _("keystat"))

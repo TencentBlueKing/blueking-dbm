@@ -30,6 +30,7 @@ from backend.db_meta.enums import InstanceStatus
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache, Cluster, StorageInstance
 from backend.db_package.models import Package
+from backend.db_proxy.reverse_api.common.impl import list_nginx_addrs
 from backend.db_services.redis.maxmemory_set.util import (
     get_dbmon_maxmemory_config_by_bkbizid,
     get_dbmon_maxmemory_config_by_cluster_ids,
@@ -1353,6 +1354,16 @@ class RedisActPayload(object):
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": RedisActuatorActionEnum.RESTART_EXPORTER.value,
             "payload": kwargs["params"],
+        }
+
+    def redis_reverse_config(self, **kwargs) -> dict:
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.REVERSE_API_CONFIG.value,
+            "payload": {
+                "bk_cloud_id": self.bk_cloud_id,
+                "nginx_addrs": list_nginx_addrs(bk_cloud_id=self.bk_cloud_id),
+            },
         }
 
     # 场景化需求

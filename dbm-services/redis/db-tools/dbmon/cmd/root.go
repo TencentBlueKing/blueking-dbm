@@ -25,6 +25,7 @@ import (
 	"dbm-services/redis/db-tools/dbmon/pkg/redisnodesreport"
 	"dbm-services/redis/db-tools/dbmon/pkg/redistaillog"
 	"dbm-services/redis/db-tools/dbmon/pkg/report"
+	"dbm-services/redis/db-tools/dbmon/pkg/reverseapi"
 
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
@@ -190,6 +191,16 @@ Buildstamp:%s`, version, githash, buildstamp),
 		entryID, err = c.AddJob("@every 1m",
 			cron.NewChain(cron.SkipIfStillRunning(mylog.GlobCronLogger)).Then(
 				failednodehandle.GetGlobFailedNodeHandleJob(config.GlobalConf)))
+		if err != nil {
+			fmt.Printf("redis failed_node_handle addjob fail,entryID:%d,err:%v\n", entryID, err)
+			return
+		}
+		mylog.Logger.Info(fmt.Sprintf("create cron GetGlobFailedNodeHandleJob success,entryID:%d", entryID))
+
+		// 定期更新Ngnix反向地址
+		entryID, err = c.AddJob("@every 1m",
+			cron.NewChain(cron.SkipIfStillRunning(mylog.GlobCronLogger)).Then(
+				reverseapi.GetReverseJob(config.GlobalConf)))
 		if err != nil {
 			fmt.Printf("redis failed_node_handle addjob fail,entryID:%d,err:%v\n", entryID, err)
 			return

@@ -20,6 +20,7 @@ from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus, Mac
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.engine.bamboo.scene.redis.common.tools import GetBatchIPArries
 from backend.flow.plugins.components.collections.redis.EmptyAct import SimpleEmptyComponent
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
@@ -65,25 +66,12 @@ def ClusterDbmonInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, para
     )
 
     # 下发介质
-    acts_list, max_batch, batch_ips, batch_seq = [], 150, [], 0
-    for ip in cluster_ips_set.keys():
-        batch_ips.append(ip)
-        if len(batch_ips) < max_batch:
-            continue
-        else:
-            batch_seq += 1
-            act_kwargs.exec_ip = deepcopy(batch_ips)
-            acts_list.append(
-                {
-                    "act_name": _("第{}批-下发介质").format(batch_seq),
-                    "act_component_code": TransFileComponent.code,
-                    "kwargs": asdict(act_kwargs),
-                }
-            )
-            batch_ips = []
-    if len(batch_ips) > 0:
+    acts_list, batch_seq = [], 0
+    batch_arries = GetBatchIPArries(cluster_ips_set.keys())
+
+    for ips in batch_arries:
         batch_seq += 1
-        act_kwargs.exec_ip = deepcopy(batch_ips)
+        act_kwargs.exec_ip = deepcopy(ips)
         acts_list.append(
             {
                 "act_name": _("第{}批-下发介质").format(batch_seq),
@@ -91,10 +79,7 @@ def ClusterDbmonInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, para
                 "kwargs": asdict(act_kwargs),
             }
         )
-    if acts_list:
-        sub_pipeline.add_parallel_acts(acts_list=acts_list)
-    # Add An Empty Node
-    sub_pipeline.add_act(act_name=_("Redis-空节点"), act_component_code=SimpleEmptyComponent.code, kwargs={})
+    sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     # 重启 dbmon
     acts_list = []
@@ -143,8 +128,19 @@ def ClusterDbmonInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, para
     if acts_list and param.get("restart_exporter"):
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
-    # Add An Empty Node
-    sub_pipeline.add_act(act_name=_("Redis-空节点"), act_component_code=SimpleEmptyComponent.code, kwargs={})
+    acts_list, batch_seq = [], 0
+    act_kwargs.get_redis_payload_func = RedisActPayload.redis_reverse_config.__name__
+    for ips in batch_arries:
+        batch_seq += 1
+        act_kwargs.exec_ip = deepcopy(ips)
+        acts_list.append(
+            {
+                "act_name": _("第{}批-重载配置").format(batch_seq),
+                "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                "kwargs": asdict(act_kwargs),
+            }
+        )
+    sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     return sub_pipeline.build_sub_process(sub_name=_("dbmon重装-{}").format(param["cluster_domain"]))
 
@@ -173,25 +169,12 @@ def SingleClusterDbmonInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs
     )
 
     # 下发介质
-    acts_list, max_batch, batch_ips, batch_seq = [], 150, [], 0
-    for ip in cluster_ips_set.keys():
-        batch_ips.append(ip)
-        if len(batch_ips) < max_batch:
-            continue
-        else:
-            batch_seq += 1
-            act_kwargs.exec_ip = deepcopy(batch_ips)
-            acts_list.append(
-                {
-                    "act_name": _("第{}批-下发介质").format(batch_seq),
-                    "act_component_code": TransFileComponent.code,
-                    "kwargs": asdict(act_kwargs),
-                }
-            )
-            batch_ips = []
-    if len(batch_ips) > 0:
+    acts_list, batch_seq = [], 0
+    batch_arries = GetBatchIPArries(cluster_ips_set.keys())
+
+    for ips in batch_arries:
         batch_seq += 1
-        act_kwargs.exec_ip = deepcopy(batch_ips)
+        act_kwargs.exec_ip = deepcopy(ips)
         acts_list.append(
             {
                 "act_name": _("第{}批-下发介质").format(batch_seq),
@@ -200,8 +183,6 @@ def SingleClusterDbmonInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs
             }
         )
     sub_pipeline.add_parallel_acts(acts_list=acts_list)
-    # Add An Empty Node
-    sub_pipeline.add_act(act_name=_("Redis-空节点"), act_component_code=SimpleEmptyComponent.code, kwargs={})
 
     # 主从架构 重启 dbmon
     acts_list = []
@@ -221,8 +202,6 @@ def SingleClusterDbmonInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs
             }
         )
     sub_pipeline.add_parallel_acts(acts_list=acts_list)
-    # Add An Empty Node
-    sub_pipeline.add_act(act_name=_("Redis-空节点"), act_component_code=SimpleEmptyComponent.code, kwargs={})
 
     acts_list = []
     for ip in cluster_ips_set.keys():
@@ -251,9 +230,6 @@ def SingleClusterDbmonInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs
     if acts_list and param.get("restart_exporter"):
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
-    # Add An Empty Node
-    sub_pipeline.add_act(act_name=_("Redis-空节点"), act_component_code=SimpleEmptyComponent.code, kwargs={})
-
     # 让GSE-重新下发exporter配置 （集群级别）
     if param.get("restart_exporter", False):
         acts_list = []
@@ -276,8 +252,19 @@ def SingleClusterDbmonInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs
                 )
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
-    # Add An Empty Node
-    sub_pipeline.add_act(act_name=_("Redis-空节点"), act_component_code=SimpleEmptyComponent.code, kwargs={})
+    acts_list, batch_seq = [], 0
+    act_kwargs.get_redis_payload_func = RedisActPayload.redis_reverse_config.__name__
+    for ips in batch_arries:
+        batch_seq += 1
+        act_kwargs.exec_ip = deepcopy(ips)
+        acts_list.append(
+            {
+                "act_name": _("第{}批-重载配置").format(batch_seq),
+                "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                "kwargs": asdict(act_kwargs),
+            }
+        )
+    sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     return sub_pipeline.build_sub_process(sub_name=_("主从架构-重新标准化"))
 

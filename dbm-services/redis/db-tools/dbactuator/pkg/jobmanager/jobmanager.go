@@ -226,6 +226,7 @@ func (m *JobGenericManager) atomjobsMapperLoading() {
 		m.atomJobMapper[atomredis.NewRedisSceneKillDeadConn().Name()] = atomredis.NewRedisSceneKillDeadConn
 		m.atomJobMapper[atomredis.NewRedisSceneSyncPrams().Name()] = atomredis.NewRedisSceneSyncPrams
 		m.atomJobMapper[atomsys.NewRestartExporter().Name()] = atomsys.NewRestartExporter
+		m.atomJobMapper[atomsys.NewReverseAPIConfig().Name()] = atomsys.NewReverseAPIConfig
 		// 迁移
 		m.atomJobMapper[atomredis.NewRedisReuploadOldBackupRecords().Name()] =
 			atomredis.NewRedisReuploadOldBackupRecords
