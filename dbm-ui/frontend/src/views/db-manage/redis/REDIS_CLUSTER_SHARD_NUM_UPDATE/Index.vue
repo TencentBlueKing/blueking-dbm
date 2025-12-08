@@ -188,7 +188,7 @@
       cluster_shard_num: number;
       cluster_spec: RedisModel['cluster_spec'];
       cluster_stats: RedisModel['cluster_stats'];
-      cluster_type: string;
+      cluster_type: ClusterTypes;
       cluster_type_name: string;
       disaster_tolerance_level: string;
       id: number;

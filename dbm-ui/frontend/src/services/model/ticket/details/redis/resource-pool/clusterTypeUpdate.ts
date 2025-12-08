@@ -1,6 +1,6 @@
 import { Affinity } from '@common/const';
 
-import type { ResourcePoolDetailBase } from '../../common';
+import type { ResourcePoolDetailBase } from '../../resource-pool';
 
 export interface ClusterTypeUpdate extends ResourcePoolDetailBase {
   data_check_repair_setting: {
@@ -27,6 +27,8 @@ export interface ClusterTypeUpdate extends ResourcePoolDetailBase {
       proxy: {
         affinity: Affinity.CROS_SUBZONE;
         count: number;
+        label_names: string[]; // 标签名称列表，单据详情回显用
+        labels: string[]; // 标签id列表
         spec_id: number;
       };
     };

@@ -3,7 +3,7 @@ import type { OnlineSwitchType } from '@services/types';
 
 import { Affinity } from '@common/const';
 
-import type { ResourcePoolDetailBase } from '../../common';
+import type { ResourcePoolDetailBase } from '../../resource-pool';
 
 export interface ScaleUpdown extends ResourcePoolDetailBase {
   infos: {

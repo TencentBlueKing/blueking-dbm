@@ -2,7 +2,7 @@ import RedisModel from '@services/model/redis/redis';
 
 import { Affinity } from '@common/const';
 
-import type { ResourcePoolDetailBase } from '../../common';
+import type { ResourcePoolDetailBase } from '../../resource-pool';
 
 export interface ClusterShardNumUpdate extends ResourcePoolDetailBase {
   data_check_repair_setting: {
