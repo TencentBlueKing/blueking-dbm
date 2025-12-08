@@ -28,7 +28,7 @@
       :key="item.value"
       v-bk-tooltips="{
         placement: 'right',
-        content: item.tooltips,
+        content: item.tooltips || '',
         disabled: !item.tooltips,
       }"
       :name="item.label"
@@ -45,7 +45,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  interface Props {
+  export interface Props {
     iconType: string;
     titleColor: string;
     triggerClassName: string;

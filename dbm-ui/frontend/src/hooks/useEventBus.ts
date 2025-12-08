@@ -12,12 +12,28 @@
  */
 
 import mitt from 'mitt';
+import { onBeforeUnmount } from 'vue';
 
 const emitter = mitt();
 
-export const useEventBus = () => ({
-  clearAll: emitter.all.clear,
-  emit: emitter.emit,
-  off: emitter.off,
-  on: emitter.on,
-});
+export const useEventBus = () => {
+  const eventQueue: [string, (params: any) => void][] = [];
+
+  const on = (event: string, callback: (params: any) => void) => {
+    emitter.on(event, callback);
+    eventQueue.push([event, callback]);
+  };
+
+  onBeforeUnmount(() => {
+    eventQueue.forEach(([event, callback]) => {
+      emitter.off(event, callback);
+    });
+  });
+
+  return {
+    clearAll: emitter.all.clear,
+    emit: emitter.emit,
+    off: emitter.off,
+    on,
+  };
+};
