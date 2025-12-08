@@ -24,13 +24,14 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import { ref, watch } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
 
-  import mysqlToolboxMenuConfig from '@views/db-manage/mysql/toolbox-menu';
+  import DbToolbox from '@views/db-manage/common/toolbox/Index.vue';
 
   interface Props {
     favorMap: Record<string, boolean>;
     id: string;
-    toolboxMenuConfig: typeof mysqlToolboxMenuConfig;
+    toolboxMenuConfig: ComponentProps<typeof DbToolbox>['menuList'];
   }
 
   const props = defineProps<Props>();

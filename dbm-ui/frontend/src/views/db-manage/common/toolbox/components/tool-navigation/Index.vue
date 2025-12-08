@@ -12,36 +12,33 @@
 -->
 
 <template>
-  <div class="oracle-manage-toolbox-side">
+  <div class="db-manage-toolbox-navigation">
     <BkInput
       v-model.tirm="serachKey"
-      class="toolbox-side-search"
+      class="tool-search"
       clearable
       :placeholder="t('请输入')"
       type="search" />
-
     <BkException
-      v-if="allRenderMenuGroupList.length === 0"
+      v-if="!isFilterMenuExit"
       class="pt-40"
       :description="t('搜索为空')"
       scene="part"
       type="search-empty" />
     <div
       v-else
-      class="toolbox-side-collapse">
+      class="tool-list-wrapper">
       <ScrollFaker>
-        <BkCollapse v-model="activeCollapses">
-          <Vuedraggable
-            v-model="allRenderMenuGroupList"
-            item-key="id">
-            <template #item="{ element }">
-              <RenderMenuGroup
-                :id="element.id"
-                v-model:favor-map="favorRouteNameMap"
-                :active-view-name="activeViewName"
-                :draggable="!Boolean(serachKey)" />
-            </template>
-          </Vuedraggable>
+        <BkCollapse :model-value="activeCollapseList">
+          <RenderMenuGroup
+            v-if="menuGroupList && menuGroupList.length > 0"
+            :menu-group-list="menuGroupList"
+            :menu-list="renderMenuList"
+            :serach-key="serachKey" />
+          <RenderMenuList
+            v-else
+            :data="renderMenuList"
+            :serach-key="serachKey" />
         </BkCollapse>
       </ScrollFaker>
     </div>
@@ -49,140 +46,154 @@
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
-  import Vuedraggable from 'vuedraggable';
 
-  import { useUserProfile } from '@stores';
+  import { useDebouncedRef } from '@hooks';
 
-  import { UserPersonalSettings } from '@common/const';
+  import { encodeRegexp } from '@utils';
 
-  import menusConfig from '@views/db-manage/oracle/toolbox-menu';
+  import RenderMenuGroup from './components/RenderMenuGroup.vue';
+  import RenderMenuList from './components/RenderMenuList.vue';
 
-  import { makeMap } from '@utils';
+  export interface Props {
+    data: {
+      children: {
+        bind?: string[];
+        dbConsoleValue?: string;
+        id: string;
+        name: string;
+      }[];
+      icon: string;
+      id: string;
+      name: string;
+    }[];
+    menuGroupList?: {
+      description: string;
+      id: string;
+      menuList: string[];
+      name: string;
+    }[];
+  }
 
-  import RenderMenuGroup from './components/MenuGroup.vue';
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
-  const route = useRoute();
-  const userProfileStore = useUserProfile();
 
-  const activeViewName = ref('');
-  const menuGroupIdList = menusConfig.map((item) => item.id);
+  const isFilterMenuExit = ref(true);
 
-  const serachKey = ref('');
-  const activeCollapses = ref([...menuGroupIdList]);
-  const allRenderMenuGroupList = ref<Record<'id' | 'name', string>[]>([]);
-  const favorRouteNameMap = ref<Record<string, boolean>>({});
+  const serachKey = useDebouncedRef('');
 
-  watch(
-    route,
-    () => {
-      activeViewName.value = route.name as string;
-    },
-    {
-      immediate: true,
-    },
-  );
+  const renderMenuList = computed(() => {
+    const regex = new RegExp(encodeRegexp(serachKey.value), 'i');
+    return props.data.reduce(
+      (result, item) => {
+        result.push({
+          ...item,
+          children: item.children.filter((child) => regex.test(child.name)),
+        });
+        return result;
+      },
+      [] as typeof props.data,
+    );
+  });
 
-  watch(
-    () => serachKey,
-    () => {
-      activeCollapses.value = [...menuGroupIdList];
-    },
-  );
-
-  watch(
-    () => userProfileStore.profile,
-    () => {
-      const userMenuGroupSortList =
-        (userProfileStore.profile[UserPersonalSettings.ORACLE_TOOLBOX_MENUS] as string[]) || [];
-      const allMenuGroupMap = makeMap(menuGroupIdList);
-      const renderMenuGroupList: string[] = [];
-      userMenuGroupSortList.forEach((item) => {
-        if (allMenuGroupMap[item]) {
-          renderMenuGroupList.push(item);
-          delete allMenuGroupMap[item];
-        }
-      });
-      allRenderMenuGroupList.value = renderMenuGroupList.concat(Object.keys(allMenuGroupMap)).map((item) => ({
-        id: item,
-        name: item,
-      }));
-
-      favorRouteNameMap.value = makeMap(
-        userProfileStore.profile[UserPersonalSettings.ORACLE_TOOLBOX_FAVOR] as string[],
-      );
-    },
-    {
-      immediate: true,
-    },
-  );
-
-  // 拖动排序
-  watch(allRenderMenuGroupList, () => {
-    userProfileStore.updateProfile({
-      label: UserPersonalSettings.ORACLE_TOOLBOX_MENUS,
-      values: allRenderMenuGroupList.value.map((item) => item.id),
-    });
+  const activeCollapseList = computed(() => {
+    return renderMenuList.value.map((item) => item.id);
   });
 </script>
-
 <style lang="less">
   @import '@styles/mixins.less';
 
-  .oracle-manage-toolbox-side {
+  .db-manage-toolbox-navigation {
     height: 100%;
     padding: 16px 0;
     background-color: #f5f7fa;
 
-    .toolbox-side-search {
+    .tool-search {
       display: flex;
       width: calc(100% - 32px);
       margin: 0 auto;
     }
 
-    .toolbox-side-collapse {
+    .tool-list-wrapper {
       height: calc(100% - 40px);
       margin-top: 8px;
+
+      .tool-group-name {
+        height: 32px;
+        padding-left: 21px;
+        margin: 16px 0 4px;
+        line-height: 32px;
+        background: #eaebf0;
+
+        .type-title {
+          font-size: 12px;
+          color: #313238;
+        }
+
+        .type-icon {
+          margin-left: 4px;
+        }
+      }
 
       .drag-move {
         transition: all 0.5s ease;
       }
     }
 
-    .bk-collapse-title {
-      display: block;
-      margin-left: 0;
+    .bk-collapse-wrapper {
+      .bk-collapse-header {
+        height: 32px;
+        padding: 0 16px;
+        line-height: 32px;
+        background: transparent;
+
+        .bk-collapse-title {
+          display: block;
+          margin-left: 0;
+        }
+
+        &:hover {
+          background-color: unset;
+        }
+      }
+
+      .bk-collapse-content {
+        padding: 0 16px;
+      }
+
+      .bk-collapse-icon {
+        display: none !important;
+      }
+
+      .bk-collapse-item {
+        margin-bottom: 16px;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+
+      .bk-collapse-item-active {
+        .toolbox-side-status {
+          transform: rotate(0);
+        }
+      }
     }
 
-    .bk-collapse-header {
+    .toolbox-menu-group-name {
       height: 32px;
-      padding: 0 16px;
+      padding-left: 21px;
+      margin: 16px 0 4px;
       line-height: 32px;
+      background: #eaebf0;
 
-      &:hover {
-        background-color: unset;
+      .type-title {
+        font-size: 12px;
+        color: #313238;
       }
-    }
 
-    .bk-collapse-content {
-      padding: 0 16px;
-    }
-
-    .bk-collapse-icon {
-      display: none !important;
-    }
-
-    .bk-collapse-item {
-      margin-bottom: 16px;
-
-      &:last-child {
-        margin-bottom: 0;
-      }
-    }
-
-    .bk-collapse-item-active {
-      .toolbox-side-status {
-        transform: rotate(0);
+      .type-icon {
+        margin-left: 4px;
       }
     }
 
