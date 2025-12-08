@@ -43,6 +43,7 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
             "ip":"1.1.1.x",
             "ports":[],
             "force_shutdown":False,
+            "skip_connections_check":False,
         }
     """
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
@@ -79,11 +80,14 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
     if "ignore_ips" in shutdown_param:
         act_kwargs.cluster["ignore_keys"].extend(shutdown_param["ignore_ips"])
     act_kwargs.get_redis_payload_func = RedisActPayload.redis_capturer_4_scene.__name__
-    sub_pipeline.add_act(
-        act_name=_("请求检查-{}").format(exec_ip),
-        act_component_code=ExecuteDBActuatorScriptComponent.code,
-        kwargs=asdict(act_kwargs),
-    )
+
+    # 演练场景，跳过请求检查
+    if not shutdown_param.get("skip_connections_check", False):
+        sub_pipeline.add_act(
+            act_name=_("请求检查-{}").format(exec_ip),
+            act_component_code=ExecuteDBActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
 
     # 停监控
     act_kwargs.cluster["servers"] = [

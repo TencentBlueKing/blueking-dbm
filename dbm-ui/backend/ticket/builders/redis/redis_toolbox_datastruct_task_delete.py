@@ -62,6 +62,7 @@ class RedisDataStructureTaskDeleteDetailSerializer(RedisBaseOperateDetailSeriali
 
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
     ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
+    skip_connections_check = serializers.BooleanField(help_text=_("跳过请求检查"), default=False)
 
 
 class RedisDataStructureTaskDeleteParamBuilder(builders.FlowParamBuilder):
