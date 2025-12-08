@@ -385,9 +385,19 @@ class TenDBRemoteRebalanceFlow(object):
                     uninstall_svr_sub_pipeline.build_sub_process(sub_name=_("卸载remote节点{}".format(ip)))
                 )
 
-            # === 主流程 ===
-            # 安装实例
+            # === 主流程 串联各个子流程 ===
+            if len(sync_data_sub_pipeline_list) == 0:
+                raise Exception(_("同步子流程列表为空,请检查备份信息是否缺失"))
+            if (
+                len(install_sub_pipeline_list) == 0
+                or len(uninstall_svr_sub_pipeline_list) == 0
+                or len(instances) == 0
+                or len(switch_sub_pipeline_list) == 0
+            ):
+                raise Exception(_("安装/卸载/新实例/切换实例为空,请检查参数"))
+            # 安装remote节点
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=install_sub_pipeline_list)
+            # 屏蔽新节点告警
             tendb_migrate_pipeline.add_act(
                 act_name=_("屏蔽告警24小时"),
                 act_component_code=AddAlarmShieldComponent.code,
@@ -402,8 +412,7 @@ class TenDBRemoteRebalanceFlow(object):
                     ],
                 },
             )
-            # 数据同步
-            tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=sync_data_sub_pipeline_list)
+            # 添加checksum单据
             if self.data["need_checksum"]:
                 tendb_migrate_pipeline.add_act(
                     act_name=_("生成checksum单据"),
@@ -417,7 +426,9 @@ class TenDBRemoteRebalanceFlow(object):
                         )
                     ),
                 )
-            # 切换前安装周边
+            # 新实例同步数据
+            tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=sync_data_sub_pipeline_list)
+            # 同步完安装周边
             tendb_migrate_pipeline.add_sub_pipeline(
                 sub_flow=standardize_mysql_cluster_subflow(
                     root_id=self.root_id,
@@ -433,11 +444,13 @@ class TenDBRemoteRebalanceFlow(object):
                     with_cc_standardize=False,
                 )
             )
-            # 人工确认切换迁移实例
-            tendb_migrate_pipeline.add_act(act_name=_("人工确认切换"), act_component_code=PauseComponent.code, kwargs={})
-            # 切换迁移实例
+            # 人工确定切换
+            tendb_migrate_pipeline.add_act(
+                act_name=_("人工确认切换 {}".format(cluster_class.name)), act_component_code=PauseComponent.code, kwargs={}
+            )
+            # 切换到新实例
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=switch_sub_pipeline_list)
-            #  新机器安装周边组件
+            # 切换后重安装周边
             tendb_migrate_pipeline.add_sub_pipeline(
                 sub_flow=standardize_mysql_cluster_subflow(
                     root_id=self.root_id,
@@ -453,21 +466,24 @@ class TenDBRemoteRebalanceFlow(object):
                     with_cc_standardize=False,
                 )
             )
-
+            # 解除告警屏蔽
             tendb_migrate_pipeline.add_act(
                 act_name=DisableAlarmShieldComponent.node_name,
                 act_component_code=DisableAlarmShieldComponent.code,
                 kwargs={},
             )
 
-            # 卸载流程人工确认
+            # 人工确定卸载实例
             tendb_migrate_pipeline.add_act(act_name=_("人工确认卸载实例"), act_component_code=PauseComponent.code, kwargs={})
-            # 卸载remote节点
+            # 卸载实例
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=uninstall_svr_sub_pipeline_list)
+            # 集群维度构建子流程
             tendb_migrate_pipeline_all_list.append(
                 tendb_migrate_pipeline.build_sub_process(_("集群迁移{}").format(cluster_class.id))
             )
-
-        # 运行流程
+        # 主流程并发执行所有集群迁移子流程
+        if len(tendb_migrate_pipeline_all_list) == 0:
+            raise Exception(_("没有生成集群迁移流程"))
         tendb_migrate_pipeline_all.add_parallel_sub_pipeline(tendb_migrate_pipeline_all_list)
+        # 执行主流程
         tendb_migrate_pipeline_all.run_pipeline(init_trans_data_class=ClusterInfoContext(), is_drop_random_user=True)

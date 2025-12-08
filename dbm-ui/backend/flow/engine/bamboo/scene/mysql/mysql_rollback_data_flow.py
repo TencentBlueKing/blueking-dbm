@@ -159,6 +159,24 @@ class MySQLRollbackDataFlow(object):
                 "master_port": master.port,
                 "master_ip": master.machine.ip,
             }
+            sub_pipeline.add_act(
+                act_name=_("屏蔽告警24小时"),
+                act_component_code=AddAlarmShieldComponent.code,
+                kwargs={
+                    "duration_seconds": 24 * 3600,
+                    "description": cluster_class.immute_domain,
+                    "dimensions": [
+                        {
+                            "name": "instance_host",
+                            "values": [self.data["rollback_ip"]],
+                        },
+                        # {
+                        #     "name": "instance_port",
+                        #     "values": [master.port],
+                        # },
+                    ],
+                },
+            )
             backup_info, rollback_sub_flow = tendbha_rollback_data_sub_flow(
                 root_id=self.root_id,
                 uid=self.ticket_data["uid"],
@@ -167,7 +185,11 @@ class MySQLRollbackDataFlow(object):
             )
             cluster_info["backupinfo"] = copy.deepcopy(backup_info)
             sub_pipeline.add_sub_pipeline(sub_flow=rollback_sub_flow)
-
+            sub_pipeline.add_act(
+                act_name=DisableAlarmShieldComponent.node_name,
+                act_component_code=DisableAlarmShieldComponent.code,
+                kwargs={},
+            )
             sub_pipeline_list.append(sub_pipeline.build_sub_process(sub_name=_("定点恢复")))
 
         mysql_restore_slave_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipeline_list)
