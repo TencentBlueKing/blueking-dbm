@@ -1,28 +1,28 @@
 <template>
-  <BkCollapsePanel :name="currentConfig.id">
+  <BkCollapsePanel :name="data.id">
     <div class="toolbox-side-header">
       <DbIcon
         class="toolbox-side-status"
         type="down-shape" />
       <i
         class="toolbox-side-icon"
-        :class="currentConfig.icon" />
+        :class="data.icon" />
       <span
         v-overflow-tips
         class="toolbox-side-title text-overflow">
-        {{ currentConfig.name }}
+        {{ data.name }}
       </span>
       <span
-        v-if="draggable"
         class="toolbox-side-drag"
         @click.stop />
     </div>
     <template #content>
       <div class="toolbox-side-content">
         <template
-          v-for="item of currentConfig.children"
+          v-for="item of data.children"
           :key="item.id">
           <div
+            v-db-console="item.dbConsoleValue"
             class="toolbox-side-item"
             :class="{
               'toolbox-side-item--active': item.id === activeViewName,
@@ -48,58 +48,53 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
+  import { storeToRefs } from 'pinia';
   import { useI18n } from 'vue-i18n';
-  import { useRouter } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
 
   import { useEventBus } from '@hooks';
 
   import { useUserProfile } from '@stores';
 
-  import { UserPersonalSettings } from '@common/const';
-
-  import MenuConfig, { type MenuChild } from '@views/db-manage/sqlserver/toolbox-menu';
-
-  import { messageSuccess } from '@utils';
+  import { makeMap, messageSuccess } from '@utils';
 
   interface Props {
-    draggable: boolean;
-    id: string;
+    data: {
+      children: {
+        bind?: string[];
+        dbConsoleValue: string;
+        id: string;
+        name: string;
+      }[];
+      icon: string;
+      id: string;
+      name: string;
+    };
   }
 
   const props = defineProps<Props>();
 
-  const favorMap = defineModel<Record<string, boolean>>('favorMap', {
-    required: true,
-  });
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
-  const userProfileStore = useUserProfile();
+  const profileStore = useUserProfile();
+  const { profile } = storeToRefs(profileStore);
   const eventBus = useEventBus();
 
-  const currentConfig = _.find(MenuConfig, (item) => item.id === props.id) as (typeof MenuConfig)[number];
-
-  const configChildrenMap = currentConfig!.children.reduce<Record<string, MenuChild>>((acc, item) => {
-    if (item.bind) {
-      item.bind.forEach((routerName) => {
-        Object.assign(acc, {
-          [routerName]: item,
-        });
-      });
-    }
-    Object.assign(acc, {
-      [item.id]: item,
-    });
-    return acc;
-  }, {});
-
+  const profileFavorKey = `${route.meta.dbType}_toolbox_favor`.toUpperCase();
   const activeViewName = ref('');
+
+  const favorMap = computed(() => {
+    return makeMap(profile.value[profileFavorKey] || []);
+  });
 
   watch(
     route,
     () => {
-      const routeName = (route.name as string) || '';
-      activeViewName.value = configChildrenMap[routeName]?.id;
+      const activeItem = _.find(props.data.children, (item) =>
+        Boolean(item.bind?.includes(route.name as string) || route.name === item.id),
+      );
+      activeViewName.value = activeItem ? activeItem.id : '';
     },
     {
       immediate: true,
@@ -122,15 +117,14 @@
       lastFavorMap[routerName] = true;
       successMessage = t('收藏成功');
     }
-    userProfileStore
+    profileStore
       .updateProfile({
-        label: UserPersonalSettings.SPIDER_TOOLBOX_FAVOR,
+        label: profileFavorKey,
         values: Object.keys(lastFavorMap),
       })
       .then(() => {
         messageSuccess(successMessage);
-        favorMap.value = lastFavorMap;
-        eventBus.emit('SPIDER_TOOLBOX_CHANGE');
+        eventBus.emit('DB_MANAGE_TOOLBOX_FAVOR_CHANGE');
       });
   };
 </script>

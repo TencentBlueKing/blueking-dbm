@@ -169,7 +169,7 @@ const mysqlToolboxRouters: RouteRecordRaw[] = [
     redirect: {
       name: TicketTypes.MYSQL_IMPORT_SQLFILE,
     },
-    component: () => import('@views/db-manage/mysql/toolbox/index.vue'),
+    component: () => import('@/views/db-manage/mysql/toolbox/IndexNew.vue'),
     children: [
       ...mysqlToolboxChildrenRouters,
       {

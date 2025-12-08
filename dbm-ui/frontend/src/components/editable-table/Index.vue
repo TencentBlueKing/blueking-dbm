@@ -67,6 +67,8 @@
     watch,
   } from 'vue';
 
+  import { useEventBus } from '@hooks';
+
   import Column, { type IContext as IColumnContext } from './Column.vue';
   import RenderHeader from './component/render-header/Index.vue';
   import Block from './edit/Block.vue';
@@ -137,6 +139,7 @@
 
   const slots = defineSlots<Slots>();
 
+  const eventBus = useEventBus();
   const tableRef = ref<HTMLElement>();
   const scrollXRef = ref<HTMLElement>();
   const resizePlaceholderRef = ref<HTMLElement>();
@@ -182,6 +185,7 @@
       if (isUserChange.value) {
         window.changeConfirm = true;
       }
+      eventBus.emit('editable-table-model-change');
     },
     { deep: true },
   );
