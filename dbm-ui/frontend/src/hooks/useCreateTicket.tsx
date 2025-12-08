@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router';
 
 import { createTicketNew } from '@services/source/ticket';
 
-import { useTicketMessage } from '@hooks';
+import { useEventBus, useTicketMessage } from '@hooks';
 
 import { type TicketTypes } from '@common/const';
 
@@ -14,6 +14,7 @@ export function useCreateTicket<T>(ticketType: TicketTypes, options?: { onSucces
   const loading = ref(false);
   const router = useRouter();
   const route = useRoute();
+  const eventBus = useEventBus();
   const { locale, t } = useI18n();
   const ticketMessage = useTicketMessage();
 
@@ -66,13 +67,25 @@ export function useCreateTicket<T>(ticketType: TicketTypes, options?: { onSucces
           options.onSuccess(ticketId);
         }
       }
-    } catch (e: any) {
-      const { code, data, message } = e;
+    } catch (error: unknown) {
+      const {
+        code,
+        data,
+        error: errorMessage = [] as any[],
+        message,
+      } = error as {
+        code: number;
+        data: {
+          duplicate_ticket_id: number;
+        };
+        error: string[];
+        message: string;
+      };
       const duplicateCode = 8704005;
       if (code === duplicateCode) {
         const id = data.duplicate_ticket_id;
+        eventBus.emit('db-toolbox-error');
 
-        // fix InfoBox
         setTimeout(() => {
           InfoBox({
             cancelText: t('取消提单'),
@@ -125,8 +138,10 @@ export function useCreateTicket<T>(ticketType: TicketTypes, options?: { onSucces
             title: t('是否继续提交单据'),
           });
         });
+      } else if (errorMessage.length > 0) {
+        eventBus.emit('db-toolbox-error', errorMessage.map((item) => item.errors).join(','));
       } else {
-        messageError(message);
+        eventBus.emit('db-toolbox-error', message);
       }
     } finally {
       loading.value = false;
