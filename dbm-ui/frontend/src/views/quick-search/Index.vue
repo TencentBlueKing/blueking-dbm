@@ -131,12 +131,12 @@
   const panelList = reactive([
     {
       count: 0,
-      label: t('访问入口（域名 / CLB / 北极星）'),
+      label: t('访问入口'),
       name: 'entry',
     },
     {
       count: 0,
-      label: t('实例（IP / IP:Port）'),
+      label: t('实例'),
       name: 'instance',
     },
     {
@@ -146,7 +146,7 @@
     },
     {
       count: 0,
-      label: t('历史任务'),
+      label: t('任务'),
       name: 'task',
     },
     {

@@ -131,7 +131,7 @@
     },
     {
       id: 'ticket',
-      name: t('单据'),
+      name: t('单据ID'),
     },
   ];
 
