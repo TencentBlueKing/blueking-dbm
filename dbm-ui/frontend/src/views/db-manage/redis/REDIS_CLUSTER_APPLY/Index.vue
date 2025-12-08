@@ -82,7 +82,7 @@
             required>
             <DeployVersion
               v-model="formData.details.db_version"
-              db-type="redis"
+              :db-type="DBTypes.REDIS"
               :query-key="typeInfos.pkg_type" />
           </BkFormItem>
           <BkFormItem

@@ -47,7 +47,7 @@
           required>
           <DeployVersion
             v-model="formData.details.db_version"
-            db-type="hdfs"
+            :db-type="DBTypes.HDFS"
             query-key="hdfs" />
         </BkFormItem>
         <!-- <BkFormItem

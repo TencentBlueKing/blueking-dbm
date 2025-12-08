@@ -45,7 +45,7 @@
           required>
           <DeployVersion
             v-model="formData.details.db_version"
-            db-type="influxdb"
+            :db-type="DBTypes.INFLUXDB"
             query-key="influxdb" />
         </BkFormItem>
         <!-- <BkFormItem

@@ -46,7 +46,7 @@
           required>
           <DeployVersion
             v-model="formData.details.db_version"
-            db-type="es"
+            :db-type="DBTypes.ES"
             query-key="es" />
         </BkFormItem>
         <!-- <BkFormItem
