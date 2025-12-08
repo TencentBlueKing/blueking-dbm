@@ -97,7 +97,7 @@ func (sw *BaseSwitchInstance) GetInstanceInfo() string {
 
 // SetInstanceUnavailable marks the instance as unavailable
 func (sw *BaseSwitchInstance) SetInstanceUnavailable() error {
-	err := sw.dbmClient.UpdateInstanceStatus(sw.IP, sw.Port, dbm.Unavailable)
+	err := sw.dbmClient.UpdateInstanceStatus(sw.BkCloudID, sw.IP, sw.Port, dbm.Unavailable)
 	return err
 }
 
@@ -111,7 +111,7 @@ func (sw *BaseSwitchInstance) releaseDNSEntry(dnsEntries []dbm.BindEntryDnsInfo)
 	for _, dns := range dnsEntries {
 		if (sw.MachineType == haprobe.DbmMetadataMachineTypeProxy) ||
 			(sw.MachineType == haprobe.DbmMetadataMachineTypeSpider) {
-			addressNum, err := sw.dbmClient.GetAddressNumberOfDomain(dns.DomainName)
+			addressNum, err := sw.dbmClient.GetAddressNumberOfDomain(sw.BkCloudID, dns.DomainName)
 			if err != nil {
 				sw.ReportLog(SwitchFail,
 					fmt.Sprintf("failed to get address number of domain (%s): %v", dns.DomainName, err))
@@ -133,7 +133,7 @@ func (sw *BaseSwitchInstance) releaseDNSEntry(dnsEntries []dbm.BindEntryDnsInfo)
 			}
 
 			ins := fmt.Sprintf("%s#%d", ip, dns.BindPort)
-			err := sw.dbmClient.DeleteFromDomain(dns.DomainName, ins, sw.GetApp())
+			err := sw.dbmClient.DeleteFromDomain(sw.BkCloudID, dns.DomainName, ins, sw.GetApp())
 			if err != nil {
 				sw.ReportLog(SwitchFail, fmt.Sprintf("failed to delete ip(%s) from domain(%s): %s",
 					ip, dns.DomainName, err.Error()))
@@ -165,7 +165,7 @@ func (sw *BaseSwitchInstance) releaseCLBEntry(clbEntries []dbm.BindEntryClbInfo)
 
 			ins := fmt.Sprintf("%s:%d", ip, clb.BindPort)
 			err := sw.dbmClient.DeleteFromCLB(
-				clb.Region, clb.LoadBalanceId, clb.ListenId, ins,
+				sw.BkCloudID, clb.Region, clb.LoadBalanceId, clb.ListenId, ins,
 			)
 			if err != nil {
 				sw.ReportLog(SwitchFail,
@@ -199,7 +199,7 @@ func (sw *BaseSwitchInstance) releasePolarisEntry(polarisEntries []dbm.BindEntry
 
 			ins := fmt.Sprintf("%s:%d", ip, pinfo.BindPort)
 			err := sw.dbmClient.DeleteFromPolaris(
-				pinfo.Service, pinfo.Token, ins,
+				sw.BkCloudID, pinfo.Service, pinfo.Token, ins,
 			)
 			if err != nil {
 				sw.ReportLog(SwitchFail,

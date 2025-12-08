@@ -199,7 +199,7 @@ func NewMySQLSwitchInstance(metadata *MySQLInstanceMetadata) (SwitchableInstance
 			ClusterType:  metadata.ClusterType,
 			MachineType:  metadata.MachineType,
 			InstanceRole: metadata.InstanceRole,
-			dbmClient:    &dbm.Client{BkCloudID: metadata.BkCloudID},
+			dbmClient:    &dbm.Client{},
 		},
 		AdminPort:        metadata.AdminPort,
 		BindEntry:        metadata.BindEntry,
@@ -893,11 +893,11 @@ func (sw *MySQLStorageSwitchInstance) CheckBeforeSwitch() (checkPass bool, err e
 // SwitchProxyBackendAddress switches proxy backend to new address
 func SwitchProxyBackendAddress(proxyIp string, proxyAdminPort int, proxyUser string, proxyPasswd string,
 	slaveIp string, slavePort int) error {
-	proxyDB, err := hamysql.NewProxy(
-		proxyIp,
-		proxyAdminPort,
-		proxyUser,
-		proxyPasswd,
+	proxyDB, err := hamysql.NewSqlxDB(
+		hamysql.OptionIP(proxyIp),
+		hamysql.OptionPort(proxyAdminPort),
+		hamysql.OptionUser(proxyUser),
+		hamysql.OptionPassword(proxyPasswd),
 	)
 	if err != nil {
 		logger.Warn("failed to create mysql proxy instance(%s:%d), %v", proxyIp, proxyAdminPort, err)
@@ -1006,7 +1006,7 @@ func (sw *MySQLStorageSwitchInstance) DoSwitch() error {
 
 // UpdateMetaInfo updates metadata after switching
 func (sw *MySQLStorageSwitchInstance) UpdateMetaInfo() error {
-	err := sw.dbmClient.SwapMySQLRole(sw.IP, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port)
+	err := sw.dbmClient.SwapMySQLRole(sw.BkCloudID, sw.IP, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port)
 	if err != nil {
 		errMsg := fmt.Sprintf("failed to swap db-mysql role [master:%s:%d, slave:%s:%d]. errmsg:%s",
 			sw.IP, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port, err.Error())
@@ -1048,7 +1048,7 @@ func (sw *MySQLStorageSwitchInstance) DoFinal() error {
 		},
 	}
 
-	err := sw.dbmClient.SwitchBinlogDumper(sw.GetApp(), switchInfos)
+	err := sw.dbmClient.SwitchBinlogDumper(sw.BkCloudID, sw.GetApp(), switchInfos)
 	if err != nil {
 		errMsg := fmt.Sprintf("failed to switch all tbinlogdumpers for the node(%s:%d), errmsg: %s",
 			sw.IP, sw.Port, err.Error())

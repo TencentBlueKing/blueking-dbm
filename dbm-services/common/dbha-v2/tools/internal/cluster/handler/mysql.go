@@ -151,11 +151,11 @@ func (hdl *MysqlClusterHandler) getInstanceList(cluster *config.MysqlCluster) []
 
 func (hdl *MysqlClusterHandler) switchProxyBackend(proxyIp string, proxyAdminPort int,
 	targetIp string, targetPort int) error {
-	proxyDB, err := hamysql.NewProxy(
-		proxyIp,
-		proxyAdminPort,
-		config.ClusterConfig.AuthInfo.ProxyUser,
-		config.ClusterConfig.AuthInfo.ProxyPassword,
+	proxyDB, err := hamysql.NewSqlxDB(
+		hamysql.OptionIP(proxyIp),
+		hamysql.OptionPort(proxyAdminPort),
+		hamysql.OptionUser(config.ClusterConfig.AuthInfo.ProxyUser),
+		hamysql.OptionPassword(config.ClusterConfig.AuthInfo.ProxyPassword),
 	)
 	if err != nil {
 		return gerrors.Newf(gerrors.Failure, "failed to connect to proxy(%s:%d), errmsg: %s",
