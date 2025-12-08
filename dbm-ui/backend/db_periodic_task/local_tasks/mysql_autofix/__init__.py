@@ -8,8 +8,4 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from backend.db_periodic_task.local_tasks.mysql_autofix.dbha import (
-    mysql_dbha_af_commiter,
-    mysql_dbha_af_schedule,
-    mysql_dbha_af_tracking_tickets,
-)
+from .dbha import mysql_dbha_af_commiter, mysql_dbha_af_schedule, mysql_dbha_af_tracking_tickets

@@ -12,7 +12,13 @@ from typing import List
 
 from django.utils.translation import gettext_lazy as _
 
-from backend.db_meta.enums import ClusterEntryRole, InstancePhase, InstanceStatus, TenDBClusterSpiderRole
+from backend.db_meta.enums import (
+    ClusterEntryRole,
+    ClusterEntryType,
+    InstancePhase,
+    InstanceStatus,
+    TenDBClusterSpiderRole,
+)
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.check_response import CheckResponse
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.decorator import checker_wrapper
@@ -25,7 +31,7 @@ def _cluster_entry_on_spider(c: Cluster) -> List[CheckResponse]:
     访问入口 bind 到 spider 的数量必须和集群正常 spider 相等
     """
     bad = []
-    for ce in c.clusterentry_set.all():
+    for ce in c.clusterentry_set.filter(forward_to__isnull=True, cluster_entry_type=ClusterEntryType.DNS):
 
         if ce.role == ClusterEntryRole.MASTER_ENTRY:
             spider_role = TenDBClusterSpiderRole.SPIDER_MASTER
@@ -58,7 +64,7 @@ def _cluster_entry_on_storage(c: Cluster) -> List[CheckResponse]:
     访问入口不能 bind 到存储
     """
     bad = []
-    for ce in c.clusterentry_set.all():
+    for ce in c.clusterentry_set.filter(forward_to__isnull=True):
         for si in ce.storageinstance_set.all():
             bad.append(
                 CheckResponse(
