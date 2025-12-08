@@ -56,7 +56,7 @@
           required>
           <DeployVersion
             v-model="formData.version"
-            db-type="mysql"
+            :db-type="DBTypes.MYSQL"
             :placeholder="t('请选择数据库版本')"
             query-key="mysql" />
         </BkFormItem>
@@ -133,7 +133,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { mysqlType, type MysqlTypeString } from '@common/const';
+  import { DBTypes, mysqlType, type MysqlTypeString } from '@common/const';
 
   import ParameterTable from '@views/db-configure/components/ParameterTable.vue';
   import { type DiffItem, useDiff } from '@views/db-configure/hooks/useDiff';

@@ -45,7 +45,7 @@
           required>
           <DeployVersion
             v-model="formData.details.db_version"
-            db-type="pulsar"
+            :db-type="DBTypes.PULSAR"
             query-key="pulsar" />
         </BkFormItem>
         <!-- <BkFormItem

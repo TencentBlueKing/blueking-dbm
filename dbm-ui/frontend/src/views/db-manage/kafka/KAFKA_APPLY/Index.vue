@@ -46,7 +46,7 @@
           required>
           <DeployVersion
             v-model="formData.details.db_version"
-            db-type="kafka"
+            :db-type="DBTypes.KAFKA"
             query-key="kafka" />
         </BkFormItem>
         <!-- <BkFormItem
