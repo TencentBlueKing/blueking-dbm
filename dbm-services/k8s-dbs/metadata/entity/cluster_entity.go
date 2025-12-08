@@ -47,6 +47,7 @@ type K8sCrdClusterEntity struct {
 	BkAppCode           string                      `json:"bkAppCode"`
 	Tags                []*K8sCrdClusterTagEntity   `json:"tags"`
 	Status              string                      `json:"status"`
+	VIP                 string                      `json:"vip"`
 	Description         string                      `json:"description"`
 	CreatedBy           string                      `json:"createdBy"`
 	CreatedAt           commtypes.JSONDatetime      `json:"createdAt"`

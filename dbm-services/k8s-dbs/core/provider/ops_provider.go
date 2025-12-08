@@ -23,13 +23,24 @@ import (
 	"fmt"
 	commentity "k8s-dbs/common/entity"
 	commutil "k8s-dbs/common/util"
+	coreconst "k8s-dbs/core/constant"
+	infrautil "k8s-dbs/infrastructure/util"
+	"os"
+	"runtime"
+
+	"github.com/samber/lo"
+
 	coreentity "k8s-dbs/core/entity"
 	coreutil "k8s-dbs/core/util"
 	dbserrors "k8s-dbs/errors"
+	"k8s-dbs/infrastructure/thirdapi"
+
 	metaentity "k8s-dbs/metadata/entity"
 	metaprovider "k8s-dbs/metadata/provider"
 	metautil "k8s-dbs/metadata/util"
 	"log/slog"
+
+	"reflect"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
@@ -41,6 +52,11 @@ import (
 	addonopschecker "k8s-dbs/core/checker/addonoperation"
 )
 
+// 需要异步处理的函数名列表
+var asyncFuncNames = []string{
+	"k8s-dbs/core/provider.(*OpsRequestProvider).doExposeCluster-fm",
+}
+
 // OpsRequestProvider the OpsRequest provider struct
 type OpsRequestProvider struct {
 	opsRequestProvider    metaprovider.K8sCrdOpsRequestProvider
@@ -49,6 +65,7 @@ type OpsRequestProvider struct {
 	clusterConfigProvider metaprovider.K8sClusterConfigProvider
 	reqRecordProvider     metaprovider.ClusterRequestRecordProvider
 	releaseMetaProvider   metaprovider.AddonClusterReleaseProvider
+	dbmAPIService         *thirdapi.DbmAPIService
 }
 
 // OpsRequestProviderOption OpsRequestProvider 的函数选项
@@ -124,6 +141,15 @@ func (o *OpsRequestProviderBuilder) WithClusterProvider(
 	}
 }
 
+// WithDbmAPIService 设置 DbmAPIService
+func (o *OpsRequestProviderBuilder) WithDbmAPIService(
+	service *thirdapi.DbmAPIService,
+) OpsRequestProviderOption {
+	return func(p *OpsRequestProvider) {
+		p.dbmAPIService = service
+	}
+}
+
 // ClusterOperationFn 集群运维操作函数定义
 type ClusterOperationFn func(*commentity.DbsContext, *coreentity.Request) (*coreentity.Metadata, error)
 
@@ -176,9 +202,25 @@ func (o *OpsRequestProvider) withMetaDataSync(
 	}
 
 	// 更新 cluster 元数据
-	_, err = metautil.UpdateClusterMeta(o.clusterMetaProvider, dbsCtx, request)
+	updatedClusterEntity, err := metautil.UpdateClusterMeta(o.clusterMetaProvider, dbsCtx, request)
 	if err != nil {
 		return nil, err
+	}
+
+	// 同步逻辑
+	asyncToDBM := os.Getenv(coreconst.AsyncToDBMEnv)
+	if asyncToDBM == coreconst.AsyncToDBMEnabled {
+		funcValue := reflect.ValueOf(clusterOpsFn)
+		if !funcValue.IsNil() && funcValue.Kind() == reflect.Func {
+			if funcPC := funcValue.Pointer(); funcPC != 0 {
+				if funcInfo := runtime.FuncForPC(funcPC); funcInfo != nil {
+					funcName := funcInfo.Name()
+					if lo.Contains(asyncFuncNames, funcName) {
+						infrautil.AsyncClusterExposed(updatedClusterEntity, o.dbmAPIService)
+					}
+				}
+			}
+		}
 	}
 	return result, nil
 }
@@ -819,6 +861,9 @@ func (o *OpsRequestProvider) validateProvider() error {
 	}
 	if o.clusterConfigProvider == nil {
 		return fmt.Errorf("missing clusterConfigProvider")
+	}
+	if o.dbmAPIService == nil {
+		return errors.New("dbmAPIService is required")
 	}
 	return nil
 }
