@@ -7,10 +7,8 @@
       <template #item="{ element }">
         <RenderMenuGroup
           :id="element.id"
-          v-model:favor-map="favorRouteNameMap"
-          :active-view-name="activeViewName"
-          :draggable="!Boolean(serachKey)"
-          :serach-key="serachKey" />
+          :data="element"
+          :draggable="!Boolean(serachKey)" />
       </template>
     </Vuedraggable>
   </BkCollapse>
@@ -23,15 +21,21 @@
 
   import { UserPersonalSettings } from '@common/const';
 
-  import { type MenuItem } from '@views/db-manage/redis/toolbox-menu';
-
   import { makeMap } from '@utils';
 
-  import RenderMenuGroup from './MenuGroup.vue';
+  import RenderMenuGroup from './RenderMenuItem.vue';
 
   interface Props {
-    activeViewName: string;
-    list: MenuItem[];
+    list: {
+      children: {
+        dbConsoleValue: string;
+        id: string;
+        name: string;
+      }[];
+      icon: string;
+      id: string;
+      name: string;
+    }[];
     serachKey: string;
   }
 
