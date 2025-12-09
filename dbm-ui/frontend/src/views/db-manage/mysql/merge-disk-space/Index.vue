@@ -15,8 +15,19 @@
   <SmartAction class="db-toolbox">
     <BkAlert
       class="mb-20"
-      closable
-      :title="t('DB 克隆：将源集群的指定database表结构和数据完整克隆到新集群中， database名不变')" />
+      closable>
+      <template #title>
+        <div style="white-space: pre-line">
+          {{ t('空间评估：评估将源集群的DB数据合并到目标集群DB磁盘空间使用情况。') }}
+          <br />
+          {{
+            t(
+              '重要提示：（1）需要结合业务的数据合并逻辑，比如合并过程是否会产生临时数据，决策是否接受评估建议； （2）评估建议为理论预估，可能与实际情况存在差异，数据仅供参考',
+            )
+          }}
+        </div>
+      </template>
+    </BkAlert>
     <BatchInput
       :config="batchInputConfig"
       @change="handleBatchInput" />
@@ -27,7 +38,7 @@
       <EditableTable
         :key="tableKey"
         ref="table"
-        class="mb-20"
+        class="mt-20 mb-20"
         :model="formData.tableData">
         <EditableRow
           v-for="(item, index) in formData.tableData"
@@ -38,19 +49,8 @@
             :label="t('源集群')"
             :selected="selected"
             @batch-edit="handleBatchEditCluster" />
-          <EditableColumn
-            :disabled-method="disabledMethod"
-            field="data_schema_grant"
-            :label="t('克隆类型')"
-            :min-width="200"
-            required>
-            <EditableSelect
-              v-model="item.data_schema_grant"
-              :list="cloneTypeList" />
-          </EditableColumn>
           <DbNameColumn
             v-model="item.clone_db_list"
-            check-not-exist
             :cluster-id="item.source_cluster?.id"
             field="clone_db_list"
             :label="t('克隆 DB 名')"
@@ -64,13 +64,13 @@
             @batch-edit="handleBatchEdit" />
           <TargetClusterColumn
             v-model="item.target_clusters"
-            :cluster="item.source_cluster" />
+            :cluster="item.source_cluster"
+            single />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
         </EditableRow>
       </EditableTable>
-      <TicketPayload v-model="formData.payload" />
     </BkForm>
     <template #action>
       <BkButton
@@ -78,21 +78,11 @@
         @click="handleAssessment">
         {{ t('磁盘空间评估') }}
       </BkButton>
-      <BkButton
-        class="mr-8 w-88"
-        :disabled="!assessmentValidate || isSubmitting"
-        :loading="isSubmitting"
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('提交') }}
-      </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
         :title="t('确认重置页面')">
-        <BkButton
-          class="ml-8 w-88"
-          :disabled="isSubmitting">
+        <BkButton class="ml-8 w-88">
           {{ t('重置') }}
         </BkButton>
       </DbPopconfirm>
@@ -100,38 +90,28 @@
   </SmartAction>
   <Assessment
     ref="assessmentRef"
-    :data="formData.tableData"
-    @request-success="handleAssessmentSuccess" />
+    :data="formData.tableData" />
 </template>
+
 <script lang="ts" setup>
   import _ from 'lodash';
-  import { reactive, useTemplateRef } from 'vue';
+  import { useTemplateRef } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
-  import type { Mysql } from '@services/model/ticket/ticket';
-
-  import { useCreateTicket, useTicketDetail } from '@hooks';
-
-  import { TicketTypes } from '@common/const';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
-  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
-  import TicketPayload, {
-    createTickePayload,
-  } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import DbNameColumn from '@views/db-manage/mysql/common/edit-table-column/DbNameColumn.vue';
   import ClusterColumn from '@views/db-manage/mysql/common/toolbox-field/cluster-column/Index.vue';
+  import TargetClusterColumn from '@views/db-manage/mysql/MYSQL_DATA_MIGRATE/components/TargetClusterColumn.vue';
 
   import { random } from '@utils';
 
   import Assessment from './components/assessment/Index.vue';
-  import TargetClusterColumn from './components/TargetClusterColumn.vue';
 
   interface RowData {
     clone_db_list: string[];
-    data_schema_grant: string;
-    db_list: string[];
     ignore_db_list: string[];
     source_cluster: TendbhaModel;
     target_clusters: TendbhaModel[];
@@ -149,49 +129,24 @@
       label: t('源集群'),
     },
     {
-      case: '表结构和数据',
-      key: 'data_schema_grant',
-      label: t('克隆类型'),
-    },
-    {
-      case: '*',
+      case: 'db1,db2,db3',
       key: 'clone_db_list',
       label: t('克隆 DB 名'),
     },
     {
-      case: 'NULL',
+      case: 'ignore_db1,ignore_db2',
       key: 'ignore_db_list',
       label: t('忽略 DB'),
     },
     {
-      case: 'tendbha2.test.dba.db,tendbha3.test.dba.db',
+      case: 'tendbha2.test.dba.db',
       key: 'target_master_domain',
       label: t('目标集群'),
     },
   ];
 
-  const cloneTypeList = [
-    {
-      label: t('表结构和数据'),
-      value: 'data,schema',
-    },
-    {
-      label: t('表结构'),
-      value: 'schema',
-    },
-  ];
-
-  const disabledMethod = (rowData?: any) => {
-    if (!rowData.source_cluster.id) {
-      return t('请先选择源集群');
-    }
-    return '';
-  };
-
   const createTableRow = (data = {} as Partial<RowData>) => ({
     clone_db_list: data.clone_db_list || [],
-    data_schema_grant: data.data_schema_grant || '',
-    db_list: data.db_list || [],
     ignore_db_list: data.ignore_db_list || [],
     source_cluster: Object.assign(
       {
@@ -205,13 +160,11 @@
   });
 
   const defaultData = () => ({
-    payload: createTickePayload(),
     tableData: [createTableRow()],
   });
 
   const formData = reactive(defaultData());
   const assessmentRef = ref<InstanceType<typeof Assessment>>();
-  const assessmentValidate = ref(false);
 
   const selected = computed(() =>
     formData.tableData.filter((item) => item.source_cluster.id).map((item) => item.source_cluster),
@@ -219,68 +172,6 @@
   const selectedMap = computed(() =>
     Object.fromEntries(formData.tableData.map((cur) => [cur.source_cluster.master_domain, true])),
   );
-
-  useTicketDetail<Mysql.DataMigrate>(TicketTypes.MYSQL_DATA_MIGRATE, {
-    onSuccess(ticketDetail) {
-      const { details } = ticketDetail;
-      const { clusters, infos } = details;
-      Object.assign(formData, {
-        payload: createTickePayload(ticketDetail),
-        tableData: infos.map((item) => ({
-          clone_db_list: item.clone_db_list,
-          data_schema_grant: item.data_schema_grant,
-          db_list: item.db_list,
-          ignore_db_list: item.ignore_db_list,
-          source_cluster: {
-            master_domain: clusters[item.source_cluster].immute_domain || '',
-          },
-          target_clusters: item.target_clusters.map((clusterId) => ({
-            cluster_type: clusters[clusterId].cluster_type || '',
-            id: clusters[clusterId].id || 0,
-            master_domain: clusters[clusterId].immute_domain || '',
-          })),
-        })),
-      });
-    },
-  });
-
-  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
-    infos: {
-      clone_db_list: string[];
-      data_schema_grant: string;
-      db_list: string[];
-      ignore_db_list: string[];
-      source_cluster: number;
-    }[];
-  }>(TicketTypes.MYSQL_DATA_MIGRATE);
-
-  watch(
-    () => formData.tableData,
-    () => {
-      assessmentValidate.value = false;
-    },
-    { deep: true },
-  );
-
-  const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
-    }
-    createTicketRun({
-      details: {
-        infos: formData.tableData.map((item) => ({
-          clone_db_list: item.clone_db_list,
-          data_schema_grant: item.data_schema_grant,
-          db_list: item.db_list,
-          ignore_db_list: item.ignore_db_list,
-          source_cluster: item.source_cluster.id,
-          target_clusters: item.target_clusters.map((cluster) => cluster.id),
-        })),
-      },
-      ...formData.payload,
-    });
-  };
 
   const handleReset = () => {
     Object.assign(formData, defaultData());
@@ -294,10 +185,6 @@
       return;
     }
     assessmentRef.value?.run();
-  };
-
-  const handleAssessmentSuccess = (validate: boolean) => {
-    assessmentValidate.value = validate;
   };
 
   const handleBatchEditCluster = (list: TendbhaModel[]) => {
@@ -323,14 +210,9 @@
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
-    const cloneTypeMap = {
-      [t('表结构')]: 'schema',
-      [t('表结构和数据')]: 'data,schema',
-    };
     const dataList = data.map((item) =>
       createTableRow({
         clone_db_list: item.clone_db_list ? item.clone_db_list.split(',') : [],
-        data_schema_grant: cloneTypeMap[item.data_schema_grant] || '',
         ignore_db_list: item.ignore_db_list ? item.ignore_db_list.split(',') : [],
         source_cluster: {
           master_domain: item.source_master_domain,
@@ -340,6 +222,7 @@
         })),
       }),
     );
+
     if (isClear) {
       tableKey.value = random();
       formData.tableData = [...dataList];

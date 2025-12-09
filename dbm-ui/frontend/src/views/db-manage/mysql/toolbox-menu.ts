@@ -200,6 +200,12 @@ export default [
         name: t('DB克隆'),
         parentId: 'data',
       },
+      {
+        dbConsoleValue: 'mysql.toolbox.mergeDiskSpace',
+        id: 'MySQLMergeDiskSpace',
+        name: t('DB 数据合并空间评估'),
+        parentId: 'data',
+      },
     ],
     icon: 'db-icon-data',
     id: 'data',
