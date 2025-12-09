@@ -221,6 +221,7 @@ class MySQLBackupRecoverTask(BaseReportABS):
             # 过滤正在执行中的任务
             return list(
                 MySQLBackupRecoverTask.objects.filter(phase=TaskPhase.RUNNING)
+                .exclude(task_status__in=[TaskStatus.RESOURCE_INSUFFICIENT, TaskStatus.RESOURCE_APPLIED_FAILED])
                 .values_list("cluster_id", flat=True)
                 .distinct()
             )

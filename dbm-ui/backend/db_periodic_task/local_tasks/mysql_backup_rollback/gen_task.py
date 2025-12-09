@@ -420,6 +420,7 @@ def gen_rollback_task():
             if resp["code"] == ResourceApplyErrCode.RESOURCE_LAKE:
                 logger.error(_("资源不足申请失败，请前往补货后重试{}").format(resp.get("message")))
                 task.task_status = TaskStatus.RESOURCE_INSUFFICIENT
+                task.phase = TaskPhase.DONE
                 task.task_info = _("需要的最小磁盘大小是{}GB".format(min_disk_size))
                 task.save()
                 continue
@@ -495,6 +496,7 @@ def gen_rollback_task():
 
             task.task_status = TaskStatus.COMMIT_FAILED
             task.task_info = _("演练流程失败: {}; {}").format(str(e), resource_return_info)
+            task.phase = TaskPhase.DONE
             task.save()
 
 
