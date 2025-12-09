@@ -34,13 +34,8 @@ class GetHdfsResourceService(BaseService):
             trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
 
         if global_data["ticket_type"] == TicketType.HDFS_APPLY.value:
-            trans_data.nn1_ip = global_data["nn1_ip"]
-            trans_data.nn2_ip = global_data["nn2_ip"]
-            trans_data.zk_ips = global_data["zk_ips"]
-            trans_data.jn_ips = global_data["jn_ips"]
-            trans_data.dn_ips = global_data["dn_ips"]
-            trans_data.all_ips = global_data["all_ips"]
-            trans_data.master_ips = global_data["master_ips"]
+            # DO_NOTHING
+            pass
         elif global_data["ticket_type"] == TicketType.HDFS_SCALE_UP.value:
             trans_data.new_dn_ips = global_data["new_dn_ips"]
         elif global_data["ticket_type"] == TicketType.HDFS_REPLACE:
