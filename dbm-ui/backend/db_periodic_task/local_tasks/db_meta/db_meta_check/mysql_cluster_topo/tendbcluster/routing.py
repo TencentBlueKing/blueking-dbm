@@ -302,17 +302,14 @@ def _check_shard_routing(c: Cluster, routing_data: List[dict]) -> List[CheckResp
 def _check_tdbctl_routing(c: Cluster, routing_data: List[dict]) -> List[CheckResponse]:
     """
     检查中控节点是否和元数据对得上
-    中控只部署在 spider_master 节点上
+    中控只部署在 spider_master 节点上，排除运维节点（spider_mnt）
     """
     bad = []
 
-    # 从元数据获取所有 spider master 节点，计算中控地址
+    # 从元数据获取所有 spider master 节点，计算中控地址（排除运维节点）
     metadata_tdbctl_addresses = set()
     for spider_master in c.proxyinstance_set.filter(
-        tendbclusterspiderext__spider_role__in=[
-            TenDBClusterSpiderRole.SPIDER_MASTER,
-            TenDBClusterSpiderRole.SPIDER_MNT,
-        ]
+        tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
     ):
         tdbctl_address = f"{spider_master.machine.ip}{IP_PORT_DIVIDER}{spider_master.port + 1000}"
         metadata_tdbctl_addresses.add(tdbctl_address)
