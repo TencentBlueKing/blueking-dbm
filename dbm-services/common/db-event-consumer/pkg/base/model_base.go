@@ -10,6 +10,7 @@ package base
 
 import (
 	"fmt"
+	"log/slog"
 	"slices"
 	"strings"
 	"time"
@@ -58,12 +59,16 @@ func CreateOrUpdateIndex(db *gorm.DB, tableName string, indexName string, column
 	for _, i := range indexes {
 		// same definition: 索引名字相同，unique相同，列相同 --> 不重复添加索引
 		if i.Name() == indexName {
-			i.Option()
 			if uk, _ := i.Unique(); uk == unique && slices.Equal(columnNames, i.Columns()) {
 				return nil
 			} else if overwrite {
+				slog.Info("re-create index", slog.String("table", tableName),
+					slog.String("index", indexName),
+					slog.String("option", i.Option()),
+					slog.String("columns", strings.Join(columnNames, ",")),
+					slog.Any("index", i))
 				if err := db.Migrator().DropIndex(tableName, indexName); err != nil {
-					return errors.WithMessage(err, "create index")
+					return errors.WithMessage(err, "drop index")
 				}
 			} else {
 				return errors.Errorf("index %s already exists on %s", indexName, tableName)

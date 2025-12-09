@@ -64,7 +64,7 @@ model 实现 `CustomCreator` 接口
 为了防止消息补录情况下导致顺序乱掉，我们不希望前面的消息覆盖后面的消息，而后面的消息是 update status 来更新原消息，这里就要实现自定义 Creator 接口。
 
 ### 自定义 Migrate
-model 实现 `CustomMigrator` 接口
+model 实现 `CustomMigrator` 接口。默认可以直接在 model 上定义字段/索引信息，只有复杂场景下才需要自定义 Migrate。
 
 比如为了将数据写入 Doris，表结构需要更复杂的自定义，可以不使用 gorm/xorm 的 AutoMigrate，而是自己写 CREATE TABLE 语句，可以实现自己的 MigrateSchema 方法。
 

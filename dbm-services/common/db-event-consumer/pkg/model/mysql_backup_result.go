@@ -87,7 +87,7 @@ func (m *MysqlBackupResultModel) MigrateSchema(w base.DSWriter) error {
 			return err
 		}
 		if err := base.CreateOrUpdateIndex(db, m.TableName(), "idx_backuptime",
-			[]string{"backup_consistent_time"}, false, true); err != nil {
+			[]string{"backup_consistent_time", "file_retention_tag"}, false, true); err != nil {
 			return err
 		}
 		if err := base.CreateOrUpdateIndex(db, m.TableName(), "idx_backupid",

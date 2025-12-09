@@ -27,7 +27,7 @@ type BinlogFileModel struct {
 	Filename      string `json:"filename,omitempty" db:"filename" gorm:"column:filename;type:varchar(32);NOT NULL;index:uk_cluster,unique,priority:4"`
 	Filesize      int64  `json:"size" db:"filesize" gorm:"column:filesize;type:bigint;NOT NULL"`
 	// FileMtime 文件最后修改时间，带时区
-	FileMtime        time.Time `json:"file_mtime" db:"file_mtime" gorm:"column:file_mtime;type:TIMESTAMP;default:'1970-01-02 00:00:00'"`
+	FileMtime        time.Time `json:"file_mtime" db:"file_mtime" gorm:"column:file_mtime;type:TIMESTAMP;default:'1970-01-02 00:00:00';index:idx_mtime"`
 	StartTime        time.Time `json:"start_time" db:"start_time" gorm:"column:start_time;type:TIMESTAMP NULL;default:null;index:idx_clusterstart,priority:2"`
 	StopTime         time.Time `json:"stop_time" db:"stop_time" gorm:"column:stop_time;type:TIMESTAMP NULL;default:null;index:idx_clusterstop,priority:2"`
 	BackupEnable     bool      `json:"backup_enable" db:"backup_enable" gorm:"column:backup_enable;type:tinyint;NOT NULL"`
