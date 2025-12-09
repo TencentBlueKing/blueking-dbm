@@ -35,7 +35,9 @@
   watch(
     route,
     () => {
-      app && app.unmount();
+      if (app) {
+        app.unmount();
+      }
       versionId.value = route.params.versionId as string;
       nextTick(async () => {
         app = await window.BkVisionSDK.init(rootRef.value!, versionId.value, {
