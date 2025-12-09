@@ -26,6 +26,7 @@
       @change="handleInputChange">
       <template #append>
         <DbIcon
+          v-bk-tooltips="t('选择集群')"
           class="select-icon"
           type="host-select"
           @click="handleShowSelector" />
@@ -55,9 +56,12 @@
     cluster: {
       id: number;
     };
+    single?: boolean;
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    single: false,
+  });
 
   const modelValue = defineModel<
     {
@@ -71,26 +75,31 @@
 
   const { t } = useI18n();
 
-  const tabListConfig = {
-    [ClusterTypes.TENDBHA]: {
-      disabledRowConfig: [
-        {
-          handler: (data: TendbhaModel) => data.id === props.cluster.id,
-          tip: t('不能选择源集群'),
+  const tabListConfig = computed(
+    () =>
+      ({
+        [ClusterTypes.TENDBHA]: {
+          disabledRowConfig: [
+            {
+              handler: (data: TendbhaModel) => data.id === props.cluster.id,
+              tip: t('不能选择源集群'),
+            },
+          ],
+          multiple: !props.single,
+          showPreviewResultTitle: true,
         },
-      ],
-      showPreviewResultTitle: true,
-    },
-    [ClusterTypes.TENDBSINGLE]: {
-      disabledRowConfig: [
-        {
-          handler: (data: TendbhaModel) => data.id === props.cluster.id,
-          tip: t('不能选择源集群'),
+        [ClusterTypes.TENDBSINGLE]: {
+          disabledRowConfig: [
+            {
+              handler: (data: TendbhaModel) => data.id === props.cluster.id,
+              tip: t('不能选择源集群'),
+            },
+          ],
+          multiple: !props.single,
+          showPreviewResultTitle: true,
         },
-      ],
-      showPreviewResultTitle: true,
-    },
-  } as unknown as Record<string, TabConfig>;
+      }) as unknown as Record<string, TabConfig>,
+  );
 
   const localValue = ref('');
   const showSelector = ref(false);
@@ -159,7 +168,7 @@
   });
 
   const disabledMethod = (rowData?: any) => {
-    if (!rowData.cluster.id) {
+    if (!rowData.source_cluster.id) {
       return t('请先选择源集群');
     }
     return '';
@@ -191,6 +200,10 @@
         id: cluster.id,
         master_domain: cluster.master_domain,
       }));
+    localValue.value = Object.values(selected)
+      .flat()
+      .map((item) => item.master_domain)
+      .join(',');
   };
 
   watch(

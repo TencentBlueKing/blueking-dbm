@@ -11,6 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 import http from '@services/http';
+import type MysqlMergeDiskSpaceModel from '@services/model/mysql/mysql-merge-disk-space';
 
 /**
  * 查询mysql版本升级可用版本列表
@@ -109,3 +110,19 @@ export function getVersionModules(params: {
     }[]
   >(`/apis/mysql/toolbox/get_storage_version_modules/`, params);
 }
+
+/**
+ * 合并磁盘空间评估
+ */
+export const mergeDiskSpace = (params: {
+  bk_biz_id: number;
+  factor: number; // db克隆单据调用factor=1，db数据合并空间评估调用factor=2
+  migrations: {
+    clone_db_list?: string[];
+    data_schema_grant?: string;
+    db_list: string[];
+    ignore_db_list?: string[];
+    source_cluster: number;
+    target_clusters: number[];
+  }[];
+}) => http.post<MysqlMergeDiskSpaceModel[]>('/apis/mysql/toolbox/mysql_disk_space/', params);

@@ -26,28 +26,16 @@
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
-      col-key="target_clusters"
-      :min-width="240"
-      :title="t('目标集群')">
-      <template #default="{ row }: { row: RowData }">
-        <div
-          v-for="clusterId in row.target_clusters"
-          :key="clusterId">
-          {{ ticketDetails.details.clusters[clusterId].immute_domain }}
-        </div>
-      </template>
-    </TicketInfoTableColumn>
-    <TicketInfoTableColumn
       col-key="data_schema_grant"
       :title="t('克隆类型')">
       <template #default="{ row }: { row: RowData }">
-        {{ row.data_schema_grant === 'schema' ? t('克隆表结构') : t('克隆表结构和数据') }}
+        {{ row.data_schema_grant === 'schema' ? t('表结构') : t('表结构和数据') }}
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="clone_db_list"
       :min-width="180"
-      :title="t('克隆DB名')">
+      :title="t('克隆 DB 名')">
       <template #default="{ row }: { row: RowData }">
         <BkTag
           v-for="item in row.clone_db_list"
@@ -60,7 +48,7 @@
     <TicketInfoTableColumn
       col-key="ignore_db_list"
       :min-width="180"
-      :title="t('忽略DB名')">
+      :title="t('忽略 DB')">
       <template #default="{ row }: { row: RowData }">
         <BkTag
           v-for="item in row.ignore_db_list"
@@ -71,16 +59,15 @@
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
-      col-key="db_list"
-      :min-width="180"
-      :title="t('最终DB名')">
+      col-key="target_clusters"
+      :min-width="240"
+      :title="t('目标集群')">
       <template #default="{ row }: { row: RowData }">
-        <BkTag
-          v-for="item in row.db_list"
-          :key="item">
-          {{ item }}
-        </BkTag>
-        <span v-if="row.db_list.length < 1">--</span>
+        <div
+          v-for="clusterId in row.target_clusters"
+          :key="clusterId">
+          {{ ticketDetails.details.clusters[clusterId].immute_domain }}
+        </div>
       </template>
     </TicketInfoTableColumn>
   </TicketInfoTable>
