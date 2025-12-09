@@ -23,6 +23,7 @@ paths:
               $ref: '#/components/schemas/FilterClusterInputRequest'
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -55,7 +56,7 @@ paths:
   /apis/ai/mcp_tools/common/cluster/get_cluster_base_info/:
     post:
       operationId: mcp_common_cluster_get_cluster_base_info
-      description: 获取集群的业务和类型基础信息(无鉴权)
+      description: 获取集群的业务和类型基础信息(无鉴权), 包括所属业务id, 集群类型和集群 id
       tags:
       - read
       - mcp-tools
@@ -73,6 +74,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -101,10 +103,10 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
-        descriptionEn: 获取集群的业务和类型基础信息(无鉴权)
-  /apis/ai/mcp_tools/mysql/sql-tuning/explain_sql/:
+        descriptionEn: 获取集群的业务和类型基础信息(无鉴权), 包括所属业务id, 集群类型和集群 id
+  /apis/ai/mcp_tools/mysql/explain_sql/:
     post:
-      operationId: mcp_mysql_sql_tuning_explain_sql
+      operationId: mysql_query_explain_sql
       description: 查询 SQL 执行计划
       tags:
       - read
@@ -123,6 +125,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -136,7 +139,7 @@ paths:
         backend:
           name: default
           method: post
-          path: /apis/ai/mcp_tools/mysql/sql-tuning/explain_sql/
+          path: /apis/ai/mcp_tools/mysql/explain_sql/
           matchSubpath: false
           timeout: 0
         pluginConfigs:
@@ -152,10 +155,75 @@ paths:
           appVerifiedRequired: true
           resourcePermissionRequired: true
         descriptionEn: 查询 SQL 执行计划
-  /apis/ai/mcp_tools/mysql/sql-tuning/show_create_table/:
+  /apis/ai/mcp_tools/mysql/show_cluster_processlist/:
     post:
-      operationId: mcp_mysql_sql_tuning_show_create_table
-      description: 获取表结构
+      operationId: mysql_query_show_cluster_processlist
+      description: "查询集群连接列表\n            1. 连接信息的原始详情可用于人工阅读分析\n            2. 按\
+        \ host 或者 user 或者 db 或者 state 的聚合结果可以分析连接概况\n            3. 详情列表的 count 数量就是对应实例或者集群的总连接数.\
+        \ 可以结合最大连接数(max_connections)运行时参数来评估实例的连接够不够用\n            4. addresses 参数默认为\
+        \ None, 按不同的集群类型有不同的含义\n              * 当集群类型为 TenDBSingle 时, 获取所有存储层的连接信息\n\
+        \              * 当集群类型为 TenDBHA 时, 获取所有接入层(proxy)的连接信息\n              * 当集群类型为\
+        \ TenDBCluster 时, 获取所有主接入层(spider master)的连接信息\n            5. addresses 不为空时,\
+        \ 获取指定实例的连接信息\n            6. addresses 要么为 None, 要么只能是 ip:port 形式的实例列表\n\
+        \            "
+      tags:
+      - read
+      - mcp-tools
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShowProcessListInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ShowProcessListInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ShowProcessListInputRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShowProcessListOutput'
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: false
+        matchSubpath: false
+        backend:
+          name: default
+          method: post
+          path: /apis/ai/mcp_tools/mysql/show_cluster_processlist/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs:
+        - type: bk-header-rewrite
+          yaml: |
+            remove: []
+            set:
+            - key: X-Bkdbm-Mcp-Tag
+              value: read,mcp-tools
+        allowApplyPermission: false
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn: "查询集群连接列表\n            1. 连接信息的原始详情可用于人工阅读分析\n            2.\
+          \ 按 host 或者 user 或者 db 或者 state 的聚合结果可以分析连接概况\n            3. 详情列表的 count\
+          \ 数量就是对应实例或者集群的总连接数. 可以结合最大连接数(max_connections)运行时参数来评估实例的连接够不够用\n     \
+          \       4. addresses 参数默认为 None, 按不同的集群类型有不同的含义\n              * 当集群类型为\
+          \ TenDBSingle 时, 获取所有存储层的连接信息\n              * 当集群类型为 TenDBHA 时, 获取所有接入层(proxy)的连接信息\n\
+          \              * 当集群类型为 TenDBCluster 时, 获取所有主接入层(spider master)的连接信息\n \
+          \           5. addresses 不为空时, 获取指定实例的连接信息\n            6. addresses 要么为\
+          \ None, 要么只能是 ip:port 形式的实例列表\n            "
+  /apis/ai/mcp_tools/mysql/show_create_table/:
+    post:
+      operationId: mysql_query_show_create_table
+      description: 获取 tendbsingle, tendbha, tendbcluster 集群的表结构
       tags:
       - read
       - mcp-tools
@@ -173,6 +241,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -186,7 +255,7 @@ paths:
         backend:
           name: default
           method: post
-          path: /apis/ai/mcp_tools/mysql/sql-tuning/show_create_table/
+          path: /apis/ai/mcp_tools/mysql/show_create_table/
           matchSubpath: false
           timeout: 0
         pluginConfigs:
@@ -201,7 +270,266 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
-        descriptionEn: 获取表结构
+        descriptionEn: 获取 tendbsingle, tendbha, tendbcluster 集群的表结构
+  /apis/ai/mcp_tools/mysql/show_instance_status/:
+    post:
+      operationId: mysql_query_show_instance_status
+      description: "查询实例运行时状态\n        限制只能查询机器类型(machine_type) 是 single, proxy, backend,\
+        \ remote, spider 实例的状态\n        "
+      tags:
+      - read
+      - mcp-tools
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShowInstanceStatusesInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ShowInstanceStatusesInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ShowInstanceStatusesInputRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShowInstanceStatuesOutput'
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: false
+        matchSubpath: false
+        backend:
+          name: default
+          method: post
+          path: /apis/ai/mcp_tools/mysql/show_instance_status/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs:
+        - type: bk-header-rewrite
+          yaml: |
+            remove: []
+            set:
+            - key: X-Bkdbm-Mcp-Tag
+              value: read,mcp-tools
+        allowApplyPermission: false
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn: "查询实例运行时状态\n        限制只能查询机器类型(machine_type) 是 single, proxy,\
+          \ backend, remote, spider 实例的状态\n        "
+  /apis/ai/mcp_tools/mysql/show_mysql_variables/:
+    post:
+      operationId: mysql_query_show_mysql_variables
+      description: "查询 MySQL 运行时参数\n        限制只能查询机器类型(machine_type) 是 single, backend,\
+        \ remote, spider 实例的状态        \n        "
+      tags:
+      - read
+      - mcp-tools
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShowMySQLVariablesInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ShowMySQLVariablesInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ShowMySQLVariablesInputRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShowMySQLVariablesOutput'
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: false
+        matchSubpath: false
+        backend:
+          name: default
+          method: post
+          path: /apis/ai/mcp_tools/mysql/show_mysql_variables/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs:
+        - type: bk-header-rewrite
+          yaml: |
+            remove: []
+            set:
+            - key: X-Bkdbm-Mcp-Tag
+              value: read,mcp-tools
+        allowApplyPermission: false
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn: "查询 MySQL 运行时参数\n        限制只能查询机器类型(machine_type) 是 single,\
+          \ backend, remote, spider 实例的状态        \n        "
+  /apis/ai/mcp_tools/mysql/tendbcluster_topo/:
+    post:
+      operationId: mysql_query_tendbcluster_topo
+      description: 查询 TenDBCluster 集群拓扑结构
+      tags:
+      - read
+      - mcp-tools
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClusterTopoInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ClusterTopoInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ClusterTopoInputRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenDBClusterTopoOutput'
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: false
+        matchSubpath: false
+        backend:
+          name: default
+          method: post
+          path: /apis/ai/mcp_tools/mysql/tendbcluster_topo/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs:
+        - type: bk-header-rewrite
+          yaml: |
+            remove: []
+            set:
+            - key: X-Bkdbm-Mcp-Tag
+              value: read,mcp-tools
+        allowApplyPermission: false
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn: 查询 TenDBCluster 集群拓扑结构
+  /apis/ai/mcp_tools/mysql/tendbha_topo/:
+    post:
+      operationId: mysql_query_tendbha_topo
+      description: 查询 TenDBHA 集群拓扑结构
+      tags:
+      - read
+      - mcp-tools
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClusterTopoInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ClusterTopoInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ClusterTopoInputRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenDBHATopoOutput'
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: false
+        matchSubpath: false
+        backend:
+          name: default
+          method: post
+          path: /apis/ai/mcp_tools/mysql/tendbha_topo/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs:
+        - type: bk-header-rewrite
+          yaml: |
+            remove: []
+            set:
+            - key: X-Bkdbm-Mcp-Tag
+              value: read,mcp-tools
+        allowApplyPermission: false
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn: 查询 TenDBHA 集群拓扑结构
+  /apis/ai/mcp_tools/mysql/tendbsingle_topo/:
+    post:
+      operationId: mysql_query_tendbsingle_topo
+      description: 查询 TenDBSingle 集群拓扑结构
+      tags:
+      - read
+      - mcp-tools
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClusterTopoInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ClusterTopoInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ClusterTopoInputRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenDBSingleTopoOutput'
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: false
+        matchSubpath: false
+        backend:
+          name: default
+          method: post
+          path: /apis/ai/mcp_tools/mysql/tendbsingle_topo/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs:
+        - type: bk-header-rewrite
+          yaml: |
+            remove: []
+            set:
+            - key: X-Bkdbm-Mcp-Tag
+              value: read,mcp-tools
+        allowApplyPermission: false
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn: 查询 TenDBSingle 集群拓扑结构
 components:
   schemas:
     ClusterEntry:
@@ -239,7 +567,7 @@ components:
       - in_use
       - total
       - used
-    ExplainSQLInputRequest:
+    ClusterTopoInputRequest:
       type: object
       properties:
         cluster_domain:
@@ -247,9 +575,43 @@ components:
           minLength: 1
           description: 集群域名
         cluster_type:
+          allOf:
+          - $ref: '#/components/schemas/ClusterTypeEnum'
+          description: |-
+            集群类型
+
+            * `tendbsingle` - TenDBSingle
+            * `tendbha` - TenDBHA
+            * `tendbcluster` - TenDBCluster
+      required:
+      - cluster_domain
+      - cluster_type
+    ClusterTypeEnum:
+      enum:
+      - tendbsingle
+      - tendbha
+      - tendbcluster
+      type: string
+      description: |-
+        * `tendbsingle` - TenDBSingle
+        * `tendbha` - TenDBHA
+        * `tendbcluster` - TenDBCluster
+    ExplainSQLInputRequest:
+      type: object
+      properties:
+        cluster_type:
+          allOf:
+          - $ref: '#/components/schemas/ClusterTypeEnum'
+          description: |-
+            集群类型
+
+            * `tendbsingle` - TenDBSingle
+            * `tendbha` - TenDBHA
+            * `tendbcluster` - TenDBCluster
+        cluster_domain:
           type: string
           minLength: 1
-          description: 集群类型
+          description: 集群域名
         dbname:
           type: string
           minLength: 1
@@ -266,12 +628,12 @@ components:
     ExplainSQLOutput:
       type: object
       properties:
-        cluster_domain:
-          type: string
-          description: 集群域名
         cluster_type:
           type: string
           description: 集群类型
+        cluster_domain:
+          type: string
+          description: 集群域名
         dbname:
           type: string
           description: 库名
@@ -491,6 +853,94 @@ components:
       - cluster_domain
       - cluster_type
       - id
+    InstanceRuntimeStatus:
+      type: object
+      properties:
+        status_name:
+          type: string
+          description: 运行时状态名
+        status_value:
+          type: string
+          description: 运行时状态值
+      required:
+      - status_name
+      - status_value
+    MySQLBaseInstance:
+      type: object
+      properties:
+        address:
+          type: string
+          description: ip:port 形式的实例地址
+        status:
+          type: string
+          description: 实例状态
+        machine_type:
+          type: string
+          description: 实例机器类型
+      required:
+      - address
+      - machine_type
+      - status
+    MySQLProcess:
+      type: object
+      properties:
+        host:
+          type: string
+          description: ip:port 形式的来源地址
+        command:
+          type: string
+          description: 正在执行的命令操作
+        user:
+          type: string
+          description: 连接用户名
+        db:
+          type: string
+          description: 正在访问的 db 名
+        time:
+          type: string
+          description: 活跃时间, 单位是秒
+        state:
+          type: string
+          description: 连接状态
+      required:
+      - command
+      - db
+      - host
+      - state
+      - time
+      - user
+    MySQLRuntimeVariable:
+      type: object
+      properties:
+        variable_name:
+          type: string
+          description: 运行时参数名
+        variable_value:
+          type: string
+          description: 运行时参数值
+      required:
+      - variable_name
+      - variable_value
+    MySQLStorageInstance:
+      type: object
+      properties:
+        address:
+          type: string
+          description: ip:port 形式的实例地址
+        status:
+          type: string
+          description: 实例状态
+        machine_type:
+          type: string
+          description: 实例机器类型
+        is_stand_by:
+          type: boolean
+          default: true
+          description: dbha 切换备选标志
+      required:
+      - address
+      - machine_type
+      - status
     ShowCreateTableInputRequest:
       type: object
       properties:
@@ -499,9 +949,14 @@ components:
           minLength: 1
           description: 集群域名
         cluster_type:
-          type: string
-          minLength: 1
-          description: 集群类型
+          allOf:
+          - $ref: '#/components/schemas/ClusterTypeEnum'
+          description: |-
+            集群类型
+
+            * `tendbsingle` - TenDBSingle
+            * `tendbha` - TenDBHA
+            * `tendbcluster` - TenDBCluster
         dbname:
           type: string
           minLength: 1
@@ -539,6 +994,347 @@ components:
       - create_sql
       - dbname
       - tablename
+    ShowInstanceStatuesOutput:
+      type: object
+      properties:
+        address:
+          type: string
+          description: ip:port 形式的实例地址
+        runtime_statuses:
+          type: array
+          items:
+            $ref: '#/components/schemas/InstanceRuntimeStatus'
+          description: 实例运行时状态列表
+      required:
+      - address
+      - runtime_statuses
+    ShowInstanceStatusesInputMachineTypeEnum:
+      enum:
+      - single
+      - backend
+      - remote
+      - spider
+      - proxy
+      type: string
+      description: |-
+        * `single` - SINGLE
+        * `backend` - BACKEND
+        * `remote` - REMOTE
+        * `spider` - SPIDER
+        * `proxy` - PROXY
+    ShowInstanceStatusesInputRequest:
+      type: object
+      properties:
+        machine_type:
+          allOf:
+          - $ref: '#/components/schemas/ShowInstanceStatusesInputMachineTypeEnum'
+          description: |-
+            实例的机器类型, 只能是 [single, proxy, backend, remote, spider] 中之一
+
+            * `single` - SINGLE
+            * `backend` - BACKEND
+            * `remote` - REMOTE
+            * `spider` - SPIDER
+            * `proxy` - PROXY
+        address:
+          type: string
+          minLength: 1
+          description: ip:port 形式的实例地址
+      required:
+      - address
+      - machine_type
+    ShowMySQLVariablesInputMachineTypeEnum:
+      enum:
+      - single
+      - backend
+      - remote
+      - spider
+      type: string
+      description: |-
+        * `single` - SINGLE
+        * `backend` - BACKEND
+        * `remote` - REMOTE
+        * `spider` - SPIDER
+    ShowMySQLVariablesInputRequest:
+      type: object
+      properties:
+        machine_type:
+          allOf:
+          - $ref: '#/components/schemas/ShowMySQLVariablesInputMachineTypeEnum'
+          description: |-
+            实例的机器类型, 只能是 [single, backend, remote, spider] 中之一
+
+            * `single` - SINGLE
+            * `backend` - BACKEND
+            * `remote` - REMOTE
+            * `spider` - SPIDER
+        address:
+          type: string
+          minLength: 1
+          description: ip:port 形式的实例地址
+        variable_hints:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          description: 运行时参数过滤列表, 不为空时只返回这个列表指定的参数
+      required:
+      - address
+      - machine_type
+    ShowMySQLVariablesOutput:
+      type: object
+      properties:
+        address:
+          type: string
+          description: ip:port 形式的实例地址
+        runtime_variables:
+          type: array
+          items:
+            $ref: '#/components/schemas/MySQLRuntimeVariable'
+          description: MySQL 运行时参数列表
+      required:
+      - address
+      - runtime_variables
+    ShowProcessListInputRequest:
+      type: object
+      properties:
+        cluster_type:
+          allOf:
+          - $ref: '#/components/schemas/ClusterTypeEnum'
+          description: |-
+            集群类型
+
+            * `tendbsingle` - TenDBSingle
+            * `tendbha` - TenDBHA
+            * `tendbcluster` - TenDBCluster
+        cluster_domain:
+          type: string
+          minLength: 1
+          description: 集群域名
+        addresses:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          description: ip:port 形式的实例列表
+      required:
+      - cluster_domain
+      - cluster_type
+    ShowProcessListOutput:
+      type: object
+      properties:
+        address:
+          type: string
+          description: ip:port 形式的实例地址
+        process_list:
+          type: array
+          items:
+            $ref: '#/components/schemas/MySQLProcess'
+          description: 连接列表
+      required:
+      - address
+      - process_list
+    SpiderRoleEnum:
+      enum:
+      - spider_master
+      - spider_slave
+      - spider_mnt
+      - spider_slave_mnt
+      - spider_ctl
+      type: string
+      description: |-
+        * `spider_master` - spider_master
+        * `spider_slave` - spider_slave
+        * `spider_mnt` - spider_mnt
+        * `spider_slave_mnt` - spider_slave_mnt
+        * `spider_ctl` - spider_ctl
+    TenDBClusterSpiderInstance:
+      type: object
+      properties:
+        address:
+          type: string
+          description: ip:port 形式的实例地址
+        status:
+          type: string
+          description: 实例状态
+        machine_type:
+          type: string
+          description: 实例机器类型
+        spider_role:
+          allOf:
+          - $ref: '#/components/schemas/SpiderRoleEnum'
+          description: |-
+            接入层角色, spider role
+
+            * `spider_master` - spider_master
+            * `spider_slave` - spider_slave
+            * `spider_mnt` - spider_mnt
+            * `spider_slave_mnt` - spider_slave_mnt
+            * `spider_ctl` - spider_ctl
+      required:
+      - address
+      - machine_type
+      - spider_role
+      - status
+    TenDBClusterStorageInstance:
+      type: object
+      properties:
+        address:
+          type: string
+          description: ip:port 形式的实例地址
+        status:
+          type: string
+          description: 实例状态
+        machine_type:
+          type: string
+          description: 实例机器类型
+        is_stand_by:
+          type: boolean
+          default: true
+          description: dbha 切换备选标志
+        instance_role:
+          allOf:
+          - $ref: '#/components/schemas/TenDBClusterStorageInstanceInstanceRoleEnum'
+          description: |-
+            存储实例角色, remote instance role
+
+            * `remote_master` - REMOTE_MASTER
+            * `remote_repeater` - REMOTE_REPEATER
+            * `remote_slave` - REMOTE_SLAVE
+      required:
+      - address
+      - instance_role
+      - machine_type
+      - status
+    TenDBClusterStorageInstanceInstanceRoleEnum:
+      enum:
+      - remote_master
+      - remote_repeater
+      - remote_slave
+      type: string
+      description: |-
+        * `remote_master` - REMOTE_MASTER
+        * `remote_repeater` - REMOTE_REPEATER
+        * `remote_slave` - REMOTE_SLAVE
+    TenDBClusterStorageReplicateSet:
+      type: object
+      properties:
+        shard_id:
+          type: integer
+          description: 分片号
+        instances:
+          type: array
+          items:
+            $ref: '#/components/schemas/TenDBClusterStorageInstance'
+          description: 同分片存储实例列表
+      required:
+      - instances
+      - shard_id
+    TenDBClusterTopoOutput:
+      type: object
+      properties:
+        cluster_type:
+          type: string
+          description: 集群类型
+        cluster_domain:
+          type: string
+          description: 集群域名
+        spider_instances:
+          type: array
+          items:
+            $ref: '#/components/schemas/TenDBClusterSpiderInstance'
+          description: 接入层实例列表, spider list
+        storage_replicate_sets:
+          type: array
+          items:
+            $ref: '#/components/schemas/TenDBClusterStorageReplicateSet'
+          description: 按分片号组织的实例详情
+      required:
+      - cluster_domain
+      - cluster_type
+      - spider_instances
+      - storage_replicate_sets
+    TenDBHAStorageInstance:
+      type: object
+      properties:
+        address:
+          type: string
+          description: ip:port 形式的实例地址
+        status:
+          type: string
+          description: 实例状态
+        machine_type:
+          type: string
+          description: 实例机器类型
+        is_stand_by:
+          type: boolean
+          default: true
+          description: dbha 切换备选标志
+        instance_role:
+          allOf:
+          - $ref: '#/components/schemas/TenDBHAStorageInstanceInstanceRoleEnum'
+          description: |-
+            存储实例角色, backend instance role
+
+            * `backend_master` - BACKEND_MASTER
+            * `backend_repeater` - BACKEND_REPEATER
+            * `backend_slave` - BACKEND_SLAVE
+      required:
+      - address
+      - instance_role
+      - machine_type
+      - status
+    TenDBHAStorageInstanceInstanceRoleEnum:
+      enum:
+      - backend_master
+      - backend_repeater
+      - backend_slave
+      type: string
+      description: |-
+        * `backend_master` - BACKEND_MASTER
+        * `backend_repeater` - BACKEND_REPEATER
+        * `backend_slave` - BACKEND_SLAVE
+    TenDBHATopoOutput:
+      type: object
+      properties:
+        cluster_type:
+          type: string
+          description: 集群类型
+        cluster_domain:
+          type: string
+          description: 集群域名
+        proxy_instances:
+          type: array
+          items:
+            $ref: '#/components/schemas/MySQLBaseInstance'
+          description: 接入层实例列表, proxy instances list
+        storage_instance:
+          type: array
+          items:
+            $ref: '#/components/schemas/TenDBHAStorageInstance'
+          description: 存储实例列表, backend instance list
+      required:
+      - cluster_domain
+      - cluster_type
+      - proxy_instances
+      - storage_instance
+    TenDBSingleTopoOutput:
+      type: object
+      properties:
+        cluster_type:
+          type: string
+          description: 集群类型
+        cluster_domain:
+          type: string
+          description: 集群域名
+        storage:
+          allOf:
+          - $ref: '#/components/schemas/MySQLStorageInstance'
+          description: 存储层实例信息
+      required:
+      - cluster_domain
+      - cluster_type
+      - storage
   securitySchemes:
     cookieAuth:
       type: apiKey

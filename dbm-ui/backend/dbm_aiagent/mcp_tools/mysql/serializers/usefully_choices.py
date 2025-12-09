@@ -8,12 +8,18 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from rest_framework.routers import DefaultRouter
 
-from backend.dbm_aiagent.mcp_tools.mysql.sql_tuning.views import MySQLSQLTuningMcpToolsViewSet
+from backend.db_meta.enums import ClusterType, MachineType
 
-routers = DefaultRouter(trailing_slash=True)
+mysql_cluster_type_choices = [
+    (ClusterType.TenDBSingle.value, ClusterType.TenDBSingle.name),
+    (ClusterType.TenDBHA.value, ClusterType.TenDBHA.name),
+    (ClusterType.TenDBCluster.value, ClusterType.TenDBCluster.name),
+]
 
-routers.register(r"", MySQLSQLTuningMcpToolsViewSet, basename="mcp-mysql-sql-tuning")
-
-urlpatterns = routers.urls
+mysql_machine_type_choices = [
+    (MachineType.SINGLE.value, MachineType.SINGLE.name),
+    (MachineType.BACKEND.value, MachineType.BACKEND.name),
+    (MachineType.REMOTE.value, MachineType.REMOTE.name),
+    (MachineType.SPIDER.value, MachineType.SPIDER.name),
+]

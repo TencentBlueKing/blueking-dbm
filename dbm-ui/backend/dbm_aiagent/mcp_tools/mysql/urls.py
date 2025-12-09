@@ -8,6 +8,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.urls import include, path
+from rest_framework.routers import DefaultRouter
 
-urlpatterns = [path("sql-tuning/", include("backend.dbm_aiagent.mcp_tools.mysql.sql_tuning.urls"))]
+from backend.dbm_aiagent.mcp_tools.mysql.views import MySQLMcpToolsViewSet
+
+routers = DefaultRouter(trailing_slash=True)
+
+routers.register(r"", MySQLMcpToolsViewSet, basename="mcp-mysql-query")
+
+urlpatterns = routers.urls
