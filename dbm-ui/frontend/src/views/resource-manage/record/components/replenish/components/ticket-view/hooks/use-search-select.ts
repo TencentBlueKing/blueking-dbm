@@ -38,7 +38,7 @@ export default (options = {} as { exclude: string[] }) => {
       },
       {
         id: 'replenish',
-        name: t('补货操作'),
+        name: t('补货操作 ID'),
         type: 'multiple-input',
         validator: (value: string) => {
           return !isNaN(Number(value)) ? true : t('只支持数字');

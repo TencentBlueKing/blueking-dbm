@@ -61,7 +61,7 @@
         </BkButton>
         <BkButton
           class="ml-8"
-          @click="handleForward">
+          @click="handleForwardRecord">
           <DbIcon
             class="mr-6"
             type="bk-dbm-icon db-icon-history-2" />
@@ -238,6 +238,15 @@
             id: String(runningReplenishRecord.value),
           }),
         ),
+      },
+    });
+  };
+
+  const handleForwardRecord = () => {
+    router.push({
+      name: 'resourceReplenishRecord',
+      params: {
+        page: 'operation-view',
       },
     });
   };
