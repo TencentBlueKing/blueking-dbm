@@ -144,20 +144,23 @@ def parameters_from_data_migrate(migrations: list = None) -> (list, str, list, d
                 tasks.append(task)
                 continue
             tasks.append(task)
+        if info["db_list"]:
             db_placeholders = ",".join(["%s"] * len(info["db_list"]))
             task_placeholders = "(cluster_domain = %s and database_name IN ({}))".format(db_placeholders)
             placeholders.append(task_placeholders)
-            sql_params.append(task.source)
+            sql_params.append(Cluster.objects.get(id=info["source_cluster"]).immute_domain)
             sql_params.extend(info["db_list"])
     logger.info("placeholders: %s sql_params: %s targets: %s", " or ".join(placeholders), sql_params, targets)
     return tasks, " or ".join(placeholders), sql_params, targets
 
 
-def get_db_size(placeholders: str, sql_params: list = None) -> dict:
+def get_db_size(placeholders: str, sql_params: list) -> dict:
     """
     获取db大小
     """
     logger.info("query_db_size started")
+    if not sql_params:
+        return {}
     client = StatsDBClient()
     query_template = DB_QUERY_TEMPLATE.get("DBSIZE") % placeholders
     resp = client.query(query_template, sql_params)
