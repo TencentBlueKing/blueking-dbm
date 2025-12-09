@@ -39,16 +39,19 @@ func (m MysqlBackupStatusModel) MigrateSchema(w base.DSWriter) error {
 		}
 		db := dbWriter.GormDB()
 
-		// 处理字段
+		// 处理普通字段/索引。(不会删除索引，字段)
 		if err := db.Migrator().AutoMigrate(&m); err != nil {
 			return err
 		}
 
-		// 处理约束与索引
-		if err := base.CreateOrUpdateIndex(db, m.TableName(), "uk_eventuuid",
-			[]string{"event_uuid"}, true, true); err != nil {
-			return err
-		}
+		/*
+			// 处理约束与索引
+			if err := base.CreateOrUpdateIndex(db, m.TableName(), "uk_eventuuid",
+				[]string{"event_uuid"}, true, false); err != nil {
+				return err
+			}
+		*/
+
 		if err := base.CreateOrUpdateIndex(db, m.TableName(), "idx_clusterstatus",
 			[]string{"cluster_domain", "status"}, false, true); err != nil {
 			return err
