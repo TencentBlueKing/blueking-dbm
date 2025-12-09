@@ -22,7 +22,12 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, user-scalable=yes" />
     <title>数据库管理 | 腾讯蓝鲸智云</title>
-    <script src="https://staticfile.qq.com/bkvision/pbb9b207ba200407982a9bd3d3f2895d4/latest/main.js"></script>
+    <script>
+      const script = document.createElement('script');
+      script.src =
+        'https://staticfile.qq.com/bkvision/pbb9b207ba200407982a9bd3d3f2895d4/main.js' + '?' + new Date().getTime();
+      document.body.appendChild(script);
+    </script>
   </head>
   <body>
     <div

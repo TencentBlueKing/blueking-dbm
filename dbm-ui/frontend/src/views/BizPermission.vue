@@ -59,8 +59,8 @@
       action_ids: ['DB_MANAGE'],
       resources: [
         {
-          type: 'biz',
           id: window.PROJECT_CONFIG.BIZ_ID,
+          type: 'biz',
         },
       ],
     })
