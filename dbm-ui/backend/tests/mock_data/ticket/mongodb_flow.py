@@ -378,6 +378,9 @@ MONGODB_SCALE_UPDOWN_DATA = {
                 "shard_machine_group": 1,
                 "shard_node_count": 2,
                 "resource_spec": {"mongodb": {"spec_id": 3, "count": 2}},
+                "db_version": "1.0",
+                "cluster_type": ClusterType.MongoShardedCluster,
+                "old_nodes": [],
             }
         ],
     },
