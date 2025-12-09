@@ -44,7 +44,6 @@ class MysqlMigrateSingleDetailSerializer(MySQLBaseOperateDetailSerializer):
 
 class MysqlMigrateSingleParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_migrate_single_scene
-    validator = MySQLController.mysql_migrate_single_scene.validator
 
 
 class MysqlMigrateSingleResourceParamBuilder(BaseOperateResourceParamBuilder):
@@ -57,3 +56,4 @@ class MysqlMigrateSingleFlowBuilder(BaseMySQLSingleTicketFlowBuilder):
     inner_flow_builder = MysqlMigrateSingleParamBuilder
     resource_batch_apply_builder = MysqlMigrateSingleResourceParamBuilder
     need_patch_recycle_cluster_details = True
+    validator = MySQLController.mysql_migrate_single_scene.validator

@@ -48,7 +48,6 @@ class MongoDBReplicasetMigrateDetailSerializer(BaseMongoDBOperateDetailSerialize
 
 class MongoDBReplicasetMigrateFlowParamBuilder(builders.FlowParamBuilder):
     controller = MongoDBController.instance_migrate
-    validator = None
 
     def format_ticket_data(self):
         bk_biz_id = self.ticket_data["bk_biz_id"]

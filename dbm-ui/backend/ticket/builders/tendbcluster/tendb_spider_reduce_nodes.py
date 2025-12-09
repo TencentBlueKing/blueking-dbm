@@ -50,7 +50,6 @@ class TendbSpiderReduceNodesDetailSerializer(TendbBaseOperateDetailSerializer):
 
 class TendbSpiderReduceNodesFlowParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.reduce_spider_nodes_scene
-    validator = SpiderController.reduce_spider_nodes_scene.validator
 
     def format_ticket_data(self):
         for info in self.ticket_data["infos"]:
@@ -64,6 +63,7 @@ class TendbSpiderReduceNodesFlowBuilder(BaseTendbTicketFlowBuilder):
     inner_flow_name = _("TenDB Cluster 接入层缩容")
     need_patch_recycle_host_details = True
     need_patch_machine_details = True
+    validator = SpiderController.reduce_spider_nodes_scene.validator
 
     def calc_reduce_spider(self):
         """计算实际缩容的spider主机"""

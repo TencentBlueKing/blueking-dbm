@@ -56,7 +56,6 @@ class MysqlProxySwitchDetailSerializer(MySQLBaseOperateDetailSerializer):
 
 class MysqlProxySwitchParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_proxy_switch_scene
-    validator = MySQLController.mysql_proxy_switch_scene.validator
 
 
 class MysqlProxySwitchResourceParamBuilder(BaseOperateResourceParamBuilder):
@@ -75,3 +74,4 @@ class MysqlProxySwitchFlowBuilder(BaseMySQLHATicketFlowBuilder):
     inner_flow_builder = MysqlProxySwitchParamBuilder
     resource_batch_apply_builder = MysqlProxySwitchResourceParamBuilder
     pause_node_builder = MySQLBasePauseParamBuilder
+    validator = MySQLController.mysql_proxy_switch_scene.validator

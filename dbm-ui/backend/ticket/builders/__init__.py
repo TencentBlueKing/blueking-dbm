@@ -497,6 +497,8 @@ class TicketFlowBuilder:
     default_expire_config: dict = TICKET_EXPIRE_DEFAULT_CONFIG
     # 是否用户可修改单据流程(在单据配置表中)
     editable: bool = True
+    # 参数校验器
+    validator = None
 
     def __init__(self, ticket: Ticket):
         self.ticket = ticket

@@ -83,7 +83,6 @@ class MysqlMigrateUpgradeDetailSerializer(MySQLBaseOperateDetailSerializer):
 
 class MysqlMigrateUpgradeParamBuilder(MysqlMasterSlaveSwitchParamBuilder):
     controller = MySQLController.tendbha_upgrade_scene
-    validator = MySQLController.tendbha_upgrade_scene.validator
 
     def format_ticket_data(self):
         if self.ticket_data["ip_source"] == IpSource.RESOURCE_POOL:
@@ -154,6 +153,7 @@ class MysqlMigrateUpgradeFlowBuilder(MysqlMasterSlaveSwitchFlowBuilder):
     inner_flow_name = TicketType.get_choice_label(TicketType.MYSQL_MIGRATE_UPGRADE)
     resource_batch_apply_builder = MysqlMigrateUpgradeResourceParamBuilder
     need_patch_recycle_host_details = True
+    validator = MySQLController.tendbha_upgrade_scene.validator
 
     def patch_auto_match_resource_spec(self, id_cluster_map):
         # 自动匹配补充规格信息

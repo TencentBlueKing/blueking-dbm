@@ -226,8 +226,8 @@ class ParamValidateSerializerMixin(object):
     def validated_params(self, attrs):
         ticket_type = self.context["ticket_type"]
         ticket_flow_builder = builders.BuilderFactory.registry[ticket_type]
-        if hasattr(ticket_flow_builder.inner_flow_builder, "validator"):
-            self.validator = ticket_flow_builder.inner_flow_builder.validator
+        if hasattr(ticket_flow_builder, "validator"):
+            self.validator = ticket_flow_builder.validator
 
         if not self.validator:
             logger.info(_("单据类型 {} 没有配置验证器，跳过参数验证").format(ticket_type))

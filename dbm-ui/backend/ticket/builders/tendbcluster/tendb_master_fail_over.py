@@ -35,7 +35,6 @@ class TendbMasterFailOverDetailSerializer(TendbMasterSlaveSwitchDetailSerializer
 
 class TendbMasterFailOverParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.tendbcluster_remote_fail_over_scene
-    validator = None
 
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_MASTER_FAIL_OVER)
