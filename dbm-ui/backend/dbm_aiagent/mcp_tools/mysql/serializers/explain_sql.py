@@ -11,17 +11,19 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.dbm_aiagent.mcp_tools.mysql.serializers.usefully_choices import mysql_cluster_type_choices
 
-class ShowCreateTableInputSerializer(serializers.Serializer):
+
+class ExplainSQLInputSerializer(serializers.Serializer):
+    cluster_type = serializers.ChoiceField(choices=mysql_cluster_type_choices, help_text=_("集群类型"))
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
-    cluster_type = serializers.CharField(help_text=_("集群类型"))
     dbname = serializers.CharField(help_text=_("库名"))
-    tablename = serializers.CharField(help_text=_("表名"))
+    query_sql = serializers.CharField(help_text=_("需要查询执行计划的 SQL 语句"))
 
 
-class ShowCreateTableOutputSerializer(serializers.Serializer):
+class ExplainSQLOutputSerializer(serializers.Serializer):
+    cluster_type = serializers.CharField(help_text=_("集群类型"))
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
-    cluster_type = serializers.CharField(help_text=_("集群类型"))
     dbname = serializers.CharField(help_text=_("库名"))
-    tablename = serializers.CharField(help_text=_("表名"))
-    create_sql = serializers.CharField(help_text=_("表结构, 建表语句"))
+    query_sql = serializers.CharField(help_text=_("需要分析的 SQL 语句"))
+    explain_result = serializers.DictField(help_text=_("explain sql 的执行计划结果"))

@@ -646,11 +646,13 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "tools": [],
     },
     {
-        "name": "mysql-sql-tuning",
-        "description": "mysql sql tuning",
+        "name": "mysql-query",
+        "description": """mysql relate information query, such as 
+        1. mysql instance status, include run-time variables, status, explain sql and so on
+        2. tendbsingle/tendbha/tendbcluster cluster info""",
         # 主动授权 app_code
         "target_app_codes": [APP_CODE],
-        "labels": ["mysql-sql-tuning"],
+        "labels": ["mysql-query"],
         # 是否启用：1-启用，0-停止
         "status": 1,
         # 是否公开

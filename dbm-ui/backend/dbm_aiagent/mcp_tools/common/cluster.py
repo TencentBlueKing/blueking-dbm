@@ -29,7 +29,7 @@ class ClusterMcpToolsViewSet(McpToolsViewSet):
     default_permission_class = []
 
     @mcp_tools_api_decorator(
-        description=_("获取集群的业务和类型基础信息(无鉴权)"),
+        description=_("获取集群的业务和类型基础信息(无鉴权), 包括所属业务id, 集群类型和集群 id"),
         request_slz=GetClusterBaseInfoInputSerializer,
         response_slz=GetClusterBaseInfoOutputSerializer,
         tags=[DBMMCPTags.READ],

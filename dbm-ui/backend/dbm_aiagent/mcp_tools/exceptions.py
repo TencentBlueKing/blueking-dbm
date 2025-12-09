@@ -23,3 +23,15 @@ class DBMMcpDuplicateToolNameException(DBMMcpBaseException):
     ERROR_CODE = "001"
     MESSAGE = _("mcp tools 重名")
     MESSAGE_TPL = _("{tool_name} 重名")
+
+
+class DBMMcpNotSupportClusterTypeException(DBMMcpBaseException):
+    ERROR_CODE = "002"
+    MESSAGE = _("不支持的集群类型")
+    MESSAGE_TPL = _("{cluster_type} 不支持当前操作")
+
+
+class DBMMcpNotSupportMachineTypeException(DBMMcpBaseException):
+    ERROR_CODE = "003"
+    MESSAGE = _("不支持的机器类型")
+    MESSAGE_TPL = _("{machine_type} 不支持当前操作")

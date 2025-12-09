@@ -2,6 +2,7 @@ package tools
 
 import (
 	"dbm-services/common/go-pubpkg/logger"
+	"slices"
 	"time"
 
 	"github.com/avast/retry-go/v4"
@@ -33,6 +34,15 @@ func LoadTools(s *server.MCPServer) (err error) {
 		return err
 	}
 
+	for name, _ := range s.ListTools() {
+		if slices.IndexFunc(
+			tds, func(td *toolsDefinition) bool {
+				return td.OperationId == name
+			},
+		) < 0 {
+			s.DeleteTools(name)
+		}
+	}
 	for _, td := range tds {
 		tool := mcp.NewToolWithRawSchema(
 			td.OperationId,

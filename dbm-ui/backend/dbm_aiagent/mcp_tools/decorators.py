@@ -65,6 +65,7 @@ def mcp_tools_api_decorator(
     tags: list[str],
     mcp: list[DBMAMcpTools],
     methods: list[str] = ("POST",),
+    name_prefix: str = None,
     reference_view: Optional[Callable] = None,
     is_public: bool = False,
     allow_apply_permission: bool = False,
@@ -100,7 +101,10 @@ def mcp_tools_api_decorator(
 
         # 提取 agent_type 和 mcp_type，生成 operation_id
         agent_type, mcp_type = _extract_agent_type_and_mcp_type(func)
-        operation_id = f"mcp_{agent_type}_{mcp_type}_{func.__name__}"
+        if not name_prefix:
+            operation_id = f"mcp_{agent_type}_{mcp_type}_{func.__name__}"
+        else:
+            operation_id = f"{name_prefix}_{func.__name__}"
 
         # 注册 operation_id 到 MCP 工具的映射（按 MCP 工具分组存储）
         for mcp_tool in mcp or []:
