@@ -97,26 +97,37 @@
         :title="t('关联单据状态')"
         width="200">
         <template #default="{ row }: { row: IRowData }">
-          <div
-            v-bk-tooltips="{
-              content: generateStatusCount(row.status)
-                .map((item) => `${item.text} ${item.count}`)
-                .join('，'),
-              placement: 'top',
-              disabled: generateStatusCount(row.status).length <= MAX_DISPLAY_NUM,
-            }"
-            class="ticket-status-list">
-            <span
-              v-for="(item, index) in generateStatusCount(row.status)"
-              :key="item.text">
-              {{ item.text }}
+          <div class="ticket-status">
+            <div
+              v-bk-tooltips="{
+                content: generateStatusCount(row.status)
+                  .map((item) => `${item.text} ${item.count}`)
+                  .join('，'),
+                placement: 'top',
+                disabled: generateStatusCount(row.status).length <= MAX_DISPLAY_NUM,
+              }"
+              class="ticket-status-list">
               <span
-                class="bold-number"
-                :style="{ color: item.color }">
-                {{ item.count }}
+                v-for="(item, index) in generateStatusCount(row.status)"
+                :key="item.text">
+                {{ item.text }}
+                <span
+                  class="bold-number"
+                  :style="{ color: item.color }">
+                  {{ item.count }}
+                </span>
+                <span v-if="index < generateStatusCount(row.status).length - 1">，</span>
               </span>
-              <span v-if="index < generateStatusCount(row.status).length - 1">，</span>
-            </span>
+            </div>
+            <BkButton
+              class="forward-btn"
+              text
+              theme="primary"
+              @click="() => handleForward(row.ticket_ids)">
+              <DbIcon
+                class="ml-6"
+                type="bk-dbm-icon db-icon-link" />
+            </BkButton>
           </div>
         </template>
       </TableColumn>
@@ -243,6 +254,22 @@
     filterDateRange.value = value;
   };
 
+  const handleForward = (ticketIds: number[]) => {
+    router.push({
+      name: 'resourceReplenishRecord',
+      params: {
+        page: 'ticket-view',
+      },
+      query: {
+        [URL_REPLENISH_MEMO_KEY]: encodeURIComponent(
+          JSON.stringify({
+            ids: ticketIds.join(','),
+          }),
+        ),
+      },
+    });
+  };
+
   watch(
     () => [filterDateRange.value, quickSearchValue.value],
     _.debounce(() => {
@@ -281,10 +308,19 @@
 </script>
 <style lang="less">
   .replenish-record-list {
-    .ticket-status-list {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+    .ticket-status {
+      display: flex;
+
+      .ticket-status-list {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .forward-btn {
+        position: relative;
+        top: 0px;
+      }
     }
   }
 </style>

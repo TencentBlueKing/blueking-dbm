@@ -100,7 +100,7 @@
       </TableColumn>
       <TableColumn
         col-key="record_id"
-        :title="t('补货操作')"
+        :title="t('补货操作 ID')"
         width="120">
         <template #default="{ row }: { row: IRowData }">
           {{ row?.record_id || '--' }}
