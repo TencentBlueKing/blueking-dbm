@@ -21,9 +21,9 @@ from backend.flow.utils.script_template import fast_execute_script_common_kwargs
 from backend.utils.string import base64_encode
 
 download_script_content = """
-    #/bin/bash 
+    #/bin/bash
     if [ ! -f /data/install/dbactuator ];then
-        cd /data/install/&& wget --header "Host:{{domain}}" --tries=10  {{file_url}} -o dbactuator 
+        cd /data/install/&& wget --header "Host:{{domain}}" --tries=10  {{file_url}} -O dbactuator
         if [ $? -eq 0 ];then
             echo "download dbactor success"
             exit 0
