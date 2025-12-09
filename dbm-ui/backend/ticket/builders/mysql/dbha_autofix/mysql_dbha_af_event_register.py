@@ -105,8 +105,8 @@ class MySQLDBHAAlarmTransformSerializer(AlarmCallBackDataSerializer):
                     "event_create_time": data["callback_message"]["event"]["create_time"],
                     "new_master_host": dimensions.get("new_master_host", ""),
                     "new_master_port": dimensions.get("new_master_port", 0),
-                    "new_master_log_file": dimensions.get("new_master_log_file", ""),
-                    "new_master_log_pos": dimensions.get("new_master_log_pos", 0),
+                    "new_master_log_file": dimensions.get("new_master_binlog_file", ""),
+                    "new_master_log_pos": dimensions.get("new_master_binlog_pos", 0),
                 }
             ]
         }
