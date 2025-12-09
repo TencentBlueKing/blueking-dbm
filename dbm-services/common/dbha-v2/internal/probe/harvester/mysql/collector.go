@@ -121,8 +121,28 @@ func (c *collector) isTendbClusterProxy() bool {
 }
 
 func (c *collector) obtainTendbClusterProxyStatus() (*haprobe.MySqlSpiderCtlStatus, error) {
-	// TODO: implement get spider proxy status
-	return nil, nil
+	var routes []haprobe.MySqlSpiderCtlRoute
+	err := c.db.DB().Raw("select * from mysql.servers").Scan(&routes).Error
+
+	if err != nil {
+		logger.Warn("failed to get MySQL spider routes, errmsg: %s", err)
+		return nil, err
+	}
+
+	var nodes []haprobe.MySqlSpiderCtlNode
+	err = c.db.DB().Raw("select * from information_schema.TDBCTL_NODES").Scan(&nodes).Error
+
+	if err != nil {
+		logger.Warn("failed to get MySQL spider nodes, errmsg: %s", err)
+		return nil, err
+	}
+
+	status := &haprobe.MySqlSpiderCtlStatus{
+		Routes:   routes,
+		CtlNodes: nodes,
+	}
+
+	return status, nil
 }
 
 func (c *collector) obtainTendbHaProxyStatus() (*haprobe.MySqlProxyStatus, error) {
