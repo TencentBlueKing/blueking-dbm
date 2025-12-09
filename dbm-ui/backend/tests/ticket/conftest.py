@@ -134,7 +134,7 @@ def test_ticket_with_todo(test_ticket_bk_biz_id):
         ticket=ticket,
         flow=flow,
         name="人工确认",
-        type=TodoType.APPROVE,
+        type=TodoType.INNER_APPROVE,
         status=TodoStatus.TODO,
         operators=["admin", "dba1"],
         context={"message": "请确认是否继续执行"},

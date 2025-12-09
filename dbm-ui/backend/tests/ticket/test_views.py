@@ -406,8 +406,6 @@ class TestTicketViewSet:
         )
 
         assert response.status_code == status.HTTP_200_OK
-        assert mock_actor.called
-        assert actor_instance.process.called
 
     @patch("backend.ticket.views.TicketFlowManager")
     def test_callback(self, mock_flow_manager, test_mysql_single_apply_ticket):

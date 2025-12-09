@@ -20,7 +20,7 @@ from backend.db_services.mongodb.resources.query import MongoDBListRetrieveResou
 from backend.db_services.mongodb.toolbox.handlers import ToolboxHandler
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostRecycleSerializer, get_mongodb_cluster_tolerance
+from backend.ticket.builders.common.base import get_mongodb_cluster_tolerance
 from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateDetailSerializer,
     BaseMongoDBOperateResourceParamBuilder,
@@ -52,7 +52,6 @@ class MongoDBShardCutoffDetailSerializer(BaseMongoDBOperateDetailSerializer):
     )
     cluster_type = serializers.CharField(help_text=_("集群版本"))
     infos = serializers.ListSerializer(help_text=_("整机替换信息"), child=ACutoffDetailSerializer())
-    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
