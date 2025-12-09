@@ -25,7 +25,6 @@ class MysqlProxyConfChangeDetailSerializer(MysqlProxySwitchDetailSerializer):
 
 class MysqlProxyConfChangeParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_proxy_switch_for_extend_scene
-    validator = MySQLController.mysql_proxy_switch_for_extend_scene.validator
 
 
 class MysqlProxyConfChangeResourceParamBuilder(MysqlProxySwitchResourceParamBuilder):
@@ -40,3 +39,4 @@ class MysqlProxyConfChangeFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MysqlProxyConfChangeDetailSerializer
     inner_flow_builder = MysqlProxyConfChangeParamBuilder
     resource_batch_apply_builder = MysqlProxyConfChangeResourceParamBuilder
+    validator = MySQLController.mysql_proxy_switch_for_extend_scene.validator

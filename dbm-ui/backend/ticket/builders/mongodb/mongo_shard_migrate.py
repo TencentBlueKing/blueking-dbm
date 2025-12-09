@@ -51,7 +51,6 @@ class MongoDBShardMigrateDetailSerializer(BaseMongoDBOperateDetailSerializer):
 
 class MongoDBShardMigrateFlowParamBuilder(builders.FlowParamBuilder):
     controller = MongoDBController.instance_migrate
-    validator = MongoDBController.instance_migrate.validator
 
     def format_ticket_data(self):
         bk_biz_id = self.ticket_data["bk_biz_id"]
@@ -69,6 +68,7 @@ class MongoDBShardMigrateResourceParamBuilder(BaseMongoDBOperateResourceParamBui
 @builders.BuilderFactory.register(TicketType.MONGODB_SHARD_MIGRATE, is_recycle=True)
 class MongoDBShardMigrateFlowBuilder(BaseMongoDBTicketFlowBuilder):
     serializer = MongoDBShardMigrateDetailSerializer
+    validator = MongoDBController.instance_migrate.validator
     resource_batch_apply_builder = MongoDBShardMigrateResourceParamBuilder
     inner_flow_builder = MongoDBShardMigrateFlowParamBuilder
     inner_flow_name = _("MongoDB 分片集群迁移")

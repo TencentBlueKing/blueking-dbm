@@ -41,7 +41,6 @@ class MysqlProxyAddDetailSerializer(MySQLBaseOperateDetailSerializer):
 
 class MysqlProxyAddParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_proxy_add_scene
-    validator = MySQLController.mysql_proxy_add_scene.validator
 
 
 class MysqlProxyAddResourceParamBuilder(BaseOperateResourceParamBuilder):
@@ -54,3 +53,4 @@ class MysqlProxyAddFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MysqlProxyAddDetailSerializer
     inner_flow_builder = MysqlProxyAddParamBuilder
     resource_batch_apply_builder = MysqlProxyAddResourceParamBuilder
+    validator = MySQLController.mysql_proxy_add_scene.validator

@@ -49,7 +49,6 @@ class MongoDBReplicasetMigrateDetailSerializer(BaseMongoDBOperateDetailSerialize
 
 class MongoDBReplicasetMigrateFlowParamBuilder(builders.FlowParamBuilder):
     controller = MongoDBController.instance_migrate
-    validator = MongoDBController.instance_migrate.validator
 
     def format_ticket_data(self):
         bk_biz_id = self.ticket_data["bk_biz_id"]
@@ -67,6 +66,7 @@ class MongoDBReplicasetMigrateResourceParamBuilder(BaseMongoDBOperateResourcePar
 @builders.BuilderFactory.register(TicketType.MONGODB_REPLICASET_MIGRATE, is_recycle=True)
 class MongoDBReplicasetMigrateFlowBuilder(BaseMongoDBTicketFlowBuilder):
     serializer = MongoDBReplicasetMigrateDetailSerializer
+    validator = MongoDBController.instance_migrate.validator
     resource_batch_apply_builder = MongoDBReplicasetMigrateResourceParamBuilder
     inner_flow_builder = MongoDBReplicasetMigrateFlowParamBuilder
     inner_flow_name = _("MongoDB 副本集集群迁移")

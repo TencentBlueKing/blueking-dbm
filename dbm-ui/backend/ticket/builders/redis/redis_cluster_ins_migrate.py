@@ -45,7 +45,6 @@ class RedisClusterInsMigrateDetailSerializer(RedisBaseOperateDetailSerializer):
 
 class RedisClusterInsMigrateBuilder(builders.FlowParamBuilder):
     controller = RedisController.redis_cluster_ins_migrate
-    # validator = RedisController.redis_cluster_ins_migrate.validator
 
     def format_ticket_data(self):
         # 任取一个集群，补充云区域ID
@@ -93,6 +92,7 @@ class RedisClusterInstanceApplyResourceParamBuilder(BaseOperateResourceParamBuil
 @builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_INS_MIGRATE, is_recycle=True)
 class RedisClusterInsMigrateBuilder(BaseRedisInstanceTicketFlowBuilder):
     serializer = RedisClusterInsMigrateDetailSerializer
+    # validator = RedisController.redis_cluster_ins_migrate.validator
     inner_flow_builder = RedisClusterInsMigrateBuilder
     resource_batch_apply_builder = RedisClusterInstanceApplyResourceParamBuilder
     inner_flow_name = _("Redis 集群指定实例迁移")

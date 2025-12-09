@@ -48,7 +48,6 @@ class MongoDBAddShardDetailSerializer(BaseMongoDBOperateDetailSerializer):
 
 class MongoDBAddShardFlowParamBuilder(builders.FlowParamBuilder):
     controller = MongoDBController.cluster_add_shard
-    validator = None
 
     def format_ticket_data(self):
         bk_biz_id = self.ticket_data["bk_biz_id"]

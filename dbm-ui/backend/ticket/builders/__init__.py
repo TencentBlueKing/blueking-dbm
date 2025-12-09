@@ -81,9 +81,6 @@ class FlowParamBuilder(CallBackBuilderMixin):
     # 配置任务流程控制器：流程启动函数
     controller = None
 
-    # 暂时先为空，等校验函数出来再替换
-    validator = None
-
     def __init__(self, ticket: Ticket):
         self.ticket = ticket
         self.ticket_data = copy.deepcopy(ticket.details)
@@ -497,6 +494,8 @@ class TicketFlowBuilder:
     default_expire_config: dict = TICKET_EXPIRE_DEFAULT_CONFIG
     # 是否用户可修改单据流程(在单据配置表中)
     editable: bool = True
+    # 参数校验器
+    validator = None
 
     def __init__(self, ticket: Ticket):
         self.ticket = ticket
