@@ -209,6 +209,10 @@
   watch(
     todoNodesCount,
     () => {
+      if (baseInfo.value.status === 'FAILED') {
+        return;
+      }
+
       setTimeout(() => {
         if (todoNodesCount.value) {
           taskFlowRef.value!.setTreeStatus('TODO');
