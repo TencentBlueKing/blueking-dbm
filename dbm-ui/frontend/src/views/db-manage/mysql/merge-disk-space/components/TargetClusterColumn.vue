@@ -52,15 +52,6 @@
 
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
 
-  interface Props {
-    cluster: {
-      id: number;
-      master_domain: string;
-    };
-  }
-
-  const props = defineProps<Props>();
-
   const modelValue = defineModel<
     {
       cluster_type: string;
@@ -77,23 +68,11 @@
     () =>
       ({
         [ClusterTypes.TENDBHA]: {
-          disabledRowConfig: [
-            {
-              handler: (data: TendbhaModel) => data.id === props.cluster.id,
-              tip: t('不能选择源集群'),
-            },
-          ],
-          multiple: true,
+          multiple: false,
           showPreviewResultTitle: true,
         },
         [ClusterTypes.TENDBSINGLE]: {
-          disabledRowConfig: [
-            {
-              handler: (data: TendbhaModel) => data.id === props.cluster.id,
-              tip: t('不能选择源集群'),
-            },
-          ],
-          multiple: true,
+          multiple: false,
           showPreviewResultTitle: true,
         },
       }) as unknown as Record<string, TabConfig>,
@@ -120,19 +99,6 @@
           } else {
             formatError = item;
             return false;
-          }
-        }),
-    },
-    {
-      message: t('不能选择源集群'),
-      trigger: 'blur',
-      validator: () =>
-        !localValue.value ||
-        modelValue.value.every((item) => {
-          if (item.id === props.cluster.id || item.master_domain === props.cluster.master_domain) {
-            return false;
-          } else {
-            return true;
           }
         }),
     },

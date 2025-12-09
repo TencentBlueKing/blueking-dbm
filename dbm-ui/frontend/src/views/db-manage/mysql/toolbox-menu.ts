@@ -197,7 +197,13 @@ export default [
       {
         dbConsoleValue: 'mysql.toolbox.dataMigrate',
         id: TicketTypes.MYSQL_DATA_MIGRATE,
-        name: t('DB克隆'),
+        name: t('DB 数据克隆'),
+        parentId: 'data',
+      },
+      {
+        dbConsoleValue: 'mysql.toolbox.mergeDiskSpace',
+        id: 'MySQLMergeDiskSpace',
+        name: t('DB 数据合并空间评估'),
         parentId: 'data',
       },
     ],

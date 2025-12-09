@@ -14,7 +14,7 @@
 <template>
   <EditableColumn
     :append-rules="rules"
-    field="cluster.master_domain"
+    :field="field"
     fixed="left"
     :label="label"
     :loading="loading"
@@ -65,7 +65,8 @@
     /**
      * 选择器tab集群类型
      */
-    clusterTypes?: ClusterTypes[];
+    clusterTypes?: (ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE)[];
+    field?: string;
     label?: string;
     minWidth?: number;
     /**
@@ -92,6 +93,7 @@
   const props = withDefaults(defineProps<Props>(), {
     allowRepeat: false,
     clusterTypes: () => [ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE],
+    field: 'cluster.master_domain',
     label: t('目标集群'),
     minWidth: 350,
     onlyOneType: false,
