@@ -48,7 +48,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   createRouteItem(TicketTypes.MYSQL_CHECKSUM, t('数据校验修复')),
   createRouteItem(TicketTypes.MYSQL_CLIENT_CLONE_RULES, t('客户端权限克隆')),
   createRouteItem(TicketTypes.MYSQL_INSTANCE_CLONE_RULES, t('DB实例权限克隆')),
-  createRouteItem(TicketTypes.MYSQL_DATA_MIGRATE, t('DB克隆')),
+  createRouteItem(TicketTypes.MYSQL_DATA_MIGRATE, t('DB 数据克隆')),
   createRouteItem(TicketTypes.MYSQL_PROXY_UPGRADE, t('版本升级')),
   createRouteItem(TicketTypes.MYSQL_CLUSTER_STANDARDIZE, t('集群标准化')),
   createRouteItem(TicketTypes.MYSQL_FLASHBACK, t('回档')),
@@ -62,6 +62,14 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
       navName: 'Webconsole',
     },
     component: () => import('@views/db-manage/mysql/webconsole/Index.vue'),
+  },
+  {
+    path: 'merge-disk-space',
+    name: 'MySQLMergeDiskSpace',
+    meta: {
+      navName: t('DB 数据合并空间评估'),
+    },
+    component: () => import('@views/db-manage/mysql/merge-disk-space/Index.vue'),
   },
   createRouteItem(TicketTypes.MYSQL_PROXY_UPGRADE, t('版本升级')), // 接入层升级
   createRouteItem(TicketTypes.MYSQL_LOCAL_UPGRADE, t('版本升级')), // 主从/单节点-存储层-本地升级

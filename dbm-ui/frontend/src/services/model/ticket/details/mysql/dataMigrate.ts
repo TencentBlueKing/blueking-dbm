@@ -1,7 +1,7 @@
 import type { DetailBase, DetailClusters } from '../common';
 
 /**
- * MySQL DB克隆
+ * MySQL DB 数据克隆
  */
 
 export interface DataMigrate extends DetailBase {
