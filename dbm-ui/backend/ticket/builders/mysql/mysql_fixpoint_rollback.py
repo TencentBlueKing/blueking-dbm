@@ -112,7 +112,6 @@ class MySQLFixPointRollbackDetailSerializer(MySQLBaseOperateDetailSerializer):
 class MySQLFixPointRollbackFlowParamBuilder(builders.FlowParamBuilder):
     rollback_to_new_controller = MySQLController.mysql_rollback_data_cluster_scene
     rollback_to_exist_controller = MySQLController.mysql_rollback_to_cluster_scene
-    validator = MySQLController.mysql_rollback_to_cluster_scene.validator
 
     def format_ticket_data(self):
         rollback_cluster_type = self.ticket_data["rollback_cluster_type"]
@@ -153,6 +152,7 @@ class MysqlFixPointRollbackFlowBuilder(BaseMySQLTicketFlowBuilder):
     resource_batch_apply_builder = MysqlFixPointRollbackResourceParamBuilder
     inner_flow_name = _("定点构造执行")
     retry_type = FlowRetryType.MANUAL_RETRY
+    validator = MySQLController.mysql_rollback_to_cluster_scene.validator
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_FIXPOINT_NEW_CLUSTER, is_apply=True)

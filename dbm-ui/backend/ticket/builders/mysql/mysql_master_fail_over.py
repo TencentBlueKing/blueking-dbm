@@ -27,7 +27,6 @@ class MysqlMasterFailOverDetailSerializer(MysqlMasterSlaveSwitchDetailSerializer
 
 class MysqlMasterFailOverParamBuilder(MysqlMasterSlaveSwitchParamBuilder):
     controller = MySQLController.mysql_ha_master_fail_over_scene
-    validator = None
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_MASTER_FAIL_OVER)

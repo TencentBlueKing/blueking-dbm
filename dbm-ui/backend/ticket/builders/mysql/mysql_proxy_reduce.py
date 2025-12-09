@@ -38,8 +38,6 @@ class MysqlProxyReduceDetailSerializer(MySQLBaseOperateDetailSerializer):
 
 class MysqlProxyReduceFlowParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_proxy_reduce_scene
-    # 暂时先为空，等校验函数出来再替换
-    validator = MySQLController.mysql_proxy_reduce_scene.validator
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_PROXY_REDUCE, is_recycle=True)
@@ -49,6 +47,7 @@ class MysqlProxyReduceFlowBuilder(BaseMySQLTicketFlowBuilder):
     inner_flow_name = _("Mysql 减少proxy")
     need_patch_recycle_host_details = True
     need_patch_machine_details = True
+    validator = MySQLController.mysql_proxy_reduce_scene.validator
 
     def patch_ticket_detail(self):
         super().patch_ticket_detail()

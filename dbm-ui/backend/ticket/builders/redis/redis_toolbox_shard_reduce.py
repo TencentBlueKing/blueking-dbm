@@ -43,7 +43,6 @@ class RedisShardReduceDetailSerializer(RedisBaseOperateDetailSerializer):
 
 class RedisShardReduceParamBuilder(builders.FlowParamBuilder):
     controller = RedisController.redis_slots_migrate_for_contraction
-    validator = None
 
     def format_ticket_data(self):
         for info in self.ticket_data["infos"]:

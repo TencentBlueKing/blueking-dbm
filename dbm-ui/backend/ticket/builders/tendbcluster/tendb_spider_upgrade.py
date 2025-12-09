@@ -49,7 +49,6 @@ class TenDBSpiderUpgradeSerializer(TendbBaseOperateDetailSerializer):
 
 class TenDBSpiderUpgradeParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.tendbcluster_spider_upgrade
-    validator = SpiderController.tendbcluster_spider_upgrade.validator
 
 
 class TenDBSpiderUpgradeResourceParamBuilder(TendbBaseOperateResourceParamBuilder):
@@ -74,3 +73,4 @@ class TenDBSpiderUpgradeFlowBuilder(BaseTendbTicketFlowBuilder):
     inner_flow_name = _("TenDB Cluster 接入层迁移升级")
     resource_batch_apply_builder = TenDBSpiderUpgradeResourceParamBuilder
     need_patch_recycle_host_details = True
+    validator = SpiderController.tendbcluster_spider_upgrade.validator

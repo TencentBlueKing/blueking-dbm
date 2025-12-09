@@ -27,7 +27,6 @@ class RedisClusterStandardizeDetailSerializer(RedisBaseOperateDetailSerializer):
 
 class RedisClusterStandardizeFlowParamBuilder(builders.FlowParamBuilder):
     controller = RedisController.redis_clusters_reinstall_dbmon_scene
-    validator = None
 
 
 @builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_REINSTALL_DBMON)
