@@ -19,8 +19,8 @@ data:
       auth_info:
         username: {{ index .Values "db-event-consumer" "kafka_info" "auth_info_username" }}
         password: {{ index .Values "db-event-consumer" "kafka_info" "auth_info_password" }}
-        sasl_mechanisms: SCRAM-SHA-512
-        security_protocol: SASL_PLAINTEXT
+        sasl_mechanisms: {{ index .Values "db-event-consumer" "kafka_info" "auth_info_sasl_mechanisms" }}
+        security_protocol: {{ index .Values "db-event-consumer" "kafka_info" "auth_info_security_protocol" }}
     log:
       console: true
       debug: true
