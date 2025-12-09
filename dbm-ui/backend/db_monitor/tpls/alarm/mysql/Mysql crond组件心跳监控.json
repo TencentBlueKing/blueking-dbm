@@ -70,7 +70,7 @@
         "level": 2,
         "expression": "",
         "trigger_config": {
-          "count": 2,
+          "count": 5,
           "uptime": {
             "calendars": [],
             "time_ranges": [
@@ -80,7 +80,7 @@
               }
             ]
           },
-          "check_window": 2
+          "check_window": 5
         },
         "recovery_config": {
           "check_window": 3,
@@ -248,7 +248,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "COUNT(mysql_crond_heart_beat)",
-  "version": 29,
+  "version": 30,
   "alert_source": "time_series",
   "custom_conditions": []
 }
