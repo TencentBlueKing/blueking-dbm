@@ -19,6 +19,7 @@ from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.consts import HdfsRoleEnum, LevelInfoEnum
 from backend.flow.utils.hdfs.consts import DATANODE_DEFAULT_PORT, JOURNAL_NODE_DEFAULT_PORT, ZOOKEEPER_DEFAULT_PORT
+from backend.flow.utils.hdfs.hdfs_flow_data_initializer import get_node_ips_in_ticket_by_role
 from backend.flow.utils.hdfs.hdfs_module_operate import HdfsCCTopoOperator
 from backend.ticket.constants import TicketType
 
@@ -158,7 +159,7 @@ class HdfsDBMeta(object):
     def __generate_storage_instance(self) -> list:
         storage_instances = []
         if self.ticket_data["ticket_type"] == TicketType.HDFS_APPLY:
-            for dn_ip in self.ticket_data["dn_ips"]:
+            for dn_ip in get_node_ips_in_ticket_by_role(self.ticket_data, HdfsRoleEnum.DataNode.value):
                 storage_instances.append(
                     {
                         "ip": dn_ip,
@@ -168,26 +169,19 @@ class HdfsDBMeta(object):
                         "db_version": self.ticket_data.get("db_version", ""),
                     }
                 )
-            storage_instances.append(
-                {
-                    "ip": self.ticket_data["nn1_ip"],
-                    "port": self.ticket_data["rpc_port"],
-                    "instance_role": InstanceRole.HDFS_NAME_NODE.value,
-                    "name": HdfsRoleEnum.NameNode.value,
-                    "db_version": self.ticket_data.get("db_version", ""),
-                }
-            )
-            storage_instances.append(
-                {
-                    "ip": self.ticket_data["nn2_ip"],
-                    "port": self.ticket_data["rpc_port"],
-                    "instance_role": InstanceRole.HDFS_NAME_NODE.value,
-                    "name": HdfsRoleEnum.NameNode.value,
-                    "db_version": self.ticket_data.get("db_version", ""),
-                }
-            )
 
-            for zk_ip in self.ticket_data["zk_ips"]:
+            for nn_ip in get_node_ips_in_ticket_by_role(self.ticket_data, HdfsRoleEnum.NameNode.value):
+                storage_instances.append(
+                    {
+                        "ip": nn_ip,
+                        "port": self.ticket_data["rpc_port"],
+                        "instance_role": InstanceRole.HDFS_NAME_NODE.value,
+                        "name": HdfsRoleEnum.NameNode.value,
+                        "db_version": self.ticket_data.get("db_version", ""),
+                    }
+                )
+
+            for zk_ip in get_node_ips_in_ticket_by_role(self.ticket_data, HdfsRoleEnum.ZooKeeper.value):
                 storage_instances.append(
                     {
                         "ip": zk_ip,
@@ -197,7 +191,7 @@ class HdfsDBMeta(object):
                         "db_version": self.ticket_data.get("db_version", ""),
                     }
                 )
-            for jn_ip in self.ticket_data["jn_ips"]:
+            for jn_ip in get_node_ips_in_ticket_by_role(self.ticket_data, HdfsRoleEnum.JournalNode.value):
                 storage_instances.append(
                     {
                         "ip": jn_ip,
@@ -236,7 +230,7 @@ class HdfsDBMeta(object):
         bk_biz_id = self.ticket_data["bk_biz_id"]
 
         if self.ticket_data["ticket_type"] == TicketType.HDFS_APPLY:
-            nn_ips = {self.ticket_data["nn1_ip"], self.ticket_data["nn2_ip"]}
+            nn_ips = get_node_ips_in_ticket_by_role(self.ticket_data, HdfsRoleEnum.NameNode.value)
             # 通过遍历 HdfsRoleEnum 区分
             for role, machine_type in self.role_machine_dict.items():
                 for node in self.ticket_data["nodes"][role]:

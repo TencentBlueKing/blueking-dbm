@@ -33,6 +33,7 @@ from backend.flow.plugins.components.collections.hdfs.trans_flies import TransFi
 from backend.flow.utils.extension_manage import BigdataManagerKwargs
 from backend.flow.utils.hdfs.hdfs_act_playload import HdfsActPayload
 from backend.flow.utils.hdfs.hdfs_context_dataclass import ActKwargs, DnsKwargs
+from backend.flow.utils.hdfs.hdfs_flow_data_initializer import get_all_node_ips_in_ticket
 
 logger = logging.getLogger("flow")
 
@@ -264,3 +265,46 @@ class HdfsOperationFlow(object):
             act_name=_("DBMeta删除下架IP"), act_component_code=HdfsDBMetaComponent.code, kwargs=asdict(act_kwargs)
         )
         return del_dn_sub_pipeline
+
+    @staticmethod
+    def new_machine_hdfs_flow(root_id: str, act_kwargs: ActKwargs, data: dict) -> SubBuilder:
+        # """
+        # HDFS集群新节点公共子流程
+        # 包括
+        #     下发HDFS介质包
+        #     初始化机器
+        #     解压缩文件
+        #     渲染集群配置
+        #     安装supervisor
+        # 操作
+        # """
+        hdfs_common_sub_pipeline = SubBuilder(root_id=root_id, data=data)
+        # 修改act对应执行的IP
+        act_kwargs.exec_ip = get_all_node_ips_in_ticket(data)
+
+        hdfs_common_sub_pipeline.add_act(
+            act_name=_("下发hdfs介质包"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
+        )
+        act_kwargs.get_hdfs_payload_func = HdfsActPayload.get_sys_init_payload.__name__
+        hdfs_common_sub_pipeline.add_act(
+            act_name=_("初始化机器"), act_component_code=ExecuteHdfsActuatorScriptComponent.code, kwargs=asdict(act_kwargs)
+        )
+
+        act_kwargs.get_hdfs_payload_func = HdfsActPayload.get_decompress_package_payload.__name__
+        hdfs_common_sub_pipeline.add_act(
+            act_name=_("解压缩文件"), act_component_code=ExecuteHdfsActuatorScriptComponent.code, kwargs=asdict(act_kwargs)
+        )
+
+        act_kwargs.get_hdfs_payload_func = HdfsActPayload.get_render_cluster_config_payload.__name__
+        hdfs_common_sub_pipeline.add_act(
+            act_name=_("渲染集群配置"), act_component_code=ExecuteHdfsActuatorScriptComponent.code, kwargs=asdict(act_kwargs)
+        )
+
+        act_kwargs.get_hdfs_payload_func = HdfsActPayload.get_install_supervisor_payload.__name__
+        hdfs_common_sub_pipeline.add_act(
+            act_name=_("安装supervisor"),
+            act_component_code=ExecuteHdfsActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
+
+        return hdfs_common_sub_pipeline

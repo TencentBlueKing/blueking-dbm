@@ -125,5 +125,5 @@ def list_bk_host_ids(ips: list, bk_cloud_id: int) -> list:
 
 
 def get_bk_biz_id(bk_host_id: int) -> int:
-    biz_res = CCApi.find_host_biz_relations({"bk_host_id": [bk_host_id]})
+    biz_res = CCApi.find_host_biz_relations({"bk_host_id": [bk_host_id]}, use_admin=True)
     return biz_res[0]["bk_biz_id"]
