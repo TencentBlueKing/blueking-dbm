@@ -163,13 +163,6 @@ class MySQLAuthorizeHandler(AuthorizeHandler):
             _domain, _port = match.group(1).rstrip("."), match.group(2)
             return _domain, _port
 
-        if app:
-            app_detail = ScrApi.common_query(params={"app": app, "columns": ["appid", "ccId"]})["detail"]
-            if not app_detail:
-                raise DBPermissionBaseException(_("无法查询app: {}相关信息，请检查app输入是否合法。").format(app))
-            app_detail = app_detail[0]
-            # bk_biz_id = app_detail["ccId"]
-
         # 域名存在，则走dbm的授权方式，否则走gcs的授权方式
         domain, __ = parse_domain(target_instance)
         cluster = Cluster.objects.filter(
@@ -232,6 +225,11 @@ class MySQLAuthorizeHandler(AuthorizeHandler):
             if not app:
                 raise DBPermissionBaseException(_("gcs授权请保证app不为空"))
 
+            app_detail = ScrApi.common_query(params={"app": app, "columns": ["appid", "ccId"]})["detail"]
+            if not app_detail:
+                raise DBPermissionBaseException(_("无法查询app: {}相关信息，请检查app输入是否合法。").format(app))
+
+            app_detail = app_detail[0]
             # 填充headers和参数。
             headers = {"bk_username": user}
             params = {
