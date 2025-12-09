@@ -18,14 +18,15 @@ PARTITION_NO_EXECUTE_CODE = 51029  # 分区执行无需发起
 
 # 查询唯一索引的SQL语句
 QUERY_UNIQUE_FIELDS_SQL = (
-    "select distinct table_schema, table_name, index_name, "
+    "select distinct table_schema as table_schema, table_name as table_name, index_name as index_name, "
     "group_concat(distinct column_name order by seq_in_index) as column_list "
     "from information_schema.statistics  where {table_sts} and {db_sts} and non_unique = 0 "
     "group by table_name, index_name;"
 )
 # 查询所有表的所有字段类型
 QUERY_DATABASE_FIELD_TYPE = (
-    "select table_schema, table_name, column_name, column_type "
+    "select table_schema as table_schema, table_name as table_name, "
+    "column_name as column_name, column_type as column_type "
     "from information_schema.columns where {table_sts} and {db_sts}"
 )
 
