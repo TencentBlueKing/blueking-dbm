@@ -26,29 +26,29 @@ package haprobe
 
 // MySqlSpiderCtlRoute MySQL spider node information.
 type MySqlSpiderCtlRoute struct {
-	ServerName string `json:"server_name"`
-	Host       string `json:"host"`
-	Db         string `json:"db"`
-	UserName   string `json:"user_name"`
-	Port       int    `json:"port"`
-	Wrapper    string `json:"wrapper"`
-	Owner      string `json:"owner"`
+	ServerName string `gorm:"column:Server_Name" json:"server_name"`
+	Host       string `gorm:"column:Host"        json:"host"`
+	Db         string `gorm:"column:Db"          json:"db"`
+	UserName   string `gorm:"column:Username"    json:"user_name"`
+	Port       int    `gorm:"column:Port"        json:"port"`
+	Wrapper    string `gorm:"column:Wrapper"     json:"wrapper"`
+	Owner      string `gorm:"column:Owner"       json:"owner"`
 }
 
 // MySqlSpiderCtlNode MySQL spider controller node information.
 type MySqlSpiderCtlNode struct {
-	ServerName        string `json:"server_name"`
-	Host              string `json:"host"`
-	Port              int    `json:"port"`
-	ReplicationMaster string `json:"replication_master"`
-	ReplicationInfo   string `json:"replication_info"`
-	ClusterRole       string `json:"cluster_role"`
-	Status            string `json:"status"`
-	Message           string `json:"message"`
+	ServerName        string `gorm:"column:SERVER_NAME"        json:"server_name"`
+	Host              string `gorm:"column:HOST"               json:"host"`
+	Port              int    `gorm:"column:PORT"               json:"port"`
+	ReplicationMaster string `gorm:"column:REPLICATION_MASTER" json:"replication_master"`
+	ReplicationInfo   string `gorm:"column:REPLICATION_INFO"   json:"replication_info"`
+	ClusterRole       string `gorm:"column:CLUSTER_ROLE"       json:"cluster_role"`
+	Status            string `gorm:"column:STATUS"             json:"status"`
+	Message           string `gorm:"column:MESSAGE"            json:"message"`
 }
 
 // MySqlSpiderCtlStatus MySQL spider status for the TendbCluster.
 type MySqlSpiderCtlStatus struct {
-	Routes   []*MySqlSpiderCtlRoute `json:"routes"`
-	CtlNodes []*MySqlSpiderCtlNode  `json:"ctl_nodes"`
+	Routes   []MySqlSpiderCtlRoute `json:"routes"`
+	CtlNodes []MySqlSpiderCtlNode  `json:"ctl_nodes"`
 }

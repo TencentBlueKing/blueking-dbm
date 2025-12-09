@@ -254,7 +254,6 @@ func (m *MySql) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
 		}
 
 		metrics.Status.SpiderCtlStatus = dbStatus
-		return
 	}
 
 	// Get the global status.

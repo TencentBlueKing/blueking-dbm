@@ -419,8 +419,8 @@ func (t *DbhaData) loadDatabase(db *haprobe.MySqlGlobalStatus) {
 		TableCreatedTmp:     db.TableCreatedTmp,
 		TableCreatedTmpDisk: db.TableCreatedTmpDisk,
 		FileCreatedTmp:      db.FileCreatedTmp,
-		FileOpen:            db.FileOpen,
-		TableOpen:           db.TableOpen,
+		FileOpen:            db.OpenFiles,
+		TableOpen:           db.OpenTables,
 
 		// copy binlog information
 		BinlogCacheDiskUse:     db.BinlogCacheUse,

@@ -27,18 +27,35 @@ package haprobe
 type MySqlGlobalStatus struct {
 	ListenPort int `json:"listen_port,omitempty"`
 
-	// Status
-	Version          string `json:"mysql_version,omitempty"`
-	ThreadsConnected uint   `json:"mysql_threads_connected,omitempty"`
-	ServerCharset    string `json:"character_set_server,omitempty"`
+	// Base Status
+	Version                string `json:"mysql_version,omitempty"`
+	Uptime                 uint64 `json:"uptime,omitempty"`
+	UptimeSinceFlushStatus uint64 `json:"uptime_since_flush_status,omitempty"`
+	ServerCharset          string `json:"character_set_server,omitempty"`
+	OpenFiles              uint64 `json:"open_files,omitempty"`
+	OpenTableDefinitions   int    `json:"open_table_definitions,omitempty"`
+	OpenTables             uint64 `json:"open_tables,omitempty"`
+	OpenedFiles            int    `json:"opened_files,omitempty"`
+	OpenedTableDefinitions int    `json:"opened_table_definitions,omitempty"`
+	OpenedTables           int    `json:"opened_tables,omitempty"`
+	TableLocksImmediate    int    `json:"table_locks_immediate,omitempty"`
+	TableLocksWaited       int    `json:"table_locks_waited,omitempty"`
+	TableOpenCacheHits     int    `json:"table_open_cache_hits,omitempty"`
+	TableOpenCacheMisses   int    `json:"table_open_cache_misses,omitempty"`
+
+	// Control Center Status
+	TcIsPrimary bool `json:"tc_is_primary,omitempty"`
 
 	// Performance Connection metric
-	ThreadsRunning            int `json:"threads_running,omitempty"`
-	ConnectionsAborted        int `json:"aborted_connects,omitempty"`
-	Connections               int `json:"connections,omitempty"`
-	ConnectionsErrorsAccept   int `json:"connection_errors_accept,omitempty"`
-	ConnectionsErrorsInternal int `json:"connection_errors_internal,omitempty"`
-	ConnectionsErrorsPeerAddr int `json:"connection_errors_peer_address,omitempty"`
+	ThreadsCached             int  `json:"threads_cached,omitempty"`
+	ThreadsConnected          uint `json:"threads_connected,omitempty"`
+	ThreadsCreated            int  `json:"threads_created,omitempty"`
+	ThreadsRunning            int  `json:"threads_running,omitempty"`
+	ConnectionsAborted        int  `json:"aborted_connects,omitempty"`
+	Connections               int  `json:"connections,omitempty"`
+	ConnectionsErrorsAccept   int  `json:"connection_errors_accept,omitempty"`
+	ConnectionsErrorsInternal int  `json:"connection_errors_internal,omitempty"`
+	ConnectionsErrorsPeerAddr int  `json:"connection_errors_peer_address,omitempty"`
 
 	// MySQL Performance Query metric
 	QueryTotal     uint64 `json:"queries,omitempty"`
@@ -79,8 +96,6 @@ type MySqlGlobalStatus struct {
 	TableCreatedTmp     uint64 `json:"created_tmp_tables,omitempty"`
 	TableCreatedTmpDisk uint64 `json:"created_tmp_disk_tables,omitempty"`
 	FileCreatedTmp      uint64 `json:"created_tmp_files,omitempty"`
-	FileOpen            uint64 `json:"opened_files,omitempty"`
-	TableOpen           uint64 `json:"opened_tables,omitempty"`
 	TableFlush          uint   `json:"flush_commands,omitempty"`
 
 	// Performance BinLog metrics
