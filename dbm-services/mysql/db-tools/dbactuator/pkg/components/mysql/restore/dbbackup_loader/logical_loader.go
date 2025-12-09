@@ -111,11 +111,14 @@ func (l *LogicalLoader) Load() error {
 	if err != nil {
 		logger.Warn("failed to set global slow_query_log=off for %d. ignore %s", l.TgtInstance.Port, err.Error())
 	} else {
+		logger.Info("set global slow_query_log=off for %d. originalValue: %s", l.TgtInstance.Port, originalValue)
 		defer dbWorker.SetSingleGlobalVar("slow_query_log", originalValue)
 	}
 	if err := l.loadBackup(); err != nil {
+		logger.Error("failed to load backup for %d. ignore %s", l.TgtInstance.Port, err.Error())
 		return err
 	}
+	logger.Info("load backup success for %d", l.TgtInstance.Port)
 	return nil
 }
 

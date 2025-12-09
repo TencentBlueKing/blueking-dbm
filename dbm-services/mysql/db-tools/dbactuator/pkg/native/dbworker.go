@@ -543,6 +543,7 @@ func (h *DbWorker) SetSingleGlobalVar(varName, varValue string) error {
 	} else {
 		setSqlStr = fmt.Sprintf("SET GLOBAL %s='%s'", varName, varValue)
 	}
+	logger.Info("setSqlStr: %s, varValue: %s", setSqlStr, varValue)
 	if err := h.ExecuteAdminSql(setSqlStr); err != nil {
 		return err
 	}
