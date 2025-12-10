@@ -741,14 +741,25 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
         ]
 
-    def get_tlinux4_dependencies_package(self) -> tuple:
+    def get_tlinux4_dependencies_package(self) -> list:
         """
-        tlinux4依赖包
+        tlinux4依赖包，可能返回多个rpm依赖包
+        @return: 返回包信息列表，每个元素为 (包名, 下载URL) 元组
         """
-        tlinux4_dependencies_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.TLinux4Dependencies, db_type=DBType.MySQL
-        )
-        return [
-            tlinux4_dependencies_pkg.name,
-            f"{env.BKREPO_ENDPOINT_URL}/generic/{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{tlinux4_dependencies_pkg.path}",
-        ]
+        tlinux4_dependencies_pkgs = Package.objects.filter(
+            pkg_type=MediumEnum.TLinux4Dependencies, db_type=DBType.MySQL, enable=True
+        ).order_by("-update_at")
+
+        non_perl_pkgs = []
+        perl_pkgs = []
+        for pkg in tlinux4_dependencies_pkgs:
+            pkg_info = (
+                pkg.name,
+                f"{env.BKREPO_ENDPOINT_URL}/generic/{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{pkg.path}",
+            )
+            # perl相关依赖包 依赖其他的包，需要后安装
+            if "perl" in pkg.name.lower():
+                perl_pkgs.append(pkg_info)
+            else:
+                non_perl_pkgs.append(pkg_info)
+        return non_perl_pkgs + perl_pkgs

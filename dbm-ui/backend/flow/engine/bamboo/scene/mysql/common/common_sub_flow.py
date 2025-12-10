@@ -488,16 +488,15 @@ def init_machine_sub_flow(
         )
         # 获取tlinux4依赖包配置，如果配置为空则跳过
         try:
-            pkg, download_url = GetFileList(db_type=DBType.MySQL).get_tlinux4_dependencies_package()
-            if pkg and download_url:
+            pkg_list = GetFileList(db_type=DBType.MySQL).get_tlinux4_dependencies_package()
+            if pkg_list:
                 act_list.append(
                     {
                         "act_name": _("判断/安装tlinux4依赖"),
                         "act_component_code": AdaptTLinux4DependenciesComponent.code,
                         "kwargs": {
                             "exec_ip": sys_init_ips,
-                            "pkg": pkg,
-                            "download_url": download_url,
+                            "pkg_list": pkg_list,
                             "bk_cloud_id": bk_cloud_id,
                             "bk_repo_username": settings.BKREPO_USERNAME,
                             "bk_repo_password": settings.BKREPO_PASSWORD,
