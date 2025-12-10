@@ -147,6 +147,7 @@
     };
     future_capacity: number;
     group_num: number;
+    row_key: string;
   }
 
   const createRowData = (values: DeepPartial<IDataRow> = {}) => ({
@@ -168,6 +169,7 @@
     ),
     future_capacity: values?.future_capacity || 0,
     group_num: values?.group_num || 1,
+    row_key: random(),
   });
 
   const createDefaultFormData = () => ({
@@ -315,6 +317,7 @@
               db_version: tableItem.cluster.major_version,
               future_capacity: tableItem.future_capacity,
               group_num: newGroupNum, // 新机器组数
+              row_key: tableItem.row_key,
               shard_num: newGroupNum * machineShardNum, // 新集群分片数
               spec_id: tableItem.cluster.cluster_spec.spec_id,
               update_mode: 'slot_migrate_down',
