@@ -261,7 +261,7 @@
         page: 'ticket-view',
       },
       query: {
-        [URL_REPLENISH_MEMO_KEY]: encodeURIComponent(
+        __replenish_ticket_view_payload__: encodeURIComponent(
           JSON.stringify({
             ids: ticketIds.join(','),
           }),
