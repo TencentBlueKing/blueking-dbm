@@ -18,7 +18,7 @@ from django.utils.translation import gettext_lazy as _
 
 from backend.components import DRSApi
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
+from backend.db_meta.enums import ClusterType, InstancePhase, InstanceStatus, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.check_response import CheckResponse
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.decorator import checker_wrapper
@@ -149,16 +149,18 @@ def _check_spider_routing(c: Cluster, routing_data: List[dict]) -> List[CheckRes
         tendbclusterspiderext__spider_role__in=[
             TenDBClusterSpiderRole.SPIDER_MASTER.value,
             TenDBClusterSpiderRole.SPIDER_MNT.value,
-        ]
-    ):
+        ],
+        phase=InstancePhase.ONLINE.value,
+    ).exclude(status=InstanceStatus.UNAVAILABLE.value):
         spider_address = f"{spider.machine.ip}{IP_PORT_DIVIDER}{spider.port}"
         metadata_master_spiders.add(spider_address)
 
     # 从元数据获取 SPIDER_SLAVE 节点
     metadata_slave_spiders = set()
     for spider in c.proxyinstance_set.filter(
-        tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE.value
-    ):
+        tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE.value,
+        phase=InstancePhase.ONLINE.value,
+    ).exclude(status=InstanceStatus.UNAVAILABLE.value):
         spider_address = f"{spider.machine.ip}{IP_PORT_DIVIDER}{spider.port}"
         metadata_slave_spiders.add(spider_address)
 
@@ -309,8 +311,9 @@ def _check_tdbctl_routing(c: Cluster, routing_data: List[dict]) -> List[CheckRes
     # 从元数据获取所有 spider master 节点，计算中控地址（排除运维节点）
     metadata_tdbctl_addresses = set()
     for spider_master in c.proxyinstance_set.filter(
-        tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
-    ):
+        tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER.value,
+        phase=InstancePhase.ONLINE.value,
+    ).exclude(status=InstanceStatus.UNAVAILABLE.value):
         tdbctl_address = f"{spider_master.machine.ip}{IP_PORT_DIVIDER}{spider_master.port + 1000}"
         metadata_tdbctl_addresses.add(tdbctl_address)
 
