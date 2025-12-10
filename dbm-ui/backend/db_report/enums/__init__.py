@@ -15,6 +15,8 @@ from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 from .dbmon_heartbeat_report_sub_type import DbmonHeartbeatReportSubType
 from .meta_check_sub_type import MetaCheckSubType
 from .mysqlbackup_check_sub_type import MysqlBackupCheckSubType
+from .redis_rollback_exercise_task_stage import FAILED_STAGES as REDIS_ROLLBACK_EXER_FAILED_STAGES
+from .redis_rollback_exercise_task_stage import RedisRollbackExerciseTaskStage
 from .redisbackup_check_sub_type import RedisBackupCheckSubType
 
 SWAGGER_TAG = _("巡检报告")

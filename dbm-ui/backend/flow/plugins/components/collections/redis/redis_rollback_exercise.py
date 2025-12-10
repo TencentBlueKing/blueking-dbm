@@ -17,6 +17,8 @@ from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import StaticIntervalGenerator
 
 from backend.db_meta.models import Cluster
+from backend.db_report.enums import RedisRollbackExerciseTaskStage as TaskStage
+from backend.db_report.models import RedisRollbackExerciseReport as Report
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.scene.redis.redis_data_structure import RedisDataStructureFlow
@@ -52,9 +54,9 @@ class RedisLogCapturingService(BaseService):
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         formatted_msg = f"[{current_time}] [{log_level.upper()}]: {msg}"
 
-        if self.trans_data.task_info is None:
+        if self.trans_data.task_msg is None:
             self.trans_data.task_info = []
-        self.trans_data.task_info.append(formatted_msg)
+        self.trans_data.task_msg.append(formatted_msg)
 
     def log_info(self, msg: str):
         """Override to auto-capture info logs"""
@@ -98,9 +100,6 @@ class RedisFlowPollingService(RedisLogCapturingService):
     interval = StaticIntervalGenerator(10)
     polling_timeout = 3600
 
-    FAILED = "FAILED"
-    SUCCEEDED = "SUCCEEDED"
-
     def __execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
 
@@ -131,15 +130,27 @@ class RedisFlowPollingService(RedisLogCapturingService):
         data.outputs["trans_data"] = self.trans_data
         return result
 
-    def _update_task_status(self, flow_type: str, status: str):
+    def _update_task_status(self, flow_type: str, flow_succeeded: bool = False):
         """Update task status"""
-        if not self.trans_data.task_id:
+        if not self.trans_data.report_id:
+            self.log_warning(_("report_id is not set!"))
             return
 
-        if flow_type == "rollback_flow_id":
-            self.log_info(_("Dry-run: changing task {} state to ROLLBACK_{}").format(self.trans_data.task_id, status))
-        elif flow_type == "delete_flow_id":
-            self.log_info(_("Dry-run: changing task {} state to DELETE_{}").format(self.trans_data.task_id, status))
+        try:
+            report = Report.objects.get(id=self.trans_data.report_id)
+            if flow_type == "rollback_flow_id":
+                stage = TaskStage.ROLLBACK_SUCCEEDED if flow_succeeded else TaskStage.ROLLBACK_FAILED
+            elif flow_type == "delete_flow_id":
+                stage = TaskStage.DELETE_SUCCEEDED if flow_succeeded else TaskStage.DELETE_FAILED
+            else:
+                self.log_warning(_("Unknown flow type: {}").format(flow_type))
+                return
+
+            task_msg = "\n".join(self.trans_data.task_msg) if self.trans_data.task_msg else ""
+            report.mark(stage, task_message=task_msg)
+            self.log_info(_("Report {} state changed to {}").format(self.trans_data.report_id, stage))
+        except Report.DoesNotExist:
+            self.log_warning(_("Report {} not found for status update").format(self.trans_data.report_id))
 
     def _check_timeout(self, flow_type: str) -> bool:
         """Check if polling has timed out"""
@@ -171,7 +182,7 @@ class RedisFlowPollingService(RedisLogCapturingService):
                 self._update_task_status(flow_type, self.FAILED)
                 return False
             case _:
-                self.log_info(_("Flow {} status: {}").format(flow_id, status))
+                self.log_info(_("Polling: flow {} with status: {}").format(flow_id, status))
                 return True
 
     def __schedule(self, data, parent_data, callback_data=None) -> bool:
@@ -234,8 +245,8 @@ class RedisRollbackFlowCreateSerivce(RedisLogCapturingService):
             self.log_warning("Skipping RedisRollbackFlowCreateSerivce due to previous error")
             return True
 
-        task_id = kwargs["cluster"].get("task_id")
-        self.trans_data.task_id = task_id
+        report_id = kwargs["cluster"].get("report_id")
+        self.trans_data.report_id = report_id
 
         bk_biz_id = kwargs["cluster"].get("bk_biz_id")  # biz_id of the ticket, not cluster
         cluster_id = kwargs["cluster"].get("cluster_id")
@@ -277,19 +288,33 @@ class RedisRollbackFlowCreateSerivce(RedisLogCapturingService):
             self.trans_data.rollback_flow_id = rollback_flow_id
 
             self.log_info(
-                _("REDIS_DATA_STRUCTURE flow {} created successfully for task {}").format(rollback_flow_id, task_id)
+                _("REDIS_DATA_STRUCTURE flow {} created successfully for task {}").format(rollback_flow_id, report_id)
             )
 
-            self.log_info(_("Dry-run: changing task {} state to ROLLBACK_FLOW_GENERATED").format(task_id))
+            # Update task status to ROLLBACK_FLOW_GENERATED
+            report = Report.objects.get(id=report_id)
+            report.rollback_flow_obj_id = rollback_flow_id
+            report.mark(TaskStage.ROLLBACK_FLOW_GENERATED)
+            self.log_info(_("Report {} state changed to ROLLBACK_FLOW_GENERATED").format(report_id))
 
             return True
 
         except Cluster.DoesNotExist:
             self.log_error(_("Cluster {} not found").format(cluster_id))
             return True
+        except Report.DoesNotExist:
+            self.log_error(_("Report {} not found for status update").format(report_id))
+            return True
         except Exception as e:
             self.log_error(_("Generate REDIS_DATA_STRUCTURE flow failed: {}").format(str(e)))
-            self.log_info(_("Dry-run: changing task {} state to ROLLBACK_FAILED due to exception").format(task_id))
+            # Update task status to ROLLBACK_FLOW_GEN_FAILED
+            try:
+                report = Report.objects.get(id=report_id)
+                task_msg = "\n".join(self.trans_data.task_msg) if self.trans_data.task_msg else ""
+                report.mark(TaskStage.ROLLBACK_FLOW_GEN_FAILED, task_msg)
+                self.log_info(_("Report {} state changed to ROLLBACK_FLOW_GEN_FAILED").format(report_id))
+            except Report.DoesNotExist:
+                self.log_warning(_("Report {} not found for failure status update").format(report_id))
             return True
 
     def _execute(self, data, parent_data) -> bool:
@@ -329,7 +354,7 @@ class RedisTempInstanceDeleteService(RedisLogCapturingService):
             delete_flow_id = generate_root_id()
             global_data = data.get_one_of_inputs("global_data")
             bk_biz_id = kwargs["cluster"].get("bk_biz_id")  # biz_id of the ticket, not cluster
-            task_id = kwargs["cluster"].get("task_id")
+            report_id = self.trans_data.report_id
 
             flow_data = {
                 "bk_biz_id": bk_biz_id,
@@ -362,13 +387,26 @@ class RedisTempInstanceDeleteService(RedisLogCapturingService):
                 )
             )
 
-            self.log_info(_("Dry-run changing task {} state to DELETE_FLOW_GENERATED").format(task_id))
+            # Update task status to DELETE_FLOW_GENERATED
+            task = Report.objects.get(id=report_id)
+            task.delete_flow_obj_id = delete_flow_id
+            task.mark(TaskStage.DELETE_FLOW_GENERATED)
+            self.log_info(_("Report {} state changed to DELETE_FLOW_GENERATED").format(report_id))
 
             return True
 
+        except Report.DoesNotExist:
+            self.log_error(_("Report {} not found for status update").format(report_id))
+            return True
         except Exception as e:
             self.log_error(_("Failed to delete resources: {}").format(str(e)))
-            self.log_info(_("Dry-run changing task {} state to DELETE_FAILED due to exception").format(task_id))
+            # Update task status to DELETE_FLOW_GEN_FAILED
+            try:
+                task = Report.objects.get(id=report_id)
+                task.mark(TaskStage.DELETE_FLOW_GEN_FAILED, task_message=str(e))
+                self.log_info(_("Report {} state changed to DELETE_FLOW_GEN_FAILED").format(report_id))
+            except Report.DoesNotExist:
+                self.log_warning(_("Report {} not found for failure status update").format(report_id))
             return True
 
     def _execute(self, data, parent_data) -> bool:
@@ -382,6 +420,57 @@ class RedisTempInstanceDeleteComponent(Component):
     name = __name__
     code = "redis_temp_instance_delete"
     bound_service = RedisTempInstanceDeleteService
+
+
+class RedisRollbackExerciseFinishingService(RedisLogCapturingService):
+    """
+    Component to perform post action after a task is complete.
+    This component:
+    1. If previously error occurred, performs error cleanup (currently no-op)
+    2. Otherwise, updates the report stage to DONE
+    """
+
+    def __execute(self, data, parent_data) -> bool:
+        if not self.trans_data.report_id:
+            self.log_warning(_("report_id is not set, skipping finishing step"))
+            return True
+
+        try:
+            report = Report.objects.get(id=self.trans_data.report_id)
+
+            if self.trans_data.error_occurred:
+                # Error cleanup - for now just log and leave the report in its current state
+                self.log_warning(
+                    _("Error occurred during rollback exercise for report {}, skipping DONE status").format(
+                        self.trans_data.report_id
+                    )
+                )
+                return True
+
+            # Update report stage to DONE
+            task_msg = "\n".join(self.trans_data.task_msg) if self.trans_data.task_msg else ""
+            report.mark(TaskStage.DONE, task_message=task_msg)
+            self.log_info(_("Report {} state changed to DONE").format(self.trans_data.report_id))
+            return True
+
+        except Report.DoesNotExist:
+            self.log_warning(_("Report {} not found for finishing").format(self.trans_data.report_id))
+            return True
+        except Exception as e:
+            self.log_error(_("Failed to finish rollback exercise: {}").format(str(e)))
+            return True
+
+    def _execute(self, data, parent_data) -> bool:
+        self.init_trans_data(data)
+        result = self.__execute(data, parent_data)
+        data.outputs["trans_data"] = self.trans_data
+        return result
+
+
+class RedisRollbackExerciseFinishingComponent(Component):
+    name = __name__
+    code = "redis_rollback_exercise_finishing"
+    bound_service = RedisRollbackExerciseFinishingService
 
 
 class RedisRollbackTaskCleanupService(BaseService):

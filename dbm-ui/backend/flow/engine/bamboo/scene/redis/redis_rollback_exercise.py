@@ -17,12 +17,14 @@ from django.conf import settings
 from django.utils.translation import gettext as _
 
 from backend.db_meta.models import Cluster
-from backend.db_services.ipchooser.constants import BkOsTypeCode
+from backend.db_report.enums import RedisRollbackExerciseTaskStage as TaskStage
+from backend.db_report.models import RedisRollbackExerciseReport as Report
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
 from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.redis.redis_rollback_exercise import (
     RedisFlowPollingComponent,
+    RedisRollbackExerciseFinishingComponent,
     RedisRollbackFlowCreateComponent,
     RedisRollbackTaskCleanupComponent,
     RedisTempInstanceDeleteComponent,
@@ -54,7 +56,7 @@ class RedisRollbackExerciseFlow(object):
                             "instance_ip": "127.0.0.1",  # Instance IP
                             "instance_port": 30000,  # Instance port
                             "recovery_time_point": "2023-12-12 11:11:11",  # Recovery time point
-                            "task_id": 123,  # Task record ID
+                            "report_id": 123,  # Task record ID
                             "resource_spec": {},  # Resource specification
                         }
                     ],
@@ -65,9 +67,6 @@ class RedisRollbackExerciseFlow(object):
         self.root_id = root_id
         self.ticket_data = data
 
-        # For resource recycling
-        self.ticket_data["db_type"] = "redis"
-        self.ticket_data["os_type"] = BkOsTypeCode.LINUX
         logger.info("ticket_data:", self.ticket_data)
 
     def rollback_exercise_flow(self):
@@ -106,18 +105,19 @@ class RedisRollbackExerciseFlow(object):
             cluster = Cluster.objects.get(id=info["cluster_id"])
             ip = info["instance_ip"]
             port = info["instance_port"]
-            task_record_id = info["task_id"]
+            report_id = info["report_id"]
             resource_applied = info.get("redis", [])  # Should be a list with len == 1
 
             # Step 1: TaskRecordUpdate - Initialize task status
+            report = Report.objects.get(id=report_id)
             if not resource_applied or len(resource_applied) != 1:
                 logger.warning(
-                    _("Resource applied is abonormal: {}").format(resource_applied if resource_applied else "None")
+                    _("Resource applied is abnormal: {}").format(resource_applied if resource_applied else "None")
                 )
-                logger.info(_("Dry-run: Changing task state to RESOURCE_APPLI_FAILED"))
+                report.mark(TaskStage.RESOURCE_APPLI_FAILED, task_message=_("资源申请异常"))
                 raise ValueError(_("资源申请异常"))
             else:
-                logger.info(_("Dry-run: Changing task state to RESOURCE_APPLI_SUCCEEDED"))
+                report.mark(TaskStage.RESOURCE_APPLI_SUCCEEDED)
 
             polling_timeout = config.get("polling_timeout", 3600)
 
@@ -125,7 +125,7 @@ class RedisRollbackExerciseFlow(object):
             act_kwargs.set_trans_data_dataclass = RedisRollbackExerciseContext.__name__
             act_kwargs.cluster = {
                 "bk_biz_id": self.ticket_data["bk_biz_id"],
-                "task_id": task_record_id,
+                "report_id": report_id,
                 "cluster_id": cluster.id,
                 "instance_ip": ip,
                 "instance_port": port,
@@ -136,7 +136,15 @@ class RedisRollbackExerciseFlow(object):
                 "polling_timeout": polling_timeout,
             }
 
-            # Step 2: Add alert shield for the applied machine
+            # Step 2: RollbackFlowCreate - Generate a rollback flow
+            # Note: This must run before AddAlarmShield to properly initialize trans_data in sub-pipeline
+            sub_flow.add_act(
+                act_name=_("生成构造任务"),
+                act_component_code=RedisRollbackFlowCreateComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
+
+            # Step 3: Add alert shield for the applied machine
             shield_duration_seconds = polling_timeout + settings.DISABLE_ALARM_SHIELD_DELAY
             sub_flow.add_act(
                 act_name=_("屏蔽主机 {} 告警(超时 {:.1f} mins)").format(
@@ -155,14 +163,7 @@ class RedisRollbackExerciseFlow(object):
                 },
             )
 
-            # Step 3: RollbackFlowCreate - Generate a rollback flow
-            sub_flow.add_act(
-                act_name=_("生成构造任务"),
-                act_component_code=RedisRollbackFlowCreateComponent.code,
-                kwargs=asdict(act_kwargs),
-            )
-
-            # Step 4: FlowPoll - Poll until the creation is done
+            # Step 4: FlowPoll - Poll until the rollback flow creation is done
             act_kwargs.cluster["flow_type"] = "rollback_flow_id"
             sub_flow.add_act(
                 act_name=_("等待构造完成"),
@@ -170,14 +171,14 @@ class RedisRollbackExerciseFlow(object):
                 kwargs=asdict(act_kwargs),
             )
 
-            # Step 5: TempInstanceDelete - Delete temp instance
+            # Step 5: TempInstanceDelete - Delete temp instance after rollback completes
             sub_flow.add_act(
                 act_name=_("销毁临时实例"),
                 act_component_code=RedisTempInstanceDeleteComponent.code,
                 kwargs=asdict(act_kwargs),
             )
 
-            # Step 6: FlowPoll - Poll until the deletion is done
+            # Step 6: FlowPoll - Poll until the temp instance deletion is done
             act_kwargs.cluster["flow_type"] = "delete_flow_id"
             sub_flow.add_act(
                 act_name=_("等待销毁完成"),
@@ -185,7 +186,14 @@ class RedisRollbackExerciseFlow(object):
                 kwargs=asdict(act_kwargs),
             )
 
-            # Step 7: Remove alert shield for the applied machine
+            # Step 7: Finish the rollback exercise and update report status
+            sub_flow.add_act(
+                act_name=_("演练收尾工作"),
+                act_component_code=RedisRollbackExerciseFinishingComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
+
+            # Step 8: Remove alert shield for the applied machine after exercise completes
             sub_flow.add_act(
                 act_name=_("15 分钟后解除主机 {} 告警屏蔽").format(resource_applied[0]["ip"]),
                 act_component_code=DisableAlarmShieldComponent.code,
