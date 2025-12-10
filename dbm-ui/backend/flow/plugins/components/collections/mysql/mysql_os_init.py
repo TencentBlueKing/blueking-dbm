@@ -404,10 +404,20 @@ tlinux4_dependencies_script = """
                     echo "Package file /data/install/{{pkg}} not found, exit"
                     exit 1
                 fi
-                rpm -ivh /data/install/{{pkg}}
-                if [ $? -ne 0 ]; then
-                    echo "Failed to install {{pkg}}, exit"
+                PKG_NAME=$(rpm -qp --queryformat '%{NAME}' /data/install/{{pkg}} 2>/dev/null)
+                if [ -z "$PKG_NAME" ]; then
+                    echo "Failed to query package name from {{pkg}}, exit"
                     exit 1
+                fi
+                if rpm -q "$PKG_NAME" &> /dev/null; then
+                    echo "Package $PKG_NAME is already installed, skip installation"
+                else
+                    echo "Installing package $PKG_NAME..."
+                    rpm -ivh /data/install/{{pkg}}
+                    if [ $? -ne 0 ]; then
+                        echo "Failed to install {{pkg}}, exit"
+                        exit 1
+                    fi
                 fi
                 if [ -L /usr/lib64/libmysqlclient.so.21 ]; then
                     echo "Found symlink /usr/lib64/libmysqlclient.so.21, removing it"
