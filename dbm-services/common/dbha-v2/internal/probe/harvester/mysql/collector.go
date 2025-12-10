@@ -25,27 +25,19 @@
 package mysql
 
 import (
-	"fmt"
-	"math"
-	"net"
 	"time"
 
+	"dbm-services/common/dbha-v2/internal/probe/harvester/base"
 	"dbm-services/common/dbha-v2/pkg/converter"
-	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
-
-	"github.com/shirou/gopsutil/cpu"
-	"github.com/shirou/gopsutil/disk"
-	"github.com/shirou/gopsutil/load"
-	"github.com/shirou/gopsutil/mem"
-
-	gopsutilnet "github.com/shirou/gopsutil/v4/net"
 )
 
 type collector struct {
+	base.Collector
+
 	clusterType haprobe.DbmMetadataClusterType
 	machineType haprobe.DbmMetadataMachineType
 	accessLayer haprobe.DbmMetadataAccessLayerType
@@ -53,6 +45,7 @@ type collector struct {
 	password    string
 	endpoint    *hanet.Endpoint
 	db          *hamysql.GormDB
+	isAdminNode bool
 }
 
 func (c *collector) open() (*haprobe.DbEvent, error) {
@@ -118,6 +111,10 @@ func (c *collector) isTendbClusterProxy() bool {
 	return c.accessLayer == haprobe.DbmMetadataAccessLayerTypeProxy &&
 		c.machineType == haprobe.DbmMetadataMachineTypeSpider &&
 		c.clusterType == haprobe.DbmMetadataClusterTypeTendbCluster
+}
+
+func (c *collector) isAdmin() bool {
+	return c.isAdminNode
 }
 
 func (c *collector) obtainTendbClusterProxyStatus() (*haprobe.MySqlSpiderCtlStatus, error) {
@@ -203,204 +200,21 @@ func (c *collector) obtainGlobalStatus() (*haprobe.MySqlGlobalStatus, error) {
 func (c *collector) obtainHostStatus() (*haprobe.HostMetric, error) {
 	hostStatus := &haprobe.HostMetric{}
 
-	if err := c.setCpuStatus(hostStatus); err != nil {
+	if err := c.SetCpuStatus(hostStatus); err != nil {
 		logger.Warn("failed to update CPU status, errmsg: %s", err)
 	}
 
-	if err := c.setNetStatus(hostStatus); err != nil {
+	if err := c.SetNetStatus(hostStatus); err != nil {
 		logger.Warn("failed to update Net status, errmsg: %s", err)
 	}
 
-	if err := c.setStorageStatus(hostStatus); err != nil {
-		logger.Warn("failed to update storage status, errmsg: %s", err)
+	if err := c.SetMemoryStatus(hostStatus); err != nil {
+		logger.Warn("failed to update memory status, errmsg: %s", err)
+	}
+
+	if err := c.SetDiskStatus(hostStatus); err != nil {
+		logger.Warn("failed to update memory status, errmsg: %s", err)
 	}
 
 	return hostStatus, nil
-}
-
-func (c *collector) setCpuStatus(sysMetric *haprobe.HostMetric) error {
-
-	cpuPercent, err := cpu.Percent(1*time.Second, false)
-	if err != nil {
-		return gerrors.Newf(gerrors.Failure, "failed to obtain CPU percent, %v", err)
-	}
-
-	if len(cpuPercent) == 0 {
-		return gerrors.New(gerrors.Failure, "failed to obtain CPU percent, empty data set")
-	}
-
-	cpuTimes, err := cpu.Times(false)
-	if err != nil {
-		return gerrors.Newf(gerrors.Failure, "failed to obtain CPU time, %v", err)
-	}
-
-	if len(cpuTimes) == 0 {
-		return gerrors.New(gerrors.Failure, "failed to obtain CPU time, empty data set")
-	}
-
-	sysMetric.CpuUsagePercent = cpuPercent[0]
-
-	total := cpuTimes[0].Total()
-	if math.Float64bits(total) == 0 {
-		return gerrors.New(gerrors.Failure, "total CPU time is zero")
-	}
-
-	sysMetric.CpuUserPercent = cpuTimes[0].User / total * 100
-	sysMetric.CpuSystemPercent = cpuTimes[0].System / total * 100
-	sysMetric.CpuIOWaitPercent = cpuTimes[0].Iowait / total * 100
-
-	load, err := load.Avg()
-	if err != nil {
-		return gerrors.Newf(gerrors.Failure, "failed to obtain CPU load average, %v", err)
-	}
-
-	sysMetric.CpuLoad1 = load.Load1
-	sysMetric.CpuLoad5 = load.Load5
-	sysMetric.CpuLoad15 = load.Load15
-
-	return nil
-}
-
-func (c *collector) setStorageStatus(sysMetric *haprobe.HostMetric) error {
-	memory, err := mem.VirtualMemory()
-	if err != nil {
-		return err
-	}
-
-	// convert the value from Byte to MB
-	sysMetric.MemTotalMB = memory.Total / 1024 / 1024
-	sysMetric.MemUsedMB = memory.Used / 1024 / 1024
-	sysMetric.MemFreeMB = memory.Free / 1024 / 1024
-	sysMetric.MemCacheMB = memory.Cached / 1024 / 1024
-	sysMetric.MemAvailableMB = memory.Available / 1024 / 1024
-
-	swap, err := mem.SwapMemory()
-	if err != nil {
-		return err
-	}
-
-	sysMetric.SwapTotalMB = swap.Total / 1024 / 1024
-	sysMetric.SwapUsedMB = swap.Used / 1024 / 1024
-
-	// Disk
-	partitions, err := disk.Partitions(false)
-	if err != nil {
-		logger.Error("failed to get partitions info, %v", err)
-		return err
-	}
-
-	for _, partition := range partitions {
-		usageStat, err := disk.Usage(partition.Mountpoint)
-		if err != nil {
-			logger.Error("failed to get disk usage info. errmsg: %v", err)
-			continue
-		}
-
-		sysMetric.DiskUsagePercent += usageStat.UsedPercent / 2
-		sysMetric.DiskTotal += usageStat.Total / 1024 / 1024
-		sysMetric.DiskUsed += usageStat.Used / 1024 / 1024
-		sysMetric.DiskAvailable += usageStat.Free / 1024 / 1024
-	}
-
-	return nil
-}
-
-// setNetStatus set this host net status
-func (c *collector) setNetStatus(sysMetric *haprobe.HostMetric) error {
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return err
-	}
-
-	for _, iface := range ifaces {
-		if iface.Flags&net.FlagLoopback != 0 || iface.Flags&net.FlagUp == 0 {
-			continue
-		}
-
-		addrs, err := iface.Addrs()
-		if err != nil {
-			continue
-		}
-
-		for _, addr := range addrs {
-			var ip net.IP
-			switch v := addr.(type) {
-			case *net.IPNet:
-				ip = v.IP
-
-			case *net.IPAddr:
-				ip = v.IP
-			}
-
-			// skip ipv6
-			if ip == nil || ip.IsLoopback() || !ip.IsGlobalUnicast() {
-				continue
-			}
-
-			sysMetric.NetIPs = append(sysMetric.NetIPs, ip.String())
-		}
-	}
-
-	// Network usage
-	networkUsage := ""
-	netIO, err := gopsutilnet.IOCounters(true)
-	if err != nil {
-		return err
-	}
-
-	for _, io := range netIO {
-		networkUsage += fmt.Sprintf("%s rx=%dB, tx=%dB; ", io.Name, io.BytesRecv, io.BytesSent)
-		sysMetric.NetBytesIn += io.BytesRecv
-		sysMetric.NetBytesOut += io.BytesSent
-	}
-	sysMetric.NetUsage = networkUsage
-
-	// Network TCP connections
-	netTCP, err := gopsutilnet.Connections("tcp")
-	if err == nil {
-		sysMetric.NetTCPConnections = uint(len(netTCP))
-	}
-
-	// Network packet loss
-	sysMetric.NetPacketLossIn, sysMetric.NetPacketLossOut, err = c.obtainPacketLoss()
-	return err
-}
-
-// obtainPacketLoss obtain the network packet loss
-func (c *collector) obtainPacketLoss() (lossRateIn float64, lossRateOut float64, err error) {
-	stats1, err := gopsutilnet.IOCounters(true)
-	if err != nil {
-		fmt.Printf("failed to get netwokr stats: %v\n", err)
-		return
-	}
-
-	time.Sleep(1 * time.Second)
-
-	stats2, err := gopsutilnet.IOCounters(true)
-	if err != nil {
-		fmt.Printf("failed to get network info: %v\n", err)
-		return
-	}
-
-	statsLen := len(stats1)
-	for i := range stats1 {
-		if stats1[i].Name != stats2[i].Name {
-			continue
-		}
-
-		dropIn := stats2[i].Dropin - stats1[i].Dropin
-		dropOut := stats2[i].Dropout - stats1[i].Dropout
-		packetsIn := stats2[i].PacketsRecv - stats1[i].PacketsRecv
-		packetsOut := stats2[i].PacketsSent - stats1[i].PacketsSent
-
-		if packetsIn > 0 {
-			lossRateIn += float64(dropIn) / float64(packetsIn) / float64(statsLen) * 100
-		}
-
-		if packetsOut > 0 {
-			lossRateOut += float64(dropOut) / float64(packetsOut) / float64(statsLen) * 100
-		}
-	}
-
-	return lossRateIn, lossRateOut, err
 }

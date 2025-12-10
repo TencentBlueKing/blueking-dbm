@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/probe/config"
+	"dbm-services/common/dbha-v2/internal/probe/harvester/base"
 	"dbm-services/common/dbha-v2/internal/probe/harvester/plugin"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/hanet"
@@ -155,13 +156,14 @@ func (m *MySql) makeCollector(epoint config.DbEndpointConfig, eport int) *collec
 
 func (m *MySql) loadAdminCollectors(epoint config.DbEndpointConfig) {
 	for _, ports := range epoint.AdminPorts {
-		eports, err := parsePorts(ports)
+		eports, err := base.ParsePorts(ports)
 		if err != nil {
 			continue
 		}
 
 		for _, eport := range eports {
 			c := m.makeCollector(epoint, eport)
+			c.isAdminNode = true
 			m.collectors[c.endpoint.String()] = c
 		}
 
@@ -171,13 +173,14 @@ func (m *MySql) loadAdminCollectors(epoint config.DbEndpointConfig) {
 func (m *MySql) loadStorageCollector(epoint config.DbEndpointConfig) {
 	for _, ports := range epoint.Ports {
 
-		eports, err := parsePorts(ports)
+		eports, err := base.ParsePorts(ports)
 		if err != nil {
 			continue
 		}
 
 		for _, eport := range eports {
 			c := m.makeCollector(epoint, eport)
+			c.isAdminNode = false
 			m.collectors[c.endpoint.String()] = c
 		}
 	}
@@ -235,7 +238,7 @@ func (m *MySql) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
 		return
 	}
 
-	if c.isTendbHaProxy() {
+	if c.isTendbHaProxy() && c.isAdmin() {
 		dbStatus, err := c.obtainTendbHaProxyStatus()
 		if err != nil {
 			logger.Warn("failed to obtain the MySQL(TendbHaProxy) status, errmsg: %s", err)
@@ -246,7 +249,7 @@ func (m *MySql) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
 		return
 	}
 
-	if c.isTendbClusterProxy() {
+	if c.isTendbClusterProxy() && c.isAdmin() {
 		dbStatus, err := c.obtainTendbClusterProxyStatus()
 		if err != nil {
 			logger.Warn("failed to obtain the MySQL(TendbClusterProxy) status, errmsg: %s", err)

@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package mysql
+package base
 
 import (
 	"strings"
@@ -33,17 +33,18 @@ import (
 )
 
 const (
-	portDashDelimiter = "-"
+	PortDashDelimiter = "-"
 )
 
 var (
 	ErrInvalidPorts = gerrors.Newf(gerrors.InvalidParameter, "invalid ports")
 )
 
-func parsePorts(ports string) ([]int, error) {
+// ParsePorts parse ports
+func ParsePorts(ports string) ([]int, error) {
 	iports := []int{}
 
-	if !strings.Contains(ports, portDashDelimiter) {
+	if !strings.Contains(ports, PortDashDelimiter) {
 		port, err := converter.ToInt(ports)
 		if err != nil {
 			logger.Warn("failed to parse the ports: %s, errmsg: %s", ports, err)
@@ -54,7 +55,7 @@ func parsePorts(ports string) ([]int, error) {
 		return iports, nil
 	}
 
-	eports := strings.Split(ports, portDashDelimiter)
+	eports := strings.Split(ports, PortDashDelimiter)
 	if len(eports) != 2 {
 		logger.Warn("invalid ports format: %s", ports)
 		return nil, ErrInvalidPorts
