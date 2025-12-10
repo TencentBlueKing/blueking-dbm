@@ -1,19 +1,20 @@
 package simpleconfig
 
 import (
+	"fmt"
+
 	"bk-dbconfig/internal/api"
 	"bk-dbconfig/internal/pkg/errno"
 	"bk-dbconfig/internal/repository/model"
 	"bk-dbconfig/pkg/constvar"
 	"bk-dbconfig/pkg/core/logger"
-	"fmt"
 
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 )
 
 // ConfigNamesBatchUpsert TODO
-func ConfigNamesBatchUpsert(db *gorm.DB, cf api.ConfFileDef, confNames []*api.UpsertConfNames) error {
+func ConfigNamesBatchUpsert(db *gorm.DB, cf api.BaseConfFileDef, confNames []*api.UpsertConfNames) error {
 	adds := make([]*model.ConfigNameDefModel, 0)
 	updates := make([]*model.ConfigNameDefModel, 0)
 	deletes := make([]*model.ConfigNameDefModel, 0)
@@ -138,7 +139,7 @@ func UpsertConfigFilePlat(r *api.UpsertConfFilePlatReq, clientOPType, opUser str
 			*/
 			// 保存到 tb_config_name_def
 			// @todo 这里保存到 tb_config_name_def 就意味着发布了，与 tb_config_versioned 不一致
-			if err := ConfigNamesBatchUpsert(tx, r.ConfFileInfo, r.ConfNames); err != nil {
+			if err := ConfigNamesBatchUpsert(tx, r.ConfFileInfo.BaseConfFileDef, r.ConfNames); err != nil {
 				return err
 			}
 			resp.IsPublished = 0

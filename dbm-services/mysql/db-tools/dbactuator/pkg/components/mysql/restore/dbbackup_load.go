@@ -51,7 +51,7 @@ func (m *DBLoader) Init() error {
 	// validateBackupInfo before run import
 	// 重建模式，不需要 restore_opt 选项，但要校验位点信息
 	// 回档模式，如果是备份记录回档则不需要位点，如果是需要基于 binlog 回档，则要检验位点信息
-	if m.RestoreParam.RestoreOpt == nil {
+	if m.RestoreParam.RestoreOpt == nil { // 现在会传 recover_grants，这个条件不成立了。TODO 需要删除
 		m.RestoreParam.RestoreOpt = &RestoreOpt{
 			EnableBinlog:      false,
 			WillRecoverBinlog: true,
@@ -294,11 +294,15 @@ func (m *DBLoader) removeRestoreDir() error {
 
 // ReturnChangeMaster TODO
 func (m *DBLoader) ReturnChangeMaster() (*mysqlutil.ChangeMaster, error) {
-	if m.RestoreParam.RestoreOpt != nil && m.RestoreParam.RestoreOpt.WillRecoverBinlog { //
-		return m.getChangeMasterPos(m.SrcInstance)
-	} else {
-		return &mysqlutil.ChangeMaster{}, nil
-	}
+	return m.getChangeMasterPos(m.SrcInstance)
+	/*
+		if m.RestoreParam.RestoreOpt != nil && m.RestoreParam.RestoreOpt.WillRecoverBinlog { //
+			return m.getChangeMasterPos(m.SrcInstance)
+		} else {
+			return &mysqlutil.ChangeMaster{}, nil
+		}
+
+	*/
 }
 
 // initDirs 如果 removeOld =  true，会删除当前任务目录下，之前的解压目录，可能是重试导致的废弃目录
