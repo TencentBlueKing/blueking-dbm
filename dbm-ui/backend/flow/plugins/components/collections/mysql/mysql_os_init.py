@@ -393,32 +393,37 @@ tlinux4_dependencies_script = """
             if [ "$MAJOR_VERSION" -ge 4 ]; then
                 echo "OS version check passed: ID=$ID, VERSION_ID=$VERSION_ID"
                 mkdir -p /data/install
-                if [ -n "{{download_url}}" ] && [ ! -f /data/install/{{pkg}} ]; then
-                    cd /data/install/ && wget --header "Host:{{domain}}" --user="{{bk_repo_username}}" --password="{{bk_repo_password}}" --tries=10 {{download_url}} -O {{pkg}}
+                {% for pkg, download_url in pkg_list %}
+                PKG="{{pkg}}"
+                DOWNLOAD_URL="{{download_url}}"
+                echo "Processing package: $PKG"
+                if [ -n "$DOWNLOAD_URL" ] && [ ! -f /data/install/$PKG ]; then
+                    cd /data/install/ && wget --header "Host:{{domain}}" --user="{{bk_repo_username}}" --password="{{bk_repo_password}}" --tries=10 "$DOWNLOAD_URL" -O "$PKG"
                     if [ $? -ne 0 ]; then
-                        echo "Failed to download {{pkg}}, exit"
+                        echo "Failed to download $PKG, exit"
                         exit 1
                     fi
                 fi
-                if [ ! -f /data/install/{{pkg}} ]; then
-                    echo "Package file /data/install/{{pkg}} not found, exit"
+                if [ ! -f /data/install/$PKG ]; then
+                    echo "Package file /data/install/$PKG not found, exit"
                     exit 1
                 fi
-                PKG_NAME=$(rpm -qp --queryformat '%{NAME}' /data/install/{{pkg}} 2>/dev/null)
+                PKG_NAME=$(rpm -qp --queryformat '%{NAME}' /data/install/$PKG 2>/dev/null)
                 if [ -z "$PKG_NAME" ]; then
-                    echo "Failed to query package name from {{pkg}}, exit"
+                    echo "Failed to query package name from $PKG, exit"
                     exit 1
                 fi
                 if rpm -q "$PKG_NAME" &> /dev/null; then
                     echo "Package $PKG_NAME is already installed, skip installation"
                 else
                     echo "Installing package $PKG_NAME..."
-                    rpm -ivh /data/install/{{pkg}}
+                    rpm -ivh /data/install/$PKG
                     if [ $? -ne 0 ]; then
-                        echo "Failed to install {{pkg}}, exit"
+                        echo "Failed to install $PKG, exit"
                         exit 1
                     fi
                 fi
+                {% endfor %}
                 if [ -L /usr/lib64/libmysqlclient.so.21 ]; then
                     echo "Found symlink /usr/lib64/libmysqlclient.so.21, removing it"
                     unlink /usr/lib64/libmysqlclient.so.21
@@ -454,14 +459,13 @@ class AdaptTLinux4DependenciesSvr(BkJobService):
     def _execute(self, data, parent_data) -> bool:
         trans_data = data.get_one_of_inputs("trans_data")
         kwargs = data.get_one_of_inputs("kwargs")
-        pkg = kwargs.get("pkg", "")
-        download_url = kwargs.get("download_url", "")
+        pkg_list = kwargs.get("pkg_list", [])
         bk_repo_username = kwargs.get("bk_repo_username", "")
         bk_repo_password = kwargs.get("bk_repo_password", "")
 
         # 参数校验
-        if not pkg:
-            self.log_error("pkg parameter is required")
+        if not pkg_list:
+            self.log_error("pkg_list parameter is required")
             return False
 
         if not kwargs.get("exec_ip"):
@@ -478,8 +482,7 @@ class AdaptTLinux4DependenciesSvr(BkJobService):
         jinja_env = Environment()
         template = jinja_env.from_string(tlinux4_dependencies_script)
         script_content = template.render(
-            pkg=pkg,
-            download_url=download_url,
+            pkg_list=pkg_list,
             domain=domain,
             bk_repo_username=bk_repo_username,
             bk_repo_password=bk_repo_password,
