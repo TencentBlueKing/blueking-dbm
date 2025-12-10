@@ -258,7 +258,7 @@ class RedisClusterAutoFixSceneFlow(object):
                     slave_kwargs,
                     {
                         "redis_slave": fix_params.get("redis_slave"),
-                        "slave_spec": fix_params.get("redis_slave", {})[0].get("target", {}).get("spec", {}),
+                        "slave_spec": fix_params.get("redis_slave")[0].get("target", {}).get("spec", {}),
                     },
                 )
             )
