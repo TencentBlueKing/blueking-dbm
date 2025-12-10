@@ -1653,7 +1653,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                         "charset": self.cluster["charset"],
                         "options": "",
                     },
-                    "recover_opt": {
+                    "restore_opts": {
                         "recover_grants": recover_grants,
                     },
                     "src_instance": {"host": self.cluster["source_ip"], "port": self.cluster["source_port"]},

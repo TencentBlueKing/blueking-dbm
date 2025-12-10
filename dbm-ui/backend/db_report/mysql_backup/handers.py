@@ -225,12 +225,15 @@ class MySQLBackupHandler:
             "task_ids": [],
             "backup_ids": [],
             "priv_files": [],
+            "message": "",
         }
-        instance_ips = copy.deepcopy(self.instance_ips)
+        instances = copy.deepcopy(self.instances)
         for backup_info in backup_infos:
-            if backup_info["backup_host"] in instance_ips:
-                instance_ips.remove(backup_info["backup_host"])
-                key_name = "{}{}{}".format(backup_info["backup_host"], IP_PORT_DIVIDER, backup_info["backup_port"])
+            key_name = "{}{}{}".format(backup_info["backup_host"], IP_PORT_DIVIDER, backup_info["backup_port"])
+            if key_name in instances:
+                if "priv" not in backup_info:
+                    continue
+                instances.remove(key_name)
                 backup_priv_info["file_list"][key_name] = backup_info["priv"]
                 backup_priv_info["task_ids"].append(backup_info["priv"]["task_id"])
                 backup_priv_info["priv_files"].append(os.path.basename(backup_info["priv"]["file_name"]))
@@ -239,8 +242,13 @@ class MySQLBackupHandler:
             self.errmsg = _("集群id {} 查询不到指定过滤条件的权限文件").format(self.cluster.id)
             logger.error(self.errmsg)
             return None
-        if len(instance_ips) > 0:
-            logger.info("{} only part of storage instance get privilege file".format(self.cluster.id))
+        if len(instances) > 0:
+            backup_priv_info[
+                "message"
+            ] = "{} only part of storage instance get priv file, priv ip: {} ,no priv instance: {}".format(
+                self.cluster.immute_domain, self.filter_ips, instances
+            )
+            logger.info(backup_priv_info["message"])
         return backup_priv_info
 
     def get_tendbha_rollback_backup_info(self, latest_time: datetime = None):
