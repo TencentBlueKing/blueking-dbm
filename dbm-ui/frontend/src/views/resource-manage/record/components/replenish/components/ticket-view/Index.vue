@@ -388,8 +388,8 @@
       tableMaxHeight.value = window.innerHeight - getOffset(rootRef.value as HTMLElement).top - 80;
     });
     const urlParams = JSON.parse(decodeURIComponent(String(route.query[URL_REPLENISH_MEMO_KEY] || '{}')));
-    if (urlParams?.id) {
-      filterDateRange.value = ['', '']; // 从“待补货列表”跳转时因为带了ID，需要去掉时间区间
+    if (urlParams?.ids) {
+      filterDateRange.value = ['', '']; // 从“补货操作视角”跳转时因为带了过滤字段ids，需要去掉时间区间
     }
     quickSearchValue.value = urlParams;
   });
