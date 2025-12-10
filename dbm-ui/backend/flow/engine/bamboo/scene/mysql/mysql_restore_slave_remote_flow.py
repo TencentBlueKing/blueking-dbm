@@ -51,6 +51,9 @@ from backend.flow.plugins.components.collections.mysql.exec_actuator_script impo
 from backend.flow.plugins.components.collections.mysql.mysql_check_binlog_dump import MySQLCheckBinlogDumpComponent
 from backend.flow.plugins.components.collections.mysql.mysql_check_processlist import MySQLCheckProcesslistComponent
 from backend.flow.plugins.components.collections.mysql.mysql_check_slave_delay import MySQLCheckSlaveDelayComponent
+from backend.flow.plugins.components.collections.mysql.mysql_check_slave_delay_probe import (
+    MySQLCheckSlaveDelayProbeComponent,
+)
 from backend.flow.plugins.components.collections.mysql.mysql_crond_control import MysqlCrondMonitorControlComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.mysql_rds_execute import MySQLExecuteRdsComponent
@@ -92,6 +95,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
         self.data = {}
         #  仅添加从库。不切换。不复制账号
         self.add_slave_only = self.ticket_data.get("add_slave_only", False)
+        self.auto_switch_slave = self.ticket_data.get("auto_switch_slave", False)
         self.local_backup = False
         if self.ticket_data.get("backup_source") == MySQLBackupSource.LOCAL:
             self.local_backup = True
@@ -278,6 +282,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                             cluster=cluster_model,
                             old_slave_ip=self.data["old_slave_ip"],
                             new_slave_ip=self.data["new_slave_ip"],
+                            auto_switch_slave=self.auto_switch_slave,
                         )
                     )
                     domain_map = get_tendb_ha_entry(cluster_model.id)
@@ -409,22 +414,23 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 )
             else:
                 # 如果是替换从库。后续的动作则为：安装周边>切换主从>刷新安装周边>解除监控>卸载实例
-                if not disable_manual_confirm:
-                    tendb_migrate_pipeline.add_sub_pipeline(
-                        sub_flow=standardize_mysql_cluster_subflow(
-                            root_id=self.root_id,
-                            data=copy.deepcopy(self.data),
-                            bk_cloud_id=cluster_class.bk_cloud_id,
-                            bk_biz_id=cluster_class.bk_biz_id,
-                            instances=instances,
-                            departs=remove_departs(ALLDEPARTS, DeployPeripheralToolsDepart.MySQLDBBackup),
-                            with_actuator=False,
-                            with_bk_plugin=False,
-                            with_instance_standardize=False,
-                            with_cc_standardize=False,
-                            with_collect_sysinfo=False,
-                        )
+                tendb_migrate_pipeline.add_sub_pipeline(
+                    sub_flow=standardize_mysql_cluster_subflow(
+                        root_id=self.root_id,
+                        data=copy.deepcopy(self.data),
+                        bk_cloud_id=cluster_class.bk_cloud_id,
+                        bk_biz_id=cluster_class.bk_biz_id,
+                        instances=instances,
+                        departs=remove_departs(ALLDEPARTS, DeployPeripheralToolsDepart.MySQLDBBackup),
+                        with_actuator=False,
+                        with_bk_plugin=False,
+                        with_instance_standardize=False,
+                        with_cc_standardize=False,
+                        with_collect_sysinfo=False,
                     )
+                )
+                # 人工切换
+                if not self.auto_switch_slave:
                     tendb_migrate_pipeline.add_act(
                         act_name=_("人工确认切换"), act_component_code=PauseComponent.code, kwargs={}
                     )
@@ -558,7 +564,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 "storage_id": target_slave.id,
             }
             tendb_migrate_pipeline.add_act(
-                act_name=_("写入初始化实例的db_meta元信息"),
+                act_name=_("修改{}状态为:{}".format(target_slave.ip_port, InstanceStatus.RESTORING.value)),
                 act_component_code=MySQLDBMetaComponent.code,
                 kwargs=asdict(
                     DBMetaOPKwargs(
@@ -582,7 +588,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
             )
 
             tendb_migrate_pipeline.add_act(
-                act_name=_("屏蔽告警24小时"),
+                act_name=_("屏蔽告警24小时 {}".format(target_slave.ip_port)),
                 act_component_code=AddAlarmShieldComponent.code,
                 kwargs={
                     "duration_seconds": 24 * 3600,
@@ -697,11 +703,40 @@ class MySQLRestoreSlaveRemoteFlow(object):
                     filter_ips=filter_ips,
                 )
             )
-            # 卸载流程人工确认
-            tendb_migrate_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
-            #  克隆权限
             new_slave = "{}{}{}".format(target_slave.machine.ip, IP_PORT_DIVIDER, target_slave.port)
             old_master = "{}{}{}".format(master.machine.ip, IP_PORT_DIVIDER, master.port)
+            if self.auto_switch_slave:
+                # 自动切换新从库
+                tendb_migrate_pipeline.add_act(
+                    act_name=_("探测主从延迟情况 {}").format(new_slave),
+                    act_component_code=MySQLCheckSlaveDelayProbeComponent.code,
+                    kwargs=asdict(
+                        CheckSlaveStatusKwargs(
+                            bk_cloud_id=cluster_model.bk_cloud_id,
+                            instance_ip=target_slave.machine.ip,
+                            instance_port=target_slave.port,
+                            slave_delay_threshold=100000,
+                            check_file_delay=1,
+                        )
+                    ),
+                )
+            else:
+                # 卸载流程人工确认
+                tendb_migrate_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
+                tendb_migrate_pipeline.add_act(
+                    act_name=_("检查主/从延迟 {}").format(new_slave),
+                    act_component_code=MySQLCheckSlaveDelayComponent.code,
+                    kwargs=asdict(
+                        CheckSlaveStatusKwargs(
+                            bk_cloud_id=cluster_model.bk_cloud_id,
+                            instance_ip=target_slave.machine.ip,
+                            instance_port=target_slave.port,
+                            slave_delay_threshold=100000,
+                            check_file_delay=1,
+                        )
+                    ),
+                )
+            #  克隆权限
             clone_data = [
                 {
                     "source": old_master,
@@ -713,19 +748,6 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 act_name=_("克隆权限"),
                 act_component_code=CloneUserComponent.code,
                 kwargs=asdict(InstanceUserCloneKwargs(clone_data=clone_data)),
-            )
-            tendb_migrate_pipeline.add_act(
-                act_name=_("检查主/从延迟 {}").format(new_slave),
-                act_component_code=MySQLCheckSlaveDelayComponent.code,
-                kwargs=asdict(
-                    CheckSlaveStatusKwargs(
-                        bk_cloud_id=cluster_model.bk_cloud_id,
-                        instance_ip=target_slave.machine.ip,
-                        instance_port=target_slave.port,
-                        slave_delay_threshold=100000,
-                        check_file_delay=1,
-                    )
-                ),
             )
 
             # 这里区分是standby还是普通slave添加域名

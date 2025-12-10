@@ -93,7 +93,12 @@ class MySQLMigrateSingleFlow(object):
         cluster_ids = []
         for i in self.ticket_data["infos"]:
             cluster_ids.extend(i["cluster_ids"])
-
+        # 故障重建的不需要在老集群创建账号
+        if self.ticket_data["orphan_restore_type"] in [
+            TendbSingleRestoreType.RESTORE_WITH_DATA,
+            TendbSingleRestoreType.RESTORE_WITH_STRUCT,
+        ]:
+            cluster_ids = None
         tendb_migrate_pipeline_all = Builder(
             root_id=self.root_id,
             data=copy.deepcopy(self.ticket_data),
