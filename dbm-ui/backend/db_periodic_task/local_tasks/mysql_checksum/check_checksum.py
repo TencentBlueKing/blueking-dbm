@@ -48,8 +48,9 @@ def check_cluster_checksum(cluster_id: int, now: Optional[datetime] = None):
     """
     cluster_task = ChecksumService(cluster_id)
     start_time, end_time, log_start_time, log_end_time = cluster_task.build_time_ranges(now)
-    hits = cluster_task.fetch_bklog_logs(log_start_time, log_end_time)
-    fail_list, not_reported_list = cluster_task.parse_logs_for_instances(hits, start_time, end_time)
+    # hits = cluster_task.fetch_bklog_logs(log_start_time, log_end_time)
+    # fail_list, not_reported_list = cluster_task.parse_logs_for_instances(hits, start_time, end_time)
+    fail_list, not_reported_list = cluster_task.query_checksum_via_drs(start_time, end_time)
     try:
         report = cluster_task.create_report_and_instances(
             fail_list, not_reported_list, start_time, end_time, log_start_time, log_end_time
