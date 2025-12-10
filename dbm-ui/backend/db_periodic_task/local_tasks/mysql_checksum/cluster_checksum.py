@@ -7,9 +7,9 @@ from typing import Dict, List, Optional, Tuple
 from django.utils import timezone
 
 from backend import env
-from backend.components import BKLogApi
+from backend.components import BKLogApi, DRSApi
 from backend.db_meta.enums import InstanceInnerRole
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, StorageInstanceTuple
 from backend.db_report.enums import ReportStateType
 from backend.db_report.models import ChecksumCheckReport, ChecksumInstance
 from backend.utils.time import datetime2str
@@ -116,6 +116,70 @@ class ChecksumService:
         # 确保天数差至少为 1
         delta_days = max(1, (log_end_time - report.create_at).days)
         return delta_days
+
+    def query_checksum_via_drs(
+        self, start_time: datetime, end_time: datetime
+    ) -> Tuple[List[ChecksumResult], List[ChecksumResult]]:
+        fail: List[ChecksumResult] = []
+        not_reported: List[ChecksumResult] = []
+
+        for inst in self.instances:
+            ip = inst.machine.ip
+            port = inst.port
+
+            master_ins = StorageInstanceTuple.objects.get(receiver=inst).ejector
+            master_ip = master_ins.machine.ip
+            master_port = master_ins.port
+
+            checksum = ChecksumResult(ip=ip, port=port)
+
+            drs_raw_res = DRSApi.rpc(
+                {
+                    "addresses": [inst.ip_port],
+                    "cmds": [
+                        "SELECT COUNT(*) AS cnt FROM infodba_schema.checksum_history \
+                        WHERE (ts BETWEEN '{}' AND '{}') AND (master_ip = '{}' AND master_port = {})".format(
+                            start_time.strftime("%Y-%m-%d 00:00:00"),
+                            end_time.strftime("%Y-%m-%d 23:59:59"),
+                            master_ip,
+                            master_port,
+                        ),
+                        "SELECT db, tbl, COUNT(*) AS inconsistent_cnt FROM infodba_schema.checksum_history \
+                        WHERE (ts BETWEEN '{}' AND '{}') \
+                        AND (this_cnt <> master_cnt OR this_crc <> master_crc) \
+                        AND (master_ip = '{}' AND master_port = {}) GROUP BY db, tbl".format(
+                            start_time.strftime("%Y-%m-%d 00:00:00"),
+                            end_time.strftime("%Y-%m-%d 23:59:59"),
+                            master_ip,
+                            master_port,
+                        ),
+                    ],
+                }
+            )
+
+            if drs_raw_res[0]["error_msg"]:
+                raise  # ToDo
+            cmd_results = drs_raw_res[0]["cmd_results"]
+
+            if cmd_results[0]["error_msg"]:
+                raise  # ToDo
+            checksum_cnt = int(cmd_results[0]["table_data"][0]["cnt"])
+
+            if checksum_cnt <= 0:
+                not_reported.append(checksum)
+            else:
+                if cmd_results[1]["error_msg"]:
+                    raise  # ToDo
+
+                checksum.reported = True
+                checksum.master_ip = master_ip
+                checksum.master_port = master_port
+                for inconsistent_row in cmd_results[1]["table_data"]:
+                    checksum.add_not_consistent_table(inconsistent_row["db"], inconsistent_row["tbl"])
+
+                fail.append(checksum)
+
+        return fail, not_reported
 
     def parse_logs_for_instances(
         self, hits: List[dict], start_time: datetime, end_time: datetime
