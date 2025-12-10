@@ -127,8 +127,8 @@ class RedisClusterInsMigrateFlow(object):
             if master_ip not in new_master_ports:
                 new_master_ports[master_ip] = [DEFAULT_REDIS_START_PORT]
                 new_host_repl[master_ip] = slave_ip
-                machine_spec_dict[master_ip] = migrate_info[master_ip].get("spec", {})
-                machine_spec_dict[slave_ip] = migrate_info[slave_ip].get("spec", {})
+                machine_spec_dict[master_ip] = migrate_info["resource_spec"]["master"]
+                machine_spec_dict[slave_ip] = migrate_info["resource_spec"]["slave"]
             else:
                 new_master_ports[master_ip].append(new_master_ports[master_ip][-1] + 1)
 
@@ -152,8 +152,8 @@ class RedisClusterInsMigrateFlow(object):
                 "ip": master_ip,
                 "ports": ports,
                 "instance_numb": len(ports),
-                "spec_id": install_redis_params["machine_spec_dict"].get("id", 0),
-                "spec_config": install_redis_params["machine_spec_dict"],
+                "spec_id": install_redis_params["machine_spec_dict"][master_ip]["id"],
+                "spec_config": install_redis_params["machine_spec_dict"][master_ip],
             }
             install_redis_sub_pipeline.append(
                 RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, install_master_redis_params)
@@ -167,8 +167,8 @@ class RedisClusterInsMigrateFlow(object):
                 "ip": slave_ip,
                 "ports": ports,
                 "instance_numb": len(ports),
-                "spec_id": install_redis_params["machine_spec_dict"].get("id", 0),
-                "spec_config": install_redis_params["machine_spec_dict"],
+                "spec_id": install_redis_params["machine_spec_dict"][slave_ip]["id"],
+                "spec_config": install_redis_params["machine_spec_dict"][slave_ip],
             }
             install_redis_sub_pipeline.append(
                 RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, install_slave_redis_params)
