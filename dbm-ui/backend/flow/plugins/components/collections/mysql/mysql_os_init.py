@@ -394,7 +394,7 @@ tlinux4_dependencies_script = """
                 echo "OS version check passed: ID=$ID, VERSION_ID=$VERSION_ID"
                 mkdir -p /data/install
                 if [ -n "{{download_url}}" ] && [ ! -f /data/install/{{pkg}} ]; then
-                    cd /data/install/ && wget --header "Host:{{domain}}" --tries=10 {{download_url}} -O {{pkg}}
+                    cd /data/install/ && wget --header "Host:{{domain}}" --user="{{bk_repo_username}}" --password="{{bk_repo_password}}" --tries=10 {{download_url}} -O {{pkg}}
                     if [ $? -ne 0 ]; then
                         echo "Failed to download {{pkg}}, exit"
                         exit 1
@@ -446,6 +446,8 @@ class AdaptTLinux4DependenciesSvr(BkJobService):
         kwargs = data.get_one_of_inputs("kwargs")
         pkg = kwargs.get("pkg", "")
         download_url = kwargs.get("download_url", "")
+        bk_repo_username = kwargs.get("bk_repo_username", "")
+        bk_repo_password = kwargs.get("bk_repo_password", "")
 
         # 参数校验
         if not pkg:
@@ -469,6 +471,8 @@ class AdaptTLinux4DependenciesSvr(BkJobService):
             pkg=pkg,
             download_url=download_url,
             domain=domain,
+            bk_repo_username=bk_repo_username,
+            bk_repo_password=bk_repo_password,
         )
 
         exec_ips = self.__get_exec_ips(kwargs=kwargs, trans_data=trans_data)

@@ -12,6 +12,7 @@ import logging.config
 from dataclasses import asdict
 from typing import List
 
+from django.conf import settings
 from django.utils.translation import gettext as _
 
 from backend import env
@@ -498,6 +499,8 @@ def init_machine_sub_flow(
                             "pkg": pkg,
                             "download_url": download_url,
                             "bk_cloud_id": bk_cloud_id,
+                            "bk_repo_username": settings.BKREPO_USERNAME,
+                            "bk_repo_password": settings.BKREPO_PASSWORD,
                         },
                     }
                 )
