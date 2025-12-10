@@ -41,6 +41,22 @@ class MigrateTask(object):
         # 'mount_point': '/data', 'host': 'x.x.x.x', 'used_percent_future': z}
         self.suggestion = ""  # 评估建议
 
+    def to_dict(self):
+        return {
+            "source": self.source,
+            "target": self.target,
+            "target_cluster_type": self.target_cluster_type,
+            "db_list": self.db_list,
+            "clone_db_list": self.clone_db_list,
+            "ignore_db_list": self.ignore_db_list,
+            "data_schema_grant": self.data_schema_grant,
+            "db_size": self.db_size,
+            "same_target_sum_size": self.same_target_sum_size,
+            "same_target_index": self.same_target_index,
+            "disk_size": self.disk_size,
+            "suggestion": self.suggestion,
+        }
+
     def assess_suggestion(self, total_db_size: int, factor: int = 1):
         self.same_target_sum_size = total_db_size
         disk_size = self.disk_size
@@ -69,7 +85,7 @@ def mysql_data_merge_disk_space(bk_biz_id: int, migrations: list = None, factor:
     disk_size, no_disk_stats = get_disk_size(bk_biz_id, targets)
     same_disk = same_target_host_disk(tasks, disk_size, no_disk_stats)
     calulate_disk_size(tasks, db_size, same_disk, factor)
-    return tasks
+    return [task.to_dict() for task in tasks]
 
 
 def calulate_disk_size(tasks: list, db_size: dict, same_disk: dict, factor: int = 1):
