@@ -40,6 +40,9 @@ from backend.flow.plugins.components.collections.common.pause import PauseCompon
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_check_slave_delay import MySQLCheckSlaveDelayComponent
+from backend.flow.plugins.components.collections.mysql.mysql_check_slave_delay_probe import (
+    MySQLCheckSlaveDelayProbeComponent,
+)
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
 from backend.flow.plugins.components.collections.spider.switch_remote_slave_routing import (
@@ -77,6 +80,7 @@ class TenDBRemoteSlaveRecoverFlow(object):
         self.root_id = root_id
         self.ticket_data = ticket_data
         self.data = {}
+        self.auto_switch_slave = self.ticket_data.get("auto_switch_slave", False)
         self.backup_target_path = f"/data/dbbak/{self.root_id}"
 
     def tendb_remote_slave_recover(self):
@@ -265,23 +269,42 @@ class TenDBRemoteSlaveRecoverFlow(object):
                 cluster_id=cluster_class.id, switch_remote_instance_pairs=[]
             )
             for shard_id, node in cluster_info["my_shards"].items():
-                # 检查slave状态,todo 是否克隆权限？
-                switch_check_sub_pipeline_list.append(
-                    {
-                        "act_name": _("检查show slave status {}".format(node["new_slave"]["instance"])),
-                        "act_component_code": MySQLCheckSlaveDelayComponent.code,
-                        "kwargs": asdict(
-                            CheckSlaveStatusKwargs(
-                                bk_cloud_id=cluster_class.bk_cloud_id,
-                                instance_ip=node["new_slave"]["ip"],
-                                instance_port=node["new_slave"]["port"],
-                                master_ip=node["master"]["ip"],
-                                master_port=node["master"]["port"],
-                                sqls=["show slave status"],
-                            )
-                        ),
-                    }
-                )
+                if self.auto_switch_slave:
+                    switch_check_sub_pipeline_list.append(
+                        {
+                            "act_name": _("探测主从延迟情况 {}".format(node["new_slave"]["instance"])),
+                            "act_component_code": MySQLCheckSlaveDelayProbeComponent.code,
+                            "kwargs": asdict(
+                                CheckSlaveStatusKwargs(
+                                    bk_cloud_id=cluster_class.bk_cloud_id,
+                                    instance_ip=node["new_slave"]["ip"],
+                                    instance_port=node["new_slave"]["port"],
+                                    master_ip=node["master"]["ip"],
+                                    master_port=node["master"]["port"],
+                                    slave_delay_threshold=100000,
+                                    check_file_delay=1,
+                                    sqls=["show slave status"],
+                                )
+                            ),
+                        }
+                    )
+                else:
+                    switch_check_sub_pipeline_list.append(
+                        {
+                            "act_name": _("检查主/新从延迟 {}".format(node["new_slave"]["instance"])),
+                            "act_component_code": MySQLCheckSlaveDelayComponent.code,
+                            "kwargs": asdict(
+                                CheckSlaveStatusKwargs(
+                                    bk_cloud_id=cluster_class.bk_cloud_id,
+                                    instance_ip=node["new_slave"]["ip"],
+                                    instance_port=node["new_slave"]["port"],
+                                    master_ip=node["master"]["ip"],
+                                    master_port=node["master"]["port"],
+                                    sqls=["show slave status"],
+                                )
+                            ),
+                        }
+                    )
 
                 inst_pairs = InstancePairs(
                     old_ip=node["slave"]["ip"],
@@ -395,7 +418,7 @@ class TenDBRemoteSlaveRecoverFlow(object):
                 )
             )
             # 人工确认切换迁移实例
-            if not disable_manual_confirm:
+            if not self.auto_switch_slave:
                 tendb_migrate_pipeline.add_act(act_name=_("人工确认切换"), act_component_code=PauseComponent.code, kwargs={})
             # 切换迁移实例
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=switch_sub_pipeline_list)

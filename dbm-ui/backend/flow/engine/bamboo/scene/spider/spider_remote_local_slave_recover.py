@@ -33,6 +33,9 @@ from backend.flow.plugins.components.collections.common.pause import PauseCompon
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_check_binlog_dump import MySQLCheckBinlogDumpComponent
 from backend.flow.plugins.components.collections.mysql.mysql_check_processlist import MySQLCheckProcesslistComponent
+from backend.flow.plugins.components.collections.mysql.mysql_check_slave_delay_probe import (
+    MySQLCheckSlaveDelayProbeComponent,
+)
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.mysql_rds_execute import MySQLExecuteRdsComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
@@ -41,6 +44,7 @@ from backend.flow.plugins.components.collections.spider.switch_remote_spt_routin
 )
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import (
+    CheckSlaveStatusKwargs,
     DBMetaOPKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
@@ -69,6 +73,7 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
         self.ticket_data = ticket_data
         self.data = {}
         self.backup_target_path = f"/data/dbbak/{self.root_id}"
+        self.auto_switch_slave = self.ticket_data.get("auto_switch_slave", False)
 
     def tendb_remote_slave_local_recover(self):
         """
@@ -195,7 +200,7 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                     ),
                 )
 
-                tendb_migrate_pipeline.add_act(
+                sync_data_sub_pipeline.add_act(
                     act_name=_("Master节点执行 reset slave {},防止故障切换后master的位点还没断开,slave恢复后导致覆盖。").format(master.ip_port),
                     act_component_code=MySQLExecuteRdsComponent.code,
                     kwargs=asdict(
@@ -296,6 +301,21 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                         )
                     ),
                 )
+                #  循环检查从库
+                if self.auto_switch_slave:
+                    sync_data_sub_pipeline.add_act(
+                        act_name=_("探测主从延迟情况 {}").format(target_slave.ip_port),
+                        act_component_code=MySQLCheckSlaveDelayProbeComponent.code,
+                        kwargs=asdict(
+                            CheckSlaveStatusKwargs(
+                                bk_cloud_id=cluster_class.bk_cloud_id,
+                                instance_ip=target_slave.machine.ip,
+                                instance_port=target_slave.port,
+                                slave_delay_threshold=100000,
+                                check_file_delay=1,
+                            )
+                        ),
+                    )
                 sync_data_sub_pipeline.add_act(
                     act_name=DisableAlarmShieldComponent.node_name,
                     act_component_code=DisableAlarmShieldComponent.code,
@@ -306,7 +326,11 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                         _("{} shard {} 原地重建").format(target_slave.ip_port, shard_id)
                     )
                 )
+
+            #
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=sync_data_sub_pipeline_list)
+            if not self.auto_switch_slave:
+                tendb_migrate_pipeline.add_act(act_name=_("人工确认切换"), act_component_code=PauseComponent.code, kwargs={})
             tdbctl_pass = get_random_string(length=10)
             switch_slave_class = SwitchRemoteShardRoutingKwargs(cluster_id=cluster_class.id, switch_remote_shard=[])
             for shard_id in self.data["shard_ids"]:
@@ -318,7 +342,6 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                     tdbctl_pass=tdbctl_pass,
                 )
                 switch_slave_class.switch_remote_shard.append(inst_pairs)
-            tendb_migrate_pipeline.add_act(act_name=_("人工确认切换"), act_component_code=PauseComponent.code, kwargs={})
             tendb_migrate_pipeline.add_act(
                 act_name=_("切换回原slave节点"),
                 act_component_code=SwitchRemoteShardRoutingComponent.code,

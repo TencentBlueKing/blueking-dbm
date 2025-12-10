@@ -59,6 +59,14 @@ class MySQLCheckSlaveDelayService(BaseService):
                         ):
                             self.log_info(_("请确定实例对应的主节点是否正确"))
                             return False
+                    if not (slave_info["Slave_IO_Running"] == "Yes" and slave_info["Slave_SQL_Running"] == "Yes"):
+                        self.log_info(
+                            _(
+                                "复制链路错误: Slave_IO_Running: {} Slave_SQL_Running: {}".format(
+                                    slave_info["Slave_IO_Running"], slave_info["Slave_SQL_Running"]
+                                )
+                            )
+                        )
                     # 查看主节点位点
                     res = DRSApi.rpc(
                         {
@@ -86,28 +94,16 @@ class MySQLCheckSlaveDelayService(BaseService):
                     # seconds_behind_master = int(slave_info["Seconds_Behind_Master"])
 
                     if (
-                        slave_info["Slave_IO_Running"] == "Yes"
-                        and slave_info["Slave_SQL_Running"] == "Yes"
-                        and slave_delay <= kwargs["slave_delay_threshold"]
+                        slave_info["Slave_IO_Running"] != "Yes"
+                        or slave_info["Slave_SQL_Running"] != "Yes"
+                        or slave_delay > kwargs["slave_delay_threshold"]
+                        or (file_delay > kwargs["check_file_delay"] >= 0)
                     ):
-                        if 0 <= kwargs["check_file_delay"] < file_delay:
-                            self.log_info(
-                                _(
-                                    "主从文件级别延迟不满足: master: {} slave: {}".format(
-                                        master_info["File"], slave_info["Relay_Master_Log_File"]
-                                    )
-                                )
-                            )
-                            return False
-                        return True
-                    else:
-                        self.log_info(
-                            _(
-                                "Slave_IO_Running!=Yes or Slave_SQL_Running=!Yes or Seconds_Behind_Master>{},"
-                                "请确定slave复制链路正常且延迟不能超过阈值。目前延迟{}".format(kwargs["slave_delay_threshold"], slave_delay)
-                            )
-                        )
+                        self.log_info(_("从库延迟过大: 延迟文件个数: {} 延迟位点: {}".format(file_delay, slave_delay)))
                         return False
+                    else:
+                        self.log_info(_("当前从库延迟: 延迟文件个数: {} 延迟位点: {}".format(file_delay, slave_delay)))
+                        return True
 
 
 class MySQLCheckSlaveDelayComponent(Component):
