@@ -31,6 +31,9 @@ from backend.flow.engine.bamboo.scene.common.download_file import (
 )
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.common.create_ticket import CreateTicketComponent
+from backend.flow.plugins.components.collections.common.display_semantic_check_info import (
+    DisplaySemanticCheckInfoComponent,
+)
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.semantic_check import SemanticCheckComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
@@ -179,6 +182,20 @@ class ImportSQLFlow(object):
         semantic_check_pipeline = Builder(
             root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=[templ_cluster_id]
         )
+
+        # 添加单据信息回显节点
+        semantic_check_pipeline.add_act(
+            act_name=_("回显SQL语义检测单据信息"),
+            act_component_code=DisplaySemanticCheckInfoComponent.code,
+            kwargs={
+                "cluster_ids": self.data["cluster_ids"],
+                "execute_objects": self.data["execute_objects"],
+                "path": self.data["path"],
+                "bk_biz_id": self.data["bk_biz_id"],
+                "charset": self.data["charset"],
+            },
+        )
+
         # Add db-actuator download action to pipeline
         add_db_actuator_download_to_pipeline(
             pipeline=semantic_check_pipeline, bk_cloud_id=bk_cloud_id, exec_ip=backend_ip
