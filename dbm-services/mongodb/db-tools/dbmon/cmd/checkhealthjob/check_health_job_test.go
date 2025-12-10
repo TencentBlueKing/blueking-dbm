@@ -11,24 +11,32 @@ import (
 	"go.uber.org/zap"
 )
 
+func parsePort(t *testing.T, portStr string) int {
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		t.Errorf("parse port %s failed: %v", portStr, err)
+		t.FailNow()
+	}
+	return port
+}
+
 func TestCheckService(t *testing.T) {
 	mylog.InitLoggerStdout(false)
-
+	var err error
 	logger := mylog.Logger.With(zap.String("test", "TestCheckService"))
-	port, err := strconv.Atoi(os.Getenv("TestDump_PORT"))
-	if err != nil {
-		t.Errorf("get MONGO_PORT failed: %v", err)
-	}
 	svrItem := &config.ConfServerItem{
 		BkDbmLabel: config.BkDbmLabel{
 			IP:   os.Getenv("TestDump_HOST"),
-			Port: port,
+			Port: parsePort(t, os.Getenv("TestDump_PORT")),
 		},
 		UserName: os.Getenv("TestDump_USER"),
 		Password: os.Getenv("TestDump_PASS"),
 	}
-	err = checkService(10, svrItem, logger)
-	t.Logf("checkService result: %v", err)
+	err = checkService(mongoBin, 10, svrItem, logger)
+	t.Logf("checkService result mongoBin: %v", err)
+	assert.NoError(t, err)
+	err = checkService(mongoshBin, 10, svrItem, logger)
+	t.Logf("checkService result mongoshBin: %v", err)
 	assert.NoError(t, err)
 }
 
@@ -36,7 +44,7 @@ func TestCheckServiceConnectionFailed(t *testing.T) {
 	mylog.InitLoggerStdout(false)
 
 	logger := mylog.Logger.With(zap.String("test", "TestCheckServiceConnectionFailed"))
-	port := 26999
+	port := 26999 // is a invalid port
 	svrItem := &config.ConfServerItem{
 		BkDbmLabel: config.BkDbmLabel{
 			IP:   os.Getenv("TestDump_HOST"),
@@ -45,9 +53,12 @@ func TestCheckServiceConnectionFailed(t *testing.T) {
 		UserName: os.Getenv("TestDump_USER"),
 		Password: os.Getenv("TestDump_PASS"),
 	}
-	err := checkService(10, svrItem, logger)
-	t.Logf("checkService result: %v", err)
-	// require a error.
+	err := checkService(mongoBin, 10, svrItem, logger)
+	t.Logf("checkService result mongoBin: %v", err)
+	assert.ErrorIs(t, err, errConnectionFailed)
+
+	err = checkService(mongoshBin, 10, svrItem, logger)
+	t.Logf("checkService result mongoshBin: %v", err)
 	assert.ErrorIs(t, err, errConnectionFailed)
 }
 
@@ -55,19 +66,21 @@ func TestCheckServiceAuthenticationFailed(t *testing.T) {
 	mylog.InitLoggerStdout(false)
 
 	logger := mylog.Logger.With(zap.String("test", "TestCheckService"))
-	port, err := strconv.Atoi(os.Getenv("TestDump_PORT"))
-	if err != nil {
-		t.Errorf("get MONGO_PORT failed: %v", err)
-	}
+	var err error
 	svrItem := &config.ConfServerItem{
 		BkDbmLabel: config.BkDbmLabel{
 			IP:   os.Getenv("TestDump_HOST"),
-			Port: port,
+			Port: parsePort(t, os.Getenv("TestDump_PORT")),
 		},
 		UserName: "xxxxxx",
 		Password: "xxYYxxxx",
 	}
-	err = checkService(10, svrItem, logger)
-	t.Logf("checkService result: %v", err)
+
+	err = checkService(mongoshBin, 10, svrItem, logger)
+	t.Logf("checkService result mongoshBin: %v", err)
 	assert.ErrorIs(t, err, errAuthenticationFailed)
+	err = checkService(mongoBin, 10, svrItem, logger)
+	t.Logf("checkService result mongoBin: %v", err)
+	assert.ErrorIs(t, err, errAuthenticationFailed)
+
 }
