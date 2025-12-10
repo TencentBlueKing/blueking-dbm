@@ -264,7 +264,7 @@ class RedisClusterCMRSceneFlow(object):
                 slave_kwargs,
                 {
                     "redis_slave": replacement_param.get("redis_slave"),
-                    "slave_spec": replacement_param.get("redis_slave", {})[0].get("target", {}).get("spec", {}),
+                    "slave_spec": replacement_param.get("redis_slave")[0].get("target", {}).get("spec", {}),
                 },
             )
             sub_pipeline.add_sub_pipeline(slave_replace_pipe)
@@ -277,7 +277,7 @@ class RedisClusterCMRSceneFlow(object):
                 proxy_kwargs,
                 {
                     "proxy": replacement_param.get("proxy"),
-                    "proxy_spec": replacement_param.get("proxy", {})[0].get("target", {}).get("spec", {}),
+                    "proxy_spec": replacement_param.get("proxy")[0].get("target", {}).get("spec", {}),
                 },
             )
 
@@ -297,8 +297,14 @@ class RedisClusterCMRSceneFlow(object):
                 master_kwargs,
                 {
                     "redis_master": replacement_param.get("redis_master"),
-                    "master_spec": replacement_param.get("redis_master", {})[0].get("target", {}).get("spec", {}),
-                    "slave_spec": replacement_param.get("redis_master", {})[0].get("target", {}).get("spec", {}),
+                    "master_spec": replacement_param.get("redis_master")[0]
+                    .get("target", {})
+                    .get("master", {})
+                    .get("spec", {}),
+                    "slave_spec": replacement_param.get("redis_master")[0]
+                    .get("target", {})
+                    .get("slave", {})
+                    .get("spec", {}),
                 },
             )
             sub_pipeline.add_sub_pipeline(master_replace_pipe)
