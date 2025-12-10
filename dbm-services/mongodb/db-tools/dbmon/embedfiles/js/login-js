@@ -4,12 +4,25 @@ var mongo_type = '';
 var state_string = '';
 var state = -1;
 var db ;
+var auth_success = 0;
 try {
     db = connect(addr);
     connect_success = true;
     const mi = db.isMaster();
     db = db.getSiblingDB('admin');
-    auth_success = db.auth(user, pwd); // auth_success is 1 or 0
+    // if mongosh, auth_failed will throw error
+    try {
+        auth_success = db.auth(user, pwd); // auth_success is 1 or 0
+    } catch (e) {
+       auth_success = 0
+    }
+    // if mongosh auth_success return { ok: 1 } for success, null for failure
+    // transform auth_success to 1 or 0
+    if (typeof auth_success === 'object' && auth_success.ok === 1) {
+        auth_success = 1;
+    } else if ( auth_success === null) {
+        auth_success = 0;
+    }
     // if mongos 
     if (mi.msg == 'isdbgrid') {
         mongo_type = 'mongos';
@@ -45,6 +58,7 @@ try {
         }
     }
 } catch (e) {
+    print('error', e);
     connect_success = false;
     connect_error = e;
 }

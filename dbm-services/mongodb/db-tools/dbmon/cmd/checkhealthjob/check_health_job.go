@@ -54,6 +54,7 @@ type CheckHealthJob struct { // NOCC:golint/naming(其他:设计如此)
 }
 
 const mongoBin = "/usr/local/mongodb/bin/mongo"
+const mongoshBin = "/usr/local/mongodb/bin/mongosh"
 const startMongoScript = "/usr/local/mongodb/bin/start_mongo.sh"
 
 // Run 执行CheckHealthJob任务
@@ -89,7 +90,7 @@ func (job *CheckHealthJob) runOneServer(svrItem *config.ConfServerItem) {
 	startTime := time.Now()
 
 	loginTimeout := getLoginTimeout(svrItem)
-	err := checkService(loginTimeout, svrItem, logger)
+	err := checkService(mongoBin, loginTimeout, svrItem, logger)
 	logger.Info("checkService result", zap.Int("loginTimeout", loginTimeout), zap.Any("err", err))
 	if err == nil {
 		return
@@ -137,7 +138,7 @@ func (job *CheckHealthJob) runOneServer(svrItem *config.ConfServerItem) {
 	// 启动失败: 发送消息LoginFailed
 	startMongo(svrItem.Port, logger)
 	startTime = time.Now()
-	job.Err = checkService(loginTimeout, svrItem, logger)
+	job.Err = checkService(mongoBin, loginTimeout, svrItem, logger)
 	logger.Info(fmt.Sprintf("checkService again,  cost %0.1f seconds, err: %v",
 		time.Since(startTime).Seconds(), job.Err))
 	if job.Err == nil {
@@ -230,18 +231,18 @@ func checkPortInUse(port int) (bool, error) {
 }
 
 // checkService 尝试登录
-func checkService(loginTimeout int, svrItem *config.ConfServerItem, logger *zap.Logger) error {
+func checkService(bin string, loginTimeout int, svrItem *config.ConfServerItem, logger *zap.Logger) error {
 	user := svrItem.UserName
 	pass := svrItem.Password
 	authDb := "admin"
 	port := fmt.Sprintf("%d", svrItem.Port)
-	out, errOut, err := ExecLoginJsNoDb(mongoBin, loginTimeout, svrItem.IP, port, user, pass, authDb,
+	out, errOut, err := ExecLoginJsNoDb(bin, loginTimeout, svrItem.IP, port, user, pass, authDb,
 		embedfiles.MongoLoginJs, logger)
 
 	// if err is
 	// not nil, return error, and log the error
-	logger.Info(fmt.Sprintf("ExecLoginJs %s timeout:%d stdout: %s, stderr: %s, err:%v",
-		port, loginTimeout, out, errOut, err))
+	logger.Info(fmt.Sprintf("ExecLoginJs %s %s:%d timeout:%d stdout: %s, stderr: %s, err:%v",
+		bin, svrItem.IP, svrItem.Port, loginTimeout, out, errOut, err))
 
 	if len(out) == 0 {
 		return errNoOutputFromMongo
