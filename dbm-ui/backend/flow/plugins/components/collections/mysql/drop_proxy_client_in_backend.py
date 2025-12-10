@@ -56,11 +56,14 @@ class DropProxyUsersInBackendService(BaseService):
             return False, f"[{backend.ip_port}] get user_host[{origin_proxy_host}] failed"
 
         # 执行删除旧proxy client
+        # 授权记录不加入的binlog
         if user_hosts:
             res = DRSApi.rpc(
                 {
                     "addresses": [backend.ip_port],
-                    "cmds": [f"drop user {i};" for i in user_hosts],
+                    "cmds": ["set session sql_log_bin = 0;"]
+                    + [f"drop user {i};" for i in user_hosts]
+                    + ["set session sql_log_bin = 1;"],
                     "force": False,
                     "bk_cloud_id": backend.machine.bk_cloud_id,
                 }
