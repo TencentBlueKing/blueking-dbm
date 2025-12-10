@@ -162,6 +162,7 @@
     future_capacity: number;
     group_num: number;
     labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
+    row_key: string;
   }
 
   const createRowData = (values: DeepPartial<IDataRow> = {}) => ({
@@ -185,6 +186,7 @@
     future_capacity: values?.future_capacity || 0,
     group_num: values?.group_num || 1,
     labels: (values.labels || []) as IDataRow['labels'],
+    row_key: random(),
   });
 
   const createDefaultFormData = () => ({
@@ -352,6 +354,7 @@
                   spec_id: tableItem.cluster.cluster_spec.spec_id,
                 },
               },
+              row_key: tableItem.row_key,
               shard_num: newGroupNum * machineShardNum, // 新集群分片数
               update_mode: 'slot_migrate_up',
             };

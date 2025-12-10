@@ -16,6 +16,7 @@ export interface ShardAdd extends ResourcePoolDetailBase {
         spec_id: number;
       };
     };
+    row_key: string;
     shard_num: number; // 新集群分片数
     update_mode: 'slot_migrate_up';
   }[];
