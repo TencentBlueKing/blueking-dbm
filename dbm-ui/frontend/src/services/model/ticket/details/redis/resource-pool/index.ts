@@ -4,7 +4,6 @@ export * from './clusterShardNumUpdate';
 export * from './clusterTypeUpdate';
 export * from './migrateCluster';
 export * from './migrateSingle';
-export * from './proxyScaleDown';
 export * from './proxyScaleUp';
 export * from './scaleUpdown';
 export * from './shardAdd';
