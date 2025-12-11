@@ -60,6 +60,8 @@ type MySql struct {
 	// NOTE: Must include UnimplementedMethod
 	plugin.UnimplementedMethod
 
+	bkCloudID int
+	agentID   string
 	machineID string
 	serviceID string
 	wg        sync.WaitGroup
@@ -205,35 +207,41 @@ func (m *MySql) loadCollectors() {
 }
 
 func (m *MySql) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
-	metrics := &haprobe.MySqlMetric{
-		SequenceID:      machine.NewSequenceID(),
-		MachineID:       m.machineID,
-		MessageID:       machine.NewMessageID(),
-		ServiceID:       m.serviceID,
-		ReportTimestamp: uint64(time.Now().Unix()),
-		Status:          &haprobe.MySqlStatus{},
+	status := &haprobe.MySqlStatus{}
+
+	data := &plugin.HarvestData{
+		SequenceID:  machine.NewSequenceID(),
+		MessageID:   machine.NewMessageID(),
+		MachineID:   m.machineID,
+		ServiceID:   m.serviceID,
+		BkCloudID:   m.bkCloudID,
+		AgentID:     m.agentID,
+		DbIp:        c.endpoint.Host,
+		DbPort:      c.endpoint.Port,
+		AccessLayer: c.accessLayer,
+		ClusterType: c.clusterType,
+		MachineType: c.machineType,
 	}
 
 	defer func() {
 		c.close()
 
-		dataC <- &plugin.HarvestData{
-			AccessLayer: c.accessLayer,
-			ClusterType: c.clusterType,
-			MachineType: c.machineType,
-			Value:       metrics,
-		}
+		data.Value = status
+		data.ReportTimestamp = uint64(time.Now().Unix())
+
+		dataC <- data
 	}()
 
 	if hostStatus, err := c.obtainHostStatus(); err != nil {
 		logger.Warn("failed to obtain the host status, errmsg: %s", err)
 	} else {
-		metrics.Host = hostStatus
+		data.Host = hostStatus
 	}
 
 	dbEvent, err := c.open()
 	if err != nil {
-		metrics.Event = dbEvent
+		dbEvent.BkCloudID = m.bkCloudID
+		data.Events = []*haprobe.DbEvent{dbEvent}
 		logger.Error("failed to open the collector for the db: %s", c.endpoint)
 		return
 	}
@@ -245,7 +253,7 @@ func (m *MySql) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
 			return
 		}
 
-		metrics.Status.ProxyStatus = dbStatus
+		status.ProxyStatus = dbStatus
 		return
 	}
 
@@ -256,7 +264,7 @@ func (m *MySql) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
 			return
 		}
 
-		metrics.Status.SpiderCtlStatus = dbStatus
+		status.SpiderCtlStatus = dbStatus
 	}
 
 	// Get the global status.
@@ -264,7 +272,7 @@ func (m *MySql) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
 	if dbStatus, err := c.obtainGlobalStatus(); err != nil {
 		logger.Warn("failed to obtain the MySQL status, errmsg: %s", err)
 	} else {
-		metrics.Status.GlobalStatus = dbStatus
+		status.GlobalStatus = dbStatus
 	}
 }
 

@@ -36,12 +36,9 @@ import (
 )
 
 var tables = []any{
-	&hamodel.DbhaData{},
-	&hamodel.MySqlStatus{},
-	&hamodel.HostMetric{},
+	&hamodel.DbhaDataStatus{},
 	&hamodel.SkipDbInstance{},
 	&hamodel.DbmMetadata{},
-	&hamodel.DbEvent{},
 	&hamodel.DbSwitchingLog{},
 	&hamodel.DbSwitchingStrategy{},
 }
