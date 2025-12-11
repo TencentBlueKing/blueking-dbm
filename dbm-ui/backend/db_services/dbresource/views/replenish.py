@@ -36,7 +36,11 @@ from backend.ticket.models import Ticket
 class DBReplenishViewSet(viewsets.AuditedModelViewSet):
     """DB资源补货视图集"""
 
+    action_permission_map = {
+        ("create_resource_replenish",): [ResourceActionPermission([ActionEnum.RESOURCE_POLL_MANAGE])],
+    }
     default_permission_class = [ResourceActionPermission([ActionEnum.RESOURCE_MANAGE])]
+
     queryset = ResourceReplenishRecord.objects.all().order_by("-create_at")
     serializer_class = ReplenishRecordSerializer
     filter_class = ReplenishRecordFilter
