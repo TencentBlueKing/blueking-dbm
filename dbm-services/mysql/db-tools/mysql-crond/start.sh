@@ -1,28 +1,23 @@
 #!/bin/bash
 
-# ./start.sh
-# ./start.sh -c runtime.yaml
-
-killall mysql-monitor
+killall mysql-monitor 2>/dev/null
 
 pgrep -x 'mysql-crond' && echo "mysql-crond process already running" && exit 1
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 if [ $# -eq 0 ];then
-  # echo "run default ./mysql-crond -c runtime.yaml" 
-  START_CMD="cd $SCRIPT_DIR && rm -f start-crond.err && nohup ./mysql-crond -c runtime.yaml 1>/dev/null 2>start-crond.err &"
+  START_CMD="$SCRIPT_DIR/mysql-crond -c $SCRIPT_DIR/runtime.yaml 1>/dev/null 2>start-crond.err"
 else
-  START_CMD="cd $SCRIPT_DIR && rm -f start-crond.err && nohup ./mysql-crond ${@:1} 1>/dev/null 2>start-crond.err &"
+  START_CMD="$SCRIPT_DIR/mysql-crond ${@:1} 1>/dev/null 2>start-crond.err"
 fi
-
 
 
 if [ $(id -u) -eq 0 ];then
   cd $SCRIPT_DIR && > start-crond.err && > mysql-crond.pid && chown mysql start-crond.err && chown mysql mysql-crond.pid
-  su - mysql -c "$START_CMD"
+  setsid su - mysql -c "$START_CMD &"
 else
   cd $SCRIPT_DIR && > start-crond.err && > mysql-crond.pid
-  $START_CMD
+  setsid sh -c "exec $START_CMD" < /dev/null &
 fi
 
 sleep 1
