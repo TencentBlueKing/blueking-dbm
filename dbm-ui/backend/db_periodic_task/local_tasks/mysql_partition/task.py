@@ -32,7 +32,7 @@ logger = logging.getLogger("flow")
 def tendbha_partition_task():
     logger.info("start tendbha partition task v2!")
     # 异步执行，执行前以集群为单位生成参数 集群内根据分区配置量再进行切分
-    domain_infos = get_exec_domain_info()
+    domain_infos = get_exec_domain_info(ClusterType.TenDBHA.value)
     for info in domain_infos:
         execute_one_tendbha_domain_task.apply_async(args=[info])
 
@@ -40,9 +40,9 @@ def tendbha_partition_task():
 @register_periodic_task(run_every=crontab(minute=3, hour="3,15"))
 def tendbcluster_partition_task():
     logger.info("start tendbcluste partition task v2!")
-    domain_infos = get_exec_domain_info()
+    domain_infos = get_exec_domain_info(ClusterType.TenDBCluster.value)
     for info in domain_infos:
-        execute_tendbcluster_partition_task.apply_async(args=[info])
+        execute_one_tendbcluster_domain_task.apply_async(args=[info])
 
 
 def get_rate_limit(group_cnt: int):

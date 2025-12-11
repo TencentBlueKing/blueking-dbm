@@ -12,7 +12,7 @@ from typing import List
 from backend.components.mysql_partition.client import DBPartitionApi
 
 
-def get_exec_domain_info():
+def get_exec_domain_info(cluster_type):
     """
     获取具有分区配置的集群信息
     @return: List[Dict], e.g.:
@@ -21,7 +21,7 @@ def get_exec_domain_info():
             {"cluster_id": 2007, "conf_cnt": 5}
         ]
     """
-    params = {"name": "get_domain_info", "cluster_type": "tendbha"}
+    params = {"name": "get_domain_info", "cluster_type": cluster_type}
     try:
         resp = DBPartitionApi.partition_conf_query(params=params, raw=True)
     except Exception as e:
