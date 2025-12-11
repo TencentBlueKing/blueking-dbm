@@ -418,11 +418,19 @@ def gen_rollback_task():
         resp = DBResourceApi.resource_apply(params=apply_params, raw=True)
         if resp["code"] != 0:
             if resp["code"] == ResourceApplyErrCode.RESOURCE_LAKE:
-                logger.error(_("资源不足申请失败，请前往补货后重试{}").format(resp.get("message")))
-                task.task_status = TaskStatus.RESOURCE_INSUFFICIENT
-                task.phase = TaskPhase.DONE
-                task.task_info = _("需要的最小磁盘大小是{}GB".format(min_disk_size))
-                task.save()
+                logger.error(
+                    _(
+                        "资源不足申请失败，请前往补货后重试。集群信息: 集群域名={}, 集群ID={}, 备份ID={}, 备份大小={:.2f}GB, 需要最小磁盘={}GB, MySQL版本={}, 错误信息: {}"
+                    ).format(
+                        cluster.immute_domain,
+                        cluster.id,
+                        backup_id,
+                        backup_file_size_gb,
+                        min_disk_size,
+                        mysql_version,
+                        resp.get("message"),
+                    )
+                )
                 continue
             elif resp["code"] in ResourceApplyErrCode.get_values():
                 logger.error(
