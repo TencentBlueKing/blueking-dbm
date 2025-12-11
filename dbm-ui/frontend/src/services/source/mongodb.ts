@@ -229,3 +229,13 @@ export function getRelatedClustersByClusterIds(params: { cluster_ids: number[] }
     params,
   );
 }
+
+/**
+ * 获取集群密码
+ */
+export function getPassword(params: { cluster_id: number }) {
+  return http.get<{
+    password: string;
+    username: string;
+  }>(`${getRootPath()}/${params.cluster_id}/get_password/`);
+}
