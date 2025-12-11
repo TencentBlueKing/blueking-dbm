@@ -64,17 +64,15 @@ type MySQLPodBaseInfo struct {
 
 // DbPodSets db pod sets
 type DbPodSets struct {
-	K8S         KubeClientSets
-	BaseInfo    *MySQLPodBaseInfo
-	DbWork      *cmutil.DbWorker
-	DbImage     string
-	TdbCtlImage string
-	SpiderImage string
-}
-
-// ClusterPodSets cluster pod sets
-type ClusterPodSets struct {
-	DbPodSets
+	K8S              KubeClientSets
+	BaseInfo         *MySQLPodBaseInfo
+	DbWork           *cmutil.DbWorker
+	DbImage          string
+	TdbCtlImage      string
+	SpiderImage      string
+	SpiderStartArgs  map[string]string
+	TdbCtlStartArgs  map[string]string
+	BackendStartArgs map[string]string
 }
 
 var startArgsSplitRe *regexp.Regexp
@@ -222,16 +220,6 @@ func (k *DbPodSets) getTdbctlStartArgs() (args []string) {
 		fmt.Sprintf("--character-set-server=%s",
 			k.BaseInfo.Charset),
 		"--user=mysql"}
-	dbArgs, err := model.GetStartArgs("tdbctl", LatestVersion)
-	if err != nil {
-		logger.Warn("get tdbctl start args failed %s", err.Error())
-		return
-	}
-	for _, arg := range startArgsSplitRe.Split(dbArgs, -1) {
-		if lo.IsNotEmpty(arg) {
-			args = append(args, strings.TrimSpace(arg))
-		}
-	}
 	return
 }
 
@@ -244,16 +232,6 @@ func (k *DbPodSets) getSpiderStartArgs() (args []string) {
 		fmt.Sprintf("--character-set-server=%s",
 			k.BaseInfo.Charset),
 		"--user=mysql"}
-	dbArgs, err := model.GetStartArgs("spider", LatestVersion)
-	if err != nil {
-		logger.Warn("get spider start args failed %s", err.Error())
-		return
-	}
-	for _, arg := range startArgsSplitRe.Split(dbArgs, -1) {
-		if lo.IsNotEmpty(arg) {
-			args = append(args, strings.TrimSpace(arg))
-		}
-	}
 	return
 }
 
@@ -269,16 +247,6 @@ func (k *DbPodSets) getbackendStartArgs(mysqlVersion string) (args []string) {
 		"--user=mysql"}
 	if cmutil.MySQLVersionParse(mysqlVersion) >= cmutil.MySQLVersionParse("8.0.0") {
 		args = append(args, "--default-authentication-plugin=mysql_native_password")
-	}
-	dbArgs, err := model.GetStartArgs("mysql", mysqlVersion)
-	if err != nil {
-		logger.Warn("get mysql start args failed %s", err.Error())
-		return
-	}
-	for _, arg := range startArgsSplitRe.Split(dbArgs, -1) {
-		if lo.IsNotEmpty(arg) {
-			args = append(args, strings.TrimSpace(arg))
-		}
 	}
 	return
 }
@@ -325,6 +293,9 @@ func (k *DbPodSets) CreateClusterPod(mySQLVersion string) (err error) {
 	}
 	if err = k.createpod(c, 26000); err != nil {
 		logger.Error("create spider cluster failed %s", err.Error())
+		if errx := k.deleteClusterConfigMap(); errx != nil {
+			logger.Error("delete cluster configmap failed %s", errx.Error())
+		}
 		return err
 	}
 	logger.Info("connect tdbctl success ~")
@@ -487,29 +458,14 @@ func (k *DbPodSets) generateMyCnfContent(mysqlVersion string) string {
 		lines = append(lines, "default-authentication-plugin=mysql_native_password")
 	}
 
-	// 从数据库获取额外的启动参数
-	dbArgs, err := model.GetStartArgs("mysql", mysqlVersion)
-	if err != nil {
-		logger.Warn("get mysql start args failed %s", err.Error())
-	} else {
-		for _, arg := range startArgsSplitRe.Split(dbArgs, -1) {
-			arg = strings.TrimSpace(arg)
-			if lo.IsNotEmpty(arg) {
-				// 去掉 -- 前缀
-				arg = strings.TrimPrefix(arg, "--")
-				lines = append(lines, arg)
-			}
+	for key, val := range k.BackendStartArgs {
+		if lo.IsEmpty(key) {
+			continue
 		}
-	}
-
-	// 添加用户自定义的启动参数
-	for _, arg := range k.BaseInfo.Args {
-		arg = strings.TrimSpace(arg)
-		if lo.IsNotEmpty(arg) {
-			// 去掉 -- 前缀
-			arg = strings.TrimPrefix(arg, "--")
-			lines = append(lines, arg)
+		if strings.TrimSpace(key) == "lower_case_table_names" && strings.TrimSpace(val) == "0" {
+			continue
 		}
+		lines = append(lines, fmt.Sprintf("%s=%s", key, val))
 	}
 
 	// [mysqld-5.7] section - MySQL 5.7 专用配置
@@ -596,18 +552,14 @@ func (k *DbPodSets) generateBackendMyCnfContent(mysqlVersion string) string {
 		lines = append(lines, "default-authentication-plugin=mysql_native_password")
 	}
 
-	// 从数据库获取额外的启动参数
-	dbArgs, err := model.GetStartArgs("mysql", mysqlVersion)
-	if err != nil {
-		logger.Warn("get mysql start args failed %s", err.Error())
-	} else {
-		for _, arg := range startArgsSplitRe.Split(dbArgs, -1) {
-			arg = strings.TrimSpace(arg)
-			if lo.IsNotEmpty(arg) {
-				arg = strings.TrimPrefix(arg, "--")
-				lines = append(lines, arg)
-			}
+	for key, val := range k.BackendStartArgs {
+		if lo.IsEmpty(key) {
+			continue
 		}
+		if strings.TrimSpace(key) == "lower_case_table_names" && strings.TrimSpace(val) == "0" {
+			continue
+		}
+		lines = append(lines, fmt.Sprintf("%s=%s", key, val))
 	}
 
 	// [mysqld-5.7] section
@@ -642,29 +594,18 @@ func (k *DbPodSets) generateSpiderMyCnfContent() string {
 	lines = append(lines, "max_allowed_packet=1073741824")
 	lines = append(lines, fmt.Sprintf("character-set-server=%s", k.BaseInfo.Charset))
 
-	// 从数据库获取 spider 额外的启动参数
-	dbArgs, err := model.GetStartArgs("spider", LatestVersion)
-	if err != nil {
-		logger.Warn("get spider start args failed %s", err.Error())
-	} else {
-		for _, arg := range startArgsSplitRe.Split(dbArgs, -1) {
-			arg = strings.TrimSpace(arg)
-			if lo.IsNotEmpty(arg) {
-				arg = strings.TrimPrefix(arg, "--")
-				lines = append(lines, arg)
-			}
+	for key, val := range k.SpiderStartArgs {
+		if lo.IsEmpty(key) || strings.ToLower(strings.TrimSpace(key)) == "core_file" {
+			continue
 		}
-	}
-
-	// 添加用户自定义的启动参数
-	for _, arg := range k.BaseInfo.Args {
-		arg = strings.TrimSpace(arg)
-		if lo.IsNotEmpty(arg) {
-			arg = strings.TrimPrefix(arg, "--")
-			lines = append(lines, arg)
+		if strings.TrimSpace(key) == "show_json_type" {
+			continue
 		}
+		if strings.TrimSpace(key) == "query_response_time_stats" {
+			continue
+		}
+		lines = append(lines, fmt.Sprintf("%s=%s", key, val))
 	}
-
 	// [mysqld-5.7] section
 	lines = append(lines, "")
 	lines = append(lines, "[mysqld-5.7]")
@@ -698,20 +639,12 @@ func (k *DbPodSets) generateTdbctlMyCnfContent() string {
 	lines = append(lines, "max_allowed_packet=1073741824")
 	lines = append(lines, fmt.Sprintf("character-set-server=%s", k.BaseInfo.Charset))
 
-	// 从数据库获取 tdbctl 额外的启动参数
-	dbArgs, err := model.GetStartArgs("tdbctl", LatestVersion)
-	if err != nil {
-		logger.Warn("get tdbctl start args failed %s", err.Error())
-	} else {
-		for _, arg := range startArgsSplitRe.Split(dbArgs, -1) {
-			arg = strings.TrimSpace(arg)
-			if lo.IsNotEmpty(arg) {
-				arg = strings.TrimPrefix(arg, "--")
-				lines = append(lines, arg)
-			}
+	for key, val := range k.TdbCtlStartArgs {
+		if lo.IsEmpty(key) || strings.ToLower(strings.TrimSpace(key)) == "core_file" {
+			continue
 		}
+		lines = append(lines, fmt.Sprintf("%s=%s", key, val))
 	}
-
 	// [mysqld-5.7] section
 	lines = append(lines, "")
 	lines = append(lines, "[mysqld-5.7]")
@@ -771,16 +704,6 @@ func (k *DbPodSets) getTendbhaPodStartArgs(mysqlVersion string) (args []string) 
 		fmt.Sprintf("--character-set-server=%s", k.BaseInfo.Charset)}
 	if cmutil.MySQLVersionParse(mysqlVersion) >= cmutil.MySQLVersionParse("8.0.0") {
 		args = append(args, "--default-authentication-plugin=mysql_native_password")
-	}
-	dbArgs, err := model.GetStartArgs("mysql", mysqlVersion)
-	if err != nil {
-		logger.Warn("get mysql start args failed %s", err.Error())
-		return
-	}
-	for _, arg := range startArgsSplitRe.Split(dbArgs, -1) {
-		if lo.IsNotEmpty(arg) {
-			args = append(args, strings.TrimSpace(arg))
-		}
 	}
 	return
 }
