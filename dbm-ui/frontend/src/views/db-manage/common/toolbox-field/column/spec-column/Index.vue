@@ -191,10 +191,16 @@
         spec_cluster_type: props.clusterType,
         spec_machine_type: props.machineType,
       };
+      /**
+       * 1.规格不变时，即使规格【已停用】，也需要回显规格名
+       * 2.规格可选时:
+       * 规格来源为集群的当前规格，忽略【启用/停用】标识，显示集群的当前全部规格
+       * 规格来源为全部规格，过滤掉【停用】的规格，显示全部【已启用】的规格
+       */
       if (props.selectable) {
         Object.assign(params, {
           biz_ids: `${window.PROJECT_CONFIG.BIZ_ID}`,
-          enable: true,
+          enable: props.onlyShowCurrentSpec ? undefined : true,
         });
       }
       fetchData(params);
