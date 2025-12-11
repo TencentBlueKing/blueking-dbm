@@ -1980,6 +1980,18 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    MONGODB_ACCESS_ENTRY_VIEW = ActionMeta(
+        id="mongodb_access_entry_view",
+        name=_("Mongodb 获取访问方式"),
+        name_en="mongodb_access_entry_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("MongoDB"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     MONGODB_APPLY = ActionMeta(
         id="mongodb_apply",
         name=_("MongoDB 部署"),
