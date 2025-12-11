@@ -259,6 +259,7 @@ class MySQLMigrateSingleFlow(object):
                 cluster["add_tuple_relation"] = False
                 cluster["recover_grants"] = True
                 cluster["is_full_backup"] = False
+                cluster["recover_binlog"] = False
 
                 # 查询备份。根据选择的恢复类型。分别从本地发起实时备份，和从远程查询备份。
                 sync_data_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
@@ -304,6 +305,7 @@ class MySQLMigrateSingleFlow(object):
                         cluster["binlog_sync"] = True
                         cluster["change_master_force"] = True
                         cluster["add_tuple_relation"] = True
+                        cluster["recover_binlog"] = True
 
                     if self.data["orphan_restore_type"] in [
                         TendbSingleRestoreType.REPLICATE_WITH_STRUCT,
