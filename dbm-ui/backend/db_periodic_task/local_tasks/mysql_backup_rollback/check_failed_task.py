@@ -167,16 +167,14 @@ def check_mysql_backup_exercise_failed():
 
     # 推送消息
     for msg in cut_msgs:
-        title = _("【DBM】MySQL备份演练失败情况")
+        title = _("【DBM】MySQL备份恢复演练失败情况")
         # 添加处理说明
-        handle_instruction = _(
-            "\n\n**处理说明**：\n" "- 任务因演练失败已被忽略，继续执行后续任务\n" "- 查看详细错误：点击任务详情链接，展开 [恢复数据] 节点查看任务日志\n" "- 或从巡检报告中查看具体错误信息"
-        )
-        full_msg = _("【DBM】MySQL备份演练失败情况 {}\n\nbk_biz_id   集群域名   任务详情   DBA\n{}{}").format(
+        handle_instruction = _("\n\n**处理说明**：\n" "- 查看详细错误：点击任务详情链接，展开 [恢复数据] 节点查看任务日志\n" "- 或从巡检报告中查看具体错误信息")
+        full_msg = _("【DBM】MySQL备份恢复演练失败情况 {}\n\nbk_biz_id   集群域名   任务详情   DBA\n{}{}").format(
             datetime.date.today(), msg, handle_instruction
         )
         try:
             CmsiHandler(title, full_msg, chat_ids).send_wecom_robot()
-            logger.info(_("成功推送演练失败通知"))
+            logger.info(_("成功推送备份恢复演练失败通知"))
         except Exception as e:
-            logger.error(_("推送演练失败通知异常: {}").format(e))
+            logger.error(_("推送备份恢复演练失败通知异常: {}").format(e))
