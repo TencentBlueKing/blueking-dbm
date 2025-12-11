@@ -33,15 +33,11 @@ def replace_proxy(cluster_ids: List[int], machine_type: MachineType, events: Lis
     spec_ids = set()
 
     proxy_infos = []
-    for ev in events:
-        m = Machine.objects.get(bk_cloud_id=ev.bk_cloud_id, ip=ev.ip)
-        d = {
-            "bk_cloud_id": ev.bk_cloud_id,
-            "ip": ev.ip,
-            "bk_host_id": m.bk_host_id,
-            "bk_biz_id": ev.bk_biz_id,
-            "port": ev.port,
-        }
+    # proxy 替换协议的这个 field 实际是机器级别
+    for (bk_cloud_id, ip) in {(ev.bk_cloud_id, ev.ip) for ev in events}:
+        # for ev in events:
+        m = Machine.objects.get(bk_cloud_id=bk_cloud_id, ip=ip)
+        d = {"bk_cloud_id": bk_cloud_id, "ip": ip, "bk_host_id": m.bk_host_id, "bk_biz_id": m.bk_biz_id, "port": 0}
         proxy_infos.append(d)
 
     # 统计相关集群所有 proxy 的 spec id
