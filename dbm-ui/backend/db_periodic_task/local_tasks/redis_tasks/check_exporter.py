@@ -153,7 +153,7 @@ class CheckRedisUpMetricTask:
         msg_list = defaultdict(list)
         for node in all_node:
             msg = "ok"
-            addr = "{}:{}".format(node["ip"], node["port"])
+            addr = _node_to_addr(node)
             item = metric_val.get(addr)
             if item is None or item["value"] == 0:  # metric not found or exporter down. should not happen.
                 if node["status"] == InstanceStatus.RUNNING.value:
@@ -171,12 +171,11 @@ class CheckRedisUpMetricTask:
             msg_list[msg].append(node)
 
         # 多余的节点. 存在集群外的节点上报本集群的指标
-        all_node_addr_list = set(["{}:{}".format(node["ip"], node["port"]) for node in all_node])  # 去重
+        all_node_addr_list = set(_node_to_addr(node) for node in all_node)  # 去重
         redundant_node_list = []
         for addr, val in metric_val.items():
             if addr not in all_node_addr_list:
-                ip, port = addr.split(":")
-                redundant_node_list.append({"ip": ip, "port": port})
+                redundant_node_list.append(_addr_to_node(addr))
 
         if len(redundant_node_list) > 0:
             msg = "redis_exporter_redundant"
@@ -186,13 +185,12 @@ class CheckRedisUpMetricTask:
         # 多余的metric. 本集群的节点上报了其他集群的指标
         redundant2_addr_list = []
         if cluster.cluster_type != ClusterType.TendisRedisInstance.value:
-            node_addr_map = {"{}:{}".format(node["ip"], node["port"]): node for node in all_node}
+            node_addr_map = {_node_to_addr(node): node for node in all_node}
             iplist = set([node["ip"] for node in all_node])
             metric_val = fetch_metric_by_iplist(list(iplist))
             for addr, val in metric_val.items():
                 if addr not in node_addr_map:
-                    ip, port = addr.split(":")
-                    redundant2_addr_list.append({"ip": ip, "port": port})
+                    redundant2_addr_list.append(_addr_to_node(addr))
         if len(redundant2_addr_list) > 0:
             msg = "redis_exporter_redundant2"
             msg_list[msg].extend(redundant2_addr_list)
@@ -225,7 +223,7 @@ class CheckRedisUpMetricTask:
         proxy_metric_val = fetch_proxy_metric_by_cluster(cluster)
         proxy_msg_list = defaultdict(list)
         for proxy_node in proxy_node_list:
-            addr = "{}:{}".format(proxy_node["ip"], proxy_node["port"])
+            addr = _node_to_addr(proxy_node)
             item = proxy_metric_val.get(addr)
             if item is None or item["value"] == 0:
                 if proxy_node.get("status") == InstanceStatus.RUNNING.value:
@@ -243,28 +241,22 @@ class CheckRedisUpMetricTask:
             proxy_msg_list[msg].append(proxy_node)
 
         # 多余的proxy节点. 存在集群外的proxy节点上报本集群的指标
-        all_proxy_node_addr_list = set(
-            ["{}:{}".format(proxy_node["ip"], proxy_node["port"]) for proxy_node in proxy_node_list]
-        )  # 去重
+        all_proxy_node_addr_list = set(_node_to_addr(proxy_node) for proxy_node in proxy_node_list)  # 去重
         redundant_proxy_node_list = []
         for addr, val in proxy_metric_val.items():
             if addr not in all_proxy_node_addr_list:
-                ip, port = addr.split(":")
-                redundant_proxy_node_list.append({"ip": ip, "port": port})
+                redundant_proxy_node_list.append(_addr_to_node(addr))
 
         # 多余的metric. 本集群的proxy节点上报了其他集群的指标
         # proxy节点：同一个ip只会属于同一个集群的proxy
         redundant2_proxy_node_list = []
-        proxy_node_addr_map = {
-            "{}:{}".format(proxy_node["ip"], proxy_node["port"]): proxy_node for proxy_node in proxy_node_list
-        }
+        proxy_node_addr_map = {_node_to_addr(proxy_node): proxy_node for proxy_node in proxy_node_list}
         proxy_iplist = set([proxy_node["ip"] for proxy_node in proxy_node_list])
         proxy_metric_val = fetch_proxy_metric_by_iplist(cluster.cluster_type, list(proxy_iplist))
         # 多余的metric. 本集群的proxy节点上报了其他集群的指标
         for addr, val in proxy_metric_val.items():
             if addr not in proxy_node_addr_map:
-                ip, port = addr.split(":")
-                redundant2_proxy_node_list.append({"ip": ip, "port": port})
+                redundant2_proxy_node_list.append(_addr_to_node(addr))
         if len(redundant2_proxy_node_list) > 0:
             msg = f"{proxy_type}_exporter_redundant2"
             proxy_msg_list[msg].append(redundant2_proxy_node_list)
@@ -277,6 +269,21 @@ class CheckRedisUpMetricTask:
             full_msg = f"{msg}: " + ",".join(_short_addr_list(proxy_node_list))
             cluster_report.append(state, proxy_type, "-", full_msg)
         return
+
+
+def _node_to_addr(node: dict) -> str:
+    """
+    将node字典转换为ip:port
+    """
+    return f"{node['ip']}:{node['port']}"
+
+
+def _addr_to_node(addr: str) -> dict:
+    """
+    将ip:port转换为node
+    """
+    ip, port_str = addr.split(":")
+    return {"ip": ip, "port": int(port_str)}
 
 
 def get_proxy_type(cluster: Cluster) -> str:
@@ -304,7 +311,7 @@ def _short_addr_list(node_list: list) -> list:
     ip_port_map = {}
     for node in node_list:
         ip = node["ip"]
-        port = node["port"]
+        port = int(node["port"])
         if ip not in ip_port_map:
             ip_port_map[ip] = []
         ip_port_map[ip].append(port)
