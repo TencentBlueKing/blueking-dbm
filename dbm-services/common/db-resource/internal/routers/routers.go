@@ -38,6 +38,8 @@ func RegisterRoutes(engine *gin.Engine) {
 	// water level router
 	waterLevel := statistic.WaterLevelHandler{}
 	waterLevel.RegisterRouter(engine)
+	waterLevelOptimized := statistic.WaterLevelHandlerOptimized{}
+	waterLevelOptimized.RegisterRouter(engine)
 	engine.Handle("GET", "/ping", func(context *gin.Context) {
 		context.String(http.StatusOK, "pong")
 	})
