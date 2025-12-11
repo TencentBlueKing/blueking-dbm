@@ -27,7 +27,7 @@
         {{ t('复制信息') }}
       </BkButton>
     </div>
-    <BkLoading :loading="clbLoading">
+    <BkLoading :loading="clbLoading || passwordLoading">
       <div class="mongo-access-entry-content">
         <div
           v-for="(item, index) in dataList"
@@ -90,6 +90,7 @@
   import MongodbModel from '@services/model/mongodb/mongodb';
   import MongodbDetailModel from '@services/model/mongodb/mongodb-detail';
   import { getClusterEntries } from '@services/source/clusterEntry';
+  import { getPassword } from '@services/source/mongodb';
 
   import { execCopy } from '@utils';
 
@@ -114,18 +115,25 @@
     title: string;
   }>();
 
+  const getFormatPassword = () => {
+    if (passwordData.value && passwordData.value.password) {
+      return `mongodb://${passwordData.value.username}:${passwordData.value.password}@`;
+    }
+    return 'mongodb://{username}:{password}@';
+  };
+
   const getEntryAccess = (data: Props['data'], entryDomain: string) => {
     if (data.isMongoReplicaSet) {
-      return `mongodb://{username}:{password}@${entryDomain}/?replicaSet=${data.cluster_name}&authSource=admin`;
+      return `${getFormatPassword()}${entryDomain}/?replicaSet=${data.cluster_name}&authSource=admin`;
     }
-    return `mongodb://{username}:{password}@${entryDomain}/?authSource=admin`;
+    return `${getFormatPassword()}${entryDomain}/?authSource=admin`;
   };
 
   const getEntryAccessClb = (data: Props['data'], clusterEntry: ClusterEntryDetailModel[]) => {
     if (!data.isMongoReplicaSet) {
       const clbItem = clusterEntry.find((entryItem) => entryItem.cluster_entry_type === 'clbDns');
       if (clbItem) {
-        return `mongodb://{username}:{password}@${clbItem.entry}:${data.cluster_access_port}/?authSource=admin`;
+        return `${getFormatPassword()}${clbItem.entry}:${data.cluster_access_port}/?authSource=admin`;
       }
     }
     return '';
@@ -208,6 +216,14 @@
     },
   });
 
+  const {
+    data: passwordData,
+    loading: passwordLoading,
+    run: runGetPassword,
+  } = useRequest(getPassword, {
+    manual: true,
+  });
+
   watch(
     isShow,
     () => {
@@ -216,6 +232,7 @@
           bk_biz_id: props.data.bk_biz_id,
           cluster_id: props.data.id,
         });
+        runGetPassword({ cluster_id: props.data.id });
       } else {
         entryInfo.value = undefined;
       }
