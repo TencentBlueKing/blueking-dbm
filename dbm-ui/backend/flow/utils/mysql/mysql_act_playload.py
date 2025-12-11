@@ -831,42 +831,6 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             },
         }
 
-    def get_mysql_restore_slave_payload(self, **kwargs):
-        """
-        MYSQL SLAVE 恢复
-        """
-        index_file = os.path.basename(kwargs["trans_data"]["backupinfo"]["index_file"])
-        payload = {
-            "db_type": DBActuatorTypeEnum.MySQL.value,
-            "action": DBActuatorActionEnum.RestoreSlave.value,
-            "payload": {
-                "general": {"runtime_account": self.account},
-                "extend": {
-                    "work_dir": self.cluster["file_target_path"],
-                    "backup_dir": self.cluster["file_target_path"],
-                    "backup_files": {
-                        # "full": None,
-                        "index": [index_file],
-                        # "priv": None,
-                    },
-                    "tgt_instance": {
-                        # "host": self.cluster["new_slave_ip"],
-                        "host": kwargs["ip"],
-                        "port": self.cluster["master_port"],
-                        "user": self.account["admin_user"],
-                        "pwd": self.account["admin_pwd"],
-                        "socket": None,
-                        "charset": self.cluster["charset"],
-                        "options": "",
-                    },
-                    "src_instance": {"host": self.cluster["master_ip"], "port": self.cluster["master_port"]},
-                    "change_master": self.cluster["change_master"],
-                    "work_id": "",
-                },
-            },
-        }
-        return payload
-
     @staticmethod
     def get_clear_machine_crontab(**kwargs):
         """
@@ -1654,6 +1618,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                         "options": "",
                     },
                     "restore_opts": {
+                        "recover_binlog": self.cluster.get("recover_binlog", True),
                         "recover_grants": recover_grants,
                     },
                     "src_instance": {"host": self.cluster["source_ip"], "port": self.cluster["source_port"]},

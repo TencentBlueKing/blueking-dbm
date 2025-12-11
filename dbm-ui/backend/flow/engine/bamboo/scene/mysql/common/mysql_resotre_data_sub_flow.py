@@ -187,6 +187,7 @@ def mysql_restore_data_sub_flow(
     # 根据binlog_sync配置决定是否建立主从关系
     if binlog_sync:
         # 在旧主库上为新从库创建复制用户
+        cluster["recover_binlog"] = True
         cluster["target_ip"] = cluster["master_ip"]
         cluster["target_port"] = cluster["master_port"]
         cluster["repl_ip"] = cluster["new_slave_ip"]
@@ -342,6 +343,7 @@ def mysql_restore_master_slave_sub_flow(
     restore_list = []
 
     # 配置新主节点的恢复参数
+    cluster["recover_binlog"] = True
     cluster["restore_ip"] = cluster["new_master_ip"]
     cluster["restore_port"] = cluster["new_master_port"]
     cluster["source_ip"] = cluster["master_ip"]
@@ -478,7 +480,7 @@ def priv_recover_sub_flow(
     """
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
 
-    backup_handler = MySQLBackupHandler(cluster_id=cluster_model.id, filter_ips=privilege_ips)
+    backup_handler = MySQLBackupHandler(cluster_id=cluster_model.id, filter_ips=privilege_ips, deadlines_days=7)
     backup_info = backup_handler.get_tendb_priv_backup_info()
     if backup_info is None:
         logger.error("cluster {} backup info not exists".format(cluster_model.id))
@@ -516,7 +518,7 @@ def priv_recover_sub_flow(
             exec_ip=storage.machine.ip,
         )
         priv_sub_pipeline.add_act(
-            act_name=_("权限恢复 {} 权限backup_id: {}".format(storage.ip_port, backup_info["backup_ids"])),
+            act_name=_("{}权限恢复,权限backup_ids: {}".format(storage.ip_port, backup_info["backup_ids"])),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(exec_act_kwargs),
         )
@@ -887,7 +889,7 @@ def mysql_backup_restore_sub_flow(
     )
     # 阶段1: 备份权限和表结构
     sub_pipeline.add_act(
-        act_name=_("备份表结构 {}".format(cluster["ip"])),
+        act_name=_("实时备份表结构/权限 {}".format(cluster["ip"])),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(
             ExecActuatorKwargs(
