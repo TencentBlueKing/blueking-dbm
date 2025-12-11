@@ -94,6 +94,7 @@ class OracleSingleViewSet(viewsets.ResourceViewSet):
         ActionEnum.ORACLE_DESTROY,
         ActionEnum.ORACLE_VIEW,
         ActionEnum.ORACLE_EDIT,
+        ActionEnum.ORACLE_SUBSCRIBE_MONITOR,
     ]
     list_instance_perm_actions = [ActionEnum.MYSQL_VIEW]
     list_external_perm_actions = [ActionEnum.ACCESS_ENTRY_EDIT]
