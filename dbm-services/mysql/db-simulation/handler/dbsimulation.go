@@ -11,11 +11,13 @@
 package handler
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/pkg/errors"
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/errno"
@@ -47,44 +49,212 @@ func (s *SimulationHandler) RegisterRouter(engine *gin.Engine) {
 	sp := engine.Group("/spider")
 	{
 		sp.POST("/simulation", s.TendbClusterSimulation)
-		// sp.POST("/create", s.CreateTmpSpiderPodCluster)
+		sp.POST("/create", s.CreateTmpSpiderPodCluster)
+		sp.POST("/create/by/request/id", s.CreateClusterByRequestId)
 	}
+}
+
+const (
+	// DefaultMySQLCharset 默认 MySQL 字符集
+	DefaultMySQLCharset = "utf8mb4"
+)
+
+// CreateClusterByRequestIdParam 创建集群的请求参数
+type CreateClusterByRequestIdParam struct {
+	Name         string `json:"name" binding:"required"`
+	RequestId    string `json:"request_id" binding:"required"`
+	RandomString string `json:"random_string" binding:"required"`
+}
+
+// CreateClusterByRequestId 创建集群的请求
+func (s *SimulationHandler) CreateClusterByRequestId(r *gin.Context) {
+	var param CreateClusterByRequestIdParam
+	if err := s.Prepare(r, &param); err != nil {
+		logger.Error("参数绑定失败 %s", err)
+		return
+	}
+
+	// 查询请求记录
+	record, err := s.queryRequestRecord(param.RequestId)
+	if err != nil {
+		logger.Error("查询请求记录失败 request_id:%s error:%s", param.RequestId, err.Error())
+		s.SendResponse(r, errors.Wrap(err, "查询请求记录失败"), nil)
+		return
+	}
+
+	// 解析请求体
+	originRequestBody, err := s.parseRequestBody(record.RequestBody)
+	if err != nil {
+		logger.Error("解析请求体失败 request_id:%s error:%s", param.RequestId, err.Error())
+		s.SendResponse(r, errors.Wrap(err, "解析请求体失败"), nil)
+		return
+	}
+
+	// 提取配置信息
+	config, err := s.extractClusterConfig(originRequestBody)
+	if err != nil {
+		logger.Error("提取集群配置失败 request_id:%s error:%s", param.RequestId, err.Error())
+		s.SendResponse(r, errors.Wrap(err, "提取集群配置失败"), nil)
+		return
+	}
+
+	// 创建 Pod 配置
+	ps := service.NewDbPodSets()
+	ps.BaseInfo = &service.MySQLPodBaseInfo{
+		PodName: param.Name,
+		RootPwd: param.RandomString,
+		Charset: config.Charset,
+	}
+	ps.DbImage, err = service.GetImgFromMySQLVersion(config.MySQLVersion)
+	if err != nil {
+		logger.Error(err.Error())
+		s.SendResponse(r, errors.Wrap(err, "获取 MySQL 镜像失败"), nil)
+		return
+	}
+	ps.SpiderImage, ps.TdbCtlImage = service.GetSpiderAndTdbctlImg(config.SpiderVersion, service.LatestVersion)
+	ps.SpiderStartArgs = config.SpiderStartArgs
+	ps.TdbCtlStartArgs = config.TdbCtlStartArgs
+	ps.BackendStartArgs = config.BackendStartArgs
+
+	// 创建集群 Pod
+	if err := ps.CreateClusterPod(config.MySQLVersion); err != nil {
+		logger.Error("创建集群 Pod 失败 request_id:%s pod_name:%s mysql_version:%s error:%s",
+			param.RequestId, param.Name, config.MySQLVersion, err.Error())
+		s.SendResponse(r, errors.Wrap(err, "创建集群 Pod 失败"), nil)
+		return
+	}
+
+	logger.Info("创建集群 Pod 成功 request_id:%s pod_name:%s mysql_version:%s",
+		param.RequestId, param.Name, config.MySQLVersion)
+	s.SendResponse(r, nil, "ok")
+}
+
+// clusterConfig 集群配置信息
+type clusterConfig struct {
+	Charset          string
+	MySQLVersion     string
+	SpiderVersion    string
+	SpiderStartArgs  map[string]string
+	TdbCtlStartArgs  map[string]string
+	BackendStartArgs map[string]string
+}
+
+// queryRequestRecord 查询请求记录
+func (s *SimulationHandler) queryRequestRecord(requestID string) (*model.TbRequestRecord, error) {
+	var record model.TbRequestRecord
+	if err := model.DB.Where("request_id = ?", requestID).First(&record).Error; err != nil {
+		return nil, errors.Wrapf(err, "查询请求记录失败, request_id: %s", requestID)
+	}
+	return &record, nil
+}
+
+// parseRequestBody 解析请求体 JSON
+func (s *SimulationHandler) parseRequestBody(requestBody string) (map[string]interface{}, error) {
+	var body map[string]interface{}
+	if err := json.Unmarshal([]byte(requestBody), &body); err != nil {
+		return nil, errors.Wrap(err, "JSON 反序列化失败")
+	}
+	return body, nil
+}
+
+// extractClusterConfig 从请求体中提取集群配置
+func (s *SimulationHandler) extractClusterConfig(body map[string]interface{}) (*clusterConfig, error) {
+	config := &clusterConfig{}
+
+	// 提取字符集
+	if charset, ok := body["mysql_charset"].(string); ok && charset != "" {
+		config.Charset = charset
+	} else {
+		config.Charset = DefaultMySQLCharset
+	}
+
+	// 提取 MySQL 版本
+	mysqlVersion, ok := body["mysql_version"].(string)
+	if !ok || mysqlVersion == "" {
+		return nil, errors.New("mysql_version 字段缺失或类型错误")
+	}
+	config.MySQLVersion = mysqlVersion
+
+	spiderVersion, ok := body["spider_version"].(string)
+	if !ok || spiderVersion == "" {
+		return nil, errors.New("spider_version 字段缺失或类型错误")
+	}
+	config.SpiderVersion = spiderVersion
+	// 提取 Spider 启动参数
+	if spiderArgs, ok := body["spider_start_configs"].(map[string]interface{}); ok {
+		config.SpiderStartArgs = convertToStringMap(spiderArgs)
+	} else {
+		config.SpiderStartArgs = make(map[string]string)
+	}
+
+	// 提取 TdbCtl 启动参数
+	if tdbCtlArgs, ok := body["tdbctl_start_configs"].(map[string]interface{}); ok {
+		config.TdbCtlStartArgs = convertToStringMap(tdbCtlArgs)
+	} else {
+		config.TdbCtlStartArgs = make(map[string]string)
+	}
+
+	// 提取 Backend 启动参数
+	if backendArgs, ok := body["mysql_start_configs"].(map[string]interface{}); ok {
+		config.BackendStartArgs = convertToStringMap(backendArgs)
+	} else {
+		config.BackendStartArgs = make(map[string]string)
+	}
+
+	return config, nil
+}
+
+// convertToStringMap 将 map[string]interface{} 转换为 map[string]string
+func convertToStringMap(m map[string]interface{}) map[string]string {
+	result := make(map[string]string, len(m))
+	for k, v := range m {
+		if str, ok := v.(string); ok {
+			result[k] = str
+		} else if str := fmt.Sprintf("%v", v); str != "" {
+			result[k] = str
+		}
+	}
+	return result
 }
 
 // CreateClusterParam 创建临时的spider的集群参数
 type CreateClusterParam struct {
-	Pwd            string `json:"pwd"`
-	PodName        string `json:"podname"`
+	RandomString   string `json:"random_string"`
+	PodName        string `json:"pod_name"`
 	SpiderVersion  string `json:"spider_version"`
 	BackendVersion string `json:"backend_version"`
+	Charset        string `json:"charset"`
 }
 
 // CreateTmpSpiderPodCluster 创建临时的spider的集群,多用于测试，debug
-// func (s *SimulationHandler) CreateTmpSpiderPodCluster(r *gin.Context) {
-// 	var param CreateClusterParam
-// 	if err := s.Prepare(r, &param); err != nil {
-// 		logger.Error("ShouldBind failed %s", err)
-// 		return
-// 	}
-// 	ps := service.NewDbPodSets()
-// 	ps.BaseInfo = &service.MySQLPodBaseInfo{
-// 		PodName: param.PodName,
-// 		RootPwd: param.Pwd,
-// 		Charset: "utf8mb4",
-// 	}
-// 	var err error
-// 	ps.DbImage, err = service.GetImgFromMySQLVersion(param.BackendVersion)
-// 	if err != nil {
-// 		logger.Error(err.Error())
-// 		return
-// 	}
-// 	ps.SpiderImage, ps.TdbCtlImage = service.GetSpiderAndTdbctlImg(param.SpiderVersion, service.LatestVersion)
-// 	if err := ps.CreateClusterPod(""); err != nil {
-// 		logger.Error(err.Error())
-// 		return
-// 	}
-// 	s.SendResponse(r, nil, "ok")
-// }
+func (s *SimulationHandler) CreateTmpSpiderPodCluster(r *gin.Context) {
+	var param CreateClusterParam
+	if err := s.Prepare(r, &param); err != nil {
+		logger.Error("ShouldBind failed %s", err)
+		return
+	}
+	if param.Charset == "" {
+		param.Charset = "utf8mb4"
+	}
+	ps := service.NewDbPodSets()
+	ps.BaseInfo = &service.MySQLPodBaseInfo{
+		PodName: param.PodName,
+		RootPwd: param.RandomString,
+		Charset: param.Charset,
+	}
+	var err error
+	ps.DbImage, err = service.GetImgFromMySQLVersion(param.BackendVersion)
+	if err != nil {
+		logger.Error(err.Error())
+		return
+	}
+	ps.SpiderImage, ps.TdbCtlImage = service.GetSpiderAndTdbctlImg(param.SpiderVersion, service.LatestVersion)
+	if err := ps.CreateClusterPod(""); err != nil {
+		logger.Error(err.Error())
+		return
+	}
+	s.SendResponse(r, nil, "ok")
+}
 
 func replaceUnderSource(str string) string {
 	return strings.ReplaceAll(str, "_", "-")
@@ -206,6 +376,7 @@ func (s *SimulationHandler) TendbSimulation(r *gin.Context) {
 		Args:    param.BuildStartArgs(),
 		Charset: param.MySQLCharSet,
 	}
+	tsk.BackendStartArgs = param.MySQLStartConfigs
 	service.TaskChan <- tsk
 
 	s.SendResponse(r, nil, "request successful")
@@ -251,6 +422,8 @@ func (s *SimulationHandler) TendbClusterSimulation(r *gin.Context) {
 		RootPwd: rootPwd,
 		Charset: param.MySQLCharSet,
 	}
+	tsk.SpiderStartArgs = param.SpiderStartConfigs
+	tsk.BackendStartArgs = param.MySQLStartConfigs
 	service.SpiderTaskChan <- tsk
 	s.SendResponse(r, nil, "request successful")
 }

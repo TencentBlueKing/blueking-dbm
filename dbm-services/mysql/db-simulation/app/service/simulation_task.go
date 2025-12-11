@@ -366,7 +366,7 @@ func createPod(task SimulationTask, tkType string) (err error) {
 	case app.MySQL:
 		return task.CreateMySQLPod(task.BaseParam.MySQLVersion)
 	case app.TdbCtl:
-		return task.DbPodSets.CreateClusterPod(task.BaseParam.MySQLVersion)
+		return task.CreateClusterPod(task.BaseParam.MySQLVersion)
 	}
 	return
 }
@@ -589,9 +589,16 @@ func getSpiderImg(version string) (img string) {
 	if lo.IsEmpty(version) {
 		version = LatestVersion
 	}
-	img, errx := model.GetImageName("spider", version)
-	if errx == nil {
+	img, err := model.GetImageName("spider", version)
+	if err == nil {
 		return img
+	}
+	majorVersion := strings.Split(version, ".")[0]
+	if lo.IsNotEmpty(majorVersion) {
+		img, err = model.GetImageName("spider", majorVersion)
+		if err == nil {
+			return img
+		}
 	}
 	return config.GAppConfig.Image.SpiderImg
 }
