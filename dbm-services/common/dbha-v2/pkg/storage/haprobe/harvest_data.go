@@ -101,8 +101,19 @@ const (
 )
 
 type HarvestData struct {
-	AccessLayer DbmMetadataAccessLayerType `json:"access_layer,omitempty"`
-	ClusterType DbmMetadataClusterType     `json:"cluster_type,omitempty"`
-	MachineType DbmMetadataMachineType     `json:"machine_type,omitempty"`
-	Value       any                        `json:"data,omitempty"`
+	SequenceID      uint64                     `json:"sequence_id,omitempty"`
+	MachineID       string                     `json:"machine_id,omitempty"`
+	AgentID         string                     `json:"agent_id,omitempty"`
+	BkCloudID       int                        `json:"bk_cloud_id,omitempty"`
+	MessageID       string                     `json:"message_id,omitempty"`
+	ServiceID       string                     `json:"service_id,omitempty"`
+	AccessLayer     DbmMetadataAccessLayerType `json:"access_layer,omitempty"`
+	ClusterType     DbmMetadataClusterType     `json:"cluster_type,omitempty"`
+	MachineType     DbmMetadataMachineType     `json:"machine_type,omitempty"`
+	DbIp            string                     `json:"db_ip,omitempty"`
+	DbPort          int                        `json:"db_port,omitempty"`
+	ReportTimestamp uint64                     `json:"report_timestamp,omitempty"`
+	Events          []*DbEvent                 `json:"events,omitempty"`
+	Host            *HostMetric                `json:"host,omitempty"`
+	Value           any                        `json:"data,omitempty"`
 }

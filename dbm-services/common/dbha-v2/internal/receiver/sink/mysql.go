@@ -79,43 +79,26 @@ func newMySql(endpoints, user, password string) (*mysql, error) {
 }
 
 func (s *mysql) Save(msg *Message) error {
-	data := &haprobe.HarvestData{}
-	if err := json.Unmarshal([]byte(msg.Data), data); err != nil {
+	dbStatus := &haprobe.HarvestData{}
+	if err := json.Unmarshal([]byte(msg.Data), dbStatus); err != nil {
 		return gerrors.Newf(gerrors.InvalidJson, "unmarshal a mysql metric message failed, topic(%s), %v", msg.Topic, err)
 	}
 
-	logger.Debug("outputter(mysql) save msg(%v)", string(msg.Data))
+	logger.Debug("outputter(mysql) save msg: %s", string(msg.Data))
 
-	switch data.ClusterType {
-	case haprobe.DbmMetadataClusterTypeTendb, haprobe.DbmMetadataClusterTypeTendbCluster:
-		value, err := json.Marshal(data.Value)
+	data := hamodel.NewDbhaData(dbStatus)
+
+	for _, db := range s.dbs {
+		err := db.DB().Session(&gorm.Session{FullSaveAssociations: true}).
+			Clauses(clause.OnConflict{UpdateAll: true}).
+			Create(data).Error
+
 		if err != nil {
-			logger.Warn("failed to marshal harvest data value, errmsg: %s", err)
-			return err
+			logger.Warn("save the mysql metric failed, %v", err)
 		}
-
-		mysqlMetric := &haprobe.MySqlMetric{}
-		if err = json.Unmarshal(value, mysqlMetric); err != nil {
-			logger.Warn("failed to unmarshal harvest data value, errmsg: %s", err)
-			return gerrors.Newf(gerrors.InvalidParameter, "can not convert the harvest data to MySQL metrics")
-		}
-
-		data := hamodel.NewDbhaData(mysqlMetric)
-
-		for _, db := range s.dbs {
-			err := db.DB().Session(&gorm.Session{FullSaveAssociations: true}).
-				Clauses(clause.OnConflict{UpdateAll: true}).
-				Create(data).Error
-
-			if err != nil {
-				logger.Warn("save the mysql metric failed, %v", err)
-			}
-		}
-
-		return nil
 	}
 
-	return gerrors.Newf(gerrors.Unsupported, "unsupported the cluster type: %s", data.ClusterType)
+	return nil
 }
 
 func (s *mysql) Close() {

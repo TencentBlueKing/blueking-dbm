@@ -99,7 +99,7 @@ func (o options) DSN() string {
 	dsnBuilder.WriteString(o.proto + "(" + o.ip + ":" + fmt.Sprintf("%d", o.port) + ")")
 
 	if o.dbName != "" {
-		dsnBuilder.WriteString("/" + o.dbName)
+		dsnBuilder.WriteString("/" + o.dbName + "?")
 	} else {
 		dsnBuilder.WriteString("/?")
 	}

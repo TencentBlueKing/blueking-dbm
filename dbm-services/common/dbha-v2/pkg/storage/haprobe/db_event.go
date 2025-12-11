@@ -127,9 +127,10 @@ func (t DbType) String() string {
 
 // DbEvent Include some exception events
 type DbEvent struct {
-	Name       DbEventName       `json:"name"`
-	Reason     DbEventNameReason `json:"type"`
-	DbTypeName DbType            `json:"dbTypeName"`
+	Name       DbEventName       `json:"name,omitempty"`
+	Reason     DbEventNameReason `json:"type,omitempty"`
+	DbTypeName DbType            `json:"dbTypeName,omitempty"`
 	Endpoint   *hanet.Endpoint   `json:"endpoint,omitempty"`
-	Message    string            `json:"message"`
+	Message    string            `json:"message,omitempty"`
+	BkCloudID  int               `json:"bk_cloud_id,omitempty"`
 }

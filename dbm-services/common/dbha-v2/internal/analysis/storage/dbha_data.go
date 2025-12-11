@@ -31,7 +31,6 @@ import (
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
-	"dbm-services/common/go-pubpkg/logger"
 )
 
 type DbInstance struct {
@@ -93,166 +92,27 @@ func (ha *DbhaData) ReadMetadataCacheWithBizID(bizID int, batchCnt int,
 	return
 }
 
-func (ha *DbhaData) ReadDbMetricsWithDbInstances(dbInstances []*DbInstance,
-	offsetDuration time.Duration) (dbMetrics []*hamodel.MySqlStatus, err error) {
-
-	if len(dbInstances) == 0 {
-		return nil, gerrors.New(gerrors.InvalidParameter, "no db instances")
-	}
-
-	lastUpdateTime := time.Now().Local().Add(offsetDuration)
-	logger.Debug("read db metric from the datetime point: %v", lastUpdateTime)
-
-	query := ha.DB.DB().Model(&hamodel.MySqlStatus{})
-	hasCondition := false
-
-	for _, inst := range dbInstances {
-		if hasCondition {
-			query = query.Or(fmt.Sprintf("%s like ? and %s = ?", hamodel.DatabaseMetricFieldIPs,
-				hamodel.DatabaseMetricFieldInstanceID), "%"+inst.IP+"%", inst.Port).
-				Where(fmt.Sprintf("%s > @updatedAt", hamodel.DatabaseMetricFieldUpdatedAt),
-					map[string]any{"updatedAt": lastUpdateTime})
-
-			continue
-		}
-
-		query = query.Where(fmt.Sprintf("%s like ? and %s = ?", hamodel.DatabaseMetricFieldIPs,
-			hamodel.DatabaseMetricFieldInstanceID), "%"+inst.IP+"%", inst.Port).
-			Where(fmt.Sprintf("%s > @updatedAt", hamodel.DatabaseMetricFieldUpdatedAt),
-				map[string]any{"updatedAt": lastUpdateTime})
-
-		hasCondition = true
-	}
-
-	queryErr := query.Order(fmt.Sprintf("%s asc", hamodel.DatabaseMetricFieldUpdatedAt)).
-		Find(&dbMetrics).Error
-
-	if queryErr != nil {
-		err = gerrors.NewE(gerrors.MysqlFailure, queryErr)
-		return
-	}
-
-	return
-}
-
-func (ha *DbhaData) ReadDbEventWithDbInstances(dbInstances []*DbInstance,
-	offsetDuration time.Duration) (events []*hamodel.DbEvent, err error) {
+func (ha *DbhaData) ReadDbStatusWithDbInstances(dbInstances []*DbInstance,
+	offsetDuration time.Duration) (dbStatus []*hamodel.DbhaDataStatus, err error) {
 
 	if len(dbInstances) == 0 {
 		return nil, gerrors.New(gerrors.InvalidParameter, "no db instances")
 	}
 
 	conditions := [][]any{}
-	for _, instance := range dbInstances {
-		conditions = append(conditions, []any{instance.BkCloudID, instance.IP, instance.Port})
+	for _, inst := range dbInstances {
+		conditions = append(conditions, []any{inst.BkCloudID, inst.IP, inst.Port})
 	}
 
 	lastUpdateTime := time.Now().Local().Add(offsetDuration)
 
-	err = ha.DB.DB().Model(&hamodel.DbEvent{}).
-		Where(fmt.Sprintf("(%s, %s, %s) in ?", hamodel.DbEventFieldBkCloudID,
-			hamodel.DbEventFieldIP, hamodel.DbEventFieldPort), conditions).
-		Where(fmt.Sprintf("%s > @updatedAt", hamodel.DbEventFieldUpdatedAt),
+	err = ha.DB.DB().Model(hamodel.DbhaDataStatus{}).
+		Where(fmt.Sprintf("(%s, %s, %s) in ?", hamodel.DbhaStatusFieldBkCloudID,
+			hamodel.DbhaStatusFieldDbIp, hamodel.DbhaStatusFieldDbPort), conditions).
+		Where(fmt.Sprintf("%s > @updatedAt", hamodel.DbhaStatusFieldUpdatedAt),
 			map[string]any{"updatedAt": lastUpdateTime}).
-		Order(fmt.Sprintf("%s asc", hamodel.DbEventFieldUpdatedAt)).Find(&events).Error
-
-	if err != nil {
-		return nil, gerrors.NewE(gerrors.MysqlFailure, err)
-	}
-
-	return
-}
-
-func (ha *DbhaData) ReadAllDbEvent(batchCnt int, offsetDuration time.Duration) (events []*hamodel.DbEvent, err error) {
-	lastUpdateTime := time.Now().Local().Add(offsetDuration)
-
-	for {
-		var batches []*hamodel.DbEvent
-
-		err := ha.DB.DB().Model(&hamodel.DbEvent{}).
-			Where(fmt.Sprintf("%s > @updatedAt", hamodel.DbEventFieldUpdatedAt),
-				map[string]any{"updatedAt": lastUpdateTime}).
-			Order(fmt.Sprintf("%s asc", hamodel.DbEventFieldUpdatedAt)).
-			Limit(batchCnt).Find(&batches).Error
-
-		if err != nil {
-			return nil, gerrors.NewE(gerrors.MysqlFailure, err)
-		}
-
-		readCnt := len(batches)
-		if readCnt == 0 {
-			// no date to read
-			break
-		}
-
-		// Save the batches into the cache.
-		events = append(events, batches...)
-
-		// update cursor
-		lastUpdateTime = batches[readCnt-1].UpdatedAt
-	}
-
-	return
-}
-
-func (ha *DbhaData) ReadAllDbEventWithoutMetadata(batchCnt int, offsetDuration time.Duration) (
-	events []*hamodel.DbEvent, err error) {
-
-	lastUpdateTime := time.Now().Local().Add(offsetDuration)
-
-	for {
-		var batches []*hamodel.DbEvent
-
-		err = ha.DB.DB().Model(&hamodel.DbEvent{}).
-			Select(fmt.Sprintf("%s.*", hamodel.DbEventTableName)).
-			Joins(fmt.Sprintf("left join %s on %s.%s = %s.%s and %s.%s = %s.%s and %s.%s = %s.%s",
-				hamodel.DbmMetadataTableName,
-
-				hamodel.DbEventTableName,
-				hamodel.DbEventFieldBkCloudID,
-
-				hamodel.DbmMetadataTableName,
-				hamodel.DbmMetadataFieldBkCloudID,
-
-				hamodel.DbEventTableName,
-				hamodel.DbEventFieldIP,
-
-				hamodel.DbmMetadataTableName,
-				hamodel.DbmMetadataFieldListenIP,
-
-				hamodel.DbEventTableName,
-				hamodel.DbEventFieldPort,
-
-				hamodel.DbmMetadataTableName,
-				hamodel.DbmMetadataFieldListenPort,
-			)).
-			Where(fmt.Sprintf("%s.%s is null",
-				hamodel.DbmMetadataTableName,
-				hamodel.DbmMetadataFieldCreatedAt,
-			)).
-			Where(fmt.Sprintf("%s.%s > @updatedAt",
-				hamodel.DbEventTableName,
-				hamodel.DbEventFieldUpdatedAt),
-				map[string]any{"updatedAt": lastUpdateTime}).
-			Order(fmt.Sprintf("%s asc", hamodel.DbEventFieldUpdatedAt)).
-			Find(&batches).Error
-
-		if err != nil {
-			return nil, gerrors.NewE(gerrors.MysqlFailure, err)
-		}
-
-		readCnt := len(batches)
-		if readCnt == 0 {
-			// no date to read
-			break
-		}
-
-		// Save the batches into the cache.
-		events = append(events, batches...)
-
-		// update cursor
-		lastUpdateTime = batches[readCnt-1].UpdatedAt
-	}
+		Order(fmt.Sprintf("%s asc", hamodel.DbhaStatusFieldUpdatedAt)).
+		Find(&dbStatus).Error
 
 	return
 }

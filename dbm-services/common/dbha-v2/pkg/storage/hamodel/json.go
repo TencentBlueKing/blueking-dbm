@@ -22,18 +22,69 @@
  * SOFTWARE.
  */
 
-package haprobe
+package hamodel
 
-// MySQLMetric contains system and databases metrics
-type MySqlMetric struct {
-	SequenceID      uint64       `json:"sequence_id"`
-	MachineID       string       `json:"machine_id"`
-	AgentID         string       `json:"agent_id"`
-	BkCloudID       int          `json:"bk_cloud_id"`
-	MessageID       string       `json:"message_id"`
-	ServiceID       string       `json:"service_id"`
-	ReportTimestamp uint64       `json:"report_timestamp"`
-	Host            *HostMetric  `json:"system"`
-	Event           *DbEvent     `json:"events"`
-	Status          *MySqlStatus `json:"status"`
+import (
+	"context"
+	"database/sql/driver"
+	"encoding/json"
+
+	"dbm-services/common/dbha-v2/pkg/gerrors"
+
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+)
+
+// JSON wrapper
+type JSON[T any] struct {
+	Data  T
+	Valid bool
+}
+
+// Scan Implement the SQL driver interface.
+func (j *JSON[T]) Scan(value interface{}) error {
+	if value == nil {
+		return nil
+	}
+
+	var data []byte
+	switch v := value.(type) {
+	case []byte:
+		data = v
+
+	case string:
+		data = []byte(v)
+
+	default:
+		return gerrors.Newf(gerrors.InvalidJson, "Invalid JSON value type: %T", v)
+	}
+
+	if err := json.Unmarshal(data, &j.Data); err != nil {
+		return err
+	}
+
+	j.Valid = true
+	return nil
+}
+
+func (j JSON[T]) Value() (driver.Value, error) {
+	if !j.Valid {
+		return nil, nil
+	}
+
+	return json.Marshal(j.Data)
+}
+
+// GormDataType Implement the GORM interface.
+func (JSON[T]) GormDataType() string {
+	return "json"
+}
+
+// GormValue Implement the GORM interface.
+func (j JSON[T]) GormValue(ctx context.Context, db *gorm.DB) clause.Expr {
+	if !j.Valid {
+		return gorm.Expr("NULL")
+	}
+	data, _ := json.Marshal(j.Data)
+	return gorm.Expr("?", string(data))
 }

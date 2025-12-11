@@ -27,36 +27,36 @@ package haprobe
 // HostMetric host metric
 type HostMetric struct {
 	// CPU
-	CpuUsagePercent  float64 `json:"cpu_usage_percent"`
-	CpuUserPercent   float64 `json:"cpu_user_percent"`
-	CpuSystemPercent float64 `json:"cpu_system_percent"`
-	CpuIOWaitPercent float64 `json:"cpu_iowait_percent"`
-	CpuLoad1         float64 `json:"cpu_load_1"`
-	CpuLoad5         float64 `json:"cpu_load_5"`
-	CpuLoad15        float64 `json:"cpu_load_15"`
+	CpuUsagePercent  float64 `json:"cpu_usage_percent,omitempty"`
+	CpuUserPercent   float64 `json:"cpu_user_percent,omitempty"`
+	CpuSystemPercent float64 `json:"cpu_system_percent,omitempty"`
+	CpuIOWaitPercent float64 `json:"cpu_iowait_percent,omitempty"`
+	CpuLoad1         float64 `json:"cpu_load_1,omitempty"`
+	CpuLoad5         float64 `json:"cpu_load_5,omitempty"`
+	CpuLoad15        float64 `json:"cpu_load_15,omitempty"`
 
 	// Mem
-	MemTotalMB     uint64 `json:"mem_total_mb"`
-	MemUsedMB      uint64 `json:"mem_used_mb"`
-	MemFreeMB      uint64 `json:"mem_free_mb"`
-	MemCacheMB     uint64 `json:"mem_cache_mb"`
-	MemAvailableMB uint64 `json:"mem_available_mb"`
-	SwapTotalMB    uint64 `json:"swap_total_mb"`
-	SwapUsedMB     uint64 `json:"swap_used_mb"`
+	MemTotalMB     uint64 `json:"mem_total_mb,omitempty"`
+	MemUsedMB      uint64 `json:"mem_used_mb,omitempty"`
+	MemFreeMB      uint64 `json:"mem_free_mb,omitempty"`
+	MemCacheMB     uint64 `json:"mem_cache_mb,omitempty"`
+	MemAvailableMB uint64 `json:"mem_available_mb,omitempty"`
+	SwapTotalMB    uint64 `json:"swap_total_mb,omitempty"`
+	SwapUsedMB     uint64 `json:"swap_used_mb,omitempty"`
 
 	// Disk
-	DiskUsagePercent float64 `json:"disk_usage_percent"`
-	DiskTotal        uint64  `json:"disk_total"`
-	DiskUsed         uint64  `json:"disk_used"`
-	DiskAvailable    uint64  `json:"disk_available"`
-	DiskReadOnly     bool    `json:"disk_read_only"`
+	DiskUsagePercent float64 `json:"disk_usage_percent,omitempty"`
+	DiskTotal        uint64  `json:"disk_total,omitempty"`
+	DiskUsed         uint64  `json:"disk_used,omitempty"`
+	DiskAvailable    uint64  `json:"disk_available,omitempty"`
+	DiskReadOnly     bool    `json:"disk_read_only,omitempty"`
 
 	// Network
-	NetIPs            []string `json:"network_ip_address"`
-	NetBytesIn        uint64   `json:"network_bytes_in"`
-	NetBytesOut       uint64   `json:"network_bytes_out"`
-	NetUsage          string   `json:"network_usage"`
-	NetTCPConnections uint     `json:"network_tcp_connections"`
-	NetPacketLossIn   float64  `json:"network_packet_loss_in"`
-	NetPacketLossOut  float64  `json:"network_packet_loss_out"`
+	NetIPs            []string `json:"network_ip_address,omitempty"`
+	NetBytesIn        uint64   `json:"network_bytes_in,omitempty"`
+	NetBytesOut       uint64   `json:"network_bytes_out,omitempty"`
+	NetUsage          string   `json:"network_usage,omitempty"`
+	NetTCPConnections uint     `json:"network_tcp_connections,omitempty"`
+	NetPacketLossIn   float64  `json:"network_packet_loss_in,omitempty"`
+	NetPacketLossOut  float64  `json:"network_packet_loss_out,omitempty"`
 }
