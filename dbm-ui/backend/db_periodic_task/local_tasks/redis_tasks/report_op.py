@@ -14,9 +14,9 @@ from datetime import datetime, timedelta
 
 from django.utils import timezone
 
+from backend.db_meta.models.cluster import Cluster
 from backend.db_report.enums import ReportStateType
 from backend.db_report.models.redis_check_report import RedisCheckReport
-from backend.db_meta.models.cluster import Cluster
 
 
 class RedisClusterReport:

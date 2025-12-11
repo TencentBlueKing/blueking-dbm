@@ -9,6 +9,9 @@
 package slavestatus
 
 import (
+	"dbm-services/mysql/db-tools/mysql-crond/pkg/third_party/instance_info_updater"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/update_monitor_config"
 	"fmt"
 	"log/slog"
 	"slices"
@@ -38,6 +41,9 @@ func (s *slaveStatusChecker) Run() (msg string, err error) {
 	}
 
 	if s.slaveStatus == nil || len(s.slaveStatus) == 0 {
+		if s.isDBHASwitched() {
+			return "", nil
+		}
 		return "empty slave status", nil
 	}
 
@@ -212,6 +218,42 @@ func (s *slaveStatusChecker) fetchSlaveStatus() error {
 	slog.Debug("slave status", slog.Any("status", s.slaveStatus))
 
 	return nil
+}
+
+func (s *slaveStatusChecker) isDBHASwitched() bool {
+	err := instance_info_updater.DoUpdate(int64(*config.MonitorConfig.BkCloudID))
+	if err != nil {
+		slog.Error("is dbha switch", slog.String("error", err.Error()))
+		return false
+	}
+
+	monitorConfigUpdater := update_monitor_config.Checker{}
+	ssi, err := monitorConfigUpdater.GetSelfInfoStorage()
+	if err != nil {
+		slog.Error("is dbha switch", slog.String("error", err.Error()))
+		return false
+	}
+	if ssi == nil {
+		slog.Error("is dbha switch", slog.String("error", "empty self info"))
+		return false
+	}
+
+	if strings.ToUpper(ssi.InstanceInnerRole) == "SLAVE" {
+		slog.Info("is not dbha switch")
+		return false
+	}
+
+	msg, err := monitorConfigUpdater.Run()
+	if err != nil {
+		slog.Error("is dbha switch", slog.String("error", err.Error()))
+		return false
+	}
+	if msg != "" {
+		slog.Error("is dbha switch", slog.String("error", msg))
+		return false
+	}
+	slog.Info("yes is dbha switch")
+	return true
 }
 
 // Name 监控项名

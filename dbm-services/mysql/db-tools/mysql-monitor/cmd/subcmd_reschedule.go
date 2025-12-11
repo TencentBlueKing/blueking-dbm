@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/utils"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -35,7 +36,7 @@ var subCmdReschedule = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		initLogger(config.MonitorConfig.Log)
+		utils.InitLogger(config.MonitorConfig.Log)
 
 		err = config.LoadMonitorItemsConfig()
 		if err != nil {
@@ -53,7 +54,7 @@ var subCmdReschedule = &cobra.Command{
 			return err
 		}
 
-		err = reschedule(configFileDir, configFileName, viper.GetString("reschedule-staff"))
+		err = utils.Reschedule(configFileDir, configFileName, viper.GetString("reschedule-staff"))
 		if err != nil {
 			slog.Error("reschedule sub-cmd", slog.String("error", err.Error()))
 			return err

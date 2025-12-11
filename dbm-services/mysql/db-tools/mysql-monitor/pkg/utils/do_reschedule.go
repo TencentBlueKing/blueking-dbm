@@ -1,15 +1,14 @@
-package cmd
+package utils
 
 import (
+	ma "dbm-services/mysql/db-tools/mysql-crond/api"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"fmt"
 	"log/slog"
 	"strings"
-
-	ma "dbm-services/mysql/db-tools/mysql-crond/api"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 )
 
-func reschedule(configFileDir, configFileName, staff string) error {
+func Reschedule(configFileDir, configFileName, staff string) error {
 	manager := ma.NewManager(config.MonitorConfig.ApiUrl)
 	entries, err := manager.Entries()
 	if err != nil {
@@ -117,7 +116,8 @@ func reschedule(configFileDir, configFileName, staff string) error {
 		eid, err := manager.CreateOrReplace(
 			ma.JobDefine{
 				Name: fmt.Sprintf(
-					"mysql-monitor-%d-hardcode-%s", config.MonitorConfig.Port, j.Name),
+					"mysql-monitor-%d-hardcode-%s", config.MonitorConfig.Port, j.Name,
+				),
 				Command:  executable,
 				Args:     args,
 				Schedule: schedule,

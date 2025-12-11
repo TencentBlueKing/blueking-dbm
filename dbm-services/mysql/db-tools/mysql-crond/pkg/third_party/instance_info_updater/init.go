@@ -44,13 +44,16 @@ func updater() error {
 }
 
 func Updater() error {
-	apiCore, err := core.NewCore(int64(*config.RuntimeConfig.BkCloudID), core.DefaultRetryOpts...)
+	slog.Info("call reverse api", slog.Any("runtime config", config.RuntimeConfig))
+	return DoUpdate(int64(*config.RuntimeConfig.BkCloudID))
+}
+
+func DoUpdate(bkCloudId int64) error {
+	apiCore, err := core.NewCore(bkCloudId, core.DefaultRetryOpts...)
 	if err != nil {
 		slog.Error("create api core", slog.String("err", err.Error()))
 		return err
 	}
-
-	slog.Info("call reverse api", slog.Any("runtime config", config.RuntimeConfig))
 
 	info, layer, err := reversemysqlapi.ListInstanceInfo(apiCore)
 	if err != nil {

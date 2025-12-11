@@ -5,6 +5,7 @@ import (
 	"dbm-services/common/reverseapi/define/mysql"
 	acst "dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/utils"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -36,7 +37,7 @@ func (c *Checker) Run() (msg string, err error) {
 	// item config 还要等等
 	switch config.MonitorConfig.MachineType {
 	case "backend", "remote", "single":
-		selfInfo, err := c.getSelfInfoStorage()
+		selfInfo, err := c.GetSelfInfoStorage()
 		if err != nil {
 			return "", err
 		}
@@ -74,6 +75,13 @@ func checkOutOfDate() (err error) {
 
 func (c *Checker) updateConfigFile(sii *mysql.StorageInstanceInfo) (err error) {
 	configFilePath := viper.GetString("hard-run-config")
+	if configFilePath == "" {
+		configFilePath = viper.GetString("run-config")
+	}
+	if configFilePath == "" {
+		return errors.New("config file path is empty")
+	}
+
 	if !filepath.IsAbs(configFilePath) {
 		cwd, err := os.Getwd()
 		if err != nil {
@@ -143,6 +151,15 @@ func (c *Checker) updateConfigFile(sii *mysql.StorageInstanceInfo) (err error) {
 		return err
 	}
 	slog.Info(name, slog.String("config", string(b)))
+
+	configFileDir, configFileName := filepath.Split(configFilePath)
+	err = utils.Reschedule(configFileDir, configFileName, "monitor")
+
+	if err != nil {
+		slog.Error(name, slog.String("err", err.Error()))
+		return err
+	}
+
 	return nil
 }
 
@@ -212,7 +229,7 @@ func (c *Checker) getSelfInfoProxy() (pii *mysql.ProxyInstanceInfo, err error) {
 	return &piis[idx], nil
 }
 
-func (c *Checker) getSelfInfoStorage() (sii *mysql.StorageInstanceInfo, err error) {
+func (c *Checker) GetSelfInfoStorage() (sii *mysql.StorageInstanceInfo, err error) {
 	b, err := c.readInstanceInfoContent()
 	if err != nil {
 		slog.Error(

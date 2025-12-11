@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/utils"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -31,7 +32,7 @@ var subCmdDisableAll = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		initLogger(config.MonitorConfig.Log)
+		utils.InitLogger(config.MonitorConfig.Log)
 
 		emptyItemsConfig, err := os.CreateTemp("/tmp", "empty-items.yaml")
 		if err != nil {
@@ -61,7 +62,7 @@ var subCmdDisableAll = &cobra.Command{
 
 		slog.Info("disable-all",
 			slog.String("staff", viper.GetString("staff")))
-		err = reschedule(configFileDir, configFileName, viper.GetString("disable-staff"))
+		err = utils.Reschedule(configFileDir, configFileName, viper.GetString("disable-staff"))
 		if err != nil {
 			slog.Error("disable-all sub-cmd", slog.String("error", err.Error()))
 			return err
