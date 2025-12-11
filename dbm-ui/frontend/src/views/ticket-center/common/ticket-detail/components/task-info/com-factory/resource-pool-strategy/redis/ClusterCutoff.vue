@@ -14,10 +14,10 @@
 <template>
   <TicketInfoTable
     bordered
+    class="redis-cluster-cutoff-table"
     :data="tableData"
     :row-class-name="generateRowClass"
-    row-key="ip"
-    :rowspan-and-colspan="rowspanAndColspan">
+    row-key="ip">
     <TicketInfoTableColumn
       col-key="ip"
       :get-copy-value="(row: RowData) => row.ip"
@@ -60,10 +60,10 @@
       :title="t('规格需求')">
       <template #default="{ row: data }: { row: RowData }">
         <div class="has-related">
-          {{ data.spec_config?.name || '--' }}
           <SpecDetailPopover
             v-if="data.spec_config?.name"
             :data="data.spec_config">
+            {{ data.spec_config?.name || '--' }}
             <DbIcon
               class="visible-icon ml-4"
               type="visible1" />
@@ -72,10 +72,10 @@
         <div
           v-if="data.related_slave_spec?.name"
           class="has-related related-slave-cell">
-          {{ data.related_slave_spec?.name || '--' }}
           <SpecDetailPopover
             v-if="data.related_slave_spec?.name"
             :data="data.related_slave_spec">
+            {{ data.related_slave_spec?.name || '--' }}
             <DbIcon
               class="visible-icon ml-4"
               type="visible1" />
@@ -95,7 +95,6 @@
 
   import { TicketTypes } from '@common/const';
 
-  // import SpecPanel from '@components/render-table/columns/spec-display/Panel.vue';
   import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
   interface Props {
@@ -130,10 +129,6 @@
     return '';
   };
 
-  const spanInfo: {
-    rowIndex: number;
-    rowspan: number;
-  }[] = [];
   const { clusters, infos, recycle_hosts: recycleHosts, specs } = props.ticketDetails.details;
   if (infos.length && recycleHosts.length) {
     const generateData = (
@@ -170,64 +165,45 @@
       generateData(infoItem.old_nodes.proxy, 'proxy', infoItem.cluster_ids);
     });
 
-    const list = Object.values(ipInfoMap);
-    const domainCounter: Record<string, number> = {};
-    list.forEach((rowData, index) => {
-      const domain = rowData.cluster_domain;
-      domainCounter[domain] = (domainCounter[domain] || 0) + 1;
-      if (domainCounter[domain] > 1) {
-        spanInfo.push({
-          rowIndex: index + 1 - domainCounter[domain],
-          rowspan: domainCounter[domain],
-        });
-      }
-    });
-    tableData.value = list;
+    tableData.value = Object.values(ipInfoMap);
   }
-
-  const rowspanAndColspan = ({ colIndex, rowIndex }: { colIndex: number; rowIndex: number }) => {
-    const spanItem = spanInfo.find((item) => colIndex === 2 && item.rowIndex === rowIndex);
-    if (spanItem) {
-      return {
-        rowspan: spanItem.rowspan,
-      };
-    }
-    return {};
-  };
 </script>
 <style lang="less">
-  .visible-icon {
-    font-size: 16px;
-    color: #3a84ff;
-    cursor: pointer;
-  }
-
-  .related-slave-row {
-    td {
-      height: 80px !important;
-      padding: 0 !important;
+  .redis-cluster-cutoff-table {
+    .visible-icon {
+      font-size: 16px;
+      color: #3a84ff;
+      cursor: pointer;
     }
 
-    .vxe-cell {
-      padding: 0 !important;
-    }
+    .related-slave-row {
+      td {
+        height: 80px !important;
+        padding: 0 !important;
+      }
 
-    .has-related {
-      height: 40px;
-      padding: 0 16px;
-      line-height: 40px;
-    }
+      .has-related {
+        height: 40px;
+        padding: 0 8px;
+        line-height: 40px;
+      }
 
-    .related-slave {
-      height: 40px;
-      padding: 0 16px;
-      line-height: 18px;
-      color: #979ba5;
-      background: #fafbfd;
-    }
+      .related-slave {
+        height: 40px;
+        padding: 0 8px;
+        line-height: 18px;
+        color: #979ba5;
+        background: #fafbfd;
+      }
 
-    .related-slave-cell {
-      border-top: 1px solid #dcdee5;
+      .related-slave-cell {
+        border-top: 1px solid #dcdee5;
+      }
+
+      .render-spec-cell {
+        display: flex;
+        align-items: center;
+      }
     }
   }
 </style>
