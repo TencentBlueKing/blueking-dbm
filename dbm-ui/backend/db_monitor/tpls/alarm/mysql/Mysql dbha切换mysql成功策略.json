@@ -45,7 +45,9 @@
               "new_master_binlog_file",
               "new_master_binlog_pos",
               "new_master_host",
-              "new_master_port"
+              "new_master_port",
+              "appid",
+              "double_check_id"
             ],
             "agg_condition": [],
             "custom_event_name": "dbha_mysql_switch_ok",
@@ -223,7 +225,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "COUNT(dbha_mysql_switch_ok-dbm_report_channel)",
-  "version": 28,
+  "version": 29,
   "alert_source": "event",
   "custom_conditions": [],
   "export_at": "2025-12-05T11:58:08+08:00"

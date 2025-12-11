@@ -12,9 +12,8 @@ import logging
 
 from celery.schedules import crontab
 
-from backend.db_periodic_task.local_tasks.register import register_periodic_task
-
 from backend.db_periodic_task.local_tasks.redis_tasks.check_exporter import CheckRedisUpMetricTask
+from backend.db_periodic_task.local_tasks.register import register_periodic_task
 
 logger = logging.getLogger("celery")
 
