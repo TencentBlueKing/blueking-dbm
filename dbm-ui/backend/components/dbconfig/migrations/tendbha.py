@@ -1,0 +1,16 @@
+config = {
+    "cluster_type": "tendbha",
+    "conf_type": "dbconf",
+    "conf_file": "",
+    "conf_name": "",
+    "value_default": "",
+    "value_allowed": "",
+    "value_type": "",
+    "value_type_sub": "",
+    "conf_name_lc": "",
+    "description": "",
+    "need_restart": 1,
+    "flag_readonly": 0,
+    "flag_visible": 0,
+    "flag_encrypt": 0,
+}
