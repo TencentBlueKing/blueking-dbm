@@ -435,7 +435,6 @@ class TenDBRemoteSlaveRecoverFlow(object):
                     with_backup_client=False,
                     with_collect_sysinfo=True,
                     with_instance_standardize=False,
-                    with_cc_standardize=False,
                 )
             )
             tendb_migrate_pipeline.add_act(

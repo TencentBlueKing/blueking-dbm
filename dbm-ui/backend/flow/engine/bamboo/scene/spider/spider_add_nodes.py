@@ -269,7 +269,6 @@ class TenDBClusterAddNodesFlow(object):
                 with_actuator=False,
                 with_bk_plugin=False,
                 with_instance_standardize=False,
-                with_cc_standardize=False,
                 with_collect_sysinfo=False,
             )
         )

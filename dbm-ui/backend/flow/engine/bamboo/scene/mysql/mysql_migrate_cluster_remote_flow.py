@@ -549,8 +549,8 @@ class MySQLMigrateClusterRemoteFlow(object):
                     with_actuator=False,
                     with_bk_plugin=False,
                     with_collect_sysinfo=False,
-                    with_cc_standardize=False,
                     with_instance_standardize=False,
+                    with_cc_standardize=False,
                 )
             )
 
@@ -580,7 +580,6 @@ class MySQLMigrateClusterRemoteFlow(object):
                     with_backup_client=False,
                     with_instance_standardize=False,
                     with_collect_sysinfo=False,
-                    with_cc_standardize=False,
                 )
             )
             tendb_migrate_pipeline.add_act(
