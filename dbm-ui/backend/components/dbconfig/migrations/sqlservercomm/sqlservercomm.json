@@ -1,0 +1,26 @@
+[
+  {
+    "conf_type": "alarm",
+    "conf_file": "alarm.conf",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "告警配置",
+    "conf_type_lc": "告警配置",
+    "conf_file_lc": "NULL",
+    "level_names": "plat,app,module,cluster",
+    "level_versioned": "NULL"
+  },
+  {
+    "conf_type": "backup",
+    "conf_file": "dbbackup.conf",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "备份配置",
+    "conf_type_lc": "备份配置",
+    "conf_file_lc": "NULL",
+    "level_names": "plat,app,module,cluster",
+    "level_versioned": ""
+  }
+]

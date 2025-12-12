@@ -1,0 +1,122 @@
+[
+  {
+    "conf_type": "config",
+    "conf_file": "backup",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "备份相关的配置",
+    "conf_type_lc": "备份相关的配置",
+    "conf_file_lc": "backup",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "config",
+    "conf_file": "binlogbackup",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "binlog备份相关的配置",
+    "conf_type_lc": "binlog备份相关的配置",
+    "conf_file_lc": "binlogbackup",
+    "level_names": "pub,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "config",
+    "conf_file": "fullbackup",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "全备相关的配置",
+    "conf_type_lc": "全备相关的配置",
+    "conf_file_lc": "fullbackup",
+    "level_names": "pub,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "config",
+    "conf_file": "heartbeat",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "心跳相关的配置",
+    "conf_type_lc": "心跳相关的配置",
+    "conf_file_lc": "heartbeat",
+    "level_names": "pub,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "config",
+    "conf_file": "monitor",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "监控相关的配置",
+    "conf_type_lc": "监控相关的配置",
+    "conf_file_lc": "monitor",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "Tendisplus-2.5",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "Tendisplus-2.5的配置文件",
+    "conf_type_lc": "redis配置",
+    "conf_file_lc": "Tendisplus-2.5",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "Tendisplus-2.6",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "",
+    "conf_type_lc": "redis配置",
+    "conf_file_lc": "Tendisplus-2.6",
+    "level_names": "pub,plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "Tendisplus-2.7",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "",
+    "conf_type_lc": "redis配置",
+    "conf_file_lc": "Tendisplus-2.7的配置文件",
+    "level_names": "pub,plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "Tendisplus-2.8",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "",
+    "conf_type_lc": "redis配置",
+    "conf_file_lc": "Tendisplus-2.8-配置文件",
+    "level_names": "pub,plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "proxyconf",
+    "conf_file": "Predixy-latest",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "predixy配置文件",
+    "conf_type_lc": "redis配置",
+    "conf_file_lc": "Predixy-latest",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  }
+]

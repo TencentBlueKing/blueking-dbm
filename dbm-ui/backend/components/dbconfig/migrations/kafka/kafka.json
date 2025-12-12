@@ -1,0 +1,110 @@
+[
+  {
+    "conf_type": "dbconf",
+    "conf_file": "0.10.2",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "kafka配置文件",
+    "conf_type_lc": "kafka配置",
+    "conf_file_lc": "kafka-0.10.2",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "1.1.1",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "kafka配置文件",
+    "conf_type_lc": "kafka配置",
+    "conf_file_lc": "kafka-1.1.1",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "2.1.1",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "kafka配置文件",
+    "conf_type_lc": "kafka配置",
+    "conf_file_lc": "kafka-2.1.1",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "2.3.1",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "kafka配置文件",
+    "conf_type_lc": "kafka配置",
+    "conf_file_lc": "kafka-2.3.1",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "2.4.0",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "kafka配置文件",
+    "conf_type_lc": "kafka配置",
+    "conf_file_lc": "kafka-2.4",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "2.4.bkbase",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "kafka配置文件",
+    "conf_type_lc": "kafka配置",
+    "conf_file_lc": "kafka-2.4.bkbase",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "2.8.2",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "kafka配置文件\n",
+    "conf_type_lc": "kafka配置",
+    "conf_file_lc": "kafka-2.8",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "3.8.0",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "kafka配置文件",
+    "conf_type_lc": "kafka配置",
+    "conf_file_lc": "kafka-3.8",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "4.1.0",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "kafka 4.x配置文件",
+    "conf_type_lc": "kafka配置",
+    "conf_file_lc": "kafka-4.1.0",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  }
+]

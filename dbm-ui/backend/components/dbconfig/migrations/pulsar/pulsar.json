@@ -1,0 +1,38 @@
+[
+  {
+    "conf_type": "dbconf",
+    "conf_file": "2.10.1",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "pulsar集群配置",
+    "conf_type_lc": "pulsar集群配置",
+    "conf_file_lc": "pulsar-2.10",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "2.10.4",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "pulsar集群配置",
+    "conf_type_lc": "pulsar集群配置",
+    "conf_file_lc": "pulsar-2.10.4",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "3.0.0",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "pulsar集群配置",
+    "conf_type_lc": "pulsar集群配置",
+    "conf_file_lc": "pulsar-3.0.0",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  }
+]

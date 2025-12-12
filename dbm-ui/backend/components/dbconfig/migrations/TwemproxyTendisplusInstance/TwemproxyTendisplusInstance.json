@@ -1,0 +1,50 @@
+[
+  {
+    "conf_type": "config",
+    "conf_file": "backup",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "备份相关的配置",
+    "conf_type_lc": "备份相关的配置",
+    "conf_file_lc": "backup",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "config",
+    "conf_file": "monitor",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "监控相关的配置",
+    "conf_type_lc": "监控相关的配置",
+    "conf_file_lc": "monitor",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "Tendisplus-2.5",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "Tendisplus-2.5的配置文件",
+    "conf_type_lc": "redis配置",
+    "conf_file_lc": "Tendisplus-2.5",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "proxyconf",
+    "conf_file": "Twemproxy-latest",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "twemproxy配置文件",
+    "conf_type_lc": "redis配置",
+    "conf_file_lc": "Twemproxy-latest",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  }
+]

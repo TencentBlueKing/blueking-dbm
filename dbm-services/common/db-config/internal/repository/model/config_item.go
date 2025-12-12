@@ -397,9 +397,9 @@ func GetSimpleConfig(db *gorm.DB, r *api.BaseConfigNode, up *api.UpLevelInfo,
 			"select %s from v_tb_config_node_plat where bk_biz_id = '%s' and level_name = '%s' and level_value = '%s' and conf_type = '%s'",
 			simpleColumns, constvar.BKBizIDForPlat, constvar.LevelPlat, constvar.BKBizIDForPlat, r.ConfType)
 		if !o.Generate { // 只有 generate 时才需要带上 read_only 配置(flag_status=2)
-			subSelectPlat += " and flag_status >= 1" // 查询接口，也返回只读
+			subSelectPlat += " and flag_visible = 1" // 查询接口，也返回只读
 		} else {
-			subSelectPlat += " and flag_status >= 1"
+			subSelectPlat += " and flag_visible = 1"
 		}
 		subSelect = append(subSelect, subSelectPlat)
 		queryLevels = append(queryLevels, constvar.LevelPlat)

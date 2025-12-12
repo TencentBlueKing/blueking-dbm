@@ -19,6 +19,8 @@ const (
 	OPTypeUpdate = "update"
 	// OPTypeRemove TODO
 	OPTypeRemove = "remove"
+	OPTypeUpsert = "upsert"
+
 	// OPTypeRemoveRef TODO
 	OPTypeRemoveRef = "remove_ref" // 非用户操作的直接删除，而是用户操作需要级联删除
 

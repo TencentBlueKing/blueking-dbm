@@ -1,12 +1,13 @@
 package simpleconfig
 
 import (
+	"strconv"
+
 	"bk-dbconfig/internal/api"
 	"bk-dbconfig/internal/repository/model"
 	"bk-dbconfig/pkg/constvar"
 	"bk-dbconfig/pkg/core/logger"
 	util "bk-dbconfig/pkg/util/dbutil"
-	"strconv"
 
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
@@ -53,16 +54,15 @@ func NewConfigModels(r *api.UpsertConfFilePlatReq) ([]*model.ConfigModel, []*mod
 	configsDiff := make([]*model.ConfigModelOp, 0)
 	for _, cn := range r.ConfNames {
 		confItem := &model.ConfigModel{
-			BKBizID:     constvar.BKBizIDForPlat,
-			Namespace:   r.ConfFileInfo.Namespace,
-			ConfType:    r.ConfFileInfo.ConfType,
-			ConfFile:    r.ConfFileInfo.ConfFile,
-			ConfName:    cn.ConfName,
-			ConfValue:   cn.ValueDefault,
-			LevelName:   constvar.LevelPlat,
-			LevelValue:  constvar.BKBizIDForPlat,
-			FlagLocked:  cn.FlagLocked,
-			FlagDisable: cn.FlagDisable,
+			BKBizID:    constvar.BKBizIDForPlat,
+			Namespace:  r.ConfFileInfo.Namespace,
+			ConfType:   r.ConfFileInfo.ConfType,
+			ConfFile:   r.ConfFileInfo.ConfFile,
+			ConfName:   cn.ConfName,
+			ConfValue:  cn.ValueDefault,
+			LevelName:  constvar.LevelPlat,
+			LevelValue: constvar.BKBizIDForPlat,
+			//FlagLocked:  cn.FlagLocked,
 			Description: cn.Description,
 		}
 		configs = append(configs, confItem)

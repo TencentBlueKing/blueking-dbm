@@ -1,0 +1,50 @@
+[
+  {
+    "conf_type": "actconf",
+    "conf_file": "redis",
+    "conf_name_validate": 0,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "redis相关配置",
+    "conf_type_lc": "act任务配置",
+    "conf_file_lc": "redis相关配置",
+    "level_names": "pub,app",
+    "level_versioned": ""
+  },
+  {
+    "conf_type": "backup_client",
+    "conf_file": "config.toml",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 1,
+    "description": "备份客户端",
+    "conf_type_lc": "",
+    "conf_file_lc": "backup base config",
+    "level_names": "plat,app",
+    "level_versioned": ""
+  },
+  {
+    "conf_type": "backup_client",
+    "conf_file": "cosinfo.toml",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 1,
+    "description": "备份客户端",
+    "conf_type_lc": "",
+    "conf_file_lc": "backup auth config",
+    "level_names": "plat,app",
+    "level_versioned": ""
+  },
+  {
+    "conf_type": "osconf",
+    "conf_file": "os",
+    "conf_name_validate": 0,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "",
+    "conf_type_lc": "操作系统配置",
+    "conf_file_lc": "",
+    "level_names": "plat,app,cluster",
+    "level_versioned": ""
+  }
+]

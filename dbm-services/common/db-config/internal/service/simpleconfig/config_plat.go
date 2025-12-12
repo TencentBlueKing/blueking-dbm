@@ -1,22 +1,24 @@
 package simpleconfig
 
 import (
+	"fmt"
+
 	"bk-dbconfig/internal/api"
 	"bk-dbconfig/internal/pkg/errno"
 	"bk-dbconfig/internal/repository/model"
 	"bk-dbconfig/pkg/constvar"
 	"bk-dbconfig/pkg/core/logger"
-	"fmt"
 
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 )
 
 // ConfigNamesBatchUpsert TODO
-func ConfigNamesBatchUpsert(db *gorm.DB, cf api.ConfFileDef, confNames []*api.UpsertConfNames) error {
+func ConfigNamesBatchUpsert(db *gorm.DB, cf api.BaseConfFileDef, confNames []*api.UpsertConfNames) error {
 	adds := make([]*model.ConfigNameDefModel, 0)
 	updates := make([]*model.ConfigNameDefModel, 0)
 	deletes := make([]*model.ConfigNameDefModel, 0)
+	upserts := make([]*model.ConfigNameDefModel, 0)
 
 	// 目前只允许 update 这几个属性 "value_default", "value_allowed", "flag_status", "flag_locked"，见 ConfigNamesBatchUpdate
 	for _, cn := range confNames {
@@ -29,14 +31,13 @@ func ConfigNamesBatchUpsert(db *gorm.DB, cf api.ConfFileDef, confNames []*api.Up
 			ValueAllowed: cn.ValueAllowed,
 			ValueDefault: cn.ValueDefault,
 			ValueType:    cn.ValueType,
-			FlagDisable:  cn.FlagDisable,
-			FlagLocked:   cn.FlagLocked,
 			NeedRestart:  cn.NeedRestart,
 			Description:  cn.Description,
-			FlagStatus:   cn.FlagStatus, // 只读属性，允许 api去修改，不允许页面修改
-			Stage:        1,
+			FlagVisible:  cn.FlagVisible,
+			FlagReadonly: cn.FlagReadonly,
+			FlagLocked:   cn.FlagLocked,
+			FlagStatus:   cn.FlagStatus, // 废弃，只读属性，允许 api去修改，不允许页面修改
 		}
-		// platConfig = append(platConfig, confName)
 
 		if cn.OPType == constvar.OPTypeAdd {
 			adds = append(adds, confName)
@@ -44,21 +45,30 @@ func ConfigNamesBatchUpsert(db *gorm.DB, cf api.ConfFileDef, confNames []*api.Up
 			updates = append(updates, confName)
 		} else if cn.OPType == constvar.OPTypeRemove {
 			deletes = append(deletes, confName)
+		} else if cn.OPType == constvar.OPTypeUpsert {
+			upserts = append(upserts, confName)
+		} else {
+			return fmt.Errorf("invalid op_type %s for %s", cn.OPType, cn.ConfName)
 		}
 	}
 	err := db.Transaction(func(tx *gorm.DB) error {
 		if len(adds) > 0 {
-			if err := model.ConfigNamesBatchSave(tx, adds); err != nil {
+			if err := model.ConfigNamesBatchCreate(tx, adds); err != nil {
 				return err
 			}
 		}
 		if len(updates) > 0 {
-			if err := model.ConfigNamesBatchSave(tx, updates); err != nil {
+			if err := model.ConfigNamesBatchUpdate(tx, updates); err != nil {
 				return err
 			}
 		}
 		if len(deletes) > 0 {
 			if err := model.ConfigNamesBatchDelete(tx, deletes); err != nil {
+				return err
+			}
+		}
+		if len(upserts) > 0 {
+			if err := model.ConfigNamesBatchSave(tx, upserts); err != nil {
 				return err
 			}
 		}
@@ -129,16 +139,7 @@ func UpsertConfigFilePlat(r *api.UpsertConfFilePlatReq, clientOPType, opUser str
 			if len(configs) == 0 { // 如果 items 为空，只修改 conf_file 信息
 				return nil
 			}
-			/*
-			   // confirm 处理下层级冲突 tb_config_node
-			   if err := ProcessOPConfig(configsRef); err != nil {
-			       return err
-			   }
-
-			*/
-			// 保存到 tb_config_name_def
-			// @todo 这里保存到 tb_config_name_def 就意味着发布了，与 tb_config_versioned 不一致
-			if err := ConfigNamesBatchUpsert(tx, r.ConfFileInfo, r.ConfNames); err != nil {
+			if err := ConfigNamesBatchUpsert(tx, fileDef, r.ConfNames); err != nil {
 				return err
 			}
 			resp.IsPublished = 0

@@ -325,8 +325,6 @@ func ValidateConfValue(confValue, valueType, valueTypeSub, valueAllowed string) 
 		switch valueTypeSub {
 		case DTypeSubEnum, "":
 			return CheckInBool(confValue, valueAllowed)
-		case DTypeSubFlag:
-			return nil
 		default:
 			return invalidErr
 		}

@@ -242,8 +242,11 @@ type ConfigNameDefModel struct {
 	ValueDefault string `json:"value_default" gorm:"column:value_default;type:varchar(120)"`
 	ValueAllowed string `json:"value_allowed" gorm:"column:value_allowed;type:varchar(120)"`
 	ValueTypeSub string `json:"value_type_sub" gorm:"column:value_type_sub;type:varchar(60)"`
-	FlagLocked   int8   `json:"flag_locked" gorm:"column:flag_locked;type:tinyint"`
-	FlagEncrypt  int8   `json:"flag_encrypt" gorm:"column:flag_encrypt;type:tinyint"`
+
+	FlagVisible  int8 `json:"flag_visible" gorm:"column:flag_visible;type:tinyint"`
+	FlagReadonly int8 `json:"flag_readonly" gorm:"column:flag_readonly;type:tinyint"`
+	FlagLocked   int8 `json:"flag_locked" gorm:"column:flag_locked;type:tinyint"`
+	FlagEncrypt  int8 `json:"flag_encrypt" gorm:"column:flag_encrypt;type:tinyint"`
 	// 0:enable, 1:disable
 	FlagDisable int8 `json:"flag_disable" gorm:"column:flag_disable;type:tinyint"`
 	// 1: 显式的公共配置 0:不会显式出现在配置文件的全量配置项, 2: 显式的公共配置且只读即 visible only when rendering
@@ -284,7 +287,7 @@ func (c ConfigNameDefModel) UniqueWhere() map[string]interface{} {
 
 // IsReadOnly TODO
 func (c ConfigNameDefModel) IsReadOnly() bool {
-	if c.FlagStatus == 2 {
+	if c.FlagStatus == 2 || c.FlagReadonly == 1 {
 		return true
 	}
 	return false

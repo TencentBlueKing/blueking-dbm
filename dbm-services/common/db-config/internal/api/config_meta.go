@@ -50,13 +50,17 @@ type ConfNameDef struct {
 	// 配置项默认值
 	ValueDefault string `json:"value_default" form:"value_default" example:"1"`
 	// 是否需要重启生效. 默认1
+
 	NeedRestart int8 `json:"need_restart" form:"need_restart" example:"1"`
-	// 是否禁用，代表该配置项状态. 默认0启用. 1: disable，相当于软删, -1: 物理删除
-	FlagDisable int8 `json:"flag_disable" form:"flag_disable" example:"0"`
 	// 是否锁定. 默认0
 	FlagLocked int8 `json:"flag_locked" form:"flag_locked" example:"0"`
+	// 是否只读. 默认0
+	FlagReadonly int8 `json:"flag_readonly" form:"flag_readonly" example:"0"`
+	// 可见性. 默认1
+	FlagVisible int8 `json:"flag_visible" form:"flag_visible" example:"1"`
 	// 配置读写状态，1:可读可写， 2:只读不可修改，用于展示或者生成配置 -1: 不展示配置，只表示合法全量配置用于下拉
 	FlagStatus int8 `json:"flag_status" form:"flag_status" example:"1"`
+
 	// 配置项说明
 	Description string `json:"description" form:"description"`
 }

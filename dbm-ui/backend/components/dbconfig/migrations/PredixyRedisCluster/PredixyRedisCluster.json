@@ -1,0 +1,110 @@
+[
+  {
+    "conf_type": "config",
+    "conf_file": "fullbackup",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "",
+    "conf_type_lc": "配置",
+    "conf_file_lc": "全备相关的配置",
+    "level_names": "pub,plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "Redis-4",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "",
+    "conf_type_lc": "redis配置",
+    "conf_file_lc": "redis4.0的配置文件",
+    "level_names": "pub,plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "Redis-4.0.9",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "",
+    "conf_type_lc": "redis配置",
+    "conf_file_lc": "Redis-4.0.9的配置文件",
+    "level_names": "pub,plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "Redis-5",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "",
+    "conf_type_lc": "redis配置",
+    "conf_file_lc": "redis5.0的配置文件",
+    "level_names": "pub,plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "Redis-6",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "",
+    "conf_type_lc": "redis配置",
+    "conf_file_lc": "redis6.0的配置文件",
+    "level_names": "pub,plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "Redis-7",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "",
+    "conf_type_lc": "redis配置",
+    "conf_file_lc": "redis7.0的配置文件",
+    "level_names": "pub,plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "Redis-70",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "",
+    "conf_type_lc": "redis配置",
+    "conf_file_lc": "redis7.0的配置文件",
+    "level_names": "pub,plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "Redis-74",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "",
+    "conf_type_lc": "redis配置",
+    "conf_file_lc": "redis7.4的配置文件",
+    "level_names": "pub,plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "proxyconf",
+    "conf_file": "Predixy-latest",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "",
+    "conf_type_lc": "redis配置",
+    "conf_file_lc": "predixy配置文件",
+    "level_names": "pub,plat,app,module,cluster",
+    "level_versioned": "cluster"
+  }
+]

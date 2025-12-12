@@ -18,9 +18,10 @@ func QueryConfigNames(namespace, confType, confFile, confName string) ([]*Config
 	var err error
 	confNames := make([]*ConfigNameDefModel, 0)
 	columns :=
-		"conf_name,value_type,value_type_sub,value_default,value_allowed,need_restart,flag_locked,flag_disable,flag_encrypt,need_restart,conf_name_lc,description"
+		"conf_name,value_type,value_type_sub,value_default,value_allowed,need_restart," +
+			"flag_readonly,flag_visible,flag_locked,flag_disable,flag_encrypt,need_restart,conf_name_lc,description"
 	sqlRes = DB.Self.Debug().Model(ConfigNameDefModel{}).Select(columns).
-		Where("conf_type = ? and conf_file = ?  and flag_locked = 0 and flag_status = -1 and flag_disable = 0",
+		Where("conf_type = ? and conf_file = ?  and flag_locked = 0 and flag_visible = 0 ",
 			confType, confFile)
 	if confName != "" {
 		confName = confName + "%"
@@ -52,9 +53,10 @@ func QueryConfigNamesPlat(namespace, confType, confFile, confName string) ([]*Co
 	var err error
 	confNames := make([]*ConfigNameDefModel, 0)
 	columns :=
-		"conf_name,value_type,value_type_sub,value_default,value_allowed,need_restart,flag_locked,flag_disable,flag_encrypt,flag_status,need_restart,stage,conf_name_lc,description"
+		"conf_name,value_type,value_type_sub,value_default,value_allowed,need_restart," +
+			"flag_readonly,flag_visible,flag_locked,flag_disable,flag_encrypt,flag_status,need_restart,stage,conf_name_lc,description"
 	sqlRes = DB.Self.Debug().Model(ConfigNameDefModel{}).Select(columns).
-		Where("conf_type = ? and conf_file = ? and flag_status >= 1 and flag_disable = 0",
+		Where("conf_type = ? and conf_file = ? and flag_visible = 1 ",
 			confType, confFile)
 	if confName != "" {
 		confName = confName + "%"
