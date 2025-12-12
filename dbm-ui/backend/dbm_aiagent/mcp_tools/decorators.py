@@ -23,6 +23,7 @@ from rest_framework import serializers
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 
+from backend import env
 from backend.dbm_aiagent.mcp_tools.constants import DBMAMcpTools
 from backend.dbm_aiagent.utils import get_class_from_qualname
 
@@ -163,6 +164,10 @@ def mcp_tools_api_decorator(
                 except Exception:  # pylint: disable=broad-except
                     # 如果无法创建实例，跳过鉴权
                     logger.warning(_("无法获取引用视图类权限类：{}").format(reference_view.__name__))
+                    permission_classes = []
+
+                # 本地调试忽略鉴权
+                if env.DEBUG_MCP:
                     permission_classes = []
 
                 # 检查权限

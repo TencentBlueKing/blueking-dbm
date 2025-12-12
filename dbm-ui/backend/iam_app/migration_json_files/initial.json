@@ -1319,6 +1319,23 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "platform_risk_memo_view",
+                "name": "全局风险备忘录查看",
+                "name_en": "platform_risk_memo_view",
+                "type": "view",
+                "related_resource_types": [],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "平台管理",
+                "subgroup": "",
+                "description": "全局风险备忘录查看",
+                "description_en": "platform_risk_memo_view"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "mysql_dbconsole",
                 "name": "MySQL 管理控制台",
                 "name_en": "mysql_dbconsole",
@@ -1638,6 +1655,37 @@
                 "subgroup": "集群管理",
                 "description": "MySQL 集群编辑",
                 "description_en": "MySQL Edit"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mysql_subscribe_monitor",
+                "name": "MySQL 集群告警订阅",
+                "name_en": "mysql_subscribe_monitor",
+                "type": "manage",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "集群管理",
+                "description": "MySQL 集群告警订阅",
+                "description_en": "mysql_subscribe_monitor"
             }
         },
         {
@@ -2204,6 +2252,238 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "mysql_partition",
+                "name": "MySQL 分区",
+                "name_en": "MYSQL_PARTITION",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "分区管理",
+                "description": "MySQL 分区",
+                "description_en": "MYSQL_PARTITION"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mysql_flashback",
+                "name": "MySQL 闪回",
+                "name_en": "MYSQL_FLASHBACK",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "回档",
+                "description": "MySQL 闪回",
+                "description_en": "MYSQL_FLASHBACK"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mysql_ha_truncate_data",
+                "name": "MySQL 高可用清档",
+                "name_en": "MYSQL_HA_TRUNCATE_DATA",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "数据处理",
+                "description": "MySQL 高可用清档",
+                "description_en": "MYSQL_HA_TRUNCATE_DATA"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mysql_ha_db_table_backup",
+                "name": "MySQL 库表备份",
+                "name_en": "MYSQL_HA_DB_TABLE_BACKUP",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "备份",
+                "description": "MySQL 库表备份",
+                "description_en": "MYSQL_HA_DB_TABLE_BACKUP"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mysql_ha_rename_database",
+                "name": "MySQL 高可用DB重命名",
+                "name_en": "MYSQL_HA_RENAME_DATABASE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "集群维护",
+                "description": "MySQL 高可用DB重命名",
+                "description_en": "MYSQL_HA_RENAME_DATABASE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mysql_single_truncate_data",
+                "name": "MySQL 单节点清档",
+                "name_en": "MYSQL_SINGLE_TRUNCATE_DATA",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "数据处理",
+                "description": "MySQL 单节点清档",
+                "description_en": "MYSQL_SINGLE_TRUNCATE_DATA"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mysql_single_rename_database",
+                "name": "MySQL 单节点DB重命名",
+                "name_en": "MYSQL_SINGLE_RENAME_DATABASE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "集群维护",
+                "description": "MySQL 单节点DB重命名",
+                "description_en": "MYSQL_SINGLE_RENAME_DATABASE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mysql_rename_database",
+                "name": "MySQL DB重命名",
+                "name_en": "MYSQL_RENAME_DATABASE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "工具箱",
+                "description": "MySQL DB重命名",
+                "description_en": "MYSQL_RENAME_DATABASE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "mysql_open_area",
                 "name": "MySQL 开区执行",
                 "name_en": "mysql_open_area",
@@ -2607,6 +2887,37 @@
                 "subgroup": "集群管理",
                 "description": "TenDB Cluster 集群编辑",
                 "description_en": "tendbcluster_edit"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "tendbcluster_subscribe_monitor",
+                "name": "TendbCluster 集群告警订阅",
+                "name_en": "tendbcluster_subscribe_monitor",
+                "type": "manage",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "tendbcluster",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "tendbcluster_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "TenDBCluster",
+                "subgroup": "集群管理",
+                "description": "TendbCluster 集群告警订阅",
+                "description_en": "tendbcluster_subscribe_monitor"
             }
         },
         {
@@ -3242,6 +3553,151 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "tendbcluster_db_table_backup",
+                "name": "TenDB Cluster 库表备份",
+                "name_en": "TENDBCLUSTER_DB_TABLE_BACKUP",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "tendbcluster",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "tendbcluster_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "TenDBCluster",
+                "subgroup": "备份",
+                "description": "TenDB Cluster 库表备份",
+                "description_en": "TENDBCLUSTER_DB_TABLE_BACKUP"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "tendbcluster_truncate_database",
+                "name": "TenDB Cluster 清档",
+                "name_en": "TENDBCLUSTER_TRUNCATE_DATABASE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "tendbcluster",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "tendbcluster_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "TenDBCluster",
+                "subgroup": "数据处理",
+                "description": "TenDB Cluster 清档",
+                "description_en": "TENDBCLUSTER_TRUNCATE_DATABASE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "tendbcluster_rename_database",
+                "name": "TenDB Cluster 数据库重命名",
+                "name_en": "TENDBCLUSTER_RENAME_DATABASE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "tendbcluster",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "tendbcluster_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "TenDBCluster",
+                "subgroup": "SQL 任务",
+                "description": "TenDB Cluster 数据库重命名",
+                "description_en": "TENDBCLUSTER_RENAME_DATABASE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "tendbcluster_flashback",
+                "name": "TenDB Cluster 闪回",
+                "name_en": "TENDBCLUSTER_FLASHBACK",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "tendbcluster",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "tendbcluster_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "TenDBCluster",
+                "subgroup": "回档",
+                "description": "TenDB Cluster 闪回",
+                "description_en": "TENDBCLUSTER_FLASHBACK"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "tendbcluster_partition",
+                "name": "TenDB Cluster 分区管理",
+                "name_en": "TENDBCLUSTER_PARTITION",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "tendbcluster",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "tendbcluster_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "TenDBCluster",
+                "subgroup": "分区管理",
+                "description": "TenDB Cluster 分区管理",
+                "description_en": "TENDBCLUSTER_PARTITION"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "tendbcluster_apply",
                 "name": "TenDB Cluster 集群部署",
                 "name_en": "TENDBCLUSTER_APPLY",
@@ -3460,6 +3916,37 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "redis_subscribe_monitor",
+                "name": "Redis 集群告警订阅",
+                "name_en": "redis_subscribe_monitor",
+                "type": "manage",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "redis",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "redis_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "Redis",
+                "subgroup": "集群管理",
+                "description": "Redis 集群告警订阅",
+                "description_en": "redis_subscribe_monitor"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "redis_source_access_view",
                 "name": "Redis 访问来源查询",
                 "name_en": "redis_source_access_view",
@@ -3517,6 +4004,209 @@
                 "subgroup": "集群管理",
                 "description": "Redis 集群部署",
                 "description_en": "REDIS_CLUSTER_APPLY"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "redis_backup",
+                "name": "Redis 集群备份",
+                "name_en": "REDIS_BACKUP",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "redis",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "redis_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Redis",
+                "subgroup": "集群管理",
+                "description": "Redis 集群备份",
+                "description_en": "REDIS_BACKUP"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "redis_keys_extract",
+                "name": "Redis 提取 Key",
+                "name_en": "REDIS_KEYS_EXTRACT",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "redis",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "redis_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Redis",
+                "subgroup": "集群管理",
+                "description": "Redis 提取 Key",
+                "description_en": "REDIS_KEYS_EXTRACT"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "redis_keys_delete",
+                "name": "Redis 删除 key",
+                "name_en": "REDIS_KEYS_DELETE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "redis",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "redis_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Redis",
+                "subgroup": "集群管理",
+                "description": "Redis 删除 key",
+                "description_en": "REDIS_KEYS_DELETE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "redis_hot_key_analysis",
+                "name": "Redis 热key分析",
+                "name_en": "REDIS_HOT_KEY_ANALYSIS",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "redis",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "redis_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Redis",
+                "subgroup": "集群管理",
+                "description": "Redis 热key分析",
+                "description_en": "REDIS_HOT_KEY_ANALYSIS"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "redis_keystat",
+                "name": "Redis 内存分析",
+                "name_en": "REDIS_KEYSTAT",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "redis",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "redis_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Redis",
+                "subgroup": "集群管理",
+                "description": "Redis 内存分析",
+                "description_en": "REDIS_KEYSTAT"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "redis_plugin_create_clb",
+                "name": "Redis 创建CLB",
+                "name_en": "REDIS_PLUGIN_CREATE_CLB",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "redis",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "redis_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Redis",
+                "subgroup": "集群管理",
+                "description": "Redis 创建CLB",
+                "description_en": "REDIS_PLUGIN_CREATE_CLB"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "redis_plugin_create_polaris",
+                "name": "Redis 创建Polaris",
+                "name_en": "REDIS_PLUGIN_CREATE_POLARIS",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "redis",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "redis_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Redis",
+                "subgroup": "集群管理",
+                "description": "Redis 创建Polaris",
+                "description_en": "REDIS_PLUGIN_CREATE_POLARIS"
             }
         },
         {
@@ -3641,6 +4331,37 @@
                 "subgroup": "集群管理",
                 "description": "ES 集群编辑",
                 "description_en": "es_edit"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "es_subscribe_monitor",
+                "name": "ES 集群告警订阅",
+                "name_en": "es_subscribe_monitor",
+                "type": "manage",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "es",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "es_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "ElasticSearch",
+                "subgroup": "集群管理",
+                "description": "ES 集群告警订阅",
+                "description_en": "es_subscribe_monitor"
             }
         },
         {
@@ -3923,6 +4644,37 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "doris_subscribe_monitor",
+                "name": "Doris 集群告警订阅",
+                "name_en": "doris_subscribe_monitor",
+                "type": "manage",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "doris",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "doris_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "Doris",
+                "subgroup": "集群管理",
+                "description": "Doris 集群告警订阅",
+                "description_en": "doris_subscribe_monitor"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "doris_access_entry_view",
                 "name": "Doris 集群访问",
                 "name_en": "doris_access_entry_view",
@@ -4042,6 +4794,37 @@
                 "subgroup": "集群管理",
                 "description": "Kafka 集群编辑",
                 "description_en": "kafka_edit"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "kafka_subscribe_monitor",
+                "name": "Kafka 集群告警订阅",
+                "name_en": "kafka_subscribe_monitor",
+                "type": "manage",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "kafka",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "kafka_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "Kafka",
+                "subgroup": "集群管理",
+                "description": "Kafka 集群告警订阅",
+                "description_en": "kafka_subscribe_monitor"
             }
         },
         {
@@ -4229,6 +5012,37 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "hdfs_subscribe_monitor",
+                "name": "HDFS 集群告警订阅",
+                "name_en": "hdfs_subscribe_monitor",
+                "type": "manage",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "hdfs",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "hdfs_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "HDFS",
+                "subgroup": "集群管理",
+                "description": "HDFS 集群告警订阅",
+                "description_en": "hdfs_subscribe_monitor"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "hdfs_access_entry_view",
                 "name": "HDFS 集群访问",
                 "name_en": "hdfs_access_entry_view",
@@ -4377,6 +5191,37 @@
                 "subgroup": "集群管理",
                 "description": "Pulsar 集群编辑",
                 "description_en": "pulsar_edit"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "pulsar_subscribe_monitor",
+                "name": "Pulsar 集群告警订阅",
+                "name_en": "pulsar_subscribe_monitor",
+                "type": "manage",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "pulsar",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "pulsar_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "Pulsar",
+                "subgroup": "集群管理",
+                "description": "Pulsar 集群告警订阅",
+                "description_en": "pulsar_subscribe_monitor"
             }
         },
         {
@@ -4657,6 +5502,37 @@
                 "subgroup": "集群管理",
                 "description": "Mongodb 集群编辑",
                 "description_en": "mongodb_edit"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mongodb_subscribe_monitor",
+                "name": "Mongodb 集群告警订阅",
+                "name_en": "mongodb_subscribe_monitor",
+                "type": "manage",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mongodb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mongodb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "MongoDB",
+                "subgroup": "集群管理",
+                "description": "Mongodb 集群告警订阅",
+                "description_en": "mongodb_subscribe_monitor"
             }
         },
         {
@@ -4979,6 +5855,151 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "mongodb_data_export",
+                "name": "MongoDB 数据导出",
+                "name_en": "MONGODB_DATA_EXPORT",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mongodb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mongodb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MongoDB",
+                "subgroup": "数据处理",
+                "description": "MongoDB 数据导出",
+                "description_en": "MONGODB_DATA_EXPORT"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mongodb_import",
+                "name": "MongoDB 数据导入",
+                "name_en": "MONGODB_IMPORT",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mongodb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mongodb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MongoDB",
+                "subgroup": "集群维护",
+                "description": "MongoDB 数据导入",
+                "description_en": "MONGODB_IMPORT"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mongodb_backup",
+                "name": "MongoDB 库表备份",
+                "name_en": "MONGODB_BACKUP",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mongodb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mongodb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MongoDB",
+                "subgroup": "备份",
+                "description": "MongoDB 库表备份",
+                "description_en": "MONGODB_BACKUP"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mongodb_exec_script_apply",
+                "name": "MongoDB 变更脚本执行",
+                "name_en": "MONGODB_EXEC_SCRIPT_APPLY",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mongodb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mongodb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MongoDB",
+                "subgroup": "脚本任务",
+                "description": "MongoDB 变更脚本执行",
+                "description_en": "MONGODB_EXEC_SCRIPT_APPLY"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mongodb_full_backup",
+                "name": "MongoDB 全库备份",
+                "name_en": "MONGODB_FULL_BACKUP",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mongodb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mongodb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MongoDB",
+                "subgroup": "备份",
+                "description": "MongoDB 全库备份",
+                "description_en": "MONGODB_FULL_BACKUP"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "sqlserver_view",
                 "name": "SQLServer 集群详情查看",
                 "name_en": "sqlserver_view",
@@ -5032,6 +6053,37 @@
                 "subgroup": "集群管理",
                 "description": "SQLServer 集群编辑",
                 "description_en": "sqlserver_edit"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "sqlserver_subscribe_monitor",
+                "name": "SQLServer 集群告警订阅",
+                "name_en": "sqlserver_subscribe_monitor",
+                "type": "manage",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "sqlserver",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "sqlserver_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "SQLServer",
+                "subgroup": "集群管理",
+                "description": "SQLServer 集群告警订阅",
+                "description_en": "sqlserver_subscribe_monitor"
             }
         },
         {
@@ -5382,9 +6434,40 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "oracle_subscribe_monitor",
+                "name": "Oracle 集群告警订阅",
+                "name_en": "oracle_subscribe_monitor",
+                "type": "manage",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "oracle",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "oracle_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "Oracle",
+                "subgroup": "集群管理",
+                "description": "Oracle 集群告警订阅",
+                "description_en": "oracle_subscribe_monitor"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "oracle_enable_disable",
-                "name": "ORACLE 集群禁用和启用",
-                "name_en": "ORACLE Enable Disable",
+                "name": "Oracle 集群禁用和启用",
+                "name_en": "Oracle Enable Disable",
                 "type": "execute",
                 "related_resource_types": [
                     {
@@ -5406,8 +6489,8 @@
                 "hidden": false,
                 "group": "Oracle",
                 "subgroup": "集群管理",
-                "description": "ORACLE 集群禁用和启用",
-                "description_en": "ORACLE Enable Disable"
+                "description": "Oracle 集群禁用和启用",
+                "description_en": "Oracle Enable Disable"
             }
         },
         {
@@ -5503,7 +6586,7 @@
                     "db_manage"
                 ],
                 "version": 1,
-                "hidden": true,
+                "hidden": false,
                 "group": "资源管理",
                 "subgroup": "标签",
                 "description": "标签管理",
@@ -6053,6 +7136,68 @@
                 "subgroup": "监控策略",
                 "description": "告警屏蔽管理",
                 "description_en": "alert_shield_manage"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "risk_memo_create",
+                "name": "风险创建",
+                "name_en": "risk_memo_create",
+                "type": "create",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_cmdb",
+                        "id": "biz",
+                        "selection_mode": "instance",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_cmdb",
+                                "id": "business"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "业务配置",
+                "subgroup": "风险备忘录",
+                "description": "风险创建",
+                "description_en": "risk_memo_create"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "risk_memo_manage",
+                "name": "风险管理",
+                "name_en": "risk_memo_manage",
+                "type": "manage",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_cmdb",
+                        "id": "biz",
+                        "selection_mode": "instance",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_cmdb",
+                                "id": "business"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "业务配置",
+                "subgroup": "风险备忘录",
+                "description": "风险管理",
+                "description_en": "risk_memo_manage"
             }
         },
         {
@@ -6728,6 +7873,35 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "mysql_migrate_single",
+                "name": "MySQL 单节点迁移",
+                "name_en": "MYSQL_MIGRATE_SINGLE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "集群维护",
+                "description": "MySQL 单节点迁移",
+                "description_en": "MYSQL_MIGRATE_SINGLE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "mysql_master_slave_switch",
                 "name": "MySQL 主从互换",
                 "name_en": "MYSQL_MASTER_SLAVE_SWITCH",
@@ -6902,6 +8076,93 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "mysql_proxy_conf_change",
+                "name": "MySQL Proxy升降配",
+                "name_en": "MYSQL_PROXY_CONF_CHANGE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "集群维护",
+                "description": "MySQL Proxy升降配",
+                "description_en": "MYSQL_PROXY_CONF_CHANGE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mysql_proxy_migrate",
+                "name": "MySQL 按集群Proxy迁移",
+                "name_en": "MYSQL_PROXY_MIGRATE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "集群维护",
+                "description": "MySQL 按集群Proxy迁移",
+                "description_en": "MYSQL_PROXY_MIGRATE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mysql_proxy_migrate_ins",
+                "name": "MySQL 按实例Proxy迁移",
+                "name_en": "MYSQL_PROXY_MIGRATE_INS",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "集群维护",
+                "description": "MySQL 按实例Proxy迁移",
+                "description_en": "MYSQL_PROXY_MIGRATE_INS"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "mysql_proxy_reduce",
                 "name": "MySQL 减少Proxy",
                 "name_en": "MYSQL_PROXY_REDUCE",
@@ -6926,93 +8187,6 @@
                 "subgroup": "集群维护",
                 "description": "MySQL 减少Proxy",
                 "description_en": "MYSQL_PROXY_REDUCE"
-            }
-        },
-        {
-            "operation": "upsert_action",
-            "data": {
-                "id": "mysql_ha_rename_database",
-                "name": "MySQL 高可用DB重命名",
-                "name_en": "MYSQL_HA_RENAME_DATABASE",
-                "type": "execute",
-                "related_resource_types": [
-                    {
-                        "system_id": "bk_dbm",
-                        "id": "mysql",
-                        "selection_mode": "all",
-                        "related_instance_selections": [
-                            {
-                                "system_id": "bk_dbm",
-                                "id": "mysql_list"
-                            }
-                        ]
-                    }
-                ],
-                "related_actions": [],
-                "version": 1,
-                "hidden": false,
-                "group": "MySQL",
-                "subgroup": "集群维护",
-                "description": "MySQL 高可用DB重命名",
-                "description_en": "MYSQL_HA_RENAME_DATABASE"
-            }
-        },
-        {
-            "operation": "upsert_action",
-            "data": {
-                "id": "mysql_ha_truncate_data",
-                "name": "MySQL 高可用清档",
-                "name_en": "MYSQL_HA_TRUNCATE_DATA",
-                "type": "execute",
-                "related_resource_types": [
-                    {
-                        "system_id": "bk_dbm",
-                        "id": "mysql",
-                        "selection_mode": "all",
-                        "related_instance_selections": [
-                            {
-                                "system_id": "bk_dbm",
-                                "id": "mysql_list"
-                            }
-                        ]
-                    }
-                ],
-                "related_actions": [],
-                "version": 1,
-                "hidden": false,
-                "group": "MySQL",
-                "subgroup": "数据处理",
-                "description": "MySQL 高可用清档",
-                "description_en": "MYSQL_HA_TRUNCATE_DATA"
-            }
-        },
-        {
-            "operation": "upsert_action",
-            "data": {
-                "id": "mysql_ha_db_table_backup",
-                "name": "MySQL 库表备份",
-                "name_en": "MYSQL_HA_DB_TABLE_BACKUP",
-                "type": "execute",
-                "related_resource_types": [
-                    {
-                        "system_id": "bk_dbm",
-                        "id": "mysql",
-                        "selection_mode": "all",
-                        "related_instance_selections": [
-                            {
-                                "system_id": "bk_dbm",
-                                "id": "mysql_list"
-                            }
-                        ]
-                    }
-                ],
-                "related_actions": [],
-                "version": 1,
-                "hidden": false,
-                "group": "MySQL",
-                "subgroup": "备份",
-                "description": "MySQL 库表备份",
-                "description_en": "MYSQL_HA_DB_TABLE_BACKUP"
             }
         },
         {
@@ -7047,9 +8221,9 @@
         {
             "operation": "upsert_action",
             "data": {
-                "id": "mysql_partition",
-                "name": "MySQL 分区",
-                "name_en": "MYSQL_PARTITION",
+                "id": "mysql_partition_v2",
+                "name": "MySQL 分区v2",
+                "name_en": "MYSQL_PARTITION_V2",
                 "type": "execute",
                 "related_resource_types": [
                     {
@@ -7068,38 +8242,9 @@
                 "version": 1,
                 "hidden": false,
                 "group": "MySQL",
-                "subgroup": "分区管理",
-                "description": "MySQL 分区",
-                "description_en": "MYSQL_PARTITION"
-            }
-        },
-        {
-            "operation": "upsert_action",
-            "data": {
-                "id": "mysql_flashback",
-                "name": "MySQL 闪回",
-                "name_en": "MYSQL_FLASHBACK",
-                "type": "execute",
-                "related_resource_types": [
-                    {
-                        "system_id": "bk_dbm",
-                        "id": "mysql",
-                        "selection_mode": "all",
-                        "related_instance_selections": [
-                            {
-                                "system_id": "bk_dbm",
-                                "id": "mysql_list"
-                            }
-                        ]
-                    }
-                ],
-                "related_actions": [],
-                "version": 1,
-                "hidden": false,
-                "group": "MySQL",
-                "subgroup": "回档",
-                "description": "MySQL 闪回",
-                "description_en": "MYSQL_FLASHBACK"
+                "subgroup": "分区管理v2",
+                "description": "MySQL 分区v2",
+                "description_en": "MYSQL_PARTITION_V2"
             }
         },
         {
@@ -7134,6 +8279,93 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "mysql_rollback",
+                "name": "MySQL 构造回档",
+                "name_en": "MYSQL_ROLLBACK",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "回档",
+                "description": "MySQL 构造回档",
+                "description_en": "MYSQL_ROLLBACK"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mysql_fixpoint_new_cluster",
+                "name": "MySQL 数据构造到新集群",
+                "name_en": "MYSQL_FIXPOINT_NEW_CLUSTER",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "构造",
+                "description": "MySQL 数据构造到新集群",
+                "description_en": "MYSQL_FIXPOINT_NEW_CLUSTER"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mysql_fixpoint_exist_cluster",
+                "name": "MySQL 数据构造到已有集群",
+                "name_en": "MYSQL_FIXPOINT_EXIST_CLUSTER",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "构造",
+                "description": "MySQL 数据构造到已有集群",
+                "description_en": "MYSQL_FIXPOINT_EXIST_CLUSTER"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "mysql_ha_full_backup",
                 "name": "MySQL 全库备份",
                 "name_en": "MYSQL_HA_FULL_BACKUP",
@@ -7158,64 +8390,6 @@
                 "subgroup": "备份",
                 "description": "MySQL 全库备份",
                 "description_en": "MYSQL_HA_FULL_BACKUP"
-            }
-        },
-        {
-            "operation": "upsert_action",
-            "data": {
-                "id": "mysql_single_truncate_data",
-                "name": "MySQL 单节点清档",
-                "name_en": "MYSQL_SINGLE_TRUNCATE_DATA",
-                "type": "execute",
-                "related_resource_types": [
-                    {
-                        "system_id": "bk_dbm",
-                        "id": "mysql",
-                        "selection_mode": "all",
-                        "related_instance_selections": [
-                            {
-                                "system_id": "bk_dbm",
-                                "id": "mysql_list"
-                            }
-                        ]
-                    }
-                ],
-                "related_actions": [],
-                "version": 1,
-                "hidden": false,
-                "group": "MySQL",
-                "subgroup": "数据处理",
-                "description": "MySQL 单节点清档",
-                "description_en": "MYSQL_SINGLE_TRUNCATE_DATA"
-            }
-        },
-        {
-            "operation": "upsert_action",
-            "data": {
-                "id": "mysql_single_rename_database",
-                "name": "MySQL 单节点DB重命名",
-                "name_en": "MYSQL_SINGLE_RENAME_DATABASE",
-                "type": "execute",
-                "related_resource_types": [
-                    {
-                        "system_id": "bk_dbm",
-                        "id": "mysql",
-                        "selection_mode": "all",
-                        "related_instance_selections": [
-                            {
-                                "system_id": "bk_dbm",
-                                "id": "mysql_list"
-                            }
-                        ]
-                    }
-                ],
-                "related_actions": [],
-                "version": 1,
-                "hidden": false,
-                "group": "MySQL",
-                "subgroup": "集群维护",
-                "description": "MySQL 单节点DB重命名",
-                "description_en": "MYSQL_SINGLE_RENAME_DATABASE"
             }
         },
         {
@@ -7395,9 +8569,9 @@
         {
             "operation": "upsert_action",
             "data": {
-                "id": "mysql_rename_database",
-                "name": "MySQL DB重命名",
-                "name_en": "MYSQL_RENAME_DATABASE",
+                "id": "mysql_clone_cluster",
+                "name": "MySQL 集群克隆",
+                "name_en": "MYSQL_CLONE_CLUSTER",
                 "type": "execute",
                 "related_resource_types": [
                     {
@@ -7416,9 +8590,9 @@
                 "version": 1,
                 "hidden": false,
                 "group": "MySQL",
-                "subgroup": "工具箱",
-                "description": "MySQL DB重命名",
-                "description_en": "MYSQL_RENAME_DATABASE"
+                "subgroup": "集群维护",
+                "description": "MySQL 集群克隆",
+                "description_en": "MYSQL_CLONE_CLUSTER"
             }
         },
         {
@@ -7482,9 +8656,9 @@
         {
             "operation": "upsert_action",
             "data": {
-                "id": "mysql_dbha_af_spider_add",
-                "name": "MySQL SPIDER DBHA 自愈扩容",
-                "name_en": "MYSQL_DBHA_AF_SPIDER_ADD",
+                "id": "mysql_dbha_af_spider_replace",
+                "name": "MySQL SPIDER DBHA 自愈替换",
+                "name_en": "MYSQL_DBHA_AF_SPIDER_REPLACE",
                 "type": "execute",
                 "related_resource_types": [
                     {
@@ -7504,37 +8678,8 @@
                 "hidden": false,
                 "group": "MySQL",
                 "subgroup": "工具箱",
-                "description": "MySQL SPIDER DBHA 自愈扩容",
-                "description_en": "MYSQL_DBHA_AF_SPIDER_ADD"
-            }
-        },
-        {
-            "operation": "upsert_action",
-            "data": {
-                "id": "mysql_dbha_af_spider_reduce",
-                "name": "MySQL SPIDER DBHA 自愈踢除故障",
-                "name_en": "MYSQL_DBHA_AF_SPIDER_REDUCE",
-                "type": "execute",
-                "related_resource_types": [
-                    {
-                        "system_id": "bk_dbm",
-                        "id": "mysql",
-                        "selection_mode": "all",
-                        "related_instance_selections": [
-                            {
-                                "system_id": "bk_dbm",
-                                "id": "mysql_list"
-                            }
-                        ]
-                    }
-                ],
-                "related_actions": [],
-                "version": 1,
-                "hidden": false,
-                "group": "MySQL",
-                "subgroup": "工具箱",
-                "description": "MySQL SPIDER DBHA 自愈踢除故障",
-                "description_en": "MYSQL_DBHA_AF_SPIDER_REDUCE"
+                "description": "MySQL SPIDER DBHA 自愈替换",
+                "description_en": "MYSQL_DBHA_AF_SPIDER_REPLACE"
             }
         },
         {
@@ -7772,122 +8917,6 @@
         {
             "operation": "upsert_action",
             "data": {
-                "id": "tendbcluster_partition",
-                "name": "TenDB Cluster 分区管理",
-                "name_en": "TENDBCLUSTER_PARTITION",
-                "type": "execute",
-                "related_resource_types": [
-                    {
-                        "system_id": "bk_dbm",
-                        "id": "tendbcluster",
-                        "selection_mode": "all",
-                        "related_instance_selections": [
-                            {
-                                "system_id": "bk_dbm",
-                                "id": "tendbcluster_list"
-                            }
-                        ]
-                    }
-                ],
-                "related_actions": [],
-                "version": 1,
-                "hidden": false,
-                "group": "TenDBCluster",
-                "subgroup": "分区管理",
-                "description": "TenDB Cluster 分区管理",
-                "description_en": "TENDBCLUSTER_PARTITION"
-            }
-        },
-        {
-            "operation": "upsert_action",
-            "data": {
-                "id": "tendbcluster_db_table_backup",
-                "name": "TenDB Cluster 库表备份",
-                "name_en": "TENDBCLUSTER_DB_TABLE_BACKUP",
-                "type": "execute",
-                "related_resource_types": [
-                    {
-                        "system_id": "bk_dbm",
-                        "id": "tendbcluster",
-                        "selection_mode": "all",
-                        "related_instance_selections": [
-                            {
-                                "system_id": "bk_dbm",
-                                "id": "tendbcluster_list"
-                            }
-                        ]
-                    }
-                ],
-                "related_actions": [],
-                "version": 1,
-                "hidden": false,
-                "group": "TenDBCluster",
-                "subgroup": "备份",
-                "description": "TenDB Cluster 库表备份",
-                "description_en": "TENDBCLUSTER_DB_TABLE_BACKUP"
-            }
-        },
-        {
-            "operation": "upsert_action",
-            "data": {
-                "id": "tendbcluster_rename_database",
-                "name": "TenDB Cluster 数据库重命名",
-                "name_en": "TENDBCLUSTER_RENAME_DATABASE",
-                "type": "execute",
-                "related_resource_types": [
-                    {
-                        "system_id": "bk_dbm",
-                        "id": "tendbcluster",
-                        "selection_mode": "all",
-                        "related_instance_selections": [
-                            {
-                                "system_id": "bk_dbm",
-                                "id": "tendbcluster_list"
-                            }
-                        ]
-                    }
-                ],
-                "related_actions": [],
-                "version": 1,
-                "hidden": false,
-                "group": "TenDBCluster",
-                "subgroup": "SQL 任务",
-                "description": "TenDB Cluster 数据库重命名",
-                "description_en": "TENDBCLUSTER_RENAME_DATABASE"
-            }
-        },
-        {
-            "operation": "upsert_action",
-            "data": {
-                "id": "tendbcluster_truncate_database",
-                "name": "TenDB Cluster 清档",
-                "name_en": "TENDBCLUSTER_TRUNCATE_DATABASE",
-                "type": "execute",
-                "related_resource_types": [
-                    {
-                        "system_id": "bk_dbm",
-                        "id": "tendbcluster",
-                        "selection_mode": "all",
-                        "related_instance_selections": [
-                            {
-                                "system_id": "bk_dbm",
-                                "id": "tendbcluster_list"
-                            }
-                        ]
-                    }
-                ],
-                "related_actions": [],
-                "version": 1,
-                "hidden": false,
-                "group": "TenDBCluster",
-                "subgroup": "数据处理",
-                "description": "TenDB Cluster 清档",
-                "description_en": "TENDBCLUSTER_TRUNCATE_DATABASE"
-            }
-        },
-        {
-            "operation": "upsert_action",
-            "data": {
                 "id": "tendbcluster_master_fail_over",
                 "name": "TenDB Cluster 主库主机故障切换",
                 "name_en": "TENDBCLUSTER_MASTER_FAIL_OVER",
@@ -8028,6 +9057,35 @@
                 "subgroup": "集群维护",
                 "description": "TenDB Cluster Spider迁移升级",
                 "description_en": "TENDBCLUSTER_SPIDER_UPGRADE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "tendbcluster_remote_upgrade",
+                "name": "TenDB Cluster 存储层本地升级",
+                "name_en": "TENDBCLUSTER_REMOTE_UPGRADE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "tendbcluster",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "tendbcluster_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "TenDBCluster",
+                "subgroup": "集群维护",
+                "description": "TenDB Cluster 存储层本地升级",
+                "description_en": "TENDBCLUSTER_REMOTE_UPGRADE"
             }
         },
         {
@@ -8202,6 +9260,35 @@
                 "subgroup": "运维 Spider 管理",
                 "description": "TenDB Cluster 替换接入层",
                 "description_en": "TENDBCLUSTER_SPIDER_SWITCH_NODES"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "tendbcluster_spider_conf_up_down",
+                "name": "TenDB Cluster 接入层升降配",
+                "name_en": "TENDBCLUSTER_SPIDER_CONF_UP_DOWN",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "tendbcluster",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "tendbcluster_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "TenDBCluster",
+                "subgroup": "运维 Spider 管理",
+                "description": "TenDB Cluster 接入层升降配",
+                "description_en": "TENDBCLUSTER_SPIDER_CONF_UP_DOWN"
             }
         },
         {
@@ -8439,9 +9526,9 @@
         {
             "operation": "upsert_action",
             "data": {
-                "id": "tendbcluster_flashback",
-                "name": "TenDB Cluster 闪回",
-                "name_en": "TENDBCLUSTER_FLASHBACK",
+                "id": "tendbcluster_rollback",
+                "name": "TENDBCLUSTER 构造回档",
+                "name_en": "TENDBCLUSTER_ROLLBACK",
                 "type": "execute",
                 "related_resource_types": [
                     {
@@ -8461,8 +9548,66 @@
                 "hidden": false,
                 "group": "TenDBCluster",
                 "subgroup": "回档",
-                "description": "TenDB Cluster 闪回",
-                "description_en": "TENDBCLUSTER_FLASHBACK"
+                "description": "TENDBCLUSTER 构造回档",
+                "description_en": "TENDBCLUSTER_ROLLBACK"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "tendbcluster_fixpoint_new",
+                "name": "TENDBCLUSTER 数据构造到新集群",
+                "name_en": "TENDBCLUSTER_FIXPOINT_NEW",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "tendbcluster",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "tendbcluster_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "TenDBCluster",
+                "subgroup": "构造",
+                "description": "TENDBCLUSTER 数据构造到新集群",
+                "description_en": "TENDBCLUSTER_FIXPOINT_NEW"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "tendbcluster_fixpoint_exist",
+                "name": "TENDBCLUSTER 数据构造到已有集群",
+                "name_en": "TENDBCLUSTER_FIXPOINT_EXIST",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "tendbcluster",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "tendbcluster_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "TenDBCluster",
+                "subgroup": "构造",
+                "description": "TENDBCLUSTER 数据构造到已有集群",
+                "description_en": "TENDBCLUSTER_FIXPOINT_EXIST"
             }
         },
         {
@@ -8787,6 +9932,64 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "sqlserver_cluster_migrate",
+                "name": "SQLServer 集群迁移",
+                "name_en": "SQLSERVER_CLUSTER_MIGRATE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "sqlserver",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "sqlserver_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "SQLServer",
+                "subgroup": "集群维护",
+                "description": "SQLServer 集群迁移",
+                "description_en": "SQLSERVER_CLUSTER_MIGRATE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "sqlserver_host_migrate",
+                "name": "SQLServer 整机迁移",
+                "name_en": "SQLSERVER_HOST_MIGRATE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "sqlserver",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "sqlserver_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "SQLServer",
+                "subgroup": "集群维护",
+                "description": "SQLServer 整机迁移",
+                "description_en": "SQLSERVER_HOST_MIGRATE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "sqlserver_master_fail_over",
                 "name": "SQLServer 主库故障切换",
                 "name_en": "SQLSERVER_MASTER_FAIL_OVER",
@@ -9019,35 +10222,6 @@
         {
             "operation": "upsert_action",
             "data": {
-                "id": "redis_plugin_create_clb",
-                "name": "Redis 创建CLB",
-                "name_en": "REDIS_PLUGIN_CREATE_CLB",
-                "type": "execute",
-                "related_resource_types": [
-                    {
-                        "system_id": "bk_dbm",
-                        "id": "redis",
-                        "selection_mode": "all",
-                        "related_instance_selections": [
-                            {
-                                "system_id": "bk_dbm",
-                                "id": "redis_list"
-                            }
-                        ]
-                    }
-                ],
-                "related_actions": [],
-                "version": 1,
-                "hidden": false,
-                "group": "Redis",
-                "subgroup": "集群管理",
-                "description": "Redis 创建CLB",
-                "description_en": "REDIS_PLUGIN_CREATE_CLB"
-            }
-        },
-        {
-            "operation": "upsert_action",
-            "data": {
                 "id": "redis_plugin_delete_clb",
                 "name": "Redis 删除CLB",
                 "name_en": "REDIS_PLUGIN_DELETE_CLB",
@@ -9135,35 +10309,6 @@
         {
             "operation": "upsert_action",
             "data": {
-                "id": "redis_plugin_create_polaris",
-                "name": "Redis 创建Polaris",
-                "name_en": "REDIS_PLUGIN_CREATE_POLARIS",
-                "type": "execute",
-                "related_resource_types": [
-                    {
-                        "system_id": "bk_dbm",
-                        "id": "redis",
-                        "selection_mode": "all",
-                        "related_instance_selections": [
-                            {
-                                "system_id": "bk_dbm",
-                                "id": "redis_list"
-                            }
-                        ]
-                    }
-                ],
-                "related_actions": [],
-                "version": 1,
-                "hidden": false,
-                "group": "Redis",
-                "subgroup": "集群管理",
-                "description": "Redis 创建Polaris",
-                "description_en": "REDIS_PLUGIN_CREATE_POLARIS"
-            }
-        },
-        {
-            "operation": "upsert_action",
-            "data": {
                 "id": "redis_plugin_delete_polaris",
                 "name": "Redis 删除Polaris",
                 "name_en": "REDIS_PLUGIN_DELETE_POLARIS",
@@ -9188,93 +10333,6 @@
                 "subgroup": "集群管理",
                 "description": "Redis 删除Polaris",
                 "description_en": "REDIS_PLUGIN_DELETE_POLARIS"
-            }
-        },
-        {
-            "operation": "upsert_action",
-            "data": {
-                "id": "redis_keys_extract",
-                "name": "Redis 提取 Key",
-                "name_en": "REDIS_KEYS_EXTRACT",
-                "type": "execute",
-                "related_resource_types": [
-                    {
-                        "system_id": "bk_dbm",
-                        "id": "redis",
-                        "selection_mode": "all",
-                        "related_instance_selections": [
-                            {
-                                "system_id": "bk_dbm",
-                                "id": "redis_list"
-                            }
-                        ]
-                    }
-                ],
-                "related_actions": [],
-                "version": 1,
-                "hidden": false,
-                "group": "Redis",
-                "subgroup": "集群管理",
-                "description": "Redis 提取 Key",
-                "description_en": "REDIS_KEYS_EXTRACT"
-            }
-        },
-        {
-            "operation": "upsert_action",
-            "data": {
-                "id": "redis_keys_delete",
-                "name": "Redis 删除 key",
-                "name_en": "REDIS_KEYS_DELETE",
-                "type": "execute",
-                "related_resource_types": [
-                    {
-                        "system_id": "bk_dbm",
-                        "id": "redis",
-                        "selection_mode": "all",
-                        "related_instance_selections": [
-                            {
-                                "system_id": "bk_dbm",
-                                "id": "redis_list"
-                            }
-                        ]
-                    }
-                ],
-                "related_actions": [],
-                "version": 1,
-                "hidden": false,
-                "group": "Redis",
-                "subgroup": "集群管理",
-                "description": "Redis 删除 key",
-                "description_en": "REDIS_KEYS_DELETE"
-            }
-        },
-        {
-            "operation": "upsert_action",
-            "data": {
-                "id": "redis_backup",
-                "name": "Redis 集群备份",
-                "name_en": "REDIS_BACKUP",
-                "type": "execute",
-                "related_resource_types": [
-                    {
-                        "system_id": "bk_dbm",
-                        "id": "redis",
-                        "selection_mode": "all",
-                        "related_instance_selections": [
-                            {
-                                "system_id": "bk_dbm",
-                                "id": "redis_list"
-                            }
-                        ]
-                    }
-                ],
-                "related_actions": [],
-                "version": 1,
-                "hidden": false,
-                "group": "Redis",
-                "subgroup": "集群管理",
-                "description": "Redis 集群备份",
-                "description_en": "REDIS_BACKUP"
             }
         },
         {
@@ -9362,6 +10420,35 @@
                 "subgroup": "集群管理",
                 "description": "Redis 集群清档",
                 "description_en": "REDIS_PURGE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "redis_proxy_fast_fix",
+                "name": "Redis 集群Proxy快速恢复",
+                "name_en": "REDIS_PROXY_FAST_FIX",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "redis",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "redis_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Redis",
+                "subgroup": "集群管理",
+                "description": "Redis 集群Proxy快速恢复",
+                "description_en": "REDIS_PROXY_FAST_FIX"
             }
         },
         {
@@ -10034,9 +11121,9 @@
         {
             "operation": "upsert_action",
             "data": {
-                "id": "redis_hot_key_analysis",
-                "name": "Redis 热key分析",
-                "name_en": "REDIS_HOT_KEY_ANALYSIS",
+                "id": "redis_rollback_exercise",
+                "name": "Redis 回档演练",
+                "name_en": "REDIS_ROLLBACK_EXERCISE",
                 "type": "execute",
                 "related_resource_types": [
                     {
@@ -10055,9 +11142,9 @@
                 "version": 1,
                 "hidden": false,
                 "group": "Redis",
-                "subgroup": "集群管理",
-                "description": "Redis 热key分析",
-                "description_en": "REDIS_HOT_KEY_ANALYSIS"
+                "subgroup": "工具箱",
+                "description": "Redis 回档演练",
+                "description_en": "REDIS_ROLLBACK_EXERCISE"
             }
         },
         {
@@ -11194,35 +12281,6 @@
         {
             "operation": "upsert_action",
             "data": {
-                "id": "mongodb_exec_script_apply",
-                "name": "MongoDB 变更脚本执行",
-                "name_en": "MONGODB_EXEC_SCRIPT_APPLY",
-                "type": "execute",
-                "related_resource_types": [
-                    {
-                        "system_id": "bk_dbm",
-                        "id": "mongodb",
-                        "selection_mode": "all",
-                        "related_instance_selections": [
-                            {
-                                "system_id": "bk_dbm",
-                                "id": "mongodb_list"
-                            }
-                        ]
-                    }
-                ],
-                "related_actions": [],
-                "version": 1,
-                "hidden": false,
-                "group": "MongoDB",
-                "subgroup": "脚本任务",
-                "description": "MongoDB 变更脚本执行",
-                "description_en": "MONGODB_EXEC_SCRIPT_APPLY"
-            }
-        },
-        {
-            "operation": "upsert_action",
-            "data": {
                 "id": "mongodb_remove_ns",
                 "name": "MongoDB 清档",
                 "name_en": "MONGODB_REMOVE_NS",
@@ -11247,64 +12305,6 @@
                 "subgroup": "数据处理",
                 "description": "MongoDB 清档",
                 "description_en": "MONGODB_REMOVE_NS"
-            }
-        },
-        {
-            "operation": "upsert_action",
-            "data": {
-                "id": "mongodb_full_backup",
-                "name": "MongoDB 全库备份",
-                "name_en": "MONGODB_FULL_BACKUP",
-                "type": "execute",
-                "related_resource_types": [
-                    {
-                        "system_id": "bk_dbm",
-                        "id": "mongodb",
-                        "selection_mode": "all",
-                        "related_instance_selections": [
-                            {
-                                "system_id": "bk_dbm",
-                                "id": "mongodb_list"
-                            }
-                        ]
-                    }
-                ],
-                "related_actions": [],
-                "version": 1,
-                "hidden": false,
-                "group": "MongoDB",
-                "subgroup": "备份",
-                "description": "MongoDB 全库备份",
-                "description_en": "MONGODB_FULL_BACKUP"
-            }
-        },
-        {
-            "operation": "upsert_action",
-            "data": {
-                "id": "mongodb_backup",
-                "name": "MongoDB 库表备份",
-                "name_en": "MONGODB_BACKUP",
-                "type": "execute",
-                "related_resource_types": [
-                    {
-                        "system_id": "bk_dbm",
-                        "id": "mongodb",
-                        "selection_mode": "all",
-                        "related_instance_selections": [
-                            {
-                                "system_id": "bk_dbm",
-                                "id": "mongodb_list"
-                            }
-                        ]
-                    }
-                ],
-                "related_actions": [],
-                "version": 1,
-                "hidden": false,
-                "group": "MongoDB",
-                "subgroup": "备份",
-                "description": "MongoDB 库表备份",
-                "description_en": "MONGODB_BACKUP"
             }
         },
         {
@@ -11368,6 +12368,151 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "mongodb_add_shard",
+                "name": "MongoDB 增加分片数",
+                "name_en": "MONGODB_ADD_SHARD",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mongodb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mongodb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MongoDB",
+                "subgroup": "集群维护",
+                "description": "MongoDB 增加分片数",
+                "description_en": "MONGODB_ADD_SHARD"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mongodb_shard_add_shard_nodes",
+                "name": "MongoDB 扩容分片集群shard节点数",
+                "name_en": "MONGODB_SHARD_ADD_SHARD_NODES",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mongodb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mongodb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MongoDB",
+                "subgroup": "集群维护",
+                "description": "MongoDB 扩容分片集群shard节点数",
+                "description_en": "MONGODB_SHARD_ADD_SHARD_NODES"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mongodb_replica_add_shard_nodes",
+                "name": "MongoDB 扩容副本集集群shard节点数",
+                "name_en": "MONGODB_REPLICA_ADD_SHARD_NODES",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mongodb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mongodb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MongoDB",
+                "subgroup": "集群维护",
+                "description": "MongoDB 扩容副本集集群shard节点数",
+                "description_en": "MONGODB_REPLICA_ADD_SHARD_NODES"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mongodb_shard_cutoff",
+                "name": "MongoDB 分片集群整机替换",
+                "name_en": "MONGODB_SHARD_CUTOFF",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mongodb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mongodb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MongoDB",
+                "subgroup": "集群维护",
+                "description": "MongoDB 分片集群整机替换",
+                "description_en": "MONGODB_SHARD_CUTOFF"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mongodb_replicaset_cutoff",
+                "name": "MongoDB 副本集整机替换",
+                "name_en": "MONGODB_REPLICASET_CUTOFF",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mongodb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mongodb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MongoDB",
+                "subgroup": "集群维护",
+                "description": "MongoDB 副本集整机替换",
+                "description_en": "MONGODB_REPLICASET_CUTOFF"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "mongodb_add_shard_nodes",
                 "name": "MongoDB 扩容shard节点数",
                 "name_en": "MONGODB_ADD_SHARD_NODES",
@@ -11392,6 +12537,64 @@
                 "subgroup": "集群维护",
                 "description": "MongoDB 扩容shard节点数",
                 "description_en": "MONGODB_ADD_SHARD_NODES"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mongodb_replicaset_migrate",
+                "name": "MongoDB 副本集集群迁移",
+                "name_en": "MONGODB_REPLICASET_MIGRATE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mongodb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mongodb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MongoDB",
+                "subgroup": "回档",
+                "description": "MongoDB 副本集集群迁移",
+                "description_en": "MONGODB_REPLICASET_MIGRATE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mongodb_shard_migrate",
+                "name": "MongoDB 分片集群迁移",
+                "name_en": "MONGODB_SHARD_MIGRATE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mongodb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mongodb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MongoDB",
+                "subgroup": "回档",
+                "description": "MongoDB 分片集群迁移",
+                "description_en": "MONGODB_SHARD_MIGRATE"
             }
         },
         {
@@ -11537,35 +12740,6 @@
                 "subgroup": "集群维护",
                 "description": "MongoDB 整机替换",
                 "description_en": "MONGODB_CUTOFF"
-            }
-        },
-        {
-            "operation": "upsert_action",
-            "data": {
-                "id": "mongodb_import",
-                "name": "MongoDB 数据导入",
-                "name_en": "MONGODB_IMPORT",
-                "type": "execute",
-                "related_resource_types": [
-                    {
-                        "system_id": "bk_dbm",
-                        "id": "mongodb",
-                        "selection_mode": "all",
-                        "related_instance_selections": [
-                            {
-                                "system_id": "bk_dbm",
-                                "id": "mongodb_list"
-                            }
-                        ]
-                    }
-                ],
-                "related_actions": [],
-                "version": 1,
-                "hidden": false,
-                "group": "MongoDB",
-                "subgroup": "集群维护",
-                "description": "MongoDB 数据导入",
-                "description_en": "MONGODB_IMPORT"
             }
         },
         {
@@ -12123,6 +13297,18 @@
                                     "id": "alert_shield_manage"
                                 }
                             ]
+                        },
+                        {
+                            "name": "风险备忘录",
+                            "name_en": "风险备忘录",
+                            "actions": [
+                                {
+                                    "id": "risk_memo_create"
+                                },
+                                {
+                                    "id": "risk_memo_manage"
+                                }
+                            ]
                         }
                     ]
                 },
@@ -12193,6 +13379,9 @@
                             "id": "platform_alert_event_view"
                         },
                         {
+                            "id": "platform_risk_memo_view"
+                        },
+                        {
                             "id": "mysql_dbconsole"
                         },
                         {
@@ -12221,6 +13410,9 @@
                                 },
                                 {
                                     "id": "mysql_edit"
+                                },
+                                {
+                                    "id": "mysql_subscribe_monitor"
                                 },
                                 {
                                     "id": "mysql_webconsole"
@@ -12286,10 +13478,10 @@
                                     "id": "mysql_ha_truncate_data"
                                 },
                                 {
-                                    "id": "mysql_checksum"
+                                    "id": "mysql_single_truncate_data"
                                 },
                                 {
-                                    "id": "mysql_single_truncate_data"
+                                    "id": "mysql_checksum"
                                 },
                                 {
                                     "id": "mysql_data_migrate"
@@ -12314,6 +13506,135 @@
                                 },
                                 {
                                     "id": "mysql_partition"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "回档",
+                            "name_en": "回档",
+                            "actions": [
+                                {
+                                    "id": "mysql_flashback"
+                                },
+                                {
+                                    "id": "mysql_rollback_cluster"
+                                },
+                                {
+                                    "id": "mysql_rollback"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "备份",
+                            "name_en": "备份",
+                            "actions": [
+                                {
+                                    "id": "mysql_ha_db_table_backup"
+                                },
+                                {
+                                    "id": "mysql_ha_full_backup"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "集群维护",
+                            "name_en": "集群维护",
+                            "actions": [
+                                {
+                                    "id": "mysql_ha_rename_database"
+                                },
+                                {
+                                    "id": "mysql_single_rename_database"
+                                },
+                                {
+                                    "id": "mysql_add_slave"
+                                },
+                                {
+                                    "id": "mysql_restore_slave"
+                                },
+                                {
+                                    "id": "mysql_restore_local_slave"
+                                },
+                                {
+                                    "id": "mysql_migrate_cluster"
+                                },
+                                {
+                                    "id": "mysql_migrate_single"
+                                },
+                                {
+                                    "id": "mysql_master_slave_switch"
+                                },
+                                {
+                                    "id": "mysql_master_fail_over"
+                                },
+                                {
+                                    "id": "mysql_instance_fail_over"
+                                },
+                                {
+                                    "id": "mysql_proxy_add"
+                                },
+                                {
+                                    "id": "mysql_proxy_switch"
+                                },
+                                {
+                                    "id": "mysql_proxy_conf_change"
+                                },
+                                {
+                                    "id": "mysql_proxy_migrate"
+                                },
+                                {
+                                    "id": "mysql_proxy_migrate_ins"
+                                },
+                                {
+                                    "id": "mysql_proxy_reduce"
+                                },
+                                {
+                                    "id": "mysql_ro_slave_uninstall"
+                                },
+                                {
+                                    "id": "mysql_clone_cluster"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "工具箱",
+                            "name_en": "工具箱",
+                            "actions": [
+                                {
+                                    "id": "mysql_rename_database"
+                                },
+                                {
+                                    "id": "mysql_ha_apply_quick_minor_pass"
+                                },
+                                {
+                                    "id": "mysql_dbha_af_todo_register"
+                                },
+                                {
+                                    "id": "mysql_dbha_af_proxy_replace"
+                                },
+                                {
+                                    "id": "mysql_dbha_af_spider_replace"
+                                },
+                                {
+                                    "id": "mysql_dbha_af_backend_replace"
+                                },
+                                {
+                                    "id": "mysql_dbha_af_remote_replace"
+                                },
+                                {
+                                    "id": "mysql_dbha_af_repair_replicate"
+                                },
+                                {
+                                    "id": "mysql_cluster_standardize"
+                                },
+                                {
+                                    "id": "mysql_add_clb"
+                                },
+                                {
+                                    "id": "mysql_clb_bind_domain"
+                                },
+                                {
+                                    "id": "mysql_clb_unbind_domain"
                                 }
                             ]
                         },
@@ -12363,116 +13684,23 @@
                             ]
                         },
                         {
-                            "name": "集群维护",
-                            "name_en": "集群维护",
+                            "name": "分区管理v2",
+                            "name_en": "分区管理v2",
                             "actions": [
                                 {
-                                    "id": "mysql_add_slave"
-                                },
-                                {
-                                    "id": "mysql_restore_slave"
-                                },
-                                {
-                                    "id": "mysql_restore_local_slave"
-                                },
-                                {
-                                    "id": "mysql_migrate_cluster"
-                                },
-                                {
-                                    "id": "mysql_master_slave_switch"
-                                },
-                                {
-                                    "id": "mysql_master_fail_over"
-                                },
-                                {
-                                    "id": "mysql_instance_fail_over"
-                                },
-                                {
-                                    "id": "mysql_proxy_add"
-                                },
-                                {
-                                    "id": "mysql_proxy_switch"
-                                },
-                                {
-                                    "id": "mysql_proxy_reduce"
-                                },
-                                {
-                                    "id": "mysql_ha_rename_database"
-                                },
-                                {
-                                    "id": "mysql_single_rename_database"
-                                },
-                                {
-                                    "id": "mysql_ro_slave_uninstall"
+                                    "id": "mysql_partition_v2"
                                 }
                             ]
                         },
                         {
-                            "name": "工具箱",
-                            "name_en": "工具箱",
+                            "name": "构造",
+                            "name_en": "构造",
                             "actions": [
                                 {
-                                    "id": "mysql_ha_apply_quick_minor_pass"
+                                    "id": "mysql_fixpoint_new_cluster"
                                 },
                                 {
-                                    "id": "mysql_rename_database"
-                                },
-                                {
-                                    "id": "mysql_dbha_af_todo_register"
-                                },
-                                {
-                                    "id": "mysql_dbha_af_proxy_replace"
-                                },
-                                {
-                                    "id": "mysql_dbha_af_spider_add"
-                                },
-                                {
-                                    "id": "mysql_dbha_af_spider_reduce"
-                                },
-                                {
-                                    "id": "mysql_dbha_af_backend_replace"
-                                },
-                                {
-                                    "id": "mysql_dbha_af_remote_replace"
-                                },
-                                {
-                                    "id": "mysql_dbha_af_repair_replicate"
-                                },
-                                {
-                                    "id": "mysql_cluster_standardize"
-                                },
-                                {
-                                    "id": "mysql_add_clb"
-                                },
-                                {
-                                    "id": "mysql_clb_bind_domain"
-                                },
-                                {
-                                    "id": "mysql_clb_unbind_domain"
-                                }
-                            ]
-                        },
-                        {
-                            "name": "备份",
-                            "name_en": "备份",
-                            "actions": [
-                                {
-                                    "id": "mysql_ha_db_table_backup"
-                                },
-                                {
-                                    "id": "mysql_ha_full_backup"
-                                }
-                            ]
-                        },
-                        {
-                            "name": "回档",
-                            "name_en": "回档",
-                            "actions": [
-                                {
-                                    "id": "mysql_flashback"
-                                },
-                                {
-                                    "id": "mysql_rollback_cluster"
+                                    "id": "mysql_fixpoint_exist_cluster"
                                 }
                             ]
                         },
@@ -12510,6 +13738,9 @@
                                 },
                                 {
                                     "id": "tendbcluster_edit"
+                                },
+                                {
+                                    "id": "tendbcluster_subscribe_monitor"
                                 },
                                 {
                                     "id": "tendbcluster_webconsole"
@@ -12551,10 +13782,10 @@
                                     "id": "tendbcluster_dump_data"
                                 },
                                 {
-                                    "id": "tendbcluster_checksum"
+                                    "id": "tendbcluster_truncate_database"
                                 },
                                 {
-                                    "id": "tendbcluster_truncate_database"
+                                    "id": "tendbcluster_checksum"
                                 },
                                 {
                                     "id": "tendbcluster_data_migrate"
@@ -12631,18 +13862,6 @@
                             ]
                         },
                         {
-                            "name": "访问入口",
-                            "name_en": "访问入口",
-                            "actions": [
-                                {
-                                    "id": "tendb_spider_slave_destroy"
-                                },
-                                {
-                                    "id": "tendbcluster_spider_slave_apply"
-                                }
-                            ]
-                        },
-                        {
                             "name": "备份",
                             "name_en": "备份",
                             "actions": [
@@ -12651,6 +13870,33 @@
                                 },
                                 {
                                     "id": "tendbcluster_full_backup"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "回档",
+                            "name_en": "回档",
+                            "actions": [
+                                {
+                                    "id": "tendbcluster_flashback"
+                                },
+                                {
+                                    "id": "tendbcluster_rollback_cluster"
+                                },
+                                {
+                                    "id": "tendbcluster_rollback"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "访问入口",
+                            "name_en": "访问入口",
+                            "actions": [
+                                {
+                                    "id": "tendb_spider_slave_destroy"
+                                },
+                                {
+                                    "id": "tendbcluster_spider_slave_apply"
                                 }
                             ]
                         },
@@ -12672,6 +13918,9 @@
                                 },
                                 {
                                     "id": "tendbcluster_spider_upgrade"
+                                },
+                                {
+                                    "id": "tendbcluster_remote_upgrade"
                                 },
                                 {
                                     "id": "tendbcluster_spider_add_nodes"
@@ -12705,18 +13954,21 @@
                                 },
                                 {
                                     "id": "tendbcluster_spider_switch_nodes"
+                                },
+                                {
+                                    "id": "tendbcluster_spider_conf_up_down"
                                 }
                             ]
                         },
                         {
-                            "name": "回档",
-                            "name_en": "回档",
+                            "name": "构造",
+                            "name_en": "构造",
                             "actions": [
                                 {
-                                    "id": "tendbcluster_rollback_cluster"
+                                    "id": "tendbcluster_fixpoint_new"
                                 },
                                 {
-                                    "id": "tendbcluster_flashback"
+                                    "id": "tendbcluster_fixpoint_exist"
                                 }
                             ]
                         },
@@ -12762,16 +14014,37 @@
                                     "id": "redis_access_entry_view"
                                 },
                                 {
+                                    "id": "redis_subscribe_monitor"
+                                },
+                                {
                                     "id": "redis_source_access_view"
                                 },
                                 {
                                     "id": "redis_cluster_apply"
                                 },
                                 {
-                                    "id": "redis_open_close"
+                                    "id": "redis_backup"
+                                },
+                                {
+                                    "id": "redis_keys_extract"
+                                },
+                                {
+                                    "id": "redis_keys_delete"
+                                },
+                                {
+                                    "id": "redis_hot_key_analysis"
+                                },
+                                {
+                                    "id": "redis_keystat"
                                 },
                                 {
                                     "id": "redis_plugin_create_clb"
+                                },
+                                {
+                                    "id": "redis_plugin_create_polaris"
+                                },
+                                {
+                                    "id": "redis_open_close"
                                 },
                                 {
                                     "id": "redis_plugin_delete_clb"
@@ -12783,19 +14056,7 @@
                                     "id": "redis_plugin_dns_unbind_clb"
                                 },
                                 {
-                                    "id": "redis_plugin_create_polaris"
-                                },
-                                {
                                     "id": "redis_plugin_delete_polaris"
-                                },
-                                {
-                                    "id": "redis_keys_extract"
-                                },
-                                {
-                                    "id": "redis_keys_delete"
-                                },
-                                {
-                                    "id": "redis_backup"
                                 },
                                 {
                                     "id": "redis_destroy"
@@ -12807,13 +14068,13 @@
                                     "id": "redis_purge"
                                 },
                                 {
+                                    "id": "redis_proxy_fast_fix"
+                                },
+                                {
                                     "id": "redis_cluster_ins_migrate"
                                 },
                                 {
                                     "id": "redis_single_ins_migrate"
-                                },
-                                {
-                                    "id": "redis_hot_key_analysis"
                                 }
                             ]
                         },
@@ -12901,6 +14162,9 @@
                                 },
                                 {
                                     "id": "redis_cluster_load_modules"
+                                },
+                                {
+                                    "id": "redis_rollback_exercise"
                                 }
                             ]
                         }
@@ -12923,6 +14187,9 @@
                                 },
                                 {
                                     "id": "es_edit"
+                                },
+                                {
+                                    "id": "es_subscribe_monitor"
                                 },
                                 {
                                     "id": "es_access_entry_view"
@@ -13024,6 +14291,9 @@
                                     "id": "doris_edit"
                                 },
                                 {
+                                    "id": "doris_subscribe_monitor"
+                                },
+                                {
                                     "id": "doris_access_entry_view"
                                 },
                                 {
@@ -13062,6 +14332,9 @@
                                 },
                                 {
                                     "id": "kafka_edit"
+                                },
+                                {
+                                    "id": "kafka_subscribe_monitor"
                                 },
                                 {
                                     "id": "kafka_access_entry_view"
@@ -13113,6 +14386,9 @@
                                     "id": "hdfs_edit"
                                 },
                                 {
+                                    "id": "hdfs_subscribe_monitor"
+                                },
+                                {
                                     "id": "hdfs_access_entry_view"
                                 },
                                 {
@@ -13154,6 +14430,9 @@
                                 },
                                 {
                                     "id": "pulsar_edit"
+                                },
+                                {
+                                    "id": "pulsar_subscribe_monitor"
                                 },
                                 {
                                     "id": "pulsar_access_entry_view"
@@ -13239,6 +14518,9 @@
                                     "id": "mongodb_edit"
                                 },
                                 {
+                                    "id": "mongodb_subscribe_monitor"
+                                },
+                                {
                                     "id": "mongodb_source_access_view"
                                 },
                                 {
@@ -13289,32 +14571,14 @@
                             ]
                         },
                         {
-                            "name": "脚本任务",
-                            "name_en": "脚本任务",
-                            "actions": [
-                                {
-                                    "id": "mongodb_exec_script_apply"
-                                }
-                            ]
-                        },
-                        {
                             "name": "数据处理",
                             "name_en": "数据处理",
                             "actions": [
                                 {
-                                    "id": "mongodb_remove_ns"
-                                }
-                            ]
-                        },
-                        {
-                            "name": "备份",
-                            "name_en": "备份",
-                            "actions": [
-                                {
-                                    "id": "mongodb_full_backup"
+                                    "id": "mongodb_data_export"
                                 },
                                 {
-                                    "id": "mongodb_backup"
+                                    "id": "mongodb_remove_ns"
                                 }
                             ]
                         },
@@ -13323,10 +14587,28 @@
                             "name_en": "集群维护",
                             "actions": [
                                 {
+                                    "id": "mongodb_import"
+                                },
+                                {
                                     "id": "mongodb_add_mongos"
                                 },
                                 {
                                     "id": "mongodb_reduce_mongos"
+                                },
+                                {
+                                    "id": "mongodb_add_shard"
+                                },
+                                {
+                                    "id": "mongodb_shard_add_shard_nodes"
+                                },
+                                {
+                                    "id": "mongodb_replica_add_shard_nodes"
+                                },
+                                {
+                                    "id": "mongodb_shard_cutoff"
+                                },
+                                {
+                                    "id": "mongodb_replicaset_cutoff"
                                 },
                                 {
                                     "id": "mongodb_add_shard_nodes"
@@ -13339,9 +14621,6 @@
                                 },
                                 {
                                     "id": "mongodb_cutoff"
-                                },
-                                {
-                                    "id": "mongodb_import"
                                 },
                                 {
                                     "id": "mongodb_restore"
@@ -13362,6 +14641,39 @@
                                     "id": "mongodb_instance_deinstall"
                                 }
                             ]
+                        },
+                        {
+                            "name": "备份",
+                            "name_en": "备份",
+                            "actions": [
+                                {
+                                    "id": "mongodb_backup"
+                                },
+                                {
+                                    "id": "mongodb_full_backup"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "脚本任务",
+                            "name_en": "脚本任务",
+                            "actions": [
+                                {
+                                    "id": "mongodb_exec_script_apply"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "回档",
+                            "name_en": "回档",
+                            "actions": [
+                                {
+                                    "id": "mongodb_replicaset_migrate"
+                                },
+                                {
+                                    "id": "mongodb_shard_migrate"
+                                }
+                            ]
                         }
                     ]
                 },
@@ -13379,6 +14691,9 @@
                                 },
                                 {
                                     "id": "sqlserver_edit"
+                                },
+                                {
+                                    "id": "sqlserver_subscribe_monitor"
                                 },
                                 {
                                     "id": "sqlserver_admin_pwd_modify"
@@ -13465,6 +14780,12 @@
                                     "id": "sqlserver_master_slave_switch"
                                 },
                                 {
+                                    "id": "sqlserver_cluster_migrate"
+                                },
+                                {
+                                    "id": "sqlserver_host_migrate"
+                                },
+                                {
                                     "id": "sqlserver_master_fail_over"
                                 },
                                 {
@@ -13497,6 +14818,9 @@
                                 },
                                 {
                                     "id": "oracle_edit"
+                                },
+                                {
+                                    "id": "oracle_subscribe_monitor"
                                 },
                                 {
                                     "id": "oracle_enable_disable"
@@ -13658,6 +14982,9 @@
                             "id": "mysql_edit"
                         },
                         {
+                            "id": "mysql_subscribe_monitor"
+                        },
+                        {
                             "id": "mysql_import_sqlfile"
                         },
                         {
@@ -13709,6 +15036,30 @@
                             "id": "mysql_partition_enable_disable"
                         },
                         {
+                            "id": "mysql_partition"
+                        },
+                        {
+                            "id": "mysql_flashback"
+                        },
+                        {
+                            "id": "mysql_ha_truncate_data"
+                        },
+                        {
+                            "id": "mysql_ha_db_table_backup"
+                        },
+                        {
+                            "id": "mysql_ha_rename_database"
+                        },
+                        {
+                            "id": "mysql_single_truncate_data"
+                        },
+                        {
+                            "id": "mysql_single_rename_database"
+                        },
+                        {
+                            "id": "mysql_rename_database"
+                        },
+                        {
                             "id": "mysql_open_area"
                         },
                         {
@@ -13746,6 +15097,9 @@
                         },
                         {
                             "id": "tendbcluster_edit"
+                        },
+                        {
+                            "id": "tendbcluster_subscribe_monitor"
                         },
                         {
                             "id": "tendbcluster_import_sqlfile"
@@ -13805,6 +15159,21 @@
                             "id": "tendb_partition_enable_disable"
                         },
                         {
+                            "id": "tendbcluster_db_table_backup"
+                        },
+                        {
+                            "id": "tendbcluster_truncate_database"
+                        },
+                        {
+                            "id": "tendbcluster_rename_database"
+                        },
+                        {
+                            "id": "tendbcluster_flashback"
+                        },
+                        {
+                            "id": "tendbcluster_partition"
+                        },
+                        {
                             "id": "tendbcluster_apply"
                         },
                         {
@@ -13829,6 +15198,9 @@
                             "id": "redis_access_entry_view"
                         },
                         {
+                            "id": "redis_subscribe_monitor"
+                        },
+                        {
                             "id": "redis_source_access_view"
                         },
                         {
@@ -13836,6 +15208,27 @@
                         },
                         {
                             "id": "redis_cluster_apply"
+                        },
+                        {
+                            "id": "redis_backup"
+                        },
+                        {
+                            "id": "redis_keys_extract"
+                        },
+                        {
+                            "id": "redis_keys_delete"
+                        },
+                        {
+                            "id": "redis_hot_key_analysis"
+                        },
+                        {
+                            "id": "redis_keystat"
+                        },
+                        {
+                            "id": "redis_plugin_create_clb"
+                        },
+                        {
+                            "id": "redis_plugin_create_polaris"
                         },
                         {
                             "id": "redis_open_close"
@@ -13848,6 +15241,9 @@
                         },
                         {
                             "id": "es_edit"
+                        },
+                        {
+                            "id": "es_subscribe_monitor"
                         },
                         {
                             "id": "vm_apply"
@@ -13877,6 +15273,9 @@
                             "id": "doris_edit"
                         },
                         {
+                            "id": "doris_subscribe_monitor"
+                        },
+                        {
                             "id": "doris_access_entry_view"
                         },
                         {
@@ -13887,6 +15286,9 @@
                         },
                         {
                             "id": "kafka_edit"
+                        },
+                        {
+                            "id": "kafka_subscribe_monitor"
                         },
                         {
                             "id": "kafka_access_entry_view"
@@ -13913,6 +15315,9 @@
                             "id": "hdfs_edit"
                         },
                         {
+                            "id": "hdfs_subscribe_monitor"
+                        },
+                        {
                             "id": "hdfs_access_entry_view"
                         },
                         {
@@ -13929,6 +15334,9 @@
                         },
                         {
                             "id": "pulsar_edit"
+                        },
+                        {
+                            "id": "pulsar_subscribe_monitor"
                         },
                         {
                             "id": "pulsar_access_entry_view"
@@ -13961,6 +15369,9 @@
                             "id": "mongodb_edit"
                         },
                         {
+                            "id": "mongodb_subscribe_monitor"
+                        },
+                        {
                             "id": "mongodb_source_access_view"
                         },
                         {
@@ -13991,10 +15402,28 @@
                             "id": "mongodb_webconsole"
                         },
                         {
+                            "id": "mongodb_data_export"
+                        },
+                        {
+                            "id": "mongodb_import"
+                        },
+                        {
+                            "id": "mongodb_backup"
+                        },
+                        {
+                            "id": "mongodb_exec_script_apply"
+                        },
+                        {
+                            "id": "mongodb_full_backup"
+                        },
+                        {
                             "id": "sqlserver_view"
                         },
                         {
                             "id": "sqlserver_edit"
+                        },
+                        {
+                            "id": "sqlserver_subscribe_monitor"
                         },
                         {
                             "id": "sqlserver_apply"
@@ -14027,10 +15456,16 @@
                             "id": "oracle_edit"
                         },
                         {
+                            "id": "oracle_subscribe_monitor"
+                        },
+                        {
                             "id": "oracle_enable_disable"
                         },
                         {
                             "id": "oracle_destroy"
+                        },
+                        {
+                            "id": "resource_tag_manage"
                         },
                         {
                             "id": "health_report_view"
@@ -14072,6 +15507,12 @@
                             "id": "alert_shield_manage"
                         },
                         {
+                            "id": "risk_memo_create"
+                        },
+                        {
+                            "id": "risk_memo_manage"
+                        },
+                        {
                             "id": "ip_whitelist_manage"
                         },
                         {
@@ -14085,6 +15526,9 @@
                         },
                         {
                             "id": "mysql_migrate_cluster"
+                        },
+                        {
+                            "id": "mysql_migrate_single"
                         },
                         {
                             "id": "mysql_master_slave_switch"
@@ -14105,37 +15549,37 @@
                             "id": "mysql_proxy_switch"
                         },
                         {
+                            "id": "mysql_proxy_conf_change"
+                        },
+                        {
+                            "id": "mysql_proxy_migrate"
+                        },
+                        {
+                            "id": "mysql_proxy_migrate_ins"
+                        },
+                        {
                             "id": "mysql_proxy_reduce"
-                        },
-                        {
-                            "id": "mysql_ha_rename_database"
-                        },
-                        {
-                            "id": "mysql_ha_truncate_data"
-                        },
-                        {
-                            "id": "mysql_ha_db_table_backup"
                         },
                         {
                             "id": "mysql_checksum"
                         },
                         {
-                            "id": "mysql_partition"
-                        },
-                        {
-                            "id": "mysql_flashback"
+                            "id": "mysql_partition_v2"
                         },
                         {
                             "id": "mysql_rollback_cluster"
                         },
                         {
+                            "id": "mysql_rollback"
+                        },
+                        {
+                            "id": "mysql_fixpoint_new_cluster"
+                        },
+                        {
+                            "id": "mysql_fixpoint_exist_cluster"
+                        },
+                        {
                             "id": "mysql_ha_full_backup"
-                        },
-                        {
-                            "id": "mysql_single_truncate_data"
-                        },
-                        {
-                            "id": "mysql_single_rename_database"
                         },
                         {
                             "id": "mysql_data_migrate"
@@ -14156,7 +15600,7 @@
                             "id": "mysql_proxy_upgrade"
                         },
                         {
-                            "id": "mysql_rename_database"
+                            "id": "mysql_clone_cluster"
                         },
                         {
                             "id": "mysql_dbha_af_todo_register"
@@ -14165,10 +15609,7 @@
                             "id": "mysql_dbha_af_proxy_replace"
                         },
                         {
-                            "id": "mysql_dbha_af_spider_add"
-                        },
-                        {
-                            "id": "mysql_dbha_af_spider_reduce"
+                            "id": "mysql_dbha_af_spider_replace"
                         },
                         {
                             "id": "mysql_dbha_af_backend_replace"
@@ -14195,18 +15636,6 @@
                             "id": "tendbcluster_checksum"
                         },
                         {
-                            "id": "tendbcluster_partition"
-                        },
-                        {
-                            "id": "tendbcluster_db_table_backup"
-                        },
-                        {
-                            "id": "tendbcluster_rename_database"
-                        },
-                        {
-                            "id": "tendbcluster_truncate_database"
-                        },
-                        {
                             "id": "tendbcluster_master_fail_over"
                         },
                         {
@@ -14220,6 +15649,9 @@
                         },
                         {
                             "id": "tendbcluster_spider_upgrade"
+                        },
+                        {
+                            "id": "tendbcluster_remote_upgrade"
                         },
                         {
                             "id": "tendbcluster_spider_add_nodes"
@@ -14238,6 +15670,9 @@
                         },
                         {
                             "id": "tendbcluster_spider_switch_nodes"
+                        },
+                        {
+                            "id": "tendbcluster_spider_conf_up_down"
                         },
                         {
                             "id": "tendbcluster_restore_slave"
@@ -14264,7 +15699,13 @@
                             "id": "tendbcluster_rollback_cluster"
                         },
                         {
-                            "id": "tendbcluster_flashback"
+                            "id": "tendbcluster_rollback"
+                        },
+                        {
+                            "id": "tendbcluster_fixpoint_new"
+                        },
+                        {
+                            "id": "tendbcluster_fixpoint_exist"
                         },
                         {
                             "id": "tendbcluster_cluster_standardize"
@@ -14300,6 +15741,12 @@
                             "id": "sqlserver_master_slave_switch"
                         },
                         {
+                            "id": "sqlserver_cluster_migrate"
+                        },
+                        {
+                            "id": "sqlserver_host_migrate"
+                        },
+                        {
                             "id": "sqlserver_master_fail_over"
                         },
                         {
@@ -14324,9 +15771,6 @@
                             "id": "sqlserver_rollback"
                         },
                         {
-                            "id": "redis_plugin_create_clb"
-                        },
-                        {
                             "id": "redis_plugin_delete_clb"
                         },
                         {
@@ -14336,19 +15780,7 @@
                             "id": "redis_plugin_dns_unbind_clb"
                         },
                         {
-                            "id": "redis_plugin_create_polaris"
-                        },
-                        {
                             "id": "redis_plugin_delete_polaris"
-                        },
-                        {
-                            "id": "redis_keys_extract"
-                        },
-                        {
-                            "id": "redis_keys_delete"
-                        },
-                        {
-                            "id": "redis_backup"
                         },
                         {
                             "id": "redis_destroy"
@@ -14358,6 +15790,9 @@
                         },
                         {
                             "id": "redis_purge"
+                        },
+                        {
+                            "id": "redis_proxy_fast_fix"
                         },
                         {
                             "id": "redis_scale_updown"
@@ -14429,7 +15864,7 @@
                             "id": "redis_single_ins_migrate"
                         },
                         {
-                            "id": "redis_hot_key_analysis"
+                            "id": "redis_rollback_exercise"
                         },
                         {
                             "id": "kafka_scale_up"
@@ -14549,16 +15984,7 @@
                             "id": "mongodb_plugin_delete_clb"
                         },
                         {
-                            "id": "mongodb_exec_script_apply"
-                        },
-                        {
                             "id": "mongodb_remove_ns"
-                        },
-                        {
-                            "id": "mongodb_full_backup"
-                        },
-                        {
-                            "id": "mongodb_backup"
                         },
                         {
                             "id": "mongodb_add_mongos"
@@ -14567,7 +15993,28 @@
                             "id": "mongodb_reduce_mongos"
                         },
                         {
+                            "id": "mongodb_add_shard"
+                        },
+                        {
+                            "id": "mongodb_shard_add_shard_nodes"
+                        },
+                        {
+                            "id": "mongodb_replica_add_shard_nodes"
+                        },
+                        {
+                            "id": "mongodb_shard_cutoff"
+                        },
+                        {
+                            "id": "mongodb_replicaset_cutoff"
+                        },
+                        {
                             "id": "mongodb_add_shard_nodes"
+                        },
+                        {
+                            "id": "mongodb_replicaset_migrate"
+                        },
+                        {
+                            "id": "mongodb_shard_migrate"
                         },
                         {
                             "id": "mongodb_reduce_shard_nodes"
@@ -14583,9 +16030,6 @@
                         },
                         {
                             "id": "mongodb_cutoff"
-                        },
-                        {
-                            "id": "mongodb_import"
                         },
                         {
                             "id": "mongodb_restore"
@@ -14622,6 +16066,333 @@
                         },
                         {
                             "id": "oracle_exec_script_apply"
+                        }
+                    ]
+                },
+                {
+                    "name": "开发常用",
+                    "name_en": "developer",
+                    "actions": [
+                        {
+                            "id": "db_manage"
+                        },
+                        {
+                            "id": "ticket_view"
+                        },
+                        {
+                            "id": "dbconfig_view"
+                        },
+                        {
+                            "id": "mysql_apply"
+                        },
+                        {
+                            "id": "mysql_view"
+                        },
+                        {
+                            "id": "mysql_edit"
+                        },
+                        {
+                            "id": "mysql_subscribe_monitor"
+                        },
+                        {
+                            "id": "mysql_import_sqlfile"
+                        },
+                        {
+                            "id": "mysql_dump_data"
+                        },
+                        {
+                            "id": "mysql_webconsole"
+                        },
+                        {
+                            "id": "mysql_client_clone_rules"
+                        },
+                        {
+                            "id": "mysql_account_create"
+                        },
+                        {
+                            "id": "mysql_account_rules_view"
+                        },
+                        {
+                            "id": "mysql_authorize_rules"
+                        },
+                        {
+                            "id": "mysql_excel_authorize_rules"
+                        },
+                        {
+                            "id": "mysql_partition_create"
+                        },
+                        {
+                            "id": "mysql_partition_update"
+                        },
+                        {
+                            "id": "mysql_partition_enable_disable"
+                        },
+                        {
+                            "id": "mysql_partition"
+                        },
+                        {
+                            "id": "mysql_flashback"
+                        },
+                        {
+                            "id": "mysql_ha_truncate_data"
+                        },
+                        {
+                            "id": "mysql_ha_db_table_backup"
+                        },
+                        {
+                            "id": "mysql_ha_rename_database"
+                        },
+                        {
+                            "id": "mysql_single_truncate_data"
+                        },
+                        {
+                            "id": "mysql_single_rename_database"
+                        },
+                        {
+                            "id": "mysql_rename_database"
+                        },
+                        {
+                            "id": "tendbcluster_view"
+                        },
+                        {
+                            "id": "tendbcluster_edit"
+                        },
+                        {
+                            "id": "tendbcluster_subscribe_monitor"
+                        },
+                        {
+                            "id": "tendbcluster_import_sqlfile"
+                        },
+                        {
+                            "id": "tendbcluster_dump_data"
+                        },
+                        {
+                            "id": "tendbcluster_webconsole"
+                        },
+                        {
+                            "id": "tendbcluster_account_rules_view"
+                        },
+                        {
+                            "id": "tendbcluster_authorize_rules"
+                        },
+                        {
+                            "id": "tendb_excel_authorize_rules"
+                        },
+                        {
+                            "id": "tendb_cluster_client_clone_rules"
+                        },
+                        {
+                            "id": "tendbcluster_partition_create"
+                        },
+                        {
+                            "id": "tendbcluster_partition_update"
+                        },
+                        {
+                            "id": "tendb_partition_enable_disable"
+                        },
+                        {
+                            "id": "tendbcluster_db_table_backup"
+                        },
+                        {
+                            "id": "tendbcluster_truncate_database"
+                        },
+                        {
+                            "id": "tendbcluster_rename_database"
+                        },
+                        {
+                            "id": "tendbcluster_flashback"
+                        },
+                        {
+                            "id": "tendbcluster_partition"
+                        },
+                        {
+                            "id": "tendbcluster_apply"
+                        },
+                        {
+                            "id": "redis_view"
+                        },
+                        {
+                            "id": "redis_edit"
+                        },
+                        {
+                            "id": "redis_webconsole"
+                        },
+                        {
+                            "id": "redis_subscribe_monitor"
+                        },
+                        {
+                            "id": "redis_source_access_view"
+                        },
+                        {
+                            "id": "redis_cluster_apply"
+                        },
+                        {
+                            "id": "redis_backup"
+                        },
+                        {
+                            "id": "redis_keys_extract"
+                        },
+                        {
+                            "id": "redis_keys_delete"
+                        },
+                        {
+                            "id": "redis_hot_key_analysis"
+                        },
+                        {
+                            "id": "redis_keystat"
+                        },
+                        {
+                            "id": "redis_plugin_create_clb"
+                        },
+                        {
+                            "id": "redis_plugin_create_polaris"
+                        },
+                        {
+                            "id": "es_apply"
+                        },
+                        {
+                            "id": "es_view"
+                        },
+                        {
+                            "id": "es_edit"
+                        },
+                        {
+                            "id": "es_subscribe_monitor"
+                        },
+                        {
+                            "id": "vm_view"
+                        },
+                        {
+                            "id": "es_access_entry_view"
+                        },
+                        {
+                            "id": "doris_apply"
+                        },
+                        {
+                            "id": "doris_view"
+                        },
+                        {
+                            "id": "doris_edit"
+                        },
+                        {
+                            "id": "doris_subscribe_monitor"
+                        },
+                        {
+                            "id": "doris_access_entry_view"
+                        },
+                        {
+                            "id": "kafka_view"
+                        },
+                        {
+                            "id": "kafka_edit"
+                        },
+                        {
+                            "id": "kafka_subscribe_monitor"
+                        },
+                        {
+                            "id": "kafka_access_entry_view"
+                        },
+                        {
+                            "id": "kafka_apply"
+                        },
+                        {
+                            "id": "hdfs_apply"
+                        },
+                        {
+                            "id": "hdfs_view"
+                        },
+                        {
+                            "id": "hdfs_edit"
+                        },
+                        {
+                            "id": "hdfs_subscribe_monitor"
+                        },
+                        {
+                            "id": "hdfs_access_entry_view"
+                        },
+                        {
+                            "id": "pulsar_view"
+                        },
+                        {
+                            "id": "pulsar_subscribe_monitor"
+                        },
+                        {
+                            "id": "riak_view"
+                        },
+                        {
+                            "id": "mongodb_view"
+                        },
+                        {
+                            "id": "mongodb_edit"
+                        },
+                        {
+                            "id": "mongodb_subscribe_monitor"
+                        },
+                        {
+                            "id": "mongodb_source_access_view"
+                        },
+                        {
+                            "id": "mongodb_account_create"
+                        },
+                        {
+                            "id": "mongodb_add_account_rule"
+                        },
+                        {
+                            "id": "mongodb_account_rules_view"
+                        },
+                        {
+                            "id": "mongodb_authorize_rules"
+                        },
+                        {
+                            "id": "mongodb_webconsole"
+                        },
+                        {
+                            "id": "mongodb_data_export"
+                        },
+                        {
+                            "id": "mongodb_import"
+                        },
+                        {
+                            "id": "mongodb_backup"
+                        },
+                        {
+                            "id": "mongodb_exec_script_apply"
+                        },
+                        {
+                            "id": "mongodb_full_backup"
+                        },
+                        {
+                            "id": "sqlserver_view"
+                        },
+                        {
+                            "id": "sqlserver_edit"
+                        },
+                        {
+                            "id": "sqlserver_subscribe_monitor"
+                        },
+                        {
+                            "id": "sqlserver_account_rules_view"
+                        },
+                        {
+                            "id": "oracle_view"
+                        },
+                        {
+                            "id": "oracle_edit"
+                        },
+                        {
+                            "id": "oracle_subscribe_monitor"
+                        },
+                        {
+                            "id": "health_report_view"
+                        },
+                        {
+                            "id": "dbha_switch_event_view"
+                        },
+                        {
+                            "id": "notify_group_list"
+                        },
+                        {
+                            "id": "monitor_policy_view"
                         }
                     ]
                 },
@@ -14742,51 +16513,9 @@
                         },
                         {
                             "id": "mongodb_webconsole"
-                        }
-                    ]
-                },
-                {
-                    "name": "ES获取访问方式",
-                    "name_en": "es_access",
-                    "actions": [
-                        {
-                            "id": "db_manage"
                         },
                         {
-                            "id": "es_view"
-                        },
-                        {
-                            "id": "es_access_entry_view"
-                        }
-                    ]
-                },
-                {
-                    "name": "HDFS获取访问方式",
-                    "name_en": "hdfs_access",
-                    "actions": [
-                        {
-                            "id": "db_manage"
-                        },
-                        {
-                            "id": "hdfs_view"
-                        },
-                        {
-                            "id": "hdfs_access_entry_view"
-                        }
-                    ]
-                },
-                {
-                    "name": "Kafka获取访问方式",
-                    "name_en": "kafka_access",
-                    "actions": [
-                        {
-                            "id": "db_manage"
-                        },
-                        {
-                            "id": "kafka_view"
-                        },
-                        {
-                            "id": "kafka_access_entry_view"
+                            "id": "sqlserver_view"
                         }
                     ]
                 }
@@ -14823,6 +16552,10 @@
                             },
                             {
                                 "id": "mysql_edit",
+                                "required": true
+                            },
+                            {
+                                "id": "mysql_subscribe_monitor",
                                 "required": true
                             },
                             {
@@ -14866,6 +16599,38 @@
                                 "required": true
                             },
                             {
+                                "id": "mysql_partition",
+                                "required": true
+                            },
+                            {
+                                "id": "mysql_flashback",
+                                "required": true
+                            },
+                            {
+                                "id": "mysql_ha_truncate_data",
+                                "required": true
+                            },
+                            {
+                                "id": "mysql_ha_db_table_backup",
+                                "required": true
+                            },
+                            {
+                                "id": "mysql_ha_rename_database",
+                                "required": true
+                            },
+                            {
+                                "id": "mysql_single_truncate_data",
+                                "required": true
+                            },
+                            {
+                                "id": "mysql_single_rename_database",
+                                "required": true
+                            },
+                            {
+                                "id": "mysql_rename_database",
+                                "required": true
+                            },
+                            {
                                 "id": "tbinlogdumper_install",
                                 "required": true
                             },
@@ -14898,6 +16663,10 @@
                                 "required": true
                             },
                             {
+                                "id": "mysql_migrate_single",
+                                "required": true
+                            },
+                            {
                                 "id": "mysql_master_slave_switch",
                                 "required": true
                             },
@@ -14922,19 +16691,19 @@
                                 "required": true
                             },
                             {
+                                "id": "mysql_proxy_conf_change",
+                                "required": true
+                            },
+                            {
+                                "id": "mysql_proxy_migrate",
+                                "required": true
+                            },
+                            {
+                                "id": "mysql_proxy_migrate_ins",
+                                "required": true
+                            },
+                            {
                                 "id": "mysql_proxy_reduce",
-                                "required": true
-                            },
-                            {
-                                "id": "mysql_ha_rename_database",
-                                "required": true
-                            },
-                            {
-                                "id": "mysql_ha_truncate_data",
-                                "required": true
-                            },
-                            {
-                                "id": "mysql_ha_db_table_backup",
                                 "required": true
                             },
                             {
@@ -14942,11 +16711,7 @@
                                 "required": true
                             },
                             {
-                                "id": "mysql_partition",
-                                "required": true
-                            },
-                            {
-                                "id": "mysql_flashback",
+                                "id": "mysql_partition_v2",
                                 "required": true
                             },
                             {
@@ -14954,15 +16719,19 @@
                                 "required": true
                             },
                             {
+                                "id": "mysql_rollback",
+                                "required": true
+                            },
+                            {
+                                "id": "mysql_fixpoint_new_cluster",
+                                "required": true
+                            },
+                            {
+                                "id": "mysql_fixpoint_exist_cluster",
+                                "required": true
+                            },
+                            {
                                 "id": "mysql_ha_full_backup",
-                                "required": true
-                            },
-                            {
-                                "id": "mysql_single_truncate_data",
-                                "required": true
-                            },
-                            {
-                                "id": "mysql_single_rename_database",
                                 "required": true
                             },
                             {
@@ -14990,7 +16759,7 @@
                                 "required": true
                             },
                             {
-                                "id": "mysql_rename_database",
+                                "id": "mysql_clone_cluster",
                                 "required": true
                             },
                             {
@@ -15002,11 +16771,7 @@
                                 "required": true
                             },
                             {
-                                "id": "mysql_dbha_af_spider_add",
-                                "required": true
-                            },
-                            {
-                                "id": "mysql_dbha_af_spider_reduce",
+                                "id": "mysql_dbha_af_spider_replace",
                                 "required": true
                             },
                             {
@@ -15102,6 +16867,10 @@
                                 "required": true
                             },
                             {
+                                "id": "tendbcluster_subscribe_monitor",
+                                "required": true
+                            },
+                            {
                                 "id": "tendbcluster_import_sqlfile",
                                 "required": true
                             },
@@ -15134,6 +16903,26 @@
                                 "required": true
                             },
                             {
+                                "id": "tendbcluster_db_table_backup",
+                                "required": true
+                            },
+                            {
+                                "id": "tendbcluster_truncate_database",
+                                "required": true
+                            },
+                            {
+                                "id": "tendbcluster_rename_database",
+                                "required": true
+                            },
+                            {
+                                "id": "tendbcluster_flashback",
+                                "required": true
+                            },
+                            {
+                                "id": "tendbcluster_partition",
+                                "required": true
+                            },
+                            {
                                 "id": "tendbcluster_enable_disable",
                                 "required": true
                             },
@@ -15143,22 +16932,6 @@
                             },
                             {
                                 "id": "tendbcluster_checksum",
-                                "required": true
-                            },
-                            {
-                                "id": "tendbcluster_partition",
-                                "required": true
-                            },
-                            {
-                                "id": "tendbcluster_db_table_backup",
-                                "required": true
-                            },
-                            {
-                                "id": "tendbcluster_rename_database",
-                                "required": true
-                            },
-                            {
-                                "id": "tendbcluster_truncate_database",
                                 "required": true
                             },
                             {
@@ -15179,6 +16952,10 @@
                             },
                             {
                                 "id": "tendbcluster_spider_upgrade",
+                                "required": true
+                            },
+                            {
+                                "id": "tendbcluster_remote_upgrade",
                                 "required": true
                             },
                             {
@@ -15203,6 +16980,10 @@
                             },
                             {
                                 "id": "tendbcluster_spider_switch_nodes",
+                                "required": true
+                            },
+                            {
+                                "id": "tendbcluster_spider_conf_up_down",
                                 "required": true
                             },
                             {
@@ -15238,7 +17019,15 @@
                                 "required": true
                             },
                             {
-                                "id": "tendbcluster_flashback",
+                                "id": "tendbcluster_rollback",
+                                "required": true
+                            },
+                            {
+                                "id": "tendbcluster_fixpoint_new",
+                                "required": true
+                            },
+                            {
+                                "id": "tendbcluster_fixpoint_exist",
                                 "required": true
                             },
                             {
@@ -15296,15 +17085,43 @@
                                 "required": true
                             },
                             {
+                                "id": "redis_subscribe_monitor",
+                                "required": true
+                            },
+                            {
                                 "id": "redis_source_access_view",
                                 "required": true
                             },
                             {
-                                "id": "redis_open_close",
+                                "id": "redis_backup",
+                                "required": true
+                            },
+                            {
+                                "id": "redis_keys_extract",
+                                "required": true
+                            },
+                            {
+                                "id": "redis_keys_delete",
+                                "required": true
+                            },
+                            {
+                                "id": "redis_hot_key_analysis",
+                                "required": true
+                            },
+                            {
+                                "id": "redis_keystat",
                                 "required": true
                             },
                             {
                                 "id": "redis_plugin_create_clb",
+                                "required": true
+                            },
+                            {
+                                "id": "redis_plugin_create_polaris",
+                                "required": true
+                            },
+                            {
+                                "id": "redis_open_close",
                                 "required": true
                             },
                             {
@@ -15320,23 +17137,7 @@
                                 "required": true
                             },
                             {
-                                "id": "redis_plugin_create_polaris",
-                                "required": true
-                            },
-                            {
                                 "id": "redis_plugin_delete_polaris",
-                                "required": true
-                            },
-                            {
-                                "id": "redis_keys_extract",
-                                "required": true
-                            },
-                            {
-                                "id": "redis_keys_delete",
-                                "required": true
-                            },
-                            {
-                                "id": "redis_backup",
                                 "required": true
                             },
                             {
@@ -15349,6 +17150,10 @@
                             },
                             {
                                 "id": "redis_purge",
+                                "required": true
+                            },
+                            {
+                                "id": "redis_proxy_fast_fix",
                                 "required": true
                             },
                             {
@@ -15444,7 +17249,7 @@
                                 "required": true
                             },
                             {
-                                "id": "redis_hot_key_analysis",
+                                "id": "redis_rollback_exercise",
                                 "required": true
                             }
                         ]
@@ -15458,6 +17263,10 @@
                             },
                             {
                                 "id": "es_edit",
+                                "required": true
+                            },
+                            {
+                                "id": "es_subscribe_monitor",
                                 "required": true
                             },
                             {
@@ -15563,6 +17372,10 @@
                                 "required": true
                             },
                             {
+                                "id": "doris_subscribe_monitor",
+                                "required": true
+                            },
+                            {
                                 "id": "doris_access_entry_view",
                                 "required": true
                             },
@@ -15601,6 +17414,10 @@
                             },
                             {
                                 "id": "kafka_edit",
+                                "required": true
+                            },
+                            {
+                                "id": "kafka_subscribe_monitor",
                                 "required": true
                             },
                             {
@@ -15649,6 +17466,10 @@
                                 "required": true
                             },
                             {
+                                "id": "hdfs_subscribe_monitor",
+                                "required": true
+                            },
+                            {
                                 "id": "hdfs_access_entry_view",
                                 "required": true
                             },
@@ -15687,6 +17508,10 @@
                             },
                             {
                                 "id": "pulsar_edit",
+                                "required": true
+                            },
+                            {
+                                "id": "pulsar_subscribe_monitor",
                                 "required": true
                             },
                             {
@@ -15772,6 +17597,10 @@
                                 "required": true
                             },
                             {
+                                "id": "mongodb_subscribe_monitor",
+                                "required": true
+                            },
+                            {
                                 "id": "mongodb_source_access_view",
                                 "required": true
                             },
@@ -15784,6 +17613,26 @@
                                 "required": true
                             },
                             {
+                                "id": "mongodb_data_export",
+                                "required": true
+                            },
+                            {
+                                "id": "mongodb_import",
+                                "required": true
+                            },
+                            {
+                                "id": "mongodb_backup",
+                                "required": true
+                            },
+                            {
+                                "id": "mongodb_exec_script_apply",
+                                "required": true
+                            },
+                            {
+                                "id": "mongodb_full_backup",
+                                "required": true
+                            },
+                            {
                                 "id": "mongodb_plugin_create_clb",
                                 "required": true
                             },
@@ -15792,19 +17641,7 @@
                                 "required": true
                             },
                             {
-                                "id": "mongodb_exec_script_apply",
-                                "required": true
-                            },
-                            {
                                 "id": "mongodb_remove_ns",
-                                "required": true
-                            },
-                            {
-                                "id": "mongodb_full_backup",
-                                "required": true
-                            },
-                            {
-                                "id": "mongodb_backup",
                                 "required": true
                             },
                             {
@@ -15816,7 +17653,35 @@
                                 "required": true
                             },
                             {
+                                "id": "mongodb_add_shard",
+                                "required": true
+                            },
+                            {
+                                "id": "mongodb_shard_add_shard_nodes",
+                                "required": true
+                            },
+                            {
+                                "id": "mongodb_replica_add_shard_nodes",
+                                "required": true
+                            },
+                            {
+                                "id": "mongodb_shard_cutoff",
+                                "required": true
+                            },
+                            {
+                                "id": "mongodb_replicaset_cutoff",
+                                "required": true
+                            },
+                            {
                                 "id": "mongodb_add_shard_nodes",
+                                "required": true
+                            },
+                            {
+                                "id": "mongodb_replicaset_migrate",
+                                "required": true
+                            },
+                            {
+                                "id": "mongodb_shard_migrate",
                                 "required": true
                             },
                             {
@@ -15837,10 +17702,6 @@
                             },
                             {
                                 "id": "mongodb_cutoff",
-                                "required": true
-                            },
-                            {
-                                "id": "mongodb_import",
                                 "required": true
                             },
                             {
@@ -15894,6 +17755,10 @@
                                 "required": true
                             },
                             {
+                                "id": "sqlserver_subscribe_monitor",
+                                "required": true
+                            },
+                            {
                                 "id": "sqlserver_admin_pwd_modify",
                                 "required": true
                             },
@@ -15923,6 +17788,14 @@
                             },
                             {
                                 "id": "sqlserver_master_slave_switch",
+                                "required": true
+                            },
+                            {
+                                "id": "sqlserver_cluster_migrate",
+                                "required": true
+                            },
+                            {
+                                "id": "sqlserver_host_migrate",
                                 "required": true
                             },
                             {
@@ -15981,6 +17854,10 @@
                             },
                             {
                                 "id": "oracle_edit",
+                                "required": true
+                            },
+                            {
+                                "id": "oracle_subscribe_monitor",
                                 "required": true
                             },
                             {

@@ -30,7 +30,6 @@ from backend.db_services.dbbase.constants import IpDest
 from backend.db_services.ipchooser.constants import BK_OS_CODE__TYPE, BkOsType
 from backend.flow.consts import LINUX_ADMIN_USER_FOR_CHECK, WINDOW_ADMIN_USER_FOR_CHECK
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
-from backend.flow.engine.bamboo.scene.common.install_plugins import install_nodeman_plugins
 from backend.flow.plugins.components.collections.common.external_service import ExternalServiceComponent
 from backend.flow.plugins.components.collections.common.resource_replenish import HCMResourceReplenishComponent
 from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
@@ -189,7 +188,7 @@ class ImportResourceInitStepFlow(object):
         )
 
         # 主机安装节点管理插件
-        p.add_sub_pipeline(install_nodeman_plugins(self.root_id, self.data["uid"], host_ids))
+        # p.add_sub_pipeline(install_nodeman_plugins(self.root_id, self.data["uid"], host_ids))
 
     def machine_init_flow(self):
         """资源池导入"""
