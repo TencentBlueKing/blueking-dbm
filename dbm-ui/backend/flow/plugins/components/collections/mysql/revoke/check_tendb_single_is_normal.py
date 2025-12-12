@@ -33,6 +33,7 @@ class CheckTenDBSingleIsNormalKwargs:
 class CheckTenDBSingleIsNormalService(BaseService):
     """
     定义检查mysql单节点集群是否进入大DBM平台 ，并可以提供访问的过程
+    这里检查节点，只针对集群部署单据终止后，进行检查的场景， 其他场景未必适合，请慎重使用
     判断添加：
     1：判断实例连接是否正常
     2：判断实例对应的域名关系是否提供
@@ -146,11 +147,11 @@ class CheckTenDBSingleIsNormalService(BaseService):
         dns_results = dns_manage.get_domain(domain_name=domain)
         if not dns_results:
             # 没有记录返回，则返回异常
-            self.log_info(f"[{domain}] is not exists in DNS-server")
+            self.log_info(f"[{domain}-{ip}] is not exists in DNS-server")
             return False
 
         for row in dns_results:
-            if not row["ip"] == ip:
+            if row["ip"] == ip:
                 self.log_info(f"{ip} DNS resolution already exists[{domain}]")
                 return True
 
