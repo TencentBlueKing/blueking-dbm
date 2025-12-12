@@ -75,6 +75,9 @@ class ToolboxHandler(ClusterServiceHandler):
             shard_name_instance_map = {}
             for inst in insts:
                 shard_name = inst_id__shard[inst.id]
+                if data.get("shard_names"):
+                    if shard_name not in data["shard_names"]:
+                        continue
                 if shard_name in shard_name_instance_map:
                     shard_name_instance_map[shard_name].append(inst)
                 else:
