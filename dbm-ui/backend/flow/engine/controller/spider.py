@@ -17,6 +17,7 @@ from backend.flow.engine.bamboo.scene.spider.full_backup import TenDBClusterFull
 from backend.flow.engine.bamboo.scene.spider.import_sqlfile_flow import ImportSQLFlow
 from backend.flow.engine.bamboo.scene.spider.remote_master_fail_over import RemoteMasterFailOverFlow
 from backend.flow.engine.bamboo.scene.spider.remote_master_slave_swtich import RemoteMasterSlaveSwitchFlow
+from backend.flow.engine.bamboo.scene.spider.revoke.tendb_cluster_apply_revoke_flow import TenDBClusterApplyRevokeFlow
 from backend.flow.engine.bamboo.scene.spider.spider_add_mnt import TenDBClusterAddSpiderMNTFlow
 from backend.flow.engine.bamboo.scene.spider.spider_add_nodes import TenDBClusterAddNodesFlow
 from backend.flow.engine.bamboo.scene.spider.spider_checksum import SpiderChecksumFlow
@@ -58,6 +59,7 @@ from backend.flow.engine.bamboo.scene.spider.validate.spider_switch_nodes_valida
 )
 from backend.flow.engine.bamboo.scene.spider.validate.spider_upgrade_validate import TenDBClusterSpiderUpgradeValidator
 from backend.flow.engine.controller.base import BaseController
+from backend.flow.engine.revoke.base import revoke_with
 from backend.flow.engine.validate.base_validate import validates_with
 
 
@@ -66,6 +68,7 @@ class SpiderController(BaseController):
     spider相关调用
     """
 
+    @revoke_with(TenDBClusterApplyRevokeFlow)
     def spider_cluster_apply_scene(self):
         """
         部署tenDB cluster(spider cluster) 部署场景
