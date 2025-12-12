@@ -43,8 +43,8 @@
             @batch-edit="handleBatchEditColumn" />
           <AvailableResourceColumn
             :params="{
-              city: item.originProxies.cities.join(','),
-              subzones: item.originProxies.subzones.join(','),
+              city: item.originProxies.city,
+              subzones: item.originProxies.subzones,
               for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.MYSQL, 'PUBLIC'],
               spec_id: item.specId,
@@ -148,12 +148,12 @@
     labels: (data.labels || []) as RowData['labels'],
     originProxies: Object.assign(
       {
-        cities: [],
+        city: '',
         cluster_ids: [],
         instances: [],
         renderText: '',
         spec_ids: [],
-        subzones: [],
+        subzones: '',
       } as unknown as RowData['originProxies'],
       data.originProxies,
     ),

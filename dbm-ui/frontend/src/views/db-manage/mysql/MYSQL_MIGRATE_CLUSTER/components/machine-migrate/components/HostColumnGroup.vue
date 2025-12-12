@@ -100,8 +100,7 @@
     bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id: number;
-    bk_idc_city_name: string;
-    bk_sub_zone: string;
+    city: string;
     cluster_ids: number[];
     ip: string;
     port: number;
@@ -109,6 +108,7 @@
     related_instances: string[];
     role: string;
     spec_id: number;
+    subzones: string;
   }>({
     required: true,
   });
@@ -189,12 +189,12 @@
           relatedInstances.push(item.instance_address);
           relatedClusters.push(item.master_domain);
         });
+        const [{ region, zone_list: zoneList }] = currentHost.related_clusters;
         modelValue.value = {
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           bk_cloud_id: currentHost.bk_cloud_id,
           bk_host_id: currentHost.bk_host_id,
-          bk_idc_city_name: currentHost.host_info?.bk_idc_city_name || '',
-          bk_sub_zone: currentHost.host_info?.bk_sub_zone || '',
+          city: region && region !== 'default' ? region : '',
           cluster_ids: clusterIds,
           ip: currentHost.ip,
           port: currentHost.port,
@@ -202,6 +202,7 @@
           related_instances: relatedInstances,
           role: currentHost.role,
           spec_id: currentHost.spec_config.id,
+          subzones: zoneList?.join(',') || '',
         };
       }
     },
@@ -217,8 +218,7 @@
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
-      bk_idc_city_name: '',
-      bk_sub_zone: '',
+      city: '',
       cluster_ids: [],
       ip: value,
       port: 0,
@@ -226,6 +226,7 @@
       related_instances: [],
       role: '',
       spec_id: 0,
+      subzones: '',
     };
   };
 

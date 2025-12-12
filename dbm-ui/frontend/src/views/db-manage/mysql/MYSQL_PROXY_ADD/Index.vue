@@ -29,7 +29,8 @@
             v-model="item.cluster"
             role="proxy"
             :selected="selected"
-            @batch-edit="handleBatchEdit" />
+            @batch-edit="handleBatchEdit"
+            @request-success="() => handleInputFinish(item)" />
           <EditableColumn
             :label="t('当前数量（台）')"
             :min-width="150"
@@ -61,7 +62,8 @@
             @batch-edit="handleBatchEditColumn" />
           <AvailableResourceColumn
             :params="{
-              city: item.cluster.region,
+              city: item.city,
+              subzones: item.subzones,
               for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.MYSQL, 'PUBLIC'],
               spec_id: item.specId,
@@ -122,10 +124,12 @@
   import AddCountColumn from './components/AddCountColumn.vue';
 
   interface RowData {
+    city: string;
     cluster: ComponentProps<typeof WithRelatedClustersColumn>['modelValue'];
     count: string;
     labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     specId: number;
+    subzones: string;
   }
 
   const { t } = useI18n();
@@ -134,6 +138,7 @@
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const createTableRow = (data: DeepPartial<RowData> = {}) => ({
+    city: data.city || '',
     cluster: Object.assign(
       {
         cluster_type: ClusterTypes.TENDBHA,
@@ -147,6 +152,7 @@
     count: data.count || '',
     labels: (data.labels || []) as RowData['labels'],
     specId: data.specId || 0,
+    subzones: data.subzones || '',
   });
 
   const defaultData = () => ({
@@ -225,6 +231,15 @@
     }[];
     ip_source: 'resource_pool';
   }>(TicketTypes.MYSQL_PROXY_ADD);
+
+  const handleInputFinish = (item: RowData) => {
+    const region = item.cluster.region;
+    const subzones = item.cluster.cluster_subzones;
+    Object.assign(item, {
+      city: region && region !== 'default' ? region : '',
+      subzones: subzones?.join(',') || '',
+    });
+  };
 
   const handleSubmit = async () => {
     const result = await tableRef.value!.validate();

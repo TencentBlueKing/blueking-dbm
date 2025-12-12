@@ -72,7 +72,7 @@
   <!-- 单元格添加 -->
   <ClusterSelector
     v-model:is-show="showSelector"
-    :cluster-types="[ClusterTypes.TENDBHA]"
+    :cluster-types="clusterTypes"
     :selected="currentClusters"
     @change="handleSelectorChange" />
 </template>
@@ -90,25 +90,29 @@
   import ClusterSelector from '@components/cluster-selector/Index.vue';
 
   interface Props {
+    clusterTypes?: ClusterTypes[];
     selected: {
+      cluster_type: ClusterTypes;
       id: number;
       master_domain: string;
     }[];
     selectedMap: Record<string, boolean>;
   }
 
-  type Emits = (e: 'batch-edit', list: TendbhaModel[]) => void;
+  type Emits = (e: 'batch-edit', list: any[]) => void;
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    clusterTypes: () => [ClusterTypes.TENDBHA],
+  });
 
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
-    cities: string[];
+    city: string;
     clusters: TendbhaModel[];
     renderText: string;
     spec_ids: number[];
-    subzones: string[];
+    subzones: string;
   }>({
     required: true,
   });
@@ -118,10 +122,18 @@
   const showSelector = ref(false);
   const showBatchSelector = ref(false);
   const selectedClusters = computed<Record<string, TendbhaModel[]>>(() => ({
-    [ClusterTypes.TENDBHA]: props.selected as TendbhaModel[],
+    [ClusterTypes.TENDBHA]: props.selected.filter(
+      (item) => item.cluster_type === ClusterTypes.TENDBHA,
+    ) as TendbhaModel[],
+    [ClusterTypes.TENDBSINGLE]: props.selected.filter(
+      (item) => item.cluster_type === ClusterTypes.TENDBSINGLE,
+    ) as TendbhaModel[],
   }));
   const currentClusters = computed<Record<string, TendbhaModel[]>>(() => ({
-    [ClusterTypes.TENDBHA]: modelValue.value.clusters,
+    [ClusterTypes.TENDBHA]: modelValue.value.clusters.filter((item) => item.cluster_type === ClusterTypes.TENDBHA),
+    [ClusterTypes.TENDBSINGLE]: modelValue.value.clusters.filter(
+      (item) => item.cluster_type === ClusterTypes.TENDBSINGLE,
+    ),
   }));
   const selectedCounter = computed(() => _.countBy(props.selected, 'master_domain'));
 
@@ -193,8 +205,8 @@
         });
         modelValue.value.clusters = data;
         modelValue.value.spec_ids = Array.from(spedIdsSet);
-        modelValue.value.cities = Array.from(citiesSet);
-        modelValue.value.subzones = Array.from(subzonesSet);
+        modelValue.value.city = Array.from(citiesSet).join(',');
+        modelValue.value.subzones = Array.from(subzonesSet).join(',');
       }
     },
   });
@@ -211,7 +223,7 @@
     modelValue.value = Object.assign(
       {},
       {
-        cities: [],
+        city: '',
         clusters: [],
         renderText: value
           .split(/\r?\n/)
@@ -219,13 +231,14 @@
           .filter((line) => line.length > 0)
           .join('\n'),
         spec_ids: [],
-        subzones: [],
+        subzones: '',
       },
     );
   };
 
   const handleSelectorBatchChange = (selected: Record<string, TendbhaModel[]>) => {
-    emits('batch-edit', selected[ClusterTypes.TENDBHA]);
+    const list = Object.values(selected).flatMap((selectedList) => selectedList);
+    emits('batch-edit', list);
   };
 
   const handleSelectorChange = (selected: Record<string, TendbhaModel[]>) => {
@@ -239,7 +252,7 @@
       if (modelValue.value.renderText && !modelValue.value.clusters.length) {
         queryCluster({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_type: ClusterTypes.TENDBHA,
+          cluster_type: props.clusterTypes.join(','),
           db_type: DBTypes.MYSQL,
           exact_domain: modelValue.value.renderText.split(batchSplitRegex).join(','),
         });
