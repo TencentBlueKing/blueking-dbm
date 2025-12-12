@@ -97,6 +97,8 @@
         const isExist = list.value.some((item) => item.spec_id === props.modelValue);
         if (!isExist) {
           handleChange('');
+        } else {
+          handleChange(props.modelValue);
         }
       }
     },
