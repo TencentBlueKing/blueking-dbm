@@ -116,7 +116,7 @@ export function getVersionModules(params: {
  */
 export const mergeDiskSpace = (params: {
   bk_biz_id: number;
-  factor: number; // db克隆单据调用factor=1，db数据合并空间评估调用factor=2
+  factor: number; // DB数据克隆单据调用factor=1，DB数据合并空间评估调用factor=2
   migrations: {
     clone_db_list?: string[];
     data_schema_grant?: string;
