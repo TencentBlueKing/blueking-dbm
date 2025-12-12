@@ -107,12 +107,7 @@ class CalcRecycleApplyHostParamBuilder(FlowParamBuilder):
             BaseTicketFlow(self.ticket.current_flow()).run_error_status_handler(e)
         else:
             ticket_flows = list(self.ticket.flows.all())
-            # 将新机回收同步给后面两个流程
-            clear_flow = ticket_flows[-2]
-            clear_flow.details["ticket_data"]["hosts"] = recycle_hosts
-            clear_flow.details["ticket_data"]["recycle_hosts"] = recycle_hosts
-            clear_flow.save(update_fields=["details"])
-
+            # 将新机回收同步给分池处理
             recycle_flow = ticket_flows[-1]
             recycle_flow.details["ticket_data"]["recycle_hosts"] = recycle_hosts
             recycle_flow.save(update_fields=["details"])
@@ -149,12 +144,6 @@ class RecycleApplyHostFlowBuilder(RecycleHostFlowBuilder):
             Flow(
                 ticket=self.ticket,
                 flow_type=FlowType.HOST_RECYCLE.value,
-                details=self.machine_clean_flow_builder(self.ticket).get_params(),
-                flow_alias=_("主机数据清理"),
-            ),
-            Flow(
-                ticket=self.ticket,
-                flow_type=FlowType.HOST_RECYCLE.value,
                 details=self.recycle_flow_builder(self.ticket).get_params(),
                 flow_alias=_("主机分池处理"),
             ),
@@ -162,13 +151,6 @@ class RecycleApplyHostFlowBuilder(RecycleHostFlowBuilder):
 
         Flow.objects.bulk_create(flows)
         return list(Flow.objects.filter(ticket=self.ticket))
-
-    def patch_ticket_detail(self):
-        try:
-            recycle_hosts = ResourceHandler.standardized_resource_host(self.ticket.details["recycle_hosts"])
-            self.ticket.update_details(recycle_hosts=recycle_hosts)
-        except AppBaseException as e:
-            logger.error(_("初始化新机回收单据失败: {}").format(e))
 
 
 @builders.BuilderFactory.register(TicketType.RECYCLE_OLD_HOST)
