@@ -1,13 +1,14 @@
 package simpleconfig
 
 import (
+	"fmt"
+
 	"bk-dbconfig/internal/api"
 	"bk-dbconfig/internal/pkg/errno"
 	"bk-dbconfig/internal/repository/model"
 	"bk-dbconfig/pkg/constvar"
 	"bk-dbconfig/pkg/core/logger"
 	"bk-dbconfig/pkg/util"
-	"fmt"
 
 	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
@@ -59,7 +60,9 @@ func UpsertConfigItems(db *gorm.DB, configsOp []*model.ConfigModelOp, revision s
 	configsUpt := make([]*model.ConfigModel, 0)
 	configsDel := make([]*model.ConfigModel, 0)
 	for _, c := range configsOp {
-		if id, err := model.RecordExists(db, c.Config.TableName(), c.Config.ID, c.Config.UniqueWhere()); err != nil {
+		if c.OPType == constvar.OPTypeRemoveRef || c.OPType == constvar.OPTypeRemove {
+			// remove 不检验 平台值是否存在
+		} else if id, err := model.RecordExists(db, c.Config.TableName(), c.Config.ID, c.Config.UniqueWhere()); err != nil {
 			if !errors.Is(err, gorm.ErrRecordNotFound) {
 				return nil, err
 			}

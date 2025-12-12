@@ -294,11 +294,15 @@ func (m *DBLoader) removeRestoreDir() error {
 
 // ReturnChangeMaster TODO
 func (m *DBLoader) ReturnChangeMaster() (*mysqlutil.ChangeMaster, error) {
-	if m.RestoreParam.RestoreOpt != nil && m.RestoreParam.RestoreOpt.WillRecoverBinlog { //
-		return m.getChangeMasterPos(m.SrcInstance)
-	} else {
-		return &mysqlutil.ChangeMaster{}, nil
-	}
+	return m.getChangeMasterPos(m.SrcInstance)
+	/*
+		if m.RestoreParam.RestoreOpt != nil && m.RestoreParam.RestoreOpt.WillRecoverBinlog { //
+			return m.getChangeMasterPos(m.SrcInstance)
+		} else {
+			return &mysqlutil.ChangeMaster{}, nil
+		}
+
+	*/
 }
 
 // initDirs 如果 removeOld =  true，会删除当前任务目录下，之前的解压目录，可能是重试导致的废弃目录

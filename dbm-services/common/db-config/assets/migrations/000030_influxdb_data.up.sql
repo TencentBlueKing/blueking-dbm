@@ -62,7 +62,7 @@ INSERT INTO `tb_config_file_def` (`id`, `namespace`, `conf_type`, `conf_file`, `
 --
 -- WHERE:  namespace='influxdb' AND (flag_encrypt!=1 or value_default like '{{%')
 
-INSERT INTO `tb_config_name_def` (`id`, `namespace`, `conf_type`, `conf_file`, `conf_name`, `value_type`, `value_default`, `value_allowed`, `value_type_sub`, `flag_status`, `flag_disable`, `flag_locked`, `flag_encrypt`, `need_restart`, `value_formula`, `extra_info`, `conf_name_lc`, `order_index`, `since_version`, `description`, `created_at`, `updated_at`, `stage`) VALUES (13637,'influxdb','dbconf','1.8.4','username','STRING','admin','NULL','',1,0,0,0,1,'NULL','NULL','NULL',-1,'NULL',NULL,'2023-02-14 15:08:46','2023-02-14 15:08:46',0);
+INSERT INTO `tb_config_name_def` (`id`, `namespace`, `conf_type`, `conf_file`, `conf_name`, `value_type`, `value_default`, `value_allowed`, `value_type_sub`, `flag_readonly`, `flag_visible`, `flag_status`, `flag_disable`, `flag_locked`, `flag_encrypt`, `need_restart`, `value_formula`, `extra_info`, `conf_name_lc`, `order_index`, `since_version`, `description`, `created_at`, `updated_at`, `stage`) VALUES (13637,'influxdb','dbconf','1.8.4','username','STRING','admin','NULL','',0,1,1,0,0,0,1,'NULL','NULL','NULL',-1,'NULL',NULL,'2023-02-14 15:08:46','2023-02-14 15:08:46',0);
 /*!50112 SET @disable_bulk_load = IF (@is_rocksdb_supported, 'SET SESSION rocksdb_bulk_load = @old_rocksdb_bulk_load', 'SET @dummy_rocksdb_bulk_load = 0') */;
 /*!50112 PREPARE s FROM @disable_bulk_load */;
 /*!50112 EXECUTE s */;

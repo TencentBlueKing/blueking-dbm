@@ -1,0 +1,2 @@
+ALTER TABLE tb_config_name_def ADD COLUMN `flag_visible` tinyint(4) DEFAULT '1' AFTER `value_type_sub`;
+ALTER TABLE tb_config_name_def ADD COLUMN `flag_readonly` tinyint(4) DEFAULT '0' AFTER `flag_visible`;

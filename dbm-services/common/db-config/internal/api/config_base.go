@@ -21,8 +21,8 @@ type RequestType struct {
 
 // OperationType TODO
 type OperationType struct {
-	// 配置项修改动作，需提供操作类型字段，允许值 `add`,`update`,`remove`
-	OPType string `json:"op_type" form:"op_type" validate:"required,enums" enums:"add,update,remove"`
+	// 配置项修改动作，需提供操作类型字段，允许值 `add`,`update`,`remove`,`upsert`
+	OPType string `json:"op_type" form:"op_type" validate:"required,enums" enums:"add,update,remove,upsert"`
 }
 
 // OperationUser TODO

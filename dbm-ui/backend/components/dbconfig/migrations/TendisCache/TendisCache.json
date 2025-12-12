@@ -1,0 +1,38 @@
+[
+  {
+    "conf_type": "dbconf",
+    "conf_file": "TendisCache-2.8",
+    "conf_name_validate": 0,
+    "conf_value_validate": 0,
+    "value_type_strict": 0,
+    "description": "5.8_参数配置",
+    "conf_type_lc": "DB参数配置",
+    "conf_file_lc": "TendisCache-2.8",
+    "level_names": "",
+    "level_versioned": ""
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "TendisCache-3.2",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "5.8_参数配置",
+    "conf_type_lc": "DB参数配置",
+    "conf_file_lc": "TendisCache-3.2",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "TendisCache-4.0",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "TendisCache-4.0配置",
+    "conf_type_lc": "DB参数配置",
+    "conf_file_lc": "TendisCache-4.0",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  }
+]

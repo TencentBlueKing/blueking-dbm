@@ -1,0 +1,14 @@
+[
+  {
+    "conf_type": "dbconf",
+    "conf_file": "1.8.4",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "influxdb配置文件",
+    "conf_type_lc": "influxdb配置",
+    "conf_file_lc": "influxdb-1.8",
+    "level_names": "plat,app,instance",
+    "level_versioned": "instance"
+  }
+]

@@ -61,7 +61,7 @@ func CheckConfNameAndValue(c *model.ConfigModel, checkValue bool, valueType, val
 		// 如果不校验 conf_name， 那么 conf_name 可能在 name_def 里没定义，value_type, value_type_sub, value_allowed 都为空
 		err := validatestruct.ValidateConfValue(cn.ValueDefault, cn.ValueType, cn.ValueTypeSub, cn.ValueAllowed)
 		if err != nil {
-			errors.WithMessage(err, c.ConfName)
+			return errors.WithMessage(err, c.ConfName)
 		}
 	} else {
 		return nil
@@ -94,10 +94,11 @@ func QueryConfigNames(r *api.QueryConfigNamesReq, isPub bool) (*api.QueryConfigN
 			ValueDefault: c.ValueDefault,
 			ValueAllowed: c.ValueAllowed,
 			NeedRestart:  c.NeedRestart,
-			FlagDisable:  c.FlagDisable,
-			FlagLocked:   c.FlagLocked,
 			Description:  c.Description,
-			FlagStatus:   c.FlagStatus,
+			FlagVisible:  c.FlagVisible,
+			FlagReadonly: c.FlagReadonly,
+			FlagLocked:   c.FlagLocked,
+			FlagStatus:   c.FlagStatus, // 废弃
 		}
 	}
 	resp.ConfNames = namesMap

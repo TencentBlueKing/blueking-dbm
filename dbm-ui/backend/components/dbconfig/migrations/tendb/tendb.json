@@ -1,0 +1,50 @@
+[
+  {
+    "conf_type": "init_user",
+    "conf_file": "mysql#user",
+    "conf_name_validate": 0,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "初始化用户",
+    "conf_type_lc": "",
+    "conf_file_lc": "初始化用户",
+    "level_names": "plat",
+    "level_versioned": ""
+  },
+  {
+    "conf_type": "init_user",
+    "conf_file": "proxy#user",
+    "conf_name_validate": 0,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "初始化用户",
+    "conf_type_lc": "",
+    "conf_file_lc": "初始化用户",
+    "level_names": "plat",
+    "level_versioned": ""
+  },
+  {
+    "conf_type": "init_user",
+    "conf_file": "spider#user",
+    "conf_name_validate": 0,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "初始化用户",
+    "conf_type_lc": "",
+    "conf_file_lc": "初始化用户",
+    "level_names": "plat",
+    "level_versioned": ""
+  },
+  {
+    "conf_type": "sys",
+    "conf_file": "super_account",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "gcs_admin",
+    "conf_type_lc": "",
+    "conf_file_lc": "gcs_admin",
+    "level_names": "plat",
+    "level_versioned": ""
+  }
+]

@@ -105,6 +105,7 @@ func init() {
 	pflag.Int("migrate.force", 0, "force the version to be clean if it's dirty")
 
 	pflag.Bool("skip-migrate", false, "do not run migrate to databases")
+	// viper bind pflag
 	viper.BindPFlags(pflag.CommandLine)
 }
 

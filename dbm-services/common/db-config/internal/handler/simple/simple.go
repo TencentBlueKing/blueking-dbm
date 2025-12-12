@@ -43,9 +43,12 @@ func (cf *Config) Routes() []*gin.RouteInfo {
 		{Method: http.MethodPost, Path: "/confitem/upsert", HandlerFunc: cf.UpdateConfigFileItems},
 		{Method: http.MethodPost, Path: "/confitem/save", HandlerFunc: cf.SaveConfigFileItems},
 		{Method: http.MethodPost, Path: "/confitem/batchget", HandlerFunc: cf.BatchGetConfigOneItem},
+		{Method: http.MethodPost, Path: "/confitem/validate", HandlerFunc: cf.ValidateValueForClient},
 
 		// config_meta
 		{Method: http.MethodGet, Path: "/conftype/query", HandlerFunc: cf.QueryConfigTypeInfo},
 		{Method: http.MethodGet, Path: "/confname/list", HandlerFunc: cf.QueryConfigTypeNames},
+		{Method: http.MethodPost, Path: "/confname/change", HandlerFunc: cf.ChangeConfNameDef},
+		{Method: http.MethodGet, Path: "/confname/types", HandlerFunc: cf.ListDataTypes},
 	}
 }

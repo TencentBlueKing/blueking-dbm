@@ -45,17 +45,41 @@ const (
 	DTypeSubDuration = "DURATION"
 	// DTypeSubGovalidate TODO
 	DTypeSubGovalidate = "GOVALIDATE"
-	// DTypeSubFlag BOOL FLAG
-	DTypeSubFlag = "FLAG"
 )
 
 // ValueTypeSubRef 定义合法的 value_type 与 value_type_sub 的关系
 // value_type_sub 会用于控件展示、合法性校验
 var ValueTypeSubRef = map[string][]string{
-	DTypeString: []string{DTypeSubEmpty, DTypeSubString, DTypeSubEnum, DTypeSubEnums, DTypeSubBytes, DTypeSubRegex,
-		DTypeSubJson, DTypeSubMap, DTypeSubDuration, DTypeSubGovalidate, DTypeSubList}, // 暂不支持复杂类型，比如 (1, 100] || on|off
-	DTypeInt:    []string{DTypeSubEnum, DTypeSubEmpty, DTypeSubRange},
-	DTypeFloat:  []string{DTypeSubEnum, DTypeSubEmpty, DTypeSubRange},
-	DTypeNumber: []string{DTypeSubEnum, DTypeSubEmpty, DTypeSubRange},
-	DTypeBool:   []string{DTypeSubEnum, DTypeSubEmpty, DTypeSubFlag},
+	DTypeString: []string{
+		DTypeSubEmpty,  // 任意字符，等同于 DTypeSubString
+		DTypeSubString, // 任意字符
+		DTypeSubEnum,
+		DTypeSubEnums,
+		DTypeSubBytes,
+		DTypeSubDuration,
+		DTypeSubRegex,
+		DTypeSubJson,
+		DTypeSubMap,
+		DTypeSubList,
+		DTypeSubGovalidate,
+	}, // 暂不支持复杂类型，比如 (1, 100] || on|off
+	DTypeInt: []string{
+		DTypeSubEnum,
+		DTypeSubEmpty, // 只要是个 int 就行
+		DTypeSubRange,
+	},
+	DTypeFloat: []string{
+		DTypeSubEnum,
+		DTypeSubEmpty, // 只要是个数字就行
+		DTypeSubRange,
+	},
+	DTypeNumber: []string{
+		DTypeSubEnum,
+		DTypeSubEmpty, // 只要是个数字就行
+		DTypeSubRange,
+	},
+	DTypeBool: []string{
+		DTypeSubEnum,
+		DTypeSubEmpty, // 允许不设定 bool 默认值，类似 NULL
+	},
 }

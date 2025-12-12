@@ -1,0 +1,14 @@
+[
+  {
+    "conf_type": "config",
+    "conf_file": "osconf",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 1,
+    "description": "mongodb的os默认配置",
+    "conf_type_lc": "os配置",
+    "conf_file_lc": "mongodb的os配置",
+    "level_names": "plat,app,cluster",
+    "level_versioned": ""
+  }
+]
