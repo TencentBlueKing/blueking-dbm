@@ -14,7 +14,7 @@
 <template>
   <EditableColumn
     :append-rules="rules"
-    field="batchCluster.renderText"
+    field="multipleCluster.renderText"
     fixed="left"
     :label="t('目标集群')"
     :loading="loading"
@@ -31,12 +31,14 @@
     <EditableTextarea
       v-model="modelValue.renderText"
       :placeholder="t('请选择或输入集群（多个换行分隔）')"
-      @change="handleInputChange">
+      @change="handleChange">
       <template #append>
-        <DbIcon
-          class="select-icon"
-          type="host-select"
-          @click="handleShowSelector" />
+        <span v-bk-tooltips="t('选择集群')">
+          <DbIcon
+            class="select-icon"
+            type="host-select"
+            @click="handleShowSelector" />
+        </span>
       </template>
     </EditableTextarea>
   </EditableColumn>
@@ -103,9 +105,10 @@
 
   const modelValue = defineModel<{
     cities: string[];
-    clusters: Array<TendbhaModel>;
+    clusters: TendbhaModel[];
     renderText: string;
-    spec_id_list: number[];
+    spec_ids: number[];
+    subzones: string[];
   }>({
     required: true,
   });
@@ -169,17 +172,29 @@
     manual: true,
     onSuccess: (data) => {
       if (data.length) {
-        const clusterList: TendbhaModel[] = [];
-        const spedIdList: number[] = [];
-        const cities: string[] = [];
+        const spedIdsSet = new Set<number>();
+        const citiesSet = new Set<string>();
+        const subzonesSet = new Set<string>();
         data.forEach((item) => {
-          clusterList.push(item);
-          spedIdList.push(item.cluster_spec?.spec_id);
-          cities.push(item.region);
+          // 规格ID
+          if (item.cluster_spec?.spec_id) {
+            spedIdsSet.add(item.cluster_spec.spec_id);
+          }
+
+          // 地域信息
+          if (item.region && item.region !== 'default') {
+            citiesSet.add(item.region);
+          }
+
+          // 园区信息
+          (item?.cluster_subzones || []).forEach((zone) => {
+            subzonesSet.add(zone);
+          });
         });
-        modelValue.value.clusters = clusterList;
-        modelValue.value.spec_id_list = spedIdList;
-        modelValue.value.cities = cities;
+        modelValue.value.clusters = data;
+        modelValue.value.spec_ids = Array.from(spedIdsSet);
+        modelValue.value.cities = Array.from(citiesSet);
+        modelValue.value.subzones = Array.from(subzonesSet);
       }
     },
   });
@@ -188,55 +203,45 @@
     showBatchSelector.value = true;
   };
 
-  const handleSelectorBatchChange = (selected: Record<string, TendbhaModel[]>) => {
-    emits('batch-edit', selected[ClusterTypes.TENDBHA]);
-  };
-
   const handleShowSelector = () => {
     showSelector.value = true;
   };
 
-  const handleSelectorChange = (selected: Record<string, TendbhaModel[]>) => {
-    const spedIdList: number[] = [];
-    const cities: string[] = [];
-    selected[ClusterTypes.TENDBHA].forEach((item) => {
-      spedIdList.push(item.cluster_spec?.spec_id);
-      cities.push(item.region);
-    });
-    modelValue.value.clusters = selected[ClusterTypes.TENDBHA];
-    modelValue.value.spec_id_list = spedIdList;
-    modelValue.value.cities = cities;
-    modelValue.value.renderText = selected[ClusterTypes.TENDBHA].map((item) => item.master_domain).join('\n');
-  };
-
-  const handleInputChange = (value: string) => {
+  const handleChange = (value: string) => {
     modelValue.value = Object.assign(
       {},
       {
         cities: [],
         clusters: [],
-        renderText: value,
-        spec_id_list: [],
+        renderText: value
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter((line) => line.length > 0)
+          .join('\n'),
+        spec_ids: [],
+        subzones: [],
       },
     );
-    queryCluster({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      cluster_type: ClusterTypes.TENDBHA,
-      db_type: DBTypes.MYSQL,
-      exact_domain: value.split(batchSplitRegex).join(','),
-    });
+  };
+
+  const handleSelectorBatchChange = (selected: Record<string, TendbhaModel[]>) => {
+    emits('batch-edit', selected[ClusterTypes.TENDBHA]);
+  };
+
+  const handleSelectorChange = (selected: Record<string, TendbhaModel[]>) => {
+    const list = Object.values(selected).flatMap((selectedList) => selectedList);
+    handleChange(list.map((item) => item.master_domain).join('\n'));
   };
 
   watch(
     modelValue,
     () => {
-      if (!modelValue.value.renderText && modelValue.value.clusters.length) {
-        modelValue.value.renderText = modelValue.value.clusters.map((item) => item.master_domain).join('\n');
+      if (modelValue.value.renderText && !modelValue.value.clusters.length) {
         queryCluster({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           cluster_type: ClusterTypes.TENDBHA,
           db_type: DBTypes.MYSQL,
-          exact_domain: modelValue.value.clusters.map((item) => item.master_domain).join(','),
+          exact_domain: modelValue.value.renderText.split(batchSplitRegex).join(','),
         });
       }
     },

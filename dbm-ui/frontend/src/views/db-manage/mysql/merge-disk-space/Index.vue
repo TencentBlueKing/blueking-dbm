@@ -54,13 +54,13 @@
             :cluster-id="item.source_cluster?.id"
             field="clone_db_list"
             :label="t('克隆 DB 名')"
+            required
             @batch-edit="handleBatchEdit" />
           <DbNameColumn
             v-model="item.ignore_db_list"
             :cluster-id="item.source_cluster?.id"
             field="ignore_db_list"
             :label="t('忽略 DB')"
-            :required="false"
             @batch-edit="handleBatchEdit" />
           <TargetClusterColumn
             v-model="item.target_clusters"
@@ -96,14 +96,13 @@
 <script lang="ts" setup>
   import _ from 'lodash';
   import { useTemplateRef } from 'vue';
-  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
-  import DbNameColumn from '@views/db-manage/mysql/common/edit-table-column/DbNameColumn.vue';
   import ClusterColumn from '@views/db-manage/mysql/common/toolbox-field/cluster-column/Index.vue';
+  import DbNameColumn from '@views/db-manage/mysql/common/toolbox-field/db-name-column/Index.vue';
   import TargetClusterColumn from '@views/db-manage/mysql/MYSQL_DATA_MIGRATE/components/TargetClusterColumn.vue';
 
   import { random } from '@utils';

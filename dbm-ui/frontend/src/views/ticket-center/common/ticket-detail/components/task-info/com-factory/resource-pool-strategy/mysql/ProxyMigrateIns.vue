@@ -35,7 +35,11 @@
       :min-width="250"
       :title="t('关联集群')">
       <template #default="{ row }: { row: RowData }">
-        {{ ticketDetails.details.clusters[row.cluster_ids[0]]?.immute_domain || '--' }}
+        <p
+          v-for="clusterId in row.cluster_ids"
+          :key="clusterId">
+          {{ ticketDetails.details.clusters[clusterId]?.immute_domain || '--' }}
+        </p>
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
