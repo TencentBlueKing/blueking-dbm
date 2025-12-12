@@ -70,7 +70,11 @@ MYSQL_ROLLBACK_CLUSTER_DATA = {
                 "cluster_id": CLUSTER_ID,
                 "databases": ["*"],
                 "databases_ignore": [],
-                "backupinfo": {"priv": {"size": 3104, "task_id": "1234"}},
+                "backupinfo": {
+                    "priv": {"size": 3104, "task_id": "1234"},
+                    "database_list": ["test1"],
+                    "backup_type": "logical",
+                },
                 "rollback_type": "REMOTE_AND_TIME",
                 "tables": ["*"],
                 "tables_ignore": [],

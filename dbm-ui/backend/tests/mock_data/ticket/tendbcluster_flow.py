@@ -142,6 +142,11 @@ TENDBCLUSTER_ROLLBACK_CLUSTER_DATA = {
     "details": {
         "infos": [
             {
+                "backupinfo": {
+                    "priv": {"size": 3104, "task_id": "1234"},
+                    "database_list": ["test1"],
+                    "backup_type_list": ["logical"],
+                },
                 "backup_source": "remote",
                 "cluster_id": CLUSTER_ID,
                 "databases": ["*"],
