@@ -8396,7 +8396,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "mysql_data_migrate",
-                "name": "MySQL DB克隆",
+                "name": "MySQL DB数据克隆",
                 "name_en": "MYSQL_DATA_MIGRATE",
                 "type": "execute",
                 "related_resource_types": [
@@ -8417,7 +8417,7 @@
                 "hidden": false,
                 "group": "MySQL",
                 "subgroup": "数据处理",
-                "description": "MySQL DB克隆",
+                "description": "MySQL DB数据克隆",
                 "description_en": "MYSQL_DATA_MIGRATE"
             }
         },
