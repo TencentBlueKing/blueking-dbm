@@ -200,10 +200,13 @@ class CheckRedisUpMetricTask:
         # 生成报告记录
         for msg, node_list in msg_list.items():
             if msg == "ok":
-                continue
-            state = ReportStateType.ABNORMAL.value
-            full_msg = f"{msg}: " + ",".join(_short_addr_list(node_list))
-            cluster_report.append(state, "storage", "-", full_msg)
+                state = ReportStateType.NORMAL.value
+                full_msg = "ok"
+                cluster_report.append(state, "storage", "-", full_msg)
+            else:
+                state = ReportStateType.ABNORMAL.value
+                full_msg = f"{msg}: " + ",".join(_short_addr_list(node_list))
+                cluster_report.append(state, "storage", "-", full_msg)
 
     def check_proxy(self, cluster: Cluster, cluster_report: RedisClusterReport):
         """
@@ -240,7 +243,7 @@ class CheckRedisUpMetricTask:
             else:
                 msg = "ok"
                 state = ReportStateType.NORMAL.value
-            proxy_msg_list[msg].append(proxy_node)
+            proxy_msg_list[msg].extend(proxy_node)
 
         # 多余的proxy节点. 存在集群外的proxy节点上报本集群的指标
         all_proxy_node_addr_list = set(_node_to_addr(proxy_node) for proxy_node in proxy_node_list)  # 去重
@@ -261,15 +264,18 @@ class CheckRedisUpMetricTask:
                 redundant2_proxy_node_list.append(_addr_to_node(addr))
         if len(redundant2_proxy_node_list) > 0:
             msg = f"{proxy_type}_exporter_redundant2"
-            proxy_msg_list[msg].append(redundant2_proxy_node_list)
+            proxy_msg_list[msg].extend(redundant2_proxy_node_list)
 
-            # 生成报告记录
+        # 生成报告记录
         for msg, proxy_node_list in proxy_msg_list.items():
             if msg == "ok":
-                continue
-            state = ReportStateType.ABNORMAL.value
-            full_msg = f"{msg}: " + ",".join(_short_addr_list(proxy_node_list))
-            cluster_report.append(state, proxy_type, "-", full_msg)
+                state = ReportStateType.NORMAL.value
+                full_msg = "ok"
+                cluster_report.append(state, proxy_type, "-", full_msg)
+            else:
+                state = ReportStateType.ABNORMAL.value
+                full_msg = f"{msg}: " + ",".join(_short_addr_list(proxy_node_list))
+                cluster_report.append(state, proxy_type, "-", full_msg)
         return
 
 

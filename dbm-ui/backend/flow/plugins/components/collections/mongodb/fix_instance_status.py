@@ -177,7 +177,7 @@ def fix_instance_cluster_entry(ip: str, port: int, bk_cloud_id: int, role_type: 
 
                 case ClusterEntryType.CLB.value:
                     code, msg = fix_instance_clb_entry(
-                        clb_vip=row.entry, bk_cloud_id=bk_cloud_id, rs_instance_list=["{}#{}".format(ip, port)]
+                        clb_ip=row.entry, bk_cloud_id=bk_cloud_id, rs_instance_list=["{}#{}".format(ip, port)]
                     )
                     fix_entry_list.append(
                         FixEntryInfo(
