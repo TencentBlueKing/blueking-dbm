@@ -164,7 +164,7 @@ class ImportResourceInitStepFlow(object):
             p.add_act(
                 act_name=_("主机资源重导入"),
                 act_component_code=ExternalServiceComponent.code,
-                kwargs={"params": {"hosts": data["hosts"]}, "api_call_func": "resource_reimport", **resource_kwargs},
+                kwargs={"params": data, "api_call_func": "resource_reimport", **resource_kwargs},
             )
         else:
             p.add_act(
