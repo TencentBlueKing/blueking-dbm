@@ -53,6 +53,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   createRouteItem(TicketTypes.MYSQL_CLUSTER_STANDARDIZE, t('集群标准化')),
   createRouteItem(TicketTypes.MYSQL_FLASHBACK, t('回档')),
   createRouteItem(TicketTypes.MYSQL_ROLLBACK, t('回档')),
+  createRouteItem(TicketTypes.MYSQL_MIGRATE_SINGLE, t('单节点迁移')),
   createRouteItem(TicketTypes.MYSQL_OPEN_AREA, t('开区模版')),
   {
     path: 'webconsole',

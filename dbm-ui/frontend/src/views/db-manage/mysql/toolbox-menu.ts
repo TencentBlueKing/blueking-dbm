@@ -163,6 +163,12 @@ export default [
         parentId: 'migrate',
       },
       {
+        dbConsoleValue: 'mysql.toolbox.migrateSingle',
+        id: TicketTypes.MYSQL_MIGRATE_SINGLE,
+        name: t('单节点迁移'),
+        parentId: 'migrate',
+      },
+      {
         dbConsoleValue: 'mysql.toolbox.clusterStandardize',
         id: TicketTypes.MYSQL_CLUSTER_STANDARDIZE,
         name: t('集群标准化'),
