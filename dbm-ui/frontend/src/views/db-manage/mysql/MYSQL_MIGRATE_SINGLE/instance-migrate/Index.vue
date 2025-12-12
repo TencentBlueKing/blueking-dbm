@@ -53,15 +53,16 @@
     <EditableRow
       v-for="(item, index) in formData.tableData"
       :key="index">
-      <ClusterColumn
-        v-model="item.batchCluster"
+      <MultipleClusterColumn
+        v-model="item.multipleCluster"
+        :cluster-types="[ClusterTypes.TENDBSINGLE]"
         :selected="selected"
         :selected-map="selectedMap"
         @batch-edit="handleBatchEditCluster" />
       <SpecColumn
         v-model="item.specId"
         :cluster-type="DBTypes.MYSQL"
-        :current-spec-id-list="item.batchCluster.spec_id_list"
+        :current-spec-id-list="item.multipleCluster.spec_ids"
         required
         selectable
         @batch-edit="handleBatchEdit" />
@@ -70,7 +71,8 @@
         @batch-edit="handleBatchEdit" />
       <AvailableResourceColumn
         :params="{
-          city: generateCity(item.batchCluster.clusters),
+          subzones: item.multipleCluster.subzones,
+          city: item.multipleCluster.city,
           for_bizs: [currentBizId, 0],
           resource_types: [DBTypes.MYSQL, 'PUBLIC'],
           spec_id: item.specId,
@@ -94,7 +96,7 @@
 
   import { useTicketDetail } from '@hooks';
 
-  import { DBTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
@@ -103,14 +105,13 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+  import MultipleClusterColumn from '@views/db-manage/mysql/common/toolbox-field/multiple-cluster-column/Index.vue';
 
   import { random } from '@utils';
 
-  import ClusterColumn from './components/ClusterColumn.vue';
-
   interface RowData {
-    batchCluster: ComponentProps<typeof ClusterColumn>['modelValue'];
     labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
+    multipleCluster: ComponentProps<typeof MultipleClusterColumn>['modelValue'];
     specId: number;
   }
 
@@ -138,15 +139,17 @@
   ];
 
   const createTableRow = (data: DeepPartial<RowData> = {}) => ({
-    batchCluster: Object.assign(
-      {
-        clusters: {} as RowData['batchCluster']['clusters'],
-        renderText: '',
-        spec_id_list: [] as RowData['batchCluster']['spec_id_list'],
-      },
-      data.batchCluster,
-    ),
     labels: (data.labels || []) as RowData['labels'],
+    multipleCluster: Object.assign(
+      {
+        city: '',
+        clusters: [],
+        renderText: '',
+        spec_ids: [],
+        subzones: '',
+      } as RowData['multipleCluster'],
+      data.multipleCluster,
+    ),
     specId: data.specId || 0,
   });
 
@@ -160,8 +163,8 @@
 
   const selected = computed(() =>
     formData.tableData
-      .filter((item) => item.batchCluster.renderText)
-      .flatMap((item) => Object.values(item.batchCluster.clusters)),
+      .filter((item) => item.multipleCluster.renderText)
+      .flatMap((item) => Object.values(item.multipleCluster.clusters)),
   );
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
@@ -178,10 +181,10 @@
         payload: createTickePayload(ticketDetail),
         tableData: details.infos.map((item) =>
           createTableRow({
-            batchCluster: {
+            labels: (item.resource_spec.bk_new_orphan?.labels || []).map((item) => ({ id: Number(item) })),
+            multipleCluster: {
               renderText: item.cluster_ids.map((clusterId) => clusters[clusterId]?.immute_domain).join('\n'),
             },
-            labels: (item.resource_spec.bk_new_orphan?.labels || []).map((item) => ({ id: Number(item) })),
             specId: item.resource_spec.bk_new_orphan?.spec_id || 0,
           }),
         ),
@@ -199,7 +202,7 @@
       if (!selectedMap.value[item.master_domain]) {
         acc.push(
           createTableRow({
-            batchCluster: {
+            multipleCluster: {
               renderText: item.master_domain,
             },
           }),
@@ -207,7 +210,7 @@
       }
       return acc;
     }, []);
-    formData.tableData = [...formData.tableData.filter((item) => item.batchCluster.renderText), ...dataList];
+    formData.tableData = [...formData.tableData.filter((item) => item.multipleCluster.renderText), ...dataList];
   };
 
   const handleBatchEdit = (value: any, field: string) => {
@@ -222,10 +225,10 @@
     const dataList = data.reduce<RowData[]>((acc, item) => {
       acc.push(
         createTableRow({
-          batchCluster: {
+          labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
+          multipleCluster: {
             renderText: item.master_domain?.replaceAll('\\n', '\n') || '',
           },
-          labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
           specId: item.spec_name,
         }),
       );
@@ -235,16 +238,11 @@
       tableKey.value = random();
       formData.tableData = [...dataList];
     } else {
-      formData.tableData = [...formData.tableData.filter((item) => item.batchCluster.renderText), ...dataList];
+      formData.tableData = [...formData.tableData.filter((item) => item.multipleCluster.renderText), ...dataList];
     }
     setTimeout(() => {
       tableRef.value?.validate();
     }, 200);
-  };
-
-  const generateCity = (clusters: Record<string, { id: number; master_domain: string; region: string }>) => {
-    const cities = Object.values(clusters).map((item) => item.region);
-    return cities.length ? cities.join(',') : '';
   };
 
   defineExpose({
@@ -257,14 +255,14 @@
         details: {
           backup_source: formData.backup_source,
           infos: formData.tableData.map((item) => {
-            const clusters = Object.values(item.batchCluster.clusters);
+            const clusters = item.multipleCluster.clusters;
             return {
               cluster_ids: clusters.map((cluster) => cluster.id),
               old_orphan: {
                 bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-                bk_cloud_id: clusters[0].hostList[0].bk_cloud_id,
-                bk_host_id: clusters[0].hostList[0].bk_host_id,
-                ip: clusters[0].hostList[0].ip,
+                bk_cloud_id: clusters[0].masters[0].bk_cloud_id,
+                bk_host_id: clusters[0].masters[0].bk_host_id,
+                ip: clusters[0].masters[0].ip,
               },
               resource_spec: {
                 bk_new_orphan: {

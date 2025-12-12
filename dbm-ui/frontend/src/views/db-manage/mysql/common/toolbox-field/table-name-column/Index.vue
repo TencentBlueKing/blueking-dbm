@@ -14,9 +14,13 @@
 <template>
   <DbNameColumn
     v-model="modelValue"
+    :disabled="disabled"
+    :disabled-method="disabledMethod"
     :field="field"
     :label="label"
+    :min-width="180"
     :placeholder="placeholder"
+    :readonly="readonly"
     :required="required"
     :rules="localRules"
     :show-batch-edit="showBatchEdit"
@@ -83,9 +87,11 @@
      */
     checkNotExist?: boolean;
     clusterId?: number;
+    disabled?: boolean;
     field: string;
     label: string;
     placeholder?: string;
+    readonly?: boolean;
     required?: boolean;
     rules?: NonNullable<ComponentProps<typeof DbNameColumn>['rules']>;
     showBatchEdit?: boolean;
@@ -102,6 +108,7 @@
     clusterId: undefined,
     disabled: false,
     placeholder: t('请输入DB 名称，支持通配符“%”，含通配符的仅支持单个'),
+    readonly: false,
     required: false,
     rules: () => [],
     showBatchEdit: true,
@@ -264,6 +271,8 @@
       }
     },
   );
+
+  const disabledMethod = () => (props.clusterId ? false : t('请先选择集群'));
 
   const handleBatchEdit = (value: string[]) => {
     isInit = false;
