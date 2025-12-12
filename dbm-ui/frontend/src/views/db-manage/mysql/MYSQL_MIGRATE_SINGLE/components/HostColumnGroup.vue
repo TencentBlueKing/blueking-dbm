@@ -91,11 +91,11 @@
   const modelValue = defineModel<{
     bk_cloud_id: number;
     bk_host_id: number;
-    bk_idc_city_name: string;
-    bk_sub_zone: string;
+    city: string;
     ip: string;
     related_instances: ServiceReturnType<typeof checkInstance>;
     spec: TendbsingleModel['masters'][0]['spec_config'];
+    subzones: string;
   }>({
     required: true,
   });
@@ -149,14 +149,15 @@
       const relatedInstances = data;
       const [currentHost] = data;
       if (currentHost) {
+        const [{ region, zone_list: zoneList }] = currentHost.related_clusters;
         modelValue.value = {
           bk_cloud_id: currentHost.bk_cloud_id,
           bk_host_id: currentHost.bk_host_id,
-          bk_idc_city_name: currentHost.host_info?.bk_idc_city_name || '',
-          bk_sub_zone: currentHost.host_info?.bk_sub_zone || '',
+          city: region && region !== 'default' ? region : '',
           ip: currentHost.ip,
           related_instances: relatedInstances,
           spec: currentHost.spec_config,
+          subzones: zoneList?.join(',') || '',
         };
       }
     },
@@ -170,13 +171,13 @@
     modelValue.value = Object.assign({} as typeof modelValue.value, {
       bk_cloud_id: 0,
       bk_host_id: 0,
-      bk_idc_city_name: '',
-      bk_sub_zone: '',
+      city: '',
       ip: value,
       related_instances: [],
       spec: {
         id: 0,
       },
+      subzones: '',
     });
   };
 

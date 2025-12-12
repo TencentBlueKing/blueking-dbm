@@ -91,8 +91,7 @@
   const modelValue = defineModel<{
     bk_cloud_id: number;
     bk_host_id: number;
-    bk_idc_city_name: string;
-    bk_sub_zone: string;
+    city: string;
     ip: string;
     // 合并行时使用
     merge_key: string;
@@ -101,6 +100,7 @@
     role: string;
     spec_config: TendbhaModel['masters'][number]['spec_config'];
     spec_id_list: number[];
+    subzones: string;
   }>({
     required: true,
   });
@@ -175,11 +175,11 @@
         const relatedInstances = data;
         const [hostInfo] = data;
         const relatedClusters = _.sortBy(hostInfo.related_clusters, 'id');
+        const [{ region, zone_list: zoneList }] = relatedClusters;
         modelValue.value = {
           bk_cloud_id: hostInfo.bk_cloud_id,
           bk_host_id: hostInfo.bk_host_id,
-          bk_idc_city_name: hostInfo.host_info?.bk_idc_city_name || '',
-          bk_sub_zone: hostInfo.host_info?.bk_sub_zone || '',
+          city: region && region !== 'default' ? region : '',
           ip: hostInfo.ip,
           merge_key: relatedClusters.map((i) => i.id).join(','),
           related_clusters: relatedClusters,
@@ -187,6 +187,7 @@
           role: hostInfo.role,
           spec_config: hostInfo.spec_config,
           spec_id_list: relatedInstances.map((item) => item.spec_config.id),
+          subzones: zoneList?.join(',') || '',
         };
         props.handleRowMerge();
       }
@@ -203,8 +204,7 @@
       {
         bk_cloud_id: 0,
         bk_host_id: 0,
-        bk_idc_city_name: '',
-        bk_sub_zone: '',
+        city: '',
         ip: value,
         merge_key: '',
         related_clusters: [],
@@ -212,6 +212,7 @@
         role: '',
         spec_config: {} as TendbhaModel['masters'][number]['spec_config'],
         spec_id_list: [],
+        subzones: '',
       },
     );
   };

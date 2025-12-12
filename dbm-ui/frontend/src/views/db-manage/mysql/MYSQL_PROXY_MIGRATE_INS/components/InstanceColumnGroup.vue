@@ -103,12 +103,12 @@
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
-    cities: string[];
+    city: string;
     cluster_ids: number[];
     instances: IValue[];
     renderText: string;
     spec_ids: number[];
-    subzones: string[];
+    subzones: string;
   }>({
     required: true,
   });
@@ -258,8 +258,8 @@
         clusterMemo.value = clusterMap;
         modelValue.value.instances = data as unknown as IValue[];
         modelValue.value.spec_ids = Array.from(spedIdsSet);
-        modelValue.value.cities = Array.from(citiesSet);
-        modelValue.value.subzones = Array.from(subzonesSet);
+        modelValue.value.city = Array.from(citiesSet).join(',');
+        modelValue.value.subzones = Array.from(subzonesSet).join(',');
         modelValue.value.cluster_ids = Array.from(clusterIdsSet);
       }
     },
@@ -277,7 +277,7 @@
     modelValue.value = Object.assign(
       {},
       {
-        cities: [],
+        city: '',
         cluster_ids: [],
         instances: [],
         renderText: value
@@ -286,7 +286,7 @@
           .filter((line) => line.length > 0)
           .join('\n'),
         spec_ids: [],
-        subzones: [],
+        subzones: '',
       },
     );
   };

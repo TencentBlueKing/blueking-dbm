@@ -77,7 +77,6 @@
   }
 
   type WithRelatedClusterItem = {
-    region?: string;
     related_clusters: ClusterBase[];
     spec_id_list?: number[];
   } & ClusterBase &
@@ -233,7 +232,6 @@
       cluster_type: props.clusterTypes?.[0] || ClusterTypes.TENDBHA,
       id: 0, // 重置ID，表示需要重新查询集群
       master_domain: value,
-      region: '',
       related_clusters: [],
       spec_id_list: [],
     });

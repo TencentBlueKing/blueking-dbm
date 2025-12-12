@@ -70,7 +70,8 @@
         @batch-edit="handleBatchEdit" />
       <AvailableResourceColumn
         :params="{
-          city: item.host.bk_idc_city_name,
+          city: item.host.city,
+          subzones: item.host.subzones,
           for_bizs: [currentBizId, 0],
           resource_types: [DBTypes.MYSQL, 'PUBLIC'],
           spec_id: item.specId,
@@ -141,13 +142,13 @@
       {
         bk_cloud_id: 0,
         bk_host_id: 0,
-        bk_idc_city_name: '',
-        bk_sub_zone: '',
+        city: '',
         ip: '',
         related_instances: [],
         spec: {
           id: 0,
         },
+        subzones: '',
       } as unknown as RowData['host'],
       data.host,
     ),
