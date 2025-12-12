@@ -18,6 +18,7 @@
     :field="field"
     :label="label"
     :min-width="200"
+    :readonly="readonly"
     :required="required">
     <template #headAppend>
       <div style="display: flex">
@@ -106,6 +107,7 @@
     disabled?: boolean;
     field: string;
     label: string;
+    readonly?: boolean;
     required?: boolean;
     rules?: NonNullable<ComponentProps<typeof DbNameColumn>['rules']>;
     showBatchEdit?: boolean;
@@ -121,11 +123,13 @@
     checkNotExist: false,
     clusterId: undefined,
     disabled: false,
+    readonly: false,
     required: false,
     rules: () => [],
     showBatchEdit: true,
     single: false,
   });
+
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<string[]>({
@@ -288,12 +292,7 @@
     },
   );
 
-  const disabledMethod = () => {
-    if (!props.checkExist || !props.checkNotExist) {
-      return false;
-    }
-    return props.clusterId ? false : t('请先选择集群');
-  };
+  const disabledMethod = () => (props.clusterId ? false : t('请先选择集群'));
 
   const tagInputPasteFn = (value: string) => value.split(batchSplitRegex).map((item) => ({ id: item }));
 

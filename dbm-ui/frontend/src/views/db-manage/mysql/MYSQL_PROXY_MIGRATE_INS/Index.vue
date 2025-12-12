@@ -25,39 +25,34 @@
           v-for="(item, index) in formData.tableData"
           :key="index">
           <InstanceColumnGroup
-            v-model="item.originProxy"
-            :handle-row-merge="handleRowMerge"
-            :rowspan="item.rowspan"
+            v-model="item.originProxies"
             :selected="selected"
+            :selected-map="selectedMap"
             @batch-edit="handleBatchEdit" />
           <SpecColumn
             v-model="item.specId"
             :cluster-type="DBTypes.MYSQL"
-            :current-spec-id-list="[item.originProxy.spec_config.id]"
+            :current-spec-id-list="item.originProxies.spec_ids"
             :machine-type="MachineTypes.MYSQL_PROXY"
             required
-            :rowspan="item.rowspan"
             selectable
             :show-tag="false"
             @batch-edit="handleBatchEditColumn" />
           <ResourceTagColumn
             v-model="item.labels"
-            :rowspan="item.rowspan"
             @batch-edit="handleBatchEditColumn" />
           <AvailableResourceColumn
             :params="{
-              city: item.originProxy.bk_idc_city_name,
-              subzones: item.originProxy.bk_sub_zone,
+              city: item.originProxies.cities.join(','),
+              subzones: item.originProxies.subzones.join(','),
               for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.MYSQL, 'PUBLIC'],
               spec_id: item.specId,
               labels: item.labels.map((item) => item.id).join(','),
-            }"
-            :rowspan="item.rowspan" />
+            }" />
           <OperationColumn
             v-model:table-data="formData.tableData"
-            :create-row-method="createTableRow"
-            :handle-row-merge="handleRowMerge" />
+            :create-row-method="createTableRow" />
         </EditableRow>
       </EditableTable>
       <BkFormItem>
@@ -96,7 +91,6 @@
   </ProxyWrapper>
 </template>
 <script lang="ts" setup>
-  import _ from 'lodash';
   import { reactive, useTemplateRef } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
@@ -123,8 +117,7 @@
 
   interface RowData {
     labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
-    originProxy: ComponentProps<typeof InstanceColumnGroup>['modelValue'];
-    rowspan: number;
+    originProxies: ComponentProps<typeof InstanceColumnGroup>['modelValue'];
     specId: number;
   }
 
@@ -135,7 +128,7 @@
 
   const batchInputConfig = [
     {
-      case: '192.168.10.2:10000',
+      case: '192.168.10.2:10000\\n192.168.10.2:10001',
       key: 'instance_address',
       label: t('目标Proxy实例'),
     },
@@ -153,23 +146,17 @@
 
   const createTableRow = (data: DeepPartial<RowData> = {}) => ({
     labels: (data.labels || []) as RowData['labels'],
-    originProxy: Object.assign(
+    originProxies: Object.assign(
       {
-        bk_cloud_id: 0,
-        bk_host_id: 0,
-        bk_idc_city_name: '',
-        bk_sub_zone: '',
-        cluster_id: 0,
-        instance_address: '',
-        ip: '',
-        master_domain: '',
-        port: 0,
-        role: '',
-        spec_config: {},
-      } as unknown as RowData['originProxy'],
-      data.originProxy,
+        cities: [],
+        cluster_ids: [],
+        instances: [],
+        renderText: '',
+        spec_ids: [],
+        subzones: [],
+      } as unknown as RowData['originProxies'],
+      data.originProxies,
     ),
-    rowspan: data.rowspan || 1,
     specId: data.specId || 0,
   });
 
@@ -182,37 +169,8 @@
   const tableKey = ref(random());
   const formData = reactive(defaultData());
 
-  const selected = computed(() =>
-    formData.tableData.filter((item) => item.originProxy.bk_host_id).map((item) => item.originProxy),
-  );
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.instance_address, true])));
-  // 具备完全相同的集群id列的行数组map
-  let sameClusterIdsRowsMap: Record<string, RowData[]> = {};
-
-  // 行合并
-  const handleRowMerge = () => {
-    // 接口都响应后再合并
-    const isRespsoned = formData.tableData.every((item) => !!item.originProxy.cluster_id);
-    if (!isRespsoned) {
-      return;
-    }
-
-    formData.tableData = [..._.sortBy(formData.tableData, (item) => item.originProxy.cluster_id)];
-
-    sameClusterIdsRowsMap = {};
-    formData.tableData.forEach((item) => {
-      Object.assign(item, { rowspan: 1 });
-      const id = item.originProxy.cluster_id;
-      if (!sameClusterIdsRowsMap[id]) {
-        sameClusterIdsRowsMap[id] = [item];
-      } else {
-        sameClusterIdsRowsMap[id].push(item);
-      }
-    });
-    Object.values(sameClusterIdsRowsMap).forEach((list) => {
-      Object.assign(list[0], { rowspan: list.length });
-    });
-  };
+  const selected = computed(() => formData.tableData.flatMap((item) => Object.values(item.originProxies.instances)));
+  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.instance_address, cur])));
 
   useTicketDetail<Mysql.ResourcePool.ProxyMigrateIns>(TicketTypes.MYSQL_PROXY_MIGRATE_INS, {
     onSuccess(ticketDetail) {
@@ -221,17 +179,19 @@
         is_safe: details.is_safe,
         payload: createTickePayload(ticketDetail),
         tableData: details.infos.reduce<RowData[]>((acc, item) => {
-          item.old_nodes.proxy?.forEach((proxy) => {
-            acc.push(
-              createTableRow({
-                labels: (item.resource_spec.target_proxies?.labels || []).map((item) => ({ id: Number(item) })),
-                originProxy: {
-                  instance_address: `${proxy.ip}:${proxy.port}`,
-                },
-                specId: item.resource_spec.target_proxies?.spec_id,
-              }),
-            );
+          const instances: string[] = [];
+          item.origin_proxies.forEach((prxoy) => {
+            instances.push(`${prxoy.ip}:${prxoy.port}`);
           });
+          acc.push(
+            createTableRow({
+              labels: (item.resource_spec.target_proxies?.labels || []).map((item) => ({ id: Number(item) })),
+              originProxies: {
+                renderText: instances.join('\n'),
+              },
+              specId: item.resource_spec.target_proxies?.spec_id,
+            }),
+          );
           return acc;
         }, []),
       });
@@ -281,15 +241,15 @@
       if (!selectedMap.value[item.instance_address]) {
         acc.push(
           createTableRow({
-            originProxy: {
-              instance_address: item.instance_address,
+            originProxies: {
+              renderText: item.instance_address,
             },
           }),
         );
       }
       return acc;
     }, []);
-    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    formData.tableData = [...formData.tableData.filter((item) => item.originProxies.renderText), ...dataList];
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
@@ -297,8 +257,8 @@
       acc.push(
         createTableRow({
           labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
-          originProxy: {
-            instance_address: item.instance_address,
+          originProxies: {
+            renderText: item.instance_address?.replaceAll('\\n', '\n') || '',
           },
           specId: item.spec_name,
         }),
@@ -309,7 +269,7 @@
       tableKey.value = random();
       formData.tableData = [...dataList];
     } else {
-      formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+      formData.tableData = [...formData.tableData.filter((item) => item.originProxies.renderText), ...dataList];
     }
     setTimeout(() => {
       tableRef.value?.validate();
@@ -329,44 +289,32 @@
     if (valid) {
       createTicketRun({
         details: {
-          infos: Object.values(sameClusterIdsRowsMap).map((rows) => ({
-            cluster_ids: [rows[0].originProxy.cluster_id],
-            old_nodes: {
-              proxy: rows.reduce<Mysql.ResourcePool.ProxyMigrateIns['infos'][0]['old_nodes']['proxy']>((acc, row) => {
-                acc.push({
-                  bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-                  bk_cloud_id: row.originProxy.bk_cloud_id,
-                  bk_host_id: row.originProxy.bk_host_id,
-                  ip: row.originProxy.ip,
-                  port: row.originProxy.port,
-                  spec: row.originProxy.spec_config,
-                });
-                return acc;
-              }, []),
-            },
-            origin_proxies: rows.reduce<Mysql.ResourcePool.ProxyMigrateIns['infos'][0]['old_nodes']['proxy']>(
-              (acc, row) => {
-                acc.push({
-                  bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-                  bk_cloud_id: row.originProxy.bk_cloud_id,
-                  bk_host_id: row.originProxy.bk_host_id,
-                  ip: row.originProxy.ip,
-                  port: row.originProxy.port,
-                  spec: row.originProxy.spec_config,
-                });
-                return acc;
+          infos: formData.tableData.map((item) => {
+            const proxies = item.originProxies.instances.map((item) => ({
+              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+              bk_cloud_id: item.bk_cloud_id,
+              bk_host_id: item.bk_host_id,
+              ip: item.ip,
+              port: item.port,
+              spec: item.spec_config,
+            }));
+
+            return {
+              cluster_ids: item.originProxies.cluster_ids,
+              old_nodes: {
+                proxy: proxies,
               },
-              [],
-            ),
-            resource_spec: {
-              target_proxies: {
-                count: rows.length,
-                label_names: rows[0].labels.map((item) => item.value),
-                labels: rows[0].labels.map((item) => String(item.id)),
-                spec_id: rows[0].specId,
+              origin_proxies: proxies,
+              resource_spec: {
+                target_proxies: {
+                  count: proxies.length,
+                  label_names: item.labels.map((item) => item.value),
+                  labels: item.labels.map((item) => String(item.id)),
+                  spec_id: item.specId,
+                },
               },
-            },
-          })),
+            };
+          }),
           ip_source: 'resource_pool',
           is_safe: formData.is_safe,
         },

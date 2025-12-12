@@ -47,6 +47,7 @@ export interface InstanceInfos {
     region: string;
     status: string;
     time_zone: string;
+    zone_list: string[];
     updater: string;
   }[];
   role: string;

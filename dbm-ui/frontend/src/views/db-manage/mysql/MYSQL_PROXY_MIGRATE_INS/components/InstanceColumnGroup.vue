@@ -14,44 +14,66 @@
 <template>
   <EditableColumn
     :append-rules="rules"
-    field="originProxy.instance_address"
+    field="originProxies.renderText"
     fixed="left"
     :label="t('目标Proxy实例')"
     :loading="loading"
-    :min-width="200"
+    :min-width="300"
     required>
     <template #headAppend>
       <span
         v-bk-tooltips="t('批量选择')"
         class="batch-host-select"
-        @click="handleShowSelector">
+        @click="handleShowBatchSelector">
         <DbIcon type="batch-host-select" />
       </span>
     </template>
-    <EditableInput
-      v-model="modelValue.instance_address"
-      :placeholder="t('请输入IP:Port')"
-      @change="handleChange" />
+    <EditableTextarea
+      v-model="modelValue.renderText"
+      :placeholder="t('请输入实例，多个实例用分隔符输入')"
+      @change="handleChange">
+      <template #append>
+        <span v-bk-tooltips="t('选择实例')">
+          <DbIcon
+            class="select-icon"
+            type="host-select"
+            @click="handleShowSelector" />
+        </span>
+      </template>
+    </EditableTextarea>
   </EditableColumn>
   <EditableColumn
     :label="t('关联集群')"
     :loading="loading"
     :min-width="240"
-    readonly
-    :rowspan="rowspan">
-    <EditableBlock
-      v-model="modelValue.master_domain"
-      :placeholder="t('自动生成')" />
+    readonly>
+    <EditableBlock :placeholder="t('自动生成')">
+      <p
+        v-for="domain in Object.keys(clusterMemo)"
+        :key="domain">
+        {{ domain }}
+      </p>
+    </EditableBlock>
   </EditableColumn>
+  <!-- 表头批量添加 -->
   <InstanceSelector
-    v-model:is-show="showSelector"
+    v-model:is-show="showBatchSelector"
     :cluster-types="[ClusterTypes.TENDBHA]"
     hide-manual-input
     :selected="selectedInstances"
     :tab-list-config="tabListConfig"
+    @change="handleSelectorBatchChange" />
+  <!-- 单元格添加 -->
+  <InstanceSelector
+    v-model:is-show="showSelector"
+    :cluster-types="[ClusterTypes.TENDBHA]"
+    hide-manual-input
+    :selected="selectedCellInstances"
+    :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -59,7 +81,7 @@
   import { checkInstance } from '@services/source/dbbase';
 
   import { ClusterTypes, DBTypes } from '@common/const';
-  import { ipPort } from '@common/regex';
+  import { batchSplitRegex, ipPort } from '@common/regex';
 
   import InstanceSelector, {
     type InstanceSelectorValues,
@@ -70,9 +92,8 @@
   export type SelectorItem = IValue;
 
   interface Props {
-    handleRowMerge: () => void;
-    rowspan: number;
-    selected: Array<typeof modelValue.value>;
+    selected: IValue[];
+    selectedMap: Record<string, IValue>;
   }
 
   type Emits = (e: 'batch-edit', list: IValue[]) => void;
@@ -82,17 +103,12 @@
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
-    bk_cloud_id: number;
-    bk_host_id: number;
-    bk_idc_city_name: string;
-    bk_sub_zone: string;
-    cluster_id: number;
-    instance_address: string;
-    ip: string;
-    master_domain: string;
-    port: number;
-    role: string;
-    spec_config: TendbhaModel['masters'][number]['spec_config'];
+    cities: string[];
+    cluster_ids: number[];
+    instances: IValue[];
+    renderText: string;
+    spec_ids: number[];
+    subzones: string[];
   }>({
     required: true,
   });
@@ -129,37 +145,73 @@
     ],
   } as Record<ClusterTypes, PanelListType>;
 
+  const clusterMemo = ref<Record<string, boolean>>({});
   const showSelector = ref(false);
-  const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
-    [ClusterTypes.TENDBHA]: props.selected.map(
-      (item) =>
-        ({
-          instance_address: item.instance_address,
-        }) as IValue,
-    ),
+  const showBatchSelector = ref(false);
+  const selectedInstances = computed(() => ({
+    [ClusterTypes.TENDBHA]: props.selected,
   }));
+  const selectedCellInstances = computed(() => ({
+    [ClusterTypes.TENDBHA]: modelValue.value.instances,
+  }));
+  const selectedCounter = computed(() => _.countBy(props.selected, 'instance_address'));
 
   const rules = [
     {
       message: t('实例格式有误，请输入 IP:Port'),
       trigger: 'change',
-      validator: (value: string) => !value || ipPort.test(value),
+      validator: (value: string) => !value || value.split(batchSplitRegex).every((item) => ipPort.test(item)),
     },
     {
-      message: t('目标实例重复'),
-      trigger: 'change',
-      validator: (value: string) =>
-        !value || props.selected.filter((item) => item.instance_address === value).length < 2,
-    },
-    {
-      message: t('目标实例不存在'),
+      message: '',
       trigger: 'blur',
-      validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
+      validator: (value: string) => {
+        if (!value) {
+          return true;
+        }
+        const repeats: string[] = [];
+        const list = value.split(batchSplitRegex);
+        list.forEach((domain, index) => {
+          if (index !== list.indexOf(domain)) {
+            repeats.push(domain);
+          } else if (selectedCounter.value[domain] > 1) {
+            repeats.push(domain);
+          }
+        });
+        return repeats.length ? t('目标实例xx重复', [repeats.join(',')]) : true;
+      },
     },
     {
-      message: t('该实例为非 Proxy 实例，请选择 Proxy 实例'),
+      message: '',
       trigger: 'blur',
-      validator: (value: string) => !value || modelValue.value.role === 'proxy',
+      validator: (value: string) => {
+        if (!value) {
+          return true;
+        }
+        const notFounds: string[] = [];
+        value.split(batchSplitRegex).forEach((item) => {
+          if (!props.selectedMap[item]) {
+            notFounds.push(item);
+          }
+        });
+        return notFounds.length ? t('目标实例xx不存在', [notFounds.join(',')]) : true;
+      },
+    },
+    {
+      message: '',
+      trigger: 'blur',
+      validator: (value: string) => {
+        if (!value) {
+          return true;
+        }
+        const roleErrors: string[] = [];
+        value.split(batchSplitRegex).forEach((item) => {
+          if (props.selectedMap[item].role !== 'proxy') {
+            roleErrors.push(item);
+          }
+        });
+        return roleErrors.length ? t('实例xx为非 Proxy 实例，请选择 Proxy 实例', [roleErrors.join(',')]) : true;
+      },
     },
   ];
 
@@ -167,24 +219,55 @@
     manual: true,
     onSuccess: (data) => {
       if (data.length) {
-        const [instanceInfo] = data;
-        modelValue.value = {
-          bk_cloud_id: instanceInfo.bk_cloud_id,
-          bk_host_id: instanceInfo.bk_host_id,
-          bk_idc_city_name: instanceInfo.host_info?.bk_idc_city_name || '',
-          bk_sub_zone: instanceInfo.host_info?.bk_sub_zone || '',
-          cluster_id: instanceInfo.cluster_id,
-          instance_address: instanceInfo.instance_address,
-          ip: instanceInfo.ip,
-          master_domain: instanceInfo.master_domain,
-          port: instanceInfo.port,
-          role: instanceInfo.role,
-          spec_config: instanceInfo.spec_config,
-        };
-        props.handleRowMerge();
+        // 使用 Set 去重，提高性能并避免重复数据
+        const spedIdsSet = new Set<number>();
+        const citiesSet = new Set<string>();
+        const subzonesSet = new Set<string>();
+        const clusterIdsSet = new Set<number>();
+        const clusterMap: Record<string, boolean> = {};
+        const instances: Record<string, IValue> = {};
+
+        data.forEach((item) => {
+          // 规格ID
+          if (item.spec_config?.id) {
+            spedIdsSet.add(item.spec_config.id);
+          }
+
+          // 地域信息
+          if (item.related_clusters?.[0]?.region && item.related_clusters[0].region !== 'default') {
+            citiesSet.add(item.related_clusters[0].region);
+          }
+
+          // 园区信息
+          (item.related_clusters?.[0]?.zone_list || []).forEach((zone) => {
+            subzonesSet.add(zone);
+          });
+
+          // 集群ID
+          clusterIdsSet.add(item.cluster_id);
+
+          Object.assign(clusterMap, {
+            [item.master_domain]: true,
+          });
+
+          Object.assign(instances, {
+            [item.instance_address]: item,
+          });
+        });
+
+        clusterMemo.value = clusterMap;
+        modelValue.value.instances = data as unknown as IValue[];
+        modelValue.value.spec_ids = Array.from(spedIdsSet);
+        modelValue.value.cities = Array.from(citiesSet);
+        modelValue.value.subzones = Array.from(subzonesSet);
+        modelValue.value.cluster_ids = Array.from(clusterIdsSet);
       }
     },
   });
+
+  const handleShowBatchSelector = () => {
+    showBatchSelector.value = true;
+  };
 
   const handleShowSelector = () => {
     showSelector.value = true;
@@ -194,34 +277,38 @@
     modelValue.value = Object.assign(
       {},
       {
-        bk_cloud_id: 0,
-        bk_host_id: 0,
-        bk_idc_city_name: '',
-        bk_sub_zone: '',
-        cluster_id: 0,
-        instance_address: value,
-        ip: '',
-        master_domain: '',
-        port: 0,
-        role: '',
-        spec_config: {} as TendbhaModel['masters'][number]['spec_config'],
+        cities: [],
+        cluster_ids: [],
+        instances: [],
+        renderText: value
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter((line) => line.length > 0)
+          .join('\n'),
+        spec_ids: [],
+        subzones: [],
       },
     );
   };
 
-  const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
+  const handleSelectorBatchChange = (selected: InstanceSelectorValues<IValue>) => {
     emits('batch-edit', selected[ClusterTypes.TENDBHA]);
+  };
+
+  const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
+    const list = Object.values(selected).flatMap((selectedList) => selectedList);
+    handleChange(list.map((item) => item.instance_address).join('\n'));
   };
 
   watch(
     modelValue,
     () => {
-      if (modelValue.value.instance_address && !modelValue.value.bk_host_id) {
+      if (modelValue.value.renderText && !modelValue.value.instances.length) {
         queryInstance({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           cluster_type: [ClusterTypes.TENDBHA],
           db_type: DBTypes.MYSQL,
-          instance_addresses: [modelValue.value.instance_address],
+          instance_addresses: modelValue.value.renderText.split(batchSplitRegex),
         });
       }
     },
@@ -236,5 +323,18 @@
     font-size: 14px;
     color: #3a84ff;
     cursor: pointer;
+  }
+
+  .select-icon {
+    display: flex;
+    margin-right: 5px;
+    font-size: 18px;
+    color: #979ba5;
+    align-items: center;
+    cursor: pointer;
+
+    &:hover {
+      color: #3a84ff;
+    }
   }
 </style>
