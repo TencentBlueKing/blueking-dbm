@@ -14,10 +14,10 @@
 <template>
   <TicketInfoTable
     bordered
+    class="redis-cluster-cutoff-table"
     :data="tableData"
     :row-class-name="generateRowClass"
-    row-key="ip"
-    :rowspan-and-colspan="rowspanAndColspan">
+    row-key="ip">
     <TicketInfoTableColumn
       col-key="ip"
       :get-copy-value="(row: RowData) => [row.ip, row.related_slave_ip || '']"
@@ -37,13 +37,21 @@
       col-key="role"
       :min-width="150"
       :title="t('角色类型')">
+      <template #default="{ row: data }: { row: RowData }">
+        <p class="has-related">{{ data.role || '--' }}</p>
+        <p
+          v-if="data?.related_slave_ip"
+          class="has-related related-slave-cell">
+          redis_slave
+        </p>
+      </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="cluster_domain"
       :min-width="250"
       :title="t('所属集群')">
       <template #default="{ row: data }: { row: RowData }">
-        {{ data.cluster_domain || '--' }}
+        <p class="has-related">{{ data.cluster_domain || '--' }}</p>
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
@@ -51,14 +59,28 @@
       :min-width="200"
       :title="t('规格需求')">
       <template #default="{ row: data }: { row: RowData }">
-        <SpecDetailPopover
-          v-if="data.spec_config?.name"
-          :data="data.spec_config">
-          {{ data.spec_config?.name || '--' }}
-          <DbIcon
-            class="visible-icon ml-4"
-            type="visible1" />
-        </SpecDetailPopover>
+        <div class="has-related">
+          <SpecDetailPopover
+            v-if="data.spec_config?.name"
+            :data="data.spec_config">
+            {{ data.spec_config?.name || '--' }}
+            <DbIcon
+              class="visible-icon ml-4"
+              type="visible1" />
+          </SpecDetailPopover>
+        </div>
+        <div
+          v-if="data.related_slave_spec?.name"
+          class="has-related related-slave-cell">
+          <SpecDetailPopover
+            v-if="data.related_slave_spec?.name"
+            :data="data.related_slave_spec">
+            {{ data.related_slave_spec?.name || '--' }}
+            <DbIcon
+              class="visible-icon ml-4"
+              type="visible1" />
+          </SpecDetailPopover>
+        </div>
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
@@ -111,6 +133,7 @@
     ip: string;
     labels: string[];
     related_slave_ip?: string; // 关联的slave
+    related_slave_spec?: DetailSpecs[number]; // 关联的slave
     role: string;
     spec_config: DetailSpecs[number];
   }
@@ -124,22 +147,15 @@
     return '';
   };
 
-  const spanInfo: {
-    rowIndex: number;
-    rowspan: number;
-  }[] = [];
-
   const { clusters, infos, specs } = props.ticketDetails.details;
   const list = infos.flatMap((infoItem) => {
     const role = infoItem.switch_role as keyof (typeof infos)[number]['old_nodes'];
     const hosts = infoItem[role]!;
-
     const resouceSpecItem = Object.values(infoItem.resource_spec)[0];
     const labels = resouceSpecItem.label_names || [];
     const domain = clusters[infoItem.cluster_ids[0]].immute_domain;
     const specConfig = specs[resouceSpecItem.spec_id];
     const redisMasterOldNodes = role === 'redis_master' ? infoItem['old_nodes']['redis_master']! : [];
-
     return hosts.map((host, hostIndex) => ({
       cluster_domain: domain,
       ip: host.ip,
@@ -149,51 +165,44 @@
       spec_config: specConfig,
     }));
   });
-
-  const domainCounter: Record<string, number> = {};
-  list.forEach((rowData, index) => {
-    const domain = rowData.cluster_domain;
-    domainCounter[domain] = (domainCounter[domain] || 0) + 1;
-    if (domainCounter[domain] > 1) {
-      spanInfo.push({
-        rowIndex: index + 1 - domainCounter[domain],
-        rowspan: domainCounter[domain],
-      });
-    }
-  });
   tableData.value = list;
-
-  const rowspanAndColspan = ({ colIndex, rowIndex }: { colIndex: number; rowIndex: number }) => {
-    const spanItem = spanInfo.find((item) => [2, 3, 4].includes(colIndex) && item.rowIndex === rowIndex);
-    if (spanItem) {
-      return {
-        rowspan: spanItem.rowspan,
-      };
-    }
-    return {};
-  };
 </script>
 <style lang="less">
-  .visible-icon {
-    font-size: 16px;
-    color: #3a84ff;
-    cursor: pointer;
-  }
-
-  .related-slave-row {
-    .t-table__td-first-col {
-      padding: 0 !important;
+  .redis-cluster-cutoff-table {
+    .visible-icon {
+      font-size: 16px;
+      color: #3a84ff;
+      cursor: pointer;
     }
 
-    .has-related {
-      padding: 11px 8px;
-    }
+    .related-slave-row {
+      td {
+        height: 80px !important;
+        padding: 0 !important;
+      }
 
-    .related-slave {
-      padding: 0 8px;
-      line-height: 18px;
-      color: #979ba5;
-      background: #fafbfd;
+      .has-related {
+        height: 40px;
+        padding: 0 8px;
+        line-height: 40px;
+      }
+
+      .related-slave {
+        height: 40px;
+        padding: 0 8px;
+        line-height: 18px;
+        color: #979ba5;
+        background: #fafbfd;
+      }
+
+      .related-slave-cell {
+        border-top: 1px solid #dcdee5;
+      }
+
+      .render-spec-cell {
+        display: flex;
+        align-items: center;
+      }
     }
   }
 </style>
