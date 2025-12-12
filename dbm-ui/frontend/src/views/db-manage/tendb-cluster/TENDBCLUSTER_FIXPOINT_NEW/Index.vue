@@ -57,6 +57,7 @@
             :disabled="diabledEdit(item)"
             field="databases"
             :label="t('源 DB')"
+            required
             @batch-edit="handleBatchEdit" />
           <TableNameColumn
             v-model="item.tables"
@@ -64,6 +65,7 @@
             :disabled="diabledEdit(item)"
             field="tables"
             :label="t('源表')"
+            required
             @batch-edit="handleBatchEdit" />
           <MultipleResourceHostColumn
             v-model="item.remoteHosts"
@@ -130,8 +132,8 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-  import DbNameColumn from '@views/db-manage/tendb-cluster/common/edit-table-column/DbNameColumn.vue';
-  import TableNameColumn from '@views/db-manage/tendb-cluster/common/edit-table-column/TableNameColumn.vue';
+  import DbNameColumn from '@views/db-manage/mysql/common/toolbox-field/db-name-column/Index.vue';
+  import TableNameColumn from '@views/db-manage/mysql/common/toolbox-field/table-name-column/Index.vue';
   import ClusterColumn from '@views/db-manage/tendb-cluster/common/toolbox-field/cluster-column/Index.vue';
   import BackupRecordColumn from '@views/db-manage/tendb-cluster/TENDBCLUSTER_FIXPOINT_EXIST/components/backup-record-column/Index.vue';
   import FixpointWrapper from '@views/db-manage/tendb-cluster/TENDBCLUSTER_FIXPOINT_EXIST/components/FixpointWrapper.vue';
