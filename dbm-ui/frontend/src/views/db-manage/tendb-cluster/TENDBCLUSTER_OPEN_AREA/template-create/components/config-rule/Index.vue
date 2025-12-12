@@ -63,7 +63,7 @@
   import { batchSplitRegex } from '@common/regex';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
-  import TableNameColumn from '@views/db-manage/tendb-cluster/common/toolbox-field/table-name-column/Index.vue';
+  import TableNameColumn from '@views/db-manage/mysql/common/toolbox-field/table-name-column/Index.vue';
 
   import { random } from '@utils';
 

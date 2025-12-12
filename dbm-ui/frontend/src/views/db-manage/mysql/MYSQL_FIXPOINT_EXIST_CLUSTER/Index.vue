@@ -69,6 +69,7 @@
             :disabled="diabledEdit(item)"
             field="databases"
             :label="t('源 DB')"
+            required
             @batch-edit="handleBatchEdit" />
           <TableNameColumn
             v-model="item.tables"
@@ -76,6 +77,7 @@
             :disabled="diabledEdit(item)"
             field="tables"
             :label="t('源表')"
+            required
             @batch-edit="handleBatchEdit" />
           <TargetClusterColumn
             v-model="item.targetCluster"
@@ -133,9 +135,9 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-  import DbNameColumn from '@views/db-manage/mysql/common/edit-table-column/DbNameColumn.vue';
-  import TableNameColumn from '@views/db-manage/mysql/common/edit-table-column/TableNameColumn.vue';
   import ClusterColumn from '@views/db-manage/mysql/common/toolbox-field/cluster-column/Index.vue';
+  import DbNameColumn from '@views/db-manage/mysql/common/toolbox-field/db-name-column/Index.vue';
+  import TableNameColumn from '@views/db-manage/mysql/common/toolbox-field/table-name-column/Index.vue';
 
   import { random } from '@utils';
 

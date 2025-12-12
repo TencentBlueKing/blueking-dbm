@@ -25,8 +25,8 @@
         <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
-          <ClusterColumn
-            v-model="item.batchCluster"
+          <MultipleClusterColumn
+            v-model="item.multipleCluster"
             :selected="selected"
             :selected-map="selectedMap"
             @batch-edit="handleBatchEdit" />
@@ -42,7 +42,8 @@
             @batch-edit="handleBatchEditColumn" />
           <AvailableResourceColumn
             :params="{
-              city: item.batchCluster.cities.join(','),
+              subzones: item.multipleCluster.subzones,
+              city: item.multipleCluster.city,
               for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.MYSQL, 'PUBLIC'],
               spec_id: item.specId,
@@ -96,15 +97,14 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+  import MultipleClusterColumn from '@views/db-manage/mysql/common/toolbox-field/multiple-cluster-column/Index.vue';
   import ProxyWrapper from '@views/db-manage/mysql/MYSQL_PROXY_ADD/components/ProxyWrapper.vue';
 
   import { random } from '@utils';
 
-  import ClusterColumn from './components/ClusterColumn.vue';
-
   interface RowData {
-    batchCluster: ComponentProps<typeof ClusterColumn>['modelValue'];
     labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
+    multipleCluster: ComponentProps<typeof MultipleClusterColumn>['modelValue'];
     specId: number;
   }
 
@@ -114,16 +114,17 @@
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const createTableRow = (data: DeepPartial<RowData> = {}) => ({
-    batchCluster: Object.assign(
+    labels: (data.labels || []) as RowData['labels'],
+    multipleCluster: Object.assign(
       {
-        cities: [],
+        city: '',
         clusters: [],
         renderText: '',
-        spec_id_list: [],
-      } as RowData['batchCluster'],
-      data.batchCluster,
+        spec_ids: [],
+        subzones: '',
+      } as RowData['multipleCluster'],
+      data.multipleCluster,
     ),
-    labels: (data.labels || []) as RowData['labels'],
     specId: data.specId || 0,
   });
 
@@ -153,7 +154,7 @@
     },
   ];
 
-  const selected = computed(() => formData.tableData.flatMap((item) => Object.values(item.batchCluster.clusters)));
+  const selected = computed(() => formData.tableData.flatMap((item) => Object.values(item.multipleCluster.clusters)));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
   useTicketDetail<Mysql.ResourcePool.ProxyMigrate>(TicketTypes.MYSQL_PROXY_MIGRATE, {
@@ -164,16 +165,16 @@
       Object.assign(formData, {
         ...createTickePayload(ticketDetail),
         tableData: infos.map((item) => {
+          const domains: string[] = [];
+          item.cluster_ids.forEach((clusterId) => {
+            domains.push(clusters[clusterId].immute_domain);
+          });
+
           return createTableRow({
-            batchCluster: {
-              clusters: item.cluster_ids.map(
-                (clusterId) =>
-                  ({
-                    master_domain: clusters[clusterId]?.immute_domain || '',
-                  }) as unknown as TendbhaModel,
-              ),
-            },
             labels: (item.resource_spec.target_proxies?.labels || []).map((item) => ({ id: Number(item) })),
+            multipleCluster: {
+              renderText: domains.join('\n'),
+            },
             specId: item.resource_spec.target_proxies?.spec_id,
           });
         }),
@@ -225,7 +226,7 @@
       details: {
         infos: formData.tableData.map((item) => {
           const proxies = _.uniqBy(
-            item.batchCluster.clusters
+            item.multipleCluster.clusters
               .flatMap((cluster) => cluster.proxies)
               .map((instance) => ({
                 bk_biz_id: instance.bk_biz_id,
@@ -238,12 +239,12 @@
           );
 
           return {
-            cluster_ids: item.batchCluster.clusters.map((cluster) => cluster.id),
+            cluster_ids: item.multipleCluster.clusters.map((cluster) => cluster.id),
             old_nodes: {
               proxy: proxies,
             },
             origin_proxies: proxies,
-            related_instances: item.batchCluster.clusters.flatMap((cluster) => ({
+            related_instances: item.multipleCluster.clusters.map((cluster) => ({
               cluster_id: cluster.id,
               instance_address: cluster.proxies.map((proxy) => `${proxy.ip}:${proxy.port}`),
             })),
@@ -272,28 +273,25 @@
       if (!selectedMap.value[item.master_domain]) {
         acc.push(
           createTableRow({
-            batchCluster: {
-              clusters: [item],
+            multipleCluster: {
+              renderText: item.master_domain,
             },
           }),
         );
       }
       return acc;
     }, []);
-    formData.tableData = [
-      ...(formData.tableData[0].batchCluster.clusters.length ? formData.tableData : []),
-      ...dataList,
-    ];
+    formData.tableData = [...formData.tableData.filter((item) => item.multipleCluster.renderText), ...dataList];
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
     const dataList = data.reduce<RowData[]>((acc, item) => {
       acc.push(
         createTableRow({
-          batchCluster: {
+          labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
+          multipleCluster: {
             renderText: item.master_domain?.replaceAll('\\n', '\n') || '',
           },
-          labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
           specId: item.spec_name,
         }),
       );
@@ -303,11 +301,9 @@
       tableKey.value = random();
       formData.tableData = [...dataList];
     } else {
-      formData.tableData = [
-        ...(formData.tableData[0].batchCluster.clusters.length ? formData.tableData : []),
-        ...dataList,
-      ]; // 追加
+      formData.tableData = [...formData.tableData.filter((item) => item.multipleCluster.renderText), ...dataList];
     }
+
     setTimeout(() => {
       tableRef.value?.validate();
     }, 200);

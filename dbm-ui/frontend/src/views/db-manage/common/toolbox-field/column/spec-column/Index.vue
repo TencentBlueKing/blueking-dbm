@@ -150,7 +150,12 @@
       message: t('规格不能为空'),
       required: true,
       trigger: 'blur',
-      validator: (value: number) => !!value,
+      validator: (value: number) => {
+        if (!props.required) {
+          return true;
+        }
+        return !!value;
+      },
     },
   ];
 

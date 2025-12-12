@@ -46,8 +46,8 @@
             @batch-edit="handleBatchEditColumn" />
           <AvailableResourceColumn
             :params="{
-              city: item.originProxy.bk_idc_city_name,
-              subzones: item.originProxy.bk_sub_zone,
+              city: item.originProxy.city,
+              subzones: item.originProxy.subzones,
               for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.MYSQL, 'PUBLIC'],
               spec_id: item.specId,
@@ -157,8 +157,7 @@
       {
         bk_cloud_id: 0,
         bk_host_id: 0,
-        bk_idc_city_name: '',
-        bk_sub_zone: '',
+        city: '',
         cluster_id: 0,
         instance_address: '',
         ip: '',
@@ -166,6 +165,7 @@
         port: 0,
         role: '',
         spec_config: {},
+        subzones: '',
       } as unknown as RowData['originProxy'],
       data.originProxy,
     ),
