@@ -22,30 +22,25 @@
  * SOFTWARE.
  */
 
-package redis
+package haprobe
 
-type Option interface {
-	apply(*redisOptions)
-}
+// RedisStatus Redis status
+type RedisStatus struct {
+	// TendisCache status
+	TendisCacheStatus *RedisTendisCacheStatus `json:"tendiscache_status,omitempty"`
 
-type redisOptions struct {
-	reportInterval int
-}
+	// TendisSSD status
+	TendisSSDStatus *RedisTendisSSDStatus `json:"tendisssd_status,omitempty"`
 
-var defaultRedisOptions = redisOptions{}
+	// TendisPlus status
+	TendisPlusStatus *RedisTendisPlusStatus `json:"tendisplus_status,omitempty"`
 
-type funcRedisOptions struct {
-	f func(*redisOptions)
-}
+	// RedisCluster status
+	RedisClusterStatus *RedisClusterStatus `json:"rediscluster_status,omitempty"`
 
-func (fdo *funcRedisOptions) apply(opt *redisOptions) {
-	fdo.f(opt)
-}
+	// Twemproxy status
+	TwemproxyStatus *RedisTwemproxyStatus `json:"twemproxy_status,omitempty"`
 
-func OptionReportInterval(val int) *funcRedisOptions {
-	return &funcRedisOptions{
-		f: func(opt *redisOptions) {
-			opt.reportInterval = val
-		},
-	}
+	// Predixy status
+	PredixyStatus *RedisPredixyStatus `json:"predixy_status,omitempty"`
 }

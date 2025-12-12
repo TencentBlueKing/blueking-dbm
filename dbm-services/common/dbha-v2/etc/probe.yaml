@@ -29,6 +29,19 @@ harvester:
         ports: [1000-2000,20003, 3000, 5000-6000]
         adminPorts: []
 
+  redis:
+    password: ""
+    interval: 20s
+    timeout: 5s
+    endpoints:
+      - proto: tcp
+        clusterType: ""
+        machineType: ""
+        accessLayer: ""
+        ip: 127.0.0.1
+        ports: [3306,10000-12000]
+        adminPorts: []
+
 log:
   path: ./logs/probe.log
   level: debug

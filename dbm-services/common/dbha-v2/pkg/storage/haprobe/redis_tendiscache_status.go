@@ -22,16 +22,16 @@
  * SOFTWARE.
  */
 
-package harvester
+package haprobe
 
-import (
-	"dbm-services/common/dbha-v2/internal/probe/harvester/mysql"
-	"dbm-services/common/dbha-v2/internal/probe/harvester/redis"
-)
+// RedisTendisCacheStatus TendisCache storage status
+type RedisTendisCacheStatus struct {
+	Base        RedisBaseStatus        `json:"base,omitempty"`
+	Memory      RedisMemoryStatus      `json:"memory,omitempty"`
+	Persistence RedisPersistenceStatus `json:"persistence,omitempty"`
+	Keyspace    []RedisDBKeyspace      `json:"keyspace,omitempty"`
 
-var (
-	// NewPluginMySql To avoid potential ambiguity caused by directly using 'mysql',
-	// the method for creating the mysql plugin has been renamed here.
-	NewPluginMySql = mysql.NewMySql
-	NewPluginRedis = redis.NewRedis
-)
+	SyncFull          int64 `json:"sync_full,omitempty"`
+	SyncPartialErr    int64 `json:"sync_partial_err,omitempty"`
+	TotalErrorReplies int64 `json:"total_error_replies,omitempty"`
+}

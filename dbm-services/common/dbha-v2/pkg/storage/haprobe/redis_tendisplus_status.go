@@ -22,16 +22,10 @@
  * SOFTWARE.
  */
 
-package harvester
+package haprobe
 
-import (
-	"dbm-services/common/dbha-v2/internal/probe/harvester/mysql"
-	"dbm-services/common/dbha-v2/internal/probe/harvester/redis"
-)
+// RedisTendisPlusStatus TendisPlus storage status (placeholder - not implemented)
+type RedisTendisPlusStatus struct{}
 
-var (
-	// NewPluginMySql To avoid potential ambiguity caused by directly using 'mysql',
-	// the method for creating the mysql plugin has been renamed here.
-	NewPluginMySql = mysql.NewMySql
-	NewPluginRedis = redis.NewRedis
-)
+// RedisTendisPlusRocksDBSlaveState TendisPlus RocksDB slave state (placeholder - not implemented)
+type RedisTendisPlusRocksDBSlaveState struct{}

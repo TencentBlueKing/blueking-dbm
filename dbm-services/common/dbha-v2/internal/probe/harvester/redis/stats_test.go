@@ -22,16 +22,17 @@
  * SOFTWARE.
  */
 
-package harvester
+package redis
 
 import (
-	"dbm-services/common/dbha-v2/internal/probe/harvester/mysql"
-	"dbm-services/common/dbha-v2/internal/probe/harvester/redis"
+	"fmt"
+	"testing"
 )
 
-var (
-	// NewPluginMySql To avoid potential ambiguity caused by directly using 'mysql',
-	// the method for creating the mysql plugin has been renamed here.
-	NewPluginMySql = mysql.NewMySql
-	NewPluginRedis = redis.NewRedis
-)
+func TestRedisInfo(t *testing.T) {
+	info := []redisInfo{}
+
+	status := convertToRedisStatus(info)
+
+	fmt.Println("redis-status: ", status)
+}

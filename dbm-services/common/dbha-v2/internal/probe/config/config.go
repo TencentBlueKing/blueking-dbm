@@ -69,9 +69,18 @@ type MySqlHarvesterConfig struct {
 	Endpoints []DbEndpointConfig `yaml:"endpoints" mapstructure:"endpoints"`
 }
 
+// RedisHarvesterConfig Redis harvester config
+type RedisHarvesterConfig struct {
+	Password  string             `yaml:"password"  mapstructure:"password"`
+	Interval  time.Duration      `yaml:"interval"  mapstructure:"interval"`
+	Timeout   time.Duration      `yaml:"timeout"   mapstructure:"timeout"`
+	Endpoints []DbEndpointConfig `yaml:"endpoints" mapstructure:"endpoints"`
+}
+
 // HarvesterConfig harvester config
 type HarvesterConfig struct {
 	MySql *MySqlHarvesterConfig
+	Redis *RedisHarvesterConfig
 }
 
 // LogConfig log configuration
