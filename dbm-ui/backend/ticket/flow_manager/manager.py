@@ -17,7 +17,6 @@ from backend.core import notify
 from backend.iam_app.handlers.drf_perm.ticket import add_ticket_audit_event, audit_ticket_status
 from backend.ticket import constants
 from backend.ticket.builders import BuilderFactory
-from backend.ticket.builders.common.base import fetch_apply_hosts
 from backend.ticket.constants import FLOW_FINISHED_STATUS, FlowType, TicketStatus, TicketType
 from backend.ticket.flow_manager.delivery import DeliveryFlow, DescribeTaskFlow
 from backend.ticket.flow_manager.inner import IgnoreResultInnerFlow, InnerFlow, QuickInnerFlow, SimpleTaskFlow
@@ -144,5 +143,4 @@ class TicketFlowManager(object):
         # 如果是部署类单据，异常终止要联动回收主机
         is_apply = self.ticket.ticket_type in BuilderFactory.apply_ticket_type
         if target_status == TicketStatus.TERMINATED and is_apply:
-            recycle_hosts = fetch_apply_hosts({"nodes": self.ticket.details["nodes"]})
-            create_recycle_ticket.apply_async(args=(self.ticket.id, recycle_hosts, TicketType.RECYCLE_APPLY_HOST))
+            create_recycle_ticket.apply_async(args=(self.ticket.id, [], TicketType.RECYCLE_APPLY_HOST))
