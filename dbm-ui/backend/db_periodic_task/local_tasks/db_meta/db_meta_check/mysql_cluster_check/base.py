@@ -135,11 +135,7 @@ def create_or_update_affinity_report(
     last_record.affinity_type = affinity_type
     last_record.state = state
     last_record.status = state == ReportStateType.NORMAL.value  # True=正常, False=异常
-    # 追加消息而不是覆盖
-    if last_record.msg and last_record.msg != msg:
-        last_record.msg = f"{last_record.msg}\n{msg}"
-    else:
-        last_record.msg = msg
+    last_record.msg = msg
     last_record.failed_days = failed_days
     last_record.create_at = current_time
     last_record.update_at = current_time
