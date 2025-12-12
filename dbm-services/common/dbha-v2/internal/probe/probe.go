@@ -117,6 +117,17 @@ func (p *Probe) loadPlugins(ctx context.Context) error {
 			logger.Warn("failed to create a new harvester, dbType: mysql, errmsg: %s", err)
 		}
 	}
+	if config.Cfg.Harvester.Redis != nil {
+		if plug, err := harvester.NewPluginRedis(config.Cfg.Harvester.Redis); err == nil {
+			p.wg.Add(1)
+			go func() {
+				defer p.wg.Done()
+				p.runPlugin(ctx, plug)
+			}()
+		} else {
+			logger.Warn("failed to create a new harvester, dbType: redis, errmsg: %s", err)
+		}
+	}
 
 	return nil
 }

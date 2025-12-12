@@ -122,7 +122,9 @@ const (
 type DbType string
 
 const (
-	DbTypeMySql DbType = "mysql"
+	DbTypeMysql        DbType = "mysql"
+	DbTypeRedis        DbType = "redis"
+	DbTypeTendbCluster DbType = "tendbcluster"
 )
 
 func (t DbType) String() string {
