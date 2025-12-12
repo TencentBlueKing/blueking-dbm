@@ -185,7 +185,7 @@
           required>
           <BkInput
             v-model="formData.shards_num"
-            :disabled="replicaSetInputDisabled"
+            :disabled="replicaSetInputDisabled || shardClusterInputDisabled"
             :min="0"
             style="width: 314px"
             type="number" />
@@ -296,6 +296,23 @@
 
   const { t } = useI18n();
 
+  // 副本集容量变更自定义方案
+  // 1.规格 可选
+  // 2.每个 Shard 节点数  不变
+  // 3.集群 Shared 数 不变
+  // 4.机器组数 不变
+  // 5.每组机器 Shared 数 自动计算
+  // 6.总机器数 自动计算
+
+  // 分片集群容量变更自定义方案
+  // 1.规格 可选
+  // 2.每个 Shard 节点数  不变
+  // 3.集群 Shared 数 不变
+  // 4.机器组数 可选
+  // 5.每组机器 Shared 数 自动计算
+  // 6.总机器数 自动计算
+  // 7.集群 Shared 数/机器组数 需要整除
+
   const getDefaultFormData = () => {
     if (props.clusterData.cluster_type === ClusterTypes.MONGO_SHARED_CLUSTER) {
       return {
@@ -304,7 +321,7 @@
         machine_group_shard_num: 0,
         shard_machine_group: 0,
         shard_node_count: props.clusterData.shard_node_count,
-        shards_num: 0,
+        shards_num: props.clusterData.shard_num,
         spec_id: props.clusterData.mongodb[0].spec_config.id,
       };
     }
