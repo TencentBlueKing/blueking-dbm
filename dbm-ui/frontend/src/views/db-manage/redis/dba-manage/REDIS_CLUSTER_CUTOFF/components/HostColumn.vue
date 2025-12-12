@@ -48,8 +48,8 @@
   </EditableColumn>
   <MachineResourceSelector
     v-model:is-show="showSelector"
-    v-model:selected="dataList"
     :cluster-types="[ClusterTypes.REDIS]"
+    :selected="dataList"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
@@ -68,7 +68,14 @@
   export type IValue = IMachine;
 
   interface Props {
-    selected: Array<typeof modelValue.value>;
+    selected: {
+      bk_biz_id: number;
+      instance_role: string;
+      ip: string;
+      related_slave?: {
+        ip: string;
+      };
+    }[];
   }
 
   type Emits = (e: 'batch-edit', list: IValue[]) => void;
@@ -82,6 +89,8 @@
     bk_cloud_id: number;
     bk_host_id: number;
     cluster_ids: number[];
+    cluster_type: string;
+    instance_role: string;
     ip: string;
     master_domain: string;
     region: string;
@@ -90,7 +99,6 @@
       ip: string;
       spec_config: MachineSpecConfig;
     }; // 关联的从库ip，仅当role=redis_master时存在
-    role: string;
     spec_config: InstanceInfos['spec_config'];
   }>({
     required: true,
@@ -147,10 +155,11 @@
           bk_cloud_id: item.bk_cloud_id,
           bk_host_id: item.bk_host_id,
           cluster_ids: item.related_clusters.map((item) => item.id),
+          cluster_type: item.cluster_type,
+          instance_role: item.instance_role,
           ip: item.ip,
           master_domain: cluster?.immute_domain || '',
           region: item.related_clusters[0].region,
-          role: item.instance_role,
           spec_config: item.spec_config,
         };
         if (item.instance_role === 'redis_master') {
@@ -173,10 +182,11 @@
       bk_cloud_id: 0,
       bk_host_id: 0,
       cluster_ids: [] as number[],
+      cluster_type: '',
+      instance_role: '',
       ip: value,
       master_domain: '',
       region: '',
-      role: '',
       spec_config: {} as InstanceInfos['spec_config'],
     };
   };
@@ -207,7 +217,7 @@
         (item) =>
           ({
             bk_biz_id: item.bk_biz_id,
-            instance_role: item.role,
+            instance_role: item.instance_role,
             ip: item.ip,
           }) as IValue,
       );

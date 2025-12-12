@@ -43,7 +43,7 @@
             readonly>
             <div style="flex: 1">
               <EditableBlock
-                v-model="item.host.role"
+                v-model="item.host.instance_role"
                 :placeholder="t('自动生成')" />
               <EditableBlock
                 v-if="item.host.related_slave?.bk_host_id"
@@ -64,6 +64,11 @@
           <SpecColumn
             v-model="item.specId"
             :cluster-type="DBTypes.REDIS"
+            :machine-type="
+              item.host.instance_role === 'proxy'
+                ? MachineTypes.REDIS_PROXY
+                : specClusterMachineMap[item.host.cluster_type]
+            "
             required
             :rowspan="item.rowspan"
             selectable
@@ -119,7 +124,7 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { DBTypes, TicketTypes } from '@common/const';
+  import { DBTypes, MachineTypes, TicketTypes } from '@common/const';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
@@ -128,6 +133,7 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+  import { specClusterMachineMap } from '@views/db-manage/redis/common/const';
 
   import HostColumn, { type SelectorHost } from './components/HostColumn.vue';
 
@@ -170,7 +176,7 @@
               (tableItem, tableIndex) =>
                 tableIndex !== rowIndex &&
                 tableItem.host.master_domain === rowData.host.master_domain &&
-                tableItem.host.role !== rowData.host.role,
+                tableItem.host.instance_role !== rowData.host.instance_role,
             )
           ) {
             return t('同一集群仅允许替换一个角色');
@@ -188,10 +194,11 @@
         bk_cloud_id: 0,
         bk_host_id: 0,
         cluster_ids: [] as number[],
+        cluster_type: '',
+        instance_role: '',
         ip: '',
         master_domain: '',
         region: '',
-        role: '',
         spec_config: {} as IDataRow['host']['spec_config'],
       },
       values.host,
@@ -283,7 +290,7 @@
     formData.tableData = [...sortedList, ...emptyRowList];
   };
 
-  const getNodeInfo = (rowList: IDataRow[], role: string) => {
+  const getNodeInfo = (rowList: IDataRow[], instance_role: string) => {
     const nodes: NonNullable<Redis.ResourcePool.ClusterCutoff['infos'][number]['proxy']> = [];
     const oldNodes: NonNullable<Redis.ResourcePool.ClusterCutoff['infos'][number]['old_nodes']['proxy']> = [];
 
@@ -301,7 +308,7 @@
         spec: row.host.spec_config,
       };
       oldNodes.push(oldNodeItem);
-      if (role === 'redis_master') {
+      if (instance_role === 'redis_master') {
         const relatedSlave = row.host.related_slave!;
         oldNodes.push({
           bk_host_id: relatedSlave.bk_host_id,
@@ -312,10 +319,10 @@
     });
 
     return {
+      [instance_role]: nodes,
       old_nodes: {
-        [role]: oldNodes,
+        [instance_role]: oldNodes,
       },
-      [role]: nodes,
     };
   };
 
@@ -367,9 +374,9 @@
       const info = {
         bk_cloud_id: sameRows[0].host.bk_cloud_id,
         cluster_ids: sameRows[0].host.cluster_ids,
-        switch_role: sameRows[0].host.role,
-        ...getNodeInfo(sameRows, sameRows[0].host.role),
-        resource_spec: resourceSpecInfo(sameRows, sameRows[0].host.role),
+        switch_role: sameRows[0].host.instance_role,
+        ...getNodeInfo(sameRows, sameRows[0].host.instance_role),
+        resource_spec: resourceSpecInfo(sameRows, sameRows[0].host.instance_role),
       };
 
       return info;
