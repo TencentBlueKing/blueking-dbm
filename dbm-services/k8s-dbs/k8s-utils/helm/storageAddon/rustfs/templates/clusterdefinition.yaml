@@ -1,0 +1,17 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ClusterDefinition
+metadata:
+  name: {{ include "rustfs.cdName" . }}
+  labels:
+    {{- include "rustfs.labels" . | nindent 4 }}
+spec:
+  topologies:
+    - name: standalone
+      default: true
+      components:
+        - name: rustfs
+          compDef: {{ include "rustfs.cmpdName" . }}-standalone
+    - name: distributed
+      components:
+        - name: rustfs
+          compDef: {{ include "rustfs.cmpdName" . }}-distributed

@@ -1,0 +1,224 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentDefinition
+metadata:
+  name: {{ include "rustfs.cmpdName" . }}-distributed
+  labels:
+    {{- include "rustfs.labels" . | nindent 4 }}
+spec:
+  provider: kubeblocks
+  description: RustFS Distributed Mode - High availability object storage cluster.
+  serviceKind: rustfs
+  serviceVersion: 1.0.0
+
+  minReadySeconds: 0
+  podManagementPolicy: Parallel
+
+  systemAccounts:
+    - name: root
+      initAccount: true
+      passwordGenerationPolicy:
+        length: 16
+        numDigits: 8
+        letterCase: MixedCases
+
+  vars:
+    - name: RUSTFS_ACCESS_KEY
+      valueFrom:
+        credentialVarRef:
+          name: root
+          optional: false
+          username: Required
+    - name: RUSTFS_SECRET_KEY
+      valueFrom:
+        credentialVarRef:
+          name: root
+          optional: false
+          password: Required
+    - name: RUSTFS_HEADLESS_SVC
+      valueFrom:
+        serviceVarRef:
+          name: rustfs-headless
+          host: Required
+          optional: true
+
+  roles:
+    - name: readwrite
+      serviceable: true
+      votable: false
+      writable: true
+
+  lifecycleActions:
+    roleProbe:
+      builtinHandler: custom
+      customHandler:
+        exec:
+          command:
+            - /bin/sh
+            - -c
+            - |
+              if wget -q -O /dev/null http://127.0.0.1:9000/health 2>/dev/null; then
+                echo -n "readwrite"
+              fi
+
+  services:
+    - name: rustfs
+      spec:
+        ports:
+          - name: api
+            port: 9000
+            targetPort: api
+          - name: console
+            port: 9001
+            targetPort: console
+    - name: rustfs-headless
+      serviceName: headless
+      spec:
+        clusterIP: None
+        publishNotReadyAddresses: true
+        ports:
+          - name: api
+            port: 9000
+            targetPort: api
+          - name: console
+            port: 9001
+            targetPort: console
+
+  runtime:
+    securityContext:
+      fsGroup: 10001
+      runAsUser: 10001
+      runAsGroup: 10001
+    initContainers:
+      - name: init-data
+        image: busybox:1.36
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          runAsUser: 0
+          runAsGroup: 0
+        command:
+          - sh
+          - -c
+          - |
+            # Create data directories for distributed mode
+            mkdir -p /data /logs
+            chown -R 10001:10001 /data /logs
+        volumeMounts:
+          - name: data
+            mountPath: /data
+          - name: logs
+            mountPath: /logs
+      - name: wait-peers
+        image: busybox:1.36
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: HEADLESS_SVC
+            value: $(RUSTFS_HEADLESS_SVC)
+          - name: REPLICAS
+            value: "4"
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+        command:
+          - sh
+          - -c
+          - |
+            echo "Waiting for all $REPLICAS peer pods to be DNS resolvable..."
+            echo "Namespace: $POD_NAMESPACE, Headless Service: $HEADLESS_SVC"
+            
+            # Extract the base pod name from headless service
+            # HEADLESS_SVC format: {cluster}-{comp}-headless
+            # Pod name format: {cluster}-{comp}-{0..N}
+            BASE_NAME=$(echo "$HEADLESS_SVC" | sed 's/-headless$//')
+            
+            # Wait for all pods to be DNS resolvable using full FQDN
+            for i in $(seq 0 $((REPLICAS - 1))); do
+              POD_FQDN="${BASE_NAME}-${i}.${HEADLESS_SVC}.${POD_NAMESPACE}.svc.cluster.local"
+              echo "Checking DNS for: $POD_FQDN"
+              while true; do
+                if nslookup "$POD_FQDN" > /dev/null 2>&1; then
+                  echo "$POD_FQDN is resolvable"
+                  break
+                fi
+                echo "Waiting for $POD_FQDN to be DNS resolvable..."
+                sleep 2
+              done
+            done
+            echo "All peer pods are now DNS resolvable. Starting RustFS..."
+    containers:
+      - name: rustfs
+        image: {{ .Values.image.registry | default "" }}{{ if .Values.image.registry }}/{{ end }}{{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: {{ default "IfNotPresent" .Values.image.pullPolicy }}
+        command: ["/usr/bin/rustfs"]
+        securityContext:
+          capabilities:
+            drop:
+              - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 10001
+          runAsGroup: 10001
+        ports:
+          - name: api
+            protocol: TCP
+            containerPort: {{ .Values.rustfsAPIPort }}
+          - name: console
+            protocol: TCP
+            containerPort: {{ .Values.rustfsConsolePort }}
+        env:
+          - name: RUSTFS_ACCESS_KEY
+            value: $(RUSTFS_ACCESS_KEY)
+          - name: RUSTFS_SECRET_KEY
+            value: $(RUSTFS_SECRET_KEY)
+          - name: RUSTFS_ADDRESS
+            value: "0.0.0.0:{{ .Values.rustfsAPIPort }}"
+          - name: RUSTFS_CONSOLE_ADDRESS
+            value: "0.0.0.0:{{ .Values.rustfsConsolePort }}"
+          - name: RUSTFS_CONSOLE_ENABLE
+            value: "true"
+          - name: RUSTFS_VOLUMES
+            value: "/data"
+          - name: RUSTFS_OBS_LOG_DIRECTORY
+            value: "/logs"
+          - name: RUSTFS_OBS_LOGGER_LEVEL
+            value: {{ .Values.logLevel | default "info" | quote }}
+          - name: RUSTFS_OBS_ENVIRONMENT
+            value: "production"
+          {{- if .Values.observability.enabled }}
+          - name: RUSTFS_OBS_ENDPOINT
+            value: {{ .Values.observability.endpoint | quote }}
+          - name: RUSTFS_OBS_SAMPLE_RATIO
+            value: {{ .Values.observability.sampleRatio | quote }}
+          - name: RUSTFS_OBS_METER_INTERVAL
+            value: {{ .Values.observability.meterInterval | quote }}
+          {{- end }}
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: {{ .Values.rustfsAPIPort }}
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: {{ .Values.rustfsAPIPort }}
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        volumeMounts:
+          - name: data
+            mountPath: /data
+          - name: logs
+            mountPath: /logs
+
+  volumes:
+    - name: data
+      needSnapshot: true
+    - name: logs
+      needSnapshot: false
+
