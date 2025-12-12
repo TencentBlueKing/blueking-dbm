@@ -357,7 +357,6 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                     bk_biz_id=self.data["bk_biz_id"],
                     ips=[self.data["master_ip"], self.data["slave_ip"]],
                     with_actuator=False,
-                    with_cc_standardize=False,
                     with_collect_sysinfo=False,
                     with_instance_standardize=False,
                     with_bk_plugin=False,

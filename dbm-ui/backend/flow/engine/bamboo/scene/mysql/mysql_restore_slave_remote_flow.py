@@ -406,7 +406,6 @@ class MySQLRestoreSlaveRemoteFlow(object):
                         with_actuator=False,
                         with_bk_plugin=False,
                         with_instance_standardize=False,
-                        with_cc_standardize=False,
                         with_collect_sysinfo=False,
                     )
                 )
@@ -457,7 +456,6 @@ class MySQLRestoreSlaveRemoteFlow(object):
                         with_actuator=False,
                         with_bk_plugin=False,
                         with_instance_standardize=False,
-                        with_cc_standardize=False,
                         with_collect_sysinfo=True,
                         with_backup_client=False,
                     )
@@ -839,7 +837,6 @@ class MySQLRestoreSlaveRemoteFlow(object):
                     bk_biz_id=master.bk_biz_id,
                     ips=[master.machine.ip, target_slave.machine.ip],
                     with_collect_sysinfo=False,
-                    with_cc_standardize=False,
                     with_instance_standardize=False,
                     with_bk_plugin=False,
                     with_actuator=False,

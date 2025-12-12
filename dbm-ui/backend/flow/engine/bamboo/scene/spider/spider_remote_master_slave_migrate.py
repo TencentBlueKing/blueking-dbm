@@ -474,7 +474,6 @@ class TendbClusterMigrateRemoteFlow(object):
                     with_instance_standardize=False,
                     with_bk_plugin=False,
                     with_backup_client=False,
-                    with_cc_standardize=False,
                 )
             )
             # 解除告警屏蔽

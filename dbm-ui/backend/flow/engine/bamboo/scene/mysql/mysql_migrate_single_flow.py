@@ -519,6 +519,7 @@ class MySQLMigrateSingleFlow(object):
                     instances=instances,
                     with_actuator=False,
                     with_bk_plugin=False,
+                    with_cc_standardize=False,
                 )
             )
             tendb_migrate_pipeline.add_act(act_name=_("人工确认切换"), act_component_code=PauseComponent.code, kwargs={})
@@ -558,7 +559,6 @@ class MySQLMigrateSingleFlow(object):
                     with_bk_plugin=False,
                     with_instance_standardize=False,
                     with_collect_sysinfo=False,
-                    with_cc_standardize=False,
                 )
             )
 
