@@ -65,7 +65,11 @@
         <BkTableColumn
           field="size"
           :label="t('DB 大小 ( G )')"
-          :min-width="200" />
+          :min-width="200">
+          <template #default="{ row }: { row: { name: string; size: number } }">
+            {{ row.size || '--' }}
+          </template>
+        </BkTableColumn>
       </BkTable>
     </div>
   </BkSideslider>

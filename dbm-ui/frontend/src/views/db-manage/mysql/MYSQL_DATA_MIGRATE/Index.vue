@@ -38,16 +38,9 @@
             :label="t('源集群')"
             :selected="selected"
             @batch-edit="handleBatchEditCluster" />
-          <EditableColumn
-            :disabled-method="disabledMethod"
-            field="data_schema_grant"
-            :label="t('克隆类型')"
-            :min-width="200"
-            required>
-            <EditableSelect
-              v-model="item.data_schema_grant"
-              :list="cloneTypeList" />
-          </EditableColumn>
+          <DataSchemaGrantColumn
+            v-model="item.data_schema_grant"
+            @batch-edit="handleBatchEdit" />
           <DbNameColumn
             v-model="item.clone_db_list"
             check-not-exist
@@ -74,7 +67,7 @@
     </BkForm>
     <template #action>
       <BkButton
-        class="mr-8 w-88"
+        class="mr-16 w-88"
         @click="handleAssessment">
         {{ t('磁盘空间评估') }}
       </BkButton>
@@ -126,6 +119,7 @@
   import { random } from '@utils';
 
   import Assessment from './components/assessment/Index.vue';
+  import DataSchemaGrantColumn from './components/DataSchemaGrantColumn.vue';
   import TargetClusterColumn from './components/TargetClusterColumn.vue';
 
   interface RowData {
@@ -169,24 +163,6 @@
       label: t('目标集群'),
     },
   ];
-
-  const cloneTypeList = [
-    {
-      label: t('表结构和数据'),
-      value: 'data,schema',
-    },
-    {
-      label: t('表结构'),
-      value: 'schema',
-    },
-  ];
-
-  const disabledMethod = (rowData?: any) => {
-    if (!rowData.source_cluster.id) {
-      return t('请先选择源集群');
-    }
-    return '';
-  };
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
     clone_db_list: data.clone_db_list || [],

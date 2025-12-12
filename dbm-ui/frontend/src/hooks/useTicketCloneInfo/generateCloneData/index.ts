@@ -81,7 +81,7 @@ export const generateCloneDataHandlerMap = {
   [TicketTypes.MYSQL_AUTHORIZE_RULES]: generateMysqlAuthorizeRuleCloneData, // Mysql 集群授权
   [TicketTypes.MYSQL_CHECKSUM]: generateMysqlChecksumCloneData, // Mysql 数据校验
   [TicketTypes.MYSQL_CLIENT_CLONE_RULES]: generateMysqlClientCloneData, // Mysql 客户端权限克隆
-  [TicketTypes.MYSQL_DATA_MIGRATE]: generateMysqlDataMigrateCloneData, // Mysql DB克隆
+  [TicketTypes.MYSQL_DATA_MIGRATE]: generateMysqlDataMigrateCloneData, // Mysql DB 数据克隆
   [TicketTypes.MYSQL_FLASHBACK]: generateMysqlFlashbackCloneData, // MySQL 闪回
   [TicketTypes.MYSQL_HA_APPLY]: generateMysqlHaApplyCloneData, // MySQL 高可用部署
   [TicketTypes.MYSQL_HA_DB_TABLE_BACKUP]: generateMysqlDbTableBackupCloneData, // Mysql 库表备份

@@ -48,7 +48,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   createRouteItem(TicketTypes.MYSQL_CHECKSUM, t('数据校验修复')),
   createRouteItem(TicketTypes.MYSQL_CLIENT_CLONE_RULES, t('客户端权限克隆')),
   createRouteItem(TicketTypes.MYSQL_INSTANCE_CLONE_RULES, t('DB实例权限克隆')),
-  createRouteItem(TicketTypes.MYSQL_DATA_MIGRATE, t('DB克隆')),
+  createRouteItem(TicketTypes.MYSQL_DATA_MIGRATE, t('DB 数据克隆')),
   createRouteItem(TicketTypes.MYSQL_PROXY_UPGRADE, t('版本升级')),
   createRouteItem(TicketTypes.MYSQL_CLUSTER_STANDARDIZE, t('集群标准化')),
   createRouteItem(TicketTypes.MYSQL_FLASHBACK, t('回档')),
