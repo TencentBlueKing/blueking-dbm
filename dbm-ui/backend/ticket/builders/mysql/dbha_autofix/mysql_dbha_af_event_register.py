@@ -91,6 +91,14 @@ class MySQLDBHAAlarmTransformSerializer(AlarmCallBackDataSerializer):
         data = super().to_internal_value(data)
         dimensions = data["callback_message"]["event"]["dimensions"]
 
+        new_master_port = 0
+        if "new_master_port" in dimensions and dimensions["new_master_port"].strip():
+            new_master_port = int(dimensions["new_master_port"])
+
+        new_master_binlog_pos = 0
+        if "new_master_port" in dimensions and dimensions["new_master_binlog_pos"].strip():
+            new_master_binlog_pos = int(dimensions["new_master_binlog_pos"])
+
         ticket_detail = {
             "infos": [
                 {
@@ -104,9 +112,9 @@ class MySQLDBHAAlarmTransformSerializer(AlarmCallBackDataSerializer):
                     "port": dimensions.get("server_port", 0),
                     "event_create_time": data["callback_message"]["event"]["create_time"],
                     "new_master_host": dimensions.get("new_master_host", ""),
-                    "new_master_port": dimensions.get("new_master_port", 0),
+                    "new_master_port": new_master_port,
                     "new_master_log_file": dimensions.get("new_master_binlog_file", ""),
-                    "new_master_log_pos": dimensions.get("new_master_binlog_pos", 0),
+                    "new_master_log_pos": new_master_binlog_pos,
                 }
             ]
         }
