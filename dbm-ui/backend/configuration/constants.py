@@ -171,6 +171,8 @@ class SystemSettingsEnum(StrStructuredEnum):
     DBA_ROBOT = EnumField("DBA_ROBOT", _("各组件负责的机器人"))
     # Redis 回档演练配置
     REDIS_ROLLBACK_EXERCISE = EnumField("REDIS_ROLLBACK_EXERCISE", _("Redis回档演练配置"))
+    # Redis 实例角色校验配置
+    REDIS_ROLE_CHECK = EnumField("REDIS_ROLE_CHECK", _("Redis实例角色校验配置"))
     # HCM操作系统与镜像ID映射
     HCM_OS_NAME_IMAGE_MAP = EnumField("HCM_OS_NAME_IMAGE_MAP", _("HCM操作系统与镜像ID映射"))
     HCM_REPLENISH_MAINTAINER = EnumField("HCM_REPLENISH_MAINTAINER", _("HCM补货维护人"))

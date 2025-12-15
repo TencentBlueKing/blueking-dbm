@@ -142,3 +142,18 @@ class RedisAffinityCheckReportViewSet(RedisDbmetaCheckReportBaseViewSet):
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
+
+
+@register_report(DBType.Redis)
+class RedisRoleCheckReportViewSet(RedisDbmetaCheckReportBaseViewSet):
+    queryset = MetaCheckReport.objects.filter(subtype=MetaCheckSubType.RoleMismatch.value)
+    serializer_class = RedisDbmetaCheckReportSerializer
+    report_type = ReportType.ROLE_CHECK
+
+    @common_swagger_auto_schema(
+        operation_summary=_("实例角色检查报告"),
+        responses={status.HTTP_200_OK: RedisDbmetaCheckReportSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)

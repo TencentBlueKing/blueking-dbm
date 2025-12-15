@@ -228,3 +228,12 @@ class TendisplusLightningContext:
     tendis_backup_info: list = None  # 执行备份后的信息
     ticket_id: int = None  # 代表dts job id,对应表tb_tendis_dts_job
     dst_cluster: str = None  # 代表目标集群
+
+
+@dataclass()
+class RedisRoleCheckContext:
+    """
+    Redis role check context for passing data between components via trans_data.
+    """
+
+    job_infos: list = field(default_factory=list)  # Job execution info for polling
