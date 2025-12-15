@@ -18,8 +18,8 @@ import (
 	"github.com/spf13/cast"
 )
 
-const PT_MAX_ROWS int64 = 3
-const PT_MAX_SIZE int64 = 20 * 1024 * 1024 * 1024 // 20GB, adjust as appropriate
+const PT_MAX_ROWS int64 = 10000000                 // 1000万行
+const PT_MAX_SIZE int64 = 200 * 1024 * 1024 * 1024 // 200GB
 
 func (c *PartitionExecComp) GetAllDbTbRealName() {
 	// Confs是一个结构体指针类型的切片，如果是值类型，循环拿出来的是值拷贝
