@@ -310,46 +310,20 @@ class DBBaseViewSet(viewsets.SystemViewSet):
             ]
 
         # 实例的部署角色
-        if data["instances_attrs"]:
+        if "role" in data["instances_attrs"]:
             query_filters = Q(bk_biz_id=data["bk_biz_id"], cluster_type__in=data["cluster_type"])
-            # 获取proxy实例的查询集
-            proxy_query = ProxyInstance.objects.filter(query_filters)
+            proxy_roles = ProxyInstance.objects.filter(query_filters).values_list("access_layer", flat=True)
             # 获取storage实例的查询集
             storage_queryset = StorageInstance.objects.filter(query_filters)
+            # mysql的实例角色返回的是InstanceInnerRole 其他集群实例InstanceRole
+            if data["cluster_type"] in [ClusterType.TenDBSingle.value, ClusterType.TenDBHA.value]:
+                storage_roles = storage_queryset.values_list("instance_inner_role", flat=True)
+            else:
+                storage_roles = storage_queryset.values_list("instance_role", flat=True)
 
-            if "role" in data["instances_attrs"]:
-                # mysql的实例角色返回的是InstanceInnerRole 其他集群实例InstanceRole
-                if data["cluster_type"] in [ClusterType.TenDBSingle.value, ClusterType.TenDBHA.value]:
-                    storage_roles = storage_queryset.values_list("instance_inner_role", flat=True)
-                else:
-                    storage_roles = storage_queryset.values_list("instance_role", flat=True)
-                proxy_roles = proxy_query.values_list("access_layer", flat=True)
-
-                unique_roles = set(storage_roles) | (set(proxy_roles))
-                roles_dicts = [{"value": role, "text": role} for role in unique_roles]
-                cluster_attrs["role"] = roles_dicts
-
-            if "version" in data["instances_attrs"]:
-                proxy_versions = proxy_query.values_list("version", flat=True)
-                storage_versions = storage_queryset.values_list("version", flat=True)
-                versions = set(proxy_versions) | (set(storage_versions))
-                cluster_attrs["version"] = [
-                    {"value": version, "text": version if version else "--"} for version in versions
-                ]
-
-            if "bk_os_name" in data["instances_attrs"]:
-                proxy_os_names = proxy_query.values_list("machine__bk_os_name", flat=True)
-                storage_os_names = storage_queryset.values_list("machine__bk_os_name", flat=True)
-                os_names = set(proxy_os_names) | (set(storage_os_names))
-                cluster_attrs["bk_os_name"] = [
-                    {"value": os_name, "text": os_name if os_name else "--"} for os_name in os_names
-                ]
-
-            if "bk_sub_zone" in data["instances_attrs"]:
-                proxy_zones = proxy_query.values_list("machine__bk_sub_zone", flat=True)
-                storage_zones = storage_queryset.values_list("machine__bk_sub_zone", flat=True)
-                zones = set(proxy_zones) | (set(storage_zones))
-                cluster_attrs["bk_sub_zone"] = [{"value": zone, "text": zone if zone else "--"} for zone in zones]
+            unique_roles = set(storage_roles) | (set(proxy_roles))
+            roles_dicts = [{"value": role, "text": role} for role in unique_roles]
+            cluster_attrs["role"] = roles_dicts
 
         return Response(cluster_attrs)
 
@@ -455,6 +429,70 @@ class DBBaseViewSet(viewsets.SystemViewSet):
                     machine_attrs["spec_id"] = []
 
         return Response(machine_attrs)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询业务下实例的属性字段"),
+        auto_schema=ResponseSwaggerAutoSchema,
+        query_serializer=QueryBizClusterAttrsSerializer(),
+        responses={status.HTTP_200_OK: QueryBizClusterAttrsResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=QueryBizClusterAttrsSerializer)
+    def query_biz_instance_attrs(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        query_map = {"bk_biz_id": data["bk_biz_id"]}
+        if data.get("cluster_type"):
+            query_map["cluster_type__in"] = data["cluster_type"]
+        if data.get("cluster_id"):
+            query_map["cluster__id"] = data["cluster_id"]
+        # 获取proxy实例的查询集
+        proxy_query = ProxyInstance.objects.filter(**query_map)
+        # 获取storage实例的查询集
+        storage_queryset = StorageInstance.objects.filter(**query_map)
+
+        instance_attrs: Dict[str, Union[List, Set]] = defaultdict(list)
+
+        if "role" in data["instances_attrs"]:
+            # mysql的实例角色返回的是InstanceInnerRole 其他集群实例InstanceRole
+            if data.get("cluster_type") in [ClusterType.TenDBSingle.value, ClusterType.TenDBHA.value]:
+                storage_roles = storage_queryset.values_list("instance_inner_role", flat=True)
+            else:
+                storage_roles = storage_queryset.values_list("instance_role", flat=True)
+            proxy_roles = proxy_query.values_list("access_layer", flat=True)
+
+            unique_roles = set(storage_roles) | (set(proxy_roles))
+            roles_dicts = [{"value": role, "text": role} for role in unique_roles]
+            instance_attrs["role"] = roles_dicts
+
+        if "version" in data["instances_attrs"]:
+            proxy_versions = proxy_query.values_list("version", flat=True)
+            storage_versions = storage_queryset.values_list("version", flat=True)
+            versions = set(proxy_versions) | (set(storage_versions))
+            instance_attrs["version"] = [
+                {"value": version, "text": version if version else "--"} for version in versions
+            ]
+
+        if "status" in data["instances_attrs"]:
+            proxy_status = proxy_query.values_list("status", flat=True)
+            storage_status = storage_queryset.values_list("status", flat=True)
+            all_status = set(proxy_status) | (set(storage_status))
+            instance_attrs["status"] = [{"value": status, "text": status if status else "--"} for status in all_status]
+
+        if "bk_os_name" in data["instances_attrs"]:
+            proxy_os_names = proxy_query.values_list("machine__bk_os_name", flat=True)
+            storage_os_names = storage_queryset.values_list("machine__bk_os_name", flat=True)
+            os_names = set(proxy_os_names) | (set(storage_os_names))
+            instance_attrs["bk_os_name"] = [
+                {"value": os_name, "text": os_name if os_name else "--"} for os_name in os_names
+            ]
+
+        if "bk_sub_zone" in data["instances_attrs"]:
+            proxy_zones = proxy_query.values_list("machine__bk_sub_zone", flat=True)
+            storage_zones = storage_queryset.values_list("machine__bk_sub_zone", flat=True)
+            zones = set(proxy_zones) | (set(storage_zones))
+            instance_attrs["bk_sub_zone"] = [{"value": zone, "text": zone if zone else "--"} for zone in zones]
+
+        return Response(instance_attrs)
 
     @common_swagger_auto_schema(
         operation_summary=_("查询资源池,污点主机管理表头筛选数据"),
