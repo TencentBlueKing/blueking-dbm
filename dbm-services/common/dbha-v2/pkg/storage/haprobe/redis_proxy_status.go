@@ -24,14 +24,44 @@
 
 package haprobe
 
-// TODO
-type RedisTwemproxyStatus struct{}
+// RedisTwemproxyStatus Twemproxy proxy status
+type RedisTwemproxyStatus struct {
+	UptimeInSeconds    int64                   `json:"uptime,omitempty"`
+	TotalConnections   int64                   `json:"total_connections,omitempty"`
+	CurrentConnections int64                   `json:"curr_connections,omitempty"`
+	Backends           []RedisTwemproxyBackend `json:"backends,omitempty"`
+}
 
-// TODO
-type RedisTwemproxyBackend struct{}
+// RedisTwemproxyBackend Twemproxy backend server status
+type RedisTwemproxyBackend struct {
+	Server            string `json:"server,omitempty"`
+	ServerConnections int64  `json:"server_connections,omitempty"`
+	ServerEOF         int64  `json:"server_eof,omitempty"`
+	ServerErr         int64  `json:"server_err,omitempty"`
+	ServerTimedout    int64  `json:"server_timedout,omitempty"`
+	RequestBytes      int64  `json:"request_bytes,omitempty"`
+	ResponseBytes     int64  `json:"response_bytes,omitempty"`
+	InQueue           int64  `json:"in_queue,omitempty"`
+	OutQueue          int64  `json:"out_queue,omitempty"`
+}
 
-// TODO
-type RedisPredixyStatus struct{}
+// RedisPredixyStatus Predixy proxy status
+type RedisPredixyStatus struct {
+	UptimeInSeconds    int64                 `json:"uptime_in_seconds,omitempty"`
+	TotalConnections   int64                 `json:"total_connections,omitempty"`
+	CurrentConnections int64                 `json:"curr_connections,omitempty"`
+	Backends           []RedisPredixyBackend `json:"backends,omitempty"`
+}
 
-// TODO
-type RedisPredixyBackend struct{}
+// RedisPredixyBackend Predixy backend server status
+type RedisPredixyBackend struct {
+	Server      string `json:"server,omitempty"`
+	Role        string `json:"role,omitempty"`
+	Group       string `json:"group,omitempty"`
+	DC          string `json:"dc,omitempty"`
+	Connections int64  `json:"connections,omitempty"`
+	Requests    int64  `json:"requests,omitempty"`
+	Responses   int64  `json:"responses,omitempty"`
+	SendBytes   int64  `json:"send_bytes,omitempty"`
+	RecvBytes   int64  `json:"recv_bytes,omitempty"`
+}

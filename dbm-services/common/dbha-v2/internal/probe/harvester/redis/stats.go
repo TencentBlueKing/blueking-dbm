@@ -25,6 +25,7 @@
 package redis
 
 import (
+	"encoding/json"
 	"reflect"
 	"strconv"
 	"strings"
@@ -55,16 +56,130 @@ func convertToRedisStatus(info []redisInfo) *haprobe.RedisClusterStatus {
 	return &status
 }
 
+// parseInfoToTwemproxyStatus parses Twemproxy stats JSON output to TwemproxyStatus
 func parseInfoToTwemproxyStatus(info string, status *haprobe.RedisTwemproxyStatus) {
-	// TODO
+	if info == "" {
+		return
+	}
+
+	var rawStats map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(info), &rawStats); err != nil {
+		logger.Warn("failed to parse twemproxy stats json: %v", err)
+		return
+	}
+
+	statsMap := make(map[string]string)
+	for key, value := range rawStats {
+		var strVal string
+		if err := json.Unmarshal(value, &strVal); err != nil {
+			var numVal int64
+			if err := json.Unmarshal(value, &numVal); err == nil {
+				strVal = strconv.FormatInt(numVal, 10)
+			} else {
+				continue
+			}
+		}
+		statsMap[strings.ToLower(key)] = strVal
+	}
+
+	t := reflect.TypeOf(*status)
+	v := reflect.ValueOf(status).Elem()
+	setFieldByReflection(v, t, statsMap)
+
+	for _, poolData := range rawStats {
+		var poolStats map[string]json.RawMessage
+		if err := json.Unmarshal(poolData, &poolStats); err != nil {
+			continue
+		}
+
+		for serverAddr, serverData := range poolStats {
+			var backend haprobe.RedisTwemproxyBackend
+			if err := json.Unmarshal(serverData, &backend); err != nil {
+				continue
+			}
+			backend.Server = serverAddr
+			status.Backends = append(status.Backends, backend)
+		}
+	}
 }
 
+// parseInfoToPredixyStatus parses Predixy INFO output to PredixyStatus
 func parseInfoToPredixyStatus(info string, status *haprobe.RedisPredixyStatus) {
-	// TODO
+	if info == "" {
+		return
+	}
+	infoMap := parseRedisInfoToMap(info)
+	t := reflect.TypeOf(*status)
+	v := reflect.ValueOf(status).Elem()
+	setFieldByReflection(v, t, infoMap)
 }
 
 func parsePredixyServersInfo(info string, status *haprobe.RedisPredixyStatus) {
-	// TODO
+	if info == "" {
+		return
+	}
+
+	lines := strings.Split(info, "\n")
+	var currentBackend *haprobe.RedisPredixyBackend
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		if strings.HasPrefix(line, "Server:") {
+			if currentBackend != nil {
+				status.Backends = append(status.Backends, *currentBackend)
+			}
+			currentBackend = &haprobe.RedisPredixyBackend{
+				Server: strings.TrimPrefix(line, "Server:"),
+			}
+			continue
+		}
+
+		if currentBackend != nil {
+			parts := strings.SplitN(line, ":", 2)
+			if len(parts) != 2 {
+				continue
+			}
+			key := strings.ToLower(strings.TrimSpace(parts[0]))
+			value := strings.TrimSpace(parts[1])
+
+			switch key {
+			case "role":
+				currentBackend.Role = value
+			case "group":
+				currentBackend.Group = value
+			case "dc":
+				currentBackend.DC = value
+			case "connections":
+				if v, err := strconv.ParseInt(value, 10, 64); err == nil {
+					currentBackend.Connections = v
+				}
+			case "requests":
+				if v, err := strconv.ParseInt(value, 10, 64); err == nil {
+					currentBackend.Requests = v
+				}
+			case "responses":
+				if v, err := strconv.ParseInt(value, 10, 64); err == nil {
+					currentBackend.Responses = v
+				}
+			case "sendbytes":
+				if v, err := strconv.ParseInt(value, 10, 64); err == nil {
+					currentBackend.SendBytes = v
+				}
+			case "recvbytes":
+				if v, err := strconv.ParseInt(value, 10, 64); err == nil {
+					currentBackend.RecvBytes = v
+				}
+			}
+		}
+	}
+
+	if currentBackend != nil {
+		status.Backends = append(status.Backends, *currentBackend)
+	}
 }
 
 // parseInfoToTendisCacheStatus parses Redis INFO output to TendisCacheStatus
@@ -80,12 +195,34 @@ func parseInfoToTendisCacheStatus(info string, status *haprobe.RedisTendisCacheS
 	status.Keyspace = parseKeyspace(infoMap)
 }
 
+// parseInfoToTendisSSDStatus parses Redis INFO output to TendisSSDStatus
 func parseInfoToTendisSSDStatus(info string, status *haprobe.RedisTendisSSDStatus) {
-	// TODO
+	if info == "" {
+		return
+	}
+	infoMap := parseRedisInfoToMap(info)
+	t := reflect.TypeOf(*status)
+	v := reflect.ValueOf(status).Elem()
+	setFieldByReflection(v, t, infoMap)
+
+	status.SlaveStates = parseSlaveStates(infoMap)
 }
 
+// parseInfoToTendisPlusStatus parses Redis INFO output to TendisPlusStatus
 func parseInfoToTendisPlusStatus(info string, status *haprobe.RedisTendisPlusStatus) {
-	// TODO
+	if info == "" {
+		return
+	}
+	infoMap := parseRedisInfoToMap(info)
+	t := reflect.TypeOf(*status)
+	v := reflect.ValueOf(status).Elem()
+	setFieldByReflection(v, t, infoMap)
+
+	status.SlaveStates = parseSlaveStates(infoMap)
+
+	status.RocksDBSlaveStates = parseRocksDBSlaveStates(infoMap)
+
+	status.Keyspace = parseKeyspace(infoMap)
 }
 
 // parseInfoToRedisClusterStatus parses Redis INFO output to RedisClusterStatus
@@ -99,59 +236,8 @@ func parseInfoToRedisClusterStatus(info string, status *haprobe.RedisClusterStat
 	setFieldByReflection(v, t, infoMap)
 
 	status.SlaveStates = parseClusterSlaveStates(infoMap)
+
 	status.Keyspace = parseKeyspace(infoMap)
-}
-
-// parseClusterSlaveStates parses slave0, slave1, ... keys from INFO output (full format)
-func parseClusterSlaveStates(infoMap map[string]string) []haprobe.RedisClusterSlaveState {
-	var slaves []haprobe.RedisClusterSlaveState
-
-	for key, value := range infoMap {
-		if !strings.HasPrefix(key, "slave") {
-			continue
-		}
-
-		idStr := strings.TrimPrefix(key, "slave")
-		id, err := strconv.Atoi(idStr)
-		if err != nil {
-			continue
-		}
-
-		slave := haprobe.RedisClusterSlaveState{ID: id}
-
-		parts := strings.Split(value, ",")
-		for _, part := range parts {
-			kv := strings.SplitN(part, "=", 2)
-			if len(kv) != 2 {
-				continue
-			}
-			k := strings.TrimSpace(kv[0])
-			v := strings.TrimSpace(kv[1])
-
-			switch k {
-			case "ip":
-				slave.IP = v
-			case "port":
-				if n, err := strconv.Atoi(v); err == nil {
-					slave.Port = n
-				}
-			case "state":
-				slave.State = v
-			case "offset":
-				if n, err := strconv.ParseInt(v, 10, 64); err == nil {
-					slave.Offset = n
-				}
-			case "lag":
-				if n, err := strconv.ParseInt(v, 10, 64); err == nil {
-					slave.Lag = n
-				}
-			}
-		}
-
-		slaves = append(slaves, slave)
-	}
-
-	return slaves
 }
 
 func parseRedisInfoToMap(info string) map[string]string {
@@ -279,4 +365,140 @@ func parseKeyspace(infoMap map[string]string) []haprobe.RedisDBKeyspace {
 	}
 
 	return keyspaces
+}
+
+// parseSlaveStates parses slave0, slave1, ... keys from INFO output (simple format)
+func parseSlaveStates(infoMap map[string]string) []haprobe.RedisSlaveState {
+	var slaves []haprobe.RedisSlaveState
+
+	for key, value := range infoMap {
+		if !strings.HasPrefix(key, "slave") {
+			continue
+		}
+
+		idStr := strings.TrimPrefix(key, "slave")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			continue
+		}
+
+		slave := haprobe.RedisSlaveState{ID: id}
+
+		parts := strings.Split(value, ",")
+		for _, part := range parts {
+			kv := strings.SplitN(part, "=", 2)
+			if len(kv) != 2 {
+				continue
+			}
+			k := strings.TrimSpace(kv[0])
+			v := strings.TrimSpace(kv[1])
+
+			if k == "state" {
+				slave.State = v
+			}
+		}
+
+		slaves = append(slaves, slave)
+	}
+
+	return slaves
+}
+
+// parseClusterSlaveStates parses slave0, slave1, ... keys from INFO output (full format)
+func parseClusterSlaveStates(infoMap map[string]string) []haprobe.RedisClusterSlaveState {
+	var slaves []haprobe.RedisClusterSlaveState
+
+	for key, value := range infoMap {
+		if !strings.HasPrefix(key, "slave") {
+			continue
+		}
+
+		idStr := strings.TrimPrefix(key, "slave")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			continue
+		}
+
+		slave := haprobe.RedisClusterSlaveState{ID: id}
+
+		parts := strings.Split(value, ",")
+		for _, part := range parts {
+			kv := strings.SplitN(part, "=", 2)
+			if len(kv) != 2 {
+				continue
+			}
+			k := strings.TrimSpace(kv[0])
+			v := strings.TrimSpace(kv[1])
+
+			switch k {
+			case "ip":
+				slave.IP = v
+			case "port":
+				if n, err := strconv.Atoi(v); err == nil {
+					slave.Port = n
+				}
+			case "state":
+				slave.State = v
+			case "offset":
+				if n, err := strconv.ParseInt(v, 10, 64); err == nil {
+					slave.Offset = n
+				}
+			case "lag":
+				if n, err := strconv.ParseInt(v, 10, 64); err == nil {
+					slave.Lag = n
+				}
+			}
+		}
+
+		slaves = append(slaves, slave)
+	}
+
+	return slaves
+}
+
+// parseRocksDBSlaveStates parses RocksDB slave states for TendisPlus
+func parseRocksDBSlaveStates(infoMap map[string]string) []haprobe.RedisTendisPlusRocksDBSlaveState {
+	var states []haprobe.RedisTendisPlusRocksDBSlaveState
+
+	for key, value := range infoMap {
+		if !strings.HasPrefix(key, "rocksdb") || !strings.Contains(key, "_slave") {
+			continue
+		}
+
+		parts := strings.Split(key, "_slave")
+		if len(parts) != 2 {
+			continue
+		}
+
+		rocksDBIDStr := strings.TrimPrefix(parts[0], "rocksdb")
+		rocksDBID, err := strconv.Atoi(rocksDBIDStr)
+		if err != nil {
+			continue
+		}
+
+		slaveID, err := strconv.Atoi(parts[1])
+		if err != nil {
+			continue
+		}
+
+		state := haprobe.RedisTendisPlusRocksDBSlaveState{
+			RocksDBID: rocksDBID,
+			SlaveID:   slaveID,
+		}
+
+		valueParts := strings.Split(value, ",")
+		for _, part := range valueParts {
+			kv := strings.SplitN(part, "=", 2)
+			if len(kv) != 2 {
+				continue
+			}
+			if strings.TrimSpace(kv[0]) == "state" {
+				state.State = strings.TrimSpace(kv[1])
+			}
+		}
+
+		states = append(states, state)
+	}
+
+	return states
 }
