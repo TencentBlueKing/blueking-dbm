@@ -21,10 +21,13 @@ from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import ClusterPhase, ClusterType, InstanceRole, InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.db_report.enums import MetaCheckSubType, ReportStateType
+from backend.flow.utils.redis.redis_meta_report import (
+    create_meta_check_report,
+    delete_old_meta_check_reports,
+    is_cluster_labeled_with,
+)
 from backend.ticket.constants import TICKET_RUNNING_STATUS_SET, TicketType
 from backend.ticket.models.ticket import ClusterOperateRecord
-
-from .base import create_meta_check_report, delete_old_meta_check_reports, is_cluster_labeled_with
 
 logger = logging.getLogger("root")
 

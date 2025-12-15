@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from .base import create_meta_check_report
 from .check_affinity import check_redis_affinity
 from .check_instance import check_redis_instance
 from .check_role import check_redis_instance_role

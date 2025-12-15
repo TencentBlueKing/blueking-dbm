@@ -100,8 +100,8 @@ def create_meta_check_report(
         subtype: Meta check subtype
         msg: Report message
         state: Report state (NORMAL/WARNING/ABNORMAL)
-        status: Legacy status field (True=pass, False=fail)
-        instance: Optional StorageInstance object (avoids DB query if provided)
+        machine_type: Machine type string
+        creator: Creator name
 
     Returns:
         Created MetaCheckReport object
