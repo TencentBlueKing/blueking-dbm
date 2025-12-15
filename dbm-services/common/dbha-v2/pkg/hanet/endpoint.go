@@ -81,3 +81,7 @@ func NewEndpoints(dsns string) ([]*Endpoint, error) {
 func (e Endpoint) String() string {
 	return fmt.Sprintf("%s://%s:%d", e.Proto, e.Host, e.Port)
 }
+
+func (e Endpoint) Addr() string {
+	return fmt.Sprintf("%s:%d", e.Host, e.Port)
+}

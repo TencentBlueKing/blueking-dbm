@@ -47,18 +47,16 @@ type collector struct {
 	endpoint    *hanet.Endpoint
 	timeout     time.Duration
 	rdb         *redis.Client
-	ctx         context.Context
 }
 
-func (c *collector) open() (*haprobe.DbEvent, error) {
-	addr := fmt.Sprintf("%s:%d", c.endpoint.Host, c.endpoint.Port)
+func (c *collector) open(ctx context.Context) (*haprobe.DbEvent, error) {
+	addr := c.endpoint.Addr()
 
 	timeout := c.timeout
 	if timeout <= 0 {
 		timeout = 3 * time.Second
 	}
 
-	c.ctx = context.Background()
 	c.rdb = redis.NewClient(&redis.Options{
 		Addr:         addr,
 		Password:     c.password,
@@ -69,8 +67,8 @@ func (c *collector) open() (*haprobe.DbEvent, error) {
 		MinIdleConns: 0,
 	})
 
-	if err := c.rdb.Ping(c.ctx).Err(); err != nil {
-		logger.Warn("failed to connect to redis %s, %v", addr, err)
+	if err := c.rdb.Ping(ctx).Err(); err != nil {
+		logger.Warn("failed to connect to redis: %s, errmsg: %v", addr, err)
 		event := &haprobe.DbEvent{
 			Name:       haprobe.DbEventNameDetectFailure,
 			Reason:     haprobe.DbEventNameReasonConnectionException,
@@ -85,33 +83,34 @@ func (c *collector) open() (*haprobe.DbEvent, error) {
 }
 
 func (c *collector) close() {
-	if c.rdb != nil {
-		err := c.rdb.Close()
-		if err != nil {
-			return
-		}
+	if c.rdb == nil {
+		return
+	}
+	err := c.rdb.Close()
+	if err != nil {
+		return
 	}
 }
 
-func (c *collector) info(section string) (string, error) {
+func (c *collector) info(ctx context.Context, section string) (string, error) {
 	if c.rdb == nil {
-		return "", fmt.Errorf("redis client is nil")
+		return "", fmt.Errorf("redis client is not initialized")
 	}
 
 	var result string
 	var err error
 
 	if section == "" {
-		result, err = c.rdb.Info(c.ctx).Result()
+		result, err = c.rdb.Info(ctx).Result()
 	} else {
-		result, err = c.rdb.Info(c.ctx, section).Result()
+		result, err = c.rdb.Info(ctx, section).Result()
 	}
 
 	return result, err
 }
 
-func (c *collector) infoMap(section string) (map[string]string, error) {
-	infoStr, err := c.info(section)
+func (c *collector) infoMap(ctx context.Context, section string) (map[string]string, error) {
+	infoStr, err := c.info(ctx, section)
 	if err != nil {
 		return nil, err
 	}
@@ -149,18 +148,18 @@ func (c *collector) isRedisCluster() bool {
 		(c.clusterType == haprobe.DbmMetadataClusterTypePredixyRedisCluster)
 }
 
-func (c *collector) obtainTwemproxyStatus() (*haprobe.RedisTwemproxyStatus, error) {
+func (c *collector) obtainTwemproxyStatus(ctx context.Context) (*haprobe.RedisTwemproxyStatus, error) {
 	// TODO
 	return &haprobe.RedisTwemproxyStatus{}, nil
 }
 
-func (c *collector) obtainPredixyStatus() (*haprobe.RedisPredixyStatus, error) {
+func (c *collector) obtainPredixyStatus(ctx context.Context) (*haprobe.RedisPredixyStatus, error) {
 	// TODO
 	return &haprobe.RedisPredixyStatus{}, nil
 }
 
-func (c *collector) obtainTendisCacheStatus() (*haprobe.RedisTendisCacheStatus, error) {
-	infoStr, err := c.info("")
+func (c *collector) obtainTendisCacheStatus(ctx context.Context) (*haprobe.RedisTendisCacheStatus, error) {
+	infoStr, err := c.info(ctx, "")
 	if err != nil {
 		return nil, err
 	}
@@ -170,13 +169,13 @@ func (c *collector) obtainTendisCacheStatus() (*haprobe.RedisTendisCacheStatus, 
 	return status, nil
 }
 
-func (c *collector) obtainTendisSSDStatus() (*haprobe.RedisTendisSSDStatus, error) {
+func (c *collector) obtainTendisSSDStatus(ctx context.Context) (*haprobe.RedisTendisSSDStatus, error) {
 	// TODO
 	return &haprobe.RedisTendisSSDStatus{}, nil
 }
 
-func (c *collector) obtainTendisPlusStatus() (*haprobe.RedisTendisPlusStatus, error) {
-	infoStr, err := c.info("")
+func (c *collector) obtainTendisPlusStatus(ctx context.Context) (*haprobe.RedisTendisPlusStatus, error) {
+	infoStr, err := c.info(ctx, "")
 	if err != nil {
 		return nil, err
 	}
@@ -186,8 +185,8 @@ func (c *collector) obtainTendisPlusStatus() (*haprobe.RedisTendisPlusStatus, er
 	return status, nil
 }
 
-func (c *collector) obtainRedisClusterStatus() (*haprobe.RedisClusterStatus, error) {
-	infoStr, err := c.info("")
+func (c *collector) obtainRedisClusterStatus(ctx context.Context) (*haprobe.RedisClusterStatus, error) {
+	infoStr, err := c.info(ctx, "")
 	if err != nil {
 		return nil, err
 	}

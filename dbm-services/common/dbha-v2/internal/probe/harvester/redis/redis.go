@@ -120,7 +120,7 @@ func (r *Redis) Harvest(ctx context.Context, machineID, serviceID string) (<-cha
 				wg := &sync.WaitGroup{}
 
 				// Start the collectors.
-				r.beginCollecting(wg, dataC)
+				r.beginCollecting(ctx, wg, dataC)
 
 				// Wait for the collectors to stop.
 				wg.Wait()
@@ -195,7 +195,7 @@ func (r *Redis) loadCollectors() {
 	}
 }
 
-func (r *Redis) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
+func (r *Redis) collecting(ctx context.Context, c *collector, dataC chan<- *plugin.HarvestData) {
 	status := &haprobe.RedisStatus{}
 
 	data := &plugin.HarvestData{
@@ -227,7 +227,7 @@ func (r *Redis) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
 	}
 
 	if c.isTwemproxy() {
-		dbStatus, err := c.obtainTwemproxyStatus()
+		dbStatus, err := c.obtainTwemproxyStatus(ctx)
 		if err != nil {
 			logger.Warn("failed to obtain the Redis(Twemproxy) status, errmsg: %s", err)
 			return
@@ -236,7 +236,7 @@ func (r *Redis) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
 		return
 	}
 
-	dbEvent, err := c.open()
+	dbEvent, err := c.open(ctx)
 	if err != nil {
 		dbEvent.BkCloudID = r.bkCloudID
 		data.Events = []*haprobe.DbEvent{dbEvent}
@@ -245,7 +245,7 @@ func (r *Redis) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
 	}
 
 	if c.isPredixy() {
-		dbStatus, err := c.obtainPredixyStatus()
+		dbStatus, err := c.obtainPredixyStatus(ctx)
 		if err != nil {
 			logger.Warn("failed to obtain the Redis(Predixy) status, errmsg: %s", err)
 			return
@@ -255,7 +255,7 @@ func (r *Redis) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
 	}
 
 	if c.isTendisCache() {
-		dbStatus, err := c.obtainTendisCacheStatus()
+		dbStatus, err := c.obtainTendisCacheStatus(ctx)
 		if err != nil {
 			logger.Warn("failed to obtain the Redis(TendisCache) status, errmsg: %s", err)
 			return
@@ -265,7 +265,7 @@ func (r *Redis) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
 	}
 
 	if c.isTendisSSD() {
-		dbStatus, err := c.obtainTendisSSDStatus()
+		dbStatus, err := c.obtainTendisSSDStatus(ctx)
 		if err != nil {
 			logger.Warn("failed to obtain the Redis(TendisSSD) status, errmsg: %s", err)
 			return
@@ -275,7 +275,7 @@ func (r *Redis) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
 	}
 
 	if c.isTendisPlus() {
-		dbStatus, err := c.obtainTendisPlusStatus()
+		dbStatus, err := c.obtainTendisPlusStatus(ctx)
 		if err != nil {
 			logger.Warn("failed to obtain the Redis(TendisPlus) status, errmsg: %s", err)
 			return
@@ -285,7 +285,7 @@ func (r *Redis) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
 	}
 
 	// Default: RedisCluster or other Redis types
-	dbStatus, err := c.obtainRedisClusterStatus()
+	dbStatus, err := c.obtainRedisClusterStatus(ctx)
 	if err != nil {
 		logger.Warn("failed to obtain the Redis status, errmsg: %s", err)
 		return
@@ -293,14 +293,14 @@ func (r *Redis) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
 	status.RedisClusterStatus = dbStatus
 }
 
-func (r *Redis) beginCollecting(wg *sync.WaitGroup, dataC chan<- *plugin.HarvestData) {
+func (r *Redis) beginCollecting(ctx context.Context, wg *sync.WaitGroup, dataC chan<- *plugin.HarvestData) {
 	for _, c := range r.collectors {
 		wg.Add(1)
 
 		go func(t *collector) {
 			defer wg.Done()
 
-			r.collecting(t, dataC)
+			r.collecting(ctx, t, dataC)
 		}(c)
 	}
 }
