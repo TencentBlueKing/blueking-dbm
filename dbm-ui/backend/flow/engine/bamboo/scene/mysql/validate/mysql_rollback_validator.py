@@ -18,17 +18,17 @@ from backend.flow.engine.validate.mysql_base_validate import MysqlBaseValidator
 logger = logging.getLogger("root")
 
 
-class TenDbClusterRollbackFlowValidator(MysqlBaseValidator):
-    def __call__(self):
-        return None
+# class TenDbClusterRollbackFlowValidator(MysqlBaseValidator):
+#     def __call__(self):
+#         return None
+
+
+# class TenDbHaRollbackFlowValidator(MysqlBaseValidator):
+#     def __call__(self):
+#         return None
 
 
 class TenDbHaRollbackFlowValidator(MysqlBaseValidator):
-    def __call__(self):
-        return None
-
-
-class TenDbHaRollbackFlowValidatorBak(MysqlBaseValidator):
     def __call__(self):
         error_msgs = []
         for index, info in enumerate(self.data["infos"]):
@@ -37,7 +37,7 @@ class TenDbHaRollbackFlowValidatorBak(MysqlBaseValidator):
             # rollback_time = info["rollback_time"]
             rollback_type = info["rollback_type"]
             rollback_databases = info["databases"]
-            affect_database_list = info["affect_database_list"]
+            affect_database_list = info.get("affect_database_list", [])
 
             backup_info = info["backupinfo"]
             backup_database_list = backup_info["database_list"]
@@ -87,7 +87,7 @@ class TenDbHaRollbackFlowValidatorBak(MysqlBaseValidator):
         return None
 
 
-class TenDbClusterRollbackFlowValidatorBak(MysqlBaseValidator):
+class TenDbClusterRollbackFlowValidator(MysqlBaseValidator):
     """
     tendbHa 回档单据校验
     """
@@ -100,7 +100,7 @@ class TenDbClusterRollbackFlowValidatorBak(MysqlBaseValidator):
             # rollback_time = info["rollback_time"]
             rollback_type = info["rollback_type"]
             rollback_databases = info["databases"]
-            affect_database_list = info["affect_database_list"]
+            affect_database_list = info.get("affect_database_list", [])
 
             backup_info = info["backupinfo"]
             backup_database_list = backup_info["database_list"]

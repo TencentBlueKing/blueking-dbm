@@ -88,7 +88,10 @@ class TenDBRemoteSlaveRecoverFlow(object):
         tendb cluster remote slave recover
         增加单据临时ADMIN账号的添加和删除逻辑
         """
+        # 用于治愈自动重建的: 这里会自动切换到重建好的新节点、并自动下架机器。
         disable_manual_confirm = self.ticket_data.get("disable_manual_confirm", False)
+        if disable_manual_confirm:
+            self.auto_switch_slave = True
 
         cluster_ids = [i["cluster_id"] for i in self.ticket_data["infos"]]
         tendb_migrate_pipeline_all = Builder(
