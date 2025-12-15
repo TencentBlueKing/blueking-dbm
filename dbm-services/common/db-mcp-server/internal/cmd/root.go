@@ -25,7 +25,9 @@ var rootCmd = &cobra.Command{
 
 		err := tools.LoadTools(s)
 		if err != nil {
-			return err
+			logger.Error("init load tools failed: %s", err.Error())
+		} else {
+			logger.Info("init load tools success")
 		}
 
 		errCh := make(chan error)
@@ -39,10 +41,11 @@ var rootCmd = &cobra.Command{
 				case <-ticker.C:
 					err := tools.LoadTools(s)
 					if err != nil {
-						logger.Error("update tools failed", err.Error())
-						errCh <- err
+						logger.Error("update tools failed: %s", err.Error())
+						//errCh <- nil
+					} else {
+						logger.Info("update tools done")
 					}
-					//logger.Info("update tools done")
 				default:
 
 				}
