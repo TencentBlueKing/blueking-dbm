@@ -409,12 +409,16 @@ func (r *SpiderClusterBackendSwitchComp) GenerateSwitchSqls() (err error) {
 	if len(r.realSwitchSvrPairs) == 0 {
 		return fmt.Errorf("no switch instance")
 	}
+	withSync := true
+	if r.Params.Force {
+		withSync = false
+	}
 	for _, ins_pair := range r.realSwitchSvrPairs {
-		primarySwitchSql := ins_pair.Slave.GetAlterNodeSql(ins_pair.MptName, true)
+		primarySwitchSql := ins_pair.Slave.GetAlterNodeSql(ins_pair.MptName, withSync)
 		logger.Info("primary spt switch sql:%s", mysqlcomm.CleanSvrPassword(primarySwitchSql))
 		r.primaryShardSwitchSqls = append(r.primaryShardSwitchSqls, primarySwitchSql)
 		if !r.Params.Force {
-			slaveSwitchSql := ins_pair.Master.GetAlterNodeSql(ins_pair.SptName, true)
+			slaveSwitchSql := ins_pair.Master.GetAlterNodeSql(ins_pair.SptName, withSync)
 			logger.Info("slave spt switch sql:%s", mysqlcomm.CleanSvrPassword(slaveSwitchSql))
 			r.slaveShardSwitchSqls = append(r.slaveShardSwitchSqls, slaveSwitchSql)
 		}
@@ -610,7 +614,7 @@ func (r *SpiderClusterBackendSwitchComp) connTdbctl() (err error) {
 
 // CutOver cut over
 func (r *SpiderClusterBackendSwitchComp) CutOver() (err error) {
-	var tdbctlFlushed bool
+	var tdbctlNotFlushed bool
 	// get file lock
 	if err = r.CutOverCtx.GetFileLock(); err != nil {
 		logger.Error("get file lock failed %s", err.Error())
@@ -619,10 +623,11 @@ func (r *SpiderClusterBackendSwitchComp) CutOver() (err error) {
 	defer func() {
 		if uerr := r.fdLock.Unlock(); uerr != nil {
 			logger.Error("unlock file lock failed %s", uerr.Error())
-			return
 		}
 	}()
+
 	logger.Info("the switching operation will be performed")
+	// 注册路由回滚逻辑：切换失败时自动回滚
 	defer func() {
 		if err != nil && len(r.primaryShardrollbackSqls) > 0 {
 			logger.Info("start execute rollback router sql ... ")
@@ -631,48 +636,81 @@ func (r *SpiderClusterBackendSwitchComp) CutOver() (err error) {
 				return
 			}
 			logger.Info("rollback route successfully~")
-			if tdbctlFlushed {
+			// 表示只是在tdbctl层面更改了,并没有刷新路由
+			// 只需回滚中控的路由即可
+			if tdbctlNotFlushed {
 				return
 			}
 			if ferr := r.flushrouting(); ferr != nil {
+				logger.Error("failed to flush rollback route")
 				return
 			}
 			logger.Info("flush rollback route successfully~")
 		}
 	}()
-	if !r.Params.Force {
-		if err = r.flushTablesAtEverySpiderNode(); err != nil {
-			return fmt.Errorf("[未切换]: flush tables failed:%w", err)
-		}
+
+	if r.Params.Force {
+		return r.cutOverForce(&tdbctlNotFlushed)
 	}
+	return r.cutOverNormal(&tdbctlNotFlushed)
+}
+
+// cutOverForce 强制切换模式：跳过 flush tables、锁定Spider、复制状态检查
+func (r *SpiderClusterBackendSwitchComp) cutOverForce(tdbctlNotFlushed *bool) (err error) {
+	logger.Info("force switch mode: skip flush tables, lock spider and replication check")
+
+	// 执行路由切换SQL
 	if _, err = r.tdbCtlConn.ExecMore(r.primaryShardSwitchSqls); err != nil {
-		tdbctlFlushed = true
+		*tdbctlNotFlushed = true
 		return err
 	}
-	// check the replication status again
-	if !r.Params.Force {
-		// lock all spider write
-		defer func() {
-			if uerr := r.Unlock(); uerr != nil {
-				logger.Error("unlock failed: %v", uerr)
-			}
-		}()
-		logger.Info("start locking the spider node")
-		if err = r.lockaAllSpidersWrite(); err != nil {
-			return err
-		}
-		if err = checkReplicationStatus(r.slavesConn); err != nil {
-			return err
-		}
-	} else {
-		logger.Info("force switch,skip lock all spider write")
-	}
+
+	// 记录binlog位置
 	logger.Info("record the location of each node binlog")
-	// record the binlog position information during the handover
 	if err = r.recordBinLogPos(); err != nil {
 		return err
 	}
-	// flush 到中控生效,此时才算真正切换，中控更改后端的路由
+
+	// flush 到中控生效
+	logger.Info("execute:tdbctl flush routing force")
+	return r.flushRoutingForce()
+}
+
+// cutOverNormal 正常切换模式：完整的安全检查流程
+func (r *SpiderClusterBackendSwitchComp) cutOverNormal(tdbctlNotFlushed *bool) (err error) {
+	// Step 1: 在每个Spider节点执行 flush tables
+	if err = r.flushTablesAtEverySpiderNode(); err != nil {
+		return fmt.Errorf("[未切换]: flush tables failed:%w", err)
+	}
+
+	// Step 2: 执行路由切换SQL
+	if _, err = r.tdbCtlConn.ExecMore(r.primaryShardSwitchSqls); err != nil {
+		*tdbctlNotFlushed = true
+		return err
+	}
+
+	// Step 3: 锁定所有Spider写入并检查复制状态
+	logger.Info("start locking the spider node")
+	if err = r.lockaAllSpidersWrite(); err != nil {
+		return err
+	}
+	defer func() {
+		if uerr := r.Unlock(); uerr != nil {
+			logger.Error("unlock failed: %v", uerr)
+		}
+	}()
+
+	if err = checkReplicationStatus(r.slavesConn); err != nil {
+		return err
+	}
+
+	// Step 4: 记录binlog位置
+	logger.Info("record the location of each node binlog")
+	if err = r.recordBinLogPos(); err != nil {
+		return err
+	}
+
+	// Step 5: flush 到中控生效
 	logger.Info("execute:tdbctl flush routing cache")
 	return r.flushrouting()
 }
