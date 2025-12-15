@@ -22,6 +22,7 @@ from backend.components.dbresource.client import DBResourceApi
 from backend.components.gse.client import GseApi
 from backend.configuration.constants import COST_ESTIMATE_TEMPLATE, DBType, SystemSettingsEnum
 from backend.configuration.models import SystemSettings
+from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.enums.spec import SpecClusterType, SpecMachineType
 from backend.db_meta.models import AppCache, Machine, Spec, Tag
 from backend.db_services.dbresource.exceptions import SpecOperateException
@@ -565,55 +566,76 @@ class ResourceHandler(object):
 
     @classmethod
     @func_cache_decorator(cache_time=60 * 10)
-    def calc_resource_water_level(cls):
+    def calc_resource_water_level(cls, need_replenish: bool = True):
         """计算资源池水位(计算较慢，默认缓存10min)"""
+
+        # 获取补货比例、操作系统映射、园区映射、规格信息映射
+        spec_map = {spec.spec_id: spec for spec in Spec.objects.filter(tags__key=SystemTagEnum.REPLENISH)}
+        replenish_ratio = SystemSettings.get_setting_value(SystemSettingsEnum.REPLENISH_RATIO_MAP, [])
+        ratio_map = {info["spec_id"]: info["ratio"] for info in replenish_ratio}
+        os_map = SystemSettings.get_setting_value(SystemSettingsEnum.REPLENISH_OS_MAP, {})
+        os_map = {os_name: os_key for os_key, os_names in os_map.items() for os_name in os_names}
+        subzone_map = SystemSettings.get_setting_value(SystemSettingsEnum.REPLENISH_SUBZONE_MAP, {})
+        subzone_map = {name: zone_key for zone_key, zone_names in subzone_map.items() for name in zone_names}
+
         # 按照规格 + 地域 + 园区 + 操作系统聚合主机
         machine_water_level_map = defaultdict(
             lambda: defaultdict(
                 lambda: defaultdict(lambda: defaultdict(lambda: {"machine_count": 0, "resource_count": 0}))
             )
         )
-        machines = Machine.objects.all().values("spec_id", "bk_os_name", "bk_city__bk_idc_city_name", "bk_sub_zone")
+
+        machines = Machine.objects.filter(bk_cloud_id=0).values(
+            "spec_id", "bk_os_name", "bk_city__bk_idc_city_name", "bk_sub_zone"
+        )
         for m in machines:
             spec_id, city_name, subzone = m["spec_id"], m["bk_city__bk_idc_city_name"], m["bk_sub_zone"]
             bk_os_name = (m["bk_os_name"] or "").strip().lower().replace(" ", "")
+            # 取映射
+            bk_os_name = os_map.get(bk_os_name, bk_os_name)
+            subzone = subzone_map.get(subzone, subzone)
             machine_water_level_map[spec_id][bk_os_name][city_name][subzone]["machine_count"] += 1
 
-        resource_water_level = DBResourceApi.water_level()["data"]
+        resource_water_level = DBResourceApi.water_level()["data"] or []
         for info in resource_water_level:
-            spec_id, city_name, subzone = info["spec_id"], info["city"], info["sub_zone_id"]
+            spec_id, city_name, subzone = info["spec_id"], info["city"], info["sub_zone"]
             bk_os_name = info["os_name_origin"].strip().lower().replace(" ", "")
+            # 取映射
+            bk_os_name = os_map.get(bk_os_name, bk_os_name)
+            subzone = subzone_map.get(subzone, subzone)
             machine_water_level_map[spec_id][bk_os_name][city_name][subzone]["resource_count"] = info["count"]
 
-        spec_map = {spec.spec_id: spec for spec in Spec.objects.all()}
-        update_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
         # 打平聚合信息，生成资源水位
-        replenish_ratio = SystemSettings.get_setting_value(SystemSettingsEnum.REPLENISH_RATIO, [])
-        spec__replenish_ratio_map = {info["spec_id"]: info["ratio"] for info in replenish_ratio}
-        default_ratio = spec__replenish_ratio_map.get(0, 0.05)
+        default_ratio = ratio_map.get(0, 0.05)
         water_level: List[Dict] = [
             {
                 "spec_id": spec_id,
-                "spec_machine_type": spec_map[spec_id].spec_machine_type if spec_id in spec_map else "",
-                "spec_name": spec_map[spec_id].spec_name if spec_id in spec_map else "",
-                "db_type": spec_map[spec_id].spec_cluster_type if spec_id in spec_map else "",
+                "spec_machine_type": spec_map[spec_id].spec_machine_type,
+                "spec_name": spec_map[spec_id].spec_name,
+                "db_type": spec_map[spec_id].spec_cluster_type,
                 "os_name": bk_os_name,
                 "city": city_name,
                 "subzone": subzone,
                 "machine_count": subzone_info["machine_count"],
                 "resource_count": subzone_info["resource_count"],
                 "machine_refer_count": math.ceil(
-                    subzone_info["machine_count"] * spec__replenish_ratio_map.get(spec_id, default_ratio)
+                    subzone_info["machine_count"] * ratio_map.get(spec_id, default_ratio)
                 ),
             }
             for spec_id, spec_info in machine_water_level_map.items()
             for bk_os_name, bk_os_info in spec_info.items()
             for city_name, city_info in bk_os_info.items()
             for subzone, subzone_info in city_info.items()
+            # 过滤掉：操作系统为空，机型为空，城市为空(default)
+            if spec_id in spec_map and spec_map[spec_id].device_class
+            if bk_os_name and subzone and city_name and city_name != "default"
         ]
+        # 仅展示需要补货资源信息（重新计算 machine_refer_count）
+        if need_replenish:
+            water_level = [info for info in water_level if info["machine_refer_count"] > info["resource_count"]]
 
         # 补货固定显示时间上午九点
         flush_time = "09:00:00"
+        update_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         return {"update_time": update_time, "water_level": water_level, "flush_time": flush_time}

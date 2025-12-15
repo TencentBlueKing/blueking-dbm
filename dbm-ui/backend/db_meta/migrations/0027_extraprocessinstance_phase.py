@@ -2,6 +2,8 @@
 
 from django.db import migrations, models
 
+from backend.db_meta.enums import ClusterPhase
+
 
 class Migration(migrations.Migration):
 
@@ -14,7 +16,7 @@ class Migration(migrations.Migration):
             model_name="extraprocessinstance",
             name="phase",
             field=models.CharField(
-                choices=[("online", "正常"), ("offline", "禁用"), ("destroy", "销毁"), ("trans_stage", "scr/gcs迁移中")],
+                choices=ClusterPhase.get_choices(),
                 default="online",
                 max_length=64,
             ),

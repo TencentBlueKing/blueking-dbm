@@ -385,6 +385,7 @@ class ResourceSummaryResponseSerializer(serializers.Serializer):
 class SpecSerializer(serializers.ModelSerializer):
     spec_db_type = serializers.SerializerMethodField(help_text=_("规格组件类型"))
     capacity = serializers.SerializerMethodField(help_text=_("规格容量"))
+    tags = serializers.SerializerMethodField(help_text=_("规格标签"))
 
     class Meta:
         model = Spec
@@ -398,6 +399,9 @@ class SpecSerializer(serializers.ModelSerializer):
 
     def get_capacity(self, obj):
         return obj.capacity
+
+    def get_tags(self, obj):
+        return [tag.desc for tag in obj.tags.all()]
 
     def validate_valid_cpu_mem_disk(self, attrs):
         # 校验cpu,mem的值是int
@@ -482,6 +486,11 @@ class SpecBatchUpdateSerializer(serializers.Serializer):
         if not any([key in attrs for key in ("biz_scope", "enable")]):
             raise serializers.ValidationError(_("至少需要提供一个可更新字段"))
         return attrs
+
+
+class SpecNeedReplenishSerializer(serializers.Serializer):
+    spec_ids = serializers.ListField(help_text=_("规格id列表"), child=serializers.IntegerField())
+    need_replenish = serializers.BooleanField(help_text=_("是否需要补货"))
 
 
 class VerifyDuplicatedSpecNameSerializer(serializers.Serializer):
