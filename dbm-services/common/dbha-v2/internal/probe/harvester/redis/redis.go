@@ -220,7 +220,7 @@ func (r *Redis) collecting(ctx context.Context, c *collector, dataC chan<- *plug
 		dataC <- data
 	}()
 
-	if hostStatus, err := c.obtainHostStatus(); err != nil {
+	if hostStatus, err := c.obtainHostStatus(ctx); err != nil {
 		logger.Warn("failed to obtain the host status, errmsg: %s", err)
 	} else {
 		data.Host = hostStatus

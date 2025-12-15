@@ -25,8 +25,11 @@
 package redis
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"io"
+	"net"
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/probe/harvester/base"
@@ -88,6 +91,7 @@ func (c *collector) close() {
 	}
 	err := c.rdb.Close()
 	if err != nil {
+		logger.Warn("failed to close redis db, err: %v", err)
 		return
 	}
 }
@@ -149,13 +153,46 @@ func (c *collector) isRedisCluster() bool {
 }
 
 func (c *collector) obtainTwemproxyStatus(ctx context.Context) (*haprobe.RedisTwemproxyStatus, error) {
-	// TODO
-	return &haprobe.RedisTwemproxyStatus{}, nil
+	addr := c.endpoint.Addr()
+
+	conn, err := net.DialTimeout("tcp", addr, c.timeout)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to twemproxy stats port:%s,errmsg: %w", addr, err)
+	}
+	defer conn.Close()
+
+	if err := conn.SetReadDeadline(time.Now().Add(c.timeout)); err != nil {
+		return nil, fmt.Errorf("failed to set read deadline: %w", err)
+	}
+
+	reader := bufio.NewReader(conn)
+	data, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read twemproxy stats: %w", err)
+	}
+
+	status := &haprobe.RedisTwemproxyStatus{}
+	parseInfoToTwemproxyStatus(string(data), status)
+	return status, nil
 }
 
 func (c *collector) obtainPredixyStatus(ctx context.Context) (*haprobe.RedisPredixyStatus, error) {
-	// TODO
-	return &haprobe.RedisPredixyStatus{}, nil
+	infoStr, err := c.info(ctx, "")
+	if err != nil {
+		return nil, err
+	}
+
+	status := &haprobe.RedisPredixyStatus{}
+	parseInfoToPredixyStatus(infoStr, status)
+
+	serversInfo, err := c.info(ctx, "Servers")
+	if err != nil {
+		logger.Warn("failed to get predixy servers info: %v", err)
+	} else {
+		parsePredixyServersInfo(serversInfo, status)
+	}
+
+	return status, nil
 }
 
 func (c *collector) obtainTendisCacheStatus(ctx context.Context) (*haprobe.RedisTendisCacheStatus, error) {
@@ -170,8 +207,14 @@ func (c *collector) obtainTendisCacheStatus(ctx context.Context) (*haprobe.Redis
 }
 
 func (c *collector) obtainTendisSSDStatus(ctx context.Context) (*haprobe.RedisTendisSSDStatus, error) {
-	// TODO
-	return &haprobe.RedisTendisSSDStatus{}, nil
+	infoStr, err := c.info(ctx, "")
+	if err != nil {
+		return nil, err
+	}
+
+	status := &haprobe.RedisTendisSSDStatus{}
+	parseInfoToTendisSSDStatus(infoStr, status)
+	return status, nil
 }
 
 func (c *collector) obtainTendisPlusStatus(ctx context.Context) (*haprobe.RedisTendisPlusStatus, error) {
@@ -196,7 +239,7 @@ func (c *collector) obtainRedisClusterStatus(ctx context.Context) (*haprobe.Redi
 	return status, nil
 }
 
-func (c *collector) obtainHostStatus() (*haprobe.HostMetric, error) {
+func (c *collector) obtainHostStatus(ctx context.Context) (*haprobe.HostMetric, error) {
 	hostStatus := &haprobe.HostMetric{}
 	if err := c.SetCpuStatus(hostStatus); err != nil {
 		logger.Warn("failed to update CPU status, errmsg: %s", err)
