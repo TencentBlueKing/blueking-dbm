@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 
 from backend import env
@@ -118,7 +119,7 @@ class ChecksumService:
         return delta_days
 
     def query_checksum_via_drs(
-        self, start_time: datetime, end_time: datetime
+        self, bk_cloud_id: int, start_time: datetime, end_time: datetime
     ) -> Tuple[List[ChecksumResult], List[ChecksumResult]]:
         fail: List[ChecksumResult] = []
         not_reported: List[ChecksumResult] = []
@@ -127,7 +128,12 @@ class ChecksumService:
             ip = inst.machine.ip
             port = inst.port
 
-            master_ins = StorageInstanceTuple.objects.get(receiver=inst).ejector
+            try:
+                # 如果 dbha 了是没有的
+                master_ins = StorageInstanceTuple.objects.get(receiver=inst).ejector
+            except ObjectDoesNotExist:
+                continue
+
             master_ip = master_ins.machine.ip
             master_port = master_ins.port
 
@@ -135,6 +141,7 @@ class ChecksumService:
 
             drs_raw_res = DRSApi.rpc(
                 {
+                    "bk_cloud_id": bk_cloud_id,
                     "addresses": [inst.ip_port],
                     "cmds": [
                         "SELECT COUNT(*) AS cnt FROM infodba_schema.checksum_history \
