@@ -109,7 +109,10 @@ class MySQLRestoreSlaveRemoteFlow(object):
         3 mysql_restore_slave_change_cluster_info
         4 mysql_restore_remove_old_slave
         """
+        # 用于治愈自动重建的: 这里会自动切换到重建好的新节点、并自动下架机器。
         disable_manual_confirm = self.ticket_data.get("disable_manual_confirm", False)
+        if disable_manual_confirm:
+            self.auto_switch_slave = True
 
         cluster_ids = []
         for i in self.ticket_data["infos"]:
