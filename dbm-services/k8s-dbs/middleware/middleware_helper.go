@@ -52,7 +52,7 @@ func RegisterMiddleWare(engine *gin.Engine) {
 	slog.Info("Finish initial metric...")
 
 	// 注册 auth 中间件
-	engine.Use(APIAuthMiddleware(util.Db.GormDb))
+	engine.Use(APIAuthMiddleware(util.Db.AuthGormDb))
 	slog.Info("Finish initial auth...")
 }
 

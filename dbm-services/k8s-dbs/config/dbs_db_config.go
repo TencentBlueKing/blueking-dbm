@@ -21,16 +21,26 @@ package config
 
 import "time"
 
-// DatabaseConfig 元数据库配置信息
+// DatabaseConfig 通用数据库配置结构体
 type DatabaseConfig struct {
-	Host         string        `env:"MYSQL_HOST"`
-	Port         int           `env:"MYSQL_PORT"`
-	User         string        `env:"MYSQL_USER"`
-	Password     string        `env:"MYSQL_PASSWORD"`
-	DBName       string        `env:"MYSQL_DBNAME"`
-	TLSMode      string        `env:"MYSQL_TLSMODE"`
-	MaxOpenConns int           `env:"MYSQL_MAX_OPEN_CONN"`
-	MaxIdleConns int           `env:"MYSQL_MAX_IDLE_CONN"`
-	MaxLifetime  time.Duration `env:"MYSQL_MAX_LIFETIME"`
-	MaxIdleTime  time.Duration `env:"MYSQL_MAX_IDLE_TIME"`
+	Host         string        `env:"HOST"`
+	Port         int           `env:"PORT"`
+	User         string        `env:"USER"`
+	Password     string        `env:"PASSWORD"`
+	DBName       string        `env:"DBNAME"`
+	TLSMode      string        `env:"TLSMODE"`
+	MaxOpenConns int           `env:"MAX_OPEN_CONN"`
+	MaxIdleConns int           `env:"MAX_IDLE_CONN"`
+	MaxLifetime  time.Duration `env:"MAX_LIFETIME"`
+	MaxIdleTime  time.Duration `env:"MAX_IDLE_TIME"`
+}
+
+// DbsDatabaseConfig dbs 元数据库配置信息
+type DbsDatabaseConfig struct {
+	DatabaseConfig `envPrefix:"DBS_MYSQL_"`
+}
+
+// AuthDatabaseConfig auth 元数据库配置信息
+type AuthDatabaseConfig struct {
+	DatabaseConfig `envPrefix:"AUTH_MYSQL_"`
 }
