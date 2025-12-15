@@ -20,10 +20,9 @@ from backend.configuration.constants import SystemSettingsEnum
 from backend.db_meta.enums import ClusterPhase, ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_report.enums import MetaCheckSubType
+from backend.flow.utils.redis.redis_meta_report import delete_old_meta_check_reports
 from backend.ticket.models import SystemSettings
 from backend.utils.basic import generate_root_id
-
-from .base import delete_old_meta_check_reports
 
 logger = logging.getLogger("root")
 

@@ -22,11 +22,11 @@ from pipeline.core.flow.activity import Service, StaticIntervalGenerator
 from backend import env
 from backend.components import JobApi
 from backend.db_meta.models import Cluster
-from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.redis_cluster_check import create_meta_check_report
 from backend.db_report.enums import MetaCheckSubType, ReportStateType
 from backend.flow.consts import SUCCESS_LIST
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.redis.redis_context_dataclass import RedisRoleCheckContext
+from backend.flow.utils.redis.redis_meta_report import create_meta_check_report
 from backend.flow.utils.redis.redis_script_template import (
     build_redis_role_check_script,
     redis_fast_execute_script_common_kwargs,
