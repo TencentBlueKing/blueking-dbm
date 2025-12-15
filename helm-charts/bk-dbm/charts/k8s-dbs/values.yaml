@@ -59,16 +59,30 @@ server:
   timezone: "Asia/Shanghai"
   port: 8000
   datasource:
-    host: ""
-    port:
-    user: ""
-    password: ""
-    dbname: ""
-    tlsmode: "false"
-    maxOpenConns: 10
-    maxIdelConns: 5
-    maxLifeTime: "30m"
-    maxIdleTime: "30m"
+    # @param auth 数据库配置
+    auth:
+      host: ""
+      port:
+      user: ""
+      password: ""
+      dbname: ""
+      tlsmode: "false"
+      maxOpenConns: 10
+      maxIdelConns: 5
+      maxLifeTime: "30m"
+      maxIdleTime: "30m"
+    # @param dbs 数据库配置
+    dbs:
+      host: ""
+      port:
+      user: ""
+      password: ""
+      dbname: ""
+      tlsmode: "false"
+      maxOpenConns: 10
+      maxIdelConns: 5
+      maxLifeTime: "30m"
+      maxIdleTime: "30m"
 
 # @section ingress配置
 ingress:

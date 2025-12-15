@@ -37,55 +37,84 @@ var (
 )
 
 type database struct {
-	GormDb *gorm.DB
+	DbsGormDb  *gorm.DB
+	AuthGormDb *gorm.DB
 }
 
-func dbConfig() (*config.DatabaseConfig, error) {
-	dbCfg := &config.DatabaseConfig{}
-	if err := env.Parse(dbCfg); err != nil {
-		return nil, fmt.Errorf("failed to parse environment variables: %w", err)
+func dbConfig() (*config.DbsDatabaseConfig, *config.AuthDatabaseConfig, error) {
+	dbsDbCfg := &config.DbsDatabaseConfig{}
+	if err := env.Parse(dbsDbCfg); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse dbsDbCfg environment variables: %w", err)
 	}
-	return dbCfg, nil
+	authDbCfg := &config.AuthDatabaseConfig{}
+	if err := env.Parse(authDbCfg); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse authDbCfg environment variables: %w", err)
+	}
+	return dbsDbCfg, authDbCfg, nil
+}
+
+// initDatabase 通用的数据库初始化函数
+func initDatabase(cfg *config.DatabaseConfig, dbName string) (*gorm.DB, error) {
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local&tls=%s",
+		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName, cfg.TLSMode)
+
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to %s database: %w", dbName, err)
+	}
+
+	sqlDb, err := db.DB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get %s database object: %w", dbName, err)
+	}
+
+	sqlDb.SetMaxOpenConns(cfg.MaxOpenConns)
+	sqlDb.SetMaxIdleConns(cfg.MaxIdleConns)
+	sqlDb.SetConnMaxLifetime(cfg.MaxLifetime)
+	sqlDb.SetConnMaxIdleTime(cfg.MaxIdleTime)
+
+	if err = sqlDb.Ping(); err != nil {
+		return nil, fmt.Errorf("failed to ping %s database: %w", dbName, err)
+	}
+
+	slog.Info("Database connection established", "database", dbName)
+	return db, nil
 }
 
 func (d *database) Init() error {
 	once.Do(func() {
-		dbCfg, err := dbConfig()
+		dbsDbCfg, authDbCfg, err := dbConfig()
 		if err != nil {
 			initErr = fmt.Errorf("failed to load config: %w", err)
 			slog.Error("Failed to load config", "err", err)
 			return
 		}
-		dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local&tls=%s",
-			dbCfg.User, dbCfg.Password, dbCfg.Host, dbCfg.Port, dbCfg.DBName, dbCfg.TLSMode)
-		db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
-		if err != nil {
-			initErr = fmt.Errorf("failed to connect to database: %w", err)
-			slog.Error("Failed to connect to database", "err", err)
-			return
-		}
-		// 获取底层数据库对象
-		sqlDb, err := db.DB()
-		if err != nil {
-			initErr = fmt.Errorf("failed to connect to database: %w", err)
-			slog.Error("failed to get database object", "error", err)
-			return
-		}
 
-		// 设置数据库连接池参数
-		sqlDb.SetMaxOpenConns(dbCfg.MaxOpenConns)
-		sqlDb.SetMaxIdleConns(dbCfg.MaxIdleConns)
-		sqlDb.SetConnMaxLifetime(dbCfg.MaxLifetime)
-		sqlDb.SetConnMaxIdleTime(dbCfg.MaxIdleTime)
-
-		// Ping 数据库，确认连接
-		if err = sqlDb.Ping(); err != nil {
-			initErr = fmt.Errorf("failed to ping database: %w", err)
-			slog.Error("Failed to ping database", "err", err)
+		// 初始化 DBS 数据库
+		dbsDb, err := initDatabase(&dbsDbCfg.DatabaseConfig, "dbs")
+		if err != nil {
+			initErr = err
+			slog.Error("Failed to initialize dbs database", "err", err)
 			return
 		}
-		slog.Info("Database connection established")
-		Db.GormDb = db
+		Db.DbsGormDb = dbsDb
+
+		// 初始化 Auth 数据库
+		authDb, err := initDatabase(&authDbCfg.DatabaseConfig, "auth")
+		if err != nil {
+			initErr = err
+			slog.Error("Failed to initialize auth database", "err", err)
+			return
+		}
+		Db.AuthGormDb = authDb
 	})
 	return initErr
+}
+
+// ResetForTesting 测试辅助函数，用于重置单例状态
+// 仅在测试环境中使用
+func ResetForTesting() {
+	once = sync.Once{}
+	initErr = nil
+	Db = &database{}
 }

@@ -63,7 +63,7 @@ func main() {
 	middleHelper.RegisterMiddleWare(engine)
 
 	// 构建路由
-	router.BuildRouter(engine, util.Db.GormDb)
+	router.BuildRouter(engine, util.Db.DbsGormDb)
 	slog.Info("Finish initial router...")
 
 	// 启动 informers

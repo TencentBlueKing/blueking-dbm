@@ -39,24 +39,42 @@ spec:
             value: "{{ .Values.server.vmMetricServerPort }}"
           - name: TZ
             value: {{ .Values.server.timezone }}
-          - name: MYSQL_HOST
-            value: "{{ .Values.server.datasource.host }}"
-          - name: MYSQL_PORT
-            value: "{{ .Values.server.datasource.port }}"
-          - name: MYSQL_USER
-            value: "{{ .Values.server.datasource.user }}"
-          - name: MYSQL_PASSWORD
-            value: "{{ .Values.server.datasource.password }}"
-          - name: MYSQL_DBNAME
-            value: "{{ .Values.server.datasource.dbname }}"
-          - name: MYSQL_TLSMODE
-            value: "{{ .Values.server.datasource.tlsmode }}"
-          - name: MYSQL_MAX_OPEN_CONN
-            value: "{{ .Values.server.datasource.maxOpenConns }}"
-          - name: MYSQL_MAX_IDLE_CONN
-            value: "{{ .Values.server.datasource.maxIdelConns }}"
-          - name: MYSQL_MAX_LIFETIME
-            value: "{{ .Values.server.datasource.maxLifeTime }}"
+          - name: AUTH_MYSQL_HOST
+            value: "{{ .Values.server.datasource.auth.host }}"
+          - name: AUTH_MYSQL_PORT
+            value: "{{ .Values.server.datasource.auth.port }}"
+          - name: AUTH_MYSQL_USER
+            value: "{{ .Values.server.datasource.auth.user }}"
+          - name: AUTH_MYSQL_PASSWORD
+            value: "{{ .Values.server.datasource.auth.password }}"
+          - name: AUTH_MYSQL_DBNAME
+            value: "{{ .Values.server.datasource.auth.dbname }}"
+          - name: AUTH_MYSQL_TLSMODE
+            value: "{{ .Values.server.datasource.auth.tlsmode }}"
+          - name: AUTH_MYSQL_MAX_OPEN_CONN
+            value: "{{ .Values.server.datasource.auth.maxOpenConns }}"
+          - name: AUTH_MYSQL_MAX_IDLE_CONN
+            value: "{{ .Values.server.datasource.auth.maxIdelConns }}"
+          - name: AUTH_MYSQL_MAX_LIFETIME
+            value: "{{ .Values.server.datasource.auth.maxLifeTime }}"
+          - name: DBS_MYSQL_HOST
+            value: "{{ .Values.server.datasource.dbs.host }}"
+          - name: DBS_MYSQL_PORT
+            value: "{{ .Values.server.datasource.dbs.port }}"
+          - name: DBS_MYSQL_USER
+            value: "{{ .Values.server.datasource.dbs.user }}"
+          - name: DBS_MYSQL_PASSWORD
+            value: "{{ .Values.server.datasource.dbs.password }}"
+          - name: DBS_MYSQL_DBNAME
+            value: "{{ .Values.server.datasource.dbs.dbname }}"
+          - name: DBS_MYSQL_TLSMODE
+            value: "{{ .Values.server.datasource.dbs.tlsmode }}"
+          - name: DBS_MYSQL_MAX_OPEN_CONN
+            value: "{{ .Values.server.datasource.dbs.maxOpenConns }}"
+          - name: DBS_MYSQL_MAX_IDLE_CONN
+            value: "{{ .Values.server.datasource.dbs.maxIdelConns }}"
+          - name: DBS_MYSQL_MAX_LIFETIME
+            value: "{{ .Values.server.datasource.dbs.maxLifeTime }}"
           - name: ASYNC_TO_DBM
             value: "{{ .Values.server.dbmConfig.asyncToDbm }}"
           - name: DBM_API_URL
