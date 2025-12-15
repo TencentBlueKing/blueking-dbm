@@ -28,6 +28,7 @@
         v-model="item.source_db"
         v-bind="props" />
       <EditableColumn
+        field="schema_tblist"
         :label="t('克隆表结构')"
         :min-width="200"
         readonly>
@@ -36,9 +37,9 @@
         </EditableBlock>
       </EditableColumn>
       <TableNameColumn
-        v-model="item.schema_tblist"
+        v-model="item.data_tblist"
         :cluster-id="props.clusterId"
-        field="schema_tblist"
+        field="data_tblist"
         :label="t('克隆表数据')"
         :placeholder="t('留空表示不克隆表数据')"
         :single="false"
@@ -92,8 +93,8 @@
   const tableRef = useTemplateRef('table');
 
   const createTableRow = (data = {} as DeepPartial<RowData>) => ({
-    data_tblist: ['*'],
-    schema_tblist: (data.schema_tblist || []) as RowData['schema_tblist'],
+    data_tblist: (data.data_tblist || []) as RowData['data_tblist'],
+    schema_tblist: ['*'],
     source_db: data.source_db || '',
     target_db_pattern: data.target_db_pattern || '',
   });
@@ -109,7 +110,7 @@
     },
     {
       case: 'table1',
-      key: 'schema_tblist',
+      key: 'data_tblist',
       label: t('克隆表数据'),
     },
     {
@@ -140,7 +141,7 @@
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
     const dataList = data.map((item) =>
       createTableRow({
-        schema_tblist: item.schema_tblist ? item.schema_tblist.split(batchSplitRegex) : [],
+        data_tblist: item.data_tblist ? item.data_tblist.split(batchSplitRegex) : [],
         source_db: item.source_db || '',
         target_db_pattern: item.target_db_pattern || '',
       }),
