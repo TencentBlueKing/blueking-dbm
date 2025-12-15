@@ -120,7 +120,7 @@
 
   import { random } from '@utils';
 
-  import SlaveInstanceColumn, { type SelectorHost } from './components/SlaveInstanceColumn.vue';
+  import SlaveInstanceColumn, { type SelectorHost } from './components/SlaveInstanceColumnTest.vue';
 
   interface RowData {
     slave: ComponentProps<typeof SlaveInstanceColumn>['modelValue'];
@@ -137,6 +137,7 @@
         bk_cloud_id: 0,
         bk_host_id: 0,
         cluster_id: 0,
+        cluster_type: '',
         instance_address: '',
         ip: '',
         master_domain: '',

@@ -18,6 +18,7 @@ import { ClusterTypes } from '@common/const';
 import { utcDisplayTime } from '@utils';
 
 export default class TendbhaInstance {
+  bk_biz_id: number;
   bk_cloud_id: number;
   bk_cloud_name: string;
   bk_cpu: number;
@@ -49,13 +50,12 @@ export default class TendbhaInstance {
   };
   port: number;
   related_clusters: InstanceRelatedCluster[];
+  related_pair_instance: MachineRelatedInstance;
   role: string;
   slave_domain: string;
   spce_config: InstanceListSpecConfig;
   status: string;
   version: string;
-  bk_biz_id: number;
-  related_pair_instance: MachineRelatedInstance;
 
   constructor(payload = {} as TendbhaInstance) {
     this.bk_biz_id = payload.bk_biz_id || 0;
