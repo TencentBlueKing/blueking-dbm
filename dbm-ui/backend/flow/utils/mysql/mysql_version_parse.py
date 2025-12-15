@@ -166,6 +166,28 @@ def tspider_version_parse(mysql_version: str) -> int:
     return total
 
 
+def tdbctl_version_parse(version: str) -> int:
+
+    result = re.findall(r"tdbctl-([\d]+).?([\d]+)?.?([\d]+)?", version)
+
+    if len(result) == 0:
+        return 0
+
+    billion, thousand, single = result[0]
+
+    total = 0
+
+    if billion != "":
+        total += int(billion) * 1000000
+
+    if thousand != "":
+        total += int(thousand) * 1000
+
+    if single != "":
+        total += int(single)
+    return total
+
+
 def proxy_version_parse(proxy_version: str) -> int:
     re_pattern = r"([\d]+).?([\d]+)?.?([\d]+)?"
     result = re.findall(re_pattern, proxy_version)

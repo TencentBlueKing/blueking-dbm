@@ -1686,3 +1686,13 @@ class TendbSingleRestoreType(StrStructuredEnum):
     RESTORE_FROM_FLOW_BACKUP = EnumField("restore_from_flow_backup", _("流程中实时发起表结构备份&恢复,没有主从同步"))
     RESTORE_WITH_DATA = EnumField("restore_with_data", _("包含数据的恢复,没有主从同步"))
     RESTORE_WITH_STRUCT = EnumField("restore_with_struct", _("仅表结构的恢复,没有主从同步"))
+
+
+class MySQLServerWrapper(StrStructuredEnum):
+    """
+    定义mysql.server表的支持的wrapper类型
+    """
+
+    SPIDER = EnumField("SPIDER", _("SPIDER"))
+    TDBCTL = EnumField("TDBCTL", _("TDBCTL"))
+    SPIDER_SLAVE = EnumField("SPIDER_SLAVE", _("SPIDER_SLAVE"))
