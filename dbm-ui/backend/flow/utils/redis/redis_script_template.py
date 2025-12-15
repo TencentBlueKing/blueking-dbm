@@ -154,3 +154,333 @@ else
    $cmd
 fi
 """
+
+
+redis_role_check_template = """#!/bin/bash
+# Redis role check script - checks if actual Redis roles match expected meta roles
+
+# Do NOT use set -e as we want to continue checking all instances even if some fail
+set +e
+
+# Constants
+readonly REDIS_CLI_TIMEOUT=5
+readonly SCRIPT_VERSION="1.0"
+
+# Global error tracking
+declare -a ERRORS=()
+
+# Logging function
+log_error() {{
+    local msg="$1"
+    echo "[ERROR] $msg" >&2
+    ERRORS+=("$msg")
+}}
+
+log_info() {{
+    local msg="$1"
+    echo "[INFO] $msg" >&2
+}}
+
+# Escape string for JSON output
+json_escape() {{
+    local str="$1"
+    # Escape backslashes, double quotes, and control characters
+    printf '%s' "$str" | sed 's/\\\\/\\\\\\\\/g; s/"/\\\\"/g; s/\\t/\\\\t/g; s/\\r/\\\\r/g; s/\\n/\\\\n/g'
+}}
+
+# Validate IP address format (basic validation)
+validate_ip() {{
+    local ip="$1"
+    local ip_pattern='^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$'
+    if [[ ! "$ip" =~ $ip_pattern ]] && [[ "$ip" != "localhost" ]] \\
+        && [[ "$ip" != "127.0.0.1" ]]; then
+        return 1
+    fi
+    return 0
+}}
+
+# Validate port number
+validate_port() {{
+    local port="$1"
+    if [[ ! "$port" =~ ^[0-9]+$ ]] || [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
+        return 1
+    fi
+    return 0
+}}
+
+# Check if REDIS_DATA_DIR environment variable is set
+if [ -z "$REDIS_DATA_DIR" ]; then
+    log_error "REDIS_DATA_DIR environment variable is not set"
+    echo "<ctx>"
+    echo '{{"results": [], "error": "REDIS_DATA_DIR environment variable is not set"}}'
+    echo "</ctx>"
+    exit 1
+fi
+
+if [ ! -d "$REDIS_DATA_DIR" ]; then
+    log_error "REDIS_DATA_DIR '$REDIS_DATA_DIR' does not exist"
+    echo "<ctx>"
+    echo '{{"results": [], "error": "REDIS_DATA_DIR does not exist"}}'
+    echo "</ctx>"
+    exit 1
+fi
+
+# Check if redis-cli is available
+if ! command -v redis-cli &> /dev/null; then
+    log_error "redis-cli command not found"
+    echo "<ctx>"
+    echo '{{"results": [], "error": "redis-cli command not found"}}'
+    echo "</ctx>"
+    exit 1
+fi
+
+# Function to get password from redis.conf
+get_redis_password() {{
+    local port="$1"
+    local conf_file="$REDIS_DATA_DIR/redis/$port/redis.conf"
+    local password=""
+
+    if [ -z "$port" ]; then
+        echo ""
+        return
+    fi
+
+    if [ -f "$conf_file" ] && [ -r "$conf_file" ]; then
+        # Extract requirepass from redis.conf
+        # Handle various password formats including quoted strings
+        password=$(grep -E "^requirepass\\s+" "$conf_file" 2>/dev/null | \\
+        head -1 | awk '{{print $2}}' | tr -d '"' | tr -d "'" || true)
+        echo "$password"
+    else
+        if [ -f "$conf_file" ]; then
+            log_error "Cannot read config file: $conf_file"
+        fi
+        echo ""
+    fi
+}}
+
+# Function to get role from Redis INFO REPLICATION with timeout
+get_redis_role() {{
+    local ip="$1"
+    local port="$2"
+    local password="$3"
+    local result=""
+    local redis_output=""
+    local exit_code=0
+
+    # Validate inputs
+    if ! validate_ip "$ip"; then
+        echo "invalid_ip"
+        return
+    fi
+
+    if ! validate_port "$port"; then
+        echo "invalid_port"
+        return
+    fi
+
+    # Build redis-cli command with timeout
+    local cli_cmd="redis-cli -h $ip -p $port"
+    local auth_opts=""
+    if [ -n "$password" ]; then
+        auth_opts="-a $password --no-auth-warning"
+    fi
+
+    if [ -n "$password" ]; then
+        # Use timeout command if available for additional safety
+        if command -v timeout &> /dev/null; then
+            redis_output=$(timeout "$REDIS_CLI_TIMEOUT" $cli_cmd $auth_opts INFO REPLICATION 2>&1) || exit_code=$?
+        else
+            redis_output=$($cli_cmd $auth_opts INFO REPLICATION 2>&1) || exit_code=$?
+        fi
+    else
+        if command -v timeout &> /dev/null; then
+            redis_output=$(timeout "$REDIS_CLI_TIMEOUT" redis-cli -h "$ip" -p "$port" INFO REPLICATION 2>&1) || exit_code=$?
+        else
+            redis_output=$(redis-cli -h "$ip" -p "$port" INFO REPLICATION 2>&1) || exit_code=$?
+        fi
+    fi
+
+    # Check for timeout (exit code 124)
+    if [ "$exit_code" -eq 124 ]; then
+        echo "connection_timeout"
+        return
+    fi
+
+    # Check for connection errors
+    if echo "$redis_output" | grep -qiE "(connection refused|could not connect|no route to host|network is unreachable)"; then
+        echo "connection_refused"
+        return
+    fi
+
+    # Check for authentication errors
+    if echo "$redis_output" | grep -qiE "(NOAUTH|ERR invalid password|WRONGPASS)"; then
+        echo "auth_failed"
+        return
+    fi
+
+    # Extract role from output
+    result=$(echo "$redis_output" | grep "^role:" | cut -d: -f2 | tr -d '\\r\\n' || true)
+
+    if [ -z "$result" ]; then
+        # If we got output but no role, something unexpected happened
+        if [ -n "$redis_output" ]; then
+            echo "unexpected_response"
+        else
+            echo "connection_failed"
+        fi
+        return
+    fi
+
+    echo "$result"
+}}
+
+# Normalize meta role to match Redis INFO output
+normalize_role() {{
+    local role="$1"
+    case "$role" in
+        redis_master) echo "master" ;;
+        redis_slave)  echo "slave" ;;
+        *)            echo "$role" ;;
+    esac
+}}
+
+# Instance data: ip port meta_role (one per line, space separated)
+# Format: {instances}
+
+# Get password once from the first port's config file (all instances in a cluster share the same password)
+FIRST_PORT="{first_port}"
+REDIS_PASSWORD=""
+if [ -n "$FIRST_PORT" ]; then
+    REDIS_PASSWORD=$(get_redis_password "$FIRST_PORT") || REDIS_PASSWORD=""
+    if [ -z "$REDIS_PASSWORD" ]; then
+        log_info "No password found in config for port $FIRST_PORT, connecting without authentication"
+    fi
+fi
+
+# Output JSON results
+echo "<ctx>"
+echo '{{"results": ['
+
+first=1
+{instance_checks}
+
+echo ']}}'
+echo "</ctx>"
+"""
+
+
+# Helper function to build instance check commands for redis_role_check_template
+def build_redis_role_check_script(instances: list) -> str:
+    """
+    Build the complete role check script with instance checks
+
+    Args:
+        instances: List of dicts with ip, port, meta_role
+
+    Returns:
+        Complete shell script as string
+    """
+    instance_checks = []
+
+    # Extract first port for password lookup (all instances share the same password)
+    first_port = ""
+    for inst in instances:
+        port = "".join(c for c in str(inst.get("port", "")) if c.isdigit())
+        if port:
+            first_port = port
+            break
+
+    for inst in instances:
+        ip = inst.get("ip", "")
+        port = inst.get("port", "")
+        meta_role = inst.get("meta_role", "")
+
+        # Sanitize inputs to prevent shell injection
+        # Only allow alphanumeric, dots, underscores, and hyphens for ip
+        # Only allow numeric for port
+        # Only allow alphanumeric and underscores for meta_role
+        ip = "".join(c for c in str(ip) if c.isalnum() or c in ".")
+        port = "".join(c for c in str(port) if c.isdigit())
+        meta_role = "".join(c for c in str(meta_role) if c.isalnum() or c == "_")
+
+        if not ip or not port:
+            continue
+
+        # Build check command for each instance with robust error handling
+        check_cmd = f"""
+# Check instance {ip}:{port}
+{{
+    ip="{ip}"
+    port="{port}"
+    meta_role="{meta_role}"
+
+    # Get actual role with error handling
+    actual_role=""
+    actual_role=$(get_redis_role "$ip" "$port" "$REDIS_PASSWORD") || actual_role="check_failed"
+
+    # Normalize the expected role
+    normalized_meta_role=""
+    normalized_meta_role=$(normalize_role "$meta_role") || normalized_meta_role="$meta_role"
+
+    # Determine if roles match
+    match="false"
+    error_msg=""
+
+    # Check for various error conditions in actual_role
+    case "$actual_role" in
+        "connection_failed"|"connection_refused"|"connection_timeout"|"auth_failed"|"invalid_ip"|"invalid_port"|"unexpected_response"|"check_failed"|"")
+            match="false"
+            error_msg="$actual_role"
+            if [ -z "$actual_role" ]; then
+                actual_role="unknown"
+                error_msg="unknown_error"
+            fi
+            ;;
+        *)
+            if [ "$actual_role" = "$normalized_meta_role" ]; then
+                match="true"
+            else
+                match="false"
+            fi
+            ;;
+    esac
+
+    # Output JSON for this instance
+    if [ "$first" -eq 1 ]; then
+        first=0
+    else
+        echo ","
+    fi
+
+    # Escape any special characters in the output
+    escaped_actual_role=$(json_escape "$actual_role")
+    escaped_error=$(json_escape "$error_msg")
+
+    if [ -n "$error_msg" ]; then
+        echo '    {{'\
+'"ip": "'"$ip"'", '\
+'"port": '"$port"', '\
+'"meta_role": "'"$meta_role"'", '\
+'"actual_role": "'"$escaped_actual_role"'", '\
+'"match": '"$match"', '\
+'"error": "'"$escaped_error"'"}}'
+    else
+        echo '    {{'\
+'"ip": "'"$ip"'", '\
+'"port": '"$port"', '\
+'"meta_role": "'"$meta_role"'", '\
+'"actual_role": "'"$escaped_actual_role"'", '\
+'"match": '"$match"'}}'
+    fi
+}}
+"""
+        instance_checks.append(check_cmd)
+
+    script = redis_role_check_template.format(
+        instances="# Generated instance checks below",
+        instance_checks="\n".join(instance_checks),
+        first_port=first_port,
+    )
+
+    return script
