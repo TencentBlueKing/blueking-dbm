@@ -178,14 +178,14 @@ def check_and_process(batch_small: int, switch_hosts: Dict):
                 batch_small, succ_max_uid
             )
         )
-        batch_small = succ_max_uid
+        batch_small = succ_max_uid + 1
     elif succ_cnt + ignore_cnt == len(switch_hosts):
         logger.info(
             """host will skiped, entry next foreach last_batch_small:{},current:{}""".format(
                 batch_small, wait_small_uid
             )
         )
-        batch_small = wait_small_uid
+        batch_small = wait_small_uid + 1
     logger.info(
         "finally switch: succ_cnt:{},wait_cnt:{},ignore_cnt:{},all_switch:{},batch_small==>{}".format(
             succ_cnt, wait_cnt, ignore_cnt, len(switch_hosts), batch_small
