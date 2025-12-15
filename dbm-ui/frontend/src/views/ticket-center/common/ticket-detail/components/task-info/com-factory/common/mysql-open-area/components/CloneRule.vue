@@ -21,7 +21,7 @@
       :title="t('克隆 DB')"
       :width="200" />
     <TicketInfoTableColumn
-      col-key="data_tblist"
+      col-key="schema_tblist"
       :min-width="150"
       :title="t('克隆表结构')"
       :width="200">
@@ -30,10 +30,10 @@
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
-      col-key="schema_tblist"
+      col-key="data_tblist"
       :title="t('克隆表数据')">
       <template #default="{ row }:{ row: RowData }">
-        <span>{{ row.schema_tblist?.length > 0 ? row.schema_tblist.join(',') : '--' }}</span>
+        <span>{{ row.data_tblist?.length > 0 ? row.data_tblist.join(',') : '--' }}</span>
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
