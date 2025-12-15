@@ -30,6 +30,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strings"
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/probe/harvester/base"
@@ -107,19 +108,10 @@ func (c *collector) info(ctx context.Context, section string) (string, error) {
 	if section == "" {
 		result, err = c.rdb.Info(ctx).Result()
 	} else {
-		result, err = c.rdb.Info(ctx, section).Result()
+		result, err = c.rdb.Info(ctx, strings.ToLower(section)).Result()
 	}
 
 	return result, err
-}
-
-func (c *collector) infoMap(ctx context.Context, section string) (map[string]string, error) {
-	infoStr, err := c.info(ctx, section)
-	if err != nil {
-		return nil, err
-	}
-
-	return parseRedisInfoToMap(infoStr), nil
 }
 
 func (c *collector) isTwemproxy() bool {
