@@ -43,3 +43,4 @@ class SystemTagEnum(StrStructuredEnum):
     """系统内置的tag名称"""
 
     TEMPORARY = EnumField("temporary", _("临时集群"))
+    REPLENISH = EnumField("replenish", _("可补货"))

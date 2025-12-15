@@ -27,8 +27,6 @@ class RedisCheckReport(BaseReportABS):
     report_day = models.IntegerField(default=0, verbose_name=_("报告日期"))
 
     class Meta:
-        managed = False
-        app_label = "db_report"
         indexes = [
             models.Index(fields=["bk_biz_id", "create_at"]),
             models.Index(fields=["status", "create_at"]),

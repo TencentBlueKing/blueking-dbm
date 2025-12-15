@@ -21,7 +21,8 @@ from backend.bk_web.models import AuditedModel
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_meta.enums import InstanceRole, MachineType
-from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
+from backend.db_meta.enums.comm import SystemTagEnum, TagType
+from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance, Tag
 from backend.db_meta.models.machine import DeviceClass
 from backend.db_meta.models.spec import Spec
 from backend.db_services.dbresource.constants import SPEC_FILTER_FACTORY, SWAGGER_TAG
@@ -36,6 +37,7 @@ from backend.db_services.dbresource.serializers import (
     RecommendResponseSpecSerializer,
     RecommendSpecSerializer,
     SpecBatchUpdateSerializer,
+    SpecNeedReplenishSerializer,
     SpecSerializer,
     VerifyDuplicatedSpecNameSerializer,
 )
@@ -50,7 +52,7 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
     资源池规格类型视图
     """
 
-    queryset = Spec.objects.all()
+    queryset = Spec.objects.prefetch_related("tags").all()
     pagination_class = AuditedLimitOffsetPagination
     serializer_class = SpecSerializer
     filter_class = SpecListFilter
@@ -170,6 +172,27 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
         data = self.params_validate(self.get_serializer_class())
         spec_ids = data.pop("spec_ids")
         Spec.objects.filter(spec_id__in=spec_ids).update(**data)
+        return Response()
+
+    @common_swagger_auto_schema(
+        operation_summary=_("修改规格补货定义"),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=SpecNeedReplenishSerializer)
+    def add_spec_replenish_tag(self, request, *args, **kwargs):
+        """批量修改规格的补货标签"""
+
+        data = self.params_validate(self.get_serializer_class())
+
+        # 获取补货系统标签和规格
+        spec_ids = data["spec_ids"]
+        need_replenish = data["need_replenish"]
+        tag, _ = Tag.get_builtin_tag(key=SystemTagEnum.REPLENISH.value, value=True, type=TagType.RESOURCE.value)
+        specs = Spec.objects.filter(spec_id__in=spec_ids)
+
+        # 根据need_replenish，添加或移除补货标签
+        tag.spec_set.add(*specs) if need_replenish else tag.spec_set.remove(*specs)
+
         return Response()
 
     @common_swagger_auto_schema(
