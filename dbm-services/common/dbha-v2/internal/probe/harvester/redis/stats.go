@@ -27,7 +27,6 @@ package redis
 import (
 	"encoding/json"
 	"reflect"
-	"strconv"
 	"strings"
 
 	"dbm-services/common/dbha-v2/pkg/converter"
@@ -74,7 +73,7 @@ func parseInfoToTwemproxyStatus(info string, status *haprobe.RedisTwemproxyStatu
 		if err := json.Unmarshal(value, &strVal); err != nil {
 			var numVal int64
 			if err := json.Unmarshal(value, &numVal); err == nil {
-				strVal = strconv.FormatInt(numVal, 10)
+				strVal, _ = converter.ToJsonLine(numVal)
 			} else {
 				continue
 			}
@@ -128,12 +127,13 @@ func parsePredixyServersInfo(info string, status *haprobe.RedisPredixyStatus) {
 			continue
 		}
 
-		if strings.HasPrefix(line, "Server:") {
+		lineLower := strings.ToLower(line)
+		if strings.HasPrefix(lineLower, "server:") {
 			if currentBackend != nil {
 				status.Backends = append(status.Backends, *currentBackend)
 			}
 			currentBackend = &haprobe.RedisPredixyBackend{
-				Server: strings.TrimPrefix(line, "Server:"),
+				Server: line[len("server:"):],
 			}
 			continue
 		}
@@ -154,23 +154,23 @@ func parsePredixyServersInfo(info string, status *haprobe.RedisPredixyStatus) {
 			case "dc":
 				currentBackend.DC = value
 			case "connections":
-				if v, err := strconv.ParseInt(value, 10, 64); err == nil {
+				if v, err := converter.ToInt64(value); err == nil {
 					currentBackend.Connections = v
 				}
 			case "requests":
-				if v, err := strconv.ParseInt(value, 10, 64); err == nil {
+				if v, err := converter.ToInt64(value); err == nil {
 					currentBackend.Requests = v
 				}
 			case "responses":
-				if v, err := strconv.ParseInt(value, 10, 64); err == nil {
+				if v, err := converter.ToInt64(value); err == nil {
 					currentBackend.Responses = v
 				}
 			case "sendbytes":
-				if v, err := strconv.ParseInt(value, 10, 64); err == nil {
+				if v, err := converter.ToInt64(value); err == nil {
 					currentBackend.SendBytes = v
 				}
 			case "recvbytes":
-				if v, err := strconv.ParseInt(value, 10, 64); err == nil {
+				if v, err := converter.ToInt64(value); err == nil {
 					currentBackend.RecvBytes = v
 				}
 			}
@@ -329,7 +329,7 @@ func parseKeyspace(infoMap map[string]string) []haprobe.RedisDBKeyspace {
 		}
 
 		dbNumStr := strings.TrimPrefix(key, "db")
-		dbNum, err := strconv.Atoi(dbNumStr)
+		dbNum, err := converter.ToInt(dbNumStr)
 		if err != nil {
 			continue
 		}
@@ -342,20 +342,20 @@ func parseKeyspace(infoMap map[string]string) []haprobe.RedisDBKeyspace {
 			if len(kv) != 2 {
 				continue
 			}
-			k := strings.TrimSpace(kv[0])
+			k := strings.ToLower(strings.TrimSpace(kv[0]))
 			v := strings.TrimSpace(kv[1])
 
 			switch k {
 			case "keys":
-				if n, err := strconv.ParseInt(v, 10, 64); err == nil {
+				if n, err := converter.ToInt64(v); err == nil {
 					ks.Keys = n
 				}
 			case "expires":
-				if n, err := strconv.ParseInt(v, 10, 64); err == nil {
+				if n, err := converter.ToInt64(v); err == nil {
 					ks.Expires = n
 				}
 			case "avg_ttl":
-				if n, err := strconv.ParseInt(v, 10, 64); err == nil {
+				if n, err := converter.ToInt64(v); err == nil {
 					ks.AvgTTL = n
 				}
 			}
@@ -377,7 +377,7 @@ func parseSlaveStates(infoMap map[string]string) []haprobe.RedisSlaveState {
 		}
 
 		idStr := strings.TrimPrefix(key, "slave")
-		id, err := strconv.Atoi(idStr)
+		id, err := converter.ToInt(idStr)
 		if err != nil {
 			continue
 		}
@@ -390,7 +390,7 @@ func parseSlaveStates(infoMap map[string]string) []haprobe.RedisSlaveState {
 			if len(kv) != 2 {
 				continue
 			}
-			k := strings.TrimSpace(kv[0])
+			k := strings.ToLower(strings.TrimSpace(kv[0]))
 			v := strings.TrimSpace(kv[1])
 
 			if k == "state" {
@@ -414,7 +414,7 @@ func parseClusterSlaveStates(infoMap map[string]string) []haprobe.RedisClusterSl
 		}
 
 		idStr := strings.TrimPrefix(key, "slave")
-		id, err := strconv.Atoi(idStr)
+		id, err := converter.ToInt(idStr)
 		if err != nil {
 			continue
 		}
@@ -427,24 +427,24 @@ func parseClusterSlaveStates(infoMap map[string]string) []haprobe.RedisClusterSl
 			if len(kv) != 2 {
 				continue
 			}
-			k := strings.TrimSpace(kv[0])
+			k := strings.ToLower(strings.TrimSpace(kv[0]))
 			v := strings.TrimSpace(kv[1])
 
 			switch k {
 			case "ip":
 				slave.IP = v
 			case "port":
-				if n, err := strconv.Atoi(v); err == nil {
+				if n, err := converter.ToInt(v); err == nil {
 					slave.Port = n
 				}
 			case "state":
 				slave.State = v
 			case "offset":
-				if n, err := strconv.ParseInt(v, 10, 64); err == nil {
+				if n, err := converter.ToInt64(v); err == nil {
 					slave.Offset = n
 				}
 			case "lag":
-				if n, err := strconv.ParseInt(v, 10, 64); err == nil {
+				if n, err := converter.ToInt64(v); err == nil {
 					slave.Lag = n
 				}
 			}
@@ -471,12 +471,12 @@ func parseRocksDBSlaveStates(infoMap map[string]string) []haprobe.RedisTendisPlu
 		}
 
 		rocksDBIDStr := strings.TrimPrefix(parts[0], "rocksdb")
-		rocksDBID, err := strconv.Atoi(rocksDBIDStr)
+		rocksDBID, err := converter.ToInt(rocksDBIDStr)
 		if err != nil {
 			continue
 		}
 
-		slaveID, err := strconv.Atoi(parts[1])
+		slaveID, err := converter.ToInt(parts[1])
 		if err != nil {
 			continue
 		}
@@ -492,7 +492,7 @@ func parseRocksDBSlaveStates(infoMap map[string]string) []haprobe.RedisTendisPlu
 			if len(kv) != 2 {
 				continue
 			}
-			if strings.TrimSpace(kv[0]) == "state" {
+			if strings.EqualFold(strings.TrimSpace(kv[0]), "state") {
 				state.State = strings.TrimSpace(kv[1])
 			}
 		}
