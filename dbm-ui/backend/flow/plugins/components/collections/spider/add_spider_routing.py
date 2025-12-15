@@ -7,7 +7,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+from typing import Dict, List
 
 from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
@@ -22,7 +22,11 @@ from backend.flow.engine.bamboo.scene.spider.common.exceptions import (
     NormalSpiderFlowException,
 )
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.flow.utils.mysql.mysql_version_parse import tdbctl_version_parse
 from backend.flow.utils.spider.spider_db_function import get_flush_routing_sql_for_server
+
+# 支持并发添加节点的最低版本编号: 2.4.13
+MIN_PARALLEL_ROUTE_VERSION = 2004013
 
 
 class AddSpiderRoutingService(BaseService):
@@ -148,6 +152,104 @@ class AddSpiderRoutingService(BaseService):
             return False
         return True
 
+    def _check_parallel_route_support(self, ctl_master: str, bk_cloud_id: int):
+        """
+        检查中控primary版本, 是否支持并发添加路由
+        假如中控版本高于2.4.13, 则使用并发添加路由方案
+        假如中控版本低于2.4.13, 则使用默认串行添加路由方案
+        返回值：True代表高于2.4.13, False 代表低于2.4.13
+        @param ctl_master: 当前集群的中控primary，格式ip:port
+        @param bk_cloud_id: 云区域Id
+        """
+        # 获取primary的版本信息
+        res = DRSApi.rpc(
+            {
+                "addresses": [ctl_master],
+                "cmds": ["select version() as version ;"],
+                "force": False,
+                "bk_cloud_id": bk_cloud_id,
+            }
+        )
+        if res[0]["error_msg"]:
+            self.log_error(f"flush routing failed:[{res[0]['error_msg']}]")
+            return False
+
+        version = res[0]["cmd_results"][0]["table_data"][0]["version"]
+        # 判断版本是否大于2.4.13
+        self.log_info(_("中控primary当前的版本为:{}".format(version)))
+        if tdbctl_version_parse(version) < MIN_PARALLEL_ROUTE_VERSION:
+            return False
+        return True
+
+    def _exec_create_node_with_concurrent(
+        self,
+        cluster: Cluster,
+        ctl_master: str,
+        user: str,
+        passwd: str,
+        add_spider_hosts: List[Dict],
+        spider_port: int,
+        wrapper: str,
+    ):
+        """
+        定义通过中控master并发添加node的公共方法
+        自从中控版本在2.4.13以上，中控是可以支持并发添加，以此来提高添加效率。
+        因为添加节点时候，需要导出导入表结构，如果碰到多表集群容易超时，所以timeout设置12小时。
+        @param cluster: 集群对象
+        @param ctl_master: 当前集群的中控primary，格式ip:port
+        @param user: spider内置账号
+        @param passwd: passwd
+        @param spider_ips: 待加入节点ip
+        @param: spider_port: 待加入节点port
+        @param: wrapper: 对应mysql.server表的wrapper值
+        """
+        real_add_spiders = []
+        for spider in add_spider_hosts:
+            if not self._check_node_is_add(cluster=cluster, spider_ip=spider["ip"], spider_port=spider_port):
+                # 代表这个节点在集群的路由表已经存在，则这里选择跳过
+                self.log_warning(_("节点已经存在中控的路由表{}:{}，这次不参与添加".format(spider["ip"], spider_port)))
+                continue
+            # 加入到待添加列表
+            real_add_spiders.append(spider["ip"])
+
+        if not real_add_spiders:
+            # 添加列表为空，不做这次添加行为
+            self.log_warning(_("没有可添加路由表的节点，跳过"))
+            return True
+
+        cmds = ["set tc_admin=1"]
+        rpc_params = {
+            "addresses": [ctl_master],
+            "cmds": [],
+            "force": False,
+            "bk_cloud_id": cluster.bk_cloud_id,
+            "query_timeout": 43200,
+        }
+        # 拼接sql
+        sql_str = f"tdbctl create node wrapper '{wrapper}' options "
+        for i, spider in enumerate(real_add_spiders):
+            sql_str += f"(user '{user}', password '{passwd}', host '{spider}', port {spider_port}) "
+            if i == len(real_add_spiders) - 1:
+                # 最后一个元素
+                sql_str += "with database;"
+            else:
+                sql_str += ","
+
+        rpc_params["cmds"] = cmds + [sql_str]
+        # 打印日志，但屏蔽密码
+        cmds_for_log = cmds + [sql_str.replace(passwd, "xxx")]
+        self.log_info(f"exec add-node cmds:[{cmds_for_log}]")
+
+        # 通过rds接口执行
+        res = DRSApi.rpc(rpc_params)
+
+        if res[0]["error_msg"]:
+            self.log_error(_("并发添加路由失败: {}".format(res[0]["error_msg"])))
+            return False
+
+        self.log_info(_("并发添加路由信息成功"))
+        return True
+
     def _exec_create_node(
         self, cluster: Cluster, ctl_master: str, user: str, passwd: str, spider_ip: str, spider_port: int, wrapper: str
     ):
@@ -191,7 +293,8 @@ class AddSpiderRoutingService(BaseService):
         ).format(wrapper, user, passwd, spider_ip, spider_port)
 
         rpc_params["cmds"] = cmds + [sql]
-        self.log_info(f"exec add-node cmds:[{rpc_params['cmds']}]")
+        cmds_for_log = cmds + [sql.replace(passwd, "xxx")]
+        self.log_info(f"exec add-node cmds:[{cmds_for_log}]")
         res = DRSApi.rpc(rpc_params)
 
         if res[0]["error_msg"]:
@@ -262,39 +365,70 @@ class AddSpiderRoutingService(BaseService):
 
         return True
 
-    def _execute(self, data, parent_data):
-        kwargs = data.get_one_of_inputs("kwargs")
-        global_data = data.get_one_of_inputs("global_data")
-
-        # 获取cluster对象，包括中控实例、 spider端口等
-        cluster = Cluster.objects.get(id=kwargs["cluster_id"])
-        ctl_master = cluster.tendbcluster_ctl_primary_address()
-        spider_port = cluster.proxyinstance_set.first().port
-        admin_port = cluster.proxyinstance_set.first().admin_port
-        ctl_pass = ""
-
-        self.log_info(f"[{cluster.immute_domain}] the cluster_ctl_primary is {ctl_master} ")
-
-        if kwargs["add_spider_role"] == TenDBClusterSpiderRole.SPIDER_MASTER.value:
-            # 如果添加的是spider_master，则必须添加中控实例，添加中控实例之前，获取中控实例的密码
-            ctl_pass = self._read_ctl_pass(ctl_master=ctl_master, bk_cloud_id=cluster.bk_cloud_id)
-            if not ctl_pass:
-                return False
-
-        # 先对待加入的spider节点添加内置账号，接口幂等
-
-        if not self._add_system_user(
+    def add_nodes_in_parallel(
+        self, cluster: Cluster, ctl_master: str, spider_port: int, admin_port: int, ctl_pass: str, **kwargs
+    ):
+        """
+        定义并行添加节点路由的全部过程
+        @param cluster: 集群元信息
+        @param ctl_master: 当前集群的中控primary，格式ip:port
+        @param spider_port: spider端口号
+        @param admin_port: 中控端口号
+        @param ctl_pass: 中控的pass
+        @param kwargs: 传入的节点的私有变量体
+        """
+        if kwargs["add_spider_role"] == TenDBClusterSpiderRole.SPIDER_SLAVE.value:
+            wrapper = "SPIDER_SLAVE"
+        elif kwargs["add_spider_role"] in [
+            TenDBClusterSpiderRole.SPIDER_MASTER.value,
+            TenDBClusterSpiderRole.SPIDER_MNT.value,
+        ]:
+            wrapper = "SPIDER"
+        else:
+            raise NormalSpiderFlowException(
+                message=_("不支持这样的spider角色添加[{}]，联系系统管理员".format(kwargs["add_spider_role"]))
+            )
+        # 并行添加路由节点
+        if not self._exec_create_node_with_concurrent(
             cluster=cluster,
-            add_spiders=kwargs["add_spiders"],
-            created_by=global_data["created_by"],
+            ctl_master=ctl_master,
             user=kwargs["user"],
             passwd=kwargs["passwd"],
-            ctl_pass=ctl_pass,
-            clt_master_ip=ctl_master.split(":")[0],
-            add_spider_role=kwargs["add_spider_role"],
+            add_spider_hosts=kwargs["add_spiders"],
+            spider_port=spider_port,
+            wrapper=wrapper,
         ):
             return False
 
+        if kwargs["add_spider_role"] == TenDBClusterSpiderRole.SPIDER_MASTER.value:
+            # 对中控实例也执行添加node行为
+            wrapper = "TDBCTL"
+            if not self._exec_create_node_with_concurrent(
+                cluster=cluster,
+                ctl_master=ctl_master,
+                user=kwargs["user"],
+                passwd=ctl_pass,
+                add_spider_hosts=kwargs["add_spiders"],
+                spider_port=admin_port,
+                wrapper=wrapper,
+            ):
+                return False
+
+        return True
+
+    def add_nodes_in_non_parallel(
+        self, cluster: Cluster, ctl_master: str, spider_port: int, admin_port: int, ctl_pass: str, **kwargs
+    ):
+        """
+        定义串行添加节点路由的额全部过程
+        @param cluster: 集群元信息
+        @param ctl_master: 当前集群的中控primary，格式ip:port
+        @param spider_port: spider端口号
+        @param admin_port: 中控端口号
+        @param ctl_pass: 中控的pass
+        @param kwargs: 传入的节点的私有变量体
+
+        """
         # 循环添加路由信息，添加之前判断是否已经存在
         for add_spider in kwargs["add_spiders"]:
 
@@ -306,7 +440,9 @@ class AddSpiderRoutingService(BaseService):
             ]:
                 wrapper = "SPIDER"
             else:
-                raise NormalSpiderFlowException(message=_("This spider-role is not supported,check"))
+                raise NormalSpiderFlowException(
+                    message=_("不支持这样的spider角色添加[{}]，联系系统管理员".format(kwargs["add_spider_role"]))
+                )
 
             # 执行添加node的方法，方法幂等
             if not self._exec_create_node(
@@ -334,13 +470,74 @@ class AddSpiderRoutingService(BaseService):
                 ):
                     return False
 
-        # 统一刷新路由信息
-        self.log_info("exec flush routing ....")
+        return True
+
+    def _execute(self, data, parent_data):
+        kwargs = data.get_one_of_inputs("kwargs")
+        global_data = data.get_one_of_inputs("global_data")
+
+        # 获取cluster对象，包括中控实例、 spider端口等
+        cluster = Cluster.objects.get(id=kwargs["cluster_id"])
+        ctl_master = cluster.tendbcluster_ctl_primary_address()
+        spider_port = cluster.proxyinstance_set.first().port
+        admin_port = cluster.proxyinstance_set.first().admin_port
+        ctl_pass = ""
+
+        self.log_info(f"[{cluster.immute_domain}] the cluster_ctl_primary is {ctl_master} ")
+
+        if kwargs["add_spider_role"] == TenDBClusterSpiderRole.SPIDER_MASTER.value:
+            # 如果添加的是spider_master，则必须添加中控实例，添加中控实例之前，获取中控实例的密码
+            ctl_pass = self._read_ctl_pass(ctl_master=ctl_master, bk_cloud_id=cluster.bk_cloud_id)
+            if not ctl_pass:
+                return False
+
+        # 阶段1：先对待加入的spider节点添加内置账号，接口幂等
+
+        if not self._add_system_user(
+            cluster=cluster,
+            add_spiders=kwargs["add_spiders"],
+            created_by=global_data["created_by"],
+            user=kwargs["user"],
+            passwd=kwargs["passwd"],
+            ctl_pass=ctl_pass,
+            clt_master_ip=ctl_master.split(":")[0],
+            add_spider_role=kwargs["add_spider_role"],
+        ):
+            return False
+
+        # 阶段2 添加路由信息，添加之前判断是否已经存在
+        if self._check_parallel_route_support(ctl_master=ctl_master, bk_cloud_id=cluster.bk_cloud_id):
+            # 返回True,使用并行添加方案
+            self.log_info(_("使用并行添加路由方法"))
+            if not self.add_nodes_in_parallel(
+                cluster=cluster,
+                ctl_master=ctl_master,
+                spider_port=spider_port,
+                admin_port=admin_port,
+                ctl_pass=ctl_pass,
+                **kwargs,
+            ):
+                return False
+        else:
+            # 返回False,使用串行添加方案
+            self.log_info(_("使用串行行添加路由方法"))
+            if not self.add_nodes_in_non_parallel(
+                cluster=cluster,
+                ctl_master=ctl_master,
+                spider_port=spider_port,
+                admin_port=admin_port,
+                ctl_pass=ctl_pass,
+                **kwargs,
+            ):
+                return False
+
+        # 阶段3：统一刷新路由信息
+        self.log_info(_("正在刷新路由 ...."))
         if not self.flush_routing(
             ctl_master=ctl_master, bk_cloud_id=cluster.bk_cloud_id, add_spiders=kwargs["add_spiders"]
         ):
             return False
-        self.log_info("exec flush routing successfully")
+        self.log_info(_("刷新路由到其余TDBCTL节点成功"))
 
         return True
 
