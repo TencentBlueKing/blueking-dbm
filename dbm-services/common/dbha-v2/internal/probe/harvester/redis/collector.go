@@ -102,16 +102,10 @@ func (c *collector) info(ctx context.Context, section string) (string, error) {
 		return "", fmt.Errorf("redis client is not initialized")
 	}
 
-	var result string
-	var err error
-
 	if section == "" {
-		result, err = c.rdb.Info(ctx).Result()
-	} else {
-		result, err = c.rdb.Info(ctx, strings.ToLower(section)).Result()
+		return c.rdb.Info(ctx).Result()
 	}
-
-	return result, err
+	return c.rdb.Info(ctx, strings.ToLower(section)).Result()
 }
 
 func (c *collector) isTwemproxy() bool {
@@ -164,7 +158,7 @@ func (c *collector) obtainTwemproxyStatus(ctx context.Context) (*haprobe.RedisTw
 	}
 
 	status := &haprobe.RedisTwemproxyStatus{}
-	parseInfoToTwemproxyStatus(string(data), status)
+	parseInfoToTwemproxyStatus(data, status)
 	return status, nil
 }
 

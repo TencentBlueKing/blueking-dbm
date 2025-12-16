@@ -56,13 +56,13 @@ func convertToRedisStatus(info []redisInfo) *haprobe.RedisClusterStatus {
 }
 
 // parseInfoToTwemproxyStatus parses Twemproxy stats JSON output to TwemproxyStatus
-func parseInfoToTwemproxyStatus(info string, status *haprobe.RedisTwemproxyStatus) {
-	if info == "" {
+func parseInfoToTwemproxyStatus(info []byte, status *haprobe.RedisTwemproxyStatus) {
+	if info == nil {
 		return
 	}
 
 	var rawStats map[string]json.RawMessage
-	if err := json.Unmarshal([]byte(info), &rawStats); err != nil {
+	if err := json.Unmarshal(info, &rawStats); err != nil {
 		logger.Warn("failed to parse twemproxy stats json: %v", err)
 		return
 	}
@@ -156,22 +156,32 @@ func parsePredixyServersInfo(info string, status *haprobe.RedisPredixyStatus) {
 			case "connections":
 				if v, err := converter.ToInt64(value); err == nil {
 					currentBackend.Connections = v
+				} else {
+					logger.Warn("failed to convert connections value %s to int64: %v", value, err)
 				}
 			case "requests":
 				if v, err := converter.ToInt64(value); err == nil {
 					currentBackend.Requests = v
+				} else {
+					logger.Warn("failed to convert requests value %s to int64: %v", value, err)
 				}
 			case "responses":
 				if v, err := converter.ToInt64(value); err == nil {
 					currentBackend.Responses = v
+				} else {
+					logger.Warn("failed to convert responses value %s to int64: %v", value, err)
 				}
 			case "sendbytes":
 				if v, err := converter.ToInt64(value); err == nil {
 					currentBackend.SendBytes = v
+				} else {
+					logger.Warn("failed to convert sendbytes value %s to int64: %v", value, err)
 				}
 			case "recvbytes":
 				if v, err := converter.ToInt64(value); err == nil {
 					currentBackend.RecvBytes = v
+				} else {
+					logger.Warn("failed to convert recvbytes value %s to int64: %v", value, err)
 				}
 			}
 		}
@@ -340,6 +350,7 @@ func parseKeyspace(infoMap map[string]string) []haprobe.RedisDBKeyspace {
 		for _, part := range parts {
 			kv := strings.SplitN(part, "=", 2)
 			if len(kv) != 2 {
+				logger.Warn("invalid keyspace format, expected key=value but got: %s", part)
 				continue
 			}
 			k := strings.ToLower(strings.TrimSpace(kv[0]))
@@ -349,14 +360,20 @@ func parseKeyspace(infoMap map[string]string) []haprobe.RedisDBKeyspace {
 			case "keys":
 				if n, err := converter.ToInt64(v); err == nil {
 					ks.Keys = n
+				} else {
+					logger.Warn("failed to convert keyspace keys value %s to int64: %v", v, err)
 				}
 			case "expires":
 				if n, err := converter.ToInt64(v); err == nil {
 					ks.Expires = n
+				} else {
+					logger.Warn("failed to convert keyspace expires value %s to int64: %v", v, err)
 				}
 			case "avg_ttl":
 				if n, err := converter.ToInt64(v); err == nil {
 					ks.AvgTTL = n
+				} else {
+					logger.Warn("failed to convert keyspace avg_ttl value %s to int64: %v", v, err)
 				}
 			}
 		}
@@ -388,6 +405,7 @@ func parseSlaveStates(infoMap map[string]string) []haprobe.RedisSlaveState {
 		for _, part := range parts {
 			kv := strings.SplitN(part, "=", 2)
 			if len(kv) != 2 {
+				logger.Warn("invalid slave state format, expected key=value but got: %s", part)
 				continue
 			}
 			k := strings.ToLower(strings.TrimSpace(kv[0]))
@@ -425,6 +443,7 @@ func parseClusterSlaveStates(infoMap map[string]string) []haprobe.RedisClusterSl
 		for _, part := range parts {
 			kv := strings.SplitN(part, "=", 2)
 			if len(kv) != 2 {
+				logger.Warn("invalid cluster slave state format, expected key=value but got: %s", part)
 				continue
 			}
 			k := strings.ToLower(strings.TrimSpace(kv[0]))
@@ -436,16 +455,22 @@ func parseClusterSlaveStates(infoMap map[string]string) []haprobe.RedisClusterSl
 			case "port":
 				if n, err := converter.ToInt(v); err == nil {
 					slave.Port = n
+				} else {
+					logger.Warn("failed to convert slave port value %s to int: %v", v, err)
 				}
 			case "state":
 				slave.State = v
 			case "offset":
 				if n, err := converter.ToInt64(v); err == nil {
 					slave.Offset = n
+				} else {
+					logger.Warn("failed to convert slave offset value %s to int64: %v", v, err)
 				}
 			case "lag":
 				if n, err := converter.ToInt64(v); err == nil {
 					slave.Lag = n
+				} else {
+					logger.Warn("failed to convert slave lag value %s to int64: %v", v, err)
 				}
 			}
 		}
@@ -490,6 +515,7 @@ func parseRocksDBSlaveStates(infoMap map[string]string) []haprobe.RedisTendisPlu
 		for _, part := range valueParts {
 			kv := strings.SplitN(part, "=", 2)
 			if len(kv) != 2 {
+				logger.Warn("invalid rocksdb slave state format, expected key=value but got: %s", part)
 				continue
 			}
 			if strings.EqualFold(strings.TrimSpace(kv[0]), "state") {
