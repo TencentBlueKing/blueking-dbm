@@ -1096,7 +1096,7 @@ func (sw *TenDBClusterRemoteSwitchInstance) GetInstanceInfo() string {
 	return infoStr
 }
 
-// UpdateMetaInfo swap master, slave 's meta info in cmdb
+// UpdateMetaInfo swaps roles of remote master and slave
 func (sw *TenDBClusterRemoteSwitchInstance) UpdateMetaInfo() error {
 	sw.ReportLog(SwitchInfo, fmt.Sprintf("try to swap roles of remote nodes(master:%s:%d, slave:%s:%d)",
 		sw.IP, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port))

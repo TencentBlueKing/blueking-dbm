@@ -1005,7 +1005,7 @@ func (sw *MySQLStorageSwitchInstance) DoSwitch() error {
 	return nil
 }
 
-// UpdateMetaInfo updates metadata after switching
+// UpdateMetaInfo swaps roles of backend master and slave
 func (sw *MySQLStorageSwitchInstance) UpdateMetaInfo() error {
 	sw.ReportLog(SwitchInfo, fmt.Sprintf("try to swap roles of backend nodes(master:%s:%d, slave:%s:%d)",
 		sw.IP, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port))
