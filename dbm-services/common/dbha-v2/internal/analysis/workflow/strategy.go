@@ -22,33 +22,7 @@
  * SOFTWARE.
  */
 
-package example_test
+package workflow
 
-import (
-	"context"
-	"testing"
-
-	"dbm-services/common/dbha-v2/internal/probe/harvester/example"
-)
-
-func TestExample(t *testing.T) {
-	exp := example.NewExample(example.ExampleOptionDbType("example"), example.ExampleOptionReportInterval(10))
-	ctx := context.Background()
-
-	harvestC, err := exp.Harvest(ctx, "", "")
-
-	if err != nil {
-		t.Errorf("harvest db status failed, errmsg(%v)", err)
-	}
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-
-		case data := <-harvestC:
-			t.Logf("data:%v", data.Value)
-			return
-		}
-	}
+type Strategy struct {
 }

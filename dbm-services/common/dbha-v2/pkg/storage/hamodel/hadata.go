@@ -24,6 +24,7 @@
 package hamodel
 
 import (
+	"encoding/json"
 	"time"
 
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
@@ -66,13 +67,14 @@ type DbhaDataStatus struct {
 	IPs             JSON[[]string]                     `gorm:"column:ips;type:json"`
 	MessageID       string                             `gorm:"column:message_id"`
 	ServiceID       string                             `gorm:"column:service_id"`
+	DbTypeName      haprobe.DbType                     `gorm:"column:db_type_name"`
 	AccessLayer     haprobe.DbmMetadataAccessLayerType `gorm:"column:access_layer"`
 	ClusterType     haprobe.DbmMetadataClusterType     `gorm:"column:cluster_type"`
 	MachineType     haprobe.DbmMetadataMachineType     `gorm:"column:machine_type"`
 	ReportTimestamp uint64                             `gorm:"column:report_timestamp"`
 	Host            JSON[*haprobe.HostMetric]          `gorm:"column:host;type:json"`
 	Events          JSON[[]*haprobe.DbEvent]           `gorm:"column:event;type:json"`
-	Value           JSON[any]                          `gorm:"column:data;type:json"`
+	Value           JSON[json.RawMessage]              `gorm:"column:data;type:json"`
 
 	// Time automatically managed by GORM
 	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
@@ -89,6 +91,7 @@ func NewDbhaData(msg *haprobe.HarvestData) *DbhaDataStatus {
 	data.BkCloudID = msg.BkCloudID
 	data.MessageID = msg.MessageID
 	data.ServiceID = msg.ServiceID
+	data.DbTypeName = msg.DbTypeName
 	data.AccessLayer = msg.AccessLayer
 	data.ClusterType = msg.ClusterType
 	data.MachineType = msg.MachineType
@@ -105,8 +108,8 @@ func NewDbhaData(msg *haprobe.HarvestData) *DbhaDataStatus {
 		data.Events = JSON[[]*haprobe.DbEvent]{Data: msg.Events, Valid: true}
 	}
 
-	if msg.Value != nil {
-		data.Value = JSON[any]{Data: msg.Value, Valid: true}
+	if msg.RawValue != nil {
+		data.Value = JSON[json.RawMessage]{Data: msg.RawValue, Valid: true}
 	}
 
 	return data
@@ -114,9 +117,4 @@ func NewDbhaData(msg *haprobe.HarvestData) *DbhaDataStatus {
 
 func (t DbhaDataStatus) TableName() string {
 	return DbhaDataStatusTableName
-}
-
-func (t DbhaDataStatus) IsMySql() bool {
-	return t.ClusterType == haprobe.DbmMetadataClusterTypeTendb ||
-		t.ClusterType == haprobe.DbmMetadataClusterTypeTendbCluster
 }

@@ -24,6 +24,10 @@
 
 package haprobe
 
+import (
+	"encoding/json"
+)
+
 // DbmMetadataAccessLayerType the access layer type for the metadata.
 type DbmMetadataAccessLayerType string
 
@@ -96,17 +100,18 @@ const (
 	DbmMetadataMachineTypePredixy          DbmMetadataMachineType = "predixy"
 	DbmMetadataMachineTypePulsarBookKeeper DbmMetadataMachineType = "pulsar_bookkeeper"
 	DbmMetadataMachineTypeDorisFollower    DbmMetadataMachineType = "doris_follower"
-	DbmMetadataMachineTypePulsarBroker     DbmMetadataMachineType = "doris_broker"
+	DbmMetadataMachineTypePulsarBroker     DbmMetadataMachineType = "pulsar_broker"
 	DbmMetadataMachineTypePulsarZookeeper  DbmMetadataMachineType = "pulsar_zookeeper"
 )
 
-type HarvestData struct {
+type HarvestBaseData struct {
 	SequenceID      uint64                     `json:"sequence_id,omitempty"`
 	MachineID       string                     `json:"machine_id,omitempty"`
 	AgentID         string                     `json:"agent_id,omitempty"`
 	BkCloudID       int                        `json:"bk_cloud_id,omitempty"`
 	MessageID       string                     `json:"message_id,omitempty"`
 	ServiceID       string                     `json:"service_id,omitempty"`
+	DbTypeName      DbType                     `json:"db_type_name,omitempty"`
 	AccessLayer     DbmMetadataAccessLayerType `json:"access_layer,omitempty"`
 	ClusterType     DbmMetadataClusterType     `json:"cluster_type,omitempty"`
 	MachineType     DbmMetadataMachineType     `json:"machine_type,omitempty"`
@@ -115,5 +120,26 @@ type HarvestData struct {
 	ReportTimestamp uint64                     `json:"report_timestamp,omitempty"`
 	Events          []*DbEvent                 `json:"events,omitempty"`
 	Host            *HostMetric                `json:"host,omitempty"`
-	Value           any                        `json:"data,omitempty"`
+}
+
+type HarvestData struct {
+	HarvestBaseData
+	Value    DBTyper         `json:"data,omitempty"`
+	RawValue json.RawMessage `json:"-"`
+}
+
+func (h *HarvestData) UnmarshalJSON(data []byte) error {
+	var temp struct {
+		HarvestBaseData
+		Value json.RawMessage `json:"data,omitempty"`
+	}
+
+	if err := json.Unmarshal(data, &temp); err != nil {
+		return err
+	}
+
+	h.HarvestBaseData = temp.HarvestBaseData
+	h.RawValue = temp.Value
+
+	return nil
 }

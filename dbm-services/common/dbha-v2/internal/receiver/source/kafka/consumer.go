@@ -148,7 +148,7 @@ func New(cfg config.SourceConfig) (*consumer, error) {
 	return kInputer, nil
 }
 
-func (k *consumer) Harvest(ctx context.Context, savers []sink.Outputter) error {
+func (k *consumer) Harvest(ctx context.Context, savers []sink.Sinker) error {
 	k.wg.Add(1)
 	go func(ctx context.Context) {
 		defer k.wg.Done()

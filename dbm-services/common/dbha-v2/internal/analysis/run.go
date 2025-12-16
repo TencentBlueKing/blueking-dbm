@@ -114,7 +114,7 @@ func Run(cmd *cobra.Command, args []string) error {
 
 	gormLogger := logger.NewZapLogger(gormLogCfg)
 
-	logger.Debug("analysis configuration:%v", config.Cfg)
+	logger.Debug("analysis configuration: %v", config.Cfg)
 
 	ctx := context.Background()
 	svr := &Service{etcdLogger: etcdLogger.OriginLogger(), gormLogger: gormLogger}

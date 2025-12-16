@@ -40,7 +40,7 @@ type Mysql struct {
 
 // DbTypeName returns the MySQL database type identifier
 func (m *Mysql) DbTypeName() haprobe.DbType {
-	return haprobe.DbTypeMysql
+	return haprobe.DbTypeMySql
 }
 
 // Switch handles MySQL instance switching operations

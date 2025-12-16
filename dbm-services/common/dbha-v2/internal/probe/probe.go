@@ -77,6 +77,8 @@ func (p *Probe) runPlugin(ctx context.Context, plug plugin.Plugin) {
 				return
 			}
 
+			data.DbTypeName = data.Value.GetDbType()
+
 			dataEncoded, err := json.Marshal(data)
 			if err != nil {
 				logger.Warn("encode data to json failed, plugin(%s), data(%v), %v", name, data.Value, err)

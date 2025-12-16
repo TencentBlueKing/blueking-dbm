@@ -22,28 +22,52 @@
  * SOFTWARE.
  */
 
-package sink
+package workflow
 
 import (
-	"strings"
-
-	"dbm-services/common/dbha-v2/internal/receiver/config"
+	"dbm-services/common/dbha-v2/internal/analysis/workflow/parser"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
-// Outputter Define the interface for storing data.
-type Outputter interface {
-	Save(msg *Message) error
-	Close()
+var (
+	ErrUnknownDbType = gerrors.Newf(gerrors.InvalidParameter, "unknown DB type")
+)
+
+// StatusParser used to parse all DB statuses.
+type StatusParser struct{}
+
+// ParseDbStatus Parse the DB status
+func (s *StatusParser) ParseDbStatus(dbStatus []parser.DBTyperWrapper) ([]*haprobe.DbEvent, error) {
+	var dbEvents []*haprobe.DbEvent
+
+	for _, v := range dbStatus {
+		logger.Debug("parse DB status, DB type: %v", v.DbTypeName)
+
+		processer, ok := parser.Parsers[v.DbTypeName]
+		if !ok {
+			logger.Warn("no processer for DB type: %v", v.DbTypeName)
+			continue
+		}
+
+		event, err := processer.Process(v.Value)
+		if err != nil {
+			logger.Warn("failed to parse DB status, DB type: %s, errmsg: %s", v.DbTypeName, err)
+			continue
+		}
+
+		if event != nil {
+			dbEvents = append(dbEvents, event)
+		}
+
+	}
+
+	return dbEvents, nil
 }
 
-// NewOutputter create a new saver
-func NewOutputter(cfg config.SinkConfig) (Outputter, error) {
-	switch strings.ToLower(cfg.Name) {
-	case strings.ToLower(mySQLName):
-		return newMySql(cfg.Endpoints, cfg.User, cfg.Password)
-
-	default:
-		return nil, gerrors.Newf(gerrors.Unsupported, "unsupported storage(%s)", cfg.Name)
-	}
+// ParseHostStatus Parse the host status
+func (s *StatusParser) ParseHostStatus(dbStatus []*haprobe.HostMetric) ([]*haprobe.DbEvent, error) {
+	// TODO:
+	return nil, nil
 }

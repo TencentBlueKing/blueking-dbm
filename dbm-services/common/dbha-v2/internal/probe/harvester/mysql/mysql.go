@@ -210,17 +210,19 @@ func (m *MySql) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
 	status := &haprobe.MySqlStatus{}
 
 	data := &plugin.HarvestData{
-		SequenceID:  machine.NewSequenceID(),
-		MessageID:   machine.NewMessageID(),
-		MachineID:   m.machineID,
-		ServiceID:   m.serviceID,
-		BkCloudID:   m.bkCloudID,
-		AgentID:     m.agentID,
-		DbIp:        c.endpoint.Host,
-		DbPort:      c.endpoint.Port,
-		AccessLayer: c.accessLayer,
-		ClusterType: c.clusterType,
-		MachineType: c.machineType,
+		HarvestBaseData: haprobe.HarvestBaseData{
+			SequenceID:  machine.NewSequenceID(),
+			MessageID:   machine.NewMessageID(),
+			MachineID:   m.machineID,
+			ServiceID:   m.serviceID,
+			BkCloudID:   m.bkCloudID,
+			AgentID:     m.agentID,
+			DbIp:        c.endpoint.Host,
+			DbPort:      c.endpoint.Port,
+			AccessLayer: c.accessLayer,
+			ClusterType: c.clusterType,
+			MachineType: c.machineType,
+		},
 	}
 
 	defer func() {

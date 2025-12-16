@@ -65,7 +65,7 @@ func (c *collector) open() (*haprobe.DbEvent, error) {
 		event := &haprobe.DbEvent{
 			Name:       haprobe.DbEventNameDetectFailure,
 			Reason:     haprobe.DbEventNameReasonConnectionException,
-			DbTypeName: haprobe.DbTypeMysql,
+			DbTypeName: haprobe.DbTypeMySql,
 			Endpoint:   c.endpoint,
 			Message:    err.Error(),
 		}
@@ -79,7 +79,7 @@ func (c *collector) open() (*haprobe.DbEvent, error) {
 		event := &haprobe.DbEvent{
 			Name:       haprobe.DbEventNameDetectFailure,
 			Reason:     haprobe.DbEventNameReasonConnectionException,
-			DbTypeName: haprobe.DbTypeMysql,
+			DbTypeName: haprobe.DbTypeMySql,
 			Endpoint:   c.endpoint,
 			Message:    err.Error(),
 		}

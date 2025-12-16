@@ -27,6 +27,7 @@ package workflow
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"sync"
@@ -37,6 +38,7 @@ import (
 	"dbm-services/common/dbha-v2/internal/analysis/detector"
 	"dbm-services/common/dbha-v2/internal/analysis/storage"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher"
+	"dbm-services/common/dbha-v2/internal/analysis/workflow/parser"
 	"dbm-services/common/dbha-v2/pkg/discovery"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -54,13 +56,24 @@ const (
 
 var (
 	ErrCreateMutexFailure    = gerrors.Newf(gerrors.EtcdFailure, "failed to create a mutex for a business")
-	ErrReadeMetadataFailure  = gerrors.Newf(gerrors.MysqlFailure, "failed to read metadata")
+	ErrReadMetadataFailure   = gerrors.Newf(gerrors.MysqlFailure, "failed to read metadata")
 	ErrReadDbMetricFailure   = gerrors.Newf(gerrors.MysqlFailure, "failed to read DB metrics")
 	ErrReadDbEventFailure    = gerrors.Newf(gerrors.MysqlFailure, "failed to read DB event")
 	ErrReadSkipDbInstFailure = gerrors.Newf(gerrors.MysqlFailure, "failed to read skip db-inst")
 	ErrAcquireLockFailure    = gerrors.Newf(gerrors.EtcdFailure, "failed to acquire the lock for the business")
 	ErrDetectorFailure       = gerrors.Newf(gerrors.Failure, "detector failure, switching is needed")
 )
+
+type Workflow struct {
+	StatusParser
+
+	hadata       *storage.DbhaData
+	dbmSync      *Synchronizer
+	discoveryCli *discovery.Client
+	switchers    map[haprobe.DbType]switcher.Switcher
+	quit         chan struct{}
+	wg           sync.WaitGroup
+}
 
 // New create a workflow instance.
 func New(cli *discovery.Client, db *hamysql.GormDB) (*Workflow, error) {
@@ -75,7 +88,7 @@ func New(cli *discovery.Client, db *hamysql.GormDB) (*Workflow, error) {
 		},
 
 		switchers: map[haprobe.DbType]switcher.Switcher{
-			haprobe.DbTypeMysql: &switcher.Mysql{},
+			haprobe.DbTypeMySql: &switcher.Mysql{},
 		},
 
 		discoveryCli: cli,
@@ -83,15 +96,6 @@ func New(cli *discovery.Client, db *hamysql.GormDB) (*Workflow, error) {
 	}
 
 	return wflow, nil
-}
-
-type Workflow struct {
-	hadata       *storage.DbhaData
-	dbmSync      *Synchronizer
-	discoveryCli *discovery.Client
-	switchers    map[haprobe.DbType]switcher.Switcher
-	quit         chan struct{}
-	wg           sync.WaitGroup
 }
 
 func (w *Workflow) Run(ctx context.Context) error {
@@ -117,13 +121,17 @@ func (w *Workflow) Run(ctx context.Context) error {
 		for {
 			select {
 			case <-w.quit:
+				logger.Info("the workflow exited(quit)")
 				return
 
 			case <-ctx.Done():
+				logger.Info("the workflow exited(ctx done)")
 				return
 
 			case <-timer.C:
+				logger.Debug("the workflow begins to scan the businesses")
 				w.scanBusinesses(ctx)
+				logger.Debug("the workflow will scan the businesses, after: %v", config.Cfg.Workflow.ScanInterval)
 				timer.Reset(config.Cfg.Workflow.ScanInterval)
 			}
 		}
@@ -165,7 +173,7 @@ func (w *Workflow) triggerAlarmWithDetectorResponse(procName string, status proc
 	monitorEvent.Dimension.DbEventNameReason = resp.DbEventNameReason.Str()
 
 	logger.Info("the workflow triggers an alarm, db-inst: %d:%s:%d content: %s",
-		resp.Meta.BkBizID, resp.Meta.IP, resp.Meta.Port, content)
+		resp.Meta.BkCloudID, resp.Meta.IP, resp.Meta.Port, content)
 
 	if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
 		logger.Warn("failed to post the alarm event to BkMonitor, errmsg: %s", err)
@@ -296,14 +304,19 @@ func (w *Workflow) databaseLivenessDoubleCheck(missedInsts []*hamodel.DbmMetadat
 		}
 
 		// TODO: Now there is only MySQL(default).
-		logger.Debug("trigger switching, dbType: %s, cloudId: %d, ips: %v", haprobe.DbTypeMysql, cloudId, ips)
-		w.triggerSwitching(haprobe.DbTypeMysql, req)
+		logger.Debug("trigger switching, dbType: %s, cloudId: %d, ips: %v", haprobe.DbTypeMySql, cloudId, ips)
+		w.triggerSwitching(haprobe.DbTypeMySql, req)
 	}
 }
 
 func (w *Workflow) createSwitcherRequestWithIPs(bkCloudId int, ips []string) *switcher.Request {
 	metadatas, err := w.dbmSync.cli.QueryMetadataFromDbm(context.Background(), bkCloudId, ips)
+
 	if err != nil {
+		if errors.Is(err, dbm.ErrNoResponse) {
+			return nil
+		}
+
 		logger.Warn("failed to query metadata from DBM, bkCloudId: %d, ips: %v, errmsg: %s", bkCloudId, ips, err)
 		return nil
 	}
@@ -319,16 +332,6 @@ func (w *Workflow) createSwitcherRequestWithIPs(bkCloudId int, ips []string) *sw
 	}
 
 	return req
-}
-
-func (w *Workflow) createSwitcherRequest(bkCloudId int, events []*haprobe.DbEvent) *switcher.Request {
-	ips := []string{}
-
-	for _, event := range events {
-		ips = append(ips, event.Endpoint.Host)
-	}
-
-	return w.createSwitcherRequestWithIPs(bkCloudId, ips)
 }
 
 func (w *Workflow) triggerSwitching(dbType haprobe.DbType, req *switcher.Request) {
@@ -425,9 +428,30 @@ func (w *Workflow) checkEventWithBizId(bizId int, dbEvents []*haprobe.DbEvent,
 	w.databaseLivenessDoubleCheck(badInsts)
 }
 
-func (w *Workflow) checkMissedProbe(dbStatus []*hamodel.DbhaDataStatus,
+func (w *Workflow) checkDbHosts(dbHosts []*haprobe.HostMetric, checkDbEventsFunc func(dbEvents []*haprobe.DbEvent)) {
+	dbEvents, err := w.ParseHostStatus(dbHosts)
+	if err != nil {
+		logger.Warn("failed to parse the host status, errmsg: %s", err)
+		return
+	}
 
-	skipDbInsts map[string]*hamodel.SkipDbInstance, metaInsts map[string]*hamodel.DbmMetadata) {
+	checkDbEventsFunc(dbEvents)
+}
+
+func (w *Workflow) checkDbStatus(dbStatusVals []parser.DBTyperWrapper,
+	checkDbEventsFunc func(dbEvents []*haprobe.DbEvent)) {
+
+	dbEvents, err := w.ParseDbStatus(dbStatusVals)
+	if err != nil {
+		logger.Warn("failed to parse the DB status, errmsg: %s", err)
+		return
+	}
+
+	checkDbEventsFunc(dbEvents)
+}
+
+func (w *Workflow) checkMissedProbe(dbStatus []*hamodel.DbhaDataStatus, skipDbInsts map[string]*hamodel.SkipDbInstance,
+	metaInsts map[string]*hamodel.DbmMetadata) {
 
 	dbMetricKeys := map[string]struct{}{}
 	for _, dbStat := range dbStatus {
@@ -450,6 +474,7 @@ func (w *Workflow) checkMissedProbe(dbStatus []*hamodel.DbhaDataStatus,
 			continue
 		}
 
+		logger.Debug("missed probe instances: %#v", *dbMeta)
 		missedProbeInsts = append(missedProbeInsts, dbMeta)
 	}
 
@@ -486,7 +511,7 @@ func (w *Workflow) checkBusinessWithBizID(ctx context.Context, bizId int) (retEr
 
 	if retErr != nil {
 		logger.Warn("failed to read the DB metadata for the business, bizId: %d, errmsg: %s", bizId, retErr)
-		return ErrReadeMetadataFailure
+		return ErrReadMetadataFailure
 	}
 
 	conds := []*storage.DbInstance{}
@@ -504,14 +529,28 @@ func (w *Workflow) checkBusinessWithBizID(ctx context.Context, bizId int) (retEr
 	// Read the status data reported by the probe.
 	dbStatus, err := w.hadata.ReadDbStatusWithDbInstances(conds, config.Cfg.Workflow.ReadDbMetricOffsetDuration)
 	if err != nil {
-		logger.Warn("failed to read the DB metrics with the conditions: %v, bizId: %d, errmsg: %s", conds, bizId, err)
+		logger.Warn("failed to read the DB status with the conditions: %v, bizId: %d, errmsg: %s", conds, bizId, err)
 		return ErrReadDbMetricFailure
 	}
 
 	dbEvents := []*haprobe.DbEvent{}
+	dbHosts := []*haprobe.HostMetric{}
+	dbStatusVals := []parser.DBTyperWrapper{}
+
 	for _, dbStat := range dbStatus {
 		if dbStat.Events.Valid {
 			dbEvents = append(dbEvents, dbStat.Events.Data...)
+		}
+
+		if dbStat.Host.Valid {
+			dbHosts = append(dbHosts, dbStat.Host.Data)
+		}
+
+		if dbStat.Value.Valid {
+			dbStatusVals = append(dbStatusVals, parser.DBTyperWrapper{
+				DbTypeName: dbStat.DbTypeName,
+				Value:      dbStat.Value.Data,
+			})
 		}
 	}
 
@@ -524,6 +563,10 @@ func (w *Workflow) checkBusinessWithBizID(ctx context.Context, bizId int) (retEr
 	skipInsts := map[string]*hamodel.SkipDbInstance{}
 	for _, skipInst := range dbSkipInsts {
 		skipInsts[key(skipInst.BkCloudID, skipInst.InstanceIP, skipInst.InstancePort)] = skipInst
+	}
+
+	checkDbEventFunc := func(dbEvents []*haprobe.DbEvent) {
+		w.checkEventWithBizId(bizId, dbEvents, skipInsts, metaInsts)
 	}
 
 	var wg sync.WaitGroup
@@ -540,7 +583,20 @@ func (w *Workflow) checkBusinessWithBizID(ctx context.Context, bizId int) (retEr
 		w.checkEventWithBizId(bizId, dbEvents, skipInsts, metaInsts)
 	}()
 
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		w.checkDbHosts(dbHosts, checkDbEventFunc)
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		w.checkDbStatus(dbStatusVals, checkDbEventFunc)
+	}()
+
 	wg.Wait()
+	logger.Debug("finished checking the business: %d", bizId)
 	return retErr
 }
 
@@ -551,12 +607,13 @@ func (w *Workflow) scanBusinesses(ctx context.Context) {
 		return
 	}
 
-	wgBizs := sync.WaitGroup{}
+	wg := sync.WaitGroup{}
+
 	for _, bizID := range bizIDs {
-		wgBizs.Add(1)
+		wg.Add(1)
 
 		go func(bizId int) {
-			defer wgBizs.Done()
+			defer wg.Done()
 
 			err := w.checkBusinessWithBizID(ctx, bizId)
 			if err == nil {
@@ -571,7 +628,7 @@ func (w *Workflow) scanBusinesses(ctx context.Context) {
 		}(bizID)
 	}
 
-	wgBizs.Wait()
+	wg.Wait()
 }
 
 func key[T any](bkCloudId int, ip string, port T) string {

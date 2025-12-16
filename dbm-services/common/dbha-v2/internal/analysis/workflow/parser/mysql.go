@@ -22,32 +22,36 @@
  * SOFTWARE.
  */
 
-package source
+package parser
 
 import (
-	"context"
-	"strings"
+	"encoding/json"
 
-	"dbm-services/common/dbha-v2/internal/receiver/config"
-	"dbm-services/common/dbha-v2/internal/receiver/sink"
-	"dbm-services/common/dbha-v2/internal/receiver/source/kafka"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
-type DataC chan interface{}
+var _ Processer = (*MySqlStatus)(nil)
 
-type Inputter interface {
-	Harvest(ctx context.Context, savers []sink.Outputter) error
-	Close()
+var (
+	ErrInvalidMySqlStatus = gerrors.Newf(gerrors.InvalidParameter, "invalid MySQL status")
+)
+
+type MySqlStatus struct {
 }
 
-// NewInputer create a new Inputer.
-func NewInputter(cfg config.SourceConfig) (Inputter, error) {
-	switch strings.ToLower(cfg.Name) {
-	case strings.ToLower(kafka.Name):
-		return kafka.New(cfg)
-
-	default:
-		return nil, gerrors.Newf(gerrors.Unknown, "unknown inputer: %s", cfg.Name)
+func (m *MySqlStatus) Process(task json.RawMessage) (*haprobe.DbEvent, error) {
+	var mySqlStatus haprobe.MySqlStatus
+	if err := json.Unmarshal(task, &mySqlStatus); err != nil {
+		logger.Warn("failed to unmarshal MySQL status, errmsg: %s", err)
+		return nil, ErrInvalidMySqlStatus
 	}
+
+	logger.Debug("process MySQL status: %v, raw: %s", *mySqlStatus.GlobalStatus, string(task))
+	return nil, nil
+}
+
+func init() {
+	Parsers[haprobe.DbTypeMySql] = &MySqlStatus{}
 }

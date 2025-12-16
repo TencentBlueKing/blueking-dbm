@@ -22,46 +22,21 @@
  * SOFTWARE.
  */
 
-package example
+package parser
 
-type Option interface {
-	apply(*exampleOptions)
+import (
+	"encoding/json"
+
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
+)
+
+type Processer interface {
+	Process(task json.RawMessage) (*haprobe.DbEvent, error)
 }
 
-type exampleOptions struct {
-	dbType         string
-	reportInterval int
+type DBTyperWrapper struct {
+	DbTypeName haprobe.DbType
+	Value      json.RawMessage
 }
 
-var defaultExampleOptions = exampleOptions{
-	dbType:         "",
-	reportInterval: 0,
-}
-
-type funcExampleOptions struct {
-	f func(opt *exampleOptions)
-}
-
-func (fdo *funcExampleOptions) apply(opt *exampleOptions) {
-	fdo.f(opt)
-}
-
-func newFuncExampleOption(f func(*exampleOptions)) *funcExampleOptions {
-	return &funcExampleOptions{f: f}
-}
-
-func ExampleOptionDbType(db string) *funcExampleOptions {
-	return &funcExampleOptions{
-		f: func(opt *exampleOptions) {
-			opt.dbType = db
-		},
-	}
-}
-
-func ExampleOptionReportInterval(val int) *funcExampleOptions {
-	return &funcExampleOptions{
-		f: func(opt *exampleOptions) {
-			opt.reportInterval = val
-		},
-	}
-}
+var Parsers = map[haprobe.DbType]Processer{}
