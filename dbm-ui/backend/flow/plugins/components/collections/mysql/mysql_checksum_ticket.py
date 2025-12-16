@@ -29,6 +29,7 @@ class MySQLCheckSumTicket(BaseService):
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
+        trans_data = data.get_one_of_inputs("trans_data")
         self.log_info(kwargs)
         #  todo ，根据指定时间定时执行。
         checksum_time = datetime.now().astimezone() + timedelta(minutes=20)
@@ -45,7 +46,8 @@ class MySQLCheckSumTicket(BaseService):
             remark=_("迁移自动生成实例checksum单据"),
             details=details,
         )
-
+        trans_data.auto_checksum_ticket_id = int(checksum_ticket.id)
+        data.outputs["trans_data"] = trans_data
         #  todo 选择自动执行与立即执行。
         if False:
             TicketHandler.batch_process_ticket(kwargs["created_by"], TodoActionType.APPROVE, [checksum_ticket.id], {})
@@ -57,6 +59,3 @@ class MySQLCheckSumTicketComponent(Component):
     name = __name__
     code = "mysql_checksum_ticket_generate"
     bound_service = MySQLCheckSumTicket
-
-
-#  todo 循环判断单据状态是否完成。单据完成，循环查询rds是否一致。

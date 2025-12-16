@@ -49,6 +49,7 @@ class MySQLBackupHandler:
         backup_method: list[str] = None,
         is_standby: bool = True,
         backup_source: str = MySQLBackupSource.REMOTE.value,
+        need_binlog_check: bool = False,
     ):
         """
         @param cluster_id: 集群ID
@@ -80,6 +81,7 @@ class MySQLBackupHandler:
         self.backup_method = backup_method
         self.is_standby = is_standby
         self.backup_source = backup_source
+        self.need_binlog_check = need_binlog_check
         self.query = ""
         self.errmsg = ""
 
@@ -110,6 +112,15 @@ class MySQLBackupHandler:
         backup_info["time_zone"] = backup_info["extra_fields"]["time_zone"]
         backup_info["backup_charset"] = backup_info["extra_fields"]["backup_charset"]
         backup_info["bk_cloud_id"] = backup_info["extra_fields"]["bk_cloud_id"]
+        backup_info["binlog_ips"] = []
+        if isinstance(backup_info["binlog_info"], dict):
+            show_master_status = backup_info["binlog_info"].get("show_master_status", None)
+            show_slave_status = backup_info["binlog_info"].get("show_slave_status", None)
+            if isinstance(show_master_status, dict) and "master_host" in show_master_status:
+                backup_info["binlog_ips"].append(show_master_status["master_host"])
+            if isinstance(show_slave_status, dict) and "master_host" in show_slave_status:
+                backup_info["binlog_ips"].append(show_slave_status["master_host"])
+            backup_info["binlog_ips"] = list(set(backup_info["binlog_ips"]))
 
         task_ids = []
         local_files = []
@@ -173,6 +184,10 @@ class MySQLBackupHandler:
             if self.is_standby:
                 logger.info(_("指定查询必须从is_standby实例查询。spider_master/TDBCTL/orphan除外"))
                 conditions &= Q(is_standby="yes") | Q(mysql_role__in=["spider_master", "TDBCTL", "orphan"])
+
+            if self.need_binlog_check:
+                logger.info(_("指定备份必须存在binlog位点"))
+                conditions &= Q(binlog_info__icontains="binlog_pos")
 
         backup_infos = MysqlBackupResult.objects.filter(conditions).order_by("-backup_consistent_time")
         self.query = str(backup_infos.query)
@@ -595,6 +610,9 @@ class MySQLBackupHandler:
                     f" {conditions} and (backup_method in ('{backup_method_str}')"
                     f" or mysql_role in ('spider_master','TDBCTL'))"
                 )
+            if self.need_binlog_check:
+                logger.info(_("指定备份必须存在binlog位点"))
+                conditions = f" {conditions} and binlog_info like '%binlog_pos%' "
 
         backup_infos = []
 

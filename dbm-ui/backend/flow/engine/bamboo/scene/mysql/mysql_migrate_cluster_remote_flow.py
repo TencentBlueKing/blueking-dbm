@@ -553,6 +553,7 @@ class MySQLMigrateClusterRemoteFlow(object):
                     with_cc_standardize=False,
                 )
             )
+            # todo 添加checksum单据状态检查 、添加通过后添加checksum结果的查询
 
             # 人工确认切换迁移实例, 释放解除之前的prox替换单据互斥
             tendb_migrate_pipeline.add_act(
