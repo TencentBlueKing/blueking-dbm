@@ -168,3 +168,13 @@ export function batchCommonUpdate(params: {
 export function deleteResourceSpec(params: { specId: number }) {
   return http.delete(`${path}/${params.specId}/`);
 }
+
+/**
+ * 修改规格补货定义
+ */
+export function addSpecReplenishTag(params: {
+  spec_ids: number[];
+  need_replenish: boolean; // 是否自动补货
+}) {
+  return http.post<ResourceSpecModel>(`${path}/add_spec_replenish_tag/`, params);
+}
