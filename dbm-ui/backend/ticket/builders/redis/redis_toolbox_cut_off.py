@@ -12,7 +12,7 @@ from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import InstanceRole, MachineType
+from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
@@ -80,9 +80,10 @@ class RedisClusterCutOffResourceParamBuilder(BaseOperateResourceParamBuilder):
                 }
 
             if info["switch_role"] == InstanceRole.REDIS_PROXY.value:
-                common_filters = Q(
-                    machine__machine_type=MachineType.TWEMPROXY.value, cluster__in=info["cluster_ids"]
-                ) & ~Q(machine__bk_host_id__in=[host["bk_host_id"] for host in info["proxy"]])
+                machine_type = cluster.proxyinstance_set.first().machine.machine_type
+                common_filters = Q(machine__machine_type=machine_type, cluster__in=info["cluster_ids"]) & ~Q(
+                    machine__bk_host_id__in=[host["bk_host_id"] for host in info["proxy"]]
+                )
                 proxy_insts = list(ProxyInstance.objects.select_related("machine").filter(common_filters))
                 exclusive_machine_map = {"proxy": [inst.machine for inst in proxy_insts]}
 
