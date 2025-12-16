@@ -16,7 +16,14 @@ func TestCreateClusterPod(t *testing.T) {
 	}
 	ps.DbImage = config.GAppConfig.Image.Tendb57Img
 	ps.TdbCtlImage = config.GAppConfig.Image.TdbCtlImg
-	ps.SpiderImage = config.GAppConfig.Image.SpiderImg
+	// 使用 SpiderPods 切片配置多个 Spider 版本
+	ps.SpiderPods = []service.SpiderPodBaseInfo{
+		{
+			SpiderImage:     config.GAppConfig.Image.SpiderImg,
+			SpiderVersion:   "latest",
+			SpiderStartArgs: nil,
+		},
+	}
 	if err := ps.CreateClusterPod(""); err != nil {
 		t.Fatalf("%s", err.Error())
 		return

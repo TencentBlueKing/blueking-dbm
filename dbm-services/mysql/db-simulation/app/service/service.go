@@ -11,23 +11,28 @@
 // Package service service
 package service
 
+// SpiderVersionConfig 单个 Spider 版本配置
+type SpiderVersionConfig struct {
+	Version     string            `json:"version" binding:"required"` // Spider 版本号
+	StartConfig map[string]string `json:"start_config"`               // 该版本的启动参数
+}
+
 // SpiderSimulationExecParam tendbcluster request param
 type SpiderSimulationExecParam struct {
 	BaseParam
-	SpiderVersion      string            `json:"spider_version"`
-	SpiderStartConfigs map[string]string `json:"spider_start_config"`
+	SpiderVersions []SpiderVersionConfig `json:"spider_versions" binding:"required,gt=0,dive"` // 多个 Spider 版本配置
 }
 
-// ExcuteSQLFileObj execution object of a single file
-type ExcuteSQLFileObj struct {
+// ExecuteSQLFileObj execution object of a single file
+type ExecuteSQLFileObj struct {
 	LineID        int      `json:"line_id"`
 	SQLFile       string   `json:"sql_file"  binding:"required"` // 变更文件名称
 	IgnoreDbNames []string `json:"ignore_dbnames"`               // 忽略的,需要排除变更的dbName,支持模糊匹配
 	DbNames       []string `json:"dbnames"  binding:"gt=0"`      // 需要变更的DBNames,支持模糊匹配
 }
 
-// ExcuteSQLFileObjV2 support for multiple file changes
-type ExcuteSQLFileObjV2 struct {
+// ExecuteSQLFileObjV2 support for multiple file changes
+type ExecuteSQLFileObjV2 struct {
 	LineID        int      `json:"line_id"`
 	SQLFiles      []string `json:"sql_files"  binding:"required,gt=0"` // 变更文件名称
 	IgnoreDbNames []string `json:"ignore_dbnames"`                     // 忽略的,需要排除变更的dbName,支持模糊匹配

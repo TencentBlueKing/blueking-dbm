@@ -61,6 +61,7 @@ def get_mysql_start_configs(mysql_var_map: dict) -> dict:
     """
     start_mysqld_configs = {}
     config_vars = [
+        # 通用参数
         "sql_mode",
         "lower_case_table_names",
         "character_set_server",
@@ -69,6 +70,11 @@ def get_mysql_start_configs(mysql_var_map: dict) -> dict:
         "default_tmp_storage_engine",
         "explicit_defaults_for_timestamp",
         "log_bin_trust_function_creators",
+        "default_time_zone",
+        "loose_log_bin_compress",
+        "log_bin_compress",
+        "slave_exec_mode",
+        # InnoDB 参数
         "innodb_file_format",
         "innodb_file_per_table",
         "innodb_large_prefix",
@@ -76,10 +82,17 @@ def get_mysql_start_configs(mysql_var_map: dict) -> dict:
         "innodb_strict_mode",
         "innodb_autoinc_lock_mode",
         "innodb_lock_wait_timeout",
-        "default_time_zone",
-        "loose_log_bin_compress",
-        "log_bin_compress",
-        "slave_exec_mode",
+        # TokuDB 参数（可能影响 DDL）
+        #   "tokudb_lock_timeout",
+        #   "tokudb_commit_sync",
+        #   "tokudb_row_format",
+        # RocksDB 参数（可能影响 DDL）
+        #     "rocksdb_large_prefix",
+        #     "rocksdb_strict_collation_check",
+        #     "rocksdb_bulk_load",
+        #     "rocksdb_bulk_load_allow_unsorted",
+        #     "rocksdb_default_cf_options",
+        #     "rocksdb_lock_wait_timeout",
     ]
     for var in config_vars:
         if var in mysql_var_map:
