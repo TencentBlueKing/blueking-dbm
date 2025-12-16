@@ -178,6 +178,7 @@ export default class FunctionController {
   'resourceManage.dirtyHostManage': ControllerItem<string>;
   'resourceManage.faultPool': ControllerItem<string>;
   'resourceManage.replenishList': ControllerItem<string>;
+  'resourceManage.replenishList.replenishListRowOperation': ControllerItem<string>;
   'resourceManage.replenishRecord': ControllerItem<string>;
   'resourceManage.resourceOperationRecord': ControllerItem<string>;
   'resourceManage.resourcePool': ControllerItem<string>;

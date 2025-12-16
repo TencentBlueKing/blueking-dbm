@@ -67,6 +67,15 @@
             type="bk-dbm-icon db-icon-history-2" />
           {{ t('补货记录') }}
         </BkButton>
+        <BkButton
+          class="ml-8"
+          :disabled="tableData.length === 0"
+          @click="handleExport">
+          <DbIcon
+            class="mr-6"
+            type="daochu" />
+          {{ t('导出数据') }}
+        </BkButton>
       </div>
     </div>
     <BkLoading :loading="isLoading">
@@ -158,6 +167,21 @@
               </span>
             </template>
           </TableColumn>
+          <TableColumn
+            v-if="isShowOperationColumn"
+            col-key="operate"
+            fixed="right"
+            :title="t('操作')"
+            width="100">
+            <template #default="{ row }: { row: IRowData }">
+              <BkButton
+                text
+                theme="primary"
+                @click="handleReplenish(row)">
+                {{ t('补货') }}
+              </BkButton>
+            </template>
+          </TableColumn>
         </PrimaryTable>
         <div class="table-footer">
           <BkPagination
@@ -178,11 +202,11 @@
 
   import { createResourceReplenish } from '@services/source/dbresourceReplenish';
 
-  import { useSystemEnviron } from '@stores';
+  import { useFunController, useSystemEnviron } from '@stores';
 
   import { DBTypeInfos } from '@common/const';
 
-  import { getOffset, messageSuccess } from '@utils';
+  import { exportExcelFile, getOffset, messageSuccess } from '@utils';
 
   import useFetchData from './hooks/use-fetch-data';
 
@@ -192,6 +216,7 @@
   const rootRef = useTemplateRef('tableWrapper');
   const router = useRouter();
   const systemEnvironStore = useSystemEnviron();
+  const funControllerStore = useFunController();
   const {
     dataList,
     flushTime,
@@ -210,6 +235,9 @@
   const popRef = ref();
   let tippyIns: Instance;
   const URL_REPLENISH_MEMO_KEY = '__replenish_operation_view_payload__';
+  const isShowOperationColumn =
+    funControllerStore.funControllerData?.resourceManage?.children?.replenishList.children?.replenishListRowOperation
+      ?.is_enabled;
 
   const dbNameMap: Record<string, string> = {};
   const machineTypeMap: Record<string, string> = {};
@@ -251,6 +279,26 @@
     });
   };
 
+  const handleExport = () => {
+    /* eslint-disable */
+    const formatData = dataList.value.map((row) => ({
+      [t('DB 类型')]: dbNameMap[row.db_type],
+      [t('规格类型')]: machineTypeMap[row.spec_machine_type],
+      [t('规格')]: row.spec_name,
+      [t('地域')]: row.city,
+      [t('园区')]: row.subzone,
+      [t('操作系统')]: row.os_name,
+      [t('参考水位（台）')]: row.machine_refer_count,
+      [t('当前数量（台）')]: row.resource_count,
+      [t('待补充数量（台）')]: Math.max(row.machine_refer_count - row.resource_count, 0),
+    }));
+    /* eslint-enable */
+    const colsWidths = Array(8)
+      .fill(15)
+      .map((width) => ({ width }));
+    exportExcelFile(formatData, colsWidths, 'Sheet1', `${t('待补货列表')}_${updateTime.value}.xlsx`);
+  };
+
   const { loading: isSubmitting, run: replenish } = useRequest(createResourceReplenish, {
     manual: true,
     onSuccess: () => {
@@ -259,8 +307,10 @@
     },
   });
 
-  const handleReplenish = () => {
-    const replenishList = dataList.value
+  const handleReplenish = (rowData?: IRowData) => {
+    const list = rowData ? [rowData] : dataList.value;
+
+    const replenishList = list
       .filter((item) => item.resource_count < item.machine_refer_count)
       .map((item) => ({
         city: item.city,
