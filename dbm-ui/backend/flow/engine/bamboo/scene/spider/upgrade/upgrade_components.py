@@ -449,7 +449,10 @@ def add_standardize_act(sub_pipeline, instances: List, root_id: str, ticket_data
     sub_pipeline.add_sub_pipeline(
         sub_flow=standardize_mysql_cluster_subflow(
             root_id=root_id,
-            data=copy.deepcopy(ticket_data),
+            data={
+                **copy.deepcopy(ticket_data),
+                "cluster_ids": [cluster.id],
+            },
             bk_cloud_id=cluster.bk_cloud_id,
             bk_biz_id=cluster.bk_biz_id,
             instances=[f"{instance.machine.ip}:{instance.port}" for instance in instances],

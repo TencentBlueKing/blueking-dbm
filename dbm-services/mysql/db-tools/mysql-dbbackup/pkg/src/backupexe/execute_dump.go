@@ -84,7 +84,7 @@ func (r *BackupRunner) ExecuteBackup(ctx context.Context, cnf *config.BackupConf
 	if err = dumper.PrepareBackupMetaInfo(cnf, metaInfo); err != nil {
 		return nil, err
 	}
-	// 物理备份完成之后，重新获取一下 slave status
+	// 物理备份完成之后，重新获取一下 slave status 的 master ip/port,delay
 	if cnf.Public.BackupType == cst.BackupPhysical {
 		slaveStatusInfo, err = mysqlconn.ShowMysqlSlaveStatus(db)
 		if err != nil && !strings.EqualFold(cnf.Public.MysqlRole, cst.RoleMaster) {

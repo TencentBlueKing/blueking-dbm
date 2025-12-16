@@ -44,6 +44,8 @@ func (cf *Config) Routes() []*gin.RouteInfo {
 		{Method: http.MethodPost, Path: "/confitem/save", HandlerFunc: cf.SaveConfigFileItems},
 		{Method: http.MethodPost, Path: "/confitem/batchget", HandlerFunc: cf.BatchGetConfigOneItem},
 		{Method: http.MethodPost, Path: "/confitem/validate", HandlerFunc: cf.ValidateValueForClient},
+		{Method: http.MethodPost, Path: "/confitem/clonemodule", HandlerFunc: cf.CloneModuleConfig},
+		{Method: http.MethodPost, Path: "/confitem/clonecluster", HandlerFunc: cf.CloneClusterConfig},
 
 		// config_meta
 		{Method: http.MethodGet, Path: "/conftype/query", HandlerFunc: cf.QueryConfigTypeInfo},

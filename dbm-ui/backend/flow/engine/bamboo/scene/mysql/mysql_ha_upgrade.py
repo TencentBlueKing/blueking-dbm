@@ -403,7 +403,10 @@ def tendbha_cluster_upgrade_subflow(
     sub_pipeline.add_sub_pipeline(
         sub_flow=standardize_mysql_cluster_subflow(
             root_id=root_id,
-            data=copy.deepcopy(parent_global_data),
+            data={
+                **copy.deepcopy(parent_global_data),
+                "cluster_ids": cluster_ids,
+            },
             bk_cloud_id=cluster_cls.bk_cloud_id,
             bk_biz_id=cluster_cls.bk_biz_id,
             instances=[
@@ -414,7 +417,7 @@ def tendbha_cluster_upgrade_subflow(
             with_bk_plugin=False,
             with_collect_sysinfo=False,
             with_cc_standardize=True,
-            with_instance_standardize=False,
+            with_instance_standardize=True,
         )
     )
 
@@ -443,7 +446,10 @@ def tendbha_cluster_upgrade_subflow(
     sub_pipeline.add_sub_pipeline(
         sub_flow=standardize_mysql_cluster_subflow(
             root_id=root_id,
-            data=copy.deepcopy(parent_global_data),
+            data={
+                **copy.deepcopy(parent_global_data),
+                "cluster_ids": cluster_ids,
+            },
             bk_cloud_id=cluster_cls.bk_cloud_id,
             bk_biz_id=cluster_cls.bk_biz_id,
             instances=[
