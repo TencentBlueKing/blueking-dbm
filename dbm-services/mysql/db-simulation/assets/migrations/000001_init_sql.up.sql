@@ -30,8 +30,7 @@ CREATE TABLE IF NOT EXISTS `tb_simulation_img_cfgs` (
     `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `component_type` (`component_type`),
-    UNIQUE KEY `version` (`version`)
+    UNIQUE KEY `uk_cv` (`component_type`, `version`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 CREATE TABLE IF NOT EXISTS `tb_simulation_tasks` (
     `id` int(11) NOT NULL AUTO_INCREMENT,

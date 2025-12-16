@@ -16,8 +16,6 @@ from typing import Dict, Optional
 
 from django.utils.translation import gettext as _
 
-from backend.components import DBConfigApi
-from backend.components.dbconfig.constants import FormatType, LevelName, ReqType
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.core import consts
@@ -25,10 +23,9 @@ from backend.db_meta.enums import TenDBClusterSpiderRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.instance_role import InstanceRole
 from backend.db_meta.enums.instance_status import InstanceStatus
-from backend.db_meta.enums.machine_type import MachineType
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.db_services.mysql.sql_import.constants import BKREPO_SQLFILE_PATH
-from backend.flow.consts import LONG_JOB_TIMEOUT, ConfigTypeEnum
+from backend.flow.consts import LONG_JOB_TIMEOUT
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.download_file import (
     add_db_actuator_download_act,
@@ -51,7 +48,6 @@ from backend.flow.utils.mysql.mysql_commom_query import (
     parse_db_from_sqlfile,
     query_mysql_variables,
 )
-from backend.flow.utils.mysql.mysql_version_parse import major_version_parse
 from backend.flow.utils.spider.spider_bk_config import get_spider_version_and_charset
 from backend.ticket.constants import TicketType
 
@@ -218,20 +214,22 @@ class ImportSQLFlow(object):
         cluster_id = self.data["cluster_ids"][0]
         cluster = self.__get_master_ctl_info(cluster_id)
         remotedb_version, remotedb_ip, remotedb_port = self.__get_remotedb_version_and_instance(cluster_id)
-        spider_real_version = self.__get_spider_version(cluster_id)
-        # 获取 spider 配置
+
+        # 获取 spider 字符集配置
         spider_charset = self.data["charset"]
-        spider_module_charset, spider_module_version = get_spider_version_and_charset(
+        spider_module_charset, unused_spider_module_version = get_spider_version_and_charset(
             bk_biz_id=cluster["bk_biz_id"], db_module_id=cluster["db_module_id"]
         )
         if self.data["charset"] == "default":
             spider_charset = spider_module_charset
-        spider_start_config = self.__get_spider_config(cluster_id, spider_module_version)
+
+        # 获取集群中所有不同版本的 Spider Master 及其配置
+        spider_versions = self.__get_distinct_spider_versions_with_config(cluster_id, cluster["bk_cloud_id"])
+
         # 获取 remotedb 的 MySQL 变量配置，用于模拟执行
-        origin_mysql_var_map = query_mysql_variables(
-            host=remotedb_ip, port=remotedb_port, bk_cloud_id=cluster["bk_cloud_id"]
+        start_mysqld_configs = self.__get_instance_start_config(
+            ip=remotedb_ip, port=remotedb_port, bk_cloud_id=cluster["bk_cloud_id"]
         )
-        start_mysqld_configs = get_mysql_start_configs(origin_mysql_var_map)
 
         # 添加单据信息回显节点
         semantic_check_pipeline.add_act(
@@ -280,15 +278,14 @@ class ImportSQLFlow(object):
                 "cluster_type": ClusterType.TenDBCluster,
                 "payload": {
                     "uid": self.data["uid"],
-                    "spider_version": spider_real_version,
                     "mysql_version": remotedb_version,
                     "mysql_charset": spider_charset,
+                    "spider_versions": spider_versions,
                     "path": BKREPO_SQLFILE_PATH.format(biz=self.data["bk_biz_id"]),
                     "task_id": self.root_id,
                     "schema_sql_file": self.semantic_dump_schema_file_name,
                     "execute_objects": self.data["execute_objects"],
                     "mysql_start_config": start_mysqld_configs,
-                    "spider_start_config": spider_start_config,
                 },
             },
         )
@@ -356,48 +353,25 @@ class ImportSQLFlow(object):
         # 返回第一个 remotedb 的 IP 和端口用于查询变量
         return version.pop(), first_remotedb.machine.ip, first_remotedb.port
 
-    def __get_spider_version(self, cluster_id: int) -> str:
-        cluster = Cluster.objects.get(id=cluster_id)
-        proxy_list = ProxyInstance.objects.filter(
-            cluster=cluster,
-            machine_type__in=[MachineType.SPIDER],
-        ).all()
-        if not proxy_list:
-            raise Exception(_("查询spider version 失败"))
-        logger.info(f"get spider list: {proxy_list}")
-        current_major_version = 0
-        version = ""
-        for spider in proxy_list:
-            major_version, sub_version = major_version_parse(spider.version)
-            if major_version > current_major_version:
-                current_major_version = major_version
-                version = spider.version
-        return version.strip().rstrip(".")
+    def __get_sql_file_name_list(self) -> list:
+        file_list = []
+        for obj in self.data["execute_objects"]:
+            file_list.extend(obj["sql_files"])
+        return file_list
 
-    def __get_spider_config(self, cluster_id: int, spider_module_version: str) -> dict:
+    def __get_instance_start_config(self, ip: str, port: int, bk_cloud_id: int) -> dict:
         """
-        从模块配置中获取 spider 启动配置参数
+        获取实例的启动配置参数
 
-        @param cluster_id: 集群ID
-        @param spider_version: spider版本
-        @return: spider 启动配置字典，与 get_mysql_start_configs 返回格式一致
+        @param ip: 实例IP
+        @param port: 实例端口
+        @param bk_cloud_id: 云区域ID
+        @return: 启动配置字典
         """
-        cluster = Cluster.objects.get(id=cluster_id)
-        data = DBConfigApi.get_or_generate_instance_config(
-            {
-                "bk_biz_id": str(cluster.bk_biz_id),
-                "level_name": LevelName.CLUSTER,
-                "level_value": cluster.immute_domain,
-                "level_info": {"module": str(cluster.db_module_id)},
-                "conf_file": spider_module_version,
-                "conf_type": ConfigTypeEnum.DBConf,
-                "namespace": ClusterType.TenDBCluster,
-                "format": FormatType.MAP_LEVEL,
-                "method": ReqType.GENERATE_AND_PUBLISH,
-            }
-        )
-        # 从 mysqld 部分提取需要的启动配置项
-        mysqld_config = data["content"].get("mysqld", {})
+        origin_var_map = query_mysql_variables(host=ip, port=port, bk_cloud_id=bk_cloud_id)
+        start_configs = get_mysql_start_configs(origin_var_map)
+
+        # 忽略不需要同步的配置项
         ignore_sync_config_vars = [
             "socket",
             "datadir",
@@ -414,16 +388,52 @@ class ImportSQLFlow(object):
             "sort_buffer_size",
             "bind-address",
             "bind_address",
+            "core-file",
+            "core_file",
         ]
-        start_configs = {}
-        for var, value in mysqld_config.items():
-            # 忽略指定的配置项和包含模板变量 {{}} 的配置项
-            if var not in ignore_sync_config_vars and "{{" not in str(value):
-                start_configs[var] = value
-        return start_configs
+        return {k: v for k, v in start_configs.items() if k not in ignore_sync_config_vars}
 
-    def __get_sql_file_name_list(self) -> list:
-        file_list = []
-        for obj in self.data["execute_objects"]:
-            file_list.extend(obj["sql_files"])
-        return file_list
+    def __get_distinct_spider_versions_with_config(self, cluster_id: int, bk_cloud_id: int) -> list:
+        """
+        获取集群中所有不同版本的 Spider Master 及其配置
+
+        @param cluster_id: 集群ID
+        @param bk_cloud_id: 云区域ID
+        @return: [{"version": "3.6.20", "start_config": {...}}, ...]
+        """
+        cluster = Cluster.objects.get(id=cluster_id)
+        # 查询所有 Spider Master 实例
+        spider_masters = ProxyInstance.objects.filter(
+            cluster=cluster,
+            tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER,
+            status=InstanceStatus.RUNNING,
+        ).all()
+
+        if not spider_masters:
+            raise Exception(_("查询 Spider Master 实例失败"))
+
+        # 按 version 分组，选择每个版本的第一个实例作为参考
+        version_instance_map = {}
+        for spider in spider_masters:
+            cleaned_version = spider.version.strip().rstrip(".") if spider.version else ""
+            if cleaned_version and cleaned_version not in version_instance_map:
+                version_instance_map[cleaned_version] = spider
+
+        logger.info(_("集群 {} 的 Spider Master 版本列表: {}").format(cluster_id, list(version_instance_map.keys())))
+
+        # 对每个版本获取配置
+        spider_versions = []
+        for version, spider_instance in version_instance_map.items():
+            start_config = self.__get_instance_start_config(
+                ip=spider_instance.machine.ip,
+                port=spider_instance.port,
+                bk_cloud_id=bk_cloud_id,
+            )
+            spider_versions.append(
+                {
+                    "version": version,
+                    "start_config": start_config,
+                }
+            )
+
+        return spider_versions

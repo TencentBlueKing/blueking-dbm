@@ -111,8 +111,18 @@ func (s *SimulationHandler) CreateClusterByRequestId(r *gin.Context) {
 		s.SendResponse(r, errors.Wrap(err, "获取 MySQL 镜像失败"), nil)
 		return
 	}
-	ps.SpiderImage, ps.TdbCtlImage = service.GetSpiderAndTdbctlImg(config.SpiderVersion, service.LatestVersion)
-	ps.SpiderStartArgs = config.SpiderStartArgs
+
+	// 为每个 Spider 版本构建 SpiderPods 配置
+	for _, spiderVer := range config.SpiderVersions {
+		spiderImg, _ := service.GetSpiderAndTdbctlImg(spiderVer.Version, service.LatestVersion)
+		ps.SpiderPods = append(ps.SpiderPods, service.SpiderPodBaseInfo{
+			SpiderImage:     spiderImg,
+			SpiderVersion:   spiderVer.Version,
+			SpiderStartArgs: spiderVer.StartConfig,
+		})
+	}
+	// 获取 TdbCtl 镜像（使用第一个 Spider 版本的配置）
+	_, ps.TdbCtlImage = service.GetSpiderAndTdbctlImg(config.SpiderVersions[0].Version, service.LatestVersion)
 	ps.TdbCtlStartArgs = config.TdbCtlStartArgs
 	ps.BackendStartArgs = config.BackendStartArgs
 
@@ -133,8 +143,7 @@ func (s *SimulationHandler) CreateClusterByRequestId(r *gin.Context) {
 type clusterConfig struct {
 	Charset          string
 	MySQLVersion     string
-	SpiderVersion    string
-	SpiderStartArgs  map[string]string
+	SpiderVersions   []service.SpiderVersionConfig // 多个 Spider 版本配置
 	TdbCtlStartArgs  map[string]string
 	BackendStartArgs map[string]string
 }
@@ -175,16 +184,27 @@ func (s *SimulationHandler) extractClusterConfig(body map[string]interface{}) (*
 	}
 	config.MySQLVersion = mysqlVersion
 
-	spiderVersion, ok := body["spider_version"].(string)
-	if !ok || spiderVersion == "" {
-		return nil, errors.New("spider_version 字段缺失或类型错误")
+	// 提取多个 Spider 版本配置
+	if spiderVersions, ok := body["spider_versions"].([]interface{}); ok && len(spiderVersions) > 0 {
+		for _, sv := range spiderVersions {
+			if svMap, ok := sv.(map[string]interface{}); ok {
+				version, _ := svMap["version"].(string)
+				if version == "" {
+					continue
+				}
+				startConfig := make(map[string]string)
+				if sc, ok := svMap["start_config"].(map[string]interface{}); ok {
+					startConfig = convertToStringMap(sc)
+				}
+				config.SpiderVersions = append(config.SpiderVersions, service.SpiderVersionConfig{
+					Version:     version,
+					StartConfig: startConfig,
+				})
+			}
+		}
 	}
-	config.SpiderVersion = spiderVersion
-	// 提取 Spider 启动参数
-	if spiderArgs, ok := body["spider_start_configs"].(map[string]interface{}); ok {
-		config.SpiderStartArgs = convertToStringMap(spiderArgs)
-	} else {
-		config.SpiderStartArgs = make(map[string]string)
+	if len(config.SpiderVersions) == 0 {
+		return nil, errors.New("spider_versions 字段缺失或为空")
 	}
 
 	// 提取 TdbCtl 启动参数
@@ -219,11 +239,11 @@ func convertToStringMap(m map[string]interface{}) map[string]string {
 
 // CreateClusterParam 创建临时的spider的集群参数
 type CreateClusterParam struct {
-	RandomString   string `json:"random_string"`
-	PodName        string `json:"pod_name"`
-	SpiderVersion  string `json:"spider_version"`
-	BackendVersion string `json:"backend_version"`
-	Charset        string `json:"charset"`
+	RandomString   string                        `json:"random_string"`
+	PodName        string                        `json:"pod_name"`
+	SpiderVersions []service.SpiderVersionConfig `json:"spider_versions" binding:"required,gt=0,dive"` // 多个 Spider 版本配置
+	BackendVersion string                        `json:"backend_version"`
+	Charset        string                        `json:"charset"`
 }
 
 // CreateTmpSpiderPodCluster 创建临时的spider的集群,多用于测试，debug
@@ -248,7 +268,19 @@ func (s *SimulationHandler) CreateTmpSpiderPodCluster(r *gin.Context) {
 		logger.Error(err.Error())
 		return
 	}
-	ps.SpiderImage, ps.TdbCtlImage = service.GetSpiderAndTdbctlImg(param.SpiderVersion, service.LatestVersion)
+
+	// 为每个 Spider 版本构建 SpiderPods 配置
+	for _, spiderVer := range param.SpiderVersions {
+		spiderImg, _ := service.GetSpiderAndTdbctlImg(spiderVer.Version, service.LatestVersion)
+		ps.SpiderPods = append(ps.SpiderPods, service.SpiderPodBaseInfo{
+			SpiderImage:     spiderImg,
+			SpiderVersion:   spiderVer.Version,
+			SpiderStartArgs: spiderVer.StartConfig,
+		})
+	}
+	// 获取 TdbCtl 镜像
+	_, ps.TdbCtlImage = service.GetSpiderAndTdbctlImg(param.SpiderVersions[0].Version, service.LatestVersion)
+
 	if err := ps.CreateClusterPod(""); err != nil {
 		logger.Error(err.Error())
 		return
@@ -413,7 +445,19 @@ func (s *SimulationHandler) TendbClusterSimulation(r *gin.Context) {
 		logger.Info("the pwd %s", rootPwd)
 	}
 	tsk.DbImage = img
-	tsk.SpiderImage, tsk.TdbCtlImage = service.GetSpiderAndTdbctlImg(param.SpiderVersion, service.LatestVersion)
+
+	// 为每个 Spider 版本构建 SpiderPods 配置
+	for _, spiderVer := range param.SpiderVersions {
+		spiderImg := service.GetSpiderImg(spiderVer.Version)
+		tsk.SpiderPods = append(tsk.SpiderPods, service.SpiderPodBaseInfo{
+			SpiderImage:     spiderImg,
+			SpiderVersion:   spiderVer.Version,
+			SpiderStartArgs: spiderVer.StartConfig,
+		})
+	}
+	// 获取 TdbCtl 镜像
+	tsk.TdbCtlImage = service.GetTdbctlImg(service.LatestVersion)
+
 	tsk.BaseInfo = &service.MySQLPodBaseInfo{
 		PodName: fmt.Sprintf("spider-%s-%s", strings.ToLower(version),
 			replaceUnderSource(param.TaskId)),
@@ -422,7 +466,6 @@ func (s *SimulationHandler) TendbClusterSimulation(r *gin.Context) {
 		RootPwd: rootPwd,
 		Charset: param.MySQLCharSet,
 	}
-	tsk.SpiderStartArgs = param.SpiderStartConfigs
 	tsk.BackendStartArgs = param.MySQLStartConfigs
 	service.SpiderTaskChan <- tsk
 	s.SendResponse(r, nil, "request successful")

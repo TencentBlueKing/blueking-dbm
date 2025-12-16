@@ -19,7 +19,6 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"regexp"
 	"strings"
 	"time"
 
@@ -69,13 +68,17 @@ type DbPodSets struct {
 	DbWork           *cmutil.DbWorker
 	DbImage          string
 	TdbCtlImage      string
-	SpiderImage      string
-	SpiderStartArgs  map[string]string
+	SpiderPods       []SpiderPodBaseInfo
 	TdbCtlStartArgs  map[string]string
 	BackendStartArgs map[string]string
 }
 
-var startArgsSplitRe *regexp.Regexp
+// SpiderPodBaseInfo spider pod base info
+type SpiderPodBaseInfo struct {
+	SpiderImage     string
+	SpiderVersion   string
+	SpiderStartArgs map[string]string
+}
 
 func init() {
 	logger.Info("start init bcs client ")
@@ -95,7 +98,6 @@ func init() {
 	}
 	Kcs.Cli = clientSet
 	Kcs.Namespace = config.GAppConfig.Bcs.NameSpace
-	startArgsSplitRe = regexp.MustCompile(` |,`)
 }
 
 // NewDbPodSets new db pod sets
@@ -107,9 +109,12 @@ func NewDbPodSets() *DbPodSets {
 
 func (k *DbPodSets) getCreateClusterSqls() []string {
 	var ss []string
-	ss = append(ss, fmt.Sprintf(
-		"tdbctl create node wrapper 'SPIDER' options(user 'root', password '%s', host '127.0.0.1', port 25000);",
-		k.BaseInfo.RootPwd))
+	for idx, _ := range k.SpiderPods {
+		spiderPort := 25000 + idx
+		ss = append(ss, fmt.Sprintf(
+			"tdbctl create node wrapper 'SPIDER' options(user 'root', password '%s', host '127.0.0.1', port %d);",
+			k.BaseInfo.RootPwd, spiderPort))
+	}
 	ss = append(ss, fmt.Sprintf(
 		"tdbctl create node wrapper 'mysql' options(user 'root', password '%s', host '127.0.0.1', port 20000);",
 		k.BaseInfo.RootPwd))
@@ -123,13 +128,12 @@ func (k *DbPodSets) getCreateClusterSqls() []string {
 
 // getClusterPodContainerSpec create cluster pod container spec
 // nolint
-func (k *DbPodSets) getClusterPodContainerSpec(mysqlVersion string) []v1.Container {
+func (k *DbPodSets) getClusterPodContainerSpec() []v1.Container {
 	// 简化启动参数，配置通过 ConfigMap 挂载的 my.cnf 提供
 	backendArgs := []string{"mysqld", "--defaults-file=/etc/my.cnf", "--user=mysql"}
-	spiderArgs := []string{"mysqld", "--defaults-file=/etc/my.cnf", "--user=mysql"}
 	tdbctlArgs := []string{"mysqld", "--defaults-file=/etc/my.cnf", "--user=mysql"}
 
-	return []v1.Container{
+	containers := []v1.Container{
 		{
 			Name: "backend",
 			Env: []v1.EnvVar{{
@@ -155,20 +159,29 @@ func (k *DbPodSets) getClusterPodContainerSpec(mysqlVersion string) []v1.Contain
 				InitialDelaySeconds: 3,
 				PeriodSeconds:       5,
 			},
-		}, {
-			Name: "spider",
+		},
+	}
+
+	// 为每个 Spider 版本创建独立的容器
+	for idx, spiderPod := range k.SpiderPods {
+		spiderArgs := []string{"mysqld", "--defaults-file=/etc/my.cnf", "--user=mysql"}
+		containerName := fmt.Sprintf("spider-%d", idx)
+		configSubPath := fmt.Sprintf("spider-%d-my.cnf", idx)
+
+		spiderContainer := v1.Container{
+			Name: containerName,
 			Env: []v1.EnvVar{{
 				Name:  "MYSQL_ROOT_PASSWORD",
 				Value: k.BaseInfo.RootPwd,
 			}},
 			Resources:       k.getResourceLimit(),
 			ImagePullPolicy: v1.PullIfNotPresent,
-			Image:           k.SpiderImage,
+			Image:           spiderPod.SpiderImage,
 			Args:            spiderArgs,
 			VolumeMounts: []v1.VolumeMount{{
 				Name:      "cluster-config",
 				MountPath: "/etc/my.cnf",
-				SubPath:   "spider-my.cnf",
+				SubPath:   configSubPath,
 			}},
 			ReadinessProbe: &v1.Probe{
 				ProbeHandler: v1.ProbeHandler{
@@ -180,75 +193,40 @@ func (k *DbPodSets) getClusterPodContainerSpec(mysqlVersion string) []v1.Contain
 				InitialDelaySeconds: 3,
 				PeriodSeconds:       5,
 			},
-		},
-		{
-			Name: "tdbctl",
-			Env: []v1.EnvVar{{
-				Name:  "MYSQL_ROOT_PASSWORD",
-				Value: k.BaseInfo.RootPwd,
-			}},
-			Resources:       k.gettdbctlResourceLimit(),
-			ImagePullPolicy: v1.PullIfNotPresent,
-			Image:           k.TdbCtlImage,
-			Args:            tdbctlArgs,
-			VolumeMounts: []v1.VolumeMount{{
-				Name:      "cluster-config",
-				MountPath: "/etc/my.cnf",
-				SubPath:   "tdbctl-my.cnf",
-			}},
-			ReadinessProbe: &v1.Probe{
-				ProbeHandler: v1.ProbeHandler{
-					Exec: &v1.ExecAction{
-						Command: []string{"/bin/bash", "-c",
-							fmt.Sprintf("mysql -S/data1/mysqldata/mysql.sock -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
-					},
+		}
+		containers = append(containers, spiderContainer)
+	}
+
+	// 添加 tdbctl 容器
+	tdbctlContainer := v1.Container{
+		Name: "tdbctl",
+		Env: []v1.EnvVar{{
+			Name:  "MYSQL_ROOT_PASSWORD",
+			Value: k.BaseInfo.RootPwd,
+		}},
+		Resources:       k.getTdbctlResourceLimit(),
+		ImagePullPolicy: v1.PullIfNotPresent,
+		Image:           k.TdbCtlImage,
+		Args:            tdbctlArgs,
+		VolumeMounts: []v1.VolumeMount{{
+			Name:      "cluster-config",
+			MountPath: "/etc/my.cnf",
+			SubPath:   "tdbctl-my.cnf",
+		}},
+		ReadinessProbe: &v1.Probe{
+			ProbeHandler: v1.ProbeHandler{
+				Exec: &v1.ExecAction{
+					Command: []string{"/bin/bash", "-c",
+						fmt.Sprintf("mysql -S/data1/mysqldata/mysql.sock -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
 				},
-				InitialDelaySeconds: 3,
-				PeriodSeconds:       5,
 			},
+			InitialDelaySeconds: 3,
+			PeriodSeconds:       5,
 		},
 	}
-}
+	containers = append(containers, tdbctlContainer)
 
-func (k *DbPodSets) getTdbctlStartArgs() (args []string) {
-	args = []string{"mysqld",
-		"--defaults-file=/etc/my.cnf",
-		"--port=26000",
-		"--tc-admin=1",
-		"--dbm-allow-standalone-primary",
-		"--max_allowed_packet=1073741824",
-		fmt.Sprintf("--character-set-server=%s",
-			k.BaseInfo.Charset),
-		"--user=mysql"}
-	return
-}
-
-func (k *DbPodSets) getSpiderStartArgs() (args []string) {
-	args = []string{"mysqld",
-		"--defaults-file=/etc/my.cnf",
-		"--log_bin_trust_function_creators",
-		"--port=25000",
-		"--max_allowed_packet=1073741824",
-		fmt.Sprintf("--character-set-server=%s",
-			k.BaseInfo.Charset),
-		"--user=mysql"}
-	return
-}
-
-func (k *DbPodSets) getbackendStartArgs(mysqlVersion string) (args []string) {
-	args = []string{"mysqld",
-		"--defaults-file=/etc/my.cnf",
-		"--log_bin_trust_function_creators",
-		"--port=20000",
-		"--max_allowed_packet=1073741824",
-		"--sql-mode=",
-		fmt.Sprintf("--character-set-server=%s",
-			k.BaseInfo.Charset),
-		"--user=mysql"}
-	if cmutil.MySQLVersionParse(mysqlVersion) >= cmutil.MySQLVersionParse("8.0.0") {
-		args = append(args, "--default-authentication-plugin=mysql_native_password")
-	}
-	return
+	return containers
 }
 
 // CreateClusterPod create tendbcluster simulation pod
@@ -259,7 +237,7 @@ func (k *DbPodSets) CreateClusterPod(mySQLVersion string) (err error) {
 	}
 
 	configMapName := k.getClusterConfigMapName()
-	logger.Info("created cluster configmap: %s", configMapName)
+	logger.Info("created cluster config map: %s", configMapName)
 
 	c := &v1.Pod{
 		TypeMeta: metav1.TypeMeta{
@@ -288,13 +266,13 @@ func (k *DbPodSets) CreateClusterPod(mySQLVersion string) (err error) {
 					},
 				},
 			}},
-			Containers: k.getClusterPodContainerSpec(mySQLVersion),
+			Containers: k.getClusterPodContainerSpec(),
 		},
 	}
 	if err = k.createpod(c, 26000); err != nil {
 		logger.Error("create spider cluster failed %s", err.Error())
-		if errx := k.deleteClusterConfigMap(); errx != nil {
-			logger.Error("delete cluster configmap failed %s", errx.Error())
+		if deleteErr := k.deleteClusterConfigMap(); deleteErr != nil {
+			logger.Error("delete cluster configMap failed %s", deleteErr.Error())
 		}
 		return err
 	}
@@ -404,7 +382,7 @@ func (k *DbPodSets) getResourceLimit() v1.ResourceRequirements {
 	return v1.ResourceRequirements{}
 }
 
-func (k *DbPodSets) gettdbctlResourceLimit() v1.ResourceRequirements {
+func (k *DbPodSets) getTdbctlResourceLimit() v1.ResourceRequirements {
 	if !config.IsEmptyTdbctlPodResourceConfig() {
 		return v1.ResourceRequirements{
 			Limits: v1.ResourceList{
@@ -498,10 +476,10 @@ func (k *DbPodSets) createMySQLConfigMap(mysqlVersion string) error {
 
 	_, err := k.K8S.Cli.CoreV1().ConfigMaps(k.K8S.Namespace).Create(context.TODO(), configMap, metav1.CreateOptions{})
 	if err != nil {
-		logger.Error("create configmap %s failed: %s", configMapName, err.Error())
-		return errors.Wrap(err, "create mysql configmap failed")
+		logger.Error("create config map %s failed: %s", configMapName, err.Error())
+		return errors.Wrap(err, "create mysql config map failed")
 	}
-	logger.Info("created configmap %s with my.cnf content", configMapName)
+	logger.Info("created config map %s with my.cnf content", configMapName)
 	return nil
 }
 
@@ -510,10 +488,10 @@ func (k *DbPodSets) deleteConfigMap() error {
 	configMapName := k.getConfigMapName()
 	err := k.K8S.Cli.CoreV1().ConfigMaps(k.K8S.Namespace).Delete(context.TODO(), configMapName, metav1.DeleteOptions{})
 	if err != nil {
-		logger.Warn("delete configmap %s failed: %s", configMapName, err.Error())
+		logger.Warn("delete config map %s failed: %s", configMapName, err.Error())
 		return err
 	}
-	logger.Info("deleted configmap %s", configMapName)
+	logger.Info("deleted config map %s", configMapName)
 	return nil
 }
 
@@ -571,8 +549,15 @@ func (k *DbPodSets) generateBackendMyCnfContent(mysqlVersion string) string {
 }
 
 // generateSpiderMyCnfContent generates my.cnf content for spider container
-func (k *DbPodSets) generateSpiderMyCnfContent() string {
+// idx: Spider 容器的索引，用于分配端口和 server_id
+// spiderStartArgs: 该 Spider 版本的启动参数
+func (k *DbPodSets) generateSpiderMyCnfContent(idx int, spiderStartArgs map[string]string) string {
 	var lines []string
+
+	// 端口从 25000 开始递增
+	port := 25000 + idx
+	// server_id 从 124 开始递增
+	serverId := 124 + idx
 
 	// [client] section
 	lines = append(lines, "[client]")
@@ -588,20 +573,13 @@ func (k *DbPodSets) generateSpiderMyCnfContent() string {
 	lines = append(lines, "log_error=/data1/mysqldata/data/server_error.log")
 	lines = append(lines, "tmpdir=/data1/mysqldata/tmp")
 	lines = append(lines, "socket=/data1/mysqldata/mysql.sock")
-	lines = append(lines, "server_id=124")
-	lines = append(lines, "port=25000")
-	lines = append(lines, "log_bin_trust_function_creators=1")
+	lines = append(lines, fmt.Sprintf("server_id=%d", serverId))
+	lines = append(lines, fmt.Sprintf("port=%d", port))
 	lines = append(lines, "max_allowed_packet=1073741824")
 	lines = append(lines, fmt.Sprintf("character-set-server=%s", k.BaseInfo.Charset))
 
-	for key, val := range k.SpiderStartArgs {
-		if lo.IsEmpty(key) || strings.ToLower(strings.TrimSpace(key)) == "core_file" {
-			continue
-		}
-		if strings.TrimSpace(key) == "show_json_type" {
-			continue
-		}
-		if strings.TrimSpace(key) == "query_response_time_stats" {
+	for key, val := range spiderStartArgs {
+		if lo.IsEmpty(key) {
 			continue
 		}
 		lines = append(lines, fmt.Sprintf("%s=%s", key, val))
@@ -640,7 +618,7 @@ func (k *DbPodSets) generateTdbctlMyCnfContent() string {
 	lines = append(lines, fmt.Sprintf("character-set-server=%s", k.BaseInfo.Charset))
 
 	for key, val := range k.TdbCtlStartArgs {
-		if lo.IsEmpty(key) || strings.ToLower(strings.TrimSpace(key)) == "core_file" {
+		if lo.IsEmpty(key) {
 			continue
 		}
 		lines = append(lines, fmt.Sprintf("%s=%s", key, val))
@@ -657,6 +635,19 @@ func (k *DbPodSets) generateTdbctlMyCnfContent() string {
 func (k *DbPodSets) createClusterConfigMap(mysqlVersion string) error {
 	configMapName := k.getClusterConfigMapName()
 
+	// 构建 ConfigMap 数据
+	configData := map[string]string{
+		"backend-my.cnf": k.generateBackendMyCnfContent(mysqlVersion),
+		"tdbctl-my.cnf":  k.generateTdbctlMyCnfContent(),
+	}
+
+	// 为每个 Spider 版本生成独立的配置文件
+	for idx, spiderPod := range k.SpiderPods {
+		configKey := fmt.Sprintf("spider-%d-my.cnf", idx)
+		configData[configKey] = k.generateSpiderMyCnfContent(idx, spiderPod.SpiderStartArgs)
+		logger.Info("generated spider config: %s for version: %s", configKey, spiderPod.SpiderVersion)
+	}
+
 	configMap := &v1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
@@ -667,19 +658,15 @@ func (k *DbPodSets) createClusterConfigMap(mysqlVersion string) error {
 			Namespace: k.K8S.Namespace,
 			Labels:    k.BaseInfo.Labels,
 		},
-		Data: map[string]string{
-			"backend-my.cnf": k.generateBackendMyCnfContent(mysqlVersion),
-			"spider-my.cnf":  k.generateSpiderMyCnfContent(),
-			"tdbctl-my.cnf":  k.generateTdbctlMyCnfContent(),
-		},
+		Data: configData,
 	}
 
 	_, err := k.K8S.Cli.CoreV1().ConfigMaps(k.K8S.Namespace).Create(context.TODO(), configMap, metav1.CreateOptions{})
 	if err != nil {
-		logger.Error("create cluster configmap %s failed: %s", configMapName, err.Error())
-		return errors.Wrap(err, "create cluster configmap failed")
+		logger.Error("create cluster config map %s failed: %s", configMapName, err.Error())
+		return errors.Wrap(err, "create cluster config map failed")
 	}
-	logger.Info("created cluster configmap %s", configMapName)
+	logger.Info("created cluster config map %s with %d spider configs", configMapName, len(k.SpiderPods))
 	return nil
 }
 
@@ -688,24 +675,11 @@ func (k *DbPodSets) deleteClusterConfigMap() error {
 	configMapName := k.getClusterConfigMapName()
 	err := k.K8S.Cli.CoreV1().ConfigMaps(k.K8S.Namespace).Delete(context.TODO(), configMapName, metav1.DeleteOptions{})
 	if err != nil {
-		logger.Warn("delete cluster configmap %s failed: %s", configMapName, err.Error())
+		logger.Warn("delete cluster conf igmap %s failed: %s", configMapName, err.Error())
 		return err
 	}
-	logger.Info("deleted cluster configmap %s", configMapName)
+	logger.Info("deleted cluster config map %s", configMapName)
 	return nil
-}
-
-func (k *DbPodSets) getTendbhaPodStartArgs(mysqlVersion string) (args []string) {
-	args = []string{
-		"mysqld",
-		"--defaults-file=/etc/my.cnf",
-		"--skip-log-bin",
-		"--max_allowed_packet=1073741824",
-		fmt.Sprintf("--character-set-server=%s", k.BaseInfo.Charset)}
-	if cmutil.MySQLVersionParse(mysqlVersion) >= cmutil.MySQLVersionParse("8.0.0") {
-		args = append(args, "--default-authentication-plugin=mysql_native_password")
-	}
-	return
 }
 
 // CreateMySQLPod create mysql pod
@@ -722,7 +696,7 @@ func (k *DbPodSets) CreateMySQLPod(mysqlVersion string) (err error) {
 		"--defaults-file=/etc/my.cnf",
 		"--user=mysql",
 	}
-	logger.Info("start pod args %v, configmap: %s", startArgs, configMapName)
+	logger.Info("start pod args %v, config map: %s", startArgs, configMapName)
 
 	c := &v1.Pod{
 		TypeMeta: metav1.TypeMeta{
@@ -838,12 +812,12 @@ func (k *DbPodSets) getDownloadSqlCmd(bkpath, file string) string {
 func getdownLoadUrl(bkpath, file string) string {
 	endpoint := config.GAppConfig.BkRepo.EndPointUrl
 	project := config.GAppConfig.BkRepo.Project
-	publicbucket := config.GAppConfig.BkRepo.PublicBucket
+	publicBucket := config.GAppConfig.BkRepo.PublicBucket
 	u, err := url.Parse(endpoint)
 	if err != nil {
 		return ""
 	}
-	r, err := url.Parse(path.Join("/generic", project, publicbucket, bkpath, file))
+	r, err := url.Parse(path.Join("/generic", project, publicBucket, bkpath, file))
 	if err != nil {
 		logger.Error(err.Error())
 		return ""

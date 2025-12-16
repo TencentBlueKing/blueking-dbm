@@ -53,13 +53,13 @@ type BaseParam struct {
 	//nolint
 	VersionId string `json:"version_id"`
 	//nolint
-	TaskId            string               `json:"task_id"  binding:"required"`
-	MySQLVersion      string               `json:"mysql_version"  binding:"required"`
-	MySQLCharSet      string               `json:"mysql_charset"  binding:"required"`
-	MySQLStartConfigs map[string]string    `json:"mysql_start_config"`
-	Path              string               `json:"path"  binding:"required"`
-	SchemaSQLFile     string               `json:"schema_sql_file"  binding:"required"`
-	ExecuteObjects    []ExcuteSQLFileObjV2 `json:"execute_objects"  binding:"gt=0,dive,required"`
+	TaskId            string                `json:"task_id"  binding:"required"`
+	MySQLVersion      string                `json:"mysql_version"  binding:"required"`
+	MySQLCharSet      string                `json:"mysql_charset"  binding:"required"`
+	MySQLStartConfigs map[string]string     `json:"mysql_start_config"`
+	Path              string                `json:"path"  binding:"required"`
+	SchemaSQLFile     string                `json:"schema_sql_file"  binding:"required"`
+	ExecuteObjects    []ExecuteSQLFileObjV2 `json:"execute_objects"  binding:"gt=0,dive,required"`
 }
 
 // BuildTendbPodName build tendb pod name
@@ -94,7 +94,7 @@ func (b BaseParam) BuildStartArgs() []string {
 }
 
 // parseDbParamRe ConvertDbParamToRegular 解析DbNames参数成正则参数
-func (e *ExcuteSQLFileObj) parseDbParamRe() (s []string) {
+func (e *ExecuteSQLFileObj) parseDbParamRe() (s []string) {
 	return changeToMatch(e.DbNames)
 }
 
@@ -102,7 +102,7 @@ func (e *ExcuteSQLFileObj) parseDbParamRe() (s []string) {
 //
 //	@receiver e
 //	@return []string
-func (e *ExcuteSQLFileObj) parseIgnoreDbParamRe() (s []string) {
+func (e *ExecuteSQLFileObj) parseIgnoreDbParamRe() (s []string) {
 	return changeToMatch(e.IgnoreDbNames)
 }
 
@@ -121,8 +121,8 @@ func changeToMatch(input []string) []string {
 	return result
 }
 
-// TaskRuntimCtx 模拟执行运行上下文
-type TaskRuntimCtx struct {
+// TaskRuntimeCtx 模拟执行运行上下文
+type TaskRuntimeCtx struct {
 	dbsExcludeSysDb []string
 }
 
@@ -133,7 +133,7 @@ type SimulationTask struct {
 	Version   string
 	*BaseParam
 	*DbPodSets
-	TaskRuntimCtx
+	TaskRuntimeCtx
 }
 
 // TaskChan 模拟执行任务队列
@@ -185,7 +185,7 @@ func init() {
 // ReloadParam reload running task from db
 type ReloadParam struct {
 	BaseParam
-	SpiderVersion *string `json:"spider_version,omitempty"`
+	SpiderVersions []SpiderVersionConfig `json:"spider_versions,omitempty"` // 多个 Spider 版本配置
 }
 
 // reloadRunningTaskFromdb 重载重启服务前运行的任务 加锁是避免多个服务同时启动，避免相同任务被重载
@@ -245,7 +245,7 @@ func reloadRunningTaskFromdb(heartbeatInterval int) {
 			model.CompleteTask(tk.TaskId, tk.MySQLVersion, model.TaskFailed, "", "", "")
 			continue
 		}
-		if p.SpiderVersion == nil {
+		if len(p.SpiderVersions) == 0 {
 			podName = p.BuildTendbPodName()
 		} else {
 			podName = p.BuildSpiderPodName()
@@ -267,7 +267,7 @@ func reloadRunningTaskFromdb(heartbeatInterval int) {
 		time.Sleep(3 * time.Second)
 		logger.Info("loading task %s", tk.TaskId)
 		model.UpdatePhase(tk.TaskId, tk.MySQLVersion, model.PhaseReloading)
-		if p.SpiderVersion != nil {
+		if len(p.SpiderVersions) > 0 {
 			SpiderTaskChan <- p.BuildTsk(tk.RequestID)
 		} else {
 			TaskChan <- p.BuildTsk(tk.RequestID)
@@ -290,11 +290,27 @@ func (r ReloadParam) BuildTsk(requestId string) (tsk SimulationTask) {
 		return
 	}
 	tsk.DbImage = img
-	if r.SpiderVersion != nil {
-		tsk.SpiderImage, tsk.TdbCtlImage = GetSpiderAndTdbctlImg(*r.SpiderVersion, LatestVersion)
+
+	// 为每个 Spider 版本构建 SpiderPods 配置
+	if len(r.SpiderVersions) > 0 {
+		for _, spiderVer := range r.SpiderVersions {
+			spiderImg, _ := GetSpiderAndTdbctlImg(spiderVer.Version, LatestVersion)
+			tsk.SpiderPods = append(tsk.SpiderPods, SpiderPodBaseInfo{
+				SpiderImage:     spiderImg,
+				SpiderVersion:   spiderVer.Version,
+				SpiderStartArgs: spiderVer.StartConfig,
+			})
+		}
+		// 获取 TdbCtl 镜像
+		_, tsk.TdbCtlImage = GetSpiderAndTdbctlImg(r.SpiderVersions[0].Version, LatestVersion)
+	}
+
+	podNamePrefix := "tendb"
+	if len(r.SpiderVersions) > 0 {
+		podNamePrefix = "spider"
 	}
 	tsk.BaseInfo = &MySQLPodBaseInfo{
-		PodName: fmt.Sprintf("tendb-%s-%s", strings.ToLower(version),
+		PodName: fmt.Sprintf("%s-%s-%s", podNamePrefix, strings.ToLower(version),
 			replaceUnderSource(r.TaskId)),
 		Labels: map[string]string{"task_id": replaceUnderSource(r.TaskId),
 			"request_id": requestId},
@@ -397,14 +413,14 @@ func (t *SimulationTask) SimulationRun(containerName string, xlogger *logger.Log
 	xlogger.Info(sstdout, sstderr)
 	// load real databases
 	if err = t.getDbsExcludeSysDb(); err != nil {
-		logger.Error("getDbsExcludeSysDb faiked %v", err)
+		logger.Error("getDbsExcludeSysDb failed %v", err)
 		return sstdout, sstderr, fmt.Errorf("[getDbsExcludeSysDb failed]:%w", err)
 	}
 	model.UpdatePhase(t.TaskId, t.MySQLVersion, model.PhaseRunning)
 	errs := []error{}
 	sstderrs := []string{}
 	for _, e := range t.ExecuteObjects {
-		sstdout, sstderr, err = t.executeMultFilesObject(e, containerName, xlogger)
+		sstdout, sstderr, err = t.executeMultiFilesObject(e, containerName, xlogger)
 		if err != nil {
 			//nolint
 			errs = append(errs, err)
@@ -446,7 +462,7 @@ func (t *SimulationTask) loadSchemaSQL(containerName string) (sstdout, sstderr s
 	return sstdout, sstderr, err
 }
 
-func (t *SimulationTask) executeOneObject(e ExcuteSQLFileObj, containerName string, xlogger *logger.Logger) (sstdout,
+func (t *SimulationTask) executeOneObject(e ExecuteSQLFileObj, containerName string, xlogger *logger.Logger) (sstdout,
 	sstderr string, err error) {
 	defer func() {
 		status := model.TaskSuccess
@@ -537,11 +553,11 @@ func (t *SimulationTask) getXlogger() *logger.Logger {
 	return logger.New(os.Stdout, true, logger.InfoLevel, t.getExtmap(""))
 }
 
-func (t *SimulationTask) executeMultFilesObject(e ExcuteSQLFileObjV2, containerName string,
+func (t *SimulationTask) executeMultiFilesObject(e ExecuteSQLFileObjV2, containerName string,
 	xlogger *logger.Logger) (sstdout,
 	sstderr string, err error) {
 	for _, file := range e.SQLFiles {
-		sstdout, sstderr, err = t.executeOneObject(ExcuteSQLFileObj{
+		sstdout, sstderr, err = t.executeOneObject(ExecuteSQLFileObj{
 			LineID:        e.LineID,
 			SQLFile:       file,
 			IgnoreDbNames: e.IgnoreDbNames,
@@ -577,7 +593,7 @@ func GetImgFromMySQLVersion(version string) (img string, err error) {
 
 // GetSpiderAndTdbctlImg TODO
 func GetSpiderAndTdbctlImg(spiderVersion, tdbctlVersion string) (spiderImg, tdbctlImg string) {
-	return getSpiderImg(spiderVersion), getTdbctlImg(tdbctlVersion)
+	return GetSpiderImg(spiderVersion), GetTdbctlImg(tdbctlVersion)
 }
 
 const (
@@ -585,7 +601,7 @@ const (
 	LatestVersion = "latest"
 )
 
-func getSpiderImg(version string) (img string) {
+func GetSpiderImg(version string) (img string) {
 	if lo.IsEmpty(version) {
 		version = LatestVersion
 	}
@@ -603,7 +619,7 @@ func getSpiderImg(version string) (img string) {
 	return config.GAppConfig.Image.SpiderImg
 }
 
-func getTdbctlImg(version string) (img string) {
+func GetTdbctlImg(version string) (img string) {
 	if lo.IsEmpty(version) {
 		version = LatestVersion
 	}
