@@ -63,9 +63,9 @@ type Service struct {
 	discoveryCli *discovery.Client
 	regCli       *discovery.Registry
 	sources      []source.Inputter
-	sinks        []sink.Outputter
+	sinkers      []sink.Sinker
 	wg           sync.WaitGroup
-	logger       *zap.Logger // only for the gRPC
+	etcdLogger   *zap.Logger
 }
 
 func (s *Service) Run(ctx context.Context) error {
@@ -79,7 +79,7 @@ func (s *Service) Run(ctx context.Context) error {
 	}
 
 	// create sinks
-	if err := s.createSinks(); err != nil {
+	if err := s.createSinkers(); err != nil {
 		return err
 	}
 
@@ -131,9 +131,9 @@ func (s *Service) Close() {
 		}(inputter)
 	}
 
-	for _, outputer := range s.sinks {
+	for _, outputer := range s.sinkers {
 		wg.Add(1)
-		go func(out sink.Outputter) {
+		go func(out sink.Sinker) {
 			wg.Done()
 			out.Close()
 		}(outputer)
@@ -151,7 +151,7 @@ func (s *Service) createDiscovery() error {
 		discovery.OptionPassword(config.Cfg.Discovery.Password),
 		discovery.OptionServiceName(s.info.Name),
 		discovery.OptionServiceID(s.info.ID),
-		discovery.OptionLogger(s.logger),
+		discovery.OptionLogger(s.etcdLogger),
 	)
 
 	if err != nil {
@@ -204,7 +204,7 @@ func (s *Service) createSource(ctx context.Context) error {
 			continue
 		}
 
-		err = inputter.Harvest(ctx, s.sinks)
+		err = inputter.Harvest(ctx, s.sinkers)
 		if err != nil {
 			logger.Warn("do not start harvest for inputer(%s), errmsg(%v)", sourceCfg.Name, err)
 			continue
@@ -216,7 +216,7 @@ func (s *Service) createSource(ctx context.Context) error {
 	return nil
 }
 
-func (s *Service) createSinks() error {
+func (s *Service) createSinkers() error {
 	if len(config.Cfg.Service.Sinks) == 0 {
 		return gerrors.New(gerrors.InvalidConfiguration, "not set any sink")
 	}
@@ -227,13 +227,13 @@ func (s *Service) createSinks() error {
 			continue
 		}
 
-		outputter, err := sink.NewOutputter(sinkCfg)
+		sinker, err := sink.NewSinker(sinkCfg)
 		if err != nil {
 			logger.Warn("create new outputer(%s) failed, errmsg(%v)", sinkCfg.Name, err)
 			continue
 		}
 
-		s.sinks = append(s.sinks, outputter)
+		s.sinkers = append(s.sinkers, sinker)
 	}
 
 	return nil

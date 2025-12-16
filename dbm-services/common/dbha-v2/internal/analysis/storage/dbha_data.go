@@ -65,7 +65,7 @@ func (ha *DbhaData) ReadMetadataCacheWithBizID(bizID int, batchCnt int,
 	for {
 		var batches []*hamodel.DbmMetadata
 
-		err := ha.DB.DB().Model(&hamodel.DbmMetadata{}).
+		err = ha.DB.DB().Model(&hamodel.DbmMetadata{}).
 			Where(fmt.Sprintf("%s > @updatedAt", hamodel.DbmMetadataFieldUpdatedAt),
 				map[string]any{"updatedAt": lastUpdateTime}).
 			Where(hamodel.DbmMetadataFieldBkBizID, bizID).
@@ -92,6 +92,42 @@ func (ha *DbhaData) ReadMetadataCacheWithBizID(bizID int, batchCnt int,
 	return
 }
 
+// ReadDbStatus read db status
+func (ha *DbhaData) ReadDbStatus(batchCnt int, offsetDuration time.Duration) (
+	dbStatus []*hamodel.DbhaDataStatus, err error) {
+
+	lastUpdateTime := time.Now().Local().Add(offsetDuration)
+
+	for {
+		var batches []*hamodel.DbhaDataStatus
+
+		err = ha.DB.DB().Model(&hamodel.DbhaDataStatus{}).
+			Where(fmt.Sprintf("%s > @updatedAt", hamodel.DbhaStatusFieldUpdatedAt),
+				map[string]any{"updatedAt": lastUpdateTime}).
+			Order(fmt.Sprintf("%s asc", hamodel.DbhaStatusFieldUpdatedAt)).
+			Limit(batchCnt).Find(&batches).Error
+
+		if err != nil {
+			return nil, gerrors.NewE(gerrors.MysqlFailure, err)
+		}
+
+		readCnt := len(batches)
+		if readCnt == 0 {
+			// no date to read
+			break
+		}
+
+		// Save the batches into the cache.
+		dbStatus = append(dbStatus, batches...)
+
+		// update cursor
+		lastUpdateTime = batches[readCnt-1].UpdatedAt
+	}
+
+	return
+}
+
+// ReadDbStatusWithDbInstances read db status with db instances
 func (ha *DbhaData) ReadDbStatusWithDbInstances(dbInstances []*DbInstance,
 	offsetDuration time.Duration) (dbStatus []*hamodel.DbhaDataStatus, err error) {
 

@@ -38,7 +38,7 @@ type requestEventC chan *proto.ReceiverRequest
 
 // connectionHandler service connection handler
 type connectionHandler struct {
-	savers []sink.Outputter
+	savers []sink.Sinker
 	eventC requestEventC
 	quit   chan struct{}
 	wg     sync.WaitGroup

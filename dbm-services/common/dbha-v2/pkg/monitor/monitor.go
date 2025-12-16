@@ -68,6 +68,7 @@ type EventData struct {
 
 	Dimension struct {
 		// Added in v2
+		Reporter          string                         `json:"reporter,omitempty"`
 		BkCloudId         int                            `json:"bk_cloud_id,omitempty"`
 		IP                string                         `json:"ip,omitempty"`
 		Port              int                            `json:"port,omitempty"`

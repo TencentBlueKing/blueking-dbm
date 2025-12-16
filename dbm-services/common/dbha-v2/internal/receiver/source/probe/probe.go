@@ -46,13 +46,13 @@ import (
 type Probe struct {
 	proto.UnimplementedReceiverServiceServer
 	wg     sync.WaitGroup
-	savers []sink.Outputter
+	savers []sink.Sinker
 	cfg    config.SourceConfig
 	svr    *grpc.Server
 }
 
 // NewProbeServer new a receiver server
-func NewProbeServer(cfg config.SourceConfig, outputers []sink.Outputter) (*Probe, error) {
+func NewProbeServer(cfg config.SourceConfig, outputers []sink.Sinker) (*Probe, error) {
 	addr := strings.TrimSpace(cfg.Endpoints)
 	if addr == "" {
 		return nil, gerrors.New(gerrors.InvalidParameter, "address is required")

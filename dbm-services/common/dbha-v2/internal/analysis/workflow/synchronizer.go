@@ -27,6 +27,7 @@ package workflow
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"sync"
 	"time"
 
@@ -141,6 +142,10 @@ func (s *Synchronizer) syncMetadataFromDbm(ctx context.Context) error {
 
 		metaRsp, err := s.cli.RequestMetadata(ctx, &req)
 		if err != nil {
+			if errors.Is(err, dbm.ErrNoResponse) {
+				continue
+			}
+
 			logger.Warn("failed to request the metadata from DBM, API: %s, req: %v, errmsg: %s",
 				config.Cfg.Workflow.DbmApiMetadata.Api, req, err)
 

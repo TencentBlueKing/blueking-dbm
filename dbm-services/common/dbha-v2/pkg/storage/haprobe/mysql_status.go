@@ -24,6 +24,8 @@
 
 package haprobe
 
+var _ DBTyper = (*MySqlStatus)(nil)
+
 // MySqlStatus MySQL status
 type MySqlStatus struct {
 	// Spider Controller Status
@@ -37,4 +39,9 @@ type MySqlStatus struct {
 
 	// Storage Engines
 	InnoDB *InnoDBStatus `json:"innodb,omitempty"`
+}
+
+// GetDbType Return the Db type name, this function name can't be changed.
+func (m MySqlStatus) GetDbType() DbType {
+	return DbTypeMySql
 }

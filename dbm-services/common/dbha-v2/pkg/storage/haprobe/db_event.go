@@ -30,6 +30,11 @@ import (
 	"dbm-services/common/dbha-v2/pkg/hanet"
 )
 
+// DBTyper DB type used to get the DB type name.
+type DBTyper interface {
+	GetDbType() DbType
+}
+
 // DbEventName db event name
 type DbEventName string
 
@@ -117,8 +122,7 @@ const (
 type DbType string
 
 const (
-	DbTypeMysql        DbType = "mysql"
-	DbTypeTendbCluster DbType = "tendbcluster"
+	DbTypeMySql DbType = "mysql"
 )
 
 func (t DbType) String() string {

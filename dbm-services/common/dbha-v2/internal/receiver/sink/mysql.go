@@ -26,7 +26,9 @@ package sink
 
 import (
 	"encoding/json"
+	"path/filepath"
 
+	"dbm-services/common/dbha-v2/internal/receiver/config"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -56,17 +58,30 @@ func newMySql(endpoints, user, password string) (*mysql, error) {
 		return nil, err
 	}
 
+	logBasename := filepath.Base(config.Cfg.Log.Path)
+	logDir := filepath.Dir(config.Cfg.Log.Path)
+
+	logCfg := logger.Config{
+		FileName:   filepath.Join(logDir, "gorm-"+logBasename),
+		LogLevel:   logger.Level(config.Cfg.Log.Level),
+		MaxSizeMB:  config.Cfg.Log.FileSize,
+		MaxBackups: config.Cfg.Log.FileCount,
+	}
+
+	gormLogger := logger.NewZapLogger(logCfg)
+
 	msql := &mysql{}
 
 	for _, epoint := range epoints {
-
 		db, err := hamysql.NewGormDB(
 			hamysql.OptionIP(epoint.Host),
 			hamysql.OptionPort(epoint.Port),
 			hamysql.OptionProto(epoint.Proto),
 			hamysql.OptionDBName(hamodel.DatabaseName),
 			hamysql.OptionUser(user),
-			hamysql.OptionPassword(password))
+			hamysql.OptionPassword(password),
+			hamysql.OptionLogger(gormLogger),
+		)
 
 		if err != nil {
 			return nil, err
@@ -84,7 +99,7 @@ func (s *mysql) Save(msg *Message) error {
 		return gerrors.Newf(gerrors.InvalidJson, "unmarshal a mysql metric message failed, topic(%s), %v", msg.Topic, err)
 	}
 
-	logger.Debug("outputter(mysql) save msg: %s", string(msg.Data))
+	logger.Debug("outputter(mysql) save msg: %s, raw: %s", string(msg.Data), string(dbStatus.RawValue))
 
 	data := hamodel.NewDbhaData(dbStatus)
 

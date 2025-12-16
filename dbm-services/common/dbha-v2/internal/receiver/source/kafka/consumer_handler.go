@@ -34,7 +34,7 @@ import (
 var _ sarama.ConsumerGroupHandler = (*consumerHandler)(nil)
 
 type consumerHandler struct {
-	savers []sink.Outputter
+	savers []sink.Sinker
 }
 
 func (h *consumerHandler) Setup(session sarama.ConsumerGroupSession) error {

@@ -37,6 +37,10 @@ import (
 	"dbm-services/common/dbha-v2/pkg/logger"
 )
 
+var (
+	ErrNoResponse = gerrors.New(gerrors.Failure, "no response from DBM")
+)
+
 // Client provides HTTP client for communicating with DBM API services
 // Handles database instance management operations including status updates, domain management, and role switching
 type Client struct {
@@ -98,7 +102,7 @@ func (c *Client) RequestMetadata(ctx context.Context, req *Request) (*Response, 
 	}
 
 	if len(resp) == 0 {
-		return nil, gerrors.New(gerrors.Failure, "DBM responded with nothing")
+		return nil, ErrNoResponse
 	}
 
 	metaRsp := &Response{}
@@ -107,7 +111,7 @@ func (c *Client) RequestMetadata(ctx context.Context, req *Request) (*Response, 
 	}
 
 	if len(metaRsp.Data) == 0 {
-		return nil, gerrors.New(gerrors.Failure, "DBM responded with nothing")
+		return nil, ErrNoResponse
 	}
 
 	return metaRsp, nil
