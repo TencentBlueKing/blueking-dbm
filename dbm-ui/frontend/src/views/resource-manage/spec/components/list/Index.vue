@@ -22,32 +22,76 @@
         @click="() => handleShowSpecOperation('create')">
         {{ t('新建') }}
       </AuthButton>
-      <BatchEditBizScope
-        :data-list="selectedList"
-        :db-type="dbType"
-        @success="fetchData" />
-      <span
-        v-bk-tooltips="{
-          content: batchDeleteTooltips,
-          disabled: !batchDeleteTooltips,
+      <BkDropdown
+        :disabled="batchOperationDisabled"
+        :popover-options="{
+          renderDirective: 'show',
+          hideIgnoreReference: true,
         }">
-        <BkButton
-          class="w-88 mr-8"
-          :disabled="!!batchDeleteTooltips"
-          @click="handleBacthDelete">
-          {{ t('删除') }}
-        </BkButton>
-      </span>
-      <BatchSwithEnable
-        :data-list="selectedList"
-        :db-type="dbType"
-        enable
-        @success="fetchData" />
-      <BatchSwithEnable
-        :data-list="selectedList"
-        :db-type="dbType"
-        :enable="false"
-        @success="fetchData" />
+        <template #default="{ popoverShow }">
+          <BkButton :disabled="batchOperationDisabled">
+            {{ t('批量操作') }}
+            <DbIcon
+              class="cluster-batch-operation-icon ml-4"
+              :class="[{ 'cluster-batch-operation-icon-active': popoverShow }]"
+              type="up-big " />
+          </BkButton>
+        </template>
+        <template #content>
+          <BkDropdownMenu>
+            <BkDropdownItem>
+              <BatchSwithEnable
+                :data-list="selectedList"
+                :db-type="dbType"
+                enable
+                @success="fetchData" />
+            </BkDropdownItem>
+            <BkDropdownItem>
+              <BatchSwithEnable
+                :data-list="selectedList"
+                :db-type="dbType"
+                :enable="false"
+                @success="fetchData" />
+            </BkDropdownItem>
+            <BkDropdownItem
+              v-bk-tooltips="{
+                content: batchDeleteTooltips,
+                disabled: !batchDeleteTooltips,
+                placement: 'right',
+              }">
+              <BkButton
+                class="opration-button"
+                :disabled="!!batchDeleteTooltips"
+                text
+                @click="handleBacthDelete">
+                {{ t('删除规格') }}
+              </BkButton>
+            </BkDropdownItem>
+            <BkDropdownItem v-if="isProduction">
+              <BkButton
+                class="opration-button"
+                text
+                @click="() => handleBatchReplenish(true)">
+                {{ t('开启自动补货') }}
+              </BkButton>
+            </BkDropdownItem>
+            <BkDropdownItem v-if="isProduction">
+              <BkButton
+                class="opration-button"
+                text
+                @click="() => handleBatchReplenish(false)">
+                {{ t('停用自动补货') }}
+              </BkButton>
+            </BkDropdownItem>
+            <BkDropdownItem>
+              <BatchEditBizScope
+                :data-list="selectedList"
+                :db-type="dbType"
+                @success="fetchData" />
+            </BkDropdownItem>
+          </BkDropdownMenu>
+        </template>
+      </BkDropdown>
       <div class="enable-checkbox">
         <BkCheckbox
           v-model="isEnableSpec"
@@ -75,6 +119,7 @@
       show-settings
       @clear-search="handleClearSearch"
       @column-filter="columnFilterChange"
+      @request-success="requestSuccess"
       @selection="handleSelectionChange"
       @setting-change="updateTableSettings">
       <BkTableColumn
@@ -113,14 +158,6 @@
       <ModelColumn :label="machineTypeLabel" />
       <BizScopeColumn />
       <BkTableColumn
-        field="desc"
-        :label="t('描述')"
-        :width="100">
-        <template #default="{ data }: { data: ResourceSpecModel }">
-          {{ data.desc || '--' }}
-        </template>
-      </BkTableColumn>
-      <BkTableColumn
         v-if="hasInstance"
         field="instance_num"
         :label="t('每台主机实例数量')"
@@ -134,7 +171,7 @@
       </BkTableColumn>
       <BkTableColumn
         field="enable"
-        :label="t('是否启用')"
+        :label="t('启停')"
         :width="120">
         <template #default="{ data }: { data: ResourceSpecModel }">
           <BkPopConfirm
@@ -157,6 +194,26 @@
               size="small"
               theme="primary" />
           </BkPopConfirm>
+        </template>
+      </BkTableColumn>
+      <BkTableColumn
+        v-if="isProduction"
+        :label="t('自动补货')"
+        :width="120">
+        <template #default="{ data }: { data: ResourceSpecModel }">
+          <BkSwitcher
+            v-model="needReplenish[data.spec_id]"
+            size="small"
+            theme="primary"
+            @change="() => handleChangeNeedReplenish(data)" />
+        </template>
+      </BkTableColumn>
+      <BkTableColumn
+        field="desc"
+        :label="t('描述')"
+        :width="100">
+        <template #default="{ data }: { data: ResourceSpecModel }">
+          {{ data.desc || '--' }}
         </template>
       </BkTableColumn>
       <BkTableColumn
@@ -272,7 +329,12 @@
   import { useRequest } from 'vue-request';
 
   import type ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
-  import { batchCommonUpdate, batchDeleteResourceSpec, getResourceSpecList } from '@services/source/dbresourceSpec';
+  import {
+    addSpecReplenishTag,
+    batchCommonUpdate,
+    batchDeleteResourceSpec,
+    getResourceSpecList,
+  } from '@services/source/dbresourceSpec';
 
   import { useBeforeClose, useLinkQueryColumnSerach, useTableSettings } from '@hooks';
 
@@ -318,15 +380,20 @@
 
   const setRowClass = (data: ResourceSpecModel) => (data.isRecentSeconds ? 'is-new-row' : '');
 
+  const isProduction = import.meta.env.MODE === 'production';
+
   const tableRef = ref();
   const isEnableSpec = ref(true);
   const isSpecOperationShow = ref(false);
   const specOperationMode = ref<SpecOperationType>('create');
+  const needReplenish = ref<Record<number, boolean>>({});
 
   const specOperationData = shallowRef<ResourceSpecModel>();
   const selectedList = shallowRef<ResourceSpecModel[]>([]);
 
   const hasInstance = computed(() => [`${DBTypes.ES}_es_datanode`].includes(`${props.dbType}_${props.machineType}`));
+
+  const batchOperationDisabled = computed(() => selectedList.value.length === 0);
 
   const batchDeleteTooltips = computed(() => {
     if (selectedList.value.length === 0) {
@@ -398,6 +465,26 @@
       fetchData();
     },
   );
+
+  const requestSuccess = (data: UnwrapRef<typeof tableRef.value.data>) => {
+    data.results.forEach((item: ResourceSpecModel) => {
+      needReplenish.value[item.spec_id] = item.needReplenish;
+    });
+  };
+
+  const handleBatchReplenish = (isReplenish: boolean) => {
+    addSpecReplenishTag({
+      need_replenish: isReplenish,
+      spec_ids: selectedList.value.map((item) => item.spec_id),
+    });
+  };
+
+  const handleChangeNeedReplenish = (row: ResourceSpecModel) => {
+    addSpecReplenishTag({
+      need_replenish: !needReplenish.value[row.spec_id],
+      spec_ids: [row.spec_id],
+    });
+  };
 
   const handleConfirmSwitch = (row: ResourceSpecModel) => {
     runBatchCommonUpdate({

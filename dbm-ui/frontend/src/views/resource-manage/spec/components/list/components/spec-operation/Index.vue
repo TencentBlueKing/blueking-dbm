@@ -104,6 +104,20 @@
           }}
         </span>
       </BkFormItem>
+      <BkFormItem
+        v-if="isProduction"
+        :label="t('自动补货')">
+        <BkSwitcher
+          v-model="needReplenish"
+          size="small"
+          theme="primary"
+          @change="handleChangeNeedReplenish" />
+        <span class="enable-desc ml-4">
+          {{
+            `（${t('启用：所有场景均可使用，如：部署、扩容、迁移规格')}；${t('停用：存量集群的变更操作不受影响，新增集群不可使用此规格')}）`
+          }}
+        </span>
+      </BkFormItem>
     </DbForm>
   </div>
   <div class="spec-create-footer">
@@ -136,7 +150,12 @@
   import { useI18n } from 'vue-i18n';
 
   import type ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
-  import { createResourceSpec, updateResourceSpec, verifyDuplicatedSpecName } from '@services/source/dbresourceSpec';
+  import {
+    addSpecReplenishTag,
+    createResourceSpec,
+    updateResourceSpec,
+    verifyDuplicatedSpecName,
+  } from '@services/source/dbresourceSpec';
 
   import { ClusterTypes, DBTypes } from '@common/const';
 
@@ -176,6 +195,8 @@
     `${DBTypes.TENDBCLUSTER}_proxy`,
     `${DBTypes.SQLSERVER}_sqlserver`,
   ];
+
+  const isProduction = import.meta.env.MODE === 'production';
 
   const isRequired = !notRequiredStorageList.includes(`${props.dbType}_${props.machineType}`);
 
@@ -255,11 +276,17 @@
   const isShowSwitchTip = ref(false);
   const isTableValueChange = ref(false);
   const isBizScopeChange = ref(false);
+  const needReplenish = ref(false);
+  const needReplenishChange = ref(false);
   const initFormdataStringify = JSON.stringify(formdata.value);
+  let initNeedReplenish = false;
 
   const isChange = computed(
     () =>
-      JSON.stringify(formdata.value) !== initFormdataStringify || isTableValueChange.value || isBizScopeChange.value,
+      JSON.stringify(formdata.value) !== initFormdataStringify ||
+      isTableValueChange.value ||
+      isBizScopeChange.value ||
+      needReplenishChange.value,
   );
 
   const nameRules = computed(() => [
@@ -297,6 +324,16 @@
     { deep: true },
   );
 
+  watch(
+    () => props.data,
+    () => {
+      if (isProduction) {
+        needReplenish.value = props.data!.needReplenish;
+        initNeedReplenish = props.data!.needReplenish;
+      }
+    },
+  );
+
   const handleTableValueChange = () => {
     isTableValueChange.value = true;
   };
@@ -312,6 +349,10 @@
   const handleChangeSwitch = () => {
     isShowSwitchTip.value = true;
     formdata.value.enable = !formdata.value.enable;
+  };
+
+  const handleChangeNeedReplenish = () => {
+    needReplenishChange.value = needReplenish.value !== initNeedReplenish;
   };
 
   const handleConfirmSwitch = () => {
@@ -369,7 +410,16 @@
       }
 
       if (props.mode === 'edit') {
-        updateResourceSpec(params).then(() => {
+        const requestList = [updateResourceSpec(params)];
+        if (isProduction) {
+          requestList.push(
+            addSpecReplenishTag({
+              need_replenish: needReplenish.value,
+              spec_ids: [params.spec_id],
+            }),
+          );
+        }
+        Promise.all(requestList).then(() => {
           messageSuccess(t('编辑成功'));
           emits('successed');
           window.changeConfirm = false;
@@ -390,7 +440,17 @@
         delete params.qps;
       }
 
-      createResourceSpec(params).then(() => {
+      const requestList = [createResourceSpec(params)];
+      if (isProduction) {
+        requestList.push(
+          addSpecReplenishTag({
+            need_replenish: needReplenish.value,
+            spec_ids: [params.spec_id],
+          }),
+        );
+      }
+
+      Promise.all(requestList).then(() => {
         messageSuccess(t('新建成功'));
         emits('successed');
         window.changeConfirm = false;
