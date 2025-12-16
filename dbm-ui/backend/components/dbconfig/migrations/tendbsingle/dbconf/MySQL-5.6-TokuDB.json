@@ -3201,7 +3201,7 @@
   },
   {
     "conf_name": "mysqld.slave_parallel_workers",
-    "value_default": "0",
+    "value_default": "4",
     "value_allowed": "0| 1| 2| 4| 8| 16| 32| 64",
     "value_type": "INT",
     "value_type_sub": "ENUM",

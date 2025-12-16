@@ -61,10 +61,10 @@ func (d *DumperGrant) Execute(ctx context.Context) error {
 // PrepareBackupMetaInfo construct metaInfo
 func (d *DumperGrant) PrepareBackupMetaInfo(cnf *config.BackupConfig, metaInfo *dbareport.IndexContent) error {
 	if metaInfo.BinlogInfo.ShowSlaveStatus == nil {
-		metaInfo.BinlogInfo.ShowSlaveStatus = &dbareport.StatusInfo{}
+		//metaInfo.BinlogInfo.ShowSlaveStatus = &dbareport.StatusInfo{}
 	}
 	if metaInfo.BinlogInfo.ShowMasterStatus == nil {
-		metaInfo.BinlogInfo.ShowMasterStatus = &dbareport.StatusInfo{}
+		//metaInfo.BinlogInfo.ShowMasterStatus = &dbareport.StatusInfo{}
 	}
 	metaInfo.BackupBeginTime = d.backupStartTime
 	metaInfo.BackupEndTime = d.backupEndTime
