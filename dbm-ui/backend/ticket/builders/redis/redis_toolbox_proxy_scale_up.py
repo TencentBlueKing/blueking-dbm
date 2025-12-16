@@ -13,7 +13,7 @@ import logging
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import MachineType
+from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -53,7 +53,17 @@ class ProxyScaleUpParamBuilder(builders.FlowParamBuilder):
 class ProxyScaleUpResourceParamBuilder(BaseOperateResourceParamBuilder):
     def format(self):
         # 在跨机房亲和性要求下，接入层proxy的亲和性要求至少分布在2个机房
-        self.patch_info_common_affinity(role="proxy", remain_machine_type=MachineType.TWEMPROXY, tolerance=0.5)
+        for info in self.ticket_data["infos"]:
+            cluster = Cluster.objects.get(id=info["cluster_id"])
+            instances = cluster.proxyinstance_set.select_related("machine").all()
+            exclusive_hosts = [ins.machine for ins in instances]
+            self.patch_common_affinity(
+                info,
+                role="proxy",
+                cluster=cluster,
+                exclusive_hosts=exclusive_hosts,
+                tolerance=0.5,
+            )
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()
