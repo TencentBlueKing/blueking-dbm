@@ -45,10 +45,11 @@ const (
 	SelectRouteInfoSql          = "SELECT Server_name, Host, Username, Password, Port, Wrapper FROM mysql.servers"
 	TdbctlEnablePrimarySql      = "TDBCTL ENABLE PRIMARY"
 	TdbctlEnablePrimaryForceSql = "TDBCTL ENABLE PRIMARY FORCE"
-	TdbctlDropNodeSql           = "TDBCTL DROP NODE :name"
+	TdbctlDropNodeSql           = "TDBCTL DROP NODE %s"
 	TdbctlFlushRouteSql         = "TDBCTL FLUSH ROUTING"
 	TdbctlFlushRouteForceSql    = "TDBCTL FLUSH ROUTING FORCE"
 	TdbctlChangeMasterSql       = "CHANGE MASTER TO MASTER_HOST='%s', MASTER_PORT=%d, MASTER_AUTO_POSITION=1"
+	TdbctlAlterNodeSql          = "TDBCTL ALTER NODE %s OPTIONS(HOST '%s', Port %d, USER '%s', PASSWORD '%s')"
 )
 
 // Types of CLUSTER_ROLE in information_schema.TDBCTL_NODES
@@ -77,6 +78,18 @@ type TdbctlRouteInfo struct {
 	Password   string `db:"Password"`
 	Port       int    `db:"Port"`
 	Wrapper    string `db:"Wrapper"`
+}
+
+// CopyConstructTdbctlRoute copies and constructs a new TdbctlRoute
+func CopyConstructTdbctlRoute(node *TdbctlRouteInfo) *TdbctlRouteInfo {
+	return &TdbctlRouteInfo{
+		ServerName: node.ServerName,
+		Host:       node.Host,
+		UserName:   node.UserName,
+		Password:   node.Password,
+		Port:       node.Port,
+		Wrapper:    node.Wrapper,
+	}
 }
 
 // TdbctlPrimaryNodeInfo holds information for primary TDBCTL node
@@ -305,16 +318,14 @@ func (sw *TenDBClusterBaseSwitchInstance) TdbctlDropNode(tdbctlDB *hamysql.SqlxD
 		return gerrors.New(gerrors.Failure, "tdbctl connection is nil")
 	}
 
-	sw.ReportLogf(SwitchInfo, "Try to execute sql('%s', name: %s) on tdbctl(%s:%d)",
-		TdbctlDropNodeSql, nodeName, tdbctlDB.Host(), tdbctlDB.Port())
+	dropNodeSql := fmt.Sprintf(TdbctlDropNodeSql, nodeName)
+	sw.ReportLogf(SwitchInfo, "Try to execute sql(%s) on tdbctl(%s:%d)",
+		dropNodeSql, tdbctlDB.Host(), tdbctlDB.Port())
 
-	result, execErr := tdbctlDB.DB().NamedExec(TdbctlDropNodeSql, map[string]interface{}{
-		"name": nodeName,
-	})
-
+	result, execErr := tdbctlDB.DB().Exec(dropNodeSql)
 	if execErr != nil {
-		return gerrors.Newf(gerrors.Failure, "failed to execute sql('%s', name: %s) on tdbctl(%s:%d), errmsg: %s",
-			TdbctlDropNodeSql, nodeName, tdbctlDB.Host(), tdbctlDB.Port(), execErr.Error())
+		return gerrors.Newf(gerrors.Failure, "failed to execute sql(%s) on tdbctl(%s:%d), errmsg: %s",
+			TdbctlDropNodeSql, tdbctlDB.Host(), tdbctlDB.Port(), execErr.Error())
 	}
 
 	affected, rowErr := result.RowsAffected()
@@ -323,7 +334,7 @@ func (sw *TenDBClusterBaseSwitchInstance) TdbctlDropNode(tdbctlDB *hamysql.SqlxD
 			rowErr.Error())
 	}
 
-	sw.ReportLogf(SwitchInfo, "Success to drop node(%s) on tdbctl(%s:%d)", nodeName, tdbctlDB.Host(), tdbctlDB.Port())
+	sw.ReportLogf(SwitchInfo, "Succeeded to drop node(%s) on tdbctl(%s:%d)", nodeName, tdbctlDB.Host(), tdbctlDB.Port())
 	return nil
 }
 
@@ -525,13 +536,13 @@ func (sw *TenDBClusterBaseSwitchInstance) QueryRouteInfoOfCluster(primaryTdbctlD
 }
 
 // GetRouteInfoFromCache get route info from route table cache
-func (sw *TenDBClusterBaseSwitchInstance) GetRouteInfoFromCache(host string, port int) (TdbctlRouteInfo, bool) {
+func (sw *TenDBClusterBaseSwitchInstance) GetRouteInfoFromCache(host string, port int) (*TdbctlRouteInfo, bool) {
 	for _, node := range sw.TdbctlRouteTable {
 		if (node.Host == host) && (node.Port == port) {
-			return node, true
+			return CopyConstructTdbctlRoute(&node), true
 		}
 	}
-	return TdbctlRouteInfo{}, false
+	return nil, false
 }
 
 // TenDBClusterSpiderSwitchInstance switch instance for spider
@@ -775,22 +786,22 @@ func (sw *TenDBClusterSpiderSwitchInstance) DeleteOwnRoutes(primaryTdbctlDB *ham
 	}
 
 	sw.ReportLogf(SwitchInfo, "Try to delete two route items of %s and %s on primary(%s:%d)",
-		sw.ToNodeName(&curSpiderRoute), sw.ToNodeName(&curTdbctlRoute), sw.PrimaryTdbctl.Host, sw.PrimaryTdbctl.Port)
+		sw.ToNodeName(curSpiderRoute), sw.ToNodeName(curTdbctlRoute), sw.PrimaryTdbctl.Host, sw.PrimaryTdbctl.Port)
 
 	if err := sw.TdbctlDropNode(primaryTdbctlDB, curSpiderRoute.ServerName); err != nil {
 		sw.ReportLogf(SwitchFail, "Failed to delete route item of %s on primary(%s:%d): %s",
-			sw.ToNodeName(&curSpiderRoute), sw.PrimaryTdbctl.Host, sw.PrimaryTdbctl.Port, err.Error())
+			sw.ToNodeName(curSpiderRoute), sw.PrimaryTdbctl.Host, sw.PrimaryTdbctl.Port, err.Error())
 		return err
 	}
 
 	if err := sw.TdbctlDropNode(primaryTdbctlDB, curTdbctlRoute.ServerName); err != nil {
 		sw.ReportLogf(SwitchFail, "Failed to delete route item of %s on primary(%s:%d): %s",
-			sw.ToNodeName(&curTdbctlRoute), sw.PrimaryTdbctl.Host, sw.PrimaryTdbctl.Port, err.Error())
+			sw.ToNodeName(curTdbctlRoute), sw.PrimaryTdbctl.Host, sw.PrimaryTdbctl.Port, err.Error())
 		return err
 	}
 
 	sw.ReportLogf(SwitchInfo, "Success to delete two route items of %s and %s on primary(%s:%d)",
-		sw.ToNodeName(&curSpiderRoute), sw.ToNodeName(&curTdbctlRoute), sw.PrimaryTdbctl.Host, sw.PrimaryTdbctl.Port)
+		sw.ToNodeName(curSpiderRoute), sw.ToNodeName(curTdbctlRoute), sw.PrimaryTdbctl.Host, sw.PrimaryTdbctl.Port)
 	return nil
 }
 
@@ -853,7 +864,7 @@ func (sw *TenDBClusterSpiderSwitchInstance) DoSwitch() error {
 		return err
 	}
 
-	sw.ReportLogf(SwitchInfo, "switch steps all done")
+	sw.ReportLogf(SwitchInfo, "switch steps of spider(%s:%d) all done", sw.IP, sw.Port)
 	return nil
 }
 
@@ -869,15 +880,12 @@ func (sw *TenDBClusterSpiderSwitchInstance) DoFinal() error {
 		primaryPort := sw.PrimaryTdbctl.Port
 
 		sw.ReportLog(SwitchInfo, "Try to reset slave on new primary tdbctl")
-		binlogFile, binlogPosition, resetSlaveErr := sw.ResetSlaveWithBinlogPos(primaryHost, primaryPort)
+		_, _, resetSlaveErr := sw.ResetSlaveWithBinlogPos(primaryHost, primaryPort)
 		if resetSlaveErr != nil {
 			sw.ReportLogf(SwitchWarn, "Failed to reset slave on new primary(%s:%d): %s",
 				primaryHost, primaryPort, resetSlaveErr.Error())
 			return resetSlaveErr
 		}
-		sw.ReportLogf(SwitchInfo, "Successfully reset slave on new primary tdbctl(%s:%d), "+
-			"binlog info: (binlog_file:%s, binlog_pos:%d)",
-			primaryHost, primaryPort, binlogFile, binlogPosition)
 
 		sw.ReportLog(SwitchInfo, "Try to change master for all valid secondary tdbctl nodes")
 		changeMasterSql := fmt.Sprintf(TdbctlChangeMasterSql, primaryHost, primaryPort)
@@ -910,28 +918,198 @@ type TenDBClusterRemoteSwitchInstance struct {
 	TenDBClusterBaseSwitchInstance
 }
 
-// CheckSwitch check slave before switch
-func (sw *TenDBClusterRemoteSwitchInstance) CheckSwitch() (bool, error) {
-	// todo
+// CheckTenDBClusterStorageMaster check remote master
+func (sw *TenDBClusterRemoteSwitchInstance) CheckTenDBClusterStorageMaster() (bool, error) {
+	sw.ReportLogf(SwitchInfo, "Check TenDBCluster remote master: %s", sw.GetInstanceInfo())
+
+	if sw.StandBySlave == nil {
+		err := gerrors.Newf(gerrors.Failure, "The standby slave of remote master(%s:%d) is nil", sw.IP, sw.Port)
+		sw.ReportLog(SwitchWarn, err.Error())
+		return false, err
+	}
+	if sw.StandBySlave.Status == dbm.Unavailable {
+		err := gerrors.Newf(gerrors.Failure, "The standby slave(%s:%d) of remote master(%s:%d) is unavailable",
+			sw.StandBySlave.Ip, sw.StandBySlave.Port, sw.IP, sw.Port)
+		sw.ReportLog(SwitchWarn, err.Error())
+		return false, err
+	}
+
+	if err := sw.CheckSlaveStatus(); err != nil {
+		sw.ReportLog(SwitchWarn, err.Error())
+		return false, err
+	}
+
+	if len(sw.ProxyInstanceSet) == 0 {
+		err := gerrors.Newf(gerrors.Failure,
+			"No spider instances were found for remote master(%s:%d)", sw.IP, sw.Port)
+		sw.ReportLog(SwitchWarn, err.Error())
+		return false, err
+	}
+
 	return true, nil
 }
 
-// DoSwitch do remote switch
-// 1. connect primary tdbctl and update route
-// 2. flush routing
-func (sw *TenDBClusterRemoteSwitchInstance) DoSwitch() error {
-	// todo
+// CheckBeforeSwitch check slave before switch
+func (sw *TenDBClusterRemoteSwitchInstance) CheckBeforeSwitch() (checkPass bool, err error) {
+	switch sw.InstanceRole {
+	case dbm.TenDBClusterStorageSlave:
+		checkPass = false
+		sw.ReportLogf(SwitchInfo, "The instance(%s:%d) is a slave node, no need to check", sw.IP, sw.Port)
+	case dbm.TenDBClusterStorageMaster:
+		checkPass, err = sw.CheckTenDBClusterStorageMaster()
+	default:
+		checkPass = false
+		err = gerrors.Newf(gerrors.Failure,
+			"The role of the node to be switched is unknown, info{%s}", sw.GetInstanceInfo())
+		sw.ReportLog(SwitchWarn, err.Error())
+	}
+
+	return
+}
+
+// FindMasterSlavePair find current master and standby slave from route cache
+func (sw *TenDBClusterRemoteSwitchInstance) FindMasterSlavePair() (*TdbctlRouteInfo, *TdbctlRouteInfo, error) {
+	curMasterRoute, curMasterExists := sw.GetRouteInfoFromCache(sw.IP, sw.Port)
+	if !curMasterExists {
+		errMsg := fmt.Sprintf("failed to get route info of current remote master(%s:%d) from route cache", sw.IP, sw.Port)
+		sw.ReportLogf(SwitchWarn, "When looking up route info, %s", errMsg)
+		return nil, nil, gerrors.New(gerrors.Failure, errMsg)
+	}
+
+	curSlaveRoute, curSlaveExists := sw.GetRouteInfoFromCache(sw.StandBySlave.Ip, sw.StandBySlave.Port)
+	if !curSlaveExists {
+		errMsg := fmt.Sprintf("failed to get route info of current remote slave(%s:%d) from route cache", sw.IP, sw.Port)
+		sw.ReportLogf(SwitchWarn, "When looking up route info, %s", errMsg)
+		return curMasterRoute, nil, gerrors.New(gerrors.Failure, errMsg)
+	}
+
+	return curMasterRoute, curSlaveRoute, nil
+}
+
+// UpdateMasterRouteToSlave update master route to slave on primary tdbctl
+func (sw *TenDBClusterRemoteSwitchInstance) UpdateMasterRouteToSlave(primaryTdbctlDB *hamysql.SqlxDB,
+	masterRoute *TdbctlRouteInfo, slaveRoute *TdbctlRouteInfo) error {
+	alterNodeSQL := fmt.Sprintf(TdbctlAlterNodeSql, masterRoute.ServerName, slaveRoute.Host, slaveRoute.Port,
+		slaveRoute.UserName, slaveRoute.Password)
+
+	sw.ReportLogf(SwitchInfo, "try to execute sql(%s) on tdbctl(%s:%d)",
+		alterNodeSQL, primaryTdbctlDB.Host(), primaryTdbctlDB.Port())
+
+	result, execErr := primaryTdbctlDB.DB().Exec(alterNodeSQL)
+	if execErr != nil {
+		errMsg := fmt.Sprintf("failed to execute sql(%s) on tdbctl(%s:%d), errmsg: %s",
+			alterNodeSQL, primaryTdbctlDB.Host(), primaryTdbctlDB.Port(), execErr.Error())
+		sw.ReportLogf(SwitchWarn, "When updating master route to slave, %s", errMsg)
+		return gerrors.Newf(gerrors.Failure, errMsg)
+	}
+
+	affected, rowErr := result.RowsAffected()
+	if (rowErr != nil) || (affected != 1) {
+		errMsg := fmt.Sprintf("cannot ensure that the number of rows affected is 1, affected: %d, errMsg: %s",
+			affected, rowErr.Error())
+		sw.ReportLogf(SwitchWarn, "When updating master route to slave, %s", errMsg)
+		return gerrors.Newf(gerrors.Failure, errMsg)
+	}
+
+	sw.ReportLogf(SwitchInfo, "Successfully updated master(%s) route to slave(%s) on tdbctl(%s:%d)",
+		masterRoute.ServerName, slaveRoute.ServerName, primaryTdbctlDB.Host(), primaryTdbctlDB.Port())
 	return nil
 }
 
-// ShowSwitchInstanceInfo show db-mysql instance's switch info
-func (sw *TenDBClusterRemoteSwitchInstance) ShowSwitchInstanceInfo() string {
-	// todo
-	return ""
+// DoSwitch do switch for tendbcluster remote
+//  1. query all spider/tdbctl nodes of this cluster from DBM
+//  2. query all tdbctl nodes' status from any valid tdbctl node
+//  3. find the primary tdbctl
+//  4. connect primary tdbctl
+//  5. query route info of this cluster from primary tdbctl
+//  6. find nodes info of current broken remote master and its slave
+//  7. reset slave for current remote slave
+//  8. update route info of current broken remote master and its slave
+//  9. flush route table
+func (sw *TenDBClusterRemoteSwitchInstance) DoSwitch() error {
+	sw.ReportLogf(SwitchInfo, "switch step 1: try to query all spider/tdbctl nodes of this cluster from DBM")
+	if err := sw.QuerySpiderNodesOfCluster(); err != nil {
+		return err
+	}
+
+	sw.ReportLogf(SwitchInfo, "switch step 2: try to query all tdbctl nodes' status from any valid tdbctl node")
+	if err := sw.QueryTdbctlNodesOfCluster(); err != nil {
+		return err
+	}
+
+	sw.ReportLogf(SwitchInfo, "switch step 3: try to find the primary tdbctl")
+	if err := sw.FindPrimaryTdbctl(); err != nil {
+		return err
+	}
+
+	sw.ReportLogf(SwitchInfo, "switch step 4: try to connect primary tdbctl")
+	primaryTdbctlConn, connErr := sw.ConnectTdbctlNode(sw.PrimaryTdbctl.Host, sw.PrimaryTdbctl.Port)
+	if connErr != nil {
+		return connErr
+	}
+	defer sw.DisconnectTdbctlNode(primaryTdbctlConn)
+
+	sw.ReportLogf(SwitchInfo, "switch step 5: try to query route info of this cluster from primary tdbctl")
+	if err := sw.QueryRouteInfoOfCluster(primaryTdbctlConn); err != nil {
+		return err
+	}
+
+	sw.ReportLogf(SwitchInfo, "switch step 6: try to find nodes info of current broken remote master and its slave")
+	curMasterRoute, curSlaveRoute, notFoundErr := sw.FindMasterSlavePair()
+	if notFoundErr != nil {
+		return notFoundErr
+	}
+
+	sw.ReportLogf(SwitchInfo, "switch step 7: try to reset slave for current remote slave")
+	_, _, err := sw.ResetSlaveWithBinlogPos(sw.StandBySlave.Ip, sw.StandBySlave.Port)
+	if err != nil {
+		err = gerrors.Newf(gerrors.Failure, "failed to reset slave status for the remote slave(%s:%d), errmsg: %s",
+			sw.StandBySlave.Ip, sw.StandBySlave.Port, err.Error())
+		sw.ReportLog(SwitchWarn, err.Error())
+		return err
+	}
+
+	sw.ReportLogf(SwitchInfo, "switch step 8: try to update route info of current broken remote master and its slave")
+	if err := sw.UpdateMasterRouteToSlave(primaryTdbctlConn, curMasterRoute, curSlaveRoute); err != nil {
+		return err
+	}
+
+	sw.ReportLogf(SwitchInfo, "switch step 9: try to flush route table")
+	if err := sw.TdbctlFlushRouting(primaryTdbctlConn, true); err != nil {
+		return err
+	}
+
+	sw.ReportLogf(SwitchInfo, "switch steps of remote(%s:%d) all done", sw.IP, sw.Port)
+	return nil
+}
+
+// GetInstanceInfo returns formatted instance information string
+func (sw *TenDBClusterRemoteSwitchInstance) GetInstanceInfo() string {
+	standBySlave := "nil"
+	if sw.StandBySlave != nil {
+		standBySlave = fmt.Sprintf("%s:%d", sw.StandBySlave.Ip, sw.StandBySlave.Port)
+	}
+	infoStr := fmt.Sprintf("{bk_cloud_id:%d, ip:%s, port:%d, bk_idc_city_id:%d, bk_biz_id:%d, status:%s, "+
+		"cluster:%s, cluster_id:%d, cluster_type:%s, machine_type:%s, role:%s, standby_slave:%s}",
+		sw.BkCloudID, sw.IP, sw.Port, sw.BkIdcCityID, sw.BkBizID, sw.Status, sw.Cluster,
+		sw.ClusterID, sw.ClusterType, sw.MachineType, sw.InstanceRole, standBySlave)
+	return infoStr
 }
 
 // UpdateMetaInfo swap master, slave 's meta info in cmdb
 func (sw *TenDBClusterRemoteSwitchInstance) UpdateMetaInfo() error {
-	// todo
+	sw.ReportLog(SwitchInfo, fmt.Sprintf("try to swap roles of remote nodes(master:%s:%d, slave:%s:%d)",
+		sw.IP, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port))
+
+	err := sw.dbmClient.SwapMySQLRole(sw.BkCloudID, sw.IP, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port)
+	if err != nil {
+		errMsg := fmt.Sprintf("failed to swap roles of remote nodes(master:%s:%d, slave:%s:%d), errmsg:%s",
+			sw.IP, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port, err.Error())
+		sw.ReportLog(SwitchFail, errMsg)
+		return err
+	}
+
+	sw.ReportLog(SwitchInfo, fmt.Sprintf("Succeeded to swap roles of remote nodes(master:%s:%d, slave:%s:%d)",
+		sw.IP, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port))
 	return nil
 }

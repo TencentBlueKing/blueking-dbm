@@ -45,9 +45,9 @@ const (
 	AllowedMaxChecksumFailCnt int  = 2
 	AllowedMaxSlaveDelay      int  = 600
 	AllowedMaxTimeDelay       int  = 300
+	AllowSlowBytes            int  = 0
 
-	MySQLProtocol  string = "tcp"
-	AllowSlowBytes int    = 0
+	DefaultMySQLProtocol string = "tcp"
 )
 
 const (
@@ -556,7 +556,7 @@ func (sw *MySQLBaseSwitchInstance) CheckSlaveStatus() error {
 	port := sw.StandBySlave.Port
 
 	slaveDB, err := hamysql.NewGormDB(
-		hamysql.OptionProto(MySQLProtocol),
+		hamysql.OptionProto(DefaultMySQLProtocol),
 		hamysql.OptionIP(ip),
 		hamysql.OptionPort(port),
 		hamysql.OptionUser(config.Cfg.Database.Mysql.User),
@@ -726,7 +726,7 @@ func (sw *MySQLBaseSwitchInstance) ResetSlave(slaveDB *hamysql.GormDB) error {
 // ResetSlaveWithBinlogPos resets slave and gets consistent binlog position
 func (sw *MySQLBaseSwitchInstance) ResetSlaveWithBinlogPos(slaveIp string, slavePort int) (string, uint64, error) {
 	slaveDB, err := hamysql.NewGormDB(
-		hamysql.OptionProto(MySQLProtocol),
+		hamysql.OptionProto(DefaultMySQLProtocol),
 		hamysql.OptionIP(slaveIp),
 		hamysql.OptionPort(slavePort),
 		hamysql.OptionUser(config.Cfg.Database.Mysql.User),
@@ -760,13 +760,17 @@ func (sw *MySQLBaseSwitchInstance) ResetSlaveWithBinlogPos(slaveIp string, slave
 		return masterStatus.File, masterStatus.Position, err
 	}
 
+	sw.ReportLog(SwitchInfo, fmt.Sprintf("Successfully reset slave status for the slave node(%s:%d), "+
+		"binlog info: [binlog_file:%s, binlog_pos:%d]",
+		sw.StandBySlave.Ip, sw.StandBySlave.Port, masterStatus.File, masterStatus.Position))
+
 	return masterStatus.File, masterStatus.Position, nil
 }
 
 // ChangeMasterAuto automatically changes master configuration
 func (sw *MySQLBaseSwitchInstance) ChangeMasterAuto(slaveIp string, slavePort int, changeMasterSQL string) error {
 	slaveDB, err := hamysql.NewGormDB(
-		hamysql.OptionProto(MySQLProtocol),
+		hamysql.OptionProto(DefaultMySQLProtocol),
 		hamysql.OptionIP(slaveIp),
 		hamysql.OptionPort(slavePort),
 		hamysql.OptionUser(config.Cfg.Database.Mysql.User),
@@ -829,7 +833,7 @@ type MySQLStorageSwitchInstance struct {
 func (sw *MySQLStorageSwitchInstance) GetInstanceInfo() string {
 	standBySlave := "nil"
 	if sw.StandBySlave != nil {
-		standBySlave = fmt.Sprintf("%s#%d", sw.StandBySlave.Ip, sw.StandBySlave.Port)
+		standBySlave = fmt.Sprintf("%s:%d", sw.StandBySlave.Ip, sw.StandBySlave.Port)
 	}
 	infoStr := fmt.Sprintf("{bk_cloud_id:%d, ip:%s, port:%d, bk_idc_city_id:%d, bk_biz_id:%d, status:%s, "+
 		"cluster:%s, cluster_id:%d, cluster_type:%s, machine_type:%s, role:%s, standby_slave:%s}",
@@ -980,9 +984,6 @@ func (sw *MySQLStorageSwitchInstance) DoSwitch() error {
 
 	sw.NewMasterBinlogFile = binlogFile
 	sw.NewMasterBinlogPos = binlogPosition
-	sw.ReportLog(SwitchInfo, fmt.Sprintf("reset slave status successfully for the standby slave(%s:%d), "+
-		"binlog info: [binlog_file:%s, binlog_pos:%d]",
-		sw.StandBySlave.Ip, sw.StandBySlave.Port, binlogFile, binlogPosition))
 
 	sw.ReportLog(SwitchInfo, "switch step 3: update all proxies' backends to the new master")
 	for _, proxyIns := range sw.ProxyInstanceSet {
@@ -1006,15 +1007,18 @@ func (sw *MySQLStorageSwitchInstance) DoSwitch() error {
 
 // UpdateMetaInfo updates metadata after switching
 func (sw *MySQLStorageSwitchInstance) UpdateMetaInfo() error {
+	sw.ReportLog(SwitchInfo, fmt.Sprintf("try to swap roles of backend nodes(master:%s:%d, slave:%s:%d)",
+		sw.IP, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port))
+
 	err := sw.dbmClient.SwapMySQLRole(sw.BkCloudID, sw.IP, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port)
 	if err != nil {
-		errMsg := fmt.Sprintf("failed to swap db-mysql role [master:%s:%d, slave:%s:%d]. errmsg:%s",
+		errMsg := fmt.Sprintf("failed to swap roles of backend nodes(master:%s:%d, slave:%s:%d), errmsg:%s",
 			sw.IP, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port, err.Error())
 		sw.ReportLog(SwitchFail, errMsg)
 		return err
 	}
 
-	sw.ReportLog(SwitchInfo, fmt.Sprintf("successfully swap db-mysql role [master:%s:%d, slave:%s:%d]",
+	sw.ReportLog(SwitchInfo, fmt.Sprintf("Succeeded to swap roles of backend nodes(master:%s:%d, slave:%s:%d)",
 		sw.IP, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port))
 	return nil
 }
