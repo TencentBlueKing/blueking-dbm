@@ -86,6 +86,7 @@ class ClusterInfoContext:
     system_info: dict = field(default_factory=dict)
     time_zone_info: dict = field(default_factory=dict)
     alarm_shield_id: int = None
+    auto_checksum_ticket_id: int = None
     backup_index_file: str = None
 
     @staticmethod

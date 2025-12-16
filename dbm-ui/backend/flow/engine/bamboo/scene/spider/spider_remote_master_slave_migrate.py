@@ -436,6 +436,7 @@ class TendbClusterMigrateRemoteFlow(object):
                     with_cc_standardize=False,
                 )
             )
+            # todo 添加checksum单据状态检查 、添加通过后添加checksum结果的查询
             # 人工确定切换
             cluster_level_pipeline.add_act(
                 act_name=_("人工确认切换 {}".format(cluster_class.name)), act_component_code=PauseComponent.code, kwargs={}

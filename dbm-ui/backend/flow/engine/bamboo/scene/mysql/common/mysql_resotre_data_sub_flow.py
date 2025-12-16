@@ -101,6 +101,9 @@ def mysql_restore_data_sub_flow(
         backup_source=backup_source,
     )
 
+    if binlog_sync:
+        backup_handler.need_binlog_check = True
+
     # 如果是TenDB Single类型，设置为增量备份
     if cluster_model.cluster_type == ClusterType.TenDBSingle.value:
         if cluster.get("backup_method", None) is not None:
@@ -187,6 +190,11 @@ def mysql_restore_data_sub_flow(
     # 根据binlog_sync配置决定是否建立主从关系
     if binlog_sync:
         # 在旧主库上为新从库创建复制用户
+        # 判断主节点ip是否在binlog位点里面
+        if cluster["master_ip"] not in backup_info["binlog_ips"]:
+            raise TendbGetBackupInfoFailedException(
+                message=_("备份 {} 不包含主节点位点IP {}".format(backup_info["backup_id"], cluster["master_ip"]))
+            )
         cluster["recover_binlog"] = True
         cluster["target_ip"] = cluster["master_ip"]
         cluster["target_port"] = cluster["master_port"]
@@ -291,6 +299,7 @@ def mysql_restore_master_slave_sub_flow(
         check_instance_exist=True,
         filter_ips=filter_ips,
         backup_source=backup_source,
+        need_binlog_check=True,
     )
 
     # 如果是TenDB Cluster类型，需要设置分片ID
@@ -408,6 +417,10 @@ def mysql_restore_master_slave_sub_flow(
     )
 
     # 阶段6: 建立主从关系 - 新主库指向旧主库
+    if cluster["master_ip"] not in backup_info["binlog_ips"]:
+        raise TendbGetBackupInfoFailedException(
+            message=_("备份 {} 不包含主节点位点IP {}".format(backup_info["backup_id"], cluster["master_ip"]))
+        )
     cluster["target_ip"] = cluster["master_ip"]
     cluster["target_port"] = cluster["master_port"]
     cluster["repl_ip"] = cluster["new_master_ip"]
