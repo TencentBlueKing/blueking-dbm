@@ -201,10 +201,10 @@
       } as unknown as TendbhaModel,
       data.cluster,
     ),
-    db_patterns: data.db_patterns || ['*'],
+    db_patterns: data.db_patterns || [],
     ignore_dbs: data.ignore_dbs || [],
     ignore_tables: data.ignore_tables || [],
-    table_patterns: data.table_patterns || ['*'],
+    table_patterns: data.table_patterns || [],
     truncate_data_type: data.truncate_data_type || '',
   });
 
