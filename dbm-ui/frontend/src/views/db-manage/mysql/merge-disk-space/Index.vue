@@ -62,10 +62,7 @@
             field="ignore_db_list"
             :label="t('忽略 DB')"
             @batch-edit="handleBatchEdit" />
-          <TargetClusterColumn
-            v-model="item.target_clusters"
-            :cluster="item.source_cluster"
-            single />
+          <TargetClusterColumn v-model="item.target_clusters" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -90,7 +87,7 @@
   </SmartAction>
   <Assessment
     ref="assessmentRef"
-    :data="formData.tableData" />
+    v-model:table-data="formData.tableData" />
 </template>
 
 <script lang="ts" setup>
@@ -103,11 +100,11 @@
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import ClusterColumn from '@views/db-manage/mysql/common/toolbox-field/cluster-column/Index.vue';
   import DbNameColumn from '@views/db-manage/mysql/common/toolbox-field/db-name-column/Index.vue';
-  import TargetClusterColumn from '@views/db-manage/mysql/MYSQL_DATA_MIGRATE/components/TargetClusterColumn.vue';
 
   import { random } from '@utils';
 
   import Assessment from './components/assessment/Index.vue';
+  import TargetClusterColumn from './components/TargetClusterColumn.vue';
 
   interface RowData {
     clone_db_list: string[];

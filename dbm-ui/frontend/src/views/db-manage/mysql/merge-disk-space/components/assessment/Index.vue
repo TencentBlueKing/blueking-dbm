@@ -13,7 +13,7 @@
 
 <template>
   <div
-    v-if="migrations.length"
+    v-if="isShowResults"
     class="assessment-result">
     <div class="mt-24 mb-12 assessment-result-title">
       {{ t('评估结果') }}
@@ -46,7 +46,7 @@
         :title="t('磁盘评估通过。')" />
       <BkTable
         border
-        :data="tableData"
+        :data="results"
         :max-height="400">
         <BkTableColumn
           field="source"
@@ -147,7 +147,6 @@
 </template>
 
 <script lang="ts" setup>
-  import _ from 'lodash';
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -161,23 +160,23 @@
 
   import PriviewDbs from './components/PriviewDbs.vue';
 
-  interface Props {
-    data: {
-      clone_db_list: string[];
-      data_schema_grant?: string;
-      db_list?: string[];
-      ignore_db_list: string[];
-      source_cluster: TendbhaModel;
-      target_clusters: TendbhaModel[];
-    }[];
+  interface RowData {
+    clone_db_list: string[];
+    data_schema_grant?: string;
+    db_list?: string[];
+    ignore_db_list: string[];
+    source_cluster: TendbhaModel;
+    target_clusters: TendbhaModel[];
   }
 
-  const props = defineProps<Props>();
+  const tableData = defineModel<RowData[]>('tableData', {
+    required: true,
+  });
 
   const { t } = useI18n();
 
-  const migrations = ref<Props['data']>([]);
-  const tableData = ref<MysqlMergeDiskSpaceModel[]>([]);
+  const isShowResults = ref(false);
+  const results = ref<MysqlMergeDiskSpaceModel[]>([]);
   const seriousRiskClusters = ref<MysqlMergeDiskSpaceModel[]>([]);
   const isShowSlider = ref(false);
   const selectedRow = ref<MysqlMergeDiskSpaceModel>();
@@ -203,7 +202,7 @@
   const { run: runAssessment } = useRequest(mergeDiskSpace, {
     manual: true,
     onSuccess(data: MysqlMergeDiskSpaceModel[]) {
-      tableData.value = data;
+      results.value = data;
       seriousRiskClusters.value = data.filter((item) => item.suggestion === '严重风险');
       isLoading.value = false;
       setTimeout(() => {
@@ -236,17 +235,16 @@
         });
         return acc;
       }, {});
-      migrations.value = migrations.value.map((item) => {
-        return {
-          ...item,
+      tableData.value.forEach((item) => {
+        Object.assign(item, {
           db_list: clusterDbsMap[item.source_cluster.id],
-        };
+        });
       });
 
       runAssessment({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        factor: 1,
-        migrations: migrations.value.map((item) => ({
+        factor: 2,
+        migrations: tableData.value.map((item) => ({
           clone_db_list: item.clone_db_list,
           db_list: item.db_list as string[],
           ignore_db_list: item.ignore_db_list,
@@ -281,31 +279,35 @@
 
   defineExpose({
     reset() {
-      migrations.value = [];
-      tableData.value = [];
+      isShowResults.value = false;
+      results.value = [];
       seriousRiskClusters.value = [];
       isShowSlider.value = false;
       selectedRow.value = undefined;
     },
     run() {
-      if (props.data.length) {
-        migrations.value = _.cloneDeep(props.data);
+      if (tableData.value.length) {
+        // 渲染结果页
+        isShowResults.value = true;
 
-        const infos = props.data.reduce<ServiceParameters<typeof showDatabasesWithPatterns>['infos']>((acc, item) => {
-          acc.push({
-            cluster_id: item.source_cluster.id,
-            dbs: item.clone_db_list,
-            ignore_dbs: item.ignore_db_list,
-          });
-          item.target_clusters.forEach((cluster) => {
+        const infos = tableData.value.reduce<ServiceParameters<typeof showDatabasesWithPatterns>['infos']>(
+          (acc, item) => {
             acc.push({
-              cluster_id: cluster.id,
+              cluster_id: item.source_cluster.id,
               dbs: item.clone_db_list,
               ignore_dbs: item.ignore_db_list,
             });
-          });
-          return acc;
-        }, []);
+            item.target_clusters.forEach((cluster) => {
+              acc.push({
+                cluster_id: cluster.id,
+                dbs: item.clone_db_list,
+                ignore_dbs: item.ignore_db_list,
+              });
+            });
+            return acc;
+          },
+          [],
+        );
 
         isLoading.value = true;
         fetchDataList({ infos });
