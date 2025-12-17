@@ -99,10 +99,11 @@ def mysql_restore_data_sub_flow(
         filter_ips=filter_ips,
         backup_id=backup_id,
         backup_source=backup_source,
+        deadlines_days=7,
     )
 
     if binlog_sync:
-        backup_handler.need_binlog_check = True
+        backup_handler.need_binlog_check = cluster["master_ip"]
 
     # 如果是TenDB Single类型，设置为增量备份
     if cluster_model.cluster_type == ClusterType.TenDBSingle.value:
@@ -299,7 +300,8 @@ def mysql_restore_master_slave_sub_flow(
         check_instance_exist=True,
         filter_ips=filter_ips,
         backup_source=backup_source,
-        need_binlog_check=True,
+        need_binlog_check=cluster["master_ip"],
+        deadlines_days=7,
     )
 
     # 如果是TenDB Cluster类型，需要设置分片ID
