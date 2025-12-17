@@ -1,5 +1,14 @@
 <template>
   <TableColumn
+    col-key="id"
+    :filter="columnFilter?.['id']"
+    title="ID"
+    :width="80">
+    <template #default="{ row }: { row: IColumnData }">
+      {{ row.id }}
+    </template>
+  </TableColumn>
+  <TableColumn
     col-key="status"
     :filter="columnFilter?.['status']"
     :min-width="80"
@@ -96,14 +105,14 @@
       <span v-else>--</span>
     </template>
   </TableColumn>
-  <TableColumn
+  <!-- <TableColumn
     col-key="bk_svr_device_cls_name"
     :min-width="250"
     :title="t('机型')">
     <template #default="{ row }: { row: IColumnData }">
       {{ row.bk_svr_device_cls_name || '--' }}
     </template>
-  </TableColumn>
+  </TableColumn> -->
   <TableColumn
     col-key="create_at"
     :filter="columnFilter?.['create_at']"

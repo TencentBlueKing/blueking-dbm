@@ -43,6 +43,8 @@
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
+  import type { ListBase } from '@services/types/listBase.ts';
+
   import DbTable from '@components/db-table/IndexNew.vue';
 
   import ClusterNameColumn from './ClusterNameColumn.vue';
@@ -83,6 +85,7 @@
     (e: 'selection', key: number[], list: InstanceModel<C>[]): void;
     (e: 'setting-change', params: NonNullable<Props<C>['bkUiSettings']>): void;
     (e: 'filter-change', params: Record<string, string>): void;
+    (e: 'requestSuccess', value: ListBase<InstanceModel<C>[]>): void;
   }
 
   export interface Expose {
@@ -179,8 +182,9 @@
     emits('filter-change', filterValue);
   };
 
-  const handleRequestSuceess = () => {
+  const handleRequestSuceess = (data: ListBase<InstanceModel<T>[]>) => {
     isDataRequestSuccess.value = true;
+    emits('requestSuccess', data);
   };
 
   defineExpose<Expose>({

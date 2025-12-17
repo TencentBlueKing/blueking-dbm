@@ -14,15 +14,8 @@
 <template>
   <div class="sqlserver-ha-instance-list-page">
     <div class="operation-box">
-      <AuthButton
-        action-id="sqlserver_apply"
-        theme="primary"
-        @click="handleApply">
-        {{ t('申请实例') }}
-      </AuthButton>
       <InstanceBatchCopy
         v-db-console="'sqlserver.haInstanceManage.batchCopy'"
-        class="ml-8"
         field="instance_address"
         :get-table-data="getBatchCopyData"
         :selected="selectedList" />
@@ -92,8 +85,6 @@
 
   import { useInstanceQuickSearch, useTableSettings } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
-
   import { ClusterTypes, UserPersonalSettings } from '@common/const';
 
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
@@ -105,8 +96,6 @@
   } from '@views/db-manage/common/instance-table/Index.vue';
   import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
 
-  const router = useRouter();
-  const globalBizsStore = useGlobalBizs();
   const { t } = useI18n();
 
   const { isSearching, quickSearchData, quickSearchValue } = useInstanceQuickSearch({
@@ -120,15 +109,6 @@
     useClusterTableSelect<SqlserverhaInstanceModel>();
 
   const instanceTableRef = useTemplateRef('instanceTable');
-
-  const handleApply = () => {
-    router.push({
-      name: 'SqlServiceHaApply',
-      query: {
-        bizId: globalBizsStore.currentBizId,
-      },
-    });
-  };
 
   const getTableInstance = () => instanceTableRef.value;
 

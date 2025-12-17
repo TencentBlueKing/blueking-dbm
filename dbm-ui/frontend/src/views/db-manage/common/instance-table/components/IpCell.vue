@@ -1,26 +1,20 @@
 <template>
-  <div
-    :class="{
-      'is-hover': isHover,
-    }">
-    <TextHighlight
-      high-light-color="#F59500"
-      :keyword="searchKeyword">
-      {{ data.ip }}
-    </TextHighlight>
-    <PopoverCopy @toogle-show="handlePopoverShow">
-      <div @click="handleCopy(data.ip)">
-        {{ t('复制 IP') }}
-      </div>
-    </PopoverCopy>
-  </div>
+  <TextHighlight
+    high-light-color="#F59500"
+    :keyword="searchKeyword">
+    {{ data.ip }}
+  </TextHighlight>
+  <DbIcon
+    class="ml-4 mt-2"
+    role="table-cell-operation"
+    type="copy"
+    @click="handleCopy(data.ip)" />
 </template>
 <script setup lang="ts">
   import type { VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
 
-  import PopoverCopy from '@components/popover-copy/Index.vue';
   import TextHighlight from '@components/text-highlight/Index.vue';
 
   import { execCopy } from '@utils';
@@ -45,8 +39,6 @@
 
   const searchKeyword = ref('');
 
-  const isHover = ref(false);
-
   watch(
     route,
     () => {
@@ -64,9 +56,5 @@
         n: 1,
       }),
     );
-  };
-
-  const handlePopoverShow = (value: boolean) => {
-    isHover.value = value;
   };
 </script>

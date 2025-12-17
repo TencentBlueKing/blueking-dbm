@@ -1,37 +1,29 @@
 <template>
-  <div
-    :class="{
-      'is-hover': isHover,
-    }">
-    <TextOverflowLayout>
-      <AuthButton
-        :action-id="viewActionId"
-        :permission="Boolean(_.get(data.permission, viewActionId))"
-        :resource="data.id"
-        text
-        theme="primary"
-        @click="(event: MouseEvent) => handleToDetails(data.cluster_id, event)">
-        <TextHighlight
-          high-light-color="#F59500"
-          :keyword="searchKeyword">
-          {{ data.master_domain }}
-        </TextHighlight>
-      </AuthButton>
-      <template #append>
-        <slot
-          name="append"
-          v-bind="{ data: data }" />
-        <PopoverCopy @toogle-show="handlePopoverShow">
-          <div @click="handleCopy(data.master_domain)">
-            {{ t('复制域名') }}
-          </div>
-          <!-- <div @click="handleCopy(data.masterDomainDisplayName)">
-            {{ t('复制域名:端口') }}
-          </div> -->
-        </PopoverCopy>
-      </template>
-    </TextOverflowLayout>
-  </div>
+  <TextOverflowLayout>
+    <AuthButton
+      :action-id="viewActionId"
+      :permission="Boolean(_.get(data.permission, viewActionId))"
+      :resource="data.id"
+      text
+      theme="primary"
+      @click="(event: MouseEvent) => handleToDetails(data.cluster_id, event)">
+      <TextHighlight
+        high-light-color="#F59500"
+        :keyword="searchKeyword">
+        {{ data.master_domain }}
+      </TextHighlight>
+    </AuthButton>
+    <template #append>
+      <slot
+        name="append"
+        v-bind="{ data: data }" />
+      <DbIcon
+        class="ml-4 mt-2"
+        role="table-cell-operation"
+        type="copy"
+        @click="handleCopy(data.master_domain)" />
+    </template>
+  </TextOverflowLayout>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
@@ -41,7 +33,6 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import PopoverCopy from '@components/popover-copy/Index.vue';
   import TextHighlight from '@components/text-highlight/Index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
@@ -110,7 +101,6 @@
 
   const searchKeyword = ref('');
 
-  const isHover = ref(false);
   const viewActionId = computed(() => infoMap[props.clusterType].viewActionId);
 
   watch(
@@ -143,9 +133,5 @@
     });
     window.open(href);
     return false;
-  };
-
-  const handlePopoverShow = (value: boolean) => {
-    isHover.value = value;
   };
 </script>
