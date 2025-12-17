@@ -18,6 +18,7 @@ from .es_master_report import EsMasterReport
 from .es_status_report import EsStatusReport
 from .es_version_report import EsVersionReport
 from .failover_drill_report import FailoverDrillReport
+from .kafka_affinity_report import KafkaBrokerAffinityReport, KafkaZookeeperAffinityReport
 from .meta_check_report import MetaCheckReport
 from .monogdb_check_report import MongodbBackupCheckReport
 from .mysql_backup_progress import MysqlBackupProgress

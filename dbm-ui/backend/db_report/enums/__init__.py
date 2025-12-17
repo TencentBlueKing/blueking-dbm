@@ -13,6 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 from .dbmon_heartbeat_report_sub_type import DbmonHeartbeatReportSubType
+from .kafka_affinity_check_sub_type import KafkaAffinityCheckSubType
 from .meta_check_sub_type import MetaCheckSubType
 from .mysqlbackup_check_sub_type import MysqlBackupCheckSubType
 from .redis_rollback_exercise_task_stage import FAILED_STAGES as REDIS_ROLLBACK_EXER_FAILED_STAGES
@@ -76,6 +77,10 @@ class ReportType(StrStructuredEnum):
     ES_MASTER_CHECK = EnumField("es_master_check", _("ES集群master节点巡检"))
     ES_DOMAIN_CHECK = EnumField("es_domain_check", _("ES集群域名巡检"))
     ES_ACCOUNT_CHECK = EnumField("es_account_check", _("ES集群账户巡检"))
+
+    # Kafka
+    KAFKA_ZOOKEEPER_AFFINITY_CHECK = EnumField("kafka_zookeeper_affinity_check", _("Kafka Zookeeper亲和性巡检"))
+    KAFKA_BROKER_AFFINITY_CHECK = EnumField("kafka_broker_affinity_check", _("Kafka Broker亲和性巡检"))
 
 
 class ReportStateType(StrStructuredEnum):
