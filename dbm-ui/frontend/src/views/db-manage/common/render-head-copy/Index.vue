@@ -127,6 +127,7 @@
     [class*='db-icon'] {
       margin-top: 1px;
       margin-left: 4px;
+      color: #9498a5;
       cursor: pointer;
 
       &:hover {

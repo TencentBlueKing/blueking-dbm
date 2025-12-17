@@ -16,7 +16,6 @@
     <div class="operation-box">
       <InstanceBatchCopy
         v-db-console="'oracle.haInstanceManage.batchCopy'"
-        class="ml-8"
         field="instance_address"
         :get-table-data="getBatchCopyData"
         :selected="selectedList" />

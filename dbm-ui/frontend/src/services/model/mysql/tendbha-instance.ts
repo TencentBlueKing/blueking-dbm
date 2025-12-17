@@ -35,7 +35,6 @@ export default class TendbhaInstance extends InstanceBase {
   cluster_name: string;
   cluster_type: ClusterTypes;
   cluster_type_name: string;
-
   db_module_id: number;
   db_module_name: string;
   host_info: HostInfo;
@@ -43,6 +42,7 @@ export default class TendbhaInstance extends InstanceBase {
   instance_address: string;
   instance_name: string;
   ip: string;
+  is_stand_by: boolean;
   machine_type: string;
   master_domain: string;
   permission: {
@@ -92,5 +92,6 @@ export default class TendbhaInstance extends InstanceBase {
     this.slave_domain = payload.slave_domain || '';
     this.spce_config = payload.spce_config || {};
     this.version = payload.version || '';
+    this.is_stand_by = payload.is_stand_by || false;
   }
 }

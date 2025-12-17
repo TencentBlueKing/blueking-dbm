@@ -76,20 +76,8 @@
   const { handleCopyAll, handleCopySelected } = useColumnCopy(props);
 </script>
 <style lang="less">
-  .instance-table-instance-address-column {
-    &:hover,
-    .is-hover {
-      [class*='db-icon'] {
-        display: inline !important;
-      }
-    }
-
-    [class*='db-icon'] {
-      display: none;
-      margin-top: 1px;
-      margin-left: 4px;
-      color: @primary-color;
-      cursor: pointer;
-    }
+  .cluster-specific-flag {
+    color: #531dab !important;
+    background: #f9f0ff !important;
   }
 </style>

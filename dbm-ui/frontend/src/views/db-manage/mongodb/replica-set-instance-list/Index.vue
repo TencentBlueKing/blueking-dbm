@@ -14,19 +14,13 @@
 <template>
   <div class="mongodb-instance-list-page">
     <div class="operation-box">
-      <AuthButton
-        action-id="mongodb_apply"
-        theme="primary"
-        @click="handleApply">
-        {{ t('申请实例') }}
-      </AuthButton>
       <span
         v-bk-tooltips="{
           disabled: isSelected,
           content: t('请选择操作实例'),
         }">
         <BkButton
-          class="w-88 ml-12"
+          class="w-88"
           :disabled="!isSelected"
           @click="handleChangeInstanceOnline(selectedList)">
           {{ t('批量重启') }}
@@ -138,8 +132,6 @@
 
   import { useInstanceQuickSearch, useTableSettings, useTicketMessage } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
-
   import { ClusterTypes, TicketTypes, UserPersonalSettings } from '@common/const';
 
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
@@ -155,8 +147,6 @@
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
 
-  const router = useRouter();
-  const globalBizsStore = useGlobalBizs();
   const { t } = useI18n();
   const ticketMessage = useTicketMessage();
 
@@ -176,15 +166,6 @@
       ...params,
       cluster_type: ClusterTypes.MONGO_REPLICA_SET,
     });
-
-  const handleApply = () => {
-    router.push({
-      name: 'MongoDBReplicaSetApply',
-      query: {
-        bizId: globalBizsStore.currentBizId,
-      },
-    });
-  };
 
   const getTableInstance = () => instanceTableRef.value;
 

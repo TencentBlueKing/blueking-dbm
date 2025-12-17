@@ -14,15 +14,8 @@
 <template>
   <div class="mysql-ha-instance-list-page">
     <div class="operation-box">
-      <AuthButton
-        action-id="mysql_apply"
-        theme="primary"
-        @click="handleApply">
-        {{ t('申请实例') }}
-      </AuthButton>
       <InstanceBatchCopy
         v-db-console="'mysql.haInstanceManage.batchCopy'"
-        class="ml-8"
         field="instance_address"
         :get-table-data="getBatchCopyData"
         :selected="selectedList" />
@@ -62,6 +55,14 @@
           :get-table-instance="getTableInstance"
           :is-filter="isSearching"
           :selected-list="selectedList">
+          <template #append="{ data }: { data: TendbhaInstanceModel }">
+            <BkTag
+              v-if="data.role === 'backend_slave' && data.is_stand_by"
+              class="cluster-specific-flag ml-4"
+              size="small">
+              Standby
+            </BkTag>
+          </template>
         </InstanceAddressColumn>
       </template>
       <template #relatedCluster>
@@ -92,8 +93,6 @@
 
   import { useInstanceQuickSearch, useTableSettings } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
-
   import { ClusterTypes, UserPersonalSettings } from '@common/const';
 
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
@@ -105,8 +104,6 @@
   } from '@views/db-manage/common/instance-table/Index.vue';
   import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
 
-  const router = useRouter();
-  const globalBizsStore = useGlobalBizs();
   const { t } = useI18n();
 
   const { handleSelection, isSelected, selectedIdList, selectedList } = useClusterTableSelect<TendbhaInstanceModel>();
@@ -118,15 +115,6 @@
   });
 
   const instanceTableRef = useTemplateRef('instanceTable');
-
-  const handleApply = () => {
-    router.push({
-      name: 'SelfServiceApplyHa',
-      query: {
-        bizId: globalBizsStore.currentBizId,
-      },
-    });
-  };
 
   const getTableInstance = () => instanceTableRef.value;
 

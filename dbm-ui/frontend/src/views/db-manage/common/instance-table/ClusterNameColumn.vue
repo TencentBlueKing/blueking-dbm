@@ -73,25 +73,3 @@
 
   const labelDisplay = computed(() => props.label || t('集群名称'));
 </script>
-<style lang="less">
-  .instance-table-cluster-name-column {
-    &:hover,
-    .is-hover {
-      [class*='db-icon'] {
-        display: inline !important;
-      }
-
-      .master-domain-alarm-sign {
-        display: flex;
-      }
-    }
-
-    [class*='db-icon'] {
-      display: none;
-      margin-top: 1px;
-      margin-left: 4px;
-      color: @primary-color;
-      cursor: pointer;
-    }
-  }
-</style>

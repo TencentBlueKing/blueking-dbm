@@ -14,15 +14,8 @@
 <template>
   <div class="tendbcluster-instance-list-page">
     <div class="operation-box">
-      <AuthButton
-        action-id="tendbcluster_apply"
-        theme="primary"
-        @click="handleApply">
-        {{ t('申请实例') }}
-      </AuthButton>
       <InstanceBatchCopy
         v-db-console="'tendbCluster.instanceManage.batchCopy'"
-        class="ml-8"
         field="instance_address"
         :get-table-data="getBatchCopyData"
         :selected="selectedList" />
@@ -55,6 +48,7 @@
       :filter-value="quickSearchValue"
       @bk-ui-settings-change="updateTableSettings"
       @filter-change="handleFilterChange"
+      @request-success="handleRequestSuccess"
       @selection="handleSelection">
       <template #instanceAddress>
         <InstanceAddressColumn
@@ -62,6 +56,14 @@
           :get-table-instance="getTableInstance"
           :is-filter="isSearching"
           :selected-list="selectedList">
+          <template #append="{ data }: { data: TendbclusterInstanceModel }">
+            <BkTag
+              v-if="clusterPrimaryMap[data.ip]"
+              class="cluster-specific-flag ml-4"
+              size="small">
+              Primary
+            </BkTag>
+          </template>
         </InstanceAddressColumn>
       </template>
       <template #relatedCluster>
@@ -85,14 +87,15 @@
 </template>
 
 <script setup lang="tsx">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import TendbclusterInstanceModel from '@services/model/tendbcluster/tendbcluster-instance';
-  import { getTendbclusterInstanceList } from '@services/source/tendbcluster';
+  import { getTendbclusterInstanceList, getTendbclusterPrimary } from '@services/source/tendbcluster';
+  import type { ListBase } from '@services/types';
 
   import { useInstanceQuickSearch, useTableSettings } from '@hooks';
-
-  import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes, UserPersonalSettings } from '@common/const';
 
@@ -105,8 +108,6 @@
   } from '@views/db-manage/common/instance-table/Index.vue';
   import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
 
-  const router = useRouter();
-  const globalBizsStore = useGlobalBizs();
   const { t } = useI18n();
 
   const { isSearching, quickSearchData, quickSearchValue } = useInstanceQuickSearch({
@@ -121,14 +122,23 @@
 
   const instanceTableRef = useTemplateRef('instanceTable');
 
-  const handleApply = () => {
-    router.push({
-      name: 'spiderApply',
-      query: {
-        bizId: globalBizsStore.currentBizId,
-      },
-    });
-  };
+  const clusterPrimaryMap = shallowRef<Record<string, boolean>>({});
+
+  const { run: rungGetTendbclusterPrimary } = useRequest(getTendbclusterPrimary, {
+    onSuccess(data) {
+      if (data.length > 0) {
+        clusterPrimaryMap.value = data.reduce<Record<string, boolean>>((acc, cur) => {
+          const ip = cur.primary.split(':')[0];
+          if (ip) {
+            Object.assign(acc, {
+              [ip]: true,
+            });
+          }
+          return acc;
+        }, {});
+      }
+    },
+  });
 
   const getTableInstance = () => instanceTableRef.value;
 
@@ -148,6 +158,12 @@
   const handleFilterChange = (filterValue: Record<string, string>) => {
     quickSearchValue.value = filterValue;
     fetchData();
+  };
+
+  const handleRequestSuccess = (data: ListBase<TendbclusterInstanceModel[]>) => {
+    rungGetTendbclusterPrimary({
+      cluster_ids: _.uniq(data.results.map((item) => item.cluster_id)),
+    });
   };
 </script>
 
