@@ -159,6 +159,7 @@ REPORT_OVERVIEW_DATA = {
         "status_abnormal_check",
     ],
     "mysql": ["full_backup_check", "binlog_backup_check", "meta_check", "checksum"],
+    "kafka": ["kafka_zookeeper_affinity_check", "kafka_broker_affinity_check"],
 }
 
 REPORT_COUNT_DATA = {
@@ -167,6 +168,10 @@ REPORT_COUNT_DATA = {
     },
     "mysql": {
         "full_backup_check": {"manage_count": 0, "assist_count": 26},
+    },
+    "kafka": {
+        "kafka_zookeeper_affinity_check": {"manage_count": 15, "assist_count": 3},
+        "kafka_broker_affinity_check": {"manage_count": 15, "assist_count": 3},
     },
 }
 
@@ -560,5 +565,109 @@ REDIS_EXPORTER_CHECK_DATA = {
         {"name": "subtype", "display_name": "检查子类型", "format": "text"},
         {"name": "state", "display_name": "检查状态", "format": "text"},
         {"name": "msg", "display_name": "详情", "format": "text"},
+    ],
+}
+
+# Kafka Zookeeper 亲和性检查报告
+KAFKA_ZOOKEEPER_AFFINITY_CHECK_DATA = {
+    "count": 2,
+    "next": None,
+    "previous": None,
+    "results": [
+        {
+            "bk_biz_id": 1,
+            "app": "kafka_prod",
+            "domain": "aa1.bb.cc",
+            "dba": ["admin", "dba_user"],
+            "create_at": "2024-04-01T10:00:00Z",
+            "cluster_type": "kafka",
+            "msg": "Zookeeper节点分布正常，机房和机架亲和性检查通过",
+            "state": "normal",
+            "zk_node_count": 3,
+            "zk_idc_affinity": 3,
+            "zk_rack_affinity": 3,
+            "zk_idc_distribution": {"深圳": 1, "广州": 1, "上海": 1},
+            "zk_rack_distribution": {"rack-a": 1, "rack-b": 1, "rack-c": 1},
+        },
+        {
+            "bk_biz_id": 2,
+            "app": "kafka_test",
+            "domain": "aa2.bb.cc",
+            "dba": ["test_admin"],
+            "create_at": "2024-04-01T11:30:00Z",
+            "cluster_type": "kafka",
+            "msg": "Zookeeper节点集中部署在单一机房，存在单点故障风险",
+            "state": "warning",
+            "zk_node_count": 3,
+            "zk_idc_affinity": 1,
+            "zk_rack_affinity": 2,
+            "zk_idc_distribution": {"深圳": 3},
+            "zk_rack_distribution": {"rack-a": 2, "rack-b": 1},
+        },
+    ],
+    "name": "Kafka Zookeeper亲和性检查",
+    "title": [
+        {"name": "bk_biz_id", "display_name": "业务", "format": "text"},
+        {"name": "app", "display_name": "业务名", "format": "text"},
+        {"name": "domain", "display_name": "集群域名", "format": "text"},
+        {"name": "cluster_type", "display_name": "集群类型", "format": "text"},
+        {"name": "dba", "display_name": "业务所属dba", "format": "text"},
+        {"name": "create_at", "display_name": "巡检时间", "format": "text"},
+        {"name": "msg", "display_name": "检查结果", "format": "text"},
+        {"name": "state", "display_name": "检查状态", "format": "status"},
+        {"name": "zk_node_count", "display_name": "Zookeeper节点数量", "format": "text"},
+        {"name": "zk_idc_affinity", "display_name": "Zookeeper机房亲和度", "format": "text"},
+        {"name": "zk_rack_affinity", "display_name": "Zookeeper机架亲和度", "format": "text"},
+        {"name": "zk_idc_distribution", "display_name": "Zookeeper机房分布", "format": "text"},
+        {"name": "zk_rack_distribution", "display_name": "Zookeeper机架分布", "format": "text"},
+    ],
+}
+
+# Kafka Broker 亲和性检查报告
+KAFKA_BROKER_AFFINITY_CHECK_DATA = {
+    "count": 2,
+    "next": None,
+    "previous": None,
+    "results": [
+        {
+            "bk_biz_id": 1,
+            "app": "kafka_prod",
+            "domain": "aa1.bb.cc",
+            "dba": ["admin", "dba_user"],
+            "create_at": "2024-04-01T10:00:00Z",
+            "cluster_type": "kafka",
+            "msg": "Broker节点机架分布合理，满足高可用要求",
+            "state": "normal",
+            "broker_node_count": 6,
+            "broker_rack_affinity": 3,
+            "broker_rack_distribution": {"rack-a": 2, "rack-b": 2, "rack-c": 2},
+        },
+        {
+            "bk_biz_id": 2,
+            "app": "kafka_test",
+            "domain": "aa2.bb.cc",
+            "dba": ["test_admin"],
+            "create_at": "2024-04-01T11:30:00Z",
+            "cluster_type": "kafka",
+            "msg": "Broker节点集中在单一机架，存在机架级故障风险",
+            "state": "warning",
+            "broker_node_count": 4,
+            "broker_rack_affinity": 1,
+            "broker_rack_distribution": {"rack-a": 4},
+        },
+    ],
+    "name": "Kafka Broker亲和性检查",
+    "title": [
+        {"name": "bk_biz_id", "display_name": "业务", "format": "text"},
+        {"name": "app", "display_name": "业务名", "format": "text"},
+        {"name": "domain", "display_name": "集群域名", "format": "text"},
+        {"name": "cluster_type", "display_name": "集群类型", "format": "text"},
+        {"name": "dba", "display_name": "业务所属dba", "format": "text"},
+        {"name": "create_at", "display_name": "巡检时间", "format": "text"},
+        {"name": "msg", "display_name": "检查结果", "format": "text"},
+        {"name": "state", "display_name": "检查状态", "format": "status"},
+        {"name": "broker_node_count", "display_name": "Broker节点数量", "format": "text"},
+        {"name": "broker_rack_affinity", "display_name": "Broker机架亲和度", "format": "text"},
+        {"name": "broker_rack_distribution", "display_name": "Broker机架分布", "format": "text"},
     ],
 }
