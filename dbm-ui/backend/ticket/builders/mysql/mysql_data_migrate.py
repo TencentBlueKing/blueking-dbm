@@ -25,7 +25,7 @@ class MySQLDataMigrateDetailSerializer(MySQLBaseOperateDetailSerializer):
     class DataMigrateInfoSerializer(serializers.Serializer):
         source_cluster = serializers.IntegerField(help_text=_("源集群ID"))
         target_clusters = serializers.ListField(help_text=_("目标集群列表"), child=serializers.IntegerField())
-        db_list = serializers.ListField(help_text=_("最终库列表"), child=serializers.CharField())
+        db_list = serializers.ListField(help_text=_("最终库列表"), child=serializers.CharField(), allow_empty=False)
         data_schema_grant = serializers.CharField(help_text=_("克隆类型"), required=False, default="data,schema")
         # display fields
         clone_db_list = serializers.ListField(help_text=_("克隆库列表"), child=serializers.CharField(), required=False)
