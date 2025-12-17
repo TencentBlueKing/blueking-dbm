@@ -93,7 +93,7 @@
   </SmartAction>
   <Assessment
     ref="assessmentRef"
-    :data="formData.tableData"
+    v-model:table-data="formData.tableData"
     @request-success="handleAssessmentSuccess" />
 </template>
 <script lang="ts" setup>
