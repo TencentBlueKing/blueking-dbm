@@ -336,11 +336,9 @@ def gen_rollback_task():
         # 将集群、备份记录和备份大小存入列表
         cluster_backup_info.append((cluster, backup_result, backup_result.total_filesize))
 
-    # 第二阶段：按备份文件大小降序排序
-    cluster_backup_info.sort(key=lambda x: x[2], reverse=True)
-    logger.info(_("已收集 {} 个集群的备份信息，按备份大小排序后开始生成任务").format(len(cluster_backup_info)))
+    logger.info(_("已收集 {} 个集群的备份信息，开始生成任务").format(len(cluster_backup_info)))
 
-    # 第三阶段：按排序后的顺序生成回档任务
+    # 第三阶段：生成回档任务
     for cluster, backup_result, backup_size in cluster_backup_info:
         backup_file_size_gb = bytes_to_gb(backup_size)
         logger.info(_("开始处理集群 {} 的备份，备份大小: {:.2f} GB").format(cluster.immute_domain, backup_file_size_gb))
