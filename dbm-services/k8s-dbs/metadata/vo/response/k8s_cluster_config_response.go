@@ -46,9 +46,14 @@ type K8sClusterConfigResponse struct {
 
 // RegionResp 区域信息响应结构体
 type RegionResp struct {
-	IsPublic    bool   `json:"isPublic"`
-	ClusterName string `json:"clusterName"`
-	RegionName  string `json:"regionName"`
-	RegionCode  string `json:"regionCode"`
-	Provider    string `json:"provider"`
+	RegionName     string           `json:"regionName"`
+	RegionCode     string           `json:"regionCode"`
+	Provider       string           `json:"provider"`
+	K8sClusterList []K8sClusterResp `json:"k8sClusterList"`
+}
+
+// K8sClusterResp k8s 集群信息结构体
+type K8sClusterResp struct {
+	ClusterName  string `json:"clusterName"`
+	ClusterAlias string `json:"clusterAlias"`
 }
