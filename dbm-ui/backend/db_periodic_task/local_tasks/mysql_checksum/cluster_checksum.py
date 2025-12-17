@@ -13,6 +13,7 @@ from backend.db_meta.enums import InstanceInnerRole
 from backend.db_meta.models import Cluster, StorageInstanceTuple
 from backend.db_report.enums import ReportStateType
 from backend.db_report.models import ChecksumCheckReport, ChecksumInstance
+from backend.flow.consts import InstanceStatus
 from backend.utils.time import datetime2str
 
 logger = logging.getLogger("celery")
@@ -41,7 +42,11 @@ class ChecksumService:
     def __init__(self, cluster_id: int):
         self.cluster = Cluster.objects.get(id=cluster_id)
         inner_role_filter = [InstanceInnerRole.SLAVE.value, InstanceInnerRole.REPEATER.value]
-        self.instances = list(self.cluster.storageinstance_set.filter(instance_inner_role__in=inner_role_filter))
+        self.instances = list(
+            self.cluster.storageinstance_set.filter(instance_inner_role__in=inner_role_filter).exclude(
+                status=InstanceStatus.UNAVAILABLE
+            )
+        )
         machines = [inst.machine.ip for inst in self.instances]
         self.slaves = list(dict.fromkeys(machines))
 
@@ -178,13 +183,14 @@ class ChecksumService:
                 if cmd_results[1]["error_msg"]:
                     raise  # ToDo
 
-                checksum.reported = True
-                checksum.master_ip = master_ip
-                checksum.master_port = master_port
-                for inconsistent_row in cmd_results[1]["table_data"]:
-                    checksum.add_not_consistent_table(inconsistent_row["db"], inconsistent_row["tbl"])
+                if len(cmd_results[1]["table_data"]) > 0:
+                    checksum.reported = True
+                    checksum.master_ip = master_ip
+                    checksum.master_port = master_port
+                    for inconsistent_row in cmd_results[1]["table_data"]:
+                        checksum.add_not_consistent_table(inconsistent_row["db"], inconsistent_row["tbl"])
 
-                fail.append(checksum)
+                    fail.append(checksum)
 
         return fail, not_reported
 
