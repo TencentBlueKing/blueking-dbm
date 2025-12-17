@@ -49,7 +49,7 @@ class MySQLBackupHandler:
         backup_method: list[str] = None,
         is_standby: bool = True,
         backup_source: str = MySQLBackupSource.REMOTE.value,
-        need_binlog_check: bool = False,
+        need_binlog_check: str = "",
     ):
         """
         @param cluster_id: 集群ID
@@ -62,6 +62,7 @@ class MySQLBackupHandler:
         @param backup_method: 备份方法
         @param is_standby: 是否为备机
         @param backup_source: 是否从本地备份获取
+        @param need_binlog_check: 匹配输入的信息信息,如masterIP
         """
         self.cluster = Cluster.objects.get(id=cluster_id)
         # 是否为全备份
@@ -121,6 +122,8 @@ class MySQLBackupHandler:
             if isinstance(show_slave_status, dict) and "master_host" in show_slave_status:
                 backup_info["binlog_ips"].append(show_slave_status["master_host"])
             backup_info["binlog_ips"] = list(set(backup_info["binlog_ips"]))
+            if "" in backup_info["binlog_ips"]:
+                backup_info["binlog_ips"].remove("")
 
         task_ids = []
         local_files = []
@@ -185,9 +188,9 @@ class MySQLBackupHandler:
                 logger.info(_("指定查询必须从is_standby实例查询。spider_master/TDBCTL/orphan除外"))
                 conditions &= Q(is_standby="yes") | Q(mysql_role__in=["spider_master", "TDBCTL", "orphan"])
 
-            if self.need_binlog_check:
-                logger.info(_("指定备份必须存在binlog位点"))
-                conditions &= Q(binlog_info__icontains="binlog_pos")
+            if self.need_binlog_check != "":
+                logger.info(_("指定备份binlog_info必须匹配信息 {}".format(self.need_binlog_check)))
+                conditions &= Q(binlog_info__icontains=self.need_binlog_check)
 
         backup_infos = MysqlBackupResult.objects.filter(conditions).order_by("-backup_consistent_time")
         self.query = str(backup_infos.query)
@@ -270,7 +273,6 @@ class MySQLBackupHandler:
         """
         tendbha 获取指定集群的备份信息，根据备份时间排序
         @param latest_time: 查询备份最迟时间
-        @param limit_one: 是否限制只返回一条备份记录
         @return: 返回集群的各个数据节点的备份记录，且backup_id必须一致
         """
         if self.backup_source == MySQLBackupSource.LOCAL:
@@ -610,9 +612,9 @@ class MySQLBackupHandler:
                     f" {conditions} and (backup_method in ('{backup_method_str}')"
                     f" or mysql_role in ('spider_master','TDBCTL'))"
                 )
-            if self.need_binlog_check:
-                logger.info(_("指定备份必须存在binlog位点"))
-                conditions = f" {conditions} and binlog_info like '%binlog_pos%' "
+            if self.need_binlog_check != "":
+                logger.info(_("指定备份binlog_info必须匹配信息 {}".format(self.need_binlog_check)))
+                conditions = f" {conditions} and binlog_info like '%{self.need_binlog_check}%' "
 
         backup_infos = []
 
