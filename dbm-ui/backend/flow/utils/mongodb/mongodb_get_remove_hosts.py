@@ -103,10 +103,12 @@ def instance_migrate_remove_hosts(flow_data: dict) -> list:
     remove_hosts_set = hosts_set - no_remove_hosts_set
     if remove_hosts_set:
         for remove_host in remove_hosts_set:
+            machine = Machine.objects.get(ip=remove_host[0], bk_cloud_id=remove_host[1])
             remove_hosts.append(
                 {
                     "ip": remove_host[0],
                     "bk_cloud_id": remove_host[1],
+                    "bk_host_id": machine.bk_host_id,
                 }
             )
         return remove_hosts

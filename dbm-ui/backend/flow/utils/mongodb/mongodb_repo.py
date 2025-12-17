@@ -182,6 +182,7 @@ class MongoDBCluster:
     cluster_type: str
     cluster_id: str
     tags: List[str] = None
+    affinity: str
 
     def __init__(
         self,
@@ -195,6 +196,7 @@ class MongoDBCluster:
         app: str = None,
         region: str = None,
         tags: List[str] = None,
+        affinity: str = None,
     ):
         self.cluster_id = cluster_id
         self.name = name
@@ -206,6 +208,7 @@ class MongoDBCluster:
         self.app = app
         self.region = region
         self.tags = tags
+        self.affinity = affinity
 
     @abstractmethod
     def get_shards(self, with_config: bool = False, sort_by_set_name: bool = False) -> List[ReplicaSet]:
@@ -279,6 +282,7 @@ class ReplicaSetCluster(MongoDBCluster):
         region: str = None,
         shard: ReplicaSet = None,
         tags: List[str] = None,
+        affinity: str = None,
     ):
         super().__init__(
             bk_cloud_id,
@@ -291,6 +295,7 @@ class ReplicaSetCluster(MongoDBCluster):
             app,
             region,
             tags,
+            affinity,
         )
         self.shard = shard
 
@@ -343,6 +348,7 @@ class ShardedCluster(MongoDBCluster):
         mongos: List[MongoNode] = None,
         configsvr: ReplicaSet = None,
         tags: List[str] = None,
+        affinity: str = None,
     ):
         super().__init__(
             bk_cloud_id,
@@ -355,6 +361,7 @@ class ShardedCluster(MongoDBCluster):
             app,
             region,
             tags,
+            affinity,
         )
         self.shards = shards
         self.mongos = mongos
@@ -474,6 +481,7 @@ class MongoRepository:
                     shard=shard,
                     region=i.region,
                     tags=i.tags.all() if with_tags else None,
+                    affinity=i.disaster_tolerance_level,
                 )
 
                 rows.append(row)
@@ -511,6 +519,7 @@ class MongoRepository:
                     configsvr=configsvr,
                     region=i.region,
                     tags=i.tags.all() if with_tags else None,
+                    affinity=i.disaster_tolerance_level,
                 )
                 rows.append(row)
 
