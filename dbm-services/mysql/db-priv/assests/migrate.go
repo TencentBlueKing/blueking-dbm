@@ -160,11 +160,11 @@ func DoMigratePlatformPassword() error {
 			if count == 0 {
 				insertPara := &service.ModifyPasswordPara{UserName: user, Component: component.Component, Operator: "admin",
 					Instances:    []service.Address{{"0.0.0.0", &defaultInt, &defaultInt}},
-					InitPlatform: true, SecurityRuleName: "password"}
+					InitPlatform: true, SecurityRuleName: "mysql_password"}
 				if component.Component == "redis" {
 					insertPara = &service.ModifyPasswordPara{UserName: user, Component: component.Component, Operator: "admin",
 						Instances:    []service.Address{{"0.0.0.0", &defaultInt, &defaultInt}},
-						InitPlatform: true, SecurityRuleName: "redis_password"}
+						InitPlatform: true, SecurityRuleName: "redis_password_v2"}
 				}
 				b, _ := json.Marshal(*insertPara)
 				err = insertPara.ModifyPassword(string(b), "modify_password")
