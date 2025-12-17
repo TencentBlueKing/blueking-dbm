@@ -31,7 +31,11 @@ from backend.flow.engine.bamboo.scene.mongodb.mongodb_restore import MongoRestor
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_scale_node import MongoScaleNodeFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_scale_storage import MongoScaleFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_user import MongoUserFlow
+from backend.flow.engine.bamboo.scene.mongodb.validate.mongodb_instance_migrate_validate import (
+    MongodbInstanceMigrateValidator,
+)
 from backend.flow.engine.controller.base import BaseController
+from backend.flow.engine.validate.base_validate import validates_with
 
 
 class MongoDBController(BaseController):
@@ -219,6 +223,7 @@ class MongoDBController(BaseController):
         flow = MongoDBClusterAddShardFlow(root_id=self.root_id, data=self.ticket_data)
         flow.multi_cluster_add_shard_flow()
 
+    @validates_with(MongodbInstanceMigrateValidator)
     def instance_migrate(self):
         """
         instance迁移
