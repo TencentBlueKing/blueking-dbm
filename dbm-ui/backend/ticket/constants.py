@@ -326,6 +326,7 @@ class TicketType(StrStructuredEnum):
     TENDBCLUSTER_OPEN_AREA = TicketEnumField("TENDBCLUSTER_OPEN_AREA", _("TenDB Cluster 开区"), _("克隆开区"),
                                              register_iam=False)  # noqa
     TENDBCLUSTER_CHECKSUM = TicketEnumField("TENDBCLUSTER_CHECKSUM", _("TenDB Cluster 数据校验修复"), _("数据处理"))
+    TENDBCLUSTER_CHECKSUM_CRON = TicketEnumField("TENDBCLUSTER_CHECKSUM", _("TenDB Cluster 数据校验定时任务"), register_iam=False)
     TENDBCLUSTER_DATA_REPAIR = TicketEnumField("TENDBCLUSTER_DATA_REPAIR", _("TenDB Cluster 数据修复"),
                                                register_iam=False)  # noqa
     TENDBCLUSTER_PARTITION = TicketEnumField("TENDBCLUSTER_PARTITION", _("TenDB Cluster 分区管理"), _("分区管理"))
