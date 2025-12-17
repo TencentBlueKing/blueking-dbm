@@ -39,6 +39,7 @@ type K8sCrdStorageAddonModel struct {
 	Releases             string                 `gorm:"type:text;column:releases" json:"releases"`
 	Active               bool                   `gorm:"type:tinyint(1);not null;default:1;column:active" json:"active"`
 	Description          string                 `gorm:"size:100;column:description" json:"description"`
+	EnableEnvValidation  bool                   `gorm:"type:tinyint(1);not null;default:0;column:enable_env_validation" json:"enableEnvValidation"` //nolint:lll
 	CreatedBy            string                 `gorm:"size:50;not null;column:created_by" json:"createdBy"`
 	CreatedAt            commtypes.JSONDatetime `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP;column:created_at" json:"createdAt"` //nolint:lll
 	UpdatedBy            string                 `gorm:"size:50;not null;column:updated_by" json:"updatedBy"`

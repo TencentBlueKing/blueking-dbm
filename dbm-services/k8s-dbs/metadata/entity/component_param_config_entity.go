@@ -1,0 +1,68 @@
+/*
+TencentBlueKing is pleased to support the open source community by making
+蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+
+Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+
+Licensed under the MIT License (the "License");
+you may not use this file except in compliance with the License.
+
+You may obtain a copy of the License at
+https://opensource.org/licenses/MIT
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package entity
+
+import commtypes "k8s-dbs/common/types"
+
+// EnvSourceType 环境变量来源类型
+type EnvSourceType string
+
+const (
+	// EnvSourceExtraArgs EXTRA_ARGS 模式：参数以 map 形式传入，转换为 --key=value 格式
+	EnvSourceExtraArgs EnvSourceType = "EXTRA_ARGS"
+)
+
+// ParamType 参数类型
+type ParamType string
+
+const (
+	// ParamTypeString 字符串类型
+	ParamTypeString ParamType = "STRING"
+
+	// ParamTypeInt 整数类型
+	ParamTypeInt ParamType = "INTEGER"
+
+	// ParamTypeBool 布尔类型
+	ParamTypeBool ParamType = "BOOLEAN"
+)
+
+// AddonParamConfigEntity 组件参数配置实体
+type AddonParamConfigEntity struct {
+	ID             uint64                 `json:"id"`
+	AddonID        uint64                 `json:"addonId"`
+	ServiceVersion string                 `json:"serviceVersion"`
+	ComponentName  string                 `json:"componentName"`
+	ParamName      string                 `json:"paramName"`
+	ParamType      ParamType              `json:"paramType"`
+	DefaultValue   *string                `json:"defaultValue"`
+	Active         bool                   `json:"active"`
+	CreatedBy      string                 `json:"createdBy"`
+	CreatedAt      commtypes.JSONDatetime `json:"createdAt"`
+	UpdatedBy      string                 `json:"updatedBy"`
+	UpdatedAt      commtypes.JSONDatetime `json:"updatedAt"`
+}
+
+// AddonParamConfigQueryParams 组件参数配置查询参数
+type AddonParamConfigQueryParams struct {
+	AddonID        uint64 `gorm:"column:addon_id" json:"addonId"`
+	ServiceVersion string `gorm:"column:service_version" json:"serviceVersion"`
+	ComponentName  string `gorm:"column:component_name" json:"componentName"`
+	Active         *bool  `gorm:"column:active" json:"active"`
+}

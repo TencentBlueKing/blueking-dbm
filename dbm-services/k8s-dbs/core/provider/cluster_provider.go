@@ -29,6 +29,7 @@ import (
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
 	coreutil "k8s-dbs/core/util"
+	corevalidator "k8s-dbs/core/validator"
 	infrautil "k8s-dbs/infrastructure/util"
 	metaentity "k8s-dbs/metadata/entity"
 	metaprovider "k8s-dbs/metadata/provider"
@@ -68,6 +69,7 @@ type ClusterProvider struct {
 	clusterHelmRepoProvider metaprovider.AddonClusterHelmRepoProvider
 	ClusterTagProvider      metaprovider.K8sCrdClusterTagProvider
 	dbmAPIService           *thirdapi.DbmAPIService
+	envValidator            *corevalidator.EnvValidator
 }
 
 // ClusterProviderOptions ClusterProvider 的函数选项
@@ -157,6 +159,15 @@ func (c *ClusterProviderBuilder) WithDbmAPIService(
 	}
 }
 
+// WithEnvValidator 设置 EnvValidator
+func (c *ClusterProviderBuilder) WithEnvValidator(
+	validator *corevalidator.EnvValidator,
+) ClusterProviderOptions {
+	return func(c *ClusterProvider) {
+		c.envValidator = validator
+	}
+}
+
 // validateProvider 验证 ClusterProvider 必要字段
 func (c *ClusterProvider) validateProvider() error {
 	if c.clusterMetaProvider == nil {
@@ -216,8 +227,13 @@ func InstanceSetGVR() schema.GroupVersionResource {
 // CreateCluster 创建集群
 func (c *ClusterProvider) CreateCluster(ctx *commentity.DbsContext, request *coreentity.Request) error {
 	// 检查集群版本
-	if err := c.checkClusterVersion(request); err != nil {
+	addonID, err := c.checkClusterVersion(request)
+	if err != nil {
 		return err
+	}
+	// 验证环境变量参数
+	if err := c.validateComponentEnv(addonID, request); err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.ParameterInvalidError, err)
 	}
 	// 检查是否重复创建
 	k8sClusterConfig, err := c.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
@@ -298,35 +314,37 @@ func (c *ClusterProvider) CreateCluster(ctx *commentity.DbsContext, request *cor
 //
 // 返回值:
 //
+//	uint64 - 匹配到的 addon ID
 //	error - 检查过程中遇到的错误，如果检查通过则为nil
-//	bool - 是否发生了错误，true表示有错误发生
-func (c *ClusterProvider) checkClusterVersion(request *coreentity.Request) error {
+func (c *ClusterProvider) checkClusterVersion(request *coreentity.Request) (uint64, error) {
 	addonQueryParams := &metaentity.AddonQueryParams{
 		AddonType:    request.StorageAddonType,
 		AddonVersion: request.StorageAddonVersion,
 	}
 	storageAddon, err := c.addonMetaProvider.FindStorageAddonByParams(addonQueryParams)
 	if err != nil {
-		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError,
+		return 0, dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError,
 			fmt.Errorf("查询存储插件元数据失败: %w", err))
 	}
 	if len(storageAddon) == 0 {
-		return dbserrors.NewK8sDbsError(dbserrors.CreateClusterError,
+		return 0, dbserrors.NewK8sDbsError(dbserrors.CreateClusterError,
 			fmt.Errorf("插件类型 '%s' 版本 '%s' 不存在或未配置，请检查插件配置", request.StorageAddonType, request.StorageAddonVersion))
 	}
+
+	addonID := storageAddon[0].ID
 
 	// 反序列化支持的版本列表
 	var supportedVersions []string
 	if err := json.Unmarshal([]byte(storageAddon[0].SupportedVersions), &supportedVersions); err != nil {
 		slog.Error("failed to unmarshal supported versions", "error", err)
-		return dbserrors.NewK8sDbsError(dbserrors.CreateClusterError,
+		return 0, dbserrors.NewK8sDbsError(dbserrors.CreateClusterError,
 			fmt.Errorf("supported versions 反序列化失败"))
 	}
 
 	// 检查组件版本是否在支持的版本列表中
 	for _, component := range request.ComponentList {
 		if !lo.Contains(supportedVersions, component.Version) {
-			return dbserrors.NewK8sDbsError(dbserrors.CreateClusterError,
+			return 0, dbserrors.NewK8sDbsError(dbserrors.CreateClusterError,
 				fmt.Errorf("组件 %s 的版本 %s 不在支持的版本列表中，支持的版本: %v",
 					component.ComponentName, component.Version, supportedVersions))
 		}
@@ -336,16 +354,16 @@ func (c *ClusterProvider) checkClusterVersion(request *coreentity.Request) error
 	var supportedAcVersions []string
 	if err := json.Unmarshal([]byte(storageAddon[0].SupportedAcVersions), &supportedAcVersions); err != nil {
 		slog.Error("failed to unmarshal supported ac versions", "error", err)
-		return dbserrors.NewK8sDbsError(dbserrors.CreateClusterError,
+		return 0, dbserrors.NewK8sDbsError(dbserrors.CreateClusterError,
 			fmt.Errorf("supported ac versions 反序列化失败"))
 	}
 
 	if !lo.Contains(supportedAcVersions, request.AddonClusterVersion) {
-		return dbserrors.NewK8sDbsError(dbserrors.CreateClusterError,
+		return 0, dbserrors.NewK8sDbsError(dbserrors.CreateClusterError,
 			fmt.Errorf("addonClusterVersion 版本 %s 不在支持的版本列表中，支持的版本: %v",
 				request.AddonClusterVersion, supportedAcVersions))
 	}
-	return nil
+	return addonID, nil
 }
 
 // saveClusterReleaseMeta 记录集群 release 元数据
@@ -451,6 +469,10 @@ func (c *ClusterProvider) UpdateClusterRelease(
 	// 检查 addonClusterVersion 是否在支持的版本列表中
 	if err := c.validateAddonClusterVersion(request, clusterEntity); err != nil {
 		return err
+	}
+	// 验证环境变量参数
+	if err := c.validateComponentEnv(clusterEntity.AddonID, request); err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.ParameterInvalidError, err)
 	}
 	// 更新 cluster release
 	values, err := c.updateClusterRelease(ctx, request, k8sClient, isPartial)
@@ -1126,6 +1148,33 @@ func (c *ClusterProvider) validateAddonClusterVersion(
 		return dbserrors.NewK8sDbsError(dbserrors.UpdateClusterError,
 			fmt.Errorf("addonClusterVersion 版本 %s 不在支持的版本列表中，支持的版本: %v",
 				requestedVersion, supportedAcVersions))
+	}
+	return nil
+}
+
+// validateComponentEnv 验证组件环境变量参数
+func (c *ClusterProvider) validateComponentEnv(addonID uint64, request *coreentity.Request) error {
+	if c.envValidator == nil {
+		// 如果没有配置验证器，跳过验证
+		return nil
+	}
+	if request.ComponentList == nil {
+		return nil
+	}
+
+	for _, component := range request.ComponentList {
+		if component.Env == nil {
+			continue
+		}
+		// 使用组件的服务版本进行参数验证
+		if err := c.envValidator.ValidateVMEnv(
+			addonID,
+			component.Version,
+			component.ComponentName,
+			component.Env,
+		); err != nil {
+			return fmt.Errorf("组件 '%s' 环境变量验证失败: %w", component.ComponentName, err)
+		}
 	}
 	return nil
 }

@@ -22,6 +22,7 @@ package util
 import (
 	"k8s-dbs/common/api"
 	coreprovider "k8s-dbs/core/provider"
+	corevalidator "k8s-dbs/core/validator"
 	"k8s-dbs/infrastructure/thirdapi"
 	metadbaccess "k8s-dbs/metadata/dbaccess"
 	metaprovider "k8s-dbs/metadata/provider"
@@ -98,6 +99,7 @@ func BuildClusterProvider(db *gorm.DB) *coreprovider.ClusterProvider {
 		clusterProviderBuilder.WithAddonMeta(coreAPIProviders.AddonMetaProvider),
 		clusterProviderBuilder.WithClusterTagsMeta(coreAPIProviders.ClusterTagProvider),
 		clusterProviderBuilder.WithDbmAPIService(coreAPIProviders.DbmAPIService),
+		clusterProviderBuilder.WithEnvValidator(coreAPIProviders.EnvValidator),
 	)
 	if err != nil {
 		slog.Error("failed to build cluster provider", "error", err)
@@ -135,6 +137,11 @@ func BuildCoreAPIProviders(db *gorm.DB) (*CoreAPIProviders, error) {
 	clusterTagProvider := metaprovider.NewK8sCrdClusterTagProvider(metadbaccess.NewK8sCrdClusterTagDbAccess(db))
 
 	dbmAPIService := thirdapi.NewDbmAPIService()
+
+	addonParamConfigDbAccess := metadbaccess.NewAddonParamConfigDbAccess(db)
+	addonParamConfigProvider := metaprovider.NewAddonParamConfigProvider(addonParamConfigDbAccess)
+	envValidator := corevalidator.NewEnvValidator(addonParamConfigProvider, addonMetaProvider)
+
 	return &CoreAPIProviders{
 		ClusterMetaProvider:    clusterMetaProvider,
 		ComponentMetaProvider:  componentMetaProvider,
@@ -145,6 +152,7 @@ func BuildCoreAPIProviders(db *gorm.DB) (*CoreAPIProviders, error) {
 		AddonMetaProvider:      addonMetaProvider,
 		ClusterTagProvider:     clusterTagProvider,
 		DbmAPIService:          dbmAPIService,
+		EnvValidator:           envValidator,
 	}, nil
 }
 
@@ -159,6 +167,7 @@ type CoreAPIProviders struct {
 	AddonMetaProvider      metaprovider.K8sCrdStorageAddonProvider
 	ClusterTagProvider     metaprovider.K8sCrdClusterTagProvider
 	DbmAPIService          *thirdapi.DbmAPIService
+	EnvValidator           *corevalidator.EnvValidator
 }
 
 // CustomRouterBuilder 自定义 Router 构建函数

@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS tb_k8s_crd_storageaddon (
     releases text NOT NULL COMMENT '集群组件版本定义',
     active tinyint(1) NOT NULL DEFAULT 1 COMMENT '0:无效，1:有效',
     description varchar(100) Null COMMENT '存储插件描述',
+    enable_env_validation tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否启用环境变量校验',
     created_by varchar(50) NOT NULL COMMENT '创建者',
     created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_by varchar(50) NOT NULL COMMENT '更新者',

@@ -34,6 +34,7 @@ type AddonRequest struct {
 	Topologies           string `json:"topologies" binding:"required"`
 	Releases             string `json:"releases" binding:"required"`
 	Description          string `json:"description" binding:"required"`
+	EnableEnvValidation  bool   `json:"enableEnvValidation"`
 	commentity.BKAuth    `json:",inline"`
 }
 
