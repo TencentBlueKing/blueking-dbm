@@ -81,10 +81,28 @@ func (k *K8sClusterConfigController) GetRegionsByVisibility(ctx *gin.Context) {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	var respRegions []*response.RegionResp
-	if err = copier.Copy(&respRegions, regions); err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
-		return
+	// 按照区域分组处理返回结构
+	regionMap := make(map[string]*response.RegionResp)
+	for _, region := range regions {
+		if _, exists := regionMap[region.RegionCode]; !exists {
+			regionMap[region.RegionCode] = &response.RegionResp{
+				RegionName:     region.RegionName,
+				RegionCode:     region.RegionCode,
+				Provider:       region.Provider,
+				K8sClusterList: []response.K8sClusterResp{},
+			}
+		}
+		// 添加集群到对应区域的集群列表
+		regionMap[region.RegionCode].K8sClusterList = append(regionMap[region.RegionCode].K8sClusterList,
+			response.K8sClusterResp{
+				ClusterName:  region.ClusterName,
+				ClusterAlias: region.ClusterAlias,
+			})
+	}
+	// 转换为切片返回
+	respRegions := make([]*response.RegionResp, 0, len(regionMap))
+	for _, regionResp := range regionMap {
+		respRegions = append(respRegions, regionResp)
 	}
 	api.SuccessResponse(ctx, respRegions, commconst.Success)
 }
