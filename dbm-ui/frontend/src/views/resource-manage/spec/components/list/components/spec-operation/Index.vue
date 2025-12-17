@@ -113,9 +113,7 @@
           theme="primary"
           @change="handleChangeNeedReplenish" />
         <span class="enable-desc ml-4">
-          {{
-            `（${t('启用：所有场景均可使用，如：部署、扩容、迁移规格')}；${t('停用：存量集群的变更操作不受影响，新增集群不可使用此规格')}）`
-          }}
+          {{ `（${t('开启后，当资源池主机数低于参考水位时，将自动补货至目标配置')}）` }}
         </span>
       </BkFormItem>
     </DbForm>
