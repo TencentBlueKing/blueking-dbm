@@ -156,7 +156,7 @@ class TendisPlusSpecFilter(RedisSpecFilter):
     """TendisPlus集群规格过滤器"""
 
     # 最佳容量管理大小 300G
-    SINGLE_SHARD_SIZE = 300
+    SINGLE_SHARD_SIZE = 1200
     # 单机 1 ， 2，4 分片 可选
     SINGLE_SHARD_NUMBS = [1, 2, 4]
 

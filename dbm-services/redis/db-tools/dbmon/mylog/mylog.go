@@ -72,12 +72,12 @@ func InitRotateLoger() {
 
 	cfg := zap.NewProductionConfig()
 	cfg.EncoderConfig = zapcore.EncoderConfig{
-		MessageKey:     "msg",
-		LevelKey:       "level",
-		TimeKey:        "time",
-		NameKey:        "name",
-		CallerKey:      "caller",
-		FunctionKey:    "func",
+		MessageKey: "msg",
+		LevelKey:   "level",
+		TimeKey:    "time",
+		NameKey:    "name",
+		CallerKey:  "caller",
+		// FunctionKey:    "func",
 		StacktraceKey:  "stacktrace",
 		LineEnding:     zapcore.DefaultLineEnding,
 		EncodeLevel:    zapcore.LowercaseLevelEncoder,
@@ -87,17 +87,36 @@ func InitRotateLoger() {
 		EncodeName:     zapcore.FullNameEncoder,
 	}
 
-	lj := zapcore.AddSync(&lumberjack.Logger{
-		Filename:   filepath.Join(logDir, "bk-dbmon.log"),
-		MaxSize:    256, // 单个日志文件大小,单位MB
-		MaxBackups: 10,  // 最多保存10个文件
-		MaxAge:     15,  // 最多保存15天内的日志
-		LocalTime:  true,
-		Compress:   true,
-	})
+	lj := zapcore.NewCore(
+		zapcore.NewJSONEncoder(cfg.EncoderConfig),
+		zapcore.AddSync(&lumberjack.Logger{
+			Filename:   filepath.Join(logDir, "bk-dbmon.log"),
+			MaxSize:    256, // 单个日志文件大小,单位MB
+			MaxBackups: 10,  // 最多保存10个文件
+			MaxAge:     15,  // 最多保存15天内的日志
+			LocalTime:  true,
+			Compress:   true,
+		}),
+		level,
+	)
 
-	core := zapcore.NewCore(zapcore.NewJSONEncoder(cfg.EncoderConfig), zapcore.NewMultiWriteSyncer(lj), level)
+	errLj := zapcore.NewCore(
+		zapcore.NewJSONEncoder(cfg.EncoderConfig),
+		zapcore.AddSync(&lumberjack.Logger{
+			Filename:   filepath.Join(logDir, "bk-dbmon.err"),
+			MaxSize:    64, // 单个日志文件大小,单位MB
+			MaxBackups: 10, // 最多保存10个文件
+			MaxAge:     20, // 最多保存15天内的日志
+			LocalTime:  true,
+			Compress:   true,
+		}),
+		zapcore.ErrorLevel,
+	)
+
+	core := zapcore.NewTee(lj, errLj)
+	// core := zapcore.NewCore(zapcore.NewJSONEncoder(cfg.EncoderConfig), zapcore.NewMultiWriteSyncer(lj), level)
 	Logger = zap.New(core, zap.AddCaller())
+	defer Logger.Sync()
 
 	GlobCronLogger = &cronLogAdapter{}
 	GlobCronLogger.Logger = Logger
