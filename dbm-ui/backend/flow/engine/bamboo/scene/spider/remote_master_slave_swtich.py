@@ -295,27 +295,23 @@ class RemoteMasterSlaveSwitchFlow(object):
         master_ips = [info["master"]["ip"] for info in switch_tuples]
         slave_ips = [info["slave"]["ip"] for info in switch_tuples]
 
-        standardization_flows = [
-            self.create_standardization_flow(sub_flow_context, cluster, master_ips),
-            self.create_standardization_flow(sub_flow_context, cluster, slave_ips),
-        ]
-
-        sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=standardization_flows)
-
-    def create_standardization_flow(self, sub_flow_context, cluster, ips):
-        """创建标准化流程"""
-        return standardize_mysql_cluster_by_ip_subflow(
+        standardization_flow = standardize_mysql_cluster_by_ip_subflow(
             root_id=self.root_id,
-            data=copy.deepcopy(sub_flow_context),
+            data={
+                **copy.deepcopy(sub_flow_context),
+                "cluster_ids": [cluster.id],
+            },
             bk_cloud_id=cluster.bk_cloud_id,
             bk_biz_id=cluster.bk_biz_id,
-            ips=ips,
+            ips=master_ips + slave_ips,
             with_actuator=True,
             with_cc_standardize=True,
             with_instance_standardize=False,
             with_bk_plugin=False,
             with_collect_sysinfo=False,
         )
+
+        sub_pipeline.add_sub_pipeline(sub_flow=standardization_flow)
 
     def add_alarm_shield_act(self, sub_pipeline, cluster):
         """添加告警屏蔽活动"""

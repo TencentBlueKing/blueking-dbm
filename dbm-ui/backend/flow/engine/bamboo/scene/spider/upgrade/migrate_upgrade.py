@@ -282,7 +282,10 @@ class TenDBClusterStorageMigrateUpgradeFlow(object):
                 surrounding_sub_pipeline.add_sub_pipeline(
                     sub_flow=standardize_mysql_cluster_subflow(
                         root_id=self.root_id,
-                        data=copy.deepcopy(self.data),
+                        data={
+                            **copy.deepcopy(self.data),
+                            "cluster_ids": [cluster_class.id],
+                        },
                         bk_cloud_id=cluster_class.bk_cloud_id,
                         bk_biz_id=cluster_class.bk_biz_id,
                         departs=remove_departs(ALLDEPARTS, DeployPeripheralToolsDepart.MySQLDBBackup),
@@ -314,7 +317,10 @@ class TenDBClusterStorageMigrateUpgradeFlow(object):
                 re_surrounding_sub_pipeline.add_sub_pipeline(
                     sub_flow=standardize_mysql_cluster_subflow(
                         root_id=self.root_id,
-                        data=copy.deepcopy(self.data),
+                        data={
+                            **copy.deepcopy(self.data),
+                            "cluster_ids": [cluster_class.id],
+                        },
                         bk_cloud_id=cluster_class.bk_cloud_id,
                         bk_biz_id=cluster_class.bk_biz_id,
                         instances=instances,
