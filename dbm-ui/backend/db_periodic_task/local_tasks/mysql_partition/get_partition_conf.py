@@ -7,7 +7,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import List
+from typing import Dict
 
 from backend.components.mysql_partition.client import DBPartitionApi
 
@@ -35,7 +35,7 @@ def get_exec_domain_info(cluster_type):
     return domain_infos
 
 
-def get_partition_conf_by_domain(cluster_id: int, limit: int, offset: int, cluster_type: str) -> List:
+def get_partition_conf_by_domain(cluster_id: int, limit: int, offset: int, cluster_type: str) -> Dict:
     """
     根据cluster_id获取指定cluster_type的分区配置
     @return:
@@ -67,7 +67,7 @@ def get_partition_conf_by_domain(cluster_id: int, limit: int, offset: int, clust
     return partition_confs
 
 
-def get_partition_by_config_id(cluster_id: int, config_id: int, cluster_type: str) -> List:
+def get_partition_by_config_id(cluster_id: int, config_id: int, cluster_type: str) -> Dict:
     """
     根据配置id获取tendbcluster分区配置
     @return:

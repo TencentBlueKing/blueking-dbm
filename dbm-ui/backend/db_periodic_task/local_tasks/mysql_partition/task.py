@@ -15,6 +15,7 @@ from blueapps.core.celery.celery import app
 from celery.schedules import crontab
 
 from backend.db_meta.enums.cluster_type import ClusterType
+from backend.db_meta.models.cluster import Cluster
 from backend.db_periodic_task.local_tasks import register_periodic_task
 from backend.db_periodic_task.local_tasks.mysql_partition.execute_partition_task import (
     execute_tendbcluster_partition_task,
@@ -22,13 +23,14 @@ from backend.db_periodic_task.local_tasks.mysql_partition.execute_partition_task
 )
 from backend.db_periodic_task.local_tasks.mysql_partition.get_partition_conf import (
     get_exec_domain_info,
+    get_partition_by_config_id,
     get_partition_conf_by_domain,
 )
 
 logger = logging.getLogger("flow")
 
 
-@register_periodic_task(run_every=crontab(minute=3, hour="3,15"))
+@register_periodic_task(run_every=crontab(minute=3, hour="3"))
 def tendbha_partition_task():
     logger.info("start tendbha partition task v2!")
     # 异步执行，执行前以集群为单位生成参数 集群内根据分区配置量再进行切分
@@ -37,7 +39,7 @@ def tendbha_partition_task():
         execute_one_tendbha_domain_task.apply_async(args=[info])
 
 
-@register_periodic_task(run_every=crontab(minute=3, hour="3,15"))
+@register_periodic_task(run_every=crontab(minute=3, hour="3"))
 def tendbcluster_partition_task():
     logger.info("start tendbcluste partition task v2!")
     domain_infos = get_exec_domain_info(ClusterType.TenDBCluster.value)
@@ -118,3 +120,39 @@ def execute_one_tendbcluster_task(cluster_id: int, limit: int, offset: int = 0):
     """
     partition_confs = get_partition_conf_by_domain(cluster_id, limit, offset, ClusterType.TenDBCluster.value)
     execute_tendbcluster_partition_task.apply_async(args=[partition_confs])
+
+
+def execute_one_task_by_config_id(infos: Dict, cluster_type: str, force: bool = False):
+    """
+    根据配置id执行分区任务
+    infos:
+    {
+        "domain": [config_id1, config_id2, ...],
+        "domain2": [config_id1, config_id2, ...],
+        ...
+    }
+    cluster_type: 集群类型
+    force: 是否强制执行
+    @return:
+    """
+    for domain, config_ids in infos.items():
+        try:
+            cluster_id = Cluster.objects.get(immute_domain=domain).id
+        except Cluster.DoesNotExist:
+            continue
+        for config_id in config_ids:
+            execute_one_config_task(cluster_id, config_id, cluster_type, force)
+
+
+def execute_one_config_task(cluster_id: int, config_id: int, cluster_type: str, force: bool = False):
+    partition_conf = get_partition_by_config_id(cluster_id, config_id, cluster_type)
+    if cluster_type == ClusterType.TenDBCluster.value:
+        execute_tendbcluster_partition_task.apply_async(
+            args=[{"cluster_id": partition_conf["cluster_id"], "configs": partition_conf["configs"], "force": force}]
+        )
+    elif cluster_type == ClusterType.TenDBHA.value:
+        execute_tendbha_partition_task.apply_async(
+            args=[{"cluster_id": partition_conf["cluster_id"], "configs": partition_conf["configs"], "force": force}]
+        )
+    else:
+        raise Exception("cluster type not supported")
