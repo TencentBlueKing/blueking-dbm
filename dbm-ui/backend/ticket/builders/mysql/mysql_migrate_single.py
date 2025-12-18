@@ -48,7 +48,8 @@ class MysqlMigrateSingleParamBuilder(builders.FlowParamBuilder):
 
 
 class MysqlMigrateSingleResourceParamBuilder(BaseOperateResourceParamBuilder):
-    pass
+    def format(self):
+        self.patch_info_common_affinity(role="bk_new_orphan")
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_MIGRATE_SINGLE, is_apply=True, is_recycle=True)
