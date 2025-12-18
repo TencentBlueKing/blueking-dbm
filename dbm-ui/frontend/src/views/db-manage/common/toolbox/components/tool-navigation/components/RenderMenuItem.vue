@@ -47,6 +47,7 @@
   </BkCollapsePanel>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { storeToRefs } from 'pinia';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
@@ -60,6 +61,7 @@
   interface Props {
     data: {
       children: {
+        bind?: string[];
         dbConsoleValue: string;
         id: string;
         name: string;
@@ -70,7 +72,7 @@
     };
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
   const route = useRoute();
@@ -89,7 +91,10 @@
   watch(
     route,
     () => {
-      activeViewName.value = (route.name as string) || '';
+      const activeItem = _.find(props.data.children, (item) =>
+        Boolean(item.bind?.includes(route.name as string) || route.name === item.id),
+      );
+      activeViewName.value = activeItem ? activeItem.id : '';
     },
     {
       immediate: true,
