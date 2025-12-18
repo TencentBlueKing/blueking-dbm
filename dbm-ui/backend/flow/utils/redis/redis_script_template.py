@@ -234,10 +234,11 @@ if ! command -v redis-cli &> /dev/null; then
     exit 1
 fi
 
-# Function to get password from redis.conf
+# Function to get password from instance.conf or redis.conf
 get_redis_password() {{
     local port="$1"
-    local conf_file="$REDIS_DATA_DIR/redis/$port/redis.conf"
+    local instance_conf="$REDIS_DATA_DIR/redis/$port/instance.conf"  # Historical reason
+    local redis_conf="$REDIS_DATA_DIR/redis/$port/redis.conf"
     local password=""
 
     if [ -z "$port" ]; then
@@ -245,18 +246,21 @@ get_redis_password() {{
         return
     fi
 
-    if [ -f "$conf_file" ] && [ -r "$conf_file" ]; then
-        # Extract requirepass from redis.conf
-        # Handle various password formats including quoted strings
-        password=$(grep -E "^requirepass\\s+" "$conf_file" 2>/dev/null | \\
-        head -1 | awk '{{print $2}}' | tr -d '"' | tr -d "'" || true)
-        echo "$password"
-    else
-        if [ -f "$conf_file" ]; then
-            log_error "Cannot read config file: $conf_file"
+    # Check instance.conf first, then fall back to redis.conf
+    for conf_file in "$instance_conf" "$redis_conf"; do
+        if [ -f "$conf_file" ] && [ -r "$conf_file" ]; then
+            # Extract requirepass from config file
+            # Handle various password formats including quoted strings
+            password=$(grep -E "^requirepass\\s+" "$conf_file" 2>/dev/null | \\
+            head -1 | awk '{{print $2}}' | tr -d '"' | tr -d "'" | xargs || true)
+            if [ -n "$password" ]; then
+                echo "$password"
+                return
+            fi
         fi
-        echo ""
-    fi
+    done
+
+    echo ""
 }}
 
 # Function to get role from Redis INFO REPLICATION with timeout

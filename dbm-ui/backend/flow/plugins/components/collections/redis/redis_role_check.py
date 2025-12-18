@@ -77,6 +77,9 @@ class RedisRoleCheckScriptService(BaseService):
 
         self.log_info(f"[{node_name}] Starting role check for {len(clusters)} clusters in parallel")
 
+        # Get flow_id from runtime_attrs (standard approach in BaseService)
+        flow_id = self.runtime_attrs.get("root_pipeline_id", "")
+
         # Execute scripts for all clusters in parallel
         job_infos = []
         failed_clusters = []
@@ -84,7 +87,7 @@ class RedisRoleCheckScriptService(BaseService):
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
             # Submit all jobs
             future_to_cluster = {
-                executor.submit(self._execute_single_cluster, cluster_data, node_name): cluster_data
+                executor.submit(self._execute_single_cluster, cluster_data, node_name, flow_id): cluster_data
                 for cluster_data in clusters
             }
 
@@ -115,7 +118,7 @@ class RedisRoleCheckScriptService(BaseService):
         data.outputs["trans_data"] = trans_data
         return True
 
-    def _execute_single_cluster(self, cluster_data: Dict, node_name: str) -> Optional[Dict]:
+    def _execute_single_cluster(self, cluster_data: Dict, node_name: str, flow_id: str) -> Optional[Dict]:
         """
         Execute role check script for a single cluster.
 
@@ -139,7 +142,7 @@ class RedisRoleCheckScriptService(BaseService):
 
         body = {
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
-            "task_name": f"DBM_{node_name}_cluster_{cluster_id}",
+            "task_name": f"DBM_{flow_id}_{node_name}_cluster_{cluster_id}",
             "script_content": base64_encode(script_content),
             "script_language": 1,  # shell
             "target_server": {"ip_list": target_ip_info},
@@ -416,7 +419,7 @@ class RedisRoleCheckReportService(BaseService):
                 return False
 
             # Write reports
-            self._write_reports(cluster_id, check_results, creator)
+            self._write_reports(cluster_id, check_results, creator, job_instance_id)
             return True
 
         except Exception as e:
@@ -436,7 +439,7 @@ class RedisRoleCheckReportService(BaseService):
         except json.JSONDecodeError:
             return None
 
-    def _write_reports(self, cluster_id: int, check_results: List[Dict], creator: str):
+    def _write_reports(self, cluster_id: int, check_results: List[Dict], creator: str, job_instance_id: int):
         """Write check results to MetaCheckReport using existing utility function."""
         try:
             cluster = Cluster.objects.get(id=cluster_id)
@@ -458,9 +461,9 @@ class RedisRoleCheckReportService(BaseService):
             else:
                 state = ReportStateType.ABNORMAL
                 if error:
-                    msg = f"Role check failed: {error}"
+                    msg = f"Role check failed: {error} (job_instance_id={job_instance_id})"
                 else:
-                    msg = f"Role mismatch: meta={meta_role}, actual={actual_role}"
+                    msg = f"Role mismatch: meta={meta_role}, actual={actual_role} (job_instance_id={job_instance_id})"
 
             create_meta_check_report(
                 cluster=cluster,
@@ -475,6 +478,7 @@ class RedisRoleCheckReportService(BaseService):
     def _write_failure_report(self, job_info: Dict, creator: str):
         """Write failure report for a failed/timeout job."""
         cluster_id = job_info["cluster_id"]
+        job_instance_id = job_info.get("job_instance_id", "")
         instances = job_info.get("instances", [])
 
         try:
@@ -483,7 +487,7 @@ class RedisRoleCheckReportService(BaseService):
             logger.error(f"Cluster {cluster_id} not found")
             return
 
-        msg = "Role check failed: job execution failed or timed out"
+        msg = f"Role check failed: job execution failed or timed out (job_instance_id={job_instance_id})"
 
         for inst in instances:
             create_meta_check_report(
