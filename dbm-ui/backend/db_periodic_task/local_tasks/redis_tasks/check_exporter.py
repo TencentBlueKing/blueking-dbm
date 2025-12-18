@@ -243,7 +243,7 @@ class CheckRedisUpMetricTask:
             else:
                 msg = "ok"
                 state = ReportStateType.NORMAL.value
-            proxy_msg_list[msg].extend(proxy_node)
+            proxy_msg_list[msg].append(proxy_node)
 
         # 多余的proxy节点. 存在集群外的proxy节点上报本集群的指标
         all_proxy_node_addr_list = set(_node_to_addr(proxy_node) for proxy_node in proxy_node_list)  # 去重
@@ -376,11 +376,10 @@ def fetch_metric_by_iplist(iplist: list) -> dict:
     end_time = datetime.datetime.now(timezone.utc)
     start_time = end_time - datetime.timedelta(minutes=5)
     metrics_name = "bkmonitor:exporter_dbm_redis_exporter:redis_up"
-    iplist_str = "|".join(iplist)
     promql = """count by (cluster_domain,instance,instance_role,instance_port,bk_target_ip)
         ({metrics_name}{{bk_target_ip=~"{iplist_str}"}}
         ) """.format(
-        metrics_name=metrics_name, iplist_str=iplist_str
+        metrics_name=metrics_name, iplist_str=build_promql_regex_pattern(iplist)
     )
     return _instant_query_metric(start_time, end_time, promql)
 
@@ -442,10 +441,9 @@ def fetch_proxy_metric_by_iplist(cluster_type: str, iplist: list) -> dict:
         return {}
     end_time = datetime.datetime.now(timezone.utc)
     start_time = end_time - datetime.timedelta(minutes=5)
-    iplist_str = "|".join(iplist)
     promql = """count by (cluster_domain,instance,instance_role,instance_port,bk_target_ip)
         ({metrics_name}{{bk_target_ip=~"{iplist_str}"}}) """.format(
-        metrics_name=metrics_name, iplist_str=iplist_str
+        metrics_name=metrics_name, iplist_str=build_promql_regex_pattern(iplist)
     )
     return _instant_query_metric(start_time, end_time, promql)
 
@@ -479,3 +477,16 @@ def _instant_query_metric(start_time: datetime.datetime, end_time: datetime.date
             "value": item["datapoints"][0][0],
         }
     return metric_result
+
+
+def build_promql_regex_pattern(value_list: list) -> str:
+    """
+    构建promql regex的pattern，用于promql查询的=~操作
+    value_list: list[str]
+    return: str
+    example:
+    value_list: ["aa", "bb", "cc"]
+    return: "^(aa|bb|cc)$"
+    注意，正常prometheus不需要前缀^和后缀$，但蓝鲸监控需要，否则它会匹配到更多的数据
+    """
+    return "^(" + "|".join(value_list) + ")$"
