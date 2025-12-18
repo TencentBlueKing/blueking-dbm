@@ -13,10 +13,11 @@ from typing import Any, Callable, Dict, List
 from django.db.models import Q, QuerySet
 from django.utils.translation import gettext_lazy as _
 
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.api.cluster.tendbha.detail import scan_cluster
 from backend.db_meta.enums import ClusterEntryRole, InstanceInnerRole, InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.db_meta.models import AppCache
+from backend.db_meta.models import AppCache, StorageInstance
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.dbbase.resources import query
 from backend.db_services.dbbase.resources.query import (
@@ -27,6 +28,7 @@ from backend.db_services.dbbase.resources.query import (
 from backend.db_services.dbbase.resources.query_base import build_q_for_domain_by_cluster
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.mysql.resources.query import MysqlListRetrieveResource
+from backend.utils.time import datetime2str
 
 
 class TenDBHAExportQueryResourceMixin(CommonExportQueryResourceMixin):
@@ -196,6 +198,52 @@ class ListRetrieveResource(MysqlListRetrieveResource, TenDBHAExportQueryResource
         cluster_info.update(cluster_role_info)
         cluster_info.update(cluster_spec_info)
         return cluster_info
+
+    @classmethod
+    def _to_instance_representation(
+        cls, instance: dict, cluster_entry_map: dict, db_module_names_map: dict, **kwargs
+    ) -> Dict[str, Any]:
+        """
+        将实例对象转为可序列化的 dict 结构
+        @param instance: 实例信息
+        @param cluster_entry_map: key 是 cluster.id, value 是当前集群对应的 entry 映射
+        @param db_module_names_map: key 是 db_module_id, value 是 db_module_name
+        """
+        cloud_info = kwargs.get("cloud_info", {})
+        bk_cloud_name = cloud_info.get(str(instance["machine__bk_cloud_id"]), {}).get("bk_cloud_name", "")
+        instance_data = {
+            "id": instance["id"],
+            "cluster_id": instance["cluster__id"],
+            "cluster_type": instance["cluster__cluster_type"],
+            "cluster_type_name": ClusterType.get_choice_label(instance["cluster__cluster_type"]),
+            "cluster_name": instance["cluster__name"],
+            "version": instance["version"],
+            "db_module_id": instance["cluster__db_module_id"],
+            "db_module_name": db_module_names_map.get(instance["cluster__db_module_id"], ""),
+            "bk_cloud_id": instance["machine__bk_cloud_id"],
+            "bk_cloud_name": bk_cloud_name,
+            "bk_sub_zone": instance["machine__bk_sub_zone"],
+            "bk_sub_zone_id": instance["machine__bk_sub_zone_id"],
+            "ip": instance["machine__ip"],
+            "port": instance["port"],
+            "instance_address": f"{instance['machine__ip']}{IP_PORT_DIVIDER}{instance['port']}",
+            "bk_host_id": instance["machine__bk_host_id"],
+            "machine_type": instance["machine__machine_type"],
+            "bk_os_name": instance["machine__bk_os_name"],
+            "bk_rack_id": instance["machine__bk_rack_id"],
+            "bk_svr_device_cls_name": instance["machine__bk_svr_device_cls_name"],
+            "role": instance["role"],
+            "master_domain": cluster_entry_map.get(instance["cluster__id"], {}).get("master_domain", ""),
+            "slave_domain": cluster_entry_map.get(instance["cluster__id"], {}).get("slave_domain", ""),
+            "status": instance["status"],
+            "create_at": datetime2str(instance["create_at"]),
+            "spec_config": instance["machine__spec_config"],
+            "bk_biz_id": instance["bk_biz_id"],
+        }
+        if instance["machine__machine_type"] == "backend":
+            instance_data["is_stand_by"] = StorageInstance.objects.get(id=instance["id"]).is_stand_by
+
+        return instance_data
 
     @classmethod
     def _filter_instance_qs_hook(cls, storage_queryset, proxy_queryset, inst_fields, query_filters, query_params):

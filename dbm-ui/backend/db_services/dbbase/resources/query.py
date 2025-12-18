@@ -281,19 +281,16 @@ class CommonQueryResourceMixin(abc.ABC):
             query_condition
         )
         headers = [
-            {"id": "bk_host_id", "name": _("主机 ID")},
-            {"id": "bk_cloud_id", "name": _("云区域 ID")},
+            {"id": "ip_port", "name": _("实例")},
+            {"id": "instance_id", "name": _("ID")},
+            {"id": "status", "name": _("状态")},
+            {"id": "instance_role", "name": _("部署角色")},
+            {"id": "version", "name": _("版本")},
+            {"id": "master_domain", "name": _("所属集群")},
             {"id": "ip", "name": _("IP")},
-            {"id": "ip_port", "name": _("IP 端口")},
-            {"id": "instance_role", "name": _("实例角色")},
-            {"id": "bk_idc_city_name", "name": _("城市")},
-            {"id": "bk_idc_name", "name": _("机房")},
-            {"id": "cluster_id", "name": _("集群 ID")},
-            {"id": "cluster_name", "name": _("集群名称")},
-            {"id": "cluster_alias", "name": _("集群别名")},
-            {"id": "cluster_type", "name": _("集群类型")},
-            {"id": "master_domain", "name": _("主域名")},
-            {"id": "major_version", "name": _("主版本")},
+            {"id": "bk_sub_zone", "name": _("园区")},
+            {"id": "bk_os_name", "name": _("操作系统")},
+            {"id": "create_at", "name": _("部署时间")},
         ]
         # 插入数据
         data_list = []
@@ -302,19 +299,16 @@ class CommonQueryResourceMixin(abc.ABC):
                 for cluster in ins.cluster.all():
                     data_list.append(
                         {
-                            "bk_host_id": ins.machine.bk_host_id,
-                            "bk_cloud_id": ins.machine.bk_cloud_id,
-                            "ip": ins.machine.ip,
                             "ip_port": ins.ip_port,
+                            "instance_id": ins.id,
+                            "status": ins.status,
                             "instance_role": ins.instance_role,
-                            "bk_idc_city_name": ins.machine.bk_city.bk_idc_city_name,
-                            "bk_idc_name": ins.machine.bk_idc_name,
-                            "cluster_id": cluster.id,
-                            "cluster_name": cluster.name,
-                            "cluster_alias": cluster.alias,
-                            "cluster_type": cluster.cluster_type,
+                            "version": ins.version,
                             "master_domain": cluster.immute_domain,
-                            "major_version": cluster.major_version,
+                            "ip": ins.machine.ip,
+                            "bk_sub_zone": ins.machine.bk_sub_zone,
+                            "bk_os_name": ins.machine.bk_os_name,
+                            "create_at": datetime2str(ins.create_at),
                         }
                     )
 
@@ -835,8 +829,12 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             "name": Q(cluster__name__in=query_params.get("name", "").split(",")),
             "domain": build_q_for_domain_by_instance(query_params),
             "instance": build_q_for_instance_filter(query_params),
-            "version": Q(version__in=query_params.get("version", "").split(",")),
         }
+        if query_params.get("version"):
+            if query_params["version"] == '""':
+                inner_filter_params_map["version"] = Q(version__isnull=True)
+            else:
+                inner_filter_params_map["version"] = Q(version__in=query_params.get("version").split(","))
         filter_params_map = filter_params_map or {}
         filter_params_map.update(inner_filter_params_map)
         # 通过基础过滤参数进行instance过滤

@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Tuple
 
 from django.db.models import F, Prefetch, Q, QuerySet, Value
 from django.utils.translation import gettext_lazy as _
@@ -30,6 +30,7 @@ from backend.db_services.dbbase.resources.query import (
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.mysql.resources.query import MysqlListRetrieveResource
 from backend.ticket.constants import TicketType
+from backend.utils.time import datetime2str
 
 
 class TenDBClusterCommonQueryResourceMixin(CommonExportQueryResourceMixin):
@@ -396,3 +397,58 @@ class ListRetrieveResource(MysqlListRetrieveResource, TenDBClusterCommonQueryRes
         """获取集群主节点信息"""
         cluster_id__primary_address_map = Cluster.get_cluster_id__primary_address_map(cluster_ids)
         return [{"cluster_id": k, "primary": v} for k, v in cluster_id__primary_address_map.items()]
+
+    @staticmethod
+    def common_query_instance(bk_biz_id: int, cluster_types: list, bk_host_ids: list) -> Tuple[List[Dict], List[Dict]]:
+        """实例通用属性查询"""
+        query_condition = Q(bk_biz_id=bk_biz_id, cluster_type__in=cluster_types)
+        if bk_host_ids:
+            query_condition = query_condition & Q(machine__bk_host_id__in=bk_host_ids)
+
+        # 获取remote实例的查询集
+        remote_insts = (
+            StorageInstance.objects.select_related("machine")
+            .prefetch_related("cluster")
+            .annotate(role=F("instance_role"), inst_port=F("port"))
+            .filter(query_condition)
+        )
+        # 获取spider实例的查询集
+        spider_insts = (
+            ProxyInstance.objects.select_related("machine")
+            .prefetch_related("cluster")
+            .annotate(role=F("tendbclusterspiderext__spider_role"), inst_port=F("port"))
+            .filter(query_condition)
+        )
+        headers = [
+            {"id": "ip_port", "name": _("实例")},
+            {"id": "instance_id", "name": _("ID")},
+            {"id": "status", "name": _("状态")},
+            {"id": "instance_role", "name": _("部署角色")},
+            {"id": "version", "name": _("版本")},
+            {"id": "master_domain", "name": _("所属集群")},
+            {"id": "ip", "name": _("IP")},
+            {"id": "bk_sub_zone", "name": _("园区")},
+            {"id": "bk_os_name", "name": _("操作系统")},
+            {"id": "create_at", "name": _("部署时间")},
+        ]
+        # 插入数据
+        data_list = []
+        for instances in [remote_insts, spider_insts]:
+            for ins in instances:
+                for cluster in ins.cluster.all():
+                    data_list.append(
+                        {
+                            "ip_port": ins.ip_port,
+                            "instance_id": ins.id,
+                            "status": ins.status,
+                            "instance_role": ins.role,
+                            "version": ins.version,
+                            "master_domain": cluster.immute_domain,
+                            "ip": ins.machine.ip,
+                            "bk_sub_zone": ins.machine.bk_sub_zone,
+                            "bk_os_name": ins.machine.bk_os_name,
+                            "create_at": datetime2str(ins.create_at),
+                        }
+                    )
+
+        return headers, data_list
