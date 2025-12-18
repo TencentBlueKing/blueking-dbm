@@ -40,6 +40,8 @@ const (
 	OperationExpose ClusterOperationType = "expose"
 	// OperationStop 停止集群操作
 	OperationStop ClusterOperationType = "stop"
+	// OperationStart 启动集群操作
+	OperationStart ClusterOperationType = "start"
 )
 
 // ClusterPhase 集群阶段
