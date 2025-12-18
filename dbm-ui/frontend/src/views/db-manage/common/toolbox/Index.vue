@@ -99,7 +99,6 @@
 
   eventBus.on('db-toolbox-error', (errorMessage: any) => {
     submitErrorMessage.value = errorMessage;
-    console.log('submitErrorMessage', submitErrorMessage.value);
     nextTick(() => {
       teleportTarget.value?.scrollIntoView({
         behavior: 'smooth',
