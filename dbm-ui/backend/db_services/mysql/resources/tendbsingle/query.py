@@ -103,5 +103,6 @@ class ListRetrieveResource(query.ListRetrieveResource, TenDBSingleExportQueryRes
 
     @classmethod
     def _filter_instance_qs_hook(cls, storage_queryset, proxy_queryset, inst_fields, query_filters, query_params):
+        inst_fields.append("is_stand_by")
         instance_queryset = storage_queryset.values(*inst_fields).order_by("-create_at")
         return instance_queryset
