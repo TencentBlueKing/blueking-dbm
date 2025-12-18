@@ -55,6 +55,7 @@ import (
 var operationSyncMap = map[string]func(*metaentity.K8sCrdClusterEntity, *thirdapi.DbmAPIService){
 	"doExposeCluster": infrautil.AsyncClusterExposed,
 	"doStopCluster":   infrautil.AsyncClusterStopped,
+	"doStartCluster":  infrautil.AsyncClusterStarted,
 }
 
 // OpsRequestProvider the OpsRequest provider struct

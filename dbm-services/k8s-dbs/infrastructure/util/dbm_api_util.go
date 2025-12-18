@@ -88,6 +88,15 @@ func AsyncClusterStopped(
 	asyncClusterOperation(clusterEntity, coreconst.OperationStop, dbmAPIService, syncClusterStoppedWithContext)
 }
 
+// AsyncClusterStarted 同步集群启动信息到DBM
+func AsyncClusterStarted(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) {
+	slog.Info("开始同步集群启动信息", "cluster_name", clusterEntity.ClusterName)
+	asyncClusterOperation(clusterEntity, coreconst.OperationStart, dbmAPIService, syncClusterStartedWithContext)
+}
+
 // asyncClusterOperation 通用的异步集群操作函数，支持创建、更新和删除操作
 func asyncClusterOperation(
 	clusterEntity *metaentity.K8sCrdClusterEntity,
@@ -155,6 +164,15 @@ func syncClusterStoppedWithContext(
 	return syncClusterWithContext(ctx, clusterEntity, dbmAPIService, coreconst.OperationStop)
 }
 
+// syncClusterStartedWithContext 带context的同步集群启动信息到DBM
+func syncClusterStartedWithContext(
+	ctx context.Context,
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) error {
+	return syncClusterWithContext(ctx, clusterEntity, dbmAPIService, coreconst.OperationStart)
+}
+
 // syncClusterDeletedWithContext 带context的同步集群删除信息到DBM
 func syncClusterDeletedWithContext(
 	ctx context.Context,
@@ -180,7 +198,7 @@ func syncClusterWithContext(
 	dbmAPIService *thirdapi.DbmAPIService,
 	operation coreconst.ClusterOperationType,
 ) error {
-	// 检查context是否已取消
+	// 检查 context 是否已取消
 	if err := checkContextCancelled(ctx); err != nil {
 		return err
 	}
@@ -195,7 +213,10 @@ func syncClusterWithContext(
 		return syncClusterDelete(clusterEntity, dbmAPIService, dbmClusterType)
 	case coreconst.OperationCreate:
 		return syncClusterCreate(clusterEntity, dbmAPIService, dbmClusterType)
-	case coreconst.OperationExpose, coreconst.OperationStop:
+	case
+		coreconst.OperationExpose,
+		coreconst.OperationStop,
+		coreconst.OperationStart:
 		return syncClusterUpdate(clusterEntity, dbmAPIService, dbmClusterType, operation)
 	default:
 		return fmt.Errorf("不支持的同步操作类型: %s", operation)
@@ -205,7 +226,8 @@ func syncClusterWithContext(
 // getPhaseByOperation 根据操作类型获取对应的phase值
 func getPhaseByOperation(operation coreconst.ClusterOperationType) coreconst.ClusterPhase {
 	switch operation {
-	case coreconst.OperationExpose:
+	case coreconst.OperationExpose,
+		coreconst.OperationStart:
 		return coreconst.PhaseOnline
 	case coreconst.OperationStop:
 		return coreconst.PhaseOffline

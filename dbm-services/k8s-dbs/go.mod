@@ -217,13 +217,11 @@ require (
 replace (
 	github.com/docker/cli => github.com/docker/cli v24.0.7+incompatible
 	github.com/docker/distribution => github.com/docker/distribution v2.8.2+incompatible
-	//github.com/docker/docker => github.com/moby/moby v26.0.0+incompatible
 	github.com/spf13/afero => github.com/spf13/afero v1.2.2
 )
 
 replace (
 	github.com/go-sql-driver/mysql => github.com/go-sql-driver/mysql v1.7.1
-	// golang.org/x/exp => golang.org/x/exp v0.0.0-20230711153332-06a737ee72cb
 	k8s.io/api => k8s.io/api v0.29.2
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.29.2
 	k8s.io/apimachinery => k8s.io/apimachinery v0.29.2
