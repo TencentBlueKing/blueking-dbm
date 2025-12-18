@@ -89,6 +89,8 @@ class DBMLoginRequiredMiddleware(LoginRequiredMiddleware):
 
         def authorize_valid_user():
             username = request.jwt.payload.get("user", {}).get("username", None)
+            app_code = request.jwt.payload.get("app", {}).get("app_code", None)
+            logger.info(f"jwt decode is: username: {username}, app_code: {app_code}")
             request.user = User(username=username) if username else AnonymousUser()
             setattr(request, "_dont_enforce_csrf_checks", True)
 
