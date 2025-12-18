@@ -19,7 +19,8 @@
     :min-width="minWidth"
     :readonly="!selectable"
     :required="required"
-    :rowspan="rowspan">
+    :rowspan="rowspan"
+    :rules="rules">
     <template
       v-if="tooltips"
       #head>
@@ -143,6 +144,15 @@
   });
 
   const { t } = useI18n();
+
+  const rules = [
+    {
+      message: t('规格不能为空'),
+      required: true,
+      trigger: 'blur',
+      validator: (value: number) => !!value,
+    },
+  ];
 
   const specList = ref<ServiceReturnType<typeof getResourceSpecList>['results']>([]);
   const showBatchEdit = ref(false);
