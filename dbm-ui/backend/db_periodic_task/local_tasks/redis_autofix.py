@@ -83,7 +83,7 @@ def start_autofix_flow():
     generate_autofix_ticket(fixlists)
 
 
-@register_periodic_task(run_every=crontab(minute="*/1"))
+@register_periodic_task(run_every=crontab(minute="*/2"))
 def watch_autofix_flow():
     """监控自愈状态,已期进行流转"""
 
@@ -112,6 +112,9 @@ def watch_autofix_flow():
 
             if ticket_obj.status == TicketStatus.RUNNING.value:
                 flow.deal_status = AutofixStatus.AF_RUNNING.value
+            elif ticket_obj.status == TicketStatus.APPROVE.value:
+                #     APPROVE = EnumField("APPROVE", _("待审批"))
+                continue
             elif ticket_obj.status == TicketStatus.SUCCEEDED.value:
                 flow.deal_status = AutofixStatus.AF_SUCC.value
                 title = _("{} - 自愈成功".format(flow.immute_domain))

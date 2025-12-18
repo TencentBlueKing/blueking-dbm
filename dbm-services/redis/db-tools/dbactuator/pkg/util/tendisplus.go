@@ -11,7 +11,7 @@ import (
 
 // GetTendisplusBlockcache 返回单位Mbyte
 // 如果系统内存小于4GB,则 instBlockcache = 系统总内存 * 0.3 / 实例数
-// 否则 instBlockcache = 系统总内存 * 0.5 / 实例数
+// 否则 instBlockcache = 系统总内存 * 0.5 / 实例数; 改小一些， 使得整机内存使用率在80% 以内
 func GetTendisplusBlockcache(instCount uint64) (instBlockcache uint64, err error) {
 	if instCount <= 0 {
 		err = fmt.Errorf("instCount==%d <=0", instCount)
@@ -26,7 +26,7 @@ func GetTendisplusBlockcache(instCount uint64) (instBlockcache uint64, err error
 	if vMem.Total < 4*consts.GiByte {
 		instBlockcache = vMem.Total * 3 / (10 * instCount)
 	} else {
-		instBlockcache = vMem.Total * 5 / (10 * instCount)
+		instBlockcache = vMem.Total * 43 / (100 * instCount)
 	}
 	if instBlockcache < 128*consts.MiByte {
 		instBlockcache = 128 * consts.MiByte

@@ -18,6 +18,8 @@ import (
 	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
 	"dbm-services/redis/db-tools/dbactuator/pkg/report"
 	"dbm-services/redis/db-tools/dbactuator/pkg/util"
+	"dbm-services/redis/db-tools/dbmon/pkg/models"
+	dbmonreport "dbm-services/redis/db-tools/dbmon/pkg/report"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofrs/flock"
@@ -242,7 +244,10 @@ func (task *BackupTask) CheckBackupStatus() {
 	}
 
 	task.EndTime = time.Now().Local()
-	task.BackupRecordReport(task.reporter)
+	if err := dbmonreport.RedisFullBackupReport(&task.RedisFullbackupHistorySchema, task.reporter); err != nil {
+		mylog.Logger.Error(err.Error())
+	}
+	// task.BackupRecordReport(task.reporter)
 }
 
 // Retry times
@@ -273,7 +278,7 @@ func (job *RedisBackup) getSqlDB() (err error) {
 	if err != nil {
 		return
 	}
-	err = job.sqdb.AutoMigrate(&RedisFullbackupHistorySchema{})
+	err = job.sqdb.AutoMigrate(&models.RedisFullbackupHistorySchema{})
 	if err != nil {
 		err = fmt.Errorf("RedisFullbackupHistorySchema AutoMigrate fail,err:%v", err)
 		mylog.Logger.Info(err.Error())
@@ -302,71 +307,9 @@ func (job *RedisBackup) GetBackupClient() (err error) {
 	return
 }
 
-// RedisFullbackupHistorySchema TODO
-type RedisFullbackupHistorySchema struct {
-	ID         int64  `json:"-" gorm:"primaryKey;column:id;not null`
-	ReportType string `json:"report_type" gorm:"column:report_type;not null;default:''"`
-	BkBizID    string `json:"bk_biz_id"  gorm:"column:bk_biz_id;not null;default:''"`
-	BkCloudID  int64  `json:"bk_cloud_id" gorm:"column:bk_cloud_id;not null;default:0"`
-	ServerIP   string `json:"server_ip" gorm:"column:server_ip;not null;default:''"`
-	ServerPort int    `json:"server_port" gorm:"column:server_port;not null;default:0"`
-	Domain     string `json:"domain" gorm:"column:domain;not null;default:'';index"`
-	// RedisInstance or TendisplusInstance or TendisSSDInstance
-	DbType    string `json:"db_type" gorm:"column:db_type;not null;default:''"`
-	Role      string `json:"role" gorm:"column:role;not null;default:''"`
-	BackupDir string `json:"backup_dir" gorm:"column:backup_dir;not null;default:''"`
-	// 备份的目标文件
-	BackupFile string `json:"backup_file" gorm:"column:backup_file;not null;default:''"`
-	// 备份文件大小(已切割 or 已压缩 or 已打包)
-	BackupFileSize int64  `json:"backup_file_size" gorm:"column:backup_file_size;not null;default:0"`
-	BackupTaskID   string `json:"backup_taskid" gorm:"column:backup_taskid;not null;default:''"`
-	// 目前为空
-	BackupMD5 string `json:"backup_md5" gorm:"column:backup_md5;not null;default:''"`
-	// BackupIdentify 集群上一批备份的标识， 用于备份恢复时候选择
-	BackupIdentify string `json:"backup_identify" gorm:"type:varchar(128);column:backup_identify;not null;default:''"`
-	// REDIS_FULL
-	BackupTag string `json:"backup_tag" gorm:"column:backup_tag;not null;default:''"`
-	// shard值
-	ShardValue string `json:"shard_value" gorm:"column:shard_value;not null;default:''"`
-	// 生成全备的起始时间
-	StartTime time.Time `json:"start_time" gorm:"column:start_time;not null;default:'';index"`
-	// 生成全备的结束时间
-	EndTime  time.Time `json:"end_time" gorm:"column:end_time;not null;default:'';index"`
-	TimeZone string    `json:"time_zone" gorm:"column:time_zone;not null;default:''"`
-	Status   string    `json:"status" gorm:"column:status;not null;default:''"`
-	Message  string    `json:"message" gorm:"column:message;not null;default:''"`
-	// 本地文件是否已删除,未被删除为0,已被删除为1
-	LocalFileRemoved int `json:"-" gorm:"column:local_file_removed;not null;default:0"`
-}
-
-// TableName TODO
-func (r *RedisFullbackupHistorySchema) TableName() string {
-	return "redis_fullbackup_history"
-}
-
-type redisFullBackupReport struct {
-	RedisFullbackupHistorySchema
-	StartTime string `json:"start_time"`
-	EndTime   string `json:"end_time"`
-}
-
-// BackupRecordReport 备份记录上报
-func (r *RedisFullbackupHistorySchema) BackupRecordReport(reporter report.Reporter) {
-	if reporter == nil {
-		return
-	}
-	reportRow := redisFullBackupReport{
-		RedisFullbackupHistorySchema: *r,
-		StartTime:                    r.StartTime.Local().Format(time.RFC3339),
-		EndTime:                      r.EndTime.Local().Format(time.RFC3339),
-	}
-	tmpBytes, _ := json.Marshal(reportRow)
-	reporter.AddRecord(string(tmpBytes)+"\n", true)
-}
-
 // BackupTask redis备份task
 type BackupTask struct {
-	RedisFullbackupHistorySchema
+	models.RedisFullbackupHistorySchema
 	Password         string               `json:"-"`
 	ToBackupSystem   string               `json:"-"`
 	BackupType       string               `json:"-"` // 常规备份、下线备份
@@ -405,7 +348,7 @@ func NewFullBackupTask(bkBizID string, bkCloudID int64,
 		backupClient:     bakCli,
 		sqdb:             sqDB,
 	}
-	ret.RedisFullbackupHistorySchema = RedisFullbackupHistorySchema{
+	ret.RedisFullbackupHistorySchema = models.RedisFullbackupHistorySchema{
 		ReportType:     consts.RedisFullBackupReportType,
 		BkBizID:        bkBizID,
 		BkCloudID:      bkCloudID,
@@ -479,14 +422,20 @@ func (task *BackupTask) GoFullBakcup() {
 			task.Message = task.Err.Error()
 			task.Status = consts.BackupStatusFailed
 		}
-		task.BackupRecordReport(task.reporter)
+		if err := dbmonreport.RedisFullBackupReport(&task.RedisFullbackupHistorySchema, task.reporter); err != nil {
+			mylog.Logger.Error(err.Error())
+		}
+		// task.BackupRecordReport(task.reporter)
 	}()
 
 	task.Status = consts.BackupStatusRunning
 	task.Message = "start backup..."
 	task.StartTime = time.Now().Local()
 	task.EndTime = time.Now().Local()
-	task.BackupRecordReport(task.reporter)
+	if err := dbmonreport.RedisFullBackupReport(&task.RedisFullbackupHistorySchema, task.reporter); err != nil {
+		mylog.Logger.Error(err.Error())
+	}
+	// task.BackupRecordReport(task.reporter)
 
 	mylog.Logger.Info(fmt.Sprintf("redis(%s) dbType:%s start backup...", task.Addr(), task.DbType))
 
@@ -547,7 +496,7 @@ func (task *BackupTask) newConnect() {
 	if task.Err != nil {
 		return
 	}
-	task.Role, task.Err = task.Cli.GetRole()
+	task.RealRole, task.Err = task.Cli.GetRole()
 	if task.Err != nil {
 		return
 	}
@@ -559,7 +508,7 @@ func (task *BackupTask) newConnect() {
 	if task.Err != nil {
 		return
 	}
-	mylog.Logger.Info("redis(%s) role:%s,dataDir:%s,dbType:%s", task.Addr(), task.Role, task.DataDir, task.DbType)
+	mylog.Logger.Info("redis(%s) role:%s,dataDir:%s,dbType:%s", task.Addr(), task.RealRole, task.DataDir, task.DbType)
 	// 获取数据量大小
 	if task.DbType == consts.TendisTypeRedisInstance {
 		task.DataSize, task.Err = task.Cli.RedisInstanceDataSize()
@@ -679,7 +628,7 @@ func (task *BackupTask) RedisInstanceBackup() {
 		return
 	}
 
-	if task.Role == consts.RedisMasterRole || strings.HasPrefix(version, "7.") {
+	if task.RealRole == consts.RedisMasterRole || strings.HasPrefix(version, "7.") {
 		// redis master backup rdb
 		confMap, task.Err = task.Cli.ConfigGet("dbfilename")
 		if task.Err != nil {
@@ -689,13 +638,13 @@ func (task *BackupTask) RedisInstanceBackup() {
 		srcFile = filepath.Join(task.DataDir, rdbFile)
 		targetFile = filepath.Join(task.BackupDir,
 			fmt.Sprintf("%s-redis-%s-%s-%d-%s.rdb",
-				task.BkBizID, task.Role, task.ServerIP, task.ServerPort, nowtime))
+				task.BkBizID, task.RealRole, task.ServerIP, task.ServerPort, nowtime))
 		task.Err = task.Cli.BgSaveAndWaitForFinish()
 	} else {
 		srcFile = filepath.Join(task.DataDir, "appendonly.aof")
 		targetFile = filepath.Join(task.BackupDir,
 			fmt.Sprintf("%s-redis-%s-%s-%d-%s.aof",
-				task.BkBizID, task.Role, task.ServerIP, task.ServerPort, nowtime))
+				task.BkBizID, task.RealRole, task.ServerIP, task.ServerPort, nowtime))
 		task.Err = task.Cli.BgRewriteAOFAndWaitForDone()
 	}
 	if task.Err != nil {
@@ -733,7 +682,7 @@ func (task *BackupTask) TendisplusInstanceBackup() {
 	var tarFile string
 	nowtime := time.Now().Local().Format(consts.FilenameTimeLayout)
 	backName := fmt.Sprintf("%s-TENDISPLUS-FULL-%s-%s-%d-%s",
-		task.BkBizID, task.Role, task.ServerIP, task.ServerPort, nowtime)
+		task.BkBizID, task.RealRole, task.ServerIP, task.ServerPort, nowtime)
 	backupFullDir := filepath.Join(task.BackupDir, backName)
 	mylog.Logger.Info(fmt.Sprintf("MkdirAll %s", backupFullDir))
 	task.Err = util.MkDirsIfNotExists([]string{backupFullDir})
@@ -791,7 +740,7 @@ func (task *BackupTask) TendisSSDInstanceBackup() {
 	var binlogsizeRet myredis.TendisSSDBinlogSize
 	nowtime := time.Now().Local().Format(consts.FilenameTimeLayout)
 	backName := fmt.Sprintf("%s-TENDISSSD-FULL-%s-%s-%d-%s",
-		task.BkBizID, task.Role, task.ServerIP, task.ServerPort, nowtime)
+		task.BkBizID, task.RealRole, task.ServerIP, task.ServerPort, nowtime)
 	backupFullDir := filepath.Join(task.BackupDir, backName)
 	mylog.Logger.Info(fmt.Sprintf("MkdirAll %s", backupFullDir))
 	task.Err = util.MkDirsIfNotExists([]string{backupFullDir})

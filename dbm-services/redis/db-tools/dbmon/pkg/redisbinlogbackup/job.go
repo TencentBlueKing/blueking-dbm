@@ -17,6 +17,7 @@ import (
 	"dbm-services/redis/db-tools/dbmon/mylog"
 	"dbm-services/redis/db-tools/dbmon/pkg/backupsys"
 	"dbm-services/redis/db-tools/dbmon/pkg/consts"
+	"dbm-services/redis/db-tools/dbmon/pkg/models"
 	"dbm-services/redis/db-tools/dbmon/pkg/report"
 	"dbm-services/redis/db-tools/dbmon/util"
 )
@@ -139,7 +140,7 @@ func (job *Job) getSqlDB() {
 	if job.Err != nil {
 		return
 	}
-	job.Err = job.sqdb.AutoMigrate(&RedisBinlogHistorySchema{})
+	job.Err = job.sqdb.AutoMigrate(&models.RedisBinlogHistorySchema{})
 	if job.Err != nil {
 		job.Err = fmt.Errorf("RedisFullbackupHistorySchema AutoMigrate fail,err:%v", job.Err)
 		mylog.Logger.Info(job.Err.Error())
@@ -190,7 +191,7 @@ func (job *Job) createTasks() {
 // CheckOldBinlogBackupStatus 重试备份系统上传失败的,检查备份系统上传中的是否成功
 func (job *Job) CheckOldBinlogBackupStatus(port int) {
 	mylog.Logger.Debug(fmt.Sprintf("port:%d start CheckOldBinlogBackupStatus", port))
-	toCheckRows := []RedisBinlogHistorySchema{}
+	toCheckRows := []models.RedisBinlogHistorySchema{}
 	var taskStatus int
 	var statusMsg string
 	job.Err = job.sqdb.Where("status not in (?,?,?)",
@@ -243,8 +244,11 @@ func (job *Job) CheckOldBinlogBackupStatus(port int) {
 					// 如果上传失败,且距离文件生成时间超过1小时,则上报
 					row.Status = consts.BackupStatusToBakSystemFailed
 					row.Message = fmt.Sprintf("上传失败,statusCode:%d,err:%s", taskStatus, statusMsg)
-					row.BackupRecordReport(job.Reporter)
-					mylog.Logger.Error(fmt.Sprintf("%s %s", row.BackupFile, row.Message))
+					if err := report.RedisBinlogReport(&row, job.Reporter); err != nil {
+						mylog.Logger.Error(err.Error())
+					}
+					// row.BackupRecordReport(job.Reporter)
+					mylog.Logger.Error(fmt.Sprintf("文件上传失败::%s %s", row.BackupFile, row.Message))
 				}
 			} else if taskStatus < 4 {
 				// 上传中,下次继续探测
@@ -253,7 +257,10 @@ func (job *Job) CheckOldBinlogBackupStatus(port int) {
 				// 上传成功
 				row.Status = consts.BackupStatusToBakSysSuccess
 				row.Message = "上传备份系统成功"
-				row.BackupRecordReport(job.Reporter)
+				if err := report.RedisBinlogReport(&row, job.Reporter); err != nil {
+					mylog.Logger.Error(err.Error())
+				}
+				// row.BackupRecordReport(job.Reporter)
 			}
 			// 更新记录 status 和 message
 			job.Err = job.sqdb.Save(&row).Error
@@ -267,7 +274,7 @@ func (job *Job) CheckOldBinlogBackupStatus(port int) {
 
 // DeleteTooOldBinlogbackup 删除 OldFileLeftDay天前的本地文件,15天前的记录
 func (job *Job) DeleteTooOldBinlogbackup(port int) {
-	var toDoRows []RedisBinlogHistorySchema
+	var toDoRows []models.RedisBinlogHistorySchema
 	var err error
 	var removeOK bool
 	NDaysAgo := time.Now().Local().AddDate(0, 0, -job.Conf.RedisFullBackup.OldFileLeftDay)
@@ -306,7 +313,7 @@ func (job *Job) DeleteTooOldBinlogbackup(port int) {
 
 	// 15 天以前的,本地文件已删除的,记录直接删除
 	job.Err = job.sqdb.Where("end_time<=? and local_file_removed=?", Days15Ago, 1).
-		Delete(&RedisBinlogHistorySchema{}).Error
+		Delete(&models.RedisBinlogHistorySchema{}).Error
 	if job.Err != nil {
 		job.Err = fmt.Errorf(
 			"DeleteTooOldBinlogbackup gorm delete fail,err:%v,start_time:(%s) local_file_removed:%d",

@@ -55,7 +55,7 @@ def RedisMedia(machines: List, act_kwargs, sub_pipeline):
 
 
 def GetBatchIPArries(ips):
-    max_batch, batch_arries, batch_ips = 99, [], []
+    max_batch, batch_arries, batch_ips = 59, [], []
     for ip in ips:
         batch_ips.append(ip)
         if len(batch_ips) < max_batch:

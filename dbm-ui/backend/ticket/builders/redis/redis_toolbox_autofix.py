@@ -93,7 +93,7 @@ class RedisClusterAutofixFlowBuilder(RedisClusterCutOffFlowBuilder):
     inner_flow_builder = RedisClusterAutofixParamBuilder
     inner_flow_name = _("故障自愈")
     resource_batch_apply_builder = RedisClusterAutofixResourceParamBuilder
-    default_need_itsm = True
+    default_need_itsm = False
     default_need_manual_confirm = False
 
     @property

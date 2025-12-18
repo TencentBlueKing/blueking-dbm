@@ -32,6 +32,11 @@ func init() {
 	_ = sinker.RegisterModelSinker(&model.BinlogFileModel{})
 	_ = sinker.RegisterModelSinker(&model.MysqlBackupStatusModel{})
 	_ = sinker.RegisterModelSinker(&model.MysqlPartitionResultModel{})
+
+	_ = sinker.RegisterModelSinker(&model.RedisBackupResultModel{})
+	_ = sinker.RegisterModelSinker(&model.RedisBinlogFileModel{})
+	_ = sinker.RegisterModelSinker(&model.RedisBackupStatusModel{})
+
 	_ = sinker.RegisterModelWriteType(&sinker.MysqlWriter{})
 	_ = sinker.RegisterModelWriteType(&sinker.XormWriter{})
 	_ = sinker.RegisterModelWriteType(&sinker.MysqlRawWriter{})

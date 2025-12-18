@@ -18,3 +18,6 @@ class ReverseReportEventTypeEnum(StrStructuredEnum):
     MySQLDbbackupProgress = EnumField("mysql_dbbackup_progress", _("mysql_dbbackup_progress"))
     MySQLBinlogResult = EnumField("mysql_binlog_result", _("mysql_binlog_result"))
     MySQLPartitionResult = EnumField("mysql_partition_result", _("mysql_partition_result"))
+    RedisFullBackupResult = EnumField("redis_backup_result", _("redis_backup_result"))
+    RedisBinlogBackResult = EnumField("redis_binlog_result", _("redis_binlog_result"))
+    RedisBackupProgress = EnumField("redis_backup_progress", _("redis_backup_progress"))

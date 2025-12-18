@@ -1357,12 +1357,13 @@ class RedisActPayload(object):
         }
 
     def redis_reverse_config(self, **kwargs) -> dict:
+        params = kwargs["params"]
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.REVERSE_API_CONFIG.value,
             "payload": {
-                "bk_cloud_id": self.bk_cloud_id,
-                "nginx_addrs": list_nginx_addrs(bk_cloud_id=self.bk_cloud_id),
+                "bk_cloud_id": params["bk_cloud_id"],
+                "nginx_addrs": list_nginx_addrs(bk_cloud_id=params["bk_cloud_id"]),
             },
         }
 
