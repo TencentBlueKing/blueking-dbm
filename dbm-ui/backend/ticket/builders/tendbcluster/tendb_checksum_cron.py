@@ -12,7 +12,6 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.constants import DBType
-from backend.db_services.mysql.sql_import.constants import SQLExecuteTicketMode
 from backend.ticket import builders
 from backend.ticket.builders.common.constants import (
     MySQLChecksumTicketMode,
