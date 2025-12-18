@@ -10,10 +10,10 @@ specific language governing permissions and limitations under the License.
 """
 from rest_framework.routers import DefaultRouter
 
-from backend.dbm_aiagent.mcp_tools.mysql.views import MySQLMcpToolsViewSet
+from backend.dbm_aiagent.mcp_tools.mysql.views import MySQLBillMcpToolsViewSet, MySQLQueryMcpToolsViewSet
 
 routers = DefaultRouter(trailing_slash=True)
 
-routers.register(r"", MySQLMcpToolsViewSet, basename="mcp-mysql-query")
-
+routers.register(r"", MySQLQueryMcpToolsViewSet, basename="mcp-mysql-query")
+routers.register(r"", MySQLBillMcpToolsViewSet, basename="mcp-mysql-bill")
 urlpatterns = routers.urls

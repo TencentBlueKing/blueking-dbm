@@ -8,19 +8,3 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import gettext_lazy as _
-
-from blue_krill.data_types.enum import EnumField, StrStructuredEnum
-
-
-class DBMAMcpTools(StrStructuredEnum):
-    DBM = EnumField("dbm-mcp", "DBM")
-    DBMETA_QUERY = EnumField("dbmeta-query", "dbmeta-query")
-    MYSQL_QUERY = EnumField("mysql-query", "mysql-query")
-    MYSQL_BILL = EnumField("mysql-bill", "mysql-bill")
-
-
-class DBMMCPTags(StrStructuredEnum):
-    READ = EnumField("read", _("只读"))
-    WRITE = EnumField("write", _("可写"))
-    MCP_TOOLS = EnumField("mcp-tools", _("MCP工具"))

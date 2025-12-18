@@ -9,31 +9,23 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from collections import defaultdict
-from typing import Dict, List, Union
-
-from django.db.models import Q
+from typing import Dict, List
 
 from backend.components import DRSApi
-from backend.db_meta.enums import ClusterType, MachineType, TenDBClusterSpiderRole
-from backend.db_meta.models import Cluster
+from backend.db_meta.enums import ClusterType, MachineType
+from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException, DBMMcpNotSupportClusterTypeException
 
 
-def show_cluster_processlist(cluster_type: ClusterType, cluster_domain: str, raw_addresses=None) -> Dict:
-    if raw_addresses is None:
-        raw_addresses = []
+def show_cluster_processlist(cluster_type: ClusterType, cluster_domain: str) -> List:
     cluster_obj = Cluster.objects.get(cluster_type=cluster_type, immute_domain=cluster_domain)
 
-    addresses = []
-    if raw_addresses:
-        addresses = [{"ip": a.split(":")[0], "port": int(a.split(":")[1])} for a in raw_addresses]
-
     if cluster_type == ClusterType.TenDBSingle:
-        return __show_tendbsingle_processlist(cluster_obj, addresses)
+        return __show_tendbsingle_processlist(cluster_obj)
     elif cluster_type == ClusterType.TenDBHA:
-        return __show_tendbha_processlist(cluster_obj, addresses)
+        return __show_tendbha_processlist(cluster_obj)
     elif cluster_type == ClusterType.TenDBCluster:
-        return __show_tendbcluster_processlist(cluster_obj, addresses)
+        return __show_tendbcluster_processlist(cluster_obj)
     else:
         raise DBMMcpNotSupportClusterTypeException(cluster_type=cluster_type)
 
@@ -48,20 +40,20 @@ def __show_processlist(addresses: List[str], machine_type: MachineType) -> Dict:
         drs_raw_res = DRSApi.rpc({"addresses": addresses, "cmds": ["show processlist"]})
 
     res = defaultdict(list)
-    for proxy_plist_res in drs_raw_res:
-        if proxy_plist_res["error_msg"]:
-            raise DBMMcpBaseException(msg=proxy_plist_res["error_msg"])
+    for raw_plist_res in drs_raw_res:
+        if raw_plist_res["error_msg"]:
+            raise DBMMcpBaseException(msg=raw_plist_res["error_msg"])
 
-        plist_res = proxy_plist_res["cmd_results"][0]
+        plist_res = raw_plist_res["cmd_results"][0]
         if plist_res["error_msg"]:
             raise DBMMcpBaseException(msg=plist_res["error_msg"])
 
-        res[proxy_plist_res["address"]] = plist_res["table_data"]
+        res[raw_plist_res["address"]] = plist_res["table_data"]
 
     return res
 
 
-def __show_processlist_on_proxy(addresses: List[str]) -> Dict:
+def __show_processlist_on_proxy(addresses: List[str]) -> List:
     """
     {
         'Host': '1.1.1.1:27057',
@@ -75,10 +67,11 @@ def __show_processlist_on_proxy(addresses: List[str]) -> Dict:
     """
     plist_res = __show_processlist(addresses, MachineType.PROXY)
 
-    res = defaultdict(list)
-    for address, plist in plist_res.items():
-        for row in plist:
-            res[address].append(
+    res = []  # defaultdict(list)
+    for address, raw_plist in plist_res.items():
+        plist = []
+        for row in raw_plist:
+            plist.append(
                 {
                     "Id": row["Id"],
                     "host": row["Host"],
@@ -90,10 +83,12 @@ def __show_processlist_on_proxy(addresses: List[str]) -> Dict:
                 }
             )
 
+        res.append({"address": address, "process_list": plist, "machine_type": MachineType.PROXY, "instance_role": ""})
+
     return res
 
 
-def __show_processlist_on_mysql(addresses: List[str], machine_type: MachineType) -> Dict:
+def __show_processlist_on_mysql(addresses: List[str], machine_type: MachineType) -> List:
     """
     {
         'Command': 'Binlog Dump',
@@ -112,10 +107,11 @@ def __show_processlist_on_mysql(addresses: List[str], machine_type: MachineType)
     """
     plist_res = __show_processlist(addresses, machine_type)
 
-    res = defaultdict(list)
-    for address, plist in plist_res.items():
-        for row in plist:
-            res[address].append(
+    res = []  # defaultdict(list)
+    for address, raw_plist in plist_res.items():
+        plist = []
+        for row in raw_plist:
+            plist.append(
                 {
                     "id": row["Id"],
                     "host": row["Host"],
@@ -127,66 +123,44 @@ def __show_processlist_on_mysql(addresses: List[str], machine_type: MachineType)
                 }
             )
 
+        ip, port = address.split(":")
+        if machine_type == MachineType.SPIDER:
+            role = ProxyInstance.objects.get(machine__ip=ip, port=port).tendbclusterspiderext.spider_role
+        else:
+            role = StorageInstance.objects.get(machine__ip=ip, port=port).instance_role
+
+        res.append({"address": address, "process_list": plist, "machine_type": machine_type, "instance_role": role})
+
     return res
 
 
-def __show_tendbsingle_processlist(cluster_obj: Cluster, addresses: List[Dict[str, Union[str, int]]]) -> Dict:
-    q = Q()
-    for address in addresses:
-        q |= Q(**{"machine__ip": address["ip"], "port": address["port"]})
-
-    instances = cluster_obj.storageinstance_set.filter(q)
+def __show_tendbsingle_processlist(cluster_obj: Cluster) -> List:
+    instances = cluster_obj.storageinstance_set.all()
     if not instances.exists():
         raise
 
     return __show_processlist_on_mysql([ins.ip_port for ins in instances], MachineType.SINGLE)
 
 
-def __show_tendbha_processlist(cluster_obj: Cluster, addresses: List[Dict[str, Union[str, int]]]) -> Dict:
-    if not addresses:
-        return __show_processlist_on_proxy(
-            [f"{pi.machine.ip}:{pi.port + 1000}" for pi in cluster_obj.proxyinstance_set.all()]
-        )
-
-    q = Q()
-    for address in addresses:
-        q |= Q(**{"machine__ip": address["ip"], "port": address["port"]})
-
-    proxy_instances = cluster_obj.proxyinstance_set.filter(q)
-    storage_instances = cluster_obj.storageinstance_set.filter(q)
+def __show_tendbha_processlist(cluster_obj: Cluster) -> List:
+    proxy_instances = cluster_obj.proxyinstance_set.all()
+    storage_instances = cluster_obj.storageinstance_set.all()
 
     if not proxy_instances.exists() and not storage_instances.exists():
         raise
 
-    return {
-        **__show_processlist_on_proxy([f"{pi.machine.ip}:{pi.port + 1000}" for pi in proxy_instances]),
-        **__show_processlist_on_mysql([si.ip_port for si in storage_instances], MachineType.BACKEND),
-    }
+    return __show_processlist_on_proxy(
+        [f"{pi.machine.ip}:{pi.port + 1000}" for pi in proxy_instances]
+    ) + __show_processlist_on_mysql([si.ip_port for si in storage_instances], MachineType.BACKEND)
 
 
-def __show_tendbcluster_processlist(cluster_obj: Cluster, addresses: List[Dict[str, Union[str, int]]]) -> Dict:
-    if not addresses:
-        return __show_processlist_on_mysql(
-            [
-                si.ip_port
-                for si in cluster_obj.proxyinstance_set.filter(
-                    tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
-                )
-            ],
-            MachineType.SPIDER,
-        )
-
-    q = Q()
-    for address in addresses:
-        q |= Q(**{"machine__ip": address["ip"], "port": address["port"]})
-
-    proxy_instances = cluster_obj.proxyinstance_set.filter(q)
-    storage_instances = cluster_obj.storageinstance_set.filter(q)
+def __show_tendbcluster_processlist(cluster_obj: Cluster) -> List:
+    proxy_instances = cluster_obj.proxyinstance_set.all()
+    storage_instances = cluster_obj.storageinstance_set.all()
 
     if not proxy_instances.exists() and not storage_instances.exists():
         raise
 
-    return {
-        **__show_processlist_on_mysql([pi.ip_port for pi in proxy_instances], MachineType.SPIDER),
-        **__show_processlist_on_mysql([si.ip_port for si in storage_instances], MachineType.BACKEND),
-    }
+    return __show_processlist_on_mysql(
+        [pi.ip_port for pi in proxy_instances], MachineType.SPIDER
+    ) + __show_processlist_on_mysql([si.ip_port for si in storage_instances], MachineType.BACKEND)
