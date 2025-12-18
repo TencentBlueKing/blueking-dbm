@@ -44,7 +44,7 @@
       :bk-ui-settings="settings"
       :cluster-id="clusterId"
       :cluster-type="ClusterTypes.REDIS_INSTANCE"
-      :data-source="getRedisList"
+      :data-source="dataSource"
       :disable-select-method="disableSelectMethod"
       :filter-value="searchValue"
       @bk-ui-settings-change="updateTableSettings"
@@ -359,6 +359,12 @@
     showDetail: isShowDetail,
   } = useGoClusterDetail('redisClusterHaDetail');
   const { handleSelection, selectedIdList, selectedList } = useClusterTableSelect<RedisModel>();
+
+  const dataSource = (params: ServiceParameters<typeof getRedisList>) =>
+    getRedisList({
+      ...params,
+      cluster_type: ClusterTypes.REDIS_INSTANCE,
+    });
 
   const operationColumnRef = ref<ComponentExposed<typeof OperationColumn>>();
 
