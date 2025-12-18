@@ -8,12 +8,21 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.urls import include, path
+from aidev_agent.services.command_handler import CommandHandler
+from django.utils.translation import gettext as _
 
-from .views import mcp_discovery
+from ..constants import DBMAgentCode
+from .register import command
 
-urlpatterns = [
-    path("mcp_tools/", include("backend.dbm_aiagent.mcp_tools.urls")),
-    path("mcp/mcp-discovery/", mcp_discovery, name="mcp-discovery"),
-    path("agent/", include("backend.dbm_aiagent.agent.urls")),
-]
+
+@command
+class RenderExampleCommand(CommandHandler):
+    name = _("渲染示例")
+    command = "render"
+    agent_code = DBMAgentCode.DBM
+
+    def get_template(self) -> str:
+        return """
+        回答内容: {{ content }}
+        请按照回答内容原样输出给用户回答
+        """

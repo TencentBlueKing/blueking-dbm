@@ -239,6 +239,9 @@ class DataAPI(object):
             # 本地开发 runserver 进程，认为是后台任务
             if "manage.py" in argv and "runserver" not in sys.argv:
                 is_backend = True
+            # 如果是shell发起的，也是后台调用
+            if "shell" in argv or "shell_plus" in argv or "pydevconsole" in argv:
+                is_backend = True
         # 标记内部调用
         if getattr(local_request, "internal_call", False):
             is_backend = True
