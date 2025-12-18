@@ -43,7 +43,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 APP_CODE = env.APP_CODE
 SECRET_KEY = env.SECRET_KEY
-ENVIRONMENT = env.ENVIRONMENT
+BKPAAS_ENVIRONMENT = ENVIRONMENT = env.ENVIRONMENT
 
 CONF_PATH = os.path.abspath(__file__)
 PROJECT_ROOT = os.path.dirname(os.path.dirname(CONF_PATH))
@@ -102,6 +102,8 @@ INSTALLED_APPS += (
     # apigw
     "apigw_manager.apigw",
     "apigw_manager.drf",
+    # aidev
+    "aidev_bkplugin",
     # DB重连
     "backend.django_dbconn_retry",
     # 动态 raw-id
@@ -622,6 +624,10 @@ if env.BKAPP_MONITOR_REPORTER_ENABLE:
     config.monitor_celery_report_config()
     config.monitor_web_report_config()
 
+
+# 接入告警屏蔽的延迟秒, 默认 10s 无延迟，最小 10s
+DISABLE_ALARM_SHIELD_DELAY = max(int(os.getenv("DISABLE_ALARM_SHIELD_DELAY", 10)), 10)
+
 # 全局启用 pyinstrument，或者在url后面加上?profile=1
 # PYINSTRUMENT_PROFILE_DIR = os.path.join(STATIC_ROOT, 'assets/perf')
 
@@ -629,6 +635,8 @@ if env.BKAPP_MONITOR_REPORTER_ENABLE:
 if env.DEBUG_TOOL_BAR:
     INTERNAL_IPS = ["127.0.0.1", "localhost"]
 
+
+# ================================ DBM AIDEV 配置 =========================================
 # 开启MCP server
 BK_APIGW_STAGE_ENABLE_MCP_SERVERS = env.BK_APIGW_STAGE_ENABLE_MCP_SERVERS
 BK_APIGW_STAGE_MCP_SERVERS = [
@@ -854,6 +862,15 @@ BK_APIGW_STAGE_MCP_SERVERS = [
     },
 ]
 
-# 接入告警屏蔽的延迟秒, 默认 10s 无延迟
-# 最小 10s
-DISABLE_ALARM_SHIELD_DELAY = max(int(os.getenv("DISABLE_ALARM_SHIELD_DELAY", 10)), 10)
+# 智能体配置
+AIDEV_BKPLUGIN_DEFAULT_NAME = "default"
+DEFAULT_AGENT = "aidev_agent.core.extend.agent.qa.CommonQAAgent"
+DEFAULT_CONFIG_MANAGER = "backend.dbm_aiagent.agent.configs.manager.DBMAgentConfigManager"
+AGENT_APP_CODE = env.BK_AIDEV_AGENT_APP_CODE or APP_CODE
+AGENT_APP_SECRET = env.BK_AIDEV_AGENT_APP_SECRET or APP_TOKEN
+BK_AIDEV_APIGW_ENDPOINT = env.BK_AIDEV_APIGW_ENDPOINT
+# 智能体客服渠道
+CHAT_GROUP_ENABLED = os.environ.get("CHAT_GROUP_ENABLED") == "1"
+CHAT_GROUP_STAFF = os.environ.get("CHAT_GROUP_STAFF")
+CHAT_GROUP_STAFF = [i.strip() for i in CHAT_GROUP_STAFF.split(",")] if CHAT_GROUP_STAFF else []
+CHAT_GROUP_TYPE = os.environ.get("CHAT_GROUP_TYPE", "qyweixin_chat_group")

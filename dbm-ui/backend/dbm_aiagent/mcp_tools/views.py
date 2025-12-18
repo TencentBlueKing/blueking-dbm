@@ -69,7 +69,8 @@ class McpToolsViewSet(viewsets.SystemViewSet, metaclass=McpToolsViewSetMeta):
     # MCP 工具需要同时开启用户认证和应用认证，默认为True
     # 这里user_verified_required 和 app_verified_required 比如和视图函数一致
     # 如果确实无需某个认证，则类定义和 mcp_tools_api_decorator 都要改写为False
-    user_verified_required = True
+    # TODO: 考虑 mcp 也有后台调用，暂时都已应用态接口开放
+    user_verified_required = False
     app_verified_required = True
 
     def get_param(self, pname, default_value: Any | None = None) -> Any:
