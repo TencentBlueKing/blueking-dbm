@@ -9,14 +9,14 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Tuple
 
 from django.db.models import CharField, ExpressionWrapper, F, Prefetch, Q, QuerySet, Value
 from django.db.models.functions import Concat
 from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole, MachineType
-from backend.db_meta.models import AppCache, NosqlStorageSetDtl, StorageInstanceTuple
+from backend.db_meta.models import AppCache, ClusterEntry, NosqlStorageSetDtl, StorageInstanceTuple
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import ProxyInstance, StorageInstance
 from backend.db_services.dbbase.resources import query
@@ -30,6 +30,7 @@ from backend.db_services.dbbase.resources.register import register_resource_deco
 from backend.db_services.dbresource.handlers import MongoDBShardSpecFilter
 from backend.ticket.constants import TicketType
 from backend.ticket.models import InstanceOperateRecord
+from backend.utils.time import datetime2str
 
 logger = logging.getLogger("root")
 
@@ -443,3 +444,93 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource, MongoDBExportQuery
                     storage_id__shard[storage.id] = ""
 
         return storage_instance, storage_id__shard
+
+    @staticmethod
+    def common_query_instance(bk_biz_id: int, cluster_types: list, bk_host_ids: list) -> Tuple[List[Dict], List[Dict]]:
+
+        query_condition = Q(bk_biz_id=bk_biz_id, cluster_type__in=cluster_types)
+        if bk_host_ids:
+            query_condition = query_condition & Q(machine__bk_host_id__in=bk_host_ids)
+        fields = [
+            "id",
+            "role",
+            "port",
+            "status",
+            "create_at",
+            "shard",
+            "cluster__id",
+            "version",
+            "cluster__name",
+            "machine__ip",
+            "machine__bk_sub_zone",
+            "machine__bk_os_name",
+            "shard",
+        ]
+
+        storage_instance = (
+            StorageInstance.objects.annotate(
+                role=F("instance_role"),
+                shard=ExpressionWrapper(
+                    Concat(
+                        F("as_receiver__ejector__nosqlstoragesetdtl__seg_range"),
+                        F("as_ejector__ejector__nosqlstoragesetdtl__seg_range"),
+                    ),
+                    output_field=CharField(),
+                ),
+            )
+            .select_related("machine")
+            .prefetch_related(
+                "cluster", "as_receiver__ejector__nosqlstoragesetdtl", "as_ejector__ejector__nosqlstoragesetdtl"
+            )
+            .filter(query_condition)
+            .values(*fields)
+        )
+        proxy_instance = (
+            ProxyInstance.objects.annotate(role=F("access_layer"), shard=Value(""))
+            .select_related("machine")
+            .prefetch_related("cluster")
+            .filter(query_condition & Q(bind_entry__cluster_entry_type=ClusterEntryType.DNS.value))  # 过滤实例域名
+            .values(*fields)
+        )
+        instances = storage_instance.union(proxy_instance)
+
+        headers = [
+            {"id": "ip_port", "name": _("实例")},
+            {"id": "instance_id", "name": _("ID")},
+            {"id": "cluster_name", "name": _("所属集群")},
+            {"id": "shard", "name": _("分片名")},
+            {"id": "status", "name": _("状态")},
+            {"id": "instance_role", "name": _("部署角色")},
+            {"id": "version", "name": _("版本")},
+            {"id": "master_domain", "name": _("域名")},
+            {"id": "ip", "name": _("IP")},
+            {"id": "bk_sub_zone", "name": _("园区")},
+            {"id": "bk_os_name", "name": _("操作系统")},
+            {"id": "create_at", "name": _("部署时间")},
+        ]
+        # 插入数据
+        data_list = []
+
+        cluster_ids = [instance["cluster__id"] for instance in instances]
+        # 查询访问入口
+        cluster_entry_map = ClusterEntry.get_cluster_entry_map(cluster_ids)
+
+        for ins in instances:
+            data_list.append(
+                {
+                    "ip_port": f"{ins['machine__ip']}:{ins['port']}",
+                    "instance_id": ins["id"],
+                    "cluster_name": ins["cluster__name"],
+                    "shard": ins["shard"],
+                    "status": ins["status"],
+                    "instance_role": ins["role"],
+                    "version": ins["version"],
+                    "master_domain": cluster_entry_map.get(ins["cluster__id"], {}).get("master_domain", ""),
+                    "ip": ins["machine__ip"],
+                    "bk_sub_zone": ins["machine__bk_sub_zone"],
+                    "bk_os_name": ins["machine__bk_os_name"],
+                    "create_at": datetime2str(ins["create_at"]),
+                }
+            )
+
+        return headers, data_list
