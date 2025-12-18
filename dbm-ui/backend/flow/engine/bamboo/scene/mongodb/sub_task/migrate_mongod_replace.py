@@ -30,6 +30,7 @@ from backend.flow.plugins.components.collections.mongodb.delete_password_from_db
     ExecDeletePasswordFromDBOperationComponent,
 )
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
+from backend.flow.plugins.components.collections.mongodb.mongo_add_alarm_shield import MongoAddAlarmShieldComponent
 from backend.flow.plugins.components.collections.mongodb.mongodb_capcity_chgs_meta import MongoDBCapcityMetaComponent
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 
@@ -297,6 +298,17 @@ def migrate_mongod_replace(
     )
 
     # 下架老实例
+    # 屏蔽老实例监控
+    act_name = _("MongoDB-mongod下架前屏蔽告警-{}:{}".format(info["ip"], str(sub_sub_get_kwargs.db_instance["port"])))
+    kwargs = sub_sub_get_kwargs.get_add_alarm_shield_kwargs(
+        ip_list=[info["ip"]], port_list=[sub_sub_get_kwargs.db_instance["port"]], description=act_name
+    )
+    sub_sub_pipeline.add_act(
+        act_name=act_name,
+        act_component_code=MongoAddAlarmShieldComponent.code,
+        kwargs=kwargs,
+    )
+
     # 下架节点设置为隐藏
     kwargs = sub_sub_get_kwargs.get_mongod_hidden_kwargs(
         info=info, hidden=True, port=sub_sub_get_kwargs.db_instance["port"]
