@@ -18,6 +18,7 @@ from django.utils.translation import gettext as _
 from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType
 from backend.db_meta.models import Cluster, ClusterEntry
 from backend.flow.engine.bamboo.scene.common.builder import Builder
+from backend.flow.engine.bamboo.scene.common.clone_module_config import add_clone_cluster_storage_config_act
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import ALLDEPARTS
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import (
     standardize_mysql_cluster_by_cluster_subflow,
@@ -25,12 +26,10 @@ from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow impor
 from backend.flow.plugins.components.collections.common.clone_priv_rules_to_other_biz import (
     ClonePrivRulesToOtherComponent,
 )
-from backend.flow.plugins.components.collections.common.generate_config_version import GenerateConfigVersionComponent
 from backend.flow.plugins.components.collections.common.transfer_cluster_meta_to_other_biz import (
     TransferClusterMetaToOtherBizComponent,
     UpdateClusterDnsBelongAppComponent,
 )
-from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
 
 logger = logging.getLogger("flow")
 
@@ -116,33 +115,20 @@ class TransferMySQLClusterToOtherBizFlow(object):
             },
         )
 
-        # 为每个集群生成配置版本
-        for cluster in clusters:
-            # 根据目标模块ID获取数据库版本
-            try:
-                charset, db_version = get_version_and_charset(
-                    bk_biz_id=self.target_biz_id,
-                    db_module_id=self.dest_db_module_id,
-                    cluster_type=cluster.cluster_type,
-                )
-                logger.info(_("获取模块 {} 的数据库版本: {}, {}").format(self.dest_db_module_id, charset, db_version))
-            except Exception as e:
-                raise Exception(_("获取模块 {} 的数据库版本失败: {}").format(self.dest_db_module_id, str(e)))
-
-            p.add_act(
-                act_name=_("生成集群 {} 配置版本").format(cluster.immute_domain),
-                act_component_code=GenerateConfigVersionComponent.code,
-                kwargs={
-                    "bk_biz_id": self.target_biz_id,  # 使用目标业务ID
-                    "level_name": "cluster",
-                    "level_value": cluster.immute_domain,
-                    "level_info": {"module": str(self.dest_db_module_id)},
-                    "conf_file": db_version,  # 使用从模块获取的数据库版本
-                    "conf_type": "dbconf",
-                    "namespace": "tendbha",
-                    "format": "map.",
-                    "method": "GenerateAndPublish",
-                },
+        # 克隆集群配置：从源业务/源模块克隆到目标业务/目标模块
+        # 一次性克隆所有集群的配置，传入所有集群域名列表
+        if clusters:
+            # 获取第一个集群作为参考（所有集群应该使用相同的源模块ID和集群类型）
+            reference_cluster = clusters[0]
+            cluster_domains = [cluster.immute_domain for cluster in clusters]
+            add_clone_cluster_storage_config_act(
+                sub_pipeline=p,
+                source_module_id=reference_cluster.db_module_id,  # 源模块ID（旧模块）
+                target_module_id=self.dest_db_module_id,  # 目标模块ID（新模块）
+                cluster_domains=cluster_domains,  # 所有集群域名列表
+                source_bk_biz_id=source_bk_biz_id,  # 源业务ID（跨业务场景）
+                target_bk_biz_id=self.target_biz_id,  # 目标业务ID（跨业务场景）
+                cluster_type=reference_cluster.cluster_type,  # 集群类型
             )
         # 标准化集群
         cloud_cluster_ids = [cluster.id for cluster in clusters]

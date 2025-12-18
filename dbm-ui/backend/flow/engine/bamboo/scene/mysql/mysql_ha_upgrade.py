@@ -22,6 +22,7 @@ from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
+from backend.flow.engine.bamboo.scene.common.clone_module_config import add_clone_module_config_act
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.cluster_entrys import get_tendb_ha_entry
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import install_mysql_in_cluster_sub_flow
@@ -475,6 +476,8 @@ def tendbha_cluster_upgrade_subflow(
     )
     sub_pipeline.add_sub_pipeline(sub_flow=uninstall_surrounding_sub_pipeline)
     # 更新集群模块信息
+    # 注意：这里只是添加流程节点，不会立即更新内存中的 cluster_cls 对象
+    # cluster_cls.db_module_id 仍然是旧的模块ID，这正是我们需要的源模块ID
     sub_pipeline.add_act(
         act_name=_("更新集群db模块信息"),
         act_component_code=MySQLDBMetaComponent.code,
@@ -488,6 +491,15 @@ def tendbha_cluster_upgrade_subflow(
                 },
             )
         ),
+    )
+
+    # 克隆模块配置
+    # 使用旧的模块ID作为源，新的模块ID作为目标
+    add_clone_module_config_act(
+        sub_pipeline,
+        cluster_cls,
+        cluster_cls.db_module_id,  # 源模块ID（旧的）
+        new_db_module_id,  # 目标模块ID（新的）
     )
 
     # 下架确认节点

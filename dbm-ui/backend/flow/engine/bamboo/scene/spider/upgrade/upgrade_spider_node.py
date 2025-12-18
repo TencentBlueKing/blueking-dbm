@@ -7,6 +7,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 import copy
 import logging
 from dataclasses import asdict
@@ -20,6 +21,7 @@ from backend.db_meta.models import Cluster, ProxyInstance
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
+from backend.flow.engine.bamboo.scene.common.clone_module_config import add_clone_spider_module_config_act
 from backend.flow.engine.bamboo.scene.spider.spider_switch_nodes import TenDBClusterSwitchNodesFlow
 from backend.flow.plugins.components.collections.common.add_unlock_ticket_type_config import (
     AddUnlockTicketTypeConfigComponent,
@@ -231,8 +233,11 @@ class UpgradeSpiderFlow(TenDBClusterSwitchNodesFlow):
             sub_pipeline.add_parallel_sub_pipeline(part2)
             # 更新集群模块信息
             if new_db_module_id != cluster.db_module_id:
+                # 注意：这里只是添加流程节点，不会立即更新内存中的 cluster 对象
+                # cluster.db_module_id 仍然是旧的模块ID，这正是我们需要的源模块ID
                 add_cluster_module_update_act(sub_pipeline, cluster_id, new_db_module_id)
-
+                # 克隆spider模块配置
+                add_clone_spider_module_config_act(sub_pipeline, cluster, cluster.db_module_id, new_db_module_id)
             # 解除告警屏蔽
             add_spider_disable_alarm_shield_act(sub_pipeline)
 
@@ -386,6 +391,11 @@ class UpgradeSpiderFlow(TenDBClusterSwitchNodesFlow):
             )
         sub_pipeline.add_parallel_sub_pipeline(reduce_sub_pipelines)
         # 更新集群模块信息
+        # 注意：这里只是添加流程节点，不会立即更新内存中的 cluster 对象
+        # cluster.db_module_id 仍然是旧的模块ID，这正是我们需要的源模块ID
         add_cluster_module_update_act(sub_pipeline, cluster_id, new_db_module_id)
+
+        # 克隆模块配置
+        add_clone_spider_module_config_act(sub_pipeline, cluster, cluster.db_module_id, new_db_module_id)
 
         return sub_pipeline.build_sub_process(sub_name=_("[{}]spider节点迁移升级流程".format(cluster.immute_domain)))

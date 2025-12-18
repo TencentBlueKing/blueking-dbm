@@ -98,6 +98,16 @@ class _DBConfigApi(BaseApi):
             url="bkconfig/v1/conffile/change",
             description=_("修改配置文件本身的定义"),
         )
+        self.clone_module_config = self.generate_data_api(
+            method="POST",
+            url="bkconfig/v1/confitem/clonemodule",
+            description=_("克隆模块配置"),
+        )
+        self.clone_cluster_config = self.generate_data_api(
+            method="POST",
+            url="bkconfig/v1/confitem/clonecluster",
+            description=_("克隆集群配置"),
+        )
 
 
 DBConfigApi = _DBConfigApi()

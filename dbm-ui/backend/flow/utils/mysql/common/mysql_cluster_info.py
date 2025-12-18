@@ -91,3 +91,28 @@ def get_ports(cluster_ids: list) -> list:
                 cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value).port
             )
     return cluster_ports
+
+
+def get_spider_module_version(bk_biz_id, db_module_id) -> str:
+    """
+    获取指定业务模块下的spider版本信息。
+
+    Args:
+        bk_biz_id (int or str): 业务ID
+        db_module_id (int or str): 模块ID
+
+    Returns:
+        str: spider_version
+    """
+    data = DBConfigApi.query_conf_item(
+        {
+            "bk_biz_id": str(bk_biz_id),
+            "level_name": LevelName.MODULE,
+            "level_value": str(db_module_id),
+            "conf_file": "deploy_info",
+            "conf_type": "deploy",
+            "namespace": ClusterType.TenDBCluster.value,
+            "format": FormatType.MAP,
+        }
+    )["content"]
+    return data["spider_version"]
