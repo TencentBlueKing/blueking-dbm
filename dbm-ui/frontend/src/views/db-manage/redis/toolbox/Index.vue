@@ -172,6 +172,50 @@
       id: 'redis_data_query',
       name: t('数据查询'),
     },
+    {
+      children: [
+        {
+          dbConsoleValue: 'redis.toolbox.proxyScaleUp',
+          id: TicketTypes.REDIS_PROXY_SCALE_UP,
+          name: t('扩容接入层'),
+          parentId: 'cluster-manage',
+        },
+        {
+          dbConsoleValue: 'redis.toolbox.proxyScaleDown',
+          id: TicketTypes.REDIS_PROXY_SCALE_DOWN,
+          name: t('缩容接入层'),
+          parentId: 'cluster-manage',
+        },
+        {
+          dbConsoleValue: 'redis.toolbox.capacityChange',
+          id: TicketTypes.REDIS_SCALE_UPDOWN,
+          name: t('集群容量变更'),
+          parentId: 'cluster-manage',
+        },
+        {
+          dbConsoleValue: 'redis.toolbox.clusterShardChange',
+          id: TicketTypes.REDIS_CLUSTER_SHARD_NUM_UPDATE,
+          name: t('集群分片变更'),
+          parentId: 'cluster-manage',
+        },
+        {
+          bind: [TicketTypes.REDIS_SHARD_ADD, TicketTypes.REDIS_SHARD_REDUCE],
+          dbConsoleValue: 'redis.toolbox.shardAdd',
+          id: TicketTypes.REDIS_SHARD_ADD,
+          name: t('集群分片变更（Slot迁移）'),
+          parentId: 'cluster-manage',
+        },
+        {
+          dbConsoleValue: 'redis.toolbox.clusterTypeChange',
+          id: TicketTypes.REDIS_CLUSTER_TYPE_UPDATE,
+          name: t('集群类型变更'),
+          parentId: 'cluster-manage',
+        },
+      ],
+      icon: 'db-icon-cluster',
+      id: 'cluster-manage',
+      name: t('集群维护'),
+    },
   ];
 
   export const menuGroupList = [
