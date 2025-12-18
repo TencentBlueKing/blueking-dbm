@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
+
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
@@ -49,8 +51,10 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.show_variables import (
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import RejectPermission
 
+logger = logging.getLogger("root")
 
-class MySQLMcpToolsViewSet(McpToolsViewSet):
+
+class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
     default_permission_class = [RejectPermission()]
 
     @mcp_tools_api_decorator(
@@ -131,21 +135,7 @@ class MySQLMcpToolsViewSet(McpToolsViewSet):
         return Response(mysql_cluster_topo(cluster_type=ClusterType.TenDBCluster, cluster_domain=cluster_domain))
 
     @mcp_tools_api_decorator(
-        description=str(
-            _(
-                """查询集群连接列表
-            1. 连接信息的原始详情可用于人工阅读分析
-            2. 按 host 或者 user 或者 db 或者 state 的聚合结果可以分析连接概况
-            3. 详情列表的 count 数量就是对应实例或者集群的总连接数. 可以结合最大连接数(max_connections)运行时参数来评估实例的连接够不够用
-            4. addresses 参数默认为 None, 按不同的集群类型有不同的含义
-              * 当集群类型为 TenDBSingle 时, 获取所有存储层的连接信息
-              * 当集群类型为 TenDBHA 时, 获取所有接入层(proxy)的连接信息
-              * 当集群类型为 TenDBCluster 时, 获取所有主接入层(spider master)的连接信息
-            5. addresses 不为空时, 获取指定实例的连接信息
-            6. addresses 要么为 None, 要么只能是 ip:port 形式的实例列表
-            """
-            )
-        ),
+        description=str(_("""查询集群连接列表, 默认合并接入层和存储连接""")),
         request_slz=ShowProcessListInputSerializer,
         response_slz=ShowProcessListOutputSerializer,
         tags=[DBMMCPTags.READ],
@@ -155,17 +145,14 @@ class MySQLMcpToolsViewSet(McpToolsViewSet):
     def show_cluster_processlist(self, request, *args, **kwargs):
         cluster_type = self.get_param("cluster_type")
         cluster_domain = self.get_param("cluster_domain")
-        addresses = self.get_param("addresses")
+        # addresses = self.get_param("addresses")
 
-        return Response(show_cluster_processlist(cluster_type, cluster_domain, addresses))
+        res = show_cluster_processlist(cluster_type, cluster_domain)
+        logger.info(res)
+        return Response({"cluster_process_lists": res})
 
     @mcp_tools_api_decorator(
-        description=str(
-            _(
-                """查询 MySQL 运行时参数
-限制只能查询机器类型(machine_type) 是 single, backend, remote, spider 实例的状态"""
-            )
-        ),
+        description=str(_("""查询 MySQL 运行时参数""")),
         request_slz=ShowMySQLVariablesInputSerializer,
         response_slz=ShowMySQLVariablesOutputSerializer,
         tags=[DBMMCPTags.READ],
@@ -180,13 +167,7 @@ class MySQLMcpToolsViewSet(McpToolsViewSet):
         return Response(show_mysql_variables(address, machine_type, variable_hints))
 
     @mcp_tools_api_decorator(
-        description=str(
-            _(
-                """查询实例运行时状态
-        限制只能查询机器类型(machine_type) 是 single, proxy, backend, remote, spider 实例的状态
-        """
-            )
-        ),
+        description=str(_("""查询实例运行时状态""")),
         request_slz=ShowInstanceStatusesInputSerializer,
         response_slz=ShowInstanceStatuesOutputSerializer,
         tags=[DBMMCPTags.READ],

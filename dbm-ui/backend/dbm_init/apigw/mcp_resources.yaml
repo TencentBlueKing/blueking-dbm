@@ -3,10 +3,10 @@ info:
   title: ''
   version: 0.0.0
 paths:
-  /apis/ai/mcp_tools/common/cluster/filter_clusters/:
+  /apis/ai/mcp_tools/common/list_biz_clusters/:
     post:
-      operationId: mcp_common_cluster_filter_clusters
-      description: 获取集群详细信息
+      operationId: dbmeta_query_list_biz_clusters
+      description: 获取业务所有集群
       tags:
       - read
       - mcp-tools
@@ -14,63 +14,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/FilterClusterInputRequest'
+              $ref: '#/components/schemas/ListDBModulesInputRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/FilterClusterInputRequest'
+              $ref: '#/components/schemas/ListDBModulesInputRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/FilterClusterInputRequest'
-      security:
-      - cookieAuth: []
-      - {}
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FilterClusterOutput'
-          description: ''
-      x-bk-apigateway-resource:
-        isPublic: false
-        matchSubpath: false
-        backend:
-          name: default
-          method: post
-          path: /apis/ai/mcp_tools/common/cluster/filter_clusters/
-          matchSubpath: false
-          timeout: 0
-        pluginConfigs:
-        - type: bk-header-rewrite
-          yaml: |
-            remove: []
-            set:
-            - key: X-Bkdbm-Mcp-Tag
-              value: read,mcp-tools
-        allowApplyPermission: false
-        authConfig:
-          userVerifiedRequired: true
-          appVerifiedRequired: true
-          resourcePermissionRequired: true
-        descriptionEn: 获取集群详细信息
-  /apis/ai/mcp_tools/common/cluster/get_cluster_base_info/:
-    post:
-      operationId: mcp_common_cluster_get_cluster_base_info
-      description: 获取集群的业务和类型基础信息(无鉴权), 包括所属业务id, 集群类型和集群 id
-      tags:
-      - read
-      - mcp-tools
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/GetClusterBaseInfoInputRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/GetClusterBaseInfoInputRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/GetClusterBaseInfoInputRequest'
+              $ref: '#/components/schemas/ListDBModulesInputRequest'
         required: true
       security:
       - cookieAuth: []
@@ -80,7 +30,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GetClusterBaseInfoOutput'
+                $ref: '#/components/schemas/ListDBModulesOutput'
           description: ''
       x-bk-apigateway-resource:
         isPublic: false
@@ -88,7 +38,7 @@ paths:
         backend:
           name: default
           method: post
-          path: /apis/ai/mcp_tools/common/cluster/get_cluster_base_info/
+          path: /apis/ai/mcp_tools/common/list_biz_clusters/
           matchSubpath: false
           timeout: 0
         pluginConfigs:
@@ -103,7 +53,109 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
-        descriptionEn: 获取集群的业务和类型基础信息(无鉴权), 包括所属业务id, 集群类型和集群 id
+        descriptionEn: 获取业务所有集群
+  /apis/ai/mcp_tools/common/list_biz_dbmodules/:
+    post:
+      operationId: dbmeta_query_list_biz_dbmodules
+      description: 获取业务特定集群类型的模块信息, dbmodule
+      tags:
+      - read
+      - mcp-tools
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListDBModulesInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ListDBModulesInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ListDBModulesInputRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListDBModulesOutput'
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: false
+        matchSubpath: false
+        backend:
+          name: default
+          method: post
+          path: /apis/ai/mcp_tools/common/list_biz_dbmodules/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs:
+        - type: bk-header-rewrite
+          yaml: |
+            remove: []
+            set:
+            - key: X-Bkdbm-Mcp-Tag
+              value: read,mcp-tools
+        allowApplyPermission: false
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn: 获取业务特定集群类型的模块信息, dbmodule
+  /apis/ai/mcp_tools/common/list_platform_bizs_base_info/:
+    post:
+      operationId: dbmeta_query_list_platform_bizs_base_info
+      description: 获取平台所有业务的中文名, 英文名和组件负责人
+      tags:
+      - read
+      - mcp-tools
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmptyInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EmptyInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EmptyInputRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListPlatformBizsOutput'
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: false
+        matchSubpath: false
+        backend:
+          name: default
+          method: post
+          path: /apis/ai/mcp_tools/common/list_platform_bizs_base_info/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs:
+        - type: bk-header-rewrite
+          yaml: |
+            remove: []
+            set:
+            - key: X-Bkdbm-Mcp-Tag
+              value: read,mcp-tools
+        allowApplyPermission: false
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn: 获取平台所有业务的中文名, 英文名和组件负责人
   /apis/ai/mcp_tools/mysql/explain_sql/:
     post:
       operationId: mysql_query_explain_sql
@@ -158,14 +210,7 @@ paths:
   /apis/ai/mcp_tools/mysql/show_cluster_processlist/:
     post:
       operationId: mysql_query_show_cluster_processlist
-      description: "查询集群连接列表\n            1. 连接信息的原始详情可用于人工阅读分析\n            2. 按\
-        \ host 或者 user 或者 db 或者 state 的聚合结果可以分析连接概况\n            3. 详情列表的 count 数量就是对应实例或者集群的总连接数.\
-        \ 可以结合最大连接数(max_connections)运行时参数来评估实例的连接够不够用\n            4. addresses 参数默认为\
-        \ None, 按不同的集群类型有不同的含义\n              * 当集群类型为 TenDBSingle 时, 获取所有存储层的连接信息\n\
-        \              * 当集群类型为 TenDBHA 时, 获取所有接入层(proxy)的连接信息\n              * 当集群类型为\
-        \ TenDBCluster 时, 获取所有主接入层(spider master)的连接信息\n            5. addresses 不为空时,\
-        \ 获取指定实例的连接信息\n            6. addresses 要么为 None, 要么只能是 ip:port 形式的实例列表\n\
-        \            "
+      description: 查询集群连接列表, 默认合并接入层和存储连接
       tags:
       - read
       - mcp-tools
@@ -212,14 +257,7 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
-        descriptionEn: "查询集群连接列表\n            1. 连接信息的原始详情可用于人工阅读分析\n            2.\
-          \ 按 host 或者 user 或者 db 或者 state 的聚合结果可以分析连接概况\n            3. 详情列表的 count\
-          \ 数量就是对应实例或者集群的总连接数. 可以结合最大连接数(max_connections)运行时参数来评估实例的连接够不够用\n     \
-          \       4. addresses 参数默认为 None, 按不同的集群类型有不同的含义\n              * 当集群类型为\
-          \ TenDBSingle 时, 获取所有存储层的连接信息\n              * 当集群类型为 TenDBHA 时, 获取所有接入层(proxy)的连接信息\n\
-          \              * 当集群类型为 TenDBCluster 时, 获取所有主接入层(spider master)的连接信息\n \
-          \           5. addresses 不为空时, 获取指定实例的连接信息\n            6. addresses 要么为\
-          \ None, 要么只能是 ip:port 形式的实例列表\n            "
+        descriptionEn: 查询集群连接列表, 默认合并接入层和存储连接
   /apis/ai/mcp_tools/mysql/show_create_table/:
     post:
       operationId: mysql_query_show_create_table
@@ -274,8 +312,7 @@ paths:
   /apis/ai/mcp_tools/mysql/show_instance_status/:
     post:
       operationId: mysql_query_show_instance_status
-      description: "查询实例运行时状态\n        限制只能查询机器类型(machine_type) 是 single, proxy, backend,\
-        \ remote, spider 实例的状态\n        "
+      description: 查询实例运行时状态
       tags:
       - read
       - mcp-tools
@@ -322,13 +359,11 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
-        descriptionEn: "查询实例运行时状态\n        限制只能查询机器类型(machine_type) 是 single, proxy,\
-          \ backend, remote, spider 实例的状态\n        "
+        descriptionEn: 查询实例运行时状态
   /apis/ai/mcp_tools/mysql/show_mysql_variables/:
     post:
       operationId: mysql_query_show_mysql_variables
-      description: "查询 MySQL 运行时参数\n        限制只能查询机器类型(machine_type) 是 single, backend,\
-        \ remote, spider 实例的状态        \n        "
+      description: 查询 MySQL 运行时参数
       tags:
       - read
       - mcp-tools
@@ -375,8 +410,111 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
-        descriptionEn: "查询 MySQL 运行时参数\n        限制只能查询机器类型(machine_type) 是 single,\
-          \ backend, remote, spider 实例的状态        \n        "
+        descriptionEn: 查询 MySQL 运行时参数
+  /apis/ai/mcp_tools/mysql/submit_bill_mysql_db_table_backup/:
+    post:
+      operationId: mysql_bill_submit_bill_mysql_db_table_backup
+      description: 创建 TenDBHA, TenDBCluster 库表备单据
+      tags:
+      - read
+      - write
+      - mcp-tools
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitBillMySQLDBTableBackupInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SubmitBillMySQLDBTableBackupInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SubmitBillMySQLDBTableBackupInputRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitBillOutput'
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: false
+        matchSubpath: false
+        backend:
+          name: default
+          method: post
+          path: /apis/ai/mcp_tools/mysql/submit_bill_mysql_db_table_backup/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs:
+        - type: bk-header-rewrite
+          yaml: |
+            remove: []
+            set:
+            - key: X-Bkdbm-Mcp-Tag
+              value: read,write,mcp-tools
+        allowApplyPermission: false
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn: 创建 TenDBHA, TenDBCluster 库表备单据
+  /apis/ai/mcp_tools/mysql/submit_bill_mysql_full_backup/:
+    post:
+      operationId: mysql_bill_submit_bill_mysql_full_backup
+      description: 创建 TenDBHA, TenDBCluster 全备单据
+      tags:
+      - read
+      - write
+      - mcp-tools
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitBillMySQLFullBackupInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SubmitBillMySQLFullBackupInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SubmitBillMySQLFullBackupInputRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitBillOutput'
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: false
+        matchSubpath: false
+        backend:
+          name: default
+          method: post
+          path: /apis/ai/mcp_tools/mysql/submit_bill_mysql_full_backup/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs:
+        - type: bk-header-rewrite
+          yaml: |
+            remove: []
+            set:
+            - key: X-Bkdbm-Mcp-Tag
+              value: read,write,mcp-tools
+        allowApplyPermission: false
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn: 创建 TenDBHA, TenDBCluster 全备单据
   /apis/ai/mcp_tools/mysql/tendbcluster_topo/:
     post:
       operationId: mysql_query_tendbcluster_topo
@@ -532,41 +670,107 @@ paths:
         descriptionEn: 查询 TenDBSingle 集群拓扑结构
 components:
   schemas:
-    ClusterEntry:
+    BackupTypeEnum:
+      enum:
+      - logical
+      - physical
+      type: string
+      description: |-
+        * `logical` - 逻辑备份
+        * `physical` - 物理备份
+    BizBaseInfo:
       type: object
-      description: 集群访问入口
       properties:
-        cluster_entry_type:
+        abbr:
           type: string
-          description: 入口类型
-        entry:
-          type: string
-          description: 入口地址
-        role:
-          type: string
-          description: 角色
+          description: 业务名, 简称
+        bk_biz_id:
+          type: integer
+          description: 业务 ID
+        db_components:
+          type: array
+          items:
+            $ref: '#/components/schemas/BizDBComponentInfo'
+          description: DB 组件列表
       required:
-      - cluster_entry_type
-      - entry
-      - role
-    ClusterStats:
+      - abbr
+      - bk_biz_id
+      - db_components
+    BizDBComponentInfo:
       type: object
-      description: 集群统计信息
       properties:
-        used:
-          type: integer
-          description: 已使用容量
-        total:
-          type: integer
-          description: 总容量
-        in_use:
-          type: number
-          format: double
-          description: 使用率
+        db_type:
+          allOf:
+          - $ref: '#/components/schemas/DbTypeEnum'
+          description: |-
+            集群技术栈类型
+
+            * `mysql` - MySQL
+            * `tendbcluster` - TenDBCluster
+            * `redis` - Redis
+            * `mongodb` - MongoDB
+            * `kafka` - Kafka
+            * `hdfs` - HDFS
+            * `es` - ElasticSearch
+            * `pulsar` - Pulsar
+            * `influxdb` - InfluxDB
+            * `riak` - Riak
+            * `sqlserver` - SQLServer
+            * `doris` - Doris
+            * `vm` - Vm
+            * `oracle` - Oracle
+            * `k8s` - K8s
+            * `cloud` - Cloud
+            * `tbinlogdumper` - TBinlogDumper
+        cluster_type:
+          allOf:
+          - $ref: '#/components/schemas/ClusterType82aEnum'
+          description: |-
+            集群类型
+
+            * `tendbsingle` - MySQL单节点集群
+            * `tendbha` - MySQL高可用集群
+            * `tendbcluster` - TendbCluster集群
+            * `tbinlogdumper` - TBinlogDumper
+            * `redis` - Redis
+            * `PredixyRedisCluster` - RedisCluster集群
+            * `PredixyTendisplusCluster` - Tendisplus存储版集群
+            * `TwemproxyRedisInstance` - TendisCache集群
+            * `TwemproxyTendisSSDInstance` - TendisSSD集群
+            * `TwemproxyTendisplusInstance` - Tendis存储版集群
+            * `RedisInstance` - TendisCache集群
+            * `TendisSSDInstance` - TendisSSD集群
+            * `TendisplusInstance` - Tendisplus存储版集群
+            * `RedisCluster` - RedisCluster集群
+            * `TendisplusCluster` - TendisplusCluster集群
+            * `es` - ES集群
+            * `kafka` - Kafka集群
+            * `hdfs` - Hdfs集群
+            * `influxdb` - Influxdb实例
+            * `pulsar` - Pulsar集群
+            * `doris` - Doris集群
+            * `vm` - vm集群
+            * `dbmon` - redis监控
+            * `MongoReplicaSet` - Mongo副本集
+            * `MongoShardedCluster` - Mongo分片集群
+            * `riak` - Riak集群
+            * `sqlserver_single` - sqlserver单节点版
+            * `sqlserver_ha` - sqlserver主从版
+            * `oracle_primary_standby` - oracle主从版
+            * `oracle_single_none` - oracle单节点版
+            * `k8s_surreal` - k8s surrealdb集群
+            * `k8s_vm` - k8s Victoria metrics集群
+            * `k8s_rw` - k8s Risingwave集群
+            * `k8s_mv` - k8s Milvus集群
+        dbas:
+          type: array
+          items:
+            type: string
+          description: dba 列表
       required:
-      - in_use
-      - total
-      - used
+      - cluster_type
+      - db_type
+      - dbas
     ClusterTopoInputRequest:
       type: object
       properties:
@@ -576,7 +780,7 @@ components:
           description: 集群域名
         cluster_type:
           allOf:
-          - $ref: '#/components/schemas/ClusterTypeEnum'
+          - $ref: '#/components/schemas/ClusterType6acEnum'
           description: |-
             集群类型
 
@@ -586,7 +790,7 @@ components:
       required:
       - cluster_domain
       - cluster_type
-    ClusterTypeEnum:
+    ClusterType6acEnum:
       enum:
       - tendbsingle
       - tendbha
@@ -596,12 +800,196 @@ components:
         * `tendbsingle` - TenDBSingle
         * `tendbha` - TenDBHA
         * `tendbcluster` - TenDBCluster
+    ClusterType82aEnum:
+      enum:
+      - tendbsingle
+      - tendbha
+      - tendbcluster
+      - tbinlogdumper
+      - redis
+      - PredixyRedisCluster
+      - PredixyTendisplusCluster
+      - TwemproxyRedisInstance
+      - TwemproxyTendisSSDInstance
+      - TwemproxyTendisplusInstance
+      - RedisInstance
+      - TendisSSDInstance
+      - TendisplusInstance
+      - RedisCluster
+      - TendisplusCluster
+      - es
+      - kafka
+      - hdfs
+      - influxdb
+      - pulsar
+      - doris
+      - vm
+      - dbmon
+      - MongoReplicaSet
+      - MongoShardedCluster
+      - riak
+      - sqlserver_single
+      - sqlserver_ha
+      - oracle_primary_standby
+      - oracle_single_none
+      - k8s_surreal
+      - k8s_vm
+      - k8s_rw
+      - k8s_mv
+      type: string
+      description: |-
+        * `tendbsingle` - MySQL单节点集群
+        * `tendbha` - MySQL高可用集群
+        * `tendbcluster` - TendbCluster集群
+        * `tbinlogdumper` - TBinlogDumper
+        * `redis` - Redis
+        * `PredixyRedisCluster` - RedisCluster集群
+        * `PredixyTendisplusCluster` - Tendisplus存储版集群
+        * `TwemproxyRedisInstance` - TendisCache集群
+        * `TwemproxyTendisSSDInstance` - TendisSSD集群
+        * `TwemproxyTendisplusInstance` - Tendis存储版集群
+        * `RedisInstance` - TendisCache集群
+        * `TendisSSDInstance` - TendisSSD集群
+        * `TendisplusInstance` - Tendisplus存储版集群
+        * `RedisCluster` - RedisCluster集群
+        * `TendisplusCluster` - TendisplusCluster集群
+        * `es` - ES集群
+        * `kafka` - Kafka集群
+        * `hdfs` - Hdfs集群
+        * `influxdb` - Influxdb实例
+        * `pulsar` - Pulsar集群
+        * `doris` - Doris集群
+        * `vm` - vm集群
+        * `dbmon` - redis监控
+        * `MongoReplicaSet` - Mongo副本集
+        * `MongoShardedCluster` - Mongo分片集群
+        * `riak` - Riak集群
+        * `sqlserver_single` - sqlserver单节点版
+        * `sqlserver_ha` - sqlserver主从版
+        * `oracle_primary_standby` - oracle主从版
+        * `oracle_single_none` - oracle单节点版
+        * `k8s_surreal` - k8s surrealdb集群
+        * `k8s_vm` - k8s Victoria metrics集群
+        * `k8s_rw` - k8s Risingwave集群
+        * `k8s_mv` - k8s Milvus集群
+    DBModule:
+      type: object
+      properties:
+        bk_biz_id:
+          type: integer
+          description: 业务 id
+        cluster_type:
+          allOf:
+          - $ref: '#/components/schemas/ClusterType82aEnum'
+          description: |-
+            集群类型
+
+            * `tendbsingle` - MySQL单节点集群
+            * `tendbha` - MySQL高可用集群
+            * `tendbcluster` - TendbCluster集群
+            * `tbinlogdumper` - TBinlogDumper
+            * `redis` - Redis
+            * `PredixyRedisCluster` - RedisCluster集群
+            * `PredixyTendisplusCluster` - Tendisplus存储版集群
+            * `TwemproxyRedisInstance` - TendisCache集群
+            * `TwemproxyTendisSSDInstance` - TendisSSD集群
+            * `TwemproxyTendisplusInstance` - Tendis存储版集群
+            * `RedisInstance` - TendisCache集群
+            * `TendisSSDInstance` - TendisSSD集群
+            * `TendisplusInstance` - Tendisplus存储版集群
+            * `RedisCluster` - RedisCluster集群
+            * `TendisplusCluster` - TendisplusCluster集群
+            * `es` - ES集群
+            * `kafka` - Kafka集群
+            * `hdfs` - Hdfs集群
+            * `influxdb` - Influxdb实例
+            * `pulsar` - Pulsar集群
+            * `doris` - Doris集群
+            * `vm` - vm集群
+            * `dbmon` - redis监控
+            * `MongoReplicaSet` - Mongo副本集
+            * `MongoShardedCluster` - Mongo分片集群
+            * `riak` - Riak集群
+            * `sqlserver_single` - sqlserver单节点版
+            * `sqlserver_ha` - sqlserver主从版
+            * `oracle_primary_standby` - oracle主从版
+            * `oracle_single_none` - oracle单节点版
+            * `k8s_surreal` - k8s surrealdb集群
+            * `k8s_vm` - k8s Victoria metrics集群
+            * `k8s_rw` - k8s Risingwave集群
+            * `k8s_mv` - k8s Milvus集群
+        alias_name:
+          type: string
+          description: 别名, 用于生成域名
+        db_module_id:
+          type: integer
+          description: dbmodule id
+        charset:
+          type: string
+          description: 字符集
+        db_version:
+          type: string
+          description: db 版本
+      required:
+      - alias_name
+      - bk_biz_id
+      - charset
+      - cluster_type
+      - db_module_id
+      - db_version
+    DbTypeEnum:
+      enum:
+      - mysql
+      - tendbcluster
+      - redis
+      - mongodb
+      - kafka
+      - hdfs
+      - es
+      - pulsar
+      - influxdb
+      - riak
+      - sqlserver
+      - doris
+      - vm
+      - oracle
+      - k8s
+      - cloud
+      - tbinlogdumper
+      type: string
+      description: |-
+        * `mysql` - MySQL
+        * `tendbcluster` - TenDBCluster
+        * `redis` - Redis
+        * `mongodb` - MongoDB
+        * `kafka` - Kafka
+        * `hdfs` - HDFS
+        * `es` - ElasticSearch
+        * `pulsar` - Pulsar
+        * `influxdb` - InfluxDB
+        * `riak` - Riak
+        * `sqlserver` - SQLServer
+        * `doris` - Doris
+        * `vm` - Vm
+        * `oracle` - Oracle
+        * `k8s` - K8s
+        * `cloud` - Cloud
+        * `tbinlogdumper` - TBinlogDumper
+    EmptyInputRequest:
+      type: object
+      properties:
+        place_holder:
+          type: string
+          minLength: 1
+          description: 随便填一个占位
+      required:
+      - place_holder
     ExplainSQLInputRequest:
       type: object
       properties:
         cluster_type:
           allOf:
-          - $ref: '#/components/schemas/ClusterTypeEnum'
+          - $ref: '#/components/schemas/ClusterType6acEnum'
           description: |-
             集群类型
 
@@ -650,209 +1038,294 @@ components:
       - dbname
       - explain_result
       - query_sql
-    FilterClusterInputRequest:
+    InstanceProcessListOutput:
       type: object
       properties:
-        bk_biz_id:
-          type: integer
-          description: 业务ID
-        cluster_ids:
+        address:
           type: string
-          minLength: 1
-          description: 集群ID(逗号分割)
-        cluster_type:
-          type: string
-          minLength: 1
-          description: 集群类型
-        db_type:
-          type: string
-          minLength: 1
-          description: DB类型
-        limit:
-          type: integer
-          default: -1
-          description: 分页限制
-        offset:
-          type: integer
-          default: 0
-          description: 分页起始
-    FilterClusterOutput:
-      type: object
-      description: 集群详细信息响应序列化器
-      properties:
-        creator:
-          type: string
-          readOnly: true
-          maxLength: 64
-        create_at:
-          type: string
-          format: date-time
-          readOnly: true
-        updater:
-          type: string
-          readOnly: true
-          maxLength: 64
-        update_at:
-          type: string
-          format: date-time
-          readOnly: true
-        id:
-          type: integer
-          description: 集群ID
-        db_type:
-          type: string
-          description: 数据库类型
-        phase:
-          type: string
-          description: 阶段
-        phase_name:
-          type: string
-          description: 阶段名称
-        status:
-          type: string
-          description: 状态
-        cluster_time_zone:
-          type: string
-          description: 集群时区
-        cluster_name:
-          type: string
-          description: 集群名称
-        cluster_alias:
-          type: string
-          description: 集群别名
-        cluster_access_port:
-          type: integer
-          description: 集群访问端口
-        cluster_stats:
+          description: ip:port 形式的实例地址
+        process_list:
+          type: array
+          items:
+            $ref: '#/components/schemas/MySQLProcess'
+          description: 连接列表
+        machine_type:
           allOf:
-          - $ref: '#/components/schemas/ClusterStats'
-          description: 集群统计信息
-        cluster_type:
-          type: string
-          description: 集群类型
-        cluster_type_name:
-          type: string
-          description: 集群类型名称
-        cluster_subzones:
-          type: array
-          items:
-            type: string
-          description: 集群子区域列表
-        cluster_subzone_ids:
-          type: array
-          items:
-            type: integer
-          description: 集群子区域ID列表
-        disaster_tolerance_level:
-          type: string
-          description: 容灾级别
-        master_domain:
-          type: string
-          description: 主域名
-        slave_domain:
-          type: string
-          description: 从域名
-        cluster_entry:
-          type: array
-          items:
-            $ref: '#/components/schemas/ClusterEntry'
-          description: 集群访问入口列表
-        bk_biz_id:
-          type: integer
-          description: 业务ID
-        bk_biz_name:
-          type: string
-          description: 业务名称
-        bk_cloud_id:
-          type: integer
-          description: 管控区域ID
-        bk_cloud_name:
-          type: string
-          description: 管控区域名称
-        major_version:
-          type: string
-          description: 主版本号
-        region:
-          type: string
-          description: 地域
-        city:
-          type: string
-          description: 城市
-        db_module_name:
-          type: string
-          description: DB模块名称
-        db_module_id:
-          type: integer
-          description: DB模块ID
-        tags:
-          type: array
-          items:
-            type: string
-          description: 标签列表
+          - $ref: '#/components/schemas/InstanceProcessListOutputMachineTypeEnum'
+          description: |-
+            实例的机器类型
+
+            * `spider` - spider
+            * `remote` - remote
+            * `proxy` - proxy
+            * `backend` - backend
+            * `single` - single
+            * `predixy` - predixy
+            * `twemproxy` - twemproxy
+            * `redis` - redis
+            * `tendiscache` - tendiscache
+            * `tendisssd` - tendisssd
+            * `tendisplus` - tendisplus
+            * `es_datanode` - es_datanode
+            * `es_master` - es_master
+            * `es_client` - es_client
+            * `broker` - broker
+            * `zookeeper` - zookeeper
+            * `hdfs_master` - hdfs_master
+            * `hdfs_datanode` - hdfs_datanode
+            * `mongos` - mongos
+            * `mongodb` - mongodb
+            * `mongo_config` - mongo_config
+            * `influxdb` - influxdb
+            * `pulsar_zookeeper` - pulsar_zookeeper
+            * `pulsar_bookkeeper` - pulsar_bookkeeper
+            * `pulsar_broker` - pulsar_broker
+            * `riak` - riak
+            * `doris_backend` - doris_backend
+            * `doris_follower` - doris_follower
+            * `doris_observer` - doris_observer
+            * `sqlserver_single` - sqlserver_single
+            * `sqlserver_ha` - sqlserver_ha
+            * `vmstorage` - vmstorage
+            * `vminsert` - vminsert
+            * `vmselect` - vmselect
+            * `vmauth` - vmauth
+            * `tbinlogdumper` - TBinlogDumper
+            * `oracle` - oracle
+        instance_role:
+          allOf:
+          - $ref: '#/components/schemas/InstanceProcessListOutputInstanceRoleEnum'
+          description: |-
+            实例角色
+
+            * `orphan` - orphan
+            * `backend_master` - Master
+            * `backend_repeater` - Repeater
+            * `backend_slave` - Slave
+            * `remote_master` - Remote Master
+            * `remote_repeater` - Remote Repeater
+            * `remote_slave` - Remote Slave
+            * `proxy` - Proxy
+            * `redis_master` - Master
+            * `redis_slave` - Slave
+            * `es_datanode_hot` - 热节点
+            * `es_datanode_cold` - 冷节点
+            * `es_master` - Master 节点
+            * `es_client` - Client 节点
+            * `broker` - Broker
+            * `zookeeper` - Zookeeper
+            * `hdfs_namenode` - NameNode
+            * `hdfs_zookeeper` - Zookeeper
+            * `hdfs_journalnode` - Journalnode
+            * `hdfs_datanode` - DataNode
+            * `influxdb` - influxdb
+            * `pulsar_bookkeeper` - Bookkeeper
+            * `pulsar_zookeeper` - Zookeeper
+            * `pulsar_broker` - Broker
+            * `doris_backend_hot` - 热节点
+            * `doris_backend_warm` - 温节点
+            * `doris_backend_cold` - 冷节点
+            * `doris_follower` - Follower
+            * `doris_observer` - Observer
+            * `m1` - m1
+            * `m2` - m2
+            * `m3` - m3
+            * `m4` - m4
+            * `m5` - m5
+            * `m6` - m6
+            * `m7` - m7
+            * `m8` - m8
+            * `m9` - m9
+            * `m10` - m10
+            * `backup` - backup
+            * `riak_node` - Riak
+            * `vmstorage` - vmstorage
+            * `vminsert` - vminsert
+            * `vmselect` - vmselect
+            * `vmauth` - vmauth
+            * `primary` - primary
+            * `standby` - standby
       required:
-      - bk_biz_id
-      - bk_biz_name
-      - bk_cloud_id
-      - bk_cloud_name
-      - city
-      - cluster_access_port
-      - cluster_alias
-      - cluster_entry
-      - cluster_name
-      - cluster_stats
-      - cluster_subzone_ids
-      - cluster_subzones
-      - cluster_time_zone
-      - cluster_type
-      - cluster_type_name
-      - create_at
-      - creator
-      - db_module_id
-      - db_module_name
-      - db_type
-      - disaster_tolerance_level
-      - id
-      - major_version
-      - master_domain
-      - phase
-      - phase_name
-      - region
-      - slave_domain
-      - status
-      - tags
-      - update_at
-      - updater
-    GetClusterBaseInfoInputRequest:
-      type: object
-      properties:
-        cluster_domain:
-          type: array
-          items:
-            type: string
-            minLength: 1
-            description: 集群域名
-      required:
-      - cluster_domain
-    GetClusterBaseInfoOutput:
-      type: object
-      properties:
-        id:
-          type: integer
-          description: 集群ID
-        bk_biz_id:
-          type: integer
-          description: 业务ID
-        cluster_domain:
-          type: string
-          description: 集群域名
-        cluster_type:
-          type: string
-          description: 集群类型
-      required:
-      - bk_biz_id
-      - cluster_domain
-      - cluster_type
-      - id
+      - address
+      - instance_role
+      - machine_type
+      - process_list
+    InstanceProcessListOutputInstanceRoleEnum:
+      enum:
+      - orphan
+      - backend_master
+      - backend_repeater
+      - backend_slave
+      - remote_master
+      - remote_repeater
+      - remote_slave
+      - proxy
+      - redis_master
+      - redis_slave
+      - es_datanode_hot
+      - es_datanode_cold
+      - es_master
+      - es_client
+      - broker
+      - zookeeper
+      - hdfs_namenode
+      - hdfs_zookeeper
+      - hdfs_journalnode
+      - hdfs_datanode
+      - influxdb
+      - pulsar_bookkeeper
+      - pulsar_zookeeper
+      - pulsar_broker
+      - doris_backend_hot
+      - doris_backend_warm
+      - doris_backend_cold
+      - doris_follower
+      - doris_observer
+      - m1
+      - m2
+      - m3
+      - m4
+      - m5
+      - m6
+      - m7
+      - m8
+      - m9
+      - m10
+      - backup
+      - riak_node
+      - vmstorage
+      - vminsert
+      - vmselect
+      - vmauth
+      - primary
+      - standby
+      type: string
+      description: |-
+        * `orphan` - orphan
+        * `backend_master` - Master
+        * `backend_repeater` - Repeater
+        * `backend_slave` - Slave
+        * `remote_master` - Remote Master
+        * `remote_repeater` - Remote Repeater
+        * `remote_slave` - Remote Slave
+        * `proxy` - Proxy
+        * `redis_master` - Master
+        * `redis_slave` - Slave
+        * `es_datanode_hot` - 热节点
+        * `es_datanode_cold` - 冷节点
+        * `es_master` - Master 节点
+        * `es_client` - Client 节点
+        * `broker` - Broker
+        * `zookeeper` - Zookeeper
+        * `hdfs_namenode` - NameNode
+        * `hdfs_zookeeper` - Zookeeper
+        * `hdfs_journalnode` - Journalnode
+        * `hdfs_datanode` - DataNode
+        * `influxdb` - influxdb
+        * `pulsar_bookkeeper` - Bookkeeper
+        * `pulsar_zookeeper` - Zookeeper
+        * `pulsar_broker` - Broker
+        * `doris_backend_hot` - 热节点
+        * `doris_backend_warm` - 温节点
+        * `doris_backend_cold` - 冷节点
+        * `doris_follower` - Follower
+        * `doris_observer` - Observer
+        * `m1` - m1
+        * `m2` - m2
+        * `m3` - m3
+        * `m4` - m4
+        * `m5` - m5
+        * `m6` - m6
+        * `m7` - m7
+        * `m8` - m8
+        * `m9` - m9
+        * `m10` - m10
+        * `backup` - backup
+        * `riak_node` - Riak
+        * `vmstorage` - vmstorage
+        * `vminsert` - vminsert
+        * `vmselect` - vmselect
+        * `vmauth` - vmauth
+        * `primary` - primary
+        * `standby` - standby
+    InstanceProcessListOutputMachineTypeEnum:
+      enum:
+      - spider
+      - remote
+      - proxy
+      - backend
+      - single
+      - predixy
+      - twemproxy
+      - redis
+      - tendiscache
+      - tendisssd
+      - tendisplus
+      - es_datanode
+      - es_master
+      - es_client
+      - broker
+      - zookeeper
+      - hdfs_master
+      - hdfs_datanode
+      - mongos
+      - mongodb
+      - mongo_config
+      - influxdb
+      - pulsar_zookeeper
+      - pulsar_bookkeeper
+      - pulsar_broker
+      - riak
+      - doris_backend
+      - doris_follower
+      - doris_observer
+      - sqlserver_single
+      - sqlserver_ha
+      - vmstorage
+      - vminsert
+      - vmselect
+      - vmauth
+      - tbinlogdumper
+      - oracle
+      type: string
+      description: |-
+        * `spider` - spider
+        * `remote` - remote
+        * `proxy` - proxy
+        * `backend` - backend
+        * `single` - single
+        * `predixy` - predixy
+        * `twemproxy` - twemproxy
+        * `redis` - redis
+        * `tendiscache` - tendiscache
+        * `tendisssd` - tendisssd
+        * `tendisplus` - tendisplus
+        * `es_datanode` - es_datanode
+        * `es_master` - es_master
+        * `es_client` - es_client
+        * `broker` - broker
+        * `zookeeper` - zookeeper
+        * `hdfs_master` - hdfs_master
+        * `hdfs_datanode` - hdfs_datanode
+        * `mongos` - mongos
+        * `mongodb` - mongodb
+        * `mongo_config` - mongo_config
+        * `influxdb` - influxdb
+        * `pulsar_zookeeper` - pulsar_zookeeper
+        * `pulsar_bookkeeper` - pulsar_bookkeeper
+        * `pulsar_broker` - pulsar_broker
+        * `riak` - riak
+        * `doris_backend` - doris_backend
+        * `doris_follower` - doris_follower
+        * `doris_observer` - doris_observer
+        * `sqlserver_single` - sqlserver_single
+        * `sqlserver_ha` - sqlserver_ha
+        * `vmstorage` - vmstorage
+        * `vminsert` - vminsert
+        * `vmselect` - vmselect
+        * `vmauth` - vmauth
+        * `tbinlogdumper` - TBinlogDumper
+        * `oracle` - oracle
     InstanceRuntimeStatus:
       type: object
       properties:
@@ -865,6 +1338,34 @@ components:
       required:
       - status_name
       - status_value
+    ListDBModulesInputRequest:
+      type: object
+      properties:
+        bk_biz_id:
+          type: integer
+          description: 业务 id
+      required:
+      - bk_biz_id
+    ListDBModulesOutput:
+      type: object
+      properties:
+        dbmodules:
+          type: array
+          items:
+            $ref: '#/components/schemas/DBModule'
+          description: dbmodule 列表
+      required:
+      - dbmodules
+    ListPlatformBizsOutput:
+      type: object
+      properties:
+        bizs:
+          type: array
+          items:
+            $ref: '#/components/schemas/BizBaseInfo'
+          description: 业务列表
+      required:
+      - bizs
     MySQLBaseInstance:
       type: object
       properties:
@@ -872,8 +1373,16 @@ components:
           type: string
           description: ip:port 形式的实例地址
         status:
-          type: string
-          description: 实例状态
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          description: |-
+            实例状态
+
+            * `running` - running
+            * `unavailable` - unavailable
+            * `available` - available
+            * `restoring` - restoring
+            * `upgrading` - upgrading
         machine_type:
           type: string
           description: 实例机器类型
@@ -928,8 +1437,16 @@ components:
           type: string
           description: ip:port 形式的实例地址
         status:
-          type: string
-          description: 实例状态
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          description: |-
+            实例状态
+
+            * `running` - running
+            * `unavailable` - unavailable
+            * `available` - available
+            * `restoring` - restoring
+            * `upgrading` - upgrading
         machine_type:
           type: string
           description: 实例机器类型
@@ -950,7 +1467,7 @@ components:
           description: 集群域名
         cluster_type:
           allOf:
-          - $ref: '#/components/schemas/ClusterTypeEnum'
+          - $ref: '#/components/schemas/ClusterType6acEnum'
           description: |-
             集群类型
 
@@ -1100,7 +1617,7 @@ components:
       properties:
         cluster_type:
           allOf:
-          - $ref: '#/components/schemas/ClusterTypeEnum'
+          - $ref: '#/components/schemas/ClusterType6acEnum'
           description: |-
             集群类型
 
@@ -1111,29 +1628,19 @@ components:
           type: string
           minLength: 1
           description: 集群域名
-        addresses:
-          type: array
-          items:
-            type: string
-            minLength: 1
-          description: ip:port 形式的实例列表
       required:
       - cluster_domain
       - cluster_type
     ShowProcessListOutput:
       type: object
       properties:
-        address:
-          type: string
-          description: ip:port 形式的实例地址
-        process_list:
+        cluster_process_lists:
           type: array
           items:
-            $ref: '#/components/schemas/MySQLProcess'
-          description: 连接列表
+            $ref: '#/components/schemas/InstanceProcessListOutput'
+          description: 集群连接信息
       required:
-      - address
-      - process_list
+      - cluster_process_lists
     SpiderRoleEnum:
       enum:
       - spider_master
@@ -1148,6 +1655,76 @@ components:
         * `spider_mnt` - spider_mnt
         * `spider_slave_mnt` - spider_slave_mnt
         * `spider_ctl` - spider_ctl
+    StatusEnum:
+      enum:
+      - running
+      - unavailable
+      - available
+      - restoring
+      - upgrading
+      type: string
+      description: |-
+        * `running` - running
+        * `unavailable` - unavailable
+        * `available` - available
+        * `restoring` - restoring
+        * `upgrading` - upgrading
+    SubmitBillMySQLDBTableBackupInputRequest:
+      type: object
+      properties:
+        bk_biz_id:
+          type: integer
+          description: 业务 id, bk_biz_id
+        cluster_domain:
+          type: string
+          minLength: 1
+          description: 集群域名
+        include_dbs:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          description: 需要备份的库名列表, 都允许带有 %, ?, * 这样的通配
+        ignore_dbs:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          description: 需要排除的库名列表, 都允许带有 %, ?, * 这样的通配
+      required:
+      - bk_biz_id
+      - cluster_domain
+      - include_dbs
+    SubmitBillMySQLFullBackupInputRequest:
+      type: object
+      properties:
+        bk_biz_id:
+          type: integer
+          description: 业务 id, bk_biz_id
+        cluster_domain:
+          type: string
+          minLength: 1
+          description: 集群域名
+        backup_type:
+          allOf:
+          - $ref: '#/components/schemas/BackupTypeEnum'
+          description: |-
+            备份类型
+
+            * `logical` - 逻辑备份
+            * `physical` - 物理备份
+      required:
+      - backup_type
+      - bk_biz_id
+      - cluster_domain
+    SubmitBillOutput:
+      type: object
+      properties:
+        bill_id:
+          type: integer
+          description: 单据id
+      required:
+      - bill_id
     TenDBClusterSpiderInstance:
       type: object
       properties:
@@ -1155,8 +1732,16 @@ components:
           type: string
           description: ip:port 形式的实例地址
         status:
-          type: string
-          description: 实例状态
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          description: |-
+            实例状态
+
+            * `running` - running
+            * `unavailable` - unavailable
+            * `available` - available
+            * `restoring` - restoring
+            * `upgrading` - upgrading
         machine_type:
           type: string
           description: 实例机器类型
@@ -1183,8 +1768,16 @@ components:
           type: string
           description: ip:port 形式的实例地址
         status:
-          type: string
-          description: 实例状态
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          description: |-
+            实例状态
+
+            * `running` - running
+            * `unavailable` - unavailable
+            * `available` - available
+            * `restoring` - restoring
+            * `upgrading` - upgrading
         machine_type:
           type: string
           description: 实例机器类型
@@ -1261,8 +1854,16 @@ components:
           type: string
           description: ip:port 形式的实例地址
         status:
-          type: string
-          description: 实例状态
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          description: |-
+            实例状态
+
+            * `running` - running
+            * `unavailable` - unavailable
+            * `available` - available
+            * `restoring` - restoring
+            * `upgrading` - upgrading
         machine_type:
           type: string
           description: 实例机器类型

@@ -10,10 +10,10 @@ specific language governing permissions and limitations under the License.
 """
 from rest_framework.routers import DefaultRouter
 
-from backend.dbm_aiagent.mcp_tools.common.cluster import ClusterMcpToolsViewSet
+from backend.dbm_aiagent.mcp_tools.common.views import DBMetaQueryMcpToolsViewSet
 
 routers = DefaultRouter(trailing_slash=True)
 
-routers.register(r"cluster", ClusterMcpToolsViewSet, basename="mcp-common-cluster")
-
+# routers.register(r"cluster", ClusterMcpToolsViewSet, basename="mcp-common-cluster")
+routers.register(r"", DBMetaQueryMcpToolsViewSet, basename="mcp-dbmeta-query")
 urlpatterns = routers.urls

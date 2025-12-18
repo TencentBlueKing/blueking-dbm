@@ -11,13 +11,13 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import InstanceRole, TenDBClusterSpiderRole
+from backend.db_meta.enums import InstanceRole, InstanceStatus, TenDBClusterSpiderRole
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.usefully_choices import mysql_cluster_type_choices
 
 
 class MySQLBaseInstanceSerializer(serializers.Serializer):
     address = serializers.CharField(help_text=_("ip:port 形式的实例地址"))
-    status = serializers.CharField(help_text=_("实例状态"))
+    status = serializers.ChoiceField(choices=InstanceStatus.get_choices(), help_text=_("实例状态"))
     machine_type = serializers.CharField(help_text=_("实例机器类型"))
 
 

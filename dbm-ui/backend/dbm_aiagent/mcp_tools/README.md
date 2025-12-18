@@ -178,6 +178,7 @@ python manage.py sync_saas_apigw --mcp
 1. 修改 mcp 代码后, 执行 `python manage.py sync_saas_apigw --only_mcp_resource` 更新本地描述文件
 2. `export DEBUG_MCP=1; python manage.py runserver appdev.aaa.bbb.com:8080` 以调试模式启动 django 服务, server url 没啥要求, 随便
 3. `build/db-mcp-server --bind-address 0.0.0.0:9191  --mcp-backend-base-url http://appdev.aaa.bbb.com:8080/` 启动 mcp-server
+4. 如果想本地启动 bkai agent, 参考其他文档
 
 ### 联调配置
 基于 `CodeBuddy`

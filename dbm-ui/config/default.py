@@ -632,19 +632,19 @@ if env.DEBUG_TOOL_BAR:
 # 开启MCP server
 BK_APIGW_STAGE_ENABLE_MCP_SERVERS = env.BK_APIGW_STAGE_ENABLE_MCP_SERVERS
 BK_APIGW_STAGE_MCP_SERVERS = [
-    {
-        "name": "dbm-mcp",
-        "description": "dbm-mcp",
-        # 主动授权 app_code
-        "target_app_codes": [APP_CODE],
-        "labels": ["dbm"],
-        # 是否启用：1-启用，0-停止
-        "status": 1,
-        # 是否公开
-        "is_public": False,
-        # 自动发现并填充该 MCP 服务器对应的工具
-        "tools": [],
-    },
+    # {
+    #     "name": "dbm-mcp",
+    #     "description": "dbm-mcp",
+    #     # 主动授权 app_code
+    #     "target_app_codes": [APP_CODE],
+    #     "labels": ["dbm"],
+    #     # 是否启用：1-启用，0-停止
+    #     "status": 1,
+    #     # 是否公开
+    #     "is_public": False,
+    #     # 自动发现并填充该 MCP 服务器对应的工具
+    #     "tools": [],
+    # },
     {
         "name": "mysql-query",
         "description": """mysql relate information query, such as 
@@ -653,6 +653,32 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         # 主动授权 app_code
         "target_app_codes": [APP_CODE],
         "labels": ["mysql-query"],
+        # 是否启用：1-启用，0-停止
+        "status": 1,
+        # 是否公开
+        "is_public": False,
+        # 自动发现并填充该 MCP 服务器对应的工具
+        "tools": [],
+    },
+    {
+        "name": "mysql-bill",
+        "description": """create mysql bill""",
+        # 主动授权 app_code
+        "target_app_codes": [APP_CODE],
+        "labels": ["mysql-bill"],
+        # 是否启用：1-启用，0-停止
+        "status": 1,
+        # 是否公开
+        "is_public": False,
+        # 自动发现并填充该 MCP 服务器对应的工具
+        "tools": [],
+    },
+    {
+        "name": "dbmeta-query",
+        "description": """query dbm meta info""",
+        # 主动授权 app_code
+        "target_app_codes": [APP_CODE],
+        "labels": ["dbmeta-query"],
         # 是否启用：1-启用，0-停止
         "status": 1,
         # 是否公开

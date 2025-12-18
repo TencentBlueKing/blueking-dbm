@@ -8,19 +8,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 from django.utils.translation import gettext_lazy as _
-
-from blue_krill.data_types.enum import EnumField, StrStructuredEnum
-
-
-class DBMAMcpTools(StrStructuredEnum):
-    DBM = EnumField("dbm-mcp", "DBM")
-    DBMETA_QUERY = EnumField("dbmeta-query", "dbmeta-query")
-    MYSQL_QUERY = EnumField("mysql-query", "mysql-query")
-    MYSQL_BILL = EnumField("mysql-bill", "mysql-bill")
+from rest_framework import serializers
 
 
-class DBMMCPTags(StrStructuredEnum):
-    READ = EnumField("read", _("只读"))
-    WRITE = EnumField("write", _("可写"))
-    MCP_TOOLS = EnumField("mcp-tools", _("MCP工具"))
+class SubmitBillMySQLDBTableBackupInputSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务 id, bk_biz_id"))
+    cluster_domain = serializers.CharField(help_text=_("集群域名"))
+    include_dbs = serializers.ListField(child=serializers.CharField(), help_text=_("需要备份的库名列表, 都允许带有 %, ?, * 这样的通配"))
+    ignore_dbs = serializers.ListField(
+        child=serializers.CharField(), help_text=_("需要排除的库名列表, 都允许带有 %, ?, * 这样的通配"), required=False
+    )

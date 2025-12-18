@@ -11,13 +11,14 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.enums import InstanceRole, MachineType
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.usefully_choices import mysql_cluster_type_choices
 
 
 class ShowProcessListInputSerializer(serializers.Serializer):
     cluster_type = serializers.ChoiceField(choices=mysql_cluster_type_choices, help_text=_("集群类型"))
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
-    addresses = serializers.ListField(child=serializers.CharField(), default=None, help_text=_("ip:port 形式的实例列表"))
+    # addresses = serializers.ListField(child=serializers.CharField(), default=None, help_text=_("ip:port 形式的实例列表"))
 
 
 class MySQLProcessSerializer(serializers.Serializer):
@@ -29,6 +30,12 @@ class MySQLProcessSerializer(serializers.Serializer):
     state = serializers.CharField(help_text=_("连接状态"))
 
 
-class ShowProcessListOutputSerializer(serializers.Serializer):
+class InstanceProcessListOutputSerializer(serializers.Serializer):
     address = serializers.CharField(help_text=_("ip:port 形式的实例地址"))
     process_list = serializers.ListField(child=MySQLProcessSerializer(), help_text=_("连接列表"))
+    machine_type = serializers.ChoiceField(choices=MachineType.get_choices(), help_text=_("实例的机器类型"))
+    instance_role = serializers.ChoiceField(choices=InstanceRole.get_choices(), help_text=_("实例角色"))
+
+
+class ShowProcessListOutputSerializer(serializers.Serializer):
+    cluster_process_lists = serializers.ListField(child=InstanceProcessListOutputSerializer(), help_text=_("集群连接信息"))
