@@ -262,13 +262,31 @@ class RedisListRetrieveResource(query.ListRetrieveResource, RedisExportQueryReso
             cluster_spec = model_to_dict(spec) if spec else {}
             cluster_capacity = spec.capacity * machine_pair_cnt if spec else 0
 
+        master_list = remote_infos[InstanceRole.REDIS_MASTER.value]
+        slave_list = remote_infos[InstanceRole.REDIS_SLAVE.value]
+
+        # 确保主从节点数量一致且不为空
+        if master_list and slave_list and len(master_list) == len(slave_list):
+            # 创建主从节点配对列表
+            master_slave_pairs = list(zip(master_list, slave_list))
+
+            # 根据 master 节点的 IP 和端口进行排序
+            master_slave_pairs.sort(key=lambda pair: (pair[0]["ip"], pair[0]["port"]))
+
+            # 解包排序后的配对
+            sorted_masters, sorted_slaves = zip(*master_slave_pairs) if master_slave_pairs else ([], [])
+
+            # 转换回列表格式
+            master_list = list(sorted_masters)
+            slave_list = list(sorted_slaves)
+
         # 集群额外信息
         cluster_extra_info = {
             "cluster_spec": cluster_spec,
             "cluster_capacity": cluster_capacity,
             "proxy": [m.simple_desc for m in cluster.proxies],
-            "redis_master": remote_infos[InstanceRole.REDIS_MASTER.value],
-            "redis_slave": remote_infos[InstanceRole.REDIS_SLAVE.value],
+            "redis_master": master_list,
+            "redis_slave": slave_list,
             "cluster_shard_num": len(remote_infos[InstanceRole.REDIS_MASTER.value]),
             "machine_pair_cnt": machine_pair_cnt,
             "module_names": cls.redis_cluster_module_map.get(cluster.id, []),
