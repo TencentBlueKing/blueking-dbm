@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import json
 import logging
 from typing import Dict, List, Optional
 
@@ -16,15 +17,22 @@ from django.utils.translation import gettext as _
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder
+from backend.flow.plugins.components.collections.common.delay import DelayComponent
 from backend.flow.plugins.components.collections.redis.redis_role_check import (
     RedisRoleCheckReportComponent,
     RedisRoleCheckScriptComponent,
 )
 from backend.flow.utils.redis.redis_context_dataclass import RedisRoleCheckContext
+from backend.utils.redis import RedisConn
 
 logger = logging.getLogger("flow")
 
 DEFAULT_BATCH_SIZE = 2000
+DEFAULT_BATCH_INTERVAL = 10  # seconds to wait between batches
+
+# Redis Hash key pattern (must match check_role.py)
+REDIS_ROLE_CHECK_CANDIDATES_KEY = "dbm:redis_role_check:candidates:{root_id}"
+REDIS_ROLE_CHECK_META_FIELD = "_meta"
 
 
 class RedisRoleCheckFlow(object):
@@ -51,19 +59,11 @@ class RedisRoleCheckFlow(object):
                 "ticket_type": "REDIS_ROLE_CHECK",
                 "bk_biz_id": 0,
                 "created_by": "system",
-                "infos": [
-                    {
-                        "bk_cloud_id": 0,
-                        "cluster_ids": [1, 2, 3]
-                    },
-                    {
-                        "bk_cloud_id": 1,
-                        "cluster_ids": [4, 5]
-                    }
-                ],
-                "batch_size": 2000,
+                "candidates_key": "redis_key_for_candidates",
+                "batch_size": 100,
+                "batch_interval": 10,  # seconds to wait between batches
                 "interval": 5,
-                "max_retires": 120
+                "max_retries": 120
             }
         """
         self.root_id = root_id
@@ -153,15 +153,79 @@ class RedisRoleCheckFlow(object):
             "instances": instances,
         }
 
+    def _load_candidates_from_redis_hash(self, candidates_key: str) -> List[Dict]:
+        """
+        Load candidate cluster infos from Redis Hash.
+
+        The Redis Hash structure:
+        - Field "_meta": {"total_cloud_groups": int, "total_clusters": int, "created_at": str}
+        - Field "<bk_cloud_id>": [cluster_id1, cluster_id2, ...] (JSON array)
+
+        This is more efficient than storing everything in one JSON string,
+        especially for 10,000+ clusters across multiple cloud groups.
+
+        Args:
+            candidates_key: Redis key where candidates hash is stored
+
+        Returns:
+            List of cluster info dicts [{"bk_cloud_id": x, "cluster_ids": [...]}, ...]
+        """
+        try:
+            # Get all fields from the hash
+            hash_data = RedisConn.hgetall(candidates_key)
+            if not hash_data:
+                logger.warning(f"No data found in Redis Hash for key: {candidates_key}")
+                return []
+
+            infos = []
+            meta = None
+
+            for field, value in hash_data.items():
+                # Handle bytes if redis returns bytes
+                field_str = field.decode() if isinstance(field, bytes) else field
+                value_str = value.decode() if isinstance(value, bytes) else value
+
+                if field_str == REDIS_ROLE_CHECK_META_FIELD:
+                    meta = json.loads(value_str)
+                else:
+                    # Field is bk_cloud_id, value is cluster_ids JSON array
+                    bk_cloud_id = int(field_str)
+                    cluster_ids = json.loads(value_str)
+                    infos.append({"bk_cloud_id": bk_cloud_id, "cluster_ids": cluster_ids})
+
+            if meta:
+                logger.info(
+                    f"Loaded {meta.get('total_cloud_groups', len(infos))} cloud groups "
+                    f"({meta.get('total_clusters', 'unknown')} clusters) from Redis Hash: {candidates_key}"
+                )
+            else:
+                logger.info(f"Loaded {len(infos)} cloud groups from Redis Hash: {candidates_key}")
+
+            # Clean up the key after loading
+            RedisConn.delete(candidates_key)
+            return infos
+
+        except Exception as e:
+            logger.exception(f"Failed to load candidates from Redis Hash: {e}")
+            return []
+
     def run_flow(self):
         """
         Execute the Redis role check workflow in batches.
 
-        Batches are executed sequentially.
+        Batches are executed sequentially with optional intervals between batches.
         """
         redis_pipeline = Builder(root_id=self.root_id, data=self.ticket_data)
 
-        infos = self.ticket_data.get("infos", [])
+        # Load candidates from Redis Hash using the key
+        candidates_key = self.ticket_data.get("candidates_key", "")
+        if candidates_key:
+            # Try Hash format first (new format), then fallback to legacy JSON string
+            infos = self._load_candidates_from_redis_hash(candidates_key)
+        else:
+            # Fallback to infos in ticket_data for backward compatibility
+            infos = self.ticket_data.get("infos", [])
+
         if not infos:
             logger.warning("No cluster infos provided for role check")
             redis_pipeline.run_pipeline()
@@ -184,6 +248,7 @@ class RedisRoleCheckFlow(object):
             return
 
         batch_size = self.ticket_data.get("batch_size", DEFAULT_BATCH_SIZE)
+        batch_interval = self.ticket_data.get("batch_interval", DEFAULT_BATCH_INTERVAL)
         total_clusters = len(cluster_data_list)
         total_batches = (total_clusters + batch_size - 1) // batch_size
         logger.info(f"Starting role check for {total_clusters} clusters in {total_batches} batches")
@@ -218,5 +283,14 @@ class RedisRoleCheckFlow(object):
                     "max_retries": max_retries,
                 },
             )
+
+            # Activity 3: Add delay between batches (except for the last batch)
+            # Using DelayComponent instead of time.sleep() to avoid blocking Celery workers
+            if batch_idx < total_batches - 1 and batch_interval > 0:
+                redis_pipeline.add_act(
+                    act_name=_("批次{}/{}: 等待{}秒后继续下一批次").format(batch_num, total_batches, batch_interval),
+                    act_component_code=DelayComponent.code,
+                    kwargs={"delay_seconds": batch_interval},
+                )
 
         redis_pipeline.run_pipeline(init_trans_data_class=RedisRoleCheckContext())

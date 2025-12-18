@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import json
 import logging
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -23,8 +24,16 @@ from backend.db_report.enums import MetaCheckSubType
 from backend.flow.utils.redis.redis_meta_report import delete_old_meta_check_reports
 from backend.ticket.models import SystemSettings
 from backend.utils.basic import generate_root_id
+from backend.utils.redis import RedisConn
 
 logger = logging.getLogger("root")
+
+
+REDIS_ROLE_CHECK_CANDIDATES_KEY = "dbm:redis_role_check:candidates:{root_id}"
+# TTL for candidates key in Redis (1 hour)
+REDIS_ROLE_CHECK_CANDIDATES_TTL = 3600
+# Special field name for metadata in the hash
+REDIS_ROLE_CHECK_META_FIELD = "_meta"
 
 
 # Default supported cluster types for role check
@@ -49,8 +58,9 @@ class RedisRoleCheckConfig:
     bizs_ignored: Optional[List[int]] = field(default_factory=list)
     clusters_ignored: Optional[List[int]] = field(default_factory=list)
 
-    batch_size: int = 1000  # amount of clusters to check each batch in flow
-    interval = 5  # seconds
+    batch_size: int = 100  # amount of clusters to check each batch in flow
+    batch_interval: int = 10  # sec to wait between batches
+    interval = 10  # seconds
     max_retries = 120  # timeout = interval * max_retries
 
 
@@ -70,7 +80,7 @@ def _get_candidate_clusters(config: RedisRoleCheckConfig) -> List[int]:
         config: Role check configuration
 
     Returns:
-        List of cluster_id and bk_could_id
+        List of cluster_id and bk_cloud_id
     """
     # Base query: online clusters of supported types
     query = Cluster.objects.filter(
@@ -85,7 +95,7 @@ def _get_candidate_clusters(config: RedisRoleCheckConfig) -> List[int]:
     if config.clusters_ignored:
         query = query.exclude(id__in=config.clusters_ignored)
 
-    query = query.values_list("bk_could_id", "id")
+    query = query.values_list("bk_cloud_id", "id")
 
     return list(query)
 
@@ -139,13 +149,42 @@ def check_redis_instance_role():
     # Generate a unique root_id for this check run
     root_id = generate_root_id()
 
-    # Build flow data
+    candidates_key = REDIS_ROLE_CHECK_CANDIDATES_KEY.format(root_id=root_id)
+    try:
+        # Field: bk_cloud_id (string), Value: cluster_ids (JSON array)
+        hash_data = {}
+        for bk_cloud_id, cluster_ids in cloud_to_clusters.items():
+            hash_data[str(bk_cloud_id)] = json.dumps(cluster_ids)
+
+        # Add metadata as a special field
+        meta = {
+            "total_cloud_groups": len(cloud_to_clusters),
+            "total_clusters": len(cluster_tuples),
+            "created_at": root_id,
+        }
+        hash_data[REDIS_ROLE_CHECK_META_FIELD] = json.dumps(meta)
+
+        # Store all fields in one HSET call (efficient)
+        RedisConn.hset(candidates_key, mapping=hash_data)
+        RedisConn.expire(candidates_key, REDIS_ROLE_CHECK_CANDIDATES_TTL)
+
+        logger.info(
+            _("Stored {} cloud groups ({} clusters) in Redis Hash: {}").format(
+                len(cloud_to_clusters), len(cluster_tuples), candidates_key
+            )
+        )
+    except Exception as e:
+        logger.exception(_("Failed to store candidates in Redis: {}").format(str(e)))
+        return
+
+    # Build flow data - using candidates_key instead of infos to prevent large flow data
     flow_data = {
         "ticket_type": "REDIS_ROLE_CHECK",
         "bk_biz_id": config.bk_biz_id,
         "created_by": "system",
-        "infos": infos,
+        "candidates_key": candidates_key,
         "batch_size": config.batch_size,
+        "batch_interval": config.batch_interval,
         "interval": config.interval,
         "max_retries": config.max_retries,
     }
