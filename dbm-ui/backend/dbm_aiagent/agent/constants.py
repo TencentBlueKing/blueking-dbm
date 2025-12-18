@@ -8,12 +8,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.urls import include, path
+from django.utils.translation import gettext_lazy as _
 
-from .views import mcp_discovery
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
-urlpatterns = [
-    path("mcp_tools/", include("backend.dbm_aiagent.mcp_tools.urls")),
-    path("mcp/mcp-discovery/", mcp_discovery, name="mcp-discovery"),
-    path("agent/", include("backend.dbm_aiagent.agent.urls")),
-]
+
+class DBMAgentCode(StrStructuredEnum):
+    DBM = EnumField("ai-am", _("DBM 主智能体"))
+    LOG_ANALYSIS = EnumField("ai-loganalysis", _("日志分析智能体"))
+    # TODO: 测试后删除
+    MAIN = EnumField("ai-kiotest-main", _("主智能体"))
+    MYSQL = EnumField("ai-kiotest-mysql", _("MySQL 智能体"))
+    REDIS = EnumField("ai-kiotest-redis", _("Redis 智能体"))
