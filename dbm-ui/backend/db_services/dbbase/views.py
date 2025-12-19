@@ -471,7 +471,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
             storage_versions = storage_queryset.values_list("version", flat=True)
             versions = set(proxy_versions) | (set(storage_versions))
             instance_attrs["version"] = [
-                {"value": version, "text": version if version else "--"} for version in versions
+                {"value": version if version else "--", "text": version if version else "--"} for version in versions
             ]
 
         if "status" in data["instances_attrs"]:
@@ -492,7 +492,9 @@ class DBBaseViewSet(viewsets.SystemViewSet):
             proxy_zones = proxy_query.values_list("machine__bk_sub_zone", flat=True)
             storage_zones = storage_queryset.values_list("machine__bk_sub_zone", flat=True)
             zones = set(proxy_zones) | (set(storage_zones))
-            instance_attrs["bk_sub_zone"] = [{"value": zone, "text": zone if zone else "--"} for zone in zones]
+            instance_attrs["bk_sub_zone"] = [
+                {"value": zone if zone else "--", "text": zone if zone else "--"} for zone in zones
+            ]
 
         return Response(instance_attrs)
 

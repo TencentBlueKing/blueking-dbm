@@ -814,7 +814,6 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
         inner_filter_params_map = {
             "ip": Q(machine__ip__in=query_params.get("ip", "").split(",")),
             "id": Q(id__in=query_params.get("id", "").split(",")),
-            "bk_sub_zone": Q(machine__bk_sub_zone__in=query_params.get("bk_sub_zone", "").split(",")),
             "bk_os_name": Q(machine__bk_os_name__in=query_params.get("bk_os_name", "").split(",")),
             "cluster_name": Q(cluster__name__in=query_params.get("cluster_name", "").split(",")),
             "create_at__gte": Q(create_at__gte=query_params.get("create_at__gte", "")),
@@ -831,11 +830,20 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             "domain": build_q_for_domain_by_instance(query_params),
             "instance": build_q_for_instance_filter(query_params),
         }
-        if query_params.get("version"):
-            if query_params["version"] == '""':
-                inner_filter_params_map["version"] = Q(version__isnull=True)
+        if "version" in query_params:
+            if query_params["version"] == "--":
+                inner_filter_params_map["version"] = Q(version__isnull=True) | Q(version__exact="")
             else:
                 inner_filter_params_map["version"] = Q(version__in=query_params.get("version").split(","))
+        if "bk_sub_zone" in query_params:
+            if query_params["bk_sub_zone"] == "--":
+                inner_filter_params_map["bk_sub_zone"] = Q(machine__bk_sub_zone__isnull=True) | Q(
+                    machine__bk_sub_zone__exact=""
+                )
+            else:
+                inner_filter_params_map["bk_sub_zone"] = Q(
+                    machine__bk_sub_zone__in=query_params.get("bk_sub_zone").split(",")
+                )
         filter_params_map = filter_params_map or {}
         filter_params_map.update(inner_filter_params_map)
         # 通过基础过滤参数进行instance过滤
