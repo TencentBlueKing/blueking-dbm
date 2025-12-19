@@ -78,8 +78,9 @@ def standardize_mysql_cluster_subflow(
         if not cluster_ids:
             cluster_ids = data.get("cluster_ids", [])
 
-        if not cluster_ids:
-            raise Exception("cluster_ids can't be empty when with_cc_standardize = True")  # noqa
+        # if not cluster_ids:
+        #
+        #     raise Exception("cluster_ids can't be empty when with_cc_standardize = True")  # noqa
 
     departs = copy.deepcopy(departs)
     ips = list(set(ele.split(":")[0] for ele in instances))
