@@ -330,6 +330,9 @@
         initNeedReplenish = props.data!.needReplenish;
       }
     },
+    {
+      immediate: true,
+    },
   );
 
   const handleTableValueChange = () => {
