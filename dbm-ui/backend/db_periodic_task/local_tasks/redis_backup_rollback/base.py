@@ -164,7 +164,7 @@ class RedisRollbackExercise:
 
                 if is_valid:
                     report.backup_info = json.dumps(backup_info, indent=2, ensure_ascii=False)
-                    report.save(update_fields=["backup_info", "updata_at"])
+                    report.save(update_fields=["backup_info", "update_at"])
 
                     valid_instances.append(
                         {
@@ -499,8 +499,8 @@ class RedisRollbackExercise:
         cluster_ids = [pair[0] for pair in cluster_id_biz_pairs]
         cluster_biz_map = {pair[0]: pair[1] for pair in cluster_id_biz_pairs}
 
-        previously_failed_clusters, _ = Report.get_previously_failed_clusters()
-        not_exercised_clusters = Report.get_not_exercised_clusters(
+        previously_failed_clusters, _q = Report.get_previously_failed_clusters()
+        not_exercised_clusters, _q = Report.get_not_exercised_clusters(
             cluster_ids, self.config.not_exercised_days_threshold
         )
         high_priority_bizs: Set[int] = set(self.config.bizs_high_priority or [])
