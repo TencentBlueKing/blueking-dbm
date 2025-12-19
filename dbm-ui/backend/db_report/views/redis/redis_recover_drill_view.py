@@ -119,7 +119,7 @@ class RedisRecoverDrillTaskViewSet(RecoverDrillTaskViewSet):
         "cluster_type": ["exact", "in"],
         "task_stage": ["exact", "in"],
         "state": ["exact", "in"],
-        "update_at": ["gte", "lte"],
+        "create_at": ["gte", "lte"],
     }
     ordering_fields = ["recover_start_time", "recover_duration"]
 

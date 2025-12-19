@@ -62,8 +62,8 @@ class RedisRollbackExerciseReport(BaseReportABS):
 
     class Meta:
         indexes = [
-            models.Index(fields=["state", "-update_at"]),  # For view set querying
-            models.Index(fields=["task_stage", "-update_at"]),  # For view set querying
+            models.Index(fields=["state", "-create_at"]),  # For view set querying
+            models.Index(fields=["task_stage", "-update_at"]),  # For view set querying & candidate calculation
             models.Index(fields=["cluster_id", "-update_at"]),  # For candidate calculation
         ]
 
@@ -76,7 +76,7 @@ class RedisRollbackExerciseReport(BaseReportABS):
             Set[int]: Cluster IDs
         """
 
-        # Subquery to get the latest update_at for each cluster (uses index on -update_at)
+        # Subquery to get the latest update_at for each cluster
         latest_update_at = (
             cls.objects.filter(cluster_id=OuterRef("cluster_id")).order_by("-update_at").values("update_at")[:1]
         )
@@ -85,8 +85,8 @@ class RedisRollbackExerciseReport(BaseReportABS):
         failed_clusters = (
             cls.objects.annotate(latest_update_at=Subquery(latest_update_at))
             .filter(
-                update_at=F("latest_update_at"),
                 task_stage__in=FAILED_STAGES,
+                update_at=F("latest_update_at"),
             )
             .values_list("cluster_id", flat=True)
             .distinct()
@@ -113,7 +113,7 @@ class RedisRollbackExerciseReport(BaseReportABS):
         cutoff_date = timezone.now() - timedelta(days=days_threshold)
 
         # Get clusters with successful exercise in the last N days (only check the candidates)
-        recently_exercised = set(
+        recently_exercised = (
             cls.objects.filter(
                 task_stage=TaskStage.DONE,
                 update_at__gte=cutoff_date,
@@ -122,7 +122,7 @@ class RedisRollbackExerciseReport(BaseReportABS):
             .distinct()
         )
 
-        return set(cluster_ids) - recently_exercised
+        return set(cluster_ids) - set(recently_exercised), recently_exercised
 
     def mark(self, stage: TaskStage, task_message: str = None):
         """
@@ -163,7 +163,7 @@ class RedisRollbackExerciseReport(BaseReportABS):
 
             case TaskStage.ROLLBACK_FLOW_GENERATED:
                 self.recover_start_time = timezone.now()
-                update_fields.extend(["recover_start_time", "rollback_flow_id"])
+                update_fields.extend(["recover_start_time", "rollback_flow_obj_id"])
 
             case TaskStage.ROLLBACK_FAILED:
                 self.recover_end_time = timezone.now()
@@ -176,7 +176,7 @@ class RedisRollbackExerciseReport(BaseReportABS):
                 update_fields.append("recover_end_time")
 
             case TaskStage.DELETE_FLOW_GENERATED:
-                update_fields.append("delete_flow_id")
+                update_fields.append("delete_flow_obj_id")
 
             case (TaskStage.RESOURCE_APPLI_SUCCEEDED | TaskStage.DELETE_SUCCEEDED):
                 pass

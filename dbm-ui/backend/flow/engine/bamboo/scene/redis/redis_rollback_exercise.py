@@ -20,10 +20,10 @@ from backend.db_meta.models import Cluster
 from backend.db_report.enums import RedisRollbackExerciseTaskStage as TaskStage
 from backend.db_report.models import RedisRollbackExerciseReport as Report
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
-from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
 from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.redis.redis_rollback_exercise import (
     RedisFlowPollingComponent,
+    RedisRollbackExerciseAlarmShieldComponent,
     RedisRollbackExerciseFinishingComponent,
     RedisRollbackFlowCreateComponent,
     RedisRollbackTaskCleanupComponent,
@@ -136,22 +136,15 @@ class RedisRollbackExerciseFlow(object):
                 "polling_timeout": polling_timeout,
             }
 
-            # Step 2: RollbackFlowCreate - Generate a rollback flow
-            # Note: This must run before AddAlarmShield to properly initialize trans_data in sub-pipeline
-            sub_flow.add_act(
-                act_name=_("生成构造任务"),
-                act_component_code=RedisRollbackFlowCreateComponent.code,
-                kwargs=asdict(act_kwargs),
-            )
-
-            # Step 3: Add alert shield for the applied machine
+            # Step 2: Add alert shield for the applied machine
             shield_duration_seconds = polling_timeout + settings.DISABLE_ALARM_SHIELD_DELAY
             sub_flow.add_act(
                 act_name=_("屏蔽主机 {} 告警(超时 {:.1f} mins)").format(
                     resource_applied[0]["ip"], shield_duration_seconds / 60
                 ),
-                act_component_code=AddAlarmShieldComponent.code,
+                act_component_code=RedisRollbackExerciseAlarmShieldComponent.code,
                 kwargs={
+                    "set_trans_data_dataclass": RedisRollbackExerciseContext.__name__,
                     "duration_seconds": polling_timeout,
                     "description": _("主机 {} Redis回档演练操作").format(resource_applied[0]["ip"]),
                     "dimensions": [
@@ -163,8 +156,15 @@ class RedisRollbackExerciseFlow(object):
                 },
             )
 
+            # Step 3: RollbackFlowCreate - Generate a rollback flow
+            sub_flow.add_act(
+                act_name=_("生成构造任务"),
+                act_component_code=RedisRollbackFlowCreateComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
+
             # Step 4: FlowPoll - Poll until the rollback flow creation is done
-            act_kwargs.cluster["flow_type"] = "rollback_flow_id"
+            act_kwargs.cluster["flow_type"] = "rollback_flow_obj_id"
             sub_flow.add_act(
                 act_name=_("等待构造完成"),
                 act_component_code=RedisFlowPollingComponent.code,
@@ -179,7 +179,7 @@ class RedisRollbackExerciseFlow(object):
             )
 
             # Step 6: FlowPoll - Poll until the temp instance deletion is done
-            act_kwargs.cluster["flow_type"] = "delete_flow_id"
+            act_kwargs.cluster["flow_type"] = "delete_flow_obj_id"
             sub_flow.add_act(
                 act_name=_("等待销毁完成"),
                 act_component_code=RedisFlowPollingComponent.code,

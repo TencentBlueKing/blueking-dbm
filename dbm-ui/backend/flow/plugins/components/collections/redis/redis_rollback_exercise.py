@@ -24,6 +24,7 @@ from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.scene.redis.redis_data_structure import RedisDataStructureFlow
 from backend.flow.engine.bamboo.scene.redis.redis_data_structure_task_delete import RedisDataStructureTaskDeleteFlow
 from backend.flow.models import FlowTree
+from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldService
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.redis import redis_context_dataclass as flow_context
 from backend.flow.utils.redis.redis_context_dataclass import RedisRollbackExerciseContext
@@ -82,6 +83,27 @@ class RedisLogCapturingService(BaseService):
         self._append_to_task_info(msg, "debug")
 
 
+class RedisRollbackExerciseAlarmShieldService(RedisLogCapturingService, AddAlarmShieldService):
+    """
+    Alarm shield service that combines RedisLogCapturingService's init_trans_data
+    with AddAlarmShieldService's alarm shield logic.
+    """
+
+    def _execute(self, data, parent_data) -> bool:
+        self.init_trans_data(data)
+        # Update data.inputs so AddAlarmShieldService._execute can access the initialized trans_data
+        data.inputs["trans_data"] = self.trans_data
+        result = AddAlarmShieldService._execute(self, data, parent_data)
+        data.outputs["trans_data"] = self.trans_data
+        return result
+
+
+class RedisRollbackExerciseAlarmShieldComponent(Component):
+    name = __name__
+    code = "redis_alarm_shield"
+    bound_service = RedisRollbackExerciseAlarmShieldService
+
+
 class RedisFlowPollingService(RedisLogCapturingService):
     """
     Component to poll a single Redis rollback flow status
@@ -138,9 +160,9 @@ class RedisFlowPollingService(RedisLogCapturingService):
 
         try:
             report = Report.objects.get(id=self.trans_data.report_id)
-            if flow_type == "rollback_flow_id":
+            if flow_type == "rollback_flow_obj_id":
                 stage = TaskStage.ROLLBACK_SUCCEEDED if flow_succeeded else TaskStage.ROLLBACK_FAILED
-            elif flow_type == "delete_flow_id":
+            elif flow_type == "delete_flow_obj_id":
                 stage = TaskStage.DELETE_SUCCEEDED if flow_succeeded else TaskStage.DELETE_FAILED
             else:
                 self.log_warning(_("Unknown flow type: {}").format(flow_type))
@@ -165,24 +187,24 @@ class RedisFlowPollingService(RedisLogCapturingService):
             return True
         return False
 
-    def _handle_flow_status(self, flow_id: str, status: StateType, flow_type: str) -> bool:
+    def _handle_flow_status(self, flow_obj_id: str, status: StateType, flow_type: str) -> bool:
         """Handle different flow statuses. Returns True if should continue polling."""
         match status:
             case StateType.FINISHED:
-                self.log_info(_("Flow {} finished successfully").format(flow_id))
+                self.log_info(_("Flow {} finished successfully").format(flow_obj_id))
                 self._update_task_status(flow_type, self.SUCCEEDED)
                 self.finish_schedule()
                 return True
             case StateType.FAILED:
-                self.log_error(_("Flow {} failed").format(flow_id))
+                self.log_error(_("Flow {} failed").format(flow_obj_id))
                 self._update_task_status(flow_type, self.FAILED)
-                return flow_type == "rollback_flow_id"  # We don't allow delete failure
+                return flow_type == "rollback_flow_obj_id"  # We don't allow delete failure
             case StateType.REVOKED:
-                self.log_error(_("Flow {} was cancelled or stopped with state: {}").format(flow_id, status))
+                self.log_error(_("Flow {} was cancelled or stopped with state: {}").format(flow_obj_id, status))
                 self._update_task_status(flow_type, self.FAILED)
                 return False
             case _:
-                self.log_info(_("Polling: flow {} with status: {}").format(flow_id, status))
+                self.log_info(_("Polling: flow {} with status: {}").format(flow_obj_id, status))
                 return True
 
     def __schedule(self, data, parent_data, callback_data=None) -> bool:
@@ -200,21 +222,21 @@ class RedisFlowPollingService(RedisLogCapturingService):
         if self._check_timeout(flow_type):
             return False
 
-        flow_id = getattr(self.trans_data, flow_type)
-        if not flow_id:
+        flow_obj_id = getattr(self.trans_data, flow_type)
+        if not flow_obj_id:
             self.log_error(_("No flow ID found for type {}").format(flow_type))
             return False
 
         try:
-            flow_tree = FlowTree.objects.get(root_id=flow_id)
-            return self._handle_flow_status(flow_id, flow_tree.status, flow_type)
+            flow_tree = FlowTree.objects.get(root_id=flow_obj_id)
+            return self._handle_flow_status(flow_obj_id, flow_tree.status, flow_type)
 
         except FlowTree.DoesNotExist:
-            self.log_error(_("Flow {} not found in FlowTree").format(flow_id))
+            self.log_error(_("Flow {} not found in FlowTree").format(flow_obj_id))
             self.finish_schedule()
             return False
         except Exception as e:
-            self.log_error(_("Error checking flow {} status: {}").format(flow_id, str(e)))
+            self.log_error(_("Error checking flow {} status: {}").format(flow_obj_id, str(e)))
             self.finish_schedule()
             return False
 
@@ -248,7 +270,7 @@ class RedisRollbackFlowCreateSerivce(RedisLogCapturingService):
         report_id = kwargs["cluster"].get("report_id")
         self.trans_data.report_id = report_id
 
-        bk_biz_id = kwargs["cluster"].get("bk_biz_id")  # biz_id of the ticket, not cluster
+        bk_biz_id = global_data["bk_biz_id"]  # biz_id of the ticket, not cluster
         cluster_id = kwargs["cluster"].get("cluster_id")
         instance_ip = kwargs["cluster"].get("instance_ip")
         instance_port = kwargs["cluster"].get("instance_port")
@@ -259,7 +281,7 @@ class RedisRollbackFlowCreateSerivce(RedisLogCapturingService):
         try:
             cluster = Cluster.objects.get(id=cluster_id)
 
-            rollback_flow_id = generate_root_id()
+            rollback_flow_obj_id = generate_root_id()
             # Prepare data structure flow data
             data_structure_data = {
                 "bk_biz_id": bk_biz_id,
@@ -282,18 +304,20 @@ class RedisRollbackFlowCreateSerivce(RedisLogCapturingService):
             # Execute RedisDataStructureFlow directly
             self.log_info(_("Executing REDIS_DATA_STRUCTURE flow with data: {}").format(data_structure_data))
 
-            flow = RedisDataStructureFlow(root_id=rollback_flow_id, data=data_structure_data)
+            flow = RedisDataStructureFlow(root_id=rollback_flow_obj_id, data=data_structure_data)
             flow.redis_data_structure_flow()
 
-            self.trans_data.rollback_flow_id = rollback_flow_id
+            self.trans_data.rollback_flow_obj_id = rollback_flow_obj_id
 
             self.log_info(
-                _("REDIS_DATA_STRUCTURE flow {} created successfully for task {}").format(rollback_flow_id, report_id)
+                _("REDIS_DATA_STRUCTURE flow {} created successfully for task {}").format(
+                    rollback_flow_obj_id, report_id
+                )
             )
 
             # Update task status to ROLLBACK_FLOW_GENERATED
             report = Report.objects.get(id=report_id)
-            report.rollback_flow_obj_id = rollback_flow_id
+            report.rollback_flow_obj_id = rollback_flow_obj_id
             report.mark(TaskStage.ROLLBACK_FLOW_GENERATED)
             self.log_info(_("Report {} state changed to ROLLBACK_FLOW_GENERATED").format(report_id))
 
@@ -343,7 +367,7 @@ class RedisTempInstanceDeleteService(RedisLogCapturingService):
             self.log_warning("Skipping RedisTempInstanceDeleteService due to previous error")
             return True
 
-        if not self.trans_data.rollback_flow_id:
+        if not self.trans_data.rollback_flow_obj_id:
             self.log_error("No temp instance to delete")
             return True
 
@@ -351,9 +375,9 @@ class RedisTempInstanceDeleteService(RedisLogCapturingService):
             cluster_id = kwargs["cluster"].get("cluster_id")
             cluster = Cluster.objects.get(id=cluster_id)
 
-            delete_flow_id = generate_root_id()
+            delete_flow_obj_id = generate_root_id()
             global_data = data.get_one_of_inputs("global_data")
-            bk_biz_id = kwargs["cluster"].get("bk_biz_id")  # biz_id of the ticket, not cluster
+            bk_biz_id = global_data["bk_biz_id"]  # biz_id of the ticket, not cluster
             report_id = self.trans_data.report_id
 
             flow_data = {
@@ -375,21 +399,21 @@ class RedisTempInstanceDeleteService(RedisLogCapturingService):
             self.log_info(_("Executing REDIS_DATA_STRUCTURE_TASK_DELETE flow with data: {}").format(flow_data))
 
             # Execute detetion flow directly
-            flow = RedisDataStructureTaskDeleteFlow(root_id=delete_flow_id, data=flow_data)
+            flow = RedisDataStructureTaskDeleteFlow(root_id=delete_flow_obj_id, data=flow_data)
             flow.redis_rollback_task_delete_flow()
 
             # Store deletion flow ID in trans_data
-            self.trans_data.delete_flow_id = delete_flow_id
+            self.trans_data.delete_flow_obj_id = delete_flow_obj_id
 
             self.log_info(
                 _("Successfully created delete flow {} for rollback flow {}").format(
-                    delete_flow_id, self.trans_data.rollback_flow_id
+                    delete_flow_obj_id, self.trans_data.rollback_flow_obj_id
                 )
             )
 
             # Update task status to DELETE_FLOW_GENERATED
             task = Report.objects.get(id=report_id)
-            task.delete_flow_obj_id = delete_flow_id
+            task.delete_flow_obj_id = delete_flow_obj_id
             task.mark(TaskStage.DELETE_FLOW_GENERATED)
             self.log_info(_("Report {} state changed to DELETE_FLOW_GENERATED").format(report_id))
 

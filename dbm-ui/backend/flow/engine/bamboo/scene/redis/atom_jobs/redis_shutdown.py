@@ -110,11 +110,14 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
     act_kwargs.cluster["ip"] = exec_ip
     act_kwargs.cluster["bk_cloud_id"] = act_kwargs.bk_cloud_id
     act_kwargs.cluster["created_by"] = ticket_data["created_by"]
+    cluster_bk_biz_id = act_kwargs.cluster["bk_biz_id"]
+    act_kwargs.cluster["bk_biz_id"] = ticket_data["bk_biz_id"]  # 机器所属业务以单据为准，避免回档演练场景找不到机器
     sub_pipeline.add_act(
         act_name=_("清理元数据-{}").format(exec_ip),
         act_component_code=RedisDBMetaComponent.code,
         kwargs=asdict(act_kwargs),
     )
+    act_kwargs.cluster["bk_biz_id"] = cluster_bk_biz_id  # 仅针对机器元数据操作修改 bk_biz_id
 
     # 从集群踢掉
     if act_kwargs.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster:
