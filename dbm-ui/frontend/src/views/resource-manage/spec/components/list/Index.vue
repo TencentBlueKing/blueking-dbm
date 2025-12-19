@@ -67,14 +67,14 @@
                 {{ t('删除规格') }}
               </BkButton>
             </BkDropdownItem>
-            <BkDropdownItem v-if="isProduction">
+            <BkDropdownItem v-if="isShowReplenish">
               <BatchSwithReplenish
                 :data-list="selectedList"
                 :db-type="dbType"
                 need-replenish
                 @success="fetchData" />
             </BkDropdownItem>
-            <BkDropdownItem v-if="isProduction">
+            <BkDropdownItem v-if="isShowReplenish">
               <BatchSwithReplenish
                 :data-list="selectedList"
                 :db-type="dbType"
@@ -194,7 +194,7 @@
         </template>
       </BkTableColumn>
       <BkTableColumn
-        v-if="isProduction"
+        v-if="isShowReplenish"
         :label="t('自动补货')"
         :width="120">
         <template #default="{ data }: { data: ResourceSpecModel }">
@@ -347,13 +347,13 @@
 
   import { useBeforeClose, useLinkQueryColumnSerach, useTableSettings } from '@hooks';
 
+  import { useFunController, useGlobalBizs } from '@stores';
+
   import { DBTypes, UserPersonalSettings } from '@common/const';
 
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { getSearchSelectorParams, messageSuccess } from '@utils';
-
-  import { useGlobalBizs } from '@/stores';
 
   import BatchEditBizScope from './components/BatchEditBizScope.vue';
   import BatchSwithEnable from './components/BatchSwithEnable.vue';
@@ -379,6 +379,7 @@
   const globalBizsStore = useGlobalBizs();
   const { hasQPS } = useHasQPS(props);
   const handleBeforeClose = useBeforeClose();
+  const funControllerStore = useFunController();
 
   const { clearSearchValue, columnFilterChange, handleSearchValueChange, searchValue } = useLinkQueryColumnSerach({
     attrs: [],
@@ -390,7 +391,7 @@
 
   const setRowClass = (data: ResourceSpecModel) => (data.isRecentSeconds ? 'is-new-row' : '');
 
-  const isProduction = import.meta.env.MODE === 'production';
+  const isShowReplenish = funControllerStore.funControllerData?.getFlatData('resourceManage').specListReplenish;
 
   const tableRef = ref();
   const isEnableSpec = ref(true);
