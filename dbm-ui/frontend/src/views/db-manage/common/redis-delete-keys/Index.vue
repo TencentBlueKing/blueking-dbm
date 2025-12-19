@@ -391,7 +391,6 @@
             .then((res) => {
               ticketMessage(res.id);
               emits('success');
-              window.changeConfirm = false;
               handleClose();
             })
             .finally(() => {

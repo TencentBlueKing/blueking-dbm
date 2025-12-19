@@ -251,7 +251,6 @@
     });
 
     formData.tableData = [...formData.tableData.filter((item) => item.batchCluster.renderText), ...newList];
-    window.changeConfirm = true;
   };
 
   const handleBatchEdit = (value: number, field: string) => {

@@ -1,22 +1,22 @@
 <template>
   <EditableColumn
-    :append-rules="rules"
-    field="target_proxy_count"
-    :label="t('扩容数量（台）')"
+    :disabled-method="() => !clusterId"
+    field="group_num"
+    :label="t('减少机器组数')"
     required
-    :width="200">
+    :rules="rules"
+    :width="120">
     <template #headAppend>
       <BatchEditColumn
         :confirm-handler="handleBatchEditConfirm"
-        :label="t('扩容数量（台）')">
+        :label="t('减少机器组数')">
         <BatchEditNumberInput v-model="batchEditValue" />
       </BatchEditColumn>
     </template>
     <EditableInput
       v-model="modelValue"
+      :max="groupNum - 1"
       :min="1"
-      :placeholder="t('不能少于n台', { n: 1 })"
-      :rules="rules"
       type="number" />
   </EditableColumn>
 </template>
@@ -25,28 +25,34 @@
 
   import BatchEditColumn, { BatchEditNumberInput } from '@views/db-manage/common/batch-edit-column-new/Index.vue';
 
+  interface Props {
+    clusterId: number;
+    groupNum: number;
+  }
+
   interface Emits {
     (e: 'batch-edit', value: number, filed: string): void;
     (e: 'change'): void;
   }
 
+  const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
-  const modelValue = defineModel<string>();
+  const modelValue = defineModel<number>();
 
   const { t } = useI18n();
 
   const rules = [
     {
-      message: t('不能少于n台', { n: 1 }),
+      message: t('最终机器组数不能为 0'),
       trigger: 'change',
-      validator: (value: number) => value >= 1,
+      validator: (value: number) => props.groupNum - value !== 0,
     },
   ];
 
-  const batchEditValue = ref(0);
+  const batchEditValue = ref(1);
 
   const handleBatchEditConfirm = () => {
-    emits('batch-edit', batchEditValue.value, 'target_proxy_count');
+    emits('batch-edit', batchEditValue.value, 'group_num');
   };
 </script>
 

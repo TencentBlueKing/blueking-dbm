@@ -26,6 +26,7 @@ export interface ClusterListSpec {
     max: number;
     min: number;
     mount_point: string;
+    size?: number;
     type: string;
   }[];
   updater: string;

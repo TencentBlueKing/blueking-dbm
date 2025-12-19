@@ -3,22 +3,32 @@
     :label="t('目标容量')"
     property="capacity"
     required
-    :rules="rules">
+    :rules="capacityRules">
     <div class="input-box">
       <BkInput
-        ref="capacityInputRef"
         class="mb10"
         :min="0"
         :model-value="capacity"
         style="width: 314px"
         type="number"
-        @change="handleChange" />
+        @change="handleCapacityChange" />
       <div class="uint-text ml-12">
         <span>{{ t('当前') }}</span>
         <span class="spec-text">{{ cluster.cluster_capacity }}</span>
         <span>G</span>
       </div>
     </div>
+  </DbFormItem>
+  <DbFormItem
+    :label="t('资源标签')"
+    property="labels"
+    required
+    :rules="resourceTagRules">
+    <ResourceTagSelector
+      ref="resourceTagSelector"
+      v-model="labels"
+      style="width: 314px"
+      @change="handleTesourceTagChange" />
   </DbFormItem>
   <BkLoading :loading="loading">
     <DbOriginalTable
@@ -49,6 +59,8 @@
 
 <script setup lang="tsx">
   import _ from 'lodash';
+  import type { UnwrapRef } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -58,13 +70,18 @@
 
   import { ClusterTypes } from '@common/const';
 
+  import ResourceTagSelector from '@views/db-manage/common/apply-items/ResourceTagSelector.vue';
+
   import { messageError } from '@utils';
 
   interface Props {
     cluster: RedisModel;
   }
 
-  type Emits = (e: 'change', data: ClusterSpecModel) => void;
+  interface Emits {
+    (e: 'spec-change', value: ClusterSpecModel): void;
+    (e: 'label-change', value: UnwrapRef<typeof labels>): void;
+  }
 
   interface Exposes {
     choose(id: number): void;
@@ -76,8 +93,11 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const capacityInputRef = ref();
+
+  const resourceTagSelector = useTemplateRef('resourceTagSelector');
+
   const capacity = ref('');
+  const labels = ref<ComponentProps<typeof ResourceTagSelector>['modelValue']>([]);
   const tableData = ref<ClusterSpecModel[]>([]);
   const radioValue = ref(-1);
   const radioChoosedId = ref(-1); // 标记，sort重新定位index用
@@ -85,15 +105,15 @@
   const specDisabledMap = shallowRef<Record<number, boolean>>({});
 
   /**
-   * 非Tendisplus集群（≠PredixyTendisplusCluster）
-    - 去掉推荐方案里的集群分片
-    - 选择的方案，必须能被当前集群分片数整除。
-    - 提交时，目标集群分片数使用当前集群分片数
+     * 非Tendisplus集群（≠PredixyTendisplusCluster）
+      - 去掉推荐方案里的集群分片
+      - 选择的方案，必须能被当前集群分片数整除。
+      - 提交时，目标集群分片数使用当前集群分片数
 
-    Tendisplus集群（＝PredixyTendisplusCluster） 
-    - 保留推荐方案里的集群分片
-    - 提交时，目标集群分片数用方案里的集群分片数
-   */
+      Tendisplus集群（＝PredixyTendisplusCluster）
+      - 保留推荐方案里的集群分片
+      - 提交时，目标集群分片数用方案里的集群分片数
+     */
   const isTendisplus = computed(() => props.cluster.cluster_type === ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER);
 
   const { loading, run: fetchData } = useRequest(getFilterClusterSpec, {
@@ -106,11 +126,20 @@
     },
   });
 
-  const rules = [
+  const capacityRules = [
     {
       message: t('容量不能为空'),
       trigger: 'change',
       validator: () => !!capacity.value,
+    },
+  ];
+
+  const resourceTagRules = [
+    {
+      message: t('请选择资源标签'),
+      required: true,
+      trigger: 'change',
+      validator: () => resourceTagSelector.value?.validate(),
     },
   ];
 
@@ -160,7 +189,7 @@
     return cols;
   });
 
-  const handleChange = (value: string) => {
+  const handleCapacityChange = (value: string) => {
     capacity.value = value;
     const capacityNum = Number(value);
     if (capacityNum > 0) {
@@ -207,7 +236,7 @@
   watch(radioValue, () => {
     if (radioValue.value !== -1) {
       emits(
-        'change',
+        'spec-change',
         Object.assign(_.cloneDeep(tableData.value[radioValue.value]), {
           cluster_shard_num: isTendisplus.value
             ? tableData.value[radioValue.value].cluster_shard_num
@@ -216,6 +245,10 @@
       );
     }
   });
+
+  const handleTesourceTagChange = (value: UnwrapRef<typeof labels>) => {
+    emits('label-change', value);
+  };
 
   defineExpose<Exposes>({
     choose(id) {

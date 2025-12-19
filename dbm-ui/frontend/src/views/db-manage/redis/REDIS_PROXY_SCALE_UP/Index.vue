@@ -15,9 +15,13 @@
   <SmartAction>
     <div class="proxy-scale-up-page">
       <BkAlert
+        class="mb-20"
         closable
         theme="info"
         :title="t('扩容接入层：增加集群的Proxy数量，新Proxy可以指定规格')" />
+      <BatchInput
+        :config="batchInputConfig"
+        @change="handleBatchInput" />
       <DbForm
         ref="form"
         class="toolbox-form"
@@ -25,6 +29,7 @@
         :model="formData"
         style="margin-top: 16px">
         <EditableTable
+          :key="tableKey"
           ref="editableTable"
           class="mt-16 mb-16"
           :model="formData.tableData">
@@ -48,35 +53,45 @@
               </EditableBlock>
             </EditableColumn>
             <EditableColumn
-              :label="t('扩容节点类型')"
-              :width="120">
-              <EditableBlock :placeholder="t('选择集群后自动生成')"> Proxy </EditableBlock>
+              :label="t('当前数量（台）')"
+              readonly
+              :width="140">
+              <EditableBlock :placeholder="t('选择集群后自动生成')">
+                {{ item.cluster.id ? item.cluster.proxy.length : '' }}
+              </EditableBlock>
             </EditableColumn>
-            <!-- <SpecSelectColumn
-              v-model="item.spec_id"
-              :bk-cloud-id="item.cluster.bk_cloud_id"
-              :cluster-type="ClusterTypes.REDIS"
-              :current-spec-ids="getCurrentSpecIds(item.cluster.proxy)"
-              field="spec_id"
-              :label="t('扩容规格')"
-              :machine-type="MachineTypes.REDIS_PROXY">
-              <template #label="{ label, value }">
-                {{ specLabelFormat({ label, value }, index) }}
-              </template>
-            </SpecSelectColumn> -->
+            <AddProxyCountColumn
+              v-model="item.add_proxy_count"
+              @batch-edit="handleBatchEdit" />
+            <EditableColumn
+              :label="t('最终数量（台）')"
+              readonly
+              :width="150">
+              <EditableBlock>
+                {{ item.cluster.id ? item.cluster.proxy.length + item.add_proxy_count : '' }}
+              </EditableBlock>
+            </EditableColumn>
             <SpecColumn
               v-model="item.spec_id"
               :cluster-type="DBTypes.REDIS"
               :current-spec-id-list="item.cluster.proxy.map((item) => item.spec_config.id)"
               field="spec_id"
-              label="扩容规格"
+              label="目标规格"
               :machine-type="MachineTypes.REDIS_PROXY"
               required
               selectable
               @batch-edit="handleBatchEdit" />
-            <TargetProxyCountColumn
-              v-model="item.target_proxy_count"
+            <ResourceTagColumn
+              v-model="item.labels"
               @batch-edit="handleBatchEdit" />
+            <AvailableResourceColumn
+              :params="{
+                city: item.cluster.region,
+                for_bizs: [currentBizId, 0],
+                resource_types: [DBTypes.REDIS, 'PUBLIC'],
+                spec_id: item.spec_id,
+                labels: item.labels.map((item) => item.id).join(','),
+              }" />
             <OperationColumn
               :create-row-method="createRowData"
               :table-data="formData.tableData" />
@@ -108,6 +123,7 @@
 </template>
 
 <script setup lang="ts">
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import RedisModel from '@services/model/redis/redis';
@@ -120,32 +136,39 @@
 
   import { type TabConfig } from '@components/cluster-selector/Index.vue';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+  import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
+  import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import ClusterColumn from '@views/db-manage/redis/common/toolbox-field/cluster-column/Index.vue';
 
-  // import SpecSelectColumn from '@views/db-manage/redis/common/toolbox-field/spec-select-column/Index.vue';
-  import TargetProxyCountColumn from './components/TargetProxyCountColumn.vue';
+  import { random } from '@utils';
+
+  import AddProxyCountColumn from './components/AddProxyCountColumn.vue';
 
   interface IDataRow {
+    add_proxy_count: number;
     cluster: {
       bk_cloud_id: number;
       cluster_spec: {
         id: number;
       };
-      cluster_type: string;
+      cluster_type: ClusterTypes;
       cluster_type_name: string;
       id: number;
       master_domain: string;
       proxy: RedisModel['proxy'];
+      region: string;
     };
+    labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     spec_id: number;
-    target_proxy_count: string;
   }
 
-  const createRowData = (values = {} as Partial<IDataRow>) => ({
+  const createRowData = (values: DeepPartial<IDataRow> = {}) => ({
+    add_proxy_count: values?.add_proxy_count || 0,
     cluster: Object.assign(
       {
         bk_cloud_id: 0,
@@ -157,11 +180,12 @@
         id: 0,
         master_domain: '',
         proxy: [] as RedisModel['proxy'],
+        region: '',
       },
       values.cluster,
     ),
+    labels: (values.labels || []) as IDataRow['labels'],
     spec_id: values?.spec_id || 0,
-    target_proxy_count: values?.target_proxy_count || '',
   });
 
   const createDefaultFormData = () => ({
@@ -171,7 +195,30 @@
 
   const { t } = useI18n();
 
-  useTicketDetail<Redis.ProxyScaleUp>(TicketTypes.REDIS_PROXY_SCALE_UP, {
+  const batchInputConfig = [
+    {
+      case: 'redis.test.dba.db',
+      key: 'domain',
+      label: t('目标分片集群'),
+    },
+    {
+      case: '1',
+      key: 'count',
+      label: t('扩容数量（台）'),
+    },
+    {
+      case: '2核_4G_50G',
+      key: 'spec_name',
+      label: t('目标规格'),
+    },
+    {
+      case: '标签1,标签2',
+      key: 'labels',
+      label: t('资源标签'),
+    },
+  ];
+
+  useTicketDetail<Redis.ResourcePool.ProxyScaleUp>(TicketTypes.REDIS_PROXY_SCALE_UP, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { clusters, infos } = details;
@@ -179,34 +226,28 @@
         payload: createTickePayload(ticketDetail),
         tableData: infos.map((infoItem) =>
           createRowData({
+            add_proxy_count: infoItem.resource_spec.proxy.count,
             cluster: {
               master_domain: clusters[infoItem.cluster_id].immute_domain,
             } as IDataRow['cluster'],
+            labels: (infoItem.resource_spec.proxy.labels || []).map((item) => ({ id: Number(item) })),
             spec_id: infoItem.resource_spec.proxy.spec_id,
-            target_proxy_count: String(infoItem.resource_spec.proxy.count),
           }),
         ),
       });
-      window.changeConfirm = true;
     },
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
-    infos: {
-      bk_cloud_id: number;
-      cluster_id: number;
-      resource_spec: {
-        proxy: {
-          count: number;
-          spec_id: number;
-        };
-      };
-      target_proxy_count: number;
-    }[];
+    infos: Redis.ResourcePool.ProxyScaleUp['infos'];
     ip_source: 'resource_pool';
   }>(TicketTypes.REDIS_PROXY_SCALE_UP);
 
   const editableTableRef = useTemplateRef('editableTable');
+
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
+
+  const tableKey = ref(random());
 
   const formData = reactive(createDefaultFormData());
 
@@ -253,6 +294,7 @@
               id: item.id,
               master_domain: item.master_domain,
               proxy: item.proxy,
+              region: item.region,
             },
           }),
         );
@@ -260,14 +302,31 @@
     });
 
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...newList];
-    window.changeConfirm = true;
   };
 
   const handleBatchEdit = (value: string | number, field: string) => {
     formData.tableData.forEach((item) => {
       Object.assign(item, { [field]: value });
     });
-    window.changeConfirm = true;
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) =>
+      createRowData({
+        add_proxy_count: item.count ? item.count : 1,
+        cluster: {
+          master_domain: item.domain,
+        } as IDataRow['cluster'],
+        labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
+        spec_id: item.spec_name,
+      }),
+    );
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = [...dataList];
+    } else {
+      formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    }
   };
 
   const handleSubmit = async () => {
@@ -278,13 +337,16 @@
           infos: formData.tableData.map((tableItem) => ({
             bk_cloud_id: tableItem.cluster.bk_cloud_id,
             cluster_id: tableItem.cluster.id,
+            current_proxy_num: tableItem.cluster.proxy.length,
             resource_spec: {
               proxy: {
-                count: Number(tableItem.target_proxy_count),
+                count: tableItem.add_proxy_count,
+                label_names: tableItem.labels.map((item) => item.value),
+                labels: tableItem.labels.map((item) => String(item.id)),
                 spec_id: tableItem.spec_id,
               },
             },
-            target_proxy_count: tableItem.cluster.proxy.length + Number(tableItem.target_proxy_count),
+            target_proxy_count: tableItem.cluster.proxy.length + tableItem.add_proxy_count,
           })),
           ip_source: 'resource_pool',
         },
@@ -295,7 +357,6 @@
 
   const handleReset = () => {
     Object.assign(formData, createDefaultFormData());
-    window.changeConfirm = false;
   };
 </script>
 

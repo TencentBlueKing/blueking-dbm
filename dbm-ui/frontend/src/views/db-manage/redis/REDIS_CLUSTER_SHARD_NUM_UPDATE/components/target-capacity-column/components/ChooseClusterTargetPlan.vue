@@ -46,6 +46,39 @@
           <div
             class="panel-title"
             style="min-width: 70px">
+            {{ t('资源标签') }}：
+          </div>
+          <div class="panel-content">
+            <span class="panel-spec">--</span>
+          </div>
+        </div>
+        <div class="panel-column">
+          <div
+            class="panel-title"
+            style="min-width: 82px">
+            {{ t('资源标签') }}：
+          </div>
+          <div class="panel-content">
+            <template v-if="specInfo.proxy.labels.length">
+              <BkTag
+                v-for="labelItem in specInfo.proxy.labels"
+                :key="labelItem.id">
+                {{ labelItem.value }}
+              </BkTag>
+            </template>
+            <BkTag
+              v-else
+              theme="success">
+              {{ t('通用无标签') }}
+            </BkTag>
+          </div>
+        </div>
+      </div>
+      <div class="panel-row">
+        <div class="panel-column">
+          <div
+            class="panel-title"
+            style="min-width: 70px">
             {{ t('当前 Proxy 数量') }}：
           </div>
           <div class="panel-content">
@@ -135,6 +168,39 @@
               style="color: #c4c6cc">
               --
             </span>
+          </div>
+        </div>
+      </div>
+      <div class="panel-row">
+        <div class="panel-column">
+          <div
+            class="panel-title"
+            style="min-width: 70px">
+            {{ t('资源标签') }}：
+          </div>
+          <div class="panel-content">
+            <span class="panel-spec">--</span>
+          </div>
+        </div>
+        <div class="panel-column">
+          <div
+            class="panel-title"
+            style="min-width: 82px">
+            {{ t('资源标签') }}：
+          </div>
+          <div class="panel-content">
+            <template v-if="specInfo.labels.length">
+              <BkTag
+                v-for="labelItem in specInfo.labels"
+                :key="labelItem.id">
+                {{ labelItem.value }}
+              </BkTag>
+            </template>
+            <BkTag
+              v-else
+              theme="success">
+              {{ t('通用无标签') }}
+            </BkTag>
           </div>
         </div>
       </div>
@@ -244,7 +310,7 @@
       :label-width="200"
       :model="specInfo">
       <div class="title-spot mb-8">{{ t('Proxy 规格') }}<span class="required" /></div>
-      <BkFormItem
+      <DbFormItem
         :label="t('规格')"
         property="proxy.spec_id"
         required>
@@ -258,8 +324,18 @@
           :cluster-type="DBTypes.REDIS"
           machine-type="proxy"
           style="width: 314px" />
-      </BkFormItem>
-      <BkFormItem
+      </DbFormItem>
+      <DbFormItem
+        :label="t('资源标签')"
+        property="proxy.labels"
+        required
+        :rules="proxyResourceTagRules">
+        <ResourceTagSelector
+          ref="proxyResourceTagSelector"
+          v-model="specInfo.proxy.labels"
+          style="width: 314px" />
+      </DbFormItem>
+      <DbFormItem
         :label="t('数量')"
         property="proxy.count"
         required>
@@ -269,7 +345,7 @@
           style="width: 314px"
           type="number" />
         <span class="input-desc">{{ t('至少n台', { n: 2 }) }}</span>
-      </BkFormItem>
+      </DbFormItem>
       <div class="title-spot mb-8">{{ t('集群部署方案') }}<span class="required" /></div>
       <ApplySchema v-model="applySchema" />
       <template v-if="applySchema === APPLY_SCHEME.AUTO">
@@ -301,6 +377,16 @@
               @change="(value) => (specInfo.capacityFutureNeed = Number(value))" />
             <div class="panel-unit">G</div>
           </div>
+        </DbFormItem>
+        <DbFormItem
+          :label="t('资源标签')"
+          property="labels"
+          required
+          :rules="backendResourceTagRules">
+          <ResourceTagSelector
+            ref="backendResourceTagSelector"
+            v-model="specInfo.labels"
+            style="width: 314px" />
         </DbFormItem>
         <div class="deploy-box">
           <BkLoading :loading="isTableLoading">
@@ -353,6 +439,7 @@
   import DbForm from '@components/db-form/index.vue';
   import RenderSpec from '@components/spec-display/Index.vue';
 
+  import ResourceTagSelector from '@views/db-manage/common/apply-items/ResourceTagSelector.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
   import ApplySchema, { APPLY_SCHEME } from '@views/db-manage/common/apply-schema/Index.vue';
   import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue';
@@ -394,10 +481,14 @@
   }
 
   export interface SpecResultInfo {
-    backend_spec: UnwrapRef<typeof targetBackendSpecInfo>;
+    backend_spec: { labels: ComponentProps<typeof ResourceTagSelector>['modelValue'] } & UnwrapRef<
+      typeof targetBackendSpecInfo
+    >;
     cluster_capacity: number;
     cluster_shard_num: number;
-    proxy_spec: UnwrapRef<typeof targetProxySpecInfo>;
+    proxy_spec: { labels: ComponentProps<typeof ResourceTagSelector>['modelValue'] } & UnwrapRef<
+      typeof targetProxySpecInfo
+    >;
   }
 
   type FilterClusterSpecItem = ServiceReturnType<typeof getFilterClusterSpec>[0];
@@ -420,6 +511,8 @@
   const { t } = useI18n();
 
   const specProxyRef = useTemplateRef('specProxyRef');
+  const proxyResourceTagSelectorRef = useTemplateRef('proxyResourceTagSelector');
+  const backendResourceTagSelectorRef = useTemplateRef('backendResourceTagSelector');
 
   const formRef = ref<InstanceType<typeof DbForm>>();
   const customSchemaRef = ref<InstanceType<typeof CustomSchema>>();
@@ -441,8 +534,10 @@
     capacityNeed: '' as number | '',
     clusterShardNum: 0,
     count: '' as string | number,
+    labels: [] as ComponentProps<typeof ResourceTagSelector>['modelValue'],
     proxy: {
       count: 2,
+      labels: [] as ComponentProps<typeof ResourceTagSelector>['modelValue'],
       spec_id: '',
     },
     shardNum: '' as number | '',
@@ -456,6 +551,24 @@
     clusterType: '',
     machineType: '',
   });
+
+  const proxyResourceTagRules = [
+    {
+      message: t('请选择资源标签'),
+      required: true,
+      trigger: 'change',
+      validator: () => proxyResourceTagSelectorRef.value?.validate(),
+    },
+  ];
+
+  const backendResourceTagRules = [
+    {
+      message: t('请选择资源标签'),
+      required: true,
+      trigger: 'change',
+      validator: () => backendResourceTagSelectorRef.value?.validate(),
+    },
+  ];
 
   const futrueCapacityRule = [
     {
@@ -719,10 +832,11 @@
         backend_spec: {
           ...targetBackendSpecInfo.value!,
           count: choosedObj.machine_pair,
+          labels: specInfo.labels,
         },
         cluster_capacity: choosedObj.cluster_capacity,
         cluster_shard_num: choosedObj.cluster_shard_num,
-        proxy_spec: resultProxySpecInfo,
+        proxy_spec: { ...resultProxySpecInfo, labels: specInfo.proxy.labels },
       });
       Object.assign(capacityInfo, {
         current: Number(specInfo.capacityNeed),
@@ -733,10 +847,11 @@
         backend_spec: {
           ...targetBackendSpecInfo.value!,
           count: specInfo.count,
+          labels: specInfo.labels,
         },
         cluster_capacity: specInfo.totalCapcity,
         cluster_shard_num: specInfo.clusterShardNum,
-        proxy_spec: resultProxySpecInfo,
+        proxy_spec: { ...resultProxySpecInfo, labels: specInfo.proxy.labels },
       });
       Object.assign(capacityInfo, {
         current: props.cluster.cluster_capacity,

@@ -20,7 +20,7 @@
     row-key="ip">
     <TicketInfoTableColumn
       col-key="ip"
-      :get-copy-value="(row: RowData) => row.ip"
+      :get-copy-value="(row: RowData) => [row.ip, row.related_slave_ip || '']"
       :min-width="150"
       :title="t('目标主机')">
       <template #default="{ row: data }: { row: RowData }">
@@ -83,11 +83,29 @@
         </div>
       </template>
     </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="label_names"
+      :min-width="200"
+      :title="t('资源标签')">
+      <template #default="{ row }: { row: RowData }">
+        <template v-if="row.labels.length">
+          <BkTag
+            v-for="item in row.labels"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
+      </template>
+    </TicketInfoTableColumn>
   </TicketInfoTable>
 </template>
 
 <script setup lang="ts">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import type { DetailSpecs } from '@services/model/ticket/details/common';
@@ -113,13 +131,13 @@
   interface RowData {
     cluster_domain: string;
     ip: string;
+    labels: string[];
     related_slave_ip?: string; // 关联的slave
     related_slave_spec?: DetailSpecs[number]; // 关联的slave
     role: string;
     spec_config: DetailSpecs[number];
   }
 
-  const ipInfoMap = reactive<Record<string, RowData>>({});
   const tableData = ref<RowData[]>([]);
 
   const generateRowClass = ({ row }: { row: RowData }) => {
@@ -129,44 +147,25 @@
     return '';
   };
 
-  const { clusters, infos, recycle_hosts: recycleHosts, specs } = props.ticketDetails.details;
-  if (infos.length && recycleHosts.length) {
-    const generateData = (
-      list: Redis.ResourcePool.ClusterCutoff['infos'][0]['redis_master'],
-      role: keyof Redis.ResourcePool.ClusterCutoff['infos'][0]['old_nodes'],
-      clusterIds: number[],
-    ) => {
-      if (list?.length) {
-        _.uniqBy(list, 'ip').forEach((hostInfo) => {
-          const clusterInfo = clusters[clusterIds[0]];
-          const ip = hostInfo.master_ip || hostInfo.ip;
-          const specId = hostInfo.master_spec_id || hostInfo.spec_id;
-          const isRelatedSlave = !!hostInfo.master_ip; // 是否是关联带出的slave
-          if (!ipInfoMap[ip]) {
-            Object.assign(ipInfoMap, {
-              [ip]: {
-                cluster_domain: clusterInfo.immute_domain,
-                ip,
-                role,
-                spec_config: specs[specId],
-              },
-            });
-          } else if (isRelatedSlave) {
-            ipInfoMap[ip].related_slave_ip = hostInfo.ip;
-            ipInfoMap[ip].related_slave_spec = specs[specId];
-          }
-        });
-      }
-    };
-
-    infos.forEach((infoItem) => {
-      generateData(infoItem.old_nodes.redis_master, 'redis_master', infoItem.cluster_ids);
-      generateData(infoItem.old_nodes.redis_slave, 'redis_slave', infoItem.cluster_ids);
-      generateData(infoItem.old_nodes.proxy, 'proxy', infoItem.cluster_ids);
-    });
-
-    tableData.value = Object.values(ipInfoMap);
-  }
+  const { clusters, infos, specs } = props.ticketDetails.details;
+  const list = infos.flatMap((infoItem) => {
+    const role = infoItem.switch_role as keyof (typeof infos)[number]['old_nodes'];
+    const hosts = infoItem[role]!;
+    const resouceSpecItem = Object.values(infoItem.resource_spec)[0];
+    const labels = resouceSpecItem.label_names || [];
+    const domain = clusters[infoItem.cluster_ids[0]].immute_domain;
+    const specConfig = specs[resouceSpecItem.spec_id];
+    const redisMasterOldNodes = role === 'redis_master' ? infoItem['old_nodes']['redis_master']! : [];
+    return hosts.map((host, hostIndex) => ({
+      cluster_domain: domain,
+      ip: host.ip,
+      labels,
+      related_slave_ip: role === 'redis_master' ? redisMasterOldNodes[hostIndex * 2 + 1].ip : '',
+      role,
+      spec_config: specConfig,
+    }));
+  });
+  tableData.value = list;
 </script>
 <style lang="less">
   .redis-cluster-cutoff-table {

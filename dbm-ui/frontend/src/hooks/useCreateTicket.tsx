@@ -28,6 +28,9 @@ export function useCreateTicket<T>(ticketType: TicketTypes, options?: { onSucces
     try {
       loading.value = true;
       const { id: ticketId } = await createTicketNew<T>(params);
+
+      window.changeConfirm = false;
+
       if (options?.onSuccess) {
         options.onSuccess(ticketId);
         ticketMessage(ticketId);

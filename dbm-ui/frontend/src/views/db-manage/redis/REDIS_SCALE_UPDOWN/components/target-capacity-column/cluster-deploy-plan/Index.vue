@@ -38,12 +38,14 @@
             v-if="applySchema === APPLY_SCHEME.AUTO"
             ref="autoSchemaRef"
             v-bind="props"
-            @change="handleAutoUpdate" />
+            @label-change="handleLabelChange"
+            @spec-change="handleAutoUpdate" />
           <CustomSchema
             v-else
             v-model="targetInfo"
             v-bind="props"
-            @change="handleCustomUpdate" />
+            @label-change="handleLabelChange"
+            @spec-change="handleCustomUpdate" />
         </DbForm>
       </div>
     </div>
@@ -62,6 +64,7 @@
   </BkSideslider>
 </template>
 <script setup lang="tsx">
+  import type { UnwrapRef } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
@@ -72,6 +75,8 @@
   import { useBeforeClose } from '@hooks';
 
   import RenderSpec from '@components/spec-display/Index.vue';
+
+  import ResourceTagSelector from '@views/db-manage/common/apply-items/ResourceTagSelector.vue';
 
   import { messageError } from '@utils';
 
@@ -118,6 +123,7 @@
       used: 0,
     },
     groupNum: 0,
+    labels: [] as ComponentProps<typeof ResourceTagSelector>['modelValue'],
     shardNum: 0,
     spec: {
       cpu: {
@@ -208,12 +214,17 @@
     });
   };
 
+  const handleLabelChange = (value: UnwrapRef<typeof targetInfo>['labels']) => {
+    Object.assign(targetInfo, {
+      labels: value,
+    });
+  };
+
   const handleClose = async () => {
     const result = await handleBeforeClose();
     if (!result) {
       return;
     }
-    window.changeConfirm = false;
     isShow.value = false;
   };
 
@@ -226,7 +237,6 @@
       targetInfo,
       updateInfo,
     });
-    window.changeConfirm = true;
     isShow.value = false;
   };
 </script>
