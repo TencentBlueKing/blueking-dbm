@@ -27,6 +27,7 @@ from backend.ticket.builders.redis.base import (
     RedisBaseOperateDetailSerializer,
 )
 from backend.ticket.constants import TicketFlowStatus, TicketType
+from backend.flow.engine.bamboo.scene.redis.validate.redis_keystat_validator import RedisKeyStatFlowValidator
 
 
 class RedisKeyStatSerializer(RedisBaseOperateDetailSerializer):
@@ -53,6 +54,7 @@ class RedisKeyStatSerializer(RedisBaseOperateDetailSerializer):
 
 class RedisKeyStatParamBuilder(builders.FlowParamBuilder):
     controller = RedisController.redis_keystat
+    validator = RedisKeyStatFlowValidator
 
     def post_callback(self):
         flow = self.ticket.current_flow()

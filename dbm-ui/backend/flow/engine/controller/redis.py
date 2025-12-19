@@ -73,6 +73,7 @@ from backend.flow.engine.bamboo.scene.redis.validate.redis_migrate_validator imp
 )
 from backend.flow.engine.controller.base import BaseController
 from backend.flow.engine.validate.base_validate import validates_with
+from backend.flow.engine.bamboo.scene.redis.validate.redis_keystat_validator import RedisKeyStatFlowValidator
 
 
 class RedisController(BaseController):
@@ -474,6 +475,7 @@ class RedisController(BaseController):
         flow = RedisRollbackExerciseFlow(root_id=self.root_id, data=self.ticket_data)
         flow.rollback_exercise_flow()
 
+    @validates_with(RedisKeyStatFlowValidator)
     def redis_keystat(self):
         """
         redis 内存分析
