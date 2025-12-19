@@ -81,7 +81,7 @@
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<string[]>({
-    required: true,
+    default: () => [],
   });
 
   const { t } = useI18n();

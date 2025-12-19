@@ -144,6 +144,7 @@ const toolboxRouters: RouteRecordRaw[] = [
       createRouteItem(TicketTypes.SQLSERVER_INCR_MIGRATE, t('数据迁移')),
       createRouteItem(TicketTypes.SQLSERVER_CLUSTER_MIGRATE, t('迁移')),
       createRouteItem(TicketTypes.SQLSERVER_HOST_MIGRATE, t('迁移')),
+      createRouteItem(TicketTypes.SQLSERVER_DATA_EXPORT, t('数据导出')),
       {
         path: 'data-migrate-record',
         name: 'sqlServerDataMigrateRecord',
