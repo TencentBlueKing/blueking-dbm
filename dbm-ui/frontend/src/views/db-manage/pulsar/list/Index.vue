@@ -52,7 +52,9 @@
       @filter-change="handleFilterChange"
       @selection="handleSelection">
       <template #operation>
-        <OperationColumn :cluster-type="ClusterTypes.PULSAR">
+        <OperationColumn
+          ref="operationColumnRef"
+          :cluster-type="ClusterTypes.PULSAR">
           <template #default="{ data }: { data: PulsarModel }">
             <div v-db-console="'pulsar.clusterManage.manage'">
               <a
@@ -72,6 +74,11 @@
                 {{ t('获取访问方式') }}
               </AuthButton>
             </div>
+            <ClusterAlarmSubscribe
+              :data="data"
+              db-console-prefix="pulsar.clusterManage"
+              @click="hideOperationColumn"
+              @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
             <div v-db-console="'pulsar.clusterManage.scaleUp'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
@@ -231,8 +238,9 @@
 
   import { useClusterQuickSearch, useTableSettings } from '@hooks';
 
-  import { ClusterTypes, DBTypes, UserPersonalSettings } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes, UserPersonalSettings } from '@common/const';
 
+  import ClusterAlarmSubscribe from '@views/db-manage/common/cluster-alarm-subscribe/Index.vue';
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
@@ -272,6 +280,7 @@
 
   const dataSource = getPulsarList;
 
+  const operationColumnRef = ref<ComponentExposed<typeof OperationColumn>>();
   const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
@@ -287,6 +296,10 @@
 
   const fetchData = () => {
     tableRef.value?.fetchData(searchValue.value);
+  };
+
+  const hideOperationColumn = () => {
+    operationColumnRef.value?.hide();
   };
 
   const handleGoApply = () => {
