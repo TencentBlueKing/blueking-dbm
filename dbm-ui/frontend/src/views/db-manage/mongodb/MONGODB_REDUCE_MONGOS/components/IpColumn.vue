@@ -102,7 +102,6 @@
         bk_host_id: item.bk_host_id,
         ip: item.ip,
       }));
-    window.changeConfirm = true;
   };
 
   watch(

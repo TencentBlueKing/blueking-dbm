@@ -33,17 +33,17 @@
           v-model="currentClusterType"
           :panel-list="configList" />
         <RenderTable
-          v-model:selected="selected"
+          v-model:selected="localSelected"
           :params="params" />
       </template>
       <template #aside>
-        <PreviewResult v-model:selected="selected" />
+        <PreviewResult v-model:selected="localSelected" />
       </template>
     </BkResizeLayout>
     <template #footer>
       <BkButton
         class="w-88"
-        :disabled="selected.length === 0"
+        :disabled="localSelected.length === 0"
         theme="primary"
         @click="handleSubmit">
         {{ t('确定') }}
@@ -57,6 +57,7 @@
   </BkDialog>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { ClusterTypes } from '@common/const';
@@ -73,6 +74,7 @@
   interface Props {
     clusterTypes: SupportClusterTypes[];
     role?: string;
+    selected: IValue[];
   }
 
   type Emits = (e: 'change', data: any[]) => void;
@@ -85,13 +87,10 @@
     required: true,
   });
 
-  const selected = defineModel<IValue[]>('selected', {
-    required: true,
-  });
-
   const { t } = useI18n();
 
   const currentClusterType = ref<SupportClusterTypes>(ClusterTypes.TENDBHA);
+  const localSelected = shallowRef<IValue[]>([]);
 
   const configList = computed(() => props.clusterTypes.map((clusterType) => comFactory[clusterType]));
 
@@ -106,12 +105,21 @@
     }
   });
 
+  watch(
+    () => props.selected,
+    (newValue, oldValue) => {
+      if (!_.isEqual(newValue, oldValue)) {
+        localSelected.value = props.selected;
+      }
+    },
+  );
+
   const handleClose = () => {
     isShow.value = false;
   };
 
   const handleSubmit = () => {
-    emits('change', selected.value);
+    emits('change', localSelected.value);
     handleClose();
   };
 </script>

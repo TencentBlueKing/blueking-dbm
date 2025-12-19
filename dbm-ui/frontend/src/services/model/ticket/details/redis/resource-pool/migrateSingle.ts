@@ -1,8 +1,7 @@
-import type { DetailBase, DetailClusters, DetailSpecs } from '../common';
+import type { ResourcePoolDetailBase } from '../../resource-pool';
 
 // redis 主从迁移
-export interface MigrateSingle extends DetailBase {
-  clusters: DetailClusters;
+export interface MigrateSingle extends ResourcePoolDetailBase {
   infos: {
     cluster_id?: number; // 历史协议
     db_version: string;
@@ -12,9 +11,9 @@ export interface MigrateSingle extends DetailBase {
       ip: string;
       migrate_type: string; // domain | machine
     };
-    migrate_domain?: string;
-    migrate_ip?: string;
-    migrate_type: string; // domain | machine, 分别对应migrate_domain和migrate_ip
+    migrate_domain?: string; // 展示用
+    migrate_ip?: string; // 展示用
+    migrate_type: string; // 展示用，domain | machine, 分别对应migrate_domain和migrate_ip
     old_nodes?: MigrateSingle['infos'][number]['origin_old_nodes']; // 历史协议
     origin_old_nodes: {
       master: {
@@ -35,6 +34,8 @@ export interface MigrateSingle extends DetailBase {
     resource_spec: {
       backend_group: {
         count: number;
+        label_names: string[]; // 标签名称列表，单据详情回显用
+        labels: string[]; // 标签id列表
         spec_id: number;
       };
     };
@@ -44,5 +45,4 @@ export interface MigrateSingle extends DetailBase {
       slave_ins: string;
     }[];
   }[];
-  specs: DetailSpecs;
 }

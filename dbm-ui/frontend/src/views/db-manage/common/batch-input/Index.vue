@@ -147,6 +147,7 @@
     });
 
     emits('change', result, isClear.value);
+    window.changeConfirm = true;
     handleClose();
   };
 </script>

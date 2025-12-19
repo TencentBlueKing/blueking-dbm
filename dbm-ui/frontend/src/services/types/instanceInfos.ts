@@ -11,8 +11,9 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { ClusterTypes } from '@common/const';
 import type { HostInfo } from '@services/types';
+
+import type { ClusterTypes } from '@common/const';
 
 /**
  * 实例详细信息（包含主机、集群）
@@ -47,8 +48,8 @@ export interface InstanceInfos {
     region: string;
     status: string;
     time_zone: string;
-    zone_list: string[];
     updater: string;
+    zone_list: string[];
   }[];
   role: string;
   spec_config: {
@@ -69,8 +70,9 @@ export interface InstanceInfos {
       min: number;
     };
     storage_spec: {
+      max: number;
+      min: number;
       mount_point: string;
-      size: number;
       type: string;
     }[];
   };

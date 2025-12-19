@@ -29,6 +29,25 @@
       col-key="sepcName"
       :title="t('规格需求')" />
     <TicketInfoTableColumn
+      col-key="label_names"
+      :min-width="200"
+      :title="t('资源标签')">
+      <template #default="{ row }: { row: RowData }">
+        <template v-if="row.labelNames.length">
+          <BkTag
+            v-for="item in row.labelNames"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="targetNum"
       :title="t('新增从库主机数量')" />
   </TicketInfoTable>
@@ -42,13 +61,14 @@
   import { TicketTypes } from '@common/const';
 
   interface Props {
-    ticketDetails: TicketModel<Redis.ClusterAddSlave>;
+    ticketDetails: TicketModel<Redis.ResourcePool.ClusterAddSlave>;
   }
 
   interface RowData {
     clusterName: string;
     clusterType: string;
     hostIp: string;
+    labelNames: string[];
     sepcName: string;
     slaveIp: string;
     targetNum: number;
@@ -67,16 +87,17 @@
 
   const tableData = infos.reduce((results, item) => {
     item.pairs.forEach((pair) => {
-      const specInfo = specs[pair.redis_slave.spec_id];
+      const specInfo = specs[pair.redis_slave?.spec_id || Object.values(item.resource_spec)[0].spec_id];
       const obj = {
         clusterName: item.cluster_id
           ? clusters[item.cluster_id].immute_domain // 兼容旧单据
           : item.cluster_ids.map((id) => clusters[id].immute_domain).join(','),
         clusterType: clusters[item.cluster_ids[0]].cluster_type,
         hostIp: pair.redis_master.ip,
+        labelNames: Object.values(item.resource_spec)[0].label_names || [],
         sepcName: specInfo ? specInfo.name : '--',
-        slaveIp: pair.redis_slave.old_slave_ip,
-        targetNum: pair.redis_slave.count,
+        slaveIp: pair.redis_slave?.old_slave_ip || pair.redis_slave.ip,
+        targetNum: Object.values(item.resource_spec)[0].count,
       };
       results.push(obj);
     });

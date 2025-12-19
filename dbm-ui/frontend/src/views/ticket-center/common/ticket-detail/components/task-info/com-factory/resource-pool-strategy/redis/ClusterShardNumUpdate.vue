@@ -95,11 +95,11 @@
 
   import { convertStorageUnits } from '@utils';
 
-  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
-  import TableGroupContent from '../components/TableGroupContent.vue';
+  import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
+  import TableGroupContent from '../../components/TableGroupContent.vue';
 
   interface Props {
-    ticketDetails: TicketModel<Redis.ClusterShardNumUpdate>;
+    ticketDetails: TicketModel<Redis.ResourcePool.ClusterShardNumUpdate>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
@@ -114,9 +114,9 @@
   const { t } = useI18n();
 
   // 生成映射表
-  const generateMap = (arr: { title: string; value: string }[]) => {
+  const generateMap = (arr: { label: string; value: string }[]) => {
     return arr.reduce<Record<string, string>>((obj, item) => {
-      Object.assign(obj, { [item.value]: item.title });
+      Object.assign(obj, { [item.value]: item.label });
       return obj;
     }, {});
   };
@@ -139,6 +139,10 @@
         return '--';
       },
       title: t('Proxy 规格'),
+    },
+    {
+      render: () => '--',
+      title: t('资源标签'),
     },
     {
       render: () => {
@@ -172,6 +176,10 @@
         return '--';
       },
       title: t('后端存储规格'),
+    },
+    {
+      render: () => '--',
+      title: t('资源标签'),
     },
     {
       render: () => {
@@ -209,6 +217,19 @@
         );
       },
       title: t('Proxy 规格'),
+    },
+
+    {
+      render: () => {
+        if (data.resource_spec.proxy.label_names?.length) {
+          const tags = data.resource_spec.proxy.label_names.map((labelItem) => (
+            <bk-tag key={labelItem}>{labelItem}</bk-tag>
+          ));
+          return <>{tags}</>;
+        }
+        return <bk-tag theme='success'>{t('通用无标签')}</bk-tag>;
+      },
+      title: t('资源标签'),
     },
     {
       render: () => (
@@ -261,6 +282,18 @@
         );
       },
       title: t('后端存储规格'),
+    },
+    {
+      render: () => {
+        if (data.resource_spec.backend_group.label_names?.length) {
+          const tags = data.resource_spec.backend_group.label_names.map((labelItem) => (
+            <bk-tag key={labelItem}>{labelItem}</bk-tag>
+          ));
+          return <>{tags}</>;
+        }
+        return <bk-tag theme='success'>{t('通用无标签')}</bk-tag>;
+      },
+      title: t('资源标签'),
     },
     {
       render: () => (

@@ -86,7 +86,7 @@
 
   interface IDataRow {
     cluster: {
-      cluster_type: string;
+      cluster_type: ClusterTypes;
       cluster_type_name: string;
       id: number;
       master_domain: string;
@@ -184,7 +184,6 @@
       }
     });
     tableData.value = [...(selected.value.length ? tableData.value : []), ...newList];
-    window.changeConfirm = true;
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
