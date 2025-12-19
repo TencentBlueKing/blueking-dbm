@@ -52,7 +52,9 @@
       @filter-change="handleFilterChange"
       @selection="handleSelection">
       <template #operation>
-        <OperationColumn :cluster-type="ClusterTypes.HDFS">
+        <OperationColumn
+          ref="operationColumnRef"
+          :cluster-type="ClusterTypes.HDFS">
           <template #default="{ data }: { data: HdfsModel }">
             <div v-db-console="'hdfs.clusterManage.manage'">
               <a
@@ -72,6 +74,11 @@
                 {{ t('获取访问方式') }}
               </AuthButton>
             </div>
+            <ClusterAlarmSubscribe
+              :data="data"
+              db-console-prefix="hdfs.clusterManage"
+              @click="hideOperationColumn"
+              @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
             <div v-db-console="'hdfs.clusterManage.scaleUp'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
@@ -269,6 +276,7 @@
 
   import { ClusterTypes, DBTypes, UserPersonalSettings } from '@common/const';
 
+  import ClusterAlarmSubscribe from '@views/db-manage/common/cluster-alarm-subscribe/Index.vue';
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
@@ -307,6 +315,7 @@
 
   const dataSource = getHdfsList;
 
+  const operationColumnRef = ref<ComponentExposed<typeof OperationColumn>>();
   const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
 
   const isShowExpandsion = ref(false);
@@ -335,6 +344,10 @@
         from: route.name as string,
       },
     });
+  };
+
+  const hideOperationColumn = () => {
+    operationColumnRef.value?.hide();
   };
 
   // 扩容

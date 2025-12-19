@@ -64,7 +64,9 @@
       @filter-change="handleFilterChange"
       @selection="handleSelection">
       <template #operation>
-        <OperationColumn :cluster-type="ClusterTypes.TENDBCLUSTER">
+        <OperationColumn
+          ref="operationColumnRef"
+          :cluster-type="ClusterTypes.TENDBCLUSTER">
           <template #default="{ data }: { data: TendbClusterModel }">
             <div v-db-console="'mysql.haClusterList.authorize'">
               <BkButton
@@ -133,6 +135,11 @@
                 {{ t('下架只读集群') }}
               </AuthButton>
             </div>
+            <ClusterAlarmSubscribe
+              :data="data"
+              db-console-prefix="tendbCluster.clusterManage"
+              @click="hideOperationColumn"
+              @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
             <div
               v-if="!data.isOnlineCLBMaster"
               v-db-console="'common.clb'">
@@ -436,6 +443,7 @@
 
   import { AccountTypes, ClusterTypes, TicketTypes, UserPersonalSettings } from '@common/const';
 
+  import ClusterAlarmSubscribe from '@views/db-manage/common/cluster-alarm-subscribe/Index.vue';
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
@@ -491,6 +499,7 @@
   } = useGoClusterDetail('tendbClusterDetail');
   const { handleSelection, selectedIdList, selectedList } = useClusterTableSelect<TendbClusterModel>();
 
+  const operationColumnRef = ref<ComponentExposed<typeof OperationColumn>>();
   const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
   const removeMNTInstanceIds = ref<number[]>([]);
   const excelAuthorizeShow = ref(false);
@@ -539,6 +548,10 @@
 
   const fetchData = () => {
     tableRef.value?.fetchData(searchValue.value);
+  };
+
+  const hideOperationColumn = () => {
+    operationColumnRef.value?.hide();
   };
 
   // 下架运维节点

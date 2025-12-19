@@ -61,7 +61,9 @@
       @filter-change="handleFilterChange"
       @selection="handleSelection">
       <template #operation>
-        <OperationColumn :cluster-type="ClusterTypes.TENDBHA">
+        <OperationColumn
+          ref="operationColumnRef"
+          :cluster-type="ClusterTypes.TENDBHA">
           <template #default="{ data }: { data: TendbhaModel }">
             <div v-db-console="'mysql.haClusterList.authorize'">
               <BkButton
@@ -111,6 +113,11 @@
                 {{ t('数据订阅') }}
               </AuthButton>
             </div>
+            <ClusterAlarmSubscribe
+              :data="data"
+              db-console-prefix="mysql.haClusterList"
+              @click="hideOperationColumn"
+              @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
             <div
               v-if="!data.isOnlineCLB"
               v-db-console="'common.clb'">
@@ -325,6 +332,7 @@
 
   import { AccountTypes, ClusterTypes, TicketTypes, UserPersonalSettings } from '@common/const';
 
+  import ClusterAlarmSubscribe from '@views/db-manage/common/cluster-alarm-subscribe/Index.vue';
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
@@ -375,6 +383,7 @@
   } = useGoClusterDetail('tendbHaDetail');
   const { handleSelection, selectedIdList, selectedList } = useClusterTableSelect<TendbhaModel>();
 
+  const operationColumnRef = ref<ComponentExposed<typeof OperationColumn>>();
   const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
   const isShowExcelAuthorize = ref(false);
   const isShowCreateSubscribeRule = ref(false);
@@ -395,6 +404,10 @@
 
   const fetchData = () => {
     tableRef.value!.fetchData(searchValue.value);
+  };
+
+  const hideOperationColumn = () => {
+    operationColumnRef.value?.hide();
   };
 
   const handleShowAuthorize = (data: TendbhaModel) => {
