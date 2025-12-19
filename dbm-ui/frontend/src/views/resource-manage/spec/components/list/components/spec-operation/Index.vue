@@ -105,7 +105,7 @@
         </span>
       </BkFormItem>
       <BkFormItem
-        v-if="isProduction"
+        v-if="isShowReplenish"
         :label="t('自动补货')">
         <BkSwitcher
           v-model="needReplenish"
@@ -155,9 +155,11 @@
     verifyDuplicatedSpecName,
   } from '@services/source/dbresourceSpec';
 
+  import { useFunController } from '@stores';
+
   import { ClusterTypes, DBTypes } from '@common/const';
 
-  import { messageSuccess } from '@/utils';
+  import { messageSuccess } from '@utils';
 
   import { useHasQPS } from '../../hooks/useHasQPS';
 
@@ -183,6 +185,8 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
+  const funControllerStore = useFunController();
+
   const notRequiredStorageList = [
     `${DBTypes.MYSQL}_proxy`,
     `${DBTypes.REDIS}_${ClusterTypes.TWEMPROXY_REDIS_INSTANCE}`,
@@ -194,7 +198,7 @@
     `${DBTypes.SQLSERVER}_sqlserver`,
   ];
 
-  const isProduction = import.meta.env.MODE === 'production';
+  const isShowReplenish = funControllerStore.funControllerData?.getFlatData('resourceManage').specListReplenish;
 
   const isRequired = !notRequiredStorageList.includes(`${props.dbType}_${props.machineType}`);
 
@@ -325,7 +329,7 @@
   watch(
     () => props.data,
     () => {
-      if (isProduction) {
+      if (isShowReplenish) {
         needReplenish.value = props.data!.needReplenish;
         initNeedReplenish = props.data!.needReplenish;
       }
@@ -412,7 +416,7 @@
 
       if (props.mode === 'edit') {
         const requestList = [updateResourceSpec(params)];
-        if (isProduction) {
+        if (isShowReplenish) {
           requestList.push(
             addSpecReplenishTag({
               need_replenish: needReplenish.value,
@@ -442,7 +446,7 @@
       }
 
       const requestList = [createResourceSpec(params)];
-      if (isProduction) {
+      if (isShowReplenish) {
         requestList.push(
           addSpecReplenishTag({
             need_replenish: needReplenish.value,
