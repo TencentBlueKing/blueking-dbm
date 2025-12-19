@@ -44,14 +44,10 @@ def cc_standardize(
         gen_exporter_cnf(root_id=root_id, data=data, bk_cloud_id=bk_cloud_id, instances=instances),
     ]
 
-    if with_cc_standardize:  # and len(data.get("cluster_ids", [])) > 0:
+    if with_cc_standardize and len(data.get("cluster_ids", [])) > 0:
         sub_flow_list.append(
             trans_cc_module(
-                root_id=root_id,
-                data=data,
-                bk_cloud_id=bk_cloud_id,
-                cluster_ids=cluster_ids
-                # root_id = root_id, data = data, bk_cloud_id = bk_cloud_id, cluster_ids = data.get("cluster_ids", [])
+                root_id=root_id, data=data, bk_cloud_id=bk_cloud_id, cluster_ids=data.get("cluster_ids", [])
             )
         )
 
