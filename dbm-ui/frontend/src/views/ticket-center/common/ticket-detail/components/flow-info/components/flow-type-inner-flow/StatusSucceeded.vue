@@ -24,6 +24,10 @@
         <span> ，</span>
         <RedisKeysExtractFile :id="data.flow_obj_id" />
       </template>
+      <template v-if="ticketDetail.ticket_type === TicketTypes.SQLSERVER_DATA_EXPORT">
+        <span> ，</span>
+        <SqlserverDataExportFile :details="data.details as ComponentProps<typeof SqlserverDataExportFile>['details']" />
+      </template>
       <template
         v-if="[TicketTypes.MYSQL_DUMP_DATA, TicketTypes.TENDBCLUSTER_DUMP_DATA].includes(ticketDetail.ticket_type)">
         <span> ，</span>
@@ -68,6 +72,7 @@
   import MysqlDumpDataDownload from './components/MysqlDumpDataDownload.vue';
   import RedisAnalysisToList from './components/RedisAnalysisToList.vue';
   import RedisKeysExtractFile from './components/RedisKeysExtractFile.vue';
+  import SqlserverDataExportFile from './components/SqlserverDataExportFile.vue';
 
   interface Props {
     data: FlowMode<unknown>;
