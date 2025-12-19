@@ -57,7 +57,9 @@
       @filter-change="handleFilterChange"
       @selection="handleSelection">
       <template #operation>
-        <OperationColumn :cluster-type="ClusterTypes.TENDBSINGLE">
+        <OperationColumn
+          ref="operationColumnRef"
+          :cluster-type="ClusterTypes.TENDBSINGLE">
           <template #default="{ data }: { data: TendbsingleModel }">
             <div v-db-console="'mysql.singleClusterList.authorize'">
               <BkButton
@@ -95,6 +97,11 @@
                 {{ t('导出数据') }}
               </AuthButton>
             </div>
+            <ClusterAlarmSubscribe
+              :data="data"
+              db-console-prefix="mysql.singleClusterList"
+              @click="hideOperationColumn"
+              @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
             <div
               v-if="data.isOnline"
               v-db-console="'mysql.singleClusterList.disable'">
@@ -215,6 +222,7 @@
 
   import { AccountTypes, ClusterTypes, TicketTypes, UserPersonalSettings } from '@common/const';
 
+  import ClusterAlarmSubscribe from '@views/db-manage/common/cluster-alarm-subscribe/Index.vue';
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
@@ -254,6 +262,7 @@
   } = useGoClusterDetail('tendbsingleDetail');
   const { handleSelection, selectedIdList, selectedList } = useClusterTableSelect<TendbsingleModel>();
 
+  const operationColumnRef = ref<ComponentExposed<typeof OperationColumn>>();
   const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
   const isShowExcelAuthorize = ref(false);
   const showDataExportSlider = ref(false);
@@ -277,6 +286,10 @@
       tableRef.value!.clearSelected();
     });
   });
+
+  const hideOperationColumn = () => {
+    operationColumnRef.value?.hide();
+  };
 
   /**
    * 申请实例

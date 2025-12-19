@@ -45,7 +45,9 @@
       @filter-change="handleFilterChange"
       @selection="handleSelection">
       <template #operation>
-        <OperationColumn :cluster-type="ClusterTypes.SQLSERVER_HA">
+        <OperationColumn
+          ref="operationColumnRef"
+          :cluster-type="ClusterTypes.SQLSERVER_HA">
           <template #default="{ data }: { data: SqlServerHaModel }">
             <div v-db-console="'sqlserver.haClusterList.authorize'">
               <BkButton
@@ -55,6 +57,11 @@
                 {{ t('授权') }}
               </BkButton>
             </div>
+            <ClusterAlarmSubscribe
+              :data="data"
+              db-console-prefix="sqlserver.haClusterList"
+              @click="hideOperationColumn"
+              @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
             <div v-db-console="'sqlserver.haClusterList.enable'">
               <OperationBtnStatusTips :data="data">
                 <BkButton
@@ -191,6 +198,7 @@
 
   import { AccountTypes, ClusterTypes, TicketTypes, UserPersonalSettings } from '@common/const';
 
+  import ClusterAlarmSubscribe from '@views/db-manage/common/cluster-alarm-subscribe/Index.vue';
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
@@ -232,6 +240,7 @@
   } = useGoClusterDetail('SqlServerHaClusterDetail');
   const { handleSelection, isSelected, selectedIdList, selectedList } = useClusterTableSelect<SqlServerHaModel>();
 
+  const operationColumnRef = ref<ComponentExposed<typeof OperationColumn>>();
   const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
   const isShowExcelAuthorize = ref(false);
   const isShowClusterReset = ref(false);
@@ -256,6 +265,10 @@
 
   const fetchData = () => {
     tableRef.value!.fetchData(searchValue.value);
+  };
+
+  const hideOperationColumn = () => {
+    operationColumnRef.value?.hide();
   };
 
   const handleResetCluster = (data: SqlServerHaModel) => {
