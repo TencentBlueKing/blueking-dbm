@@ -18,7 +18,7 @@ spec:
   {{- toYaml .Values.ipFamily | nindent 2 }}
   {{- end }}
   ports:
-    - port: {{ .Values.server.port }}
+    - port: 8080
       targetPort: {{ .Values.server.port }}
       name: api
   selector:
