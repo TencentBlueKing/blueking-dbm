@@ -33,6 +33,7 @@ from backend.flow.plugins.components.collections.common.pause import PauseCompon
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_check_binlog_dump import MySQLCheckBinlogDumpComponent
 from backend.flow.plugins.components.collections.mysql.mysql_check_processlist import MySQLCheckProcesslistComponent
+from backend.flow.plugins.components.collections.mysql.mysql_check_slave_delay import MySQLCheckSlaveDelayComponent
 from backend.flow.plugins.components.collections.mysql.mysql_check_slave_delay_probe import (
     MySQLCheckSlaveDelayProbeComponent,
 )
@@ -87,7 +88,7 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
             need_random_pass_cluster_ids=list(set(cluster_ids)),
         )
         tendb_migrate_pipeline_all_list = []
-        # 阶段1 获取集群所有信息。计算端口,构建数据。
+        # 阶段1 获取集群所有信息。计算端口,构建数据。这里不同的ip区分不同子流程
         for info in self.ticket_data["infos"]:
             self.data = copy.deepcopy(info)
             cluster_class = Cluster.objects.get(id=self.data["cluster_id"])
@@ -117,7 +118,10 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                     )
                 ),
             )
+            switch_check_sub_pipeline_list = []
             sync_data_sub_pipeline_list = []
+            # 供屏蔽告警使用
+            instance_ports = []
             for shard_id in self.data["shard_ids"]:
                 shard = cluster_class.tendbclusterstorageset_set.get(shard_id=shard_id)
                 self.data["master"] = shard.storage_instance_tuple.ejector.ip_port
@@ -125,6 +129,7 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                 self.data["master_port"] = shard.storage_instance_tuple.ejector.port
                 self.data["slave_port"] = shard.storage_instance_tuple.receiver.port
                 target_slave = cluster_class.storageinstance_set.get(id=shard.storage_instance_tuple.receiver.id)
+                instance_ports.append(target_slave.port)
                 # 检查slave是否存活
                 res = DRSApi.rpc(
                     {
@@ -157,26 +162,6 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                         )
                     ),
                 )
-
-                sync_data_sub_pipeline.add_act(
-                    act_name=_("屏蔽告警24小时"),
-                    act_component_code=AddAlarmShieldComponent.code,
-                    kwargs={
-                        "duration_seconds": 24 * 3600,
-                        "description": cluster_class.immute_domain,
-                        "dimensions": [
-                            {
-                                "name": "instance_host",
-                                "values": [target_slave.machine.ip],
-                            },
-                            {
-                                "name": "instance_port",
-                                "values": [target_slave.port],
-                            },
-                        ],
-                    },
-                )
-
                 sync_data_sub_pipeline.add_act(
                     act_name=_("检查实例是否存在从库{}").format(target_slave.ip_port),
                     act_component_code=MySQLCheckBinlogDumpComponent.code,
@@ -301,36 +286,75 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                         )
                     ),
                 )
-                #  循环检查从库
-                if self.auto_switch_slave:
-                    sync_data_sub_pipeline.add_act(
-                        act_name=_("探测主从延迟情况 {}").format(target_slave.ip_port),
-                        act_component_code=MySQLCheckSlaveDelayProbeComponent.code,
-                        kwargs=asdict(
-                            CheckSlaveStatusKwargs(
-                                bk_cloud_id=cluster_class.bk_cloud_id,
-                                instance_ip=target_slave.machine.ip,
-                                instance_port=target_slave.port,
-                                slave_delay_threshold=100000,
-                                check_file_delay=1,
-                            )
-                        ),
-                    )
-                sync_data_sub_pipeline.add_act(
-                    act_name=DisableAlarmShieldComponent.node_name,
-                    act_component_code=DisableAlarmShieldComponent.code,
-                    kwargs={},
-                )
                 sync_data_sub_pipeline_list.append(
                     sync_data_sub_pipeline.build_sub_process(
                         _("{} shard {} 原地重建").format(target_slave.ip_port, shard_id)
                     )
                 )
+                #  构造切换并发信息
+                if self.auto_switch_slave:
+                    switch_check_sub_pipeline_list.append(
+                        {
+                            "act_name": _("探测主从延迟情况 {}".format(target_slave.ip_port)),
+                            "act_component_code": MySQLCheckSlaveDelayProbeComponent.code,
+                            "kwargs": asdict(
+                                CheckSlaveStatusKwargs(
+                                    bk_cloud_id=cluster_class.bk_cloud_id,
+                                    instance_ip=target_slave.machine.ip,
+                                    instance_port=target_slave.port,
+                                    master_ip=master.machine.ip,
+                                    master_port=master.port,
+                                    slave_delay_threshold=100000,
+                                    check_file_delay=1,
+                                    sqls=["show slave status"],
+                                )
+                            ),
+                        }
+                    )
+                else:
+                    switch_check_sub_pipeline_list.append(
+                        {
+                            "act_name": _("检查主/新从延迟 {}".format(target_slave.ip_port)),
+                            "act_component_code": MySQLCheckSlaveDelayComponent.code,
+                            "kwargs": asdict(
+                                CheckSlaveStatusKwargs(
+                                    bk_cloud_id=cluster_class.bk_cloud_id,
+                                    instance_ip=target_slave.machine.ip,
+                                    instance_port=target_slave.port,
+                                    master_ip=master.machine.ip,
+                                    master_port=master.port,
+                                    slave_delay_threshold=100000,
+                                    check_file_delay=1,
+                                    sqls=["show slave status"],
+                                )
+                            ),
+                        }
+                    )
 
-            #
+            tendb_migrate_pipeline.add_act(
+                act_name=_("屏蔽告警24小时"),
+                act_component_code=AddAlarmShieldComponent.code,
+                kwargs={
+                    "duration_seconds": 24 * 3600,
+                    "description": cluster_class.immute_domain,
+                    "dimensions": [
+                        {
+                            "name": "instance_host",
+                            "values": [self.data["slave_ip"]],
+                        },
+                        {
+                            "name": "instance_port",
+                            "values": instance_ports,
+                        },
+                    ],
+                },
+            )
+            # 同步数据
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=sync_data_sub_pipeline_list)
+            # 确定&检查&切换 or 自动探测&切换
             if not self.auto_switch_slave:
                 tendb_migrate_pipeline.add_act(act_name=_("人工确认切换"), act_component_code=PauseComponent.code, kwargs={})
+            tendb_migrate_pipeline.add_parallel_acts(acts_list=switch_check_sub_pipeline_list)
             tdbctl_pass = get_random_string(length=10)
             switch_slave_class = SwitchRemoteShardRoutingKwargs(cluster_id=cluster_class.id, switch_remote_shard=[])
             for shard_id in self.data["shard_ids"]:
@@ -361,6 +385,11 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                     with_instance_standardize=False,
                     with_bk_plugin=False,
                 )
+            )
+            tendb_migrate_pipeline.add_act(
+                act_name=DisableAlarmShieldComponent.node_name,
+                act_component_code=DisableAlarmShieldComponent.code,
+                kwargs={},
             )
             tendb_migrate_pipeline_all_list.append(
                 tendb_migrate_pipeline.build_sub_process(_("slave原地重建{}".format(self.data["slave_ip"])))
