@@ -224,6 +224,7 @@
     [role='table-cell-operation'] {
       display: none;
       margin-left: 4px;
+      color: #9498a5;
       cursor: pointer;
 
       &:hover {
