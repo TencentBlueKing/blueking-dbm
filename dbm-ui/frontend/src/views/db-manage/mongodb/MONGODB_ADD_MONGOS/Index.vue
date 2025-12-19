@@ -301,7 +301,6 @@
     });
 
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...newList];
-    window.changeConfirm = true;
   };
 
   const handleBatchEdit = (value: string | string[] | number, field: string) => {
@@ -334,7 +333,6 @@
   // 重置
   const handleReset = () => {
     Object.assign(formData, createDefaultFormData());
-    window.changeConfirm = false;
   };
 </script>
 

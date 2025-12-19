@@ -236,21 +236,18 @@
       }
     });
     tableData.value = [...(tableData.value[0].cluster.master_domain ? tableData.value : []), ...newList];
-    window.changeConfirm = true;
   };
 
   const handleDstClusterBatchEdit = (value: string) => {
     tableData.value.forEach((item) => {
       Object.assign(item.dst_cluster, { master_domain: value });
     });
-    window.changeConfirm = true;
   };
 
   const handleDbTableBatchEdit = (value: string[], field: string) => {
     tableData.value.forEach((item) => {
       Object.assign(item, { [field]: value });
     });
-    window.changeConfirm = true;
   };
 
   const handleRenderModeBatchEdit = (
@@ -274,13 +271,11 @@
       });
       renderModeColumnRef.value!.forEach((refItem) => refItem.setRecordByBatch(value.time));
     }
-    window.changeConfirm = true;
   };
 
   defineExpose<Expose>({
     reset() {
       tableData.value = [createRowData()];
-      window.changeConfirm = false;
     },
     setTicketCloneData(details: Sqlserver.Rollback) {
       const { clusters, infos } = details;

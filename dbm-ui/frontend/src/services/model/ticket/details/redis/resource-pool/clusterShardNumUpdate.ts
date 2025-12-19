@@ -2,10 +2,9 @@ import RedisModel from '@services/model/redis/redis';
 
 import { Affinity } from '@common/const';
 
-import type { DetailBase, DetailClusters, DetailSpecs } from '../common';
+import type { ResourcePoolDetailBase } from '../../resource-pool';
 
-export interface ClusterShardNumUpdate extends DetailBase {
-  clusters: DetailClusters;
+export interface ClusterShardNumUpdate extends ResourcePoolDetailBase {
   data_check_repair_setting: {
     execution_frequency: string;
     type: string;
@@ -26,16 +25,18 @@ export interface ClusterShardNumUpdate extends DetailBase {
       backend_group: {
         affinity: Affinity.CROS_SUBZONE;
         count: number; // 机器组数
+        label_names: string[]; // 标签名称列表，单据详情回显用
+        labels: string[]; // 标签id列表
         spec_id: number;
       };
       proxy: {
         affinity: Affinity.CROS_SUBZONE;
         count: number;
+        label_names: string[]; // 标签名称列表，单据详情回显用
+        labels: string[]; // 标签id列表
         spec_id: number;
       };
     };
     src_cluster: number;
   }[];
-  ip_source: 'resource_pool';
-  specs: DetailSpecs;
 }

@@ -212,7 +212,6 @@
       }
     });
     formData.tableData = [...(formData.tableData[0].host.ip ? formData.tableData : []), ...newList];
-    window.changeConfirm = true;
   };
 
   const handleBatchEdit = (value: string, field: string) => {
@@ -248,7 +247,6 @@
   // 重置
   const handleReset = () => {
     Object.assign(formData, createDefaultFormData());
-    window.changeConfirm = false;
   };
 </script>
 

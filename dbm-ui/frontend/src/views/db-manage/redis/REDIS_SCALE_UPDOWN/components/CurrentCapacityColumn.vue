@@ -44,6 +44,7 @@
     capacity: props.cluster.cluster_capacity,
     clusterShardNum: props.cluster.cluster_shard_num,
     groupNum: props.cluster.machine_pair_cnt,
+    labels: [],
     spec: props.cluster.cluster_spec,
   }));
 </script>

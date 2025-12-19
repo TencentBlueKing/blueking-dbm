@@ -41,19 +41,19 @@
           </template>
           <template #main>
             <RenderTable
-              v-model:selected="selected"
+              v-model:selected="localSelected"
               :node="selectNode" />
           </template>
         </BkResizeLayout>
       </template>
       <template #aside>
-        <PreviewResult v-model:selected="selected" />
+        <PreviewResult v-model:selected="localSelected" />
       </template>
     </BkResizeLayout>
     <template #footer>
       <BkButton
         class="w-88"
-        :disabled="selected.length === 0"
+        :disabled="localSelected.length === 0"
         theme="primary"
         @click="handleSubmit">
         {{ t('确定') }}
@@ -67,6 +67,7 @@
   </BkDialog>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import PreviewResult from './components/PreviewResult.vue';
@@ -75,28 +76,39 @@
 
   export type IValue = IHost;
 
+  interface Props {
+    selected: IValue[];
+  }
+
   type Emits = (e: 'change', data: IValue[]) => void;
 
+  const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
   const isShow = defineModel<boolean>('isShow', {
     required: true,
   });
 
-  const selected = defineModel<IValue[]>('selected', {
-    required: true,
-  });
-
   const { t } = useI18n();
 
   const selectNode = ref<TopoTreeNode>();
+  const localSelected = shallowRef<IValue[]>([]);
+
+  watch(
+    () => props.selected,
+    (newValue, oldValue) => {
+      if (!_.isEqual(newValue, oldValue)) {
+        localSelected.value = props.selected;
+      }
+    },
+  );
 
   const handleClose = () => {
     isShow.value = false;
   };
 
   const handleSubmit = () => {
-    emits('change', selected.value);
+    emits('change', localSelected.value);
     handleClose();
   };
 </script>

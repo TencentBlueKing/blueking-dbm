@@ -110,6 +110,7 @@
         spec_config: RedisInstanceModel['spec_config'];
       }
     >;
+    region: string;
     renderText: string;
   }>({
     required: true,
@@ -231,6 +232,7 @@
               });
               modelValue.value.instances = instances;
               modelValue.value.current_spec_id = instanceCheckList[0].spec_config.id;
+              modelValue.value.region = instanceCheckList[0].related_clusters[0].region;
             }
           })
           .finally(() => {
@@ -255,6 +257,7 @@
     modelValue.value = {
       current_spec_id: 0,
       instances: {},
+      region: '',
       renderText: value
         .split(/\r?\n/)
         .map((line) => line.trim())

@@ -40,12 +40,7 @@ export interface ClusterApply extends DetailBase {
         cluster_capacity: number;
         cluster_shard_num: number;
         machine_pair: number;
-        qps: {
-          max: number;
-          min: number;
-        };
-        spec_name: string;
-      };
+      } & ApplySpecInfo;
     };
     proxy: ApplySpecInfo;
   };

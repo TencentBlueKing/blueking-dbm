@@ -81,10 +81,10 @@
 
   import ValueDiff from '@views/db-manage/common/value-diff/Index.vue';
 
-  import TableGroupContent from '../components/TableGroupContent.vue';
+  import TableGroupContent from '../../components/TableGroupContent.vue';
 
   interface Props {
-    ticketDetails: TicketModel<Redis.ScaleUpdown>;
+    ticketDetails: TicketModel<Redis.ResourcePool.ScaleUpdown>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
@@ -122,6 +122,10 @@
         );
       },
       title: t('资源规格'),
+    },
+    {
+      render: () => '--',
+      title: t('资源标签'),
     },
     {
       render: () => data.display_info?.machine_pair_cnt || '--',
@@ -167,6 +171,18 @@
         );
       },
       title: t('资源规格'),
+    },
+    {
+      render: () => {
+        if (data.resource_spec.backend_group.label_names?.length) {
+          const tags = data.resource_spec.backend_group.label_names.map((labelItem) => (
+            <bk-tag key={labelItem}>{labelItem}</bk-tag>
+          ));
+          return <>{tags}</>;
+        }
+        return <bk-tag theme='success'>{t('通用无标签')}</bk-tag>;
+      },
+      title: t('资源标签'),
     },
     {
       render: () => {
