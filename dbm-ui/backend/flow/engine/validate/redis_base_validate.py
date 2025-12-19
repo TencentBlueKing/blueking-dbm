@@ -31,3 +31,18 @@ class RedisBaseValidator(BaseValidator):
             if not version_ge(target_version, version):
                 err_msg += _("存在源版本{} 大于 目标版本{} \n".format(version, target_version))
         return err_msg
+
+    def gen_error_msg(self, field, index, row_key, errors: str):
+        """
+        @param field: 字段名
+        @param index: 索引
+        @param row_key: 行键
+        @param errors: 错误信息
+        @return:
+        """
+        return {
+            "field": field,
+            "index": index,
+            "row_key": row_key,
+            "errors": errors,
+        }
