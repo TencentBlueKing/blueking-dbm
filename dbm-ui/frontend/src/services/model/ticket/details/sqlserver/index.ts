@@ -3,6 +3,7 @@ export * from './authorizeRules';
 export * from './backupDb';
 export * from './buildDbSync';
 export * from './clearDbs';
+export * from './dataExport';
 export * from './dataMigrate';
 export * from './dbRename';
 export * from './destroy';
