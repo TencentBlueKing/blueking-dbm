@@ -115,7 +115,19 @@ class CheckRedisUpMetricTask:
             return True, "skipped by temporary:{}".format(v)
         return False, ""
 
-    def check_cluster(self, cluster: Cluster, report_day: int):
+    def check_cluster(self, cluster: Cluster, report_day: int) -> list:
+        """
+        检查集群, 返回检查结果
+        如果有异常，则返回异常记录
+        """
+        cluster_report = RedisClusterReport(cluster, report_day, self.check_type)
+        try:
+            records = self.check_cluster_inner(cluster_report, cluster)
+        except Exception as e:
+            records = cluster_report.make_skip_record(f"inner error: {e}")
+        return records
+
+    def check_cluster_inner(self, cluster_report: RedisClusterReport, cluster: Cluster) -> list:
         """
         1. 获得所有的redis_up metric.
         2. 对比bk_target_ip, instance_port 是否一致
@@ -125,90 +137,135 @@ class CheckRedisUpMetricTask:
         - redundant          # 多余的节点. 存在集群外的节点上报本集群的指标
         - redundant2         # 多余的metric. 本集群的节点上报了其他集群的指标
         """
-        cluster_report = RedisClusterReport(cluster, report_day, self.check_type)
-
         # 检查是否跳过检查
         skipped, reason = self.is_skip_check(cluster)
         if skipped:
             return cluster_report.make_skip_record(reason)
 
-        all_node = get_all_storage_nodes(cluster)
         # meta里没有storage节点，跳过检查，这种情况也属于异常，但不在这个报告的范围内，所以直接跳过
+        all_node = get_all_storage_nodes(cluster)
         if len(all_node) == 0:
             return cluster_report.make_skip_record("skipped by no storage node")
 
         # 如果所有的node都为异常，则认为集群异常, 跳过检查
         all_node_status = [node.get("status") for node in all_node]
-        if all(node_status != InstanceStatus.RUNNING.value for node_status in all_node_status):
+        if not any(node_status == InstanceStatus.RUNNING.value for node_status in all_node_status):
             return cluster_report.make_skip_record("skipped by no running node")
 
         self.check_storage(cluster, all_node, cluster_report)
-        self.check_proxy(cluster, cluster_report)
+
+        # 检查proxy. 如果proxy节点不存在或都为异常，可以跳过此步骤
+        proxy_type = get_proxy_type(cluster)
+        if proxy_type != "":
+            proxy_node_list = get_all_proxy_nodes(cluster)
+            if len(proxy_node_list) == 0:
+                return cluster_report.make_skip_record("skipped by no proxy node")
+            if not any(proxy_node.get("status") == InstanceStatus.RUNNING.value for proxy_node in proxy_node_list):
+                return cluster_report.make_skip_record("skipped by all proxy nodes are abnormal")
+            self.check_proxy(cluster, proxy_node_list, proxy_type, cluster_report)
+
         return cluster_report.make_records()
+
+    def _check_nodes_metric(self, node_list: list, metric_val: dict, exporter_prefix: str) -> defaultdict:
+        """
+        检查节点metric的通用方法
+        :param node_list: 节点列表
+        :param metric_val: metric值字典
+        :param exporter_prefix: exporter前缀，如 "master" 或 "slave" 或 "twemproxy" 或 "predixy"
+        :return: msg_list defaultdict
+        """
+        original_exporter_prefix = exporter_prefix
+        msg_list = defaultdict(list)
+        for node in node_list:
+            addr = _node_to_addr(node)
+            item = metric_val.get(addr)
+            if original_exporter_prefix == "" or original_exporter_prefix is None:
+                exporter_prefix = self._instance_role_to_exporter_prefix(node.get("instance_role", ""))
+            else:
+                exporter_prefix = original_exporter_prefix
+            # redis_master -> master, redis_slave -> slave, twemproxy -> twemproxy, predixy -> predixy
+            if item is None or item["value"] == 0:  # metric not found or exporter down
+                if node.get("status") == InstanceStatus.RUNNING.value:
+                    msg = f"{exporter_prefix}_exporter_down"
+                else:
+                    # 其它状态下，没有上报是正常的，不处理
+                    msg = "ok"
+            elif item["value"] > 1:  # duplicate
+                msg = f"{exporter_prefix}_exporter_duplicate"
+            else:
+                msg = "ok"
+            msg_list[msg].append(node)
+        return msg_list
+
+    def _instance_role_to_exporter_prefix(self, instance_role: str) -> str:
+        """
+        将instance_role转换为exporter_prefix
+        """
+        if instance_role == "redis_master":
+            return "redis_master"
+        elif instance_role == "redis_slave":
+            return "redis_slave"
+        elif instance_role == "twemproxy":
+            return "twemproxy"
+        elif instance_role == "predixy":
+            return "predixy"
+        else:
+            return instance_role
+
+    def _generate_report_records(self, msg_list: defaultdict, cluster_report: RedisClusterReport, shard: str):
+        """
+        生成报告记录的通用方法
+        :param msg_list: 消息列表字典
+        :param cluster_report: 集群报告对象
+        :param shard: 分片名称，如 "storage" 或 "twemproxy"
+        """
+        for msg, node_list in msg_list.items():
+            if msg == "ok":
+                state = ReportStateType.NORMAL.value
+                full_msg = "ok"
+            else:
+                state = ReportStateType.ABNORMAL.value
+                full_msg = f"{msg}: {','.join(_short_addr_list(node_list))}"
+            cluster_report.append(state, shard, "-", full_msg)
 
     def check_storage(self, cluster: Cluster, all_node: list, cluster_report: RedisClusterReport):
         """
         检查storage
         """
-
         metric_val = fetch_metric_by_cluster(cluster.immute_domain)
-        msg_list = defaultdict(list)
-        for node in all_node:
-            msg = "ok"
-            addr = _node_to_addr(node)
-            item = metric_val.get(addr)
-            if item is None or item["value"] == 0:  # metric not found or exporter down. should not happen.
-                if node["status"] == InstanceStatus.RUNNING.value:
-                    msg = "redis_exporter_down"
-                    state = ReportStateType.ABNORMAL.value
-                else:
-                    pass
-                    # 其它状态下，没有上报是正常的，不处理
-            elif item["value"] > 1:  # duplicate
-                msg = "redis_exporter_duplicate"
-                state = ReportStateType.ABNORMAL.value
-            else:
-                msg = "ok"
-                state = ReportStateType.NORMAL.value
-            msg_list[msg].append(node)
+        msg_list = self._check_nodes_metric(all_node, metric_val, "")
 
-        # 多余的节点. 存在集群外的节点上报本集群的指标
-        all_node_addr_list = set(_node_to_addr(node) for node in all_node)  # 去重
-        redundant_node_list = []
-        for addr, val in metric_val.items():
-            if addr not in all_node_addr_list:
-                redundant_node_list.append(_addr_to_node(addr))
-
-        if len(redundant_node_list) > 0:
-            msg = "redis_exporter_redundant"
-            msg_list[msg].extend(redundant_node_list)
+        # 检查是否存在多余的节点. 存在集群外的节点上报本集群的指标
+        addr_list = {_node_to_addr(node) for node in all_node}  # 去重
+        # cluster_domain 中返回的addr, 但不在all_node中.
+        if metric_val is not None:
+            for addr in metric_val:
+                if addr not in addr_list:
+                    exporter_prefix = self._instance_role_to_exporter_prefix(
+                        metric_val[addr].get("instance_role", "redis")
+                    )
+                    msg_list[f"{exporter_prefix}_exporter_redundant"].append(_addr_to_node(addr))
 
         # 如果集群类型不是TendisRedisInstance，则检查是否存在多余的metric
-        # 多余的metric. 本集群的节点上报了其他集群的指标
-        redundant2_addr_list = []
+        # 检查是否存在多余的metric. 本集群的节点上报了其他集群的指标
         if cluster.cluster_type != ClusterType.TendisRedisInstance.value:
             node_addr_map = {_node_to_addr(node): node for node in all_node}
-            iplist = set([node["ip"] for node in all_node])
-            metric_val = fetch_metric_by_iplist(list(iplist))
-            for addr, val in metric_val.items():
-                if addr not in node_addr_map:
-                    redundant2_addr_list.append(_addr_to_node(addr))
-        if len(redundant2_addr_list) > 0:
-            msg = "redis_exporter_redundant2"
-            msg_list[msg].extend(redundant2_addr_list)
+            iplist = {node["ip"] for node in all_node}
+            redundant2_metric_val = fetch_metric_by_iplist(list(iplist))
+            if redundant2_metric_val is not None:
+                for addr in redundant2_metric_val:
+                    if addr not in node_addr_map:
+                        exporter_prefix = self._instance_role_to_exporter_prefix(
+                            redundant2_metric_val[addr].get("instance_role", "redis")
+                        )
+                        msg_list[f"{exporter_prefix}_exporter_redundant2"].append(_addr_to_node(addr))
 
         # 生成报告记录
-        for msg, node_list in msg_list.items():
-            if msg == "ok":
-                state = ReportStateType.NORMAL.value
-                full_msg = "ok"
-                cluster_report.append(state, "storage", "-", full_msg)
-            else:
-                state = ReportStateType.ABNORMAL.value
-                full_msg = f"{msg}: " + ",".join(_short_addr_list(node_list))
-                cluster_report.append(state, "storage", "-", full_msg)
+        self._generate_report_records(msg_list, cluster_report, "storage")
 
-    def check_proxy(self, cluster: Cluster, cluster_report: RedisClusterReport):
+    def check_proxy(
+        self, cluster: Cluster, proxy_node_list: list, proxy_type: str, cluster_report: RedisClusterReport
+    ):
         """
         检查proxy
         1. 获得所有的proxy_up metric.
@@ -219,63 +276,30 @@ class CheckRedisUpMetricTask:
         - redundant          # 多余的proxy节点. 存在集群外的proxy节点上报本集群的指标
         - redundant2         # 多余的metric. 本集群的proxy节点上报了其他集群的指标
         """
-        proxy_type = get_proxy_type(cluster)
-        if proxy_type == "":
-            return
-
         # check for proxy node
-        proxy_node_list = get_all_proxy_nodes(cluster)
         proxy_metric_val = fetch_proxy_metric_by_cluster(cluster)
-        proxy_msg_list = defaultdict(list)
-        for proxy_node in proxy_node_list:
-            addr = _node_to_addr(proxy_node)
-            item = proxy_metric_val.get(addr)
-            if item is None or item["value"] == 0:
-                if proxy_node.get("status") == InstanceStatus.RUNNING.value:
-                    msg = f"{proxy_type}_exporter_down"
-                    state = ReportStateType.ABNORMAL.value
-                else:
-                    pass
-                    # 其它状态下，没有上报是正常的，不处理
-            elif item["value"] > 1:  # duplicate
-                msg = f"{proxy_type}_exporter_duplicate"
-                state = ReportStateType.ABNORMAL.value
-            else:
-                msg = "ok"
-                state = ReportStateType.NORMAL.value
-            proxy_msg_list[msg].append(proxy_node)
+        proxy_msg_list = self._check_nodes_metric(proxy_node_list, proxy_metric_val, proxy_type)
 
         # 多余的proxy节点. 存在集群外的proxy节点上报本集群的指标
-        all_proxy_node_addr_list = set(_node_to_addr(proxy_node) for proxy_node in proxy_node_list)  # 去重
-        redundant_proxy_node_list = []
-        for addr, val in proxy_metric_val.items():
+        all_proxy_node_addr_list = {_node_to_addr(proxy_node) for proxy_node in proxy_node_list}  # 去重
+        for addr in proxy_metric_val:
             if addr not in all_proxy_node_addr_list:
-                redundant_proxy_node_list.append(_addr_to_node(addr))
+                exporter_prefix = self._instance_role_to_exporter_prefix(proxy_type)
+                proxy_msg_list[f"{exporter_prefix}_exporter_redundant"].append(_addr_to_node(addr))
 
         # 多余的metric. 本集群的proxy节点上报了其他集群的指标
         # proxy节点：同一个ip只会属于同一个集群的proxy
-        redundant2_proxy_node_list = []
         proxy_node_addr_map = {_node_to_addr(proxy_node): proxy_node for proxy_node in proxy_node_list}
-        proxy_iplist = set([proxy_node["ip"] for proxy_node in proxy_node_list])
-        proxy_metric_val = fetch_proxy_metric_by_iplist(cluster.cluster_type, list(proxy_iplist))
+        proxy_iplist = {proxy_node["ip"] for proxy_node in proxy_node_list}
+        redundant2_proxy_metric_val = fetch_proxy_metric_by_iplist(cluster.cluster_type, list(proxy_iplist))
         # 多余的metric. 本集群的proxy节点上报了其他集群的指标
-        for addr, val in proxy_metric_val.items():
+        for addr in redundant2_proxy_metric_val:
             if addr not in proxy_node_addr_map:
-                redundant2_proxy_node_list.append(_addr_to_node(addr))
-        if len(redundant2_proxy_node_list) > 0:
-            msg = f"{proxy_type}_exporter_redundant2"
-            proxy_msg_list[msg].extend(redundant2_proxy_node_list)
+                exporter_prefix = self._instance_role_to_exporter_prefix(proxy_type)
+                proxy_msg_list[f"{exporter_prefix}_exporter_redundant2"].append(_addr_to_node(addr))
 
         # 生成报告记录
-        for msg, proxy_node_list in proxy_msg_list.items():
-            if msg == "ok":
-                state = ReportStateType.NORMAL.value
-                full_msg = "ok"
-                cluster_report.append(state, proxy_type, "-", full_msg)
-            else:
-                state = ReportStateType.ABNORMAL.value
-                full_msg = f"{msg}: " + ",".join(_short_addr_list(proxy_node_list))
-                cluster_report.append(state, proxy_type, "-", full_msg)
+        self._generate_report_records(proxy_msg_list, cluster_report, proxy_type)
         return
 
 
@@ -326,20 +350,28 @@ def _short_addr_list(node_list: list) -> list:
     short_addr_list = []
     for ip, ports in ip_port_map.items():
         if len(ports) == 1:
-            short_addr_list.append(ip + ":" + str(ports[0]))
-        elif len(ports) > 1:
-            # if ports are continuous, use ip:[port1-port2]
-            # if ports are not continuous, use ip:[port1, port2, ...]
+            short_addr_list.append(f"{ip}:{ports[0]}")
+        else:
+            # 将连续端口合并为范围，不连续的单独列出
+            ranges = []
             start = ports[0]
             end = start
             for port in ports[1:]:
                 if port == end + 1:
                     end = port
                 else:
-                    short_addr_list.append(ip + ":" + str(start) + "-" + str(end))
+                    if start == end:
+                        ranges.append(f"{ip}:{start}")
+                    else:
+                        ranges.append(f"{ip}:{start}-{end}")
                     start = port
                     end = port
-            short_addr_list.append(ip + ":" + str(start) + "-" + str(end))
+            # 处理最后一个范围
+            if start == end:
+                ranges.append(f"{ip}:{start}")
+            else:
+                ranges.append(f"{ip}:{start}-{end}")
+            short_addr_list.extend(ranges)
     return short_addr_list
 
 
