@@ -24,6 +24,8 @@ class _DBResourceApi(BaseApi):
             method="POST",
             url="resource/import",
             description=_("资源导入"),
+            default_timeout=60,
+            max_retry_times=1,
         )
         self.resource_reimport = self.generate_data_api(
             method="POST",
