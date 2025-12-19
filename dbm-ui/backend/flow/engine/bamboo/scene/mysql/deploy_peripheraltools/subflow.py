@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 import copy
 from typing import Dict, List
 
-from django.db.models import Q
 from django.utils.translation import gettext as _
 
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
@@ -61,26 +60,26 @@ def standardize_mysql_cluster_subflow(
         # ToDo
         raise Exception  # noqa
 
-    # 做 cc 标准化是按集群来的, 这里这样做是尽力做兼容
-    if with_cc_standardize and not cluster_ids:
-        q = Q()
-        for ins in instances:
-            ip, port = ins.split(":")
-            q |= Q(**{"machine__ip": ip, "port": port})
-
-        cluster_ids = list(
-            set(
-                list(ProxyInstance.objects.filter(q).values_list("cluster__pk", flat=True))
-                + list(StorageInstance.objects.filter(q).values_list("cluster__pk", flat=True))
-            )
-        )
-
-        if not cluster_ids:
-            cluster_ids = data.get("cluster_ids", [])
-
-        # if not cluster_ids:
-        #
-        #     raise Exception("cluster_ids can't be empty when with_cc_standardize = True")  # noqa
+    # # 做 cc 标准化是按集群来的, 这里这样做是尽力做兼容
+    # if with_cc_standardize and not cluster_ids:
+    #     q = Q()
+    #     for ins in instances:
+    #         ip, port = ins.split(":")
+    #         q |= Q(**{"machine__ip": ip, "port": port})
+    #
+    #     cluster_ids = list(
+    #         set(
+    #             list(ProxyInstance.objects.filter(q).values_list("cluster__pk", flat=True))
+    #             + list(StorageInstance.objects.filter(q).values_list("cluster__pk", flat=True))
+    #         )
+    #     )
+    #
+    #     if not cluster_ids:
+    #         cluster_ids = data.get("cluster_ids", [])
+    #
+    #     # if not cluster_ids:
+    #     #
+    #     #     raise Exception("cluster_ids can't be empty when with_cc_standardize = True")  # noqa
 
     departs = copy.deepcopy(departs)
     ips = list(set(ele.split(":")[0] for ele in instances))
