@@ -84,6 +84,7 @@
         major_version: string;
         master_domain: string;
         redis_master: RedisModel['redis_master'];
+        region: string;
       }
     >;
     renderText: string;
@@ -165,6 +166,7 @@
               major_version: item.major_version,
               master_domain: item.master_domain,
               redis_master: item.redis_master,
+              region: item.region,
             },
           };
         });

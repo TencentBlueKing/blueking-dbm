@@ -17,11 +17,15 @@
       class="mb-20"
       closable
       :title="t('集群容量变更：通过部署新集群来实现原集群的扩容或缩容（集群分片数不变），可以指定新的版本')" />
+    <BatchInput
+      :config="batchInputConfig"
+      @change="handleBatchInput" />
     <BkForm
-      class="mb-20"
+      class="mt-16 mb-20"
       form-type="vertical"
       :model="formData">
       <EditableTable
+        :key="tableKey"
         ref="table"
         class="mb-20"
         :model="formData.tableData">
@@ -31,7 +35,7 @@
           <ClusterColumn
             v-model="item.cluster"
             :selected="selected"
-            @batch-edit="handleBatchEdit" />
+            @batch-edit="handleClusterBatchEdit" />
           <EditableColumn
             field="cluster.cluster_type_name"
             :label="t('架构版本')"
@@ -48,16 +52,10 @@
           <TargetCapacityColumn
             v-model="item.backend_group"
             :row-data="item" />
-          <EditableColumn
-            field="online_switch_type"
-            :label="t('切换模式')"
-            :min-width="150">
-            <EditableSelect
-              v-model="item.online_switch_type"
-              :disabled="!item.cluster.id"
-              :input-search="false"
-              :list="switchModeOptions" />
-          </EditableColumn>
+          <OnlineSwitchTypeColumn
+            v-model="item.online_switch_type"
+            :cluster-id="item.cluster.id"
+            @batch-edit="handleBatchEdit" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -88,6 +86,7 @@
 </template>
 <script lang="ts" setup>
   import { reactive, useTemplateRef } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import RedisModel from '@services/model/redis/redis';
@@ -97,32 +96,21 @@
 
   import { Affinity, ClusterTypes, TicketTypes } from '@common/const';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
+  import { random } from '@utils';
+
   import ClusterColumn from './components/ClusterColumn.vue';
   import CurrentCapacityColumn from './components/CurrentCapacityColumn.vue';
+  import OnlineSwitchTypeColumn from './components/OnlineSwitchTypeColumn.vue';
   import RedisVersionColumn from './components/RedisVersionColumn.vue';
   import TargetCapacityColumn from './components/target-capacity-column/Index.vue';
 
   interface RowData {
-    backend_group: {
-      affinity: string;
-      capacity: number;
-      count: number;
-      future_capacity: number;
-      group_num: number;
-      old_machine_info: {
-        bk_biz_id: number;
-        bk_cloud_id: number;
-        bk_host_id: number;
-        ip: string;
-      }[];
-      shard_num: number;
-      spec_id: number;
-      update_mode: string;
-    };
+    backend_group: ComponentProps<typeof TargetCapacityColumn>['modelValue'];
     cluster: RedisModel;
     db_version: string;
     online_switch_type: string;
@@ -131,21 +119,24 @@
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
 
-  const createTableRow = (data = {} as Partial<RowData>) => ({
-    backend_group: data.backend_group || {
-      affinity: Affinity.CROS_SUBZONE,
-      capacity: 1,
-      count: 0,
-      future_capacity: 1,
-      group_num: 0,
-      old_machine_info: [],
-      shard_num: 0,
-      spec_id: 0,
-      update_mode: '',
-    },
-    cluster:
-      data.cluster ||
-      ({
+  const createTableRow = (data: Partial<RowData> = {}) => ({
+    backend_group: Object.assign(
+      {
+        affinity: Affinity.CROS_SUBZONE as string,
+        capacity: 1,
+        count: 0,
+        future_capacity: 1,
+        group_num: 0,
+        labels: [] as RowData['backend_group']['labels'],
+        old_machine_info: [] as RowData['backend_group']['old_machine_info'],
+        shard_num: 0,
+        spec_id: 0,
+        update_mode: '',
+      },
+      data.backend_group,
+    ),
+    cluster: Object.assign(
+      {
         bk_cloud_id: 0,
         cluster_capacity: 0,
         cluster_shard_num: 0,
@@ -158,7 +149,10 @@
         machine_pair_cnt: 0,
         major_version: '',
         master_domain: '',
-      } as RedisModel),
+        region: '',
+      },
+      data.cluster,
+    ),
     db_version: data.db_version || '',
     online_switch_type: data.online_switch_type || '',
   });
@@ -168,23 +162,32 @@
     tableData: [createTableRow()],
   });
 
+  const batchInputConfig = [
+    {
+      case: 'redis.test.dba.db',
+      key: 'domain',
+      label: t('目标集群'),
+    },
+    {
+      case: 'Redis-6',
+      key: 'version',
+      label: t('Redis版本'),
+    },
+    {
+      case: 'no_confirm',
+      key: 'online_switch_type',
+      label: t('切换模式'),
+    },
+  ];
+
+  const tableKey = ref(random());
+
   const formData = reactive(defaultData());
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
-  const switchModeOptions = [
-    {
-      label: t('需人工确认'),
-      value: 'user_confirm',
-    },
-    {
-      label: t('无需确认'),
-      value: 'no_confirm',
-    },
-  ];
-
-  useTicketDetail<Redis.ScaleUpdown>(TicketTypes.REDIS_SCALE_UPDOWN, {
+  useTicketDetail<Redis.ResourcePool.ScaleUpdown>(TicketTypes.REDIS_SCALE_UPDOWN, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { clusters, infos } = details;
@@ -229,6 +232,8 @@
         backend_group: {
           affinity: Affinity;
           count: number; // 机器组数
+          label_names: string[]; // 标签名称列表，单据详情回显用
+          labels: string[]; // 标签id列表
           spec_id: number;
         };
       };
@@ -267,6 +272,8 @@
             backend_group: {
               affinity: item.backend_group.affinity as Affinity,
               count: item.backend_group.count,
+              label_names: item.backend_group.labels.map((item) => item.value),
+              labels: item.backend_group.labels.map((item) => String(item.id)),
               spec_id: item.backend_group.spec_id,
             },
           },
@@ -283,7 +290,7 @@
     Object.assign(formData, defaultData());
   };
 
-  const handleBatchEdit = (list: RedisModel[]) => {
+  const handleClusterBatchEdit = (list: RedisModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
       if (!selectedMap.value[item.master_domain]) {
         acc.push(
@@ -297,5 +304,29 @@
       return acc;
     }, []);
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+  };
+
+  const handleBatchEdit = (value: string | number, field: string) => {
+    formData.tableData.forEach((item) => {
+      Object.assign(item, { [field]: value });
+    });
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) =>
+      createTableRow({
+        cluster: {
+          master_domain: item.domain,
+        } as RowData['cluster'],
+        db_version: item.version || '',
+        online_switch_type: item?.online_switch_type || '',
+      }),
+    );
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = [...dataList];
+    } else {
+      formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    }
   };
 </script>

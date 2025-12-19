@@ -47,6 +47,26 @@
         </template>
       </template>
     </DiffInfoItem>
+    <DiffInfoItem :label="t('资源标签')">
+      <template #left> -- </template>
+      <template #right>
+        <span v-if="!updateMode">--</span>
+        <template v-else>
+          <template v-if="diffState.target.labels.length">
+            <BkTag
+              v-for="labelItem in diffState.target.labels"
+              :key="labelItem.id">
+              {{ labelItem.value }}
+            </BkTag>
+          </template>
+          <BkTag
+            v-else
+            theme="success">
+            {{ t('通用无标签') }}
+          </BkTag>
+        </template>
+      </template>
+    </DiffInfoItem>
     <DiffInfoItem :label="t('机器组数')">
       <template #left>
         <span v-if="!diffState.current.groupNum">--</span>
@@ -109,11 +129,13 @@
   </div>
 </template>
 <script setup lang="tsx">
+  import type { UnwrapRef } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import type RedisModel from '@services/model/redis/redis';
 
+  import ResourceTagSelector from '@views/db-manage/common/apply-items/ResourceTagSelector.vue';
   import ValueDiff from '@views/db-manage/common/value-diff/Index.vue';
 
   import RenderSpec from '../../../render-spec/Index.vue';
@@ -122,7 +144,7 @@
 
   interface Props {
     cluster: RedisModel;
-    targetInfo: (typeof diffState)['target'];
+    targetInfo: UnwrapRef<typeof diffState>['target'];
     updateInfo: {
       capacity_update_type: string;
     };
@@ -141,6 +163,7 @@
       used: 0,
     },
     groupNum: 0,
+    labels: [] as ComponentProps<typeof ResourceTagSelector>['modelValue'],
     shardNum: 0,
     spec: {
       cpu: {
@@ -176,6 +199,7 @@
           clusterShardNum: props.cluster.cluster_shard_num,
           clusterStats: props.cluster.cluster_stats,
           groupNum: props.cluster.machine_pair_cnt,
+          labels: [],
           shardNum: props.cluster.cluster_shard_num / props.cluster.machine_pair_cnt,
           spec: props.cluster.cluster_spec,
         };

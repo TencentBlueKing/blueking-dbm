@@ -15,18 +15,22 @@
   <SmartAction>
     <div class="pb-20">
       <BkAlert
+        class="mb-16"
         closable
         theme="info"
         :title="
           t('重建从库：通过整机替换来实现从库实例的重建，即对应主机上的所有从库实例均会被重建，理论上不影响业务')
         " />
+      <BatchInput
+        :config="batchInputConfig"
+        @change="handleBatchInput" />
       <DbForm
         ref="form"
-        class="toolbox-form"
+        class="toolbox-form mt-16"
         form-type="vertical"
-        :model="formData"
-        style="margin-top: 16px">
+        :model="formData">
         <EditableTable
+          :key="tableKey"
           ref="editableTable"
           class="mt-16 mb-16"
           :model="formData.tableData"
@@ -65,6 +69,17 @@
               label="规格需求"
               required
               :tooltips="t('默认使用部署方案中选定的规格，将从资源池自动匹配机器')" />
+            <ResourceTagColumn
+              v-model="item.labels"
+              @batch-edit="handleBatchEdit" />
+            <AvailableResourceColumn
+              :params="{
+                city: item.host.region,
+                for_bizs: [currentBizId, 0],
+                resource_types: [DBTypes.REDIS, 'PUBLIC'],
+                spec_id: item.host.spec_config.id,
+                labels: item.labels.map((item) => item.id).join(','),
+              }" />
             <EditableColumn
               :label="t('故障从库实例数量')"
               readonly
@@ -114,6 +129,7 @@
 </template>
 
 <script setup lang="tsx">
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import RedisModel from '@services/model/redis/redis';
@@ -129,11 +145,16 @@
 
   import { type IValue, type PanelListType } from '@components/instance-selector/Index.vue';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+  import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
+  import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import HostColumn from '@views/db-manage/redis/common/toolbox-field/host-column/Index.vue';
+
+  import { random } from '@utils';
 
   import MasterHostColumn from './components/MasterHostColumn.vue';
   // import SpecColumnBefore from './components/SpecColumn.vue';
@@ -142,6 +163,7 @@
     host: {
       bk_host_id: number;
       ip: string;
+      region: string;
       related_clusters: {
         id: number;
         immute_domain: string;
@@ -151,14 +173,17 @@
       }[];
       spec_config: MachineSpecConfig;
     };
+
+    labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     // rowspan: number;
   }
 
-  const createRowData = (values = {} as Partial<IDataRow>) => ({
+  const createRowData = (values: DeepPartial<IDataRow> = {}) => ({
     host: Object.assign(
       {
         bk_host_id: 0,
         ip: '',
+        region: '',
         related_clusters: [] as IDataRow['host']['related_clusters'],
         related_instances: [] as IDataRow['host']['related_instances'],
         spec_config: {
@@ -167,6 +192,7 @@
       },
       values.host,
     ),
+    labels: (values.labels || []) as IDataRow['labels'],
     // rowspan: values?.rowspan || 1,
   });
 
@@ -177,7 +203,20 @@
 
   const { t } = useI18n();
 
-  useTicketDetail<Redis.ClusterAddSlave>(TicketTypes.REDIS_CLUSTER_ADD_SLAVE, {
+  const batchInputConfig = [
+    {
+      case: '127.0.0.1',
+      key: 'ip',
+      label: t('待重建从库主机'),
+    },
+    {
+      case: '标签1,标签2',
+      key: 'labels',
+      label: t('资源标签'),
+    },
+  ];
+
+  useTicketDetail<Redis.ResourcePool.ClusterAddSlave>(TicketTypes.REDIS_CLUSTER_ADD_SLAVE, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { infos } = details;
@@ -187,8 +226,9 @@
           infoItem.pairs.map((pairItem) =>
             createRowData({
               host: {
-                ip: pairItem.redis_slave.old_slave_ip,
+                ip: pairItem.redis_slave.old_slave_ip || pairItem.redis_slave.ip,
               } as IDataRow['host'],
+              labels: (Object.values(infoItem.resource_spec)[0].labels || []).map((item) => ({ id: Number(item) })),
             }),
           ),
         ),
@@ -197,22 +237,7 @@
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
-    infos: {
-      bk_cloud_id: number;
-      cluster_ids: number[];
-      pairs: {
-        redis_master: {
-          bk_cloud_id: number;
-          bk_host_id: number;
-          ip: string;
-        };
-        redis_slave: {
-          count: number;
-          old_slave_ip: string;
-          spec_id: number;
-        };
-      }[];
-    }[];
+    infos: Redis.ResourcePool.ClusterAddSlave['infos'];
     ip_source: string;
   }>(TicketTypes.REDIS_CLUSTER_ADD_SLAVE);
 
@@ -294,6 +319,10 @@
     {},
   );
 
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
+
+  const tableKey = ref(random());
+
   const formData = reactive(createDefaultFormData());
 
   const selected = computed(() => formData.tableData.filter((item) => item.host.bk_host_id).map((item) => item.host));
@@ -317,6 +346,7 @@
             host: {
               bk_host_id: item.bk_host_id,
               ip: item.ip,
+              region: item.region,
               related_clusters: item.related_clusters,
               related_instances: item.related_instances,
               spec_config: item.spec_config,
@@ -327,7 +357,23 @@
     });
     if (newList.length) {
       formData.tableData = [...(selected.value.length ? formData.tableData : []), ...newList];
-      window.changeConfirm = true;
+    }
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) =>
+      createRowData({
+        host: {
+          ip: item.ip,
+        } as IDataRow['host'],
+        labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
+      }),
+    );
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = [...dataList];
+    } else {
+      formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
     }
   };
 
@@ -375,21 +421,17 @@
     const infos = keys.map((domain) => {
       const sameArr = clusterMap[domain]!;
       const clusterIds = sameArr[0]!.host.related_clusters.map((item) => item.id);
-      const infoItem = {
+      const labelNames = sameArr[0].labels.map((item) => item.value);
+      const labels = sameArr[0].labels.map((item) => String(item.id));
+
+      const infoItem: Redis.ResourcePool.ClusterAddSlave['infos'][number] = {
         bk_cloud_id: slaveMasterMap.value[sameArr[0]!.host.ip]!.bk_cloud_id,
         cluster_ids: clusterIds,
-        pairs: [] as {
-          redis_master: {
-            bk_cloud_id: number;
-            bk_host_id: number;
-            ip: string;
-          };
-          redis_slave: {
-            count: number;
-            old_slave_ip: string;
-            spec_id: number;
-          };
-        }[],
+        old_nodes: {
+          redis_slave: [],
+        },
+        pairs: [],
+        resource_spec: {},
       };
       sameArr.forEach((item) => {
         const master = slaveMasterMap.value[item.host.ip]!;
@@ -400,12 +442,26 @@
             ip: master.ip,
           },
           redis_slave: {
-            count: 1,
-            old_slave_ip: item.host.ip,
-            spec_id: item.host.spec_config.id,
+            bk_cloud_id: master.bk_cloud_id,
+            bk_host_id: item.host.bk_host_id,
+            ip: item.host.ip,
           },
         };
         infoItem.pairs.push(pair);
+
+        const oldNodsItem = {
+          bk_host_id: item.host.bk_host_id,
+          ip: item.host.ip,
+          spec: item.host.spec_config,
+        };
+        infoItem.old_nodes.redis_slave.push(oldNodsItem);
+
+        infoItem.resource_spec[`redis_slave_${item.host.ip}`] = {
+          count: 1,
+          label_names: labelNames,
+          labels,
+          spec_id: item.host.spec_config.id,
+        };
       });
       return infoItem;
     });
@@ -428,6 +484,5 @@
   // 重置
   const handleReset = () => {
     Object.assign(formData, createDefaultFormData());
-    window.changeConfirm = false;
   };
 </script>

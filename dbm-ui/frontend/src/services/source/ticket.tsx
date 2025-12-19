@@ -158,6 +158,7 @@ export function createTicket(formData: Record<string, any>) {
                   ...formData,
                   ignore_duplication: true,
                 });
+                window.changeConfirm = false;
                 return resolve(res);
               } catch (e: any) {
                 messageError(e?.message);

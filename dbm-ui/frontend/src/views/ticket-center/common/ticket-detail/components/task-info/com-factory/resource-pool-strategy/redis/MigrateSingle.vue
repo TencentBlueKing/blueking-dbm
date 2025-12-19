@@ -49,6 +49,25 @@
       :width="150">
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
+      col-key="label_names"
+      :min-width="200"
+      :title="t('资源标签')">
+      <template #default="{ row }: { row: RowData }">
+        <template v-if="row.label_names.length">
+          <BkTag
+            v-for="item in row.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="db_version"
       :title="t('版本')"
       :width="200">
@@ -63,7 +82,7 @@
   import { TicketTypes } from '@common/const';
 
   interface Props {
-    ticketDetails: TicketModel<Redis.MigrateSingle>;
+    ticketDetails: TicketModel<Redis.ResourcePool.MigrateSingle>;
   }
 
   type RowData = (typeof tableData)[number];
@@ -86,7 +105,8 @@
       : item.display_info?.ip || item.migrate_ip;
     const specName = specs[item.resource_spec.backend_group.spec_id].name;
 
-    let instances: ({ domain: string } & Redis.MigrateSingle['infos'][number]['src_cluster'][number])[] = [];
+    let instances: ({ domain: string } & Redis.ResourcePool.MigrateSingle['infos'][number]['src_cluster'][number])[] =
+      [];
     if (item.display_info) {
       const oldNodesItem = item.old_nodes!;
       const masterItem = oldNodesItem.master[0];
@@ -108,6 +128,7 @@
     return {
       db_version: item.db_version,
       instances,
+      label_names: item.resource_spec.backend_group.label_names || [],
       primary_key: primaryKey?.split(',') || '',
       spec_name: specName,
     };

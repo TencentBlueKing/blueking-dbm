@@ -221,7 +221,6 @@
       }
     });
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...newList];
-    window.changeConfirm = true;
   };
 
   const handleBatchEdit = (value: string | string[], field: string) => {
@@ -261,7 +260,6 @@
 
   const handleReset = () => {
     Object.assign(formData, createDefaultFormData());
-    window.changeConfirm = false;
   };
 </script>
 

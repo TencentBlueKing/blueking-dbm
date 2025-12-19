@@ -145,7 +145,6 @@
       formData.nodeType = infos[0].node_type;
       formData.updateType = updateType;
       formData.payload = createTickePayload(ticketDetail);
-      window.changeConfirm = true;
     },
   });
 
@@ -195,7 +194,6 @@
   const handleReset = () => {
     Object.assign(formData, createDefaultFormData());
     currentTableRef.value!.resetTable();
-    window.changeConfirm = false;
   };
 </script>
 

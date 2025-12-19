@@ -154,14 +154,12 @@
     });
 
     tableData.value = [...(selected.value.length ? tableData.value : []), ...newList];
-    window.changeConfirm = true;
   };
 
   const handleColumnBatchEdit = (value: string[], field: string) => {
     tableData.value.forEach((item) => {
       Object.assign(item, { [field]: value });
     });
-    window.changeConfirm = true;
   };
 
   defineExpose<Exposes>({

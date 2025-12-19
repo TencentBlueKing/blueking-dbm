@@ -113,8 +113,7 @@
       cluster_capacity: number;
       cluster_shard_num: number;
       machine_pair: number;
-      spec_name: string;
-    };
+    } & ReturnType<ComponentExposed<typeof SpecSelector>['getData']>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -166,10 +165,10 @@
     getInfo() {
       const specData = specSelectorRef.value!.getData();
       return {
+        ...specData,
         cluster_capacity: totalCapcity.value || 0,
         cluster_shard_num: Number(clusterShardNum.value),
         machine_pair: Number(modelValue.value.count),
-        spec_name: specData?.spec_name || '',
       };
     },
   });

@@ -358,7 +358,6 @@
       }
     });
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...newList];
-    window.changeConfirm = true;
   };
 
   const handleBatchEdit = (value: string | string[], field: string) => {

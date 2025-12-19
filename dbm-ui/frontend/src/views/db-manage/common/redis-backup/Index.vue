@@ -355,7 +355,6 @@
         ticketMessage(res.id);
         nextTick(() => {
           emits('success');
-          window.changeConfirm = false;
           handleClose();
         });
       })
