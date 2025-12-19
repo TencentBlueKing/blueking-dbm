@@ -4,8 +4,8 @@ name: k8s-dbs
 home: https://github.com/TencentBlueKing/bk-base
 sources:
   - https://github.com/TencentBlueKing/bk-base
-version: 2.1.4
-appVersion: "2.1.4"
+version: 2.1.5
+appVersion: "2.1.5"
 
 # 依赖组件
 dependencies:
