@@ -109,7 +109,7 @@
       display: none;
       margin-top: 1px;
       margin-left: 4px;
-      color: @primary-color;
+      // color: @primary-color;
       cursor: pointer;
     }
   }

@@ -125,6 +125,7 @@
   const clusterPrimaryMap = shallowRef<Record<string, boolean>>({});
 
   const { run: rungGetTendbclusterPrimary } = useRequest(getTendbclusterPrimary, {
+    manual: true,
     onSuccess(data) {
       if (data.length > 0) {
         clusterPrimaryMap.value = data.reduce<Record<string, boolean>>((acc, cur) => {
