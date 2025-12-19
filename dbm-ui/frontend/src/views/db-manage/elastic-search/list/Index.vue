@@ -53,7 +53,9 @@
       @filter-change="handleFilterChange"
       @selection="handleSelection">
       <template #operation>
-        <OperationColumn :cluster-type="ClusterTypes.ES">
+        <OperationColumn
+          ref="operationColumnRef"
+          :cluster-type="ClusterTypes.ES">
           <template #default="{ data }: { data: EsModel }">
             <div v-db-console="'es.clusterManage.manage'">
               <a
@@ -73,6 +75,11 @@
                 {{ t('获取访问方式') }}
               </AuthButton>
             </div>
+            <ClusterAlarmSubscribe
+              :data="data"
+              db-console-prefix="es.clusterManage"
+              @click="hideOperationColumn"
+              @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
             <div v-db-console="'es.clusterManage.scaleUp'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
@@ -316,6 +323,7 @@
 
   import { ClusterTypes, DBTypes, TicketTypes, UserPersonalSettings } from '@common/const';
 
+  import ClusterAlarmSubscribe from '@views/db-manage/common/cluster-alarm-subscribe/Index.vue';
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
   import ClusterEntryPanel from '@views/db-manage/common/cluster-entry-panel/Index.vue';
@@ -365,6 +373,7 @@
 
   const dataSource = getEsList;
 
+  const operationColumnRef = ref<ComponentExposed<typeof OperationColumn>>();
   const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
@@ -380,6 +389,10 @@
 
   const fetchData = () => {
     tableRef.value?.fetchData(searchValue.value);
+  };
+
+  const hideOperationColumn = () => {
+    operationColumnRef.value?.hide();
   };
 
   // 申请实例
