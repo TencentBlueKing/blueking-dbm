@@ -100,6 +100,14 @@ globalIngress:
   # @param 全局ingress开关
   disabled: true
 
+# 适用于独立集群，clb 绑定 dbs service
+# @section loadbalancer配置
+loadbalancer:
+  # @param loadbalancer开关
+  enabled: false
+  # @param loadbalancer annotations配置
+  annotations: {}
+
 # @section 可用性探针配置
 livenessProbe:
   httpGet:

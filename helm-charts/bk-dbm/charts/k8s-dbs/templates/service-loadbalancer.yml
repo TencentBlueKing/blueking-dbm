@@ -1,0 +1,27 @@
+{{- if .Values.loadbalancer.enabled }}
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    app: {{ .Release.Name }}
+  name: k8s-dbs-api-loadbalancer
+  namespace: {{ .Release.Namespace }}
+
+  {{- if .Values.loadbalancer.annotations }}
+  annotations:
+    {{- range $key, $value := .Values.loadbalancer.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+spec:
+  {{- if .Values.ipFamily }}
+  {{- toYaml .Values.ipFamily | nindent 2 }}
+  {{- end }}
+  ports:
+    - port: {{ .Values.server.port }}
+      targetPort: {{ .Values.server.port }}
+      name: api
+  selector:
+    app: {{ .Release.Name }}
+  type: LoadBalancer
+{{- end }}
