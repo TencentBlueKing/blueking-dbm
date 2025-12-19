@@ -68,6 +68,11 @@
           id: TicketTypes.SQLSERVER_CLUSTER_MIGRATE,
           name: t('迁移'),
         },
+        {
+          id: TicketTypes.SQLSERVER_DATA_EXPORT,
+          name: t('数据导出'),
+          parentId: 'migrate',
+        },
       ],
       icon: 'db-icon-cluster',
       id: 'migrate',
