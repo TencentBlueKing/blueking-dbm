@@ -51,7 +51,7 @@
       :min-width="250"
       :title="t('所属集群')">
       <template #default="{ row: data }: { row: RowData }">
-        <p class="has-related">{{ data.cluster_domain || '--' }}</p>
+        {{ data.cluster_domain || '--' }}
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn

@@ -34,11 +34,10 @@
           </BkTag>
         </div>
         <div
-          :key="route.path"
           ref="contentWrapper"
           class="toolbox-page-content">
           <ScrollFaker style="padding: 0 24px">
-            <RouterView />
+            <RouterView :key="route.path" />
           </ScrollFaker>
         </div>
         <Teleport
@@ -86,11 +85,7 @@
     () => {
       toolName.value = route.meta.navName as string;
       dbType.value = _.upperFirst(route.meta.dbType as string);
-      nextTick(() => {
-        teleportTarget.value = contentWrapperRef.value?.querySelector(
-          '.smart-action-bottom-placeholder',
-        ) as HTMLDivElement;
-      });
+      submitErrorMessage.value = '';
     },
     {
       immediate: true,
@@ -108,6 +103,10 @@
 
   eventBus.on('editable-table-model-change', () => {
     submitErrorMessage.value = '';
+  });
+
+  onMounted(() => {
+    teleportTarget.value = contentWrapperRef.value?.querySelector('.smart-action-bottom-placeholder') as HTMLDivElement;
   });
 </script>
 <style lang="less">
