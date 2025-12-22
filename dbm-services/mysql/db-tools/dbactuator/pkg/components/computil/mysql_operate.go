@@ -291,40 +291,38 @@ func (param ShutdownMySQLParam) ForceShutDownMySQL() (err error) {
 	mysqladminCmd := []string{"mysqladmin", "-u", param.MySQLUser, "-p" + param.MySQLPwd}
 	if param.Socket != "" {
 		mysqladminCmd = append(mysqladminCmd, "--socket", param.Socket)
-		logger.Info("使用socket连接关闭MySQL", "socket", param.Socket)
+		logger.Info("使用socket连接关闭MySQL, socket: %s", param.Socket)
 	} else if param.Host != "" && param.Port != 0 {
 		mysqladminCmd = append(mysqladminCmd, "-h", param.Host, "-P", cast.ToString(param.Port))
-		logger.Info("使用TCP连接关闭MySQL", "host", param.Host, "port", param.Port)
+		logger.Info("使用TCP连接关闭MySQL, host: %s, port: %d", param.Host, param.Port)
 	} else {
-		logger.Error("缺少必要的连接参数", "socket", param.Socket, "host", param.Host, "port", param.Port)
+		logger.Error("缺少必要的连接参数, socket: %s, host: %s, port: %d", param.Socket, param.Host, param.Port)
 		return errors.Errorf("no socket file givien")
 	}
 
 	// shellCMD := fmt.Sprintf("mysqladmin -u%s -p%s -S%s shutdown", param.MySQLUser, param.MySQLPwd, param.Socket)
 	mysqladminCmd = append(mysqladminCmd, "shutdown")
 	// 脱敏处理：不记录包含密码的完整命令
-	logger.Info("执行mysqladmin shutdown命令",
-		"user", param.MySQLUser,
-		"connection_type", func() string {
-			if param.Socket != "" {
-				return "socket"
-			}
-			return "tcp"
-		}())
+	logger.Info("执行mysqladmin shutdown命令, user: %s, connection_type: %s", param.MySQLUser, func() string {
+		if param.Socket != "" {
+			return "socket"
+		}
+		return "tcp"
+	}())
 
 	output, err := mysqlutil.ExecCommandMySQLShell(strings.Join(mysqladminCmd, " "))
 	if err != nil {
-		logger.Warn("使用mysqladmin shutdown 失败:%s output:%s", err.Error(), output)
+		logger.Warn("使用mysqladmin shutdown 失败: %s, output: %s", err.Error(), output)
 		// 如果用 shutdown 执行失败
 		// 尝试用 kill -2 去停止mysql
-		logger.Info("mysqladmin shutdown失败，尝试使用kill -15强制关闭MySQL")
+		logger.Info("mysqladmin shutdown失败, 尝试使用kill -15强制关闭MySQL")
 		if err = KillMySQLD(fmt.Sprintf("socket=%s", param.Socket)); err != nil {
-			logger.Error("kill -15关闭MySQL失败", "error", err)
+			logger.Error("kill -15关闭MySQL失败, error: %s", err.Error())
 			return err
 		}
 		logger.Info("kill -15关闭MySQL成功")
 	} else {
-		logger.Info("mysqladmin shutdown执行成功", "output", output)
+		logger.Info("mysqladmin shutdown执行成功, output: %s", output)
 	}
 
 	logger.Info("开始检查MySQL进程是否完全关闭")
@@ -336,7 +334,7 @@ func JudgeMysqldShutDown(prefix string) (err error) {
 	logger.Info("开始检查MySQL进程是否完全关闭", "prefix", prefix, "timeout", "120秒")
 
 	// 120秒超时
-	ot := time.NewTimer(time.Second * 120)
+	ot := time.NewTimer(time.Second * 300)
 	defer ot.Stop()
 	tk := time.NewTicker(2 * time.Second)
 	defer tk.Stop()
@@ -345,28 +343,28 @@ func JudgeMysqldShutDown(prefix string) (err error) {
 	for {
 		select {
 		case <-ot.C:
-			logger.Error("MySQL进程关闭超时", "prefix", prefix, "timeout", "120秒", "check_count", checkCount)
+			logger.Error("MySQL进程关闭超时, prefix: %s, timeout: 120秒, check_count: %d", prefix, checkCount)
 			return fmt.Errorf("stop mysqld timeout:%s", prefix)
 		case <-tk.C:
 			checkCount++
-			logger.Info("第%d次检查MySQL进程状态", checkCount, "prefix", prefix)
+			logger.Info("第%d次检查MySQL进程状态, prefix: %s", checkCount, prefix)
 
 			// 不能直接grep mysqld 因为存在 mysqldata
 			// shellCMD := fmt.Sprintf("ps -efwww | grep %s|grep -E 'mysqld |mysqld_safe'| grep -v grep|wc -l", prefix)
 			shellCMD := fmt.Sprintf("ps -efwww | grep %s|grep -E 'mysqld |mysqld_safe'| grep -v grep", prefix)
-			logger.Info("执行进程检查命令", "command", shellCMD)
+			logger.Info("执行进程检查命令, command: %s", shellCMD)
 
 			out, err := osutil.ExecShellCommand(false, shellCMD)
 			if err != nil {
 				if strings.TrimSpace(out) == "" {
 					// grep no process found
-					logger.Info("MySQL进程已成功退出", "prefix", prefix, "check_count", checkCount)
+					logger.Info("MySQL进程已成功退出, prefix: %s, check_count: %d", prefix, checkCount)
 					logger.Info("等待2秒确保进程完全清理")
 					time.Sleep(2 * time.Second)
 					// 遇见过进程停掉之后，还往 data/xxx.err 写了条 mysqld_safe mysqld from pid file ....pid ended
 					return nil
 				}
-				logger.Error("执行进程检查命令失败", "command", shellCMD, "error", err.Error())
+				logger.Error("执行进程检查命令失败, command: %s, error: %s", shellCMD, err.Error())
 				return err
 			}
 
@@ -374,13 +372,13 @@ func JudgeMysqldShutDown(prefix string) (err error) {
 			// 提示: len(strings.Split("", "\n")) = 1
 			processCnt := len(cmutil.SplitAnyRuneTrim(strings.TrimSpace(out), "\n"))
 			if processCnt == 0 {
-				logger.Info("MySQL进程已成功退出", "prefix", prefix, "check_count", checkCount)
+				logger.Info("MySQL进程已成功退出, prefix: %s, check_count: %d", prefix, checkCount)
 				logger.Info("等待2秒确保进程完全清理")
 				time.Sleep(2 * time.Second)
 				// 遇见过进程停掉之后，还往 data/xxx.err 写了条 mysqld_safe mysqld from pid file ....pid ended
 				return nil
 			}
-			logger.Warn("MySQL进程仍在运行", "prefix", prefix, "process_count", processCnt, "check_count", checkCount)
+			logger.Warn("MySQL进程仍在运行, prefix: %s, process_count: %d, check_count: %d", prefix, processCnt, checkCount)
 		}
 	}
 }
