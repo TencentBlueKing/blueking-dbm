@@ -43,6 +43,20 @@ func (s *AnySinker) Setup(sarama.ConsumerGroupSession) error {
 	} else {
 		err = s.dsWriter.AutoMigrate(s.modelObject)
 	}
+
+	// 如果遇到错误，上报 fatal_errors 指标
+	if err != nil {
+		metrics := base.GetTopicMetrics()
+		topic := s.Sinker.RuntimeConfig.Topic
+		modelTable := s.Sinker.RuntimeConfig.ModelTable
+		writer := s.Sinker.RuntimeConfig.Datasource
+		groupID := s.Sinker.RuntimeConfig.Topic + s.Sinker.RuntimeConfig.GroupIdSuffix
+		metrics.RecordFatalError(topic, modelTable, writer, groupID, "setup_error")
+		slog.Error("setup failed", slog.Any("error", err),
+			slog.String("topic", topic),
+			slog.String("model_table", modelTable))
+	}
+
 	return err
 }
 
@@ -99,24 +113,44 @@ func (s *AnySinker) ConsumeClaim(session sarama.ConsumerGroupSession, claim sara
 
 // HandleMessageTryBatch 先尝试批量写入到 db，如果失败，再尝试单条写入
 func (s *AnySinker) HandleMessageTryBatch(msgs []*sarama.ConsumerMessage, sk *Sinker) error {
+	// 获取指标收集器
+	metrics := base.GetTopicMetrics()
+
+	// 获取标签信息
+	topic := sk.RuntimeConfig.Topic
+	modelTable := sk.RuntimeConfig.ModelTable
+	writer := sk.RuntimeConfig.Datasource
+	groupID := sk.RuntimeConfig.Topic + sk.RuntimeConfig.GroupIdSuffix
+
+	// 记录消费尝试和消息数量
+	metrics.RecordConsumeAttempt(topic, modelTable, writer, groupID, len(msgs))
+
+	var err error
 	if !s.strictSchema {
-		return s.HandleMessagesMapper(msgs, sk)
-	}
-	if s.dsWriter.Type() == "mysql_xorm" {
-		return s.HandleMessagesXorm(msgs, sk)
-	}
-	err := s.HandleMessages(msgs, sk)
-	if err != nil {
-		err = nil
-		for _, msg := range msgs {
-			if err2 := s.HandleMessages([]*sarama.ConsumerMessage{msg}, sk); err2 != nil {
-				slog.Error("handle message", err2)
-				err = errors.Join(err, err2)
+		err = s.HandleMessagesMapper(msgs, sk)
+	} else if s.dsWriter.Type() == "mysql_xorm" {
+		err = s.HandleMessagesXorm(msgs, sk)
+	} else {
+		err = s.HandleMessages(msgs, sk)
+		if err != nil {
+			err = nil
+			for _, msg := range msgs {
+				if err2 := s.HandleMessages([]*sarama.ConsumerMessage{msg}, sk); err2 != nil {
+					slog.Error("handle message", err2)
+					err = errors.Join(err, err2)
+				}
 			}
 		}
-		return err
 	}
-	return nil
+
+	// 记录消费结果
+	if err != nil {
+		metrics.RecordConsumeFailed(topic, modelTable, writer, groupID)
+	} else {
+		metrics.RecordConsumeSuccess(topic, modelTable, writer, groupID)
+	}
+
+	return err
 }
 
 func (s *AnySinker) HandleMessages(msgs []*sarama.ConsumerMessage, sk *Sinker) error {

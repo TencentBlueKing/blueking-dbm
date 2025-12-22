@@ -13,7 +13,9 @@ import (
 	"net/http"
 	"os"
 	"sync"
+	"time"
 
+	"dbm-services/common/db-event-consumer/pkg/base"
 	"dbm-services/common/db-event-consumer/pkg/config"
 	"dbm-services/common/db-event-consumer/pkg/consumer"
 	"dbm-services/common/db-event-consumer/pkg/sinker"
@@ -32,6 +34,21 @@ var rootCmd = &cobra.Command{
 		initLogger(config.MainConfig.Log)
 		if err := sinker.InitDatasource(); err != nil {
 			return err
+		}
+
+		// 初始化指标收集器
+		base.GetTopicMetrics()
+
+		// 启动指标上报器（如果配置了）
+		if config.MainConfig.BKMReport != nil && config.MainConfig.BKMReport.ReportUrl != "" {
+			reporter := base.NewMetricsReporter(config.MainConfig.BKMReport)
+			// 每分钟上报一次
+			reporter.StartReporting(1 * time.Minute)
+			slog.Info("metrics reporter started",
+				slog.String("report_url", config.MainConfig.BKMReport.ReportUrl),
+				slog.Int("data_id", config.MainConfig.BKMReport.DataID))
+		} else {
+			slog.Warn("metrics reporter not configured, skipping")
 		}
 
 		r := gin.Default()
