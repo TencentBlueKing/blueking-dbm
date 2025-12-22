@@ -16,7 +16,6 @@ import type { HostInfo, InstanceListSpecConfig, InstanceRelatedCluster, MachineR
 import { ClusterTypes } from '@common/const';
 
 import InstanceBase from '../_instanceBase';
-
 export default class TendbhaInstance extends InstanceBase {
   bk_biz_id: number;
   bk_cloud_id: number;
