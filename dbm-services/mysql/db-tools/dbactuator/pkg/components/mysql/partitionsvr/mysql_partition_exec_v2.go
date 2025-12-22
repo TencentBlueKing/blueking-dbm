@@ -27,10 +27,11 @@ type PartitionExecComp struct {
 
 // PartitionExecParam 分区执行参数
 type PartitionExecParam struct {
-	Cluster   Cluster            `json:"cluster"`
-	Configs   []*PartitionConfig `json:"configs"`
-	Force     bool               `json:"force"`
-	ErrorLogs []error
+	Cluster      Cluster            `json:"cluster"`
+	Configs      []*PartitionConfig `json:"configs"`
+	Force        bool               `json:"force"`
+	PartialForce bool               `json:"partial_force"`
+	ErrorLogs    []error
 }
 
 // PartitionConfig 分区配置

@@ -46,3 +46,28 @@ class DBPartitionNothingToDoException(AppBaseException):
 class DBPartitionWrongPartitionNameFormatException(AppBaseException):
     MODULE_CODE = 52029
     MESSAGE = _("分区名格式错误")
+
+
+class DBPartitionV2BaseException(AppBaseException):
+    MODULE_CODE = ErrorCode.DB_PARTITION_CODE
+    MESSAGE = _("分区表信息查询异常")
+
+
+class DBPartitionV2TargetException(DBPartitionV2BaseException):
+    ERR_CODE = "001"
+    MESSAGE = _("目标实例连接异常")
+
+
+class DBPartitionV2TableInfoException(DBPartitionV2BaseException):
+    ERR_CODE = "002"
+    MESSAGE = _("目标表信息查询异常")
+
+
+class DBPartitionV2ShardInfoException(DBPartitionV2BaseException):
+    ERR_CODE = "003"
+    MESSAGE = _("分片信息查询异常")
+
+
+class DBPartitionV2DRSAPIException(DBPartitionV2BaseException):
+    ERR_CODE = "004"
+    MESSAGE = _("DRS API 调用异常")

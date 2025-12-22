@@ -9,10 +9,12 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 import math
+from datetime import datetime, timedelta
 from typing import Dict
 
 from blueapps.core.celery.celery import app
 from celery.schedules import crontab
+from django.utils import timezone
 
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models.cluster import Cluster
@@ -65,27 +67,29 @@ def execute_one_tendbha_domain_task(info: Dict):
     conf_cnt = info["conf_cnt"]
     group_cnt = math.ceil(conf_cnt / group_size)
 
-    rate = get_rate_limit(group_cnt)
+    # rate = get_rate_limit(group_cnt)
 
     if conf_cnt < 100:
         limit = conf_cnt
         execute_one_tendbha_task(cluster_id=info["cluster_id"], limit=limit)
     else:
         # 设置异步执行速度
-        app.control.rate_limit(execute_tendbha_partition_task.name, rate_limit=rate)
+        # app.control.rate_limit(execute_tendbha_partition_task.name, rate_limit=rate)
+        start_time = timezone.now()
         for n in range(group_cnt):
             limit = group_size
             offset = n * group_size
-            execute_one_tendbha_task(cluster_id=info["cluster_id"], limit=limit, offset=offset)
+            eta = start_time + timedelta(seconds=n * 60)  # 每隔60秒执行一个任务
+            execute_one_tendbha_task(cluster_id=info["cluster_id"], limit=limit, offset=offset, eta=eta)
 
 
-def execute_one_tendbha_task(cluster_id: int, limit: int, offset: int = 0):
+def execute_one_tendbha_task(cluster_id: int, limit: int, offset: int = 0, eta: datetime = None):
     """
     正式发起分区任务执行
     @return:
     """
     partition_confs = get_partition_conf_by_domain(cluster_id, limit, offset, ClusterType.TenDBHA.value)
-    execute_tendbha_partition_task.apply_async(args=[partition_confs])
+    execute_tendbha_partition_task.apply_async(args=[partition_confs], eta=eta)
 
 
 @app.task(rate_limit="50/m")
@@ -99,30 +103,33 @@ def execute_one_tendbcluster_domain_task(info: Dict):
     conf_cnt = info["conf_cnt"]
     group_cnt = math.ceil(conf_cnt / group_size)
 
-    rate = get_rate_limit(group_cnt)
+    # rate = get_rate_limit(group_cnt)
 
     if conf_cnt < 100:
         limit = conf_cnt
         execute_one_tendbcluster_task(cluster_id=info["cluster_id"], limit=limit)
     else:
         # 设置异步执行速度
-        app.control.rate_limit(execute_tendbcluster_partition_task.name, rate_limit=rate)
+        # 修改会影响所有任务，这里使用eta参数控制执行速度
+        # app.control.rate_limit(execute_tendbcluster_partition_task.name, rate_limit=rate)
+        start_time = timezone.now()  # 使用utc时间
         for n in range(group_cnt):
             limit = group_size
             offset = n * group_size
-            execute_one_tendbcluster_task(cluster_id=info["cluster_id"], limit=limit, offset=offset)
+            eta = start_time + timedelta(seconds=n * 30)  # 每隔60秒执行一个任务
+            execute_one_tendbcluster_task(cluster_id=info["cluster_id"], limit=limit, offset=offset, eta=eta)
 
 
-def execute_one_tendbcluster_task(cluster_id: int, limit: int, offset: int = 0):
+def execute_one_tendbcluster_task(cluster_id: int, limit: int, offset: int = 0, eta: datetime = None):
     """
     正式发起分区任务执行
     @return:
     """
     partition_confs = get_partition_conf_by_domain(cluster_id, limit, offset, ClusterType.TenDBCluster.value)
-    execute_tendbcluster_partition_task.apply_async(args=[partition_confs])
+    execute_tendbcluster_partition_task.apply_async(args=[partition_confs], eta=eta)
 
 
-def execute_one_task_by_config_id(infos: Dict, cluster_type: str, force: bool = False):
+def execute_one_task_by_config_id(infos: Dict, cluster_type: str, force: bool = False, partial_force: bool = False):
     """
     根据配置id执行分区任务
     infos:
@@ -133,6 +140,7 @@ def execute_one_task_by_config_id(infos: Dict, cluster_type: str, force: bool = 
     }
     cluster_type: 集群类型
     force: 是否强制执行
+    partial_force: 是否部分强制执行 适用于tendbcluster集群，部分分片未执行初始化
     @return:
     """
     for domain, config_ids in infos.items():
@@ -141,14 +149,23 @@ def execute_one_task_by_config_id(infos: Dict, cluster_type: str, force: bool = 
         except Cluster.DoesNotExist:
             continue
         for config_id in config_ids:
-            execute_one_config_task(cluster_id, config_id, cluster_type, force)
+            execute_one_config_task(cluster_id, config_id, cluster_type, force, partial_force)
 
 
-def execute_one_config_task(cluster_id: int, config_id: int, cluster_type: str, force: bool = False):
+def execute_one_config_task(
+    cluster_id: int, config_id: int, cluster_type: str, force: bool = False, partial_force: bool = False
+):
     partition_conf = get_partition_by_config_id(cluster_id, config_id, cluster_type)
     if cluster_type == ClusterType.TenDBCluster.value:
         execute_tendbcluster_partition_task.apply_async(
-            args=[{"cluster_id": partition_conf["cluster_id"], "configs": partition_conf["configs"], "force": force}]
+            args=[
+                {
+                    "cluster_id": partition_conf["cluster_id"],
+                    "configs": partition_conf["configs"],
+                    "force": force,
+                    "partial_force": partial_force,
+                }
+            ]
         )
     elif cluster_type == ClusterType.TenDBHA.value:
         execute_tendbha_partition_task.apply_async(

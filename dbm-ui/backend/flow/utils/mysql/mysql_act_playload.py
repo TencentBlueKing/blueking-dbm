@@ -2483,12 +2483,18 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
     def get_partition_v2_payload(self, **kwargs) -> dict:
 
         force = self.ticket_data.get("force", False)
+        partial_force = self.ticket_data.get("partial_force", False)
 
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,  # spider集群也用mysql类型
             "action": DBActuatorActionEnum.MysqlPartitionV2.value,
             "payload": {
                 "general": {"runtime_account": self.account},
-                "extend": {"cluster": self.cluster, "configs": self.ticket_data["configs"], "force": force},
+                "extend": {
+                    "cluster": self.cluster,
+                    "configs": self.ticket_data["configs"],
+                    "force": force,
+                    "partial_force": partial_force,
+                },
             },
         }
