@@ -17,6 +17,7 @@ import (
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
 
+	"dbm-services/common/db-event-consumer/pkg/base"
 	"dbm-services/common/db-event-consumer/pkg/cst"
 	"dbm-services/common/db-event-consumer/pkg/model"
 	"dbm-services/common/db-event-consumer/pkg/sinker"
@@ -43,8 +44,9 @@ func init() {
 }
 
 type mainConfig struct {
-	Log       *LogConfig `yaml:"log"`
-	KafkaInfo *KafkaMeta `yaml:"kafka_info"`
+	Log       *LogConfig           `yaml:"log"`
+	KafkaInfo *KafkaMeta           `yaml:"kafka_info"`
+	BKMReport *base.BKReportConfig `yaml:"bkm_report"`
 }
 
 func InitConfig() {

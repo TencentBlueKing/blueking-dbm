@@ -27,6 +27,10 @@ data:
       source: true
       json: false
       log_file_dir: logs
+    bkm_report:
+      data_id: {{ .Values.dbm.envs.BKAPP_MONITOR_REPORTER_DATA_ID }}
+      token: {{ .Values.dbm.envs.BKAPP_MONITOR_REPORTER_ACCESS_TOKEN }}
+      report_url: {{ .Values.dbm.envs.BKAPP_MONITOR_REPORTER_URL }}
   datasource.yaml: |-
     - name: prod_bk_dbm_report
       type: mysql
