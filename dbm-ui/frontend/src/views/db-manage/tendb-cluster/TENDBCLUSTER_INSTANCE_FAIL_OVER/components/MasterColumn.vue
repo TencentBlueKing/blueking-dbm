@@ -34,35 +34,30 @@
       @change="handleChange" />
   </EditableColumn>
   <InstanceSelector
+    v-model="selectedInstances"
     v-model:is-show="showSelector"
     :cluster-types="[ClusterTypes.TENDBCLUSTER]"
-    hide-manual-input
-    :selected="selectedInstances"
-    :tab-list-config="tabListConfig"
+    :data-source-map="dataSourceMap"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import TendbClusterInstanceModel from '@services/model/tendbcluster/tendbcluster-instance';
   import { checkInstance } from '@services/source/dbbase';
+  import { getTendbclusterInstanceList } from '@services/source/tendbcluster';
 
   import { ClusterTypes, DBTypes } from '@common/const';
   import { ipPort } from '@common/regex';
 
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-    type IValue,
-    type PanelListType,
-  } from '@components/instance-selector/Index.vue';
-
-  export type SelectorHost = IValue;
+  import InstanceSelector from '@components/instance-selector-new/Index.vue';
 
   interface Props {
     selected: Array<typeof modelValue.value>;
   }
 
-  type Emits = (e: 'batch-edit', list: IValue[]) => void;
+  type Emits = (e: 'batch-edit', list: TendbClusterInstanceModel[]) => void;
 
   const props = defineProps<Props>();
 
@@ -84,41 +79,19 @@
 
   const { t } = useI18n();
 
-  const tabListConfig = {
-    [ClusterTypes.TENDBCLUSTER]: [
-      {
-        id: ClusterTypes.TENDBCLUSTER,
-        name: t('故障主库实例'),
-        tableConfig: {
-          firsrColumn: {
-            field: 'instance_address',
-            label: t('Master 实例'),
-            role: 'remote_master',
-          },
-        },
-      },
-      {
-        id: 'manualInput',
-        name: t('手动输入'),
-        tableConfig: {
-          firsrColumn: {
-            field: 'instance_address',
-            label: t('Master 实例'),
-            role: 'remote_master',
-          },
-        },
-      },
-    ],
-  } as unknown as Record<ClusterTypes, PanelListType>;
+  const dataSourceMap = {
+    [ClusterTypes.TENDBCLUSTER]: (params: ServiceParameters<typeof getTendbclusterInstanceList>) =>
+      getTendbclusterInstanceList({
+        ...params,
+        role: 'remote_master',
+      }),
+  };
 
   const showSelector = ref(false);
-  const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
-    [ClusterTypes.TENDBCLUSTER]: props.selected.map(
-      (item) =>
-        ({
-          instance_address: item.instance_address,
-        }) as IValue,
-    ),
+  const selectedInstances = computed(() => ({
+    [ClusterTypes.TENDBCLUSTER]: props.selected.map((item) => ({
+      instance_address: item.instance_address,
+    })) as TendbClusterInstanceModel[],
   }));
 
   const rules = [
@@ -177,8 +150,11 @@
     };
   };
 
-  const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
-    emits('batch-edit', selected[ClusterTypes.TENDBCLUSTER]);
+  const handleSelectorChange = (selected: { [ClusterTypes.TENDBCLUSTER]: TendbClusterInstanceModel[] }) => {
+    emits(
+      'batch-edit',
+      Object.values(selected).flatMap((item) => item),
+    );
   };
 
   watch(
