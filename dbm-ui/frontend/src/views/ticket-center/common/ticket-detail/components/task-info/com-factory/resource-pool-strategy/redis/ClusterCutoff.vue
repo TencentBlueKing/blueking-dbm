@@ -27,7 +27,7 @@
         <p class="has-related">{{ data.ip || '--' }}</p>
         <div
           v-if="data?.related_slave_ip"
-          class="related-slave">
+          class="related-slave-wrapper">
           <p>{{ t('关联 Slave') }}</p>
           <p>-- {{ data?.related_slave_ip }}</p>
         </div>
@@ -41,7 +41,7 @@
         <p class="has-related">{{ data.role || '--' }}</p>
         <p
           v-if="data?.related_slave_ip"
-          class="has-related related-slave-cell">
+          class="has-related related-slave-border">
           redis_slave
         </p>
       </template>
@@ -71,7 +71,7 @@
         </div>
         <div
           v-if="data.related_slave_spec?.name"
-          class="has-related related-slave-cell">
+          class="has-related related-slave-border">
           <SpecDetailPopover
             v-if="data.related_slave_spec?.name"
             :data="data.related_slave_spec">
@@ -176,32 +176,23 @@
     }
 
     .related-slave-row {
-      td {
-        height: 80px !important;
+      td:has(.has-related) {
         padding: 0 !important;
       }
 
       .has-related {
-        height: 40px;
         padding: 0 8px;
         line-height: 40px;
       }
 
-      .related-slave {
-        height: 40px;
+      .related-slave-wrapper {
         padding: 0 8px;
-        line-height: 18px;
         color: #979ba5;
         background: #fafbfd;
       }
 
-      .related-slave-cell {
+      .related-slave-border {
         border-top: 1px solid #dcdee5;
-      }
-
-      .render-spec-cell {
-        display: flex;
-        align-items: center;
       }
     }
   }
