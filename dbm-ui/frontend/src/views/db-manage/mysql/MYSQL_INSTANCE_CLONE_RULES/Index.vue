@@ -73,6 +73,7 @@
   import { reactive, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import TendbhaInstanceModel from '@services/model/mysql/tendbha-instance';
   import type { Mysql } from '@services/model/ticket/ticket';
   import { precheckPermissionClone } from '@services/source/mysqlPermissionAuthorize';
 
@@ -88,7 +89,7 @@
 
   import { random } from '@utils';
 
-  import SourceColumn, { type InstanceItem } from './components/SourceColumn.vue';
+  import SourceColumn from './components/SourceColumn.vue';
   import TargetColumn from './components/TargetColumn.vue';
 
   interface RowData {
@@ -183,7 +184,7 @@
     Object.assign(formData, defaultData());
   };
 
-  const handleBatchEdit = (list: InstanceItem[]) => {
+  const handleBatchEdit = (list: TendbhaInstanceModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, instance) => {
       acc.push(
         createTableRow({

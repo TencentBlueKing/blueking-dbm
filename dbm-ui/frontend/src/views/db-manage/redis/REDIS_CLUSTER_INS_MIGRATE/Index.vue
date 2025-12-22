@@ -43,7 +43,6 @@
               v-model="item.batchInstance"
               :selected="selected"
               :selected-map="selectedMap"
-              :tab-list-config="tabListConfig"
               @batch-edit="handleInstanceSelectChange" />
             <EditableColumn
               :append-rules="masterDomainRules"
@@ -113,17 +112,12 @@
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
-  import RedisModel from '@services/model/redis/redis';
   import RedisInstanceModel from '@services/model/redis/redis-instance';
   import { type Redis } from '@services/model/ticket/ticket';
-  import { getRedisClusterList, getRedisInstances } from '@services/source/redis';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
-
-  import ManualInputHostContent from '@components/instance-selector/components/common/manual-content/Index.vue';
-  import { type PanelListType } from '@components/instance-selector/Index.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
@@ -230,79 +224,6 @@
   const tableKey = ref(random());
 
   const formData = reactive(initFormData());
-
-  const tabListConfig = computed(
-    () =>
-      ({
-        RedisInstance: [
-          {
-            name: t('实例选择'),
-            tableConfig: {
-              firsrColumn: {
-                field: 'instance_address',
-                label: t('Master 实例'),
-                role: '',
-              },
-              getTableList: (params: ServiceParameters<typeof getRedisInstances>) =>
-                getRedisInstances({
-                  cluster_type: [
-                    ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-                    // ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-                    ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-                    // ClusterTypes.PREDIXY_REDIS_CLUSTER,
-                  ].join(','),
-                  role: 'redis_master',
-                  ...params,
-                }),
-              multiple: true,
-            },
-            topoConfig: {
-              countFunc: (data: RedisModel) => data.redis_master.length,
-              getTopoList: (params: ServiceParameters<typeof getRedisClusterList>) =>
-                getRedisClusterList({
-                  cluster_type: [
-                    ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-                    // ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-                    ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-                    // ClusterTypes.PREDIXY_REDIS_CLUSTER,
-                  ].join(','),
-                  ...params,
-                }),
-              totalCountFunc: (dataList: RedisModel[]) =>
-                dataList.reduce<number>((prevCount, item) => prevCount + item.redis_master.length, 0),
-            },
-          },
-          {
-            content: ManualInputHostContent,
-            manualConfig: {
-              fieldFormat: {
-                role: {
-                  master: 'redis_master',
-                },
-              },
-            },
-            tableConfig: {
-              firsrColumn: {
-                field: 'instance_address',
-                label: t('Master 实例'),
-                role: 'redis_master',
-              },
-              getTableList: (params: ServiceParameters<typeof getRedisInstances>) =>
-                getRedisInstances({
-                  cluster_type: [
-                    ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-                    // ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-                    ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-                    // ClusterTypes.PREDIXY_REDIS_CLUSTER,
-                  ].join(','),
-                  ...params,
-                }),
-              multiple: true,
-            },
-          },
-        ],
-      }) as unknown as Record<ClusterTypes, PanelListType>,
-  );
 
   const selected = computed(() =>
     formData.tableData

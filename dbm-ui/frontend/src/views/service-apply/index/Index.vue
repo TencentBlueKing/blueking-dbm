@@ -121,8 +121,8 @@
 
   import { makeMap } from '@utils';
 
-  import haTipImg from '@/images/architecture-01.png';
-  import singleTipImg from '@/images/architecture-02.png';
+  import haTipImg from '@images/architecture-01.png';
+  import singleTipImg from '@images/architecture-02.png';
 
   import ApplyCollapse from './components/ApplyCollapse.vue';
   import Copyright from './components/Copyright.vue';

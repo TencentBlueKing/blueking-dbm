@@ -69,10 +69,10 @@
   import type InfluxdbInstanceModel from '@services/model/influxdb/influxdbInstance';
   import { getInfluxdbInstanceList } from '@services/source/influxdb';
 
+  import { useGlobalBizs } from '@stores';
+
   import DbStatus from '@components/db-status/index.vue';
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
-
-  import { useGlobalBizs } from '@/stores';
 
   type Emits = (e: 'change', value: { id: number; instance: string }) => void;
 

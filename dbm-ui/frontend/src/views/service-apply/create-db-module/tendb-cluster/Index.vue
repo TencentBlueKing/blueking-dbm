@@ -144,7 +144,7 @@
 
   import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
 
-  import { messageError } from '@/utils';
+  import { messageError } from '@utils';
 
   import ModuleParameterTable from './components/ModuleParameterTable.vue';
 

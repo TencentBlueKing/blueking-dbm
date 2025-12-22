@@ -77,6 +77,7 @@
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
 
+  import SqlserverHaInstanceModel from '@services/model/sqlserver/sqlserver-ha-instance';
   import type { Sqlserver } from '@services/model/ticket/ticket';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
@@ -91,7 +92,7 @@
 
   import { random } from '@utils';
 
-  import SlaveInstanceColumn, { type SelectorHost } from './components/SlaveInstanceColumn.vue';
+  import SlaveInstanceColumn from './components/SlaveInstanceColumn.vue';
 
   interface RowData {
     slave: {
@@ -190,7 +191,7 @@
     }
   };
 
-  const handleBatchEdit = (list: SelectorHost[]) => {
+  const handleBatchEdit = (list: SqlserverHaInstanceModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
       if (!selectedMap.value[item.instance_address]) {
         acc.push(
