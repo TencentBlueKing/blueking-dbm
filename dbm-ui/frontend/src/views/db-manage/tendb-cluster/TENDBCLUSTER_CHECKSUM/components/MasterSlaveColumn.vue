@@ -103,10 +103,10 @@
     </EditableBlock>
   </EditableColumn>
   <InstanceSelector
+    v-model="selectorSelected"
     v-model:is-show="isShowInstanceSelector"
     :cluster-types="[ClusterTypes.TENDBCLUSTER]"
-    :selected="selectorSelected"
-    :tab-list-config="tabListConfig"
+    :data-source-map="dataSourceMap"
     @change="handleChange" />
 </template>
 <script lang="ts" setup>
@@ -117,14 +117,11 @@
   import TendbclusterInstanceModel from '@services/model/tendbcluster/tendbcluster-instance';
   import { checkInstance } from '@services/source/dbbase';
   import { getRemoteMachineInstancePair } from '@services/source/mysqlCluster';
+  import { getTendbclusterInstanceList } from '@services/source/tendbcluster';
 
   import { ClusterTypes, DBTypes } from '@common/const';
 
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-    type IValue,
-    type PanelListType,
-  } from '@components/instance-selector/Index.vue';
+  import InstanceSelector from '@components/instance-selector-new/Index.vue';
 
   import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
@@ -142,10 +139,10 @@
     db_patterns: string[];
     ignore_dbs: string[];
     ignore_tables: string[];
-    master: typeof master.value;
+    master: InstanceInfo;
     rowspan: number;
     scope: string;
-    slaves: typeof slaves.value;
+    slaves: InstanceInfo[];
     table_patterns: string[];
   }
 
@@ -166,11 +163,11 @@
     required: true,
   });
 
-  const slaves = defineModel<InstanceInfo[]>('slaves', {
+  const master = defineModel<InstanceInfo>('master', {
     required: true,
   });
 
-  const master = defineModel<InstanceInfo>('master', {
+  const slaves = defineModel<InstanceInfo[]>('slaves', {
     required: true,
   });
 
@@ -182,7 +179,7 @@
   const columnRef = useTemplateRef('column');
 
   const selected = ref<string[]>([]);
-  const selectorSelected = ref<InstanceSelectorValues<IValue>>({
+  const selectorSelected = ref<{ [ClusterTypes.TENDBCLUSTER]: TendbclusterInstanceModel[] }>({
     [ClusterTypes.TENDBCLUSTER]: [],
   });
   const isShowInstanceSelector = ref(false);
@@ -217,72 +214,32 @@
     },
   ];
 
-  const tabListConfig = computed(
-    () =>
-      ({
-        [ClusterTypes.TENDBCLUSTER]: [
-          {
-            name: t('从库'),
-            tableConfig: {
-              firsrColumn: {
-                field: 'instance_address',
-                label: 'slave',
-                role: 'backend_slave,backend_repeater,remote_slave,remote_repeater',
-              },
-              roleFilterList: {
-                list: [
-                  {
-                    text: 'backend_slave',
-                    value: 'backend_slave',
-                  },
-                  {
-                    text: 'backend_repeater',
-                    value: 'backend_repeater',
-                  },
-                  {
-                    text: 'remote_slave',
-                    value: 'remote_slave',
-                  },
-                  {
-                    text: 'remote_repeater',
-                    value: 'remote_repeater',
-                  },
-                ],
-              },
-            },
-            topoConfig: {
-              filterClusterId: props.cluster.id,
-            },
-          },
-          {
-            id: 'manualInput',
-            name: t('手动输入'),
-            tableConfig: {
-              firsrColumn: {
-                field: 'instance_address',
-                label: 'slave',
-                role: 'backend_slave,backend_repeater,remote_slave,remote_repeater',
-              },
-            },
-          },
-        ],
-      }) as unknown as Record<ClusterTypes, PanelListType>,
-  );
+  const dataSourceMap = computed(() => ({
+    [ClusterTypes.TENDBCLUSTER]: (params: ServiceParameters<typeof getTendbclusterInstanceList>) =>
+      getTendbclusterInstanceList({
+        ...params,
+        cluster_id: props.cluster.id,
+        role: 'backend_slave,backend_repeater,remote_slave,remote_repeater',
+      }),
+  }));
 
   const { loading: isSlaveLoading, run: checkExist } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
       // 先赋值给选择器
       const selected = {
-        [ClusterTypes.TENDBCLUSTER]: data.map((item) => ({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          bk_cloud_id: item.bk_cloud_id,
-          bk_host_id: item.bk_host_id,
-          instance_address: item.instance_address,
-          ip: item.ip,
-          port: item.port,
-        })),
-      } as unknown as InstanceSelectorValues<IValue>;
+        [ClusterTypes.TENDBCLUSTER]: data.map(
+          (item) =>
+            ({
+              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+              bk_cloud_id: item.bk_cloud_id,
+              bk_host_id: item.bk_host_id,
+              instance_address: item.instance_address,
+              ip: item.ip,
+              port: item.port,
+            }) as TendbclusterInstanceModel,
+        ),
+      };
       handleChange(selected);
     },
   });
@@ -306,8 +263,8 @@
     isShowInstanceSelector.value = true;
   };
 
-  const handleChange = async (payload: InstanceSelectorValues<IValue>) => {
-    const list = payload[ClusterTypes.TENDBCLUSTER];
+  const handleChange = async (payload: { [ClusterTypes.TENDBCLUSTER]: TendbclusterInstanceModel[] }) => {
+    const list = Object.values(payload).flatMap((item) => item);
 
     if (!list.length) {
       slaves.value = [];
@@ -430,14 +387,9 @@
       // 更新选择器选中的实例信息
       selectorSelected.value = {
         [ClusterTypes.TENDBCLUSTER]: slaves.value.map((item) => ({
-          bk_biz_id: item.bk_biz_id,
-          bk_cloud_id: item.bk_cloud_id,
-          bk_host_id: item.bk_host_id,
           instance_address: item.instance_address,
-          ip: item.ip,
-          port: item.port,
-        })),
-      } as unknown as InstanceSelectorValues<IValue>;
+        })) as TendbclusterInstanceModel[],
+      };
     },
     {
       immediate: true,
@@ -459,10 +411,10 @@
   }
 
   .tendbcluster-checksum-slave-default {
-    cursor: pointer;
     display: flex;
-    align-items: center;
     width: 100%;
+    cursor: pointer;
+    align-items: center;
     justify-content: space-between;
 
     .tendbcluster-checksum-placeholder {

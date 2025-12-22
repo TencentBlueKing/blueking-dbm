@@ -44,16 +44,16 @@
     </EditableTextarea>
   </EditableColumn>
   <InstanceSelector
+    v-model="batchSelectedInstances"
     v-model:is-show="isBatchSelectorShow"
-    :cluster-types="['RedisInstance']"
-    :selected="batchSelectedInstances"
-    :tab-list-config="tabListConfig"
+    :cluster-types="[ClusterTypes.REDIS]"
+    :data-source-map="dataSourceMap"
     @change="handleBatchSelectChange" />
   <InstanceSelector
+    v-model="cellSelectedInstances"
     v-model:is-show="isCellSelectorShow"
-    :cluster-types="['RedisInstance']"
-    :selected="cellSelectedInstances"
-    :tab-list-config="tabListConfig"
+    :cluster-types="[ClusterTypes.REDIS]"
+    :data-source-map="dataSourceMap"
     @change="handleCellClusterChange" />
 </template>
 <script lang="ts" setup>
@@ -63,22 +63,19 @@
 
   import RedisInstanceModel from '@services/model/redis/redis-instance';
   import { checkInstance } from '@services/source/dbbase';
+  import { getRedisInstances } from '@services/source/redis';
   import { queryMachineInstancePair } from '@services/source/redisToolbox';
 
+  import { ClusterTypes } from '@common/const';
   import { batchSplitRegex, ipPort } from '@common/regex';
 
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-    type IValue,
-    type PanelListType,
-  } from '@components/instance-selector/Index.vue';
+  import InstanceSelector from '@components/instance-selector-new/Index.vue';
 
   interface Props {
     selected: {
       instance_address: string;
     }[];
     selectedMap: Record<string, boolean>;
-    tabListConfig?: Record<string, PanelListType>;
   }
 
   type Emits = (e: 'batch-edit', list: RedisInstanceModel[]) => void;
@@ -122,22 +119,30 @@
   const isBatchSelectorShow = ref(false);
   const isCellSelectorShow = ref(false);
 
-  const batchSelectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
-    RedisInstance: props.selected.map(
-      (item) =>
-        ({
-          instance_address: item.instance_address,
-        }) as IValue,
-    ),
+  const dataSourceMap = {
+    [ClusterTypes.REDIS]: (params: ServiceParameters<typeof getRedisInstances>) =>
+      getRedisInstances({
+        ...params,
+        cluster_type: [
+          ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+          // ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+          ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+          // ClusterTypes.PREDIXY_REDIS_CLUSTER,
+        ].join(','),
+        role: 'redis_master',
+      }),
+  };
+
+  const batchSelectedInstances = computed(() => ({
+    [ClusterTypes.REDIS]: props.selected.map((item) => ({
+      instance_address: item.instance_address,
+    })) as RedisInstanceModel[],
   }));
 
-  const cellSelectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
-    RedisInstance: Object.values(modelValue.value.instances).map(
-      (item) =>
-        ({
-          instance_address: item.instance_address,
-        }) as IValue,
-    ),
+  const cellSelectedInstances = computed(() => ({
+    [ClusterTypes.REDIS]: Object.values(modelValue.value.instances).map((item) => ({
+      instance_address: item.instance_address,
+    })) as RedisInstanceModel[],
   }));
 
   const selectedCounter = computed(() => _.countBy(props.selected, 'instance_address'));
@@ -266,12 +271,12 @@
     };
   };
 
-  const handleBatchSelectChange = (selected: Record<string, RedisInstanceModel[]>) => {
+  const handleBatchSelectChange = (selected: { [ClusterTypes.REDIS]: RedisInstanceModel[] }) => {
     const list = Object.values(selected).flatMap((selectedList) => selectedList);
     emits('batch-edit', list);
   };
 
-  const handleCellClusterChange = (selected: Record<string, RedisInstanceModel[]>) => {
+  const handleCellClusterChange = (selected: { [ClusterTypes.REDIS]: RedisInstanceModel[] }) => {
     const list = Object.values(selected).flatMap((selectedList) => selectedList);
     handleInputChange(list.map((item) => item.instance_address).join('\n'));
   };

@@ -1,6 +1,6 @@
 import { Popover } from 'bkui-vue';
 import _ from 'lodash';
-import { Checkbox } from 'tdesign-vue-next';
+import { Checkbox, Radio } from 'tdesign-vue-next';
 import { defineComponent, getCurrentInstance, type Ref, ref, shallowRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -71,6 +71,9 @@ export const useSelect = (
   };
 
   const handleSelect = (rowData: Record<string, any>) => {
+    if (props.selectSingle) {
+      selectedRowMap.value = {};
+    }
     const selectedMap = { ...selectedRowMap.value };
     if (selectedMap[_.get(rowData, props.rowKey)]) {
       delete selectedMap[_.get(rowData, props.rowKey)];
@@ -97,68 +100,88 @@ export const useSelect = (
           resizable={false}
           width={60}>
           {{
-            default: ({ row }: { row: any }) => (
-              <Checkbox
-                modelValue={Boolean(selectedRowMap.value[row[props.rowKey]])}
-                style='width: 16px; height: 16px;'
-                onChange={() => handleSelect(row)}
-              />
-            ),
-            title: () => (
-              <div class='db-table-select-cell'>
-                {isWholeChecked.value ? (
-                  <div
-                    class='db-table-whole-check'
-                    onClick={handleClearWholeSelect}
+            default: ({ row }: { row: any }) => {
+              const selectDisabled = props.disableSelectMethod ? props.disableSelectMethod(row) : false;
+              return (
+                <span
+                  v-bk-tooltips={{
+                    content: _.isString(selectDisabled) ? selectDisabled : t('禁止选择'),
+                    disabled: !selectDisabled,
+                  }}>
+                  {props.selectSingle ? (
+                    <Radio
+                      disabled={Boolean(selectDisabled)}
+                      label={() => true}
+                      modelValue={Boolean(selectedRowMap.value[row[props.rowKey]])}
+                      onChange={() => handleSelect(row)}
+                    />
+                  ) : (
+                    <Checkbox
+                      disabled={Boolean(selectDisabled)}
+                      modelValue={Boolean(selectedRowMap.value[row[props.rowKey]])}
+                      style='width: 16px; height: 16px;'
+                      onChange={() => handleSelect(row)}
+                    />
+                  )}
+                </span>
+              );
+            },
+            title: () =>
+              !props.selectSingle && (
+                <div class='db-table-select-cell'>
+                  {isWholeChecked.value ? (
+                    <div
+                      class='db-table-whole-check'
+                      onClick={handleClearWholeSelect}
+                    />
+                  ) : (
+                    <>
+                      {isCurrentPageAllSelected.value ? (
+                        <Checkbox
+                          key='page'
+                          modelValue={true}
+                          style='width: 16px;'
+                          onChange={handleTogglePageSelect}
+                        />
+                      ) : (
+                        <Checkbox
+                          key='all'
+                          style='width: 16px;'
+                          onChange={handleWholeSelect}
+                        />
+                      )}
+                    </>
+                  )}
+                  <Popover
+                    v-slots={{
+                      content: () => (
+                        <div class='db-table-select-plan'>
+                          <div
+                            class={`plan-item ${isCurrentPageAllSelected.value ? 'is-selected' : ''}`}
+                            onClick={() => handleTogglePageSelect(true)}>
+                            {t('本页全选')}
+                          </div>
+                          <div
+                            class={`plan-item ${isWholeChecked.value ? 'is-selected' : ''}`}
+                            onClick={handleWholeSelect}>
+                            {t('跨页全选')}
+                          </div>
+                        </div>
+                      ),
+                      default: () => (
+                        <DbIcon
+                          class='select-menu-flag'
+                          type='down-big'
+                        />
+                      ),
+                    }}
+                    arrow={false}
+                    placement='bottom-start'
+                    theme='light db-table-select-menu'
+                    trigger='hover'
                   />
-                ) : (
-                  <>
-                    {isCurrentPageAllSelected.value ? (
-                      <Checkbox
-                        key='page'
-                        modelValue={true}
-                        style='width: 16px;'
-                        onChange={handleTogglePageSelect}
-                      />
-                    ) : (
-                      <Checkbox
-                        key='all'
-                        style='width: 16px;'
-                        onChange={handleWholeSelect}
-                      />
-                    )}
-                  </>
-                )}
-                <Popover
-                  v-slots={{
-                    content: () => (
-                      <div class='db-table-select-plan'>
-                        <div
-                          class={`plan-item ${isCurrentPageAllSelected.value ? 'is-selected' : ''}`}
-                          onClick={() => handleTogglePageSelect(true)}>
-                          {t('本页全选')}
-                        </div>
-                        <div
-                          class={`plan-item ${isWholeChecked.value ? 'is-selected' : ''}`}
-                          onClick={handleWholeSelect}>
-                          {t('跨页全选')}
-                        </div>
-                      </div>
-                    ),
-                    default: () => (
-                      <DbIcon
-                        class='select-menu-flag'
-                        type='down-big'
-                      />
-                    ),
-                  }}
-                  arrow={false}
-                  placement='bottom-start'
-                  theme='light db-table-select-menu'
-                  trigger='hover'
-                />
-              </div>
-            ),
+                </div>
+              ),
           }}
         </TableColumn>
       );

@@ -101,6 +101,7 @@
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
+  import TendbClusterInstanceModel from '@services/model/tendbcluster/tendbcluster-instance';
   import { type TendbCluster } from '@services/model/ticket/ticket';
   import { BackupSourceType } from '@services/types';
 
@@ -114,7 +115,7 @@
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
-  import SlaveInstanceColumn, { type SelectorHost } from './components/SlaveInstanceColumn.vue';
+  import SlaveInstanceColumn from './components/SlaveInstanceColumn.vue';
 
   interface RowData {
     slave: ComponentProps<typeof SlaveInstanceColumn>['modelValue'];
@@ -217,7 +218,7 @@
     Object.assign(formData, defaultData());
   };
 
-  const handleBatchEdit = (list: SelectorHost[]) => {
+  const handleBatchEdit = (list: TendbClusterInstanceModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
       if (!selectedMap.value[item.instance_address]) {
         acc.push(
