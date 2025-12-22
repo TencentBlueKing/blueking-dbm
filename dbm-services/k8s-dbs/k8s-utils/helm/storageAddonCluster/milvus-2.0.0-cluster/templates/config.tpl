@@ -33,7 +33,11 @@ common:
 
 minio:
 {{- if .Values.externalS3.enabled }}
+  {{- if .Values.externalS3.port }}
+  address: {{ .Values.externalS3.host }}:{{ .Values.externalS3.port }}
+  {{- else }}
   address: {{ .Values.externalS3.host }}
+  {{- end }}
   port: {{ .Values.externalS3.port }}
   accessKeyID: {{ .Values.externalS3.accessKey }}
   secretAccessKey: {{ .Values.externalS3.secretKey }}

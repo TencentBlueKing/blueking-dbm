@@ -5,11 +5,18 @@ metadata:
 spec:
   compatibilityRules:
     - releases:
-        - proxy-v2.6.0
+        - proxy-v2.6.0-2.0.0
+        - proxy-v2.6.7-2.0.0
       compDefs:
         - proxy-2.0.0
   releases:
-    - name: proxy-v2.6.0
-      serviceVersion: 2.6.0
+    - name: proxy-v2.6.0-2.0.0
+      serviceVersion: 2.6.0-2.0.0
       images:
+        config-generator: {{ .Values.image.python.repository }}:{{ .Values.image.python.tag }}
         proxy: milvusdb/milvus:v2.6.0
+    - name: proxy-v2.6.7-2.0.0
+      serviceVersion: 2.6.7-2.0.0
+      images:
+        config-generator: {{ .Values.image.python.repository }}:{{ .Values.image.python.tag }}
+        proxy: milvusdb/milvus:v2.6.7

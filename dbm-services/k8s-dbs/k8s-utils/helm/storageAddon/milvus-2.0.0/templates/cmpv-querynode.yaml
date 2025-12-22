@@ -5,11 +5,18 @@ metadata:
 spec:
   compatibilityRules:
     - releases:
-        - querynode-v2.6.0
+        - querynode-v2.6.0-2.0.0
+        - querynode-v2.6.7-2.0.0
       compDefs:
         - querynode-2.0.0
   releases:
-    - name: querynode-v2.6.0
-      serviceVersion: 2.6.0
+    - name: querynode-v2.6.0-2.0.0
+      serviceVersion: 2.6.0-2.0.0
       images:
+        config-generator: {{ .Values.image.python.repository }}:{{ .Values.image.python.tag }}
         querynode: milvusdb/milvus:v2.6.0
+    - name: querynode-v2.6.7-2.0.0
+      serviceVersion: 2.6.7-2.0.0
+      images:
+        config-generator: {{ .Values.image.python.repository }}:{{ .Values.image.python.tag }}
+        querynode: milvusdb/milvus:v2.6.7

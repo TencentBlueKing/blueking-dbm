@@ -5,11 +5,18 @@ metadata:
 spec:
   compatibilityRules:
     - releases:
-        - mixcoord-v2.6.0
+        - mixcoord-v2.6.0-2.0.0
+        - mixcoord-v2.6.7-2.0.0
       compDefs:
         - mixcoord-2.0.0
   releases:
-    - name: mixcoord-v2.6.0
-      serviceVersion: 2.6.0
+    - name: mixcoord-v2.6.0-2.0.0
+      serviceVersion: 2.6.0-2.0.0
       images:
+        config-generator: {{ .Values.image.python.repository }}:{{ .Values.image.python.tag }}
         mixcoord: milvusdb/milvus:v2.6.0
+    - name: mixcoord-v2.6.7-2.0.0
+      serviceVersion: 2.6.7-2.0.0
+      images:
+        config-generator: {{ .Values.image.python.repository }}:{{ .Values.image.python.tag }}
+        mixcoord: milvusdb/milvus:v2.6.7

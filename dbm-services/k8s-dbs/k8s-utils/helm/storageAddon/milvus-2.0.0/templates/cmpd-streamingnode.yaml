@@ -4,7 +4,7 @@ metadata:
   name: {{ include "milvus.streamingnode.cmpdName" . }}
 spec:
   serviceKind: milvus
-  serviceVersion: {{ .Values.image.all.tag }}
+  serviceVersion: 2.6.7-2.0.0
   services:
   - name: streamingnode
     serviceName: streamingnode
@@ -29,6 +29,13 @@ spec:
           - |
             pip install PyYAML
             /usr/local/bin/python /scripts/config-generator.py
+        resources:
+          requests:
+            cpu: "0.1"
+            memory: "256Mi"
+          limits:
+            cpu: "0.1"
+            memory: "256Mi"
         env:
           {{- range $key, $value := .Values.env }}
           - name: {{ $key }}

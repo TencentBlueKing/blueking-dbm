@@ -4,7 +4,7 @@ metadata:
   name: {{ include "milvus.attu.cmpdName" . }}
 spec:
   serviceKind: milvus
-  serviceVersion: {{ .Values.image.attu.tag }}
+  serviceVersion: 2.6.3-2.0.0
   services:
     - name: attu
       spec:

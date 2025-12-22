@@ -5,11 +5,18 @@ metadata:
 spec:
   compatibilityRules:
     - releases:
-        - streamingnode-v2.6.0
+        - streamingnode-v2.6.0-2.0.0
+        - streamingnode-v2.6.7-2.0.0
       compDefs:
         - streamingnode-2.0.0
   releases:
-    - name: streamingnode-v2.6.0
-      serviceVersion: 2.6.0
+    - name: streamingnode-v2.6.0-2.0.0
+      serviceVersion: 2.6.0-2.0.0
       images:
+        config-generator: {{ .Values.image.python.repository }}:{{ .Values.image.python.tag }}
         streamingnode: milvusdb/milvus:v2.6.0
+    - name: streamingnode-v2.6.7-2.0.0
+      serviceVersion: 2.6.7-2.0.0
+      images:
+        config-generator: {{ .Values.image.python.repository }}:{{ .Values.image.python.tag }}
+        streamingnode: milvusdb/milvus:v2.6.7
