@@ -224,12 +224,8 @@
     [role='table-cell-operation'] {
       display: none;
       margin-left: 4px;
-      color: #9498a5;
+      color: #3a84ff;
       cursor: pointer;
-
-      &:hover {
-        color: #3a84ff;
-      }
     }
 
     tbody {
