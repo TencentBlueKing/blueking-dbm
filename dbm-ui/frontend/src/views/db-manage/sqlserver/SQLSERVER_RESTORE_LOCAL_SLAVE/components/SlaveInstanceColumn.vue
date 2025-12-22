@@ -34,30 +34,24 @@
       @change="handleInputChange" />
   </EditableColumn>
   <InstanceSelector
+    v-model="selectedInstances"
     v-model:is-show="showSelector"
     :cluster-types="[ClusterTypes.SQLSERVER_HA]"
-    hide-manual-input
-    :selected="selectedInstances"
-    :tab-list-config="tabListConfig"
+    :data-source-map="dataSourceMap"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import SqlserverHaInstanceModel from '@services/model/sqlserver/sqlserver-ha-instance';
   import { checkInstance } from '@services/source/dbbase';
   import { getSqlServerInstanceList } from '@services/source/sqlserveHaCluster';
 
   import { ClusterTypes } from '@common/const';
   import { ipPort } from '@common/regex';
 
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-    type IValue,
-    type PanelListType,
-  } from '@components/instance-selector/Index.vue';
-
-  export type SelectorHost = IValue;
+  import InstanceSelector from '@components/instance-selector-new/Index.vue';
 
   interface Props {
     selected: {
@@ -65,7 +59,7 @@
     }[];
   }
 
-  type Emits = (e: 'batch-edit', list: IValue[]) => void;
+  type Emits = (e: 'batch-edit', list: SqlserverHaInstanceModel[]) => void;
 
   const props = defineProps<Props>();
 
@@ -95,29 +89,19 @@
 
   const { t } = useI18n();
 
-  const tabListConfig = {
-    [ClusterTypes.SQLSERVER_HA as string]: [
-      {
-        name: t('从库实例'),
-        tableConfig: {
-          getTableList: (params: ServiceParameters<typeof getSqlServerInstanceList>) =>
-            getSqlServerInstanceList({
-              ...params,
-              role: 'backend_slave',
-            }),
-        },
-      },
-    ],
-  } as Record<string, PanelListType>;
+  const dataSourceMap = {
+    [ClusterTypes.SQLSERVER_HA]: (params: ServiceParameters<typeof getSqlServerInstanceList>) =>
+      getSqlServerInstanceList({
+        ...params,
+        role: 'backend_slave',
+      }),
+  };
 
   const showSelector = ref(false);
-  const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
-    [ClusterTypes.SQLSERVER_HA]: props.selected.map(
-      (item) =>
-        ({
-          instance_address: item.instance_address,
-        }) as IValue,
-    ),
+  const selectedInstances = computed(() => ({
+    [ClusterTypes.SQLSERVER_HA]: props.selected.map((item) => ({
+      instance_address: item.instance_address,
+    })) as SqlserverHaInstanceModel[],
   }));
 
   const rules = [
@@ -196,8 +180,11 @@
     // }
   };
 
-  const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
-    emits('batch-edit', selected[ClusterTypes.SQLSERVER_HA]);
+  const handleSelectorChange = (selected: { [ClusterTypes.SQLSERVER_HA]: SqlserverHaInstanceModel[] }) => {
+    emits(
+      'batch-edit',
+      Object.values(selected).flatMap((item) => item),
+    );
   };
 </script>
 <style lang="less" scoped>

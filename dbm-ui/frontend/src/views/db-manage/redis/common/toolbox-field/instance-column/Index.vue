@@ -35,14 +35,14 @@
       @change="handleInputChange" />
   </EditableColumn>
   <InstanceSelector
+    v-model="selectedInstances"
     v-model:is-show="showSelector"
-    :cluster-types="['RedisInstance']"
-    hide-manual-input
-    :selected="selectedInstances"
-    :tab-list-config="tabListConfig"
+    :cluster-types="[ClusterTypes.REDIS]"
+    :data-source-map="dataSourceMap"
     @change="handleInstanceSelectChange" />
 </template>
 <script lang="ts" setup>
+  import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -52,19 +52,13 @@
   import { clusterTypeInfos, ClusterTypes, DBTypes } from '@common/const';
   import { ipPort } from '@common/regex';
 
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-    type IValue,
-    type PanelListType,
-  } from '@components/instance-selector/Index.vue';
-
-  export type SelectorHost = IValue;
+  import InstanceSelector from '@components/instance-selector-new/Index.vue';
 
   interface Props {
+    dataSourceMap?: ComponentProps<typeof InstanceSelector>['dataSourceMap'];
     selected: {
       instance_address: string;
     }[];
-    tabListConfig?: Record<string, PanelListType>;
   }
 
   type Emits = (e: 'batch-edit', list: RedisInstanceModel[]) => void;
@@ -96,13 +90,10 @@
   const { t } = useI18n();
 
   const showSelector = ref(false);
-  const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
-    RedisInstance: props.selected.map(
-      (item) =>
-        ({
-          instance_address: item.instance_address,
-        }) as IValue,
-    ),
+  const selectedInstances = computed(() => ({
+    [ClusterTypes.REDIS]: props.selected.map((item) => ({
+      instance_address: item.instance_address,
+    })) as RedisInstanceModel[],
   }));
 
   const rules = [
@@ -158,8 +149,11 @@
     };
   };
 
-  const handleInstanceSelectChange = (selected: InstanceSelectorValues<RedisInstanceModel>) => {
-    emits('batch-edit', selected.RedisInstance);
+  const handleInstanceSelectChange = (selected: { [ClusterTypes.REDIS]: RedisInstanceModel[] }) => {
+    emits(
+      'batch-edit',
+      Object.values(selected).flatMap((item) => item),
+    );
   };
 
   watch(

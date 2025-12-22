@@ -123,6 +123,9 @@
     selectable?: boolean;
     // 默认选中
     selected?: any[];
+    // 是否单选
+    // eslint-disable-next-line vue/no-unused-properties
+    selectSingle?: boolean;
   }
 
   export interface Emits {
@@ -164,6 +167,7 @@
     rowClickSelectable: false,
     selectable: false,
     selected: () => [],
+    selectSingle: false,
   });
 
   const emits = defineEmits<Emits>();
@@ -183,6 +187,8 @@
     delete baseProps['rowClickSelectable'];
     // @ts-expect-error 删除不存在的 props
     delete baseProps['selectable'];
+    // @ts-expect-error 删除不存在的 props
+    delete baseProps['selectSingle'];
     delete baseProps['onChange'];
     delete baseProps['onFilterChange'];
     // @ts-expect-error 删除不存在的 props
@@ -326,6 +332,9 @@
         });
       }, {});
     },
+    {
+      immediate: true,
+    },
   );
 
   // 解析 URL 上面的分页信息
@@ -413,7 +422,6 @@
       const paginationHeight = 60;
 
       const tableRowTotalHeight = totalHeight - top - pageOffsetBottom - paginationHeight;
-
       tableMaxHeight.value = tableRowTotalHeight;
     });
   };
