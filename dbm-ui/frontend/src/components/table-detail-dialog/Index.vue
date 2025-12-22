@@ -87,6 +87,7 @@
         ele.classList?.contains('tippy-box') ||
         ele.classList?.contains('db-navigation-side-menu') ||
         ele.classList?.contains('bk-date-picker-dropdown') ||
+        ele.classList?.contains('ai-blueking-wrapper') ||
         ele.classList?.contains('t-popup')
       ) {
         return true;
