@@ -114,12 +114,12 @@
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
   import { batchFetchFile } from '@services/source/storage';
 
+  import { DBTypes } from '@common/const';
+
   import RenderFileContent from '@views/ticket-center/common/ticket-detail/components/common/SqlFileContent.vue';
   import RenderFileList from '@views/ticket-center/common/ticket-detail/components/common/SqlFileList.vue';
 
   import { getSQLFilename } from '@utils';
-
-  import { DBTypes } from '@/common/const';
 
   interface Props {
     ticketDetail: TicketModel<Mysql.ImportSqlFile>;

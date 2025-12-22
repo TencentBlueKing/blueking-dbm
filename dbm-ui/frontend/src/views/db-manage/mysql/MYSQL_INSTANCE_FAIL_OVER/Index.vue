@@ -111,6 +111,7 @@
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
+  import TendbhaInstanceModel from '@services/model/mysql/tendbha-instance';
   import type { Mysql } from '@services/model/ticket/ticket';
   import { OperaObejctType } from '@services/types';
 
@@ -127,7 +128,7 @@
 
   import { random } from '@utils';
 
-  import MasterColumn, { type SelectorHost } from './components/MasterColumn.vue';
+  import MasterColumn from './components/MasterColumn.vue';
   import SlaveColumn from './components/SlaveColumn.vue';
 
   interface RowData {
@@ -266,7 +267,7 @@
     Object.assign(formData, defaultData());
   };
 
-  const handleBatchEdit = (list: SelectorHost[]) => {
+  const handleBatchEdit = (list: TendbhaInstanceModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
       if (!selectedMap.value[item.instance_address]) {
         acc.push(

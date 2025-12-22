@@ -35,8 +35,8 @@
           :key="item.row_key">
           <InstanceColumn
             v-model="item.instance"
+            :data-source-map="dataSourceMap"
             :selected="selected"
-            :tab-list-config="tabListConfig"
             @batch-edit="handleInstanceBatchEdit" />
           <EditableColumn
             id-mark="master_domain"
@@ -95,13 +95,11 @@
 
   import RedisInstanceModel from '@services/model/redis/redis-instance';
   import type { Redis } from '@services/model/ticket/ticket';
-  import { getRedisClusterList, getRedisInstances } from '@services/source/redis';
+  import { getRedisInstances } from '@services/source/redis';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
-
-  import type { PanelListType } from '@components/instance-selector/Index.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
@@ -128,37 +126,18 @@
     },
   ];
 
-  const tabListConfig = {
-    RedisInstance: [
-      {
-        tableConfig: {
-          firsrColumn: {
-            role: 'redis_master',
-          },
-          getTableList: (params: ServiceParameters<typeof getRedisInstances>) =>
-            getRedisInstances({
-              ...params,
-              cluster_type: [
-                ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-                ClusterTypes.PREDIXY_REDIS_CLUSTER,
-                ClusterTypes.REDIS_INSTANCE,
-              ].join(','),
-            }),
-        },
-        topoConfig: {
-          getTopoList: (params: ServiceParameters<typeof getRedisClusterList>) =>
-            getRedisClusterList({
-              ...params,
-              cluster_type: [
-                ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-                ClusterTypes.PREDIXY_REDIS_CLUSTER,
-                ClusterTypes.REDIS_INSTANCE,
-              ].join(','),
-            }),
-        },
-      },
-    ],
-  } as unknown as Record<string, PanelListType>;
+  const dataSourceMap = {
+    [ClusterTypes.REDIS]: (params: ServiceParameters<typeof getRedisInstances>) =>
+      getRedisInstances({
+        ...params,
+        cluster_type: [
+          ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+          ClusterTypes.PREDIXY_REDIS_CLUSTER,
+          ClusterTypes.REDIS_INSTANCE,
+        ].join(','),
+        role: 'redis_master',
+      }),
+  };
 
   const formRef = useTemplateRef('form');
   const editableTableRef = useTemplateRef('table');
