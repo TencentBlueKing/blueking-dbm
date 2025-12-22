@@ -24,7 +24,6 @@ paths:
         required: true
       security:
       - cookieAuth: []
-      - {}
       responses:
         '200':
           content:
@@ -75,7 +74,6 @@ paths:
         required: true
       security:
       - cookieAuth: []
-      - {}
       responses:
         '200':
           content:
@@ -126,7 +124,6 @@ paths:
         required: true
       security:
       - cookieAuth: []
-      - {}
       responses:
         '200':
           content:
@@ -177,7 +174,6 @@ paths:
         required: true
       security:
       - cookieAuth: []
-      - {}
       responses:
         '200':
           content:
@@ -228,7 +224,6 @@ paths:
         required: true
       security:
       - cookieAuth: []
-      - {}
       responses:
         '200':
           content:
@@ -279,7 +274,6 @@ paths:
         required: true
       security:
       - cookieAuth: []
-      - {}
       responses:
         '200':
           content:
@@ -330,7 +324,6 @@ paths:
         required: true
       security:
       - cookieAuth: []
-      - {}
       responses:
         '200':
           content:
@@ -381,7 +374,6 @@ paths:
         required: true
       security:
       - cookieAuth: []
-      - {}
       responses:
         '200':
           content:
@@ -433,7 +425,6 @@ paths:
         required: true
       security:
       - cookieAuth: []
-      - {}
       responses:
         '200':
           content:
@@ -485,7 +476,6 @@ paths:
         required: true
       security:
       - cookieAuth: []
-      - {}
       responses:
         '200':
           content:
@@ -536,7 +526,6 @@ paths:
         required: true
       security:
       - cookieAuth: []
-      - {}
       responses:
         '200':
           content:
@@ -587,7 +576,6 @@ paths:
         required: true
       security:
       - cookieAuth: []
-      - {}
       responses:
         '200':
           content:
@@ -638,7 +626,6 @@ paths:
         required: true
       security:
       - cookieAuth: []
-      - {}
       responses:
         '200':
           content:
@@ -668,6 +655,56 @@ paths:
           appVerifiedRequired: true
           resourcePermissionRequired: true
         descriptionEn: 查询 TenDBSingle 集群拓扑结构
+  /apis/ai/mcp_tools/sqlserver/cluster_topo/:
+    post:
+      operationId: sqlserver_query_cluster_topo
+      description: 查询 SQLServer 集群拓扑结构
+      tags:
+      - read
+      - mcp-tools
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SQLServerTopoInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SQLServerTopoInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SQLServerTopoInputRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SQLServerTopoOutput'
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: false
+        matchSubpath: false
+        backend:
+          name: default
+          method: post
+          path: /apis/ai/mcp_tools/sqlserver/cluster_topo/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs:
+        - type: bk-header-rewrite
+          yaml: |
+            remove: []
+            set:
+            - key: X-Bkdbm-Mcp-Tag
+              value: read,mcp-tools
+        allowApplyPermission: false
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn: 查询 SQLServer 集群拓扑结构
 components:
   schemas:
     BackupTypeEnum:
@@ -1458,6 +1495,32 @@ components:
       - address
       - machine_type
       - status
+    SQLServerTopoInputRequest:
+      type: object
+      properties:
+        cluster_domain:
+          type: string
+          minLength: 1
+          description: 集群域名
+      required:
+      - cluster_domain
+    SQLServerTopoOutput:
+      type: object
+      properties:
+        cluster_type:
+          type: string
+          description: 集群类型
+        cluster_domain:
+          type: string
+          description: 集群域名
+        storage:
+          allOf:
+          - $ref: '#/components/schemas/MySQLStorageInstance'
+          description: 存储层实例信息
+      required:
+      - cluster_domain
+      - cluster_type
+      - storage
     ShowCreateTableInputRequest:
       type: object
       properties:
