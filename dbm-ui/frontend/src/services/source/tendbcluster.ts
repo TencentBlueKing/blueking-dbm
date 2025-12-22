@@ -138,6 +138,7 @@ export function getTendbclusterInstanceList(params: {
   offset?: number;
   port?: number;
   role?: string;
+  spider_ctl?: boolean;
   status?: string;
 }) {
   return http.get<ListBase<TendbclusterInstanceModel[]>>(`${getRootPath()}/list_instances/`, params).then((res) => ({

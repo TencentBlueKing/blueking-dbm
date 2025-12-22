@@ -130,7 +130,7 @@
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import RegexKeysColumn from '@views/db-manage/redis/common/toolbox-field/regex-keys-column/Index.vue';
 
-  import { random } from '@/utils';
+  import { random } from '@utils';
 
   import SourceClusterColumn from './components/SourceClusterColumn.vue';
 

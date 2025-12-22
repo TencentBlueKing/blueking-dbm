@@ -18,9 +18,9 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { batchInputSplitRegex } from '@common/regex';
+  import { useGlobalBizs } from '@stores';
 
-  import { useGlobalBizs } from '@/stores';
+  import { batchInputSplitRegex } from '@common/regex';
 
   type Emits = (e: 'change') => void;
 
