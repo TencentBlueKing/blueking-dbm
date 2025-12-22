@@ -5,11 +5,18 @@ metadata:
 spec:
   compatibilityRules:
     - releases:
-        - datanode-v2.6.0
+        - datanode-v2.6.0-2.0.0
+        - datanode-v2.6.7-2.0.0
       compDefs:
         - datanode-2.0.0
   releases:
-    - name: datanode-v2.6.0
-      serviceVersion: 2.6.0
+    - name: datanode-v2.6.0-2.0.0
+      serviceVersion: 2.6.0-2.0.0
       images:
+        config-generator: {{ .Values.image.python.repository }}:{{ .Values.image.python.tag }}
         datanode: milvusdb/milvus:v2.6.0
+    - name: datanode-v2.6.7-2.0.0
+      serviceVersion: 2.6.7-2.0.0
+      images:
+        config-generator: {{ .Values.image.python.repository }}:{{ .Values.image.python.tag }}
+        datanode: milvusdb/milvus:v2.6.7
