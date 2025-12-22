@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-module.exports = {
+export default {
   ignores: [commit => commit.includes('init')],
   extends: ['@commitlint/config-conventional'],
   rules: {

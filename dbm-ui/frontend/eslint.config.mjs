@@ -94,7 +94,6 @@ export default defineConfigWithVueTs(
           order: 'asc',
           ignoreCase: true,
           specialCharacters: 'keep',
-          ignorePattern: [],
           partitionByNewLine: false,
           newlinesBetween: 'ignore',
           groups: [
@@ -112,18 +111,48 @@ export default defineConfigWithVueTs(
             'shorthand',
             'callback',
           ],
-          customGroups: {
-            DEFINITION: '^v-is',
-            LIST_RENDERING: '^v-for',
-            CONDITIONALS: '^(v-if|v-else-if|v-else|v-show|v-cloak)',
-            RENDER_MODIFIERS: '^(v-once|v-pre)',
-            GLOBAL: '^id',
-            UNIQUE: '^(ref|key)',
-            SLOT: '^v-slot',
-            TWO_WAY_BINDING: '^v-model',
-            OTHER_DIRECTIVES: '^v-.+',
-            callback: '^on.+',
-          },
+          customGroups: [
+            {
+              groupName: 'DEFINITION',
+              elementNamePattern: '^v-is',
+            },
+            {
+              groupName: 'LIST_RENDERING',
+              elementNamePattern: '^v-for',
+            },
+            {
+              groupName: 'CONDITIONALS',
+              elementNamePattern: '^v-if|v-else-if|v-else|v-show|v-cloak',
+            },
+            {
+              groupName: 'RENDER_MODIFIERS',
+              elementNamePattern: '^v-once|v-pre',
+            },
+            {
+              groupName: 'GLOBAL',
+              elementNamePattern: '^id',
+            },
+            {
+              groupName: 'UNIQUE',
+              elementNamePattern: '^ref|key',
+            },
+            {
+              groupName: 'SLOT',
+              elementNamePattern: '^v-slot',
+            },
+            {
+              groupName: 'TWO_WAY_BINDING',
+              elementNamePattern: '^v-model',
+            },
+            {
+              groupName: 'OTHER_DIRECTIVES',
+              elementNamePattern: '^v-.+',
+            },
+            {
+              groupName: 'callback',
+              elementNamePattern: '^on.+',
+            },
+          ]
         },
       ],
       'perfectionist/sort-array-includes': 'error',
