@@ -54,7 +54,7 @@
       // 主机来源于资源池
       resourcePoolDetails.ip_source === 'resource_pool' ||
       // 平台资源池单据
-      /^RESOURCE_/.test(resourcePoolTicketType);
+      resourcePoolTicketType.startsWith('RESOURCE_');
 
     const renderResourcePoolModule = _.find(
       Object.values(resourcePoolModule),

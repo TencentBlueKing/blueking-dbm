@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-module.exports = {
+export default {
   extends: ['stylelint-config-standard'],
   plugins: ['stylelint-order'],
   rules: {

@@ -7,8 +7,6 @@ export default class BackupLogRecord {
   backup_host: string;
   backup_id: string;
   backup_meta_file: string;
-  backup_port: number;
-  backup_status: string;
   /**
    * backup_method
     - full_by_ticket: 全库备份（单据）
@@ -17,7 +15,10 @@ export default class BackupLogRecord {
     - non_full_by_regular: 非全库备份（例行）
    */
   backup_method: string;
+  backup_port: number;
+  backup_status: string;
   backup_time: string;
+  backup_tool: string;
   backup_type: string;
   bill_id: string;
   binlog_info: {
@@ -39,8 +40,8 @@ export default class BackupLogRecord {
   bk_biz_id: number;
   cluster_address: string;
   cluster_id: number;
-  database_list: string[];
   data_schema_grant: string;
+  database_list: string[];
   extra_fields: {
     backup_charset: string;
     bk_cloud_id: number;
@@ -49,8 +50,6 @@ export default class BackupLogRecord {
     time_zone: string;
     total_size_kb_uncompress: number;
   };
-  total_filesize: number;
-  backup_tool: string;
   file_list: {
     contain_files: null;
     contain_tables: null;
@@ -69,6 +68,7 @@ export default class BackupLogRecord {
   mysql_version: string;
   server_id: string;
   shard_value: string;
+  total_filesize: number;
 
   constructor(payload = {} as BackupLogRecord) {
     this.backup_begin_time = payload.backup_begin_time || '';
