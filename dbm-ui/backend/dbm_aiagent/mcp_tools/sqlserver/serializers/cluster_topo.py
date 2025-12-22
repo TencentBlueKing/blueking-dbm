@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
 Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -8,11 +7,17 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.urls import include, path
+from django.utils.translation import gettext_lazy as _
+from rest_framework import serializers
 
-# common mcp tools
-urlpatterns = [
-    path("common/", include("backend.dbm_aiagent.mcp_tools.common.urls")),
-    path("mysql/", include("backend.dbm_aiagent.mcp_tools.mysql.urls")),
-    path("sqlserver/", include("backend.dbm_aiagent.mcp_tools.sqlserver.urls")),
-]
+from backend.dbm_aiagent.mcp_tools.mysql.serializers.cluster_topo import MySQLStorageInstanceSerializer
+
+
+class SQLServerTopoInputSerializer(serializers.Serializer):
+    cluster_domain = serializers.CharField(help_text=_("集群域名"))
+
+
+class SQLServerTopoOutputSerializer(serializers.Serializer):
+    cluster_type = serializers.CharField(help_text=_("集群类型"))
+    cluster_domain = serializers.CharField(help_text=_("集群域名"))
+    storage = MySQLStorageInstanceSerializer(help_text=_("存储层实例信息"))
