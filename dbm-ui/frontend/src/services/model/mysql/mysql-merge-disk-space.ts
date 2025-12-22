@@ -12,25 +12,25 @@
  */
 
 export default class MysqlMergeDiskSpace {
-  source: string;
-  target: string;
-  target_cluster_type: string;
-  db_list: string[];
   clone_db_list: string[];
-  ignore_db_list: string[];
   data_schema_grant: string;
+  db_list: string[];
   db_size: Record<string, number>;
-  same_target_sum_size: number;
-  same_target_index: number[];
   disk_size: {
-    used: number;
-    total: number;
-    mount_point: string;
     host: string;
+    mount_point: string;
+    total: number;
+    used: number;
     used_percent: string;
     used_percent_future: string;
   };
+  ignore_db_list: string[];
+  same_target_index: number[];
+  same_target_sum_size: number;
+  source: string;
   suggestion: string;
+  target: string;
+  target_cluster_type: string;
 
   constructor(payload = {} as MysqlMergeDiskSpace) {
     this.source = payload.source;
