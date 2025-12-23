@@ -26,6 +26,7 @@ from backend.db_periodic_task.local_tasks.mongodb_tasks.report_op import Cluster
 from backend.db_report.enums import ReportStateType
 from backend.db_report.enums.mongodb_check_sub_type import MongodbExporterCheckSubType
 from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoRepository
+from backend.db_report.repo.task_record_repo import get_report_day_from_time
 
 logger = logging.getLogger("root")
 
@@ -38,14 +39,14 @@ class CheckMongodbUpMetricTask:
     def __init__(self):
         self.check_type = MongodbExporterCheckSubType.Up.value
 
-    def start(self, report_day: int = None, batch_size: int = 20):
+    def start(self, report_day: int = None, batch_size: int = 20) -> tuple[int, int, int, int]:
         """
         replicaset, sharded cluster 2种架构：
         1, list all cluster
         2, filter failed, write to db
         """
         if report_day is None:
-            report_day = int(timezone.now().date().strftime("%Y%m%d"))
+            report_day = get_report_day_from_time(timezone.now())
         record_batch_ops = RecordBatchOps(self.check_type, report_day)
         deleted_count = record_batch_ops.delete_old_record(360)
         logger.info(
@@ -66,25 +67,30 @@ class CheckMongodbUpMetricTask:
         )
         cluster_list = Cluster.objects.filter(query)
         logger.info(cluster_list.query)
-        app_total = {
-            ReportStateType.NORMAL.value: 0,
-            ReportStateType.WARNING.value: 0,
-            ReportStateType.ABNORMAL.value: 0,
-        }
-
+        total_num = 0
+        success_num = 0
+        warning_num = 0
+        abnormal_num = 0
         for i in range(0, len(cluster_list), batch_size):
             for c in cluster_list[i : i + batch_size]:
                 cluster = MongoRepository.fetch_one_cluster(with_tags=True, id=c.id)
                 rows = self.check_cluster(cluster, report_day)
-                app_total[rows[0].state] += 1
+                total_num += 1
+                if rows[0].state == ReportStateType.NORMAL.value:
+                    success_num += 1
+                elif rows[0].state == ReportStateType.WARNING.value:
+                    warning_num += 1
+                elif rows[0].state == ReportStateType.ABNORMAL.value:
+                    abnormal_num += 1
                 for record in rows:
                     record_batch_ops.append(record)
             record_batch_ops.bulk_create()
         logger.info(
             f"CheckMongodbUpMetricTask report_day: {report_day} "
             f"sub_type: {self.check_type} "
-            f"app_total: {app_total}"
+            f"total_num: {total_num}, success_num: {success_num}, warning_num: {warning_num}, abnormal_num: {abnormal_num}"
         )
+        return total_num, success_num, warning_num, abnormal_num
 
     def is_skip_check(self, cluster: MongoDBCluster) -> tuple[bool, str]:
         """

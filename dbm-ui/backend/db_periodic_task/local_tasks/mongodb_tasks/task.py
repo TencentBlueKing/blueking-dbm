@@ -8,16 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import logging
-
 from celery.schedules import crontab
 
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
+from backend.db_report.repo.task_record_repo import TaskRecordRepo
 
 from .check_backup import CheckMongoBackupRecordTask
 from .check_exporter import CheckMongodbUpMetricTask
-
-logger = logging.getLogger("celery")
 
 """
     register_periodic_task 注册新的周期任务注意
@@ -26,17 +23,29 @@ logger = logging.getLogger("celery")
 """
 
 
-@register_periodic_task(run_every=crontab(minute=1, hour=7))
+@register_periodic_task(run_every=crontab(minute=1, hour=8))
 def mongodb_backup_check_task():
     """
     mongodb 备份巡检.
     """
-    CheckMongoBackupRecordTask().start()
+    repo = TaskRecordRepo()
+    repo.execute_task_with_record(
+        db_type="mongodb",
+        task_name="mongodb_backup_check_task",
+        task_type="backup",
+        check_task_instance=CheckMongoBackupRecordTask(),
+    )
 
 
-@register_periodic_task(run_every=crontab(minute=1, hour="*/2"))
+@register_periodic_task(run_every=crontab(minute=1, hour=9))
 def mongodb_metric_check_task():
     """
     mongodb exporter巡检
     """
-    CheckMongodbUpMetricTask().start()
+    repo = TaskRecordRepo()
+    repo.execute_task_with_record(
+        db_type="mongodb",
+        task_name="mongodb_metric_check_task",
+        task_type="exporter",
+        check_task_instance=CheckMongodbUpMetricTask(),
+    )

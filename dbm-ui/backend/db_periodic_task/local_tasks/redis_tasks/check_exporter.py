@@ -27,6 +27,7 @@ from backend.db_periodic_task.local_tasks.db_meta.constants import UNIFY_QUERY_P
 from backend.db_periodic_task.local_tasks.redis_tasks.report_op import RedisCheckReportBatchOps, RedisClusterReport
 from backend.db_report.enums import ReportStateType
 from backend.db_report.enums.redis_sub_type import RedisExporterCheckSubType
+from backend.db_report.repo.task_record_repo import get_report_day_from_time
 
 logger = logging.getLogger("root")
 
@@ -35,7 +36,7 @@ def check_one_cluster(cluster_domain: str, print_result: bool = False) -> list:
     """
     检查一个集群, 返回检查结果,用于shell发起检查
     """
-    report_day = int(timezone.now().date().strftime("%Y%m%d"))
+    report_day = get_report_day_from_time(timezone.now())
     cluster = Cluster.objects.get(immute_domain=cluster_domain)
     checker = CheckRedisUpMetricTask()
     rows = checker.check_cluster(cluster, report_day)
@@ -57,14 +58,14 @@ class CheckRedisUpMetricTask:
     def __init__(self):
         self.check_type = RedisExporterCheckSubType.Exporter.value
 
-    def start(self, report_day: int = None, batch_size: int = 20):
+    def start(self, report_day: int = None, batch_size: int = 20) -> tuple[int, int, int, int]:
         """
         redis cluster：
         1, list all cluster
         2, filter failed, write to db
         """
         if report_day is None:
-            report_day = int(timezone.now().date().strftime("%Y%m%d"))
+            report_day = get_report_day_from_time(timezone.now())
         record_batch_ops = RedisCheckReportBatchOps(self.check_type, report_day)
         deleted_count = record_batch_ops.delete_old_record(360)
         logger.info(
@@ -84,24 +85,30 @@ class CheckRedisUpMetricTask:
         cluster_list = Cluster.objects.filter(query).prefetch_related("tags")
 
         # app_total 统计每个状态的集群数量
-        app_total = {
+        cluster_state_total = {
             ReportStateType.NORMAL.value: 0,
             ReportStateType.WARNING.value: 0,
             ReportStateType.ABNORMAL.value: 0,
         }
 
+        total_num = 0
         for i in range(0, len(cluster_list), batch_size):
             for cluster in cluster_list[i : i + batch_size]:
+                total_num += 1
                 rows = self.check_cluster(cluster, report_day)
-                app_total[rows[0].state] += 1
+                cluster_state_total[rows[0].state] += 1
                 for record in rows:
                     record_batch_ops.append(record)
             record_batch_ops.bulk_create()
         logger.info(
             f"CheckRedisUpMetricTask report_day: {report_day} "
             f"sub_type: {self.check_type} "
-            f"app_total: {app_total}"
+            f"cluster_state_total: {cluster_state_total}"
         )
+        success_num = cluster_state_total[ReportStateType.NORMAL.value]
+        warning_num = cluster_state_total[ReportStateType.WARNING.value]
+        abnormal_num = cluster_state_total[ReportStateType.ABNORMAL.value]
+        return (total_num, success_num, warning_num, abnormal_num)
 
     def is_skip_check(self, cluster: Cluster) -> tuple[bool, str]:
         """
