@@ -199,16 +199,18 @@ func (r *Redis) collecting(ctx context.Context, c *collector, dataC chan<- *plug
 	status := &haprobe.RedisStatus{}
 
 	data := &plugin.HarvestData{
-		SequenceID:  machine.NewSequenceID(),
-		MessageID:   machine.NewMessageID(),
-		MachineID:   r.machineID,
-		ServiceID:   r.serviceID,
-		BkCloudID:   r.bkCloudID,
-		DbIp:        c.endpoint.Host,
-		DbPort:      c.endpoint.Port,
-		AccessLayer: c.accessLayer,
-		ClusterType: c.clusterType,
-		MachineType: c.machineType,
+		HarvestBaseData: haprobe.HarvestBaseData{
+			SequenceID:  machine.NewSequenceID(),
+			MessageID:   machine.NewMessageID(),
+			MachineID:   r.machineID,
+			ServiceID:   r.serviceID,
+			BkCloudID:   r.bkCloudID,
+			DbIp:        c.endpoint.Host,
+			DbPort:      c.endpoint.Port,
+			AccessLayer: c.accessLayer,
+			ClusterType: c.clusterType,
+			MachineType: c.machineType,
+		},
 	}
 
 	defer func() {
