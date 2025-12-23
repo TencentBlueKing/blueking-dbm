@@ -22,35 +22,13 @@
  * SOFTWARE.
  */
 
-package main
+package cmds
 
-import (
-	"dbm-services/common/dbha-v2/internal/receiver"
-	"dbm-services/common/dbha-v2/pkg/logger"
+import "github.com/spf13/cobra"
 
-	"github.com/spf13/cobra"
-)
-
-func main() {
-	rootCmd := &cobra.Command{
-		Use:          "receiver",
-		Short:        "DBHA Receiver Server",
-		SilenceUsage: true,
-		RunE:         receiver.Run,
+func RestartCmdRunE(cmd *cobra.Command, args []string) error {
+	if err := StopCmdRunE(cmd, nil); err != nil {
+		return err
 	}
-
-	rootCmd.PersistentFlags().StringVarP(&receiver.ConfigFilePath, "config", "c", "./etc/receiver.yaml", "")
-	rootCmd.CompletionOptions.DisableDefaultCmd = true
-	rootCmd.AddCommand(receiver.VersionCmd)
-	rootCmd.AddCommand(receiver.HealthCmd)
-	rootCmd.AddCommand(receiver.StartCmd)
-	rootCmd.AddCommand(receiver.StopCmd)
-	rootCmd.AddCommand(receiver.RestartCmd)
-	rootCmd.AddCommand(receiver.ReloadCmd)
-
-	if err := rootCmd.Execute(); err != nil {
-		logger.Error("failed to start receiver server. errmsg:%s", err.Error())
-		return
-	}
-
+	return StartCmdRunE(cmd, nil)
 }
