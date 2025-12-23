@@ -32,13 +32,13 @@ def check_mysql_checksum():
         with start_new_span(check_cluster_checksum):
             # 延迟调度，均摊到一小时
             check_cluster_checksum.apply_async(
-                kwargs={"cluster_id": int(cluster_id), "now": now},
+                kwargs={"index": index, "cluster_id": int(cluster_id), "now": now},
                 countdown=countdown,
             )
 
 
 @app.task
-def check_cluster_checksum(cluster_id: int, now: Optional[datetime] = None):
+def check_cluster_checksum(index: int, cluster_id: int, now: Optional[datetime] = None):
     """
     单个集群的检查任务：
     - 获取集群、实例信息
@@ -47,21 +47,29 @@ def check_cluster_checksum(cluster_id: int, now: Optional[datetime] = None):
     - 写入 db_report 表
     """
     cluster_obj = Cluster.objects.get(pk=cluster_id)
+    logger.info(
+        "begin generate checksum report index = {}, immute_domain = {}".format(index, cluster_obj.immute_domain)
+    )
+
     cluster_task = ChecksumService(cluster_id)
     start_time, end_time, log_start_time, log_end_time = cluster_task.build_time_ranges(now)
     # hits = cluster_task.fetch_bklog_logs(log_start_time, log_end_time)
     # fail_list, not_reported_list = cluster_task.parse_logs_for_instances(hits, start_time, end_time)
     fail_list, not_reported_list = cluster_task.query_checksum_via_drs(cluster_obj.bk_cloud_id, start_time, end_time)
+    logger.info("query {} checksum result finish".format(cluster_obj.immute_domain))
     try:
         report = cluster_task.create_report_and_instances(
             fail_list, not_reported_list, start_time, end_time, log_start_time, log_end_time
         )
         logger.info(
-            "created checksum report %d for cluster %s (fail_count=%d)",
+            "created checksum report %d for index = %d cluster = %s (fail_count = %d)",
             report.id,
+            index,
             cluster_task.cluster.immute_domain,
             len(fail_list),
         )
-    except Exception:
-        logger.exception("failed to persist checksum report for cluster %s", cluster_task.cluster.immute_domain)
+    except Exception:  # noqa
+        logger.exception(
+            "failed to persist checksum report for index = %d cluster = %s", index, cluster_task.cluster.immute_domain
+        )
         return

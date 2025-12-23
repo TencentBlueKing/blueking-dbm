@@ -342,7 +342,7 @@ class MySQLMasterSlaveSwitchFlow(object):
                     bk_biz_id=self.data["bk_biz_id"],
                     ips=[info["master_ip"]["ip"], info["slave_ip"]["ip"]],
                     with_actuator=False,
-                    with_cc_standardize=False,
+                    with_cc_standardize=True,
                     with_collect_sysinfo=False,
                     with_instance_standardize=False,
                     with_bk_plugin=False,
