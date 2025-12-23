@@ -29,7 +29,7 @@
       <TableColumn
         col-key="instance_address"
         fixed="left"
-        :min-width="250"
+        :min-width="200"
         :title="t('实例')">
         <template #default="{ row }: { row: IColumnData }">
           {{ row.instance_address || '--' }}

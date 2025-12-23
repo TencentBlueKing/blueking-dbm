@@ -29,7 +29,7 @@
   <TableColumn
     col-key="version"
     :filter="columnFilter?.['version']"
-    :min-width="180"
+    :min-width="240"
     :title="t('版本')">
     <template #default="{ row }: { row: IColumnData }">
       {{ row.version || '--' }}

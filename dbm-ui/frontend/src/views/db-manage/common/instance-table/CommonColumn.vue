@@ -21,7 +21,7 @@
     col-key="version"
     :filter="columnFilter?.['version']"
     :title="t('版本')"
-    :width="140">
+    :width="240">
     <template #default="{ row }: { row: IRowData }">
       {{ row.version || '--' }}
     </template>
