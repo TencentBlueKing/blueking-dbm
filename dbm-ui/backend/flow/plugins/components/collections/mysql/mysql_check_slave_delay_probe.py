@@ -26,14 +26,16 @@ class MySQLCheckSlaveDelayProbeService(BkJobService):
     执行 show slave status 定时探测,自动通过
     """
 
-    interval = StaticIntervalGenerator(30)
+    interval = StaticIntervalGenerator(120)
 
     def _execute(self, data, parent_data) -> bool:
+        kwargs = data.get_one_of_inputs("kwargs")
+        self.log_info(_("传入参数:{}").format(kwargs))
+
         return True
 
     def _schedule(self, data, parent_data, callback_data=None):
         kwargs = data.get_one_of_inputs("kwargs")
-        self.log_info(_("传入参数:{}").format(kwargs))
         res = DRSApi.rpc(
             {
                 "addresses": ["{}{}{}".format(kwargs["instance_ip"], IP_PORT_DIVIDER, kwargs["instance_port"])],
