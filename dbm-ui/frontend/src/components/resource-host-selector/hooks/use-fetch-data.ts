@@ -1,9 +1,11 @@
 import { reactive } from 'vue';
-import DbResourceModel from '@services/model/db-resource/DbResource';
-import { useStorage } from '@vueuse/core';
 import { useRequest } from 'vue-request';
+
+import DbResourceModel from '@services/model/db-resource/DbResource';
 import { fetchList } from '@services/source/dbresourceResource';
 import type { HostInfo, ListBase } from '@services/types';
+
+import { useStorage } from '@vueuse/core';
 
 export default (defaultParams?: {
   bk_cloud_ids?: string;
@@ -38,9 +40,9 @@ export default (defaultParams?: {
     run({
       ...defaultParams,
       ...params,
+      bk_biz_id: undefined, // 资源池参数用for_biz,把db-table内置的bk_biz_id去掉
       limit: pagination.limit,
       offset: pagination.current - 1,
-      bk_biz_id: undefined, // 资源池参数用for_biz,把db-table内置的bk_biz_id去掉
     });
 
   // 切换每页条数
@@ -57,11 +59,11 @@ export default (defaultParams?: {
   };
 
   return {
-    tableData,
     fetchData,
-    loading,
-    pagination,
     handlePageLimitChange,
     handlePageValueChange,
+    loading,
+    pagination,
+    tableData,
   };
 };

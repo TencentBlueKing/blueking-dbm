@@ -5,11 +5,12 @@ import { useRequest } from 'vue-request';
 import { fetchDeviceClass, fetchMountPoints, getOsTypeList } from '@services/source/dbresourceResource';
 import { fetchDbTypeList, getCommonCities, getInfrasSubzonesByCity } from '@services/source/infras';
 import { getCloudList, searchDeviceClass } from '@services/source/ipchooser';
-import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
 
 import { useGlobalBizs } from '@stores';
 
 import { DeviceClass, deviceClassDisplayMap } from '@common/const';
+
+import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
 
 export default (props: any) => {
   const { t } = useI18n();
