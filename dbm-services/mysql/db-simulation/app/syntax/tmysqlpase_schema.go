@@ -260,7 +260,8 @@ type ParseLineQueryBase struct {
 
 // IsSysDb sql modify target db is sys db
 func (p ParseLineQueryBase) IsSysDb() bool {
-	return lo.Contains([]string{"mysql", "information_schema", "performance_schema", "sys"}, strings.ToLower(p.DbName))
+	return lo.Contains([]string{"mysql", "db_infobase", "test", "information_schema", "performance_schema", "sys"},
+		strings.ToLower(p.DbName))
 }
 
 // UserHost user host
