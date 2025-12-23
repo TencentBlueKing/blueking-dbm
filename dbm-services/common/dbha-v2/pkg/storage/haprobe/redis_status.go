@@ -24,6 +24,8 @@
 
 package haprobe
 
+var _ DBTyper = (*RedisStatus)(nil)
+
 // RedisStatus Redis status
 type RedisStatus struct {
 	// TendisCache status
@@ -43,4 +45,9 @@ type RedisStatus struct {
 
 	// Predixy status
 	PredixyStatus *RedisPredixyStatus `json:"predixy_status,omitempty"`
+}
+
+// GetDbType Return the Db type name, this function name can't be changed.
+func (r RedisStatus) GetDbType() DbType {
+	return DbTypeRedis
 }
