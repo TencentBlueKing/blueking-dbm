@@ -836,7 +836,7 @@ MYSQL_MIGRATE_UPGRADE_DATA = {
                 "cluster_ids": [CLUSTER_ID],
                 "pkg_id": 1,
                 "new_db_module_id": 1,
-                "resource_spec": {"backend": {"spec_id": 444, "count": 2}},
+                "resource_spec": {"backend_group": {"spec_id": 444, "count": 2}},
                 "read_only_slaves": [],  # 添加read_only_slaves字段
             }
         ],
