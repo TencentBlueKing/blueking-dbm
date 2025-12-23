@@ -18,10 +18,11 @@ from backend.db_periodic_task.local_tasks.mysql_checksum.check_checksum import c
 logger = logging.getLogger("celery")
 
 
-@register_periodic_task(run_every=crontab(day_of_week="0,3,4,5,6", hour="3", minute="53"))
+@register_periodic_task(run_every=crontab(day_of_week="0,2,3,4,5,6", hour="3", minute="53"))
 def check_checksum_task():
     """
     巡检前天的校验结果，存入db_report数据库。周六、周日数据库不校验数据。
     """
     logger.info("start mysql checksum check")
     check_mysql_checksum()
+    logger.info("finish mysql checksum check")

@@ -15,7 +15,7 @@ from typing import Dict, List
 from bamboo_engine.builder import SubProcess
 from django.utils.translation import gettext as _
 
-from backend.db_meta.models import Cluster
+# from backend.db_meta.models import Cluster
 from backend.flow.consts import DBA_ROOT_USER
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import DeployPeripheralToolsDepart
@@ -44,10 +44,10 @@ def cc_standardize(
         gen_exporter_cnf(root_id=root_id, data=data, bk_cloud_id=bk_cloud_id, instances=instances),
     ]
 
-    if with_cc_standardize and len(data.get("cluster_ids", [])) > 0:
+    if with_cc_standardize:
         sub_flow_list.append(
             trans_cc_module(
-                root_id=root_id, data=data, bk_cloud_id=bk_cloud_id, cluster_ids=data.get("cluster_ids", [])
+                root_id=root_id, data=data, bk_cloud_id=bk_cloud_id, instances=instances, cluster_ids=cluster_ids
             )
         )
 
@@ -86,18 +86,18 @@ def gen_exporter_cnf(root_id: str, data: Dict, bk_cloud_id: int, instances: List
     return sp.build_sub_process(sub_name=_("生成 exporter 配置"))
 
 
-def trans_cc_module(root_id: str, data: Dict, bk_cloud_id: int, cluster_ids: List[int]) -> SubProcess:
-    acts = []
-    for cluster_id in cluster_ids:
-        cluster_obj = Cluster.objects.get(pk=cluster_id)
-        acts.append(
-            {
-                "act_name": _("CC 模块标准化: {}".format(cluster_obj.immute_domain)),
-                "act_component_code": ClusterStandardizeTransModuleComponent.code,
-                "kwargs": {"cluster_id": cluster_id},
-            }
-        )
+def trans_cc_module(
+    root_id: str, data: Dict, bk_cloud_id: int, instances: List[str], cluster_ids: List[int]
+) -> SubProcess:
 
     sp = SubBuilder(root_id=root_id, data=data)
-    sp.add_parallel_acts(acts_list=acts)
+    sp.add_act(
+        act_name=_("CC 模块标准化"),
+        act_component_code=ClusterStandardizeTransModuleComponent.code,
+        kwargs={
+            "cluster_ids": cluster_ids,
+            "instances": instances,
+        },
+    )
+
     return sp.build_sub_process(sub_name=_("CC 模块标准化"))

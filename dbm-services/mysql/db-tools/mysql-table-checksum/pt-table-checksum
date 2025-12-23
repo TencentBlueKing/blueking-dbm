@@ -9566,6 +9566,11 @@ use strict;
 use warnings FATAL => 'all';
 use English qw(-no_match_vars);
 
+
+# special character in db, table name
+use open qw( :std :encoding(UTF-8) );
+
+
 use Percona::Toolkit;
 use constant PTDEBUG => $ENV{PTDEBUG} || 0;
 
