@@ -18,6 +18,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_services.redis.hot_key_analysis.models import RedisHotKeyRecord
 from backend.db_services.redis.redis_keystat_report.models import ReportRecord
 from backend.flow.consts import StateType
+from backend.flow.engine.bamboo.scene.redis.validate.redis_keystat_validator import RedisKeyStatFlowValidator
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import DisplayInfoSerializer
@@ -27,7 +28,6 @@ from backend.ticket.builders.redis.base import (
     RedisBaseOperateDetailSerializer,
 )
 from backend.ticket.constants import TicketFlowStatus, TicketType
-from backend.flow.engine.bamboo.scene.redis.validate.redis_keystat_validator import RedisKeyStatFlowValidator
 
 
 class RedisKeyStatSerializer(RedisBaseOperateDetailSerializer):

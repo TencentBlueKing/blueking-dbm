@@ -55,3 +55,5 @@ class MetaCheckSubType(StrStructuredEnum):
     TenDBClusterRoutingSpiderNotMatch = EnumField("routing_spider_not_match", _("spider 节点在路由中不存在或多余"))
     TenDBClusterRoutingShardNotMatch = EnumField("routing_shard_not_match", _("后端分片序号不一致"))
     TenDBClusterRoutingTdbctlNotMatch = EnumField("routing_tdbctl_not_match", _("中控节点与元数据不一致"))
+    MachineSpectEmpty = EnumField("machine_spec_empty", _("机器规格为空"))
+    MultiSpecInGroup = EnumField("multi_spec_in_group", _("同组机器存在多个规格"))
