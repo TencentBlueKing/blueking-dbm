@@ -23,7 +23,7 @@ class MySQLDownloadBackupfile(BkJobService):
     """
 
     __need_schedule__ = True
-    interval = StaticIntervalGenerator(60)
+    interval = StaticIntervalGenerator(120)
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")

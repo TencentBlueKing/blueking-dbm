@@ -41,6 +41,12 @@ from backend.flow.plugins.components.collections.common.pause import PauseCompon
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_checksum_ticket import MySQLCheckSumTicketComponent
+from backend.flow.plugins.components.collections.mysql.mysql_checksum_ticket_result_get import (
+    MySQLCheckSumTicketResultComponent,
+)
+from backend.flow.plugins.components.collections.mysql.mysql_checksum_ticket_status import (
+    MySQLCheckSumTicketProbeComponent,
+)
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
@@ -267,7 +273,7 @@ class TenDBRemoteRebalanceFlow(object):
                 )
 
                 sync_data_sub_pipeline.add_act(
-                    act_name=_("同步完毕,写入数据节点的主从关系"),
+                    act_name=_("恢复完毕,写入数据节点的主从关系"),
                     act_component_code=SpiderDBMetaComponent.code,
                     kwargs=asdict(
                         DBMetaOPKwargs(
@@ -280,10 +286,12 @@ class TenDBRemoteRebalanceFlow(object):
                 sync_data_sub_pipeline_list.append(sync_data_sub_pipeline.build_sub_process(sub_name=_("恢复实例数据")))
 
             # 生成checksum信息
+            checksum_pairs = []
             checksum_info = {
                 "bk_biz_id": cluster_class.bk_biz_id,
-                "ticket_type": TicketType.TENDBCLUSTER_CHECKSUM,
+                "ticket_type": TicketType.TENDBCLUSTER_CHECKSUM_CRON,
                 "remark": _("spider主从成对迁移生成checksum单据"),
+                # "ignore_duplication": True,
                 "details": {
                     "data_repair": {"is_repair": True, "mode": "manual"},
                     # timing 执行checksum的时间在流程中生成
@@ -312,6 +320,12 @@ class TenDBRemoteRebalanceFlow(object):
                         "ignore_dbs": [],
                         "table_patterns": ["*"],
                         "ignore_tables": [],
+                    }
+                )
+                checksum_pairs.append(
+                    {
+                        "master": node["master"]["instance"],
+                        "slave": node["new_master"]["instance"],
                     }
                 )
             switch_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
@@ -412,10 +426,11 @@ class TenDBRemoteRebalanceFlow(object):
                     ],
                 },
             )
-            # 添加checksum单据
+            # 新实例同步数据
+            tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=sync_data_sub_pipeline_list)
             if self.data["need_checksum"]:
                 tendb_migrate_pipeline.add_act(
-                    act_name=_("生成checksum单据"),
+                    act_name=MySQLCheckSumTicketComponent.node_name,
                     act_component_code=MySQLCheckSumTicketComponent.code,
                     kwargs=asdict(
                         MysqlCheckSumKwargs(
@@ -426,8 +441,20 @@ class TenDBRemoteRebalanceFlow(object):
                         )
                     ),
                 )
-            # 新实例同步数据
-            tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=sync_data_sub_pipeline_list)
+                tendb_migrate_pipeline.add_act(
+                    act_name=MySQLCheckSumTicketProbeComponent.node_name,
+                    act_component_code=MySQLCheckSumTicketProbeComponent.code,
+                    kwargs={},
+                )
+                tendb_migrate_pipeline.add_act(
+                    act_name=MySQLCheckSumTicketResultComponent.node_name,
+                    act_component_code=MySQLCheckSumTicketResultComponent.code,
+                    kwargs={
+                        "bk_cloud_id": cluster_class.bk_cloud_id,
+                        "checksum_pairs": checksum_pairs,
+                        "cluster_id": cluster_class.id,
+                    },
+                )
             # 同步完安装周边
             tendb_migrate_pipeline.add_sub_pipeline(
                 sub_flow=standardize_mysql_cluster_subflow(
