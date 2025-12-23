@@ -42,45 +42,135 @@
           <BkDropdownMenu>
             <BkDropdownItem @click="handleCopySelectHost">{{ t('已选 IP') }}</BkDropdownItem>
             <BkDropdownItem @click="handleCopyAllHost">
-              {{ `${t('所有 IP')}（${isFilter ? t('筛选后') : t('全量')}）` }}
+              {{ `${t('所有 IP')}（${isSearching ? t('筛选后') : t('全量')}）` }}
             </BkDropdownItem>
           </BkDropdownMenu>
         </template>
       </BkDropdown>
-      <BkDatePicker
-        v-model="dateRange"
-        append-to-body
-        :placeholder="t('请选择转入时间范围')"
-        style="width: 350px; margin-left: auto"
-        type="datetimerange"
-        @change="fetchData" />
-      <DbSearchSelect
-        :data="searchSelectData"
-        :get-menu-list="getMenuList"
-        :model-value="searchValue"
+      <DbQuickSearch
+        v-model="quickSearchValue"
+        :data="quickSearchData"
+        parse-url
         :placeholder="t('请输入或选择条件搜索')"
-        style="width: 500px; margin-left: 8px"
-        unique-select
-        :validate-values="validateSearchValues"
-        value-behavior="need-key"
-        @change="handleSearchValueChange" />
+        style="width: 500px; margin-left: auto"
+        @change="handleQuickSearchChange" />
     </div>
     <DbTable
       ref="tableRef"
-      class="table-box"
-      :columns="tableColumn"
-      :data-source="getMachinePool"
-      primary-key="bk_host_id"
+      :data-source="dataSource"
+      :filter-value="quickSearchValue"
       releate-url-query
-      remote-sort
-      row-class="table-row"
+      row-key="bk_host_id"
       selectable
-      :show-overflow="false"
-      sort-type="ordering"
-      @clear-search="handleClearSearch"
-      @column-filter="columnFilterChange"
-      @column-sort="columnSortChange"
-      @selection="handleSelection" />
+      @filter-change="handleFilterChange"
+      @selection="handleSelection">
+      <TableColumn
+        col-key="ips"
+        :filter="columnFilter?.ips"
+        fixed="left"
+        title="IP"
+        :width="150">
+        <template #default="{ row }: { row: FaultOrRecycleMachineModel }">
+          {{ row.ip || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="agent_status"
+        :title="t('Agent 状态')"
+        :width="110">
+        <template #default="{ row }: { row: FaultOrRecycleMachineModel }">
+          <DbStatus :theme="row.statusInfo.theme">{{ row.statusInfo.text }}</DbStatus>
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="city"
+        :filter="columnFilter?.city"
+        :title="t('地域')"
+        :width="80">
+        <template #default="{ row }: { row: FaultOrRecycleMachineModel }">
+          {{ row.city || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="sub_zone"
+        :filter="columnFilter?.sub_zone"
+        :title="t('园区')"
+        :width="90">
+        <template #default="{ row }: { row: FaultOrRecycleMachineModel }">
+          {{ row.sub_zone || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="rack_id"
+        :filter="columnFilter?.rack_id"
+        :title="t('机架')"
+        :width="80">
+        <template #default="{ row }: { row: FaultOrRecycleMachineModel }">
+          {{ row.rack_id || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="os_name"
+        :filter="columnFilter?.os_name"
+        :title="t('操作系统名称')"
+        :width="150">
+        <template #default="{ row }: { row: FaultOrRecycleMachineModel }">
+          {{ row.os_name || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="device_class"
+        :filter="columnFilter?.device_class"
+        :title="t('机型')"
+        :width="130">
+        <template #default="{ row }: { row: FaultOrRecycleMachineModel }">
+          {{ row.device_class || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="bk_cpu"
+        :title="t('CPU(核)')">
+        <template #default="{ row }: { row: FaultOrRecycleMachineModel }">
+          {{ row.bk_cpu || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="bkMemText"
+        :min-width="90"
+        :title="t('内存(G)')">
+      </TableColumn>
+      <TableColumn
+        col-key="bk_disk"
+        :title="t('磁盘总容量(G)')"
+        :width="110">
+        <template #default="{ row }: { row: FaultOrRecycleMachineModel }">
+          {{ row.bk_disk || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="updateAtDisplay"
+        :filter="columnFilter?.update_at"
+        :title="t('转入时间')"
+        :width="180">
+      </TableColumn>
+      <TableColumn
+        col-key="updater"
+        :filter="columnFilter?.updater"
+        :title="t('转入人')"
+        :width="120">
+        <template #default="{ row }: { row: FaultOrRecycleMachineModel }">
+          {{ row.updater || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="latest_event"
+        :title="t('转入原因')"
+        :width="300">
+        <template #default="{ row }: { row: FaultOrRecycleMachineModel }">
+          <OperationDetail :data="row.latest_event" />
+        </template>
+      </TableColumn>
+    </DbTable>
     <ReviewDataDialog
       v-model:is-show="isReviewDataDialogShow"
       :confirm-handler="handleRecycleSubmit"
@@ -124,221 +214,49 @@
 <script setup lang="tsx">
   import { Message } from 'bkui-vue';
   import BkButton from 'bkui-vue/lib/button';
-  import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
-  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import FaultOrRecycleMachineModel from '@services/model/db-resource/FaultOrRecycleMachine';
   import { getMachinePool, transferMachinePool } from '@services/source/dbdirty';
-  import { fetchDeviceClass } from '@services/source/dbresourceResource';
-
-  import { useLinkQueryColumnSerach } from '@hooks';
 
   import { useGlobalBizs, useSystemEnviron } from '@stores';
 
   import DbStatus from '@components/db-status/index.vue';
+  import DbTable from '@components/db-table/IndexNew.vue';
 
   import OperationDetail from '@views/resource-manage/common/components/operation-detail/Index.vue';
   import ReviewDataDialog from '@views/resource-manage/common/components/review-data-dialog/Index.vue';
+  import { useColumnFilter } from '@views/resource-manage/common/hooks/useColumnFilter';
+  import { useQuickSearch } from '@views/resource-manage/common/hooks/useQuickSearch';
 
-  import {
-    checkDbConsole,
-    execCopy,
-    getMenuListSearch,
-    getSearchSelectorParams,
-    messageSuccess,
-    messageWarn,
-  } from '@utils';
+  import { checkDbConsole, execCopy, messageSuccess, messageWarn } from '@utils';
 
   import BatchImportResourcePool from './components/BatchImportResourcePool/Index.vue';
-  // import ImportResourcePool from './components/ImportResourcePool.vue';
-
-  // const initDate = () => {
-  //   const startTime = dayjs().subtract(7, 'day').format('YYYY-MM-DD HH:mm:ss');
-  //   const endTime = dayjs().format('YYYY-MM-DD HH:mm:ss');
-  //   return [startTime, endTime] as [string, string];
-  // };
 
   const { t } = useI18n();
   const route = useRoute();
   const systemEnvironStore = useSystemEnviron();
   const globalBizsStore = useGlobalBizs();
 
-  const {
-    clearSearchValue,
-    // columnCheckedMap,
-    columnFilterChange,
-    columnSortChange,
-    handleSearchValueChange,
-    searchValue,
-    // sortValue,
-    validateSearchValues,
-  } = useLinkQueryColumnSerach({
-    attrs: [],
-    fetchDataFn: () => fetchData(),
-    searchType: 'resource_record',
-  });
+  const isFaultPool = route.name === 'faultPool';
+  const pool = isFaultPool ? 'fault' : 'recycle';
+  const { isSearching, quickSearchData, quickSearchValue } = useQuickSearch(pool);
+  const { data: columnFilter } = useColumnFilter(pool);
 
   const tableRef = useTemplateRef('tableRef');
 
   const selected = ref<FaultOrRecycleMachineModel[]>([]);
   const isReviewDataDialogShow = ref(false);
-  // const isImportResourcePoolShow = ref(false);
   const isBatchImportResourcePoolShow = ref(false);
   const isBatchConvertToRecyclePool = ref(false);
-  // const curImportData = ref<FaultOrRecycleMachineModel>();
-  const dateRange = ref(['', ''] as [string, string]);
   const hcmRecycle = ref(true);
 
   const defaultBizId = systemEnvironStore.urls.RESOURCE_INDEPENDENT_BIZ;
 
-  const tableColumn = [
-    {
-      field: 'ip',
-      fixed: 'left',
-      label: 'IP',
-      minWidth: 130,
-    },
-    {
-      field: 'agent_status',
-      label: t('Agent状态'),
-      render: ({ data }: { data: FaultOrRecycleMachineModel }) => {
-        const info =
-          data.agent_status === 1
-            ? {
-                text: t('正常'),
-                theme: 'success',
-              }
-            : {
-                text: t('异常'),
-                theme: 'danger',
-              };
-        return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
-      },
-      width: 100,
-    },
-    {
-      field: 'city',
-      label: t('地域'),
-      render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.city || '--',
-      showOverflow: true,
-      width: 80,
-    },
-    {
-      field: 'sub_zone',
-      label: t('园区'),
-      render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.sub_zone || '--',
-      showOverflow: true,
-      width: 90,
-    },
-    {
-      field: 'rack_id',
-      label: t('机架'),
-      render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.rack_id || '--',
-      showOverflow: true,
-      width: 80,
-    },
-    {
-      field: 'os_name',
-      label: t('操作系统名称'),
-      render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.os_name || '--',
-      showOverflow: true,
-      width: 150,
-    },
-    {
-      field: 'device_class',
-      label: t('机型'),
-      minWidth: 130,
-      render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.device_class || '--',
-      showOverflow: true,
-    },
-    {
-      field: 'bk_cpu',
-      label: t('CPU(核)'),
-      render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.bk_cpu || '--',
-    },
-    {
-      field: 'bkMemText',
-      label: t('内存(G)'),
-      minWidth: 90,
-      showOverflow: true,
-    },
-    {
-      field: 'bk_disk',
-      label: t('磁盘总容量(G)'),
-      render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.bk_disk || '--',
-      width: 110,
-    },
-    {
-      field: 'updateAtDisplay',
-      label: t('转入时间'),
-      width: 180,
-    },
-    {
-      field: 'updater',
-      label: t('转入人'),
-      render: ({ data }: { data: FaultOrRecycleMachineModel }) => data.updater || '--',
-      showOverflow: true,
-      width: 120,
-    },
-    {
-      field: 'latest_event',
-      label: t('转入原因'),
-      render: ({ data }: { data: FaultOrRecycleMachineModel }) => <OperationDetail data={data.latest_event} />,
-      width: 300,
-    },
-  ];
-
-  const isFaultPool = computed(() => route.name === 'faultPool');
-  const isFilter = computed(() => searchValue.value.length > 0);
-
-  const searchSelectData = computed(() => [
-    {
-      id: 'ips',
-      multiple: true,
-      name: 'IP',
-    },
-    {
-      id: 'updater',
-      name: t('转入人'),
-    },
-    {
-      id: 'city',
-      name: t('地域'),
-    },
-    {
-      id: 'sub_zone',
-      name: t('园区'),
-    },
-    {
-      id: 'rack_id',
-      name: t('机架'),
-    },
-    {
-      id: 'os_name',
-      name: t('操作系统'),
-    },
-    {
-      children: deviceClassList.value?.results.map((item) => ({
-        id: String(item.id),
-        name: item.device_type,
-      })),
-      id: 'device_class',
-      name: t('机型'),
-    },
-  ]);
-
-  const { data: deviceClassList } = useRequest(fetchDeviceClass);
-
-  watch(searchValue, () => {
-    fetchData();
-  });
-
   watch(
     () => route.name,
     () => {
-      searchValue.value = [];
+      quickSearchValue.value = {};
       selected.value = [];
       nextTick(() => {
         tableRef.value!.clearSelected();
@@ -349,43 +267,25 @@
     },
   );
 
-  const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
-    if (item?.id !== 'operator' && keyword) {
-      return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);
-    }
-
-    // 没有选中过滤标签
-    if (!item) {
-      // 过滤掉已经选过的标签
-      const selected = (searchValue.value || []).map((value) => value.id);
-      return searchSelectData.value.filter((item) => !selected.includes(item.id));
-    }
-
-    // 不需要远层加载
-    return searchSelectData.value.find((set) => set.id === item.id)?.children || [];
-  };
-
-  // 清空搜索条件
-  const handleClearSearch = () => {
-    clearSearchValue();
-    dateRange.value = ['', ''];
-  };
+  const dataSource = (params: ServiceParameters<typeof getMachinePool>) =>
+    getMachinePool({
+      ...params,
+      pool,
+    });
 
   const fetchData = () => {
-    const searchParams = getSearchSelectorParams(searchValue.value);
-    const [beginTime, endTime] = dateRange.value;
-
-    tableRef.value?.fetchData({
-      ...searchParams,
-      // ...sortValue,
-      bk_biz_id: undefined,
-      pool: isFaultPool.value ? 'fault' : 'recycle',
-      update_at__gte: beginTime ? dayjs(beginTime).format('YYYY-MM-DD HH:mm:ss') : '',
-      update_at__lte: endTime ? dayjs(endTime).format('YYYY-MM-DD HH:mm:ss') : '',
-    });
+    tableRef.value!.fetchData(quickSearchValue.value);
   };
 
-  const handleSelection = (_data: FaultOrRecycleMachineModel, list: FaultOrRecycleMachineModel[]) => {
+  const handleQuickSearchChange = () => {
+    fetchData();
+  };
+
+  const handleFilterChange = (filterValue: Record<string, any>) => {
+    quickSearchValue.value = filterValue;
+  };
+
+  const handleSelection = (_key: string[], list: FaultOrRecycleMachineModel[]) => {
     selected.value = list;
   };
 
@@ -428,7 +328,7 @@
   };
 
   const handleCopyAllHost = () => {
-    tableRef.value!.getAllData<FaultOrRecycleMachineModel>().then((data) => {
+    tableRef.value!.fetchAllData<FaultOrRecycleMachineModel>().then((data) => {
       if (data.length < 1) {
         messageWarn(t('暂无数据可复制'));
         return;

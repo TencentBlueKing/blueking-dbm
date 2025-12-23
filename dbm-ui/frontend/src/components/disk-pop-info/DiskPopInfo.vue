@@ -9,24 +9,25 @@
     </span>
     <template #content>
       <div style="padding: 8px 1px">
-        <BkTable
-          border="outer"
+        <PrimaryTable
+          bordered
           :data="tableData"
-          :max-height="250">
-          <BkTableColumn
-            field="mounted_point"
-            :label="t('挂载点')" />
-          <BkTableColumn
-            field="size"
-            :label="t('容量（G）')" />
-          <BkTableColumn
-            field="disk_type"
-            :label="t('磁盘类型')">
-            <template #default="{ data }: { data: UnwrapRef<typeof tableData>[number] }">
-              {{ deviceClassDisplayMap[data.disk_type as DeviceClass] }}
+          :max-height="250"
+          row-key="disk_id">
+          <TableColumn
+            col-key="mounted_point"
+            :title="t('挂载点')" />
+          <TableColumn
+            col-key="size"
+            :title="t('容量（G）')" />
+          <TableColumn
+            col-key="disk_type"
+            :title="t('磁盘类型')">
+            <template #default="{ row }: { row: IRowData }">
+              {{ deviceClassDisplayMap[row.disk_type as DeviceClass] }}
             </template>
-          </BkTableColumn>
-        </BkTable>
+          </TableColumn>
+        </PrimaryTable>
       </div>
     </template>
   </BkPopover>
@@ -43,6 +44,8 @@
     data: DbResourceModel['storage_device'];
     trigger?: 'hover' | 'click' | 'manual';
   }
+
+  type IRowData = UnwrapRef<typeof tableData>[number];
 
   const props = withDefaults(defineProps<Props>(), {
     trigger: 'hover',

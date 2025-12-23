@@ -27,7 +27,10 @@
         {{ data.ticket }}
       </RouterLink>
     </I18nT>
-    <span v-if="data.remark"> ，{{ t('备注') }}：{{ data.remark }} </span>
+    <span v-if="data.remark">
+      <span v-if="onlyRemark">{{ data.remark }}</span>
+      <span v-else>，{{ t('备注') }}：{{ data.remark }}</span>
+    </span>
   </div>
 </template>
 
@@ -66,24 +69,29 @@
   const onlyText = computed(
     () => !([MachineEvents.TO_FAULT, MachineEvents.TO_RECYCLE].includes(props.data.event) && props.data.ticket),
   );
+  const onlyRemark = computed(() =>
+    [MachineEvents.HOST_ATTRIBUTE, MachineEvents.RESOURCE_OWNER].includes(props.data.event),
+  );
 
   const bizName = computed(() => props.data.bk_biz_name || globalBizsStore.bizIdMap.get(props.data.bk_biz_id)?.name);
 
   const machineEventsMap = computed(() => {
     const returnResourceTextMap: Record<string, string> = {
-      [TicketTypes.RECYCLE_OLD_HOST]: t('已下架主机退回资源池再利用'),
-      [TicketTypes.RESOURCE_IMPORT]: t('故障池主机转回资源池'),
+      [TicketTypes.RECYCLE_OLD_HOST]: t('已下架主机检测无异常，自动转入资源池再利用'),
+      [TicketTypes.RESOURCE_IMPORT]: t('从其它池手动退回资源池'),
     };
 
     return {
-      [MachineEvents.APPLY_RESOURCE]: machineEventsDisplayMap[props.data.event],
+      [MachineEvents.APPLY_RESOURCE]: t('从资源池申领主机'),
+      [MachineEvents.HOST_ATTRIBUTE]: '',
       [MachineEvents.IMPORT_RESOURCE]: t('从「n」业务 CMDB空闲机模块导入', { n: bizName.value }),
       [MachineEvents.RECYCLED]: t('回收到「n」业务 CMDB 待回收模块', { n: bizName.value }),
+      [MachineEvents.RESOURCE_OWNER]: '',
       [MachineEvents.RETURN_RESOURCE]:
         returnResourceTextMap[props.data.ticket_type] || machineEventsDisplayMap[props.data.event],
       [MachineEvents.TO_DIRTY]: machineEventsDisplayMap[props.data.event],
-      [MachineEvents.TO_FAULT]: t('从资源池手动转入'),
-      [MachineEvents.TO_RECYCLE]: t('从其他池转入待回收池'),
+      [MachineEvents.TO_FAULT]: t('其它池手动转入故障池'),
+      [MachineEvents.TO_RECYCLE]: t('其它池手动转入待回收池'),
       [MachineEvents.UNDO_IMPORT]: t('退回「n」业务 CMDB 空闲机模块', { n: bizName.value }),
     };
   });
