@@ -48,7 +48,7 @@
   const renderPanels = computed(() => {
     const panels = [
       {
-        label: t('资源流转记录'),
+        label: t('资源操作记录'),
         name: 'resourceFlowRecord',
       },
     ];

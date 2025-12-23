@@ -129,7 +129,7 @@
       @setting-change="handleSettingChange" />
     <BatchSetting
       v-model:is-show="isShowBatchSetting"
-      :data="selectionHostIdList"
+      :selected="selectionList"
       @success="handleRefresh" />
     <BatchCovertToPublic
       v-model:is-show="isShowBatchCovertToPublic"
