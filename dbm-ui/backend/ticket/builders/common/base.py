@@ -177,6 +177,13 @@ class InstanceInfoSerializer(HostInfoSerializer):
     port = serializers.IntegerField(help_text=_("端口号"), required=False)
 
 
+class ResourceSpecBaseSerializer(serializers.Serializer):
+    count = serializers.IntegerField(help_text=_("数量"))
+    spec_id = serializers.IntegerField(help_text=_("规格id"))
+    labels = serializers.ListField(help_text=_("标签id"), child=serializers.CharField(), required=False)
+    label_names = serializers.ListSerializer(help_text=_("标签名称列表"), child=serializers.CharField(), required=False)
+
+
 class TicketBaseValidateSerializerMixin(object):
     # 检查提单集群所在业务是否与当前业务一致
     def validated_biz(self, attrs):
