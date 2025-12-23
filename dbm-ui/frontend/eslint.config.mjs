@@ -106,10 +106,8 @@ export default defineConfigWithVueTs(
             'SLOT',
             'TWO_WAY_BINDING',
             'OTHER_DIRECTIVES',
-            'multiline',
-            'unknown',
-            'shorthand',
             'callback',
+            'unknown',
           ],
           customGroups: [
             {
@@ -152,7 +150,7 @@ export default defineConfigWithVueTs(
               groupName: 'callback',
               elementNamePattern: '^on.+',
             },
-          ]
+          ],
         },
       ],
       'perfectionist/sort-array-includes': 'error',

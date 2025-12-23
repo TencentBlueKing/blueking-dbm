@@ -140,8 +140,5 @@
   "resolutions": {
     "@rolldown/pluginutils": "1.0.0-beta.31",
     "oxlint-tsgolint": "0.0.0-10"
-  },
-  "bin": {
-    "oxlint": "./bin/oxlint.js"
   }
 }
