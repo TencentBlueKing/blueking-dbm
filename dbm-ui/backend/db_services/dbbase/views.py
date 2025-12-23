@@ -457,7 +457,10 @@ class DBBaseViewSet(viewsets.SystemViewSet):
                 storage_roles = storage_queryset.values_list("instance_inner_role", flat=True)
             else:
                 storage_roles = storage_queryset.values_list("instance_role", flat=True)
-            if data.get("cluster_type") == [ClusterType.TenDBCluster.value]:
+            if (
+                data.get("cluster_type") == [ClusterType.TenDBCluster.value]
+                or proxy_query.first().cluster.first().cluster_type == ClusterType.TenDBCluster.value
+            ):
                 proxy_roles = proxy_query.values_list("tendbclusterspiderext__spider_role", flat=True)
             else:
                 proxy_roles = proxy_query.values_list("access_layer", flat=True)
