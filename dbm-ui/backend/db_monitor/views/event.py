@@ -114,7 +114,7 @@ class AlertView(SystemViewSet):
             conditions.append(f'({" OR ".join(cluster_type_conditions)})')
 
         params["query_string"] = " AND ".join(conditions)
-
+        print(params)
         data = BKMonitorV3Api.search_alert(params)
         # 对于维度不包含appid的，暂时标记，无法做到鉴权和屏蔽
         for alert in data["alerts"]:

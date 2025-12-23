@@ -27,3 +27,6 @@ class MsgType(StrStructuredEnum):
 
 # 默认通知：企业微信
 DEFAULT_BIZ_NOTIFY_CONFIG = {status: {MsgType.RTX.value: True} for status in TicketStatus.get_values()}
+
+# 单据值守默认通知方式: 企业微信
+DEFAULT_BIZ_AI_NOTIFY_CONFIG = {"AI_TASK_GUARDIAN": {MsgType.RTX.value: True}}
