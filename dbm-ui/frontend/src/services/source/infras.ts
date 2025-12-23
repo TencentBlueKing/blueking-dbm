@@ -53,7 +53,7 @@ export function listLogicCities() {
 /**
  * 查询城市园区信息
  */
-export function getInfrasSubzonesByCity(params: { city_code: string }) {
+export function getInfrasSubzonesByCity(params: { city_code?: string }) {
   return http.get<
     {
       bk_city: number;

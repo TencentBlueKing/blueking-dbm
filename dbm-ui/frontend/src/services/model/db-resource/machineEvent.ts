@@ -1,8 +1,8 @@
+import TicketModel from '@services/model/ticket/ticket';
+
 import { MachineEvents, machineEventsDisplayMap } from '@common/const/machineEvents';
 
 import { utcDisplayTime } from '@utils';
-
-// import { t } from '@locales/index';
 
 export default class MachineEvent {
   bk_biz_id: number;
@@ -19,7 +19,8 @@ export default class MachineEvent {
   id: number;
   ip: string;
   remark: string;
-  ticket?: number;
+  ticket?: number; // 单据ID
+  ticket_status: keyof typeof TicketModel.statusTextMap;
   ticket_type: string;
   ticket_type_display: string;
   to: string;
@@ -37,6 +38,7 @@ export default class MachineEvent {
     this.ticket_type = payload.ticket_type;
     this.event = payload.event;
     this.id = payload.id;
+    this.ticket_status = payload.ticket_status;
     this.ip = payload.ip;
     this.ticket = payload.ticket;
     this.ticket_type_display = payload.ticket_type_display;
@@ -46,8 +48,16 @@ export default class MachineEvent {
     this.remark = payload.remark;
   }
 
+  get createAtDisplay() {
+    return utcDisplayTime(this.create_at);
+  }
+
   get eventDisplay() {
     return machineEventsDisplayMap[this.event];
+  }
+
+  get statusText() {
+    return TicketModel.statusTextMap[this.ticket_status];
   }
 
   get updateAtDisplay() {
