@@ -25,6 +25,7 @@
 package admin
 
 import (
+	"dbm-services/common/dbha-v2/internal/admin/cmds"
 	"dbm-services/common/dbha-v2/internal/admin/config"
 	"dbm-services/common/dbha-v2/internal/admin/migrator"
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -72,4 +73,39 @@ var MigrateCmd = &cobra.Command{
 			logger.Error("migrate dbhadata failed, %v", err)
 		}
 	},
+}
+
+// HealthCmd is used to show the health information of this process.
+var HealthCmd = &cobra.Command{
+	Use:   "health",
+	Short: "Show the health information of this process",
+	RunE:  cmds.HealthCmdRunE,
+}
+
+// StartCmd is used to start this process in background (daemon mode).
+var StartCmd = &cobra.Command{
+	Use:   "start",
+	Short: "Start this process.",
+	RunE:  cmds.StartCmdRunE,
+}
+
+// StopCmd is used to stop this process.
+var StopCmd = &cobra.Command{
+	Use:   "stop",
+	Short: "Stop this process.",
+	RunE:  cmds.StopCmdRunE,
+}
+
+// RestartCmd is used to restart this process.
+var RestartCmd = &cobra.Command{
+	Use:   "restart",
+	Short: "Restart this process.",
+	RunE:  cmds.RestartCmdRunE,
+}
+
+// ReloadCmd is used to reload this process.
+var ReloadCmd = &cobra.Command{
+	Use:   "reload",
+	Short: "Reload this process.",
+	RunE:  cmds.ReloadCmdRunE,
 }
