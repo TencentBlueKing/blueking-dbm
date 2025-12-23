@@ -64,7 +64,7 @@
           </span>
         </BkCheckbox>
       </BkFormItem>
-      <BackupSource v-model="formData.backup_source" />
+      <BackupSource v-model="formData.backupSource" />
       <BkFormItem
         :label="t('数据校验')"
         property="need_checksum">
@@ -189,7 +189,7 @@
   });
 
   const defaultData = () => ({
-    backup_source: BackupSourceType.REMOTE,
+    backupSource: BackupSourceType.REMOTE,
     is_check_process: true,
     need_checksum: true,
     payload: createTickePayload(),
@@ -305,7 +305,7 @@
     if (result) {
       createTicketRun({
         details: {
-          backup_source: formData.backup_source,
+          backup_source: formData.backupSource,
           infos: formData.tableData.map((item) => ({
             cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
             display_info: {
