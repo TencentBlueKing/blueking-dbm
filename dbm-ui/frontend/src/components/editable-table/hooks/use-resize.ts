@@ -1,11 +1,11 @@
 import _ from 'lodash';
-import { onBeforeUnmount, onMounted, type Ref, ref, watch } from 'vue';
+import { onBeforeUnmount, onMounted, type Ref, ref, type ShallowRef, watch } from 'vue';
 
 import type { IContext as IColumnContext } from '../Column.vue';
 
 export default function (
-  tableRef: Ref<HTMLElement | undefined>,
-  tableColumnResizeRef: Ref<HTMLElement | undefined>,
+  tableRef: Readonly<ShallowRef<HTMLElement | null>>,
+  tableColumnResizeRef: Ref<HTMLElement | null>,
   columnList: Ref<IColumnContext[]>,
 ) {
   let dragable = false;

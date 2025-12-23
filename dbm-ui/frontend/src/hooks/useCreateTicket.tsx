@@ -10,7 +10,13 @@ import { type TicketTypes } from '@common/const';
 
 import { messageError } from '@utils';
 
-export function useCreateTicket<T>(ticketType: TicketTypes, options?: { onSuccess?: (ticketId: number) => void }) {
+export function useCreateTicket<T>(
+  ticketType: TicketTypes,
+  options?: {
+    onError?: (errors: { errors: string; field: string; row_key: string }[]) => void;
+    onSuccess?: (ticketId: number) => void;
+  },
+) {
   const loading = ref(false);
   const router = useRouter();
   const route = useRoute();
@@ -139,7 +145,11 @@ export function useCreateTicket<T>(ticketType: TicketTypes, options?: { onSucces
           });
         });
       } else if (errorMessage.length > 0) {
-        eventBus.emit('db-toolbox-error', errorMessage.map((item) => item.errors).join(','));
+        if (options?.onError) {
+          options.onError(errorMessage || []);
+        } else {
+          eventBus.emit('db-toolbox-error', errorMessage.map((item) => item.errors).join(','));
+        }
       } else {
         eventBus.emit('db-toolbox-error', message);
       }
