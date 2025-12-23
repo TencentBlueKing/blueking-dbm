@@ -16,97 +16,104 @@
           <BkDropdownMenu>
             <BkDropdownItem @click="handleCopySelectHost">{{ t('已选 IP') }}</BkDropdownItem>
             <BkDropdownItem @click="handleCopyAllHost">
-              {{ `${t('所有 IP')}（${isFilter ? t('筛选后') : t('全量')}）` }}
+              {{ `${t('所有 IP')}（${isSearching ? t('筛选后') : t('全量')}）` }}
             </BkDropdownItem>
           </BkDropdownMenu>
         </template>
       </BkDropdown>
-      <DbSearchSelect
-        :data="searchSelectData"
-        :get-menu-list="getMenuList"
-        :model-value="searchValue"
+      <DbQuickSearch
+        v-model="quickSearchValue"
+        :data="quickSearchData"
+        parse-url
         :placeholder="t('请输入或选择条件搜索')"
         style="width: 500px; margin-left: auto"
-        unique-select
-        :validate-values="validateSearchValues"
-        value-behavior="need-key"
-        @change="handleSearchValueChange" />
+        @change="handleQuickSearchChange" />
     </div>
     <DbTable
       ref="tableRef"
       :data-source="dataSource"
-      primary-key="bk_host_id"
+      :filter-value="quickSearchValue"
       releate-url-query
+      row-key="bk_host_id"
       selectable
-      :show-settings="false"
-      @clear-search="handleClearSearch"
-      @column-filter="columnFilterChange"
-      @column-sort="columnSortChange"
+      @filter-change="handleFilterChange"
       @selection="handleSelection">
-      <BkTableColumn
-        field="ip"
+      <TableColumn
+        col-key="ips"
+        :filter="columnFilter?.ips"
         fixed="left"
-        label="IP"
+        title="IP"
         :width="150">
-      </BkTableColumn>
-      <BkTableColumn
-        field="poolDispaly"
-        :label="t('所属池')"
-        :width="130">
-      </BkTableColumn>
-      <BkTableColumn
-        field="city"
-        :label="t('地域')">
-      </BkTableColumn>
-      <BkTableColumn
-        field="sub_zone"
-        :label="t('园区')">
-      </BkTableColumn>
-      <BkTableColumn
-        field="rack_id"
-        :label="t('机架')">
-      </BkTableColumn>
-      <BkTableColumn
-        field="os_name"
-        :label="t('操作系统')"
-        show-overflow="tooltip"
-        :width="180">
-      </BkTableColumn>
-      <BkTableColumn
-        field="device_class"
-        :label="t('机型')">
-      </BkTableColumn>
-      <BkTableColumn
-        field="bk_cpu"
-        :label="t('CPU (核)')"
-        :width="80">
-      </BkTableColumn>
-      <BkTableColumn
-        field="bkMemText"
-        :label="t('内存')"
-        show-overflow
-        :width="80">
-        <template #default="{ data }: { data: FaultOrRecycleMachineModel }">
-          {{ data.bkMemText || '0 M' }}
+        <template #default="{ row }: { row: FaultOrRecycleMachineModel }">
+          {{ row.ip || '--' }}
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="bk_disk"
-        :label="t('磁盘 (G)')">
-      </BkTableColumn>
-      <BkTableColumn
-        field=""
-        :label="t('操作')"
+      </TableColumn>
+      <TableColumn
+        col-key="pool"
+        :filter="columnFilter?.pool"
+        :title="t('所属池')"
+        :width="130">
+        <template #default="{ row }: { row: FaultOrRecycleMachineModel }">
+          {{ row.poolDispaly }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="city"
+        :filter="columnFilter?.city"
+        :title="t('地域')">
+      </TableColumn>
+      <TableColumn
+        col-key="sub_zone"
+        :filter="columnFilter?.sub_zone"
+        :title="t('园区')">
+      </TableColumn>
+      <TableColumn
+        col-key="rack_id"
+        :filter="columnFilter?.rack_id"
+        :title="t('机架')">
+      </TableColumn>
+      <TableColumn
+        col-key="os_name"
+        :filter="columnFilter?.os_name"
+        :title="t('操作系统')"
+        :width="180">
+      </TableColumn>
+      <TableColumn
+        col-key="device_class"
+        :filter="columnFilter?.device_class"
+        :title="t('机型')">
+      </TableColumn>
+      <TableColumn
+        col-key="bk_cpu"
+        :title="t('CPU (核)')"
+        :width="80">
+      </TableColumn>
+      <TableColumn
+        col-key="bkMemText"
+        show-overflow
+        :title="t('内存')"
+        :width="80">
+        <template #default="{ row }: { row: FaultOrRecycleMachineModel }">
+          {{ row.bkMemText || '0 M' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="bk_disk"
+        :title="t('磁盘 (G)')">
+      </TableColumn>
+      <TableColumn
+        col-key="operations"
+        :title="t('操作')"
         :width="100">
-        <template #default="{ data }: { data: FaultOrRecycleMachineModel }">
+        <template #default="{ row }: { row: FaultOrRecycleMachineModel }">
           <BkButton
             text
             theme="primary"
-            @click="handleRecord(data)">
+            @click="handleShowRecord(row)">
             {{ t('操作记录') }}
           </BkButton>
         </template>
-      </BkTableColumn>
+      </TableColumn>
     </DbTable>
     <Record
       v-if="currentRow"
@@ -117,36 +124,23 @@
 
 <script setup lang="tsx">
   import BkButton from 'bkui-vue/lib/button';
-  import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import FaultOrRecycleMachineModel from '@services/model/db-resource/FaultOrRecycleMachine';
   import { getMachinePool } from '@services/source/dbdirty';
-  import { fetchDeviceClass } from '@services/source/dbresourceResource';
 
-  import { useLinkQueryColumnSerach } from '@hooks';
+  import DbTable from '@components/db-table/IndexNew.vue';
 
-  import { execCopy, getMenuListSearch, getSearchSelectorParams, messageWarn } from '@utils';
+  import { useColumnFilter } from '@views/resource-manage/common/hooks/useColumnFilter';
+  import { useQuickSearch } from '@views/resource-manage/common/hooks/useQuickSearch';
+
+  import { execCopy, messageWarn } from '@utils';
 
   import Record from './components/Record.vue';
 
   const { t } = useI18n();
-
-  const {
-    clearSearchValue,
-    // columnCheckedMap,
-    columnFilterChange,
-    columnSortChange,
-    handleSearchValueChange,
-    searchValue,
-    // sortValue,
-    validateSearchValues,
-  } = useLinkQueryColumnSerach({
-    attrs: [],
-    fetchDataFn: () => fetchData(),
-    searchType: 'resource_record',
-  });
+  const { isSearching, quickSearchData, quickSearchValue } = useQuickSearch();
+  const { data: columnFilter } = useColumnFilter();
 
   const tableRef = useTemplateRef('tableRef');
 
@@ -155,63 +149,6 @@
   const selected = shallowRef<FaultOrRecycleMachineModel[]>([]);
   const currentRow = shallowRef<FaultOrRecycleMachineModel>();
 
-  const isFilter = computed(() => searchValue.value.length > 0);
-
-  const searchSelectData = computed(() => [
-    {
-      id: 'ips',
-      multiple: true,
-      name: 'IP',
-    },
-    {
-      id: 'city',
-      name: t('地域'),
-    },
-    {
-      id: 'sub_zone',
-      name: t('园区'),
-    },
-    {
-      id: 'rack_id',
-      name: t('机架'),
-    },
-    {
-      id: 'os_name',
-      name: t('操作系统'),
-    },
-    {
-      children: deviceClassList.value?.results.map((item) => ({
-        id: String(item.id),
-        name: item.device_type,
-      })),
-      id: 'device_class',
-      name: t('机型'),
-    },
-  ]);
-
-  const { data: deviceClassList } = useRequest(fetchDeviceClass);
-
-  const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
-    if (item?.id !== 'operator' && keyword) {
-      return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);
-    }
-
-    // 没有选中过滤标签
-    if (!item) {
-      // 过滤掉已经选过的标签
-      const selected = (searchValue.value || []).map((value) => value.id);
-      return searchSelectData.value.filter((item) => !selected.includes(item.id));
-    }
-
-    // 不需要远层加载
-    return searchSelectData.value.find((set) => set.id === item.id)?.children || [];
-  };
-
-  // 清空搜索条件
-  const handleClearSearch = () => {
-    clearSearchValue();
-  };
-
   const dataSource = (params: ServiceParameters<typeof getMachinePool>) =>
     getMachinePool({
       ...params,
@@ -219,8 +156,15 @@
     });
 
   const fetchData = () => {
-    const searchParams = getSearchSelectorParams(searchValue.value);
-    tableRef.value?.fetchData(searchParams);
+    tableRef.value!.fetchData(quickSearchValue.value);
+  };
+
+  const handleQuickSearchChange = () => {
+    fetchData();
+  };
+
+  const handleFilterChange = (filterValue: Record<string, any>) => {
+    quickSearchValue.value = filterValue;
   };
 
   const handleSelection = (key: any, list: Record<number, FaultOrRecycleMachineModel>[]) => {
@@ -228,7 +172,7 @@
   };
 
   const handleCopyAllHost = () => {
-    tableRef.value!.getAllData<FaultOrRecycleMachineModel>().then((data) => {
+    tableRef.value!.fetchAllData<FaultOrRecycleMachineModel>().then((data) => {
       if (data.length < 1) {
         messageWarn(t('暂无数据可复制'));
         return;
@@ -243,7 +187,7 @@
     execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
   };
 
-  const handleRecord = (data: FaultOrRecycleMachineModel) => {
+  const handleShowRecord = (data: FaultOrRecycleMachineModel) => {
     isRecordShow.value = true;
     currentRow.value = data;
   };

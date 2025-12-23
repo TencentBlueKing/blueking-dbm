@@ -5,8 +5,10 @@ import { t } from '@locales/index';
  */
 export const enum MachineEvents {
   APPLY_RESOURCE = 'apply_resource',
+  HOST_ATTRIBUTE = 'host_attribute',
   IMPORT_RESOURCE = 'import_resource',
   RECYCLED = 'recycled',
+  RESOURCE_OWNER = 'resource_owner',
   RETURN_RESOURCE = 'return_resource',
   TO_DIRTY = 'to_dirty',
   TO_FAULT = 'to_fault',
@@ -15,9 +17,11 @@ export const enum MachineEvents {
 }
 
 export const machineEventsDisplayMap = {
-  [MachineEvents.APPLY_RESOURCE]: t('申请资源'),
+  [MachineEvents.APPLY_RESOURCE]: t('资源池申领主机'),
+  [MachineEvents.HOST_ATTRIBUTE]: t('修改主机属性'),
   [MachineEvents.IMPORT_RESOURCE]: t('导入资源池'),
   [MachineEvents.RECYCLED]: t('主机回收'),
+  [MachineEvents.RESOURCE_OWNER]: t('修改资源归属'),
   [MachineEvents.RETURN_RESOURCE]: t('退回资源池'),
   [MachineEvents.TO_DIRTY]: t('转入污点池'),
   [MachineEvents.TO_FAULT]: t('转入故障池'),

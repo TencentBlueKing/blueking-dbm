@@ -90,6 +90,18 @@ export default class FaultOrRecycleMachine {
     return FaultOrRecycleMachine.poolTextMap[this.pool] || '--';
   }
 
+  get statusInfo() {
+    return this.agent_status === 1
+      ? {
+          text: t('正常'),
+          theme: 'success',
+        }
+      : {
+          text: t('异常'),
+          theme: 'danger',
+        };
+  }
+
   get updateAtDisplay() {
     return utcDisplayTime(this.update_at) || '--';
   }
