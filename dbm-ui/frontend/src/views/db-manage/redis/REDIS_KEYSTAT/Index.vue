@@ -31,14 +31,15 @@
         class="mt-16 mb-20"
         :model="formData.tableData">
         <EditableRow
-          v-for="(item, index) in formData.tableData"
-          :key="index">
+          v-for="item in formData.tableData"
+          :key="item.row_key">
           <InstanceColumn
             v-model="item.instance"
             :selected="selected"
             :tab-list-config="tabListConfig"
             @batch-edit="handleInstanceBatchEdit" />
           <EditableColumn
+            id-mark="master_domain"
             :label="t('所属集群')"
             :min-width="150"
             readonly>
@@ -47,6 +48,7 @@
               :placeholder="t('自动生成')" />
           </EditableColumn>
           <EditableColumn
+            id-mark="cluster_type_name"
             :label="t('架构版本')"
             :min-width="150"
             readonly>
@@ -193,6 +195,7 @@
       },
       data.instance,
     ),
+    row_key: random(),
     stat_info: {
       key_num: 0,
       memory_total: 0,
@@ -216,7 +219,11 @@
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     bk_cloud_id: number;
     infos: Redis.KeyStat['infos'];
-  }>(TicketTypes.REDIS_KEYSTAT);
+  }>(TicketTypes.REDIS_KEYSTAT, {
+    onError(errors) {
+      editableTableRef.value!.viewError(errors);
+    },
+  });
 
   const handleInstanceBatchEdit = (list: RedisInstanceModel[]) => {
     const dataList = list.reduce<IRowData[]>((acc, item) => {

@@ -16,6 +16,7 @@
     :append-rules="rules"
     field="instance.instance_address"
     fixed="left"
+    id-mark="ins"
     :label="t('目标实例')"
     :loading="loading"
     :min-width="350"
