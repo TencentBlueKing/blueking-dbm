@@ -2,13 +2,13 @@ BuiltInRule:
   # 表名规范检查
   TableNameSpecification:
     keyword: true
-    speicalChar: true
+    specialChar: true
   # 库名规范检查
-  ShemaNamespecification:
+  SchemaNameSpecification:
     # 关键字检查
     keyword: true
     # 特殊字符检查
-    speicalChar: true
+    specialChar: true
     # 不允许包含系统库检查
     sysDbName: true
 

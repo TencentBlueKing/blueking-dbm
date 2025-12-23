@@ -30,6 +30,7 @@ import (
 	"github.com/samber/lo"
 
 	"dbm-services/common/go-pubpkg/bkrepo"
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-simulation/app"
 	"dbm-services/mysql/db-simulation/app/config"
@@ -160,10 +161,19 @@ func (tf *TmysqlParseFile) CheckConflictUsedb(version string) (err error) {
 		if len(executeObject.DbNames) == 0 {
 			continue
 		}
+		targetIsSysDb := false
+		sysdbs := cmutil.GetGcsSystemDatabases(version)
+		for _, db := range executeObject.DbNames {
+			if lo.Contains(sysdbs, db) {
+				targetIsSysDb = true
+				break
+			}
+		}
 		// 如果输入只有一个inputdb,且输入的db 不是通配
+		skipCheckConflict := false
 		if len(executeObject.DbNames) == 1 && !strings.Contains(executeObject.DbNames[0], "%") &&
 			!strings.Contains(executeObject.DbNames[0], "?") {
-			continue
+			skipCheckConflict = true
 		}
 		var buf []byte
 		for _, sqlFile := range executeObject.SQLFiles {
@@ -198,15 +208,28 @@ func (tf *TmysqlParseFile) CheckConflictUsedb(version string) (err error) {
 					logger.Error("json unmarshal line:%s failed %s", string(bs), err.Error())
 					return err
 				}
-				if res.Command == SQLTypeUseDb {
-					tf.result[sqlFile].BanWarnings = append(tf.result[sqlFile].BanWarnings, RiskInfo{
-						Line:    int64(res.QueryId),
-						Sqltext: res.QueryString,
-						WarnInfo: fmt.Sprintf("表单中输入的变更对象%v可能存在多个,但是SQL文件显示的使用use %s,可能会造成SQL文件重复执行,请正确理解表单语义,修改后在提交",
-							executeObject.DbNames,
-							res.DbName),
-					})
+				logger.Info("make debug.. ")
+				if targetIsSysDb {
+					if res.Command != SQLTypeUseDb {
+						tf.result[sqlFile].BanWarnings = append(tf.result[sqlFile].BanWarnings, RiskInfo{
+							Line:     int64(res.QueryId),
+							Sqltext:  res.QueryString,
+							WarnInfo: fmt.Sprintf("不允许直在系统库%v,操作", res.DbName),
+						})
+					}
 					return nil
+				}
+				if !skipCheckConflict {
+					if res.Command == SQLTypeUseDb {
+						tf.result[sqlFile].BanWarnings = append(tf.result[sqlFile].BanWarnings, RiskInfo{
+							Line:    int64(res.QueryId),
+							Sqltext: res.QueryString,
+							WarnInfo: fmt.Sprintf("表单中输入的变更对象%v可能存在多个,但是SQL文件显示的使用use %s,可能会造成SQL文件重复执行,请正确理解表单语义,修改后在提交",
+								executeObject.DbNames,
+								res.DbName),
+						})
+						return nil
+					}
 				}
 			}
 		}
@@ -639,7 +662,7 @@ func (t *TmysqlParse) AnalyzeOne(inputfileName, mysqlVersion, dbtype string) (er
 			checkResult.BanWarnings = append(checkResult.BanWarnings, RiskInfo{
 				Line:     int64(res.QueryId),
 				Sqltext:  res.QueryString,
-				WarnInfo: fmt.Sprintf("disable operating sys db: %s", res.DbName),
+				WarnInfo: fmt.Sprintf("禁止操作系统库: %s", res.DbName),
 			})
 			t.mu.Unlock()
 			continue
