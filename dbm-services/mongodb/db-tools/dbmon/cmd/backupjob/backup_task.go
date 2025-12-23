@@ -88,7 +88,7 @@ func (task *BackupTask) Do(option *BackupTaskOption, logger *zap.Logger) error {
 	cmdLine := cb.GetCmdLine2(false)
 	logger.Info(fmt.Sprintf("cmdLine: %s", cmdLine))
 
-	o, err := cb.Run(time.Hour * 24)
+	o, err := cb.Run(time.Hour * 24 * 2)
 	logger.Info(
 		fmt.Sprintf("Exec %s cost %0.1f Seconds, stdout: %s, stderr %s",
 			cmdLine,

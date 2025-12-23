@@ -1,3 +1,5 @@
+// login.js
+// --nodb 'var addr='%s:%s';var user='%s';var pwd='%s';%s', host, port, user, pass, scriptContent 
 var connect_success = false;
 var connect_error = '';
 var mongo_type = '';
@@ -6,10 +8,9 @@ var state = -1;
 var db ;
 var auth_success = 0;
 try {
-    db = connect(addr);
+    db = connect(addr + "/admin");
     connect_success = true;
     const mi = db.isMaster();
-    db = db.getSiblingDB('admin');
     // if mongosh, auth_failed will throw error
     try {
         auth_success = db.auth(user, pwd); // auth_success is 1 or 0
