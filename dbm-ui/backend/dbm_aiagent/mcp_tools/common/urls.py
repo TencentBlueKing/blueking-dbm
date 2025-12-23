@@ -15,10 +15,12 @@ from backend.dbm_aiagent.mcp_tools.common.views import (
     DBMetaQueryMcpToolsViewSet,
     ResourceParamQueryMcpToolsViewSet,
 )
+from backend.dbm_aiagent.mcp_tools.common.views.alram_query import MonitorQueryMcpToolsViewSet
 
 routers = DefaultRouter(trailing_slash=True)
 
 routers.register(r"", DBMetaQueryMcpToolsViewSet, basename="mcp-dbmeta-query")
 routers.register(r"", BillQueryMcpToolsViewSet, basename="mcp-bill-query")
 routers.register(r"", ResourceParamQueryMcpToolsViewSet, basename="mcp-resource-query")
+routers.register(r"", MonitorQueryMcpToolsViewSet, basename="mcp-monitor-query")
 urlpatterns = routers.urls
