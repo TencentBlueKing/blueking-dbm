@@ -274,7 +274,7 @@ class RedisListRetrieveResource(query.ListRetrieveResource, RedisExportQueryReso
             master_slave_pairs.sort(key=lambda pair: (pair[0]["ip"], pair[0]["port"]))
 
             # 解包排序后的配对
-            sorted_masters, sorted_slaves = zip(*master_slave_pairs) if master_slave_pairs else ([], [])
+            sorted_masters, sorted_slaves = zip(*master_slave_pairs)
 
             # 转换回列表格式
             master_list = list(sorted_masters)
