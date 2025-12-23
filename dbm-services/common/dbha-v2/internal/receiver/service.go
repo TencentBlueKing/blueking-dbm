@@ -134,7 +134,7 @@ func (s *Service) Close() {
 	for _, outputer := range s.sinkers {
 		wg.Add(1)
 		go func(out sink.Sinker) {
-			wg.Done()
+			defer wg.Done()
 			out.Close()
 		}(outputer)
 	}
