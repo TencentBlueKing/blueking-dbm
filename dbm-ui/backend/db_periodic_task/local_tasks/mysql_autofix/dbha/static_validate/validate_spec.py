@@ -8,8 +8,22 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from .validate_event_fields import validate_event_fields
-from .validate_event_wait_timeout import validate_event_wait_timeout
-from .validate_machine_share import validate_machine_share
-from .validate_spec import validate_spec
-from .validate_target import validate_target
+from typing import List
+
+from backend.db_meta.models import Machine
+from backend.db_monitor.models import MySQLDBHAEvent
+
+
+def validate_spec(events: List[MySQLDBHAEvent]) -> List[MySQLDBHAEvent]:
+    """
+    检查机器规格
+    """
+    res = []
+    for ev in events:
+        machine_obj = Machine.objects.get(bk_cloud_id=ev.bk_cloud_id, ip=ev.ip)
+        if machine_obj.spec_id <= 0:
+            ev.failed_validate_it("spec missing")
+        else:
+            res.append(ev)
+
+    return res

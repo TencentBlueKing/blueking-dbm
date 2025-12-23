@@ -25,6 +25,9 @@ from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_to
     cluster_replicate_out,
     cluster_slave_as_receiver,
 )
+from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.tendbha.spec import (
+    cluster_machine_spec,
+)
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.tendbha.status import (
     _cluster_proxy_count,
     cluster_instance_status,
@@ -91,5 +94,7 @@ def health_check(cluster_id: int) -> List[CheckResponse]:
     res.extend(cluster_master_as_ejector(cluster_obj))
     res.extend(cluster_slave_as_receiver(cluster_obj))
     res.extend(cluster_replicate_out(cluster_obj))
+    # spec check
+    res.extend(cluster_machine_spec(cluster_obj))
 
     return res
