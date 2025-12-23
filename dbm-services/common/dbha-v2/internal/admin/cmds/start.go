@@ -22,37 +22,58 @@
  * SOFTWARE.
  */
 
-package main
+package cmds
 
 import (
-	"dbm-services/common/dbha-v2/internal/admin"
-	"dbm-services/common/dbha-v2/pkg/logger"
+	"errors"
+	"fmt"
+	"os"
+
+	"dbm-services/common/dbha-v2/internal/admin/config"
+	"dbm-services/common/dbha-v2/pkg/process"
 
 	"github.com/spf13/cobra"
 )
 
-func main() {
-	rootCmd := &cobra.Command{
-		Use:          "admin",
-		Short:        "DBHA Admin Server",
-		SilenceUsage: true,
-		RunE:         admin.Run,
+func StartCmdRunE(cmd *cobra.Command, args []string) error {
+	pid, err := process.ReadPid(config.Cfg.PidFile)
+	if err == nil {
+		alive, aliveErr := process.IsAliveWithProcessName(pid, process.NameAdmin)
+		if aliveErr == nil && alive {
+			_, printErr := fmt.Fprintf(cmd.OutOrStdout(), "%s is already running, pid:%d\n", process.NameAdmin, pid)
+			if printErr != nil {
+				return printErr
+			}
+			return nil
+		}
+	} else if !errors.Is(err, process.ErrPidFileNotExist) &&
+		!errors.Is(err, process.ErrInvalidFile) {
+		return err
 	}
 
-	rootCmd.PersistentFlags().StringVarP(&admin.ConfigFilePath, "config", "c", "./etc/admin.yaml", "")
-	rootCmd.CompletionOptions.DisableDefaultCmd = true
-
-	rootCmd.AddCommand(admin.VersionCmd)
-	rootCmd.AddCommand(admin.MigrateCmd)
-	rootCmd.AddCommand(admin.HealthCmd)
-	rootCmd.AddCommand(admin.StartCmd)
-	rootCmd.AddCommand(admin.StopCmd)
-	rootCmd.AddCommand(admin.RestartCmd)
-	rootCmd.AddCommand(admin.ReloadCmd)
-
-	if err := rootCmd.Execute(); err != nil {
-		logger.Error("failed to start admin server. errmsg:%s", err.Error())
-		return
+	exePath, err := os.Executable()
+	if err != nil {
+		return err
 	}
 
+	rootCmd := cmd.Root()
+	configPath, err := rootCmd.PersistentFlags().GetString("config")
+	if err != nil {
+		return err
+	}
+
+	var childArgs []string
+	if configPath != "" {
+		childArgs = append(childArgs, "-c", configPath)
+	}
+
+	_, err = process.StartDaemon(process.DaemonOptions{
+		Executable: exePath,
+		Args:       childArgs,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

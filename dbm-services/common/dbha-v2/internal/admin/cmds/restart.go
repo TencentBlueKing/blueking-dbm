@@ -22,37 +22,13 @@
  * SOFTWARE.
  */
 
-package main
+package cmds
 
-import (
-	"dbm-services/common/dbha-v2/internal/admin"
-	"dbm-services/common/dbha-v2/pkg/logger"
+import "github.com/spf13/cobra"
 
-	"github.com/spf13/cobra"
-)
-
-func main() {
-	rootCmd := &cobra.Command{
-		Use:          "admin",
-		Short:        "DBHA Admin Server",
-		SilenceUsage: true,
-		RunE:         admin.Run,
+func RestartCmdRunE(cmd *cobra.Command, args []string) error {
+	if err := StopCmdRunE(cmd, nil); err != nil {
+		return err
 	}
-
-	rootCmd.PersistentFlags().StringVarP(&admin.ConfigFilePath, "config", "c", "./etc/admin.yaml", "")
-	rootCmd.CompletionOptions.DisableDefaultCmd = true
-
-	rootCmd.AddCommand(admin.VersionCmd)
-	rootCmd.AddCommand(admin.MigrateCmd)
-	rootCmd.AddCommand(admin.HealthCmd)
-	rootCmd.AddCommand(admin.StartCmd)
-	rootCmd.AddCommand(admin.StopCmd)
-	rootCmd.AddCommand(admin.RestartCmd)
-	rootCmd.AddCommand(admin.ReloadCmd)
-
-	if err := rootCmd.Execute(); err != nil {
-		logger.Error("failed to start admin server. errmsg:%s", err.Error())
-		return
-	}
-
+	return StartCmdRunE(cmd, nil)
 }
