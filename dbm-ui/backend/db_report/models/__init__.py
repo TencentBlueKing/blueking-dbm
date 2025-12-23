@@ -27,6 +27,7 @@ from .mysqlbackup_check_report import MysqlBackupCheckReport
 from .redis_check_report import RedisCheckReport
 from .redis_rollback_exercise_report import RedisRollbackExerciseReport
 from .redisbackup_check_report import RedisBackupCheckReport
+from .task_record import TaskRecord
 from .sqlserver_check_report import (
     SqlserverCheckAppSettingReport,
     SqlserverCheckJobSyncReport,

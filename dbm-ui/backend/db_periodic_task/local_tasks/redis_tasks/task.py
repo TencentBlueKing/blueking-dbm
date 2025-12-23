@@ -8,14 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import logging
-
 from celery.schedules import crontab
 
-from backend.db_periodic_task.local_tasks.redis_tasks.check_exporter import CheckRedisUpMetricTask
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
-
-logger = logging.getLogger("celery")
+from backend.db_periodic_task.local_tasks.redis_tasks.check_exporter import CheckRedisUpMetricTask
+from backend.db_report.repo.task_record_repo import TaskRecordRepo
 
 """
     register_periodic_task 注册新的周期任务注意
@@ -24,9 +21,12 @@ logger = logging.getLogger("celery")
 """
 
 
-@register_periodic_task(run_every=crontab(minute=1, hour=7))
+@register_periodic_task(run_every=crontab(minute=1, hour=8))
 def redis_exporter_check_task():
     """
+    redis exporter巡检任务
+
+    检查项包括:
     1. redis_exporter_down: redis_exporter的up指标值为0, 则认为异常
     2. redis_exporter_duplicate: 重复的节点. 本集群的节点上报了相同的指标
     3. redis_exporter_redundant: 多余的节点. 存在集群外的节点上报本集群的指标
@@ -36,4 +36,10 @@ def redis_exporter_check_task():
     7. proxy_exporter_redundant: 多余的proxy节点. 存在集群外的proxy节点上报本集群的指标
     8. proxy_exporter_redundant2: 多余的metric. 本集群的proxy节点上报了其他集群的指标
     """
-    CheckRedisUpMetricTask().start()
+    repo = TaskRecordRepo()
+    repo.execute_task_with_record(
+        db_type="redis",
+        task_name="redis_exporter_check_task",
+        task_type="exporter",
+        check_task_instance=CheckRedisUpMetricTask(),
+    )
