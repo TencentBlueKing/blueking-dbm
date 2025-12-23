@@ -13,8 +13,14 @@ from pathlib import Path
 from backend.components import DBConfigApi
 
 
-def sync_dbconfig():
+def sync_dbconfig(namespace=None, conf_type=None, conf_file=None):
     """Sync dbconfig
+
+    Args:
+        namespace: 指定要同步的 namespace，为空则同步所有 namespace
+        conf_type: 指定要同步的 conf_type，为空则同步所有 conf_type
+        conf_file: 指定要同步的 conf_file，为空则同步所有 conf_file
+
     {
         "namespace": "tendbha",
         "conf_type": "dbconf",
@@ -56,18 +62,30 @@ def sync_dbconfig():
         if not namespace_dir.is_dir() or namespace_dir.name.startswith("_"):
             continue
 
-        namespace = namespace_dir.name
+        current_namespace = namespace_dir.name
+
+        # 如果指定了 namespace，则只处理匹配的 namespace
+        if namespace and current_namespace != namespace:
+            continue
 
         # Traverse all conf_type directories under namespace
         for conf_type_dir in namespace_dir.iterdir():
             if not conf_type_dir.is_dir() or conf_type_dir.name.startswith("_"):
                 continue
 
-            conf_type = conf_type_dir.name
+            current_conf_type = conf_type_dir.name
+
+            # 如果指定了 conf_type，则只处理匹配的 conf_type
+            if conf_type and current_conf_type != conf_type:
+                continue
 
             # Traverse all JSON configuration files under conf_type
             for conf_file_path in conf_type_dir.glob("*.json"):
-                conf_file = conf_file_path.stem  # Remove .json suffix
+                current_conf_file = conf_file_path.stem  # Remove .json suffix
+
+                # 如果指定了 conf_file，则只处理匹配的 conf_file
+                if conf_file and current_conf_file != conf_file:
+                    continue
 
                 try:
                     # Read JSON file content
@@ -90,9 +108,9 @@ def sync_dbconfig():
 
                         # Construct request parameters
                         params = {
-                            "namespace": namespace,
-                            "conf_type": conf_type,
-                            "conf_file": conf_file,
+                            "namespace": current_namespace,
+                            "conf_type": current_conf_type,
+                            "conf_file": current_conf_file,
                             "conf_names": batch_conf_names,
                         }
 
@@ -103,7 +121,7 @@ def sync_dbconfig():
                             # Check return result
                             if result.get("code") != 0:
                                 error_msg = (
-                                    f"Sync failed: {namespace}/{conf_type}/{conf_file} "
+                                    f"Sync failed: {current_namespace}/{current_conf_type}/{current_conf_file} "
                                     f"(batch {i // batch_size + 1}): "
                                     f"code={result.get('code')}, message={result.get('message')}"
                                 )
@@ -111,12 +129,12 @@ def sync_dbconfig():
                                 raise Exception(error_msg)
 
                             print(
-                                f"Sync success: {namespace}/{conf_type}/{conf_file} "
+                                f"Sync success: {current_namespace}/{current_conf_type}/{current_conf_file} "
                                 f"(batch {i // batch_size + 1}, total {len(batch_conf_names)} items)"
                             )
                         except Exception as e:
                             print(
-                                f"Sync failed: {namespace}/{conf_type}/{conf_file} "
+                                f"Sync failed: {current_namespace}/{current_conf_type}/{current_conf_file} "
                                 f"(batch {i // batch_size + 1}): {str(e)}"
                             )
                             raise
