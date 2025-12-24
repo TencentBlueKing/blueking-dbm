@@ -22,54 +22,16 @@
  * SOFTWARE.
  */
 
-package analysis
+package cmds
 
 import (
-	"dbm-services/common/dbha-v2/internal/analysis/cmds"
-	"dbm-services/common/dbha-v2/pkg/version"
-
 	"github.com/spf13/cobra"
 )
 
-var VersionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Print Version Information",
-	Run: func(cmd *cobra.Command, args []string) {
-		version.Print("DBHA Analysis Server")
-	},
-}
+func RestartCmdRunE(cmd *cobra.Command, args []string) error {
+	if err := StopCmdRunE(cmd, args); err != nil {
+		return err
+	}
 
-// HealthCmd is used to show the health information of this process.
-var HealthCmd = &cobra.Command{
-	Use:   "health",
-	Short: "Show the health information of this process",
-	RunE:  cmds.HealthCmdRunE,
-}
-
-// StartCmd is used to start this process in background (daemon mode).
-var StartCmd = &cobra.Command{
-	Use:   "start",
-	Short: "Start this process.",
-	RunE:  cmds.StartCmdRunE,
-}
-
-// StopCmd is used to stop this process.
-var StopCmd = &cobra.Command{
-	Use:   "stop",
-	Short: "Stop this process.",
-	RunE:  cmds.StopCmdRunE,
-}
-
-// RestartCmd is used to restart this process.
-var RestartCmd = &cobra.Command{
-	Use:   "restart",
-	Short: "Restart this process.",
-	RunE:  cmds.RestartCmdRunE,
-}
-
-// ReloadCmd is used to reload this process.
-var ReloadCmd = &cobra.Command{
-	Use:   "reload",
-	Short: "Reload this process.",
-	RunE:  cmds.ReloadCmdRunE,
+	return StartCmdRunE(cmd, args)
 }

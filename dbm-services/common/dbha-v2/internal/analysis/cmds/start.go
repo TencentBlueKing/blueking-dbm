@@ -22,54 +22,58 @@
  * SOFTWARE.
  */
 
-package analysis
+package cmds
 
 import (
-	"dbm-services/common/dbha-v2/internal/analysis/cmds"
-	"dbm-services/common/dbha-v2/pkg/version"
+	"errors"
+	"fmt"
+	"os"
+
+	"dbm-services/common/dbha-v2/internal/analysis/config"
+	"dbm-services/common/dbha-v2/pkg/process"
 
 	"github.com/spf13/cobra"
 )
 
-var VersionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Print Version Information",
-	Run: func(cmd *cobra.Command, args []string) {
-		version.Print("DBHA Analysis Server")
-	},
-}
+func StartCmdRunE(cmd *cobra.Command, args []string) error {
+	pid, err := process.ReadPid(config.Cfg.PidFile)
+	if err == nil {
+		alive, aliveErr := process.IsAliveWithProcessName(pid, process.NameAnalysis)
+		if aliveErr == nil && alive {
+			_, printErr := fmt.Fprintf(cmd.OutOrStdout(), "%s is already running, pid:%d\n", process.NameAnalysis, pid)
+			if printErr != nil {
+				return printErr
+			}
+			return nil
+		}
+	} else if !errors.Is(err, process.ErrPidFileNotExist) &&
+		!errors.Is(err, process.ErrInvalidFile) {
+		return err
+	}
 
-// HealthCmd is used to show the health information of this process.
-var HealthCmd = &cobra.Command{
-	Use:   "health",
-	Short: "Show the health information of this process",
-	RunE:  cmds.HealthCmdRunE,
-}
+	exePath, err := os.Executable()
+	if err != nil {
+		return err
+	}
 
-// StartCmd is used to start this process in background (daemon mode).
-var StartCmd = &cobra.Command{
-	Use:   "start",
-	Short: "Start this process.",
-	RunE:  cmds.StartCmdRunE,
-}
+	rootCmd := cmd.Root()
+	configPath, err := rootCmd.PersistentFlags().GetString("config")
+	if err != nil {
+		return err
+	}
 
-// StopCmd is used to stop this process.
-var StopCmd = &cobra.Command{
-	Use:   "stop",
-	Short: "Stop this process.",
-	RunE:  cmds.StopCmdRunE,
-}
+	var childArgs []string
+	if configPath != "" {
+		childArgs = append(childArgs, "-c", configPath)
+	}
 
-// RestartCmd is used to restart this process.
-var RestartCmd = &cobra.Command{
-	Use:   "restart",
-	Short: "Restart this process.",
-	RunE:  cmds.RestartCmdRunE,
-}
+	_, err = process.StartDaemon(process.DaemonOptions{
+		Executable: exePath,
+		Args:       childArgs,
+	})
+	if err != nil {
+		return err
+	}
 
-// ReloadCmd is used to reload this process.
-var ReloadCmd = &cobra.Command{
-	Use:   "reload",
-	Short: "Reload this process.",
-	RunE:  cmds.ReloadCmdRunE,
+	return nil
 }

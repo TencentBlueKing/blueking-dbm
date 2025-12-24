@@ -41,7 +41,13 @@ func main() {
 
 	rootCmd.PersistentFlags().StringVarP(&analysis.ConfigFilePath, "config", "c", "./etc/analysis.yaml", "")
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
+
 	rootCmd.AddCommand(analysis.VersionCmd)
+	rootCmd.AddCommand(analysis.HealthCmd)
+	rootCmd.AddCommand(analysis.StartCmd)
+	rootCmd.AddCommand(analysis.StopCmd)
+	rootCmd.AddCommand(analysis.RestartCmd)
+	rootCmd.AddCommand(analysis.ReloadCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		logger.Error("failed to start analysis server. errmsg:%s", err.Error())
