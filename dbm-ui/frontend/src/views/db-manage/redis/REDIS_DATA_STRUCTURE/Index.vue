@@ -58,7 +58,7 @@
               v-model="item.cluster.cluster_spec.spec_id"
               :cluster-type="DBTypes.REDIS"
               field="cluster.cluster_spec.spec_id"
-              label="规格需求"
+              :label="t('规格需求')"
               required
               :tooltips="t('默认使用部署时选定的规格，将从资源池自动匹配机器')" />
             <CountColumn
