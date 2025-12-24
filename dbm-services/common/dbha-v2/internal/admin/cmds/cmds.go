@@ -25,37 +25,51 @@
 package cmds
 
 import (
+	"encoding/json"
+	"fmt"
+
 	"dbm-services/common/dbha-v2/internal/admin/config"
 	"dbm-services/common/dbha-v2/pkg/process"
 
 	"github.com/spf13/cobra"
 )
 
-var Flags = process.DefaultCmdFlags()
-
-func cmdConfig() process.CmdConfig {
-	return process.CmdConfig{
-		PidFile:  config.Cfg.PidFile,
-		ProcName: process.NameAdmin,
-	}
-}
+var (
+	ForceStop     bool
+	StopTimeout   int
+	JsonFormatter bool
+)
 
 func StartCmdRunE(cmd *cobra.Command, args []string) error {
-	return process.StartCmdRunE(cmdConfig())(cmd, args)
+	return process.StartCmdRunE(cmd, args, config.Cfg.PidFile, process.NameAdmin)
 }
 
 func StopCmdRunE(cmd *cobra.Command, args []string) error {
-	return process.StopCmdRunE(cmdConfig(), Flags)(cmd, args)
+	return process.StopCmdRunE(cmd, args, config.Cfg.PidFile, process.NameAdmin, StopTimeout, ForceStop)
 }
 
 func RestartCmdRunE(cmd *cobra.Command, args []string) error {
-	return process.RestartCmdRunE(cmdConfig(), Flags)(cmd, args)
+	return process.RestartCmdRunE(cmd, args, config.Cfg.PidFile, process.NameAdmin, StopTimeout, ForceStop)
 }
 
 func ReloadCmdRunE(cmd *cobra.Command, args []string) error {
-	return process.ReloadCmdRunE(cmdConfig())(cmd, args)
+	return process.ReloadCmdRunE(cmd, args, config.Cfg.PidFile, process.NameAdmin, StopTimeout, ForceStop)
 }
 
-func HealthCmdRunE(cmd *cobra.Command, args []string) error {
-	return process.HealthCmdRunE(cmdConfig(), Flags)(cmd, args)
+func HealthCmdRunE(cmd *cobra.Command, _ []string) error {
+	baseHealth := process.GetBaseHealthInfo(config.Cfg.PidFile, process.NameAdmin)
+
+	if !JsonFormatter {
+		process.PrintBaseHealth(cmd.OutOrStdout(), baseHealth)
+		// TODO: print admin-specific health info here
+		return nil
+	}
+
+	// TODO: add admin-specific fields to JSON output
+	data, err := json.Marshal(baseHealth)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintln(cmd.OutOrStdout(), string(data))
+	return nil
 }
