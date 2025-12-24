@@ -52,7 +52,6 @@
                 )
               "
               field="target_spec_id"
-              label="目标规格"
               :machine-type="MachineTypes.MONGODB"
               required
               selectable

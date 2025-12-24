@@ -20,50 +20,14 @@
       :get-copy-value="
         (item: RowData) => item.cluster_ids.map((clusterId) => ticketDetails.details.clusters[clusterId].immute_domain)
       "
-      :min-width="200"
-      :title="t('目标集群')">
+      :title="t('目标集群')"
+      :width="350">
       <template #default="{ row }: { row: RowData }">
         <p
           v-for="item in row.cluster_ids"
           :key="item">
           {{ ticketDetails.details.clusters[item].immute_domain }}
         </p>
-      </template>
-    </TicketInfoTableColumn>
-    <TicketInfoTableColumn
-      col-key="old_master_slave"
-      :min-width="150"
-      :title="t('主从主机')">
-      <template #default="{ row }: { row: RowData }">
-        <div>
-          <BkTag
-            size="small"
-            theme="info">
-            M
-          </BkTag>
-          {{ row.display_info.old_master_slave[0] }}
-        </div>
-        <div>
-          <BkTag
-            size="small"
-            theme="success">
-            S
-          </BkTag>
-          {{ row.display_info.old_master_slave[1] }}
-        </div>
-      </template>
-    </TicketInfoTableColumn>
-    <TicketInfoTableColumn
-      col-key="read_only_slaves"
-      :min-width="150"
-      :title="t('只读主机')">
-      <template #default="{ row }: { row: RowData }">
-        <div
-          v-for="host in row.read_only_slaves"
-          :key="host.old_slave.bk_host_id">
-          {{ host.old_slave.ip }}
-        </div>
-        <span v-if="row.read_only_slaves.length < 1"> -- </span>
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
@@ -82,7 +46,7 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="target_version"
-      :min-width="200"
+      :min-width="300"
       :title="t('目标版本')">
       <template #default="{ row }: { row: RowData }">
         <VersionContent
@@ -95,34 +59,48 @@
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
-      col-key="new_master"
-      :min-width="150"
-      :title="t('新主从主机')">
-      <template #default="{ row }: { row: RowData }">
-        <div>
-          <BkTag
-            size="small"
-            theme="info">
-            M
-          </BkTag>
-          {{ row.resource_spec.new_master.hosts[0].ip }}
-        </div>
-        <div>
-          <BkTag
-            size="small"
-            theme="success">
-            S
-          </BkTag>
-          {{ row.resource_spec.new_slave.hosts[0].ip }}
-        </div>
+      col-key="spec_id"
+      :min-width="120"
+      :title="t('规格')">
+      <template #default="{ row: data }: { row: RowData }">
+        {{ ticketDetails.details.specs?.[data.resource_spec.backend_group.spec_id]?.name || '--' }}
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
-      col-key="new_read_only_slaves"
+      col-key="label_names"
       :min-width="200"
-      :title="t('新只读主机')">
+      :title="t('资源标签')">
+      <template #default="{ row: data }: { row: RowData }">
+        <template v-if="data.resource_spec.backend_group?.label_names?.length">
+          <BkTag
+            v-for="item in data.resource_spec.backend_group.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="read_only_slaves"
+      :min-width="400"
+      :title="t('只读主机（旧 -> 新）')">
       <template #default="{ row }: { row: RowData }">
-        {{ row.read_only_slaves.length ? row.read_only_slaves.map((item) => item.new_slave.ip).join(',') : '--' }}
+        <div
+          v-for="item in row.read_only_slaves"
+          :key="item.old_slave.ip">
+          <div class="origin-readonly-host">
+            <div class="readonly-host-info origin-readonly-host-info">
+              {{ item.old_slave.ip }}（{{ item.old_slave.bk_sub_zone || '--' }}）
+            </div>
+            <div class="origin-readonly-host-arrow">-></div>
+            <div class="readonly-host-info">{{ item.new_slave.ip }}（{{ item.new_slave.bk_sub_zone || '--' }}）</div>
+          </div>
+        </div>
       </template>
     </TicketInfoTableColumn>
   </TicketInfoTable>
@@ -169,3 +147,25 @@
     remote: t('远程备份'),
   };
 </script>
+<style lang="less" scoped>
+  .origin-readonly-host {
+    display: flex;
+    line-height: 28px;
+
+    .readonly-host-info {
+      white-space: nowrap;
+      text-align: end;
+      font-size: 12px;
+      padding: 0 8px;
+    }
+
+    .origin-readonly-host-info {
+      color: #979ba5;
+      background: #fafbfd;
+    }
+
+    .origin-readonly-host-arrow {
+      width: 15px;
+    }
+  }
+</style>
