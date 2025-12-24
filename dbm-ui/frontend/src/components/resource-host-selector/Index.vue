@@ -37,11 +37,10 @@
                 v-test="{ type: 'checkbox', value: 'resourceHostSelectorRow' }"
                 class="host-list-checkbox"
                 :disabled="
-                  !!disableHostMethod(row) ||
-                  (!isInfinity && selectedNum === limit && !Boolean(rowSelectMemo[row.bk_host_id]))
+                  !!disableHostMethod(row) || (!isInfinity && selectedNum === limit && !Boolean(rowSelectMemo[row.ip]))
                 "
                 label
-                :model-value="Boolean(rowSelectMemo[row.bk_host_id])"
+                :model-value="Boolean(rowSelectMemo[row.ip])"
                 @change="() => handleSelectChange(row)" />
               <span class="ml-20">{{ row.ip }}</span>
             </template>
@@ -204,7 +203,7 @@
     tableData,
   } = useFetchData(props.params);
   const currentPanelTab = ref('host');
-  const rowSelectMemo = shallowRef<Record<number, DbResourceModel>>({});
+  const rowSelectMemo = shallowRef<Record<string, DbResourceModel>>({});
 
   const selectedNum = computed(() => Object.keys(rowSelectMemo.value).length);
   const isInfinity = computed(() => props.limit === -1);
@@ -233,7 +232,7 @@
     rowSelectMemo.value = modelValue.value.reduce(
       (result, item) =>
         Object.assign(result, {
-          [item.bk_host_id]: item,
+          [item.ip]: item,
         }),
       {},
     );
@@ -241,10 +240,10 @@
 
   const handleSelectChange = (data: DbResourceModel) => {
     const latestSelectMemo = { ...rowSelectMemo.value };
-    if (latestSelectMemo[data.bk_host_id]) {
-      delete latestSelectMemo[data.bk_host_id];
+    if (latestSelectMemo[data.ip]) {
+      delete latestSelectMemo[data.ip];
     } else {
-      latestSelectMemo[data.bk_host_id] = data;
+      latestSelectMemo[data.ip] = data;
     }
     rowSelectMemo.value = latestSelectMemo;
   };

@@ -66,7 +66,7 @@
               v-model="item.host.spec_config.id"
               :cluster-type="DBTypes.REDIS"
               field="host.spec_config"
-              label="规格需求"
+              :label="t('规格需求')"
               required
               :tooltips="t('默认使用部署方案中选定的规格，将从资源池自动匹配机器')" />
             <ResourceTagColumn
