@@ -360,11 +360,12 @@ class RedisBackendScaleFlow(object):
         if new_info["target_group_num"] > new_info["current_group_num"]:
             # 扩容
             sub_pipeline = redis_rebalance_slots_4_expansion(self.root_id, self.data, None, new_info)
-        elif new_info["target_group_num"] < new_info["current_group_num"]:
+        elif new_info["target_group_num"] <= new_info["current_group_num"]:
             # 缩容
             new_info["is_delete_node"] = True
             new_info["shutdown_master_hosts"] = info.get("shutdown_master_hosts", [])
             new_info["shutdown_slave_hosts"] = info.get("shutdown_slave_hosts", [])
+            new_info["ins_num"] = int(info["shard_num"] / info["group_num"])
             sub_pipeline = redis_migrate_slots_4_contraction(self.root_id, self.data, None, new_info)
         return sub_pipeline
 

@@ -84,22 +84,18 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
     # 演练场景，跳过请求检查
     if not shutdown_param.get("skip_connections_check", False):
         sub_pipeline.add_act(
-            act_name=_("请求检查-{}").format(exec_ip),
+            act_name=_("请求检查-{}-{}").format(exec_ip, shutdown_param["ports"]),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(act_kwargs),
         )
 
     # 停监控
-    act_kwargs.cluster["servers"] = [
-        {
-            "bk_biz_id": str(act_kwargs.cluster["bk_biz_id"]),
-            "bk_cloud_id": act_kwargs.bk_cloud_id,
-            # "domain": act_kwargs.cluster["immute_domain"],
-        }
-    ]
-    act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
+    act_kwargs.cluster["ip"] = exec_ip
+    act_kwargs.cluster["bk_biz_id"] = str(act_kwargs.cluster["bk_biz_id"])
+    act_kwargs.cluster["bk_cloud_id"] = act_kwargs.bk_cloud_id
+    act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install_list_new.__name__
     sub_pipeline.add_act(
-        act_name=_("卸载监控-{}").format(exec_ip),
+        act_name=_("重装监控-{}").format(exec_ip),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
     )
@@ -111,7 +107,7 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
     act_kwargs.cluster["bk_cloud_id"] = act_kwargs.bk_cloud_id
     act_kwargs.cluster["created_by"] = ticket_data["created_by"]
     sub_pipeline.add_act(
-        act_name=_("清理元数据-{}").format(exec_ip),
+        act_name=_("清理元数据-{}-{}").format(exec_ip, shutdown_param["ports"]),
         act_component_code=RedisDBMetaComponent.code,
         kwargs=asdict(act_kwargs),
     )
@@ -128,7 +124,7 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
             ]
             act_kwargs.get_redis_payload_func = RedisActPayload.redis_cluster_forget_4_scene.__name__
             sub_pipeline.add_act(
-                act_name=_("踢掉旧节点-{}").format(exec_ip),
+                act_name=_("踢掉旧节点-{}-{}").format(exec_ip, shutdown_param["ports"]),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(act_kwargs),
             )
@@ -141,7 +137,7 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
     act_kwargs.cluster["ignore_kill"] = shutdown_param.get("force_shutdown", False)
     act_kwargs.get_redis_payload_func = RedisActPayload.redis_killconn_4_scene.__name__
     sub_pipeline.add_act(
-        act_name=_("干掉非活跃链接-{}").format(exec_ip),
+        act_name=_("干掉非活跃链接-{}-{}").format(exec_ip, shutdown_param["ports"]),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
     )
@@ -153,7 +149,7 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
     act_kwargs.cluster["shutdown_ports"] = shutdown_param["ports"]
     act_kwargs.get_redis_payload_func = RedisActPayload.redis_shutdown_4_scene.__name__
     sub_pipeline.add_act(
-        act_name=_("下架实例-{}").format(exec_ip),
+        act_name=_("下架实例-{}-{}").format(exec_ip, shutdown_param["ports"]),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
     )

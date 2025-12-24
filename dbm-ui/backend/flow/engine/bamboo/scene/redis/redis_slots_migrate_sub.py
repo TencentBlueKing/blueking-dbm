@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging.config
+from collections import defaultdict
 from copy import deepcopy
 from dataclasses import asdict
 from typing import Dict
@@ -145,6 +146,7 @@ def redis_migrate_slots_4_contraction(root_id: str, flow_data: dict, act_kwargs:
              "target_group_num": 1,
              "shutdown_master_hosts": [1.1.1.1,2.2.2.2],
              "shutdown_slave_hosts": [1.1.1.1,2.2.2.2],
+             "ins_num": 1, # 保留下来的机器每个机器上应该有多少个ins
              }
          ]
      }
@@ -171,8 +173,8 @@ def redis_migrate_slots_4_contraction(root_id: str, flow_data: dict, act_kwargs:
         raise NotImplementedError("is_delete_node is not True")
     # 获取缩容组数，确保输入合法
     contraction_group = info["current_group_num"] - info["target_group_num"]
-    if contraction_group < 1:
-        raise Exception(_("缩容组数: {}小于1 ,pelase check!".format(contraction_group)))
+    # if contraction_group < 1:
+    #     raise Exception(_("缩容组数: {}小于1 ,pelase check!".format(contraction_group)))
     # 获取缩容实例（master)
     to_shutdown_master_inst = []
     to_shutdown_master_ips = set()
@@ -196,10 +198,33 @@ def redis_migrate_slots_4_contraction(root_id: str, flow_data: dict, act_kwargs:
             to_shutdown_master_ips.add(ip)
             for port in cluster_info["master_ports"][ip]:
                 to_shutdown_master_inst.append(f"{ip}:{port}")
-    logger.info(_("+===+++++===缩容节点 contraction_instance: {} +++++===++++ ".format(to_shutdown_master_inst)))
-    # 待下架的ip_ports
-    shutdown_ip_ports = {}
+
+    logger.info(_("+===+++++===下架机器的缩容节点 contraction_instance: {} +++++===++++ ".format(to_shutdown_master_inst)))
+    shutdown_ip_ports = defaultdict(list)
     shutdown_slave_ips = []
+    # 计算保留下来的机器是否也要减少实例，追加to_shutdown_master_inst
+    if info.get("ins_num", 0) != 0:
+        retain_inst_num = info["ins_num"]
+        logger.info(_("ins_num:{}".format(retain_inst_num)))
+        to_retain_master_ips = []
+        for st_m_ip, ports in cluster_info["master_ports"].items():
+            if st_m_ip in to_shutdown_master_ips:
+                continue
+            to_retain_master_ips.append(st_m_ip)
+            sorted(ports)
+            for st_m_port in ports[retain_inst_num:]:
+                st_m_inst = f"{st_m_ip}:{st_m_port}"
+                to_shutdown_master_inst.append(st_m_inst)
+
+                # 保留机器上的部分实例
+                st_s_inst = cluster_info["master_ins_to_slave_ins"][st_m_inst]
+                st_s_ip, st_s_port = str.split(st_s_inst, IP_PORT_DIVIDER)
+                shutdown_ip_ports[st_m_ip].append(int(st_m_port))
+                shutdown_ip_ports[st_s_ip].append(int(st_s_port))
+    shutdown_ip_ports = dict(shutdown_ip_ports)
+    logger.info(_("+===+++++===所有缩容节点 contraction_instance: {} +++++===++++ ".format(to_shutdown_master_inst)))
+
+    # 回收机器上的所有实例
     for master_ip in to_shutdown_master_ips:
         shutdown_ip_ports[master_ip] = cluster_info["master_ports"][master_ip]
         slave_ip = cluster_info["master_ip_to_slave_ip"][master_ip]
@@ -259,22 +284,23 @@ def redis_migrate_slots_4_contraction(root_id: str, flow_data: dict, act_kwargs:
     dbmeta_kwargs = deepcopy(act_kwargs)
     dbmeta_kwargs.cluster["meta_func_name"] = RedisDBMeta.tendisplus_remove_instance_pair.__name__
     dbmeta_kwargs.cluster["params"] = {"cluster_id": info["cluster_id"], "replication_pairs": []}
-    for master_ip in to_shutdown_master_ips:
-        slave_ip = cluster_info["master_ip_to_slave_ip"][master_ip]
-        master_ports = cluster_info["master_ports"][master_ip]
-        for port in master_ports:
-            dbmeta_kwargs.cluster["params"]["replication_pairs"].append(
-                {
-                    "master": {
-                        "ip": master_ip,
-                        "port": port,
-                    },
-                    "slave": {
-                        "ip": slave_ip,
-                        "port": port,
-                    },
-                }
-            )
+    # 改成从to_shutdown_master_inst里获取，保证保留机器上的实例下架也能获取到
+    for st_m_inst in to_shutdown_master_inst:
+        st_s_inst = cluster_info["master_ins_to_slave_ins"][st_m_inst]
+        st_m_ip, st_m_port = str.split(st_m_inst, IP_PORT_DIVIDER)
+        st_s_ip, st_s_port = str.split(st_s_inst, IP_PORT_DIVIDER)
+        dbmeta_kwargs.cluster["params"]["replication_pairs"].append(
+            {
+                "master": {
+                    "ip": st_m_ip,
+                    "port": st_m_port,
+                },
+                "slave": {
+                    "ip": st_s_ip,
+                    "port": st_m_port,
+                },
+            }
+        )
     sub_pipeline.add_act(
         act_name=_("集群关系清理"),
         act_component_code=RedisDBMetaComponent.code,
