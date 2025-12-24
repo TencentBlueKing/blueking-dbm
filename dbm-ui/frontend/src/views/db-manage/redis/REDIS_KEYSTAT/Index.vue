@@ -226,7 +226,7 @@
   });
 
   const handleInstanceBatchEdit = (list: RedisInstanceModel[]) => {
-    const dataList = list.reduce<IRowData[]>((acc, item) => {
+    const dataList = list.reduce<ReturnType<typeof createTableRow>[]>((acc, item) => {
       if (!selectedMap.value[item.instance_address]) {
         acc.push(
           createTableRow({
