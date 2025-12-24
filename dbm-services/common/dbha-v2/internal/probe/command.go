@@ -74,13 +74,3 @@ var ReloadCmd = &cobra.Command{
 	Short: "Reload this process.",
 	RunE:  cmds.ReloadCmdRunE,
 }
-
-func init() {
-	HealthCmd.Flags().BoolVarP(&cmds.JsonFormatter, "json", "j", false, "")
-
-	StopCmd.Flags().BoolVarP(&cmds.ForceStop, "force", "f", false, "Force stop the probe process.")
-	StopCmd.Flags().IntVarP(&cmds.StopTimeout, "timeout", "t", 5, "Timeout in seconds for stopping the probe process")
-
-	RestartCmd.Flags().BoolVarP(&cmds.ForceStop, "force", "f", false, "Force stop the probe process")
-	RestartCmd.Flags().IntVarP(&cmds.StopTimeout, "timeout", "t", 5, "Timeout in seconds for stopping the probe process")
-}
