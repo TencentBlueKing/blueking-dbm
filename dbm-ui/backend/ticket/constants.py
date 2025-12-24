@@ -456,6 +456,7 @@ class TicketType(StrStructuredEnum):
     SQLSERVER_BUILD_DB_SYNC = TicketEnumField("SQLSERVER_BUILD_DB_SYNC", _("SQLServer DB建立同步"), register_iam=False)
     SQLSERVER_MODIFY_STATUS = TicketEnumField("SQLSERVER_MODIFY_STATUS", _("SQLServer 修改故障实例状态"),
                                               register_iam=False)
+    SQLSERVER_DATA_EXPORT = TicketEnumField("SQLSERVER_DATA_EXPORT", _("SQLServer 数据导出"), _("数据处理"))
 
     # REDIS
     REDIS_PLUGIN_CREATE_CLB = TicketEnumField("REDIS_PLUGIN_CREATE_CLB", _("Redis 创建CLB"), _("集群管理"))
