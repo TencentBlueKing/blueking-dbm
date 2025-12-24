@@ -25,55 +25,37 @@
 package cmds
 
 import (
-	"errors"
-	"fmt"
-	"os"
-
-	"dbm-services/common/dbha-v2/internal/probe/config"
+	"dbm-services/common/dbha-v2/internal/receiver/config"
 	"dbm-services/common/dbha-v2/pkg/process"
 
 	"github.com/spf13/cobra"
 )
 
+var Flags = process.DefaultCmdFlags()
+
+func cmdConfig() process.CmdConfig {
+	return process.CmdConfig{
+		PidFile:  config.Cfg.PidFile,
+		ProcName: process.NameReceiver,
+	}
+}
+
 func StartCmdRunE(cmd *cobra.Command, args []string) error {
-	pid, err := process.ReadPid(config.Cfg.PidFile)
-	if err == nil {
-		alive, aliveErr := process.IsAliveWithProcessName(pid, process.NameProbe)
-		if aliveErr == nil && alive {
-			_, printErr := fmt.Fprintf(cmd.OutOrStdout(), "%s is already running, pid:%d\n", process.NameProbe, pid)
-			if printErr != nil {
-				return printErr
-			}
-			return nil
-		}
-	} else if !errors.Is(err, process.ErrPidFileNotExist) &&
-		!errors.Is(err, process.ErrInvalidFile) {
-		return err
-	}
+	return process.StartCmdRunE(cmdConfig())(cmd, args)
+}
 
-	exePath, err := os.Executable()
-	if err != nil {
-		return err
-	}
+func StopCmdRunE(cmd *cobra.Command, args []string) error {
+	return process.StopCmdRunE(cmdConfig(), Flags)(cmd, args)
+}
 
-	rootCmd := cmd.Root()
-	configPath, err := rootCmd.PersistentFlags().GetString("config")
-	if err != nil {
-		return err
-	}
+func RestartCmdRunE(cmd *cobra.Command, args []string) error {
+	return process.RestartCmdRunE(cmdConfig(), Flags)(cmd, args)
+}
 
-	var childArgs []string
-	if configPath != "" {
-		childArgs = append(childArgs, "-c", configPath)
-	}
+func ReloadCmdRunE(cmd *cobra.Command, args []string) error {
+	return process.ReloadCmdRunE(cmdConfig())(cmd, args)
+}
 
-	_, err = process.StartDaemon(process.DaemonOptions{
-		Executable: exePath,
-		Args:       childArgs,
-	})
-	if err != nil {
-		return err
-	}
-
-	return nil
+func HealthCmdRunE(cmd *cobra.Command, args []string) error {
+	return process.HealthCmdRunE(cmdConfig(), Flags)(cmd, args)
 }

@@ -25,64 +25,37 @@
 package cmds
 
 import (
-	"errors"
-	"fmt"
-	"time"
-
-	"dbm-services/common/dbha-v2/internal/analysis/config"
+	"dbm-services/common/dbha-v2/internal/probe/config"
 	"dbm-services/common/dbha-v2/pkg/process"
 
 	"github.com/spf13/cobra"
 )
 
-var (
-	ForceStop   bool
-	StopTimeout int
-)
+var Flags = process.DefaultCmdFlags()
+
+func cmdConfig() process.CmdConfig {
+	return process.CmdConfig{
+		PidFile:  config.Cfg.PidFile,
+		ProcName: process.NameProbe,
+	}
+}
+
+func StartCmdRunE(cmd *cobra.Command, args []string) error {
+	return process.StartCmdRunE(cmdConfig())(cmd, args)
+}
 
 func StopCmdRunE(cmd *cobra.Command, args []string) error {
-	opt := process.StopOptions{
-		PidFile:  config.Cfg.PidFile,
-		ProcName: process.NameAnalysis,
-		Timeout:  time.Duration(StopTimeout) * time.Second,
-		Force:    ForceStop,
-	}
+	return process.StopCmdRunE(cmdConfig(), Flags)(cmd, args)
+}
 
-	pid, err := process.ReadPid(opt.PidFile)
-	if err != nil {
-		if errors.Is(err, process.ErrPidFileNotExist) || errors.Is(err, process.ErrInvalidFile) {
-			_, printErr := fmt.Fprintf(cmd.OutOrStdout(), "%s is not running, nothing to stop\n", process.NameAnalysis)
-			if printErr != nil {
-				return printErr
-			}
-			return nil
-		}
-		return err
-	}
+func RestartCmdRunE(cmd *cobra.Command, args []string) error {
+	return process.RestartCmdRunE(cmdConfig(), Flags)(cmd, args)
+}
 
-	alive, err := process.IsAliveWithProcessName(pid, opt.ProcName)
-	if err != nil {
-		return err
-	}
+func ReloadCmdRunE(cmd *cobra.Command, args []string) error {
+	return process.ReloadCmdRunE(cmdConfig())(cmd, args)
+}
 
-	if !alive {
-		_, printErr := fmt.Fprintf(cmd.OutOrStdout(), "%s is not running, nothing to stop\n", process.NameAnalysis)
-		if printErr != nil {
-			return printErr
-		}
-		return nil
-	}
-
-	if err := process.StopWithPidFile(opt); err != nil {
-		if errors.Is(err, process.ErrProcessNotRunning) {
-			_, printErr := fmt.Fprintf(cmd.OutOrStdout(), "%s is not running, nothing to stop\n", process.NameAnalysis)
-			if printErr != nil {
-				return printErr
-			}
-			return nil
-		}
-		return err
-	}
-
-	return nil
+func HealthCmdRunE(cmd *cobra.Command, args []string) error {
+	return process.HealthCmdRunE(cmdConfig(), Flags)(cmd, args)
 }
