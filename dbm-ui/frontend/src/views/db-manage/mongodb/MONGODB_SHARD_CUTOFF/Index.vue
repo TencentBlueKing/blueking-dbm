@@ -93,7 +93,7 @@
             v-model="item.host.spec_config.id"
             :cluster-type="DBTypes.MONGODB"
             field="host.spec_config.id"
-            label="规格"
+            :label="t('规格')"
             :machine-type="item.host.machine_type"
             required
             :rowspan="item.rowspan"

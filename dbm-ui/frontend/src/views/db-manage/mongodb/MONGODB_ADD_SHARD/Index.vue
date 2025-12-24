@@ -84,7 +84,6 @@
               v-model="item.cluster.current_spec_id"
               :cluster-type="DBTypes.MONGODB"
               field="cluster.current_spec_id"
-              label="当前规格"
               :machine-type="MachineTypes.MONGODB"
               required />
             <ResourceTagColumn

@@ -76,7 +76,6 @@
               :cluster-type="DBTypes.REDIS"
               :current-spec-id-list="item.cluster.proxy.map((item) => item.spec_config.id)"
               field="spec_id"
-              label="目标规格"
               :machine-type="MachineTypes.REDIS_PROXY"
               required
               selectable
