@@ -30,6 +30,7 @@ from backend.flow.engine.bamboo.scene.mongodb.mongodb_replace import MongoReplac
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_restore import MongoRestoreFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_scale_node import MongoScaleNodeFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_scale_storage import MongoScaleFlow
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_standardization import MongoInstallDBmonAndOperatorCCFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_user import MongoUserFlow
 from backend.flow.engine.bamboo.scene.mongodb.validate.mongodb_instance_migrate_validate import (
     MongodbInstanceMigrateValidator,
@@ -245,3 +246,11 @@ class MongoDBController(BaseController):
 
         flow = MongoDBInstanceFixStatusFlow(root_id=self.root_id, data=self.ticket_data)
         flow.start()
+
+    def cluster_standardization(self):
+        """
+        集群标准化
+        """
+
+        flow = MongoInstallDBmonAndOperatorCCFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.cluster_standardization()
