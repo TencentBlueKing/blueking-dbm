@@ -37,7 +37,7 @@
         :cluster-type="DBTypes.REDIS"
         :current-spec-id-list="Object.values(item.batchCluster.clusters).map((item) => item.cluster_spec.spec_id)"
         field="target_spec_id"
-        label="规格"
+        :label="t('规格')"
         :machine-type="specClusterMachineMap[ClusterTypes.REDIS_INSTANCE]"
         required
         selectable

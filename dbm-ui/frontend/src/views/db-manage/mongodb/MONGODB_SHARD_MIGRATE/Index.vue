@@ -46,7 +46,6 @@
               :cluster-type="DBTypes.MONGODB"
               :current-spec-id-list="[item.batchShard.current_spec_id]"
               field="target_spec_id"
-              label="目标规格"
               :machine-type="MachineTypes.MONGODB"
               required
               selectable

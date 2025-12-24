@@ -66,7 +66,7 @@
               v-model="item.batchInstance.current_spec_id"
               :cluster-type="DBTypes.REDIS"
               field="batchInstance.current_spec_id"
-              label="规格" />
+              :label="t('规格')" />
             <ResourceTagColumn
               v-model="item.labels"
               @batch-edit="handleBatchEdit" />
