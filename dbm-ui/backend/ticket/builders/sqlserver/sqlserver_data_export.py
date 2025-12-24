@@ -4,7 +4,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType, InstanceRole
-from backend.db_meta.models import AppCache, Cluster, cluster
+from backend.db_meta.models import AppCache, Cluster
 from backend.db_services.sqlserver.sql_import.constants import BKREPO_SQLSERVER_SQLFILE_PATH
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.ticket import builders
@@ -32,7 +32,9 @@ class SQLServerDataExportDetailSerializer(SQLServerBaseOperateDetailSerializer):
         cluster_type = data.get("cluster_type")
         select_role = data.get("select_role")
         if cluster_type == "sqlserver_ha" and not select_role:
-            raise serializers.ValidationError({"select_role": "当集群类型为 sqlserver_ha（主从）时，必须指定查询角色（master 或 slave）"})
+            raise serializers.ValidationError(
+                {"select_role": "Query role (master or slave) is required for sqlserver_ha cluster type"}
+            )
         return data
 
 
@@ -53,22 +55,19 @@ class SQLServerDataExportFlowParamBuilder(builders.FlowParamBuilder):
 
     def format_ticket_data(self):
         cluster = Cluster.objects.get(id=self.ticket_data["cluster_id"])
-        dump_file_name = (
-            f"{cluster.immute_domain}_{int(time.time())}_dbm_console_dump.sql"  # 后端的flow把这个dump_file_name写入到制品库
-        )
-        self.ticket_data["zip_file_name"] = dump_file_name
+        dump_file_name = f"{cluster.immute_domain}_{int(time.time())}_dbm_console_dump.sql"
+        self.ticket_data["dump_file_name"] = dump_file_name
 
     def post_callback(self):
         flow = self.ticket.current_flow()
         # 如果流程树运行不为成功，则忽略
         if flow.status != TicketFlowStatus.SUCCEEDED:
             return
-        # 往flow的detail中写入制品库的下载链接                          在把这个链接写进去            后端把文件写到制品库    会有个文件，用户就可以点这个链接去下载
-        # dump_file_name = f"{flow.details['ticket_data']['dump_file_name']}.zip"
-        zip_file_name = f"{cluster.immute_domain}_{self.data['select_role']}_{int(time.time())}.zip"
+        # 往flow的detail中写入制品库的下载链接
+        dump_file_name = f"{flow.details['ticket_data']['dump_file_name']}.zip"
         flow.details["ticket_data"].update(
-            dump_file_name=zip_file_name,
-            dump_file_path=f"{BKREPO_SQLSERVER_SQLFILE_PATH.format(biz=self.ticket.bk_biz_id)}/{zip_file_name}",  # 拼接的链接
+            dump_file_name=dump_file_name,
+            dump_file_path=f"{BKREPO_SQLSERVER_SQLFILE_PATH.format(biz=self.ticket.bk_biz_id)}/{dump_file_name}",
         )
         flow.save(update_fields=["details"])
 
