@@ -18,9 +18,9 @@
     fixed="left"
     :label="t('目标集群')"
     :loading="loading"
-    :min-width="350"
     required
-    :validate-delay="300">
+    :validate-delay="300"
+    :width="350">
     <template #headAppend>
       <span
         v-bk-tooltips="t('批量选择')"

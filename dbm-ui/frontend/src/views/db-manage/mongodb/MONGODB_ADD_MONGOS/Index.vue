@@ -65,7 +65,7 @@
               :cluster-type="DBTypes.MONGODB"
               :current-spec-id-list="item.cluster.mongos.map((item) => item.spec_config.id)"
               field="spec_id"
-              label="扩容规格"
+              :label="t('扩容规格')"
               :machine-type="MachineTypes.MONGOS"
               required
               selectable
