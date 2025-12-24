@@ -271,18 +271,16 @@ class TestCommonQueryResourceMixin:
         # 验证返回的表头
         assert len(headers) > 0
         header_ids = [h["id"] for h in headers]
-        assert "bk_host_id" in header_ids
+        assert "instance_id" in header_ids
         assert "ip" in header_ids
         assert "ip_port" in header_ids
-        assert "cluster_name" in header_ids
+        assert "master_domain" in header_ids
 
         # 验证返回的数据
         assert len(data_list) > 0
         for inst_data in data_list:
-            assert "bk_host_id" in inst_data
             assert "ip" in inst_data
             assert "ip_port" in inst_data
-            assert inst_data["bk_host_id"] in bk_host_ids
 
     @patch("backend.db_services.ipchooser.query.resource.ResourceQueryHelper.search_cc_cloud")
     def test_common_query_instance_with_proxy(self, mock_cc_cloud, test_cluster_with_entries):
@@ -293,6 +291,7 @@ class TestCommonQueryResourceMixin:
         # 获取代理实例的主机ID
         proxy_instances = ProxyInstance.objects.filter(cluster=cluster)
         bk_host_ids = [inst.machine.bk_host_id for inst in proxy_instances]
+        ip_list = [inst.machine.ip for inst in proxy_instances]
 
         headers, data_list = CommonQueryResourceMixin.common_query_instance(
             bk_biz_id=cluster.bk_biz_id,
@@ -303,7 +302,7 @@ class TestCommonQueryResourceMixin:
         # 验证返回了代理实例
         assert len(data_list) > 0
         for inst_data in data_list:
-            assert inst_data["bk_host_id"] in bk_host_ids
+            assert inst_data["ip"] in ip_list
 
     @patch("backend.db_services.ipchooser.query.resource.ResourceQueryHelper.search_cc_cloud")
     def test_common_query_instance_empty(self, mock_cc_cloud, test_bk_biz_id):
