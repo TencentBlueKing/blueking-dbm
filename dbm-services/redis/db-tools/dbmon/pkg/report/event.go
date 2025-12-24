@@ -1,12 +1,10 @@
 package report
 
 import (
-	"dbm-services/redis/db-tools/dbmon/pkg/consts"
 	"dbm-services/redis/db-tools/dbmon/pkg/models"
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -70,18 +68,6 @@ func (e *RedisFullBackupResultEvent) String() string {
 
 // 转换一下类型  .
 func getEventReporteClusterType(c string) string {
-	targetClusterType := strings.ToLower(c)
-	switch c {
-	case consts.TendisTypeTwemproxyRedisInstance:
-		targetClusterType = "tendis_cache"
-	case consts.TendisTypeTendisSSDInsance:
-		targetClusterType = "tendis_ssd"
-	case consts.TendisTypePredixyTendisplusCluster:
-		targetClusterType = "tendisplus"
-	case consts.TendisTypePredixyRedisCluster:
-		targetClusterType = "redis_cluster"
-	case consts.TendisTypeRedisInstance:
-		targetClusterType = "redis_single"
-	}
-	return targetClusterType
+	return c
+	// class ClusterType(StrStructuredEnum) :
 }

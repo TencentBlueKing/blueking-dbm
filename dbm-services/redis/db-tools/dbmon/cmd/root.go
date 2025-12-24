@@ -202,10 +202,10 @@ Buildstamp:%s`, version, githash, buildstamp),
 			cron.NewChain(cron.SkipIfStillRunning(mylog.GlobCronLogger)).Then(
 				reverseapi.GetReverseJob(config.GlobalConf)))
 		if err != nil {
-			fmt.Printf("redis failed_node_handle addjob fail,entryID:%d,err:%v\n", entryID, err)
+			fmt.Printf("redis ngnix_reverse addjob fail,entryID:%d,err:%v\n", entryID, err)
 			return
 		}
-		mylog.Logger.Info(fmt.Sprintf("create cron GetGlobFailedNodeHandleJob success,entryID:%d", entryID))
+		mylog.Logger.Info(fmt.Sprintf("create cron GetNgnixReverseJob success,entryID:%d", entryID))
 
 		mylog.Logger.Info(fmt.Sprintf("start cron job,entryID:%d Listen:%s\n", entryID, config.GlobalConf.HttpAddress))
 		c.Start()
