@@ -35,7 +35,6 @@ from backend.flow.plugins.components.collections.mysql.mysql_master_slave_relati
 )
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     AddTempUserKwargs,
-    BKCloudIdKwargs,
     DropUserKwargs,
     ExecActuatorKwargs,
     IfTimingAfterNowKwargs,
@@ -231,7 +230,7 @@ class MysqlChecksumFlow(object):
                 inner_pipeline.add_act(
                     act_name=_("生成校验报告"),
                     act_component_code=MysqlChecksumReportComponent.code,
-                    kwargs=asdict(BKCloudIdKwargs(bk_cloud_id=bk_cloud_id)),
+                    kwargs={"bk_cloud_id": bk_cloud_id, "cluster_id": info["cluster_id"]},
                 )
                 inner_pipelines.append(
                     inner_pipeline.build_sub_process(

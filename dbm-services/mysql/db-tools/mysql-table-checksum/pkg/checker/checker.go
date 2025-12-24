@@ -114,7 +114,8 @@ func (r *Checker) connect() (err error) {
 		return err
 	}
 	_, err = r.conn.ExecContext(
-		context.Background(), `SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;`)
+		context.Background(), `SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;`,
+	)
 	if err != nil {
 		slog.Error("set transaction isolation level", slog.String("error", err.Error()))
 		return err
@@ -123,7 +124,8 @@ func (r *Checker) connect() (err error) {
 	_, err = r.conn.ExecContext(context.Background(), `SET BINLOG_FORMAT = 'STATEMENT'`)
 	if err != nil {
 		slog.Error(
-			"set binlog format to statement before insert fake result", slog.String("error", err.Error()))
+			"set binlog format to statement before insert fake result", slog.String("error", err.Error()),
+		)
 		return err
 	}
 
@@ -161,7 +163,8 @@ func (r *Checker) validateSlaves() error {
 }
 
 func (r *Checker) prepareReplicateTable() error {
-	ctSql := fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s.%s (
+	ctSql := fmt.Sprintf(
+		`CREATE TABLE IF NOT EXISTS %s.%s (
      master_ip      CHAR(32)     default '0.0.0.0',
      master_port    INT          default 3306,
      db             CHAR(64)     NOT NULL,
@@ -179,7 +182,8 @@ func (r *Checker) prepareReplicateTable() error {
      PRIMARY KEY (master_ip, master_port, db, tbl, chunk),
      INDEX db_tbl_chunk (db, tbl, chunk),
      INDEX ts_db_tbl (ts, db, tbl)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8;`, r.resultDB, r.resultTbl)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8;`, r.resultDB, r.resultTbl,
+	)
 	_, err := r.db.Exec(ctSql)
 	if err != nil {
 		slog.Error("prepare replicate table error", slog.String("error", err.Error()))

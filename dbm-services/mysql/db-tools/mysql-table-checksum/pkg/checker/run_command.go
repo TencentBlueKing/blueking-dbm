@@ -19,6 +19,9 @@ import (
 var roundStartStr = "_dba_fake_round_start"
 var dailyStr = "_dba_fake_daily"
 
+// var demandStartStr = "_dba_fake_demand_start"
+var demandEndStr = "_dba_fake_demand_end"
+
 func (r *Checker) Run() error {
 	slog.Info("run mode", slog.String("mode", string(r.Mode)))
 	switch r.Mode {
@@ -46,7 +49,24 @@ func (r *Checker) Run() error {
 		}
 		return nil
 	case config.DemandMode:
-		return r.runDemand()
+		//err := r.preRunDemand()
+		//if err != nil {
+		//	return err
+		//}
+		err := r.runDemand()
+		if err != nil {
+			return err
+		}
+
+		err = r.postRunDemand(true)
+		if err != nil {
+			return err
+		}
+		//err = r.moveResult()
+		//if err != nil {
+		//	return err
+		//}
+		return nil
 	default:
 		err := fmt.Errorf("run mode %s not supported", r.Mode)
 		slog.Error("run checksum", slog.String("error", err.Error()))
@@ -54,8 +74,25 @@ func (r *Checker) Run() error {
 	}
 }
 
+//	func (r *Checker) preRunDemand() error {
+//		err := r.writeFakeResult(demandStartStr, demandStartStr)
+//		if err != nil {
+//			slog.Error("run demand checksum", slog.String("error", err.Error()))
+//			return err
+//		}
+//		return nil
+//	}
+func (r *Checker) postRunDemand(demand bool) error {
+	err := r.writeFakeResult(demandEndStr, demandEndStr, demand)
+	if err != nil {
+		slog.Error("run demand checksum", slog.String("error", err.Error()))
+		return err
+	}
+	return nil
+}
+
 func (r *Checker) preRunGeneral() error {
-	err := r.writeFakeResult(dailyStr, dailyStr)
+	err := r.writeFakeResult(dailyStr, dailyStr, false)
 	if err != nil {
 		slog.Error("run checksum", slog.String("error", err.Error()))
 		return err
@@ -73,6 +110,7 @@ func (r *Checker) preRunGeneral() error {
 	}
 	return nil
 }
+
 func (r *Checker) runGeneral(guard int) error {
 	// 重试保护, 防止任何意外情况的无限递归
 	if guard < 0 {
@@ -87,7 +125,7 @@ func (r *Checker) runGeneral(guard int) error {
 		return err
 	}
 	if isEmptyResultTbl {
-		err := r.writeFakeResult(roundStartStr, roundStartStr)
+		err := r.writeFakeResult(roundStartStr, roundStartStr, false)
 		if err != nil {
 			slog.Error("run checksum", slog.String("error", err.Error()))
 			return err
@@ -304,8 +342,13 @@ func (r *Checker) isEmptyResultTbl() (bool, error) {
 	return resultCnt == 0, nil
 }
 
-func (r *Checker) writeFakeResult(fakeDB string, fakeTbl string) error {
+func (r *Checker) writeFakeResult(fakeDB string, fakeTbl string, demand bool) error {
 	// 为了兼容 flashback, 这里拼上库前缀
+	resTable := r.resultHistoryTable
+	if demand {
+		resTable = r.resultTbl
+	}
+
 	ts := time.Now().Format("2006-01-02 15:04:05")
 	_, err := r.conn.ExecContext(
 		context.Background(),
@@ -317,7 +360,7 @@ func (r *Checker) writeFakeResult(fakeDB string, fakeTbl string) error {
 				"this_crc, this_cnt, master_crc, master_cnt, ts) "+
 				"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 			r.resultDB,
-			r.resultHistoryTable,
+			resTable,
 		),
 		r.Config.Ip, r.Config.Port,
 		fakeDB, fakeTbl, 0, 0, "",

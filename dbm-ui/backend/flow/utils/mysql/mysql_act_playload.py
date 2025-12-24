@@ -1005,7 +1005,10 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "ignore_tables": self.ticket_data["ignore_tables"],
                     "runtime_hour": self.ticket_data["runtime_hour"],
                     "replicate_table": "{}.{}{}".format(
-                        CHECKSUM_DB, CHECKSUM_TABlE_PREFIX, self.ticket_data["ran_str"]
+                        CHECKSUM_DB,
+                        CHECKSUM_TABlE_PREFIX,
+                        self.ticket_data["cluster_id"]
+                        # CHECKSUM_DB, CHECKSUM_TABlE_PREFIX, self.ticket_data["ran_str"]
                     ),
                     "system_dbs": SYSTEM_DBS,
                     "stage_db_header": STAGE_DB_HEADER,
