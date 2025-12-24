@@ -25,7 +25,7 @@ from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs impor
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import (
     standardize_mysql_cluster_by_cluster_subflow,
 )
-from backend.flow.plugins.components.collections.common.sleep_time_service import SleepTimerComponent
+# from backend.flow.plugins.components.collections.common.sleep_time_service import SleepTimerComponent
 from backend.flow.plugins.components.collections.mysql.create_user import CreateUserComponent
 from backend.flow.plugins.components.collections.mysql.drop_user import DropUserComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -38,7 +38,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     BKCloudIdKwargs,
     DropUserKwargs,
     ExecActuatorKwargs,
-    IfTimingAfterNowKwargs,
+    # IfTimingAfterNowKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import MysqlChecksumContext
@@ -161,11 +161,12 @@ class MysqlChecksumFlow(object):
                 act_component_code=MysqlMasterSlaveRelationshipCheckServiceComponent.code,
                 kwargs={},
             )
-            sub_pipeline.add_act(
-                act_name=_("定时"),
-                act_component_code=SleepTimerComponent.code,
-                kwargs=asdict(IfTimingAfterNowKwargs(True)),
-            )
+            # 删除flow中的定时
+            # sub_pipeline.add_act(
+            #     act_name=_("定时"),
+            #     act_component_code=SleepTimerComponent.code,
+            #     kwargs=asdict(IfTimingAfterNowKwargs(True)),
+            # )
 
             acts_list = []
             for slave in info["slaves"]:
