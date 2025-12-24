@@ -31,14 +31,14 @@ var (
 )
 
 func init() {
-	// Stop command flags
-	StopCmd.Flags().BoolVarP(&cmds.Flags.ForceStop, "force", "f", false, "Force stop the process")
-	StopCmd.Flags().IntVarP(&cmds.Flags.StopTimeout, "timeout", "t", 30, "Timeout in seconds for graceful stop")
+	StopCmd.Flags().BoolVarP(&cmds.ForceStop, "force", "f", false, "Force stop the process")
+	StopCmd.Flags().IntVarP(&cmds.StopTimeout, "timeout", "t", 30, "Timeout in seconds for graceful stop")
 
-	// Restart command flags (same as stop)
-	RestartCmd.Flags().BoolVarP(&cmds.Flags.ForceStop, "force", "f", false, "Force stop the process")
-	RestartCmd.Flags().IntVarP(&cmds.Flags.StopTimeout, "timeout", "t", 30, "Timeout in seconds for graceful stop")
+	RestartCmd.Flags().BoolVarP(&cmds.ForceStop, "force", "f", false, "Force stop the process")
+	RestartCmd.Flags().IntVarP(&cmds.StopTimeout, "timeout", "t", 30, "Timeout in seconds for graceful stop")
 
-	// Health command flags
-	HealthCmd.Flags().BoolVarP(&cmds.Flags.JsonFormatter, "json", "j", false, "Output in JSON format")
+	ReloadCmd.Flags().BoolVarP(&cmds.ForceStop, "force", "f", false, "Force stop the process")
+	ReloadCmd.Flags().IntVarP(&cmds.StopTimeout, "timeout", "t", 30, "Timeout in seconds for graceful stop")
+
+	HealthCmd.Flags().BoolVarP(&cmds.JsonFormatter, "json", "j", false, "Output in JSON format")
 }
