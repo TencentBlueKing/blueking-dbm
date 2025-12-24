@@ -57,7 +57,7 @@ class MySQLChecksumReportService(BaseService):
         diff_sql, consistent_sql = self._generate_sql(
             global_data["master_ip"],
             global_data["master_port"],
-            "{}.{}{}".format(CHECKSUM_DB, CHECKSUM_TABlE_PREFIX, global_data["ran_str"]),
+            "{}.{}{}".format(CHECKSUM_DB, CHECKSUM_TABlE_PREFIX, kwargs["cluster_id"]),
         )
 
         address = "{}{}{}".format(global_data["slave_ip"], IP_PORT_DIVIDER, global_data["slave_port"])
@@ -115,7 +115,7 @@ class MySQLChecksumReportService(BaseService):
             flags = ticket.details.get("is_consistent_list", {})
             flags.update({address: trans_data.is_consistent})
             ticket.update_details(
-                is_consistent_list=flags, checksum_table="{}{}".format(CHECKSUM_TABlE_PREFIX, global_data["ran_str"])
+                is_consistent_list=flags, checksum_table="{}{}".format(CHECKSUM_TABlE_PREFIX, kwargs["cluster_id"])
             )
 
         return True
