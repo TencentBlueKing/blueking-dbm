@@ -22,54 +22,50 @@
  * SOFTWARE.
  */
 
-package analysis
+package cmds
 
 import (
-	"dbm-services/common/dbha-v2/internal/analysis/cmds"
-	"dbm-services/common/dbha-v2/pkg/version"
+	"errors"
+	"fmt"
+	"syscall"
+
+	"dbm-services/common/dbha-v2/internal/analysis/config"
+	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/process"
 
 	"github.com/spf13/cobra"
 )
 
-var VersionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Print Version Information",
-	Run: func(cmd *cobra.Command, args []string) {
-		version.Print("DBHA Analysis Server")
-	},
-}
+func ReloadCmdRunE(cmd *cobra.Command, args []string) error {
+	pid, err := process.ReadPid(config.Cfg.PidFile)
+	if err != nil {
+		if errors.Is(err, process.ErrPidFileNotExist) || errors.Is(err, process.ErrInvalidFile) {
+			_, printErr := fmt.Fprintf(cmd.OutOrStdout(), "%s is not running (no valid pid file)\n", process.NameAnalysis)
+			if printErr != nil {
+				return printErr
+			}
+			return nil
+		}
 
-// HealthCmd is used to show the health information of this process.
-var HealthCmd = &cobra.Command{
-	Use:   "health",
-	Short: "Show the health information of this process",
-	RunE:  cmds.HealthCmdRunE,
-}
+		return err
+	}
 
-// StartCmd is used to start this process in background (daemon mode).
-var StartCmd = &cobra.Command{
-	Use:   "start",
-	Short: "Start this process.",
-	RunE:  cmds.StartCmdRunE,
-}
+	alive, err := process.IsAliveWithProcessName(pid, process.NameAnalysis)
+	if err != nil {
+		return err
+	}
 
-// StopCmd is used to stop this process.
-var StopCmd = &cobra.Command{
-	Use:   "stop",
-	Short: "Stop this process.",
-	RunE:  cmds.StopCmdRunE,
-}
+	if !alive {
+		_, printErr := fmt.Fprintf(cmd.OutOrStdout(), "%s is not running, stale pid=%d\n", process.NameAnalysis, pid)
+		if printErr != nil {
+			return printErr
+		}
+		return nil
+	}
 
-// RestartCmd is used to restart this process.
-var RestartCmd = &cobra.Command{
-	Use:   "restart",
-	Short: "Restart this process.",
-	RunE:  cmds.RestartCmdRunE,
-}
+	if err := syscall.Kill(int(pid), syscall.SIGHUP); err != nil {
+		return gerrors.Newf(gerrors.Failure, "failed to reload the process: %s, errmsg: %s", process.NameAnalysis, err)
+	}
 
-// ReloadCmd is used to reload this process.
-var ReloadCmd = &cobra.Command{
-	Use:   "reload",
-	Short: "Reload this process.",
-	RunE:  cmds.ReloadCmdRunE,
+	return nil
 }
