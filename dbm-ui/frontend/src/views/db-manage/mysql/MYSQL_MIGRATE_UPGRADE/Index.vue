@@ -25,7 +25,6 @@
             v-model="item.cluster"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
-          <ClusterHostColumn :cluster="item.cluster" />
           <CurrentVersionColumn
             v-model="item.current_version"
             :cluster="item.cluster" />
@@ -34,18 +33,16 @@
             v-model:new-db-module-id="item.new_db_module_id"
             v-model:pkg-id="item.pkg_id"
             :cluster="item.cluster" />
-          <MultipleResourceHostColumn
-            v-model="item.new_master_slave_host"
-            field="new_master_slave_host"
-            :label="t('新主从主机')"
-            :limit="2"
-            :min-width="200"
-            :params="{
-              for_bizs: [currentBizId, 0],
-              resource_types: [DBTypes.MYSQL, 'PUBLIC'],
-            }" />
-          <NewReadonlyHostColumn
-            v-model="item.new_readonly_host"
+          <SpecColumn
+            v-model="item.specId"
+            :cluster-type="DBTypes.MYSQL"
+            :current-spec-id-list="item.cluster.spec_id_list"
+            :label="t('规格')"
+            :machine-type="MachineTypes.MYSQL_BACKEND" />
+          <ResourceTagColumn v-model="item.labels" />
+          <ReadonlyHostColumn
+            v-model:new-readonly-host="item.new_readonly_host"
+            v-model:readonly-host="item.readonly_host"
             :cluster="item.cluster" />
           <OperationColumn
             v-model:table-data="formData.tableData"
@@ -106,9 +103,10 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
 
-  import MultipleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/multiple-resource-host-column/Index.vue';
+  import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
+  import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
   import TicketPayload, {
     createTickePayload,
@@ -118,13 +116,13 @@
   import TargetVersionColumn from '@views/db-manage/mysql/MYSQL_LOCAL_UPGRADE/components/TargetVersionColumn.vue';
   import UpgradeWrapper from '@views/db-manage/mysql/MYSQL_LOCAL_UPGRADE/components/UpgradeWrapper.vue';
 
-  import ClusterHostColumn from './components/ClusterHostColumn.vue';
-  import NewReadonlyHostColumn from './components/NewReadonlyHostColumn.vue';
+  import ReadonlyHostColumn from './components/ReadonlyHostColumn.vue';
 
   interface IHostData {
     bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id: number;
+    bk_sub_zone: string;
     ip: string;
   }
 
@@ -138,20 +136,20 @@
         id: number;
         master_domain: string;
       }[];
+      spec_id_list: number[];
     } & TendbhaModel;
     current_version: ComponentProps<typeof CurrentVersionColumn>['modelValue'];
+    labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     new_db_module_id: number;
-    new_master_slave_host: IHostData[];
     new_readonly_host: IHostData[];
     pkg_id: number;
-    readonly_host: IHostData[];
+    readonly_host: TendbhaModel['slaves'];
+    specId: number;
     target_version: ComponentProps<typeof TargetVersionColumn>['modelValue'];
   }
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
-
-  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const createTableRow = (data = {} as DeepPartial<RowData>) => ({
     cluster: Object.assign(
@@ -160,6 +158,7 @@
         id: 0,
         master_domain: '',
         related_clusters: [],
+        spec_id_list: [],
       } as unknown as RowData['cluster'],
       data.cluster,
     ),
@@ -172,11 +171,12 @@
       },
       data.current_version,
     ),
+    labels: (data.labels || []) as RowData['labels'],
     new_db_module_id: data.new_db_module_id || 0,
-    new_master_slave_host: (data.new_master_slave_host as IHostData[]) || [],
-    new_readonly_host: (data.new_readonly_host as IHostData[]) || [],
+    new_readonly_host: (data.new_readonly_host || []) as RowData['new_readonly_host'],
     pkg_id: data.pkg_id || 0,
-    readonly_host: (data.readonly_host as IHostData[]) || [],
+    readonly_host: (data.readonly_host || []) as RowData['readonly_host'],
+    specId: data.specId || 0,
     target_version: Object.assign(
       {
         charset: '',
@@ -231,7 +231,6 @@
                 master_domain: clusters[item.cluster_ids[0]].immute_domain,
               },
               new_db_module_id: item.new_db_module_id,
-              new_master_slave_host: [item.resource_spec.new_master.hosts[0], item.resource_spec.new_slave.hosts[0]],
               new_readonly_host: item.read_only_slaves.map((item) => item.new_slave),
               pkg_id: item.pkg_id,
               target_version: {
@@ -257,7 +256,6 @@
         current_module_name: string;
         current_package: string;
         current_version: string;
-        old_master_slave: string[];
         target_module_name: string;
         target_package: string;
         target_version: string;
@@ -269,13 +267,11 @@
         old_slave: IHostData;
       }[];
       resource_spec: {
-        new_master: {
-          hosts: IHostData[];
-          spec_id: 0;
-        };
-        new_slave: {
-          hosts: IHostData[];
-          spec_id: 0;
+        backend_group: {
+          count: number;
+          label_names: string[]; // 标签名称列表，单据详情回显用
+          labels: string[]; // 标签id列表
+          spec_id: number;
         };
       };
     }[];
@@ -314,10 +310,6 @@
               current_module_name: item.cluster.db_module_name,
               current_package: item.current_version.pkg_name,
               current_version: item.current_version.db_version,
-              old_master_slave: [
-                item.cluster.masters?.[0]?.ip,
-                item.cluster.slaves.filter((slave) => slave.is_stand_by)?.[0]?.ip,
-              ],
               target_module_name: item.target_version.db_module_name,
               target_package: item.target_version.pkg_name,
               target_version: item.target_version.db_version,
@@ -327,17 +319,21 @@
             read_only_slaves: item.readonly_host.length
               ? item.readonly_host.map((host, index) => ({
                   new_slave: item.new_readonly_host[index],
-                  old_slave: host,
+                  old_slave: {
+                    bk_biz_id: host.bk_biz_id,
+                    bk_cloud_id: host.bk_cloud_id,
+                    bk_host_id: host.bk_host_id,
+                    bk_sub_zone: host.bk_sub_zone || '--',
+                    ip: host.ip,
+                  },
                 }))
               : [],
             resource_spec: {
-              new_master: {
-                hosts: [item.new_master_slave_host[0]],
-                spec_id: 0,
-              },
-              new_slave: {
-                hosts: [item.new_master_slave_host[1]],
-                spec_id: 0,
+              backend_group: {
+                count: 1,
+                label_names: item.labels.map((item) => item.value),
+                labels: item.labels.map((item) => String(item.id)),
+                spec_id: item.specId,
               },
             },
           })),

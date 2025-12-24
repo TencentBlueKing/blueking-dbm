@@ -15,9 +15,9 @@
   <EditableColumn
     v-test="{ type: 'column', value: 'spec' }"
     :field="field"
-    :label="t(label)"
+    :label="label ? label : readonly ? t('当前规格') : t('目标规格')"
     :min-width="minWidth"
-    :readonly="!selectable"
+    :readonly="readonly"
     :required="required"
     :rowspan="rowspan"
     :rules="rules">
@@ -47,7 +47,7 @@
       </BatchEditColumn>
     </template>
     <EditableBlock
-      v-if="!selectable"
+      v-if="readonly"
       v-model="renderSpecName"
       :placeholder="t('自动生成')" />
     <EditableSelect
@@ -123,7 +123,7 @@
     currentSpecIdList: () => [],
     disabledCurrentSpec: false,
     field: 'specId',
-    label: '目标规格',
+    label: '',
     machineType: undefined,
     minWidth: 200,
     onlyShowCurrentSpec: false,
@@ -162,6 +162,7 @@
   const specList = ref<ServiceReturnType<typeof getResourceSpecList>['results']>([]);
   const showBatchEdit = ref(false);
 
+  const readonly = computed(() => !props.selectable);
   const batchEditSpecList = computed(() =>
     specList.value.map((item) => ({
       label: item.spec_name,
