@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from types import FunctionType
 from typing import Any
 
+from blueapps.account.models import User
 from drf_spectacular.openapi import AutoSchema
 from rest_framework.permissions import AllowAny
 
@@ -38,8 +39,19 @@ class McpToolsViewSetMeta(type):
 
                 return {"post": fs}
 
+            def initialize_request(self, request, *args, **kwargs):
+                """
+                重写 initialize_request 方法，动态注入用户信息
+                在 DEBUG_MCP 模式下，从DEBUG_MCP_USERNAME注入到 request.user
+                """
+                # 使用 type(self) 来动态获取当前类，确保正确调用父类方法
+                request = super(viewsets.SystemViewSet, self).initialize_request(request, *args, **kwargs)
+                request.user = User.objects.get(username=env.DEBUG_MCP_USERNAME)
+                return request
+
             attrs["get_permissions"] = get_permissions
             attrs["_get_login_exempt_view_func"] = classmethod(_get_login_exempt_view_func)
+            attrs["initialize_request"] = initialize_request
 
         return super().__new__(cls, name, base, attrs)
 

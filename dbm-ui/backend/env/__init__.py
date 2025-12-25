@@ -270,3 +270,4 @@ DBM_STATSDB_NAME = get_type_env(key="DBM_STATSDB_NAME", _type=str, default="")
 
 # 本地调试 MCP 用于跳过鉴权
 DEBUG_MCP = get_type_env(key="DEBUG_MCP", _type=bool, default=False)
+DEBUG_MCP_USERNAME = get_type_env(key="DEBUG_MCP_USERNAME", _type=str, default="admin")
