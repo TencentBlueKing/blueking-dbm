@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from rest_framework.routers import DefaultRouter
 
-from .views.builtin import (
+from .builtin import (
     AIAgentInfoViewSet,
     AIChatCompletionViewSet,
     AIChatGroupViewSet,
@@ -20,9 +20,11 @@ from .views.builtin import (
     AIChatSessionShareView,
     AIChatSessionViewSet,
 )
+from .services.log_analysis.views import AILogAnalysisViewSet
 
 router = DefaultRouter()
 
+# AIDEV 视图
 router.register("agent", AIAgentInfoViewSet, "agent_info")
 router.register("chat_completion", AIChatCompletionViewSet, "chat_completion")
 router.register("session", AIChatSessionViewSet, "chat_session")
@@ -30,6 +32,9 @@ router.register("session_content", AIChatSessionContentViewSet, "chat_session_co
 router.register("session_feedback", AIChatSessionContentFeedbackViewSet, "chat_session_feedback")
 router.register("chat_group", AIChatGroupViewSet, "chat_group")
 router.register("share", AIChatSessionShareView, "share")
+
+# 日志分析
+router.register("log", AILogAnalysisViewSet, "log_analysis")
 
 
 urlpatterns = router.urls

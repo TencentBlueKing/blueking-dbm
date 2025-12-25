@@ -22,6 +22,7 @@ from backend.db_meta.exceptions import ClusterExclusiveOperateException
 from backend.db_meta.models import Cluster
 from backend.db_meta.models.sqlserver_dts import SqlserverDtsInfo
 from backend.db_services.cmdb.biz import get_hcm_apply_resource_biz
+from backend.dbm_aiagent.agent.services.log_analysis.tasks import ticket_flow_log_ai_analysis
 from backend.flow.models import FlowTree
 from backend.ticket import constants
 from backend.ticket.builders.common.base import fetch_cluster_ids
@@ -190,6 +191,8 @@ class InnerFlow(BaseTicketFlow):
         except (Exception, ClusterExclusiveOperateException) as err:  # pylint: disable=broad-except
             # 处理互斥异常和非预期的异常
             self.run_error_status_handler(err)
+            # 记录AI日志分析
+            ticket_flow_log_ai_analysis.apply_async(args=(root_id,))
             return
         else:
             # 记录inner flow的集群动作和实例动作
