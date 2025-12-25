@@ -43,9 +43,8 @@ import (
 )
 
 const (
-	minUpdateDbmCacheInterval = 5 * time.Second
-	maxCountPerPage           = 200
-	electionName              = "sync-dbm-metadata"
+	maxCountPerPage = 200
+	electionName    = "sync-dbm-metadata"
 )
 
 type Synchronizer struct {
@@ -183,11 +182,9 @@ func (s *Synchronizer) updateCache(ctx context.Context) error {
 		timer := time.NewTimer(config.Cfg.Workflow.UpdateDbmCacheInterval)
 
 		for {
-
 			if election == nil {
 				election, err = s.discoveryCli.CreateElection(electionName)
 				if err != nil {
-					election.Close()
 					logger.Warn("election failure, errmsg: %v", err)
 					time.Sleep(100 * time.Millisecond)
 					continue

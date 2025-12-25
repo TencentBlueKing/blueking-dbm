@@ -138,10 +138,7 @@ func (r *Registry) SetService(ctx context.Context, value string) error {
 		r.cliMu.RLock()
 	}
 
-	logger.Debug("registry set service entrance")
-
 	defer func() {
-		logger.Debug("registry set service exited")
 		r.cliMu.RUnlock()
 	}()
 
