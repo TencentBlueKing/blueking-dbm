@@ -292,7 +292,12 @@
     },
   );
 
-  const disabledMethod = () => (props.clusterId ? false : t('请先选择集群'));
+  const disabledMethod = () => {
+    if (!props.checkExist && !props.checkNotExist) {
+      return false;
+    }
+    return props.clusterId ? false : t('请先选择集群');
+  };
 
   const tagInputPasteFn = (value: string) => value.split(batchSplitRegex).map((item) => ({ id: item }));
 
