@@ -144,6 +144,7 @@ INSTALLED_APPS += (
     "backend.db_services.dbresource",
     "backend.dbm_init",
     "backend.db_services.mongodb.password",
+    "backend.dbm_aiagent",
 )
 
 MIDDLEWARE = (

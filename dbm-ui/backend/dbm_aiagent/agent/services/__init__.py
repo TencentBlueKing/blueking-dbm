@@ -9,10 +9,5 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-
-from django.apps import AppConfig
-
-
-class DbmAiagentConfig(AppConfig):
-    default_auto_field = "django.db.models.BigAutoField"
-    name = "backend.dbm_aiagent"
+# services 主要是存放场景层，使用AI的场景需求
+# 比如 AI日志分析等
