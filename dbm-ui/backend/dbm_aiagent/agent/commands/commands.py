@@ -26,3 +26,16 @@ class RenderExampleCommand(CommandHandler):
         回答内容: {{ content }}
         请按照回答内容原样输出给用户回答
         """
+
+
+@command
+class TicketFlowLogAnalysisCommand(CommandHandler):
+    name = _("单据日志分析")
+    command = "kiotest-loganalysis"
+    agent_code = DBMAgentCode.DBM
+
+    def get_template(self) -> str:
+        return """
+        错误日志结构化信息：
+        {{ log_content }}
+        """

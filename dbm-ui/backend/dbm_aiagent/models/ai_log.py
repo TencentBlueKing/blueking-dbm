@@ -9,10 +9,15 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from django.db import models
+from django.utils.translation import gettext_lazy as _
 
-from django.apps import AppConfig
 
+class TicketFlowAILog(models.Model):
+    ticket_id = models.BigIntegerField(_("单据ID"), default=0)
+    flow_obj_id = models.CharField(_("流程ID"), max_length=64, primary_key=True)
+    ai_summary = models.TextField(_("AI日志总结"), blank=True, null=True)
 
-class DbmAiagentConfig(AppConfig):
-    default_auto_field = "django.db.models.BigAutoField"
-    name = "backend.dbm_aiagent"
+    class Meta:
+        verbose_name = _("工单流程AI日志")
+        verbose_name_plural = _("工单流程AI日志")
