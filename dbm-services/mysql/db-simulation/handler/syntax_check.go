@@ -124,6 +124,14 @@ func (s *SyntaxHandler) SyntaxCheckSQL(r *gin.Context) {
 		Param: syntax.CheckSQLFileParam{
 			BkRepoBasePath: "",
 			FileNames:      []string{fileName},
+			ExecuteObjects: []syntax.ExecuteSQLFileObj{
+				{
+					LineId:        0,
+					SQLFiles:      []string{fileName},
+					IgnoreDbNames: nil,
+					DbNames:       []string{"test"},
+				},
+			},
 		},
 	}
 

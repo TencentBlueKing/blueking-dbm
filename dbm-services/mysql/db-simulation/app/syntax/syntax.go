@@ -155,12 +155,15 @@ func (tf *TmysqlParseFile) Do(dbtype string, versions []string) (result map[stri
 	return tf.result, errors.Join(errs...)
 }
 
-// CheckConflictUsedb check input db conflict with use db
-func (tf *TmysqlParseFile) CheckConflictUsedb(version string) (err error) {
+// CheckSystemDBOperation 检查系统库操作
+// 如果执行对象是系统库，则检查文件的第一行
+// 如果第一行命令不是 USE DB 或 CREATE DATABASE，则追加警告信息
+func (tf *TmysqlParseFile) CheckSystemDBOperation(version string) error {
 	for _, executeObject := range tf.Param.ExecuteObjects {
 		if len(executeObject.DbNames) == 0 {
 			continue
 		}
+		// 检查目标是否为系统库
 		targetIsSysDb := false
 		sysdbs := cmutil.GetGcsSystemDatabases(version)
 		for _, db := range executeObject.DbNames {
@@ -169,11 +172,86 @@ func (tf *TmysqlParseFile) CheckConflictUsedb(version string) (err error) {
 				break
 			}
 		}
-		// 如果输入只有一个inputdb,且输入的db 不是通配
-		skipCheckConflict := false
+		// 如果不是系统库，跳过检查
+		if !targetIsSysDb {
+			continue
+		}
+
+		// 检查每个 SQL 文件的第一行
+		for _, sqlFile := range executeObject.SQLFiles {
+			// 初始化结果（如果不存在）
+			if tf.result[sqlFile] == nil {
+				tf.result[sqlFile] = &CheckInfo{}
+			}
+
+			f, err := os.Open(tf.getAbsOutputFilePath(sqlFile, version))
+			if err != nil {
+				logger.Error("open file failed %s", err.Error())
+				return err
+			}
+			defer f.Close()
+
+			reader := bufio.NewReader(f)
+			// 只读取第一行
+			line, isPrefix, errx := reader.ReadLine()
+			if errx != nil {
+				if errx == io.EOF {
+					continue
+				}
+				logger.Error("read Line Error %s", errx.Error())
+				return errx
+			}
+			var buf []byte
+			buf = append(buf, line...)
+			for isPrefix {
+				line, isPrefix, errx = reader.ReadLine()
+				if errx != nil {
+					logger.Error("read Line Error %s", errx.Error())
+					return errx
+				}
+				buf = append(buf, line...)
+			}
+			bs := buf
+
+			if len(bs) == 0 {
+				logger.Info("blank line skip")
+				continue
+			}
+
+			var res ParseLineQueryBase
+			if err = json.Unmarshal(bs, &res); err != nil {
+				logger.Error("json unmarshal line:%s failed %s", string(bs), err.Error())
+				return err
+			}
+
+			// 检查命令类型
+			if cmutil.ElementNotInArry(res.Command, []string{SQLTypeCreateDb, SQLTypeUseDb}) {
+				tf.result[sqlFile].BanWarnings = append(tf.result[sqlFile].BanWarnings, RiskInfo{
+					Line:     int64(res.QueryId),
+					Sqltext:  res.QueryString,
+					WarnInfo: fmt.Sprintf("不允许直在系统库%v,操作", res.DbName),
+				})
+			}
+		}
+	}
+	return nil
+}
+
+// CheckConflictUsedb check input db conflict with use db
+func (tf *TmysqlParseFile) CheckConflictUsedb(version string) (err error) {
+	// 先检查系统库操作
+	if err = tf.CheckSystemDBOperation(version); err != nil {
+		logger.Error("check system db operation failed %s", err.Error())
+		return err
+	}
+
+	for _, executeObject := range tf.Param.ExecuteObjects {
+		if len(executeObject.DbNames) == 0 {
+			continue
+		}
 		if len(executeObject.DbNames) == 1 && !strings.Contains(executeObject.DbNames[0], "%") &&
 			!strings.Contains(executeObject.DbNames[0], "?") {
-			skipCheckConflict = true
+			continue
 		}
 		var buf []byte
 		for _, sqlFile := range executeObject.SQLFiles {
@@ -208,28 +286,16 @@ func (tf *TmysqlParseFile) CheckConflictUsedb(version string) (err error) {
 					logger.Error("json unmarshal line:%s failed %s", string(bs), err.Error())
 					return err
 				}
-				logger.Info("make debug.. ")
-				if targetIsSysDb {
-					if res.Command != SQLTypeUseDb {
-						tf.result[sqlFile].BanWarnings = append(tf.result[sqlFile].BanWarnings, RiskInfo{
-							Line:     int64(res.QueryId),
-							Sqltext:  res.QueryString,
-							WarnInfo: fmt.Sprintf("不允许直在系统库%v,操作", res.DbName),
-						})
-					}
+
+				if res.Command == SQLTypeUseDb {
+					tf.result[sqlFile].BanWarnings = append(tf.result[sqlFile].BanWarnings, RiskInfo{
+						Line:    int64(res.QueryId),
+						Sqltext: res.QueryString,
+						WarnInfo: fmt.Sprintf("表单中输入的变更对象%v可能存在多个,但是SQL文件显示的使用use %s,可能会造成SQL文件重复执行,请正确理解表单语义,修改后在提交",
+							executeObject.DbNames,
+							res.DbName),
+					})
 					return nil
-				}
-				if !skipCheckConflict {
-					if res.Command == SQLTypeUseDb {
-						tf.result[sqlFile].BanWarnings = append(tf.result[sqlFile].BanWarnings, RiskInfo{
-							Line:    int64(res.QueryId),
-							Sqltext: res.QueryString,
-							WarnInfo: fmt.Sprintf("表单中输入的变更对象%v可能存在多个,但是SQL文件显示的使用use %s,可能会造成SQL文件重复执行,请正确理解表单语义,修改后在提交",
-								executeObject.DbNames,
-								res.DbName),
-						})
-						return nil
-					}
 				}
 			}
 		}
