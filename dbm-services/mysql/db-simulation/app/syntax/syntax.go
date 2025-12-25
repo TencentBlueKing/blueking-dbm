@@ -23,6 +23,7 @@ import (
 	"path"
 	"path/filepath"
 	"runtime/debug"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -183,6 +184,11 @@ func (tf *TmysqlParseFile) CheckSystemDBOperation(version string) error {
 			if tf.result[sqlFile] == nil {
 				tf.result[sqlFile] = &CheckInfo{}
 			}
+			// 如果语法检查都是错误的 就不用分析了
+			// 因为无法解析sql里面的真是dbname
+			if len(tf.result[sqlFile].SyntaxFailInfos) > 0 {
+				continue
+			}
 
 			f, err := os.Open(tf.getAbsOutputFilePath(sqlFile, version))
 			if err != nil {
@@ -225,11 +231,12 @@ func (tf *TmysqlParseFile) CheckSystemDBOperation(version string) error {
 			}
 
 			// 检查命令类型
-			if cmutil.ElementNotInArry(res.Command, []string{SQLTypeCreateDb, SQLTypeUseDb}) {
+			if cmutil.ElementNotInArry(res.Command, []string{SQLTypeCreateDb, SQLTypeUseDb}) &&
+				(res.DbName == "" || slices.Contains(sysdbs, res.DbName)) {
 				tf.result[sqlFile].BanWarnings = append(tf.result[sqlFile].BanWarnings, RiskInfo{
 					Line:     int64(res.QueryId),
 					Sqltext:  res.QueryString,
-					WarnInfo: fmt.Sprintf("不允许直在系统库%v,操作", res.DbName),
+					WarnInfo: fmt.Sprintf("不允许直接在系统库%v,操作", executeObject.DbNames),
 				})
 			}
 		}
