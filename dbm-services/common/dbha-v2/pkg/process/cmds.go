@@ -29,6 +29,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"syscall"
 	"time"
 
 	"dbm-services/common/dbha-v2/pkg/gerrors"
@@ -39,16 +40,17 @@ import (
 // StartCmdRunE handles the start command.
 func StartCmdRunE(cmd *cobra.Command, _ []string, pidFile, procName string) error {
 	pid, err := ReadPid(pidFile)
-	if err != nil && !errors.Is(err, ErrPidFileNotExist) && !errors.Is(err, ErrInvalidFile) {
-		return err
-	}
-	if err == nil {
+	if err != nil {
+		if !errors.Is(err, ErrPidFileNotExist) && !errors.Is(err, ErrInvalidFile) {
+			return err
+		}
+	} else {
 		alive, aliveErr := IsAliveWithProcessName(pid, procName)
 		if aliveErr != nil {
 			return aliveErr
 		}
 		if alive {
-			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "%s is already running, pid:%d\n", procName, pid)
+			fmt.Fprintf(cmd.OutOrStdout(), "%s is already running, pid:%d\n", procName, pid)
 			return nil
 		}
 	}
@@ -80,7 +82,7 @@ func StartCmdRunE(cmd *cobra.Command, _ []string, pidFile, procName string) erro
 func StopCmdRunE(cmd *cobra.Command, _ []string, pidFile, procName string, timeout int, force bool) error {
 	pid, err := ReadPid(pidFile)
 	if errors.Is(err, ErrPidFileNotExist) || errors.Is(err, ErrInvalidFile) {
-		_, _ = fmt.Fprintf(cmd.OutOrStdout(), "%s is not running, nothing to stop\n", procName)
+		fmt.Fprintf(cmd.OutOrStdout(), "%s is not running, nothing to stop\n", procName)
 		return nil
 	}
 	if err != nil {
@@ -93,7 +95,7 @@ func StopCmdRunE(cmd *cobra.Command, _ []string, pidFile, procName string, timeo
 	}
 
 	if !alive {
-		_, _ = fmt.Fprintf(cmd.OutOrStdout(), "%s is not running, nothing to stop\n", procName)
+		fmt.Fprintf(cmd.OutOrStdout(), "%s is not running, nothing to stop\n", procName)
 		return nil
 	}
 
@@ -160,11 +162,11 @@ func waitForProcessExit(pidFile, procName string, timeout time.Duration) error {
 }
 
 // ReloadCmdRunE handles the reload command.
-// Since hot reload is not implemented, this performs a graceful restart.
-func ReloadCmdRunE(cmd *cobra.Command, args []string, pidFile, procName string, timeout int, force bool) error {
+// Sends SIGHUP to the process to trigger configuration reload.
+func ReloadCmdRunE(cmd *cobra.Command, _ []string, pidFile, procName string, _ int, _ bool) error {
 	pid, err := ReadPid(pidFile)
 	if errors.Is(err, ErrPidFileNotExist) || errors.Is(err, ErrInvalidFile) {
-		_, _ = fmt.Fprintf(cmd.OutOrStdout(), "%s is not running (no valid pid file)\n", procName)
+		fmt.Fprintf(cmd.OutOrStdout(), "%s is not running (no valid pid file)\n", procName)
 		return nil
 	}
 	if err != nil {
@@ -177,12 +179,21 @@ func ReloadCmdRunE(cmd *cobra.Command, args []string, pidFile, procName string, 
 	}
 
 	if !alive {
-		_, _ = fmt.Fprintf(cmd.OutOrStdout(), "%s is not running, stale pid=%d\n", procName, pid)
+		fmt.Fprintf(cmd.OutOrStdout(), "%s is not running, stale pid=%d\n", procName, pid)
 		return nil
 	}
 
-	_, _ = fmt.Fprintf(cmd.OutOrStdout(), "reloading %s (graceful restart)...\n", procName)
-	return RestartCmdRunE(cmd, args, pidFile, procName, timeout, force)
+	proc, err := os.FindProcess(int(pid))
+	if err != nil {
+		return gerrors.NewE(gerrors.Failure, err)
+	}
+
+	if err := proc.Signal(os.Signal(syscall.SIGHUP)); err != nil {
+		return gerrors.Newf(gerrors.Failure, "failed to send SIGHUP to %s (pid=%d): %s", procName, pid, err)
+	}
+
+	fmt.Fprintf(cmd.OutOrStdout(), "sent SIGHUP to %s (pid=%d) for reload\n", procName, pid)
+	return nil
 }
 
 // GetBaseHealthInfo returns basic process health information.
