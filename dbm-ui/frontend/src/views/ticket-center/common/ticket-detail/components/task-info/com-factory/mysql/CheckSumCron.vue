@@ -138,7 +138,7 @@
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
   defineOptions({
-    name: TicketTypes.MYSQL_CHECKSUM,
+    name: TicketTypes.MYSQL_CHECKSUM_CRON,
     inheritAttrs: false,
   });
 
