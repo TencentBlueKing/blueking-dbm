@@ -39,6 +39,7 @@ from backend.ticket.constants import TicketType
 from backend.ticket.models import Flow
 from backend.utils.time import str2datetime
 
+
 class TendbChecksumDetailSerializer(TendbBaseOperateDetailSerializer):
     class DataRepairSerializer(serializers.Serializer):
         is_repair = serializers.BooleanField(help_text=_("是否修复"))
@@ -234,19 +235,19 @@ class TendbChecksumFlowBuilder(MySQLChecksumFlowBuilder):
 
     def patch_ticket_detail(self):
         BaseMySQLTicketFlowBuilder.patch_ticket_detail(self)
-        self.ticket.details['trigger_time'] = self.ticket.details['timing']
+        self.ticket.details["trigger_time"] = self.ticket.details["timing"]
         self.ticket.save(update_fields=["details"])
 
     @property
     def need_manual_confirm(self):
         """是否需要人工确认节点。后续默认从单据配置表获取。子类可覆写，覆写以后editable为False"""
-        if self.ticket.details['need_manual_confirm'] is True:
+        if self.ticket.details["need_manual_confirm"] is True:
             return True
         return False
 
     @property
     def need_timer(self):
-        if self.ticket.details['need_manual_confirm'] is True:
+        if self.ticket.details["need_manual_confirm"] is True:
             return False
         return True
 
@@ -256,6 +257,7 @@ class TendbChecksumFlowBuilder(MySQLChecksumFlowBuilder):
 
     def custom_ticket_flows(self):
         return super().custom_ticket_flows()
+
     @classmethod
     def describe_ticket_flows(cls, flow_config_map):
         return super().describe_ticket_flows(flow_config_map)

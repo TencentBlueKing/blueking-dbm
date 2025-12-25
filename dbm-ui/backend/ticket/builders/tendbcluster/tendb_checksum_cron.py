@@ -12,12 +12,14 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.ticket import builders
-from backend.ticket.builders.tendbcluster.tendb_checksum import TendbChecksumFlowBuilder, TendbChecksumDetailSerializer
+from backend.ticket.builders.tendbcluster.tendb_checksum import TendbChecksumDetailSerializer, TendbChecksumFlowBuilder
 from backend.ticket.constants import TicketType
+
 
 class TendbChecksumCronDetailSerializer(TendbChecksumDetailSerializer):
 
     skip_timer = serializers.BooleanField(help_text=_("是否是定时"))
+
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_CHECKSUM_CRON)
 class TendbChecksumCronFlowBuilder(TendbChecksumFlowBuilder):
@@ -29,8 +31,6 @@ class TendbChecksumCronFlowBuilder(TendbChecksumFlowBuilder):
 
     @property
     def need_timer(self):
-        if self.ticket.details['skip_timer'] is True:
+        if self.ticket.details["skip_timer"] is True:
             return False
         return True
-
-
