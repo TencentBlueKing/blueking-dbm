@@ -26,6 +26,9 @@ package logger
 
 import (
 	"log"
+	"os"
+
+	dbmlogger "dbm-services/common/go-pubpkg/logger"
 
 	"go.uber.org/zap"
 )
@@ -120,4 +123,13 @@ func Fatal(format string, args ...any) {
 	}
 
 	dblog.Fatal(format, args...)
+}
+
+func init() {
+	// NOTE: Hack for dbm-services/common/go-pubpkg/trace.
+	//       The func trace/init will be called and print some info log.
+	//       To avoid this, we need to init the dbm logger first.
+	hackerLogger := dbmlogger.New(os.Stderr, false, dbmlogger.ErrorLevel)
+	dbmlogger.ResetDefault(hackerLogger)
+	defer dbmlogger.Sync()
 }

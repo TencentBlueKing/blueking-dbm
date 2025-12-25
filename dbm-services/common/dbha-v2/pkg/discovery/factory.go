@@ -71,7 +71,7 @@ func (c Client) OriginClient() (*clientv3.Client, error) {
 }
 
 // CreateRegistry create new etcd registry
-func (c Client) CreateRegistry() (*Registry, error) {
+func (c Client) CreateRegistry() *Registry {
 	rootKey := c.opts.registryRootKeyPrefix
 	if c.opts.serviceID != "" {
 		rootKey += "/" + c.opts.serviceID
@@ -85,7 +85,7 @@ func (c Client) CreateRegistry() (*Registry, error) {
 		createEtcdClient: c.createEtcdClient,
 	}
 
-	return registry, nil
+	return registry
 }
 
 // CreateDiscovery create etcd discovery

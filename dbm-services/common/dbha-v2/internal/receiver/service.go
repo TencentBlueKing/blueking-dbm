@@ -159,12 +159,7 @@ func (s *Service) createDiscovery() error {
 	}
 	s.discoveryCli = cli
 
-	regCli, err := cli.CreateRegistry()
-	if err != nil {
-		return err
-	}
-	s.regCli = regCli
-
+	s.regCli = cli.CreateRegistry()
 	s.updateInfo()
 	return nil
 }

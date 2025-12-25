@@ -78,12 +78,7 @@ func setup() {
 		log.Fatalf("failed to create etcd client, errmsg: %v", err)
 	}
 
-	r, err := cli.CreateRegistry()
-	if err != nil {
-		log.Fatalf("failed to create registry. errmsg:%s", err.Error())
-	}
-
-	reg = r
+	reg = cli.CreateRegistry()
 
 	d, err := cli.CreateDiscovery()
 	if err != nil {
