@@ -26,7 +26,6 @@ package discovery_test
 
 import (
 	"context"
-	"log"
 	"testing"
 	"time"
 
@@ -129,17 +128,14 @@ func TestRegistryInvalidParameters(t *testing.T) {
 }
 
 func TestRegistryClose(t *testing.T) {
-	newreg, err := client.CreateRegistry()
-	if err != nil {
-		log.Fatalf("failed to create registry. errmsg:%s", err.Error())
-	}
+	newReg := client.CreateRegistry()
 
 	ctx := context.Background()
 
-	err = newreg.SetService(ctx, "registry-test-value")
+	err := newReg.SetService(ctx, "registry-test-value")
 	if err != nil {
 		t.Errorf("failed to set service. errmsg: %v", err)
 	}
 
-	newreg.Close()
+	newReg.Close()
 }

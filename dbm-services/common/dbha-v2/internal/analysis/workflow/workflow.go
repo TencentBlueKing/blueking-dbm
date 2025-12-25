@@ -435,6 +435,10 @@ func (w *Workflow) checkDbHosts(dbHosts []*haprobe.HostMetric, checkDbEventsFunc
 		return
 	}
 
+	if len(dbEvents) == 0 {
+		return
+	}
+
 	checkDbEventsFunc(dbEvents)
 }
 

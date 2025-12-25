@@ -114,10 +114,12 @@ type DbSwitchingStrategy struct {
 	BkBizID int `gorm:"column:bk_biz_id;primaryKey"`
 
 	// The event name that triggers the database switch.
-	TriggerEventName haprobe.DbEventName `gorm:"column:trigger_event_name;primaryKey"`
+	TriggerEventName haprobe.DbEventName `gorm:"column:trigger_event_name;primaryKey;index"`
 
 	// The reason for the event name.
-	TriggerEventNameReason haprobe.DbEventNameReason `gorm:"trigger_event_name_reason;primaryKey"`
+	TriggerEventNameReason haprobe.DbEventNameReason `gorm:"column:trigger_event_name_reason;primaryKey;index"`
+	// This strategy will be triggered after the number of events reaches this value.
+	TriggerCount int `gorm:"column:trigger_count"`
 
 	// level: 0 > 1> 2 > 3 > ...
 	Priority int             `gorm:"column:priority"`
@@ -125,12 +127,12 @@ type DbSwitchingStrategy struct {
 	Action   ActionType      `gorm:"column:action"`
 
 	// Detailed explanation of db switching strategy.
-	Description string    `gorm:"column:description;mediumtext"`
-	CreatedAt   time.Time `gorm:"column:created_at;autoCreateTime"`
-	UpdatedAt   time.Time `gorm:"column:updated_at;autoUpdateTime"`
-	DeletedAt   time.Time `gorm:"column:deleted_at"`
+	Description string    `gorm:"column:description;type:mediumtext;index"`
+	CreatedAt   time.Time `gorm:"column:created_at;autoCreateTime;index"`
+	UpdatedAt   time.Time `gorm:"column:updated_at;autoUpdateTime;index"`
+	DeletedAt   time.Time `gorm:"column:deleted_at;index"`
 }
 
 func (t DbSwitchingStrategy) TableName() string {
-	return "t_db_switching_strategy"
+	return DbSwitchingStrategyTableName
 }
