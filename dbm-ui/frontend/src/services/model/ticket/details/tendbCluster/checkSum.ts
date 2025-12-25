@@ -25,6 +25,7 @@ export interface CheckSum extends DetailBase {
   }[];
   is_consistent_list: Record<string, boolean>;
   is_sync_non_innodb: boolean;
+  need_manual_confirm: boolean;
   runtime_hour: number;
   timing: string;
 }
