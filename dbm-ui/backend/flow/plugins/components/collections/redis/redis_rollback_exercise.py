@@ -183,7 +183,7 @@ class RedisFlowPollingService(RedisLogCapturingService):
             self.log_error(
                 _("Polling timeout after {} seconds for flow type {}").format(self.polling_timeout, flow_type)
             )
-            self._update_task_status(flow_type, self.FAILED)
+            self._update_task_status(flow_type, False)
             return True
         return False
 
@@ -192,16 +192,16 @@ class RedisFlowPollingService(RedisLogCapturingService):
         match status:
             case StateType.FINISHED:
                 self.log_info(_("Flow {} finished successfully").format(flow_obj_id))
-                self._update_task_status(flow_type, self.SUCCEEDED)
+                self._update_task_status(flow_type, True)
                 self.finish_schedule()
                 return True
             case StateType.FAILED:
                 self.log_error(_("Flow {} failed").format(flow_obj_id))
-                self._update_task_status(flow_type, self.FAILED)
+                self._update_task_status(flow_type, False)
                 return flow_type == "rollback_flow_obj_id"  # We don't allow delete failure
             case StateType.REVOKED:
                 self.log_error(_("Flow {} was cancelled or stopped with state: {}").format(flow_obj_id, status))
-                self._update_task_status(flow_type, self.FAILED)
+                self._update_task_status(flow_type, False)
                 return False
             case _:
                 self.log_info(_("Polling: flow {} with status: {}").format(flow_obj_id, status))
