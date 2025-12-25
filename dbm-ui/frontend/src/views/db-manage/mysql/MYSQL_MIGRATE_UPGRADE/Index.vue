@@ -14,65 +14,70 @@
 <template>
   <UpgradeWrapper v-model="wrapperController">
     <SmartAction class="db-toolbox">
-      <EditableTable
-        ref="table"
-        class="mb-20"
-        :model="formData.tableData">
-        <EditableRow
-          v-for="(item, index) in formData.tableData"
-          :key="index">
-          <WithRelatedClustersColumn
-            v-model="item.cluster"
-            :selected="selected"
-            @batch-edit="handleBatchEdit" />
-          <ClusterHostColumn :cluster="item.cluster" />
-          <CurrentVersionColumn
-            v-model="item.current_version"
-            :cluster="item.cluster" />
-          <TargetVersionColumn
-            v-model="item.target_version"
-            v-model:new-db-module-id="item.new_db_module_id"
-            v-model:pkg-id="item.pkg_id"
-            :cluster="item.cluster" />
-          <MultipleResourceHostColumn
-            v-model="item.new_master_slave_host"
-            field="new_master_slave_host"
-            :label="t('新主从主机')"
-            :limit="2"
-            :min-width="200"
-            :params="{
-              for_bizs: [currentBizId, 0],
-              resource_types: [DBTypes.MYSQL, 'PUBLIC'],
-            }" />
-          <NewReadonlyHostColumn
-            v-model="item.new_readonly_host"
-            :cluster="item.cluster" />
-          <OperationColumn
-            v-model:table-data="formData.tableData"
-            :create-row-method="createTableRow" />
-        </EditableRow>
-      </EditableTable>
-      <BkFormItem class="mb-8">
-        <BkCheckbox
-          v-model="formData.is_check_process"
-          :false-label="false"
-          true-label>
-          <span
-            v-bk-tooltips="t('存在业务连接时需要人工确认')"
-            class="safe-action-text">
-            {{ t('检查业务连接') }}
-          </span>
-        </BkCheckbox>
-      </BkFormItem>
-      <BackupSource v-model="formData.backupSource" />
-      <BkFormItem
-        :label="t('数据校验')"
-        property="need_checksum">
-        <BkSwitcher
-          v-model="formData.need_checksum"
-          theme="primary" />
-      </BkFormItem>
-      <TicketPayload v-model="formData.payload" />
+      <BkForm
+        class="mt-16 mb-20"
+        form-type="vertical"
+        :model="formData">
+        <EditableTable
+          ref="table"
+          class="mb-20"
+          :model="formData.tableData">
+          <EditableRow
+            v-for="(item, index) in formData.tableData"
+            :key="index">
+            <WithRelatedClustersColumn
+              v-model="item.cluster"
+              :selected="selected"
+              @batch-edit="handleBatchEdit" />
+            <ClusterHostColumn :cluster="item.cluster" />
+            <CurrentVersionColumn
+              v-model="item.current_version"
+              :cluster="item.cluster" />
+            <TargetVersionColumn
+              v-model="item.target_version"
+              v-model:new-db-module-id="item.new_db_module_id"
+              v-model:pkg-id="item.pkg_id"
+              :cluster="item.cluster" />
+            <MultipleResourceHostColumn
+              v-model="item.new_master_slave_host"
+              field="new_master_slave_host"
+              :label="t('新主从主机')"
+              :limit="2"
+              :min-width="200"
+              :params="{
+                for_bizs: [currentBizId, 0],
+                resource_types: [DBTypes.MYSQL, 'PUBLIC'],
+              }" />
+            <NewReadonlyHostColumn
+              v-model="item.new_readonly_host"
+              :cluster="item.cluster" />
+            <OperationColumn
+              v-model:table-data="formData.tableData"
+              :create-row-method="createTableRow" />
+          </EditableRow>
+        </EditableTable>
+        <BkFormItem class="mb-8">
+          <BkCheckbox
+            v-model="formData.is_check_process"
+            :false-label="false"
+            true-label>
+            <span
+              v-bk-tooltips="t('存在业务连接时需要人工确认')"
+              class="safe-action-text">
+              {{ t('检查业务连接') }}
+            </span>
+          </BkCheckbox>
+        </BkFormItem>
+        <BackupSource v-model="formData.backupSource" />
+        <BkFormItem
+          :label="t('数据校验')"
+          property="need_checksum">
+          <BkSwitcher
+            v-model="formData.need_checksum"
+            theme="primary" />
+        </BkFormItem>
+        <TicketPayload v-model="formData.payload" />
+      </BkForm>
       <template #action>
         <BkButton
           class="mr-8 w-88"
