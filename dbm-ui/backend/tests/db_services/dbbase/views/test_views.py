@@ -344,7 +344,7 @@ class TestDBBaseViewSet:
                 str(cluster_id) in data or cluster_id in data
             ), f"集群ID {cluster_id} 应该在响应中,实际keys: {list(data.keys())}"
 
-    @patch("backend.db_periodic_task.local_tasks.db_meta.sync_cluster_stat.sync_cluster_stat_by_cluster_type")
+    @patch("backend.db_monitor.tasks.sync_cluster_stat_by_cluster_type")
     def test_query_cluster_stat(self, mock_sync_stat, test_cluster_with_entries):
         """测试查询集群容量统计"""
         cluster = test_cluster_with_entries
@@ -360,7 +360,7 @@ class TestDBBaseViewSet:
         data = response.json()["data"]
         assert isinstance(data, dict)
 
-    @patch("backend.db_periodic_task.local_tasks.db_meta.sync_cluster_stat.sync_cluster_load_by_cluster_type")
+    @patch("backend.db_monitor.tasks.sync_cluster_load_by_cluster_type")
     def test_query_cluster_load(self, mock_sync_load, test_cluster_with_entries):
         """测试查询集群负载"""
         cluster = test_cluster_with_entries
@@ -369,7 +369,7 @@ class TestDBBaseViewSet:
         url = "/apis/dbbase/query_cluster_load/"
         response = client.get(
             url,
-            {"bk_biz_id": cluster.bk_biz_id, "cluster_type": ClusterType.TenDBHA.value},
+            {"bk_biz_id": cluster.bk_biz_id, "cluster_type": ClusterType.RedisInstance.value},
         )
 
         assert response.status_code == 200
