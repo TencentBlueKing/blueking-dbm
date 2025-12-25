@@ -3,10 +3,11 @@ import logging
 import threading
 import traceback
 
-from backend.db_report.models.task_record import TaskRecord
-from django.utils import timezone
-from backend.constants import DEFAULT_TIME_ZONE_AREA
 import pytz
+from django.utils import timezone
+
+from backend.constants import DEFAULT_TIME_ZONE_AREA
+from backend.db_report.models.task_record import TaskRecord
 
 logger = logging.getLogger("celery")
 

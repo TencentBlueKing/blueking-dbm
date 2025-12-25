@@ -32,6 +32,7 @@ def cluster_standardization(
 
     exec_ips = []
     bk_cloud_id = ticket_data.get("bk_cloud_id")
+    restart_exporter = ticket_data.get("restart_exporter", False)
     str_cluster_id = ""
     if cluster_id:
         cluster_info = MongoRepository().fetch_one_cluster(id=cluster_id)
@@ -66,12 +67,13 @@ def cluster_standardization(
     )
 
     # 挪模块 副本集多实例部署，串行挪cc
-    kwargs = {
-        "cluster_type": cluster_type,
-        "cluster_id": cluster_id,
-        "cluster_id_set": cluster_id_set,
-        "meta_func_name": MongoDBMigrateMeta.gse_reload.__name__,
-    }
-    sub_pipeline.add_act(act_name=_("gse下发配置"), act_component_code=MongoDBMigrateMetaComponent.code, kwargs=kwargs)
+    if restart_exporter:
+        kwargs = {
+            "cluster_type": cluster_type,
+            "cluster_id": cluster_id,
+            "cluster_id_set": cluster_id_set,
+            "meta_func_name": MongoDBMigrateMeta.gse_reload.__name__,
+        }
+        sub_pipeline.add_act(act_name=_("gse下发配置"), act_component_code=MongoDBMigrateMetaComponent.code, kwargs=kwargs)
 
     return sub_pipeline.build_sub_process(sub_name=_("MongoDB--集群标准化-{}".format(str_cluster_id)))
