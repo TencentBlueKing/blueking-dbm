@@ -10,6 +10,7 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 -->
+
 <template>
   <InfoList>
     <InfoItem :label="t('执行模式')">
@@ -32,85 +33,109 @@
     </InfoItem>
   </InfoList>
   <TicketInfoTable
-    :data="props.ticketDetails.details.infos"
-    row-key="cluster_id">
+    :data="tableData"
+    row-key="master"
+    :rowspan-and-colspan="rowspanAndColspan">
     <TicketInfoTableColumn
-      col-key="cluster_id"
+      col-key="immute_domain"
+      fixed="left"
       :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
       :title="t('目标集群')"
-      :width="300">
+      :width="200">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
+      col-key="checksum_scope"
+      fixed="left"
+      :title="t('校验范围')"
+      :width="100">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.checksum_scope === 'all' ? t('整个集群') : t('部分实例') }}
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
       col-key="slave"
-      :min-width="150"
-      :title="t('校验从库')">
+      :title="t('校验从库')"
+      :width="220">
       <template #title>
-        <span class="mysql-checksum-ip-header">
+        <span class="tendbcluster-checksum-ip-header">
           <span>{{ t('校验从库') }}</span>
           <PopoverCopy class="copy-btn">
-            <div @click="() => handleCopySlave('ip')">
+            <div @click="() => handleCopy('slave', 'ip')">
               {{ t('复制IP') }}
             </div>
-            <div @click="() => handleCopySlave('instance')">
+            <div @click="() => handleCopy('slave', 'instance')">
               {{ t('复制实例') }}
             </div>
           </PopoverCopy>
         </span>
       </template>
       <template #default="{ row }: { row: RowData }">
-        <div
-          v-for="(item, index) in row.slaves"
-          :key="index">
-          <p class="pt-2 pb-2">{{ item.ip }}:{{ item.port }}</p>
+        <span v-if="row.checksum_scope === 'all'">{{ t('全部') }}</span>
+        <div v-else-if="row.slave">
+          <p
+            v-for="item in row.slave.split(',')"
+            :key="item">
+            {{ item }}
+          </p>
         </div>
+        <span v-else>--</span>
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="master"
-      :min-width="150"
-      :title="t('校验主库')">
+      :title="t('校验主库')"
+      :width="220">
       <template #title>
-        <span class="mysql-checksum-ip-header">
+        <span class="tendbcluster-checksum-ip-header">
           <span>{{ t('校验主库') }}</span>
           <PopoverCopy class="copy-btn">
-            <div @click="() => handleCopyMaster('ip')">
+            <div @click="() => handleCopy('slave', 'ip')">
               {{ t('复制IP') }}
             </div>
-            <div @click="() => handleCopyMaster('instance')">
+            <div @click="() => handleCopy('slave', 'instance')">
               {{ t('复制实例') }}
             </div>
           </PopoverCopy>
         </span>
       </template>
-      <template #default="{ row }: { row: RowData }"> {{ row.master.ip }}:{{ row.master.port }} </template>
+      <template #default="{ row }: { row: RowData }">
+        <span v-if="row.checksum_scope === 'all'">{{ t('全部') }}</span>
+        <span v-else>
+          {{ row.master || '--' }}
+        </span>
+      </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="db_patterns"
-      :title="t('校验 DB 名')">
+      :title="t('校验DB名')"
+      :width="120">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="row.db_patterns" />
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="ignore_dbs"
-      :title="t('忽略 DB 名')">
+      :title="t('忽略DB名')"
+      :width="120">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="row.ignore_dbs" />
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="table_patterns"
-      :title="t('校验表名')">
+      :title="t('校验表名')"
+      :width="120">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="row.table_patterns" />
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="ignore_tables"
-      :title="t('忽略表名')">
+      :title="t('忽略表名')"
+      :width="120">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="row.ignore_tables" />
       </template>
@@ -118,9 +143,10 @@
   </TicketInfoTable>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
+  import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
 
@@ -132,13 +158,22 @@
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 
   interface Props {
-    ticketDetails: TicketModel<Mysql.CheckSum>;
+    ticketDetails: TicketModel<TendbCluster.CheckSum>;
   }
 
-  type RowData = Props['ticketDetails']['details']['infos'][number];
+  interface RowData {
+    checksum_scope: string;
+    cluster_id: number;
+    db_patterns: string[];
+    ignore_dbs: string[];
+    ignore_tables: string[];
+    master: string;
+    slave: string;
+    table_patterns: string[];
+  }
 
   defineOptions({
-    name: TicketTypes.MYSQL_CHECKSUM,
+    name: TicketTypes.TENDBCLUSTER_CHECKSUM_CRON,
     inheritAttrs: false,
   });
 
@@ -151,30 +186,43 @@
     manual: t('手动执行'),
   } as Record<string, string>;
 
-  const handleCopySlave = (field: 'ip' | 'instance') => {
-    const slaves = props.ticketDetails.details.infos.reduce<RowData['slaves']>((acc, item) => {
-      if (item.slaves.length) {
-        return [...acc, ...item.slaves];
-      }
-      return acc;
-    }, []);
-    const items = slaves.map((item) => (item && field === 'instance' ? `${item.ip}:${item.port}` : item.ip));
-    if (items.length > 0) {
-      execCopy(items.join('\n'), t('复制成功，共n条', { n: items.length }));
+  const tableData = shallowRef<RowData[]>([]);
+
+  // 先构造表格数据
+  const clusterMap = _.groupBy(props.ticketDetails.details.infos, 'cluster_id');
+  tableData.value = Object.values(clusterMap).flatMap((list) =>
+    list.flatMap((item) =>
+      item.backup_infos.map((row) => ({
+        ...row,
+        checksum_scope: item.checksum_scope,
+        cluster_id: item.cluster_id,
+      })),
+    ),
+  );
+
+  // 再行合并
+  const groupedData = _.groupBy(tableData.value, 'cluster_id');
+  const spanInfo = Object.values(groupedData).flatMap((list, index) => [{ rowIndex: index, rowspan: list.length }]);
+
+  const rowspanAndColspan = ({ colIndex, rowIndex }: { colIndex: number; rowIndex: number }) => {
+    const spanItem = spanInfo.find((item) => (colIndex === 0 || colIndex === 1) && item.rowIndex === rowIndex);
+    if (spanItem) {
+      return {
+        rowspan: spanItem.rowspan,
+      };
     }
+    return {};
   };
 
-  const handleCopyMaster = (field: 'ip' | 'instance') => {
-    const items = props.ticketDetails.details.infos.map((item) =>
-      item.master && field === 'instance' ? `${item.master.ip}:${item.master.port}` : item.master.ip,
-    );
+  const handleCopy = (role: 'master' | 'slave', field: 'ip' | 'instance') => {
+    const items = tableData.value.map((item) => (item[role] && field === 'ip' ? item[role].split(':')[0] : item[role]));
     if (items.length > 0) {
       execCopy(items.join('\n'), t('复制成功，共n条', { n: items.length }));
     }
   };
 </script>
 <style lang="less">
-  .mysql-checksum-ip-header {
+  .tendbcluster-checksum-ip-header {
     display: flex;
 
     &:hover {

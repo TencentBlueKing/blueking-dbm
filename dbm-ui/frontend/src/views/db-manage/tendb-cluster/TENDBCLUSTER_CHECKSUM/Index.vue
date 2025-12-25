@@ -33,7 +33,6 @@
           v-for="(item, index) in formData.tableData"
           :key="index">
           <ClusterColumn
-            ref="clusterRef"
             v-model="item.cluster"
             allow-repeat
             :rowspan="item.rowspan"
@@ -82,6 +81,41 @@
         </EditableRow>
       </EditableTable>
       <BkFormItem
+        :label="t('执行模式')"
+        required>
+        <BkRadioGroup
+          v-model="formData.execute_mode"
+          class="execute-mode">
+          <div class="item-box">
+            <BkRadio label="timer">
+              <div class="item-content">
+                <DbIcon
+                  class="item-flag"
+                  type="timed-task" />
+                <div class="item-label">
+                  {{ t('定时执行') }}
+                </div>
+                <div>{{ t('单据审批通过之后_定时执行_无需确认') }}</div>
+              </div>
+            </BkRadio>
+          </div>
+          <div class="item-box">
+            <BkRadio label="manual">
+              <div class="item-content">
+                <DbIcon
+                  class="item-flag"
+                  type="account" />
+                <div class="item-label">
+                  {{ t('手动执行') }}
+                </div>
+                <div>{{ t('单据审批通过之后_需要人工确认方可执行') }}</div>
+              </div>
+            </BkRadio>
+          </div>
+        </BkRadioGroup>
+      </BkFormItem>
+      <BkFormItem
+        v-if="formData.execute_mode === 'timer'"
         :label="t('定时执行时间')"
         property="timing"
         required>
@@ -217,7 +251,6 @@
   const { format: formatDateToUTC } = useTimeZoneFormat();
 
   const tableRef = useTemplateRef('table');
-  const clusterRef = ref<InstanceType<typeof ClusterColumn>[]>();
   const tableKey = ref(random());
 
   const batchInputConfig = [
@@ -312,7 +345,7 @@
       is_repair: true,
       mode: 'manual',
     },
-    force: true,
+    execute_mode: 'timer', // 默认定时执行
     payload: createTickePayload(),
     runtime_hour: 48,
     tableData: [createTableRow()],
@@ -350,7 +383,13 @@
       const { details } = ticketDetail;
       const { clusters, infos } = details;
       Object.assign(formData, {
+        data_repair: {
+          is_repair: details.data_repair.is_repair,
+          mode: details.data_repair.mode,
+        },
+        execute_mode: details.need_manual_confirm ? 'manual' : 'timer',
         payload: createTickePayload(ticketDetail),
+        runtime_hour: details.runtime_hour,
         tableData: infos.reduce<RowData[]>((acc, item) => {
           const rows = item.backup_infos.map((row) =>
             createTableRow({
@@ -372,6 +411,7 @@
           );
           return [...acc, ...rows];
         }, []),
+        timing: details.timing,
       });
       handleRowMerge();
     },
@@ -395,6 +435,7 @@
       cluster_id: number;
     }[];
     is_sync_non_innodb: boolean;
+    need_manual_confirm: boolean;
     remark: string;
     runtime_hour: number;
     timing: string;
@@ -422,6 +463,7 @@
           cluster_id: rows[0].cluster.id,
         })),
         is_sync_non_innodb: true,
+        need_manual_confirm: formData.execute_mode === 'manual',
         remark: formData.payload.remark,
         runtime_hour: formData.runtime_hour,
         timing: formatDateToUTC(dayjs(formData.timing).format('YYYY-MM-DD HH:mm:ss')),
@@ -510,6 +552,7 @@
       }
     }
 
+    .execute-mode,
     .repair-mode {
       flex-direction: column;
 
