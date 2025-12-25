@@ -36,7 +36,14 @@ from backend.db_periodic_task.local_tasks.context_manager import start_new_span
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.db_periodic_task.utils import TimeUnit, calculate_countdown
 from backend.exceptions import ApiResultError
-from backend.flow.utils.cc_manage import operate_collector, parser_operate_collector_cache_key
+from backend.flow.utils.cc_manage import (
+    operate_collector,
+    parser_operate_collector_cache_key,
+    parser_operate_retry_bk_log_collector_cache_key,
+    parser_operate_retry_monitor_collector_cache_key,
+    retry_bk_log_operate_collector,
+    retry_monitor_operate_collector,
+)
 from backend.utils.redis import RedisConn
 
 logger = logging.getLogger("celery")
@@ -190,6 +197,44 @@ def cycle_trigger_operator_collector():
         # 获取当前任务缓存的实例ID，下发采集任务
         instance_id_to_host_id = script(keys=[cache_key])
         operate_collector(bk_biz_id, db_type, machine_type, instance_id_to_host_id, action)
+
+
+@register_periodic_task(run_every=crontab(minute="*/1"))
+def cycle_trigger_retry_monitor_operator_collector():
+    script = RedisConn.register_script(GET_AND_DELETE_SET_LUA)
+    # 获取当前的任务列表并清空
+    task_list = script(keys=["retry_monitor_operate_collector"])
+    for cache_key in task_list:
+        # 获取采集下发相关信息
+        bk_biz_id, action, collect_id = parser_operate_retry_monitor_collector_cache_key(cache_key)
+        # 获取当前任务缓存的实例ID，下发采集任务
+        instance_id_to_host_id = script(keys=[cache_key])
+        retry_count = 0
+        while retry_count < 3:
+            result = retry_monitor_operate_collector(bk_biz_id, instance_id_to_host_id, action, collect_id)
+            if result:
+                break
+            else:
+                retry_count += 1
+
+
+@register_periodic_task(run_every=crontab(minute="*/1"))
+def cycle_trigger_retry_bk_log_operator_collector():
+    script = RedisConn.register_script(GET_AND_DELETE_SET_LUA)
+    # 获取当前的任务列表并清空
+    task_list = script(keys=["retry_bk_log_operate_collector"])
+    for cache_key in task_list:
+        # 获取采集下发相关信息
+        bk_biz_id, action, plugin_id, collect_id = parser_operate_retry_bk_log_collector_cache_key(cache_key)
+        # 获取当前任务缓存的实例ID，下发采集任务
+        instance_id_to_host_id = script(keys=[cache_key])
+        retry_count = 0
+        while retry_count < 3:
+            result = retry_bk_log_operate_collector(bk_biz_id, instance_id_to_host_id, action, plugin_id, collect_id)
+            if result:
+                break
+            else:
+                retry_count += 1
 
 
 @shared_task
