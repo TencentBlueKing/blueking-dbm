@@ -41,9 +41,10 @@
           </ScrollFaker>
         </div>
         <Teleport
-          v-if="teleportTarget && submitErrorMessage && submitErrorMessage.length > 0"
+          v-if="teleportTarget"
           :to="teleportTarget">
           <BkAlert
+            v-if="submitErrorMessage"
             class="mt-20 mb-20"
             theme="danger">
             <template #title>
@@ -86,6 +87,11 @@
       toolName.value = route.meta.navName as string;
       dbType.value = _.upperFirst(route.meta.dbType as string);
       submitErrorMessage.value = '';
+      nextTick(() => {
+        teleportTarget.value = contentWrapperRef.value?.querySelector(
+          '.smart-action-bottom-placeholder',
+        ) as HTMLDivElement;
+      });
     },
     {
       immediate: true,
@@ -103,10 +109,6 @@
 
   eventBus.on('editable-table-model-change', () => {
     submitErrorMessage.value = '';
-  });
-
-  onMounted(() => {
-    teleportTarget.value = contentWrapperRef.value?.querySelector('.smart-action-bottom-placeholder') as HTMLDivElement;
   });
 </script>
 <style lang="less">
