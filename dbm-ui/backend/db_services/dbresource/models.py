@@ -31,6 +31,8 @@ class ResourceReplenishRecord(models.Model):
     def is_latest_running(cls):
         # 查询最近一条是否在运行
         record = cls.objects.last()
+        if not record:
+            return None
         ticket_status = list(Ticket.objects.filter(id__in=record.ticket_ids).values_list("status", flat=True))
         is_running = any(status not in TICKET_FINISHED_STATUS_SET for status in ticket_status)
         return record.id if is_running else None
