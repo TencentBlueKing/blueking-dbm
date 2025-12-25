@@ -36,6 +36,7 @@ from backend.db_meta.models import (
     Tag,
     TenDBClusterSpiderExt,
 )
+from backend.db_monitor.tasks import sync_cluster_load_by_cluster_type, sync_cluster_stat_by_cluster_type
 from backend.db_services.dbbase.cluster.handlers import ClusterServiceHandler, retrieve_resources
 from backend.db_services.dbbase.cluster.serializers import (
     BatchCheckClusterDbsSerializer,
@@ -586,7 +587,6 @@ class DBBaseViewSet(viewsets.SystemViewSet):
     )
     @action(methods=["GET"], detail=False, serializer_class=QueryClusterCapSerializer, pagination_class=None)
     def query_cluster_stat(self, request, *args, **kwargs):
-        from backend.db_periodic_task.local_tasks.db_meta.sync_cluster_stat import sync_cluster_stat_by_cluster_type
 
         data = self.params_validate(self.get_serializer_class())
         cluster_stat_map = {}
@@ -610,7 +610,6 @@ class DBBaseViewSet(viewsets.SystemViewSet):
     )
     @action(methods=["GET"], detail=False, serializer_class=QueryClusterCapSerializer, pagination_class=None)
     def query_cluster_load(self, request, *args, **kwargs):
-        from backend.db_periodic_task.local_tasks.db_meta.sync_cluster_stat import sync_cluster_load_by_cluster_type
 
         data = self.params_validate(self.get_serializer_class())
         cluster_load_data_map, cluster_load_status_map = {}, {}
