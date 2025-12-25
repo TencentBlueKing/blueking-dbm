@@ -25,8 +25,8 @@ from backend.db_periodic_task.local_tasks.db_meta.constants import UNIFY_QUERY_P
 from backend.db_periodic_task.local_tasks.mongodb_tasks.report_op import ClusterReport, RecordBatchOps, addr, dev_debug
 from backend.db_report.enums import ReportStateType
 from backend.db_report.enums.mongodb_check_sub_type import MongodbExporterCheckSubType
-from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoRepository
 from backend.db_report.repo.task_record_repo import get_report_day_from_time
+from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoRepository
 
 logger = logging.getLogger("root")
 

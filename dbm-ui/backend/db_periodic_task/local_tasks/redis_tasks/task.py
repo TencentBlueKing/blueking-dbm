@@ -10,8 +10,8 @@ specific language governing permissions and limitations under the License.
 """
 from celery.schedules import crontab
 
-from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.db_periodic_task.local_tasks.redis_tasks.check_exporter import CheckRedisUpMetricTask
+from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.db_report.repo.task_record_repo import TaskRecordRepo
 
 """
