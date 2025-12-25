@@ -40,31 +40,24 @@ import (
 
 func setupGracefulShutdown(svr *Service) {
 	sigC := make(chan os.Signal, 1)
-	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 
 	process.SavePid(config.Cfg.PidFile)
 
 	go func() {
-		<-sigC
+		for sig := range sigC {
+			if sig == syscall.SIGHUP {
+				logger.Info("received SIGHUP, reloading configuration...")
+				continue
+			}
 
-		defer func() {
 			logger.Info("shutdown admin server")
 			svr.Close()
+
+			if config.Cfg.PidFile != "" {
+				_ = os.Remove(config.Cfg.PidFile)
+			}
 			os.Exit(0)
-		}()
-
-		if config.Cfg.PidFile == "" {
-			logger.Error("pid file is not set, file: %s", config.Cfg.PidFile)
-			return
-		}
-
-		if _, err := os.Stat(config.Cfg.PidFile); err != nil {
-			logger.Error("failed to remove the file: %s, errmsg: %s", config.Cfg.PidFile, err)
-			return
-		}
-
-		if err := os.Remove(config.Cfg.PidFile); err != nil {
-			logger.Error("failed to remove the file: %s, errmsg: %s", config.Cfg.PidFile, err)
 		}
 	}()
 }
