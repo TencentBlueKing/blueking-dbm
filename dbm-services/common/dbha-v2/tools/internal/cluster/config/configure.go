@@ -54,6 +54,42 @@ type MysqlCluster struct {
 	Slave   []InstanceAddress `yaml:"slave"`
 }
 
+// TenDBInfo represents the information of a TenDB instance.
+type TenDBInfo struct {
+	Host       string `yaml:"host"`
+	Port       int    `yaml:"port"`
+	ServerName string `yaml:"serverName"`
+	Username   string `yaml:"username"`
+	Password   string `yaml:"password"`
+	Wrapper    string `yaml:"wrapper"`
+}
+
+// RemoteSlaveInfo represents the information of a remote slave instance.
+type RemoteSlaveInfo struct {
+	TenDBInfo  `yaml:",inline"`
+	MasterHost string `yaml:"masterHost"` // Identify the master-slave one-to-one relationship
+	MasterPort int    `yaml:"masterPort"` // Identify the master-slave one-to-one relationship
+}
+
+// TenDBCluster represents a TenDB cluster.
+type TenDBCluster struct {
+	Domain       string            `yaml:"domain"`
+	BkBizId      int               `yaml:"bkBizId"`
+	Spider       []TenDBInfo       `yaml:"spider"`
+	SpiderSlave  []TenDBInfo       `yaml:"spiderSlave"`
+	CtlMaster    TenDBInfo         `yaml:"ctlMaster"`
+	CtlSlave     []TenDBInfo       `yaml:"ctlSlave"`
+	RemoteMaster []TenDBInfo       `yaml:"remoteMaster"`
+	RemoteSlave  []RemoteSlaveInfo `yaml:"remoteSlave"`
+}
+
+// BinlogInfo represents mysql binlog information.
+type BinlogInfo struct {
+	TenDBInfo
+	File     string `yaml:"file"`
+	Position uint64 `yaml:"position"`
+}
+
 // APIConfig represents API configuration
 type APIConfig struct {
 	Api     string        `yaml:"api"`
@@ -83,6 +119,7 @@ type AuthInfo struct {
 // Config represents the configuration of the test tools.
 type Config struct {
 	MysqlClusters []MysqlCluster `yaml:"mysqlClusters"`
+	TenDBClusters []TenDBCluster `yaml:"tenDBClusters"`
 	DbmServices   DbmApis        `yaml:"dbmServices"`
 	AuthInfo      AuthInfo       `yaml:"authInfo"`
 }
