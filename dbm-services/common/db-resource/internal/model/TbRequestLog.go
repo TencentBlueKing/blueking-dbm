@@ -1,6 +1,12 @@
 package model
 
-import "time"
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"dbm-services/common/go-pubpkg/logger"
+)
 
 // TbRequestLog 请求日志表
 // TbRpOpsAPILog [...]
@@ -37,4 +43,73 @@ func CreateTbRequestLog(m TbRequestLog) (err error) {
 // UpdateTbRequestLog update request a record
 func UpdateTbRequestLog(requestid string, updatesCols map[string]interface{}) (err error) {
 	return DB.Self.Table(TbRequestLogName()).Where("request_id = ?", requestid).Updates(updatesCols).Error
+}
+
+// QueryResourceParamByBillOrTask query resource operation parameters by bill_id or task_id
+// This function does not depend on view v_request_by_bill, it uses raw SQL with JSON_EXTRACT
+func QueryResourceParamByBillOrTask(ctx context.Context, billID, taskID string, limit, offset int) ([]string, error) {
+	if billID == "" && taskID == "" {
+		return nil, fmt.Errorf("bill_id and task_id cannot both be empty")
+	}
+
+	// Set default limit
+	if limit <= 0 {
+		limit = 100
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	// Record start time for slow query logging
+	startTime := time.Now()
+
+	// Build the query with JSON_EXTRACT for filtering
+	// Using parameterized query to prevent SQL injection
+	query := DB.Self.WithContext(ctx).Table(TbRequestLogName()).
+		Select("request_body")
+
+	// Build WHERE conditions with OR logic
+	conditions := []string{}
+	params := []interface{}{}
+
+	if billID != "" {
+		conditions = append(conditions, "JSON_EXTRACT(request_body, '$.bill_id') = ?")
+		params = append(params, billID)
+	}
+	if taskID != "" {
+		conditions = append(conditions, "JSON_EXTRACT(request_body, '$.task_id') = ?")
+		params = append(params, taskID)
+	}
+
+	// Apply OR logic
+	if len(conditions) > 0 {
+		whereClause := ""
+		for i, cond := range conditions {
+			if i > 0 {
+				whereClause += " OR "
+			}
+			whereClause += cond
+		}
+		query = query.Where(whereClause, params...)
+	}
+
+	// Apply pagination and ordering
+	query = query.Order("create_time DESC").
+		Limit(limit).
+		Offset(offset)
+
+	// Execute the query
+	var requestBodies []string
+	if err := query.Pluck("request_body", &requestBodies).Error; err != nil {
+		return nil, fmt.Errorf("failed to query request logs: %w", err)
+	}
+
+	// Check for slow query (threshold: 1 second)
+	duration := time.Since(startTime)
+	if duration > time.Second {
+		logger.Warn("slow query detected: QueryResourceParamByBillOrTask took %v, bill_id=%s, task_id=%s, limit=%d, offset=%d",
+			duration, billID, taskID, limit, offset)
+	}
+
+	return requestBodies, nil
 }
