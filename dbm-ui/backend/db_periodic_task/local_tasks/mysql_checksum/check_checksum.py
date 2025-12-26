@@ -1,6 +1,5 @@
 import logging
-from datetime import datetime
-from typing import Optional
+from datetime import datetime, timedelta
 
 from blueapps.core.celery.celery import app
 from django.utils import timezone
@@ -38,11 +37,10 @@ def check_mysql_checksum():
 
 
 @app.task
-def check_cluster_checksum(index: int, cluster_id: int, now: Optional[datetime] = None):
+def check_cluster_checksum(index: int, cluster_id: int):  # , now: Optional[datetime] = None):
     """
     单个集群的检查任务：
     - 获取集群、实例信息
-    - 从 BKLog 拉取日志
     - 解析是否有数据不一致或未上报实例
     - 写入 db_report 表
     """
@@ -52,14 +50,21 @@ def check_cluster_checksum(index: int, cluster_id: int, now: Optional[datetime] 
     )
 
     cluster_task = ChecksumService(cluster_id)
-    start_time, end_time, log_start_time, log_end_time = cluster_task.build_time_ranges(now)
+
+    local_tz = datetime.now().astimezone().tzinfo
+    end_time = datetime.now(local_tz)
+    start_time = end_time - timedelta(hours=24)
+
+    # start_time, end_time, log_start_time, log_end_time = cluster_task.build_time_ranges(now)
     # hits = cluster_task.fetch_bklog_logs(log_start_time, log_end_time)
     # fail_list, not_reported_list = cluster_task.parse_logs_for_instances(hits, start_time, end_time)
-    fail_list, not_reported_list = cluster_task.query_checksum_via_drs(cluster_obj.bk_cloud_id, start_time, end_time)
+    fail_list, not_reported_list = cluster_task.query_checksum_via_drs(
+        cluster_obj.bk_cloud_id
+    )  # , start_time, end_time
     logger.info("query {} checksum result finish".format(cluster_obj.immute_domain))
     try:
         report = cluster_task.create_report_and_instances(
-            fail_list, not_reported_list, start_time, end_time, log_start_time, log_end_time
+            fail_list, not_reported_list, start_time, end_time  # , log_start_time, log_end_time
         )
         logger.info(
             "created checksum report %d for index = %d cluster = %s (fail_count = %d)",
