@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 from typing import Any, Callable, Dict, List
 
 from django.db.models import Q, QuerySet
-from django.forms import model_to_dict
 from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.api.cluster.oracle.detail import scan_cluster
@@ -147,7 +146,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
             spec = kwargs["remote_spec_map"].get(spec_id)
         else:
             spec = None
-        cluster_spec_info = {"cluster_spec": model_to_dict(spec) if spec else None}
+        cluster_spec_info = {"cluster_spec": spec.to_dict() if spec else None}
 
         cluster_info = super()._to_cluster_representation(
             cluster,

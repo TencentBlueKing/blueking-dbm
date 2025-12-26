@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 import itertools
 
 from django.db.models import Q
-from django.forms import model_to_dict
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
@@ -606,7 +605,7 @@ class ResourceHcmReplenishSerializer(serializers.Serializer):
         data = super().to_representation(data)
         spec = Spec.objects.get(spec_id=data["spec_id"])
         data["os_type"] = BkOsType.db_type_to_os_type(data["db_type"])
-        data["spec"] = model_to_dict(spec)
+        data["spec"] = spec.to_dict()
         if self.context.get("request"):
             data["operator"] = self.context["request"].user.username
         return data
