@@ -1,7 +1,6 @@
-import type { DetailBase, DetailClusters } from '../common';
+import type { ResourcePoolDetailBase } from '../../resource-pool';
 
-export interface SpiderUpgrade extends DetailBase {
-  clusters: DetailClusters;
+export interface SpiderUpgrade extends ResourcePoolDetailBase {
   infos: {
     cluster_id: number;
     current_version: {
@@ -27,7 +26,8 @@ export interface SpiderUpgrade extends DetailBase {
     resource_spec: {
       [key in string]: {
         count: number;
-        labels?: string[];
+        label_names: string[]; // 标签名称列表，单据详情回显用
+        labels: string[]; // 标签id列表
         spec_id: number;
       };
     };
