@@ -81,26 +81,30 @@ def replace_spider_by_role(
             }
         )
 
-    for p in ProxyInstance.objects.filter(cluster__pk__in=cluster_ids):
+    for p in ProxyInstance.objects.filter(cluster__pk__in=cluster_ids, tendbclusterspiderext__spider_role=spider_role):
         spec_ids.add(p.machine.spec_id)
 
     if len(spec_ids) > 1:
-        BKMonitorV3EventApi.send_event(
-            events=[
-                MonitorEvent(
-                    event_name=MonitorEventType.MYSQL_DBHA_AUTOFIX_VALIDATE_FAILED,
-                    target=f"{cluster_ids[0]}",
-                    event=BaseEventBody(content=str(_("{} {} 规格不一致".format(events[0].immute_domain, spider_role)))),
-                    dimension={
-                        "appid": events[0].bk_biz_id,
-                        "bk_cloud_id": events[0].bk_cloud_id,
-                        "machine_type": MachineType.SPIDER.value,
-                        "instance_role": spider_role,
-                    },
-                    timestamp=0,
-                )
-            ]
-        )
+        for ev in events:
+            BKMonitorV3EventApi.send_event(
+                events=[
+                    MonitorEvent(
+                        event_name=MonitorEventType.MYSQL_DBHA_AUTOFIX_VALIDATE_FAILED,
+                        target=f"{cluster_ids[0]}",
+                        event=BaseEventBody(content=str(_("{} {} 规格不一致".format(ev.immute_domain, spider_role)))),
+                        dimension={
+                            "bk_cloud_id": ev.bk_cloud_id,
+                            "appid": ev.bk_biz_id,
+                            "cluster_domain": ev.immute_domain,
+                            "machine_type": MachineType.SPIDER.value,
+                            "instance_role": spider_role,
+                            "ip": ev.ip,
+                            "port": ev.port,
+                        },
+                        timestamp=0,
+                    )
+                ]
+            )
         return
 
     infos = [
