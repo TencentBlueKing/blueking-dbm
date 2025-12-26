@@ -235,20 +235,11 @@ def generate_single_autofix_ticket(cluster: RedisAutofixCore):
                     "mongodb create autofix ticket for cluster {} , failed : {}".format(cluster.immute_domain, e)
                 )
             return
+        # 只鞥一次高一个角色，，sinc 2025-12-xxs
+        if len(redis_slaves) > 0:
+            create_ticket(cluster, cluster_ids, [], redis_slaves, InstanceRole.REDIS_SLAVE.value)
         if len(redis_proxies) > 0:
-            create_ticket(cluster, cluster_ids, redis_proxies, redis_slaves, InstanceRole.REDIS_PROXY.value)
-        elif len(redis_slaves) > 0:
-            create_ticket(cluster, cluster_ids, redis_proxies, redis_slaves, InstanceRole.REDIS_SLAVE.value)
-        else:
-            logger.error(
-                "noting to-do autofix ticket 4 cluster {}, proxy:{}, slaves:{}".format(
-                    cluster.immute_domain, redis_proxies, redis_slaves
-                )
-            )
-            cluster.status_version = "no ticket created by : NoInstanceWillBeFixed"
-            cluster.update_at = datetime2str(datetime.datetime.now(timezone.utc))
-            cluster.deal_status = AutofixStatus.AF_FAIL.value
-            cluster.save(update_fields=["status_version", "deal_status", "update_at"])
+            create_ticket(cluster, cluster_ids, redis_proxies, [], InstanceRole.REDIS_PROXY.value)
     except Exception as e:
         logger.error("create autofix ticket for cluster {} , failed : {}".format(cluster.immute_domain, e))
         cluster.status_version = "create ticket failed by : {}".format(e)
@@ -265,19 +256,30 @@ def create_ticket(
     is_failover_drill_cluster = cluster.immute_domain.startswith(FAILOVER_DRILL_DOMAIN_PREFIX)
     details = {
         "ip_source": IpSource.RESOURCE_POOL.value,
-        "infos": [
-            {
-                "cluster_ids": cluster_ids,
-                "immute_domain": cluster.immute_domain,
-                "bk_cloud_id": cluster.bk_cloud_id,
-                "bk_biz_id": cluster.bk_biz_id,
-                "proxy": redis_proxies,
-                "redis_slave": redis_slaves,
-                "switch_role": fix_role,  # 兼容整机替换
-                "need_manual_confirm": not is_failover_drill_cluster,
-            }
-        ],
+        "infos": [],
     }
+    info = {
+        "cluster_ids": cluster_ids,
+        "immute_domain": cluster.immute_domain,
+        "bk_cloud_id": cluster.bk_cloud_id,
+        "bk_biz_id": cluster.bk_biz_id,
+        "proxy": redis_proxies,
+        "redis_slave": redis_slaves,
+        "switch_role": fix_role,  # 兼容整机替换
+        "resource_spec": {},
+        "need_manual_confirm": not is_failover_drill_cluster,
+    }
+    if fix_role == InstanceRole.REDIS_PROXY.value:
+        info["resource_spec"] = {
+            "new_proxy": {"spec_id": redis_proxies[0]["spec_id"], "count": len(redis_proxies)}  # proxy的规格id  # 替换的数量
+        }
+    elif fix_role == InstanceRole.REDIS_SLAVE.value:
+        for slave in redis_slaves:
+            info["resource_spec"]["redis_slave_{}".format(slave["ip"])] = {
+                "spec_id": slave["spec_id"],
+                "count": 1,  # 替换的数量
+            }
+    details["infos"].append(info)
     logger.info("create ticket for cluster {} , details : {}".format(cluster.immute_domain, details))
     ips = ["{}:{}".format(host["instance_type"], host["ip"]) for host in redis_proxies + redis_slaves]
 
