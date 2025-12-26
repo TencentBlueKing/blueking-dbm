@@ -58,8 +58,8 @@ def replace_proxy(cluster_ids: List[int], machine_type: MachineType, events: Lis
                         "bk_cloud_id": events[0].bk_cloud_id,
                         "machine_type": machine_type,
                         "instance_role": events[0].instance_role,
-                        # "ip": events[0].ip,
-                        # "port": events[0].port,
+                        "ip": events[0].ip,
+                        "port": events[0].port,
                     },
                     timestamp=0,
                 )
