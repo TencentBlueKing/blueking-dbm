@@ -25,6 +25,7 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import AccessLayer, ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.exceptions import ClusterNotExistException, InstanceNotExistException
 from backend.db_meta.models import AppCache, Cluster, ProxyInstance, StorageInstance, StorageInstanceTuple
+from backend.db_meta.models.city_map import BKSubzone
 from backend.db_meta.models.machine import Machine
 from backend.db_services.dbbase.constants import TCP_ESTABLISHED_CODE, TCP_LISTEN_CODE
 from backend.db_services.dbbase.dataclass import DBInstance
@@ -351,6 +352,12 @@ class ClusterServiceHandler:
     def _format_cluster_field(self, cluster_info: Dict[str, Any]):
         cluster_info["cluster_name"] = cluster_info["name"]
         cluster_info["master_domain"] = cluster_info["immute_domain"]
+        if cluster_info.get("zone_list"):
+            cluster_info["zone_names"] = BKSubzone.objects.filter(
+                bk_sub_zone_id__in=cluster_info["zone_list"]
+            ).values_list("bk_sub_zone", flat=True)
+        else:
+            cluster_info["zone_names"] = []
         return cluster_info
 
     def _get_instance_objs(self, instances: List[DBInstance]):
