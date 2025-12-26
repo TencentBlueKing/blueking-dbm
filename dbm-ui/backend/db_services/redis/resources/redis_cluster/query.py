@@ -12,7 +12,6 @@ from typing import Any, Callable, Dict, List
 
 from django.db import connection
 from django.db.models import Q, QuerySet
-from django.forms import model_to_dict
 from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.api.cluster.rediscluster.handler import RedisClusterHandler
@@ -259,7 +258,7 @@ class RedisListRetrieveResource(query.ListRetrieveResource, RedisExportQueryReso
         if machine_list:
             spec_id = cluster.storages[0].machine.spec_id
             spec = remote_spec_map.get(spec_id)
-            cluster_spec = model_to_dict(spec) if spec else {}
+            cluster_spec = spec.to_dict() if spec else {}
             cluster_capacity = spec.capacity * machine_pair_cnt if spec else 0
 
         master_list = remote_infos[InstanceRole.REDIS_MASTER.value]

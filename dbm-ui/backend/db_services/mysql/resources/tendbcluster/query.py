@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 from typing import Any, Callable, Dict, List
 
 from django.db.models import F, Prefetch, Q, QuerySet, Value
-from django.forms import model_to_dict
 from django.utils.translation import gettext_lazy as _
 
 from backend.configuration.constants import DBType
@@ -212,7 +211,7 @@ class ListRetrieveResource(MysqlListRetrieveResource, TenDBClusterCommonQueryRes
             TicketType.TENDBCLUSTER_FIXPOINT_EXIST,
         ]
         cluster_extra_info = {
-            "cluster_spec": model_to_dict(spec) if spec else None,
+            "cluster_spec": spec.to_dict() if spec else None,
             "cluster_capacity": spec.capacity * machine_pair_cnt if spec else None,
             "spider_master": spider[TenDBClusterSpiderRole.SPIDER_MASTER],
             "spider_slave": spider[TenDBClusterSpiderRole.SPIDER_SLAVE],

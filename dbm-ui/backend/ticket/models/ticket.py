@@ -569,7 +569,7 @@ class ClusterOperateRecord(AuditedModel):
             "flow_id": self.flow.id,
             "ticket_id": self.ticket.id,
             "ticket_type": self.ticket.ticket_type,
-            "title": TicketType.get_choice_label(self.ticket.ticket_type),
+            "title": str(TicketType.get_choice_label(self.ticket.ticket_type)),
             "status": self.ticket.status,
         }
 

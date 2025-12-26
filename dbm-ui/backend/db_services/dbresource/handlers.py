@@ -14,7 +14,6 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List
 
-from django.forms import model_to_dict
 from django.utils.translation import gettext as _
 
 from backend.components import CCApi
@@ -47,7 +46,7 @@ class ClusterSpecFilter(object):
         # 当前集群的筛选规格
         self.specs: List[Dict[str, Any]] = [
             {
-                **model_to_dict(spec),
+                **spec.to_dict(),
                 "capacity": spec.capacity,
             }
             for spec in Spec.objects.filter(
@@ -359,7 +358,7 @@ class MongoDBShardSpecFilter(object):
             spec_machine_type=spec_machine_type, spec_cluster_type=spec_cluster_type, enable=True
         )
         for spec in mongodb_specs:
-            spec_info = {**model_to_dict(spec), "capacity": spec.capacity}
+            spec_info = {**spec.to_dict(), "capacity": spec.capacity}
             spec_info["machine_pair"] = math.ceil(capacity / spec_info["capacity"])
             if self.get_spec_shard_info(spec_info, **kwargs):
                 self.specs.append(spec_info)

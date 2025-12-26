@@ -17,6 +17,7 @@ from typing import Dict, List
 from django.conf import settings
 from django.db import models
 from django.db.models import Q
+from django.forms import model_to_dict
 from django.utils.translation import gettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
@@ -222,6 +223,10 @@ class Spec(AuditedModel):
             "device_class": self.device_class,
             "storage_spec": self.storage_spec,
         }
+
+    def to_dict(self):
+        # 规格信息转换为字典
+        return {**model_to_dict(self, exclude=["tags"]), "id": self.spec_id}
 
     def compare_to(self, spec: "Spec", compare_flag: bool):
         """比较规格"""

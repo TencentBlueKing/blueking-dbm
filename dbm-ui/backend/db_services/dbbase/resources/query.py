@@ -14,7 +14,6 @@ from typing import Any, Callable, Dict, List, Tuple
 
 import attr
 from django.db.models import F, Prefetch, Q, QuerySet
-from django.forms import model_to_dict
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
 
@@ -261,7 +260,7 @@ class CommonQueryResourceMixin(abc.ABC):
         insert_position = next((index for index, header in enumerate(headers) if header["id"] == "tags"), None)
         # 收集需要插入的header
         dynamic_headers = [
-            {"id": ins_role, "name": InstanceRole.get_choice_label(ins_role).capitalize()}
+            {"id": ins_role, "name": str(InstanceRole.get_choice_label(ins_role)).capitalize()}
             for ins_role in InstanceRole.get_values()
             if ins_role in role_header_ids
         ]
@@ -757,7 +756,7 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
 
         return {
             "id": cluster.id,
-            "db_type": ClusterType.cluster_type_to_db_type(cluster.cluster_type),
+            "db_type": str(ClusterType.cluster_type_to_db_type(cluster.cluster_type)),
             "phase": cluster.phase,
             "phase_name": cluster.get_phase_display(),
             "status": cluster.status,
@@ -769,7 +768,7 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             "cluster_access_port": cluster.access_port,
             "cluster_stats": cluster_stats_map.get(cluster.immute_domain, {}),
             "cluster_type": cluster.cluster_type,
-            "cluster_type_name": ClusterType.get_choice_label(cluster.cluster_type),
+            "cluster_type_name": str(ClusterType.get_choice_label(cluster.cluster_type)),
             "cluster_subzones": [cluster_zone_map.get(str(zone), "") for zone in cluster_zone_list],
             "cluster_subzone_ids": cluster_zone_list,
             "disaster_tolerance_level": cluster.disaster_tolerance_level,
@@ -789,7 +788,7 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             "updater": cluster.updater,
             "create_at": datetime2str(cluster.create_at),
             "update_at": datetime2str(cluster.update_at),
-            "cluster_spec": model_to_dict(cluster_spec) if cluster_spec else None,
+            "cluster_spec": cluster_spec.to_dict() if cluster_spec else None,
             "tags": [tag.desc for tag in cluster.tags.all()],
             "zone_list": cluster.zone_list,
         }
@@ -965,7 +964,7 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             "id": instance["id"],
             "cluster_id": instance["cluster__id"],
             "cluster_type": instance["cluster__cluster_type"],
-            "cluster_type_name": ClusterType.get_choice_label(instance["cluster__cluster_type"]),
+            "cluster_type_name": str(ClusterType.get_choice_label(instance["cluster__cluster_type"])),
             "cluster_name": instance["cluster__name"],
             "version": instance["version"],
             "db_module_id": instance["cluster__db_module_id"],
@@ -1146,7 +1145,7 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             "bk_cloud_id": machine.bk_cloud_id,
             "bk_cloud_name": bk_cloud_name,
             "cluster_type": machine.cluster_type,
-            "cluster_type_name": ClusterType.get_choice_label(machine.cluster_type),
+            "cluster_type_name": str(ClusterType.get_choice_label(machine.cluster_type)),
             "machine_type": machine.machine_type,
             "create_at": machine.create_at,
             "spec_id": machine.spec_id,
