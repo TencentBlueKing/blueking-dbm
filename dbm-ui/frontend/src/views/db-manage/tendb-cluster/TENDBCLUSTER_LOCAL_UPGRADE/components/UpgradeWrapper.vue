@@ -39,20 +39,37 @@
         :label="t('升级类型')"
         property="updateType"
         required>
-        <CardCheckbox
-          v-model="modelValue.updateType"
-          :desc="t('适用于小版本升级，如 3.6.1 -> 3.6.3 或 3.6.1 -> 3.7.3')"
-          icon="rebuild"
-          :title="t('原地升级')"
-          :true-value="firstTabValue" />
-        <CardCheckbox
-          v-model="modelValue.updateType"
-          class="ml-8"
-          :desc="t('适用于大版本升级，如 spider1.x -> spider3.x')"
-          :disabled="modelValue.roleType === 'remote'"
-          icon="clone"
-          :title="t('迁移升级')"
-          :true-value="TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE" />
+        <template v-if="modelValue.roleType === 'spider'">
+          <CardCheckbox
+            v-model="modelValue.updateType"
+            :desc="t('适用于小版本升级，如 3.6.1 -> 3.6.3 或 3.6.1 -> 3.7.3')"
+            icon="rebuild"
+            :title="t('原地升级')"
+            :true-value="TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE" />
+          <CardCheckbox
+            v-model="modelValue.updateType"
+            class="ml-8"
+            :desc="t('适用于大版本升级，如 spider1.x -> spider3.x')"
+            icon="clone"
+            :title="t('迁移升级')"
+            :true-value="TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE" />
+        </template>
+
+        <template v-else>
+          <CardCheckbox
+            v-model="modelValue.updateType"
+            :desc="t('适用于小版本升级，如 5.6.1 ->  5.6.2')"
+            icon="rebuild"
+            :title="t('原地升级')"
+            :true-value="TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE" />
+          <CardCheckbox
+            v-model="modelValue.updateType"
+            class="ml-8"
+            :desc="t('适用于大版本升级，如 5.6.0 ->  5.7.0')"
+            icon="clone"
+            :title="t('迁移升级')"
+            :true-value="TicketTypes.TENDBCLUSTER_MIGRATE_UPGRADE" />
+        </template>
       </BkFormItem>
       <slot />
     </BkForm>
@@ -65,16 +82,14 @@
 
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
+  const modelValue = defineModel<{
+    roleType: string;
+    updateType: string;
+  }>({
+    required: true,
+  });
   const { t } = useI18n();
   const router = useRouter();
-  const route = useRoute();
-
-  const firstTabValue = ref(route.meta.ticketType as TicketTypes);
-
-  const modelValue = ref({
-    roleType: 'spider',
-    updateType: '',
-  });
 
   const handleChange = (value: string) => {
     if (value === 'spider') {
@@ -96,16 +111,4 @@
       });
     },
   );
-
-  onMounted(() => {
-    const ticketType = route.meta.ticketType as TicketTypes;
-    firstTabValue.value =
-      ticketType === TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE
-        ? TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE
-        : TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE;
-    modelValue.value = {
-      roleType: ticketType === TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE ? 'remote' : 'spider',
-      updateType: ticketType,
-    };
-  });
 </script>

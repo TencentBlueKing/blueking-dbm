@@ -73,7 +73,10 @@
     tabListConfig?: Record<ClusterTypes.TENDBCLUSTER, TabConfig>;
   }
 
-  type Emits = (e: 'batch-edit', list: TendbClusterModel[]) => void;
+  interface Emits {
+    (e: 'batch-edit', list: TendbClusterModel[]): void;
+    (e: 'request-success'): void;
+  }
 
   const props = withDefaults(defineProps<Props>(), {
     allowRepeat: false,
@@ -86,7 +89,13 @@
 
   const emits = defineEmits<Emits>();
 
-  const modelValue = defineModel<TendbClusterModel>({
+  const modelValue = defineModel<
+    {
+      city?: string;
+      spec_ids?: number[];
+      subzones?: string;
+    } & TendbClusterModel
+  >({
     required: true,
   });
 
@@ -119,7 +128,31 @@
     onSuccess(data) {
       const [currentCluster] = data;
       if (currentCluster) {
-        modelValue.value = currentCluster;
+        const spedIdsSet = new Set<number>();
+        const citiesSet = new Set<string>();
+        const subzonesSet = new Set<string>();
+        data.forEach((item) => {
+          // 规格ID
+          if (item.cluster_spec?.spec_id) {
+            spedIdsSet.add(item.cluster_spec.spec_id);
+          }
+
+          // 地域信息
+          if (item.region && item.region !== 'default') {
+            citiesSet.add(item.region);
+          }
+
+          // 园区信息
+          (item?.cluster_subzones || []).forEach((zone) => {
+            subzonesSet.add(zone);
+          });
+        });
+        modelValue.value = Object.assign({}, currentCluster, {
+          city: Array.from(citiesSet).join(','),
+          spec_ids: Array.from(spedIdsSet),
+          subzones: Array.from(subzonesSet).join(','),
+        });
+        emits('request-success');
       }
     },
   });
@@ -129,10 +162,17 @@
   };
 
   const handleChange = (value: string) => {
-    modelValue.value = {
-      id: 0,
-      master_domain: value,
-    } as TendbClusterModel;
+    modelValue.value = Object.assign(
+      {
+        id: 0,
+        master_domain: value,
+      } as TendbClusterModel,
+      {
+        city: '',
+        spec_ids: [],
+        subzones: '',
+      },
+    );
   };
 
   const handleSelectorChange = (selected: Record<string, TendbClusterModel[]>) => {
