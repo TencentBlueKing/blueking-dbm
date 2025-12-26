@@ -115,6 +115,7 @@ class TenDBClusterAddSpiderMNTFlow(object):
                     with_bk_plugin=False,
                     with_instance_standardize=False,
                     with_collect_sysinfo=False,
+                    with_cc_standardize=False,
                 )
             )
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("{}添加spider_mnt节点流程".format(cluster.name))))
