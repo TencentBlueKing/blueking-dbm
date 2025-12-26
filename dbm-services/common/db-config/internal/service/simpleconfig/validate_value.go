@@ -14,14 +14,14 @@ import (
 
 // ValidateValueForClient 给前端调用
 // 实际保存到 db 的时候，还会根据 db里的值进行校验
-func ValidateValueForClient(items []*api.UpsertConfNames) error {
+func ValidateValueForClient(items []*api.UpsertConfNames, checkReadonly bool) error {
 	var errs error
 	for _, c := range items {
 		var err error
 		if c.ValueType == "" {
 			errs = errors.Join(errs, errors2.Errorf("conf_name %s value_type is empty", c.ConfName))
 		}
-		if c.FlagLocked == 1 || c.FlagReadonly == 1 {
+		if checkReadonly && (c.FlagLocked == 1 || c.FlagReadonly == 1) {
 			errs = errors.Join(errs, errors2.Errorf("conf_name %s is readonly", c.ConfName))
 		}
 		if c.OPType == "remove" || util.ConfValueIsPlaceHolder(c.ValueDefault) {

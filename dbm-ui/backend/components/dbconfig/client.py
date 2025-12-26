@@ -91,7 +91,12 @@ class _DBConfigApi(BaseApi):
         self.change_plat_config = self.generate_data_api(
             method="POST",
             url="bkconfig/v1/confname/change",
-            description=_("修改平台级配置定义"),
+            description=_("修改平台级配置项定义"),
+        )
+        self.change_config_file_def = self.generate_data_api(
+            method="POST",
+            url="bkconfig/v1/conffile/change",
+            description=_("修改配置文件本身的定义"),
         )
 
 

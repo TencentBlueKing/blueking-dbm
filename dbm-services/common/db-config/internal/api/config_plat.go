@@ -6,6 +6,18 @@ import (
 	"dbm-services/common/go-pubpkg/validate"
 )
 
+// ChangeConfFileDefReq 修改配置文件定义
+type ChangeConfFileDefReq struct {
+	OPType    string `json:"op_type" form:"op_type"`
+	UpdatedBy string `json:"-" form:"-"`
+	ConfFileDef
+	LevelNames        string `json:"level_names" form:"level_names"`
+	LevelVersioned    string `json:"level_versioned" form:"level_versioned"`
+	ConfNameValidate  int8   `json:"conf_name_validate" form:"conf_name_validate"`
+	ConfValueValidate int8   `json:"conf_value_validate" form:"conf_value_validate"`
+	ValueTypeStrict   int8   `json:"value_type_strict" form:"value_type_strict"`
+}
+
 // UpsertConfFilePlatReq TODO
 // 如果 conf_file 已经存在，则报错
 // 新建 conf_file，保存操作在 def 表，发布时进入 node 表，生成revision并发布

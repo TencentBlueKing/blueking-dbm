@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from backend.db_meta.enums import ClusterType, MachineType
+from backend.db_meta.enums import ClusterType, InstanceRole, MachineType, TenDBClusterSpiderRole
 
 mysql_cluster_type_choices = [
     (ClusterType.TenDBSingle.value, ClusterType.TenDBSingle.name),
@@ -22,4 +22,12 @@ mysql_machine_type_choices = [
     (MachineType.BACKEND.value, MachineType.BACKEND.name),
     (MachineType.REMOTE.value, MachineType.REMOTE.name),
     (MachineType.SPIDER.value, MachineType.SPIDER.name),
+]
+
+mysql_instance_role_choices = [
+    (InstanceRole.BACKEND_MASTER.value, InstanceRole.BACKEND_MASTER.name),
+    (InstanceRole.BACKEND_SLAVE.value, InstanceRole.BACKEND_SLAVE.name),
+    (InstanceRole.REMOTE_MASTER.value, InstanceRole.REMOTE_MASTER.name),
+    (InstanceRole.REMOTE_SLAVE.value, InstanceRole.REMOTE_SLAVE.name),
+    (TenDBClusterSpiderRole.SPIDER_MASTER, TenDBClusterSpiderRole.SPIDER_MASTER.name),
 ]

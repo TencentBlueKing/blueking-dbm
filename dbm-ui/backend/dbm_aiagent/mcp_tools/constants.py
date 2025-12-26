@@ -18,6 +18,7 @@ class DBMAMcpTools(StrStructuredEnum):
     DBMETA_QUERY = EnumField("dbmeta-query", "dbmeta-query")
     MYSQL_QUERY = EnumField("mysql-query", "mysql-query")
     MYSQL_BILL = EnumField("mysql-bill", "mysql-bill")
+    MYSQL_SLOWLOG = EnumField("mysql-slowlog", "mysql-slowlog")
     SQLSERVER_QUERY = EnumField("sqlserver-query", "sqlserver-query")
 
 

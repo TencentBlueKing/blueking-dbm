@@ -24,6 +24,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -74,6 +75,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -124,6 +126,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -174,6 +177,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -203,6 +207,57 @@ paths:
           appVerifiedRequired: true
           resourcePermissionRequired: true
         descriptionEn: 查询 SQL 执行计划
+  /apis/ai/mcp_tools/mysql/query_mysql_slow_logs/:
+    post:
+      operationId: mysql_slowlog_query_mysql_slow_logs
+      description: 获取 tendbsingle, tendbha, tendbcluster 集群的慢查询统计信息
+      tags:
+      - read
+      - mcp-tools
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MysqlSlowlogInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MysqlSlowlogInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MysqlSlowlogInputRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MysqlSlowlogOutput'
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: false
+        matchSubpath: false
+        backend:
+          name: default
+          method: post
+          path: /apis/ai/mcp_tools/mysql/query_mysql_slow_logs/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs:
+        - type: bk-header-rewrite
+          yaml: |
+            remove: []
+            set:
+            - key: X-Bkdbm-Mcp-Tag
+              value: read,mcp-tools
+        allowApplyPermission: false
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn: 获取 tendbsingle, tendbha, tendbcluster 集群的慢查询统计信息
   /apis/ai/mcp_tools/mysql/show_cluster_processlist/:
     post:
       operationId: mysql_query_show_cluster_processlist
@@ -224,6 +279,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -274,6 +330,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -324,6 +381,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -374,6 +432,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -425,6 +484,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -476,6 +536,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -526,6 +587,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -576,6 +638,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -626,6 +689,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -676,6 +740,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -1495,6 +1560,51 @@ components:
       - address
       - machine_type
       - status
+    MysqlSlowlogInputRequest:
+      type: object
+      properties:
+        cluster_domain:
+          type: string
+          minLength: 1
+          description: 集群域名
+        cluster_type:
+          allOf:
+          - $ref: '#/components/schemas/ClusterType6acEnum'
+          description: |-
+            集群类型
+
+            * `tendbsingle` - TenDBSingle
+            * `tendbha` - TenDBHA
+            * `tendbcluster` - TenDBCluster
+        instance_role:
+          type: string
+          minLength: 1
+          description: db实例角色
+        start_time:
+          type: string
+          format: date-time
+          description: 开始时间
+        end_time:
+          type: string
+          format: date-time
+          description: 结束时间
+      required:
+      - cluster_domain
+      - cluster_type
+      - end_time
+      - instance_role
+      - start_time
+    MysqlSlowlogOutput:
+      type: object
+      properties:
+        cluster_domain:
+          type: string
+          description: 集群域名
+        slowlogs:
+          description: 慢日志列表
+      required:
+      - cluster_domain
+      - slowlogs
     SQLServerTopoInputRequest:
       type: object
       properties:

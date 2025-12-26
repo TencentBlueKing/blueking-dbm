@@ -77,7 +77,6 @@ class DBMetaQueryMcpToolsViewSet(McpToolsViewSet):
     def list_biz_clusters(self, request, *args, **kwargs):
         bk_biz_id = self.get_param("bk_biz_id")
         # cluster_type = self.get_param("cluster_type")
-
         res = [
             {
                 "bk_cloud_id": cluster_obj.bk_cloud_id,

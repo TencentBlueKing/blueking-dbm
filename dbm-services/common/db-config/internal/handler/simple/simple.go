@@ -21,6 +21,7 @@ type Config struct {
 func (cf *Config) Routes() []*gin.RouteInfo {
 	return []*gin.RouteInfo{
 		// config_file
+		{Method: http.MethodPost, Path: "/conffile/change", HandlerFunc: cf.ChangeConfigFilePlat},
 		{Method: http.MethodPost, Path: "/conffile/add", HandlerFunc: cf.UpsertConfigFilePlat},
 		{Method: http.MethodPost, Path: "/conffile/update", HandlerFunc: cf.UpdateConfigFilePlat},
 		{Method: http.MethodGet, Path: "/conffile/list", HandlerFunc: cf.ListConfigFiles},
