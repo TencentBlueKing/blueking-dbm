@@ -27,8 +27,11 @@ func RegisterRoutes(engine *gin.Engine) {
 	apply := apply.ApplyHandler{}
 	apply.RegisterRouter(engine)
 	// machine resource management
-	manage := manage.MachineResourceHandler{}
-	manage.RegisterRouter(engine)
+	manageHandler := manage.MachineResourceHandler{}
+	manageHandler.RegisterRouter(engine)
+	// machine resource parameter query
+	resourceParamHandler := manage.MachineResourceParamHandler{}
+	resourceParamHandler.RegisterRouter(engine)
 	// background router
 	background := controller.BackStageHandler{}
 	background.RegisterRouter(engine)
