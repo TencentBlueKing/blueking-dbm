@@ -30,7 +30,7 @@ import (
 // @Router       /bkconfig/v1/confname/change [post]
 func (cf *Config) ChangeConfNameDef(ctx *gin.Context) {
 	var r api.ChangeConfNameDefReq
-	var resp *api.UpsertConfFilePlatResp
+	//var resp *api.UpsertConfFilePlatResp
 	var err error
 	defer util.LoggerErrorStack(logger.Error, err)
 
@@ -42,12 +42,8 @@ func (cf *Config) ChangeConfNameDef(ctx *gin.Context) {
 		handler.SendResponse(ctx, err, nil)
 		return
 	}
-	if err = simpleconfig.CheckValidConfType(r.Namespace, r.ConfType,
-		r.ConfFile, "", 2); err != nil {
-		handler.SendResponse(ctx, err, nil)
-		return
-	}
-	if err = simpleconfig.ValidateValueForClient(r.ConfNames); err != nil {
+
+	if err = simpleconfig.ValidateValueForClient(r.ConfNames, false); err != nil {
 		handler.SendResponse(ctx, err, nil)
 		return
 	}
@@ -63,7 +59,7 @@ func (cf *Config) ChangeConfNameDef(ctx *gin.Context) {
 		handler.SendResponse(ctx, err, nil)
 		return
 	} else {
-		handler.SendResponse(ctx, nil, resp)
+		handler.SendResponse(ctx, nil, "ok")
 		return
 	}
 }

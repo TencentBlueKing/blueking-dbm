@@ -10,3 +10,4 @@ specific language governing permissions and limitations under the License.
 """
 from .mysql_bill_mcp import MySQLBillMcpToolsViewSet
 from .mysql_query_mcp import MySQLQueryMcpToolsViewSet
+from .mysql_slowlog_mcp import MySQLSlowlogMcpToolsViewSet

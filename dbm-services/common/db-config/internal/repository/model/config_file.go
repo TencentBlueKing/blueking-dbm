@@ -2,11 +2,12 @@ package model
 
 import (
 	"fmt"
+	"strings"
+
+	"bk-dbconfig/pkg/util"
 
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
-
-	"bk-dbconfig/pkg/util"
 )
 
 // DeleteByUnique TODO
@@ -101,15 +102,63 @@ func (c *ConfigFileDefModel) Exists(db *gorm.DB) (uint64, error) {
 	}
 }
 
+func (c *ConfigFileDefModel) Upsert(db *gorm.DB) error {
+	/*
+		db.Debug().Clauses(clause.OnConflict{
+			Columns:   []clause.Column{Name: "conf_type_lc"},
+			UpdateAll: true,
+		})
+
+	*/
+	e := db.Transaction(func(tx *gorm.DB) error {
+		err := tx.Debug().Create(c).Error
+		if err != nil && (errors.Is(err, gorm.ErrDuplicatedKey) || strings.Contains(err.Error(), "Duplicate entry")) {
+			err = tx.Debug().Where(c.UniqueWhere()).Select("conf_type_lc",
+				"conf_file_lc",
+				"level_versioned",
+				"level_names",
+				"conf_name_validate",
+				"conf_value_validate",
+				"value_type_strict",
+				"description",
+				"updated_by").Updates(c).Error
+			if err != nil {
+				return err
+			}
+		}
+		return err
+	})
+	return e
+}
+
 // SaveAndGetID TODO
 func (c *ConfigFileDefModel) SaveAndGetID(db *gorm.DB) (uint64, error) {
+
+	err := db.Transaction(func(tx *gorm.DB) error {
+		_, err := c.Exists(tx)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil
+		} else {
+			return err
+		}
+	})
+
 	id, err := RecordExists(db, c.TableName(), 0, c.UniqueWhere())
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		if err := db.Save(c).Error; err != nil {
 			return 0, err
 		}
 	} else {
-		if err := db.Updates(c).Error; err != nil {
+		err = db.Debug().Model(c).Where(c.UniqueWhere()).Select("conf_type_lc",
+			"conf_file_lc",
+			"level_versioned",
+			"level_names",
+			"conf_name_validate",
+			"conf_value_validate",
+			"value_type_strict",
+			"description",
+			"updated_by").Error
+		if err != nil {
 			return 0, err
 		}
 	}

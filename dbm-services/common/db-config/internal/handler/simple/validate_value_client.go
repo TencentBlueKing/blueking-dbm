@@ -34,7 +34,7 @@ func (cf *Config) ValidateValueForClient(ctx *gin.Context) {
 		handler.SendResponse(ctx, err, nil)
 		return
 	}
-	if err = simpleconfig.ValidateValueForClient(r); err != nil {
+	if err = simpleconfig.ValidateValueForClient(r, true); err != nil {
 		handler.SendResponse(ctx, err, nil)
 		return
 	} else {

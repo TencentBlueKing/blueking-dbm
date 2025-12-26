@@ -689,12 +689,28 @@ BK_APIGW_STAGE_MCP_SERVERS = [
     {
         "name": "sqlserver-query",
          "description": """sqlserver relate information query, such as 
-        1. sqlserver instance status, include run-time variables, status, explain sql and so on
-        2. sqlserver-ha/sqlserver cluster info
+        1. query result has slow queries count, query_time, rows_scan,rows_sent
+        2. need cluster_domain and instance_role provided
         """,
         # 主动授权 app_code
         "target_app_codes": [APP_CODE],
         "labels": ["sqlserver-query"],
+        # 是否启用：1-启用，0-停止
+        "status": 1,
+        # 是否公开
+        "is_public": False,
+        # 自动发现并填充该 MCP 服务器对应的工具
+        "tools": [],
+    },
+    {
+        "name": "mysql-slowlog",
+        "description": """query cluster's slowlog for cluster type mysql,and analyze it,
+    1. sqlserver instance status, include run-time variables, status, explain sql and so on
+    2. sqlserver-ha/sqlserver cluster info
+    """,
+        # 主动授权 app_code
+        "target_app_codes": [APP_CODE],
+        "labels": ["mysql-slowlog"],
         # 是否启用：1-启用，0-停止
         "status": 1,
         # 是否公开

@@ -7,6 +7,7 @@ import (
 	"bk-dbconfig/pkg/core/config"
 
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	"gorm.io/gorm"
 
 	"bk-dbconfig/pkg/constvar"
@@ -46,7 +47,21 @@ func ConfigNamesBatchUpdate(db *gorm.DB, confNames []*ConfigNameDefModel) error 
 //	   delete 根据主键id删除，或者使用唯一键. 这个操作目前没有对外 @todo
 func ConfigNamesBatchDelete(db *gorm.DB, confNames []*ConfigNameDefModel) error {
 	return db.Transaction(func(tx *gorm.DB) error {
+		nodes := []*ConfigModel{}
 		for _, c := range confNames {
+			err := DB.Self.Debug().Model(ConfigModel{}).
+				Where("namespace = ? and conf_type = ? and conf_name = ?",
+					c.Namespace, c.ConfType, c.ConfName).Find(&nodes).Error
+			if err != nil {
+				return err
+			}
+			if len(nodes) > 0 {
+				return errors.Errorf("conf_name=%s is used by app::%s", c.ConfName,
+					strings.Join(lo.Map(nodes, func(node *ConfigModel, _ int) string {
+						return fmt.Sprintf("bk_biz_id=%s(%s=%s)", node.BKBizID, node.LevelName, node.LevelValue)
+					}), ", "))
+			}
+
 			if err := DeleteByUnique(tx, c.TableName(), c.UniqueWhere()); err != nil {
 				return errors.WithMessage(err, c.ConfName)
 			}
