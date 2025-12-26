@@ -78,7 +78,6 @@ class RedisClusterCutOffResourceParamBuilder(BaseOperateResourceParamBuilder):
                 exclusive_machine_map = {
                     slave.machine.ip: [slave.as_receiver.get().ejector.machine] for slave in redis_slaves
                 }
-
             if info["switch_role"] == InstanceRole.REDIS_PROXY.value:
                 machine_type = cluster.proxyinstance_set.first().machine.machine_type
                 common_filters = Q(machine__machine_type=machine_type, cluster__in=info["cluster_ids"]) & ~Q(

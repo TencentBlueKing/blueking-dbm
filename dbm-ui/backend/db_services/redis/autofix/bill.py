@@ -235,7 +235,20 @@ def generate_single_autofix_ticket(cluster: RedisAutofixCore):
                     "mongodb create autofix ticket for cluster {} , failed : {}".format(cluster.immute_domain, e)
                 )
             return
-        create_ticket(cluster, cluster_ids, redis_proxies, redis_slaves)
+        if len(redis_proxies) > 0:
+            create_ticket(cluster, cluster_ids, redis_proxies, redis_slaves, InstanceRole.REDIS_PROXY.value)
+        elif len(redis_slaves) > 0:
+            create_ticket(cluster, cluster_ids, redis_proxies, redis_slaves, InstanceRole.REDIS_SLAVE.value)
+        else:
+            logger.error(
+                "noting to-do autofix ticket 4 cluster {}, proxy:{}, slaves:{}".format(
+                    cluster.immute_domain, redis_proxies, redis_slaves
+                )
+            )
+            cluster.status_version = "no ticket created by : NoInstanceWillBeFixed"
+            cluster.update_at = datetime2str(datetime.datetime.now(timezone.utc))
+            cluster.deal_status = AutofixStatus.AF_FAIL.value
+            cluster.save(update_fields=["status_version", "deal_status", "update_at"])
     except Exception as e:
         logger.error("create autofix ticket for cluster {} , failed : {}".format(cluster.immute_domain, e))
         cluster.status_version = "create ticket failed by : {}".format(e)
@@ -245,7 +258,9 @@ def generate_single_autofix_ticket(cluster: RedisAutofixCore):
         return
 
 
-def create_ticket(cluster: RedisAutofixCore, cluster_ids: list, redis_proxies: list, redis_slaves: list):
+def create_ticket(
+    cluster: RedisAutofixCore, cluster_ids: list, redis_proxies: list, redis_slaves: list, fix_role: str
+):
     """redis自愈创建单据"""
     is_failover_drill_cluster = cluster.immute_domain.startswith(FAILOVER_DRILL_DOMAIN_PREFIX)
     details = {
@@ -258,6 +273,7 @@ def create_ticket(cluster: RedisAutofixCore, cluster_ids: list, redis_proxies: l
                 "bk_biz_id": cluster.bk_biz_id,
                 "proxy": redis_proxies,
                 "redis_slave": redis_slaves,
+                "switch_role": fix_role,  # 兼容整机替换
                 "need_manual_confirm": not is_failover_drill_cluster,
             }
         ],
