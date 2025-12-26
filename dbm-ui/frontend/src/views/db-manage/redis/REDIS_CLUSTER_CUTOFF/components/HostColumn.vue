@@ -102,6 +102,10 @@
     required: true,
   });
 
+  const specId = defineModel<number>('specId', {
+    required: true,
+  });
+
   const { t } = useI18n();
 
   const showSelector = ref(false);
@@ -160,6 +164,7 @@
           region: item.related_clusters[0].region,
           spec_config: item.spec_config,
         };
+        specId.value = item.spec_config.id;
         if (item.role === 'redis_master') {
           queryRelatedSlave({
             bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
