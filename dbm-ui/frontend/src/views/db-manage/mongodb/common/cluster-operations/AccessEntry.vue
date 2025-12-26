@@ -34,16 +34,25 @@
           :key="index"
           class="mongo-access-entry-item">
           <span class="mongo-access-entry-item-label">{{ item.label }}：</span>
-          <span class="mongo-access-entry-item-value">{{ item.value || '--' }}</span>
-          <BkButton
-            v-bk-tooltips="t('复制xxx', [item.label])"
-            class="copy-btn"
-            text
-            theme="primary">
-            <DbIcon
-              type="copy"
-              @click="execCopy(item.value)" />
-          </BkButton>
+          <span class="mongo-access-entry-item-value">
+            <span>{{ item.value || '--' }}</span>
+            <BkButton
+              v-if="item.password && isPasswordExits"
+              class="ml-4"
+              text
+              theme="primary"
+              @click="handlePasswordShow">
+              <DbIcon type="visible1" />
+            </BkButton>
+            <BkButton
+              v-bk-tooltips="t('复制xxx', [item.label])"
+              class="copy-btn"
+              text
+              theme="primary"
+              @click="execCopy(item.value)">
+              <DbIcon type="copy" />
+            </BkButton>
+          </span>
         </div>
       </div>
       <div
@@ -106,6 +115,8 @@
 
   const { t } = useI18n();
 
+  const passwordShow = ref(false);
+
   const entryInfo = shallowRef<{
     list: {
       shareLink?: string;
@@ -115,9 +126,11 @@
     title: string;
   }>();
 
+  const isPasswordExits = computed(() => passwordData.value && passwordData.value.password);
+
   const getFormatPassword = () => {
-    if (passwordData.value && passwordData.value.password) {
-      return `mongodb://${passwordData.value.username}:${passwordData.value.password}@`;
+    if (isPasswordExits.value) {
+      return `mongodb://${passwordData.value!.username}:${passwordShow.value ? passwordData.value!.password : '******'}@`;
     }
     return 'mongodb://{username}:{password}@';
   };
@@ -171,6 +184,7 @@
       },
       {
         label: t('连接字符串'),
+        password: true,
         value: entryAccess,
       },
     ];
@@ -178,6 +192,7 @@
     if (entryAccessClb) {
       infoList.push({
         label: t('连接字符串（CLB）'),
+        password: true,
         value: entryAccessClb,
       });
     }
@@ -235,6 +250,7 @@
         runGetPassword({ cluster_id: props.data.id });
       } else {
         entryInfo.value = undefined;
+        passwordShow.value = false;
       }
     },
     {
@@ -248,6 +264,10 @@
       content.push(...entryInfo.value.list.map((valueItem) => `${valueItem.title}：${valueItem.value}`));
     }
     execCopy(content.join('\n'));
+  };
+
+  const handlePasswordShow = () => {
+    passwordShow.value = !passwordShow.value;
   };
 
   const handleClose = () => {
