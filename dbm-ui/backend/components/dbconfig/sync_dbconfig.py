@@ -116,8 +116,7 @@ def sync_dbconfig(namespace=None, conf_type=None, conf_file=None):
 
                         # Call API
                         try:
-                            result = DBConfigApi.change_plat_config(params=params)
-
+                            result = DBConfigApi.change_plat_config(params=params, raw=True)
                             # Check return result
                             if result.get("code") != 0:
                                 error_msg = (
