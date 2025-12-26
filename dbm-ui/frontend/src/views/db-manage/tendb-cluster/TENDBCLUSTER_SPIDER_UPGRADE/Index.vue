@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <UpgradeWrapper>
+  <UpgradeWrapper v-model="wrapperController">
     <SmartAction class="db-toolbox">
       <BatchInput
         :config="batchInputConfig"
@@ -25,7 +25,6 @@
           v-for="(item, index) in formData.tableData"
           :key="index">
           <ClusterColumn
-            ref="clusterRef"
             v-model="item.cluster"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
@@ -38,6 +37,29 @@
             v-model:pkg-id="item.pkg_id"
             :cluster="item.cluster"
             higher-major-version />
+          <EditableColumn
+            :label="t('规格')"
+            :min-width="200"
+            readonly>
+            <EditableBlock :placeholder="t('自动生成')">
+              <p v-if="item.cluster.spider_master?.[0]?.spec_config?.id">
+                {{ item.cluster.spider_master[0]?.spec_config.name }}（spider_master）
+              </p>
+              <p v-if="item.cluster.spider_slave?.[0]?.spec_config?.id">
+                {{ item.cluster.spider_slave[0]?.spec_config.name }}（spider_slave）
+              </p>
+            </EditableBlock>
+          </EditableColumn>
+          <ResourceTagColumn v-model="item.labels" />
+          <AvailableResourceColumn
+            :params="{
+              subzones: item.cluster.subzones,
+              city: item.cluster.city,
+              for_bizs: [currentBizId, 0],
+              resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
+              spec_id: item.cluster.spider_master?.[0]?.spec_config?.id || 0,
+              labels: item.labels.map((item) => item.id).join(','),
+            }" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -87,9 +109,11 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { DBTypes, TicketTypes } from '@common/const';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+  import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
+  import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
@@ -101,8 +125,9 @@
   import { random } from '@utils';
 
   interface RowData {
-    cluster: TendbClusterModel;
+    cluster: ComponentProps<typeof ClusterColumn>['modelValue'];
     current_version: ComponentProps<typeof CurrentVersionColumn>['modelValue'];
+    labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     new_db_module_id: number;
     pkg_id: number;
     target_version: ComponentProps<typeof TargetVersionColumn>['modelValue'];
@@ -111,12 +136,17 @@
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
 
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
+
   const createTableRow = (data: DeepPartial<RowData> = {}) => ({
     cluster: Object.assign(
       {
+        city: '',
         id: 0,
         master_domain: '',
-      } as TendbClusterModel,
+        spec_ids: [],
+        subzones: '',
+      } as unknown as RowData['cluster'],
       data.cluster,
     ),
     current_version: Object.assign(
@@ -128,6 +158,7 @@
       },
       data.current_version,
     ),
+    labels: (data.labels || []) as RowData['labels'],
     new_db_module_id: data.new_db_module_id || 0,
     pkg_id: data.pkg_id || 0,
     target_version: Object.assign(
@@ -155,12 +186,16 @@
     },
   ];
 
+  const wrapperController = ref({
+    roleType: 'spider',
+    updateType: TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE,
+  });
   const formData = reactive(defaultData());
   const tableKey = ref(random());
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
-  useTicketDetail<TendbCluster.SpiderUpgrade>(TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE, {
+  useTicketDetail<TendbCluster.ResourcePool.SpiderUpgrade>(TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE, {
     onSuccess(ticketDetail) {
       Object.assign(formData, {
         ...createTickePayload(ticketDetail),
@@ -171,6 +206,9 @@
             cluster: {
               master_domain: ticketDetail.details.clusters[item.cluster_id].immute_domain,
             },
+            labels: (item.resource_spec.spider_master?.labels || []).map((item) => ({
+              id: Number(item),
+            })),
             new_db_module_id: item.new_db_module_id,
             pkg_id: item.pkg_id,
             target_version: item.target_version,
@@ -206,7 +244,8 @@
       resource_spec: {
         [key in string]: {
           count: number;
-          labels?: string[];
+          label_names: string[]; // 标签名称列表，单据详情回显用
+          labels: string[]; // 标签id列表
           spec_id: number;
         };
       };
@@ -225,13 +264,16 @@
   const handleSubmit = async () => {
     const valid = await tableRef.value!.validate();
     if (valid) {
-      const resourceSpec = (hostList: TendbClusterModel['spider_master'], role: 'spider_master' | 'spider_slave') => {
+      const resourceSpec = (rowData: RowData, role: 'spider_master' | 'spider_slave') => {
+        const hostList = rowData.cluster[role];
         if (!hostList.length) {
           return {};
         }
         return {
           [role]: {
             count: hostList.length,
+            label_names: rowData.labels.map((item) => item.value),
+            labels: rowData.labels.map((item) => String(item.id)),
             spec_id: hostList?.[0]?.spec_config?.id,
           },
         };
@@ -256,8 +298,8 @@
             },
             pkg_id: item.pkg_id,
             resource_spec: {
-              ...resourceSpec(item.cluster.spider_master, 'spider_master'),
-              ...resourceSpec(item.cluster.spider_slave, 'spider_slave'),
+              ...resourceSpec(item, 'spider_master'),
+              ...resourceSpec(item, 'spider_slave'),
             },
             target_version: item.target_version,
           })),

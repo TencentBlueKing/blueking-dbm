@@ -229,6 +229,7 @@
       if (infos.length > 0) {
         Object.assign(formData, {
           ...createTickePayload(ticketDetail),
+          backupSource: ticketDetail.details.backup_source,
           is_check_process: ticketDetail.details.is_check_process,
           need_checksum: ticketDetail.details.need_checksum,
           tableData: ticketDetail.details.infos.map((item) =>

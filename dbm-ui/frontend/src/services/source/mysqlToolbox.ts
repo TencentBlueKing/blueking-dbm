@@ -57,20 +57,20 @@ export function getSpiderVersionModules(params: {
 }) {
   return http.post<
     {
+      charset: string;
       db_module_id: number;
       db_module_name: string;
-      spider_version: string;
-      module_alias_name: string;
       db_version: string;
-      charset: string;
-      spider_version_num: number;
+      module_alias_name: string;
       pkg_list: {
+        full_version: number;
+        major_version: number;
         pkg_id: number;
         pkg_name: string;
-        major_version: number;
         sub_version: number;
-        full_version: number;
       }[];
+      spider_version: string;
+      spider_version_num: number;
     }[]
   >(`/apis/mysql/toolbox/get_spider_version_modules/`, params);
 }
@@ -99,10 +99,10 @@ export function getVersionModules(params: {
 }) {
   return http.post<
     {
+      charset: string;
       db_module_id: number;
       db_module_name: string;
       db_version: string;
-      charset: string;
       pkg_list: {
         pkg_id: number;
         pkg_name: string;

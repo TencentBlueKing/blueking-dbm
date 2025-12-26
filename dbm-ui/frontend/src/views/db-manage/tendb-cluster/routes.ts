@@ -127,6 +127,9 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE, t('版本升级'), {
       dbConsole: 'tendbCluster.toolbox.spiderUpgrade',
     }),
+    createRouteItem(TicketTypes.TENDBCLUSTER_MIGRATE_UPGRADE, t('版本升级'), {
+      dbConsole: 'tendbCluster.toolbox.migateUpgrade',
+    }),
     createRouteItem(TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP, t('库表备份'), {
       dbConsole: 'tendbCluster.toolbox.dbTableBackup',
     }),
