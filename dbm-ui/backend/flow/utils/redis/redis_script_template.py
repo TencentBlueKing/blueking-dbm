@@ -264,6 +264,8 @@ get_redis_password() {{
 }}
 
 # Function to get role from Redis INFO REPLICATION with timeout
+# Sets global variables: REDIS_ROLE_RESULT and REDIS_ROLE_DEBUG_OUTPUT
+# Returns: 0 on success, 1 on error
 get_redis_role() {{
     local ip="$1"
     local port="$2"
@@ -272,55 +274,58 @@ get_redis_role() {{
     local redis_output=""
     local exit_code=0
 
+    # Initialize global output variables
+    REDIS_ROLE_RESULT=""
+    REDIS_ROLE_DEBUG_OUTPUT=""
+
     # Validate inputs
     if ! validate_ip "$ip"; then
-        echo "invalid_ip"
-        return
-    fi
-
-    if ! validate_port "$port"; then
-        echo "invalid_port"
-        return
+        REDIS_ROLE_RESULT="invalid_ip"
+        REDIS_ROLE_DEBUG_OUTPUT=""
+        return 1
     fi
 
     # Build redis-cli command with timeout
-    local cli_cmd="redis-cli -h $ip -p $port"
-    local auth_opts=""
-    if [ -n "$password" ]; then
-        auth_opts="-a $password --no-auth-warning"
-    fi
-
     if [ -n "$password" ]; then
         # Use timeout command if available for additional safety
         if command -v timeout &> /dev/null; then
-            redis_output=$(timeout "$REDIS_CLI_TIMEOUT" $cli_cmd $auth_opts INFO REPLICATION 2>&1) || exit_code=$?
+            redis_output=$(timeout "$REDIS_CLI_TIMEOUT" redis-cli -h "$ip" -p "$port" -a "$password" INFO REPLICATION 2>&1 \\
+            | grep -v "Warning: Using a password" || true)
+            exit_code=${{PIPESTATUS[0]}}
         else
-            redis_output=$($cli_cmd $auth_opts INFO REPLICATION 2>&1) || exit_code=$?
+            redis_output=$(redis-cli -h "$ip" -p "$port" -a "$password" INFO REPLICATION 2>&1 \\
+            | grep -v "Warning: Using a password" || true)
+            exit_code=${{PIPESTATUS[0]}}
         fi
     else
         if command -v timeout &> /dev/null; then
-            redis_output=$(timeout "$REDIS_CLI_TIMEOUT" redis-cli -h "$ip" -p "$port" INFO REPLICATION 2>&1) || exit_code=$?
+            redis_output=$(timeout "$REDIS_CLI_TIMEOUT" redis-cli -h "$ip" -p "$port" INFO REPLICATION 2>&1)
+            exit_code=$?
         else
-            redis_output=$(redis-cli -h "$ip" -p "$port" INFO REPLICATION 2>&1) || exit_code=$?
+            redis_output=$(redis-cli -h "$ip" -p "$port" INFO REPLICATION 2>&1)
+            exit_code=$?
         fi
     fi
 
+    # Store debug output
+    REDIS_ROLE_DEBUG_OUTPUT="$redis_output"
+
     # Check for timeout (exit code 124)
     if [ "$exit_code" -eq 124 ]; then
-        echo "connection_timeout"
-        return
+        REDIS_ROLE_RESULT="connection_timeout"
+        return 1
     fi
 
     # Check for connection errors
     if echo "$redis_output" | grep -qiE "(connection refused|could not connect|no route to host|network is unreachable)"; then
-        echo "connection_refused"
-        return
+        REDIS_ROLE_RESULT="connection_refused"
+        return 1
     fi
 
     # Check for authentication errors
     if echo "$redis_output" | grep -qiE "(NOAUTH|ERR invalid password|WRONGPASS)"; then
-        echo "auth_failed"
-        return
+        REDIS_ROLE_RESULT="auth_failed"
+        return 1
     fi
 
     # Extract role from output
@@ -329,16 +334,17 @@ get_redis_role() {{
     if [ -z "$result" ]; then
         # If we got output but no role, something unexpected happened
         if [ -n "$redis_output" ]; then
-            echo "unexpected_response"
+            REDIS_ROLE_RESULT="unexpected_response"
         else
-            echo "connection_failed"
+            REDIS_ROLE_RESULT="connection_failed"
         fi
-        return
+        return 1
     fi
 
-    echo "$result"
+    # Set the role result
+    REDIS_ROLE_RESULT="$result"
+    return 0
 }}
-
 # Normalize meta role to match Redis INFO output
 normalize_role() {{
     local role="$1"
@@ -420,8 +426,12 @@ def build_redis_role_check_script(instances: list) -> str:
     meta_role="{meta_role}"
 
     # Get actual role with error handling
-    actual_role=""
-    actual_role=$(get_redis_role "$ip" "$port" "$REDIS_PASSWORD") || actual_role="check_failed"
+    # Function sets global variables: REDIS_ROLE_RESULT and REDIS_ROLE_DEBUG_OUTPUT
+    get_redis_role "$ip" "$port" "$REDIS_PASSWORD"
+    role_check_status=$?
+
+    actual_role="$REDIS_ROLE_RESULT"
+    debug_output="$REDIS_ROLE_DEBUG_OUTPUT"
 
     # Normalize the expected role
     normalized_meta_role=""
@@ -431,24 +441,31 @@ def build_redis_role_check_script(instances: list) -> str:
     match="false"
     error_msg=""
 
-    # Check for various error conditions in actual_role
-    case "$actual_role" in
-        "connection_failed"|"connection_refused"|"connection_timeout"|"auth_failed"|"invalid_ip"|"invalid_port"|"unexpected_response"|"check_failed"|"")
-            match="false"
-            error_msg="$actual_role"
-            if [ -z "$actual_role" ]; then
-                actual_role="unknown"
-                error_msg="unknown_error"
-            fi
-            ;;
-        *)
-            if [ "$actual_role" = "$normalized_meta_role" ]; then
-                match="true"
+    # Check if the role check failed (non-zero exit status)
+    if [ "$role_check_status" -ne 0 ]; then
+        match="false"
+        error_msg="$actual_role"
+        if [ -n "$debug_output" ]; then
+            error_msg="$actual_role: $debug_output"
+        else
+            error_msg="$actual_role: (empty output)"
+        fi
+        if [ -z "$actual_role" ]; then
+            actual_role="unknown"
+            if [ -n "$debug_output" ]; then
+                error_msg="unknown_error: $debug_output"
             else
-                match="false"
+                error_msg="unknown_error: (empty output)"
             fi
-            ;;
-    esac
+        fi
+    else
+        # Role check succeeded, compare roles
+        if [ "$actual_role" = "$normalized_meta_role" ]; then
+            match="true"
+        else
+            match="false"
+        fi
+    fi
 
     # Output JSON for this instance
     if [ "$first" -eq 1 ]; then
