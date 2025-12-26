@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <UpgradeWrapper>
+  <UpgradeWrapper v-model="wrapperController">
     <SmartAction class="db-toolbox">
       <BatchInput
         :config="batchInputConfig"
@@ -156,6 +156,10 @@
     },
   ];
 
+  const wrapperController = ref({
+    roleType: 'remote',
+    updateType: TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE,
+  });
   const formData = reactive(defaultData());
   const tableKey = ref(random());
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
