@@ -89,17 +89,6 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
             kwargs=asdict(act_kwargs),
         )
 
-    # 停监控
-    act_kwargs.cluster["ip"] = exec_ip
-    act_kwargs.cluster["bk_biz_id"] = str(act_kwargs.cluster["bk_biz_id"])
-    act_kwargs.cluster["bk_cloud_id"] = act_kwargs.bk_cloud_id
-    act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install_list_new.__name__
-    sub_pipeline.add_act(
-        act_name=_("重装监控-{}").format(exec_ip),
-        act_component_code=ExecuteDBActuatorScriptComponent.code,
-        kwargs=asdict(act_kwargs),
-    )
-
     # 清理元数据 @这里如果是master, 需要等slave 清理后才能执行
     act_kwargs.cluster["meta_func_name"] = RedisDBMeta.instances_uninstall.__name__
     act_kwargs.cluster["ports"] = shutdown_param["ports"]
@@ -114,6 +103,17 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
         kwargs=asdict(act_kwargs),
     )
     act_kwargs.cluster["bk_biz_id"] = cluster_bk_biz_id  # 仅针对机器元数据操作修改 bk_biz_id
+
+    # 停监控
+    act_kwargs.cluster["ip"] = exec_ip
+    act_kwargs.cluster["bk_biz_id"] = str(act_kwargs.cluster["bk_biz_id"])
+    act_kwargs.cluster["bk_cloud_id"] = act_kwargs.bk_cloud_id
+    act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install_list_new.__name__
+    sub_pipeline.add_act(
+        act_name=_("重装监控-{}").format(exec_ip),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(act_kwargs),
+    )
 
     # 从集群踢掉
     if act_kwargs.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster:
