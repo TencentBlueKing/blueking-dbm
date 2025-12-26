@@ -57,13 +57,7 @@
       :min-width="150"
       :title="t('规格')">
       <template #default="{ row: data }: { row: RowData }">
-        <p v-if="data.resource_spec.spider_master?.spec_id">
-          {{ ticketDetails.details.specs[data.resource_spec.spider_master?.spec_id]?.name }}（spider_master）
-        </p>
-        <p v-else>--</p>
-        <p v-if="data.resource_spec.spider_slave?.spec_id">
-          {{ ticketDetails.details.specs[data.resource_spec.spider_slave?.spec_id]?.name }}（spider_slave）
-        </p>
+        {{ ticketDetails.details.specs[data.resource_spec.backend_group?.spec_id]?.name || '--' }}
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
@@ -71,9 +65,9 @@
       :min-width="200"
       :title="t('资源标签')">
       <template #default="{ row: data }: { row: RowData }">
-        <template v-if="data.resource_spec.spider_master?.label_names?.length">
+        <template v-if="data.resource_spec.backend_group?.label_names?.length">
           <BkTag
-            v-for="item in data.resource_spec.spider_master.label_names"
+            v-for="item in data.resource_spec.backend_group.label_names"
             :key="item">
             {{ item }}
           </BkTag>
@@ -105,13 +99,13 @@
   import VersionContent from './components/VersionContent.vue';
 
   interface Props {
-    ticketDetails: TicketModel<TendbCluster.ResourcePool.SpiderUpgrade>;
+    ticketDetails: TicketModel<TendbCluster.ResourcePool.MigrateUpgrade>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
   defineOptions({
-    name: TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE,
+    name: TicketTypes.TENDBCLUSTER_MIGRATE_UPGRADE,
     inheritAttrs: false,
   });
 
