@@ -35,6 +35,7 @@
           :key="index">
           <HostColumn
             v-model="item.host"
+            v-model:spec-id="item.specId"
             :selected="selected"
             @batch-edit="handleHostBatchEdit" />
           <EditableColumn
