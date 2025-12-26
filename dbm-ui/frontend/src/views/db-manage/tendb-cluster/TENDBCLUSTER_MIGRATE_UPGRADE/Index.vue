@@ -14,14 +14,17 @@
 <template>
   <UpgradeWrapper v-model="wrapperController">
     <SmartAction class="db-toolbox">
+      <BatchInput
+        :config="batchInputConfig"
+        @change="handleBatchInput" />
       <EditableTable
         ref="table"
-        class="mb-20"
+        class="mt-16 mb-20"
         :model="formData.tableData">
         <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
-          <WithRelatedClustersColumn
+          <ClusterColumn
             v-model="item.cluster"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
@@ -32,24 +35,31 @@
             v-model="item.target_version"
             v-model:new-db-module-id="item.new_db_module_id"
             v-model:pkg-id="item.pkg_id"
-            :cluster="item.cluster" />
+            :cluster="item.cluster"
+            higher-major-version
+            higher-sub-version />
           <SpecColumn
             v-model="item.specId"
-            :cluster-type="DBTypes.MYSQL"
-            :current-spec-id-list="item.cluster.spec_id_list"
+            :cluster-type="DBTypes.TENDBCLUSTER"
+            :current-spec-id-list="item.cluster.spec_ids"
             :label="t('规格')"
-            :machine-type="MachineTypes.MYSQL_BACKEND" />
+            :machine-type="MachineTypes.TENDBCLUSTER_BACKEND" />
           <ResourceTagColumn v-model="item.labels" />
-          <ReadonlyHostColumn
-            v-model:new-readonly-host="item.new_readonly_host"
-            v-model:readonly-host="item.readonly_host"
-            :cluster="item.cluster" />
+          <AvailableResourceColumn
+            :params="{
+              subzones: item.cluster.subzones,
+              city: item.cluster.city,
+              for_bizs: [currentBizId, 0],
+              resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
+              spec_id: item.specId,
+              labels: item.labels.map((item) => item.id).join(','),
+            }" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
         </EditableRow>
       </EditableTable>
-      <BkFormItem class="mb-8">
+      <BkFormItem>
         <BkCheckbox
           v-model="formData.is_check_process"
           :false-label="false"
@@ -83,7 +93,7 @@
           :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
           :title="t('确认重置页面')">
           <BkButton
-            class="ml-8 w-88"
+            class="ml8 w-88"
             :disabled="isSubmitting">
             {{ t('重置') }}
           </BkButton>
@@ -93,57 +103,38 @@
   </UpgradeWrapper>
 </template>
 <script lang="ts" setup>
-  import { useTemplateRef } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
-  import TendbhaModel from '@services/model/mysql/tendbha';
-  import type { Mysql } from '@services/model/ticket/ticket';
+  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
+  import { type TendbCluster } from '@services/model/ticket/ticket';
   import { BackupSourceType } from '@services/types';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
+  import { DBTypes, MachineTypes, TicketTypes } from '@common/const';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+  import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
   import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-  import WithRelatedClustersColumn from '@views/db-manage/mysql/common/toolbox-field/with-related-clusters-column/Index.vue';
-  import CurrentVersionColumn from '@views/db-manage/mysql/MYSQL_LOCAL_UPGRADE/components/CurrentVersionColumn.vue';
-  import TargetVersionColumn from '@views/db-manage/mysql/MYSQL_LOCAL_UPGRADE/components/TargetVersionColumn.vue';
-  import UpgradeWrapper from '@views/db-manage/mysql/MYSQL_LOCAL_UPGRADE/components/UpgradeWrapper.vue';
+  import ClusterColumn from '@views/db-manage/tendb-cluster/common/toolbox-field/cluster-column/Index.vue';
+  import UpgradeWrapper from '@views/db-manage/tendb-cluster/TENDBCLUSTER_LOCAL_UPGRADE/components/UpgradeWrapper.vue';
+  import CurrentVersionColumn from '@views/db-manage/tendb-cluster/TENDBCLUSTER_REMOTE_UPGRADE/components/CurrentVersionColumn.vue';
+  import TargetVersionColumn from '@views/db-manage/tendb-cluster/TENDBCLUSTER_REMOTE_UPGRADE/components/TargetVersionColumn.vue';
 
-  import ReadonlyHostColumn from './components/ReadonlyHostColumn.vue';
-
-  interface IHostData {
-    bk_biz_id: number;
-    bk_cloud_id: number;
-    bk_host_id: number;
-    bk_sub_zone: string;
-    ip: string;
-  }
+  import { random } from '@utils';
 
   interface RowData {
-    cluster: {
-      cluster_type: ClusterTypes;
-      id: number;
-      master_domain: string;
-      related_clusters: {
-        cluster_type: ClusterTypes;
-        id: number;
-        master_domain: string;
-      }[];
-      spec_id_list: number[];
-    } & TendbhaModel;
+    cluster: ComponentProps<typeof ClusterColumn>['modelValue'];
     current_version: ComponentProps<typeof CurrentVersionColumn>['modelValue'];
     labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     new_db_module_id: number;
-    new_readonly_host: IHostData[];
     pkg_id: number;
-    readonly_host: TendbhaModel['slaves'];
     specId: number;
     target_version: ComponentProps<typeof TargetVersionColumn>['modelValue'];
   }
@@ -151,14 +142,16 @@
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
 
-  const createTableRow = (data = {} as DeepPartial<RowData>) => ({
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
+
+  const createTableRow = (data: DeepPartial<RowData> = {}) => ({
     cluster: Object.assign(
       {
-        cluster_type: '',
+        city: '',
         id: 0,
         master_domain: '',
-        related_clusters: [],
-        spec_id_list: [],
+        spec_ids: [],
+        subzones: '',
       } as unknown as RowData['cluster'],
       data.cluster,
     ),
@@ -173,9 +166,7 @@
     ),
     labels: (data.labels || []) as RowData['labels'],
     new_db_module_id: data.new_db_module_id || 0,
-    new_readonly_host: (data.new_readonly_host || []) as RowData['new_readonly_host'],
     pkg_id: data.pkg_id || 0,
-    readonly_host: (data.readonly_host || []) as RowData['readonly_host'],
     specId: data.specId || 0,
     target_version: Object.assign(
       {
@@ -196,77 +187,73 @@
     tableData: [createTableRow()],
   });
 
+  const batchInputConfig = [
+    {
+      case: 'spider.test.dba.db',
+      key: 'master_domain',
+      label: t('目标集群'),
+    },
+  ];
+
   const wrapperController = ref({
-    roleType: 'haStorageLayer',
-    updateType: TicketTypes.MYSQL_MIGRATE_UPGRADE,
+    roleType: 'remote',
+    updateType: TicketTypes.TENDBCLUSTER_MIGRATE_UPGRADE,
   });
   const formData = reactive(defaultData());
-
+  const tableKey = ref(random());
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
-  const clusterMap = computed(() => {
-    return formData.tableData.reduce<Record<string, string>>((acc, cur) => {
-      Object.assign(acc, {
-        [cur.cluster.master_domain]: cur.cluster.master_domain,
-      });
-      cur.cluster.related_clusters.forEach((item) => {
-        Object.assign(acc, {
-          [item.master_domain]: cur.cluster.master_domain, // 关联集群映射到所属集群
-        });
-      });
-      return acc;
-    }, {});
-  });
+  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
-  useTicketDetail<Mysql.ResourcePool.MigrateUpgrade>(TicketTypes.MYSQL_MIGRATE_UPGRADE, {
+  useTicketDetail<TendbCluster.ResourcePool.MigrateUpgrade>(TicketTypes.TENDBCLUSTER_MIGRATE_UPGRADE, {
     onSuccess(ticketDetail) {
-      const { clusters, infos } = ticketDetail.details;
-      if (infos.length > 0) {
-        Object.assign(formData, {
-          ...createTickePayload(ticketDetail),
-          backupSource: ticketDetail.details.backup_source,
-          is_check_process: ticketDetail.details.is_check_process,
-          need_checksum: ticketDetail.details.need_checksum,
-          tableData: ticketDetail.details.infos.map((item) =>
-            createTableRow({
-              cluster: {
-                master_domain: clusters[item.cluster_ids[0]].immute_domain,
-              },
-              new_db_module_id: item.new_db_module_id,
-              new_readonly_host: item.read_only_slaves.map((item) => item.new_slave),
-              pkg_id: item.pkg_id,
-              target_version: {
-                charset: item.display_info.charset,
-                db_module_name: item.display_info.target_module_name,
-                db_version: item.display_info.target_version,
-                pkg_name: item.display_info.target_package,
-              },
-            }),
-          ),
-        });
-      }
+      Object.assign(formData, {
+        ...createTickePayload(ticketDetail),
+        backupSource: ticketDetail.details.backup_source,
+        is_check_process: ticketDetail.details.is_check_process,
+        need_checksum: ticketDetail.details.need_checksum,
+        tableData: ticketDetail.details.infos.map((item) =>
+          createTableRow({
+            // 集群信息现查，从而带出当前版本信息
+            cluster: {
+              master_domain: ticketDetail.details.clusters[item.cluster_id].immute_domain,
+            },
+            labels: (item.resource_spec.backend_group?.labels || []).map((item) => ({
+              id: Number(item),
+            })),
+            new_db_module_id: item.new_db_module_id,
+            pkg_id: item.pkg_id,
+            target_version: item.target_version,
+          }),
+        ),
+      });
     },
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
-    backup_source: string;
+    backup_source: BackupSourceType;
     infos: {
-      cluster_ids: number[];
-      display_info: {
+      cluster_id: number;
+      current_version: {
         charset: string;
-        cluster_type: string;
-        current_module_name: string;
-        current_package: string;
-        current_version: string;
-        target_module_name: string;
-        target_package: string;
-        target_version: string;
+        db_module_name: string;
+        db_version: string;
+        pkg_name: string;
       };
       new_db_module_id: number;
+      old_nodes: {
+        old_master: {
+          bk_cloud_id: number;
+          bk_host_id: number;
+          ip: string;
+        }[];
+        old_slave: {
+          bk_cloud_id: number;
+          bk_host_id: number;
+          ip: string;
+        }[];
+      };
       pkg_id: number;
-      read_only_slaves: {
-        new_slave: IHostData;
-        old_slave: IHostData;
-      }[];
+      remote_shard_num: number;
       resource_spec: {
         backend_group: {
           count: number;
@@ -275,60 +262,42 @@
           spec_id: number;
         };
       };
+      target_version: {
+        charset: string;
+        db_module_name: string;
+        db_version: string;
+        pkg_name: string;
+      };
     }[];
     ip_source: 'resource_pool';
     is_check_process: boolean;
     need_checksum: boolean;
-  }>(TicketTypes.MYSQL_MIGRATE_UPGRADE);
-
-  const handleBatchEdit = (list: TendbhaModel[]) => {
-    const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!clusterMap.value[item.master_domain]) {
-        acc.push(
-          createTableRow({
-            cluster: {
-              master_domain: item.master_domain,
-            },
-          }),
-        );
-      }
-      return acc;
-    }, []);
-    formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
-  };
+  }>(TicketTypes.TENDBCLUSTER_MIGRATE_UPGRADE);
 
   const handleSubmit = async () => {
-    const result = await tableRef.value?.validate();
-    if (result) {
+    const valid = await tableRef.value!.validate();
+    if (valid) {
       createTicketRun({
         details: {
           backup_source: formData.backupSource,
           infos: formData.tableData.map((item) => ({
-            cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
-            display_info: {
-              charset: item.target_version.charset,
-              cluster_type: item.cluster.cluster_type,
-              current_module_name: item.cluster.db_module_name,
-              current_package: item.current_version.pkg_name,
-              current_version: item.current_version.db_version,
-              target_module_name: item.target_version.db_module_name,
-              target_package: item.target_version.pkg_name,
-              target_version: item.target_version.db_version,
-            },
+            cluster_id: item.cluster.id,
+            current_version: item.current_version,
             new_db_module_id: item.new_db_module_id,
+            old_nodes: {
+              old_master: item.cluster.remote_db.map((host) => ({
+                bk_cloud_id: host.bk_cloud_id,
+                bk_host_id: host.bk_host_id,
+                ip: host.ip,
+              })),
+              old_slave: item.cluster.remote_dr.map((host) => ({
+                bk_cloud_id: host.bk_cloud_id,
+                bk_host_id: host.bk_host_id,
+                ip: host.ip,
+              })),
+            },
             pkg_id: item.pkg_id,
-            read_only_slaves: item.readonly_host.length
-              ? item.readonly_host.map((host, index) => ({
-                  new_slave: item.new_readonly_host[index],
-                  old_slave: {
-                    bk_biz_id: host.bk_biz_id,
-                    bk_cloud_id: host.bk_cloud_id,
-                    bk_host_id: host.bk_host_id,
-                    bk_sub_zone: host.bk_sub_zone || '--',
-                    ip: host.ip,
-                  },
-                }))
-              : [],
+            remote_shard_num: item.cluster.remote_shard_num,
             resource_spec: {
               backend_group: {
                 count: 1,
@@ -337,6 +306,7 @@
                 spec_id: item.specId,
               },
             },
+            target_version: item.target_version,
           })),
           ip_source: 'resource_pool',
           is_check_process: formData.is_check_process,
@@ -349,5 +319,40 @@
 
   const handleReset = () => {
     Object.assign(formData, defaultData());
+  };
+
+  const handleBatchEdit = (list: TendbClusterModel[]) => {
+    const dataList = list.reduce<RowData[]>((acc, item) => {
+      if (!selectedMap.value[item.master_domain]) {
+        acc.push(
+          createTableRow({
+            cluster: {
+              master_domain: item.master_domain,
+            },
+          }),
+        );
+      }
+      return acc;
+    }, []);
+    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.reduce<RowData[]>((acc, item) => {
+      acc.push(
+        createTableRow({
+          cluster: {
+            master_domain: item.master_domain,
+          },
+        }),
+      );
+      return acc;
+    }, []);
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = [...dataList];
+    } else {
+      formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    }
   };
 </script>
