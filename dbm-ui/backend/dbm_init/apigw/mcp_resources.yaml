@@ -655,6 +655,106 @@ paths:
           appVerifiedRequired: true
           resourcePermissionRequired: true
         descriptionEn: 查询 TenDBSingle 集群拓扑结构
+  /apis/ai/mcp_tools/redis/cluster_topo/:
+    post:
+      operationId: redis_query_meta_cluster_topo
+      description: 查询 Redis 集群元数据
+      tags:
+      - read
+      - mcp-tools
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RedisTopoInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RedisTopoInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RedisTopoInputRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RedisTopoOutput'
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: false
+        matchSubpath: false
+        backend:
+          name: default
+          method: post
+          path: /apis/ai/mcp_tools/redis/cluster_topo/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs:
+        - type: bk-header-rewrite
+          yaml: |
+            remove: []
+            set:
+            - key: X-Bkdbm-Mcp-Tag
+              value: read,mcp-tools
+        allowApplyPermission: false
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn: 查询 Redis 集群元数据
+  /apis/ai/mcp_tools/redis/instance_version/:
+    post:
+      operationId: redis_query_status_instance_version
+      description: 查询 Redis 实例运行状态信息
+      tags:
+      - read
+      - mcp-tools
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RedisTopoInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RedisTopoInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RedisTopoInputRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RedisTopoOutput'
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: false
+        matchSubpath: false
+        backend:
+          name: default
+          method: post
+          path: /apis/ai/mcp_tools/redis/instance_version/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs:
+        - type: bk-header-rewrite
+          yaml: |
+            remove: []
+            set:
+            - key: X-Bkdbm-Mcp-Tag
+              value: read,mcp-tools
+        allowApplyPermission: false
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn: 查询 Redis 实例运行状态信息
   /apis/ai/mcp_tools/sqlserver/cluster_topo/:
     post:
       operationId: sqlserver_query_cluster_topo
@@ -1495,6 +1595,60 @@ components:
       - address
       - machine_type
       - status
+    RedisStorageInstance:
+      type: object
+      properties:
+        address:
+          type: string
+          description: ip:port 形式的实例地址
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          description: |-
+            实例状态
+
+            * `running` - running
+            * `unavailable` - unavailable
+            * `available` - available
+            * `restoring` - restoring
+            * `upgrading` - upgrading
+        machine_type:
+          type: string
+          description: 实例机器类型
+        is_stand_by:
+          type: boolean
+          default: true
+          description: dbha 切换备选标志
+      required:
+      - address
+      - machine_type
+      - status
+    RedisTopoInputRequest:
+      type: object
+      properties:
+        cluster_domain:
+          type: string
+          minLength: 1
+          description: 集群域名
+      required:
+      - cluster_domain
+    RedisTopoOutput:
+      type: object
+      properties:
+        cluster_type:
+          type: string
+          description: 集群类型
+        cluster_domain:
+          type: string
+          description: 集群域名
+        storage:
+          allOf:
+          - $ref: '#/components/schemas/RedisStorageInstance'
+          description: 存储层实例信息
+      required:
+      - cluster_domain
+      - cluster_type
+      - storage
     SQLServerTopoInputRequest:
       type: object
       properties:
