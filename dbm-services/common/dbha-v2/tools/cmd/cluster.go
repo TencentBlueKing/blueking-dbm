@@ -52,10 +52,23 @@ func ResetRun(cmd *cobra.Command, args []string) error {
 	// Set global configuration
 	config.SetClusterConfig(clusterConfig)
 
-	// Create MySQL cluster handler and process clusters
-	clusterHdl := handler.NewMysqlClusterHandler()
-	if err := clusterHdl.ResetAllMysqlClusters(); err != nil {
-		return gerrors.Newf(gerrors.Failure, "failed to reset MySQL clusters: %s", err.Error())
+	clusterType, _ := cmd.Flags().GetString("type")
+
+	switch clusterType {
+	case "mysql":
+		// Create MySQL cluster handler and process clusters
+		clusterHdl := handler.NewMysqlClusterHandler()
+		if err := clusterHdl.ResetAllMysqlClusters(); err != nil {
+			return gerrors.Newf(gerrors.Failure, "failed to reset MySQL clusters: %s", err.Error())
+		}
+	case "tendbcluster":
+		// Create TenDB Cluster handler and process clusters
+		tenDBClusterHdl := handler.NewTenDBClusterHandler()
+		if err := tenDBClusterHdl.ResetAllTenDBClusters(); err != nil {
+			return gerrors.Newf(gerrors.Failure, "failed to reset TenDB clusters: %s", err.Error())
+		}
+	default:
+		return gerrors.Newf(gerrors.Failure, "please enter one of the following options: mysql, tendbcluster")
 	}
 
 	return nil
@@ -85,6 +98,8 @@ func main() {
 		Short: "Reset clusters state according to configuration file",
 		RunE:  ResetRun,
 	}
+	resetCmd.Flags().String("type", "", "cluster type")
+	resetCmd.MarkFlagRequired("type")
 	resetCmd.PersistentFlags().StringVarP(&configFilePath, "config", "c",
 		"./etc/cluster.yaml", "Path to configuration file")
 

@@ -171,15 +171,13 @@ func (hdl *MysqlClusterHandler) switchProxyBackend(proxyIp string, proxyAdminPor
 	switchSql := fmt.Sprintf("refresh_backends('%s:%d', 1)", targetIp, targetPort)
 	querySql := "select * from backends"
 
-	_, err = proxyDB.DB().Exec(switchSql)
-	if err != nil {
+	if _, err = proxyDB.DB().Exec(switchSql); err != nil {
 		errMsg := fmt.Sprintf("failed to execute sql(%s), errmsg: %s", switchSql, err.Error())
 		return gerrors.New(gerrors.Failure, errMsg)
 	}
 
 	var backendList []ProxyBackendInfo
-	err = proxyDB.DB().Select(&backendList, querySql)
-	if err != nil {
+	if err = proxyDB.DB().Select(&backendList, querySql); err != nil {
 		errMsg := fmt.Sprintf("failed to execute sql(%s), errmsg: %s", querySql, err.Error())
 		return gerrors.New(gerrors.Failure, errMsg)
 	}
@@ -216,8 +214,7 @@ func (hdl *MysqlClusterHandler) StopSlave(slaveDB *hamysql.GormDB) error {
 	slavePort := slaveDB.Port()
 	stopSlaveSQL := "stop slave"
 
-	err := slaveDB.DB().Exec(stopSlaveSQL).Error
-	if err != nil {
+	if err := slaveDB.DB().Exec(stopSlaveSQL).Error; err != nil {
 		return gerrors.Newf(gerrors.Failure,
 			"failed to stop slave on node(%s:%d), errmsg: %s", slaveIp, slavePort, err.Error())
 	}
@@ -233,8 +230,7 @@ func (hdl *MysqlClusterHandler) StartSlave(slaveDB *hamysql.GormDB) error {
 	slavePort := slaveDB.Port()
 	startSlaveSQL := "start slave"
 
-	err := slaveDB.DB().Exec(startSlaveSQL).Error
-	if err != nil {
+	if err := slaveDB.DB().Exec(startSlaveSQL).Error; err != nil {
 		return gerrors.Newf(gerrors.Failure,
 			"failed to start slave on node(%s:%d), errmsg: %s", slaveIp, slavePort, err.Error())
 	}
@@ -251,8 +247,7 @@ func (hdl *MysqlClusterHandler) ShowMasterStatus(db *hamysql.GormDB) (*MasterSta
 	showMasterSQL := "show master status"
 
 	masterStatus := &MasterStatusInfo{}
-	err := db.DB().Raw(showMasterSQL).Scan(masterStatus).Error
-	if err != nil {
+	if err := db.DB().Raw(showMasterSQL).Scan(masterStatus).Error; err != nil {
 		return nil, gerrors.Newf(gerrors.Failure,
 			"failed to get master status on node(%s:%d), errmsg: %s", slaveIp, slavePort, err.Error())
 	}
@@ -270,8 +265,7 @@ func (hdl *MysqlClusterHandler) ShowSlaveStatus(slaveDB *hamysql.GormDB) (*Slave
 	showSlaveSQL := "show slave status"
 
 	slaveStatus := &SlaveStatusInfo{}
-	err := slaveDB.DB().Raw(showSlaveSQL).Scan(slaveStatus).Error
-	if err != nil {
+	if err := slaveDB.DB().Raw(showSlaveSQL).Scan(slaveStatus).Error; err != nil {
 		return nil, gerrors.Newf(gerrors.Failure,
 			"failed to get slave status on node(%s:%d), errmsg: %s", slaveIp, slavePort, err.Error())
 	}
@@ -288,12 +282,26 @@ func (hdl *MysqlClusterHandler) ResetSlave(slaveDB *hamysql.GormDB) error {
 	slavePort := slaveDB.Port()
 	resetSlaveSQL := "reset slave /*!50516 all */"
 
-	err := slaveDB.DB().Exec(resetSlaveSQL).Error
-	if err != nil {
+	if err := slaveDB.DB().Exec(resetSlaveSQL).Error; err != nil {
 		return gerrors.Newf(gerrors.Failure,
 			"failed to reset slave on node(%s:%d), errmsg: %s", slaveIp, slavePort, err.Error())
 	}
 
+	return nil
+}
+
+func (hdl *MysqlClusterHandler) setTcAdmin(db *hamysql.GormDB, value int64) error {
+	if db == nil {
+		return gerrors.New(gerrors.InvalidParameter, "setTcAdmin got nil DB")
+	}
+	dbIp := db.Host()
+	dbPort := db.Port()
+	dbSQL := fmt.Sprintf("set tc_admin = %d", value)
+
+	if err := db.DB().Exec(dbSQL).Error; err != nil {
+		return gerrors.Newf(gerrors.Failure,
+			"failed to set tc_admin=%d on node(%s:%d), errmsg: %s", value, dbIp, dbPort, err.Error())
+	}
 	return nil
 }
 
@@ -317,26 +325,23 @@ func (hdl *MysqlClusterHandler) stopSlaveForMaster(ip string, port int) (string,
 		}
 	}()
 
-	err = hdl.StopSlave(masterDB)
-	if err != nil {
+	if err = hdl.StopSlave(masterDB); err != nil {
 		return "", 0, err
 	}
 
 	masterStatus := &MasterStatusInfo{}
-	masterStatus, err = hdl.ShowMasterStatus(masterDB)
-	if err != nil {
+	if masterStatus, err = hdl.ShowMasterStatus(masterDB); err != nil {
 		return "", 0, err
 	}
 
-	err = hdl.ResetSlave(masterDB)
-	if err != nil {
+	if err = hdl.ResetSlave(masterDB); err != nil {
 		return masterStatus.File, masterStatus.Position, err
 	}
 
 	return masterStatus.File, masterStatus.Position, nil
 }
 
-func (hdl *MysqlClusterHandler) changeMasterForSlave(slaveIp string, slavePort int, changeMasterSQL string) error {
+func (hdl *MysqlClusterHandler) changeMasterForSlave(slaveIp string, slavePort int, changeMasterSQL string, isSetTcAdmin bool) error {
 	slaveDB, err := hamysql.NewGormDB(
 		hamysql.OptionProto(MySQLProtocol),
 		hamysql.OptionIP(slaveIp),
@@ -355,6 +360,12 @@ func (hdl *MysqlClusterHandler) changeMasterForSlave(slaveIp string, slavePort i
 			con.Close()
 		}
 	}()
+
+	if isSetTcAdmin {
+		if err = hdl.setTcAdmin(slaveDB, 0); err != nil {
+			return err
+		}
+	}
 
 	if err := hdl.StopSlave(slaveDB); err != nil {
 		return err
@@ -422,7 +433,7 @@ func (hdl *MysqlClusterHandler) changeMasterForAllSlave(slaveList []config.Insta
 		binlogFile, binlogPos)
 
 	for _, slave := range slaveList {
-		if err := hdl.changeMasterForSlave(slave.Host, slave.Port, changeMasterSQL); err != nil {
+		if err := hdl.changeMasterForSlave(slave.Host, slave.Port, changeMasterSQL, false); err != nil {
 			return err
 		}
 	}
