@@ -31,7 +31,7 @@ func initAPIURLs() map[string]string {
 		"/v4/dbs/opsRequest/hscaling":   APIClusterHScaling,
 		"/v4/dbs/opsRequest/vexpansion": APIClusterVExpansion,
 		"/v4/dbs/opsRequest/start":      APIClusterStart,
-		"/v4/dbs/opsRequest/restart":    APIClusterReStart,
+		"/v4/dbs/opsRequest/restart":    APIClusterRestart,
 		"/v4/dbs/opsRequest/stop":       APIClusterStop,
 		"/v4/dbs/opsRequest/upgrade":    APIClusterUpgrade,
 		"/v4/dbs/opsRequest/expose":     APIClusterExpose,
