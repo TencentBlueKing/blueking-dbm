@@ -59,6 +59,7 @@ var operationSyncMap = map[string]func(*metaentity.K8sCrdClusterEntity, *thirdap
 	"doRestartCluster":    infrautil.AsyncClusterRestarted,
 	"doHorizontalScaling": infrautil.AsyncClusterHScaled,
 	"doVerticalScaling":   infrautil.AsyncClusterVScaled,
+	"doVolumeExpansion":   infrautil.AsyncClusterVolumeExpanded,
 }
 
 // OpsRequestProvider the OpsRequest provider struct

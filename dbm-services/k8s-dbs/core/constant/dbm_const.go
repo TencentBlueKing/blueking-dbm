@@ -48,6 +48,8 @@ const (
 	OperationHscaling ClusterOperationType = "hscaling"
 	// OperationVscaling 垂直扩缩集群操作
 	OperationVscaling ClusterOperationType = "vscaling"
+	// OperationVolumeExpand 磁盘扩缩集群操作
+	OperationVolumeExpand ClusterOperationType = "volume_expand"
 )
 
 // ClusterPhase 集群阶段
