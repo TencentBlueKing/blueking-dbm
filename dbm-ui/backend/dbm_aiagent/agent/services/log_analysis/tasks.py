@@ -39,7 +39,7 @@ def pipeline_log_ai_analysis(root_id: str = None) -> List[Dict]:
     node_ids = handler.get_specific_node_ids(status=StateType.FAILED)
 
     if not node_ids:
-        logger.info(f"流程 {root_id} 没有失败节点")
+        logger.info(f"pipeline {root_id} doesn't have failed nodes")
         return []
 
     # 节点版本映射

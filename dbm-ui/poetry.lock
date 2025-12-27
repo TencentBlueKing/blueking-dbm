@@ -2,13 +2,13 @@
 
 [[package]]
 name = "aidev-agent"
-version = "1.0.6"
+version = "1.0.7.post1"
 description = "bkaidev agent builder"
 optional = false
 python-versions = "<4.0,>=3.10.5"
 files = [
-    {file = "aidev_agent-1.0.6-py3-none-any.whl", hash = "sha256:5f35cbb9bc274014a4f5638e53928e0ab730245ce434b9011029a53408f14ec0"},
-    {file = "aidev_agent-1.0.6.tar.gz", hash = "sha256:3e46bb577cd8c4e57fcc2537df98078736f786a8b6f93a9edf91342f4ac3f92f"},
+    {file = "aidev_agent-1.0.7.post1-py3-none-any.whl", hash = "sha256:1308dcaec9bca1992d6760425fe5a77baaca804512e86e202b5d28137c23151e"},
+    {file = "aidev_agent-1.0.7.post1.tar.gz", hash = "sha256:9104a7aed4ca45bb028bda4173ea3a258799763f23f244413b0a50db7757acd7"},
 ]
 
 [package.dependencies]
@@ -24,7 +24,7 @@ langchain-core = ">0.3.79"
 langchain-mcp-adapters = ">=0.1.9,<1.0.0"
 langchain-openai = ">=0.3.0,<1.0.0"
 langfuse = "<3"
-mcp = "1.23.1"
+mcp = "1.25.0"
 pyro4 = ">=4.82,<5.0"
 pytz = ">=2025.2,<2026.0"
 urllib3 = ">=2.6.0"
@@ -3003,13 +3003,13 @@ files = [
 
 [[package]]
 name = "mcp"
-version = "1.23.1"
+version = "1.25.0"
 description = "Model Context Protocol SDK"
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "mcp-1.23.1-py3-none-any.whl", hash = "sha256:3ce897fcc20a41bd50b4c58d3aa88085f11f505dcc0eaed48930012d34c731d8"},
-    {file = "mcp-1.23.1.tar.gz", hash = "sha256:7403e053e8e2283b1e6ae631423cb54736933fea70b32422152e6064556cd298"},
+    {file = "mcp-1.25.0-py3-none-any.whl", hash = "sha256:b37c38144a666add0862614cc79ec276e97d72aa8ca26d622818d4e278b9721a"},
+    {file = "mcp-1.25.0.tar.gz", hash = "sha256:56310361ebf0364e2d438e5b45f7668cbb124e158bb358333cd06e49e83a6802"},
 ]
 
 [package.dependencies]
@@ -6501,4 +6501,4 @@ cffi = ["cffi (>=1.17,<2.0)", "cffi (>=2.0.0b)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11.10,<3.12"
-content-hash = "d2941c7b974736ea59882d0387bbd9666cfc4978e9442a806f5eb4604537ea51"
+content-hash = "1447fe51b8c6f9aba902f9aafa17f52f16589188ccd34088ea2e689a7a045bf0"
