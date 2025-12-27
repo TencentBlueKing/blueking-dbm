@@ -53,10 +53,11 @@ import (
 
 // 操作类型到同步方法的映射
 var operationSyncMap = map[string]func(*metaentity.K8sCrdClusterEntity, *thirdapi.DbmAPIService){
-	"doExposeCluster":  infrautil.AsyncClusterExposed,
-	"doStopCluster":    infrautil.AsyncClusterStopped,
-	"doStartCluster":   infrautil.AsyncClusterStarted,
-	"doRestartCluster": infrautil.AsyncClusterRestarted,
+	"doExposeCluster":     infrautil.AsyncClusterExposed,
+	"doStopCluster":       infrautil.AsyncClusterStopped,
+	"doStartCluster":      infrautil.AsyncClusterStarted,
+	"doRestartCluster":    infrautil.AsyncClusterRestarted,
+	"doHorizontalScaling": infrautil.AsyncClusterHScaling,
 }
 
 // OpsRequestProvider the OpsRequest provider struct
