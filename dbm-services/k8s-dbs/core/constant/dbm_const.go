@@ -46,6 +46,8 @@ const (
 	OperationRestart ClusterOperationType = "restart"
 	// OperationHscaling 水平扩缩集群操作
 	OperationHscaling ClusterOperationType = "hscaling"
+	// OperationVscaling 垂直扩缩集群操作
+	OperationVscaling ClusterOperationType = "vscaling"
 )
 
 // ClusterPhase 集群阶段

@@ -106,13 +106,22 @@ func AsyncClusterRestarted(
 	asyncClusterOperation(clusterEntity, coreconst.OperationRestart, dbmAPIService, syncClusterRestartedWithContext)
 }
 
-// AsyncClusterHScaling 同步集群水平扩缩信息到DBM
-func AsyncClusterHScaling(
+// AsyncClusterHScaled 同步集群水平扩缩信息到DBM
+func AsyncClusterHScaled(
 	clusterEntity *metaentity.K8sCrdClusterEntity,
 	dbmAPIService *thirdapi.DbmAPIService,
 ) {
 	slog.Info("开始同步集群水平扩缩信息", "cluster_name", clusterEntity.ClusterName)
 	asyncClusterOperation(clusterEntity, coreconst.OperationRestart, dbmAPIService, syncClusterHsWithContext)
+}
+
+// AsyncClusterVScaled 同步集群垂直扩缩信息到DBM
+func AsyncClusterVScaled(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) {
+	slog.Info("开始同步集群垂直扩缩信息", "cluster_name", clusterEntity.ClusterName)
+	asyncClusterOperation(clusterEntity, coreconst.OperationVscaling, dbmAPIService, syncClusterVsWithContext)
 }
 
 // asyncClusterOperation 通用的异步集群操作函数，支持创建、更新和删除操作
@@ -209,6 +218,15 @@ func syncClusterHsWithContext(
 	return syncClusterWithContext(ctx, clusterEntity, dbmAPIService, coreconst.OperationHscaling)
 }
 
+// syncClusterVsWithContext 带context的同步集群垂直扩缩信息到DBM
+func syncClusterVsWithContext(
+	ctx context.Context,
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) error {
+	return syncClusterWithContext(ctx, clusterEntity, dbmAPIService, coreconst.OperationVscaling)
+}
+
 // syncClusterDeletedWithContext 带context的同步集群删除信息到DBM
 func syncClusterDeletedWithContext(
 	ctx context.Context,
@@ -254,7 +272,8 @@ func syncClusterWithContext(
 		coreconst.OperationStop,
 		coreconst.OperationStart,
 		coreconst.OperationRestart,
-		coreconst.OperationHscaling:
+		coreconst.OperationHscaling,
+		coreconst.OperationVscaling:
 		return syncClusterUpdate(clusterEntity, dbmAPIService, dbmClusterType, operation)
 	default:
 		return fmt.Errorf("不支持的同步操作类型: %s", operation)
@@ -266,8 +285,9 @@ func getPhaseByOperation(operation coreconst.ClusterOperationType) coreconst.Clu
 	switch operation {
 	case coreconst.OperationExpose,
 		coreconst.OperationStart,
+		coreconst.OperationRestart,
 		coreconst.OperationHscaling,
-		coreconst.OperationRestart:
+		coreconst.OperationVscaling:
 		return coreconst.PhaseOnline
 	case coreconst.OperationStop:
 		return coreconst.PhaseOffline
