@@ -97,6 +97,15 @@ func AsyncClusterStarted(
 	asyncClusterOperation(clusterEntity, coreconst.OperationStart, dbmAPIService, syncClusterStartedWithContext)
 }
 
+// AsyncClusterRestarted 同步集群重启信息到DBM
+func AsyncClusterRestarted(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) {
+	slog.Info("开始同步集群重启信息", "cluster_name", clusterEntity.ClusterName)
+	asyncClusterOperation(clusterEntity, coreconst.OperationRestart, dbmAPIService, syncClusterRestartedWithContext)
+}
+
 // asyncClusterOperation 通用的异步集群操作函数，支持创建、更新和删除操作
 func asyncClusterOperation(
 	clusterEntity *metaentity.K8sCrdClusterEntity,
@@ -173,6 +182,15 @@ func syncClusterStartedWithContext(
 	return syncClusterWithContext(ctx, clusterEntity, dbmAPIService, coreconst.OperationStart)
 }
 
+// syncClusterRestartedWithContext 带context的同步集群启动信息到DBM
+func syncClusterRestartedWithContext(
+	ctx context.Context,
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) error {
+	return syncClusterWithContext(ctx, clusterEntity, dbmAPIService, coreconst.OperationRestart)
+}
+
 // syncClusterDeletedWithContext 带context的同步集群删除信息到DBM
 func syncClusterDeletedWithContext(
 	ctx context.Context,
@@ -216,7 +234,8 @@ func syncClusterWithContext(
 	case
 		coreconst.OperationExpose,
 		coreconst.OperationStop,
-		coreconst.OperationStart:
+		coreconst.OperationStart,
+		coreconst.OperationRestart:
 		return syncClusterUpdate(clusterEntity, dbmAPIService, dbmClusterType, operation)
 	default:
 		return fmt.Errorf("不支持的同步操作类型: %s", operation)
@@ -227,7 +246,8 @@ func syncClusterWithContext(
 func getPhaseByOperation(operation coreconst.ClusterOperationType) coreconst.ClusterPhase {
 	switch operation {
 	case coreconst.OperationExpose,
-		coreconst.OperationStart:
+		coreconst.OperationStart,
+		coreconst.OperationRestart:
 		return coreconst.PhaseOnline
 	case coreconst.OperationStop:
 		return coreconst.PhaseOffline

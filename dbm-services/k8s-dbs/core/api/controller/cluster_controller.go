@@ -130,7 +130,7 @@ func (c *ClusterController) StartCluster(ctx *gin.Context) {
 // RestartCluster 重启集群
 func (c *ClusterController) RestartCluster(ctx *gin.Context) {
 	request := &coreentity.Request{}
-	c.setAPIRequestContext(ctx, request, commconst.APIClusterReStart)
+	c.setAPIRequestContext(ctx, request, commconst.APIClusterRestart)
 	if err := ctx.ShouldBindJSON(request); err != nil {
 		api.ErrorResponse(ctx, dbserrors.NewK8sDbsError(dbserrors.ParameterInvalidError, err))
 		return

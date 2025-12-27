@@ -48,7 +48,7 @@ const (
 	APIClusterHScaling      = "v4_dbs_cluster_hscaling"
 	APIClusterVExpansion    = "v4_dbs_cluster_vexpansion"
 	APIClusterStart         = "v4_dbs_cluster_start"
-	APIClusterReStart       = "v4_dbs_cluster_restart"
+	APIClusterRestart       = "v4_dbs_cluster_restart"
 	APIClusterStop          = "v4_dbs_cluster_stop"
 	APIClusterDelete        = "v4_dbs_cluster_delete"
 	APIClusterCreate        = "v4_dbs_cluster_create"
@@ -241,7 +241,7 @@ func initClusterGroups(groups map[string]string) {
 		APIClusterHScaling,
 		APIClusterVExpansion,
 		APIClusterStart,
-		APIClusterReStart,
+		APIClusterRestart,
 		APIClusterStop,
 		APIClusterDelete,
 		APIClusterCreate,

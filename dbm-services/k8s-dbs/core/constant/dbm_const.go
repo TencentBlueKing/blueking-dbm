@@ -42,6 +42,8 @@ const (
 	OperationStop ClusterOperationType = "stop"
 	// OperationStart 启动集群操作
 	OperationStart ClusterOperationType = "start"
+	// OperationRestart 重启集群操作
+	OperationRestart ClusterOperationType = "restart"
 )
 
 // ClusterPhase 集群阶段
