@@ -191,7 +191,8 @@ class InnerFlow(BaseTicketFlow):
             # 处理互斥异常和非预期的异常
             self.run_error_status_handler(err)
             # 记录AI日志分析
-            ticket_flow_log_ai_analysis.apply_async(args=(root_id,))
+            if env.ENABLE_DBM_AI:
+                ticket_flow_log_ai_analysis.apply_async(args=(root_id,))
             return
         else:
             # 记录inner flow的集群动作和实例动作

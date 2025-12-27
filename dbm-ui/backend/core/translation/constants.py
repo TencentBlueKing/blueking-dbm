@@ -44,6 +44,8 @@ EXCLUDE_FILE_PATHS = [
     # 忽略权限模型json初始化的中文
     "backend/iam_app/dataclass/__init__.py",
     "backend/ticket/constants.py",
+    # aidev 快捷指令中文
+    "backend/dbm_aiagent/agent/commands/commands.py",
 ]
 ALL_EXCLUDE_DIRS = set(EXCLUDE_DIRS + EXCLUDE_FILE_PATHS)
 
