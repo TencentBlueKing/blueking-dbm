@@ -22,6 +22,9 @@ package informers
 import (
 	"context"
 	"fmt"
+	coreconst "k8s-dbs/core/constant"
+	infrautil "k8s-dbs/infrastructure/util"
+	"os"
 
 	kbtypes "github.com/apecloud/kbcli/pkg/types"
 	"k8s.io/client-go/tools/cache"
@@ -32,6 +35,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	"k8s-dbs/infrastructure/thirdapi"
 
 	appsv1 "github.com/apecloud/kubeblocks/apis/apps/v1alpha1"
 	"k8s.io/client-go/dynamic/dynamicinformer"
@@ -79,40 +84,54 @@ func (o *ClusterInformer) Start(
 
 // OnUpdate 处理 opsRequest 更新事件
 func (o *ClusterInformer) OnUpdate(_, newObj interface{}) {
+	// 1. 类型转换
 	newUnstructured, ok := newObj.(*unstructured.Unstructured)
 	if !ok {
 		slog.Error("failed to cast newObj to Unstructured")
 		return
 	}
 
-	var newCluster *appsv1.Cluster
-	if err := runtime.
-		DefaultUnstructuredConverter.FromUnstructured(newUnstructured.Object, &newCluster); err != nil {
-		slog.Error("failed to cast oldUnstructured to Cluster")
+	var cluster appsv1.Cluster
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(newUnstructured.Object, &cluster); err != nil {
+		slog.Error("failed to convert to Cluster", "err", err)
 		return
 	}
-	clusterName := newCluster.Name
-	nameSpace := newCluster.GetNamespace()
-	status := newCluster.Status
-	clusterEntity, err := o.clusterMetaProvider.FindByParams(&metaentity.ClusterQueryParams{
-		ClusterName:        clusterName,
-		Namespace:          nameSpace,
+
+	// 2. 查询集群实体
+	entity, err := o.clusterMetaProvider.FindByParams(&metaentity.ClusterQueryParams{
+		ClusterName:        cluster.Name,
+		Namespace:          cluster.Namespace,
 		K8sClusterConfigID: o.k8sClusterConfig.ID,
 	})
-	if err != nil || clusterEntity == nil {
-		slog.Error("failed to find cluster",
-			"clusterEntity", fmt.Sprintf("%+v", clusterEntity), "err", err)
+
+	if err != nil || entity == nil {
+		slog.Debug("failed to find cluster",
+			"clusterEntity", fmt.Sprintf("%+v", entity), "err", err)
 		return
 	}
-	if clusterEntity.Status != string(status.Phase) {
-		slog.Info("Cluster entity status changed",
-			"clusterName", clusterName, "oldPhase", clusterEntity.Status, "newPhase", status.Phase)
-		clusterEntity.Status = string(status.Phase)
-		_, err = o.clusterMetaProvider.UpdateCluster(clusterEntity)
-		if err != nil {
-			slog.Error("failed to update cluster entity",
-				"clusterName", clusterName, "err", err)
-			return
+
+	// 3. 检查状态变更
+	newPhase := string(cluster.Status.Phase)
+	if entity.Status == newPhase {
+		return // 状态未变化
+	}
+
+	slog.Info("Cluster status changed",
+		"cluster", fmt.Sprintf("%s/%s", cluster.Namespace, cluster.Name),
+		"old", entity.Status, "new", newPhase)
+
+	// 4. 处理异常状态
+	if cluster.Status.Phase == appsv1.AbnormalClusterPhase ||
+		cluster.Status.Phase == appsv1.FailedClusterPhase {
+		if os.Getenv(coreconst.AsyncToDBMEnv) == coreconst.AsyncToDBMEnabled {
+			infrautil.AsyncClusterAbnormal(entity, thirdapi.GetDbmAPIService())
 		}
+	}
+
+	// 5. 更新状态
+	entity.Status = newPhase
+	if _, err := o.clusterMetaProvider.UpdateCluster(entity); err != nil {
+		slog.Error("failed to update cluster",
+			"cluster", cluster.Name, "err", err)
 	}
 }

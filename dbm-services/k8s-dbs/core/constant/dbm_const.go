@@ -50,6 +50,10 @@ const (
 	OperationVscaling ClusterOperationType = "vscaling"
 	// OperationVolumeExpand 磁盘扩缩集群操作
 	OperationVolumeExpand ClusterOperationType = "volume_expand"
+	// OperationStatusAbnormal 集群更新为异常状态操作
+	OperationStatusAbnormal ClusterOperationType = "status_abnormal"
+	// OperationStatusNormal 集群更新为正常状态操作
+	OperationStatusNormal ClusterOperationType = "status_normal" // nolint
 )
 
 // ClusterPhase 集群阶段
@@ -69,6 +73,7 @@ type ClusterStatus string
 
 const (
 	// StatusNormal 集群正常状态
-	StatusNormal   ClusterStatus = "normal"
-	StatusUnNormal ClusterStatus = "unnormal" // nolint
+	StatusNormal    ClusterStatus = "normal"
+	StatusAbNormal  ClusterStatus = "abnormal"
+	StatusTemporary ClusterStatus = "temporary" // nolint
 )
