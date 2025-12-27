@@ -13,6 +13,7 @@ import logging
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
+from backend import env
 from backend.dbm_aiagent.agent.services.log_analysis.tasks import FLOW_LOG_AI_ANALYSIS_KEY
 from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
@@ -36,8 +37,8 @@ def post_set_state_signal_handler(sender, node_id, to_state, version, root_id, *
         # 记录开始时间
         FlowNode.objects.filter(root_id=root_id, node_id=node_id).update(started_at=now)
 
-    if to_state == StateType.FAILED:
-        # 任务失败加入失败队列
+    if to_state == StateType.FAILED and env.ENABLE_DBM_AI:
+        # 任务失败加入失败队列，进行AI日志分析
         RedisConn.sadd(FLOW_LOG_AI_ANALYSIS_KEY, root_id)
 
     FlowNode.objects.filter(root_id=root_id, node_id=node_id).update(
