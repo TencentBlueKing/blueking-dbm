@@ -22,6 +22,7 @@ package thirdapi
 import (
 	"fmt"
 	"log/slog"
+	"sync"
 
 	"k8s-dbs/common/util"
 	infreq "k8s-dbs/infrastructure/request"
@@ -39,23 +40,46 @@ type DbmAPIService struct {
 	bkAppSecret string
 }
 
-// NewDbmAPIService DbmAPIService 构造函数
-func NewDbmAPIService() *DbmAPIService {
-	dbmAPIURL := env.GetString("DBM_API_URL", "localhost:8080")
-	bkAppCode := env.GetString("DBM_BK_APP_CODE", "default_app_code")
-	bkAppSecret := env.GetString("DBM_BK_APP_SECRET", "default_app_secret")
+var (
+	instance *DbmAPIService
+	once     sync.Once
+)
 
-	if dbmAPIURL == "" {
-		slog.Warn("DBM API URL configuration is required")
+// InitDbmAPIService 初始化DBM API服务（仅从环境变量加载配置）
+func InitDbmAPIService() {
+	once.Do(func() {
+		dbmAPIURL := env.GetString("DBM_API_URL", "localhost:8080")
+		bkAppCode := env.GetString("DBM_BK_APP_CODE", "default_app_code")
+		bkAppSecret := env.GetString("DBM_BK_APP_SECRET", "default_app_secret")
+
+		if dbmAPIURL == "" {
+			slog.Warn("DBM API URL configuration is required")
+		}
+		if bkAppCode == "" || bkAppSecret == "" {
+			slog.Warn("BK_APP_CODE and BK_APP_SECRET configuration is required")
+		}
+
+		instance = &DbmAPIService{
+			dbmAPIURL:   dbmAPIURL,
+			bkAppCode:   bkAppCode,
+			bkAppSecret: bkAppSecret,
+		}
+		slog.Info("DBM API服务初始化完成", "url", dbmAPIURL)
+	})
+}
+
+// GetDbmAPIService 获取DBM API服务实例
+func GetDbmAPIService() *DbmAPIService {
+	if instance == nil {
+		// 如果未初始化，使用环境变量进行初始化
+		InitDbmAPIService()
 	}
-	if bkAppCode == "" || bkAppSecret == "" {
-		slog.Warn("BK_APP_CODE and BK_APP_SECRET configuration is required")
-	}
-	return &DbmAPIService{
-		dbmAPIURL:   dbmAPIURL,
-		bkAppCode:   bkAppCode,
-		bkAppSecret: bkAppSecret,
-	}
+	return instance
+}
+
+// NewDbmAPIService DbmAPIService 构造函数（保持向后兼容）
+func NewDbmAPIService() *DbmAPIService {
+	return GetDbmAPIService()
 }
 
 // sendDBMRequest 发送DBM API请求的通用方法

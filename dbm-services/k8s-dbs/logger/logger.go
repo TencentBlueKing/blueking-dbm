@@ -29,6 +29,8 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
+
+	conconst "k8s-dbs/common/constant"
 )
 
 const LogDir = "./logs/"
@@ -73,10 +75,27 @@ func InitLogger() *zap.Logger {
 	core := zapcore.NewCore(
 		zapcore.NewJSONEncoder(encoderConfig),
 		zapcore.AddSync(lumberJackLogger),
-		zapcore.InfoLevel,
+		getLogLevel(),
 	)
 
 	// 带调用者信息的 Logger
 	zapLogger := zap.New(core, zap.AddCaller())
 	return zapLogger
+}
+
+// getLogLevel 根据环境变量获取日志级别
+func getLogLevel() zapcore.Level {
+	levelStr := commutil.GetEnv(conconst.EnvLogLevel, conconst.DefaultLogLevel)
+	switch levelStr {
+	case "debug":
+		return zapcore.DebugLevel
+	case "info":
+		return zapcore.InfoLevel
+	case "warn":
+		return zapcore.WarnLevel
+	case "error":
+		return zapcore.ErrorLevel
+	default:
+		return zapcore.DebugLevel
+	}
 }
