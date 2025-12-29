@@ -18,7 +18,7 @@ from pipeline.component_framework.component import Component
 
 from backend.components import DRSApi
 from backend.constants import IP_PORT_DIVIDER
-from backend.flow.consts import CHECKSUM_DB, CHECKSUM_TABlE_PREFIX
+from backend.flow.consts import CHECKSUM_DB
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.ticket.models import Ticket
 
@@ -54,10 +54,15 @@ class MySQLChecksumReportService(BaseService):
             self.log_error(f"{e}")
             return False
 
+        # repl_table = kwargs["repl_table"]
+        # if "." not in repl_table:
+        #     repl_table = f"{CHECKSUM_DB}{repl_table}"
+
         diff_sql, consistent_sql = self._generate_sql(
             global_data["master_ip"],
             global_data["master_port"],
-            "{}.{}{}".format(CHECKSUM_DB, CHECKSUM_TABlE_PREFIX, kwargs["cluster_id"]),
+            f"{CHECKSUM_DB}.{kwargs['repl_table']}"
+            # .format(CHECKSUM_DB, CHECKSUM_TABlE_PREFIX, kwargs["cluster_id"]),
         )
 
         address = "{}{}{}".format(global_data["slave_ip"], IP_PORT_DIVIDER, global_data["slave_port"])
@@ -110,13 +115,12 @@ class MySQLChecksumReportService(BaseService):
         self.log_info(_("uid:{}".format(global_data["uid"])))
 
         # 原子更新：将校验结果插入ticket信息中，用后后续ticket flow上下文获取
+
         with atomic():
             ticket = Ticket.objects.select_for_update().get(id=global_data["uid"])
             flags = ticket.details.get("is_consistent_list", {})
             flags.update({address: trans_data.is_consistent})
-            ticket.update_details(
-                is_consistent_list=flags, checksum_table="{}{}".format(CHECKSUM_TABlE_PREFIX, kwargs["cluster_id"])
-            )
+            ticket.update_details(is_consistent_list=flags, checksum_table=kwargs["repl_table"])
 
         return True
 

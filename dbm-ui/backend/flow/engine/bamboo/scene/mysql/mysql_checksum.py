@@ -19,7 +19,7 @@ from django.utils.translation import gettext as _
 
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.models import Cluster
-from backend.flow.consts import ACCOUNT_PREFIX, DBA_ROOT_USER, MAX_LONG_JOB_TIMEOUT
+from backend.flow.consts import ACCOUNT_PREFIX, DBA_ROOT_USER, MAX_LONG_JOB_TIMEOUT, CHECKSUM_TABlE_PREFIX
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import DeployPeripheralToolsDepart
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import (
@@ -141,9 +141,14 @@ class MysqlChecksumFlow(object):
 
         ran_str = get_random_string(length=8).lower()
         random_account = "{}{}".format(ACCOUNT_PREFIX, ran_str)
-        ran_str_obj = {"ran_str": ran_str}
+        # ran_str_obj = {"ran_str": ran_str}
 
         for info in self.data["infos"]:
+            if "repl_table" not in info or not info["repl_table"]:
+                info["repl_table"] = f"{CHECKSUM_TABlE_PREFIX}{self.data['uid']}"
+            else:
+                info["repl_table"] = info["repl_table"].strip()
+
             cluster = Cluster.objects.get(id=info["cluster_id"])
             bk_cloud_id = cluster.bk_cloud_id
             immute_domain_obj = {"immute_domain": cluster.immute_domain}
@@ -153,7 +158,9 @@ class MysqlChecksumFlow(object):
             sub_data.pop("infos")
 
             sub_pipeline = SubBuilder(
-                root_id=self.root_id, data={**info, **sub_data, **ran_str_obj, **immute_domain_obj, **time_zone_obj}
+                root_id=self.root_id,
+                data={**info, **sub_data, **immute_domain_obj, **time_zone_obj}
+                # root_id = self.root_id, data = {**info, **sub_data, **ran_str_obj, **immute_domain_obj, **time_zone_obj}
             )
             sub_pipeline.add_act(
                 act_name=_("检查元数据信息是否存在主备关系"),
@@ -225,12 +232,12 @@ class MysqlChecksumFlow(object):
                     "master_port": info["master"]["port"],
                 }
                 inner_pipeline = SubBuilder(
-                    root_id=self.root_id, data={**inner_data, **info, **sub_data, **ran_str_obj}
+                    root_id=self.root_id, data={**inner_data, **info, **sub_data}  # , **ran_str_obj}
                 )
                 inner_pipeline.add_act(
                     act_name=_("生成校验报告"),
                     act_component_code=MysqlChecksumReportComponent.code,
-                    kwargs={"bk_cloud_id": bk_cloud_id, "cluster_id": info["cluster_id"]},
+                    kwargs={"bk_cloud_id": bk_cloud_id, "repl_table": info["repl_table"]},
                 )
                 inner_pipelines.append(
                     inner_pipeline.build_sub_process(

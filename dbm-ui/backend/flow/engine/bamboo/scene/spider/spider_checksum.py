@@ -20,7 +20,7 @@ from django.utils.translation import gettext as _
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.models import Cluster
-from backend.flow.consts import ACCOUNT_PREFIX, DBA_ROOT_USER, MAX_LONG_JOB_TIMEOUT
+from backend.flow.consts import ACCOUNT_PREFIX, DBA_ROOT_USER, MAX_LONG_JOB_TIMEOUT, CHECKSUM_TABlE_PREFIX
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import DeployPeripheralToolsDepart
@@ -38,7 +38,6 @@ from backend.flow.plugins.components.collections.mysql.mysql_master_slave_relati
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     AddTempUserKwargs,
-    BKCloudIdKwargs,
     DownloadMediaKwargs,
     DropUserKwargs,
     ExecActuatorKwargs,
@@ -167,12 +166,15 @@ class SpiderChecksumFlow(object):
 
         ran_str = get_random_string(length=8).lower()
         random_account = "{}{}".format(ACCOUNT_PREFIX, ran_str)
-        ran_str_obj = {"ran_str": ran_str}
+        # ran_str_obj = {"ran_str": ran_str}
 
         for info in self.data["infos"]:
+            if "repl_table" not in info or not info["repl_table"]:
+                info["repl_table"] = f"{CHECKSUM_TABlE_PREFIX}{self.data['uid']}"
+
             sub_data = copy.deepcopy(self.data)
             sub_data.pop("infos")
-            sub_pipeline = SubBuilder(root_id=self.root_id, data={**info, **sub_data, **ran_str_obj})
+            sub_pipeline = SubBuilder(root_id=self.root_id, data={**info, **sub_data})  # , **ran_str_obj})
 
             check_repl_acts = []
             for sd in info["shards"]:
@@ -206,7 +208,7 @@ class SpiderChecksumFlow(object):
 
             split_pipelines = []
             for shard in info["shards"]:
-                data = {**info, **shard, **sub_data, **ran_str_obj}
+                data = {**info, **shard, **sub_data}  # , **ran_str_obj}
                 split_pipeline = SubBuilder(root_id=self.root_id, data=data)
                 acts_list = []
                 for slave in shard["slaves"]:
@@ -267,12 +269,13 @@ class SpiderChecksumFlow(object):
                         "master_port": shard["master"]["port"],
                     }
                     slave_pipeline = SubBuilder(
-                        root_id=self.root_id, data={**inner_data, **info, **sub_data, **ran_str_obj}
+                        root_id=self.root_id, data={**inner_data, **info, **sub_data}  # , **ran_str_obj}
                     )
                     slave_pipeline.add_act(
                         act_name=_("生成校验报告"),
                         act_component_code=MysqlChecksumReportComponent.code,
-                        kwargs=asdict(BKCloudIdKwargs(bk_cloud_id=info["bk_cloud_id"])),
+                        # kwargs=asdict(BKCloudIdKwargs(bk_cloud_id=info["bk_cloud_id"])),
+                        kwargs={"bk_cloud_id": info["bk_cloud_id"], "repl_table": info["repl_table"]},
                     )
                     slave_pipelines.append(
                         slave_pipeline.build_sub_process(

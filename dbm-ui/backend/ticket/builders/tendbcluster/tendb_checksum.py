@@ -57,6 +57,7 @@ class TendbChecksumDetailSerializer(TendbBaseOperateDetailSerializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         checksum_scope = serializers.ChoiceField(help_text=_("校验范围"), choices=TendbChecksumScope.get_choices())
         backup_infos = serializers.ListSerializer(help_text=_("备份信息"), child=BackupInfoSerializer())
+        repl_table = serializers.CharField(help_text=_("校验结果表名"), default=None, required=False, allow_blank=True)
 
     data_repair = DataRepairSerializer(help_text=_("数据修复信息"))
     runtime_hour = serializers.IntegerField(help_text=_("超时时间"))
