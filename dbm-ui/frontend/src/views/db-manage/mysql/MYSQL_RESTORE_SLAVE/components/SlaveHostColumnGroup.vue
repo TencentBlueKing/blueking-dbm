@@ -181,7 +181,7 @@
         .join('、');
       const [currentHost] = data;
       if (currentHost) {
-        const [{ region, zone_list: zoneList }] = currentHost.related_clusters;
+        const [{ region, zone_names: zoneNames }] = currentHost.related_clusters;
         modelValue.value = {
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           bk_cloud_id: currentHost.bk_cloud_id,
@@ -194,7 +194,7 @@
           })),
           role: currentHost.role,
           spec_id: currentHost.spec_config.id,
-          subzones: zoneList?.join(',') || '',
+          subzones: zoneNames?.join(',') || '',
         };
       }
     },
