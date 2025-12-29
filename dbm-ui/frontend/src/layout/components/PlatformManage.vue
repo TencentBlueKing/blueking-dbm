@@ -18,6 +18,49 @@
         {{ t('任务') }}
       </BkMenuItem>
     </BkMenuGroup>
+
+    <BkMenuGroup
+      v-db-console="'platformManage.dbaManage'"
+      :name="t('DBA 工具箱')">
+      <BkMenuItem
+        v-if="ENABLE_DBM_AI"
+        key="AiChat">
+        <template #icon>
+          <DbIcon type="mysql" />
+        </template>
+        {{ t('DBA 智能助手') }}
+      </BkMenuItem>
+      <BkMenuItem
+        key="DbaManageMysql"
+        v-db-console="'platformManage.dbaManage.mysql'">
+        <template #icon>
+          <DbIcon type="mysql" />
+        </template>
+        MySQL
+      </BkMenuItem>
+      <BkMenuItem
+        key="DbaManageTendbCluster"
+        v-db-console="'platformManage.dbaManage.tendbCluster'">
+        <template #icon>
+          <DbIcon type="mysql" />
+        </template>
+        Tendb Cluster
+      </BkMenuItem>
+      <BkMenuItem
+        key="DbaManageRedis"
+        v-db-console="'platformManage.dbaManage.redis'">
+        <template #icon>
+          <DbIcon type="redis" />
+        </template>
+        Redis
+      </BkMenuItem>
+      <BkMenuItem key="DbaManageSQLServerWebQuery">
+        <template #icon>
+          <DbIcon type="sqlserver" />
+        </template>
+        SQLServer
+      </BkMenuItem>
+    </BkMenuGroup>
     <BkMenuGroup :name="t('异常中心')">
       <BkMenuItem key="platformAlarmEvents">
         <template #icon>
@@ -54,40 +97,6 @@
           <DbIcon type="file" />
         </template>
         {{ t('风险备忘录') }}
-      </BkMenuItem>
-    </BkMenuGroup>
-    <BkMenuGroup
-      v-db-console="'platformManage.dbaManage'"
-      :name="t('DBA 工具箱')">
-      <BkMenuItem
-        key="DbaManageMysql"
-        v-db-console="'platformManage.dbaManage.mysql'">
-        <template #icon>
-          <DbIcon type="mysql" />
-        </template>
-        MySQL
-      </BkMenuItem>
-      <BkMenuItem
-        key="DbaManageTendbCluster"
-        v-db-console="'platformManage.dbaManage.tendbCluster'">
-        <template #icon>
-          <DbIcon type="mysql" />
-        </template>
-        Tendb Cluster
-      </BkMenuItem>
-      <BkMenuItem
-        key="DbaManageRedis"
-        v-db-console="'platformManage.dbaManage.redis'">
-        <template #icon>
-          <DbIcon type="redis" />
-        </template>
-        Redis
-      </BkMenuItem>
-      <BkMenuItem key="DbaManageSQLServerWebQuery">
-        <template #icon>
-          <DbIcon type="sqlserver" />
-        </template>
-        SQLServer
       </BkMenuItem>
     </BkMenuGroup>
     <!-- <BkMenuGroup
@@ -128,7 +137,7 @@
 
   import { getAppShareList } from '@services/source/bkVersion';
 
-  import { useFunController } from '@stores';
+  import { useFunController, useSystemEnviron } from '@stores';
 
   import { useActiveKey } from './hooks/useActiveKey';
 
@@ -137,6 +146,8 @@
   const router = useRouter();
 
   const funControllerStore = useFunController();
+  const systemEnvironStore = useSystemEnviron();
+  const { ENABLE_DBM_AI } = systemEnvironStore.urls;
 
   const menuRef = ref<InstanceType<typeof Menu>>();
 
