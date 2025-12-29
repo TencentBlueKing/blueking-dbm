@@ -20,37 +20,42 @@ from backend.db_meta.models import AppCache, Cluster
 from backend.dbm_aiagent.mcp_tools.common.impl.list_biz_dbmodules import list_biz_dbmodules
 from backend.dbm_aiagent.mcp_tools.common.serializers.empty import EmptyInputSerializer
 from backend.dbm_aiagent.mcp_tools.common.serializers.list_bizs import ListPlatformBizsOutputSerializer
+from backend.dbm_aiagent.mcp_tools.common.serializers.list_cluster import (
+    ListBizClustersInputSerializer,
+    ListBizClustersOutputSerializer,
+)
 from backend.dbm_aiagent.mcp_tools.common.serializers.list_dbmodule import (
     ListDBModulesInputSerializer,
     ListDBModulesOutputSerializer,
 )
+from backend.dbm_aiagent.mcp_tools.common.serializers.list_enums import ListPlatformClusterTypeOutputSerializer
 from backend.dbm_aiagent.mcp_tools.constants import DBMAMcpTools, DBMMCPTags
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
-from backend.iam_app.handlers.drf_perm.base import RejectPermission
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 logger = logging.getLogger("root")
 
 
 class DBMetaQueryMcpToolsViewSet(McpToolsViewSet):
-    default_permission_class = [RejectPermission()]
+    default_permission_class = [DBManagePermission()]
 
-    # @mcp_tools_api_decorator(
-    #     description=str(_("获取DBM平台支持的所有集群类型")),
-    #     request_slz=EmptyInputSerializer,
-    #     response_slz=ListPlatformClusterTypeOutputSerializer,
-    #     tags=[DBMMCPTags.READ],
-    #     mcp=[DBMAMcpTools.DBMETA_QUERY],
-    #     name_prefix="dbmeta_query",
-    # )
-    # def list_platform_cluster_type(self, request, *args, **kwargs):
-    #     res = {
-    #         "cluster_types": [
-    #             {"cluster_type_value": ct[0], "cluster_type_name": ct[1]} for ct in ClusterType.get_choices()
-    #         ]
-    #     }
-    #     logger.info(res)
-    #     return Response(res)
+    @mcp_tools_api_decorator(
+        description=str(_("获取DBM平台支持的所有集群类型")),
+        request_slz=EmptyInputSerializer,
+        response_slz=ListPlatformClusterTypeOutputSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMAMcpTools.DBMETA_QUERY],
+        name_prefix="dbmeta_query",
+    )
+    def list_platform_cluster_type(self, request, *args, **kwargs):
+        res = {
+            "cluster_types": [
+                {"cluster_type_value": ct[0], "cluster_type_name": ct[1]} for ct in ClusterType.get_choices()
+            ]
+        }
+        logger.info(res)
+        return Response(res)
 
     @mcp_tools_api_decorator(
         description=str(_("获取业务特定集群类型的模块信息, dbmodule")),
@@ -67,16 +72,17 @@ class DBMetaQueryMcpToolsViewSet(McpToolsViewSet):
         return Response({"dbmodules": list_biz_dbmodules(bk_biz_id, cluster_type)})
 
     @mcp_tools_api_decorator(
-        description=str(_("获取业务所有集群")),
-        request_slz=ListDBModulesInputSerializer,
-        response_slz=ListDBModulesOutputSerializer,
+        description=str(_("获取业务特定集群类型的集群")),
+        request_slz=ListBizClustersInputSerializer,
+        response_slz=ListBizClustersOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMAMcpTools.DBMETA_QUERY],
         name_prefix="dbmeta_query",
     )
     def list_biz_clusters(self, request, *args, **kwargs):
         bk_biz_id = self.get_param("bk_biz_id")
-        # cluster_type = self.get_param("cluster_type")
+        cluster_type = self.get_param("cluster_type")
+
         res = [
             {
                 "bk_cloud_id": cluster_obj.bk_cloud_id,
@@ -87,7 +93,7 @@ class DBMetaQueryMcpToolsViewSet(McpToolsViewSet):
                 "affinity": cluster_obj.disaster_tolerance_level,
                 "status": cluster_obj.status,
             }
-            for cluster_obj in Cluster.objects.filter(bk_biz_id=bk_biz_id)
+            for cluster_obj in Cluster.objects.filter(bk_biz_id=bk_biz_id, cluster_type=cluster_type)
         ]
 
         return Response({"clusters": res})

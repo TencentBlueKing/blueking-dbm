@@ -15,6 +15,7 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.usefully_choices import mys
 
 
 class ShowMySQLVariablesInputSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
     machine_type = serializers.ChoiceField(
         choices=mysql_machine_type_choices, help_text=_("实例的机器类型, 只能是 [single, backend, remote, spider] 中之一")
     )
@@ -30,5 +31,6 @@ class MySQLRuntimeVariableSerializer(serializers.Serializer):
 
 
 class ShowMySQLVariablesOutputSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
     address = serializers.CharField(help_text=_("ip:port 形式的实例地址"))
     runtime_variables = serializers.ListField(child=MySQLRuntimeVariableSerializer(), help_text=_("MySQL 运行时参数列表"))

@@ -1,7 +1,6 @@
 package tools
 
 import (
-	"dbm-services/common/go-pubpkg/logger"
 	"slices"
 
 	"github.com/mark3labs/mcp-go/mcp"
@@ -50,7 +49,7 @@ func LoadTools(s *server.MCPServer) (err error) {
 		)
 		handler := toolHandlerFactory(td)
 		s.AddTool(tool, handler)
-		logger.Info("load tool: %s", td.OperationId)
+		//logger.Info("load tool: %s", td.OperationId)
 	}
 	return nil
 }

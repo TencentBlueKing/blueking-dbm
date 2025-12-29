@@ -12,10 +12,13 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, Machine
 from backend.dbm_aiagent.mcp_tools.constants import DBMAMcpTools, DBMMCPTags
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
-from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpNotSupportClusterTypeException
+from backend.dbm_aiagent.mcp_tools.exceptions import (
+    DBMMcpNotSupportClusterTypeException,
+    DBMMcpUsernameNotFoundException,
+)
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.bill_output import SubmitBillOutputSerializer
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_db_table_backup import (
     SubmitBillMySQLDBTableBackupInputSerializer,
@@ -25,13 +28,13 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_full_backup_bill impo
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.flow.consts import MySQLBackupFileTagEnum
-from backend.iam_app.handlers.drf_perm.base import RejectPermission
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
 
 
 class MySQLBillMcpToolsViewSet(McpToolsViewSet):
-    default_permission_class = [RejectPermission()]
+    default_permission_class = [DBManagePermission()]
 
     @mcp_tools_api_decorator(
         description=str(_("""创建 TenDBHA, TenDBCluster 全备单据""")),
@@ -46,6 +49,14 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         backup_type = self.get_param("backup_type")
         cluster_domain = self.get_param("cluster_domain")
 
+        Machine.objects.filter(
+            cluster_type="tendbcluster", machine_type="remote", storageinstance__instance_inner_role="master"
+        )
+
+        username = request.user.username
+        if not username:
+            raise DBMMcpUsernameNotFoundException()
+
         cluster_obj = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
         cluster_type = cluster_obj.cluster_type
 
@@ -59,7 +70,7 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         ticket_param = {
             "ticket_type": ticket_type,
             "remark": ticket_type,
-            "creator": "admin",
+            "creator": username,
             "helpers": [],
             "bk_biz_id": bk_biz_id,
             "details": {
@@ -91,6 +102,10 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         include_dbs = self.get_param("include_dbs")
         ignore_dbs = self.get_param("ignore_dbs")
 
+        username = request.user.username
+        if not username:
+            raise DBMMcpUsernameNotFoundException()
+
         if not ignore_dbs:
             ignore_dbs = []
 
@@ -107,7 +122,7 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         ticket_param = {
             "ticket_type": ticket_type,
             "remark": ticket_type,
-            "creator": "admin",
+            "creator": username,
             "helpers": [],
             "bk_biz_id": bk_biz_id,
             "details": {

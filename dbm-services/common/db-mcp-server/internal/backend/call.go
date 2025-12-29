@@ -24,34 +24,47 @@ func Call(name string, body []byte) ([]byte, error) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	//if config.SkipAuthCheck {
-	//
+
+	//if config.Config.WithAuthCheck != nil && *config.Config.WithAuthCheck {
+	//	req.Header.Set("X-Bk-Username", username)
+	//}
+
+	//if config.Config.WithAuthCheck != nil && *config.Config.WithAuthCheck {
+	//	logger.Info("set username into header: %s", username)
 	//	req.Header.Set(
 	//		"x-bkapi-authorization",
 	//		fmt.Sprintf(
-	//			`{"bk_app_code": %s, "bk_app_secret": %s}`,
-	//			config.Config.BKAppCode, config.Config.BKAppSecret,
+	//			`{"bk_username": "%s"}`,
+	//			username,
 	//		),
 	//	)
-	//
-	//	req.AddCookie(
-	//		&http.Cookie{
-	//			Name:   "bk_app_code",
-	//			Path:   "/",
-	//			Value:  config.Config.BKAppCode,
-	//			MaxAge: 86400,
-	//		},
-	//	)
-	//	req.AddCookie(
-	//		&http.Cookie{
-	//			Name:   "bk_app_secret",
-	//			Path:   "/",
-	//			Value:  config.Config.BKAppSecret,
-	//			MaxAge: 86400,
-	//		},
-	//	)
+
+	//req.Header.Set(
+	//	"x-bkapi-authorization",
+	//	fmt.Sprintf(
+	//		`{"bk_app_code": %s, "bk_app_secret": %s}`,
+	//		config.Config.BKAppCode, config.Config.BKAppSecret,
+	//	),
+	//)
+
+	//req.AddCookie(
+	//	&http.Cookie{
+	//		Name:   "bk_app_code",
+	//		Path:   "/",
+	//		Value:  config.Config.BKAppCode,
+	//		MaxAge: 86400,
+	//	},
+	//)
+	//req.AddCookie(
+	//	&http.Cookie{
+	//		Name:   "bk_app_secret",
+	//		Path:   "/",
+	//		Value:  config.Config.BKAppSecret,
+	//		MaxAge: 86400,
+	//	},
+	//)
 	//}
-	//
+
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -73,6 +86,9 @@ func Call(name string, body []byte) ([]byte, error) {
 	br := backendResponse{}
 	err = json.Unmarshal(b, &br)
 	if err != nil {
+		if resp.Request.Method == http.MethodGet {
+			return nil, fmt.Errorf("用户鉴权失败")
+		}
 		return nil, err
 	}
 

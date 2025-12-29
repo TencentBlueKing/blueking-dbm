@@ -49,13 +49,13 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.show_variables import (
     ShowMySQLVariablesOutputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
-from backend.iam_app.handlers.drf_perm.base import RejectPermission
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 logger = logging.getLogger("root")
 
 
 class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
-    default_permission_class = [RejectPermission()]
+    default_permission_class = [DBManagePermission()]
 
     @mcp_tools_api_decorator(
         description=str(_("获取 tendbsingle, tendbha, tendbcluster 集群的表结构")),
@@ -66,6 +66,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         name_prefix="mysql_query",
     )
     def show_create_table(self, request, *args, **kwargs):
+        bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
         cluster_type = self.get_param("cluster_type")
         cluster_domain = self.get_param("cluster_domain")
         dbname = self.get_param("dbname")
@@ -86,6 +87,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         name_prefix="mysql_query",
     )
     def explain_sql(self, request, *args, **kwargs):
+        bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
         cluster_type = self.get_param("cluster_type")
         cluster_domain = self.get_param("cluster_domain")
         dbname = self.get_param("dbname")
@@ -104,6 +106,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         name_prefix="mysql_query",
     )
     def tendbsingle_topo(self, request, *args, **kwargs):
+        bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
         cluster_domain = self.get_param("cluster_domain")
 
         return Response(mysql_cluster_topo(cluster_type=ClusterType.TenDBSingle, cluster_domain=cluster_domain))
@@ -117,6 +120,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         name_prefix="mysql_query",
     )
     def tendbha_topo(self, request, *args, **kwargs):
+        bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
         cluster_domain = self.get_param("cluster_domain")
 
         return Response(mysql_cluster_topo(cluster_type=ClusterType.TenDBHA, cluster_domain=cluster_domain))
@@ -130,6 +134,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         name_prefix="mysql_query",
     )
     def tendbcluster_topo(self, request, *args, **kwargs):
+        bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
         cluster_domain = self.get_param("cluster_domain")
 
         return Response(mysql_cluster_topo(cluster_type=ClusterType.TenDBCluster, cluster_domain=cluster_domain))
@@ -143,9 +148,9 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         name_prefix="mysql_query",
     )
     def show_cluster_processlist(self, request, *args, **kwargs):
+        bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
         cluster_type = self.get_param("cluster_type")
         cluster_domain = self.get_param("cluster_domain")
-        # addresses = self.get_param("addresses")
 
         res = show_cluster_processlist(cluster_type, cluster_domain)
         logger.info(res)
@@ -160,6 +165,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         name_prefix="mysql_query",
     )
     def show_mysql_variables(self, request, *args, **kwargs):
+        bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
         address = self.get_param("address")
         machine_type = self.get_param("machine_type")
         variable_hints = self.get_param("variable_hints")
@@ -175,6 +181,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         name_prefix="mysql_query",
     )
     def show_instance_status(self, request, *args, **kwargs):
+        bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
         address = self.get_param("address")
         machine_type = self.get_param("machine_type")
 
