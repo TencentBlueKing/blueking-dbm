@@ -20,6 +20,7 @@ class DBMAMcpTools(StrStructuredEnum):
     MYSQL_BILL = EnumField("mysql-bill", "mysql-bill")
     MYSQL_SLOWLOG = EnumField("mysql-slowlog", "mysql-slowlog")
     SQLSERVER_QUERY = EnumField("sqlserver-query", "sqlserver-query")
+    BILL_QUERY = EnumField("bill-query", "bill-query")
 
 
 class DBMMCPTags(StrStructuredEnum):

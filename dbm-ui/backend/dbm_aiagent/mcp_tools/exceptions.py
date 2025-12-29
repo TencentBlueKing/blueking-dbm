@@ -35,3 +35,8 @@ class DBMMcpNotSupportMachineTypeException(DBMMcpBaseException):
     ERROR_CODE = "003"
     MESSAGE = _("不支持的机器类型")
     MESSAGE_TPL = _("{machine_type} 不支持当前操作")
+
+
+class DBMMcpUsernameNotFoundException(DBMMcpBaseException):
+    ERROR_CODE = "004"
+    MESSAGE = _("username 未找到")

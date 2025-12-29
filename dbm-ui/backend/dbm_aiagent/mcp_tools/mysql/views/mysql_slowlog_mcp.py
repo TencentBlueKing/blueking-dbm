@@ -21,13 +21,13 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_slowlog import (
     MysqlSlowlogOutputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
-from backend.iam_app.handlers.drf_perm.base import RejectPermission
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 logger = logging.getLogger("root")
 
 
 class MySQLSlowlogMcpToolsViewSet(McpToolsViewSet):
-    default_permission_class = [RejectPermission()]
+    default_permission_class = [DBManagePermission()]
 
     @mcp_tools_api_decorator(
         description=str(_("获取 tendbsingle, tendbha, tendbcluster 集群的慢查询统计信息")),
@@ -38,6 +38,7 @@ class MySQLSlowlogMcpToolsViewSet(McpToolsViewSet):
         name_prefix="mysql_slowlog",
     )
     def query_mysql_slow_logs(self, request, *args, **kwargs):
+        bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
         cluster_type = self.get_param("cluster_type")
         cluster_domain = self.get_param("cluster_domain")
         instance_role = self.get_param("instance_role")

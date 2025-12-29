@@ -16,6 +16,7 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.usefully_choices import mys
 
 
 class ShowProcessListInputSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
     cluster_type = serializers.ChoiceField(choices=mysql_cluster_type_choices, help_text=_("集群类型"))
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
     # addresses = serializers.ListField(child=serializers.CharField(), default=None, help_text=_("ip:port 形式的实例列表"))
@@ -38,4 +39,7 @@ class InstanceProcessListOutputSerializer(serializers.Serializer):
 
 
 class ShowProcessListOutputSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
+    cluster_type = serializers.ChoiceField(choices=mysql_cluster_type_choices, help_text=_("集群类型"))
+    cluster_domain = serializers.CharField(help_text=_("集群域名"))
     cluster_process_lists = serializers.ListField(child=InstanceProcessListOutputSerializer(), help_text=_("集群连接信息"))

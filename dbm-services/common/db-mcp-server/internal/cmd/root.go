@@ -17,6 +17,8 @@ var rootCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		config.InitConfig()
 
+		//backend.InitClient()
+
 		s := server.NewMCPServer(
 			"db-mcp-server",
 			"1.0.0",
@@ -43,9 +45,9 @@ var rootCmd = &cobra.Command{
 					if err != nil {
 						logger.Error("update tools failed: %s", err.Error())
 						//errCh <- nil
-					} else {
+					} /* else {
 						logger.Info("update tools done")
-					}
+					}*/
 				default:
 
 				}

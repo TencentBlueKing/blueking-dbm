@@ -46,7 +46,10 @@ class McpToolsViewSetMeta(type):
                 """
                 # 使用 type(self) 来动态获取当前类，确保正确调用父类方法
                 request = super(viewsets.SystemViewSet, self).initialize_request(request, *args, **kwargs)
-                request.user = User.objects.get(username=env.DEBUG_MCP_USERNAME)
+                try:
+                    request.user = User.objects.get(username=env.DEBUG_MCP_USERNAME)
+                except Exception:  # noqa
+                    raise Exception("{} is not allowed".format(env.DEBUG_MCP_USERNAME))
                 return request
 
             attrs["get_permissions"] = get_permissions

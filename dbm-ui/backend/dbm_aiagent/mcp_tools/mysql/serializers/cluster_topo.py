@@ -26,12 +26,14 @@ class MySQLStorageInstanceSerializer(MySQLBaseInstanceSerializer):
 
 
 class ClusterTopoInputSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
     cluster_type = serializers.ChoiceField(choices=mysql_cluster_type_choices, help_text=_("集群类型"))
 
 
 # TenDBSingle
 class TenDBSingleTopoOutputSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
     cluster_type = serializers.CharField(help_text=_("集群类型"))
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
     storage = MySQLStorageInstanceSerializer(help_text=_("存储层实例信息"))
@@ -50,6 +52,7 @@ class TenDBHAStorageInstanceSerializer(MySQLStorageInstanceSerializer):
 
 
 class TenDBHATopoOutputSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
     cluster_type = serializers.CharField(help_text=_("集群类型"))
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
     proxy_instances = serializers.ListSerializer(
@@ -84,6 +87,7 @@ class TenDBClusterStorageReplicateSetSerializer(serializers.Serializer):
 
 
 class TenDBClusterTopoOutputSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
     cluster_type = serializers.CharField(help_text=_("集群类型"))
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
     spider_instances = serializers.ListSerializer(
