@@ -13,6 +13,8 @@ import logging
 from django.utils.translation import gettext as _
 from rest_framework import serializers
 
+from backend.db_dirty.constants import MACHINE_EVENT__POOL_MAP, MachineEventType
+from backend.db_dirty.models import MachineEvent
 from backend.db_services.dbresource.serializers import ResourceHcmReplenishSerializer
 from backend.db_services.dbresource.serializers import ResourceImportSerializer as BaseResourceImportSerializer
 from backend.flow.engine.controller.base import BaseController
@@ -43,6 +45,14 @@ class ResourceImportFlowBuilder(TicketFlowBuilder):
     # 资源导入无需审批和确认
     default_need_itsm = False
     default_need_manual_confirm = False
+
+    def patch_ticket_detail(self):
+        # 记录主机操作记录
+        event = MachineEventType.ImportResource
+        pool = MACHINE_EVENT__POOL_MAP.get(event)
+        MachineEvent.create_machine_events(
+            self.ticket.bk_biz_id, self.ticket.details["hosts"], event, pool, self.ticket.creator, self.ticket
+        )
 
 
 class ResourceHcmReplenishFlowParamBuilder(builders.FlowParamBuilder):

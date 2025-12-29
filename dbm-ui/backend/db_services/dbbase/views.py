@@ -24,6 +24,7 @@ from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import ResponseSwaggerAutoSchema, common_swagger_auto_schema
 from backend.components import BKBaseApi, DRSApi
 from backend.configuration.constants import DBType
+from backend.db_dirty.models import DirtyMachine
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import (
     BKCity,
@@ -428,6 +429,46 @@ class DBBaseViewSet(viewsets.SystemViewSet):
                 else:
                     machine_attrs["spec_id"] = []
 
+        return Response(machine_attrs)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询污点池下主机的属性字段"),
+        auto_schema=ResponseSwaggerAutoSchema,
+        query_serializer=QueryBizClusterAttrsSerializer(),
+        responses={status.HTTP_200_OK: QueryBizClusterAttrsResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=QueryBizClusterAttrsSerializer)
+    def query_dirty_machine_attrs(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        filter_map = {}
+        if data.get("pool"):
+            filter_map = {"pool": data["pool"]}
+        machines = DirtyMachine.objects.filter(**filter_map)
+        # 聚合每个属性字段
+        machine_attrs: Dict[str, Union[List, Set]] = defaultdict(list)
+        existing_values: Dict[str, Set[str]] = defaultdict(set)
+        # 过滤一些不合格的数据
+        if data["machine_attrs"]:
+            # 获取choice map
+            field__choice_map = {
+                attr: {value: label for value, label in getattr(DirtyMachine, attr).field.choices or []}
+                for attr in data["machine_attrs"]
+            }
+            for attr in machines.values(*data["machine_attrs"]):
+                for key, value in attr.items():
+                    # 保留bk_cloud_id有等于0的情况
+                    if value is not None and value not in existing_values[key]:
+                        existing_values[key].add(value)
+                        machine_attrs[key].append(
+                            {
+                                "value": value,
+                                "text": field__choice_map[key].get(value, value)
+                                if field__choice_map[key].get(value, value)
+                                or field__choice_map[key].get(value, value) == 0
+                                else "--",
+                            }
+                        )
         return Response(machine_attrs)
 
     @common_swagger_auto_schema(
