@@ -49,6 +49,7 @@
   <NodeDetail
     v-model:is-show="nodeOperationState.log.isShow"
     :auto-open-ai-log="nodeOperationState.log.isShowAiLog"
+    :flow-data="data"
     :node="nodeOperationState.currentNode"
     :root-id="rootId"
     :tree-data="treeData"
