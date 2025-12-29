@@ -159,6 +159,7 @@ def get_mongodb_cluster_tolerance(disaster_tolerance_level, role=None):
 class HostInfoSerializer(serializers.Serializer):
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
     ip = serializers.CharField(help_text=_("IP地址"))
+    bk_sub_zone = serializers.CharField(help_text=_("园区"), required=False)
     bk_host_id = serializers.IntegerField(help_text=_("主机ID"))
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
     port = serializers.IntegerField(help_text=_("端口号"), required=False)
