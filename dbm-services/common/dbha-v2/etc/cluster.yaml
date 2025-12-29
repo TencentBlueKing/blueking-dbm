@@ -27,99 +27,62 @@ tenDBClusters:
     spider:
       - serverName: SPIDER0
         host: test-tspider0
-        username: xxx
+        user: xxx
         password: xxx
         port: 3306
-        wrapper: spider
       - serverName: SPIDER1
         host: test-tspider1
-        username: xxx
+        user: xxx
         password: xxx
         port: 3306
-        wrapper: spider
 
     spiderSlave:
       - serverName: SPIDER_SLAVE0
         host: test-tspider_slave0
-        username: xxx
+        user: xxx
         password: xxx
         port: 3306
-        wrapper: spider_slave
 
     ctlMaster:
       serverName: TDBCTL0
       host: test-tdbctl0
-      username: xxx
+      user: xxx
       password: xxx
       port: 3306
-      wrapper: tdbctl
 
     ctlSlave:
       - serverName: TDBCTL1
         host: test-tdbctl1
-        username: xxx
+        user: xxx
         password: xxx
         port: 3306
-        wrapper: tdbctl
 
     remoteMaster:
       - serverName: SPT0
         host: test-tendb-spt0
-        username: xxx
+        user: xxx
         password: xxx
         port: 3306
-        wrapper: mysql
       - serverName: SPT1
         host: test-tendb-spt1
-        username: xxx
+        user: xxx
         password: xxx
         port: 3306
-        wrapper: mysql
-      - serverName: SPT2
-        host: test-tendb-spt2
-        username: xxx
-        password: xxx
-        port: 3306
-        wrapper: mysql
-      - serverName: SPT3
-        host: test-tendb-spt3
-        username: xxx
-        password: xxx
-        port: 3306
-        wrapper: mysql
 
     remoteSlave:
       - serverName: SPT_SLAVE0
         host: test-tendb-spt_slave0
-        username: xxx
+        user: xxx
         password: xxx
         port: 3306
-        wrapper: mysql_slave
         masterHost: test-tendb-spt0
         masterPort: 3306
       - serverName: SPT_SLAVE1
         host: test-tendb-spt_slave1
-        username: xxx
+        user: xxx
         password: xxx
         port: 3306
-        wrapper: mysql_slave
         masterHost: test-tendb-spt1
-        masterPort: 3306
-      - serverName: SPT_SLAVE2
-        host: test-tendb-spt_slave2
-        username: xxx
-        password: xxx
-        port: 3306
-        wrapper: mysql_slave
-        masterHost: test-tendb-spt2
-        masterPort: 3306
-      - serverName: SPT_SLAVE3
-        host: test-tendb-spt_slave3
-        username: xxx
-        password: xxx
-        port: 3306
-        wrapper: mysql_slave
-        masterHost: test-tendb-spt3
         masterPort: 3306
 
 dbmServices:

@@ -25,30 +25,45 @@
 package handler
 
 import (
+	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 	"dbm-services/common/dbha-v2/tools/internal/cluster/config"
 	"dbm-services/common/dbha-v2/tools/internal/cluster/dbm"
-	"fmt"
-	"strings"
-	"time"
 )
 
 // TenDBClusterHandler provides MySQL cluster management functions
 type TenDBClusterHandler struct {
-	dbmClient    *dbm.Client
-	mysqlHandler *MysqlClusterHandler
+	MysqlBaseHandler
 }
 
 // NewTenDBClusterHandler creates a new MysqlClusterHandler
 func NewTenDBClusterHandler() *TenDBClusterHandler {
 	return &TenDBClusterHandler{
-		dbmClient:    &dbm.Client{},
-		mysqlHandler: NewMysqlClusterHandler(),
+		MysqlBaseHandler: MysqlBaseHandler{dbmClient: &dbm.Client{}},
 	}
 }
 
-// printOneTenDBCluster prints TenDB cluster information
+func (hdl *TenDBClusterHandler) setTcAdmin(db *hamysql.GormDB, value int64) error {
+	if db == nil {
+		return gerrors.New(gerrors.InvalidParameter, "setTcAdmin got nil DB")
+	}
+	dbIp := db.Host()
+	dbPort := db.Port()
+	dbSQL := fmt.Sprintf("set tc_admin = %d", value)
+
+	if err := db.DB().Exec(dbSQL).Error; err != nil {
+		return gerrors.Newf(gerrors.Failure,
+			"failed to set tc_admin=%d on node(%s:%d), errmsg: %s", value, dbIp, dbPort, err.Error())
+	}
+	return nil
+}
+
+// printOneTenDBCluster prints TenDBCluster information
 func (hdl *TenDBClusterHandler) printOneTenDBCluster(cluster *config.TenDBCluster) {
 	fmt.Printf("Cluster Domain: %s\n", cluster.Domain)
 	fmt.Printf("Spider: %v\n", cluster.Spider)
@@ -59,8 +74,8 @@ func (hdl *TenDBClusterHandler) printOneTenDBCluster(cluster *config.TenDBCluste
 	fmt.Printf("Remote Slaves: %v\n", cluster.RemoteSlave)
 }
 
-// getTenDBInstanceList gets TenDB instance list
-func (hdl *TenDBClusterHandler) getTenDBInstanceList(cluster *config.TenDBCluster) []config.InstanceAddress {
+// getTenDBClusterInstanceList gets TenDBCluster instance list
+func (hdl *TenDBClusterHandler) getTenDBClusterInstanceList(cluster *config.TenDBCluster) []config.InstanceAddress {
 	instanceList := []config.InstanceAddress{
 		{Host: cluster.CtlMaster.Host, Port: cluster.CtlMaster.Port},
 	}
@@ -84,7 +99,7 @@ func (hdl *TenDBClusterHandler) stopSlaveForRemoteMasterAndGetBinlogList(cluster
 	binlogList := make([]config.BinlogInfo, 0)
 
 	for _, remote := range cluster.RemoteMaster {
-		binlogFile, binlogPos, err := hdl.mysqlHandler.stopSlaveForMaster(remote.Host, remote.Port)
+		binlogFile, binlogPos, err := hdl.stopSlaveForMaster(remote.Host, remote.Port)
 		if err != nil {
 			return nil, err
 		}
@@ -93,7 +108,7 @@ func (hdl *TenDBClusterHandler) stopSlaveForRemoteMasterAndGetBinlogList(cluster
 			TenDBInfo: config.TenDBInfo{
 				Host:     remote.Host,
 				Port:     remote.Port,
-				Username: remote.Username,
+				User:     remote.User,
 				Password: remote.Password,
 			},
 			File:     binlogFile,
@@ -105,21 +120,25 @@ func (hdl *TenDBClusterHandler) stopSlaveForRemoteMasterAndGetBinlogList(cluster
 
 // changeMasterForAllRemoteSlave changes master for all remote slave
 func (hdl *TenDBClusterHandler) changeMasterForAllRemoteSlave(remoteSlave []config.RemoteSlaveInfo, binlogList []config.BinlogInfo) error {
-	for _, binlog := range binlogList {
-		for _, remote := range remoteSlave {
-			if remote.MasterHost == binlog.Host && remote.MasterPort == binlog.Port {
-				var slaveList []config.InstanceAddress
-				slaveList = append(slaveList, config.InstanceAddress{
-					Host: remote.Host,
-					Port: remote.Port,
-				})
+	remoteSlaveMap := make(map[string]config.RemoteSlaveInfo)
+	for _, remote := range remoteSlave {
+		remoteSlaveMap[remote.MasterHost+":"+strconv.Itoa(remote.MasterPort)] = remote
+	}
 
-				if err := hdl.mysqlHandler.changeMasterForAllSlave(slaveList, binlog.Host, binlog.Port, binlog.File,
-					binlog.Position); err != nil {
-					return err
-				}
-				break
-			}
+	for _, binlog := range binlogList {
+		remote, ok := remoteSlaveMap[binlog.Host+":"+strconv.Itoa(binlog.Port)]
+		if !ok {
+			continue
+		}
+		var slaveList []config.InstanceAddress
+		slaveList = append(slaveList, config.InstanceAddress{
+			Host: remote.Host,
+			Port: remote.Port,
+		})
+
+		if err := hdl.changeMasterForAllSlave(slaveList, binlog.Host, binlog.Port, binlog.File,
+			binlog.Position); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -174,22 +193,17 @@ func (hdl *TenDBClusterHandler) stopSlaveForTdbCtlMaster(ip string, port int) er
 			ip, port, err.Error())
 	}
 
-	defer func() {
-		con, _ := masterDB.DB().DB()
-		if con != nil {
-			con.Close()
-		}
-	}()
+	defer masterDB.Close()
 
-	if err = hdl.mysqlHandler.setTcAdmin(masterDB, 0); err != nil {
+	if err = hdl.setTcAdmin(masterDB, 0); err != nil {
 		return err
 	}
 
-	if err = hdl.mysqlHandler.StopSlave(masterDB); err != nil {
+	if err = hdl.StopSlave(masterDB); err != nil {
 		return err
 	}
 
-	return hdl.mysqlHandler.ResetSlave(masterDB)
+	return hdl.ResetSlave(masterDB)
 }
 
 // changeCtlMasterForAllCtlSlave changes ctl master for all ctl slave
@@ -212,7 +226,7 @@ func (hdl *TenDBClusterHandler) changeCtlMasterForAllCtlSlave(ctlSlaveList []con
 		config.ClusterConfig.AuthInfo.ReplUser, config.ClusterConfig.AuthInfo.ReplPassword)
 
 	for _, slave := range slaveList {
-		if err := hdl.mysqlHandler.changeMasterForSlave(slave.Host, slave.Port, changeMasterSQL, true); err != nil {
+		if err := hdl.changeMasterForSlave(slave.Host, slave.Port, changeMasterSQL); err != nil {
 			return err
 		}
 	}
@@ -220,7 +234,43 @@ func (hdl *TenDBClusterHandler) changeCtlMasterForAllCtlSlave(ctlSlaveList []con
 	// wait for slave to start
 	time.Sleep(3 * time.Second)
 
-	return hdl.mysqlHandler.checkSlaveStatus(slaveList, targetIp, targetPort)
+	return hdl.checkSlaveStatus(slaveList, targetIp, targetPort)
+}
+
+// changeMasterForSlave changes master for slave
+func (hdl *TenDBClusterHandler) changeMasterForSlave(slaveIp string, slavePort int, changeMasterSQL string) error {
+	slaveDB, err := hamysql.NewGormDB(
+		hamysql.OptionProto(MySQLProtocol),
+		hamysql.OptionIP(slaveIp),
+		hamysql.OptionPort(slavePort),
+		hamysql.OptionUser(config.ClusterConfig.AuthInfo.User),
+		hamysql.OptionPassword(config.ClusterConfig.AuthInfo.Password),
+	)
+	if err != nil {
+		return gerrors.Newf(gerrors.Failure, "failed to connect to slave node(%s:%d), errmsg: %s",
+			slaveIp, slavePort, err.Error())
+	}
+
+	defer slaveDB.Close()
+
+	if err = hdl.setTcAdmin(slaveDB, 0); err != nil {
+		return err
+	}
+
+	if err := hdl.StopSlave(slaveDB); err != nil {
+		return err
+	}
+
+	if err = slaveDB.DB().Exec(changeMasterSQL).Error; err != nil {
+		return gerrors.Newf(gerrors.Failure, "failed to change master on node(%s:%d), errmsg: %s",
+			slaveIp, slavePort, err.Error())
+	}
+
+	if err = hdl.StartSlave(slaveDB); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // disablePrimaryForAllCtlSlave disables primary for all ctl slave
@@ -238,14 +288,9 @@ func (hdl *TenDBClusterHandler) disablePrimaryForAllCtlSlave(ctlSlaveList []conf
 				slave.Host, slave.Port, err.Error())
 		}
 
-		defer func() {
-			con, _ := slaveDB.DB().DB()
-			if con != nil {
-				con.Close()
-			}
-		}()
+		defer slaveDB.Close()
 
-		if err = hdl.mysqlHandler.setTcAdmin(slaveDB, 1); err != nil {
+		if err = hdl.setTcAdmin(slaveDB, 1); err != nil {
 			return err
 		}
 
@@ -276,14 +321,9 @@ func (hdl *TenDBClusterHandler) enablePrimaryForCtlMaster(ctlMaster config.TenDB
 			ctlMaster.Host, ctlMaster.Port, err.Error())
 	}
 
-	defer func() {
-		con, _ := masterDB.DB().DB()
-		if con != nil {
-			con.Close()
-		}
-	}()
+	defer masterDB.Close()
 
-	if err = hdl.mysqlHandler.setTcAdmin(masterDB, 1); err != nil {
+	if err = hdl.setTcAdmin(masterDB, 1); err != nil {
 		return err
 	}
 
@@ -314,7 +354,7 @@ func (hdl *TenDBClusterHandler) resetMysqlServersTableForCtlMaster(cluster *conf
 			cluster.CtlMaster.Host, cluster.CtlMaster.Port, err.Error())
 	}
 
-	if err = hdl.mysqlHandler.setTcAdmin(masterDB, 0); err != nil {
+	if err = hdl.setTcAdmin(masterDB, 0); err != nil {
 		return err
 	}
 
@@ -326,7 +366,7 @@ func (hdl *TenDBClusterHandler) resetMysqlServersTableForCtlMaster(cluster *conf
 		return err
 	}
 
-	if err = hdl.mysqlHandler.setTcAdmin(masterDB, 1); err != nil {
+	if err = hdl.setTcAdmin(masterDB, 1); err != nil {
 		return err
 	}
 
@@ -370,7 +410,7 @@ func (hdl *TenDBClusterHandler) insertMysqlServersTable(cluster *config.TenDBClu
 
 	for i, record := range records {
 		placeholders[i] = "(?, ?, ?, ?, ?, ?)"
-		args = append(args, record.ServerName, record.Host, record.Username, record.Password, record.Port, record.Wrapper)
+		args = append(args, record.ServerName, record.Host, record.User, record.Password, record.Port, record.Wrapper)
 	}
 
 	insertSQL += strings.Join(placeholders, ", ")
@@ -392,9 +432,9 @@ func (hdl *TenDBClusterHandler) collectServerRecords(cluster *config.TenDBCluste
 		Host:       cluster.CtlMaster.Host,
 		Port:       cluster.CtlMaster.Port,
 		ServerName: cluster.CtlMaster.ServerName,
-		Username:   cluster.CtlMaster.Username,
+		User:       cluster.CtlMaster.User,
 		Password:   cluster.CtlMaster.Password,
-		Wrapper:    cluster.CtlMaster.Wrapper,
+		Wrapper:    "TDBCTL",
 	})
 
 	// CtlSlave
@@ -403,9 +443,9 @@ func (hdl *TenDBClusterHandler) collectServerRecords(cluster *config.TenDBCluste
 			Host:       ctl.Host,
 			Port:       ctl.Port,
 			ServerName: ctl.ServerName,
-			Username:   ctl.Username,
+			User:       ctl.User,
 			Password:   ctl.Password,
-			Wrapper:    ctl.Wrapper,
+			Wrapper:    "TDBCTL",
 		})
 	}
 
@@ -415,9 +455,9 @@ func (hdl *TenDBClusterHandler) collectServerRecords(cluster *config.TenDBCluste
 			Host:       spider.Host,
 			Port:       spider.Port,
 			ServerName: spider.ServerName,
-			Username:   spider.Username,
+			User:       spider.User,
 			Password:   spider.Password,
-			Wrapper:    spider.Wrapper,
+			Wrapper:    "SPIDER",
 		})
 	}
 
@@ -427,9 +467,9 @@ func (hdl *TenDBClusterHandler) collectServerRecords(cluster *config.TenDBCluste
 			Host:       spider.Host,
 			Port:       spider.Port,
 			ServerName: spider.ServerName,
-			Username:   spider.Username,
+			User:       spider.User,
 			Password:   spider.Password,
-			Wrapper:    spider.Wrapper,
+			Wrapper:    "SPIDER_SLAVE",
 		})
 	}
 
@@ -439,9 +479,9 @@ func (hdl *TenDBClusterHandler) collectServerRecords(cluster *config.TenDBCluste
 			Host:       remote.Host,
 			Port:       remote.Port,
 			ServerName: remote.ServerName,
-			Username:   remote.Username,
+			User:       remote.User,
 			Password:   remote.Password,
-			Wrapper:    remote.Wrapper,
+			Wrapper:    "mysql",
 		})
 	}
 
@@ -451,9 +491,9 @@ func (hdl *TenDBClusterHandler) collectServerRecords(cluster *config.TenDBCluste
 			Host:       remote.Host,
 			Port:       remote.Port,
 			ServerName: remote.ServerName,
-			Username:   remote.Username,
+			User:       remote.User,
 			Password:   remote.Password,
-			Wrapper:    remote.Wrapper,
+			Wrapper:    "mysql_slave",
 		})
 	}
 
@@ -498,11 +538,12 @@ func (hdl *TenDBClusterHandler) addAllSpidersToDomain(cluster *config.TenDBClust
 	for _, spider := range spiderList {
 		spiderHost := spider.Host
 		spiderPort := spider.Port
-		if !isInDomain(spiderHost, spiderPort) {
-			if err := hdl.dbmClient.AddInstanceToDomain(spiderHost, spiderPort, domain, bkBizId); err != nil {
-				return gerrors.Newf(gerrors.Failure, "failed to add instance(%s:%d) to domain %s, errmsg: %s",
-					spiderHost, spiderPort, domain, err.Error())
-			}
+		if isInDomain(spiderHost, spiderPort) {
+			continue
+		}
+		if err := hdl.dbmClient.AddInstanceToDomain(spiderHost, spiderPort, domain, bkBizId); err != nil {
+			return gerrors.Newf(gerrors.Failure, "failed to add instance(%s:%d) to domain %s, errmsg: %s",
+				spiderHost, spiderPort, domain, err.Error())
 		}
 	}
 
@@ -524,7 +565,7 @@ func (hdl *TenDBClusterHandler) addAllSpidersToDomain(cluster *config.TenDBClust
 func (hdl *TenDBClusterHandler) resetSingleTenDBCluster(cluster *config.TenDBCluster) error {
 	hdl.printOneTenDBCluster(cluster)
 	fmt.Printf("Resetting cluster %s...\n", cluster.Domain)
-	instanceList := hdl.getTenDBInstanceList(cluster)
+	instanceList := hdl.getTenDBClusterInstanceList(cluster)
 
 	if err := hdl.dbmClient.UpdateAllInstancesStatus(instanceList, dbm.StatusUnavailable); err != nil {
 		fmt.Printf("Failed at step 1 <update all instances status to unavailable>, errmsg: %s\n", err.Error())
@@ -595,7 +636,7 @@ func (hdl *TenDBClusterHandler) resetSingleTenDBCluster(cluster *config.TenDBClu
 	return nil
 }
 
-// ResetAllTenDBClusters resets all TenDB clusters
+// ResetAllTenDBClusters resets all TenDBClusters
 func (hdl *TenDBClusterHandler) ResetAllTenDBClusters() error {
 	if config.ClusterConfig == nil {
 		return gerrors.Newf(gerrors.Failure, "config is not loaded")
@@ -606,12 +647,12 @@ func (hdl *TenDBClusterHandler) ResetAllTenDBClusters() error {
 	}
 
 	if len(config.ClusterConfig.TenDBClusters) <= 0 {
-		fmt.Println("No TenDB clusters to reset")
+		fmt.Println("No TenDBClusters to reset")
 		return nil
 	}
 
 	failCount := 0
-	fmt.Printf("=== Processing TenDB Clusters ===\n\n")
+	fmt.Printf("=== Processing TenDBClusters ===\n\n")
 	for _, cluster := range config.ClusterConfig.TenDBClusters {
 		if err := hdl.resetSingleTenDBCluster(&cluster); err != nil {
 			failCount++
@@ -620,7 +661,7 @@ func (hdl *TenDBClusterHandler) ResetAllTenDBClusters() error {
 		}
 		fmt.Printf("Successfully reset cluster %s\n\n", cluster.Domain)
 	}
-	fmt.Printf("\n=== Resetting TenDB Clusters Done (total: %d, failed: %d, success: %d)===\n",
+	fmt.Printf("\n=== Resetting TenDBClusters Done (total: %d, failed: %d, success: %d)===\n",
 		len(config.ClusterConfig.TenDBClusters), failCount, len(config.ClusterConfig.TenDBClusters)-failCount)
 
 	return nil
