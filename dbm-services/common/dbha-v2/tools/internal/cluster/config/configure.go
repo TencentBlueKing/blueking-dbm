@@ -59,9 +59,9 @@ type TenDBInfo struct {
 	Host       string `yaml:"host"`
 	Port       int    `yaml:"port"`
 	ServerName string `yaml:"serverName"`
-	Username   string `yaml:"username"`
+	User       string `yaml:"user"`
 	Password   string `yaml:"password"`
-	Wrapper    string `yaml:"wrapper"`
+	Wrapper    string
 }
 
 // RemoteSlaveInfo represents the information of a remote slave instance.

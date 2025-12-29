@@ -118,15 +118,231 @@ type SlaveStatusInfo struct {
 	ReplicateWildParallelTable string `gorm:"column:Replicate_Wild_Parallel_Table" json:"Replicate_Wild_Parallel_Table"`
 }
 
+// MysqlBaseHandler is a base handler for mysql
+type MysqlBaseHandler struct {
+	dbmClient *dbm.Client
+}
+
+// StopSlave stops slave replication
+func (hdl *MysqlBaseHandler) StopSlave(slaveDB *hamysql.GormDB) error {
+	if slaveDB == nil {
+		return gerrors.New(gerrors.InvalidParameter, "ResetSlave got nil slaveDB")
+	}
+	slaveIp := slaveDB.Host()
+	slavePort := slaveDB.Port()
+	stopSlaveSQL := "stop slave"
+
+	if err := slaveDB.DB().Exec(stopSlaveSQL).Error; err != nil {
+		return gerrors.Newf(gerrors.Failure,
+			"failed to stop slave on node(%s:%d), errmsg: %s", slaveIp, slavePort, err.Error())
+	}
+	return nil
+}
+
+// StartSlave starts slave replication
+func (hdl *MysqlBaseHandler) StartSlave(slaveDB *hamysql.GormDB) error {
+	if slaveDB == nil {
+		return gerrors.New(gerrors.InvalidParameter, "StartSlave got nil slaveDB")
+	}
+	slaveIp := slaveDB.Host()
+	slavePort := slaveDB.Port()
+	startSlaveSQL := "start slave"
+
+	if err := slaveDB.DB().Exec(startSlaveSQL).Error; err != nil {
+		return gerrors.Newf(gerrors.Failure,
+			"failed to start slave on node(%s:%d), errmsg: %s", slaveIp, slavePort, err.Error())
+	}
+	return nil
+}
+
+// ShowMasterStatus retrieves master status information
+func (hdl *MysqlBaseHandler) ShowMasterStatus(db *hamysql.GormDB) (*MasterStatusInfo, error) {
+	if db == nil {
+		return nil, gerrors.New(gerrors.InvalidParameter, "ShowMasterStatus got nil db")
+	}
+	slaveIp := db.Host()
+	slavePort := db.Port()
+	showMasterSQL := "show master status"
+
+	masterStatus := &MasterStatusInfo{}
+	if err := db.DB().Raw(showMasterSQL).Scan(masterStatus).Error; err != nil {
+		return nil, gerrors.Newf(gerrors.Failure,
+			"failed to get master status on node(%s:%d), errmsg: %s", slaveIp, slavePort, err.Error())
+	}
+
+	return masterStatus, nil
+}
+
+// ShowSlaveStatus retrieves slave status information
+func (hdl *MysqlBaseHandler) ShowSlaveStatus(slaveDB *hamysql.GormDB) (*SlaveStatusInfo, error) {
+	if slaveDB == nil {
+		return nil, gerrors.New(gerrors.InvalidParameter, "ShowSlaveStatus got nil slaveDB")
+	}
+	slaveIp := slaveDB.Host()
+	slavePort := slaveDB.Port()
+	showSlaveSQL := "show slave status"
+
+	slaveStatus := &SlaveStatusInfo{}
+	if err := slaveDB.DB().Raw(showSlaveSQL).Scan(slaveStatus).Error; err != nil {
+		return nil, gerrors.Newf(gerrors.Failure,
+			"failed to get slave status on node(%s:%d), errmsg: %s", slaveIp, slavePort, err.Error())
+	}
+
+	return slaveStatus, nil
+}
+
+// ResetSlave resets slave replication settings
+func (hdl *MysqlBaseHandler) ResetSlave(slaveDB *hamysql.GormDB) error {
+	if slaveDB == nil {
+		return gerrors.New(gerrors.InvalidParameter, "ResetSlave got nil slaveDB")
+	}
+	slaveIp := slaveDB.Host()
+	slavePort := slaveDB.Port()
+	resetSlaveSQL := "reset slave /*!50516 all */"
+
+	if err := slaveDB.DB().Exec(resetSlaveSQL).Error; err != nil {
+		return gerrors.Newf(gerrors.Failure,
+			"failed to reset slave on node(%s:%d), errmsg: %s", slaveIp, slavePort, err.Error())
+	}
+
+	return nil
+}
+
+// stopSlaveForMaster stops slave for master
+func (hdl *MysqlBaseHandler) stopSlaveForMaster(ip string, port int) (string, uint64, error) {
+	masterDB, err := hamysql.NewGormDB(
+		hamysql.OptionProto(MySQLProtocol),
+		hamysql.OptionIP(ip),
+		hamysql.OptionPort(port),
+		hamysql.OptionUser(config.ClusterConfig.AuthInfo.User),
+		hamysql.OptionPassword(config.ClusterConfig.AuthInfo.Password),
+	)
+	if err != nil {
+		return "", 0, gerrors.Newf(gerrors.Failure, "failed to connect to master node(%s:%d), errmsg: %s",
+			ip, port, err.Error())
+	}
+
+	defer masterDB.Close()
+
+	if err = hdl.StopSlave(masterDB); err != nil {
+		return "", 0, err
+	}
+
+	masterStatus := &MasterStatusInfo{}
+	if masterStatus, err = hdl.ShowMasterStatus(masterDB); err != nil {
+		return "", 0, err
+	}
+
+	if err = hdl.ResetSlave(masterDB); err != nil {
+		return masterStatus.File, masterStatus.Position, err
+	}
+
+	return masterStatus.File, masterStatus.Position, nil
+}
+
+// changeMasterForAllSlave changes master for all slave
+func (hdl *MysqlBaseHandler) changeMasterForAllSlave(slaveList []config.InstanceAddress, targetIp string, targetPort int,
+	binlogFile string, binlogPos uint64) error {
+	changeMasterSQL := fmt.Sprintf("CHANGE MASTER TO "+
+		"MASTER_HOST = '%s', "+
+		"MASTER_PORT = %d, "+
+		"MASTER_USER = '%s', "+
+		"MASTER_PASSWORD = '%s', "+
+		"MASTER_LOG_FILE = '%s', "+
+		"MASTER_LOG_POS = %d",
+		targetIp, targetPort,
+		config.ClusterConfig.AuthInfo.ReplUser, config.ClusterConfig.AuthInfo.ReplPassword,
+		binlogFile, binlogPos)
+
+	for _, slave := range slaveList {
+		if err := hdl.changeMasterForSlave(slave.Host, slave.Port, changeMasterSQL); err != nil {
+			return err
+		}
+	}
+
+	// wait for slave to start
+	time.Sleep(3 * time.Second)
+
+	if err := hdl.checkSlaveStatus(slaveList, targetIp, targetPort); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// checkSlaveStatus checks slave status
+func (hdl *MysqlBaseHandler) checkSlaveStatus(slaveList []config.InstanceAddress, targetIp string, targetPort int) error {
+	for _, slave := range slaveList {
+		slaveDB, err := hamysql.NewGormDB(
+			hamysql.OptionProto(MySQLProtocol),
+			hamysql.OptionIP(slave.Host),
+			hamysql.OptionPort(slave.Port),
+			hamysql.OptionUser(config.ClusterConfig.AuthInfo.User),
+			hamysql.OptionPassword(config.ClusterConfig.AuthInfo.Password),
+		)
+		if err != nil {
+			return gerrors.Newf(gerrors.Failure, "failed to connect to slave node(%s:%d), errmsg: %s",
+				slave.Host, slave.Port, err.Error())
+		}
+
+		defer slaveDB.Close()
+
+		slaveStatus, err := hdl.ShowSlaveStatus(slaveDB)
+		if err != nil {
+			return gerrors.Newf(gerrors.Failure, "failed to check slave status of node(%s:%d), errmsg: %s",
+				slave.Host, slave.Port, err.Error())
+		}
+
+		if slaveStatus.SlaveIORunning != "Yes" || slaveStatus.SlaveSQLRunning != "Yes" ||
+			slaveStatus.MasterHost != targetIp || slaveStatus.MasterPort != targetPort {
+			return gerrors.Newf(gerrors.Failure, "slave status of node(%s:%d) is not correct", slave.Host, slave.Port)
+		}
+	}
+
+	return nil
+}
+
+// changeMasterForSlave changes master for slave
+func (hdl *MysqlBaseHandler) changeMasterForSlave(slaveIp string, slavePort int, changeMasterSQL string) error {
+	slaveDB, err := hamysql.NewGormDB(
+		hamysql.OptionProto(MySQLProtocol),
+		hamysql.OptionIP(slaveIp),
+		hamysql.OptionPort(slavePort),
+		hamysql.OptionUser(config.ClusterConfig.AuthInfo.User),
+		hamysql.OptionPassword(config.ClusterConfig.AuthInfo.Password),
+	)
+	if err != nil {
+		return gerrors.Newf(gerrors.Failure, "failed to connect to slave node(%s:%d), errmsg: %s",
+			slaveIp, slavePort, err.Error())
+	}
+
+	defer slaveDB.Close()
+
+	if err := hdl.StopSlave(slaveDB); err != nil {
+		return err
+	}
+
+	if err = slaveDB.DB().Exec(changeMasterSQL).Error; err != nil {
+		return gerrors.Newf(gerrors.Failure, "failed to change master on node(%s:%d), errmsg: %s",
+			slaveIp, slavePort, err.Error())
+	}
+
+	if err = hdl.StartSlave(slaveDB); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // MysqlClusterHandler provides MySQL cluster management functions
 type MysqlClusterHandler struct {
-	dbmClient *dbm.Client
+	MysqlBaseHandler
 }
 
 // NewMysqlClusterHandler creates a new MysqlClusterHandler
 func NewMysqlClusterHandler() *MysqlClusterHandler {
 	return &MysqlClusterHandler{
-		dbmClient: &dbm.Client{},
+		MysqlBaseHandler: MysqlBaseHandler{dbmClient: &dbm.Client{}},
 	}
 }
 
@@ -162,11 +378,7 @@ func (hdl *MysqlClusterHandler) switchProxyBackend(proxyIp string, proxyAdminPor
 			proxyIp, proxyAdminPort, err.Error())
 	}
 
-	defer func() {
-		if proxyDB.DB() != nil {
-			proxyDB.DB().Close()
-		}
-	}()
+	defer proxyDB.Close()
 
 	switchSql := fmt.Sprintf("refresh_backends('%s:%d', 1)", targetIp, targetPort)
 	querySql := "select * from backends"
@@ -202,249 +414,6 @@ func (hdl *MysqlClusterHandler) switchAllProxiesBackend(proxyList []config.Proxy
 			return gerrors.New(gerrors.Failure, errMsg)
 		}
 	}
-	return nil
-}
-
-// StopSlave stops slave replication
-func (hdl *MysqlClusterHandler) StopSlave(slaveDB *hamysql.GormDB) error {
-	if slaveDB == nil {
-		return gerrors.New(gerrors.InvalidParameter, "ResetSlave got nil slaveDB")
-	}
-	slaveIp := slaveDB.Host()
-	slavePort := slaveDB.Port()
-	stopSlaveSQL := "stop slave"
-
-	if err := slaveDB.DB().Exec(stopSlaveSQL).Error; err != nil {
-		return gerrors.Newf(gerrors.Failure,
-			"failed to stop slave on node(%s:%d), errmsg: %s", slaveIp, slavePort, err.Error())
-	}
-	return nil
-}
-
-// StartSlave starts slave replication
-func (hdl *MysqlClusterHandler) StartSlave(slaveDB *hamysql.GormDB) error {
-	if slaveDB == nil {
-		return gerrors.New(gerrors.InvalidParameter, "StartSlave got nil slaveDB")
-	}
-	slaveIp := slaveDB.Host()
-	slavePort := slaveDB.Port()
-	startSlaveSQL := "start slave"
-
-	if err := slaveDB.DB().Exec(startSlaveSQL).Error; err != nil {
-		return gerrors.Newf(gerrors.Failure,
-			"failed to start slave on node(%s:%d), errmsg: %s", slaveIp, slavePort, err.Error())
-	}
-	return nil
-}
-
-// ShowMasterStatus retrieves master status information
-func (hdl *MysqlClusterHandler) ShowMasterStatus(db *hamysql.GormDB) (*MasterStatusInfo, error) {
-	if db == nil {
-		return nil, gerrors.New(gerrors.InvalidParameter, "ShowMasterStatus got nil db")
-	}
-	slaveIp := db.Host()
-	slavePort := db.Port()
-	showMasterSQL := "show master status"
-
-	masterStatus := &MasterStatusInfo{}
-	if err := db.DB().Raw(showMasterSQL).Scan(masterStatus).Error; err != nil {
-		return nil, gerrors.Newf(gerrors.Failure,
-			"failed to get master status on node(%s:%d), errmsg: %s", slaveIp, slavePort, err.Error())
-	}
-
-	return masterStatus, nil
-}
-
-// ShowSlaveStatus retrieves slave status information
-func (hdl *MysqlClusterHandler) ShowSlaveStatus(slaveDB *hamysql.GormDB) (*SlaveStatusInfo, error) {
-	if slaveDB == nil {
-		return nil, gerrors.New(gerrors.InvalidParameter, "ShowSlaveStatus got nil slaveDB")
-	}
-	slaveIp := slaveDB.Host()
-	slavePort := slaveDB.Port()
-	showSlaveSQL := "show slave status"
-
-	slaveStatus := &SlaveStatusInfo{}
-	if err := slaveDB.DB().Raw(showSlaveSQL).Scan(slaveStatus).Error; err != nil {
-		return nil, gerrors.Newf(gerrors.Failure,
-			"failed to get slave status on node(%s:%d), errmsg: %s", slaveIp, slavePort, err.Error())
-	}
-
-	return slaveStatus, nil
-}
-
-// ResetSlave resets slave replication settings
-func (hdl *MysqlClusterHandler) ResetSlave(slaveDB *hamysql.GormDB) error {
-	if slaveDB == nil {
-		return gerrors.New(gerrors.InvalidParameter, "ResetSlave got nil slaveDB")
-	}
-	slaveIp := slaveDB.Host()
-	slavePort := slaveDB.Port()
-	resetSlaveSQL := "reset slave /*!50516 all */"
-
-	if err := slaveDB.DB().Exec(resetSlaveSQL).Error; err != nil {
-		return gerrors.Newf(gerrors.Failure,
-			"failed to reset slave on node(%s:%d), errmsg: %s", slaveIp, slavePort, err.Error())
-	}
-
-	return nil
-}
-
-func (hdl *MysqlClusterHandler) setTcAdmin(db *hamysql.GormDB, value int64) error {
-	if db == nil {
-		return gerrors.New(gerrors.InvalidParameter, "setTcAdmin got nil DB")
-	}
-	dbIp := db.Host()
-	dbPort := db.Port()
-	dbSQL := fmt.Sprintf("set tc_admin = %d", value)
-
-	if err := db.DB().Exec(dbSQL).Error; err != nil {
-		return gerrors.Newf(gerrors.Failure,
-			"failed to set tc_admin=%d on node(%s:%d), errmsg: %s", value, dbIp, dbPort, err.Error())
-	}
-	return nil
-}
-
-func (hdl *MysqlClusterHandler) stopSlaveForMaster(ip string, port int) (string, uint64, error) {
-	masterDB, err := hamysql.NewGormDB(
-		hamysql.OptionProto(MySQLProtocol),
-		hamysql.OptionIP(ip),
-		hamysql.OptionPort(port),
-		hamysql.OptionUser(config.ClusterConfig.AuthInfo.User),
-		hamysql.OptionPassword(config.ClusterConfig.AuthInfo.Password),
-	)
-	if err != nil {
-		return "", 0, gerrors.Newf(gerrors.Failure, "failed to connect to master node(%s:%d), errmsg: %s",
-			ip, port, err.Error())
-	}
-
-	defer func() {
-		con, _ := masterDB.DB().DB()
-		if con != nil {
-			con.Close()
-		}
-	}()
-
-	if err = hdl.StopSlave(masterDB); err != nil {
-		return "", 0, err
-	}
-
-	masterStatus := &MasterStatusInfo{}
-	if masterStatus, err = hdl.ShowMasterStatus(masterDB); err != nil {
-		return "", 0, err
-	}
-
-	if err = hdl.ResetSlave(masterDB); err != nil {
-		return masterStatus.File, masterStatus.Position, err
-	}
-
-	return masterStatus.File, masterStatus.Position, nil
-}
-
-func (hdl *MysqlClusterHandler) changeMasterForSlave(slaveIp string, slavePort int, changeMasterSQL string, isSetTcAdmin bool) error {
-	slaveDB, err := hamysql.NewGormDB(
-		hamysql.OptionProto(MySQLProtocol),
-		hamysql.OptionIP(slaveIp),
-		hamysql.OptionPort(slavePort),
-		hamysql.OptionUser(config.ClusterConfig.AuthInfo.User),
-		hamysql.OptionPassword(config.ClusterConfig.AuthInfo.Password),
-	)
-	if err != nil {
-		return gerrors.Newf(gerrors.Failure, "failed to connect to slave node(%s:%d), errmsg: %s",
-			slaveIp, slavePort, err.Error())
-	}
-
-	defer func() {
-		con, _ := slaveDB.DB().DB()
-		if con != nil {
-			con.Close()
-		}
-	}()
-
-	if isSetTcAdmin {
-		if err = hdl.setTcAdmin(slaveDB, 0); err != nil {
-			return err
-		}
-	}
-
-	if err := hdl.StopSlave(slaveDB); err != nil {
-		return err
-	}
-
-	if err = slaveDB.DB().Exec(changeMasterSQL).Error; err != nil {
-		return gerrors.Newf(gerrors.Failure, "failed to change master on node(%s:%d), errmsg: %s",
-			slaveIp, slavePort, err.Error())
-	}
-
-	if err = hdl.StartSlave(slaveDB); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (hdl *MysqlClusterHandler) checkSlaveStatus(slaveList []config.InstanceAddress, targetIp string, targetPort int) error {
-	for _, slave := range slaveList {
-		slaveDB, err := hamysql.NewGormDB(
-			hamysql.OptionProto(MySQLProtocol),
-			hamysql.OptionIP(slave.Host),
-			hamysql.OptionPort(slave.Port),
-			hamysql.OptionUser(config.ClusterConfig.AuthInfo.User),
-			hamysql.OptionPassword(config.ClusterConfig.AuthInfo.Password),
-		)
-		if err != nil {
-			return gerrors.Newf(gerrors.Failure, "failed to connect to slave node(%s:%d), errmsg: %s",
-				slave.Host, slave.Port, err.Error())
-		}
-
-		defer func() {
-			con, _ := slaveDB.DB().DB()
-			if con != nil {
-				con.Close()
-			}
-		}()
-
-		slaveStatus, err := hdl.ShowSlaveStatus(slaveDB)
-		if err != nil {
-			return gerrors.Newf(gerrors.Failure, "failed to check slave status of node(%s:%d), errmsg: %s",
-				slave.Host, slave.Port, err.Error())
-		}
-
-		if slaveStatus.SlaveIORunning != "Yes" || slaveStatus.SlaveSQLRunning != "Yes" ||
-			slaveStatus.MasterHost != targetIp || slaveStatus.MasterPort != targetPort {
-			return gerrors.Newf(gerrors.Failure, "slave status of node(%s:%d) is not correct", slave.Host, slave.Port)
-		}
-	}
-
-	return nil
-}
-
-func (hdl *MysqlClusterHandler) changeMasterForAllSlave(slaveList []config.InstanceAddress, targetIp string, targetPort int,
-	binlogFile string, binlogPos uint64) error {
-	changeMasterSQL := fmt.Sprintf("CHANGE MASTER TO "+
-		"MASTER_HOST = '%s', "+
-		"MASTER_PORT = %d, "+
-		"MASTER_USER = '%s', "+
-		"MASTER_PASSWORD = '%s', "+
-		"MASTER_LOG_FILE = '%s', "+
-		"MASTER_LOG_POS = %d",
-		targetIp, targetPort,
-		config.ClusterConfig.AuthInfo.ReplUser, config.ClusterConfig.AuthInfo.ReplPassword,
-		binlogFile, binlogPos)
-
-	for _, slave := range slaveList {
-		if err := hdl.changeMasterForSlave(slave.Host, slave.Port, changeMasterSQL, false); err != nil {
-			return err
-		}
-	}
-
-	// wait for slave to start
-	time.Sleep(3 * time.Second)
-
-	if err := hdl.checkSlaveStatus(slaveList, targetIp, targetPort); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -519,11 +488,12 @@ func (hdl *MysqlClusterHandler) addAllProxiesToDomain(proxyList []config.ProxyAd
 	for _, proxy := range proxyList {
 		proxyHost := proxy.Host
 		proxyPort := proxy.Port
-		if !isInDomain(proxyHost, proxyPort) {
-			if err := hdl.dbmClient.AddInstanceToDomain(proxyHost, proxyPort, domain, bkBizId); err != nil {
-				return gerrors.Newf(gerrors.Failure, "failed to add instance(%s:%d) to domain %s, errmsg: %s",
-					proxyHost, proxyPort, domain, err.Error())
-			}
+		if isInDomain(proxyHost, proxyPort) {
+			continue
+		}
+		if err := hdl.dbmClient.AddInstanceToDomain(proxyHost, proxyPort, domain, bkBizId); err != nil {
+			return gerrors.Newf(gerrors.Failure, "failed to add instance(%s:%d) to domain %s, errmsg: %s",
+				proxyHost, proxyPort, domain, err.Error())
 		}
 	}
 
