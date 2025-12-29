@@ -54,8 +54,8 @@ type MysqlCluster struct {
 	Slave   []InstanceAddress `yaml:"slave"`
 }
 
-// TenDBInfo represents the information of a TenDB instance.
-type TenDBInfo struct {
+// TenDBClusterNodeInfo represents the information of a TenDBCluster node.
+type TenDBClusterNodeInfo struct {
 	Host       string `yaml:"host"`
 	Port       int    `yaml:"port"`
 	ServerName string `yaml:"serverName"`
@@ -66,26 +66,26 @@ type TenDBInfo struct {
 
 // RemoteSlaveInfo represents the information of a remote slave instance.
 type RemoteSlaveInfo struct {
-	TenDBInfo  `yaml:",inline"`
-	MasterHost string `yaml:"masterHost"` // Identify the master-slave one-to-one relationship
-	MasterPort int    `yaml:"masterPort"` // Identify the master-slave one-to-one relationship
+	TenDBClusterNodeInfo `yaml:",inline"`
+	MasterHost           string `yaml:"masterHost"` // Identify the master-slave one-to-one relationship
+	MasterPort           int    `yaml:"masterPort"` // Identify the master-slave one-to-one relationship
 }
 
 // TenDBCluster represents a TenDB cluster.
 type TenDBCluster struct {
-	Domain       string            `yaml:"domain"`
-	BkBizId      int               `yaml:"bkBizId"`
-	Spider       []TenDBInfo       `yaml:"spider"`
-	SpiderSlave  []TenDBInfo       `yaml:"spiderSlave"`
-	CtlMaster    TenDBInfo         `yaml:"ctlMaster"`
-	CtlSlave     []TenDBInfo       `yaml:"ctlSlave"`
-	RemoteMaster []TenDBInfo       `yaml:"remoteMaster"`
-	RemoteSlave  []RemoteSlaveInfo `yaml:"remoteSlave"`
+	Domain       string                 `yaml:"domain"`
+	BkBizId      int                    `yaml:"bkBizId"`
+	Spider       []TenDBClusterNodeInfo `yaml:"spider"`
+	SpiderSlave  []TenDBClusterNodeInfo `yaml:"spiderSlave"`
+	CtlMaster    TenDBClusterNodeInfo   `yaml:"ctlMaster"`
+	CtlSlave     []TenDBClusterNodeInfo `yaml:"ctlSlave"`
+	RemoteMaster []TenDBClusterNodeInfo `yaml:"remoteMaster"`
+	RemoteSlave  []RemoteSlaveInfo      `yaml:"remoteSlave"`
 }
 
 // BinlogInfo represents mysql binlog information.
 type BinlogInfo struct {
-	TenDBInfo
+	TenDBClusterNodeInfo
 	File     string `yaml:"file"`
 	Position uint64 `yaml:"position"`
 }
