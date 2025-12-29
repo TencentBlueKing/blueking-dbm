@@ -64,6 +64,7 @@ class TendbChecksumDetailSerializer(TendbBaseOperateDetailSerializer):
     timing = DBTimezoneField(help_text=_("定时触发时间"))
     infos = serializers.ListField(help_text=_("全备信息列表"), child=ChecksumDataInfoSerializer())
     is_sync_non_innodb = serializers.BooleanField(help_text=_("非innodb表是否修复"), required=False, default=False)
+    need_manual_confirm = serializers.BooleanField(help_text=_("是否需要人工确认"), default=False)
 
     def validate(self, attrs):
         attrs = super(TendbBaseOperateDetailSerializer, self).validate(attrs)
@@ -235,6 +236,25 @@ class TendbChecksumFlowBuilder(MySQLChecksumFlowBuilder):
 
     def patch_ticket_detail(self):
         BaseMySQLTicketFlowBuilder.patch_ticket_detail(self)
+        self.ticket.details["trigger_time"] = self.ticket.details["timing"]
+        self.ticket.save(update_fields=["details"])
+
+    @property
+    def need_manual_confirm(self):
+        """是否需要人工确认节点。后续默认从单据配置表获取。子类可覆写，覆写以后editable为False"""
+        if self.ticket.details["need_manual_confirm"] is True:
+            return True
+        return False
+
+    @property
+    def need_timer(self):
+        if self.ticket.details["need_manual_confirm"] is True:
+            return False
+        return True
+
+    @property
+    def need_itsm(self):
+        return True
 
     def custom_ticket_flows(self):
         return super().custom_ticket_flows()

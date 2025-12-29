@@ -132,6 +132,7 @@ MYSQL_ADD_SLAVE_DATA = {
 MYSQL_CHECKSUM_DATA = {
     "bk_biz_id": BK_BIZ_ID,
     "details": {
+        "need_manual_confirm": True,
         "data_repair": {"is_repair": True, "mode": "manual"},
         "remark": "",
         "runtime_hour": 48,
