@@ -17,6 +17,7 @@ import { connectToMain, rootPath } from '@blueking/sub-saas';
 
 import { useGlobalBizs } from '@stores';
 
+import getAiChatRoutes from '@views/ai-chat/routes';
 import BizPermission from '@views/BizPermission.vue';
 import getDashborderRoutes from '@views/dashboard-manage/routes';
 import getDbConfRoutes from '@views/db-configure/routes';
@@ -106,6 +107,7 @@ export default () => {
   getDashborderRoutes();
   getDbManageRoutes();
   getRiskMemoRoutes();
+  getAiChatRoutes();
 
   const routes = [
     {
