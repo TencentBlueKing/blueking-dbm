@@ -126,9 +126,10 @@ class ClusterEntryFilterSerializer(ListClusterEntriesSLZ):
 
 
 class QueryBizClusterAttrsSerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
     cluster_id = serializers.IntegerField(help_text=_("集群ID"), required=False)
     cluster_type = serializers.CharField(help_text=_("集群类型"), required=False)
+    pool = serializers.CharField(help_text=_("池类型"), required=False)
     cluster_attrs = serializers.CharField(help_text=_("查询集群属性字段(逗号分隔)"), default="")
     instances_attrs = serializers.CharField(help_text=_("查询实例属性字段(逗号分隔)"), default="")
     machine_attrs = serializers.CharField(help_text=_("查询主机属性字段(逗号分隔)"), default="")
