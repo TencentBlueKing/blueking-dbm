@@ -62,6 +62,8 @@
     width?: number;
   }
 
+  type Emits = (e: 'toggleShow', value: boolean) => void;
+
   defineOptions({
     name: 'DbPopconfirm',
   });
@@ -74,6 +76,7 @@
     theme: 'primary',
     width: 280,
   });
+  const emits = defineEmits<Emits>();
 
   let tippyIns: Instance;
 
@@ -118,6 +121,12 @@
         interactive: true,
         maxWidth: 'none',
         offset: [0, 12],
+        onHide: () => {
+          emits('toggleShow', false);
+        },
+        onShow: () => {
+          emits('toggleShow', true);
+        },
         placement: props.placement,
         popperOptions: {
           modifiers: [

@@ -65,6 +65,7 @@ export default (interceptors: AxiosInterceptorManager<AxiosResponse>) => {
         // 后端业务逻辑处理成功
         case 0:
         case 200:
+        case 'success':
           hasLogined = true;
           return response.data;
         default: {
