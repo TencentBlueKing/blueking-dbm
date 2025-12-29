@@ -37,7 +37,6 @@ from backend.flow.consts import (
     STAGE_DB_HEADER,
     SYSTEM_DBS,
     TDBCTL_USER,
-    CHECKSUM_TABlE_PREFIX,
     ConfigTypeEnum,
     DataSyncSource,
     DBActuatorActionEnum,
@@ -1004,12 +1003,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "table_patterns": self.ticket_data["table_patterns"],
                     "ignore_tables": self.ticket_data["ignore_tables"],
                     "runtime_hour": self.ticket_data["runtime_hour"],
-                    "replicate_table": "{}.{}{}".format(
-                        CHECKSUM_DB,
-                        CHECKSUM_TABlE_PREFIX,
-                        self.ticket_data["cluster_id"]
-                        # CHECKSUM_DB, CHECKSUM_TABlE_PREFIX, self.ticket_data["ran_str"]
-                    ),
+                    "replicate_table": f"{CHECKSUM_DB}.{self.ticket_data['repl_table']}",
                     "system_dbs": SYSTEM_DBS,
                     "stage_db_header": STAGE_DB_HEADER,
                     "rollback_db_tail": ROLLBACK_DB_TAIL,
