@@ -283,6 +283,10 @@ class ResourceUpdateSerializer(serializers.Serializer):
     city_meta = serializers.JSONField(help_text=_("地域信息"), required=False)
     sub_zone_meta = serializers.JSONField(help_text=_("园区信息"), required=False)
     device_class = serializers.CharField(help_text=_("机型"), required=False)
+    bk_biz_id = serializers.IntegerField(help_text=_("当前业务ID"), required=False)
+    remark = serializers.ListField(help_text=_("备注"), required=False, child=serializers.DictField())
+    update_type = serializers.CharField(help_text=_("更新类型"), required=False)
+    host_id_ip_map = serializers.DictField(help_text=_("主机id,ip映射"), required=False)
 
     # def validate(self, attrs):
     #     machine_property = SystemSettings.get_setting_value(
