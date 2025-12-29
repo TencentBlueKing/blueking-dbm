@@ -25,6 +25,7 @@ from backend import env
 from backend.bk_dataview.grafana.views import SwitchOrgView
 from backend.components import BKMonitorV3Api, CCApi, ItsmApi
 from backend.components.constants import SSL_KEY
+from backend.components.dbconfig.sync_dbconfig import sync_dbconfig
 from backend.configuration.constants import DBM_REPORT_INITIAL_VALUE, SystemSettingsEnum
 from backend.configuration.models.system import SystemSettings
 from backend.core.storages.constants import FileCredentialType, StorageType
@@ -443,3 +444,12 @@ class Services:
             call_command("iam_makemigrations", "initial.json")
         except Exception as e:
             logger.info("dbm生成iam模型异常: %s" % str(e))
+
+    @classmethod
+    def auto_sync_dbconfig(cls, namespace, conf_type, conf_file):
+        """自动同步dbconfig"""
+        try:
+            sync_dbconfig(namespace=namespace, conf_type=conf_type, conf_file=conf_file)
+            logger.info("dbm同步dbconfig成功")
+        except Exception as e:
+            logger.info("dbm同步dbconfig异常: %s" % str(e))

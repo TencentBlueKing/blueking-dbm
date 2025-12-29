@@ -33,6 +33,7 @@ class Command(BaseCommand):
                 "grafana",
                 "bkjob",
                 "ssl",
+                "sync_dbconfig",
             ],
             help="all: initialize all services, "
             "itsm: initialize itsm service, "
@@ -44,6 +45,9 @@ class Command(BaseCommand):
             "bkmonitor_alarm: initialize bk-bkmonitor alarm services"
             "register_application: register applications into bk_notice",
         )
+        parser.add_argument("--namespace", type=str, required=False, help="Namespace for dbconfig")
+        parser.add_argument("--conf_type", type=str, required=False, help="Type of configuration")
+        parser.add_argument("--conf_file", type=str, required=False, help="Path to configuration file")
 
     def handle(self, *args, **options):
         srv_type = options["srv_type"]
@@ -77,3 +81,9 @@ class Command(BaseCommand):
 
         if srv_type == "all" or srv_type == "iam":
             Services.auto_create_iam_migrations()
+
+        if srv_type == "sync_dbconfig":
+            namespace = options["namespace"]
+            conf_type = options["conf_type"]
+            conf_file = options["conf_file"]
+            Services.auto_sync_dbconfig(namespace, conf_type, conf_file)
