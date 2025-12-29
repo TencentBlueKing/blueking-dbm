@@ -105,7 +105,7 @@ func (hdl *TenDBClusterHandler) stopSlaveForRemoteMasterAndGetBinlogList(cluster
 		}
 		binlogList = append(binlogList, config.BinlogInfo{
 
-			TenDBInfo: config.TenDBInfo{
+			TenDBClusterNodeInfo: config.TenDBClusterNodeInfo{
 				Host:     remote.Host,
 				Port:     remote.Port,
 				User:     remote.User,
@@ -189,7 +189,7 @@ func (hdl *TenDBClusterHandler) stopSlaveForTdbCtlMaster(ip string, port int) er
 		hamysql.OptionPassword(config.ClusterConfig.AuthInfo.Password),
 	)
 	if err != nil {
-		return gerrors.Newf(gerrors.Failure, "failed to connect to master node(%s:%d), errmsg: %s",
+		return gerrors.Newf(gerrors.Failure, "failed to connect to tdbctl master node(%s:%d), errmsg: %s",
 			ip, port, err.Error())
 	}
 
@@ -206,8 +206,8 @@ func (hdl *TenDBClusterHandler) stopSlaveForTdbCtlMaster(ip string, port int) er
 	return hdl.ResetSlave(masterDB)
 }
 
-// changeCtlMasterForAllCtlSlave changes ctl master for all ctl slave
-func (hdl *TenDBClusterHandler) changeCtlMasterForAllCtlSlave(ctlSlaveList []config.TenDBInfo, targetIp string, targetPort int) error {
+// changeTdbCtlMasterForAllTdbCtlSlave changes tdbctl master for all tdbctl slave
+func (hdl *TenDBClusterHandler) changeTdbCtlMasterForAllTdbCtlSlave(ctlSlaveList []config.TenDBClusterNodeInfo, targetIp string, targetPort int) error {
 	var slaveList []config.InstanceAddress
 	for _, slave := range ctlSlaveList {
 		slaveList = append(slaveList, config.InstanceAddress{
@@ -226,7 +226,7 @@ func (hdl *TenDBClusterHandler) changeCtlMasterForAllCtlSlave(ctlSlaveList []con
 		config.ClusterConfig.AuthInfo.ReplUser, config.ClusterConfig.AuthInfo.ReplPassword)
 
 	for _, slave := range slaveList {
-		if err := hdl.changeMasterForSlave(slave.Host, slave.Port, changeMasterSQL); err != nil {
+		if err := hdl.changeMasterForTdbctlSlave(slave.Host, slave.Port, changeMasterSQL); err != nil {
 			return err
 		}
 	}
@@ -237,8 +237,8 @@ func (hdl *TenDBClusterHandler) changeCtlMasterForAllCtlSlave(ctlSlaveList []con
 	return hdl.checkSlaveStatus(slaveList, targetIp, targetPort)
 }
 
-// changeMasterForSlave changes master for slave
-func (hdl *TenDBClusterHandler) changeMasterForSlave(slaveIp string, slavePort int, changeMasterSQL string) error {
+// changeMasterForTdbctlSlave changes master for tdbctl slave
+func (hdl *TenDBClusterHandler) changeMasterForTdbctlSlave(slaveIp string, slavePort int, changeMasterSQL string) error {
 	slaveDB, err := hamysql.NewGormDB(
 		hamysql.OptionProto(MySQLProtocol),
 		hamysql.OptionIP(slaveIp),
@@ -273,8 +273,8 @@ func (hdl *TenDBClusterHandler) changeMasterForSlave(slaveIp string, slavePort i
 	return nil
 }
 
-// disablePrimaryForAllCtlSlave disables primary for all ctl slave
-func (hdl *TenDBClusterHandler) disablePrimaryForAllCtlSlave(ctlSlaveList []config.TenDBInfo) error {
+// disablePrimaryForAllTdbCtlSlave disables primary for all tdbctl slave
+func (hdl *TenDBClusterHandler) disablePrimaryForAllTdbCtlSlave(ctlSlaveList []config.TenDBClusterNodeInfo) error {
 	for _, slave := range ctlSlaveList {
 		slaveDB, err := hamysql.NewGormDB(
 			hamysql.OptionProto(MySQLProtocol),
@@ -284,7 +284,7 @@ func (hdl *TenDBClusterHandler) disablePrimaryForAllCtlSlave(ctlSlaveList []conf
 			hamysql.OptionPassword(config.ClusterConfig.AuthInfo.Password),
 		)
 		if err != nil {
-			return gerrors.Newf(gerrors.Failure, "failed to connect to ctl slave node(%s:%d), errmsg: %s",
+			return gerrors.Newf(gerrors.Failure, "failed to connect to tdbctl slave node(%s:%d), errmsg: %s",
 				slave.Host, slave.Port, err.Error())
 		}
 
@@ -307,8 +307,8 @@ func (hdl *TenDBClusterHandler) disablePrimaryForAllCtlSlave(ctlSlaveList []conf
 	return nil
 }
 
-// enablePrimaryForCtlMaster enables primary for ctl master
-func (hdl *TenDBClusterHandler) enablePrimaryForCtlMaster(ctlMaster config.TenDBInfo) error {
+// enablePrimaryForTdbCtlMaster enables primary for tdbctl master
+func (hdl *TenDBClusterHandler) enablePrimaryForTdbCtlMaster(ctlMaster config.TenDBClusterNodeInfo) error {
 	masterDB, err := hamysql.NewGormDB(
 		hamysql.OptionProto(MySQLProtocol),
 		hamysql.OptionIP(ctlMaster.Host),
@@ -317,7 +317,7 @@ func (hdl *TenDBClusterHandler) enablePrimaryForCtlMaster(ctlMaster config.TenDB
 		hamysql.OptionPassword(config.ClusterConfig.AuthInfo.Password),
 	)
 	if err != nil {
-		return gerrors.Newf(gerrors.Failure, "failed to connect to ctl master node(%s:%d), errmsg: %s",
+		return gerrors.Newf(gerrors.Failure, "failed to connect to tdbctl master node(%s:%d), errmsg: %s",
 			ctlMaster.Host, ctlMaster.Port, err.Error())
 	}
 
@@ -339,8 +339,8 @@ func (hdl *TenDBClusterHandler) enablePrimaryForCtlMaster(ctlMaster config.TenDB
 	return nil
 }
 
-// resetMysqlServersTableForCtlMaster resets mysql.servers table for ctl master
-func (hdl *TenDBClusterHandler) resetMysqlServersTableForCtlMaster(cluster *config.TenDBCluster) error {
+// resetMysqlServersTableForTdbCtlMaster resets mysql.servers table for tdbctl master
+func (hdl *TenDBClusterHandler) resetMysqlServersTableForTdbCtlMaster(cluster *config.TenDBCluster) error {
 	masterDB, err := hamysql.NewGormDB(
 		hamysql.OptionProto(MySQLProtocol),
 		hamysql.OptionIP(cluster.CtlMaster.Host),
@@ -350,7 +350,7 @@ func (hdl *TenDBClusterHandler) resetMysqlServersTableForCtlMaster(cluster *conf
 	)
 
 	if err != nil {
-		return gerrors.Newf(gerrors.Failure, "failed to connect to ctl master node(%s:%d), errmsg: %s",
+		return gerrors.Newf(gerrors.Failure, "failed to connect to tdbctl master node(%s:%d), errmsg: %s",
 			cluster.CtlMaster.Host, cluster.CtlMaster.Port, err.Error())
 	}
 
@@ -424,11 +424,11 @@ func (hdl *TenDBClusterHandler) insertMysqlServersTable(cluster *config.TenDBClu
 }
 
 // collectServerRecords collects server records
-func (hdl *TenDBClusterHandler) collectServerRecords(cluster *config.TenDBCluster) []config.TenDBInfo {
-	records := make([]config.TenDBInfo, 0)
+func (hdl *TenDBClusterHandler) collectServerRecords(cluster *config.TenDBCluster) []config.TenDBClusterNodeInfo {
+	records := make([]config.TenDBClusterNodeInfo, 0)
 
 	// CtlMaster
-	records = append(records, config.TenDBInfo{
+	records = append(records, config.TenDBClusterNodeInfo{
 		Host:       cluster.CtlMaster.Host,
 		Port:       cluster.CtlMaster.Port,
 		ServerName: cluster.CtlMaster.ServerName,
@@ -439,7 +439,7 @@ func (hdl *TenDBClusterHandler) collectServerRecords(cluster *config.TenDBCluste
 
 	// CtlSlave
 	for _, ctl := range cluster.CtlSlave {
-		records = append(records, config.TenDBInfo{
+		records = append(records, config.TenDBClusterNodeInfo{
 			Host:       ctl.Host,
 			Port:       ctl.Port,
 			ServerName: ctl.ServerName,
@@ -451,7 +451,7 @@ func (hdl *TenDBClusterHandler) collectServerRecords(cluster *config.TenDBCluste
 
 	// Spider
 	for _, spider := range cluster.Spider {
-		records = append(records, config.TenDBInfo{
+		records = append(records, config.TenDBClusterNodeInfo{
 			Host:       spider.Host,
 			Port:       spider.Port,
 			ServerName: spider.ServerName,
@@ -463,7 +463,7 @@ func (hdl *TenDBClusterHandler) collectServerRecords(cluster *config.TenDBCluste
 
 	// SpiderSlave
 	for _, spider := range cluster.SpiderSlave {
-		records = append(records, config.TenDBInfo{
+		records = append(records, config.TenDBClusterNodeInfo{
 			Host:       spider.Host,
 			Port:       spider.Port,
 			ServerName: spider.ServerName,
@@ -475,7 +475,7 @@ func (hdl *TenDBClusterHandler) collectServerRecords(cluster *config.TenDBCluste
 
 	// RemoteMaster
 	for _, remote := range cluster.RemoteMaster {
-		records = append(records, config.TenDBInfo{
+		records = append(records, config.TenDBClusterNodeInfo{
 			Host:       remote.Host,
 			Port:       remote.Port,
 			ServerName: remote.ServerName,
@@ -487,7 +487,7 @@ func (hdl *TenDBClusterHandler) collectServerRecords(cluster *config.TenDBCluste
 
 	// RemoteSlave
 	for _, remote := range cluster.RemoteSlave {
-		records = append(records, config.TenDBInfo{
+		records = append(records, config.TenDBClusterNodeInfo{
 			Host:       remote.Host,
 			Port:       remote.Port,
 			ServerName: remote.ServerName,
@@ -531,7 +531,7 @@ func (hdl *TenDBClusterHandler) addAllSpidersToDomain(cluster *config.TenDBClust
 		return false
 	}
 
-	spiderList := make([]config.TenDBInfo, 0, len(cluster.Spider)+len(cluster.SpiderSlave))
+	spiderList := make([]config.TenDBClusterNodeInfo, 0, len(cluster.Spider)+len(cluster.SpiderSlave))
 	spiderList = append(spiderList, cluster.Spider...)
 	spiderList = append(spiderList, cluster.SpiderSlave...)
 
@@ -596,30 +596,30 @@ func (hdl *TenDBClusterHandler) resetSingleTenDBCluster(cluster *config.TenDBClu
 	}
 	fmt.Printf("Step 5 <stop slave for tdbctl master> done\n")
 
-	if err := hdl.changeCtlMasterForAllCtlSlave(cluster.CtlSlave, cluster.CtlMaster.Host,
+	if err := hdl.changeTdbCtlMasterForAllTdbCtlSlave(cluster.CtlSlave, cluster.CtlMaster.Host,
 		cluster.CtlMaster.Port); err != nil {
 		fmt.Printf("Failed at step 6 <change tdbctl master for all slaves>, errmsg: %s\n", err.Error())
 		return err
 	}
 	fmt.Printf("Step 6 <change tdbctl master for all slaves> done\n")
 
-	if err := hdl.disablePrimaryForAllCtlSlave(cluster.CtlSlave); err != nil {
-		fmt.Printf("Failed at step 7 <disable primary for all ctl slaves>, errmsg: %s\n", err.Error())
+	if err := hdl.disablePrimaryForAllTdbCtlSlave(cluster.CtlSlave); err != nil {
+		fmt.Printf("Failed at step 7 <disable primary for all tdbctl slaves>, errmsg: %s\n", err.Error())
 		return err
 	}
-	fmt.Printf("Step 7 <disable primary for all ctl slaves> done\n")
+	fmt.Printf("Step 7 <disable primary for all tdbctl slaves> done\n")
 
-	if err := hdl.enablePrimaryForCtlMaster(cluster.CtlMaster); err != nil {
-		fmt.Printf("Failed at step 8 <enable primary for ctl master>, errmsg: %s\n", err.Error())
+	if err := hdl.enablePrimaryForTdbCtlMaster(cluster.CtlMaster); err != nil {
+		fmt.Printf("Failed at step 8 <enable primary for tdbctl master>, errmsg: %s\n", err.Error())
 		return err
 	}
-	fmt.Printf("Step 8 <enable primary for ctl master> done\n")
+	fmt.Printf("Step 8 <enable primary for tdbctl master> done\n")
 
-	if err := hdl.resetMysqlServersTableForCtlMaster(cluster); err != nil {
-		fmt.Printf("Failed at step 9 <reset mysql.servers table for ctl master>, errmsg: %s\n", err.Error())
+	if err := hdl.resetMysqlServersTableForTdbCtlMaster(cluster); err != nil {
+		fmt.Printf("Failed at step 9 <reset mysql.servers table for tdbctl master>, errmsg: %s\n", err.Error())
 		return err
 	}
-	fmt.Printf("Step 9 <reset mysql.servers table for ctl master> done\n")
+	fmt.Printf("Step 9 <reset mysql.servers table for tdbctl master> done\n")
 
 	if err := hdl.dbmClient.UpdateAllInstancesStatus(instanceList, dbm.StatusRunning); err != nil {
 		fmt.Printf("Failed at step 10 <update all instances status to running>, errmsg: %s\n", err.Error())
