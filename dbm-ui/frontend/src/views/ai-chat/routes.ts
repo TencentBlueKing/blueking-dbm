@@ -11,14 +11,34 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import 'vue-router';
+import { registerModule } from '@router';
 
-declare module 'vue-router' {
-  interface RouteMeta {
-    aiBlueking?: boolean; // 用于判断是否显示 AI 蓝鲸 (明确设置为 false 时不显示)
-    fullscreen?: boolean; // 用于判断是否满屏幕
-    navName?: string; // 用于设置面包屑 name
-  }
+import { t } from '@locales/index';
+
+export default function getRoutes() {
+  registerModule([
+    {
+      path: 'ai-chat',
+      name: 'AiChat',
+      meta: {
+        aiBlueking: false,
+        navName: t('DBA 智能助手'),
+      },
+      redirect: {
+        name: 'AiChatIndex',
+      },
+      component: () => import('@views/ai-chat/Index.vue'),
+      children: [
+        {
+          path: 'index',
+          name: 'AiChatIndex',
+          meta: {
+            fullscreen: true,
+            navName: t('DBA 智能助手'),
+          },
+          component: () => import('@views/ai-chat/index/Index.vue'),
+        },
+      ],
+    },
+  ]);
 }
-
-export {};

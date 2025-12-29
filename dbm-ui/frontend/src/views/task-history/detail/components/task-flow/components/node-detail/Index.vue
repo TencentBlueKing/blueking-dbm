@@ -198,7 +198,7 @@
   import { forceFailflowNode, retryTaskflowNode, skipTaskflowNode } from '@services/source/taskflow';
   import { ticketBatchProcessTodo } from '@services/source/ticket';
 
-  import { useUserProfile } from '@stores';
+  import { useSystemEnviron, useUserProfile } from '@stores';
 
   import { useState as useAiBluekingState } from '@components/ai-blueking/hooks/useState';
   import CostTimer from '@components/cost-timer/CostTimer.vue';
@@ -227,6 +227,7 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    flowData: undefined,
     node: () => ({}) as Node,
   });
   const emits = defineEmits<Emits>();
@@ -237,6 +238,12 @@
 
   const { t } = useI18n();
   const userProfileStore = useUserProfile();
+  const systemEnvironStore = useSystemEnviron();
+
+  const isAiLogAnalysisOpen = computed(
+    () => systemEnvironStore.urls.ENABLE_DBM_AI && window.PROJECT_CONFIG.AI_LOG_ANALYSIS_OPEN,
+  );
+
   const { sendMessage, show } = useAiBluekingState();
 
   const NODE_STATUS_TEXT: Record<string, string> = {
@@ -248,8 +255,6 @@
     RUNNING: t('执行中'),
     SKIPPED: t('跳过'),
   };
-
-  const isAiLogAnalysisOpen = window.PROJECT_CONFIG.AI_LOG_ANALYSIS_OPEN;
 
   const dbLogRef = ref<InstanceType<typeof DbLog>>();
   const activePanelId = ref('log');
@@ -265,20 +270,20 @@
     if (STATUS_TODO.value && status !== 'FAILED') {
       return {
         text: t('待继续'),
-        theme: 'warning',
+        theme: 'warning' as const,
       };
     }
 
     const themesMap = {
-      CREATED: 'default',
+      CREATED: undefined,
       FAILED: 'danger',
       FINISHED: 'success',
       RUNNING: 'info',
-    };
+    } as const;
 
     return {
       text: NODE_STATUS_TEXT[status],
-      theme: themesMap[status as keyof typeof themesMap] || 'default',
+      theme: themesMap[status as keyof typeof themesMap] || undefined,
     };
   });
   const costTime = computed(() => {
