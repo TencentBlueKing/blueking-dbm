@@ -208,7 +208,7 @@
 
   import AiBluekingImage from '@images/ai-blueking.svg';
 
-  import { type Node } from '../flow-canvas/utils';
+  import type { FlowDetail, Node } from '../flow-canvas/utils';
 
   import ExecuteLog from './components/execute-log/Index.vue';
   import InputOutput from './components/input-output/Index.vue';
@@ -216,6 +216,7 @@
 
   interface Props {
     autoOpenAiLog: boolean;
+    flowData?: FlowDetail;
     node?: Node;
     rootId: string;
   }
@@ -369,7 +370,7 @@
 
   const handleAiLogAnalysis = async () => {
     await show();
-    await sendMessage(logContent.value);
+    await sendMessage(props.flowData?.flow_info.ticket_type_display || '', logContent.value);
   };
 </script>
 

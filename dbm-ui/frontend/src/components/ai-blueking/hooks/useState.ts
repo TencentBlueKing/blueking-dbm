@@ -95,9 +95,10 @@ export const useState = () => {
     await aiBluekingRef.value?.handleClose();
   };
 
-  const sendMessage = async (message: string) => {
+  const sendMessage = async (ticketTypeDisplay: string, message: string) => {
     if (aiLogAnalysisShortCut) {
-      aiLogAnalysisShortCut.components[0].default = message;
+      aiLogAnalysisShortCut.components[0].default = ticketTypeDisplay;
+      aiLogAnalysisShortCut.components[1].default = message;
       await aiBluekingRef.value?.handleShortcutClick({
         shortcut: aiLogAnalysisShortCut,
         source: 'popup',
