@@ -51,11 +51,12 @@ class ListMachineEventSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         biz, ticket = self.biz_map.get(instance.bk_biz_id), self.ticket_map.get(instance.ticket_id)
         if not ticket:
-            clusters, ticket_type_display, ticket_type = [], "", ""
+            clusters, ticket_type_display, ticket_type, ticket_status = [], "", "", ""
         else:
             clusters = ticket.details.get("clusters", {}).values()
             ticket_type_display = TicketType.get_choice_label(ticket.ticket_type)
             ticket_type = ticket.ticket_type
+            ticket_status = ticket.status
 
         instance = super().to_representation(instance)
         instance.update(
@@ -64,6 +65,7 @@ class ListMachineEventSerializer(serializers.ModelSerializer):
             clusters=clusters,
             ticket_type_display=ticket_type_display,
             ticket_type=ticket_type,
+            ticket_status=ticket_status,
         )
 
         return instance

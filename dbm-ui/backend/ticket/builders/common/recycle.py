@@ -17,6 +17,8 @@ from rest_framework import serializers
 from backend import env
 from backend.configuration.constants import DBType
 from backend.configuration.models import BizSettings
+from backend.db_dirty.constants import MACHINE_EVENT__POOL_MAP, MachineEventType
+from backend.db_dirty.models import MachineEvent
 from backend.flow.engine.controller.base import BaseController
 from backend.ticket import builders
 from backend.ticket.builders import FlowParamBuilder, RecycleCleanMachineParamBuilder, TicketFlowBuilder
@@ -128,4 +130,11 @@ class RecycleApplyHostFlowBuilder(RecycleHostFlowBuilder):
 
 @builders.BuilderFactory.register(TicketType.RECYCLE_OLD_HOST)
 class RecycleOldHostFlowBuilder(RecycleHostFlowBuilder):
-    pass
+    def patch_ticket_detail(self):
+        super().patch_ticket_detail()
+        # 记录主机操作记录
+        event = MachineEventType.ReturnResource
+        pool = MACHINE_EVENT__POOL_MAP.get(event)
+        MachineEvent.create_machine_events(
+            self.ticket.bk_biz_id, self.ticket.details["recycle_hosts"], event, pool, self.ticket.creator, self.ticket
+        )
