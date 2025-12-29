@@ -2734,29 +2734,20 @@ class ActKwargs:
             },
         }
 
-    def get_role_replace_kwargs(self, info: dict, cluster_role: str) -> list:
-        """
-        info 替换信息
-        """
-        role_instances = []
+    @staticmethod
+    def get_primary_info(ips: list, port: int, cluster_id: int) -> str:
+        """获取主节点信息"""
 
-        ip = info["ip"]
-        # 分片集群获取集群信息
-        if cluster_role:
-            cluster_id = info["instances"][0]["cluster_id"]
-            cluster_info = MongoRepository().fetch_one_cluster(with_domain=False, id=cluster_id)
-        # 获取 role
-        for instance in info["instances"]:
-            cluster_id = instance["cluster_id"]
+        result = ""
+        for index, node_ip in enumerate(ips):
             session_time = datetime.now(timezone.utc).replace(microsecond=0)
             user_id = "admin"
             session = f"{user_id}:{session_time}"
             command = "rs.isMaster().primary"
-            port = instance["port"]
             # 获取密码
             param = MongoUtil.get_mongodb_DRS_args_direct(
                 cluster_id=cluster_id,
-                addr="{}:{}".format(ip, str(port)),
+                addr="{}:{}".format(node_ip, str(port)),
                 session=session,
                 command=command,
             )
@@ -2765,11 +2756,62 @@ class ActKwargs:
             # 去除空白字符
             result = rpc_results.strip()
             if not re.match(r"^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3}):(\d{1,5})$", result):
-                raise ValueError(
-                    "from instance:{}:{} of cluster:{} get primary info fail, error:{}".format(
-                        ip, str(port), str(cluster_id), result
+                if index < len(ips) - 1:
+                    continue
+                elif index == len(ips) - 1:
+                    raise ValueError(
+                        "from all instance of cluster:{} get primary info fail, error:{}".format(
+                            str(cluster_id), result
+                        )
                     )
+            else:
+                break
+        return result
+
+    def get_role_replace_kwargs(self, info: dict, cluster_role: str) -> list:
+        """
+        info 替换信息
+        """
+        role_instances = []
+
+        # 被替换ip
+        ip = info["ip"]
+        # 分片集群获取集群信息
+        if cluster_role:
+            cluster_id = info["instances"][0]["cluster_id"]
+            cluster_info = MongoRepository().fetch_one_cluster(with_domain=False, id=cluster_id)
+        # 获取 role
+        for instance in info["instances"]:
+            cluster_id = instance["cluster_id"]
+            port = instance["port"]
+            # 获取操作ip，副本集的所有节点ip
+            ips, rsp_members, config_members, shard_members = [], [], [], []
+            if not cluster_role:
+                # 副本集
+                rsp_members = (
+                    MongoRepository().fetch_one_cluster(with_domain=False, id=cluster_id).get_shards()[0].members
                 )
+                ips = [member.ip for member in rsp_members]
+            else:
+                # 分片集群
+                seg_range = instance["seg_range"]
+                if cluster_role == MongoDBClusterRole.ConfigSvr.value:
+                    # config
+                    config = cluster_info.get_config()
+                    config_members = config.members
+                    if config.set_name == seg_range:
+                        ips = [member.ip for member in config_members]
+                elif cluster_role == MongoDBClusterRole.ShardSvr.value:
+                    # shards
+                    shards = cluster_info.get_shards()
+                    for shard in shards:
+                        if shard.set_name == seg_range:
+                            shard_members = shard.members
+                            ips = [member.ip for member in shard_members]
+            if not ips:
+                raise ValueError("cluster:{} get node ip fail, ips:{}".format(str(cluster_id), ips))
+            # 获取primary信息
+            result = self.get_primary_info(ips, port, cluster_id)
             primary_ip = result.split(":")[0]
             primary_port = int(result.split(":")[1])
 
@@ -2782,22 +2824,18 @@ class ActKwargs:
                 instance["role_status"] = "secondary"
             # 获取节点成员 role
             if not cluster_role:
-                for member in (
-                    MongoRepository().fetch_one_cluster(with_domain=False, id=cluster_id).get_shards()[0].members
-                ):
+                for member in rsp_members:
                     if member.ip == ip:
                         instance["instance_role"] = member.role
             else:
                 if cluster_role == MongoDBClusterRole.ConfigSvr.value:
-                    for member in cluster_info.get_config().members:
+                    for member in config_members:
                         if member.ip == ip:
                             instance["instance_role"] = member.role
                 elif cluster_role == MongoDBClusterRole.ShardSvr.value:
-                    for shard in cluster_info.get_shards():
-                        if shard.set_name == instance["seg_range"]:
-                            for member in shard.members:
-                                if member.ip == ip:
-                                    instance["instance_role"] = member.role
+                    for member in shard_members:
+                        if member.ip == ip:
+                            instance["instance_role"] = member.role
             role_instances.append(instance)
 
         return role_instances
