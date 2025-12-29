@@ -178,6 +178,9 @@
     if (!rowData.cluster.id) {
       return t('请先选择集群');
     }
+    if (readonlyHost.value.length === 0) {
+      return t('无只读主机');
+    }
     return '';
   };
 
