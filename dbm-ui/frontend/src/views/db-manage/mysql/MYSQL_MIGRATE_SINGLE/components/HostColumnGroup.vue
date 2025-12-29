@@ -149,7 +149,7 @@
       const relatedInstances = data;
       const [currentHost] = data;
       if (currentHost) {
-        const [{ region, zone_list: zoneList }] = currentHost.related_clusters;
+        const [{ region, zone_names: zoneNames }] = currentHost.related_clusters;
         modelValue.value = {
           bk_cloud_id: currentHost.bk_cloud_id,
           bk_host_id: currentHost.bk_host_id,
@@ -157,7 +157,7 @@
           ip: currentHost.ip,
           related_instances: relatedInstances,
           spec: currentHost.spec_config,
-          subzones: zoneList?.join(',') || '',
+          subzones: zoneNames?.join(',') || '',
         };
       }
     },
