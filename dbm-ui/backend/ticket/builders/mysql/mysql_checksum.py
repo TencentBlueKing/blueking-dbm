@@ -49,6 +49,7 @@ class MySQLChecksumDetailSerializer(MySQLBaseOperateDetailSerializer):
     infos = serializers.ListField(help_text=_("数据校验信息列表"), child=ChecksumDataInfoSerializer())
     data_repair = serializers.DictField(help_text=_("数据修复信息"))
     is_sync_non_innodb = serializers.BooleanField(help_text=_("非innodb表是否修复"), required=False, default=False)
+    need_manual_confirm = serializers.BooleanField(help_text=_("是否需要人工确认"), default=False)
 
     def validate(self, attrs):
         """验证库表数据库的数据"""
@@ -181,8 +182,25 @@ class MySQLChecksumFlowBuilder(BaseMySQLHATicketFlowBuilder):
                 }
                 for slave in slave_insts
             ]
-
+        # 归一化触发时间字段：将前端提交的调度策略参数重命名为引擎标准字段
+        self.ticket.details["trigger_time"] = self.ticket.details["timing"]
         self.ticket.save(update_fields=["details"])
+
+    @property
+    def need_timer(self):
+        if self.ticket.details["need_manual_confirm"] is True:
+            return False
+        return True
+
+    @property
+    def need_manual_confirm(self):
+        if self.ticket.details["need_manual_confirm"] is True:
+            return True
+        return False
+
+    @property
+    def need_itsm(self):
+        return True
 
     def custom_ticket_flows(self):
         flows = [
