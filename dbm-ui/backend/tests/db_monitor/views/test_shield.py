@@ -59,7 +59,7 @@ class TestAlarmShieldView:
                     "is_enabled": True,
                 }
             ],
-            "total": 1,
+            "count": 1,
         }
 
         # 发送请求
@@ -71,7 +71,7 @@ class TestAlarmShieldView:
         result = response.json()
         assert result["code"] == 0
         assert "shield_list" in result["data"]
-        assert "total" in result["data"]
+        assert "count" in result["data"]
 
     @patch("backend.components.BKMonitorV3Api.get_shield")
     def test_retrieve_shield(self, mock_get_shield):

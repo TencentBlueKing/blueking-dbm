@@ -74,12 +74,65 @@ class AlarmShieldView(SystemViewSet):
                 "conditions": conditions,
             }
         )
-        data = BKMonitorV3Api.list_shield(params)
-        for index, shield in enumerate(data["shield_list"]):
-            data["shield_list"][index]["description"] = deformat_shield_description(
-                params["bk_biz_id"], shield["description"]
+
+        # 查询 content 匹配的数据
+        params_content = params.copy()
+        params_content["conditions"] = [{"key": "content", "value": f"appid = {params['bk_biz_id']}"}]
+        data_content = BKMonitorV3Api.list_shield(params_content)
+
+        # 获取 content 匹配的结果
+        content_shields = data_content["shield_list"]
+        content_count = data_content["count"]
+        seen_ids = set(shield["id"] for shield in content_shields)
+        result_shields = content_shields.copy()
+        desc_count = 0
+
+        # 查询 description 匹配的数据
+        params_desc = params.copy()
+        params_desc["conditions"] = [{"key": "description", "value": format_shield_description(params["bk_biz_id"])}]
+        # 如果 content 不足一页，补充description
+        if len(result_shields) < page_size:
+            need_count = page_size - len(result_shields)
+            if need_count < page_size:
+                params_desc["page_size"] = need_count
+                params_desc.update(
+                    {
+                        "page": 1,
+                        "page_size": need_count,
+                    }
+                )
+            else:
+                content_page = content_count // page_size
+                params_desc.update(
+                    {
+                        "page": page - content_page,
+                        "page_size": page_size,
+                    }
+                )
+            data_desc = BKMonitorV3Api.list_shield(params_desc)
+            desc_count = data_desc["count"]
+
+            # 补充未重复的数据
+            for index, shield in enumerate(data_desc["shield_list"]):
+                if shield["id"] not in seen_ids:
+                    data_desc["shield_list"][index]["description"] = deformat_shield_description(
+                        params["bk_biz_id"], shield["description"]
+                    )
+                    result_shields.append(shield)
+                    seen_ids.add(shield["id"])
+                    if len(result_shields) >= page_size:
+                        break
+        else:
+            params_desc.update(
+                {
+                    "page": 1,
+                    "page_size": page_size,
+                }
             )
-        return Response(data)
+            data_desc = BKMonitorV3Api.list_shield(params_desc)
+            desc_count = data_desc["count"]
+
+        return Response({"count": content_count + desc_count, "shield_list": result_shields})
 
     @common_swagger_auto_schema(
         operation_summary=_("告警屏蔽详情"),
