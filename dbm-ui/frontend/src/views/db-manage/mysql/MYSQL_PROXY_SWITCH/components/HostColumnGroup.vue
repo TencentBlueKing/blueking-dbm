@@ -175,7 +175,7 @@
         const relatedInstances = data;
         const [hostInfo] = data;
         const relatedClusters = _.sortBy(hostInfo.related_clusters, 'id');
-        const [{ region, zone_list: zoneList }] = relatedClusters;
+        const [{ region, zone_names: zoneNames }] = relatedClusters;
         modelValue.value = {
           bk_cloud_id: hostInfo.bk_cloud_id,
           bk_host_id: hostInfo.bk_host_id,
@@ -187,7 +187,7 @@
           role: hostInfo.role,
           spec_config: hostInfo.spec_config,
           spec_id_list: relatedInstances.map((item) => item.spec_config.id),
-          subzones: zoneList?.join(',') || '',
+          subzones: zoneNames?.join(',') || '',
         };
         setTimeout(() => {
           props.handleRowMerge();

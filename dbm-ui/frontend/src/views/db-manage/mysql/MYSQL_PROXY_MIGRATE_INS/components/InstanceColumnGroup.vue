@@ -168,7 +168,7 @@
     onSuccess: (data) => {
       if (data.length) {
         const [instanceInfo] = data;
-        const [{ region, zone_list: zoneList }] = instanceInfo.related_clusters;
+        const [{ region, zone_names: zoneNames }] = instanceInfo.related_clusters;
         modelValue.value = {
           bk_cloud_id: instanceInfo.bk_cloud_id,
           bk_host_id: instanceInfo.bk_host_id,
@@ -180,7 +180,7 @@
           port: instanceInfo.port,
           role: instanceInfo.role,
           spec_config: instanceInfo.spec_config,
-          subzones: zoneList?.join(',') || '',
+          subzones: zoneNames?.join(',') || '',
         };
         setTimeout(() => {
           props.handleRowMerge();

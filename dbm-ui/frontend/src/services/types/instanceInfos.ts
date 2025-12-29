@@ -50,6 +50,7 @@ export interface InstanceInfos {
     time_zone: string;
     updater: string;
     zone_list: string[];
+    zone_names: string[];
   }[];
   role: string;
   spec_config: {
