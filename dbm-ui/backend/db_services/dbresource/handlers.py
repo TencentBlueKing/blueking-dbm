@@ -602,7 +602,7 @@ class ResourceHandler(object):
             # 取映射
             bk_os_name = os_map.get(bk_os_name, bk_os_name)
             subzone = subzone_map.get(subzone, subzone)
-            machine_water_level_map[spec_id][bk_os_name][city_name][subzone]["resource_count"] = info["count"]
+            machine_water_level_map[spec_id][bk_os_name][city_name][subzone]["resource_count"] += info["count"]
 
         # 打平聚合信息，生成资源水位
         default_ratio = ratio_map.get(0, 0.05)
