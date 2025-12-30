@@ -3,7 +3,7 @@ import time
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import ClusterType, InstanceRole
+from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import AppCache, Cluster
 from backend.db_services.sqlserver.sql_import.constants import BKREPO_SQLSERVER_SQLFILE_PATH
 from backend.flow.engine.controller.sqlserver import SqlserverController
@@ -15,27 +15,13 @@ from backend.ticket.models import Flow
 
 class SQLServerDataExportDetailSerializer(SQLServerBaseOperateDetailSerializer):
     class DataExportDetailSerializer(serializers.Serializer):
-        ignore_dbnames = serializers.ListField(
-            help_text=_("忽略数据库列表"),
-            child=serializers.CharField(),
-        )
         dbnames = serializers.ListField(help_text=_("导出库列表"), child=serializers.CharField())
         sql_files = serializers.ListField(help_text=_("SQL文件列表"), child=serializers.CharField())
         path = serializers.CharField(help_text=_("查询文件在制品库中的路径"), required=True)
 
     cluster_ids = serializers.ListField(help_text=_("查询集群列表"), child=serializers.IntegerField())
     execute_objects = serializers.ListField(help_text=_("执行对象列表"), child=serializers.DictField())
-    cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
     select_role = serializers.ChoiceField(help_text=_("查询实例角色"), choices=InstanceRole.get_choices())
-
-    def validate(self, data):
-        cluster_type = data.get("cluster_type")
-        select_role = data.get("select_role")
-        if cluster_type == "sqlserver_ha" and not select_role:
-            raise serializers.ValidationError(
-                {"select_role": "Query role (master or slave) is required for sqlserver_ha cluster type"}
-            )
-        return data
 
 
 class SQLServerDataExportItsmMaintainerFlowParamsBuilder(builders.ItsmParamBuilder):
