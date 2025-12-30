@@ -16,6 +16,8 @@ def build_q_for_cluster_name_or_alias(name):
 
 
 def build_q_for_domain_by_cluster(domains, role=None):
+    # 域名可能会带端口查询，要清除掉端口
+    domains = [domain.split(":")[0] for domain in domains]
     # 基础查询条件
     base_query = Q()
     if role:
