@@ -1,8 +1,8 @@
 import logging
 from datetime import datetime, timedelta
+from typing import Optional
 
 from blueapps.core.celery.celery import app
-from django.utils import timezone
 
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
@@ -19,7 +19,9 @@ def check_mysql_checksum():
     检查是否存在数据不一致，检查前天的报告（主库执行校验任务，备库第二天上报校验结果，巡检再落后一天，所以检查前天报告）
     """
 
-    now = datetime.now(timezone.utc)
+    local_tz = datetime.now().astimezone().tzinfo
+    now = datetime.now(local_tz)
+
     cluster_type_filter = [ClusterType.TenDBHA.value, ClusterType.TenDBCluster.value]
     cluster_ids = list(Cluster.objects.filter(cluster_type__in=cluster_type_filter).values_list("id", flat=True))
     total = len(cluster_ids)
@@ -37,7 +39,7 @@ def check_mysql_checksum():
 
 
 @app.task
-def check_cluster_checksum(index: int, cluster_id: int):  # , now: Optional[datetime] = None):
+def check_cluster_checksum(index: int, cluster_id: int, now: Optional[datetime] = None):
     """
     单个集群的检查任务：
     - 获取集群、实例信息
@@ -51,8 +53,7 @@ def check_cluster_checksum(index: int, cluster_id: int):  # , now: Optional[date
 
     cluster_task = ChecksumService(cluster_id)
 
-    local_tz = datetime.now().astimezone().tzinfo
-    end_time = datetime.now(local_tz)
+    end_time = now
     start_time = end_time - timedelta(hours=24)
 
     # start_time, end_time, log_start_time, log_end_time = cluster_task.build_time_ranges(now)
