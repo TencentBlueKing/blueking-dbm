@@ -137,6 +137,7 @@ const toolboxRouters: RouteRecordRaw[] = [
       },
       createRouteItem(TicketTypes.SQLSERVER_IMPORT_SQLFILE, t('变更SQL执行')),
       createRouteItem(TicketTypes.SQLSERVER_DBRENAME, t('DB重命名')),
+      createRouteItem(TicketTypes.SQLSERVER_RESTORE_SLAVE, t('重建从库')),
       createRouteItem(TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE, t('重建从库')),
       createRouteItem(TicketTypes.SQLSERVER_ADD_SLAVE, t('添加从库')),
       createRouteItem(TicketTypes.SQLSERVER_MASTER_SLAVE_SWITCH, t('主从互切')),

@@ -14,11 +14,11 @@
 <template>
   <EditableColumn
     :append-rules="rules"
-    field="slave.ip"
+    field="slave.instance_address"
     fixed="left"
-    :label="t('目标从库主机')"
+    :label="t('目标从库实例')"
     :loading="loading"
-    :min-width="240"
+    :min-width="350"
     required>
     <template #headAppend>
       <span
@@ -29,29 +29,14 @@
       </span>
     </template>
     <EditableInput
-      v-model="modelValue.ip"
-      :placeholder="t('请输入IP')"
+      v-model="modelValue.instance_address"
+      :placeholder="t('请输入IP:Port')"
       @change="handleInputChange" />
-  </EditableColumn>
-  <EditableColumn
-    :label="t('同机关联集群')"
-    :loading="loading"
-    :min-width="300"
-    readonly>
-    <EditableBlock v-if="modelValue.related_clusters.length">
-      <p
-        v-for="item in modelValue.related_clusters"
-        :key="item.id">
-        {{ item.master_domain }}
-      </p>
-    </EditableBlock>
-    <EditableBlock
-      v-else
-      :placeholder="t('自动生成')" />
   </EditableColumn>
   <InstanceSelector
     v-model:is-show="showSelector"
     :cluster-types="[ClusterTypes.SQLSERVER_HA]"
+    hide-manual-input
     :selected="selectedInstances"
     :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
@@ -60,12 +45,11 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getLevelConfig } from '@services/source/configs';
   import { checkInstance } from '@services/source/dbbase';
   import { getSqlServerInstanceList } from '@services/source/sqlserveHaCluster';
 
   import { ClusterTypes } from '@common/const';
-  import { ipv4 } from '@common/regex';
+  import { ipPort } from '@common/regex';
 
   import InstanceSelector, {
     type InstanceSelectorValues,
@@ -77,7 +61,7 @@
 
   interface Props {
     selected: {
-      ip: string;
+      instance_address: string;
     }[];
   }
 
@@ -88,32 +72,33 @@
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
+    bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id?: number;
-    db_module_id: number;
+    cluster_id: number;
+    instance_address: string;
     ip: string;
-    related_clusters: {
-      id: number;
-      master_domain: string;
-    }[];
-    system_version: string;
+    master_domain: string;
+    port: number;
   }>({
     default: () => ({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: undefined,
-      db_module_id: 0,
+      cluster_id: 0,
+      instance_address: '',
       ip: '',
-      related_clusters: [],
-      system_version: '',
+      master_domain: '',
+      port: 0,
     }),
   });
 
   const { t } = useI18n();
 
   const tabListConfig = {
-    [ClusterTypes.SQLSERVER_HA]: [
+    [ClusterTypes.SQLSERVER_HA as string]: [
       {
-        name: t('从库主机'),
+        name: t('从库实例'),
         tableConfig: {
           getTableList: (params: ServiceParameters<typeof getSqlServerInstanceList>) =>
             getSqlServerInstanceList({
@@ -123,31 +108,32 @@
         },
       },
     ],
-  } as Record<ClusterTypes, PanelListType>;
+  } as Record<string, PanelListType>;
 
   const showSelector = ref(false);
   const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
     [ClusterTypes.SQLSERVER_HA]: props.selected.map(
       (item) =>
         ({
-          ip: item.ip,
+          instance_address: item.instance_address,
         }) as IValue,
     ),
   }));
 
   const rules = [
     {
-      message: t('IP格式有误，请输入合法IP'),
+      message: t('实例格式有误，请输入 IP:Port'),
       trigger: 'change',
-      validator: (value: string) => !value || ipv4.test(value),
+      validator: (value: string) => !value || ipPort.test(value),
     },
     {
-      message: t('目标主机重复'),
+      message: t('目标实例重复'),
       trigger: 'change',
-      validator: (value: string) => !value || props.selected.filter((item) => item.ip === value).length < 2,
+      validator: (value: string) =>
+        !value || props.selected.filter((item) => item.instance_address === value).length < 2,
     },
     {
-      message: t('目标主机不存在'),
+      message: t('目标实例不存在'),
       trigger: 'blur',
       validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
     },
@@ -159,39 +145,26 @@
       if (data.length) {
         const [currentHost] = data;
         modelValue.value = {
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           bk_cloud_id: currentHost.bk_cloud_id,
           bk_host_id: currentHost.bk_host_id,
-          db_module_id: currentHost.db_module_id,
+          cluster_id: currentHost.cluster_id,
+          instance_address: currentHost.instance_address,
           ip: currentHost.ip,
-          related_clusters: currentHost.related_clusters.map((item) => ({
-            id: item.id,
-            master_domain: item.master_domain,
-          })),
-          system_version: '',
+          master_domain: currentHost.master_domain,
+          port: currentHost.port,
         };
       }
-    },
-  });
-
-  const { run: getOsTypes } = useRequest(getLevelConfig, {
-    manual: true,
-    onSuccess: (data) => {
-      modelValue.value.system_version =
-        data.conf_items.find((item) => item.conf_name === 'system_version')?.conf_value || '';
     },
   });
 
   watch(
     modelValue,
     () => {
-      if (modelValue.value.db_module_id) {
-        getOsTypes({
+      if (modelValue.value.instance_address && !modelValue.value.bk_host_id) {
+        queryHost({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          conf_type: 'deploy',
-          level_name: 'module',
-          level_value: modelValue.value.db_module_id,
-          meta_cluster_type: ClusterTypes.SQLSERVER_HA,
-          version: 'deploy_info',
+          instance_addresses: [modelValue.value.instance_address],
         });
       }
     },
@@ -206,19 +179,21 @@
 
   const handleInputChange = (value: string) => {
     modelValue.value = {
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: undefined,
-      db_module_id: 0,
-      ip: value,
-      related_clusters: [],
-      system_version: '',
+      cluster_id: 0,
+      instance_address: value,
+      ip: '',
+      master_domain: '',
+      port: 0,
     };
-    if (value) {
-      queryHost({
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        instance_addresses: [value],
-      });
-    }
+    // if (value) {
+    //   queryHost({
+    //     bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+    //     instance_addresses: [value],
+    //   });
+    // }
   };
 
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {

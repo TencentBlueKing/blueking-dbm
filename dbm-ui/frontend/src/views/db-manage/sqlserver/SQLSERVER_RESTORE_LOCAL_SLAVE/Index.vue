@@ -12,94 +12,226 @@
 -->
 
 <template>
-  <BkAlert
-    class="mb-20"
-    closable
-    :title="t('重建从库_原机器或新机器重新同步数据及权限_并且将域名解析指向同步好的机器')" />
-  <div>
-    <strong class="restore-types-title">
-      {{ t('重建类型') }}
-    </strong>
-    <div class="mt-8 mb-20">
-      <CardCheckbox
-        v-model="restoreType"
-        :desc="t('在原主机上进行故障从库实例重建')"
-        icon="rebuild"
-        :title="t('原地重建')"
-        :true-value="TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE" />
-      <CardCheckbox
-        v-model="restoreType"
-        class="ml-8"
-        :desc="t('将从库主机的全部实例重建到新主机')"
-        icon="host"
-        :title="t('新机重建')"
-        :true-value="TicketTypes.SQLSERVER_RESTORE_SLAVE" />
-    </div>
-  </div>
-  <Component
-    :is="comMap[restoreType]"
-    :key="restoreType"
-    :ticket-details="ticketDetails" />
+  <SmartAction>
+    <BkAlert
+      class="mb-20"
+      closable
+      :title="t('重建从库_原机器或新机器重新同步数据及权限_并且将域名解析指向同步好的机器')" />
+    <BkForm
+      class="toolbox-form mb-20"
+      form-type="vertical"
+      :model="formData">
+      <SlaveRestoreFormItem v-model="formData.restore_type" />
+      <BatchInput
+        :config="batchInputConfig"
+        @change="handleBatchInput" />
+      <EditableTable
+        :key="tableKey"
+        ref="table"
+        class="mt-16 mb-20"
+        :model="formData.tableData">
+        <EditableRow
+          v-for="(item, index) in formData.tableData"
+          :key="index">
+          <SlaveInstanceColumn
+            v-model="item.slave"
+            :selected="selected"
+            @batch-edit="handleBatchEdit" />
+          <EditableColumn
+            :label="t('所属集群')"
+            :min-width="150"
+            readonly>
+            <EditableBlock
+              v-model="item.slave.master_domain"
+              :placeholder="t('自动生成')" />
+          </EditableColumn>
+          <OperationColumn
+            v-model:table-data="formData.tableData"
+            :create-row-method="createTableRow" />
+        </EditableRow>
+      </EditableTable>
+      <TicketPayload v-model="formData.payload" />
+    </BkForm>
+    <template #action>
+      <BkButton
+        class="mr-8 w-88"
+        :loading="isSubmitting"
+        theme="primary"
+        @click="handleSubmit">
+        {{ t('提交') }}
+      </BkButton>
+      <DbPopconfirm
+        :confirm-handler="handleReset"
+        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :title="t('确认重置页面')">
+        <BkButton
+          class="ml-8 w-88"
+          :disabled="isSubmitting">
+          {{ t('重置') }}
+        </BkButton>
+      </DbPopconfirm>
+    </template>
+  </SmartAction>
 </template>
+
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
 
-  import TicketModel, { type Sqlserver } from '@services/model/ticket/ticket';
+  import type { Sqlserver } from '@services/model/ticket/ticket';
 
-  import { useTicketDetail } from '@hooks';
+  import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
-  import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+  import TicketPayload, {
+    createTickePayload,
+  } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+  import SlaveRestoreFormItem from '@views/db-manage/sqlserver/common/slave-restore-form-item/Index.vue';
 
-  import SQLSERVER_RESTORE_LOCAL_SLAVE from './components/SQLSERVER_RESTORE_LOCAL_SLAVE/Index.vue';
-  import SQLSERVER_RESTORE_SLAVE from './components/SQLSERVER_RESTORE_SLAVE/Index.vue';
+  import { random } from '@utils';
+
+  import SlaveInstanceColumn, { type SelectorHost } from './components/SlaveInstanceColumn.vue';
+
+  interface RowData {
+    slave: {
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      cluster_id: number;
+      instance_address: string;
+      ip: string;
+      master_domain: string;
+      port: number;
+    };
+  }
 
   const { t } = useI18n();
+  const tableRef = useTemplateRef('table');
 
-  const comMap = {
-    SQLSERVER_RESTORE_LOCAL_SLAVE,
-    SQLSERVER_RESTORE_SLAVE,
-  };
+  const createTableRow = (data = {} as Partial<RowData>) => ({
+    slave: data.slave || {
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      bk_cloud_id: 0,
+      bk_host_id: 0,
+      cluster_id: 0,
+      instance_address: '',
+      ip: '',
+      master_domain: '',
+      port: 0,
+    },
+  });
 
-  const restoreType = ref<TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE | TicketTypes.SQLSERVER_RESTORE_SLAVE>(
-    TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE,
-  );
-  const ticketDetails = ref<
-    TicketModel<Sqlserver.RestoreLocalSlave> | TicketModel<Sqlserver.ResourcePool.RestoreSlave>
-  >();
+  const defaultData = () => ({
+    payload: createTickePayload(),
+    restore_type: TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE,
+    tableData: [createTableRow()],
+  });
+
+  const batchInputConfig = [
+    {
+      case: '192.168.10.2:2000',
+      key: 'instance_address',
+      label: t('目标从库实例'),
+    },
+  ];
+
+  const tableKey = ref(random());
+  const formData = reactive(defaultData());
+
+  const selected = computed(() => formData.tableData.filter((item) => item.slave.bk_host_id).map((item) => item.slave));
+  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.instance_address, true])));
 
   useTicketDetail<Sqlserver.RestoreLocalSlave>(TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE, {
     onSuccess(ticketDetail) {
-      restoreType.value = TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE;
-      nextTick(() => {
-        ticketDetails.value = ticketDetail;
+      const { details } = ticketDetail;
+      Object.assign(formData, {
+        payload: createTickePayload(ticketDetail),
+        tableData: details.infos.map((item) =>
+          createTableRow({
+            slave: { instance_address: `${item.slave.ip}:${item.slave.port}` } as RowData['slave'],
+          }),
+        ),
       });
     },
   });
 
-  useTicketDetail<Sqlserver.ResourcePool.RestoreSlave>(TicketTypes.SQLSERVER_RESTORE_SLAVE, {
-    onSuccess(ticketDetail) {
-      restoreType.value = TicketTypes.SQLSERVER_RESTORE_SLAVE;
-      nextTick(() => {
-        ticketDetails.value = ticketDetail;
+  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
+    infos: {
+      cluster_id: number;
+      slave: {
+        bk_biz_id: number;
+        bk_cloud_id: number;
+        bk_host_id: number;
+        ip: string;
+        port: number;
+      };
+    }[];
+  }>(TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE);
+
+  const handleSubmit = async () => {
+    const valid = await tableRef.value!.validate();
+    if (valid) {
+      createTicketRun({
+        details: {
+          infos: formData.tableData.map((item) => ({
+            cluster_id: item.slave.cluster_id,
+            slave: {
+              bk_biz_id: item.slave.bk_biz_id,
+              bk_cloud_id: item.slave.bk_cloud_id,
+              bk_host_id: item.slave.bk_host_id,
+              ip: item.slave.ip,
+              port: item.slave.port,
+            },
+          })),
+        },
+        ...formData.payload,
       });
-    },
-  });
-</script>
-
-<style lang="less" scoped>
-  .restore-types-title {
-    position: relative;
-    font-size: @font-size-mini;
-    color: @title-color;
-
-    &::after {
-      position: absolute;
-      top: 2px;
-      right: -8px;
-      color: @danger-color;
-      content: '*';
     }
-  }
-</style>
+  };
+
+  const handleBatchEdit = (list: SelectorHost[]) => {
+    const dataList = list.reduce<RowData[]>((acc, item) => {
+      if (!selectedMap.value[item.instance_address]) {
+        acc.push(
+          createTableRow({
+            slave: {
+              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+              bk_cloud_id: item.bk_cloud_id,
+              bk_host_id: item.bk_host_id,
+              cluster_id: item.cluster_id,
+              instance_address: item.instance_address,
+              ip: item.ip,
+              master_domain: item.master_domain,
+              port: item.port,
+            },
+          }),
+        );
+      }
+      return acc;
+    }, []);
+    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.reduce<RowData[]>((acc, item) => {
+      acc.push(
+        createTableRow({
+          slave: { instance_address: item.instance_address } as RowData['slave'],
+        }),
+      );
+      return acc;
+    }, []);
+
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = [...dataList];
+    } else {
+      formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    }
+  };
+
+  const handleReset = () => {
+    Object.assign(formData, defaultData());
+  };
+</script>
