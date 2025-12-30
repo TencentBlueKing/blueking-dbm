@@ -453,15 +453,11 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         instance_attrs: Dict[str, Union[List, Set]] = defaultdict(list)
 
         if "role" in data["instances_attrs"]:
-            # mysql的实例角色返回的是InstanceInnerRole 其他集群实例InstanceRole
-            if data.get("cluster_type") in [ClusterType.TenDBSingle.value, ClusterType.TenDBHA.value]:
-                storage_roles = storage_queryset.values_list("instance_inner_role", flat=True)
-            else:
-                storage_roles = storage_queryset.values_list("instance_role", flat=True)
-            if (
-                data.get("cluster_type") == [ClusterType.TenDBCluster.value]
-                or proxy_query.first().cluster.first().cluster_type == ClusterType.TenDBCluster.value
-            ):
+            cluster_type = data.get("cluster_type")
+            if not cluster_type and proxy_query:
+                cluster_type = [proxy_query.first().cluster.first().cluster_type]
+            storage_roles = storage_queryset.values_list("instance_role", flat=True)
+            if cluster_type == [ClusterType.TenDBCluster.value]:
                 proxy_roles = proxy_query.values_list("tendbclusterspiderext__spider_role", flat=True)
             else:
                 proxy_roles = proxy_query.values_list("access_layer", flat=True)
