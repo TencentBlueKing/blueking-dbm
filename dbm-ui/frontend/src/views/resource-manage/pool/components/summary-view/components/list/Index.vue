@@ -75,7 +75,7 @@
                   <span v-if="item.name">{{ item.name }} : </span>
                   <span
                     class="cell-num"
-                    @click="handleClick(row, subzoneId)">
+                    @click="handleClick(row, Number(subzoneId))">
                     {{ item.count }}
                   </span>
                   <span>{{ index === Object.keys(row.sub_zone_detail).length - 1 ? '' : ' , ' }}</span>
