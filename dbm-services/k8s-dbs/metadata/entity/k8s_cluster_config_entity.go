@@ -25,6 +25,7 @@ import commtypes "k8s-dbs/common/types"
 type K8sClusterConfigEntity struct {
 	ID            uint64 `json:"id"`
 	ClusterName   string `json:"clusterName"`
+	ClusterAlias  string `json:"clusterAlias"`
 	APIServerURL  string `json:"apiServerUrl"`
 	CACert        string `json:"caCert"`
 	ClientCert    string `json:"clientCert"`
