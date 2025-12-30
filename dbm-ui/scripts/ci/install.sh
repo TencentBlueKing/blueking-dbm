@@ -73,8 +73,25 @@ python manage.py createcachetable django_cache
 python manage.py language_finder -p backend/ -m error
 if [[ $? -ne 0 ]];
 then
-  echo -e "\033[1;31m Error: python manage.py language_finder -p backend/ -m error 执行失败！请检查中文是否已标记 \033[0m"
+  echo -e "\033[1;31m Error: python manage.py language_finder -p backend/ -m error 执行失败！请检查中文是否已标记并且是否存在非法导入 \033[0m"
   FAILED_COUNT=$[$FAILED_COUNT+1]
+fi
+
+echo "正在检查是否有未提交的数据库迁移文件..."
+MIGRATION_OUTPUT=$(python manage.py makemigrations --dry-run --check 2>&1)
+
+# 捕获命令的退出状态
+STATUS=$?
+
+if [ $STATUS -ne 0 ]; then
+    echo "❌ 错误：检测到模型变更但未生成对应的迁移文件！"
+    echo ""
+    echo "====== 迁移详情 ======"
+    echo "$MIGRATION_OUTPUT"
+    exit 1
+else
+    echo "✅ 检查通过：没有未提交的模型变更。"
+    exit 0
 fi
 
 if [[ $FAILED_COUNT -ne 0 ]];
@@ -84,3 +101,4 @@ then
 else
   echo "前置命令已通过"
 fi
+
