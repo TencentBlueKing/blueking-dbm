@@ -47,10 +47,10 @@
         <DbIcon
           class="ml-16"
           type="bk-dbm-icon db-icon-dingshichufa" />
-        {{ t('系统于每日 time 发起自动提交补货操作，也可手动点击', [flushTime]) }}
+        {{ t('系统于每日 time 发起自动提交补货操作，也可手动点击', [waterLevelData?.flush_time]) }}
       </div>
       <div>
-        <span>{{ t('最近更新时间：') }}{{ updateTime }}</span>
+        <span>{{ t('最近更新时间：') }}{{ waterLevelData?.update_time }}</span>
         <BkButton
           class="ml-8"
           @click="handleRefresh">
@@ -79,63 +79,69 @@
       </div>
     </div>
     <BkLoading :loading="isLoading">
+      <Exclusive
+        v-if="waterLevelData"
+        class="mb-12"
+        :data="waterLevelData" />
       <div ref="tableWrapper">
         <PrimaryTable
           :data="tableData"
+          ellipsis
           :height="tableHeight"
+          resizable
           row-key="db_type"
           title-ellipsis>
           <TableColumn
             col-key="db_type"
-            :title="t('DB 类型')"
-            width="120">
+            :min-width="120"
+            :title="t('DB 类型')">
             <template #default="{ row }: { row: IRowData }">
               {{ dbNameMap[row.db_type] || '--' }}
             </template>
           </TableColumn>
           <TableColumn
             col-key="spec_machine_type"
-            :title="t('规格类型')"
-            width="120">
+            :min-width="120"
+            :title="t('规格类型')">
             <template #default="{ row }: { row: IRowData }">
               {{ machineTypeMap[row.spec_machine_type] || '--' }}
             </template>
           </TableColumn>
           <TableColumn
             col-key="spec_name"
-            :title="t('规格')"
-            width="120">
+            :min-width="120"
+            :title="t('规格')">
             <template #default="{ row }: { row: IRowData }">
               {{ row.spec_name || '--' }}
             </template>
           </TableColumn>
           <TableColumn
             col-key="city"
-            :title="t('地域')"
-            width="120">
+            :min-width="120"
+            :title="t('地域')">
             <template #default="{ row }: { row: IRowData }">
               {{ row.city || '--' }}
             </template>
           </TableColumn>
           <TableColumn
             col-key="subzone"
-            :title="t('园区')"
-            width="120">
+            :min-width="120"
+            :title="t('园区')">
             <template #default="{ row }: { row: IRowData }">
               {{ row.subzone || '--' }}
             </template>
           </TableColumn>
           <TableColumn
             col-key="os_name"
-            :title="t('操作系统')"
-            width="120">
+            :min-width="120"
+            :title="t('操作系统')">
             <template #default="{ row }: { row: IRowData }">
               {{ row.os_name || '--' }}
             </template>
           </TableColumn>
           <!-- <TableColumn
             col-key="machine_refer_count"
-            width="120"
+            :min-width="120"
             :title="t('AI 预测水位（台）')">
             <template #default="{ row }: { row: IRowData }">
               <span class="bold-number">{{ row.machine_refer_count }}</span>
@@ -143,24 +149,24 @@
           </TableColumn> -->
           <TableColumn
             col-key="machine_refer_count"
-            :title="t('参考水位（台）')"
-            width="120">
+            :min-width="120"
+            :title="t('参考水位（台）')">
             <template #default="{ row }: { row: IRowData }">
               <span class="bold-number">{{ row.machine_refer_count }}</span>
             </template>
           </TableColumn>
           <TableColumn
             col-key="resource_count"
-            :title="t('当前数量（台）')"
-            width="120">
+            :min-width="120"
+            :title="t('当前数量（台）')">
             <template #default="{ row }: { row: IRowData }">
               <span class="bold-number blue-number">{{ row.resource_count }}</span>
             </template>
           </TableColumn>
           <TableColumn
             col-key="resource_count"
-            :title="t('待补充数量（台）')"
-            width="150">
+            :min-width="150"
+            :title="t('待补充数量（台）')">
             <template #default="{ row }: { row: IRowData }">
               <span class="bold-number red-number">
                 {{ Math.max(row.machine_refer_count - row.resource_count, 0) }}
@@ -208,6 +214,7 @@
 
   import { exportExcelFile, getOffset, messageSuccess } from '@utils';
 
+  import Exclusive from './components/Exclusive.vue';
   import useFetchData from './hooks/use-fetch-data';
 
   type IRowData = NonNullable<(typeof tableData.value)[0]>;
@@ -219,7 +226,6 @@
   const funControllerStore = useFunController();
   const {
     dataList,
-    flushTime,
     handlePageLimitChange,
     handlePageValueChange,
     loading: isLoading,
@@ -227,7 +233,7 @@
     run: fetchData,
     runningReplenishRecord,
     tableData,
-    updateTime,
+    waterLevelData,
   } = useFetchData();
 
   const tableHeight = ref<number | 'auto'>('auto');
@@ -296,7 +302,7 @@
     const colsWidths = Array(8)
       .fill(15)
       .map((width) => ({ width }));
-    exportExcelFile(formatData, colsWidths, 'Sheet1', `${t('待补货列表')}_${updateTime.value}.xlsx`);
+    exportExcelFile(formatData, colsWidths, 'Sheet1', `${t('待补货列表')}_${waterLevelData.value?.update_time}.xlsx`);
   };
 
   const { loading: isSubmitting, run: replenish } = useRequest(createResourceReplenish, {
