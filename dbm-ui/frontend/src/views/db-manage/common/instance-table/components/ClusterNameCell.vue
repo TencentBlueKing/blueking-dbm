@@ -36,6 +36,8 @@
   import TextHighlight from '@components/text-highlight/Index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
+  import { URL_CLUSTER_DETAIL_MEMO_KEY } from '@views/db-manage/common/cluster-details';
+
   import { execCopy } from '@utils';
 
   import type { ClusterTypeRelateInstanceModel, ISupportClusterType } from '../types';
@@ -129,6 +131,9 @@
       name: infoMap[props.clusterType].routeName,
       params: {
         clusterId,
+      },
+      query: {
+        [URL_CLUSTER_DETAIL_MEMO_KEY]: 'info',
       },
     });
     window.open(href);

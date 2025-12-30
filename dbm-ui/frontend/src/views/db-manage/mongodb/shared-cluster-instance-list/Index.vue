@@ -89,14 +89,14 @@
           :selected-list="selectedList">
         </InstanceAddressColumn>
       </template>
-      <template #masterDomain>
-        <MasterDomainColumn
+      <template #domain>
+        <InstanceDomainColumn
           :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
           :get-table-instance="getTableInstance"
           :is-filter="isSearching"
           :label="t('域名')"
           :selected-list="selectedList">
-        </MasterDomainColumn>
+        </InstanceDomainColumn>
       </template>
       <template #shard>
         <ShardColumn :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER" />
@@ -106,7 +106,6 @@
           :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
           :get-table-instance="getTableInstance"
           :is-filter="isSearching"
-          :label="t('所属集群')"
           :selected-list="selectedList">
         </ClusterNameColumn>
       </template>
@@ -139,8 +138,8 @@
   import InstanceTable, {
     ClusterNameColumn,
     InstanceAddressColumn,
+    InstanceDomainColumn,
     IpColumn,
-    MasterDomainColumn,
     OperationColumn,
     ShardColumn,
   } from '@views/db-manage/common/instance-table/Index.vue';
