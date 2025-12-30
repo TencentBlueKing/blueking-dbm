@@ -163,26 +163,16 @@ func (h *MachineResourceParamHandler) QueryResourceParam(c *gin.Context) {
 	// Limit request body size
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 1<<20) // 1MB
 
-	// Parse and validate request parameters
+	// Parse and validate request parameters using Prepare
 	var req QueryResourceParamReq
-	if err := c.ShouldBind(&req); err != nil {
-		logger.Error("ShouldBind Failed: %s", err.Error())
-		c.JSON(http.StatusBadRequest, controller.Response{
-			Code:      http.StatusBadRequest,
-			Message:   "Invalid request parameters",
-			RequestId: c.GetString("request_id"),
-		})
+	if err := h.Prepare(c, &req); err != nil {
 		return
 	}
 
 	// Custom validation
 	if err := req.Validate(); err != nil {
 		logger.Error("Validate Failed: %s", err.Error())
-		c.JSON(http.StatusBadRequest, controller.Response{
-			Code:      http.StatusBadRequest,
-			Message:   err.Error(),
-			RequestId: c.GetString("request_id"),
-		})
+		h.SendResponse(c, err, nil)
 		return
 	}
 
@@ -195,11 +185,7 @@ func (h *MachineResourceParamHandler) QueryResourceParam(c *gin.Context) {
 	requestBodies, err := model.QueryResourceParamByBillOrTask(ctx, req.BillID, req.TaskID, req.Limit, req.Offset)
 	if err != nil {
 		logger.Error("QueryResourceParamByBillOrTask failed: %v, request_id=%s", err, c.GetString("request_id"))
-		c.JSON(http.StatusInternalServerError, controller.Response{
-			Code:      http.StatusInternalServerError,
-			Message:   "Failed to query resource parameters",
-			RequestId: c.GetString("request_id"),
-		})
+		h.SendResponse(c, err, nil)
 		return
 	}
 
@@ -215,14 +201,9 @@ func (h *MachineResourceParamHandler) QueryResourceParam(c *gin.Context) {
 	logger.Info("QueryResourceParam success: found %d records, request_id=%s", len(formattedList),
 		c.GetString("request_id"))
 
-	// Return response
-	c.JSON(http.StatusOK, controller.Response{
-		Code:    http.StatusOK,
-		Message: "success",
-		Data: QueryResourceParamResp{
-			RequestBodyList: formattedList,
-		},
-		RequestId: c.GetString("request_id"),
+	// Return response using SendResponse
+	h.SendResponse(c, nil, QueryResourceParamResp{
+		RequestBodyList: formattedList,
 	})
 }
 
