@@ -72,7 +72,13 @@ class DBMetaQueryMcpToolsViewSet(McpToolsViewSet):
         return Response({"dbmodules": list_biz_dbmodules(bk_biz_id, cluster_type)})
 
     @mcp_tools_api_decorator(
-        description=str(_("获取业务特定集群类型的集群")),
+        description=str(
+            _(
+                """获取业务特定集群类型的集群
+        * cluster_type 是必填参数, 如果用户查询没有提供, 则必须要求用户补全. 不得以任何形式自动补充
+        """
+            )
+        ),
         request_slz=ListBizClustersInputSerializer,
         response_slz=ListBizClustersOutputSerializer,
         tags=[DBMMCPTags.READ],

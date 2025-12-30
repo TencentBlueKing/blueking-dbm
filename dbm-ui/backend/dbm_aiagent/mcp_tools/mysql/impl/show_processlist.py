@@ -30,14 +30,16 @@ def show_cluster_processlist(cluster_type: ClusterType, cluster_domain: str) -> 
         raise DBMMcpNotSupportClusterTypeException(cluster_type=cluster_type)
 
 
-def __show_processlist(addresses: List[str], machine_type: MachineType) -> Dict:
+def __show_processlist(bk_cloud_id: int, addresses: List[str], machine_type: MachineType) -> Dict:
     if not addresses:
         return {}
 
     if machine_type == MachineType.PROXY:
-        drs_raw_res = DRSApi.proxyrpc({"addresses": addresses, "cmds": ["show processlist"]})
+        drs_raw_res = DRSApi.proxyrpc(
+            {"addresses": addresses, "cmds": ["show processlist"], "bk_cloud_id": bk_cloud_id}
+        )
     else:
-        drs_raw_res = DRSApi.rpc({"addresses": addresses, "cmds": ["show processlist"]})
+        drs_raw_res = DRSApi.rpc({"addresses": addresses, "cmds": ["show processlist"], "bk_cloud_id": bk_cloud_id})
 
     res = defaultdict(list)
     for raw_plist_res in drs_raw_res:
@@ -53,7 +55,7 @@ def __show_processlist(addresses: List[str], machine_type: MachineType) -> Dict:
     return res
 
 
-def __show_processlist_on_proxy(addresses: List[str]) -> List:
+def __show_processlist_on_proxy(bk_cloud_id: int, addresses: List[str]) -> List:
     """
     {
         'Host': '1.1.1.1:27057',
@@ -65,7 +67,7 @@ def __show_processlist_on_proxy(addresses: List[str]) -> List:
         'db': None
     }
     """
-    plist_res = __show_processlist(addresses, MachineType.PROXY)
+    plist_res = __show_processlist(bk_cloud_id=bk_cloud_id, addresses=addresses, machine_type=MachineType.PROXY)
 
     res = []  # defaultdict(list)
     for address, raw_plist in plist_res.items():
@@ -88,7 +90,7 @@ def __show_processlist_on_proxy(addresses: List[str]) -> List:
     return res
 
 
-def __show_processlist_on_mysql(addresses: List[str], machine_type: MachineType) -> List:
+def __show_processlist_on_mysql(bk_cloud_id: int, addresses: List[str], machine_type: MachineType) -> List:
     """
     {
         'Command': 'Binlog Dump',
@@ -105,7 +107,7 @@ def __show_processlist_on_mysql(addresses: List[str], machine_type: MachineType)
         'db': None
     }
     """
-    plist_res = __show_processlist(addresses, machine_type)
+    plist_res = __show_processlist(bk_cloud_id=bk_cloud_id, addresses=addresses, machine_type=machine_type)
 
     res = []  # defaultdict(list)
     for address, raw_plist in plist_res.items():
@@ -139,7 +141,11 @@ def __show_tendbsingle_processlist(cluster_obj: Cluster) -> List:
     if not instances.exists():
         raise
 
-    return __show_processlist_on_mysql([ins.ip_port for ins in instances], MachineType.SINGLE)
+    return __show_processlist_on_mysql(
+        bk_cloud_id=cluster_obj.bk_cloud_id,
+        addresses=[ins.ip_port for ins in instances],
+        machine_type=MachineType.SINGLE,
+    )
 
 
 def __show_tendbha_processlist(cluster_obj: Cluster) -> List:
@@ -150,8 +156,12 @@ def __show_tendbha_processlist(cluster_obj: Cluster) -> List:
         raise
 
     return __show_processlist_on_proxy(
-        [f"{pi.machine.ip}:{pi.port + 1000}" for pi in proxy_instances]
-    ) + __show_processlist_on_mysql([si.ip_port for si in storage_instances], MachineType.BACKEND)
+        bk_cloud_id=cluster_obj.bk_cloud_id, addresses=[f"{pi.machine.ip}:{pi.port + 1000}" for pi in proxy_instances]
+    ) + __show_processlist_on_mysql(
+        bk_cloud_id=cluster_obj.bk_cloud_id,
+        addresses=[si.ip_port for si in storage_instances],
+        machine_type=MachineType.BACKEND,
+    )
 
 
 def __show_tendbcluster_processlist(cluster_obj: Cluster) -> List:
@@ -162,5 +172,11 @@ def __show_tendbcluster_processlist(cluster_obj: Cluster) -> List:
         raise
 
     return __show_processlist_on_mysql(
-        [pi.ip_port for pi in proxy_instances], MachineType.SPIDER
-    ) + __show_processlist_on_mysql([si.ip_port for si in storage_instances], MachineType.BACKEND)
+        bk_cloud_id=cluster_obj.bk_cloud_id,
+        addresses=[pi.ip_port for pi in proxy_instances],
+        machine_type=MachineType.SPIDER,
+    ) + __show_processlist_on_mysql(
+        bk_cloud_id=cluster_obj.bk_cloud_id,
+        addresses=[si.ip_port for si in storage_instances],
+        machine_type=MachineType.BACKEND,
+    )

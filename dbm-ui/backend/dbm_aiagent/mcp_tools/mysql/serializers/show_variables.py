@@ -15,6 +15,7 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.usefully_choices import mys
 
 
 class ShowMySQLVariablesInputSerializer(serializers.Serializer):
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域 ID"))
     bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
     machine_type = serializers.ChoiceField(
         choices=mysql_machine_type_choices, help_text=_("实例的机器类型, 只能是 [single, backend, remote, spider] 中之一")

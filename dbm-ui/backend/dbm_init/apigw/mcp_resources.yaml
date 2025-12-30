@@ -57,7 +57,8 @@ paths:
   /apis/ai/mcp_tools/common/list_biz_clusters/:
     post:
       operationId: dbmeta_query_list_biz_clusters
-      description: 获取业务特定集群类型的集群
+      description: "获取业务特定集群类型的集群\n        * cluster_type 是必填参数, 如果用户查询没有提供, 则必须要求用户补全.\
+        \ 不得以任何形式自动补充\n        "
       tags:
       - read
       - mcp-tools
@@ -75,6 +76,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -103,7 +105,8 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
-        descriptionEn: 获取业务特定集群类型的集群
+        descriptionEn: "获取业务特定集群类型的集群\n        * cluster_type 是必填参数, 如果用户查询没有提供, 则必须要求用户补全.\
+          \ 不得以任何形式自动补充\n        "
   /apis/ai/mcp_tools/common/list_biz_dbmodules/:
     post:
       operationId: dbmeta_query_list_biz_dbmodules
@@ -227,6 +230,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -358,6 +362,57 @@ paths:
           appVerifiedRequired: true
           resourcePermissionRequired: true
         descriptionEn: 获取 tendbsingle, tendbha, tendbcluster 集群的慢查询统计信息
+  /apis/ai/mcp_tools/mysql/show_biz_mysql_privilege_template/:
+    post:
+      operationId: mysql_query_show_biz_mysql_privilege_template
+      description: 查询业务 TenDBSingle, TenDBHA ,TenDBCluster 类型的权限模版
+      tags:
+      - read
+      - mcp-tools
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShowBizMySQLPrivilegeTemplateInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ShowBizMySQLPrivilegeTemplateInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ShowBizMySQLPrivilegeTemplateInputRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShowBizMySQLPrivilegeTemplateOutput'
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: false
+        matchSubpath: false
+        backend:
+          name: default
+          method: post
+          path: /apis/ai/mcp_tools/mysql/show_biz_mysql_privilege_template/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs:
+        - type: bk-header-rewrite
+          yaml: |
+            remove: []
+            set:
+            - key: X-Bkdbm-Mcp-Tag
+              value: read,mcp-tools
+        allowApplyPermission: false
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn: 查询业务 TenDBSingle, TenDBHA ,TenDBCluster 类型的权限模版
   /apis/ai/mcp_tools/mysql/show_cluster_processlist/:
     post:
       operationId: mysql_query_show_cluster_processlist
@@ -562,6 +617,64 @@ paths:
           appVerifiedRequired: true
           resourcePermissionRequired: true
         descriptionEn: 查询 MySQL 运行时参数
+  /apis/ai/mcp_tools/mysql/submit_bill_mysql_apply_priv/:
+    post:
+      operationId: mysql_bill_submit_bill_mysql_apply_priv
+      description: "创建 TenDBSingle, TenDBHA, TenDBCluster 权限申请单据\n        * 按照权限模版的定义在集群上开通权限\n\
+        \        * account_name 需要在业务权限模版中录入\n        * dbname 也要在业务权限模版对应的 account_name\
+        \ 下录入\n        * 开通的权限是预先在权限模版中录入好了的\n        * 如果参数缺少用户名和 DB 名, 列出业务相关集群类型的所有权限模版提供帮助\n\
+        \        "
+      tags:
+      - read
+      - write
+      - mcp-tools
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitBillMySQLApplyPrivInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SubmitBillMySQLApplyPrivInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SubmitBillMySQLApplyPrivInputRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitBillOutput'
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: false
+        matchSubpath: false
+        backend:
+          name: default
+          method: post
+          path: /apis/ai/mcp_tools/mysql/submit_bill_mysql_apply_priv/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs:
+        - type: bk-header-rewrite
+          yaml: |
+            remove: []
+            set:
+            - key: X-Bkdbm-Mcp-Tag
+              value: read,write,mcp-tools
+        allowApplyPermission: false
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn: "创建 TenDBSingle, TenDBHA, TenDBCluster 权限申请单据\n        * 按照权限模版的定义在集群上开通权限\n\
+          \        * account_name 需要在业务权限模版中录入\n        * dbname 也要在业务权限模版对应的 account_name\
+          \ 下录入\n        * 开通的权限是预先在权限模版中录入好了的\n        * 如果参数缺少用户名和 DB 名, 列出业务相关集群类型的所有权限模版提供帮助\n\
+          \        "
   /apis/ai/mcp_tools/mysql/submit_bill_mysql_db_table_backup/:
     post:
       operationId: mysql_bill_submit_bill_mysql_db_table_backup
@@ -1171,6 +1284,9 @@ components:
     ClusterTopoInputRequest:
       type: object
       properties:
+        bk_biz_id:
+          type: integer
+          description: 业务 ID
         cluster_domain:
           type: string
           minLength: 1
@@ -1185,6 +1301,7 @@ components:
             * `tendbha` - TenDBHA
             * `tendbcluster` - TenDBCluster
       required:
+      - bk_biz_id
       - cluster_domain
       - cluster_type
     ClusterType:
@@ -1396,6 +1513,9 @@ components:
     ExplainSQLInputRequest:
       type: object
       properties:
+        bk_biz_id:
+          type: integer
+          description: 业务 ID
         cluster_type:
           allOf:
           - $ref: '#/components/schemas/ClusterType6acEnum'
@@ -1418,6 +1538,7 @@ components:
           minLength: 1
           description: 需要查询执行计划的 SQL 语句
       required:
+      - bk_biz_id
       - cluster_domain
       - cluster_type
       - dbname
@@ -1425,6 +1546,9 @@ components:
     ExplainSQLOutput:
       type: object
       properties:
+        bk_biz_id:
+          type: integer
+          description: 业务 ID
         cluster_type:
           type: string
           description: 集群类型
@@ -1442,6 +1566,7 @@ components:
           additionalProperties: {}
           description: explain sql 的执行计划结果
       required:
+      - bk_biz_id
       - cluster_domain
       - cluster_type
       - dbname
@@ -1867,6 +1992,35 @@ components:
       - address
       - machine_type
       - status
+    MySQLDBPrivilegeDetail:
+      type: object
+      properties:
+        dbname:
+          type: string
+          description: DB 名, 允许包含 %, ?, * 通配符
+        privileges:
+          type: array
+          items:
+            type: array
+            items: {}
+          description: MySQL 权限明细
+      required:
+      - dbname
+      - privileges
+    MySQLPrivilegeTemplate:
+      type: object
+      properties:
+        account_name:
+          type: string
+          description: 账户名
+        db_privileges:
+          type: array
+          items:
+            $ref: '#/components/schemas/MySQLDBPrivilegeDetail'
+          description: db 授权模版
+      required:
+      - account_name
+      - db_privileges
     MySQLProcess:
       type: object
       properties:
@@ -1935,9 +2089,26 @@ components:
       - address
       - machine_type
       - status
+    MysqlSlowlogInputInstanceRoleEnum:
+      enum:
+      - backend_master
+      - backend_slave
+      - remote_master
+      - remote_slave
+      - spider_master
+      type: string
+      description: |-
+        * `backend_master` - BACKEND_MASTER
+        * `backend_slave` - BACKEND_SLAVE
+        * `remote_master` - REMOTE_MASTER
+        * `remote_slave` - REMOTE_SLAVE
+        * `spider_master` - SPIDER_MASTER
     MysqlSlowlogInputRequest:
       type: object
       properties:
+        bk_biz_id:
+          type: integer
+          description: 业务 ID
         cluster_domain:
           type: string
           minLength: 1
@@ -1952,9 +2123,16 @@ components:
             * `tendbha` - TenDBHA
             * `tendbcluster` - TenDBCluster
         instance_role:
-          type: string
-          minLength: 1
-          description: db实例角色
+          allOf:
+          - $ref: '#/components/schemas/MysqlSlowlogInputInstanceRoleEnum'
+          description: |-
+            db实例角色
+
+            * `backend_master` - BACKEND_MASTER
+            * `backend_slave` - BACKEND_SLAVE
+            * `remote_master` - REMOTE_MASTER
+            * `remote_slave` - REMOTE_SLAVE
+            * `spider_master` - SPIDER_MASTER
         start_time:
           type: string
           format: date-time
@@ -1964,6 +2142,7 @@ components:
           format: date-time
           description: 结束时间
       required:
+      - bk_biz_id
       - cluster_domain
       - cluster_type
       - end_time
@@ -1972,12 +2151,16 @@ components:
     MysqlSlowlogOutput:
       type: object
       properties:
+        bk_biz_id:
+          type: integer
+          description: 业务 ID
         cluster_domain:
           type: string
           description: 集群域名
         slowlogs:
           description: 慢日志列表
       required:
+      - bk_biz_id
       - cluster_domain
       - slowlogs
     SQLServerTopoInputRequest:
@@ -2006,9 +2189,54 @@ components:
       - cluster_domain
       - cluster_type
       - storage
+    ShowBizMySQLPrivilegeTemplateInputRequest:
+      type: object
+      properties:
+        bk_biz_id:
+          type: integer
+          description: 业务 ID
+        cluster_type:
+          allOf:
+          - $ref: '#/components/schemas/ClusterType6acEnum'
+          description: |-
+            集群类型
+
+            * `tendbsingle` - TenDBSingle
+            * `tendbha` - TenDBHA
+            * `tendbcluster` - TenDBCluster
+      required:
+      - bk_biz_id
+      - cluster_type
+    ShowBizMySQLPrivilegeTemplateOutput:
+      type: object
+      properties:
+        bk_biz_id:
+          type: integer
+          description: 业务 ID
+        cluster_type:
+          allOf:
+          - $ref: '#/components/schemas/ClusterType6acEnum'
+          description: |-
+            集群类型
+
+            * `tendbsingle` - TenDBSingle
+            * `tendbha` - TenDBHA
+            * `tendbcluster` - TenDBCluster
+        privilege_templates:
+          type: array
+          items:
+            $ref: '#/components/schemas/MySQLPrivilegeTemplate'
+          description: 权限模版列表
+      required:
+      - bk_biz_id
+      - cluster_type
+      - privilege_templates
     ShowCreateTableInputRequest:
       type: object
       properties:
+        bk_biz_id:
+          type: integer
+          description: 业务 ID
         cluster_domain:
           type: string
           minLength: 1
@@ -2031,6 +2259,7 @@ components:
           minLength: 1
           description: 表名
       required:
+      - bk_biz_id
       - cluster_domain
       - cluster_type
       - dbname
@@ -2038,6 +2267,9 @@ components:
     ShowCreateTableOutput:
       type: object
       properties:
+        bk_biz_id:
+          type: integer
+          description: 业务 ID
         cluster_domain:
           type: string
           description: 集群域名
@@ -2054,6 +2286,7 @@ components:
           type: string
           description: 表结构, 建表语句
       required:
+      - bk_biz_id
       - cluster_domain
       - cluster_type
       - create_sql
@@ -2062,6 +2295,9 @@ components:
     ShowInstanceStatuesOutput:
       type: object
       properties:
+        bk_biz_id:
+          type: integer
+          description: 业务 ID
         address:
           type: string
           description: ip:port 形式的实例地址
@@ -2072,6 +2308,7 @@ components:
           description: 实例运行时状态列表
       required:
       - address
+      - bk_biz_id
       - runtime_statuses
     ShowInstanceStatusesInputMachineTypeEnum:
       enum:
@@ -2090,6 +2327,12 @@ components:
     ShowInstanceStatusesInputRequest:
       type: object
       properties:
+        bk_cloud_id:
+          type: integer
+          description: 云区域 ID
+        bk_biz_id:
+          type: integer
+          description: 业务 ID
         machine_type:
           allOf:
           - $ref: '#/components/schemas/ShowInstanceStatusesInputMachineTypeEnum'
@@ -2107,6 +2350,8 @@ components:
           description: ip:port 形式的实例地址
       required:
       - address
+      - bk_biz_id
+      - bk_cloud_id
       - machine_type
     ShowMySQLVariablesInputMachineTypeEnum:
       enum:
@@ -2123,6 +2368,12 @@ components:
     ShowMySQLVariablesInputRequest:
       type: object
       properties:
+        bk_cloud_id:
+          type: integer
+          description: 云区域 ID
+        bk_biz_id:
+          type: integer
+          description: 业务 ID
         machine_type:
           allOf:
           - $ref: '#/components/schemas/ShowMySQLVariablesInputMachineTypeEnum'
@@ -2145,10 +2396,15 @@ components:
           description: 运行时参数过滤列表, 不为空时只返回这个列表指定的参数
       required:
       - address
+      - bk_biz_id
+      - bk_cloud_id
       - machine_type
     ShowMySQLVariablesOutput:
       type: object
       properties:
+        bk_biz_id:
+          type: integer
+          description: 业务 ID
         address:
           type: string
           description: ip:port 形式的实例地址
@@ -2159,10 +2415,14 @@ components:
           description: MySQL 运行时参数列表
       required:
       - address
+      - bk_biz_id
       - runtime_variables
     ShowProcessListInputRequest:
       type: object
       properties:
+        bk_biz_id:
+          type: integer
+          description: 业务 ID
         cluster_type:
           allOf:
           - $ref: '#/components/schemas/ClusterType6acEnum'
@@ -2177,18 +2437,37 @@ components:
           minLength: 1
           description: 集群域名
       required:
+      - bk_biz_id
       - cluster_domain
       - cluster_type
     ShowProcessListOutput:
       type: object
       properties:
+        bk_biz_id:
+          type: integer
+          description: 业务 ID
+        cluster_type:
+          allOf:
+          - $ref: '#/components/schemas/ClusterType6acEnum'
+          description: |-
+            集群类型
+
+            * `tendbsingle` - TenDBSingle
+            * `tendbha` - TenDBHA
+            * `tendbcluster` - TenDBCluster
+        cluster_domain:
+          type: string
+          description: 集群域名
         cluster_process_lists:
           type: array
           items:
             $ref: '#/components/schemas/InstanceProcessListOutput'
           description: 集群连接信息
       required:
+      - bk_biz_id
+      - cluster_domain
       - cluster_process_lists
+      - cluster_type
     SpiderRoleEnum:
       enum:
       - spider_master
@@ -2217,6 +2496,38 @@ components:
         * `available` - available
         * `restoring` - restoring
         * `upgrading` - upgrading
+    SubmitBillMySQLApplyPrivInputRequest:
+      type: object
+      properties:
+        bk_biz_id:
+          type: integer
+          description: 业务 id, bk_biz_id
+        cluster_domain:
+          type: string
+          minLength: 1
+          description: 集群域名
+        account_name:
+          type: string
+          minLength: 1
+          description: 权限模版中的用户名
+        dbnames:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          description: 权限模版中用户名下的 db 名
+        apply_source_ips:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          description: 新权限访问来源 IP 列表, 允许带有 % 通配符
+      required:
+      - account_name
+      - apply_source_ips
+      - bk_biz_id
+      - cluster_domain
+      - dbnames
     SubmitBillMySQLDBTableBackupInputRequest:
       type: object
       properties:
@@ -2374,6 +2685,9 @@ components:
     TenDBClusterTopoOutput:
       type: object
       properties:
+        bk_biz_id:
+          type: integer
+          description: 业务 ID
         cluster_type:
           type: string
           description: 集群类型
@@ -2391,6 +2705,7 @@ components:
             $ref: '#/components/schemas/TenDBClusterStorageReplicateSet'
           description: 按分片号组织的实例详情
       required:
+      - bk_biz_id
       - cluster_domain
       - cluster_type
       - spider_instances
@@ -2446,6 +2761,9 @@ components:
     TenDBHATopoOutput:
       type: object
       properties:
+        bk_biz_id:
+          type: integer
+          description: 业务 ID
         cluster_type:
           type: string
           description: 集群类型
@@ -2463,6 +2781,7 @@ components:
             $ref: '#/components/schemas/TenDBHAStorageInstance'
           description: 存储实例列表, backend instance list
       required:
+      - bk_biz_id
       - cluster_domain
       - cluster_type
       - proxy_instances
@@ -2470,6 +2789,9 @@ components:
     TenDBSingleTopoOutput:
       type: object
       properties:
+        bk_biz_id:
+          type: integer
+          description: 业务 ID
         cluster_type:
           type: string
           description: 集群类型
@@ -2481,6 +2803,7 @@ components:
           - $ref: '#/components/schemas/MySQLStorageInstance'
           description: 存储层实例信息
       required:
+      - bk_biz_id
       - cluster_domain
       - cluster_type
       - storage
