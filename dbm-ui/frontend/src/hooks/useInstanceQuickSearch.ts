@@ -79,8 +79,8 @@ export const useInstanceQuickSearch = (params: {
           return !isNaN(Number(value)) ? true : t('ID 只支持数字');
         },
       },
-      // mongodb 专属过滤项
-      isMongo && {
+      // mongodb分片集群 专属过滤项
+      params.cluster_type === ClusterTypes.MONGO_SHARED_CLUSTER && {
         id: 'shard',
         name: t('分片名'),
         type: 'multiple-input',

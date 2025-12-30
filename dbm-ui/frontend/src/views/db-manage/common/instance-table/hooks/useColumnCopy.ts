@@ -13,7 +13,7 @@ export default <T extends ISupportClusterType>(props: {
   const { t } = useI18n();
 
   const handleCopySelected = (field: keyof InstanceModel<T>) => {
-    const copyList = props.selectedList.map((item) => item[field as keyof InstanceModel<T>]);
+    const copyList = props.selectedList.map((item) => item[field as keyof InstanceModel<T>]).filter((item) => item);
 
     execCopy(_.uniq(copyList).join('\n'), t('复制成功，共n条', { n: copyList.length }));
   };
@@ -27,8 +27,8 @@ export default <T extends ISupportClusterType>(props: {
           messageWarn(t('暂无数据可复制'));
           return;
         }
-        const copyList = data.map((item) => item[field as keyof InstanceModel<T>]);
-        execCopy(_.uniq(copyList).join('\n'), t('复制成功，共n条', { n: data.length }));
+        const copyList = data.map((item) => item[field as keyof InstanceModel<T>]).filter((item) => item);
+        execCopy(_.uniq(copyList).join('\n'), t('复制成功，共n条', { n: copyList.length }));
       });
   };
 

@@ -21,7 +21,7 @@
         name="operation" />
       <slot name="instanceAddress" />
       <IdColumn :cluster-type="clusterType" />
-      <slot name="masterDomain" />
+      <slot name="domain" />
       <slot name="shard" />
       <CommonColumn :cluster-type="clusterType">
         <template #relatedCluster>
@@ -51,6 +51,7 @@
   import CommonColumn from './CommonColumn.vue';
   import IdColumn from './IdColumn.vue';
   import InstanceAddressColumn from './InstanceAddressColumn.vue';
+  import InstanceDomainColumn from './InstanceDomainColumn.vue';
   import IpColumn from './IpColumn.vue';
   import MasterDomainColumn from './MasterDomainColumn.vue';
   import OperationColumn from './OperationColumn.vue';
@@ -60,6 +61,7 @@
     ClusterNameColumn,
     IdColumn,
     InstanceAddressColumn,
+    InstanceDomainColumn,
     IpColumn,
     MasterDomainColumn,
     OperationColumn,
@@ -97,9 +99,9 @@
   }
 
   export interface Slots {
+    domain: () => VNode;
     instanceAddress: () => VNode;
     ip: () => VNode;
-    masterDomain: () => VNode;
     operation: () => VNode;
     relatedCluster: () => VNode;
     shard: () => VNode;

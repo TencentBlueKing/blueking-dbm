@@ -89,17 +89,13 @@
           :selected-list="selectedList">
         </InstanceAddressColumn>
       </template>
-      <template #masterDomain>
-        <MasterDomainColumn
+      <template #domain>
+        <InstanceDomainColumn
           :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
           :get-table-instance="getTableInstance"
           :is-filter="isSearching"
-          :label="t('域名')"
           :selected-list="selectedList">
-        </MasterDomainColumn>
-      </template>
-      <template #shard>
-        <ShardColumn :cluster-type="ClusterTypes.MONGO_REPLICA_SET" />
+        </InstanceDomainColumn>
       </template>
       <template #relatedCluster>
         <ClusterNameColumn
@@ -139,10 +135,9 @@
   import InstanceTable, {
     ClusterNameColumn,
     InstanceAddressColumn,
+    InstanceDomainColumn,
     IpColumn,
-    MasterDomainColumn,
     OperationColumn,
-    ShardColumn,
   } from '@views/db-manage/common/instance-table/Index.vue';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
