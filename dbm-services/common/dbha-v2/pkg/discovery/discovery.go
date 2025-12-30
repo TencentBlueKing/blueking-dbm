@@ -41,6 +41,11 @@ type WatchedEventType int
 const (
 	WatchedEventPut WatchedEventType = iota
 	WatchedEventDelete
+	WatchedEventUnknown
+)
+
+var (
+	ErrEmptyWatchedKey = gerrors.New(gerrors.InvalidParameter, "watched key is required but got empty string")
 )
 
 // WatchEvent This event will be generated
@@ -64,161 +69,20 @@ type Discovery struct {
 func (d *Discovery) Watch(ctx context.Context, key string) (chan *WatchEvent, error) {
 	key = strings.TrimSpace(key)
 	if key == "" {
-		return nil, gerrors.New(gerrors.InvalidParameter, "the watched key is required")
+		return nil, ErrEmptyWatchedKey
 	}
 
-	if d.quit == nil {
-		d.quit = make(chan struct{})
-	}
-
-	d.cliMu.Lock()
-	if d.client == nil {
-		etcdCli, err := d.createEtcdClient()
-		if err != nil {
-			d.cliMu.Unlock()
-			return nil, err
-		}
-		d.client = etcdCli
-	}
-
-	// set watcher
-	watchChan := d.client.Watch(ctx, key, clientv3.WithPrefix())
-	watchEventChan := make(chan *WatchEvent, defaultChannelBuffMaxSize)
-
-	d.cliMu.Unlock()
-
-	d.wg.Add(1)
-
-	go func() {
-		defer d.wg.Done()
-		defer close(watchEventChan)
-		for {
-			select {
-			case <-d.quit:
-				logger.Info("exit watcher. key:%s", key)
-				return
-
-			case <-ctx.Done():
-				logger.Info("exit watcher. key:%s", key)
-				return
-
-			case watchResp := <-watchChan:
-				if err := watchResp.Err(); err != nil {
-					d.cliMu.Lock()
-					d.client.Close()
-					d.client = nil
-					d.cliMu.Unlock()
-
-					logger.Error("failed to read watch event, errmsg: %v", err)
-					return
-				}
-
-				for _, event := range watchResp.Events {
-					switch event.Type {
-					case clientv3.EventTypePut:
-						event := &WatchEvent{
-							EventType: WatchedEventPut,
-							Key:       string(event.Kv.Key),
-							Value:     []byte(event.Kv.Value),
-						}
-						watchEventChan <- event
-
-					case clientv3.EventTypeDelete:
-						event := &WatchEvent{
-							EventType: WatchedEventDelete,
-							Key:       string(event.Kv.Key),
-							Value:     []byte(event.Kv.Value),
-						}
-						watchEventChan <- event
-					}
-				}
-
-			}
-		}
-	}()
-
-	return watchEventChan, nil
+	return d.watchCommon(ctx, key)
 }
 
-// WatchWithPrefix Subscribe to target key events with preifix and receive data from the watch channel.
+// WatchWithPrefix Subscribe to prefix key events with prefix and receive data from the watch channel.
 func (d *Discovery) WatchWithPrefix(ctx context.Context, key string) (chan *WatchEvent, error) {
 	key = strings.TrimSpace(key)
 	if key == "" {
-		return nil, gerrors.New(gerrors.InvalidParameter, "the watched key is required")
+		return nil, ErrEmptyWatchedKey
 	}
 
-	if d.quit == nil {
-		d.quit = make(chan struct{})
-	}
-
-	d.cliMu.Lock()
-	if d.client == nil {
-		etcdCli, err := d.createEtcdClient()
-		if err != nil {
-			d.cliMu.Unlock()
-			return nil, err
-		}
-		d.client = etcdCli
-	}
-
-	// set watcher
-	watchChan := d.client.Watch(ctx, key, clientv3.WithPrefix())
-	watchEventChan := make(chan *WatchEvent, defaultChannelBuffMaxSize)
-
-	d.cliMu.Unlock()
-
-	d.wg.Add(1)
-
-	go func() {
-
-		defer d.wg.Done()
-		defer close(watchEventChan)
-
-		for {
-			select {
-			case <-d.quit:
-				logger.Info("exit watcher. key prefix:%s", key)
-				return
-
-			case <-ctx.Done():
-				logger.Info("exit watcher. key prefix:%s", key)
-				return
-
-			case watchResp := <-watchChan:
-				if err := watchResp.Err(); err != nil {
-					d.cliMu.Lock()
-					d.client.Close()
-					d.client = nil
-					d.cliMu.Unlock()
-					logger.Error("failed to read watch event, errmsg: %v", err)
-					return
-				}
-
-				for _, event := range watchResp.Events {
-					switch event.Type {
-					case clientv3.EventTypePut:
-						event := &WatchEvent{
-							EventType: WatchedEventPut,
-							Key:       string(event.Kv.Key),
-							Value:     []byte(event.Kv.Value),
-						}
-						watchEventChan <- event
-
-					case clientv3.EventTypeDelete:
-						event := &WatchEvent{
-							EventType: WatchedEventDelete,
-							Key:       string(event.Kv.Key),
-							Value:     []byte(event.Kv.Value),
-						}
-						watchEventChan <- event
-
-					}
-				}
-			}
-		}
-	}()
-
-	return watchEventChan, nil
+	return d.watchCommon(ctx, key, clientv3.WithPrefix())
 }
 
 // Get Only get the value of the key.
@@ -237,15 +101,10 @@ func (d *Discovery) Get(ctx context.Context, key string) ([]byte, error) {
 		return nil, gerrors.New(gerrors.NotExist, errmsg)
 	}
 
-	var value []byte
-	for _, kv := range resp.Kvs {
-		value = []byte(kv.Value)
-	}
-
-	return value, nil
+	return resp.Kvs[0].Value, nil
 }
 
-// GetWithPrefix Get all values that start with the specified key preifix.
+// GetWithPrefix Get all values that start with the specified key prefix.
 func (d *Discovery) GetWithPrefix(ctx context.Context, key string) (map[string][]byte, error) {
 	key = strings.TrimSpace(key)
 	d.cliMu.RLock()
@@ -267,7 +126,92 @@ func (d *Discovery) GetWithPrefix(ctx context.Context, key string) (map[string][
 
 // Close Discovery instance
 func (d *Discovery) Close() {
-	close(d.quit) // NOTE: Notify all goroutines by closing this channel.
+	if d.quit != nil {
+		close(d.quit) // NOTE: Notify all goroutines by closing this channel.
+	}
+
 	d.wg.Wait()
 	d.quit = nil
+
+	d.cliMu.Lock()
+	defer d.cliMu.Unlock()
+
+	if d.client != nil {
+		d.client.Close()
+		d.client = nil
+	}
+}
+
+func (d *Discovery) watchCommon(ctx context.Context, key string, opts ...clientv3.OpOption) (chan *WatchEvent, error) {
+	if d.quit == nil {
+		d.quit = make(chan struct{})
+	}
+
+	d.cliMu.Lock()
+	if d.client == nil {
+		etcdCli, err := d.createEtcdClient()
+		if err != nil {
+			d.cliMu.Unlock()
+			return nil, err
+		}
+		d.client = etcdCli
+	}
+
+	// set watcher
+	watchChan := d.client.Watch(ctx, key, opts...)
+	watchEventChan := make(chan *WatchEvent, defaultChannelBuffMaxSize)
+
+	d.cliMu.Unlock()
+
+	d.wg.Add(1)
+
+	go func() {
+		defer d.wg.Done()
+		defer close(watchEventChan)
+
+		for {
+			select {
+			case <-d.quit:
+				logger.Info("exit watcher. key prefix:%s", key)
+				return
+
+			case <-ctx.Done():
+				logger.Info("exit watcher. key prefix:%s", key)
+				return
+
+			case watchResp := <-watchChan:
+				if err := watchResp.Err(); err != nil {
+					d.cliMu.Lock()
+					d.client.Close()
+					d.client = nil
+					d.cliMu.Unlock()
+					logger.Error("failed to read watch event, errmsg: %v", err)
+					return
+				}
+
+				for _, event := range watchResp.Events {
+					switch event.Type {
+					case clientv3.EventTypePut:
+						event := &WatchEvent{
+							EventType: WatchedEventPut,
+							Key:       string(event.Kv.Key),
+							Value:     []byte(event.Kv.Value),
+						}
+						watchEventChan <- event
+
+					case clientv3.EventTypeDelete:
+						event := &WatchEvent{
+							EventType: WatchedEventDelete,
+							Key:       string(event.Kv.Key),
+							Value:     []byte(event.Kv.Value),
+						}
+						watchEventChan <- event
+
+					}
+				}
+			}
+		}
+	}()
+
+	return watchEventChan, nil
 }
