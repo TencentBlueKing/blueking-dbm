@@ -187,6 +187,9 @@ func (hdl *TenDBClusterHandler) ConnectTdbctlNode(ip string, port int) (*hamysql
 		hamysql.OptionPort(port),
 		hamysql.OptionUser(config.ClusterConfig.AuthInfo.User),
 		hamysql.OptionPassword(config.ClusterConfig.AuthInfo.Password),
+		hamysql.OptionSkipInitializeWithVersion(false),
+		hamysql.OptionDisableDatetimePrecision(true),
+		hamysql.OptionCharset(""),
 	)
 	return tdbctlDB, err
 }
