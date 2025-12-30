@@ -26,7 +26,11 @@ from backend.core.translation.constants import (
     Language,
     LanguageFindMode,
 )
-from backend.core.translation.exceptions import LanguageSpecificFStringException, UnTranslatedFileExistException
+from backend.core.translation.exceptions import (
+    IllegalImportException,
+    LanguageSpecificFStringException,
+    UnTranslatedFileExistException,
+)
 
 logger = logging.getLogger("root")
 
@@ -54,7 +58,8 @@ class NodeTranslateInit(ast.NodeVisitor):
     获取当前文件导入的翻译函数，并检查文件中的format字符
     """
 
-    ImportPath = "django.utils.translation"
+    TranslateImportPath = "django.utils.translation"
+    IllegalImportPaths = ["backend.db_periodic_task.local_tasks"]
 
     def __init__(self, ignored_string, string_regex, file_path, *args, **kwargs):
         super(NodeTranslateInit, self).__init__(*args, **kwargs)
@@ -63,6 +68,8 @@ class NodeTranslateInit(ast.NodeVisitor):
         self.string_regex = string_regex
         self.trans_func_names = []
         self.formatted_strings = []
+        self.illegal_imports = []
+        self.illegal_import_paths = self.IllegalImportPaths
 
     @classmethod
     def get_node_module(cls, node):
@@ -74,10 +81,39 @@ class NodeTranslateInit(ast.NodeVisitor):
     def _check_special_language(self, string):
         return check_special_language(self.ignored_string, self.file_path, self.string_regex, string)
 
+    def visit_Import(self, node):
+        """检查直接import语句是否包含非法导入"""
+        for name in node.names:
+            if any(name.name.startswith(path) for path in self.illegal_import_paths):
+                self.illegal_imports.append(
+                    {
+                        "line": node.lineno,
+                        "col": node.col_offset,
+                        "module": name.name,
+                        "file_path": self.file_path,
+                        "type": "import",
+                    }
+                )
+                logger.warning(f"Illegal import found: {name.name} at line {node.lineno} in {self.file_path}")
+
     def visit_ImportFrom(self, node):
         """游走到import，缓存翻译函数"""
 
-        if node.module != self.ImportPath:
+        # 检查是否导入了 from backend.db_periodic_task
+        if node.module and any(node.module.startswith(path) for path in self.illegal_import_paths):
+            self.illegal_imports.append(
+                {
+                    "line": node.lineno,
+                    "col": node.col_offset,
+                    "module": node.module,
+                    "names": [name.name for name in node.names],
+                    "file_path": self.file_path,
+                    "type": "from",
+                }
+            )
+            logger.warning(f"Illegal import from local_tasks at line {node.lineno} in {self.file_path}")
+
+        if node.module != self.TranslateImportPath:
             return
 
         for name in node.names:
@@ -92,7 +128,7 @@ class NodeTranslateInit(ast.NodeVisitor):
         # 标记Module，后续可能添加import函数
         module_node = self.get_node_module(node)
         for import_from in module_node.body:
-            if isinstance(import_from, ast.ImportFrom) and import_from.module == self.ImportPath:
+            if isinstance(import_from, ast.ImportFrom) and import_from.module == self.TranslateImportPath:
                 return
 
         module_node.language_flag = True
@@ -225,7 +261,7 @@ class TranslateAdder(NodeTranslateMixin, ast.NodeTransformer):
         node.body.insert(
             0,
             ast.ImportFrom(
-                module=NodeTranslateInit.ImportPath, names=[ast.alias(name="gettext", asname="_")], level=0
+                module=NodeTranslateInit.TranslateImportPath, names=[ast.alias(name="gettext", asname="_")], level=0
             ),
         )
         return node
@@ -248,6 +284,7 @@ class LanguageFinder:
     # 写入待翻译信息的文件名
     TRANSLATE_INFO_FILE: str = "backend/locale/translate_info.json"
     FORMATTED_STRINGS_FILE: str = "backend/locale/formatted_string_info.json"
+    ILLEGAL_IMPORTS_FILE: str = "backend/locale/illegal_imports_info.json"
 
     def __init__(
         self,
@@ -277,6 +314,7 @@ class LanguageFinder:
             "mock.py",
             "mock_data.py",
             "backend/bk_dataview/grafana",
+            "local_tasks",
         }
         if exclude_dir_or_file_list:
             _exclude_dir_or_file_list.update(set(exclude_dir_or_file_list))
@@ -296,6 +334,8 @@ class LanguageFinder:
         self.sentences_to_be_translated = {}
         # 缓存format的字符串
         self.formatted_strings = {}
+        # 缓存非法导入信息
+        self.illegal_imports = {}
 
     def check_file(self, file_path):
         """
@@ -316,6 +356,11 @@ class LanguageFinder:
             string_regex=LANGUAGE_REGEX_MAP[self.translate_language],
         )
         tree.visit(nodes)
+
+        # 收集非法导入信息
+        if tree.illegal_imports:
+            self.illegal_imports[file_path] = tree.illegal_imports
+
         # 缓存当前文件的format语句
         if tree.formatted_strings:
             self.formatted_strings[file_path] = tree.formatted_strings
@@ -393,7 +438,7 @@ class LanguageFinder:
 
                     # 导入翻译函数包, 默认为gettext, TODO: 做成一个参数传递?
                     if getattr(translate_nodes, "language_flag", False):
-                        file_lines.insert(1, f"from {NodeTranslateInit.ImportPath} import gettext as _\n")
+                        file_lines.insert(1, f"from {NodeTranslateInit.TranslateImportPath} import gettext as _\n")
 
                     with open(each_file, "w") as f:
                         f.write("".join(file_lines))
@@ -413,6 +458,18 @@ class LanguageFinder:
                     f"There are f-strings containing the specific translation language in the project:"
                     f"{json.dumps(self.formatted_strings, ensure_ascii=False, indent=4)}"
                 )
+            if self.illegal_imports:
+                # TODO: 待import问题解决后，恢复此异常抛出
+                # raise IllegalImportException(
+                #     f"There are illegal imports in the project: "
+                #     f"{json.dumps(self.illegal_imports, ensure_ascii=False, indent=4)}"
+                # )
+                logger.error(
+                    IllegalImportException(
+                        f"There are illegal imports in the project: "
+                        f"{json.dumps(self.illegal_imports, ensure_ascii=False, indent=4)}"
+                    )
+                )
         else:
             # 写入未翻译信息
             with open(self.TRANSLATE_INFO_FILE, "w+") as f:
@@ -421,3 +478,6 @@ class LanguageFinder:
             # 写入format字符串信息
             with open(self.FORMATTED_STRINGS_FILE, "w+") as f:
                 f.write(json.dumps(self.formatted_strings, ensure_ascii=False, indent=4))
+            # 写入非法导入信息
+            with open(self.ILLEGAL_IMPORTS_FILE, "w+") as f:
+                f.write(json.dumps(self.illegal_imports, ensure_ascii=False, indent=4))
