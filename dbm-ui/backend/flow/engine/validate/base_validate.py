@@ -111,6 +111,11 @@ class BaseValidator:
 
     @classmethod
     @validator_log_format
+    def base_print_error(cls, error_msg: str):
+        return error_msg
+
+    @classmethod
+    @validator_log_format
     def pre_check_instance(cls, check_instance_list: list):
         """
         判断Instance字符串合法性表达，DBM平台Instance字符串表达式：{ipv4}:{port}
