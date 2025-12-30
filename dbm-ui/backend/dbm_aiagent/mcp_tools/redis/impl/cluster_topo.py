@@ -7,19 +7,119 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import Dict
+from typing import Dict, List
 
-from backend.db_meta.models import Cluster
+from backend.db_meta.enums import AccessLayer, ClusterType, InstanceRole
+from backend.db_meta.models import Cluster, ClusterEntry, Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
 
 
-def redis_cluster_topo(immute_domain: str) -> Dict:
+def redis_list_clusters(bk_biz_id: int) -> List:
+    clusters = Cluster.objects.filter(
+        bk_biz_id=bk_biz_id,
+        cluster_type__in=[
+            ClusterType.TendisPredixyRedisCluster,
+            ClusterType.TendisPredixyTendisplusCluster,
+            ClusterType.TwemproxyTendisSSDInstance,
+            ClusterType.TendisTwemproxyRedisInstance,
+            ClusterType.RedisInstance,
+        ],
+    )
+
+    return [
+        {
+            "cluster_id": c.id,
+            "bk_cloud_id": c.bk_cloud_id,
+            "cluster_type": c.cluster_type,
+            "immute_domain": c.immute_domain,
+            "alias": c.alias,
+        }
+        for c in clusters
+    ]
+
+
+def cluster_overview(immute_domain: str) -> Dict:
     cluster_obj = Cluster.objects.get(immute_domain=immute_domain)
-    storage_instances = cluster_obj.storageinstance_set.all()
-    proxy_instances = cluster_obj.proxyinstance_set.all()
 
     return {
+        "bk_cloud_id": cluster_obj.bk_cloud_id,
         "cluster_type": cluster_obj.cluster_type,
         "cluster_domain": immute_domain,
-        "proxy": [{"address": "{}:{}".format(s.machine.ip, s.port), "status": s.status} for s in proxy_instances],
-        "storage": [{"address": "{}:{}".format(s.machine.ip, s.port), "status": s.status} for s in storage_instances],
+        "region": cluster_obj.region,
+        "major_version": cluster_obj.major_version,
+        "proxy_count": len(cluster_obj.proxyinstance_set.all()),
+        "master_count": len(cluster_obj.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value)),
+        "cluster_entries": [
+            {"entry_type": ce.cluster_entry_type, "entry_addr": ce.entry}
+            for ce in ClusterEntry.objects.filter(cluster=cluster_obj)
+        ],
     }
+
+
+def cluster_proxies(immute_domain: str) -> List:
+    """集群proxy 列表"""
+    c_obj = Cluster.objects.get(immute_domain=immute_domain)
+    proxy_instances = c_obj.proxyinstance_set.all()
+
+    return [{"address": "{}:{}".format(s.machine.ip, s.port), "status": s.status} for s in proxy_instances]
+
+
+def cluster_masters(immute_domain: str) -> List:
+    """集群 master节点 列表"""
+    c_obj = Cluster.objects.get(immute_domain=immute_domain)
+    master_objs = c_obj.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value)
+
+    master_infos = {}
+    for ins_obj in master_objs:
+        if not master_infos.get(ins_obj.machine.ip):
+            master_infos[ins_obj.machine.ip] = []
+        else:
+            master_infos[ins_obj.machine.ip].append(ins_obj.port)
+
+    return [{"ip": ip, "ports": ports} for ip, ports in master_infos.items()]
+
+
+def instance_tuple(addr: str) -> List:
+    """查找实例的 主从 信息
+    1. 可以是主节点, 查slave
+    2. 也可以是从节点, 查master"""
+    ad = addr.split(":")
+    ip, port = ad[0], ad[1]
+    machine_objs = Machine.objects.filter(ip=ip)
+    instance_tuples = {}
+    for m_boj in machine_objs:
+        if m_boj.access_layer == AccessLayer.PROXY.value:
+            p_obj = ProxyInstance.objects.get(machine_id=m_boj.id)
+            cluster = p_obj.cluster.get()
+            if not instance_tuples.get(cluster.immute_domain):
+                instance_tuples[cluster.immute_domain] = []
+            instance_tuples[cluster.immute_domain].append(
+                [{"proxy": "{}:{}".format(m_boj.ip, p_obj.port), "immute_domain": cluster.immute_domain}]
+            )
+        else:
+            inst_obj = StorageInstance.objects.get(machine__ip=ip, port=port)
+            for otr in StorageInstanceTuple.objects.filter(ejector=inst_obj):
+                cluster = otr.ejector.cluster.get()
+                m_obj, s_obj = otr.ejector, otr.receiver
+                if not instance_tuples.get(cluster.immute_domain):
+                    instance_tuples[cluster.immute_domain] = []
+                instance_tuples[cluster.immute_domain].append(
+                    {
+                        "master": "{}:{}".format(m_boj.ip, m_obj.port),
+                        "slave": "{}:{}".format(m_boj.ip, s_obj.port),
+                        "cluster": cluster.immute_domain,
+                    }
+                )
+            for otr in StorageInstanceTuple.objects.filter(receiver=inst_obj):
+                cluster = otr.receiver.cluster.get()
+                m_obj, s_obj = otr.ejector, otr.receiver
+                if not instance_tuples.get(cluster.immute_domain):
+                    instance_tuples[cluster.immute_domain] = []
+                instance_tuples[cluster.immute_domain].append(
+                    {
+                        "master": "{}:{}".format(m_boj.ip, m_obj.port),
+                        "slave": "{}:{}".format(m_boj.ip, s_obj.port),
+                        "cluster": cluster.immute_domain,
+                    }
+                )
+
+    return instance_tuples
