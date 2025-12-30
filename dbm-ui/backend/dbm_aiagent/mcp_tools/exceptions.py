@@ -40,3 +40,15 @@ class DBMMcpNotSupportMachineTypeException(DBMMcpBaseException):
 class DBMMcpUsernameNotFoundException(DBMMcpBaseException):
     ERROR_CODE = "004"
     MESSAGE = _("username 未找到")
+
+
+class DBMMcpMySQLApplyPrivAccountNotFoundException(DBMMcpBaseException):
+    ERROR_CODE = "005"
+    MESSAGE = _("账号规则未找到")
+    MESSAGE_TPL = _("{msg}")
+
+
+class DBMMcpMySQLApplyPrivDBRuleNotFoundException(DBMMcpBaseException):
+    ERROR_CODE = "006"
+    MESSAGE = _("DB 规则未找到")
+    MESSAGE_TPL = _("{msg}")

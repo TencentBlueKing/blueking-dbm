@@ -12,14 +12,18 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
-from backend.db_meta.models import Cluster, Machine
+from backend.db_meta.models import Cluster
 from backend.dbm_aiagent.mcp_tools.constants import DBMAMcpTools, DBMMCPTags
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.exceptions import (
     DBMMcpNotSupportClusterTypeException,
     DBMMcpUsernameNotFoundException,
 )
+from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_apply_priv import bill_apply_priv
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.bill_output import SubmitBillOutputSerializer
+from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_apply_priv_bill import (
+    SubmitBillMySQLApplyPrivInputSerializer,
+)
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_db_table_backup import (
     SubmitBillMySQLDBTableBackupInputSerializer,
 )
@@ -49,10 +53,6 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         backup_type = self.get_param("backup_type")
         cluster_domain = self.get_param("cluster_domain")
 
-        Machine.objects.filter(
-            cluster_type="tendbcluster", machine_type="remote", storageinstance__instance_inner_role="master"
-        )
-
         username = request.user.username
         if not username:
             raise DBMMcpUsernameNotFoundException()
@@ -62,7 +62,7 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
 
         if cluster_type == ClusterType.TenDBCluster:
             ticket_type = TicketType.TENDBCLUSTER_FULL_BACKUP
-        elif cluster_type in ClusterType.TenDBHA:
+        elif cluster_type == ClusterType.TenDBHA:
             ticket_type = TicketType.MYSQL_HA_FULL_BACKUP
         else:
             raise DBMMcpNotSupportClusterTypeException(cluster_type=cluster_type)
@@ -140,3 +140,44 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
 
         tk = Ticket.create_ticket(**ticket_param)
         return Response({"bill_id": tk.pk})
+
+    @mcp_tools_api_decorator(
+        description=str(
+            _(
+                """创建 TenDBSingle, TenDBHA, TenDBCluster 权限申请单据
+        * 按照权限模版的定义在集群上开通权限
+        * account_name 需要在业务权限模版中录入
+        * dbname 也要在业务权限模版对应的 account_name 下录入
+        * 开通的权限是预先在权限模版中录入好了的
+        * 如果参数缺少用户名和 DB 名, 列出业务相关集群类型的所有权限模版提供帮助
+        """
+            )
+        ),
+        request_slz=SubmitBillMySQLApplyPrivInputSerializer,
+        response_slz=SubmitBillOutputSerializer,
+        tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
+        mcp=[DBMAMcpTools.MYSQL_BILL],
+        name_prefix="mysql_bill",
+    )
+    def submit_bill_mysql_apply_priv(self, request, *args, **kwargs):
+        bk_biz_id = self.get_param("bk_biz_id")
+        cluster_domain = self.get_param("cluster_domain")
+        account_name = self.get_param("account_name")
+        dbnames = self.get_param("dbnames")
+        apply_source_ips = self.get_param("apply_source_ips")
+
+        username = request.user.username
+        if not username:
+            raise DBMMcpUsernameNotFoundException()
+
+        bill_id = bill_apply_priv(
+            request=request,
+            username=username,
+            bk_biz_id=bk_biz_id,
+            apply_username=account_name,
+            apply_access_dbs=dbnames,
+            apply_source_ips=apply_source_ips,
+            cluster_domain=cluster_domain,
+        )
+
+        return Response({"bill_id": bill_id})

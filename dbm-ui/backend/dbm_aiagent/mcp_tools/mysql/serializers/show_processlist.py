@@ -16,6 +16,7 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.usefully_choices import mys
 
 
 class ShowProcessListInputSerializer(serializers.Serializer):
+    # bk_cloud_id = serializers.IntegerField(help_text=_("云区域 ID"))
     bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
     cluster_type = serializers.ChoiceField(choices=mysql_cluster_type_choices, help_text=_("集群类型"))
     cluster_domain = serializers.CharField(help_text=_("集群域名"))

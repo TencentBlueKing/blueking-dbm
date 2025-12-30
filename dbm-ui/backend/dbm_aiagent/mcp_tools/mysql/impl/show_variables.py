@@ -15,11 +15,11 @@ from backend.db_meta.enums import MachineType
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException, DBMMcpNotSupportMachineTypeException
 
 
-def show_mysql_variables(address: str, machine_type: MachineType, variable_hints: List[str]) -> Dict:
+def show_mysql_variables(bk_cloud_id: int, address: str, machine_type: MachineType, variable_hints: List[str]) -> Dict:
     if machine_type not in [MachineType.SINGLE, MachineType.BACKEND, MachineType.REMOTE, MachineType.SPIDER]:
         raise DBMMcpNotSupportMachineTypeException(machine_type=machine_type)
 
-    raw_drs_res = DRSApi.rpc({"addresses": [address], "cmds": ["SHOW VARIABLES"]})
+    raw_drs_res = DRSApi.rpc({"addresses": [address], "cmds": ["SHOW VARIABLES"], "bk_cloud_id": bk_cloud_id})
 
     address_res = raw_drs_res[0]
     if address_res["error_msg"]:

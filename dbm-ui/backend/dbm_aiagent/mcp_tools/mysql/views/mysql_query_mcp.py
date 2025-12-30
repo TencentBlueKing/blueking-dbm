@@ -19,6 +19,7 @@ from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.mysql.impl.cluster_topo import mysql_cluster_topo
 from backend.dbm_aiagent.mcp_tools.mysql.impl.explain_sql import explain_sql
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_create_table import show_create_table
+from backend.dbm_aiagent.mcp_tools.mysql.impl.show_priv_template import show_biz_mysql_privilege_template
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_processlist import show_cluster_processlist
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_status import show_instance_status
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_variables import show_mysql_variables
@@ -35,6 +36,10 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.explain_sql import (
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.show_create_table import (
     ShowCreateTableInputSerializer,
     ShowCreateTableOutputSerializer,
+)
+from backend.dbm_aiagent.mcp_tools.mysql.serializers.show_priv_template import (
+    ShowBizMySQLPrivilegeTemplateInputSerializer,
+    ShowBizMySQLPrivilegeTemplateOutputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.show_processlist import (
     ShowProcessListInputSerializer,
@@ -148,13 +153,19 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         name_prefix="mysql_query",
     )
     def show_cluster_processlist(self, request, *args, **kwargs):
-        bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
+        bk_biz_id = self.get_param("bk_biz_id")
         cluster_type = self.get_param("cluster_type")
         cluster_domain = self.get_param("cluster_domain")
 
         res = show_cluster_processlist(cluster_type, cluster_domain)
-        logger.info(res)
-        return Response({"cluster_process_lists": res})
+        return Response(
+            {
+                "cluster_process_lists": res,
+                "bk_biz_id": bk_biz_id,
+                "cluster_type": cluster_type,
+                "cluster_domain": cluster_domain,
+            }
+        )
 
     @mcp_tools_api_decorator(
         description=str(_("""查询 MySQL 运行时参数""")),
@@ -165,12 +176,20 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         name_prefix="mysql_query",
     )
     def show_mysql_variables(self, request, *args, **kwargs):
-        bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
+        bk_cloud_id = self.get_param("bk_cloud_id")
+        bk_biz_id = self.get_param("bk_biz_id")
         address = self.get_param("address")
         machine_type = self.get_param("machine_type")
         variable_hints = self.get_param("variable_hints")
 
-        return Response(show_mysql_variables(address, machine_type, variable_hints))
+        return Response(
+            {
+                **show_mysql_variables(
+                    bk_cloud_id=bk_cloud_id, address=address, machine_type=machine_type, variable_hints=variable_hints
+                ),
+                "bk_biz_id": bk_biz_id,
+            }
+        )
 
     @mcp_tools_api_decorator(
         description=str(_("""查询实例运行时状态""")),
@@ -181,8 +200,36 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         name_prefix="mysql_query",
     )
     def show_instance_status(self, request, *args, **kwargs):
-        bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
+        bk_cloud_id = self.get_param("bk_cloud_id")
+        bk_biz_id = self.get_param("bk_biz_id")
         address = self.get_param("address")
         machine_type = self.get_param("machine_type")
 
-        return Response(show_instance_status(address, machine_type))
+        return Response(
+            {
+                **show_instance_status(bk_cloud_id=bk_cloud_id, address=address, machine_type=machine_type),
+                "bk_biz_id": bk_biz_id,
+            }
+        )
+
+    @mcp_tools_api_decorator(
+        description=str(_("""查询业务 TenDBSingle, TenDBHA ,TenDBCluster 类型的权限模版""")),
+        request_slz=ShowBizMySQLPrivilegeTemplateInputSerializer,
+        response_slz=ShowBizMySQLPrivilegeTemplateOutputSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMAMcpTools.MYSQL_QUERY],
+        name_prefix="mysql_query",
+    )
+    def show_biz_mysql_privilege_template(self, request, *args, **kwargs):
+        bk_biz_id = self.get_param("bk_biz_id")
+        cluster_type = self.get_param("cluster_type")
+
+        return Response(
+            {
+                "privilege_templates": show_biz_mysql_privilege_template(
+                    bk_biz_id=bk_biz_id, cluster_type=cluster_type
+                ),
+                "bk_biz_id": bk_biz_id,
+                "cluster_type": cluster_type,
+            }
+        )

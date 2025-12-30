@@ -72,5 +72,5 @@ class McpToolsViewSet(viewsets.SystemViewSet, metaclass=McpToolsViewSetMeta):
     user_verified_required = True
     app_verified_required = True
 
-    def get_param(self, pname) -> Any:
-        return self.params_validate(self.get_serializer_class())[pname]
+    def get_param(self, pname, default_value: Any | None) -> Any:
+        return self.params_validate(self.get_serializer_class()).get(pname, default_value)
