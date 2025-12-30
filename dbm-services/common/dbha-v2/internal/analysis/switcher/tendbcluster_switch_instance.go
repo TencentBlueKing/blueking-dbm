@@ -25,7 +25,6 @@
 package switcher
 
 import (
-	"bk-dbconfig/pkg/core/logger"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -35,6 +34,7 @@ import (
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/pkg/converter"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
@@ -182,12 +182,14 @@ func NewTendbClusterSwitchInstance(metadata *TendbClusterInstanceMetadata) (Swit
 	}
 
 	switch metadata.MachineType {
-	// TODO
-	// case hamodel.DbmMetadataMachineTypeRemote:
-	// 	res := &TenDBClusterRemoteSwitchInstance{
-	// 		TenDBClusterBaseSwitchInstance: tendbClusterBaseInstance,
-	// 	}
-	// 	return res, nil
+	case haprobe.DbmMetadataMachineTypeRemote:
+		res := &TenDBClusterRemoteSwitchInstance{
+			TenDBClusterBaseSwitchInstance: tendbClusterBaseInstance,
+		}
+		if metadata.InstanceRole == dbm.TenDBClusterStorageMaster {
+			res.SetStandbySlave(metadata.Receiver)
+		}
+		return res, nil
 
 	case haprobe.DbmMetadataMachineTypeSpider:
 		res := &TenDBClusterSpiderSwitchInstance{
@@ -233,6 +235,9 @@ func (sw *TenDBClusterBaseSwitchInstance) ConnectTdbctlNode(tdbctlHost string, t
 		hamysql.OptionPort(tdbctlPort),
 		hamysql.OptionUser(tdbctlUser),
 		hamysql.OptionPassword(tdbctlPassword),
+		hamysql.OptionSkipInitializeWithVersion(false),
+		hamysql.OptionDisableDatetimePrecision(true),
+		hamysql.OptionCharset(""),
 	)
 
 	if connErr != nil {
@@ -247,7 +252,7 @@ func (sw *TenDBClusterBaseSwitchInstance) ConnectTdbctlNode(tdbctlHost string, t
 func (sw *TenDBClusterBaseSwitchInstance) DisconnectTdbctlNode(tdbctlDB *hamysql.SqlxDB) {
 	con := tdbctlDB.DB()
 	if err := con.Close(); err != nil {
-		logger.Errorf("Failed to close tdbctl connect(%s:%d): %s",
+		logger.Error("Failed to close tdbctl connect(%s:%d): %s",
 			sw.PrimaryTdbctl.Host, sw.PrimaryTdbctl.Port, err.Error())
 		sw.ReportLogf(SwitchWarn, "Failed to close tdbctl connect(%s:%d): %s",
 			sw.PrimaryTdbctl.Host, sw.PrimaryTdbctl.Port, err.Error())
@@ -273,7 +278,7 @@ func (sw *TenDBClusterBaseSwitchInstance) SelectTdbctlNodes(tdbctlDB *hamysql.Sq
 
 	nodesInfo, convertErr := converter.ToJsonStr(tdbctlList)
 	if convertErr != nil {
-		logger.Errorf("failed to convert tdbctl nodes info to json, err: %s", convertErr.Error())
+		logger.Error("failed to convert tdbctl nodes info to json, err: %s", convertErr.Error())
 		nodesInfo = fmt.Sprintf("%v", tdbctlList)
 	}
 	sw.ReportLogf(SwitchInfo, "Success to query all tdbctl nodes info from tdbctl node(%s:%d): %s",
@@ -303,7 +308,7 @@ func (sw *TenDBClusterBaseSwitchInstance) SelectRouteInfo(tdbctlDB *hamysql.Sqlx
 
 	routesStr, convertErr := converter.ToJsonStr(routeInfoList)
 	if convertErr != nil {
-		logger.Errorf("failed to convert routes to json, err: %s", convertErr.Error())
+		logger.Error("failed to convert routes to json, err: %s", convertErr.Error())
 		routesStr = fmt.Sprintf("%v", routeInfoList)
 	}
 	sw.ReportLogf(SwitchInfo, "Success to query routes from tdbctl node(%s:%d): %s",
@@ -1000,7 +1005,7 @@ func (sw *TenDBClusterRemoteSwitchInstance) UpdateMasterRouteToSlave(primaryTdbc
 		errMsg := fmt.Sprintf("failed to execute sql(%s) on tdbctl(%s:%d), errmsg: %s",
 			alterNodeSQL, primaryTdbctlDB.Host(), primaryTdbctlDB.Port(), execErr.Error())
 		sw.ReportLogf(SwitchWarn, "When updating master route to slave, %s", errMsg)
-		return gerrors.Newf(gerrors.Failure, errMsg)
+		return gerrors.New(gerrors.Failure, errMsg)
 	}
 
 	affected, rowErr := result.RowsAffected()
@@ -1008,7 +1013,7 @@ func (sw *TenDBClusterRemoteSwitchInstance) UpdateMasterRouteToSlave(primaryTdbc
 		errMsg := fmt.Sprintf("cannot ensure that the number of rows affected is 1, affected: %d, errMsg: %s",
 			affected, rowErr.Error())
 		sw.ReportLogf(SwitchWarn, "When updating master route to slave, %s", errMsg)
-		return gerrors.Newf(gerrors.Failure, errMsg)
+		return gerrors.New(gerrors.Failure, errMsg)
 	}
 
 	sw.ReportLogf(SwitchInfo, "Successfully updated master(%s) route to slave(%s) on tdbctl(%s:%d)",

@@ -902,6 +902,9 @@ func SwitchProxyBackendAddress(proxyIp string, proxyAdminPort int, proxyUser str
 		hamysql.OptionPort(proxyAdminPort),
 		hamysql.OptionUser(proxyUser),
 		hamysql.OptionPassword(proxyPasswd),
+		hamysql.OptionSkipInitializeWithVersion(false),
+		hamysql.OptionDisableDatetimePrecision(true),
+		hamysql.OptionCharset(""),
 	)
 	if err != nil {
 		logger.Warn("failed to create mysql proxy instance(%s:%d), %v", proxyIp, proxyAdminPort, err)

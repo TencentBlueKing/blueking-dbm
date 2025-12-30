@@ -27,6 +27,7 @@ package hamysql_test
 import (
 	"log"
 	"os"
+	"strconv"
 	"testing"
 
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
@@ -55,4 +56,45 @@ func TestNew(t *testing.T) {
 		t.Logf("table(%s)", table)
 	}
 
+}
+
+func TestSqlxDBForProxy(t *testing.T) {
+	host := os.Getenv("PROXY_HOST")
+	port, err := strconv.Atoi(os.Getenv("PROXY_PORT"))
+	if err != nil {
+		t.Fatalf("invalid port(%s), errmsg(%s)", os.Getenv("PROXY_PORT"), err)
+	}
+	user := os.Getenv("PROXY_USER")
+	password := os.Getenv("PROXY_PASSWORD")
+
+	log.Println("host:", host)
+	log.Println("port:", port)
+	log.Println("user:", user)
+	log.Println("password:", password)
+
+	log.Println("This mysql connection configuration is designed for proxy or tdbctl node only, " +
+		"make sure there is no extra sql is executed when building this connection")
+	proxyDB, err := hamysql.NewSqlxDB(
+		hamysql.OptionProto("tcp"),
+		hamysql.OptionIP(host),
+		hamysql.OptionPort(port),
+		hamysql.OptionUser(user),
+		hamysql.OptionPassword(password),
+		hamysql.OptionSkipInitializeWithVersion(false),
+		hamysql.OptionDisableDatetimePrecision(true),
+		hamysql.OptionCharset(""),
+	)
+	if err != nil {
+		t.Fatalf("failed to connect to proxy(%s:%d), errmsg: %s",
+			host, port, err.Error())
+	}
+
+	defer proxyDB.Close()
+
+	// test query
+	var version []string
+	if err := proxyDB.DB().Select(&version, "SELECT VERSION()"); err != nil {
+		t.Fatalf("failed to query version, errmsg: %s", err)
+	}
+	log.Println("proxy version: ", version[0])
 }

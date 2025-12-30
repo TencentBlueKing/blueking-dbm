@@ -179,15 +179,21 @@ func (hdl *TenDBClusterHandler) correctRemoteDBRole(cluster *config.TenDBCluster
 	return nil
 }
 
-// stopSlaveForTdbCtlMaster stops slave for tdbctl master
-func (hdl *TenDBClusterHandler) stopSlaveForTdbCtlMaster(ip string, port int) error {
-	masterDB, err := hamysql.NewGormDB(
+// ConnectTdbctlNode connects tdbctl node
+func (hdl *TenDBClusterHandler) ConnectTdbctlNode(ip string, port int) (*hamysql.GormDB, error) {
+	tdbctlDB, err := hamysql.NewGormDB(
 		hamysql.OptionProto(MySQLProtocol),
 		hamysql.OptionIP(ip),
 		hamysql.OptionPort(port),
 		hamysql.OptionUser(config.ClusterConfig.AuthInfo.User),
 		hamysql.OptionPassword(config.ClusterConfig.AuthInfo.Password),
 	)
+	return tdbctlDB, err
+}
+
+// stopSlaveForTdbCtlMaster stops slave for tdbctl master
+func (hdl *TenDBClusterHandler) stopSlaveForTdbCtlMaster(ip string, port int) error {
+	masterDB, err := hdl.ConnectTdbctlNode(ip, port)
 	if err != nil {
 		return gerrors.Newf(gerrors.Failure, "failed to connect to tdbctl master node(%s:%d), errmsg: %s",
 			ip, port, err.Error())
@@ -239,13 +245,7 @@ func (hdl *TenDBClusterHandler) changeTdbCtlMasterForAllTdbCtlSlave(ctlSlaveList
 
 // changeMasterForTdbctlSlave changes master for tdbctl slave
 func (hdl *TenDBClusterHandler) changeMasterForTdbctlSlave(slaveIp string, slavePort int, changeMasterSQL string) error {
-	slaveDB, err := hamysql.NewGormDB(
-		hamysql.OptionProto(MySQLProtocol),
-		hamysql.OptionIP(slaveIp),
-		hamysql.OptionPort(slavePort),
-		hamysql.OptionUser(config.ClusterConfig.AuthInfo.User),
-		hamysql.OptionPassword(config.ClusterConfig.AuthInfo.Password),
-	)
+	slaveDB, err := hdl.ConnectTdbctlNode(slaveIp, slavePort)
 	if err != nil {
 		return gerrors.Newf(gerrors.Failure, "failed to connect to slave node(%s:%d), errmsg: %s",
 			slaveIp, slavePort, err.Error())
@@ -276,13 +276,7 @@ func (hdl *TenDBClusterHandler) changeMasterForTdbctlSlave(slaveIp string, slave
 // disablePrimaryForAllTdbCtlSlave disables primary for all tdbctl slave
 func (hdl *TenDBClusterHandler) disablePrimaryForAllTdbCtlSlave(ctlSlaveList []config.TenDBClusterNodeInfo) error {
 	for _, slave := range ctlSlaveList {
-		slaveDB, err := hamysql.NewGormDB(
-			hamysql.OptionProto(MySQLProtocol),
-			hamysql.OptionIP(slave.Host),
-			hamysql.OptionPort(slave.Port),
-			hamysql.OptionUser(config.ClusterConfig.AuthInfo.User),
-			hamysql.OptionPassword(config.ClusterConfig.AuthInfo.Password),
-		)
+		slaveDB, err := hdl.ConnectTdbctlNode(slave.Host, slave.Port)
 		if err != nil {
 			return gerrors.Newf(gerrors.Failure, "failed to connect to tdbctl slave node(%s:%d), errmsg: %s",
 				slave.Host, slave.Port, err.Error())
@@ -309,13 +303,7 @@ func (hdl *TenDBClusterHandler) disablePrimaryForAllTdbCtlSlave(ctlSlaveList []c
 
 // enablePrimaryForTdbCtlMaster enables primary for tdbctl master
 func (hdl *TenDBClusterHandler) enablePrimaryForTdbCtlMaster(ctlMaster config.TenDBClusterNodeInfo) error {
-	masterDB, err := hamysql.NewGormDB(
-		hamysql.OptionProto(MySQLProtocol),
-		hamysql.OptionIP(ctlMaster.Host),
-		hamysql.OptionPort(ctlMaster.Port),
-		hamysql.OptionUser(config.ClusterConfig.AuthInfo.User),
-		hamysql.OptionPassword(config.ClusterConfig.AuthInfo.Password),
-	)
+	masterDB, err := hdl.ConnectTdbctlNode(ctlMaster.Host, ctlMaster.Port)
 	if err != nil {
 		return gerrors.Newf(gerrors.Failure, "failed to connect to tdbctl master node(%s:%d), errmsg: %s",
 			ctlMaster.Host, ctlMaster.Port, err.Error())
@@ -341,14 +329,7 @@ func (hdl *TenDBClusterHandler) enablePrimaryForTdbCtlMaster(ctlMaster config.Te
 
 // resetMysqlServersTableForTdbCtlMaster resets mysql.servers table for tdbctl master
 func (hdl *TenDBClusterHandler) resetMysqlServersTableForTdbCtlMaster(cluster *config.TenDBCluster) error {
-	masterDB, err := hamysql.NewGormDB(
-		hamysql.OptionProto(MySQLProtocol),
-		hamysql.OptionIP(cluster.CtlMaster.Host),
-		hamysql.OptionPort(cluster.CtlMaster.Port),
-		hamysql.OptionUser(config.ClusterConfig.AuthInfo.User),
-		hamysql.OptionPassword(config.ClusterConfig.AuthInfo.Password),
-	)
-
+	masterDB, err := hdl.ConnectTdbctlNode(cluster.CtlMaster.Host, cluster.CtlMaster.Port)
 	if err != nil {
 		return gerrors.Newf(gerrors.Failure, "failed to connect to tdbctl master node(%s:%d), errmsg: %s",
 			cluster.CtlMaster.Host, cluster.CtlMaster.Port, err.Error())
