@@ -160,7 +160,7 @@
       label: t('目标主机'),
     },
     {
-      case: 'Redis-6',
+      case: 'redis-6.2.21',
       key: 'version',
       label: t('目标版本'),
     },
