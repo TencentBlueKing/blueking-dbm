@@ -9,7 +9,7 @@
     </template>
   </TableColumn>
 </template>
-<script setup lang="ts" generic="T extends ClusterTypes.MONGO_SHARED_CLUSTER | ClusterTypes.MONGO_REPLICA_SET">
+<script setup lang="ts" generic="T extends ClusterTypes.MONGO_SHARED_CLUSTER">
   import { useI18n } from 'vue-i18n';
 
   import { useInstanceColumnFilter } from '@hooks';

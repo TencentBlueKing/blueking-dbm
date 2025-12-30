@@ -49,6 +49,7 @@
         </template>
       </TableColumn>
       <TableColumn
+        v-if="clusterType === ClusterTypes.MONGO_SHARED_CLUSTER"
         col-key="shard"
         :filter="columnFilter?.['shard']"
         :title="t('分片名')"
