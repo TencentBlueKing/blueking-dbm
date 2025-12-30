@@ -28,16 +28,10 @@ from backend.db_monitor.serializers import (
     ListMonitorSubscribeSerializer,
     SaveMonitorSubscribeSerializer,
 )
-from backend.iam_app.dataclass import ActionEnum, ResourceEnum
-from backend.iam_app.handlers.drf_perm.base import DBManagePermission, ResourceActionPermission, get_request_key_id
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from backend.iam_app.handlers.drf_perm.monitor import SaveSubscribePermission
 
 SWAGGER_TAG = _("监控订阅")
-
-
-def inst_getter(request, view):
-    domains = [c["cluster_domain"] for c in get_request_key_id(request, "clusters")]
-    cluster_ids = list(Cluster.objects.filter(immute_domain__in=domains).values_list("id", flat=True))
-    return cluster_ids
 
 
 class MonitorSubscribeViewSet(SystemViewSet):
@@ -50,9 +44,7 @@ class MonitorSubscribeViewSet(SystemViewSet):
             "get_subscribe_metrics",
             "delete_subscribe",
         ): [],
-        ("save_subscribe",): [
-            ResourceActionPermission([ActionEnum.REDIS_SUBSCRIBE_MONITOR], ResourceEnum.REDIS, inst_getter)
-        ],
+        ("save_subscribe",): [SaveSubscribePermission()],
     }
 
     @common_swagger_auto_schema(
