@@ -134,7 +134,7 @@
   const batchInputConfig = [
     {
       case: 'redis.test.1.db',
-      key: 'master_domain',
+      key: 'redis-6.2.21',
       label: t('目标集群'),
     },
     {
