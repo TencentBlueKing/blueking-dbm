@@ -13,21 +13,67 @@ from rest_framework import serializers
 from backend.db_meta.enums import InstanceStatus
 
 
-class RedisBaseInstanceSerializer(serializers.Serializer):
+class RedisAddrSerializer(serializers.Serializer):
     address = serializers.CharField(help_text=_("ip:port 形式的实例地址"))
+
+
+class RedisBaseInstanceSerializer(serializers.Serializer):
+    address = RedisAddrSerializer(help_text=_("ip:port 形式的实例地址"))
     status = serializers.ChoiceField(choices=InstanceStatus.get_choices(), help_text=_("实例状态"))
     machine_type = serializers.CharField(help_text=_("实例机器类型"))
+
+
+class RedisInstanceSummarySerializer(serializers.Serializer):
+    IP = serializers.CharField(help_text=_("机器IP"))
+    Port = serializers.IntegerField(help_text=_("实例端口"))
 
 
 class RedisStorageInstanceSerializer(RedisBaseInstanceSerializer):
     is_stand_by = serializers.BooleanField(default=True, help_text=_("dbha 切换备选标志"))
 
 
+class RedisEntrySerializer(RedisBaseInstanceSerializer):
+    entry_type = serializers.CharField(help_text=_("访问方式"))
+    entry_addr = serializers.CharField(help_text=_("访问地址"))
+
+
 class RedisTopoInputSerializer(serializers.Serializer):
-    cluster_domain = serializers.CharField(help_text=_("集群域名"))
+    immute_domain = serializers.CharField(help_text=_("集群域名"))
 
 
 class RedisTopoOutputSerializer(serializers.Serializer):
     cluster_type = serializers.CharField(help_text=_("集群类型"))
-    cluster_domain = serializers.CharField(help_text=_("集群域名"))
-    storage = RedisStorageInstanceSerializer(help_text=_("存储层实例信息"))
+    region = serializers.CharField(help_text=_("所在地域"))
+    major_version = serializers.CharField(help_text=_("后端版本"))
+    immute_domain = serializers.CharField(help_text=_("集群域名"))
+    proxy_count = serializers.IntegerField(help_text=_("Proxy节点数"))
+    master_count = serializers.IntegerField(help_text=_("Master节点数"))
+    cluster_entries = serializers.ListSerializer(child=RedisEntrySerializer(), help_text=_("集群连接地址"))
+
+
+class RedisNodesSummarySerializer(serializers.Serializer):
+    cluster_masters = serializers.ListSerializer(child=RedisInstanceSummarySerializer(), help_text=_("存储层实例汇总信息"))
+
+
+class RedisBizInputSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+
+
+class RedisClustersOutputSerializer(serializers.Serializer):
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
+    cluster_type = serializers.CharField(help_text=_("集群类型"))
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    immute_domain = serializers.CharField(help_text=_("集群域名"))
+    alias = serializers.CharField(help_text=_("集群别名"))
+
+
+class RedisTupleInfoSerializer(serializers.Serializer):
+    immute_domain = serializers.CharField(help_text=_("集群域名"))
+    master = serializers.CharField(help_text=_("主节点"))
+    slave = serializers.CharField(help_text=_("从节点"))
+    proxy = serializers.CharField(help_text=_("Proxy节点"))
+
+
+class RedisInstanceTupleSerializer(serializers.Serializer):
+    immute_domain = serializers.CharField(help_text=_("集群域名"))
+    instances = serializers.ListSerializer(child=RedisTupleInfoSerializer(), help_text=_("实例关系对"))

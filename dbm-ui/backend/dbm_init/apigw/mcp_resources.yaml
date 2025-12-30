@@ -24,6 +24,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -74,6 +75,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -124,6 +126,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -174,6 +177,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -224,6 +228,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -274,6 +279,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -324,6 +330,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -374,6 +381,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -425,6 +433,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -476,6 +485,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -526,6 +536,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -576,6 +587,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -626,6 +638,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -655,9 +668,9 @@ paths:
           appVerifiedRequired: true
           resourcePermissionRequired: true
         descriptionEn: 查询 TenDBSingle 集群拓扑结构
-  /apis/ai/mcp_tools/redis/cluster_topo/:
+  /apis/ai/mcp_tools/redis/cluster_overview/:
     post:
-      operationId: redis_query_meta_cluster_topo
+      operationId: redis_query_meta_cluster_overview
       description: 查询 Redis 集群元数据
       tags:
       - read
@@ -676,6 +689,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -689,7 +703,7 @@ paths:
         backend:
           name: default
           method: post
-          path: /apis/ai/mcp_tools/redis/cluster_topo/
+          path: /apis/ai/mcp_tools/redis/cluster_overview/
           matchSubpath: false
           timeout: 0
         pluginConfigs:
@@ -726,6 +740,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -755,6 +770,159 @@ paths:
           appVerifiedRequired: true
           resourcePermissionRequired: true
         descriptionEn: 查询 Redis 实例运行状态信息
+  /apis/ai/mcp_tools/redis/list_cluster_masters/:
+    post:
+      operationId: redis_query_meta_list_cluster_masters
+      description: 查询 Redis 集群的Master节点信息
+      tags:
+      - read
+      - mcp-tools
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RedisTopoInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RedisTopoInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RedisTopoInputRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RedisNodesSummary'
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: false
+        matchSubpath: false
+        backend:
+          name: default
+          method: post
+          path: /apis/ai/mcp_tools/redis/list_cluster_masters/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs:
+        - type: bk-header-rewrite
+          yaml: |
+            remove: []
+            set:
+            - key: X-Bkdbm-Mcp-Tag
+              value: read,mcp-tools
+        allowApplyPermission: false
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn: 查询 Redis 集群的Master节点信息
+  /apis/ai/mcp_tools/redis/list_cluster_proxies/:
+    post:
+      operationId: redis_query_meta_list_cluster_proxies
+      description: 查询 Redis 集群的Proxy节点信息
+      tags:
+      - read
+      - mcp-tools
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RedisTopoInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RedisTopoInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RedisTopoInputRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RedisTopoOutput'
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: false
+        matchSubpath: false
+        backend:
+          name: default
+          method: post
+          path: /apis/ai/mcp_tools/redis/list_cluster_proxies/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs:
+        - type: bk-header-rewrite
+          yaml: |
+            remove: []
+            set:
+            - key: X-Bkdbm-Mcp-Tag
+              value: read,mcp-tools
+        allowApplyPermission: false
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn: 查询 Redis 集群的Proxy节点信息
+  /apis/ai/mcp_tools/redis/list_instance_tuple/:
+    post:
+      operationId: redis_query_meta_list_instance_tuple
+      description: 查询 Redis 实例的主从关系
+      tags:
+      - read
+      - mcp-tools
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RedisAddrRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RedisAddrRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RedisAddrRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RedisInstanceTuple'
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: false
+        matchSubpath: false
+        backend:
+          name: default
+          method: post
+          path: /apis/ai/mcp_tools/redis/list_instance_tuple/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs:
+        - type: bk-header-rewrite
+          yaml: |
+            remove: []
+            set:
+            - key: X-Bkdbm-Mcp-Tag
+              value: read,mcp-tools
+        allowApplyPermission: false
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn: 查询 Redis 实例的主从关系
   /apis/ai/mcp_tools/sqlserver/cluster_topo/:
     post:
       operationId: sqlserver_query_cluster_topo
@@ -776,6 +944,7 @@ paths:
         required: true
       security:
       - cookieAuth: []
+      - {}
       responses:
         '200':
           content:
@@ -1481,8 +1650,13 @@ components:
         bk_biz_id:
           type: integer
           description: 业务 id
+        cluster_type:
+          type: string
+          minLength: 1
+          description: 集群类型
       required:
       - bk_biz_id
+      - cluster_type
     ListDBModulesOutput:
       type: object
       properties:
@@ -1595,11 +1769,29 @@ components:
       - address
       - machine_type
       - status
-    RedisStorageInstance:
+    RedisAddr:
       type: object
       properties:
         address:
           type: string
+          description: ip:port 形式的实例地址
+      required:
+      - address
+    RedisAddrRequest:
+      type: object
+      properties:
+        address:
+          type: string
+          minLength: 1
+          description: ip:port 形式的实例地址
+      required:
+      - address
+    RedisEntry:
+      type: object
+      properties:
+        address:
+          allOf:
+          - $ref: '#/components/schemas/RedisAddr'
           description: ip:port 形式的实例地址
         status:
           allOf:
@@ -1615,40 +1807,117 @@ components:
         machine_type:
           type: string
           description: 实例机器类型
-        is_stand_by:
-          type: boolean
-          default: true
-          description: dbha 切换备选标志
+        entry_type:
+          type: string
+          description: 访问方式
+        entry_addr:
+          type: string
+          description: 访问地址
       required:
       - address
+      - entry_addr
+      - entry_type
       - machine_type
       - status
+    RedisInstanceSummary:
+      type: object
+      properties:
+        IP:
+          type: string
+          description: 机器IP
+        Port:
+          type: integer
+          description: 实例端口
+      required:
+      - IP
+      - Port
+    RedisInstanceTuple:
+      type: object
+      properties:
+        immute_domain:
+          type: string
+          description: 集群域名
+        instances:
+          type: array
+          items:
+            $ref: '#/components/schemas/RedisTupleInfo'
+          description: 实例关系对
+      required:
+      - immute_domain
+      - instances
+    RedisNodesSummary:
+      type: object
+      properties:
+        cluster_masters:
+          type: array
+          items:
+            $ref: '#/components/schemas/RedisInstanceSummary'
+          description: 存储层实例汇总信息
+      required:
+      - cluster_masters
     RedisTopoInputRequest:
       type: object
       properties:
-        cluster_domain:
+        immute_domain:
           type: string
           minLength: 1
           description: 集群域名
       required:
-      - cluster_domain
+      - immute_domain
     RedisTopoOutput:
       type: object
       properties:
         cluster_type:
           type: string
           description: 集群类型
-        cluster_domain:
+        region:
+          type: string
+          description: 所在地域
+        major_version:
+          type: string
+          description: 后端版本
+        immute_domain:
           type: string
           description: 集群域名
-        storage:
-          allOf:
-          - $ref: '#/components/schemas/RedisStorageInstance'
-          description: 存储层实例信息
+        proxy_count:
+          type: integer
+          description: Proxy节点数
+        master_count:
+          type: integer
+          description: Master节点数
+        cluster_entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/RedisEntry'
+          description: 集群连接地址
       required:
-      - cluster_domain
+      - cluster_entries
       - cluster_type
-      - storage
+      - immute_domain
+      - major_version
+      - master_count
+      - proxy_count
+      - region
+    RedisTupleInfo:
+      type: object
+      properties:
+        immute_domain:
+          type: string
+          description: 集群域名
+        master:
+          type: string
+          description: 主节点
+        slave:
+          type: string
+          description: 从节点
+        proxy:
+          type: string
+          description: Proxy节点
+      required:
+      - immute_domain
+      - master
+      - proxy
+      - slave
     SQLServerTopoInputRequest:
       type: object
       properties:

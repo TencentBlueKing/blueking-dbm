@@ -16,7 +16,7 @@ from backend.db_meta.enums import ClusterType
 
 class ListDBModulesInputSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务 id"))
-    # cluster_type = serializers.CharField(help_text=_("集群类型"))
+    cluster_type = serializers.CharField(help_text=_("集群类型"))
 
 
 class DBModuleSerializer(serializers.Serializer):
