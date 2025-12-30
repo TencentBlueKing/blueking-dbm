@@ -64,6 +64,7 @@ class RedisShardReduceFlowBuilder(BaseRedisTicketFlowBuilder):
     inner_flow_builder = RedisShardReduceParamBuilder
     inner_flow_name = _("Redis 集群减少分片数")
     need_patch_recycle_host_details = True
+    validator = RedisController.redis_slots_migrate_for_contraction.validator
 
     def patch_ticket_detail(self):
         cluster_ids = [info["cluster_id"] for info in self.ticket.details["infos"]]
