@@ -1,6 +1,7 @@
 <template>
   <TextOverflowLayout>
     <AuthButton
+      v-if="data.instance_domain"
       :action-id="viewActionId"
       :permission="Boolean(_.get(data.permission, viewActionId))"
       :resource="data.id"
@@ -10,10 +11,13 @@
       <TextHighlight
         high-light-color="#F59500"
         :keyword="searchKeyword">
-        {{ data.master_domain }}
+        {{ data.instance_domain }}
       </TextHighlight>
     </AuthButton>
-    <template #append>
+    <span v-else>--</span>
+    <template
+      v-if="data.instance_domain"
+      #append>
       <slot
         name="append"
         v-bind="{ data: data }" />
@@ -21,7 +25,7 @@
         class="ml-4 mt-2"
         role="table-cell-operation"
         type="copy"
-        @click="handleCopy(data.master_domain)" />
+        @click="handleCopy(data.instance_domain)" />
     </template>
   </TextOverflowLayout>
 </template>
@@ -30,6 +34,8 @@
   import type { VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
+
+  import MongodbInstanceModel from '@services/model/mongodb/mongodb-instance';
 
   import { ClusterTypes } from '@common/const';
 
@@ -40,11 +46,11 @@
 
   import { execCopy } from '@utils';
 
-  import type { ClusterTypeRelateInstanceModel, ISupportClusterType } from '../types';
+  import type { ClusterTypeRelateInstanceModel } from '../types';
 
   export interface Props {
-    clusterType: ISupportClusterType;
-    data: ValueOf<ClusterTypeRelateInstanceModel>;
+    clusterType: ClusterTypes.MONGO_REPLICA_SET | ClusterTypes.MONGO_SHARED_CLUSTER;
+    data: MongodbInstanceModel;
   }
 
   export type Emits = (e: 'go-detail', id: number, event: MouseEvent, detailPanel?: string) => void;
@@ -57,7 +63,7 @@
   defineSlots<Slots>();
 
   const infoMap: Record<
-    ISupportClusterType,
+    Props['clusterType'],
     {
       routeName: string;
       viewActionId: string;
@@ -70,30 +76,6 @@
     [ClusterTypes.MONGO_SHARED_CLUSTER]: {
       routeName: 'MongoDBSharedClusterDetail',
       viewActionId: 'mongodb_view',
-    },
-    [ClusterTypes.ORACLE_PRIMARY_STANDBY]: {
-      routeName: 'OracleHaDetail',
-      viewActionId: 'oracle_view',
-    },
-    [ClusterTypes.REDIS_CLUSTER]: {
-      routeName: 'redisClusterDetail',
-      viewActionId: 'redis_view',
-    },
-    [ClusterTypes.REDIS_INSTANCE]: {
-      routeName: 'redisClusterHaDetail',
-      viewActionId: 'redis_view',
-    },
-    [ClusterTypes.SQLSERVER_HA]: {
-      routeName: 'SqlServerHaClusterDetail',
-      viewActionId: 'sqlserver_view',
-    },
-    [ClusterTypes.TENDBCLUSTER]: {
-      routeName: 'tendbClusterDetail',
-      viewActionId: 'tendbcluster_view',
-    },
-    [ClusterTypes.TENDBHA]: {
-      routeName: 'tendbHaDetail',
-      viewActionId: 'mysql_view',
     },
   };
 
