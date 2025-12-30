@@ -20,7 +20,7 @@
         "target": [],
         "expression": "a",
         "functions": [],
-        "origin_sql": "",
+        "origin_sql": "max by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (max_over_time(bkmonitor:dbm_system:cpu_summary:usage{cluster_type=\"PredixyTendisplusCluster\",instance_role=\"redis_master\"}[1m]))",
         "query_configs": [
           {
             "data_source_label": "prometheus",
@@ -28,7 +28,7 @@
             "alias": "a",
             "metric_id": "",
             "functions": [],
-            "promql": "max by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (max_over_time(bkmonitor:dbm_system:cpu_summary:usage{cluster_type=\"PredixyTendisplusCluster\",instance_role=~\"redis_master|proxy\"}[1m]))",
+            "promql": "max by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (max_over_time(bkmonitor:dbm_system:cpu_summary:usage{cluster_type=\"PredixyTendisplusCluster\",instance_role=\"redis_master\"}[1m]))",
             "agg_interval": 60,
             "name": ""
           }
@@ -112,7 +112,7 @@
     ],
     "actions": [],
     "notice": {
-      "config_id": 47992,
+      "config_id": 47998,
       "user_groups": [],
       "user_type": "main",
       "signal": [
@@ -257,21 +257,20 @@
       }
     },
     "labels": [
-      "DBM",
       "DBM_REDIS"
     ],
     "app": "",
     "path": "",
     "priority": 0,
-    "priority_group_key": "a22ee7b607eb16bf",
+    "priority_group_key": "34d1314a5a26a08f",
     "edit_allowed": true,
     "metric_type": "time_series",
     "data_source_type": "Prometheus",
     "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "[TendisPlus]主机CPU使用率",
-  "version": 3,
+  "monitor_indicator": "Redis(TendisPlus)主机CPU使用率",
+  "version": 4,
   "alert_source": "time_series",
   "custom_conditions": [],
   "export_at": "2024-07-23T16:36:12+08:00"
