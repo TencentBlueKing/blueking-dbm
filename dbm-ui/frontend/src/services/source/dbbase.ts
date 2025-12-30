@@ -261,10 +261,10 @@ export function getGlobalMachine(params: {
   bk_os_name?: string; // 操作系统
   cluster_ids?: string; // 集群ID列表
   cluster_status?: string;
-  cluster_type?: string;
+  cluster_type?: string; // 集群类型，非redis集群类型必传
   creator?: string; // 创建人
   db_module_id?: number; // 模块ID
-  db_type: DBTypes; // 数据库类型
+  db_type?: DBTypes; // 数据库类型，redis集群类型必传
   instance_address?: string;
   instance_role?: string; // 实例角色
   instance_status?: string; // 实例状态
