@@ -224,7 +224,7 @@ class ResourceApplyFlow(BaseTicketFlow):
             else [info["resource_spec"] for info in ticket_data["infos"]]
         )
         first_key_spec_id_map = {
-            role: spec["spec_id"]
+            f"{role}{spec['spec_id']}": spec["spec_id"]
             for resource in resource_specs
             for role, spec in resource.items()
             if spec.get("spec_id")
@@ -285,10 +285,13 @@ class ResourceApplyFlow(BaseTicketFlow):
         notify.send_msg.apply_async(args=(self.ticket.id,))
 
     def get_spec(self, group_name, source_spec_key_map, spec_map):
-        if source_spec_key_map.get(group_name):
-            return spec_map[source_spec_key_map[group_name]]
-        role = group_name.split("_", 1)[-1]
-        return spec_map.get(source_spec_key_map.get(role), None)
+        for spec_id in spec_map:
+            role_key = f"{group_name}{spec_id}"
+            if source_spec_key_map.get(role_key):
+                return spec_map[spec_id]
+            role = f"{group_name.split('_', 1)[-1]}{spec_id}"
+            if source_spec_key_map.get(role):
+                return spec_map[spec_id]
 
     def fetch_apply_params(self, ticket_data):
         """
