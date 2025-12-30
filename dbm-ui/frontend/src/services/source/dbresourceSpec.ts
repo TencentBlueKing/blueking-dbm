@@ -173,8 +173,22 @@ export function deleteResourceSpec(params: { specId: number }) {
  * 修改规格补货定义
  */
 export function addSpecReplenishTag(params: {
-  spec_ids: number[];
   need_replenish: boolean; // 是否自动补货
+  spec_ids: number[];
 }) {
-  return http.post<ResourceSpecModel>(`${path}/add_spec_replenish_tag/`, params);
+  return http.post(`${path}/add_spec_replenish_tag/`, params);
+}
+
+/**
+ * 设置规格与补货比例映射
+ */
+export function setSpecReplenishRatio(params: { ratio_map: Record<string, number> }) {
+  return http.post(`${path}/set_spec_replenish_ratio/`, params);
+}
+
+/**
+ * 获取规格与补货比例映射
+ */
+export function getSpecReplenishRatio() {
+  return http.get<Record<string, number>>(`${path}/get_spec_replenish_ratio/`);
 }

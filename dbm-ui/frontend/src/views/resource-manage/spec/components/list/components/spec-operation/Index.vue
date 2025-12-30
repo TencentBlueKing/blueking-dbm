@@ -116,6 +116,14 @@
           {{ `（${t('开启后，当资源池主机数低于参考水位时，将自动补货至目标配置')}）` }}
         </span>
       </BkFormItem>
+      <BkFormItem
+        v-if="isShowReplenish && needReplenish"
+        :label="t('参考水位')">
+        <BkInput
+          v-model="ratioValue"
+          style="width: 200px"
+          suffix="%" />
+      </BkFormItem>
     </DbForm>
   </div>
   <div class="spec-create-footer">
@@ -150,7 +158,7 @@
   import type ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
   import {
     addSpecReplenishTag,
-    createResourceSpec,
+    setSpecReplenishRatio,
     updateResourceSpec,
     verifyDuplicatedSpecName,
   } from '@services/source/dbresourceSpec';
@@ -180,6 +188,7 @@
     machineType: string;
     machineTypeLabel: string;
     mode: 'create' | 'edit' | 'clone';
+    ratioMap?: Record<string, number>;
   }
 
   const props = defineProps<Props>();
@@ -280,15 +289,18 @@
   const isBizScopeChange = ref(false);
   const needReplenish = ref(false);
   const needReplenishChange = ref(false);
+  const ratioValue = ref(0);
   const initFormdataStringify = JSON.stringify(formdata.value);
   let initNeedReplenish = false;
+  let initRatioValue = 0;
 
   const isChange = computed(
     () =>
       JSON.stringify(formdata.value) !== initFormdataStringify ||
       isTableValueChange.value ||
       isBizScopeChange.value ||
-      needReplenishChange.value,
+      needReplenishChange.value ||
+      ratioValue.value !== initRatioValue,
   );
 
   const nameRules = computed(() => [
@@ -332,6 +344,19 @@
       if (isShowReplenish) {
         needReplenish.value = props.data!.needReplenish;
         initNeedReplenish = props.data!.needReplenish;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  watch(
+    () => props.ratioMap,
+    () => {
+      if (isShowReplenish && props.ratioMap) {
+        ratioValue.value = (props.ratioMap?.[`${formdata.value.spec_id}`] || props.ratioMap['default']) * 100;
+        initRatioValue = ratioValue.value;
       }
     },
     {
@@ -423,6 +448,14 @@
               spec_ids: [params.spec_id],
             }),
           );
+          requestList.push(
+            setSpecReplenishRatio({
+              ratio_map: {
+                ...props.ratioMap,
+                [params.spec_id]: ratioValue.value / 100,
+              },
+            }),
+          );
         }
         Promise.all(requestList).then(() => {
           messageSuccess(t('编辑成功'));
@@ -431,35 +464,6 @@
         });
         return;
       }
-
-      if (!props.hasInstance) {
-        delete params.instance_num;
-      }
-
-      if (hasQPS) {
-        params.qps = {
-          max: Number(params.qps?.max),
-          min: Number(params.qps?.min),
-        };
-      } else {
-        delete params.qps;
-      }
-
-      const requestList = [createResourceSpec(params)];
-      if (isShowReplenish) {
-        requestList.push(
-          addSpecReplenishTag({
-            need_replenish: needReplenish.value,
-            spec_ids: [params.spec_id],
-          }),
-        );
-      }
-
-      Promise.all(requestList).then(() => {
-        messageSuccess(t('新建成功'));
-        emits('successed');
-        window.changeConfirm = false;
-      });
     } finally {
       isLoading.value = false;
     }

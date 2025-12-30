@@ -107,42 +107,41 @@
     </div>
     <DbTable
       ref="tableRef"
+      :bk-ui-settings="settings"
       :data-source="getResourceSpecList"
-      primary-key="spec_id"
       releate-url-query
-      :row-class="setRowClass"
+      :row-class-name="setRowClass"
+      row-key="spec_id"
+      :scroll="{ type: 'virtual' }"
       selectable
-      :settings="settings"
       :show-overflow="false"
-      show-settings
+      @bk-ui-settings-change="updateTableSettings"
       @clear-search="handleClearSearch"
-      @column-filter="columnFilterChange"
-      @selection="handleSelectionChange"
-      @setting-change="updateTableSettings">
-      <BkTableColumn
-        field="spec_id"
+      @selection="handleSelectionChange">
+      <TableColumn
+        col-key="spec_id"
         fixed="left"
-        label="ID">
-      </BkTableColumn>
-      <BkTableColumn
-        field="spec_name"
+        title="ID">
+      </TableColumn>
+      <TableColumn
+        col-key="spec_name"
         fixed="left"
-        :label="t('规格名称')"
+        :title="t('规格名称')"
         :width="180">
-        <template #default="{ data }: { data: ResourceSpecModel }">
+        <template #default="{ row }: { row: ResourceSpecModel }">
           <TextOverflowLayout>
             <AuthButton
               action-id="spec_update"
-              :permission="data.permission.spec_update"
+              :permission="row.permission.spec_update"
               :resource="dbType"
               text
               theme="primary"
-              @click="() => handleShowSpecOperation('edit', data)">
-              {{ data.spec_name }}
+              @click="() => handleShowSpecOperation('edit', row)">
+              {{ row.spec_name }}
             </AuthButton>
             <template #append>
               <BkTag
-                v-if="data.isRecentSeconds"
+                v-if="row.isRecentSeconds"
                 class="ml-4"
                 size="small"
                 theme="success">
@@ -151,132 +150,142 @@
             </template>
           </TextOverflowLayout>
         </template>
-      </BkTableColumn>
-      <ModelColumn :label="machineTypeLabel" />
+      </TableColumn>
+      <ModelColumn :title="machineTypeLabel" />
       <BizScopeColumn />
-      <BkTableColumn
+      <TableColumn
         v-if="hasInstance"
-        field="instance_num"
-        :label="t('每台主机实例数量')"
+        col-key="instance_num"
+        :title="t('每台主机实例数量')"
         :width="140">
-      </BkTableColumn>
-      <BkTableColumn
+      </TableColumn>
+      <TableColumn
         v-if="hasQPS"
-        field="qpsText"
-        :label="t('单机QPS')"
+        col-key="qpsText"
+        :title="t('单机QPS')"
         :width="140">
-      </BkTableColumn>
-      <BkTableColumn
-        field="enable"
-        :label="t('启停')"
+      </TableColumn>
+      <TableColumn
+        col-key="enable"
+        :title="t('启停')"
         :width="120">
-        <template #default="{ data }: { data: ResourceSpecModel }">
+        <template #default="{ row }: { row: ResourceSpecModel }">
           <BkPopConfirm
-            :confirm-text="data.enable ? t('停用') : t('启用')"
+            :confirm-text="row.enable ? t('停用') : t('启用')"
             :content="
-              data.enable
+              row.enable
                 ? t('停用后，存量集群的变更操作不受影响，新增集群不可使用此规格')
                 : t('启用后，所有场景均可使用，如：部署、扩容、迁移规格')
             "
             placement="bottom"
-            :title="data.enable ? t('确认停用该规格？') : t('确认启用该规格？')"
+            :title="row.enable ? t('确认停用该规格？') : t('确认启用该规格？')"
             trigger="click"
             width="308"
-            @confirm="() => handleConfirmSwitch(data)">
+            @confirm="() => handleConfirmSwitch(row)">
             <AuthSwitcher
               action-id="spec_update"
-              :model-value="data.enable"
-              :permission="data.permission.spec_update"
+              :model-value="row.enable"
+              :permission="row.permission.spec_update"
               :resource="dbType"
               size="small"
               theme="primary" />
           </BkPopConfirm>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
+      </TableColumn>
+      <TableColumn
         v-if="isShowReplenish"
-        :label="t('自动补货')"
+        col-key="replensish"
+        :title="t('自动补货')"
         :width="120">
-        <template #default="{ data }: { data: ResourceSpecModel }">
+        <template #default="{ row }: { row: ResourceSpecModel }">
           <BkPopConfirm
-            :confirm-text="data.needReplenish ? t('停用') : t('开启')"
+            :confirm-text="row.needReplenish ? t('停用') : t('开启')"
             :content="
-              data.needReplenish
+              row.needReplenish
                 ? t('停用后，当资源池主机数低于资源水位时，不触发自动补货')
                 : t('开启后，当资源池主机数低于参考水位时，将自动补货至目标配置')
             "
             placement="bottom"
-            :title="data.needReplenish ? t('确认停用自动补货？') : t('确认开启自动补货？')"
+            :title="row.needReplenish ? t('确认停用自动补货？') : t('确认开启自动补货？')"
             trigger="click"
             width="308"
-            @confirm="() => handleConfirmNeedReplenish(data)">
+            @confirm="() => handleConfirmNeedReplenish(row)">
             <BkSwitcher
-              v-model="data.needReplenish"
+              v-model="row.needReplenish"
               size="small"
               theme="primary" />
           </BkPopConfirm>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="desc"
-        :label="t('描述')"
-        :width="100">
-        <template #default="{ data }: { data: ResourceSpecModel }">
-          {{ data.desc || '--' }}
-        </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="update_at"
-        :label="t('更新时间')"
-        sort
-        :width="250">
-        <template #default="{ data }: { data: ResourceSpecModel }">
-          {{ data.updateAtDisplay }}
-        </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="updater"
-        :label="t('更新人')"
-        sort
-        :width="250">
-        <template #default="{ data }: { data: ResourceSpecModel }">
-          {{ data.updater || '--' }}
-        </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field=""
-        fixed="right"
-        :label="t('操作')"
+      </TableColumn>
+      <TableColumn
+        v-if="isShowReplenish"
+        col-key="ratio"
+        :title="t('参考水位')"
         :width="120">
-        <template #default="{ data }: { data: ResourceSpecModel }">
+        <template #default="{ row }: { row: ResourceSpecModel }">
+          {{ ratioMap ? `${(ratioMap[row.spec_id] ? ratioMap[row.spec_id] : ratioMap['default']) * 100}%` : '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="desc"
+        :title="t('描述')"
+        :width="100">
+        <template #default="{ row }: { row: ResourceSpecModel }">
+          {{ row.desc || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="update_at"
+        sorter
+        :title="t('更新时间')"
+        :width="250">
+        <template #default="{ row }: { row: ResourceSpecModel }">
+          {{ row.updateAtDisplay }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="updater"
+        sorter
+        :title="t('更新人')"
+        :width="250">
+        <template #default="{ row }: { row: ResourceSpecModel }">
+          {{ row.updater || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="row-operation"
+        fixed="right"
+        :title="t('操作')"
+        :width="120">
+        <template #default="{ row }: { row: ResourceSpecModel }">
           <AuthButton
             action-id="spec_update"
             class="mr-12"
-            :permission="data.permission.spec_update"
+            :permission="row.permission.spec_update"
             :resource="dbType"
             text
             theme="primary"
-            @click="() => handleShowSpecOperation('edit', data)">
+            @click="() => handleShowSpecOperation('edit', row)">
             {{ t('编辑') }}
           </AuthButton>
           <AuthButton
             action-id="spec_create"
             class="mr-12"
-            :permission="data.permission.spec_create"
+            :permission="row.permission.spec_create"
             :resource="dbType"
             text
             theme="primary"
-            @click="() => handleShowSpecOperation('clone', data)">
+            @click="() => handleShowSpecOperation('clone', row)">
             {{ t('克隆') }}
           </AuthButton>
           <span
-            v-if="data.is_refer"
+            v-if="row.is_refer"
             v-bk-tooltips="t('仅可删除“未使用”的规格')"
             class="inline-block;">
             <AuthButton
               action-id="spec_delete"
               disabled
-              :permission="data.permission.spec_delete"
+              :permission="row.permission.spec_delete"
               :resource="dbType"
               text
               theme="primary">
@@ -286,15 +295,15 @@
           <AuthButton
             v-else
             action-id="spec_delete"
-            :permission="data.permission.spec_delete"
+            :permission="row.permission.spec_delete"
             :resource="dbType"
             text
             theme="primary"
-            @click="() => handleDelete([data], false)">
+            @click="() => handleDelete([row], false)">
             {{ t('删除') }}
           </AuthButton>
         </template>
-      </BkTableColumn>
+      </TableColumn>
     </DbTable>
   </div>
   <BkSideslider
@@ -326,6 +335,7 @@
       :machine-type="machineType"
       :machine-type-label="machineTypeLabel"
       :mode="specOperationMode"
+      :ratio-map="ratioMap"
       @cancel="handleCloseSpecOperation"
       @successed="handleSubmitSuccessed" />
   </BkSideslider>
@@ -343,6 +353,7 @@
     batchCommonUpdate,
     batchDeleteResourceSpec,
     getResourceSpecList,
+    getSpecReplenishRatio,
   } from '@services/source/dbresourceSpec';
 
   import { useBeforeClose, useLinkQueryColumnSerach, useTableSettings } from '@hooks';
@@ -351,6 +362,7 @@
 
   import { DBTypes, UserPersonalSettings } from '@common/const';
 
+  import DbTable from '@components/db-table/IndexNew.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { getSearchSelectorParams, messageSuccess } from '@utils';
@@ -381,7 +393,7 @@
   const handleBeforeClose = useBeforeClose();
   const funControllerStore = useFunController();
 
-  const { clearSearchValue, columnFilterChange, handleSearchValueChange, searchValue } = useLinkQueryColumnSerach({
+  const { clearSearchValue, handleSearchValueChange, searchValue } = useLinkQueryColumnSerach({
     attrs: [],
     fetchDataFn: () => fetchData(),
     isCluster: false,
@@ -455,6 +467,9 @@
       'update_at',
       'updater',
       'biz_scope',
+      'row-operation',
+      'replensish',
+      'ratio',
     ],
     disabled: ['model', 'spec_name'],
   });
@@ -474,6 +489,8 @@
       fetchData();
     },
   });
+
+  const { data: ratioMap, run: fetchRadioMap } = useRequest(getSpecReplenishRatio);
 
   watch(
     () => [props.dbType, props.machineType],
@@ -509,9 +526,12 @@
     }
 
     tableRef.value.fetchData({ ...params });
+    if (isShowReplenish) {
+      fetchRadioMap();
+    }
   };
 
-  const handleSelectionChange = (_idList: number[], list: ResourceSpecModel[]) => {
+  const handleSelectionChange = (_idList: string[], list: ResourceSpecModel[]) => {
     selectedList.value = list;
   };
 
