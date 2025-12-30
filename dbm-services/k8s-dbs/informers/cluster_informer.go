@@ -120,18 +120,24 @@ func (o *ClusterInformer) OnUpdate(_, newObj interface{}) {
 		"cluster", fmt.Sprintf("%s/%s", cluster.Namespace, cluster.Name),
 		"old", entity.Status, "new", newPhase)
 
-	// 4. 处理异常状态
-	if cluster.Status.Phase == appsv1.AbnormalClusterPhase ||
-		cluster.Status.Phase == appsv1.FailedClusterPhase {
-		if os.Getenv(coreconst.AsyncToDBMEnv) == coreconst.AsyncToDBMEnabled {
-			infrautil.AsyncClusterAbnormal(entity, thirdapi.GetDbmAPIService())
-		}
-	}
-
-	// 5. 更新状态
+	// 4. 更新元数据
 	entity.Status = newPhase
 	if _, err := o.clusterMetaProvider.UpdateCluster(entity); err != nil {
 		slog.Error("failed to update cluster",
 			"cluster", cluster.Name, "err", err)
+	}
+
+	// 5. dbm 状态同步
+	if os.Getenv(coreconst.AsyncToDBMEnv) == coreconst.AsyncToDBMEnabled {
+		phase := cluster.Status.Phase
+		switch phase {
+		case appsv1.AbnormalClusterPhase,
+			appsv1.FailedClusterPhase:
+			infrautil.AsyncClusterAbnormal(entity, thirdapi.GetDbmAPIService())
+		case appsv1.RunningClusterPhase:
+			infrautil.AsyncClusterNormal(entity, thirdapi.GetDbmAPIService())
+		default:
+			slog.Warn("当前状态无需同步", "phase", phase)
+		}
 	}
 }

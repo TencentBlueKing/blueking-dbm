@@ -142,6 +142,15 @@ func AsyncClusterAbnormal(
 	asyncClusterOperation(clusterEntity, coreconst.OperationStatusAbnormal, dbmAPIService, syncClusterAbnormalWithCtx)
 }
 
+// AsyncClusterNormal 同步集群正常状态信息到DBM
+func AsyncClusterNormal(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) {
+	slog.Info("开始同步集群正常状态信息", "cluster_name", clusterEntity.ClusterName)
+	asyncClusterOperation(clusterEntity, coreconst.OperationStatusNormal, dbmAPIService, syncClusterNormalWithCtx)
+}
+
 // asyncClusterOperation 通用的异步集群操作函数，支持创建、更新和删除操作
 func asyncClusterOperation(
 	clusterEntity *metaentity.K8sCrdClusterEntity,
@@ -263,6 +272,15 @@ func syncClusterAbnormalWithCtx(
 	return syncClusterWithCtx(ctx, clusterEntity, dbmAPIService, coreconst.OperationStatusAbnormal)
 }
 
+// syncClusterNormalWithCtx 带 context 的同步集群正常信息到DBM
+func syncClusterNormalWithCtx(
+	ctx context.Context,
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) error {
+	return syncClusterWithCtx(ctx, clusterEntity, dbmAPIService, coreconst.OperationStatusNormal)
+}
+
 // syncClusterDeletedWithCtx 带context的同步集群删除信息到DBM
 func syncClusterDeletedWithCtx(
 	ctx context.Context,
@@ -311,6 +329,7 @@ func syncClusterWithCtx(
 		coreconst.OperationHscaling,
 		coreconst.OperationVscaling,
 		coreconst.OperationVolumeExpand,
+		coreconst.OperationStatusNormal,
 		coreconst.OperationStatusAbnormal:
 		return syncClusterUpdate(clusterEntity, dbmAPIService, dbmClusterType, operation)
 	default:
