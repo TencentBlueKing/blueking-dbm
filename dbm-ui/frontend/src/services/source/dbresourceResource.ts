@@ -278,8 +278,17 @@ export function specCostEstimate(params: {
  */
 export function calcResourceWaterLevel(params: { cache: boolean }) {
   return http.post<{
-    update_time: string;
+    exclusive_machine: {
+      empty_city: string[];
+      empty_os: string[];
+      empty_subzone: string[];
+    };
+    exclusive_spec: {
+      spec_id: number;
+      spec_name: string;
+    }[];
     flush_time: string;
+    update_time: string;
     water_level: {
       spec_id: number;
       spec_name: string;

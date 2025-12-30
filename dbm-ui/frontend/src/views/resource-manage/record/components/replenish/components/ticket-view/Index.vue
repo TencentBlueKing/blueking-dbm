@@ -33,15 +33,17 @@
     class="replenish-record-list">
     <PrimaryTable
       :data="tableData"
+      ellipsis
       :loading="isLoading"
       :max-height="tableMaxHeight"
+      resizable
       row-key="id"
       title-ellipsis>
       <TableColumn
         col-key="id"
         fixed="left"
-        :title="t('单号')"
-        width="80">
+        :min-width="80"
+        :title="t('单号')">
         <template #default="{ row }: { row: IRowData }">
           <AuthRouterLink
             action-id="ticket_view"
@@ -61,8 +63,8 @@
       </TableColumn>
       <TableColumn
         col-key="ticket_type__in"
-        :title="t('子任务')"
-        width="120">
+        :min-width="120"
+        :title="t('子任务')">
         <template #default="{ row }: { row: IRowData }">
           <template v-if="ticketInnerFlowInfo[row.id]">
             <div
@@ -90,8 +92,8 @@
       </TableColumn>
       <TableColumn
         col-key="status"
-        :title="t('状态')"
-        width="120">
+        :min-width="120"
+        :title="t('状态')">
         <template #default="{ row }: { row: IRowData }">
           <TicketStatusTag
             v-if="row"
@@ -100,72 +102,72 @@
       </TableColumn>
       <TableColumn
         col-key="record_id"
-        :title="t('补货操作 ID')"
-        width="120">
+        :min-width="120"
+        :title="t('补货操作 ID')">
         <template #default="{ row }: { row: IRowData }">
           {{ row?.record_id || '--' }}
         </template>
       </TableColumn>
       <TableColumn
         col-key="db_type"
-        :title="t('DB 类型')"
-        width="120">
+        :min-width="120"
+        :title="t('DB 类型')">
         <template #default="{ row }: { row: IRowData }">
           {{ dbNameMap[row?.db_type] || '--' }}
         </template>
       </TableColumn>
       <TableColumn
         col-key="spec.spec_machine_type"
-        :title="t('规格类型')"
-        width="120">
+        :min-width="120"
+        :title="t('规格类型')">
         <template #default="{ row }: { row: IRowData }">
           {{ machineTypeMap[row?.spec?.spec_machine_type] || '--' }}
         </template>
       </TableColumn>
       <TableColumn
         col-key="spec.spec_name"
-        :title="t('规格')"
-        width="180">
+        :min-width="180"
+        :title="t('规格')">
         <template #default="{ row }: { row: IRowData }">
           {{ row?.spec?.spec_name || '--' }}
         </template>
       </TableColumn>
       <TableColumn
         col-key="city"
-        :title="t('地域')"
-        width="120">
+        :min-width="120"
+        :title="t('地域')">
         <template #default="{ row }: { row: IRowData }">
           {{ row?.city || '--' }}
         </template>
       </TableColumn>
       <TableColumn
         col-key="subzone"
-        :title="t('园区')"
-        width="120">
+        :min-width="120"
+        :title="t('园区')">
         <template #default="{ row }: { row: IRowData }">
           {{ row?.subzone || '--' }}
         </template>
       </TableColumn>
       <TableColumn
         col-key="os_name"
-        :title="t('操作系统')"
-        width="120">
+        :min-width="120"
+        :title="t('操作系统')">
         <template #default="{ row }: { row: IRowData }">
           {{ row?.os_name || '--' }}
         </template>
       </TableColumn>
       <TableColumn
         col-key="count"
-        :title="t('申请数量')"
-        width="120">
+        :min-width="120"
+        :title="t('申请数量')">
         <template #default="{ row }: { row: IRowData }">
           <span class="bold-number">{{ row?.count || 0 }}</span>
         </template>
       </TableColumn>
       <TableColumn
         col-key="apply_count"
-        :title="t('已交付')"
-        width="120">
+        :min-width="120"
+        :title="t('已交付')">
         <template #default="{ row }: { row: IRowData }">
           <span
             class="bold-number"
@@ -179,16 +181,16 @@
       </TableColumn>
       <TableColumn
         col-key="creator"
-        :title="t('申请人')"
-        width="150">
+        :min-width="150"
+        :title="t('申请人')">
         <template #default="{ row }: { row: IRowData }">
           <span>{{ row?.operator || '--' }}</span>
         </template>
       </TableColumn>
       <TableColumn
         col-key="create_at"
-        :title="t('申请时间')"
-        width="220">
+        :min-width="220"
+        :title="t('申请时间')">
         <template #default="{ row }: { row: IRowData }">
           <span>{{ row.create_at ? utcDisplayTime(row.create_at) : '--' }}</span>
         </template>
