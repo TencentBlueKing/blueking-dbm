@@ -1,0 +1,268 @@
+{
+    "bk_biz_id": 0,
+    "name": "Redis(日志)RedisOutputBuffer不足导致连接中断",
+    "db_type": "redis",
+    "details": {
+        "bk_biz_id": "",
+        "name": "Redis(日志)RedisOutputBuffer不足导致连接中断",
+        "source": "dbm",
+        "scenario": "applications",
+        "type": "monitor",
+        "items": [
+            {
+                "name": "COUNT([采集项]redis_server_log)",
+                "no_data_config": {
+                    "level": 2,
+                    "continuous": 10,
+                    "is_enabled": false,
+                    "agg_dimension": []
+                },
+                "target": [],
+                "expression": "a",
+                "functions": [],
+                "origin_sql": "",
+                "query_configs": [
+                    {
+                        "data_source_label": "bk_log_search",
+                        "data_type_label": "log",
+                        "alias": "a",
+                        "metric_id": "bk_log_search.index_set.10916",
+                        "functions": [],
+                        "query_string": "ASAP",
+                        "result_table_id": "5005578_bklog.redis_server_log",
+                        "index_set_id": 10916,
+                        "agg_interval": 60,
+                        "agg_dimension": [
+                            "bkbizid",
+                            "bkcloudid",
+                            "cloudId",
+                            "cluster_type",
+                            "domain",
+                            "role",
+                            "appid"
+                        ],
+                        "agg_condition": [
+                            {
+                                "key": "role",
+                                "value": [
+                                    "redis_master"
+                                ],
+                                "method": "eq",
+                                "condition": "and",
+                                "dimension_name": "role"
+                            }
+                        ],
+                        "time_field": "dtEventTimeStamp",
+                        "name": "5005578_bklog.redis_server_log"
+                    }
+                ],
+                "algorithms": [
+                    {
+                        "type": "Threshold",
+                        "level": 1,
+                        "config": [
+                            [
+                                {
+                                    "method": "gte",
+                                    "threshold": 1
+                                }
+                            ]
+                        ],
+                        "unit_prefix": ""
+                    }
+                ],
+                "metric_type": "log",
+                "time_delay": 0
+            }
+        ],
+        "detects": [
+            {
+                "level": 1,
+                "expression": "",
+                "trigger_config": {
+                    "count": 1,
+                    "uptime": {
+                        "calendars": [],
+                        "time_ranges": [
+                            {
+                                "end": "23:59",
+                                "start": "00:00"
+                            }
+                        ],
+                        "active_calendars": []
+                    },
+                    "check_window": 5
+                },
+                "recovery_config": {
+                    "check_window": 5,
+                    "status_setter": "recovery"
+                },
+                "connector": "and"
+            }
+        ],
+        "actions": [],
+        "notice": {
+            "config_id": 133421,
+            "user_groups": [],
+            "user_type": "main",
+            "signal": [
+                "abnormal",
+                "no_data"
+            ],
+            "options": {
+                "end_time": "23:59:59",
+                "start_time": "00:00:00",
+                "assign_mode": [
+                    "by_rule"
+                ],
+                "upgrade_config": {
+                    "is_enabled": false,
+                    "user_groups": [],
+                    "upgrade_interval": 1440
+                },
+                "converge_config": {
+                    "count": 1,
+                    "condition": [
+                        {
+                            "dimension": "strategy_id",
+                            "value": [
+                                "self"
+                            ]
+                        },
+                        {
+                            "dimension": "dimensions",
+                            "value": [
+                                "self"
+                            ]
+                        },
+                        {
+                            "dimension": "alert_level",
+                            "value": [
+                                "self"
+                            ]
+                        },
+                        {
+                            "dimension": "signal",
+                            "value": [
+                                "self"
+                            ]
+                        },
+                        {
+                            "dimension": "bk_biz_id",
+                            "value": [
+                                "self"
+                            ]
+                        },
+                        {
+                            "dimension": "notice_receiver",
+                            "value": [
+                                "self"
+                            ]
+                        },
+                        {
+                            "dimension": "notice_way",
+                            "value": [
+                                "self"
+                            ]
+                        }
+                    ],
+                    "timedelta": 60,
+                    "is_enabled": true,
+                    "converge_func": "collect",
+                    "need_biz_converge": true,
+                    "sub_converge_config": {
+                        "timedelta": 60,
+                        "count": 2,
+                        "condition": [
+                            {
+                                "dimension": "bk_biz_id",
+                                "value": [
+                                    "self"
+                                ]
+                            },
+                            {
+                                "dimension": "notice_receiver",
+                                "value": [
+                                    "self"
+                                ]
+                            },
+                            {
+                                "dimension": "notice_way",
+                                "value": [
+                                    "self"
+                                ]
+                            },
+                            {
+                                "dimension": "alert_level",
+                                "value": [
+                                    "self"
+                                ]
+                            },
+                            {
+                                "dimension": "signal",
+                                "value": [
+                                    "self"
+                                ]
+                            }
+                        ],
+                        "converge_func": "collect_alarm"
+                    }
+                },
+                "chart_image_enabled": true,
+                "exclude_notice_ways": {
+                    "ack": [],
+                    "closed": [],
+                    "recovered": []
+                },
+                "noise_reduce_config": {
+                    "unit": "percent",
+                    "count": 10,
+                    "timedelta": 5,
+                    "dimensions": [],
+                    "is_enabled": false
+                }
+            },
+            "relate_type": "NOTICE",
+            "config": {
+                "need_poll": true,
+                "notify_interval": 7200,
+                "interval_notify_mode": "standard",
+                "template": [
+                    {
+                        "signal": "abnormal",
+                        "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{json.loads(alarm.log_raw_related_info)[\"server_ip\"]}} {{json.loads(alarm.log_raw_related_info)[\"server_port\"]}} {{json.loads(alarm.log_raw_related_info)[\"data\"]}}",
+                        "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
+                    },
+                    {
+                        "signal": "recovered",
+                        "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n通知人:{{alarm.receivers}}\n{{content.related_info}}",
+                        "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
+                    },
+                    {
+                        "signal": "closed",
+                        "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n通知人:{{alarm.receivers}}\n{{content.related_info}}",
+                        "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
+                    }
+                ]
+            }
+        },
+        "labels": [
+            "DBM",
+            "DBM_REDIS"
+        ],
+        "app": "",
+        "path": "",
+        "priority": 0,
+        "priority_group_key": "",
+        "edit_allowed": true,
+        "metric_type": "log",
+        "data_source_type": "日志平台关键字",
+        "is_enabled": true
+    },
+    "is_enabled": true,
+    "monitor_indicator": "COUNT([采集项]redis_server_log)",
+    "version": 1,
+    "alert_source": "log",
+    "custom_conditions": [],
+    "export_at": "2025-12-24T17:18:24+08:00"
+}

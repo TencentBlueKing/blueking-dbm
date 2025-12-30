@@ -1,16 +1,16 @@
 {
   "bk_biz_id": 0,
-  "name": "Redis(TendisSSD)主机CPU使用率",
+  "name": "Redis(TendisCache)Proxy主机单核CPU使用率",
   "db_type": "redis",
   "details": {
     "bk_biz_id": "",
-    "name": "Redis(TendisSSD)主机CPU使用率",
+    "name": "Redis(TendisCache)Proxy主机单核CPU使用率",
     "source": "dbm",
     "scenario": "os",
     "type": "monitor",
     "items": [
       {
-        "name": "[TendisSSD]主机CPU使用率",
+        "name": "[TendisCache]Proxy主机单核CPU使用率",
         "no_data_config": {
           "level": 2,
           "continuous": 10,
@@ -20,7 +20,7 @@
         "target": [],
         "expression": "a",
         "functions": [],
-        "origin_sql": "max by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (max_over_time(bkmonitor:dbm_system:cpu_summary:usage{cluster_type=\"TwemproxyTendisSSDInstance\",instance_role=\"redis_master\"}[1m]))",
+        "origin_sql": "max by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_type=\"TwemproxyRedisInstance\",instance_role=\"proxy\"}[1m]))",
         "query_configs": [
           {
             "data_source_label": "prometheus",
@@ -28,7 +28,7 @@
             "alias": "a",
             "metric_id": "",
             "functions": [],
-            "promql": "max by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (max_over_time(bkmonitor:dbm_system:cpu_summary:usage{cluster_type=\"TwemproxyTendisSSDInstance\",instance_role=\"redis_master\"}[1m]))",
+            "promql": "max by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_type=\"TwemproxyRedisInstance\",instance_role=\"proxy\"}[1m]))",
             "agg_interval": 60,
             "name": ""
           }
@@ -269,8 +269,8 @@
     "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "Redis(TendisSSD)主机CPU使用率",
-  "version": 4,
+  "monitor_indicator": "Redis(TendisCache)Proxy主机单核CPU使用率",
+  "version": 1,
   "alert_source": "time_series",
   "custom_conditions": [],
   "export_at": "2024-07-23T16:36:12+08:00"
