@@ -235,8 +235,6 @@ func (sw *TenDBClusterBaseSwitchInstance) ConnectTdbctlNode(tdbctlHost string, t
 		hamysql.OptionPort(tdbctlPort),
 		hamysql.OptionUser(tdbctlUser),
 		hamysql.OptionPassword(tdbctlPassword),
-		hamysql.OptionSkipInitializeWithVersion(false),
-		hamysql.OptionDisableDatetimePrecision(true),
 		hamysql.OptionCharset(""),
 	)
 

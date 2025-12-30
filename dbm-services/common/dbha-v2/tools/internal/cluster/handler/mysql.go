@@ -372,8 +372,6 @@ func (hdl *MysqlClusterHandler) switchProxyBackend(proxyIp string, proxyAdminPor
 		hamysql.OptionPort(proxyAdminPort),
 		hamysql.OptionUser(config.ClusterConfig.AuthInfo.ProxyUser),
 		hamysql.OptionPassword(config.ClusterConfig.AuthInfo.ProxyPassword),
-		hamysql.OptionSkipInitializeWithVersion(false),
-		hamysql.OptionDisableDatetimePrecision(true),
 		hamysql.OptionCharset(""),
 	)
 	if err != nil {

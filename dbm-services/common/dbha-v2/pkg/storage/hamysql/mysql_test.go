@@ -80,8 +80,6 @@ func TestSqlxDBForProxy(t *testing.T) {
 		hamysql.OptionPort(port),
 		hamysql.OptionUser(user),
 		hamysql.OptionPassword(password),
-		hamysql.OptionSkipInitializeWithVersion(false),
-		hamysql.OptionDisableDatetimePrecision(true),
 		hamysql.OptionCharset(""),
 	)
 	if err != nil {
