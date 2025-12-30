@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
+import time
 
 from django.db.models import Q
 from django.utils import timezone
@@ -118,6 +119,26 @@ class CheckMongoBackupRecordTask:
         return False, ""
 
     def check_cluster(self, cluster: MongoDBCluster, report_day: int):
+        """
+        执行_do_check_cluster_inner, 如果异常，Sleep 10秒后重试，最多试3次
+        如果重试3次都失败，则返回异常记录
+        """
+        last_error = None
+        for i in range(3):
+            try:
+                records = self._do_check_cluster_inner(cluster, report_day)
+                if records is not None:
+                    return records
+
+            except Exception as e:
+                logger.error(f"check_cluster error: {e}, retry {i + 1} times, sleep {i * 10} seconds")
+                last_error = e
+                time.sleep(i * 3) + 1
+
+        cluster_report = ClusterReport(cluster, report_day, self.check_type)
+        return cluster_report.make_error_record(f"system error after 3 times retry: {last_error}")
+
+    def _do_check_cluster_inner(self, cluster: MongoDBCluster, report_day: int):
         """
         1. 获得所有的分片的m1节点. 和 backup节点
         2. 允许所有的分片都没有backup节点,这种情况跳过检查

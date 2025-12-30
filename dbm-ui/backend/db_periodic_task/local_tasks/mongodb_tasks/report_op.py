@@ -94,6 +94,27 @@ class ClusterReport:
             )
         ]
 
+    def make_error_record(self, reason: str) -> list[MongodbBackupCheckReport]:
+        """生成异常记录"""
+        return [
+            MongodbBackupCheckReport(
+                creator="",
+                subtype=self.subtype,
+                report_day=self.report_day,
+                bk_biz_id=self.cluster.bk_biz_id,
+                bk_cloud_id=self.cluster.bk_cloud_id,
+                cluster=self.cluster.immute_domain,
+                cluster_id=self.cluster.cluster_id,
+                cluster_type=self.cluster.cluster_type,
+                shard="all",
+                instance="all",
+                status=False,
+                state=ReportStateType.WARNING.value,
+                msg=reason,
+                failed_days=self.get_exceed_days(ReportStateType.WARNING.value),
+            )
+        ]
+
     def make_records(self):
         """生成报告记录"""
         normal_num = len(self.records[ReportStateType.NORMAL.value])

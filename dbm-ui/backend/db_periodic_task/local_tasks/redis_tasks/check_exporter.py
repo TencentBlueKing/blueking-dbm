@@ -13,6 +13,7 @@ import datetime
 import logging
 from collections import defaultdict
 from datetime import timedelta
+import time
 
 from django.db.models import Q
 from django.utils import timezone
@@ -128,11 +129,17 @@ class CheckRedisUpMetricTask:
         如果有异常，则返回异常记录
         """
         cluster_report = RedisClusterReport(cluster, report_day, self.check_type)
-        try:
-            records = self.check_cluster_inner(cluster_report, cluster)
-        except Exception as e:
-            records = cluster_report.make_skip_record(f"inner error: {e}")
-        return records
+        last_error = None
+        for i in range(3):
+            try:
+                records = self.check_cluster_inner(cluster_report, cluster)
+                if records is not None:
+                    return records
+            except Exception as e:
+                logger.error(f"check_cluster error: {e}, retry {i + 1} times, sleep {i * 3} seconds")
+                last_error = e
+                time.sleep(i * 3) + 1
+        return cluster_report.make_error_record(f"system error after 3 times retry: {last_error}")
 
     def check_cluster_inner(self, cluster_report: RedisClusterReport, cluster: Cluster) -> list:
         """
