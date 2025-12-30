@@ -37,7 +37,37 @@
         </div>
       </template>
     </TicketInfoTableColumn>
+    <template v-if="isResourcePool">
+      <TicketInfoTableColumn
+        col-key="spec_id"
+        :min-width="120"
+        :title="t('规格')">
+        <template #default="{ row: data }: { row: RowData }">
+          {{ ticketDetails.details.specs?.[data.resource_spec.sqlserver_ha?.spec_id]?.name || '--' }}
+        </template>
+      </TicketInfoTableColumn>
+      <TicketInfoTableColumn
+        col-key="label_names"
+        :min-width="200"
+        :title="t('资源标签')">
+        <template #default="{ row: data }: { row: RowData }">
+          <template v-if="data.resource_spec.sqlserver_ha?.label_names?.length">
+            <BkTag
+              v-for="item in data.resource_spec.sqlserver_ha.label_names"
+              :key="item">
+              {{ item }}
+            </BkTag>
+          </template>
+          <BkTag
+            v-else
+            theme="success">
+            {{ t('通用无标签') }}
+          </BkTag>
+        </template>
+      </TicketInfoTableColumn>
+    </template>
     <TicketInfoTableColumn
+      v-else
       col-key="sqlserver_ha"
       :title="t('新从库主机')">
       <template #default="{ row: data }: { row: RowData }">
@@ -65,7 +95,9 @@
     inheritAttrs: false,
   });
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  const isResourcePool = !props.ticketDetails.details.infos[0].resource_spec.sqlserver_ha.hosts;
 </script>
