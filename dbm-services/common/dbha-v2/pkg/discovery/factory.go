@@ -81,7 +81,6 @@ func (c Client) CreateRegistry() *Registry {
 		serviceID:        c.opts.serviceID,
 		rootKey:          rootKey,
 		ttl:              defaultTTL,
-		quit:             make(chan struct{}),
 		createEtcdClient: c.createEtcdClient,
 	}
 
