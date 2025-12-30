@@ -570,12 +570,29 @@ class ResourceHandler(object):
 
         # 获取补货比例、操作系统映射、园区映射、规格信息映射
         spec_map = {spec.spec_id: spec for spec in Spec.objects.filter(tags__key=SystemTagEnum.REPLENISH)}
-        replenish_ratio = SystemSettings.get_setting_value(SystemSettingsEnum.REPLENISH_RATIO_MAP, [])
-        ratio_map = {info["spec_id"]: info["ratio"] for info in replenish_ratio}
+        ratio_map = SystemSettings.get_setting_value(SystemSettingsEnum.REPLENISH_RATIO_MAP, {})
         os_map = SystemSettings.get_setting_value(SystemSettingsEnum.REPLENISH_OS_MAP, {})
         os_map = {os_name: os_key for os_key, os_names in os_map.items() for os_name in os_names}
         subzone_map = SystemSettings.get_setting_value(SystemSettingsEnum.REPLENISH_SUBZONE_MAP, {})
         subzone_map = {name: zone_key for zone_key, zone_names in subzone_map.items() for name in zone_names}
+
+        # 不符合水位数据的统计函数定义
+        exclusive_spec = []
+        exclusive_machine = {"empty_os": [], "empty_city": [], "empty_subzone": []}
+
+        def add_exclusive_machine_infos(hosts):
+            for host in hosts:
+                if not host["bk_os_name"]:
+                    exclusive_machine["empty_os"].append(host["ip"])
+                if not host["bk_city__bk_idc_city_name"] or host["bk_city__bk_idc_city_name"] == "default":
+                    exclusive_machine["empty_city"].append(host["ip"])
+                if not host["bk_sub_zone"]:
+                    exclusive_machine["empty_subzone"].append(host["ip"])
+
+        def add_exclusive_spec_infos(spec_ids):
+            for spec_id in spec_ids:
+                if spec_id in spec_map and not spec_map[spec_id].device_class:
+                    exclusive_spec.append({"spec_id": spec_id, "spec_name": spec_map[spec_id].spec_name})
 
         # 按照规格 + 地域 + 园区 + 操作系统聚合主机
         machine_water_level_map = defaultdict(
@@ -585,7 +602,7 @@ class ResourceHandler(object):
         )
 
         machines = Machine.objects.filter(bk_cloud_id=0).values(
-            "spec_id", "bk_os_name", "bk_city__bk_idc_city_name", "bk_sub_zone"
+            "spec_id", "bk_os_name", "bk_city__bk_idc_city_name", "bk_sub_zone", "ip"
         )
         for m in machines:
             spec_id, city_name, subzone = m["spec_id"], m["bk_city__bk_idc_city_name"], m["bk_sub_zone"]
@@ -605,7 +622,7 @@ class ResourceHandler(object):
             machine_water_level_map[spec_id][bk_os_name][city_name][subzone]["resource_count"] += info["count"]
 
         # 打平聚合信息，生成资源水位
-        default_ratio = ratio_map.get(0, 0.05)
+        default_ratio = ratio_map.get(str(0), 0.05)
         water_level: List[Dict] = [
             {
                 "spec_id": spec_id,
@@ -618,7 +635,7 @@ class ResourceHandler(object):
                 "machine_count": subzone_info["machine_count"],
                 "resource_count": subzone_info["resource_count"],
                 "machine_refer_count": math.ceil(
-                    subzone_info["machine_count"] * ratio_map.get(spec_id, default_ratio)
+                    subzone_info["machine_count"] * ratio_map.get(str(spec_id), default_ratio)
                 ),
             }
             for spec_id, spec_info in machine_water_level_map.items()
@@ -633,8 +650,18 @@ class ResourceHandler(object):
         if need_replenish:
             water_level = [info for info in water_level if info["machine_refer_count"] > info["resource_count"]]
 
+        # 获取不符合水位统计信息
+        add_exclusive_spec_infos(list(machine_water_level_map.keys()))
+        add_exclusive_machine_infos(machines)
+
         # 补货固定显示时间上午九点
         flush_time = "09:00:00"
         update_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        return {"update_time": update_time, "water_level": water_level, "flush_time": flush_time}
+        return {
+            "update_time": update_time,
+            "water_level": water_level,
+            "flush_time": flush_time,
+            "exclusive_spec": exclusive_spec,
+            "exclusive_machine": exclusive_machine,
+        }
