@@ -8,9 +8,12 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from collections import defaultdict
+
 from django.utils.translation import gettext as _
 
 from backend.flow.engine.validate.base_validate import BaseValidator, validator_log_format
+from backend.flow.engine.validate.exceptions import TicketDataException
 from backend.flow.utils.redis.redis_util import version_ge
 
 
@@ -46,3 +49,32 @@ class RedisBaseValidator(BaseValidator):
             "row_key": row_key,
             "errors": errors,
         }
+
+    def pre_check_duplicate_cluster_ids(self, check_cluster_ids_field_name: str):
+        """
+        检验是否有存在重复的ip信息，如果有则记录异常
+        因为SaaS传给所有flow的ip信息都是固定格式，故可以做通用处理
+        @param check_cluster_ids_field_name: 在info结构体获取ip的key名称
+        """
+        cluster_id_counts = defaultdict(int)
+        for info in self.data["infos"]:
+            if isinstance(info[check_cluster_ids_field_name], list):
+                for c_id in info[check_cluster_ids_field_name]:
+                    cluster_id_counts[c_id] += 1
+            elif isinstance(info[check_cluster_ids_field_name], int):
+                cluster_id_counts[info[check_cluster_ids_field_name]] += 1
+
+            else:
+                # 不是传入通用的ip表达方式，无法计算，退出异常
+                raise TicketDataException(
+                    f"run [pre_check_duplicate_cluster_ids] failed: No such type checking is supported:"
+                    f"{info[check_cluster_ids_field_name]}"
+                )
+
+        # 找出统计数大于1的ip数量
+        err_msg = ""
+        for cluster_id, count in cluster_id_counts.items():
+            if count > 1:
+                err_msg += _("在单据中，存在重复集群ID信息填入 [{}]，请检查 \n".format(cluster_id))
+
+        return err_msg
