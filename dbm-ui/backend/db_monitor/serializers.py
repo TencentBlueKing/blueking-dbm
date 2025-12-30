@@ -416,6 +416,10 @@ class SaveMonitorSubscribeSerializer(serializers.Serializer):
     )
 
     def validate(self, attrs):
+        cluster_types = {cluster["cluster_type"] for cluster in attrs["clusters"]}
+        db_type = [ClusterType.cluster_type_to_db_type(cluster_type) for cluster_type in cluster_types]
+        if len(set(db_type)) != 1:
+            raise serializers.ValidationError(_("订阅集群组件类型不一致"))
         return attrs
 
 
