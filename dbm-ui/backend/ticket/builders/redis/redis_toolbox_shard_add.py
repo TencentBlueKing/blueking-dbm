@@ -74,3 +74,4 @@ class RedisShardAddFlowBuilder(BaseRedisTicketFlowBuilder):
     inner_flow_builder = RedisShardAddParamBuilder
     inner_flow_name = _("Redis 集群增加分片数")
     resource_batch_apply_builder = RedisShardAddResourceParamBuilder
+    validator = RedisController.redis_slots_migrate_for_expansion.validator
