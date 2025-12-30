@@ -144,7 +144,7 @@
       label: t('目标主机'),
     },
     {
-      case: 'Redis-6',
+      case: 'twemproxy-0.4.1-v36',
       key: 'version',
       label: t('目标版本'),
     },
