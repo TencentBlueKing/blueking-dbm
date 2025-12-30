@@ -273,6 +273,7 @@
   import AlertSeverityGroup from '@views/db-manage/common/cluster-batch-edit-subscription/components/content/components/AlertSeverityGroup.vue';
   import NoticeWaysGroup from '@views/db-manage/common/cluster-batch-edit-subscription/components/content/components/NoticeWaysGroup.vue';
   import BatchEditSubscription from '@views/db-manage/common/cluster-batch-edit-subscription/Index.vue';
+  import { URL_CLUSTER_DETAIL_MEMO_KEY } from '@views/db-manage/common/cluster-details/constants';
 
   import { getOffset, messageSuccess } from '@utils';
 
@@ -497,8 +498,13 @@
       params: {
         clusterId: row.cluster_id,
       },
+      query: {
+        [URL_CLUSTER_DETAIL_MEMO_KEY]: 'info',
+      },
     });
-    window.open(routeInfo.href);
+    const { href } = routeInfo;
+    const targetPath = href.replace(/^\/[\d]+/, `/${row.bk_biz_id}`);
+    window.open(targetPath);
   };
 
   onMounted(() => {
