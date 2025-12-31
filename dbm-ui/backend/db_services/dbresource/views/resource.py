@@ -28,7 +28,7 @@ from backend.db_dirty.constants import MachineEventType
 from backend.db_dirty.models import MachineEvent
 from backend.db_meta.models import AppCache
 from backend.db_meta.models.machine import DeviceClass
-from backend.db_services.dbresource.constants import RESOURCE_IMPORT_TASK_FIELD, RESOURCE_UPDATE_REMARK, SWAGGER_TAG
+from backend.db_services.dbresource.constants import RESOURCE_IMPORT_TASK_FIELD, SWAGGER_TAG
 from backend.db_services.dbresource.exceptions import ResourceReturnException
 from backend.db_services.dbresource.filters import DeviceClassFilter
 from backend.db_services.dbresource.handlers import ResourceHandler
@@ -359,35 +359,10 @@ class DBResourceViewSet(viewsets.SystemViewSet):
             remark = update_params.pop("remark")
             bk_biz_id = update_params.pop("bk_biz_id")
             host_id_ip_map = update_params.pop("host_id_ip_map")
-            events = []
-            for index, host_id in enumerate(update_params["bk_host_ids"]):
-                remark_list = []
-                remark_info = remark[index]
-                for label_key in remark_info:
-                    before_value = (
-                        remark_info[label_key]["before_value"]
-                        if remark_info[label_key].get("before_value")
-                        else _("空")
-                    )
-                    after_value = (
-                        remark_info[label_key]["after_value"] if remark_info[label_key].get("after_value") else _("空")
-                    )
-                    remark_list.append(f"{RESOURCE_UPDATE_REMARK[label_key]}: {before_value}→{after_value}")
-                new_remark = ";".join(remark_list)
-                events.append(
-                    MachineEvent(
-                        bk_biz_id=bk_biz_id,
-                        ip=host_id_ip_map[str(host_id)],
-                        bk_host_id=host_id,
-                        event=update_type,
-                        ticket=None,
-                        to=None,
-                        creator=request.user.username,
-                        updater=request.user.username,
-                        remark=new_remark,
-                    )
-                )
-            MachineEvent.objects.bulk_create(events)
+            remark_map, hosts = ResourceHandler.get_evnet_info(update_params["bk_host_ids"], remark, host_id_ip_map)
+            MachineEvent.create_machine_events(
+                bk_biz_id, hosts, update_type, None, request.user.username, None, "", remark_map
+            )
         return Response(DBResourceApi.resource_batch_update(params=update_params))
 
     @common_swagger_auto_schema(
@@ -530,6 +505,15 @@ class DBResourceViewSet(viewsets.SystemViewSet):
     @action(detail=False, methods=["POST"], serializer_class=AppendHostLabelSerializer)
     def append_labels(self, request):
         append_params = self.params_validate(self.get_serializer_class())
+        # 修改主机属性和主机资源归属时添加操作记录
+        if append_params.get("remark"):
+            remark = append_params.pop("remark")
+            bk_biz_id = append_params.pop("bk_biz_id")
+            host_id_ip_map = append_params.pop("host_id_ip_map")
+            remark_map, hosts = ResourceHandler.get_evnet_info(append_params["bk_host_ids"], remark, host_id_ip_map)
+            MachineEvent.create_machine_events(
+                bk_biz_id, hosts, "resource_owner", None, request.user.username, None, "", remark_map
+            )
         return Response(DBResourceApi.resource_append_labels(append_params))
 
     @common_swagger_auto_schema(

@@ -580,6 +580,9 @@ class ListCvmDeviceClassSerializer(serializers.ModelSerializer):
 class AppendHostLabelSerializer(serializers.Serializer):
     bk_host_ids = serializers.ListField(help_text=_("主机ID列表"), child=serializers.IntegerField())
     labels = serializers.ListField(help_text=_("追加标签列表"), child=serializers.CharField())
+    bk_biz_id = serializers.IntegerField(help_text=_("当前业务ID"), required=False)
+    remark = serializers.ListField(help_text=_("备注"), required=False, child=serializers.DictField())
+    host_id_ip_map = serializers.DictField(help_text=_("主机id,ip映射"), required=False)
 
 
 class CheckFaultHostsSerializer(serializers.Serializer):
