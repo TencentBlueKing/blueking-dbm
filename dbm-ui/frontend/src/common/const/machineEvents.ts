@@ -20,7 +20,7 @@ export const machineEventsDisplayMap = {
   [MachineEvents.APPLY_RESOURCE]: t('资源池申领主机'),
   [MachineEvents.HOST_ATTRIBUTE]: t('修改主机属性'),
   [MachineEvents.IMPORT_RESOURCE]: t('导入资源池'),
-  [MachineEvents.RECYCLED]: t('主机回收'),
+  [MachineEvents.RECYCLED]: t('主机删除'),
   [MachineEvents.RESOURCE_OWNER]: t('修改资源归属'),
   [MachineEvents.RETURN_RESOURCE]: t('退回资源池'),
   [MachineEvents.TO_DIRTY]: t('转入污点池'),

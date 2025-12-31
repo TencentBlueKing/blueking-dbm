@@ -200,7 +200,7 @@ export function updateResource(params: {
   };
   device_class?: string;
   for_biz?: number;
-  host_id_ip_map: Record<string, string>; // update_type 相关字段
+  host_id_ip_map?: Record<string, string>; // update_type 相关字段
   labels?: number[];
   rack_id?: string;
   remark?: {
@@ -265,7 +265,18 @@ export function getSummaryList(params: {
 /**
  * 追加主机标签
  */
-export function appendHostLabel(params: { bk_host_ids: number[]; labels: number[] }) {
+export function appendHostLabel(params: {
+  bk_biz_id: number;
+  bk_host_ids: number[];
+  host_id_ip_map: Record<string, string>;
+  labels: number[];
+  remark: {
+    [key: string]: {
+      after_value: string;
+      before_value: string;
+    };
+  }[];
+}) {
   return http.post(`${path}/append_labels/`, params);
 }
 
