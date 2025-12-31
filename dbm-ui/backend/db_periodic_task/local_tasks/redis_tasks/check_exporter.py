@@ -97,7 +97,8 @@ class CheckRedisUpMetricTask:
             for cluster in cluster_list[i : i + batch_size]:
                 total_num += 1
                 rows = self.check_cluster(cluster, report_day)
-                cluster_state_total[rows[0].state] += 1
+                if len(rows) > 0:
+                    cluster_state_total[rows[0].state] += 1
                 for record in rows:
                     record_batch_ops.append(record)
             record_batch_ops.bulk_create()
@@ -136,9 +137,9 @@ class CheckRedisUpMetricTask:
                 if records is not None:
                     return records
             except Exception as e:
-                logger.error(f"check_cluster error: {e}, retry {i + 1} times, sleep {i * 3} seconds")
+                logger.error(f"check_cluster error: {e}, retry {i + 1} times, sleep {i * 3 + 1} seconds")
                 last_error = e
-                time.sleep(i * 3) + 1
+                time.sleep(i * 3 + 1)
         return cluster_report.make_error_record(f"system error after 3 times retry: {last_error}")
 
     def check_cluster_inner(self, cluster_report: RedisClusterReport, cluster: Cluster) -> list:
@@ -190,6 +191,8 @@ class CheckRedisUpMetricTask:
         """
         original_exporter_prefix = exporter_prefix
         msg_list = defaultdict(list)
+        if metric_val is None:
+            metric_val = {}
         for node in node_list:
             addr = _node_to_addr(node)
             item = metric_val.get(addr)
@@ -296,6 +299,8 @@ class CheckRedisUpMetricTask:
 
         # 多余的proxy节点. 存在集群外的proxy节点上报本集群的指标
         all_proxy_node_addr_list = {_node_to_addr(proxy_node) for proxy_node in proxy_node_list}  # 去重
+        if proxy_metric_val is None:
+            proxy_metric_val = {}
         for addr in proxy_metric_val:
             if addr not in all_proxy_node_addr_list:
                 exporter_prefix = self._instance_role_to_exporter_prefix(proxy_type)

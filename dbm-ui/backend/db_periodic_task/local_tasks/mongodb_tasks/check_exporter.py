@@ -77,14 +77,15 @@ class CheckMongodbUpMetricTask:
                 cluster = MongoRepository.fetch_one_cluster(with_tags=True, id=c.id)
                 rows = self.check_cluster(cluster, report_day)
                 total_num += 1
-                if rows[0].state == ReportStateType.NORMAL.value:
-                    success_num += 1
-                elif rows[0].state == ReportStateType.WARNING.value:
-                    warning_num += 1
-                elif rows[0].state == ReportStateType.ABNORMAL.value:
-                    abnormal_num += 1
-                for record in rows:
-                    record_batch_ops.append(record)
+                if rows:
+                    if rows[0].state == ReportStateType.NORMAL.value:
+                        success_num += 1
+                    elif rows[0].state == ReportStateType.WARNING.value:
+                        warning_num += 1
+                    elif rows[0].state == ReportStateType.ABNORMAL.value:
+                        abnormal_num += 1
+                    for record in rows:
+                        record_batch_ops.append(record)
             record_batch_ops.bulk_create()
         logger.info(
             f"CheckMongodbUpMetricTask report_day: {report_day} "
@@ -117,9 +118,9 @@ class CheckMongodbUpMetricTask:
                 if records is not None:
                     return records
             except Exception as e:
-                logger.error(f"check_cluster error: {e}, retry {i + 1} times, sleep {i * 3} seconds")
+                logger.error(f"check_cluster error: {e}, retry {i + 1} times, sleep {i * 3 + 1} seconds")
                 last_error = e
-                time.sleep(i * 3) + 1
+                time.sleep(i * 3 + 1)
         cluster_report = ClusterReport(cluster, report_day, self.check_type)
         return cluster_report.make_error_record(f"system error after 3 times retry: {last_error}")
 
@@ -144,6 +145,8 @@ class CheckMongodbUpMetricTask:
             return cluster_report.make_records()
 
         metric_val = fetch_metric_by_cluster(cluster.immute_domain)
+        if metric_val is None:
+            metric_val = {}
         for node in all_node:
             msg = "ok"
             item = metric_val.get(addr(node))
@@ -211,21 +214,30 @@ def fetch_metric_by_cluster(cluster_domain):
     metric_result = defaultdict(dict)
     try:
         out = BKMonitorV3Api.unify_query(params, use_admin=True)
-        series = out["series"]
+        series = out.get("series", [])
     except Exception as e:
         logger.error("query metric error: {}".format(e))
         return None
     dev_debug("cluster_domain: {} series: {}".format(cluster_domain, series))
     for item in series:
         logger.info("cluster_domain: {} item: {}".format(cluster_domain, item))
-        ip_port = item["dimensions"]["bk_target_ip"] + ":" + str(item["dimensions"]["instance_port"])
-        logger.info("cluster_domain: {} ip_port: {}".format(cluster_domain, ip_port))
-        metric_result[ip_port] = {
-            "instance": ip_port,
-            "instance_role": item["dimensions"]["instance_role"],
-            "instance_port": item["dimensions"]["instance_port"],
-            "bk_target_ip": item["dimensions"]["bk_target_ip"],
-            "cluster_domain": item["dimensions"]["cluster_domain"],
-            "value": item["datapoints"][0][0],
-        }
+        try:
+            dimensions = item.get("dimensions", {})
+            datapoints = item.get("datapoints", [])
+            if not datapoints:
+                logger.warning("cluster_domain: {} item has empty datapoints: {}".format(cluster_domain, item))
+                continue
+            ip_port = dimensions.get("bk_target_ip", "") + ":" + str(dimensions.get("instance_port", ""))
+            logger.info("cluster_domain: {} ip_port: {}".format(cluster_domain, ip_port))
+            metric_result[ip_port] = {
+                "instance": ip_port,
+                "instance_role": dimensions.get("instance_role", ""),
+                "instance_port": dimensions.get("instance_port", ""),
+                "bk_target_ip": dimensions.get("bk_target_ip", ""),
+                "cluster_domain": dimensions.get("cluster_domain", ""),
+                "value": datapoints[0][0],
+            }
+        except (KeyError, IndexError, TypeError) as e:
+            logger.error("cluster_domain: {} parse item error: {}, item: {}".format(cluster_domain, e, item))
+            continue
     return metric_result
