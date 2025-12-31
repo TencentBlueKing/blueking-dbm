@@ -43,7 +43,9 @@
     </DbFormItem>
     <DbFormItem
       :label="t('单机分片数')"
-      required>
+      property="shardNum"
+      required
+      :rules="shardNumRules">
       <BkInput
         v-model="shardNum"
         clearable
@@ -122,6 +124,15 @@
   const modelValue = defineModel<ModelValue>({ required: true });
 
   const { t } = useI18n();
+
+  const shardNumRules = [
+    {
+      message: t('单机分片数不能为空'),
+      required: true,
+      trigger: 'change',
+      validator: () => Boolean(shardNum.value),
+    },
+  ];
 
   const specSelectorRef = ref<ComponentExposed<typeof SpecSelector>>();
   const shardNum = ref<string | number>('');
