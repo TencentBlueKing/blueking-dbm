@@ -131,9 +131,9 @@ class CheckMongoBackupRecordTask:
                     return records
 
             except Exception as e:
-                logger.error(f"check_cluster error: {e}, retry {i + 1} times, sleep {i * 10} seconds")
+                logger.error(f"check_cluster error: {e}, retry {i + 1} times, sleep {i * 3 + 1} seconds")
                 last_error = e
-                time.sleep(i * 3) + 1
+                time.sleep(i * 3 + 1)
 
         cluster_report = ClusterReport(cluster, report_day, self.check_type)
         return cluster_report.make_error_record(f"system error after 3 times retry: {last_error}")
@@ -146,7 +146,6 @@ class CheckMongoBackupRecordTask:
         4. 检查所有的分片的backup节点是否存在全备文件记录
         5. 检查所有的分片的backup节点的增量备份记录是否连续
         """
-
         cluster_report = ClusterReport(cluster, report_day, self.check_type)
         skipped, skip_reason = self.is_skip_check(cluster)
         if skipped:
@@ -161,6 +160,7 @@ class CheckMongoBackupRecordTask:
             msg = ""
             state = ReportStateType.NORMAL.value
             shard_id = shard.set_name
+            node = None
             if shard_id is None:
                 msg = "no-shard-id"
                 state = ReportStateType.ABNORMAL.value
@@ -172,7 +172,7 @@ class CheckMongoBackupRecordTask:
                 else:
                     state, msg = self.check_one_shard(cluster, shard_id, backup_records)
 
-            cluster_report.append(state, shard_id, addr(node), msg)
+            cluster_report.append(state, shard_id, addr(node) if node else "", msg)
 
         return cluster_report.make_records()
 
@@ -190,10 +190,17 @@ class CheckMongoBackupRecordTask:
             return ReportStateType.ABNORMAL.value, "no-full-backup-file"
 
         # 全备记录. pitr_fullname_list的成员是一个yyyymmddhh格式的数字, 此处做个排序, 先分析最新的记录.
-        pitr_fullname_list = sorted([int(x) for x in shard_backup_records.keys()], reverse=True)
+        pitr_fullname_list = []
+        for x in shard_backup_records.keys():
+            try:
+                pitr_fullname_list.append(int(x))
+            except (ValueError, TypeError):
+                logger.warning(f"check_one_shard invalid pitr_fullname: {x}, skip")
+                continue
+        pitr_fullname_list = sorted(pitr_fullname_list, reverse=True)
 
         ret_list = []
-        for i, pitr_fullname in enumerate(pitr_fullname_list):
+        for pitr_fullname in pitr_fullname_list:
             # do check full backup record
             node_list = list(shard_backup_records[str(pitr_fullname)].keys())
             # 一个pitr_fullname 只有一个节点，如果多个节点，则认为是异常
@@ -206,15 +213,25 @@ class CheckMongoBackupRecordTask:
                         ),
                     }
                 )
+                continue
 
             node = node_list[0]
             incr_list = shard_backup_records[str(pitr_fullname)][node]
+            if not incr_list:
+                ret_list.append(
+                    {
+                        "state": ReportStateType.ABNORMAL.value,
+                        "msg": "no incremental backup record for pitr_fullname: {}".format(pitr_fullname),
+                    }
+                )
+                continue
+
             # check incremental backup record]
-            for i, row in enumerate(incr_list):
+            for idx, row in enumerate(incr_list):
                 dev_debug(
                     "BackupRecordStat {} pitr_file_type {} pitr_fullname {} pitr_binlog_index: {} file_name: {} "
                     "file_size: {} backup_time: {} {}".format(
-                        i,
+                        idx,
                         row.get("pitr_file_type"),
                         row.get("pitr_fullname"),
                         row.get("pitr_binlog_index"),

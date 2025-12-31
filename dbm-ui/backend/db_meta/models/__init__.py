@@ -24,3 +24,4 @@ from .spec import SnapshotSpec, Spec
 from .storage_instance_tuple import StorageInstanceTuple
 from .storage_set_dtl import NosqlStorageSetDtl, TenDBClusterStorageSet
 from .tag import Tag
+from .storage_instance_ext import MongoDBStorageInstanceExt
