@@ -32,9 +32,9 @@ class Command(BaseCommand):
         Command.deploy_exporter(ip, port, bk_cloud_id)
 
     def deploy_exporter(ip: str, port: int = 0, bk_cloud_id: int = 0):
-        from backend.db_meta.models import Machine, StorageInstance, ProxyInstance
-        from backend.flow.utils.cc_manage import trigger_operate_collector
         from backend.db_meta.enums import ClusterType
+        from backend.db_meta.models import Machine, ProxyInstance, StorageInstance
+        from backend.flow.utils.cc_manage import trigger_operate_collector
 
         # set log level to info, and print to console
         logger.setLevel(logging.INFO)
