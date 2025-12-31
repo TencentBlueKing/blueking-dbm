@@ -144,12 +144,10 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
     @mcp_tools_api_decorator(
         description=str(
             _(
-                """创建 TenDBSingle, TenDBHA, TenDBCluster 权限申请单据
+                """创建 mysql 权限申请单据
         * 按照权限模版的定义在集群上开通权限
-        * account_name 需要在业务权限模版中录入
-        * dbname 也要在业务权限模版对应的 account_name 下录入
-        * 开通的权限是预先在权限模版中录入好了的
-        * 如果参数缺少用户名和 DB 名, 列出业务相关集群类型的所有权限模版提供帮助
+        * account_name 和 dbname 需要在模版预录入
+        * 如果缺少参数参考权限模版
         """
             )
         ),
