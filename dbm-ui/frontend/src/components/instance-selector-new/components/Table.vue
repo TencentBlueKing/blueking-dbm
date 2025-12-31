@@ -37,25 +37,25 @@
           {{ row.id }}
         </template>
       </TableColumn>
-      <template v-if="isMongodb">
-        <TableColumn
-          col-key="master_domain"
-          :min-width="250"
-          :title="t('域名')">
-          <template #default="{ row }: { row: IRowData }">
-            {{ row.master_domain || '--' }}
-          </template>
-        </TableColumn>
-        <TableColumn
-          col-key="shard"
-          :filter="columnFilter?.['shard']"
-          :title="t('分片名')"
-          :width="150">
-          <template #default="{ row }: { row: IRowData }">
-            {{ row.shard || '--' }}
-          </template>
-        </TableColumn>
-      </template>
+      <TableColumn
+        v-if="isMongodb"
+        col-key="instance_domain"
+        :min-width="250"
+        :title="t('域名')">
+        <template #default="{ row }: { row: MongodbInstanceModel }">
+          {{ row.instance_domain || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        v-if="clusterType === ClusterTypes.MONGO_SHARED_CLUSTER"
+        col-key="shard"
+        :filter="columnFilter?.['shard']"
+        :title="t('分片名')"
+        :width="150">
+        <template #default="{ row }: { row: MongodbInstanceModel }">
+          {{ row.shard || '--' }}
+        </template>
+      </TableColumn>
       <TableColumn
         col-key="status"
         :filter="columnFilter?.['status']"
@@ -131,6 +131,8 @@
 
 <script setup lang="ts" generic="T extends ISupportClusterType">
   import { useI18n } from 'vue-i18n';
+
+  import MongodbInstanceModel from '@services/model/mongodb/mongodb-instance';
 
   import { useInstanceColumnFilter, useInstanceQuickSearch } from '@hooks';
 
