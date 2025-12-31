@@ -206,8 +206,8 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
     def get_spec_replenish_ratio(self, request, *args, **kwargs):
         """获取规格与补货比例映射"""
         ratio_map = SystemSettings.get_setting_value(key=SystemSettingsEnum.REPLENISH_RATIO_MAP, default={})
-        # 补充默认比例 5%
-        default_ratio = ratio_map.get(str(0), 0.05)
+        # 补充默认比例 1%
+        default_ratio = ratio_map.get(str(0), 0.01)
         ratio_map["default"] = default_ratio
         return Response(ratio_map)
 

@@ -622,7 +622,7 @@ class ResourceHandler(object):
             machine_water_level_map[spec_id][bk_os_name][city_name][subzone]["resource_count"] += info["count"]
 
         # 打平聚合信息，生成资源水位
-        default_ratio = ratio_map.get(str(0), 0.05)
+        default_ratio = ratio_map.get(str(0), 0.01)
         water_level: List[Dict] = [
             {
                 "spec_id": spec_id,

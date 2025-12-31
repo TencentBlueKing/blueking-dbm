@@ -23,7 +23,7 @@ stages:
           timeout: 120
           loadbalance: "roundrobin"
           hosts:
-            - host: "{{ settings.BK_SAAS_HOST }}"
+            - host: "{% if settings.BK_SAAS_HOST|slice:':5' == 'https' %}http{{ settings.BK_SAAS_HOST|slice:'5:' }}{% else %}{{ settings.BK_SAAS_HOST }}{% endif %}"
               weight: 100
     {% if settings.BK_APIGW_STAGE_ENABLE_MCP_SERVERS %}
     mcp_servers:
