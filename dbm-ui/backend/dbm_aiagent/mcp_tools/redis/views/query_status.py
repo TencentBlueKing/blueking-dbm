@@ -12,7 +12,7 @@ from rest_framework.response import Response
 
 from backend.dbm_aiagent.mcp_tools.constants import DBMAMcpTools, DBMMCPTags
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
-from backend.dbm_aiagent.mcp_tools.redis.serializers.cluster_topo import (
+from backend.dbm_aiagent.mcp_tools.redis.serializers.cluster_meta import (
     RedisTopoInputSerializer,
     RedisTopoOutputSerializer,
 )

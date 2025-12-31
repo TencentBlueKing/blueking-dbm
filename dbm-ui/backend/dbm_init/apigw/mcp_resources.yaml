@@ -923,6 +923,57 @@ paths:
           appVerifiedRequired: true
           resourcePermissionRequired: true
         descriptionEn: 查询 Redis 实例的主从关系
+  /apis/ai/mcp_tools/redis/list_redis_clusters/:
+    post:
+      operationId: redis_query_meta_list_redis_clusters
+      description: 查询业务下的Redis集群列表
+      tags:
+      - read
+      - mcp-tools
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RedisBizInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RedisBizInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RedisBizInputRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RedisClustersOutput'
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: false
+        matchSubpath: false
+        backend:
+          name: default
+          method: post
+          path: /apis/ai/mcp_tools/redis/list_redis_clusters/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs:
+        - type: bk-header-rewrite
+          yaml: |
+            remove: []
+            set:
+            - key: X-Bkdbm-Mcp-Tag
+              value: read,mcp-tools
+        allowApplyPermission: false
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn: 查询业务下的Redis集群列表
   /apis/ai/mcp_tools/sqlserver/cluster_topo/:
     post:
       operationId: sqlserver_query_cluster_topo
@@ -1786,6 +1837,38 @@ components:
           description: ip:port 形式的实例地址
       required:
       - address
+    RedisBizInputRequest:
+      type: object
+      properties:
+        bk_biz_id:
+          type: integer
+          description: 业务ID
+      required:
+      - bk_biz_id
+    RedisClustersOutput:
+      type: object
+      properties:
+        bk_cloud_id:
+          type: integer
+          description: 云区域ID
+        cluster_type:
+          type: string
+          description: 集群类型
+        cluster_id:
+          type: integer
+          description: 集群ID
+        immute_domain:
+          type: string
+          description: 集群域名
+        alias:
+          type: string
+          description: 集群别名
+      required:
+      - alias
+      - bk_cloud_id
+      - cluster_id
+      - cluster_type
+      - immute_domain
     RedisEntry:
       type: object
       properties:

@@ -88,13 +88,11 @@ def instance_tuple(addr: str) -> List:
     instance_tuples = {}
     for m_boj in machine_objs:
         if m_boj.access_layer == AccessLayer.PROXY.value:
-            p_obj = ProxyInstance.objects.get(machine_id=m_boj.id)
+            p_obj = ProxyInstance.objects.get(machine_id=m_boj.bk_host_id)
             cluster = p_obj.cluster.get()
             if not instance_tuples.get(cluster.immute_domain):
                 instance_tuples[cluster.immute_domain] = []
-            instance_tuples[cluster.immute_domain].append(
-                [{"proxy": "{}:{}".format(m_boj.ip, p_obj.port), "immute_domain": cluster.immute_domain}]
-            )
+            instance_tuples[cluster.immute_domain].append([{"proxy": "{}:{}".format(m_boj.ip, p_obj.port)}])
         else:
             inst_obj = StorageInstance.objects.get(machine__ip=ip, port=port)
             for otr in StorageInstanceTuple.objects.filter(ejector=inst_obj):
@@ -106,7 +104,6 @@ def instance_tuple(addr: str) -> List:
                     {
                         "master": "{}:{}".format(m_boj.ip, m_obj.port),
                         "slave": "{}:{}".format(m_boj.ip, s_obj.port),
-                        "cluster": cluster.immute_domain,
                     }
                 )
             for otr in StorageInstanceTuple.objects.filter(receiver=inst_obj):
@@ -118,7 +115,6 @@ def instance_tuple(addr: str) -> List:
                     {
                         "master": "{}:{}".format(m_boj.ip, m_obj.port),
                         "slave": "{}:{}".format(m_boj.ip, s_obj.port),
-                        "cluster": cluster.immute_domain,
                     }
                 )
 
