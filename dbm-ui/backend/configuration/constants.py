@@ -255,6 +255,8 @@ COST_ESTIMATE_TEMPLATE = {
 
 # 磁盘类型，目前固定写死
 DISK_CLASSES = ["SSD", "CLOUD_SSD", "HDD", "LOCAL_HDD", "ALL"]
+# 磁盘类型和海磊(腾讯云)申请盘映射
+HCM_DISK_CLASS_MAP = {"CLOUD_SSD": "CLOUD_SSD", "HDD": "CLOUD_PREMIUM", "ALL": "CLOUD_PREMIUM"}
 
 # 默认轮值通知配置
 BKM_DUTY_NOTICE_VALUE = {

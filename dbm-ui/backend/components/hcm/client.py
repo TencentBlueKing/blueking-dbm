@@ -12,7 +12,8 @@ from datetime import datetime, timedelta
 
 from django.utils.translation import gettext as _
 
-from ...configuration.constants import SystemSettingsEnum
+from ... import env
+from ...configuration.constants import HCM_DISK_CLASS_MAP, SystemSettingsEnum
 from ...configuration.models import SystemSettings
 from ...db_meta.models.city_map import BKSubzone
 from ...db_services.cmdb.biz import get_resource_biz
@@ -146,6 +147,9 @@ class _HCMApi(BaseApi):
         5. 计费模式：包年包月，36个月
         6. 继承云实例ID：在弹性资源池cc上找到一个同地域同机型的主机固资编号，如果无法找到则不能申请改类型规格的机器
         """
+        # 这里申请业务先固定为DB生产环境
+        bk_biz_id = env.DBA_APP_BK_BIZ_ID
+
         hcm_image_map = SystemSettings.get_setting_value(SystemSettingsEnum.HCM_OS_NAME_IMAGE_MAP, default={})
         hcm_image_map = {key.strip().lower(): value for key, value in hcm_image_map.items()}
 
@@ -154,7 +158,7 @@ class _HCMApi(BaseApi):
         if not image_id:
             raise DataAPIException(_("未找到操作系统{}对应的镜像ID").format(os_name))
 
-        # 查询资源池业务下同地域同机型的任意一个机器云区域实例ID
+        # 查询业务下同地域同机型的任意一个机器云区域实例ID
         filters = {
             "condition": "AND",
             "rules": [
@@ -195,7 +199,11 @@ class _HCMApi(BaseApi):
                 "image_id": image_id,
                 # 磁盘类型固定CLOUD_SSD，操作系统盘默认50G
                 "system_disk": {"disk_type": "CLOUD_SSD", "disk_size": 50},
-                "data_disk": [{"disk_type": d["disk_type"], "disk_size": d["disk_size"]} for d in disk],
+                "data_disk": [
+                    {"disk_type": HCM_DISK_CLASS_MAP[d["disk_type"]], "disk_size": d["disk_size"]}
+                    for d in disk
+                    if d["disk_type"] in HCM_DISK_CLASS_MAP
+                ],
                 # 计费时长固定为包年包月，36个月
                 "charge_type": "PREPAID",
                 "charge_months": 36,
