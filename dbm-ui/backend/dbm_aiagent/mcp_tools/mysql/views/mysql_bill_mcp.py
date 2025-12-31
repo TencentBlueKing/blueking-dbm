@@ -16,10 +16,12 @@ from backend.db_meta.models import Cluster
 from backend.dbm_aiagent.mcp_tools.constants import DBMAMcpTools, DBMMCPTags
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.exceptions import (
+    DBMMcpNoneBillSubmittedException,
     DBMMcpNotSupportClusterTypeException,
     DBMMcpUsernameNotFoundException,
 )
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_apply_priv import bill_apply_priv
+from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_mysql_standardize import bill_mysql_standardize
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.bill_output import SubmitBillOutputSerializer
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_apply_priv_bill import (
     SubmitBillMySQLApplyPrivInputSerializer,
@@ -29,6 +31,9 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_db_table_backup impor
 )
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_full_backup_bill import (
     SubmitBillMySQLFullBackupInputSerializer,
+)
+from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_standardize_bill import (
+    SubmitBillMySQLStandardizeInputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.flow.consts import MySQLBackupFileTagEnum
@@ -86,7 +91,7 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         }
 
         tk = Ticket.create_ticket(**ticket_param)
-        return Response({"bill_id": tk.pk})
+        return Response({"bill_ids": [tk.pk]})
 
     @mcp_tools_api_decorator(
         description=str(_("""创建 TenDBHA, TenDBCluster 库表备单据""")),
@@ -139,7 +144,7 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         }
 
         tk = Ticket.create_ticket(**ticket_param)
-        return Response({"bill_id": tk.pk})
+        return Response({"bill_ids": [tk.pk]})
 
     @mcp_tools_api_decorator(
         description=str(
@@ -178,4 +183,45 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
             cluster_domain=cluster_domain,
         )
 
-        return Response({"bill_id": bill_id})
+        return Response({"bill_ids": [bill_id]})
+
+    @mcp_tools_api_decorator(
+        description=str(_("""创建 mysql 标准化单据""")),
+        request_slz=SubmitBillMySQLStandardizeInputSerializer,
+        response_slz=SubmitBillOutputSerializer,
+        tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
+        mcp=[DBMAMcpTools.MYSQL_BILL],
+        name_prefix="mysql_bill",
+    )
+    def submit_bill_mysql_standardize(self, request, *args, **kwargs):
+        # bk_cloud_id = self.get_param("bk_cloud_id")
+        bk_biz_id = self.get_param("bk_biz_id")
+        cluster_domains = self.get_param("cluster_domains")
+
+        with_instance_standardize = self.get_param("with_instance_standardize", False)
+        with_cc_standardize = self.get_param("with_cc_standardize", False)
+        with_deploy_binary = self.get_param("with_deploy_binary", False)
+        with_push_config = self.get_param("with_push_config", False)
+        # with_checksum = self.get_param("with_checksum", False)
+
+        if not (with_instance_standardize or with_cc_standardize or with_deploy_binary or with_push_config):
+            raise DBMMcpNoneBillSubmittedException(msg=_("所有选项为否, 无需提交单据"))
+
+        username = request.user.username
+        if not username:
+            raise DBMMcpUsernameNotFoundException()
+
+        return Response(
+            {
+                "bill_ids": bill_mysql_standardize(
+                    username=username,
+                    # bk_cloud_id=bk_cloud_id,
+                    bk_biz_id=bk_biz_id,
+                    cluster_domains=cluster_domains,
+                    with_instance_standardize=with_instance_standardize,
+                    with_cc_standardize=with_cc_standardize,
+                    with_deploy_binary=with_deploy_binary,
+                    with_push_config=with_push_config,
+                )
+            }
+        )

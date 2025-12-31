@@ -52,3 +52,15 @@ class DBMMcpMySQLApplyPrivDBRuleNotFoundException(DBMMcpBaseException):
     ERROR_CODE = "006"
     MESSAGE = _("DB 规则未找到")
     MESSAGE_TPL = _("{msg}")
+
+
+class DBMMcpNoneBillSubmittedException(DBMMcpBaseException):
+    ERROR_CODE = "007"
+    MESSAGE = _("单据未提交")
+    MESSAGE_TPL = _("{msg}")
+
+
+class DBMMcpClusterNotFoundException(DBMMcpBaseException):
+    ERROR_CODE = ("008",)
+    MESSAGE = _("集群未找到")
+    MESSAGE_TPL = _("{msg}")

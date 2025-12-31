@@ -13,4 +13,4 @@ from rest_framework import serializers
 
 
 class SubmitBillOutputSerializer(serializers.Serializer):
-    bill_id = serializers.IntegerField(help_text=_("单据id"))
+    bill_ids = serializers.ListSerializer(child=serializers.IntegerField(), help_text=_("单据 ID 列表"))

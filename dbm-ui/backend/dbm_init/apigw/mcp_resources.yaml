@@ -620,10 +620,8 @@ paths:
   /apis/ai/mcp_tools/mysql/submit_bill_mysql_apply_priv/:
     post:
       operationId: mysql_bill_submit_bill_mysql_apply_priv
-      description: "创建 TenDBSingle, TenDBHA, TenDBCluster 权限申请单据\n        * 按照权限模版的定义在集群上开通权限\n\
-        \        * account_name 需要在业务权限模版中录入\n        * dbname 也要在业务权限模版对应的 account_name\
-        \ 下录入\n        * 开通的权限是预先在权限模版中录入好了的\n        * 如果参数缺少用户名和 DB 名, 列出业务相关集群类型的所有权限模版提供帮助\n\
-        \        "
+      description: "创建 mysql 权限申请单据\n        * 按照权限模版的定义在集群上开通权限\n        * account_name\
+        \ 和 dbname 需要在模版预录入\n        * 如果缺少参数参考权限模版\n        "
       tags:
       - read
       - write
@@ -671,10 +669,8 @@ paths:
           userVerifiedRequired: true
           appVerifiedRequired: true
           resourcePermissionRequired: true
-        descriptionEn: "创建 TenDBSingle, TenDBHA, TenDBCluster 权限申请单据\n        * 按照权限模版的定义在集群上开通权限\n\
-          \        * account_name 需要在业务权限模版中录入\n        * dbname 也要在业务权限模版对应的 account_name\
-          \ 下录入\n        * 开通的权限是预先在权限模版中录入好了的\n        * 如果参数缺少用户名和 DB 名, 列出业务相关集群类型的所有权限模版提供帮助\n\
-          \        "
+        descriptionEn: "创建 mysql 权限申请单据\n        * 按照权限模版的定义在集群上开通权限\n        * account_name\
+          \ 和 dbname 需要在模版预录入\n        * 如果缺少参数参考权限模版\n        "
   /apis/ai/mcp_tools/mysql/submit_bill_mysql_db_table_backup/:
     post:
       operationId: mysql_bill_submit_bill_mysql_db_table_backup
@@ -779,6 +775,58 @@ paths:
           appVerifiedRequired: true
           resourcePermissionRequired: true
         descriptionEn: 创建 TenDBHA, TenDBCluster 全备单据
+  /apis/ai/mcp_tools/mysql/submit_bill_mysql_standardize/:
+    post:
+      operationId: mysql_bill_submit_bill_mysql_standardize
+      description: 创建 mysql 标准化单据
+      tags:
+      - read
+      - write
+      - mcp-tools
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitBillMySQLStandardizeInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SubmitBillMySQLStandardizeInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SubmitBillMySQLStandardizeInputRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitBillOutput'
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: false
+        matchSubpath: false
+        backend:
+          name: default
+          method: post
+          path: /apis/ai/mcp_tools/mysql/submit_bill_mysql_standardize/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs:
+        - type: bk-header-rewrite
+          yaml: |
+            remove: []
+            set:
+            - key: X-Bkdbm-Mcp-Tag
+              value: read,write,mcp-tools
+        allowApplyPermission: false
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn: 创建 mysql 标准化单据
   /apis/ai/mcp_tools/mysql/tendbcluster_topo/:
     post:
       operationId: mysql_query_tendbcluster_topo
@@ -2576,14 +2624,47 @@ components:
       - backup_type
       - bk_biz_id
       - cluster_domain
+    SubmitBillMySQLStandardizeInputRequest:
+      type: object
+      properties:
+        bk_biz_id:
+          type: integer
+          description: 业务 ID
+        cluster_domains:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          description: 集群域名列表
+        with_instance_standardize:
+          type: boolean
+          default: false
+          description: 是否实例标准化, 重建 DBM 系统库表和权限. 高危慎用
+        with_cc_standardize:
+          type: boolean
+          default: false
+          description: 是否 CC 标准化, 重建服务实例和部署蓝鲸插件
+        with_deploy_binary:
+          type: boolean
+          default: false
+          description: 是否部署工具二进制, 包含 mysql-monitor, dbbackup, binlog-rotate, checksum
+        with_push_config:
+          type: boolean
+          default: true
+          description: 是否推送工具配置
+      required:
+      - bk_biz_id
+      - cluster_domains
     SubmitBillOutput:
       type: object
       properties:
-        bill_id:
-          type: integer
-          description: 单据id
+        bill_ids:
+          type: array
+          items:
+            type: integer
+          description: 单据 ID 列表
       required:
-      - bill_id
+      - bill_ids
     TenDBClusterSpiderInstance:
       type: object
       properties:
