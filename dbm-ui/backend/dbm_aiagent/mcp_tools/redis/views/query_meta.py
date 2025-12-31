@@ -12,14 +12,14 @@ from rest_framework.response import Response
 
 from backend.dbm_aiagent.mcp_tools.constants import DBMAMcpTools, DBMMCPTags
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
-from backend.dbm_aiagent.mcp_tools.redis.impl.cluster_topo import (
+from backend.dbm_aiagent.mcp_tools.redis.impl.cluster_meta import (
     cluster_masters,
     cluster_overview,
     cluster_proxies,
     instance_tuple,
     redis_list_clusters,
 )
-from backend.dbm_aiagent.mcp_tools.redis.serializers.cluster_topo import (
+from backend.dbm_aiagent.mcp_tools.redis.serializers.cluster_meta import (
     RedisAddrSerializer,
     RedisBizInputSerializer,
     RedisClustersOutputSerializer,
