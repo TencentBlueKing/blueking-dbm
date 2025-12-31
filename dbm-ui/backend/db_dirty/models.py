@@ -161,21 +161,26 @@ class MachineEvent(AuditedModel):
             )
 
     @classmethod
-    def create_machine_events(cls, bk_biz_id, hosts, event, pool, operator="", ticket=None, remark=""):
-        events = [
-            MachineEvent(
-                bk_biz_id=bk_biz_id,
-                ip=host["ip"],
-                bk_host_id=host.get("bk_host_id") or host.get("host_id"),
-                event=event,
-                to=pool,
-                ticket=ticket,
-                creator=operator,
-                updater=operator,
-                remark=remark,
+    def create_machine_events(
+        cls, bk_biz_id, hosts, event, pool, operator="", ticket=None, remark="", remark_map=None
+    ):
+        events = []
+        for host in hosts:
+            bk_host_id = host.get("bk_host_id") or host.get("host_id")
+            remark = remark_map.get(bk_host_id) if remark_map else remark
+            events.append(
+                MachineEvent(
+                    bk_biz_id=bk_biz_id,
+                    ip=host["ip"],
+                    bk_host_id=bk_host_id,
+                    event=event,
+                    to=pool,
+                    ticket=ticket,
+                    creator=operator,
+                    updater=operator,
+                    remark=remark,
+                )
             )
-            for host in hosts
-        ]
         MachineEvent.objects.bulk_create(events)
 
     @classmethod
