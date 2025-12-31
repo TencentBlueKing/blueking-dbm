@@ -59,6 +59,8 @@
   import DbResourceModel from '@services/model/db-resource/DbResource';
   import { appendHostLabel } from '@services/source/dbresourceResource';
 
+  import { useSystemEnviron } from '@stores';
+
   import { messageSuccess } from '@utils';
 
   import FormPanel from './components/FormPanel.vue';
@@ -79,7 +81,12 @@
   });
 
   const { t } = useI18n();
+  const route = useRoute();
+  const systemEnvironStore = useSystemEnviron();
   const formPanelRef = useTemplateRef('formPanelRef');
+
+  const isBusiness = route.name === 'BizResourcePool';
+  const defaultBizId = systemEnvironStore.urls.RESOURCE_INDEPENDENT_BIZ;
 
   const width = Math.ceil(window.innerWidth * 0.8);
   const contentHeight = Math.ceil(window.innerHeight * 0.8 - 48);
@@ -114,9 +121,21 @@
 
   const handleSubmit = async () => {
     const data = await formPanelRef.value!.getValue();
+
+    const tagAfter = formPanelRef.value!.getLabelNames().join('，');
+    const remarkList = props.selected.map((item) => {
+      const tagBefore = item.labels.map((labelItem) => labelItem.name).join('，') || '';
+      return { labels: { after_value: tagAfter, before_value: tagBefore } };
+    });
+
     runAppend({
+      bk_biz_id: isBusiness ? window.PROJECT_CONFIG.BIZ_ID : defaultBizId,
       bk_host_ids: hostList.value.map((item) => item.bk_host_id),
+      host_id_ip_map: props.selected.reduce<Record<string, string>>((prev, item) => {
+        return Object.assign(prev, { [item.bk_host_id]: item.ip });
+      }, {}),
       labels: data.labels,
+      remark: remarkList,
     });
   };
 

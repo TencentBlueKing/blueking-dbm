@@ -24,13 +24,23 @@
           {{ t('批量转入回收池') }}
         </AuthButton>
       </template>
-      <AuthButton
-        v-else
-        action-id="resource_pool_manage"
-        :disabled="!selected.length"
-        @click="handleBatchRecycle">
-        {{ t('批量回收') }}
-      </AuthButton>
+      <template v-else>
+        <AuthButton
+          v-db-console="'common.hcmRecycle'"
+          action-id="resource_pool_manage"
+          class="mr-8"
+          :disabled="!selected.length"
+          theme="primary"
+          @click="handleBatchRecycle">
+          {{ t('批量回收') }}
+        </AuthButton>
+        <AuthButton
+          action-id="resource_pool_manage"
+          :disabled="!selected.length"
+          @click="handleBatchDelete">
+          {{ t('批量删除') }}
+        </AuthButton>
+      </template>
       <BkDropdown class="ml-8">
         <BkButton>
           {{ t('复制') }}
@@ -172,25 +182,22 @@
       </TableColumn>
     </DbTable>
     <ReviewDataDialog
-      v-model:is-show="isReviewDataDialogShow"
+      v-model:is-show="isBatchRecycleShow"
       :confirm-handler="handleRecycleSubmit"
       :selected="selected.map((item) => item.ip)"
       theme="danger"
-      :tip="
-        t('确认后，主机将从系统中删除，同时 CMDB 转移至「n」业务待回收，请谨慎操作！', {
-          n: globalBizsStore.bizIdMap.get(defaultBizId)?.name,
-        })
-      "
+      :tip="t('确认后，主机将从系统中删除主机记录并自动在「海垒」创建回收单据，请谨慎操作！')"
       :title="t('确认批量回收 {n} 台主机？', { n: selected.length })"
       @success="handleRecycleRefresh">
-      <template #append>
-        <BkCheckbox
-          v-model="hcmRecycle"
-          v-db-console="'common.hcmRecycle'"
-          class="mt-12">
-          {{ t('勾选后，自动在「海垒」创建回收单据') }}
-        </BkCheckbox>
-      </template>
+    </ReviewDataDialog>
+    <ReviewDataDialog
+      v-model:is-show="isBatchDeleteShow"
+      :confirm-handler="handleDeleteSubmit"
+      :selected="selected.map((item) => item.ip)"
+      theme="danger"
+      :tip="t('确认后，主机将从系统中删除主机记录，请谨慎操作！')"
+      :title="t('确认批量删除 {n} 台主机？', { n: selected.length })"
+      @success="handleDeleteRefresh">
     </ReviewDataDialog>
     <ReviewDataDialog
       v-model:is-show="isBatchConvertToRecyclePool"
@@ -219,7 +226,7 @@
   import FaultOrRecycleMachineModel from '@services/model/db-resource/FaultOrRecycleMachine';
   import { getMachinePool, transferMachinePool } from '@services/source/dbdirty';
 
-  import { useGlobalBizs, useSystemEnviron } from '@stores';
+  import { useSystemEnviron } from '@stores';
 
   import DbStatus from '@components/db-status/index.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
@@ -229,14 +236,13 @@
   import { useColumnFilter } from '@views/resource-manage/common/hooks/useColumnFilter';
   import { useQuickSearch } from '@views/resource-manage/common/hooks/useQuickSearch';
 
-  import { checkDbConsole, execCopy, messageSuccess, messageWarn } from '@utils';
+  import { execCopy, messageWarn } from '@utils';
 
   import BatchImportResourcePool from './components/BatchImportResourcePool/Index.vue';
 
   const { t } = useI18n();
   const route = useRoute();
   const systemEnvironStore = useSystemEnviron();
-  const globalBizsStore = useGlobalBizs();
 
   const isFaultPool = route.name === 'faultPool';
   const pool = isFaultPool ? 'fault' : 'recycle';
@@ -246,12 +252,10 @@
   const tableRef = useTemplateRef('tableRef');
 
   const selected = ref<FaultOrRecycleMachineModel[]>([]);
-  const isReviewDataDialogShow = ref(false);
+  const isBatchRecycleShow = ref(false);
+  const isBatchDeleteShow = ref(false);
   const isBatchImportResourcePoolShow = ref(false);
   const isBatchConvertToRecyclePool = ref(false);
-  const hcmRecycle = ref(true);
-
-  const defaultBizId = systemEnvironStore.urls.RESOURCE_INDEPENDENT_BIZ;
 
   watch(
     () => route.name,
@@ -299,7 +303,11 @@
   };
 
   const handleBatchRecycle = () => {
-    isReviewDataDialogShow.value = true;
+    isBatchRecycleShow.value = true;
+  };
+
+  const handleBatchDelete = () => {
+    isBatchDeleteShow.value = true;
   };
 
   const handleBatchConvertToRecyclePool = () => {
@@ -307,15 +315,20 @@
   };
 
   const handleRecycleSubmit = () => {
-    const params: ServiceParameters<typeof transferMachinePool> = {
+    return transferMachinePool({
+      bk_host_ids: selected.value.map((item) => item.bk_host_id),
+      hcm_recycle: true,
+      source: 'recycle',
+      target: 'recycled',
+    });
+  };
+
+  const handleDeleteSubmit = () => {
+    return transferMachinePool({
       bk_host_ids: selected.value.map((item) => item.bk_host_id),
       source: 'recycle',
       target: 'recycled',
-    };
-    if (checkDbConsole('common.hcmRecycle')) {
-      params.hcm_recycle = hcmRecycle.value;
-    }
-    return transferMachinePool(params);
+    });
   };
 
   const handleConvertSubmit = ({ remark }: { remark: string }) => {
@@ -349,7 +362,7 @@
   };
 
   const handleRecycleRefresh = (data: ServiceReturnType<typeof transferMachinePool>) => {
-    if (checkDbConsole('common.hcmRecycle') && data.hcm_recycle_id) {
+    if (data.hcm_recycle_id) {
       const { BK_HCM_URL, RESOURCE_INDEPENDENT_BIZ } = systemEnvironStore.urls;
       const targetHref = `${BK_HCM_URL}/#/business/applications?bizs=${RESOURCE_INDEPENDENT_BIZ}&filter=order_id=${data.hcm_recycle_id}&type=host_recycle`;
       Message({
@@ -384,11 +397,12 @@
         },
         theme: 'success',
       });
-    } else {
-      messageSuccess(data.message);
     }
 
-    hcmRecycle.value = true;
+    handleRefresh();
+  };
+
+  const handleDeleteRefresh = () => {
     handleRefresh();
   };
 
