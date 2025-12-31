@@ -11,9 +11,9 @@ specific language governing permissions and limitations under the License.
 import copy
 import datetime
 import logging
+import time
 from collections import defaultdict
 from datetime import timedelta
-import time
 
 from django.db.models import Q
 from django.utils import timezone
