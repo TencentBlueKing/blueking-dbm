@@ -88,7 +88,8 @@ func New(cli *discovery.Client, db *hamysql.GormDB) (*Workflow, error) {
 		},
 
 		switchers: map[haprobe.DbType]switcher.Switcher{
-			haprobe.DbTypeMySql: &switcher.Mysql{},
+			haprobe.DbTypeMySql:        &switcher.Mysql{},
+			haprobe.DbTypeTendbCluster: &switcher.TendbCluster{},
 		},
 
 		discoveryCli: cli,
@@ -298,14 +299,22 @@ func (w *Workflow) databaseLivenessDoubleCheck(missedInsts []*hamodel.DbmMetadat
 			continue
 		}
 
-		if len(req.MySqlInstData) == 0 {
+		if len(req.MySqlInstData) == 0 && len(req.TendbClusterInstData) == 0 {
 			logger.Debug("there is no database instance that needs to be switched")
 			continue
 		}
 
-		// TODO: Now there is only MySQL(default).
-		logger.Debug("trigger switching, dbType: %s, cloudId: %d, ips: %v", haprobe.DbTypeMySql, cloudId, ips)
-		w.triggerSwitching(haprobe.DbTypeMySql, req)
+		// Trigger MySQL switching if there are MySQL instances
+		if len(req.MySqlInstData) > 0 {
+			logger.Debug("trigger switching, dbType: %s, cloudId: %d, ips: %v", haprobe.DbTypeMySql, cloudId, ips)
+			w.triggerSwitching(haprobe.DbTypeMySql, req)
+		}
+
+		// Trigger TenDBCluster switching if there are TenDBCluster instances
+		if len(req.TendbClusterInstData) > 0 {
+			logger.Debug("trigger switching, dbType: %s, cloudId: %d, ips: %v", haprobe.DbTypeTendbCluster, cloudId, ips)
+			w.triggerSwitching(haprobe.DbTypeTendbCluster, req)
+		}
 	}
 }
 
@@ -328,9 +337,13 @@ func (w *Workflow) createSwitcherRequestWithIPs(bkCloudId int, ips []string) *sw
 			continue
 		}
 
+		logger.Debug("DBM metadata for switching: inst=%s, ClusterType=%s, MachineType=%s",
+			key(meta.BkCloudID, meta.IP, meta.Port), meta.ClusterType, meta.MachineType)
 		req.AddDbInstMetadata((*switcher.MySQLInstanceMetadata)(meta))
 	}
 
+	logger.Debug("Switch request: MySqlInstData=%d, TendbClusterInstData=%d",
+		len(req.MySqlInstData), len(req.TendbClusterInstData))
 	return req
 }
 
@@ -351,49 +364,101 @@ func (w *Workflow) triggerSwitching(dbType haprobe.DbType, req *switcher.Request
 		logger.Info("switching success for the database type: %s", dbType)
 	}
 
-	// post the success alarm
-	for _, inst := range req.MySqlInstData {
-		instKey := switcher.GenerateMetadataKey(inst.BkCloudID, inst.IP, inst.Port)
+	// Handle MySQL instances
+	if dbType == haprobe.DbTypeMySql {
+		// post the success alarm for MySQL
+		for _, inst := range req.MySqlInstData {
+			instKey := switcher.GenerateMetadataKey(inst.BkCloudID, inst.IP, inst.Port)
 
-		if _, exists := rsp.MySqlFailureInsts[instKey]; exists {
-			continue
+			if _, exists := rsp.MySqlFailureInsts[instKey]; exists {
+				continue
+			}
+
+			monitorEvent := &monitor.EventData{
+				Name:      string(haprobe.DbEventNameMysqlSwitchSuccessV1),
+				Target:    string(instKey),
+				Timestamp: uint64(time.Now().UnixMilli()),
+			}
+
+			monitorEvent.Content.Content = "switching success"
+			monitorEvent.Dimension.BkCloudId = inst.BkCloudID
+			monitorEvent.Dimension.IP = inst.IP
+			monitorEvent.Dimension.Port = inst.Port
+			monitorEvent.Dimension.DbTypeName = dbType
+			monitorEvent.Dimension.DbEventName = haprobe.DbEventNameMysqlSwitchSuccessV1
+
+			if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
+				logger.Warn("switching success, failed to post the alarm, inst: %s, errmsg: %s", instKey, err)
+			}
 		}
 
-		monitorEvent := &monitor.EventData{
-			Name:      string(haprobe.DbEventNameMysqlSwitchSuccessV1),
-			Target:    string(instKey),
-			Timestamp: uint64(time.Now().UnixMilli()),
-		}
+		// post the failure alarm for MySQL
+		for instKey, inst := range rsp.MySqlFailureInsts {
+			monitorEvent := &monitor.EventData{
+				Name:      string(haprobe.DbEventNameMysqlSwitchFailureV1),
+				Target:    string(instKey),
+				Timestamp: uint64(time.Now().UnixMilli()),
+			}
 
-		monitorEvent.Content.Content = "switching success"
-		monitorEvent.Dimension.BkCloudId = inst.BkCloudID
-		monitorEvent.Dimension.IP = inst.IP
-		monitorEvent.Dimension.Port = inst.Port
-		monitorEvent.Dimension.DbTypeName = dbType
-		monitorEvent.Dimension.DbEventName = haprobe.DbEventNameMysqlSwitchSuccessV1
+			monitorEvent.Content.Content = rsp.Err.Error()
+			monitorEvent.Dimension.BkCloudId = inst.BkCloudID
+			monitorEvent.Dimension.IP = inst.IP
+			monitorEvent.Dimension.Port = inst.Port
+			monitorEvent.Dimension.DbTypeName = dbType
+			monitorEvent.Dimension.DbEventName = haprobe.DbEventNameMysqlSwitchFailureV1
 
-		if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
-			logger.Warn("switching success, failed to post the alarm, inst: %s, errmsg: %s", instKey, err)
+			if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
+				logger.Warn("switching failure, failed to post the alarm, inst: %s, errmsg: %s", instKey, err)
+			}
 		}
 	}
 
-	// post the failure alarm
-	for instKey, inst := range rsp.MySqlFailureInsts {
-		monitorEvent := &monitor.EventData{
-			Name:      string(haprobe.DbEventNameMysqlSwitchFailureV1),
-			Target:    string(instKey),
-			Timestamp: uint64(time.Now().UnixMilli()),
+	// Handle TenDBCluster instances
+	if dbType == haprobe.DbTypeTendbCluster {
+		// post the success alarm for TenDBCluster
+		for _, inst := range req.TendbClusterInstData {
+			instKey := switcher.GenerateMetadataKey(inst.BkCloudID, inst.IP, inst.Port)
+
+			if _, exists := rsp.TendbClusterFailureInsts[instKey]; exists {
+				continue
+			}
+
+			monitorEvent := &monitor.EventData{
+				Name:      string(haprobe.DbEventNameMysqlSwitchSuccessV1),
+				Target:    string(instKey),
+				Timestamp: uint64(time.Now().UnixMilli()),
+			}
+
+			monitorEvent.Content.Content = "switching success"
+			monitorEvent.Dimension.BkCloudId = inst.BkCloudID
+			monitorEvent.Dimension.IP = inst.IP
+			monitorEvent.Dimension.Port = inst.Port
+			monitorEvent.Dimension.DbTypeName = dbType
+			monitorEvent.Dimension.DbEventName = haprobe.DbEventNameMysqlSwitchSuccessV1
+
+			if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
+				logger.Warn("switching success, failed to post the alarm, inst: %s, errmsg: %s", instKey, err)
+			}
 		}
 
-		monitorEvent.Content.Content = rsp.Err.Error()
-		monitorEvent.Dimension.BkCloudId = inst.BkCloudID
-		monitorEvent.Dimension.IP = inst.IP
-		monitorEvent.Dimension.Port = inst.Port
-		monitorEvent.Dimension.DbTypeName = dbType
-		monitorEvent.Dimension.DbEventName = haprobe.DbEventNameMysqlSwitchFailureV1
+		// post the failure alarm for TenDBCluster
+		for instKey, inst := range rsp.TendbClusterFailureInsts {
+			monitorEvent := &monitor.EventData{
+				Name:      string(haprobe.DbEventNameMysqlSwitchFailureV1),
+				Target:    string(instKey),
+				Timestamp: uint64(time.Now().UnixMilli()),
+			}
 
-		if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
-			logger.Warn("switching failure, failed to post the alarm, inst: %s, errmsg: %s", instKey, err)
+			monitorEvent.Content.Content = rsp.Err.Error()
+			monitorEvent.Dimension.BkCloudId = inst.BkCloudID
+			monitorEvent.Dimension.IP = inst.IP
+			monitorEvent.Dimension.Port = inst.Port
+			monitorEvent.Dimension.DbTypeName = dbType
+			monitorEvent.Dimension.DbEventName = haprobe.DbEventNameMysqlSwitchFailureV1
+
+			if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
+				logger.Warn("switching failure, failed to post the alarm, inst: %s, errmsg: %s", instKey, err)
+			}
 		}
 	}
 }

@@ -479,8 +479,15 @@ func (sw *TenDBClusterBaseSwitchInstance) QueryTdbctlNodesOfCluster() error {
 	sw.ReportLogf(SwitchInfo, "Try to query tdbctl nodes of cluster(%s) from any valid tdbctl node", sw.Cluster)
 
 	for _, curSpider := range sw.SpiderNodes {
-		// only spider-master has tdbctl node
-		if (curSpider.Status == dbm.Unavailable) || (curSpider.SpiderRole != dbm.TenDBClusterSpiderMaster) {
+		sw.ReportLogf(SwitchInfo, "Checking spider node: IP=%s, Port=%d, AdminPort=%d, SpiderRole='%s', Status='%s'",
+			curSpider.IP, curSpider.Port, curSpider.AdminPort, curSpider.SpiderRole, curSpider.Status)
+		// only spider-master has tdbctl node, but if SpiderRole is empty, we still try to connect
+		if curSpider.Status == dbm.Unavailable {
+			sw.ReportLogf(SwitchWarn, "Skip spider node(%s:%d) due to unavailable status", curSpider.IP, curSpider.Port)
+			continue
+		}
+		if curSpider.SpiderRole != dbm.TenDBClusterSpiderMaster && curSpider.SpiderRole != "" {
+			sw.ReportLogf(SwitchWarn, "Skip spider node(%s:%d) due to non-master role: %s", curSpider.IP, curSpider.Port, curSpider.SpiderRole)
 			continue
 		}
 

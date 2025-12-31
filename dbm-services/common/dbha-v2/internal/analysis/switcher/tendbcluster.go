@@ -39,7 +39,7 @@ type TendbCluster struct {
 
 // DbTypeName returns the TenDBCluster database type identifier
 func (m *TendbCluster) DbTypeName() haprobe.DbType {
-	return haprobe.DbTypeMySql
+	return haprobe.DbTypeTendbCluster
 }
 
 // Switch handles TenDBCluster instance switching operations

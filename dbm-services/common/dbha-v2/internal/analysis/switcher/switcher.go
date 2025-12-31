@@ -30,6 +30,7 @@ import (
 	"fmt"
 
 	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
@@ -45,9 +46,19 @@ type Request struct {
 	TendbClusterInstData []*TendbClusterInstanceMetadata
 }
 
-// AddDbInstMetadata TODO: Need to adapt to different types of DB instance data
+// AddDbInstMetadata adds database instance metadata to the appropriate list based on cluster type
 func (req *Request) AddDbInstMetadata(metadata *MySQLInstanceMetadata) {
-	req.MySqlInstData = append(req.MySqlInstData, metadata)
+	logger.Info("AddDbInstMetadata: IP=%s, Port=%d, ClusterType=%s, MachineType=%s, isTendbCluster=%v, isSpider=%v",
+		metadata.IP, metadata.Port, metadata.ClusterType, metadata.MachineType,
+		metadata.ClusterType == haprobe.DbmMetadataClusterTypeTendbCluster,
+		metadata.MachineType == haprobe.DbmMetadataMachineTypeSpider)
+
+	if metadata.ClusterType == haprobe.DbmMetadataClusterTypeTendbCluster ||
+		metadata.MachineType == haprobe.DbmMetadataMachineTypeSpider {
+		req.TendbClusterInstData = append(req.TendbClusterInstData, (*TendbClusterInstanceMetadata)(metadata))
+	} else {
+		req.MySqlInstData = append(req.MySqlInstData, metadata)
+	}
 }
 
 // Response contains the result of switching operation
