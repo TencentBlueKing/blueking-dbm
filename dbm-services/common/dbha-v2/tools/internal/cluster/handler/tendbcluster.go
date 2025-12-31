@@ -94,6 +94,20 @@ func (hdl *TenDBClusterHandler) getTenDBClusterInstanceList(cluster *config.TenD
 	return instanceList
 }
 
+func (hdl *TenDBClusterHandler) getInstanceListForDbmStatusUpdate(cluster *config.TenDBCluster) []config.InstanceAddress {
+	instanceList := make([]config.InstanceAddress, 0)
+	for _, spider := range cluster.Spider {
+		instanceList = append(instanceList, config.InstanceAddress{Host: spider.Host, Port: spider.Port})
+	}
+	for _, remote := range cluster.RemoteMaster {
+		instanceList = append(instanceList, config.InstanceAddress{Host: remote.Host, Port: remote.Port})
+	}
+	for _, remote := range cluster.RemoteSlave {
+		instanceList = append(instanceList, config.InstanceAddress{Host: remote.Host, Port: remote.Port})
+	}
+	return instanceList
+}
+
 // stopSlaveForRemoteMasterAndGetBinlogList stops slave for remote master and gets binlog list
 func (hdl *TenDBClusterHandler) stopSlaveForRemoteMasterAndGetBinlogList(cluster *config.TenDBCluster) ([]config.BinlogInfo, error) {
 	binlogList := make([]config.BinlogInfo, 0)
@@ -549,9 +563,9 @@ func (hdl *TenDBClusterHandler) addAllSpidersToDomain(cluster *config.TenDBClust
 func (hdl *TenDBClusterHandler) resetSingleTenDBCluster(cluster *config.TenDBCluster) error {
 	hdl.printOneTenDBCluster(cluster)
 	fmt.Printf("Resetting cluster %s...\n", cluster.Domain)
-	instanceList := hdl.getTenDBClusterInstanceList(cluster)
+	instanceListForDbm := hdl.getInstanceListForDbmStatusUpdate(cluster)
 
-	if err := hdl.dbmClient.UpdateAllInstancesStatus(instanceList, dbm.StatusUnavailable); err != nil {
+	if err := hdl.dbmClient.UpdateAllInstancesStatus(instanceListForDbm, dbm.StatusUnavailable); err != nil {
 		fmt.Printf("Failed at step 1 <update all instances status to unavailable>, errmsg: %s\n", err.Error())
 		return err
 	}
@@ -605,7 +619,7 @@ func (hdl *TenDBClusterHandler) resetSingleTenDBCluster(cluster *config.TenDBClu
 	}
 	fmt.Printf("Step 9 <reset mysql.servers table for tdbctl master> done\n")
 
-	if err := hdl.dbmClient.UpdateAllInstancesStatus(instanceList, dbm.StatusRunning); err != nil {
+	if err := hdl.dbmClient.UpdateAllInstancesStatus(instanceListForDbm, dbm.StatusRunning); err != nil {
 		fmt.Printf("Failed at step 10 <update all instances status to running>, errmsg: %s\n", err.Error())
 		return err
 	}
