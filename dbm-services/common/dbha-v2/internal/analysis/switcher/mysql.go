@@ -76,6 +76,7 @@ func (m *Mysql) Switch(ctx context.Context, req *Request) *Response {
 			logger.Warn("Mysql switcher get nil instance")
 			continue
 		}
+
 		instKey := GenerateMetadataKey(inst.BkCloudID, inst.IP, inst.Port)
 		swInst, newErr := NewMySQLSwitchInstance(inst)
 		if newErr != nil {

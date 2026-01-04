@@ -70,6 +70,11 @@ func (m *TendbCluster) Switch(ctx context.Context, req *Request) *Response {
 	defer switchLogger.Close()
 
 	for _, inst := range req.TendbClusterInstData {
+		if inst == nil {
+			logger.Warn("TendbCluster switcher get nil instance")
+			continue
+		}
+
 		instKey := GenerateMetadataKey(inst.BkCloudID, inst.IP, inst.Port)
 		swInst, newErr := NewTendbClusterSwitchInstance(inst)
 

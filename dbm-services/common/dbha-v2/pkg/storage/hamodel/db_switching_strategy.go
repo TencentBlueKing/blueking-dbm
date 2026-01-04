@@ -95,7 +95,7 @@ type DbSwitchingStrategy struct {
 	Action   ActionType      `gorm:"column:action"`
 
 	// Detailed explanation of db switching strategy.
-	Description string    `gorm:"column:description;type:mediumtext;index:,length:255"`
+	Description string    `gorm:"column:description;type:mediumtext;index:idx_description,length:255"`
 	CreatedAt   time.Time `gorm:"column:created_at;autoCreateTime;index"`
 	UpdatedAt   time.Time `gorm:"column:updated_at;autoUpdateTime;index"`
 	DeletedAt   time.Time `gorm:"column:deleted_at;index"`
