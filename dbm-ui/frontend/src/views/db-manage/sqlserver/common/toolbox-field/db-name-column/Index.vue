@@ -1,5 +1,6 @@
 <template>
   <EditableColumn
+    ref="editableColumn"
     :append-rules="localRules"
     :disabled-method="disabledMethod"
     :field="field"
@@ -108,6 +109,7 @@
   });
 
   const { t } = useI18n();
+  const editableColumnRef = useTemplateRef('editableColumn');
 
   let isInit = true;
 
@@ -249,6 +251,7 @@
       if (!isInit) {
         modelValue.value = [];
       }
+      editableColumnRef.value?.validate();
     },
   );
 
