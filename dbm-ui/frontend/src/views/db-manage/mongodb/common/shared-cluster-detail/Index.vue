@@ -54,8 +54,8 @@
             Webconsole
           </BkButton>
         </AuthRouterLink>
-        <MoreActionExtend trigger="hover">
-          <template #handler>
+        <MoreActionExtend>
+          <template #trigger>
             <BkButton
               v-bk-tooltips="t('更多操作')"
               class="ml-4"
@@ -64,7 +64,7 @@
               <DbIcon type="more" />
             </BkButton>
           </template>
-          <BkDropdownItem v-db-console="'mongodb.sharedClusterList.queryAccessSource'">
+          <div v-db-console="'mongodb.sharedClusterList.queryAccessSource'">
             <OperationBtnStatusTips
               :data="data"
               :disabled="!data.isOffline">
@@ -79,8 +79,8 @@
                 {{ t('查询访问来源') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem v-db-console="'mongodb.sharedClusterList.scaleUpDown'">
+          </div>
+          <div v-db-console="'mongodb.sharedClusterList.scaleUpDown'">
             <OperationBtnStatusTips :data="data">
               <BkButton
                 :disabled="data.isOffline || data.operationDisabled"
@@ -89,8 +89,8 @@
                 {{ t('集群容量变更') }}
               </BkButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem
+          </div>
+          <div
             v-if="!data.isOnlineCLB"
             v-db-console="'common.clb'">
             <OperationBtnStatusTips
@@ -106,8 +106,8 @@
                 {{ t('启用CLB') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem
+          </div>
+          <div
             v-if="data.isOffline"
             v-db-console="'mongodb.sharedClusterList.enable'">
             <OperationBtnStatusTips :data="data">
@@ -119,8 +119,8 @@
                 {{ t('启用') }}
               </BkButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem
+          </div>
+          <div
             v-if="data.isOnline"
             v-db-console="'mongodb.sharedClusterList.disable'">
             <OperationBtnStatusTips :data="data">
@@ -131,8 +131,8 @@
                 {{ t('禁用') }}
               </BkButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem v-db-console="'mongodb.sharedClusterList.delete'">
+          </div>
+          <div v-db-console="'mongodb.sharedClusterList.delete'">
             <OperationBtnStatusTips :data="data">
               <BkButton
                 v-bk-tooltips="{
@@ -145,10 +145,8 @@
                 {{ t('删除') }}
               </BkButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem>
-            <ClusterDomainDnsRelation :data="data" />
-          </BkDropdownItem>
+          </div>
+          <ClusterDomainDnsRelation :data="data" />
         </MoreActionExtend>
       </DisplayBox>
       <ActionPanel

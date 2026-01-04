@@ -238,11 +238,11 @@
                       v-bk-tooltips={{
                         content: t('当前有n个未恢复事件', { n: data.event_count }),
                       }}
+                      onclick={() => handleGoMonitorPage(data.event_url)}
                       class='ml-4'
                       size='small'
                       style='cursor: pointer;'
-                      theme='danger'
-                      onclick={() => handleGoMonitorPage(data.event_url)}>
+                      theme='danger'>
                       <db-icon type='alert' />
                       {data.event_count}
                     </bk-tag>
@@ -259,13 +259,13 @@
               ),
               default: () => (
                 <ButtonCom
+                  onClick={() => handleOpenSlider(data, pageType)}
                   actionId='monitor_policy_edit'
                   disabled={!data.is_enabled}
                   permission={data.permission.monitor_policy_edit}
                   resource={data.id}
-                  theme='primary'
                   text
-                  onClick={() => handleOpenSlider(data, pageType)}>
+                  theme='primary'>
                   {data.name}
                 </ButtonCom>
               ),
@@ -347,24 +347,24 @@
         }
         return (
           <bk-pop-confirm
+            onCancel={() => handleCancelConfirm(data)}
+            onConfirm={() => handleClickConfirm(data)}
             content={t('停用后所有监控动作将会停止，请谨慎操作！')}
             disabled={data.isInner}
             is-show={showTipMap.value[data.id]}
             placement='bottom'
             title={t('确认停用该策略？')}
             trigger='manual'
-            width='320'
-            onCancel={() => handleCancelConfirm(data)}
-            onConfirm={() => handleClickConfirm(data)}>
+            width='320'>
             <auth-switcher
               v-model={data.is_enabled}
+              onChange={() => handleChangeSwitch(data)}
               action-id='monitor_policy_start_stop'
               disabled={data.isInner}
               permission={data.permission.monitor_policy_start_stop}
               resource={data.id}
               size='small'
               theme='primary'
-              onChange={() => handleChangeSwitch(data)}
             />
           </bk-pop-confirm>
         );
@@ -392,46 +392,44 @@
         <div class='operate-box'>
           {!data.isInner && (
             <auth-button
+              onClick={() => handleOpenSlider(data, 'edit')}
               action-id='monitor_policy_edit'
               permission={data.permission.monitor_policy_edit}
               resource={data.id}
-              theme='primary'
               text
-              onClick={() => handleOpenSlider(data, 'edit')}>
+              theme='primary'>
               {t('编辑')}
             </auth-button>
           )}
           <auth-button
+            onClick={() => handleOpenSlider(data, 'clone')}
             action-id='monitor_policy_clone'
             permission={data.permission.monitor_policy_clone}
             resource={props.activeDbType}
-            theme='primary'
             text
-            onClick={() => handleOpenSlider(data, 'clone')}>
+            theme='primary'>
             {t('克隆')}
           </auth-button>
           <bk-button
-            theme='primary'
+            onClick={() => handleOpenMonitorAlarmPage(data.event_url)}
             text
-            onClick={() => handleOpenMonitorAlarmPage(data.event_url)}>
+            theme='primary'>
             {t('监控告警')}
           </bk-button>
           <MoreActionExtend>
             {{
               default: () => (
                 <>
-                  <bk-dropdown-item>
-                    <auth-button
-                      action-id='monitor_policy_delete'
-                      disabled={data.isInner}
-                      permission={data.permission.monitor_policy_delete}
-                      resource={data.id}
-                      results={data.permission.monitor_policy_delete}
-                      text
-                      onClick={() => handleClickDelete(data)}>
-                      {t('删除')}
-                    </auth-button>
-                  </bk-dropdown-item>
+                  <auth-button
+                    onClick={() => handleClickDelete(data)}
+                    action-id='monitor_policy_delete'
+                    disabled={data.isInner}
+                    permission={data.permission.monitor_policy_delete}
+                    resource={data.id}
+                    results={data.permission.monitor_policy_delete}
+                    text>
+                    {t('删除')}
+                  </auth-button>
                 </>
               ),
             }}

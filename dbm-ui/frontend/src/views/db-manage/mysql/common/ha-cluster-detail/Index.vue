@@ -53,8 +53,8 @@
           @click="handleShowDataExportSlider">
           {{ t('导出数据') }}
         </BkButton>
-        <MoreActionExtend trigger="click">
-          <template #handler>
+        <MoreActionExtend>
+          <template #trigger>
             <BkButton
               v-bk-tooltips="t('更多操作')"
               class="ml-4"
@@ -63,22 +63,20 @@
               <DbIcon type="more" />
             </BkButton>
           </template>
-          <BkDropdownItem
+          <div
             v-if="isShowDumperEntry"
             v-db-console="'mysql.dataSubscription'">
-            <div style="display: inline-block">
-              <AuthButton
-                action-id="tbinlogdumper_install"
-                :disabled="data.isOffline"
-                :permission="data.permission.tbinlogdumper_install"
-                :resource="data.id"
-                text
-                @click="handleShowCreateSubscribeRuleSlider">
-                {{ t('数据订阅') }}
-              </AuthButton>
-            </div>
-          </BkDropdownItem>
-          <BkDropdownItem
+            <AuthButton
+              action-id="tbinlogdumper_install"
+              :disabled="data.isOffline"
+              :permission="data.permission.tbinlogdumper_install"
+              :resource="data.id"
+              text
+              @click="handleShowCreateSubscribeRuleSlider">
+              {{ t('数据订阅') }}
+            </AuthButton>
+          </div>
+          <div
             v-if="!data.isOnlineCLB"
             v-db-console="'common.clb'">
             <OperationBtnStatusTips
@@ -94,8 +92,8 @@
                 {{ t('启用接入层负载均衡（CLB）') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem
+          </div>
+          <div
             v-if="data.isOnlineCLB"
             v-db-console="'common.clb'">
             <OperationBtnStatusTips
@@ -116,8 +114,8 @@
                 {{ data.dns_to_clb ? t('恢复主域名直连接入层') : t('配置主域名指向负载均衡器（CLB）') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem
+          </div>
+          <div
             v-if="data.isOnline"
             v-db-console="'mysql.haClusterList.disable'">
             <OperationBtnStatusTips :data="data">
@@ -131,8 +129,8 @@
                 {{ t('禁用') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem
+          </div>
+          <div
             v-if="data.isOffline"
             v-db-console="'mysql.haClusterList.enable'">
             <OperationBtnStatusTips :data="data">
@@ -146,8 +144,8 @@
                 {{ t('启用') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem v-db-console="'mysql.haClusterList.delete'">
+          </div>
+          <div v-db-console="'mysql.haClusterList.delete'">
             <OperationBtnStatusTips :data="data">
               <AuthButton
                 v-bk-tooltips="{
@@ -163,10 +161,8 @@
                 {{ t('删除') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem>
-            <ClusterDomainDnsRelation :data="data" />
-          </BkDropdownItem>
+          </div>
+          <ClusterDomainDnsRelation :data="data" />
         </MoreActionExtend>
       </DisplayBox>
       <ActionPanel

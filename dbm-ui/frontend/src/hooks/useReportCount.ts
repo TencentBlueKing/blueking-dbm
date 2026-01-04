@@ -18,7 +18,7 @@ import { getReportCount } from '@services/source/report';
 /**
  * 巡检报告统计数据
  */
-export const useReportCount = () => {
+export const useReportCount = (immediate = true) => {
   const manageCount = ref(0);
   const assistCount = ref(0);
   const dbReportCountMap = ref<
@@ -32,6 +32,8 @@ export const useReportCount = () => {
   >({});
 
   useRequest(getReportCount, {
+    cacheKey: 'reportCount',
+    manual: !immediate,
     onSuccess(countResult) {
       let manages = 0;
       let assists = 0;

@@ -41,8 +41,8 @@
           @click="handleShowPassword">
           {{ t('获取访问方式') }}
         </AuthButton>
-        <MoreActionExtend trigger="hover">
-          <template #handler>
+        <MoreActionExtend>
+          <template #trigger>
             <BkButton
               v-bk-tooltips="t('更多操作')"
               class="ml-4"
@@ -51,7 +51,7 @@
               <DbIcon type="more" />
             </BkButton>
           </template>
-          <BkDropdownItem v-db-console="'es.clusterManage.scaleUp'">
+          <div v-db-console="'es.clusterManage.scaleUp'">
             <OperationBtnStatusTips :data="data">
               <AuthButton
                 action-id="es_scale_up"
@@ -63,8 +63,8 @@
                 {{ t('扩容') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem v-db-console="'es.clusterManage.scaleDown'">
+          </div>
+          <div v-db-console="'es.clusterManage.scaleDown'">
             <OperationBtnStatusTips :data="data">
               <AuthButton
                 action-id="es_shrink"
@@ -76,8 +76,8 @@
                 {{ t('缩容') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem
+          </div>
+          <div
             v-if="!data.isOnlineCLB"
             v-db-console="'common.clb'">
             <OperationBtnStatusTips
@@ -93,8 +93,8 @@
                 {{ t('启用接入层负载均衡（CLB）') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem
+          </div>
+          <div
             v-if="!data.isOnlinePolaris"
             v-db-console="'common.polaris'">
             <OperationBtnStatusTips
@@ -110,8 +110,8 @@
                 {{ t('启用接入层负载均衡（北极星）') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem
+          </div>
+          <div
             v-if="data.isOnlineCLB"
             v-db-console="'common.clb'">
             <OperationBtnStatusTips
@@ -132,8 +132,8 @@
                 {{ data.dns_to_clb ? t('恢复主域名直连接入层') : t('配置主域名指向负载均衡器（CLB）') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem
+          </div>
+          <div
             v-if="data.isOffline"
             v-db-console="'es.clusterManage.enable'">
             <AuthButton
@@ -145,8 +145,8 @@
               @click="handleEnableCluster([data])">
               {{ t('启用') }}
             </AuthButton>
-          </BkDropdownItem>
-          <BkDropdownItem
+          </div>
+          <div
             v-else
             v-db-console="'es.clusterManage.disable'">
             <OperationBtnStatusTips :data="data">
@@ -160,8 +160,8 @@
                 {{ t('禁用') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem v-db-console="'es.clusterManage.delete'">
+          </div>
+          <div v-db-console="'es.clusterManage.delete'">
             <OperationBtnStatusTips :data="data">
               <AuthButton
                 v-bk-tooltips="{
@@ -177,10 +177,8 @@
                 {{ t('删除') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem>
-            <ClusterDomainDnsRelation :data="data" />
-          </BkDropdownItem>
+          </div>
+          <ClusterDomainDnsRelation :data="data" />
         </MoreActionExtend>
       </DisplayBox>
       <ActionPanel
