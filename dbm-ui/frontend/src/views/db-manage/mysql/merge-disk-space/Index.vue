@@ -45,6 +45,7 @@
           :key="index">
           <ClusterColumn
             v-model="item.source_cluster"
+            allow-repeat
             field="source_cluster.master_domain"
             :label="t('源集群')"
             :selected="selected"
