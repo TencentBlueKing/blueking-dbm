@@ -19,22 +19,35 @@ import { t } from '@locales/index';
 export default function getRoutes() {
   registerModule([
     {
-      path: 'inspection-todos',
-      name: 'InspectionTodos',
+      path: 'inspection-manage',
+      name: 'inspectionManageGlobal',
       meta: {
-        fullscreen: true,
-        navName: t('巡检待办'),
+        navName: t('巡检'),
       },
-      component: () => import('@views/inspection-manage/todo/Index.vue'),
-    },
-    {
-      path: 'inspection-report-global',
-      name: 'inspectionReportGlobal',
-      meta: {
-        fullscreen: true,
-        navName: t('巡检报告'),
+      redirect: {
+        name: 'inspectionReportGlobal',
       },
-      component: () => import('@views/inspection-manage/report/Index.vue'),
+      component: () => import('@views/inspection-manage/Index.vue'),
+      children: [
+        {
+          path: 'todo',
+          name: 'inspectionTodosGlobal',
+          meta: {
+            fullscreen: true,
+            navName: t('巡检待办'),
+          },
+          component: () => import('@views/inspection-manage/todo/Index.vue'),
+        },
+        {
+          path: 'report',
+          name: 'inspectionReportGlobal',
+          meta: {
+            fullscreen: true,
+            navName: t('巡检报告'),
+          },
+          component: () => import('@views/inspection-manage/report/Index.vue'),
+        },
+      ],
     },
   ]);
   if (checkDbConsole('observableManage.healthReport')) {

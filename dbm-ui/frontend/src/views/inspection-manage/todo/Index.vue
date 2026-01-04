@@ -53,7 +53,7 @@
   const handleClickTab = (tab: string) => {
     currentActiveTab.value = tab;
     router.replace({
-      name: 'InspectionTodos',
+      name: 'inspectionTodosGlobal',
       query: {
         ...route.query,
         manage: tab,

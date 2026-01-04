@@ -41,8 +41,8 @@
           @click="handleShowPassword">
           {{ t('获取访问方式') }}
         </AuthButton>
-        <MoreActionExtend trigger="hover">
-          <template #handler>
+        <MoreActionExtend>
+          <template #trigger>
             <BkButton
               v-bk-tooltips="t('更多操作')"
               class="ml-4"
@@ -51,7 +51,7 @@
               <DbIcon type="more" />
             </BkButton>
           </template>
-          <BkDropdownItem v-db-console="'hdfs.clusterManage.scaleUp'">
+          <div v-db-console="'hdfs.clusterManage.scaleUp'">
             <OperationBtnStatusTips :data="data">
               <AuthButton
                 action-id="hdfs_scale_up"
@@ -63,8 +63,8 @@
                 {{ t('扩容') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem v-db-console="'hdfs.clusterManage.scaleDown'">
+          </div>
+          <div v-db-console="'hdfs.clusterManage.scaleDown'">
             <OperationBtnStatusTips :data="data">
               <AuthButton
                 action-id="hdfs_shrink"
@@ -76,8 +76,8 @@
                 {{ t('缩容') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem v-db-console="'hdfs.clusterManage.viewAccessConfiguration'">
+          </div>
+          <div v-db-console="'hdfs.clusterManage.viewAccessConfiguration'">
             <div style="display: inline-block">
               <AuthButton
                 action-id="hdfs_view"
@@ -89,8 +89,8 @@
                 {{ t('查看访问配置') }}
               </AuthButton>
             </div>
-          </BkDropdownItem>
-          <BkDropdownItem
+          </div>
+          <div
             v-if="data.isOffline"
             v-db-console="'hdfs.clusterManage.enable'">
             <OperationBtnStatusTips :data="data">
@@ -105,8 +105,8 @@
                 {{ t('启用') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem
+          </div>
+          <div
             v-else
             v-db-console="'hdfs.clusterManage.disable'">
             <OperationBtnStatusTips :data="data">
@@ -120,8 +120,8 @@
                 {{ t('禁用') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem v-db-console="'hdfs.clusterManage.delete'">
+          </div>
+          <div v-db-console="'hdfs.clusterManage.delete'">
             <OperationBtnStatusTips :data="data">
               <AuthButton
                 v-bk-tooltips="{
@@ -137,10 +137,8 @@
                 {{ t('删除') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem>
-            <ClusterDomainDnsRelation :data="data" />
-          </BkDropdownItem>
+          </div>
+          <ClusterDomainDnsRelation :data="data" />
         </MoreActionExtend>
       </DisplayBox>
       <ActionPanel
