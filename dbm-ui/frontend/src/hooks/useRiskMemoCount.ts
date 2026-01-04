@@ -10,6 +10,8 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
+import { useRequest } from 'vue-request';
+
 import { getRiskMemoList } from '@services/source/riskMemo';
 
 import { useUserProfile } from '@stores';
@@ -23,24 +25,32 @@ export const useRiskMemoCount = () => {
   const todoCount = ref(0);
   const assistCount = ref(0);
 
-  const initCount = () => {
-    Promise.all([
-      getRiskMemoList({
+  useRequest(getRiskMemoList, {
+    cacheKey: 'riskMemoCount',
+    defaultParams: [
+      {
         is_assist: false,
         status: 'backlog',
-      }),
-      getRiskMemoList({
+      },
+    ],
+    manual: !isDba,
+    onSuccess(result) {
+      todoCount.value = result.count ?? 0;
+    },
+  });
+  useRequest(getRiskMemoList, {
+    cacheKey: 'riskMemoAssistCount',
+    defaultParams: [
+      {
         is_assist: true,
         status: 'backlog',
-      }),
-    ]).then(([todoData, assistData]) => {
-      todoCount.value = todoData.count ?? 0;
-      assistCount.value = assistData.count ?? 0;
-    });
-  };
-  if (isDba) {
-    initCount();
-  }
+      },
+    ],
+    manual: !isDba,
+    onSuccess(result) {
+      assistCount.value = result.count ?? 0;
+    },
+  });
 
   return {
     assistCount,

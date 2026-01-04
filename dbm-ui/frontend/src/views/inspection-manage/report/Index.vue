@@ -87,7 +87,7 @@
   const isTodoAssist = computed(() => route.query.manage === 'assist');
   const isPlatform = computed(() => route.name === 'inspectionReportGlobal');
   const isInspectionReport = computed(() => route.name === 'inspectionReport');
-  const isTodoPage = computed(() => route.name === 'InspectionTodos');
+  const isTodoPage = computed(() => route.name === 'inspectionTodosGlobal');
   const isEmptyShow = computed(() => isInspectionReport.value && !isTabShow.value);
 
   const serviceList = computed(() => {

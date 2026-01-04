@@ -190,7 +190,7 @@
       'MyTodos',
       'ticketSelfDone',
       'ticketSelfManage',
-      'InspectionTodos',
+      'inspectionTodosGlobal',
       'platformAlarmEventsTodo',
       'RiskMemoTodos',
       'myAlarmSubscription',

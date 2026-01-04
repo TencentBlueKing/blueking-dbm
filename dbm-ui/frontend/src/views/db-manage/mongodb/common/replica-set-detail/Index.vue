@@ -55,8 +55,8 @@
             Webconsole
           </BkButton>
         </AuthRouterLink>
-        <MoreActionExtend trigger="hover">
-          <template #handler>
+        <MoreActionExtend>
+          <template #trigger>
             <BkButton
               v-bk-tooltips="t('更多操作')"
               class="ml-4"
@@ -65,7 +65,7 @@
               <DbIcon type="more" />
             </BkButton>
           </template>
-          <BkDropdownItem v-db-console="'mongodb.replicaSetList.queryAccessSource'">
+          <div v-db-console="'mongodb.replicaSetList.queryAccessSource'">
             <OperationBtnStatusTips
               :data="data"
               :disabled="!data.isOffline">
@@ -80,8 +80,8 @@
                 {{ t('查询访问来源') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem v-db-console="'mongodb.replicaSetList.scaleUpDown'">
+          </div>
+          <div v-db-console="'mongodb.replicaSetList.scaleUpDown'">
             <OperationBtnStatusTips :data="data">
               <BkButton
                 :disabled="Boolean(data.isStructCluster) || data.operationDisabled"
@@ -90,8 +90,8 @@
                 {{ t('集群容量变更') }}
               </BkButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem
+          </div>
+          <div
             v-if="data.isOffline"
             v-db-console="'mongodb.replicaSetList.enable'">
             <OperationBtnStatusTips :data="data">
@@ -102,8 +102,8 @@
                 {{ t('启用') }}
               </BkButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem
+          </div>
+          <div
             v-if="data.isOnline"
             v-db-console="'mongodb.replicaSetList.disable'">
             <OperationBtnStatusTips :data="data">
@@ -114,8 +114,8 @@
                 {{ t('禁用') }}
               </BkButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem v-db-console="'mongodb.replicaSetList.delete'">
+          </div>
+          <div v-db-console="'mongodb.replicaSetList.delete'">
             <OperationBtnStatusTips :data="data">
               <BkButton
                 v-bk-tooltips="{
@@ -128,10 +128,8 @@
                 {{ t('删除') }}
               </BkButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem>
-            <ClusterDomainDnsRelation :data="data" />
-          </BkDropdownItem>
+          </div>
+          <ClusterDomainDnsRelation :data="data" />
         </MoreActionExtend>
       </DisplayBox>
       <ActionPanel
