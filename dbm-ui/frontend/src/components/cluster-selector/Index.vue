@@ -181,6 +181,7 @@
   import SpiderTable from './components/tendb-cluster/Index.vue';
   import TendbSingleTable from './components/tendb-single/Index.vue';
   import TendbhaTable from './components/tendbha/Index.vue';
+  import TendbhaSlaveTable from './components/tendbha-slave/Index.vue';
 
   export type TabListType = {
     // checkbox hover 提示
@@ -439,7 +440,7 @@
       multiple: true,
       name: t('主从集群'),
       resultContent: ResultPreview,
-      tableContent: TendbhaTable,
+      tableContent: TendbhaSlaveTable,
     },
   };
 
