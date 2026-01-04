@@ -30,7 +30,6 @@
       @closed="() => (isShow = false)">
       <BkLoading :loading="loading">
         <BkTable
-          ref="tableRef"
           :cell-class="generateCellClass"
           class="entry-config-table-box"
           :data="tableData"
@@ -141,7 +140,7 @@
     role: string;
   }
 
-  interface Props {
+  export interface Props {
     data: {
       cluster_type: ClusterTypes;
       db_type: string;
@@ -153,7 +152,7 @@
     };
   }
 
-  interface Slots {
+  export interface Slots {
     default: () => VNode;
   }
 
@@ -178,7 +177,6 @@
 
   const generateCellClass = (cell: { field: string }) => (cell.field === 'ips' ? 'entry-config-ips-column' : '');
 
-  const tableRef = ref();
   const tableData = ref<ClusterEntryInfo[]>([]);
 
   const accessEntryDbConsole = computed(() => {
