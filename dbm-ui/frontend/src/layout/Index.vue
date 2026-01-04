@@ -189,6 +189,7 @@
       'SelfServiceMyTickets',
       'MyTodos',
       'ticketSelfDone',
+      'ClusterDisableTodo',
       'ticketSelfManage',
       'inspectionTodosGlobal',
       'platformAlarmEventsTodo',
