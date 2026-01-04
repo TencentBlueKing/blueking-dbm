@@ -13,6 +13,7 @@
 
 <template>
   <EditableColumn
+    ref="editableColumn"
     :append-rules="localRules"
     :disabled-method="disabledMethod"
     :field="field"
@@ -137,6 +138,7 @@
   });
 
   const { t } = useI18n();
+  const editableColumnRef = useTemplateRef('editableColumn');
 
   let isInit = true;
 
@@ -213,7 +215,7 @@
     // },
     {
       message: t('DB 已存在'),
-      trigger: 'change',
+      trigger: 'blur',
       validator: (value: string[]) => {
         if (!props.checkExist) {
           return true;
@@ -224,7 +226,7 @@
           return true;
         }
         if (!props.clusterId) {
-          return false;
+          return t('请先选择集群');
         }
         return checkClusterDatabase({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -247,7 +249,7 @@
     },
     {
       message: t('DB 不存在'),
-      trigger: 'change',
+      trigger: 'blur',
       validator: (value: string[]) => {
         if (!props.checkNotExist) {
           return true;
@@ -258,7 +260,7 @@
           return true;
         }
         if (!props.clusterId) {
-          return false;
+          return t('请先选择集群');
         }
         return checkClusterDatabase({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -289,6 +291,7 @@
       if (!isInit) {
         modelValue.value = [];
       }
+      editableColumnRef.value?.validate();
     },
   );
 
