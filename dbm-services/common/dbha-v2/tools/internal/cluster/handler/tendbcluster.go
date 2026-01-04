@@ -74,26 +74,6 @@ func (hdl *TenDBClusterHandler) printOneTenDBCluster(cluster *config.TenDBCluste
 	fmt.Printf("Remote Slaves: %v\n", cluster.RemoteSlave)
 }
 
-// getTenDBClusterInstanceList gets TenDBCluster instance list
-func (hdl *TenDBClusterHandler) getTenDBClusterInstanceList(cluster *config.TenDBCluster) []config.InstanceAddress {
-	instanceList := []config.InstanceAddress{
-		{Host: cluster.CtlMaster.Host, Port: cluster.CtlMaster.Port},
-	}
-	for _, spider := range cluster.Spider {
-		instanceList = append(instanceList, config.InstanceAddress{Host: spider.Host, Port: spider.Port})
-	}
-	for _, ctl := range cluster.CtlSlave {
-		instanceList = append(instanceList, config.InstanceAddress{Host: ctl.Host, Port: ctl.Port})
-	}
-	for _, remote := range cluster.RemoteMaster {
-		instanceList = append(instanceList, config.InstanceAddress{Host: remote.Host, Port: remote.Port})
-	}
-	for _, remote := range cluster.RemoteSlave {
-		instanceList = append(instanceList, config.InstanceAddress{Host: remote.Host, Port: remote.Port})
-	}
-	return instanceList
-}
-
 func (hdl *TenDBClusterHandler) getInstanceListForDbmStatusUpdate(cluster *config.TenDBCluster) []config.InstanceAddress {
 	instanceList := make([]config.InstanceAddress, 0)
 	for _, spider := range cluster.Spider {
