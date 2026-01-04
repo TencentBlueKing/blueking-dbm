@@ -13,13 +13,14 @@
 import InfoBox from 'bkui-vue/lib/info-box';
 
 import TicketModel from '@services/model/ticket/ticket';
+import TicketClusterDisableTodoModel from '@services/model/ticket-cluster-disable-todo/TicketClusterDisableTodo';
 import TicketFlowDescribeModel from '@services/model/ticket-flow-describe/TicketFlowDescribe';
 import type { HostNode, ListBase } from '@services/types';
 import type { FlowItem, FlowItemTodo } from '@services/types/ticket';
 
 import { getRouter } from '@router';
 
-import type { TicketTypes } from '@common/const';
+import { DBTypes, TicketTypes } from '@common/const';
 
 import { messageError } from '@utils';
 
@@ -477,4 +478,29 @@ export function ticketBatchProcessTodo(params: {
   }[];
 }) {
   return http.post(`${path}/batch_process_todo/`, params);
+}
+
+/**
+ * 获取集群下架待办列表
+ */
+export function ticketClusterDisableTodo(params: {
+  db_type: DBTypes;
+  is_assist: boolean;
+  limit?: number;
+  offset?: number;
+}) {
+  return http.get<ListBase<TicketClusterDisableTodoModel[]>>(`${path}/cluster_disable_todo/`, params).then((data) => ({
+    ...data,
+    results: data.results.map((item) => new TicketClusterDisableTodoModel(item)),
+  }));
+}
+
+/**
+ * 获取集群下架待办汇总数量
+ */
+export function getClusterDisableCount() {
+  return http.get<{
+    to_assist: Record<DBTypes, number>;
+    todo: Record<DBTypes, number>;
+  }>(`${path}/get_cluster_disable_count/`);
 }
