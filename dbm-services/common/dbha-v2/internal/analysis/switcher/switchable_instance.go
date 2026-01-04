@@ -25,18 +25,28 @@
 package switcher
 
 import (
-	"fmt"
-
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
+	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchlogger"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
-	"dbm-services/common/dbha-v2/pkg/logger"
+	"fmt"
+)
+
+type SwitchCheckCode int
+
+const (
+	// SwitchRequired indicates that switching is required
+	SwitchRequired SwitchCheckCode = iota
+	// SwitchNotNeeded indicates that there is no need to switch
+	SwitchNotNeeded
+	// SwitchCheckUnpass indicates that the switch check unpass
+	SwitchCheckUnpass
 )
 
 // SwitchableInstance defines the interface for database instances that support switching operations.
 // It provides a standardized set of methods for handling instance failover and switchover procedures.
 type SwitchableInstance interface {
 	// CheckBeforeSwitch performs pre-switch validation and returns whether switching is needed
-	CheckBeforeSwitch() (bool, error)
+	CheckBeforeSwitch() (SwitchCheckCode, error)
 
 	// DoFinal executes final cleanup and post-switch operations
 	DoFinal() error
@@ -50,8 +60,8 @@ type SwitchableInstance interface {
 	// GetStatus retrieves the current status of the instance
 	GetStatus() dbm.DbmMetadataStatus
 
-	// ReportLog records switch operation logs at specified level
-	ReportLog(level SwitchLogLevel, message string) bool
+	// ReportLogf records switch operation logs at specified level
+	ReportLogf(level SwitchLogLevel, format string, args ...any) bool
 
 	// RollBack reverts any changes made during a failed switch attempt
 	RollBack() error
@@ -59,86 +69,82 @@ type SwitchableInstance interface {
 	// SetInstanceUnavailable marks the instance as unavailable for service
 	SetInstanceUnavailable() error
 
+	// SetSwitchLogger sets the loggers for recording switch operations
+	SetSwitchLogger(loggers []switchlogger.DbSwitchLogger)
+
 	// UpdateMetaInfo updates instance metadata after successful switch
 	UpdateMetaInfo() error
 }
 
 // SwitchSingleInstance executes the standardized switching procedure for a single database instance.
-func SwitchSingleInstance(ins SwitchableInstance) (success bool, retErr error) {
-	logger.Debug("single instance switch begin: %s", ins.GetInstanceInfo())
+func SwitchSingleInstance(ins SwitchableInstance) (retErr error) {
+	ins.ReportLogf(SwitchInfo, "start to switch single instance: %s", ins.GetInstanceInfo())
 
-	// rollback when need
+	// rollback when error occurs
 	defer func() {
-		if success {
+		if retErr == nil {
+			ins.ReportLogf(SwitchSuccess, "successfully switch single instance: %s", ins.GetInstanceInfo())
 			return
 		}
+		ins.ReportLogf(SwitchFail, "failed to switch single instance: %s", ins.GetInstanceInfo())
 
 		if rollbackErr := ins.RollBack(); rollbackErr != nil {
-			errMsg := fmt.Sprintf("failed to rollback switch: %s", rollbackErr.Error())
-			logger.Error("%s, instance{%s}", errMsg, ins.GetInstanceInfo())
-			ins.ReportLog(SwitchFail, errMsg)
-			retErr = gerrors.Newf(gerrors.Failure, "%s[rollback failed: %s]", retErr.Error(), rollbackErr.Error())
+			ins.ReportLogf(SwitchFail, "failed to rollback switch: %s", rollbackErr.Error())
+			retErr = gerrors.Newf(gerrors.Failure, "switch errmsg: %s, rollback errmsg: %s",
+				retErr.Error(), rollbackErr.Error())
 		}
 	}()
 
-	ins.ReportLog(SwitchInfo, "do pre-check before switch")
 	if (ins.GetStatus() != dbm.Running) && (ins.GetStatus() != dbm.Available) {
-		retErr = gerrors.Newf(gerrors.Failure, "pre-check unpass for wrong status:%s", ins.GetStatus())
-		success = false
+		retErr = gerrors.Newf(gerrors.Failure, "pre-status check unpass for wrong status:%s", ins.GetStatus())
+		ins.ReportLogf(SwitchFail, "%s", retErr.Error())
 		return
 	}
+	ins.ReportLogf(SwitchInfo, "pre-status check pass with status:%s", ins.GetStatus())
 
 	if err := ins.SetInstanceUnavailable(); err != nil {
-		retErr = gerrors.New(gerrors.Failure, fmt.Sprintf("failed to set instance unavailable :%s", err.Error()))
-		logger.Error("%s, instance{%s}", retErr.Error(), ins.GetInstanceInfo())
-		success = false
+		retErr = gerrors.Newf(gerrors.Failure, "failed to set instance unavailable: %s", err.Error())
+		ins.ReportLogf(SwitchFail, "%s", retErr.Error())
 		return
 	}
-	ins.ReportLog(SwitchInfo, "set instance unavailable successfully")
+	ins.ReportLogf(SwitchInfo, "successfully set instance unavailable")
 
-	if checkpass, err := ins.CheckBeforeSwitch(); !checkpass {
-		if err == nil {
-			logger.Info("check result: no need to switch, instance{%s}", ins.GetInstanceInfo())
-			ins.ReportLog(SwitchInfo, "switch end: no need to do switch")
-			success = true
-			return
+	checkRes, checkErr := ins.CheckBeforeSwitch()
+	switch checkRes {
+	case SwitchRequired:
+		ins.ReportLogf(SwitchInfo, "check result before switch: switch required")
+	case SwitchNotNeeded:
+		ins.ReportLogf(SwitchInfo, "check result before switch: no need to switch")
+		return
+	default:
+		errMsg := "check result before switch: check unpass"
+		if checkErr != nil {
+			errMsg += fmt.Sprintf(", errmsg: %s", checkErr.Error())
 		}
-
-		retErr = gerrors.New(gerrors.Failure, fmt.Sprintf("check unpass before switch: %s", err.Error()))
-		logger.Error("%s, instance{%s}", retErr.Error(), ins.GetInstanceInfo())
-		success = false
+		ins.ReportLogf(SwitchFail, "%s", errMsg)
 		return
 	}
-
-	ins.ReportLog(SwitchInfo, "pre-check pass, start to do switch")
 
 	if err := ins.DoSwitch(); err != nil {
-		retErr = gerrors.New(gerrors.Failure, fmt.Sprintf("failed to do switch: %s", err.Error()))
-		logger.Error("%s, instance{%s}", retErr.Error(), ins.GetInstanceInfo())
-		success = false
+		retErr = gerrors.Newf(gerrors.Failure, "failed to do switch: %s", err.Error())
+		ins.ReportLogf(SwitchFail, "%s", retErr.Error())
 		return
 	}
-
-	ins.ReportLog(SwitchInfo, "do switch successfully, try to update meta info")
+	ins.ReportLogf(SwitchInfo, "successfully do switch")
 
 	if err := ins.UpdateMetaInfo(); err != nil {
-		retErr = gerrors.New(gerrors.Failure, fmt.Sprintf("failed to update meta info: %s", err.Error()))
-		logger.Error("%s, instance{%s}", retErr.Error(), ins.GetInstanceInfo())
-		success = false
+		retErr = gerrors.Newf(gerrors.Failure, "failed to update meta info: %s", err.Error())
+		ins.ReportLogf(SwitchFail, "%s", retErr.Error())
 		return
 	}
-
-	ins.ReportLog(SwitchInfo, "update meta info successfully, try to do the final step")
+	ins.ReportLogf(SwitchInfo, "successfully update meta info")
 
 	if err := ins.DoFinal(); err != nil {
-		retErr = gerrors.New(gerrors.Failure, fmt.Sprintf("final step failed: %s", err.Error()))
-		logger.Error("%s, instance{%s}", retErr.Error(), ins.GetInstanceInfo())
-		success = false
+		retErr = gerrors.Newf(gerrors.Failure, "failed to do final step: %s", err.Error())
+		ins.ReportLogf(SwitchFail, "%s", retErr.Error())
 		return
 	}
+	ins.ReportLogf(SwitchInfo, "successfully do final step")
 
-	ins.ReportLog(SwitchInfo, "switch instance successfully")
-	logger.Debug("single instance switch end: %s", ins.GetInstanceInfo())
-	success = true
 	return
 }

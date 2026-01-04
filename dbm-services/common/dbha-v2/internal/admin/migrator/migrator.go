@@ -22,15 +22,17 @@
  * SOFTWARE.
  */
 
+// Package migrator provides database migration functionality
 package migrator
 
 import (
+	"fmt"
+
 	"dbm-services/common/dbha-v2/internal/admin/config"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
-	"fmt"
 
 	"gorm.io/gorm"
 )
@@ -43,10 +45,16 @@ var tables = []any{
 	&hamodel.DbSwitchingStrategy{},
 }
 
+const (
+	CreateDbIfNotExistSql string = "CREATE DATABASE IF NOT EXISTS `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+)
+
+// Migrator implements database migration
 type Migrator struct {
 	dbs []*hamysql.GormDB
 }
 
+// InitDbhaData initializes the database
 func (m *Migrator) InitDbhaData() error {
 	epoints, err := hanet.NewEndpoints(config.Cfg.Storage.Endpoint)
 	if err != nil {
@@ -83,7 +91,7 @@ func (m *Migrator) switchDatabase(db *gorm.DB, dbName string) *gorm.DB {
 }
 
 func (m *Migrator) createOrUseDatabase(db *hamysql.GormDB) error {
-	sql := fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci", hamodel.DatabaseName)
+	sql := fmt.Sprintf(CreateDbIfNotExistSql, hamodel.DatabaseName)
 	err := db.DB().Exec(sql).Error
 	if err != nil {
 		return gerrors.Newf(gerrors.MysqlFailure, "failed to create the database(%s), %v", hamodel.DatabaseName, err)

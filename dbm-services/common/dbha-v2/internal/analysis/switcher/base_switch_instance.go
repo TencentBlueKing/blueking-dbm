@@ -25,12 +25,12 @@
 package switcher
 
 import (
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
+	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchlogger"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
@@ -47,7 +47,7 @@ type SwitchLogLevel string
 const (
 	SwitchInfo    SwitchLogLevel = "info"
 	SwitchWarn    SwitchLogLevel = "warn"
-	SwitchFail    SwitchLogLevel = "failed"
+	SwitchFail    SwitchLogLevel = "fail"
 	SwitchSuccess SwitchLogLevel = "success"
 )
 
@@ -69,6 +69,8 @@ type BaseSwitchInstance struct {
 
 	// Http client for DBM
 	dbmClient *dbm.Client
+	// loggers for recording switch operation
+	switchLoggers []switchlogger.DbSwitchLogger
 }
 
 // GetStatus returns the current status of the instance
@@ -113,7 +115,7 @@ func (sw *BaseSwitchInstance) releaseDNSEntry(dnsEntries []dbm.BindEntryDnsInfo)
 			(sw.MachineType == haprobe.DbmMetadataMachineTypeSpider) {
 			addressNum, err := sw.dbmClient.GetAddressNumberOfDomain(sw.BkCloudID, dns.DomainName)
 			if err != nil {
-				sw.ReportLog(SwitchFail,
+				sw.ReportLog(SwitchWarn,
 					fmt.Sprintf("failed to get address number of domain (%s): %v", dns.DomainName, err))
 				allSuccess = false
 				continue
@@ -122,7 +124,7 @@ func (sw *BaseSwitchInstance) releaseDNSEntry(dnsEntries []dbm.BindEntryDnsInfo)
 				addressNum, dns.DomainName))
 			if addressNum <= 1 {
 				sw.ReportLog(SwitchWarn,
-					fmt.Sprintf("only single address in domain (%s), skip release domain", dns.DomainName))
+					fmt.Sprintf("only single address in domain (%s), skip this release", dns.DomainName))
 				continue
 			}
 		}
@@ -135,7 +137,7 @@ func (sw *BaseSwitchInstance) releaseDNSEntry(dnsEntries []dbm.BindEntryDnsInfo)
 			ins := fmt.Sprintf("%s#%d", ip, dns.BindPort)
 			err := sw.dbmClient.DeleteFromDomain(sw.BkCloudID, dns.DomainName, ins, sw.GetApp())
 			if err != nil {
-				sw.ReportLog(SwitchFail, fmt.Sprintf("failed to delete ip(%s) from domain(%s): %s",
+				sw.ReportLog(SwitchWarn, fmt.Sprintf("failed to delete ip(%s) from domain(%s): %s",
 					ip, dns.DomainName, err.Error()))
 				allSuccess = false
 			}
@@ -168,7 +170,7 @@ func (sw *BaseSwitchInstance) releaseCLBEntry(clbEntries []dbm.BindEntryClbInfo)
 				sw.BkCloudID, clb.Region, clb.LoadBalanceId, clb.ListenId, ins,
 			)
 			if err != nil {
-				sw.ReportLog(SwitchFail,
+				sw.ReportLog(SwitchWarn,
 					fmt.Sprintf("failed to delete %s from clb(%s:%s:%s): %s",
 						ins, clb.Region, clb.LoadBalanceId, clb.ListenId, err.Error()))
 				allSuccess = false
@@ -202,7 +204,7 @@ func (sw *BaseSwitchInstance) releasePolarisEntry(polarisEntries []dbm.BindEntry
 				sw.BkCloudID, pinfo.Service, pinfo.Token, ins,
 			)
 			if err != nil {
-				sw.ReportLog(SwitchFail,
+				sw.ReportLog(SwitchWarn,
 					fmt.Sprintf("failed to delete (%s) from polaris %s:%s: %s",
 						ins, pinfo.Service, pinfo.Token, err.Error()))
 				allSuccess = false
@@ -226,12 +228,10 @@ func (sw *BaseSwitchInstance) DeleteNameService(entry dbm.DbmMetadataBindEntry) 
 	polarisFlag := sw.releasePolarisEntry(entry.Polaris)
 
 	if !(dnsFlag && clbFlag && polarisFlag) {
-		errMsg := fmt.Sprintf("Failed to release broken-down instance(%s:%d) from all entries", sw.IP, sw.Port)
-		return gerrors.New(gerrors.Failure, errMsg)
+		return gerrors.New(gerrors.Failure, "failed to release this instance from all entries")
 	}
 
-	sw.ReportLog(SwitchInfo,
-		fmt.Sprintf("Success to release instance(%s:%d) from all entries[dns/clb/polaris]", sw.IP, sw.Port))
+	sw.ReportLog(SwitchInfo, "successfully release this instance from all entries")
 	return nil
 }
 
@@ -246,8 +246,8 @@ func (sw *BaseSwitchInstance) RollBack() error {
 }
 
 // CheckBeforeSwitch performs pre-switch validation checks
-func (sw *BaseSwitchInstance) CheckBeforeSwitch() (bool, error) {
-	return true, nil
+func (sw *BaseSwitchInstance) CheckBeforeSwitch() (SwitchCheckCode, error) {
+	return SwitchRequired, nil
 }
 
 // DoFinal executes final operations after successful switching
@@ -255,30 +255,43 @@ func (sw *BaseSwitchInstance) DoFinal() error {
 	return nil
 }
 
+// SetSwitchLogger sets the logger for recording switching operations
+func (sw *BaseSwitchInstance) SetSwitchLogger(loggers []switchlogger.DbSwitchLogger) {
+	sw.switchLoggers = loggers
+}
+
 // ReportLog records switching operation logs with specified level
 func (sw *BaseSwitchInstance) ReportLog(level SwitchLogLevel, message string) bool {
 	logTime := time.Now()
-	logRecord := hamodel.HASwitchLogs{
-		App:      strconv.Itoa(sw.BkBizID),
-		SwitchID: 0,
-		IP:       sw.IP,
-		Port:     sw.Port,
-		Result:   string(level),
-		Comment:  message,
-		Datetime: &logTime,
+	logRecord := hamodel.DbSwitchingLog{
+		BkBizID:     sw.BkBizID,
+		BkCloudID:   sw.BkCloudID,
+		DbIP:        sw.IP,
+		DbPort:      sw.Port,
+		ClusterName: sw.Cluster,
+		DbTypeName:  string(sw.MachineType),
+		Level:       string(level),
+		Content:     message,
+		CreatedTime: logTime,
 	}
 
-	logJson, err := json.Marshal(logRecord)
-	if err != nil {
-		logger.Error("failed to marshal switch log record: %s", err.Error())
-		return false
+	// use default logger if no logger is provided
+	if len(sw.switchLoggers) == 0 {
+		sw.switchLoggers = []switchlogger.DbSwitchLogger{switchlogger.NewLogToStdHandler()}
+		logger.Info("no switch loggers provided for instance(%s:%d), using default logger for switch log",
+			sw.IP, sw.Port)
 	}
 
-	logger.Info("switch log: %s", string(logJson))
+	for _, swlogger := range sw.switchLoggers {
+		if logErr := swlogger.Append(&logRecord); logErr != nil {
+			logger.Warn("failed to append switch log record, inst: %s:%d, err: %s",
+				sw.IP, sw.Port, logErr.Error())
+		}
+	}
 	return true
 }
 
 // ReportLogf records formatted switching operation logs
-func (sw *BaseSwitchInstance) ReportLogf(level SwitchLogLevel, format string, args ...interface{}) bool {
+func (sw *BaseSwitchInstance) ReportLogf(level SwitchLogLevel, format string, args ...any) bool {
 	return sw.ReportLog(level, fmt.Sprintf(format, args...))
 }
