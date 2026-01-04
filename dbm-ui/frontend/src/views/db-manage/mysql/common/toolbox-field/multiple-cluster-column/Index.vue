@@ -66,7 +66,7 @@
   <!-- 表头批量添加 -->
   <ClusterSelector
     v-model:is-show="showBatchSelector"
-    :cluster-types="[ClusterTypes.TENDBHA]"
+    :cluster-types="clusterTypes"
     :selected="selectedClusters"
     @change="handleSelectorBatchChange" />
   <!-- 单元格添加 -->

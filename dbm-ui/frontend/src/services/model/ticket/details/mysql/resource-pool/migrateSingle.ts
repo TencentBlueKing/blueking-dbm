@@ -1,13 +1,12 @@
 import type { BackupSourceType } from '@services/types';
 
-import type { ResourcePoolDetailBase } from '../../common';
+import type { ResourcePoolDetailBase } from '../../resource-pool';
 
 /**
  * MySQL 单节点迁移
  */
 
 export interface MigrateSingle extends ResourcePoolDetailBase {
-  migrate_type: 'instance' | 'machine' | 'failover';
   backup_source: BackupSourceType;
   infos: {
     cluster_ids: number[];
@@ -17,20 +16,21 @@ export interface MigrateSingle extends ResourcePoolDetailBase {
       bk_host_id: number;
       ip: string;
     };
-    resource_spec: {
-      bk_new_orphan: {
-        spec_id: number;
-        labels: string[];
-        label_names: string[];
-        count: number;
-      };
-    };
     related_cluster_infos: {
       cluster_id: number;
       instance_address: string;
       master_domain: string;
     }[];
+    resource_spec: {
+      bk_new_orphan: {
+        count: number;
+        label_names: string[];
+        labels: string[];
+        spec_id: number;
+      };
+    };
   }[];
   ip_source: 'resource_pool';
+  migrate_type: 'instance' | 'machine' | 'failover';
   orphan_restore_type: string;
 }
