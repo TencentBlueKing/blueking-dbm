@@ -22,7 +22,7 @@ from backend.db_meta.enums import ClusterPhase, ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_report.enums import MetaCheckSubType
 from backend.flow.utils.redis.redis_meta_report import delete_old_meta_check_reports
-from backend.ticket.models import SystemSettings
+from backend.ticket.models import SystemSettings, TicketType
 from backend.utils.basic import generate_root_id
 from backend.utils.redis import RedisConn
 
@@ -52,7 +52,7 @@ class RedisRoleCheckConfig:
     Configuration for Redis role check task
     """
 
-    switch: bool = False
+    enabled: bool = False
     bk_biz_id: int = 5005578  # The bk_biz_id the generated flow belongs to
     cluster_types: Optional[List[str]] = field(default_factory=lambda: DEFAULT_CLUSTER_TYPES)
     bizs_ignored: Optional[List[int]] = field(default_factory=list)
@@ -114,7 +114,7 @@ def check_redis_instance_role():
     # Read configuration
     config = _get_config()
 
-    if not config.switch:
+    if not config.enabled:
         logger.info(_("Redis role check is disabled, exiting"))
         return
 
@@ -131,18 +131,14 @@ def check_redis_instance_role():
     cloud_to_clusters = defaultdict(list)
     for bk_cloud_id, cluster_id in cluster_tuples:
         cloud_to_clusters[bk_cloud_id].append(cluster_id)
-    infos = [
-        {"bk_cloud_id": bk_cloud_id, "cluster_ids": cluster_ids}
-        for bk_cloud_id, cluster_ids in cloud_to_clusters.items()
-    ]
 
-    if not infos:
+    if not cloud_to_clusters:
         logger.warning(_("No valid clusters prepared for role check"))
         return
 
     logger.info(
         _("Prepared {} cloud groups with {} total clusters for role check flow").format(
-            len(infos), len(cluster_tuples)
+            len(cloud_to_clusters), len(cluster_tuples)
         )
     )
 
@@ -179,7 +175,7 @@ def check_redis_instance_role():
 
     # Build flow data - using candidates_key instead of infos to prevent large flow data
     flow_data = {
-        "ticket_type": "REDIS_ROLE_CHECK",
+        "ticket_type": TicketType.REDIS_ROLE_CHECK.value,
         "bk_biz_id": config.bk_biz_id,
         "created_by": "system",
         "candidates_key": candidates_key,

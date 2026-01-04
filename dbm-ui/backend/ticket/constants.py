@@ -526,6 +526,7 @@ class TicketType(StrStructuredEnum):
     REDIS_HOT_KEY_ANALYSIS = TicketEnumField("REDIS_HOT_KEY_ANALYSIS", _("Redis 热key分析"), _("集群管理"))
     REDIS_KEYSTAT = TicketEnumField("REDIS_KEYSTAT", _("Redis 内存分析"), _("集群管理"))
     REDIS_ROLE_CHECK = TicketEnumField("REDIS_ROLE_CHECK", _("Redis 角色检查"))
+    REDIS_ENTRY_CHECK = TicketEnumField("REDIS_ENTRY_CHECK", _("Redis 入口一致性检查"))
     REDIS_FAILOVER_DRILL = TicketEnumField("REDIS_FAILOVER_DRILL", _("Redis 容灾演练"), register_iam=False)
     REDIS_ROLLBACK_EXERCISE = TicketEnumField("REDIS_ROLLBACK_EXERCISE", _("Redis 回档演练"))
 

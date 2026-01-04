@@ -82,7 +82,7 @@ def calculate_failed_days(current_state: str, last_record: Optional[MetaCheckRep
 
 def create_meta_check_report(
     cluster: Cluster,
-    ip: str,
+    ip: Optional[str],
     port: Optional[int],
     subtype: MetaCheckSubType,
     msg: str,

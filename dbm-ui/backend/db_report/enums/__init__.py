@@ -54,6 +54,7 @@ class ReportType(StrStructuredEnum):
     STATUS_ABNORMAL_CHECK = EnumField("status_abnormal_check", _("实例异常状态检查"))
     AFFINITY_CHECK = EnumField("affinity_check", _("亲和性检查"))
     ROLE_CHECK = EnumField("role_check", _("角色检查"))
+    ENTRY_CHECK = EnumField("entry_check", _("访问入口一致性检查"))
     REDIS_DBMON_HEARTBEAT_CHECK = EnumField("dbmon_heartbeat_check", _("dbmon心跳超时检查"))
 
     EXPORTER_CHECK = EnumField("exporter_check", _("exporter监控上报检查"))
