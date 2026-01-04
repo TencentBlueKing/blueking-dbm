@@ -61,8 +61,8 @@
             {{ t('禁用') }}
           </AuthButton>
         </OperationBtnStatusTips>
-        <MoreActionExtend trigger="hover">
-          <template #handler>
+        <MoreActionExtend>
+          <template #trigger>
             <BkButton
               v-bk-tooltips="t('更多操作')"
               class="ml-4"
@@ -71,7 +71,7 @@
               <DbIcon type="more" />
             </BkButton>
           </template>
-          <BkDropdownItem v-db-console="'riak.clusterManage.enable'">
+          <div v-db-console="'riak.clusterManage.enable'">
             <OperationBtnStatusTips :data="data">
               <AuthButton
                 action-id="riak_enable_disable"
@@ -83,8 +83,8 @@
                 {{ t('启用') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem v-db-console="'riak.clusterManage.delete'">
+          </div>
+          <div v-db-console="'riak.clusterManage.delete'">
             <OperationBtnStatusTips :data="data">
               <AuthButton
                 v-bk-tooltips="{
@@ -100,10 +100,8 @@
                 {{ t('删除') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem>
-            <ClusterDomainDnsRelation :data="data" />
-          </BkDropdownItem>
+          </div>
+          <ClusterDomainDnsRelation :data="data" />
         </MoreActionExtend>
       </DisplayBox>
       <ActionPanel

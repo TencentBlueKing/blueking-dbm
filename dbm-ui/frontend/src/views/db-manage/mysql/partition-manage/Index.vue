@@ -203,8 +203,8 @@
           <db-icon
             class={{ 'rotate-loading': data.isRunning }}
             style='vertical-align: middle;'
-            type={data.statusIcon}
             svg
+            type={data.statusIcon}
           />
           <span class='ml-4'>{data.statusText}</span>
         </div>
@@ -225,13 +225,13 @@
           if (data.isRunning) {
             return (
               <router-link
+                target='_blank'
                 to={{
                   name: 'bizTicketManage',
                   params: {
                     ticketId: data.ticket_id,
                   },
-                }}
-                target='_blank'>
+                }}>
                 {t('查看')}
               </router-link>
             );
@@ -239,25 +239,25 @@
           if (!data.isOnline) {
             return (
               <auth-button
+                onClick={() => handleEnable(data)}
                 actionId='mysql_partition_enable_disable'
                 permission={data.permission.mysql_partition_enable_disable}
                 resource={data.cluster_id}
-                theme='primary'
                 text
-                onClick={() => handleEnable(data)}>
+                theme='primary'>
                 {t('启用')}
               </auth-button>
             );
           }
           return (
             <auth-button
+              onClick={() => handleExecute(data)}
               actionId='mysql_partition'
               loading={executeLoadingMap.value[data.id]}
               permission={data.permission.mysql_partition}
               resource={data.cluster_id}
-              theme='primary'
               text
-              onClick={() => handleExecute(data)}>
+              theme='primary'>
               {t('执行')}
             </auth-button>
           );
@@ -272,24 +272,24 @@
               }}
               class='ml-8'>
               <auth-button
+                onClick={() => handleEdit(data)}
                 actionId='mysql_partition_update'
                 disabled={data.isRunning}
                 permission={data.permission.mysql_partition_update}
                 resource={data.cluster_id}
-                theme='primary'
                 text
-                onClick={() => handleEdit(data)}>
+                theme='primary'>
                 {t('编辑')}
               </auth-button>
             </span>
             <auth-button
+              onClick={() => handleShowExecuteLog(data)}
               action-id='mysql_partition'
               class='ml-8 mr-16'
               permission={data.permission.mysql_partition}
               resource={data.cluster_id}
-              theme='primary'
               text
-              onClick={() => handleShowExecuteLog(data)}>
+              theme='primary'>
               {t('执行记录')}
             </auth-button>
             <more-action-extend>
@@ -297,27 +297,27 @@
                 default: () => (
                   <>
                     {data.isOnline && (
-                      <bk-dropdown-item>
+                      <div>
                         <auth-button
+                          onClick={() => handleDisable(data)}
                           action-id='mysql_partition_enable_disable'
                           permission={data.permission.mysql_partition_enable_disable}
                           resource={data.cluster_id}
-                          text
-                          onClick={() => handleDisable(data)}>
+                          text>
                           {t('禁用')}
                         </auth-button>
-                      </bk-dropdown-item>
+                      </div>
                     )}
-                    <bk-dropdown-item>
+                    <div>
                       <auth-button
+                        onClick={() => handleClone(data)}
                         action-id='mysql_partition_create'
                         permission={data.permission.mysql_partition_create}
-                        text
-                        onClick={() => handleClone(data)}>
+                        text>
                         {t('克隆')}
                       </auth-button>
-                    </bk-dropdown-item>
-                    <bk-dropdown-item>
+                    </div>
+                    <div>
                       <db-popconfirm
                         confirm-handler={() => handleRemove(data)}
                         content={t('删除操作无法撤回，请谨慎操作！')}
@@ -332,7 +332,7 @@
                           </auth-button>
                         </div>
                       </db-popconfirm>
-                    </bk-dropdown-item>
+                    </div>
                   </>
                 ),
               }}

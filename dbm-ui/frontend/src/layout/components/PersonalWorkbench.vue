@@ -16,7 +16,7 @@
         <span>
           {{ t('单据待办') }}
         </span>
-        <span class="ticket-count">{{ todoCount }}</span>
+        <span class="ticket-count">{{ ticketTodoCount }}</span>
       </BkMenuItem>
       <BkMenuItem
         v-if="userProfileStore.isDba"
@@ -32,7 +32,7 @@
       </BkMenuItem>
       <BkMenuItem
         v-if="userProfileStore.isDba"
-        key="InspectionTodos"
+        key="inspectionTodosGlobal"
         v-db-console="'personalWorkbench.InspectionTodos'">
         <template #icon>
           <DbIcon type="cluster-standardize" />
@@ -40,7 +40,7 @@
         <span>
           {{ t('巡检待办') }}
         </span>
-        <span class="ticket-count">{{ manageCount }}</span>
+        <span class="ticket-count">{{ reportManageCount }}</span>
       </BkMenuItem>
       <BkMenuItem
         v-if="userProfileStore.isDba"
@@ -137,13 +137,13 @@
     routeLocation: handleMenuChange,
   } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'MyTodos');
 
+  const userProfileStore = useUserProfile();
   const { data: ticketCount } = useTicketCount();
-  const { manageCount } = useReportCount();
   const { todoCount: alarmEventsTodoCount } = useAlarmEventsCount();
   const { todoCount: riskMemoTodoCount } = useRiskMemoCount();
-  const userProfileStore = useUserProfile();
+  const { manageCount: reportManageCount } = useReportCount(userProfileStore.isDba);
 
-  const todoCount = computed(() => {
+  const ticketTodoCount = computed(() => {
     if (!ticketCount.value) {
       return 0;
     }
