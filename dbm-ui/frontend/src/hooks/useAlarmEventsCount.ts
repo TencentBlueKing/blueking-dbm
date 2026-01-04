@@ -11,6 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 import dayjs from 'dayjs';
+import { useRequest } from 'vue-request';
 
 import { getAlarmEventsList } from '@services/source/monitor';
 
@@ -25,31 +26,40 @@ export const useAlarmEventsCount = () => {
   const todoCount = ref(0);
   const assitCount = ref(0);
 
-  const initCount = () => {
-    const dateFormatStr = 'YYYY-MM-DD HH:mm:ss';
-    const startTime = dayjs().subtract(7, 'day').format(dateFormatStr);
-    const endTime = dayjs().format(dateFormatStr);
-    Promise.all([
-      getAlarmEventsList({
+  const dateFormatStr = 'YYYY-MM-DD HH:mm:ss';
+  const startTime = dayjs().subtract(7, 'day').format(dateFormatStr);
+  const endTime = dayjs().format(dateFormatStr);
+
+  useRequest(getAlarmEventsList, {
+    cacheKey: 'alarmEventsSelfManageCount',
+    defaultParams: [
+      {
         end_time: endTime,
-        self_manage: true,
+        self_manage: false,
         start_time: startTime,
         status: 'ABNORMAL',
-      }),
-      getAlarmEventsList({
+      },
+    ],
+    manual: !isDba,
+    onSuccess(result) {
+      todoCount.value = result.overview.count ?? 0;
+    },
+  });
+  useRequest(getAlarmEventsList, {
+    cacheKey: 'alarmEventsSelfAssistCount',
+    defaultParams: [
+      {
         end_time: endTime,
         self_assist: true,
         start_time: startTime,
         status: 'ABNORMAL',
-      }),
-    ]).then(([todoData, assistData]) => {
-      todoCount.value = todoData.overview.count ?? 0;
-      assitCount.value = assistData.overview.count ?? 0;
-    });
-  };
-  if (isDba) {
-    initCount();
-  }
+      },
+    ],
+    manual: !isDba,
+    onSuccess(result) {
+      assitCount.value = result.overview.count ?? 0;
+    },
+  });
 
   return {
     assitCount,
