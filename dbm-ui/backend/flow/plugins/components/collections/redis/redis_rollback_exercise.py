@@ -204,7 +204,6 @@ class RedisFlowPollingService(RedisLogCapturingService):
                 self._update_task_status(flow_type, False)
                 return False
             case _:
-                self.log_info(_("Polling: flow {} with status: {}").format(flow_obj_id, status))
                 return True
 
     def __schedule(self, data, parent_data, callback_data=None) -> bool:

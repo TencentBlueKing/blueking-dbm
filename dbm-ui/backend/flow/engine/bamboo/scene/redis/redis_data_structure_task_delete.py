@@ -20,6 +20,7 @@ from django.utils.translation import gettext as _
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import DestroyedStatus
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
+from backend.db_services.redis.util import is_have_proxy
 from backend.flow.consts import DBActuatorTypeEnum, RedisActuatorActionEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -182,21 +183,21 @@ class RedisDataStructureTaskDeleteFlow(object):
             # 重新赋值，因为下架redis时cluster会被赋值
             # act_kwargs.cluster = {**tasks_info}
             act_kwargs.cluster["cluster_type"] = act_kwargs.cluster["temp_cluster_type"]
+            if is_have_proxy(act_kwargs.cluster["cluster_type"]):
+                act_kwargs.cluster["operate"] = (
+                    DBActuatorTypeEnum.Proxy.value + "_" + RedisActuatorActionEnum.Shutdown.value
+                )
+                proxy_ip, proxy_port = act_kwargs.cluster["temp_cluster_proxy"].split(":")
+                act_kwargs.cluster["proxy_ip"] = proxy_ip
+                act_kwargs.cluster["proxy_port"] = int(proxy_port)
 
-            act_kwargs.cluster["operate"] = (
-                DBActuatorTypeEnum.Proxy.value + "_" + RedisActuatorActionEnum.Shutdown.value
-            )
-            proxy_ip, proxy_port = act_kwargs.cluster["temp_cluster_proxy"].split(":")
-            act_kwargs.cluster["proxy_ip"] = proxy_ip
-            act_kwargs.cluster["proxy_port"] = int(proxy_port)
-
-            act_kwargs.exec_ip = act_kwargs.cluster["proxy_ip"]
-            act_kwargs.get_redis_payload_func = RedisActPayload.proxy_shutdown_payload.__name__
-            redis_pipeline.add_act(
-                act_name=_("{}下架proxy实例").format(act_kwargs.cluster["proxy_ip"]),
-                act_component_code=ExecuteDBActuatorScriptComponent.code,
-                kwargs=asdict(act_kwargs),
-            )
+                act_kwargs.exec_ip = act_kwargs.cluster["proxy_ip"]
+                act_kwargs.get_redis_payload_func = RedisActPayload.proxy_shutdown_payload.__name__
+                redis_pipeline.add_act(
+                    act_name=_("{}下架proxy实例").format(act_kwargs.cluster["proxy_ip"]),
+                    act_component_code=ExecuteDBActuatorScriptComponent.code,
+                    kwargs=asdict(act_kwargs),
+                )
             # #### 下架旧实例完成 #############################################################################
             act_kwargs.cluster = {
                 "related_rollback_bill_id": info["related_rollback_bill_id"],

@@ -28,7 +28,7 @@ from backend.db_report.enums import RedisRollbackExerciseTaskStage as TaskStage
 from backend.db_report.models import RedisRollbackExerciseReport as Report
 from backend.db_services.redis.rollback.handlers import DataStructureHandler
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
-from backend.ticket.builders.common.base import IpSource
+from backend.ticket.builders.common.base import ClusterType, IpSource
 from backend.ticket.constants import TICKET_RUNNING_STATUS_SET, TicketType
 from backend.ticket.models import ClusterOperateRecord, SystemSettings, Ticket
 from backend.utils.redis import RedisConn
@@ -62,7 +62,7 @@ class RedisRollbackExerciseConfig:
     """
 
     # Meta Configs
-    switch: bool = False
+    enabled: bool = False
     mode: RedisRollbackExerciseMode = RedisRollbackExerciseMode.RANDOM
     bk_biz_id: int = 0  # The biz where the drill ticket locates
 
@@ -74,7 +74,13 @@ class RedisRollbackExerciseConfig:
     bizs_high_priority: Optional[List[int]] = None  # Customed bizs with high priority
     clusters_ignored: Optional[List[int]] = None  # Customed clusters(id) to ignore
     bizs_ignored: Optional[List[int]] = None  # Customed bizs to ignore
-    cluster_types: Optional[List[str]] = None  # Customed ClusterTypes to exercise
+    cluster_types: List[str] = field(
+        default_factory=lambda: [
+            ClusterType.TendisTwemproxyRedisInstance.value,  # TendisCache 集群
+            ClusterType.TwemproxyTendisSSDInstance.value,  # TendisSSD 集群
+            ClusterType.TendisRedisInstance.value,  # Redis 主从
+        ]
+    )  # Customed ClusterTypes to exercise
 
     # Weighted selection: probability multipliers (how many times more likely to be selected)
     # Combined effect is multiplicative, e.g., high_priority + failed = 2.0 * 3.0 = 6x more likely
@@ -85,7 +91,7 @@ class RedisRollbackExerciseConfig:
 
     # Extra
     max_instances: int = 10  # Each round
-    rollback_days: List[int] = field(default_factory=lambda: [20, 10, 5, 3, 2, 1])
+    rollback_days: List[int] = field(default_factory=lambda: [7, 5, 3, 2, 1])
     polling_interval: int = 10  # sec
     polling_timeout: int = 3600  # sec
 
@@ -124,7 +130,7 @@ class RedisRollbackExercise:
         """
         logger.info(_("Starting Redis rollback exercise task generation"))
 
-        if not self.config.switch:
+        if not self.config.enabled:
             logger.info(_("Redis rollback exercise is disabled, exiting..."))
             return
 

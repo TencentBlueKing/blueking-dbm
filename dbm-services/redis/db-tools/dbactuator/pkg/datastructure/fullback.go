@@ -135,6 +135,7 @@ func (full *TendisFullBackPull) GetFullFilesSpecTimeRange(fullFileList []FileDet
 		// tendis cache  （cache 这里没有做文件分割）
 		// 2005000194-redis-master-127.0.0.x-30000-20230426-210004.rdb
 		// 2005000194-redis-slave-127.0.0.x-30000-20230508-130108.aof.zst
+		// 2005000194-redis-slave-127.0.0.x-30000-20230508-130108.aof.gz
 		// 127.0.0.xx-30000-20231219-200152-appendonly.aof.lzo
 		// rdb 文件不会压缩，因为redis本身有做压缩
 		// aof 文件会压缩，需要解压
@@ -174,6 +175,11 @@ func (full *TendisFullBackPull) GetFullFilesSpecTimeRange(fullFileList []FileDet
 		// xx-appendonly.aof.lzo`
 		if match01 == nil {
 			match01 = lastDateReg2.FindStringSubmatch(str01.FileName)
+		}
+		// xx-xx-xx.aof.gz (fallback when zstd is not available)
+		if match01 == nil {
+			lastDateReg3 := regexp.MustCompile(`^.*?(\d+-\d+).aof.gz`)
+			match01 = lastDateReg3.FindStringSubmatch(str01.FileName)
 		}
 
 		if len(match01) < 2 {
@@ -478,6 +484,8 @@ func (full *TendisFullBackPull) GetBackupFileExt() (fileExt string) {
 		fileExt = ".tar.gz"
 	} else if strings.HasSuffix(full.ResultFullbackup[0].BackupFile, ".zst") {
 		fileExt = ".zst"
+	} else if strings.HasSuffix(full.ResultFullbackup[0].BackupFile, ".gz") {
+		fileExt = ".gz"
 	} else if strings.HasSuffix(full.ResultFullbackup[0].BackupFile, ".rdb") {
 		fileExt = ".rdb"
 	} else if strings.HasSuffix(full.ResultFullbackup[0].BackupFile, ".lzo") {
@@ -501,7 +509,8 @@ func (full *TendisFullBackPull) SetDecompressedDir() {
 	}
 	mylog.Logger.Info("SetDecompressedDir bkFileExt:%s", bkFileExt)
 	var prefix, cmd01 string
-	if bkFileExt == "split" {
+	switch bkFileExt {
+	case "split":
 		// 2005000194-TENDISPLUS-FULL-slave-127.0.0.x-30000-20230311-214752.split.004
 		// 需要的：2005000194-TENDISPLUS-FULL-slave-127.0.0.x-30000-20230311-214752
 		prefix = strings.Split(full.ResultFullbackup[0].BackupFile, ".split")[0]
@@ -511,7 +520,7 @@ func (full *TendisFullBackPull) SetDecompressedDir() {
 		if full.Err != nil {
 			return
 		}
-	} else if bkFileExt == ".tar" {
+	case ".tar":
 		prefix = strings.TrimSuffix(full.ResultFullbackup[0].BackupFile, bkFileExt)
 		cmd01 := fmt.Sprintf("cd %s && mkdir -p %s ", full.SaveDir, prefix)
 		mylog.Logger.Info("SetDecompressedDir bkFileExt:%s, cmd01:%s", bkFileExt, cmd01)
@@ -519,7 +528,7 @@ func (full *TendisFullBackPull) SetDecompressedDir() {
 		if full.Err != nil {
 			return
 		}
-	} else if bkFileExt == ".zst" {
+	case ".zst":
 		// xx-xx-xx.aof.zst
 		prefix = strings.TrimSuffix(full.ResultFullbackup[0].BackupFile, ".aof.zst")
 		mylog.Logger.Info("prefix:%s", prefix)
@@ -529,7 +538,17 @@ func (full *TendisFullBackPull) SetDecompressedDir() {
 		if full.Err != nil {
 			return
 		}
-	} else if bkFileExt == ".lzo" {
+	case ".gz":
+		// xx-xx-xx.aof.gz
+		prefix = strings.TrimSuffix(full.ResultFullbackup[0].BackupFile, ".aof.gz")
+		mylog.Logger.Info("prefix:%s", prefix)
+		cmd01 := fmt.Sprintf("cd %s && mkdir -p %s ", full.SaveDir, prefix)
+		mylog.Logger.Info("SetDecompressedDir bkFileExt:%s, cmd01:%s", bkFileExt, cmd01)
+		_, full.Err = util.RunLocalCmd("bash", []string{"-c", cmd01}, "", nil, 1800*time.Second)
+		if full.Err != nil {
+			return
+		}
+	case ".lzo":
 		// xx-xx-xx.aof.lzo
 		prefix = strings.TrimSuffix(full.ResultFullbackup[0].BackupFile, ".aof.lzo")
 		mylog.Logger.Info("prefix:%s", prefix)
@@ -539,7 +558,7 @@ func (full *TendisFullBackPull) SetDecompressedDir() {
 		if full.Err != nil {
 			return
 		}
-	} else if bkFileExt == ".rdb" {
+	case ".rdb":
 		// xx-xx.rdb
 		prefix = strings.TrimSuffix(full.ResultFullbackup[0].BackupFile, ".rdb")
 		mylog.Logger.Info("prefix:%s", prefix)
@@ -630,14 +649,17 @@ func (full *TendisFullBackPull) CheckDecompressedDirIsOK() (isExists, isCompelet
 		if full.Err != nil {
 			return
 		}
-		if bkFileExt == ".zst" {
+		switch bkFileExt {
+		case ".zst":
 			backupFile = strings.TrimSuffix(full.ResultFullbackup[0].BackupFile, ".zst")
 			file, _ = findDstFileInDir(decpFullPath, backupFile)
-
-		} else if bkFileExt == ".rdb" {
+		case ".gz":
+			backupFile = strings.TrimSuffix(full.ResultFullbackup[0].BackupFile, ".gz")
+			file, _ = findDstFileInDir(decpFullPath, backupFile)
+		case ".rdb":
 			backupFile = full.ResultFullbackup[0].BackupFile
 			file, _ = findDstFileInDir(decpFullPath, backupFile)
-		} else if bkFileExt == ".lzo" {
+		case ".lzo":
 			backupFile = strings.TrimSuffix(full.ResultFullbackup[0].BackupFile, ".lzo")
 			file, _ = findDstFileInDir(decpFullPath, backupFile)
 		}
@@ -705,9 +727,12 @@ func (full *TendisFullBackPull) CheckLocalBackupFileIsOK() (isExists, isCompelet
 			if full.Err != nil {
 				return
 			}
-			if bkFileExt == ".zst" {
+			switch bkFileExt {
+			case ".zst":
 				bkFileFullPathFile = fmt.Sprintf("%s%s", bkFileFullPath, ".aof.zst")
-			} else if bkFileExt == ".rdb" {
+			case ".gz":
+				bkFileFullPathFile = fmt.Sprintf("%s%s", bkFileFullPath, ".aof.gz")
+			case ".rdb":
 				bkFileFullPathFile = fmt.Sprintf("%s%s", bkFileFullPath, ".rdb")
 			}
 
@@ -792,14 +817,26 @@ func (full *TendisFullBackPull) RmLocalBakcupFile() {
 	}
 	var backupFiles string
 	// rdb 没压缩，不用处理
-	if bkFileExt == "split" {
+	switch bkFileExt {
+	case "split":
 		// 2005000194-TENDISPLUS-FULL-slave-127.0.0.x-30000-20230311-214752.split.004
 		// 需要的：2005000194-TENDISPLUS-FULL-slave-127.0.0.x-30000-20230311-214752
 		backupFiles = fmt.Sprintf("%s.split.*", full.GetDecompressedDir())
-	} else if bkFileExt == ".tar" {
+	case ".tar":
 		backupFiles = fmt.Sprintf("%s.tar", full.GetDecompressedDir())
-	} else if bkFileExt == ".zst" {
+	case ".zst":
 		backupFiles = fmt.Sprintf("%s.aof.zst", full.GetDecompressedDir())
+		DecompressDir := filepath.Join(full.SaveDir, full.GetDecompressedDir())
+		rmCmd := fmt.Sprintf("cd %s && rm -rf %s 2>/dev/null", DecompressDir, backupFiles)
+		_, full.Err = util.RunLocalCmd("bash", []string{"-c", rmCmd}, "", nil, 30*time.Minute)
+		if full.Err != nil {
+			return
+		}
+		msg := fmt.Sprintf("本地全备(未解压):%s 删除成功", backupFiles)
+		mylog.Logger.Info(msg)
+		return
+	case ".gz":
+		backupFiles = fmt.Sprintf("%s.aof.gz", full.GetDecompressedDir())
 		DecompressDir := filepath.Join(full.SaveDir, full.GetDecompressedDir())
 		rmCmd := fmt.Sprintf("cd %s && rm -rf %s 2>/dev/null", DecompressDir, backupFiles)
 		_, full.Err = util.RunLocalCmd("bash", []string{"-c", rmCmd}, "", nil, 30*time.Minute)
@@ -830,17 +867,18 @@ func (full *TendisFullBackPull) Decompressed() {
 		return
 	}
 
-	if bkFileExt == ".tar" {
+	switch bkFileExt {
+	case ".tar":
 		// 只有一个备份文件，并且后缀为.tar
 		if len(full.ResultFullbackup) == 1 {
 			cmd01 = fmt.Sprintf("tar -xf %s", full.ResultFullbackup[0].BackupFile)
 		}
 
-	} else if bkFileExt == ".tar.gz" || bkFileExt == ".tgz" {
+	case ".tar.gz", ".tgz":
 		if len(full.ResultFullbackup) == 1 {
 			cmd01 = fmt.Sprintf("tar -xf %s", full.ResultFullbackup[0].BackupFile)
 		}
-	} else if bkFileExt == ".zst" {
+	case ".zst":
 		mylog.Logger.Info("len(full.ResultFullbackup) is %d", len(full.ResultFullbackup))
 		mylog.Logger.Info("Decompressed_bkFileExt is %s", bkFileExt)
 		if len(full.ResultFullbackup) == 1 {
@@ -875,7 +913,31 @@ func (full *TendisFullBackPull) Decompressed() {
 			return
 		}
 
-	} else if bkFileExt == ".lzo" {
+	case ".gz":
+		mylog.Logger.Info("len(full.ResultFullbackup) is %d", len(full.ResultFullbackup))
+		mylog.Logger.Info("Decompressed_bkFileExt is %s", bkFileExt)
+		if len(full.ResultFullbackup) == 1 {
+			// 使用 gzip 解压 .gz 文件
+			cmd01 = fmt.Sprintf(" cd %s && gzip -d %s ", full.GetDecompressedDir(),
+				full.ResultFullbackup[0].BackupFile)
+		}
+		prefix := strings.TrimSuffix(full.ResultFullbackup[0].BackupFile, ".aof.gz")
+		mkcmd := fmt.Sprintf("cd %s && mkdir -p %s ", full.SaveDir, prefix)
+		mylog.Logger.Info("SetDecompressedDir bkFileExt:%s, mkcmd:%s", bkFileExt, mkcmd)
+		_, full.Err = util.RunLocalCmd("bash", []string{"-c", mkcmd}, "", nil, 1800*time.Second)
+		if full.Err != nil {
+			return
+		}
+		// 将备份文件mv到解压目录下
+		DecompressDir := filepath.Join(full.SaveDir, full.GetDecompressedDir())
+		mvCmd := fmt.Sprintf("cd %s && mv %s %s ", full.SaveDir, full.ResultFullbackup[0].BackupFile, DecompressDir)
+		mylog.Logger.Info("将备份文件mv到解压目录下 mvCmd:%s", mvCmd)
+		_, full.Err = util.RunLocalCmd("bash", []string{"-c", mvCmd}, "", nil, 1800*time.Second)
+		if full.Err != nil {
+			return
+		}
+
+	case ".lzo":
 		mylog.Logger.Info("Decompressed_bkFileExt is %s", bkFileExt)
 		mylog.Logger.Info("len(full.ResultFullbackup) is %d", len(full.ResultFullbackup))
 		if len(full.ResultFullbackup) == 1 {
@@ -909,7 +971,7 @@ func (full *TendisFullBackPull) Decompressed() {
 			return
 		}
 
-	} else if bkFileExt == ".rdb" {
+	case ".rdb":
 		// 将备份文件mv到目录下,rdb不用解压
 		DecompressDir := filepath.Join(full.SaveDir, full.GetDecompressedDir())
 		cmd01 := fmt.Sprintf("cd %s && mkdir -p %s ", full.SaveDir, DecompressDir)
@@ -925,7 +987,7 @@ func (full *TendisFullBackPull) Decompressed() {
 		if full.Err != nil {
 			return
 		}
-	} else if bkFileExt == "split" {
+	case "split":
 		// 2005000194-TENDISPLUS-FULL-slave-127.0.0.x-30000-20230311-214752.split.004
 		backupFilesPrefix := strings.Split(full.ResultFullbackup[0].BackupFile, ".split")[0]
 		cmd01 = fmt.Sprintf("cat %s.* |tar x ", backupFilesPrefix)
@@ -1511,6 +1573,7 @@ func (full *TendisFullBackPull) RecoverCacheRedisFromBackupFile(sourceIP string,
 	var dataPath, backupFile, backupFilePath string
 
 	if strings.Contains(full.ResultFullbackup[0].BackupFile, ".aof.zst") ||
+		strings.Contains(full.ResultFullbackup[0].BackupFile, ".aof.gz") ||
 		strings.Contains(full.ResultFullbackup[0].BackupFile, ".aof.lzo") {
 		// 解压后文件
 		backupFile := strings.TrimSuffix(full.ResultFullbackup[0].BackupFile,

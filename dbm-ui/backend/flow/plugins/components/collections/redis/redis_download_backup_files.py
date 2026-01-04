@@ -29,7 +29,7 @@ class RedisDownloadBackupfile(BaseService):
     """
 
     __need_schedule__ = True
-    interval = StaticIntervalGenerator(60)
+    interval = StaticIntervalGenerator(3)  # poll every 3 sec
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
@@ -66,7 +66,11 @@ class RedisDownloadBackupfile(BaseService):
         result_response = RedisBackupApi.download_result({"bill_id": backup_bill_id})
         # 如何判断
         if result_response is not None and "total" in result_response:
-            if result_response["total"]["todo"] == 0 and result_response["total"]["fail"] == 0:
+            if (
+                result_response["total"]["todo"] == 0
+                and result_response["total"]["doing"] == 0
+                and result_response["total"]["fail"] == 0
+            ):
                 self.log_info(_("{} 下载成功").format(backup_bill_id))
                 self.finish_schedule()
                 return True
