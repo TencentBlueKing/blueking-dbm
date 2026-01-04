@@ -57,19 +57,6 @@ func (a ActionScopeType) String() string {
 const (
 	// Define variables for all the field names of the database tables
 	// to avoid hard-coding the field names in the business code.
-	// DbSwitchingLog Table
-	DbSwitchingLogTableName              = "t_db_switching_log"
-	DbSwitchingLogFieldID                = "id"
-	DbSwitchingLogFieldBkBizID           = "bk_biz_id"
-	DbSwitchingLogFieldBkCloudID         = "bk_cloud_id"
-	DbSwitchingLogFieldDbIP              = "db_ip"
-	DbSwitchingLogFieldDbPort            = "db_port"
-	DbSwitchingLogFieldDbTypeName        = "db_type_name"
-	DbSwitchingLogFieldDbEventName       = "db_event_name"
-	DbSwitchingLogFieldDbEventNameReason = "db_event_name_reason"
-	DbSwitchingLogFieldLevel             = "level"
-	DbSwitchingLogFieldContent           = "content"
-	DbSwitchingLogFieldCreatedAt         = "created_at"
 
 	// DbSwitchingStrategy Table
 	DbSwitchingStrategyTableName                   = "t_db_switching_strategy"
@@ -85,25 +72,6 @@ const (
 	DbSwitchingStrategyFieldUpdatedAt              = "updated_at"
 	DbSwitchingStrategyFieldDeletedAt              = "deleted_at"
 )
-
-// DbSwitchingLog defines the log of database switching.
-type DbSwitchingLog struct {
-	ID                uint      `gorm:"column:id;primaryKey;autoIncrement"`
-	BkBizID           int       `gorm:"column:bk_biz_id"`
-	BkCloudID         int       `gorm:"column:bk_cloud_id"`
-	DbIP              string    `gorm:"column:db_ip"`
-	DbPort            int       `gorm:"column:db_port"`
-	DbTypeName        string    `gorm:"column:db_type_name"`
-	DbEventName       string    `gorm:"column:db_event_name"`
-	DbEventNameReason string    `gorm:"column:db_event_name_reason"`
-	Level             string    `gorm:"column:level"`
-	Content           string    `gorm:"column:content;mediumtext"`
-	CreatedAt         time.Time `gorm:"column:created_at;autoCreateTime"`
-}
-
-func (t DbSwitchingLog) TableName() string {
-	return DbSwitchingLogTableName
-}
 
 // DbSwitchingStrategy database switching strategy
 type DbSwitchingStrategy struct {
@@ -127,12 +95,13 @@ type DbSwitchingStrategy struct {
 	Action   ActionType      `gorm:"column:action"`
 
 	// Detailed explanation of db switching strategy.
-	Description string    `gorm:"column:description;type:mediumtext;index"`
+	Description string    `gorm:"column:description;type:mediumtext;index:,length:255"`
 	CreatedAt   time.Time `gorm:"column:created_at;autoCreateTime;index"`
 	UpdatedAt   time.Time `gorm:"column:updated_at;autoUpdateTime;index"`
 	DeletedAt   time.Time `gorm:"column:deleted_at;index"`
 }
 
+// TableName returns the name of the switching strategy table.
 func (t DbSwitchingStrategy) TableName() string {
 	return DbSwitchingStrategyTableName
 }

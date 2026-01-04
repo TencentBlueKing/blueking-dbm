@@ -27,6 +27,7 @@ package switcher
 import (
 	"context"
 
+	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchlogger"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
@@ -54,6 +55,20 @@ func (m *TendbCluster) Switch(ctx context.Context, req *Request) *Response {
 		return rsp
 	}
 
+	switchLogger, newLoggerErr := switchlogger.NewLogToDbHandlerFromConfig()
+	if newLoggerErr != nil {
+		rsp.Err = gerrors.Newf(gerrors.Failure,
+			"Tendbcluster switcher failed to create switch logger: %s", newLoggerErr)
+		return rsp
+	}
+
+	if err := switchLogger.Open(); err != nil {
+		rsp.Err = gerrors.Newf(gerrors.Failure,
+			"Tendbcluster switcher failed to open switch logger: %s", err)
+		return rsp
+	}
+	defer switchLogger.Close()
+
 	for _, inst := range req.TendbClusterInstData {
 		instKey := GenerateMetadataKey(inst.BkCloudID, inst.IP, inst.Port)
 		swInst, newErr := NewTendbClusterSwitchInstance(inst)
@@ -64,14 +79,18 @@ func (m *TendbCluster) Switch(ctx context.Context, req *Request) *Response {
 			continue
 		}
 
-		success, swErr := SwitchSingleInstance(swInst)
-		if success {
-			logger.Info("successfully switched the single instance: %s", instKey)
+		swInst.SetSwitchLogger([]switchlogger.DbSwitchLogger{
+			switchLogger,
+			switchlogger.NewLogToStdHandler(),
+		})
+
+		logger.Info("start to switch the single tendbcluster instance: %s", instKey)
+		if swErr := SwitchSingleInstance(swInst); swErr != nil {
+			logger.Warn("failed to switch the single tendbcluster instance: %s, errmsg: %s", instKey, swErr)
+			rsp.TendbClusterFailureInsts[instKey] = inst
 			continue
 		}
-
-		logger.Warn("failed to switch the single instance: %s, errmsg: %s", instKey, swErr)
-		rsp.TendbClusterFailureInsts[instKey] = inst
+		logger.Info("successfully switched the single tendbcluster instance: %s", instKey)
 	}
 
 	if len(rsp.TendbClusterFailureInsts) == 0 {
