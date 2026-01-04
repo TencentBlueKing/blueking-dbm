@@ -157,3 +157,55 @@ class RedisRoleCheckReportViewSet(RedisDbmetaCheckReportBaseViewSet):
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
+
+
+@register_report(DBType.Redis)
+class RedisEntryCheckReportViewSet(RedisDbmetaCheckReportBaseViewSet):
+    queryset = MetaCheckReport.objects.filter(subtype=MetaCheckSubType.EntryInconsistent.value)
+    serializer_class = RedisDbmetaCheckReportSerializer
+    report_type = ReportType.ENTRY_CHECK
+    report_title = [
+        {
+            "name": "bk_biz_id",
+            "display_name": _("业务"),
+            "format": ReportFieldFormat.TEXT.value,
+        },
+        {
+            "name": "cluster",
+            "display_name": _("集群域名"),
+            "format": ReportFieldFormat.TEXT.value,
+        },
+        {
+            "name": "cluster_type",
+            "display_name": _("集群类型"),
+            "format": ReportFieldFormat.TEXT.value,
+        },
+        {
+            "name": "state",
+            "display_name": _("结果"),
+            "format": ReportFieldFormat.STATUS.value,
+        },
+        {
+            "name": "msg",
+            "display_name": _("详情"),
+            "format": ReportFieldFormat.TEXT.value,
+        },
+        {
+            "name": "create_at",
+            "display_name": _("巡检时间"),
+            "format": ReportFieldFormat.TEXT.value,
+        },
+        {
+            "name": "failed_days",
+            "display_name": _("持续天数"),
+            "format": ReportFieldFormat.TEXT.value,
+        },
+    ]
+
+    @common_swagger_auto_schema(
+        operation_summary=_("访问入口一致性检查报告"),
+        responses={status.HTTP_200_OK: RedisDbmetaCheckReportSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
