@@ -135,6 +135,7 @@ export default class FunctionController {
   'mysql.toolbox.sqlExecute': ControllerItem<string>;
   'observableManage.DBHASwitchEvents': ControllerItem<string>;
   'observableManage.healthReport': ControllerItem<string>;
+  'personalWorkbench.clusterDisableTodo': ControllerItem<string>;
   'personalWorkbench.myTickets.viewDetails': ControllerItem<string>;
   'personalWorkbench.myTickets': ControllerItem<string>;
   'personalWorkbench.myTodos': ControllerItem<string>;
@@ -177,14 +178,14 @@ export default class FunctionController {
   'resourceManage.allHost': ControllerItem<string>;
   'resourceManage.dirtyHostManage': ControllerItem<string>;
   'resourceManage.faultPool': ControllerItem<string>;
-  'resourceManage.specListReplenish': ControllerItem<string>;
-  'resourceManage.replenishList': ControllerItem<string>;
   'resourceManage.replenishList.replenishListRowOperation': ControllerItem<string>;
+  'resourceManage.replenishList': ControllerItem<string>;
   'resourceManage.replenishRecord': ControllerItem<string>;
   'resourceManage.resourceOperationRecord': ControllerItem<string>;
   'resourceManage.resourcePool': ControllerItem<string>;
   'resourceManage.resourceSpec': ControllerItem<string>;
   'resourceManage.resourceTagsManagement': ControllerItem<string>;
+  'resourceManage.specListReplenish': ControllerItem<string>;
   'resourceManage.toRecyclePool': ControllerItem<string>;
   'riak.clusterManage.baseInfo': ControllerItem<string>;
   'riak.clusterManage.changeLog': ControllerItem<string>;
