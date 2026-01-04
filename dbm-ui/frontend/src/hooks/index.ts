@@ -18,6 +18,7 @@ export * from './useBatchCreateTicket';
 export * from './useBeforeClose';
 export * from './useBizDbDisplay';
 export * from './useClusterColumnFilter';
+export * from './useClusterDisableCount';
 export * from './useClusterQuickSearch';
 export * from './useCopy';
 export * from './useCopyFromSelection';

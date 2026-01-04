@@ -14,21 +14,14 @@
 import { InfoBox } from 'bkui-vue';
 import { useI18n } from 'vue-i18n';
 
+import TicketClusterDisableTodoModel from '@services/model/ticket-cluster-disable-todo/TicketClusterDisableTodo';
 import { createTicket } from '@services/source/ticket';
 
 import { useTicketMessage } from '@hooks';
 
 import { ClusterTypes, TicketTypes } from '@common/const';
 
-interface ClusterCommon {
-  cluster_alias: string;
-  cluster_name: string;
-  cluster_type: string;
-  id: number;
-  phase: string;
-}
-
-export const useOperateClusterBasic = (clusterType: ClusterTypes, options: { onSuccess: () => void }) => {
+export const useOperateClusterBasic = (options: { onSuccess: () => void }) => {
   const { t } = useI18n();
   const ticketMessage = useTicketMessage();
 
@@ -54,7 +47,7 @@ export const useOperateClusterBasic = (clusterType: ClusterTypes, options: { onS
     TicketTypes.SQLSERVER_DESTROY,
   ];
 
-  const getDetailParam = (ticketType: TicketTypes, dataList: { id: number }[]) => {
+  const getDetailParam = (ticketType: TicketTypes, dataList: TicketClusterDisableTodoModel[]) => {
     const idList = dataList.map((item) => item.id);
     if (batchOperateTicketTypeList.includes(ticketType as string)) {
       return {
@@ -70,80 +63,86 @@ export const useOperateClusterBasic = (clusterType: ClusterTypes, options: { onS
     string,
     {
       delete: TicketTypes;
-      disable: TicketTypes;
       enable: TicketTypes;
     }
   > = {
     [ClusterTypes.DORIS]: {
       delete: TicketTypes.DORIS_DESTROY,
-      disable: TicketTypes.DORIS_DISABLE,
       enable: TicketTypes.DORIS_ENABLE,
     },
     [ClusterTypes.ES]: {
       delete: TicketTypes.ES_DESTROY,
-      disable: TicketTypes.ES_DISABLE,
       enable: TicketTypes.ES_ENABLE,
     },
     [ClusterTypes.HDFS]: {
       delete: TicketTypes.HDFS_DESTROY,
-      disable: TicketTypes.HDFS_DISABLE,
       enable: TicketTypes.HDFS_ENABLE,
     },
     [ClusterTypes.KAFKA]: {
       delete: TicketTypes.KAFKA_DESTROY,
-      disable: TicketTypes.KAFKA_DISABLE,
       enable: TicketTypes.KAFKA_ENABLE,
     },
-    [ClusterTypes.MONGODB]: {
+    [ClusterTypes.MONGO_REPLICA_SET]: {
       delete: TicketTypes.MONGODB_DESTROY,
-      disable: TicketTypes.MONGODB_DISABLE,
+      enable: TicketTypes.MONGODB_ENABLE,
+    },
+    [ClusterTypes.MONGO_SHARED_CLUSTER]: {
+      delete: TicketTypes.MONGODB_DESTROY,
       enable: TicketTypes.MONGODB_ENABLE,
     },
     [ClusterTypes.PULSAR]: {
       delete: TicketTypes.PULSAR_DESTROY,
-      disable: TicketTypes.PULSAR_DISABLE,
       enable: TicketTypes.PULSAR_ENABLE,
     },
     [ClusterTypes.REDIS]: {
       delete: TicketTypes.REDIS_DESTROY,
-      disable: TicketTypes.REDIS_PROXY_CLOSE,
       enable: TicketTypes.REDIS_PROXY_OPEN,
     },
     [ClusterTypes.REDIS_INSTANCE]: {
       delete: TicketTypes.REDIS_INSTANCE_DESTROY,
-      disable: TicketTypes.REDIS_INSTANCE_CLOSE,
       enable: TicketTypes.REDIS_INSTANCE_OPEN,
     },
     [ClusterTypes.RIAK]: {
       delete: TicketTypes.RIAK_CLUSTER_DESTROY,
-      disable: TicketTypes.RIAK_CLUSTER_DISABLE,
       enable: TicketTypes.RIAK_CLUSTER_ENABLE,
     },
-    [ClusterTypes.SQLSERVER]: {
+    [ClusterTypes.SQLSERVER_HA]: {
       delete: TicketTypes.SQLSERVER_DESTROY,
-      disable: TicketTypes.SQLSERVER_DISABLE,
+      enable: TicketTypes.SQLSERVER_ENABLE,
+    },
+    [ClusterTypes.SQLSERVER_SINGLE]: {
+      delete: TicketTypes.SQLSERVER_DESTROY,
       enable: TicketTypes.SQLSERVER_ENABLE,
     },
     [ClusterTypes.TENDBCLUSTER]: {
       delete: TicketTypes.TENDBCLUSTER_DESTROY,
-      disable: TicketTypes.TENDBCLUSTER_DISABLE,
       enable: TicketTypes.TENDBCLUSTER_ENABLE,
     },
     [ClusterTypes.TENDBHA]: {
       delete: TicketTypes.MYSQL_HA_DESTROY,
-      disable: TicketTypes.MYSQL_HA_DISABLE,
       enable: TicketTypes.MYSQL_HA_ENABLE,
     },
     [ClusterTypes.TENDBSINGLE]: {
       delete: TicketTypes.MYSQL_SINGLE_DESTROY,
-      disable: TicketTypes.MYSQL_SINGLE_DISABLE,
       enable: TicketTypes.MYSQL_SINGLE_ENABLE,
     },
   };
 
-  const ticketTypeInfo = ticketTypeMap[clusterType];
+  const getRealClusterType = (clusterType: ClusterTypes) => {
+    if (
+      [
+        ClusterTypes.PREDIXY_REDIS_CLUSTER,
+        ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+        ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+        ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+      ].includes(clusterType)
+    ) {
+      return ClusterTypes.REDIS;
+    }
+    return clusterType;
+  };
 
-  const handleConfirm = (ticketType: TicketTypes, dataList: { id: number }[]) => {
+  const handleConfirm = (ticketType: TicketTypes, dataList: TicketClusterDisableTodoModel[]) => {
     createTicket({
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       details: getDetailParam(ticketType, dataList),
@@ -154,7 +153,7 @@ export const useOperateClusterBasic = (clusterType: ClusterTypes, options: { onS
     });
   };
 
-  const handleDisableCluster = <T extends ClusterCommon>(dataList: T[]) => {
+  const handleEnableCluster = (clusterType: ClusterTypes, dataList: TicketClusterDisableTodoModel[]) => {
     const subTitle = (
       <div style='background-color: #F5F7FA; padding: 8px 16px;'>
         <div>
@@ -162,37 +161,7 @@ export const useOperateClusterBasic = (clusterType: ClusterTypes, options: { onS
           <span
             class='ml-8'
             style='color: #313238'>
-            {dataList.map((item) => item.cluster_name).join('，')}
-          </span>
-        </div>
-        <div class='mt-4'>{t('被禁用后将无法访问，如需恢复访问，可以再次「启用」')}</div>
-      </div>
-    );
-    InfoBox({
-      cancelText: t('取消'),
-      confirmText: t('禁用'),
-      contentAlign: 'left',
-      footerAlign: 'center',
-      headerAlign: 'center',
-      infoType: 'warning',
-      onConfirm: () => {
-        handleConfirm(ticketTypeInfo.disable, dataList);
-      },
-      subTitle,
-      theme: 'danger',
-      title: t('确定禁用集群？'),
-    });
-  };
-
-  const handleEnableCluster = <T extends ClusterCommon>(dataList: T[]) => {
-    const subTitle = (
-      <div style='background-color: #F5F7FA; padding: 8px 16px;'>
-        <div>
-          {t('集群')} :
-          <span
-            class='ml-8'
-            style='color: #313238'>
-            {dataList.map((item) => item.cluster_name).join('，')}
+            {dataList.map((item) => item.immute_domain).join('，')}
           </span>
         </div>
         <div class='mt-4'>{t('启用后，将会恢复访问')}</div>
@@ -205,15 +174,15 @@ export const useOperateClusterBasic = (clusterType: ClusterTypes, options: { onS
       footerAlign: 'center',
       headerAlign: 'center',
       onConfirm: () => {
-        handleConfirm(ticketTypeInfo.enable, dataList);
+        handleConfirm(ticketTypeMap[getRealClusterType(clusterType)].enable, dataList);
       },
       subTitle,
       title: t('确定启用集群？'),
     });
   };
 
-  const handleDeleteCluster = <T extends ClusterCommon>(dataList: T[]) => {
-    const clusterNames = dataList.map((item) => item.cluster_name).join('，');
+  const handleDeleteCluster = (clusterType: ClusterTypes, dataList: TicketClusterDisableTodoModel[]) => {
+    const domains = dataList.map((item) => item.immute_domain).join('，');
     const subTitle = (
       <div style='background-color: #F5F7FA; padding: 8px 16px;'>
         <div>
@@ -221,12 +190,12 @@ export const useOperateClusterBasic = (clusterType: ClusterTypes, options: { onS
           <span
             class='ml-8'
             style='color: #313238'>
-            {clusterNames}
+            {domains}
           </span>
         </div>
         <div class='mt-4'>{t('删除后将产生以下影响')}：</div>
-        <div class='mt-4'>1. {t('删除xxx集群', [clusterNames])}</div>
-        <div class='mt-4'>2. {t('删除xxx实例数据，停止相关进程', [clusterNames])}</div>
+        <div class='mt-4'>1. {t('删除xxx集群', [domains])}</div>
+        <div class='mt-4'>2. {t('删除xxx实例数据，停止相关进程', [domains])}</div>
         <div class='mt-4'>3. {t('回收主机')}</div>
       </div>
     );
@@ -238,7 +207,7 @@ export const useOperateClusterBasic = (clusterType: ClusterTypes, options: { onS
       headerAlign: 'center',
       infoType: 'warning',
       onConfirm: () => {
-        handleConfirm(ticketTypeInfo.delete, dataList);
+        handleConfirm(ticketTypeMap[getRealClusterType(clusterType)].delete, dataList);
       },
       subTitle,
       theme: 'danger',
@@ -248,7 +217,6 @@ export const useOperateClusterBasic = (clusterType: ClusterTypes, options: { onS
 
   return {
     handleDeleteCluster,
-    handleDisableCluster,
     handleEnableCluster,
   };
 };
