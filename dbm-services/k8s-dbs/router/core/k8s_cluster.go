@@ -25,7 +25,6 @@ import (
 	metadbaccess "k8s-dbs/metadata/dbaccess"
 	metaprovider "k8s-dbs/metadata/provider"
 	routerutil "k8s-dbs/router/util"
-	"log/slog"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -56,24 +55,13 @@ func initK8sClusterController(db *gorm.DB) *controller.K8sController {
 	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
 	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
 
-	clusterMetaDbAccess := metadbaccess.NewCrdClusterDbAccess(db)
-	addonMetaDbAccess := metadbaccess.NewK8sCrdStorageAddonDbAccess(db)
-	clusterTagDbAccess := metadbaccess.NewK8sCrdClusterTagDbAccess(db)
-	clusterTopologyDbAccess := metadbaccess.NewAddonTopologyDbAccess(db)
-	clusterProviderBuilder := metaprovider.K8sCrdClusterProviderBuilder{}
-	clusterMetaProvider, err := metaprovider.NewK8sCrdClusterProvider(
-		clusterProviderBuilder.WithClusterDbAccess(clusterMetaDbAccess),
-		clusterProviderBuilder.WithAddonDbAccess(addonMetaDbAccess),
-		clusterProviderBuilder.WithK8sClusterConfigDbAccess(k8sClusterConfigDbAccess),
-		clusterProviderBuilder.WithClusterTagDbAccess(clusterTagDbAccess),
-		clusterProviderBuilder.WithAddonTopologyDbAccess(clusterTopologyDbAccess))
-	if err != nil {
-		slog.Warn("failed to create k8s cluster meta provider", "error", err)
-		panic(err)
-	}
+	clusterMetaProvider := routerutil.BuildClusterMetaProvider(db)
 
-	k8cClusterProvider := provider.NewK8sProvider(requestRecordProvider,
-		k8sClusterConfigProvider, clusterMetaProvider)
+	k8cClusterProvider := provider.NewK8sProvider(
+		requestRecordProvider,
+		k8sClusterConfigProvider,
+		clusterMetaProvider,
+	)
 
 	return controller.NewK8sController(k8cClusterProvider)
 }

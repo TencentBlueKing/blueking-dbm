@@ -72,6 +72,7 @@ func initClusterController(db *gorm.DB) *controller.ClusterController {
 	clusterTagDbAccess := metadbaccess.NewK8sCrdClusterTagDbAccess(db)
 	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
 	clusterTopologyDbAccess := metadbaccess.NewAddonTopologyDbAccess(db)
+	addonTypeDbAccess := metadbaccess.NewAddonTypeDbAccess(db)
 	clusterProviderBuilder := metaprovider.K8sCrdClusterProviderBuilder{}
 	clusterMetaProvider, err := metaprovider.NewK8sCrdClusterProvider(
 		clusterProviderBuilder.WithClusterDbAccess(clusterMetaDbAccess),
@@ -79,6 +80,7 @@ func initClusterController(db *gorm.DB) *controller.ClusterController {
 		clusterProviderBuilder.WithK8sClusterConfigDbAccess(k8sClusterConfigDbAccess),
 		clusterProviderBuilder.WithClusterTagDbAccess(clusterTagDbAccess),
 		clusterProviderBuilder.WithAddonTopologyDbAccess(clusterTopologyDbAccess),
+		clusterProviderBuilder.WithAddonTypeDbAccess(addonTypeDbAccess),
 	)
 	if err != nil {
 		slog.Error("failed to build cluster meta provider", "error", err)

@@ -39,6 +39,7 @@ func BuildClusterMetaProvider(db *gorm.DB) *metaprovider.K8sCrdClusterProviderIm
 	clusterTagDbAccess := metadbaccess.NewK8sCrdClusterTagDbAccess(db)
 	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
 	clusterTopologyDbAccess := metadbaccess.NewAddonTopologyDbAccess(db)
+	addonTypeDbAccess := metadbaccess.NewAddonTypeDbAccess(db)
 
 	clusterMetaProviderBuilder := metaprovider.K8sCrdClusterProviderBuilder{}
 	clusterMetaProvider, err := metaprovider.NewK8sCrdClusterProvider(
@@ -47,6 +48,7 @@ func BuildClusterMetaProvider(db *gorm.DB) *metaprovider.K8sCrdClusterProviderIm
 		clusterMetaProviderBuilder.WithK8sClusterConfigDbAccess(k8sClusterConfigDbAccess),
 		clusterMetaProviderBuilder.WithClusterTagDbAccess(clusterTagDbAccess),
 		clusterMetaProviderBuilder.WithAddonTopologyDbAccess(clusterTopologyDbAccess),
+		clusterMetaProviderBuilder.WithAddonTypeDbAccess(addonTypeDbAccess),
 	)
 	if err != nil {
 		slog.Error("failed to build cluster meta provider", "error", err)
@@ -64,6 +66,8 @@ func BuildComponentProvider(db *gorm.DB) *coreprovider.ComponentProvider {
 	addonMetaDbAccess := metadbaccess.NewK8sCrdStorageAddonDbAccess(db)
 	clusterTagDbAccess := metadbaccess.NewK8sCrdClusterTagDbAccess(db)
 	clusterTopologyDbAccess := metadbaccess.NewAddonTopologyDbAccess(db)
+	addonTypeDbAccess := metadbaccess.NewAddonTypeDbAccess(db)
+
 	clusterProviderBuilder := metaprovider.K8sCrdClusterProviderBuilder{}
 	clusterMetaProvider, err := metaprovider.NewK8sCrdClusterProvider(
 		clusterProviderBuilder.WithClusterDbAccess(clusterMetaDbAccess),
@@ -71,6 +75,7 @@ func BuildComponentProvider(db *gorm.DB) *coreprovider.ComponentProvider {
 		clusterProviderBuilder.WithK8sClusterConfigDbAccess(k8sClusterConfigDbAccess),
 		clusterProviderBuilder.WithClusterTagDbAccess(clusterTagDbAccess),
 		clusterProviderBuilder.WithAddonTopologyDbAccess(clusterTopologyDbAccess),
+		clusterProviderBuilder.WithAddonTypeDbAccess(addonTypeDbAccess),
 	)
 	if err != nil {
 		slog.Error("failed to create cluster meta provider", "clusterProvider", clusterProviderBuilder)
