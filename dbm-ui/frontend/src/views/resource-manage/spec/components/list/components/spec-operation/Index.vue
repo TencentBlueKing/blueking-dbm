@@ -341,9 +341,9 @@
   watch(
     () => props.data,
     () => {
-      if (isShowReplenish) {
-        needReplenish.value = props.data!.needReplenish;
-        initNeedReplenish = props.data!.needReplenish;
+      if (isShowReplenish && props.data?.needReplenish) {
+        needReplenish.value = props.data.needReplenish;
+        initNeedReplenish = props.data.needReplenish;
       }
     },
     {

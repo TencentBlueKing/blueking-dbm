@@ -81,6 +81,13 @@
                 :need-replenish="false"
                 @success="fetchData" />
             </BkDropdownItem>
+            <BkDropdownItem v-if="isShowReplenish">
+              <BatchSetRatio
+                :data-list="selectedList"
+                :db-type="dbType"
+                :ratio-map="ratioMap"
+                @success="fetchData" />
+            </BkDropdownItem>
             <BkDropdownItem>
               <BatchEditBizScope
                 :data-list="selectedList"
@@ -368,6 +375,7 @@
   import { getSearchSelectorParams, messageSuccess } from '@utils';
 
   import BatchEditBizScope from './components/BatchEditBizScope.vue';
+  import BatchSetRatio from './components/BatchSetRatio.vue';
   import BatchSwithEnable from './components/BatchSwithEnable.vue';
   import BatchSwithReplenish from './components/BatchSwithReplenish.vue';
   import BizScopeColumn from './components/BizScopeColumn.vue';
