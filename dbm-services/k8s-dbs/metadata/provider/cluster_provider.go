@@ -59,6 +59,7 @@ type K8sCrdClusterProviderImpl struct {
 	clusterTagDbAccess       dbaccess.K8sCrdClusterTagDbAccess
 	k8sClusterConfigDbAccess dbaccess.K8sClusterConfigDbAccess
 	addonTopologyDbAccess    dbaccess.AddonTopologyDbAccess
+	addonTypeDbAccess        dbaccess.AddonTypeDbAccess
 }
 
 // K8sCrdClusterProviderOptions K8sCrdClusterProvider 函数选项
@@ -109,6 +110,15 @@ func (k *K8sCrdClusterProviderBuilder) WithAddonTopologyDbAccess(
 ) K8sCrdClusterProviderOptions {
 	return func(k *K8sCrdClusterProviderImpl) {
 		k.addonTopologyDbAccess = access
+	}
+}
+
+// WithAddonTypeDbAccess 设置 WithAddonTypeDbAccess
+func (k *K8sCrdClusterProviderBuilder) WithAddonTypeDbAccess(
+	access dbaccess.AddonTypeDbAccess,
+) K8sCrdClusterProviderOptions {
+	return func(k *K8sCrdClusterProviderImpl) {
+		k.addonTypeDbAccess = access
 	}
 }
 
@@ -333,7 +343,7 @@ func (k *K8sCrdClusterProviderImpl) ListClusters(
 	params *metaentity.ClusterQueryParams,
 	pagination *entity.Pagination,
 ) ([]*metaentity.K8sCrdClusterEntity, uint64, error) {
-	clusterModels, count, err := k.clusterDbAccess.ListByPage(params, pagination)
+	clusterModels, count, err := k.clusterDbAccess.ListActiveByPage(params, pagination)
 	if err != nil {
 		return nil, 0, errors.Wrapf(err, "failed to list cluster with params %+v", params)
 	}
@@ -341,6 +351,7 @@ func (k *K8sCrdClusterProviderImpl) ListClusters(
 	if err = copier.Copy(&clusterEntities, clusterModels); err != nil {
 		return nil, 0, errors.Wrapf(err, "failed to copy")
 	}
+
 	for _, clusterEntity := range clusterEntities {
 		// 设置 addon 信息
 		addonModel, err := k.addonDbAccess.FindByID(clusterEntity.AddonID)
@@ -348,6 +359,7 @@ func (k *K8sCrdClusterProviderImpl) ListClusters(
 			slog.Warn("Failed to find addonModel by ID", "ID", clusterEntity.AddonID, "error", err)
 			continue
 		}
+
 		addonEntity := &metaentity.K8sCrdStorageAddonEntity{}
 		if err := copier.Copy(addonEntity, addonModel); err != nil {
 			slog.Warn("Failed to copy model to copied model", "error", err)
@@ -423,6 +435,9 @@ func (k *K8sCrdClusterProviderImpl) validateProvider() error {
 	}
 	if k.clusterTagDbAccess == nil {
 		return errors.New("clusterTagDbAccess is required")
+	}
+	if k.addonTypeDbAccess == nil {
+		return errors.New("addonTypeDbAccess is required")
 	}
 	return nil
 }

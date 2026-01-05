@@ -38,6 +38,8 @@ type K8sCrdClusterDbAccess interface {
 	Update(model *models.K8sCrdClusterModel) (uint64, error)
 	ListByPage(params *metaentity.ClusterQueryParams, pagination *entity.Pagination) (
 		[]*models.K8sCrdClusterModel, uint64, error)
+	ListActiveByPage(params *metaentity.ClusterQueryParams, pagination *entity.Pagination) (
+		[]*models.K8sCrdClusterModel, uint64, error)
 }
 
 // K8sCrdClusterDbAccessImpl K8sCrdClusterDbAccess 的具体实现
@@ -157,6 +159,63 @@ func (k *K8sCrdClusterDbAccessImpl) ListByPage(
 		Find(&clusterModels).
 		Error; err != nil {
 		return nil, 0, errors.Wrapf(err, "failed to list cluster with pagination %+v", pagination)
+	}
+
+	return clusterModels, uint64(count), nil
+}
+
+// ListActiveByPage 查找激活状态的集群列表
+func (k *K8sCrdClusterDbAccessImpl) ListActiveByPage(
+	params *metaentity.ClusterQueryParams,
+	pagination *entity.Pagination,
+) ([]*models.K8sCrdClusterModel, uint64, error) {
+	var clusterModels []*models.K8sCrdClusterModel
+	var count int64
+
+	// 构建 join 查询：cluster -> storage_addon -> addon_type
+	query := k.db.Debug().
+		Model(&models.K8sCrdClusterModel{}).
+		Joins("JOIN tb_k8s_crd_storageaddon ON tb_k8s_crd_cluster.addon_id = tb_k8s_crd_storageaddon.id").
+		Joins("JOIN tb_addon_type " +
+			"ON tb_k8s_crd_storageaddon.addon_type = tb_addon_type.type_name AND tb_addon_type.active = 1")
+
+	// 复用 ListByPage 的参数过滤逻辑
+	if len(params.Creators) > 0 {
+		query = query.Where("tb_k8s_crd_cluster.created_by in (?)", params.Creators)
+	}
+	if len(params.Updaters) > 0 {
+		query = query.Where("tb_k8s_crd_cluster.updated_by in (?)", params.Updaters)
+	}
+	if params.ClusterName != "" {
+		query = query.Where("tb_k8s_crd_cluster.cluster_name like ?", "%"+params.ClusterName+"%")
+	}
+	if params.ClusterAlias != "" {
+		query = query.Where("tb_k8s_crd_cluster.cluster_alias like ?", "%"+params.ClusterAlias+"%")
+	}
+	if params.BkBizName != "" {
+		query = query.Where("tb_k8s_crd_cluster.bk_biz_name like ?", "%"+params.BkBizName+"%")
+	}
+	if len(params.BkBizIDs) > 0 {
+		query = query.Where("tb_k8s_crd_cluster.bk_biz_id in (?)", params.BkBizIDs)
+	}
+	if params.Namespace != "" {
+		query = query.Where("tb_k8s_crd_cluster.namespace = ?", params.Namespace)
+	}
+	if len(params.AddonTypes) > 0 {
+		query = query.Where("tb_k8s_crd_storageaddon.addon_type in (?)", params.AddonTypes)
+	}
+
+	if err := query.Count(&count).Error; err != nil {
+		return nil, 0, errors.Wrapf(err, "failed to count active cluster with pagination %+v", pagination)
+	}
+	offset := (pagination.Page - 1) * pagination.Limit
+	if err := query.
+		Offset(offset).
+		Limit(pagination.Limit).
+		Order("tb_k8s_crd_cluster.created_at DESC").
+		Find(&clusterModels).
+		Error; err != nil {
+		return nil, 0, errors.Wrapf(err, "failed to list active cluster with pagination %+v", pagination)
 	}
 
 	return clusterModels, uint64(count), nil
