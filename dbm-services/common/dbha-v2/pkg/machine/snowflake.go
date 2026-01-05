@@ -53,7 +53,7 @@ type Snowflake struct {
 
 // NewSnowflake create new snowflake object
 func NewSnowflake(machineID uint64, epoch time.Time) (*Snowflake, error) {
-	if machineID < 0 || machineID > maxMachineID {
+	if machineID > maxMachineID {
 		return nil, gerrors.New(gerrors.InvalidParameter, "machine-id out of range")
 	}
 
