@@ -11,6 +11,7 @@ from rest_framework.routers import DefaultRouter
 
 from backend.dbm_aiagent.mcp_tools.redis.views.query_meta import RedisQueryMetaMcpToolsViewSet
 from backend.dbm_aiagent.mcp_tools.redis.views.query_status import RedisQueryStatusMcpToolsViewSet
+from backend.dbm_aiagent.mcp_tools.redis.views.redis_bill_mcp import RedisBillMcpToolsViewSet
 
 routers = DefaultRouter(trailing_slash=True)
 
@@ -19,6 +20,7 @@ routers.register(r"", RedisQueryMetaMcpToolsViewSet, basename="mcp-redis-query-m
 # 与 实力状态相关的 query ； 需要登陆实例才能获取的信息
 routers.register(r"", RedisQueryStatusMcpToolsViewSet, basename="mcp-redis-query-status")
 # 与 dbm 交互 创建单据类的 操作
+routers.register(r"", RedisBillMcpToolsViewSet, basename="mcp-redis-bill")
 # 与 其他组件----
 # routers.register(r"", RedisMetaQueryMcpToolsViewSet, basename="mcp-redis-meta-query")
 

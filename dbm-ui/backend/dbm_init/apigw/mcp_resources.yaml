@@ -974,6 +974,214 @@ paths:
           appVerifiedRequired: true
           resourcePermissionRequired: true
         descriptionEn: 查询业务下的Redis集群列表
+  /apis/ai/mcp_tools/redis/submit_bill_redis_full_backup/:
+    post:
+      operationId: redis_bill_submit_bill_redis_full_backup
+      description: Redis集群备份单据
+      tags:
+      - read
+      - write
+      - mcp-tools
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitBillRedisFullBackupInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SubmitBillRedisFullBackupInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SubmitBillRedisFullBackupInputRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitBillOutput'
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: false
+        matchSubpath: false
+        backend:
+          name: default
+          method: post
+          path: /apis/ai/mcp_tools/redis/submit_bill_redis_full_backup/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs:
+        - type: bk-header-rewrite
+          yaml: |
+            remove: []
+            set:
+            - key: X-Bkdbm-Mcp-Tag
+              value: read,write,mcp-tools
+        allowApplyPermission: false
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn: Redis集群备份单据
+  /apis/ai/mcp_tools/redis/submit_bill_redis_proxy_increase/:
+    post:
+      operationId: redis_bill_submit_bill_redis_proxy_increase
+      description: 增加Redis集群proxy数量单据
+      tags:
+      - read
+      - write
+      - mcp-tools
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitBillRedisProxyReduceOrIncreaseInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SubmitBillRedisProxyReduceOrIncreaseInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SubmitBillRedisProxyReduceOrIncreaseInputRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitBillOutput'
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: false
+        matchSubpath: false
+        backend:
+          name: default
+          method: post
+          path: /apis/ai/mcp_tools/redis/submit_bill_redis_proxy_increase/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs:
+        - type: bk-header-rewrite
+          yaml: |
+            remove: []
+            set:
+            - key: X-Bkdbm-Mcp-Tag
+              value: read,write,mcp-tools
+        allowApplyPermission: false
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn: 增加Redis集群proxy数量单据
+  /apis/ai/mcp_tools/redis/submit_bill_redis_proxy_reduce/:
+    post:
+      operationId: redis_bill_submit_bill_redis_proxy_reduce
+      description: 减少Redis集群proxy数量单据, 缩容后的proxy数量不允许少于2
+      tags:
+      - read
+      - write
+      - mcp-tools
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitBillRedisProxyReduceOrIncreaseInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SubmitBillRedisProxyReduceOrIncreaseInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SubmitBillRedisProxyReduceOrIncreaseInputRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitBillOutput'
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: false
+        matchSubpath: false
+        backend:
+          name: default
+          method: post
+          path: /apis/ai/mcp_tools/redis/submit_bill_redis_proxy_reduce/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs:
+        - type: bk-header-rewrite
+          yaml: |
+            remove: []
+            set:
+            - key: X-Bkdbm-Mcp-Tag
+              value: read,write,mcp-tools
+        allowApplyPermission: false
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn: 减少Redis集群proxy数量单据, 缩容后的proxy数量不允许少于2
+  /apis/ai/mcp_tools/redis/submit_bill_redis_proxy_reduce_by_ip/:
+    post:
+      operationId: redis_bill_submit_bill_redis_proxy_reduce_by_ip
+      description: 指定IP 下架redis集群的proxy
+      tags:
+      - read
+      - write
+      - mcp-tools
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitBillRedisProxyReduceByIpInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SubmitBillRedisProxyReduceByIpInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SubmitBillRedisProxyReduceByIpInputRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitBillOutput'
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: false
+        matchSubpath: false
+        backend:
+          name: default
+          method: post
+          path: /apis/ai/mcp_tools/redis/submit_bill_redis_proxy_reduce_by_ip/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs:
+        - type: bk-header-rewrite
+          yaml: |
+            remove: []
+            set:
+            - key: X-Bkdbm-Mcp-Tag
+              value: read,write,mcp-tools
+        allowApplyPermission: false
+        authConfig:
+          userVerifiedRequired: true
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn: 指定IP 下架redis集群的proxy
   /apis/ai/mcp_tools/sqlserver/cluster_topo/:
     post:
       operationId: sqlserver_query_cluster_topo
@@ -1027,14 +1235,6 @@ paths:
         descriptionEn: 查询 SQLServer 集群拓扑结构
 components:
   schemas:
-    BackupTypeEnum:
-      enum:
-      - logical
-      - physical
-      type: string
-      description: |-
-        * `logical` - 逻辑备份
-        * `physical` - 物理备份
     BizBaseInfo:
       type: object
       properties:
@@ -1081,7 +1281,7 @@ components:
             * `tbinlogdumper` - TBinlogDumper
         cluster_type:
           allOf:
-          - $ref: '#/components/schemas/ClusterType82aEnum'
+          - $ref: '#/components/schemas/ClusterTypeF35Enum'
           description: |-
             集群类型
 
@@ -1137,7 +1337,7 @@ components:
           description: 集群域名
         cluster_type:
           allOf:
-          - $ref: '#/components/schemas/ClusterType6acEnum'
+          - $ref: '#/components/schemas/ClusterType7ceEnum'
           description: |-
             集群类型
 
@@ -1147,7 +1347,7 @@ components:
       required:
       - cluster_domain
       - cluster_type
-    ClusterType6acEnum:
+    ClusterType7ceEnum:
       enum:
       - tendbsingle
       - tendbha
@@ -1157,7 +1357,7 @@ components:
         * `tendbsingle` - TenDBSingle
         * `tendbha` - TenDBHA
         * `tendbcluster` - TenDBCluster
-    ClusterType82aEnum:
+    ClusterTypeF35Enum:
       enum:
       - tendbsingle
       - tendbha
@@ -1237,7 +1437,7 @@ components:
           description: 业务 id
         cluster_type:
           allOf:
-          - $ref: '#/components/schemas/ClusterType82aEnum'
+          - $ref: '#/components/schemas/ClusterTypeF35Enum'
           description: |-
             集群类型
 
@@ -1346,7 +1546,7 @@ components:
       properties:
         cluster_type:
           allOf:
-          - $ref: '#/components/schemas/ClusterType6acEnum'
+          - $ref: '#/components/schemas/ClusterType7ceEnum'
           description: |-
             集群类型
 
@@ -2036,7 +2236,7 @@ components:
           description: 集群域名
         cluster_type:
           allOf:
-          - $ref: '#/components/schemas/ClusterType6acEnum'
+          - $ref: '#/components/schemas/ClusterType7ceEnum'
           description: |-
             集群类型
 
@@ -2186,7 +2386,7 @@ components:
       properties:
         cluster_type:
           allOf:
-          - $ref: '#/components/schemas/ClusterType6acEnum'
+          - $ref: '#/components/schemas/ClusterType7ceEnum'
           description: |-
             集群类型
 
@@ -2264,6 +2464,14 @@ components:
       - bk_biz_id
       - cluster_domain
       - include_dbs
+    SubmitBillMySQLFullBackupInputBackupTypeEnum:
+      enum:
+      - logical
+      - physical
+      type: string
+      description: |-
+        * `logical` - 逻辑备份
+        * `physical` - 物理备份
     SubmitBillMySQLFullBackupInputRequest:
       type: object
       properties:
@@ -2276,7 +2484,7 @@ components:
           description: 集群域名
         backup_type:
           allOf:
-          - $ref: '#/components/schemas/BackupTypeEnum'
+          - $ref: '#/components/schemas/SubmitBillMySQLFullBackupInputBackupTypeEnum'
           description: |-
             备份类型
 
@@ -2294,6 +2502,90 @@ components:
           description: 单据id
       required:
       - bill_id
+    SubmitBillRedisFullBackupInputBackupTypeEnum:
+      enum:
+      - normal_backup
+      - forever_backup
+      type: string
+      description: |-
+        * `normal_backup` - 常规备份
+        * `forever_backup` - 长期备份
+    SubmitBillRedisFullBackupInputRequest:
+      type: object
+      properties:
+        bk_biz_id:
+          type: integer
+          description: 业务 id, bk_biz_id
+        cluster_domain:
+          type: string
+          minLength: 1
+          description: 集群域名，cluster domain
+        backup_type:
+          allOf:
+          - $ref: '#/components/schemas/SubmitBillRedisFullBackupInputBackupTypeEnum'
+          default: normal_backup
+          description: |-
+            备份类型
+
+            * `normal_backup` - 常规备份
+            * `forever_backup` - 长期备份
+        target:
+          allOf:
+          - $ref: '#/components/schemas/TargetEnum'
+          default: SLAVE
+          description: |-
+            备份对象
+
+            * `MASTER` - MASTER
+            * `SLAVE` - SLAVE
+      required:
+      - bk_biz_id
+      - cluster_domain
+    SubmitBillRedisProxyReduceByIpInputRequest:
+      type: object
+      properties:
+        bk_biz_id:
+          type: integer
+          description: 业务 id, bk_biz_id
+        cluster_domain:
+          type: string
+          minLength: 1
+          description: 集群域名，cluster domain
+        reduce_ips:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          description: 指定下架proxy的IP列表
+      required:
+      - bk_biz_id
+      - cluster_domain
+      - reduce_ips
+    SubmitBillRedisProxyReduceOrIncreaseInputRequest:
+      type: object
+      properties:
+        bk_biz_id:
+          type: integer
+          description: 业务 id, bk_biz_id
+        cluster_domain:
+          type: string
+          minLength: 1
+          description: 集群域名，cluster domain
+        proxy_change_count:
+          type: integer
+          description: proxy变动数量
+      required:
+      - bk_biz_id
+      - cluster_domain
+      - proxy_change_count
+    TargetEnum:
+      enum:
+      - MASTER
+      - SLAVE
+      type: string
+      description: |-
+        * `MASTER` - MASTER
+        * `SLAVE` - SLAVE
     TenDBClusterSpiderInstance:
       type: object
       properties:

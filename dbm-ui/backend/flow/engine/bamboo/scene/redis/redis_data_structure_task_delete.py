@@ -182,7 +182,6 @@ class RedisDataStructureTaskDeleteFlow(object):
             # 重新赋值，因为下架redis时cluster会被赋值
             # act_kwargs.cluster = {**tasks_info}
             act_kwargs.cluster["cluster_type"] = act_kwargs.cluster["temp_cluster_type"]
-
             act_kwargs.cluster["operate"] = (
                 DBActuatorTypeEnum.Proxy.value + "_" + RedisActuatorActionEnum.Shutdown.value
             )
