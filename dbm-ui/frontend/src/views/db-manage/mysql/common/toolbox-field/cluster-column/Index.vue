@@ -133,13 +133,13 @@
       validator: (value: string) => !value || domainRegex.test(value),
     },
     {
-      message: t('目标集群重复'),
+      message: t('cluster重复', [props.label]),
       trigger: 'change',
       validator: (value: string) =>
         props.allowRepeat || !value || props.selected.filter((item) => item.master_domain === value).length < 2,
     },
     {
-      message: t('目标集群不存在'),
+      message: t('cluster不存在', [props.label]),
       trigger: 'blur',
       validator: (value: string) => !value || Boolean(modelValue.value.id),
     },

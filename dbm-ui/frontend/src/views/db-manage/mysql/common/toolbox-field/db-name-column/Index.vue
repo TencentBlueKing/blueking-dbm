@@ -291,7 +291,9 @@
       if (!isInit) {
         modelValue.value = [];
       }
-      editableColumnRef.value?.validate();
+      if (props.clusterId && modelValue.value.length > 0) {
+        editableColumnRef.value?.validate();
+      }
     },
   );
 
