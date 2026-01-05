@@ -142,7 +142,7 @@ class RecycleApplyHostFlowBuilder(RecycleHostFlowBuilder):
                 ticket=self.ticket,
                 flow_type=FlowType.HOST_RECYCLE.value,
                 details=self.calc_recycle_apply_host_flow_builder(self.ticket).get_params(),
-                flow_alias=_("计算新机回收主机数量"),
+                flow_alias=_("核对待退回主机"),
             ),
             Flow(
                 ticket=self.ticket,
@@ -154,7 +154,7 @@ class RecycleApplyHostFlowBuilder(RecycleHostFlowBuilder):
                 ticket=self.ticket,
                 flow_type=FlowType.HOST_RECYCLE.value,
                 details=self.recycle_flow_builder(self.ticket).get_params(),
-                flow_alias=_("主机分池处理"),
+                flow_alias=_("退回主机分池处理"),
             ),
         ]
 
