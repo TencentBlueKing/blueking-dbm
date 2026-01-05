@@ -13,21 +13,37 @@ from typing import Dict, List
 
 from backend.components import DRSApi
 from backend.db_meta.enums import ClusterType, MachineType
-from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
+from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException, DBMMcpNotSupportClusterTypeException
 
 
-def show_cluster_processlist(cluster_type: ClusterType, cluster_domain: str) -> List:
+def show_cluster_processlist_count(cluster_type: ClusterType, cluster_domain: str) -> List:
     cluster_obj = Cluster.objects.get(cluster_type=cluster_type, immute_domain=cluster_domain)
 
     if cluster_type == ClusterType.TenDBSingle:
-        return __show_tendbsingle_processlist(cluster_obj)
+        return __show_tendbsingle_processlist(cluster_obj, True)
     elif cluster_type == ClusterType.TenDBHA:
-        return __show_tendbha_processlist(cluster_obj)
+        return __show_tendbha_processlist(cluster_obj, True)
     elif cluster_type == ClusterType.TenDBCluster:
-        return __show_tendbcluster_processlist(cluster_obj)
+        return __show_tendbcluster_processlist(cluster_obj, True)
     else:
         raise DBMMcpNotSupportClusterTypeException(cluster_type=cluster_type)
+
+
+def show_instances_processlist_detail(bk_cloud_id: int, instances: List[str]) -> List:
+    res = []
+    for ins in instances:
+        ip, port = ins.split(":")
+        m = Machine.objects.get(bk_cloud_id=bk_cloud_id, ip=ip)
+
+        if m.machine_type == MachineType.PROXY:
+            r = __show_processlist_on_proxy(bk_cloud_id, [ins], False)
+        else:
+            r = __show_processlist_on_mysql(bk_cloud_id, [ins], m.machine_type, False)
+
+        res.append(r)
+
+    return res
 
 
 def __show_processlist(bk_cloud_id: int, addresses: List[str], machine_type: MachineType) -> Dict:
@@ -55,7 +71,7 @@ def __show_processlist(bk_cloud_id: int, addresses: List[str], machine_type: Mac
     return res
 
 
-def __show_processlist_on_proxy(bk_cloud_id: int, addresses: List[str]) -> List:
+def __show_processlist_on_proxy(bk_cloud_id: int, addresses: List[str], only_count: bool = True) -> List:
     """
     {
         'Host': '1.1.1.1:27057',
@@ -67,7 +83,11 @@ def __show_processlist_on_proxy(bk_cloud_id: int, addresses: List[str]) -> List:
         'db': None
     }
     """
-    plist_res = __show_processlist(bk_cloud_id=bk_cloud_id, addresses=addresses, machine_type=MachineType.PROXY)
+    plist_res = __show_processlist(
+        bk_cloud_id=bk_cloud_id,
+        addresses=addresses,
+        machine_type=MachineType.PROXY,
+    )
 
     res = []  # defaultdict(list)
     for address, raw_plist in plist_res.items():
@@ -85,12 +105,32 @@ def __show_processlist_on_proxy(bk_cloud_id: int, addresses: List[str]) -> List:
                 }
             )
 
-        res.append({"address": address, "process_list": plist, "machine_type": MachineType.PROXY, "instance_role": ""})
+        if only_count:
+            res.append(
+                {
+                    "address": address,
+                    "processlist_count": len(plist),
+                    "machine_type": MachineType.PROXY,
+                    "instance_role": "",
+                }
+            )
+        else:
+            res.append(
+                {
+                    "address": address,
+                    "processlist_detail": plist,
+                    "processlist_count": len(plist),
+                    "machine_type": MachineType.PROXY,
+                    "instance_role": "",
+                }
+            )
 
     return res
 
 
-def __show_processlist_on_mysql(bk_cloud_id: int, addresses: List[str], machine_type: MachineType) -> List:
+def __show_processlist_on_mysql(
+    bk_cloud_id: int, addresses: List[str], machine_type: MachineType, only_count: bool = True
+) -> List:
     """
     {
         'Command': 'Binlog Dump',
@@ -131,12 +171,30 @@ def __show_processlist_on_mysql(bk_cloud_id: int, addresses: List[str], machine_
         else:
             role = StorageInstance.objects.get(machine__ip=ip, port=port).instance_role
 
-        res.append({"address": address, "process_list": plist, "machine_type": machine_type, "instance_role": role})
+        if only_count:
+            res.append(
+                {
+                    "address": address,
+                    "processlist_count": len(plist),
+                    "machine_type": machine_type,
+                    "instance_role": role,
+                }
+            )
+        else:
+            res.append(
+                {
+                    "address": address,
+                    "processlist_detail": plist,
+                    "processlist_count": len(plist),
+                    "machine_type": machine_type,
+                    "instance_role": role,
+                }
+            )
 
     return res
 
 
-def __show_tendbsingle_processlist(cluster_obj: Cluster) -> List:
+def __show_tendbsingle_processlist(cluster_obj: Cluster, only_count: bool = True) -> List:
     instances = cluster_obj.storageinstance_set.all()
     if not instances.exists():
         raise
@@ -145,10 +203,11 @@ def __show_tendbsingle_processlist(cluster_obj: Cluster) -> List:
         bk_cloud_id=cluster_obj.bk_cloud_id,
         addresses=[ins.ip_port for ins in instances],
         machine_type=MachineType.SINGLE,
+        only_count=only_count,
     )
 
 
-def __show_tendbha_processlist(cluster_obj: Cluster) -> List:
+def __show_tendbha_processlist(cluster_obj: Cluster, only_count: bool = True) -> List:
     proxy_instances = cluster_obj.proxyinstance_set.all()
     storage_instances = cluster_obj.storageinstance_set.all()
 
@@ -156,15 +215,18 @@ def __show_tendbha_processlist(cluster_obj: Cluster) -> List:
         raise
 
     return __show_processlist_on_proxy(
-        bk_cloud_id=cluster_obj.bk_cloud_id, addresses=[f"{pi.machine.ip}:{pi.port + 1000}" for pi in proxy_instances]
+        bk_cloud_id=cluster_obj.bk_cloud_id,
+        addresses=[f"{pi.machine.ip}:{pi.port + 1000}" for pi in proxy_instances],
+        only_count=only_count,
     ) + __show_processlist_on_mysql(
         bk_cloud_id=cluster_obj.bk_cloud_id,
         addresses=[si.ip_port for si in storage_instances],
         machine_type=MachineType.BACKEND,
+        only_count=only_count,
     )
 
 
-def __show_tendbcluster_processlist(cluster_obj: Cluster) -> List:
+def __show_tendbcluster_processlist(cluster_obj: Cluster, only_count: bool = True) -> List:
     proxy_instances = cluster_obj.proxyinstance_set.all()
     storage_instances = cluster_obj.storageinstance_set.all()
 
@@ -175,8 +237,10 @@ def __show_tendbcluster_processlist(cluster_obj: Cluster) -> List:
         bk_cloud_id=cluster_obj.bk_cloud_id,
         addresses=[pi.ip_port for pi in proxy_instances],
         machine_type=MachineType.SPIDER,
+        only_count=only_count,
     ) + __show_processlist_on_mysql(
         bk_cloud_id=cluster_obj.bk_cloud_id,
         addresses=[si.ip_port for si in storage_instances],
         machine_type=MachineType.BACKEND,
+        only_count=only_count,
     )

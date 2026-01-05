@@ -13,11 +13,13 @@ from typing import List
 
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
+from backend.dbm_aiagent.mcp_tools.decorators import bill_response_wrapper
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpClusterNotFoundException
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
 
 
+@bill_response_wrapper
 def bill_mysql_standardize(
     username: str,
     bk_biz_id: int,
@@ -26,7 +28,7 @@ def bill_mysql_standardize(
     with_cc_standardize: bool,
     with_deploy_binary: bool,
     with_push_config: bool,
-) -> List[int]:
+) -> List[Ticket]:
     mysql_clusters = Cluster.objects.filter(
         bk_biz_id=bk_biz_id,
         cluster_type__in=[ClusterType.TenDBSingle, ClusterType.TenDBHA],
@@ -61,7 +63,7 @@ def bill_mysql_standardize(
         ticket_param["remark"] = TicketType.MYSQL_CLUSTER_STANDARDIZE
         ticket_param["details"]["cluster_ids"] = list(mysql_clusters.values_list("pk", flat=True).distinct())
         tk = Ticket.create_ticket(**ticket_param)
-        res.append(tk.pk)
+        res.append(tk)
 
     if tendbcluster_clusters.exists():
         ticket_param = copy.deepcopy(ticket_param_common)
@@ -69,6 +71,6 @@ def bill_mysql_standardize(
         ticket_param["remark"] = TicketType.TENDBCLUSTER_CLUSTER_STANDARDIZE
         ticket_param["details"]["cluster_ids"] = list(tendbcluster_clusters.values_list("pk", flat=True).distinct())
         tk = Ticket.create_ticket(**ticket_param)
-        res.append(tk.pk)
+        res.append(tk)
 
     return res

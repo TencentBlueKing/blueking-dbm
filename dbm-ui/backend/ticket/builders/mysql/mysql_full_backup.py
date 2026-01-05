@@ -72,6 +72,7 @@ class MySQLFullBackupDetailSerializer(MySQLBaseOperateDetailSerializer):
                     Cluster.objects.filter(pk__in=dup_cluster_ids).values_list("immute_domain", flat=True)
                 )
             )
+        return None
 
     @staticmethod
     def __validate_cluster_type(cluster_ids) -> str:
@@ -91,6 +92,7 @@ class MySQLFullBackupDetailSerializer(MySQLBaseOperateDetailSerializer):
 
         if bad:
             return ", ".join(bad)
+        return None
 
     @staticmethod
     def __validate_backup_local(attrs) -> str:
@@ -121,6 +123,7 @@ class MySQLFullBackupDetailSerializer(MySQLBaseOperateDetailSerializer):
 
         if bad:
             return ", ".join(bad)
+        return None
 
     @staticmethod
     def __validate_cluster_status(attrs) -> str:
@@ -150,6 +153,7 @@ class MySQLFullBackupDetailSerializer(MySQLBaseOperateDetailSerializer):
 
         if bad:
             return ", ".join(bad)
+        return None
 
 
 class MySQLFullBackupFlowParamBuilder(builders.FlowParamBuilder):

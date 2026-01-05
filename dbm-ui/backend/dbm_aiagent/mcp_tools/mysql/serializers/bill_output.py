@@ -12,5 +12,10 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 
+class SingleBillInfoSerializer(serializers.Serializer):
+    bill_id = serializers.IntegerField(help_text=_("单据 ID"))
+    bill_url = serializers.URLField(help_text=_("单据链接"))
+
+
 class SubmitBillOutputSerializer(serializers.Serializer):
-    bill_ids = serializers.ListSerializer(child=serializers.IntegerField(), help_text=_("单据 ID 列表"))
+    bills = serializers.ListSerializer(child=SingleBillInfoSerializer(), help_text=_("单据列表"))

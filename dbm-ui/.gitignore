@@ -139,3 +139,4 @@ scripts/ssls/
 
 # 版本文件
 version_logs_html/
+backend/dbm_init/apigw/mcp_resources.yaml

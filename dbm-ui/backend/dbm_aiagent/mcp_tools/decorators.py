@@ -26,6 +26,7 @@ from rest_framework.exceptions import PermissionDenied
 from backend import env
 from backend.dbm_aiagent.mcp_tools.constants import DBMAMcpTools
 from backend.dbm_aiagent.utils import get_class_from_qualname
+from backend.ticket.models import Ticket
 
 logger = logging.getLogger("root")
 
@@ -184,3 +185,17 @@ def mcp_tools_api_decorator(
             return schema_decorator(func)
 
     return decorator
+
+
+def bill_response_wrapper(func):
+    def wrapper(*args, **kwargs):
+        re = func(*args, **kwargs)
+
+        if isinstance(re, Ticket):
+            return [{"bill_id": re.pk, "bill_url": re.url}]
+        elif isinstance(re, list) and all(isinstance(x, Ticket) for x in re):
+            return [{"bill_id": ele.pk, "bill_url": ele.url} for ele in re]
+        else:
+            raise Exception("unexpected exception in bill wrapper")
+
+    return wrapper

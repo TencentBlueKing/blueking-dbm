@@ -13,9 +13,10 @@ from typing import Dict, List
 from backend.components import DRSApi
 from backend.db_meta.enums import MachineType
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException, DBMMcpNotSupportMachineTypeException
+from backend.dbm_aiagent.mcp_tools.mysql.serializers.usefully_choices import mysql_slave_status_masks
 
 
-def show_instance_status(bk_cloud_id: int, address: str, machine_type: MachineType) -> Dict:
+def show_instance_status(bk_cloud_id: int, address: str, machine_type: MachineType, status_hints: List[str]) -> Dict:
     if machine_type not in [
         MachineType.SINGLE,
         MachineType.PROXY,
@@ -29,8 +30,11 @@ def show_instance_status(bk_cloud_id: int, address: str, machine_type: MachineTy
         return __show_proxy_status(bk_cloud_id=bk_cloud_id, address=address)
     else:
         runtime_statuses = __mysql_show_status(bk_cloud_id=bk_cloud_id, address=address)
-        slave_status = __mysql_show_slave_status(bk_cloud_id=bk_cloud_id, address=address)
-        return {"address": address, "runtime_status": runtime_statuses + slave_status}
+        # slave_status = __mysql_show_slave_status(bk_cloud_id=bk_cloud_id, address=address)
+        return {
+            "address": address,
+            "runtime_status": [ele for ele in runtime_statuses if ele["status_name"] in status_hints],
+        }
 
 
 def __show_proxy_status(bk_cloud_id: int, address: str) -> Dict:
@@ -53,7 +57,7 @@ def __show_proxy_status(bk_cloud_id: int, address: str) -> Dict:
 
     return {
         "address": address,
-        "runtime_status": [{"status_name": "uptime", "status_value": show_uptime_res["table_data"][0]["Uptime"]}],
+        "runtime_status": [{"status_name": "Uptime", "status_value": show_uptime_res["table_data"][0]["Uptime"]}],
     }
 
 
@@ -77,7 +81,7 @@ def __mysql_show_status(bk_cloud_id: int, address: str) -> List:
     return runtime_statuses
 
 
-def __mysql_show_slave_status(bk_cloud_id: int, address: str) -> List:
+def mysql_show_slave_status(bk_cloud_id: int, address: str) -> List:
     raw_drs_res = DRSApi.rpc({"addresses": [address], "cmds": ["SHOW SLAVE STATUS"], "bk_cloud_id": bk_cloud_id})
 
     address_res = raw_drs_res[0]
@@ -92,6 +96,7 @@ def __mysql_show_slave_status(bk_cloud_id: int, address: str) -> List:
 
     if show_status_res["table_data"]:
         for k, v in show_status_res["table_data"][0].items():
-            runtime_statuses.append({"status_name": k, "status_value": v})
+            if k not in mysql_slave_status_masks:
+                runtime_statuses.append({"status_name": k, "status_value": v})
 
     return runtime_statuses

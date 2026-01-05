@@ -8,34 +8,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from django.utils.translation import gettext_lazy as _
+from rest_framework import serializers
 
-import importlib
-from typing import Callable, List, Optional, Tuple, Type
-
-
-def get_class_from_qualname(func: Callable) -> Optional[Type]:
-    """
-    从函数的 __qualname__ 中获取所属的类
-    """
-    if not hasattr(func, "__qualname__"):
-        return None
-
-    qualname_parts = func.__qualname__.split(".")
-    if len(qualname_parts) < 2:
-        return None
-
-    # 类名是倒数第二个部分
-    class_name = qualname_parts[-2]
-    module = importlib.import_module(func.__module__)
-    if module:
-        return getattr(module, class_name, None)
-
-    return None
+from backend.flow.consts import STAGE_DB_HEADER
 
 
-def list_to_choices(values: List[str]) -> List[Tuple[str, str]]:
-    res = []
-    for ele in values:
-        res.append((ele, ele))
-
-    return res
+class SubmitBillMySQLDBRenameInputSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务 id, bk_biz_id"))
+    cluster_domain = serializers.CharField(help_text=_("集群域名"))
+    source_dbname = serializers.RegexField(regex=r"^{}.*$".format(STAGE_DB_HEADER), help_text=_("源 DB 名"))
+    target_dbname = serializers.CharField(help_text=_("新 DB 名"))
