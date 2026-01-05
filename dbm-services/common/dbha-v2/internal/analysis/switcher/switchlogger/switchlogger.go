@@ -30,7 +30,7 @@ type SwitchLogger[T any] interface {
 	// Open initialize the resource for logging
 	Open() error
 	// Close recycle the resource for logging
-	Close() error
+	Close()
 	// Append append a log record. Make sure this method is thread-safe
 	Append(record *T) error
 }
