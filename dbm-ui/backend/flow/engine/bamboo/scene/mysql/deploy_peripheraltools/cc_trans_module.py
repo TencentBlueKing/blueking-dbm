@@ -97,6 +97,7 @@ def trans_cc_module(
         kwargs={
             "cluster_ids": cluster_ids,
             "instances": instances,
+            "bk_cloud_id": bk_cloud_id,
         },
     )
 
