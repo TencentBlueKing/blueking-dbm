@@ -15,12 +15,16 @@ from backend.db_meta.enums import InstanceRole, MachineType
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.usefully_choices import mysql_cluster_type_choices
 
 
-class ShowProcessListInputSerializer(serializers.Serializer):
-    # bk_cloud_id = serializers.IntegerField(help_text=_("云区域 ID"))
+class ShowClusterProcessListCountInputSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
     cluster_type = serializers.ChoiceField(choices=mysql_cluster_type_choices, help_text=_("集群类型"))
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
-    # addresses = serializers.ListField(child=serializers.CharField(), default=None, help_text=_("ip:port 形式的实例列表"))
+
+
+class ShowInstanceProcessListDetailInputSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域 ID"))
+    instances = serializers.ListField(child=serializers.CharField(), help_text=_("实例列表"))
 
 
 class MySQLProcessSerializer(serializers.Serializer):
@@ -32,15 +36,32 @@ class MySQLProcessSerializer(serializers.Serializer):
     state = serializers.CharField(help_text=_("连接状态"))
 
 
-class InstanceProcessListOutputSerializer(serializers.Serializer):
+class InstanceProcessListDetailOutputSerializer(serializers.Serializer):
     address = serializers.CharField(help_text=_("ip:port 形式的实例地址"))
-    process_list = serializers.ListField(child=MySQLProcessSerializer(), help_text=_("连接列表"))
+    processlist_detail = serializers.ListField(child=MySQLProcessSerializer(), help_text=_("连接列表详情"))
+    processlist_count = serializers.IntegerField(help_text=_("连接数"))
     machine_type = serializers.ChoiceField(choices=MachineType.get_choices(), help_text=_("实例的机器类型"))
     instance_role = serializers.ChoiceField(choices=InstanceRole.get_choices(), help_text=_("实例角色"))
 
 
-class ShowProcessListOutputSerializer(serializers.Serializer):
+class ShowInstanceProcessListDetailOutputSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
+    instance_processlist_info = serializers.ListField(
+        child=InstanceProcessListDetailOutputSerializer(), help_text=_("实例连接信息")
+    )
+
+
+class InstanceProcessListCountOutputSerializer(serializers.Serializer):
+    address = serializers.CharField(help_text=_("ip:port 形式的实例地址"))
+    processlist_count = serializers.IntegerField(help_text=_("连接数"))
+    machine_type = serializers.ChoiceField(choices=MachineType.get_choices(), help_text=_("实例的机器类型"))
+    instance_role = serializers.ChoiceField(choices=InstanceRole.get_choices(), help_text=_("实例角色"))
+
+
+class ShowClusterProcessListCountOutputSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
     cluster_type = serializers.ChoiceField(choices=mysql_cluster_type_choices, help_text=_("集群类型"))
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
-    cluster_process_lists = serializers.ListField(child=InstanceProcessListOutputSerializer(), help_text=_("集群连接信息"))
+    cluster_processlist_info = serializers.ListField(
+        child=InstanceProcessListCountOutputSerializer(), help_text=_("集群连接信息")
+    )

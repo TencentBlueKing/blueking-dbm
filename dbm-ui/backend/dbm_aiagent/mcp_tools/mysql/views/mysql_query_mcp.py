@@ -20,8 +20,11 @@ from backend.dbm_aiagent.mcp_tools.mysql.impl.cluster_topo import mysql_cluster_
 from backend.dbm_aiagent.mcp_tools.mysql.impl.explain_sql import explain_sql
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_create_table import show_create_table
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_priv_template import show_biz_mysql_privilege_template
-from backend.dbm_aiagent.mcp_tools.mysql.impl.show_processlist import show_cluster_processlist
-from backend.dbm_aiagent.mcp_tools.mysql.impl.show_status import show_instance_status
+from backend.dbm_aiagent.mcp_tools.mysql.impl.show_processlist import (
+    show_cluster_processlist_count,
+    show_instances_processlist_detail,
+)
+from backend.dbm_aiagent.mcp_tools.mysql.impl.show_status import mysql_show_slave_status, show_instance_status
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_variables import show_mysql_variables
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.cluster_topo import (
     ClusterTopoInputSerializer,
@@ -42,10 +45,13 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.show_priv_template import (
     ShowBizMySQLPrivilegeTemplateOutputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.show_processlist import (
-    ShowProcessListInputSerializer,
-    ShowProcessListOutputSerializer,
+    ShowClusterProcessListCountInputSerializer,
+    ShowClusterProcessListCountOutputSerializer,
+    ShowInstanceProcessListDetailInputSerializer,
+    ShowInstanceProcessListDetailOutputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.show_status import (
+    ShowInstanceSlaveStatusInputSerializer,
     ShowInstanceStatuesOutputSerializer,
     ShowInstanceStatusesInputSerializer,
 )
@@ -145,22 +151,43 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         return Response(mysql_cluster_topo(cluster_type=ClusterType.TenDBCluster, cluster_domain=cluster_domain))
 
     @mcp_tools_api_decorator(
-        description=str(_("""查询集群连接列表, 默认合并接入层和存储连接""")),
-        request_slz=ShowProcessListInputSerializer,
-        response_slz=ShowProcessListOutputSerializer,
+        description=str(_("""查询实例连接详情""")),
+        request_slz=ShowInstanceProcessListDetailInputSerializer,
+        response_slz=ShowInstanceProcessListDetailOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMAMcpTools.MYSQL_QUERY],
         name_prefix="mysql_query",
     )
-    def show_cluster_processlist(self, request, *args, **kwargs):
+    def show_instance_processlist_detail(self, request, *args, **kwargs):
+        bk_biz_id = self.get_param("bk_biz_id")
+        bk_cloud_id = self.get_param("bk_cloud_id")
+        instances = self.get_param("instances")
+
+        res = show_instances_processlist_detail(bk_cloud_id, instances)
+        return Response(
+            {
+                "instance_processlist_info": res,
+                "bk_biz_id": bk_biz_id,
+            }
+        )
+
+    @mcp_tools_api_decorator(
+        description=str(_("""查询集群连接数""")),
+        request_slz=ShowClusterProcessListCountInputSerializer,
+        response_slz=ShowClusterProcessListCountOutputSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMAMcpTools.MYSQL_QUERY],
+        name_prefix="mysql_query",
+    )
+    def show_cluster_processlist_count(self, request, *args, **kwargs):
         bk_biz_id = self.get_param("bk_biz_id")
         cluster_type = self.get_param("cluster_type")
         cluster_domain = self.get_param("cluster_domain")
 
-        res = show_cluster_processlist(cluster_type, cluster_domain)
+        res = show_cluster_processlist_count(cluster_type, cluster_domain)
         return Response(
             {
-                "cluster_process_lists": res,
+                "cluster_process_list_info": res,
                 "bk_biz_id": bk_biz_id,
                 "cluster_type": cluster_type,
                 "cluster_domain": cluster_domain,
@@ -168,14 +195,14 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         )
 
     @mcp_tools_api_decorator(
-        description=str(_("""查询 MySQL 运行时参数""")),
+        description=str(_("""查询 MySQL 常见运行时参数""")),
         request_slz=ShowMySQLVariablesInputSerializer,
         response_slz=ShowMySQLVariablesOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMAMcpTools.MYSQL_QUERY],
         name_prefix="mysql_query",
     )
-    def show_mysql_variables(self, request, *args, **kwargs):
+    def show_mysql_popular_runtime_variables(self, request, *args, **kwargs):
         bk_cloud_id = self.get_param("bk_cloud_id")
         bk_biz_id = self.get_param("bk_biz_id")
         address = self.get_param("address")
@@ -192,22 +219,46 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         )
 
     @mcp_tools_api_decorator(
-        description=str(_("""查询实例运行时状态""")),
+        description=str(_("""查询实例常见运行时状态""")),
         request_slz=ShowInstanceStatusesInputSerializer,
         response_slz=ShowInstanceStatuesOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMAMcpTools.MYSQL_QUERY],
         name_prefix="mysql_query",
     )
-    def show_instance_status(self, request, *args, **kwargs):
+    def show_instance_popular_runtime_status(self, request, *args, **kwargs):
         bk_cloud_id = self.get_param("bk_cloud_id")
         bk_biz_id = self.get_param("bk_biz_id")
         address = self.get_param("address")
         machine_type = self.get_param("machine_type")
+        status_hints = self.get_param("status_hints")
 
         return Response(
             {
-                **show_instance_status(bk_cloud_id=bk_cloud_id, address=address, machine_type=machine_type),
+                **show_instance_status(
+                    bk_cloud_id=bk_cloud_id, address=address, machine_type=machine_type, status_hints=status_hints
+                ),
+                "bk_biz_id": bk_biz_id,
+            }
+        )
+
+    @mcp_tools_api_decorator(
+        description=str(_("""查询实例同步状态状态""")),
+        request_slz=ShowInstanceSlaveStatusInputSerializer,
+        response_slz=ShowInstanceStatuesOutputSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMAMcpTools.MYSQL_QUERY],
+        name_prefix="mysql_query",
+    )
+    def show_instance_slave_status(self, request, *args, **kwargs):
+        bk_cloud_id = self.get_param("bk_cloud_id")
+        bk_biz_id = self.get_param("bk_biz_id")
+        address = self.get_param("address")
+
+        return Response(
+            {
+                "address": address,
+                "runtime_status": mysql_show_slave_status(bk_cloud_id=bk_cloud_id, address=address),
                 "bk_biz_id": bk_biz_id,
             }
         )

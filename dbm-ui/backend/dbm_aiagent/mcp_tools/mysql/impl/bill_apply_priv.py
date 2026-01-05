@@ -16,6 +16,7 @@ from backend.components import DBPrivManagerApi
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_services.dbpermission.db_account.handlers import AccountHandler
+from backend.dbm_aiagent.mcp_tools.decorators import bill_response_wrapper
 from backend.dbm_aiagent.mcp_tools.exceptions import (
     DBMMcpMySQLApplyPrivAccountNotFoundException,
     DBMMcpMySQLApplyPrivDBRuleNotFoundException,
@@ -26,6 +27,7 @@ from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
 
 
+@bill_response_wrapper
 def bill_apply_priv(
     request,
     username: str,
@@ -34,7 +36,7 @@ def bill_apply_priv(
     apply_source_ips: List[str],
     cluster_domain: str,
     bk_biz_id: int,
-) -> int:
+) -> Ticket:
     cluster_obj = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
     cluster_type = cluster_obj.cluster_type
 
@@ -84,5 +86,4 @@ def bill_apply_priv(
         "details": slz.validated_data,
     }
 
-    tk = Ticket.create_ticket(**ticket_param)
-    return tk.pk
+    return Ticket.create_ticket(**ticket_param)

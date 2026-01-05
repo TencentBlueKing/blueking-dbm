@@ -11,7 +11,11 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.dbm_aiagent.mcp_tools.mysql.serializers.usefully_choices import mysql_machine_type_choices
+from backend.dbm_aiagent.mcp_tools.mysql.serializers.usefully_choices import (
+    mysql_machine_type_choices,
+    mysql_popular_runtime_variables,
+)
+from backend.dbm_aiagent.utils import list_to_choices
 
 
 class ShowMySQLVariablesInputSerializer(serializers.Serializer):
@@ -22,7 +26,8 @@ class ShowMySQLVariablesInputSerializer(serializers.Serializer):
     )
     address = serializers.CharField(help_text=_("ip:port 形式的实例地址"))
     variable_hints = serializers.ListField(
-        child=serializers.CharField(), help_text=_("运行时参数过滤列表, 不为空时只返回这个列表指定的参数"), default=None
+        child=serializers.ChoiceField(choices=list_to_choices(mysql_popular_runtime_variables)),
+        help_text=_("运行时参数过滤列表, 不为空时只返回这个列表指定的参数"),  # , default=None
     )
 
 
