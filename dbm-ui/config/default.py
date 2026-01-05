@@ -230,7 +230,7 @@ DATABASES = {
         "POOL_OPTIONS": {
             "POOL_SIZE": int(os.environ.get("DB_POOL_SIZE", 5)),
             "MAX_OVERFLOW": int(os.environ.get("DB_POOL_MAX_OVERFLOW", 10)),
-            "RECYCLE": 60 * 60
+            "RECYCLE": 60 * 60,
         },
     },
     "report_db": {
@@ -248,7 +248,7 @@ DATABASES = {
         "POOL_OPTIONS": {
             "POOL_SIZE": int(os.environ.get("DB_POOL_SIZE", 5)),
             "MAX_OVERFLOW": int(os.environ.get("DB_POOL_MAX_OVERFLOW", 10)),
-            "RECYCLE": 60 * 60
+            "RECYCLE": 60 * 60,
         },
     },
 }
@@ -456,7 +456,7 @@ def get_logging_config(log_dir: str, log_level: str = "ERROR") -> Dict:
         "formatters": {
             "verbose": {
                 "format": "%(levelname)s [%(asctime)s] [%(request_id)s] %(name)s %(pathname)s %(lineno)d %(funcName)s "
-                          "%(process)d %(thread)d \n \t %(message)s \n",
+                "%(process)d %(thread)d \n \t %(message)s \n",
                 # noqa
                 "datefmt": "%Y-%m-%d %H:%M:%S",
             },
@@ -647,7 +647,7 @@ BK_APIGW_STAGE_MCP_SERVERS = [
     # },
     {
         "name": "mysql-query",
-        "description": """mysql relate information query, such as 
+        "description": """mysql relate information query, such as
         1. mysql instance status, include run-time variables, status, explain sql and so on
         2. tendbsingle/tendbha/tendbcluster cluster info""",
         # 主动授权 app_code
@@ -688,7 +688,7 @@ BK_APIGW_STAGE_MCP_SERVERS = [
     },
     {
         "name": "sqlserver-query",
-         "description": """sqlserver relate information query, such as 
+        "description": """sqlserver relate information query, such as
         1. query result has slow queries count, query_time, rows_scan,rows_sent
         2. need cluster_domain and instance_role provided
         """,
@@ -703,14 +703,23 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "tools": [],
     },
     {
-        "name": "mysql-slowlog",
-        "description": """query cluster's slowlog for cluster type mysql,and analyze it,
-    1. sqlserver instance status, include run-time variables, status, explain sql and so on
-    2. sqlserver-ha/sqlserver cluster info
-    """,
+        "name": "sql-syntax-check",
+        "description": """SQL syntax check and validation services for TenDBHA/TenDBCluster.
+        SQL语法检查与验证服务，适用于TenDBHA/TenDBCluster集群。
+
+        Features / 功能:
+        1. Validate SQL syntax across MySQL 5.5/5.6/5.7/8.0 versions - 支持多版本MySQL语法验证
+        2. Check DBM platform constraints (banned commands, high-risk operations) - 检查DBM平台约束（禁用命令、高风险操作）
+        3. SQL statement/file compatibility checking - SQL语句/文件兼容性检查
+
+        Use Cases / 使用场景:
+        - Validate SQL before execution to prevent syntax errors - 执行前验证SQL防止语法错误
+        - Check SQL compatibility across different MySQL versions - 检查SQL在不同MySQL版本的兼容性
+        - Detect banned commands (e.g., TRUNCATE) and high-risk operations (e.g., DROP DATABASE) - 检测禁用命令和高风险操作
+        """,
         # 主动授权 app_code
         "target_app_codes": [APP_CODE],
-        "labels": ["mysql-slowlog"],
+        "labels": ["sql-syntax-check"],
         # 是否启用：1-启用，0-停止
         "status": 1,
         # 是否公开
@@ -730,7 +739,23 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "is_public": False,
         # 自动发现并填充该 MCP 服务器对应的工具
         "tools": [],
-    }
+    },
+    {
+        "name": "resource-query",
+        "description": """DB resource management services, including:
+        1. Query resource request parameters by bill_id or task_id
+        2. Resource allocation and management
+        """,
+        # 主动授权 app_code
+        "target_app_codes": [APP_CODE],
+        "labels": ["resource-query"],
+        # 是否启用：1-启用，0-停止
+        "status": 1,
+        # 是否公开
+        "is_public": False,
+        # 自动发现并填充该 MCP 服务器对应的工具
+        "tools": [],
+    },
 ]
 
 # 接入告警屏蔽的延迟秒, 默认 10s 无延迟

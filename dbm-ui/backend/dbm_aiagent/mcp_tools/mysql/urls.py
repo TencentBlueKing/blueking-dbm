@@ -14,6 +14,7 @@ from backend.dbm_aiagent.mcp_tools.mysql.views import (
     MySQLBillMcpToolsViewSet,
     MySQLQueryMcpToolsViewSet,
     MySQLSlowlogMcpToolsViewSet,
+    SqlSyntaxCheckMcpViewSet,
 )
 
 routers = DefaultRouter(trailing_slash=True)
@@ -21,4 +22,5 @@ routers = DefaultRouter(trailing_slash=True)
 routers.register(r"", MySQLQueryMcpToolsViewSet, basename="mcp-mysql-query")
 routers.register(r"", MySQLBillMcpToolsViewSet, basename="mcp-mysql-bill")
 routers.register(r"", MySQLSlowlogMcpToolsViewSet, basename="mcp-mysql-slowlog")
+routers.register(r"", SqlSyntaxCheckMcpViewSet, basename="mcp-sql-syntax-check")
 urlpatterns = routers.urls
