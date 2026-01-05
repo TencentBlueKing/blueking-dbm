@@ -45,16 +45,16 @@ const (
 
 // DbSwitchingLog defines the log of database switching.
 type DbSwitchingLog struct {
-	ID          uint      `gorm:"column:id;primaryKey;autoIncrement"    json:"id"`
-	BkBizID     int       `gorm:"column:bk_biz_id;index:idx_biz"        json:"bk_biz_id"`
-	BkCloudID   int       `gorm:"column:bk_cloud_id"                    json:"bk_cloud_id"`
-	DbIP        string    `gorm:"column:db_ip;index:idx_ip_port"        json:"db_ip"`
-	DbPort      int       `gorm:"column:db_port;index:idx_ip_port"      json:"db_port"`
-	ClusterName string    `gorm:"column:cluster_name;index:idx_cluster" json:"cluster_name"`
-	DbTypeName  string    `gorm:"column:db_type_name;index:idx_dbtype"  json:"db_type_name"`
-	Level       string    `gorm:"column:level;index:idx_level"          json:"level"`
-	Content     string    `gorm:"column:content;type:mediumtext"        json:"content"`
-	CreatedTime time.Time `gorm:"column:created_time;index:idx_time"    json:"created_time"`
+	ID          uint      `gorm:"column:id;primaryKey;autoIncrement"                json:"id"`
+	BkBizID     int       `gorm:"column:bk_biz_id;index:idx_biz"                    json:"bk_biz_id"`
+	BkCloudID   int       `gorm:"column:bk_cloud_id"                                json:"bk_cloud_id"`
+	DbIP        string    `gorm:"column:db_ip;index:idx_ip_port"                    json:"db_ip"`
+	DbPort      int       `gorm:"column:db_port;index:idx_ip_port"                  json:"db_port"`
+	ClusterName string    `gorm:"column:cluster_name;index:idx_cluster"             json:"cluster_name"`
+	DbTypeName  string    `gorm:"column:db_type_name;index:idx_dbtype"              json:"db_type_name"`
+	Level       string    `gorm:"column:level;index:idx_level"                      json:"level"`
+	Content     string    `gorm:"column:content;type:mediumtext"                    json:"content"`
+	CreatedTime time.Time `gorm:"column:created_time;autoCreateTime;index:idx_time" json:"created_time"`
 }
 
 // TableName returns the name of switching log table

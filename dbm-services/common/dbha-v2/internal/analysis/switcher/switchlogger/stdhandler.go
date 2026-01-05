@@ -32,21 +32,25 @@ import (
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 )
 
+// LogToStdHandler writes switch log to standard output
 type LogToStdHandler struct {
 }
 
+// NewLogToStdHandler creates a new LogToStdHandler
 func NewLogToStdHandler() *LogToStdHandler {
 	return &LogToStdHandler{}
 }
 
+// Open this function does nothing, only for interface
 func (hdl *LogToStdHandler) Open() error {
 	return nil
 }
 
-func (hdl *LogToStdHandler) Close() error {
-	return nil
+// Close this function does nothing, only for interface
+func (hdl *LogToStdHandler) Close() {
 }
 
+// Append appends a switch log record to standard output
 func (hdl *LogToStdHandler) Append(record *hamodel.DbSwitchingLog) error {
 	if record == nil {
 		return gerrors.Newf(gerrors.InvalidParameter, "switch log record for std is nil")

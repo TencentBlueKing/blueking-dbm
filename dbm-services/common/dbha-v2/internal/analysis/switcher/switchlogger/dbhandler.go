@@ -27,7 +27,6 @@ package switchlogger
 import (
 	"fmt"
 
-	"dbm-services/common/dbha-v2/internal/admin/migrator"
 	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/internal/analysis/storage"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
@@ -82,24 +81,35 @@ func NewLogToDbHandlerFromConfig() (*LogToDbHandler, error) {
 	), nil
 }
 
-// CreateSwitchLogTable creates the table for switch log
-func (hdl *LogToDbHandler) CreateSwitchLogTable() error {
+// CheckSwitchLogTableExists checks if the switch log table exists
+func (hdl *LogToDbHandler) CheckSwitchLogTableExists() error {
 	if hdl.logDb == nil {
 		return gerrors.Newf(gerrors.MysqlFailure, "mysql instance for writing switch log is nil")
 	}
 
 	dbClient := hdl.logDb.DB.DB()
-	sql := fmt.Sprintf(migrator.CreateDbIfNotExistSql, hamodel.DatabaseName)
-	if err := dbClient.Exec(sql).Error; err != nil {
-		return gerrors.Newf(gerrors.MysqlFailure, "failed to create the database(%s) on mysql(%s:%d), %v",
-			hamodel.DatabaseName, hdl.Ip, hdl.Port, err)
+
+	// Check if database exists
+	var dbExists int
+	dbCheckSQL := fmt.Sprintf("SELECT 1 FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = '%s'", hamodel.DatabaseName)
+	if err := dbClient.Raw(dbCheckSQL).Scan(&dbExists).Error; err != nil {
+		return gerrors.Newf(gerrors.MysqlFailure, "failed to check database(%s) existence on mysql(%s:%d), %s",
+			hamodel.DatabaseName, hdl.Ip, hdl.Port, err.Error())
 	}
 
+	if dbExists == 0 {
+		return gerrors.Newf(gerrors.MysqlFailure, "database %s does not exist on mysql(%s:%d)",
+			hamodel.DatabaseName, hdl.Ip, hdl.Port)
+	}
+
+	// Use the database
 	dbhaDB := dbClient.Session(&gorm.Session{}).Exec("USE " + hamodel.DatabaseName)
 
-	if err := dbhaDB.AutoMigrate(&hamodel.DbSwitchingLog{}); err != nil {
-		return gerrors.Newf(gerrors.MysqlFailure, "failed to migrate table(%s) on mysql(%s:%d), %v",
-			hamodel.DbSwitchingLogTableName, hdl.Ip, hdl.Port, err)
+	// Check if table exists
+	migrator := dbhaDB.Migrator()
+	if !migrator.HasTable(&hamodel.DbSwitchingLog{}) {
+		return gerrors.Newf(gerrors.MysqlFailure, "table %s does not exist in database %s on mysql(%s:%d)",
+			hamodel.DbSwitchingLogTableName, hamodel.DatabaseName, hdl.Ip, hdl.Port)
 	}
 	return nil
 }
@@ -126,9 +136,11 @@ func (hdl *LogToDbHandler) Open() error {
 		DB: db,
 	}
 
-	if err := hdl.CreateSwitchLogTable(); err != nil {
+	if err := hdl.CheckSwitchLogTableExists(); err != nil {
+		// close the connection if table does not exist
 		hdl.Close()
-		errMsg := fmt.Sprintf("failed to create switch log table, %s", err.Error())
+
+		errMsg := fmt.Sprintf("when checking switch log table, %s", err.Error())
 		logger.Warn("%s", errMsg)
 		return gerrors.New(gerrors.MysqlFailure, errMsg)
 	}
@@ -137,23 +149,15 @@ func (hdl *LogToDbHandler) Open() error {
 }
 
 // Close closes the connection to database
-func (hdl *LogToDbHandler) Close() error {
+func (hdl *LogToDbHandler) Close() {
 	if hdl.logDb == nil {
-		return nil
+		return
 	}
-	con, connErr := hdl.logDb.DB.DB().DB()
-	if connErr != nil {
-		logger.Warn("failed to get mysql connection(%s:%d) when closing switch log, errmsg: %s",
-			hdl.Ip, hdl.Port, connErr.Error())
-		return connErr
-	}
-	if closeErr := con.Close(); closeErr != nil {
-		logger.Warn("failed to close switch log mysql connection(%s:%d), errmsg: %s",
-			hdl.Ip, hdl.Port, closeErr.Error())
-		return closeErr
+
+	if hdl.logDb.DB != nil {
+		hdl.logDb.DB.Close()
 	}
 	hdl.logDb = nil
-	return nil
 }
 
 // Append appends a switch log record
