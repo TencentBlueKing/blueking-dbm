@@ -25,6 +25,17 @@ class _SQLSimulationApi(BaseApi):
             url="/syntax/check/file",
             description=_("sql语法检查"),
         )
+        # 使用示例：
+        # {
+        #     "cluster_type": "mysql",
+        #     "versions": ["5.7"],
+        #     "sqls": ["create database `test001`  "]
+        # }
+        self.syntax_check_sql = self.generate_data_api(
+            method="POST",
+            url="/syntax/check/sql",
+            description=_("sql string 语法检查"),
+        )
         self.mysql_simulation = self.generate_data_api(
             method="POST",
             url="/mysql/simulation",

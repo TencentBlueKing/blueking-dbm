@@ -10,10 +10,15 @@ specific language governing permissions and limitations under the License.
 """
 from rest_framework.routers import DefaultRouter
 
-from backend.dbm_aiagent.mcp_tools.common.views import BillQueryMcpToolsViewSet, DBMetaQueryMcpToolsViewSet
+from backend.dbm_aiagent.mcp_tools.common.views import (
+    BillQueryMcpToolsViewSet,
+    DBMetaQueryMcpToolsViewSet,
+    ResourceParamQueryMcpToolsViewSet,
+)
 
 routers = DefaultRouter(trailing_slash=True)
 
 routers.register(r"", DBMetaQueryMcpToolsViewSet, basename="mcp-dbmeta-query")
 routers.register(r"", BillQueryMcpToolsViewSet, basename="mcp-bill-query")
+routers.register(r"", ResourceParamQueryMcpToolsViewSet, basename="mcp-resource-query")
 urlpatterns = routers.urls

@@ -10,3 +10,4 @@ specific language governing permissions and limitations under the License.
 """
 from .bill_query import BillQueryMcpToolsViewSet
 from .dbmeta_query import DBMetaQueryMcpToolsViewSet
+from .resource_param_query import ResourceParamQueryMcpToolsViewSet
