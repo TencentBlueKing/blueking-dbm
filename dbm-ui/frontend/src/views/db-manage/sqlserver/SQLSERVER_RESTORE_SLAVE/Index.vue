@@ -35,7 +35,6 @@
           :key="index">
           <SlaveHostColumnGroup
             v-model="item.slave"
-            v-model:spec-id="item.specId"
             :selected="selected"
             @batch-edit="handleBatchEditSlave" />
           <!-- <SingleResourceHostColumn
@@ -50,6 +49,7 @@
           <SpecColumn
             v-model="item.specId"
             :cluster-type="DBTypes.SQLSERVER"
+            :current-spec-id-list="[item.slave.spec_config.id]"
             :machine-type="MachineTypes.SQLSERVER"
             required
             selectable
@@ -98,6 +98,7 @@
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
+  import SqlserverMachineModel from '@services/model/sqlserver/sqlserver-machine';
   import { type Sqlserver } from '@services/model/ticket/ticket';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
@@ -116,20 +117,23 @@
 
   import { random } from '@utils';
 
-  import SlaveHostColumnGroup, { type SelectorHost } from './components/SlaveHostColumnGroup.vue';
+  import SlaveHostColumnGroup from './components/SlaveHostColumnGroup.vue';
 
   interface RowData {
     labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     slave: {
       bk_cloud_id: number;
       bk_host_id: number;
-      db_module_id: number;
+      // db_module_id: number;
       ip: string;
       related_clusters: {
         id: number;
         master_domain: string;
         region: string;
       }[];
+      spec_config: {
+        id: number;
+      };
       // system_version: string;
     };
     specId: number;
@@ -146,10 +150,13 @@
       {
         bk_cloud_id: 0,
         bk_host_id: 0,
-        db_module_id: 0,
+        // db_module_id: 0,
         ip: '',
         related_clusters: [] as RowData['slave']['related_clusters'],
         // system_version: '',
+        spec_config: {
+          id: 0,
+        },
       },
       data.slave,
     ),
@@ -193,7 +200,9 @@
         payload: createTickePayload(ticketDetail),
         tableData: details.infos.map((item) =>
           createTableRow({
+            labels: (item.resource_spec.sqlserver_ha.labels || []).map((item) => ({ id: Number(item) })),
             slave: { ip: item.old_nodes.old_slave_host[0].ip } as RowData['slave'],
+            specId: item.resource_spec.sqlserver_ha.spec_id,
           }),
         ),
       });
@@ -254,7 +263,7 @@
     }
   };
 
-  const handleBatchEditSlave = (list: SelectorHost[]) => {
+  const handleBatchEditSlave = (list: SqlserverMachineModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
       if (!selectedMap.value[item.ip]) {
         acc.push(
@@ -262,13 +271,16 @@
             slave: {
               bk_cloud_id: item.bk_cloud_id,
               bk_host_id: item.bk_host_id,
-              db_module_id: item.db_module_id,
+              // db_module_id: item.db_module_id,
               ip: item.ip,
               related_clusters: item.related_clusters.map((cluster) => ({
                 id: cluster.id,
-                master_domain: cluster.master_domain,
+                master_domain: cluster.immute_domain,
                 region: cluster.region,
               })),
+              spec_config: {
+                id: item.spec_config.id,
+              },
               // system_version: '',
             },
             specId: item.spec_config.id,

@@ -61,20 +61,18 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import SqlserverMachineModel from '@services/model/sqlserver/sqlserver-machine';
   // import { getLevelConfig } from '@services/source/configs';
   import { getGlobalMachine } from '@services/source/dbbase';
   import { getMachineList } from '@services/source/sqlserveHaCluster';
 
-  import { ClusterTypes, DBTypes } from '@common/const';
+  import { ClusterTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
   import InstanceSelector, {
     type InstanceSelectorValues,
-    type IValue,
     type PanelListType,
   } from '@components/instance-selector/Index.vue';
-
-  export type SelectorHost = IValue;
 
   interface Props {
     selected: {
@@ -82,7 +80,7 @@
     }[];
   }
 
-  type Emits = (e: 'batch-edit', list: IValue[]) => void;
+  type Emits = (e: 'batch-edit', list: SqlserverMachineModel[]) => void;
 
   const props = defineProps<Props>();
 
@@ -91,27 +89,26 @@
   const modelValue = defineModel<{
     bk_cloud_id: number;
     bk_host_id?: number;
-    db_module_id: number;
+    // db_module_id: number;
     ip: string;
     related_clusters: {
       id: number;
       master_domain: string;
       region: string;
     }[];
+    spec_config: {
+      id: number;
+    };
     // system_version: string;
   }>({
     default: () => ({
       bk_cloud_id: 0,
       bk_host_id: undefined,
-      db_module_id: 0,
+      // db_module_id: 0,
       ip: '',
       related_clusters: [],
       // system_version: '',
     }),
-  });
-
-  const specId = defineModel<number>('specId', {
-    required: true,
   });
 
   const { t } = useI18n();
@@ -132,12 +129,12 @@
   } as unknown as Record<ClusterTypes, PanelListType>;
 
   const showSelector = ref(false);
-  const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
+  const selectedInstances = computed<InstanceSelectorValues<SqlserverMachineModel>>(() => ({
     SqlserverHaHost: props.selected.map(
       (item) =>
         ({
           ip: item.ip,
-        }) as IValue,
+        }) as SqlserverMachineModel,
     ),
   }));
 
@@ -167,16 +164,18 @@
         modelValue.value = {
           bk_cloud_id: currentHost.bk_cloud_id,
           bk_host_id: currentHost.bk_host_id,
-          db_module_id: currentHost.db_module_id,
+          // db_module_id: currentHost.db_module_id,
           ip: currentHost.ip,
           related_clusters: currentHost.related_clusters.map((item) => ({
             id: item.id,
             master_domain: item.immute_domain,
             region: item.region,
           })),
+          spec_config: {
+            id: currentHost.spec_config.id,
+          },
           // system_version: '',
         };
-        specId.value = currentHost.spec_config.id;
       }
     },
   });
@@ -195,7 +194,7 @@
       if (modelValue.value.ip && !modelValue.value.bk_host_id) {
         queryHost({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          db_type: DBTypes.SQLSERVER,
+          cluster_type: ClusterTypes.SQLSERVER_HA,
           ip: modelValue.value.ip,
         });
       }
@@ -223,9 +222,12 @@
     modelValue.value = {
       bk_cloud_id: 0,
       bk_host_id: undefined,
-      db_module_id: 0,
+      // db_module_id: 0,
       ip: value,
       related_clusters: [],
+      spec_config: {
+        id: 0,
+      },
       // system_version: '',
     };
     // if (value) {
@@ -236,7 +238,7 @@
     // }
   };
 
-  const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
+  const handleSelectorChange = (selected: InstanceSelectorValues<SqlserverMachineModel>) => {
     emits('batch-edit', selected['SqlserverHaHost']);
   };
 </script>
