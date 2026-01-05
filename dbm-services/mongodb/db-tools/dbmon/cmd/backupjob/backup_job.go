@@ -79,8 +79,10 @@ func (job *BackupJob) Run() {
 	nowTime := time.Now()
 	if nowTime.Unix()-cleanReportLastTime > 24*3600 {
 		// 清理过期的报告文件. 每天执行一次.
+		// report文件保存90天.
 		_ = job.cleanReport(nowTime, 90)
-		_ = job.cleanOldDumpLogs(nowTime, 90)
+		// dump.log 文件保存15天.
+		_ = job.cleanOldDumpLogs(nowTime, 15)
 		cleanReportLastTime = nowTime.Unix()
 	}
 
@@ -240,6 +242,7 @@ func (job *BackupJob) PrepareDir() (dirs []string, err error) {
 // cleanOldDumpLogs clean old dump logs if mtime > dumpLogsSavedDays
 // dumpLogsDir is /data/dbbak/mg/mongodump/, file name is 'mongodump-*.dump.log'
 func (job *BackupJob) cleanOldDumpLogs(nowTime time.Time, dumpLogsSavedDays int) error {
+	job.Logger.Info("cleanOldDumpLogs start", zap.Int("dumpLogsSavedDays", dumpLogsSavedDays))
 	dumpLogsDir := path.Join(consts.GetMongoBackupDir(), "dbbak", "mg")
 	if _, err := os.Stat(dumpLogsDir); os.IsNotExist(err) {
 		return nil
@@ -250,25 +253,27 @@ func (job *BackupJob) cleanOldDumpLogs(nowTime time.Time, dumpLogsSavedDays int)
 		job.Logger.Warn(fmt.Sprintf("glob dump logs dir %s failed", dumpLogsDir))
 		return err
 	}
+	removed := 0
 	// if file name is 'mongodump-*.dump.log' and mtime > dumpLogsSavedDays days, delete it
 	for _, file := range globFiles {
 		// file must end with '.dump.log' and start with 'mongodump-' and mtime > dumpLogsSavedDays days, delete it
-		if !strings.HasSuffix(file, ".dump.log") || !strings.HasPrefix(file, "mongodump-") {
-			continue
-		}
-		fileInfo, err := os.Stat(file)
-		if err != nil {
-			job.Logger.Warn(fmt.Sprintf("get file %s info failed", file))
-			continue
-		}
-		if nowTime.Unix()-fileInfo.ModTime().Unix() > int64(dumpLogsSavedDays)*24*3600 {
-			if err := os.Remove(file); err != nil {
-				job.Logger.Warn(fmt.Sprintf("delete dump log file %s failed", file))
-			} else {
-				job.Logger.Info(fmt.Sprintf("delete dump log file %s success", file))
+		fileName := path.Base(file)
+		if strings.HasPrefix(fileName, "mongodump-") && strings.HasSuffix(fileName, ".dump.log") {
+			fileInfo, err := os.Stat(file)
+			if err != nil {
+				job.Logger.Warn(fmt.Sprintf("get file %s info failed", file))
+				continue
+			}
+			if nowTime.Unix()-fileInfo.ModTime().Unix() > int64(dumpLogsSavedDays)*24*3600 {
+				if err := os.Remove(file); err != nil {
+					job.Logger.Warn(fmt.Sprintf("delete dump log file %s failed", file))
+				} else {
+					job.Logger.Info(fmt.Sprintf("delete dump log file %s success", file))
+					removed++
+				}
 			}
 		}
 	}
-	job.Logger.Info("cleanOldDumpLogs end")
+	job.Logger.Info("cleanOldDumpLogs end", zap.Int("removed", removed))
 	return nil
 }
