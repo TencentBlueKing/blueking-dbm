@@ -13,6 +13,7 @@
 
 <template>
   <EditableColumn
+    ref="editableColumn"
     :append-rules="rules"
     :disabled-method="disabledMethod"
     field="target_clusters"
@@ -57,6 +58,11 @@
       id: number;
       master_domain: string;
     };
+    selected: {
+      cluster_type: string;
+      id: number;
+      master_domain: string;
+    }[];
   }
 
   const props = defineProps<Props>();
@@ -72,6 +78,7 @@
   });
 
   const { t } = useI18n();
+  const editableColumnRef = useTemplateRef('editableColumn');
 
   const tabListConfig = computed(
     () =>
@@ -135,6 +142,24 @@
             return true;
           }
         }),
+    },
+    {
+      message: t('目标集群重复'),
+      trigger: 'blur',
+      validator: () => {
+        if (!localValue.value) {
+          return true;
+        }
+        const clusterCounter: Record<string, number> = {};
+        props.selected.forEach((item) => {
+          if (clusterCounter[item.master_domain]) {
+            clusterCounter[item.master_domain] += 1;
+          } else {
+            clusterCounter[item.master_domain] = 1;
+          }
+        });
+        return Object.keys(clusterCounter).every((item) => clusterCounter[item] < 2);
+      },
     },
     {
       message: t('目标集群xx不存在', [existError]),
@@ -215,6 +240,9 @@
       .flat()
       .map((item) => item.master_domain)
       .join(',');
+    setTimeout(() => {
+      editableColumnRef.value?.validate();
+    }, 60);
   };
 
   watch(
