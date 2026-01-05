@@ -51,6 +51,7 @@ type MachineResourceGetterInputParam struct {
 	ExcludeOsName bool              `json:"exclude_os_name"`
 	StorageSpecs  []meta.DiskSpec   `json:"storage_spec"`
 	CreateTime    string            `json:"create_time"`
+	EmptyLabels   bool              `json:"empty_labels"`
 	// true,false,""
 	GseAgentAlive string `json:"gse_agent_alive"`
 	Limit         int    `json:"limit"`
@@ -230,7 +231,12 @@ func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) (err error) {
 	}
 	if len(c.Labels) > 0 {
 		db.Where(model.JSONQuery("labels").JointOrContains(c.Labels))
+	} else {
+		if c.EmptyLabels {
+			db.Where(" JSON_TYPE(labels) = 'NULL' or JSON_TYPE(labels) is null OR JSON_LENGTH(labels) < 1 ")
+		}
 	}
+
 	if lo.IsNotEmpty(c.OsType) {
 		db.Where("os_type = ?", c.OsType)
 	}
