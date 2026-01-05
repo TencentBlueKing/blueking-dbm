@@ -45,6 +45,12 @@ from backend.flow.plugins.components.collections.common.pause import PauseCompon
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_checksum_ticket import MySQLCheckSumTicketComponent
+from backend.flow.plugins.components.collections.mysql.mysql_checksum_ticket_result_get import (
+    MySQLCheckSumTicketResultComponent,
+)
+from backend.flow.plugins.components.collections.mysql.mysql_checksum_ticket_status import (
+    MySQLCheckSumTicketProbeComponent,
+)
 from backend.flow.plugins.components.collections.mysql.mysql_crond_control import MysqlCrondMonitorControlComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
@@ -413,6 +419,7 @@ class TenDBClusterStorageMigrateUpgradeFlow(object):
                         "infos": [{"cluster_id": cluster_class.id, "checksum_scope": "partial", "backup_infos": []}],
                     },
                 }
+                checksum_pairs = []
                 for shard_id, node in cluster_info["my_shards"].items():
                     checksum_info["details"]["infos"][0]["backup_infos"].append(
                         {
@@ -424,17 +431,37 @@ class TenDBClusterStorageMigrateUpgradeFlow(object):
                             "ignore_tables": [],
                         }
                     )
+                    checksum_pairs.append(
+                        {
+                            "master": node["master"]["instance"],
+                            "slave": node["new_master"]["instance"],
+                        }
+                    )
                 tendb_migrate_pipeline.add_act(
-                    act_name=_("生成checksum单据"),
+                    act_name=MySQLCheckSumTicketComponent.node_name,
                     act_component_code=MySQLCheckSumTicketComponent.code,
                     kwargs=asdict(
                         MysqlCheckSumKwargs(
                             uid=self.data["uid"],
                             bk_biz_id=cluster_class.bk_biz_id,
                             created_by=self.data["created_by"],
-                            checksum_info=checksum_info,
+                            checksum_info=copy.deepcopy(checksum_info),
                         )
                     ),
+                )
+                tendb_migrate_pipeline.add_act(
+                    act_name=MySQLCheckSumTicketProbeComponent.node_name,
+                    act_component_code=MySQLCheckSumTicketProbeComponent.code,
+                    kwargs={},
+                )
+                tendb_migrate_pipeline.add_act(
+                    act_name=MySQLCheckSumTicketResultComponent.node_name,
+                    act_component_code=MySQLCheckSumTicketResultComponent.code,
+                    kwargs={
+                        "bk_cloud_id": cluster_class.bk_cloud_id,
+                        "checksum_pairs": checksum_pairs,
+                        "cluster_id": cluster_class.id,
+                    },
                 )
             # 切换前安装周边
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=surrounding_sub_pipeline_list)
