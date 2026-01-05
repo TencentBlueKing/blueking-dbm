@@ -202,6 +202,7 @@ func (r *Registry) isInvalidClient() bool {
 	defer r.cliMu.RUnlock()
 	return r.client == nil || r.leaseID == 0
 }
+
 func (r *Registry) renewalLease(ctx context.Context) error {
 	r.cliMu.Lock()
 	defer r.cliMu.Unlock()

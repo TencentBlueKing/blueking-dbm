@@ -22,23 +22,26 @@
  * SOFTWARE.
  */
 
-package discovery
+package machine
 
-import (
-	"time"
+import "testing"
 
-	"dbm-services/common/dbha-v2/pkg/hanet"
-)
+func TestGetHost(t *testing.T) {
+	ips, err := GetLocalIPs()
+	if err != nil {
+		t.Fatalf("failed to get local ips:%v", err)
+	}
 
-// ServiceInfo service's infomation
-type ServiceInfo struct {
-	ID            string          `json:"id"`
-	Name          string          `json:"name"`
-	Nice          int             `json:"nice"`
-	IPs           []string        `json:"ips"`
-	ListenAddress *hanet.Endpoint `json:"listen_address,omitempty"`
-	ProbeEndpoint *hanet.Endpoint `json:"probe_endpoint,omitempty"`
-	StartTime     time.Time       `json:"start_time"`
-	Uptime        string          `json:"uptime"`
-	UpdatedAt     time.Time       `json:"updated_at"`
+	for _, ip := range ips {
+		t.Logf("local ip: %s", ip)
+	}
+}
+
+func TestGetHostWithInterface(t *testing.T) {
+	ip, err := GetLocalIPWithInterface("eth1")
+	if err != nil {
+		t.Fatalf("failed to get local ips:%v", err)
+	}
+
+	t.Logf("local ip: %s, eth1", ip)
 }

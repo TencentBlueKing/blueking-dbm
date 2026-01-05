@@ -41,6 +41,7 @@ import (
 	"dbm-services/common/dbha-v2/pkg/haapm"
 	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/machine"
 	"dbm-services/common/dbha-v2/pkg/monitor"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
@@ -73,9 +74,15 @@ type Service struct {
 }
 
 func (s *Service) Run(ctx context.Context) error {
+	ips, err := machine.GetLocalIPs()
+	if err != nil {
+		return err
+	}
+
 	s.info.Name = Name
 	s.info.ID = uuid.New().String()
 	s.info.StartTime = time.Now().Local()
+	s.info.IPs = ips
 
 	// create discovery client
 	if err := s.createDiscovery(); err != nil {
@@ -198,10 +205,7 @@ func (s *Service) createApmServer() error {
 }
 
 func (s *Service) updateInfo() {
-	if s.info.UpdatedAt.IsZero() {
-		s.info.UpdatedAt = time.Now().Local()
-	}
-
+	s.info.UpdatedAt = time.Now().Local()
 	s.info.Uptime = durafmt.Parse(time.Now().Local().Sub(s.info.StartTime)).String()
 
 	data, err := json.Marshal(s.info)
