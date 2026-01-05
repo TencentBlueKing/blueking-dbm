@@ -122,9 +122,14 @@
   const handleSubmit = async () => {
     const data = await formPanelRef.value!.getValue();
 
-    const tagAfter = formPanelRef.value!.getLabelNames().join('，');
     const remarkList = props.selected.map((item) => {
-      const tagBefore = item.labels.map((labelItem) => labelItem.name).join('，') || '';
+      const tagNames = item.labels.map((labelItem) => labelItem.name);
+      const tagBefore = tagNames.join('，') || '';
+      const tagAfter = (
+        props.selected.length === 1
+          ? formPanelRef.value!.getLabelNames()
+          : tagNames.concat(formPanelRef.value!.getLabelNames())
+      ).join('，');
       return { labels: { after_value: tagAfter, before_value: tagBefore } };
     });
 
