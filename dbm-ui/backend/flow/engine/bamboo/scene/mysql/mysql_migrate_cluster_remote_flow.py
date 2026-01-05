@@ -598,6 +598,17 @@ class MySQLMigrateClusterRemoteFlow(object):
             # 切换迁移实例
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=switch_sub_pipeline_list)
 
+            # 解除对proxy替换的单据互斥锁，最后卸载旧实例阶段，能允许proxy替换单据进入执行
+            tendb_migrate_pipeline.add_act(
+                act_name=_("解锁部分单据互斥锁"),
+                act_component_code=AddUnlockTicketTypeConfigComponent.code,
+                kwargs=asdict(
+                    AddUnLockTicketTypeKwargs(
+                        cluster_ids=self.data["cluster_ids"], unlock_ticket_type_list=[TicketType.MYSQL_PROXY_SWITCH]
+                    )
+                ),
+            )
+
             tendb_migrate_pipeline.add_sub_pipeline(
                 sub_flow=standardize_mysql_cluster_subflow(
                     root_id=self.root_id,
@@ -646,17 +657,6 @@ class MySQLMigrateClusterRemoteFlow(object):
                     ),
                 )
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=uninstall_surrounding_sub_pipeline_list)
-
-            # 解除对proxy替换的单据互斥锁，最后卸载旧实例阶段，能允许proxy替换单据进入执行
-            tendb_migrate_pipeline.add_act(
-                act_name=_("解锁部分单据互斥锁"),
-                act_component_code=AddUnlockTicketTypeConfigComponent.code,
-                kwargs=asdict(
-                    AddUnLockTicketTypeKwargs(
-                        cluster_ids=self.data["cluster_ids"], unlock_ticket_type_list=[TicketType.MYSQL_PROXY_SWITCH]
-                    )
-                ),
-            )
 
             # 卸载流程人工确认
             tendb_migrate_pipeline.add_act(act_name=_("人工确认卸载实例"), act_component_code=PauseComponent.code, kwargs={})
