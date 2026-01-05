@@ -217,7 +217,10 @@ class AddSpiderRoutingService(BaseService):
             self.log_warning(_("没有可添加路由表的节点，跳过"))
             return True
 
-        cmds = ["set tc_admin=1"]
+        cmds = [
+            "set tc_admin=1",
+            "SET GLOBAL tc_skip_check_db_list = 'performance_schema,information_schema,mysql,test,sys,infodba_schema'",
+        ]
         rpc_params = {
             "addresses": [ctl_master],
             "cmds": [],
