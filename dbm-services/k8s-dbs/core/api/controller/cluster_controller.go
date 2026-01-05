@@ -34,8 +34,10 @@ import (
 	metaentity "k8s-dbs/metadata/entity"
 	metaprovider "k8s-dbs/metadata/provider"
 	"log/slog"
+	"strings"
 
 	"github.com/jinzhu/copier"
+	"github.com/pkg/errors"
 
 	"github.com/gin-gonic/gin"
 )
@@ -309,6 +311,12 @@ func (c *ClusterController) CreateCluster(ctx *gin.Context) {
 		api.HandleValidationError(ctx, err, request)
 		return
 	}
+
+	if err := c.checkCreateParams(request); err != nil {
+		api.ErrorResponse(ctx, dbserrors.NewK8sDbsError(dbserrors.ParameterInvalidError, err))
+		return
+	}
+
 	dbsCtx := &commentity.DbsContext{
 		BkAuth:      &request.BKAuth,
 		RequestType: coreconst.CreateCluster,
@@ -318,6 +326,28 @@ func (c *ClusterController) CreateCluster(ctx *gin.Context) {
 		return
 	}
 	api.SuccessResponse(ctx, nil, commconst.Success)
+}
+
+// checkCreateParams 校验创建集群的参数
+func (c *ClusterController) checkCreateParams(request *coreentity.Request) error {
+	// 检查必填字段，考虑空白字符串的情况
+	if request.BkBizID == 0 {
+		return errors.New("缺少 BkBizID")
+	}
+
+	if strings.TrimSpace(request.BkBizName) == "" {
+		return errors.New("缺少 BkBizName")
+	}
+
+	if strings.TrimSpace(request.BkAppAbbr) == "" {
+		return errors.New("缺少 BkAppAbbr")
+	}
+
+	if strings.TrimSpace(request.Metadata.ClusterAlias) == "" {
+		return errors.New("缺少 ClusterAlias")
+	}
+
+	return nil
 }
 
 // DeleteCluster 删除集群
