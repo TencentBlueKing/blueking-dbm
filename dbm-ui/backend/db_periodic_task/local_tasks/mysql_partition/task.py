@@ -9,6 +9,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 import math
+import random
 from datetime import datetime, timedelta
 from typing import Dict
 
@@ -79,7 +80,7 @@ def execute_one_tendbha_domain_task(info: Dict):
         for n in range(group_cnt):
             limit = group_size
             offset = n * group_size
-            eta = start_time + timedelta(seconds=n * 60)  # 每隔60秒执行一个任务
+            eta = start_time + timedelta(seconds=n * 50 + random.randint(1, 10))  # 每隔约50秒+1~10秒执行一个任务
             execute_one_tendbha_task(cluster_id=info["cluster_id"], limit=limit, offset=offset, eta=eta)
 
 
@@ -88,8 +89,14 @@ def execute_one_tendbha_task(cluster_id: int, limit: int, offset: int = 0, eta: 
     正式发起分区任务执行
     @return:
     """
+    # 使用eta的年月日小时（如果eta存在）作为task_id的一部分
+    if eta:
+        time_str = eta.strftime("%Y%m%d%H%M%S")
+    else:
+        time_str = timezone.now().strftime("%Y%m%d%H%M%S")
+    task_id = f"mysql_partition_task_{cluster_id}_{limit}_{offset}_{time_str}"
     partition_confs = get_partition_conf_by_domain(cluster_id, limit, offset, ClusterType.TenDBHA.value)
-    execute_tendbha_partition_task.apply_async(args=[partition_confs], eta=eta)
+    execute_tendbha_partition_task.apply_async(args=[partition_confs], eta=eta, task_id=task_id)
 
 
 @app.task(rate_limit="50/m")
@@ -116,7 +123,7 @@ def execute_one_tendbcluster_domain_task(info: Dict):
         for n in range(group_cnt):
             limit = group_size
             offset = n * group_size
-            eta = start_time + timedelta(seconds=n * 30)  # 每隔60秒执行一个任务
+            eta = start_time + timedelta(seconds=n * 50 + random.randint(1, 10))  # 每隔约50秒+1~10秒执行一个任务
             execute_one_tendbcluster_task(cluster_id=info["cluster_id"], limit=limit, offset=offset, eta=eta)
 
 
@@ -125,8 +132,16 @@ def execute_one_tendbcluster_task(cluster_id: int, limit: int, offset: int = 0, 
     正式发起分区任务执行
     @return:
     """
+    # 使用eta的年月日小时（如果eta存在）作为task_id的一部分
+    if eta:
+        time_str = eta.strftime("%Y%m%d%H%M%S")
+    else:
+        time_str = timezone.now().strftime("%Y%m%d%H%M%S")
+
+    task_id = f"mysql_partition_task_{cluster_id}_{limit}_{offset}_{time_str}"
+
     partition_confs = get_partition_conf_by_domain(cluster_id, limit, offset, ClusterType.TenDBCluster.value)
-    execute_tendbcluster_partition_task.apply_async(args=[partition_confs], eta=eta)
+    execute_tendbcluster_partition_task.apply_async(args=[partition_confs], eta=eta, task_id=task_id)
 
 
 def execute_one_task_by_config_id(infos: Dict, cluster_type: str, force: bool = False, partial_force: bool = False):
