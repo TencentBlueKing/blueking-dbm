@@ -51,9 +51,23 @@ def __show_processlist(bk_cloud_id: int, addresses: List[str], machine_type: Mac
         return {}
 
     if machine_type == MachineType.PROXY:
+        admin_addresses = []
+        for ele in addresses:
+            ip, port = ele.split(":")
+            proxy_ins = ProxyInstance.objects.get(machine__bk_cloud_id=bk_cloud_id, machine__ip=ip, port=port)
+            admin_addr = f"{ip}:{proxy_ins.admin_port}"
+            admin_addresses.append(admin_addr)
+
         drs_raw_res = DRSApi.proxyrpc(
-            {"addresses": addresses, "cmds": ["show processlist"], "bk_cloud_id": bk_cloud_id}
+            {"addresses": admin_addresses, "cmds": ["show processlist"], "bk_cloud_id": bk_cloud_id}
         )
+        for sr in drs_raw_res:
+            admin_addr = sr["address"]
+            ip, admin_port = admin_addr.split(":")
+            port = int(admin_port) - 1000
+            addr = f"{ip}:{port}"
+            sr["address"] = addr
+
     else:
         drs_raw_res = DRSApi.rpc({"addresses": addresses, "cmds": ["show processlist"], "bk_cloud_id": bk_cloud_id})
 
