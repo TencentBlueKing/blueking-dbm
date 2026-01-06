@@ -248,11 +248,15 @@
     manual: true,
     onSuccess(dataList) {
       const clusterDbsMap = dataList.reduce<Record<string, string[]>>((acc, item) => {
-        Object.assign(acc, {
-          [item.cluster_id]: item.databases,
-        });
+        if (!acc[item.cluster_id]) {
+          Object.assign(acc, {
+            [item.cluster_id]: [],
+          });
+        }
+        acc[item.cluster_id].push(...item.databases);
         return acc;
       }, {});
+
       tableData.value.forEach((item) => {
         Object.assign(item, {
           db_list: clusterDbsMap[item.source_cluster.id],
