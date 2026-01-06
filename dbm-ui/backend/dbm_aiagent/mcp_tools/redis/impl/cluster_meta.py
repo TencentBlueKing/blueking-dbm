@@ -9,8 +9,38 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Dict, List
 
+from backend.configuration.constants import DBType
+from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import AccessLayer, ClusterType, InstanceRole
-from backend.db_meta.models import Cluster, ClusterEntry, Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
+from backend.db_meta.models import (
+    AppCache,
+    Cluster,
+    ClusterEntry,
+    Machine,
+    ProxyInstance,
+    StorageInstance,
+    StorageInstanceTuple,
+)
+
+
+def list_my_redis_bizs(userID: str) -> List:
+    res = []
+    for app in AppCache.objects.filter():
+        bk_biz_id = app.bk_biz_id
+
+        if DBAdministrator.objects.filter(
+            bk_biz_id=bk_biz_id, users__startswith="{}%".format(userID), db_type=DBType.Redis.value
+        ):
+            res.append({"bk_biz_id": bk_biz_id, "app_name": app.bk_biz_name, "abbr": app.db_app_abbr})
+    return res
+
+
+def list_biz_by_name(biz_name: str) -> List:
+    res = []
+    for app in AppCache.objects.all():
+        if app.db_app_abbr.__contains__(biz_name):
+            res.append({"bk_biz_id": app.bk_biz_id, "app_name": app.bk_biz_name, "abbr": app.db_app_abbr})
+    return res
 
 
 def redis_list_clusters(bk_biz_id: int) -> List:
