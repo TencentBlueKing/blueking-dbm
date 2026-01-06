@@ -63,22 +63,22 @@ func (h *consumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 		if err := apm.KafkaReadBytesTotal.UpdateLabel(map[string]string{
 			"kafka": msg.Topic,
 		}).Add(float64(dataLength)); err != nil {
-			logger.Warn("update kafka read bytes metric failed: %v", err)
+			logger.Warn("update kafka read bytes metric failed, errmsg: %s", err)
 		}
 		if err := apm.KafkaReadMessagesTotal.UpdateLabel(map[string]string{
 			"kafka": msg.Topic,
 		}).Inc(); err != nil {
-			logger.Warn("update kafka read messages metric failed: %v", err)
+			logger.Warn("update kafka read messages metric failed, errmsg: %s", err)
 		}
 
 		for _, saver := range h.savers {
 			if err := saver.Save(data); err != nil {
-				logger.Warn("save the data failed, topic(%s), %v", msg.Topic, err)
+				logger.Warn("save the data failed, topic(%s), errmsg: %s", msg.Topic, err)
 
 				if metricErr := apm.KafkaWriteErrorsTotal.UpdateLabel(map[string]string{
 					"kafka": msg.Topic,
 				}).Inc(); metricErr != nil {
-					logger.Warn("update kafka write errors metric failed: %v", metricErr)
+					logger.Warn("update kafka write errors metric failed, errmsg: %s", metricErr)
 				}
 			}
 		}
