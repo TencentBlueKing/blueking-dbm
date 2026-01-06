@@ -25,11 +25,11 @@
 package sink
 
 import (
-	"dbm-services/common/dbha-v2/internal/receiver/apm"
 	"encoding/json"
 	"path/filepath"
 	"time"
 
+	"dbm-services/common/dbha-v2/internal/receiver/apm"
 	"dbm-services/common/dbha-v2/internal/receiver/config"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/hanet"
@@ -101,7 +101,7 @@ func (s *mysql) Save(msg *Message) error {
 		if err := apm.MySqlWriteLatencyMs.UpdateLabel(map[string]string{
 			"mysql": msg.Topic,
 		}).Observe(float64(time.Since(startTime).Milliseconds())); err != nil {
-			logger.Warn("update mysql write latency metric failed: %v", err)
+			logger.Warn("update mysql write latency metric failed, errmsg: %s", err)
 		}
 	}()
 
@@ -110,7 +110,7 @@ func (s *mysql) Save(msg *Message) error {
 		if metricErr := apm.MySqlReadErrorsTotal.UpdateLabel(map[string]string{
 			"mysql": msg.Topic,
 		}).Inc(); metricErr != nil {
-			logger.Warn("update mysql read errors metric failed: %v", metricErr)
+			logger.Warn("update mysql read errors metric failed, errmsg: %s", metricErr)
 		}
 		return gerrors.Newf(gerrors.InvalidJson, "unmarshal a mysql metric message failed, topic(%s), %v", msg.Topic, err)
 	}
@@ -125,12 +125,12 @@ func (s *mysql) Save(msg *Message) error {
 			Create(data).Error
 
 		if err != nil {
-			logger.Warn("save the mysql metric failed, %v", err)
+			logger.Warn("save the mysql metric failed, errmsg: %s", err)
 
 			if metricErr := apm.MySqlWriteErrorsTotal.UpdateLabel(map[string]string{
 				"mysql": msg.Topic,
 			}).Inc(); metricErr != nil {
-				logger.Warn("update mysql write errors metric failed: %v", metricErr)
+				logger.Warn("update mysql write errors metric failed, errmsg: %s", metricErr)
 			}
 		}
 	}
@@ -138,12 +138,12 @@ func (s *mysql) Save(msg *Message) error {
 	if err := apm.MySqlWriteMessagesTotal.UpdateLabel(map[string]string{
 		"mysql": msg.Topic,
 	}).Inc(); err != nil {
-		logger.Warn("update mysql write messages metric failed: %v", err)
+		logger.Warn("update mysql write messages metric failed, errmsg: %s", err)
 	}
 	if err := apm.MySqlWriteBytesTotal.UpdateLabel(map[string]string{
 		"mysql": msg.Topic,
 	}).Add(float64(len(msg.Data))); err != nil {
-		logger.Warn("update mysql write bytes metric failed: %v", err)
+		logger.Warn("update mysql write bytes metric failed, errmsg: %s", err)
 	}
 	return nil
 }
