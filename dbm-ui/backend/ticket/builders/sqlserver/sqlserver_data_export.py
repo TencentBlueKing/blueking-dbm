@@ -39,9 +39,10 @@ class SQLServerDataExportItsmProductorFlowParamsBuilder(builders.ItsmParamBuilde
 class SQLServerDataExportFlowParamBuilder(builders.FlowParamBuilder):
     controller = SqlserverController.sqlserver_data_export_scene
 
+    # 文件名
     def format_ticket_data(self):
-        cluster = Cluster.objects.get(id=self.ticket_data["cluster_id"])
-        dump_file_name = f"{cluster.immute_domain}_{int(time.time())}_dbm_console_dump.sql"
+        cluster = Cluster.objects.filter(id__in=self.ticket_data["cluster_ids"])
+        dump_file_name = f"{cluster.first().immute_domain}_{int(time.time())}_dbm_console_dump.sql"
         self.ticket_data["dump_file_name"] = dump_file_name
 
     def post_callback(self):
