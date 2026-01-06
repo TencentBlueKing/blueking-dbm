@@ -53,6 +53,7 @@
 </template>
 
 <script setup lang="tsx">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -125,10 +126,10 @@
     const remarkList = props.selected.map((item) => {
       const tagNames = item.labels.map((labelItem) => labelItem.name);
       const tagBefore = tagNames.join('，') || '';
-      const tagAfter = (
+      const tagAfter = _.uniq(
         props.selected.length === 1
           ? formPanelRef.value!.getLabelNames()
-          : tagNames.concat(formPanelRef.value!.getLabelNames())
+          : tagNames.concat(formPanelRef.value!.getLabelNames()),
       ).join('，');
       return { labels: { after_value: tagAfter, before_value: tagBefore } };
     });

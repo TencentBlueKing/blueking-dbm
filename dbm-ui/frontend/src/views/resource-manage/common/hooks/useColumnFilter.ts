@@ -141,7 +141,7 @@ export const useColumnFilter = (pool?: ServiceParameters<typeof queryDirtyMachin
       },
     ],
     onSuccess(result) {
-      data.value = Object.keys(result).reduce(
+      data.value = dirtyMachineAttrs.reduce(
         (res, attr) => {
           return Object.assign(res, {
             [attr]: {
@@ -151,7 +151,7 @@ export const useColumnFilter = (pool?: ServiceParameters<typeof queryDirtyMachin
                 placement: 'bottom',
               },
               props: {
-                list: result[attr].map((item) => ({
+                list: (result[attr] || []).map((item) => ({
                   label: item.text,
                   value: item.value,
                 })),

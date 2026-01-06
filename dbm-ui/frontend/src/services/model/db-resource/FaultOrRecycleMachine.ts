@@ -19,10 +19,10 @@ import { t } from '@locales/index';
 
 export default class FaultOrRecycleMachine {
   static poolTextMap: Record<string, string> = {
-    dirty: t('污点池'),
+    // dirty: t('污点池'),
     fault: t('故障池'),
     recycle: t('待回收池'),
-    recycled: t('已回收'),
+    // recycled: t('已回收'),
     resource: t('资源池'),
   };
 
