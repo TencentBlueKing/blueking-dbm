@@ -5,13 +5,16 @@
     <template #header>
       <div>【{{ data.ip }}】{{ t('操作记录') }}</div>
     </template>
-    <div class="all-host-record">
+    <div
+      ref="tableContainer"
+      class="all-host-record">
       <BkLoading
         :loading="tableLoading"
         :z-index="2">
         <PrimaryTable
           ref="tableRef"
           :data="machineEventList"
+          :max-height="tableMaxHeight"
           row-key="id">
           <TableColumn
             col-key="events"
@@ -90,6 +93,8 @@
   import MachineEventModel from '@services/model/db-resource/machineEvent';
   import { getHostCurrentEvent } from '@services/source/dbdirty';
 
+  import { useTableMaxHeight } from '@hooks';
+
   import TicketStatusTag from '@components/ticket-status-tag/Index.vue';
 
   import OperationDetail from '@views/resource-manage/common/components/operation-detail/Index.vue';
@@ -108,6 +113,10 @@
   });
 
   const { t } = useI18n();
+
+  const tableContainerRef = useTemplateRef('tableContainer');
+  const occupiedHeight = ref(0);
+  const tableMaxHeight = useTableMaxHeight(occupiedHeight);
 
   const {
     data: machineEventList,
@@ -128,6 +137,11 @@
       immediate: true,
     },
   );
+
+  onMounted(() => {
+    const { top } = tableContainerRef.value!.getBoundingClientRect();
+    occupiedHeight.value = top + 24;
+  });
 </script>
 
 <style lang="less" scoped>

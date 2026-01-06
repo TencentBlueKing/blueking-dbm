@@ -95,7 +95,7 @@ export default function getRoutes() {
               name: 'resourceFlowRecord',
               meta: {
                 fullscreen: true,
-                navName: t('资源流转记录'),
+                navName: t('资源操作记录'),
               },
               component: () => import('@views/resource-manage/record/Index.vue'),
             },

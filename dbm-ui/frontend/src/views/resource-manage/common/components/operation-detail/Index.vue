@@ -89,7 +89,7 @@
       [MachineEvents.RESOURCE_OWNER]: '',
       [MachineEvents.RETURN_RESOURCE]:
         returnResourceTextMap[props.data.ticket_type] || machineEventsDisplayMap[props.data.event],
-      [MachineEvents.TO_DIRTY]: machineEventsDisplayMap[props.data.event],
+      // [MachineEvents.TO_DIRTY]: machineEventsDisplayMap[props.data.event],
       [MachineEvents.TO_FAULT]: t('其它池手动转入故障池'),
       [MachineEvents.TO_RECYCLE]: t('其它池手动转入待回收池'),
       [MachineEvents.UNDO_IMPORT]: t('退回「n」业务 CMDB 空闲机模块', { n: bizName.value }),

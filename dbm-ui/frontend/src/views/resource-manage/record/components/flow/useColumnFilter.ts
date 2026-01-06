@@ -5,7 +5,7 @@ import { getUserList } from '@services/source/user';
 
 import { useGlobalBizs } from '@stores';
 
-import { machineEventsDisplayMap } from '@common/const';
+import { MachineEvents, machineEventsDisplayMap } from '@common/const';
 
 import DatetimeRange from '@components/db-table/components/DatetimeRange.vue';
 import MultipleInput from '@components/db-table/components/MultipleInput.vue';
@@ -88,7 +88,17 @@ export const useColumnFilter = () => {
         placement: 'bottom',
       },
       props: {
-        list: Object.entries(machineEventsDisplayMap).map(([key, value]) => ({ label: value, value: key })),
+        list: [
+          MachineEvents.IMPORT_RESOURCE,
+          MachineEvents.APPLY_RESOURCE,
+          MachineEvents.RETURN_RESOURCE,
+          MachineEvents.TO_FAULT,
+          MachineEvents.TO_RECYCLE,
+          MachineEvents.RECYCLED,
+          MachineEvents.UNDO_IMPORT,
+          MachineEvents.HOST_ATTRIBUTE,
+          MachineEvents.RESOURCE_OWNER,
+        ].map((key) => ({ label: machineEventsDisplayMap[key], value: key })),
       },
       showConfirmAndReset: true,
     },
