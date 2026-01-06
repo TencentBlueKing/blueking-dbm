@@ -511,6 +511,8 @@ class DBResourceViewSet(viewsets.SystemViewSet):
             bk_biz_id = append_params.pop("bk_biz_id")
             host_id_ip_map = append_params.pop("host_id_ip_map")
             remark_map, hosts = ResourceHandler.get_evnet_info(append_params["bk_host_ids"], remark, host_id_ip_map)
+            if not remark_map:
+                return Response(DBResourceApi.resource_append_labels(append_params))
             MachineEvent.create_machine_events(
                 bk_biz_id, hosts, "resource_owner", None, request.user.username, None, "", remark_map
             )

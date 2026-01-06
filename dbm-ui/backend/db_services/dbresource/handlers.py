@@ -682,7 +682,11 @@ class ResourceHandler(object):
                 after_value = (
                     remark_info[label_key]["after_value"] if remark_info[label_key].get("after_value") else _("无")
                 )
+                if before_value == after_value:
+                    continue
                 remark_list.append(f"{RESOURCE_UPDATE_REMARK[label_key]}: {before_value}→{after_value}")
+            if not remark_list:
+                continue
             new_remark = ";".join(remark_list)
             remark_map[host_id] = new_remark
             hosts.append({"ip": host_id_ip_map[str(host_id)], "bk_host_id": host_id})
