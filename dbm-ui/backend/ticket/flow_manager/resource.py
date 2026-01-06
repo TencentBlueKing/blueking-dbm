@@ -64,11 +64,6 @@ class ResourceApplyFlow(BaseTicketFlow):
             status_display=constants.TicketFlowStatus.get_choice_label(self.status)
         )
 
-    @property
-    def status(self) -> str:
-        # 覆写base的状态判断，资源池申请节点的状态判断逻辑不同
-        return self._status
-
     def update_flow_status(self, status):
         self.flow_obj.update_status(status)
         return status
@@ -87,8 +82,8 @@ class ResourceApplyFlow(BaseTicketFlow):
             # 如果是其他情况引起的错误，则直接返回fail
             if not self.flow_obj.todo_of_flow.exists():
                 return self.update_flow_status(constants.TicketFlowStatus.FAILED)
-            # 如果是资源申请的todo状态，则判断todo是否完成
-            if self.ticket.todo_of_ticket.exist_unfinished():
+            # 如果是资源申请的todo状态，则判断todo是否完成并且是否资源不足
+            if self.ticket.todo_of_ticket.exist_lack_unfinished():
                 return self.update_flow_status(constants.TicketFlowStatus.RUNNING)
             else:
                 return self.flow_obj.status
