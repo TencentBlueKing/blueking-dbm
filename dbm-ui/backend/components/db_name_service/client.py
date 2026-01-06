@@ -24,71 +24,99 @@ class _NameServiceApi(BaseApi):
             method="POST",
             url="/api/nameservice/clb/create_lb_and_register_target",
             description=_("创建clb并绑定后端主机"),
+            default_timeout=600,
+            max_retry_times=1,
         )
         self.clb_deregister_part_target = self.generate_data_api(
             method="POST",
             url="/api/nameservice/clb/deregister_part_target",
             description=_("clb解绑部分后端主机"),
+            default_timeout=600,
+            max_retry_times=1,
         )
         self.clb_register_part_target = self.generate_data_api(
             method="POST",
             url="/api/nameservice/clb/register_part_target",
             description=_("clb新增绑定部分后端主机"),
+            default_timeout=600,
+            max_retry_times=1,
         )
         self.clb_get_target_private_ips = self.generate_data_api(
             method="POST",
             url="/api/nameservice/clb/get_target_private_ips",
             description=_("获取已绑定clb的后端主机私网IP"),
+            default_timeout=600,
+            max_retry_times=1,
         )
         self.clb_check_clb_register_target_by_ip = self.generate_data_api(
             method="POST",
             url="/api/nameservice/clb/check_clb_register_target_by_ip",
             description=_("通过IP查询该IP是否已经被clb绑定了"),
+            default_timeout=600,
+            max_retry_times=1,
         )
         self.clb_deregister_target_and_del_lb = self.generate_data_api(
             method="POST",
             url="/api/nameservice/clb/deregister_target_and_del_lb",
             description=_("解绑后端主机并删除clb"),
+            default_timeout=600,
+            max_retry_times=1,
         )
         self.clb_listener_change_scheduler = self.generate_data_api(
             method="POST",
             url="/api/nameservice/clb/listener_change_scheduler",
             description=_("修改监听器转发方式"),
+            default_timeout=600,
+            max_retry_times=1,
         )
         self.clb_listener_change_session_expire_time = self.generate_data_api(
             method="POST",
             url="/api/nameservice/clb/listener_change_session_expire_time",
             description=_("修改监听器会话保持时间"),
+            default_timeout=600,
+            max_retry_times=1,
         )
         self.clb_change_target_weight = self.generate_data_api(
             method="POST",
             url="/api/nameservice/clb/change_target_weight",
             description=_("修改后端绑定主机的转发权重"),
+            default_timeout=600,
+            max_retry_times=1,
         )
         self.polaris_create_service_alias_and_bind_targets = self.generate_data_api(
             method="POST",
             url="/api/nameservice/polaris/create_service_alias_and_bind_targets",
             description=_("创建北极星服务和别名并绑定后端主机"),
+            default_timeout=600,
+            max_retry_times=1,
         )
         self.polaris_unbind_part_targets = self.generate_data_api(
             method="POST",
             url="/api/nameservice/polaris/unbind_part_targets",
             description=_("北极星解绑部分后端主机"),
+            default_timeout=600,
+            max_retry_times=1,
         )
         self.polaris_bind_part_targets = self.generate_data_api(
             method="POST",
             url="/api/nameservice/polaris/bind_part_targets",
             description=_("北极星新增绑定部分后端主机"),
+            default_timeout=600,
+            max_retry_times=1,
         )
         self.polaris_describe_targets = self.generate_data_api(
             method="POST",
             url="/api/nameservice/polaris/describe_targets",
             description=_("获取北极星已绑定的后端主机信息"),
+            default_timeout=600,
+            max_retry_times=1,
         )
         self.polaris_unbind_targets_and_delete_alias_service = self.generate_data_api(
             method="POST",
             url="/api/nameservice/polaris/unbind_targets_and_delete_alias_service",
             description=_("解绑后端主机并删除别名和北极星服务"),
+            default_timeout=600,
+            max_retry_times=1,
         )
 
 
