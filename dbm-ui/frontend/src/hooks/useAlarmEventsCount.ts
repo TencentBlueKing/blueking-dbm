@@ -35,7 +35,7 @@ export const useAlarmEventsCount = () => {
     defaultParams: [
       {
         end_time: endTime,
-        self_manage: false,
+        self_manage: true,
         start_time: startTime,
         status: 'ABNORMAL',
       },
