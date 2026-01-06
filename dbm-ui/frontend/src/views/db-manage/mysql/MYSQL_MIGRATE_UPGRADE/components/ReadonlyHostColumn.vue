@@ -35,7 +35,11 @@
         'readonly-host-textarea--active': hostLimit > 0,
       }"
       :placeholder="
-        cluster.id ? t('请输入或选择 n 台 IP，按照对应顺序进行替换', { n: hostLimit }) : t('选择集群后生成')
+        cluster.id
+          ? hostLimit
+            ? t('请输入或选择 n 台 IP，按照对应顺序进行替换', { n: hostLimit })
+            : t('无只读主机')
+          : t('选择集群后生成')
       "
       :rows="hostLimit"
       @blur="handleBlur"
@@ -139,6 +143,9 @@
       message: t('新只读主机数与旧只读主机数不一致'),
       trigger: 'blur',
       validator: () => {
+        if (!inputIps.value) {
+          return true;
+        }
         const ips = formatInputToIps(inputIps.value);
         return ips.length === hostLimit.value;
       },
@@ -147,6 +154,9 @@
       message: '',
       trigger: 'blur',
       validator: () => {
+        if (!inputIps.value) {
+          return true;
+        }
         const formatErrors = formatInputToIps(inputIps.value).filter((item) => !ipv4.test(item));
         return formatErrors.length ? t('IP格式有误，请输入合法IP: xx', [formatErrors.join('、')]) : true;
       },
@@ -155,6 +165,9 @@
       message: '',
       trigger: 'blur',
       validator: () => {
+        if (!inputIps.value) {
+          return true;
+        }
         const ips = formatInputToIps(inputIps.value);
         const notExist: string[] = [];
         ips.forEach((item) => {
