@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 
+// Package workflow provides the main workflow logic for DBHA analysis
 package workflow
 
 import (
@@ -64,6 +65,7 @@ var (
 	ErrDetectorFailure       = gerrors.Newf(gerrors.Failure, "detector failure, switching is needed")
 )
 
+// Workflow manages the database health analysis and switching workflow
 type Workflow struct {
 	StatusParser
 
@@ -99,6 +101,7 @@ func New(cli *discovery.Client, db *hamysql.GormDB) (*Workflow, error) {
 	return wflow, nil
 }
 
+// Run starts the workflow and begins scanning businesses periodically
 func (w *Workflow) Run(ctx context.Context) error {
 	if config.Cfg.Workflow.ScanInterval < scanIntervalLimitMin {
 		logger.Warn("scan interval(%v) is too small,reset it to the default value(%v)",
@@ -141,6 +144,7 @@ func (w *Workflow) Run(ctx context.Context) error {
 	return nil
 }
 
+// Close stops the workflow and waits for all goroutines to finish
 func (w *Workflow) Close() {
 	if w.quit != nil {
 		close(w.quit)
@@ -299,21 +303,15 @@ func (w *Workflow) databaseLivenessDoubleCheck(missedInsts []*hamodel.DbmMetadat
 			continue
 		}
 
-		if len(req.MySqlInstData) == 0 && len(req.TendbClusterInstData) == 0 {
+		dbTypes := req.GetDbTypesToSwitch()
+		if len(dbTypes) == 0 {
 			logger.Debug("there is no database instance that needs to be switched")
 			continue
 		}
 
-		// Trigger MySQL switching if there are MySQL instances
-		if len(req.MySqlInstData) > 0 {
-			logger.Debug("trigger switching, dbType: %s, cloudId: %d, ips: %v", haprobe.DbTypeMySql, cloudId, ips)
-			w.triggerSwitching(haprobe.DbTypeMySql, req)
-		}
-
-		// Trigger TenDBCluster switching if there are TenDBCluster instances
-		if len(req.TendbClusterInstData) > 0 {
-			logger.Debug("trigger switching, dbType: %s, cloudId: %d, ips: %v", haprobe.DbTypeTendbCluster, cloudId, ips)
-			w.triggerSwitching(haprobe.DbTypeTendbCluster, req)
+		for _, dbType := range dbTypes {
+			logger.Debug("trigger switching, dbType: %s, cloudId: %d, ips: %v", dbType, cloudId, ips)
+			w.triggerSwitching(dbType, req)
 		}
 	}
 }
@@ -364,101 +362,53 @@ func (w *Workflow) triggerSwitching(dbType haprobe.DbType, req *switcher.Request
 		logger.Info("switching success for the database type: %s", dbType)
 	}
 
-	// Handle MySQL instances
-	if dbType == haprobe.DbTypeMySql {
-		// post the success alarm for MySQL
-		for _, inst := range req.MySqlInstData {
-			instKey := switcher.GenerateMetadataKey(inst.BkCloudID, inst.IP, inst.Port)
+	w.postSwitchAlarms(dbType, req, rsp)
+}
 
-			if _, exists := rsp.MySqlFailureInsts[instKey]; exists {
-				continue
-			}
-
-			monitorEvent := &monitor.EventData{
-				Name:      string(haprobe.DbEventNameMysqlSwitchSuccessV1),
-				Target:    string(instKey),
-				Timestamp: uint64(time.Now().UnixMilli()),
-			}
-
-			monitorEvent.Content.Content = "switching success"
-			monitorEvent.Dimension.BkCloudId = inst.BkCloudID
-			monitorEvent.Dimension.IP = inst.IP
-			monitorEvent.Dimension.Port = inst.Port
-			monitorEvent.Dimension.DbTypeName = dbType
-			monitorEvent.Dimension.DbEventName = haprobe.DbEventNameMysqlSwitchSuccessV1
-
-			if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
-				logger.Warn("switching success, failed to post the alarm, inst: %s, errmsg: %s", instKey, err)
-			}
+// postSwitchAlarms posts success and failure alarms for switching results
+func (w *Workflow) postSwitchAlarms(dbType haprobe.DbType, req *switcher.Request, rsp *switcher.Response) {
+	// Post success alarms
+	for _, inst := range req.GetInstances(dbType) {
+		instKey := switcher.GenerateMetadataKey(inst.BkCloudID, inst.IP, inst.Port)
+		if rsp.IsFailure(dbType, instKey) {
+			continue
 		}
 
-		// post the failure alarm for MySQL
-		for instKey, inst := range rsp.MySqlFailureInsts {
-			monitorEvent := &monitor.EventData{
-				Name:      string(haprobe.DbEventNameMysqlSwitchFailureV1),
-				Target:    string(instKey),
-				Timestamp: uint64(time.Now().UnixMilli()),
-			}
+		monitorEvent := &monitor.EventData{
+			Name:      string(haprobe.DbEventNameMysqlSwitchSuccessV1),
+			Target:    string(instKey),
+			Timestamp: uint64(time.Now().UnixMilli()),
+		}
+		monitorEvent.Content.Content = "switching success"
+		monitorEvent.Dimension.BkCloudId = inst.BkCloudID
+		monitorEvent.Dimension.IP = inst.IP
+		monitorEvent.Dimension.Port = inst.Port
+		monitorEvent.Dimension.DbTypeName = dbType
+		monitorEvent.Dimension.DbEventName = haprobe.DbEventNameMysqlSwitchSuccessV1
 
-			monitorEvent.Content.Content = rsp.Err.Error()
-			monitorEvent.Dimension.BkCloudId = inst.BkCloudID
-			monitorEvent.Dimension.IP = inst.IP
-			monitorEvent.Dimension.Port = inst.Port
-			monitorEvent.Dimension.DbTypeName = dbType
-			monitorEvent.Dimension.DbEventName = haprobe.DbEventNameMysqlSwitchFailureV1
-
-			if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
-				logger.Warn("switching failure, failed to post the alarm, inst: %s, errmsg: %s", instKey, err)
-			}
+		if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
+			logger.Warn("switching success, failed to post the alarm, inst: %s, errmsg: %s", instKey, err)
 		}
 	}
 
-	// Handle TenDBCluster instances
-	if dbType == haprobe.DbTypeTendbCluster {
-		// post the success alarm for TenDBCluster
-		for _, inst := range req.TendbClusterInstData {
-			instKey := switcher.GenerateMetadataKey(inst.BkCloudID, inst.IP, inst.Port)
+	// Post failure alarms
+	for _, inst := range rsp.GetFailureInstances(dbType) {
+		instKey := switcher.GenerateMetadataKey(inst.BkCloudID, inst.IP, inst.Port)
 
-			if _, exists := rsp.TendbClusterFailureInsts[instKey]; exists {
-				continue
-			}
-
-			monitorEvent := &monitor.EventData{
-				Name:      string(haprobe.DbEventNameMysqlSwitchSuccessV1),
-				Target:    string(instKey),
-				Timestamp: uint64(time.Now().UnixMilli()),
-			}
-
-			monitorEvent.Content.Content = "switching success"
-			monitorEvent.Dimension.BkCloudId = inst.BkCloudID
-			monitorEvent.Dimension.IP = inst.IP
-			monitorEvent.Dimension.Port = inst.Port
-			monitorEvent.Dimension.DbTypeName = dbType
-			monitorEvent.Dimension.DbEventName = haprobe.DbEventNameMysqlSwitchSuccessV1
-
-			if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
-				logger.Warn("switching success, failed to post the alarm, inst: %s, errmsg: %s", instKey, err)
-			}
+		monitorEvent := &monitor.EventData{
+			Name:      string(haprobe.DbEventNameMysqlSwitchFailureV1),
+			Target:    string(instKey),
+			Timestamp: uint64(time.Now().UnixMilli()),
 		}
+		monitorEvent.Content.Content = rsp.Err.Error()
+		monitorEvent.Dimension.BkCloudId = inst.BkCloudID
+		monitorEvent.Dimension.IP = inst.IP
+		monitorEvent.Dimension.Port = inst.Port
+		monitorEvent.Dimension.DbTypeName = dbType
+		monitorEvent.Dimension.DbEventName = haprobe.DbEventNameMysqlSwitchFailureV1
 
-		// post the failure alarm for TenDBCluster
-		for instKey, inst := range rsp.TendbClusterFailureInsts {
-			monitorEvent := &monitor.EventData{
-				Name:      string(haprobe.DbEventNameMysqlSwitchFailureV1),
-				Target:    string(instKey),
-				Timestamp: uint64(time.Now().UnixMilli()),
-			}
-
-			monitorEvent.Content.Content = rsp.Err.Error()
-			monitorEvent.Dimension.BkCloudId = inst.BkCloudID
-			monitorEvent.Dimension.IP = inst.IP
-			monitorEvent.Dimension.Port = inst.Port
-			monitorEvent.Dimension.DbTypeName = dbType
-			monitorEvent.Dimension.DbEventName = haprobe.DbEventNameMysqlSwitchFailureV1
-
-			if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
-				logger.Warn("switching failure, failed to post the alarm, inst: %s, errmsg: %s", instKey, err)
-			}
+		if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
+			logger.Warn("switching failure, failed to post the alarm, inst: %s, errmsg: %s", instKey, err)
 		}
 	}
 }
@@ -574,13 +524,38 @@ func (w *Workflow) checkBusinessWithBizID(ctx context.Context, bizId int) (retEr
 		}
 	}()
 
-	// Read all metadata by business ID.
-	metaData, retErr := w.hadata.ReadMetadataCacheWithBizID(bizId, readBatchCount,
-		config.Cfg.Workflow.ReadDbMetaOffsetDuration)
+	return w.doCheckBusinessWithBizID(bizId)
+}
 
-	if retErr != nil {
-		logger.Warn("failed to read the DB metadata for the business, bizId: %d, errmsg: %s", bizId, retErr)
-		return ErrReadMetadataFailure
+// bizCheckContext holds the context data for business checking
+type bizCheckContext struct {
+	bizId        int
+	metaInsts    map[string]*hamodel.DbmMetadata
+	skipInsts    map[string]*hamodel.SkipDbInstance
+	dbStatus     []*hamodel.DbhaDataStatus
+	dbEvents     []*haprobe.DbEvent
+	dbHosts      []*haprobe.HostMetric
+	dbStatusVals []parser.DBTyperWrapper
+}
+
+func (w *Workflow) doCheckBusinessWithBizID(bizId int) error {
+	checkCtx, err := w.prepareCheckContext(bizId)
+	if err != nil {
+		return err
+	}
+
+	w.runParallelChecks(checkCtx)
+	logger.Debug("finished checking the business: %d", bizId)
+	return nil
+}
+
+func (w *Workflow) prepareCheckContext(bizId int) (*bizCheckContext, error) {
+	// Read all metadata by business ID.
+	metaData, err := w.hadata.ReadMetadataCacheWithBizID(bizId, readBatchCount,
+		config.Cfg.Workflow.ReadDbMetaOffsetDuration)
+	if err != nil {
+		logger.Warn("failed to read the DB metadata for the business, bizId: %d, errmsg: %s", bizId, err)
+		return nil, ErrReadMetadataFailure
 	}
 
 	conds := []*storage.DbInstance{}
@@ -591,7 +566,6 @@ func (w *Workflow) checkBusinessWithBizID(ctx context.Context, bizId int) (retEr
 			IP:        meta.IP,
 			Port:      meta.Port,
 		})
-
 		metaInsts[key(meta.BkCloudID, meta.IP, meta.Port)] = meta
 	}
 
@@ -599,9 +573,22 @@ func (w *Workflow) checkBusinessWithBizID(ctx context.Context, bizId int) (retEr
 	dbStatus, err := w.hadata.ReadDbStatusWithDbInstances(conds, config.Cfg.Workflow.ReadDbMetricOffsetDuration)
 	if err != nil {
 		logger.Warn("failed to read the DB status with the conditions: %v, bizId: %d, errmsg: %s", conds, bizId, err)
-		return ErrReadDbMetricFailure
+		return nil, ErrReadDbMetricFailure
 	}
 
+	// Read skip instances
+	dbSkipInsts, err := w.hadata.ReadSkipDbInstancesWithBkBizId(bizId)
+	if err != nil {
+		logger.Warn("failed to read the skipped DB insts for the business: %d, errmsg: %s", bizId, err)
+		return nil, ErrReadSkipDbInstFailure
+	}
+
+	skipInsts := map[string]*hamodel.SkipDbInstance{}
+	for _, skipInst := range dbSkipInsts {
+		skipInsts[key(skipInst.BkCloudID, skipInst.InstanceIP, skipInst.InstancePort)] = skipInst
+	}
+
+	// Parse db status data
 	dbEvents := []*haprobe.DbEvent{}
 	dbHosts := []*haprobe.HostMetric{}
 	dbStatusVals := []parser.DBTyperWrapper{}
@@ -610,11 +597,9 @@ func (w *Workflow) checkBusinessWithBizID(ctx context.Context, bizId int) (retEr
 		if dbStat.Events.Valid {
 			dbEvents = append(dbEvents, dbStat.Events.Data...)
 		}
-
 		if dbStat.Host.Valid {
 			dbHosts = append(dbHosts, dbStat.Host.Data)
 		}
-
 		if dbStat.Value.Valid {
 			dbStatusVals = append(dbStatusVals, parser.DBTyperWrapper{
 				DbTypeName: dbStat.DbTypeName,
@@ -623,19 +608,20 @@ func (w *Workflow) checkBusinessWithBizID(ctx context.Context, bizId int) (retEr
 		}
 	}
 
-	dbSkipInsts, err := w.hadata.ReadSkipDbInstancesWithBkBizId(bizId)
-	if err != nil {
-		logger.Warn("failed to read the skipped DB insts for the business: %d, errmsg: %s", bizId, err)
-		return ErrReadSkipDbInstFailure
-	}
+	return &bizCheckContext{
+		bizId:        bizId,
+		metaInsts:    metaInsts,
+		skipInsts:    skipInsts,
+		dbStatus:     dbStatus,
+		dbEvents:     dbEvents,
+		dbHosts:      dbHosts,
+		dbStatusVals: dbStatusVals,
+	}, nil
+}
 
-	skipInsts := map[string]*hamodel.SkipDbInstance{}
-	for _, skipInst := range dbSkipInsts {
-		skipInsts[key(skipInst.BkCloudID, skipInst.InstanceIP, skipInst.InstancePort)] = skipInst
-	}
-
+func (w *Workflow) runParallelChecks(checkCtx *bizCheckContext) {
 	checkDbEventFunc := func(dbEvents []*haprobe.DbEvent) {
-		w.checkEventWithBizId(bizId, dbEvents, skipInsts, metaInsts)
+		w.checkEventWithBizId(checkCtx.bizId, dbEvents, checkCtx.skipInsts, checkCtx.metaInsts)
 	}
 
 	var wg sync.WaitGroup
@@ -643,30 +629,28 @@ func (w *Workflow) checkBusinessWithBizID(ctx context.Context, bizId int) (retEr
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		w.checkMissedProbe(dbStatus, skipInsts, metaInsts)
+		w.checkMissedProbe(checkCtx.dbStatus, checkCtx.skipInsts, checkCtx.metaInsts)
 	}()
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		w.checkEventWithBizId(bizId, dbEvents, skipInsts, metaInsts)
+		w.checkEventWithBizId(checkCtx.bizId, checkCtx.dbEvents, checkCtx.skipInsts, checkCtx.metaInsts)
 	}()
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		w.checkDbHosts(dbHosts, checkDbEventFunc)
+		w.checkDbHosts(checkCtx.dbHosts, checkDbEventFunc)
 	}()
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		w.checkDbStatus(dbStatusVals, checkDbEventFunc)
+		w.checkDbStatus(checkCtx.dbStatusVals, checkDbEventFunc)
 	}()
 
 	wg.Wait()
-	logger.Debug("finished checking the business: %d", bizId)
-	return retErr
 }
 
 func (w *Workflow) scanBusinesses(ctx context.Context) {

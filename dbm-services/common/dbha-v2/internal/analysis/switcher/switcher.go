@@ -30,7 +30,6 @@ import (
 	"fmt"
 
 	"dbm-services/common/dbha-v2/pkg/gerrors"
-	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
@@ -46,15 +45,15 @@ type Request struct {
 	TendbClusterInstData []*TendbClusterInstanceMetadata
 }
 
+// isTendbClusterInstance checks if the metadata belongs to TendbCluster
+func isTendbClusterInstance(metadata *MySQLInstanceMetadata) bool {
+	return metadata.ClusterType == haprobe.DbmMetadataClusterTypeTendbCluster ||
+		metadata.MachineType == haprobe.DbmMetadataMachineTypeSpider
+}
+
 // AddDbInstMetadata adds database instance metadata to the appropriate list based on cluster type
 func (req *Request) AddDbInstMetadata(metadata *MySQLInstanceMetadata) {
-	logger.Info("AddDbInstMetadata: IP=%s, Port=%d, ClusterType=%s, MachineType=%s, isTendbCluster=%v, isSpider=%v",
-		metadata.IP, metadata.Port, metadata.ClusterType, metadata.MachineType,
-		metadata.ClusterType == haprobe.DbmMetadataClusterTypeTendbCluster,
-		metadata.MachineType == haprobe.DbmMetadataMachineTypeSpider)
-
-	if metadata.ClusterType == haprobe.DbmMetadataClusterTypeTendbCluster ||
-		metadata.MachineType == haprobe.DbmMetadataMachineTypeSpider {
+	if isTendbClusterInstance(metadata) {
 		req.TendbClusterInstData = append(req.TendbClusterInstData, (*TendbClusterInstanceMetadata)(metadata))
 	} else {
 		req.MySqlInstData = append(req.MySqlInstData, metadata)
@@ -77,4 +76,84 @@ type Switcher interface {
 // GenerateMetadataKey generates a unique key for instance metadata
 func GenerateMetadataKey(bkCloudId int, ip string, port int) MetadataKey {
 	return MetadataKey(fmt.Sprintf("%d:%s:%d", bkCloudId, ip, port))
+}
+
+// GetDbTypesToSwitch returns the list of database types that need to be switched
+func (req *Request) GetDbTypesToSwitch() []haprobe.DbType {
+	var dbTypes []haprobe.DbType
+	if len(req.MySqlInstData) > 0 {
+		dbTypes = append(dbTypes, haprobe.DbTypeMySql)
+	}
+	if len(req.TendbClusterInstData) > 0 {
+		dbTypes = append(dbTypes, haprobe.DbTypeTendbCluster)
+	}
+	return dbTypes
+}
+
+// InstanceInfo contains basic instance identification information
+type InstanceInfo struct {
+	BkCloudID int
+	IP        string
+	Port      int
+}
+
+// GetInstances returns all instances of the specified database type from the request
+func (req *Request) GetInstances(dbType haprobe.DbType) []InstanceInfo {
+	var instances []InstanceInfo
+	switch dbType {
+	case haprobe.DbTypeMySql:
+		for _, inst := range req.MySqlInstData {
+			instances = append(instances, InstanceInfo{
+				BkCloudID: inst.BkCloudID,
+				IP:        inst.IP,
+				Port:      inst.Port,
+			})
+		}
+	case haprobe.DbTypeTendbCluster:
+		for _, inst := range req.TendbClusterInstData {
+			instances = append(instances, InstanceInfo{
+				BkCloudID: inst.BkCloudID,
+				IP:        inst.IP,
+				Port:      inst.Port,
+			})
+		}
+	}
+	return instances
+}
+
+// GetFailureInstances returns all failed instances of the specified database type
+func (rsp *Response) GetFailureInstances(dbType haprobe.DbType) []InstanceInfo {
+	var instances []InstanceInfo
+	switch dbType {
+	case haprobe.DbTypeMySql:
+		for _, inst := range rsp.MySqlFailureInsts {
+			instances = append(instances, InstanceInfo{
+				BkCloudID: inst.BkCloudID,
+				IP:        inst.IP,
+				Port:      inst.Port,
+			})
+		}
+	case haprobe.DbTypeTendbCluster:
+		for _, inst := range rsp.TendbClusterFailureInsts {
+			instances = append(instances, InstanceInfo{
+				BkCloudID: inst.BkCloudID,
+				IP:        inst.IP,
+				Port:      inst.Port,
+			})
+		}
+	}
+	return instances
+}
+
+// IsFailure checks if the specified instance failed during switching
+func (rsp *Response) IsFailure(dbType haprobe.DbType, instKey MetadataKey) bool {
+	switch dbType {
+	case haprobe.DbTypeMySql:
+		_, exists := rsp.MySqlFailureInsts[instKey]
+		return exists
+	case haprobe.DbTypeTendbCluster:
+		_, exists := rsp.TendbClusterFailureInsts[instKey]
+		return exists
+	}
+	return false
 }
