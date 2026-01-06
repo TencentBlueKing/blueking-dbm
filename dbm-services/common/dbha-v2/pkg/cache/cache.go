@@ -168,7 +168,7 @@ func (c *HighPerformanceTTLCache[T]) Clear() {
 	c.expiry = make(expiryHeap[T], 0)
 }
 
-// 关闭缓存
+// Close close cache
 func (c *HighPerformanceTTLCache[T]) Close() {
 	close(c.stop)
 	c.wg.Wait()
