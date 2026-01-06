@@ -59,9 +59,8 @@ class ExcelHandler:
                 # 自动调整行高度
                 cell = sheet.cell(row, col)
                 cell.alignment = Alignment(wrapText=True)
-
-                cell_str_len_list = [len(cell_str.encode("gbk")) for cell_str in str(cell.value).split("\n")]
-                max_col_dimensions[col] = max(max_col_dimensions[col], max(cell_str_len_list) * 1.3)
+                cell_len_list = [len(val.encode("gbk", errors="ignore")) for val in str(cell.value).split("\n")]
+                max_col_dimensions[col] = max(max_col_dimensions[col], max(cell_len_list) * 1.3)
 
         # 自动调整列宽度
         for col in range(1, col_num + 1):
