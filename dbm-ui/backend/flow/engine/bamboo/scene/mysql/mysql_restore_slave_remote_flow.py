@@ -649,7 +649,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 "stop_slave": True,
                 "reset_slave": True,
                 "restart": False,
-                "force": self.data["force"],
+                "force": True,
                 "drop_database": True,
                 "new_slave_ip": target_slave.machine.ip,
                 "new_slave_port": target_slave.port,
