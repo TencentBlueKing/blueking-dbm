@@ -723,7 +723,11 @@ class FlowType(StrStructuredEnum):
 
 
 # 任务流程类型合集
-FLOW_TASK_TYPES = [FlowType.INNER_FLOW, FlowType.HOST_RECYCLE, FlowType.RESOURCE_HCM_REPLENISH]
+FLOW_TASK_TYPES = [
+    FlowType.INNER_FLOW,
+    FlowType.HOST_RECYCLE,
+    FlowType.RESOURCE_HCM_REPLENISH,
+]
 
 
 class FlowContext(StrStructuredEnum):

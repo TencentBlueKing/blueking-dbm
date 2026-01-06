@@ -27,6 +27,9 @@ class TodoManager(models.Manager):
     def exist_unfinished(self):
         return self.filter(status__in=TODO_RUNNING_STATUS).exists()
 
+    def exist_lack_unfinished(self):
+        return self.filter(status__in=TODO_RUNNING_STATUS, type=TodoType.RESOURCE_REPLENISH).exists()
+
     def get_operators(self, todo_type, flow, ticket, operators):
         # 获得提单人，dba，协助人.
         creator = [ticket.creator]

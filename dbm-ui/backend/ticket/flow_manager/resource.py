@@ -84,11 +84,8 @@ class ResourceApplyFlow(BaseTicketFlow):
             return self.update_flow_status(constants.TicketFlowStatus.SUCCEEDED)
 
         if self.flow_obj.err_msg:
-            # 如果是其他情况引起的错误，则直接返回fail
-            if not self.flow_obj.todo_of_flow.exists():
-                return self.update_flow_status(constants.TicketFlowStatus.FAILED)
-            # 如果是资源申请的todo状态，则判断todo是否完成
-            if self.ticket.todo_of_ticket.exist_unfinished():
+            # 如果是资源申请的todo状态，则判断todo是否完成并且是否资源不足
+            if self.ticket.todo_of_ticket.exist_lack_unfinished():
                 return self.update_flow_status(constants.TicketFlowStatus.RUNNING)
             else:
                 return self.flow_obj.status
