@@ -29,8 +29,67 @@ import (
 	"dbm-services/common/go-pubpkg/apm/metric"
 )
 
-var Metrics []*metric.Metric
+var (
+	Metrics []*metric.Metric
 
+	KafkaReadMessagesTotal *haapm.HaCounter
+	KafkaReadBytesTotal    *haapm.HaCounter
+	KafkaWriteErrorsTotal  *haapm.HaCounter
+
+	MySqlWriteLatencyMs     *haapm.HaHistogram
+	MySqlWriteMessagesTotal *haapm.HaCounter
+	MySqlWriteBytesTotal    *haapm.HaCounter
+	MySqlReadErrorsTotal    *haapm.HaCounter
+	MySqlWriteErrorsTotal   *haapm.HaCounter
+)
+
+func init() {
+	// Kafka
+	KafkaReadBytesTotal = haapm.NewHaCounter(
+		"kafka_read_bytes_total",
+		"Total bytes read from Kafka",
+		"kafka",
+	)
+	KafkaReadMessagesTotal = haapm.NewHaCounter(
+		"kafka_read_messages_total",
+		"Total messages read from Kafka",
+		"kafka",
+	)
+	KafkaWriteErrorsTotal = haapm.NewHaCounter(
+		"kafka_write_errors_total",
+		"Total errors write to Kafka",
+		"kafka",
+	)
+
+	// mysql
+	MySqlWriteLatencyMs = haapm.NewHaHistogram(
+		"mysql_write_latency_ms",
+		"Latency of write to mysql (milliseconds)",
+		"mysql",
+	)
+	MySqlWriteMessagesTotal = haapm.NewHaCounter(
+		"mysql_write_messages_total",
+		"Total messages write to mysql",
+		"mysql",
+	)
+	MySqlWriteBytesTotal = haapm.NewHaCounter(
+		"mysql_write_bytes_total",
+		"Total bytes write to mysql",
+		"mysql",
+	)
+	MySqlReadErrorsTotal = haapm.NewHaCounter(
+		"mysql_read_errors_total",
+		"Total errors read from mysql",
+		"mysql",
+	)
+	MySqlWriteErrorsTotal = haapm.NewHaCounter(
+		"mysql_write_errors_total",
+		"Total errors write to mysql",
+		"mysql",
+	)
+}
+
+// InitAPM init apm
 func InitAPM(serviceID, serviceName string) {
 	haapm.AppStartupMetric.UpdateLabel(map[string]string{
 		haapm.MetricLabelServiceID:   serviceID,
@@ -38,4 +97,16 @@ func InitAPM(serviceID, serviceName string) {
 	})
 
 	Metrics = append(Metrics, haapm.AppStartupMetric.ToMetric())
+
+	// Kafka
+	Metrics = append(Metrics, KafkaReadMessagesTotal.ToMetric())
+	Metrics = append(Metrics, KafkaReadBytesTotal.ToMetric())
+	Metrics = append(Metrics, KafkaWriteErrorsTotal.ToMetric())
+
+	// mysql
+	Metrics = append(Metrics, MySqlWriteLatencyMs.ToMetric())
+	Metrics = append(Metrics, MySqlWriteMessagesTotal.ToMetric())
+	Metrics = append(Metrics, MySqlWriteBytesTotal.ToMetric())
+	Metrics = append(Metrics, MySqlReadErrorsTotal.ToMetric())
+	Metrics = append(Metrics, MySqlWriteErrorsTotal.ToMetric())
 }

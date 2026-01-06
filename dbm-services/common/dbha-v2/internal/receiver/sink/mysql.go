@@ -25,8 +25,10 @@
 package sink
 
 import (
+	"dbm-services/common/dbha-v2/internal/receiver/apm"
 	"encoding/json"
 	"path/filepath"
+	"time"
 
 	"dbm-services/common/dbha-v2/internal/receiver/config"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
@@ -94,8 +96,22 @@ func newMySql(endpoints, user, password string) (*mysql, error) {
 }
 
 func (s *mysql) Save(msg *Message) error {
+	startTime := time.Now()
+	defer func() {
+		if err := apm.MySqlWriteLatencyMs.UpdateLabel(map[string]string{
+			"mysql": msg.Topic,
+		}).Observe(float64(time.Since(startTime).Milliseconds())); err != nil {
+			logger.Warn("update mysql write latency metric failed: %v", err)
+		}
+	}()
+
 	dbStatus := &haprobe.HarvestData{}
 	if err := json.Unmarshal([]byte(msg.Data), dbStatus); err != nil {
+		if metricErr := apm.MySqlReadErrorsTotal.UpdateLabel(map[string]string{
+			"mysql": msg.Topic,
+		}).Inc(); metricErr != nil {
+			logger.Warn("update mysql read errors metric failed: %v", metricErr)
+		}
 		return gerrors.Newf(gerrors.InvalidJson, "unmarshal a mysql metric message failed, topic(%s), %v", msg.Topic, err)
 	}
 
@@ -110,9 +126,25 @@ func (s *mysql) Save(msg *Message) error {
 
 		if err != nil {
 			logger.Warn("save the mysql metric failed, %v", err)
+
+			if metricErr := apm.MySqlWriteErrorsTotal.UpdateLabel(map[string]string{
+				"mysql": msg.Topic,
+			}).Inc(); metricErr != nil {
+				logger.Warn("update mysql write errors metric failed: %v", metricErr)
+			}
 		}
 	}
 
+	if err := apm.MySqlWriteMessagesTotal.UpdateLabel(map[string]string{
+		"mysql": msg.Topic,
+	}).Inc(); err != nil {
+		logger.Warn("update mysql write messages metric failed: %v", err)
+	}
+	if err := apm.MySqlWriteBytesTotal.UpdateLabel(map[string]string{
+		"mysql": msg.Topic,
+	}).Add(float64(len(msg.Data))); err != nil {
+		logger.Warn("update mysql write bytes metric failed: %v", err)
+	}
 	return nil
 }
 
