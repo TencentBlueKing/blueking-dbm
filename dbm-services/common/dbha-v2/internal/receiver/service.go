@@ -32,7 +32,7 @@ import (
 	"sync"
 	"time"
 
-	"dbm-services/common/dbha-v2/internal/analysis/apm"
+	"dbm-services/common/dbha-v2/internal/receiver/apm"
 	"dbm-services/common/dbha-v2/internal/receiver/config"
 	"dbm-services/common/dbha-v2/internal/receiver/sink"
 	"dbm-services/common/dbha-v2/internal/receiver/source"
@@ -56,6 +56,7 @@ const (
 	Name = "receiver"
 )
 
+// Service is the receiver service
 type Service struct {
 	quit         chan struct{}
 	info         discovery.ServiceInfo
@@ -69,6 +70,7 @@ type Service struct {
 	etcdLogger   *zap.Logger
 }
 
+// Run run receiver service
 func (s *Service) Run(ctx context.Context) error {
 	ips, err := machine.GetLocalIPs()
 	if err != nil {
@@ -127,6 +129,7 @@ func (s *Service) Run(ctx context.Context) error {
 	}
 }
 
+// Close close receiver service
 func (s *Service) Close() {
 	wg := sync.WaitGroup{}
 

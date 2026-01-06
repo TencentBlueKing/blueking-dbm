@@ -25,6 +25,7 @@
 package kafka
 
 import (
+	"dbm-services/common/dbha-v2/internal/receiver/apm"
 	"dbm-services/common/dbha-v2/internal/receiver/sink"
 	"dbm-services/common/dbha-v2/pkg/logger"
 
@@ -59,9 +60,26 @@ func (h *consumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 			copy(data.Data, msg.Value)
 		}
 
+		if err := apm.KafkaReadBytesTotal.UpdateLabel(map[string]string{
+			"kafka": msg.Topic,
+		}).Add(float64(dataLength)); err != nil {
+			logger.Warn("update kafka read bytes metric failed: %v", err)
+		}
+		if err := apm.KafkaReadMessagesTotal.UpdateLabel(map[string]string{
+			"kafka": msg.Topic,
+		}).Inc(); err != nil {
+			logger.Warn("update kafka read messages metric failed: %v", err)
+		}
+
 		for _, saver := range h.savers {
 			if err := saver.Save(data); err != nil {
 				logger.Warn("save the data failed, topic(%s), %v", msg.Topic, err)
+
+				if metricErr := apm.KafkaWriteErrorsTotal.UpdateLabel(map[string]string{
+					"kafka": msg.Topic,
+				}).Inc(); metricErr != nil {
+					logger.Warn("update kafka write errors metric failed: %v", metricErr)
+				}
 			}
 		}
 	}
