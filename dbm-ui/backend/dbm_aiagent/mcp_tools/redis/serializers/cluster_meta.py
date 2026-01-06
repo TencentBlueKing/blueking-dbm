@@ -17,6 +17,12 @@ class RedisAddrSerializer(serializers.Serializer):
     address = serializers.CharField(help_text=_("ip:port 形式的实例地址"))
 
 
+class RedisBizDetailSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    app_name = serializers.CharField(help_text=_("业务中文名"))
+    abbr = serializers.CharField(help_text=_("业务英文名"))
+
+
 class RedisBaseInstanceSerializer(serializers.Serializer):
     address = RedisAddrSerializer(help_text=_("ip:port 形式的实例地址"))
     status = serializers.ChoiceField(choices=InstanceStatus.get_choices(), help_text=_("实例状态"))
@@ -57,6 +63,14 @@ class RedisNodesSummarySerializer(serializers.Serializer):
 
 class RedisBizInputSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+
+
+class RedisBizNameInputSerializer(serializers.Serializer):
+    biz_name = serializers.CharField(help_text=_("业务英文名"))
+
+
+class RedisEmptyInputSerializer(serializers.Serializer):
+    place_holder = serializers.CharField(help_text=_("随便填一个占位"))
 
 
 class RedisClustersOutputSerializer(serializers.Serializer):
