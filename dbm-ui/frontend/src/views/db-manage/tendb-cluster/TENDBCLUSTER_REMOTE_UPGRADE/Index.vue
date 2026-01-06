@@ -37,7 +37,8 @@
             v-model:new-db-module-id="item.new_db_module_id"
             v-model:pkg-id="item.pkg_id"
             :cluster="item.cluster"
-            higher-sub-version />
+            higher-sub-version
+            module-readonly />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
