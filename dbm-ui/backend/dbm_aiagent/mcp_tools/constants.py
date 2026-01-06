@@ -23,6 +23,9 @@ class DBMAMcpTools(StrStructuredEnum):
     BILL_QUERY = EnumField("bill-query", "bill-query")
     SQL_SYNTAX_CHECK = EnumField("sql-syntax-check", "sql-syntax-check")
     RESOURCE_QUERY = EnumField("resource-query", "resource-query")
+    REDIS_QUERY_META = EnumField("redis-query-meta", "redis-query-meta")
+    REDIS_QUERY_STATUS = EnumField("redis-query-status", "redis-query-status")
+    REDIS_BILL = EnumField("redis-bill", "redis-bill")
 
 
 class DBMMCPTags(StrStructuredEnum):
