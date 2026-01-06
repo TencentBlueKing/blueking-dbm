@@ -158,6 +158,7 @@
   import type ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
   import {
     addSpecReplenishTag,
+    createResourceSpec,
     setSpecReplenishRatio,
     updateResourceSpec,
     verifyDuplicatedSpecName,
@@ -438,7 +439,7 @@
       } else {
         params.device_class = [];
       }
-
+      // 编辑规格
       if (props.mode === 'edit') {
         const requestList = [updateResourceSpec(params)];
         if (isShowReplenish) {
@@ -464,6 +465,31 @@
         });
         return;
       }
+
+      // 新增规格
+      const specData = await createResourceSpec(params);
+      const requestList = [];
+      if (isShowReplenish) {
+        requestList.push(
+          addSpecReplenishTag({
+            need_replenish: needReplenish.value,
+            spec_ids: [specData.spec_id],
+          }),
+        );
+        requestList.push(
+          setSpecReplenishRatio({
+            ratio_map: {
+              ...props.ratioMap,
+              [specData.spec_id]: ratioValue.value / 100,
+            },
+          }),
+        );
+      }
+      Promise.all(requestList).then(() => {
+        messageSuccess(t('新建成功'));
+        emits('successed');
+        window.changeConfirm = false;
+      });
     } finally {
       isLoading.value = false;
     }
