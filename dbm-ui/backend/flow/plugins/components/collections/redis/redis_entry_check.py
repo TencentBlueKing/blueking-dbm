@@ -8,23 +8,21 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, Optional, Set
 
 from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 
-from backend.db_meta.enums import ClusterEntryType
+from backend.db_meta.enums import ClusterEntryType, InstanceInnerRole
 from backend.db_meta.models import Cluster, ClusterEntry
 from backend.db_report.enums import MetaCheckSubType, ReportStateType
+from backend.db_services.redis.util import is_have_proxy
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils import dns_manage
 from backend.flow.utils.clb_manage import get_clb_by_ip
 from backend.flow.utils.polaris_manage import GetPolarisManageByName
 from backend.flow.utils.redis.redis_meta_report import create_meta_check_report
-
-logger = logging.getLogger("flow")
 
 
 class RedisEntryCheckService(BaseService):
@@ -46,16 +44,62 @@ class RedisEntryCheckService(BaseService):
         return set(cluster.proxyinstance_set.values_list("machine__ip", flat=True))
 
     @staticmethod
-    def _get_dns_proxy_ips(cluster: Cluster, entry: ClusterEntry) -> Set[str]:
+    def _get_cluster_storage_ips(cluster: Cluster) -> Set[str]:
         """
-        Get proxy IPs registered in DNS for a given entry
+        Get all storage (backend Redis) IPs from cluster metadata
+
+        Args:
+            cluster: Cluster object
+
+        Returns:
+            Set of storage IP addresses (both master and slave)
+        """
+        return set(cluster.storageinstance_set.values_list("machine__ip", flat=True))
+
+    @staticmethod
+    def _get_cluster_master_ips(cluster: Cluster) -> Set[str]:
+        """
+        Get master storage IPs from cluster metadata
+
+        Args:
+            cluster: Cluster object
+
+        Returns:
+            Set of master IP addresses
+        """
+        return set(
+            cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.MASTER).values_list(
+                "machine__ip", flat=True
+            )
+        )
+
+    @staticmethod
+    def _get_cluster_slave_ips(cluster: Cluster) -> Set[str]:
+        """
+        Get slave storage IPs from cluster metadata
+
+        Args:
+            cluster: Cluster object
+
+        Returns:
+            Set of slave IP addresses
+        """
+        return set(
+            cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.SLAVE).values_list(
+                "machine__ip", flat=True
+            )
+        )
+
+    def _get_dns_ips(self, cluster: Cluster, entry: ClusterEntry) -> Set[str]:
+        """
+        Get IPs registered in DNS for a given entry
 
         Args:
             cluster: Cluster object
             entry: ClusterEntry object with DNS type
 
         Returns:
-            Set of proxy IP addresses in DNS
+            Set of IP addresses in DNS
         """
         try:
             if entry.forward_to:
@@ -67,24 +111,23 @@ class RedisEntryCheckService(BaseService):
 
             return {result["ip"] for result in dns_results}
         except Exception as e:
-            logger.exception(
+            self.log_exception(
                 _("Failed to get DNS records for cluster {} entry {}: {}").format(
                     cluster.immute_domain, entry.entry, str(e)
                 )
             )
             return set()
 
-    @staticmethod
-    def _get_clb_proxy_ips(cluster: Cluster, entry: ClusterEntry) -> Set[str]:
+    def _get_clb_ips(self, cluster: Cluster, entry: ClusterEntry) -> Set[str]:
         """
-        Get proxy IPs registered in CLB for a given entry
+        Get IPs registered in CLB for a given entry
 
         Args:
             cluster: Cluster object
             entry: ClusterEntry object with CLB type
 
         Returns:
-            Set of proxy IP addresses in CLB (ports stripped)
+            Set of IP addresses in CLB (ports stripped)
         """
         try:
             clb_detail = entry.detail
@@ -97,24 +140,23 @@ class RedisEntryCheckService(BaseService):
             return {ip.split(":")[0] for ip in raw_ips}
 
         except Exception as e:
-            logger.exception(
+            self.log_exception(
                 _("Failed to get CLB targets for cluster {} entry {}: {}").format(
                     cluster.immute_domain, entry.entry, str(e)
                 )
             )
             return set()
 
-    @staticmethod
-    def _get_polaris_proxy_ips(cluster: Cluster, entry: ClusterEntry) -> Set[str]:
+    def _get_polaris_ips(self, cluster: Cluster, entry: ClusterEntry) -> Set[str]:
         """
-        Get proxy IPs registered in Polaris for a given entry
+        Get IPs registered in Polaris for a given entry
 
         Args:
             cluster: Cluster object
             entry: ClusterEntry object with POLARIS type
 
         Returns:
-            Set of proxy IP addresses in Polaris (ports stripped)
+            Set of IP addresses in Polaris (ports stripped)
         """
         try:
             polaris_detail = entry.detail
@@ -127,47 +169,68 @@ class RedisEntryCheckService(BaseService):
             return {ip.split(":")[0] for ip in raw_ips}
 
         except Exception as e:
-            logger.exception(
+            self.log_exception(
                 _("Failed to get Polaris targets for cluster {} entry {}: {}").format(
                     cluster.immute_domain, entry.entry, str(e)
                 )
             )
             return set()
 
-    @staticmethod
-    def _check_entry_consistency(cluster: Cluster, entry: ClusterEntry, expected_ips: Set[str]) -> Optional[Dict]:
+    def _check_entry_consistency(
+        self,
+        cluster: Cluster,
+        entry: ClusterEntry,
+    ) -> Optional[Dict]:
         """
-        Check if an entry has the exact same proxies as expected
+        Check if an entry has the exact same IPs as expected
 
         Args:
             cluster: Cluster object
             entry: ClusterEntry object
-            expected_ips: Expected set of proxy IPs
 
         Returns:
             Dict with error details if inconsistent, None if consistent
         """
         entry_type = entry.cluster_entry_type
 
+        has_proxy = is_have_proxy(cluster.cluster_type)
+        is_slave_entry = entry.entry.split(".")[0].endswith("-slave")
+        is_nodes_entry = entry.entry.startswith("nodes.")
+
+        # Logic:
+        # - Non-proxy clusters: Check master/slave entries separately (xxx.domain vs xxx-slave.domain)
+        # - Proxy clusters: Check proxy IPs for regular entries
+        # - Cluster protocol: Check storage IPs for an extra nodes.* dns entry
+        if is_nodes_entry:
+            # Cluster protocol with nodes.* prefix: use all storage IPs (master + slave)
+            expected_ips = RedisEntryCheckService._get_cluster_storage_ips(cluster)
+        elif not has_proxy:
+            # Non-proxy clusters: use master or slave IPs based on entry name
+            if is_slave_entry:
+                expected_ips = RedisEntryCheckService._get_cluster_slave_ips(cluster)
+            else:
+                expected_ips = RedisEntryCheckService._get_cluster_master_ips(cluster)
+        else:
+            # Proxy-based clusters: use proxy IPs for regular entries
+            expected_ips = RedisEntryCheckService._get_cluster_proxy_ips(cluster)
+
         # Get actual IPs from the entry system
         match entry_type:
             case ClusterEntryType.DNS.value:
-                actual_ips = RedisEntryCheckService._get_dns_proxy_ips(cluster, entry)
                 if entry.forward_to:
                     # DNS is forwarding to CLB ip, skip this condition
                     return None
+                actual_ips = self._get_dns_ips(cluster, entry)
             case ClusterEntryType.CLB.value:
-                actual_ips = RedisEntryCheckService._get_clb_proxy_ips(cluster, entry)
+                actual_ips = self._get_clb_ips(cluster, entry)
             case ClusterEntryType.POLARIS.value:
-                actual_ips = RedisEntryCheckService._get_polaris_proxy_ips(cluster, entry)
+                actual_ips = self._get_polaris_ips(cluster, entry)
             case ClusterEntryType.CLBDNS.value:
                 # CLBDNS is just a pointer, skip checking
                 return None
             case _:
-                logger.warning(
-                    _("Unknown entry type {} for cluster {} entry {}").format(
-                        entry_type, cluster.immute_domain, entry.entry
-                    )
+                self.log_warning(
+                    _("Unknown entry type {} for cluster {} entry {}").format(entry_type, cluster.immute_domain, entry)
                 )
                 return None
 
@@ -190,8 +253,7 @@ class RedisEntryCheckService(BaseService):
 
         return None
 
-    @staticmethod
-    def _create_cluster_report(cluster: Cluster, all_error_details: list):
+    def _create_cluster_report(self, cluster: Cluster, all_error_details: list):
         """
         Create a single meta check report for all entry inconsistencies in a cluster
 
@@ -238,33 +300,24 @@ class RedisEntryCheckService(BaseService):
             msg=description,
             state=ReportStateType.ABNORMAL,
         )
-
-        logger.warning(
+        self.log_warning(
             _("Entry inconsistencies detected for cluster {}: {}").format(cluster.immute_domain, description)
         )
 
-    @staticmethod
-    def _check_single_cluster(cluster_id: int) -> Dict:
+    def _check_single_cluster(self, cluster_id: int) -> Dict:
         """
         Check entries for a single cluster
 
         Args:
             cluster_id: ID of the cluster to check
-            bk_cloud_id: BK cloud ID for the cluster
 
         Returns:
             Dict with check results
         """
         try:
-            cluster = Cluster.objects.prefetch_related("proxyinstance_set", "clusterentry_set").get(id=cluster_id)
-            cluster_domain = cluster.immute_domain
-
-            # Get expected proxy IPs from cluster metadata
-            expected_proxy_ips = RedisEntryCheckService._get_cluster_proxy_ips(cluster)
-
-            if not expected_proxy_ips:
-                logger.warning(_("Cluster {} has no proxies in metadata, skipping").format(cluster_domain))
-                return {"cluster_id": cluster_id, "checked": 0, "inconsistent": 0}
+            cluster = Cluster.objects.prefetch_related(
+                "proxyinstance_set", "storageinstance_set", "clusterentry_set"
+            ).get(id=cluster_id)
 
             # Check each entry and collect all error details
             entries = cluster.clusterentry_set.all()
@@ -273,22 +326,21 @@ class RedisEntryCheckService(BaseService):
 
             for entry in entries:
                 checked_count += 1
-                error_detail = RedisEntryCheckService._check_entry_consistency(cluster, entry, expected_proxy_ips)
-
+                error_detail = self._check_entry_consistency(cluster, entry)
                 if error_detail:
                     all_error_details.append(error_detail)
 
             # Create a single report for the cluster (success or failure)
-            RedisEntryCheckService._create_cluster_report(cluster, all_error_details)
+            self._create_cluster_report(cluster, all_error_details)
 
             inconsistent_count = len(all_error_details)
             return {"cluster_id": cluster_id, "checked": checked_count, "inconsistent": inconsistent_count}
 
         except Cluster.DoesNotExist:
-            logger.warning(_("Cluster id={} not found, skipping").format(cluster_id))
+            self.log_warning(_("Cluster id={} not found, skipping").format(cluster_id))
             return {"cluster_id": cluster_id, "checked": 0, "inconsistent": 0, "error": "Cluster not found"}
         except Exception as e:
-            logger.exception(_("Failed to check entries for cluster id={}: {}").format(cluster_id, str(e)))
+            self.log_exception(_("Failed to check entries for cluster id={}: {}").format(cluster_id, str(e)))
             return {"cluster_id": cluster_id, "checked": 0, "inconsistent": 0, "error": str(e)}
 
     def _execute(self, data, parent_data) -> bool:
@@ -306,7 +358,7 @@ class RedisEntryCheckService(BaseService):
         # cluster_ids is a list of cluster IDs
         cluster_ids = kwargs["cluster_ids"]
 
-        logger.info(_("Starting entry check for {} clusters").format(len(cluster_ids)))
+        self.log_info(_("Starting entry check for {} clusters").format(len(cluster_ids)))
 
         # Track statistics
         total_checked = 0
@@ -328,10 +380,10 @@ class RedisEntryCheckService(BaseService):
                     total_checked += result.get("checked", 0)
                     total_inconsistent += result.get("inconsistent", 0)
                 except Exception as e:
-                    logger.exception(_("Exception checking cluster id={}: {}").format(cluster_id, str(e)))
+                    self.log_exception(_("Exception checking cluster id={}: {}").format(cluster_id, str(e)))
 
         # Log summary
-        logger.info(
+        self.log_info(
             _("Entry check completed for batch: {} entries checked, {} inconsistencies found").format(
                 total_checked, total_inconsistent
             )
