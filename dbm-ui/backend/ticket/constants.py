@@ -38,6 +38,9 @@ class TodoType(StrStructuredEnum):
     RESOURCE_REPLENISH = EnumField("RESOURCE_REPLENISH", _("资源池补货"))
     RESOURCE_HCM_REPLENISH = EnumField("RESOURCE_HCM_REPLENISH", _("海磊-主机资源补货"))
     TIMER = EnumField("TIMER", _("定时"))
+    CLUSTER_DISABLE = EnumField("CLUSTER_DISABLE", _("集群禁用"))
+    RECYCLE_HOST = EnumField("RECYCLE_HOST", _("待回收主机"))
+    FAULT_HOST = EnumField("FAULT_HOST", _("故障池主机"))
 
 
 class CountType(StrStructuredEnum):
@@ -66,7 +69,6 @@ class TodoStatus(StrStructuredEnum):
     TODO = EnumField("TODO", _("待处理"))
     DONE_SUCCESS = EnumField("DONE_SUCCESS", _("已处理"))
     DONE_FAILED = EnumField("DONE_FAILED", _("已终止"))
-    LACK_FIELD = EnumField("LACK_FIELD", _("资源不足"))
 
 
 class ResourceApplyErrCode(IntStructuredEnum):
@@ -729,7 +731,6 @@ FLOW_TASK_TYPES = [
     FlowType.INNER_FLOW,
     FlowType.HOST_RECYCLE,
     FlowType.RESOURCE_HCM_REPLENISH,
-    FlowType.RESOURCE_APPLY,
 ]
 
 
