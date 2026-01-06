@@ -89,6 +89,10 @@ func Debug(format string, args ...any) {
 	dblog.Debug(format, args...)
 }
 
+func Debugf(format string, args ...any) {
+	Debug(format, args...)
+}
+
 func Info(format string, args ...any) {
 	if dblog == nil {
 		log.Printf(format, args...)
@@ -96,6 +100,10 @@ func Info(format string, args ...any) {
 	}
 
 	dblog.Info(format, args...)
+}
+
+func Infof(format string, args ...any) {
+	Info(format, args...)
 }
 
 func Warn(format string, args ...any) {
@@ -107,6 +115,10 @@ func Warn(format string, args ...any) {
 	dblog.Warn(format, args...)
 }
 
+func Warnf(format string, args ...any) {
+	Warn(format, args...)
+}
+
 func Error(format string, args ...any) {
 	if dblog == nil {
 		log.Printf(format, args...)
@@ -116,6 +128,10 @@ func Error(format string, args ...any) {
 	dblog.Error(format, args...)
 }
 
+func Errorf(format string, args ...any) {
+	Error(format, args...)
+}
+
 func Fatal(format string, args ...any) {
 	if dblog == nil {
 		log.Fatalf(format, args...)
@@ -123,6 +139,10 @@ func Fatal(format string, args ...any) {
 	}
 
 	dblog.Fatal(format, args...)
+}
+
+func Fatalf(format string, args ...any) {
+	Fatal(format, args...)
 }
 
 func init() {
