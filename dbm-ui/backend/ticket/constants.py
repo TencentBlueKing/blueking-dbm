@@ -66,6 +66,7 @@ class TodoStatus(StrStructuredEnum):
     TODO = EnumField("TODO", _("待处理"))
     DONE_SUCCESS = EnumField("DONE_SUCCESS", _("已处理"))
     DONE_FAILED = EnumField("DONE_FAILED", _("已终止"))
+    LACK_FIELD = EnumField("LACK_FIELD", _("资源不足"))
 
 
 class ResourceApplyErrCode(IntStructuredEnum):
@@ -724,7 +725,12 @@ class FlowType(StrStructuredEnum):
 
 
 # 任务流程类型合集
-FLOW_TASK_TYPES = [FlowType.INNER_FLOW, FlowType.HOST_RECYCLE, FlowType.RESOURCE_HCM_REPLENISH]
+FLOW_TASK_TYPES = [
+    FlowType.INNER_FLOW,
+    FlowType.HOST_RECYCLE,
+    FlowType.RESOURCE_HCM_REPLENISH,
+    FlowType.RESOURCE_APPLY,
+]
 
 
 class FlowContext(StrStructuredEnum):
