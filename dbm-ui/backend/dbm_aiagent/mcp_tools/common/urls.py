@@ -13,6 +13,7 @@ from rest_framework.routers import DefaultRouter
 from backend.dbm_aiagent.mcp_tools.common.views import (
     BillQueryMcpToolsViewSet,
     DBMetaQueryMcpToolsViewSet,
+    GetSourceAccessMcpToolsViewSet,
     ResourceParamQueryMcpToolsViewSet,
 )
 from backend.dbm_aiagent.mcp_tools.common.views.alram_query import MonitorQueryMcpToolsViewSet
@@ -23,4 +24,5 @@ routers.register(r"", DBMetaQueryMcpToolsViewSet, basename="mcp-dbmeta-query")
 routers.register(r"", BillQueryMcpToolsViewSet, basename="mcp-bill-query")
 routers.register(r"", ResourceParamQueryMcpToolsViewSet, basename="mcp-resource-query")
 routers.register(r"", MonitorQueryMcpToolsViewSet, basename="mcp-monitor-query")
+routers.register(r"", GetSourceAccessMcpToolsViewSet, basename="mcp-get-source-access")
 urlpatterns = routers.urls
