@@ -146,9 +146,7 @@ class MachineEvent(AuditedModel):
         # 主机池流转
         hosts = DirtyMachine.hosts_pool_transfer(hosts, pool, operator, ticket)
         # 主机回收/导入提前创建了主机事件
-        if not ticket or (
-            ticket and ticket.ticket_type not in [TicketType.RESOURCE_IMPORT, TicketType.RECYCLE_OLD_HOST]
-        ):
+        if not ticket or (ticket and ticket.ticket_type not in [TicketType.RESOURCE_IMPORT]):
             # 事件记录
             cls.create_machine_events(
                 bk_biz_id=bk_biz_id,
