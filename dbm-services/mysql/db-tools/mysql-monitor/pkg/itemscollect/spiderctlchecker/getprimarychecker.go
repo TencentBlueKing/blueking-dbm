@@ -1,8 +1,12 @@
 package spiderctlchecker
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/utils"
+	"fmt"
 	"log/slog"
+	"strconv"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -24,7 +28,14 @@ func (c *GetCtlPrimaryChecker) Run() (msg string, err error) {
 	_, err = c.getPrimary()
 	if err != nil {
 		slog.Error("Get primary checker error", slog.String("err", err.Error()))
-		return err.Error(), nil
+
+		utils.SendMonitorEvent(
+			getCtlPrimaryCheckerName,
+			fmt.Sprintf("get primary failed: %s", err.Error()),
+			map[string]interface{}{
+				"instance_port": strconv.Itoa(config.MonitorConfig.Port + 1000),
+			},
+		)
 	}
 	return "", nil
 }

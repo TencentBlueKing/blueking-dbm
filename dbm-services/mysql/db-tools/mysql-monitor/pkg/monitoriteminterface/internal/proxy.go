@@ -34,6 +34,7 @@ func ConnectProxy() (pdb *sqlx.DB, padb *sqlx.DB, err error) {
 			(strings.Contains(err.Error(), "invalid connection") ||
 				strings.Contains(err.Error(), "connection refused")) {
 			slog.Info("connect proxy service port failed try to reboot", slog.String("err", err.Error()))
+			//goland:noinspection GoResourceLeak
 			return retryAndRestartProxy()
 		}
 		slog.Error(
@@ -199,6 +200,7 @@ func addExLock() (fl *flock.Flock, err error) {
 		return nil, err
 	}
 	lockFilePath := filepath.Join(lockFileBasePath, lockFileName)
+	//goland:noinspection GoResourceLeak
 	fl = flock.New(lockFilePath)
 
 	slog.Info(
@@ -210,7 +212,8 @@ func addExLock() (fl *flock.Flock, err error) {
 	if err != nil {
 		slog.Error(
 			"reboot proxy try to lock",
-			slog.String("err", err.Error()))
+			slog.String("err", err.Error()),
+		)
 		return nil, err
 	}
 
@@ -243,9 +246,11 @@ func confirmSelfIsRunning() (bool, error) {
 		return false, err
 	}
 
-	idx := slices.IndexFunc(pinfos, func(item reversemysqldef.ProxyInstanceInfo) bool {
-		return item.Port == config.MonitorConfig.Port
-	})
+	idx := slices.IndexFunc(
+		pinfos, func(item reversemysqldef.ProxyInstanceInfo) bool {
+			return item.Port == config.MonitorConfig.Port
+		},
+	)
 	if idx < 0 {
 		err = fmt.Errorf("instance [%d] not found", config.MonitorConfig.Port)
 		slog.Info("query instance info", slog.String("error", err.Error()))

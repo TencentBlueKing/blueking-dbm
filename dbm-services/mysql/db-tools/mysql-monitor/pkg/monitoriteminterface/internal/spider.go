@@ -9,6 +9,7 @@ import (
 )
 
 func ConnectSpider() (sdb *sqlx.DB, ctlDB *sqlx.DB, err error) {
+	//goland:noinspection GoResourceLeak
 	sdb, err = connectDB(
 		config.MonitorConfig.Ip,
 		config.MonitorConfig.Port,
@@ -48,5 +49,5 @@ func ConnectSpider() (sdb *sqlx.DB, ctlDB *sqlx.DB, err error) {
 		}
 	}
 
-	return sdb, ctlDB, nil //&ConnectionCollect{MySqlDB: db1, CtlDB: db2}, nil
+	return sdb, ctlDB, nil
 }
