@@ -275,7 +275,6 @@
     font-size: 12px;
     line-height: 20px;
     color: #979ba5;
-    background: #fafbfd;
   }
 
   :deep(.has-related-clusters .bk-editable-table-column-error) {
