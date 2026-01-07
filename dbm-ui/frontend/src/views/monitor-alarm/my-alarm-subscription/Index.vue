@@ -265,7 +265,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { clusterTypeListPageMap, DBTypeInfos } from '@common/const';
+  import { DBTypeInfos } from '@common/const';
 
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
@@ -274,6 +274,7 @@
   import NoticeWaysGroup from '@views/db-manage/common/cluster-batch-edit-subscription/components/content/components/NoticeWaysGroup.vue';
   import BatchEditSubscription from '@views/db-manage/common/cluster-batch-edit-subscription/Index.vue';
   import { URL_CLUSTER_DETAIL_MEMO_KEY } from '@views/db-manage/common/cluster-details/constants';
+  import { clusterTypeListPageMap } from '@views/db-manage/const/clusterTypeListPageMap';
 
   import { getOffset, messageSuccess } from '@utils';
 

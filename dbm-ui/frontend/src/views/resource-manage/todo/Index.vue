@@ -1,13 +1,8 @@
 <template>
-  <div class="fault-pool-container">
-    <BkAlert
-      class="mb-12"
-      closable
-      :title="
-        isFaultPool
-          ? t('用来暂存故障主机，已下架的主机若检测有关联uwork、xwork单据将自动转入故障池等待后续处理')
-          : t('集中存放待回收的主机，已下架的主机若检测为Windows、待裁撤主机将自动转入待回收池以便执行回收操作')
-      " />
+  <AssistTab
+    v-model="todoType"
+    @change="handleTypeChange" />
+  <div class="host-todo-container">
     <div class="operation-wrapper">
       <template v-if="isFaultPool">
         <AuthButton
@@ -79,7 +74,7 @@
         :filter="columnFilter?.ips"
         fixed="left"
         title="IP"
-        :width="150">
+        :width="120">
         <template #default="{ row }: { row: FaultOrRecycleMachineModel }">
           {{ row.ip || '--' }}
         </template>
@@ -164,15 +159,6 @@
         :width="180">
       </TableColumn>
       <TableColumn
-        col-key="updater"
-        :filter="columnFilter?.updater"
-        :title="t('转入人')"
-        :width="120">
-        <template #default="{ row }: { row: FaultOrRecycleMachineModel }">
-          {{ row.updater || '--' }}
-        </template>
-      </TableColumn>
-      <TableColumn
         col-key="latest_event"
         :title="t('转入原因')"
         :width="300">
@@ -197,7 +183,7 @@
       theme="danger"
       :tip="t('确认后，主机将从系统中删除主机记录，请谨慎操作！')"
       :title="t('确认批量删除 {n} 台主机？', { n: selected.length })"
-      @success="handleDeleteRefresh">
+      @success="handleRefresh">
     </ReviewDataDialog>
     <ReviewDataDialog
       v-model:is-show="isBatchConvertToRecyclePool"
@@ -221,23 +207,38 @@
   import FaultOrRecycleMachineModel from '@services/model/db-resource/FaultOrRecycleMachine';
   import { getMachinePool, transferMachinePool } from '@services/source/dbdirty';
 
+  import { useHostTodoCount } from '@hooks';
+
+  import { HostHandleTodoType } from '@common/const';
+
   import DbStatus from '@components/db-status/index.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
 
   import BatchImportResourcePool from '@views/resource-manage/common/components/fault-pool-batch-import/Index.vue';
   import OperationDetail from '@views/resource-manage/common/components/operation-detail/Index.vue';
   import ReviewDataDialog from '@views/resource-manage/common/components/review-data-dialog/Index.vue';
-  import { useColumnFilter } from '@views/resource-manage/common/hooks/useColumnFilter';
-  import { useQuickSearch } from '@views/resource-manage/common/hooks/useQuickSearch';
   import { useRecycleRefresh } from '@views/resource-manage/common/hooks/useRecycleRefresh';
 
   import { execCopy, messageWarn } from '@utils';
 
+  import AssistTab from './components/AssistTab.vue';
+  import { useColumnFilter } from './useColumnFilter';
+  import { useQuickSearch } from './useQuickSearch';
+
   const { t } = useI18n();
   const route = useRoute();
 
-  const isFaultPool = route.name === 'faultPool';
-  const pool = isFaultPool ? 'fault' : 'recycle';
+  const tableRef = useTemplateRef('tableRef');
+
+  const todoType = ref((route.params.type || HostHandleTodoType.FAULT_HOST) as HostHandleTodoType);
+  const selected = ref<FaultOrRecycleMachineModel[]>([]);
+  const isBatchRecycleShow = ref(false);
+  const isBatchDeleteShow = ref(false);
+  const isBatchImportResourcePoolShow = ref(false);
+  const isBatchConvertToRecyclePool = ref(false);
+
+  const isFaultPool = computed(() => todoType.value === HostHandleTodoType.FAULT_HOST);
+  const pool = computed(() => (isFaultPool.value ? 'fault' : 'recycle'));
   const { isSearching, quickSearchData, quickSearchValue } = useQuickSearch(pool);
   const { data: columnFilter } = useColumnFilter(pool);
   const { handleRecycleRefresh } = useRecycleRefresh({
@@ -245,37 +246,21 @@
       handleRefresh();
     },
   });
-
-  const tableRef = useTemplateRef('tableRef');
-
-  const selected = ref<FaultOrRecycleMachineModel[]>([]);
-  const isBatchRecycleShow = ref(false);
-  const isBatchDeleteShow = ref(false);
-  const isBatchImportResourcePoolShow = ref(false);
-  const isBatchConvertToRecyclePool = ref(false);
-
-  watch(
-    () => route.name,
-    () => {
-      quickSearchValue.value = {};
-      selected.value = [];
-      nextTick(() => {
-        tableRef.value!.clearSelected();
-      });
-    },
-    {
-      immediate: true,
-    },
-  );
+  const { run: runGetHostTodoCount } = useHostTodoCount();
 
   const dataSource = (params: ServiceParameters<typeof getMachinePool>) =>
     getMachinePool({
       ...params,
-      pool,
+      is_todo: true,
+      todo_type: todoType.value,
     });
 
   const fetchData = () => {
     tableRef.value!.fetchData(quickSearchValue.value);
+  };
+
+  const handleTypeChange = () => {
+    fetchData();
   };
 
   const handleQuickSearchChange = () => {
@@ -356,10 +341,7 @@
   const handleRefresh = () => {
     clearSelection();
     fetchData();
-  };
-
-  const handleDeleteRefresh = () => {
-    handleRefresh();
+    runGetHostTodoCount();
   };
 
   onMounted(() => {
@@ -367,8 +349,10 @@
   });
 </script>
 
-<style lang="less" scoped>
-  .fault-pool-container {
+<style lang="less">
+  .host-todo-container {
+    padding: 20px 24px;
+
     .operation-wrapper {
       display: flex;
       align-items: center;
@@ -380,9 +364,7 @@
       }
     }
   }
-</style>
 
-<style lang="less">
   .pool-recycle-pop-confirm-content {
     font-size: 12px;
     color: #63656e;

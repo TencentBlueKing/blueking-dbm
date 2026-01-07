@@ -189,6 +189,7 @@
       'SelfServiceMyTickets',
       'MyTodos',
       'ticketSelfDone',
+      'resourceManageHostTodo',
       'ClusterDisableTodo',
       'ticketSelfManage',
       'inspectionTodosGlobal',
