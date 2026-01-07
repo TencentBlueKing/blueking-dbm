@@ -77,6 +77,17 @@ type Workflow struct {
 	wg           sync.WaitGroup
 }
 
+// bizCheckContext holds the context data for business checking
+type bizCheckContext struct {
+	bizId        int
+	metaInsts    map[string]*hamodel.DbmMetadata
+	skipInsts    map[string]*hamodel.SkipDbInstance
+	dbStatus     []*hamodel.DbhaDataStatus
+	dbEvents     []*haprobe.DbEvent
+	dbHosts      []*haprobe.HostMetric
+	dbStatusVals []parser.DBTyperWrapper
+}
+
 // New create a workflow instance.
 func New(cli *discovery.Client, db *hamysql.GormDB) (*Workflow, error) {
 	wflow := &Workflow{
@@ -368,12 +379,8 @@ func (w *Workflow) triggerSwitching(dbType haprobe.DbType, req *switcher.Request
 // postSwitchAlarms posts success and failure alarms for switching results
 func (w *Workflow) postSwitchAlarms(dbType haprobe.DbType, req *switcher.Request, rsp *switcher.Response) {
 	// Post success alarms
-	for _, inst := range req.GetInstances(dbType) {
+	for _, inst := range req.GetSuccessInstances(dbType, rsp) {
 		instKey := switcher.GenerateMetadataKey(inst.BkCloudID, inst.IP, inst.Port)
-		if rsp.IsFailure(dbType, instKey) {
-			continue
-		}
-
 		monitorEvent := &monitor.EventData{
 			Name:      string(haprobe.DbEventNameMysqlSwitchSuccessV1),
 			Target:    string(instKey),
@@ -394,7 +401,6 @@ func (w *Workflow) postSwitchAlarms(dbType haprobe.DbType, req *switcher.Request
 	// Post failure alarms
 	for _, inst := range rsp.GetFailureInstances(dbType) {
 		instKey := switcher.GenerateMetadataKey(inst.BkCloudID, inst.IP, inst.Port)
-
 		monitorEvent := &monitor.EventData{
 			Name:      string(haprobe.DbEventNameMysqlSwitchFailureV1),
 			Target:    string(instKey),
@@ -525,17 +531,6 @@ func (w *Workflow) checkBusinessWithBizID(ctx context.Context, bizId int) (retEr
 	}()
 
 	return w.doCheckBusinessWithBizID(bizId)
-}
-
-// bizCheckContext holds the context data for business checking
-type bizCheckContext struct {
-	bizId        int
-	metaInsts    map[string]*hamodel.DbmMetadata
-	skipInsts    map[string]*hamodel.SkipDbInstance
-	dbStatus     []*hamodel.DbhaDataStatus
-	dbEvents     []*haprobe.DbEvent
-	dbHosts      []*haprobe.HostMetric
-	dbStatusVals []parser.DBTyperWrapper
 }
 
 func (w *Workflow) doCheckBusinessWithBizID(bizId int) error {
