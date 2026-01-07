@@ -3,6 +3,7 @@
     v-if="apiUrl"
     ref="aiBluekingRef"
     :enable-popup="false"
+    ext-cls="dbm-ai-chat-dialog"
     :hide-nimbus="hideNimbus"
     load-recent-session-on-mount
     :show-history-icon="showHistoryIcon"
@@ -20,4 +21,10 @@
 
   const { aiBluekingRef, apiUrl, hideNimbus, showHistoryIcon, showMoreIcon, showNewChatIcon } = useState();
 </script>
-=
+<style lang="postcss">
+  .dbm-ai-chat-dialog {
+    .shortcuts-bar {
+      display: none !important;
+    }
+  }
+</style>
