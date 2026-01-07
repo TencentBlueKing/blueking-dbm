@@ -228,16 +228,13 @@
   // 初始化
   watch(
     () => [modelValue.value, props.currentSpecIdList],
-    (newValue, oldValue) => {
+    () => {
       if (props.selectable && modelValue.value && typeof modelValue.value !== 'string') {
         const isExist = sortedSpecList.value.some((item) => item.spec_id === modelValue.value);
         if (!isExist) {
           modelValue.value = 0;
           return;
         }
-      }
-      if (oldValue && _.isEqual(newValue[1], oldValue[1])) {
-        return;
       }
       const currentSpecIdList = _.uniq(props.currentSpecIdList);
       const isSame = currentSpecIdList.length === 1;
