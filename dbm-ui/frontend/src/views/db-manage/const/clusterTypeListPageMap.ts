@@ -1,4 +1,4 @@
-import { ClusterTypes } from './clusterTypes';
+import { ClusterTypes } from '@common/const';
 
 // redis
 const redisClusterTypePageMap = {

@@ -382,7 +382,11 @@ export function queryBizMachineAttrs(params: {
   });
 }
 
-export function queryDirtyMachineAttrs(params: { machine_attrs: string; pool?: 'fault' | 'recycle' }) {
+export function queryDirtyMachineAttrs(params: {
+  is_todo?: boolean; // 是否主机待办
+  machine_attrs: string;
+  pool?: 'fault' | 'recycle';
+}) {
   return http.get<
     Record<
       string,
