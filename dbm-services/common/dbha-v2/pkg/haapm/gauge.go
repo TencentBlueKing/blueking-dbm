@@ -87,7 +87,7 @@ func (m *HaGauge) Set(val float64) error {
 		return m.Error
 	}
 
-	if len(m.labelValues) != len(m.labelValues) {
+	if len(m.labelValues) != len(m.labelNames) {
 		m.Error = gerrors.New(gerrors.InvalidParameter, "label is mismatched")
 		return m.Error
 	}
@@ -105,10 +105,10 @@ func (m *HaGauge) Inc() error {
 
 	if len(m.labelNames) == 0 {
 		m.metric.Collector.(prometheus.Gauge).Inc()
-		return nil
+		return m.Error
 	}
 
-	if len(m.labelValues) != len(m.labelValues) {
+	if len(m.labelValues) != len(m.labelNames) {
 		m.Error = gerrors.New(gerrors.InvalidParameter, "label is mismatched")
 		return m.Error
 	}
@@ -129,7 +129,7 @@ func (m *HaGauge) Dec() error {
 		return m.Error
 	}
 
-	if len(m.labelValues) != len(m.labelValues) {
+	if len(m.labelValues) != len(m.labelNames) {
 		m.Error = gerrors.New(gerrors.InvalidParameter, "label is mismatched")
 		return m.Error
 	}
@@ -150,7 +150,7 @@ func (m *HaGauge) Add(val float64) error {
 		return m.Error
 	}
 
-	if len(m.labelValues) != len(m.labelValues) {
+	if len(m.labelValues) != len(m.labelNames) {
 		m.Error = gerrors.New(gerrors.InvalidParameter, "label is mismatched")
 		return m.Error
 	}
@@ -171,7 +171,7 @@ func (m *HaGauge) Sub(val float64) error {
 		return m.Error
 	}
 
-	if len(m.labelValues) != len(m.labelValues) {
+	if len(m.labelValues) != len(m.labelNames) {
 		m.Error = gerrors.New(gerrors.InvalidParameter, "label is mismatched")
 		return m.Error
 	}

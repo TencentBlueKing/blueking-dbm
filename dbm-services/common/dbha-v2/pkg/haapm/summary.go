@@ -133,5 +133,6 @@ func NewHaSummary(name, help string, labelNames ...string) *HaSummary {
 	summary.labelNames = append(summary.labelNames, labelNames...)
 	summary.metric.Labels = summary.labelNames
 
+	summary.reset()
 	return summary
 }
