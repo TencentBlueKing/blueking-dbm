@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-import json
 import logging
 from dataclasses import dataclass, field
 from typing import List, Optional
@@ -154,11 +153,13 @@ def check_redis_entry_consistency():
 
     candidates_key = REDIS_ENTRY_CHECK_CANDIDATES_KEY.format(root_id=root_id)
     try:
-        # Store cluster_ids as a JSON array
-        RedisConn.set(candidates_key, json.dumps(cluster_ids))
-        RedisConn.expire(candidates_key, REDIS_ENTRY_CHECK_CANDIDATES_TTL)
+        # Store cluster_ids as a Redis list using LPUSH
+        # Push all cluster_ids to the list
+        if cluster_ids:
+            RedisConn.lpush(candidates_key, *cluster_ids)
+            RedisConn.expire(candidates_key, REDIS_ENTRY_CHECK_CANDIDATES_TTL)
 
-        logger.info(_("Stored {} clusters in Redis: {}").format(len(cluster_ids), candidates_key))
+        logger.info(_("Stored {} clusters in Redis list: {}").format(len(cluster_ids), candidates_key))
     except Exception as e:
         logger.exception(_("Failed to store candidates in Redis: {}").format(str(e)))
         return

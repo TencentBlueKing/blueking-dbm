@@ -9,10 +9,12 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Dict, Optional, Set
+from typing import Dict, List, Optional, Set
 
 from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
+from pipeline.core.flow import StaticIntervalGenerator
+from pipeline.core.flow.activity import Service
 
 from backend.db_meta.enums import ClusterEntryType, InstanceInnerRole
 from backend.db_meta.models import Cluster, ClusterEntry
@@ -23,12 +25,27 @@ from backend.flow.utils import dns_manage
 from backend.flow.utils.clb_manage import get_clb_by_ip
 from backend.flow.utils.polaris_manage import GetPolarisManageByName
 from backend.flow.utils.redis.redis_meta_report import create_meta_check_report
+from backend.utils.redis import RedisConn
+
+# Default batch size and interval for scheduled processing
+DEFAULT_BATCH_SIZE = 15
+DEFAULT_BATCH_INTERVAL = 2  # seconds between batches
 
 
 class RedisEntryCheckService(BaseService):
     """
-    Service for checking Redis cluster entry consistency
+    Service for checking Redis cluster entry consistency using scheduled component pattern.
+
+    This service retrieves cluster_ids from Redis and processes them in batches.
+    Each schedule iteration processes one batch of clusters.
     """
+
+    __need_schedule__ = True
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Interval will be set dynamically in _execute based on batch_interval parameter
+        self.interval = StaticIntervalGenerator(DEFAULT_BATCH_INTERVAL)
 
     @staticmethod
     def _get_cluster_proxy_ips(cluster: Cluster) -> Set[str]:
@@ -343,9 +360,41 @@ class RedisEntryCheckService(BaseService):
             self.log_exception(_("Failed to check entries for cluster id={}: {}").format(cluster_id, str(e)))
             return {"cluster_id": cluster_id, "checked": 0, "inconsistent": 0, "error": str(e)}
 
+    def _pop_batch_from_redis(self, candidates_key: str, batch_size: int) -> List[int]:
+        """
+        Pop a batch of cluster_ids from Redis list using RPOP.
+
+        Args:
+            candidates_key: Redis key where candidates are stored as a list
+            batch_size: Number of cluster_ids to pop
+
+        Returns:
+            List of cluster_ids (up to batch_size)
+        """
+        try:
+            batch_cluster_ids = []
+            for _i in range(batch_size):
+                cluster_id = RedisConn.rpop(candidates_key)
+                if cluster_id is None:
+                    # No more items in the list
+                    break
+                # Convert bytes to int if necessary
+                if isinstance(cluster_id, bytes):
+                    cluster_id = int(cluster_id.decode())
+                else:
+                    cluster_id = int(cluster_id)
+                batch_cluster_ids.append(cluster_id)
+
+            return batch_cluster_ids
+
+        except Exception as e:
+            self.log_exception(_("Failed to pop batch from Redis: {}").format(e))
+            return []
+
     def _execute(self, data, parent_data) -> bool:
         """
-        Execute entry check for a batch of clusters
+        Initialize the entry check process.
+        Metadata will be loaded lazily in the first _schedule() call.
 
         Args:
             data: Component data
@@ -355,42 +404,166 @@ class RedisEntryCheckService(BaseService):
             True if successful, False otherwise
         """
         kwargs = data.get_one_of_inputs("kwargs")
-        # cluster_ids is a list of cluster IDs
-        cluster_ids = kwargs["cluster_ids"]
 
-        self.log_info(_("Starting entry check for {} clusters").format(len(cluster_ids)))
+        # Get candidates_key from kwargs
+        candidates_key = kwargs.get("candidates_key", "")
+        if not candidates_key:
+            self.log_error("No candidates_key provided in kwargs")
+            return False
 
-        # Track statistics
-        total_checked = 0
-        total_inconsistent = 0
+        # Get batch configuration
+        batch_size = kwargs.get("batch_size", DEFAULT_BATCH_SIZE)
+        batch_interval = kwargs.get("batch_interval", DEFAULT_BATCH_INTERVAL)
 
-        # Use ThreadPoolExecutor for parallel processing
-        max_workers = min(20, len(cluster_ids))  # Limit to 20 concurrent threads
+        # Set the interval dynamically based on batch_interval parameter
+        self.interval = StaticIntervalGenerator(batch_interval)
+
+        # Get total count from Redis list length
+        try:
+            total_clusters = RedisConn.llen(candidates_key)
+            if total_clusters == 0:
+                self.log_warning("No cluster_ids found in Redis list, nothing to check")
+                return False
+        except Exception as e:
+            self.log_exception(_("Failed to get list length from Redis: {}").format(e))
+            return False
+
+        total_batches = (total_clusters + batch_size - 1) // batch_size
+
+        # Store configuration in outputs for persistence across scheduled iterations
+        data.outputs["candidates_key"] = candidates_key
+        data.outputs["batch_size"] = batch_size
+        data.outputs["current_batch"] = 0
+        data.outputs["total_checked"] = 0
+        data.outputs["total_inconsistent"] = 0
+        data.outputs["total_clusters"] = total_clusters
+        data.outputs["total_batches"] = total_batches
+
+        self.log_info(
+            _("Initialized entry check with {} clusters in {} batches, " "batch_size={}, batch_interval={}s").format(
+                total_clusters, total_batches, batch_size, batch_interval
+            )
+        )
+
+        return True
+
+    def _schedule(self, data, parent_data, callback_data=None) -> bool:
+        """
+        Process one batch of clusters in each schedule iteration.
+
+        Args:
+            data: Component data
+            parent_data: Parent pipeline data
+            callback_data: Callback data (unused)
+
+        Returns:
+            True to continue scheduling, False on error
+        """
+        # Retrieve state from outputs (persisted across scheduled iterations)
+        candidates_key = data.outputs["candidates_key"]
+        batch_size = data.outputs["batch_size"]
+        current_batch = data.outputs["current_batch"]
+        total_checked = data.outputs["total_checked"]
+        total_inconsistent = data.outputs["total_inconsistent"]
+        total_batches = data.outputs["total_batches"]
+
+        # Pop a batch of cluster_ids from Redis list
+        batch_cluster_ids = self._pop_batch_from_redis(candidates_key, batch_size)
+        batch_num = current_batch + 1
+
+        if not batch_cluster_ids:
+            # No more clusters to pop, we're done
+            self.log_info("No more clusters to process, finishing")
+
+            # Clean up the Redis key (should be empty now, but just in case)
+            try:
+                RedisConn.delete(candidates_key)
+                self.log_info(_("Cleaned up Redis key: {}").format(candidates_key))
+            except Exception as e:
+                self.log_warning(_("Failed to cleanup Redis key {}: {}").format(candidates_key, e))
+
+            self.finish_schedule()
+            return True
+
+        self.log_info(
+            _("Processing batch {}/{}: popped {} clusters from Redis list").format(
+                batch_num, total_batches, len(batch_cluster_ids)
+            )
+        )
+
+        # Process this batch
+        batch_checked = 0
+        batch_inconsistent = 0
+
+        # Use ThreadPoolExecutor for parallel processing within the batch
+        max_workers = min(15, len(batch_cluster_ids))
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # Submit all cluster checks
             future_to_cluster = {
-                executor.submit(self._check_single_cluster, cluster_id): cluster_id for cluster_id in cluster_ids
+                executor.submit(self._check_single_cluster, cluster_id): cluster_id for cluster_id in batch_cluster_ids
             }
 
-            # Process results as they complete
             for future in as_completed(future_to_cluster):
                 cluster_id = future_to_cluster[future]
                 try:
                     result = future.result()
-                    total_checked += result.get("checked", 0)
-                    total_inconsistent += result.get("inconsistent", 0)
+                    batch_checked += result.get("checked", 0)
+                    batch_inconsistent += result.get("inconsistent", 0)
                 except Exception as e:
-                    self.log_exception(_("Exception checking cluster id={}: {}").format(cluster_id, str(e)))
+                    self.log_exception(_("Exception checking cluster id={}: {}").format(cluster_id, e))
 
-        # Log summary
+        # Update totals in outputs
+        total_checked += batch_checked
+        total_inconsistent += batch_inconsistent
+        data.outputs["total_checked"] = total_checked
+        data.outputs["total_inconsistent"] = total_inconsistent
+
         self.log_info(
-            _("Entry check completed for batch: {} entries checked, {} inconsistencies found").format(
-                total_checked, total_inconsistent
+            _("Batch {}/{} completed: {} entries checked, {} inconsistencies found").format(
+                batch_num, total_batches, batch_checked, batch_inconsistent
             )
         )
 
-        self.log_info(_("Entry check completed successfully"))
+        # Update state for next iteration
+        current_batch += 1
+        data.outputs["current_batch"] = current_batch
+
+        # Check if all batches are processed (or if we got fewer items than expected)
+        if current_batch >= total_batches or len(batch_cluster_ids) < batch_size:
+            # If we got fewer items than batch_size, we've reached the end
+            if len(batch_cluster_ids) < batch_size and current_batch < total_batches:
+                self.log_info(
+                    _("Reached end of list early (got {} items in final batch)").format(len(batch_cluster_ids))
+                )
+
+            self.log_info(
+                _("All batches completed: {} total entries checked, {} total inconsistencies found").format(
+                    total_checked, total_inconsistent
+                )
+            )
+
+            # Clean up the Redis key after all processing is done
+            try:
+                RedisConn.delete(candidates_key)
+                self.log_info(_("Cleaned up Redis key: {}").format(candidates_key))
+            except Exception as e:
+                self.log_warning(_("Failed to cleanup Redis key {}: {}").format(candidates_key, e))
+
+            self.finish_schedule()
+            return True
+
+        # Continue to next batch
         return True
+
+    def inputs_format(self) -> List:
+        return [
+            Service.InputItem(name="kwargs", key="kwargs", type="dict", required=True),
+        ]
+
+    def outputs_format(self) -> List:
+        return [
+            Service.OutputItem(name="total_checked", key="total_checked", type="int"),
+            Service.OutputItem(name="total_inconsistent", key="total_inconsistent", type="int"),
+        ]
 
 
 class RedisEntryCheckComponent(Component):
