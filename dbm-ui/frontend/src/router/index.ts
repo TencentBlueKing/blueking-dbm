@@ -18,7 +18,6 @@ import { connectToMain, rootPath } from '@blueking/sub-saas';
 import { useGlobalBizs } from '@stores';
 
 import BizPermission from '@views/BizPermission.vue';
-import getClusterDisableTodo from '@views/cluster-disable-todo/routes';
 import getDashborderRoutes from '@views/dashboard-manage/routes';
 import getDbConfRoutes from '@views/db-configure/routes';
 import getDbManageRoutes from '@views/db-manage/routes';
@@ -119,7 +118,6 @@ export default () => {
         ...getDutyRuleManageRoutes(),
         ...getServiceStatusRoutes(),
         ...getExerciseReportRoutes(),
-        ...getClusterDisableTodo(),
         ...moduleList,
         {
           component: () => import('@/demo/Index.vue'),

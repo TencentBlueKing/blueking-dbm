@@ -16,19 +16,25 @@ import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
 
-const routes: RouteRecordRaw[] = [
-  {
-    path: 'cluster-disable-todo/:assist?/:dbType?',
-    name: 'ClusterDisableTodo',
-    meta: {
-      fullscreen: true,
-      isMenu: true,
-      navName: t('集群下架待办'),
+export function getRoutes() {
+  return {
+    path: 'db-manage-todo',
+    name: 'DbManageToto',
+    redirect: {
+      name: 'ClusterDisableTodo',
     },
-    component: () => import('@views/cluster-disable-todo/Index.vue'),
-  },
-];
-
-export default function getRoutes() {
-  return checkDbConsole('personalWorkbench.clusterDisableTodo') ? routes : [];
+    component: () => import('@views/db-manage/todo/Index.vue'),
+    children: [
+      checkDbConsole('personalWorkbench.clusterDisableTodo') && {
+        path: 'cluster-disable-todo/:assist?/:dbType?',
+        name: 'ClusterDisableTodo',
+        meta: {
+          fullscreen: true,
+          isMenu: true,
+          navName: t('集群下架待办'),
+        },
+        component: () => import('@views/db-manage/todo/disabled/Index.vue'),
+      },
+    ] as RouteRecordRaw[],
+  };
 }

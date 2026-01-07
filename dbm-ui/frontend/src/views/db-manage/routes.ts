@@ -21,9 +21,14 @@ import { useFunController } from '@stores';
 
 import { t } from '@locales/index';
 
-const modules = import.meta.glob<{ default: (params: FunctionControllModel) => RouteRecordRaw[] }>('./*/routes.ts', {
-  eager: true,
-});
+import { getRoutes as getTodoRoutes } from './todo/routes';
+
+const modules = import.meta.glob<{ default: (params: FunctionControllModel) => RouteRecordRaw[] }>(
+  ['./*/routes.ts', '!./todo/routes.ts'],
+  {
+    eager: true,
+  },
+);
 
 const dbaModules = import.meta.glob<{ default: (params: FunctionControllModel) => RouteRecordRaw[] }>(
   './*/dba-manage/routes.ts',
@@ -72,5 +77,6 @@ export default function getRoutes() {
         return result;
       }, [] as RouteRecordRaw[]),
     },
+    getTodoRoutes(),
   ]);
 }

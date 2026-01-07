@@ -63,6 +63,16 @@ export default function getRoutes() {
           },
           component: () => import('@views/resource-manage/fault-or-recycle-list/Index.vue'),
         },
+        checkDbConsole('personalWorkbench.hostTodo') && {
+          path: 'host-todo/:type?/',
+          name: 'resourceManageHostTodo',
+          meta: {
+            fullscreen: true,
+            isMenu: true,
+            navName: t('主机处理待办'),
+          },
+          component: () => import('@views/resource-manage/todo/Index.vue'),
+        },
         checkDbConsole('resourceManage.allHost') && {
           path: 'all-host',
           name: 'allHost',
