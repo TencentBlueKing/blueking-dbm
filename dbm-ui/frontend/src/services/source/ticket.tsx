@@ -504,3 +504,13 @@ export function getClusterDisableCount() {
     todo: Record<DBTypes, number>;
   }>(`${path}/get_cluster_disable_count/`);
 }
+
+/**
+ * 主机处理待办汇总数量
+ */
+export function getHostTodoCount() {
+  return http.get<{
+    fault_count: number;
+    recycle_count: number;
+  }>(`${path}/get_host_todo_count/`);
+}

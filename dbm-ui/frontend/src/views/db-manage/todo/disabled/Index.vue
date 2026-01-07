@@ -163,12 +163,15 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { clusterTypeListPageMap, DBTypeInfos, DBTypes } from '@common/const';
+  import { DBTypeInfos, DBTypes } from '@common/const';
 
   import DbTab from '@components/db-tab/Index.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
 
   import { URL_CLUSTER_DETAIL_MEMO_KEY } from '@views/db-manage/common/cluster-details';
+  import { clusterTypeListPageMap } from '@views/db-manage/const/clusterTypeListPageMap';
+
+  import { getBusinessHref } from '@utils';
 
   // import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
   import AssistTab from './components/AssistTab.vue';
@@ -242,7 +245,7 @@
   };
 
   const handleToClusterDetail = (row: TicketClusterDisableTodoModel) => {
-    const { href } = router.resolve({
+    const routeInfo = router.resolve({
       name: clusterTypeListPageMap[row.cluster_type],
       params: {
         clusterId: row.id,
@@ -251,7 +254,8 @@
         [URL_CLUSTER_DETAIL_MEMO_KEY]: 'info',
       },
     });
-    window.open(href);
+    const targetPath = getBusinessHref(routeInfo.href, row.bk_biz_id);
+    window.open(targetPath);
   };
 
   const handleDelete = (row: TicketClusterDisableTodoModel) => {
