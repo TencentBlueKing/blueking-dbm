@@ -140,6 +140,7 @@ func (s *mysql) Save(msg *Message) error {
 	}).Inc(); err != nil {
 		logger.Warn("update mysql write messages metric failed, errmsg: %s", err)
 	}
+
 	if err := apm.MySqlWriteBytesTotal.UpdateLabel(map[string]string{
 		"mysql": msg.Topic,
 	}).Add(float64(len(msg.Data))); err != nil {

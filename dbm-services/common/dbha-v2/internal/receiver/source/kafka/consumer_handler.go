@@ -65,6 +65,7 @@ func (h *consumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 		}).Add(float64(dataLength)); err != nil {
 			logger.Warn("update kafka read bytes metric failed, errmsg: %s", err)
 		}
+
 		if err := apm.KafkaReadMessagesTotal.UpdateLabel(map[string]string{
 			"kafka": msg.Topic,
 		}).Inc(); err != nil {

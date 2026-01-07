@@ -123,6 +123,7 @@ func NewHaHistogram(name, help string, labelNames ...string) *HaHistogram {
 	histogram.labelNames = append(histogram.labelNames, labelNames...)
 	histogram.metric.Labels = histogram.labelNames
 
+	histogram.reset()
 	return histogram
 }
 
@@ -147,5 +148,6 @@ func NewHaHistogramWithBuckets(name, help string, buckets []float64, labelNames 
 	histogram.labelNames = append(histogram.labelNames, labelNames...)
 	histogram.metric.Labels = histogram.labelNames
 
+	histogram.reset()
 	return histogram
 }

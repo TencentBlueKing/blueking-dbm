@@ -85,6 +85,7 @@ func (m *HaCounter) Inc() error {
 
 	if len(m.labelNames) == 0 {
 		m.metric.Collector.(prometheus.Counter).Inc()
+		return m.Error
 	}
 
 	if len(m.labelValues) != len(m.labelNames) {
@@ -105,7 +106,7 @@ func (m *HaCounter) Add(val float64) error {
 
 	if len(m.labelNames) == 0 {
 		m.metric.Collector.(prometheus.Counter).Add(val)
-		return nil
+		return m.Error
 	}
 
 	if len(m.labelValues) != len(m.labelNames) {
