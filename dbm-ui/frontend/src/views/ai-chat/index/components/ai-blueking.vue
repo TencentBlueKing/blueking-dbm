@@ -10,6 +10,8 @@
   </div>
 </template>
 <script setup lang="ts">
+  import urlJoin from 'url-join';
+
   import AIBlueking from '@blueking/ai-blueking';
 
   interface Props {
@@ -20,7 +22,7 @@
 
   const isMounted = ref(false);
 
-  const url = `${window.PROJECT_ENV.VITE_AJAX_URL_PREFIX}/apis/ai/agent`;
+  const url = urlJoin(window.PROJECT_ENV.VITE_AJAX_URL_PREFIX, '/apis/ai/agent');
 
   const aiBluekingRef = useTemplateRef<InstanceType<typeof AIBlueking>>('aiBlueking');
 
