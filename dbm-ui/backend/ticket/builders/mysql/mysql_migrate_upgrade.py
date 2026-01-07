@@ -120,6 +120,7 @@ class MysqlMigrateUpgradeResourceParamBuilder(BaseOperateResourceParamBuilder):
         if info.get("read_only_new_slave"):
             info.pop("read_only_new_slave")
 
+    # test
     def post_callback(self):
         # 通过资源池获取到的节点
         nodes = self.ticket_data.pop("nodes", [])
