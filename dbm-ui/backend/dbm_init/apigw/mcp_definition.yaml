@@ -42,6 +42,7 @@ stages:
           {% endfor %}
         is_public: {{ mcp_server.is_public }}
         status: {{ mcp_server.status }}
+        protocol_type: "streamable_http"
         {% if mcp_server.target_app_codes %}
         target_app_codes:
           {% for app_code in mcp_server.target_app_codes %}
