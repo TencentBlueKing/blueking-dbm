@@ -30,15 +30,50 @@ import (
 
 	"dbm-services/common/dbha-v2/internal/probe/config"
 	"dbm-services/common/dbha-v2/pkg/process"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var (
-	ForceStop     bool
-	StopTimeout   int
-	JsonFormatter bool
+	ForceStop      bool
+	StopTimeout    int
+	JsonFormatter  bool
+	ConfigFilePath string
 )
+
+func loadConfig() error {
+	viper.SetConfigName("probe")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath("./etc")
+
+	if ConfigFilePath != "" {
+		viper.SetConfigFile(ConfigFilePath)
+	}
+
+	if err := viper.ReadInConfig(); err != nil {
+		return err
+	}
+
+	return viper.Unmarshal(&config.Cfg)
+}
+
+type ProbeHealthInfo struct {
+	*process.HealthInfo
+	DbTypes []haprobe.DbType `json:"db_types,omitempty"`
+}
+
+func getConfiguredDbTypes() []haprobe.DbType {
+	var dbTypes []haprobe.DbType
+	if config.Cfg.Harvester.MySql != nil && len(config.Cfg.Harvester.MySql.Endpoints) > 0 {
+		dbTypes = append(dbTypes, haprobe.DbTypeMySql)
+	}
+	if config.Cfg.Harvester.Redis != nil && len(config.Cfg.Harvester.Redis.Endpoints) > 0 {
+		dbTypes = append(dbTypes, haprobe.DbTypeRedis)
+	}
+	return dbTypes
+}
 
 func StartCmdRunE(cmd *cobra.Command, args []string) error {
 	return process.StartCmdRunE(cmd, args, config.Cfg.PidFile, process.NameProbe)
@@ -57,16 +92,33 @@ func ReloadCmdRunE(cmd *cobra.Command, args []string) error {
 }
 
 func HealthCmdRunE(cmd *cobra.Command, _ []string) error {
-	baseHealth := process.GetBaseHealthInfo(config.Cfg.PidFile, process.NameProbe)
-
-	if !JsonFormatter {
-		process.PrintBaseHealth(cmd.OutOrStdout(), baseHealth)
-		// TODO: print probe-specific health info here
+	if err := loadConfig(); err != nil {
+		baseHealth := process.GetBaseHealthInfo(config.Cfg.PidFile, process.NameProbe)
+		if !JsonFormatter {
+			process.PrintBaseHealth(cmd.OutOrStdout(), baseHealth)
+			return nil
+		}
+		data, _ := json.Marshal(baseHealth)
+		fmt.Fprintln(cmd.OutOrStdout(), string(data))
 		return nil
 	}
 
-	// TODO: add probe-specific fields to JSON output
-	data, err := json.Marshal(baseHealth)
+	baseHealth := process.GetBaseHealthInfo(config.Cfg.PidFile, process.NameProbe)
+
+	probeHealth := &ProbeHealthInfo{
+		HealthInfo: baseHealth,
+		DbTypes:    getConfiguredDbTypes(),
+	}
+
+	if !JsonFormatter {
+		process.PrintBaseHealth(cmd.OutOrStdout(), baseHealth)
+		if len(probeHealth.DbTypes) > 0 {
+			fmt.Fprintln(cmd.OutOrStdout(), "DbTypes:", probeHealth.DbTypes)
+		}
+		return nil
+	}
+
+	data, err := json.Marshal(probeHealth)
 	if err != nil {
 		return err
 	}
