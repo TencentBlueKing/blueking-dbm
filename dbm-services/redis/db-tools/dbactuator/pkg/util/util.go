@@ -411,3 +411,12 @@ func CleanProxyExporter() {
 	}
 	mylog.Logger.Info("ignore clean all gse exporter confies. process wc[%s]", "psCnt")
 }
+
+// TrimLines 多行传参中末尾的空格去掉后返回
+func TrimLines(s string) string {
+	lines := strings.Split(s, "\n")
+	for i := range lines {
+		lines[i] = strings.TrimSpace(lines[i])
+	}
+	return strings.Join(lines, "\n")
+}
