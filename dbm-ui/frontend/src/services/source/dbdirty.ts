@@ -16,6 +16,8 @@ import FaultOrRecycleMachineModel from '@services/model/db-resource/FaultOrRecyc
 import MachineEventModel from '@services/model/db-resource/machineEvent';
 import type { ListBase } from '@services/types';
 
+import { HostHandleTodoType } from '@common/const';
+
 import http from '../http';
 
 const path = '/apis/db_dirty';
@@ -90,12 +92,14 @@ export function deleteDirtyRecords(params: { bk_host_ids: number[] }) {
 export function getMachinePool(params: {
   bk_biz_id?: number;
   ips?: string;
+  is_todo?: boolean; // 待办相关字段
   limit?: number;
   offset?: number;
   /**
    * 不传则为所有主机
    */
   pool?: 'fault' | 'recycle';
+  todo_type?: HostHandleTodoType; // 待办相关字段
   update_at__gte?: string;
   update_at__lte?: string;
   updater?: string;

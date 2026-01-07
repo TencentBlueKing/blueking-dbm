@@ -144,7 +144,7 @@ export const useOperateClusterBasic = (options: { onSuccess: () => void }) => {
 
   const handleConfirm = (ticketType: TicketTypes, dataList: TicketClusterDisableTodoModel[]) => {
     createTicket({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      bk_biz_id: dataList[0].bk_biz_id, // 当前暂无批量提交的交互，实际数据量为1
       details: getDetailParam(ticketType, dataList),
       ticket_type: ticketType,
     }).then((data) => {
