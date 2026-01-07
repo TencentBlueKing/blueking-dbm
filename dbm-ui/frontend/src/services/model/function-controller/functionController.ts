@@ -136,6 +136,7 @@ export default class FunctionController {
   'observableManage.DBHASwitchEvents': ControllerItem<string>;
   'observableManage.healthReport': ControllerItem<string>;
   'personalWorkbench.clusterDisableTodo': ControllerItem<string>;
+  'personalWorkbench.hostTodo': ControllerItem<string>;
   'personalWorkbench.myTickets.viewDetails': ControllerItem<string>;
   'personalWorkbench.myTickets': ControllerItem<string>;
   'personalWorkbench.myTodos': ControllerItem<string>;
