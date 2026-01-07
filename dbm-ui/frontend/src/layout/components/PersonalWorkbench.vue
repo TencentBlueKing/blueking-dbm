@@ -44,6 +44,18 @@
       </BkMenuItem>
       <BkMenuItem
         v-if="userProfileStore.isDba"
+        key="resourceManageHostTodo"
+        v-db-console="'personalWorkbench.hostTodo'">
+        <template #icon>
+          <DbIcon type="host" />
+        </template>
+        <span>
+          {{ t('主机处理待办') }}
+        </span>
+        <span class="ticket-count">{{ hostTodoCount }}</span>
+      </BkMenuItem>
+      <BkMenuItem
+        v-if="userProfileStore.isDba"
         key="RiskMemoTodos"
         v-db-console="'personalWorkbench.RiskMemoTodos'">
         <template #icon>
@@ -135,6 +147,7 @@
   import {
     useAlarmEventsCount,
     useClusterDisableCount,
+    useHostTodoCount,
     useReportCount,
     useRiskMemoCount,
     useTicketCount,
@@ -157,6 +170,7 @@
   const userProfileStore = useUserProfile();
   const { data: ticketCount } = useTicketCount();
   const { toAssistCount: clusterDisableToAssistCount, todoCount: clusterDisableTodoCount } = useClusterDisableCount();
+  const { totalCount: hostTodoCount } = useHostTodoCount();
   const { todoCount: alarmEventsTodoCount } = useAlarmEventsCount();
   const { todoCount: riskMemoTodoCount } = useRiskMemoCount();
   const { manageCount: reportManageCount } = useReportCount(userProfileStore.isDba);
