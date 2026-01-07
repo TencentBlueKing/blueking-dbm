@@ -66,6 +66,9 @@ export const useQuickSearch = (pool?: ServiceParameters<typeof queryDirtyMachine
         id: 'rack_id',
         name: t('机架'),
         type: 'multiple-input',
+        validator: (value: string) => {
+          return !ipPort.test(value) && !ipv4.test(value);
+        },
       },
       {
         id: 'os_name',

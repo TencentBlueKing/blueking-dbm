@@ -17,8 +17,10 @@ export const useQuickSearch = () => {
   const globalBizStore = useGlobalBizs();
 
   const quickSearchValue = ref<Record<string, string>>({
-    create_at__gte: dayjs().subtract(6, 'day').startOf('day').format('YYYY-MM-DD HH:mm:ss'),
-    create_at__lte: dayjs().endOf('day').format('YYYY-MM-DD HH:mm:ss'),
+    create_at: [
+      dayjs().subtract(6, 'day').startOf('day').format('YYYY-MM-DD HH:mm:ss'),
+      dayjs().endOf('day').format('YYYY-MM-DD HH:mm:ss'),
+    ].join(','),
   });
   const isSearching = computed(() => Object.keys(quickSearchValue.value).length > 0);
 
@@ -107,6 +109,9 @@ export const useQuickSearch = () => {
         id: 'ticket_id',
         name: t('关联单据'),
         type: 'multiple-input',
+        validator: (value) => {
+          return !isNaN(Number(value)) ? true : t('ID 只支持数字');
+        },
       },
       {
         id: 'domain',
