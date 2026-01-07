@@ -42,7 +42,8 @@
               :cluster-type="DBTypes.MYSQL"
               :current-spec-id-list="item.cluster.spec_id_list"
               :label="t('规格')"
-              :machine-type="MachineTypes.MYSQL_BACKEND" />
+              :machine-type="MachineTypes.MYSQL_BACKEND"
+              required />
             <ResourceTagColumn v-model="item.labels" />
             <ReadonlyHostColumn
               v-model:new-readonly-host="item.new_readonly_host"
