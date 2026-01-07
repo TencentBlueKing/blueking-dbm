@@ -8,8 +8,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from .alram_query import MonitorQueryMcpToolsViewSet
-from .bill_query import BillQueryMcpToolsViewSet
-from .dbmeta_query import DBMetaQueryMcpToolsViewSet
-from .get_source_access import GetSourceAccessMcpToolsViewSet
-from .resource_param_query import ResourceParamQueryMcpToolsViewSet
+from django.utils.translation import gettext_lazy as _
+from rest_framework import serializers
+
+
+class GetSourceAccessInputSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务 id, bk_biz_id"))
+    cluster_domain = serializers.CharField(help_text=_("集群域名，格式为xx.xx.xx.db"))
+
+
+class GetSourceAccessOutputSerializer(serializers.Serializer):
+    report = serializers.ListField(help_text=_("处理后的用户来源列表，需要渲染成表格"))
+    failed_hosts = serializers.ListField(help_text=_("统计失败的主机列表。如果为空，不展示给用户。如果不为空，需要提示用户"))

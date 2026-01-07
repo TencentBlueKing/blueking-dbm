@@ -85,6 +85,9 @@ func (job *TendisKeysPattern) Init(m *jobruntime.JobGenericRuntime) error {
 			return err
 		}
 	}
+
+	job.params.KeyWhiteRegex = util.TrimLines(job.params.KeyWhiteRegex)
+	job.params.KeyBlackRegex = util.TrimLines(job.params.KeyBlackRegex)
 	// 白名单不能为空
 	if job.params.KeyWhiteRegex == "" {
 		err = fmt.Errorf("%s为空,白名单不能为空", job.params.KeyWhiteRegex)
