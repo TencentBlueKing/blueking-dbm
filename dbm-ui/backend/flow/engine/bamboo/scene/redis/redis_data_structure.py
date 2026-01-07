@@ -99,7 +99,9 @@ class RedisDataStructureFlow(object):
                 "redis": {"id": 1}
             }
           }
-        ]
+        ],
+        "skip_mannual_confirm": False,
+        "is_rollback_drill": False  # Optional
     }
     """
 
@@ -204,6 +206,7 @@ class RedisDataStructureFlow(object):
                         "spec_id": resource_spec["id"],
                         "spec_config": resource_spec,
                     },
+                    to_install_puglins=self.data.get("is_rollback_drill", False),  # 演练场景跳过安装beat插件
                 )
                 sub_pipelines_install.append(sub_builder)
 
