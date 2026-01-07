@@ -44,6 +44,7 @@
 </script>
 <style lang="postcss">
   #dbmAiChatContent {
+    z-index: 1;
     height: 100%;
     background: #fff;
 
