@@ -1,11 +1,11 @@
 package mysqlprocesslist
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/utils"
 	"log/slog"
 	"strings"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/internal/cst"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/utils"
 
 	"github.com/dlclark/regexp2"
 )
@@ -33,7 +33,7 @@ var nameMySQLLockMetric string
 func init() {
 	lockThreshold = 5
 	nameMySQLLockMetric = strings.Replace(nameMySQLLock, "-", "_", -1)
-	nameMySQLTableSlow = strings.Replace(nameMySQLTableSlow, "-", "_", -1)
+	//nameMySQLTableSlow = strings.Replace(nameMySQLTableSlow, "-", "_", -1)
 }
 
 func mysqlLock() (string, error) {
@@ -41,6 +41,8 @@ func mysqlLock() (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	var longestLockP *mysqlProcess
 
 	for _, p := range processList {
 		pstr, err := p.JsonString()
@@ -62,17 +64,10 @@ func mysqlLock() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		if hasLongWait || hasAbnormalTableState {
-			utils.SendMonitorMetrics(nameMySQLTableSlow, p.Time.Int64, map[string]interface{}{
-				"lock_user":    p.User.String,
-				"lock_id":      p.Id.Int64,
-				"lock_db":      p.Db.String,
-				"lock_command": p.Command.String,
-				"lock_info":    p.Info.String,
-				"lock_host":    p.Host.String,
-				"lock_state":   p.State.String,
-			})
-			slog.Debug("mysql lock check process", slog.Bool("has long wait for table flush", hasLongWait))
+
+		// 如果有 wait flush table, 留下最久的
+		if (hasLongWait || hasAbnormalTableState) && (longestLockP == nil || p.Time.Int64 > longestLockP.Time.Int64) {
+			longestLockP = p
 			continue
 		}
 
@@ -80,20 +75,28 @@ func mysqlLock() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		if hasNormal {
-			utils.SendMonitorMetrics(nameMySQLLockMetric, p.Time.Int64, map[string]interface{}{
-				"lock_user":    p.User.String,
-				"lock_id":      p.Id.Int64,
-				"lock_db":      p.Db.String,
-				"lock_command": p.Command.String,
-				"lock_info":    p.Info.String,
-				"lock_host":    p.Host.String,
-				"lock_state":   p.State.String,
-			})
-			slog.Debug("mysql lock check process", slog.Bool("has normal lock", hasNormal))
-			continue
+
+		if hasNormal && (longestLockP == nil || p.Time.Int64 > longestLockP.Time.Int64) {
+			longestLockP = p
 		}
 	}
+
+	if longestLockP != nil {
+		slog.Info("mysql lock check process", slog.Any("processlist snapshot", processList))
+
+		utils.SendMonitorMetrics(
+			nameMySQLLockMetric, longestLockP.Time.Int64, map[string]interface{}{
+				"lock_user":    longestLockP.User.String,
+				"lock_id":      longestLockP.Id.Int64,
+				"lock_db":      longestLockP.Db.String,
+				"lock_command": longestLockP.Command.String,
+				"lock_info":    longestLockP.Info.String,
+				"lock_host":    longestLockP.Host.String,
+				"lock_state":   longestLockP.State.String,
+			},
+		)
+	}
+
 	return "", nil
 }
 

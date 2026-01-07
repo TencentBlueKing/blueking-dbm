@@ -6,10 +6,12 @@ import (
 
 	ma "dbm-services/mysql/db-tools/mysql-crond/api"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
+
+	"golang.org/x/exp/maps"
 )
 
 // SendMonitorEvent TODO
-func SendMonitorEvent(name string, msg string) {
+func SendMonitorEvent(name string, msg string, customDimension map[string]interface{}) {
 	crondManager := ma.NewManager(config.MonitorConfig.ApiUrl)
 
 	additionDimension := map[string]interface{}{
@@ -22,6 +24,10 @@ func SendMonitorEvent(name string, msg string) {
 		"instance_port":                 config.MonitorConfig.Port,
 		"instance_host":                 config.MonitorConfig.Ip,
 		"bk_target_service_instance_id": strconv.FormatInt(*config.MonitorConfig.BkInstanceId, 10),
+	}
+
+	if customDimension != nil {
+		maps.Copy(additionDimension, customDimension)
 	}
 
 	if config.MonitorConfig.Role != nil {

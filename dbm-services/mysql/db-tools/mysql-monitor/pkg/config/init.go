@@ -48,6 +48,9 @@ func InitConfig(configPath string) error {
 	}
 	lockFilePath := filepath.Join(lockFileBasePath, lockFileName)
 	fl := flock.New(lockFilePath)
+	defer func() {
+		_ = fl.Unlock()
+	}()
 
 	// 共享锁
 	err = fl.RLock()
@@ -174,7 +177,7 @@ func injectItem(item *MonitorItem, collect []*MonitorItem) (res []*MonitorItem) 
 
 // WriteMonitorItemsBack 回写监控项到文件
 func WriteMonitorItemsBack() error {
-	// 注入硬编码监控项后回写items文件
+	// 注入硬编码监控项后回写 items 文件
 	content, err := yaml.Marshal(ItemsConfig)
 	if err != nil {
 		slog.Error("marshal items config", slog.String("error", err.Error()))
@@ -186,6 +189,9 @@ func WriteMonitorItemsBack() error {
 		slog.Error("open items config file", slog.String("error", err.Error()))
 		return err
 	}
+	defer func() {
+		_ = f.Close()
+	}()
 
 	_, err = f.Write(content)
 	if err != nil {
