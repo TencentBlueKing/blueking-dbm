@@ -3,7 +3,6 @@ import time
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import AppCache, Cluster
 from backend.db_services.sqlserver.sql_import.constants import BKREPO_SQLSERVER_SQLFILE_PATH
 from backend.flow.engine.controller.sqlserver import SqlserverController
@@ -21,7 +20,22 @@ class SQLServerDataExportDetailSerializer(SQLServerBaseOperateDetailSerializer):
 
     cluster_ids = serializers.ListField(help_text=_("查询集群列表"), child=serializers.IntegerField())
     execute_objects = serializers.ListField(help_text=_("执行对象列表"), child=serializers.DictField())
-    select_role = serializers.ChoiceField(help_text=_("查询实例角色"), choices=InstanceRole.get_choices())
+    select_role = serializers.ChoiceField(
+        help_text=_("查询实例角色，master或 slave"),
+        choices=[
+            ("master", ""),
+            ("slave", ""),
+        ],
+        required=False,
+    )
+
+    def validate(self, attrs):
+        attrs = super(SQLServerBaseOperateDetailSerializer, self).validate(attrs)
+        # 校验集群是否可用
+        # 单据详情添加path字段信息
+        attrs["path"] = BKREPO_SQLSERVER_SQLFILE_PATH.format(biz=self.context["bk_biz_id"])
+        super().validate_cluster_can_access(attrs)
+        return attrs
 
 
 class SQLServerDataExportItsmMaintainerFlowParamsBuilder(builders.ItsmParamBuilder):
@@ -41,6 +55,7 @@ class SQLServerDataExportFlowParamBuilder(builders.FlowParamBuilder):
 
     # 文件名
     def format_ticket_data(self):
+        self.ticket_data["path"] = BKREPO_SQLSERVER_SQLFILE_PATH.format(biz=self.ticket.bk_biz_id)
         cluster = Cluster.objects.filter(id__in=self.ticket_data["cluster_ids"])
         dump_file_name = f"{cluster.first().immute_domain}_{int(time.time())}_dbm_console_dump.sql"
         self.ticket_data["dump_file_name"] = dump_file_name
