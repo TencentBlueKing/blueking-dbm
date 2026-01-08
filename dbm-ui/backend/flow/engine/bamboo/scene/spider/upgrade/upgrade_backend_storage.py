@@ -7,6 +7,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 from backend.flow.engine.bamboo.scene.spider.upgrade.local_upgrade import TenDBClusterStorageLocalUpgradeFlow
 from backend.flow.engine.bamboo.scene.spider.upgrade.migrate_upgrade import TenDBClusterStorageMigrateUpgradeFlow
 
@@ -34,6 +35,7 @@ class UpgradeRemoteFlow(TenDBClusterStorageLocalUpgradeFlow, TenDBClusterStorage
         self.bk_biz_id = data.get("bk_biz_id")
         self.created_by = data.get("created_by")
         self.backup_target_path = f"/data/dbbak/{self.root_id}"
+        self.need_checksum = data.get("need_checksum", True)
 
     def run(self):
         """

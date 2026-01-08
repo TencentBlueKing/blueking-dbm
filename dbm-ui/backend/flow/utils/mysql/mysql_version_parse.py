@@ -274,6 +274,26 @@ def spider_cross_major_version(current_version_num, refer_version_num) -> bool:
     return (current_version_num // 1000000 - refer_version_num // 1000000) >= 1
 
 
+def mysql_cross_major_version(current_version_num, refer_version_num) -> bool:
+    """判断tmysql是否跨主版本
+
+    Args:
+        current_version_num (_type_): _description_
+        refer_version_num (_type_): _description_
+
+    Returns:
+        bool: _description_
+    """
+    # mysql5.6 = 5060000
+    # mysql5.7 = 5070000
+    # mysql8.0 = 8000000
+    if current_version_num >= 8000000:
+        current_version_num = 5080000
+    if refer_version_num >= 8000000:
+        refer_version_num = 5080000
+    return (current_version_num // 10000 - refer_version_num // 10000) <= 1
+
+
 def module_version_parse(mysql_version: str) -> int:
     """
     解析模块版本字符串，返回主版本号和子版本号（均为数字，便于比较）
