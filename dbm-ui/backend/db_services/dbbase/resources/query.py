@@ -691,21 +691,23 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
                     and entry.forward_to.cluster_entry_type == ClusterEntryType.CLB.value
                 ):
                     dns_to_clb = True
-
-            cluster_info = cls._to_cluster_representation(
-                cluster=cluster,
-                cluster_entry=cluster_entry,
-                db_module_names_map=db_module_names_map,
-                cluster_entry_map=cluster_entry_map,
-                cluster_operate_records_map=cluster_operate_records_map,
-                cloud_info=cloud_info,
-                biz_info=biz_info,
-                cluster_stats_map=cluster_stats_map,
-                dns_to_clb=dns_to_clb,
-                cluster_zone_map=cluster_zone_map,
-                **kwargs,
-            )
-            clusters.append(cluster_info)
+            try:
+                cluster_info = cls._to_cluster_representation(
+                    cluster=cluster,
+                    cluster_entry=cluster_entry,
+                    db_module_names_map=db_module_names_map,
+                    cluster_entry_map=cluster_entry_map,
+                    cluster_operate_records_map=cluster_operate_records_map,
+                    cloud_info=cloud_info,
+                    biz_info=biz_info,
+                    cluster_stats_map=cluster_stats_map,
+                    dns_to_clb=dns_to_clb,
+                    cluster_zone_map=cluster_zone_map,
+                    **kwargs,
+                )
+                clusters.append(cluster_info)
+            except Exception as e:
+                clusters.append({"id": cluster.id, "master_domain": cluster.immute_domain, "error": str(e)})
 
         return ResourceList(count=count, data=clusters)
 
