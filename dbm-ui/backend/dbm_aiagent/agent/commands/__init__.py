@@ -9,6 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+# commands存放与agent快捷指令相关文件
+
 from aidev_agent.services.command_handler import CommandProcessor as BaseCommandProcessor
 
 from .commands import *
