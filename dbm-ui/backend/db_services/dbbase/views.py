@@ -87,6 +87,7 @@ from backend.iam_app.handlers.drf_perm.cluster import (
     ClusterListPermission,
     ClusterWebconsolePermission,
 )
+from backend.ticket.models import Todo
 
 SWAGGER_TAG = _("集群通用接口")
 
@@ -444,6 +445,12 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         filter_map = {}
         if data.get("pool"):
             filter_map = {"pool": data["pool"]}
+        if data.get("is_todo"):
+            user = request.user.username
+            type_map = {"recycle": "RECYCLE_HOST", "fault": "FAULT_HOST"}
+            todos = Todo.objects.filter(operators__contains=user, status="TODO", type=type_map[data["pool"]])
+            host_ids = [todo.context["host_id"] for todo in todos]
+            filter_map = {"bk_host_id__in": host_ids}
         machines = DirtyMachine.objects.filter(**filter_map)
         # 聚合每个属性字段
         machine_attrs: Dict[str, Union[List, Set]] = defaultdict(list)

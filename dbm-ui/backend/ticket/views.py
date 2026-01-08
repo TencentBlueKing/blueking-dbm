@@ -13,7 +13,7 @@ from collections import Counter
 from typing import Dict, List
 
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.utils.translation import gettext_lazy as _
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers, status
@@ -27,6 +27,7 @@ from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import PaginatedResponseSwaggerAutoSchema, common_swagger_auto_schema
 from backend.configuration.constants import DBType
+from backend.db_meta.models import Cluster
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -57,10 +58,11 @@ from backend.ticket.exceptions import TicketDuplicationException, TicketParamsVe
 from backend.ticket.filters import ClusterOpRecordListFilter, InstanceOpRecordListFilter, TicketListFilter
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.handler import TicketHandler
-from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord, Ticket, TicketFlowsConfig
+from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord, Ticket, TicketFlowsConfig, Todo
 from backend.ticket.serializers import (
     BatchTicketOperateSerializer,
     BatchTodoOperateSerializer,
+    ClusterDisableTodoSerializer,
     ClusterModifyOpSerializer,
     CreateTicketFlowConfigSerializer,
     DeleteTicketFlowConfigSerializer,
@@ -471,6 +473,95 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         TodoActorFactory.actor(todo).process(request.user.username, validated_data["action"], validated_data["params"])
 
         return Response(TodoSerializer(ticket.todo_of_ticket.all(), many=True).data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("集群下架代办"),
+        tags=[TICKET_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=ClusterDisableTodoSerializer)
+    def cluster_disable_todo(self, request, *args, **kwargs):
+        data = []
+        user = request.user.username
+        validated_data = self.params_validate(self.get_serializer_class())
+
+        # 基础查询条件
+        query = Q(context__db_type=validated_data["db_type"], type=TodoType.CLUSTER_DISABLE, status=TodoStatus.TODO)
+
+        user_field = "helpers" if validated_data.get("is_assist") else "operators"
+        query &= Q(**{f"{user_field}__contains": [user]}) | Q(**{f"{user_field}__contains": user})
+
+        # 其他过滤条件
+        if cluster_id := validated_data.get("cluster_id"):
+            query &= Q(context__cluster_id=cluster_id)
+
+        if bk_biz_ids := validated_data.get("bk_biz_id"):
+            biz_ids = [int(bid.strip()) for bid in bk_biz_ids.split(",") if bid.strip()]
+            if biz_ids:
+                query &= Q(ticket__bk_biz_id__in=biz_ids)
+
+        if disable_person := validated_data.get("disable_person"):
+            query &= Q(ticket__creator=disable_person)
+
+        if immute_domain := validated_data.get("immute_domain"):
+            query &= Q(context__immute_domain__icontains=immute_domain)
+
+        if create_at_gte := validated_data.get("create_at__gte"):
+            if create_at_lte := validated_data.get("create_at__lte"):
+                query &= Q(create_at__range=(create_at_gte, create_at_lte))
+            else:
+                query &= Q(create_at__gte=create_at_gte)
+
+        todo_queryset = Todo.objects.select_related("ticket").filter(query)
+        pages = self.paginate_queryset(todo_queryset)
+
+        for todo in pages:
+            cluster = Cluster.objects.get(id=todo.context["cluster_id"])
+            cluster_info = cluster.simple_desc
+            cluster_info["disable_time"] = todo.create_at
+            cluster_info["disable_person"] = todo.ticket.creator
+            data.append(cluster_info)
+        return self.get_paginated_response(data=data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("集群下架待办单据数"),
+        tags=[TICKET_TAG],
+    )
+    @action(methods=["GET"], detail=False, filter_class=None, pagination_class=None)
+    def get_cluster_disable_count(self, request, *args, **kwargs):
+        user = request.user.username
+        data = {}
+
+        def calculate_count(field_name):
+            todos = Todo.objects.filter(
+                status=TodoStatus.TODO, type=TodoType.CLUSTER_DISABLE, **{f"{field_name}__contains": user}
+            )
+            cluster_type_count = {}
+            for todo in todos:
+                if todo.context["db_type"] not in cluster_type_count:
+                    cluster_type_count[todo.context["db_type"]] = 1
+                else:
+                    cluster_type_count[todo.context["db_type"]] += 1
+            return cluster_type_count
+
+        data["todo"] = calculate_count("operators")
+        data["to_assist"] = calculate_count("helpers")
+        return Response(data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("主机待办单据数"),
+        tags=[TICKET_TAG],
+    )
+    @action(methods=["GET"], detail=False, filter_class=None, pagination_class=None)
+    def get_host_todo_count(self, request, *args, **kwargs):
+        user = request.user.username
+
+        result = Todo.objects.filter(
+            operators__contains=user, status="TODO", type__in=["RECYCLE_HOST", "FAULT_HOST"]
+        ).aggregate(
+            recycle_count=Count("id", filter=Q(type="RECYCLE_HOST")),
+            fault_count=Count("id", filter=Q(type="FAULT_HOST")),
+        )
+        return Response(result)
 
     @common_swagger_auto_schema(
         operation_summary=_("待办单据数"),

@@ -31,6 +31,8 @@ from backend.db_dirty.serializers import (
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission
+from backend.ticket.constants import TodoStatus
+from backend.ticket.models import Todo
 
 
 class DBDirtyMachineViewSet(viewsets.SystemViewSet):
@@ -97,10 +99,17 @@ class DBDirtyMachineViewSet(viewsets.SystemViewSet):
         detail=False,
         methods=["GET"],
         filter_class=DirtyMachinePoolFilter,
-        queryset=DirtyMachine.objects.all().order_by("-update_at"),
     )
     def query_machine_pool(self, request):
-        machine_qs = self.paginate_queryset(self.filter_queryset(self.get_queryset()))
+        if request.query_params.get("is_todo"):
+            user = request.user.username
+            todo_type = request.query_params.get("todo_type")
+            todo_queryset = Todo.objects.filter(status=TodoStatus.TODO, type=todo_type, operators__contains=user)
+            host_ids = [todo.context["host_id"] for todo in todo_queryset]
+            queryset = DirtyMachine.objects.filter(bk_host_id__in=host_ids)
+        else:
+            queryset = DirtyMachine.objects.all().order_by("-update_at")
+        machine_qs = self.paginate_queryset(self.filter_queryset(queryset))
         # 查询主机池主机信息
         machine_data = ListMachinePoolSerializer(machine_qs, many=True).data
         # 补充主机agent状态
