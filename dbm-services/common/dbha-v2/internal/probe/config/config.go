@@ -29,6 +29,8 @@ import (
 
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
+
+	"github.com/spf13/viper"
 )
 
 var Cfg = Configuration{
@@ -100,4 +102,21 @@ type Configuration struct {
 	Reporters []ReporterConfig `yaml:"reporter"  mapstructure:"reporter"`
 	Harvester HarvesterConfig  `yaml:"harvester" mapstructure:"harvester"`
 	Log       LogConfig        `yaml:"log"       mapstructure:"log"`
+}
+
+// Load loads probe configuration from file
+func Load(configFilePath string) error {
+	viper.SetConfigName("probe")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath("./etc")
+
+	if configFilePath != "" {
+		viper.SetConfigFile(configFilePath)
+	}
+
+	if err := viper.ReadInConfig(); err != nil {
+		return err
+	}
+
+	return viper.Unmarshal(&Cfg)
 }

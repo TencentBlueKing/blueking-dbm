@@ -36,7 +36,6 @@ import (
 	"dbm-services/common/dbha-v2/pkg/process"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 func setupGracefulShutdown(p *Probe) {
@@ -65,19 +64,7 @@ func setupGracefulShutdown(p *Probe) {
 
 // Run run probe
 func Run(cmd *cobra.Command, args []string) error {
-	viper.SetConfigName("probe")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./etc")
-
-	if ConfigFilePath != "" {
-		viper.SetConfigFile(ConfigFilePath)
-	}
-
-	if err := viper.ReadInConfig(); err != nil {
-		return err
-	}
-
-	if err := viper.Unmarshal(&config.Cfg); err != nil {
+	if err := config.Load(ConfigFilePath); err != nil {
 		return err
 	}
 
