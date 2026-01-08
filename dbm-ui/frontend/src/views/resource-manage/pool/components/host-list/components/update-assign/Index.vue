@@ -181,8 +181,21 @@
   const handleSubmit = async () => {
     await formRef.value!.validate();
 
-    const tagAfter = tagSelectorRef.value!.getLabelNames().join('，') || '';
+    const bizBefore = props.editData.forBizDisplay;
+    const bizAfter = currentApp.value?.name || '';
+    const dbBefore = props.editData.resourceTypeDisplay;
+    const dbAfter = dbTypeList.value.find((item) => item.id === formData.resource_type)?.name || '';
     const tagBefore = props.editData.labels.map((labelItem) => labelItem.name).join('，') || '';
+    const tagAfter = tagSelectorRef.value?.getLabelNames().join('，') || '';
+
+    const remark = [
+      {
+        for_biz: { after_value: bizAfter, before_value: bizBefore },
+        labels: { after_value: tagAfter, before_value: tagBefore },
+        resource_type: { after_value: dbAfter, before_value: dbBefore },
+      },
+    ];
+
     runUpdate({
       bk_biz_id: isBusiness ? window.PROJECT_CONFIG.BIZ_ID : defaultBizId,
       bk_host_ids: [props.editData.bk_host_id],
@@ -192,7 +205,7 @@
       },
       labels: formData.labels,
       rack_id: '',
-      remark: [{ labels: { after_value: tagAfter, before_value: tagBefore } }],
+      remark,
       resource_type: formData.resource_type,
       storage_device: {},
       update_type: MachineEvents.RESOURCE_OWNER,
