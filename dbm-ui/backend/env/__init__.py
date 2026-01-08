@@ -89,6 +89,9 @@ APIGW_PUBLIC_KEY = get_type_env(key="APIGW_PUBLIC_KEY", _type=str, default="")
 BK_APIGW_STAGE_ENABLE_MCP_SERVERS = get_type_env(key="BK_APIGW_STAGE_ENABLE_MCP_SERVERS", _type=bool, default=False)
 BK_APIGW_STAGE_ENABLE_SERVERS = get_type_env(key="BK_APIGW_STAGE_ENABLE_SERVERS", _type=bool, default=True)
 
+# bkoauth 相关配置
+OAUTH_API_URL = get_type_env(key="OAUTH_API_URL", _type=str, default="")
+
 # AIDEV 相关配置
 BK_AIDEV_APIGW_ENDPOINT = get_type_env(key="BK_AIDEV_APIGW_ENDPOINT", _type=str, default="https://aidev.example.com")
 BK_AIDEV_AGENT_APP_CODE = get_type_env(key="BK_AIDEV_AGENT_APP_CODE", _type=str, default="")

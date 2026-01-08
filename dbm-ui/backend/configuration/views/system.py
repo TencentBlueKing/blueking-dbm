@@ -124,6 +124,7 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
             "AFFINITY": SystemSettings.get_setting_value(key=SystemSettingsEnum.AFFINITY.value),
             "ENABLE_EXTERNAL_PROXY": env.ENABLE_EXTERNAL_PROXY,
             "DBA_ROBOT": SystemSettings.get_setting_value(key=SystemSettingsEnum.DBA_ROBOT.value, default={}),
+            "ENABLE_DBM_AI": env.ENABLE_DBM_AI,
         }
         # 非外部环境，补充额外环境变量
         if not env.ENABLE_EXTERNAL_PROXY and not env.ENABLE_OPEN_EXTERNAL_PROXY:

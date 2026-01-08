@@ -27,6 +27,9 @@ DatabaseFeatures.minimum_database_version = PatchFeatures.minimum_database_versi
 
 if env.RUN_VER == "open":
     from blueapps.patch.settings_open_saas import *  # pylint: disable=wildcard-import
+    # 社区版额外加上bkoauth的配置
+    OAUTH_COOKIES_PARAMS = {"bk_token": "bk_token"}
+    INSTALLED_APPS += ("bkoauth", )
 else:
     from blueapps.patch.settings_paas_services import *  # pylint: disable=wildcard-import
 
@@ -408,6 +411,8 @@ CSRF_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
 REQUEST_ID_HEADER = "HTTP_X_REQUEST_ID"
 
 APIGW_PUBLIC_KEY = env.APIGW_PUBLIC_KEY
+
+OAUTH_API_URL = env.OAUTH_API_URL
 
 # DRF 配置
 REST_FRAMEWORK = {

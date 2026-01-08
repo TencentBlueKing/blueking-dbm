@@ -8,3 +8,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
+# agent侧相关开发，包括：
+# 1. agent client视图封装
+# 2. agent 配置
+# 3. agent 快捷指令
+# 4. 使用 agent 相关业务场景
+# 5. agent 二次开发
