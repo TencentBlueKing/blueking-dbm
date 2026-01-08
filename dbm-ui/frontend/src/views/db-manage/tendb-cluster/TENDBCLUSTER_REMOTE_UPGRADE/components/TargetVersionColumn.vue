@@ -117,11 +117,11 @@
   import { useRequest } from 'vue-request';
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
-  import { getSpiderVersionModules } from '@services/source/mysqlToolbox';
+  import { getVersionModules } from '@services/source/mysqlToolbox';
 
   import InnerSelect from '@views/db-manage/mysql/MYSQL_LOCAL_UPGRADE/components/InnerSelect.vue';
 
-  type ModulesInfo = ServiceReturnType<typeof getSpiderVersionModules>[0];
+  type ModulesInfo = ServiceReturnType<typeof getVersionModules>[0];
 
   interface Props {
     cluster: TendbClusterModel;
@@ -189,7 +189,7 @@
     },
   ];
 
-  const { run: fetchModuleList } = useRequest(getSpiderVersionModules, {
+  const { run: fetchModuleList } = useRequest(getVersionModules, {
     manual: true,
     onSuccess(data) {
       moduleSelectList.value = data.map((module) => ({
