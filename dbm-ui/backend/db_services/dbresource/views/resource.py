@@ -70,7 +70,7 @@ from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission
 from backend.iam_app.handlers.permission import Permission
 from backend.ticket.constants import BAMBOO_STATE__TICKET_STATE_MAP, TicketStatus, TicketType
-from backend.ticket.models import Ticket
+from backend.ticket.models import Ticket, Todo
 from backend.utils.redis import RedisConn
 
 
@@ -340,7 +340,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
             MachineEvent.host_event_trigger(
                 env.DBA_APP_BK_BIZ_ID, data["hosts"], data["event"], operator, remark=data["remark"]
             )
-
+            Todo.host_todo_trigger(bk_host_ids, [operator], data["event"], None)
         # 删除资源
         resp = DBResourceApi.resource_delete(params={"bk_host_ids": bk_host_ids})
         return Response(resp)

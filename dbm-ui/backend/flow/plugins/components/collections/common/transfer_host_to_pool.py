@@ -17,7 +17,7 @@ from backend.db_dirty.constants import MachineEventType
 from backend.db_dirty.models import MachineEvent
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.cc_manage import CcManage
-from backend.ticket.models import Ticket
+from backend.ticket.models import Ticket, Todo
 
 logger = logging.getLogger("flow")
 
@@ -36,6 +36,10 @@ class TransferHostToPoolService(BaseService):
         remark = kwargs.get("remark") or recycle_hosts[0].get("remark") or ""
         # 记录主机事件
         MachineEvent.host_event_trigger(bk_biz_id, recycle_hosts, event, operator, ticket, remark=remark)
+        # 记录代办
+        if event in [MachineEventType.ToRecycle, MachineEventType.ToFault]:
+            host_ids = [host["bk_host_id"] for host in recycle_hosts]
+            Todo.host_todo_trigger(host_ids, [operator], event, ticket)
         # 如果主机事件是回收，则转移CC模块
         if event == MachineEventType.Recycled:
             host_ids = [host["bk_host_id"] for host in recycle_hosts]
