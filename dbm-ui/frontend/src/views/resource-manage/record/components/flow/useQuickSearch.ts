@@ -7,7 +7,7 @@ import { getUserList } from '@services/source/user';
 
 import { useGlobalBizs } from '@stores';
 
-import { machineEventsDisplayMap } from '@common/const';
+import { MachineEvents, machineEventsDisplayMap } from '@common/const';
 import { ipPort, ipv4 } from '@common/regex';
 
 import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
@@ -36,7 +36,18 @@ export const useQuickSearch = () => {
       },
       {
         id: 'events',
-        list: Object.entries(machineEventsDisplayMap).map(([key, value]) => ({ label: value, value: key })),
+        list: [
+          MachineEvents.IMPORT_RESOURCE,
+          MachineEvents.APPLY_RESOURCE,
+          MachineEvents.RETURN_RESOURCE,
+          MachineEvents.TO_FAULT,
+          MachineEvents.TO_RECYCLE,
+          MachineEvents.REMOVE_HOST,
+          MachineEvents.RECYCLED,
+          MachineEvents.UNDO_IMPORT,
+          MachineEvents.HOST_ATTRIBUTE,
+          MachineEvents.RESOURCE_OWNER,
+        ].map((key) => ({ label: machineEventsDisplayMap[key], value: key })),
         name: t('操作类型'),
         type: 'multiple',
       },

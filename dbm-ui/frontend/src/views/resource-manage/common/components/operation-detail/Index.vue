@@ -70,7 +70,7 @@
     () => !([MachineEvents.TO_FAULT, MachineEvents.TO_RECYCLE].includes(props.data.event) && props.data.ticket),
   );
   const onlyRemark = computed(() =>
-    [MachineEvents.HOST_ATTRIBUTE, MachineEvents.RESOURCE_OWNER].includes(props.data.event),
+    [MachineEvents.HOST_ATTRIBUTE, MachineEvents.REMOVE_HOST, MachineEvents.RESOURCE_OWNER].includes(props.data.event),
   );
 
   const bizName = computed(() => props.data.bk_biz_name || globalBizsStore.bizIdMap.get(props.data.bk_biz_id)?.name);
@@ -86,6 +86,7 @@
       [MachineEvents.HOST_ATTRIBUTE]: '',
       [MachineEvents.IMPORT_RESOURCE]: t('从「n」业务 CMDB空闲机模块导入', { n: bizName.value }),
       [MachineEvents.RECYCLED]: t('从系统中删除主机记录，主机同步转入 CMDB「n」待回收模块', { n: bizName.value }),
+      [MachineEvents.REMOVE_HOST]: '',
       [MachineEvents.RESOURCE_OWNER]: '',
       [MachineEvents.RETURN_RESOURCE]:
         returnResourceTextMap[props.data.ticket_type] || machineEventsDisplayMap[props.data.event],
