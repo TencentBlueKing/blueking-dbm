@@ -15,6 +15,8 @@ from django_filters.filters import BaseInFilter, NumberFilter
 
 from backend.db_dirty.models import DirtyMachine, MachineEvent
 from backend.db_meta.models import Cluster
+from backend.ticket.constants import TodoStatus
+from backend.ticket.models import Todo
 
 
 class NumberInFilter(BaseInFilter, NumberFilter):
@@ -64,6 +66,8 @@ class DirtyMachinePoolFilter(filters.FilterSet):
     update_at__gte = filters.DateTimeFilter(field_name="update_at", lookup_expr="gte", label=_("更新时间晚于"))
     pool = filters.CharFilter(field_name="pool", method="filter_pool", label=_("池类型"))
     updator = filters.CharFilter(field_name="updator", method="filter_updator", label=_("转入人"))
+    is_todo = filters.BooleanFilter(method="filter_is_todo", label=_("是否是待办"))
+    todo_type = filters.CharFilter(method="filter_todo_type", label=_("待办类型"))
 
     def filter_ips(self, queryset, name, value):
         return queryset.filter(ip__in=value.split(","))
@@ -92,6 +96,27 @@ class DirtyMachinePoolFilter(filters.FilterSet):
     def filter_updator(self, queryset, name, value):
         return queryset.filter(updator__in=value.split(","))
 
+    def filter_is_todo(self, queryset, name, value):
+        """处理 is_todo 过滤逻辑"""
+        if not value:
+            return queryset
+
+        user = self.request.user.username
+        todo_type = self.request.query_params.get("todo_type", "")
+        if not todo_type:
+            return queryset
+
+        # 获取待办相关的主机ID
+        todo_queryset = Todo.objects.filter(status=TodoStatus.TODO, type=todo_type, operators__contains=user)
+        host_ids = [todo.context["host_id"] for todo in todo_queryset]
+
+        return queryset.filter(bk_host_id__in=host_ids)
+
+    def filter_todo_type(self, queryset, name, value):
+        """todo_type 过滤器，只在 is_todo=True 时生效"""
+        # 这个过滤器主要配合 is_todo 使用，单独使用时不生效
+        return queryset
+
     class Meta:
         model = DirtyMachine
         fields = [
@@ -106,4 +131,6 @@ class DirtyMachinePoolFilter(filters.FilterSet):
             "update_at__gte",
             "pool",
             "updator",
+            "is_todo",
+            "todo_type",
         ]
