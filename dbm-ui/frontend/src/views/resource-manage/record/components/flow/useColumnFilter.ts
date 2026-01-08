@@ -94,6 +94,7 @@ export const useColumnFilter = () => {
           MachineEvents.RETURN_RESOURCE,
           MachineEvents.TO_FAULT,
           MachineEvents.TO_RECYCLE,
+          MachineEvents.REMOVE_HOST,
           MachineEvents.RECYCLED,
           MachineEvents.UNDO_IMPORT,
           MachineEvents.HOST_ATTRIBUTE,
