@@ -230,7 +230,7 @@ def __show_tendbha_processlist(cluster_obj: Cluster, only_count: bool = True) ->
 
     return __show_processlist_on_proxy(
         bk_cloud_id=cluster_obj.bk_cloud_id,
-        addresses=[f"{pi.machine.ip}:{pi.port + 1000}" for pi in proxy_instances],
+        addresses=[f"{pi.ip_port}" for pi in proxy_instances],
         only_count=only_count,
     ) + __show_processlist_on_mysql(
         bk_cloud_id=cluster_obj.bk_cloud_id,
