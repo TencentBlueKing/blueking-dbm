@@ -1059,8 +1059,8 @@ func (sw *TenDBClusterRemoteSwitchInstance) GetInstanceInfo() string {
 
 // UpdateMetaInfo swaps roles of remote master and slave
 func (sw *TenDBClusterRemoteSwitchInstance) UpdateMetaInfo() error {
-	sw.ReportLog(SwitchInfo, fmt.Sprintf("try to swap roles of remote nodes(master:%s:%d, slave:%s:%d)",
-		sw.IP, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port))
+	sw.ReportLogf(SwitchInfo, "try to swap roles of remote nodes(master:%s:%d, slave:%s:%d)",
+		sw.IP, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port)
 
 	err := sw.dbmClient.SwapMySQLRole(sw.BkCloudID, sw.IP, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port)
 	if err != nil {
@@ -1070,7 +1070,7 @@ func (sw *TenDBClusterRemoteSwitchInstance) UpdateMetaInfo() error {
 		return err
 	}
 
-	sw.ReportLog(SwitchInfo, fmt.Sprintf("successfully swapped roles of remote nodes(master:%s:%d, slave:%s:%d)",
-		sw.IP, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port))
+	sw.ReportLogf(SwitchInfo, "successfully swapped roles of remote nodes(master:%s:%d, slave:%s:%d)",
+		sw.IP, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port)
 	return nil
 }
