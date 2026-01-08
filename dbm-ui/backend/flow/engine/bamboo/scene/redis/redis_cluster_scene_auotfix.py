@@ -511,7 +511,7 @@ class RedisClusterAutoFixSceneFlow(object):
 
         # predixy类型的集群需要刷新配置文件 #################################################################
         if is_predixy_proxy_type(sub_kwargs.cluster["cluster_type"]):
-            (sed_args,) = [], []
+            sed_args = []
             new_slaves = [fix_link["target"]["ip"] for fix_link in slave_fix_detail]
             old_slaves = [fix_link["ip"] for fix_link in slave_fix_detail]
             for fix_link in slave_fix_detail:

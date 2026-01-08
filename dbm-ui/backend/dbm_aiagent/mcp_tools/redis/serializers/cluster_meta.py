@@ -79,6 +79,8 @@ class RedisClustersOutputSerializer(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     immute_domain = serializers.CharField(help_text=_("集群域名"))
     alias = serializers.CharField(help_text=_("集群别名"))
+    redis_version = serializers.CharField(help_text=_("Redis版本"))
+    region = serializers.CharField(help_text=_("地域"))
 
 
 class RedisTupleInfoSerializer(serializers.Serializer):
