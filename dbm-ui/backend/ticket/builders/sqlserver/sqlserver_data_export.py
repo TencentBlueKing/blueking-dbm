@@ -3,7 +3,6 @@ import time
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import AppCache, Cluster
 from backend.db_services.sqlserver.sql_import.constants import BKREPO_SQLSERVER_SQLFILE_PATH
 from backend.flow.engine.controller.sqlserver import SqlserverController
@@ -21,7 +20,15 @@ class SQLServerDataExportDetailSerializer(SQLServerBaseOperateDetailSerializer):
 
     cluster_ids = serializers.ListField(help_text=_("查询集群列表"), child=serializers.IntegerField())
     execute_objects = serializers.ListField(help_text=_("执行对象列表"), child=serializers.DictField())
-    select_role = serializers.ChoiceField(help_text=_("查询实例角色"), choices=InstanceRole.get_choices())
+    # select_role = serializers.ChoiceField(help_text=_("查询实例角色"), choices=InstanceRole.get_choices())
+    select_role = serializers.ChoiceField(
+        help_text=_("查询实例角色，master或 slave"),
+        choices=[
+            ("master", ""),
+            ("slave", ""),
+        ],
+        required=False,
+    )
 
 
 class SQLServerDataExportItsmMaintainerFlowParamsBuilder(builders.ItsmParamBuilder):
