@@ -23,6 +23,14 @@ class SQLServerDataExportDetailSerializer(SQLServerBaseOperateDetailSerializer):
     execute_objects = serializers.ListField(help_text=_("执行对象列表"), child=serializers.DictField())
     select_role = serializers.ChoiceField(help_text=_("查询实例角色"), choices=InstanceRole.get_choices())
 
+    def validate(self, attrs):
+        attrs = super(SQLServerBaseOperateDetailSerializer, self).validate(attrs)
+        # 校验集群是否可用
+        # 单据详情添加path字段信息
+        attrs["path"] = BKREPO_SQLSERVER_SQLFILE_PATH.format(biz=self.context["bk_biz_id"])
+        super().validate_cluster_can_access(attrs)
+        return attrs
+
 
 class SQLServerDataExportItsmMaintainerFlowParamsBuilder(builders.ItsmParamBuilder):
     def get_approvers(self):
@@ -41,6 +49,8 @@ class SQLServerDataExportFlowParamBuilder(builders.FlowParamBuilder):
 
     # 文件名
     def format_ticket_data(self):
+        ticket_data = self.ticket_data
+        ticket_data["path"] = BKREPO_SQLSERVER_SQLFILE_PATH.format(biz=self.ticket.bk_biz_id)
         cluster = Cluster.objects.filter(id__in=self.ticket_data["cluster_ids"])
         dump_file_name = f"{cluster.first().immute_domain}_{int(time.time())}_dbm_console_dump.sql"
         self.ticket_data["dump_file_name"] = dump_file_name
