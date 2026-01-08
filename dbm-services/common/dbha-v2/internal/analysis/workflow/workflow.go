@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 
+// Package workflow provides the core workflow engine for DBHA.
 package workflow
 
 import (
@@ -64,6 +65,7 @@ var (
 	ErrDetectorFailure       = gerrors.Newf(gerrors.Failure, "detector failure, switching is needed")
 )
 
+// Workflow represents the workflow engine for DBHA.
 type Workflow struct {
 	StatusParser
 
@@ -98,6 +100,7 @@ func New(cli *discovery.Client, db *hamysql.GormDB) (*Workflow, error) {
 	return wflow, nil
 }
 
+// Run run the workflow.
 func (w *Workflow) Run(ctx context.Context) error {
 	if config.Cfg.Workflow.ScanInterval < scanIntervalLimitMin {
 		logger.Warn("scan interval(%v) is too small,reset it to the default value(%v)",
@@ -140,6 +143,7 @@ func (w *Workflow) Run(ctx context.Context) error {
 	return nil
 }
 
+// Close close the workflow.
 func (w *Workflow) Close() {
 	if w.quit != nil {
 		close(w.quit)
@@ -328,7 +332,7 @@ func (w *Workflow) createSwitcherRequestWithIPs(bkCloudId int, ips []string) *sw
 			continue
 		}
 
-		req.AddDbInstMetadata((*switcher.MySQLInstanceMetadata)(meta))
+		req.AddDbInstMetadata((*switcher.MysqlInstanceMetadata)(meta))
 	}
 
 	return req
