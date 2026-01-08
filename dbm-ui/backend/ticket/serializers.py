@@ -269,6 +269,19 @@ class TodoOperateSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": todo_operate_example}
 
 
+class ClusterDisableTodoSerializer(serializers.Serializer):
+    db_type = serializers.CharField(help_text=_("db类型"))
+    cluster_id = serializers.IntegerField(help_text=_("集群id"), required=False)
+    bk_biz_id = serializers.CharField(help_text=_("业务id"), required=False)
+    create_at__lte = serializers.CharField(help_text=_("禁用时间"), required=False)
+    create_at__gte = serializers.CharField(help_text=_("禁用时间"), required=False)
+    disable_person = serializers.CharField(help_text=_("禁用人"), required=False)
+    immute_domain = serializers.CharField(help_text=_("主域名"), required=False)
+    limit = serializers.IntegerField(help_text=_("分页参数"))
+    offset = serializers.IntegerField(help_text=_("分页参数"))
+    is_assist = serializers.BooleanField(help_text=_("是否协助"))
+
+
 class TicketTypeSLZ(serializers.Serializer):
     is_apply = serializers.BooleanField(help_text=_("是否是部署类单据"), required=False, default=False)
 
