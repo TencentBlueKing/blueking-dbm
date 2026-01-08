@@ -33,7 +33,6 @@ import (
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -42,22 +41,6 @@ var (
 	JsonFormatter  bool
 	ConfigFilePath string
 )
-
-func loadConfig() error {
-	viper.SetConfigName("probe")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./etc")
-
-	if ConfigFilePath != "" {
-		viper.SetConfigFile(ConfigFilePath)
-	}
-
-	if err := viper.ReadInConfig(); err != nil {
-		return err
-	}
-
-	return viper.Unmarshal(&config.Cfg)
-}
 
 type ProbeHealthInfo struct {
 	*process.HealthInfo
@@ -92,7 +75,7 @@ func ReloadCmdRunE(cmd *cobra.Command, args []string) error {
 }
 
 func HealthCmdRunE(cmd *cobra.Command, _ []string) error {
-	if err := loadConfig(); err != nil {
+	if err := config.Load(ConfigFilePath); err != nil {
 		baseHealth := process.GetBaseHealthInfo(config.Cfg.PidFile, process.NameProbe)
 		if !JsonFormatter {
 			process.PrintBaseHealth(cmd.OutOrStdout(), baseHealth)
