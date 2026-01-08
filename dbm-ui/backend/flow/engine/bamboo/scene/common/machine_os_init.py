@@ -225,7 +225,8 @@ class ImportResourceInitStepFlow(object):
         recycled_hosts: List = []
 
         # 如果是独立业务下架，则直接转移到待回收
-        hosting_biz = BizSettings.get_exact_hosting_biz(revoke_ticket.bk_biz_id, self.data["group"])
+        cluster_type = self.data.get("cluster_type") or self.data["group"]
+        hosting_biz = BizSettings.get_exact_hosting_biz(revoke_ticket.bk_biz_id, cluster_type)
         if self.data["ticket_type"] == TicketType.RECYCLE_OLD_HOST and hosting_biz != env.DBA_APP_BK_BIZ_ID:
             recycled_hosts.extend(hosts)
             hosts = []

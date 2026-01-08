@@ -341,6 +341,15 @@ class Ticket(AuditedModel):
             logger.error(_("流程校验不通过，存在元数据主机: {}").format(host_ids))
             return
 
+        def __add_cluster_types(clusters, group):
+            cluster_type = ""
+            if group != DBType.MySQL.value:
+                return cluster_type
+            cluster_types = [clusters[cluster_id]["cluster_type"] for cluster_id in clusters]
+            if len(set(cluster_types)) == 1:
+                return cluster_types[0]
+            return group
+
         # 回收单的创建者为业务第一DBA，协助人为其他DBA，如果没有dba则取原单据创建者
         dba, second_dba, other_dba = DBAdministrator.get_dba_for_db_type(revoke_ticket.bk_biz_id, revoke_ticket.group)
         creator = dba[0] if dba else revoke_ticket.creator
@@ -358,6 +367,7 @@ class Ticket(AuditedModel):
             details={
                 "parent_ticket": revoke_ticket_id,
                 "group": revoke_ticket.group,
+                "cluster_type": __add_cluster_types(revoke_ticket.details.get("clusters"), revoke_ticket.group),
                 "recycle_hosts": hosts,
                 "immediate_recycle": immediate_recycle,
             },
