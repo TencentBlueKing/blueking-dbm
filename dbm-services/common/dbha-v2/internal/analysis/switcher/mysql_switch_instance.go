@@ -188,11 +188,8 @@ type ProxyBackendInfo struct {
 	RefreshTime      int    `db:"refresh_time"`
 }
 
-// MySQLInstanceMetadata contains MySQL instance metadata from DBM
-type MySQLInstanceMetadata dbm.DbInstMetadata
-
 // NewMySQLSwitchInstance creates a new MySQL switch instance based on metadata
-func NewMySQLSwitchInstance(metadata *MySQLInstanceMetadata) (SwitchableInstance, error) {
+func NewMySQLSwitchInstance(metadata *MysqlInstanceMetadata) (SwitchableInstance, error) {
 	mysqlBaseInstance := MySQLBaseSwitchInstance{
 		BaseSwitchInstance: BaseSwitchInstance{
 			IP:           metadata.IP,
@@ -764,7 +761,7 @@ func (sw *MySQLBaseSwitchInstance) ResetSlaveWithBinlogPos(slaveIp string, slave
 		return masterStatus.File, masterStatus.Position, err
 	}
 
-	sw.ReportLog(SwitchInfo, fmt.Sprintf("Successfully reset slave status for the slave node(%s:%d), "+
+	sw.ReportLog(SwitchInfo, fmt.Sprintf("successfully reset slave status for the slave node(%s:%d), "+
 		"binlog info: [binlog_file:%s, binlog_pos:%d]",
 		sw.StandBySlave.Ip, sw.StandBySlave.Port, masterStatus.File, masterStatus.Position))
 
