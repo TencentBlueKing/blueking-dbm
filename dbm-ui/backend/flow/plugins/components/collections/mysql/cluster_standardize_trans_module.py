@@ -30,7 +30,7 @@ class ClusterStandardizeTransModuleService(BaseService):
         bk_cloud_id = kwargs.get("bk_cloud_id", -1)
 
         if bk_cloud_id < 0:
-            self.log_info("[{}] bk_cloud_id can't be none".format(kwargs["bk_cloud_id"]))
+            self.log_info("[{}] bk_cloud_id can't be none".format(kwargs["node_name"]))
             return False
 
         if not cluster_ids and not instances:
