@@ -31,7 +31,7 @@ from backend.ticket.flow_manager.pause import PauseFlow
 from backend.ticket.flow_manager.resource import ResourceApplyFlow, ResourceBatchApplyFlow, ResourceDeliveryFlow
 from backend.ticket.flow_manager.timer import TimerFlow
 from backend.ticket.models import Ticket
-from backend.ticket.tasks.ticket_tasks import create_recycle_ticket
+from backend.ticket.tasks.ticket_tasks import create_cluster_todo, create_recycle_ticket
 
 SUPPORTED_FLOW_MAP = {
     FlowType.BK_ITSM.value: ItsmFlow,
@@ -151,3 +151,12 @@ class TicketFlowManager(object):
         is_apply = self.ticket.ticket_type in BuilderFactory.apply_ticket_type
         if target_status == TicketStatus.TERMINATED and is_apply:
             create_recycle_ticket.apply_async(args=(self.ticket.id, [], TicketType.RECYCLE_APPLY_HOST))
+
+        # 如果是集群的禁用、启动、删除则处理相对应代办操作
+        if (
+            self.ticket.ticket_type in BuilderFactory.ticket_type__cluster_phase
+            and target_status == TicketStatus.SUCCEEDED
+        ):
+            create_cluster_todo.apply_async(
+                args=(self.ticket.id, BuilderFactory.ticket_type__cluster_phase[self.ticket.ticket_type])
+            )

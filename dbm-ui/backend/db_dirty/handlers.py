@@ -26,6 +26,7 @@ from backend.db_meta.models import Machine
 from backend.db_services.cmdb.biz import get_resource_biz
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.env import HCM_APIGW_DOMAIN
+from backend.ticket.models import Todo
 
 logger = logging.getLogger("root")
 
@@ -71,14 +72,19 @@ class DBDirtyMachineHandler(object):
                 MachineEvent.host_event_trigger(bk_biz_id, hosts, MachineEventType.HCMRemove, operator, remark=remark)
             else:
                 MachineEvent.host_event_trigger(bk_biz_id, hosts, MachineEventType.Recycled, operator, remark=remark)
+            host_ids = [host.bk_host_id for host in recycle_hosts]
+            Todo.host_todo_trigger(host_ids, [operator], MachineEventType.Recycled)
         # 故障池 ---> 待回收池
         elif source == PoolType.Fault and target == PoolType.Recycle:
             message = _("主机转移成功！")
             MachineEvent.host_event_trigger(bk_biz_id, hosts, MachineEventType.ToRecycle, operator, remark=remark)
+            host_ids = [host.bk_host_id for host in recycle_hosts]
+            Todo.update_recycle_host_todo_type(host_ids, operator)
         # 资源池 ---> 故障池：这个是用于资源池自身巡检发现故障主机调用转移接口
         elif source == PoolType.Resource and target == PoolType.Fault:
             message = _("主机转移成功！")
             MachineEvent.host_event_trigger(bk_biz_id, hosts, MachineEventType.ToFault, operator, remark=remark)
+            Todo.host_todo_trigger(bk_host_ids, [operator], MachineEventType.ToFault, None)
         else:
             raise PoolTransferException(_("{}--->{}转移不合法").format(source, target))
 

@@ -148,6 +148,8 @@ class TodoActionType(StrStructuredEnum):
     # 适用于定时代办
     SKIP = EnumField("SKIP", _("跳过"))
     CHANGE = EnumField("CHANGE", _("变更"))
+    ENABLE = EnumField("ENABLE", _("启用集群"))
+    DESTROY = EnumField("DESTROY", _("删除集群"))
 
 
 @dataclass
@@ -157,3 +159,10 @@ class BaseTodoContext:
 
     def to_dict(self):
         return asdict(self)
+
+
+@dataclass
+class ClusterDisableTodoContext(BaseTodoContext):
+    cluster_id: int
+    db_type: str
+    immute_domain: str
