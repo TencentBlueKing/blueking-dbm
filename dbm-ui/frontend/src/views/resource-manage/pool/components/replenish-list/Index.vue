@@ -109,7 +109,7 @@
           </TableColumn>
           <TableColumn
             col-key="spec_name"
-            :min-width="120"
+            :min-width="160"
             :title="t('规格')">
             <template #default="{ row }: { row: IRowData }">
               {{ row.spec_name || '--' }}
@@ -117,7 +117,7 @@
           </TableColumn>
           <TableColumn
             col-key="city"
-            :min-width="120"
+            :min-width="80"
             :title="t('地域')">
             <template #default="{ row }: { row: IRowData }">
               {{ row.city || '--' }}
@@ -125,7 +125,7 @@
           </TableColumn>
           <TableColumn
             col-key="subzone"
-            :min-width="120"
+            :min-width="100"
             :title="t('园区')">
             <template #default="{ row }: { row: IRowData }">
               {{ row.subzone || '--' }}
@@ -133,7 +133,7 @@
           </TableColumn>
           <TableColumn
             col-key="os_name"
-            :min-width="120"
+            :min-width="200"
             :title="t('操作系统')">
             <template #default="{ row }: { row: IRowData }">
               {{ row.os_name || '--' }}
