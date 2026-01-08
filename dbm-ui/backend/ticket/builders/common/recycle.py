@@ -133,7 +133,7 @@ class RecycleOldHostFlowBuilder(RecycleHostFlowBuilder):
     def patch_ticket_detail(self):
         super().patch_ticket_detail()
         # 记录主机操作记录
-        event = MachineEventType.ReturnResource
+        event = MachineEventType.RemoveHost
         MachineEvent.create_machine_events(
             self.ticket.bk_biz_id,
             self.ticket.details["recycle_hosts"],
