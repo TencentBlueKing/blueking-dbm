@@ -62,6 +62,8 @@ def redis_list_clusters(bk_biz_id: int) -> List:
             "cluster_type": c.cluster_type,
             "immute_domain": c.immute_domain,
             "alias": c.alias,
+            "region": c.region,
+            "redis_version": c.major_version,
         }
         for c in clusters
     ]
@@ -102,8 +104,7 @@ def cluster_masters(immute_domain: str) -> List:
     for ins_obj in master_objs:
         if not master_infos.get(ins_obj.machine.ip):
             master_infos[ins_obj.machine.ip] = []
-        else:
-            master_infos[ins_obj.machine.ip].append(ins_obj.port)
+        master_infos[ins_obj.machine.ip].append(ins_obj.port)
 
     return [{"ip": ip, "ports": ports} for ip, ports in master_infos.items()]
 
