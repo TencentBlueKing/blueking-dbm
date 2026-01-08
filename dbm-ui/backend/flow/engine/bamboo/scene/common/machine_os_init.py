@@ -44,7 +44,7 @@ from backend.flow.utils.common_act_dataclass import (
     ResourceImportContext,
 )
 from backend.ticket.constants import TicketType
-from backend.ticket.models import Ticket
+from backend.ticket.models import Ticket, Todo
 
 
 def insert_host_event(params, data, kwargs, global_data):
@@ -60,6 +60,9 @@ def insert_host_event(params, data, kwargs, global_data):
     # 资源导入记录
     import_record = {"task_id": str(ticket_id), "operator": operator, "hosts": hosts}
     DBResourceApi.import_operation_create(params=import_record)
+    # 主机代办删除
+    host_ids = [host["bk_host_id"] for host in hosts]
+    Todo.host_todo_trigger(host_ids, [operator], event, ticket)
 
 
 class HostOutputSerializer(BaseFlowOutputSerializer):

@@ -21,14 +21,15 @@ from django.utils.translation import gettext as _
 
 from backend.components.bklog.handler import BKLogHandler
 from backend.configuration.constants import PLAT_BIZ_ID, DBType, SystemSettingsEnum
-from backend.configuration.models import DBAdministrator, SystemSettings
+from backend.configuration.models import BizSettings, DBAdministrator, SystemSettings
 from backend.constants import DEFAULT_SYSTEM_USER
 from backend.core import notify
-from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums import ClusterPhase, ClusterType
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_services.cmdb.biz import get_resource_biz
 from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.db_services.dbresource.serializers import ResourceHcmReplenishSerializer
+from backend.ticket.builders.common.base import fetch_cluster_ids
 from backend.ticket.builders.common.constants import MYSQL_CHECKSUM_TABLE, MySQLDataRepairTriggerMode
 from backend.ticket.constants import (
     FLOW_TASK_TYPES,
@@ -43,7 +44,8 @@ from backend.ticket.constants import (
     TodoType,
 )
 from backend.ticket.exceptions import TicketTaskTriggerException
-from backend.ticket.models.ticket import Flow, Ticket, TicketFlowsConfig
+from backend.ticket.models import Todo
+from backend.ticket.models.ticket import Flow, Ticket, TicketFlowsConfig, TodoStatus
 from backend.utils.time import date2str
 
 logger = logging.getLogger("root")
@@ -382,3 +384,50 @@ def apply_ticket_task(
 def create_recycle_ticket(revoke_ticket_id: int, recycle_old_hosts: list, recycle_type: TicketType):
     """创建主机回收单据"""
     Ticket.create_recycle_ticket(revoke_ticket_id, recycle_old_hosts, recycle_type)
+
+
+@shared_task
+def create_cluster_todo(ticket_id, cluster_phase):
+    from backend.ticket.todos import ClusterDisableTodoContext, TodoActionType
+
+    logger.info("--------------------create_cluster_todo-----{}-{}".format(ticket_id, cluster_phase))
+    ticket = Ticket.objects.get(id=ticket_id)
+    flow = Flow.objects.filter(ticket=ticket).order_by("-create_at").first()
+    cluster_ids = fetch_cluster_ids(ticket.details)
+    if cluster_phase == ClusterPhase.OFFLINE:
+        dba, second_dba, other_dba = DBAdministrator.get_dba_for_db_type(ticket.bk_biz_id, ticket.group)
+        biz_helpers = BizSettings.get_assistance(ticket.bk_biz_id)
+        dba.append(ticket.creator)
+        todo_list = []
+        cluster_ids = fetch_cluster_ids(ticket.details)
+        cluster_map = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
+        for cluster_id in cluster_ids:
+            cluster = cluster_map.get(cluster_id)
+            db_type = ClusterType.cluster_type_to_db_type(cluster.cluster_type)
+            todo_list.append(
+                Todo(
+                    name=_("【{}】单据后续相关操作，待处理").format(ticket.get_ticket_type_display()),
+                    flow=flow,
+                    ticket=ticket,
+                    operators=list(set(dba)),
+                    helpers=list(set(second_dba + other_dba + biz_helpers)),
+                    type=TodoType.CLUSTER_DISABLE,
+                    context=ClusterDisableTodoContext(
+                        flow.id, ticket.id, cluster_id, db_type, cluster.immute_domain
+                    ).to_dict(),
+                    status=TodoStatus.TODO,
+                )
+            )
+        Todo.objects.bulk_create(todo_list)
+    elif cluster_phase in [ClusterPhase.ONLINE, ClusterPhase.DESTROY]:
+        for cluster_id in cluster_ids:
+            todo = Todo.objects.filter(
+                type=TodoType.CLUSTER_DISABLE, status=TodoStatus.TODO, context__cluster_id=cluster_id
+            ).first()
+            if not todo:
+                continue
+            if cluster_phase == ClusterPhase.ONLINE:
+                action = TodoActionType.ENABLE
+            else:
+                action = TodoActionType.DESTROY
+            todo.set_success(ticket.creator, action)
