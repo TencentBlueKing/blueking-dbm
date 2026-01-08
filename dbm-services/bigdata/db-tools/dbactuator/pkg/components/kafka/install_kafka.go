@@ -140,7 +140,7 @@ func (i *InstallKafkaComp) InitKafkaNode() error {
 	scriptFile := "/etc/profile.d/kafkaenv.sh"
 	scripts := []byte(fmt.Sprintf(`# kafkaenv 设置
 # 提高文件描述符限制
-ulimit -n 500000
+ulimit -n 512000
 
 # Java 环境
 export JAVA_HOME=/data/kafkaenv/jdk
@@ -166,6 +166,43 @@ export CLASSPATH=".:$JAVA_HOME/lib:$JRE/lib:$CLASSPATH"
 	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("修改系统参数失败:%s", err.Error())
 		return err
+	}
+
+	// 1. 设置 vm.max_map_count 内核参数
+	logger.Info("写入 /etc/sysctl.d/99-kafka.conf")
+	sysctlFile := "/etc/sysctl.d/99-kafka.conf"
+	sysctlContent := []byte("# Kafka kernel parameters\nvm.max_map_count = 262144\n")
+	if err := os.WriteFile(sysctlFile, sysctlContent, 0644); err != nil {
+		logger.Error("write %s failed, %v", sysctlFile, err)
+		return err
+	}
+	// 立即生效
+	extraCmd = fmt.Sprintf("sysctl -p %s", sysctlFile)
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+		logger.Error("apply sysctl config failed: %s", err.Error())
+		return err
+	}
+
+	// 2. 如果版本 >= 4.0，写入 kafkaenv4.sh
+	if kafkautil.CompareVersion(i.Params.Version, cst.Kafka400) >= 0 {
+		logger.Info("版本 >= 4.0，写入 /etc/profile.d/kafkaenv4.sh")
+		kafkaenv4File := "/etc/profile.d/kafkaenv4.sh"
+		kafkaenv4Content := []byte(fmt.Sprintf(`# Kafka 4.0+ SASL 环境变量
+export SASL_USERNAME="%s"
+export SASL_PASSWORD="%s"
+export SASL_MECHANISM=scram-sha512
+export SASL_ENABLED=true
+`, i.Params.Username, i.Params.Password))
+		if err := os.WriteFile(kafkaenv4File, kafkaenv4Content, 0644); err != nil {
+			logger.Error("write %s failed, %v", kafkaenv4File, err)
+			return err
+		}
+		// 立即生效
+		extraCmd = fmt.Sprintf("chmod 0755 %s && bash -c 'source %s || true'", kafkaenv4File, kafkaenv4File)
+		if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+			logger.Error("apply kafkaenv4 failed: %s", err.Error())
+			return err
+		}
 	}
 
 	return nil
