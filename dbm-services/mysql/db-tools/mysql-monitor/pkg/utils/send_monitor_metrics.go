@@ -14,6 +14,8 @@ func SendMonitorMetrics(name string, value int64, customDimension map[string]int
 	crondManager := ma.NewManager(config.MonitorConfig.ApiUrl)
 
 	additionDimension := map[string]interface{}{
+		"appid":                         config.MonitorConfig.BkBizId,
+		"bk_biz_id":                     config.MonitorConfig.BkBizId,
 		"cluster_domain":                config.MonitorConfig.ImmuteDomain,
 		"cluster_type":                  config.MonitorConfig.ClusterType,
 		"machine_type":                  config.MonitorConfig.MachineType,
