@@ -9,19 +9,16 @@ specific language governing permissions and limitations under the License.
 """
 
 import copy
-import datetime
 import logging.config
 from dataclasses import asdict
 from typing import Dict, Optional
 
-from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType, MySQLMonitorPauseTime
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
-from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -95,28 +92,6 @@ class TenDBClusterStorageMigrateUpgradeFlow(object):
         self.backup_target_path = f"/data/dbbak/{self.root_id}"
         self.need_checksum = self.ticket_data.get("need_checksum", True)
 
-    def __get_backup_info(self, cluster_id: int):
-        """
-        get backup info from remote
-
-        :param cluster_id: int, cluster id
-        :return: dict, backup info
-        :raises TendbGetBackupInfoFailedException: if backup info not exists
-        """
-
-        backup_info = {}
-        if self.ticket_data["backup_source"] == MySQLBackupSource.REMOTE.value:
-            # 先查询备份，如果备份不存在则退出
-            # restore_time = datetime.strptime("2023-07-31 17:40:00", "%Y-%m-%d %H:%M:%S")
-            backup_handler = FixPointRollbackHandler(cluster_id, check_full_backup=True)
-            restore_time = datetime.now(timezone.utc)
-            backup_info = backup_handler.query_latest_backup_log(restore_time)
-            logger.debug(backup_info)
-            if backup_info is None:
-                logger.error("cluster {} backup info not exists".format(cluster_id))
-                raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(cluster_id)))
-        return backup_info
-
     def migrate_upgrade(self):
         """
         tendb 迁移
@@ -137,6 +112,7 @@ class TenDBClusterStorageMigrateUpgradeFlow(object):
             # build data {}
             self.data = {}
             self.data = copy.deepcopy(info)
+            self.data["need_checksum"] = self.ticket_data.get("need_checksum", False)
             self.data["bk_cloud_id"] = cluster_class.bk_cloud_id
             self.data["root_id"] = self.root_id
             self.data["start_port"] = 20000
@@ -240,11 +216,9 @@ class TenDBClusterStorageMigrateUpgradeFlow(object):
                 install_sub_pipeline_list.append(install_node_pipeline_list)
 
             # 阶段3 逐个实例同步数据到新主从库
-            backup_info = self.__get_backup_info(info["cluster_id"])
             sync_data_sub_pipeline_list = self.build_sync_data_sub_pipeline(
                 cluster_class=cluster_class,
                 cluster_info=cluster_info,
-                backup_info=backup_info,
             )
             # 阶段4 切换
             switch_sub_pipeline_list = []
@@ -409,7 +383,7 @@ class TenDBClusterStorageMigrateUpgradeFlow(object):
                 # 生成checksum信息
                 checksum_info = {
                     "bk_biz_id": cluster_class.bk_biz_id,
-                    "ticket_type": TicketType.TENDBCLUSTER_CHECKSUM,
+                    "ticket_type": TicketType.TENDBCLUSTER_CHECKSUM_CRON,
                     "remark": _("spider主从成对迁移生成checksum单据"),
                     "details": {
                         "data_repair": {"is_repair": True, "mode": "manual"},
@@ -420,7 +394,7 @@ class TenDBClusterStorageMigrateUpgradeFlow(object):
                     },
                 }
                 checksum_pairs = []
-                for shard_id, node in cluster_info["my_shards"].items():
+                for shard_id, node in cluster_info["shards"].items():
                     checksum_info["details"]["infos"][0]["backup_infos"].append(
                         {
                             "master": node["master"]["instance"],
@@ -491,13 +465,13 @@ class TenDBClusterStorageMigrateUpgradeFlow(object):
             # # 卸载remote节点
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=uninstall_svr_sub_pipeline_list)
             tendb_migrate_pipeline_all_list.append(
-                tendb_migrate_pipeline.build_sub_process(_("集群迁移{}").format(self.data["cluster_id"]))
+                tendb_migrate_pipeline.build_sub_process(_("集群迁移升级: {}").format(self.data["cluster_id"]))
             )
         # 运行流程
         tendb_migrate_pipeline_all.add_parallel_sub_pipeline(tendb_migrate_pipeline_all_list)
         tendb_migrate_pipeline_all.run_pipeline(init_trans_data_class=ClusterInfoContext(), is_drop_random_user=True)
 
-    def build_sync_data_sub_pipeline(self, cluster_info: dict, backup_info: dict, cluster_class: Cluster) -> list:
+    def build_sync_data_sub_pipeline(self, cluster_info: dict, cluster_class: Cluster) -> list:
         """构建数据同步子流程
         Args:
             cluster_info: 集群信息
@@ -515,6 +489,7 @@ class TenDBClusterStorageMigrateUpgradeFlow(object):
             filter_ips = None
             if self.ticket_data["backup_source"] == MySQLBackupSource.LOCAL.value:
                 filter_ips = [node["master"]["ip"], node["slave"]["ip"]]
+            ins_cluster["backup_source"] = self.ticket_data["backup_source"]
             sync_data_sub_pipeline.add_sub_pipeline(
                 sub_flow=mysql_restore_master_slave_sub_flow(
                     root_id=self.root_id,

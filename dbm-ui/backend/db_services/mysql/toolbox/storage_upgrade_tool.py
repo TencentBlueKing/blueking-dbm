@@ -27,6 +27,7 @@ from backend.flow.utils.mysql.mysql_version_parse import (
     calculate_tmysql_version_number,
     get_online_mysql_version,
     module_version_parse,
+    mysql_cross_major_version,
 )
 from backend.flow.utils.spider.spider_bk_config import get_spider_version_and_charset
 
@@ -753,7 +754,7 @@ def _find_higher_storage_version_modules(cluster_id: int, module_list: List[Dict
                 )
 
                 # 检查存储层版本是否更高（比较模块配置版本）
-                if module_storage_version_num > current_module_storage_version_num:
+                if mysql_cross_major_version(module_storage_version_num, current_module_storage_version_num):
                     matched_count += 1
                     logger.info(
                         _("✓ 找到更高存储层版本模块: {} (版本: {} -> {})").format(
