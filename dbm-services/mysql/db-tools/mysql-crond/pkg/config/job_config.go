@@ -2,6 +2,8 @@ package config
 
 import (
 	"bytes"
+	"dbm-services/mysql/db-tools/mysql-crond/pkg"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -139,11 +141,14 @@ func InitJobsConfig() error {
 	if err != nil {
 		if os.IsNotExist(err) {
 			slog.Info("init jobs config jobs-config file not found, try create it")
-			_, err := os.Create(RuntimeConfig.JobsConfigFile)
+			_f, err := os.Create(RuntimeConfig.JobsConfigFile)
 			if err != nil {
 				slog.Error("init jobs config create empty jobs-config file", slog.String("error", err.Error()))
 				return err
 			}
+			defer func() {
+				_ = _f.Close()
+			}()
 
 			err = os.Chown(RuntimeConfig.JobsConfigFile, JobsUserUid, JobsUserGid)
 			if err != nil {
@@ -168,6 +173,16 @@ func InitJobsConfig() error {
 		slog.Error("init jobs config", slog.String("error", err.Error()))
 		return err
 	}
+
+	bkBizId, err := pkg.GetBkBizId()
+	if err != nil {
+		slog.Error("bk_biz_id updater job", slog.String("err", err.Error()))
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return err
+	}
+	JobsConfig.BkBizId = bkBizId
 
 	for _, j := range JobsConfig.Jobs {
 		err := j.validate()
