@@ -44,9 +44,10 @@ class DBMAgentConfigManager(AgentConfigManager):
     def set_backend_mcp_config(cls, agent_config: AgentConfig):
         mcp_servers = agent_config.mcp_server_config
         for name, config in mcp_servers.items():
-            # 将 /sse/ 改为 /application/sse/
-            if "/sse/" in config["url"] and "/application/sse/" not in config["url"]:
-                config["url"] = config["url"].replace("/sse/", "/application/sse/")
+            # 将请求连接替换为应用请求，网关是加上application标识
+            if "application" not in config["url"]:
+                parsed_url = config["url"].rstrip("/").rsplit("/", 1)
+                config["url"] = parsed_url[0] + "/application/" + parsed_url[1] + "/"
             # apigw mcp 添加校验头，后台请求用admin身份调用
             if config.get("credential_type", "") == CredentialType.BLUEAPPS.value:
                 auth = {"bk_app_code": settings.APP_CODE, "bk_app_secret": settings.SECRET_KEY, "bk_username": "admin"}
