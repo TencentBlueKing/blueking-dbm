@@ -113,6 +113,48 @@ class TicketListFilter(filters.FilterSet):
         return queryset.order_by(value)
 
 
+class ClusterDisableTodoFilter(filters.FilterSet):
+    db_type = filters.CharFilter(field_name="db_type", method="filter_db_type", label=_("db类型"))
+    disable_person = filters.CharFilter(field_name="disable_person", method="filter_disable_person", label=_("禁用人"))
+    immute_domain = filters.CharFilter(field_name="immute_domain", method="filter_immute_domain", label=_("域名"))
+    is_assist = filters.BooleanFilter(field_name="is_assist", method="filter_is_assist", label=_("是否协助"))
+    cluster_id = filters.NumberFilter(field_name="cluster_id", method="filter_cluster_id", label=_("集群ID"))
+    bk_biz_id = filters.CharFilter(field_name="bk_biz_id", method="filter_bk_biz_id", label=_("业务ID"))
+    create_at__lte = filters.DateTimeFilter(field_name="create_at", lookup_expr="lte", label=_("创建时间早于"))
+    create_at__gte = filters.DateTimeFilter(field_name="create_at", lookup_expr="gte", label=_("创建时间晚于"))
+
+    class Meta:
+        model = Todo
+        fields = []
+
+    def filter_db_type(self, queryset, name, value):
+        if value:
+            return queryset.filter(context__db_type=value)
+        return queryset
+
+    def filter_disable_person(self, queryset, name, value):
+        return queryset.filter(ticket__creator=value)
+
+    def filter_immute_domain(self, queryset, name, value):
+        if value:
+            return queryset.filter(context__immute_domain__icontains=value)
+        return queryset
+
+    def filter_is_assist(self, queryset, name, value):
+        user = self.request.user.username
+        user_field = "helpers" if value else "operators"
+        return queryset.filter(**{f"{user_field}__contains": user})
+
+    def filter_cluster_id(self, queryset, name, value):
+        if value:
+            return queryset.filter(context__cluster_id=value)
+        return queryset
+
+    def filter_bk_biz_id(self, queryset, name, value):
+        bk_biz_ids = [int(biz_id) for biz_id in value.split(",")]
+        return queryset.filter(ticket__bk_biz_id__in=bk_biz_ids)
+
+
 class OpRecordListFilter(filters.FilterSet):
     start_time = filters.DateTimeFilter(field_name="create_at", lookup_expr="gte", label=_("开始时间"))
     end_time = filters.DateTimeFilter(field_name="create_at", lookup_expr="lte", label=_("开始时间"))
