@@ -247,25 +247,36 @@
   const { run: fetchDataList } = useRequest(showDatabasesWithPatterns, {
     manual: true,
     onSuccess(dataList) {
-      const clusterDbsMap = dataList.reduce<Record<string, string[]>>((acc, item) => {
-        if (!acc[item.cluster_id]) {
-          Object.assign(acc, {
-            [item.cluster_id]: [],
-          });
-        }
-        acc[item.cluster_id].push(...item.databases);
-        return acc;
-      }, {});
+      let rowIndex = 0;
+      let dataIndex = 0;
+      const clusterDbsMap: Record<string, string[]> = {};
 
-      tableData.value.forEach((item) => {
+      // 按照 groupSizes 分组处理 dataList
+      groupSizes.forEach((groupSize) => {
+        const groupData = dataList.slice(dataIndex, dataIndex + groupSize);
+        let mergedDatabases: string[] = [];
+
+        // 合并当前组内所有集群的数据库列表
+        groupData.forEach((item) => {
+          mergedDatabases = mergedDatabases.concat(item.databases);
+        });
+
+        // 将合并后的数据库列表分配给当前行（去重处理）
+        clusterDbsMap[rowIndex] = [...new Set(mergedDatabases)];
+
+        dataIndex += groupSize;
+        rowIndex += 1;
+      });
+
+      tableData.value.forEach((item, index) => {
         Object.assign(item, {
-          db_list: clusterDbsMap[item.source_cluster.id],
+          db_list: clusterDbsMap[index], // 回填tableData，提单参数需要
         });
       });
 
       runAssessment({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        factor: 1,
+        factor: 1, // db克隆传1
         migrations: tableData.value.map((item) => ({
           clone_db_list: item.clone_db_list,
           db_list: item.db_list as string[],
@@ -299,6 +310,7 @@
     }
   });
 
+  let groupSizes: number[];
   defineExpose({
     reset() {
       isShowResults.value = false;
@@ -311,7 +323,7 @@
       if (tableData.value.length) {
         // 渲染结果页
         isShowResults.value = true;
-
+        groupSizes = [];
         const infos = tableData.value.reduce<ServiceParameters<typeof showDatabasesWithPatterns>['infos']>(
           (acc, item) => {
             acc.push({
@@ -326,6 +338,7 @@
                 ignore_dbs: item.ignore_db_list,
               });
             });
+            groupSizes.push(item.target_clusters.length + 1);
             return acc;
           },
           [],

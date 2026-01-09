@@ -229,28 +229,39 @@
   const { run: fetchDataList } = useRequest(showDatabasesWithPatterns, {
     manual: true,
     onSuccess(dataList) {
-      const clusterDbsMap = dataList.reduce<Record<string, string[]>>((acc, item) => {
-        if (!acc[item.cluster_id]) {
-          Object.assign(acc, {
-            [item.cluster_id]: [],
-          });
-        }
-        acc[item.cluster_id].push(...item.databases);
-        return acc;
-      }, {});
+      let rowIndex = 0;
+      // 源集群 目标集群一对一
+      // 响应数据每两行对应表格一行
+      const clusterDbsMap: Record<string, string[]> = {};
 
-      tableData.value.forEach((item) => {
-        Object.assign(item, {
-          db_list: clusterDbsMap[item.source_cluster.id],
-        });
-      });
+      // 按两两分组处理 dataList
+      for (let i = 0; i < dataList.length; i += 2) {
+        const sourceCluster = dataList[i];
+        const targetCluster = dataList[i + 1];
+
+        let mergedDatabases: string[] = [];
+
+        // 合并源集群的数据库列表
+        if (sourceCluster) {
+          mergedDatabases = mergedDatabases.concat(sourceCluster.databases);
+        }
+
+        // 合并目标集群的数据库列表
+        if (targetCluster) {
+          mergedDatabases = mergedDatabases.concat(targetCluster.databases);
+        }
+
+        // 将合并后的数据库列表分配给当前行（去重处理）
+        clusterDbsMap[rowIndex] = [...new Set(mergedDatabases)];
+        rowIndex += 1;
+      }
 
       runAssessment({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        factor: 2,
-        migrations: tableData.value.map((item) => ({
+        factor: 2, // db合并传2
+        migrations: tableData.value.map((item, rowIndex) => ({
           clone_db_list: item.clone_db_list,
-          db_list: item.db_list as string[],
+          db_list: clusterDbsMap[rowIndex],
           ignore_db_list: item.ignore_db_list,
           source_cluster: item.source_cluster.id,
           target_clusters: item.target_clusters.map((cluster) => cluster.id),
