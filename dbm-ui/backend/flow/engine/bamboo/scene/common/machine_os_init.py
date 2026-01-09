@@ -175,7 +175,7 @@ class ImportResourceInitStepFlow(object):
                 kwargs={"params": data, "api_call_func": "resource_import", **resource_kwargs},
             )
 
-        # 转移模块到对应业务的资源池
+        # 转移模块到资源池业务
         p.add_act(
             act_name=_("主机转移至资源池空闲模块"),
             act_component_code=TransferHostServiceComponent.code,
@@ -359,6 +359,7 @@ class ImportResourceInitStepFlow(object):
         """海磊主机资源池补充"""
 
         p = Builder(root_id=self.root_id, data=self.data)
+
         # 海磊申请主机
         p.add_act(
             act_name=_("海磊申请主机"),
@@ -373,6 +374,19 @@ class ImportResourceInitStepFlow(object):
                 )
             ),
         )
+
+        # 转移模块到资源池
+        # 这里提前转移是可能海磊申请主机的业务≠资源池业务
+        p.add_act(
+            act_name=_("主机纳管到资源池业务"),
+            act_component_code=TransferHostServiceComponent.code,
+            kwargs={
+                "bk_biz_id": get_resource_biz(),
+                "bk_module_ids": [get_or_create_resource_module()],
+                "update_host_properties": {"dbm_meta": [], "need_monitor": False, "update_operator": False},
+            },
+        )
+
         # 资源池导入
         self.__build_machine_import_pipeline(p, self.data)
         p.run_pipeline()

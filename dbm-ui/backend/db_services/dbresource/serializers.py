@@ -607,12 +607,16 @@ class ResourceHcmReplenishSerializer(serializers.Serializer):
     os_type = serializers.CharField(help_text=_("操作系统类型"), required=False)
     operator = serializers.CharField(help_text=_("操作人"), required=False)
     spec = serializers.JSONField(help_text=_("规格展示信息"), required=False)
+    for_biz = serializers.IntegerField(help_text=_("业务ID"), required=False, default=0)
+    resource_type = serializers.CharField(help_text=_("专属DB"), allow_blank=True, allow_null=True, required=False)
 
     def to_internal_value(self, data):
         data = super().to_representation(data)
         spec = Spec.objects.get(spec_id=data["spec_id"])
         data["os_type"] = BkOsType.db_type_to_os_type(data["db_type"])
         data["spec"] = spec.to_dict()
+        # 资源申请到公共池对应组件
+        data["resource_type"] = data["db_type"]
         if self.context.get("request"):
             data["operator"] = self.context["request"].user.username
         return data
