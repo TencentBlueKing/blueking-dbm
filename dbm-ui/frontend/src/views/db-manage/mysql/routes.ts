@@ -169,14 +169,7 @@ const mysqlToolboxRouters: RouteRecordRaw[] = [
       name: TicketTypes.MYSQL_IMPORT_SQLFILE,
     },
     component: () => import('@/views/db-manage/mysql/toolbox/IndexNew.vue'),
-    children: [
-      ...mysqlToolboxChildrenRouters,
-      {
-        path: 'toolbox-result/:ticketType?/:ticketId?',
-        name: 'MysqlToolboxResult',
-        component: () => import('@views/db-manage/common/toolbox-result/Index.vue'),
-      },
-    ],
+    children: [...mysqlToolboxChildrenRouters],
   },
 ];
 
