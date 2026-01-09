@@ -1,6 +1,6 @@
 <template>
   <AIBlueking
-    v-if="apiUrl"
+    v-if="isShowAiBlueking"
     ref="aiBluekingRef"
     :enable-popup="false"
     ext-cls="dbm-ai-chat-dialog"
@@ -13,13 +13,19 @@
 </template>
 
 <script setup lang="ts">
+  import { useRoute } from 'vue-router';
+
   import AIBlueking from '@blueking/ai-blueking';
 
   import '@blueking/ai-blueking/dist/vue3/style.css';
 
   import { useState } from './hooks/useState';
 
+  const route = useRoute();
+
   const { aiBluekingRef, apiUrl, hideNimbus, showHistoryIcon, showMoreIcon, showNewChatIcon } = useState();
+
+  const isShowAiBlueking = computed(() => route.meta.aiBlueking !== false && apiUrl.value);
 </script>
 <style lang="postcss">
   .dbm-ai-chat-dialog {

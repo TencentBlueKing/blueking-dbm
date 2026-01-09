@@ -7,7 +7,7 @@ export function getAgentInfo() {
 }
 
 export function getAgentPing() {
-  return http.get(`${path}/agent/ping/`);
+  return http.get(`${path}/agent/agent/ping/`);
 }
 
 export function chatCompletion(params: {

@@ -21,6 +21,7 @@ export default function getRoutes() {
       path: 'ai-chat',
       name: 'AiChat',
       meta: {
+        aiBlueking: false,
         navName: t('DBA 智能助手'),
       },
       redirect: {
