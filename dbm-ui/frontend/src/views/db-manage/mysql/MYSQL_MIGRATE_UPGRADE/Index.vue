@@ -330,7 +330,7 @@
                     bk_biz_id: host.bk_biz_id,
                     bk_cloud_id: host.bk_cloud_id,
                     bk_host_id: host.bk_host_id,
-                    bk_sub_zone: host.bk_sub_zone || '--',
+                    bk_sub_zone: host.bk_sub_zone || undefined,
                     ip: host.ip,
                   },
                 }))

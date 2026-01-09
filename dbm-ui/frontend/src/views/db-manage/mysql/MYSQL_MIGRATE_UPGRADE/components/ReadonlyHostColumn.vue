@@ -43,7 +43,6 @@
       "
       :rows="hostLimit"
       @blur="handleBlur"
-      @change="handleChange"
       @focus="handleFocus">
       <template #prepend>
         <div
@@ -55,24 +54,8 @@
           </div>
         </div>
       </template>
-      <template #append>
-        <DbIcon
-          v-bk-tooltips="t('从资源池选择')"
-          class="select-icon"
-          type="host-select"
-          @click="handleShowSelector" />
-      </template>
     </EditableTextarea>
   </EditableColumn>
-  <ResourceHostSelector
-    v-model="selected"
-    v-model:is-show="showSelector"
-    :limit="hostLimit"
-    :params="{
-      for_bizs: [currentBizId, 0],
-      resource_types: [DBTypes.MYSQL, 'PUBLIC'],
-    }"
-    @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
   import _ from 'lodash';
@@ -82,10 +65,8 @@
   import TendbhaModel from '@services/model/mysql/tendbha';
   import { fetchList } from '@services/source/dbresourceResource';
 
-  import { ClusterTypes, DBTypes } from '@common/const';
+  import { ClusterTypes } from '@common/const';
   import { batchSplitRegex, ipv4 } from '@common/regex';
-
-  import ResourceHostSelector, { type IValue } from '@components/resource-host-selector/Index.vue';
 
   interface HostInfo {
     bk_biz_id: number;
@@ -118,24 +99,15 @@
 
   const { t } = useI18n();
 
-  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
-
   const inputIps = ref('');
   const textareaRef = ref();
   const hostMemo = ref<Record<string, boolean>>({});
-  const showSelector = ref(false);
 
   const hostLimit = computed(() => readonlyHost.value.length);
-  const selected = computed(() =>
-    newReadonlyHost.value.filter((item) => !!item.ip).length ? (newReadonlyHost.value as IValue[]) : ([] as IValue[]),
-  );
 
   // 格式化输入转为ips: string[]
   const formatInputToIps = (value: string) => {
-    return value
-      .trim()
-      .replace(/（[^）]*）/g, '')
-      .split(batchSplitRegex);
+    return value.replace(/（[^）]*）/g, '').split(batchSplitRegex);
   };
 
   const rules = [
@@ -143,9 +115,6 @@
       message: t('新只读主机数与旧只读主机数不一致'),
       trigger: 'blur',
       validator: () => {
-        if (!inputIps.value) {
-          return true;
-        }
         const ips = formatInputToIps(inputIps.value);
         return ips.length === hostLimit.value;
       },
@@ -154,9 +123,6 @@
       message: '',
       trigger: 'blur',
       validator: () => {
-        if (!inputIps.value) {
-          return true;
-        }
         const formatErrors = formatInputToIps(inputIps.value).filter((item) => !ipv4.test(item));
         return formatErrors.length ? t('IP格式有误，请输入合法IP: xx', [formatErrors.join('、')]) : true;
       },
@@ -165,9 +131,6 @@
       message: '',
       trigger: 'blur',
       validator: () => {
-        if (!inputIps.value) {
-          return true;
-        }
         const ips = formatInputToIps(inputIps.value);
         const notExist: string[] = [];
         ips.forEach((item) => {
@@ -183,7 +146,23 @@
   const { loading, run: queryHost } = useRequest(fetchList, {
     manual: true,
     onSuccess: (data) => {
-      handleSelectorChange(data.results);
+      const hostList = data.results || [];
+      if (hostList.length) {
+        inputIps.value = hostList.map((item) => `${item.ip}（${item.sub_zone || '--'}）`).join('\n');
+        newReadonlyHost.value = hostList.map((item) => ({
+          bk_biz_id: item.dedicated_biz || item.bk_biz_id,
+          bk_cloud_id: item.bk_cloud_id,
+          bk_host_id: item.bk_host_id,
+          bk_sub_zone: item.sub_zone || undefined,
+          ip: item.ip,
+        }));
+        hostMemo.value = hostList.reduce<Record<string, boolean>>((acc, cur) => {
+          Object.assign(acc, {
+            [cur.ip]: true,
+          });
+          return acc;
+        }, {});
+      }
     },
   });
 
@@ -197,19 +176,15 @@
     return '';
   };
 
-  const handleShowSelector = () => {
-    showSelector.value = true;
-  };
-
   // 聚焦时，生成对应行数
   const handleFocus = () => {
-    if (inputIps.value) {
-      // 删除括号及其中的内容
-      inputIps.value = formatInputToIps(inputIps.value).join('\n');
-      return;
-    }
-    for (let i = 0; i < hostLimit.value - 1; i++) {
-      inputIps.value += '\n';
+    // 删除括号及其中的内容
+    const ips = formatInputToIps(inputIps.value);
+    inputIps.value = ips.join('\n');
+    if (ips.length < hostLimit.value) {
+      for (let i = 0; i < hostLimit.value - ips.length; i++) {
+        inputIps.value += '\n';
+      }
     }
   };
 
@@ -228,25 +203,6 @@
         limit: hostLimit.value,
         offset: 0,
       });
-    }
-  };
-
-  const handleSelectorChange = (hostList: IValue[]) => {
-    if (hostList.length) {
-      inputIps.value = hostList.map((item) => `${item.ip}（${item.sub_zone || '--'}）`).join('\n');
-      newReadonlyHost.value = hostList.map((item) => ({
-        bk_biz_id: item.dedicated_biz || item.bk_biz_id,
-        bk_cloud_id: item.bk_cloud_id,
-        bk_host_id: item.bk_host_id,
-        bk_sub_zone: item.sub_zone,
-        ip: item.ip,
-      }));
-      hostMemo.value = hostList.reduce<Record<string, boolean>>((acc, cur) => {
-        Object.assign(acc, {
-          [cur.ip]: true,
-        });
-        return acc;
-      }, {});
     }
   };
 
@@ -307,6 +263,10 @@
             (item) => item.bk_host_id,
           ) || [];
 
+        for (let i = 0; i < readonlyHost.value.length - 1; i++) {
+          inputIps.value += '\n';
+        }
+
         setTimeout(() => {
           // 单据克隆回显
           if (newReadonlyHost.value.length > 0) {
@@ -364,19 +324,6 @@
   }
 </style>
 <style lang="less" scoped>
-  .select-icon {
-    display: flex;
-    margin-right: 5px;
-    font-size: 18px;
-    color: #979ba5;
-    align-items: center;
-    cursor: pointer;
-
-    &:hover {
-      color: #3a84ff;
-    }
-  }
-
   .readonly-host-head {
     border-bottom: 1px dashed #979ba5;
   }
