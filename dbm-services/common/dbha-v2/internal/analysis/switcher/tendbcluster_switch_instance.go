@@ -313,10 +313,10 @@ func (sw *TenDBClusterBaseSwitchInstance) TdbctlDropNode(tdbctlDB *hamysql.GormD
 	result := tdbctlDB.DB().Exec(dropNodeSql)
 	if result.Error != nil {
 		return gerrors.Newf(gerrors.Failure, "failed to execute sql(%s) on tdbctl(%s:%d), errmsg: %s",
-			TdbctlDropNodeSql, tdbctlDB.Host(), tdbctlDB.Port(), result.Error.Error())
+			dropNodeSql, tdbctlDB.Host(), tdbctlDB.Port(), result.Error.Error())
 	}
 	sw.ReportLogf(SwitchInfo, "successfully executed sql(%s) on tdbctl(%s:%d)",
-		TdbctlDropNodeSql, tdbctlDB.Host(), tdbctlDB.Port())
+		dropNodeSql, tdbctlDB.Host(), tdbctlDB.Port())
 
 	if result.RowsAffected != 1 {
 		return gerrors.Newf(gerrors.Failure, "cannot ensure that the number of rows affected is 1, affected: %d",
@@ -859,10 +859,12 @@ func (sw *TenDBClusterSpiderSwitchInstance) DoFinal() error {
 
 		changeMasterSql := fmt.Sprintf(TdbctlChangeMasterSql, primaryHost, primaryPort)
 		failureOccurred := false
+		validSecondaryCount := 0
 		for _, node := range sw.SecondaryTdbctlNodes {
 			if node.ServerName == sw.PrimaryTdbctl.ServerName {
 				continue
 			}
+			validSecondaryCount++
 
 			if changeMasterErr := sw.ChangeMasterAuto(node.Host, node.Port, changeMasterSql); changeMasterErr != nil {
 				failureOccurred = true
@@ -871,12 +873,15 @@ func (sw *TenDBClusterSpiderSwitchInstance) DoFinal() error {
 			}
 		}
 
-		if failureOccurred {
+		if validSecondaryCount == 0 {
+			sw.ReportLog(SwitchInfo, "no valid secondary nodes need to change master to the new primary tdbctl")
+		} else if failureOccurred {
 			errMsg := "not all secondary tdbctl successfully changed the master to the new primary tdbctl"
 			sw.ReportLogf(SwitchWarn, "%s", errMsg)
 			return gerrors.New(gerrors.Failure, errMsg)
+		} else {
+			sw.ReportLog(SwitchInfo, "successfully changed master to the new primary tdbctl for all valid secondary tdbctl nodes")
 		}
-		sw.ReportLog(SwitchInfo, "successfully changed master to the new primary tdbctl for all valid secondary tdbctl nodes")
 	}
 
 	return nil
@@ -946,6 +951,8 @@ func (sw *TenDBClusterRemoteSwitchInstance) FindMasterSlavePair() (*TdbctlRouteI
 		return curMasterRoute, nil, gerrors.New(gerrors.Failure, errMsg)
 	}
 
+	sw.ReportLogf(SwitchInfo, "successfully get route info of current remote master(%s:%d) and its remote slave(%s:%d)",
+		sw.IP, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port)
 	return curMasterRoute, curSlaveRoute, nil
 }
 
