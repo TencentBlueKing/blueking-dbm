@@ -86,8 +86,9 @@ dbm:
     bkjobEnabled: true
     mediumEnabled: true
     bkmonitorEnabled: true
-    sslEnabled: true
     bknoticeEnabled: true
+    # TODO: 验证后开启
+    dbmServicesEnabled: false
 
   image:
     registry: "mirrors.tencent.com"
@@ -474,7 +475,7 @@ db-remote-service:
     dataId: 1
 
 db-celery-service:
-  enabled: true
+  enabled: false
   envs:
     # apm
     TRACE_SERVICE_NAME: db-celery-service
@@ -531,10 +532,10 @@ backup-server:
     bkrepo_public_bucket: "bkdbm"
   backup_client:
     cos_default_dns: ""
-    default_storage: "cos"
+    default_storage: "bkrepo"
 
 bkdata-kafka-consumer:
-  enabled: true
+  enabled: false
   resources:
     limits:
       cpu: 1000m

@@ -74,5 +74,5 @@ dependencies:
 - name: k8s-dbs
   repository: file://charts/k8s-dbs
   version: 2.1.7
-digest: sha256:57da36701a5e0d81975a54408bf910c008afbee05fddcb7a62fff90d81fa906b
-generated: "2026-04-10T15:23:45.904761+08:00"
+digest: sha256:bb15cb27e809b4ba4f1db39f56f324e714c5ed353286e39805126afab9a88951
+generated: "2026-04-28T15:38:34.600493+08:00"

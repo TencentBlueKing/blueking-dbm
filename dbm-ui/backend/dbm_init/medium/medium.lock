@@ -170,7 +170,7 @@ mysql:
 - mysql:
     buildPath: /install/mysql/mysql-8.0.32-linux-glibc2.12-x86_64.tar.xz
     name: mysql-8.0.32-linux-glibc2.12-x86_64.tar.xz
-    version: MySQL-8.0
+    version: MySQL-8.0-Community
     installation: true
 - mysql-proxy:
     buildPath: /install/mysql/mysql-proxy-0.82.15.tar.gz
@@ -290,4 +290,4 @@ backupstm:
 - backup-client:
     buildPath: /toolkit/backup_client.tar.gz
     name: backup_client.tar.gz
-    version: 1.0.0
+    version: latest

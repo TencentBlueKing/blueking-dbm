@@ -18,7 +18,7 @@ spec:
       serviceAccountName: {{ include "dbm.serviceAccountName" . }}
       restartPolicy: Never
       containers:
-        - name: dbm-ssl-init
+        - name: dbm-iam-init
           image: "{{ .Values.global.imageRegistry | default .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command:

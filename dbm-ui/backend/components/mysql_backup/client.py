@@ -49,6 +49,16 @@ class _BackupApi(BaseApi):
             url="backupapi/queryTasks",
             description=_("根据备份任务id列表，拉取备份文件信息"),
         )
+        self.check_bucket = self.generate_data_api(
+            method="POST",
+            url="backupapi/bucket/check",
+            description=_("检查备份桶是否存在"),
+        )
+        self.add_bucket = self.generate_data_api(
+            method="POST",
+            url="backupapi/bucket/add",
+            description=_("添加备份桶"),
+        )
 
 
 MysqlBackupApi = _BackupApi()
