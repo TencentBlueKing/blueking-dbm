@@ -20,8 +20,8 @@ from backend import env
 from backend.components.dbresource.client import DBResourceApi
 from backend.components.hcm.client import HCMApi
 from backend.components.xwork.client import XworkApi
-from backend.configuration.constants import DBType
-from backend.configuration.models import BizSettings
+from backend.configuration.constants import DBType, SystemSettingsEnum
+from backend.configuration.models import BizSettings, SystemSettings
 from backend.db_dirty.constants import MachineEventType
 from backend.db_dirty.models import MachineEvent
 from backend.db_meta.models import Machine
@@ -237,7 +237,8 @@ class ImportResourceInitStepFlow(object):
 
         # 直连区域：存在uwork的主机需要回到故障池，存在裁撤单的主机需要回到待回收池，否则退回资源池
         host_ids = [host["bk_host_id"] for host in hosts if host["bk_cloud_id"] == 0]
-        dissolved_hosts = HCMApi.check_host_is_dissolved(host_ids)
+        dissolved_switch = SystemSettings.get_setting_value(key=SystemSettingsEnum.DISSOLVED_SWITCH, default=True)
+        dissolved_hosts = HCMApi.check_host_is_dissolved(host_ids) if dissolved_switch else []
         uwork_hosts = HCMApi.check_host_has_uwork(host_ids)
 
         host_ip__host_id_map = {host["ip"]: host["bk_host_id"] for host in hosts if host["bk_cloud_id"] == 0}

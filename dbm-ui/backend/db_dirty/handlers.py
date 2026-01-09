@@ -68,7 +68,9 @@ class DBDirtyMachineHandler(object):
                 recycle_id = HCMApi.create_recycle(bk_host_ids, operator)
                 remark = _("已自动在「海垒」创建回收单据(单号：{})").format(recycle_id)
                 message += remark
-            MachineEvent.host_event_trigger(bk_biz_id, hosts, MachineEventType.Recycled, operator, remark=remark)
+                MachineEvent.host_event_trigger(bk_biz_id, hosts, MachineEventType.HCMRemove, operator, remark=remark)
+            else:
+                MachineEvent.host_event_trigger(bk_biz_id, hosts, MachineEventType.Recycled, operator, remark=remark)
         # 故障池 ---> 待回收池
         elif source == PoolType.Fault and target == PoolType.Recycle:
             message = _("主机转移成功！")
