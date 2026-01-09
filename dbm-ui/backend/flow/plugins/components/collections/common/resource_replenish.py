@@ -13,6 +13,7 @@ from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import StaticIntervalGenerator
 
+from backend import env
 from backend.components.hcm.client import HCMApi
 from backend.db_meta.models import Spec
 from backend.db_services.dbresource.handlers import ResourceHandler
@@ -37,7 +38,8 @@ class HCMResourceReplenishService(BaseService):
     def _execute(self, data, parent_data):
         global_data = data.get_one_of_inputs("global_data")
         kwargs = data.get_one_of_inputs("kwargs")
-        bk_biz_id = global_data["bk_biz_id"]
+        # 这里申请业务固定为DB生产环境
+        bk_biz_id = env.DBA_APP_BK_BIZ_ID
 
         # 获取当前单据信息和申请补货信息
         ticket, flow = self.__get_ticket_flow(global_data)
@@ -80,10 +82,9 @@ class HCMResourceReplenishService(BaseService):
         global_data = data.get_one_of_inputs("global_data")
         apply_id = data.get_one_of_outputs("apply_id")
         apply_count = data.get_one_of_outputs("apply_count")
-
-        # 获取当前单据信息和申请补货信息
-        bk_biz_id = global_data["bk_biz_id"]
         ticket, flow = self.__get_ticket_flow(global_data)
+        # 这里申请业务固定为DB生产环境
+        bk_biz_id = env.DBA_APP_BK_BIZ_ID
 
         if not apply_count:
             self.finish_schedule()
@@ -125,6 +126,11 @@ class HCMResourceReplenishService(BaseService):
         conditions = [{"field": "bk_host_innerip", "operator": "in", "value": host_ips}]
         resp = ResourceQueryHelper.query_cc_hosts(tree_node, conditions, page_size=len(host_ips), bk_cloud_id=0)
         hosts = ResourceHandler.standardized_resource_host(resp["info"])
+
+        # 申请到的机器和cc查询机器数量不一致，可能录入有延迟，推迟到下个周期查询
+        if len(host_ips) != len(hosts):
+            self.log_info(_("申请到的机器数量与CC查询到的机器数量不一致，推迟到下个周期查询"))
+            return True
 
         # 校验主机是否与申请机型参数一致(暂时仅打印日志提示)
         spec = Spec.objects.get(spec_id=ticket.details["spec_id"])
