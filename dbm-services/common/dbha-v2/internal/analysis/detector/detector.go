@@ -43,9 +43,16 @@ const (
 	CheckProbeProcessCmd = "cd ~/dbhav2/ && ./probe health -j"
 )
 
+// DoubleCheckTask represents the double-check task.
+type DoubleCheckTask struct {
+	Meta   *hamodel.DbmMetadata
+	DbType haprobe.DbType
+}
+
 type Response struct {
 	Id                string
 	Meta              *hamodel.DbmMetadata
+	DbType            haprobe.DbType
 	DbEventName       haprobe.DbEventName
 	DbEventNameReason haprobe.DbEventNameReason
 	Err               error
@@ -58,7 +65,7 @@ type Detector struct {
 	tasks map[string]*detectorTask
 }
 
-func (d *Detector) Detect(dbInsts []*hamodel.DbmMetadata) error {
+func (d *Detector) Detect(dbInsts []DoubleCheckTask) error {
 	if len(dbInsts) == 0 {
 		return ErrDetectorNoTarget
 	}
@@ -67,9 +74,10 @@ func (d *Detector) Detect(dbInsts []*hamodel.DbmMetadata) error {
 
 	for _, inst := range dbInsts {
 		task := &detectorTask{
-			meta: inst,
+			meta:   inst.Meta,
+			dbType: inst.DbType,
 			sshCli: &Ssh{
-				ip:       inst.IP,
+				ip:       inst.Meta.IP,
 				port:     config.Cfg.Detector.Ssh.Port,
 				user:     config.Cfg.Detector.Ssh.User,
 				password: config.Cfg.Detector.Ssh.Password,
@@ -115,6 +123,7 @@ func (d *Detector) WaitResponses() []*Response {
 
 type detectorTask struct {
 	meta   *hamodel.DbmMetadata
+	dbType haprobe.DbType
 	resp   *Response
 	sshCli *Ssh
 }
@@ -126,6 +135,7 @@ func (d *detectorTask) id() string {
 func (d *detectorTask) run(cmd string) {
 	resp := &Response{
 		Meta:              d.meta,
+		DbType:            d.dbType,
 		Id:                d.sshCli.Id(),
 		DbEventName:       haprobe.DbEventNameProbeOffline,
 		DbEventNameReason: haprobe.DbEventNameReasonMissedProbe,

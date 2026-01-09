@@ -126,6 +126,15 @@ type DbmMetadata struct {
 	SyncDuration     time.Duration                  `gorm:"column:sync_duration;type:bigint"`
 }
 
+func (t DbmMetadata) GetDbType() haprobe.DbType {
+	if t.ClusterType == haprobe.DbmMetadataClusterTypeTendbha ||
+		t.ClusterType == haprobe.DbmMetadataClusterTypeTendbCluster {
+		return haprobe.DbTypeMySql
+	}
+
+	return haprobe.DbTypeNone
+}
+
 // TableName returns the table name for the DbmMetadata model.
 func (t DbmMetadata) TableName() string {
 	return DbmMetadataTableName
