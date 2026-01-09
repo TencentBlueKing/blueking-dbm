@@ -493,6 +493,7 @@ class DBActuatorActionEnum(StrStructuredEnum):
     UpgradeStart = EnumField("upgrade-start", _("MySQL升级启动"))
     UpgradeRestart = EnumField("upgrade-restart", _("MySQL升级重启"))
     UpgradeRelink = EnumField("upgrade-relink", _("MySQL升级重新链接"))
+    UpgradeRelinkTdbctl = EnumField("upgrade-relink-tdbctl", _("tdbctl版本重新链接"))
     MysqlDataMigrateDump = EnumField("mysql_data_migrate_dump", _("Mysql数据迁移导出库"))
     MysqlDataMigrateImport = EnumField("mysql_data_migrate_import", _("Mysql数据迁移导入库"))
     MysqlChangeMycnf = EnumField("mycnf-change", _("修改MySQL配置"))

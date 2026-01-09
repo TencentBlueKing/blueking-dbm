@@ -67,7 +67,7 @@ func (d *UpgradeRestartMySQLAct) Run() (err error) {
 	steps := subcmd.Steps{
 		{
 			FunName: "Init",
-			Func:    d.Service.Init,
+			Func:    d.Service.StartInit,
 		},
 		{
 			FunName: "MySQL重启",

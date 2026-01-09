@@ -20,8 +20,9 @@ type MysqlUpgradeComp struct {
 
 // MysqlUpgradeParam TODO
 type MysqlUpgradeParam struct {
-	Host string `json:"host"  validate:"required,ip"`
-	Port int    `json:"port"`
+	Host     string `json:"host"  validate:"required,ip"`
+	Port     int    `json:"port"`
+	IsTdbctl bool   `json:"is_tdbctl"`
 	components.Medium
 	// 只做升级检查
 	Run bool `json:"run"`

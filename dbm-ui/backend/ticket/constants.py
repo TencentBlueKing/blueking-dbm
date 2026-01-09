@@ -415,11 +415,9 @@ class TicketType(StrStructuredEnum):
     TENDBCLUSTER_ACCOUNT_RULE_CHANGE = TicketEnumField("TENDBCLUSTER_ACCOUNT_RULE_CHANGE",
                                                        _("TenDB Cluster 授权规则变更"), register_iam=False)  # noqa
     TENDBCLUSTER_ADD_CLB = TicketEnumField("TENDBCLUSTER_ADD_CLB", _("TenDB Cluster 接入 CLB"))
-    TENDBCLUSTER_CLB_BIND_DOMAIN = TicketEnumField("TENDBCLUSTER_CLB_BIND_DOMAIN",
-                                                   _("TenDB Cluster 主域名指向 CLB"))  # noqa
-    TENDBCLUSTER_CLB_UNBIND_DOMAIN = TicketEnumField("TENDBCLUSTER_CLB_UNBIND_DOMAIN",
-                                                     _("TenDB Cluster 主域名解绑 CLB"))  # noqa
-
+    TENDBCLUSTER_CLB_BIND_DOMAIN = TicketEnumField("TENDBCLUSTER_CLB_BIND_DOMAIN", _("TenDB Cluster 主域名指向 CLB"))  # noqa
+    TENDBCLUSTER_CLB_UNBIND_DOMAIN = TicketEnumField("TENDBCLUSTER_CLB_UNBIND_DOMAIN", _("TenDB Cluster 主域名解绑 CLB"))  # noqa
+    TENDBCLUSTER_TDBCTL_UPGRADE = TicketEnumField("TENDBCLUSTER_TDBCTL_UPGRADE", _("TenDB Cluster TDBCTL 升级"), _("集群维护"))  # noqa
     # Tbinlogdumper
     TBINLOGDUMPER_INSTALL = TicketEnumField("TBINLOGDUMPER_INSTALL", _("TBINLOGDUMPER 上架"), register_iam=False)
     TBINLOGDUMPER_REDUCE_NODES = TicketEnumField("TBINLOGDUMPER_REDUCE_NODES", _("TBINLOGDUMPER 下架"),

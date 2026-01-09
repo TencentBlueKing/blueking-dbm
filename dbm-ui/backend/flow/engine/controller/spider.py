@@ -44,6 +44,7 @@ from backend.flow.engine.bamboo.scene.spider.spider_slave_cluster_destroy import
 from backend.flow.engine.bamboo.scene.spider.spider_switch_nodes import TenDBClusterSwitchNodesFlow
 from backend.flow.engine.bamboo.scene.spider.upgrade.upgrade_backend_storage import UpgradeRemoteFlow
 from backend.flow.engine.bamboo.scene.spider.upgrade.upgrade_spider_node import UpgradeSpiderFlow
+from backend.flow.engine.bamboo.scene.spider.upgrade.upgrade_tdbctl import UpgradeTdbctlFlow
 from backend.flow.engine.bamboo.scene.spider.validate.remote_upgrade_validate import TenDBClusterRemoteUpgradeValidator
 from backend.flow.engine.bamboo.scene.spider.validate.spider_add_nodes_validate import (
     TenDBClusterAddNodesFlowValidator,
@@ -304,4 +305,11 @@ class SpiderController(BaseController):
         spider关键字检查场景
         """
         flow = SpiderKeywordCheckFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.run()
+
+    def tendbcluster_tdbctl_upgrade(self):
+        """
+        tendbcluster tdbctl（中控）升级
+        """
+        flow = UpgradeTdbctlFlow(root_id=self.root_id, data=self.ticket_data)
         flow.run()

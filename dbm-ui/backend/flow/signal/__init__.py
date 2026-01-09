@@ -11,3 +11,4 @@ specific language governing permissions and limitations under the License.
 
 # 导入信号处理器以确保注册
 from . import mysql_rollback_exercise_handler  # noqa
+from . import tdbctl_upgrade_handler  # noqa

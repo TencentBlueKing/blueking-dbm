@@ -8,21 +8,23 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from django.utils.translation import gettext_lazy as _
 
-from rest_framework.routers import DefaultRouter
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
-from backend.db_services.mysql.toolbox.views import (
-    TdbctlUpgradeViewSet,
-    TendbHaSlaveInstanceAddDomainSet,
-    TendbhaTransferToOtherBizViewSet,
-    ToolboxViewSet,
-)
 
-router = DefaultRouter(trailing_slash=True)
-router.register(r"toolbox", ToolboxViewSet, basename="toolbox")
-router.register(r"toolbox", TendbhaTransferToOtherBizViewSet, basename="tendbha-transfer")
-router.register(r"toolbox", TendbHaSlaveInstanceAddDomainSet, basename="tendbha-slave-add-domain")
-router.register(r"toolbox/tdbctl_upgrade", TdbctlUpgradeViewSet, basename="tdbctl-upgrade")
+class TdbctlUpgradeStatus(StrStructuredEnum):
+    """tdbctl 升级状态枚举"""
 
-urlpatterns = []
-urlpatterns += router.urls
+    PENDING = EnumField("pending", _("待升级"))
+    RUNNING = EnumField("running", _("升级中"))
+    SUCCESS = EnumField("success", _("升级成功"))
+    FAILED = EnumField("failed", _("升级失败"))
+    SKIPPED = EnumField("skipped", _("已跳过-版本已是最新"))
+
+
+class TdbctlInstanceRole(StrStructuredEnum):
+    """tdbctl 实例角色枚举"""
+
+    PRIMARY = EnumField("primary", _("主节点"))
+    SECONDARY = EnumField("secondary", _("从节点"))

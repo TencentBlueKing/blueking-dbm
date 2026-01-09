@@ -75,13 +75,84 @@ logger = logging.getLogger("flow")
 
 class TenDBClusterStorageMigrateUpgradeFlow(object):
     """
-    TenDBCluster 后端节点主从成对迁移
+    TenDBCluster 后端节点主从成对迁移升级流程
+
+    该流程用于将 TenDBCluster 集群的 Remote 后端存储节点进行成对迁移升级，
+    支持从本地或远程备份源恢复数据，并在迁移完成后进行切换。
+
+    流程阶段:
+        1. 安装新的主从实例
+        2. 从备份恢复数据到新实例
+        3. 建立同步关系
+        4. 切换流量到新实例
+        5. 安装周边组件
+        6. 卸载旧实例
+
+    数据格式示例:
+    {
+        "uid": "2024010112345678",
+        "bk_biz_id": 100,
+        "created_by": "admin",
+        "ticket_type": "TENDBCLUSTER_MIGRATE_UPGRADE",
+        "backup_source": "remote",  # 备份源: "remote" 或 "local"
+        "need_checksum": true,  # 是否需要数据校验
+        "infos": [
+            {
+                "cluster_id": 1,
+                "pkg_id": 10,  # 新版本安装包ID
+                "new_db_module_id": 20,  # 新的数据库模块ID
+                "remote_shard_num": 2,  # 每组机器的分片数
+                "remote_group": [
+                    {
+                        "master": {
+                            "ip": "127.0.0.1",
+                            "bk_host_id": 1001
+                        },
+                        "slave": {
+                            "ip": "127.0.0.2",
+                            "bk_host_id": 1002
+                        }
+                    },
+                    {
+                        "master": {
+                            "ip": "127.0.0.3",
+                            "bk_host_id": 1003
+                        },
+                        "slave": {
+                            "ip": "127.0.0.4",
+                            "bk_host_id": 1004
+                        }
+                    }
+                ]
+            }
+        ]
+    }
     """
 
     def __init__(self, root_id: str, data: Optional[Dict]):
         """
-        @param root_id : 任务流程定义的root_id
-        @param ticket_data : 单据传递参数
+        初始化 TenDBCluster 存储节点迁移升级流程
+
+        @param root_id: 任务流程定义的root_id，用于标识整个流程实例
+        @param data: 单据传递参数，包含以下字段:
+            - uid: str, 单据唯一标识
+            - bk_biz_id: int, 业务ID
+            - created_by: str, 创建人
+            - ticket_type: str, 单据类型
+            - backup_source: str, 备份源类型，可选值: "remote"(远程备份) 或 "local"(本地备份)
+            - need_checksum: bool, 是否需要数据校验，默认为True
+            - infos: List[Dict], 集群迁移信息列表，每个元素包含:
+                - cluster_id: int, 集群ID
+                - pkg_id: int, 新版本MySQL安装包ID
+                - new_db_module_id: int, 新的数据库模块ID
+                - remote_shard_num: int, 每组机器承载的分片数量
+                - remote_group: List[Dict], 新机器组列表，每个元素包含:
+                    - master: Dict, 新主节点信息
+                        - ip: str, IP地址
+                        - bk_host_id: int, 主机ID
+                    - slave: Dict, 新从节点信息
+                        - ip: str, IP地址
+                        - bk_host_id: int, 主机ID
         """
         self.root_id = root_id
         self.uid = data["uid"]

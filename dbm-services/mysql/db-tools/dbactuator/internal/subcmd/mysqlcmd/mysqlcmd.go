@@ -103,6 +103,7 @@ func NewMysqlCommand() *cobra.Command {
 				NewUpgradeStartMySQLCommand(),
 				NewUpgradeCheckMySQLCommand(),
 				NewUpgradeExecMySQLCommand(),
+				NewUpgradeRelinkTdbctlCommand(),
 			},
 		},
 	}
