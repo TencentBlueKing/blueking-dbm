@@ -181,6 +181,8 @@ class SystemSettingsEnum(StrStructuredEnum):
     REPLENISH_RATIO_MAP = EnumField("REPLENISH_RATIO_MAP", _("补货比例"))
     REPLENISH_OS_MAP = EnumField("REPLENISH_OS_MAP", _("补货操作系统映射"))
     REPLENISH_SUBZONE_MAP = EnumField("REPLENISH_SUBZONE_MAP", _("补货园区映射"))
+    # 判断待裁撤主机开关
+    DISSOLVED_SWITCH = EnumField("DISSOLVED_SWITCH", _("判断待裁撤主机开关"))
 
 
 class BizSettingsEnum(StrStructuredEnum):
