@@ -22,7 +22,7 @@
     required>
     <EditableInput
       v-model="localValue"
-      :placeholder="t('请输入集群域名，多个用逗号分隔')"
+      :placeholder="t('请输入集群域名')"
       @change="handleInputChange">
       <template #append>
         <DbIcon
