@@ -76,6 +76,11 @@
     run: runGetClusterVersionsByIp,
   } = useRequest(getClusterVersionsByIp, {
     manual: true,
+    onSuccess(versionResult) {
+      if (modelValue.value && versionResult.every((item) => item !== modelValue.value)) {
+        modelValue.value = '';
+      }
+    },
   });
 
   watch(
