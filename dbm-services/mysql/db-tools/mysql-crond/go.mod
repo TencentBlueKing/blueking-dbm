@@ -7,6 +7,7 @@ toolchain go1.24.2
 require (
 	github.com/gin-gonic/gin v1.10.1
 	github.com/go-playground/validator/v10 v10.27.0
+	github.com/gofrs/flock v0.13.0
 	github.com/jedib0t/go-pretty/v6 v6.6.8
 	github.com/jinzhu/copier v0.4.0
 	github.com/pkg/errors v0.9.1
@@ -56,8 +57,7 @@ require (
 	golang.org/x/arch v0.20.0 // indirect
 	golang.org/x/crypto v0.42.0 // indirect
 	golang.org/x/net v0.44.0 // indirect
-	golang.org/x/sys v0.36.0 // indirect
+	golang.org/x/sys v0.37.0 // indirect
 	golang.org/x/text v0.29.0 // indirect
 	google.golang.org/protobuf v1.36.8 // indirect
-	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )

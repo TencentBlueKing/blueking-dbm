@@ -23,10 +23,10 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-var name = "rotate-slowlog"
+var rotatorName = "rotate-slowlog"
 
-// Dummy TODO
-type Dummy struct {
+// SlowlogRotator TODO
+type SlowlogRotator struct {
 	db *sqlx.DB
 }
 
@@ -44,21 +44,17 @@ qq{set global slow_query_log=\@sq_log_save},
 */
 
 // Run 运行
-func (d *Dummy) Run() (msg string, err error) {
-	var slowLogPath string
-	var slowLogOn bool
-	err = d.db.QueryRowx(
-		`SELECT @@slow_query_log, @@slow_query_log_file`,
-	).Scan(&slowLogOn, &slowLogPath)
+func (d *SlowlogRotator) Run() (msg string, err error) {
+	slowlogRp := NewSlowlogReport(d.db)
+	msg, err = slowlogRp.Run()
+	if err != nil || msg != "" {
+		return msg, err
+	}
+
+	slowLogOn, slowLogPath, err := slowLogStatus(d.db)
 	if err != nil {
-		slog.Error("query slow_query_log, slow_query_log_file", slog.String("error", err.Error()))
 		return "", err
 	}
-	slog.Info(
-		"rotate slow log",
-		slog.Bool("slow_query_log", slowLogOn),
-		slog.String("slow_query_log_file", slowLogPath),
-	)
 
 	if !slowLogOn {
 		return "", nil
@@ -79,7 +75,8 @@ func (d *Dummy) Run() (msg string, err error) {
 	st, err := os.Stat(historySlowLogFilePath)
 	if err != nil {
 		if !os.IsNotExist(err) { // 文件存在
-			slog.Error("get history slow log file stat",
+			slog.Error(
+				"get history slow log file stat",
 				slog.String("error", err.Error()),
 				slog.String("history file path", historySlowLogFilePath),
 			)
@@ -110,7 +107,8 @@ func (d *Dummy) Run() (msg string, err error) {
 	mvCmd.Stderr = &stderr
 	err = mvCmd.Run()
 	if err != nil {
-		slog.Error("mv slow log",
+		slog.Error(
+			"mv slow log",
 			slog.String("error", err.Error()),
 			slog.String("stderr", stderr.String()),
 		)
@@ -122,7 +120,8 @@ func (d *Dummy) Run() (msg string, err error) {
 	touchCmd.Stderr = &stderr
 	err = touchCmd.Run()
 	if err != nil {
-		slog.Error("touch slow log",
+		slog.Error(
+			"touch slow log",
 			slog.String("error", err.Error()),
 			slog.String("stderr", stderr.String()),
 		)
@@ -139,16 +138,16 @@ func (d *Dummy) Run() (msg string, err error) {
 }
 
 // Name 监控项名
-func (d *Dummy) Name() string {
-	return name
+func (d *SlowlogRotator) Name() string {
+	return rotatorName
 }
 
 // NewRotateSlowLog 新建监控项实例
 func NewRotateSlowLog(cc *monitoriteminterface.ConnectionCollect) monitoriteminterface.MonitorItemInterface {
-	return &Dummy{db: cc.MySqlDB}
+	return &SlowlogRotator{db: cc.MySqlDB}
 }
 
 // RegisterRotateSlowLog 注册监控项
 func RegisterRotateSlowLog() (string, monitoriteminterface.MonitorItemConstructorFuncType) {
-	return name, NewRotateSlowLog
+	return rotatorName, NewRotateSlowLog
 }
