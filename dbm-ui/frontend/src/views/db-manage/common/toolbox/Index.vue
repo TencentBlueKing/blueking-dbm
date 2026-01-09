@@ -37,7 +37,7 @@
           ref="contentWrapper"
           class="toolbox-page-content">
           <ScrollFaker style="padding: 0 24px">
-            <RouterView :key="route.path" />
+            <RouterView :key="renderKey" />
           </ScrollFaker>
         </div>
         <Teleport
@@ -64,6 +64,7 @@
   import { useEventBus } from '@hooks';
 
   import ToolNavigation, { type Props as ToolNavigationProps } from './components/tool-navigation/Index.vue';
+  import { random } from '@utils';
 
   interface Props {
     menuGroupList?: ToolNavigationProps['menuGroupList'];
@@ -73,6 +74,7 @@
   defineProps<Props>();
 
   const route = useRoute();
+  const router = useRouter();
   const eventBus = useEventBus();
 
   const contentWrapperRef = useTemplateRef('contentWrapper');
@@ -80,6 +82,7 @@
   const dbType = ref('');
   const teleportTarget = shallowRef<HTMLDivElement>();
   const submitErrorMessage = ref<string>('');
+  const renderKey = ref(random());
 
   watch(
     route,
@@ -97,6 +100,16 @@
       immediate: true,
     },
   );
+
+  eventBus.on('db-toolbox-success', () => {
+    router.replace({
+      path: route.path,
+      query: {},
+    });
+    setTimeout(() => {
+      renderKey.value = random();
+    }, 60);
+  });
 
   eventBus.on('db-toolbox-error', (errorMessage: any) => {
     submitErrorMessage.value = errorMessage;
