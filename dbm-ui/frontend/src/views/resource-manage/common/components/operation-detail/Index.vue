@@ -83,6 +83,7 @@
 
     return {
       [MachineEvents.APPLY_RESOURCE]: t('从资源池申领主机'),
+      [MachineEvents.HCM_REMOVE]: t('从系统中删除主机记录，主机同步转入 CMDB「n」待回收模块', { n: bizName.value }),
       [MachineEvents.HOST_ATTRIBUTE]: '',
       [MachineEvents.IMPORT_RESOURCE]: t('从「n」业务 CMDB空闲机模块导入', { n: bizName.value }),
       [MachineEvents.RECYCLED]: t('从系统中删除主机记录，主机同步转入 CMDB「n」待回收模块', { n: bizName.value }),
