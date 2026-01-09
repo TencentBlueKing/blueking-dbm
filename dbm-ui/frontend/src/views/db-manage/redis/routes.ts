@@ -155,13 +155,7 @@ const toolboxRoutes = [
       name: '',
     },
     component: () => import('@views/db-manage/redis/toolbox/Index.vue'),
-    children: [
-      {
-        path: 'toolbox-result/:ticketType?/:ticketId?',
-        name: 'RedisToolboxResult',
-        component: () => import('@views/db-manage/common/toolbox-result/Index.vue'),
-      },
-    ] as RouteRecordRaw[],
+    children: [] as RouteRecordRaw[],
   },
   createRouteItem(TicketTypes.REDIS_DATACOPY_CHECK_REPAIR, t('数据校验修复')),
 ];
