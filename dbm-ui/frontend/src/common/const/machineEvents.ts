@@ -5,6 +5,7 @@ import { t } from '@locales/index';
  */
 export const enum MachineEvents {
   APPLY_RESOURCE = 'apply_resource',
+  HCM_REMOVE = 'hcm_remove',
   HOST_ATTRIBUTE = 'host_attribute',
   IMPORT_RESOURCE = 'import_resource',
   RECYCLED = 'recycled',
@@ -19,6 +20,7 @@ export const enum MachineEvents {
 
 export const machineEventsDisplayMap = {
   [MachineEvents.APPLY_RESOURCE]: t('资源池申领主机'),
+  [MachineEvents.HCM_REMOVE]: t('主机回收'),
   [MachineEvents.HOST_ATTRIBUTE]: t('修改主机属性'),
   [MachineEvents.IMPORT_RESOURCE]: t('导入资源池'),
   [MachineEvents.RECYCLED]: t('主机删除'),
@@ -30,3 +32,17 @@ export const machineEventsDisplayMap = {
   [MachineEvents.TO_RECYCLE]: t('转入待回收池'),
   [MachineEvents.UNDO_IMPORT]: t('撤销导入'),
 };
+
+export const machineEventsSelectList = [
+  MachineEvents.IMPORT_RESOURCE,
+  MachineEvents.APPLY_RESOURCE,
+  MachineEvents.RETURN_RESOURCE,
+  MachineEvents.TO_FAULT,
+  MachineEvents.TO_RECYCLE,
+  MachineEvents.REMOVE_HOST,
+  MachineEvents.HCM_REMOVE,
+  MachineEvents.RECYCLED,
+  MachineEvents.UNDO_IMPORT,
+  MachineEvents.HOST_ATTRIBUTE,
+  MachineEvents.RESOURCE_OWNER,
+].map((key) => ({ label: machineEventsDisplayMap[key], value: key }));
