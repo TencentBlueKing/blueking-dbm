@@ -15,6 +15,7 @@ import 'vue-router';
 
 declare module 'vue-router' {
   interface RouteMeta {
+    aiBlueking?: boolean; // 用于判断是否显示 AI 蓝鲸 (明确设置为 false 时不显示)
     fullscreen?: boolean; // 用于判断是否满屏幕
     navName?: string; // 用于设置面包屑 name
   }
