@@ -122,11 +122,6 @@ const toolboxRouters: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/oracle/toolbox/Index.vue'),
     children: [
-      {
-        path: 'toolbox-result/:ticketType?/:ticketId?',
-        name: 'OracleToolboxResult',
-        component: () => import('@views/db-manage/common/toolbox-result/Index.vue'),
-      },
       createRouteItem(TicketTypes.ORACLE_EXEC_SCRIPT_APPLY, t('变更SQL执行')),
     ],
   },

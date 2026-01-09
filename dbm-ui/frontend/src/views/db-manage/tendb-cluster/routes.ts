@@ -193,14 +193,6 @@ const spiderToolboxRoute = {
       },
       component: () => import('@views/db-manage/tendb-cluster/webconsole/Index.vue'),
     },
-    {
-      path: 'toolbox-result/:ticketType?/:ticketId?',
-      name: 'TendbclusterToolboxResult',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.toolboxResult',
-      },
-      component: () => import('@views/db-manage/common/toolbox-result/Index.vue'),
-    },
     createRouteItem(TicketTypes.TENDBCLUSTER_CLUSTER_STANDARDIZE, t('集群标准化'), {
       dbConsole: 'tendbCluster.toolbox.clusterStandardize',
     }),
