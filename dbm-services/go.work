@@ -38,6 +38,7 @@ use (
 	riak/db-tools/dbactuator
 	riak/db-tools/riak-monitor
 	sqlserver/db-tools/dbactuator
+	common/offsetlinescanner
 )
 
 replace github.com/go-sql-driver/mysql => github.com/go-sql-driver/mysql v1.7.1

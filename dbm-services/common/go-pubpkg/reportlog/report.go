@@ -102,3 +102,7 @@ func (r *Reporter) Println(v interface{}) {
 		r.log.Println(string(bs))
 	}
 }
+
+func (r *Reporter) RawPrintln(v interface{}) {
+	r.log.Println(v)
+}
