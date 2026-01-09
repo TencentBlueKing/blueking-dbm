@@ -795,6 +795,19 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         # 自动发现并填充该 MCP 服务器对应的工具
         "tools": [],
     },
+    {
+        "name": "alarm-query",
+        "description": """收集DBM集群的告警记录""",
+        # 主动授权 app_code
+        "target_app_codes": [APP_CODE],
+        "labels": ["alarm-query"],
+        # 是否启用：1-启用，0-停止
+        "status": 1,
+        # 是否公开
+        "is_public": False,
+        # 自动发现并填充该 MCP 服务器对应的工具
+        "tools": [],
+    },
 ]
 
 # 接入告警屏蔽的延迟秒, 默认 10s 无延迟
