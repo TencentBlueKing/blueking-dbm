@@ -12,33 +12,199 @@ from rest_framework.response import Response
 
 from backend.dbm_aiagent.mcp_tools.constants import DBMAMcpTools, DBMMCPTags
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
-from backend.dbm_aiagent.mcp_tools.redis.serializers.cluster_meta import (
-    RedisTopoInputSerializer,
-    RedisTopoOutputSerializer,
+from backend.dbm_aiagent.mcp_tools.redis.impl.redis_status import (
+    get_redis_client_list,
+    get_redis_clients_info,
+    get_redis_cluster_topology_text,
+    get_redis_command_stats_delta,
+    get_redis_cpu_info,
+    get_redis_keyspace_info,
+    get_redis_memory_info,
+    get_redis_persistence_info,
+    get_redis_replication_info,
+    get_redis_server_info,
+    get_redis_stats_info,
+)
+from backend.dbm_aiagent.mcp_tools.redis.serializers.cluster_status import (
+    RedisClusterInputSerializer,
+    RedisClusterTopologyTextSerializer,
+)
+from backend.dbm_aiagent.mcp_tools.redis.serializers.instance_status import (
+    RedisClientListResponseSerializer,
+    RedisClientsInfoSerializer,
+    RedisCommandStatsResponseSerializer,
+    RedisCPUInfoSerializer,
+    RedisInstanceInputSerializer,
+    RedisKeyspaceInfoSerializer,
+    RedisMemoryInfoSerializer,
+    RedisPersistenceInfoSerializer,
+    RedisReplicationInfoSerializer,
+    RedisServerInfoSerializer,
+    RedisStatsInfoSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import RejectPermission
-
-"""
-meta 相关的query
-"""
 
 
 class RedisQueryStatusMcpToolsViewSet(McpToolsViewSet):
     default_permission_class = [RejectPermission()]
 
     @mcp_tools_api_decorator(
-        description=str(_("查询 Redis 实例运行状态信息")),
-        request_slz=RedisTopoInputSerializer,
-        response_slz=RedisTopoOutputSerializer,
+        description=str(_("查询Redis服务器基本信息，包括版本、运行模式、操作系统、进程ID、端口、运行时长等")),
+        request_slz=RedisInstanceInputSerializer,
+        response_slz=RedisServerInfoSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMAMcpTools.REDIS_QUERY_STATUS],
         name_prefix="redis_query_status",
     )
-    def instance_version(self, request, *args, **kwargs):
-        addr = self.get_param("addr")
-        return Response({"func": "todo", "immute_domain": addr})
+    def get_server_info(self, request, *args, **kwargs):
+        """获取Redis服务器基本信息"""
+        redis_addr = self.get_param("redis_addr")
+        immute_domain = self.get_param("immute_domain")
+        return Response(get_redis_server_info(redis_addr=redis_addr, immute_domain=immute_domain))
 
-    def cluster_version(self, request, *args, **kwargs):
-        cluster_domain = self.get_param("immute_domain")
-        return Response({"func": "todo", "immute_domain": cluster_domain})
+    @mcp_tools_api_decorator(
+        description=str(_("查询Redis客户端连接信息，包括已连接客户端数、阻塞客户端数、缓冲区使用情况等")),
+        request_slz=RedisInstanceInputSerializer,
+        response_slz=RedisClientsInfoSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMAMcpTools.REDIS_QUERY_STATUS],
+        name_prefix="redis_query_status",
+    )
+    def get_clients_info(self, request, *args, **kwargs):
+        """获取Redis客户端连接信息"""
+        redis_addr = self.get_param("redis_addr")
+        immute_domain = self.get_param("immute_domain")
+        return Response(get_redis_clients_info(redis_addr=redis_addr, immute_domain=immute_domain))
+
+    @mcp_tools_api_decorator(
+        description=str(_("查询Redis内存使用信息，包括已使用内存、RSS内存、内存峰值、内存碎片率、淘汰策略等")),
+        request_slz=RedisInstanceInputSerializer,
+        response_slz=RedisMemoryInfoSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMAMcpTools.REDIS_QUERY_STATUS],
+        name_prefix="redis_query_status",
+    )
+    def get_memory_info(self, request, *args, **kwargs):
+        """获取Redis内存使用信息"""
+        redis_addr = self.get_param("redis_addr")
+        immute_domain = self.get_param("immute_domain")
+        return Response(get_redis_memory_info(redis_addr=redis_addr, immute_domain=immute_domain))
+
+    @mcp_tools_api_decorator(
+        description=str(_("查询Redis持久化信息，包括RDB和AOF的状态、上次保存时间、保存耗时等")),
+        request_slz=RedisInstanceInputSerializer,
+        response_slz=RedisPersistenceInfoSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMAMcpTools.REDIS_QUERY_STATUS],
+        name_prefix="redis_query_status",
+    )
+    def get_persistence_info(self, request, *args, **kwargs):
+        """获取Redis持久化信息"""
+        redis_addr = self.get_param("redis_addr")
+        immute_domain = self.get_param("immute_domain")
+        return Response(get_redis_persistence_info(redis_addr=redis_addr, immute_domain=immute_domain))
+
+    @mcp_tools_api_decorator(
+        description=str(_("查询Redis统计信息，包括总连接数、命令处理数、QPS、网络IO、键过期淘汰、命中率等")),
+        request_slz=RedisInstanceInputSerializer,
+        response_slz=RedisStatsInfoSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMAMcpTools.REDIS_QUERY_STATUS],
+        name_prefix="redis_query_status",
+    )
+    def get_stats_info(self, request, *args, **kwargs):
+        """获取Redis统计信息"""
+        redis_addr = self.get_param("redis_addr")
+        immute_domain = self.get_param("immute_domain")
+        return Response(get_redis_stats_info(redis_addr=redis_addr, immute_domain=immute_domain))
+
+    @mcp_tools_api_decorator(
+        description=str(_("查询Redis复制信息，包括主从角色、复制偏移量、从节点数量、复制积压缓冲区状态等")),
+        request_slz=RedisInstanceInputSerializer,
+        response_slz=RedisReplicationInfoSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMAMcpTools.REDIS_QUERY_STATUS],
+        name_prefix="redis_query_status",
+    )
+    def get_replication_info(self, request, *args, **kwargs):
+        """获取Redis复制信息"""
+        redis_addr = self.get_param("redis_addr")
+        immute_domain = self.get_param("immute_domain")
+        return Response(get_redis_replication_info(redis_addr=redis_addr, immute_domain=immute_domain))
+
+    @mcp_tools_api_decorator(
+        description=str(_("查询Redis CPU使用信息，包括系统CPU和用户CPU的使用时间")),
+        request_slz=RedisInstanceInputSerializer,
+        response_slz=RedisCPUInfoSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMAMcpTools.REDIS_QUERY_STATUS],
+        name_prefix="redis_query_status",
+    )
+    def get_cpu_info(self, request, *args, **kwargs):
+        """获取Redis CPU使用信息"""
+        redis_addr = self.get_param("redis_addr")
+        immute_domain = self.get_param("immute_domain")
+        return Response(get_redis_cpu_info(redis_addr=redis_addr, immute_domain=immute_domain))
+
+    @mcp_tools_api_decorator(
+        description=str(_("查询Redis键空间信息,包括各个数据库的键数量、过期键数量、平均TTL等")),
+        request_slz=RedisInstanceInputSerializer,
+        response_slz=RedisKeyspaceInfoSerializer(many=True),
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMAMcpTools.REDIS_QUERY_STATUS],
+        name_prefix="redis_query_status",
+    )
+    def get_keyspace_info(self, request, *args, **kwargs):
+        """获取Redis键空间信息"""
+        redis_addr = self.get_param("redis_addr")
+        immute_domain = self.get_param("immute_domain")
+        return Response(get_redis_keyspace_info(redis_addr=redis_addr, immute_domain=immute_domain))
+
+    # ## Redis客户端和命令统计 ###
+    @mcp_tools_api_decorator(
+        description=str(_("查询Redis所有已连接客户端的详细信息列表，包括客户端地址、连接时长、空闲时间、执行的命令等")),
+        request_slz=RedisInstanceInputSerializer,
+        response_slz=RedisClientListResponseSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMAMcpTools.REDIS_QUERY_STATUS],
+        name_prefix="redis_query_status",
+    )
+    def get_client_list(self, request, *args, **kwargs):
+        """获取Redis客户端列表"""
+        redis_addr = self.get_param("redis_addr")
+        immute_domain = self.get_param("immute_domain")
+        return Response(get_redis_client_list(redis_addr=redis_addr, immute_domain=immute_domain))
+
+    @mcp_tools_api_decorator(
+        description=str(_("查询Redis命令统计信息（间隔1秒采样），返回每个命令在1秒内的调用次数、耗时等增量数据")),
+        request_slz=RedisInstanceInputSerializer,
+        response_slz=RedisCommandStatsResponseSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMAMcpTools.REDIS_QUERY_STATUS],
+        name_prefix="redis_query_status",
+    )
+    def get_command_stats(self, request, *args, **kwargs):
+        """获取Redis命令统计信息（1秒间隔采样）"""
+        redis_addr = self.get_param("redis_addr")
+        immute_domain = self.get_param("immute_domain")
+        return Response(get_redis_command_stats_delta(redis_addr=redis_addr, immute_domain=immute_domain))
+
+    @mcp_tools_api_decorator(
+        description=str(
+            _(
+                "Redis集群拓扑MCP工具"
+                "查询Redis集群拓扑信息并以文本格式返回，格式类似：\n"
+                "1.2.68.13:30000 (40600 keys 0 B) 21/s OK => (1/1 slaves) 1.3.205.182:30000 (40600 keys 0 B) 24/s OK"
+            )
+        ),
+        request_slz=RedisClusterInputSerializer,
+        response_slz=RedisClusterTopologyTextSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMAMcpTools.REDIS_QUERY_STATUS],
+        name_prefix="redis_query_status",
+    )
+    def get_cluster_topology(self, request, *args, **kwargs):
+        """获取Redis集群拓扑信息(文本格式)"""
+        immute_domain = self.get_param("immute_domain")
+        return Response(get_redis_cluster_topology_text(immute_domain=immute_domain))

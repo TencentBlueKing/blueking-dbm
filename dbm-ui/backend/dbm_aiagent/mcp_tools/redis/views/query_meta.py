@@ -7,6 +7,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging.config
+
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
@@ -16,25 +18,24 @@ from backend.dbm_aiagent.mcp_tools.redis.impl.cluster_meta import (
     cluster_masters,
     cluster_overview,
     cluster_proxies,
-    instance_tuple,
     list_biz_by_name,
     list_my_redis_bizs,
     redis_list_clusters,
 )
 from backend.dbm_aiagent.mcp_tools.redis.serializers.cluster_meta import (
-    RedisAddrSerializer,
     RedisBizDetailSerializer,
     RedisBizInputSerializer,
     RedisBizNameInputSerializer,
     RedisClustersOutputSerializer,
     RedisEmptyInputSerializer,
-    RedisInstanceTupleSerializer,
     RedisNodesSummarySerializer,
     RedisTopoInputSerializer,
     RedisTopoOutputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import RejectPermission
+
+logger = logging.getLogger("flow")
 
 """
 meta 相关的query
@@ -83,7 +84,7 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
         return Response(redis_list_clusters(bk_biz_id=bk_biz_id))
 
     @mcp_tools_api_decorator(
-        description=str(_("查询 Redis 集群元数据")),
+        description=str(_("查询 Redis 集群信息")),
         request_slz=RedisTopoInputSerializer,
         response_slz=RedisTopoOutputSerializer,
         tags=[DBMMCPTags.READ],
@@ -117,15 +118,3 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
     def list_cluster_masters(self, request, *args, **kwargs):
         immute_domain = self.get_param("immute_domain")
         return Response(cluster_masters(immute_domain=immute_domain))
-
-    @mcp_tools_api_decorator(
-        description=str(_("查询 Redis 实例的主从关系")),
-        request_slz=RedisAddrSerializer,
-        response_slz=RedisInstanceTupleSerializer,
-        tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.REDIS_QUERY_META],
-        name_prefix="redis_query_meta",
-    )
-    def list_instance_tuple(self, request, *args, **kwargs):
-        address = self.get_param("address")
-        return Response(instance_tuple(addr=address))
