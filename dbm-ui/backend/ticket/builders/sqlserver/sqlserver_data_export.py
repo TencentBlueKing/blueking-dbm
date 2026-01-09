@@ -17,6 +17,7 @@ class SQLServerDataExportDetailSerializer(SQLServerBaseOperateDetailSerializer):
         dbnames = serializers.ListField(help_text=_("导出库列表"), child=serializers.CharField())
         sql_files = serializers.ListField(help_text=_("SQL文件列表"), child=serializers.CharField())
         path = serializers.CharField(help_text=_("查询文件在制品库中的路径"), required=True)
+        sql = serializers.CharField(help_text=_("查询文件在制品库中的路径"), required=True)
 
     cluster_ids = serializers.ListField(help_text=_("查询集群列表"), child=serializers.IntegerField())
     execute_objects = serializers.ListField(help_text=_("执行对象列表"), child=serializers.DictField())
