@@ -122,6 +122,7 @@ const (
 type DbType string
 
 const (
+	DbTypeNone  DbType = ""
 	DbTypeMySql DbType = "mysql"
 	DbTypeRedis DbType = "redis"
 )

@@ -261,7 +261,7 @@ func (w *Workflow) processDetectorResponse(resp *detector.Response) error {
 	return nil
 }
 
-func (w *Workflow) databaseLivenessDoubleCheck(missedInsts []*hamodel.DbmMetadata) {
+func (w *Workflow) databaseLivenessDoubleCheck(missedInsts []detector.DoubleCheckTask) {
 	remoteDetector := detector.Detector{}
 
 	// Trigger to execute the remote detect logic.
@@ -408,7 +408,7 @@ func (w *Workflow) checkEventWithBizId(bizId int, dbEvents []*haprobe.DbEvent,
 	// TODO: read switching strategy with bizId
 	_ = bizId
 
-	badInsts := []*hamodel.DbmMetadata{}
+	badInsts := []detector.DoubleCheckTask{}
 
 	for _, event := range dbEvents {
 		key := key(event.BkCloudID, event.Endpoint.Host, event.Endpoint.Port)
@@ -425,7 +425,10 @@ func (w *Workflow) checkEventWithBizId(bizId int, dbEvents []*haprobe.DbEvent,
 		}
 
 		logger.Warn("recheck the db-inst: %s", key)
-		badInsts = append(badInsts, meta)
+		badInsts = append(badInsts, detector.DoubleCheckTask{
+			Meta:   meta,
+			DbType: event.DbTypeName,
+		})
 	}
 
 	// Trigger to recheck.
@@ -468,7 +471,7 @@ func (w *Workflow) checkMissedProbe(dbStatus []*hamodel.DbhaDataStatus, skipDbIn
 	}
 
 	// Extract the instance of the DB that the probe is currently in an office state.
-	missedProbeInsts := []*hamodel.DbmMetadata{}
+	missedProbeInsts := []detector.DoubleCheckTask{}
 	for _, dbMeta := range metaInsts {
 		key := key(dbMeta.BkCloudID, dbMeta.IP, dbMeta.Port)
 
@@ -483,7 +486,10 @@ func (w *Workflow) checkMissedProbe(dbStatus []*hamodel.DbhaDataStatus, skipDbIn
 		}
 
 		logger.Debug("missed probe instances: %#v", *dbMeta)
-		missedProbeInsts = append(missedProbeInsts, dbMeta)
+		missedProbeInsts = append(missedProbeInsts, detector.DoubleCheckTask{
+			Meta:   dbMeta,
+			DbType: dbMeta.GetDbType(),
+		})
 	}
 
 	// Trigger to recheck.
