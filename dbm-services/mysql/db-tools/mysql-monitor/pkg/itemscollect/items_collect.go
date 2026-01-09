@@ -103,4 +103,5 @@ func init() {
 	_ = registerItemConstructor(proxyrebind.Register())
 	_ = registerItemConstructor(maintaingrantproc.Register())
 	_ = registerItemConstructor(inforeport.Register())
+	_ = registerItemConstructor(rotateslowlog.RegisterSlowlogReport())
 }
