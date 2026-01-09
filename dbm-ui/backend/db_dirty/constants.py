@@ -34,6 +34,9 @@ class MachineEventType(StrStructuredEnum):
     ToFault = EnumField("to_fault", _("转入故障池"))
     UndoImport = EnumField("undo_import", _("撤销导入"))
     Recycled = EnumField("recycled", _("回收"))
+    ResourceOwner = EnumField("resource_owner", _("修改资源归属"))
+    HostAttribute = EnumField("host_attribute", _("修改主机属性"))
+    RemoveHost = EnumField("remove_host", _("已下架主机处理"))
 
 
 MACHINE_EVENT__POOL_MAP = {

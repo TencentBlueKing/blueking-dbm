@@ -27,6 +27,7 @@ package switcher
 import (
 	"context"
 
+	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchlogger"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -34,6 +35,9 @@ import (
 )
 
 var _ Switcher = (*Mysql)(nil)
+
+// MysqlInstanceMetadata contains MySQL instance metadata from DBM
+type MysqlInstanceMetadata dbm.DbInstMetadata
 
 // Mysql implements the Switcher interface for MySQL database instances
 type Mysql struct {
@@ -44,12 +48,43 @@ func (m *Mysql) DbTypeName() haprobe.DbType {
 	return haprobe.DbTypeMySql
 }
 
+// NewSwitchInstance creates a MySQL switch instance according to the provided metadata
+func (m *Mysql) NewSwitchInstance(metadata *MysqlInstanceMetadata) (SwitchableInstance, error) {
+	switch metadata.ClusterType {
+	case haprobe.DbmMetadataClusterTypeTendbha:
+		return NewMySQLSwitchInstance(metadata)
+	case haprobe.DbmMetadataClusterTypeTendbCluster:
+		return NewTendbClusterSwitchInstance(metadata)
+	default:
+		return nil, gerrors.Newf(gerrors.Failure, "unsupported cluster type: %s", metadata.ClusterType)
+	}
+}
+
+// NewSwitchLogger creates mysql switch logger set
+func (m *Mysql) NewSwitchLogger() ([]switchlogger.DbSwitchLogger, error) {
+	loggers := []switchlogger.DbSwitchLogger{
+		switchlogger.NewLogToStdHandler(),
+	}
+
+	dbHdl, newDbHdlErr := switchlogger.NewLogToDbHandlerFromConfig()
+	if newDbHdlErr != nil {
+		return loggers, gerrors.Newf(gerrors.Failure, "failed to create db switch logger: %s", newDbHdlErr.Error())
+	}
+
+	if openErr := dbHdl.Open(); openErr != nil {
+		return loggers, gerrors.Newf(gerrors.Failure, "failed to open db switch logger: %s", openErr.Error())
+	}
+
+	loggers = append(loggers, dbHdl)
+	return loggers, nil
+}
+
 // Switch handles MySQL instance switching operations
 // Note: This function may be called concurrently, avoid unnecessary duplicate switching
 // Note: Handle partial switch failures when multiple instances on same host
 func (m *Mysql) Switch(ctx context.Context, req *Request) *Response {
 	rsp := &Response{
-		MySqlFailureInsts: map[MetadataKey]*MySQLInstanceMetadata{},
+		MySqlFailureInsts: map[MetadataKey]*MysqlInstanceMetadata{},
 	}
 
 	if req == nil {
@@ -57,19 +92,16 @@ func (m *Mysql) Switch(ctx context.Context, req *Request) *Response {
 		return rsp
 	}
 
-	switchLogger, newLoggerErr := switchlogger.NewLogToDbHandlerFromConfig()
+	switchLoggers, newLoggerErr := m.NewSwitchLogger()
 	if newLoggerErr != nil {
-		rsp.Err = gerrors.Newf(gerrors.Failure,
-			"Mysql switcher failed to create switch logger: %s", newLoggerErr)
-		return rsp
+		logger.Error("Mysql switcher failed to create switch logger: %s", newLoggerErr)
 	}
 
-	if err := switchLogger.Open(); err != nil {
-		rsp.Err = gerrors.Newf(gerrors.Failure,
-			"Mysql switcher failed to open switch logger: %s", err)
-		return rsp
-	}
-	defer switchLogger.Close()
+	defer func() {
+		for _, switchLogger := range switchLoggers {
+			switchLogger.Close()
+		}
+	}()
 
 	for _, inst := range req.MySqlInstData {
 		if inst == nil {
@@ -78,17 +110,14 @@ func (m *Mysql) Switch(ctx context.Context, req *Request) *Response {
 		}
 
 		instKey := GenerateMetadataKey(inst.BkCloudID, inst.IP, inst.Port)
-		swInst, newErr := NewMySQLSwitchInstance(inst)
+		swInst, newErr := m.NewSwitchInstance(inst)
 		if newErr != nil {
 			logger.Warn("failed to create mysql switcher, inst: %s, errmsg: %s", instKey, newErr)
 			rsp.MySqlFailureInsts[instKey] = inst
 			continue
 		}
 
-		swInst.SetSwitchLogger([]switchlogger.DbSwitchLogger{
-			switchLogger,
-			switchlogger.NewLogToStdHandler(),
-		})
+		swInst.SetSwitchLogger(switchLoggers)
 
 		logger.Info("start to switch the single mysql instance: %s", instKey)
 		if swErr := SwitchSingleInstance(swInst); swErr != nil {

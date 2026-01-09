@@ -20,6 +20,8 @@ from backend.bk_web import viewsets
 from backend.bk_web.models import AuditedModel
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.configuration.constants import SystemSettingsEnum
+from backend.configuration.models import SystemSettings
 from backend.db_meta.enums import InstanceRole, MachineType
 from backend.db_meta.enums.comm import SystemTagEnum, TagType
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance, Tag
@@ -36,6 +38,7 @@ from backend.db_services.dbresource.serializers import (
     QueryQPSRangeSerializer,
     RecommendResponseSpecSerializer,
     RecommendSpecSerializer,
+    SetSpecReplenishRatioSerializer,
     SpecBatchUpdateSerializer,
     SpecNeedReplenishSerializer,
     SpecSerializer,
@@ -193,6 +196,35 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
         # 根据need_replenish，添加或移除补货标签
         tag.spec_set.add(*specs) if need_replenish else tag.spec_set.remove(*specs)
 
+        return Response()
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取规格与补货比例映射"),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, filter_class=None)
+    def get_spec_replenish_ratio(self, request, *args, **kwargs):
+        """获取规格与补货比例映射"""
+        ratio_map = SystemSettings.get_setting_value(key=SystemSettingsEnum.REPLENISH_RATIO_MAP, default={})
+        # 补充默认比例 1%
+        default_ratio = ratio_map.get(str(0), 0.01)
+        ratio_map["default"] = default_ratio
+        return Response(ratio_map)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("设置规格与补货比例映射"),
+        request_body=SetSpecReplenishRatioSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=SetSpecReplenishRatioSerializer)
+    def set_spec_replenish_ratio(self, request, *args, **kwargs):
+        update_ratio_map = self.params_validate(self.get_serializer_class())["ratio_map"]
+        # 合并原本的和新的补货比例信息
+        ratio_map = SystemSettings.get_setting_value(key=SystemSettingsEnum.REPLENISH_RATIO_MAP, default={})
+        ratio_map.update(update_ratio_map)
+        SystemSettings.insert_setting_value(
+            key=SystemSettingsEnum.REPLENISH_RATIO_MAP, value=ratio_map, value_type="dict"
+        )
         return Response()
 
     @common_swagger_auto_schema(

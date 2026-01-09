@@ -381,3 +381,17 @@ export function queryBizMachineAttrs(params: {
     cache: 3000,
   });
 }
+
+export function queryDirtyMachineAttrs(params: { machine_attrs: string; pool?: 'fault' | 'recycle' }) {
+  return http.get<
+    Record<
+      string,
+      {
+        text: string;
+        value: string;
+      }[]
+    >
+  >(`${path}/query_dirty_machine_attrs/`, params, {
+    cache: 3000,
+  });
+}

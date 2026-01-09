@@ -55,7 +55,7 @@ const (
 	DbmMetadataAccessLayerTypeStorage DbmMetadataAccessLayerType = "storage"
 
 	// Cluster Type
-	DbmMetadataClusterTypeTendb                    DbmMetadataClusterType = "tendbha"
+	DbmMetadataClusterTypeTendbha                  DbmMetadataClusterType = "tendbha"
 	DbmMetadataClusterTypeSqlServer                DbmMetadataClusterType = "sqlserver_ha"
 	DbmMetadataClusterTypeTendbCluster             DbmMetadataClusterType = "tendbcluster"
 	DbmMetadataClusterTypeSqlServerSingle          DbmMetadataClusterType = "sqlserver_single"
@@ -104,6 +104,7 @@ const (
 	DbmMetadataMachineTypePulsarZookeeper  DbmMetadataMachineType = "pulsar_zookeeper"
 )
 
+// HarvestBaseData represents the base data collected by harvester
 type HarvestBaseData struct {
 	SequenceID      uint64                     `json:"sequence_id,omitempty"`
 	MachineID       string                     `json:"machine_id,omitempty"`
@@ -122,12 +123,14 @@ type HarvestBaseData struct {
 	Host            *HostMetric                `json:"host,omitempty"`
 }
 
+// HarvestData contains the data collected by harvester
 type HarvestData struct {
 	HarvestBaseData
 	Value    DBTyper         `json:"data,omitempty"`
 	RawValue json.RawMessage `json:"-"`
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface
 func (h *HarvestData) UnmarshalJSON(data []byte) error {
 	var temp struct {
 		HarvestBaseData

@@ -1,246 +1,139 @@
 <template>
   <div class="resource-pool-operation-record-page">
     <div class="header-action mb-16">
-      <BkDatePicker
-        v-model="operationDateTime"
-        append-to-body
-        clearable
-        :placeholder="t('请选择操作时间')"
-        type="datetimerange"
-        @change="handleDateChange" />
-      <DbSearchSelect
-        class="ml-8"
-        :data="searchSelectData"
-        :get-menu-list="getMenuList"
-        :model-value="searchValue"
+      <DbQuickSearch
+        v-model="quickSearchValue"
+        :data="quickSearchData"
+        parse-url
         :placeholder="t('请输入或选择条件搜索')"
         style="width: 500px"
-        unique-select
-        :validate-values="validateSearchValues"
-        value-behavior="need-key"
-        @change="handleSearchValueChange" />
+        @change="handleQuickSearchChange" />
     </div>
     <DbTable
       ref="tableRef"
-      :data-source="dataSource"
+      :data-source="getMachineEvents"
+      :filter-value="quickSearchValue"
       releate-url-query
-      :show-overflow="false"
-      :show-settings="false"
-      @clear-search="handleClearSearch"
-      @column-filter="columnFilterChange"
-      @column-sort="columnSortChange">
-      <BkTableColumn
-        field="ip"
+      row-key="id"
+      @filter-change="handleFilterChange">
+      <TableColumn
+        col-key="ips"
+        :filter="columnFilter?.ips"
         fixed="left"
-        label="IP"
+        title="IP"
         :width="150">
-      </BkTableColumn>
-      <BkTableColumn
-        field="events"
-        :filters="operationTypeFilters"
-        :label="t('操作类型')"
-        :width="130">
-        <template #default="{ data }: { data: MachineEventModel }">
-          {{ data.eventDisplay }}
+        <template #default="{ row }: { row: MachineEventModel }">
+          {{ row.ip || '--' }}
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="updater"
-        :label="t('操作人')"
-        show-overflow="tooltip"
+      </TableColumn>
+      <TableColumn
+        col-key="events"
+        :filter="columnFilter?.events"
+        :title="t('操作类型')"
+        :width="130">
+        <template #default="{ row }: { row: MachineEventModel }">
+          {{ row.eventDisplay }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="updater"
+        :filter="columnFilter?.updater"
+        :title="t('操作人')"
         :width="120">
-      </BkTableColumn>
-      <BkTableColumn
-        field="updateAtDisplay"
-        :label="t('操作时间')"
+      </TableColumn>
+      <TableColumn
+        col-key="create_at"
+        :filter="columnFilter?.create_at"
+        :title="t('操作时间')"
         :width="200">
-      </BkTableColumn>
-      <BkTableColumn
-        field="bk_biz_name"
-        :label="t('所属业务')"
-        :min-width="180">
-      </BkTableColumn>
-      <BkTableColumn
-        field="ticket"
-        :label="t('关联单据')"
-        :min-width="200">
-        <template #default="{ data }: { data: MachineEventModel }">
-          <BkButton
-            v-if="data.ticket"
-            text
-            theme="primary"
-            @click="handleToTicket(data)">
-            {{ data.ticket_type_display }}
-          </BkButton>
+        <template #default="{ row }: { row: MachineEventModel }">
+          {{ row.createAtDisplay }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="bk_biz_id"
+        :filter="columnFilter?.bk_biz_id"
+        :min-width="180"
+        :title="t('所属业务')">
+        <template #default="{ row }: { row: MachineEventModel }">
+          {{ row.bk_biz_name }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="ticket_id"
+        :filter="columnFilter?.ticket_id"
+        :min-width="200"
+        :title="t('关联单据')">
+        <template #default="{ row }: { row: MachineEventModel }">
+          <template v-if="row.ticket">
+            <TicketStatusTag
+              :data="{
+                status: row.ticket_status,
+                statusText: row.statusText,
+              }" />
+            <BkButton
+              class="ml-4"
+              text
+              theme="primary"
+              @click="handleToTicket(row)">
+              {{ row.ticket_type_display }}[{{ row.ticket }}]
+            </BkButton>
+          </template>
           <span v-else>--</span>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="clusters"
-        :label="t('集群')"
+      </TableColumn>
+      <TableColumn
+        col-key="clusters"
+        :filter="columnFilter?.domain"
         :min-width="300"
-        show-overflow="tooltip">
-        <template #default="{ data }: { data: MachineEventModel }">
-          {{ data.clusters.length ? data.clusters.map((item) => item.immute_domain).join(', ') : '--' }}
+        :title="t('集群')">
+        <template #default="{ row }: { row: MachineEventModel }">
+          {{ row.clusters.length ? row.clusters.map((item) => item.immute_domain).join(', ') : '--' }}
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="event"
-        :label="t('操作明细')"
-        :min-width="300">
-        <template #default="{ data }: { data: MachineEventModel }">
-          <OperationDetail :data="data" />
+      </TableColumn>
+      <TableColumn
+        col-key="event"
+        :min-width="300"
+        :title="t('操作明细')">
+        <template #default="{ row }: { row: MachineEventModel }">
+          <OperationDetail :data="row" />
         </template>
-      </BkTableColumn>
+      </TableColumn>
     </DbTable>
   </div>
 </template>
 <script setup lang="tsx">
-  import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
-  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import MachineEventModel from '@services/model/db-resource/machineEvent';
   import { getMachineEvents } from '@services/source/dbdirty';
-  import { getTicketTypes } from '@services/source/ticket';
 
-  import { useLinkQueryColumnSerach } from '@hooks';
-
-  import { useGlobalBizs } from '@stores';
-
-  import { machineEventsDisplayMap } from '@common/const/machineEvents';
+  import DbTable from '@components/db-table/IndexNew.vue';
+  import TicketStatusTag from '@components/ticket-status-tag/Index.vue';
 
   import OperationDetail from '@views/resource-manage/common/components/operation-detail/Index.vue';
 
-  import { getMenuListSearch, getSearchSelectorParams } from '@utils';
+  import { useColumnFilter } from './useColumnFilter';
+  import { useQuickSearch } from './useQuickSearch';
 
   const { t } = useI18n();
   const router = useRouter();
-  const globalBizStore = useGlobalBizs();
-  const {
-    clearSearchValue,
-    // columnCheckedMap,
-    columnFilterChange,
-    columnSortChange,
-    handleSearchValueChange,
-    searchValue,
-    sortValue,
-    validateSearchValues,
-  } = useLinkQueryColumnSerach({
-    attrs: [],
-    fetchDataFn: () => fetchData(),
-    searchType: 'resource_record',
-  });
+  const { quickSearchData, quickSearchValue } = useQuickSearch();
+  const { data: columnFilter } = useColumnFilter();
 
-  const dataSource = getMachineEvents;
-
-  const tableRef = ref();
-  const operationDateTime = ref<[string, string]>([
-    dayjs().subtract(7, 'day').format('YYYY-MM-DD HH:mm:ss'),
-    dayjs().format('YYYY-MM-DD HH:mm:ss'),
-  ]);
-  const ticketTypes = ref<Array<{ id: string; name: string }>>([]);
-
-  const searchSelectData = computed(
-    () =>
-      [
-        {
-          id: 'ips',
-          multiple: true,
-          name: 'IP',
-        },
-        {
-          children: Object.entries(machineEventsDisplayMap).map(([key, value]) => ({ id: key, name: value })),
-          id: 'events',
-          multiple: true,
-          name: t('操作类型'),
-        },
-        {
-          id: 'operator',
-          name: t('操作人'),
-        },
-        {
-          // multiple: true,
-          children: globalBizStore.bizs.map((item) => ({ id: item.bk_biz_id, name: item.name })),
-          id: 'bk_biz_id',
-          name: t('所属业务'),
-        },
-        {
-          id: 'domain',
-          multiple: true,
-          name: t('集群'),
-        },
-        // {
-        //   name: t('单据类型'),
-        //   id: 'ticket_types',
-        //   multiple: true,
-        //   children: ticketTypes.value,
-        // },
-        // {
-        //   name: t('关联单据'),
-        //   id: 'ticket',
-        // },
-      ] as ISearchItem[],
-  );
-
-  const operationTypeFilters = Object.entries(machineEventsDisplayMap).map(([key, value]) => ({
-    label: value,
-    value: key,
-  }));
-
-  useRequest(getTicketTypes, {
-    defaultParams: [
-      {
-        is_apply: 1,
-      },
-    ],
-    onSuccess(data) {
-      ticketTypes.value = data.map((item) => ({
-        id: item.key,
-        name: item.value,
-      }));
-    },
-  });
-
-  const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
-    if (item?.id !== 'operator' && keyword) {
-      return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);
-    }
-
-    // 没有选中过滤标签
-    if (!item) {
-      // 过滤掉已经选过的标签
-      const selected = (searchValue.value || []).map((value) => value.id);
-      return searchSelectData.value.filter((item) => !selected.includes(item.id));
-    }
-
-    // 不需要远层加载
-    return searchSelectData.value.find((set) => set.id === item.id)?.children || [];
-  };
+  const tableRef = useTemplateRef('tableRef');
 
   // 获取数据
   const fetchData = () => {
-    const searchParams = getSearchSelectorParams(searchValue.value);
-    const [beginTime, endTime] = operationDateTime.value;
-    tableRef.value.fetchData({
-      bk_biz_id: searchParams.bk_biz_id,
-      ...searchParams,
-      ...sortValue,
-      create_at__gte: beginTime ? dayjs(beginTime).format('YYYY-MM-DD HH:mm:ss') : '',
-      create_at__lte: endTime ? dayjs(endTime).format('YYYY-MM-DD HH:mm:ss') : '',
-    });
+    tableRef.value!.fetchData(quickSearchValue.value);
   };
 
-  // 切换时间
-  const handleDateChange = () => {
+  const handleQuickSearchChange = () => {
     fetchData();
   };
 
-  // 清空搜索条件
-  const handleClearSearch = () => {
-    operationDateTime.value = ['', ''];
-    clearSearchValue();
+  const handleFilterChange = (filterValue: Record<string, any>) => {
+    quickSearchValue.value = filterValue;
   };
 
   const handleToTicket = (data: MachineEventModel) => {

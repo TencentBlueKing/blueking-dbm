@@ -353,6 +353,16 @@ class DBResourceViewSet(viewsets.SystemViewSet):
     @action(detail=False, methods=["POST"], url_path="update", serializer_class=ResourceUpdateSerializer)
     def resource_update(self, request):
         update_params = self.params_validate(self.get_serializer_class())
+        # 修改主机属性和主机资源归属时添加操作记录
+        if update_params.get("update_type") and update_params.get("remark"):
+            update_type = update_params.pop("update_type")
+            remark = update_params.pop("remark")
+            bk_biz_id = update_params.pop("bk_biz_id")
+            host_id_ip_map = update_params.pop("host_id_ip_map")
+            remark_map, hosts = ResourceHandler.get_evnet_info(update_params["bk_host_ids"], remark, host_id_ip_map)
+            MachineEvent.create_machine_events(
+                bk_biz_id, hosts, update_type, None, request.user.username, None, "", remark_map
+            )
         return Response(DBResourceApi.resource_batch_update(params=update_params))
 
     @common_swagger_auto_schema(
@@ -495,6 +505,17 @@ class DBResourceViewSet(viewsets.SystemViewSet):
     @action(detail=False, methods=["POST"], serializer_class=AppendHostLabelSerializer)
     def append_labels(self, request):
         append_params = self.params_validate(self.get_serializer_class())
+        # 修改主机属性和主机资源归属时添加操作记录
+        if append_params.get("remark"):
+            remark = append_params.pop("remark")
+            bk_biz_id = append_params.pop("bk_biz_id")
+            host_id_ip_map = append_params.pop("host_id_ip_map")
+            remark_map, hosts = ResourceHandler.get_evnet_info(append_params["bk_host_ids"], remark, host_id_ip_map)
+            if not remark_map:
+                return Response(DBResourceApi.resource_append_labels(append_params))
+            MachineEvent.create_machine_events(
+                bk_biz_id, hosts, "resource_owner", None, request.user.username, None, "", remark_map
+            )
         return Response(DBResourceApi.resource_append_labels(append_params))
 
     @common_swagger_auto_schema(

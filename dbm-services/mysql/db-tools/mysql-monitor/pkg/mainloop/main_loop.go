@@ -34,93 +34,73 @@ import (
 
 // Run TODO
 func Run(hardcode bool) error {
-	var iNames []string
-	if hardcode {
-		iNames = viper.GetStringSlice("hardcode-items")
-	} else {
-		iNames = viper.GetStringSlice("run-items")
-	}
-	slog.Info("main loop", slog.String("items", strings.Join(iNames, ",")))
-	config.Logger = config.Logger.With("items", strings.Join(iNames, ","))
-	slog.SetDefault(config.Logger)
+	iNames := loadItems(hardcode)
 
-	slog.Info("main loop", slog.Bool("hardcode", hardcode))
-
-	lockFileName := fmt.Sprintf("%d-%s.lock", config.MonitorConfig.Port, strings.Join(iNames, "."))
-	lockFileBasePath := filepath.Join(cst.MySQLMonitorInstallPath, "locks")
-	err := os.MkdirAll(lockFileBasePath, os.ModePerm)
+	fl, err := getLocker(iNames)
 	if err != nil {
-		slog.Error(
-			"main loop",
-			slog.String("lock file base dir", lockFileBasePath),
-			slog.String("err", err.Error()),
-		)
-		return errors.WithStack(err)
-	}
-
-	lockFilePath := filepath.Join(lockFileBasePath, lockFileName)
-
-	slog.Info("main loop", slog.String("lockFilePath", lockFilePath))
-
-	fl := flock.New(lockFilePath)
-	locked, err := fl.TryLock()
-	if err != nil {
-		slog.Error("main loop",
-			slog.String("error", err.Error()))
-		return errors.WithStack(err)
-	}
-	slog.Info("main loop", slog.Bool("locked", locked))
-	if !locked {
-		utils.SendMonitorEvent(
-			"db-hang",
-			fmt.Sprintf("last round %s not finish, db may be hang", strings.Join(iNames, ",")),
-		)
-		return errors.Wrapf(err, "main loop lock file %s failed, may be last round not finish", lockFilePath)
+		return err
 	}
 	defer func() {
 		_ = fl.Unlock()
 	}()
-	slog.Info("main loop get lock success", slog.String("lockFilePath", lockFilePath))
 
-	if hardcode && slices.Index(iNames, "update-monitor-config") >= 0 {
+	cc, err := monitoriteminterface.NewConnectionCollect()
+	defer func() {
+		if cc != nil {
+			cc.Close() // 可以随便调用, 内部已经兼容句柄为 nil 的情况
+		}
+	}()
+
+	if hardcode {
+		if err != nil && slices.Index(iNames, "db-up") >= 0 {
+			utils.SendMonitorEvent("db-up", err.Error(), nil)
+			return nil
+		}
+
+		return hardcodeRun(iNames)
+	}
+
+	// 普通执行时忽略连接错误
+	if err != nil {
+		return nil
+	}
+	cc.InitItemOptions() // set item custom options to runner
+
+	return itemsRun(iNames, cc)
+}
+
+func hardcodeRun(iNames []string) error {
+	slog.Info("main loop hardcode-run")
+
+	if slices.Index(iNames, "update-monitor-config") >= 0 {
 		msg, err := (&update_monitor_config.Checker{}).Run()
 		if err != nil {
 			slog.Error(
 				"main loop",
-				slog.String("error", err.Error()))
+				slog.String("error", err.Error()),
+			)
 			utils.SendMonitorEvent(
 				"monitor-internal-error",
 				fmt.Sprintf("update-monitor-config failed, %s", err.Error()),
+				nil,
 			)
 		}
 		if msg != "" {
 			slog.Info("main loop", slog.String("msg", msg))
-			utils.SendMonitorEvent("update-monitor-config", msg)
+			utils.SendMonitorEvent("update-monitor-config", msg, nil)
 		}
 	}
 
-	if hardcode && slices.Index(iNames, config.HeartBeatName) >= 0 {
+	if slices.Index(iNames, config.HeartBeatName) >= 0 {
 		utils.SendMonitorMetrics(config.HeartBeatName, 1, nil)
 	}
 
-	cc, err := monitoriteminterface.NewConnectionCollect()
-	if err != nil {
-		if hardcode && slices.Index(iNames, "db-up") >= 0 {
-			utils.SendMonitorEvent("db-up", err.Error())
-		}
-		return nil
-	}
-	defer func() {
-		cc.Close()
-	}()
-	cc.InitItemOptions() // set item custom options to runner
+	slog.Info("main loop hardcode-run finish")
+	return nil
+}
 
-	slog.Info("make connection collect", slog.Any("connection collect", cc))
-
-	if hardcode {
-		slog.Info("hardcode finish")
-		return nil
-	}
+func itemsRun(iNames []string, cc *monitoriteminterface.ConnectionCollect) error {
+	slog.Info("main loop items-run")
 
 	randSleepN := rand.Intn(5)
 	slog.Info(
@@ -131,17 +111,18 @@ func Run(hardcode bool) error {
 	time.Sleep(time.Duration(randSleepN) * time.Second)
 
 	for _, iName := range iNames {
-		config.Logger = config.Logger.With("current item", iName)
-		slog.SetDefault(config.Logger)
+		itemLogger := slog.New(config.Logger.Handler())
+		itemLogger = itemLogger.With("current item", iName)
+		slog.SetDefault(itemLogger)
 
 		if constructor, ok := itemscollect.RegisteredItemConstructor()[iName]; ok {
-
 			msg, err := constructor(cc).Run()
 			if err != nil {
 				slog.Error("run monitor item", slog.String("error", err.Error()), slog.String("name", iName))
 				utils.SendMonitorEvent(
 					"monitor-internal-error",
 					fmt.Sprintf("run monitor item %s failed: %s", iName, err.Error()),
+					nil,
 				)
 				continue
 			}
@@ -149,15 +130,12 @@ func Run(hardcode bool) error {
 			if msg != "" {
 				slog.Info(
 					"run monitor items",
-					slog.String("name", iName),
 					slog.String("msg", msg),
 				)
-				utils.SendMonitorEvent(iName, msg)
+				utils.SendMonitorEvent(iName, msg, nil)
 				continue
 			}
-
-			slog.Info("run monitor item pass", slog.String("name", iName))
-
+			slog.Info("run monitor item pass")
 		} else {
 			err := errors.Errorf("%s not registered", iName)
 			slog.Error("run monitor item", slog.String("error", err.Error()))
@@ -165,6 +143,67 @@ func Run(hardcode bool) error {
 		}
 	}
 
-	slog.Info("main loop round finish")
+	// 还原 logger
+	slog.SetDefault(config.Logger)
+
+	slog.Info("main loop items-run finish")
 	return nil
+}
+
+func getLocker(iNames []string) (*flock.Flock, error) {
+	lockFileName := fmt.Sprintf("%d-%s.lock", config.MonitorConfig.Port, strings.Join(iNames, "."))
+	lockFileBasePath := filepath.Join(cst.MySQLMonitorInstallPath, "locks")
+
+	err := os.MkdirAll(lockFileBasePath, os.ModePerm)
+	if err != nil {
+		slog.Error(
+			"main loop",
+			slog.String("lock file base dir", lockFileBasePath),
+			slog.String("err", err.Error()),
+		)
+		return nil, errors.WithStack(err)
+	}
+
+	lockFilePath := filepath.Join(lockFileBasePath, lockFileName)
+
+	slog.Info("main loop", slog.String("lockFilePath", lockFilePath))
+
+	//goland:noinspection GoResourceLeak
+	fl := flock.New(lockFilePath) // 不会 leak
+
+	locked, err := fl.TryLock()
+	if err != nil {
+		slog.Error(
+			"main loop",
+			slog.String("error", err.Error()),
+		)
+		_ = fl.Unlock()
+		return nil, errors.WithStack(err)
+	}
+
+	if !locked {
+		utils.SendMonitorEvent(
+			"db-hang",
+			fmt.Sprintf("last round %s not finish, db may be hang", strings.Join(iNames, ",")),
+			nil,
+		)
+		_ = fl.Unlock()
+		return nil, errors.Wrapf(err, "main loop lock file %s failed, may be last round not finish", lockFilePath)
+	}
+
+	slog.Info("main loop get lock success", slog.String("lockFilePath", lockFilePath))
+
+	return fl, nil
+}
+
+func loadItems(hardcode bool) (iNames []string) {
+	if hardcode {
+		iNames = viper.GetStringSlice("hardcode-items")
+	} else {
+		iNames = viper.GetStringSlice("run-items")
+	}
+	slog.Info("main loop", slog.String("items", strings.Join(iNames, ",")))
+	config.Logger = config.Logger.With("items", strings.Join(iNames, ","))
+	slog.SetDefault(config.Logger)
+	return iNames
 }

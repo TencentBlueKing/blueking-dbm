@@ -41,20 +41,18 @@ var (
 
 // Request contains all data needed for database switching operation
 type Request struct {
-	MySqlInstData        []*MySQLInstanceMetadata
-	TendbClusterInstData []*TendbClusterInstanceMetadata
+	MySqlInstData []*MysqlInstanceMetadata
 }
 
 // AddDbInstMetadata TODO: Need to adapt to different types of DB instance data
-func (req *Request) AddDbInstMetadata(metadata *MySQLInstanceMetadata) {
+func (req *Request) AddDbInstMetadata(metadata *MysqlInstanceMetadata) {
 	req.MySqlInstData = append(req.MySqlInstData, metadata)
 }
 
 // Response contains the result of switching operation
 type Response struct {
-	MySqlFailureInsts        map[MetadataKey]*MySQLInstanceMetadata
-	TendbClusterFailureInsts map[MetadataKey]*TendbClusterInstanceMetadata
-	Err                      error
+	MySqlFailureInsts map[MetadataKey]*MysqlInstanceMetadata
+	Err               error
 }
 
 // Switcher defines the interface for database switching implementations

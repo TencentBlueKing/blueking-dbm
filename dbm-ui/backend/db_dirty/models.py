@@ -24,6 +24,7 @@ from backend.db_dirty.constants import MACHINE_EVENT__POOL_MAP, MachineEventType
 from backend.db_dirty.exceptions import PoolTransferException
 from backend.db_meta.models import Machine
 from backend.db_services.dbresource.handlers import ResourceHandler
+from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
 from backend.utils.time import datetime2str
 
@@ -144,21 +145,40 @@ class MachineEvent(AuditedModel):
         pool = MACHINE_EVENT__POOL_MAP.get(event)
         # 主机池流转
         hosts = DirtyMachine.hosts_pool_transfer(hosts, pool, operator, ticket)
-        # 事件记录
-        events = [
-            MachineEvent(
+        # 主机回收/导入提前创建了主机事件
+        if not ticket or (ticket and ticket.ticket_type not in [TicketType.RESOURCE_IMPORT]):
+            # 事件记录
+            cls.create_machine_events(
                 bk_biz_id=bk_biz_id,
-                ip=host["ip"],
-                bk_host_id=host["bk_host_id"],
+                hosts=hosts,
                 event=event,
-                to=pool,
+                pool=pool,
+                operator=operator,
                 ticket=ticket,
-                creator=operator,
-                updater=operator,
                 remark=remark,
             )
-            for host in hosts
-        ]
+
+    @classmethod
+    def create_machine_events(
+        cls, bk_biz_id, hosts, event, pool, operator="", ticket=None, remark="", remark_map=None
+    ):
+        events = []
+        for host in hosts:
+            bk_host_id = host.get("bk_host_id") or host.get("host_id")
+            remark = remark_map.get(bk_host_id) if remark_map else remark
+            events.append(
+                MachineEvent(
+                    bk_biz_id=bk_biz_id,
+                    ip=host["ip"],
+                    bk_host_id=bk_host_id,
+                    event=event,
+                    to=pool,
+                    ticket=ticket,
+                    creator=operator,
+                    updater=operator,
+                    remark=remark,
+                )
+            )
         MachineEvent.objects.bulk_create(events)
 
     @classmethod

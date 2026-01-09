@@ -35,7 +35,6 @@
           :key="index">
           <HostColumn
             v-model="item.host"
-            v-model:spec-id="item.specId"
             :selected="selected"
             @batch-edit="handleHostBatchEdit" />
           <EditableColumn
@@ -65,6 +64,7 @@
           <SpecColumn
             v-model="item.specId"
             :cluster-type="DBTypes.REDIS"
+            :current-spec-id-list="[item.host.spec_config.id]"
             :machine-type="
               item.host.instance_role === 'proxy'
                 ? MachineTypes.REDIS_PROXY

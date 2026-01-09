@@ -19,10 +19,10 @@ import { t } from '@locales/index';
 
 export default class FaultOrRecycleMachine {
   static poolTextMap: Record<string, string> = {
-    dirty: t('污点池'),
+    // dirty: t('污点池'),
     fault: t('故障池'),
     recycle: t('待回收池'),
-    recycled: t('已回收'),
+    // recycled: t('已回收'),
     resource: t('资源池'),
   };
 
@@ -88,6 +88,18 @@ export default class FaultOrRecycleMachine {
 
   get poolDispaly() {
     return FaultOrRecycleMachine.poolTextMap[this.pool] || '--';
+  }
+
+  get statusInfo() {
+    return this.agent_status === 1
+      ? {
+          text: t('正常'),
+          theme: 'success',
+        }
+      : {
+          text: t('异常'),
+          theme: 'danger',
+        };
   }
 
   get updateAtDisplay() {

@@ -116,9 +116,9 @@ class Command(BaseCommand):
                 f"--stage={settings.BK_APIGW_STAGE_NAME}",
             )
 
-            # 发布需要等待，这里暂停20s'
-            logger.info("Sleep for 20s and wait for apigw-release to complete.")
-            time.sleep(20)
+            # 发布需要等待，这里暂停30s'
+            logger.info("Sleep for 30s and wait for apigw-release to complete.")
+            time.sleep(30)
 
             call_command(
                 "sync_apigw_stage_mcp_servers",

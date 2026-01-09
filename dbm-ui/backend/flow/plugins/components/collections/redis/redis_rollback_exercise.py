@@ -298,6 +298,7 @@ class RedisRollbackFlowCreateSerivce(RedisLogCapturingService):
                     }
                 ],
                 "skip_mannual_confirm": True,
+                "is_rollback_drill": True,
             }
 
             # Execute RedisDataStructureFlow directly

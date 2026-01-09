@@ -104,7 +104,7 @@ func (c *collector) close() {
 func (c *collector) isTendbHaProxy() bool {
 	return c.accessLayer == haprobe.DbmMetadataAccessLayerTypeProxy &&
 		c.machineType == haprobe.DbmMetadataMachineTypeProxy &&
-		c.clusterType == haprobe.DbmMetadataClusterTypeTendb
+		c.clusterType == haprobe.DbmMetadataClusterTypeTendbha
 }
 
 func (c *collector) isTendbClusterProxy() bool {

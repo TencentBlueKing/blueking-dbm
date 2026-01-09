@@ -22,7 +22,8 @@ var executable string
 
 var nameMySQLLock = "mysql-lock"
 var nameMySQLInject = "mysql-inject"
-var nameMySQLTableSlow = "mysql-table-slow"
+
+//var nameMySQLTableSlow = "mysql-table-slow"
 
 var once sync.Once
 var snapShotErr error
@@ -40,9 +41,11 @@ type Checker struct {
 
 // Run TODO
 func (c *Checker) Run() (msg string, err error) {
-	once.Do(func() {
-		snapShotErr = snapShot(c.db)
-	})
+	once.Do(
+		func() {
+			snapShotErr = snapShot(c.db)
+		},
+	)
 
 	if snapShotErr != nil {
 		return "", snapShotErr

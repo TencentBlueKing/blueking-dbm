@@ -106,5 +106,13 @@ func (d *CleanDataComp) CleanData() (err error) {
 		return err
 	}
 
+	// 删除环境变量文件
+	extraCmd = `rm -f /etc/profile.d/kafka*.sh /etc/sysctl.d/99-kafka.conf`
+	logger.Info("删除环境变量文件, [%s]", extraCmd)
+	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+		logger.Error("[%s] execute failed, %v", extraCmd, err)
+		return err
+	}
+
 	return nil
 }

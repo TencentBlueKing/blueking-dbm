@@ -33,15 +33,17 @@
     class="replenish-record-list">
     <PrimaryTable
       :data="tableData"
+      ellipsis
       :loading="isLoading"
       :max-height="tableMaxHeight"
+      resizable
       row-key="id"
       title-ellipsis>
       <TableColumn
         col-key="id"
         fixed="left"
-        title="ID"
-        width="80">
+        :min-width="80"
+        title="ID">
         <template #default="{ row }: { row: IRowData }">
           <BkButton
             text
@@ -53,8 +55,8 @@
       </TableColumn>
       <TableColumn
         col-key="details"
-        :title="t('补货数量')"
-        width="200">
+        :min-width="200"
+        :title="t('补货数量')">
         <template #default="{ row }: { row: IRowData }">
           <BkTag
             v-for="[db, value] in Object.entries(row.details).slice(0, MAX_DISPLAY_NUM)"
@@ -78,24 +80,24 @@
       </TableColumn>
       <TableColumn
         col-key="creator"
-        :title="t('申请人')"
-        width="120">
+        :min-width="120"
+        :title="t('申请人')">
         <template #default="{ row }: { row: IRowData }">
           {{ row.creator || '--' }}
         </template>
       </TableColumn>
       <TableColumn
         col-key="create_at"
-        :title="t('申请时间')"
-        width="200">
+        :min-width="200"
+        :title="t('申请时间')">
         <template #default="{ row }: { row: IRowData }">
           {{ row.create_at ? utcDisplayTime(row.create_at) : '--' }}
         </template>
       </TableColumn>
       <TableColumn
         col-key="status"
-        :title="t('关联单据状态')"
-        width="200">
+        :min-width="200"
+        :title="t('关联单据状态')">
         <template #default="{ row }: { row: IRowData }">
           <div class="ticket-status">
             <div
