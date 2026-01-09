@@ -12,7 +12,8 @@ from dataclasses import dataclass, field
 
 from django.db.models import Q
 
-from backend.db_meta.enums import ClusterType, InstanceRole
+from backend.constants import IP_PORT_DIVIDER
+from backend.db_meta.enums import ClusterType, InstanceRole, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
 from backend.flow.consts import InstanceStatus, MachinePrivRoleMap, PrivRole
 from backend.ticket.constants import TicketType
@@ -35,6 +36,7 @@ class RuleDict:
     exec_proxy_instance_role_list: list = field(default_factory=list)
     ignore_proxy_instance_role_list: list = field(default_factory=list)
     is_tdbctl_primary_add: bool = False
+    is_all_tdbctl_add: bool = False
 
 
 # 定义的单据类型对哪些实例角色来添加随机账号
@@ -57,6 +59,8 @@ random_job_with_ticket_map = {
     ),
     # tendb_cluster集群模拟执行添加账号规则
     TicketType.TENDBCLUSTER_SEMANTIC_CHECK: RuleDict(is_tdbctl_primary_add=True),
+    # tendb_cluster集群TDBCTL升级添加账号规则
+    TicketType.TENDBCLUSTER_TDBCTL_UPGRADE: RuleDict(is_all_tdbctl_add=True),
 }
 
 """
@@ -117,7 +121,18 @@ def get_instance_with_random_job(cluster: Cluster, ticket_type: TicketType):
                     "cmdb_status": InstanceStatus.RUNNING.value,
                 }
             )
-
+        if rule_dict.is_all_tdbctl_add:
+            spider_masters = cluster.proxyinstance_set.filter(
+                tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER.value
+            )
+            for spider in spider_masters:
+                tdbctl_list.append(
+                    {
+                        "instance": "{}{}{}".format(spider.machine.ip, IP_PORT_DIVIDER, spider.port + 1000),
+                        "priv_role": PrivRole.TDBCTL.value,
+                        "cmdb_status": InstanceStatus.RUNNING.value,
+                    }
+                )
     return [
         {
             "instance": inst.ip_port,

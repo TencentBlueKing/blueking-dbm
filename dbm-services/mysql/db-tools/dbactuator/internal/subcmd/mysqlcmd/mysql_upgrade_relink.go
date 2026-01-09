@@ -27,6 +27,26 @@ type UpgradeRelinkMySQLAct struct {
 	Service upgrade.MysqlUpgradeRelinkComp
 }
 
+// NewUpgradeRelinkTdbctlCommand create new subcommand
+func NewUpgradeRelinkTdbctlCommand() *cobra.Command {
+	act := UpgradeRelinkMySQLAct{
+		BaseOptions: subcmd.GBaseOptions,
+	}
+	cmd := &cobra.Command{
+		Use:   "upgrade-relink-tdbctl",
+		Short: "tdbctl版本重新链接",
+		Example: fmt.Sprintf(
+			`dbactuator mysql upgrade-relink-tdbctl %s %s`, subcmd.CmdBaseExampleStr,
+			subcmd.ToPrettyJson(act.Service.Params),
+		),
+		Run: func(cmd *cobra.Command, args []string) {
+			util.CheckErr(act.Init())
+			util.CheckErr(act.Service.RelinkTdbctl())
+		},
+	}
+	return cmd
+}
+
 // NewUpgradeRelinkMySQLCommand create new subcommand
 func NewUpgradeRelinkMySQLCommand() *cobra.Command {
 	act := UpgradeRelinkMySQLAct{

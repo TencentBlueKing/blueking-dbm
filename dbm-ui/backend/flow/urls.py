@@ -295,6 +295,7 @@ from backend.flow.views.tendbcluster_upgrade import (
     SpiderKeywordCheckSceneApiView,
     UpgradeTendbClusterRemoteSceneApiView,
     UpgradeTendbClusterSpiderSceneApiView,
+    UpgradeTendbClusterTdbctlSceneApiView,
 )
 from backend.flow.views.vm_apply import InstallVmSceneApiView
 from backend.flow.views.vm_destroy import DestroyVmSceneApiView
@@ -408,6 +409,7 @@ urlpatterns = [
     # tendbcluster upgrade
     url(r"^scene/tendbcluster/upgrade_spider$", UpgradeTendbClusterSpiderSceneApiView.as_view()),
     url(r"^scene/tendbcluster/upgrade_remote$", UpgradeTendbClusterRemoteSceneApiView.as_view()),
+    url(r"^scene/tendbcluster/upgrade_tdbctl$", UpgradeTendbClusterTdbctlSceneApiView.as_view()),
     url(r"^scene/tendbcluster/spider_keyword_check$", SpiderKeywordCheckSceneApiView.as_view()),
     # mysql clb operation
     url(r"^scene/mysql/clb_create$", MysqlClbCreateSceneApiView.as_view()),

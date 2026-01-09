@@ -37,3 +37,4 @@ from .sqlserver_check_report import (
     SqlserverLogBackupInfoReport,
 )
 from .task_record import TaskRecord
+from .tdbctl_upgrade_report import TdbctlUpgradeRecord

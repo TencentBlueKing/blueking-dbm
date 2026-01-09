@@ -166,12 +166,25 @@ def tspider_version_parse(mysql_version: str) -> int:
     return total
 
 
-def tdbctl_version_parse(version: str) -> int:
+# 解析tdbctl 版本号码
+# mysql-5.7.20-linux-x86_64-tdbctl-2.4.11.tar.gz
+# 解析 tdbctl-2.4.11 成数字 2.4.11  => 2 * 1000000 + 4 * 1000 + 11
+def tdbctl_version_parse(tdbctl_version: str) -> int:
+    """
+    解析 tdbctl 版本字符串，返回数值版本号用于比较
 
-    result = re.findall(r"tdbctl-([\d]+).?([\d]+)?.?([\d]+)?", version)
+    @param tdbctl_version: tdbctl 版本字符串，如 "mysql-5.7.20-linux-x86_64-tdbctl-2.4.11.tar.gz" 或 "tdbctl-2.4.11" 或 "2.4.11"
+    @return: 数值版本号，如 2.4.11 => 2004011
+    """
+    re_pattern = r"tdbctl-([\d]+).?([\d]+)?.?([\d]+)?"
+    result = re.findall(re_pattern, tdbctl_version)
 
     if len(result) == 0:
-        return 0
+        # 如果没有找到 tdbctl- 前缀，尝试直接解析版本号
+        re_pattern = r"([\d]+).?([\d]+)?.?([\d]+)?"
+        result = re.findall(re_pattern, tdbctl_version)
+        if len(result) == 0:
+            return 0
 
     billion, thousand, single = result[0]
 

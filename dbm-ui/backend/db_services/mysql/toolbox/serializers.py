@@ -12,6 +12,7 @@ from django.utils.translation import gettext as _
 from rest_framework import serializers
 
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder
 from backend.ticket.constants import FlowRetryType, TicketType
@@ -153,3 +154,192 @@ class MysqlDiskSpace(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     factor = serializers.IntegerField(help_text=_("标识"))
     migrations = serializers.ListSerializer(help_text=_("集群信息"), child=DataMigrateInfoSerializer())
+
+
+# ============== TdbCtl 升级相关序列化器 ==============
+
+
+class TdbctlUpgradeScheduleSerializer(serializers.Serializer):
+    """TdbCtl 升级调度序列化器"""
+
+    pkg_id = serializers.IntegerField(help_text=_("tdbctl 升级包ID"), required=True)
+    bk_biz_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        help_text=_("业务ID列表，为空则升级全部业务"),
+        required=False,
+        default=None,
+        allow_null=True,
+    )
+    batch_size = serializers.IntegerField(
+        help_text=_("每批集群数量"),
+        required=False,
+        default=20,
+        min_value=1,
+        max_value=100,
+    )
+    schedule_interval_seconds = serializers.IntegerField(
+        help_text=_("每个业务之间的调度间隔（秒）"),
+        required=False,
+        default=180,
+        min_value=0,
+        max_value=3600,
+    )
+
+    class Meta:
+        swagger_schema_fields = {
+            "pkg_id": 123,
+            "bk_biz_ids": [1, 2, 3],
+            "batch_size": 20,
+            "schedule_interval_seconds": 180,
+        }
+
+
+class TdbctlUpgradeProgressSerializer(serializers.Serializer):
+    """TdbCtl 升级进度查询序列化器"""
+
+    pkg_id = serializers.IntegerField(help_text=_("tdbctl 升级包ID"), required=True)
+    bk_biz_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        help_text=_("业务ID列表，为空则查询全部业务"),
+        required=False,
+        default=None,
+        allow_null=True,
+    )
+
+    class Meta:
+        swagger_schema_fields = {
+            "pkg_id": 123,
+            "bk_biz_ids": [1, 2, 3],
+        }
+
+
+class TdbctlUpgradeRecordsSerializer(serializers.Serializer):
+    """TdbCtl 升级记录查询序列化器"""
+
+    pkg_id = serializers.IntegerField(help_text=_("tdbctl 升级包ID"), required=True)
+    bk_biz_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        help_text=_("业务ID列表，为空则查询全部业务"),
+        required=False,
+        default=None,
+        allow_null=True,
+    )
+    status = serializers.CharField(help_text=_("状态过滤"), required=False, allow_blank=True, allow_null=True)
+    cluster_id = serializers.IntegerField(help_text=_("集群ID过滤"), required=False, allow_null=True)
+    limit = serializers.IntegerField(help_text=_("返回记录数"), required=False, default=100, min_value=1, max_value=500)
+    offset = serializers.IntegerField(help_text=_("偏移量"), required=False, default=0, min_value=0)
+
+    class Meta:
+        swagger_schema_fields = {
+            "pkg_id": 123,
+            "bk_biz_ids": [1, 2, 3],
+            "status": "success",
+            "cluster_id": 456,
+            "limit": 100,
+            "offset": 0,
+        }
+
+
+class TdbctlUpgradeSerializer(serializers.Serializer):
+    """TdbCtl 同步升级序列化器"""
+
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=True)
+    cluster_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        help_text=_("集群ID列表"),
+        required=False,
+        default=list,
+        allow_empty=True,
+    )
+    pkg_id = serializers.IntegerField(help_text=_("tdbctl 升级包ID"), required=True)
+    upgrade_all = serializers.BooleanField(
+        help_text=_("是否升级业务下所有 spider 集群"),
+        required=False,
+        default=False,
+    )
+
+    class Meta:
+        swagger_schema_fields = {
+            "bk_biz_id": 100,
+            "cluster_ids": [1, 2, 3],
+            "pkg_id": 123,
+            "upgrade_all": False,
+        }
+
+    def validate(self, attrs):
+        """
+        校验是否存在需要升级的集群
+
+        校验逻辑：
+        1. 校验参数：cluster_ids 和 upgrade_all 至少提供一个
+        2. 查询待升级的集群
+        3. 过滤出真正需要升级的集群（排除版本已是最新的）
+        4. 如果没有需要升级的集群，抛出 ValidationError
+        """
+        from backend.db_services.mysql.toolbox.tdbctl_upgrade_handler import TdbctlUpgradeHandler
+
+        bk_biz_id = attrs.get("bk_biz_id")
+        cluster_ids = attrs.get("cluster_ids", [])
+        pkg_id = attrs.get("pkg_id")
+        upgrade_all = attrs.get("upgrade_all", False)
+
+        # 1. 校验参数：cluster_ids 和 upgrade_all 至少提供一个
+        if not upgrade_all and not cluster_ids:
+            raise serializers.ValidationError(_("cluster_ids 和 upgrade_all 至少提供一个"))
+
+        # 2. 使用 TdbctlUpgradeHandler 校验集群
+        try:
+            handler = TdbctlUpgradeHandler(
+                bk_biz_id=bk_biz_id,
+                pkg_id=pkg_id,
+                operator="validator",  # 校验阶段使用占位符
+            )
+
+            # 3. 获取待升级的集群列表
+            clusters = handler.get_clusters_to_upgrade(cluster_ids=cluster_ids, upgrade_all=upgrade_all)
+
+            if not clusters:
+                raise serializers.ValidationError(_("没有找到需要升级的 spider 集群"))
+
+            # 4. 过滤出真正需要升级的集群
+            filter_result = handler.filter_clusters_need_upgrade(clusters)
+            upgraded_clusters = filter_result["upgraded_clusters"]
+            skipped_clusters = filter_result["skipped_clusters"]
+
+            if not upgraded_clusters:
+                # 构建详细的错误消息
+                skipped_info = ", ".join(
+                    [
+                        "{}({})".format(item["cluster_domain"], item["reason"])
+                        for item in skipped_clusters[:5]  # 最多显示5个
+                    ]
+                )
+                if len(skipped_clusters) > 5:
+                    skipped_info += _("等 {} 个集群").format(len(skipped_clusters))
+
+                raise serializers.ValidationError(_("所有集群版本已是最新或无法升级，无需升级。跳过的集群: {}").format(skipped_info))
+
+            # 5. 将校验结果保存到 attrs 中，供后续使用
+            attrs["_validated_clusters"] = upgraded_clusters
+            attrs["_skipped_clusters"] = skipped_clusters
+
+        except ValueError as e:
+            # TdbctlUpgradeHandler 抛出的参数错误
+            raise serializers.ValidationError(str(e))
+        except Exception as e:
+            # 其他异常
+            raise serializers.ValidationError(_("校验集群时发生错误: {}").format(str(e)))
+
+        return attrs
+
+
+class TdbctlUpgradeFlowParamBuilder(builders.FlowParamBuilder):
+    controller = SpiderController.tendbcluster_tdbctl_upgrade
+
+
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_TDBCTL_UPGRADE)
+class TdbctlUpgradeFlowBuilder(BaseTendbTicketFlowBuilder):
+    serializer = TdbctlUpgradeSerializer
+    inner_flow_builder = TdbctlUpgradeFlowParamBuilder
+    inner_flow_name = _("TdbCtl 升级")
+    retry_type = FlowRetryType.MANUAL_RETRY
