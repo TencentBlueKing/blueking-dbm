@@ -19,6 +19,7 @@ from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_db_table_backup import bill_d
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_fullbackup import mysql_full_backup
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_mysql_standardize import bill_mysql_standardize
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_rename_db import bill_rename_db
+from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_tdbctl_upgrade import bill_tdbctl_upgrade
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.bill_output import SubmitBillOutputSerializer
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_apply_priv_bill import (
     SubmitBillMySQLApplyPrivInputSerializer,
@@ -33,6 +34,7 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_full_backup_bill impo
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_standardize_bill import (
     SubmitBillMySQLStandardizeInputSerializer,
 )
+from backend.dbm_aiagent.mcp_tools.mysql.serializers.tdbctl_upgrade_bill import SubmitBillTdbctlUpgradeInputSerializer
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
@@ -194,5 +196,48 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
                 cluster_domain=cluster_domain,
                 source_dbname=source_dbname,
                 target_dbname=target_dbname,
+            )
+        )
+
+    @mcp_tools_api_decorator(
+        description=str(
+            _(
+                """创建 TenDBCluster 中控（tdbctl）升级单据
+
+参数说明：
+- bk_biz_id: 业务ID（必填）
+- cluster_domain: 集群域名（可选，与 cluster_id 二选一）
+- cluster_id: 集群ID（可选，与 cluster_domain 二选一）
+- version: 升级版本号（可选，如 2.4.13，不传则使用最新创建的 tdbctl 包）
+
+使用场景：
+1. 只传 bk_biz_id: 升级该业务下所有 TenDBCluster 集群
+2. 传 bk_biz_id + cluster_domain/cluster_id: 升级指定集群
+        """
+            )
+        ),
+        request_slz=SubmitBillTdbctlUpgradeInputSerializer,
+        response_slz=SubmitBillOutputSerializer,
+        tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
+        mcp=[DBMAMcpTools.MYSQL_BILL],
+        name_prefix="mysql_bill",
+    )
+    def submit_bill_tdbctl_upgrade(self, request, *args, **kwargs):
+        bk_biz_id = self.get_param("bk_biz_id")
+        cluster_domain = self.get_param("cluster_domain", None)
+        cluster_id = self.get_param("cluster_id", None)
+        version = self.get_param("version", None)
+
+        username = request.user.username
+        if not username:
+            raise DBMMcpUsernameNotFoundException()
+
+        return Response(
+            bill_tdbctl_upgrade(
+                bk_biz_id=bk_biz_id,
+                username=username,
+                cluster_domain=cluster_domain,
+                cluster_id=cluster_id,
+                version=version,
             )
         )

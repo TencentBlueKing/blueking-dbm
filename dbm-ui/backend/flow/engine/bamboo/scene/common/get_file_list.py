@@ -638,6 +638,16 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{tdbctl_pkg.path}",
         ]
 
+    def tdbctl_upgrade_package(self, pkg_id: int) -> list:
+        """
+        tdbctl 升级需要的安装包列表
+        """
+        tdbctl_pkg = Package.objects.get(id=pkg_id, pkg_type=MediumEnum.tdbCtl, db_type=DBType.MySQL)
+        return [
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{tdbctl_pkg.path}",
+        ]
+
     @staticmethod
     def get_spider_apps_package():
         """

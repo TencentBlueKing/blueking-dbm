@@ -2035,6 +2035,32 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             },
         }
 
+    def get_tdbctl_restart_payload(self, **kwargs) -> dict:
+        """
+        MySQL升级操作的通用payload构建方法
+
+        @param action_enum: DBActuatorActionEnum中的升级操作类型
+        @param include_ports: 是否包含端口参数（机器级别操作如relink不需要端口）
+        @param kwargs: 其他参数
+        @return: 构建好的payload
+        """
+        db_pkg = Package.objects.get(id=self.cluster["pkg_id"])
+        extend_params = {
+            "host": kwargs["ip"],
+            "port": self.cluster["port"],
+            "pkg": db_pkg.name,
+            "pkg_md5": db_pkg.md5,
+            "is_tdbctl": True,
+        }
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.UpgradeRestart.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": extend_params,
+            },
+        }
+
     def _get_mysql_upgrade_base_payload(self, action_enum, include_ports: bool = True, **kwargs) -> dict:
         """
         MySQL升级操作的通用payload构建方法
@@ -2044,12 +2070,12 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         @param kwargs: 其他参数
         @return: 构建好的payload
         """
-        mysql_pkg = Package.objects.get(id=self.cluster["pkg_id"], pkg_type=MediumEnum.MySQL)
+        db_pkg = Package.objects.get(id=self.cluster["pkg_id"])
 
         extend_params = {
             "host": kwargs["ip"],
-            "pkg": mysql_pkg.name,
-            "pkg_md5": mysql_pkg.md5,
+            "pkg": db_pkg.name,
+            "pkg_md5": db_pkg.md5,
         }
 
         # 实例级别操作需要端口，机器级别操作(如relink)不需要
@@ -2115,6 +2141,15 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         机器级别操作，不依赖具体端口
         """
         return self._get_mysql_upgrade_base_payload(DBActuatorActionEnum.UpgradeRelink, include_ports=False, **kwargs)
+
+    def get_tdbctl_upgrade_relink_payload(self, **kwargs) -> dict:
+        """
+        tdbctl升级重新链接 (upgrade-relink-tdbctl)
+        机器级别操作，不依赖具体端口
+        """
+        return self._get_mysql_upgrade_base_payload(
+            DBActuatorActionEnum.UpgradeRelinkTdbctl, include_ports=False, **kwargs
+        )
 
     def get_mysql_master_slave_switch_payload(self, **kwargs) -> dict:
         """
