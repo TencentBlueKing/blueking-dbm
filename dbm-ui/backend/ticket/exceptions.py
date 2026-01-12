@@ -76,3 +76,9 @@ class TicketFlowsConfigException(TicketBaseException):
     ERROR_CODE = "009"
     MESSAGE = _("单据流程设置失败")
     MESSAGE_TPL = _("单据流程{ticket_type}设置失败")
+
+
+class TicketResourceApplyException(TicketBaseException):
+    ERROR_CODE = "010"
+    MESSAGE = _("单据资源申请参数异常")
+    MESSAGE_TPL = _("单据资源申请参数异常")
