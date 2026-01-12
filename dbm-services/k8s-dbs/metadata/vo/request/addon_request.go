@@ -35,6 +35,7 @@ type AddonRequest struct {
 	Releases             string `json:"releases" binding:"required"`
 	Active               bool   `json:"active"`
 	Description          string `json:"description" binding:"required"`
+	EnableEnvValidation  bool   `json:"enableEnvValidation"`
 	commentity.BKAuth    `json:",inline"`
 }
 

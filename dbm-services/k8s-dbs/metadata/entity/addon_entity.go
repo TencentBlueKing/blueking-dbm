@@ -36,6 +36,7 @@ type K8sCrdStorageAddonEntity struct {
 	Releases             string                 `json:"releases"`
 	Active               bool                   `json:"active"`
 	Description          string                 `json:"description"`
+	EnableEnvValidation  bool                   `json:"enableEnvValidation"`
 	CreatedBy            string                 `json:"createdBy"`
 	CreatedAt            commtypes.JSONDatetime `json:"createdAt"`
 	UpdatedBy            string                 `json:"updatedBy"`

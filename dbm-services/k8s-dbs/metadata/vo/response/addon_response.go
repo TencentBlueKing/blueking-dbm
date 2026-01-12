@@ -40,6 +40,7 @@ type AddonResponse struct {
 	Releases             string                 `json:"releases"`
 	Active               bool                   `json:"active"`
 	Description          string                 `json:"description"`
+	EnableEnvValidation  bool                   `json:"enableEnvValidation"`
 	CreatedBy            string                 `json:"createdBy"`
 	CreatedAt            commtypes.JSONDatetime `json:"createdAt"`
 	UpdatedBy            string                 `json:"updatedBy"`
@@ -82,6 +83,7 @@ func (k AddonResponse) MarshalJSON() ([]byte, error) {
 		"releases":             releasesArray,
 		"active":               k.Active,
 		"description":          k.Description,
+		"enableEnvValidation":  k.EnableEnvValidation,
 		"createdBy":            k.CreatedBy,
 		"createdAt":            k.CreatedAt,
 		"updatedBy":            k.UpdatedBy,
