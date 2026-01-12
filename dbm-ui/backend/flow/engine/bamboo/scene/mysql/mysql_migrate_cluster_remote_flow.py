@@ -254,7 +254,6 @@ class MySQLMigrateClusterRemoteFlow(object):
             install_sub_pipeline_list.append(install_sub_pipeline.build_sub_process(sub_name=_("安装实例")))
 
             # 生成checksum信息
-            checksum_pairs = []
             checksum_info = {
                 "bk_biz_id": cluster_class.bk_biz_id,
                 "ticket_type": TicketType.MYSQL_CHECKSUM_CRON,
@@ -332,12 +331,6 @@ class MySQLMigrateClusterRemoteFlow(object):
                         "ignore_tables": [],
                     }
                 )
-                checksum_pairs.append(
-                    {
-                        "master": master_model.ip_port,
-                        "slave": f"{self.data['new_master_ip']}{IP_PORT_DIVIDER}{master_model.port}",
-                    }
-                )
 
                 sync_data_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
 
@@ -397,7 +390,12 @@ class MySQLMigrateClusterRemoteFlow(object):
                         act_component_code=MySQLCheckSumTicketResultComponent.code,
                         kwargs={
                             "bk_cloud_id": cluster_class.bk_cloud_id,
-                            "checksum_pairs": checksum_pairs,
+                            "checksum_pairs": [
+                                {
+                                    "master": master_model.ip_port,
+                                    "slave": f"{self.data['new_master_ip']}{IP_PORT_DIVIDER}{master_model.port}",
+                                }
+                            ],
                             "cluster_id": cluster_model.id,
                         },
                     )
