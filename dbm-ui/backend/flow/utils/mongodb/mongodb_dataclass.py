@@ -2982,7 +2982,7 @@ class ActKwargs:
         return old_hosts, old_instances
 
     @staticmethod
-    def get_add_alarm_shield_kwargs(ip_list: list, port_list: list, description: str) -> dict:
+    def get_add_alarm_shield_kwargs(ip: str, port: int, description: str) -> dict:
         """获取告警屏蔽参数"""
 
         return {
@@ -2990,13 +2990,9 @@ class ActKwargs:
             "description": description,
             "dimensions": [
                 {
-                    "name": "instance_host",
-                    "values": ip_list,
-                },
-                {
-                    "name": "instance_port",
-                    "values": port_list,
-                },
+                    "name": "instance",
+                    "values": ["{}:{}".format(ip, str(port))],
+                }
             ],
         }
 

@@ -61,6 +61,15 @@ func AsyncClusterCreated(
 	asyncClusterOperation(clusterEntity, coreconst.OperationCreate, dbmAPIService, syncClusterCreatedWithCtx)
 }
 
+// AsyncClusterUpdated 同步集群更新信息到DBM
+func AsyncClusterUpdated(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) {
+	slog.Info("开始同步集群更新信息", "cluster_name", clusterEntity.ClusterName)
+	asyncClusterOperation(clusterEntity, coreconst.OperationUpdate, dbmAPIService, syncClusterNormalWithCtx)
+}
+
 // AsyncClusterDeleted 同步集群删除信息到DBM
 func AsyncClusterDeleted(
 	clusterEntity *metaentity.K8sCrdClusterEntity,

@@ -462,10 +462,17 @@ func (c *ClusterProvider) UpdateClusterRelease(
 		return dbserrors.NewK8sDbsError(dbserrors.UpdateMetaDataError, err)
 	}
 	// 更新集群 cluster 元数据
-	_, err = metautil.UpdateClusterMeta(c.clusterMetaProvider, ctx, request)
+	updatedClusterEntity, err := metautil.UpdateClusterMeta(c.clusterMetaProvider, ctx, request)
 	if err != nil {
 		return dbserrors.NewK8sDbsError(dbserrors.UpdateMetaDataError, err)
 	}
+
+	// 检查环境变量ASYNC_TO_DBM，控制是否启用异步处理
+	asyncToDBM := os.Getenv(coreconst.AsyncToDBMEnv)
+	if asyncToDBM == coreconst.AsyncToDBMEnabled {
+		infrautil.AsyncClusterUpdated(updatedClusterEntity, c.dbmAPIService)
+	}
+
 	return nil
 }
 

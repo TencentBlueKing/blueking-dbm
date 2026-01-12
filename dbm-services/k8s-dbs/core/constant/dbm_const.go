@@ -34,6 +34,8 @@ type ClusterOperationType string
 const (
 	// OperationCreate 创建集群操作
 	OperationCreate ClusterOperationType = "create"
+	// OperationUpdate 更新集群操作
+	OperationUpdate ClusterOperationType = "update"
 	// OperationDelete 删除集群操作
 	OperationDelete ClusterOperationType = "delete"
 	// OperationExpose 暴露集群服务操作

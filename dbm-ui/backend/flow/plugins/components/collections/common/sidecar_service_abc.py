@@ -44,19 +44,14 @@ class SidecarServiceABC(BaseService, ABC):
     interval = StaticIntervalGenerator(30)
 
     def _execute(self, data, parent_data):
-        kwargs = data.get_one_of_inputs("kwargs")
-        root_id = kwargs["root_id"]
-
-        data.outputs.root_id = root_id
         return True
 
     def _schedule(self, data, parent_data, callback_data=None):
-        kwargs = data.get_one_of_inputs("kwargs")
-
-        root_id = data.outputs.root_id
+        global_data = data.get_one_of_inputs("global_data")
+        root_id = global_data["job_root_id"]
 
         if self._worker_is_running(root_id=root_id):
-            ret = self.sidecar_func(**kwargs)
+            ret = self.sidecar_func(data, parent_data)
             if ret:
                 return True
             else:
@@ -79,7 +74,7 @@ class SidecarServiceABC(BaseService, ABC):
         return False
 
     @abstractmethod
-    def sidecar_func(self, *args, **kwargs) -> bool:
+    def sidecar_func(self, data, parent_data) -> bool:
         pass
 
 

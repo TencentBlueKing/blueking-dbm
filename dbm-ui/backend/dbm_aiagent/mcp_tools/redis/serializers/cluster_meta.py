@@ -70,7 +70,7 @@ class RedisBizNameInputSerializer(serializers.Serializer):
 
 
 class RedisEmptyInputSerializer(serializers.Serializer):
-    place_holder = serializers.CharField(help_text=_("随便填一个占位"))
+    userid = serializers.CharField(help_text=_("占位符"))
 
 
 class RedisClustersOutputSerializer(serializers.Serializer):

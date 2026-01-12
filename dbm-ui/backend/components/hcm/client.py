@@ -153,6 +153,10 @@ class _HCMApi(BaseApi):
         hcm_image_map = SystemSettings.get_setting_value(SystemSettingsEnum.HCM_OS_NAME_IMAGE_MAP, default={})
         hcm_image_map = {key.strip().lower(): value for key, value in hcm_image_map.items()}
 
+        # 查询cc的园区需要拿园区映射关系（HCM可能是虚拟园区，要拿映射的真实园区查询）
+        subzone_map = SystemSettings.get_setting_value(SystemSettingsEnum.REPLENISH_SUBZONE_MAP, {})
+        subzones = subzone_map.get(subzone) or [subzone]
+
         # 根据操作系统名称获取镜像ID
         image_id = hcm_image_map.get(os_name.strip().lower())
         if not image_id:
@@ -164,7 +168,7 @@ class _HCMApi(BaseApi):
             "rules": [
                 {"field": "bk_svr_device_cls_name", "operator": "equal", "value": device_type},
                 {"field": "idc_city_name", "operator": "equal", "value": city},
-                {"field": "sub_zone", "operator": "equal", "value": subzone},
+                {"field": "sub_zone", "operator": "in", "value": subzones},
             ],
         }
         params = {
@@ -197,8 +201,8 @@ class _HCMApi(BaseApi):
                 "resource_mode": 0,
                 "device_type": device_type,
                 "image_id": image_id,
-                # 磁盘类型固定CLOUD_SSD，操作系统盘默认50G
-                "system_disk": {"disk_type": "CLOUD_SSD", "disk_size": 50},
+                # 操作系统盘默认高性能云盘-50G
+                "system_disk": {"disk_type": "CLOUD_PREMIUM", "disk_size": 50},
                 "data_disk": [
                     {"disk_type": HCM_DISK_CLASS_MAP[d["disk_type"]], "disk_size": d["disk_size"]}
                     for d in disk

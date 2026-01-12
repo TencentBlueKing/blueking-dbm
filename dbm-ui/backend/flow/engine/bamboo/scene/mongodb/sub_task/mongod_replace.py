@@ -296,7 +296,7 @@ def mongod_replace(
     # 屏蔽老实例监控
     act_name = _("MongoDB-mongod下架前屏蔽告警-{}:{}".format(info["ip"], str(sub_sub_get_kwargs.db_instance["port"])))
     kwargs = sub_sub_get_kwargs.get_add_alarm_shield_kwargs(
-        ip_list=[info["ip"]], port_list=[sub_sub_get_kwargs.db_instance["port"]], description=act_name
+        ip=info["ip"], port=sub_sub_get_kwargs.db_instance["port"], description=act_name
     )
     sub_sub_pipeline.add_act(
         act_name=act_name,
