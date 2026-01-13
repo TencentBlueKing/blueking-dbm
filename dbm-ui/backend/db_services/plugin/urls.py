@@ -15,6 +15,7 @@ from backend.db_services.plugin.redis.capacity_evaluate.views import CapacityEva
 from .bf.views import BFPluginViewSet
 from .cluster.views import OpenClusterViewSet
 from .db_dirty.views import DBDirtyMachineViewSet
+from .monitor.views import MonitorPluginViewSet
 from .mysql.apply.views import ApplyPluginViewSet
 from .mysql.authorize.views import AuthorizePluginViewSet
 from .ticket.views import TicketViewSet
@@ -22,6 +23,7 @@ from .ticket.views import TicketViewSet
 routers = DefaultRouter(trailing_slash=True)
 
 routers.register("cluster", OpenClusterViewSet, basename="cluster")
+routers.register("monitor", MonitorPluginViewSet, basename="monitor")
 routers.register("mysql/authorize", AuthorizePluginViewSet, basename="authorize")
 routers.register("mysql/apply", ApplyPluginViewSet, basename="apply")
 
