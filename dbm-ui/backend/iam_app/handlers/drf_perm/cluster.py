@@ -29,6 +29,24 @@ from backend.iam_app.handlers.drf_perm.base import (
 from backend.ticket.builders.common.base import fetch_cluster_ids
 
 
+class ClusterDashboardPermission(ResourceActionPermission):
+    """
+    通过集群域名获取集群相关鉴权
+    """
+
+    def __init__(self, actions: List[ActionMeta] = None, resource_meta: ResourceMeta = None):
+        super().__init__(actions=actions, resource_meta=resource_meta, instance_ids_getter=self.instance_ids_getter)
+
+    def instance_ids_getter(self, request, view):
+        domain = request.data.get("variables", {}).get("cluster_domain")
+        if not domain:
+            raise ResourceInvalidError(_("集群域名不允许为空"))
+        cluster = Cluster.objects.get(immute_domain=domain)
+        self.actions = [ActionEnum.cluster_type_to_action(cluster.cluster_type, action_key="VIEW")]
+        self.resource_meta = ResourceEnum.cluster_type_to_resource_meta(cluster.cluster_type)
+        return [cluster.id]
+
+
 class ClusterDetailPermission(ResourceActionPermission):
     """
     集群详情相关动作鉴权
