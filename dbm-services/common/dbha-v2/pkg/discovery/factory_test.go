@@ -57,18 +57,16 @@ func setup() {
 		log.Fatal("endpoints is required")
 	}
 
-	if user == "" {
-		log.Fatal("user is required")
+	opts := []discovery.Option{
+		discovery.OptionEndpoints(strings.Split(endpoints, ";")),
 	}
 
-	if password == "" {
-		log.Fatal("password is required")
+	// Support no-auth mode
+	if user != "" && password != "" {
+		opts = append(opts, discovery.OptionUser(user), discovery.OptionPassword(password))
 	}
 
-	cli, err := discovery.NewClientWithOptions(
-		discovery.OptionUser(user),
-		discovery.OptionPassword(password),
-		discovery.OptionEndpoints(strings.Split(endpoints, ";")))
+	cli, err := discovery.NewClientWithOptions(opts...)
 
 	if err != nil {
 		log.Fatalf("failed to create etcd client. errmsg:%s", err.Error())
