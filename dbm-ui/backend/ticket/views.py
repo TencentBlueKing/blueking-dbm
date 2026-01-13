@@ -498,7 +498,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         )
 
         self.params_validate(self.get_serializer_class())
-        todo_queryset = self.filter_queryset(queryset)
+        todo_queryset = super().filter_queryset(queryset)
         pages = self.paginate_queryset(todo_queryset)
 
         cluster_ids = [todo.context["cluster_id"] for todo in todo_queryset]
