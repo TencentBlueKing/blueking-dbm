@@ -237,6 +237,16 @@ class _BKMonitorV3Api(BaseApi):
             url="app/subscribe/list/",
             description=_("查询策略订阅列表"),
         )
+        self.start_render_image_task = self.generate_data_api(
+            method="POST",
+            url="app/render_image/start_render_image_task/",
+            description=_("查询策略订阅列表"),
+        )
+        self.get_render_image_result = self.generate_data_api(
+            method="GET",
+            url="app/render_image/get_render_image_task_result/",
+            description=_("查询策略订阅列表"),
+        )
 
     def bulk_save_subscribe_in_batch(self, bk_biz_id, subscriptions):
         """按批次，批量新增/保存策略订阅"""
