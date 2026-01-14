@@ -77,12 +77,12 @@ type SwitchableInstance interface {
 }
 
 // SwitchSingleInstance executes the standardized switching procedure for a single database instance.
-func SwitchSingleInstance(ins SwitchableInstance) (retErr error) {
+func SwitchSingleInstance(ins SwitchableInstance) (switchSuccess bool, retErr error) {
 	ins.ReportLogf(SwitchInfo, "start to switch single instance: %s", ins.GetInstanceInfo())
 
 	// rollback when error occurs
 	defer func() {
-		if retErr == nil {
+		if switchSuccess {
 			ins.ReportLogf(SwitchSuccess, "successfully switch single instance: %s", ins.GetInstanceInfo())
 			return
 		}
@@ -98,14 +98,14 @@ func SwitchSingleInstance(ins SwitchableInstance) (retErr error) {
 	if (ins.GetStatus() != dbm.Running) && (ins.GetStatus() != dbm.Available) {
 		retErr = gerrors.Newf(gerrors.Failure, "pre-status check unpass for wrong status:%s", ins.GetStatus())
 		ins.ReportLogf(SwitchFail, "%s", retErr.Error())
-		return
+		return false, retErr
 	}
 	ins.ReportLogf(SwitchInfo, "pre-status check pass with status:%s", ins.GetStatus())
 
 	if err := ins.SetInstanceUnavailable(); err != nil {
 		retErr = gerrors.Newf(gerrors.Failure, "failed to set instance unavailable: %s", err.Error())
 		ins.ReportLogf(SwitchFail, "%s", retErr.Error())
-		return
+		return false, retErr
 	}
 	ins.ReportLogf(SwitchInfo, "successfully set instance unavailable")
 
@@ -115,36 +115,38 @@ func SwitchSingleInstance(ins SwitchableInstance) (retErr error) {
 		ins.ReportLogf(SwitchInfo, "check result before switch: switch required")
 	case SwitchNotNeeded:
 		ins.ReportLogf(SwitchInfo, "check result before switch: no need to switch")
-		return
+		return true, nil
 	default:
 		errMsg := "check result before switch: check unpass"
 		if checkErr != nil {
 			errMsg += fmt.Sprintf(", errmsg: %s", checkErr.Error())
 		}
+
+		retErr = gerrors.Newf(gerrors.Failure, "%s", errMsg)
 		ins.ReportLogf(SwitchFail, "%s", errMsg)
-		return
+		return false, retErr
 	}
 
 	if err := ins.DoSwitch(); err != nil {
 		retErr = gerrors.Newf(gerrors.Failure, "failed to do switch: %s", err.Error())
 		ins.ReportLogf(SwitchFail, "%s", retErr.Error())
-		return
+		return false, retErr
 	}
 	ins.ReportLogf(SwitchInfo, "successfully do switch")
 
 	if err := ins.UpdateMetaInfo(); err != nil {
 		retErr = gerrors.Newf(gerrors.Failure, "failed to update meta info: %s", err.Error())
 		ins.ReportLogf(SwitchFail, "%s", retErr.Error())
-		return
+		return false, retErr
 	}
 	ins.ReportLogf(SwitchInfo, "successfully update meta info")
 
 	if err := ins.DoFinal(); err != nil {
 		retErr = gerrors.Newf(gerrors.Failure, "failed to do final step: %s", err.Error())
 		ins.ReportLogf(SwitchFail, "%s", retErr.Error())
-		return
+		return false, retErr
 	}
 	ins.ReportLogf(SwitchInfo, "successfully do final step")
 
-	return
+	return true, nil
 }
