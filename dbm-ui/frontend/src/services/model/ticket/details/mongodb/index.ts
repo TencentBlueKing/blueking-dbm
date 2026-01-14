@@ -2,6 +2,7 @@ export * from './addShardNodes';
 export * from './authorizeRules';
 export * from './backup';
 export * from './cutoff';
+export * from './dataExport';
 export * from './destroy';
 export * from './disable';
 export * from './enable';

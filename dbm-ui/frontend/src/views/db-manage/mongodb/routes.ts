@@ -28,6 +28,7 @@ export const mongoToolboxChildrenRoutes: RouteRecordRaw[] = [
   createRouteItem(TicketTypes.MONGODB_REMOVE_NS, t('清档')),
   createRouteItem(TicketTypes.MONGODB_REPLICASET_MIGRATE, t('迁移')),
   createRouteItem(TicketTypes.MONGODB_SHARD_MIGRATE, t('迁移')),
+  createRouteItem(TicketTypes.MONGODB_DATA_EXPORT, t('数据导出')),
   {
     path: 'structure-instance/:page?',
     name: 'MongoStructureInstance',
