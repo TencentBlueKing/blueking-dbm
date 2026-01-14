@@ -120,8 +120,12 @@ func (m *Mysql) Switch(ctx context.Context, req *Request) *Response {
 		swInst.SetSwitchLogger(switchLoggers)
 
 		logger.Info("start to switch the single mysql instance: %s", instKey)
-		if swErr := SwitchSingleInstance(swInst); swErr != nil {
-			logger.Warn("failed to switch the single mysql instance: %s, errmsg: %s", instKey, swErr)
+		if switchSuccess, swErr := SwitchSingleInstance(swInst); !switchSuccess {
+			errStr := "nil"
+			if swErr != nil {
+				errStr = swErr.Error()
+			}
+			logger.Warn("failed to switch the single mysql instance: %s, errmsg: %s", instKey, errStr)
 			rsp.MySqlFailureInsts[instKey] = inst
 			continue
 		}
