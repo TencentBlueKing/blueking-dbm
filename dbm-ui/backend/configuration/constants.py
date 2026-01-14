@@ -181,7 +181,11 @@ class SystemSettingsEnum(StrStructuredEnum):
     REPLENISH_OS_MAP = EnumField("REPLENISH_OS_MAP", _("补货操作系统映射"))
     REPLENISH_SUBZONE_MAP = EnumField("REPLENISH_SUBZONE_MAP", _("补货园区映射"))
     # 判断待裁撤主机开关
-    DISSOLVED_SWITCH = EnumField("DISSOLVED_SWITCH", _("判断待裁撤主机开关"))
+    HOST_DISSOLVED_SWITCH = EnumField("HOST_DISSOLVED_SWITCH", _("判断待裁撤主机开关"))
+    # 转入故障池主机开关
+    HOST_TO_FAULT_SWITCH = EnumField("HOST_TO_FAULT_SWITCH", _("转入故障池主机开关"))
+    # 判断windows主机开关
+    WINDOWS_HOST_TO_RECYCLE_SWITCH = EnumField("WINDOWS_HOST_TO_RECYCLE_SWITCH", _("判断windows主机开关"))
 
 
 class BizSettingsEnum(StrStructuredEnum):
