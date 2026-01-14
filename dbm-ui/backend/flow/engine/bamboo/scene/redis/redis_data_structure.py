@@ -116,6 +116,7 @@ class RedisDataStructureFlow(object):
 
     def redis_data_structure_flow(self):
         redis_pipeline_all = Builder(root_id=self.root_id, data=self.data)
+        is_drill = self.data.get("is_rollback_drill", False)  # 回档演练场景
 
         # 支持批量操作
         sub_pipelines_multi_cluster = []
@@ -146,8 +147,8 @@ class RedisDataStructureFlow(object):
                 info["master_instances"], cluster_kwargs.cluster["redis_master_set"], cluster_type
             )
             logger.info(_("是否是集群维度：is_cluster_all:{}".format(is_cluster_all)))
-            # 如果是tendisplus必须要传入所有节点，也就是需要是集群维度的
-            if is_redis_cluster_protocal(cluster_type) and not is_cluster_all:
+            # 如果是tendisplus必须要传入所有节点，也就是需要是集群维度的，除非是回档演练场景
+            if is_redis_cluster_protocal(cluster_type) and not is_cluster_all and not is_drill:
                 raise Exception(
                     _(
                         "tendisplus 需要按集群维度进行数据构造，请检查传入的节点：cluster_type is :{},"
@@ -171,7 +172,9 @@ class RedisDataStructureFlow(object):
             else:
                 # 用户选择 构造 "all"的情况下， 可以支持 回档到  "集群容量变更" 以前,以及故障替换场景；
                 # 从bklog查询备份节点信息
-                cluster_src_instance, redis_instance_set = self.get_backup_instance_by_bklog(info, cluster_type)
+                cluster_src_instance, redis_instance_set = self.get_backup_instance_by_bklog(
+                    info, cluster_type, is_drill
+                )
                 logger.info(_("redis_data_structure_flow 从bklog查询的备份节点信息"))
 
             logger.info("redis_data_structure_flow cluster_src_instance: {}".format(cluster_src_instance))
@@ -206,7 +209,7 @@ class RedisDataStructureFlow(object):
                         "spec_id": resource_spec["id"],
                         "spec_config": resource_spec,
                     },
-                    to_install_puglins=self.data.get("is_rollback_drill", False),  # 演练场景跳过安装beat插件
+                    to_install_puglins=not is_drill,  # 演练场景跳过安装beat插件
                 )
                 sub_pipelines_install.append(sub_builder)
 
@@ -367,7 +370,8 @@ class RedisDataStructureFlow(object):
                 redis_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
             # ### 如果是tendisplus,需要构建tendis cluster关系 ############################################################
-            self._setup_cluster_meet(cluster_type, act_kwargs, cluster_dst_instance, info, redis_pipeline)
+            if is_redis_cluster_protocal(cluster_type) and not is_drill:
+                self._setup_cluster_meet(cluster_type, act_kwargs, cluster_dst_instance, info, redis_pipeline)
             # ### 构建tendisplus集群关系结束 #############################################################################
 
             # ### 部署proxy实例 #############################################################################
@@ -380,7 +384,8 @@ class RedisDataStructureFlow(object):
             redis_pipeline.add_parallel_acts(acts_list=acts_list)
 
             # # ###  # ### 如果是tendisplus,需要重新构建 cluster关系,因为tendisplus数据构造需要reset集群关系  ##############
-            self._check_cluster_meet(cluster_type, act_kwargs, cluster_dst_instance, info, redis_pipeline)
+            if is_redis_cluster_protocal(cluster_type) and not is_drill:
+                self._check_cluster_meet(cluster_type, act_kwargs, cluster_dst_instance, info, redis_pipeline)
 
             # ### 写入构造记录元数据 ######################################################
             act_kwargs.cluster = {
@@ -525,7 +530,7 @@ class RedisDataStructureFlow(object):
         return len(diff) == 0
 
     @staticmethod
-    def get_backup_instance_by_bklog(info: dict, cluster_type: str) -> Tuple[list, list]:
+    def get_backup_instance_by_bklog(info: dict, cluster_type: str, is_drill: bool) -> Tuple[list, list]:
         # 根据传入的集群和时间获取其backup_instance
         rollback_handler = DataStructureHandler(info["cluster_id"])
         cluster_full_instance_backup = rollback_handler.query_donmain_backup_log(
@@ -565,7 +570,11 @@ class RedisDataStructureFlow(object):
             )
         # tendisplus、rediscluster
         if is_redis_cluster_protocal(cluster_type):
-            missing_ranges = set(range(RedisSlotNum.MIN_SLOT, RedisSlotNum.TOTAL_SLOT)) - set(missing_ranges)
+            missing_ranges = (
+                set(range(RedisSlotNum.MIN_SLOT, RedisSlotNum.TOTAL_SLOT)) - set(missing_ranges)
+                if not is_drill
+                else []
+            )  # 演练场景下当作单实例对待
 
         # 单实例
         if cluster_type in [ClusterType.TendisRedisInstance]:
@@ -702,16 +711,15 @@ class RedisDataStructureFlow(object):
 
     def _setup_cluster_meet(self, cluster_type, act_kwargs, cluster_dst_instance, info, redis_pipeline):
         """Setup cluster meet relationship for tendisplus"""
-        if is_redis_cluster_protocal(cluster_type):
-            logger.info("cluster_type is:{} need tendis cluster relation".format(cluster_type))
-            act_kwargs.cluster["all_instance"] = cluster_dst_instance
-            act_kwargs.get_redis_payload_func = RedisActPayload.rollback_clustermeet_payload.__name__
-            act_kwargs.exec_ip = info["redis"][0]["ip"]
-            redis_pipeline.add_act(
-                act_name=_("建立meet关系"),
-                act_component_code=ExecuteDBActuatorScriptComponent.code,
-                kwargs=asdict(act_kwargs),
-            )
+        logger.info("cluster_type is:{} need tendis cluster relation".format(cluster_type))
+        act_kwargs.cluster["all_instance"] = cluster_dst_instance
+        act_kwargs.get_redis_payload_func = RedisActPayload.rollback_clustermeet_payload.__name__
+        act_kwargs.exec_ip = info["redis"][0]["ip"]
+        redis_pipeline.add_act(
+            act_name=_("建立meet关系"),
+            act_component_code=ExecuteDBActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
 
     def _deploy_proxy_instance(
         self, cluster_type, act_kwargs, info, redis_instance_set, node_pairs, cluster_dst_instance, redis_pipeline
@@ -758,16 +766,15 @@ class RedisDataStructureFlow(object):
 
     def _check_cluster_meet(self, cluster_type, act_kwargs, cluster_dst_instance, info, redis_pipeline):
         """Check cluster meet relationship for tendisplus"""
-        if is_redis_cluster_protocal(cluster_type):
-            logger.info("cluster_type is:{}  cluster  meet and check finish relation".format(cluster_type))
-            act_kwargs.cluster["all_instance"] = cluster_dst_instance
-            act_kwargs.get_redis_payload_func = RedisActPayload.clustermeet_check_payload.__name__
-            act_kwargs.exec_ip = info["redis"][0]["ip"]
-            redis_pipeline.add_act(
-                act_name=_("meet建立集群关系并检查集群状态"),
-                act_component_code=ExecuteDBActuatorScriptComponent.code,
-                kwargs=asdict(act_kwargs),
-            )
+        logger.info("cluster_type is:{}  cluster  meet and check finish relation".format(cluster_type))
+        act_kwargs.cluster["all_instance"] = cluster_dst_instance
+        act_kwargs.get_redis_payload_func = RedisActPayload.clustermeet_check_payload.__name__
+        act_kwargs.exec_ip = info["redis"][0]["ip"]
+        redis_pipeline.add_act(
+            act_name=_("meet建立集群关系并检查集群状态"),
+            act_component_code=ExecuteDBActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
 
     def cal_twemproxy_serveres(self, name, redis_instance_set, node_pairs) -> list:
         """
