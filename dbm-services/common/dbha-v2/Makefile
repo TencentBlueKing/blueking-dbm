@@ -50,7 +50,22 @@ PROTO_FILES = $(wildcard $(PROTO_DIR)/*.proto)
 # generate go code files
 GO_GEN_FILES=$(PROTO_FILES:$(PROTO_DIR)/%.proto=$(GEN_DIR)/%.pb.go)
 
-.PHONY: all proto admin analysis receiver clean format
+# services list
+SERVICES := admin analysis receiver probe
+
+# define common go build command
+define GO_BUILD
+	@mkdir -p $(BUILD_DIR)
+	CGO_ENABLED=0 GOOS=$(GO_OS) GOARCH=amd64 go build -ldflags=$(BUILD_FLAG) \
+				-gcflags="all=-trimpath=$(PWD)" -asmflags="all=-trimpath=$(PWD)" \
+				-o $(BUILD_DIR)/$(1) cmd/$(1)/main.go
+endef
+
+.PHONY: all proto $(SERVICES) clean format test package help
+
+# package
+PKG_DIR   = $(BUILD_DIR)/$(PROJECT)
+PKG_NAME  = $(PROJECT).tar.gz
 
 # build target
 
@@ -60,24 +75,16 @@ proto: $(GO_GEN_FILES)
 	@goimports -w .
 
 admin:
-	@mkdir -p $(BUILD_DIR)
-	CGO_ENABLED=0 GOOS=${GO_OS} GOARCH=amd64 go build -ldflags=$(BUILD_FLAG) -gcflags="all=-trimpath=$(PWD)" \
-				-asmflags="all=-trimpath=$(PWD)" -o $(BUILD_DIR)/$@ cmd/admin/main.go
+	$(call GO_BUILD,$@)
 
 analysis:
-	@mkdir -p $(BUILD_DIR)
-	CGO_ENABLED=0 GOOS=${GO_OS} GOARCH=amd64 go build -ldflags=$(BUILD_FLAG) -gcflags="all=-trimpath=$(PWD)" \
-				-asmflags="all=-trimpath=$(PWD)" -o $(BUILD_DIR)/$@ cmd/analysis/main.go
+	$(call GO_BUILD,$@)
 
 receiver:
-	@mkdir -p $(BUILD_DIR)
-	CGO_ENABLED=0 GOOS=${GO_OS} GOARCH=amd64 go build -ldflags=$(BUILD_FLAG) -gcflags="all=-trimpath=$(PWD)" \
-				-asmflags="all=-trimpath=$(PWD)" -o $(BUILD_DIR)/$@ cmd/receiver/main.go
+	$(call GO_BUILD,$@)
 
 probe:
-	@mkdir -p $(BUILD_DIR)
-	CGO_ENABLED=0 GOOS=${GO_OS} GOARCH=amd64 go build -ldflags=$(BUILD_FLAG) -gcflags="all=-trimpath=$(PWD)" \
-				-asmflags="all=-trimpath=$(PWD)" -o $(BUILD_DIR)/$@ cmd/probe/main.go
+	$(call GO_BUILD,$@)
 
 toolkits: cluster
 
@@ -95,6 +102,39 @@ $(GEN_DIR)/%.pb.go: $(PROTO_DIR)/%.proto
 format:
 	@goimports -w . && find . -name go.mod -execdir go mod tidy \;
 
+# run tests
+test:
+	go test -v -race -cover ./...
+
+# build and package
+package: $(SERVICES) toolkits
+	@echo "Packaging $(PKG_NAME)..."
+	@rm -rf $(PKG_DIR)
+	@mkdir -p $(PKG_DIR)/etc $(PKG_DIR)/logs $(PKG_DIR)/pids $(PKG_DIR)/toolkits
+	@cp $(addprefix $(BUILD_DIR)/,$(SERVICES)) $(PKG_DIR)/
+	@cp $(BUILD_DIR)/cluster $(PKG_DIR)/toolkits/
+	@-cp etc/*.yaml $(PKG_DIR)/etc/ 2>/dev/null || true
+	@cd $(BUILD_DIR) && tar -czvf $(PKG_NAME) $(PROJECT)
+	@rm -rf $(PKG_DIR)
+	@echo "Package created: $(BUILD_DIR)/$(PKG_NAME)"
+
 clean:
 	rm -rf $(GEN_DIR)/*.go
 	rm -rf $(BUILD_DIR)/*
+
+help:
+	@echo "Usage: make [target]"
+	@echo ""
+	@echo "Targets:"
+	@echo "  all        - Build all services and toolkits (default)"
+	@echo "  proto      - Generate protobuf files"
+	@echo "  admin      - Build admin service"
+	@echo "  analysis   - Build analysis service"
+	@echo "  receiver   - Build receiver service"
+	@echo "  probe      - Build probe service"
+	@echo "  toolkits   - Build toolkit binaries"
+	@echo "  package    - Create release package ($(PKG_NAME))"
+	@echo "  format     - Format code and tidy modules"
+	@echo "  test       - Run tests"
+	@echo "  clean      - Clean build artifacts"
+	@echo "  help       - Show this help message"
