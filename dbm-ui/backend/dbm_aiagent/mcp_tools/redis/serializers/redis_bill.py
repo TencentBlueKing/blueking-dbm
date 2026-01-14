@@ -47,10 +47,14 @@ class SubmitBillRedisFlushDBInputSerializer(SubmitBillRedisBaseInputSerializer):
 
 class SubmitBillRedisExtractKeyInputSerializer(SubmitBillRedisBaseInputSerializer):
     black_regex = serializers.CharField(
-        help_text=_("需要排除的key正则，如果是前缀格式为^xxx, 如果是后缀格式为xxx$, 如果要匹配所有是*，如果排除具体key,则是^xxx$。多个正则之间以'\n'换行符连接"), default=""
+        help_text=_("需要排除的key正则，如果是前缀格式为^xxx, 如果是后缀格式为xxx$, 如果要匹配所有是*，如果排除具体key,则是^xxx$。多个正则之间以'\n'换行符连接"),
+        default="",
+        allow_blank=True,
     )
     white_regex = serializers.CharField(
-        help_text=_("需要匹配的key正则，如果是前缀格式为^xxx, 如果是后缀格式为xxx$, 如果要匹配所有是*，如果匹配具体key,则是^xxx$。多个正则之间以'\n'换行符连接"), default=""
+        help_text=_("需要匹配的key正则，如果是前缀格式为^xxx, 如果是后缀格式为xxx$, 如果要匹配所有是*，如果匹配具体key,则是^xxx$。多个正则之间以'\n'换行符连接"),
+        default="",
+        allow_blank=True,
     )
 
 
