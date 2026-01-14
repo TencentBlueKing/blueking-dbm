@@ -156,7 +156,7 @@
 
   const tagInputPasteFn = (value: string) => value.split(batchSplitRegex).map((item) => ({ id: item }));
 
-  const disabledMethod = () => (!props.clusterId ? t('请先选择集群') : false);
+  const disabledMethod = () => (!props.clusterId ? t('请先输入合法的集群域名') : false);
 
   const handleBatchEditShow = () => {
     isShowBatchEdit.value = true;
