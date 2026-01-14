@@ -169,6 +169,7 @@ export enum TicketTypes {
   MONGODB_AUTHORIZE_RULES = 'MONGODB_AUTHORIZE_RULES', // MongoDB 集群授权
   MONGODB_BACKUP = 'MONGODB_BACKUP', // mongo 库表备份
   MONGODB_CUTOFF = 'MONGODB_CUTOFF', // mongo 整机替换, 拆分为两个单据，暂时保留以查看历史单据
+  MONGODB_DATA_EXPORT = 'MONGODB_DATA_EXPORT', // mongo 数据导出
   MONGODB_DESTROY = 'MONGODB_DESTROY', // MongoDB 集群删除
   MONGODB_DISABLE = 'MONGODB_DISABLE', // mongodb禁用
   MONGODB_ENABLE = 'MONGODB_ENABLE', // MongoDB 集群启用
