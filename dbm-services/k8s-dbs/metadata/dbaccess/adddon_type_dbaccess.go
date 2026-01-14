@@ -43,7 +43,7 @@ type AddonTypeDbAccessImpl struct {
 func (a *AddonTypeDbAccessImpl) FindByCategoryID(id uint64) ([]*models.AddonTypeModel, error) {
 	var typeModels []*models.AddonTypeModel
 	if err := a.db.
-		Where("category_id = ?", id).Find(&typeModels).Error; err != nil {
+		Where("category_id = ?", id).Where("active = 1").Find(&typeModels).Error; err != nil {
 		return nil, errors.Wrapf(err, "failed to find addon type with category id %d", id)
 	}
 	return typeModels, nil
