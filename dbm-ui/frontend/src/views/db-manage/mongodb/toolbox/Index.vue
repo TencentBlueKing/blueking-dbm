@@ -130,6 +130,12 @@
           name: t('清档'),
           parentId: 'mongo_data',
         },
+        {
+          dbConsoleValue: 'mongodb.toolbox.dataExport',
+          id: TicketTypes.MONGODB_DATA_EXPORT,
+          name: t('数据导出'),
+          parentId: 'mongo_data',
+        },
       ],
       icon: 'db-icon-data',
       id: 'mongo_data',
