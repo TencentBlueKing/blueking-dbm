@@ -38,7 +38,7 @@ class GetSourceAccessMcpToolsViewSet(McpToolsViewSet):
         response_slz=GetSourceAccessOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMAMcpTools.COMMON_TOOL],
-        name_prefix="common-tool",
+        name_prefix="common_tool",
     )
     def get_cluster_source_access(self, request, *args, **kwargs):
         bk_biz_id = self.get_param("bk_biz_id")
