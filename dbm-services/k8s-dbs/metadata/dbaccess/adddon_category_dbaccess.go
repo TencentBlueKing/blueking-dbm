@@ -21,6 +21,7 @@ package dbaccess
 
 import (
 	models "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
@@ -36,6 +37,22 @@ type AddonCategoryDbAccess interface {
 // AddonCategoryDbAccessImpl AddonCategoryDbAccess 的具体实现
 type AddonCategoryDbAccessImpl struct {
 	db *gorm.DB
+}
+
+var (
+	addonCategoryInstance AddonCategoryDbAccess
+	addonCategoryOnce     sync.Once
+)
+
+// GetAddonCategoryDbAccess 获取 AddonCategoryDbAccess 单例实例
+func GetAddonCategoryDbAccess(db *gorm.DB) AddonCategoryDbAccess {
+	addonCategoryOnce.Do(func() {
+		addonCategoryInstance = &AddonCategoryDbAccessImpl{db: db}
+	})
+	if addonCategoryInstance == nil {
+		panic("AddonCategoryDbAccess instance is nil after initialization")
+	}
+	return addonCategoryInstance
 }
 
 // FindByID 按照 ID 查找接口实现
@@ -66,9 +83,4 @@ func (a *AddonCategoryDbAccessImpl) Create(model *models.AddonCategoryModel) (
 		return nil, errors.Wrapf(err, "failed to create addon category with model %+v", model)
 	}
 	return model, nil
-}
-
-// NewAddonCategoryDbAccess 创建 AddonCategoryDbAccess 接口实现实例
-func NewAddonCategoryDbAccess(db *gorm.DB) AddonCategoryDbAccess {
-	return &AddonCategoryDbAccessImpl{db: db}
 }

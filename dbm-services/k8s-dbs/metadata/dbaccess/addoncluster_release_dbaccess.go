@@ -23,6 +23,7 @@ import (
 	commentity "k8s-dbs/common/entity"
 	metaentity "k8s-dbs/metadata/entity"
 	metamodel "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -42,6 +43,22 @@ type AddonClusterReleaseDbAccess interface {
 // AddonClusterReleaseDbAccessImpl AddonClusterReleaseDbAccess 的具体实现
 type AddonClusterReleaseDbAccessImpl struct {
 	db *gorm.DB
+}
+
+var (
+	clusterReleaseInstance AddonClusterReleaseDbAccess
+	clusterReleaseOnce     sync.Once
+)
+
+// GetAcReleaseDbAccess 获取 AddonClusterReleaseDbAccess 单例实例
+func GetAcReleaseDbAccess(db *gorm.DB) AddonClusterReleaseDbAccess {
+	clusterReleaseOnce.Do(func() {
+		clusterReleaseInstance = &AddonClusterReleaseDbAccessImpl{db: db}
+	})
+	if clusterReleaseInstance == nil {
+		panic("AddonClusterReleaseDbAccess instance is nil after initialization")
+	}
+	return clusterReleaseInstance
 }
 
 // Create 创建 AddonCluster Release 元数据接口实现
@@ -109,9 +126,4 @@ func (a *AddonClusterReleaseDbAccessImpl) ListByPage(pagination commentity.Pagin
 		return nil, 0, errors.Wrapf(err, "failed to list addon cluster release with pagination %+v", pagination)
 	}
 	return releaseModels, int64(len(releaseModels)), nil
-}
-
-// NewAddonClusterReleaseDbAccess 创建 K8sCrdStorageAddonDbAccess 接口实现实例
-func NewAddonClusterReleaseDbAccess(db *gorm.DB) AddonClusterReleaseDbAccess {
-	return &AddonClusterReleaseDbAccessImpl{db: db}
 }

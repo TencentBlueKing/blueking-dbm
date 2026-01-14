@@ -81,7 +81,7 @@ func (suite *AddonClusterHelmRepoProviderTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dbAccess := dbaccess.NewAddonClusterHelmRepoDbAccess(db)
+	dbAccess := dbaccess.GetAcHelmRepoDbAccess(db)
 	suite.addonClusterHelmRepoProvider = provider.NewAddonClusterHelmRepoProvider(dbAccess)
 }
 

@@ -92,7 +92,7 @@ func (suite *AddonTopologyDbAccessTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dbAccess := dbaccess.NewAddonTopologyDbAccess(db)
+	dbAccess := dbaccess.GetAddonTopologyDbAccess(db)
 	suite.dbAccess = dbAccess
 }
 

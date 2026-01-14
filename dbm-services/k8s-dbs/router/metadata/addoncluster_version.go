@@ -32,7 +32,7 @@ import (
 // BuildAddonClusterVersionRouter addon cluster version 管理路由构建
 func BuildAddonClusterVersionRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group(BasePath)
-	metaDbAccess := metadbaccess.NewAddonClusterVersionDbAccess(db)
+	metaDbAccess := metadbaccess.GetAcVersionDbAccess(db)
 
 	metaProvider := metaprovider.NewAddonClusterVersionProvider(metaDbAccess)
 	metaController := metacontroller.NewAddonClusterVersionController(metaProvider)

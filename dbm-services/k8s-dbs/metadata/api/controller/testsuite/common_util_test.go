@@ -69,7 +69,7 @@ func createMoreAddonCategory(mySQLContainer *testhelper.MySQLContainerWrapper, c
 	for i := 0; i < count; i++ {
 		opsTime, _ := time.Parse(time.DateTime, "2025-01-01 12:00:00")
 		db, _ := testhelper.InitDBConnection(mySQLContainer.ConnStr)
-		dbAccess := dbaccess.NewAddonCategoryDbAccess(db)
+		dbAccess := dbaccess.GetAddonCategoryDbAccess(db)
 		category := &model.AddonCategoryModel{
 			CategoryName:  "category_name_01",
 			CategoryAlias: "category_alias_01",
@@ -92,7 +92,7 @@ func createMoreAddonType(mySQLContainer *testhelper.MySQLContainerWrapper, count
 	for i := 0; i < count; i++ {
 		opsTime, _ := time.Parse(time.DateTime, "2025-01-01 12:00:00")
 		db, _ := testhelper.InitDBConnection(mySQLContainer.ConnStr)
-		dbAccess := dbaccess.NewAddonTypeDbAccess(db)
+		dbAccess := dbaccess.GetAddonTypeDbAccess(db)
 		addonType := &model.AddonTypeModel{
 			CategoryID:  uint64(1),
 			TypeName:    "addon_type_name_01",
@@ -116,7 +116,7 @@ func createMoreAddonHelmRepo(mySQLContainer *testhelper.MySQLContainerWrapper, c
 	for i := 0; i < count; i++ {
 		opsTime, _ := time.Parse(time.DateTime, "2025-01-01 12:00:00")
 		db, _ := testhelper.InitDBConnection(mySQLContainer.ConnStr)
-		dbAccess := dbaccess.NewAddonHelmRepoDbAccess(db)
+		dbAccess := dbaccess.GetAddonHelmRepoDbAccess(db)
 		addonHelmRepo := &model.AddonHelmRepoModel{
 			RepoName:       "repo_name_01",
 			RepoRepository: "repo_repository_01",
@@ -141,7 +141,7 @@ func createMoreAddon(mySQLContainer *testhelper.MySQLContainerWrapper, count int
 	for i := 0; i < count; i++ {
 		opsTime, _ := time.Parse(time.DateTime, "2025-01-01 12:00:00")
 		db, _ := testhelper.InitDBConnection(mySQLContainer.ConnStr)
-		dbAccess := dbaccess.NewK8sCrdStorageAddonDbAccess(db)
+		dbAccess := dbaccess.GetStorageAddonDbAccess(db)
 		addonRequest := &model.K8sCrdStorageAddonModel{
 			AddonName:            "addon_name_01",
 			AddonCategory:        "addon_category_01",
@@ -171,7 +171,7 @@ func createMoreAddonTopology(mySQLContainer *testhelper.MySQLContainerWrapper, c
 	for i := 0; i < count; i++ {
 		opsTime, _ := time.Parse(time.DateTime, "2025-01-01 12:00:00")
 		db, _ := testhelper.InitDBConnection(mySQLContainer.ConnStr)
-		dbAccess := dbaccess.NewAddonTopologyDbAccess(db)
+		dbAccess := dbaccess.GetAddonTopologyDbAccess(db)
 		addonTopology := &model.AddonTopologyModel{
 			AddonName:     "addon_name_01",
 			AddonCategory: "addon_category_01",
@@ -201,7 +201,7 @@ func createMoreAddonClusterHelmRepo(mySQLContainer *testhelper.MySQLContainerWra
 	for i := 0; i < count; i++ {
 		opsTime, _ := time.Parse(time.DateTime, "2025-01-01 12:00:00")
 		db, _ := testhelper.InitDBConnection(mySQLContainer.ConnStr)
-		dbAccess := dbaccess.NewAddonClusterHelmRepoDbAccess(db)
+		dbAccess := dbaccess.GetAcHelmRepoDbAccess(db)
 		addonClusterHelmRepo := &model.AddonClusterHelmRepoModel{
 			RepoName:       "repo_name_01",
 			RepoRepository: "repo_repository_01",
@@ -226,7 +226,7 @@ func createMoreAddonClusterRelease(mySQLContainer *testhelper.MySQLContainerWrap
 	for i := 0; i < count; i++ {
 		opsTime, _ := time.Parse(time.DateTime, "2025-01-01 12:00:00")
 		db, _ := testhelper.InitDBConnection(mySQLContainer.ConnStr)
-		dbAccess := dbaccess.NewAddonClusterReleaseDbAccess(db)
+		dbAccess := dbaccess.GetAcReleaseDbAccess(db)
 		addonClusterRelease := &model.AddonClusterReleaseModel{
 			RepoName:           "repo_name_01",
 			RepoRepository:     "repo_repository_01",
@@ -253,7 +253,7 @@ func createMoreAddonClusterVersion(mySQLContainer *testhelper.MySQLContainerWrap
 	for i := 0; i < count; i++ {
 		opsTime, _ := time.Parse(time.DateTime, "2025-01-01 12:00:00")
 		db, _ := testhelper.InitDBConnection(mySQLContainer.ConnStr)
-		dbAccess := dbaccess.NewAddonClusterVersionDbAccess(db)
+		dbAccess := dbaccess.GetAcVersionDbAccess(db)
 		addonClusterVersion := &model.AddonClusterVersionModel{
 			AddonID:          uint64(1),
 			Version:          "1.0.0",
@@ -277,7 +277,7 @@ func createMoreComponent(mySQLContainer *testhelper.MySQLContainerWrapper, count
 	for i := 0; i < count; i++ {
 		opsTime, _ := time.Parse(time.DateTime, "2025-01-01 12:00:00")
 		db, _ := testhelper.InitDBConnection(mySQLContainer.ConnStr)
-		dbAccess := dbaccess.NewK8sCrdComponentAccess(db)
+		dbAccess := dbaccess.GetComponentDbAccess(db)
 		component := &model.K8sCrdComponentModel{
 			ComponentName: "test1",
 			CrdClusterID:  1,
@@ -300,7 +300,7 @@ func createMoreOpsRequest(mySQLContainer *testhelper.MySQLContainerWrapper, coun
 	for i := 0; i < count; i++ {
 		opsTime, _ := time.Parse(time.DateTime, "2025-01-01 12:00:00")
 		db, _ := testhelper.InitDBConnection(mySQLContainer.ConnStr)
-		dbAccess := dbaccess.NewK8sCrdOpsRequestDbAccess(db)
+		dbAccess := dbaccess.GetOpsRequestDbAccess(db)
 		opsRequest := &model.K8sCrdOpsRequestModel{
 			CrdClusterID:       1,
 			K8sClusterConfigID: 1,
@@ -327,8 +327,8 @@ func createMoreOpsRequest(mySQLContainer *testhelper.MySQLContainerWrapper, coun
 func createMoreClusterOperation(mySQLContainer *testhelper.MySQLContainerWrapper, count int) {
 	for i := 0; i < count; i++ {
 		db, _ := testhelper.InitDBConnection(mySQLContainer.ConnStr)
-		clusterOpDbAccess := dbaccess.NewClusterOperationDbAccess(db)
-		opDefDbAccess := dbaccess.NewOperationDefinitionDbAccess(db)
+		clusterOpDbAccess := dbaccess.GetClusterOperationDbAccess(db)
+		opDefDbAccess := dbaccess.GetOperationDefinitionDbAccess(db)
 		opTime, _ := time.Parse(time.DateTime, "2025-01-01 12:00:00")
 
 		operationDefinition := &model.OperationDefinitionModel{
@@ -367,7 +367,7 @@ func createMoreClusterOperation(mySQLContainer *testhelper.MySQLContainerWrapper
 func createMoreClusterRequest(mySQLContainer *testhelper.MySQLContainerWrapper, count int) {
 	for i := 0; i < count; i++ {
 		db, _ := testhelper.InitDBConnection(mySQLContainer.ConnStr)
-		dbAccess := dbaccess.NewClusterRequestRecordDbAccess(db)
+		dbAccess := dbaccess.GetClusterRequestDbAccess(db)
 		opTime, _ := time.Parse(time.DateTime, "2025-01-01 12:00:00")
 
 		clusterRequest := &model.ClusterRequestRecordModel{
@@ -395,9 +395,9 @@ func createMoreClusterRequest(mySQLContainer *testhelper.MySQLContainerWrapper, 
 func createMoreCluster(mySQLContainer *testhelper.MySQLContainerWrapper, count int) {
 	for i := 0; i < count; i++ {
 		db, _ := testhelper.InitDBConnection(mySQLContainer.ConnStr)
-		clusterDbAccess := dbaccess.NewCrdClusterDbAccess(db)
-		addonDbAccess := dbaccess.NewK8sCrdStorageAddonDbAccess(db)
-		k8sClusterConfigDbAccess := dbaccess.NewK8sClusterConfigDbAccess(db)
+		clusterDbAccess := dbaccess.GetClusterDbAccess(db)
+		addonDbAccess := dbaccess.GetStorageAddonDbAccess(db)
+		k8sClusterConfigDbAccess := dbaccess.GetK8sClusterConfigDbAccess(db)
 		opTime, _ := time.Parse(time.DateTime, "2025-01-01 12:00:00")
 
 		k8sClusterConfig := &model.K8sClusterConfigModel{
@@ -474,8 +474,8 @@ func createMoreCluster(mySQLContainer *testhelper.MySQLContainerWrapper, count i
 func createMoreComponentOperation(mySQLContainer *testhelper.MySQLContainerWrapper, count int) {
 	for i := 0; i < count; i++ {
 		db, _ := testhelper.InitDBConnection(mySQLContainer.ConnStr)
-		componentOpDbAccess := dbaccess.NewComponentOperationDbAccess(db)
-		opDefDbAccess := dbaccess.NewOperationDefinitionDbAccess(db)
+		componentOpDbAccess := dbaccess.GetComponentOperationDbAccess(db)
+		opDefDbAccess := dbaccess.GetOperationDefinitionDbAccess(db)
 		opTime, _ := time.Parse(time.DateTime, "2025-01-01 12:00:00")
 
 		operationDefinition := &model.OperationDefinitionModel{
@@ -519,7 +519,7 @@ func createMoreOperationDefinition(mySQLContainer *testhelper.MySQLContainerWrap
 	for i := 0; i < count; i++ {
 		opTime, _ := time.Parse(time.DateTime, "2025-01-01 12:00:00")
 		db, _ := testhelper.InitDBConnection(mySQLContainer.ConnStr)
-		dbAccess := dbaccess.NewOperationDefinitionDbAccess(db)
+		dbAccess := dbaccess.GetOperationDefinitionDbAccess(db)
 
 		operationDefinition := &model.OperationDefinitionModel{
 			OperationName:   "test-operation",
@@ -543,7 +543,7 @@ func createMoreK8sClusterAddons(mySQLContainer *testhelper.MySQLContainerWrapper
 	for i := 0; i < count; i++ {
 		opsTime, _ := time.Parse(time.DateTime, "2025-01-01 12:00:00")
 		db, _ := testhelper.InitDBConnection(mySQLContainer.ConnStr)
-		saDbAccess := dbaccess.NewK8sCrdStorageAddonDbAccess(db)
+		saDbAccess := dbaccess.GetStorageAddonDbAccess(db)
 		storageAddon := &model.K8sCrdStorageAddonModel{
 			AddonName:            "test-addon",
 			AddonVersion:         "1.0.0",
@@ -567,7 +567,7 @@ func createMoreK8sClusterAddons(mySQLContainer *testhelper.MySQLContainerWrapper
 			log.Fatal(err)
 		}
 
-		kcaDbAccess := dbaccess.NewK8sClusterAddonsDbAccess(db)
+		kcaDbAccess := dbaccess.GetK8sClusterAddonsDbAccess(db)
 		clusterAddon := &model.K8sClusterAddonsModel{
 			AddonID:        addedAddon.ID,
 			K8sClusterName: "test-cluster",
@@ -585,7 +585,7 @@ func createMoreK8sClusterAddons(mySQLContainer *testhelper.MySQLContainerWrapper
 
 func createMoreK8sClusterConfig(container *testhelper.MySQLContainerWrapper, count int) {
 	db, _ := testhelper.InitDBConnection(container.ConnStr)
-	dbAccess := dbaccess.NewK8sClusterConfigDbAccess(db)
+	dbAccess := dbaccess.GetK8sClusterConfigDbAccess(db)
 
 	for i := 1; i <= count; i++ {
 		config := &model.K8sClusterConfigModel{

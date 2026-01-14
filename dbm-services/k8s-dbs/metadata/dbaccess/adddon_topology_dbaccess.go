@@ -23,6 +23,7 @@ import (
 	commconst "k8s-dbs/common/constant"
 	metaentity "k8s-dbs/metadata/entity"
 	metamodel "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
@@ -39,6 +40,22 @@ type AddonTopologyDbAccess interface {
 // AddonTopologyDbAccessImpl AddonCategoryDbAccess 的具体实现
 type AddonTopologyDbAccessImpl struct {
 	db *gorm.DB
+}
+
+var (
+	topologyInstance AddonTopologyDbAccess
+	topologyOnce     sync.Once
+)
+
+// GetAddonTopologyDbAccess 获取 AddonTopologyDbAccess 单例实例
+func GetAddonTopologyDbAccess(db *gorm.DB) AddonTopologyDbAccess {
+	topologyOnce.Do(func() {
+		topologyInstance = &AddonTopologyDbAccessImpl{db: db}
+	})
+	if topologyInstance == nil {
+		panic("AddonTopologyDbAccess instance is nil after initialization")
+	}
+	return topologyInstance
 }
 
 // FindByParams 按照参数查找
@@ -85,9 +102,4 @@ func (a *AddonTopologyDbAccessImpl) Create(model *metamodel.AddonTopologyModel) 
 		return nil, errors.Wrapf(err, "failed to create addon topology with model %+v", model)
 	}
 	return model, nil
-}
-
-// NewAddonTopologyDbAccess 创建 AddonTopologyDbAccess 接口实现实例
-func NewAddonTopologyDbAccess(db *gorm.DB) AddonTopologyDbAccess {
-	return &AddonTopologyDbAccessImpl{db: db}
 }

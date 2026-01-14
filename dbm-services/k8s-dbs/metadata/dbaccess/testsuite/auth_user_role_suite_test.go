@@ -55,7 +55,7 @@ func (suite *AuthUserRoleDbAccessTestSuite) SetupSuite() {
 	}
 	suite.mySqlContainer = mySqlContainer
 
-	// 先创建bkdata_basic数据库
+	// 先创建 bkdata_basic 数据库
 	db := testhelper.ExecSQL(suite.mySqlContainer.ConnStr, "CREATE DATABASE IF NOT EXISTS bkdata_basic;")
 
 	// 连接到创建好的数据库
@@ -65,8 +65,8 @@ func (suite *AuthUserRoleDbAccessTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 
-	// 初始化dbAccess
-	suite.dbAccess = dbaccess.NewAuthUserRoleDbAccess(db)
+	// 初始化 dbAccess
+	suite.dbAccess = dbaccess.GetAuthUserRoleDbAccess(db)
 }
 
 func (suite *AuthUserRoleDbAccessTestSuite) TearDownSuite() {

@@ -56,7 +56,7 @@ func (suite *ClusterRequestControllerTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dbAccess := dbaccess.NewClusterRequestRecordDbAccess(db)
+	dbAccess := dbaccess.GetClusterRequestDbAccess(db)
 	clusterRequestProvider := provider.NewClusterRequestRecordProvider(dbAccess)
 	clusterRequestController := controller.NewClusterRequestRecordController(clusterRequestProvider)
 	suite.clusterRequestController = clusterRequestController
