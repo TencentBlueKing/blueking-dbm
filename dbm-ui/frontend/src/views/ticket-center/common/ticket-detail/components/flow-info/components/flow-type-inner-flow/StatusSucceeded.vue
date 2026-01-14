@@ -15,6 +15,11 @@
         <!-- prettier-ignore -->
         <MongodbExecScriptDownloadFile :details="(data.details as ComponentProps<typeof MongodbExecScriptDownloadFile>['details'])" />
       </template>
+      <template v-if="ticketDetail.ticket_type === TicketTypes.MONGODB_DATA_EXPORT">
+        <span> ，</span>
+        <!-- prettier-ignore -->
+        <MongodbExportDataDownload :ticket-detail="(ticketDetail as ComponentProps<typeof MongodbExportDataDownload>['ticketDetail'])" />
+      </template>
       <template v-if="ticketDetail.ticket_type === TicketTypes.REDIS_KEYS_EXTRACT">
         <span> ，</span>
         <RedisKeysExtractFile :id="data.flow_obj_id" />
@@ -59,6 +64,7 @@
   import StatusSucceeded from '../flow-type-common/StatusSucceeded.vue';
 
   import MongodbExecScriptDownloadFile from './components/MongodbExecScriptDownloadFile.vue';
+  import MongodbExportDataDownload from './components/MongodbExportDataDownload.vue';
   import MysqlDumpDataDownload from './components/MysqlDumpDataDownload.vue';
   import RedisAnalysisToList from './components/RedisAnalysisToList.vue';
   import RedisKeysExtractFile from './components/RedisKeysExtractFile.vue';
