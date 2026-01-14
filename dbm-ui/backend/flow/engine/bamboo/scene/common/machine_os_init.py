@@ -234,19 +234,28 @@ class ImportResourceInitStepFlow(object):
         __add_host_remark(recycled_hosts, _("检测该业务为独立管控业务"))
 
         # sqlserver机器直接转移到待回收
-        if self.data["ticket_type"] == TicketType.RECYCLE_OLD_HOST and self.data["group"] == DBType.Sqlserver:
-            recycle_hosts.extend(hosts)
-            hosts = []
-        __add_host_remark(recycle_hosts, _("检测主机为Windows机器"))
+        windows_host_switch = SystemSettings.get_setting_value(
+            key=SystemSettingsEnum.WINDOWS_HOST_TO_RECYCLE_SWITCH, default=False
+        )
+        if windows_host_switch:
+            if self.data["ticket_type"] == TicketType.RECYCLE_OLD_HOST and self.data["group"] == DBType.Sqlserver:
+                recycle_hosts.extend(hosts)
+                hosts = []
+            __add_host_remark(recycle_hosts, _("检测主机为Windows机器"))
 
         # 直连区域：存在uwork的主机需要回到故障池，存在裁撤单的主机需要回到待回收池，否则退回资源池
         host_ids = [host["bk_host_id"] for host in hosts if host["bk_cloud_id"] == 0]
-        dissolved_switch = SystemSettings.get_setting_value(key=SystemSettingsEnum.DISSOLVED_SWITCH, default=True)
-        dissolved_hosts = HCMApi.check_host_is_dissolved(host_ids) if dissolved_switch else []
-        uwork_hosts = HCMApi.check_host_has_uwork(host_ids)
+        dissolved_switch = SystemSettings.get_setting_value(
+            key=SystemSettingsEnum.HOST_DISSOLVED_SWITCH, default=False
+        )
+        host_to_fault_switch = SystemSettings.get_setting_value(
+            key=SystemSettingsEnum.HOST_TO_FAULT_SWITCH, default=False
+        )
+        dissolved_hosts = [] if not dissolved_switch else HCMApi.check_host_is_dissolved(host_ids)
+        uwork_hosts = {} if not host_to_fault_switch else HCMApi.check_host_has_uwork(host_ids)
 
         host_ip__host_id_map = {host["ip"]: host["bk_host_id"] for host in hosts if host["bk_cloud_id"] == 0}
-        xwork_hosts = XworkApi.check_xwork_list(host_ip__host_id_map)
+        xwork_hosts = {} if not host_to_fault_switch else XworkApi.check_xwork_list(host_ip__host_id_map)
 
         for host in hosts:
             if host["bk_host_id"] in uwork_hosts.keys():
