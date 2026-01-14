@@ -22,7 +22,9 @@
     <BkMenuGroup
       v-db-console="'platformManage.dbaManage'"
       :name="t('DBA 工具箱')">
-      <BkMenuItem key="AiChat">
+      <BkMenuItem
+        v-if="ENABLE_DBM_AI"
+        key="AiChat">
         <template #icon>
           <DbIcon type="mysql" />
         </template>
@@ -135,7 +137,7 @@
 
   import { getAppShareList } from '@services/source/bkVersion';
 
-  import { useFunController } from '@stores';
+  import { useFunController, useSystemEnviron } from '@stores';
 
   import { useActiveKey } from './hooks/useActiveKey';
 
@@ -144,6 +146,8 @@
   const router = useRouter();
 
   const funControllerStore = useFunController();
+  const systemEnvironStore = useSystemEnviron();
+  const { ENABLE_DBM_AI } = systemEnvironStore.urls;
 
   const menuRef = ref<InstanceType<typeof Menu>>();
 

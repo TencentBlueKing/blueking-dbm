@@ -11,11 +11,17 @@
 </template>
 <script setup lang="ts">
   import urlJoin from 'url-join';
+  import { type ComponentExposed } from 'vue-component-type-helpers';
 
   import AIBlueking from '@blueking/ai-blueking';
 
   interface Props {
     sessionCode?: string;
+  }
+
+  interface Exposes {
+    addNewSession: ComponentExposed<typeof AIBlueking>['addNewSession'];
+    getSessionList: ComponentExposed<typeof AIBlueking>['getSessionList'];
   }
 
   const props = defineProps<Props>();
@@ -40,6 +46,15 @@
     nextTick(() => {
       aiBluekingRef.value?.handleShow();
     });
+  });
+
+  defineExpose<Exposes>({
+    addNewSession: (sessionCode?: string) => {
+      return aiBluekingRef.value!.addNewSession(sessionCode);
+    },
+    getSessionList: () => {
+      return aiBluekingRef.value!.getSessionList();
+    },
   });
 </script>
 <style lang="postcss">

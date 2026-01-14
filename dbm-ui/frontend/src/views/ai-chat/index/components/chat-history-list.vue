@@ -1,6 +1,6 @@
 <template>
   <div
-    v-bk-loading="{ loading: isLoading }"
+    v-bk-loading="{ loading: isSessionListLoading }"
     class="ai-chat-history-box">
     <div class="session-search-box">
       <BkInput
@@ -12,7 +12,7 @@
     </div>
     <div class="session-create-btn">
       <BkButton
-        :loading="isCreating"
+        :loading="isCreatSubmitting"
         style="width: 100%"
         @click="handleCreateSession">
         <DbIcon type="add" />
@@ -26,11 +26,11 @@
         <div class="ai-chat-history-list">
           <ChatSession
             v-for="item in sessionList"
-            :key="item.session_code"
+            :key="item.sessionCode"
             v-model="modelValue"
             :data="item"
-            :selected="Boolean(sessionSelectMap[item.session_code])"
-            @select="() => handleSelect(item.session_code)"
+            :selected="Boolean(sessionSelectMap[item.sessionCode])"
+            @select="() => handleSelect(item.sessionCode)"
             @success="fetchSessionList" />
         </div>
         <BkException
@@ -86,13 +86,25 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
+  import { type ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { batchDeleteSession, createSession, getSession } from '@services/source/ai';
+  import AIBlueking from '@blueking/ai-blueking';
+
+  import { batchDeleteSession } from '@services/source/ai';
 
   import ChatSession from './chat-session.vue';
   import { uuid } from './utils';
+
+  type ISession = ServiceReturnType<ComponentExposed<typeof AIBlueking>['getSessionList']>[number];
+
+  interface Props {
+    addNewSession: ComponentExposed<typeof AIBlueking>['addNewSession'];
+    getSessionList: ComponentExposed<typeof AIBlueking>['getSessionList'];
+  }
+
+  const props = defineProps<Props>();
 
   const modelValue = defineModel<string>('modelValue');
 
@@ -100,8 +112,10 @@
 
   const trueLabel = true;
 
-  const wholeSessionList = ref<ServiceReturnType<typeof getSession>>([]);
-  const sessionList = ref<ServiceReturnType<typeof getSession>>([]);
+  const isSessionListLoading = ref(false);
+  const isCreatSubmitting = ref(false);
+  const wholeSessionList = ref<ISession[]>([]);
+  const sessionList = ref<ISession[]>([]);
   const sessionSelectMap = ref<Record<string, boolean>>({});
   const searchKeyword = ref<string>('');
 
@@ -115,7 +129,7 @@
     let indeterminate = false;
     let modelValue = true;
     for (const item of sessionList.value) {
-      if (sessionSelectMap.value[item.session_code]) {
+      if (sessionSelectMap.value[item.sessionCode]) {
         indeterminate = true;
       } else {
         modelValue = false;
@@ -129,42 +143,39 @@
 
   const selectedSessionCount = computed(() => Object.keys(sessionSelectMap.value).length);
 
-  const { loading: isLoading, run: fetchSessionList } = useRequest(getSession, {
-    onSuccess: (data) => {
-      wholeSessionList.value = _.orderBy(
-        _.filter(data, (item) => item.session_name !== 'temporary_session').map((item) => item),
-        ['updated_at'],
-        ['desc'],
-      );
-
-      handleSearch(searchKeyword.value);
-
-      nextTick(() => {
-        if (
-          (!modelValue.value ||
-            (modelValue.value && !wholeSessionList.value.some((item) => item.session_code === modelValue.value))) &&
-          wholeSessionList.value.length > 0
-        ) {
-          modelValue.value = wholeSessionList.value[0].session_code;
-        }
-      });
-    },
-  });
-
-  const { loading: isCreating, runAsync: runCreateSession } = useRequest(createSession, {
-    manual: true,
-    onSuccess: (data) => {
-      modelValue.value = data.session_code;
-      fetchSessionList();
-    },
-  });
-
   const { loading: isBatchDeleting, runAsync: runBatchDeleteSession } = useRequest(batchDeleteSession, {
     manual: true,
     onSuccess: () => {
       fetchSessionList();
     },
   });
+
+  const fetchSessionList = () => {
+    isSessionListLoading.value = true;
+    props
+      .getSessionList()
+      .then((data) => {
+        wholeSessionList.value = _.orderBy(
+          _.filter(data, (item) => item.sessionName !== 'temporary_session'),
+          ['updated_at'],
+        );
+
+        handleSearch(searchKeyword.value);
+
+        nextTick(() => {
+          if (
+            (!modelValue.value ||
+              (modelValue.value && !wholeSessionList.value.some((item) => item.sessionCode === modelValue.value))) &&
+            wholeSessionList.value.length > 0
+          ) {
+            modelValue.value = wholeSessionList.value[0].sessionCode;
+          }
+        });
+      })
+      .finally(() => {
+        isSessionListLoading.value = false;
+      });
+  };
 
   const handleSearch = _.throttle((value: string) => {
     searchKeyword.value = value;
@@ -173,17 +184,21 @@
       return;
     }
     sessionList.value = _.filter(wholeSessionList.value, (item) =>
-      item.session_name.toLowerCase().includes(value.toLowerCase()),
+      item.sessionName.toLowerCase().includes(value.toLowerCase()),
     );
   }, 300);
 
   const handleCreateSession = () => {
-    runCreateSession({
-      is_temporary: false,
-      session_code: uuid(),
-      session_name: t('新会话'),
-      session_property: {},
-    });
+    isCreatSubmitting.value = true;
+    props
+      .addNewSession(uuid())
+      .then((data) => {
+        modelValue.value = data.sessionCode;
+        fetchSessionList();
+      })
+      .finally(() => {
+        isCreatSubmitting.value = false;
+      });
   };
 
   const handleSelect = (sessionCode: string) => {
@@ -195,11 +210,12 @@
     }
     sessionSelectMap.value = selectMap;
   };
+
   const handleSelectAll = () => {
     if (!sessionListSelectInfo.value.modelValue) {
       const selectMap: Record<string, boolean> = {};
       for (const item of sessionList.value) {
-        selectMap[item.session_code] = true;
+        selectMap[item.sessionCode] = true;
       }
       sessionSelectMap.value = selectMap;
     } else {
@@ -221,6 +237,12 @@
     searchKeyword.value = '';
     handleSearch(searchKeyword.value);
   };
+
+  onMounted(() => {
+    setTimeout(() => {
+      fetchSessionList();
+    });
+  });
 </script>
 <style lang="postcss">
   .ai-chat-history-box {
