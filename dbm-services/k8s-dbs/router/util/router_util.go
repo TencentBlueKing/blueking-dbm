@@ -34,12 +34,12 @@ import (
 
 // BuildClusterMetaProvider 构建 K8sCrdClusterProviderImpl
 func BuildClusterMetaProvider(db *gorm.DB) *metaprovider.K8sCrdClusterProviderImpl {
-	clusterMetaDbAccess := metadbaccess.NewCrdClusterDbAccess(db)
-	addonMetaDbAccess := metadbaccess.NewK8sCrdStorageAddonDbAccess(db)
-	clusterTagDbAccess := metadbaccess.NewK8sCrdClusterTagDbAccess(db)
-	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
-	clusterTopologyDbAccess := metadbaccess.NewAddonTopologyDbAccess(db)
-	addonTypeDbAccess := metadbaccess.NewAddonTypeDbAccess(db)
+	clusterMetaDbAccess := metadbaccess.GetClusterDbAccess(db)
+	addonMetaDbAccess := metadbaccess.GetStorageAddonDbAccess(db)
+	clusterTagDbAccess := metadbaccess.GetClusterTagDbAccess(db)
+	k8sClusterConfigDbAccess := metadbaccess.GetK8sClusterConfigDbAccess(db)
+	clusterTopologyDbAccess := metadbaccess.GetAddonTopologyDbAccess(db)
+	addonTypeDbAccess := metadbaccess.GetAddonTypeDbAccess(db)
 
 	clusterMetaProviderBuilder := metaprovider.K8sCrdClusterProviderBuilder{}
 	clusterMetaProvider, err := metaprovider.NewK8sCrdClusterProvider(
@@ -59,14 +59,14 @@ func BuildClusterMetaProvider(db *gorm.DB) *metaprovider.K8sCrdClusterProviderIm
 
 // BuildComponentProvider 构建 ComponentController
 func BuildComponentProvider(db *gorm.DB) *coreprovider.ComponentProvider {
-	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
+	k8sClusterConfigDbAccess := metadbaccess.GetK8sClusterConfigDbAccess(db)
 	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
 
-	clusterMetaDbAccess := metadbaccess.NewCrdClusterDbAccess(db)
-	addonMetaDbAccess := metadbaccess.NewK8sCrdStorageAddonDbAccess(db)
-	clusterTagDbAccess := metadbaccess.NewK8sCrdClusterTagDbAccess(db)
-	clusterTopologyDbAccess := metadbaccess.NewAddonTopologyDbAccess(db)
-	addonTypeDbAccess := metadbaccess.NewAddonTypeDbAccess(db)
+	clusterMetaDbAccess := metadbaccess.GetClusterDbAccess(db)
+	addonMetaDbAccess := metadbaccess.GetStorageAddonDbAccess(db)
+	clusterTagDbAccess := metadbaccess.GetClusterTagDbAccess(db)
+	clusterTopologyDbAccess := metadbaccess.GetAddonTopologyDbAccess(db)
+	addonTypeDbAccess := metadbaccess.GetAddonTypeDbAccess(db)
 
 	clusterProviderBuilder := metaprovider.K8sCrdClusterProviderBuilder{}
 	clusterMetaProvider, err := metaprovider.NewK8sCrdClusterProvider(
@@ -113,7 +113,7 @@ func BuildClusterProvider(db *gorm.DB) *coreprovider.ClusterProvider {
 
 // BuildK8sCrdOpsRequestProvider 构建 K8sCrdOpsRequestProvider
 func BuildK8sCrdOpsRequestProvider(db *gorm.DB) metaprovider.K8sCrdOpsRequestProvider {
-	crdOpsRequestDbAccess := metadbaccess.NewK8sCrdOpsRequestDbAccess(db)
+	crdOpsRequestDbAccess := metadbaccess.GetOpsRequestDbAccess(db)
 	opsRequestMetaProvider := metaprovider.NewK8sCrdOpsRequestProvider(crdOpsRequestDbAccess)
 	return opsRequestMetaProvider
 }
@@ -121,23 +121,23 @@ func BuildK8sCrdOpsRequestProvider(db *gorm.DB) metaprovider.K8sCrdOpsRequestPro
 // BuildCoreAPIProviders 构建 core api providers
 func BuildCoreAPIProviders(db *gorm.DB) (*CoreAPIProviders, error) {
 	clusterMetaProvider := BuildClusterMetaProvider(db)
-	componentMetaDbAccess := metadbaccess.NewK8sCrdComponentAccess(db)
+	componentMetaDbAccess := metadbaccess.GetComponentDbAccess(db)
 	componentMetaProvider := metaprovider.NewK8sCrdComponentProvider(componentMetaDbAccess)
 
-	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(metadbaccess.NewK8sClusterConfigDbAccess(db))
+	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(metadbaccess.GetK8sClusterConfigDbAccess(db))
 
-	requestRecordDbAccess := metadbaccess.NewClusterRequestRecordDbAccess(db)
+	requestRecordDbAccess := metadbaccess.GetClusterRequestDbAccess(db)
 	requestRecordProvider := metaprovider.NewClusterRequestRecordProvider(requestRecordDbAccess)
 
-	clusterReleaseDbAccess := metadbaccess.NewAddonClusterReleaseDbAccess(db)
+	clusterReleaseDbAccess := metadbaccess.GetAcReleaseDbAccess(db)
 	clusterReleaseProvider := metaprovider.NewAddonClusterReleaseProvider(clusterReleaseDbAccess)
 
-	helmRepoDbAccess := metadbaccess.NewAddonClusterHelmRepoDbAccess(db)
+	helmRepoDbAccess := metadbaccess.GetAcHelmRepoDbAccess(db)
 	helmRepoProvider := metaprovider.NewAddonClusterHelmRepoProvider(helmRepoDbAccess)
 
-	addonMetaProvider := metaprovider.NewK8sCrdStorageAddonProvider(metadbaccess.NewK8sCrdStorageAddonDbAccess(db))
+	addonMetaProvider := metaprovider.NewK8sCrdStorageAddonProvider(metadbaccess.GetStorageAddonDbAccess(db))
 
-	clusterTagProvider := metaprovider.NewK8sCrdClusterTagProvider(metadbaccess.NewK8sCrdClusterTagDbAccess(db))
+	clusterTagProvider := metaprovider.NewK8sCrdClusterTagProvider(metadbaccess.GetClusterTagDbAccess(db))
 
 	dbmAPIService := thirdapi.NewDbmAPIService()
 	return &CoreAPIProviders{

@@ -68,7 +68,7 @@ func (suite *AddonClusterVersionControllerTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dbAccess := dbaccess.NewAddonClusterVersionDbAccess(db)
+	dbAccess := dbaccess.GetAcVersionDbAccess(db)
 	addonProvider := provider.NewAddonClusterVersionProvider(dbAccess)
 	addonClusterVersionController := controller.NewAddonClusterVersionController(addonProvider)
 	suite.addonClusterVersionController = addonClusterVersionController

@@ -44,19 +44,19 @@ func BuildAddonRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 
 // initAddonController 初始化 AddonController
 func initAddonController(db *gorm.DB) *controller.AddonController {
-	requestRecordDbAccess := metadbaccess.NewClusterRequestRecordDbAccess(db)
+	requestRecordDbAccess := metadbaccess.GetClusterRequestDbAccess(db)
 	requestRecordProvider := metaprovider.NewClusterRequestRecordProvider(requestRecordDbAccess)
 
-	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
+	k8sClusterConfigDbAccess := metadbaccess.GetK8sClusterConfigDbAccess(db)
 	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
 
-	addonHelmRepoDbAccess := metadbaccess.NewAddonHelmRepoDbAccess(db)
+	addonHelmRepoDbAccess := metadbaccess.GetAddonHelmRepoDbAccess(db)
 	addonHelmRepoProvider := metaprovider.NewAddonHelmRepoProvider(addonHelmRepoDbAccess)
 
-	addonMetaDbAccess := metadbaccess.NewK8sCrdStorageAddonDbAccess(db)
+	addonMetaDbAccess := metadbaccess.GetStorageAddonDbAccess(db)
 	addonMetaProvider := metaprovider.NewK8sCrdStorageAddonProvider(addonMetaDbAccess)
 
-	clusterAddonsMetaDbAccess := metadbaccess.NewK8sClusterAddonsDbAccess(db)
+	clusterAddonsMetaDbAccess := metadbaccess.GetK8sClusterAddonsDbAccess(db)
 	clusterAddonsMetaProvider := metaprovider.NewK8sClusterAddonsProvider(clusterAddonsMetaDbAccess, addonMetaDbAccess)
 
 	addonProviderBuilder := &provider.AddonProviderBuilder{}

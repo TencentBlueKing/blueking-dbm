@@ -75,8 +75,8 @@ func (suite *AddonCategoryProviderTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	addonCategoryDbAccess := dbaccess.NewAddonCategoryDbAccess(db)
-	addonTypeDbAccess := dbaccess.NewAddonTypeDbAccess(db)
+	addonCategoryDbAccess := dbaccess.GetAddonCategoryDbAccess(db)
+	addonTypeDbAccess := dbaccess.GetAddonTypeDbAccess(db)
 	categoryProvider := provider.NewAddonCategoryProvider(addonCategoryDbAccess, addonTypeDbAccess)
 	typeProvider := provider.NewAddonTypeProvider(addonTypeDbAccess, addonCategoryDbAccess)
 	suite.addonCategoryProvider = categoryProvider

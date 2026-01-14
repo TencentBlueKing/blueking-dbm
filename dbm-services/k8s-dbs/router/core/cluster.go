@@ -67,12 +67,12 @@ func BuildClusterRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 func initClusterController(db *gorm.DB) *controller.ClusterController {
 	clusterProvider := routerutil.BuildClusterProvider(db)
 	opsRequestProvider := BuildOpsRequestProvider(db, clusterProvider)
-	clusterMetaDbAccess := metadbaccess.NewCrdClusterDbAccess(db)
-	addonMetaDbAccess := metadbaccess.NewK8sCrdStorageAddonDbAccess(db)
-	clusterTagDbAccess := metadbaccess.NewK8sCrdClusterTagDbAccess(db)
-	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
-	clusterTopologyDbAccess := metadbaccess.NewAddonTopologyDbAccess(db)
-	addonTypeDbAccess := metadbaccess.NewAddonTypeDbAccess(db)
+	clusterMetaDbAccess := metadbaccess.GetClusterDbAccess(db)
+	addonMetaDbAccess := metadbaccess.GetStorageAddonDbAccess(db)
+	clusterTagDbAccess := metadbaccess.GetClusterTagDbAccess(db)
+	k8sClusterConfigDbAccess := metadbaccess.GetK8sClusterConfigDbAccess(db)
+	clusterTopologyDbAccess := metadbaccess.GetAddonTopologyDbAccess(db)
+	addonTypeDbAccess := metadbaccess.GetAddonTypeDbAccess(db)
 	clusterProviderBuilder := metaprovider.K8sCrdClusterProviderBuilder{}
 	clusterMetaProvider, err := metaprovider.NewK8sCrdClusterProvider(
 		clusterProviderBuilder.WithClusterDbAccess(clusterMetaDbAccess),
@@ -107,7 +107,7 @@ func BuildOpsRequestProvider(
 		panic(err)
 	}
 
-	opsRequestMetaDbAccess := metadbaccess.NewK8sCrdOpsRequestDbAccess(db)
+	opsRequestMetaDbAccess := metadbaccess.GetOpsRequestDbAccess(db)
 	opsRequestMetaProvider := metaprovider.NewK8sCrdOpsRequestProvider(opsRequestMetaDbAccess)
 	opsRequestProviderBuilder := coreprovider.OpsRequestProviderBuilder{}
 

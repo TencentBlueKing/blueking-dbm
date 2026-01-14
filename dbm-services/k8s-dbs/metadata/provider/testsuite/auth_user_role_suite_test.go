@@ -61,7 +61,7 @@ func (suite *AuthUserRoleProviderTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dbAccess := dbaccess.NewAuthUserRoleDbAccess(db)
+	dbAccess := dbaccess.GetAuthUserRoleDbAccess(db)
 	authUserRoleProvider := provider.NewAuthUserRoleProvider(dbAccess)
 	suite.authUserRoleProvider = authUserRoleProvider
 }

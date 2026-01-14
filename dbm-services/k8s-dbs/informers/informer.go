@@ -41,12 +41,12 @@ import (
 // StartInformers 启动 informer
 func StartInformers(ctx context.Context) {
 	k8sClusterConfigProvider := metaprovider.
-		NewK8sClusterConfigProvider(metadbaccess.NewK8sClusterConfigDbAccess(util.Db.DbsGormDb))
+		NewK8sClusterConfigProvider(metadbaccess.GetK8sClusterConfigDbAccess(util.Db.DbsGormDb))
 	opsMetaProvider := metaprovider.
-		NewK8sCrdOpsRequestProvider(metadbaccess.NewK8sCrdOpsRequestDbAccess(util.Db.DbsGormDb))
+		NewK8sCrdOpsRequestProvider(metadbaccess.GetOpsRequestDbAccess(util.Db.DbsGormDb))
 	clusterMetaProvider := routerutil.BuildClusterMetaProvider(util.Db.DbsGormDb)
 	componentMetaProvider := metaprovider.
-		NewK8sCrdComponentProvider(metadbaccess.NewK8sCrdComponentAccess(util.Db.DbsGormDb))
+		NewK8sCrdComponentProvider(metadbaccess.GetComponentDbAccess(util.Db.DbsGormDb))
 
 	k8sClusterConfigs, err := k8sClusterConfigProvider.ListConfigsByLimit(commconst.MaxFetchSize)
 	if err != nil || len(k8sClusterConfigs) == 0 {

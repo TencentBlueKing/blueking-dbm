@@ -86,7 +86,7 @@ func (suite *AddonClusterReleaseDbAccessTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	suite.dbAccess = dbaccess.NewAddonClusterReleaseDbAccess(db)
+	suite.dbAccess = dbaccess.GetAcReleaseDbAccess(db)
 }
 
 func (suite *AddonClusterReleaseDbAccessTestSuite) TearDownSuite() {

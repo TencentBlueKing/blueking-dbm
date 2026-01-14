@@ -62,7 +62,7 @@ func (suite *ClusterServiceDbAccessTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dbAccess := dbaccess.NewK8sClusterServiceDbAccess(db)
+	dbAccess := dbaccess.GetClusterServiceDbAccess(db)
 	suite.dbAccess = dbAccess
 }
 

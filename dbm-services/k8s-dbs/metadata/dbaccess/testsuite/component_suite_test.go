@@ -59,7 +59,7 @@ func (suite *ComponentDbAccessTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dbAccess := dbaccess.NewK8sCrdComponentAccess(db)
+	dbAccess := dbaccess.GetComponentDbAccess(db)
 	suite.dbAccess = dbAccess
 }
 

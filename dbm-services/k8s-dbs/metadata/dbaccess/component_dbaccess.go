@@ -25,6 +25,7 @@ import (
 	"k8s-dbs/common/entity"
 	metaentity "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -45,6 +46,22 @@ type K8sCrdComponentDbAccess interface {
 // K8sCrdComponentDbAccessImpl K8sCrdComponentDbAccess 的具体实现
 type K8sCrdComponentDbAccessImpl struct {
 	db *gorm.DB
+}
+
+var (
+	componentInstance K8sCrdComponentDbAccess
+	componentOnce     sync.Once
+)
+
+// GetComponentDbAccess 获取 K8sCrdComponentDbAccess 单例实例
+func GetComponentDbAccess(db *gorm.DB) K8sCrdComponentDbAccess {
+	componentOnce.Do(func() {
+		componentInstance = &K8sCrdComponentDbAccessImpl{db: db}
+	})
+	if componentInstance == nil {
+		panic("K8sCrdComponentDbAccess instance is nil after initialization")
+	}
+	return componentInstance
 }
 
 // FindByParams 参数查询实现
@@ -114,9 +131,4 @@ func (k *K8sCrdComponentDbAccessImpl) Update(model *models.K8sCrdComponentModel)
 // ListByPage 分页查询元数据接口实现
 func (k *K8sCrdComponentDbAccessImpl) ListByPage(_ entity.Pagination) ([]models.K8sCrdComponentModel, int64, error) {
 	return nil, 0, fmt.Errorf("not implemented yet")
-}
-
-// NewK8sCrdComponentAccess 创建 K8sCrdComponentAccess 接口实现实例
-func NewK8sCrdComponentAccess(db *gorm.DB) K8sCrdComponentDbAccess {
-	return &K8sCrdComponentDbAccessImpl{db: db}
 }
