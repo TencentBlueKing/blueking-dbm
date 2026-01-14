@@ -100,6 +100,73 @@ func init() {
 	}
 }
 
+// extractFirstJSONObject 从字符串中提取第一个完整的 JSON 对象
+// 处理嵌套大括号和多个 JSON 对象连在一起的情况
+func extractFirstJSONObject(content string) string {
+	logger.Debug("extractFirstJSONObject: 开始提取 JSON，原始内容长度: %d", len(content))
+	if len(content) == 0 {
+		logger.Warn("extractFirstJSONObject: 内容为空")
+		return ""
+	}
+
+	start := -1
+	depth := 0
+	inString := false
+	escapeNext := false
+
+	for i, char := range content {
+		if escapeNext {
+			escapeNext = false
+			continue
+		}
+
+		switch char {
+		case '\\':
+			if inString {
+				escapeNext = true
+			}
+		case '"':
+			inString = !inString
+		case '{':
+			if !inString {
+				if start == -1 {
+					start = i
+					logger.Debug("extractFirstJSONObject: 找到第一个 '{' 位置: %d", i)
+				}
+				depth++
+				logger.Debug("extractFirstJSONObject: 深度增加，当前深度: %d", depth)
+			}
+		case '}':
+			if !inString {
+				depth--
+				logger.Debug("extractFirstJSONObject: 深度减少，当前深度: %d", depth)
+				if depth == 0 && start != -1 {
+					result := content[start : i+1]
+					logger.Info("extractFirstJSONObject: 成功提取 JSON，起始位置: %d, 结束位置: %d, 长度: %d",
+						start, i+1, len(result))
+					return result
+				}
+			}
+		}
+	}
+
+	// 如果没有找到完整的 JSON 对象，尝试使用正则表达式作为后备方案
+	logger.Warn("extractFirstJSONObject: 使用深度计数器未找到完整 JSON，尝试正则表达式后备方案")
+	logger.Debug("extractFirstJSONObject: 最终状态 - start: %d, depth: %d, inString: %v", start, depth, inString)
+	jsonRe := regexp.MustCompile(`\{[^{}]*\}`)
+	if match := jsonRe.FindString(content); match != "" {
+		logger.Info("extractFirstJSONObject: 使用正则表达式提取到 JSON，长度: %d", len(match))
+		return match
+	}
+
+	preview := content
+	if len(content) > 100 {
+		preview = content[:100] + "..."
+	}
+	logger.Error("extractFirstJSONObject: 未能提取到任何 JSON 对象，原始内容前100字符: %s", preview)
+	return ""
+}
+
 // GetAllDiskIds TODO
 func GetAllDiskIds(c []DiskInfo) (diskIds []string) {
 	for _, v := range c {
@@ -145,19 +212,22 @@ type GetDiskResp struct {
 
 // GetDiskInfo TODO
 func GetDiskInfo(hosts []IPList, bk_biz_id int, hostOsMap map[string]string) (resp GetDiskResp, err error) {
+	logger.Info("GetDiskInfo 开始处理，主机数量: %d, bk_biz_id: %d", len(hosts), bk_biz_id)
 	ipListOsMap := make(map[string][]IPList)
 	for _, host := range hosts {
 		if os_type, ok := hostOsMap[host.IP]; ok {
 			ipListOsMap[os_type] = append(ipListOsMap[os_type], host)
+			logger.Debug("主机 %s 操作系统类型: %s", host.IP, os_type)
 		} else {
-			logger.Warn("没有获取到%s的操作系统类型", host.IP)
+			logger.Warn("没有获取到%s的操作系统类型，默认当做Linux处理", host.IP)
 			// 默认当做Liunx处理
 			ipListOsMap[OsLinux] = append(ipListOsMap[OsLinux], host)
 		}
 	}
+	logger.Info("按操作系统类型分组完成 - Windows: %d, Linux: %d",
+		len(ipListOsMap[OsWindows]), len(ipListOsMap[OsLinux]))
 	ipLogContentMap := make(map[string]*ShellResCollection)
 	ipFailedLogMap := make(map[string]string)
-	jsonRe := regexp.MustCompile("{*.*}")
 	for os_type, ipList := range ipListOsMap {
 		if len(ipList) == 0 {
 			continue
@@ -166,17 +236,22 @@ func GetDiskInfo(hosts []IPList, bk_biz_id int, hostOsMap map[string]string) (re
 		case OsWindows:
 			ipFailedLogMapWin, ipLogs, err := GetWindowsDiskInfo(ipList, bk_biz_id)
 			if err != nil {
+				logger.Error("GetWindowsDiskInfo failed: %s", err.Error())
 				return GetDiskResp{}, err
 			}
 			maps.Copy(ipFailedLogMap, ipFailedLogMapWin)
+			logger.Info("开始处理 Windows 系统磁盘信息，IP 数量: %d", len(ipLogs.ScriptTaskLogs))
 			for _, d := range ipLogs.ScriptTaskLogs {
 				var dl PowerShellResCollection
 				jsonBody := d.LogContent
-				logger.Info("%s shell grab json body: %s", d.Ip, jsonBody)
+				logger.Info("%s Windows shell grab json body，长度: %d, 内容: %s", d.Ip, len(jsonBody), jsonBody)
 				if err = json.Unmarshal([]byte(jsonBody), &dl); err != nil {
-					logger.Error("unmarshal log content failed %s", err.Error())
+					logger.Error("%s unmarshal Windows log content failed: %s, 原始内容: %s",
+						d.Ip, err.Error(), jsonBody)
 					continue
 				}
+				logger.Info("%s Windows 解析成功 - CPU: %d, Mem: %d MB, Disk数量: %d",
+					d.Ip, dl.Cpu, dl.Mem, len(dl.Disk))
 				ipLogContentMap[d.Ip] = &ShellResCollection{
 					Cpu:  dl.Cpu,
 					Mem:  dl.Mem,
@@ -186,23 +261,48 @@ func GetDiskInfo(hosts []IPList, bk_biz_id int, hostOsMap map[string]string) (re
 		case OsLinux:
 			ipFailedLogMapLiunx, ipLogs, err := GetLiunxDiskInfo(ipList, bk_biz_id)
 			if err != nil {
+				logger.Error("GetLiunxDiskInfo failed: %s", err.Error())
 				return GetDiskResp{}, err
 			}
 			maps.Copy(ipFailedLogMap, ipFailedLogMapLiunx)
+			logger.Info("开始处理 Linux 系统磁盘信息，IP 数量: %d", len(ipLogs.ScriptTaskLogs))
 			for _, d := range ipLogs.ScriptTaskLogs {
 				var dl ShellResCollection
-				jsonBody := jsonRe.FindString(d.LogContent)
-				logger.Info("%s shell grab json body: %s", d.Ip, jsonBody)
-				if err = json.Unmarshal([]byte(jsonBody), &dl); err != nil {
-					logger.Error("unmarshal log content failed %s", err.Error())
+				preview := d.LogContent
+				if len(d.LogContent) > 200 {
+					preview = d.LogContent[:200] + "..."
+				}
+				logger.Debug("%s 原始日志内容长度: %d, 内容预览: %s", d.Ip, len(d.LogContent), preview)
+				jsonBody := extractFirstJSONObject(d.LogContent)
+				if jsonBody == "" {
+					logger.Error("%s failed to extract json from log content，原始内容长度: %d, 内容: %s",
+						d.Ip, len(d.LogContent), d.LogContent)
 					continue
 				}
+				logger.Info("%s Linux shell grab json body，提取长度: %d, 内容: %s",
+					d.Ip, len(jsonBody), jsonBody)
+				if err = json.Unmarshal([]byte(jsonBody), &dl); err != nil {
+					logger.Error("%s unmarshal Linux log content failed: %s, 提取的 JSON: %s, 原始内容: %s",
+						d.Ip, err.Error(), jsonBody, d.LogContent)
+					continue
+				}
+				logger.Info("%s Linux 解析成功 - CPU: %d, Mem: %d MB, Region: %s, Zone: %s, Disk数量: %d",
+					d.Ip, dl.Cpu, dl.Mem, dl.TxRegion, dl.TxZone, len(dl.Disk))
 				ipLogContentMap[d.Ip] = &dl
 			}
 		}
 	}
 	resp.IpFailedLogMap = ipFailedLogMap
 	resp.IpLogContentMap = ipLogContentMap
+	logger.Info("GetDiskInfo 处理完成 - 成功解析: %d 个IP, 失败: %d 个IP",
+		len(ipLogContentMap), len(ipFailedLogMap))
+	if len(ipFailedLogMap) > 0 {
+		ips := make([]string, 0, len(ipFailedLogMap))
+		for ip := range ipFailedLogMap {
+			ips = append(ips, ip)
+		}
+		logger.Warn("GetDiskInfo 失败的IP列表: %v", ips)
+	}
 	return resp, nil
 }
 
