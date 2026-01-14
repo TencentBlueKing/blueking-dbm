@@ -3,7 +3,7 @@
     v-bk-loading="{ loading: isDeleting }"
     class="chat-session-box"
     :class="{
-      'is-active': modelValue === data.session_code,
+      'is-active': modelValue === data.sessionCode,
     }">
     <div
       v-if="isEditing"
@@ -26,9 +26,9 @@
     <template v-else>
       <div
         class="session-info"
-        @click="handleActive(data.session_code)">
-        <div class="session-name">{{ data.session_name }}</div>
-        <div class="session-content">{{ formatDateTime(data.updated_at) }}</div>
+        @click="handleActive(data.sessionCode)">
+        <div class="session-name">{{ data.sessionName }}</div>
+        <div class="session-content">{{ formatDateTime(data.updatedAt || '') }}</div>
       </div>
       <div
         class="session-action-box"
@@ -39,7 +39,7 @@
           <DbIcon type="edit" />
         </div>
         <DbPopconfirm
-          :confirm-handler="() => handleDelete(data.session_code)"
+          :confirm-handler="() => handleDelete(data.sessionCode)"
           :content="t('删除对话将删除该会话的所有聊天记录，请谨慎操作。')"
           :title="t('确认删除对话？')"
           @toggle-show="handleToggleDeletePopconfirm">
@@ -68,12 +68,16 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { deleteSession, getSession, updateSessionInfo } from '@services/source/ai';
+  import { deleteSession, updateSessionInfo } from '@services/source/ai';
 
   import { messageSuccess } from '@utils';
 
   interface Props {
-    data: ServiceReturnType<typeof getSession>[number];
+    data: {
+      sessionCode: string;
+      sessionName: string;
+      updatedAt?: string;
+    };
     selected: boolean;
   }
 
@@ -136,7 +140,7 @@
   };
   const handleRename = () => {
     isEditing.value = true;
-    newSessionName.value = props.data.session_name;
+    newSessionName.value = props.data.sessionName;
     nextTick(() => {
       renameInputRef.value?.focus();
     });
@@ -145,7 +149,7 @@
   const handleRenameSubmit = _.debounce(() => {
     if (
       !newSessionName.value ||
-      newSessionName.value === props.data.session_name ||
+      newSessionName.value === props.data.sessionName ||
       isRenameSubmiting.value ||
       !isEditing.value
     ) {
@@ -153,7 +157,7 @@
       return;
     }
     return runUpdateSessionInfo({
-      session_code: props.data.session_code,
+      session_code: props.data.sessionCode,
       session_name: newSessionName.value,
     });
   }, 200);

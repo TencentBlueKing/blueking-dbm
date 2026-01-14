@@ -17,15 +17,21 @@
 
   import AIBlueking from '@blueking/ai-blueking';
 
+  import { useSystemEnviron } from '@stores';
+
   import '@blueking/ai-blueking/dist/vue3/style.css';
 
   import { useState } from './hooks/useState';
 
   const route = useRoute();
 
+  const systemEnvironStore = useSystemEnviron();
+
+  const { ENABLE_DBM_AI } = systemEnvironStore.urls;
+
   const { aiBluekingRef, apiUrl, hideNimbus, showHistoryIcon, showMoreIcon, showNewChatIcon } = useState();
 
-  const isShowAiBlueking = computed(() => route.meta.aiBlueking !== false && apiUrl.value);
+  const isShowAiBlueking = computed(() => route.meta.aiBlueking !== false && apiUrl.value && ENABLE_DBM_AI);
 </script>
 <style lang="postcss">
   .dbm-ai-chat-dialog {

@@ -207,6 +207,7 @@
       'DashboradManage',
       'RiskMemoGlobal',
       'ExerciseReportGlobal',
+      'AiChat',
     ],
     [menuEnum.resourceManage]: ['ResourceSpec', 'resourceManage', 'resourcePoolDirtyMachines'],
   } as Record<string, string[]>;

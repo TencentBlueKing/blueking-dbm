@@ -8,10 +8,15 @@
       :initial-divide="300"
       style="height: 100%">
       <template #aside>
-        <ChatHistoryList v-model="currentSessionCode" />
+        <ChatHistoryList
+          v-model="currentSessionCode"
+          :add-new-session="addNewSession"
+          :get-session-list="getSessionList" />
       </template>
       <template #main>
-        <AiBlueking :session-code="currentSessionCode" />
+        <AiBlueking
+          ref="aiBlueking"
+          :session-code="currentSessionCode" />
       </template>
     </BkResizeLayout>
     <BkException
@@ -51,6 +56,14 @@
   });
 
   const currentSessionCode = ref<string>('');
+  const aiBluekingRef = useTemplateRef<InstanceType<typeof AiBlueking>>('aiBlueking');
+
+  const addNewSession = (sessionCode?: string) => {
+    return aiBluekingRef.value!.addNewSession(sessionCode);
+  };
+  const getSessionList = () => {
+    return aiBluekingRef.value!.getSessionList();
+  };
 
   const handleRetry = () => {
     runAgentPing();
