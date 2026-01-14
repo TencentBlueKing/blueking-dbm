@@ -36,6 +36,7 @@ export * from './getMenuListSearch';
 export * from './getSearchSelectorParams';
 export * from './getSQLFilename';
 export * from './isObject';
+export * from './isValidJSON';
 export * from './leaveConfirm';
 export * from './loginDialog';
 export * from './makeMap';
