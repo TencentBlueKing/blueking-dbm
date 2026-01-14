@@ -67,8 +67,8 @@ func (suite *ClusterOperationControllerTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	clusterOpDbAccess := dbaccess.NewClusterOperationDbAccess(db)
-	opDefDbAccess := dbaccess.NewOperationDefinitionDbAccess(db)
+	clusterOpDbAccess := dbaccess.GetClusterOperationDbAccess(db)
+	opDefDbAccess := dbaccess.GetOperationDefinitionDbAccess(db)
 	clusterOperationProvider := provider.NewClusterOperationProvider(clusterOpDbAccess, opDefDbAccess)
 	clusterOperationController := controller.NewClusterOperationController(clusterOperationProvider)
 	suite.clusterOperationController = clusterOperationController

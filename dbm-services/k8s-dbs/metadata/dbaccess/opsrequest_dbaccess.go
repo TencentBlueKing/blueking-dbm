@@ -25,6 +25,7 @@ import (
 	"k8s-dbs/common/entity"
 	metaentity "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -44,6 +45,22 @@ type K8sCrdOpsRequestDbAccess interface {
 // K8sCrdOpsRequestDbAccessImpl K8sCrdOpsRequestDbAccess 的具体实现
 type K8sCrdOpsRequestDbAccessImpl struct {
 	db *gorm.DB
+}
+
+var (
+	opsRequestInstance K8sCrdOpsRequestDbAccess
+	opsRequestOnce     sync.Once
+)
+
+// GetOpsRequestDbAccess 获取 K8sCrdOpsRequestDbAccess 单例实例
+func GetOpsRequestDbAccess(db *gorm.DB) K8sCrdOpsRequestDbAccess {
+	opsRequestOnce.Do(func() {
+		opsRequestInstance = &K8sCrdOpsRequestDbAccessImpl{db: db}
+	})
+	if opsRequestInstance == nil {
+		panic("K8sCrdOpsRequestDbAccess instance is nil after initialization")
+	}
+	return opsRequestInstance
 }
 
 // FindByParams 按照参数查询接口实现
@@ -111,9 +128,4 @@ func (k *K8sCrdOpsRequestDbAccessImpl) ListByPage(_ entity.Pagination) (
 	error,
 ) {
 	return nil, 0, fmt.Errorf("not implemented yet")
-}
-
-// NewK8sCrdOpsRequestDbAccess 创建 K8sCrdOpsRequestDbAccess 接口实现实例
-func NewK8sCrdOpsRequestDbAccess(db *gorm.DB) K8sCrdOpsRequestDbAccess {
-	return &K8sCrdOpsRequestDbAccessImpl{db: db}
 }

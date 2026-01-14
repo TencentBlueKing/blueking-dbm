@@ -23,6 +23,7 @@ import (
 	"k8s-dbs/common/entity"
 	metaentity "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -45,6 +46,22 @@ type K8sCrdClusterDbAccess interface {
 // K8sCrdClusterDbAccessImpl K8sCrdClusterDbAccess 的具体实现
 type K8sCrdClusterDbAccessImpl struct {
 	db *gorm.DB
+}
+
+var (
+	clusterInstance K8sCrdClusterDbAccess
+	clusterOnce     sync.Once
+)
+
+// GetClusterDbAccess 获取 K8sCrdClusterDbAccess 单例实例
+func GetClusterDbAccess(db *gorm.DB) K8sCrdClusterDbAccess {
+	clusterOnce.Do(func() {
+		clusterInstance = &K8sCrdClusterDbAccessImpl{db: db}
+	})
+	if clusterInstance == nil {
+		panic("K8sCrdClusterDbAccess instance is nil after initialization")
+	}
+	return clusterInstance
 }
 
 // Create 创建 cluster 元数据接口实现
@@ -219,9 +236,4 @@ func (k *K8sCrdClusterDbAccessImpl) ListActiveByPage(
 	}
 
 	return clusterModels, uint64(count), nil
-}
-
-// NewCrdClusterDbAccess 创建 K8sCrdClusterDbAccess 接口实现实例
-func NewCrdClusterDbAccess(db *gorm.DB) K8sCrdClusterDbAccess {
-	return &K8sCrdClusterDbAccessImpl{db: db}
 }

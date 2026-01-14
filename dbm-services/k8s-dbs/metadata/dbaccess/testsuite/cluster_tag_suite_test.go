@@ -66,7 +66,7 @@ func (suite *ClusterTagDbAccessTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dbAccess := dbaccess.NewK8sCrdClusterTagDbAccess(db)
+	dbAccess := dbaccess.GetClusterTagDbAccess(db)
 	suite.dbAccess = dbAccess
 }
 

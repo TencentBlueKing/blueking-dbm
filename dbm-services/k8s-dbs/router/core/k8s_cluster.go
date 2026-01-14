@@ -49,10 +49,10 @@ func BuildK8sClusterRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 
 // initK8sClusterController 初始化 K8sClusterController
 func initK8sClusterController(db *gorm.DB) *controller.K8sController {
-	requestRecordDbAccess := metadbaccess.NewClusterRequestRecordDbAccess(db)
+	requestRecordDbAccess := metadbaccess.GetClusterRequestDbAccess(db)
 	requestRecordProvider := metaprovider.NewClusterRequestRecordProvider(requestRecordDbAccess)
 
-	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
+	k8sClusterConfigDbAccess := metadbaccess.GetK8sClusterConfigDbAccess(db)
 	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
 
 	clusterMetaProvider := routerutil.BuildClusterMetaProvider(db)

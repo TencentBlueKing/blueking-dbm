@@ -108,7 +108,7 @@ func (suite *AddonProviderTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dbAccess := dbaccess.NewK8sCrdStorageAddonDbAccess(db)
+	dbAccess := dbaccess.GetStorageAddonDbAccess(db)
 	suite.addonProvider = provider.NewK8sCrdStorageAddonProvider(dbAccess)
 }
 

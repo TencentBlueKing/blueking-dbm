@@ -67,7 +67,7 @@ func (suite *OperationDefinitionDbAccessTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dbAccess := dbaccess.NewOperationDefinitionDbAccess(db)
+	dbAccess := dbaccess.GetOperationDefinitionDbAccess(db)
 	suite.dbAccess = dbAccess
 }
 

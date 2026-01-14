@@ -25,6 +25,7 @@ import (
 	"k8s-dbs/common/entity"
 	metaentity "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -46,6 +47,22 @@ type K8sClusterConfigDbAccess interface {
 // K8sClusterConfigDbAccessImpl K8sClusterConfigDbAccess 的具体实现
 type K8sClusterConfigDbAccessImpl struct {
 	db *gorm.DB
+}
+
+var (
+	clusterConfigInstance K8sClusterConfigDbAccess
+	clusterConfigOnce     sync.Once
+)
+
+// GetK8sClusterConfigDbAccess 获取 K8sClusterConfigDbAccess 单例实例
+func GetK8sClusterConfigDbAccess(db *gorm.DB) K8sClusterConfigDbAccess {
+	clusterConfigOnce.Do(func() {
+		clusterConfigInstance = &K8sClusterConfigDbAccessImpl{db: db}
+	})
+	if clusterConfigInstance == nil {
+		panic("K8sClusterConfigDbAccess instance is nil after initialization")
+	}
+	return clusterConfigInstance
 }
 
 // ListByLimit limit 查询实现
@@ -122,9 +139,4 @@ func (k *K8sClusterConfigDbAccessImpl) Update(model *models.K8sClusterConfigMode
 // ListByPage 分页查询元数据接口实现
 func (k *K8sClusterConfigDbAccessImpl) ListByPage(_ entity.Pagination) ([]models.K8sClusterConfigModel, int64, error) {
 	return nil, 0, fmt.Errorf("not implemented yet")
-}
-
-// NewK8sClusterConfigDbAccess 创建 K8sClusterConfigDbAccess 接口实现实例
-func NewK8sClusterConfigDbAccess(db *gorm.DB) K8sClusterConfigDbAccess {
-	return &K8sClusterConfigDbAccessImpl{db: db}
 }

@@ -56,7 +56,7 @@ func (suite *OpsRequestControllerTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dbAccess := dbaccess.NewK8sCrdOpsRequestDbAccess(db)
+	dbAccess := dbaccess.GetOpsRequestDbAccess(db)
 	opsRequestProvider := provider.NewK8sCrdOpsRequestProvider(dbAccess)
 	opsRequestController := controller.NewOpsController(opsRequestProvider)
 	suite.opsRequestController = opsRequestController

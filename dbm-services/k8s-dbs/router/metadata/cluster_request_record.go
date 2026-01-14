@@ -32,7 +32,7 @@ import (
 // BuildRequestRecordRouter cluster request record 管理路由构建
 func BuildRequestRecordRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group(BasePath)
-	metaDbAccess := metadbaccess.NewClusterRequestRecordDbAccess(db)
+	metaDbAccess := metadbaccess.GetClusterRequestDbAccess(db)
 	metaProvider := metaprovider.NewClusterRequestRecordProvider(metaDbAccess)
 	metaController := metacontroller.NewClusterRequestRecordController(metaProvider)
 

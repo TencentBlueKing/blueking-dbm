@@ -115,11 +115,11 @@ func (suite *ClusterProviderTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	clusterDbAccess := dbaccess.NewCrdClusterDbAccess(db)
-	addonMetaDbAccess := dbaccess.NewK8sCrdStorageAddonDbAccess(db)
-	clusterTagDbAccess := dbaccess.NewK8sCrdClusterTagDbAccess(db)
-	k8sClusterConfigDbAccess := dbaccess.NewK8sClusterConfigDbAccess(db)
-	clusterTopologyDbAccess := dbaccess.NewAddonTopologyDbAccess(db)
+	clusterDbAccess := dbaccess.GetClusterDbAccess(db)
+	addonMetaDbAccess := dbaccess.GetStorageAddonDbAccess(db)
+	clusterTagDbAccess := dbaccess.GetClusterTagDbAccess(db)
+	k8sClusterConfigDbAccess := dbaccess.GetK8sClusterConfigDbAccess(db)
+	clusterTopologyDbAccess := dbaccess.GetAddonTopologyDbAccess(db)
 	clusterProviderBuilder := metaprovider.K8sCrdClusterProviderBuilder{}
 	suite.clusterProvider, err = provider.NewK8sCrdClusterProvider(
 		clusterProviderBuilder.WithClusterDbAccess(clusterDbAccess),

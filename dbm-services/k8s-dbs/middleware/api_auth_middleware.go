@@ -19,7 +19,7 @@ import (
 
 // APIAuthMiddleware API权限校验中间件
 func APIAuthMiddleware(db *gorm.DB) gin.HandlerFunc {
-	authUserRoleDbAccess := metadbaccess.NewAuthUserRoleDbAccess(db)
+	authUserRoleDbAccess := metadbaccess.GetAuthUserRoleDbAccess(db)
 	authUserRoleProvider := metaprovider.NewAuthUserRoleProvider(authUserRoleDbAccess)
 	return func(c *gin.Context) {
 		// 获取请求路径
