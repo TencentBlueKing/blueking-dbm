@@ -8,7 +8,7 @@ from backend.db_services.sqlserver.sql_import.constants import BKREPO_SQLSERVER_
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.ticket import builders
 from backend.ticket.builders.sqlserver.base import BaseSQLServerTicketFlowBuilder, SQLServerBaseOperateDetailSerializer
-from backend.ticket.constants import FlowType, TicketFlowStatus, TicketType
+from backend.ticket.constants import FlowType, TicketType
 from backend.ticket.models import Flow
 
 
@@ -16,7 +16,6 @@ class SQLServerDataExportDetailSerializer(SQLServerBaseOperateDetailSerializer):
     class DataExportDetailSerializer(serializers.Serializer):
         dbnames = serializers.ListField(help_text=_("导出库列表"), child=serializers.CharField())
         sql_files = serializers.ListField(help_text=_("SQL文件列表"), child=serializers.CharField())
-        path = serializers.CharField(help_text=_("查询文件在制品库中的路径"), required=True)
 
     cluster_ids = serializers.ListField(help_text=_("查询集群列表"), child=serializers.IntegerField())
     execute_objects = serializers.ListField(help_text=_("执行对象列表"), child=serializers.DictField())
@@ -63,8 +62,8 @@ class SQLServerDataExportFlowParamBuilder(builders.FlowParamBuilder):
     def post_callback(self):
         flow = self.ticket.current_flow()
         # 如果流程树运行不为成功，则忽略
-        if flow.status != TicketFlowStatus.SUCCEEDED:
-            return
+        # if flow.status != TicketFlowStatus.SUCCEEDED:
+        #     return
         # 往flow的detail中写入制品库的下载链接
         dump_file_name = f"{flow.details['ticket_data']['dump_file_name']}.zip"
         flow.details["ticket_data"].update(
