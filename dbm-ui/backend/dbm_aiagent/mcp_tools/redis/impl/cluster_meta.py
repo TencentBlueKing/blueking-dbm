@@ -36,7 +36,7 @@ def list_my_redis_bizs(userID: str) -> List:
 def list_biz_by_name(biz_name: str) -> List:
     res = []
     for app in AppCache.objects.all():
-        if app.db_app_abbr.__contains__(biz_name):
+        if app.db_app_abbr.__contains__(biz_name.lower()):
             res.append({"bk_biz_id": app.bk_biz_id, "app_name": app.bk_biz_name, "abbr": app.db_app_abbr})
     return res
 
@@ -61,6 +61,8 @@ def redis_list_clusters(bk_biz_id: int) -> List:
             "immute_domain": c.immute_domain,
             "alias": c.alias,
             "region": c.region,
+            "proxy_count": len(c.proxyisntance_set.all()),
+            "master_count": len(c.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value)),
             "redis_version": c.major_version,
         }
         for c in clusters
@@ -71,6 +73,8 @@ def cluster_overview(immute_domain: str) -> Dict:
     cluster_obj = Cluster.objects.get(immute_domain=immute_domain)
 
     return {
+        "bk_biz_id": cluster_obj.bk_biz_id,
+        "cluster_id": cluster_obj.id,
         "bk_cloud_id": cluster_obj.bk_cloud_id,
         "cluster_type": cluster_obj.cluster_type,
         "cluster_domain": immute_domain,
@@ -89,8 +93,16 @@ def cluster_proxies(immute_domain: str) -> List:
     """集群proxy 列表"""
     c_obj = Cluster.objects.get(immute_domain=immute_domain)
     proxy_instances = c_obj.proxyinstance_set.all()
-
-    return [{"address": "{}:{}".format(s.machine.ip, s.port), "status": s.status} for s in proxy_instances]
+    return [
+        {
+            "address": "{}:{}".format(s.machine.ip, s.port),
+            "status": s.status,
+            "version": s.version,
+            "sub_zone": s.machine.bk_sub_zone,
+            "cls_name": s.machine.bk_svr_device_cls_name,
+        }
+        for s in proxy_instances
+    ]
 
 
 def cluster_masters(immute_domain: str) -> List:
@@ -98,13 +110,19 @@ def cluster_masters(immute_domain: str) -> List:
     c_obj = Cluster.objects.get(immute_domain=immute_domain)
     master_objs = c_obj.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value)
 
-    master_infos = {}
+    master_hosts, master_infos = {}, []
     for ins_obj in master_objs:
-        if not master_infos.get(ins_obj.machine.ip):
-            master_infos[ins_obj.machine.ip] = []
-        master_infos[ins_obj.machine.ip].append(ins_obj.port)
+        if not master_hosts.get(ins_obj.machine.ip):
+            master_hosts[ins_obj.machine.ip] = []
+        master_hosts[ins_obj.machine.ip].append(ins_obj.port)
 
-    return [{"ip": ip, "ports": ports} for ip, ports in master_infos.items()]
+    for ip, ports in master_hosts.items():
+        m_obj = Machine.objects.get(ip=ip, bk_cloud_id=c_obj.bk_cloud_id, bk_biz_id=c_obj.bk_biz_id)
+        master_infos.append(
+            {"ip": ip, "ports": ports, "sub_zone": m_obj.bk_sub_zone, "cls_name": m_obj.bk_svr_device_cls_name}
+        )
+
+    return master_infos
 
 
 def instance_tuple(addr: str) -> List:

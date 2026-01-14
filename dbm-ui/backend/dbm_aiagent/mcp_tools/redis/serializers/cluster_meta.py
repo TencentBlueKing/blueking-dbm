@@ -17,6 +17,10 @@ class RedisAddrSerializer(serializers.Serializer):
     address = serializers.CharField(help_text=_("ip:port 形式的实例地址"))
 
 
+class InstancePortSerializer(serializers.Serializer):
+    port = serializers.CharField(help_text=_("实例端口"))
+
+
 class RedisBizDetailSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     app_name = serializers.CharField(help_text=_("业务中文名"))
@@ -29,15 +33,6 @@ class RedisBaseInstanceSerializer(serializers.Serializer):
     machine_type = serializers.CharField(help_text=_("实例机器类型"))
 
 
-class RedisInstanceSummarySerializer(serializers.Serializer):
-    IP = serializers.CharField(help_text=_("机器IP"))
-    Port = serializers.IntegerField(help_text=_("实例端口"))
-
-
-class RedisStorageInstanceSerializer(RedisBaseInstanceSerializer):
-    is_stand_by = serializers.BooleanField(default=True, help_text=_("dbha 切换备选标志"))
-
-
 class RedisEntrySerializer(RedisBaseInstanceSerializer):
     entry_type = serializers.CharField(help_text=_("访问方式"))
     entry_addr = serializers.CharField(help_text=_("访问地址"))
@@ -47,7 +42,32 @@ class RedisTopoInputSerializer(serializers.Serializer):
     immute_domain = serializers.CharField(help_text=_("集群域名"))
 
 
+class RedisProxiesOutputSerializer(serializers.Serializer):
+    sub_zone = serializers.CharField(help_text=_("地域-园区"))
+    cls_name = serializers.CharField(help_text=_("设备名称"))
+    address = serializers.CharField(help_text=_("实例地址"))
+    status = serializers.CharField(help_text=_("实例状态"))
+    version = serializers.CharField(help_text=_("实例版本"))
+
+
+class RedisMastersOutputSerializer(serializers.Serializer):
+    sub_zone = serializers.CharField(help_text=_("地域-园区"))
+    cls_name = serializers.CharField(help_text=_("设备名称"))
+    ip = serializers.CharField(help_text=_("主机IP"))
+    ports = serializers.ListSerializer(child=InstancePortSerializer(), help_text=_("实例端口"))
+
+
+class RedisMastersSummarySerializer(serializers.Serializer):
+    masters = serializers.ListSerializer(child=RedisMastersOutputSerializer(), help_text=_("存储层实例汇总"))
+
+
+class RedisProxiesSummarySerializer(serializers.Serializer):
+    proxies = serializers.ListSerializer(child=RedisProxiesOutputSerializer(), help_text=_("接入层实例信息"))
+
+
 class RedisTopoOutputSerializer(serializers.Serializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     cluster_type = serializers.CharField(help_text=_("集群类型"))
     region = serializers.CharField(help_text=_("所在地域"))
     major_version = serializers.CharField(help_text=_("后端版本"))
@@ -55,10 +75,6 @@ class RedisTopoOutputSerializer(serializers.Serializer):
     proxy_count = serializers.IntegerField(help_text=_("Proxy节点数"))
     master_count = serializers.IntegerField(help_text=_("Master节点数"))
     cluster_entries = serializers.ListSerializer(child=RedisEntrySerializer(), help_text=_("集群连接地址"))
-
-
-class RedisNodesSummarySerializer(serializers.Serializer):
-    cluster_masters = serializers.ListSerializer(child=RedisInstanceSummarySerializer(), help_text=_("存储层实例汇总信息"))
 
 
 class RedisBizInputSerializer(serializers.Serializer):
@@ -81,6 +97,8 @@ class RedisClustersOutputSerializer(serializers.Serializer):
     alias = serializers.CharField(help_text=_("集群别名"))
     redis_version = serializers.CharField(help_text=_("Redis版本"))
     region = serializers.CharField(help_text=_("地域"))
+    proxy_count = serializers.IntegerField(help_text=_("proxy节点数"))
+    master_count = serializers.IntegerField(help_text=_("master节点数"))
 
 
 class RedisTupleInfoSerializer(serializers.Serializer):
