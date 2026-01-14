@@ -28,7 +28,8 @@ from backend.dbm_aiagent.mcp_tools.redis.serializers.cluster_meta import (
     RedisBizNameInputSerializer,
     RedisClustersOutputSerializer,
     RedisEmptyInputSerializer,
-    RedisNodesSummarySerializer,
+    RedisMastersSummarySerializer,
+    RedisProxiesSummarySerializer,
     RedisTopoInputSerializer,
     RedisTopoOutputSerializer,
 )
@@ -55,7 +56,7 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
     )
     def list_my_bizs(self, request, *args, **kwargs):
         print("===>>> 我的id: {}".format(request.user))
-        return Response(list_my_redis_bizs(userID=request.user))
+        return Response(list_my_redis_bizs(userID=request.user.username))
 
     @mcp_tools_api_decorator(
         description=str(_("根据业务英文名查询业务详情")),
@@ -98,7 +99,7 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
     @mcp_tools_api_decorator(
         description=str(_("查询 Redis 集群的Proxy节点信息")),
         request_slz=RedisTopoInputSerializer,
-        response_slz=RedisTopoOutputSerializer,
+        response_slz=RedisProxiesSummarySerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMAMcpTools.REDIS_QUERY_META],
         name_prefix="redis_query_meta",
@@ -110,7 +111,7 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
     @mcp_tools_api_decorator(
         description=str(_("查询 Redis 集群的Master节点信息")),
         request_slz=RedisTopoInputSerializer,
-        response_slz=RedisNodesSummarySerializer,
+        response_slz=RedisMastersSummarySerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMAMcpTools.REDIS_QUERY_META],
         name_prefix="redis_query_meta",
