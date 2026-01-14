@@ -109,7 +109,7 @@ class MongoDBInstanceFixStatusFlow(MongoBaseFlow):
         ticket_type = serializers.CharField()
         infos = DataRow(many=True)
 
-    """MongoDBinstance状态修复flow"""
+    """MongoDB Mongos/instance 状态修复flow"""
 
     def __init__(self, root_id: str, data: Optional[Dict]):
         """
@@ -128,7 +128,7 @@ class MongoDBInstanceFixStatusFlow(MongoBaseFlow):
 
     def start(self):
         """
-        instance状态修复流程
+        Mongos/instance 状态修复流程
         1. 确认mongod/mongos的服务正常
         2. 修复DnsEntry 和 ClbEntry
         """
