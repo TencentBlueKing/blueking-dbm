@@ -142,11 +142,6 @@
       label: t('目标Proxy主机'),
     },
     {
-      case: '2核_4G_50G',
-      key: 'spec_name',
-      label: t('目标规格'),
-    },
-    {
       case: '标签1,标签2',
       key: 'labels',
       label: t('资源标签'),
@@ -323,7 +318,6 @@
           originProxy: {
             ip: item.proxy_ip,
           },
-          specId: item.spec_name,
         }),
       );
       return acc;

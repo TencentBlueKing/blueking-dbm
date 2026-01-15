@@ -125,6 +125,7 @@
             TicketTypes.MYSQL_PROXY_SWITCH,
             TicketTypes.MYSQL_PROXY_CONF_CHANGE,
             TicketTypes.MYSQL_PROXY_MIGRATE,
+            TicketTypes.MYSQL_PROXY_MIGRATE_INS,
           ],
           dbConsoleValue: 'mysql.toolbox.proxyAdd',
           id: TicketTypes.MYSQL_PROXY_ADD,
