@@ -33,7 +33,7 @@ class SubmitBillRedisFullBackupInputSerializer(SubmitBillRedisBaseInputSerialize
 
 
 class SubmitBillRedisProxyReduceOrIncreaseInputSerializer(SubmitBillRedisBaseInputSerializer):
-    proxy_change_count = serializers.IntegerField(help_text=_("proxy变动数量"))
+    proxy_change_count = serializers.IntegerField(help_text=_("proxy变动数量, 正整数"))
 
 
 class SubmitBillRedisProxyReduceByIpInputSerializer(SubmitBillRedisBaseInputSerializer):

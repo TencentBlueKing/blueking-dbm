@@ -12,11 +12,11 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 
-class GetSourceAccessInputSerializer(serializers.Serializer):
+class GetRedisSourceAccessInputSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务 id, bk_biz_id"))
     cluster_domain = serializers.CharField(help_text=_("集群域名，格式为xx.xx.xx.db"))
 
 
-class GetSourceAccessOutputSerializer(serializers.Serializer):
+class GetRedisSourceAccessOutputSerializer(serializers.Serializer):
     report = serializers.ListField(help_text=_("处理后的用户来源列表，需要渲染成表格"))
     failed_hosts = serializers.ListField(help_text=_("统计失败的主机列表。如果为空，不展示给用户。如果不为空，需要提示用户"))

@@ -29,7 +29,6 @@ class DBMMcpTools(StrStructuredEnum):
     REDIS_QUERY_LOG = EnumField("redis-query-log", "redis-query-log")
     REDIS_QUERY_METRIC = EnumField("redis-query-metric", "redis-query-metric")
     REDIS_BILL = EnumField("redis-bill", "redis-bill")
-    COMMON_TOOL = EnumField("common-tool", "common-tool")
 
 
 class DBMMCPTags(StrStructuredEnum):
