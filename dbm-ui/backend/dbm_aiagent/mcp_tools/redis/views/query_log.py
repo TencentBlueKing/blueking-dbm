@@ -12,48 +12,54 @@ import logging.config
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
-from backend.dbm_aiagent.mcp_tools.constants import DBMAMcpTools, DBMMCPTags
+from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
-from backend.dbm_aiagent.mcp_tools.redis.impl.redis_log import get_proxy_slowlog, get_redis_slowlog
+from backend.dbm_aiagent.mcp_tools.redis.impl.redis_slowlog import get_cluster_slowlog, get_host_slowlog
 from backend.dbm_aiagent.mcp_tools.redis.serializers.redis_log import (
+    RedisSlowlog4HostInputSerializer,
     RedisSlowlogInputSerializer,
     RedisSlowlogResponseSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import RejectPermission
 
-logger = logging.getLogger("flow")
+logger = logging.getLogger("root")
 
 
 class RedisQueryLogMcpToolsViewSet(McpToolsViewSet):
     default_permission_class = [RejectPermission()]
 
     @mcp_tools_api_decorator(
-        description=str(_("查询Redis慢查询日志(slowlog)，包括执行时间、命令内容、客户端信息等。可用于分析Redis性能问题和慢查询优化")),
+        description=str(_("查询Redis集群的慢查询日志(slowlog)，包括执行时间、命令内容等。可用于分析Redis性能问题和慢查询优化")),
         request_slz=RedisSlowlogInputSerializer,
         response_slz=RedisSlowlogResponseSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.REDIS_QUERY_LOG],
-        name_prefix="redis_query_slowlog",
-    )
-    def get_redis_slowlog(self, request, *args, **kwargs):
-        """获取Redis慢查询日志"""
-        redis_addr = self.get_param("redis_addr")
-        immute_domain = self.get_param("immute_domain")
-        count = self.get_param("count", 10)
-
-        return Response(get_redis_slowlog(redis_addr=redis_addr, immute_domain=immute_domain, count=count))
-
-    @mcp_tools_api_decorator(
-        description=str(_("查询Proxy慢日志")),
-        request_slz=RedisSlowlogInputSerializer,
-        response_slz=RedisSlowlogResponseSerializer,
-        tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.REDIS_QUERY_LOG],
+        mcp=[DBMMcpTools.REDIS_QUERY_LOG],
         name_prefix="redis_query_log",
     )
-    def get_proxy_slowlog(self, request, *args, **kwargs):
-        """获取Proxy实例的慢日志"""
-        redis_addr = self.get_param("redis_addr")
+    def fetch_cluster_slowlog(self, request, *args, **kwargs):
+        """获取集群时间范围内慢查询日志"""
+        start_time = self.get_param("start_time")
+        end_time = self.get_param("end_time")
         immute_domain = self.get_param("immute_domain")
-        return Response(get_proxy_slowlog(addr=redis_addr, immute_domain=immute_domain))
+
+        return Response(get_cluster_slowlog(immute_domain=immute_domain, start_time=start_time, end_time=end_time))
+
+    @mcp_tools_api_decorator(
+        description=str(_("查询某台机器上的慢查询日志(slowlog),包括执行时间、命令内容等。可用于分析Redis性能问题和慢查询优化")),
+        request_slz=RedisSlowlog4HostInputSerializer,
+        response_slz=RedisSlowlogResponseSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.REDIS_QUERY_LOG],
+        name_prefix="redis_query_log",
+    )
+    def fetch_host_slowlog(self, request, *args, **kwargs):
+        """获取某台机器上时间范围内慢查询日志"""
+        start_time = self.get_param("start_time")
+        end_time = self.get_param("end_time")
+        ip = self.get_param("ip")
+        immute_domain = self.get_param("immute_domain")
+
+        return Response(
+            get_host_slowlog(immute_domain=immute_domain, start_time=start_time, end_time=end_time, host=ip)
+        )
