@@ -835,6 +835,23 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         # 自动发现并填充该 MCP 服务器对应的工具
         "tools": [],
     },
+    {
+        "name": "dbmeta-update",
+        "description": """Database metadata update services for DBM platform.
+        DBM平台数据库元数据更新服务。
+        Constraints / 约束条件:
+        - Only business DBA primary can perform update operations - 只有业务 DBA 主负责人可执行更新操作
+        """,
+        # 主动授权 app_code
+        "target_app_codes": [APP_CODE],
+        "labels": ["dbmeta-update"],
+        # 是否启用：1-启用，0-停止
+        "status": 1,
+        # 是否公开
+        "is_public": False,
+        # 自动发现并填充该 MCP 服务器对应的工具
+        "tools": [],
+    },
 ]
 
 # 接入告警屏蔽的延迟秒, 默认 10s 无延迟
