@@ -26,6 +26,8 @@ class DBMAMcpTools(StrStructuredEnum):
     RESOURCE_QUERY = EnumField("resource-query", "resource-query")
     REDIS_QUERY_META = EnumField("redis-query-meta", "redis-query-meta")
     REDIS_QUERY_STATUS = EnumField("redis-query-status", "redis-query-status")
+    REDIS_QUERY_LOG = EnumField("redis-query-log", "redis-query-log")
+    REDIS_QUERY_METRIC = EnumField("redis-query-metric", "redis-query-metric")
     REDIS_BILL = EnumField("redis-bill", "redis-bill")
     COMMON_TOOL = EnumField("common-tool", "common-tool")
 
