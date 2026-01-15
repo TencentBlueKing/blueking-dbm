@@ -9,6 +9,7 @@ specific language governing permissions and limitations under the License.
 """
 from rest_framework.routers import DefaultRouter
 
+from backend.dbm_aiagent.mcp_tools.redis.views.get_source_access import GetRedisSourceAccessMcpToolsViewSet
 from backend.dbm_aiagent.mcp_tools.redis.views.query_meta import RedisQueryMetaMcpToolsViewSet
 from backend.dbm_aiagent.mcp_tools.redis.views.query_status import RedisQueryStatusMcpToolsViewSet
 from backend.dbm_aiagent.mcp_tools.redis.views.redis_bill_mcp import RedisBillMcpToolsViewSet
@@ -21,6 +22,9 @@ routers.register(r"", RedisQueryMetaMcpToolsViewSet, basename="mcp-redis-query-m
 routers.register(r"", RedisQueryStatusMcpToolsViewSet, basename="mcp-redis-query-status")
 # 与 dbm 交互 创建单据类的 操作
 routers.register(r"", RedisBillMcpToolsViewSet, basename="mcp-redis-bill")
+# 与 job 平台交互的 操作
+routers.register(r"", GetRedisSourceAccessMcpToolsViewSet, basename="mcp-get-redis-source-access")
+
 # 与 其他组件----
 # routers.register(r"", RedisMetaQueryMcpToolsViewSet, basename="mcp-redis-meta-query")
 

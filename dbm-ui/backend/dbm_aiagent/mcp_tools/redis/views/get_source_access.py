@@ -17,28 +17,28 @@ from rest_framework.response import Response
 
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
-from backend.dbm_aiagent.mcp_tools.common.impl.get_source_access_impl import generate_cluster_query_report
 from backend.dbm_aiagent.mcp_tools.common.impl.job import exec_cluster_query_net_tcp_cmd, get_job_exec_status
-from backend.dbm_aiagent.mcp_tools.common.serializers.get_source_access import (
-    GetSourceAccessInputSerializer,
-    GetSourceAccessOutputSerializer,
-)
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
+from backend.dbm_aiagent.mcp_tools.redis.impl.get_source_access_impl import generate_cluster_query_report
+from backend.dbm_aiagent.mcp_tools.redis.serializers.get_source_access import (
+    GetRedisSourceAccessInputSerializer,
+    GetRedisSourceAccessOutputSerializer,
+)
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 
-class GetSourceAccessMcpToolsViewSet(McpToolsViewSet):
+class GetRedisSourceAccessMcpToolsViewSet(McpToolsViewSet):
     default_permission_class = [DBManagePermission()]
 
     @mcp_tools_api_decorator(
-        description=str(_("""查询集群访问来源，返回访问来源列表""")),
-        request_slz=GetSourceAccessInputSerializer,
-        response_slz=GetSourceAccessOutputSerializer,
+        description=str(_("""查询Redis集群访问来源，返回来源列表""")),
+        request_slz=GetRedisSourceAccessInputSerializer,
+        response_slz=GetRedisSourceAccessOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.COMMON_TOOL],
-        name_prefix="common_tool",
+        mcp=[DBMMcpTools.DBM],
+        name_prefix="dbm_mcp",
     )
     def get_cluster_source_access(self, request, *args, **kwargs):
         bk_biz_id = self.get_param("bk_biz_id")
@@ -50,7 +50,7 @@ class GetSourceAccessMcpToolsViewSet(McpToolsViewSet):
             e.machine.ip for e in chain(cluster_obj.storageinstance_set.all(), cluster_obj.proxyinstance_set.all())
         ]
         # 如果是主从，那就是rs
-        if cluster_obj.cluster_type in (ClusterType.TendisRedisInstance):
+        if cluster_obj.cluster_type in (ClusterType.TendisRedisInstance, ClusterType.TendisRedisCluster):
             target_ips = [
                 {"ip": e.machine.ip, "bk_cloud_id": cluster_obj.bk_cloud_id}
                 for e in cluster_obj.storageinstance_set.all()
