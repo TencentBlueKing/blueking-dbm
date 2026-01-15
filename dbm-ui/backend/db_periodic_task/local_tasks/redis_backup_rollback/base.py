@@ -664,7 +664,7 @@ class RedisRollbackExercise:
         logger.debug(
             _("Checking backup records for instance {}:{} (type: {})").format(instance_ip, instance_port, cluster_type)
         )
-        sorted_days = sorted(rollback_days, reverse=True)
+        sorted_days = sorted(rollback_days)
         handler = DataStructureHandler(cluster_id=cluster_id)
         for days_before in sorted_days:
             try:
