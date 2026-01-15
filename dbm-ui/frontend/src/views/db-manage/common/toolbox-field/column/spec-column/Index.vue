@@ -139,7 +139,7 @@
   /**
    * 绑定当前选择的规格 ID
    */
-  const modelValue = defineModel<number>({
+  const modelValue = defineModel<number | string>({
     required: true,
   });
 
@@ -227,41 +227,37 @@
   );
 
   // 初始化
-  watch(
-    () => [modelValue.value, props.currentSpecIdList],
-    (newValue, oldValue) => {
-      if (props.selectable && modelValue.value && typeof modelValue.value !== 'string') {
-        const isExist = sortedSpecList.value.some((item) => item.spec_id === modelValue.value);
-        if (!isExist) {
-          modelValue.value = 0;
-          return;
-        }
+  watch(sortedSpecList, () => {
+    // 如果 modelValue 被设置为 字符串 时，若在规格列表中匹配到对应规格则选中（用于批量录入）
+    if (modelValue.value && typeof modelValue.value === 'string') {
+      const matchedSpecId = sortedSpecList.value.filter(
+        (item) => item.spec_name === (modelValue.value as unknown as string),
+      )?.[0]?.spec_id;
+      if (matchedSpecId) {
+        modelValue.value = matchedSpecId;
+      } else {
+        modelValue.value = '';
       }
-      if (oldValue && _.isEqual(newValue[1], oldValue[1])) {
-        return;
-      }
-      const currentSpecIdList = _.uniq(props.currentSpecIdList);
-      const isSame = currentSpecIdList.length === 1;
-      const [currentSpecId] = currentSpecIdList;
-      // 所有主机规格相同时则默认填充此规格。各主机规格不同时默认值留空。
-      if (!modelValue.value && isSame && currentSpecId && !props.disabledCurrentSpec) {
-        modelValue.value = currentSpecId;
-      }
+      return;
+    }
 
-      // 如果 modelValue 被设置为 字符串 时，若在规格列表中匹配到对应规格则选中（用于批量录入）
-      if (modelValue.value && typeof modelValue.value === 'string') {
-        const matchedSpecId = sortedSpecList.value.filter(
-          (item) => item.spec_name === (modelValue.value as unknown as string),
-        )?.[0]?.spec_id;
-        if (matchedSpecId) {
-          modelValue.value = matchedSpecId;
-        }
+    // 如果 modelValue 被设置为 数字 时，若在规格列表中匹配到对应规格则选中,否则重置
+    if (props.selectable && modelValue.value && typeof modelValue.value === 'number') {
+      const isExist = sortedSpecList.value.some((item) => item.spec_id === modelValue.value);
+      if (!isExist) {
+        modelValue.value = '';
       }
-    },
-    {
-      immediate: true,
-    },
-  );
+      return;
+    }
+
+    const currentSpecIdList = _.uniq(props.currentSpecIdList);
+    const isSame = currentSpecIdList.length === 1;
+    const [currentSpecId] = currentSpecIdList;
+    // 所有主机规格相同时则默认填充此规格。各主机规格不同时默认值留空。
+    if (modelValue.value === 0 && isSame && currentSpecId && !props.disabledCurrentSpec) {
+      modelValue.value = currentSpecId;
+    }
+  });
 
   const handleBatchEditShow = () => {
     showBatchEdit.value = true;

@@ -137,6 +137,11 @@
     manual: true,
     onSuccess(data) {
       masterSlavePair.value = data.instances;
+      if (slaves.value.length) {
+        handleChange(slaves.value.map((item) => item.instance_address));
+        handleToggle();
+        return;
+      }
       // 如果只有一个从库，自动选中
       if (allSlaveInstances.value.length === 1) {
         handleChange([allSlaveInstances.value[0].instance_address]);
@@ -163,9 +168,9 @@
     return '';
   };
 
-  const handleChange = async (values: string[]) => {
-    const selected = allSlaveInstances.value.filter((item) => values.includes(item.instance_address));
-    if (!selected.length) {
+  const handleChange = (values: string[]) => {
+    const list = allSlaveInstances.value.filter((item) => values.includes(item.instance_address));
+    if (!list.length) {
       slaves.value = [];
       master.value = {
         bk_biz_id: 0,
@@ -175,9 +180,11 @@
         ip: '',
         port: 0,
       };
+      selected.value = [];
       return;
     }
-    selectedInstances.value = selected;
+    selected.value = values;
+    selectedInstances.value = list;
   };
 
   // poper隐藏时再追加
@@ -247,18 +254,6 @@
           cluster_id: props.cluster.id,
           role: 'backend_slave,backend_repeater',
         });
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
-
-  watch(
-    slaves,
-    (newList) => {
-      if (newList.length) {
-        selected.value = slaves.value.map((item) => item.instance_address);
       }
     },
     {

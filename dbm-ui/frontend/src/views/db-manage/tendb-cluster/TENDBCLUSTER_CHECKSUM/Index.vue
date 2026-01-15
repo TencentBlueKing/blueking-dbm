@@ -394,6 +394,7 @@
           const rows = item.backup_infos.map((row) =>
             createTableRow({
               cluster: {
+                id: item.cluster_id,
                 master_domain: clusters[item.cluster_id].immute_domain || '',
               } as RowData['cluster'],
               db_patterns: row.db_patterns,

@@ -85,18 +85,42 @@ export default class BackupLogRecord {
     this.backup_time = payload.backup_time || '';
     this.backup_type = payload.backup_type || '';
     this.bill_id = payload.bill_id || '';
-    this.binlog_info = payload.binlog_info || {};
+    this.binlog_info = payload.binlog_info || {
+      show_master_status: {
+        binlog_file: '',
+        binlog_pos: '',
+        gtid: '',
+        master_host: '',
+        master_port: 0,
+      },
+      show_slave_status: {
+        binlog_file: '',
+        binlog_pos: '',
+        gtid: '',
+        master_host: '',
+        master_port: 0,
+      },
+    };
     this.bk_biz_id = payload.bk_biz_id || 0;
     this.cluster_address = payload.cluster_address || '';
     this.cluster_id = payload.cluster_id || 0;
     this.backup_tool = payload.backup_tool || '';
     this.database_list = payload.database_list || [];
     this.data_schema_grant = payload.data_schema_grant || '';
-    this.extra_fields = payload.extra_fields || {};
+    this.extra_fields = payload.extra_fields || {
+      backup_charset: '',
+      bk_cloud_id: 0,
+      encrypt_enable: false,
+      storage_engine: '',
+      time_zone: '',
+      total_size_kb_uncompress: 0,
+    };
     this.total_filesize = payload.total_filesize || 0;
     this.backup_tool = payload.backup_tool || '';
     this.file_list = payload.file_list || [];
-    this.index = payload.index || {};
+    this.index = payload.index || {
+      file_name: '',
+    };
     this.instance_ip = payload.instance_ip || '';
     this.instance_port = payload.instance_port || 0;
     this.is_full_backup = payload.is_full_backup || 0;
