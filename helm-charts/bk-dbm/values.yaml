@@ -19,6 +19,9 @@ global:
     enabled: true
   ## 云区域容器化
   cloudContainer: true
+  ## 租户配置
+  enableMultiTenantMode: false
+  tenantId: "default"
 
 # bk public
 bk:

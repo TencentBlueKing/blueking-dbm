@@ -425,6 +425,7 @@ class DataAPI(object):
             {
                 "X-Bkapi-Request-Id": self.request_id,
                 "blueking-language": translation.get_language(),
+                "X-Bk-Tenant-Id": env.BK_TENANT_ID,
             }
         )
         # 增加鉴权信息，非 dict 类型的 params 使用默认值
