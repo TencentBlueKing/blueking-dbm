@@ -739,18 +739,11 @@ func (sw *TenDBClusterSpiderSwitchInstance) HandleInvolvedPrimaryTdbctl() error 
 	return nil
 }
 
-// DeleteOwnRoutes remove two route items of current broken spider and its tdbctl from cluster route table
+// DeleteOwnRoutes remove route items of current broken spider (and its tdbctl if exists) from cluster route table
 func (sw *TenDBClusterSpiderSwitchInstance) DeleteOwnRoutes(primaryTdbctlDB *hamysql.GormDB) error {
 	curSpiderRoute, curSpiderExists := sw.GetRouteInfoFromCache(sw.IP, sw.Port)
 	if !curSpiderExists {
 		errMsg := fmt.Sprintf("failed to get route info of current spider(%s:%d) from route cache", sw.IP, sw.Port)
-		sw.ReportLogf(SwitchWarn, "when deleting own routes, %s", errMsg)
-		return gerrors.New(gerrors.Failure, errMsg)
-	}
-
-	curTdbctlRoute, curTdbctlExists := sw.GetRouteInfoFromCache(sw.IP, sw.AdminPort)
-	if !curTdbctlExists {
-		errMsg := fmt.Sprintf("failed to get route info of current tdbctl(%s:%d) from route cache", sw.IP, sw.AdminPort)
 		sw.ReportLogf(SwitchWarn, "when deleting own routes, %s", errMsg)
 		return gerrors.New(gerrors.Failure, errMsg)
 	}
@@ -765,6 +758,21 @@ func (sw *TenDBClusterSpiderSwitchInstance) DeleteOwnRoutes(primaryTdbctlDB *ham
 		sw.ReportLogf(SwitchWarn, "failed to delete route item of %s on primary(%s:%d): %s",
 			sw.ToNodeName(curSpiderRoute), sw.PrimaryTdbctl.Host, sw.PrimaryTdbctl.Port, err.Error())
 		return err
+	}
+
+	// spider_slave nodes do not have corresponding tdbctl nodes, only spider_master nodes have tdbctl
+	curTdbctlRoute, curTdbctlExists := sw.GetRouteInfoFromCache(sw.IP, sw.AdminPort)
+	if !curTdbctlExists {
+		if sw.SpiderRole == dbm.TenDBClusterSpiderSlave {
+			sw.ReportLogf(SwitchInfo, "spider_slave(%s:%d) does not have corresponding tdbctl, skip deleting tdbctl route",
+				sw.IP, sw.Port)
+			sw.ReportLogf(SwitchInfo, "successfully deleted route item of %s on primary(%s:%d)",
+				sw.ToNodeName(curSpiderRoute), sw.PrimaryTdbctl.Host, sw.PrimaryTdbctl.Port)
+			return nil
+		}
+		errMsg := fmt.Sprintf("failed to get route info of current tdbctl(%s:%d) from route cache", sw.IP, sw.AdminPort)
+		sw.ReportLogf(SwitchWarn, "when deleting own routes, %s", errMsg)
+		return gerrors.New(gerrors.Failure, errMsg)
 	}
 
 	if err := sw.TdbctlDropNode(primaryTdbctlDB, curTdbctlRoute.ServerName); err != nil {
