@@ -23,9 +23,9 @@ class ExplainSQLInputSerializer(serializers.Serializer):
 
 
 class ExplainSQLOutputSerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
-    cluster_type = serializers.CharField(help_text=_("集群类型"))
-    cluster_domain = serializers.CharField(help_text=_("集群域名"))
-    dbname = serializers.CharField(help_text=_("库名"))
-    query_sql = serializers.CharField(help_text=_("需要分析的 SQL 语句"))
+    # bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
+    # cluster_type = serializers.CharField(help_text=_("集群类型"))
+    # cluster_domain = serializers.CharField(help_text=_("集群域名"))
+    # dbname = serializers.CharField(help_text=_("库名"))
+    # query_sql = serializers.CharField(help_text=_("需要分析的 SQL 语句"))
     explain_result = serializers.DictField(help_text=_("explain sql 的执行计划结果"))

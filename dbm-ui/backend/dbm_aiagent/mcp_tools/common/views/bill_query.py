@@ -62,8 +62,8 @@ class BillQueryMcpToolsViewSet(McpToolsViewSet):
 
         return Response(
             {
-                "bk_biz_id": bk_biz_id,
-                "bill_id": bill_id,
+                # "bk_biz_id": bk_biz_id,
+                # "bill_id": bill_id,
                 "status": tk.status,
                 "current_flow": current_flow,
                 "cost_time_seconds": tk.get_cost_time(),
