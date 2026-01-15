@@ -5,6 +5,7 @@
     :enable-popup="false"
     :hide-nimbus="hideNimbus"
     load-recent-session-on-mount
+    nimbus-size="large"
     :show-history-icon="showHistoryIcon"
     :show-more-icon="showMoreIcon"
     :show-new-chat-icon="showNewChatIcon"
@@ -20,4 +21,3 @@
 
   const { aiBluekingRef, apiUrl, hideNimbus, showHistoryIcon, showMoreIcon, showNewChatIcon } = useState();
 </script>
-=
