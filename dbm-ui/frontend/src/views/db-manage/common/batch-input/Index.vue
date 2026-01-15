@@ -39,7 +39,12 @@
           <strong>
             {{ item.label }}
           </strong>
-          <p class="pt-8">{{ item.case }}</p>
+          <p class="pt-8">
+            {{ item.case }}
+            <span v-if="item.values?.length">
+              {{ t('(可填示例：xx)', [item.values.join('/')]) }}
+            </span>
+          </p>
         </div>
         <DbIcon
           v-bk-tooltips="t('复制格式')"
@@ -89,6 +94,7 @@
       case: string;
       key: string;
       label: string;
+      values?: string[];
     }[];
     disabled?: boolean;
     tooltipsContent?: string;
