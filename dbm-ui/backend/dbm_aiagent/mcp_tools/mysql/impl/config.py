@@ -8,8 +8,20 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from .mysql_bill_mcp import MySQLBillMcpToolsViewSet
-from .mysql_metrics_mcp import MySQLMetricsMcpToolsViewSet
-from .mysql_query_mcp import MySQLQueryMcpToolsViewSet
-from .mysql_slowlog_mcp import MySQLSlowlogMcpToolsViewSet
-from .sql_syntax_check_mcp import SqlSyntaxCheckMcpViewSet
+from backend import env
+from backend.components import BKLogApi
+
+MYSQL_SLOW_LOG_INDEX_SET_ID = 0
+
+
+def init_collectors_index_set_id():
+    global MYSQL_SLOW_LOG_INDEX_SET_ID
+
+    if env.MYSQL_SLOW_LOG_INDEX_SET_ID:
+        MYSQL_SLOW_LOG_INDEX_SET_ID = env.MYSQL_SLOW_LOG_INDEX_SET_ID
+        return
+
+    data = BKLogApi.list_collectors({"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "pagesize": 500, "page": 1}, use_admin=True)
+    collectors_name__info_map = {collector["collector_config_name_en"]: collector for collector in data["list"]}
+    MYSQL_SLOW_LOG_INDEX_SET_ID = collectors_name__info_map["mysql_slowlog"]["index_set_id"]
+    # print("xxxx", MYSQL_SLOW_LOG_INDEX_SET_ID)

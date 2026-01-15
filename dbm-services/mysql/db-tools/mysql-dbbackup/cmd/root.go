@@ -12,9 +12,11 @@ import (
 
 	meta "dbm-services/common/reverseapi/define/mysql"
 	"dbm-services/common/reverseapi/pkg"
+	"dbm-services/mysql/db-tools/mysql-crond/pkg/third_party/instance_info_updater"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 )
 
 // DbbackupVersion TODO
@@ -80,6 +82,13 @@ func initConfig(confFile string, cnf *config.BackupConfig, log *logrus.Logger) e
 	if err != nil {
 		log.Fatalf("parse config failed: %v", err)
 	}
+
+	// 如果是非 master，要检查是否有 show slave status 有主库信息
+	// 解决新机重建场景下，reset slave信息之后没有下架，可能导致错误的备份记录污染
+	logger.Log.Infof("update common_config instance info begin")
+	if err = instance_info_updater.DoUpdate(int64(cnf.Public.BkCloudId)); err != nil {
+		logger.Log.Warnf("update common_config instance info failed: %v", err)
+	}
 	// 如果是在 remote 上执行，common_config 中一般获取不到 is_standby，会忽略错误
 	if instInfo, err := pkg.GetSelfInfo(cnf.Public.MysqlHost, cnf.Public.MysqlPort); err == nil {
 		if instInfo.IsStandBy {
@@ -87,6 +96,7 @@ func initConfig(confFile string, cnf *config.BackupConfig, log *logrus.Logger) e
 		} else {
 			dbareport.VarIsStandby = "no"
 		}
+
 		if instInfo.AccessLayer == meta.AccessLayerStorage && instInfo.InstanceInnerRole != "" {
 			cnf.Public.MysqlRole = instInfo.InstanceInnerRole
 			log.Infof("use role from common_config:%s, config:%s",

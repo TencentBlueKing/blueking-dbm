@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import json
+import copy
 from typing import Dict
 
 from django.utils import timezone
@@ -17,7 +17,44 @@ from backend import env
 from backend.components import BKLogApi
 from backend.db_meta.enums import ClusterType
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException
-from backend.utils.time import datetime2str
+from backend.utils.time import datetime2str, timezone2timestamp
+
+from . import config
+
+SLOW_LOG_QUERY_PARAM = {
+    "reference_name": "a",
+    "data_source": "bklog",
+    "table_id": "bklog_index_set_%d",
+    "field_name": "query_time",
+    "is_regexp": False,
+    "time_field": "time",
+    "function": [
+        {
+            "method": "max",
+            "dimensions": [
+                "__ext.cluster_domain",
+                "__ext.instance_role",
+                "user",
+                "slow_query.db_name",
+                "slow_query.table_name",
+                "slow_query.query_digest_md5",
+                # "slow_query.query_digest_text"
+                # sql_text
+            ],
+        }
+    ],
+    # "time_aggregation": {"window": "5m", "function": "max_over_time"},
+    "conditions": {
+        "field_list": [
+            {
+                "field_name": "__ext.cluster_domain",
+                "op": "eq",
+                "value": [],
+            }
+        ],
+    },
+    "limit": 10,
+}
 
 
 def query_slow_logs(
@@ -28,32 +65,59 @@ def query_slow_logs(
     end_time: timezone.datetime,
 ) -> Dict:
     try:
+        if not config.MYSQL_SLOW_LOG_INDEX_SET_ID:
+            raise DBMMcpBaseException(msg="MYSQL_SLOW_LOG_INDEX_SET_ID is not set")
+        SLOW_LOG_QUERY_PARAM["table_id"] = SLOW_LOG_QUERY_PARAM["table_id"] % config.MYSQL_SLOW_LOG_INDEX_SET_ID
+
+        query_time_param = copy.deepcopy(SLOW_LOG_QUERY_PARAM)
+        query_time_param["reference_name"] = "a"
+        query_time_param["field_name"] = "query_time"
+        query_time_param["function"][0]["method"] = "max"
+        query_time_param["conditions"]["field_list"][0]["value"] = [cluster_domain]
+        # query_time_param["conditions"]["field_list"][1]["value"] = [instance_role]
+
+        slow_count_param = copy.deepcopy(SLOW_LOG_QUERY_PARAM)
+        slow_count_param["reference_name"] = "b"
+        slow_count_param["field_name"] = "query_time"
+        slow_count_param["function"][0]["method"] = "count"
+        slow_count_param["conditions"]["field_list"][0]["value"] = [cluster_domain]
+        # slow_count_param["conditions"]["field_list"][1]["value"] = [instance_role]
+
+        rows_scan_param = copy.deepcopy(SLOW_LOG_QUERY_PARAM)
+        rows_scan_param["reference_name"] = "c"
+        rows_scan_param["field_name"] = "rows_examined"
+        rows_scan_param["function"][0]["method"] = "sum"
+        rows_scan_param["conditions"]["field_list"][0]["value"] = [cluster_domain]
+        # rows_scan_param["conditions"]["field_list"][1]["value"] = [instance_role]
+
         query_params = {
-            "indices": f"{env.DBA_APP_BK_BIZ_ID}_bklog.mysql_slowlog",
-            "start_time": datetime2str(start_time),
-            "end_time": datetime2str(end_time),
+            "start_time": str(timezone2timestamp(start_time)),  # "1754893191"
+            "end_time": str(timezone2timestamp(end_time)),
             # 这里需要精确查询集群域名，所以可以通过log: "key: \"value\""的格式查询
             # "query_string": f"cluster_domain: \"{cluster_domain}\" AND instance_role: \"{instance_role}\"",
-            "query_string": f'__ext.cluster_domain: "{cluster_domain}" __ext.instance_role: "{instance_role}"',
-            "start": 0,
-            "size": 1000,
-            "sort_list": [["dtEventTimeStamp", "asc"], ["gseIndex", "asc"], ["iterationIndex", "asc"]],
+            "query_list": [
+                query_time_param,
+            ],
+            "metric_merge": "a",
+            "order_by": ["time"],
+            "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+            "bk_app_code": env.APP_CODE,
+            "bk_app_secret": env.SECRET_KEY,
+            "bk_username": env.DEFAULT_USERNAME,
         }
-        resp = BKLogApi.esquery_search(
+        resp = BKLogApi.query_ts_reference(
             query_params,
             use_admin=True,
         )
-        print(json.dumps(resp))
+        # {"result": true, "data": {"series": []}, "code": 0, "message": "", "request_id": null}
+        # response_result = {'result': True, 'data': {'series': []}, 'code': 0, 'message': ''}
         slog_logs = []
-        for hit in resp["hits"]["hits"]:
-            log_source = hit.get("_source", None)
-            if log_source is None:
-                continue
-            slow_query = log_source.get("slow_query", None)
-            if slow_query is None:
-                continue
-            query_string = slow_query.get("query_string", "")
-            slog_logs.append(query_string)
+        for row in resp["series"]:
+            item = {}
+            for i, value in enumerate(row["group_values"]):
+                item[row["group_keys"][i]] = value
+            item[row["metric_name"]] = row["values"][-1]
+            slog_logs.append(item)
     except Exception as e:
         raise DBMMcpBaseException(msg=f"query slow logs failed: {e}")
 
@@ -62,3 +126,54 @@ def query_slow_logs(
         "cluster_type": cluster_type,
         "slog_logs": slog_logs,
     }
+
+
+def query_slow_log_detail(
+    cluster_domain: str,
+    query_digest_md5: str,
+    start_time: timezone.datetime,
+    end_time: timezone.datetime,
+) -> Dict:
+    query_params = {
+        "indices": f"{env.DBA_APP_BK_BIZ_ID}_bklog.mysql_slowlog",
+        "start_time": datetime2str(start_time),
+        "end_time": datetime2str(end_time),
+        # 这里需要精确查询集群域名，所以可以通过log: "key: \"value\""的格式查询
+        "query_string": f'slow_query.query_digest_md5:"{query_digest_md5}" AND __ext.cluster_domain: "{cluster_domain}"',
+        "start": 0,
+        "size": 1,
+        "sort_list": [["dtEventTimeStamp", "asc"], ["gseIndex", "asc"], ["iterationIndex", "asc"]],
+    }
+    resp = BKLogApi.esquery_search(
+        query_params,
+        use_admin=True,
+    )
+
+    for hit in resp["hits"]["hits"]:
+        one_slow_log = {}
+        source_log = hit["_source"]
+        if source_log.get("slow_query", None) or not source_log.get("__parse_failure", True):
+            one_slow_log["query_digest_md5"] = source_log["slow_query"].pop("query_digest_md5")
+            one_slow_log["query_digest_text"] = source_log["slow_query"].pop("query_digest_text")
+            one_slow_log["sql_text"] = source_log["slow_query"].pop("query_string")
+            if source_log.get("db_name", ""):
+                one_slow_log["db_name"] = source_log["db_name"]
+            else:
+                source_log["slow_query"].pop("db_name")
+            one_slow_log["table_name"] = source_log["slow_query"].pop("table_name")
+            one_slow_log["cluster_domain"] = source_log["__ext"].pop("cluster_domain")
+            one_slow_log["instance_role"] = source_log["__ext"].pop("instance_role")
+            one_slow_log["instance_host"] = source_log["__ext"].pop("instance_host")
+            one_slow_log["instance_port"] = source_log["__ext"].pop("instance_port")
+            one_slow_log["cluster_type"] = source_log["__ext"].pop("cluster_type")
+            one_slow_log["bk_biz_id"] = source_log["__ext"].pop("app_id")
+
+            one_slow_log["client_host"] = source_log["client_host"]
+            one_slow_log["user"] = source_log["user"]
+            one_slow_log["query_time"] = source_log["query_time"]
+            one_slow_log["rows_sent"] = source_log["rows_sent"]
+            one_slow_log["rows_examined"] = source_log["rows_examined"]
+            one_slow_log["lock_time"] = source_log["lock_time"]
+            one_slow_log["sql_timestamp"] = source_log["sql_timestamp"]
+        # 这里只返回一个
+        return one_slow_log

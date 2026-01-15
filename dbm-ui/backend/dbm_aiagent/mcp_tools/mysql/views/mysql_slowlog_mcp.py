@@ -15,8 +15,9 @@ from rest_framework.response import Response
 
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
-from backend.dbm_aiagent.mcp_tools.mysql.impl.mysql_slowlog import query_slow_logs
+from backend.dbm_aiagent.mcp_tools.mysql.impl.mysql_slowlog import query_slow_log_detail, query_slow_logs
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_slowlog import (
+    MysqlOneSlowlogInputSerializer,
     MysqlSlowlogInputSerializer,
     MysqlSlowlogOutputSerializer,
 )
@@ -30,7 +31,13 @@ class MySQLSlowlogMcpToolsViewSet(McpToolsViewSet):
     default_permission_class = [DBManagePermission()]
 
     @mcp_tools_api_decorator(
-        description=str(_("获取 tendbsingle, tendbha, tendbcluster 集群的慢查询统计信息")),
+        description=str(
+            _(
+                "获取 tendbsingle, tendbha, tendbcluster 集群的慢查询统计信息。返回的 slow_logs 结果里面字段解读如下：\n"
+                "slow_query.query_digest_text: 是慢日志摘要字段，也叫 digest_text 或者 fingerprint;\n"
+                "slow_query.query_digest_md5: 是慢日志摘要字段的 MD5 值，也叫 digest 或者 query_digest;\n"
+            )
+        ),
         request_slz=MysqlSlowlogInputSerializer,
         response_slz=MysqlSlowlogOutputSerializer,
         tags=[DBMMCPTags.READ],
@@ -50,6 +57,40 @@ class MySQLSlowlogMcpToolsViewSet(McpToolsViewSet):
                 cluster_type=cluster_type,
                 cluster_domain=cluster_domain,
                 instance_role=instance_role,
+                start_time=start_time,
+                end_time=end_time,
+            )
+        )
+
+    @mcp_tools_api_decorator(
+        description=str(
+            _(
+                "根据 query_digest 获取 mysql 某一条慢查询详情。返回的 slow_logs 结果里面字段解读如下：\n"
+                "query_digest_text: 是慢日志摘要文本，也叫 digest_text 或者 fingerprint;\n"
+                "query_digest_md5: 是慢日志摘要字段的 MD5 值，也叫 digest 或者 query_digest;\n"
+                "sql_text: 是慢日志的原始 SQL 文本，如果提到 sql 详情，或者 sql原文，指的就是这个字段;\n"
+                "db_name: 是慢日志涉及的数据库名;\n"
+                "table_name: 是慢日志涉及的表名;\n"
+                "rows_examined: 是慢日志扫描的行数，也叫 rows_scan;\n"
+            )
+        ),
+        request_slz=MysqlOneSlowlogInputSerializer,
+        response_slz=MysqlSlowlogOutputSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.MYSQL_SLOWLOG],
+        name_prefix="mysql_slowlog",
+    )
+    def query_mysql_slow_log_detail(self, request, *args, **kwargs):
+        bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
+        cluster_domain = self.get_param("cluster_domain")
+        query_digest_md5 = self.get_param("query_digest_md5")
+        start_time = self.get_param("start_time")
+        end_time = self.get_param("end_time")
+
+        return Response(
+            query_slow_log_detail(
+                cluster_domain=cluster_domain,
+                query_digest_md5=query_digest_md5,
                 start_time=start_time,
                 end_time=end_time,
             )
