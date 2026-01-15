@@ -456,6 +456,7 @@ class DBActuatorActionEnum(StrStructuredEnum):
     DoOnlineDDL = EnumField("do-online-ddl", _("do-online-ddl"))
     CloneClientGrant = EnumField("clone-client-grant", _("clone-client-grant"))
     CloneProxyUser = EnumField("clone-proxy-user", _("clone-proxy-user"))
+    RestoreProxyWhitelist = EnumField("restore-proxy-whitelist", _("restore-proxy-whitelist"))
     ClearCrontab = EnumField("clear-crontab", _("clear-crontab"))
     SemanticCheck = EnumField("semantic-check", _("semantic-check"))
     SemanticDumpSchema = EnumField("semantic-dumpschema", _("semantic-dumpschema"))

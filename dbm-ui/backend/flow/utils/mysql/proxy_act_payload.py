@@ -151,7 +151,9 @@ class ProxyActPayload(object):
         """
         master = ""
         cluster = Cluster.objects.get(id=kwargs["cluster_id"])
-        proxy_port = cluster.proxyinstance_set.first().port
+        first_proxy = cluster.proxyinstance_set.first()
+        # 救援场景下旧 Proxy 元数据可能不存在，此时从 kwargs 获取端口（由调用方传入）
+        proxy_port = first_proxy.port if first_proxy else kwargs.get("proxy_port")
         try:
             master = cluster.storageinstance_set.get(
                 instance_inner_role=InstanceInnerRole.MASTER, status=InstanceStatus.RUNNING
