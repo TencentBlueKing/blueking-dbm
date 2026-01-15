@@ -23,6 +23,7 @@ import (
 	"k8s-dbs/metadata/dbaccess"
 	entitys "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -42,6 +43,22 @@ type K8sCrdComponentProvider interface {
 // K8sCrdComponentProviderImpl K8sCrdComponentProvider 具体实现
 type K8sCrdComponentProviderImpl struct {
 	dbAccess dbaccess.K8sCrdComponentDbAccess
+}
+
+var (
+	componentInstance K8sCrdComponentProvider
+	componentOnce     sync.Once
+)
+
+// GetK8sCrdComponentProvider 获取 K8sCrdComponentProvider 单例实例
+func GetK8sCrdComponentProvider(dbAccess dbaccess.K8sCrdComponentDbAccess) K8sCrdComponentProvider {
+	componentOnce.Do(func() {
+		componentInstance = &K8sCrdComponentProviderImpl{dbAccess: dbAccess}
+	})
+	if componentInstance == nil {
+		panic("K8sCrdComponentProvider instance is nil after initialization")
+	}
+	return componentInstance
 }
 
 // FindComponentsByParams 参数查询实现
@@ -67,7 +84,8 @@ func (k K8sCrdComponentProviderImpl) DeleteComponentByClusterID(id uint64) (uint
 
 // CreateComponent 创建 component
 func (k K8sCrdComponentProviderImpl) CreateComponent(entity *entitys.K8sCrdComponentEntity) (
-	*entitys.K8sCrdComponentEntity, error,
+	*entitys.K8sCrdComponentEntity,
+	error,
 ) {
 	k8sCrdComponentModel := models.K8sCrdComponentModel{}
 	if err := copier.Copy(&k8sCrdComponentModel, entity); err != nil {
@@ -118,9 +136,4 @@ func (k K8sCrdComponentProviderImpl) UpdateComponent(entity *entitys.K8sCrdCompo
 	}
 
 	return rows, nil
-}
-
-// NewK8sCrdComponentProvider 创建 K8sCrdComponentDbAccess 接口实现实例
-func NewK8sCrdComponentProvider(dbAccess dbaccess.K8sCrdComponentDbAccess) K8sCrdComponentProvider {
-	return &K8sCrdComponentProviderImpl{dbAccess}
 }

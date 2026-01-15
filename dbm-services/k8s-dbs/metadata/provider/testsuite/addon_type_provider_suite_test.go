@@ -80,8 +80,8 @@ func (suite *AddonTypeProviderTestSuite) SetupSuite() {
 	}
 	dbAccess := dbaccess.GetAddonTypeDbAccess(db)
 	categoryDbAccess := dbaccess.GetAddonCategoryDbAccess(db)
-	suite.addonTypeProvider = provider.NewAddonTypeProvider(dbAccess, categoryDbAccess)
-	suite.addonCategoryProvider = provider.NewAddonCategoryProvider(categoryDbAccess, dbAccess)
+	suite.addonTypeProvider = provider.GetAddonTypeProvider(dbAccess, categoryDbAccess)
+	suite.addonCategoryProvider = provider.GetAddonCategoryProvider(categoryDbAccess, dbAccess)
 }
 
 func (suite *AddonTypeProviderTestSuite) TearDownSuite() {

@@ -74,7 +74,7 @@ func (suite *AddonClusterHelmRepoControllerTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 	dbAccess := dbaccess.GetAcHelmRepoDbAccess(db)
-	addonProvider := provider.NewAddonClusterHelmRepoProvider(dbAccess)
+	addonProvider := provider.GetAddonClusterHelmRepoProvider(dbAccess)
 	clusterHelmRepoController := controller.NewClusterHelmRepoController(addonProvider)
 	suite.clusterHelmRepoController = clusterHelmRepoController
 	gin.SetMode(gin.TestMode)

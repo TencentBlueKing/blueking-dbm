@@ -69,7 +69,7 @@ func (suite *AddonTypeControllerTestSuite) SetupSuite() {
 	}
 	dbAccess := dbaccess.GetAddonTypeDbAccess(db)
 	categoryDbAccess := dbaccess.GetAddonCategoryDbAccess(db)
-	addonProvider := provider.NewAddonTypeProvider(dbAccess, categoryDbAccess)
+	addonProvider := provider.GetAddonTypeProvider(dbAccess, categoryDbAccess)
 	addonTypeController := controller.NewAddonTypeController(addonProvider)
 	suite.addonTypeController = addonTypeController
 	gin.SetMode(gin.TestMode)

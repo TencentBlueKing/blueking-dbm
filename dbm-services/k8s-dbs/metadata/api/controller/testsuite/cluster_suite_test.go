@@ -77,7 +77,7 @@ func (suite *ClusterControllerTestSuite) SetupSuite() {
 	addonTopologyDbAccess := dbaccess.GetAddonTopologyDbAccess(db)
 
 	builder := &provider.K8sCrdClusterProviderBuilder{}
-	clusterProvider, err := provider.NewK8sCrdClusterProvider(
+	clusterProvider := provider.GetK8sCrdClusterProvider(
 		builder.WithClusterDbAccess(clusterDbAccess),
 		builder.WithAddonDbAccess(addonDbAccess),
 		builder.WithClusterTagDbAccess(clusterTagDbAccess),

@@ -33,7 +33,7 @@ import (
 func BuildClusterConfigMetaRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group(BasePath)
 	k8sClusterConfigDbAccess := metadbaccess.GetK8sClusterConfigDbAccess(db)
-	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
+	k8sClusterConfigProvider := metaprovider.GetK8sClusterConfigProvider(k8sClusterConfigDbAccess)
 	k8sClusterConfigController := metacontroller.NewK8sClusterConfigController(k8sClusterConfigProvider)
 	k8sClusterConfigMetaGroup := metaRouter.Group("/k8s_cluster_config")
 	{

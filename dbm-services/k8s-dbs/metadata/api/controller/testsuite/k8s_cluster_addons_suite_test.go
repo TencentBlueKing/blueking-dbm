@@ -58,7 +58,7 @@ func (suite *K8sClusterAddonsControllerTestSuite) SetupSuite() {
 	}
 	kcaDbAccess := dbaccess.GetK8sClusterAddonsDbAccess(db)
 	saDbAccess := dbaccess.GetStorageAddonDbAccess(db)
-	k8sClusterAddonsProvider := provider.NewK8sClusterAddonsProvider(kcaDbAccess, saDbAccess)
+	k8sClusterAddonsProvider := provider.GetK8sClusterAddonsProvider(kcaDbAccess, saDbAccess)
 	k8sClusterAddonsController := controller.NewK8sClusterAddonsController(k8sClusterAddonsProvider)
 	suite.k8sClusterAddonsController = k8sClusterAddonsController
 	gin.SetMode(gin.TestMode)

@@ -75,7 +75,7 @@ func (suite *AddonTopologyControllerTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 	dbAccess := dbaccess.GetAddonTopologyDbAccess(db)
-	addonProvider := provider.NewAddonTopologyProvider(dbAccess)
+	addonProvider := provider.GetAddonTopologyProvider(dbAccess)
 	addonTopologyController := controller.NewAddonTopologyController(addonProvider)
 	suite.addonTopologyController = addonTopologyController
 	gin.SetMode(gin.TestMode)

@@ -30,6 +30,7 @@ import (
 	metaentity "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
 	"log/slog"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -61,6 +62,11 @@ type K8sCrdClusterProviderImpl struct {
 	addonTopologyDbAccess    dbaccess.AddonTopologyDbAccess
 	addonTypeDbAccess        dbaccess.AddonTypeDbAccess
 }
+
+var (
+	clusterInstance K8sCrdClusterProvider
+	clusterOnce     sync.Once
+)
 
 // K8sCrdClusterProviderOptions K8sCrdClusterProvider 函数选项
 type K8sCrdClusterProviderOptions func(*K8sCrdClusterProviderImpl)
@@ -442,15 +448,21 @@ func (k *K8sCrdClusterProviderImpl) validateProvider() error {
 	return nil
 }
 
-// NewK8sCrdClusterProvider 创建 K8sCrdClusterProvider 接口实现实例
-func NewK8sCrdClusterProvider(option ...K8sCrdClusterProviderOptions) (*K8sCrdClusterProviderImpl, error) {
-	provider := &K8sCrdClusterProviderImpl{}
-	for _, option := range option {
-		option(provider)
-	}
+// GetK8sCrdClusterProvider 获取 K8sCrdClusterProvider 单例实例
+func GetK8sCrdClusterProvider(options ...K8sCrdClusterProviderOptions) K8sCrdClusterProvider {
+	clusterOnce.Do(func() {
+		provider := &K8sCrdClusterProviderImpl{}
+		for _, option := range options {
+			option(provider)
+		}
 
-	if err := provider.validateProvider(); err != nil {
-		return nil, errors.Wrap(err, "validate provider failed")
+		if err := provider.validateProvider(); err != nil {
+			panic(errors.Wrap(err, "validate provider failed"))
+		}
+		clusterInstance = provider
+	})
+	if clusterInstance == nil {
+		panic("K8sCrdClusterProvider instance is nil after initialization")
 	}
-	return provider, nil
+	return clusterInstance
 }

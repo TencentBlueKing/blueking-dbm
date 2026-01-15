@@ -71,7 +71,7 @@ func (suite *ComponentOperationControllerTestSuite) SetupSuite() {
 	}
 	componentOpDbAccess := dbaccess.GetComponentOperationDbAccess(db)
 	opDefDbAccess := dbaccess.GetOperationDefinitionDbAccess(db)
-	componentOpProvider := provider.NewComponentOperationProvider(componentOpDbAccess, opDefDbAccess)
+	componentOpProvider := provider.GetComponentOperationProvider(componentOpDbAccess, opDefDbAccess)
 	componentOperationController := controller.NewComponentOperationController(componentOpProvider)
 	suite.componentOperationController = componentOperationController
 	gin.SetMode(gin.TestMode)

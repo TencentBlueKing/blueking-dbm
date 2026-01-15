@@ -33,7 +33,7 @@ import (
 func BuildClusterReleaseMetaRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group(BasePath)
 	addonClusterReleaseDbAccess := metadbaccess.GetAcReleaseDbAccess(db)
-	addonClusterReleaseProvider := metaprovider.NewAddonClusterReleaseProvider(addonClusterReleaseDbAccess)
+	addonClusterReleaseProvider := metaprovider.GetAddonClusterReleaseProvider(addonClusterReleaseDbAccess)
 	clusterReleaseController := metacontroller.NewClusterReleaseController(addonClusterReleaseProvider)
 	clusterReleaseGroup := metaRouter.Group("/cluster_release")
 	{

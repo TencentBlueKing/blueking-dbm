@@ -72,7 +72,7 @@ func (suite *ClusterTagProviderTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 	dbAccess := dbaccess.GetClusterTagDbAccess(db)
-	clusterProvider := provider.NewK8sCrdClusterTagProvider(dbAccess)
+	clusterProvider := provider.GetK8sCrdClusterTagProvider(dbAccess)
 	suite.clusterProvider = clusterProvider
 }
 
