@@ -69,7 +69,7 @@ func (suite *ClusterOperationControllerTestSuite) SetupSuite() {
 	}
 	clusterOpDbAccess := dbaccess.GetClusterOperationDbAccess(db)
 	opDefDbAccess := dbaccess.GetOperationDefinitionDbAccess(db)
-	clusterOperationProvider := provider.NewClusterOperationProvider(clusterOpDbAccess, opDefDbAccess)
+	clusterOperationProvider := provider.GetClusterOperationProvider(clusterOpDbAccess, opDefDbAccess)
 	clusterOperationController := controller.NewClusterOperationController(clusterOperationProvider)
 	suite.clusterOperationController = clusterOperationController
 	gin.SetMode(gin.TestMode)

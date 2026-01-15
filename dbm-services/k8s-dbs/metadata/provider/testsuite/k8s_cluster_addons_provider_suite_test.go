@@ -71,8 +71,8 @@ func (suite *K8sClusterAddonsProviderTestSuite) SetupSuite() {
 	}
 	dbAccess := dbaccess.GetK8sClusterAddonsDbAccess(db)
 	storageAddonDbAccess := dbaccess.GetStorageAddonDbAccess(db)
-	clusterProvider := provider.NewK8sClusterAddonsProvider(dbAccess, storageAddonDbAccess)
-	storageAddonProvider := provider.NewK8sCrdStorageAddonProvider(storageAddonDbAccess)
+	clusterProvider := provider.GetK8sClusterAddonsProvider(dbAccess, storageAddonDbAccess)
+	storageAddonProvider := provider.GetK8sCrdStorageAddonProvider(storageAddonDbAccess)
 	suite.clusterProvider = clusterProvider
 	suite.storageProvider = storageAddonProvider
 

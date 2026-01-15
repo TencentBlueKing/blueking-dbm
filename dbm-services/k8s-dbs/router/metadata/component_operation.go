@@ -34,7 +34,7 @@ func BuildComponentOpMetaRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group(BasePath)
 	componentOpDbAccess := metadbaccess.GetComponentOperationDbAccess(db)
 	opDefDbAccess := metadbaccess.GetOperationDefinitionDbAccess(db)
-	metaProvider := metaprovider.NewComponentOperationProvider(componentOpDbAccess, opDefDbAccess)
+	metaProvider := metaprovider.GetComponentOperationProvider(componentOpDbAccess, opDefDbAccess)
 	metaController := metacontroller.NewComponentOperationController(metaProvider)
 	addonMetaGroup := metaRouter.Group("/component_operation")
 	{

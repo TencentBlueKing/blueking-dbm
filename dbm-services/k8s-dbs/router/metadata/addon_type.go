@@ -34,7 +34,7 @@ func BuildAddonTypeRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group(BasePath)
 	typeDbAccess := metadbaccess.GetAddonTypeDbAccess(db)
 	categoryDbAccess := metadbaccess.GetAddonCategoryDbAccess(db)
-	metaProvider := metaprovider.NewAddonTypeProvider(typeDbAccess, categoryDbAccess)
+	metaProvider := metaprovider.GetAddonTypeProvider(typeDbAccess, categoryDbAccess)
 	metaController := metacontroller.NewAddonTypeController(metaProvider)
 	typeGroup := metaRouter.Group("/addon_type")
 	{

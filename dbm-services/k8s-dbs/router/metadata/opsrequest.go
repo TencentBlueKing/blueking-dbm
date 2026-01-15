@@ -33,7 +33,7 @@ import (
 func BuildOpsMetaRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group(BasePath)
 	opsMetaDbAccess := metadbaccess.GetOpsRequestDbAccess(db)
-	opsMetaProvider := metaprovider.NewK8sCrdOpsRequestProvider(opsMetaDbAccess)
+	opsMetaProvider := metaprovider.GetK8sCrdOpsRequestProvider(opsMetaDbAccess)
 	opsMetaController := metacontroller.NewOpsController(opsMetaProvider)
 	opsMetaGroup := metaRouter.Group("/ops")
 	{

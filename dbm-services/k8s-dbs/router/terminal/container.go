@@ -42,7 +42,7 @@ func BuildTerminalRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 // initClusterController 初始化 ClusterController
 func initTerminalController(db *gorm.DB) *controller.ContainerController {
 	k8sClusterConfigDbAccess := metadbaccess.GetK8sClusterConfigDbAccess(db)
-	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
+	k8sClusterConfigProvider := metaprovider.GetK8sClusterConfigProvider(k8sClusterConfigDbAccess)
 	containerProvider := terminalprovider.NewTerminalProvider(k8sClusterConfigProvider)
 	terminalController := controller.NewContainerController(containerProvider)
 	return terminalController

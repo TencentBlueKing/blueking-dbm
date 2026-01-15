@@ -24,6 +24,7 @@ import (
 	"k8s-dbs/metadata/dbaccess"
 	metaenitty "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -40,6 +41,26 @@ type ComponentOperationProvider interface {
 type ComponentOperationProviderImpl struct {
 	componentOpDBAccess dbaccess.ComponentOperationDbAccess
 	opDefDBAccess       dbaccess.OperationDefinitionDbAccess
+}
+
+var (
+	componentOperationInstance ComponentOperationProvider
+	componentOperationOnce     sync.Once
+)
+
+// GetComponentOperationProvider 获取 ComponentOperationProvider 单例实例
+func GetComponentOperationProvider(componentOpDBAccess dbaccess.ComponentOperationDbAccess,
+	opDefDBAccess dbaccess.OperationDefinitionDbAccess) ComponentOperationProvider {
+	componentOperationOnce.Do(func() {
+		componentOperationInstance = &ComponentOperationProviderImpl{
+			componentOpDBAccess: componentOpDBAccess,
+			opDefDBAccess:       opDefDBAccess,
+		}
+	})
+	if componentOperationInstance == nil {
+		panic("ComponentOperationProvider instance is nil after initialization")
+	}
+	return componentOperationInstance
 }
 
 // CreateComponentOperation 创建 component operation
@@ -91,10 +112,4 @@ func (o *ComponentOperationProviderImpl) ListComponentOperations(pagination enti
 		componentOpEntities[i].Operation = opDefEntity
 	}
 	return componentOpEntities, nil
-}
-
-// NewComponentOperationProvider 创建 ComponentOperationProvider 接口实现实例
-func NewComponentOperationProvider(componentOpDBAccess dbaccess.ComponentOperationDbAccess,
-	opDefDBAccess dbaccess.OperationDefinitionDbAccess) ComponentOperationProvider {
-	return &ComponentOperationProviderImpl{componentOpDBAccess, opDefDBAccess}
 }

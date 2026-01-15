@@ -79,7 +79,7 @@ func (suite *AddonClusterVersionProviderTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 	dbAccess := dbaccess.GetAcVersionDbAccess(db)
-	suite.addonClusterVersionProvider = provider.NewAddonClusterVersionProvider(dbAccess)
+	suite.addonClusterVersionProvider = provider.GetAddonClusterVersionProvider(dbAccess)
 }
 
 func (suite *AddonClusterVersionProviderTestSuite) TearDownSuite() {

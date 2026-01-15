@@ -33,7 +33,7 @@ import (
 func BuildAddonTopologyRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group(BasePath)
 	dbAccess := metadbaccess.GetAddonTopologyDbAccess(db)
-	metaProvider := metaprovider.NewAddonTopologyProvider(dbAccess)
+	metaProvider := metaprovider.GetAddonTopologyProvider(dbAccess)
 	metaController := metacontroller.NewAddonTopologyController(metaProvider)
 	topologyGroup := metaRouter.Group("/addon_topology")
 	{

@@ -62,7 +62,7 @@ func (suite *ComponentProviderTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 	dbAccess := dbaccess.GetComponentDbAccess(db)
-	componentProvider := provider.NewK8sCrdComponentProvider(dbAccess)
+	componentProvider := provider.GetK8sCrdComponentProvider(dbAccess)
 	suite.componentProvider = componentProvider
 }
 
