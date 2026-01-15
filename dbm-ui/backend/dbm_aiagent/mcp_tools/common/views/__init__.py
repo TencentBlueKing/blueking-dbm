@@ -11,4 +11,5 @@ specific language governing permissions and limitations under the License.
 from .alram_query import MonitorQueryMcpToolsViewSet
 from .bill_query import BillQueryMcpToolsViewSet
 from .dbmeta_query import DBMetaQueryMcpToolsViewSet
+from .dbmeta_update import DBMetaUpdateMcpToolsViewSet
 from .resource_param_query import ResourceParamQueryMcpToolsViewSet

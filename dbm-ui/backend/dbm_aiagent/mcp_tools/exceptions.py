@@ -64,3 +64,9 @@ class DBMMcpClusterNotFoundException(DBMMcpBaseException):
     ERROR_CODE = ("008",)
     MESSAGE = _("集群未找到")
     MESSAGE_TPL = _("{msg}")
+
+
+class DBMMcpNotBusinessDBAPrimaryException(DBMMcpBaseException):
+    ERROR_CODE = "009"
+    MESSAGE = _("用户不是业务 DBA 主负责人")
+    MESSAGE_TPL = _("用户 {username} 不是业务 {bk_biz_id} 的 {db_type} DBA 主负责人")
