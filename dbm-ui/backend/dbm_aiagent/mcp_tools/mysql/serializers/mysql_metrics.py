@@ -13,33 +13,22 @@ from rest_framework import serializers
 
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.usefully_choices import (
     mysql_cluster_type_choices,
-    mysql_instance_role_choices,
+    mysql_metric_name_choices,
 )
 
 
-class MysqlSlowlogInputSerializer(serializers.Serializer):
+class MysqlMetricsInputSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
     cluster_type = serializers.ChoiceField(choices=mysql_cluster_type_choices, help_text=_("集群类型"))
-    instance_role = serializers.ChoiceField(choices=mysql_instance_role_choices, help_text=_("db实例角色"))
-    start_time = serializers.DateTimeField(help_text=_("开始时间"))
-    end_time = serializers.DateTimeField(help_text=_("结束时间"))
-
-
-class MysqlSlowlogOutputSerializer(serializers.Serializer):
-    cluster_domain = serializers.CharField(help_text=_("集群域名"))
-    slowlogs = serializers.JSONField(
-        help_text=_(
-            "慢日志列表."
-            "slow_query.query_digest_text 是慢日志摘要字段，也叫 digest_text 或者 fingerprint。"
-            "slow_query.query_digest_md5 是慢日志摘要字段的 MD5 值，也叫 digest 或者 query_digest"
-        )
+    # instance_role = serializers.ChoiceField(choices=mysql_instance_role_choices, help_text=_("db实例角色"))
+    start_time = serializers.DateTimeField(help_text=_("开始时间, 时间格式 2026-01-08T16:33:38+08:00"))
+    end_time = serializers.DateTimeField(help_text=_("结束时间, 时间格式 2026-01-08T16:33:38+08:00"))
+    metric_name = serializers.ChoiceField(
+        choices=mysql_metric_name_choices, help_text=_("mysql 指标名称，" "性能指标有 cpu负载, qps请求量, 慢日志数量，线程数，连接数")
     )
 
 
-class MysqlOneSlowlogInputSerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
+class MysqlMetricsOutputSerializer(serializers.Serializer):
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
-    query_digest = serializers.CharField(help_text=_("慢日志摘要，query_digest 与 slow_query.query_digest_md5 是同一个意思"))
-    start_time = serializers.DateTimeField(help_text=_("开始时间"))
-    end_time = serializers.DateTimeField(help_text=_("结束时间"))
+    datapoints = serializers.JSONField(help_text=_("时序指标结果"))
