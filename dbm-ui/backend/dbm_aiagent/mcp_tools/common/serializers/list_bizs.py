@@ -15,6 +15,11 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 
 
+class ListBizsInputSerializer(serializers.Serializer):
+    bk_biz_ids = serializers.ListField(child=serializers.IntegerField(), help_text=_("业务 ID 列表"), required=False)
+    app_abbrs = serializers.ListField(child=serializers.CharField(), help_text=_("业务简称 列表"), required=False)
+
+
 class BizDBComponentInfoSerializer(serializers.Serializer):
     db_type = serializers.ChoiceField(choices=DBType.get_choices(), help_text=_("集群技术栈类型"))
     cluster_type = serializers.ChoiceField(choices=ClusterType.get_choices(), help_text=_("集群类型"))
@@ -27,5 +32,5 @@ class BizBaseInfoSerializer(serializers.Serializer):
     db_components = serializers.ListField(child=BizDBComponentInfoSerializer(), help_text=_("DB 组件列表"))
 
 
-class ListPlatformBizsOutputSerializer(serializers.Serializer):
+class ListBizsOutputSerializer(serializers.Serializer):
     bizs = serializers.ListField(child=BizBaseInfoSerializer(), help_text=_("业务列表"))

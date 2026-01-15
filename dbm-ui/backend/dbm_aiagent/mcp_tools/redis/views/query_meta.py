@@ -12,7 +12,7 @@ import logging.config
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
-from backend.dbm_aiagent.mcp_tools.constants import DBMAMcpTools, DBMMCPTags
+from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.redis.impl.cluster_meta import (
     cluster_masters,
@@ -51,7 +51,7 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
         request_slz=RedisEmptyInputSerializer,
         response_slz=RedisBizDetailSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.REDIS_QUERY_META],
+        mcp=[DBMMcpTools.REDIS_QUERY_META],
         name_prefix="redis_query_meta",
     )
     def list_my_bizs(self, request, *args, **kwargs):
@@ -63,7 +63,7 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
         request_slz=RedisBizNameInputSerializer,
         response_slz=RedisBizDetailSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.REDIS_QUERY_META],
+        mcp=[DBMMcpTools.REDIS_QUERY_META],
         name_prefix="redis_query_meta",
     )
     def list_bizs_by_name(self, request, *args, **kwargs):
@@ -76,7 +76,7 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
         request_slz=RedisBizInputSerializer,
         response_slz=RedisClustersOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.REDIS_QUERY_META],
+        mcp=[DBMMcpTools.REDIS_QUERY_META],
         name_prefix="redis_query_meta",
     )
     def list_redis_clusters(self, request, *args, **kwargs):
@@ -89,7 +89,7 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
         request_slz=RedisTopoInputSerializer,
         response_slz=RedisTopoOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.REDIS_QUERY_META],
+        mcp=[DBMMcpTools.REDIS_QUERY_META],
         name_prefix="redis_query_meta",
     )
     def cluster_overview(self, request, *args, **kwargs):
@@ -101,7 +101,7 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
         request_slz=RedisTopoInputSerializer,
         response_slz=RedisProxiesSummarySerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.REDIS_QUERY_META],
+        mcp=[DBMMcpTools.REDIS_QUERY_META],
         name_prefix="redis_query_meta",
     )
     def list_cluster_proxies(self, request, *args, **kwargs):
@@ -113,7 +113,7 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
         request_slz=RedisTopoInputSerializer,
         response_slz=RedisMastersSummarySerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.REDIS_QUERY_META],
+        mcp=[DBMMcpTools.REDIS_QUERY_META],
         name_prefix="redis_query_meta",
     )
     def list_cluster_masters(self, request, *args, **kwargs):

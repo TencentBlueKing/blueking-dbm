@@ -15,7 +15,7 @@ from backend.dbm_aiagent.mcp_tools.common.serializers.alarm_query import (
     SearchAlertInputSerializer,
     SearchAlertOutputSerializer,
 )
-from backend.dbm_aiagent.mcp_tools.constants import DBMAMcpTools, DBMMCPTags
+from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import RejectPermission
@@ -29,7 +29,7 @@ class MonitorQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=SearchAlertInputSerializer,
         response_slz=SearchAlertOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.ALARM_QUERY],
+        mcp=[DBMMcpTools.ALARM_QUERY],
         name_prefix="alarm_query",
     )
     def query_monitor_alarm_info(self, request, *args, **kwargs):

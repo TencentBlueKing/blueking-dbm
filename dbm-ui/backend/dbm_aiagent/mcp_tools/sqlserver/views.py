@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
-from backend.dbm_aiagent.mcp_tools.constants import DBMAMcpTools, DBMMCPTags
+from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.sqlserver.impl.cluster_topo import sqlserver_cluster_topo
 from backend.dbm_aiagent.mcp_tools.sqlserver.serializers.cluster_topo import (
@@ -29,7 +29,7 @@ class SqlserverMcpToolsViewSet(McpToolsViewSet):
         request_slz=SQLServerTopoInputSerializer,
         response_slz=SQLServerTopoOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.SQLSERVER_QUERY],
+        mcp=[DBMMcpTools.SQLSERVER_QUERY],
         name_prefix="sqlserver_query",
     )
     def cluster_topo(self, request, *args, **kwargs):

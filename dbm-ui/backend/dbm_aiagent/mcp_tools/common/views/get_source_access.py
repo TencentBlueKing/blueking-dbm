@@ -23,7 +23,7 @@ from backend.dbm_aiagent.mcp_tools.common.serializers.get_source_access import (
     GetSourceAccessInputSerializer,
     GetSourceAccessOutputSerializer,
 )
-from backend.dbm_aiagent.mcp_tools.constants import DBMAMcpTools, DBMMCPTags
+from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
@@ -37,7 +37,7 @@ class GetSourceAccessMcpToolsViewSet(McpToolsViewSet):
         request_slz=GetSourceAccessInputSerializer,
         response_slz=GetSourceAccessOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.COMMON_TOOL],
+        mcp=[DBMMcpTools.COMMON_TOOL],
         name_prefix="common_tool",
     )
     def get_cluster_source_access(self, request, *args, **kwargs):

@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
@@ -19,7 +20,10 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, Cluster
 from backend.dbm_aiagent.mcp_tools.common.impl.list_biz_dbmodules import list_biz_dbmodules
 from backend.dbm_aiagent.mcp_tools.common.serializers.empty import EmptyInputSerializer
-from backend.dbm_aiagent.mcp_tools.common.serializers.list_bizs import ListPlatformBizsOutputSerializer
+from backend.dbm_aiagent.mcp_tools.common.serializers.list_bizs import (
+    ListBizsInputSerializer,
+    ListBizsOutputSerializer,
+)
 from backend.dbm_aiagent.mcp_tools.common.serializers.list_cluster import (
     ListBizClustersInputSerializer,
     ListBizClustersOutputSerializer,
@@ -29,7 +33,7 @@ from backend.dbm_aiagent.mcp_tools.common.serializers.list_dbmodule import (
     ListDBModulesOutputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.common.serializers.list_enums import ListPlatformClusterTypeOutputSerializer
-from backend.dbm_aiagent.mcp_tools.constants import DBMAMcpTools, DBMMCPTags
+from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
@@ -45,7 +49,7 @@ class DBMetaQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=EmptyInputSerializer,
         response_slz=ListPlatformClusterTypeOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.DBMETA_QUERY],
+        mcp=[DBMMcpTools.DBMETA_QUERY],
         name_prefix="dbmeta_query",
     )
     def list_supported_cluster_type(self, request, *args, **kwargs):
@@ -62,7 +66,7 @@ class DBMetaQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=ListDBModulesInputSerializer,
         response_slz=ListDBModulesOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.DBMETA_QUERY],
+        mcp=[DBMMcpTools.DBMETA_QUERY],
         name_prefix="dbmeta_query",
     )
     def list_biz_dbmodules(self, request, *args, **kwargs):
@@ -82,7 +86,7 @@ class DBMetaQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=ListBizClustersInputSerializer,
         response_slz=ListBizClustersOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.DBMETA_QUERY],
+        mcp=[DBMMcpTools.DBMETA_QUERY],
         name_prefix="dbmeta_query",
     )
     def list_biz_clusters(self, request, *args, **kwargs):
@@ -106,23 +110,38 @@ class DBMetaQueryMcpToolsViewSet(McpToolsViewSet):
 
     @mcp_tools_api_decorator(
         description=str(_("获取平台所有业务的中文名, 英文名和组件负责人")),
-        request_slz=EmptyInputSerializer,
-        response_slz=ListPlatformBizsOutputSerializer,
+        request_slz=ListBizsInputSerializer,
+        response_slz=ListBizsOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.DBMETA_QUERY],
+        mcp=[DBMMcpTools.DBMETA_QUERY],
         name_prefix="dbmeta_query",
     )
-    def list_platform_bizs_base_info(self, request, *args, **kwargs):
+    def list_bizs_base_info(self, request, *args, **kwargs):
+        bk_biz_ids = self.get_param("bk_biz_ids", [])
+        app_abbrs = self.get_param("app_abbrs", [])
+
+        apps = AppCache.objects.all()
+
+        if bk_biz_ids or app_abbrs:
+            q = Q()
+            if bk_biz_ids:
+                q |= Q(**{"bk_biz_id__in": bk_biz_ids})
+            if app_abbrs:
+                q |= Q(**{"db_app_abbr__in": app_abbrs})
+
+            apps = apps.filter(q)
+
         res = []
-        for app in AppCache.objects.all():
+        for app in apps:
             bk_biz_id = app.bk_biz_id
             abbr = app.db_app_abbr
 
             comp_infos = []
-            for biz_admin in DBAdministrator.objects.filter(bk_biz_id=bk_biz_id):
-                db_type = biz_admin.db_type
-                admins = biz_admin.users
-                if not admins:
+            for db_type in DBType.get_values():
+                biz_db_admin = DBAdministrator.objects.filter(bk_biz_id=bk_biz_id, db_type=db_type)
+                if biz_db_admin.exists():
+                    admins = [u for u in biz_db_admin.first().users if u != DEFAULT_DB_ADMINISTRATORS]
+                else:
                     admins = DEFAULT_DB_ADMINISTRATORS
 
                 if db_type == DBType.MySQL:

@@ -13,7 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
-class DBMAMcpTools(StrStructuredEnum):
+class DBMMcpTools(StrStructuredEnum):
     DBM = EnumField("dbm-mcp", "DBM")
     DBMETA_QUERY = EnumField("dbmeta-query", "dbmeta-query")
     MYSQL_QUERY = EnumField("mysql-query", "mysql-query")

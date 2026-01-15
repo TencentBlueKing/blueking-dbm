@@ -13,7 +13,7 @@ import logging
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
-from backend.dbm_aiagent.mcp_tools.constants import DBMAMcpTools, DBMMCPTags
+from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.mysql.impl.sql_syntax_check import check_sql_file_grammar, syntax_check_sql_impl
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.sql_syntax_check import (
@@ -51,7 +51,7 @@ class SqlSyntaxCheckMcpViewSet(McpToolsViewSet):
         request_slz=SqlSyntaxCheckInputSerializer,
         response_slz=SqlSyntaxCheckOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.SQL_SYNTAX_CHECK],
+        mcp=[DBMMcpTools.SQL_SYNTAX_CHECK],
         name_prefix="check_sql_syntax",
     )
     def check_sql_syntax(self, request, *args, **kwargs):
@@ -106,7 +106,7 @@ class SqlSyntaxCheckMcpViewSet(McpToolsViewSet):
         request_slz=SqlFileSyntaxCheckInputSerializer,
         response_slz=SqlSyntaxCheckOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.SQL_SYNTAX_CHECK],
+        mcp=[DBMMcpTools.SQL_SYNTAX_CHECK],
         name_prefix="check_sql_file_syntax",
     )
     def check_sql_file_syntax(self, request, *args, **kwargs):

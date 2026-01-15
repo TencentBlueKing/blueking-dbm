@@ -13,7 +13,7 @@ import logging
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
-from backend.dbm_aiagent.mcp_tools.constants import DBMAMcpTools, DBMMCPTags
+from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.mysql.impl.mysql_slowlog import query_slow_logs
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_slowlog import (
@@ -34,7 +34,7 @@ class MySQLSlowlogMcpToolsViewSet(McpToolsViewSet):
         request_slz=MysqlSlowlogInputSerializer,
         response_slz=MysqlSlowlogOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.MYSQL_SLOWLOG],
+        mcp=[DBMMcpTools.MYSQL_SLOWLOG],
         name_prefix="mysql_slowlog",
     )
     def query_mysql_slow_logs(self, request, *args, **kwargs):

@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
-from backend.dbm_aiagent.mcp_tools.constants import DBMAMcpTools, DBMMCPTags
+from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpNoneBillSubmittedException, DBMMcpUsernameNotFoundException
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_apply_priv import bill_apply_priv
@@ -45,7 +45,7 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         request_slz=SubmitBillMySQLFullBackupInputSerializer,
         response_slz=SubmitBillOutputSerializer,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
-        mcp=[DBMAMcpTools.MYSQL_BILL],
+        mcp=[DBMMcpTools.MYSQL_BILL],
         name_prefix="mysql_bill",
     )
     def submit_bill_mysql_full_backup(self, request, *args, **kwargs):
@@ -68,7 +68,7 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         request_slz=SubmitBillMySQLDBTableBackupInputSerializer,
         response_slz=SubmitBillOutputSerializer,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
-        mcp=[DBMAMcpTools.MYSQL_BILL],
+        mcp=[DBMMcpTools.MYSQL_BILL],
         name_prefix="mysql_bill",
     )
     def submit_bill_mysql_db_table_backup(self, request, *args, **kwargs):
@@ -107,7 +107,7 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         request_slz=SubmitBillMySQLApplyPrivInputSerializer,
         response_slz=SubmitBillOutputSerializer,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
-        mcp=[DBMAMcpTools.MYSQL_BILL],
+        mcp=[DBMMcpTools.MYSQL_BILL],
         name_prefix="mysql_bill",
     )
     def submit_bill_mysql_apply_priv(self, request, *args, **kwargs):
@@ -138,7 +138,7 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         request_slz=SubmitBillMySQLStandardizeInputSerializer,
         response_slz=SubmitBillOutputSerializer,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
-        mcp=[DBMAMcpTools.MYSQL_BILL],
+        mcp=[DBMMcpTools.MYSQL_BILL],
         name_prefix="mysql_bill",
     )
     def submit_bill_mysql_standardize(self, request, *args, **kwargs):
@@ -174,7 +174,7 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         request_slz=SubmitBillMySQLDBRenameInputSerializer,
         response_slz=SubmitBillOutputSerializer,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
-        mcp=[DBMAMcpTools.MYSQL_BILL],
+        mcp=[DBMMcpTools.MYSQL_BILL],
         name_prefix="mysql_bill",
     )
     def submit_bill_mysql_db_rename(self, request, *args, **kwargs):

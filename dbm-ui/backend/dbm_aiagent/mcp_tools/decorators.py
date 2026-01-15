@@ -24,7 +24,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 
 from backend import env
-from backend.dbm_aiagent.mcp_tools.constants import DBMAMcpTools
+from backend.dbm_aiagent.mcp_tools.constants import DBMMcpTools
 from backend.dbm_aiagent.utils import get_class_from_qualname
 from backend.ticket.models import Ticket
 
@@ -65,7 +65,7 @@ def mcp_tools_api_decorator(
     request_slz: Type[serializers.Serializer],
     response_slz: Type[serializers.Serializer],
     tags: list[str],
-    mcp: list[DBMAMcpTools],
+    mcp: list[DBMMcpTools],
     methods: list[str] = ("POST",),
     name_prefix: str = None,
     reference_view: Optional[Callable] = None,
