@@ -34,21 +34,28 @@ import (
 	"sync"
 	"time"
 
+	"dbm-services/common/dbha-v2/internal/admin/api/open/handler"
 	"dbm-services/common/dbha-v2/internal/admin/config"
+	"dbm-services/common/dbha-v2/internal/admin/strategy"
 	"dbm-services/common/dbha-v2/internal/analysis/apm"
 	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/discovery"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/haapm"
+	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/machine"
 	"dbm-services/common/dbha-v2/pkg/proto"
+	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
+	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 	"dbm-services/common/go-pubpkg/apm/metric"
 	"dbm-services/common/go-pubpkg/apm/trace"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/hako/durafmt"
+	"github.com/swaggest/swgui"
+	"github.com/swaggest/swgui/v5emb"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -59,6 +66,7 @@ const (
 	Name = "admin"
 )
 
+// Service is the admin service
 type Service struct {
 	proto.UnimplementedAdminServiceServer
 
@@ -69,16 +77,21 @@ type Service struct {
 	discoveryCli *discovery.Client
 	regCli       *discovery.Registry
 	wg           sync.WaitGroup
+	db           *hamysql.GormDB
+	strategy     *strategy.Strategy
 	address      string
 	svr          *grpc.Server
 	logger       *zap.Logger // only for the gRPC
+	gormLogger   logger.Logger
 }
 
+// Heartbeat admin server heartbeat
 func (a *Service) Heartbeat(ctx context.Context, req *proto.HeartbeatRequest) (*proto.HeartbeatResponse, error) {
 	logger.Info("admin server heartbeat request(%v)", req)
 	return &proto.HeartbeatResponse{Errmsg: "success"}, nil
 }
 
+// WatchConfig watch config
 func (a *Service) WatchConfig(stream proto.AdminService_WatchConfigServer) error {
 	ctx := stream.Context()
 
@@ -112,6 +125,7 @@ func (a *Service) WatchConfig(stream proto.AdminService_WatchConfigServer) error
 	}
 }
 
+// Run run admin service
 func (s *Service) Run(ctx context.Context) error {
 	ips, err := machine.GetLocalIPs()
 	if err != nil {
@@ -135,6 +149,11 @@ func (s *Service) Run(ctx context.Context) error {
 
 	// create grpc server
 	if err := s.createGrpcServer(); err != nil {
+		return err
+	}
+
+	// create web server
+	if err := s.createWebServer(); err != nil {
 		return err
 	}
 
@@ -166,6 +185,7 @@ func (s *Service) Run(ctx context.Context) error {
 
 }
 
+// Close close admin service
 func (s *Service) Close() {
 	if s.svr != nil {
 		s.svr.Stop()
@@ -273,5 +293,83 @@ func (s *Service) createApmServer() error {
 		logger.Info("exited from the apm server")
 	}()
 
+	return nil
+}
+
+func (s *Service) createWebServer() error {
+	// Initialize database connection
+	if err := s.createStorage(); err != nil {
+		return err
+	}
+
+	s.strategy = &strategy.Strategy{DB: s.db}
+
+	strategyHandler := handler.NewStrategyHandler(s.strategy)
+
+	serverConfig := &hanet.GinServerConfig{
+		Host:         config.Cfg.Web.Host,
+		Port:         config.Cfg.Web.Port,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+	}
+
+	server := hanet.NewGinHTTPServer(serverConfig)
+
+	// Register strategy apis
+	server.RegisterAPI(&hanet.ResetAPI{
+		Group:   "/api/admin",
+		Method:  hanet.HttpMethodPost,
+		Path:    "/strategies/",
+		Handler: strategyHandler.Create,
+	})
+
+	server.RegisterAPI(&hanet.ResetAPI{
+		Group:   "/api/admin",
+		Method:  hanet.HttpMethodGet,
+		Path:    "/strategies/:id/",
+		Handler: strategyHandler.Get,
+	})
+
+	// add swagger api
+	server.SetSwaggerFileRoute(config.Cfg.DocFileDir + "/swagger.json")
+	hd := v5emb.NewHandlerWithConfig(swgui.Config{
+		Title:       "admin api doc",
+		SwaggerJSON: "/swagger.json",
+		BasePath:    "/swagger-ui",
+		ShowTopBar:  true,
+		HideCurl:    false,
+		JsonEditor:  true,
+	})
+	server.RegisterAPI(&hanet.ResetAPI{
+		Method:  hanet.HttpMethodGet,
+		Path:    "/swagger-ui/*any",
+		Handler: gin.WrapH(hd),
+	})
+	return server.Start()
+}
+
+func (s *Service) createStorage() error {
+	epoint, err := hanet.NewEndpoint(config.Cfg.Storage.Endpoint)
+	if err != nil {
+		logger.Error("invalid storage configuration, errmsg: %s", err)
+		return gerrors.Newf(gerrors.InvalidConfiguration, "invalid storage configuration, errmsg: %s", err)
+	}
+
+	db, err := hamysql.NewGormDB(
+		hamysql.OptionProto(epoint.Proto),
+		hamysql.OptionIP(epoint.Host),
+		hamysql.OptionPort(epoint.Port),
+		hamysql.OptionDBName(hamodel.DatabaseName),
+		hamysql.OptionUser(config.Cfg.Storage.User),
+		hamysql.OptionPassword(config.Cfg.Storage.Password),
+		hamysql.OptionLogger(s.gormLogger),
+	)
+
+	if err != nil {
+		logger.Warn("create mysql storage failed, errmsg: %s", err)
+		return err
+	}
+
+	s.db = db
 	return nil
 }

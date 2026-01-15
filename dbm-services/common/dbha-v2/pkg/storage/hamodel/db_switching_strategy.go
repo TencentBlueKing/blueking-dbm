@@ -54,14 +54,29 @@ func (a ActionScopeType) String() string {
 	return string(a)
 }
 
+// StatusType enabled, disabled, deleted.
+type StatusType string
+
+const (
+	StatusTypeEnabled  StatusType = "enabled"
+	StatusTypeDisabled StatusType = "disabled"
+	StatusTypeDeleted  StatusType = "deleted"
+)
+
+func (s StatusType) String() string {
+	return string(s)
+}
+
 const (
 	// Define variables for all the field names of the database tables
 	// to avoid hard-coding the field names in the business code.
 
 	// DbSwitchingStrategy Table
 	DbSwitchingStrategyTableName                   = "t_db_switching_strategy"
+	DbSwitchingStrategyFieldID                     = "id"
 	DbSwitchingStrategyFieldName                   = "name"
 	DbSwitchingStrategyFieldBkBizID                = "bk_biz_id"
+	DbSwitchingStrategyFieldStatus                 = "status"
 	DbSwitchingStrategyFieldTriggerEventName       = "trigger_event_name"
 	DbSwitchingStrategyFieldTriggerEventNameReason = "trigger_event_name_reason"
 	DbSwitchingStrategyFieldPriority               = "priority"
@@ -75,11 +90,17 @@ const (
 
 // DbSwitchingStrategy database switching strategy
 type DbSwitchingStrategy struct {
+	// strategy id
+	ID int `gorm:"column:id;primaryKey;autoIncrement"`
+
+	// strategy status
+	Status StatusType `gorm:"column:status"`
+
 	// strategy name
-	Name string `gorm:"column:name"`
+	Name string `gorm:"column:name;uniqueIndex:idx_name"`
 
 	// 0 is global default strategy
-	BkBizID int `gorm:"column:bk_biz_id;primaryKey"`
+	BkBizID int `gorm:"column:bk_biz_id;primaryKey;uniqueIndex:idx_name"`
 
 	// The event name that triggers the database switch.
 	TriggerEventName haprobe.DbEventName `gorm:"column:trigger_event_name;primaryKey;index"`
@@ -98,7 +119,7 @@ type DbSwitchingStrategy struct {
 	Description string    `gorm:"column:description;type:mediumtext;index:idx_description,length:255"`
 	CreatedAt   time.Time `gorm:"column:created_at;autoCreateTime;index"`
 	UpdatedAt   time.Time `gorm:"column:updated_at;autoUpdateTime;index"`
-	DeletedAt   time.Time `gorm:"column:deleted_at;index"`
+	DeletedAt   time.Time `gorm:"column:deleted_at;index;default:null"`
 }
 
 // TableName returns the name of the switching strategy table.
