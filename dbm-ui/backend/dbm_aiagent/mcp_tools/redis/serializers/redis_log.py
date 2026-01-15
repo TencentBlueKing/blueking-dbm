@@ -14,22 +14,31 @@ from rest_framework import serializers
 class RedisSlowlogInputSerializer(serializers.Serializer):
     """Redis慢查询输入序列化器"""
 
-    redis_addr = serializers.CharField(help_text=_("实例地址"))
+    start_time = serializers.DateTimeField(help_text=_("开始时间"))
+    end_time = serializers.DateTimeField(help_text=_("结束时间"))
     immute_domain = serializers.CharField(help_text=_("集群域名"))
-    count = serializers.IntegerField(default=10, required=False, help_text=_("返回的慢查询日志条数，默认10条"))
+
+
+class RedisSlowlog4HostInputSerializer(serializers.Serializer):
+    """Redis慢查询输入序列化器"""
+
+    start_time = serializers.DateTimeField(help_text=_("开始时间"))
+    end_time = serializers.DateTimeField(help_text=_("结束时间"))
+    immute_domain = serializers.CharField(help_text=_("集群域名"))
+    ip = serializers.CharField(help_text=_("主机IP"))
 
 
 class RedisSlowlogEntrySerializer(serializers.Serializer):
     """Redis慢查询日志条目"""
 
-    id = serializers.IntegerField(help_text=_("慢查询日志ID"))
-    timestamp = serializers.IntegerField(help_text=_("执行时间戳（Unix时间戳）"))
-    execution_time = serializers.IntegerField(help_text=_("执行耗时（微秒）"))
-    execution_time_ms = serializers.FloatField(help_text=_("执行耗时（毫秒）"))
-    command = serializers.ListField(child=serializers.CharField(), help_text=_("执行的命令及参数"))
-    command_string = serializers.CharField(help_text=_("命令字符串（可读格式）"))
-    client_address = serializers.CharField(help_text=_("客户端地址"))
-    client_name = serializers.CharField(help_text=_("客户端名称"), allow_blank=True)
+    create_time = serializers.CharField(help_text=_("执行时间"))
+    duration_us = serializers.IntegerField(help_text=_("执行耗时（微秒）"))
+    # duration_ms = serializers.FloatField(help_text=_("执行耗时（毫秒）"))
+    cmd = serializers.CharField(help_text=_("命令"))
+    key = serializers.CharField(help_text=_("KEY"))
+    args = serializers.ListField(child=serializers.CharField(), help_text=_("参数"))
+    instance_addr = serializers.CharField(help_text=_("实例地址"))
+    instance_role = serializers.CharField(help_text=_("实例角色"))
 
 
 class RedisSlowlogResponseSerializer(serializers.Serializer):
