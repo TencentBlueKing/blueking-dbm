@@ -153,6 +153,7 @@ from backend.flow.views.mysql_partition import MysqlPartitionSceneApiView
 from backend.flow.views.mysql_partition_cron import MysqlPartitionCronSceneApiView
 from backend.flow.views.mysql_porxy_reduce import ReduceMySQLProxySceneApiView
 from backend.flow.views.mysql_proxy_add import AddMySQLProxySceneApiView
+from backend.flow.views.mysql_proxy_rescue import RescueMySQLProxySceneApiView
 from backend.flow.views.mysql_proxy_switch import SwitchMySQLProxySceneApiView
 from backend.flow.views.mysql_proxy_upgrade import UpgradeMySQLProxySceneApiView
 from backend.flow.views.mysql_pt_table_sync import MySQLPtTableSyncApiView
@@ -441,6 +442,7 @@ urlpatterns = [
     url(r"^scene/tendbha_truncate_data$", MySQLHATruncateDataView.as_view()),
     url(r"^scene/import_sqlfile$", ImportSQLFileSceneApiView.as_view()),
     url(r"^scene/switch_mysql_proxy$", SwitchMySQLProxySceneApiView.as_view()),
+    url(r"^scene/rescue_mysql_proxy$", RescueMySQLProxySceneApiView.as_view()),
     url(r"^scene/reduce_mysql_proxy$", ReduceMySQLProxySceneApiView.as_view()),
     url(r"^scene/add_mysql_proxy$", AddMySQLProxySceneApiView.as_view()),
     url(r"^scene/install_influxdb$", InstallInfluxdbSceneApiView.as_view()),

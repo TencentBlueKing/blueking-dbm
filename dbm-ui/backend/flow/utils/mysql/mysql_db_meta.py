@@ -24,6 +24,7 @@ from backend.db_meta.enums import (
     ClusterEntryRole,
     ClusterEntryType,
     ClusterPhase,
+    ClusterStatus,
     ClusterType,
     InstanceInnerRole,
     InstancePhase,
@@ -173,6 +174,19 @@ class MySQLDBMeta(object):
             cluster_ids=cluster_ids,
             origin_proxy_ip=origin_proxy_ip,
         )
+        return True
+
+    def sync_tendbha_cluster_status(self, cluster_id: int) -> bool:
+        """
+        根据当前实例元数据重算 status_flag，并同步 Cluster.status（与 db_meta.signals.update_cluster_status 一致）。
+        """
+        cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=int(self.bk_biz_id))
+        if cluster.status == ClusterStatus.TEMPORARY.value:
+            return True
+        target_status = ClusterStatus.ABNORMAL.value if cluster.status_flag else ClusterStatus.NORMAL.value
+        if cluster.status != target_status:
+            cluster.status = target_status
+            cluster.save(update_fields=["status"])
         return True
 
     def mysql_restore_slave_add_instance(self):
