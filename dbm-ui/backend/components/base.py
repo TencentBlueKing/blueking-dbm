@@ -418,6 +418,7 @@ class DataAPI(object):
             {
                 "X-Bkapi-Request-Id": self.request_id,
                 "blueking-language": translation.get_language(),
+                "X-Bk-Tenant-Id": env.BK_TENANT_ID,
             }
         )
         # 增加鉴权信息

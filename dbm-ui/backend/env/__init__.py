@@ -37,6 +37,10 @@ REDIS_URL = f"redis://{f':{REDIS_PASSWORD}@' if REDIS_PASSWORD else ''}{REDIS_HO
 BROKER_URL = get_type_env(key="BROKER_URL", default=REDIS_URL, _type=str)
 SESSION_COOKIE_DOMAIN = get_type_env(key="SESSION_COOKIE_DOMAIN", default="", _type=str)
 
+# 租户配置
+ENABLE_MULTI_TENANT_MODE = get_type_env(key="ENABLE_MULTI_TENANT_MODE", _type=bool, default=False)
+BK_TENANT_ID = get_type_env(key="BK_TENANT_ID", _type=str, default="default")
+
 # CC业务模型中的英文业务简称
 BK_APP_ABBR = get_type_env(key="BK_APP_ABBR", _type=str, default="")
 # CMDB 监控相关字段
