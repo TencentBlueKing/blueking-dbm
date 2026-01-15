@@ -159,7 +159,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         name_prefix="mysql_query",
     )
     def show_instance_processlist_detail(self, request, *args, **kwargs):
-        bk_biz_id = self.get_param("bk_biz_id")
+        bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
         bk_cloud_id = self.get_param("bk_cloud_id")
         instances = self.get_param("instances")
 
@@ -167,7 +167,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         return Response(
             {
                 "instance_processlist_info": res,
-                "bk_biz_id": bk_biz_id,
+                # "bk_biz_id": bk_biz_id,
             }
         )
 
@@ -180,7 +180,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         name_prefix="mysql_query",
     )
     def show_cluster_processlist_count(self, request, *args, **kwargs):
-        bk_biz_id = self.get_param("bk_biz_id")
+        bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
         cluster_type = self.get_param("cluster_type")
         cluster_domain = self.get_param("cluster_domain")
 
@@ -188,9 +188,9 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         return Response(
             {
                 "cluster_process_list_info": res,
-                "bk_biz_id": bk_biz_id,
-                "cluster_type": cluster_type,
-                "cluster_domain": cluster_domain,
+                # "bk_biz_id": bk_biz_id,
+                # "cluster_type": cluster_type,
+                # "cluster_domain": cluster_domain,
             }
         )
 
@@ -204,7 +204,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
     )
     def show_mysql_popular_runtime_variables(self, request, *args, **kwargs):
         bk_cloud_id = self.get_param("bk_cloud_id")
-        bk_biz_id = self.get_param("bk_biz_id")
+        bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
         address = self.get_param("address")
         machine_type = self.get_param("machine_type")
         variable_hints = self.get_param("variable_hints")
@@ -214,7 +214,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
                 **show_mysql_variables(
                     bk_cloud_id=bk_cloud_id, address=address, machine_type=machine_type, variable_hints=variable_hints
                 ),
-                "bk_biz_id": bk_biz_id,
+                # "bk_biz_id": bk_biz_id,
             }
         )
 
@@ -228,7 +228,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
     )
     def show_instance_popular_runtime_status(self, request, *args, **kwargs):
         bk_cloud_id = self.get_param("bk_cloud_id")
-        bk_biz_id = self.get_param("bk_biz_id")
+        bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
         address = self.get_param("address")
         machine_type = self.get_param("machine_type")
         status_hints = self.get_param("status_hints")
@@ -238,7 +238,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
                 **show_instance_status(
                     bk_cloud_id=bk_cloud_id, address=address, machine_type=machine_type, status_hints=status_hints
                 ),
-                "bk_biz_id": bk_biz_id,
+                # "bk_biz_id": bk_biz_id,
             }
         )
 
@@ -252,14 +252,14 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
     )
     def show_instance_slave_status(self, request, *args, **kwargs):
         bk_cloud_id = self.get_param("bk_cloud_id")
-        bk_biz_id = self.get_param("bk_biz_id")
+        bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
         address = self.get_param("address")
 
         return Response(
             {
-                "address": address,
+                # "address": address,
                 "runtime_status": mysql_show_slave_status(bk_cloud_id=bk_cloud_id, address=address),
-                "bk_biz_id": bk_biz_id,
+                # "bk_biz_id": bk_biz_id,
             }
         )
 
@@ -280,7 +280,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
                 "privilege_templates": show_biz_mysql_privilege_template(
                     bk_biz_id=bk_biz_id, cluster_type=cluster_type
                 ),
-                "bk_biz_id": bk_biz_id,
-                "cluster_type": cluster_type,
+                # "bk_biz_id": bk_biz_id,
+                # "cluster_type": cluster_type,
             }
         )

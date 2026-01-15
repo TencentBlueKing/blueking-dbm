@@ -11,17 +11,15 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import ClusterType
-
 
 class ListDBModulesInputSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务 id"))
-    # cluster_type = serializers.CharField(help_text=_("集群类型"))
+    cluster_type = serializers.CharField(help_text=_("集群类型"))
 
 
 class DBModuleSerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务 id"))
-    cluster_type = serializers.ChoiceField(choices=ClusterType.get_choices(), help_text=_("集群类型"))
+    # bk_biz_id = serializers.IntegerField(help_text=_("业务 id"))
+    # cluster_type = serializers.ChoiceField(choices=ClusterType.get_choices(), help_text=_("集群类型"))
     alias_name = serializers.CharField(help_text=_("别名, 用于生成域名"))
     db_module_id = serializers.IntegerField(help_text=_("dbmodule id"))
     charset = serializers.CharField(help_text=_("字符集"))
