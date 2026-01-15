@@ -204,7 +204,7 @@ class _HCMApi(BaseApi):
                 # 操作系统盘默认高性能云盘-50G
                 "system_disk": {"disk_type": "CLOUD_PREMIUM", "disk_size": 50},
                 "data_disk": [
-                    {"disk_type": HCM_DISK_CLASS_MAP[d["disk_type"]], "disk_size": d["disk_size"]}
+                    {"disk_type": HCM_DISK_CLASS_MAP[d["disk_type"]], "disk_size": d["disk_size"], "disk_num": 1}
                     for d in disk
                     if d["disk_type"] in HCM_DISK_CLASS_MAP
                 ],
