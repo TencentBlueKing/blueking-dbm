@@ -4,9 +4,11 @@ import (
 	"bufio"
 	"dbm-services/redis/db-tools/dbactuator/pkg/common"
 	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
+	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -67,12 +69,17 @@ func (job *ReverseAPIConfig) Name() string {
 func (job *ReverseAPIConfig) Run() (err error) {
 	reverseConfig := common.GetResrveAPIConfig()
 	// 以追加模式打开文件，如果文件不存在则创建
-	file, err := os.OpenFile(reverseConfig, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0777)
+	file, err := os.OpenFile(reverseConfig, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 755)
 	if err != nil {
 		job.runtime.Logger.Error("open file %s failed: %+v", reverseConfig, err)
 		return err
 	}
 	defer file.Close()
+
+	if _, err := util.RunBashCmd(fmt.Sprintf("chown -R mysql:mysql %s", reverseConfig), "",
+		nil, 10*time.Second); err != nil {
+		job.runtime.Logger.Warn("chown %s 2 mysql failed: %+v", reverseConfig, err)
+	}
 
 	// 创建带缓冲的写入器
 	writer := bufio.NewWriter(file)

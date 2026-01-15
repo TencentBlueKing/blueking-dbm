@@ -7,13 +7,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import time
 from typing import Dict
 
 from django.utils.translation import gettext_lazy as _
 
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 
+from .comm_tools import sort_by_ip_port
 from .redis_info_srv import RedisInfoService
 
 
@@ -61,12 +62,29 @@ class RedisClusterTopologyService:
             memory_info = client.get_memory_info()
             memory_human = memory_info.get("used_memory_human", "0B")
 
+            if self.cluster_obj.cluster_type in [
+                ClusterType.TendisPredixyTendisplusCluster.value,
+                ClusterType.TendisTendisSSDInstance.value,
+            ]:
+                memory_human = memory_info.get("disk_size_human", "0B")
+
             stats = client.get_stats_info()
             # 获取QPS（通过两次采样计算）
             qps = stats.get("instantaneous_ops_per_sec", -1)
 
-            # 获取状态
+            # 获取同步状态
             status = "OK"
+            repl_status = client.get_replication_info()
+            if repl_status.get("role", "x") == "master" and int(repl_status.get("connected_slaves", 0)) == 0:
+                status = "NO-SLAVE"
+
+            if repl_status.get("role", "x") == "slave" and repl_status.get("master_link_status", "down") == "down":
+                status = "LINK-DOWN"
+            elif (
+                repl_status.get("role", "x") == "slave"
+                and int(repl_status.get("master_last_io_seconds_ago", "-1")) > 10
+            ):
+                status = repl_status.get("master_last_io_seconds_ago", "-1")
 
             return {
                 "ip": host,
@@ -86,28 +104,6 @@ class RedisClusterTopologyService:
                 "status": "ERROR",
                 "error": str(e),
             }
-
-    def _calculate_qps(self, client: RedisInfoService, interval: float = 1.0) -> int:
-        """
-        计算QPS
-        """
-        try:
-            # 第一次采样
-            stats1 = client.get_stats_info()
-            commands1 = stats1.get("total_commands_processed", 0)
-
-            # 等待
-            time.sleep(interval)
-
-            # 第二次采样
-            stats2 = client.get_stats_info()
-            commands2 = stats2.get("total_commands_processed", 0)
-
-            # 计算QPS
-            qps = int((commands2 - commands1) / interval)
-            return max(0, qps)
-        except Exception:
-            return 0
 
     def get_master_slaves_info(self, master_host: str, master_port: int) -> Dict:
         """
@@ -131,19 +127,15 @@ class RedisClusterTopologyService:
                 total_slaves = connected_slaves
 
                 # 解析从节点信息
-                for i in range(connected_slaves):
-                    slave_key = f"slave{i}"
-                    if slave_key in repl_info:
-                        slave_str = repl_info[slave_key]
-                        slave_data = self._parse_slave_string(slave_str)
+                for slave_data in repl_info.get("slaves", []):
 
-                        # 获取从节点详细信息
-                        slave_detail = self.get_node_info(slave_data["ip"], slave_data["port"])
+                    # 获取从节点详细信息
+                    slave_detail = self.get_node_info(slave_data["ip"], slave_data["port"])
 
-                        # 添加复制延迟
-                        slave_detail["replication_lag"] = slave_data.get("lag", 0)
+                    # 添加复制延迟
+                    slave_detail["replication_lag"] = slave_data.get("lag", 0)
 
-                        slaves_info.append(slave_detail)
+                    slaves_info.append(slave_detail)
             except Exception as e:
                 print(_("获取主节点 {} 的从节点信息失败: {}".format(key, e)))
 
@@ -153,33 +145,6 @@ class RedisClusterTopologyService:
             "total_slaves": total_slaves,
             "slaves": slaves_info,
         }
-
-    def _parse_slave_string(self, slave_str: str) -> Dict:
-        """
-        解析从节点字符串
-
-        Args:
-            slave_str: 格式如 "ip=1.1.69.79,port=30000,state=online,offset=0,lag=0"
-
-        Returns:
-            解析后的字典
-        """
-        result = {}
-        parts = slave_str.split(",")
-        for part in parts:
-            if "=" in part:
-                key, value = part.split("=", 1)
-                if key == "ip":
-                    result["ip"] = value
-                elif key == "port":
-                    result["port"] = int(value)
-                elif key == "state":
-                    result["state"] = value
-                elif key == "offset":
-                    result["offset"] = int(value)
-                elif key == "lag":
-                    result["lag"] = int(value)
-        return result
 
     def get_cluster_topology(self) -> Dict:
         """
@@ -223,7 +188,7 @@ class RedisClusterTopologyService:
         """
         lines = []
 
-        for master in topology["masters"]:
+        for master in sort_by_ip_port(topology["masters"]):
             # 主节点信息
             master_line = (
                 f"{master['ip']}:{master['port']} "
