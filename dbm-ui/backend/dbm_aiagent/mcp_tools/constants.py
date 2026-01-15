@@ -16,6 +16,7 @@ from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 class DBMMcpTools(StrStructuredEnum):
     DBM = EnumField("dbm-mcp", "DBM")
     DBMETA_QUERY = EnumField("dbmeta-query", "dbmeta-query")
+    DBMETA_UPDATE = EnumField("dbmeta-update", "dbmeta-update")
     MYSQL_QUERY = EnumField("mysql-query", "mysql-query")
     MYSQL_BILL = EnumField("mysql-bill", "mysql-bill")
     MYSQL_SLOWLOG = EnumField("mysql-slowlog", "mysql-slowlog")
