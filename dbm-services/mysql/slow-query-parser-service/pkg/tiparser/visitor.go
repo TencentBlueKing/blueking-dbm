@@ -20,12 +20,17 @@ import (
 )
 
 // FingerprintVisitor implements ast.Visitor interface.
-type FingerprintVisitor struct{}
+type FingerprintVisitor struct {
+	InCount        int
+	OriginalValues []string
+}
 
 func (f *FingerprintVisitor) Enter(n ast.Node) (node ast.Node, skipChildren bool) {
 	if v, ok := n.(*driver.ValueExpr); ok {
 		v.Type.SetCharset("")
 		v.SetValue([]byte("?"))
+		f.InCount++
+		f.OriginalValues = append(f.OriginalValues, fmt.Sprintf("%v", v.GetValue()))
 	}
 	return n, false
 }

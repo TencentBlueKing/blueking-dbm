@@ -23,6 +23,9 @@ release-bin: build
 dev-bin:
 	go build -ldflags ${DEV_BUILD_FLAG} -o ${OUTPUT_DIR}/${PROJ}
 
+.PHONY: build-mac
+build-mac:
+	CGO_ENABLED=0 GOARCH=amd64 GOOS=darwin go build -gcflags="all=-trimpath=${PWD}" -asmflags="all=-trimpath=${PWD}" -ldflags ${DEV_BUILD_FLAG} -o ${OUTPUT_DIR}/${PROJ}
 
 .PHONY: clean
 clean:

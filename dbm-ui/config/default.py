@@ -674,6 +674,33 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "tools": [],
     },
     {
+        "name": "mysql-slowlog",
+        "description": """query mysql slow logs, include slow logs list and slow log detail""",
+        # 主动授权 app_code
+        "target_app_codes": [APP_CODE],
+        "labels": ["mysql-slowlog"],
+        # 是否启用：1-启用，0-停止
+        "status": 1,
+        # 是否公开
+        "is_public": False,
+        # 自动发现并填充该 MCP 服务器对应的工具
+        "tools": [],
+    },
+    {
+        "name": "mysql-metrics",
+        "description": """query mysql metrics like cpu usage, qps summary, 
+        slow queries count,connections,threads_running""",
+        # 主动授权 app_code
+        "target_app_codes": [APP_CODE],
+        "labels": ["mysql-metrics"],
+        # 是否启用：1-启用，0-停止
+        "status": 1,
+        # 是否公开
+        "is_public": False,
+        # 自动发现并填充该 MCP 服务器对应的工具
+        "tools": [],
+    },
+    {
         "name": "dbmeta-query",
         "description": """query dbm meta info""",
         # 主动授权 app_code
