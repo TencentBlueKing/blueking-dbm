@@ -57,7 +57,7 @@ func (suite *AddonClusterReleaseControllerTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 	dbAccess := dbaccess.GetAcReleaseDbAccess(db)
-	addonProvider := provider.NewAddonClusterReleaseProvider(dbAccess)
+	addonProvider := provider.GetAddonClusterReleaseProvider(dbAccess)
 	clusterReleaseController := controller.NewClusterReleaseController(addonProvider)
 	suite.clusterReleaseController = clusterReleaseController
 	gin.SetMode(gin.TestMode)

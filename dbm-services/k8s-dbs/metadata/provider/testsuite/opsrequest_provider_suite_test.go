@@ -90,7 +90,7 @@ func (suite *OpsrequestProviderTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 	dbAccess := dbaccess.GetOpsRequestDbAccess(db)
-	clusterProvider := provider.NewK8sCrdOpsRequestProvider(dbAccess)
+	clusterProvider := provider.GetK8sCrdOpsRequestProvider(dbAccess)
 	suite.clusterProvider = clusterProvider
 }
 

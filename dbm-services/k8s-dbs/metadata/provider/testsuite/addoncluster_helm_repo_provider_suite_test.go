@@ -82,7 +82,7 @@ func (suite *AddonClusterHelmRepoProviderTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 	dbAccess := dbaccess.GetAcHelmRepoDbAccess(db)
-	suite.addonClusterHelmRepoProvider = provider.NewAddonClusterHelmRepoProvider(dbAccess)
+	suite.addonClusterHelmRepoProvider = provider.GetAddonClusterHelmRepoProvider(dbAccess)
 }
 
 func (suite *AddonClusterHelmRepoProviderTestSuite) TearDownSuite() {

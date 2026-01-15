@@ -24,6 +24,7 @@ import (
 	"k8s-dbs/metadata/dbaccess"
 	metaentity "k8s-dbs/metadata/entity"
 	metamodel "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -43,6 +44,22 @@ type AddonClusterReleaseProvider interface {
 // AddonClusterReleaseProviderImpl AddonClusterReleaseProvider 具体实现
 type AddonClusterReleaseProviderImpl struct {
 	dbAccess dbaccess.AddonClusterReleaseDbAccess
+}
+
+var (
+	acReleaseInstance AddonClusterReleaseProvider
+	acReleaseOnce     sync.Once
+)
+
+// GetAddonClusterReleaseProvider 获取 AddonClusterReleaseProvider 单例实例
+func GetAddonClusterReleaseProvider(dbAccess dbaccess.AddonClusterReleaseDbAccess) AddonClusterReleaseProvider {
+	acReleaseOnce.Do(func() {
+		acReleaseInstance = &AddonClusterReleaseProviderImpl{dbAccess: dbAccess}
+	})
+	if acReleaseInstance == nil {
+		panic("AddonClusterReleaseProvider instance is nil after initialization")
+	}
+	return acReleaseInstance
 }
 
 // CreateClusterRelease 创建 cluster release
@@ -136,9 +153,4 @@ func (a *AddonClusterReleaseProviderImpl) ListClusterReleases(pagination entity.
 		return nil, errors.Wrap(err, "failed to copy")
 	}
 	return releaseEntities, nil
-}
-
-// NewAddonClusterReleaseProvider 创建 AddonClusterReleaseDbAccess 接口实现实例
-func NewAddonClusterReleaseProvider(dbAccess dbaccess.AddonClusterReleaseDbAccess) AddonClusterReleaseProvider {
-	return &AddonClusterReleaseProviderImpl{dbAccess: dbAccess}
 }

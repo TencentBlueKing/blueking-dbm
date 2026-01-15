@@ -34,7 +34,7 @@ func BuildAddonCategoryRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group(BasePath)
 	categoryDbAccess := metadbaccess.GetAddonCategoryDbAccess(db)
 	typeDbAccess := metadbaccess.GetAddonTypeDbAccess(db)
-	metaProvider := metaprovider.NewAddonCategoryProvider(categoryDbAccess, typeDbAccess)
+	metaProvider := metaprovider.GetAddonCategoryProvider(categoryDbAccess, typeDbAccess)
 	metaController := metacontroller.NewAddonCategoryController(metaProvider)
 	categoryGroup := metaRouter.Group("/addon_category")
 	{

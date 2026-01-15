@@ -76,7 +76,7 @@ func (suite *OperationDefinitionProviderTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 	dbAccess := dbaccess.GetOperationDefinitionDbAccess(db)
-	suite.operationDefinitionProvider = provider.NewOperationDefinitionProvider(dbAccess)
+	suite.operationDefinitionProvider = provider.GetOperationDefinitionProvider(dbAccess)
 }
 
 func (suite *OperationDefinitionProviderTestSuite) TearDownSuite() {

@@ -75,7 +75,7 @@ func (suite *AddonControllerTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 	dbAccess := dbaccess.GetStorageAddonDbAccess(db)
-	addonProvider := provider.NewK8sCrdStorageAddonProvider(dbAccess)
+	addonProvider := provider.GetK8sCrdStorageAddonProvider(dbAccess)
 	addonController := controller.NewAddonController(addonProvider)
 	suite.addonController = addonController
 	gin.SetMode(gin.TestMode)

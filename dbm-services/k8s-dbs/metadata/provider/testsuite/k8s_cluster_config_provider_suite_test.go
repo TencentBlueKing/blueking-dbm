@@ -104,7 +104,7 @@ func (suite *K8sClusterConfigProviderTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 	dbAccess := dbaccess.GetK8sClusterConfigDbAccess(db)
-	clusterProvider := provider.NewK8sClusterConfigProvider(dbAccess)
+	clusterProvider := provider.GetK8sClusterConfigProvider(dbAccess)
 	suite.clusterConfigProvider = clusterProvider
 }
 

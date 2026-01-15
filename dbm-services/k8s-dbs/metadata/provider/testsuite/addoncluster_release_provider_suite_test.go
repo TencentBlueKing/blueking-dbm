@@ -88,7 +88,7 @@ func (suite *AddonClusterReleaseProviderTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 	dbAccess := dbaccess.GetAcReleaseDbAccess(db)
-	suite.addonClusterReleaseProvider = provider.NewAddonClusterReleaseProvider(dbAccess)
+	suite.addonClusterReleaseProvider = provider.GetAddonClusterReleaseProvider(dbAccess)
 }
 
 func (suite *AddonClusterReleaseProviderTestSuite) TearDownSuite() {

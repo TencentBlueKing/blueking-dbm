@@ -73,7 +73,7 @@ func (suite *K8sClusterConfigControllerTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 	dbAccess := dbaccess.GetK8sClusterConfigDbAccess(db)
-	k8sClusterConfigProvider := provider.NewK8sClusterConfigProvider(dbAccess)
+	k8sClusterConfigProvider := provider.GetK8sClusterConfigProvider(dbAccess)
 	k8sClusterConfigController := controller.NewK8sClusterConfigController(k8sClusterConfigProvider)
 	suite.k8sClusterConfigController = k8sClusterConfigController
 	gin.SetMode(gin.TestMode)

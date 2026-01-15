@@ -34,7 +34,7 @@ func BuildClusterOpMetaRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group(BasePath)
 	clusterOpDbAccess := metadbaccess.GetClusterOperationDbAccess(db)
 	opDefDbAccess := metadbaccess.GetOperationDefinitionDbAccess(db)
-	metaProvider := metaprovider.NewClusterOperationProvider(clusterOpDbAccess, opDefDbAccess)
+	metaProvider := metaprovider.GetClusterOperationProvider(clusterOpDbAccess, opDefDbAccess)
 	metaController := metacontroller.NewClusterOperationController(metaProvider)
 	addonMetaGroup := metaRouter.Group("/cluster_operation")
 	{

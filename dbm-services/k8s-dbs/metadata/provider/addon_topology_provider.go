@@ -23,6 +23,7 @@ import (
 	"k8s-dbs/metadata/dbaccess"
 	metaenitty "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -39,6 +40,22 @@ type AddonTopologyProvider interface {
 // AddonTopologyProviderImpl AddonTopologyProvider 具体实现
 type AddonTopologyProviderImpl struct {
 	dbAccess dbaccess.AddonTopologyDbAccess
+}
+
+var (
+	addonTopologyInstance AddonTopologyProvider
+	addonTopologyOnce     sync.Once
+)
+
+// GetAddonTopologyProvider 获取 AddonTopologyProvider 单例实例
+func GetAddonTopologyProvider(dbAccess dbaccess.AddonTopologyDbAccess) AddonTopologyProvider {
+	addonTopologyOnce.Do(func() {
+		addonTopologyInstance = &AddonTopologyProviderImpl{dbAccess: dbAccess}
+	})
+	if addonTopologyInstance == nil {
+		panic("AddonTopologyProvider instance is nil after initialization")
+	}
+	return addonTopologyInstance
 }
 
 // FindByParams 按照 参数查找接口实现
@@ -88,11 +105,4 @@ func (a *AddonTopologyProviderImpl) Create(entity *metaenitty.AddonTopologyEntit
 		return nil, errors.Wrap(err, "failed to copy")
 	}
 	return &addedEntity, nil
-}
-
-// NewAddonTopologyProvider 创建 AddonTopologyProvider 接口实现实例
-func NewAddonTopologyProvider(
-	dbAccess dbaccess.AddonTopologyDbAccess,
-) AddonTopologyProvider {
-	return &AddonTopologyProviderImpl{dbAccess}
 }

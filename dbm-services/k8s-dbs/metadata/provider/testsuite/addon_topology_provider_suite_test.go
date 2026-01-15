@@ -96,7 +96,7 @@ func (suite *AddonTopologyProviderTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 	dbAccess := dbaccess.GetAddonTopologyDbAccess(db)
-	suite.addonTopologyProvider = provider.NewAddonTopologyProvider(dbAccess)
+	suite.addonTopologyProvider = provider.GetAddonTopologyProvider(dbAccess)
 }
 
 func (suite *AddonTopologyProviderTestSuite) TearDownSuite() {

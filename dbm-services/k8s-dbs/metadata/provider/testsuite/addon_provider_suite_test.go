@@ -109,7 +109,7 @@ func (suite *AddonProviderTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 	dbAccess := dbaccess.GetStorageAddonDbAccess(db)
-	suite.addonProvider = provider.NewK8sCrdStorageAddonProvider(dbAccess)
+	suite.addonProvider = provider.GetK8sCrdStorageAddonProvider(dbAccess)
 }
 
 func (suite *AddonProviderTestSuite) TearDownSuite() {

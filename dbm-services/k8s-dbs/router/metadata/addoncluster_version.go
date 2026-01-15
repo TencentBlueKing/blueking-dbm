@@ -34,7 +34,7 @@ func BuildAddonClusterVersionRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group(BasePath)
 	metaDbAccess := metadbaccess.GetAcVersionDbAccess(db)
 
-	metaProvider := metaprovider.NewAddonClusterVersionProvider(metaDbAccess)
+	metaProvider := metaprovider.GetAddonClusterVersionProvider(metaDbAccess)
 	metaController := metacontroller.NewAddonClusterVersionController(metaProvider)
 	metaGroup := metaRouter.Group("/addoncluster_version")
 	{

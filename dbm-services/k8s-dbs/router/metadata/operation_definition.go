@@ -33,7 +33,7 @@ import (
 func BuildOperationMetaRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group(BasePath)
 	metaDbAccess := metadbaccess.GetOperationDefinitionDbAccess(db)
-	metaProvider := metaprovider.NewOperationDefinitionProvider(metaDbAccess)
+	metaProvider := metaprovider.GetOperationDefinitionProvider(metaDbAccess)
 	metaController := metacontroller.NewOperationDefinitionController(metaProvider)
 	addonMetaGroup := metaRouter.Group("/operation_definition")
 	{

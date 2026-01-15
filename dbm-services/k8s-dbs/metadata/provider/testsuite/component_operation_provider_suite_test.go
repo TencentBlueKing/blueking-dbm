@@ -87,8 +87,8 @@ func (suite *ComponentOperationProviderTestSuite) SetupSuite() {
 	}
 	dbAccess := dbaccess.GetComponentOperationDbAccess(db)
 	opDefDBAccess := dbaccess.GetOperationDefinitionDbAccess(db)
-	clusterProvider := provider.NewComponentOperationProvider(dbAccess, opDefDBAccess)
-	definitionProvider := provider.NewOperationDefinitionProvider(opDefDBAccess)
+	clusterProvider := provider.GetComponentOperationProvider(dbAccess, opDefDBAccess)
+	definitionProvider := provider.GetOperationDefinitionProvider(opDefDBAccess)
 	suite.clusterProvider = clusterProvider
 	suite.definitionProvider = definitionProvider
 }
