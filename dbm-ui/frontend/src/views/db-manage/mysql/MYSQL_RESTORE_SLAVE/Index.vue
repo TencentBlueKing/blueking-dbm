@@ -392,9 +392,6 @@
     } else {
       formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
     }
-    setTimeout(() => {
-      tableRef.value?.validate();
-    }, 200);
   };
 
   const handleBatchEditColumn = (value: any, field: string) => {

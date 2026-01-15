@@ -140,9 +140,10 @@
       label: t('目标集群'),
     },
     {
-      case: 'RemoteDR',
+      case: 'RemoteDB',
       key: 'backup_local',
       label: t('备份位置'),
+      values: ['RemoteDB', 'RemoteDR', '192.168.0.1:10000'],
     },
   ];
 
@@ -248,7 +249,7 @@
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
     const dataList = data.map((item) =>
       createTableRow({
-        backup_local: item.backup_local === 'RemoteDR' ? 'remote' : `spider_mnt::${item.backup_local}`,
+        backup_local: item.backup_local || '',
         cluster: {
           master_domain: item.master_domain,
         } as TendbclusterModel,
