@@ -33,7 +33,8 @@ EXCLUDE_DIRS = [
     "backend/db_monitor/management",
     "backend/db_event/management",
     "backend/flow/utils/cloud/script_template",
-    "dbm-ui/backend/db_services/report/mock_data",
+    "backend/db_services/report/mock_data",
+    "backend/dbm_aiagent/mcp_tools",
 ]
 # 寻找未翻译语言时，忽略的文件路径
 EXCLUDE_FILE_PATHS = [
