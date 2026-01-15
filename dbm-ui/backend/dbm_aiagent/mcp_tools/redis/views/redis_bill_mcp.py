@@ -11,7 +11,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
 from backend.db_meta.models import Cluster
-from backend.dbm_aiagent.mcp_tools.constants import DBMAMcpTools, DBMMCPTags
+from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.redis.serializers.redis_bill import (
     SubmitBillOutputSerializer,
@@ -49,7 +49,7 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
         request_slz=SubmitBillRedisFullBackupInputSerializer,
         response_slz=SubmitBillOutputSerializer,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
-        mcp=[DBMAMcpTools.REDIS_BILL],
+        mcp=[DBMMcpTools.REDIS_BILL],
         name_prefix="redis_bill",
     )
     def submit_bill_redis_full_backup(self, request, *args, **kwargs):
@@ -81,7 +81,7 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
         request_slz=SubmitBillRedisProxyReduceOrIncreaseInputSerializer,
         response_slz=SubmitBillOutputSerializer,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
-        mcp=[DBMAMcpTools.REDIS_BILL],
+        mcp=[DBMMcpTools.REDIS_BILL],
         name_prefix="redis_bill",
     )
     def submit_bill_redis_proxy_reduce(self, request, *args, **kwargs):
@@ -113,7 +113,7 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
         request_slz=SubmitBillRedisProxyReduceByIpInputSerializer,
         response_slz=SubmitBillOutputSerializer,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
-        mcp=[DBMAMcpTools.REDIS_BILL],
+        mcp=[DBMMcpTools.REDIS_BILL],
         name_prefix="redis_bill",
     )
     def submit_bill_redis_proxy_reduce_by_ip(self, request, *args, **kwargs):
@@ -171,7 +171,7 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
         request_slz=SubmitBillRedisProxyReduceOrIncreaseInputSerializer,
         response_slz=SubmitBillOutputSerializer,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
-        mcp=[DBMAMcpTools.REDIS_BILL],
+        mcp=[DBMMcpTools.REDIS_BILL],
         name_prefix="redis_bill",
     )
     def submit_bill_redis_proxy_increase(self, request, *args, **kwargs):
@@ -212,7 +212,7 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
         request_slz=SubmitBillRedisFlushDBInputSerializer,
         response_slz=SubmitBillOutputSerializer,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
-        mcp=[DBMAMcpTools.REDIS_BILL],
+        mcp=[DBMMcpTools.REDIS_BILL],
         name_prefix="redis_bill",
     )
     def submit_bill_flush_db(self, request, *args, **kwargs):
@@ -253,7 +253,7 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
         request_slz=SubmitBillRedisExtractKeyInputSerializer,
         response_slz=SubmitBillOutputSerializer,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
-        mcp=[DBMAMcpTools.REDIS_BILL],
+        mcp=[DBMMcpTools.REDIS_BILL],
         name_prefix="redis_bill",
     )
     def submit_bill_extract_key(self, request, *args, **kwargs):
@@ -290,7 +290,7 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
         request_slz=SubmitBillRedisDeleteKeyInputSerializer,
         response_slz=SubmitBillOutputSerializer,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
-        mcp=[DBMAMcpTools.REDIS_BILL],
+        mcp=[DBMMcpTools.REDIS_BILL],
         name_prefix="redis_bill",
     )
     def submit_bill_delete_key_by_regex(self, request, *args, **kwargs):
@@ -330,7 +330,7 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
         request_slz=SubmitBillRedisBaseInputSerializer,
         response_slz=SubmitBillOutputSerializer,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
-        mcp=[DBMAMcpTools.REDIS_BILL],
+        mcp=[DBMMcpTools.REDIS_BILL],
         name_prefix="redis_bill",
     )
     def submit_bill_reinstall_dbmon(self, request, *args, **kwargs):
