@@ -1,6 +1,7 @@
 # mysql cluster
 mysqlClusters:
   - domain: "testdb.dbha-test1.hz.db"
+    domainSlave: "testdr.dbha-test1.hz.db"
     bkBizId: 1
     proxy: 
       - host: xxx.xxx.xxx.1
@@ -23,6 +24,7 @@ mysqlClusters:
 # tenDB cluster
 tenDBClusters:
   - domain: "spider.dbha-test1.hz.db"
+    domainSlave: "spider-slave.dbha-test1.hz.db"
     bkBizId: 1
     spider:
       - serverName: SPIDER0
