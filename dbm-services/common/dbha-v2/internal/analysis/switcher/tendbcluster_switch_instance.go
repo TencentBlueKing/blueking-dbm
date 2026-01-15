@@ -593,7 +593,7 @@ func (sw *TenDBClusterSpiderSwitchInstance) CheckBeforeSwitch() (SwitchCheckCode
 		return SwitchRequired, nil
 	case dbm.TenDBClusterSpiderSlave:
 		sw.ReportLogf(SwitchInfo, "this is a spider slave node, no need to check")
-		return SwitchNotNeeded, nil
+		return SwitchRequired, nil
 	default:
 		err := gerrors.Newf(gerrors.Failure, "invalid instance role: %s", sw.SpiderRole)
 		sw.ReportLogf(SwitchWarn, "%s", err.Error())
@@ -776,15 +776,16 @@ func (sw *TenDBClusterSpiderSwitchInstance) DeleteOwnRoutes(primaryTdbctlDB *ham
 	}
 
 	// spider_slave nodes do not have corresponding tdbctl nodes, only spider_master nodes have tdbctl
+	if sw.SpiderRole == dbm.TenDBClusterSpiderSlave {
+		sw.ReportLogf(SwitchInfo, "spider_slave(%s:%d) does not have corresponding tdbctl, skip deleting tdbctl route",
+			sw.IP, sw.Port)
+		sw.ReportLogf(SwitchInfo, "successfully deleted route item of %s on primary(%s:%d)",
+			sw.ToNodeName(curSpiderRoute), sw.PrimaryTdbctl.Host, sw.PrimaryTdbctl.Port)
+		return nil
+	}
+
 	curTdbctlRoute, curTdbctlExists := sw.GetRouteInfoFromCache(sw.IP, sw.AdminPort)
 	if !curTdbctlExists {
-		if sw.SpiderRole == dbm.TenDBClusterSpiderSlave {
-			sw.ReportLogf(SwitchInfo, "spider_slave(%s:%d) does not have corresponding tdbctl, skip deleting tdbctl route",
-				sw.IP, sw.Port)
-			sw.ReportLogf(SwitchInfo, "successfully deleted route item of %s on primary(%s:%d)",
-				sw.ToNodeName(curSpiderRoute), sw.PrimaryTdbctl.Host, sw.PrimaryTdbctl.Port)
-			return nil
-		}
 		errMsg := fmt.Sprintf("failed to get route info of current tdbctl(%s:%d) from route cache", sw.IP, sw.AdminPort)
 		sw.ReportLogf(SwitchWarn, "when deleting own routes, %s", errMsg)
 		return gerrors.New(gerrors.Failure, errMsg)
@@ -898,13 +899,14 @@ func (sw *TenDBClusterSpiderSwitchInstance) DoFinal() error {
 
 		if validSecondaryCount == 0 {
 			sw.ReportLog(SwitchInfo, "no valid secondary nodes need to change master to the new primary tdbctl")
-		} else if failureOccurred {
+			return nil
+		}
+		if failureOccurred {
 			errMsg := "not all secondary tdbctl successfully changed the master to the new primary tdbctl"
 			sw.ReportLogf(SwitchWarn, "%s", errMsg)
 			return gerrors.New(gerrors.Failure, errMsg)
-		} else {
-			sw.ReportLog(SwitchInfo, "successfully changed master to the new primary tdbctl for all valid secondary tdbctl nodes")
 		}
+		sw.ReportLog(SwitchInfo, "successfully changed master to the new primary tdbctl for all valid secondary tdbctl nodes")
 	}
 
 	return nil
