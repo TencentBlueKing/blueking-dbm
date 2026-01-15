@@ -14,7 +14,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
 from backend.db_meta.enums import ClusterType
-from backend.dbm_aiagent.mcp_tools.constants import DBMAMcpTools, DBMMCPTags
+from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.mysql.impl.cluster_topo import mysql_cluster_topo
 from backend.dbm_aiagent.mcp_tools.mysql.impl.explain_sql import explain_sql
@@ -73,7 +73,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=ShowCreateTableInputSerializer,
         response_slz=ShowCreateTableOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.MYSQL_QUERY],
+        mcp=[DBMMcpTools.MYSQL_QUERY],
         name_prefix="mysql_query",
     )
     def show_create_table(self, request, *args, **kwargs):
@@ -94,7 +94,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=ExplainSQLInputSerializer,
         response_slz=ExplainSQLOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.MYSQL_QUERY],
+        mcp=[DBMMcpTools.MYSQL_QUERY],
         name_prefix="mysql_query",
     )
     def explain_sql(self, request, *args, **kwargs):
@@ -113,7 +113,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=ClusterTopoInputSerializer,
         response_slz=TenDBSingleTopoOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.MYSQL_QUERY],
+        mcp=[DBMMcpTools.MYSQL_QUERY],
         name_prefix="mysql_query",
     )
     def tendbsingle_topo(self, request, *args, **kwargs):
@@ -127,7 +127,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=ClusterTopoInputSerializer,
         response_slz=TenDBHATopoOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.MYSQL_QUERY],
+        mcp=[DBMMcpTools.MYSQL_QUERY],
         name_prefix="mysql_query",
     )
     def tendbha_topo(self, request, *args, **kwargs):
@@ -141,7 +141,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=ClusterTopoInputSerializer,
         response_slz=TenDBClusterTopoOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.MYSQL_QUERY],
+        mcp=[DBMMcpTools.MYSQL_QUERY],
         name_prefix="mysql_query",
     )
     def tendbcluster_topo(self, request, *args, **kwargs):
@@ -155,7 +155,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=ShowInstanceProcessListDetailInputSerializer,
         response_slz=ShowInstanceProcessListDetailOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.MYSQL_QUERY],
+        mcp=[DBMMcpTools.MYSQL_QUERY],
         name_prefix="mysql_query",
     )
     def show_instance_processlist_detail(self, request, *args, **kwargs):
@@ -176,7 +176,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=ShowClusterProcessListCountInputSerializer,
         response_slz=ShowClusterProcessListCountOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.MYSQL_QUERY],
+        mcp=[DBMMcpTools.MYSQL_QUERY],
         name_prefix="mysql_query",
     )
     def show_cluster_processlist_count(self, request, *args, **kwargs):
@@ -199,7 +199,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=ShowMySQLVariablesInputSerializer,
         response_slz=ShowMySQLVariablesOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.MYSQL_QUERY],
+        mcp=[DBMMcpTools.MYSQL_QUERY],
         name_prefix="mysql_query",
     )
     def show_mysql_popular_runtime_variables(self, request, *args, **kwargs):
@@ -223,7 +223,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=ShowInstanceStatusesInputSerializer,
         response_slz=ShowInstanceStatuesOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.MYSQL_QUERY],
+        mcp=[DBMMcpTools.MYSQL_QUERY],
         name_prefix="mysql_query",
     )
     def show_instance_popular_runtime_status(self, request, *args, **kwargs):
@@ -247,7 +247,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=ShowInstanceSlaveStatusInputSerializer,
         response_slz=ShowInstanceStatuesOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.MYSQL_QUERY],
+        mcp=[DBMMcpTools.MYSQL_QUERY],
         name_prefix="mysql_query",
     )
     def show_instance_slave_status(self, request, *args, **kwargs):
@@ -268,7 +268,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=ShowBizMySQLPrivilegeTemplateInputSerializer,
         response_slz=ShowBizMySQLPrivilegeTemplateOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.MYSQL_QUERY],
+        mcp=[DBMMcpTools.MYSQL_QUERY],
         name_prefix="mysql_query",
     )
     def show_biz_mysql_privilege_template(self, request, *args, **kwargs):

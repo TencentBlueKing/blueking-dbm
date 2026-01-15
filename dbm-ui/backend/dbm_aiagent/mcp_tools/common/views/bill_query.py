@@ -17,7 +17,7 @@ from backend.dbm_aiagent.mcp_tools.common.serializers.bill_status_tracker import
     BillStatusTrackerInputSerializer,
     BillStatusTrackerOutputSerializer,
 )
-from backend.dbm_aiagent.mcp_tools.constants import DBMAMcpTools, DBMMCPTags
+from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
@@ -35,7 +35,7 @@ class BillQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=BillStatusTrackerInputSerializer,
         response_slz=BillStatusTrackerOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.BILL_QUERY],
+        mcp=[DBMMcpTools.BILL_QUERY],
         name_prefix="bill_query",
     )
     def bill_status_tracker(self, request, *args, **kwargs):

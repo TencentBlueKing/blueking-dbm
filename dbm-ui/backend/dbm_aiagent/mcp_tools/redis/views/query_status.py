@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
-from backend.dbm_aiagent.mcp_tools.constants import DBMAMcpTools, DBMMCPTags
+from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.redis.impl.redis_status import (
     get_redis_client_list,
@@ -54,7 +54,7 @@ class RedisQueryStatusMcpToolsViewSet(McpToolsViewSet):
         request_slz=RedisInstanceInputSerializer,
         response_slz=RedisServerInfoSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.REDIS_QUERY_STATUS],
+        mcp=[DBMMcpTools.REDIS_QUERY_STATUS],
         name_prefix="redis_query_status",
     )
     def get_server_info(self, request, *args, **kwargs):
@@ -68,7 +68,7 @@ class RedisQueryStatusMcpToolsViewSet(McpToolsViewSet):
         request_slz=RedisInstanceInputSerializer,
         response_slz=RedisClientsInfoSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.REDIS_QUERY_STATUS],
+        mcp=[DBMMcpTools.REDIS_QUERY_STATUS],
         name_prefix="redis_query_status",
     )
     def get_clients_info(self, request, *args, **kwargs):
@@ -82,7 +82,7 @@ class RedisQueryStatusMcpToolsViewSet(McpToolsViewSet):
         request_slz=RedisInstanceInputSerializer,
         response_slz=RedisMemoryInfoSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.REDIS_QUERY_STATUS],
+        mcp=[DBMMcpTools.REDIS_QUERY_STATUS],
         name_prefix="redis_query_status",
     )
     def get_memory_info(self, request, *args, **kwargs):
@@ -96,7 +96,7 @@ class RedisQueryStatusMcpToolsViewSet(McpToolsViewSet):
         request_slz=RedisInstanceInputSerializer,
         response_slz=RedisPersistenceInfoSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.REDIS_QUERY_STATUS],
+        mcp=[DBMMcpTools.REDIS_QUERY_STATUS],
         name_prefix="redis_query_status",
     )
     def get_persistence_info(self, request, *args, **kwargs):
@@ -110,7 +110,7 @@ class RedisQueryStatusMcpToolsViewSet(McpToolsViewSet):
         request_slz=RedisInstanceInputSerializer,
         response_slz=RedisStatsInfoSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.REDIS_QUERY_STATUS],
+        mcp=[DBMMcpTools.REDIS_QUERY_STATUS],
         name_prefix="redis_query_status",
     )
     def get_stats_info(self, request, *args, **kwargs):
@@ -124,7 +124,7 @@ class RedisQueryStatusMcpToolsViewSet(McpToolsViewSet):
         request_slz=RedisInstanceInputSerializer,
         response_slz=RedisReplicationInfoSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.REDIS_QUERY_STATUS],
+        mcp=[DBMMcpTools.REDIS_QUERY_STATUS],
         name_prefix="redis_query_status",
     )
     def get_replication_info(self, request, *args, **kwargs):
@@ -138,7 +138,7 @@ class RedisQueryStatusMcpToolsViewSet(McpToolsViewSet):
         request_slz=RedisInstanceInputSerializer,
         response_slz=RedisCPUInfoSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.REDIS_QUERY_STATUS],
+        mcp=[DBMMcpTools.REDIS_QUERY_STATUS],
         name_prefix="redis_query_status",
     )
     def get_cpu_info(self, request, *args, **kwargs):
@@ -152,7 +152,7 @@ class RedisQueryStatusMcpToolsViewSet(McpToolsViewSet):
         request_slz=RedisInstanceInputSerializer,
         response_slz=RedisKeyspaceInfoSerializer(many=True),
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.REDIS_QUERY_STATUS],
+        mcp=[DBMMcpTools.REDIS_QUERY_STATUS],
         name_prefix="redis_query_status",
     )
     def get_keyspace_info(self, request, *args, **kwargs):
@@ -167,7 +167,7 @@ class RedisQueryStatusMcpToolsViewSet(McpToolsViewSet):
         request_slz=RedisInstanceInputSerializer,
         response_slz=RedisClientListResponseSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.REDIS_QUERY_STATUS],
+        mcp=[DBMMcpTools.REDIS_QUERY_STATUS],
         name_prefix="redis_query_status",
     )
     def get_client_list(self, request, *args, **kwargs):
@@ -181,7 +181,7 @@ class RedisQueryStatusMcpToolsViewSet(McpToolsViewSet):
         request_slz=RedisInstanceInputSerializer,
         response_slz=RedisCommandStatsResponseSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.REDIS_QUERY_STATUS],
+        mcp=[DBMMcpTools.REDIS_QUERY_STATUS],
         name_prefix="redis_query_status",
     )
     def get_command_stats(self, request, *args, **kwargs):
@@ -201,7 +201,7 @@ class RedisQueryStatusMcpToolsViewSet(McpToolsViewSet):
         request_slz=RedisClusterInputSerializer,
         response_slz=RedisClusterTopologyTextSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.REDIS_QUERY_STATUS],
+        mcp=[DBMMcpTools.REDIS_QUERY_STATUS],
         name_prefix="redis_query_status",
     )
     def get_cluster_topology(self, request, *args, **kwargs):

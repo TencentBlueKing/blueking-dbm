@@ -18,7 +18,7 @@ from backend.dbm_aiagent.mcp_tools.common.serializers.resource_param_query impor
     ResourceParamQueryInputSerializer,
     ResourceParamQueryOutputSerializer,
 )
-from backend.dbm_aiagent.mcp_tools.constants import DBMAMcpTools, DBMMCPTags
+from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import RejectPermission
@@ -47,7 +47,7 @@ class ResourceParamQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=ResourceParamQueryInputSerializer,
         response_slz=ResourceParamQueryOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMAMcpTools.RESOURCE_QUERY],
+        mcp=[DBMMcpTools.RESOURCE_QUERY],
         name_prefix="resource_query",
     )
     def resource_param_query(self, request, *args, **kwargs):
