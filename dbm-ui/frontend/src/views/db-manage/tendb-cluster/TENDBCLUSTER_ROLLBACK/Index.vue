@@ -85,7 +85,7 @@
           <DbNameColumn
             v-model="item.databases"
             :cluster-id="item.cluster?.id"
-            :disabled="diabledEdit(item)"
+            :readonly="diabledEdit(item)"
             field="databases"
             :label="t('源 DB')"
             required
@@ -93,14 +93,14 @@
           <TableNameColumn
             v-model="item.tables"
             :cluster-id="item.cluster?.id"
-            :disabled="diabledEdit(item)"
+            :readonly="diabledEdit(item)"
             field="tables"
             :label="t('源表')"
             required
             @batch-edit="handleBatchEdit" />
           <ConflictDbColumn
             v-model="item.affectDb"
-            :disabled="diabledEdit(item)"
+            :readonly="diabledEdit(item)"
             :row-data="item" />
           <OperationColumn
             v-model:table-data="formData.tableData"

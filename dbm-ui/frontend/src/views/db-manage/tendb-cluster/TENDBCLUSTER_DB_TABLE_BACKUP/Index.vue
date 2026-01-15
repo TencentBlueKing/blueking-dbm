@@ -274,7 +274,7 @@
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
     const dataList = data.map((item) =>
       createTableRow({
-        backup_local: item.backup_local === 'RemoteDR' ? 'remote' : `spider_mnt::${item.backup_local}`,
+        backup_local: item.backup_local || '',
         cluster: {
           master_domain: item.master_domain,
         } as TendbclusterModel,
