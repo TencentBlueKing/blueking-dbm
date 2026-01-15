@@ -1,16 +1,8 @@
 <template>
+  <AssistTab
+    v-model="todoType"
+    @change="handleTypeChange" />
   <div class="host-todo-container">
-    <AssistTab
-      v-model="todoType"
-      @change="handleTypeChange" />
-    <BkAlert
-      class="mb-12"
-      closable
-      :title="
-        isFaultPool
-          ? t('用来暂存故障主机，已下架的主机若检测有关联uwork、xwork单据将自动转入故障池等待后续处理')
-          : t('集中存放待回收的主机，已下架的主机若检测为Windows、待裁撤主机将自动转入待回收池以便执行回收操作')
-      " />
     <div class="operation-wrapper">
       <template v-if="isFaultPool">
         <AuthButton
@@ -21,7 +13,7 @@
         </AuthButton>
         <AuthButton
           action-id="resource_pool_manage"
-          class="ml-8 mr-8"
+          class="ml-8"
           :disabled="!selected.length"
           @click="handleBatchConvertToRecyclePool">
           {{ t('批量转入回收池') }}
@@ -37,8 +29,14 @@
           @click="handleBatchRecycle">
           {{ t('批量回收') }}
         </AuthButton>
+        <AuthButton
+          action-id="resource_pool_manage"
+          :disabled="!selected.length"
+          @click="handleBatchDelete">
+          {{ t('批量删除') }}
+        </AuthButton>
       </template>
-      <BkDropdown>
+      <BkDropdown class="ml-8">
         <BkButton>
           {{ t('复制') }}
           <DbIcon
@@ -179,6 +177,15 @@
       @success="handleRecycleRefresh">
     </ReviewDataDialog>
     <ReviewDataDialog
+      v-model:is-show="isBatchDeleteShow"
+      :confirm-handler="handleDeleteSubmit"
+      :selected="selected.map((item) => item.ip)"
+      theme="danger"
+      :tip="t('确认后，主机将从系统中删除主机记录，请谨慎操作！')"
+      :title="t('确认批量删除 {n} 台主机？', { n: selected.length })"
+      @success="handleRefresh">
+    </ReviewDataDialog>
+    <ReviewDataDialog
       v-model:is-show="isBatchConvertToRecyclePool"
       :confirm-handler="handleConvertSubmit"
       :selected="selected.map((item) => item.ip)"
@@ -226,6 +233,7 @@
   const todoType = ref((route.params.type || HostHandleTodoType.FAULT_HOST) as HostHandleTodoType);
   const selected = ref<FaultOrRecycleMachineModel[]>([]);
   const isBatchRecycleShow = ref(false);
+  const isBatchDeleteShow = ref(false);
   const isBatchImportResourcePoolShow = ref(false);
   const isBatchConvertToRecyclePool = ref(false);
 
@@ -280,6 +288,10 @@
     isBatchRecycleShow.value = true;
   };
 
+  const handleBatchDelete = () => {
+    isBatchDeleteShow.value = true;
+  };
+
   const handleBatchConvertToRecyclePool = () => {
     isBatchConvertToRecyclePool.value = true;
   };
@@ -288,6 +300,14 @@
     return transferMachinePool({
       bk_host_ids: selected.value.map((item) => item.bk_host_id),
       hcm_recycle: true,
+      source: 'recycle',
+      target: 'recycled',
+    });
+  };
+
+  const handleDeleteSubmit = () => {
+    return transferMachinePool({
+      bk_host_ids: selected.value.map((item) => item.bk_host_id),
       source: 'recycle',
       target: 'recycled',
     });
@@ -331,6 +351,8 @@
 
 <style lang="less">
   .host-todo-container {
+    padding: 20px 24px;
+
     .operation-wrapper {
       display: flex;
       align-items: center;

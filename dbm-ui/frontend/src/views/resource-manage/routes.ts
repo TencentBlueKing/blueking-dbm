@@ -67,6 +67,7 @@ export default function getRoutes() {
           path: 'host-todo/:type?/',
           name: 'resourceManageHostTodo',
           meta: {
+            fullscreen: true,
             isMenu: true,
             navName: t('主机处理待办'),
           },

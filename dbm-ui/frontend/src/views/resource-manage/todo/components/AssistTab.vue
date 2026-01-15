@@ -1,32 +1,30 @@
 <template>
   <Teleport to="#dbContentTitleAppend">
-    <div class="host-todo-action-box">
-      <div
-        class="split-line"
-        style="margin: 0 14px" />
-      <div class="action-box">
-        <div
-          class="action-item"
-          :class="{ 'is-active': modelValue === HostHandleTodoType.FAULT_HOST }"
-          @click="handleChangeType(HostHandleTodoType.FAULT_HOST)">
-          <DbIcon
-            class="mr-4"
-            type="host" />
-          <span>{{ t('故障池主机') }} ({{ faultCount }})</span>
-        </div>
-        <div class="split-line" />
-        <div
-          class="action-item"
-          :class="{ 'is-active': modelValue === HostHandleTodoType.RECYCLE_HOST }"
-          @click="handleChangeType(HostHandleTodoType.RECYCLE_HOST)">
-          <DbIcon
-            class="mr-4"
-            type="host" />
-          <span>{{ t('待回收池主机') }} ({{ recycleCount }})</span>
-        </div>
+    <BkPopover
+      placement="top"
+      :z-index="99999">
+      <div class="host-todo-page-title-icon">
+        <DbIcon type="attention" />
       </div>
-    </div>
+      <template #content>
+        <div>{{ t('故障池主机：展示待我处理的故障主机，一般是uwork、xwork检测有异常的已下架主机') }}</div>
+        <div>{{ t('待回收池主机：展示待我处理的待回收主机，一般是检测为Windows、待裁撤主机的已下架主机') }}</div>
+      </template>
+    </BkPopover>
   </Teleport>
+  <BkTab
+    v-model:active="modelValue"
+    class="host-todo-assist-tab"
+    type="unborder-card"
+    @change="handleChangeType">
+    <BkTabPanel
+      v-for="tab in renderTabs"
+      :key="tab.id"
+      :label="tab.name"
+      :name="tab.id"
+      :num="tab.count"
+      num-display-type="bracket" />
+  </BkTab>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -49,6 +47,21 @@
 
   const { t } = useI18n();
 
+  const renderTabs = computed(() => {
+    return [
+      {
+        count: faultCount.value,
+        id: HostHandleTodoType.FAULT_HOST,
+        name: t('故障池主机'),
+      },
+      {
+        count: recycleCount.value,
+        id: HostHandleTodoType.RECYCLE_HOST,
+        name: t('待回收池主机 '),
+      },
+    ];
+  });
+
   const handleChangeType = (type: HostHandleTodoType) => {
     router.replace({
       params: {
@@ -66,45 +79,29 @@
 </script>
 
 <style lang="less">
-  .host-todo-action-box {
+  .host-todo-page-title-icon {
     display: flex;
-    align-items: center;
-    margin-left: 8px;
+    padding-top: 2px;
+    margin-right: 12px;
+    margin-left: 6px;
+    font-size: 16px;
     color: #979ba5;
+    cursor: pointer;
+    align-items: center;
+  }
 
-    .split-line {
-      width: 1px;
-      height: 14px;
-      background: #c4c6cc;
-    }
+  .host-todo-assist-tab {
+    width: 100%;
+    padding: 0 24px;
+    background: #fff;
+    box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
 
-    .action-box {
-      display: flex;
+    .bk-tab-header-nav {
       overflow: hidden;
-      background-color: #f0f1f5;
-      border-radius: 2px;
-      align-items: center;
     }
 
-    .action-item {
-      display: flex;
-      height: 32px;
-      padding: 0 8px;
-      font-size: 14px;
-      color: #4d4f56;
-      cursor: pointer;
-      align-items: center;
-      transition: all 0.15s;
-
-      &:hover {
-        color: #3a84ff;
-      }
-
-      &.is-active {
-        color: #3a84ff;
-        cursor: default;
-        background-color: #f0f5ff;
-      }
+    .bk-tab-content {
+      display: none;
     }
   }
 </style>
