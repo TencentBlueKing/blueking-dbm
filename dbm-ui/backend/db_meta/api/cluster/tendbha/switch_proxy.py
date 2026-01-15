@@ -11,8 +11,10 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from django.db import transaction
+from django.utils.translation import gettext as _
 
 from backend.db_meta.enums import ClusterEntryType, InstanceInnerRole, InstanceStatus
+from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.flow.utils.cc_manage import CcManage
 from backend.flow.utils.mysql.mysql_module_operate import MysqlCCTopoOperator
@@ -35,13 +37,23 @@ def add_proxy(cluster_ids: list, proxy_ip: str, template_proxy_ip: str = None):
         # 设置接入层后端
         master_storage_obj.proxyinstance_set.add(*proxy_objs)
 
-        # 关联对应的域名信息
+        # 关联对应的域名信息（从模板 Proxy 复制 DNS/CLB 绑定）
         if template_proxy_ip:
             template_proxy = ProxyInstance.objects.get(cluster=cluster, machine__ip=template_proxy_ip)
         else:
-            template_proxy = ProxyInstance.objects.filter(cluster=cluster, status=InstanceStatus.RUNNING.value).all()[
-                0
-            ]
+            running_qs = ProxyInstance.objects.filter(cluster=cluster, status=InstanceStatus.RUNNING.value)
+            if running_qs.exists():
+                template_proxy = running_qs[0]
+            else:
+                # 救援等场景：旧 Proxy 均为 UNAVAILABLE，无 RUNNING；任选一台非本次新增 IP 的已有 Proxy 作为模板
+                fallback_qs = (
+                    ProxyInstance.objects.filter(cluster=cluster).exclude(machine__ip=proxy_ip).order_by("id")
+                )
+                if not fallback_qs.exists():
+                    raise DBMetaException(
+                        message=_("集群 id={} 无可用 Proxy 作为模板复制入口绑定，请检查元数据或传入 template_proxy_ip").format(cluster.id)
+                    )
+                template_proxy = fallback_qs[0]
 
         entry_list = template_proxy.bind_entry.filter(
             cluster_entry_type__in=[ClusterEntryType.DNS, ClusterEntryType.CLB]

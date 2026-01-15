@@ -2636,3 +2636,50 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 },
             },
         }
+
+    def get_restore_proxy_whitelist_from_backend_payload(self, **kwargs) -> dict:
+        """
+        从 Master 恢复 Proxy 白名单的 payload
+
+        用于救援流程，在 Master 节点上执行，从 infodba_schema.proxy_user_list 表获取白名单
+        （为空时自动回退到 mysql.user 推算 user@%），并通过远程连接应用到新上架的 Proxy 实例。
+        单次调用支持批量恢复多个目标 Proxy。
+
+        执行节点：MySQL Master（Proxy 账号支持远程连接，MySQL 账号仅本地连接）
+
+        @param kwargs: 需要包含 cluster_id 与 target_proxies（列表，元素 {"host","port"}）
+        """
+        from backend.db_meta.enums import InstanceRole
+        from backend.flow.engine.bamboo.scene.mysql.common.exceptions import ProxyFlowFailedException
+
+        cluster_id = kwargs.get("cluster_id")
+        target_proxies = kwargs.get("target_proxies") or []
+
+        if not target_proxies:
+            raise ProxyFlowFailedException(message=_("恢复 Proxy 白名单 payload 缺少 target_proxies 参数"))
+
+        cluster = Cluster.objects.get(id=cluster_id)
+
+        master = cluster.storageinstance_set.filter(instance_role=InstanceRole.BACKEND_MASTER).first()
+        if not master:
+            from backend.db_meta.exceptions import MasterInstanceNotExistException
+
+            raise MasterInstanceNotExistException(message=_("集群 {} 没有 Master 实例").format(cluster_id))
+
+        return {
+            "db_type": DBActuatorTypeEnum.Proxy.value,
+            "action": DBActuatorActionEnum.RestoreProxyWhitelist.value,
+            "payload": {
+                "general": {
+                    "runtime_account": {
+                        **self.account,
+                        **self.proxy_account,
+                    }
+                },
+                "extend": {
+                    "master_host": master.machine.ip,
+                    "master_port": master.port,
+                    "target_proxies": [{"host": p["host"], "port": int(p["port"])} for p in target_proxies],
+                },
+            },
+        }
