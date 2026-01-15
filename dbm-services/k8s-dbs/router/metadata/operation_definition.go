@@ -32,8 +32,8 @@ import (
 // BuildOperationMetaRouter operation definition 管理路由构建
 func BuildOperationMetaRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group(BasePath)
-	metaDbAccess := metadbaccess.NewOperationDefinitionDbAccess(db)
-	metaProvider := metaprovider.NewOperationDefinitionProvider(metaDbAccess)
+	metaDbAccess := metadbaccess.GetOperationDefinitionDbAccess(db)
+	metaProvider := metaprovider.GetOperationDefinitionProvider(metaDbAccess)
 	metaController := metacontroller.NewOperationDefinitionController(metaProvider)
 	addonMetaGroup := metaRouter.Group("/operation_definition")
 	{

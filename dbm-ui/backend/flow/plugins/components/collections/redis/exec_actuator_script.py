@@ -97,7 +97,7 @@ class ExecuteDBActuatorScriptService(BkJobService):
 
         if kwargs["is_update_trans_data"]:
             cluster_log = copy.deepcopy(kwargs["cluster"])
-            for k in ("password", "pwd"):
+            for k in ("password", "pwd", "src_redis_password", "dst_cluster_password"):
                 if cluster_log.get(k):
                     cluster_log[k] = "xxxxxx"
             self.log_info(_("[{}] kwargs['payload'] 是不完整，需要将{}内容加到payload中").format(node_name, cluster_log))

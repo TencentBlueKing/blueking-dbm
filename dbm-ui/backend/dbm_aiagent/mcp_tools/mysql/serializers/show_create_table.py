@@ -23,9 +23,9 @@ class ShowCreateTableInputSerializer(serializers.Serializer):
 
 
 class ShowCreateTableOutputSerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
-    cluster_domain = serializers.CharField(help_text=_("集群域名"))
-    cluster_type = serializers.CharField(help_text=_("集群类型"))
-    dbname = serializers.CharField(help_text=_("库名"))
-    tablename = serializers.CharField(help_text=_("表名"))
+    # bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
+    # cluster_domain = serializers.CharField(help_text=_("集群域名"))
+    # cluster_type = serializers.CharField(help_text=_("集群类型"))
+    # dbname = serializers.CharField(help_text=_("库名"))
+    # tablename = serializers.CharField(help_text=_("表名"))
     create_sql = serializers.CharField(help_text=_("表结构, 建表语句"))

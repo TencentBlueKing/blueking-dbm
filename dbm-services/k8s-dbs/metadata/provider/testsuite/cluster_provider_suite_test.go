@@ -115,24 +115,21 @@ func (suite *ClusterProviderTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	clusterDbAccess := dbaccess.NewCrdClusterDbAccess(db)
-	addonMetaDbAccess := dbaccess.NewK8sCrdStorageAddonDbAccess(db)
-	clusterTagDbAccess := dbaccess.NewK8sCrdClusterTagDbAccess(db)
-	k8sClusterConfigDbAccess := dbaccess.NewK8sClusterConfigDbAccess(db)
-	clusterTopologyDbAccess := dbaccess.NewAddonTopologyDbAccess(db)
+	clusterDbAccess := dbaccess.GetClusterDbAccess(db)
+	addonMetaDbAccess := dbaccess.GetStorageAddonDbAccess(db)
+	clusterTagDbAccess := dbaccess.GetClusterTagDbAccess(db)
+	k8sClusterConfigDbAccess := dbaccess.GetK8sClusterConfigDbAccess(db)
+	clusterTopologyDbAccess := dbaccess.GetAddonTopologyDbAccess(db)
 	clusterProviderBuilder := metaprovider.K8sCrdClusterProviderBuilder{}
-	suite.clusterProvider, err = provider.NewK8sCrdClusterProvider(
+	suite.clusterProvider = provider.GetK8sCrdClusterProvider(
 		clusterProviderBuilder.WithClusterDbAccess(clusterDbAccess),
 		clusterProviderBuilder.WithAddonDbAccess(addonMetaDbAccess),
 		clusterProviderBuilder.WithK8sClusterConfigDbAccess(k8sClusterConfigDbAccess),
 		clusterProviderBuilder.WithClusterTagDbAccess(clusterTagDbAccess),
 		clusterProviderBuilder.WithAddonTopologyDbAccess(clusterTopologyDbAccess),
 	)
-	suite.addonStorageProvider = provider.NewK8sCrdStorageAddonProvider(addonMetaDbAccess)
-	suite.clusterConfigProvider = provider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
-	if err != nil {
-		log.Fatal(err)
-	}
+	suite.addonStorageProvider = provider.GetK8sCrdStorageAddonProvider(addonMetaDbAccess)
+	suite.clusterConfigProvider = provider.GetK8sClusterConfigProvider(k8sClusterConfigDbAccess)
 }
 
 func (suite *ClusterProviderTestSuite) TearDownSuite() {

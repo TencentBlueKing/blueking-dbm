@@ -32,8 +32,8 @@ import (
 // BuildAddonTopologyRouter addon topology 管理路由构建
 func BuildAddonTopologyRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group(BasePath)
-	dbAccess := metadbaccess.NewAddonTopologyDbAccess(db)
-	metaProvider := metaprovider.NewAddonTopologyProvider(dbAccess)
+	dbAccess := metadbaccess.GetAddonTopologyDbAccess(db)
+	metaProvider := metaprovider.GetAddonTopologyProvider(dbAccess)
 	metaController := metacontroller.NewAddonTopologyController(metaProvider)
 	topologyGroup := metaRouter.Group("/addon_topology")
 	{

@@ -45,7 +45,7 @@ class InstanceProcessListDetailOutputSerializer(serializers.Serializer):
 
 
 class ShowInstanceProcessListDetailOutputSerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
+    # bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
     instance_processlist_info = serializers.ListField(
         child=InstanceProcessListDetailOutputSerializer(), help_text=_("实例连接信息")
     )
@@ -59,9 +59,9 @@ class InstanceProcessListCountOutputSerializer(serializers.Serializer):
 
 
 class ShowClusterProcessListCountOutputSerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
-    cluster_type = serializers.ChoiceField(choices=mysql_cluster_type_choices, help_text=_("集群类型"))
-    cluster_domain = serializers.CharField(help_text=_("集群域名"))
+    # bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
+    # cluster_type = serializers.ChoiceField(choices=mysql_cluster_type_choices, help_text=_("集群类型"))
+    # cluster_domain = serializers.CharField(help_text=_("集群域名"))
     cluster_processlist_info = serializers.ListField(
         child=InstanceProcessListCountOutputSerializer(), help_text=_("集群连接信息")
     )

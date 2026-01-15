@@ -25,6 +25,7 @@ import (
 	metaentity "k8s-dbs/metadata/entity"
 	metamodel "k8s-dbs/metadata/model"
 	"log/slog"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -44,6 +45,22 @@ type K8sClusterAddonsDbAccess interface {
 // K8sClusterAddonsDbAccessImpl K8sClusterAddonsDbAccess 的具体实现
 type K8sClusterAddonsDbAccessImpl struct {
 	db *gorm.DB
+}
+
+var (
+	clusterAddonsInstance K8sClusterAddonsDbAccess
+	clusterAddonsOnce     sync.Once
+)
+
+// GetK8sClusterAddonsDbAccess 获取 K8sClusterAddonsDbAccess 单例实例
+func GetK8sClusterAddonsDbAccess(db *gorm.DB) K8sClusterAddonsDbAccess {
+	clusterAddonsOnce.Do(func() {
+		clusterAddonsInstance = &K8sClusterAddonsDbAccessImpl{db: db}
+	})
+	if clusterAddonsInstance == nil {
+		panic("K8sClusterAddonsDbAccess instance is nil after initialization")
+	}
+	return clusterAddonsInstance
 }
 
 // FindByParams 通过参数查询
@@ -114,9 +131,4 @@ func (k *K8sClusterAddonsDbAccessImpl) ListByPage(pagination commentity.Paginati
 		return nil, 0, errors.Wrapf(err, "failed to list cluster addons with pagination %+v", pagination)
 	}
 	return clusterAddonModel, int64(len(clusterAddonModel)), nil
-}
-
-// NewK8sClusterAddonsDbAccess 创建 K8sClusterAddonsDbAccess 接口实现实例
-func NewK8sClusterAddonsDbAccess(db *gorm.DB) K8sClusterAddonsDbAccess {
-	return &K8sClusterAddonsDbAccessImpl{db: db}
 }

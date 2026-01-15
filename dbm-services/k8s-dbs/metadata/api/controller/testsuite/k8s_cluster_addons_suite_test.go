@@ -56,9 +56,9 @@ func (suite *K8sClusterAddonsControllerTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	kcaDbAccess := dbaccess.NewK8sClusterAddonsDbAccess(db)
-	saDbAccess := dbaccess.NewK8sCrdStorageAddonDbAccess(db)
-	k8sClusterAddonsProvider := provider.NewK8sClusterAddonsProvider(kcaDbAccess, saDbAccess)
+	kcaDbAccess := dbaccess.GetK8sClusterAddonsDbAccess(db)
+	saDbAccess := dbaccess.GetStorageAddonDbAccess(db)
+	k8sClusterAddonsProvider := provider.GetK8sClusterAddonsProvider(kcaDbAccess, saDbAccess)
 	k8sClusterAddonsController := controller.NewK8sClusterAddonsController(k8sClusterAddonsProvider)
 	suite.k8sClusterAddonsController = k8sClusterAddonsController
 	gin.SetMode(gin.TestMode)

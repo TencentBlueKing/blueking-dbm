@@ -57,7 +57,7 @@
         @page-value-change="handleChangePage">
         <BkTableColumn
           :label="t('文件名')"
-          :width="300">
+          :min-width="300">
           <template #header>
             <div class="ml-35">{{ t('备份记录') }}</div>
           </template>
@@ -75,7 +75,7 @@
         <BkTableColumn
           field="backup_id"
           :label="t('备份 ID')"
-          :width="270">
+          :min-width="270">
           <template #default="{ row }: { row: BackupLogRecordModel }">
             {{ row.backup_id }}
           </template>
@@ -84,7 +84,7 @@
           field="backup_type_filter"
           :filter="filterOption.backup_type_filter"
           :label="t('备份类型')"
-          :width="120">
+          :min-width="120">
           <template
             #default="{
               row,
@@ -103,7 +103,7 @@
           field="backup_method"
           :filter="filterOption.backup_method"
           :label="t('备份范围')"
-          :width="150">
+          :min-width="150">
           <template #default="{ row }: { row: BackupLogRecordModel & { backup_method_label: string } }">
             <span
               :class="{
@@ -117,21 +117,21 @@
           field="backup_tool"
           :filter="filterOption.backup_tool"
           :label="t('备份工具')"
-          :width="120">
+          :min-width="120">
           <template #default="{ row }: { row: BackupLogRecordModel }">
             {{ row?.backup_tool || '--' }}
           </template>
         </BkTableColumn>
         <BkTableColumn
           :label="t('备份大小')"
-          :width="120">
+          :min-width="120">
           <template #default="{ row }: { row: BackupLogRecordModel }">
             {{ bytePretty(row?.total_filesize ?? 0) }}
           </template>
         </BkTableColumn>
         <BkTableColumn
           :label="t('关联单据')"
-          :width="120">
+          :min-width="120">
           <template #default="{ row }: { row: BackupLogRecordModel }">
             <RouterLink
               v-if="row.bill_id"

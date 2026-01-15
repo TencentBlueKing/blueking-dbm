@@ -586,6 +586,21 @@ func (sw *TenDBClusterSpiderSwitchInstance) UnmarshalTdbctlReplInfo(replicationI
 	return replInfo, nil
 }
 
+// CheckBeforeSwitch check slave before switch
+func (sw *TenDBClusterSpiderSwitchInstance) CheckBeforeSwitch() (SwitchCheckCode, error) {
+	switch sw.SpiderRole {
+	case dbm.TenDBClusterSpiderMaster:
+		return SwitchRequired, nil
+	case dbm.TenDBClusterSpiderSlave:
+		sw.ReportLogf(SwitchInfo, "this is a spider slave node, no need to check")
+		return SwitchNotNeeded, nil
+	default:
+		err := gerrors.Newf(gerrors.Failure, "invalid instance role: %s", sw.SpiderRole)
+		sw.ReportLogf(SwitchWarn, "%s", err.Error())
+		return SwitchCheckUnpass, err
+	}
+}
+
 // TdbctlEnablePrimary connect tdbctl and execute TDBCTL ENABLE PRIMARY [FORCE]
 func (sw *TenDBClusterSpiderSwitchInstance) TdbctlEnablePrimary(tdbctlHost string, tdbctlPort int, force bool) error {
 	tdbctlDB, connErr := sw.ConnectTdbctlNode(tdbctlHost, tdbctlPort)

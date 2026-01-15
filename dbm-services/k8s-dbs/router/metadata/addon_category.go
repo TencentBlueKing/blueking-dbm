@@ -32,9 +32,9 @@ import (
 // BuildAddonCategoryRouter addon category 管理路由构建
 func BuildAddonCategoryRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group(BasePath)
-	categoryDbAccess := metadbaccess.NewAddonCategoryDbAccess(db)
-	typeDbAccess := metadbaccess.NewAddonTypeDbAccess(db)
-	metaProvider := metaprovider.NewAddonCategoryProvider(categoryDbAccess, typeDbAccess)
+	categoryDbAccess := metadbaccess.GetAddonCategoryDbAccess(db)
+	typeDbAccess := metadbaccess.GetAddonTypeDbAccess(db)
+	metaProvider := metaprovider.GetAddonCategoryProvider(categoryDbAccess, typeDbAccess)
 	metaController := metacontroller.NewAddonCategoryController(metaProvider)
 	categoryGroup := metaRouter.Group("/addon_category")
 	{

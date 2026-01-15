@@ -73,7 +73,7 @@ func (suite *K8sClusterAddonsDbAccessTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dbAccess := dbaccess.NewK8sClusterAddonsDbAccess(db)
+	dbAccess := dbaccess.GetK8sClusterAddonsDbAccess(db)
 	suite.dbAccess = dbAccess
 }
 

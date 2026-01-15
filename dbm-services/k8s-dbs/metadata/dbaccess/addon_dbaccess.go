@@ -24,6 +24,7 @@ import (
 	commentity "k8s-dbs/common/entity"
 	metaentity "k8s-dbs/metadata/entity"
 	metamodel "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
@@ -43,6 +44,22 @@ type K8sCrdStorageAddonDbAccess interface {
 // K8sCrdStorageAddonDbAccessImpl K8sCrdStorageAddonDbAccess 的具体实现
 type K8sCrdStorageAddonDbAccessImpl struct {
 	db *gorm.DB
+}
+
+var (
+	addonInstance K8sCrdStorageAddonDbAccess
+	addonOnce     sync.Once
+)
+
+// GetStorageAddonDbAccess 获取 K8sCrdStorageAddonDbAccess 单例实例
+func GetStorageAddonDbAccess(db *gorm.DB) K8sCrdStorageAddonDbAccess {
+	addonOnce.Do(func() {
+		addonInstance = &K8sCrdStorageAddonDbAccessImpl{db: db}
+	})
+	if addonInstance == nil {
+		panic("K8sCrdStorageAddonDbAccess instance is nil after initialization")
+	}
+	return addonInstance
 }
 
 // FindVersionsByParams 查询 addon 版本信息
@@ -129,9 +146,4 @@ func (k *K8sCrdStorageAddonDbAccessImpl) ListByPage(pagination commentity.Pagina
 		return nil, 0, errors.Wrapf(err, "failed to list addons with pagination %+v", pagination)
 	}
 	return addonModel, int64(len(addonModel)), nil
-}
-
-// NewK8sCrdStorageAddonDbAccess 创建 K8sCrdStorageAddonDbAccess 接口实现实例
-func NewK8sCrdStorageAddonDbAccess(db *gorm.DB) K8sCrdStorageAddonDbAccess {
-	return &K8sCrdStorageAddonDbAccessImpl{db}
 }

@@ -23,6 +23,7 @@ import (
 	mconst "k8s-dbs/common/constant"
 	"k8s-dbs/common/entity"
 	models "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -42,6 +43,22 @@ type AddonClusterVersionDbAccess interface {
 // AddonClusterVersionDbAccessImpl AddonClusterVersionDbAccess 的具体实现
 type AddonClusterVersionDbAccessImpl struct {
 	db *gorm.DB
+}
+
+var (
+	clusterVersionInstance AddonClusterVersionDbAccess
+	clusterVersionOnce     sync.Once
+)
+
+// GetAcVersionDbAccess 获取 AddonClusterVersionDbAccess 单例实例
+func GetAcVersionDbAccess(db *gorm.DB) AddonClusterVersionDbAccess {
+	clusterVersionOnce.Do(func() {
+		clusterVersionInstance = &AddonClusterVersionDbAccessImpl{db: db}
+	})
+	if clusterVersionInstance == nil {
+		panic("AddonClusterVersionDbAccess instance is nil after initialization")
+	}
+	return clusterVersionInstance
 }
 
 // FindByParams 参数查询实现
@@ -112,9 +129,4 @@ func (k *AddonClusterVersionDbAccessImpl) ListByPage(pagination entity.Paginatio
 		return nil, 0, errors.Wrapf(err, "failed to list addon cluster version with pagination %+v", pagination)
 	}
 	return addonModels, int64(len(addonModels)), nil
-}
-
-// NewAddonClusterVersionDbAccess 创建 AddonClusterVersionDbAccess 接口实现实例
-func NewAddonClusterVersionDbAccess(db *gorm.DB) AddonClusterVersionDbAccess {
-	return &AddonClusterVersionDbAccessImpl{db}
 }

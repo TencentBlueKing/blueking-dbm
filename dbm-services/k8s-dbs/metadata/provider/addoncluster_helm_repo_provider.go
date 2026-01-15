@@ -24,6 +24,7 @@ import (
 	"k8s-dbs/metadata/dbaccess"
 	metaentity "k8s-dbs/metadata/entity"
 	metamodel "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -46,6 +47,22 @@ type AddonClusterHelmRepoProvider interface {
 // AddonClusterHelmRepoProviderImpl AddonClusterHelmRepoProvider 具体实现
 type AddonClusterHelmRepoProviderImpl struct {
 	dbAccess dbaccess.AddonClusterHelmRepoDbAccess
+}
+
+var (
+	acHelmRepoInstance AddonClusterHelmRepoProvider
+	acHelmRepoOnce     sync.Once
+)
+
+// GetAddonClusterHelmRepoProvider 获取 AddonClusterHelmRepoProvider 单例实例
+func GetAddonClusterHelmRepoProvider(dbAccess dbaccess.AddonClusterHelmRepoDbAccess) AddonClusterHelmRepoProvider {
+	acHelmRepoOnce.Do(func() {
+		acHelmRepoInstance = &AddonClusterHelmRepoProviderImpl{dbAccess: dbAccess}
+	})
+	if acHelmRepoInstance == nil {
+		panic("AddonClusterHelmRepoProvider instance is nil after initialization")
+	}
+	return acHelmRepoInstance
 }
 
 // CreateHelmRepo 创建
@@ -144,9 +161,4 @@ func (a *AddonClusterHelmRepoProviderImpl) ListHelmRepos(pagination commentity.P
 		return nil, errors.Wrap(err, "failed to copy")
 	}
 	return repoEntities, nil
-}
-
-// NewAddonClusterHelmRepoProvider 创建 AddonClusterHelmRepoDbAccess 接口实现实例
-func NewAddonClusterHelmRepoProvider(dbAccess dbaccess.AddonClusterHelmRepoDbAccess) AddonClusterHelmRepoProvider {
-	return &AddonClusterHelmRepoProviderImpl{dbAccess: dbAccess}
 }

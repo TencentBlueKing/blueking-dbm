@@ -32,8 +32,8 @@ import (
 // BuildOpsMetaRouter opsRequestMeta 管理路由构建
 func BuildOpsMetaRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group(BasePath)
-	opsMetaDbAccess := metadbaccess.NewK8sCrdOpsRequestDbAccess(db)
-	opsMetaProvider := metaprovider.NewK8sCrdOpsRequestProvider(opsMetaDbAccess)
+	opsMetaDbAccess := metadbaccess.GetOpsRequestDbAccess(db)
+	opsMetaProvider := metaprovider.GetK8sCrdOpsRequestProvider(opsMetaDbAccess)
 	opsMetaController := metacontroller.NewOpsController(opsMetaProvider)
 	opsMetaGroup := metaRouter.Group("/ops")
 	{

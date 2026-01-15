@@ -14,12 +14,16 @@ from backend.flow.consts import DbBackupRoleEnum, RedisBackupEnum
 
 
 class SubmitBillOutputSerializer(serializers.Serializer):
-    bill_id = serializers.IntegerField(help_text=_("单据id"))
+    bill_id = serializers.IntegerField(help_text=_("单据id, 理论上都会返回，如果没有返回说明有错误，需要把错误暴露出来"))
+    bill_url = serializers.CharField(help_text=_("单据地址"))
 
 
-class SubmitBillRedisFullBackupInputSerializer(serializers.Serializer):
+class SubmitBillRedisBaseInputSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务 id, bk_biz_id"))
-    cluster_domain = serializers.CharField(help_text=_("集群域名，cluster domain"))
+    cluster_domain = serializers.CharField(help_text=_("集群域名，，格式为xx.xx.xx.db"))
+
+
+class SubmitBillRedisFullBackupInputSerializer(SubmitBillRedisBaseInputSerializer):
     backup_type = serializers.ChoiceField(
         choices=RedisBackupEnum.get_choices(), default=RedisBackupEnum.NORMAL_BACKUP, help_text=_("备份类型")
     )
@@ -28,13 +32,31 @@ class SubmitBillRedisFullBackupInputSerializer(serializers.Serializer):
     )
 
 
-class SubmitBillRedisProxyReduceOrIncreaseInputSerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务 id, bk_biz_id"))
-    cluster_domain = serializers.CharField(help_text=_("集群域名，cluster domain"))
+class SubmitBillRedisProxyReduceOrIncreaseInputSerializer(SubmitBillRedisBaseInputSerializer):
     proxy_change_count = serializers.IntegerField(help_text=_("proxy变动数量"))
 
 
-class SubmitBillRedisProxyReduceByIpInputSerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务 id, bk_biz_id"))
-    cluster_domain = serializers.CharField(help_text=_("集群域名，cluster domain"))
+class SubmitBillRedisProxyReduceByIpInputSerializer(SubmitBillRedisBaseInputSerializer):
     reduce_ips = serializers.ListField(child=serializers.CharField(), help_text=_("指定下架proxy的IP列表"))
+
+
+class SubmitBillRedisFlushDBInputSerializer(SubmitBillRedisBaseInputSerializer):
+    is_force = serializers.BooleanField(help_text=_("是否强制清档"), default=False)
+    is_backup = serializers.BooleanField(help_text=_("是否需要备份"), default=True)
+
+
+class SubmitBillRedisExtractKeyInputSerializer(SubmitBillRedisBaseInputSerializer):
+    black_regex = serializers.CharField(
+        help_text=_("需要排除的key正则，如果是前缀格式为^xxx, 如果是后缀格式为xxx$, 如果要匹配所有是*，如果排除具体key,则是^xxx$。多个正则之间以'\n'换行符连接"),
+        default="",
+        allow_blank=True,
+    )
+    white_regex = serializers.CharField(
+        help_text=_("需要匹配的key正则，如果是前缀格式为^xxx, 如果是后缀格式为xxx$, 如果要匹配所有是*，如果匹配具体key,则是^xxx$。多个正则之间以'\n'换行符连接"),
+        default="",
+        allow_blank=True,
+    )
+
+
+class SubmitBillRedisDeleteKeyInputSerializer(SubmitBillRedisExtractKeyInputSerializer):
+    delete_rate = serializers.IntegerField(help_text=_("每秒删除key个数"), default="200")

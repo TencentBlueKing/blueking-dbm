@@ -23,6 +23,7 @@ import (
 	"k8s-dbs/metadata/dbaccess"
 	entitys "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -40,6 +41,25 @@ type AddonCategoryProvider interface {
 type AddonCategoryProviderImpl struct {
 	categoryDbAccess dbaccess.AddonCategoryDbAccess
 	typeDbAccess     dbaccess.AddonTypeDbAccess
+}
+
+var (
+	addonCategoryInstance AddonCategoryProvider
+	addonCategoryOnce     sync.Once
+)
+
+// GetAddonCategoryProvider 获取 AddonCategoryProvider 单例实例
+func GetAddonCategoryProvider(
+	categoryDbAccess dbaccess.AddonCategoryDbAccess,
+	typeDbAccess dbaccess.AddonTypeDbAccess,
+) AddonCategoryProvider {
+	addonCategoryOnce.Do(func() {
+		addonCategoryInstance = &AddonCategoryProviderImpl{categoryDbAccess, typeDbAccess}
+	})
+	if addonCategoryInstance == nil {
+		panic("AddonCategoryProvider instance is nil after initialization")
+	}
+	return addonCategoryInstance
 }
 
 // FindByID 按照 ID 查找接口实现
@@ -102,12 +122,4 @@ func (a *AddonCategoryProviderImpl) ListByLimit(limit int) (
 	}
 
 	return categoryEntities, nil
-}
-
-// NewAddonCategoryProvider 创建 AddonCategoryProvider 接口实现实例
-func NewAddonCategoryProvider(
-	categoryDbAccess dbaccess.AddonCategoryDbAccess,
-	typeDbAccess dbaccess.AddonTypeDbAccess,
-) AddonCategoryProvider {
-	return &AddonCategoryProviderImpl{categoryDbAccess: categoryDbAccess, typeDbAccess: typeDbAccess}
 }

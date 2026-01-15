@@ -23,6 +23,7 @@ import (
 	"k8s-dbs/metadata/dbaccess"
 	metaentity "k8s-dbs/metadata/entity"
 	metamodel "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -40,6 +41,22 @@ type K8sClusterServiceProvider interface {
 // K8sClusterServiceProviderImpl K8sClusterServiceProvider 具体实现
 type K8sClusterServiceProviderImpl struct {
 	dbAccess dbaccess.K8sClusterServiceDbAccess
+}
+
+var (
+	clusterServiceInstance K8sClusterServiceProvider
+	clusterServiceOnce     sync.Once
+)
+
+// GetK8sClusterServiceProvider 获取 K8sClusterServiceProvider 单例实例
+func GetK8sClusterServiceProvider(dbAccess dbaccess.K8sClusterServiceDbAccess) K8sClusterServiceProvider {
+	clusterServiceOnce.Do(func() {
+		clusterServiceInstance = &K8sClusterServiceProviderImpl{dbAccess: dbAccess}
+	})
+	if clusterServiceInstance == nil {
+		panic("K8sClusterServiceProvider instance is nil after initialization")
+	}
+	return clusterServiceInstance
 }
 
 // CreateClusterService 创建 cluster service
@@ -99,9 +116,4 @@ func (k *K8sClusterServiceProviderImpl) UpdateClusterService(entity *metaentity.
 		return 0, errors.Wrapf(err, "failed to update cluster service with entity: %+v", entity)
 	}
 	return rows, nil
-}
-
-// NewK8sClusterServiceProvider 创建 K8sClusterServiceProvider 接口实现实例
-func NewK8sClusterServiceProvider(dbAccess dbaccess.K8sClusterServiceDbAccess) K8sClusterServiceProvider {
-	return &K8sClusterServiceProviderImpl{dbAccess: dbAccess}
 }

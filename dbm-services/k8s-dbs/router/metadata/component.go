@@ -32,8 +32,8 @@ import (
 // BuildComponentMetaRouter componentMeta 管理路由构建
 func BuildComponentMetaRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group(BasePath)
-	componentMetaDbAccess := metadbaccess.NewK8sCrdComponentAccess(db)
-	componentMetaProvider := metaprovider.NewK8sCrdComponentProvider(componentMetaDbAccess)
+	componentMetaDbAccess := metadbaccess.GetComponentDbAccess(db)
+	componentMetaProvider := metaprovider.GetK8sCrdComponentProvider(componentMetaDbAccess)
 	componentMetaController := metacontroller.NewComponentController(componentMetaProvider)
 	componentMetaGroup := metaRouter.Group("/component")
 	{

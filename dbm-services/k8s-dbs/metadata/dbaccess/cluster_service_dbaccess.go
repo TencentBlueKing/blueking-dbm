@@ -22,6 +22,7 @@ package dbaccess
 import (
 	"k8s-dbs/common/entity"
 	models "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -40,6 +41,22 @@ type K8sClusterServiceDbAccess interface {
 // K8sClusterServiceDbAccessImpl K8sClusterServiceDbAccess 的具体实现
 type K8sClusterServiceDbAccessImpl struct {
 	db *gorm.DB
+}
+
+var (
+	serviceInstance K8sClusterServiceDbAccess
+	serviceOnce     sync.Once
+)
+
+// GetClusterServiceDbAccess 获取 K8sClusterServiceDbAccess 单例实例
+func GetClusterServiceDbAccess(db *gorm.DB) K8sClusterServiceDbAccess {
+	serviceOnce.Do(func() {
+		serviceInstance = &K8sClusterServiceDbAccessImpl{db: db}
+	})
+	if serviceInstance == nil {
+		panic("K8sClusterServiceDbAccess instance is nil after initialization")
+	}
+	return serviceInstance
 }
 
 // Create 创建元数据接口实现
@@ -87,9 +104,4 @@ func (k *K8sClusterServiceDbAccessImpl) ListByPage(_ entity.Pagination) (
 	error,
 ) {
 	return nil, 0, errors.New("not implemented")
-}
-
-// NewK8sClusterServiceDbAccess 创建 K8sClusterServiceDbAccess 接口实现实例
-func NewK8sClusterServiceDbAccess(db *gorm.DB) K8sClusterServiceDbAccess {
-	return &K8sClusterServiceDbAccessImpl{db: db}
 }

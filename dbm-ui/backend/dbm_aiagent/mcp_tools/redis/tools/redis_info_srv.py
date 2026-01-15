@@ -14,10 +14,12 @@ from typing import Dict, List, Union
 from django.utils.translation import gettext_lazy as _
 
 from backend.components import DRSApi
-from backend.db_meta.enums import AccessLayer
+from backend.db_meta.enums import AccessLayer, ClusterType
 from backend.db_meta.models import Cluster, Machine
 from backend.flow.consts import DEFAULT_REDIS_DBNUM
 from backend.flow.utils.base.payload_handler import PayloadHandler
+
+from .comm_tools import bytes_to_human
 
 
 class RedisInfoService:
@@ -144,7 +146,7 @@ class RedisInfoService:
             包含内存信息的字典
         """
         info = self._parse_info_section("memory")
-        return {
+        memory = {
             "used_memory": info.get("used_memory", 0),
             "used_memory_human": info.get("used_memory_human", "0B"),
             "used_memory_rss": info.get("used_memory_rss", 0),
@@ -160,6 +162,18 @@ class RedisInfoService:
             "maxmemory_policy": info.get("maxmemory_policy", "noeviction"),
             "mem_fragmentation_ratio": info.get("mem_fragmentation_ratio", 1.0),
         }
+
+        if self.cluster_obj.cluster_type in [
+            ClusterType.TendisPredixyTendisplusCluster.value,
+            ClusterType.TendisTendisSSDInstance.value,
+        ]:
+            all_bytes, levestats = 0, self.get_levelstats()
+            # [ {'bytes': 457864738, 'num_entries': 567238, 'num_deletions': 152950},]
+            for level in levestats:
+                all_bytes += level["bytes"]
+            memory["disk_size"] = all_bytes
+            memory["disk_size_human"] = bytes_to_human(all_bytes)
+        return memory
 
     def get_persistence_info(self) -> Dict:
         """
@@ -294,6 +308,32 @@ class RedisInfoService:
 
                 result.append(db_info)
 
+        if self.cluster_obj.cluster_type in [
+            ClusterType.TendisPredixyTendisplusCluster.value,
+            ClusterType.TendisTendisSSDInstance.value,
+        ]:
+            all_keys, levestats = 0, self.get_levelstats()
+            # [ {'bytes': 457864738, 'num_entries': 567238, 'num_deletions': 152950},]
+            for level in levestats:
+                all_keys += level["num_entries"]
+            db_info["keys"] = all_keys
+
+        return result
+
+    def get_levelstats(self) -> List[Dict]:
+        info = self._parse_info_section("Levelstats")
+        result = []
+        pattern = re.compile(
+            r"bytes=(?P<bytes>\d+)," r"num_entries=(?P<num_entries>\d+)," r"num_deletions=(?P<num_deletions>\d+)"
+        )
+        for value in info.values():
+            match = re.match(pattern, value)
+            if match:
+                d = match.groupdict()
+                d["bytes"] = int(d["bytes"])
+                d["num_entries"] = int(d["num_entries"])
+                d["num_deletions"] = int(d["num_deletions"])
+                result.append(d)
         return result
 
     def _parse_slave_info(self, slave_string: str) -> Dict:

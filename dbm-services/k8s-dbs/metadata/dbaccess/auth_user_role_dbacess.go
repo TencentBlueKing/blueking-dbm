@@ -23,6 +23,7 @@ import (
 	mconst "k8s-dbs/common/constant"
 	entitys "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
@@ -36,6 +37,22 @@ type AuthUserRoleDbAccess interface {
 // AuthUserRoleDbAccessImpl AuthUserRoleDbAccess 的具体实现
 type AuthUserRoleDbAccessImpl struct {
 	db *gorm.DB
+}
+
+var (
+	authUserRoleInstance AuthUserRoleDbAccess
+	authUserRoleOnce     sync.Once
+)
+
+// GetAuthUserRoleDbAccess 获取 AuthUserRoleDbAccess 单例实例
+func GetAuthUserRoleDbAccess(db *gorm.DB) AuthUserRoleDbAccess {
+	authUserRoleOnce.Do(func() {
+		authUserRoleInstance = &AuthUserRoleDbAccessImpl{db: db}
+	})
+	if authUserRoleInstance == nil {
+		panic("AuthUserRoleDbAccess instance is nil after initialization")
+	}
+	return authUserRoleInstance
 }
 
 // FindByParams 参数查询实现
@@ -53,11 +70,4 @@ func (k *AuthUserRoleDbAccessImpl) FindByParams(
 		return nil, errors.Wrapf(err, "failed to find auth user role with params %+v", params)
 	}
 	return authModels, nil
-}
-
-// NewAuthUserRoleDbAccess 创建 AuthUserRoleDbAccess 实例
-func NewAuthUserRoleDbAccess(db *gorm.DB) AuthUserRoleDbAccess {
-	return &AuthUserRoleDbAccessImpl{
-		db: db,
-	}
 }

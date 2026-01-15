@@ -106,9 +106,18 @@ def execute_one_tendbcluster_domain_task(info: Dict):
     @return:
     """
 
+    # 一组100个配置
     group_size = 100
     conf_cnt = info["conf_cnt"]
     group_cnt = math.ceil(conf_cnt / group_size)
+
+    # 每批执行10个任务 也就是同时段会有1000个配置在执行
+    batch_size = 10
+    # 计算批次数 向上取整 保证都执行
+    batch_cnt = math.ceil(group_cnt / batch_size)
+    # 计算每批任务的间隔时间 向下取整 保证不超时
+    # celery默认超时1小时的任务会重复执行，所以需要保证不超时
+    batch_interval = max(math.floor(3500 / batch_cnt), 30)
 
     # rate = get_rate_limit(group_cnt)
 
@@ -123,7 +132,7 @@ def execute_one_tendbcluster_domain_task(info: Dict):
         for n in range(group_cnt):
             limit = group_size
             offset = n * group_size
-            eta = start_time + timedelta(seconds=n * 50 + random.randint(1, 10))  # 每隔约50秒+1~10秒执行一个任务
+            eta = start_time + timedelta(seconds=(n % batch_cnt) * batch_interval + random.randint(5, 10))
             execute_one_tendbcluster_task(cluster_id=info["cluster_id"], limit=limit, offset=offset, eta=eta)
 
 

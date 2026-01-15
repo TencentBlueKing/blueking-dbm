@@ -67,9 +67,9 @@ func (suite *AddonTypeControllerTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dbAccess := dbaccess.NewAddonTypeDbAccess(db)
-	categoryDbAccess := dbaccess.NewAddonCategoryDbAccess(db)
-	addonProvider := provider.NewAddonTypeProvider(dbAccess, categoryDbAccess)
+	dbAccess := dbaccess.GetAddonTypeDbAccess(db)
+	categoryDbAccess := dbaccess.GetAddonCategoryDbAccess(db)
+	addonProvider := provider.GetAddonTypeProvider(dbAccess, categoryDbAccess)
 	addonTypeController := controller.NewAddonTypeController(addonProvider)
 	suite.addonTypeController = addonTypeController
 	gin.SetMode(gin.TestMode)

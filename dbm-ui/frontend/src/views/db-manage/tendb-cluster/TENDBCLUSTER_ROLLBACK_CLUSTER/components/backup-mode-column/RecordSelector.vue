@@ -218,7 +218,7 @@
   const rules: Rules = [
     {
       message: t('备份记录不能为空'),
-      validator: (value: string) => !!value,
+      validator: () => !!localValue.value,
     },
     {
       message: t('暂无与指定时间最近的备份记录'),

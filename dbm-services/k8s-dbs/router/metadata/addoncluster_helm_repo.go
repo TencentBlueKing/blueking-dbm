@@ -32,8 +32,8 @@ import (
 // BuildClusterHelmRepoMetaRouter Helm repository 管理路由构建
 func BuildClusterHelmRepoMetaRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group(BasePath)
-	dbAccess := metadbaccess.NewAddonClusterHelmRepoDbAccess(db)
-	metaProvider := metaprovider.NewAddonClusterHelmRepoProvider(dbAccess)
+	dbAccess := metadbaccess.GetAcHelmRepoDbAccess(db)
+	metaProvider := metaprovider.GetAddonClusterHelmRepoProvider(dbAccess)
 	metaController := metacontroller.NewClusterHelmRepoController(metaProvider)
 	repoMetaGroup := metaRouter.Group("/addoncluster_helm_repo")
 	{

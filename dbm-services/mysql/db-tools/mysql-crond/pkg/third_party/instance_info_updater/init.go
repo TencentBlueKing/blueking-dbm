@@ -4,6 +4,7 @@ import (
 	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
 	"dbm-services/common/reverseapi/define"
 	"dbm-services/common/reverseapi/pkg/core"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/mysql-crond/pkg/config"
 	"log/slog"
 	"math/rand"
@@ -11,6 +12,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/gofrs/flock"
 	"github.com/pkg/errors"
 	"github.com/robfig/cron/v3"
 )
@@ -49,6 +51,18 @@ func Updater() error {
 }
 
 func DoUpdate(bkCloudId int64) error {
+	lkfp := filepath.Join(cst.MySQLCrondInstallPath, "instance-info-updater.lock")
+	fl := flock.New(lkfp)
+	defer func() {
+		_ = fl.Unlock()
+	}()
+
+	err := fl.Lock()
+	if err != nil {
+		slog.Error("lock failed", slog.String("err", err.Error()))
+		return err
+	}
+
 	apiCore, err := core.NewCore(bkCloudId, core.DefaultRetryOpts...)
 	if err != nil {
 		slog.Error("create api core", slog.String("err", err.Error()))

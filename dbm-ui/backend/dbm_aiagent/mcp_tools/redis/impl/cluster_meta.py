@@ -61,7 +61,7 @@ def redis_list_clusters(bk_biz_id: int) -> List:
             "immute_domain": c.immute_domain,
             "alias": c.alias,
             "region": c.region,
-            "proxy_count": len(c.proxyisntance_set.all()),
+            "proxy_count": len(c.proxyinstance_set.all()),
             "master_count": len(c.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value)),
             "redis_version": c.major_version,
         }

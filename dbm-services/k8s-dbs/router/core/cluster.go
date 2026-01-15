@@ -67,14 +67,14 @@ func BuildClusterRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 func initClusterController(db *gorm.DB) *controller.ClusterController {
 	clusterProvider := routerutil.BuildClusterProvider(db)
 	opsRequestProvider := BuildOpsRequestProvider(db, clusterProvider)
-	clusterMetaDbAccess := metadbaccess.NewCrdClusterDbAccess(db)
-	addonMetaDbAccess := metadbaccess.NewK8sCrdStorageAddonDbAccess(db)
-	clusterTagDbAccess := metadbaccess.NewK8sCrdClusterTagDbAccess(db)
-	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
-	clusterTopologyDbAccess := metadbaccess.NewAddonTopologyDbAccess(db)
-	addonTypeDbAccess := metadbaccess.NewAddonTypeDbAccess(db)
+	clusterMetaDbAccess := metadbaccess.GetClusterDbAccess(db)
+	addonMetaDbAccess := metadbaccess.GetStorageAddonDbAccess(db)
+	clusterTagDbAccess := metadbaccess.GetClusterTagDbAccess(db)
+	k8sClusterConfigDbAccess := metadbaccess.GetK8sClusterConfigDbAccess(db)
+	clusterTopologyDbAccess := metadbaccess.GetAddonTopologyDbAccess(db)
+	addonTypeDbAccess := metadbaccess.GetAddonTypeDbAccess(db)
 	clusterProviderBuilder := metaprovider.K8sCrdClusterProviderBuilder{}
-	clusterMetaProvider, err := metaprovider.NewK8sCrdClusterProvider(
+	clusterMetaProvider := metaprovider.GetK8sCrdClusterProvider(
 		clusterProviderBuilder.WithClusterDbAccess(clusterMetaDbAccess),
 		clusterProviderBuilder.WithAddonDbAccess(addonMetaDbAccess),
 		clusterProviderBuilder.WithK8sClusterConfigDbAccess(k8sClusterConfigDbAccess),
@@ -82,11 +82,8 @@ func initClusterController(db *gorm.DB) *controller.ClusterController {
 		clusterProviderBuilder.WithAddonTopologyDbAccess(clusterTopologyDbAccess),
 		clusterProviderBuilder.WithAddonTypeDbAccess(addonTypeDbAccess),
 	)
-	if err != nil {
-		slog.Error("failed to build cluster meta provider", "error", err)
-		panic(err)
-	}
-	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
+
+	k8sClusterConfigProvider := metaprovider.GetK8sClusterConfigProvider(k8sClusterConfigDbAccess)
 	componentProvider := coreprovider.NewComponentProvider(k8sClusterConfigProvider, clusterMetaProvider)
 	return controller.NewClusterController(clusterProvider,
 		clusterMetaProvider, componentProvider, opsRequestProvider)
@@ -107,8 +104,8 @@ func BuildOpsRequestProvider(
 		panic(err)
 	}
 
-	opsRequestMetaDbAccess := metadbaccess.NewK8sCrdOpsRequestDbAccess(db)
-	opsRequestMetaProvider := metaprovider.NewK8sCrdOpsRequestProvider(opsRequestMetaDbAccess)
+	opsRequestMetaDbAccess := metadbaccess.GetOpsRequestDbAccess(db)
+	opsRequestMetaProvider := metaprovider.GetK8sCrdOpsRequestProvider(opsRequestMetaDbAccess)
 	opsRequestProviderBuilder := coreprovider.OpsRequestProviderBuilder{}
 
 	opsReqProvider, err := coreprovider.NewOpsReqProvider(

@@ -37,6 +37,6 @@ class MySQLRuntimeVariableSerializer(serializers.Serializer):
 
 
 class ShowMySQLVariablesOutputSerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
-    address = serializers.CharField(help_text=_("ip:port 形式的实例地址"))
+    # bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
+    # address = serializers.CharField(help_text=_("ip:port 形式的实例地址"))
     runtime_variables = serializers.ListField(child=MySQLRuntimeVariableSerializer(), help_text=_("MySQL 运行时参数列表"))

@@ -56,7 +56,7 @@ func GetAcVersionTestDbAccess() dbaccess.AddonClusterVersionDbAccess {
 	if err != nil {
 		panic(err)
 	}
-	dbAccess := dbaccess.NewAddonClusterVersionDbAccess(db)
+	dbAccess := dbaccess.GetAcVersionDbAccess(db)
 	return dbAccess
 }
 
@@ -66,7 +66,7 @@ func GetClusterTagTestDbAccess() dbaccess.K8sCrdClusterTagDbAccess {
 	if err != nil {
 		panic(err)
 	}
-	dbAccess := dbaccess.NewK8sCrdClusterTagDbAccess(db)
+	dbAccess := dbaccess.GetClusterTagDbAccess(db)
 	return dbAccess
 }
 
@@ -76,6 +76,6 @@ func GetAddonCategoryTestDbAccess() dbaccess.AddonCategoryDbAccess {
 	if err != nil {
 		panic(err)
 	}
-	dbAccess := dbaccess.NewAddonCategoryDbAccess(db)
+	dbAccess := dbaccess.GetAddonCategoryDbAccess(db)
 	return dbAccess
 }
