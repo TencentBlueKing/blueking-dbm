@@ -63,15 +63,16 @@
 
   import { useEventBus } from '@hooks';
 
-  import ToolNavigation, { type Props as ToolNavigationProps } from './components/tool-navigation/Index.vue';
   import { random } from '@utils';
+
+  import ToolNavigation, { type Props as ToolNavigationProps } from './components/tool-navigation/Index.vue';
 
   interface Props {
     menuGroupList?: ToolNavigationProps['menuGroupList'];
     menuList: ToolNavigationProps['data'];
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const route = useRoute();
   const router = useRouter();
@@ -87,7 +88,11 @@
   watch(
     route,
     () => {
-      toolName.value = route.meta.navName as string;
+      const activeItem = _.find(
+        props.menuList.flatMap((item) => item.children),
+        (item) => Boolean(item.bind?.includes(route.name as string) || route.name === item.id),
+      );
+      toolName.value = activeItem ? activeItem.name : '';
       dbType.value = _.upperFirst(route.meta.dbType as string);
       submitErrorMessage.value = '';
       nextTick(() => {

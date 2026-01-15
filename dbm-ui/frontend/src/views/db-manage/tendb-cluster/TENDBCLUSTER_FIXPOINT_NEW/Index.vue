@@ -54,7 +54,7 @@
           <DbNameColumn
             v-model="item.databases"
             :cluster-id="item.cluster?.id"
-            :disabled="diabledEdit(item)"
+            :readonly="diabledEdit(item)"
             field="databases"
             :label="t('源 DB')"
             required
@@ -62,7 +62,7 @@
           <TableNameColumn
             v-model="item.tables"
             :cluster-id="item.cluster?.id"
-            :disabled="diabledEdit(item)"
+            :readonly="diabledEdit(item)"
             field="tables"
             :label="t('源表')"
             required
