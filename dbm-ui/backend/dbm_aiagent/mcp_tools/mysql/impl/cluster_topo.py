@@ -28,8 +28,8 @@ def __tendbsingle_topo(cluster_domain: str) -> Dict:
     storage_instance = cluster_obj.storageinstance_set.get()
 
     return {
-        "cluster_type": ClusterType.TenDBSingle.value,
-        "cluster_domain": cluster_domain,
+        # "cluster_type": ClusterType.TenDBSingle.value,
+        # "cluster_domain": cluster_domain,
         "storage": {"address": storage_instance.ip_port, "status": storage_instance.status},
     }
 
@@ -38,8 +38,8 @@ def __tendbha_topo(cluster_domain: str) -> Dict:
     cluster_obj = Cluster.objects.get(immute_domain=cluster_domain, cluster_type=ClusterType.TenDBHA)
 
     return {
-        "cluster_type": ClusterType.TenDBHA.value,
-        "cluster_domain": cluster_domain,
+        # "cluster_type": ClusterType.TenDBHA.value,
+        # "cluster_domain": cluster_domain,
         "proxy_instance": [
             {"address": p.ip_port, "status": p.status, "machine_type": p.machine_type}
             for p in cluster_obj.proxyinstance_set.all()
@@ -102,8 +102,8 @@ def __tendbcluster_topo(cluster_domain: str) -> Dict:
         storage_replicate_sets.append(storage_set)
 
     return {
-        "cluster_type": ClusterType.TenDBCluster,
-        "cluster_domain": cluster_domain,
+        # "cluster_type": ClusterType.TenDBCluster,
+        # "cluster_domain": cluster_domain,
         "spider_instances": spider_instances,
         "storage_replicate_sets": storage_replicate_sets,
     }

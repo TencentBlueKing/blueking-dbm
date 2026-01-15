@@ -32,7 +32,7 @@ def show_instance_status(bk_cloud_id: int, address: str, machine_type: MachineTy
         runtime_statuses = __mysql_show_status(bk_cloud_id=bk_cloud_id, address=address)
         # slave_status = __mysql_show_slave_status(bk_cloud_id=bk_cloud_id, address=address)
         return {
-            "address": address,
+            # "address": address,
             "runtime_status": [ele for ele in runtime_statuses if ele["status_name"] in status_hints],
         }
 

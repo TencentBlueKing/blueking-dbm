@@ -42,4 +42,5 @@ def show_mysql_variables(bk_cloud_id: int, address: str, machine_type: MachineTy
             v_value = vv["Value"]
             runtime_variables.append({"variable_name": v_name, "variable_value": v_value})
 
-    return {"address": address, "runtime_variables": runtime_variables}
+    return {"runtime_variables": runtime_variables}
+    # return {"address": address, "runtime_variables": runtime_variables}

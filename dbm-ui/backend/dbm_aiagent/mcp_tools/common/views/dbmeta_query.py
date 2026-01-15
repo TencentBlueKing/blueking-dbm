@@ -48,7 +48,7 @@ class DBMetaQueryMcpToolsViewSet(McpToolsViewSet):
         mcp=[DBMAMcpTools.DBMETA_QUERY],
         name_prefix="dbmeta_query",
     )
-    def list_platform_cluster_type(self, request, *args, **kwargs):
+    def list_supported_cluster_type(self, request, *args, **kwargs):
         res = {
             "cluster_types": [
                 {"cluster_type_value": ct[0], "cluster_type_name": ct[1]} for ct in ClusterType.get_choices()
@@ -92,8 +92,8 @@ class DBMetaQueryMcpToolsViewSet(McpToolsViewSet):
         res = [
             {
                 "bk_cloud_id": cluster_obj.bk_cloud_id,
-                "bk_biz_id": bk_biz_id,
-                "cluster_type": cluster_obj.cluster_type,
+                # "bk_biz_id": bk_biz_id,
+                # "cluster_type": cluster_obj.cluster_type,
                 "cluster_domain": cluster_obj.immute_domain,
                 "region": cluster_obj.region,
                 "affinity": cluster_obj.disaster_tolerance_level,

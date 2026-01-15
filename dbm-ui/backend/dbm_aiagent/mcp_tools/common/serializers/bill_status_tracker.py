@@ -20,8 +20,8 @@ class BillStatusTrackerInputSerializer(serializers.Serializer):
 
 
 class BillStatusTrackerOutputSerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
-    bill_id = serializers.IntegerField(help_text=_("单据 ID"))
+    # bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
+    # bill_id = serializers.IntegerField(help_text=_("单据 ID"))
     status = serializers.ChoiceField(choices=TicketStatus.get_choices(), help_text=_("单据状态"))
     current_flow = serializers.CharField(help_text=_("当前流程名称"))
     cost_time_seconds = serializers.IntegerField(help_text=_("以秒为单位的耗时"))
