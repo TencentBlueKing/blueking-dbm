@@ -26,13 +26,14 @@ fi
 
 usage() {
   echo "Usage:"
-  echo "./dbbackup_main.sh [-p 20000,20001] [-k your-backup-id] [-l your-bill-id] [-t your-backup-type]"
+  echo "./dbbackup_main.sh [-p 20000,20001] [-t your-backup-type] [-g schema,all] [-k your-backup-id] [-l your-bill-id]"
   echo -e "Description:\n"
   echo -e "  -p: port list to backup, comma separated. Will find backup config file by dbbackup.<port>.ini."
   echo "      find -regex '.*dbbackup\.[0-9]+\.ini' if -p not given"
   echo "  -k: set backup-id to dbbackup cmd, will overwrite Public.BackupId"
   echo "  -l: set bill-id to dbbackup cmd, will overwrite Public.BillId"
   echo "  -t: set backup-type to dbbackup cmd, will overwrite Public.BackupType"
+  echo "  -g: set data-schema-grant to dbbackup cmd, will overwrite Public.DataSchemaGrant"
   echo ""
   exit 1
 }
@@ -40,7 +41,7 @@ usage() {
 Ports=""
 configFiles=""
 dbbackupOpt=""
-while getopts 'p:k:l:t:h' OPT; do
+while getopts 'p:k:l:t:g:h' OPT; do
     case $OPT in
         p)
           Ports="$OPTARG"
@@ -57,6 +58,10 @@ while getopts 'p:k:l:t:h' OPT; do
         t)
           BackupType="$OPTARG"
           dbbackupOpt="$dbbackupOpt --backup-type=$BackupType"
+          ;;
+        g)
+          DSG="$OPTARG"
+          dbbackupOpt="$dbbackupOpt --data-schema-grant=$DSG"
           ;;
         h) usage;;
         ?) usage;;

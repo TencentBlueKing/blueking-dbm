@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from django.utils.translation import gettext as _
 
 from backend.db_meta.enums import ClusterType, InstanceRole, MachineType, TenDBClusterSpiderRole
 
@@ -263,4 +264,12 @@ mysql_slave_status_masks = [
     "Until_Log_Pos",
     "Skip_Counter",
     "Channel_Name",
+]
+
+mysql_metric_name_choices = [
+    ("cpu_summary", _("cpu 负载")),
+    ("qps_summary", _("qps 请求量")),
+    ("slow_count", _("slowlog 慢日志数量")),
+    ("threads_running", _("threads 线程数 趋势")),
+    ("connections", _("连接数 趋势")),
 ]
