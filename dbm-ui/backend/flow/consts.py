@@ -647,6 +647,7 @@ class KafkaActuatorActionEnum(StrStructuredEnum):
     ReplaceBroker = EnumField("replace_broker", _("replace_broker"))
     GenerateReassignment = EnumField("generate_reassignment", _("generate_reassignment"))
     ExecuteReassignment = EnumField("execute_reassignment", _("execute_reassignment"))
+    BrokerIsEmpty = EnumField("broker_isempty", _("broker_isempty"))
 
 
 class InfluxdbActuatorActionEnum(StrStructuredEnum):
