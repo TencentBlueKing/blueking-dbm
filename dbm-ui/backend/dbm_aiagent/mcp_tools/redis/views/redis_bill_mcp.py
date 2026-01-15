@@ -181,8 +181,6 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
 
         cluster_obj = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
         cluster_id = cluster_obj.id
-        cluster_proxy_count = cluster_obj.proxyinstance_set.count()
-        count = cluster_proxy_count + proxy_change_count
         # 获取spec_id
         spec_id = cluster_obj.proxyinstance_set.first().machine.spec_id
         ticket_param = {
@@ -196,7 +194,7 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
                     {
                         "bk_cloud_id": cluster_obj.bk_cloud_id,
                         "cluster_id": cluster_id,
-                        "resource_spec": {"proxy": {"count": count, "spec_id": spec_id}},
+                        "resource_spec": {"proxy": {"count": proxy_change_count, "spec_id": spec_id}},
                     }
                 ],
                 "ip_source": IpSource.RESOURCE_POOL.value,

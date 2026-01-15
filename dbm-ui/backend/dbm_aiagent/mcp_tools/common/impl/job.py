@@ -30,7 +30,6 @@ def exec_cluster_query_net_tcp_cmd(target_ips: List) -> dict:
         "target_server": {"ip_list": target_ips},
         "timeout": 300,
     }
-    # {'job_instance_id': 20000995821, 'job_instance_name': '查询集群接入层tcp的连接信息', 'step_instance_id': 20000995867}
     job_task = JobApi.fast_execute_script(body, use_admin=True)
 
     return job_task
