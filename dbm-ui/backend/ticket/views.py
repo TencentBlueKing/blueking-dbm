@@ -130,13 +130,15 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         elif self.action in ["update_ticket_flow_config", "create_ticket_flow_config", "delete_ticket_flow_config"]:
             return ticket_flows_config_permission(self.action, self.request)
         # 对于处理todo的接口，可以不用鉴权，todo本身会判断是否是确认人
-        elif self.action in ["process_todo", "batch_process_todo", "batch_process_ticket"]:
+        elif self.action in ["process_todo", "batch_process_todo", "batch_process_ticket", "cluster_disable_todo"]:
             return []
         # 其他非敏感GET接口，不鉴权
         elif self.action in [
             "list",
             "flow_types",
             "get_nodes",
+            "get_host_todo_count",
+            "get_cluster_disable_count",
             "get_tickets_count",
             "query_ticket_flow_describe",
             "list_ticket_status",
