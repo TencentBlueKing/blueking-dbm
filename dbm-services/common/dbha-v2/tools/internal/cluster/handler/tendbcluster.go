@@ -497,7 +497,26 @@ func (hdl *TenDBClusterHandler) flushRouting(masterDB *hamysql.GormDB) error {
 	return nil
 }
 
-func (hdl *TenDBClusterHandler) addAllSpidersToDomain(cluster *config.TenDBCluster, domain string, bkBizId int) error {
+func (hdl *TenDBClusterHandler) addAllSpidersToDomain(cluster *config.TenDBCluster) error {
+	if cluster.Domain != "" && len(cluster.Spider) > 0 {
+		if err := hdl.addSpiderNodesToDomain(cluster.Spider, cluster.Domain, cluster.BkBizId); err != nil {
+			return gerrors.Newf(gerrors.Failure, "failed to add spider nodes to domain(%s), errmsg: %s",
+				cluster.Domain, err.Error())
+		}
+	}
+
+	if cluster.DomainSlave != "" && len(cluster.SpiderSlave) > 0 {
+		if err := hdl.addSpiderNodesToDomain(cluster.SpiderSlave, cluster.DomainSlave, cluster.BkBizId); err != nil {
+			return gerrors.Newf(gerrors.Failure, "failed to add spider slave nodes to domainSlave(%s), errmsg: %s",
+				cluster.DomainSlave, err.Error())
+		}
+	}
+
+	return nil
+}
+
+// addSpiderNodesToDomain adds spider nodes to the specified domain
+func (hdl *TenDBClusterHandler) addSpiderNodesToDomain(spiderList []config.TenDBClusterNodeInfo, domain string, bkBizId int) error {
 	instInfoList, err := hdl.dbmClient.GetAllInstancesOfDomain(domain)
 	if err != nil {
 		return gerrors.Newf(gerrors.Failure, "failed to get all instances of domain %s, errmsg: %s", domain, err.Error())
@@ -511,10 +530,6 @@ func (hdl *TenDBClusterHandler) addAllSpidersToDomain(cluster *config.TenDBClust
 		}
 		return false
 	}
-
-	spiderList := make([]config.TenDBClusterNodeInfo, 0, len(cluster.Spider)+len(cluster.SpiderSlave))
-	spiderList = append(spiderList, cluster.Spider...)
-	spiderList = append(spiderList, cluster.SpiderSlave...)
 
 	for _, spider := range spiderList {
 		spiderHost := spider.Host
@@ -608,7 +623,7 @@ func (hdl *TenDBClusterHandler) resetSingleTenDBCluster(cluster *config.TenDBClu
 	}
 	fmt.Printf("Step 10 <update all instances status to running> done\n")
 
-	if err := hdl.addAllSpidersToDomain(cluster, cluster.Domain, cluster.BkBizId); err != nil {
+	if err := hdl.addAllSpidersToDomain(cluster); err != nil {
 		fmt.Printf("Failed at step 11 <add all spiders to the domain>, errmsg: %s\n", err.Error())
 		return err
 	}
