@@ -39,6 +39,7 @@
             @batch-edit="handleBatchEditCluster" />
           <EditableColumn
             :label="t('备份位置')"
+            readonly
             :width="200">
             <EditableBlock :placeholder="t('自动生成')">
               {{ item.cluster.id ? (item.cluster.cluster_type === ClusterTypes.TENDBHA ? 'Slave' : 'Master') : '' }}
