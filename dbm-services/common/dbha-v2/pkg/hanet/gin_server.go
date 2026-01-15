@@ -118,6 +118,11 @@ func (s *GinHTTPServer) RegisterAPI(resetAPI *ResetAPI) {
 	s.resetAPIs = append(s.resetAPIs, resetAPI)
 }
 
+// SetSwaggerFileRoute sets swagger file route
+func (s *GinHTTPServer) SetSwaggerFileRoute(path string) {
+	s.router.StaticFile("/swagger.json", path)
+}
+
 // Start starts the HTTP server
 func (s *GinHTTPServer) Start() error {
 	s.mu.Lock()
@@ -200,7 +205,7 @@ func (s *GinHTTPServer) setupRoutes() {
 	// register API routes
 	for _, resetAPI := range s.resetAPIs {
 		if resetAPI.Group == "" {
-			if !s.isRouteRegistered(s.router, string(resetAPI.Method), resetAPI.Path) {
+			if s.isRouteRegistered(s.router, string(resetAPI.Method), resetAPI.Path) {
 				continue
 			}
 
@@ -212,7 +217,8 @@ func (s *GinHTTPServer) setupRoutes() {
 			groupAPIs[resetAPI.Group] = s.router.Group(resetAPI.Group)
 		}
 
-		if !s.isRouteRegistered(s.router, string(resetAPI.Method), resetAPI.Path) {
+		fullPath := resetAPI.Group + resetAPI.Path
+		if s.isRouteRegistered(s.router, string(resetAPI.Method), fullPath) {
 			continue
 		}
 

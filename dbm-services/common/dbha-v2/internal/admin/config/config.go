@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 
+// Package config provides configuration management for the DBHA v2 admin module.
 package config
 
 import (
@@ -55,6 +56,12 @@ type ApmConfig struct {
 	ListenAddress string        `yaml:"listenAddress" mapstructure:"listenAddress"`
 }
 
+// WebConfig web configuration
+type WebConfig struct {
+	Host string `yaml:"host" mapstructure:"host"`
+	Port int    `yaml:"port" mapstructure:"port"`
+}
+
 // DbmApi the API config of the DBM metadata
 type DbmApi struct {
 	Name    string        `yaml:"name"    mapstructure:"name"`
@@ -81,12 +88,14 @@ type LogConfig struct {
 
 // Configuration admin's configuration
 type Configuration struct {
-	Name      string          `yaml:"name"      mapstructure:"name"`
-	Version   string          `yaml:"version"   mapstructure:"version"`
-	PidFile   string          `yaml:"pidFile"   mapstructure:"pidFile"`
-	Discovery DiscoveryConfig `yaml:"discovery" mapstructure:"discovery"`
-	Apm       ApmConfig       `yaml:"apm"       mapstructure:"apm"`
-	DbmApis   []DbmApi        `yaml:"dbmApi"    mapstructure:"dbmApi"`
-	Storage   StorageConfig   `yaml:"storage"   mapstructure:"storage"`
-	Log       LogConfig       `yaml:"log"       mapstructure:"log"`
+	Name       string          `yaml:"name"      mapstructure:"name"`
+	Version    string          `yaml:"version"   mapstructure:"version"`
+	PidFile    string          `yaml:"pidFile"   mapstructure:"pidFile"`
+	DocFileDir string          `yaml:"docFileDir"   mapstructure:"docFileDir"`
+	Discovery  DiscoveryConfig `yaml:"discovery" mapstructure:"discovery"`
+	Apm        ApmConfig       `yaml:"apm"       mapstructure:"apm"`
+	Web        WebConfig       `yaml:"web"       mapstructure:"web"`
+	DbmApis    []DbmApi        `yaml:"dbmApi"    mapstructure:"dbmApi"`
+	Storage    StorageConfig   `yaml:"storage"   mapstructure:"storage"`
+	Log        LogConfig       `yaml:"log"       mapstructure:"log"`
 }

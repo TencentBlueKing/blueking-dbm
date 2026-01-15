@@ -79,6 +79,14 @@ probe:
 	CGO_ENABLED=0 GOOS=${GO_OS} GOARCH=amd64 go build -ldflags=$(BUILD_FLAG) -gcflags="all=-trimpath=$(PWD)" \
 				-asmflags="all=-trimpath=$(PWD)" -o $(BUILD_DIR)/$@ cmd/probe/main.go
 
+# generate swagger api doc with swag
+doc:
+	@mkdir -p $(BUILD_DIR)
+	GOBIN=$(PWD)/$(BUILD_DIR) go install github.com/swaggo/swag/v2/cmd/swag@latest
+	$(BUILD_DIR)/swag fmt
+	$(BUILD_DIR)/swag init -g cmd/admin/main.go --parseDependency --parseDepth 3
+
+
 toolkits: cluster
 
 # test toolkits build target

@@ -3,6 +3,8 @@ version: v2.0.0
 
 pidFile: ./pids/admin.pid
 
+docFileDir: ./docs
+
 discovery:
   endpoint: http://127.0.0.1:2379
   user: root
@@ -12,6 +14,10 @@ apm:
   readTimeout: 10s
   writeTimeout: 10s
   listenAddress: http://127.0.0.1:8081
+
+web:
+  host: 127.0.0.1
+  port: 8089
 
 dbmApi:
   - name: metadata
