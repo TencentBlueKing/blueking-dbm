@@ -553,15 +553,19 @@ func RollbackPlan() error {
 	return nil
 }
 
-// IsBrokerEmpty TODO
+// IsBrokerEmpty 检查Kafka broker数据目录是否为空
+// 支持Zookeeper模式和KRaft模式（4.0+版本）
 func IsBrokerEmpty(dataDirs []string) (bool, error) {
-	// 定义Broker为空时应该包含的文件名
+	// 定义Broker为空时应该包含的文件名和目录
 	emptyBrokerFiles := map[string]struct{}{
 		"meta.properties":                  {},
 		"recovery-point-offset-checkpoint": {},
 		"log-start-offset-checkpoint":      {},
 		"replication-offset-checkpoint":    {},
 		"cleaner-offset-checkpoint":        {},
+		"bootstrap.checkpoint":             {}, // KRaft 4.0+
+		".lock":                            {}, // 锁文件
+		"__cluster_metadata-0":             {}, // KRaft 4.0+ 元数据目录
 	}
 
 	// 遍历所有数据目录
@@ -574,11 +578,7 @@ func IsBrokerEmpty(dataDirs []string) (bool, error) {
 
 		// 检查目录中的文件是否只是Broker为空时应该包含的文件
 		for _, file := range files {
-			if file.IsDir() {
-				// 如果存在子目录，则Broker不为空
-				return false, nil
-			}
-			// 如果文件不在预期的文件列表中，则Broker不为空
+			// 如果文件或目录不在预期的列表中，则Broker不为空
 			if _, ok := emptyBrokerFiles[file.Name()]; !ok {
 				return false, nil
 			}
