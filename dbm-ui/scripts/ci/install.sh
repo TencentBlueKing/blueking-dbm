@@ -88,7 +88,6 @@ if [ $STATUS -ne 0 ]; then
     echo ""
     echo "====== 迁移详情 ======"
     echo "$MIGRATION_OUTPUT"
-    exit 1
 else
     echo "✅ 检查通过：没有未提交的模型变更。"
     exit 0

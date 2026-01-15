@@ -31,7 +31,7 @@ class RenderExampleCommand(CommandHandler):
 @command
 class TicketFlowLogAnalysisCommand(CommandHandler):
     name = _("单据日志分析")
-    command = "kiotest-loganalysis"
+    command = "ai-loganalysis"
     agent_code = DBMAgentCode.DBM
 
     def get_template(self) -> str:
