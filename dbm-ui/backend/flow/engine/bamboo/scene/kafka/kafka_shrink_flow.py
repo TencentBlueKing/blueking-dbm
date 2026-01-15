@@ -168,8 +168,25 @@ class KafkaShrinkFlow(object):
             kwargs={**asdict(act_kwargs), **asdict(dns_kwargs)},
         )
 
-        # 停进程
+        # 检查broker是否可以安全移除
         all_ips = self.__get_all_node_ips()
+        logger.debug(_("检查broker是否为空"), all_ips)
+        sub_pipelines = []
+        for ip in all_ips:
+            sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
+            # 检查broker是否为空
+            act_kwargs.template = get_base_payload(action=KafkaActuatorActionEnum.BrokerIsEmpty.value, host=ip)
+            act_kwargs.exec_ip = [{"ip": ip}]
+            sub_pipeline.add_act(
+                act_name=_("检查broker是否为空-{}").format(ip),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
+            sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("检查broker {}子流程").format(ip)))
+        # 并发执行所有子流程
+        kafka_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+
+        # 停进程
         logger.debug(_("停止进程"), all_ips)
         sub_pipelines = []
         for ip in all_ips:
