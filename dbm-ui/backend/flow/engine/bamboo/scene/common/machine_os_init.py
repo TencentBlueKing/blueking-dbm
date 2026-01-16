@@ -273,6 +273,7 @@ class ImportResourceInitStepFlow(object):
         common_kwargs = ImportMachinePollKwargs(
             bk_biz_id=self.data["bk_biz_id"],
             db_type=self.data["group"],
+            cluster_type=self.data.get("cluster_type", ""),
             operator=self.data["operator"],
             ticket_id=self.data["uid"],
         )
