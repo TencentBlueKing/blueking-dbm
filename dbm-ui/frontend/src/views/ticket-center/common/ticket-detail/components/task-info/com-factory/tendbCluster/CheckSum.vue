@@ -202,7 +202,9 @@
 
   // 再行合并
   const groupedData = _.groupBy(tableData.value, 'cluster_id');
-  const spanInfo = Object.values(groupedData).flatMap((list, index) => [{ rowIndex: index, rowspan: list.length }]);
+  const spanInfo = Object.values(groupedData).flatMap((list, index) => [
+    { rowIndex: index * list.length, rowspan: list.length },
+  ]);
 
   const rowspanAndColspan = ({ colIndex, rowIndex }: { colIndex: number; rowIndex: number }) => {
     const spanItem = spanInfo.find((item) => (colIndex === 0 || colIndex === 1) && item.rowIndex === rowIndex);
