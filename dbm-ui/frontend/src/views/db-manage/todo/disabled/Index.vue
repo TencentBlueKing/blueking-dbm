@@ -163,12 +163,13 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { clusterTypeListPageMap, DBTypeInfos, DBTypes } from '@common/const';
+  import { DBTypeInfos, DBTypes } from '@common/const';
 
   import DbTab from '@components/db-tab/Index.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
 
   import { URL_CLUSTER_DETAIL_MEMO_KEY } from '@views/db-manage/common/cluster-details';
+  import { clusterTypeListPageMap } from '@views/db-manage/const/clusterTypeListPageMap';
 
   import { getBusinessHref } from '@utils';
 
