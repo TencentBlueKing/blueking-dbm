@@ -12,11 +12,10 @@ from datetime import datetime, timedelta
 
 from django.utils.translation import gettext as _
 
-from ... import env
 from ...configuration.constants import HCM_DISK_CLASS_MAP, SystemSettingsEnum
 from ...configuration.models import SystemSettings
 from ...db_meta.models.city_map import BKSubzone
-from ...db_services.cmdb.biz import get_resource_biz
+from ...db_services.cmdb.biz import get_hcm_apply_resource_biz, get_resource_biz
 from .. import CCApi
 from ..base import BaseApi
 from ..domains import HCM_APIGW_DOMAIN
@@ -147,9 +146,7 @@ class _HCMApi(BaseApi):
         5. 计费模式：包年包月，36个月
         6. 继承云实例ID：在弹性资源池cc上找到一个同地域同机型的主机固资编号，如果无法找到则不能申请改类型规格的机器
         """
-        # 这里申请业务先固定为DB生产环境
-        bk_biz_id = env.DBA_APP_BK_BIZ_ID
-
+        bk_biz_id = get_hcm_apply_resource_biz()
         hcm_image_map = SystemSettings.get_setting_value(SystemSettingsEnum.HCM_OS_NAME_IMAGE_MAP, default={})
         hcm_image_map = {key.strip().lower(): value for key, value in hcm_image_map.items()}
 

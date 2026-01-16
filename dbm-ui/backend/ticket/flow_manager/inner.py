@@ -21,6 +21,7 @@ from backend.bk_dataview.prometheus.handlers import pipeline_build_label_func, s
 from backend.db_meta.exceptions import ClusterExclusiveOperateException
 from backend.db_meta.models import Cluster
 from backend.db_meta.models.sqlserver_dts import SqlserverDtsInfo
+from backend.db_services.cmdb.biz import get_hcm_apply_resource_biz
 from backend.flow.models import FlowTree
 from backend.ticket import constants
 from backend.ticket.builders.common.base import fetch_cluster_ids
@@ -332,9 +333,9 @@ class HCMReplenishResourceTaskFlow(SimpleTaskFlow):
     def _revoke(self, operator, remark="") -> Any:
         from backend.components.hcm.client import HCMApi
 
-        # 终止海磊申请单(注意申请单业务在DB生产环境)
+        # 终止海磊申请单
         suborder_id = self.flow_obj.context.get("suborder_id")
-        bk_biz_id = env.DBA_APP_BK_BIZ_ID
+        bk_biz_id = get_hcm_apply_resource_biz()
         if suborder_id:
             try:
                 params = {"bk_biz_id": bk_biz_id, "suborder_id": [suborder_id]}
