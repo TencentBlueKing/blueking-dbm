@@ -102,6 +102,7 @@ class ImportMachinePollKwargs:
 
     bk_biz_id: int
     db_type: str
+    cluster_type: str
     operator: str
     ticket_id: int
     event: MachineEventType = ""
