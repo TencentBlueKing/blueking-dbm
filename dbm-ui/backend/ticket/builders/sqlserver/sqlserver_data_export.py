@@ -3,6 +3,7 @@ import time
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.core.storages.storage import get_storage
 from backend.db_meta.models import AppCache, Cluster
 from backend.db_services.sqlserver.sql_import.constants import BKREPO_SQLSERVER_SQLFILE_PATH
 from backend.flow.engine.controller.sqlserver import SqlserverController
@@ -55,21 +56,61 @@ class SQLServerDataExportFlowParamBuilder(builders.FlowParamBuilder):
     # 文件名
     def format_ticket_data(self):
         self.ticket_data["path"] = BKREPO_SQLSERVER_SQLFILE_PATH.format(biz=self.ticket.bk_biz_id)
-        cluster = Cluster.objects.filter(id__in=self.ticket_data["cluster_ids"])
-        dump_file_name = f"{cluster.first().immute_domain}_{int(time.time())}_dbm_console_dump.sql"
-        self.ticket_data["dump_file_name"] = dump_file_name
+        clusters = Cluster.objects.filter(id__in=self.ticket_data["cluster_ids"])
+
+        # 为每个集群生成对应的文件名
+        dump_file_names = []
+        for cluster in clusters:
+            dump_file_name = f"{cluster.immute_domain}_{int(time.time())}_dbm_console_dump.sql"
+            dump_file_names.append(dump_file_name)
+
+        self.ticket_data["dump_file_names"] = dump_file_names
 
     def post_callback(self):
         flow = self.ticket.current_flow()
         # 如果流程树运行不为成功，则忽略
         # if flow.status != TicketFlowStatus.SUCCEEDED:
         #     return
-        # 往flow的detail中写入制品库的下载链接
-        dump_file_name = f"{flow.details['ticket_data']['dump_file_name']}.zip"
+
+        # 为每个集群的文件生成完整路径并获取文件大小
+        dump_file_list = []
+
+        for dump_file_name in flow.details["ticket_data"]["dump_file_names"]:
+            dump_file_name_with_ext = f"{dump_file_name}.zip"
+            dump_file_path = (
+                f"{BKREPO_SQLSERVER_SQLFILE_PATH.format(biz=self.ticket.bk_biz_id)}/{dump_file_name_with_ext}"
+            )
+
+            # 获取制品库文件大小
+            file_size = None
+            try:
+                storage = get_storage()
+                # 使用制品库API获取文件元数据，包含文件大小
+                file_metadata = storage.get_file_metadata(dump_file_path)
+                # 从元数据中提取文件大小
+                file_size = (
+                    file_metadata.get("size") or file_metadata.get("length") or file_metadata.get("Content-Length")
+                )
+            except Exception as e:
+                # 如果获取文件大小失败，记录日志但不中断流程
+                print(f"获取制品库文件大小失败: {e}")
+
+            # 获取对应的cluster_id
+            clusters = Cluster.objects.filter(id__in=self.ticket_data["cluster_ids"])
+            cluster_id = None
+            for cluster in clusters:
+                if dump_file_name.startswith(f"{cluster.immute_domain}_"):
+                    cluster_id = cluster.id
+                    break
+
+            dump_file_list.append(
+                {"cluster_id": cluster_id, "size": file_size, "name": dump_file_name_with_ext, "path": dump_file_path}
+            )
+
         flow.details["ticket_data"].update(
-            dump_file_name=dump_file_name,
-            dump_file_path=f"{BKREPO_SQLSERVER_SQLFILE_PATH.format(biz=self.ticket.bk_biz_id)}/{dump_file_name}",
+            dump_file_list=dump_file_list,
         )
+
         flow.save(update_fields=["details"])
 
 
