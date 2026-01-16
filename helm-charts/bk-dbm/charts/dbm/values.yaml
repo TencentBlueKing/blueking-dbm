@@ -29,6 +29,8 @@ saas:
     replicaCount: 1
     gunicornWorker: 8
     timeout: 120
+    maxRequests: 5000
+    maxRequestsJitter: 500
     autoscaling:
       enabled: false
       minReplicas: 1
@@ -40,6 +42,9 @@ saas:
     resources: {}
     replicaCount: 1
     gunicornWorker: 8
+    timeout: 300
+    maxRequests: 5000
+    maxRequestsJitter: 500
     autoscaling:
       enabled: false
       minReplicas: 1
