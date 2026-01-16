@@ -23,6 +23,8 @@ from drf_spectacular.settings import spectacular_settings
 
 from backend import env
 from backend.dbm_aiagent.mcp_tools import decorators
+from backend.dbm_aiagent.mcp_tools.constants import DBMMcpTools
+from backend.dbm_init.management.commands.mcp_checker import SimpleMCPDependencyGraph
 
 logger = logging.getLogger("root")
 
@@ -46,6 +48,8 @@ class Command(BaseCommand):
             help="同时执行 APIGW 和 MCP 逻辑",
         )
         parser.add_argument("--only_mcp_resource", action="store_true", help="生成 mcp 资源描述")
+        parser.add_argument("--mcp_check", type=str, nargs="*", help="mcp 依赖检查", required=False, default=None)
+        # default=list(DBMMcpTools.get_values()))
 
     @staticmethod
     def __preprocess_exclude_mcp_views(endpoints, **kwargs):
@@ -171,6 +175,12 @@ class Command(BaseCommand):
         mcp = options.get("mcp", False)
         all_mode = options.get("all", False)
         only_mcp_resource = options.get("only_mcp_resource", False)
+        mcp_check = options.get("mcp_check")
+
+        if mcp_check is not None:
+            only_mcp_resource = True
+            if len(mcp_check) == 0:
+                mcp_check = DBMMcpTools.get_values()
 
         # 如果没有指定任何参数，默认执行 apigw 逻辑（保持向后兼容）
         if apigw or all_mode:
@@ -178,3 +188,10 @@ class Command(BaseCommand):
 
         if mcp or all_mode or only_mcp_resource:
             self.sync_mcp_apigw(only_mcp_resource)
+
+        if mcp_check:
+            analyzer = SimpleMCPDependencyGraph()
+            analyzer.load_from_file(
+                os.path.join(settings.BASE_DIR, "backend/dbm_init/apigw/mcp_resources.yaml"), mcp_servers=mcp_check
+            )
+            analyzer.export_for_llm(os.path.join(settings.BASE_DIR, "mcp-knowledge.md"))
