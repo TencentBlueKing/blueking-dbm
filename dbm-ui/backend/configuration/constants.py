@@ -175,6 +175,7 @@ class SystemSettingsEnum(StrStructuredEnum):
     # Redis 访问入口一致性校验配置
     REDIS_ENTRY_CHECK = EnumField("REDIS_ENTRY_CHECK", _("Redis访问入口一致性校验配置"))
     # 补货相关配置(内部独有)
+    HCM_APPLY_RESOURCE_BIZ = EnumField("HCM_APPLY_RESOURCE_BIZ", _("HCM申请资源业务"))
     HCM_OS_NAME_IMAGE_MAP = EnumField("HCM_OS_NAME_IMAGE_MAP", _("HCM操作系统与镜像ID映射"))
     HCM_REPLENISH_MAINTAINER = EnumField("HCM_REPLENISH_MAINTAINER", _("HCM补货维护人"))
     REPLENISH_RATIO_MAP = EnumField("REPLENISH_RATIO_MAP", _("补货比例"))

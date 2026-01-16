@@ -13,9 +13,9 @@ from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import StaticIntervalGenerator
 
-from backend import env
 from backend.components.hcm.client import HCMApi
 from backend.db_meta.models import Spec
+from backend.db_services.cmdb.biz import get_hcm_apply_resource_biz
 from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.plugins.components.collections.common.base_service import BaseService
@@ -38,8 +38,7 @@ class HCMResourceReplenishService(BaseService):
     def _execute(self, data, parent_data):
         global_data = data.get_one_of_inputs("global_data")
         kwargs = data.get_one_of_inputs("kwargs")
-        # 这里申请业务固定为DB生产环境
-        bk_biz_id = env.DBA_APP_BK_BIZ_ID
+        bk_biz_id = get_hcm_apply_resource_biz()
 
         # 获取当前单据信息和申请补货信息
         ticket, flow = self.__get_ticket_flow(global_data)
@@ -88,8 +87,7 @@ class HCMResourceReplenishService(BaseService):
         apply_id = data.get_one_of_outputs("apply_id")
         apply_count = data.get_one_of_outputs("apply_count")
         ticket, flow = self.__get_ticket_flow(global_data)
-        # 这里申请业务固定为DB生产环境
-        bk_biz_id = env.DBA_APP_BK_BIZ_ID
+        bk_biz_id = get_hcm_apply_resource_biz()
 
         if not apply_count:
             self.finish_schedule()
