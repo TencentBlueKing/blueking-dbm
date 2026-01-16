@@ -28,7 +28,7 @@
             "alias": "a",
             "metric_id": "",
             "functions": [],
-            "promql": "max by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,instance,bk_target_cloud_id,appid,bk_target_service_instance_id) (sum(increase(bkmonitor:exporter_dbm_predixy_exporter:predixy_latency_bucket{cluster_type=\"PredixyTendisplusCluster\",le=\"+Inf\"}[2m]) ) without(le) - sum(increase(bkmonitor:exporter_dbm_predixy_exporter:predixy_latency_bucket{cluster_type=\"PredixyTendisplusCluster\",le=\"1.024e+06\"}[2m]) ) without(le))",
+            "promql": "max by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,instance,bk_target_cloud_id,appid,bk_target_service_instance_id) (sum(increase(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_type=\"PredixyTendisplusCluster\",le=\"+Inf\"}[2m]) ) without(le) - sum(increase(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_type=\"PredixyTendisplusCluster\",le=\"1.024e+06\"}[2m]) ) without(le))",
             "agg_interval": 60,
             "name": ""
           }
@@ -272,7 +272,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "[TendisPlus]集群访问耗时超过1秒的请求数量每分钟",
-  "version": 4,
+  "version": 5,
   "alert_source": "time_series",
   "custom_conditions": [],
   "export_at": "2024-07-23T16:36:12+08:00"

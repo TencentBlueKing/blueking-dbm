@@ -28,7 +28,7 @@
             "alias": "a",
             "metric_id": "",
             "functions": [],
-            "promql": "max by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,instance,bk_target_cloud_id,appid,bk_target_service_instance_id) (histogram_quantile(\n0.99,\nsum(increase(\nbkmonitor:exporter_dbm_predixy_exporter:predixy_latency_bucket{ \ncluster_type=\"PredixyRedisCluster\"}[2m])) by (app,cluster_domain,instance_role,cluster_type,bk_target_cloud_id,appid,le)\n) /1000)",
+            "promql": "max by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,instance,bk_target_cloud_id,appid,bk_target_service_instance_id) (histogram_quantile(\n0.99,\nsum(increase(\nbkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{ \ncluster_type=\"PredixyRedisCluster\"}[2m])) by (app,cluster_domain,instance_role,cluster_type,bk_target_cloud_id,appid,le)\n) /1000)",
             "agg_interval": 60,
             "name": ""
           }
@@ -272,7 +272,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "[RedisCluster]集群P99访问耗时",
-  "version": 4,
+  "version": 5,
   "alert_source": "time_series",
   "custom_conditions": [],
   "export_at": "2024-07-23T16:36:12+08:00"
