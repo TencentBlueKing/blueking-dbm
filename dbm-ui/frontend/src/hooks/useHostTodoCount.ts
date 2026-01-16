@@ -14,7 +14,11 @@ import { useRequest } from 'vue-request';
 
 import { getHostTodoCount } from '@services/source/ticket';
 
+import { useUserProfile } from '@stores';
+
 const getContext = () => {
+  const { isDba } = useUserProfile();
+
   const { data, run: runGetHostTodoCount } = useRequest(getHostTodoCount, {
     manual: true,
   });
@@ -23,7 +27,9 @@ const getContext = () => {
   const recycleCount = computed(() => (data && data.value ? data.value.recycle_count : 0));
   const totalCount = computed(() => faultCount.value + recycleCount.value);
 
-  runGetHostTodoCount();
+  if (isDba) {
+    runGetHostTodoCount();
+  }
 
   return {
     faultCount,
