@@ -19,7 +19,7 @@ dependencies:
   version: 7.9.8
 - name: dbm
   repository: file://charts/dbm
-  version: 0.1.49
+  version: 0.1.50
 - name: dbconfig
   repository: file://charts/dbconfig
   version: 0.1.13
