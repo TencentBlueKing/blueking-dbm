@@ -763,7 +763,7 @@ func (sw *MySQLBaseSwitchInstance) ResetSlaveWithBinlogPos(slaveIp string, slave
 
 	sw.ReportLogf(SwitchInfo, "successfully reset slave status for the slave node(%s:%d), "+
 		"binlog info: [binlog_file:%s, binlog_pos:%d]",
-		sw.StandBySlave.Ip, sw.StandBySlave.Port, masterStatus.File, masterStatus.Position)
+		slaveIp, slavePort, masterStatus.File, masterStatus.Position)
 
 	return masterStatus.File, masterStatus.Position, nil
 }
