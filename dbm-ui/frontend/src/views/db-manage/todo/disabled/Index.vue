@@ -83,12 +83,14 @@
           :min-width="340"
           :title="t('集群')">
           <template #default="{ row }: { row: TicketClusterDisableTodoModel }">
-            <BkButton
-              text
-              theme="primary"
-              @click="() => handleToClusterDetail(row)">
-              {{ row.immute_domain }}
-            </BkButton>
+            <TextOverflowLayout>
+              <BkButton
+                text
+                theme="primary"
+                @click="() => handleToClusterDetail(row)">
+                {{ row.immute_domain }}
+              </BkButton>
+            </TextOverflowLayout>
           </template>
         </TableColumn>
         <TableColumn
@@ -167,6 +169,7 @@
 
   import DbTab from '@components/db-tab/Index.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { URL_CLUSTER_DETAIL_MEMO_KEY } from '@views/db-manage/common/cluster-details';
   import { clusterTypeListPageMap } from '@views/db-manage/const/clusterTypeListPageMap';
