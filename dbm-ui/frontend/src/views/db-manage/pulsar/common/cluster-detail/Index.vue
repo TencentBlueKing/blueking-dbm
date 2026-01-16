@@ -171,20 +171,6 @@
           </BkButton>
         </template>
       </BkDialog>
-      <BkDialog
-        v-model:is-show="isShowPassword"
-        render-directive="if"
-        :title="t('获取访问方式')"
-        :width="600">
-        <RenderPassword
-          :cluster-id="data.id"
-          :db-type="DBTypes.KAFKA" />
-        <template #footer>
-          <BkButton @click="handleHidePassword">
-            {{ t('关闭') }}
-          </BkButton>
-        </template>
-      </BkDialog>
     </template>
   </div>
 </template>
