@@ -70,7 +70,8 @@ class RecycleHostFlowBuilder(TicketFlowBuilder):
     editable = False
 
     def check_independent_recycle(self):
-        hosting_biz = BizSettings.get_exact_hosting_biz(self.ticket.bk_biz_id, self.ticket.details["group"])
+        cluster_type = self.ticket.details.get("cluster_type") or self.ticket.details["group"]
+        hosting_biz = BizSettings.get_exact_hosting_biz(self.ticket.bk_biz_id, cluster_type)
         return self.ticket.ticket_type == TicketType.RECYCLE_OLD_HOST and hosting_biz != env.DBA_APP_BK_BIZ_ID
 
     def init_ticket_flows(self):
