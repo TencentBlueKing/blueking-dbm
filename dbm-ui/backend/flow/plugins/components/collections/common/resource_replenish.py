@@ -75,8 +75,10 @@ class HCMResourceReplenishService(BaseService):
             apply_ticket = HCMApi.get_apply_status(params={"order_id": apply_id}, use_admin=True)["info"][0]
             if apply_ticket["stage"] != "SUSPEND":
                 self.log_info(_("单据{}状态为{}，非失败暂停状态跳过重试").format(apply_id, apply_ticket["stage"]))
-                return True
-            HCMApi.update_ticket_apply_start({"bk_biz_id": bk_biz_id, "suborder_id": [suborder_id]}, use_admin=True)
+            else:
+                HCMApi.update_ticket_apply_start(
+                    {"bk_biz_id": bk_biz_id, "suborder_id": [suborder_id]}, use_admin=True
+                )
 
         self.log_info(_("海磊资源单发起成功，单号: {}").format(apply_id))
         data.outputs.apply_id = apply_id
