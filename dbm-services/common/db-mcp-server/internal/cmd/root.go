@@ -48,8 +48,6 @@ var rootCmd = &cobra.Command{
 					} /* else {
 						logger.Info("update tools done")
 					}*/
-				default:
-
 				}
 			}
 		}()
