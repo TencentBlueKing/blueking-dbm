@@ -398,6 +398,8 @@ def create_cluster_todo(ticket_id, cluster_phase):
         dba, second_dba, other_dba = DBAdministrator.get_dba_for_db_type(ticket.bk_biz_id, ticket.group)
         biz_helpers = BizSettings.get_assistance(ticket.bk_biz_id)
         dba.append(ticket.creator)
+        operators = set(dba)
+        helpers = list(set(second_dba + other_dba + biz_helpers))
         todo_list = []
         cluster_ids = fetch_cluster_ids(ticket.details)
         cluster_map = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
@@ -409,8 +411,8 @@ def create_cluster_todo(ticket_id, cluster_phase):
                     name=_("【{}】单据后续相关操作，待处理").format(ticket.get_ticket_type_display()),
                     flow=flow,
                     ticket=ticket,
-                    operators=list(set(dba)),
-                    helpers=list(set(second_dba + other_dba + biz_helpers)),
+                    operators=list(operators),
+                    helpers=[helper for helper in helpers if helper not in operators],
                     type=TodoType.CLUSTER_DISABLE,
                     context=ClusterDisableTodoContext(
                         flow.id, ticket.id, cluster_id, db_type, cluster.immute_domain
