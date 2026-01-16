@@ -55,6 +55,17 @@
         <span class="ticket-count">{{ hostTodoCount }}</span>
       </BkMenuItem>
       <BkMenuItem
+        key="ClusterDisableTodo"
+        v-db-console="'personalWorkbench.clusterDisableTodo'">
+        <template #icon>
+          <DbIcon type="todos" />
+        </template>
+        <span>
+          {{ t('集群下架待办') }}
+        </span>
+        <span class="ticket-count">{{ clusterDisableTodoCount + clusterDisableToAssistCount }}</span>
+      </BkMenuItem>
+      <BkMenuItem
         v-if="userProfileStore.isDba"
         key="RiskMemoTodos"
         v-db-console="'personalWorkbench.RiskMemoTodos'">
@@ -65,17 +76,6 @@
           {{ t('风险备忘录') }}
         </span>
         <span class="ticket-count">{{ riskMemoTodoCount }}</span>
-      </BkMenuItem>
-      <BkMenuItem
-        key="ClusterDisableTodo"
-        v-db-console="'personalWorkbench.clusterDisableTodo'">
-        <template #icon>
-          <DbIcon type="todos" />
-        </template>
-        <span>
-          {{ t('集群下架待办') }}
-        </span>
-        <span class="ticket-count">{{ clusterDisableTodoCount + clusterDisableToAssistCount }}</span>
       </BkMenuItem>
     </BkMenuGroup>
     <BkMenuGroup

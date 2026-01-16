@@ -170,6 +170,8 @@
 
   import { URL_CLUSTER_DETAIL_MEMO_KEY } from '@views/db-manage/common/cluster-details';
 
+  import { getBusinessHref } from '@utils';
+
   // import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
   import AssistTab from './components/AssistTab.vue';
   import { useColumnFilter } from './useColumnFilter';
@@ -242,7 +244,7 @@
   };
 
   const handleToClusterDetail = (row: TicketClusterDisableTodoModel) => {
-    const { href } = router.resolve({
+    const routeInfo = router.resolve({
       name: clusterTypeListPageMap[row.cluster_type],
       params: {
         clusterId: row.id,
@@ -251,7 +253,8 @@
         [URL_CLUSTER_DETAIL_MEMO_KEY]: 'info',
       },
     });
-    window.open(href);
+    const targetPath = getBusinessHref(routeInfo.href, row.bk_biz_id);
+    window.open(targetPath);
   };
 
   const handleDelete = (row: TicketClusterDisableTodoModel) => {
