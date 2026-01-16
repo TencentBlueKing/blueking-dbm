@@ -1,6 +1,8 @@
+import dayjs from 'dayjs';
+
 import type { ClusterTypes } from '@common/const';
 
-import { getCostTimeDisplay, utcDisplayTime, utcTimeToSeconds } from '@utils';
+import { getCostTimeDisplay, utcDisplayTime } from '@utils';
 
 export default class TicketClusterDisableTodo {
   bk_biz_id: number;
@@ -27,13 +29,10 @@ export default class TicketClusterDisableTodo {
     this.region = payload.region;
   }
 
-  get disableSeconds() {
-    const startTime = utcTimeToSeconds(this.disable_time);
-    return Math.floor(Date.now() / 1000) - startTime;
-  }
-
   get disableSecondsDisplay() {
-    return getCostTimeDisplay(this.disableSeconds);
+    const disableTime = dayjs.utc(this.disable_time);
+    const secondDiff = dayjs().diff(disableTime, 'second');
+    return getCostTimeDisplay(secondDiff);
   }
 
   get distableTimeDisplay() {
@@ -41,6 +40,7 @@ export default class TicketClusterDisableTodo {
   }
 
   get isDisableAlert() {
-    return this.disableSeconds > 60 * 60 * 24 * 7;
+    const disableTime = dayjs.utc(this.disable_time);
+    return dayjs().isAfter(disableTime.add(7, 'day'));
   }
 }
