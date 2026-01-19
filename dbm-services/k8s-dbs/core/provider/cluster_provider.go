@@ -216,7 +216,7 @@ func InstanceSetGVR() schema.GroupVersionResource {
 // CreateCluster 创建集群
 func (c *ClusterProvider) CreateCluster(ctx *commentity.DbsContext, request *coreentity.Request) error {
 	// 检查集群版本
-	if err := c.checkClusterVersion(request); err != nil {
+	if err := c.checkClusterVersion(request, dbserrors.CreateClusterError); err != nil {
 		return err
 	}
 	// 检查是否重复创建
@@ -294,13 +294,14 @@ func (c *ClusterProvider) CreateCluster(ctx *commentity.DbsContext, request *cor
 // 参数:
 //
 //	request - 包含集群配置信息的请求对象
+//	errCode - 当前操作的错误码（创建/更新等）
 //	err - 可能的错误信息
 //
 // 返回值:
 //
 //	error - 检查过程中遇到的错误，如果检查通过则为nil
 //	bool - 是否发生了错误，true表示有错误发生
-func (c *ClusterProvider) checkClusterVersion(request *coreentity.Request) error {
+func (c *ClusterProvider) checkClusterVersion(request *coreentity.Request, errCode dbserrors.ErrorCode) error {
 	addonQueryParams := &metaentity.AddonQueryParams{
 		AddonType:    request.StorageAddonType,
 		AddonVersion: request.StorageAddonVersion,
@@ -311,7 +312,7 @@ func (c *ClusterProvider) checkClusterVersion(request *coreentity.Request) error
 			fmt.Errorf("查询存储插件元数据失败: %w", err))
 	}
 	if len(storageAddon) == 0 {
-		return dbserrors.NewK8sDbsError(dbserrors.CreateClusterError,
+		return dbserrors.NewK8sDbsError(errCode,
 			fmt.Errorf("插件类型 '%s' 版本 '%s' 不存在或未配置，请检查插件配置", request.StorageAddonType, request.StorageAddonVersion))
 	}
 
@@ -319,14 +320,14 @@ func (c *ClusterProvider) checkClusterVersion(request *coreentity.Request) error
 	var supportedVersions []string
 	if err := json.Unmarshal([]byte(storageAddon[0].SupportedVersions), &supportedVersions); err != nil {
 		slog.Error("failed to unmarshal supported versions", "error", err)
-		return dbserrors.NewK8sDbsError(dbserrors.CreateClusterError,
+		return dbserrors.NewK8sDbsError(errCode,
 			fmt.Errorf("supported versions 反序列化失败"))
 	}
 
 	// 检查组件版本是否在支持的版本列表中
 	for _, component := range request.ComponentList {
 		if !lo.Contains(supportedVersions, component.Version) {
-			return dbserrors.NewK8sDbsError(dbserrors.CreateClusterError,
+			return dbserrors.NewK8sDbsError(errCode,
 				fmt.Errorf("组件 %s 的版本 %s 不在支持的版本列表中，支持的版本: %v",
 					component.ComponentName, component.Version, supportedVersions))
 		}
@@ -336,12 +337,12 @@ func (c *ClusterProvider) checkClusterVersion(request *coreentity.Request) error
 	var supportedAcVersions []string
 	if err := json.Unmarshal([]byte(storageAddon[0].SupportedAcVersions), &supportedAcVersions); err != nil {
 		slog.Error("failed to unmarshal supported ac versions", "error", err)
-		return dbserrors.NewK8sDbsError(dbserrors.CreateClusterError,
+		return dbserrors.NewK8sDbsError(errCode,
 			fmt.Errorf("supported ac versions 反序列化失败"))
 	}
 
 	if !lo.Contains(supportedAcVersions, request.AddonClusterVersion) {
-		return dbserrors.NewK8sDbsError(dbserrors.CreateClusterError,
+		return dbserrors.NewK8sDbsError(errCode,
 			fmt.Errorf("addonClusterVersion 版本 %s 不在支持的版本列表中，支持的版本: %v",
 				request.AddonClusterVersion, supportedAcVersions))
 	}
@@ -452,6 +453,11 @@ func (c *ClusterProvider) UpdateClusterRelease(
 	if err := c.validateAddonClusterVersion(request, clusterEntity); err != nil {
 		return err
 	}
+	// 检查集群版本
+	if err := c.checkClusterVersion(request, dbserrors.UpdateClusterError); err != nil {
+		return err
+	}
+
 	// 更新 cluster release
 	values, err := c.updateClusterRelease(ctx, request, k8sClient, isPartial)
 	if err != nil {
@@ -498,6 +504,7 @@ func (c *ClusterProvider) fillClusterMetaInfo(
 		request.AddonClusterVersion = clusterEntity.AddonClusterVersion
 	}
 	request.StorageAddonType = clusterEntity.AddonInfo.AddonType
+	request.StorageAddonVersion = clusterEntity.AddonInfo.AddonVersion
 	return clusterEntity, nil
 }
 
