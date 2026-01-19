@@ -211,7 +211,7 @@ func (c *ClusterController) UpdateCluster(ctx *gin.Context) {
 	}
 	if err := c.clusterProvider.UpdateClusterRelease(dbsCtx, request, false); err != nil {
 		api.ErrorResponse(ctx, dbserrors.NewK8sDbsError(dbserrors.UpdateClusterError, err))
-
+		return
 	}
 	api.SuccessResponse(ctx, nil, commconst.Success)
 }
