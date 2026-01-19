@@ -488,19 +488,16 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     @action(
         methods=["GET"],
         detail=False,
+        queryset=Todo.objects.filter(type=TodoType.CLUSTER_DISABLE, status=TodoStatus.TODO)
+        .select_related("ticket")
+        .order_by("-update_at"),
         serializer_class=ClusterDisableTodoSerializer,
         filter_class=ClusterDisableTodoFilter,
     )
     def cluster_disable_todo(self, request, *args, **kwargs):
         data = []
-        queryset = (
-            Todo.objects.filter(type=TodoType.CLUSTER_DISABLE, status=TodoStatus.TODO)
-            .select_related("ticket")
-            .order_by("-update_at")
-        )
-
         self.params_validate(self.get_serializer_class())
-        todo_queryset = super().filter_queryset(queryset)
+        todo_queryset = super().filter_queryset(self.get_queryset())
         pages = self.paginate_queryset(todo_queryset)
 
         cluster_ids = [todo.context["cluster_id"] for todo in todo_queryset]
