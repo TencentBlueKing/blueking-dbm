@@ -106,9 +106,11 @@ class TenDBRollBackDataFlow(object):
             self.data["module"] = source_cluster.db_module_id
             self.data["ticket_type"] = self.ticket_data["ticket_type"]
             tendb_rollback_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-            clusters_info = get_rollback_clusters_info(
+            clusters_info, check_message = get_rollback_clusters_info(
                 source_cluster_id=self.data["source_cluster_id"], target_cluster_id=self.data["target_cluster_id"]
             )
+            if len(check_message) > 0:
+                raise NormalSpiderFlowException(",".join(check_message))
             charset, db_version = get_version_and_charset(
                 bk_biz_id=source_cluster.bk_biz_id,
                 db_module_id=source_cluster.db_module_id,
