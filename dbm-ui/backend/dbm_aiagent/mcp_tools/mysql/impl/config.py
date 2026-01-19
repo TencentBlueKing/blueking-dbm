@@ -24,4 +24,3 @@ def init_collectors_index_set_id():
     data = BKLogApi.list_collectors({"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "pagesize": 500, "page": 1}, use_admin=True)
     collectors_name__info_map = {collector["collector_config_name_en"]: collector for collector in data["list"]}
     MYSQL_SLOW_LOG_INDEX_SET_ID = collectors_name__info_map["mysql_slowlog"]["index_set_id"]
-    # print("xxxx", MYSQL_SLOW_LOG_INDEX_SET_ID)

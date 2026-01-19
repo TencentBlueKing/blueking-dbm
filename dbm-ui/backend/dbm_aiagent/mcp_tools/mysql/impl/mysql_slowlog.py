@@ -35,6 +35,7 @@ SLOW_LOG_QUERY_PARAM = {
                 "__ext.cluster_domain",
                 "__ext.instance_role",
                 "user",
+                "db_name",
                 "slow_query.db_name",
                 "slow_query.table_name",
                 "slow_query.query_digest_md5",
@@ -57,48 +58,78 @@ SLOW_LOG_QUERY_PARAM = {
 }
 
 
-def query_slow_logs(
+def query_slow_logs_by_metric(
     cluster_type: ClusterType,
     cluster_domain: str,
     instance_role: str,
     start_time: timezone.datetime,
     end_time: timezone.datetime,
+) -> list[dict]:
+    if not config.MYSQL_SLOW_LOG_INDEX_SET_ID:
+        config.init_collectors_index_set_id()
+        if not config.MYSQL_SLOW_LOG_INDEX_SET_ID:
+            raise DBMMcpBaseException(msg="MYSQL_SLOW_LOG_INDEX_SET_ID is not set")
+
+    query_time_param = copy.deepcopy(SLOW_LOG_QUERY_PARAM)
+    query_time_param["reference_name"] = "a"
+    query_time_param["field_name"] = "query_time"
+    query_time_param["function"][0]["method"] = "max"
+    query_time_param["conditions"]["field_list"][0]["value"] = [cluster_domain]
+    query_time_param["table_id"] = SLOW_LOG_QUERY_PARAM["table_id"] % config.MYSQL_SLOW_LOG_INDEX_SET_ID
+    # query_time_param["conditions"]["field_list"][1]["value"] = [instance_role]
+
+    slow_count_param = copy.deepcopy(SLOW_LOG_QUERY_PARAM)
+    slow_count_param["reference_name"] = "a"
+    slow_count_param["field_name"] = "query_time"
+    slow_count_param["function"][0]["method"] = "count"
+    slow_count_param["conditions"]["field_list"][0]["value"] = [cluster_domain]
+    slow_count_param["table_id"] = SLOW_LOG_QUERY_PARAM["table_id"] % config.MYSQL_SLOW_LOG_INDEX_SET_ID
+    # slow_count_param["conditions"]["field_list"][1]["value"] = [instance_role]
+
+    rows_scan_param = copy.deepcopy(SLOW_LOG_QUERY_PARAM)
+    rows_scan_param["reference_name"] = "a"
+    rows_scan_param["field_name"] = "rows_examined"
+    rows_scan_param["function"][0]["method"] = "sum"
+    rows_scan_param["conditions"]["field_list"][0]["value"] = [cluster_domain]
+    rows_scan_param["table_id"] = SLOW_LOG_QUERY_PARAM["table_id"] % config.MYSQL_SLOW_LOG_INDEX_SET_ID
+    # rows_scan_param["conditions"]["field_list"][1]["value"] = [instance_role]
+
+    query_time = query_slow_logs(cluster_type, cluster_domain, query_time_param, start_time, end_time)
+    query_time["metric_aggregate_type"] = "%s by %s" % (
+        query_time_param["function"][0]["method"],
+        query_time_param["field_name"],
+    )
+
+    slow_count = query_slow_logs(cluster_type, cluster_domain, slow_count_param, start_time, end_time)
+    slow_count["metric_aggregate_type"] = "%s by %s" % (
+        slow_count_param["function"][0]["method"],
+        slow_count_param["field_name"],
+    )
+
+    rows_scan = query_slow_logs(cluster_type, cluster_domain, rows_scan_param, start_time, end_time)
+    rows_scan["metric_aggregate_type"] = "%s by %s" % (
+        rows_scan_param["function"][0]["method"],
+        rows_scan_param["field_name"],
+    )
+
+    return [query_time, slow_count, rows_scan]
+
+
+def query_slow_logs(
+    cluster_type: ClusterType,
+    cluster_domain: str,
+    metric_param: Dict,
+    start_time: timezone.datetime,
+    end_time: timezone.datetime,
 ) -> Dict:
     try:
-        if not config.MYSQL_SLOW_LOG_INDEX_SET_ID:
-            config.init_collectors_index_set_id()
-            if not config.MYSQL_SLOW_LOG_INDEX_SET_ID:
-                raise DBMMcpBaseException(msg="MYSQL_SLOW_LOG_INDEX_SET_ID is not set")
-        SLOW_LOG_QUERY_PARAM["table_id"] = SLOW_LOG_QUERY_PARAM["table_id"] % config.MYSQL_SLOW_LOG_INDEX_SET_ID
-
-        query_time_param = copy.deepcopy(SLOW_LOG_QUERY_PARAM)
-        query_time_param["reference_name"] = "a"
-        query_time_param["field_name"] = "query_time"
-        query_time_param["function"][0]["method"] = "max"
-        query_time_param["conditions"]["field_list"][0]["value"] = [cluster_domain]
-        # query_time_param["conditions"]["field_list"][1]["value"] = [instance_role]
-
-        slow_count_param = copy.deepcopy(SLOW_LOG_QUERY_PARAM)
-        slow_count_param["reference_name"] = "b"
-        slow_count_param["field_name"] = "query_time"
-        slow_count_param["function"][0]["method"] = "count"
-        slow_count_param["conditions"]["field_list"][0]["value"] = [cluster_domain]
-        # slow_count_param["conditions"]["field_list"][1]["value"] = [instance_role]
-
-        rows_scan_param = copy.deepcopy(SLOW_LOG_QUERY_PARAM)
-        rows_scan_param["reference_name"] = "c"
-        rows_scan_param["field_name"] = "rows_examined"
-        rows_scan_param["function"][0]["method"] = "sum"
-        rows_scan_param["conditions"]["field_list"][0]["value"] = [cluster_domain]
-        # rows_scan_param["conditions"]["field_list"][1]["value"] = [instance_role]
-
         query_params = {
             "start_time": str(timezone2timestamp(start_time)),  # "1754893191"
             "end_time": str(timezone2timestamp(end_time)),
             # 这里需要精确查询集群域名，所以可以通过log: "key: \"value\""的格式查询
             # "query_string": f"cluster_domain: \"{cluster_domain}\" AND instance_role: \"{instance_role}\"",
             "query_list": [
-                query_time_param,
+                metric_param,
             ],
             "metric_merge": "a",
             "order_by": ["time"],
@@ -113,19 +144,29 @@ def query_slow_logs(
         )
         # {"result": true, "data": {"series": []}, "code": 0, "message": "", "request_id": null}
         # response_result = {'result': True, 'data': {'series': []}, 'code': 0, 'message': ''}
+        # print("xxxxx", json.dumps(query_params))
         slog_logs = []
         for row in resp["series"]:
             item = {}
             for i, value in enumerate(row["group_values"]):
-                item[row["group_keys"][i]] = value
-            item[row["metric_name"]] = row["values"][-1]
+                dim = row["group_keys"][i].replace("__ext.", "").replace("slow_query.", "")
+                if dim in ["cluster_domain", "instance_role"]:
+                    # 不重复了
+                    continue
+                if dim == "db_name":
+                    if item.get("db_name", None) is None or value != "":
+                        # db_name 来自 db_name 和 slow_query.db_name
+                        item[dim] = value
+                    continue
+                item[dim] = value
+            # item[metric_param["field_name"]] = row["values"][-1]
+            item["values"] = row["values"]
             slog_logs.append(item)
     except Exception as e:
         raise DBMMcpBaseException(msg=f"query slow logs failed: {e}")
 
     return {
         "cluster_domain": cluster_domain,
-        "cluster_type": cluster_type,
         "slog_logs": slog_logs,
     }
 
