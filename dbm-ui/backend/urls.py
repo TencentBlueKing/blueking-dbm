@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import version_log.config as version_log_config
 from bk_notice_sdk import config
 from django.conf import settings
 from django.contrib import admin
@@ -79,7 +80,7 @@ urlpatterns = [
     # grafana访问地址, 需要和grafana前缀保持一致
     path("grafana/", include("backend.bk_dataview.grafana.urls")),
     # 版本日志
-    path("version_log/", include("backend.version_log.urls")),
+    re_path(r"^{}".format(version_log_config.ENTRANCE_URL), include("version_log.urls", namespace="version_log")),
     # 巡检报告
     path("db_report/", include("backend.db_report.urls")),
     # 接入消息通知
