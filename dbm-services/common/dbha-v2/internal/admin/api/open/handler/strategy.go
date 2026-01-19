@@ -48,11 +48,11 @@ func NewStrategyHandler(strategyService *strategy.Strategy) *StrategyHandler {
 // Create creates a strategy
 //
 //	@ID			openapi_strategy_create
-//	@Summary	策略创建
+//	@Summary	strategy create
 //	@Accept		json
 //	@Produce	json
 //	@Tags		openapi.strategy
-//	@Param		request	body	serializer.StrategyCreateRequest	true	"策略创建参数"
+//	@Param		request	body	serializer.StrategyCreateRequest	true	"strategy create request"
 //	@Success	201
 //	@Router		/api/admin/strategies/ [post]
 func (h *StrategyHandler) Create(c *gin.Context) {
@@ -89,12 +89,12 @@ func (h *StrategyHandler) Create(c *gin.Context) {
 // Get gets a strategy
 //
 //	@ID			openapi_strategy_get
-//	@Summary	获取策略详情
+//	@Summary	strategy get
 //	@Accept		json
 //	@Produce	json
 //	@Tags		openapi.strategy
-//	@Param		id				path		int		true	"策略ID"
-//	@Param		bk_biz_id		query		int		true	"业务ID"
+//	@Param		id				path		int		true	"strategy id"
+//	@Param		bk_biz_id		query		int		true	"bk_biz_id"
 //	@Success	200				{object}	serializer.StrategyOutputInfo
 //	@Router		/api/admin/strategies/{id}/ [get]
 func (h *StrategyHandler) Get(c *gin.Context) {
@@ -133,8 +133,8 @@ func (h *StrategyHandler) Get(c *gin.Context) {
 		Action:                 strategyInfo.Action,
 		Status:                 strategyInfo.Status,
 		Description:            strategyInfo.Description,
-		CreatedAt:              strategyInfo.CreatedAt.Unix(),
-		UpdatedAt:              strategyInfo.UpdatedAt.Unix(),
+		CreatedAt:              strategyInfo.CreatedAt,
+		UpdatedAt:              strategyInfo.UpdatedAt,
 	}
 
 	ginx.SuccessJSONResponse(c, output)

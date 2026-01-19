@@ -25,6 +25,8 @@
 package serializer
 
 import (
+	"time"
+
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
@@ -66,6 +68,6 @@ type StrategyOutputInfo struct {
 	Action                 hamodel.ActionType        `json:"action"`
 	Status                 hamodel.StatusType        `json:"status"`
 	Description            string                    `json:"description"`
-	CreatedAt              int64                     `json:"created_at"`
-	UpdatedAt              int64                     `json:"updated_at"`
+	CreatedAt              time.Time                 `json:"created_at"`
+	UpdatedAt              time.Time                 `json:"updated_at"`
 }
