@@ -32,6 +32,7 @@ from django.utils import translation
 from django.utils.translation import gettext as _
 from pipeline.eri.runtime import BambooDjangoRuntime
 
+from backend.env import ENABLE_DBM_AI
 from backend.flow.engine.exceptions import PipelineError
 from backend.flow.models import FlowNode, FlowTree, StateType
 from backend.flow.plugins.components.collections.common.check_cluster_alarm_for_ai import (
@@ -122,7 +123,7 @@ class Builder(object):
         """
         self.sidecar_acts.append(
             {
-                "act_name": _("监听运行内集群产生的致命告警信息"),
+                "act_name": _("分析运行期间的集群风险"),
                 "act_component_code": CheckClusterAlarmForAIComponent.code,
                 "kwargs": {"cluster_ids": check_cluster_ids},
             },
@@ -334,34 +335,41 @@ class Builder(object):
 
     def run_pipeline_with_sidecar(
         self,
-        check_ai_monitor_cluster_list: List[int],
+        check_ai_monitor_cluster_list: List[int] = None,
         init_trans_data_class: Optional[Any] = None,
         is_drop_random_user: bool = True,
     ):
         """
         定义已注册单据值守的形态，运行pipeline
         @param 传入需要监听的集群列表
+        @param check_ai_monitor_cluster_list 传入需要AI智能体监控的集群Id列表，只有环境开启AI才能操作。默认是空
         @param init_trans_data_class: trans_data变量上下文初始化的值，默认""
         @param is_drop_random_user: 控制是否最后回收临时账号，需要跟need_random_pass_cluster_ids不为空才能操作，针对集群下架场景
         """
-
-        # 接入单据值守框架，整个任务流程会下降成子流程， 同时生成监听单据的子流程
-        # 比如： 【开始】-----【任务流程】-----【结束】
-        # 接入后：
-        #          | --[单据值守] --|
-        # 【开始】---|--【任务流程】--|---【结束】
-        if not isinstance(check_ai_monitor_cluster_list, list) or len(check_ai_monitor_cluster_list) == 0:
-            # 不符合注入单据值守子流程的条件，报错
-            raise Exception(
-                _(
-                    "不满足启动单据值守子流程的条件，请联系系统管理员： "
-                    "参数check_ai_monitor_cluster_list:{}, self.sidecar_acts:{}".format(
-                        check_ai_monitor_cluster_list, self.sidecar_acts
+        if ENABLE_DBM_AI:
+            # 需要判断系统环境是否开启AI
+            # 接入单据值守框架，整个任务流程会下降成子流程， 同时生成监听单据的子流程
+            # 比如： 【开始】-----【任务流程】-----【结束】
+            # 接入后：
+            #          | --[单据值守] --|
+            # 【开始】---|--【任务流程】--|---【结束】
+            if not isinstance(check_ai_monitor_cluster_list, list) or len(check_ai_monitor_cluster_list) == 0:
+                # 不符合注入单据值守子流程的条件，报错
+                raise Exception(
+                    _(
+                        "不满足启动单据值守子流程的条件，请联系系统管理员： "
+                        "参数check_ai_monitor_cluster_list:{}, self.sidecar_acts:{}".format(
+                            check_ai_monitor_cluster_list, self.sidecar_acts
+                        )
                     )
                 )
-            )
-        # 设置默认的值守节点
-        self.default_sidecar_act(check_cluster_ids=check_ai_monitor_cluster_list)
+            # 设置默认的值守节点
+            self.default_sidecar_act(check_cluster_ids=check_ai_monitor_cluster_list)
+
+        # 判断值守旁路节点列表是否为空
+        if len(self.sidecar_acts) == 0:
+            # 不符合注入单据值守子流程的条件，报错
+            raise Exception(_("不满足启动单据值守子流程的条件，请联系系统管理员： self.sidecar_acts:{}".format(self.sidecar_acts)))
 
         # 判断是否回收临时账号的流程逻辑
         if self.need_random_pass_cluster_ids and is_drop_random_user:
@@ -376,6 +384,8 @@ class Builder(object):
         pipeline = Builder(root_id=self.root_id, data=self.data)
         pipeline.add_parallel_sub_pipeline(sub_flow_list=[ai_monitor_sub_process, sub_process])
         pipeline.run_pipeline(init_trans_data_class=init_trans_data_class)
+
+        return True
 
     def run_pipeline(
         self,

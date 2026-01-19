@@ -62,3 +62,35 @@ class MysqlSlowSqlTunerCommand(CommandHandler):
         db集群 cluster_domain: {{cluster_domain}}
         db 名 db_name: {{db_name}} (如果有)
         """
+
+
+@command
+class CheckMysqlClusterCommand(CommandHandler):
+    name = _("查询单据运行期间这批MySQL集群的是否存在风险性")
+    command = "check_mysql_cluster_operating_status"
+    agent_code = DBMAgentCode.MYSQL_TASK_GUARDIAN
+
+    def get_template(self) -> str:
+        return """
+        查询单据运行期间这批MySQL集群的是否存在风险性:
+        业务ID：{{ bk_biz_id }}
+        集群主域名列表：{{ cluster_domains }}
+        查询起始时间点：{{ start_time }}
+        查询截止时间点：{{ end_time }}
+        """
+
+
+@command
+class CheckSQLServerClusterCommand(CommandHandler):
+    name = _("查询单据运行期间这批SQLServer集群的是否存在风险性")
+    command = "check_sqlserver_cluster_operating_status"
+    agent_code = DBMAgentCode.SQLSERVER_TASK_GUARDIAN
+
+    def get_template(self) -> str:
+        return """
+        查询单据运行期间这批SQLServer集群的是否存在风险性:
+        业务ID：{{ bk_biz_id }}
+        集群主域名列表：{{ cluster_domains }}
+        查询起始时间点：{{ start_time }}
+        查询截止时间点：{{ end_time }}
+        """
