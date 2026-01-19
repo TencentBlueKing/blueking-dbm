@@ -219,7 +219,7 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         request_slz=SubmitBillTdbctlUpgradeInputSerializer,
         response_slz=SubmitBillOutputSerializer,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
-        mcp=[DBMAMcpTools.MYSQL_BILL],
+        mcp=[DBMMcpTools.MYSQL_BILL],
         name_prefix="mysql_bill",
     )
     def submit_bill_tdbctl_upgrade(self, request, *args, **kwargs):
