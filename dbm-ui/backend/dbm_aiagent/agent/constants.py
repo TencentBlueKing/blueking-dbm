@@ -18,3 +18,6 @@ class DBMAgentCode(StrStructuredEnum):
     LOG_ANALYSIS = EnumField("ai-loganalysis", _("日志分析智能体"))
     MYSQL_SLOW_SQL_TUNER = EnumField("ai-sql-tune", _("MySQL 慢查询调优智能体"))
     MYSQL_SLOW_LOGS_QUERY = EnumField("ai-mysql-slowlog", _("MySQL慢日志分析智能体"))
+    TASK_GUARDIAN = EnumField("ai-task-guardian", _("单据值守智能体"))
+    MYSQL_TASK_GUARDIAN = EnumField("ai-mysql-taskgd", _("MySQL单据值守智能体"))
+    SQLSERVER_TASK_GUARDIAN = EnumField("ai-sqlsvr-tgd", _("SQLServer单据值守智能体"))

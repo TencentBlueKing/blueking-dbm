@@ -287,7 +287,11 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
             )
 
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        pipeline.run_pipeline(init_trans_data_class=SystemInfoContext())
+        # pipeline.run_pipeline(init_trans_data_class=SystemInfoContext())
+        pipeline.run_pipeline_with_sidecar(
+            check_ai_monitor_cluster_list=[int(info["cluster_id"]) for info in self.data["infos"]],
+            init_trans_data_class=SystemInfoContext(),
+        )
 
     def revoke_flow(self):
         """
