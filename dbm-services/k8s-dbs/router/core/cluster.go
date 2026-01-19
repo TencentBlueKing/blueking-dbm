@@ -25,7 +25,6 @@ import (
 	metadbaccess "k8s-dbs/metadata/dbaccess"
 	metaprovider "k8s-dbs/metadata/provider"
 	routerutil "k8s-dbs/router/util"
-	"log/slog"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -46,20 +45,6 @@ func BuildClusterRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 		clusterGroup.POST("/status", clusterController.GetClusterStatus)
 		clusterGroup.POST("/event", clusterController.GetClusterEvent)
 
-	}
-
-	opsRequestGroup := baseRouter.Group("/opsRequest")
-	{
-		opsRequestGroup.POST("/vscaling", clusterController.VerticalScaling)
-		opsRequestGroup.POST("/hscaling", clusterController.HorizontalScaling)
-		opsRequestGroup.POST("/start", clusterController.StartCluster)
-		opsRequestGroup.POST("/stop", clusterController.StopCluster)
-		opsRequestGroup.POST("/restart", clusterController.RestartCluster)
-		opsRequestGroup.POST("/upgrade", clusterController.UpgradeCluster)
-		opsRequestGroup.POST("/vexpansion", clusterController.VolumeExpansion)
-		opsRequestGroup.POST("/expose", clusterController.ExposeCluster)
-		opsRequestGroup.POST("/describe", clusterController.DescribeOpsRequest)
-		opsRequestGroup.POST("/status", clusterController.GetOpsRequestStatus)
 	}
 }
 
@@ -91,37 +76,4 @@ func initClusterController(db *gorm.DB) *controller.ClusterController {
 
 func init() {
 	routerutil.RegisterAPIRouterBuilder(BuildClusterRouter)
-}
-
-// BuildOpsRequestProvider 构建 OpsRequestProvider
-func BuildOpsRequestProvider(
-	db *gorm.DB,
-	clusterProvider *coreprovider.ClusterProvider,
-) *coreprovider.OpsRequestProvider {
-	coreAPIProviders, err := routerutil.BuildCoreAPIProviders(db)
-	if err != nil {
-		slog.Error("build common providers error", "error", err)
-		panic(err)
-	}
-
-	opsRequestMetaDbAccess := metadbaccess.GetOpsRequestDbAccess(db)
-	opsRequestMetaProvider := metaprovider.GetK8sCrdOpsRequestProvider(opsRequestMetaDbAccess)
-	opsRequestProviderBuilder := coreprovider.OpsRequestProviderBuilder{}
-
-	opsReqProvider, err := coreprovider.NewOpsReqProvider(
-		opsRequestProviderBuilder.WithOpsRequestMeta(opsRequestMetaProvider),
-		opsRequestProviderBuilder.WithClusterMeta(coreAPIProviders.ClusterMetaProvider),
-		opsRequestProviderBuilder.WithClusterConfigMeta(coreAPIProviders.ClusterConfigProvider),
-		opsRequestProviderBuilder.WithReqRecordMeta(coreAPIProviders.RequestRecordProvider),
-		opsRequestProviderBuilder.WithReleaseMeta(coreAPIProviders.ClusterReleaseProvider),
-		opsRequestProviderBuilder.WithClusterProvider(clusterProvider),
-		opsRequestProviderBuilder.WithDbmAPIService(coreAPIProviders.DbmAPIService),
-	)
-
-	if err != nil {
-		slog.Error("build ops request provider error", "error", err)
-		panic(err)
-	}
-
-	return opsReqProvider
 }
