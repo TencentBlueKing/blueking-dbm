@@ -29,7 +29,9 @@ import (
 	"context"
 	"fmt"
 
+	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
@@ -41,6 +43,8 @@ var (
 
 // Request contains all data needed for database switching operation
 type Request struct {
+	ActionScope   hamodel.ActionScopeType
+	DbType        haprobe.DbType
 	MySqlInstData []*MysqlInstanceMetadata
 }
 
@@ -49,10 +53,44 @@ func (req *Request) AddDbInstMetadata(metadata *MysqlInstanceMetadata) {
 	req.MySqlInstData = append(req.MySqlInstData, metadata)
 }
 
+// HasDbInstMetadata checks if there is any database instance data
+func (req *Request) HasDbInstMetadata() bool {
+	return len(req.MySqlInstData) > 0
+}
+
+// GetDbInstMetadata gets all database instance data
+func (req *Request) GetDbInstMetadata() []*dbm.DbInstMetadata {
+	if req.MySqlInstData == nil {
+		return nil
+	}
+
+	datas := []*dbm.DbInstMetadata{}
+	for _, inst := range req.MySqlInstData {
+		datas = append(datas, (*dbm.DbInstMetadata)(inst))
+	}
+
+	return datas
+}
+
 // Response contains the result of switching operation
 type Response struct {
 	MySqlFailureInsts map[MetadataKey]*MysqlInstanceMetadata
 	Err               error
+}
+
+// GetFailureInsts gets the failed instances
+func (rsp *Response) GetFailureInsts() map[MetadataKey]*dbm.DbInstMetadata {
+	if rsp.MySqlFailureInsts == nil {
+		return nil
+	}
+
+	insts := map[MetadataKey]*dbm.DbInstMetadata{}
+
+	for k, v := range rsp.MySqlFailureInsts {
+		insts[k] = (*dbm.DbInstMetadata)(v)
+	}
+
+	return insts
 }
 
 // Switcher defines the interface for database switching implementations

@@ -274,8 +274,9 @@ func (w *Workflow) databaseLivenessDoubleCheck(missedInsts []detector.DoubleChec
 	resps := remoteDetector.WaitResponses()
 
 	// Post the alarm event by the bk-monitor.
-	// key: bkCloudId, value: ip
-	cloudIdIps := map[int][]string{}
+	// key: bkCloudId, value: map[dbType][]ip
+	cloudIdIps := map[int]map[haprobe.DbType][]string{}
+
 	for idx, resp := range resps {
 		logger.Debug("idx: %d host: %s:%d resp: %p", idx, resp.Meta.IP, resp.Meta.Port, resp)
 		err := w.processDetectorResponse(resp)
@@ -283,37 +284,50 @@ func (w *Workflow) databaseLivenessDoubleCheck(missedInsts []detector.DoubleChec
 			continue
 		}
 
-		if err == ErrDetectorFailure {
-			cloudIdIps[resp.Meta.BkCloudID] = append(cloudIdIps[resp.Meta.BkCloudID], resp.Meta.IP)
+		if err != ErrDetectorFailure {
+			instId := key(resp.Meta.BkCloudID, resp.Meta.IP, resp.Meta.Port)
+			logger.Warn("failed to process detector response, inst: %s, errmsg: %s", instId, err)
 			continue
 		}
 
-		instId := key(resp.Meta.BkCloudID, resp.Meta.IP, resp.Meta.Port)
-		logger.Warn("failed to process detector response, inst: %s, errmsg: %s", instId, err)
+		if _, ok := cloudIdIps[resp.Meta.BkCloudID]; ok {
+			if cloudIdIps[resp.Meta.BkCloudID][resp.DbType] == nil {
+				cloudIdIps[resp.Meta.BkCloudID][resp.DbType] = []string{}
+			}
+
+			cloudIdIps[resp.Meta.BkCloudID][resp.DbType] = append(cloudIdIps[resp.Meta.BkCloudID][resp.DbType], resp.Meta.IP)
+			continue
+		}
+
+		cloudIdIps[resp.Meta.BkCloudID] = map[haprobe.DbType][]string{
+			resp.DbType: {resp.Meta.IP},
+		}
 	}
 
 	if len(cloudIdIps) == 0 {
 		return
 	}
 
-	for cloudId, ips := range cloudIdIps {
-		req := w.createSwitcherRequestWithIPs(cloudId, ips)
-		if req == nil {
-			continue
-		}
+	for cloudId, val := range cloudIdIps {
+		for dbType, ips := range val {
+			logger.Debug("cloudId: %d, dbType: %s, ips: %v", cloudId, dbType, ips)
+			req := w.createSwitcherRequestWithIPs(cloudId, dbType, ips)
+			if req == nil {
+				continue
+			}
 
-		if len(req.MySqlInstData) == 0 {
-			logger.Debug("there is no database instance that needs to be switched")
-			continue
-		}
+			if !req.HasDbInstMetadata() {
+				logger.Warn("no db inst metadata, dbType: %s, cloudId: %d, ips: %v", dbType, cloudId, ips)
+				continue
+			}
 
-		// TODO: Now there is only MySQL(default).
-		logger.Debug("trigger switching, dbType: %s, cloudId: %d, ips: %v", haprobe.DbTypeMySql, cloudId, ips)
-		w.triggerSwitching(haprobe.DbTypeMySql, req)
+			logger.Debug("trigger switching, dbType: %s, cloudId: %d, ips: %v", dbType, cloudId, ips)
+			w.triggerSwitching(dbType, req)
+		}
 	}
 }
 
-func (w *Workflow) createSwitcherRequestWithIPs(bkCloudId int, ips []string) *switcher.Request {
+func (w *Workflow) createSwitcherRequestWithIPs(bkCloudId int, dbType haprobe.DbType, ips []string) *switcher.Request {
 	metadatas, err := w.dbmSync.cli.QueryMetadataFromDbm(context.Background(), bkCloudId, ips)
 
 	if err != nil {
@@ -325,7 +339,7 @@ func (w *Workflow) createSwitcherRequestWithIPs(bkCloudId int, ips []string) *sw
 		return nil
 	}
 
-	req := &switcher.Request{}
+	req := &switcher.Request{DbType: dbType}
 	for _, meta := range metadatas {
 		if meta.Status == dbm.Unavailable {
 			logger.Info("the database instance is unavailable, skipping, inst: %s", key(meta.BkCloudID, meta.IP, meta.Port))
@@ -356,7 +370,7 @@ func (w *Workflow) triggerSwitching(dbType haprobe.DbType, req *switcher.Request
 	}
 
 	// post the success alarm
-	for _, inst := range req.MySqlInstData {
+	for _, inst := range req.GetDbInstMetadata() {
 		instKey := switcher.GenerateMetadataKey(inst.BkCloudID, inst.IP, inst.Port)
 
 		if _, exists := rsp.MySqlFailureInsts[instKey]; exists {
@@ -382,7 +396,7 @@ func (w *Workflow) triggerSwitching(dbType haprobe.DbType, req *switcher.Request
 	}
 
 	// post the failure alarm
-	for instKey, inst := range rsp.MySqlFailureInsts {
+	for instKey, inst := range rsp.GetFailureInsts() {
 		monitorEvent := &monitor.EventData{
 			Name:      string(haprobe.DbEventNameMysqlSwitchFailureV1),
 			Target:    string(instKey),
