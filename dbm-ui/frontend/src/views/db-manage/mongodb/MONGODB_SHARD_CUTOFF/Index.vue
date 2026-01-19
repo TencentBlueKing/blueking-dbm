@@ -80,8 +80,8 @@
                 {{ t('含n个同机关联集群', { n: item.host.related_clusters.length }) }}
                 <p
                   v-for="cluster in item.host.related_clusters"
-                  :key="cluster.id">
-                  -- {{ cluster.master_domain }}
+                  :key="cluster?.id">
+                  -- {{ cluster?.master_domain }}
                 </p>
               </div>
             </div>
