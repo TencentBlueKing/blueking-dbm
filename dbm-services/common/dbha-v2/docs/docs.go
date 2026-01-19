@@ -27,11 +27,11 @@ const docTemplate = `{
                 "tags": [
                     "openapi.strategy"
                 ],
-                "summary": "策略创建",
+                "summary": "strategy create",
                 "operationId": "openapi_strategy_create",
                 "parameters": [
                     {
-                        "description": "策略创建参数",
+                        "description": "strategy create request",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -58,25 +58,19 @@ const docTemplate = `{
                 "tags": [
                     "openapi.strategy"
                 ],
-                "summary": "获取策略详情",
+                "summary": "strategy get",
                 "operationId": "openapi_strategy_get",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "独立部署时 token 必须要传",
-                        "name": "X-BK-API-TOKEN",
-                        "in": "header"
-                    },
-                    {
                         "type": "integer",
-                        "description": "策略ID",
+                        "description": "strategy id",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
                         "type": "integer",
-                        "description": "业务ID",
+                        "description": "bk_biz_id",
                         "name": "bk_biz_id",
                         "in": "query",
                         "required": true
@@ -120,19 +114,26 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "priority": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 0
                 },
                 "scope": {
                     "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_hamodel.ActionScopeType"
                 },
                 "trigger_count": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 1
                 },
                 "trigger_event_name": {
                     "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_haprobe.DbEventName"
                 },
                 "trigger_event_name_reason": {
-                    "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_haprobe.DbEventNameReason"
+                    "minimum": 0,
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_haprobe.DbEventNameReason"
+                        }
+                    ]
                 }
             }
         },
@@ -146,7 +147,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "created_at": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "description": {
                     "type": "string"
@@ -176,7 +177,7 @@ const docTemplate = `{
                     "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_haprobe.DbEventNameReason"
                 },
                 "updated_at": {
-                    "type": "integer"
+                    "type": "string"
                 }
             }
         },

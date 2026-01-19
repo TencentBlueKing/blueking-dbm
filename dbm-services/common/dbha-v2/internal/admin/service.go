@@ -309,8 +309,8 @@ func (s *Service) createWebServer() error {
 	serverConfig := &hanet.GinServerConfig{
 		Host:         config.Cfg.Web.Host,
 		Port:         config.Cfg.Web.Port,
-		ReadTimeout:  config.Cfg.Web.ReadTimeout * time.Second,
-		WriteTimeout: config.Cfg.Web.WriteTimeout * time.Second,
+		ReadTimeout:  config.Cfg.Web.ReadTimeout,
+		WriteTimeout: config.Cfg.Web.WriteTimeout,
 	}
 
 	server := hanet.NewGinHTTPServer(serverConfig)

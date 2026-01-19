@@ -93,9 +93,9 @@ func (h *StrategyHandler) Create(c *gin.Context) {
 //	@Accept		json
 //	@Produce	json
 //	@Tags		openapi.strategy
-//	@Param		id				path		int		true	"strategy id"
-//	@Param		bk_biz_id		query		int		true	"bk_biz_id"
-//	@Success	200				{object}	serializer.StrategyOutputInfo
+//	@Param		id			path		int	true	"strategy id"
+//	@Param		bk_biz_id	query		int	true	"bk_biz_id"
+//	@Success	200			{object}	serializer.StrategyOutputInfo
 //	@Router		/api/admin/strategies/{id}/ [get]
 func (h *StrategyHandler) Get(c *gin.Context) {
 	var pathParam serializer.StrategyPathParam
