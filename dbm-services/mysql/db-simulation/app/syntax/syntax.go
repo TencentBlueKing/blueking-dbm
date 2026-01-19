@@ -196,48 +196,61 @@ func (tf *TmysqlParseFile) CheckSystemDBOperation(version string) error {
 				return err
 			}
 			defer f.Close()
-
 			reader := bufio.NewReader(f)
-			// 只读取第一行
-			line, isPrefix, errx := reader.ReadLine()
-			if errx != nil {
-				if errx == io.EOF {
-					continue
-				}
-				logger.Error("read Line Error %s", errx.Error())
-				return errx
-			}
-			var buf []byte
-			buf = append(buf, line...)
-			for isPrefix {
-				line, isPrefix, errx = reader.ReadLine()
+			for {
+				line, isPrefix, errx := reader.ReadLine()
 				if errx != nil {
+					if errx == io.EOF {
+						break
+					}
 					logger.Error("read Line Error %s", errx.Error())
 					return errx
 				}
+				var buf []byte
 				buf = append(buf, line...)
-			}
-			bs := buf
+				for isPrefix {
+					line, isPrefix, errx = reader.ReadLine()
+					if errx != nil {
+						logger.Error("read Line Error %s", errx.Error())
+						return errx
+					}
+					buf = append(buf, line...)
+				}
+				bs := buf
 
-			if len(bs) == 0 {
-				logger.Info("blank line skip")
-				continue
-			}
-
-			var res ParseLineQueryBase
-			if err = json.Unmarshal(bs, &res); err != nil {
-				logger.Error("json unmarshal line:%s failed %s", string(bs), err.Error())
-				return err
-			}
-
-			// 检查命令类型
-			if cmutil.ElementNotInArry(res.Command, []string{SQLTypeCreateDb, SQLTypeUseDb}) &&
-				(res.DbName == "" || slices.Contains(sysdbs, res.DbName)) {
-				tf.result[sqlFile].BanWarnings = append(tf.result[sqlFile].BanWarnings, RiskInfo{
-					Line:     int64(res.QueryId),
-					Sqltext:  res.QueryString,
-					WarnInfo: fmt.Sprintf("不允许直接在系统库%v,操作", executeObject.DbNames),
-				})
+				if len(bs) == 0 {
+					logger.Info("blank line skip")
+					continue
+				}
+				var res ParseLineQueryBase
+				if err = json.Unmarshal(bs, &res); err != nil {
+					logger.Error("json unmarshal line:%s failed %s", string(bs), err.Error())
+					return err
+				}
+				if res.Command == SQLTypeSetOption {
+					continue
+				}
+				if res.Command == SQLTypeUseDb && cmutil.ElementNotInArry(res.DbName, sysdbs) {
+					break
+				}
+				if res.Command == "" && res.DbName == "" && res.QueryId == 0 {
+					//  处理最后一行的数据
+					// {
+					// 	"min_mysql_version": null,
+					// 	"max_mysql_version": null
+					//   }
+					break
+				}
+				// 检查命令类型
+				logger.Info("bs:%s,res.Command:%s,res.DbName:%s", string(bs), res.Command, res.DbName)
+				if cmutil.ElementNotInArry(res.Command, []string{SQLTypeCreateDb, SQLTypeUseDb}) &&
+					(res.DbName == "" || slices.Contains(sysdbs, res.DbName)) {
+					tf.result[sqlFile].BanWarnings = append(tf.result[sqlFile].BanWarnings, RiskInfo{
+						Line:     int64(res.QueryId),
+						Sqltext:  res.QueryString,
+						WarnInfo: fmt.Sprintf("不允许直接在系统库%v,操作", executeObject.DbNames),
+					})
+				}
 			}
 		}
 	}

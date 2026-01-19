@@ -59,6 +59,8 @@ const (
 	SQLTypeDropTable = "drop_table"
 	// SQLTypeCreateIndex is create table sql
 	SQLTypeCreateIndex = "create_index"
+	// SQLTypeSetOption is set option sql
+	SQLTypeSetOption = "set_option"
 )
 
 // NotAllowedDefaultValColMap 不允许默认值的字段
