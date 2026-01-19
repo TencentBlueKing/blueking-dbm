@@ -9,6 +9,7 @@ export * from './excelAuthorize';
 export * from './execScriptApply';
 export * from './fullBackup';
 export * from './instanceDeinstall';
+export * from './instanceFixStatus';
 export * from './instanceReload';
 export * from './pitrRestore';
 export * from './reduceMongos';
