@@ -132,7 +132,7 @@ class ClusterDisableTodoFilter(filters.FilterSet):
         return queryset
 
     def filter_disable_person(self, queryset, name, value):
-        return queryset.filter(ticket__creator=value)
+        return queryset.filter(ticket__creator__in=value.split(","))
 
     def filter_immute_domain(self, queryset, name, value):
         if value:
@@ -146,7 +146,7 @@ class ClusterDisableTodoFilter(filters.FilterSet):
 
     def filter_cluster_id(self, queryset, name, value):
         if value:
-            return queryset.filter(context__cluster_id=value)
+            return queryset.filter(context__cluster_id=int(value))
         return queryset
 
     def filter_bk_biz_id(self, queryset, name, value):
