@@ -15,7 +15,7 @@ from rest_framework.response import Response
 
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
-from backend.dbm_aiagent.mcp_tools.mysql.impl.mysql_slowlog import query_slow_log_detail, query_slow_logs
+from backend.dbm_aiagent.mcp_tools.mysql.impl.mysql_slowlog import query_slow_log_detail, query_slow_logs_by_metric
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_slowlog import (
     MysqlOneSlowlogInputSerializer,
     MysqlSlowlogInputSerializer,
@@ -53,7 +53,7 @@ class MySQLSlowlogMcpToolsViewSet(McpToolsViewSet):
         end_time = self.get_param("end_time")
 
         return Response(
-            query_slow_logs(
+            query_slow_logs_by_metric(
                 cluster_type=cluster_type,
                 cluster_domain=cluster_domain,
                 instance_role=instance_role,
