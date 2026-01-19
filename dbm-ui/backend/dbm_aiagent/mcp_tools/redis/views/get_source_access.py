@@ -37,10 +37,10 @@ class GetRedisSourceAccessMcpToolsViewSet(McpToolsViewSet):
         request_slz=GetRedisSourceAccessInputSerializer,
         response_slz=GetRedisSourceAccessOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.DBM],
-        name_prefix="dbm_mcp",
+        mcp=[DBMMcpTools.REDIS_TOOL],
+        name_prefix="redis_tool",
     )
-    def get_cluster_source_access(self, request, *args, **kwargs):
+    def get_redis_source_access(self, request, *args, **kwargs):
         bk_biz_id = self.get_param("bk_biz_id")
         cluster_domain = self.get_param("cluster_domain")
 
