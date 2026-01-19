@@ -18,8 +18,8 @@ apm:
 web:
   host: 127.0.0.1
   port: 8089
-  readTimeout: 5
-  writeTimeout: 5
+  readTimeout: 5s
+  writeTimeout: 5s
 
 dbmApi:
   - name: metadata
