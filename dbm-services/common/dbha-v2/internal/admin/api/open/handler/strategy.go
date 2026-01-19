@@ -26,8 +26,8 @@ package handler
 
 import (
 	"dbm-services/common/dbha-v2/internal/admin/api/open/serializer"
+	"dbm-services/common/dbha-v2/internal/admin/ginx"
 	"dbm-services/common/dbha-v2/internal/admin/strategy"
-	"dbm-services/common/dbha-v2/pkg/ginx"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 
 	"github.com/gin-gonic/gin"
