@@ -11,11 +11,17 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy
 from rest_framework.response import Response
 
 from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Machine, Spec
+from backend.dbm_aiagent.mcp_tools.common.impl.recommend_host_spec import recommend_specs_for_hosts
+from backend.dbm_aiagent.mcp_tools.common.serializers.recommend_spec import (
+    RecommendSpecInputSerializer,
+    RecommendSpecOutputSerializer,
+)
 from backend.dbm_aiagent.mcp_tools.common.serializers.update_machine_spec import (
     UpdateMachineSpecInputSerializer,
     UpdateMachineSpecOutputSerializer,
@@ -36,6 +42,31 @@ class DBMetaUpdateMcpToolsViewSet(McpToolsViewSet):
     """Meta Update MCP ViewSet for database administration tasks."""
 
     default_permission_class = [DBManagePermission()]
+
+    @staticmethod
+    def _is_empty_spec_config(spec_config):
+        """
+        判断规格配置是否为空
+
+        空规格定义:
+        - None: 规格未设置
+        - {}: 空字典
+        - {"id": 0}: id 为 0 表示无效规格
+
+        Args:
+            spec_config: 规格配置字典
+
+        Returns:
+            bool: True 表示空规格，False 表示有效规格
+        """
+        if not spec_config:
+            return True
+        if spec_config == {}:
+            return True
+        # 判断 {"id": 0} 的情况
+        if isinstance(spec_config, dict) and spec_config.get("id") == 0:
+            return True
+        return False
 
     def _validate_machines_consistency(self, machines, failed_list):
         """校验所有机器的 cluster_type 和 machine_type 一致"""
@@ -252,7 +283,7 @@ class DBMetaUpdateMcpToolsViewSet(McpToolsViewSet):
 
         for machine in machines:
             # 判断是否为空规格
-            is_empty = not machine.spec_config or machine.spec_config == {}
+            is_empty = self._is_empty_spec_config(machine.spec_config)
 
             if not is_empty and not force:
                 failed_list.append(
@@ -296,3 +327,45 @@ class DBMetaUpdateMcpToolsViewSet(McpToolsViewSet):
             logger.info(_("成功更新机器 {} 的规格为 {}").format(machine.ip, spec_id))
 
         return Response({"success_count": success_count, "failed_list": failed_list})
+
+    @mcp_tools_api_decorator(
+        description=str(
+            gettext_lazy(
+                "根据主机信息推荐合适的规格。\n\n"
+                "**功能说明 / Function:**\n"
+                "- 根据主机的集群类型、机器类型和机型推荐匹配的规格\n"
+                "- Recommend specs based on host's cluster type, machine type and device class\n\n"
+                "**推荐规则 / Recommendation Rules:**\n"
+                "1. spec_cluster_type 必须匹配主机的 cluster_type\n"
+                "2. spec_machine_type 必须匹配主机的 machine_type\n"
+                "3. 主机的机型（bk_svr_device_cls_name）必须在规格的 device_class 列表中\n"
+                "4. 规格的 device_class 不能为空列表\n"
+                "5. 规格名称（spec_name）模糊匹配关键字（默认：标准、推荐、standard）\n\n"
+                "**输出格式 / Output Format:**\n"
+                "- 按 spec_id 聚合，相同规格的主机 IP 合并到 matched_hosts 列表中\n"
+                "- Grouped by spec_id, host IPs with same spec are merged into matched_hosts list"
+            )
+        ),
+        request_slz=RecommendSpecInputSerializer,
+        response_slz=RecommendSpecOutputSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.DBMETA_UPDATE],
+        name_prefix="dba_tool",
+    )
+    def recommend_host_spec(self, request, *args, **kwargs):
+        """
+        根据主机信息推荐合适的规格
+        Recommend suitable specs based on host information
+        """
+        ip_list = self.get_param("ip_list")
+        bk_cloud_id = self.get_param("bk_cloud_id", 0)
+        spec_name_keywords = self.get_param("spec_name_keywords", ["标准", "推荐", "standard"])
+
+        # 调用实现层函数
+        recommendations, failed_hosts = recommend_specs_for_hosts(
+            ip_list=ip_list,
+            bk_cloud_id=bk_cloud_id,
+            spec_name_keywords=spec_name_keywords,
+        )
+
+        return Response({"recommendations": recommendations, "failed_hosts": failed_hosts})
