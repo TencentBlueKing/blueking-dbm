@@ -124,6 +124,12 @@
           name: t('清档'),
           parentId: 'mongo_data',
         },
+        {
+          dbConsoleValue: 'mongodb.toolbox.instanceFixStatus',
+          id: TicketTypes.MONGODB_INSTANCE_FIX_STATUS,
+          name: t('Mongos 状态修复'),
+          parentId: 'mongo_data',
+        },
       ],
       icon: 'db-icon-data',
       id: 'mongo_data',
