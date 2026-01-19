@@ -39,7 +39,7 @@ SLOW_LOG_QUERY_PARAM = {
                 "slow_query.db_name",
                 "slow_query.table_name",
                 "slow_query.query_digest_md5",
-                # "slow_query.query_digest_text"
+                "slow_query.query_digest_text"
                 # sql_text
             ],
         }
@@ -80,7 +80,7 @@ def query_slow_logs_by_metric(
 
     slow_count_param = copy.deepcopy(SLOW_LOG_QUERY_PARAM)
     slow_count_param["reference_name"] = "a"
-    slow_count_param["field_name"] = "query_time"
+    slow_count_param["field_name"] = "query_digest_md5"
     slow_count_param["function"][0]["method"] = "count"
     slow_count_param["conditions"]["field_list"][0]["value"] = [cluster_domain]
     slow_count_param["table_id"] = SLOW_LOG_QUERY_PARAM["table_id"] % config.MYSQL_SLOW_LOG_INDEX_SET_ID
@@ -144,23 +144,22 @@ def query_slow_logs(
         )
         # {"result": true, "data": {"series": []}, "code": 0, "message": "", "request_id": null}
         # response_result = {'result': True, 'data': {'series': []}, 'code': 0, 'message': ''}
-        # print("xxxxx", json.dumps(query_params))
         slog_logs = []
         for row in resp["series"]:
             item = {}
             for i, value in enumerate(row["group_values"]):
-                dim = row["group_keys"][i].replace("__ext.", "").replace("slow_query.", "")
-                if dim in ["cluster_domain", "instance_role"]:
+                log_label = row["group_keys"][i].replace("__ext.", "").replace("slow_query.", "")
+                if log_label in ["cluster_domain", "instance_role"]:
                     # 不重复了
                     continue
-                if dim == "db_name":
+                if log_label == "db_name":
                     if item.get("db_name", None) is None or value != "":
                         # db_name 来自 db_name 和 slow_query.db_name
-                        item[dim] = value
+                        item[log_label] = value
                     continue
-                item[dim] = value
+                item[log_label] = value
             # item[metric_param["field_name"]] = row["values"][-1]
-            item["values"] = row["values"]
+            item["values"] = row["values"][-1]  # row["values"]
             slog_logs.append(item)
     except Exception as e:
         raise DBMMcpBaseException(msg=f"query slow logs failed: {e}")
@@ -197,8 +196,9 @@ def query_slow_log_detail(
         source_log = hit["_source"]
         if source_log.get("slow_query", None) or not source_log.get("__parse_failure", True):
             one_slow_log["query_digest_md5"] = source_log["slow_query"].pop("query_digest_md5")
-            one_slow_log["query_digest_text"] = source_log["slow_query"].pop("query_digest_text")
-            one_slow_log["sql_text"] = source_log["slow_query"].pop("query_string")
+            # 这里是为了优化 markdown 的展示，去除反引号
+            one_slow_log["query_digest_text"] = source_log["slow_query"].pop("query_digest_text").replace("`", "")
+            one_slow_log["sql_text"] = source_log["slow_query"].pop("query_string").replace("`", "")
             if source_log.get("db_name", ""):
                 one_slow_log["db_name"] = source_log["db_name"]
             else:

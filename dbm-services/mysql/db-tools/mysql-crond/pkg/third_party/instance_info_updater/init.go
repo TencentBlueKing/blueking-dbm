@@ -1,16 +1,17 @@
 package instance_info_updater
 
 import (
-	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
-	"dbm-services/common/reverseapi/define"
-	"dbm-services/common/reverseapi/pkg/core"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
-	"dbm-services/mysql/db-tools/mysql-crond/pkg/config"
 	"log/slog"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"time"
+
+	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
+	"dbm-services/common/reverseapi/define"
+	"dbm-services/common/reverseapi/pkg/core"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/mysql/db-tools/mysql-crond/pkg/config"
 
 	"github.com/gofrs/flock"
 	"github.com/pkg/errors"
@@ -90,12 +91,10 @@ func DoUpdate(bkCloudId int64) error {
 	defer func() {
 		_ = f.Close()
 	}()
-	slog.Info("update instance info recreate file success")
 
 	if _, err := f.WriteString(string(info) + "\n"); err != nil {
 		slog.Error("write instance info failed", slog.String("err", err.Error()))
 		return errors.Wrap(err, "write instance info failed")
 	}
-	slog.Info("update instance info recreate file success")
 	return nil
 }

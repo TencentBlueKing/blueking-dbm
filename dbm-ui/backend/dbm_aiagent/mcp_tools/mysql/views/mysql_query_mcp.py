@@ -80,12 +80,12 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
         cluster_type = self.get_param("cluster_type")
         cluster_domain = self.get_param("cluster_domain")
-        dbname = self.get_param("dbname")
-        tablename = self.get_param("tablename")
+        db_name = self.get_param("db_name")
+        table_name = self.get_param("table_name")
 
         return Response(
             show_create_table(
-                cluster_type=cluster_type, cluster_domain=cluster_domain, dbname=dbname, tablename=tablename
+                cluster_type=cluster_type, cluster_domain=cluster_domain, dbname=db_name, tablename=table_name
             )
         )
 
@@ -101,11 +101,11 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
         cluster_type = self.get_param("cluster_type")
         cluster_domain = self.get_param("cluster_domain")
-        dbname = self.get_param("dbname")
+        db_name = self.get_param("db_name")
         query_sql = self.get_param("query_sql")
 
         return Response(
-            explain_sql(cluster_type=cluster_type, cluster_domain=cluster_domain, dbname=dbname, query_sql=query_sql)
+            explain_sql(cluster_type=cluster_type, cluster_domain=cluster_domain, dbname=db_name, query_sql=query_sql)
         )
 
     @mcp_tools_api_decorator(

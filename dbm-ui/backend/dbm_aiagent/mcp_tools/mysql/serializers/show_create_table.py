@@ -18,14 +18,14 @@ class ShowCreateTableInputSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
     cluster_type = serializers.ChoiceField(choices=mysql_cluster_type_choices, help_text=_("集群类型"))
-    dbname = serializers.CharField(help_text=_("库名"))
-    tablename = serializers.CharField(help_text=_("表名"))
+    db_name = serializers.CharField(help_text=_("库名，提供库名可以更准确的找到 table"))
+    table_name = serializers.CharField(help_text=_("表名"))
 
 
 class ShowCreateTableOutputSerializer(serializers.Serializer):
     # bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
     # cluster_domain = serializers.CharField(help_text=_("集群域名"))
     # cluster_type = serializers.CharField(help_text=_("集群类型"))
-    # dbname = serializers.CharField(help_text=_("库名"))
-    # tablename = serializers.CharField(help_text=_("表名"))
+    # db_name = serializers.CharField(help_text=_("库名"))
+    # table_name = serializers.CharField(help_text=_("表名"))
     create_sql = serializers.CharField(help_text=_("表结构, 建表语句"))

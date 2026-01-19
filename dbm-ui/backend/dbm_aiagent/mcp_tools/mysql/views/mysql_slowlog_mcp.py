@@ -34,8 +34,10 @@ class MySQLSlowlogMcpToolsViewSet(McpToolsViewSet):
         description=str(
             _(
                 "获取 tendbsingle, tendbha, tendbcluster 集群的慢查询统计信息。返回的 slow_logs 结果里面字段解读如下：\n"
-                "slow_query.query_digest_text: 是慢日志摘要字段，也叫 digest_text 或者 fingerprint;\n"
-                "slow_query.query_digest_md5: 是慢日志摘要字段的 MD5 值，也叫 digest 或者 query_digest;\n"
+                "query_digest_text: 是慢日志摘要字段，也叫 digest_text 或者 fingerprint;\n"
+                "query_digest_md5: 是慢日志摘要字段的 MD5 值，也叫 digest 或者 query_digest;\n"
+                "metric_aggregate_type: 是慢查询的聚合统计方法，比如按查执行耗时排序(max by query_time), "
+                "按执行次数取总和排序(count by query_digest_md5)，按扫描行数总和排序(sum by rows_examined)\n"
             )
         ),
         request_slz=MysqlSlowlogInputSerializer,
