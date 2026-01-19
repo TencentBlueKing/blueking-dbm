@@ -199,6 +199,5 @@ def query_mysql_metrics(cluster_type, cluster_domain, start_time, end_time, metr
     # 查询exporter up指标
     resp = BKMonitorV3Api.unify_query(params)
 
-    # print("xxxx", json.dumps(resp))
     series = resp["series"]
     return series

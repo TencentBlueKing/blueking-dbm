@@ -18,7 +18,7 @@ class ExplainSQLInputSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
     cluster_type = serializers.ChoiceField(choices=mysql_cluster_type_choices, help_text=_("集群类型"))
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
-    dbname = serializers.CharField(help_text=_("库名"))
+    db_name = serializers.CharField(help_text=_("库名，提供库名可以更准确的找到 table"))
     query_sql = serializers.CharField(help_text=_("需要查询执行计划的 SQL 语句"))
 
 
