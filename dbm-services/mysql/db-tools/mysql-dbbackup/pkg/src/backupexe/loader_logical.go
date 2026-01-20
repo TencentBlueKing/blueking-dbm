@@ -231,7 +231,7 @@ func (l *LogicalLoader) Execute() (err error) {
 		} else {
 			logger.Log.Warn("tail can not find more detail error message from ", logfile)
 		}
-		return errors.WithMessagef(err, fmt.Sprintf("%s\n%s", errStrPrefix, errStrDetail))
+		return errors.WithMessagef(err, fmt.Sprintf("%s\n%s\n%s", errStr, errStrPrefix, errStrDetail))
 	}
 	logger.Log.Info("load backup success: ", outStr)
 	return nil

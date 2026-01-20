@@ -273,3 +273,9 @@ mysql_metric_name_choices = [
     ("threads_running", _("threads 线程数 趋势")),
     ("connections", _("连接数 趋势")),
 ]
+
+mysql_slowlog_metric_name_choices = [
+    ("query_time", _("按查询执行时间排序聚合")),
+    ("slow_count", _("按照慢查询数量排序聚合")),
+    ("rows_scan", _("按照查询扫描行数排序聚合")),
+]
