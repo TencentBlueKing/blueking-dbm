@@ -471,8 +471,11 @@ func (hdl *MysqlClusterHandler) correctBackendRole(cluster *config.MysqlCluster)
 	return nil
 }
 
-func (hdl *MysqlClusterHandler) addAllProxiesToDomain(proxyList []config.ProxyAddress, domain string, bkBizId int) error {
+func (hdl *MysqlClusterHandler) addNodesToDomain(instList []config.InstanceAddress, domain string, bkBizId int) error {
 	instInfoList, err := hdl.dbmClient.GetAllInstancesOfDomain(domain)
+	if err != nil {
+		return gerrors.Newf(gerrors.Failure, "failed to get all instances of domain %s, errmsg: %s", domain, err.Error())
+	}
 
 	isInDomain := func(ip string, port int) bool {
 		for _, inst := range instInfoList {
@@ -483,19 +486,36 @@ func (hdl *MysqlClusterHandler) addAllProxiesToDomain(proxyList []config.ProxyAd
 		return false
 	}
 
-	if err != nil {
-		return gerrors.Newf(gerrors.Failure, "failed to get all instances of domain %s, errmsg: %s", domain, err.Error())
-	}
-	for _, proxy := range proxyList {
-		proxyHost := proxy.Host
-		proxyPort := proxy.Port
-		if isInDomain(proxyHost, proxyPort) {
+	for _, inst := range instList {
+		instHost := inst.Host
+		instPort := inst.Port
+		if isInDomain(instHost, instPort) {
 			continue
 		}
-		if err := hdl.dbmClient.AddInstanceToDomain(proxyHost, proxyPort, domain, bkBizId); err != nil {
+		if err := hdl.dbmClient.AddInstanceToDomain(instHost, instPort, domain, bkBizId); err != nil {
 			return gerrors.Newf(gerrors.Failure, "failed to add instance(%s:%d) to domain %s, errmsg: %s",
-				proxyHost, proxyPort, domain, err.Error())
+				instHost, instPort, domain, err.Error())
 		}
+	}
+
+	return nil
+}
+
+func (hdl *MysqlClusterHandler) addAllNodesToDomain(cluster *config.MysqlCluster) error {
+	poxyList := []config.InstanceAddress{}
+	for _, proxy := range cluster.Proxy {
+		poxyList = append(poxyList, config.InstanceAddress{
+			Host: proxy.Host,
+			Port: proxy.Port,
+		})
+	}
+
+	if err := hdl.addNodesToDomain(poxyList, cluster.Domain, cluster.BkBizId); err != nil {
+		return err
+	}
+
+	if err := hdl.addNodesToDomain(cluster.Slave, cluster.DomainSlave, cluster.BkBizId); err != nil {
+		return err
 	}
 
 	return nil
@@ -509,7 +529,7 @@ func (hdl *MysqlClusterHandler) addAllProxiesToDomain(proxyList []config.ProxyAd
 // Step 5: change backend role
 // Step 6: reset all proxies' backends to master backend
 // Step 7: update all instances status to running
-// Step 8: add all proxies to the domain
+// Step 8: add nodes to corresponding domain
 func (hdl *MysqlClusterHandler) resetSingleMysqlCluster(cluster *config.MysqlCluster) error {
 	hdl.printOneCluster(cluster)
 	fmt.Printf("Resetting cluster %s...\n", cluster.Domain)
@@ -559,11 +579,11 @@ func (hdl *MysqlClusterHandler) resetSingleMysqlCluster(cluster *config.MysqlClu
 	}
 	fmt.Printf("Step 7 <update all instances status to running> done\n")
 
-	if err := hdl.addAllProxiesToDomain(cluster.Proxy, cluster.Domain, cluster.BkBizId); err != nil {
-		fmt.Printf("Failed at step 8 <add all proxies to the domain>, errmsg: %s\n", err.Error())
+	if err := hdl.addAllNodesToDomain(cluster); err != nil {
+		fmt.Printf("Failed at step 8 <add nodes to corresponding domain>, errmsg: %s\n", err.Error())
 		return err
 	}
-	fmt.Printf("Step 8 <add all proxies to the domain> done\n")
+	fmt.Printf("Step 8 <add nodes to corresponding domain> done\n")
 
 	return nil
 }
