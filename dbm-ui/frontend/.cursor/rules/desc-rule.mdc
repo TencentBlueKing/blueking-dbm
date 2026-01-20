@@ -1,0 +1,92 @@
+---
+alwaysApply: true
+---
+
+# 目录结构说明
+
+本项目采用分层目录结构，方便功能模块划分与维护。主要目录说明如下：
+
+- `src/`
+  - 项目主目录，包含所有前端源码
+  - `components/` 公共组件目录，所有可复用的 UI 组件
+  - `views/` 页面视图目录，每个页面为一个文件夹
+  - `services/` API 请求与服务封装
+  - `stores/` Pinia 状态管理
+  - `hooks/` 通用自定义组合式函数（Composable）
+  - `router/` 路由配置相关
+  - `utils/` 工具方法库，含通用工具函数
+  - `common/` 通用类型、常量与配置
+  - `styles/` 全局样式与变量
+  - `locales/` 国际化语言包
+  - `types/` 项目自定义 TypeScript 类型声明
+  - `images/` 静态图片资源
+- `public/` 静态资源目录，构建后原样输出
+- `tests/` 单元测试与 E2E 测试相关文件（如采用）
+
+# dbm 核心功能 DB 管理模块目录说明
+
+```
+src/
+--|views/
+----|db-manage/
+------|common/  // DB 公共组件
+------|hooks/  // DB 公共逻辑
+------|doris/  // doris 数据库
+------|elastic-search/  // elastic-search 数据库
+------|hdfs/  // hdfs 数据库
+------|incluxdb/  // incluxdb 数据库
+------|kafka/  // kafka 数据库
+------|mongodb/  // mongodb 数据库
+------|mysql/  // mysql 数据库
+--------/MYSQL_ADD_SLAVE // 大写字母命名的表格 DB 支持的工具箱提单单据类型
+--------/MYSQL_CHECKSUM // 大写字母命名的表格 DB 支持的工具箱提单单据类型
+--------/MYSQL_CLIENT_CLONE_RULES // 大写字母命名的表格 DB 支持的工具箱提单单据类型
+--------/MYSQL_CLUSTER_STANDARDIZE // 大写字母命名的表格 DB 支持的工具箱提单单据类型
+--------/MYSQL_DATA_MIGRATE // 大写字母命名的表格 DB 支持的工具箱提单单据类型
+--------/MYSQL_FIXPOINT_EXIST_CLUSTER // 大写字母命名的表格 DB 支持的工具箱提单单据类型
+------|oracle/  // oracle 数据库
+------|pulsar/  // pulsar 数据库
+------|redis/  // redis 数据库
+------|sqlserver/  // sqlserver 数据库
+------|tendb-cluster/  // tendb-cluster 数据库
+```
+
+## 集群列表
+
+### 所有集群列表全部继承自src/views/db-manage/common/cluster-table/Index.vue
+
+### 添加所有集群都有的列表去修改 CommonColumn.vue
+
+### 添加某个集群列表独有的列需要分步执行
+
+1，在 Index.vue 新增已字段名命名的 slot 作为扩展接口
+
+2，在指定的集群列表里面去实现这个 slot
+
+## db 工具箱
+
+src/views/db-manage/\_/ 大写字母命名目录表格该 DB 支持的工具箱提单
+
+在实现工具箱需求时阅读所有已实现的工具箱的代码，询问后端 api 协议数据接口，前端基于 `EditableTable`, `EditableRow`,
+`EditableColumn`
+和其它已经封装好的业务组件实现。实现过程需要考虑路由是否注册成功，typescript 类型是否正确，ticketType 常量是否注册成功，单据详情页面是否完成
+
+## db 路由
+
+src/views/db-manage/\_/routes 各个 db 注册的路由功能
+
+## 单据详情页
+
+src/views/ticket-center/common/ticket-detail/components/task-info/com-factory/\* 通过
+
+```
+defineOptions({
+  name: TicketTypes.DORIS_APPLY,
+});
+```
+
+注册`name`和工具箱提单的 ticket_type 保持一致
+
+## 工具箱生成
+
+###

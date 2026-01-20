@@ -88,3 +88,7 @@ export function sessionContent(params: { session_id: string }) {
 export function updateSessionInfo(params: { session_code: string; session_name: string }) {
   return http.put(`${path}/agent/session/${params.session_code}/`, params);
 }
+
+export function getFlowLogAnnlysis(params: { flow_id: string; ticket_id: number }) {
+  return http.post(`${path}/agent/log/get_flow_log_analysis/`, params);
+}

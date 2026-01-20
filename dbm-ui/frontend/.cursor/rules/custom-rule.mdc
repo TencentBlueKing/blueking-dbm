@@ -1,0 +1,354 @@
+---
+alwaysApply: true
+---
+
+# BlueKing DBM Frontend 自定义规则
+
+## 项目概述
+
+这是一个基于 Vue 3 + TypeScript 的前端项目，使用 Composition API、Pinia、Vue Router 等技术栈。
+
+## 技术栈
+
+- **框架**: Vue 3.5+ (Composition API)
+- **语言**: TypeScript 5.9+
+- **构建工具**: Vite 7+
+- **状态管理**: Pinia 3+
+- **路由**: Vue Router 4+
+- **UI 组件库**: Element Plus 2.13+, bkui-vue 2.0+
+- **样式**: Less 4+
+- **代码规范**: ESLint + Prettier + Stylelint
+
+## 编码规范
+
+### Vue 组件规范
+
+#### 1. 组件结构顺序
+
+Vue 单文件组件必须按照以下顺序组织：
+
+```vue
+<template>
+  <!-- 模板内容 -->
+</template>
+
+<script setup lang="ts">
+  // Script 内容
+</script>
+
+<style lang="less">
+  /* 样式内容 */
+</style>
+```
+
+#### 2. Script Setup 宏顺序
+
+在 `<script setup>` 中，必须按照以下顺序定义：
+
+1. `defineOptions` - 组件选项（如 name）
+2. `defineProps` - 组件属性
+3. `defineEmits` - 组件事件
+4. `defineSlots` - 插槽定义（如需要）
+5. `defineModel` - 双向绑定模型（如需要）
+6. `defineExpose` - 暴露给父组件的方法（如需要）
+
+示例：
+
+```typescript
+defineOptions({
+  name: 'ComponentName',
+});
+
+interface Props {
+  // props 定义
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  // 默认值
+});
+
+type Emits = (e: 'eventName', value: any) => void;
+
+const emit = defineEmits<Emits>();
+
+const modelValue = defineModel<string>({
+  default: '',
+});
+```
+
+#### 3. Props 和 Emits 类型定义
+
+- 必须使用 TypeScript 接口定义 Props
+- 必须使用类型别名定义 Emits
+- 使用 `withDefaults` 为 Props 提供默认值
+
+```typescript
+interface Props {
+  title?: string;
+  count?: number;
+  disabled?: boolean;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  title: '',
+  count: 0,
+  disabled: false,
+});
+
+type Emits = (e: 'change', value: string) => void;
+
+const emit = defineEmits<Emits>();
+```
+
+#### 4. 模板属性顺序
+
+模板中的属性必须按照以下顺序排列：
+
+1. `v-is` - 组件定义
+2. `v-for` - 列表渲染
+3. `v-if/v-else-if/v-else/v-show` - 条件渲染
+4. `v-once/v-pre` - 渲染修饰符
+5. `id` - 全局属性
+6. `ref/key` - 唯一属性
+7. `v-slot` - 插槽
+8. `v-model` - 双向绑定
+9. 其他 `v-*` 指令
+10. 其他属性
+11. `@event` 或 `v-on:event` - 事件监听
+12. 内容
+
+### TypeScript 规范
+
+#### 1. 类型定义
+
+- 优先使用接口（interface）定义对象类型
+- 使用类型别名（type）定义联合类型、函数类型等
+- 避免使用 `any`，优先使用 `unknown` 或具体类型
+- 使用泛型提高代码复用性
+
+#### 2. 命名规范
+
+- 变量、函数：使用 `camelCase`
+- 组件、类、接口、类型：使用 `PascalCase`
+- 常量：使用 `UPPER_CASE`
+- 私有属性/方法：可以使用下划线前缀（但需符合 ESLint 规则）
+
+#### 3. 导入顺序
+
+导入语句必须按照以下顺序排列（由 ESLint 自动排序）：
+
+1. 普通 npm 包（如 `vue`, `lodash`）
+2. `@blueking/*` 包
+3. `@services/*`
+4. `@hooks`
+5. `@router`
+6. `@stores`
+7. `@common/*`
+8. `@components/*`
+9. `@views/*`
+10. `@utils`
+11. `@helper/*`
+12. `@types`
+13. `@locales/*`
+14. `@styles/*`
+15. `@images/*`
+16. 相对路径导入（先父目录，后当前目录）
+
+示例：
+
+```typescript
+import { ref, computed } from 'vue';
+import { useRouter } from 'vue-router';
+
+import { useStore } from '@stores';
+
+import { formatDate } from '@utils';
+
+import ComponentA from '@components/component-a/index.vue';
+
+import './style.less';
+```
+
+### 路径别名使用
+
+项目配置了以下路径别名，优先使用别名而非相对路径：
+
+- `@/*` → `src/*`
+- `@services/*` → `src/services/*`
+- `@hooks` → `src/hooks`
+- `@router` → `src/router`
+- `@stores` → `src/stores`
+- `@common/*` → `src/common/*`
+- `@components/*` → `src/components/*`
+- `@views/*` → `src/views/*`
+- `@utils` → `src/utils`
+- `@helper/*` → `src/helper/*`
+- `@types` → `src/types/*`
+- `@styles/*` → `src/styles/*`
+- `@locales/*` → `src/locales/*`
+- `@images/*` → `src/images/*`
+- `@lib/*` → `lib/*`
+
+### 样式规范
+
+#### 1. 使用 Less
+
+- 所有样式文件使用 Less 预处理器
+- 全局样式变量从 `@styles/variables` 导入（已自动导入）
+
+#### 2. 类名命名
+
+- 使用 BEM 命名规范或项目约定
+- 类名使用 kebab-case
+
+### 状态管理（Pinia）
+
+#### 1. Store 结构顺序
+
+Pinia store 必须按照以下顺序组织：
+
+1. `state` - 状态定义
+2. `getters` - 计算属性
+3. `actions` - 操作方法
+
+#### 2. Store 定义
+
+```typescript
+import { defineStore } from 'pinia';
+
+export const useStoreName = defineStore('storeName', {
+  state: () => ({
+    // 状态
+  }),
+  getters: {
+    // 计算属性
+  },
+  actions: {
+    // 操作方法
+  },
+});
+```
+
+### 路由配置
+
+#### 1. 路由对象顺序
+
+路由配置对象必须按照以下顺序：
+
+1. `path` - 路径
+2. `name` - 路由名称
+3. `meta` - 元信息
+4. 其他属性
+5. `component` - 组件
+6. `children` - 子路由
+
+### 代码质量
+
+#### 1. 必须遵循的规则
+
+- 所有代码必须通过 ESLint 检查
+- 所有代码必须通过 Prettier 格式化
+- 所有样式必须通过 Stylelint 检查
+- 提交前必须通过 lint-staged 检查
+
+#### 2. 代码注释
+
+- 复杂逻辑必须添加注释说明
+- 函数/方法建议添加 JSDoc 注释
+- 使用中文注释（项目为中文项目）
+
+#### 3. 错误处理
+
+- 异步操作必须进行错误处理
+- 使用 try-catch 捕获异常
+- 提供友好的错误提示
+
+### 组件开发最佳实践
+
+#### 1. 组件设计
+
+- 保持组件单一职责
+- 组件应该可复用、可组合
+- 使用 Props 传递数据，使用 Emits 传递事件
+- 合理使用插槽（slots）提高灵活性
+
+#### 2. 响应式数据
+
+- 优先使用 `ref` 定义基本类型响应式数据
+- 使用 `reactive` 定义对象类型响应式数据
+- 使用 `computed` 定义计算属性
+- 使用 `watch` 或 `watchEffect` 监听数据变化
+
+#### 3. 生命周期
+
+- 使用组合式 API 的生命周期钩子
+- 按需使用，避免不必要的生命周期钩子
+
+#### 4. 性能优化
+
+- 合理使用 `v-memo`、`v-once` 等指令
+- 大列表使用虚拟滚动
+- 图片使用懒加载
+- 避免在模板中使用复杂计算，使用 `computed`
+
+### 工具函数
+
+#### 1. 工具函数位置
+
+- 通用工具函数放在 `@utils`
+- 特定业务工具函数放在对应的业务目录
+- 使用 TypeScript 定义函数类型
+
+#### 2. 工具函数导出
+
+- 使用命名导出而非默认导出
+- 提供完整的类型定义
+
+### 国际化
+
+- 使用 `vue-i18n` 进行国际化
+- 文本内容使用 `t()` 函数包裹
+- 语言文件放在 `@locales/*`
+
+### 测试
+
+- 使用 Cypress 进行 E2E 测试
+- 使用 Cypress Component Testing 进行组件测试
+- 测试文件放在 `cypress/` 目录
+
+### 提交规范
+
+- 使用 Conventional Commits 规范
+- 提交前自动运行 lint-staged
+- 提交信息必须通过 commitlint 检查
+
+## 常见问题
+
+### 1. 如何定义组件 Props？
+
+使用 TypeScript 接口定义 Props，并使用 `withDefaults` 提供默认值。
+
+### 2. 如何定义组件事件？
+
+使用类型别名定义 Emits，然后使用 `defineEmits`。
+
+### 3. 如何访问路由？
+
+使用 `useRouter()` 和 `useRoute()` 组合式函数。
+
+### 4. 如何使用状态管理？
+
+使用 `useStore()` 访问 Pinia store。
+
+### 5. 如何导入组件？
+
+优先使用路径别名，如 `@components/xxx/index.vue`。
+
+## 注意事项
+
+1. **不要使用 `any` 类型**：尽量使用具体类型或 `unknown`
+2. **遵循导入顺序**：ESLint 会自动检查和修复
+3. **遵循属性顺序**：Vue 模板属性顺序由 ESLint 规则强制执行
+4. **使用路径别名**：避免使用过长的相对路径
+5. **保持代码整洁**：及时清理未使用的导入和变量
+6. **类型安全**：充分利用 TypeScript 的类型检查
