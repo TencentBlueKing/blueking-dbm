@@ -90,7 +90,7 @@ export function useCreateTicket<T>(
         data: {
           duplicate_ticket_id: number;
         };
-        errors: IRowError[] | string[];
+        errors?: IRowError[] | string[];
         message: string;
       };
       const duplicateCode = 8704005;
@@ -150,7 +150,7 @@ export function useCreateTicket<T>(
             title: t('是否继续提交单据'),
           });
         });
-      } else if (errorList.length > 0) {
+      } else if (errorList && errorList.length > 0) {
         if (typeof errorList[0] === 'string') {
           eventBus.emit('db-toolbox-error', errorList.join('\n'));
         } else if (options?.onError) {
