@@ -115,10 +115,14 @@ func (job *ClusterMigrateSlots) Rollback() error {
 }
 
 // Run 执行逻辑
+// 扩容/缩容->本质上都是slot的再分配。 唯一区别是缩容可以指定删除的node
+// 1、先计算出迁移后节点需要拥有的slot数，分段
+// 2、统计当前节点拥有slot情况，分段统计、按段group、按量order
+// 3、计算段与节点的对应关系
+// 4、生成迁移计划，开始迁移
 func (job *ClusterMigrateSlots) Run() error {
-	job.checkNodeInfo()
-	if job.Err != nil {
-		return job.Err
+	if err := job.PreCheck(); err != nil {
+		return err
 	}
 	if job.params.SrcNode.TendisType == consts.TendisTypeTendisplusInsance {
 		// tendisplus迁移前设置这个参数，避免发生slave漂移情况
@@ -129,32 +133,7 @@ func (job *ClusterMigrateSlots) Run() error {
 
 	}
 
-	// 缩容
-	if job.params.IsDeleteNode {
-		// 传入多个节点信息
-		if len(job.params.ToBeDelNodesAddr) != 0 {
-			err := job.MigrateSlotsFromToBeDelNode(job.params.ToBeDelNodesAddr)
-			if err != nil {
-				return err
-			}
-		} else {
-			var toBeDelNodesAddr []string
-			toBeDelNodesAddr = append(toBeDelNodesAddr, job.dstNodeAddr())
-			err := job.MigrateSlotsFromToBeDelNode(toBeDelNodesAddr)
-			if err != nil {
-				return err
-			}
-		}
-
-		return nil
-	}
-
-	// 这一步放到flow来做会更好些，扩容的时候
-	// job.dstClusterMeetSrc()
-	// if job.Err != nil {
-	// 	return job.Err
-	// }
-
+	// 如果指定迁移slot,则跳过计算步骤
 	if job.params.MigrateSpecifiedSlot {
 		slots, _, _, _, err := myredis.DecodeSlotsFromStr(job.params.Slots, " ")
 		if err != nil {
@@ -172,13 +151,12 @@ func (job *ClusterMigrateSlots) Run() error {
 			return job.Err
 		}
 	} else {
-		err := job.ReBalanceCluster()
+		err := job.ReBalanceSlot()
 		if err != nil {
 			job.Err = err
 			return job.Err
 		}
 	}
-
 	return nil
 }
 
@@ -187,7 +165,7 @@ func (job *ClusterMigrateSlots) srcNodeAddr() string {
 	return job.params.SrcNode.IP + ":" + strconv.Itoa(job.params.SrcNode.Port)
 }
 
-// dstNodeAddr 源节点地址
+// dstNodeAddr 目标节点地址
 func (job *ClusterMigrateSlots) dstNodeAddr() string {
 	return job.params.DstNode.IP + ":" + strconv.Itoa(job.params.DstNode.Port)
 }
@@ -300,7 +278,7 @@ func (job *ClusterMigrateSlots) checkNodeInfo() {
 
 	job.runtime.Logger.Info("checkNodeInfo SrcNode GetTendisType:%s  success ", job.params.SrcNode.TendisType)
 
-	// 获取源节点连接&信息
+	// 获取目标节点连接&信息
 	job.params.DstNode.redisCli, job.Err = myredis.NewRedisClient(job.dstNodeAddr(),
 		job.params.DstNode.Password, 0, consts.TendisTypeRedisInstance)
 	if job.Err != nil {
@@ -346,7 +324,7 @@ func (job *ClusterMigrateSlots) checkNodeInfo() {
 	}
 
 	// 如果是rediscluster，需要检查版本>=6
-	if job.isRedisCluster() {
+	if job.isRedisInstance() {
 		srcVersion, err := job.params.SrcNode.redisCli.GetTendisVersion()
 		if err != nil {
 			job.Err = fmt.Errorf("srcNode get version Err:%v", err)
@@ -381,7 +359,7 @@ func (job *ClusterMigrateSlots) checkNodeInfo() {
 func (job *ClusterMigrateSlots) ParallelMigrateSpecificSlots(migrateList []MigrateSomeSlots) error {
 	// rediscluster 不允许并发迁移slot，会报：Please fix your cluster problems before resharding
 	// 所以如果是rediscluster, 则串行执行
-	if job.isRedisCluster() {
+	if job.isRedisInstance() {
 		errList := []string{}
 		for _, item := range migrateList {
 			job.MigrateSpecificSlots(item.SrcAddr, item.DstAddr, item.MigrateSlots, 48*time.Hour)
@@ -606,7 +584,7 @@ func (job *ClusterMigrateSlots) MigrateSpecificSlots(srcAddr,
 	}
 	srcNodeInfo, ok := clusterNodes[srcAddr]
 	if ok == false {
-		job.Err = fmt.Errorf("MigrateSpecificSlots cluster not include the sre node,sreAddr:%s,clusterAddr:%s",
+		job.Err = fmt.Errorf("MigrateSpecificSlots cluster not include the sre node,sreAddr:%s,clusterAddr:%s\n",
 			srcAddr, job.params.SrcNode.redisCli.Addr)
 		job.runtime.Logger.Error(job.Err.Error())
 		return
@@ -614,7 +592,7 @@ func (job *ClusterMigrateSlots) MigrateSpecificSlots(srcAddr,
 
 	dstNodeInfo, ok := clusterNodes[dstAddr]
 	if ok == false {
-		job.Err = fmt.Errorf("MigrateSpecificSlots cluster not include the sre node,sreAddr:%s,clusterAddr:%s",
+		job.Err = fmt.Errorf("MigrateSpecificSlots cluster not include the sre node,sreAddr:%s,clusterAddr:%s\n",
 			srcAddr, job.params.SrcNode.redisCli.Addr)
 		job.runtime.Logger.Error(job.Err.Error())
 		return
@@ -679,7 +657,7 @@ func (job *ClusterMigrateSlots) MigrateSpecificSlots(srcAddr,
 
 	// 按照不同类型执行不同的slot搬迁步骤
 	job.runtime.Logger.Info("Redis type is %s, begin slot migrate operate", job.params.SrcNode.TendisType)
-	if job.isRedisCluster() {
+	if job.isRedisInstance() {
 		// 检查cli工具版本
 		_, err = os.Stat(consts.RedisCliBin)
 		if err != nil && os.IsNotExist(err) {
@@ -805,7 +783,7 @@ func (job *ClusterMigrateSlots) confirmMigrateSlotsStatus(
 	taskID string, migrateSlots []int, timeout time.Duration) (mySuccImport, myFailImport []int, err error) {
 
 	// rediscluster 直接返回，不支持cluster setslot 命令
-	if job.isRedisCluster() {
+	if job.isRedisInstance() {
 		job.runtime.Logger.Info(" is redis cluster not exec cluster setslot info")
 		return nil, nil, nil
 	}
@@ -1339,7 +1317,7 @@ func (job *ClusterMigrateSlots) areTenplusMigrating(tenplusAddrs []string) (
 ) {
 
 	// rediscluster 直接返回，不支持cluster setslot 命令
-	if job.isRedisCluster() {
+	if job.isRedisInstance() {
 		job.runtime.Logger.Info(" is redis cluster not exec cluster setslot info")
 		return
 	}
@@ -1425,6 +1403,337 @@ func (job *ClusterMigrateSlots) TendisplusConfigSetParams(configName, configValu
 }
 
 // 是否是rediscluster协议的集群
-func (job *ClusterMigrateSlots) isRedisCluster() bool {
+func (job *ClusterMigrateSlots) isRedisInstance() bool {
 	return job.params.SrcNode.TendisType == consts.TendisTypeRedisInstance
+}
+
+// GetMigrateNodes 获取保留节点、删除节点
+func (job *ClusterMigrateSlots) GetMigrateNodes() ([]string, []string, error) {
+	// 当前状态下的所有节点
+	var runningMasterNodesAddr []string
+	// 需要forget的节点
+	var toBeDelNodesAddr []string
+	// 最终存在的节点
+	var finalNodesAddr []string
+
+	runningMasterNodes, err := job.params.SrcNode.redisCli.GetRunningMasters()
+	if err != nil {
+		return finalNodesAddr, toBeDelNodesAddr, err
+	}
+	for nodeInfo := range runningMasterNodes {
+		runningMasterNodesAddr = append(runningMasterNodesAddr, runningMasterNodes[nodeInfo].IP+":"+strconv.Itoa(runningMasterNodes[nodeInfo].Port))
+	}
+	job.runtime.Logger.Info("get running master:%+v", runningMasterNodesAddr)
+
+	// 缩容
+	if job.params.IsDeleteNode {
+		// 指定了要forget的节点
+		if len(job.params.ToBeDelNodesAddr) != 0 {
+			toBeDelNodesAddr = job.params.ToBeDelNodesAddr
+		} else {
+			toBeDelNodesAddr = append(toBeDelNodesAddr, job.dstNodeAddr())
+			job.params.ToBeDelNodesAddr = toBeDelNodesAddr
+		}
+	}
+	for _, addr := range runningMasterNodesAddr {
+		isDel := false
+		for _, delAddr := range toBeDelNodesAddr {
+			if addr == delAddr {
+				isDel = true
+				break
+			}
+		}
+		if !isDel {
+			finalNodesAddr = append(finalNodesAddr, addr)
+		}
+	}
+	return finalNodesAddr, toBeDelNodesAddr, nil
+}
+
+// GetBESlot 获取idx段的起始slot编号，左闭右闭
+func GetBESlot(idxCount, idx, slotCount int) (beginSlotNum, endSlotNum int) {
+	beginSlotNum = idx * slotCount
+	endSlotNum = beginSlotNum + slotCount - 1
+	if idx == idxCount-1 {
+		endSlotNum = consts.DefaultMaxSlots
+	}
+	return
+}
+
+// ForgetDelNodes 删除节点
+func (job *ClusterMigrateSlots) ForgetDelNodes(toBeDelNodes []string) error {
+	clusterOK, _, err := job.clusterState(job.params.SrcNode.redisCli)
+	if err != nil {
+		job.runtime.Logger.Error(err.Error())
+		return err
+	}
+	if clusterOK == false {
+		err = fmt.Errorf("cluster_state is fail,addr:%s", job.srcNodeAddr())
+		job.runtime.Logger.Error(err.Error())
+		return err
+	}
+
+	// 如果任何待删除master节点正在migrate slots,则等待1分钟后重试,最长300分钟
+	timeLimit := 0
+	for {
+		isToBeDelMasterMigrating, migratingAddr, migratingSlots, err1 := job.areTenplusMigrating(toBeDelNodes)
+		if err1 != nil {
+			return err1
+		}
+		if isToBeDelMasterMigrating == true {
+			time.Sleep(1 * time.Minute)
+			// 直到"所有待删除master节点没有migrate slots",再继续搬迁slot;
+			msg := fmt.Sprintf("MigrateSlotsFromToBeDelNode toBeDeletedMaster:%s migrating slots count:%d",
+				migratingAddr, len(migratingSlots))
+			job.runtime.Logger.Info(msg)
+			timeLimit++
+			continue
+		}
+		break
+
+	}
+	if timeLimit == 300 {
+		err = fmt.Errorf("MigrateSlotsFromToBeDelNode  migrating 300 minute,please check")
+		job.runtime.Logger.Error(err.Error())
+		return err
+	}
+
+	clusterNodes, err := job.params.SrcNode.redisCli.GetClusterNodes()
+	if err != nil {
+		return err
+	}
+	for _, node := range clusterNodes {
+		job.runtime.Logger.Info("after migrate cluster nodes:%s -> slots:%+v", node.Addr, myredis.ConvertSlotToShellFormat(node.Slots))
+	}
+
+	job.runtime.Logger.Info("begin to forget nodes:%+v", toBeDelNodes)
+	if len(toBeDelNodes) == 0 {
+		return nil
+	}
+
+	var toBeDelAllNodeId []string
+	var finalAllNodeAddr []string
+
+	// 检查拥有的slot是否已经为0
+	for _, node := range clusterNodes {
+		isDel := false
+		for _, addr := range toBeDelNodes {
+			if addr == node.Addr {
+				if len(node.Slots) != 0 {
+					err = fmt.Errorf("toBeDelNode:%s  still have %d slots ", node.Addr, len(node.Slots))
+					job.runtime.Logger.Error(err.Error())
+					return err
+				}
+				isDel = true
+				toBeDelAllNodeId = append(toBeDelAllNodeId, node.NodeID)
+				break
+			}
+		}
+		if !isDel {
+			finalAllNodeAddr = append(finalAllNodeAddr, node.Addr)
+		}
+	}
+	job.runtime.Logger.Info("get finalAllNodeAddr success :%v", finalAllNodeAddr)
+
+	// 获取所有slave
+	for _, addr01 := range toBeDelNodes {
+		dstCli01, err := myredis.NewRedisClient(addr01, job.params.DstNode.Password, 0, consts.TendisTypeRedisInstance)
+		if err != nil {
+			job.runtime.Logger.Error(err.Error())
+			return err
+		}
+		defer dstCli01.Close()
+		dstSlaves, err := dstCli01.GetAllSlaveNodesByMasterAddr(addr01)
+		if err != nil {
+			job.Err = fmt.Errorf("dstAddr:%s get slave fail:%+v", addr01, err)
+			job.runtime.Logger.Error(job.Err.Error())
+			return job.Err
+		}
+		for _, srcSlave01 := range dstSlaves {
+			srcSlaveItem := srcSlave01
+			toBeDelAllNodeId = append(toBeDelAllNodeId, srcSlaveItem.NodeID)
+		}
+	}
+	job.runtime.Logger.Info("get toBeDelAllNodeNodeID success :%v", toBeDelAllNodeId)
+
+	// 最终节点forget要下架节点
+	var errForgetList []string
+	for _, addr03 := range finalAllNodeAddr {
+		addrCli, err := myredis.NewRedisClient(addr03, job.params.SrcNode.Password, 0, consts.TendisTypeRedisInstance)
+		if err != nil {
+			job.runtime.Logger.Error(err.Error())
+			return err
+		}
+		defer addrCli.Close()
+		for _, nodeID := range toBeDelAllNodeId {
+			err := addrCli.ClusterForget(nodeID)
+			if err != nil {
+				errForgetList = append(errForgetList, fmt.Sprintf("node:%s cluster forget %s failed", addr03, nodeID))
+				job.runtime.Logger.Error(err.Error())
+			}
+			job.runtime.Logger.Info("node:%s forget node:%s success.", addr03, nodeID)
+		}
+
+	}
+	if len(errForgetList) > 0 {
+		err = fmt.Errorf("%s", strings.Join(errForgetList, "\n"))
+		job.runtime.Logger.Error(err.Error())
+		return err
+	}
+	job.runtime.Logger.Info("cluster forget success")
+	return nil
+}
+
+// ReBalanceSlot 计算发起迁移任务。重新分配slot
+func (job *ClusterMigrateSlots) ReBalanceSlot() error {
+	// 最终保留节点、 删除节点
+	finalNodes, toBeDelNodes, err := job.GetMigrateNodes()
+	if err != nil {
+		return err
+	}
+	job.runtime.Logger.Info("finalNodes:%+v, toBeDelNodesAddr:%+v", finalNodes, toBeDelNodes)
+
+	// 集群最终master节点数
+	finalNodeCount := len(finalNodes)
+	// 最终每一个节点的slot数。如果除不尽，那么余数全部放在最后一个node去
+	finalSlotCount2Node := int(float64(consts.DefaultMaxSlots+1) / float64(finalNodeCount))
+	// 段是否已被选择，被那个节点选择
+	segmentIsChose := make(map[int]bool, finalNodeCount)
+	node2Segment := make(map[string]int, finalNodeCount)
+	// 初始化每个段都没被选择
+	for idx := 0; idx < finalNodeCount; idx++ {
+		segmentIsChose[idx] = false
+	}
+
+	// 缩容：保留节点肯定在集群里。扩容：保留节点已经加入集群了
+	clusterNodes, err := job.params.SrcNode.redisCli.GetClusterNodes()
+	if err != nil {
+		return err
+	}
+
+	for _, node := range clusterNodes {
+		job.runtime.Logger.Info("before migrate cluster nodes:%s -> slots:%+v", node.Addr, myredis.ConvertSlotToShellFormat(node.Slots))
+	}
+
+	// 按照拥有slot的个数排序，优先分配slot多的
+	sort.Slice(clusterNodes, func(i, j int) bool {
+		a := len(clusterNodes[i].Slots)
+		b := len(clusterNodes[j].Slots)
+		return a > b
+	})
+
+	// 保存slot当前所属节点
+	slotSrcNodeMap := make(map[int]string)
+	// 生成迁移任务，并发执行迁移
+	migrateTasks := []MigrateSomeSlots{}
+	for _, node := range clusterNodes {
+		// 需要先保证node需要保留，才分配段seg
+		isFinal := false
+		if node.Role == consts.RedisMasterRole {
+			continue
+		}
+		for _, finalNode := range finalNodes {
+			if node.Addr == finalNode {
+				isFinal = true
+				break
+			}
+		}
+		if !isFinal {
+			continue
+		}
+
+		// 开始统计当前拥有的每一段seg的slot情况
+		type seg struct {
+			idx   int
+			count int
+		}
+		var nodeSlot4SegStat []seg
+
+		addr := node.Addr
+		nodeSlotMap := node.SlotsMap
+		for idx := 0; idx < finalNodeCount; idx++ {
+			sc := seg{
+				idx:   idx,
+				count: 0,
+			}
+			beginSlotNum, endSlotNum := GetBESlot(finalNodeCount, sc.idx, finalSlotCount2Node)
+			for slot := beginSlotNum; slot <= endSlotNum; slot++ {
+				if ex, ok := nodeSlotMap[slot]; ok && ex {
+					slotSrcNodeMap[slot] = node.Addr
+					sc.count++
+				}
+			}
+			nodeSlot4SegStat = append(nodeSlot4SegStat, sc)
+			job.runtime.Logger.Info("src node stats: [node:%s, seg:%d, count:%d]", addr, sc.idx, sc.count)
+		}
+		// 按照每段seg内的slot数量降序排序
+		sort.Slice(nodeSlot4SegStat, func(i, j int) bool {
+			a := nodeSlot4SegStat[i].count
+			b := nodeSlot4SegStat[j].count
+			return a > b
+		})
+
+		// 从高到低遍历seg,优先选择当前拥有slot多的seg
+		for _, sc := range nodeSlot4SegStat {
+			// 如果seg还没被选择，则将这个段设置为该Node的最终态。 顺便计算出迁移任务
+			if !segmentIsChose[sc.idx] {
+				node2Segment[addr] = sc.idx
+				segmentIsChose[sc.idx] = true
+
+				beginSlotNum, endSlotNum := GetBESlot(finalNodeCount, sc.idx, finalSlotCount2Node)
+				job.runtime.Logger.Info("final nodes:%s slot will is [%d-%d]", addr, beginSlotNum, endSlotNum)
+
+				// 记录slot的来源addr和slots
+				srcAddrSlots := make(map[string][]int)
+				for slot := beginSlotNum; slot <= endSlotNum; slot++ {
+					srcAddr := slotSrcNodeMap[slot]
+					job.runtime.Logger.Info("slot:%+v running src addr:%+v", slot, srcAddr)
+					// 该slot不需要迁移
+					if srcAddr == addr {
+						continue
+					}
+					srcAddrSlots[srcAddr] = append(srcAddrSlots[srcAddr], slot)
+				}
+
+				// 生成task
+				for srcAddr := range srcAddrSlots {
+					task01 := MigrateSomeSlots{
+						SrcAddr:      srcAddr,
+						DstAddr:      addr,
+						MigrateSlots: srcAddrSlots[srcAddr],
+					}
+					migrateTasks = append(migrateTasks, task01)
+				}
+				break
+			}
+		}
+	}
+
+	for _, task01 := range migrateTasks {
+		msg := fmt.Sprintf("migrate plan=>srcNode:%s dstNode:%s slots:%v",
+			task01.SrcAddr, task01.DstAddr, myredis.ConvertSlotToShellFormat(task01.MigrateSlots))
+		job.runtime.Logger.Info(msg)
+	}
+	job.runtime.Logger.Info("migrateTasks:%+v", migrateTasks)
+
+	err = job.ParallelMigrateSpecificSlots(migrateTasks)
+	if err != nil {
+		return err
+	}
+
+	err = job.ForgetDelNodes(toBeDelNodes)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// PreCheck 迁移前置检查
+func (job *ClusterMigrateSlots) PreCheck() error {
+	job.checkNodeInfo()
+	if job.Err != nil {
+		return job.Err
+	}
+
+	return nil
 }
