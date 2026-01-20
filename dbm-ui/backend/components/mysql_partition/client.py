@@ -91,5 +91,29 @@ class _PartitionApi(BaseApi):
             method="Post", url="/partition/partition_conf_query", description=_("分区配置查询")
         )
 
+        self.query_log_v2 = self.generate_data_api(
+            method="POST",
+            url="partition/query_log_v2",
+            description=_("查询分区日志V2"),
+        )
+
+        self.execute_partition_v2 = self.generate_data_api(
+            method="POST",
+            url="partition/execute_partition_v2",
+            description=_("执行分区_v2"),
+        )
+
+        self.validate_field_type_v2 = self.generate_data_api(
+            method="POST",
+            url="partition/validate_field_type_v2",
+            description=_("校验字段类型"),
+        )
+
+        self.save_and_execute_v2 = self.generate_data_api(
+            method="POST",
+            url="partition/save_and_execute_v2",
+            description=_("保存并执行(重新初始化)分区_v2"),
+        )
+
 
 DBPartitionApi = _PartitionApi()
