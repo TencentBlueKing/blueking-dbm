@@ -37,6 +37,9 @@ cpl = re.compile("<ctx>(?P<context>.+?)</ctx>")  # 非贪婪模式，只匹配�
 
 
 class ServiceLogMixin:
+    def log_fine(self, msg: str, *args):
+        logger._log(logging.INFO, msg, *args, extra=self.extra_log)
+
     def log_info(self, msg: str):
         logger.info(msg, extra=self.extra_log)
 
@@ -398,7 +401,7 @@ class BkJobService(BaseService, metaclass=ABCMeta):
         # 7.等待用户; 8.手动结束; 9.状态异常; 10.步骤强制终止中; 11.步骤强制终止成功; 12.步骤强制终止失败
         # """
         if not (resp["result"] and resp["data"]["finished"]):
-            self.log_info(_("[{}] 任务正在执行🤔").format(node_name))
+            self.log_fine(_("[{}] 任务正在执行🤔").format(node_name))
             return True
 
         # 获取job的状态

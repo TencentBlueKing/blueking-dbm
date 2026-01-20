@@ -34,7 +34,7 @@ from backend.db_services.taskflow.serializers import (
 from backend.db_services.taskflow.views.filters import TaskFlowFilter
 from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
-from backend.flow.models import FlowTree
+from backend.flow.models import FlowNode, FlowTree
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.dataclass.resources import ResourceEnum
@@ -216,11 +216,17 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
         data = self.params_validate(self.get_serializer_class())
         # 获取特定状态的节点ID列表
         node_ids = TaskFlowHandler(root_id=data["root_id"]).get_specific_node_ids(status=data["status"])
+        # 获取节点版本映射
+        nodes = FlowNode.objects.filter(root_id=data["root_id"], node_id__in=node_ids)
+        node_version_map = {f.node_id: f.version_id for f in nodes}
         # 获取节点名称映射
         node_name_map = {}
         engine = BambooEngine(root_id=data["root_id"])
         engine.recursion_activity_name(engine.get_pipeline_tree()["activities"], node_name_map)
-        nodes = [{"node_id": node_id, "node_name": node_name_map.get(node_id, "")} for node_id in node_ids]
+        nodes = [
+            {"node_id": node_id, "version_id": node_version_map[node_id], "node_name": node_name_map.get(node_id)}
+            for node_id in node_ids
+        ]
         return Response(nodes)
 
     @common_swagger_auto_schema(

@@ -395,9 +395,10 @@ class TaskFlowHandler:
         if levelname == LogLevelName.DEBUG.value:
             # 不暴露debug日志给用户
             return
-        if levelname == LogLevelName.INFO.value:
+        if levelname in [LogLevelName.INFO.value, LogLevelName.NOTSET.value]:
             # 目前前端组件不支持自定义配色，暂时由后端处理INFO日志，不添加 ## 标签则展示白色
             # TODO 待前端组件优化后可去掉此段处理
+            levelname = LogLevelName.INFO.value
             log = f"{prefix}: {format_json_string(log['msg'])}"
         else:
             log = f"##[{levelname.lower()}]{prefix}: {format_json_string(log['msg'])}"
