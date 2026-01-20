@@ -228,7 +228,7 @@
       if (modelValue.value?.[0]?.ip && !modelValue.value?.[0]?.bk_host_id) {
         queryHost({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          hosts: localValue.value,
+          hosts: modelValue.value.map((item) => item.ip).join(','),
           limit: props.limit,
           offset: 0,
         });
