@@ -369,8 +369,9 @@ func (job *RedisDtsOnlineSwitch) NewProxyConfigFileForSameType() (err error) {
 		}
 	}
 	// 避免跟密码字段有重复，放在最后面替换集群名
-	dstConfContent = strings.ReplaceAll(dstConfContent, job.params.DstClusterName, job.params.SrcClusterName)
-
+	dstConfContent = strings.ReplaceAll(dstConfContent,
+		":1 "+job.params.DstClusterName+" ",
+		":1 "+job.params.SrcClusterName+" ")
 	newFile := fmt.Sprintf("dts_new_config.billid_%d.%s_%d.%s", job.params.DtsBillID, job.params.SrcProxyIP,
 		job.params.SrcProxyPort, job.getSrcConfigFileSuffix())
 	newFile = filepath.Join(job.getSrcProxyConfigSaveDir(), newFile)
