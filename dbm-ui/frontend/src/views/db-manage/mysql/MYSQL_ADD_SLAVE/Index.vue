@@ -28,8 +28,7 @@
         :key="tableKey"
         ref="table"
         class="mb-20"
-        :model="formData.tableData"
-        :rules="rules">
+        :model="formData.tableData">
         <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
@@ -38,9 +37,9 @@
             allow-repeat
             :selected="selected"
             @batch-edit="handleBatchEdit" />
-          <SingleResourceHostColumn
+          <MultipleResourceHostColumn
             v-model="item.newSlave"
-            field="newSlave.ip"
+            field="newSlave"
             :label="t('新从库主机')"
             :min-width="150"
             :params="{
@@ -90,7 +89,7 @@
   import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
-  import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
+  import MultipleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/multiple-resource-host-column/Index.vue';
   import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
   import TicketPayload, {
     createTickePayload,
@@ -101,7 +100,7 @@
 
   interface RowData {
     cluster: ComponentProps<typeof WithRelatedClustersColumn>['modelValue'];
-    newSlave: ComponentProps<typeof SingleResourceHostColumn>['modelValue'];
+    newSlave: ComponentProps<typeof MultipleResourceHostColumn>['modelValue'];
   }
 
   const { t } = useI18n();
@@ -117,7 +116,7 @@
     },
     {
       case: '192.168.10.2',
-      key: 'new_slave_ip',
+      key: 'new_slave',
       label: t('新从库主机'),
     },
   ];
@@ -134,15 +133,7 @@
       } as RowData['cluster'],
       data.cluster,
     ),
-    newSlave: Object.assign(
-      {
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        bk_cloud_id: 0,
-        bk_host_id: 0,
-        ip: '',
-      },
-      data.newSlave,
-    ),
+    newSlave: (data.newSlave || []) as RowData['newSlave'],
   });
 
   const defaultData = () => ({
@@ -168,41 +159,6 @@
       return acc;
     }, {});
   });
-  const newSlaveCounter = computed(() => {
-    return formData.tableData.reduce<Record<string, number>>((result, item) => {
-      Object.assign(result, {
-        [item.newSlave.ip]: (result[item.newSlave.ip] || 0) + 1,
-      });
-      return result;
-    }, {});
-  });
-
-  const rules = {
-    'newSlave.ip': [
-      {
-        message: t('IP 重复'),
-        trigger: 'blur',
-        validator: (value: string, { rowData }: { rowData: RowData }) => {
-          if (!value) {
-            return true;
-          }
-          const row = rowData as RowData;
-          return newSlaveCounter.value[row.newSlave.ip] <= 1;
-        },
-      },
-      {
-        message: t('IP 重复'),
-        trigger: 'change',
-        validator: (value: string, { rowData }: { rowData: RowData }) => {
-          if (!value) {
-            return true;
-          }
-          const row = rowData as RowData;
-          return newSlaveCounter.value[row.newSlave.ip] <= 1;
-        },
-      },
-    ],
-  };
 
   useTicketDetail<Mysql.ResourcePool.AddSlave>(TicketTypes.MYSQL_ADD_SLAVE, {
     onSuccess(ticketDetail) {
@@ -216,9 +172,12 @@
             cluster: {
               master_domain: clusters[item.cluster_ids[0]]?.immute_domain || '',
             },
-            newSlave: {
-              ip: item.resource_spec.new_slave.hosts?.[0]?.ip || '',
-            },
+            newSlave: (item.resource_spec?.new_slave?.hosts || []).map((host) => ({
+              bk_biz_id: host.bk_biz_id,
+              bk_cloud_id: host.bk_cloud_id,
+              bk_host_id: host.bk_host_id,
+              ip: host.ip,
+            })),
           });
         }),
       });
@@ -231,6 +190,7 @@
       cluster_ids: number[];
       resource_spec: {
         new_slave: {
+          count: number;
           hosts: {
             bk_biz_id: number;
             bk_cloud_id: number;
@@ -256,7 +216,8 @@
           cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
           resource_spec: {
             new_slave: {
-              hosts: [item.newSlave],
+              count: item.newSlave.length,
+              hosts: item.newSlave,
               spec_id: item.cluster?.spec_id_list?.[0] || 0,
             },
           },
@@ -294,9 +255,12 @@
           cluster: {
             master_domain: item.master_domain,
           },
-          newSlave: {
-            ip: item.new_slave_ip,
-          },
+          newSlave: (item.new_slave as string).split(',').map((ip) => ({
+            bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+            bk_cloud_id: 0,
+            bk_host_id: 0,
+            ip: ip,
+          })),
         }),
       );
       return acc;
@@ -307,9 +271,6 @@
     } else {
       formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
     }
-    setTimeout(() => {
-      tableRef.value?.validate();
-    }, 200);
   };
 </script>
 <style lang="less" scoped>
