@@ -103,6 +103,7 @@ a {
     pointer-events: none;
     cursor: not-allowed;
   }
+
   background-color: transparent;
 }
 
@@ -220,7 +221,7 @@ input[type='submit'] {
   cursor: pointer;
 
   /* 2 */
-  appearance: button;
+  appearance: auto;
 }
 
 /* Re-set default cursor for disabled elements. */
@@ -359,5 +360,10 @@ ol {
 }
 
 li {
+  list-style: none;
+}
+
+ul,
+ol {
   list-style: none;
 }
