@@ -45,6 +45,19 @@ var Kcs KubeClientSets
 // DefaultUser default user
 const DefaultUser = "root"
 
+// FatalError 致命错误，表示不应该继续重试的错误
+type FatalError struct {
+	ContainerName string
+	Reason        string
+	CheckCount    int
+	Message       string
+}
+
+func (e *FatalError) Error() string {
+	return fmt.Sprintf("container %s is in %s state, pod creation failed after %d checks: %s",
+		e.ContainerName, e.Reason, e.CheckCount, e.Message)
+}
+
 // KubeClientSets k8s client sets
 type KubeClientSets struct {
 	Cli        *kubernetes.Clientset
@@ -288,6 +301,12 @@ func (k *DbPodSets) CreateClusterPod(mySQLVersion string) (err error) {
 
 // createpod create pod
 func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
+	// 创建日志记录器，用于前端展示日志（参考 executeInPod 的实现）
+	extMap := map[string]string{
+		"pod_name": k.BaseInfo.PodName,
+	}
+	xlogger := logger.New(os.Stdout, true, logger.InfoLevel, extMap)
+
 	podc, err := k.K8S.Cli.CoreV1().Pods(k.K8S.Namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
 	if err != nil {
 		logger.Error("create pod failed %s", err.Error())
@@ -300,6 +319,16 @@ func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
 		CreatePodTime: time.Now(),
 		CreateTime:    time.Now()})
 	podIp := podc.Status.PodIP
+
+	// 用于跟踪每个容器的 CrashLoopBackOff 连续出现次数（按容器名称分别跟踪）
+	crashLoopCounts := make(map[string]int)
+	const maxCrashLoopChecks = 3 // 连续 3 次检测到 CrashLoopBackOff 就退出
+
+	// 自定义重试循环，支持提前退出
+	maxRetries := 120
+	retryDelay := 2 * time.Second
+	var lastErr error
+
 	// 连续多次探测pod的状态
 	fn := func() (err error) {
 		var podI *v1.Pod
@@ -311,8 +340,73 @@ func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
 			return fmt.Errorf("get pod status is empty,wait some seconds")
 		}
 		for _, cStatus := range podI.Status.ContainerStatuses {
-			logger.Info("%s: %v", cStatus.Name, cStatus.Ready)
+			logger.Info("%s: %v, RestartCount: %d", cStatus.Name, cStatus.Ready, cStatus.RestartCount)
+
+			// 检测容器不 Ready 的情况
 			if !cStatus.Ready {
+				// 检查容器是否处于 crash 状态 - 先检查这个，因为需要尽早退出
+				if cStatus.State.Waiting != nil {
+					reason := cStatus.State.Waiting.Reason
+					if reason == "CrashLoopBackOff" || reason == "Error" {
+						// 增加该容器的 crash 计数
+						crashLoopCounts[cStatus.Name]++
+						currentCount := crashLoopCounts[cStatus.Name]
+
+						xlogger.Error("container %s is in %s state: %s (detected %d times)",
+							cStatus.Name, reason, cStatus.State.Waiting.Message, currentCount)
+
+						// 输出 Pod 中所有容器的镜像信息
+						containersInfo := k.getPodContainersInfo(podI)
+						xlogger.Error("%s", containersInfo)
+
+						// 抓取日志（使用 xlogger 输出到前端）
+						logs, logErr := k.getContainerLogs(k.BaseInfo.PodName, cStatus.Name, 100)
+						if logErr != nil {
+							xlogger.Error("failed to get crash logs: %s", logErr.Error())
+						} else {
+							xlogger.Error("========== Container %s Crash Logs ==========", cStatus.Name)
+							xlogger.Error("%s", logs)
+							xlogger.Error("========== End of Crash Logs ==========")
+						}
+
+						// 连续多次检测到 CrashLoopBackOff，停止重试
+						if currentCount >= maxCrashLoopChecks {
+							xlogger.Error("container %s has been in %s state for %d consecutive checks, stopping retry...",
+								cStatus.Name, reason, currentCount)
+							// 返回致命错误，外层会检测并立即退出重试循环
+							return &FatalError{
+								ContainerName: cStatus.Name,
+								Reason:        reason,
+								CheckCount:    currentCount,
+								Message:       cStatus.State.Waiting.Message,
+							}
+						}
+					} else {
+						// 如果容器状态不是 CrashLoopBackOff，重置该容器的计数器
+						crashLoopCounts[cStatus.Name] = 0
+					}
+				}
+
+				// 检测容器 crash 状态 - 重启次数检查
+				if cStatus.RestartCount > 2 {
+					// 容器反复重启，抓取日志（使用 xlogger 输出到前端）
+					xlogger.Warn("container %s has restarted %d times (not ready), fetching logs...",
+						cStatus.Name, cStatus.RestartCount)
+
+					// 输出 Pod 中所有容器的镜像信息
+					containersInfo := k.getPodContainersInfo(podI)
+					xlogger.Error("%s", containersInfo)
+
+					logs, logErr := k.getContainerLogs(k.BaseInfo.PodName, cStatus.Name, 200)
+					if logErr != nil {
+						xlogger.Error("failed to get logs for container %s: %s", cStatus.Name, logErr.Error())
+					} else {
+						xlogger.Error("========== Container %s Crash Logs (last 200 lines) ==========", cStatus.Name)
+						xlogger.Error("%s", logs)
+						xlogger.Error("========== End of Container %s Logs ==========", cStatus.Name)
+					}
+				}
+
 				return fmt.Errorf("container %s is not ready", cStatus.Name)
 			}
 			for _, podCondition := range podI.Status.Conditions {
@@ -325,8 +419,32 @@ func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
 		logger.Info("the pod is ready,ip is %s", podIp)
 		return nil
 	}
-	if err = cmutil.Retry(cmutil.RetryConfig{Times: 120, DelayTime: 2 * time.Second}, fn); err != nil {
-		return err
+
+	// 自定义重试循环，支持检测到致命错误时立即退出
+	for i := 0; i < maxRetries; i++ {
+		lastErr = fn()
+		if lastErr == nil {
+			// 成功，退出循环
+			break
+		}
+
+		// 检查是否为致命错误（CrashLoopBackOff）
+		var fatalErr *FatalError
+		if errors.As(lastErr, &fatalErr) {
+			xlogger.Error("detected fatal error, stopping retry immediately: %s", fatalErr.Error())
+			return fatalErr
+		}
+
+		// 普通错误，继续重试
+		logger.Warn("第%d次重试,函数错误:%s", i, lastErr.Error())
+		if i < maxRetries-1 {
+			time.Sleep(retryDelay)
+		}
+	}
+
+	// 如果最终还是失败，返回错误
+	if lastErr != nil {
+		return errors.Wrap(lastErr, "retries exceeded")
 	}
 	logger.Info("the podIp is %s", podIp)
 	fnc := func() error {
@@ -354,12 +472,70 @@ func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
 	return err
 }
 
+// getContainerLogs 使用 k8s 原生接口获取容器日志
+func (k *DbPodSets) getContainerLogs(podName, containerName string, tailLines int64) (string, error) {
+	podLogOpts := v1.PodLogOptions{
+		Container: containerName,
+		TailLines: &tailLines, // 获取最后 N 行日志
+	}
+
+	req := k.K8S.Cli.CoreV1().Pods(k.K8S.Namespace).GetLogs(podName, &podLogOpts)
+	podLogs, err := req.Stream(context.TODO())
+	if err != nil {
+		return "", err
+	}
+	defer podLogs.Close()
+
+	buf := new(bytes.Buffer)
+	_, err = io.Copy(buf, podLogs)
+	if err != nil {
+		return "", err
+	}
+
+	return buf.String(), nil
+}
+
+// getPodContainersInfo 获取 Pod 中所有容器的镜像信息
+func (k *DbPodSets) getPodContainersInfo(podI *v1.Pod) string {
+	var info []string
+	info = append(info, "Pod Containers Information:")
+
+	for _, container := range podI.Spec.Containers {
+		// 查找对应的状态信息
+		var status string
+		var restartCount int32
+		for _, cStatus := range podI.Status.ContainerStatuses {
+			if cStatus.Name == container.Name {
+				if cStatus.Ready {
+					status = "Ready"
+				} else if cStatus.State.Waiting != nil {
+					status = fmt.Sprintf("Waiting (%s)", cStatus.State.Waiting.Reason)
+				} else if cStatus.State.Terminated != nil {
+					status = fmt.Sprintf("Terminated (%s)", cStatus.State.Terminated.Reason)
+				} else {
+					status = "Not Ready"
+				}
+				restartCount = cStatus.RestartCount
+				break
+			}
+		}
+
+		info = append(info, fmt.Sprintf("  - Container: %s", container.Name))
+		info = append(info, fmt.Sprintf("    Image: %s", container.Image))
+		info = append(info, fmt.Sprintf("    Status: %s", status))
+		info = append(info, fmt.Sprintf("    Restart Count: %d", restartCount))
+	}
+
+	return strings.Join(info, "\n")
+}
+
 // getToleration special  node
 func (k *DbPodSets) getToleration() []v1.Toleration {
 	ts := []v1.Toleration{}
 	for _, item := range config.GAppConfig.SimulationNodeLables {
 		ts = append(ts, v1.Toleration{
-			Key:      item.Key,
+			Key: item.Key,
+
 			Operator: v1.TolerationOpExists,
 		})
 	}
