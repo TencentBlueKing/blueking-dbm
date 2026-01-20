@@ -647,6 +647,18 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
     )
 
+    MYSQL_PARTITION_IMPORT = ActionMeta(
+        id="mysql_partition_import",
+        name=_("MySQL 分区策略导入"),
+        name_en="mysql_partition_import",
+        type="import",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("MySQL"),
+        subgroup=_("分区管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+    )
+
     MYSQL_PARTITION = ActionMeta(
         id=TicketType.MYSQL_PARTITION.lower(),
         subgroup=_("分区管理"),

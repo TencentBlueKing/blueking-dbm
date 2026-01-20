@@ -17,7 +17,7 @@ from backend.db_meta.models import AppCache, Cluster
 
 from ...ticket.builders.common.field import DBTimezoneField
 from ...ticket.builders.mysql.base import DBTableField
-from ...ticket.builders.mysql.mysql_partition import PartitionObjectSerializer
+from ...ticket.builders.mysql.mysql_partition import PartitionV2ConfObjectSerializer
 from . import mock
 
 
@@ -29,6 +29,7 @@ class PartitionListSerializer(serializers.Serializer):
     tblikes = serializers.CharField(help_text=_("匹配表"), required=False)
     domain_name = serializers.CharField(help_text=_("集群名称"), required=False)
     ids = serializers.CharField(help_text=_("策略ID"), required=False)
+    status = serializers.CharField(help_text=_("最近执行状态"), required=False)
 
     limit = serializers.IntegerField(required=False, default=10)
     offset = serializers.IntegerField(required=False, default=0)
@@ -105,6 +106,20 @@ class PartitionUpdateSerializer(PartitionCreateSerializer):
     pass
 
 
+class PartitionReinitializeSerializer(PartitionCreateSerializer):
+    cluster_id = serializers.IntegerField(help_text=_("云区域ID"))
+    dblikes = serializers.ListField(help_text=_("匹配库列表(支持通配)"), child=DBTableField(db_field=True))
+    tblikes = serializers.ListField(help_text=_("匹配表列表(不支持通配)"), child=DBTableField())
+    partition_column = serializers.CharField(help_text=_("分区字段"))
+    partition_column_type = serializers.CharField(help_text=_("分区字段类型"))
+    expire_time = serializers.IntegerField(help_text=_("过期时间"))
+    partition_time_interval = serializers.IntegerField(help_text=_("分区间隔"))
+    extra_partition = serializers.IntegerField(help_text=_("预留分区数"))
+    need_dry_run = serializers.BooleanField(help_text=_("是否需要获取分区执行数据"), required=False, default=True)
+    auto_commit = serializers.BooleanField(help_text=_("是否自动创建单据"), required=False, default=False)
+    force = serializers.BooleanField(help_text=_("否表示是否强制执行,True 表示重新初始化"), required=False, default=False)
+
+
 class PartitionDisableSerializer(serializers.Serializer):
     cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
@@ -147,24 +162,44 @@ class PartitionDryRunSerializer(serializers.Serializer):
         return Cluster.objects.get(id=obj["cluster_id"]).get_partition_port()
 
 
+class PartitionBatchDryRunSerializer(serializers.Serializer):
+    """批量分区策略预执行序列化器"""
+
+    partition_list = serializers.ListField(
+        child=PartitionDryRunSerializer(), help_text=_("分区策略预执行参数列表"), min_length=1, max_length=100
+    )
+
+    class Meta:
+        swagger_schema_fields = {"description": _("批量分区策略预执行参数")}
+
+
 class PartitionDryRunResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": mock.PARTITION_DRY_RUN_DATA}
 
 
+class PartitionBatchDryRunResponseSerializer(serializers.Serializer):
+    """批量分区策略预执行响应序列化器"""
+
+    results = serializers.ListField(child=PartitionDryRunResponseSerializer(), help_text=_("批量预执行结果列表"))
+
+    class Meta:
+        swagger_schema_fields = {"description": _("批量分区策略预执行结果")}
+
+
 class PartitionRunSerializer(serializers.Serializer):
-    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-    partition_objects = serializers.DictField(
-        help_text=_("分区执行对象列表"), child=serializers.ListSerializer(child=PartitionObjectSerializer())
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    partition_infos = serializers.DictField(
+        help_text=_("分区信息列表"), child=serializers.ListSerializer(child=PartitionV2ConfObjectSerializer())
     )
 
 
 class PartitionColumnVerifySerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     cluster_id = serializers.IntegerField(help_text=_("云区域ID"))
     dblikes = serializers.ListField(help_text=_("匹配库列表(支持通配)"), child=DBTableField(db_field=True))
     tblikes = serializers.ListField(help_text=_("匹配表列表(不支持通配)"), child=DBTableField())
     partition_column = serializers.CharField(help_text=_("分区字段"))
-    partition_column_type = serializers.CharField(help_text=_("分区字段类型"))
 
     def validate(self, attrs):
         return attrs
@@ -173,3 +208,76 @@ class PartitionColumnVerifySerializer(serializers.Serializer):
 class PartitionColumnVerifyResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": mock.PARTITION_FIELD_VERIFY_DATA}
+
+
+class PartitionImportSerializer(serializers.Serializer):
+    """Excel导入分区策略序列化器"""
+
+    file = serializers.FileField(help_text=_("Excel文件"))
+
+    class Meta:
+        swagger_schema_fields = {"description": _("通过Excel文件导入分区策略")}
+
+
+class PartitionImportResultSerializer(serializers.Serializer):
+    """Excel导入结果序列化器"""
+
+    success_count = serializers.IntegerField(help_text=_("成功导入数量"))
+    failed_count = serializers.IntegerField(help_text=_("失败导入数量"))
+    failed_items = serializers.ListField(child=serializers.DictField(), help_text=_("失败详情列表"))
+
+    class Meta:
+        swagger_schema_fields = {"description": _("Excel导入分区策略结果")}
+
+
+class PartitionExportSerializer(serializers.Serializer):
+    """分区策略导出序列化器"""
+
+    export_type = serializers.ChoiceField(
+        choices=[("all", _("所有策略")), ("selected", _("已选策略"))], help_text=_("导出类型：all-所有策略，selected-已选策略")
+    )
+
+    selected_ids = serializers.ListField(
+        child=serializers.IntegerField(), help_text=_("已选策略ID列表，仅在export_type为selected时有效"), required=False, default=[]
+    )
+
+    cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+
+    def validate(self, attrs):
+        # 过滤集群类型
+        if attrs["cluster_type"] not in [
+            ClusterType.TenDBCluster.value,
+            ClusterType.TenDBHA.value,
+            ClusterType.TenDBSingle.value,
+        ]:
+            raise serializers.ValidationError(_("目前集群类型仅支持tendbha、tengdbsingle、tendbcluster三种类型。"))
+        filter_fields = ["selected_ids"]
+        # 将selected_ids转换为int
+        for field in filter_fields:
+            if field in attrs:
+                attrs[field] = list(map(int, attrs[field]))
+        return attrs
+
+    class Meta:
+        swagger_schema_fields = {"description": _("分区策略导出参数")}
+
+
+class PartitionExportResponseSerializer(serializers.Serializer):
+    """分区策略导出响应序列化器"""
+
+    file_content = serializers.CharField(help_text=_("导出的Excel文件内容（base64编码）"))
+    file_name = serializers.CharField(help_text=_("导出的文件名"))
+    total_count = serializers.IntegerField(help_text=_("导出的策略总数"))
+
+    class Meta:
+        swagger_schema_fields = {"description": _("分区策略导出结果")}
+
+
+class PartitionLogDetailSerializer(serializers.Serializer):
+    """分区日志详情序列化器"""
+
+    config_id = serializers.ListSerializer(child=serializers.IntegerField(), help_text=_("分区策略ID"))
+
+    class Meta:
+        swagger_schema_fields = {"description": _("分区执行失败日志详情")}

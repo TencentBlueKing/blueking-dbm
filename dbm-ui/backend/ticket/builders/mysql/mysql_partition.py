@@ -41,6 +41,26 @@ class PartitionObjectSerializer(serializers.Serializer):
     execute_objects = serializers.ListField(help_text=_("执行对象列表"), child=ExecuteConfObjectSerializer())
 
 
+class PartitionConfigObjectSerializer(serializers.Serializer):
+    config_id = serializers.IntegerField(help_text=_("配置ID"))
+    dblike = serializers.CharField(help_text=_("匹配库列表（支持通配）"))
+    tblike = serializers.CharField(help_text=_("匹配表列表（不支持通配）"))
+    partition_column = serializers.CharField(help_text=_("分区字段"))
+    partition_column_type = serializers.CharField(help_text=_("分区字段类型"))
+    expire_time = serializers.IntegerField(help_text=_("过期时间"))
+    partition_time_interval = serializers.IntegerField(help_text=_("分区间隔"))
+    extra_partition = serializers.IntegerField(help_text=_("预留分区数"))
+    partition_type = serializers.IntegerField(help_text=_("分区类型"))
+    time_zone = serializers.CharField(help_text=_("时区"))
+    phase = serializers.CharField(help_text=_("是否禁用分区"))
+
+
+class PartitionV2ConfObjectSerializer(serializers.Serializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群id"))
+    config = serializers.ListSerializer(help_text=_("配置列表"), child=PartitionConfigObjectSerializer())
+    force = serializers.BooleanField(help_text=_("否表示是否强制执行,True 表示重新初始化"), default=False)
+
+
 class MySQLPartitionDetailSerializer(MySQLBaseOperateDetailSerializer):
     class PartitionInfoSerializer(serializers.Serializer):
         config_id = serializers.IntegerField(help_text=_("配置ID列表"))

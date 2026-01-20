@@ -19,6 +19,8 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components.mysql_partition.client import DBPartitionApi
 from backend.db_meta.enums import ClusterType
 from backend.db_services.partition.serializers import (
+    PartitionBatchDryRunResponseSerializer,
+    PartitionBatchDryRunSerializer,
     PartitionColumnVerifyResponseSerializer,
     PartitionColumnVerifySerializer,
     PartitionCreateSerializer,
@@ -27,10 +29,16 @@ from backend.db_services.partition.serializers import (
     PartitionDryRunResponseSerializer,
     PartitionDryRunSerializer,
     PartitionEnableSerializer,
+    PartitionExportResponseSerializer,
+    PartitionExportSerializer,
+    PartitionImportResultSerializer,
+    PartitionImportSerializer,
     PartitionListResponseSerializer,
     PartitionListSerializer,
+    PartitionLogDetailSerializer,
     PartitionLogResponseSerializer,
     PartitionLogSerializer,
+    PartitionReinitializeSerializer,
     PartitionRunSerializer,
     PartitionUpdateSerializer,
 )
@@ -176,6 +184,19 @@ class DBPartitionViewSet(viewsets.SystemViewSet):
         return Response(PartitionHandler.get_dry_run_data((validated_data, dry_run_data)))
 
     @common_swagger_auto_schema(
+        operation_summary=_("分区策略前置执行-批量执行"),
+        request_body=PartitionBatchDryRunSerializer(),
+        responses={status.HTTP_200_OK: PartitionBatchDryRunResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=PartitionBatchDryRunSerializer)
+    def batch_dry_run(self, request, *args, **kwargs):
+        validated_data = self.params_validate(PartitionBatchDryRunSerializer, representation=True)
+        partition_list = validated_data["partition_list"]
+        batch_result = PartitionHandler.batch_dry_run(partition_list)
+        return Response(batch_result)
+
+    @common_swagger_auto_schema(
         operation_summary=_("分区策略执行"),
         request_body=PartitionRunSerializer(),
         tags=[SWAGGER_TAG],
@@ -183,7 +204,7 @@ class DBPartitionViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=False, serializer_class=PartitionRunSerializer)
     def execute_partition(self, request, *args, **kwargs):
         validated_data = self.params_validate(PartitionRunSerializer, representation=True)
-        return Response(PartitionHandler.execute_partition(user=request.user.username, **validated_data))
+        return Response(DBPartitionApi.execute_partition_v2(validated_data))
 
     @common_swagger_auto_schema(
         operation_summary=_("分区策略字段校验"),
@@ -194,6 +215,60 @@ class DBPartitionViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=False, serializer_class=PartitionColumnVerifySerializer)
     def verify_partition_field(self, request, *args, **kwargs):
         validated_data = self.params_validate(PartitionColumnVerifySerializer, representation=True)
-        cluster = Cluster.objects.get(id=validated_data["cluster_id"])
-        validated_data.update(bk_biz_id=cluster.bk_biz_id)
-        return Response(PartitionHandler.verify_partition_field(**validated_data))
+        return Response(DBPartitionApi.validate_field_type_v2(validated_data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("Excel导入分区策略"),
+        request_body=PartitionImportSerializer(),
+        responses={status.HTTP_200_OK: PartitionImportResultSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=PartitionImportSerializer)
+    def import_from_excel(self, request, *args, **kwargs):
+        """通过Excel文件导入分区策略"""
+        validated_data = self.params_validate(PartitionImportSerializer)
+        excel_file = validated_data["file"]
+        # 调用导入处理逻辑
+        import_result = PartitionHandler.import_from_excel(excel_file)
+        return Response(import_result)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("导出分区策略列表"),
+        request_body=PartitionExportSerializer(),
+        responses={status.HTTP_200_OK: PartitionExportResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=PartitionExportSerializer)
+    def export_partitions(self, request, *args, **kwargs):
+        """导出分区策略接口，支持导出所有策略和已选策略"""
+        validated_data = self.params_validate(PartitionExportSerializer, representation=True)
+        export_type = validated_data["export_type"]
+        selected_ids = validated_data.get("selected_ids", [])
+        cluster_type = validated_data.get("cluster_type")
+        bk_biz_id = validated_data.get("bk_biz_id")
+        # 调用导出处理逻辑
+        return PartitionHandler.export_partitions(export_type, bk_biz_id, selected_ids, cluster_type)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("保存并执行(重新初始化)分区策略"),
+        request_body=PartitionReinitializeSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=PartitionReinitializeSerializer)
+    def reinitialize(self, request, *args, **kwargs):
+        """重新初始化分区策略接口"""
+        validated_data = self.params_validate(PartitionReinitializeSerializer, representation=True)
+        return Response(DBPartitionApi.save_and_execute_v2(validated_data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查看失败日志详情"),
+        request_body=PartitionLogDetailSerializer(),
+        responses={status.HTTP_200_OK: PartitionImportResultSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=PartitionLogDetailSerializer)
+    def fail_log_detail(self, request, *args, **kwargs):
+        """查看失败日志详情"""
+        validated_data = self.params_validate(PartitionLogDetailSerializer)
+        # 调用查询失败日志详情处理逻辑
+        return Response(DBPartitionApi.query_log_v2(validated_data))
