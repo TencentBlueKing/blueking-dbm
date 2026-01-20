@@ -93,7 +93,7 @@ class SQLServerDataExportFlowParamBuilder(builders.FlowParamBuilder):
                 )
             except Exception as e:
                 # 如果获取文件大小失败，记录日志但不中断流程
-                print(f"获取制品库文件大小失败: {e}")
+                print(_(f"获取制品库文件大小失败: {e}"))
 
             # 获取对应的cluster_id
             clusters = Cluster.objects.filter(id__in=self.ticket_data["cluster_ids"])
