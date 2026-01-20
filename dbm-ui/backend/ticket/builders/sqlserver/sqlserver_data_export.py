@@ -1,11 +1,10 @@
-import time
-
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.core.storages.storage import get_storage
 from backend.db_meta.models import AppCache, Cluster
+from backend.db_services.mysql.sql_import.constants import BKREPO_SQLSERVER_DATA_EXPORT_PATH  # 数据导出文件路径
 from backend.db_services.sqlserver.sql_import.constants import BKREPO_SQLSERVER_SQLFILE_PATH
+from backend.dbm_init.medium.handlers import MediumHandler
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.ticket import builders
 from backend.ticket.builders.sqlserver.base import BaseSQLServerTicketFlowBuilder, SQLServerBaseOperateDetailSerializer
@@ -21,12 +20,13 @@ class SQLServerDataExportDetailSerializer(SQLServerBaseOperateDetailSerializer):
     cluster_ids = serializers.ListField(help_text=_("查询集群列表"), child=serializers.IntegerField())
     execute_objects = serializers.ListField(help_text=_("执行对象列表"), child=serializers.DictField())
     select_role = serializers.ChoiceField(
-        help_text=_("查询实例角色，master或 slave"),
+        help_text=_("查询实例角色，master、slave 或 orphan"),
         choices=[
             ("master", ""),
             ("slave", ""),
+            ("orphan", ""),
         ],
-        required=False,
+        required=True,
     )
 
     def validate(self, attrs):
@@ -61,7 +61,12 @@ class SQLServerDataExportFlowParamBuilder(builders.FlowParamBuilder):
         # 为每个集群生成对应的文件名
         dump_file_names = []
         for cluster in clusters:
-            dump_file_name = f"{cluster.immute_domain}_{int(time.time())}_dbm_console_dump.sql"
+            master_instance = cluster.storageinstance_set.get(instance_inner_role=self.ticket_data["select_role"])
+            dump_file_name = (
+                f"{cluster.immute_domain}_{ self.ticket_data['select_role']}_"
+                f"{master_instance.machine.ip}_{master_instance.port}_data_export.zip"
+            )
+
             dump_file_names.append(dump_file_name)
 
         self.ticket_data["dump_file_names"] = dump_file_names
@@ -76,24 +81,17 @@ class SQLServerDataExportFlowParamBuilder(builders.FlowParamBuilder):
         dump_file_list = []
 
         for dump_file_name in flow.details["ticket_data"]["dump_file_names"]:
-            dump_file_name_with_ext = f"{dump_file_name}.zip"
-            dump_file_path = (
-                f"{BKREPO_SQLSERVER_SQLFILE_PATH.format(biz=self.ticket.bk_biz_id)}/{dump_file_name_with_ext}"
-            )
+            dump_file_path = f"{BKREPO_SQLSERVER_DATA_EXPORT_PATH.format(biz=self.ticket.bk_biz_id)}/{dump_file_name}"
 
-            # 获取制品库文件大小
+            # 获取文件大小
+            files_info = MediumHandler().storage.listdir(f"data_export/{self.ticket.bk_biz_id}")[1]
             file_size = None
-            try:
-                storage = get_storage()
-                # 使用制品库API获取文件元数据，包含文件大小
-                file_metadata = storage.get_file_metadata(dump_file_path)
-                # 从元数据中提取文件大小
-                file_size = (
-                    file_metadata.get("size") or file_metadata.get("length") or file_metadata.get("Content-Length")
-                )
-            except Exception as e:
-                # 如果获取文件大小失败，记录日志但不中断流程
-                print(f"获取制品库文件大小失败: {e}")
+
+            # 遍历所有文件信息，寻找 name 匹配 dump_file_name 的文件
+            for file_info in files_info:
+                if file_info["name"] == dump_file_name:
+                    file_size = file_info["size"]
+                    break
 
             # 获取对应的cluster_id
             clusters = Cluster.objects.filter(id__in=self.ticket_data["cluster_ids"])
@@ -104,7 +102,7 @@ class SQLServerDataExportFlowParamBuilder(builders.FlowParamBuilder):
                     break
 
             dump_file_list.append(
-                {"cluster_id": cluster_id, "size": file_size, "name": dump_file_name_with_ext, "path": dump_file_path}
+                {"cluster_id": cluster_id, "size": file_size, "name": dump_file_name, "path": dump_file_path}
             )
 
         flow.details["ticket_data"].update(
