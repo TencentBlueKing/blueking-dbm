@@ -10,6 +10,12 @@ import { type TicketTypes } from '@common/const';
 
 import { messageError } from '@utils';
 
+interface IRowError {
+  errors: string;
+  field: string;
+  row_key: string;
+}
+
 export function useCreateTicket<T>(
   ticketType: TicketTypes,
   options?: {
@@ -77,14 +83,14 @@ export function useCreateTicket<T>(
       const {
         code,
         data,
-        error: errorMessage = [] as any[],
+        errors: errorList,
         message,
       } = error as {
         code: number;
         data: {
           duplicate_ticket_id: number;
         };
-        error: string[];
+        errors: IRowError[] | string[];
         message: string;
       };
       const duplicateCode = 8704005;
@@ -144,11 +150,13 @@ export function useCreateTicket<T>(
             title: t('是否继续提交单据'),
           });
         });
-      } else if (errorMessage.length > 0) {
-        if (options?.onError) {
-          options.onError(errorMessage || []);
+      } else if (errorList.length > 0) {
+        if (typeof errorList[0] === 'string') {
+          eventBus.emit('db-toolbox-error', errorList.join('\n'));
+        } else if (options?.onError) {
+          options.onError(errorList as IRowError[]);
         } else {
-          eventBus.emit('db-toolbox-error', errorMessage.map((item) => item.errors).join(','));
+          eventBus.emit('db-toolbox-error', (errorList as IRowError[]).map((item) => item.errors).join(','));
         }
       } else {
         eventBus.emit('db-toolbox-error', message);
