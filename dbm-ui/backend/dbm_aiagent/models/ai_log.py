@@ -17,6 +17,7 @@ class TicketFlowAILog(models.Model):
     ticket_id = models.BigIntegerField(_("单据ID"), default=0)
     flow_obj_id = models.CharField(_("流程ID"), max_length=64, primary_key=True)
     ai_summary = models.TextField(_("AI日志总结"), blank=True, null=True)
+    update_at = models.DateTimeField(_("更新时间"), auto_now=True)
 
     class Meta:
         verbose_name = _("工单流程AI日志")
