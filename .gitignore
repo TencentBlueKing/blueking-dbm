@@ -8,7 +8,7 @@
 pre-*-bkcodeai
 .vscode
 .python-version
-
+**/CODE_REVIEW_SUGGESTIONS.md
 bkcodeai.json
 package-lock.json
 *.swp

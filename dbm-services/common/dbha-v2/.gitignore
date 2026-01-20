@@ -3,5 +3,7 @@ build
 logs
 pids
 
+**/CODE_REVIEW_SUGGESTIONS.md
+
 docs/swagger.json
 docs/swagger.yaml
