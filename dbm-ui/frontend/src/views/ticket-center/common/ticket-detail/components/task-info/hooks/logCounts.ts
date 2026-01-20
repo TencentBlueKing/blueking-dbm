@@ -30,7 +30,7 @@ export default function () {
   });
 
   let lastLogLength = 0;
-  let logTimer = 0;
+  let logTimer: NodeJS.Timeout;
   const fetchLog = (rootId: string, nodeId: string) => {
     getNodeLog({
       node_id: nodeId,
@@ -43,9 +43,6 @@ export default function () {
         }
         lastLogLength = logData.length;
 
-        if (logTimer < 0) {
-          return;
-        }
         logTimer = setTimeout(() => {
           fetchLog(rootId, nodeId);
         }, 2000);
@@ -55,7 +52,7 @@ export default function () {
       });
   };
 
-  let versionTimer = 0;
+  let versionTimer: NodeJS.Timeout;
   const fetchVersion = (rootId: string, nodeId: string) => {
     isLoading.value = true;
     getRetryNodeHistories({
@@ -70,9 +67,6 @@ export default function () {
           return;
         }
 
-        if (versionTimer < 0) {
-          return;
-        }
         versionTimer = setTimeout(() => {
           fetchVersion(rootId, nodeId);
         }, 2000);
@@ -109,8 +103,6 @@ export default function () {
   onBeforeUnmount(() => {
     clearTimeout(logTimer);
     clearTimeout(versionTimer);
-    logTimer = -1;
-    versionTimer = -1;
   });
 
   return {

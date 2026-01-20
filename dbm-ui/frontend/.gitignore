@@ -39,3 +39,4 @@ runner-results/
 cypress/parallel-weights.json
 
 
+!.cursor/
