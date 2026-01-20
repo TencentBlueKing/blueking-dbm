@@ -19,7 +19,7 @@ from backend.db_periodic_task.local_tasks.sqlserver.check_app_setting_data impor
 logger = logging.getLogger("celery")
 
 
-@register_periodic_task(run_every=crontab(minute=30, hour=6))
+@register_periodic_task(run_every=crontab(minute=33, hour=6))
 def check_instance_app_setting():
     """
     检查实例的元数据表(app_setting)是否正常
