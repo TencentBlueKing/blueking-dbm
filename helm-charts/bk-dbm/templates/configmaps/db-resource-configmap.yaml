@@ -44,3 +44,6 @@ data:
       api_key_name:  "{{ index .Values "db-resource" "envs" "api_key_name" }}"
       api_key_secret:  "{{ index .Values "db-resource" "envs" "api_key_secret" }}"
       interface_name:  "{{ index .Values "db-resource" "envs" "interface_name" }}"
+    tenant:
+      id: "{{ .Values.global.tenantID }}"
+      enable: {{ .Values.global.enableMultiTenantMode }}
