@@ -26,6 +26,7 @@ from backend.db_services.taskflow.serializers import (
     CallbackNodeSerializer,
     DownloadExcelSerializer,
     FlowTaskSerializer,
+    GetSpecifiedNodeSerializer,
     NodeRecordSerializer,
     NodeSerializer,
     VersionSerializer,
@@ -204,6 +205,23 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
         validated_data = self.params_validate(self.get_serializer_class())
         root_id, nodes = kwargs["root_id"], validated_data["nodes"]
         return Response(TaskFlowHandler(root_id=root_id).batch_skip_nodes(user, nodes))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取特定状态节点"),
+        request_body=GetSpecifiedNodeSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=GetSpecifiedNodeSerializer)
+    def get_specific_nodes(self, requests, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        # 获取特定状态的节点ID列表
+        node_ids = TaskFlowHandler(root_id=data["root_id"]).get_specific_node_ids(status=data["status"])
+        # 获取节点名称映射
+        node_name_map = {}
+        engine = BambooEngine(root_id=data["root_id"])
+        engine.recursion_activity_name(engine.get_pipeline_tree()["activities"], node_name_map)
+        nodes = [{"node_id": node_id, "node_name": node_name_map.get(node_id, "")} for node_id in node_ids]
+        return Response(nodes)
 
     @common_swagger_auto_schema(
         operation_summary=_("节点版本列表"),
