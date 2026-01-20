@@ -41,6 +41,13 @@ type Config struct {
 	Redis            Redis             `yaml:"redis"`
 	CloudCertificate *CloudCertificate `yaml:"cloudCertificate"`
 	Yunti            yunti.YuntiConfig `yaml:"yunti"`
+	Tenant           Tenant            `yaml:"tenant"`
+}
+
+// Tenant config
+type Tenant struct {
+	Id     string `yaml:"id"`
+	Enable bool   `yaml:"enable"`
 }
 
 // Db config

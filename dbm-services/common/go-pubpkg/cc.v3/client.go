@@ -50,7 +50,8 @@ type Client struct {
 	secret       Secret
 	secretHeader string
 
-	timeout time.Duration
+	timeout  time.Duration
+	tenantID string // 租户ID，用于多租户模式
 }
 
 // Secret TODO
@@ -62,8 +63,13 @@ type Secret struct {
 
 // NewClient return new client
 func NewClient(apiserver string, secret Secret) (*Client, error) {
-	logger.Info("创建 CC API 客户端, apiserver: %s, bk_app_code: %s, bk_username: %s",
-		apiserver, secret.BKAppCode, secret.BKUsername)
+	return NewClientWithTenant(apiserver, secret, "")
+}
+
+// NewClientWithTenant return new client with tenant ID
+func NewClientWithTenant(apiserver string, secret Secret, tenantID string) (*Client, error) {
+	logger.Info("创建 CC API 客户端, apiserver: %s, bk_app_code: %s, bk_username: %s, tenant_id: %s",
+		apiserver, secret.BKAppCode, secret.BKUsername, tenantID)
 
 	b, err := json.Marshal(secret)
 	if err != nil {
@@ -75,13 +81,14 @@ func NewClient(apiserver string, secret Secret) (*Client, error) {
 		apiserver:    apiserver,
 		secret:       secret,
 		secretHeader: string(b),
+		tenantID:     tenantID,
 	}
 	tr := &http.Transport{}
 	cli.client = &http.Client{
 		Transport: tr,
 	}
 
-	logger.Info("CC API 客户端创建成功, apiserver: %s", apiserver)
+	logger.Info("CC API 客户端创建成功, apiserver: %s, tenant_id: %s", apiserver, tenantID)
 	return cli, nil
 }
 
@@ -128,6 +135,12 @@ func (c *Client) Do(method, uri string, params interface{}) (result *Response, e
 	req.Header.Set("X-Bkapi-Accept-Code-Type", "int")
 	req.Header.Set("X-Bkapi-Authorization", c.secretHeader)
 	req.Header.Set("Content-Type", "application/json")
+
+	// Set tenant ID header if available
+	if c.tenantID != "" {
+		req.Header.Set("X-Bk-Tenant-Id", c.tenantID)
+		logger.Debug("CC API 设置租户ID, tenant_id: %s", c.tenantID)
+	}
 
 	if method == "GET" {
 		q, _ := query.Values(params)
