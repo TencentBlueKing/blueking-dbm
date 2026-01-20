@@ -205,6 +205,7 @@ func NewMySQLSwitchInstance(metadata *MysqlInstanceMetadata) (SwitchableInstance
 			InstanceRole: metadata.InstanceRole,
 			dbmClient:    &dbm.Client{},
 		},
+		IsStandBy:        metadata.IsStandBy,
 		AdminPort:        metadata.AdminPort,
 		BindEntry:        metadata.BindEntry,
 		ProxyInstanceSet: metadata.ProxyInstanceSet,
@@ -240,6 +241,7 @@ type MySQLBaseSwitchInstance struct {
 	// The following are instance metadata information from DBM
 
 	StandBySlave     *dbm.DbmMetadataSlaveInfo
+	IsStandBy        bool
 	AdminPort        int
 	BindEntry        dbm.DbmMetadataBindEntry
 	ProxyInstanceSet []dbm.DbmMetadataProxyInstance
@@ -837,9 +839,9 @@ func (sw *MySQLStorageSwitchInstance) GetInstanceInfo() string {
 		standBySlave = fmt.Sprintf("%s:%d", sw.StandBySlave.Ip, sw.StandBySlave.Port)
 	}
 	infoStr := fmt.Sprintf("{bk_cloud_id:%d, ip:%s, port:%d, bk_idc_city_id:%d, bk_biz_id:%d, status:%s, "+
-		"cluster:%s, cluster_id:%d, cluster_type:%s, machine_type:%s, role:%s, standby_slave:%s}",
+		"cluster:%s, cluster_id:%d, cluster_type:%s, machine_type:%s, role:%s, standby_slave:%s, is_stand_by:%t}",
 		sw.BkCloudID, sw.IP, sw.Port, sw.BkIdcCityID, sw.BkBizID, sw.Status, sw.Cluster,
-		sw.ClusterID, sw.ClusterType, sw.MachineType, sw.InstanceRole, standBySlave)
+		sw.ClusterID, sw.ClusterType, sw.MachineType, sw.InstanceRole, standBySlave, sw.IsStandBy)
 	return infoStr
 }
 
@@ -876,7 +878,7 @@ func (sw *MySQLStorageSwitchInstance) CheckBeforeSwitch() (SwitchCheckCode, erro
 	switch sw.InstanceRole {
 	case dbm.MySQLStorageSlave:
 		sw.ReportLogf(SwitchInfo, "this is a slave node, no need to check")
-		return SwitchNotNeeded, nil
+		return SwitchRequired, nil
 	case dbm.MySQLStorageRepeater:
 		sw.ReportLogf(SwitchWarn, "this is a repeater, dbha don't support")
 		return SwitchNotNeeded, nil
@@ -938,12 +940,12 @@ func (sw *MySQLStorageSwitchInstance) SwitchProxyBackendAddress(proxyIp string, 
 		proxyIp, proxyAdminPort, slaveAddress)
 }
 
-// DoSwitch performs the actual MySQL storage node switching
+// DoMasterSwitch performs the actual MySQL storage master switch
 //  1. refresh all proxies' backends to 1.1.1.1
 //  2. reset slave status for the standby slave and get its
 //     consistent synchronization position(binlog file and binlog position)
 //  3. refresh all proxies' backends to the alive mysql(standby slave)
-func (sw *MySQLStorageSwitchInstance) DoSwitch() error {
+func (sw *MySQLStorageSwitchInstance) DoMasterSwitch() error {
 	proxyUser := config.Cfg.Database.Mysql.ProxyUser
 	proxyPasswd := config.Cfg.Database.Mysql.ProxyPassword
 
@@ -989,8 +991,38 @@ func (sw *MySQLStorageSwitchInstance) DoSwitch() error {
 	return nil
 }
 
+// DoSlaveSwitch performs the actual MySQL storage slave switch
+func (sw *MySQLStorageSwitchInstance) DoSlaveSwitch() error {
+	if sw.IsStandBy {
+		sw.ReportLogf(SwitchInfo, "nothing to do for the standby slave")
+		return nil
+	}
+
+	sw.ReportLog(SwitchInfo, "switch step 1: delete this slave storage instance from all bound entries")
+	return sw.DeleteNameService(sw.BindEntry)
+}
+
+// DoSwitch performs the actual switch for MySQL backend nodes
+func (sw *MySQLStorageSwitchInstance) DoSwitch() error {
+	switch sw.InstanceRole {
+	case dbm.MySQLStorageSlave:
+		return sw.DoSlaveSwitch()
+	case dbm.MySQLStorageMaster:
+		return sw.DoMasterSwitch()
+	default:
+		return gerrors.Newf(gerrors.Failure, "the instance role(%s) is not supported when doing switch",
+			sw.InstanceRole)
+	}
+}
+
 // UpdateMetaInfo swaps roles of backend master and slave
 func (sw *MySQLStorageSwitchInstance) UpdateMetaInfo() error {
+	if sw.InstanceRole != dbm.MySQLStorageMaster {
+		sw.ReportLogf(SwitchInfo, "nothing to do for the instance role(%s) when updating meta info",
+			sw.InstanceRole)
+		return nil
+	}
+
 	err := sw.dbmClient.SwapMySQLRole(sw.BkCloudID, sw.IP, sw.Port, sw.StandBySlave.Ip, sw.StandBySlave.Port)
 	if err != nil {
 		errMsg := fmt.Sprintf("failed to swap roles of backend nodes(master:%s:%d, slave:%s:%d), errmsg:%s",
@@ -1008,7 +1040,7 @@ func (sw *MySQLStorageSwitchInstance) UpdateMetaInfo() error {
 func (sw *MySQLStorageSwitchInstance) DoFinal() error {
 	sw.ReportLogf(SwitchInfo, "tbinlogdumpers info of current mysql: %s", sw.GetBinlogDumperInfo())
 
-	if (sw.InstanceRole != dbm.MySQLStorageSlave) || len(sw.BinlogDumperSet) == 0 {
+	if (sw.InstanceRole != dbm.MySQLStorageMaster) || len(sw.BinlogDumperSet) == 0 {
 		sw.ReportLogf(SwitchInfo, "no need to switch tbinlogdumper for current mysql")
 		return nil
 	}
