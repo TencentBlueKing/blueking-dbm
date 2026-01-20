@@ -73,8 +73,15 @@ type OpenAIConfig struct {
 
 // AgentConfig Agent 配置
 type AgentConfig struct {
-	MaxIterations  int `yaml:"max_iterations" mapstructure:"max_iterations"`
-	TimeoutSeconds int `yaml:"timeout_seconds" mapstructure:"timeout_seconds"`
+	MaxIterations  int    `yaml:"max_iterations" mapstructure:"max_iterations"`
+	TimeoutSeconds int    `yaml:"timeout_seconds" mapstructure:"timeout_seconds"`
+	Tenant         Tenant `yaml:"tenant"`
+}
+
+// Tenant config
+type Tenant struct {
+	Id     string `yaml:"id"`
+	Enable bool   `yaml:"enable"`
 }
 
 // Db config
