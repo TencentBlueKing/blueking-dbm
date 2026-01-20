@@ -41,20 +41,9 @@
           </a>
         </template>
       </slot>
-      <FlowCollapse
-        v-if="data.err_msg"
-        danger
-        :title="t('失败原因')">
-        <div
-          class="pl-16"
-          :style="{
-            'white-space': 'pre-wrap',
-            'max-height': `${errMessageMaxHeight}px`,
-            overflow: 'auto',
-          }">
-          {{ data.err_msg }}
-        </div>
-      </FlowCollapse>
+      <RenderErrorMessage
+        :data="data"
+        :ticket-detail="ticketDetail" />
       <div
         v-if="isCanOperation && isNeedOperation"
         class="mt-12">
@@ -106,7 +95,7 @@
   import DbTimeLineItem from '../time-line/TimeLineItem.vue';
 
   import Abstract from './components/abstract/Index.vue';
-  import FlowCollapse from './components/FlowCollapse.vue';
+  import RenderErrorMessage from './components/render-error-message/Index.vue';
 
   interface Props {
     data: FlowMode<unknown, any>;
@@ -126,8 +115,6 @@
 
   const { t } = useI18n();
   const { isSuperuser, username } = useUserProfile();
-
-  const errMessageMaxHeight = window.innerHeight * 0.4;
 
   const isCanOperation = computed(
     () =>

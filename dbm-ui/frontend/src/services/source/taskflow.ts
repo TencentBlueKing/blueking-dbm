@@ -284,3 +284,13 @@ export function getNodeOperateRecord(params: { node_id?: string; root_id: string
       ),
     );
 }
+
+export const getSpecificNodes = (params: { root_id: string; status: string }) => {
+  return http.post<
+    {
+      node_id: string;
+      node_name: string;
+      version_id: string;
+    }[]
+  >(`${path}/get_specific_nodes/`, params);
+};
