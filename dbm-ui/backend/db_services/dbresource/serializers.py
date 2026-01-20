@@ -74,22 +74,29 @@ class ResourceImportSerializer(serializers.Serializer):
         if exist_hosts:
             raise serializers.ValidationError(_("导入失败，主机{}存在元数据，请检查后重新导入").format(exist_hosts))
 
+        dissolved_switch = SystemSettings.get_setting_value(
+            key=SystemSettingsEnum.HOST_DISSOLVED_SWITCH, default=False
+        )
+        host_to_fault_switch = SystemSettings.get_setting_value(
+            key=SystemSettingsEnum.HOST_TO_FAULT_SWITCH, default=False
+        )
+
         # 直连区域主机才进行uwork/xwork检查
         host_id__ip_map = {host["host_id"]: host["ip"] for host in attrs["hosts"] if host["bk_cloud_id"] == 0}
         host_ip__host_id_map = {host["ip"]: host["host_id"] for host in attrs["hosts"] if host["bk_cloud_id"] == 0}
         direct_host_ids = list(host_id__ip_map.keys())
         # 存在uwork或者是待裁撤主机，则不允许导入
-        check_uwork = HCMApi.check_host_has_uwork(direct_host_ids)
+        check_uwork = {} if not host_to_fault_switch else HCMApi.check_host_has_uwork(direct_host_ids)
         if check_uwork:
             ips = [host_id__ip_map[host_id] for host_id in check_uwork.keys()]
             raise serializers.ValidationError(_("导入失败，检测主机{}有关联的uwork单据，请检查后重新导入").format(ips))
 
-        check_xwork = XworkApi.check_xwork_list(host_ip__host_id_map)
+        check_xwork = {} if not host_to_fault_switch else XworkApi.check_xwork_list(host_ip__host_id_map)
         if check_xwork:
             ips = [host_id__ip_map[host_id] for host_id in check_xwork.keys()]
             raise serializers.ValidationError(_("导入失败，检测主机{}有关联的xwork单据，请检查后重新导入").format(ips))
 
-        check_dissolved = HCMApi.check_host_is_dissolved(direct_host_ids)
+        check_dissolved = [] if not dissolved_switch else HCMApi.check_host_is_dissolved(direct_host_ids)
         if check_dissolved:
             ips = [host_id__ip_map[host_id] for host_id in check_dissolved]
             raise serializers.ValidationError(_("导入失败，检测主机{}为待裁撤主机，请检查后重新导入").format(ips))
