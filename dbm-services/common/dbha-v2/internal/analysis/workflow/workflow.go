@@ -510,122 +510,199 @@ func (w *Workflow) checkMissedProbe(dbStatus []*hamodel.DbhaDataStatus, skipDbIn
 	w.databaseLivenessDoubleCheck(missedProbeInsts)
 }
 
-func (w *Workflow) checkBusinessWithBizID(ctx context.Context, bizId int) (retErr error) {
-	logger.Debug("check the business: %d", bizId)
-
-	//  Acquire the lock to ensuer the only one instance of the AM handles the bizID.
-	mu, retErr := w.discoveryCli.CreateMutex(strconv.Itoa(bizId))
-	if retErr != nil {
-		logger.Warn("failed to acquire the mutex lock for the business, bizId: %d, errmsg: %s", bizId, retErr)
-		return ErrAcquireLockFailure
+// acquireBusinessLock acquires and locks the mutex for a business.
+// It returns the mutex and a cleanup function that should be deferred.
+func (w *Workflow) acquireBusinessLock(ctx context.Context, bizId int) (discovery.ConcurrencyMutex, func(), error) {
+	mu, err := w.discoveryCli.CreateMutex(strconv.Itoa(bizId))
+	if err != nil {
+		logger.Warn("failed to acquire the mutex lock for the business, bizId: %d, errmsg: %s", bizId, err)
+		return nil, nil, ErrAcquireLockFailure
 	}
 
-	defer mu.Close()
-
-	if retErr = mu.TryLock(ctx); retErr != nil {
-		logger.Warn("failed to lock the business, bizId: %d, errmsg: %s", bizId, retErr)
-		return retErr
+	if err := mu.TryLock(ctx); err != nil {
+		mu.Close()
+		logger.Warn("failed to lock the business, bizId: %d, errmsg: %s", bizId, err)
+		return nil, nil, err
 	}
 
-	defer func() {
-		if retErr = mu.Unlock(ctx); retErr != nil {
-			logger.Warn("failed to unlock the biz: %d, errmsg: %v", bizId, retErr)
+	cleanup := func() {
+		if err := mu.Unlock(ctx); err != nil {
+			logger.Warn("failed to unlock the biz: %d, errmsg: %v", bizId, err)
 		}
-	}()
-
-	// Read all metadata by business ID.
-	metaData, retErr := w.hadata.ReadMetadataCacheWithBizID(bizId, readBatchCount,
-		config.Cfg.Workflow.ReadDbMetaOffsetDuration)
-
-	if retErr != nil {
-		logger.Warn("failed to read the DB metadata for the business, bizId: %d, errmsg: %s", bizId, retErr)
-		return ErrReadMetadataFailure
+		mu.Close()
 	}
 
-	conds := []*storage.DbInstance{}
-	metaInsts := map[string]*hamodel.DbmMetadata{}
+	return mu, cleanup, nil
+}
+
+// businessMetadata contains metadata and conditions for a business.
+type businessMetadata struct {
+	metaInsts map[string]*hamodel.DbmMetadata
+	conds     []*storage.DbInstance
+}
+
+// readBusinessMetadata reads all metadata for a business and builds the conditions.
+func (w *Workflow) readBusinessMetadata(bizId int) (*businessMetadata, error) {
+	metaData, err := w.hadata.ReadMetadataCacheWithBizID(bizId, readBatchCount,
+		config.Cfg.Workflow.ReadDbMetaOffsetDuration)
+	if err != nil {
+		logger.Warn("failed to read the DB metadata for the business, bizId: %d, errmsg: %s", bizId, err)
+		return nil, ErrReadMetadataFailure
+	}
+
+	conds := make([]*storage.DbInstance, 0, len(metaData))
+	metaInsts := make(map[string]*hamodel.DbmMetadata, len(metaData))
+
 	for _, meta := range metaData {
 		conds = append(conds, &storage.DbInstance{
 			BkCloudID: meta.BkCloudID,
 			IP:        meta.IP,
 			Port:      meta.Port,
 		})
-
 		metaInsts[key(meta.BkCloudID, meta.IP, meta.Port)] = meta
 	}
 
-	// Read the status data reported by the probe.
-	dbStatus, err := w.hadata.ReadDbStatusWithDbInstances(conds, config.Cfg.Workflow.ReadDbMetricOffsetDuration)
-	if err != nil {
-		logger.Warn("failed to read the DB status with the conditions: %v, bizId: %d, errmsg: %s", conds, bizId, err)
-		return ErrReadDbMetricFailure
-	}
+	return &businessMetadata{
+		metaInsts: metaInsts,
+		conds:     conds,
+	}, nil
+}
 
-	dbEvents := []*haprobe.DbEvent{}
-	dbHosts := []*haprobe.HostMetric{}
-	dbStatusVals := []parser.DBTyperWrapper{}
+// dbStatusData contains extracted data from database status.
+type dbStatusData struct {
+	dbEvents     []*haprobe.DbEvent
+	dbHosts      []*haprobe.HostMetric
+	dbStatusVals []parser.DBTyperWrapper
+}
+
+// extractDbStatusData extracts events, hosts, and status values from database status.
+func (w *Workflow) extractDbStatusData(dbStatus []*hamodel.DbhaDataStatus) *dbStatusData {
+	data := &dbStatusData{
+		dbEvents:     make([]*haprobe.DbEvent, 0),
+		dbHosts:      make([]*haprobe.HostMetric, 0),
+		dbStatusVals: make([]parser.DBTyperWrapper, 0),
+	}
 
 	for _, dbStat := range dbStatus {
 		if dbStat.Events.Valid {
-			dbEvents = append(dbEvents, dbStat.Events.Data...)
+			data.dbEvents = append(data.dbEvents, dbStat.Events.Data...)
 		}
 
 		if dbStat.Host.Valid {
-			dbHosts = append(dbHosts, dbStat.Host.Data)
+			data.dbHosts = append(data.dbHosts, dbStat.Host.Data)
 		}
 
 		if dbStat.Value.Valid {
-			dbStatusVals = append(dbStatusVals, parser.DBTyperWrapper{
+			data.dbStatusVals = append(data.dbStatusVals, parser.DBTyperWrapper{
 				DbTypeName: dbStat.DbTypeName,
 				Value:      dbStat.Value.Data,
 			})
 		}
 	}
 
+	return data
+}
+
+// readBusinessSkipInstances reads skipped instances for a business.
+func (w *Workflow) readBusinessSkipInstances(bizId int) (map[string]*hamodel.SkipDbInstance, error) {
 	dbSkipInsts, err := w.hadata.ReadSkipDbInstancesWithBkBizId(bizId)
 	if err != nil {
 		logger.Warn("failed to read the skipped DB insts for the business: %d, errmsg: %s", bizId, err)
-		return ErrReadSkipDbInstFailure
+		return nil, ErrReadSkipDbInstFailure
 	}
 
-	skipInsts := map[string]*hamodel.SkipDbInstance{}
+	skipInsts := make(map[string]*hamodel.SkipDbInstance, len(dbSkipInsts))
 	for _, skipInst := range dbSkipInsts {
 		skipInsts[key(skipInst.BkCloudID, skipInst.InstanceIP, skipInst.InstancePort)] = skipInst
 	}
 
+	return skipInsts, nil
+}
+
+// runBusinessChecks runs all check tasks concurrently for a business.
+func (w *Workflow) runBusinessChecks(
+	bizId int,
+	dbStatus []*hamodel.DbhaDataStatus,
+	statusData *dbStatusData,
+	skipInsts map[string]*hamodel.SkipDbInstance,
+	metaInsts map[string]*hamodel.DbmMetadata,
+) {
 	checkDbEventFunc := func(dbEvents []*haprobe.DbEvent) {
 		w.checkEventWithBizId(bizId, dbEvents, skipInsts, metaInsts)
 	}
 
 	var wg sync.WaitGroup
 
+	// Check missed probe instances
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		w.checkMissedProbe(dbStatus, skipInsts, metaInsts)
 	}()
 
+	// Check database events
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		w.checkEventWithBizId(bizId, dbEvents, skipInsts, metaInsts)
+		w.checkEventWithBizId(bizId, statusData.dbEvents, skipInsts, metaInsts)
 	}()
 
+	// Check database hosts
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		w.checkDbHosts(dbHosts, checkDbEventFunc)
+		w.checkDbHosts(statusData.dbHosts, checkDbEventFunc)
 	}()
 
+	// Check database status
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		w.checkDbStatus(dbStatusVals, checkDbEventFunc)
+		w.checkDbStatus(statusData.dbStatusVals, checkDbEventFunc)
 	}()
 
 	wg.Wait()
+}
+
+// checkBusinessWithBizID checks a business by its ID.
+// It acquires a lock, reads metadata and status, then runs various checks concurrently.
+func (w *Workflow) checkBusinessWithBizID(ctx context.Context, bizId int) error {
+	logger.Debug("check the business: %d", bizId)
+
+	// Acquire the lock to ensure only one instance of the AM handles the bizID.
+	_, unlock, err := w.acquireBusinessLock(ctx, bizId)
+	if err != nil {
+		return err
+	}
+	defer unlock()
+
+	// Read business metadata
+	bizMeta, err := w.readBusinessMetadata(bizId)
+	if err != nil {
+		return err
+	}
+
+	// Read the status data reported by the probe
+	dbStatus, err := w.hadata.ReadDbStatusWithDbInstances(bizMeta.conds, config.Cfg.Workflow.ReadDbMetricOffsetDuration)
+	if err != nil {
+		logger.Warn("failed to read the DB status with the conditions: %v, bizId: %d, errmsg: %s", bizMeta.conds, bizId, err)
+		return ErrReadDbMetricFailure
+	}
+
+	// Extract data from database status
+	statusData := w.extractDbStatusData(dbStatus)
+
+	// Read skipped instances
+	skipInsts, err := w.readBusinessSkipInstances(bizId)
+	if err != nil {
+		return err
+	}
+
+	// Run all checks concurrently
+	w.runBusinessChecks(bizId, dbStatus, statusData, skipInsts, bizMeta.metaInsts)
+
 	logger.Debug("finished checking the business: %d", bizId)
-	return retErr
+	return nil
 }
 
 func (w *Workflow) scanBusinesses(ctx context.Context) {
@@ -636,12 +713,15 @@ func (w *Workflow) scanBusinesses(ctx context.Context) {
 	}
 
 	wg := sync.WaitGroup{}
+	sem := make(chan struct{}, 10) // 10 is the max concurrent business checks
 
 	for _, bizID := range bizIDs {
+		sem <- struct{}{} // acquire the semaphore
 		wg.Add(1)
 
 		go func(bizId int) {
 			defer wg.Done()
+			defer func() { <-sem }() // release the semaphore
 
 			err := w.checkBusinessWithBizID(ctx, bizId)
 			if err == nil {
