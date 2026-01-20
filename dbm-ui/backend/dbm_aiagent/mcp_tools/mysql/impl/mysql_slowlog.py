@@ -54,65 +54,56 @@ SLOW_LOG_QUERY_PARAM = {
             }
         ],
     },
-    "limit": 10,
+    "limit": 5,
 }
 
 
 def query_slow_logs_by_metric(
     cluster_type: ClusterType,
     cluster_domain: str,
-    instance_role: str,
     start_time: timezone.datetime,
     end_time: timezone.datetime,
-) -> list[dict]:
+    metric_name: str,
+    limit: int,
+) -> Dict:
     if not config.MYSQL_SLOW_LOG_INDEX_SET_ID:
         config.init_collectors_index_set_id()
         if not config.MYSQL_SLOW_LOG_INDEX_SET_ID:
             raise DBMMcpBaseException(msg="MYSQL_SLOW_LOG_INDEX_SET_ID is not set")
 
-    query_time_param = copy.deepcopy(SLOW_LOG_QUERY_PARAM)
-    query_time_param["reference_name"] = "a"
-    query_time_param["field_name"] = "query_time"
-    query_time_param["function"][0]["method"] = "max"
-    query_time_param["conditions"]["field_list"][0]["value"] = [cluster_domain]
-    query_time_param["table_id"] = SLOW_LOG_QUERY_PARAM["table_id"] % config.MYSQL_SLOW_LOG_INDEX_SET_ID
+    query_param = copy.deepcopy(SLOW_LOG_QUERY_PARAM)
+    query_param["table_id"] = SLOW_LOG_QUERY_PARAM["table_id"] % config.MYSQL_SLOW_LOG_INDEX_SET_ID
+    query_param["limit"] = limit if limit else 5
+    if metric_name == "query_time" or metric_name == "":
+        query_param["reference_name"] = "a"
+        query_param["field_name"] = "query_time"
+        query_param["function"][0]["method"] = "max"
+        query_param["conditions"]["field_list"][0]["value"] = [cluster_domain]
     # query_time_param["conditions"]["field_list"][1]["value"] = [instance_role]
 
-    slow_count_param = copy.deepcopy(SLOW_LOG_QUERY_PARAM)
-    slow_count_param["reference_name"] = "a"
-    slow_count_param["field_name"] = "query_digest_md5"
-    slow_count_param["function"][0]["method"] = "count"
-    slow_count_param["conditions"]["field_list"][0]["value"] = [cluster_domain]
-    slow_count_param["table_id"] = SLOW_LOG_QUERY_PARAM["table_id"] % config.MYSQL_SLOW_LOG_INDEX_SET_ID
+    if metric_name == "slow_count":
+        query_param["reference_name"] = "a"
+        query_param["field_name"] = "query_digest_md5"
+        query_param["function"][0]["method"] = "count"
+        query_param["conditions"]["field_list"][0]["value"] = [cluster_domain]
     # slow_count_param["conditions"]["field_list"][1]["value"] = [instance_role]
 
-    rows_scan_param = copy.deepcopy(SLOW_LOG_QUERY_PARAM)
-    rows_scan_param["reference_name"] = "a"
-    rows_scan_param["field_name"] = "rows_examined"
-    rows_scan_param["function"][0]["method"] = "sum"
-    rows_scan_param["conditions"]["field_list"][0]["value"] = [cluster_domain]
-    rows_scan_param["table_id"] = SLOW_LOG_QUERY_PARAM["table_id"] % config.MYSQL_SLOW_LOG_INDEX_SET_ID
+    if metric_name == "rows_scan" or metric_name == "rows_examined":
+        query_param["reference_name"] = "a"
+        query_param["field_name"] = "rows_examined"
+        query_param["function"][0]["method"] = "sum"
+        query_param["conditions"]["field_list"][0]["value"] = [cluster_domain]
     # rows_scan_param["conditions"]["field_list"][1]["value"] = [instance_role]
 
-    query_time = query_slow_logs(cluster_type, cluster_domain, query_time_param, start_time, end_time)
-    query_time["metric_aggregate_type"] = "%s by %s" % (
-        query_time_param["function"][0]["method"],
-        query_time_param["field_name"],
-    )
+    if not query_param["field_name"]:
+        raise DBMMcpBaseException(msg="metric_name is not supported")
 
-    slow_count = query_slow_logs(cluster_type, cluster_domain, slow_count_param, start_time, end_time)
-    slow_count["metric_aggregate_type"] = "%s by %s" % (
-        slow_count_param["function"][0]["method"],
-        slow_count_param["field_name"],
+    query_result = query_slow_logs(cluster_type, cluster_domain, query_param, start_time, end_time)
+    query_result["metric_aggregate_type"] = "%s by %s" % (
+        query_param["function"][0]["method"],
+        query_param["field_name"],
     )
-
-    rows_scan = query_slow_logs(cluster_type, cluster_domain, rows_scan_param, start_time, end_time)
-    rows_scan["metric_aggregate_type"] = "%s by %s" % (
-        rows_scan_param["function"][0]["method"],
-        rows_scan_param["field_name"],
-    )
-
-    return [query_time, slow_count, rows_scan]
+    return query_result
 
 
 def query_slow_logs(

@@ -50,17 +50,19 @@ class MySQLSlowlogMcpToolsViewSet(McpToolsViewSet):
         bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
         cluster_type = self.get_param("cluster_type")
         cluster_domain = self.get_param("cluster_domain")
-        instance_role = self.get_param("instance_role")
+        metric_name = self.get_param("metric_name")
         start_time = self.get_param("start_time")
         end_time = self.get_param("end_time")
+        limit = self.get_param("limit")
 
         return Response(
             query_slow_logs_by_metric(
                 cluster_type=cluster_type,
                 cluster_domain=cluster_domain,
-                instance_role=instance_role,
                 start_time=start_time,
                 end_time=end_time,
+                metric_name=metric_name,
+                limit=limit,
             )
         )
 
