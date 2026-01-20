@@ -10,10 +10,12 @@ specific language governing permissions and limitations under the License.
 from collections import defaultdict
 from typing import Any, Dict, List, Union
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.forms import model_to_dict
+from django.http.response import HttpResponse
 from django.utils.translation import gettext as _
 
-from backend.components import DRSApi
+from backend.components import CCApi, DRSApi
 from backend.components.mysql_partition.client import DBPartitionApi
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.api.cluster.base.handler import ClusterHandler
@@ -38,6 +40,7 @@ from backend.exceptions import ApiRequestError, ApiResultError
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
 from backend.utils.batch_request import request_multi_thread
+from backend.utils.excel import ExcelHandler
 
 
 class PartitionHandler(object):
@@ -159,7 +162,6 @@ class PartitionHandler(object):
             }
             for config_id, partition_object in partition_objects.items()
         ]
-
         # 循环执行分区单据，这里一个分区策略对应一个单据
         ticket_list: List[Dict] = []
         for partition_data in partition_data_list:
@@ -450,3 +452,217 @@ class PartitionHandler(object):
         sorted_table_infos = sorted(table_infos.items(), key=lambda x: int(x[0]))
 
         return sorted_table_infos
+
+    @classmethod
+    def import_from_excel(cls, excel_file) -> dict:
+        """
+        从Excel文件导入分区策略
+
+        Args:
+            excel_file: Excel文件对象
+
+        Returns:
+            dict: 导入结果
+        """
+        try:
+            # 使用ExcelHandler解析Excel文件，表头在第2行（索引为1）
+            excel_data = ExcelHandler.paser(excel_file, header_row=1)
+
+            if not excel_data:
+                return {
+                    "success_count": 0,
+                    "failed_count": 0,
+                    "failed_items": [{"row": 0, "error": _("Excel文件为空或没有数据行")}],
+                }
+
+            # 检查必要的列是否存在
+            required_columns = [_("集群"), _("DB名"), _("表名"), _("分区字段"), _("分区字段类型"), _("分区间隔（天）"), _("数据过期时间（天）")]
+            first_row = excel_data[0] if excel_data else {}
+            missing_columns = [col for col in required_columns if col not in first_row]
+            if missing_columns:
+                return {
+                    "success_count": 0,
+                    "failed_count": len(excel_data),
+                    "failed_items": [{"row": 0, "error": _("Excel文件缺少必要列: {}").format(", ".join(missing_columns))}],
+                }
+
+            success_count = 0
+            failed_count = 0
+            failed_items = []
+
+            # 处理数据行
+            for row_num, row_data in enumerate(excel_data, start=3):  # 从第3行开始（Excel行号）
+                try:
+                    # 验证集群是否存在
+                    cluster = Cluster.objects.get(name=row_data[_("集群")])
+                    # 构建分区策略参数
+                    partition_data = {
+                        "cluster_id": cluster.id,
+                        "bk_biz_id": cluster.bk_biz_id,
+                        "dblikes": [row_data.get(_("DB名"), "")],
+                        "tblikes": [row_data[_("表名")]],
+                        "partition_column": row_data[_("分区字段")],
+                        "partition_column_type": row_data[_("分区字段类型")],
+                        "partition_time_interval": int(row_data[_("分区间隔（天）")]),
+                        "expire_time": int(row_data.get(_("数据过期时间（天）"), 720)),
+                    }
+
+                    # 调用API创建分区策略
+                    result = DBPartitionApi.create_conf(params=partition_data)
+
+                    if result.get("code") == 0:
+                        success_count += 1
+                    else:
+                        failed_count += 1
+                        failed_items.append({"row": row_num, "error": result.get("message", _("未知错误"))})
+                except ObjectDoesNotExist:
+                    failed_count += 1
+                    failed_items.append({"row": row_num, "error": _("集群 {} 不存在").format(row_data[_("集群")])})
+                except Exception as e:
+                    failed_count += 1
+                    failed_items.append({"row": row_num, "error": str(e)})
+
+            return {"success_count": success_count, "failed_count": failed_count, "failed_items": failed_items}
+        except Exception as e:
+            return {
+                "success_count": 0,
+                "failed_count": 0,
+                "failed_items": [{"row": 0, "error": _("Excel文件解析失败: {}").format(str(e))}],
+            }
+
+    @classmethod
+    def export_partitions(
+        cls, export_type: str, bk_biz_id: int, selected_ids: List[int] = None, cluster_type: str = None
+    ) -> HttpResponse:
+        """
+        导出分区策略数据
+
+        Args:
+            export_type: 导出类型，all-所有策略，selected-已选策略
+            selected_ids: 已选策略ID列表
+            cluster_type: 集群类型
+            bk_biz_id: 业务ID
+
+        Returns:
+            Dict: 导出结果，包含文件内容和文件名
+        """
+        # 获取分区策略数据
+        if export_type == "all":
+            # 获取所有策略
+            partition_data = DBPartitionApi.query_conf(
+                params={"bk_biz_id": bk_biz_id, "cluster_type": cluster_type, "limit": 20, "offset": 0}
+            )
+        else:
+            # 获取指定策略
+            partition_data = DBPartitionApi.query_conf(
+                params={
+                    "bk_biz_id": bk_biz_id,
+                    "cluster_type": cluster_type,
+                    "ids": selected_ids,
+                    "limit": 20,
+                    "offset": 0,
+                }
+            )
+
+        partitions = partition_data.get("items", [])
+
+        # 准备数据字典列表
+        data_dict_list = []
+        for partition in partitions:
+            data_dict_list.append(
+                {
+                    _("策略ID"): partition.get("id", ""),
+                    _("集群"): partition.get("immute_domain", ""),
+                    _("DB名"): partition.get("dblike", ""),
+                    _("表名"): partition.get("tblike", ""),
+                    _("分区字段"): partition.get("partition_column", ""),
+                    _("分区间隔（天）"): partition.get("partition_time_interval", ""),
+                    _("数据过期时间（天）"): partition.get("expire_time", ""),
+                }
+            )
+
+        # 设置表头
+        headers = [
+            {"id": _("策略ID"), "name": _("策略ID")},
+            {"id": _("集群"), "name": _("集群")},
+            {"id": _("DB名"), "name": _("DB名")},
+            {"id": _("表名"), "name": _("表名")},
+            {"id": _("分区字段"), "name": _("分区字段")},
+            {"id": _("分区间隔（天）"), "name": _("分区间隔（天）")},
+            {"id": _("数据过期时间（天）"), "name": _("数据过期时间（天）")},
+        ]
+
+        # 使用ExcelHandler序列化数据
+        workbook = ExcelHandler.serialize(
+            data_dict__list=data_dict_list, headers=headers, match_header=True, sheet_name=_("分区策略列表")
+        )
+
+        # 获取业务信息
+        biz_infos = CCApi.search_business(
+            {
+                "fields": ["bk_biz_id", "bk_biz_name"],
+                "biz_property_filter": {
+                    "condition": "AND",
+                    "rules": [{"field": "bk_biz_id", "operator": "equal", "value": bk_biz_id}],
+                },
+            },
+            use_admin=True,
+        ).get("info", [])
+        # 生成文件名
+        from datetime import datetime
+
+        try:
+            biz_name = biz_infos[0].get("bk_biz_name", _("未知业务"))
+        except (IndexError, AttributeError):
+            biz_name = _("未知业务")
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        file_name = f"{timestamp}_{biz_name}({bk_biz_id})mysql_partition.xlsx"
+
+        return ExcelHandler.response(workbook, file_name)
+
+    @classmethod
+    def batch_dry_run(cls, partition_list: List[Dict]) -> Dict:
+        """
+        批量分区策略预执行
+
+        Args:
+            partition_list: 分区策略参数列表
+
+        Returns:
+            Dict: 批量预执行结果
+        """
+        results = []
+
+        for index, partition_data in enumerate(partition_list):
+            try:
+                # 验证集群是否存在
+                cluster = Cluster.objects.get(id=partition_data["cluster_id"])
+
+                # 构建完整的预执行参数
+                partition_data.update(
+                    immute_domain=cluster.immute_domain,
+                    bk_cloud_id=cluster.bk_cloud_id,
+                    cluster_type=cluster.cluster_type,
+                    bk_biz_id=cluster.bk_biz_id,
+                )
+
+                # 调用API进行预执行
+                result = DBPartitionApi.dry_run(params=partition_data, raw=True)
+
+                # 添加索引信息便于追踪
+                result["index"] = index
+                results.append(result)
+
+            except ObjectDoesNotExist:
+                results.append(
+                    {
+                        "index": index,
+                        "code": -1,
+                        "message": _("集群ID {} 不存在").format(partition_data["cluster_id"]),
+                        "data": None,
+                    }
+                )
+            except Exception as e:
+                results.append({"index": index, "code": -1, "message": _("预执行失败: {}").format(str(e)), "data": None})
+
+        return {"results": results}
