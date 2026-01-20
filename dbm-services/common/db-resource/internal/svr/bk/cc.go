@@ -107,6 +107,16 @@ func NewClient(apiUrl string) (*cc.Client, error) {
 		BKAppSecret: config.AppConfig.BkSecretConfig.BKAppSecret,
 		BKUsername:  config.AppConfig.BkSecretConfig.BkUserName,
 	})
+	if config.AppConfig.Tenant.Enable {
+		if lo.IsEmpty(config.AppConfig.Tenant.Id) {
+			return nil, errors.New("租户ID为空，请检查配置")
+		}
+		cli, newClientErr = cc.NewClientWithTenant(apiUrl, cc.Secret{
+			BKAppCode:   config.AppConfig.BkSecretConfig.BkAppCode,
+			BKAppSecret: config.AppConfig.BkSecretConfig.BKAppSecret,
+			BKUsername:  config.AppConfig.BkSecretConfig.BkUserName,
+		}, config.AppConfig.Tenant.Id)
+	}
 	return cli, newClientErr
 }
 

@@ -57,3 +57,6 @@ data:
         model: "{{ index .Values "db-resource" "envs" "llm_model" }}"
         max_tokens: "{{ index .Values "db-resource" "envs" "llm_max_tokens" }}"
         temperature: "{{ index .Values "db-resource" "envs" "temperature" }}"
+    tenant:
+      id: "{{ .Values.global.tenantID }}"
+      enable: {{ .Values.global.enableMultiTenantMode }}
