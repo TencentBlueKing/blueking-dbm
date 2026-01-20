@@ -13,7 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.models import AppCache
-from backend.flow.consts import PipelineStatus
+from backend.flow.consts import PipelineStatus, StateType
 from backend.flow.models import FlowTree
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Flow
@@ -98,6 +98,11 @@ class CallbackNodeSerializer(NodeSerializer):
 class DownloadExcelSerializer(serializers.Serializer):
     root_id = serializers.CharField(help_text=_("流程ID"))
     match_header = serializers.BooleanField(help_text=_("是否严格匹配列名"), required=False)
+
+
+class GetSpecifiedNodeSerializer(serializers.Serializer):
+    root_id = serializers.CharField(help_text=_("流程根节点ID"), required=True)
+    status = serializers.ChoiceField(help_text=_("节点状态"), choices=StateType.get_choices(), required=True)
 
 
 class VersionSerializer(NodeSerializer):
