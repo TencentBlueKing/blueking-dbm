@@ -989,6 +989,7 @@ class UpgradeTdbctlFlow(object):
         pipeline = Builder(root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids)))
 
         # 遍历所有需要升级的集群
+        sub_pipelines = []
         for upgrade_info in upgrade_infos:
             cluster_id = upgrade_info["cluster_id"]
             pkg_id = upgrade_info["pkg_id"]
@@ -1005,8 +1006,8 @@ class UpgradeTdbctlFlow(object):
                 pkg_id=pkg_id,
                 sub_flow_name=_("集群{} tdbctl升级").format(cluster_id),
             )
-
-            pipeline.add_sub_pipeline(sub_flow=sub_flow)
+            sub_pipelines.append(sub_flow)
 
         # 运行流程
+        pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         pipeline.run_pipeline()
