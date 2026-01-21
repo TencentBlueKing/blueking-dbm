@@ -336,6 +336,63 @@ class TdbctlUpgradeSerializer(serializers.Serializer):
 class TdbctlUpgradeFlowParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.tendbcluster_tdbctl_upgrade
 
+    def format_ticket_data(self):
+        """
+        格式化单据数据，将单据参数转换为 Flow 期望的格式
+
+        单据参数格式：
+        {
+            "bk_biz_id": 100,
+            "cluster_ids": [1, 2, 3],
+            "pkg_id": 123,
+            "upgrade_all": False
+        }
+
+        Flow 期望格式：
+        {
+            "bk_biz_id": 100,
+            "bk_cloud_id": 0,
+            "uid": "admin",
+            "update_all": False,
+            "infos": [
+                {"cluster_id": 1, "pkg_id": 123},
+                {"cluster_id": 2, "pkg_id": 123},
+                {"cluster_id": 3, "pkg_id": 123}
+            ]
+        }
+        """
+        from backend.db_meta.models import Cluster
+
+        # 1. 字段重命名：upgrade_all -> update_all
+        upgrade_all = self.ticket_data.pop("upgrade_all", False)
+        self.ticket_data["update_all"] = upgrade_all
+
+        # 2. 转换参数结构：cluster_ids + pkg_id -> infos 列表
+        cluster_ids = self.ticket_data.pop("cluster_ids", [])
+        pkg_id = self.ticket_data.get("pkg_id")
+
+        if upgrade_all:
+            # 场景1：全量升级，infos 中只需要 pkg_id
+            self.ticket_data["infos"] = [{"pkg_id": pkg_id}]
+        else:
+            # 场景2：指定集群升级，构建 infos 列表
+            self.ticket_data["infos"] = [{"cluster_id": cluster_id, "pkg_id": pkg_id} for cluster_id in cluster_ids]
+
+        # 3. 添加 bk_cloud_id 字段
+        # 从第一个集群获取 bk_cloud_id（同一业务下的 spider 集群通常在同一云区域）
+        if cluster_ids:
+            first_cluster = Cluster.objects.filter(id=cluster_ids[0]).first()
+            if first_cluster:
+                self.ticket_data["bk_cloud_id"] = first_cluster.bk_cloud_id
+            else:
+                self.ticket_data["bk_cloud_id"] = 0
+        else:
+            # 全量升级时，使用默认云区域
+            self.ticket_data["bk_cloud_id"] = 0
+
+        # 4. uid 已由 add_common_params() 添加，但需要覆盖为操作人
+        self.ticket_data["uid"] = self.ticket.creator
+
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_TDBCTL_UPGRADE)
 class TdbctlUpgradeFlowBuilder(BaseTendbTicketFlowBuilder):
