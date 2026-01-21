@@ -77,18 +77,24 @@ def bill_tdbctl_upgrade(
             except Cluster.DoesNotExist:
                 raise Exception(_("集群ID {} 不存在或不属于业务 {}，请检查集群ID和业务ID").format(cluster_id, bk_biz_id))
 
-        details = {"bk_biz_id": bk_biz_id, "cluster_ids": [cluster.id], "pkg_id": package.id, "upgrade_all": False}
+        cluster_ids = [cluster.id]
     else:
-        # 升级业务下所有集群
-        details = {"bk_biz_id": bk_biz_id, "cluster_ids": [], "pkg_id": package.id, "upgrade_all": True}
+        # 升级业务下所有集群：查询所有 TenDBCluster 集群并构造 cluster_ids
+        all_clusters = Cluster.objects.filter(bk_biz_id=bk_biz_id, cluster_type=ClusterType.TenDBCluster).values_list(
+            "id", flat=True
+        )
+        cluster_ids = list(all_clusters)
+
+        if not cluster_ids:
+            raise Exception(_("业务 {} 下未找到任何 TenDBCluster 集群").format(bk_biz_id))
+
+    details = {"bk_biz_id": bk_biz_id, "cluster_ids": cluster_ids, "pkg_id": package.id}
 
     # 3. 检查集群是否需要升级
     handler = TdbctlUpgradeHandler(bk_biz_id=bk_biz_id, pkg_id=package.id, operator=username)
 
-    # 获取需要升级的集群列表
-    clusters = handler.get_clusters_to_upgrade(
-        cluster_ids=details.get("cluster_ids", []), upgrade_all=details.get("upgrade_all", False)
-    )
+    # 获取需要升级的集群列表（不再使用 upgrade_all 参数）
+    clusters = handler.get_clusters_to_upgrade(cluster_ids=cluster_ids, upgrade_all=False)
 
     if not clusters:
         if cluster_domain or cluster_id:
