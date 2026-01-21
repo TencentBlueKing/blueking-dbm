@@ -40,11 +40,11 @@ class MonitorPluginViewSet(viewsets.SystemViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("获取渲染图片任务结果"),
-        request_body=MonitorImageResultSerializer(),
+        query_serializer=MonitorImageResultSerializer(),
         tags=[SWAGGER_TAG],
     )
     @action(methods=["GET"], detail=False, serializer_class=MonitorImageResultSerializer)
     def get_render_image_result(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
-        resp = BKMonitorV3Api.start_render_image_task(params=data)
+        resp = BKMonitorV3Api.get_render_image_result(params=data)
         return Response(resp)
