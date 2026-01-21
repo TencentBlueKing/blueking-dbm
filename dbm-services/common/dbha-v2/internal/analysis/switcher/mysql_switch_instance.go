@@ -1007,8 +1007,10 @@ func (sw *MySQLStorageSwitchInstance) DoSwitch() error {
 	switch sw.InstanceRole {
 	case dbm.MySQLStorageSlave:
 		return sw.DoSlaveSwitch()
+
 	case dbm.MySQLStorageMaster:
 		return sw.DoMasterSwitch()
+
 	default:
 		return gerrors.Newf(gerrors.Failure, "the instance role(%s) is not supported when doing switch",
 			sw.InstanceRole)
