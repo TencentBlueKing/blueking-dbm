@@ -134,14 +134,15 @@ func (sw *BaseSwitchInstance) releaseDNSEntry(dnsEntries []dbm.BindEntryDnsInfo)
 
 			ins := fmt.Sprintf("%s#%d", ip, dns.BindPort)
 			err := sw.dbmClient.DeleteFromDomain(sw.BkCloudID, dns.DomainName, ins, sw.GetApp())
-			if err != nil {
-				sw.ReportLogf(SwitchWarn, "failed to delete this instance(%s) from domain(%s): %s",
-					ins, dns.DomainName, err.Error())
-				allSuccess = false
-			} else {
+			if err == nil {
 				sw.ReportLogf(SwitchInfo, "successfully delete this instance(%s) from domain(%s)",
 					ins, dns.DomainName)
+				break
 			}
+
+			sw.ReportLogf(SwitchWarn, "failed to delete this instance(%s) from domain(%s): %s",
+				ins, dns.DomainName, err.Error())
+			allSuccess = false
 			break
 		}
 	}
@@ -170,14 +171,15 @@ func (sw *BaseSwitchInstance) releaseCLBEntry(clbEntries []dbm.BindEntryClbInfo)
 			err := sw.dbmClient.DeleteFromCLB(
 				sw.BkCloudID, clb.Region, clb.LoadBalanceId, clb.ListenId, ins,
 			)
-			if err != nil {
-				sw.ReportLogf(SwitchWarn, "failed to delete %s from clb(%s:%s:%s): %s",
-					ins, clb.Region, clb.LoadBalanceId, clb.ListenId, err.Error())
-				allSuccess = false
-			} else {
+			if err == nil {
 				sw.ReportLogf(SwitchInfo, "successfully delete %s from clb(%s:%s:%s)",
 					ins, clb.Region, clb.LoadBalanceId, clb.ListenId)
+				break
 			}
+
+			sw.ReportLogf(SwitchWarn, "failed to delete %s from clb(%s:%s:%s): %s",
+				ins, clb.Region, clb.LoadBalanceId, clb.ListenId, err.Error())
+			allSuccess = false
 			break
 		}
 	}
@@ -206,14 +208,15 @@ func (sw *BaseSwitchInstance) releasePolarisEntry(polarisEntries []dbm.BindEntry
 			err := sw.dbmClient.DeleteFromPolaris(
 				sw.BkCloudID, pinfo.Service, pinfo.Token, ins,
 			)
-			if err != nil {
-				sw.ReportLogf(SwitchWarn, "failed to delete (%s) from polaris %s:%s: %s",
-					ins, pinfo.Service, pinfo.Token, err.Error())
-				allSuccess = false
-			} else {
+			if err == nil {
 				sw.ReportLogf(SwitchInfo, "successfully delete (%s) from polaris %s:%s",
 					ins, pinfo.Service, pinfo.Token)
+				break
 			}
+
+			sw.ReportLogf(SwitchWarn, "failed to delete (%s) from polaris %s:%s: %s",
+				ins, pinfo.Service, pinfo.Token, err.Error())
+			allSuccess = false
 			break
 		}
 	}
