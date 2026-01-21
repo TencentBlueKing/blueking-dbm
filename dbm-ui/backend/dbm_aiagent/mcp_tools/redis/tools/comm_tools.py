@@ -9,6 +9,8 @@ specific language governing permissions and limitations under the License.
 """
 
 import ipaddress
+from datetime import datetime
+from typing import Union
 
 from django.utils.translation import gettext_lazy as _
 
@@ -54,3 +56,39 @@ def bytes_to_human(self, size: int, precision: int = 2) -> str:
         index += 1
 
     return f"{size:.{precision}f} {units[index]}"
+
+
+def parse_time2_long(time_input: Union[int, str, datetime]) -> int:
+    """
+    解析时间参数为Unix时间戳
+
+    Args:
+        time_input: 时间输入，支持int、str、datetime
+
+    Returns:
+        int: Unix时间戳（秒）
+    """
+    if isinstance(time_input, int):
+        # 已经是时间戳
+        return time_input
+    elif isinstance(time_input, str):
+        # 字符串格式，尝试多种格式解析
+        formats = [
+            "%Y-%m-%d %H:%M:%S",
+            "%Y-%m-%d %H:%M",
+            "%Y-%m-%d",
+            "%Y-%m-%dT%H:%M:%S",
+            "%Y-%m-%dT%H:%M:%S.%f",
+        ]
+        for fmt in formats:
+            try:
+                dt = datetime.strptime(time_input, fmt)
+                return int(dt.timestamp())
+            except ValueError:
+                continue
+        raise ValueError(f"无法解析时间字符串: {time_input}，支持的格式: {formats}")
+    elif isinstance(time_input, datetime):
+        # datetime对象
+        return int(time_input.timestamp())
+    else:
+        raise TypeError(f"不支持的时间类型: {type(time_input)}")
