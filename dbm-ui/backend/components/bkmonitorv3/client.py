@@ -240,12 +240,12 @@ class _BKMonitorV3Api(BaseApi):
         self.start_render_image_task = self.generate_data_api(
             method="POST",
             url="app/render_image/start_render_image_task/",
-            description=_("查询策略订阅列表"),
+            description=_("启动渲染图片任务"),
         )
         self.get_render_image_result = self.generate_data_api(
             method="GET",
             url="app/render_image/get_render_image_task_result/",
-            description=_("查询策略订阅列表"),
+            description=_("获取渲染图片任务结果"),
         )
 
     def bulk_save_subscribe_in_batch(self, bk_biz_id, subscriptions):
