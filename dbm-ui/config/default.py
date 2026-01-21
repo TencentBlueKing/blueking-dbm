@@ -810,6 +810,32 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "tools": [],
     },
     {
+        "name": "redis-query-log",
+        "description": """redis的日志查询服务""",
+        # 主动授权 app_code
+        "target_app_codes": [APP_CODE],
+        "labels": ["redis-query-log"],
+        # 是否启用：1-启用，0-停止
+        "status": 1,
+        # 是否公开
+        "is_public": False,
+        # 自动发现并填充该 MCP 服务器对应的工具
+        "tools": [],
+    },
+        {
+        "name": "redis-query-alarm",
+        "description": """redis的告警查询服务""",
+        # 主动授权 app_code
+        "target_app_codes": [APP_CODE],
+        "labels": ["redis-query-alarm"],
+        # 是否启用：1-启用，0-停止
+        "status": 1,
+        # 是否公开
+        "is_public": False,
+        # 自动发现并填充该 MCP 服务器对应的工具
+        "tools": [],
+    },
+        {
         "name": "redis-bill",
         "description": """create redis bill""",
         # 主动授权 app_code
