@@ -181,6 +181,7 @@ class InstanceInfoSerializer(HostInfoSerializer):
 class ResourceSpecBaseSerializer(serializers.Serializer):
     count = serializers.IntegerField(help_text=_("数量"))
     spec_id = serializers.IntegerField(help_text=_("规格id"))
+    hosts = serializers.ListField(help_text=_("手动选择的主机信息"), child=serializers.DictField(), required=False)
     labels = serializers.ListField(help_text=_("标签id"), child=serializers.CharField(), required=False)
     label_names = serializers.ListSerializer(help_text=_("标签名称列表"), child=serializers.CharField(), required=False)
 
