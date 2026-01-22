@@ -93,8 +93,10 @@ func Start(version string, buildStamp string, gitHash string, quit chan struct{}
 			}{}
 			err := ctx.BindJSON(&body)
 			if err != nil {
-				ctx.AbortWithStatusJSON(http.StatusBadRequest,
-					api.NewErrorResp(http.StatusBadRequest, errors.Wrap(err, "request param")))
+				ctx.AbortWithStatusJSON(
+					http.StatusBadRequest,
+					api.NewErrorResp(http.StatusBadRequest, errors.Wrap(err, "request param")),
+				)
 				return
 			}
 
@@ -124,8 +126,10 @@ func Start(version string, buildStamp string, gitHash string, quit chan struct{}
 			}{}
 			err := ctx.BindJSON(&body)
 			if err != nil {
-				ctx.AbortWithStatusJSON(http.StatusBadRequest,
-					api.NewErrorResp(http.StatusBadRequest, errors.Wrap(err, "request param")))
+				ctx.AbortWithStatusJSON(
+					http.StatusBadRequest,
+					api.NewErrorResp(http.StatusBadRequest, errors.Wrap(err, "request param")),
+				)
 				return
 			}
 
@@ -138,9 +142,13 @@ func Start(version string, buildStamp string, gitHash string, quit chan struct{}
 				Schedule: body.Schedule,
 			}
 			if _, err := cron.Parse(newJob.Schedule); err != nil {
-				ctx.AbortWithStatusJSON(http.StatusBadRequest,
-					api.NewErrorResp(http.StatusBadRequest,
-						errors.Wrapf(err, "invalid schedule format %s", newJob.Schedule)))
+				ctx.AbortWithStatusJSON(
+					http.StatusBadRequest,
+					api.NewErrorResp(
+						http.StatusBadRequest,
+						errors.Wrapf(err, "invalid schedule format %s", newJob.Schedule),
+					),
+				)
 				return
 			}
 
@@ -165,8 +173,10 @@ func Start(version string, buildStamp string, gitHash string, quit chan struct{}
 			}{}
 			err := ctx.BindJSON(&body)
 			if err != nil {
-				ctx.AbortWithStatusJSON(http.StatusBadRequest,
-					api.NewErrorResp(http.StatusBadRequest, errors.Wrap(err, "request param")))
+				ctx.AbortWithStatusJSON(
+					http.StatusBadRequest,
+					api.NewErrorResp(http.StatusBadRequest, errors.Wrap(err, "request param")),
+				)
 				return
 			}
 
@@ -198,10 +208,13 @@ func Start(version string, buildStamp string, gitHash string, quit chan struct{}
 			}{}
 			err := ctx.BindJSON(&body)
 			if err != nil {
-				ctx.AbortWithStatusJSON(http.StatusBadRequest,
-					api.NewErrorResp(http.StatusBadRequest, errors.Wrap(err, "request param")))
+				ctx.AbortWithStatusJSON(
+					http.StatusBadRequest,
+					api.NewErrorResp(http.StatusBadRequest, errors.Wrap(err, "request param")),
+				)
 				return
 			}
+			slog.Info("create or replace job", slog.Any("job body", body))
 			m.Lock()
 			defer func() {
 				m.Unlock()
@@ -231,8 +244,10 @@ func Start(version string, buildStamp string, gitHash string, quit chan struct{}
 			}{}
 			err := ctx.BindJSON(&body)
 			if err != nil {
-				ctx.AbortWithStatusJSON(http.StatusBadRequest,
-					api.NewErrorResp(http.StatusBadRequest, errors.Wrap(err, "request param")))
+				ctx.AbortWithStatusJSON(
+					http.StatusBadRequest,
+					api.NewErrorResp(http.StatusBadRequest, errors.Wrap(err, "request param")),
+				)
 				return
 			}
 
@@ -270,8 +285,10 @@ func Start(version string, buildStamp string, gitHash string, quit chan struct{}
 			}{}
 			err := ctx.BindJSON(&body)
 			if err != nil {
-				ctx.AbortWithStatusJSON(http.StatusBadRequest,
-					api.NewErrorResp(http.StatusBadRequest, errors.Wrap(err, "request param")))
+				ctx.AbortWithStatusJSON(
+					http.StatusBadRequest,
+					api.NewErrorResp(http.StatusBadRequest, errors.Wrap(err, "request param")),
+				)
 				return
 			}
 
@@ -376,6 +393,7 @@ func Start(version string, buildStamp string, gitHash string, quit chan struct{}
 			}
 
 			ctx.JSON(http.StatusOK, gin.H{})
-		})
+		},
+	)
 	return r.Run(fmt.Sprintf("127.0.0.1:%d", config.RuntimeConfig.Port))
 }

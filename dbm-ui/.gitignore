@@ -141,3 +141,4 @@ scripts/ssls/
 version_logs_html/
 backend/dbm_init/apigw/mcp_resources.yaml
 mcp-knowledge.md
+envs

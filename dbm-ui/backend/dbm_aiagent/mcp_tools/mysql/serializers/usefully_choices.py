@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext as _
 
 from backend.db_meta.enums import ClusterType, InstanceRole, MachineType, TenDBClusterSpiderRole
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 mysql_cluster_type_choices = [
     (ClusterType.TenDBSingle.value, ClusterType.TenDBSingle.name),
@@ -273,6 +274,32 @@ mysql_metric_name_choices = [
     ("threads_running", _("threads 线程数 趋势")),
     ("connections", _("连接数 趋势")),
 ]
+
+
+class MySQLProcessListInstanceGroupType(StrStructuredEnum):
+    MasterGroup = EnumField("master_group", _("主分组"))
+    SlaveGroup = EnumField("slave_group", _("从分组"))
+
+
+class MySQLProcessListFilterFieldType(StrStructuredEnum):
+    AccessSourceAddress = EnumField("access_source_address", _("访问来源地址"))
+    ProxyAddress = EnumField("proxy_address", _("接入层地址"))
+    StorageAddress = EnumField("mysql_address", _("存储层地址"))
+    Command = EnumField("command", _("正在执行的命令操作"))
+    User = EnumField("user", _("访问账号"))
+    DB = EnumField("db", _("访问 DB 名"))
+    State = EnumField("state", _("连接状态"))
+    Time = EnumField("time", _("连接持续时长, 单位是秒"))
+
+
+class MySQLProcessListFilterOpType(StrStructuredEnum):
+    OpIn = EnumField("in", _("包含, 是, 存在"))
+    OpNotIn = EnumField("not in", _("不包含, 不是, 不存在"))
+    OpGt = EnumField(">", _("大于"))
+    OpLt = EnumField("<", _("小于"))
+    OpGte = EnumField(">=", _("大于等于"))
+    OpLte = EnumField("<=", _("小于等于"))
+
 
 mysql_slowlog_metric_name_choices = [
     ("query_time", _("按查询执行时间排序聚合")),
