@@ -97,7 +97,7 @@ class MongoDataExportFlow(object):
             export_center_ip = self.__get_export_center_ip(cluster.bk_cloud_id)
             pkgs = get_file_list.mongodb_pkg(db_version=cluster.major_version)
 
-            self.center_require_versions[export_center_ip].update(pkgs)
+            self.center_require_versions[(export_center_ip, cluster.bk_cloud_id)].update(pkgs)
             self.cluster_tasks[cluster] = {
                 "access_node": access_node,
                 "export_center_ip": export_center_ip,
@@ -116,13 +116,13 @@ class MongoDataExportFlow(object):
         actuator_workdir = MongoUtil().get_mongodb_os_conf()["file_path"]
 
         acts_list = []
-        for exec_ip, file_list in self.center_require_versions.items():
+        for (exec_ip, bk_cloud_id), file_list in self.center_require_versions.items():
             acts_list.append(
                 SendMedia.act(
                     act_name=_("MongoDB-介质下发-{}".format(exec_ip)),
                     file_list=list(file_list),
                     bk_host_list=[
-                        {"ip": exec_ip},
+                        {"ip": exec_ip, "bk_cloud_id": bk_cloud_id},
                     ],
                     file_target_path=actuator_workdir,
                 )
