@@ -35,7 +35,7 @@ class MonitorPluginViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=False, serializer_class=MonitorImageRenderSerializer)
     def start_render_image_task(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
-        resp = BKMonitorV3Api.start_render_image_task(params=data)
+        resp = BKMonitorV3Api.start_render_image_task(params=data, use_admin=True)
         return Response(resp)
 
     @common_swagger_auto_schema(
@@ -46,5 +46,5 @@ class MonitorPluginViewSet(viewsets.SystemViewSet):
     @action(methods=["GET"], detail=False, serializer_class=MonitorImageResultSerializer)
     def get_render_image_result(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
-        resp = BKMonitorV3Api.get_render_image_result(params=data)
+        resp = BKMonitorV3Api.get_render_image_result(params=data, use_admin=True)
         return Response(resp)
