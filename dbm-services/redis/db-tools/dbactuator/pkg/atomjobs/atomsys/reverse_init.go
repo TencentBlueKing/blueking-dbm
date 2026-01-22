@@ -69,7 +69,7 @@ func (job *ReverseAPIConfig) Name() string {
 func (job *ReverseAPIConfig) Run() (err error) {
 	reverseConfig := common.GetResrveAPIConfig()
 	// 以追加模式打开文件，如果文件不存在则创建
-	file, err := os.OpenFile(reverseConfig, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 755)
+	file, err := os.OpenFile(reverseConfig, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0755)
 	if err != nil {
 		job.runtime.Logger.Error("open file %s failed: %+v", reverseConfig, err)
 		return err
