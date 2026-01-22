@@ -38,13 +38,19 @@ class ClusterDashboardPermission(ResourceActionPermission):
         super().__init__(actions=actions, resource_meta=resource_meta, instance_ids_getter=self.instance_ids_getter)
 
     def instance_ids_getter(self, request, view):
-        domain = request.data.get("variables", {}).get("cluster_domain")
-        if not domain:
+        domains = request.data.get("options", {}).get("variables", {}).get("cluster_domain", [])
+        if not domains:
             raise ResourceInvalidError(_("集群域名不允许为空"))
-        cluster = Cluster.objects.get(immute_domain=domain)
-        self.actions = [ActionEnum.cluster_type_to_action(cluster.cluster_type, action_key="VIEW")]
-        self.resource_meta = ResourceEnum.cluster_type_to_resource_meta(cluster.cluster_type)
-        return [cluster.id]
+
+        unique_domains = list(set(domains))
+        clusters = Cluster.objects.filter(immute_domain__in=unique_domains)
+        if not clusters.exists():
+            raise ResourceInvalidError(_("查询集群为空"))
+
+        cluster_type = clusters.first().cluster_type
+        self.actions = [ActionEnum.cluster_type_to_action(cluster_type, action_key="VIEW")]
+        self.resource_meta = ResourceEnum.cluster_type_to_resource_meta(cluster_type)
+        return [cluster.id for cluster in clusters]
 
 
 class ClusterDetailPermission(ResourceActionPermission):
