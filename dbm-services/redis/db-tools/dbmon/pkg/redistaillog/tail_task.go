@@ -20,6 +20,7 @@ import (
 	"dbm-services/redis/db-tools/dbmon/pkg/consts"
 	"dbm-services/redis/db-tools/dbmon/pkg/report"
 	"dbm-services/redis/db-tools/dbmon/util"
+	"dbm-services/riak/db-tools/riak-monitor/pkg/utils"
 )
 
 const (
@@ -38,13 +39,15 @@ func init() {
 
 // BaseSchema schema
 type BaseSchema struct {
-	BkBizID     string `json:"bk_biz_id"`
-	BkCloudID   int64  `json:"bk_cloud_id"`
-	ServerIP    string `json:"server_ip"`
-	ServerPort  int    `json:"server_port"`
-	Domain      string `json:"domain"`
-	ClusterType string `json:"cluster_type"`
-	Role        string `json:"role"`
+	AppID         string `json:"appid"`
+	ServerVersion string `json:"server_version"`
+	BkBizID       string `json:"bk_biz_id"`
+	BkCloudID     int64  `json:"bk_cloud_id"`
+	ServerIP      string `json:"server_ip"`
+	ServerPort    int    `json:"server_port"`
+	Domain        string `json:"domain"`
+	ClusterType   string `json:"cluster_type"`
+	Role          string `json:"role"`
 }
 
 // Addr addr
@@ -82,6 +85,7 @@ func NewTailTask(conf config.ConfServerItem, reportDir string, server_port int) 
 	err error) {
 	ret = &TailTask{
 		BaseSchema: BaseSchema{
+			AppID:       conf.BkBizID,
 			BkBizID:     conf.BkBizID,
 			BkCloudID:   conf.BkCloudID,
 			ServerIP:    conf.ServerIP,
@@ -184,6 +188,45 @@ func (task *TailTask) GetLogFiles() {
 		task.TendisplusGetLogFiles()
 	}
 	mylog.Logger.Info(fmt.Sprintf("TailTask %s %s found logfiles %+v", task.Addr(), task.Role, task.LogFiles))
+	// 2026-01-20 : 新增需求
+	task.SetServerVersion()
+}
+
+func (task *TailTask) SetServerVersion() {
+	if task.Role == consts.MetaRolePredixy {
+		pVersion := filepath.Join(consts.UsrLocal, "predixy", "bin", "predixy")
+		cmd := fmt.Sprintf("%s --version", pVersion)
+		rst, _ := utils.ExecShellCommand(false, cmd)
+		// rst, err := util.RunLocalCmd(predixyBin, []string{"--version"}, "", nil, 10*time.Second)
+		mylog.Logger.Info(fmt.Sprintf("get predixy version %s", rst))
+		rst = strings.Trim(rst, "\n")
+		rst = strings.Trim(rst, "\r")
+		rst = strings.TrimSpace(rst)
+		///usr/local/predixy/bin/predixy predixy-1.6.2\n
+		task.BaseSchema.ServerVersion = strings.Split(rst, " ")[1]
+	} else if task.Role == consts.MetaRoleTwemproxy {
+		pVersion := filepath.Join(consts.UsrLocal, "twemproxy", "bin", "nutcracker")
+		cmd := fmt.Sprintf("%s -V", pVersion)
+		rst, _ := utils.ExecShellCommand(false, cmd)
+		mylog.Logger.Info(fmt.Sprintf("get twemproxy version %s", rst))
+		rst = strings.Trim(rst, "\n")
+		rst = strings.Trim(rst, "\r")
+		rst = strings.TrimSpace(rst)
+		// This is nutcracker-0.4.1-rc-v0.36\r\n\n
+		task.BaseSchema.ServerVersion = strings.Split(rst, " ")[2]
+	} else {
+		// connect instance , exec info , and get version.
+		task.redisConnect()
+		if task.Err != nil {
+			return
+		}
+		defer task.rediscli.Close()
+		if v, err := task.rediscli.GetTendisVersion(); err != nil {
+			mylog.Logger.Error(fmt.Sprintf("get %s version failed :%+v", task.Role, err))
+		} else {
+			task.BaseSchema.ServerVersion = v
+		}
+	}
 }
 
 // GetReporter 上报者
