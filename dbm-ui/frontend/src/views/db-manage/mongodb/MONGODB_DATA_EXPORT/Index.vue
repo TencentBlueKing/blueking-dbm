@@ -80,7 +80,7 @@
               :rules="queryRules">
               <EditableTextarea
                 v-model="item.query"
-                :placeholder="t('请输入合法的n', { n: formData.format.toUpperCase() })" />
+                :placeholder="t('请输入合法的JSON')" />
             </EditableColumn>
             <OperationColumn
               :create-row-method="createRowData"
