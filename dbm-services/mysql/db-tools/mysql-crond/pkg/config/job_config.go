@@ -184,7 +184,9 @@ func InitJobsConfig() error {
 	}
 	JobsConfig.BkBizId = bkBizId
 
+	slog.Info("init job config", slog.Any("jobs", JobsConfig))
 	for _, j := range JobsConfig.Jobs {
+		slog.Info("validate job", slog.Any("job", j))
 		err := j.validate()
 		if err != nil {
 			panic(err)
