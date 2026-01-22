@@ -274,7 +274,7 @@
 
   import { useClusterQuickSearch, useTableSettings } from '@hooks';
 
-  import { ClusterTypes, DBTypes, UserPersonalSettings } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes, UserPersonalSettings } from '@common/const';
 
   import ClusterAlarmSubscribe from '@views/db-manage/common/cluster-alarm-subscribe/Index.vue';
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
