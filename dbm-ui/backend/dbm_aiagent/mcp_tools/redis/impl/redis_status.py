@@ -14,72 +14,72 @@ from backend.dbm_aiagent.mcp_tools.redis.tools.redis_client_srv import RedisClie
 from backend.dbm_aiagent.mcp_tools.redis.tools.redis_info_srv import RedisInfoService
 
 
-def get_redis_server_info(addr: str, immute_domain: str) -> Dict:
+def get_redis_server_info(redis_addr: str, immute_domain: str) -> Dict:
     """获取Redis服务器基本信息"""
-    service = RedisInfoService(addr=addr, immute_domain=immute_domain)
+    service = RedisInfoService(addr=redis_addr, immute_domain=immute_domain)
     return service.get_server_info()
 
 
-def get_redis_clients_info(addr: str, immute_domain: str) -> Dict:
+def get_redis_clients_info(redis_addr: str, immute_domain: str) -> Dict:
     """获取Redis客户端连接信息"""
-    service = RedisInfoService(addr=addr, immute_domain=immute_domain)
+    service = RedisInfoService(addr=redis_addr, immute_domain=immute_domain)
     return service.get_clients_info()
 
 
-def get_redis_memory_info(addr: str, immute_domain: str) -> Dict:
+def get_redis_memory_info(redis_addr: str, immute_domain: str) -> Dict:
     """获取Redis内存使用信息"""
-    service = RedisInfoService(addr=addr, immute_domain=immute_domain)
+    service = RedisInfoService(addr=redis_addr, immute_domain=immute_domain)
     return service.get_memory_info()
 
 
-def get_redis_persistence_info(addr: str, immute_domain: str) -> Dict:
+def get_redis_persistence_info(redis_addr: str, immute_domain: str) -> Dict:
     """获取Redis持久化信息"""
-    service = RedisInfoService(addr=addr, immute_domain=immute_domain)
+    service = RedisInfoService(addr=redis_addr, immute_domain=immute_domain)
     return service.get_persistence_info()
 
 
-def get_redis_stats_info(addr: str, immute_domain: str) -> Dict:
+def get_redis_stats_info(redis_addr: str, immute_domain: str) -> Dict:
     """获取Redis统计信息"""
-    service = RedisInfoService(addr=addr, immute_domain=immute_domain)
+    service = RedisInfoService(addr=redis_addr, immute_domain=immute_domain)
     return service.get_stats_info()
 
 
-def get_redis_replication_info(addr: str, immute_domain: str) -> Dict:
+def get_redis_replication_info(redis_addr: str, immute_domain: str) -> Dict:
     """获取Redis复制信息"""
-    service = RedisInfoService(addr=addr, immute_domain=immute_domain)
+    service = RedisInfoService(addr=redis_addr, immute_domain=immute_domain)
     return service.get_replication_info()
 
 
-def get_redis_cpu_info(addr: str, immute_domain: str) -> Dict:
+def get_redis_cpu_info(redis_addr: str, immute_domain: str) -> Dict:
     """获取Redis CPU使用信息"""
-    service = RedisInfoService(addr=addr, immute_domain=immute_domain)
+    service = RedisInfoService(addr=redis_addr, immute_domain=immute_domain)
     return service.get_cpu_info()
 
 
-def get_redis_keyspace_info(addr: str, immute_domain: str) -> List[Dict]:
+def get_redis_keyspace_info(redis_addr: str, immute_domain: str) -> List[Dict]:
     """获取Redis键空间信息"""
-    service = RedisInfoService(addr=addr, immute_domain=immute_domain)
+    service = RedisInfoService(addr=redis_addr, immute_domain=immute_domain)
     return service.get_keyspace_info()
 
 
-def get_redis_client_list(addr: str, immute_domain: str) -> Dict:
+def get_redis_client_list(redis_addr: str, immute_domain: str) -> Dict:
     """
     获取Redis客户端列表
     Returns:
         包含客户端总数和客户端列表的字典
     """
-    service = RedisClientListService(addr=addr, immute_domain=immute_domain)
+    service = RedisClientListService(addr=redis_addr, immute_domain=immute_domain)
     return service.get_client_list()
 
 
-def get_redis_command_stats_delta(addr: str, immute_domain: str, interval: float = 1.0) -> Dict:
+def get_redis_command_stats_delta(redis_addr: str, immute_domain: str, interval: float = 1.0) -> Dict:
     """
     获取Redis命令统计增量信息（间隔采样）
 
     Returns:
         包含命令统计增量的字典
     """
-    service = RedisInfoService(addr=addr, immute_domain=immute_domain)
+    service = RedisInfoService(addr=redis_addr, immute_domain=immute_domain)
     return service.get_command_stats_delta(interval=interval)
 
 

@@ -13,7 +13,6 @@ from rest_framework import serializers
 
 
 class GetRedisSourceAccessInputSerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务 id, bk_biz_id"))
     cluster_domain = serializers.CharField(help_text=_("集群域名，格式为xx.xx.xx.db"))
 
 

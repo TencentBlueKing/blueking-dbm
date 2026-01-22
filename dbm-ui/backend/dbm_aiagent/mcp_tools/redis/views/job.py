@@ -29,7 +29,7 @@ from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 
-class GetRedisSourceAccessMcpToolsViewSet(McpToolsViewSet):
+class RedisJobMcpToolsViewSet(McpToolsViewSet):
     default_permission_class = [DBManagePermission()]
 
     @mcp_tools_api_decorator(
@@ -37,14 +37,13 @@ class GetRedisSourceAccessMcpToolsViewSet(McpToolsViewSet):
         request_slz=GetRedisSourceAccessInputSerializer,
         response_slz=GetRedisSourceAccessOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.REDIS_TOOL],
-        name_prefix="redis_tool",
+        mcp=[DBMMcpTools.REDIS_JOB],
+        name_prefix="redis_job",
     )
     def get_redis_source_access(self, request, *args, **kwargs):
-        bk_biz_id = self.get_param("bk_biz_id")
         cluster_domain = self.get_param("cluster_domain")
 
-        cluster_obj = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
+        cluster_obj = Cluster.objects.get(immute_domain=cluster_domain)
 
         cluster_all_ips = [
             e.machine.ip for e in chain(cluster_obj.storageinstance_set.all(), cluster_obj.proxyinstance_set.all())
