@@ -18,7 +18,7 @@
     <TicketInfoTableColumn
       col-key="cluster_id"
       :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
-      :min-width="220"
+      :min-width="350"
       :title="t('目标集群')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
@@ -34,6 +34,7 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="db_patterns"
+      :min-width="200"
       :title="t('DB名')">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="row.ns_filter.db_patterns" />
@@ -41,6 +42,7 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="ignore_dbs"
+      :min-width="200"
       :title="t('忽略DB名')">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="row.ns_filter.ignore_dbs" />
@@ -48,6 +50,7 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="table_patterns"
+      :min-width="200"
       :title="t('表名')">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="row.ns_filter.table_patterns" />
@@ -55,6 +58,7 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="ignore_tables"
+      :min-width="200"
       :title="t('忽略表名')">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="row.ns_filter.ignore_tables" />
