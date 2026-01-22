@@ -239,6 +239,7 @@ class TendbClusterUpgradeFlow(object):
                 check_client_conn=self.is_check_process,
                 is_verify_checksum=self.is_verify_checksum,
                 need_checksum=self.need_checksum,
+                ticket_info_data=copy.deepcopy(info),
             )
             sub_flows.append(subflow)
 
@@ -263,6 +264,7 @@ def tendbha_cluster_upgrade_subflow(
     check_client_conn: bool,
     is_verify_checksum: bool,
     need_checksum: bool,
+    ticket_info_data: dict,
 ):
     """
     一主多从，整个集群升级
@@ -299,6 +301,9 @@ def tendbha_cluster_upgrade_subflow(
         "force": force_uninstall,
         "ticket_type": ticket_type,
     }
+    for k, v in ticket_info_data.items():
+        if k not in parent_global_data:
+            parent_global_data[k] = v
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
     old_ro_slave_ips = []
     new_ro_slave_ips = []
