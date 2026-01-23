@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div ref="root">
     <BkAlert
       class="mb-12"
       theme="warning">
@@ -33,9 +33,13 @@
     ticketDetail: TicketModel<unknown>;
   }
 
+  type Emits = (e: 'elementHeightChange', height: number) => void;
+
   const props = defineProps<Props>();
+  const emits = defineEmits<Emits>();
   const { t } = useI18n();
 
+  const rootRef = useTemplateRef<HTMLDivElement>('root');
   const { data: logContent, loading: isLoading } = useRequest(getFlowLogAnnlysis, {
     defaultParams: [
       {
@@ -50,5 +54,11 @@
       return '';
     }
     return MarkdownIt().render(logContent.value);
+  });
+
+  watch(renderLogContent, () => {
+    nextTick(() => {
+      emits('elementHeightChange', rootRef.value?.getBoundingClientRect().height || 0);
+    });
   });
 </script>

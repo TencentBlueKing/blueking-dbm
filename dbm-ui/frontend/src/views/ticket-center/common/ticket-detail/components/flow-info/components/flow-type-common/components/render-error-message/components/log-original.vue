@@ -1,5 +1,6 @@
 <template>
   <div
+    ref="root"
     v-bk-loading="{ loading: isLoading, opacity: 0.1 }"
     class="ticket-detail-flow-info-render-error-message-log-original">
     <div
@@ -11,7 +12,7 @@
           :key="item.node_id"
           class="log-node-item"
           :class="{
-            'is-active': activeNodeId === item.node_id,
+            'is-active': activeNode?.node_id === item.node_id,
           }"
           @click="handleClick(item)">
           {{ item.node_name }}
@@ -21,7 +22,8 @@
     <div
       v-bk-loading="{ loading: isLoadingLogContent }"
       class="log-content">
-      <ScrollFaker :key="activeNodeId">
+      <ScrollFaker :key="activeNode?.node_id">
+        <h1 style="font-size: 12px; font-weight: bold">{{ activeNode?.node_name }}</h1>
         <div
           v-bk-xss-html="renderLogContent"
           style="word-break: break-all; white-space: pre-wrap" />
@@ -38,9 +40,14 @@
   interface Props {
     data: FlowMode<unknown, any>;
   }
+  type Emits = (e: 'elementHeightChange', height: number) => void;
   const props = defineProps<Props>();
-
-  const activeNodeId = ref<string>('');
+  const emits = defineEmits<Emits>();
+  const rootRef = useTemplateRef<HTMLDivElement>('root');
+  const activeNode = ref<{
+    node_id: string;
+    node_name: string;
+  }>();
 
   const renderLogContent = computed(() => {
     if (props.data.err_msg) {
@@ -75,20 +82,26 @@
     manual: true,
   });
 
-  const handleClick = (node: { node_id: string; version_id: string }) => {
-    activeNodeId.value = node.node_id;
-
+  const handleClick = (node: { node_id: string; node_name: string; version_id: string }) => {
+    activeNode.value = node;
     runGetNodeLog({
       node_id: node.node_id,
       root_id: props.data.flow_obj_id,
       version_id: node.version_id,
     });
   };
+
+  watch(renderLogContent, () => {
+    nextTick(() => {
+      emits('elementHeightChange', rootRef.value?.getBoundingClientRect().height || 0);
+    });
+  });
 </script>
 <style lang="postcss">
   .ticket-detail-flow-info-render-error-message-log-original {
     position: relative;
     display: flex;
+    height: 100%;
     max-height: inherit;
     overflow: hidden;
 
