@@ -247,6 +247,14 @@ class _BKMonitorV3Api(BaseApi):
             url="app/render_image/get_render_image_task_result/",
             description=_("获取渲染图片任务结果"),
         )
+        self.metric_list = self.generate_data_api(
+            method="POST", url="app/metric/get_metric_list/", description=_("获取维度信息")
+        )
+        self.search_alarm_strategy = self.generate_data_api(
+            method="POST",
+            url="app/alarm_strategy/search/v3/",
+            description=_("查询告警策略"),
+        )
 
     def bulk_save_subscribe_in_batch(self, bk_biz_id, subscriptions):
         """按批次，批量新增/保存策略订阅"""
