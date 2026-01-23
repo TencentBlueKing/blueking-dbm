@@ -100,7 +100,8 @@
 
   import { getTickets } from '@services/source/ticket';
 
-  import { useGlobalBizs } from '@/stores';
+  import { useGlobalBizs } from '@stores';
+
   import { useTimeoutPoll } from '@vueuse/core';
 
   type RowData = ServiceReturnType<typeof getTickets>['results'][0];

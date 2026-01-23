@@ -71,6 +71,8 @@
   import { type Redis } from '@services/model/ticket/ticket';
   import { getRedisList } from '@services/source/redis';
 
+  import { useTicketDetail } from '@hooks';
+
   import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import { type TabItem } from '@components/cluster-selector/Index.vue';
@@ -83,8 +85,6 @@
   import TargetVersionSelectColumn from '@views/db-manage/redis/common/toolbox-field/target-version-select-column/Index.vue';
 
   import { random } from '@utils';
-
-  import { useTicketDetail } from '@/hooks';
 
   import OldMasterSlaveHostColumn from '../OldMasterSlaveHostColumn.vue';
 

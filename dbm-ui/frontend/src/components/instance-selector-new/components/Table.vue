@@ -9,7 +9,7 @@
     <DbTable
       ref="instanceTable"
       class="db-instance-table"
-      :container-height="570 - 32 - 16"
+      :container-height="containerHeight"
       :data-source="realDataSource"
       :disable-select-method="disableSelectMethod"
       :filter-value="quickSearchValue"
@@ -147,7 +147,9 @@
 
   export interface Props<C extends ISupportClusterType> {
     clusterType: ISupportClusterType;
-    dataSource?: ReturnType<typeof useClusterInstaceList<C>>;
+    dataSourceMap?: {
+      [key in C]?: ReturnType<typeof useClusterInstaceList<key>>;
+    };
     disableSelectMethod?: (data: InstanceModel<C>) => boolean | string;
     selected: InstanceModel<C>[];
     single?: boolean;
@@ -171,9 +173,10 @@
 
   const instanceTableRef = useTemplateRef('instanceTable');
 
+  const containerHeight = 570 - 32 - 16; // 去除搜索框的高度和margin bottom
   const isMongodb = [ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER].includes(props.clusterType);
 
-  const realDataSource = (params: any) => (props.dataSource || requestHandler)(params);
+  const realDataSource = (params: any) => (props.dataSourceMap?.[props.clusterType as T] || requestHandler)(params);
 
   const fetchData = () => {
     instanceTableRef.value!.fetchData(Object.assign({}, quickSearchValue.value));

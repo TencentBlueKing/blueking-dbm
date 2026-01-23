@@ -36,6 +36,7 @@
       v-model:is-show="isShowIpSelector"
       :cluster-types="[ClusterTypes.TENDBCLUSTER]"
       :data-source-map="dataSourceMap"
+      repeatable
       @change="handleSelectorChange" />
   </EditableColumn>
   <EditableColumn
@@ -56,13 +57,12 @@
 
   import TendbClusterInstanceModel from '@services/model/tendbcluster/tendbcluster-instance';
   import { checkInstance } from '@services/source/dbbase';
+  import { getTendbclusterInstanceList } from '@services/source/tendbcluster';
 
   import { ClusterTypes, DBTypes } from '@common/const';
   import { ipPort } from '@common/regex';
 
   import InstanceSelector from '@components/instance-selector-new/Index.vue';
-
-  import { getTendbclusterInstanceList } from '@/services/source/tendbcluster';
 
   type Emits = (e: 'batch-edit', list: TendbClusterInstanceModel[]) => void;
 
