@@ -106,15 +106,9 @@ class HCMResourceReplenishService(BaseService):
             self.log_info(_("资源申请中，单号: {}, 状态: {}").format(apply_id, apply_ticket["stage"]))
             return True
 
-        # 如果这个单据是部分补货，创建一个补货代办; 资源申请完成，补货代办结束
-        from backend.ticket.todos.pause_todo import HcmResourceReplenishTodo
-
+        # 更新flow上下文，存海磊单据信息
         suborder_id = apply_ticket["suborder_id"]
         flow.update_context(suborder_id=suborder_id, apply_id=apply_id)
-        if apply_ticket["stage"] == "SUSPEND":
-            HcmResourceReplenishTodo.create(ticket, flow)
-        else:
-            HcmResourceReplenishTodo.done(ticket, flow)
 
         # 已经申请到资源，获取申请资源详情给到资源导入
         apply_detail = HCMApi.get_apply_device(

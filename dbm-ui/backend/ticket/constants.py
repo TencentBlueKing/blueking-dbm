@@ -776,6 +776,7 @@ class FlowErrCode(IntStructuredEnum):
     AUTO_EXCLUSIVE_ERROR = EnumField(1, _("自动互斥重试错误代码"))
     MANUAL_EXCLUSIVE_ERROR = EnumField(2, _("手动互斥重试错误代码"))
     SYSTEM_TERMINATED_ERROR = EnumField(3, _("系统终止错误代码"))
+    HCM_APPLY_LACK_RESOURCE_ERROR = EnumField(4, _("海磊申请资源不足错误代码"))
 
     @classmethod
     def get_err_code(cls, err: Exception, retry_type: str) -> "FlowErrCode":

@@ -10,13 +10,11 @@ specific language governing permissions and limitations under the License.
 """
 from dataclasses import dataclass
 
-from django.utils.translation import gettext as _
-
 from backend.db_meta.models.sqlserver_dts import DtsStatus, SqlserverDtsInfo
 from backend.db_services.redis.hot_key_analysis.models import RedisHotKeyRecord
 from backend.flow.consts import StateType
 from backend.ticket import todos
-from backend.ticket.constants import TicketFlowStatus, TicketType, TodoStatus, TodoType
+from backend.ticket.constants import TicketFlowStatus, TicketType, TodoType
 from backend.ticket.flow_manager.inner import InnerFlow
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.todos import BaseTodoContext, TodoActionType
@@ -86,43 +84,6 @@ class ResourceReplenishTodo(todos.TodoActor):
         self.todo.refresh_from_db(fields=["flow"])
         if self.todo.flow.status == TicketFlowStatus.SUCCEEDED:
             self.todo.set_success(username, action)
-
-
-@todos.TodoActorFactory.register(TodoType.RESOURCE_HCM_REPLENISH)
-class HcmResourceReplenishTodo(todos.TodoActor):
-    """海磊申请主机-补货资源池的代办"""
-
-    def _process(self, username, action, params):
-        """确认/终止"""
-        flow_type = self.todo.flow.flow_type
-        manager = TicketFlowManager(ticket=self.todo.ticket)
-        # 终止单据
-        if action == TodoActionType.TERMINATE:
-            manager.get_ticket_flow_cls(flow_type)(self.todo.flow).revoke(username, params.get("remark"))
-            self.todo.set_terminated(username, action)
-        # 重试即重新发起海磊资源申请任务
-        elif action == TodoActionType.APPROVE:
-            manager.get_ticket_flow_cls(flow_type)(self.todo.flow).retry()
-        else:
-            return
-
-    @classmethod
-    def create(cls, ticket, flow):
-        """创建一个待补货的todo"""
-        from backend.ticket.models import Todo
-
-        # 存在todo，直接返回
-        if flow.todo_of_flow.exists():
-            return
-        Todo.objects.create(name=_("资源交付不足"), flow=flow, ticket=ticket, type=TodoType.RESOURCE_HCM_REPLENISH)
-
-    @classmethod
-    def done(cls, ticket, flow):
-        """资源申请完成，补货todo结束"""
-        todo = flow.todo_of_flow.first()
-        if not todo:
-            return
-        todo.set_status(username=ticket.updater, status=TodoStatus.DONE_SUCCESS)
 
 
 @todos.TodoActorFactory.register(TodoType.INNER_FAILED)
