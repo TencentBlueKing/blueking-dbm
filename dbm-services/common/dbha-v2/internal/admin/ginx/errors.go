@@ -26,4 +26,7 @@ package ginx
 
 import "errors"
 
-var ErrStrategyNotFound = errors.New("strategy not found")
+var (
+	ErrStrategyNotFound   = errors.New("strategy not found")
+	ErrStrategyNameExists = errors.New("strategy name already exists")
+)

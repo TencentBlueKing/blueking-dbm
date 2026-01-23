@@ -34,6 +34,7 @@ import (
 	"sync"
 	"time"
 
+	"dbm-services/common/dbha-v2/internal/admin/api/open"
 	"dbm-services/common/dbha-v2/internal/admin/api/open/handler"
 	"dbm-services/common/dbha-v2/internal/admin/config"
 	"dbm-services/common/dbha-v2/internal/admin/strategy"
@@ -312,23 +313,10 @@ func (s *Service) createWebServer() error {
 		ReadTimeout:  config.Cfg.Web.ReadTimeout,
 		WriteTimeout: config.Cfg.Web.WriteTimeout,
 	}
-
 	server := hanet.NewGinHTTPServer(serverConfig)
 
-	// Register strategy apis
-	server.RegisterAPI(&hanet.ResetAPI{
-		Group:   "/api/admin",
-		Method:  hanet.HttpMethodPost,
-		Path:    "/strategies/",
-		Handler: strategyHandler.Create,
-	})
-
-	server.RegisterAPI(&hanet.ResetAPI{
-		Group:   "/api/admin",
-		Method:  hanet.HttpMethodGet,
-		Path:    "/strategies/:id/",
-		Handler: strategyHandler.Get,
-	})
+	// register open api
+	open.RegisterOpenAPI(strategyHandler, server)
 
 	// add swagger api
 	server.SetSwaggerFileRoute(config.Cfg.DocFileDir + "/swagger.json")

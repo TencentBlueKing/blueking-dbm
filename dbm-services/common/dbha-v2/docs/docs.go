@@ -17,6 +17,55 @@ const docTemplate = `{
     "basePath": "{{.BasePath}}",
     "paths": {
         "/api/admin/strategies/": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "openapi.strategy"
+                ],
+                "summary": "strategy list",
+                "operationId": "openapi_strategy_list",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "action",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "bk_biz_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "name": "scope",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_common_dbha-v2_internal_admin_api_open_serializer.StrategyOutputInfo"
+                        }
+                    }
+                }
+            },
             "post": {
                 "consumes": [
                     "application/json"
@@ -43,6 +92,126 @@ const docTemplate = `{
                 "responses": {
                     "201": {
                         "description": "Created"
+                    }
+                }
+            }
+        },
+        "/api/admin/strategies/batch/": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "openapi.strategy"
+                ],
+                "summary": "strategy batch update",
+                "operationId": "openapi_strategy_batch_update",
+                "parameters": [
+                    {
+                        "description": "strategy batch update request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_common_dbha-v2_internal_admin_api_open_serializer.StrategyBatchUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "openapi.strategy"
+                ],
+                "summary": "strategy batch create",
+                "operationId": "openapi_strategy_batch_create",
+                "parameters": [
+                    {
+                        "description": "strategy batch create request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_common_dbha-v2_internal_admin_api_open_serializer.StrategyBatchCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created"
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "openapi.strategy"
+                ],
+                "summary": "strategy batch delete",
+                "operationId": "openapi_strategy_batch_delete",
+                "parameters": [
+                    {
+                        "description": "strategy batch delete request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_common_dbha-v2_internal_admin_api_open_serializer.StrategyBatchDeleteRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            }
+        },
+        "/api/admin/strategies/batch/status/": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "openapi.strategy"
+                ],
+                "summary": "strategy batch update status",
+                "operationId": "openapi_strategy_batch_update_status",
+                "parameters": [
+                    {
+                        "description": "strategy batch update status request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_common_dbha-v2_internal_admin_api_open_serializer.StrategyBatchUpdateStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
                     }
                 }
             }
@@ -84,21 +253,200 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "openapi.strategy"
+                ],
+                "summary": "strategy update",
+                "operationId": "openapi_strategy_update",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "strategy id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "strategy update request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_common_dbha-v2_internal_admin_api_open_serializer.StrategyUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "openapi.strategy"
+                ],
+                "summary": "strategy delete",
+                "operationId": "openapi_strategy_delete",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "strategy id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "bk_biz_id",
+                        "name": "bk_biz_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            }
+        },
+        "/api/admin/strategies/{id}/status/": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "openapi.strategy"
+                ],
+                "summary": "strategy status update",
+                "operationId": "openapi_strategy_status_update",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "strategy id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "strategy status update request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_common_dbha-v2_internal_admin_api_open_serializer.StrategyStatusUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
             }
         }
     },
     "definitions": {
+        "dbm-services_common_dbha-v2_internal_admin_api_open_serializer.StrategyBatchCreateRequest": {
+            "type": "object",
+            "required": [
+                "bk_biz_id",
+                "data"
+            ],
+            "properties": {
+                "bk_biz_id": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dbm-services_common_dbha-v2_internal_admin_api_open_serializer.StrategyInfo"
+                    }
+                }
+            }
+        },
+        "dbm-services_common_dbha-v2_internal_admin_api_open_serializer.StrategyBatchDeleteRequest": {
+            "type": "object",
+            "required": [
+                "bk_biz_id",
+                "ids"
+            ],
+            "properties": {
+                "bk_biz_id": {
+                    "type": "integer"
+                },
+                "ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "dbm-services_common_dbha-v2_internal_admin_api_open_serializer.StrategyBatchUpdateRequest": {
+            "type": "object",
+            "required": [
+                "bk_biz_id",
+                "data"
+            ],
+            "properties": {
+                "bk_biz_id": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dbm-services_common_dbha-v2_internal_admin_api_open_serializer.StrategyInfo"
+                    }
+                }
+            }
+        },
+        "dbm-services_common_dbha-v2_internal_admin_api_open_serializer.StrategyBatchUpdateStatusRequest": {
+            "type": "object",
+            "required": [
+                "bk_biz_id",
+                "ids",
+                "status"
+            ],
+            "properties": {
+                "bk_biz_id": {
+                    "type": "integer"
+                },
+                "ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "status": {
+                    "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_hamodel.StatusType"
+                }
+            }
+        },
         "dbm-services_common_dbha-v2_internal_admin_api_open_serializer.StrategyCreateRequest": {
             "type": "object",
             "required": [
-                "action",
                 "bk_biz_id",
                 "name",
-                "priority",
-                "scope",
-                "trigger_count",
-                "trigger_event_name",
-                "trigger_event_name_reason"
+                "trigger_event_name"
             ],
             "properties": {
                 "action": {
@@ -110,35 +458,76 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "id": {
+                    "type": "integer"
+                },
                 "name": {
                     "type": "string"
                 },
                 "priority": {
-                    "type": "integer",
-                    "minimum": 0
+                    "type": "integer"
                 },
                 "scope": {
                     "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_hamodel.ActionScopeType"
                 },
                 "trigger_count": {
-                    "type": "integer",
-                    "minimum": 1
+                    "type": "integer"
                 },
                 "trigger_event_name": {
                     "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_haprobe.DbEventName"
                 },
                 "trigger_event_name_reason": {
-                    "minimum": 0,
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_haprobe.DbEventNameReason"
-                        }
-                    ]
+                    "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_haprobe.DbEventNameReason"
+                }
+            }
+        },
+        "dbm-services_common_dbha-v2_internal_admin_api_open_serializer.StrategyInfo": {
+            "type": "object",
+            "required": [
+                "bk_biz_id",
+                "name",
+                "trigger_event_name"
+            ],
+            "properties": {
+                "action": {
+                    "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_hamodel.ActionType"
+                },
+                "bk_biz_id": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "priority": {
+                    "type": "integer"
+                },
+                "scope": {
+                    "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_hamodel.ActionScopeType"
+                },
+                "trigger_count": {
+                    "type": "integer"
+                },
+                "trigger_event_name": {
+                    "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_haprobe.DbEventName"
+                },
+                "trigger_event_name_reason": {
+                    "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_haprobe.DbEventNameReason"
                 }
             }
         },
         "dbm-services_common_dbha-v2_internal_admin_api_open_serializer.StrategyOutputInfo": {
             "type": "object",
+            "required": [
+                "bk_biz_id",
+                "name",
+                "trigger_event_name"
+            ],
             "properties": {
                 "action": {
                     "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_hamodel.ActionType"
@@ -178,6 +567,60 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                }
+            }
+        },
+        "dbm-services_common_dbha-v2_internal_admin_api_open_serializer.StrategyStatusUpdateRequest": {
+            "type": "object",
+            "required": [
+                "bk_biz_id"
+            ],
+            "properties": {
+                "bk_biz_id": {
+                    "type": "integer"
+                },
+                "status": {
+                    "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_hamodel.StatusType"
+                }
+            }
+        },
+        "dbm-services_common_dbha-v2_internal_admin_api_open_serializer.StrategyUpdateRequest": {
+            "type": "object",
+            "required": [
+                "bk_biz_id",
+                "name",
+                "trigger_event_name"
+            ],
+            "properties": {
+                "action": {
+                    "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_hamodel.ActionType"
+                },
+                "bk_biz_id": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "priority": {
+                    "type": "integer"
+                },
+                "scope": {
+                    "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_hamodel.ActionScopeType"
+                },
+                "trigger_count": {
+                    "type": "integer"
+                },
+                "trigger_event_name": {
+                    "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_haprobe.DbEventName"
+                },
+                "trigger_event_name_reason": {
+                    "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_haprobe.DbEventNameReason"
                 }
             }
         },

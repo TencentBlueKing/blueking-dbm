@@ -42,6 +42,11 @@ func (a ActionType) String() string {
 	return string(a)
 }
 
+var ActionTypeMap = map[ActionType]ActionType{
+	ActionTypeNotify: ActionTypeNotify,
+	ActionTypeSwitch: ActionTypeSwitch,
+}
+
 // ActionScopeType  impact scope: cluster, host.
 type ActionScopeType string
 
@@ -52,6 +57,11 @@ const (
 
 func (a ActionScopeType) String() string {
 	return string(a)
+}
+
+var ActionScopeTypeMap = map[ActionScopeType]ActionScopeType{
+	ActionScopeTypeCluster: ActionScopeTypeCluster,
+	ActionScopeTypeHost:    ActionScopeTypeHost,
 }
 
 // StatusType enabled, disabled, deleted.
@@ -67,6 +77,11 @@ func (s StatusType) String() string {
 	return string(s)
 }
 
+var StatusTypeMap = map[StatusType]StatusType{
+	StatusTypeEnabled:  StatusTypeEnabled,
+	StatusTypeDisabled: StatusTypeDisabled,
+}
+
 const (
 	// Define variables for all the field names of the database tables
 	// to avoid hard-coding the field names in the business code.
@@ -79,6 +94,7 @@ const (
 	DbSwitchingStrategyFieldStatus                 = "status"
 	DbSwitchingStrategyFieldTriggerEventName       = "trigger_event_name"
 	DbSwitchingStrategyFieldTriggerEventNameReason = "trigger_event_name_reason"
+	DbSwitchingStrategyFieldTriggerCount           = "trigger_count"
 	DbSwitchingStrategyFieldPriority               = "priority"
 	DbSwitchingStrategyFieldScope                  = "scope"
 	DbSwitchingStrategyFieldAction                 = "action"
