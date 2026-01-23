@@ -1,67 +1,4 @@
 {
-  "__inputs": [
-    {
-      "name": "DS_日志平台",
-      "label": "日志平台",
-      "description": "",
-      "type": "datasource",
-      "pluginId": "bk_log_datasource",
-      "pluginName": "BlueKing Log TimeSeries"
-    },
-    {
-      "name": "DS_蓝鲸监控_- 指标数据",
-      "label": "蓝鲸监控 - 指标数据",
-      "description": "",
-      "type": "datasource",
-      "pluginId": "bkmonitor-timeseries-datasource",
-      "pluginName": "BlueKing Monitor TimeSeries"
-    }
-  ],
-  "__elements": {},
-  "__requires": [
-    {
-      "type": "datasource",
-      "id": "bk_log_datasource",
-      "name": "BlueKing Log TimeSeries",
-      "version": "1.0.0"
-    },
-    {
-      "type": "datasource",
-      "id": "bkmonitor-timeseries-datasource",
-      "name": "BlueKing Monitor TimeSeries",
-      "version": "3.6.0"
-    },
-    {
-      "type": "grafana",
-      "id": "grafana",
-      "name": "Grafana",
-      "version": "10.4.10"
-    },
-    {
-      "type": "panel",
-      "id": "piechart",
-      "name": "Pie chart",
-      "version": ""
-    },
-    {
-      "type": "panel",
-      "id": "table",
-      "name": "Table",
-      "version": ""
-    },
-    {
-      "type": "panel",
-      "id": "timeseries",
-      "name": "Time series",
-      "version": ""
-    },
-    {
-      "type": "panel",
-      "id": "xychart",
-      "name": "XY Chart",
-      "version": ""
-    }
-  ],
   "annotations": {
     "list": [
       {
@@ -84,7 +21,7 @@
       }
     ]
   },
-  "editable": true,
+  "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
   "id": null,
@@ -104,8 +41,11 @@
           },
           "custom": {
             "align": "auto",
-            "displayMode": "auto",
-            "inspect": false
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false,
+            "width": 150
           },
           "mappings": [],
           "thresholds": {
@@ -126,180 +66,16 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "log"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "serverIp"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "path"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "gseIndex"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "stattime"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "cloudId"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "key_ratio"
+              "options": "dtEventTimeStamp"
             },
             "properties": [
               {
                 "id": "unit",
-                "value": "percent"
+                "value": "dateTimeAsSystem"
               },
               {
                 "id": "custom.width",
-                "value": 167
-              },
-              {
-                "id": "custom.displayMode",
-                "value": "color-background"
-              },
-              {
-                "id": "displayName",
-                "value": "占比"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "iterationIndex"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "domain"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "app"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "bk_host_id"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "__module__"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "__set__"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "__ipv6__"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
+                "value": 150
               }
             ]
           },
@@ -310,132 +86,7 @@
             },
             "properties": [
               {
-                "id": "custom.displayMode",
-                "value": "color-text"
-              },
-              {
-                "id": "custom.width",
-                "value": 663
-              },
-              {
-                "id": "displayName",
-                "value": "Key名"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "index"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "key_ops.SET"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 92
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "key_cnt"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 87
-              },
-              {
-                "id": "displayName",
-                "value": "累计次数"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "time"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 153
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "addr"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 150
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "key_ops"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 864
-              },
-              {
-                "id": "displayName",
-                "value": "命令分布"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "key_ops.MSET"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 106
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "key_ops.GET"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 93
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "key_ops.SRANDMEMBER"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 158
+                "id": "custom.width"
               }
             ]
           }
@@ -447,9 +98,11 @@
         "x": 0,
         "y": 0
       },
-      "id": null,
+      "id": 2,
       "options": {
+        "cellHeight": "sm",
         "footer": {
+          "countRows": false,
           "fields": "",
           "reducer": [
             "sum"
@@ -460,11 +113,11 @@
         "sortBy": [
           {
             "desc": true,
-            "displayName": "占比"
+            "displayName": "key_cnt"
           }
         ]
       },
-      "pluginVersion": "9.1.0",
+      "pluginVersion": "10.4.10",
       "targets": [
         {
           "data": {
@@ -603,7 +256,7 @@
                   "list": [],
                   "type": "value",
                   "value": [
-                    "$cluster_domain"
+                    "$domain"
                   ]
                 }
               ]
@@ -619,6 +272,7 @@
                 "[采集项]redis_hotkey"
               ]
             },
+            "indexSetString": "",
             "method": "logs",
             "metric": "bk_host_id",
             "period": 60,
@@ -627,7 +281,7 @@
               "timeNum": 1
             },
             "queryString": "",
-            "size": 5000,
+            "size": 500,
             "target": {
               "expandKeys": [],
               "realValues": [],
@@ -639,13 +293,46 @@
             "type": "bk_log_datasource",
             "uid": "${DS_日志平台}"
           },
-          "datasourceId": "bk_log_datasource",
-          "name": "BlueKing Log TimeSeries",
           "refId": "A"
         }
       ],
       "timeFrom": "2d",
       "title": "Top-N 热Key(30s)",
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "dtEventTimeStamp",
+                "addr",
+                "key_cnt",
+                "key_ops",
+                "key_ratio",
+                "key_sample"
+              ]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "includeByName": {},
+            "indexByName": {
+              "addr": 1,
+              "dtEventTimeStamp": 0,
+              "key_cnt": 2,
+              "key_ops": 4,
+              "key_ratio": 3,
+              "key_sample": 5
+            },
+            "renameByName": {
+              "dtEventTimeStamp": ""
+            }
+          }
+        }
+      ],
       "type": "table"
     },
     {
@@ -661,8 +348,11 @@
           },
           "custom": {
             "align": "auto",
-            "displayMode": "auto",
-            "inspect": false
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false,
+            "width": 150
           },
           "mappings": [],
           "thresholds": {
@@ -688,255 +378,25 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 428
+                "value": 200
               },
               {
-                "id": "custom.displayMode",
-                "value": "color-text"
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "log"
+              "options": "dtEventTimeStamp"
             },
             "properties": [
               {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "path"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "app"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "cloudId"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "bk_host_id"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "stattime"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "iterationIndex"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "gseIndex"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "__module__"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "__set__"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "__ipv6__"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "index"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "addr"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 174
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "serverIp"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "time"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 155
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "sortby"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "domain"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "top_idx"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 61
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "valsize"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 128
-              },
-              {
-                "id": "custom.displayMode",
-                "value": "auto"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "type"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 57
+                "id": "unit",
+                "value": "dateTimeAsSystem"
               }
             ]
           },
@@ -948,11 +408,19 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 139
-              },
+                "value": 81
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "type"
+            },
+            "properties": [
               {
-                "id": "custom.displayMode",
-                "value": "color-text"
+                "id": "custom.width",
+                "value": 79
               }
             ]
           },
@@ -963,20 +431,8 @@
             },
             "properties": [
               {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "top_idx"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
+                "id": "unit",
+                "value": "bytes"
               }
             ]
           }
@@ -988,9 +444,11 @@
         "x": 0,
         "y": 10
       },
-      "id": null,
+      "id": 3,
       "options": {
+        "cellHeight": "sm",
         "footer": {
+          "countRows": false,
           "enablePagination": true,
           "fields": "",
           "reducer": [
@@ -1006,7 +464,7 @@
           }
         ]
       },
-      "pluginVersion": "9.1.0",
+      "pluginVersion": "10.4.10",
       "targets": [
         {
           "data": {
@@ -1145,7 +603,7 @@
                   "list": [],
                   "type": "value",
                   "value": [
-                    "$cluster_domain"
+                    "$domain"
                   ]
                 }
               ],
@@ -1237,6 +695,7 @@
                 "[采集项]redis_bigkey"
               ]
             },
+            "indexSetString": "",
             "method": "logs",
             "metric": "bk_host_id",
             "period": 60,
@@ -1245,7 +704,7 @@
               "timeNum": 1
             },
             "queryString": "",
-            "size": 5000,
+            "size": 200,
             "target": {
               "expandKeys": [],
               "realValues": [],
@@ -1257,14 +716,47 @@
             "type": "bk_log_datasource",
             "uid": "${DS_日志平台}"
           },
-          "datasourceId": "bk_log_datasource",
-          "hide": false,
-          "name": "BlueKing Log TimeSeries",
           "refId": "A"
         }
       ],
       "timeFrom": "2d",
-      "title": "Top-N 大Key(sortByFileds)",
+      "title": "Top-100 大Key(sortByFileds)",
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "dtEventTimeStamp",
+                "addr",
+                "fields",
+                "rediskey",
+                "type",
+                "valsize"
+              ]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "includeByName": {},
+            "indexByName": {
+              "addr": 1,
+              "dtEventTimeStamp": 0,
+              "fields": 3,
+              "rediskey": 5,
+              "type": 2,
+              "valsize": 4
+            },
+            "renameByName": {
+              "dtEventTimeStamp": "",
+              "sortby": ""
+            }
+          }
+        }
+      ],
       "type": "table"
     },
     {
@@ -1280,8 +772,11 @@
           },
           "custom": {
             "align": "auto",
-            "displayMode": "auto",
-            "inspect": false
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false,
+            "width": 150
           },
           "mappings": [],
           "thresholds": {
@@ -1307,247 +802,37 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 468
+                "value": 200
               },
               {
-                "id": "custom.displayMode",
-                "value": "color-text"
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "log"
+              "options": "dtEventTimeStamp"
             },
             "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "path"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "app"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "cloudId"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "bk_host_id"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "stattime"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "iterationIndex"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "gseIndex"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "__module__"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "__set__"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "__ipv6__"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "index"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "addr"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 211
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "serverIp"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "time"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 134
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "sortby"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "domain"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "top_idx"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 61
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "valsize"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 106
-              },
               {
                 "id": "unit",
-                "value": "bytes"
-              },
+                "value": "dateTimeAsSystem"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "fields"
+            },
+            "properties": [
               {
-                "id": "custom.displayMode",
-                "value": "color-text"
+                "id": "custom.width",
+                "value": 81
               }
             ]
           },
@@ -1559,43 +844,19 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 57
+                "value": 79
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "fields"
+              "options": "valsize"
             },
             "properties": [
               {
-                "id": "custom.width",
-                "value": 139
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "fields"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "top_idx"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
+                "id": "unit",
+                "value": "bytes"
               }
             ]
           }
@@ -1607,9 +868,11 @@
         "x": 12,
         "y": 10
       },
-      "id": null,
+      "id": 10,
       "options": {
+        "cellHeight": "sm",
         "footer": {
+          "countRows": false,
           "enablePagination": true,
           "fields": "",
           "reducer": [
@@ -1625,7 +888,7 @@
           }
         ]
       },
-      "pluginVersion": "9.1.0",
+      "pluginVersion": "10.4.10",
       "targets": [
         {
           "data": {
@@ -1764,7 +1027,7 @@
                   "list": [],
                   "type": "value",
                   "value": [
-                    "$cluster_domain"
+                    "$domain"
                   ]
                 }
               ],
@@ -1856,6 +1119,7 @@
                 "[采集项]redis_bigkey"
               ]
             },
+            "indexSetString": "",
             "method": "logs",
             "metric": "bk_host_id",
             "period": 60,
@@ -1864,7 +1128,7 @@
               "timeNum": 1
             },
             "queryString": "",
-            "size": 5000,
+            "size": 200,
             "target": {
               "expandKeys": [],
               "realValues": [],
@@ -1876,13 +1140,47 @@
             "type": "bk_log_datasource",
             "uid": "${DS_日志平台}"
           },
-          "datasourceId": "bk_log_datasource",
-          "name": "BlueKing Log TimeSeries",
           "refId": "A"
         }
       ],
       "timeFrom": "2d",
-      "title": "Top-N 大Key (SortBySize)",
+      "title": "Top-100 大Key(sortBySize)",
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "dtEventTimeStamp",
+                "addr",
+                "fields",
+                "rediskey",
+                "type",
+                "valsize"
+              ]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "includeByName": {},
+            "indexByName": {
+              "addr": 1,
+              "dtEventTimeStamp": 0,
+              "fields": 3,
+              "rediskey": 5,
+              "type": 2,
+              "valsize": 4
+            },
+            "renameByName": {
+              "dtEventTimeStamp": "",
+              "sortby": ""
+            }
+          }
+        }
+      ],
       "type": "table"
     },
     {
@@ -1898,6 +1196,7 @@
             "seriesBy": "last"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "series",
             "axisLabel": "",
@@ -1911,6 +1210,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "smooth",
             "lineWidth": 1,
             "pointSize": 6,
@@ -1932,8 +1232,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -1951,29 +1250,30 @@
         "x": 0,
         "y": 25
       },
-      "id": null,
+      "id": 6,
       "options": {
         "legend": {
           "calcs": [
-            "lastNotNull",
             "max"
           ],
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
-          "sortBy": "Last *",
-          "sortDesc": true
+          "sortBy": "Max",
+          "sortDesc": true,
+          "width": 700
         },
         "tooltip": {
-          "mode": "single",
-          "sort": "none"
+          "maxHeight": 10,
+          "mode": "multi",
+          "sort": "desc"
         }
       },
       "pluginVersion": "9.1.0",
       "targets": [
         {
           "data": {
-            "alias": "",
+            "alias": "$tag_partten",
             "conditions": [
               [
                 {
@@ -2108,7 +1408,7 @@
                   "list": [],
                   "type": "value",
                   "value": [
-                    "$cluster_domain"
+                    "$domain"
                   ]
                 }
               ]
@@ -2126,6 +1426,7 @@
                 "[采集项]redis_keymod"
               ]
             },
+            "indexSetString": "",
             "method": "avg",
             "metric": "sample_raito",
             "period": 86400,
@@ -2146,12 +1447,9 @@
             "type": "bk_log_datasource",
             "uid": "${DS_日志平台}"
           },
-          "datasourceId": "bk_log_datasource",
-          "name": "BlueKing Log TimeSeries",
           "refId": "A"
         }
       ],
-      "timeFrom": "15d",
       "title": "Key模式（占比）",
       "type": "timeseries"
     },
@@ -2160,15 +1458,44 @@
         "type": "bk_log_datasource",
         "uid": "${DS_日志平台}"
       },
+      "description": "数量",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "palette-classic",
+            "seriesBy": "last"
           },
           "custom": {
-            "align": "auto",
-            "displayMode": "auto",
-            "inspect": false
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "series",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 6,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "mappings": [],
           "thresholds": {
@@ -2182,150 +1509,270 @@
                 "value": 80
               }
             ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 24,
+        "x": 0,
+        "y": 36
+      },
+      "hideTimeOverride": false,
+      "id": 9,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "sortBy": "Last *",
+          "sortDesc": true,
+          "width": 800
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "9.1.0",
+      "targets": [
+        {
+          "data": {
+            "alias": "$tag_partten",
+            "conditions": [
+              [
+                {
+                  "key": "vj2e84nokd",
+                  "list": [
+                    {
+                      "id": "app",
+                      "name": "app"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "app"
+                },
+                {
+                  "key": "qz63ikuurr",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "lu35zv40yf",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$bk_biz_id"
+                  ]
+                }
+              ],
+              [
+                {
+                  "key": "jj9b7ldv7m",
+                  "list": [
+                    {
+                      "id": "and",
+                      "name": "AND"
+                    },
+                    {
+                      "id": "or",
+                      "name": "OR"
+                    }
+                  ],
+                  "type": "condition",
+                  "value": "and"
+                },
+                {
+                  "key": "qc7i763wvn",
+                  "list": [
+                    {
+                      "id": "domain",
+                      "name": "domain"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "domain"
+                },
+                {
+                  "key": "831rikk78w",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "k9u0nywt2b",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$domain"
+                  ]
+                }
+              ]
+            ],
+            "dimensions": [
+              "partten"
+            ],
+            "index": {
+              "id": [
+                "applications",
+                9487
+              ],
+              "labels": [
+                "应用",
+                "[采集项]redis_keymod"
+              ]
+            },
+            "indexSetString": "",
+            "method": "sum",
+            "metric": "count",
+            "period": 86400,
+            "periodUnitSet": {
+              "periodUnit": "min",
+              "timeNum": 1440
+            },
+            "queryString": "",
+            "size": 50,
+            "target": {
+              "expandKeys": [],
+              "realValues": [],
+              "treeData": [],
+              "values": []
+            }
+          },
+          "datasource": {
+            "type": "bk_log_datasource",
+            "uid": "${DS_日志平台}"
+          },
+          "refId": "A"
+        }
+      ],
+      "title": "Key模式（合计）",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bk_log_datasource",
+        "uid": "${DS_日志平台}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
           }
         },
         "overrides": [
           {
             "matcher": {
               "id": "byName",
-              "options": "log"
+              "options": "key_type"
             },
             "properties": [
               {
-                "id": "custom.hidden",
-                "value": true
+                "id": "custom.width",
+                "value": 85
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "gseIndex"
+              "options": "partten"
             },
             "properties": [
               {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "cloudId"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "path"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "stattime"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "bk_host_id"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "iterationIndex"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "serverIp"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "__module__"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "__set__"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "__ipv6__"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "index"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
+                "id": "custom.width",
+                "value": 220
               }
             ]
           },
@@ -2337,347 +1784,7 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 756
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "avg_fileds"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 74
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "avg_valsize"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 83
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "max_fileds"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 86
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "keys_nottl"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 72
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "max_valsize"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 77
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "top_idx"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "partten"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 711
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "app"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "key_type"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 45
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "keys_expired"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 80
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "count"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 82
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "domain"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "partten"
-            },
-            "properties": [
-              {
-                "id": "custom.displayMode",
-                "value": "color-text"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "sample_raito"
-            },
-            "properties": [
-              {
-                "id": "custom.displayMode",
-                "value": "color-text"
-              },
-              {
-                "id": "unit",
-                "value": "percent"
-              },
-              {
-                "id": "custom.width",
-                "value": 54
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "avg_fileds"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "avg_valsize"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "max_valsize"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "time"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 100
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "addr"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 147
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "addr"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "sample_raito (mean)"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "percent"
-              },
-              {
-                "id": "custom.displayMode",
-                "value": "color-text"
-              },
-              {
-                "id": "custom.width",
-                "value": 146
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "time (lastNotNull)"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 142
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "samples (lastNotNull)"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 693
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "avg_fileds (mean)"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 84
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "keys_nottl (sum)"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 87
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "keys_expired (sum)"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 92
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "count (sum)"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 87
+                "value": 215
               }
             ]
           }
@@ -2687,11 +1794,13 @@
         "h": 17,
         "w": 24,
         "x": 0,
-        "y": 36
+        "y": 47
       },
-      "id": null,
+      "id": 8,
       "options": {
+        "cellHeight": "sm",
         "footer": {
+          "countRows": false,
           "enablePagination": true,
           "fields": "",
           "reducer": [
@@ -2703,11 +1812,11 @@
         "sortBy": [
           {
             "desc": true,
-            "displayName": "sample_raito (mean)"
+            "displayName": "count"
           }
         ]
       },
-      "pluginVersion": "9.1.0",
+      "pluginVersion": "10.4.10",
       "targets": [
         {
           "data": {
@@ -2846,7 +1955,7 @@
                   "list": [],
                   "type": "value",
                   "value": [
-                    "$cluster_domain"
+                    "$domain"
                   ]
                 }
               ]
@@ -2891,81 +2000,57 @@
       "title": "Key模式列表",
       "transformations": [
         {
-          "id": "groupBy",
+          "id": "filterFieldsByName",
           "options": {
-            "fields": {
-              "avg_fileds": {
-                "aggregations": [
-                  "mean"
-                ],
-                "operation": "aggregate"
-              },
-              "avg_valsize": {
-                "aggregations": []
-              },
-              "count": {
-                "aggregations": [
-                  "sum"
-                ],
-                "operation": "aggregate"
-              },
-              "key_type": {
-                "aggregations": [],
-                "operation": "groupby"
-              },
-              "keys_expired": {
-                "aggregations": [
-                  "sum"
-                ],
-                "operation": "aggregate"
-              },
-              "keys_nottl": {
-                "aggregations": [
-                  "sum"
-                ],
-                "operation": "aggregate"
-              },
-              "partten": {
-                "aggregations": [],
-                "operation": "groupby"
-              },
-              "sample_raito": {
-                "aggregations": [
-                  "mean"
-                ],
-                "operation": "aggregate"
-              },
-              "samples": {
-                "aggregations": [
-                  "lastNotNull"
-                ],
-                "operation": "aggregate"
-              },
-              "time": {
-                "aggregations": [
-                  "lastNotNull"
-                ],
-                "operation": "aggregate"
-              }
+            "byVariable": false,
+            "include": {
+              "names": [
+                "count",
+                "key_type",
+                "keys_expired",
+                "keys_nottl",
+                "max_fileds",
+                "max_valsize",
+                "partten",
+                "sample_raito",
+                "samples"
+              ]
             }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "includeByName": {},
+            "indexByName": {
+              "__set__": 9,
+              "count": 3,
+              "key_type": 0,
+              "keys_expired": 4,
+              "keys_nottl": 5,
+              "max_fileds": 6,
+              "max_valsize": 7,
+              "partten": 1,
+              "sample_raito": 8,
+              "samples": 2
+            },
+            "renameByName": {}
           }
         }
       ],
       "type": "table"
     }
   ],
-  "schemaVersion": 37,
-  "style": "dark",
-  "tags": [
-    "TwemproxyRedisInstance",
-    "PredixyTendisplusCluster",
-    "TwemproxyTendisSSDInstance",
-    "Key统计分析"
-  ],
+  "schemaVersion": 39,
+  "tags": [],
   "templating": {
     "list": [
       {
         "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
         },
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
@@ -2984,53 +2069,12 @@
             "data_type_label": "time_series",
             "group_by": "app",
             "metric_field": "redis_dbmon_heart_beat",
-            "result_table_id": "bkmonitor_time_series_{metric_data_id}.__default__",
+            "result_table_id": "bkmonitor_time_series_553410.__default__",
             "result_table_label": "component",
             "where": []
           },
           "queryType": "dimension",
           "variables": ""
-        },
-        "refresh": 2,
-        "regex": "",
-        "skipUrlSync": false,
-        "sort": 0,
-        "type": "query"
-      },
-      {
-        "current": {
-        },
-        "datasource": {
-          "type": "bkmonitor-timeseries-datasource",
-          "uid": "${DS_蓝鲸监控_- 指标数据}"
-        },
-        "definition": "- Blueking Monitor - 维度",
-        "hide": 0,
-        "includeAll": false,
-        "multi": false,
-        "name": "cluster_domain",
-        "options": [],
-        "query": {
-          "metricConfig": {
-            "data_label": "dbm_report_channel",
-            "data_source_label": "custom",
-            "data_type_label": "time_series",
-            "group_by": "cluster_domain",
-            "metric_field": "redis_dbmon_heart_beat",
-            "result_table_id": "bkmonitor_time_series_{metric_data_id}.__default__",
-            "result_table_label": "component",
-            "where": [
-              {
-                "key": "app",
-                "method": "eq",
-                "value": [
-                  "$app"
-                ]
-              }
-            ]
-          },
-          "queryType": "dimension",
-          "variables": "$app"
         },
         "refresh": 2,
         "regex": "",
@@ -3049,19 +2093,19 @@
           "uid": "${DS_蓝鲸监控_- 指标数据}"
         },
         "definition": "- Blueking Monitor - 维度",
-        "hide": 2,
+        "hide": 0,
         "includeAll": false,
         "multi": false,
-        "name": "bk_biz_id",
+        "name": "domain",
         "options": [],
         "query": {
           "metricConfig": {
             "data_label": "dbm_report_channel",
             "data_source_label": "custom",
             "data_type_label": "time_series",
-            "group_by": "bk_biz_id",
+            "group_by": "cluster_domain",
             "metric_field": "redis_dbmon_heart_beat",
-            "result_table_id": "bkmonitor_time_series_{metric_data_id}.__default__",
+            "result_table_id": "bkmonitor_time_series_553410.__default__",
             "result_table_label": "component",
             "where": [
               {
@@ -3079,19 +2123,70 @@
         "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
-        "sort": 1,
+        "sort": 0,
         "type": "query"
       }
     ]
   },
   "time": {
-    "from": "now-6h",
+    "from": "now-2d",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "default",
   "title": "Key统计分析",
   "uid": "8QRXLyaSz",
-  "version": 34,
-  "weekStart": ""
+  "version": 48,
+  "weekStart": "",
+  "__inputs": [
+    {
+      "name": "DS_蓝鲸监控_- 指标数据",
+      "label": "蓝鲸监控 - 指标数据",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "bkmonitor-timeseries-datasource",
+      "pluginName": "Blueing Monitor TimeSeries"
+    },
+    {
+      "name": "DS_日志平台",
+      "label": "日志平台",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "bk_log_datasource",
+      "pluginName": "BlueKing Log TimeSeries"
+    }
+  ],
+  "__elements": {},
+  "__requires": [
+    {
+      "type": "datasource",
+      "id": "bk_log_datasource",
+      "name": "BlueKing Log TimeSeries",
+      "version": "1.0.0"
+    },
+    {
+      "type": "datasource",
+      "id": "bkmonitor-timeseries-datasource",
+      "name": "Blueing Monitor TimeSeries",
+      "version": "3.6.0"
+    },
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "9.1.0"
+    },
+    {
+      "type": "panel",
+      "id": "stat",
+      "name": "Stat",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "timeseries",
+      "name": "Time series",
+      "version": ""
+    }
+  ]
 }
