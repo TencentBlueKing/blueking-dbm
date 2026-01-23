@@ -4,14 +4,13 @@
       {
         "builtIn": 1,
         "datasource": {
-          "uid": "dba_mongo_proxy"
+          "type": "grafana",
+          "uid": "-- Grafana --"
         },
-        "enable": false,
+        "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
-        "limit": 100,
-        "name": "",
-        "showIn": 0,
+        "name": "Annotations & Alerts",
         "type": "dashboard"
       }
     ]
@@ -111,7 +110,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -136,6 +136,8 @@
               "displayMode": "table",
               "placement": "right",
               "showLegend": true,
+              "sortBy": "Max",
+              "sortDesc": true,
               "width": 350
             },
             "tooltip": {
@@ -147,9 +149,6 @@
           "targets": [
             {
               "cluster": [],
-              "datasource": {
-                "uid": "dba_mongo_proxy"
-              },
               "enableDownSampling": false,
               "expressionList": [],
               "format": "time_series",
@@ -258,7 +257,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -283,6 +283,8 @@
               "displayMode": "table",
               "placement": "right",
               "showLegend": true,
+              "sortBy": "Max",
+              "sortDesc": true,
               "width": 350
             },
             "tooltip": {
@@ -295,7 +297,8 @@
             {
               "cluster": [],
               "datasource": {
-                "uid": "dba_mongo_proxy"
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
               },
               "enableDownSampling": false,
               "expressionList": [],
@@ -403,7 +406,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -428,7 +432,7 @@
               "displayMode": "table",
               "placement": "right",
               "showLegend": true,
-              "sortBy": "Mean",
+              "sortBy": "Max",
               "sortDesc": true,
               "width": 350
             },
@@ -548,7 +552,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -573,8 +578,8 @@
               "displayMode": "table",
               "placement": "right",
               "showLegend": true,
-              "sortBy": "Mean",
-              "sortDesc": false,
+              "sortBy": "Max",
+              "sortDesc": true,
               "width": 350
             },
             "tooltip": {
@@ -1159,7 +1164,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -1185,7 +1191,7 @@
               "displayMode": "table",
               "placement": "right",
               "showLegend": true,
-              "sortBy": "Mean",
+              "sortBy": "Max",
               "sortDesc": true,
               "width": 350
             },
@@ -1363,7 +1369,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -1388,7 +1395,7 @@
               "displayMode": "table",
               "placement": "right",
               "showLegend": true,
-              "sortBy": "Mean",
+              "sortBy": "Max",
               "sortDesc": true,
               "width": 350
             },
@@ -1592,7 +1599,7 @@
               "displayMode": "table",
               "placement": "right",
               "showLegend": true,
-              "sortBy": "Name",
+              "sortBy": "Max",
               "sortDesc": true,
               "width": 350
             },
@@ -1921,7 +1928,8 @@
         {
           "cluster": [],
           "datasource": {
-            "uid": "dba_mongo_proxy"
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -2001,7 +2009,8 @@
         {
           "cluster": [],
           "datasource": {
-            "uid": "dba_mongo_proxy"
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -2080,7 +2089,8 @@
         {
           "cluster": [],
           "datasource": {
-            "uid": "dba_mongo_proxy"
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -2159,7 +2169,8 @@
         {
           "cluster": [],
           "datasource": {
-            "uid": "dba_mongo_proxy"
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
           },
           "enableDownSampling": false,
           "expressionList": [],
@@ -2240,7 +2251,8 @@
         {
           "cluster": [],
           "datasource": {
-            "uid": "dba_mongo_proxy"
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
           },
           "enableDownSampling": false,
           "expressionList": [],
@@ -2321,7 +2333,8 @@
         {
           "cluster": [],
           "datasource": {
-            "uid": "dba_mongo_proxy"
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -2521,7 +2534,8 @@
         {
           "cluster": [],
           "datasource": {
-            "uid": "dba_redis_proxy"
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
           },
           "enableDownSampling": true,
           "expressionList": [],
@@ -2567,7 +2581,8 @@
         {
           "cluster": [],
           "datasource": {
-            "uid": "dba_redis_proxy"
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
           },
           "enableDownSampling": true,
           "expressionList": [],
@@ -2689,7 +2704,8 @@
         {
           "cluster": [],
           "datasource": {
-            "uid": "dba_mongo_proxy"
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
           },
           "enableDownSampling": false,
           "expressionList": [],
@@ -2856,7 +2872,8 @@
         {
           "cluster": [],
           "datasource": {
-            "uid": "dba_mongo_proxy"
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
           },
           "enableDownSampling": false,
           "expressionList": [],
@@ -2957,6 +2974,8 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true,
           "width": 350
         },
         "tooltip": {
@@ -2969,7 +2988,8 @@
         {
           "cluster": [],
           "datasource": {
-            "uid": "dba_mongo_proxy"
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
           },
           "enableDownSampling": false,
           "expressionList": [],
@@ -3084,7 +3104,8 @@
         {
           "cluster": [],
           "datasource": {
-            "uid": "dba_mongo_proxy"
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
           },
           "enableDownSampling": false,
           "expressionList": [
@@ -3241,6 +3262,8 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true,
           "width": 350
         },
         "tooltip": {
@@ -3253,7 +3276,8 @@
         {
           "cluster": [],
           "datasource": {
-            "uid": "dba_mongo_proxy"
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
           },
           "enableDownSampling": false,
           "expressionList": [],
@@ -3325,7 +3349,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -3354,6 +3379,8 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true,
           "width": 350
         },
         "tooltip": {
@@ -3366,7 +3393,8 @@
         {
           "cluster": [],
           "datasource": {
-            "uid": "dba_mongo_proxy"
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -3400,11 +3428,12 @@
             "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
+            "axisGridShow": true,
             "axisLabel": "",
             "axisPlacement": "left",
             "axisWidth": 40,
             "barAlignment": 0,
-            "drawStyle": "line",
+            "drawStyle": "points",
             "fillOpacity": 20,
             "gradientMode": "none",
             "hideFrom": {
@@ -3419,7 +3448,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "always",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -3437,11 +3466,12 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
-          "unit": "short"
+          "unit": "none"
         },
         "overrides": []
       },
@@ -3457,13 +3487,14 @@
         "legend": {
           "calcs": [
             "lastNotNull",
-            "max"
+            "max",
+            "changeCount"
           ],
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
-          "sortBy": "Last *",
-          "sortDesc": false,
+          "sortBy": "Max",
+          "sortDesc": true,
           "width": 350
         },
         "tooltip": {
@@ -3476,7 +3507,8 @@
         {
           "cluster": [],
           "datasource": {
-            "uid": "dba_mongo_proxy"
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [
             {
@@ -3545,6 +3577,81 @@
           "source": "bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_my_state{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}",
           "step": "1m",
           "type": "range"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "enableDownSampling": false,
+          "expressionList": [
+            {
+              "active": true,
+              "alias": "total",
+              "expression": "sum(a)",
+              "functions": []
+            }
+          ],
+          "format": "time_series",
+          "hide": true,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "$tag_instance_role changes",
+          "query_configs": [
+            {
+              "alias": "$tag_type",
+              "data_label": "exporter_dbm_mongodb_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [
+                "type"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "mongodb_mongod_op_counters_total",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "$instance_role"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "changes(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_my_state{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[2m])",
+          "step": "1m",
+          "type": "range"
         }
       ],
       "title": "State",
@@ -3601,7 +3708,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -3631,6 +3739,8 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true,
           "width": 350
         },
         "tooltip": {
@@ -3643,7 +3753,8 @@
         {
           "cluster": [],
           "datasource": {
-            "uid": "dba_mongo_proxy"
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -3661,7 +3772,8 @@
         {
           "cluster": [],
           "datasource": {
-            "uid": "dba_mongo_proxy"
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -3731,7 +3843,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -3760,6 +3873,8 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true,
           "width": 350
         },
         "tooltip": {
@@ -3772,7 +3887,8 @@
         {
           "cluster": [],
           "datasource": {
-            "uid": "dba_mongo_proxy"
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
           },
           "enableDownSampling": false,
           "expressionList": [],
@@ -3843,7 +3959,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -3873,6 +3990,8 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true,
           "width": 350
         },
         "tooltip": {
@@ -3885,7 +4004,8 @@
         {
           "cluster": [],
           "datasource": {
-            "uid": "dba_mongo_proxy"
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
           },
           "enableDownSampling": false,
           "expressionList": [],
@@ -3957,7 +4077,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -3987,6 +4108,8 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true,
           "width": 350
         },
         "tooltip": {
@@ -3999,7 +4122,8 @@
         {
           "cluster": [],
           "datasource": {
-            "uid": "dba_mongo_proxy"
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -4079,7 +4203,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -4107,6 +4232,8 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true,
           "width": 350
         },
         "tooltip": {
@@ -4119,7 +4246,8 @@
         {
           "cluster": [],
           "datasource": {
-            "uid": "dba_mongo_proxy"
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
           },
           "enableDownSampling": true,
           "expressionList": [],
@@ -4208,7 +4336,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -4237,6 +4366,8 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true,
           "width": 350
         },
         "tooltip": {
@@ -4249,7 +4380,8 @@
         {
           "cluster": [],
           "datasource": {
-            "uid": "dba_mongo_proxy"
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
           },
           "enableDownSampling": true,
           "expressionList": [],
@@ -4367,6 +4499,8 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true,
           "width": 350
         },
         "tooltip": {
@@ -4379,7 +4513,8 @@
         {
           "cluster": [],
           "datasource": {
-            "uid": "dba_mongo_proxy"
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
           },
           "enableDownSampling": true,
           "expressionList": [],
@@ -4512,7 +4647,8 @@
         {
           "cluster": [],
           "datasource": {
-            "uid": "dba_mongo_proxy"
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
           },
           "enableDownSampling": true,
           "expressionList": [],
@@ -4815,7 +4951,7 @@
   "timezone": "browser",
   "title": "mongoreplicaset",
   "uid": "MongoReplicaSet",
-  "version": 84,
+  "version": 92,
   "weekStart": "",
   "__inputs": [
     {
