@@ -102,6 +102,12 @@ class AlertLevelEnum(IntStructuredEnum):
     LOW = EnumField(3, _("提醒"))
 
 
+class AlertRecoveryStatusEnum(StrStructuredEnum):
+    RECOVERY = EnumField("recovery", _("恢复"))
+    CLOSE = EnumField("close", _("关闭"))
+    NODATA = EnumField("recovery-nodata", _("恢复"))
+
+
 class AlertStageEnum(StrStructuredEnum):
     """告警处理阶段"""
 

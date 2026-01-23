@@ -23,6 +23,7 @@ from backend.db_meta.models import AppCache
 from backend.db_monitor import mock_data
 from backend.db_monitor.constants import (
     AlertLevelEnum,
+    AlertRecoveryStatusEnum,
     AlertStageEnum,
     AlertStatusEnum,
     DetectAlgEnum,
@@ -194,8 +195,33 @@ class MonitorPolicyUpdateSerializer(AuditedSerializer, serializers.ModelSerializ
         )
         unit_prefix = serializers.CharField(allow_blank=True)
 
+    class DetectsConfigSerializer(serializers.Serializer):
+        class TriggerConfigSerializer(serializers.Serializer):
+            count = serializers.IntegerField(help_text=_("触发次数"))
+            check_window = serializers.IntegerField(help_text=_("检测周期（分钟）"))
+            uptime = serializers.JSONField(help_text=_("生效时间配置"))
+
+        class RecoveryConfigSerializer(serializers.Serializer):
+            check_window = serializers.IntegerField(help_text=_("检测周期（分钟）"))
+            status_setter = serializers.ChoiceField(
+                help_text=_("告警恢复目标状态"),
+                default=AlertRecoveryStatusEnum.RECOVERY,
+                choices=AlertRecoveryStatusEnum.get_choices(),
+            )
+
+        trigger_config = TriggerConfigSerializer()
+        recovery_config = RecoveryConfigSerializer()
+
+    class NoDataConfigSerializer(serializers.Serializer):
+        level = serializers.ChoiceField(choices=AlertLevelEnum.get_choices(), help_text=_("告警级别"))
+        continuous = serializers.IntegerField(help_text=_("周期"))
+        is_enabled = serializers.BooleanField(help_text=_("无数据开关"), default=False)
+        agg_dimension = serializers.ListSerializer(help_text=_("维度"), child=serializers.CharField(), allow_empty=True)
+
     targets = serializers.ListField(child=TargetSerializer(), allow_empty=False)
     test_rules = serializers.ListField(child=TestRuleSerializer(), allow_empty=False)
+    detects_config = DetectsConfigSerializer()
+    no_data_config = NoDataConfigSerializer()
     notify_rules = serializers.ListField(
         child=serializers.ChoiceField(choices=NoticeSignalEnum.get_choices()), allow_empty=False
     )
@@ -203,7 +229,15 @@ class MonitorPolicyUpdateSerializer(AuditedSerializer, serializers.ModelSerializ
 
     class Meta:
         model = MonitorPolicy
-        fields = ["targets", "test_rules", "notify_rules", "notify_groups", "custom_conditions"]
+        fields = [
+            "targets",
+            "test_rules",
+            "notify_rules",
+            "notify_groups",
+            "custom_conditions",
+            "detects_config",
+            "no_data_config",
+        ]
 
 
 class BatchUpdateMonitorPolicyNotifySerializer(serializers.Serializer):
@@ -243,6 +277,8 @@ class MonitorPolicyCloneSerializer(MonitorPolicyUpdateSerializer):
             "notify_rules",
             "notify_groups",
             "custom_conditions",
+            "detects_config",
+            "no_data_config",
         ]
 
 
@@ -257,6 +293,11 @@ class ListClusterSerializer(serializers.Serializer):
 
 class ListModuleSerializer(ListClusterSerializer):
     pass
+
+
+class AlarmStrategySerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务id"), default=env.DBA_APP_BK_BIZ_ID)
+    monitor_policy_id = serializers.IntegerField(help_text=_("监控策略id"))
 
 
 class AlarmCallBackDataSerializer(serializers.Serializer):
@@ -328,6 +369,11 @@ class ListAlertSerializer(serializers.Serializer):
                 "end_time": None,
             }
         }
+
+
+class MetricListSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务id"))
+    conditions = serializers.JSONField(help_text=_("查询条件"))
 
 
 class CreateAlarmShieldSerializer(serializers.Serializer):
