@@ -32,6 +32,7 @@
   </div>
 </template>
 <script setup lang="ts">
+  import Dayjs from 'dayjs';
   import { useRequest } from 'vue-request';
 
   import FlowMode from '@services/model/ticket/flow';
@@ -56,7 +57,12 @@
     if (props.data.err_msg || !logContent.value) {
       return '';
     }
-    return logContent.value.map((item) => item.message).join('\n');
+    return logContent.value
+      .map(
+        (item) =>
+          `<span style="font-weight: 500">[${Dayjs(Number(item.timestamp)).format('YYYY-MM-DD HH:mm:ss')} ${item.levelname}]</span> ${item.message}`,
+      )
+      .join('\n');
   });
 
   const { data: specificNodeList, loading: isLoading } = useRequest(getSpecificNodes, {
@@ -82,6 +88,12 @@
     manual: true,
   });
 
+  watch(renderLogContent, () => {
+    nextTick(() => {
+      emits('elementHeightChange', rootRef.value?.getBoundingClientRect().height || 0);
+    });
+  });
+
   const handleClick = (node: { node_id: string; node_name: string; version_id: string }) => {
     activeNode.value = node;
     runGetNodeLog({
@@ -90,12 +102,6 @@
       version_id: node.version_id,
     });
   };
-
-  watch(renderLogContent, () => {
-    nextTick(() => {
-      emits('elementHeightChange', rootRef.value?.getBoundingClientRect().height || 0);
-    });
-  });
 </script>
 <style lang="postcss">
   .ticket-detail-flow-info-render-error-message-log-original {
