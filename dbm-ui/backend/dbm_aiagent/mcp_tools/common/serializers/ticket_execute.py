@@ -11,18 +11,11 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.ticket.constants import TicketStatus
 
-
-class BillStatusTrackerInputSerializer(serializers.Serializer):
+class TicketExecuteInputSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
-    bill_id = serializers.IntegerField(help_text=_("单据 ID"))
+    ticket_id = serializers.IntegerField(help_text=_("单据 ID"))
 
 
-class BillStatusTrackerOutputSerializer(serializers.Serializer):
-    # bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
-    # bill_id = serializers.IntegerField(help_text=_("单据 ID"))
-    status = serializers.ChoiceField(choices=TicketStatus.get_choices(), help_text=_("单据状态"))
-    current_flow = serializers.CharField(help_text=_("当前流程名称"))
-    cost_time_seconds = serializers.IntegerField(help_text=_("以秒为单位的耗时"))
-    msgs = serializers.ListField(child=serializers.CharField(), help_text=_("单据信息"))
+class TicketExecuteOutputSerializer(serializers.Serializer):
+    status = serializers.CharField(help_text=_("单据状态"))

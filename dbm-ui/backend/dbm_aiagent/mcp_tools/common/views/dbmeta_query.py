@@ -157,3 +157,16 @@ class DBMetaQueryMcpToolsViewSet(McpToolsViewSet):
             res.append({"bk_biz_id": bk_biz_id, "abbr": abbr, "db_components": comp_infos})
 
         return Response({"bizs": res})
+
+    # @mcp_tools_api_decorator(
+    #     description=str(_("获取平台单据类型")),
+    #     request_slz=EmptyInputSerializer,
+    #     response_slz=AllTicketTypesOutputSerializer,
+    #     tags=[DBMMCPTags.READ],
+    #     mcp=[DBMMcpTools.DBMETA_QUERY],
+    #     name_prefix="dbmeta_query",
+    # )
+    # def list_all_ticket_types(self, request, *args, **kwargs):
+    #     return Response({
+    #         "ticket_types": TicketType.get_choices()
+    #     })
