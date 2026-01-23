@@ -45,15 +45,7 @@ SLOW_LOG_QUERY_PARAM = {
         }
     ],
     # "time_aggregation": {"window": "5m", "function": "max_over_time"},
-    "conditions": {
-        "field_list": [
-            {
-                "field_name": "__ext.cluster_domain",
-                "op": "eq",
-                "value": [],
-            }
-        ],
-    },
+    "conditions": {"field_list": [], "condition_list": []},
     "limit": 5,
 }
 
@@ -61,6 +53,7 @@ SLOW_LOG_QUERY_PARAM = {
 def query_slow_logs_by_metric(
     cluster_type: ClusterType,
     cluster_domain: str,
+    instance_role: str,
     start_time: timezone.datetime,
     end_time: timezone.datetime,
     metric_name: str,
@@ -74,26 +67,32 @@ def query_slow_logs_by_metric(
     query_param = copy.deepcopy(SLOW_LOG_QUERY_PARAM)
     query_param["table_id"] = SLOW_LOG_QUERY_PARAM["table_id"] % config.MYSQL_SLOW_LOG_INDEX_SET_ID
     query_param["limit"] = limit if limit else 5
+    # query_param["conditions"]["field_list"][0]["value"] = [cluster_domain]
+    # query_param["conditions"]["field_list"][1]["value"] = [instance_role]
+    cluster_cond = {
+        "field_name": "__ext.cluster_domain",
+        "op": "eq",
+        "value": [cluster_domain],
+    }
+    role_cond = {"field_name": "__ext.instance_role", "op": "eq", "value": [instance_role]}
+    query_param["conditions"]["field_list"].append(cluster_cond)
+    query_param["conditions"]["field_list"].append(role_cond)
+    query_param["conditions"]["condition_list"].append("and")
+
     if metric_name == "query_time" or metric_name == "":
         query_param["reference_name"] = "a"
         query_param["field_name"] = "query_time"
         query_param["function"][0]["method"] = "max"
-        query_param["conditions"]["field_list"][0]["value"] = [cluster_domain]
-    # query_time_param["conditions"]["field_list"][1]["value"] = [instance_role]
 
     if metric_name == "slow_count":
         query_param["reference_name"] = "a"
         query_param["field_name"] = "query_digest_md5"
         query_param["function"][0]["method"] = "count"
-        query_param["conditions"]["field_list"][0]["value"] = [cluster_domain]
-    # slow_count_param["conditions"]["field_list"][1]["value"] = [instance_role]
 
     if metric_name == "rows_scan" or metric_name == "rows_examined":
         query_param["reference_name"] = "a"
         query_param["field_name"] = "rows_examined"
         query_param["function"][0]["method"] = "sum"
-        query_param["conditions"]["field_list"][0]["value"] = [cluster_domain]
-    # rows_scan_param["conditions"]["field_list"][1]["value"] = [instance_role]
 
     if not query_param["field_name"]:
         raise DBMMcpBaseException(msg="metric_name is not supported")
