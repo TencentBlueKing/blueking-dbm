@@ -31,12 +31,13 @@
     <EditableInput
       v-model="source"
       :placeholder="t('请输入IP:Port或从表头批量选择')" />
-    <InstanceSelector
-      v-model="selectedInstances"
-      v-model:is-show="isShowIpSelector"
-      :cluster-types="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]"
-      @change="handleSelectorChange" />
   </EditableColumn>
+  <InstanceSelector
+    v-model="selectedInstances"
+    v-model:is-show="isShowIpSelector"
+    :cluster-types="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]"
+    repeatable
+    @change="handleSelectorChange" />
   <EditableColumn
     field="cluster_domain"
     :label="t('所属集群')"

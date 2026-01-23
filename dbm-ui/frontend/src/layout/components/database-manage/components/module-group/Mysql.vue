@@ -152,7 +152,7 @@
 
   import { ClusterTypes, DBTypes } from '@common/const';
 
-  import { toolboxMenuList } from '@/views/db-manage/mysql/toolbox/IndexNew.vue';
+  import { toolboxMenuList } from '@views/db-manage/mysql/toolbox/IndexNew.vue';
 
   import CountTag from './components/CountTag.vue';
   import MenuGroup from './components/MenuGroup.vue';

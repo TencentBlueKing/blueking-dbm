@@ -135,9 +135,7 @@
   import TextHighlight from '@components/text-highlight/Index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-  import { execCopy } from '@utils';
-
-  import { exportExcelFile } from '@/utils';
+  import { execCopy, exportExcelFile } from '@utils';
 
   import { groupByDbType } from '../common/utils';
 

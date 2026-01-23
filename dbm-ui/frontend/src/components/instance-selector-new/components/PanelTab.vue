@@ -40,8 +40,11 @@
 
   interface Props {
     clusterTypes: ISupportClusterType[];
-    disabled: boolean;
-    tip?: string;
+    isEmpty: boolean;
+    uniquePanelSettings?: {
+      enable: boolean;
+      tip?: string;
+    };
   }
 
   const props = defineProps<Props>();
@@ -57,10 +60,11 @@
     name: tabListMap[clusterType],
   }));
 
-  const tipContent = computed(() => (props.tip ? t(props.tip) : t('仅可选择一种实例类型')));
+  const disabled = computed(() => !props.isEmpty && Boolean(props.uniquePanelSettings?.enable));
+  const tipContent = computed(() => props.uniquePanelSettings?.tip || t('仅可选择一种实例类型'));
 
   const handleClick = (tab: (typeof panelList)[number]) => {
-    if (modelValue.value === tab.id || props.disabled) {
+    if (modelValue.value === tab.id || disabled.value) {
       return;
     }
     modelValue.value = tab.id;

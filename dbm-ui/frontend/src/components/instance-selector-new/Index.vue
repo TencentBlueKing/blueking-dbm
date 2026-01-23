@@ -32,12 +32,12 @@
         <PanelTab
           v-model="currentPanelTab"
           :cluster-types="clusterTypes"
-          :disabled="!isEmpty && Boolean(uniquePanelSettings?.enable)"
-          :tip="uniquePanelSettings?.tip" />
+          :is-empty="isEmpty"
+          :unique-panel-settings="uniquePanelSettings" />
         <Table
           :key="currentPanelTab"
           :cluster-type="currentPanelTab"
-          :data-source="dataSource"
+          :data-source-map="dataSourceMap"
           :disable-select-method="disableSelectMethod"
           :selected="currentTableData"
           :single="single"
@@ -77,6 +77,7 @@
 <script setup lang="ts" generic="T extends ISupportClusterType">
   import _ from 'lodash';
   import type { UnwrapRef } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import useClusterInstaceList from '@views/db-manage/hooks/useClusterInstaceList';
@@ -92,11 +93,9 @@
       [key in C]?: ReturnType<typeof useClusterInstaceList<key>>;
     };
     disableSelectMethod?: (data: InstanceModel<C>) => boolean | string;
+    repeatable?: boolean;
     single?: boolean;
-    uniquePanelSettings?: {
-      enable: boolean;
-      tip?: string;
-    };
+    uniquePanelSettings?: ComponentProps<typeof PanelTab>['uniquePanelSettings'];
   }
 
   type Emits = {
@@ -120,7 +119,7 @@
   const lastValues = ref({} as UnwrapRef<typeof modelValue>);
 
   const currentTableData = computed(() => lastValues.value[currentPanelTab.value] || []);
-  const dataSource = computed(() => props.dataSourceMap?.[currentPanelTab.value as T]);
+
   const isEmpty = computed(() =>
     Object.values<InstanceModel<T>[]>(lastValues.value).every((values) => values.length === 0),
   );
@@ -141,6 +140,9 @@
   };
 
   const handleConfirm = () => {
+    if (!props.repeatable) {
+      modelValue.value = lastValues.value;
+    }
     emits('change', lastValues.value as UnwrapRef<typeof modelValue>);
     handleClose();
   };
