@@ -65,7 +65,7 @@ class DirtyMachinePoolFilter(filters.FilterSet):
     update_at__lte = filters.DateTimeFilter(field_name="update_at", lookup_expr="lte", label=_("更新时间早于"))
     update_at__gte = filters.DateTimeFilter(field_name="update_at", lookup_expr="gte", label=_("更新时间晚于"))
     pool = filters.CharFilter(field_name="pool", method="filter_pool", label=_("池类型"))
-    updator = filters.CharFilter(field_name="updator", method="filter_updator", label=_("转入人"))
+    updater = filters.CharFilter(field_name="updater", method="filter_updater", label=_("转入人"))
     is_todo = filters.BooleanFilter(method="filter_is_todo", label=_("是否是待办"))
     todo_type = filters.CharFilter(method="filter_todo_type", label=_("待办类型"))
 
@@ -93,8 +93,8 @@ class DirtyMachinePoolFilter(filters.FilterSet):
     def filter_os_name(self, queryset, name, value):
         return queryset.filter(os_name__in=value.split(","))
 
-    def filter_updator(self, queryset, name, value):
-        return queryset.filter(updator__in=value.split(","))
+    def filter_updater(self, queryset, name, value):
+        return queryset.filter(updater__in=value.split(","))
 
     def filter_is_todo(self, queryset, name, value):
         """处理 is_todo 过滤逻辑"""
@@ -130,7 +130,7 @@ class DirtyMachinePoolFilter(filters.FilterSet):
             "update_at__lte",
             "update_at__gte",
             "pool",
-            "updator",
+            "updater",
             "is_todo",
             "todo_type",
         ]
