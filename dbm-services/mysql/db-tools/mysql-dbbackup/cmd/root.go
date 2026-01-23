@@ -57,9 +57,9 @@ func init() {
 	rootCmd.AddCommand(uploadCmd)
 }
 
-// initConfig parse the configuration file of dbbackup to init a cfg
+// initBackupConfig parse the configuration file of dbbackup to init a cfg
 // confFile 可以是文件名，也可以带目录
-func initConfig(confFile string, cnf *config.BackupConfig, log *logrus.Logger) error {
+func initBackupConfig(confFile string, cnf *config.BackupConfig, log *logrus.Logger) error {
 	// logger.Log.Info("parse config file: begin")
 	viper.SetConfigType("ini")
 	if confFile != "" {
@@ -113,6 +113,49 @@ func initConfig(confFile string, cnf *config.BackupConfig, log *logrus.Logger) e
 	} else {
 		log.Warnf("get instance info from common_config failed: %v", err)
 	}
+	// 默认启用备份客户端，只有明确是 no 才不上传备份
+	if cnf.BackupClient.EnableBackupClient == "" || cnf.BackupClient.EnableBackupClient == "auto" {
+		cnf.BackupClient.EnableBackupClient = "yes"
+	}
+	// 如果本机是 master 且设置了 master 限速，则覆盖默认限速
+	if cnf.Public.IOLimitMasterFactor > 0.0001 && cnf.Public.MysqlRole == cst.RoleMaster {
+		cnf.Public.IOLimitMBPerSec = int(math.Max(10,
+			cnf.Public.IOLimitMasterFactor*float64(cnf.Public.IOLimitMBPerSec)))
+		cnf.PhysicalBackup.Throttle = int(math.Max(1,
+			cnf.Public.IOLimitMasterFactor*float64(cnf.PhysicalBackup.Throttle)))
+	}
+	if cnf.LogicalBackup.TrxConsistencyOnly == nil {
+		cnf.LogicalBackup.TrxConsistencyOnly = &config.TruePtr
+	}
+	return nil
+}
+
+// initConfig parse the configuration file of dbbackup to init a cfg
+// confFile 可以是文件名，也可以带目录
+func initConfig(confFile string, cnf *config.BackupConfig, log *logrus.Logger) error {
+	// logger.Log.Info("parse config file: begin")
+	viper.SetConfigType("ini")
+	if confFile != "" {
+		viper.SetConfigFile(confFile)
+	} else {
+		viper.SetConfigName("config")
+		// default: current run work_dir
+		viper.AddConfigPath(".") // 搜索路径可以设置多个，viper 会根据设置顺序依次查找
+
+		// default: exe relative dir
+		executable, _ := os.Executable()
+		executableDir := filepath.Dir(executable)
+		defaultConfigDir := filepath.Join(executableDir, "./")
+		viper.AddConfigPath(defaultConfigDir)
+	}
+	if err := viper.ReadInConfig(); err != nil {
+		log.Fatalf("dbbackup read config failed: %v", err)
+	}
+	err := viper.Unmarshal(cnf)
+	if err != nil {
+		log.Fatalf("parse config failed: %v", err)
+	}
+
 	// 默认启用备份客户端，只有明确是 no 才不上传备份
 	if cnf.BackupClient.EnableBackupClient == "" || cnf.BackupClient.EnableBackupClient == "auto" {
 		cnf.BackupClient.EnableBackupClient = "yes"

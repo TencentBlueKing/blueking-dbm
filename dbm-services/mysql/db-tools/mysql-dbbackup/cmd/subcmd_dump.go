@@ -183,7 +183,7 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 		task := newBackupTask("")
 		config.SetDefaults()
 		var cnf = config.BackupConfig{}
-		if err := initConfig(f, &cnf, logger.Log); err != nil {
+		if err := initBackupConfig(f, &cnf, logger.Log); err != nil {
 			errList = errs.Join(errList, errors.WithMessagef(err, "init failed for %d", cnf.Public.MysqlPort))
 			logger.Log.Error("Create Dbbackup: fail to parse ", f)
 			// 配置初始化失败了，sync report 目前无法上报!!!

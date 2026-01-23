@@ -51,6 +51,8 @@ func Updater() error {
 	return DoUpdate(int64(*config.RuntimeConfig.BkCloudID))
 }
 
+// DoUpdate 更新实例信息
+// 会被外部调用，内部不要打日志了。slog 默认会打 stderr
 func DoUpdate(bkCloudId int64) error {
 	lkfp := filepath.Join(cst.MySQLCrondInstallPath, "instance-info-updater.lock")
 	fl := flock.New(lkfp)
@@ -70,16 +72,11 @@ func DoUpdate(bkCloudId int64) error {
 		return err
 	}
 
-	info, layer, err := reversemysqlapi.ListInstanceInfo(apiCore)
+	info, _, err := reversemysqlapi.ListInstanceInfo(apiCore)
 	if err != nil {
 		slog.Error("list instance info failed", slog.String("err", err.Error()))
 		return errors.Wrap(err, "list instance info failed")
 	}
-	slog.Info(
-		"list instance info",
-		slog.Any("info", info),
-		slog.String("layer", layer),
-	)
 
 	f, err := os.OpenFile(
 		filepath.Join(define.DefaultCommonConfigDir, define.DefaultInstanceInfoFileName),
