@@ -132,6 +132,12 @@ func (s *GinHTTPServer) Start() error {
 		return fmt.Errorf("server already started")
 	}
 
+	// Register validator
+	err := RegisterValidator()
+	if err != nil {
+		return err
+	}
+
 	// Setup middlewares
 	s.setupMiddlewares()
 

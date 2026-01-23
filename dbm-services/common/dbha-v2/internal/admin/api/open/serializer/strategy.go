@@ -27,8 +27,12 @@ package serializer
 import (
 	"time"
 
+	"dbm-services/common/dbha-v2/internal/admin/strategy"
+	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
+
+	validator "github.com/go-playground/validator/v10"
 )
 
 // StrategyPathParam strategy path param
@@ -42,32 +46,190 @@ type StrategyRequest struct {
 	Name    string `json:"name,omitempty" form:"name"`
 }
 
-// StrategyCreateRequest strategy create request
-type StrategyCreateRequest struct {
+// StrategyInfo strategy info
+type StrategyInfo struct {
+	ID                     int                       `json:"id"`
 	Name                   string                    `json:"name" binding:"required"`
 	BkBizID                int                       `json:"bk_biz_id" binding:"required"`
 	TriggerEventName       haprobe.DbEventName       `json:"trigger_event_name" binding:"required"`
-	TriggerEventNameReason haprobe.DbEventNameReason `json:"trigger_event_name_reason" binding:"required,min=0"`
-	TriggerCount           int                       `json:"trigger_count" binding:"required,min=1"`
-	Priority               int                       `json:"priority" binding:"required,min=0"`
-	Scope                  hamodel.ActionScopeType   `json:"scope" binding:"required"`
-	Action                 hamodel.ActionType        `json:"action" binding:"required"`
+	TriggerEventNameReason haprobe.DbEventNameReason `json:"trigger_event_name_reason" validate:"triggerEventNameReason"`
+	TriggerCount           int                       `json:"trigger_count" validate:"triggerCount"`
+	Priority               int                       `json:"priority" validate:"priority"`
+	Scope                  hamodel.ActionScopeType   `json:"scope" validate:"scope"`
+	Action                 hamodel.ActionType        `json:"action" validate:"action"`
 	Description            string                    `json:"description"`
 }
 
+// StrategyCreateRequest strategy create request
+type StrategyCreateRequest struct {
+	StrategyInfo
+}
+
+// StrategyUpdateRequest strategy update request
+type StrategyUpdateRequest struct {
+	StrategyInfo
+}
+
+// StrategyListRequest strategy list request
+type StrategyListRequest struct {
+	StrategyRequest
+	Scope  string `json:"scope"  form:"scope"`
+	Action string `json:"action" form:"action"`
+	Status string `json:"status" form:"status"`
+}
+
+// StrategyStatusUpdateRequest strategy status update request
+type StrategyStatusUpdateRequest struct {
+	BkBizID int                `json:"bk_biz_id" binding:"required"`
+	Status  hamodel.StatusType `json:"status" validate:"status"`
+}
+
+// StrategyListResponse strategy list response
+type StrategyListResponse []StrategyOutputInfo
+
 // StrategyOutputInfo strategy output info
 type StrategyOutputInfo struct {
-	ID                     int                       `json:"id"`
-	Name                   string                    `json:"name"`
-	BkBizID                int                       `json:"bk_biz_id"`
-	TriggerEventName       haprobe.DbEventName       `json:"trigger_event_name"`
-	TriggerEventNameReason haprobe.DbEventNameReason `json:"trigger_event_name_reason"`
-	TriggerCount           int                       `json:"trigger_count"`
-	Priority               int                       `json:"priority"`
-	Scope                  hamodel.ActionScopeType   `json:"scope"`
-	Action                 hamodel.ActionType        `json:"action"`
-	Status                 hamodel.StatusType        `json:"status"`
-	Description            string                    `json:"description"`
-	CreatedAt              time.Time                 `json:"created_at"`
-	UpdatedAt              time.Time                 `json:"updated_at"`
+	StrategyInfo
+	Status    hamodel.StatusType `json:"status"`
+	CreatedAt time.Time          `json:"created_at"`
+	UpdatedAt time.Time          `json:"updated_at"`
+}
+
+// StrategyBatchCreateRequest strategy batch create request
+type StrategyBatchCreateRequest struct {
+	BkBizID int            `json:"bk_biz_id" binding:"required"`
+	Data    []StrategyInfo `json:"data" binding:"required"`
+}
+
+// StrategyBatchUpdateRequest strategy batch update request
+type StrategyBatchUpdateRequest struct {
+	BkBizID int            `json:"bk_biz_id" binding:"required"`
+	Data    []StrategyInfo `json:"data" binding:"required"`
+}
+
+// StrategyBatchDeleteRequest strategy batch delete request
+type StrategyBatchDeleteRequest struct {
+	BkBizID int   `json:"bk_biz_id" binding:"required"`
+	IDs     []int `json:"ids" binding:"required"`
+}
+
+// StrategyBatchUpdateStatusRequest strategy batch update status request
+type StrategyBatchUpdateStatusRequest struct {
+	IDs     []int              `json:"ids" binding:"required"`
+	BkBizID int                `json:"bk_biz_id" binding:"required"`
+	Status  hamodel.StatusType `json:"status" binding:"required" validate:"status"`
+}
+
+// CheckDuplicatedName check duplicated name
+func CheckDuplicatedName(s *strategy.Strategy, id int, bkBizID int, name string) (bool, error) {
+	return s.DuplicatedName(id, bkBizID, name)
+}
+
+// BatchCreateCheckDuplicatedName batch create check duplicated name
+func BatchCreateCheckDuplicatedName(s *strategy.Strategy, bkBizID int, names []string) (bool, error) {
+	queryMap := map[string]any{
+		"bk_biz_id": bkBizID,
+		"name":      names,
+	}
+	strategies, err := s.QueryStrategies(queryMap)
+	if err != nil {
+		return false, err
+	}
+
+	if len(strategies) > 0 {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+// BatchUpdateCheckDuplicatedName batch update check duplicated name
+func BatchUpdateCheckDuplicatedName(s *strategy.Strategy, bkBizID int, names []string, nameIDMap map[string]int) (bool, error) {
+	queryMap := map[string]any{
+		"bk_biz_id": bkBizID,
+		"name":      names,
+	}
+	strategies, err := s.QueryStrategies(queryMap)
+	if err != nil {
+		return false, err
+	}
+
+	currentStrategyNameIDMap := make(map[string]int)
+	for _, strategyInfo := range strategies {
+		currentStrategyNameIDMap[strategyInfo.Name] = strategyInfo.ID
+	}
+
+	for name, id := range nameIDMap {
+		if _, ok := currentStrategyNameIDMap[name]; !ok {
+			continue
+		}
+		if currentStrategyNameIDMap[name] != id {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+// CheckTriggerEventNameReason check trigger_event_name_reason
+func CheckTriggerEventNameReason(fl validator.FieldLevel) bool {
+	value := fl.Field().Int()
+	if value < 0 || value > 4 {
+		return false
+	}
+	return true
+}
+
+// CheckTriggerCount check trigger_count
+func CheckTriggerCount(fl validator.FieldLevel) bool {
+	value := fl.Field().Int()
+	if value <= 0 {
+		return false
+	}
+	return true
+}
+
+// CheckPriority check priority
+func CheckPriority(fl validator.FieldLevel) bool {
+	value := fl.Field().Int()
+	if value < 0 {
+		return false
+	}
+	return true
+}
+
+// CheckScope check scope
+func CheckScope(fl validator.FieldLevel) bool {
+	value := fl.Field().String()
+	if _, ok := hamodel.ActionScopeTypeMap[hamodel.ActionScopeType(value)]; !ok {
+		return false
+	}
+	return true
+}
+
+// CheckAction check action
+func CheckAction(fl validator.FieldLevel) bool {
+	value := fl.Field().String()
+	if _, ok := hamodel.ActionTypeMap[hamodel.ActionType(value)]; !ok {
+		return false
+	}
+	return true
+}
+
+// CheckStatus check status
+func CheckStatus(fl validator.FieldLevel) bool {
+	value := fl.Field().String()
+	if _, ok := hamodel.StatusTypeMap[hamodel.StatusType(value)]; !ok {
+		return false
+	}
+	return true
+}
+
+func init() {
+	hanet.AddValidation("triggerEventNameReason", CheckTriggerEventNameReason, "must be between 0 and 4")
+	hanet.AddValidation("triggerCount", CheckTriggerCount, "must be greater than 0")
+	hanet.AddValidation("priority", CheckPriority, "must be greater than or equal to 0")
+	hanet.AddValidation("scope", CheckScope, "must be one of cluster, host")
+	hanet.AddValidation("action", CheckAction, "must be one of notify, switch")
+	hanet.AddValidation("status", CheckStatus, "must be one of enabled, disabled")
 }
