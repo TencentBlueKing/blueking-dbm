@@ -94,8 +94,8 @@ class InnerFlow(BaseTicketFlow):
 
     @property
     def _summary(self) -> str:
-        # TODO 可以给出具体失败的节点和原因
-        return _("任务{status_display}").format(status_display=constants.TicketFlowStatus.get_choice_label(self.status))
+        status = self.flow_obj.status
+        return _("任务{status_display}").format(status_display=constants.TicketFlowStatus.get_choice_label(status))
 
     @property
     def _status(self) -> str:
@@ -110,19 +110,7 @@ class InnerFlow(BaseTicketFlow):
             status = BAMBOO_STATE__TICKET_STATE_MAP.get(self.flow_tree.status, constants.TicketFlowStatus.RUNNING)
 
         # 根据流程状态映射todo的状态
-        todo_status = INNER_FLOW_TODO_STATUS_MAP.get(status, TodoStatus.TODO)
-        fail_todo = self.flow_obj.todo_of_flow.filter(type=TodoType.INNER_FAILED).first()
-        # 如果任务失败，且不存在todo，则创建一条
-        if not fail_todo and todo_status == TodoStatus.TODO:
-            self.create_failed_todo()
-        # 变更todo状态
-        if fail_todo and fail_todo.status != todo_status:
-            try:
-                local_request = local.request
-                operator = local_request.user.username if local_request else ""
-            except (AttributeError, Exception):
-                operator = ""
-            fail_todo.set_status(operator, todo_status)
+        self.set_inner_flow_todo(status)
 
         return self.flow_obj.update_status(status)
 
@@ -130,15 +118,28 @@ class InnerFlow(BaseTicketFlow):
     def _url(self) -> str:
         return f"{env.BK_SAAS_HOST}/{self.ticket.bk_biz_id}/task-history/detail/{self.root_id}"
 
-    def create_failed_todo(self):
-        Todo.objects.create(
-            name=_("【{}】单据任务执行失败，待处理").format(self.ticket.get_ticket_type_display()),
-            flow=self.flow_obj,
-            ticket=self.ticket,
-            type=TodoType.INNER_FAILED,
-            context=BaseTodoContext(self.flow_obj.id, self.ticket.id).to_dict(),
-            status=TodoStatus.TODO,
-        )
+    def set_inner_flow_todo(self, status):
+        """更新任务流程的todo状态"""
+        todo_status = INNER_FLOW_TODO_STATUS_MAP.get(status, TodoStatus.DONE_SUCCESS)
+        fail_todo = self.flow_obj.todo_of_flow.filter(type=TodoType.INNER_FAILED).first()
+        # 如果任务失败，且不存在todo，则创建一条
+        if not fail_todo and todo_status == TodoStatus.TODO:
+            Todo.objects.create(
+                name=_("【{}】单据任务执行失败，待处理").format(self.ticket.get_ticket_type_display()),
+                flow=self.flow_obj,
+                ticket=self.ticket,
+                type=TodoType.INNER_FAILED,
+                context=BaseTodoContext(self.flow_obj.id, self.ticket.id).to_dict(),
+                status=TodoStatus.TODO,
+            )
+        # 存在todo则变更状态
+        if fail_todo and fail_todo.status != todo_status:
+            try:
+                local_request = local.request
+                operator = local_request.user.username if local_request else ""
+            except (AttributeError, Exception):
+                operator = ""
+            fail_todo.set_status(operator, todo_status)
 
     def check_exclusive_operations(self):
         """判断执行互斥"""
@@ -311,6 +312,15 @@ class HCMReplenishResourceTaskFlow(SimpleTaskFlow):
     海磊资源申请专属任务流程
     """
 
+    def run_lack_resource_status_handler(self, count, applied_count):
+        self.flow_obj.status = TicketFlowStatus.FAILED
+        self.flow_obj.err_code = FlowErrCode.HCM_APPLY_LACK_RESOURCE_ERROR.value
+        self.flow_obj.err_msg = _("海磊资源申请不足，预期数量: {count}, 实际申请数量: {applied_count}").format(
+            count=count, applied_count=applied_count
+        )
+        self.flow_obj.save(update_fields=["status", "err_code", "err_msg", "update_at"])
+        return TicketFlowStatus.FAILED
+
     @property
     def url(self) -> str:
         # 直接返回url构造(父类url方法因为有error msg会屏蔽路由跳转)
@@ -329,7 +339,10 @@ class HCMReplenishResourceTaskFlow(SimpleTaskFlow):
         count = self.ticket.details["count"]
         applied_count = len(self.flow_obj.output_data[0]["values"]) if self.flow_obj.output_data else 0
         if count != applied_count:
-            status = TicketFlowStatus.FAILED
+            status = self.run_lack_resource_status_handler(count, applied_count)
+
+        # 根据流程状态映射todo的状态
+        self.set_inner_flow_todo(status)
 
         return self.flow_obj.update_status(status)
 
