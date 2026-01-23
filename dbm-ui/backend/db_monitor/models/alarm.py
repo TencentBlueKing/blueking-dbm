@@ -688,6 +688,10 @@ class MonitorPolicy(AuditedModel):
     # .notice.options.assign_mode = ["by_rule", "only_notice"]
     # assign_mode = models.JSONField(verbose_name=_("通知模式-分派|直接通知"), default=list)
 
+    # 判断条件配置
+    detects_config = models.JSONField(verbose_name=_("触发配置"), default=dict)
+    # 判断条件的数据信息
+    no_data_config = models.JSONField(verbose_name=_("数据信息"), default=dict)
     is_enabled = models.BooleanField(verbose_name=_("是否已启用"), default=True)
 
     # 当 is_synced=True时，才有效
@@ -881,6 +885,21 @@ class MonitorPolicy(AuditedModel):
 
         return details
 
+    def patch_detects(self, details):
+
+        for detect in details["detects"]:
+            detect["trigger_config"] = self.detects_config.get("trigger_config")
+            detect["recovery_config"] = self.detects_config.get("recovery_config")
+
+        return details
+
+    def patch_no_data_config(self, details):
+
+        for item in details["items"]:
+            item["no_data_config"] = self.no_data_config
+
+        return details
+
     def patch_notice(self, details):
         """通知规则和通知对象"""
         # notify_rules -> notice.signal
@@ -905,6 +924,12 @@ class MonitorPolicy(AuditedModel):
 
         # model.test_rules -> algorithms
         details = self.patch_algorithms(details)
+
+        # model.detects_config -> detects
+        details = self.patch_detects(details)
+
+        # model.no_data_config -> no_data_config
+        details = self.patch_no_data_config(details)
 
         # model.notify_xxx -> notice
         details = self.patch_notice(details)
@@ -1009,7 +1034,7 @@ class MonitorPolicy(AuditedModel):
     def update(self, params, username="system") -> dict:
         """更新：patch -> update"""
 
-        update_fields = ["targets", "test_rules", "notify_rules", "notify_groups"]
+        update_fields = ["targets", "test_rules", "notify_rules", "notify_groups", "detects_config", "no_data_config"]
 
         # param -> model
         for key in update_fields:
