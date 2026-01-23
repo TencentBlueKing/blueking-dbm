@@ -21,7 +21,7 @@ from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.models import FlowNode, FlowTree
 from backend.ticket.constants import TicketType
-from backend.ticket.models import Flow
+from backend.ticket.models import Flow, Ticket
 
 logger = logging.getLogger("root")
 
@@ -36,6 +36,8 @@ def pipeline_log_ai_analysis(root_id: str = None) -> List[Dict]:
     """
     handler = TaskFlowHandler(root_id=root_id)
     ticket_id = int(FlowTree.objects.get(root_id=root_id).uid or 0)
+    ticket = Ticket.objects.filter(id=ticket_id).first()
+    ticket_type = ticket.ticket_type if ticket else ""
     node_ids = handler.get_specific_node_ids(status=StateType.FAILED)
 
     if not node_ids:
@@ -62,7 +64,10 @@ def pipeline_log_ai_analysis(root_id: str = None) -> List[Dict]:
         error_messages = [f"[{log['levelname']}] {log['message']}" for log in logs]
         error_logs.append({"component": node_name_map[node_id], "error_msg": "\n".join(error_messages), "context": {}})
 
-    result = AgentHandler.ask_agent_with_command(TicketFlowLogAnalysisCommand.command, {"log_content": error_logs})
+    result = AgentHandler.ask_agent_with_command(
+        command=TicketFlowLogAnalysisCommand.command,
+        command_params={"log_content": error_logs, "ticket_type": ticket_type},
+    )
     TicketFlowAILog.objects.update_or_create(ticket_id=ticket_id, flow_obj_id=root_id, defaults={"ai_summary": result})
 
 
@@ -82,5 +87,8 @@ def ticket_flow_log_ai_analysis(flow_id: str):
         "error_msg": flow.err_msg,
         "context": {},
     }
-    result = AgentHandler.ask_agent_with_command(TicketFlowLogAnalysisCommand.command, {"log_content": error_logs})
+    result = AgentHandler.ask_agent_with_command(
+        command=TicketFlowLogAnalysisCommand.command,
+        command_params={"log_content": error_logs, "ticket_type": flow.ticket.ticket_type},
+    )
     TicketFlowAILog.objects.update_or_create(ticket_id=ticket_id, flow_obj_id=flow_id, defaults={"ai_summary": result})

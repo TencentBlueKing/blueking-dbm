@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from typing import List
 
-from backend import env
+from backend.db_services.risk_memo.models.risk_memo import RiskMemo
 from backend.iam_app.dataclass import ResourceEnum, ResourceMeta
 from backend.iam_app.dataclass.actions import ActionEnum, ActionMeta
 from backend.iam_app.handlers.drf_perm.base import (
@@ -53,18 +53,14 @@ class RiskMemoPermission(ResourceActionPermission):
         super().__init__(actions=actions, resource_meta=resource_meta, instance_ids_getter=self.instance_ids_getter)
 
     def instance_ids_getter(self, request, view):
-        # 创建动作 -- 风险备忘录创建鉴权
+        # 创建动作 -- 风险备忘录创建
         if view.action == "create":
             self.actions = [ActionEnum.RISK_MEMO_CREATE]
-
-        # 详情 -- 业务管理; 禁用、编辑 -- 风险管理
-        if view.action == "retrieve":
-            if "platform" not in request.query_params:
-                self.actions = self.resource_meta = None
-                return []
-            self.actions = [ActionEnum.PLATFROM_RISK_MEMO_VIEW]
-            self.resource_meta = ResourceEnum.BUSINESS
-        elif view.action in ["disable", "update", "update_risk_status"]:
+            return [get_request_key_id(request, "bk_biz_id")]
+        # 更新 -- 风险备忘录管理
+        if view.action in ["update", "update_risk_status"]:
             self.actions = [ActionEnum.RISK_MEMO_MANAGE]
+            risk = RiskMemo.objects.get(id=view.kwargs["pk"])
+            return [risk.bk_biz_id]
 
-        return [get_request_key_id(request, "bk_biz_id") or env.DBA_APP_BK_BIZ_ID]
+        return []

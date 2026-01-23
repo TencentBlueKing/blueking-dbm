@@ -31,11 +31,12 @@ class RenderExampleCommand(CommandHandler):
 @command
 class TicketFlowLogAnalysisCommand(CommandHandler):
     name = _("单据日志分析")
-    command = "ai-loganalysis"
+    command = "LogAnalysis"
+    # 现在都是走主智能体路由，所以agent code都是dbm
     agent_code = DBMAgentCode.DBM
 
     def get_template(self) -> str:
         return """
-        错误日志结构化信息：
-        {{ log_content }}
+        单据类型：{{ ticket_type }}
+        错误日志信息：{{ log_content }}
         """
