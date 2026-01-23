@@ -36,4 +36,4 @@ class PulsarRebootFlowParamBuilder(builders.FlowParamBuilder):
 class PulsarRebootFlowBuilder(BasePulsarTicketFlowBuilder):
     serializer = PulsarRebootDetailSerializer
     inner_flow_builder = PulsarRebootFlowParamBuilder
-    inner_flow_name = _("Pulsar 集群重启")
+    inner_flow_name = _("Pulsar 实例重启")

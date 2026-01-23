@@ -34,7 +34,7 @@ class RiskMemo(AuditedModel):
     db_type = models.CharField(max_length=64, choices=DBType.get_choices(), default="", help_text=_("影响DB"))
     description = models.TextField(default="", help_text=_("风险描述"))
     biz_inpact = models.CharField(max_length=255, default="", help_text=_("业务影响"))
-    inpact_cluster = models.CharField(max_length=255, default="", help_text=_("影响集群"))
+    inpact_cluster = models.TextField(default="", help_text=_("影响集群"))
     is_special = models.BooleanField(default=False, help_text=_("是否特殊"))
     duration_time = models.IntegerField(default=0)
     # 结项字段
