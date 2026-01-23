@@ -24,7 +24,7 @@ from backend.iam_app.handlers.drf_perm.cluster import ClusterDashboardPermission
 class MonitorPluginViewSet(viewsets.SystemViewSet):
     action_permission_map = {
         ("start_render_image_task",): [ClusterDashboardPermission()],
-        ("get_render_image_task_result",): [],
+        ("get_render_image_result",): [],
     }
 
     @common_swagger_auto_schema(
