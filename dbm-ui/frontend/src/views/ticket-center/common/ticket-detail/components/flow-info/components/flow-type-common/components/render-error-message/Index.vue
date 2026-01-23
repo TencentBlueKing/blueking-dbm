@@ -2,13 +2,14 @@
   <FlowCollapse
     danger
     :title="t('失败原因')">
+    <!-- ENABLE_DBM_AI 为 true 时，才显示 AI 日志分析和原始日志选择 -->
+    <!-- 两个都存在时才显示 tab 切换，所以 ENABLE_DBM_AI 为 false 时，不显示 BkRadioGroup -->
     <BkRadioGroup
+      v-if="ENABLE_DBM_AI"
       v-model="errorType"
       class="ml-16 mb-5"
       type="capsule">
-      <BkRadioButton
-        v-if="ENABLE_DBM_AI"
-        label="ai">
+      <BkRadioButton label="ai">
         <img
           :src="AiBluekingImage"
           style="width: 12px" />
@@ -24,6 +25,7 @@
       :style="{
         'max-height': `${errMessageMaxHeight}px`,
         overflow: 'auto',
+        height: logContentHeight,
         color: '#4D4F56',
         lineHeight: '20px',
         fontSize: '12px',
@@ -31,7 +33,8 @@
       <component
         :is="renderContent"
         :data="data"
-        :ticket-detail="ticketDetail" />
+        :ticket-detail="ticketDetail"
+        @element-height-change="handleElementHeightChange" />
     </div>
   </FlowCollapse>
 </template>
@@ -59,9 +62,10 @@
 
   const { ENABLE_DBM_AI } = useSystemEnviron().urls;
 
-  const errorType = ref<'ai' | 'original'>('ai');
+  const errorType = ref<'ai' | 'original'>(ENABLE_DBM_AI ? 'ai' : 'original');
 
   const errMessageMaxHeight = window.innerHeight * 0.4;
+  const logContentHeight = ref('auto');
 
   const renderContent = computed(() => {
     if (errorType.value === 'ai') {
@@ -69,4 +73,10 @@
     }
     return LogOriginal;
   });
+
+  const handleElementHeightChange = (height: number) => {
+    if (height >= errMessageMaxHeight) {
+      logContentHeight.value = `${height}px`;
+    }
+  };
 </script>
