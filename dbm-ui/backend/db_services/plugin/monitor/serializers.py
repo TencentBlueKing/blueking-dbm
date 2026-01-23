@@ -33,4 +33,4 @@ class MonitorImageRenderSerializer(serializers.Serializer):
 
 
 class MonitorImageResultSerializer(serializers.Serializer):
-    task_id = serializers.IntegerField(help_text=_("业务id"))
+    task_id = serializers.CharField(help_text=_("业务id"))
