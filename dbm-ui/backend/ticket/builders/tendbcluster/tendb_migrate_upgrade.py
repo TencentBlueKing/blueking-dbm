@@ -65,6 +65,7 @@ class TenDBMigrateUpgradeResourceParamBuilder(TendbBaseOperateResourceParamBuild
         next_flow = self.ticket.next_flow()
         for info in next_flow.details["ticket_data"]["infos"]:
             # 格式化规格信息
+            info["resource_spec"]["remote"] = info["resource_spec"]["master"]
             info["remote_group"] = info.pop("backend_group")
 
         next_flow.save(update_fields=["details"])
