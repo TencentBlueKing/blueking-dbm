@@ -86,7 +86,7 @@ class MongoDBDataExportFlowParamBuilder(BaseMongoOperateFlowParamBuilder):
             cluster_results[cluster_id] = {
                 "file_path": result_file_path,
                 "file_name": info["filename"],
-                "size": file_name_size_map.get(info["filename"]),
+                "size": file_name_size_map.get(f"{info['filename']}.tar"),
             }
         self.ticket.update_details(exported_files=cluster_results)
 
