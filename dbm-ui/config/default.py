@@ -769,11 +769,11 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "tools": [],
     },
     {
-        "name": "bill-query",
-        "description": """dbm bill query""",
+        "name": "ticket-op",
+        "description": """dbm 单据通用操作. 提单不在这里""",
         # 主动授权 app_code
         "target_app_codes": [APP_CODE],
-        "labels": ["bill-query"],
+        "labels": ["ticket-op"],
         # 是否启用：1-启用，0-停止
         "status": 1,
         # 是否公开

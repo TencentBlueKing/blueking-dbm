@@ -8,8 +8,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from .alram_query import MonitorQueryMcpToolsViewSet
-from .dbmeta_query import DBMetaQueryMcpToolsViewSet
-from .dbmeta_update import DBMetaUpdateMcpToolsViewSet
-from .resource_param_query import ResourceParamQueryMcpToolsViewSet
-from .ticket_operation import TicketOperationMcpToolsViewSet
+from django.utils.translation import gettext_lazy as _
+from rest_framework import serializers
+
+
+class TicketTypeSerializer(serializers.Serializer):
+    ticket_type_name = serializers.CharField(help_text=_("单据名"))
+    ticket_type_label = serializers.CharField(help_text=_("单据标签"))
+
+
+class AllTicketTypesOutputSerializer(serializers.Serializer):
+    ticket_types = serializers.ListField(child=TicketTypeSerializer(), help_text=_("单据类型"))
