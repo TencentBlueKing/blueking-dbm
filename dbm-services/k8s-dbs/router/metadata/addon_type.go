@@ -32,10 +32,7 @@ import (
 // BuildAddonTypeRouter addon type 管理路由构建
 func BuildAddonTypeRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group(BasePath)
-	typeDbAccess := metadbaccess.GetAddonTypeDbAccess(db)
-	categoryDbAccess := metadbaccess.GetAddonCategoryDbAccess(db)
-	metaProvider := metaprovider.GetAddonTypeProvider(typeDbAccess, categoryDbAccess)
-	metaController := metacontroller.NewAddonTypeController(metaProvider)
+	metaController := buildAddonTypeController(db)
 	typeGroup := metaRouter.Group("/addon_type")
 	{
 		typeGroup.POST("", metaController.Create)
@@ -44,6 +41,15 @@ func BuildAddonTypeRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	{
 		listGroup.GET("", metaController.ListByLimit)
 	}
+}
+
+// buildAddonTypeController 构建 Addon Type Controller
+func buildAddonTypeController(db *gorm.DB) *metacontroller.AddonTypeController {
+	typeDbAccess := metadbaccess.GetAddonTypeDbAccess(db)
+	categoryDbAccess := metadbaccess.GetAddonCategoryDbAccess(db)
+	metaProvider := metaprovider.GetAddonTypeProvider(typeDbAccess, categoryDbAccess)
+	metaController := metacontroller.NewAddonTypeController(metaProvider)
+	return metaController
 }
 
 func init() {

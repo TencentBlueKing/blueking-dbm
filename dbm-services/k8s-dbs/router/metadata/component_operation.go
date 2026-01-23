@@ -32,15 +32,21 @@ import (
 // BuildComponentOpMetaRouter component operation 管理路由构建
 func BuildComponentOpMetaRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group(BasePath)
-	componentOpDbAccess := metadbaccess.GetComponentOperationDbAccess(db)
-	opDefDbAccess := metadbaccess.GetOperationDefinitionDbAccess(db)
-	metaProvider := metaprovider.GetComponentOperationProvider(componentOpDbAccess, opDefDbAccess)
-	metaController := metacontroller.NewComponentOperationController(metaProvider)
+	metaController := buildComponentOperationController(db)
 	addonMetaGroup := metaRouter.Group("/component_operation")
 	{
 		addonMetaGroup.GET("", metaController.ListComponentOperations)
 		addonMetaGroup.POST("", metaController.CreateComponentOperation)
 	}
+}
+
+// buildComponentOperationController 构建 Component Operation Controller
+func buildComponentOperationController(db *gorm.DB) *metacontroller.ComponentOperationController {
+	componentOpDbAccess := metadbaccess.GetComponentOperationDbAccess(db)
+	opDefDbAccess := metadbaccess.GetOperationDefinitionDbAccess(db)
+	metaProvider := metaprovider.GetComponentOperationProvider(componentOpDbAccess, opDefDbAccess)
+	metaController := metacontroller.NewComponentOperationController(metaProvider)
+	return metaController
 }
 
 func init() {

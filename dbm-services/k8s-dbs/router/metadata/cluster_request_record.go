@@ -32,14 +32,19 @@ import (
 // BuildRequestRecordRouter cluster request record 管理路由构建
 func BuildRequestRecordRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group(BasePath)
-	metaDbAccess := metadbaccess.GetClusterRequestDbAccess(db)
-	metaProvider := metaprovider.GetClusterRequestRecordProvider(metaDbAccess)
-	metaController := metacontroller.NewClusterRequestRecordController(metaProvider)
-
+	metaController := buildClusterRequestRecordController(db)
 	metaGroup := metaRouter.Group("/cluster_operation_log")
 	{
 		metaGroup.GET("", metaController.ListClusterRecords)
 	}
+}
+
+// buildClusterRequestRecordController 构建 Cluster Request Record Controller
+func buildClusterRequestRecordController(db *gorm.DB) *metacontroller.ClusterRequestRecordController {
+	metaDbAccess := metadbaccess.GetClusterRequestDbAccess(db)
+	metaProvider := metaprovider.GetClusterRequestRecordProvider(metaDbAccess)
+	metaController := metacontroller.NewClusterRequestRecordController(metaProvider)
+	return metaController
 }
 
 func init() {

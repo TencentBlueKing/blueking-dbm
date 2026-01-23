@@ -32,13 +32,19 @@ import (
 // BuildComponentMetaRouter componentMeta 管理路由构建
 func BuildComponentMetaRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group(BasePath)
-	componentMetaDbAccess := metadbaccess.GetComponentDbAccess(db)
-	componentMetaProvider := metaprovider.GetK8sCrdComponentProvider(componentMetaDbAccess)
-	componentMetaController := metacontroller.NewComponentController(componentMetaProvider)
+	componentMetaController := buildComponentController(db)
 	componentMetaGroup := metaRouter.Group("/component")
 	{
 		componentMetaGroup.GET("/:id", componentMetaController.GetComponent)
 	}
+}
+
+// buildComponentController 构建 Component Controller
+func buildComponentController(db *gorm.DB) *metacontroller.ComponentController {
+	componentMetaDbAccess := metadbaccess.GetComponentDbAccess(db)
+	componentMetaProvider := metaprovider.GetK8sCrdComponentProvider(componentMetaDbAccess)
+	componentMetaController := metacontroller.NewComponentController(componentMetaProvider)
+	return componentMetaController
 }
 
 func init() {

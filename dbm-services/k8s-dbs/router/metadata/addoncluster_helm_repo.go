@@ -32,14 +32,20 @@ import (
 // BuildClusterHelmRepoMetaRouter Helm repository 管理路由构建
 func BuildClusterHelmRepoMetaRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group(BasePath)
-	dbAccess := metadbaccess.GetAcHelmRepoDbAccess(db)
-	metaProvider := metaprovider.GetAddonClusterHelmRepoProvider(dbAccess)
-	metaController := metacontroller.NewClusterHelmRepoController(metaProvider)
+	metaController := buildClusterHelmRepoController(db)
 	repoMetaGroup := metaRouter.Group("/addoncluster_helm_repo")
 	{
 		repoMetaGroup.GET("/:id", metaController.GetClusterHelmRepoByID)
 		repoMetaGroup.POST("", metaController.CreateClusterHelmRepo)
 	}
+}
+
+// buildClusterHelmRepoController 构建 Cluster Helm Repo Controller
+func buildClusterHelmRepoController(db *gorm.DB) *metacontroller.ClusterHelmRepoController {
+	dbAccess := metadbaccess.GetAcHelmRepoDbAccess(db)
+	metaProvider := metaprovider.GetAddonClusterHelmRepoProvider(dbAccess)
+	metaController := metacontroller.NewClusterHelmRepoController(metaProvider)
+	return metaController
 }
 
 func init() {

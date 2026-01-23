@@ -32,15 +32,21 @@ import (
 // BuildAddonTopologyRouter addon topology 管理路由构建
 func BuildAddonTopologyRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group(BasePath)
-	dbAccess := metadbaccess.GetAddonTopologyDbAccess(db)
-	metaProvider := metaprovider.GetAddonTopologyProvider(dbAccess)
-	metaController := metacontroller.NewAddonTopologyController(metaProvider)
+	metaController := buildAddonTopologyController(db)
 	topologyGroup := metaRouter.Group("/addon_topology")
 	{
 		topologyGroup.POST("", metaController.Create)
 		topologyGroup.GET("/:id", metaController.GetByID)
 		topologyGroup.GET("", metaController.GetByParams)
 	}
+}
+
+// buildAddonTopologyController 构建 Addon Topology Controller
+func buildAddonTopologyController(db *gorm.DB) *metacontroller.AddonTopologyController {
+	dbAccess := metadbaccess.GetAddonTopologyDbAccess(db)
+	metaProvider := metaprovider.GetAddonTopologyProvider(dbAccess)
+	metaController := metacontroller.NewAddonTopologyController(metaProvider)
+	return metaController
 }
 
 func init() {

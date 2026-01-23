@@ -32,9 +32,7 @@ import (
 // BuildClusterConfigMetaRouter clusterConfigMeta 管理路由构建
 func BuildClusterConfigMetaRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group(BasePath)
-	k8sClusterConfigDbAccess := metadbaccess.GetK8sClusterConfigDbAccess(db)
-	k8sClusterConfigProvider := metaprovider.GetK8sClusterConfigProvider(k8sClusterConfigDbAccess)
-	k8sClusterConfigController := metacontroller.NewK8sClusterConfigController(k8sClusterConfigProvider)
+	k8sClusterConfigController := buildK8sClusterConfigController(db)
 	k8sClusterConfigMetaGroup := metaRouter.Group("/k8s_cluster_config")
 	{
 		k8sClusterConfigMetaGroup.DELETE("/:id", k8sClusterConfigController.DeleteK8sClusterConfig)
@@ -42,6 +40,14 @@ func BuildClusterConfigMetaRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 		k8sClusterConfigMetaGroup.PUT("/:id", k8sClusterConfigController.UpdateK8sClusterConfig)
 		k8sClusterConfigMetaGroup.GET("/regions", k8sClusterConfigController.GetRegionsByVisibility)
 	}
+}
+
+// buildK8sClusterConfigController 构建 K8s Cluster Config Controller
+func buildK8sClusterConfigController(db *gorm.DB) *metacontroller.K8sClusterConfigController {
+	k8sClusterConfigDbAccess := metadbaccess.GetK8sClusterConfigDbAccess(db)
+	k8sClusterConfigProvider := metaprovider.GetK8sClusterConfigProvider(k8sClusterConfigDbAccess)
+	k8sClusterConfigController := metacontroller.NewK8sClusterConfigController(k8sClusterConfigProvider)
+	return k8sClusterConfigController
 }
 
 func init() {

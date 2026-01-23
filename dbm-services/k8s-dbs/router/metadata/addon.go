@@ -32,9 +32,7 @@ import (
 // BuildAddonMetaRouter addon 元数据管理路由构建
 func BuildAddonMetaRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group(BasePath)
-	addonMetaDbAccess := metadbaccess.GetStorageAddonDbAccess(db)
-	addonMetaProvider := metaprovider.GetK8sCrdStorageAddonProvider(addonMetaDbAccess)
-	addonMetaController := metacontroller.NewAddonController(addonMetaProvider)
+	addonMetaController := buildAddonController(db)
 	addonMetaGroup := metaRouter.Group("/addon")
 	{
 		addonMetaGroup.GET("", addonMetaController.ListAddons)
@@ -44,6 +42,14 @@ func BuildAddonMetaRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 		addonMetaGroup.POST("", addonMetaController.CreateAddon)
 		addonMetaGroup.PUT("/:id", addonMetaController.UpdateAddon)
 	}
+}
+
+// buildAddonController 构建 Addon Controller
+func buildAddonController(db *gorm.DB) *metacontroller.AddonController {
+	addonMetaDbAccess := metadbaccess.GetStorageAddonDbAccess(db)
+	addonMetaProvider := metaprovider.GetK8sCrdStorageAddonProvider(addonMetaDbAccess)
+	addonMetaController := metacontroller.NewAddonController(addonMetaProvider)
+	return addonMetaController
 }
 
 func init() {
