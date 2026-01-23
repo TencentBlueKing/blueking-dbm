@@ -32,15 +32,21 @@ import (
 // BuildClusterReleaseMetaRouter clusterReleaseMeta 管理路由构建
 func BuildClusterReleaseMetaRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group(BasePath)
-	addonClusterReleaseDbAccess := metadbaccess.GetAcReleaseDbAccess(db)
-	addonClusterReleaseProvider := metaprovider.GetAddonClusterReleaseProvider(addonClusterReleaseDbAccess)
-	clusterReleaseController := metacontroller.NewClusterReleaseController(addonClusterReleaseProvider)
+	clusterReleaseController := buildClusterReleaseController(db)
 	clusterReleaseGroup := metaRouter.Group("/cluster_release")
 	{
 		clusterReleaseGroup.GET("/id/:id", clusterReleaseController.GetClusterRelease)
 		clusterReleaseGroup.GET("/name/:release_name/namespace/:namespace",
 			clusterReleaseController.GetClusterReleaseByParam)
 	}
+}
+
+// buildClusterReleaseController 构建 Cluster Release Controller
+func buildClusterReleaseController(db *gorm.DB) *metacontroller.ClusterReleaseController {
+	addonClusterReleaseDbAccess := metadbaccess.GetAcReleaseDbAccess(db)
+	addonClusterReleaseProvider := metaprovider.GetAddonClusterReleaseProvider(addonClusterReleaseDbAccess)
+	clusterReleaseController := metacontroller.NewClusterReleaseController(addonClusterReleaseProvider)
+	return clusterReleaseController
 }
 
 func init() {

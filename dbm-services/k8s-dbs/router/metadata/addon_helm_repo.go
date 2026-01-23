@@ -32,14 +32,20 @@ import (
 // BuildAddonHelmRepoMetaRouter addon Helm repository 管理路由构建
 func BuildAddonHelmRepoMetaRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group(BasePath)
-	dbAccess := metadbaccess.GetAddonHelmRepoDbAccess(db)
-	metaProvider := metaprovider.GetAddonHelmRepoProvider(dbAccess)
-	metaController := metacontroller.NewAddonHelmRepoController(metaProvider)
+	metaController := buildAddonHelmRepoController(db)
 	repoMetaGroup := metaRouter.Group("/addon_helm_repo")
 	{
 		repoMetaGroup.GET("/:id", metaController.GetAddonHelmRepoByID)
 		repoMetaGroup.POST("", metaController.CreateAddonHelmRepo)
 	}
+}
+
+// buildAddonHelmRepoController 构建 Addon Helm Repo Controller
+func buildAddonHelmRepoController(db *gorm.DB) *metacontroller.AddonHelmRepoController {
+	dbAccess := metadbaccess.GetAddonHelmRepoDbAccess(db)
+	metaProvider := metaprovider.GetAddonHelmRepoProvider(dbAccess)
+	metaController := metacontroller.NewAddonHelmRepoController(metaProvider)
+	return metaController
 }
 
 func init() {

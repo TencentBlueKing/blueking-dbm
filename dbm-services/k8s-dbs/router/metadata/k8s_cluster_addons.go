@@ -32,16 +32,21 @@ import (
 // BuildK8sClusterAddonsRouter cluster addons 管理路由构建
 func BuildK8sClusterAddonsRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group(BasePath)
-	kcaDbAccess := metadbaccess.GetK8sClusterAddonsDbAccess(db)
-	saDbAccess := metadbaccess.GetStorageAddonDbAccess(db)
-
-	metaProvider := metaprovider.GetK8sClusterAddonsProvider(kcaDbAccess, saDbAccess)
-	metaController := metacontroller.NewK8sClusterAddonsController(metaProvider)
+	metaController := buildK8sClusterAddonsController(db)
 	repoMetaGroup := metaRouter.Group("/k8s_cluster_addons")
 	{
 		repoMetaGroup.GET("/:id", metaController.GetAddon)
 		repoMetaGroup.GET("", metaController.GetAddonsByClusterName)
 	}
+}
+
+// buildK8sClusterAddonsController 构建 K8s Cluster Addons Controller
+func buildK8sClusterAddonsController(db *gorm.DB) *metacontroller.K8sClusterAddonsController {
+	kcaDbAccess := metadbaccess.GetK8sClusterAddonsDbAccess(db)
+	saDbAccess := metadbaccess.GetStorageAddonDbAccess(db)
+	metaProvider := metaprovider.GetK8sClusterAddonsProvider(kcaDbAccess, saDbAccess)
+	metaController := metacontroller.NewK8sClusterAddonsController(metaProvider)
+	return metaController
 }
 
 func init() {

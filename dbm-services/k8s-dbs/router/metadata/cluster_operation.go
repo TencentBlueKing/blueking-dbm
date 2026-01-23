@@ -32,15 +32,21 @@ import (
 // BuildClusterOpMetaRouter cluster operation 管理路由构建
 func BuildClusterOpMetaRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group(BasePath)
-	clusterOpDbAccess := metadbaccess.GetClusterOperationDbAccess(db)
-	opDefDbAccess := metadbaccess.GetOperationDefinitionDbAccess(db)
-	metaProvider := metaprovider.GetClusterOperationProvider(clusterOpDbAccess, opDefDbAccess)
-	metaController := metacontroller.NewClusterOperationController(metaProvider)
+	metaController := buildClusterOperationController(db)
 	addonMetaGroup := metaRouter.Group("/cluster_operation")
 	{
 		addonMetaGroup.GET("", metaController.ListClusterOperations)
 		addonMetaGroup.POST("", metaController.CreateClusterOperation)
 	}
+}
+
+// buildClusterOperationController 构建 Cluster Operation Controller
+func buildClusterOperationController(db *gorm.DB) *metacontroller.ClusterOperationController {
+	clusterOpDbAccess := metadbaccess.GetClusterOperationDbAccess(db)
+	opDefDbAccess := metadbaccess.GetOperationDefinitionDbAccess(db)
+	metaProvider := metaprovider.GetClusterOperationProvider(clusterOpDbAccess, opDefDbAccess)
+	metaController := metacontroller.NewClusterOperationController(metaProvider)
+	return metaController
 }
 
 func init() {
