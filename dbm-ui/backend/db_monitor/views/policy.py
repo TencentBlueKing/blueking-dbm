@@ -24,6 +24,7 @@ from rest_framework.response import Response
 from backend import env
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.bk_web.viewsets import AuditedModelViewSet
+from backend.components import BKMonitorV3Api
 from backend.configuration.constants import PLAT_BIZ_ID
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, DBModule, ProxyInstance, StorageInstance
@@ -397,3 +398,56 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
         if token != env.BKMONITOR_BEARER_TOKEN:
             raise PermissionError("Bearer token is not valid")
         return Response(Ticket.create_ticket_from_bk_monitor(self.validated_data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询监控的策略信息"),
+        tags=[constants.SWAGGER_TAG],
+        query_serializer=serializers.AlarmStrategySerializer,
+    )
+    @action(
+        methods=["GET"],
+        detail=False,
+        serializer_class=serializers.AlarmStrategySerializer,
+        pagination_class=None,
+        filter_class=None,
+    )
+    def search_alarm_strategy(self, request, *args, **kwargs):
+        bk_biz_id = self.validated_data["bk_biz_id"]
+        monitor_policy_id = self.validated_data["monitor_policy_id"]
+
+        data = {}
+
+        res = BKMonitorV3Api.search_alarm_strategy(
+            {
+                "conditions": [{"key": "strategy_id", "value": [monitor_policy_id]}],
+                "bk_biz_id": bk_biz_id,
+            },
+            use_admin=True,
+        )
+
+        if res:
+            metric_ids = []
+            agg_dimension = []
+            data["data_source_list"] = []
+            strategy_config_list = res.get("strategy_config_list", [])
+            for config in strategy_config_list:
+                for item in config["items"]:
+                    for query_config in item["query_configs"]:
+                        data["data_source_list"].append(
+                            {
+                                "data_source_label": query_config["data_source_label"],
+                                "data_type_label": query_config["data_type_label"],
+                            }
+                        )
+                        agg_dimension.extend(query_config.get("agg_dimension", []))
+                        metric_ids.append(query_config["metric_id"])
+
+            data["agg_dimension"] = list(set(agg_dimension))
+            if metric_ids:
+                metric_info = BKMonitorV3Api.metric_list(
+                    params={"bk_biz_id": bk_biz_id, "conditions": [{"key": "metric_id", "value": metric_ids}]},
+                    use_admin=True,
+                )
+                data["metric_list"] = metric_info.get("metric_list", [])
+
+        return Response(data)
