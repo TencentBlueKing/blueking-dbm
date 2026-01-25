@@ -16,7 +16,6 @@ from celery import shared_task
 from backend.db_services.taskflow.handlers import TaskFlowHandler
 from backend.dbm_aiagent.agent.commands import TicketFlowLogAnalysisCommand
 from backend.dbm_aiagent.agent.handlers import AgentHandler
-from backend.dbm_aiagent.models.ai_log import TicketFlowAILog
 from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.models import FlowNode, FlowTree
@@ -25,8 +24,6 @@ from backend.ticket.models import Flow, Ticket
 
 logger = logging.getLogger("root")
 
-FLOW_LOG_AI_ANALYSIS_KEY = "flow_log_ai_analysis"
-
 
 @shared_task
 def pipeline_log_ai_analysis(root_id: str = None) -> List[Dict]:
@@ -34,6 +31,8 @@ def pipeline_log_ai_analysis(root_id: str = None) -> List[Dict]:
     流程日志AI分析
     @param root_id
     """
+    from backend.dbm_aiagent.models.ai_log import TicketFlowAILog
+
     handler = TaskFlowHandler(root_id=root_id)
     ticket_id = int(FlowTree.objects.get(root_id=root_id).uid or 0)
     ticket = Ticket.objects.filter(id=ticket_id).first()
@@ -77,6 +76,8 @@ def ticket_flow_log_ai_analysis(flow_id: str):
     工单流程日志AI分析
     @param flow_id: 单据流程ID
     """
+    from backend.dbm_aiagent.models.ai_log import TicketFlowAILog
+
     flow = Flow.objects.get(flow_obj_id=flow_id)
     ticket_id = flow.ticket_id
     if not flow.err_msg:

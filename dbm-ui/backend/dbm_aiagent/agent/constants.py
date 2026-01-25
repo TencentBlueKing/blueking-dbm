@@ -12,6 +12,8 @@ from django.utils.translation import gettext_lazy as _
 
 from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
+FLOW_LOG_AI_ANALYSIS_KEY = "flow_log_ai_analysis"
+
 
 class DBMAgentCode(StrStructuredEnum):
     DBM = EnumField("ai-am", _("DBM 主智能体"))

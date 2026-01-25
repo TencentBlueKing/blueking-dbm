@@ -19,7 +19,7 @@ from backend.db_periodic_task.local_tasks import register_periodic_task
 @register_periodic_task(run_every=crontab(minute="0", hour="10", day_of_week="1-5"))
 def auto_recycle_dissolve_hosts():
     # 查询所有待回收的机器，分批回收
-    recycle_hosts = DirtyMachine.objects.filter(pool=PoolType.Recycle).values_list("bk_host_id", flat=True)
+    recycle_hosts = list(DirtyMachine.objects.filter(pool=PoolType.Recycle).values_list("bk_host_id", flat=True))
     batch = 100
     for index in range(0, len(recycle_hosts), batch):
         DBDirtyMachineHandler.recycle_dissolve_hosts(recycle_hosts[index : index + batch])
