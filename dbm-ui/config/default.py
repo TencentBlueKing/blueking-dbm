@@ -75,6 +75,7 @@ CORS_ALLOW_HEADERS = (
 
 ALLOWED_HOSTS = ["*"]
 
+# 安装的APPS
 INSTALLED_APPS += (
     "django_celery_beat",
     "whitenoise.runserver_nostatic",
@@ -105,8 +106,6 @@ INSTALLED_APPS += (
     # apigw
     "apigw_manager.apigw",
     "apigw_manager.drf",
-    # aidev
-    "aidev_bkplugin",
     # DB重连
     "backend.django_dbconn_retry",
     # 动态 raw-id
@@ -147,9 +146,12 @@ INSTALLED_APPS += (
     "backend.db_services.dbresource",
     "backend.dbm_init",
     "backend.db_services.mongodb.password",
-    "backend.dbm_aiagent",
 )
 
+if env.ENABLE_DBM_AI:
+    INSTALLED_APPS += ("backend.dbm_aiagent",)
+
+# 中间件
 MIDDLEWARE = (
     # 跨域中间件
     "corsheaders.middleware.CorsMiddleware",
@@ -161,8 +163,6 @@ MIDDLEWARE = (
     "apigw_manager.apigw.authentication.ApiGatewayJWTGenericMiddleware",
     "apigw_manager.apigw.authentication.ApiGatewayJWTAppMiddleware",
     "apigw_manager.apigw.authentication.ApiGatewayJWTUserMiddleware",
-    # 分析页面、接口和SQL调用耗时调试工具
-    "debug_toolbar.middleware.DebugToolbarMiddleware",
     # request instance provider
     "blueapps.middleware.request_provider.RequestProvider",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -188,6 +188,10 @@ MIDDLEWARE = (
     "backend.bk_web.middleware.RequestProviderMiddleware",
 )
 
+if DEBUG and env.DEBUG_TOOL_BAR:
+    MIDDLEWARE += ("debug_toolbar.middleware.DebugToolbarMiddleware",)
+
+# 认证后端
 AUTHENTICATION_BACKENDS = [
     *AUTHENTICATION_BACKENDS,
     "backend.bk_web.middleware.JWTUserModelBackend",

@@ -14,7 +14,7 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from backend import env
-from backend.dbm_aiagent.agent.services.log_analysis.tasks import FLOW_LOG_AI_ANALYSIS_KEY
+from backend.dbm_aiagent.agent.constants import FLOW_LOG_AI_ANALYSIS_KEY
 from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.models import FlowNode, FlowTree

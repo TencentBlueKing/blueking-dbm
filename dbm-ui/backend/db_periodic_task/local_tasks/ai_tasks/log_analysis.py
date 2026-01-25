@@ -12,7 +12,8 @@ from celery.schedules import crontab
 
 from backend.db_periodic_task.constants import GET_AND_DELETE_SET_LUA
 from backend.db_periodic_task.local_tasks import register_periodic_task
-from backend.dbm_aiagent.agent.services.log_analysis.tasks import FLOW_LOG_AI_ANALYSIS_KEY, pipeline_log_ai_analysis
+from backend.dbm_aiagent.agent.constants import FLOW_LOG_AI_ANALYSIS_KEY
+from backend.dbm_aiagent.agent.services.log_analysis.tasks import pipeline_log_ai_analysis
 from backend.utils.redis import RedisConn
 
 
