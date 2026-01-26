@@ -141,7 +141,7 @@ func setAPIResponseTags(
 func shouldSkipAPI(c *gin.Context) bool {
 	apiName := c.GetString(commconst.APIName)
 	if apiName == "" || IgnoreAPINames[apiName] {
-		slog.Warn("当前接口不需要进行指标统计", "接口名称", apiName)
+		slog.Debug("当前接口不需要进行指标统计", "接口名称", apiName)
 		return true
 	}
 	return false

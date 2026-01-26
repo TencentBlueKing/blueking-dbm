@@ -136,7 +136,7 @@ func (k *K8sCrdClusterDbAccessImpl) ListByPage(
 ) ([]*models.K8sCrdClusterModel, uint64, error) {
 	var clusterModels []*models.K8sCrdClusterModel
 	var count int64
-	query := k.db.Debug().Model(&models.K8sCrdClusterModel{})
+	query := k.db.Model(&models.K8sCrdClusterModel{})
 	if len(params.Creators) > 0 {
 		query = query.Where("created_by in (?)", params.Creators)
 	}
@@ -159,7 +159,7 @@ func (k *K8sCrdClusterDbAccessImpl) ListByPage(
 		query = query.Where("namespace = ?", params.Namespace)
 	}
 	if len(params.AddonTypes) > 0 {
-		subQuery := k.db.Debug().Model(&models.K8sCrdStorageAddonModel{}).
+		subQuery := k.db.Model(&models.K8sCrdStorageAddonModel{}).
 			Select("id").
 			Where("addon_type in (?)", params.AddonTypes)
 		query = query.Where("addon_id in (?)", subQuery)
@@ -190,7 +190,7 @@ func (k *K8sCrdClusterDbAccessImpl) ListActiveByPage(
 	var count int64
 
 	// 构建 join 查询：cluster -> storage_addon -> addon_type
-	query := k.db.Debug().
+	query := k.db.
 		Model(&models.K8sCrdClusterModel{}).
 		Joins("JOIN tb_k8s_crd_storageaddon ON tb_k8s_crd_cluster.addon_id = tb_k8s_crd_storageaddon.id").
 		Joins("JOIN tb_addon_type " +

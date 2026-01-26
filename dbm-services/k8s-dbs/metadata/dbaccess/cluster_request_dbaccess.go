@@ -110,7 +110,7 @@ func (k *ClusterRequestRecordDbAccessImpl) ListByPage(
 ) {
 	var recordModels []*metamodel.ClusterRequestRecordModel
 	var count int64
-	query := k.db.Debug().Model(&metamodel.ClusterRequestRecordModel{})
+	query := k.db.Model(&metamodel.ClusterRequestRecordModel{})
 	if params.K8sClusterName != "" {
 		query = query.Where("k8s_cluster_name = ?", params.K8sClusterName)
 	}
