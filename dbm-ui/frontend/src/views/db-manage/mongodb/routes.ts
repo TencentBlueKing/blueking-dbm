@@ -20,7 +20,7 @@ export const mongoToolboxChildrenRoutes: RouteRecordRaw[] = [
   createRouteItem(TicketTypes.MONGODB_SCALE_UPDOWN, t('集群容量变更')),
   createRouteItem(TicketTypes.MONGODB_ADD_MONGOS, t('扩容接入层')),
   createRouteItem(TicketTypes.MONGODB_REDUCE_MONGOS, t('缩容接入层')),
-  createRouteItem(TicketTypes.MONGODB_INSTANCE_FIX_STATUS, t('Mongos 状态修复')),
+  createRouteItem(TicketTypes.MONGODB_INSTANCE_FIX_STATUS, t('节点状态修复')),
   createRouteItem(TicketTypes.MONGODB_REPLICASET_CUTOFF, t('整机替换')),
   createRouteItem(TicketTypes.MONGODB_SHARD_CUTOFF, t('整机替换')),
   createRouteItem(TicketTypes.MONGODB_PITR_RESTORE, t('定点构造')),
