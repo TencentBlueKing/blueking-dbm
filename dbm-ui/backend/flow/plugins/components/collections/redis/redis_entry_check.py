@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, Tuple
 
 from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
@@ -107,7 +107,7 @@ class RedisEntryCheckService(BaseService):
             )
         )
 
-    def _get_dns_ips(self, cluster: Cluster, entry: ClusterEntry) -> Set[str]:
+    def _get_dns_ips(self, cluster: Cluster, entry: ClusterEntry) -> Tuple[Set[str], Optional[str]]:
         """
         Get IPs registered in DNS for a given entry
 
@@ -116,26 +116,27 @@ class RedisEntryCheckService(BaseService):
             entry: ClusterEntry object with DNS type
 
         Returns:
-            Set of IP addresses in DNS
+            Tuple of (Set of IP addresses in DNS, error message if any)
         """
         try:
             if entry.forward_to:
-                return set()
+                return set(), None
 
             dns_results = dns_manage.DnsManage(
                 bk_biz_id=cluster.bk_biz_id, bk_cloud_id=cluster.bk_cloud_id
             ).get_domain(domain_name=entry.entry)
 
-            return {result["ip"] for result in dns_results}
+            return {result["ip"] for result in dns_results}, None
         except Exception as e:
+            error_msg = _("Failed to get DNS records: {}").format(str(e))
             self.log_exception(
                 _("Failed to get DNS records for cluster {} entry {}: {}").format(
                     cluster.immute_domain, entry.entry, str(e)
                 )
             )
-            return set()
+            return set(), error_msg
 
-    def _get_clb_ips(self, cluster: Cluster, entry: ClusterEntry) -> Set[str]:
+    def _get_clb_ips(self, cluster: Cluster, entry: ClusterEntry) -> Tuple[Set[str], Optional[str]]:
         """
         Get IPs registered in CLB for a given entry
 
@@ -144,7 +145,7 @@ class RedisEntryCheckService(BaseService):
             entry: ClusterEntry object with CLB type
 
         Returns:
-            Set of IP addresses in CLB (ports stripped)
+            Tuple of (Set of IP addresses in CLB (ports stripped), error message if any)
         """
         try:
             clb_detail = entry.detail
@@ -154,17 +155,18 @@ class RedisEntryCheckService(BaseService):
             # Use CLBManage to get registered IPs
             raw_ips = clb_manager.get_clb_rs()
             # CLB returns IPs with ports (e.g., "1.1.1.1:30000"), strip the port
-            return {ip.split(":")[0] for ip in raw_ips}
+            return {ip.split(":")[0] for ip in raw_ips}, None
 
         except Exception as e:
+            error_msg = _("Failed to get CLB targets: {}").format(str(e))
             self.log_exception(
                 _("Failed to get CLB targets for cluster {} entry {}: {}").format(
                     cluster.immute_domain, entry.entry, str(e)
                 )
             )
-            return set()
+            return set(), error_msg
 
-    def _get_polaris_ips(self, cluster: Cluster, entry: ClusterEntry) -> Set[str]:
+    def _get_polaris_ips(self, cluster: Cluster, entry: ClusterEntry) -> Tuple[Set[str], Optional[str]]:
         """
         Get IPs registered in Polaris for a given entry
 
@@ -173,7 +175,7 @@ class RedisEntryCheckService(BaseService):
             entry: ClusterEntry object with POLARIS type
 
         Returns:
-            Set of IP addresses in Polaris (ports stripped)
+            Tuple of (Set of IP addresses in Polaris (ports stripped), error message if any)
         """
         try:
             polaris_detail = entry.detail
@@ -183,15 +185,16 @@ class RedisEntryCheckService(BaseService):
             # Use PolarisManage to get registered IPs
             raw_ips = polaris_manager.get_polaris_rs()
             # Polaris returns IPs with ports (e.g., "1.1.1.1:30000"), strip the port
-            return {ip.split(":")[0] for ip in raw_ips}
+            return {ip.split(":")[0] for ip in raw_ips}, None
 
         except Exception as e:
+            error_msg = _("Failed to get Polaris targets: {}").format(str(e))
             self.log_exception(
                 _("Failed to get Polaris targets for cluster {} entry {}: {}").format(
                     cluster.immute_domain, entry.entry, str(e)
                 )
             )
-            return set()
+            return set(), error_msg
 
     def _check_entry_consistency(
         self,
@@ -232,16 +235,19 @@ class RedisEntryCheckService(BaseService):
             expected_ips = RedisEntryCheckService._get_cluster_proxy_ips(cluster)
 
         # Get actual IPs from the entry system
+        actual_ips = set()
+        fetch_error = None
+
         match entry_type:
             case ClusterEntryType.DNS.value:
                 if entry.forward_to:
                     # DNS is forwarding to CLB ip, skip this condition
                     return None
-                actual_ips = self._get_dns_ips(cluster, entry)
+                actual_ips, fetch_error = self._get_dns_ips(cluster, entry)
             case ClusterEntryType.CLB.value:
-                actual_ips = self._get_clb_ips(cluster, entry)
+                actual_ips, fetch_error = self._get_clb_ips(cluster, entry)
             case ClusterEntryType.POLARIS.value:
-                actual_ips = self._get_polaris_ips(cluster, entry)
+                actual_ips, fetch_error = self._get_polaris_ips(cluster, entry)
             case ClusterEntryType.CLBDNS.value:
                 # CLBDNS is just a pointer, skip checking
                 return None
@@ -250,6 +256,17 @@ class RedisEntryCheckService(BaseService):
                     _("Unknown entry type {} for cluster {} entry {}").format(entry_type, cluster.immute_domain, entry)
                 )
                 return None
+
+        # If there was an error fetching IPs, report it
+        if fetch_error:
+            error_detail = {
+                "cluster_id": cluster.id,
+                "cluster_name": cluster.immute_domain,
+                "entry_type": entry_type,
+                "entry_name": entry.entry,
+                "error": fetch_error,
+            }
+            return error_detail
 
         # Compare expected vs actual
         missing_ips = expected_ips - actual_ips
@@ -295,8 +312,14 @@ class RedisEntryCheckService(BaseService):
         for error_detail in all_error_details:
             entry_type = error_detail["entry_type"]
             entry_name = error_detail["entry_name"]
-            missing_ips = error_detail["missing_ips"]
-            extra_ips = error_detail["extra_ips"]
+
+            # Check if this is a fetch error
+            if "error" in error_detail:
+                description_parts.append(_("{}  ({}): {}").format(entry_type, entry_name, error_detail["error"]))
+                continue
+
+            missing_ips = error_detail.get("missing_ips", [])
+            extra_ips = error_detail.get("extra_ips", [])
 
             entry_desc_parts = []
             if missing_ips:
@@ -305,7 +328,7 @@ class RedisEntryCheckService(BaseService):
                 entry_desc_parts.append(_("extra: {}").format(", ".join(extra_ips)))
 
             if entry_desc_parts:
-                description_parts.append(_("{} ({}): {}").format(entry_type, entry_name, "; ".join(entry_desc_parts)))
+                description_parts.append(_("{}  ({}): {}").format(entry_type, entry_name, "; ".join(entry_desc_parts)))
 
         description = "; ".join(description_parts)
 
