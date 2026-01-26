@@ -21,13 +21,17 @@ package util
 
 import (
 	"fmt"
+	commutil "k8s-dbs/common/util"
 	"k8s-dbs/config"
 	"log/slog"
 	"sync"
 
+	conconst "k8s-dbs/common/constant"
+
 	"github.com/caarlos0/env/v6"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 var (
@@ -58,7 +62,18 @@ func initDatabase(cfg *config.DatabaseConfig, dbName string) (*gorm.DB, error) {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local&tls=%s",
 		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName, cfg.TLSMode)
 
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	// 根据日志级别配置 GORM 日志输出
+	// 注意：GORM 的日志级别定义为 Silent < Error < Warn < Info
+	// Info 是最详细的级别，会输出所有 SQL 语句
+	gormConfig := &gorm.Config{}
+	logLevel := commutil.GetEnv(conconst.EnvLogLevel, conconst.DefaultLogLevel)
+	if logLevel == "debug" {
+		gormConfig.Logger = logger.Default.LogMode(logger.Info)
+		slog.Info("Database debug mode enabled", "database", dbName, "gormLogLevel", "Info")
+	} else {
+		gormConfig.Logger = logger.Default.LogMode(logger.Silent)
+	}
+	db, err := gorm.Open(mysql.Open(dsn), gormConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to %s database: %w", dbName, err)
 	}

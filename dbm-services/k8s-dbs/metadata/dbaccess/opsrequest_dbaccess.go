@@ -114,7 +114,7 @@ func (k *K8sCrdOpsRequestDbAccessImpl) FindByID(id uint64) (*models.K8sCrdOpsReq
 
 // Update 更新元数据接口实现
 func (k *K8sCrdOpsRequestDbAccessImpl) Update(model *models.K8sCrdOpsRequestModel) (uint64, error) {
-	result := k.db.Debug().Omit("CreatedAt", "CreatedBy").Save(model)
+	result := k.db.Omit("CreatedAt", "CreatedBy").Save(model)
 	if result.Error != nil {
 		return 0, errors.Wrapf(result.Error, "failed to update opsRequest with model %+v", model)
 	}

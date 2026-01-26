@@ -68,7 +68,7 @@ func (k *K8sCrdStorageAddonDbAccessImpl) FindVersionsByParams(params *metaentity
 	error,
 ) {
 	var versions []*metamodel.AddonVersionModel
-	if err := k.db.Debug().Model(&metamodel.K8sCrdStorageAddonModel{}).
+	if err := k.db.Model(&metamodel.K8sCrdStorageAddonModel{}).
 		Where(params).
 		Find(&versions).
 		Limit(commconst.MaxFetchSize).Error; err != nil {
