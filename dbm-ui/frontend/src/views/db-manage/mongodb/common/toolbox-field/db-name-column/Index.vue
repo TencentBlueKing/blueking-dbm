@@ -128,7 +128,9 @@
         if (clearDbList.length < 1) {
           return true;
         }
-
+        if (!props.clusterId) {
+          return true;
+        }
         return checkClusterDatabase({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           cluster_id: props.clusterId as number,
