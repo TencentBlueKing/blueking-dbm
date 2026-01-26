@@ -59,7 +59,7 @@ def bill_tdbctl_upgrade(
         if not package:
             raise Exception(_("未找到 tdbctl 升级包"))
 
-    # 2. 构建单据参数
+    # 2. 查询集群并构建单据参数
     if cluster_domain or cluster_id:
         # 升级指定集群
         if cluster_domain:
@@ -77,32 +77,23 @@ def bill_tdbctl_upgrade(
             except Cluster.DoesNotExist:
                 raise Exception(_("集群ID {} 不存在或不属于业务 {}，请检查集群ID和业务ID").format(cluster_id, bk_biz_id))
 
+        clusters = [cluster]
         cluster_ids = [cluster.id]
     else:
-        # 升级业务下所有集群：查询所有 TenDBCluster 集群并构造 cluster_ids
-        all_clusters = Cluster.objects.filter(bk_biz_id=bk_biz_id, cluster_type=ClusterType.TenDBCluster).values_list(
-            "id", flat=True
-        )
-        cluster_ids = list(all_clusters)
+        # 升级业务下所有集群：查询所有 TenDBCluster 集群
+        clusters = list(Cluster.objects.filter(bk_biz_id=bk_biz_id, cluster_type=ClusterType.TenDBCluster))
 
-        if not cluster_ids:
+        if not clusters:
             raise Exception(_("业务 {} 下未找到任何 TenDBCluster 集群").format(bk_biz_id))
+
+        cluster_ids = [cluster.id for cluster in clusters]
 
     details = {"bk_biz_id": bk_biz_id, "cluster_ids": cluster_ids, "pkg_id": package.id}
 
     # 3. 检查集群是否需要升级
     handler = TdbctlUpgradeHandler(bk_biz_id=bk_biz_id, pkg_id=package.id, operator=username)
 
-    # 获取需要升级的集群列表（不再使用 upgrade_all 参数）
-    clusters = handler.get_clusters_to_upgrade(cluster_ids=cluster_ids, upgrade_all=False)
-
-    if not clusters:
-        if cluster_domain or cluster_id:
-            raise Exception(_("未找到需要升级的 TenDBCluster 集群，请检查集群是否存在"))
-        else:
-            raise Exception(_("业务 {} 下未找到任何 TenDBCluster 集群").format(bk_biz_id))
-
-    # 检查哪些集群需要升级，哪些已经是最新版本
+    # 检查哪些集群需要升级，哪些已经是最新版本（如果目标集群已经是目标版本则跳过升级）
     filter_result = handler.filter_clusters_need_upgrade(clusters)
     upgraded_clusters = filter_result["upgraded_clusters"]
     skipped_clusters = filter_result["skipped_clusters"]
@@ -119,6 +110,10 @@ def bill_tdbctl_upgrade(
             skip_info += _("等 {} 个集群").format(len(skipped_clusters))
 
         raise Exception(_("所有集群版本已是最新或无法升级，无需升级。跳过的集群: {}").format(skip_info))
+
+    # 更新 cluster_ids 为只包含需要升级的集群（跳过已经是目标版本的集群）
+    cluster_ids = [cluster.id for cluster in upgraded_clusters]
+    details["cluster_ids"] = cluster_ids
 
     # 4. 验证参数
     slz = TdbctlUpgradeSerializer(data=details)
