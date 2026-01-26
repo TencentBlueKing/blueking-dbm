@@ -11,21 +11,12 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.dbm_aiagent.mcp_tools.mysql.serializers.usefully_choices import mysql_cluster_type_choices
-
 
 class ExplainSQLInputSerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
-    cluster_type = serializers.ChoiceField(choices=mysql_cluster_type_choices, help_text=_("集群类型"))
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
     db_name = serializers.CharField(help_text=_("库名，提供库名可以更准确的找到 table"))
     query_sql = serializers.CharField(help_text=_("需要查询执行计划的 SQL 语句"))
 
 
 class ExplainSQLOutputSerializer(serializers.Serializer):
-    # bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
-    # cluster_type = serializers.CharField(help_text=_("集群类型"))
-    # cluster_domain = serializers.CharField(help_text=_("集群域名"))
-    # dbname = serializers.CharField(help_text=_("库名"))
-    # query_sql = serializers.CharField(help_text=_("需要分析的 SQL 语句"))
     explain_result = serializers.DictField(help_text=_("explain sql 的执行计划结果"))

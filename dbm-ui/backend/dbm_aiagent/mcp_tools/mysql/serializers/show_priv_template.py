@@ -30,6 +30,4 @@ class MySQLPrivilegeTemplateSerializer(serializers.Serializer):
 
 
 class ShowBizMySQLPrivilegeTemplateOutputSerializer(serializers.Serializer):
-    # bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
-    # cluster_type = serializers.ChoiceField(choices=mysql_cluster_type_choices, help_text=_("集群类型"))
     privilege_templates = serializers.ListField(child=MySQLPrivilegeTemplateSerializer(), help_text=_("权限模版列表"))

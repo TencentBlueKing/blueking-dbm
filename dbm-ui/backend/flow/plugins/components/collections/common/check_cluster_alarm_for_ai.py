@@ -16,7 +16,7 @@ from pipeline.core.flow import StaticIntervalGenerator
 
 from backend.core import notify
 from backend.db_meta.models import Cluster
-from backend.dbm_aiagent.mcp_tools.common.impl.query_moitor_alarm_info import QueryMonitorAlarm
+from backend.dbm_aiagent.mcp_tools.common.impl.query_monitor_alarm_info import QueryMonitorAlarm
 from backend.flow.models import FlowTree
 from backend.flow.plugins.components.collections.common.sidecar_service_abc import SidecarServiceABC
 from backend.utils.time import datetime2str

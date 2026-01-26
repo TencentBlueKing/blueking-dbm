@@ -26,12 +26,12 @@ from backend.db_meta.models import (
 )
 
 
-def list_my_redis_bizs(userID: str) -> List:
+def list_my_redis_bizs(username: str) -> List:
     res = []
     for app in AppCache.objects.all():
         bk_biz_id = app.bk_biz_id
 
-        if DBAdministrator.objects.filter(bk_biz_id=bk_biz_id, users__0=userID, db_type=DBType.Redis.value):
+        if DBAdministrator.objects.filter(bk_biz_id=bk_biz_id, users__0=username, db_type=DBType.Redis.value):
             res.append({"bk_biz_id": bk_biz_id, "app_name": app.bk_biz_name, "abbr": app.db_app_abbr})
     return res
 

@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
-from backend.dbm_aiagent.mcp_tools.common.impl.query_moitor_alarm_info import QueryMonitorAlarm
+from backend.dbm_aiagent.mcp_tools.common.impl.query_monitor_alarm_info import QueryMonitorAlarm
 from backend.dbm_aiagent.mcp_tools.common.serializers.alarm_query import (
     SearchAlertInputSerializer,
     SearchAlertOutputSerializer,

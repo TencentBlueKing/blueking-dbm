@@ -10,14 +10,18 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
-from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import Cluster
+from backend.db_meta.enums import ClusterType, MachineType
+from backend.db_meta.models import Cluster, Machine
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
-from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpNotSupportClusterTypeException
+from backend.dbm_aiagent.mcp_tools.exceptions import (
+    DBMMcpNotSupportClusterTypeException,
+    DBMMcpNotSupportMachineTypeException,
+)
 from backend.dbm_aiagent.mcp_tools.mysql.impl.cluster_topo import mysql_cluster_topo
 from backend.dbm_aiagent.mcp_tools.mysql.impl.explain_sql import explain_sql
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_create_table import show_create_table
@@ -26,10 +30,8 @@ from backend.dbm_aiagent.mcp_tools.mysql.impl.show_processlist import show_clust
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_status import mysql_show_slave_status, show_instance_status
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_variables import show_mysql_variables
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.cluster_topo import (
-    ClusterTopoInputSerializer,
-    TenDBClusterTopoOutputSerializer,
-    TenDBHATopoOutputSerializer,
-    TenDBSingleTopoOutputSerializer,
+    MySQLClusterTopoInputSerializer,
+    MySQLClusterTopoOutputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.explain_sql import (
     ExplainSQLInputSerializer,
@@ -75,15 +77,18 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         name_prefix="mysql_query",
     )
     def show_create_table(self, request, *args, **kwargs):
-        bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
-        cluster_type = self.get_param("cluster_type")
         cluster_domain = self.get_param("cluster_domain")
         db_name = self.get_param("db_name")
         table_name = self.get_param("table_name")
 
+        cluster_obj = Cluster.objects.get(immute_domain=cluster_domain)
+
         return Response(
             show_create_table(
-                cluster_type=cluster_type, cluster_domain=cluster_domain, dbname=db_name, tablename=table_name
+                cluster_type=cluster_obj.cluster_type,
+                cluster_domain=cluster_domain,
+                dbname=db_name,
+                tablename=table_name,
             )
         )
 
@@ -96,57 +101,35 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         name_prefix="mysql_query",
     )
     def explain_sql(self, request, *args, **kwargs):
-        bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
-        cluster_type = self.get_param("cluster_type")
         cluster_domain = self.get_param("cluster_domain")
         db_name = self.get_param("db_name")
         query_sql = self.get_param("query_sql")
 
+        cluster_obj = Cluster.objects.get(immute_domain=cluster_domain)
+
         return Response(
-            explain_sql(cluster_type=cluster_type, cluster_domain=cluster_domain, dbname=db_name, query_sql=query_sql)
+            explain_sql(
+                cluster_type=cluster_obj.cluster_type,
+                cluster_domain=cluster_domain,
+                dbname=db_name,
+                query_sql=query_sql,
+            )
         )
 
     @mcp_tools_api_decorator(
-        description=str(_("查询 TenDBSingle 集群拓扑结构")),
-        request_slz=ClusterTopoInputSerializer,
-        response_slz=TenDBSingleTopoOutputSerializer,
+        description=str(_("查询 TenDBSingle, TenDBHA, TenDBCluster 集群拓扑结构")),
+        request_slz=MySQLClusterTopoInputSerializer,
+        response_slz=MySQLClusterTopoOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_QUERY],
         name_prefix="mysql_query",
     )
-    def tendbsingle_topo(self, request, *args, **kwargs):
-        bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
+    def mysql_cluster_topo(self, request, *args, **kwargs):
         cluster_domain = self.get_param("cluster_domain")
 
-        return Response(mysql_cluster_topo(cluster_type=ClusterType.TenDBSingle, cluster_domain=cluster_domain))
+        cluster_obj = Cluster.objects.get(immute_domain=cluster_domain)
 
-    @mcp_tools_api_decorator(
-        description=str(_("查询 TenDBHA 集群拓扑结构")),
-        request_slz=ClusterTopoInputSerializer,
-        response_slz=TenDBHATopoOutputSerializer,
-        tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.MYSQL_QUERY],
-        name_prefix="mysql_query",
-    )
-    def tendbha_topo(self, request, *args, **kwargs):
-        bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
-        cluster_domain = self.get_param("cluster_domain")
-
-        return Response(mysql_cluster_topo(cluster_type=ClusterType.TenDBHA, cluster_domain=cluster_domain))
-
-    @mcp_tools_api_decorator(
-        description=str(_("查询 TenDBCluster 集群拓扑结构")),
-        request_slz=ClusterTopoInputSerializer,
-        response_slz=TenDBClusterTopoOutputSerializer,
-        tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.MYSQL_QUERY],
-        name_prefix="mysql_query",
-    )
-    def tendbcluster_topo(self, request, *args, **kwargs):
-        bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
-        cluster_domain = self.get_param("cluster_domain")
-
-        return Response(mysql_cluster_topo(cluster_type=ClusterType.TenDBCluster, cluster_domain=cluster_domain))
+        return Response(mysql_cluster_topo(cluster_obj=cluster_obj))
 
     @mcp_tools_api_decorator(
         description=str(
@@ -166,12 +149,11 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         name_prefix="mysql_query",
     )
     def show_cluster_processlist_summary(self, request, *args, **kwargs):
-        bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
         cluster_domain = self.get_param("cluster_domain")
 
         instance_group = MySQLProcessListInstanceGroupType.MasterGroup.value
 
-        cluster_obj = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
+        cluster_obj = Cluster.objects.get(immute_domain=cluster_domain)
 
         if cluster_obj.cluster_type not in [ClusterType.TenDBSingle, ClusterType.TenDBHA, ClusterType.TenDBCluster]:
             raise DBMMcpNotSupportClusterTypeException(cluster_type=cluster_obj.cluster_type)
@@ -180,7 +162,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
             cluster_obj.cluster_type == ClusterType.TenDBSingle
             and instance_group == MySQLProcessListInstanceGroupType.SlaveGroup
         ):
-            return Response()
+            return Response({"msg": "TenDBSingle 集群没有从库，无法查询从库连接摘要"})
 
         summary = show_cluster_processlist_summary(cluster_obj, instance_group)
 
@@ -196,15 +178,18 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
     )
     def show_mysql_popular_runtime_variables(self, request, *args, **kwargs):
         bk_cloud_id = self.get_param("bk_cloud_id")
-        bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
         address = self.get_param("address")
-        machine_type = self.get_param("machine_type")
         variable_hints = self.get_param("variable_hints")
+
+        machine_obj = _validate_and_get_machine(bk_cloud_id, address)
 
         return Response(
             {
                 **show_mysql_variables(
-                    bk_cloud_id=bk_cloud_id, address=address, machine_type=machine_type, variable_hints=variable_hints
+                    bk_cloud_id=bk_cloud_id,
+                    address=address,
+                    machine_type=machine_obj.machine_type,
+                    variable_hints=variable_hints,
                 ),
             }
         )
@@ -219,15 +204,18 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
     )
     def show_instance_popular_runtime_status(self, request, *args, **kwargs):
         bk_cloud_id = self.get_param("bk_cloud_id")
-        bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
         address = self.get_param("address")
-        machine_type = self.get_param("machine_type")
         status_hints = self.get_param("status_hints")
+
+        machine_obj = _validate_and_get_machine(bk_cloud_id, address)
 
         return Response(
             {
                 **show_instance_status(
-                    bk_cloud_id=bk_cloud_id, address=address, machine_type=machine_type, status_hints=status_hints
+                    bk_cloud_id=bk_cloud_id,
+                    address=address,
+                    machine_type=machine_obj.machine_type,
+                    status_hints=status_hints,
                 ),
             }
         )
@@ -242,8 +230,9 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
     )
     def show_instance_slave_status(self, request, *args, **kwargs):
         bk_cloud_id = self.get_param("bk_cloud_id")
-        bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
         address = self.get_param("address")
+
+        _ = _validate_and_get_machine(bk_cloud_id, address)
 
         return Response(
             {
@@ -270,3 +259,29 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
                 ),
             }
         )
+
+
+def _validate_and_get_machine(bk_cloud_id: int | None, address: str) -> Machine:
+    """验证并获取机器对象"""
+    ip, port = address.split(":")
+    machine_q = Machine.objects.filter(ip=ip)
+
+    if not machine_q.exists():
+        raise ObjectDoesNotExist(f"机器{ip}不存在")
+
+    if machine_q.count() > 1:
+        if not bk_cloud_id:
+            raise ValueError("机器IP不唯一, 请指定 bk_cloud_id")
+        machine_q = machine_q.filter(bk_cloud_id=bk_cloud_id)
+
+    machine_obj = machine_q.get()
+
+    if machine_obj.machine_type not in [
+        MachineType.SINGLE,
+        MachineType.BACKEND,
+        MachineType.REMOTE,
+        MachineType.SPIDER,
+    ]:
+        raise DBMMcpNotSupportMachineTypeException(machine_type=machine_obj.machine_type)
+
+    return machine_obj

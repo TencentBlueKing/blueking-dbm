@@ -16,8 +16,8 @@ from backend.db_meta.enums import ClusterType
 
 
 class ListBizsInputSerializer(serializers.Serializer):
-    bk_biz_ids = serializers.ListField(child=serializers.IntegerField(), help_text=_("业务 ID 列表"), required=False)
-    app_abbrs = serializers.ListField(child=serializers.CharField(), help_text=_("业务简称 列表"), required=False)
+    bk_biz_ids = serializers.ListField(child=serializers.IntegerField(), help_text=_("业务 ID 列表"), default=[])
+    app_abbrs = serializers.ListField(child=serializers.CharField(), help_text=_("业务简称 列表"), default=[])
 
 
 class BizDBComponentInfoSerializer(serializers.Serializer):

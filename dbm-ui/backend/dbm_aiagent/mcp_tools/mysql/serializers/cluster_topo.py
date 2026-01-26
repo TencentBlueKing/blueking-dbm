@@ -11,88 +11,36 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import InstanceRole, InstanceStatus, TenDBClusterSpiderRole
-from backend.dbm_aiagent.mcp_tools.mysql.serializers.usefully_choices import mysql_cluster_type_choices
+
+class MySQLClusterTopoInputSerializer(serializers.Serializer):
+    cluster_domain = serializers.CharField(help_text=_("集群域名"))
 
 
 class MySQLBaseInstanceSerializer(serializers.Serializer):
     address = serializers.CharField(help_text=_("ip:port 形式的实例地址"))
-    status = serializers.ChoiceField(choices=InstanceStatus.get_choices(), help_text=_("实例状态"))
+    status = serializers.CharField(help_text=_("实例状态"))
     machine_type = serializers.CharField(help_text=_("实例机器类型"))
 
 
+#
+#
 class MySQLStorageInstanceSerializer(MySQLBaseInstanceSerializer):
+    instance_role = serializers.CharField(help_text=_("实例角色"))
+    instance_inner_role = serializers.CharField(help_text=_("实例内部角色"))
     is_stand_by = serializers.BooleanField(default=True, help_text=_("dbha 切换备选标志"))
 
 
-class ClusterTopoInputSerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
-    cluster_domain = serializers.CharField(help_text=_("集群域名"))
-    cluster_type = serializers.ChoiceField(choices=mysql_cluster_type_choices, help_text=_("集群类型"))
-
-
-# TenDBSingle
-class TenDBSingleTopoOutputSerializer(serializers.Serializer):
-    # bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
-    # cluster_type = serializers.CharField(help_text=_("集群类型"))
-    # cluster_domain = serializers.CharField(help_text=_("集群域名"))
-    storage = MySQLStorageInstanceSerializer(help_text=_("存储层实例信息"))
-
-
-# TenDBHA
-class TenDBHAStorageInstanceSerializer(MySQLStorageInstanceSerializer):
-    backend_instance_role_choices = [
-        (InstanceRole.BACKEND_MASTER.value, InstanceRole.BACKEND_MASTER.name),
-        (InstanceRole.BACKEND_REPEATER.value, InstanceRole.BACKEND_REPEATER.name),
-        (InstanceRole.BACKEND_SLAVE.value, InstanceRole.BACKEND_SLAVE.name),
-    ]
-    instance_role = serializers.ChoiceField(
-        choices=backend_instance_role_choices, help_text=_("存储实例角色, backend instance role")
+class MySQLStorageInstanceReplicateSetSerializer(serializers.Serializer):
+    shard_id = serializers.IntegerField(help_text=_("分片号"), default=None, required=False)
+    master_instance = MySQLStorageInstanceSerializer(help_text=_("主实例"))
+    slave_instances = serializers.ListSerializer(
+        child=MySQLStorageInstanceSerializer(), help_text=_("从实例列表"), default=[], required=False
     )
 
 
-class TenDBHATopoOutputSerializer(serializers.Serializer):
-    # bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
-    # cluster_type = serializers.CharField(help_text=_("集群类型"))
-    # cluster_domain = serializers.CharField(help_text=_("集群域名"))
-    proxy_instances = serializers.ListSerializer(
-        child=MySQLBaseInstanceSerializer(), help_text=_("接入层实例列表, proxy instances list")
-    )
-    storage_instance = serializers.ListSerializer(
-        child=TenDBHAStorageInstanceSerializer(), help_text=_("存储实例列表, backend instance list")
-    )
-
-
-# TenDBCluster
-class TenDBClusterSpiderInstanceSerializer(MySQLBaseInstanceSerializer):
-    spider_role = serializers.ChoiceField(
-        choices=TenDBClusterSpiderRole.get_choices(), help_text=_("接入层角色, spider role")
-    )
-
-
-class TenDBClusterStorageInstanceSerializer(MySQLStorageInstanceSerializer):
-    remote_instance_role_choices = [
-        (InstanceRole.REMOTE_MASTER.value, InstanceRole.REMOTE_MASTER.name),
-        (InstanceRole.REMOTE_REPEATER.value, InstanceRole.REMOTE_REPEATER.name),
-        (InstanceRole.REMOTE_SLAVE.value, InstanceRole.REMOTE_SLAVE.name),
-    ]
-    instance_role = serializers.ChoiceField(
-        choices=remote_instance_role_choices, help_text=_("存储实例角色, remote instance role")
-    )
-
-
-class TenDBClusterStorageReplicateSetSerializer(serializers.Serializer):
-    shard_id = serializers.IntegerField(help_text=_("分片号"))
-    instances = serializers.ListSerializer(child=TenDBClusterStorageInstanceSerializer(), help_text=_("同分片存储实例列表"))
-
-
-class TenDBClusterTopoOutputSerializer(serializers.Serializer):
-    # bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
-    # cluster_type = serializers.CharField(help_text=_("集群类型"))
-    # cluster_domain = serializers.CharField(help_text=_("集群域名"))
-    spider_instances = serializers.ListSerializer(
-        child=TenDBClusterSpiderInstanceSerializer(), help_text=_("接入层实例列表, spider list")
-    )
-    storage_replicate_sets = serializers.ListSerializer(
-        child=TenDBClusterStorageReplicateSetSerializer(), help_text=_("按分片号组织的实例详情")
+class MySQLClusterTopoOutputSerializer(serializers.Serializer):
+    cluster_type = serializers.CharField(help_text=_("集群类型"))
+    proxy_instances = serializers.ListSerializer(child=MySQLBaseInstanceSerializer(), help_text=_("接入层实例列表"))
+    storage_instance_replicate_sets = serializers.ListSerializer(
+        child=MySQLStorageInstanceReplicateSetSerializer(), help_text=_("按分片号组织的实例详情")
     )
