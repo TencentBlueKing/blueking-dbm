@@ -1,16 +1,16 @@
 <template>
   <div
     class="db-editor-main"
-    :class="{ 'is-readonly': !isEditorMode }">
+    :class="{ 'is-readonly': readonly }">
     <Toolbar
       :default-config="toolbarConfig"
       :editor="editorRef"
-      :mode="mode"
+      mode="default"
       style="border-bottom: 1px solid #dcdee5" />
     <Editor
       v-model="editorHtml"
       :default-config="editorConfig"
-      :mode="mode"
+      mode="default"
       :style="{ height: `${editorHeight}px` }"
       @on-created="handleCreated" />
   </div>
@@ -24,15 +24,14 @@
   import { Editor, Toolbar } from '@wangeditor/editor-for-vue';
 
   interface Props {
-    editMode?: 'default' | 'viewer';
     editorHeight?: number;
     excludeKeys?: string[];
     placeholder?: string;
+    readonly?: boolean;
     uploadImageConfig?: any;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    editMode: 'default',
     editorHeight: 320,
     excludeKeys: () => [
       '|',
@@ -50,6 +49,7 @@
       'group-video',
     ],
     placeholder: t('请输入内容...'),
+    readonly: false,
     // 其他上传图片配置见 wangeditor 文档
     uploadImageConfig: () => ({}),
   });
@@ -62,7 +62,6 @@
   // 编辑器实例，必须用 shallowRef
   const editorRef = shallowRef();
 
-  const isEditorMode = computed(() => props.editMode === 'default');
   const editorConfig = computed(() => ({
     MENU_CONF: {
       uploadImage: {
@@ -83,13 +82,12 @@
     excludeKeys: props.excludeKeys,
   }));
 
-  const mode = 'default';
-
   watch(
-    isEditorMode,
+    () => props.readonly,
     () => {
-      setTimeout(() => {
-        if (isEditorMode.value) {
+      nextTick(() => {
+        if (!props.readonly) {
+          editorRef.value?.enable();
           editorRef.value?.focus(true);
         } else {
           editorRef.value?.disable();
@@ -129,7 +127,7 @@
     }
 
     .w-e-text-container {
-      font-size: 14px; /* 设置编辑器基础字体大小 */
+      font-size: 12px; /* 设置编辑器基础字体大小 */
     }
 
     .w-e-toolbar {
