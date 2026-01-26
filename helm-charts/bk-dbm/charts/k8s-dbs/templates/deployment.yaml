@@ -25,6 +25,8 @@ spec:
             - containerPort: {{ .Values.containerPorts.http }}
               protocol: TCP
           env:
+          - name: LOG_LEVEL
+            value: "{{ .Values.server.log.log_level }}"
           - name: LOG_MAX_SIZE_MB
             value: "{{ .Values.server.log.max_size_mb }}"
           - name: LOG_MAX_BACKUPS
