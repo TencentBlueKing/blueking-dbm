@@ -11,23 +11,16 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.dbm_aiagent.mcp_tools.mysql.serializers.usefully_choices import (
-    mysql_machine_type_choices,
-    mysql_popular_runtime_variables,
-)
+from backend.dbm_aiagent.mcp_tools.mysql.serializers.usefully_choices import mysql_popular_runtime_variables
 from backend.dbm_aiagent.utils import list_to_choices
 
 
 class ShowMySQLVariablesInputSerializer(serializers.Serializer):
-    bk_cloud_id = serializers.IntegerField(help_text=_("云区域 ID"))
-    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
-    machine_type = serializers.ChoiceField(
-        choices=mysql_machine_type_choices, help_text=_("实例的机器类型, 只能是 [single, backend, remote, spider] 中之一")
-    )
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域 ID"), default=None)
     address = serializers.CharField(help_text=_("ip:port 形式的实例地址"))
     variable_hints = serializers.ListField(
         child=serializers.ChoiceField(choices=list_to_choices(mysql_popular_runtime_variables)),
-        help_text=_("运行时参数过滤列表, 不为空时只返回这个列表指定的参数"),  # , default=None
+        help_text=_("运行时参数过滤列表, 不为空时只返回这个列表指定的参数"),
     )
 
 
@@ -37,6 +30,4 @@ class MySQLRuntimeVariableSerializer(serializers.Serializer):
 
 
 class ShowMySQLVariablesOutputSerializer(serializers.Serializer):
-    # bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
-    # address = serializers.CharField(help_text=_("ip:port 形式的实例地址"))
     runtime_variables = serializers.ListField(child=MySQLRuntimeVariableSerializer(), help_text=_("MySQL 运行时参数列表"))

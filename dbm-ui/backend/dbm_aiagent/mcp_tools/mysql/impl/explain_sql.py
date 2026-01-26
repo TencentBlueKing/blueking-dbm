@@ -46,9 +46,5 @@ def explain_sql(cluster_type: ClusterType, cluster_domain: str, dbname: str, que
         raise DBMMcpBaseException(msg=f"explain sql failed: {explain_sql_res['error_msg']}")
 
     return {
-        # "cluster_domain": cluster_domain,
-        # "cluster_type": cluster_type,
-        # "dbname": raw_dbname,
-        # "query_sql": query_sql,
         "explain_result": explain_sql_res["table_data"][0],
     }

@@ -96,12 +96,12 @@ class QueryMonitorAlarm(object):
         # 查询出来的结果
         return [
             {
-                "alert_id": alart["id"],
-                "alert_name": alart["alert_name"],
-                "alert_status": AlertStatusEnum.get_choice_label(alart["status"]),
-                "alert_severity": AlertLevelEnum.get_choice_label(int(alart["severity"])),
-                "alert_create_time": int(alart["create_time"]),
-                "tags": alart["tags"],
+                "alert_id": alert["id"],
+                "alert_name": alert["alert_name"],
+                "alert_status": AlertStatusEnum.get_choice_label(alert["status"]),
+                "alert_severity": AlertLevelEnum.get_choice_label(int(alert["severity"])),
+                "alert_create_time": int(alert["create_time"]),
+                "tags": alert["tags"],
             }
-            for alart in QueryMonitorAlarm.filter_alarm_by_create_time(all_alerts, start_time, end_time)
+            for alert in QueryMonitorAlarm.filter_alarm_by_create_time(all_alerts, start_time, end_time)
         ]

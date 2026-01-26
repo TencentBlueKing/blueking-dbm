@@ -16,7 +16,7 @@ from backend.dbm_aiagent.mcp_tools.common.views import (
     ResourceParamQueryMcpToolsViewSet,
     TicketOperationMcpToolsViewSet,
 )
-from backend.dbm_aiagent.mcp_tools.common.views.alram_query import MonitorQueryMcpToolsViewSet
+from backend.dbm_aiagent.mcp_tools.common.views.alarm_query import MonitorQueryMcpToolsViewSet
 
 routers = DefaultRouter(trailing_slash=True)
 

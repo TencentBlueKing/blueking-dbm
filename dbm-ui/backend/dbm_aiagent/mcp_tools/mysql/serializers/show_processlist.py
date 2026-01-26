@@ -24,7 +24,7 @@ class ShowProcessListFilter(serializers.Serializer):
 
 
 class ShowClusterProcessListSummaryInputSerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
+    # bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
     # instance_group = serializers.ChoiceField(
     #     choices=MySQLProcessListInstanceGroupType.get_choices(),

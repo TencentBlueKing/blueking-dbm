@@ -28,11 +28,11 @@ from backend.dbm_aiagent.mcp_tools.common.serializers.list_cluster import (
     ListBizClustersInputSerializer,
     ListBizClustersOutputSerializer,
 )
+from backend.dbm_aiagent.mcp_tools.common.serializers.list_cluster_type import ListPlatformClusterTypeOutputSerializer
 from backend.dbm_aiagent.mcp_tools.common.serializers.list_dbmodule import (
     ListDBModulesInputSerializer,
     ListDBModulesOutputSerializer,
 )
-from backend.dbm_aiagent.mcp_tools.common.serializers.list_enums import ListPlatformClusterTypeOutputSerializer
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
@@ -58,11 +58,15 @@ class DBMetaQueryMcpToolsViewSet(McpToolsViewSet):
                 {"cluster_type_value": ct[0], "cluster_type_name": ct[1]} for ct in ClusterType.get_choices()
             ]
         }
-        logger.info(res)
         return Response(res)
 
     @mcp_tools_api_decorator(
-        description=str(_("获取业务特定集群类型的模块信息, dbmodule")),
+        description=str(
+            _(
+                """获取业务特定集群类型的模块信息, dbmodule
+        * cluster_types 可以用 list_bizs_base_info 获取后作为参数"""
+            )
+        ),
         request_slz=ListDBModulesInputSerializer,
         response_slz=ListDBModulesOutputSerializer,
         tags=[DBMMCPTags.READ],
@@ -71,16 +75,19 @@ class DBMetaQueryMcpToolsViewSet(McpToolsViewSet):
     )
     def list_biz_dbmodules(self, request, *args, **kwargs):
         bk_biz_id = self.get_param("bk_biz_id")
-        cluster_type = self.get_param("cluster_type")
 
-        return Response({"dbmodules": list_biz_dbmodules(bk_biz_id, cluster_type)})
+        return Response({"dbmodules": list_biz_dbmodules(bk_biz_id)})
 
     @mcp_tools_api_decorator(
         description=str(
             _(
-                """获取业务特定集群类型的集群
-        * cluster_type 是必填参数, 如果用户查询没有提供, 则必须要求用户补全. 不得以任何形式自动补充
-        """
+                """获取业务集群基本信息, 包括
+                * 云区域信息
+                * 集群域名
+                * 集群类型
+                * 地理信息
+                * 容灾级别
+                * 状态"""
             )
         ),
         request_slz=ListBizClustersInputSerializer,
@@ -92,18 +99,26 @@ class DBMetaQueryMcpToolsViewSet(McpToolsViewSet):
     def list_biz_clusters(self, request, *args, **kwargs):
         bk_biz_id = self.get_param("bk_biz_id")
         cluster_type = self.get_param("cluster_type")
+        cluster_domain = self.get_param("cluster_domain")
+
+        q = Q(**{"bk_biz_id": bk_biz_id})
+
+        if cluster_domain:
+            q &= Q(**{"immute_domain": cluster_domain})
+        if cluster_type:
+            q &= Q(**{"cluster_type": cluster_type})
 
         res = [
             {
+                # "bk_biz_id": cluster_obj.bk_biz_id,
                 "bk_cloud_id": cluster_obj.bk_cloud_id,
-                # "bk_biz_id": bk_biz_id,
-                # "cluster_type": cluster_obj.cluster_type,
+                "cluster_type": cluster_obj.cluster_type,
                 "cluster_domain": cluster_obj.immute_domain,
                 "region": cluster_obj.region,
                 "affinity": cluster_obj.disaster_tolerance_level,
                 "status": cluster_obj.status,
             }
-            for cluster_obj in Cluster.objects.filter(bk_biz_id=bk_biz_id, cluster_type=cluster_type)
+            for cluster_obj in Cluster.objects.filter(q)
         ]
 
         return Response({"clusters": res})
@@ -117,8 +132,8 @@ class DBMetaQueryMcpToolsViewSet(McpToolsViewSet):
         name_prefix="dbmeta_query",
     )
     def list_bizs_base_info(self, request, *args, **kwargs):
-        bk_biz_ids = self.get_param("bk_biz_ids", [])
-        app_abbrs = self.get_param("app_abbrs", [])
+        bk_biz_ids = self.get_param("bk_biz_ids")
+        app_abbrs = self.get_param("app_abbrs")
 
         apps = AppCache.objects.all()
 
@@ -157,16 +172,3 @@ class DBMetaQueryMcpToolsViewSet(McpToolsViewSet):
             res.append({"bk_biz_id": bk_biz_id, "abbr": abbr, "db_components": comp_infos})
 
         return Response({"bizs": res})
-
-    # @mcp_tools_api_decorator(
-    #     description=str(_("获取平台单据类型")),
-    #     request_slz=EmptyInputSerializer,
-    #     response_slz=AllTicketTypesOutputSerializer,
-    #     tags=[DBMMCPTags.READ],
-    #     mcp=[DBMMcpTools.DBMETA_QUERY],
-    #     name_prefix="dbmeta_query",
-    # )
-    # def list_all_ticket_types(self, request, *args, **kwargs):
-    #     return Response({
-    #         "ticket_types": TicketType.get_choices()
-    #     })
