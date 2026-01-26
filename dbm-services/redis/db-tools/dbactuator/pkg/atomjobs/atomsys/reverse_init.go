@@ -68,6 +68,7 @@ func (job *ReverseAPIConfig) Name() string {
 // Run 执行
 func (job *ReverseAPIConfig) Run() (err error) {
 	reverseConfig := common.GetResrveAPIConfig()
+	os.Remove(reverseConfig) // try remove old file.
 	// 以追加模式打开文件，如果文件不存在则创建
 	file, err := os.OpenFile(reverseConfig, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0755)
 	if err != nil {

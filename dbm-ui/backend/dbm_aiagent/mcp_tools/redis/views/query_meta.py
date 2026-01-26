@@ -102,6 +102,10 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
 
 ## 错误处理
 - 如果集群不存在，返回错误信息：`{"error": "集群不存在"}`
+
+## 结果展示
+1. 存储层和接入层: 全部信息要融合成多行多列并且用一个表格展示
+2. 基础信息部分: 采用分层结构化展示方式
 """
             )
         ),

@@ -66,6 +66,7 @@ func (job *Job) reInit() {
 // Run Command Run
 func (job *Job) Run() {
 	job.IsRunning = true
+	job.Err = nil
 	defer func() {
 		job.IsRunning = false
 	}()
@@ -109,7 +110,7 @@ func (job *Job) Run() {
 	mylog.Logger.Debug(fmt.Sprintf("checked %d instances total used mem :%d/%d",
 		len(job.SortUsedMemItems), job.UsedMemSum, job.OsAvailMem))
 	if isSkip := job.isSkipMaxmemorySet(); job.Err != nil || isSkip {
-		mylog.Logger.Debug(fmt.Sprintf("job status:%+v , isSkip:%+v", job.Err, isSkip))
+		mylog.Logger.Info(fmt.Sprintf("job status:%+v , isSkip:%+v", job.Err, isSkip))
 		return
 	}
 
@@ -159,7 +160,7 @@ func (job *Job) GetRedisUsedMemory() (err error) {
 		go func(memItem *RedisUsedMemItem) {
 			defer wg.Done()
 			if memItem.redisCli, memItem.Err = myredis.NewRedisClientWithTimeout(memItem.Addr(), memItem.Password,
-				0, consts.TendisTypeRedisInstance, 5*time.Second); err != nil {
+				0, consts.TendisTypeRedisInstance, 5*time.Second); memItem.Err != nil {
 				mylog.Logger.Warn(fmt.Sprintf("get used memory failed %s:%+v", memItem.Addr(), memItem.Err))
 				return
 			}
