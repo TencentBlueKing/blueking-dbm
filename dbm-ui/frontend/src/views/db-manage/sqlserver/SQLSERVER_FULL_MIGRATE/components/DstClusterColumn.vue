@@ -259,6 +259,13 @@
     modelValue,
     () => {
       localValue.value = modelValue.value.map((item) => item.master_domain).join('\n');
+      const renderText = modelValue.value
+        .filter((item) => item.master_domain && !item.id)
+        .map((item) => item.master_domain)
+        .join('\n');
+      if (renderText) {
+        handleBatchEditChange(renderText);
+      }
       if (batchEditRowCount) {
         emits('batch-edit', modelValue.value, 'dstCluster');
         batchEditRowCount--;

@@ -13,7 +13,7 @@
 
 <template>
   <EditableColumn
-    :disabled-method="() => !clusterId"
+    :disabled-method="() => (!clusterId ? t('请先输入合法的集群域名') : false)"
     field="load_modules"
     label="Module"
     required
@@ -74,6 +74,11 @@
         label: key,
         value: key,
       }));
+      if (moduleValue.value.length > 0) {
+        moduleValue.value = moduleValue.value.filter(
+          (item) => Object.prototype.hasOwnProperty.call(results, item) && !results[item],
+        );
+      }
     },
   });
 

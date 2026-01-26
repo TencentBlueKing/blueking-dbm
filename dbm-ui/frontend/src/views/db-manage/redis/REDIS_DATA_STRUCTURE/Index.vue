@@ -55,8 +55,9 @@
               v-model="item.master_instances"
               :cluster="item.cluster" />
             <SpecColumn
-              v-model="item.cluster.cluster_spec.spec_id"
+              v-model="item.specId"
               :cluster-type="DBTypes.REDIS"
+              :current-spec-id-list="[item.cluster.cluster_spec.spec_id]"
               field="cluster.cluster_spec.spec_id"
               :label="t('规格需求')"
               required
@@ -106,7 +107,7 @@
 
   import { useCreateTicket, useTicketDetail, useTimeZoneFormat } from '@hooks';
 
-  import { DBTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
@@ -127,7 +128,7 @@
     cluster: {
       bk_cloud_id: number;
       cluster_spec: RedisModel['cluster_spec'];
-      cluster_type: string;
+      cluster_type: ClusterTypes;
       cluster_type_name: string;
       id: number;
       master_domain: string;
@@ -136,6 +137,7 @@
     count: number;
     master_instances: string[];
     recovery_time_point: string;
+    specId: number;
   }
 
   const createRowData = (values = {} as Partial<IDataRow>) => ({
@@ -156,6 +158,7 @@
     count: values.count || 1,
     master_instances: values.master_instances || [],
     recovery_time_point: values.recovery_time_point || '',
+    specId: values.specId || 0,
   });
 
   const createDefaultFormData = () => ({

@@ -1,14 +1,23 @@
 <template>
   <div class="sqlserver-db-backup-page">
     <SmartAction>
+      <BkAlert
+        class="mb-16"
+        closable
+        theme="info"
+        :title="t('清档：将目标集群中的数据进行清空，支持清档前进行备份。')" />
       <DbForm
         ref="form"
         class="mt-16 mb-24 toolbox-form"
         form-type="vertical"
         :model="formData">
+        <BatchInput
+          :config="batchInputConfig"
+          @change="handleBatchInput" />
         <EditableTable
+          :key="tableKey"
           ref="editableTable"
-          class="mb-24"
+          class="mt-16 mb-24"
           :model="formData.tableData">
           <EditableRow
             v-for="(rowData, index) in formData.tableData"
@@ -73,9 +82,12 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+
+  import { random } from '@utils';
 
   import BackupColumn, { BackupType } from './components/BackupColumn.vue';
   import ClusterColumn from './components/ClusterColumn.vue';
@@ -114,6 +126,8 @@
 
   const { t } = useI18n();
   const route = useRoute();
+
+  const tableKey = ref(random());
 
   useTicketDetail<Redis.Purge>(TicketTypes.REDIS_PURGE, {
     onSuccess(ticketDetail) {
@@ -169,6 +183,44 @@
     formData.tableData.filter((item) => item.cluster.master_domain).map((item) => item.cluster),
   );
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
+
+  const batchInputConfig = [
+    {
+      case: 'redis.test.dba.db',
+      key: 'domain',
+      label: t('目标集群'),
+    },
+    {
+      case: t('是'),
+      key: 'backup',
+      label: t('备份'),
+      values: [t('是'), t('否')],
+    },
+    {
+      case: t('否'),
+      key: 'force',
+      label: t('强制'),
+      values: [t('是'), t('否')],
+    },
+  ];
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) =>
+      createRowData({
+        backup: item.backup || '',
+        cluster: {
+          master_domain: item.domain || '',
+        } as IDataRow['cluster'],
+        force: item.force || '',
+      }),
+    );
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = [...dataList];
+    } else {
+      formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
+    }
+  };
 
   const handleClusterBatchEdit = (clusterList: RedisModel[]) => {
     const newList: IDataRow[] = [];

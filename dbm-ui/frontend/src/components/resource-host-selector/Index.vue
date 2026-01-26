@@ -161,6 +161,7 @@
   interface Props {
     disableHostMethod?: (params: IValue) => string | boolean;
     limit?: number;
+    // eslint-disable-next-line vue/no-unused-properties
     params?: {
       bk_cloud_ids?: string;
       for_biz?: number;
@@ -201,7 +202,7 @@
     loading: isLoading,
     pagination,
     tableData,
-  } = useFetchData(props.params);
+  } = useFetchData(props);
   const currentPanelTab = ref('host');
   const rowSelectMemo = shallowRef<Record<string, DbResourceModel>>({});
 

@@ -1,6 +1,5 @@
 <template>
   <EditableColumn
-    :disabled-method="() => !clusterId"
     field="online_switch_type"
     :label="t('切换模式')"
     :min-width="150">
@@ -26,19 +25,16 @@
 
   import BatchEditColumn, { BatchEditSelect } from '@views/db-manage/common/batch-edit-column-new/Index.vue';
 
-  interface Props {
-    clusterId: number;
-  }
-
   type Emits = (e: 'batch-edit', value: string, filed: string) => void;
 
-  defineProps<Props>();
   const emits = defineEmits<Emits>();
   const modelValue = defineModel<string>({
     required: true,
   });
 
   const { t } = useI18n();
+
+  const batchEditValue = ref('');
 
   const switchModeOptions = [
     {
@@ -51,7 +47,20 @@
     },
   ];
 
-  const batchEditValue = ref('');
+  const switchModeValues = switchModeOptions.map((item) => item.value);
+  const switchModeLabelMap = Object.fromEntries(switchModeOptions.map((item) => [item.label, item.value]));
+
+  watch(
+    modelValue,
+    () => {
+      if (!switchModeValues.includes(modelValue.value)) {
+        modelValue.value = switchModeLabelMap[modelValue.value];
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleBatchEditConfirm = () => {
     emits('batch-edit', batchEditValue.value, 'online_switch_type');

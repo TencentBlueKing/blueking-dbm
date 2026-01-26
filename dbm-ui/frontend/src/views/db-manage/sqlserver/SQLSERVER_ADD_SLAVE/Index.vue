@@ -14,14 +14,18 @@
 <template>
   <SmartAction>
     <BkAlert
-      class="mb-20"
       closable
       :title="t('添加从库：同机的所有集群会统一新增从库，仅支持 always on 集群')" />
+    <BatchInput
+      class="mt-20"
+      :config="batchInputConfig"
+      @change="handleBatchInput" />
     <BkForm
-      class="mb-20"
+      class="mt-16 mb-20"
       form-type="vertical"
       :model="formData">
       <EditableTable
+        :key="tableKey"
         ref="table"
         class="mb-20"
         :model="formData.tableData">
@@ -80,10 +84,13 @@
 
   import { DBTypes, TicketTypes } from '@common/const';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+
+  import { random } from '@utils';
 
   import ClusterColumn from './components/ClusterColumn.vue';
 
@@ -107,19 +114,38 @@
 
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
+  const batchInputConfig = [
+    {
+      case: 'sqlserver.test.dba.db',
+      key: 'domain',
+      label: t('目标集群 (always on 集群)'),
+    },
+    {
+      case: '192.168.10.2',
+      key: 'slave_ip',
+      label: t('新从库主机'),
+    },
+  ];
+
   const createTableRow = (data = {} as Partial<RowData>) => ({
-    cluster: data.cluster || {
-      db_module_id: 0,
-      id: 0,
-      master_domain: '',
-      system_version: '',
-    },
-    slave: data.slave || {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      ip: '',
-    },
+    cluster: Object.assign(
+      {
+        db_module_id: 0,
+        id: 0,
+        master_domain: '',
+        system_version: '',
+      },
+      data.cluster,
+    ),
+    slave: Object.assign(
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        ip: '',
+      },
+      data.slave,
+    ),
   });
 
   const defaultData = () => ({
@@ -128,6 +154,7 @@
   });
 
   const formData = reactive(defaultData());
+  const tableKey = ref(random());
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() =>
     Object.fromEntries(formData.tableData.map((cur) => [cur.cluster.master_domain, true])),
@@ -199,6 +226,36 @@
 
   const handleReset = () => {
     Object.assign(formData, defaultData());
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) =>
+      createTableRow({
+        cluster: {
+          master_domain: item.domain,
+        } as RowData['cluster'],
+        slave: item.slave_ip
+          ? {
+              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+              bk_cloud_id: 0,
+              bk_host_id: 0,
+              ip: item.slave_ip,
+            }
+          : {
+              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+              bk_cloud_id: 0,
+              bk_host_id: 0,
+              ip: '',
+            },
+      }),
+    );
+
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = dataList;
+    } else {
+      formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
+    }
   };
 
   const handleBatchEdit = (list: SqlServerHaModel[]) => {

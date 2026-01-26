@@ -13,6 +13,7 @@
 
 <template>
   <EditableColumn
+    :disabled-method="() => (!clusterId ? t('请先输入合法的集群域名') : false)"
     field="target_version"
     :label="t('目标版本')"
     :loading="loading"

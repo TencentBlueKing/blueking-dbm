@@ -13,6 +13,7 @@
 
 <template>
   <EditableColumn
+    :disabled-method="() => (!cluster.id ? t('请先输入合法的集群域名') : false)"
     :label="t('缩容的IP')"
     :min-width="200">
     <EditableSelect
@@ -38,16 +39,16 @@
   </EditableColumn>
 </template>
 <script lang="ts" setup>
+  import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import MongoDBModel from '@services/model/mongodb/mongodb';
 
   interface Props {
-    rowData: {
-      cluster: {
-        mongos: MongoDBModel['mongos'];
-        spec_config: MongoDBModel['mongos'][0]['spec_config'];
-      };
+    cluster: {
+      id: number;
+      mongos: MongoDBModel['mongos'];
+      spec_config: MongoDBModel['mongos'][0]['spec_config'];
     };
   }
 
@@ -68,10 +69,10 @@
 
   const ipSelectList = computed(() => {
     const currentSpec = {
-      ...props.rowData.cluster.spec_config,
-      count: props.rowData.cluster.mongos.length || 0,
+      ...props.cluster.spec_config,
+      count: props.cluster.mongos.length || 0,
     };
-    const reduceIpList = props.rowData.cluster.mongos.map((item) => ({
+    const reduceIpList = props.cluster.mongos.map((item) => ({
       disabled: false,
       label: item.ip,
       value: item.ip,
@@ -92,6 +93,30 @@
       });
       return item;
     });
+  });
+
+  watch(ipSelectList, () => {
+    if (ipSelectList.value.length > 0 && modelValue.value.length > 0) {
+      const ipMap = ipSelectList.value.reduce(
+        (prev, item) => {
+          if (!item.disabled) {
+            return Object.assign(prev, { [item.ip]: item });
+          }
+          return prev;
+        },
+        {} as Record<string, Props['cluster']['mongos'][number]>,
+      );
+      modelValue.value = modelValue.value.reduce<UnwrapRef<typeof modelValue>>((prev, item) => {
+        if (ipMap[item.ip]) {
+          return prev.concat({
+            bk_cloud_id: item.bk_cloud_id,
+            bk_host_id: item.bk_host_id,
+            ip: item.ip,
+          });
+        }
+        return prev;
+      }, []);
+    }
   });
 
   const handleChange = (value: string[]) => {

@@ -14,14 +14,18 @@
 <template>
   <SmartAction>
     <BkAlert
-      class="mb-20"
+      class="mb-16"
       closable
       :title="t('缩容接入层：减加集群的Proxy数量，但集群Proxy数量不能少于2')" />
+    <BatchInput
+      :config="batchInputConfig"
+      @change="handleBatchInput" />
     <BkForm
-      class="mb-20"
+      class="mt-16 mb-20"
       form-type="vertical"
       :model="formData">
       <EditableTable
+        :key="tableKey"
         ref="table"
         class="mb-20"
         :model="formData.tableData">
@@ -63,7 +67,7 @@
             required />
           <IpColumn
             v-model="item.hosts"
-            :row-data="item" />
+            :cluster="item.cluster" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -103,11 +107,14 @@
 
   import { DBTypes, MachineTypes, TicketTypes } from '@common/const';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   // import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+
+  import { random } from '@utils';
 
   import ClusterColumn from './components/ClusterColumn.vue';
   import IpColumn from './components/IpColumn.vue';
@@ -132,15 +139,18 @@
   const tableRef = useTemplateRef('table');
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
-    cluster: data.cluster || {
-      bk_cloud_id: 0,
-      id: 0,
-      master_domain: '',
-      mongos: [] as MongoDBModel['mongos'],
-      spec_config: {
+    cluster: Object.assign(
+      {
+        bk_cloud_id: 0,
         id: 0,
-      } as MongoDBModel['mongos'][0]['spec_config'],
-    },
+        master_domain: '',
+        mongos: [] as MongoDBModel['mongos'],
+        spec_config: {
+          id: 0,
+        } as MongoDBModel['mongos'][0]['spec_config'],
+      },
+      data.cluster,
+    ),
     hosts: data.hosts || ([] as RowData['hosts']),
     role: data.role || 'mongos',
   });
@@ -151,6 +161,21 @@
   });
 
   const formData = reactive(defaultData());
+
+  const tableKey = ref(random());
+
+  const batchInputConfig = [
+    {
+      case: 'mongodb.test.dba.db',
+      key: 'domain',
+      label: t('集群域名'),
+    },
+    {
+      case: '192.168.10.2,192.168.10.3',
+      key: 'hosts',
+      label: t('缩容的 IP'),
+    },
+  ];
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
@@ -215,6 +240,26 @@
 
   const handleReset = () => {
     Object.assign(formData, defaultData());
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) =>
+      createTableRow({
+        cluster: {
+          master_domain: item.domain,
+        } as RowData['cluster'],
+        hosts: (item?.hosts || '').split(',').map((hostItem: string) => ({
+          ip: hostItem,
+        })),
+      }),
+    );
+
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = [...dataList];
+    } else {
+      formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    }
   };
 
   const handleBatchEdit = (list: MongoDBModel[]) => {

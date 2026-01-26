@@ -54,6 +54,7 @@
             </EditableColumn>
             <AddShardsNumColumn
               v-model="item.add_shards_num"
+              :cluster-id="item.cluster.id"
               :single-host-shard-num="item.cluster.single_host_shard_num"
               @batch-edit="handleBatchEdit" />
             <EditableColumn
@@ -162,7 +163,7 @@
   export interface IDataRow {
     add_shards_num: number;
     cluster: {
-      cluster_type: string;
+      cluster_type: ClusterTypes;
       current_spec_id: number;
       disaster_tolerance_level: string;
       id: number;

@@ -55,6 +55,11 @@
     onSuccess({ delete_rate: deleteRate }) {
       if (!modelValue.value) {
         modelValue.value = deleteRate.default;
+      } else {
+        modelValue.value = deleteRate.rate_list.find((item) => item === modelValue.value) || deleteRate.default;
+      }
+      if (deleteRate.rate_list.length === 0) {
+        modelValue.value = '';
       }
       list.value = deleteRate.rate_list.map((item) => ({
         label: item,
@@ -70,9 +75,6 @@
         runGetClusterDelKeyRate({
           cluster_id: props.clusterId,
         });
-      } else {
-        modelValue.value = '';
-        list.value = [];
       }
     },
     {

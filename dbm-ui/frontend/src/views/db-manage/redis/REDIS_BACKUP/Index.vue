@@ -1,14 +1,23 @@
 <template>
   <div class="sqlserver-db-backup-page">
     <SmartAction>
+      <BkAlert
+        class="mb-16"
+        closable
+        theme="info"
+        :title="t('备份：针对集群进行数据备份')" />
       <DbForm
         ref="form"
         class="mt-16 mb-24 toolbox-form"
         form-type="vertical"
         :model="formData">
+        <BatchInput
+          :config="batchInputConfig"
+          @change="handleBatchInput" />
         <EditableTable
+          :key="tableKey"
           ref="editableTable"
-          class="mb-24"
+          class="mt-16 mb-24"
           :model="formData.tableData">
           <EditableRow
             v-for="(rowData, index) in formData.tableData"
@@ -73,9 +82,12 @@
 
   import { TicketTypes } from '@common/const';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+
+  import { random } from '@utils';
 
   import BackupTypeColumn, { BackupType } from './components/BackupTypeColumn.vue';
   import ClusterColumn from './components/ClusterColumn.vue';
@@ -145,6 +157,7 @@
   const formRef = useTemplateRef('form');
   const editableTableRef = useTemplateRef('editableTable');
 
+  const tableKey = ref(random());
   const formData = reactive(createDefaultFormData());
 
   // 集群列表跳转
@@ -166,6 +179,47 @@
     formData.tableData.filter((item) => item.cluster.master_domain).map((item) => item.cluster),
   );
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
+
+  const batchInputConfig = [
+    {
+      case: 'redis.test.dba.db',
+      key: 'domain',
+      label: t('集群域名'),
+    },
+    {
+      case: 'Slave',
+      key: 'target',
+      label: t('备份目标'),
+      values: ['Master', 'Slave'],
+    },
+    {
+      case: t('1个月'),
+      key: 'backup_type',
+      label: t('备份类型'),
+      values: [t('1个月'), t('3年')],
+    },
+  ];
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) =>
+      createRowData({
+        backup_type: item.backup_type || BackupType.NORMAL_BACKUP,
+        cluster: {
+          cluster_type: '',
+          cluster_type_name: '',
+          id: 0,
+          master_domain: item.domain || '',
+        },
+        target: item.target || 'slave',
+      }),
+    );
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = [...dataList];
+    } else {
+      formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
+    }
+  };
 
   const handleClusterBatchEdit = (clusterList: RedisModel[]) => {
     const newList: IDataRow[] = [];

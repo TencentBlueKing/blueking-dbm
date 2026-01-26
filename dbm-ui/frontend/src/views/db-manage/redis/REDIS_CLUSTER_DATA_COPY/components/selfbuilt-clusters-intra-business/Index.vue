@@ -12,7 +12,12 @@
 -->
 
 <template>
+  <BatchInput
+    class="mb-16"
+    :config="batchInputConfig"
+    @change="handleBatchInput" />
   <EditableTable
+    :key="tableKey"
     ref="editableTable"
     :model="tableData">
     <EditableRow
@@ -63,7 +68,10 @@
   import RedisDSTHistoryJobModel from '@services/model/redis/redis-dst-history-job';
   import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import RegexKeysColumn from '@views/db-manage/redis/common/toolbox-field/regex-keys-column/Index.vue';
+
+  import { random } from '@utils';
 
   import AccessCodeColumn from '../common/AccessCodeColumn.vue';
   import ClusterInputColumn from '../common/ClusterInputColumn.vue';
@@ -118,12 +126,70 @@
 
   const editableTableRef = useTemplateRef('editableTable');
 
+  const tableKey = ref(random());
+
+  const batchInputConfig = [
+    {
+      case: 'redis.test.dba.db',
+      key: 'src_cluster',
+      label: t('源集群'),
+    },
+    {
+      case: t('集群版'),
+      key: 'src_cluster_type',
+      label: t('集群类型'),
+      values: [t('集群版'), t('主从版')],
+    },
+    {
+      case: '******',
+      key: 'src_cluster_password',
+      label: t('访问密码'),
+    },
+    {
+      case: 'redis.test.dba.db',
+      key: 'dst_cluster_domain',
+      label: t('目标集群'),
+    },
+    {
+      case: 'key1\\nkey2',
+      key: 'white_regex',
+      label: t('包含 Key'),
+    },
+    {
+      case: 'key1\\nkey2',
+      key: 'black_regex',
+      label: t('排除 Key'),
+    },
+  ];
+
   const tableData = ref<IDataRow[]>([createRowData()]);
 
   const handleColumnBatchEdit = (value: string[], field: string) => {
     tableData.value.forEach((item) => {
       Object.assign(item, { [field]: value });
     });
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) =>
+      createRowData({
+        dst_cluster: {
+          domain: '',
+          id: item.dst_cluster_domain || '',
+        },
+        key_black_regex: item.black_regex?.split('\\n') || [],
+        key_white_regex: item.white_regex?.split('\\n') || [],
+        src_cluster: item.src_cluster || '',
+        src_cluster_password: item.src_cluster_password || '',
+        src_cluster_type: item.src_cluster_type,
+      }),
+    );
+    if (isClear) {
+      tableKey.value = random();
+      tableData.value = [...dataList];
+    } else {
+      tableData.value = [...(tableData.value[0].cluster.id ? tableData.value : []), ...dataList];
+    }
   };
 
   defineExpose<Exposes>({

@@ -1,6 +1,6 @@
 <template>
   <EditableColumn
-    :disabled-method="() => !clusterId"
+    :disabled-method="() => (!clusterId ? t('请先输入合法的集群域名') : false)"
     field="group_num"
     :label="t('增加机器组数')"
     required
