@@ -72,7 +72,7 @@ jinja2 = "^3.1.6"
 cos-python-sdk-v5 = "^1.9.38"
 django-celery-beat = "2.7.0"
 django-db-connection-pool = {version = "1.2.6", extras = ["mysql"]}
-urllib3 = "2.6.0"
+urllib3 = "2.6.3"
 django-stubs-ext = "^5.2.7"
 bk-monitor-report = "^1.2.2"
 jsonref = "^1.1.0"
@@ -85,6 +85,8 @@ openai = "2.7.1"
 pandas = "^3.0.0"
 numpy = "^2.4.1"
 simpleeval = "^1.0.3"
+aiohttp = "3.13.3"
+wheel = "0.46.2"
 
 [tool.poetry.dev-dependencies]
 flake8 = "7.1.1"
