@@ -20,67 +20,45 @@ limitations under the License.
 package core
 
 import (
-	coreprovider "k8s-dbs/core/provider"
-	metadbaccess "k8s-dbs/metadata/dbaccess"
-	metaprovider "k8s-dbs/metadata/provider"
+	"k8s-dbs/core/api/controller"
 	routerutil "k8s-dbs/router/util"
-	"log/slog"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
-// BuildOpsRequestRouter opsRequest 管理路由构建
+// BuildOpsRequestRouter opsRequest 运维操作路由构建
 func BuildOpsRequestRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
-	clusterController := initClusterController(db)
+	opsController := initOpsController(db)
 	opsRequestGroup := baseRouter.Group("/opsRequest")
 	{
-		opsRequestGroup.POST("/vscaling", clusterController.VerticalScaling)
-		opsRequestGroup.POST("/hscaling", clusterController.HorizontalScaling)
-		opsRequestGroup.POST("/start", clusterController.StartCluster)
-		opsRequestGroup.POST("/stop", clusterController.StopCluster)
-		opsRequestGroup.POST("/restart", clusterController.RestartCluster)
-		opsRequestGroup.POST("/upgrade", clusterController.UpgradeCluster)
-		opsRequestGroup.POST("/vexpansion", clusterController.VolumeExpansion)
-		opsRequestGroup.POST("/expose", clusterController.ExposeCluster)
-		opsRequestGroup.POST("/describe", clusterController.DescribeOpsRequest)
-		opsRequestGroup.POST("/status", clusterController.GetOpsRequestStatus)
+		opsRequestGroup.POST("/vscaling", opsController.VerticalScaling)
+		opsRequestGroup.POST("/hscaling", opsController.HorizontalScaling)
+		opsRequestGroup.POST("/start", opsController.StartCluster)
+		opsRequestGroup.POST("/stop", opsController.StopCluster)
+		opsRequestGroup.POST("/restart", opsController.RestartCluster)
+		opsRequestGroup.POST("/upgrade", opsController.UpgradeCluster)
+		opsRequestGroup.POST("/vexpansion", opsController.VolumeExpansion)
+		opsRequestGroup.POST("/expose", opsController.ExposeCluster)
+		opsRequestGroup.POST("/describe", opsController.DescribeOpsRequest)
+		opsRequestGroup.POST("/status", opsController.GetOpsRequestStatus)
 	}
+}
+
+// initOpsController 初始化 OpsController
+func initOpsController(db *gorm.DB) *controller.OpsController {
+	clusterProvider := routerutil.BuildClusterProvider(db)
+	opsRequestProvider := routerutil.BuildOpsRequestProvider(db)
+	clusterMetaProvider := routerutil.BuildClusterMetaProvider(db)
+	componentProvider := routerutil.BuildComponentProvider(db)
+	return controller.NewOpsController(
+		clusterProvider,
+		clusterMetaProvider,
+		componentProvider,
+		opsRequestProvider,
+	)
 }
 
 func init() {
 	routerutil.RegisterAPIRouterBuilder(BuildOpsRequestRouter)
-}
-
-// BuildOpsRequestProvider 构建 OpsRequestProvider
-func BuildOpsRequestProvider(
-	db *gorm.DB,
-	clusterProvider *coreprovider.ClusterProvider,
-) *coreprovider.OpsRequestProvider {
-	coreAPIProviders, err := routerutil.BuildCoreAPIProviders(db)
-	if err != nil {
-		slog.Error("build common providers error", "error", err)
-		panic(err)
-	}
-
-	opsRequestMetaDbAccess := metadbaccess.GetOpsRequestDbAccess(db)
-	opsRequestMetaProvider := metaprovider.GetK8sCrdOpsRequestProvider(opsRequestMetaDbAccess)
-	opsRequestProviderBuilder := coreprovider.OpsRequestProviderBuilder{}
-
-	opsReqProvider, err := coreprovider.NewOpsReqProvider(
-		opsRequestProviderBuilder.WithOpsRequestMeta(opsRequestMetaProvider),
-		opsRequestProviderBuilder.WithClusterMeta(coreAPIProviders.ClusterMetaProvider),
-		opsRequestProviderBuilder.WithClusterConfigMeta(coreAPIProviders.ClusterConfigProvider),
-		opsRequestProviderBuilder.WithReqRecordMeta(coreAPIProviders.RequestRecordProvider),
-		opsRequestProviderBuilder.WithReleaseMeta(coreAPIProviders.ClusterReleaseProvider),
-		opsRequestProviderBuilder.WithClusterProvider(clusterProvider),
-		opsRequestProviderBuilder.WithDbmAPIService(coreAPIProviders.DbmAPIService),
-	)
-
-	if err != nil {
-		slog.Error("build ops request provider error", "error", err)
-		panic(err)
-	}
-
-	return opsReqProvider
 }

@@ -110,6 +110,13 @@ func BuildK8sCrdOpsRequestProvider(db *gorm.DB) metaprovider.K8sCrdOpsRequestPro
 	return opsRequestMetaProvider
 }
 
+// BuildK8sClusterConfigProvider 构建 K8sClusterConfigProvider
+func BuildK8sClusterConfigProvider(db *gorm.DB) metaprovider.K8sClusterConfigProvider {
+	k8sClusterConfigDbAccess := metadbaccess.GetK8sClusterConfigDbAccess(db)
+	k8sClusterConfigProvider := metaprovider.GetK8sClusterConfigProvider(k8sClusterConfigDbAccess)
+	return k8sClusterConfigProvider
+}
+
 // BuildCoreAPIProviders 构建 core api providers
 func BuildCoreAPIProviders(db *gorm.DB) (*CoreAPIProviders, error) {
 	clusterMetaProvider := BuildClusterMetaProvider(db)
@@ -143,6 +150,38 @@ func BuildCoreAPIProviders(db *gorm.DB) (*CoreAPIProviders, error) {
 		ClusterTagProvider:     clusterTagProvider,
 		DbmAPIService:          dbmAPIService,
 	}, nil
+}
+
+// BuildOpsRequestProvider 构建 OpsRequestProvider
+func BuildOpsRequestProvider(
+	db *gorm.DB,
+) *coreprovider.OpsRequestProvider {
+	coreAPIProviders, err := BuildCoreAPIProviders(db)
+	if err != nil {
+		slog.Error("build common providers error", "error", err)
+		panic(err)
+	}
+	clusterProvider := BuildClusterProvider(db)
+	opsRequestMetaDbAccess := metadbaccess.GetOpsRequestDbAccess(db)
+	opsRequestMetaProvider := metaprovider.GetK8sCrdOpsRequestProvider(opsRequestMetaDbAccess)
+	opsRequestProviderBuilder := coreprovider.OpsRequestProviderBuilder{}
+
+	opsReqProvider, err := coreprovider.NewOpsReqProvider(
+		opsRequestProviderBuilder.WithOpsRequestMeta(opsRequestMetaProvider),
+		opsRequestProviderBuilder.WithClusterMeta(coreAPIProviders.ClusterMetaProvider),
+		opsRequestProviderBuilder.WithClusterConfigMeta(coreAPIProviders.ClusterConfigProvider),
+		opsRequestProviderBuilder.WithReqRecordMeta(coreAPIProviders.RequestRecordProvider),
+		opsRequestProviderBuilder.WithReleaseMeta(coreAPIProviders.ClusterReleaseProvider),
+		opsRequestProviderBuilder.WithClusterProvider(clusterProvider),
+		opsRequestProviderBuilder.WithDbmAPIService(coreAPIProviders.DbmAPIService),
+	)
+
+	if err != nil {
+		slog.Error("build ops request provider error", "error", err)
+		panic(err)
+	}
+
+	return opsReqProvider
 }
 
 // CoreAPIProviders 封装 core api providers

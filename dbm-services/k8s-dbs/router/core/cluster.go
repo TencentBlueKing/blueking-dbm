@@ -22,8 +22,6 @@ package core
 import (
 	"k8s-dbs/core/api/controller"
 	coreprovider "k8s-dbs/core/provider"
-	metadbaccess "k8s-dbs/metadata/dbaccess"
-	metaprovider "k8s-dbs/metadata/provider"
 	routerutil "k8s-dbs/router/util"
 
 	"github.com/gin-gonic/gin"
@@ -51,27 +49,14 @@ func BuildClusterRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 // initClusterController 初始化 ClusterController
 func initClusterController(db *gorm.DB) *controller.ClusterController {
 	clusterProvider := routerutil.BuildClusterProvider(db)
-	opsRequestProvider := BuildOpsRequestProvider(db, clusterProvider)
-	clusterMetaDbAccess := metadbaccess.GetClusterDbAccess(db)
-	addonMetaDbAccess := metadbaccess.GetStorageAddonDbAccess(db)
-	clusterTagDbAccess := metadbaccess.GetClusterTagDbAccess(db)
-	k8sClusterConfigDbAccess := metadbaccess.GetK8sClusterConfigDbAccess(db)
-	clusterTopologyDbAccess := metadbaccess.GetAddonTopologyDbAccess(db)
-	addonTypeDbAccess := metadbaccess.GetAddonTypeDbAccess(db)
-	clusterProviderBuilder := metaprovider.K8sCrdClusterProviderBuilder{}
-	clusterMetaProvider := metaprovider.GetK8sCrdClusterProvider(
-		clusterProviderBuilder.WithClusterDbAccess(clusterMetaDbAccess),
-		clusterProviderBuilder.WithAddonDbAccess(addonMetaDbAccess),
-		clusterProviderBuilder.WithK8sClusterConfigDbAccess(k8sClusterConfigDbAccess),
-		clusterProviderBuilder.WithClusterTagDbAccess(clusterTagDbAccess),
-		clusterProviderBuilder.WithAddonTopologyDbAccess(clusterTopologyDbAccess),
-		clusterProviderBuilder.WithAddonTypeDbAccess(addonTypeDbAccess),
-	)
-
-	k8sClusterConfigProvider := metaprovider.GetK8sClusterConfigProvider(k8sClusterConfigDbAccess)
+	k8sClusterConfigProvider := routerutil.BuildK8sClusterConfigProvider(db)
+	clusterMetaProvider := routerutil.BuildClusterMetaProvider(db)
 	componentProvider := coreprovider.NewComponentProvider(k8sClusterConfigProvider, clusterMetaProvider)
-	return controller.NewClusterController(clusterProvider,
-		clusterMetaProvider, componentProvider, opsRequestProvider)
+	return controller.NewClusterController(
+		clusterProvider,
+		clusterMetaProvider,
+		componentProvider,
+	)
 }
 
 func init() {
