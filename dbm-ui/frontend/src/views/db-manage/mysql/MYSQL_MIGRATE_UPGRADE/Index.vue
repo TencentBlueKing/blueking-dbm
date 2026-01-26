@@ -128,7 +128,7 @@
     bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id: number;
-    bk_sub_zone: string;
+    bk_sub_zone?: string;
     ip: string;
   }
 

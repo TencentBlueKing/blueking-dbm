@@ -100,16 +100,16 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_NODE_REBALANCE, t('集群容量变更'), {
       dbConsole: 'tendbCluster.toolbox.capacityChange',
     }),
-    createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES, t('接入层变更'), {
+    createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES, t('添加 Spider'), {
       dbConsole: 'tendbCluster.toolbox.proxyScaleUp',
     }),
-    createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES, t('接入层变更'), {
+    createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES, t('减少 Spider'), {
       dbConsole: 'tendbCluster.toolbox.proxyScaleDown',
     }),
-    createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_CONF_UP_DOWN, t('接入层变更'), {
+    createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_CONF_UP_DOWN, t('Spider 升降配'), {
       dbConsole: 'tendbCluster.toolbox.spiderConfUpDown',
     }),
-    createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES, t('接入层变更'), {
+    createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES, t('替换 Spider'), {
       dbConsole: 'tendbCluster.toolbox.switchNodes',
     }),
     createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY, t('部署只读接入层'), {
