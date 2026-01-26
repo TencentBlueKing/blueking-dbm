@@ -3,6 +3,7 @@ package redismonitor
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"dbm-services/redis/db-tools/dbmon/config"
 	"dbm-services/redis/db-tools/dbmon/mylog"
@@ -21,6 +22,18 @@ type Job struct {
 
 // GetGlobRedisMonitorJob 新建监控任务
 func GetGlobRedisMonitorJob(conf *config.Configuration) *Job {
+	startTime := time.Now()
+	mylog.Logger.Info(fmt.Sprintf("RedisMonitorJob STARTED at %s", startTime))
+
+	defer func() {
+		duration := time.Since(startTime)
+		mylog.Logger.Info(fmt.Sprintf("RedisMonitorJob FINISHED, duration: %v", duration))
+
+		if r := recover(); r != nil {
+			mylog.Logger.Error(fmt.Sprintf("RedisMonitorJob PANIC: %v", r))
+		}
+	}()
+
 	monitorOnce.Do(func() {
 		globRedisMonitorJob = &Job{
 			Conf: conf,
@@ -31,7 +44,12 @@ func GetGlobRedisMonitorJob(conf *config.Configuration) *Job {
 
 // Run new monitor tasks and run
 func (job *Job) Run() {
-	mylog.Logger.Debug("redismonitor wakeup,start running...")
+	defer func() {
+		if r := recover(); r != nil {
+			mylog.Logger.Error(fmt.Sprintf("redismonitor panic: %v", r))
+		}
+	}()
+	mylog.Logger.Info("redismonitor wakeup,start running...")
 	defer func() {
 		if job.Err != nil {
 			mylog.Logger.Info(fmt.Sprintf("redismonitor end fail,err:%v", job.Err))
