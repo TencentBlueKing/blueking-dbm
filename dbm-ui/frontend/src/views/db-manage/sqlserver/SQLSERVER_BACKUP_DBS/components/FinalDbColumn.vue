@@ -1,6 +1,7 @@
 <template>
   <EditableColumn
     :append-rules="rules"
+    :disabled-method="() => (props.cluster.id && dbList.length > 0 ? false : t('请先设置目标集群、备份 DB'))"
     field="backup_dbs"
     :label="t('最终 DB')"
     :min-width="300"
@@ -8,7 +9,6 @@
     <BkLoading :loading="isLoading">
       <EditableBlock>
         <BkButton
-          :disabled="Boolean(disabledTips)"
           text
           theme="primary"
           @click="handleShowEditName">
@@ -97,6 +97,7 @@
   const rules = [
     {
       message: t('最终 DB 和指定的备份 DB 数量不匹配'),
+      trigger: 'change',
       validator: () => {
         const ignoreDbListMap = makeMap(ignoreDbList.value);
         const cleanDbsPatternList = dbList.value.filter(
@@ -106,13 +107,6 @@
       },
     },
   ];
-
-  const disabledTips = computed(() => {
-    if (props.cluster.id && dbList.value.length > 0) {
-      return '';
-    }
-    return t('请先设置目标集群、备份 DB');
-  });
 
   const model = computed(() => {
     return [

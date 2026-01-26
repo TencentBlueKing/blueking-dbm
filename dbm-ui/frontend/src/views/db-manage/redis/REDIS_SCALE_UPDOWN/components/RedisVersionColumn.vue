@@ -13,7 +13,7 @@
 
 <template>
   <EditableColumn
-    :disabled-method="disabledMethod"
+    :disabled-method="() => (!cluster.id ? t('请先输入合法的集群域名') : false)"
     field="db_version"
     :label="t('Redis版本')"
     :min-width="150"
@@ -89,11 +89,4 @@
       immediate: true,
     },
   );
-
-  const disabledMethod = (rowData?: any, field?: string) => {
-    if (field === 'db_version' && !rowData.cluster.id) {
-      return t('请先选择集群');
-    }
-    return '';
-  };
 </script>

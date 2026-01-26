@@ -1,6 +1,6 @@
 <template>
   <EditableColumn
-    :disabled-method="() => !clusterId"
+    :disabled-method="() => (!clusterId ? t('请先输入合法的集群域名') : false)"
     field="add_shard_nodes_num"
     :label="t('扩容节点数')"
     required

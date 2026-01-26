@@ -139,7 +139,7 @@
 
   const disabledMethod = () => {
     if (!props.cluster.id) {
-      return t('请先选择集群');
+      return t('请先输入合法的集群域名');
     }
     if (!props.targetClusterType) {
       return t('请先选择新集群类型');

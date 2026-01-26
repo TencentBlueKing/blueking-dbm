@@ -15,7 +15,7 @@
   <EditableColumn
     ref="editableColumnRef"
     :append-rules="rules"
-    :disabled-method="columnDisabledMethod"
+    :disabled-method="() => (!cluster.id ? t('请先输入合法的集群域名') : false)"
     field="target_capacity.resource_spec.mongodb.spec_id"
     :label="t('目标容量')"
     :min-width="400"
@@ -154,9 +154,6 @@
       validator: (value: number) => value > 0,
     },
   ];
-
-  const columnDisabledMethod = ({ cluster }: { cluster: Props['cluster'] }) =>
-    cluster.master_domain ? false : t('请先选择或输入集群');
 
   // 点击目标容量
   const handleClickSelect = () => {

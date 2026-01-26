@@ -1,7 +1,7 @@
 <template>
   <EditableColumn
     :append-rules="rules"
-    :disabled-method="() => !clusterId"
+    :disabled-method="() => (!clusterId ? t('请先输入合法的集群域名') : false)"
     field="target_num"
     :label="t('缩容至（节点数）')"
     required

@@ -13,6 +13,7 @@
 
 <template>
   <EditableColumn
+    :disabled-method="() => (!clusterId ? t('请先输入合法的集群域名') : false)"
     field="db_version"
     :label="t('新集群版本')"
     required
@@ -53,7 +54,8 @@
   import { QueryKeyMap } from '@views/db-manage/redis/common/const';
 
   interface Props {
-    targetClusterType?: string;
+    clusterId: number;
+    targetClusterType: string;
   }
 
   const props = defineProps<Props>();
