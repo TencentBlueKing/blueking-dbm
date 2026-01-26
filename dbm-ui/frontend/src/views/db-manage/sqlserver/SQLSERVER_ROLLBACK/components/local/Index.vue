@@ -1,5 +1,10 @@
 <template>
+  <BatchInput
+    class="mb-20"
+    :config="batchInputConfig"
+    @change="handleBatchInput" />
   <EditableTable
+    :key="tableKey"
     ref="editableTable"
     class="mb-12"
     :model="tableData"
@@ -60,8 +65,11 @@
 
   import { ClusterTypes } from '@common/const';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import ClusterColumn from '@views/db-manage/sqlserver/common/toolbox-field/cluster-column/Index.vue';
   import DbNameColumn from '@views/db-manage/sqlserver/common/toolbox-field/db-name-column/Index.vue';
+
+  import { random } from '@utils';
 
   import FinalDbColumn from '../common/final-db-column/Index.vue';
   import RenderModeColumn from '../common/render-mode-column/Index.vue';
@@ -74,7 +82,7 @@
 
   interface IDataRow {
     cluster: {
-      cluster_type: string;
+      cluster_type: ClusterTypes;
       id: number;
       master_domain: string;
     };
@@ -132,6 +140,7 @@
 
   const editableTableRef = useTemplateRef('editableTable');
   const renderModeColumnRef = useTemplateRef<Array<InstanceType<typeof RenderModeColumn>>>('renderModeColumnRef');
+  const tableKey = ref(random());
 
   const rules = {
     'cluster.master_domain': [
@@ -199,6 +208,29 @@
     ),
   );
 
+  const batchInputConfig = [
+    {
+      case: 'sqlserver.test.dba.db',
+      key: 'master_domain',
+      label: t('待回档集群'),
+    },
+    {
+      case: 'NULL',
+      key: 'rollback',
+      label: t('回档类型'),
+    },
+    {
+      case: 'db1,db2',
+      key: 'db_list',
+      label: t('构造 DB'),
+    },
+    {
+      case: 'db1,db2',
+      key: 'ignore_db_list',
+      label: t('忽略 DB'),
+    },
+  ];
+
   const handleClusterBatchEdit = (clusterList: SqlserverHaModel[]) => {
     const newList: IDataRow[] = [];
     clusterList.forEach((item) => {
@@ -243,6 +275,25 @@
         });
       });
       renderModeColumnRef.value!.forEach((refItem) => refItem.setRecordByBatch(value.time));
+    }
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) =>
+      createRowData({
+        cluster: {
+          master_domain: item.master_domain,
+        } as IDataRow['cluster'],
+        db_list: item.db_list ? item.db_list.split(',') : [],
+        ignore_db_list: item.ignore_db_list ? item.ignore_db_list.split(',') : [],
+      }),
+    );
+
+    tableKey.value = random();
+    if (isClear) {
+      tableData.value = [...dataList];
+    } else {
+      tableData.value = [...(tableData.value[0].cluster.master_domain ? tableData.value : []), ...dataList];
     }
   };
 

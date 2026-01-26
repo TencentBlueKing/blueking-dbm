@@ -73,6 +73,21 @@
 
   const isShowBatchEdit = ref(false);
 
+  const optionValues = selectList.map((item) => item.value);
+  const optionMap = Object.fromEntries(selectList.map((item) => [item.label, item.value]));
+
+  watch(
+    modelValue,
+    () => {
+      if (!optionValues.includes(modelValue.value)) {
+        modelValue.value = optionMap[modelValue.value];
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+
   const handleBatchEditShow = () => {
     isShowBatchEdit.value = true;
   };

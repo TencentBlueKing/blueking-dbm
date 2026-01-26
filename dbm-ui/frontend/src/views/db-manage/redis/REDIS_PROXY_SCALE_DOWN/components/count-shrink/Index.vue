@@ -12,7 +12,12 @@
 -->
 
 <template>
+  <BatchInput
+    class="mb-16"
+    :config="batchInputConfig"
+    @change="handleBatchInput" />
   <EditableTable
+    :key="tableKey"
     ref="table"
     class="mb-20"
     :model="tableData">
@@ -80,6 +85,10 @@
   import RedisModel from '@services/model/redis/redis';
   import type { Redis } from '@services/model/ticket/ticket';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+
+  import { random } from '@utils';
+
   import OnlineSwitchTypeColumn, { ONLINE_SWITCH_TYPE } from '../OnlineSwitchTypeColumn.vue';
 
   import ClusterColumn from './components/ClusterColumn.vue';
@@ -98,7 +107,7 @@
   }
 
   interface Props {
-    ticketDetails?: Redis.ResourcePool.ProxyScaleDown;
+    ticketDetails?: Redis.ProxyScaleDown;
   }
 
   interface Exposes {
@@ -116,6 +125,27 @@
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
+
+  const tableKey = ref(random());
+
+  const batchInputConfig = [
+    {
+      case: 'redis.test.dba.db',
+      key: 'cluster',
+      label: t('源集群'),
+    },
+    {
+      case: '1',
+      key: 'reduced_count',
+      label: t('缩容数量'),
+    },
+    {
+      case: t('需人工确认'),
+      key: 'online_switch_type',
+      label: t('切换方式'),
+      values: [t('需人工确认'), t('无需确认')],
+    },
+  ];
 
   const createTableRow = (data = {} as DeepPartial<RowData>) => ({
     cluster: Object.assign(
@@ -199,6 +229,25 @@
         online_switch_type: value,
       });
     });
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) => {
+      const rowData = createTableRow({
+        online_switch_type: item.online_switch_type,
+        reduced_count: item.reduced_count,
+      });
+      if (item.cluster) {
+        rowData.cluster.master_domain = item.cluster;
+      }
+      return rowData;
+    });
+    if (isClear) {
+      tableKey.value = random();
+      tableData.value = [...dataList];
+    } else {
+      tableData.value = [...(tableData.value[0].cluster.id ? tableData.value : []), ...dataList];
+    }
   };
 
   const handleChange = (row: RowData) => {

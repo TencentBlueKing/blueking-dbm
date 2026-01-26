@@ -54,7 +54,6 @@
             :row-data="item" />
           <OnlineSwitchTypeColumn
             v-model="item.online_switch_type"
-            :cluster-id="item.cluster.id"
             @batch-edit="handleBatchEdit" />
           <OperationColumn
             v-model:table-data="formData.tableData"
@@ -174,9 +173,10 @@
       label: t('Redis版本'),
     },
     {
-      case: 'no_confirm',
+      case: t('无需确认'),
       key: 'online_switch_type',
       label: t('切换模式'),
+      values: [t('需人工确认'), t('无需确认')],
     },
   ];
 

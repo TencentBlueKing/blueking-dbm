@@ -26,20 +26,25 @@
 </template>
 
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { useGlobalBizs } from '@stores';
 
-  const modelValue = defineModel<number>();
+  const modelValue = defineModel<number | string>();
 
   const { bizs } = useGlobalBizs();
 
   const { t } = useI18n();
 
-  const list = computed(() =>
-    bizs.map((item) => ({
-      label: item.name,
-      value: item.bk_biz_id,
-    })),
-  );
+  const list = bizs.map((item) => ({
+    label: item.name,
+    value: item.bk_biz_id,
+  }));
+
+  onMounted(() => {
+    if (modelValue.value && _.isString(modelValue.value)) {
+      modelValue.value = list.find((item) => item.label === modelValue.value)?.value;
+    }
+  });
 </script>
