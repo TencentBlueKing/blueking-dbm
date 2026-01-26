@@ -27,8 +27,8 @@ export const mongoToolboxChildrenRoutes: RouteRecordRaw[] = [
   createRouteItem(TicketTypes.MONGODB_BACKUP, t('库表备份')),
   createRouteItem(TicketTypes.MONGODB_FULL_BACKUP, t('全库备份')),
   createRouteItem(TicketTypes.MONGODB_REMOVE_NS, t('清档')),
-  createRouteItem(TicketTypes.MONGODB_REPLICASET_MIGRATE, t('迁移')),
-  createRouteItem(TicketTypes.MONGODB_SHARD_MIGRATE, t('迁移')),
+  createRouteItem(TicketTypes.MONGODB_REPLICASET_MIGRATE, t('副本集迁移')),
+  createRouteItem(TicketTypes.MONGODB_SHARD_MIGRATE, t('分片集群迁移')),
   createRouteItem(TicketTypes.MONGODB_DATA_EXPORT, t('数据导出')),
   {
     path: 'structure-instance/:page?',

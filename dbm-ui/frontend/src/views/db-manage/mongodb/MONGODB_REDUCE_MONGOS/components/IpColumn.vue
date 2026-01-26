@@ -13,6 +13,7 @@
 
 <template>
   <EditableColumn
+    :disabled-method="() => (!cluster.id ? t('请先输入合法的集群域名') : false)"
     :label="t('缩容的IP')"
     :min-width="200">
     <EditableSelect
@@ -43,11 +44,10 @@
   import MongoDBModel from '@services/model/mongodb/mongodb';
 
   interface Props {
-    rowData: {
-      cluster: {
-        mongos: MongoDBModel['mongos'];
-        spec_config: MongoDBModel['mongos'][0]['spec_config'];
-      };
+    cluster: {
+      id: number;
+      mongos: MongoDBModel['mongos'];
+      spec_config: MongoDBModel['mongos'][0]['spec_config'];
     };
   }
 
@@ -68,10 +68,10 @@
 
   const ipSelectList = computed(() => {
     const currentSpec = {
-      ...props.rowData.cluster.spec_config,
-      count: props.rowData.cluster.mongos.length || 0,
+      ...props.cluster.spec_config,
+      count: props.cluster.mongos.length || 0,
     };
-    const reduceIpList = props.rowData.cluster.mongos.map((item) => ({
+    const reduceIpList = props.cluster.mongos.map((item) => ({
       disabled: false,
       label: item.ip,
       value: item.ip,

@@ -115,7 +115,7 @@
   interface IDataRow {
     cluster: {
       bk_cloud_id: number;
-      cluster_type: string;
+      cluster_type: ClusterTypes;
       cluster_type_name: string;
       id: number;
       major_version: string;

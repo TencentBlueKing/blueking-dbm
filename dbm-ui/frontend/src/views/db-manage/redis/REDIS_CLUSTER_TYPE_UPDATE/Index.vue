@@ -68,6 +68,7 @@
               :cluster="item.cluster" />
             <TargetVersionSelectColumn
               v-model="item.db_version"
+              :cluster-id="item.cluster.id"
               :target-cluster-type="item.target_cluster_type" />
             <TargetCapacityColumn
               v-model="item.target_capacity"

@@ -15,7 +15,7 @@
   <EditableColumn
     ref="editableTableColumn"
     :append-rules="rules"
-    :disabled-method="() => !cluster.id || isTendisplus"
+    :disabled-method="() => (!cluster.id || isTendisplus ? t('请先输入合法的集群域名') : false)"
     field="master_instances"
     :label="t('待构造的实例')"
     required
@@ -72,6 +72,13 @@
       if (modelValue.value.length === 0) {
         modelValue.value = props.cluster.redis_master.map((item) => item.instance);
       }
+      if (props.cluster.redis_master.length > 0 && modelValue.value.length > 0) {
+        const masterMap = Object.fromEntries(props.cluster.redis_master.map((item) => [item.instance, true]));
+        modelValue.value = modelValue.value.filter((item) => masterMap[item]);
+      }
+    },
+    {
+      immediate: true,
     },
   );
 </script>

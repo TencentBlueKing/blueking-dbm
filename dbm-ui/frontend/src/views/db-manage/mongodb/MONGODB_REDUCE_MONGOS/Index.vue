@@ -63,7 +63,7 @@
             required />
           <IpColumn
             v-model="item.hosts"
-            :row-data="item" />
+            :cluster="item.cluster" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
