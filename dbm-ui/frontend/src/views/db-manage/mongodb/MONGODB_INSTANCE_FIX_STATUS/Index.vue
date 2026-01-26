@@ -16,7 +16,7 @@
     <BkAlert
       class="mb-16"
       theme="info"
-      :title="t('Mongos 状态修复：修复 Mongos 主机上状态异常的实例')" />
+      :title="t('节点状态修复：修复主机上状态异常的实例，当前仅支持 Mongos 节点')" />
     <BatchInput
       :config="batchInputConfig"
       @change="handleBatchInput" />
@@ -99,7 +99,7 @@
     {
       case: '192.168.10.2',
       key: 'ip',
-      label: t('Mongos 主机'),
+      label: t('目标主机'),
     },
   ];
 
@@ -149,12 +149,12 @@
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     infos: {
       bk_cloud_id: number;
-      dry_run: boolean;
-      ip: string;
-      port: number;
       cluster_id: number;
-      master_domain: string;
+      dry_run: boolean;
       instance_address: string;
+      ip: string;
+      master_domain: string;
+      port: number;
     }[];
   }>(TicketTypes.MONGODB_INSTANCE_FIX_STATUS);
 
@@ -167,12 +167,12 @@
       details: {
         infos: formData.tableData.map((item) => ({
           bk_cloud_id: item.host.bk_cloud_id,
-          dry_run: false,
-          ip: item.host.ip,
-          port: item.host.port,
           cluster_id: item.host.related_instances[0].cluster_id,
-          master_domain: item.host.related_instances[0].master_domain,
+          dry_run: false,
           instance_address: item.host.related_instances[0].instance_address,
+          ip: item.host.ip,
+          master_domain: item.host.related_instances[0].master_domain,
+          port: item.host.port,
         })),
       },
       ...formData.payload,

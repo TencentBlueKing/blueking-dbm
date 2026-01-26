@@ -15,7 +15,7 @@
   <EditableColumn
     field="host.ip"
     fixed="left"
-    :label="t('Mongos 主机')"
+    :label="t('目标主机')"
     :loading="loading"
     :min-width="150"
     required
@@ -62,6 +62,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import MongodbModel from '@services/model/mongodb/mongodb';
   import { checkInstance } from '@services/source/dbbase';
   import { getMongoInstancesList, getMongoTopoList } from '@services/source/mongodb';
 
@@ -105,21 +106,23 @@
     mongoCluster: [
       {
         id: 'mongoCluster',
-        name: t('Mongos 主机'),
+        name: t('目标主机'),
         tableConfig: {
           firsrColumn: {
             field: 'ip',
-            label: t('Mongos 主机'),
+            label: t('目标主机'),
           },
           getTableList: (params: ServiceParameters<typeof getMongoInstancesList>) =>
             getMongoInstancesList(
               Object.assign({}, params, {
                 cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER,
+                role: 'proxy',
               }),
             ),
           multiple: true,
         },
         topoConfig: {
+          countFunc: (data: MongodbModel) => data.mongos.length,
           getTopoList: (params: ServiceParameters<typeof getMongoTopoList>) =>
             getMongoTopoList(
               Object.assign({}, params, {
@@ -148,9 +151,19 @@
       validator: (value: string) => !value || ipv4.test(value),
     },
     {
+      message: t('目标主机重复'),
+      trigger: 'change',
+      validator: (value: string) => !value || props.selected.filter((item) => item.ip === value).length < 2,
+    },
+    {
       message: t('目标主机不存在'),
       trigger: 'blur',
       validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
+    },
+    {
+      message: t('主机不包含任何 Mongos 实例'),
+      trigger: 'blur',
+      validator: (value: string) => !value || modelValue.value.role === 'proxy',
     },
   ];
 
