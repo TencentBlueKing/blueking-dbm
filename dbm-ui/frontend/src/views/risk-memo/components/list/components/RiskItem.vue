@@ -31,14 +31,14 @@
     <div
       ref="descRef"
       v-bk-tooltips="{
-        content: data.description,
+        content: plainTextDescription,
         disabled: !isShowToolTip,
         extCls: 'risk-memo-desc-tooltips',
         placement: 'right',
         delay: 300,
       }"
       class="desc">
-      {{ data.description }}
+      {{ plainTextDescription }}
     </div>
     <div
       v-if="showBiz"
@@ -107,6 +107,26 @@
 
     return utcDisplayTime(props.data.create_at);
   });
+
+  // 去除 HTML 标签，提取纯文本
+  const stripHtmlTags = (html: string): string => {
+    if (!html || typeof html !== 'string') {
+      return '';
+    }
+
+    // 创建一个临时 DOM 元素来解析 HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+
+    // 获取纯文本内容
+    const text = tempDiv.textContent || tempDiv.innerText || '';
+
+    // 清理多余的空白字符
+    return text.trim().replace(/\s+/g, ' ');
+  };
+
+  // 纯文本描述
+  const plainTextDescription = computed(() => stripHtmlTags(props.data.description || ''));
 
   onMounted(() => {
     const resizeObserver = new ResizeObserver(() => {
