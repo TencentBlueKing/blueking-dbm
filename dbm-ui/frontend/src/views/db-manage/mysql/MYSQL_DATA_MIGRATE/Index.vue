@@ -58,8 +58,7 @@
             @batch-edit="handleBatchEdit" />
           <TargetClusterColumn
             v-model="item.target_clusters"
-            :cluster="item.source_cluster"
-            :selected="selectedClusters" />
+            :cluster="item.source_cluster" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -196,12 +195,6 @@
   );
   const selectedMap = computed(() =>
     Object.fromEntries(formData.tableData.map((cur) => [cur.source_cluster.master_domain, true])),
-  );
-  const selectedClusters = computed(() =>
-    formData.tableData.reduce<RowData['target_clusters']>((acc, item) => {
-      acc.push(...item.target_clusters);
-      return acc;
-    }, []),
   );
 
   useTicketDetail<Mysql.DataMigrate>(TicketTypes.MYSQL_DATA_MIGRATE, {
