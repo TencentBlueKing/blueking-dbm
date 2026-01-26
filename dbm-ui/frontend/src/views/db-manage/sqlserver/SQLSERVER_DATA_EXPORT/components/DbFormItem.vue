@@ -13,94 +13,59 @@
 
 <template>
   <BkFormItem
-    error-display-type="tooltips"
-    error-tip-append-to-parent
-    :label="t('查询 DB')"
-    property="dbname"
-    required
-    :rules="rules"
-    style="width: 750px">
-    <div style="display: none">
-      <div
-        ref="pop"
-        style="font-size: 12px; line-height: 24px; color: #63656e">
-        <div class="db-table-tag-tip">
-          <div style="font-weight: 700">{{ t('库表输入说明') }}：</div>
-          <div>
-            <div class="circle-dot"></div>
-            <span>{{ t('不允许输入系统库，如"master", "msdb", "model", "tempdb", "Monitor"') }}</span>
-          </div>
-          <div>
-            <div class="circle-dot"></div>
-            <span>{{ t('DB名、表名不允许为空，忽略DB名、忽略表名不允许为 *') }}</span>
-          </div>
-          <div>
-            <div class="circle-dot"></div>
-            <span>{{ t('支持 %（指代任意长度字符串）,*（指代全部）2个通配符') }}</span>
-          </div>
-          <div>
-            <div class="circle-dot"></div>
-            <span>{{ t('单元格可同时输入多个对象，使用换行，空格或；，｜分隔，按 Enter 或失焦完成内容输入') }}</span>
-          </div>
-          <div>
-            <div class="circle-dot"></div>
-            <span>{{ t('包含通配符时, 每一单元格只允许输入单个对象。% 不能独立使用， * 只能单独使用') }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div
-      ref="root"
-      @click="handleShowTips">
-      <BkLoading :loading="isLoading">
-        <BkInput
-          v-model="modelValue"
-          :placeholder="t('请输入 DB 名称，支持通配符_%_，含通配符的仅支持单个')" />
-      </BkLoading>
-    </div>
+    :label="t('目标DB')"
+    property="execute_objects"
+    required>
+    <EditableTable
+      ref="editableTableRef"
+      :model="modelValue">
+      <EditableRow
+        v-for="(rowData, index) in modelValue"
+        :key="index">
+        <DbNameColumn
+          v-model="rowData.dbnames"
+          :append-rules="dbnamesRules"
+          field="dbnames"
+          :label="t('查询 DB')"
+          :min-width="300"
+          required
+          :validate-master="false"
+          @batch-edit="handleColumnBatchEdit" />
+        <TableNameColumn
+          v-model="rowData.ignore_dbnames"
+          :disabled-method="() => false"
+          field="ignore_dbnames"
+          :label="t('忽略 DB')"
+          :required="false"
+          @batch-edit="handleColumnBatchEdit" />
+      </EditableRow>
+    </EditableTable>
   </BkFormItem>
 </template>
-
-<script setup lang="ts">
-  import _ from 'lodash';
-  import tippy, { type Instance, type SingleTarget } from 'tippy.js';
+<script setup lang="tsx">
+  import { watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { batchCheckClusterDatabase } from '@services/source/dbbase';
+  import type { Sqlserver } from '@services/model/ticket/ticket';
+
+  import DbNameColumn from '@views/db-manage/sqlserver/common/toolbox-field/db-name-column/Index.vue';
+  import TableNameColumn from '@views/db-manage/sqlserver/common/toolbox-field/table-name-column/Index.vue';
 
   interface Props {
-    clusterIds: number[];
-    clusterMap: Record<
-      string,
-      {
-        master_domain: string;
-      }
-    >;
     validateMaster?: boolean;
   }
 
   const props = defineProps<Props>();
 
-  const modelValue = defineModel<string>({
+  const modelValue = defineModel<Sqlserver.DataExport['execute_objects']>({
     required: true,
   });
 
   const { t } = useI18n();
 
-  const rootRef = useTemplateRef('root');
-  const popRef = useTemplateRef('pop');
+  const editableTableRef = useTemplateRef('editableTableRef');
 
-  let tippyIns: Instance | undefined;
-  const isLoading = ref(false);
-
-  const systemDbNames = ['msdb', 'model', 'tempdb', 'Monitor'].concat(props.validateMaster ? ['master'] : []);
-
-  const rules = [
-    {
-      message: t('不允许输入系统库和特殊库 n', { n: systemDbNames.join(',') }),
-      trigger: 'change',
-      validator: (value: string[]) => _.every(value, (item) => !systemDbNames.includes(item)),
-    },
+  const dbnamesRules = [
     {
       message: t('有 master 时只允许一个'),
       trigger: 'change',
@@ -112,115 +77,46 @@
       },
     },
     {
-      message: t('* 只能独立使用'),
-      trigger: 'change',
-      validator: (value: string[]) => !_.some(value, (item) => /\*/.test(item) && item.length > 1),
-    },
-    {
-      message: t('% 不允许单独使用'),
-      trigger: 'change',
-      validator: (value: string[]) => _.every(value, (item) => !/^%$/.test(item)),
-    },
-    {
-      message: t('含通配符的单元格仅支持输入单个对象'),
+      message: t('DB名不允许重复'),
       trigger: 'change',
       validator: (value: string[]) => {
-        if (_.some(value, (item) => /[*%?]/.test(item))) {
-          return value.length < 2;
+        const allDbnames = modelValue.value.flatMap((item) => item.dbnames);
+        for (const item of value) {
+          if (allDbnames.filter((allItem) => allItem === item).length > 1) {
+            return false;
+          }
         }
         return true;
       },
     },
-    {
-      message: '',
-      trigger: 'blur',
-      validator: (value: string) => {
-        if (!value) {
-          return true;
-        }
-        // % 通配符不需要校验不存在
-        const clearDbList = _.filter(value, (item) => !/[*%]/.test(item));
-        if (clearDbList.length < 1) {
-          return true;
-        }
-        if (!props.clusterIds.length) {
-          return t('请先输入集群');
-        }
-        isLoading.value = true;
-        return batchCheckClusterDatabase({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_ids: props.clusterIds,
-          db_list: [value],
-        }).then((data) => {
-          isLoading.value = false;
-          const clusterNotExistDb = props.clusterIds.reduce<string[]>((result, clusterId) => {
-            if (!data[clusterId][value]) {
-              result.push(props.clusterMap[clusterId].master_domain);
-            }
-            return result;
-          }, []);
-          if (clusterNotExistDb.length > 0) {
-            return t('集群xx 不存在该 DB', [clusterNotExistDb.join('、')]);
-          }
-          return true;
-        });
-      },
-    },
   ];
 
-  const handleShowTips = () => {
-    tippyIns?.show();
+  // 创建表格数据
+  const createRowData = (data = {} as Partial<(typeof modelValue.value)[0]>) => ({
+    dbnames: data.dbnames || [],
+    ignore_dbnames: data.ignore_dbnames || [],
+    sql_files: data.sql_files || [],
+  });
+
+  watch(
+    modelValue,
+    () => {
+      if (modelValue.value.length < 1) {
+        modelValue.value = [createRowData()];
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  const handleColumnBatchEdit = (value: string[] | string, field: string) => {
+    modelValue.value.forEach((item) => {
+      Object.assign(item, { [field]: value });
+    });
   };
 
-  onMounted(() => {
-    setTimeout(() => {
-      if (rootRef.value && popRef.value) {
-        tippyIns = tippy(rootRef.value as SingleTarget, {
-          appendTo: () => document.body,
-          arrow: true,
-          content: popRef.value,
-          hideOnClick: true,
-          interactive: true,
-          maxWidth: 'none',
-          offset: [0, 8],
-          placement: 'top',
-          theme: 'light',
-          trigger: 'manual',
-          zIndex: 9998,
-        });
-      }
-    });
-  });
-
-  onBeforeUnmount(() => {
-    if (tippyIns) {
-      tippyIns.hide();
-      tippyIns.unmount();
-      tippyIns.destroy();
-      tippyIns = undefined;
-    }
+  defineExpose({
+    validate: () => editableTableRef.value!.validate(),
   });
 </script>
-
-<style lang="less" scoped>
-  .db-table-tag-tip {
-    display: flex;
-    padding: 3px 7px;
-    line-height: 24px;
-    flex-direction: column;
-
-    div {
-      display: flex;
-      align-items: center;
-
-      .circle-dot {
-        display: inline-block;
-        width: 4px;
-        height: 4px;
-        margin-right: 6px;
-        background-color: #63656e;
-        border-radius: 50%;
-      }
-    }
-  }
-</style>

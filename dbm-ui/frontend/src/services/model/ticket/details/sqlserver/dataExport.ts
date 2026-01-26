@@ -5,6 +5,7 @@ export interface DataExport extends DetailBase {
   clusters: DetailClusters;
   execute_objects: {
     dbnames: string[];
+    ignore_dbnames?: string[];
     sql_files: string[];
   }[];
   path: string;

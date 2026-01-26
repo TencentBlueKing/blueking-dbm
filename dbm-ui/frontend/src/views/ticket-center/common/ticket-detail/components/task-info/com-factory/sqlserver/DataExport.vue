@@ -28,10 +28,7 @@
     <InfoItem
       v-if="ticketDetails.details?.select_role"
       :label="t('查询角色')">
-      {{ ticketDetails.details.select_role === 'backend_slave' ? 'Slave' : 'Master' }}
-    </InfoItem>
-    <InfoItem :label="t('查询 DB')">
-      {{ ticketDetails.details.execute_objects?.[0]?.dbnames?.join(',') || '--' }}
+      {{ ticketDetails.details.select_role === 'slave' ? 'Slave' : 'Master' }}
     </InfoItem>
     <InfoItem :label="t('查询 SQL')">
       <BkButton
@@ -59,6 +56,26 @@
         </BkLoading>
       </BkSideslider>
     </InfoItem>
+    <InfoItem :label="t('目标DB')">
+      <TicketInfoTable
+        :data="ticketDetails.details.execute_objects"
+        row-key="dbnames">
+        <TicketInfoTableColumn
+          col-key="dbnames"
+          :title="t('查询 DB')">
+          <template #default="{ row }: { row: RowData }">
+            <TagBlock :data="row.dbnames" />
+          </template>
+        </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="ignore_dbnames"
+          :title="t('忽略 DB')">
+          <template #default="{ row }: { row: RowData }">
+            <TagBlock :data="row.ignore_dbnames" />
+          </template>
+        </TicketInfoTableColumn>
+      </TicketInfoTable>
+    </InfoItem>
   </InfoList>
 </template>
 
@@ -71,9 +88,13 @@
 
   import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
+  import TagBlock from '@components/tag-block/Index.vue';
+
   import RenderFileContent from '@views/ticket-center/common/ticket-detail/components/common/SqlFileContent.vue';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+
+  type RowData = Sqlserver.DataExport['execute_objects'][number];
 
   interface Props {
     ticketDetails: TicketModel<Sqlserver.DataExport>;

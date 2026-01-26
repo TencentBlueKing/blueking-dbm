@@ -63,12 +63,9 @@
   import SyntaxSuccess from './components/syntax-result/SyntaxSuccess.vue';
 
   interface Props {
-    clusterMap: Record<
-      string,
-      {
-        major_version: string;
-      }
-    >;
+    clusterList: {
+      major_version: string;
+    }[];
   }
 
   type Emits = (e: 'grammar-check', doCheck: boolean, checkPass: boolean) => void;
@@ -77,7 +74,7 @@
   const emits = defineEmits<Emits>();
 
   const submitButtonTips = computed(() => {
-    if (Object.keys(props.clusterMap).length < 1) {
+    if (props.clusterList.length < 1) {
       return t('请选择集群');
     }
 
@@ -105,10 +102,8 @@
   const handleGrammarCheck = () => {
     const params = new FormData();
 
-    const clusterList = Object.values(props.clusterMap);
-
     params.append('sql_content', uploadFileData.value.content);
-    clusterList.forEach(({ major_version: version }, index) => {
+    props.clusterList.forEach(({ major_version: version }, index) => {
       params.append(`versions[${index}]`, version);
     });
     params.append('cluster_type', DBTypes.SQLSERVER);
