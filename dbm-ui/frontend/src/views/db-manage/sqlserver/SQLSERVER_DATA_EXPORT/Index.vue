@@ -58,9 +58,7 @@
         </BkRadioGroup>
       </BkFormItem>
       <DbFormItem
-        v-model="formData.dbname"
-        :cluster-ids="formData.cluster_ids"
-        :cluster-map="formData.cluster_map"
+        v-model="formData.execute_objects"
         :validate-master="formData.role === 'master'" />
       <BkFormItem
         :label="t('查询 SQL')"
@@ -68,7 +66,7 @@
         required>
         <SqlQuery
           ref="sqlQuery"
-          :cluster-map="formData.cluster_map"
+          :cluster-list="formData.cluster_list"
           @grammar-check="handleGrammarCheck" />
       </BkFormItem>
     </BkForm>
@@ -125,12 +123,11 @@
 
   const defaultData = () => ({
     cluster_domain: '',
-    cluster_ids: [] as number[],
-    cluster_map: {} as Record<string, ClusterModelMap[SupportClusterTypes]>,
+    cluster_list: {} as ClusterModelMap[SupportClusterTypes][],
     cluster_type: ClusterTypes.SQLSERVER_HA as SupportClusterTypes,
-    dbname: '',
+    execute_objects: [] as Sqlserver.DataExport['execute_objects'],
     render_key: random(),
-    role: 'master',
+    role: 'slave',
     sql_file: '',
   });
 
@@ -156,10 +153,9 @@
       if (clusterList.length) {
         Object.assign(formData, defaultData(), {
           cluster_domain: clusterList.map((cluster) => cluster.immute_domain).join('\n'),
-          cluster_ids: clusterList.map((cluster) => cluster.id),
-          cluster_map: Object.fromEntries(clusterList.map((item) => [item.id, item])),
+          cluster_list: clusterList,
           cluster_type: clusterList[0].cluster_type,
-          dbname: details.execute_objects[0].dbnames[0],
+          execute_objects: details.execute_objects,
           role: details.select_role,
         });
         batchFetchFile({
@@ -176,6 +172,7 @@
     cluster_ids: number[];
     execute_objects: {
       dbnames: string[];
+      ignore_dbnames?: string[];
       sql_files: string[];
     }[];
     select_role?: string;
@@ -193,8 +190,7 @@
   };
 
   const handleClusterChange = (data: ClusterModelMap[SupportClusterTypes][]) => {
-    formData.cluster_ids = data.map((item) => item.id);
-    formData.cluster_map = Object.fromEntries(data.map((item) => [item.id, item]));
+    formData.cluster_list = data;
     sqlQueryRef.value?.reEdit();
   };
 
@@ -212,13 +208,12 @@
     }
     createTicketRun({
       details: {
-        cluster_ids: formData.cluster_ids,
-        execute_objects: [
-          {
-            dbnames: [formData.dbname],
-            sql_files: [formData.sql_file],
-          },
-        ],
+        cluster_ids: formData.cluster_list.map((item) => item.id),
+        execute_objects: formData.execute_objects.map((item) => ({
+          dbnames: item.dbnames,
+          ignore_dbnames: item.ignore_dbnames,
+          sql_files: [formData.sql_file],
+        })),
         select_role: formData.role,
       },
     });

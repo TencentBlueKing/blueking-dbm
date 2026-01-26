@@ -13,30 +13,42 @@
 
 <template>
   <BkButton
+    class="download-button"
     text
     theme="primary"
     @click="handleShow">
-    {{ t('查看结果文件') }}
+    <DbIcon
+      class="download-line-button"
+      type="download-line" />
+    <span class="ml-2">{{ t('下载结果文件') }}</span>
   </BkButton>
   <BkDialog
     dialog-type="show"
     :is-show="isShow"
-    :title="t('查看结果文件')"
+    :title="t('下载结果文件')"
     :width="1080"
     @closed="handleClose">
     <BkButton
       class="mb-16"
-      @click="handleCopyAll">
-      {{ t('复制全部链接') }}
+      :disabled="disabled"
+      :loading="state.isBatchDownloading"
+      @click="handleBatchDownload">
+      {{ t('批量下载') }}
     </BkButton>
-    <DbOriginalTable
-      :data="details.ticket_data.dump_file_list"
-      :height="460">
+    <BkTable
+      :data="state.data"
+      :height="460"
+      @checkbox-all="handleTableAllSelected"
+      @checkbox-change="handleTableSelected">
+      <BkTableColumn
+        fixed="left"
+        type="checkbox"
+        :width="60" />
       <BkTableColumn
         field="name"
         fixed="left"
         :label="t('文件名')"
-        :min-width="280" />
+        :min-width="300" />
       <BkTableColumn
         field="size"
         :label="t('大小')"
@@ -48,7 +60,7 @@
       <BkTableColumn
         field="cluster_id"
         :label="t('集群')"
-        :width="280">
+        :width="260">
         <template #default="{data}: {data: RowData}">
           {{ details.ticket_data.clusters[data.cluster_id].immute_domain }}
         </template>
@@ -75,15 +87,16 @@
           </BkButton>
         </template>
       </BkTableColumn>
-    </DbOriginalTable>
+    </BkTable>
   </BkDialog>
 </template>
 
 <script setup lang="tsx">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import type { DetailClusters } from '@services/model/ticket/details/common';
-  import { createBkrepoAccessToken } from '@services/source/storage';
+  import { batchDownloadDirs, createBkrepoAccessToken } from '@services/source/storage';
 
   import { bytePretty, downloadUrl, execCopy, generateBkRepoDownloadUrl } from '@utils';
 
@@ -94,13 +107,13 @@
         cluster_ids: number[];
         clusters: DetailClusters;
         created_by: string;
-        dump_file_names: string[];
         dump_file_list: {
           cluster_id: number;
-          size: number;
           name: string;
           path: string;
+          size: number;
         }[];
+        dump_file_names: string[];
         execute_objects: {
           dbnames: string[];
           sql_files: string[];
@@ -122,9 +135,21 @@
   const isShow = ref(false);
 
   const state = reactive({
+    data: [] as RowData[],
     downloadLoadings: [] as boolean[],
     fileLoadings: [] as boolean[],
     isBatchDownloading: false,
+    selected: [] as RowData[],
+  });
+
+  const disabled = computed(() => {
+    return state.selected.length === 0;
+  });
+
+  watch(isShow, (isShow) => {
+    if (isShow) {
+      state.data = _.cloneDeep(props.details.ticket_data.dump_file_list);
+    }
   });
 
   const handleShow = () => {
@@ -132,15 +157,53 @@
   };
 
   /**
-   * 复制全部文件链接
+   * 表格选中
    */
-  function handleCopyAll() {
+  function handleTableSelected({ checked, row }: { checked: boolean; data: RowData[]; row: RowData }) {
+    // 单选 checkbox 选中
+    if (checked) {
+      const toggleIndex = state.selected.findIndex((item) => item.cluster_id === row.cluster_id);
+      if (toggleIndex === -1) {
+        state.selected.push(row);
+      }
+      return;
+    }
+
+    // 单选 checkbox 取消选中
+    const toggleIndex = state.selected.findIndex((item) => item.cluster_id === row.cluster_id);
+    if (toggleIndex > -1) {
+      state.selected.splice(toggleIndex, 1);
+    }
+  }
+
+  /**
+   * 全选
+   */
+  function handleTableAllSelected({ checked }: { checked: boolean }) {
+    state.selected = checked ? [...state.data] : [];
+  }
+
+  /**
+   * 批量下载文件
+   */
+  function handleBatchDownload() {
+    if (state.selected.length === 0) {
+      return;
+    }
     state.isBatchDownloading = true;
-    const filePaths = props.details.ticket_data.dump_file_list.map((item) => item.path);
-    Promise.all(filePaths.map((path) => createBkrepoAccessToken({ file_path: path })))
-      .then((tokenResults) => {
-        const urls = tokenResults.map((token) => generateBkRepoDownloadUrl(token));
-        execCopy(urls.join('\n'), t('复制成功，共n条', { n: urls.length }));
+    const paths = state.selected.map((item) => item.path);
+    batchDownloadDirs({ file_path_list: paths })
+      .then((result) => {
+        const urls = Object.values(result);
+        let index = 0;
+        const downloadNext = () => {
+          if (index < urls.length) {
+            downloadUrl(urls[index]);
+            index++;
+            setTimeout(downloadNext, 600);
+          }
+        };
+        downloadNext();
       })
       .finally(() => {
         state.isBatchDownloading = false;
@@ -179,7 +242,12 @@
 
   function handleClose() {
     isShow.value = false;
-    state.downloadLoadings = [];
-    state.fileLoadings = [];
+    Object.assign(state, {
+      data: [],
+      downloadLoadings: [],
+      fileLoadings: [],
+      isBatchDownloading: false,
+      selected: [],
+    });
   }
 </script>
