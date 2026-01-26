@@ -13,7 +13,7 @@
 
 <template>
   <EditableColumn
-    :disabled-method="() => !clusterId"
+    :disabled-method="() => (!clusterId ? t('请先输入合法的集群域名') : false)"
     field="load_modules"
     label="Module"
     required
