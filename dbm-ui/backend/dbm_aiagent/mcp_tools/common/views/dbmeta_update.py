@@ -102,7 +102,7 @@ class DBMetaUpdateMcpToolsViewSet(McpToolsViewSet):
         return cluster_types.pop(), machine_types.pop()
 
     def _validate_business_dba_permission(self, machines, username, machine_cluster_type, failed_list):
-        """校验用户是否为业务 DBA 主负责人"""
+        """校验用户是否为业务 DBA 负责人"""
         bk_biz_ids = set(machines.values_list("bk_biz_id", flat=True))
         if len(bk_biz_ids) > 1:
             logger.warning(_("机器属于不同业务: {}").format(bk_biz_ids))
@@ -133,13 +133,12 @@ class DBMetaUpdateMcpToolsViewSet(McpToolsViewSet):
                 )
             return None
 
-        # 校验用户是否为业务 DBA 主负责人
+        # 校验用户是否为业务 DBA 负责人
         try:
             dba_admins = DBAdministrator.objects.get(bk_biz_id=bk_biz_id, db_type=db_type)
-            primary_dba = dba_admins.users[0] if dba_admins.users else None
-            if primary_dba != username:
+            if username not in (dba_admins.users or []):
                 logger.warning(
-                    _("用户 {} 不是业务 {} 的 {} DBA 主负责人，主负责人是 {}").format(username, bk_biz_id, db_type, primary_dba)
+                    _("用户 {} 不是业务 {} 的 {} DBA 负责人，负责人列表: {}").format(username, bk_biz_id, db_type, dba_admins.users)
                 )
                 raise DBMMcpNotBusinessDBAPrimaryException(username=username, bk_biz_id=bk_biz_id, db_type=db_type)
         except DBAdministrator.DoesNotExist:
@@ -268,7 +267,7 @@ class DBMetaUpdateMcpToolsViewSet(McpToolsViewSet):
         if machine_cluster_type is None:
             return Response({"success_count": 0, "failed_list": failed_list})
 
-        # 4. 校验用户是否为业务 DBA 主负责人
+        # 4. 校验用户是否为业务 DBA 负责人
         db_type = self._validate_business_dba_permission(machines, username, machine_cluster_type, failed_list)
         if db_type is None:
             return Response({"success_count": 0, "failed_list": failed_list})
