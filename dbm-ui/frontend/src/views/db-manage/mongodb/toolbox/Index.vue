@@ -73,6 +73,12 @@
           name: t('迁移'),
           parentId: 'mongo_manage',
         },
+        {
+          dbConsoleValue: 'mongodb.toolbox.instanceFixStatus',
+          id: TicketTypes.MONGODB_INSTANCE_FIX_STATUS,
+          name: t('节点状态修复'),
+          parentId: 'mongo_data',
+        },
       ],
       icon: 'db-icon-cluster',
       id: 'mongo_manage',
@@ -122,12 +128,6 @@
           dbConsoleValue: 'mongodb.toolbox.dbClear',
           id: TicketTypes.MONGODB_REMOVE_NS,
           name: t('清档'),
-          parentId: 'mongo_data',
-        },
-        {
-          dbConsoleValue: 'mongodb.toolbox.instanceFixStatus',
-          id: TicketTypes.MONGODB_INSTANCE_FIX_STATUS,
-          name: t('节点状态修复'),
           parentId: 'mongo_data',
         },
         {

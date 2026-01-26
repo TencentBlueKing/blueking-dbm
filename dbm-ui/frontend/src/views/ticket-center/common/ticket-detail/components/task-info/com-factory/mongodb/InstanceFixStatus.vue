@@ -18,7 +18,7 @@
     <TicketInfoTableColumn
       col-key="ip"
       :get-copy-value="(row: RowData) => row.ip"
-      :title="t('Mongos 主机')">
+      :title="t('目标主机')">
       <template #default="{ row }: { row: RowData }">
         {{ row.ip }}
       </template>
