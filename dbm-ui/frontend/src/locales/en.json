@@ -5142,5 +5142,7 @@
   "日志加载中，加载完成将自动解析日志": "Log loading, parsing will be automatically started after loading is complete",
   "失败自动跳过": "Failed auto skip",
   "失败手动跳过": "Failed manual skip",
+  "风险描述不能为空": "Risk description cannot be empty",
+  "具体要求不能为空": "Specific requirements cannot be empty",
   "这行勿动！新增翻译请在上一行添加！": ""
 }
