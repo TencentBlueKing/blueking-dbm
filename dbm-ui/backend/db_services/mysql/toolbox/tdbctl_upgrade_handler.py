@@ -13,6 +13,7 @@ from typing import Dict, List
 
 from django.utils.translation import gettext as _
 
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_services.mysql.toolbox.tdbctl_upgrade_scheduler import TdbctlUpgradeScheduler
 from backend.flow.engine.bamboo.scene.spider.upgrade.upgrade_tdbctl import (
@@ -48,6 +49,37 @@ class TdbctlUpgradeHandler:
         # 验证升级包并获取目标版本
         self.scheduler = TdbctlUpgradeScheduler(pkg_id=pkg_id, bk_biz_ids=[bk_biz_id])
         self.target_version = self.scheduler.target_version
+
+    def get_clusters_to_upgrade(self, cluster_ids: List[int] = None, upgrade_all: bool = False) -> List[Cluster]:
+        """
+        获取需要升级的集群列表
+
+        @param cluster_ids: 集群ID列表（upgrade_all=False 时必填）
+        @param upgrade_all: 是否升级业务下所有 spider 集群
+        @return: 集群列表
+        @raise ValueError: 参数错误时抛出
+        """
+        if upgrade_all:
+            # 查询业务下所有 spider 集群
+            clusters = list(Cluster.objects.filter(bk_biz_id=self.bk_biz_id, cluster_type=ClusterType.TenDBCluster))
+            logger.info(_("upgrade_all=True，查询业务 {} 下所有 spider 集群，共 {} 个").format(self.bk_biz_id, len(clusters)))
+            return clusters
+
+        if not cluster_ids:
+            raise ValueError(_("cluster_ids 不能为空"))
+
+        # 查询指定集群
+        clusters = list(
+            Cluster.objects.filter(id__in=cluster_ids, bk_biz_id=self.bk_biz_id, cluster_type=ClusterType.TenDBCluster)
+        )
+
+        # 检查是否有不存在或不属于该业务的集群
+        found_ids = {c.id for c in clusters}
+        missing_ids = set(cluster_ids) - found_ids
+        if missing_ids:
+            raise ValueError(_("集群不存在或不属于该业务: {}").format(list(missing_ids)))
+
+        return clusters
 
     def filter_clusters_need_upgrade(self, clusters: List[Cluster]) -> Dict:
         """
