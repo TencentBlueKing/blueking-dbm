@@ -49,7 +49,7 @@ class CloudDNSServiceFlow(CloudBaseServiceFlow):
             )
 
         # 灰度部署的场景在重装会用到，每次按1/2的数量进行重启
-        ratio = 2 if grayscale else 1
+        ratio = 2 if grayscale and len(sub_dns_pipeline_list) > 1 else 1
         dns_pipeline = self.deploy_batch_service_flow(
             sub_pipeline_list=sub_dns_pipeline_list, pipeline=dns_pipeline, name=_("部署dns服务"), ratio=ratio
         )
