@@ -71,14 +71,15 @@ type DbInstMetadata struct {
 	SpiderRole         string `json:"spider_role"`
 }
 
-func (m *DbInstMetadata) GetRole() string {
-	if m.InstanceRole != "" {
-		return m.InstanceRole
-	}
-	if m.SpiderRole != "" {
+func (m *DbInstMetadata) GetMySQLRole() string {
+	return m.InstanceRole
+}
+
+func (m *DbInstMetadata) GetTenDBClusterRole() string {
+	if m.MachineType == "spider" {
 		return m.SpiderRole
 	}
-	return m.MachineType
+	return m.InstanceRole
 }
 
 // MetadataResponse represents the response structure for instances metadata query
