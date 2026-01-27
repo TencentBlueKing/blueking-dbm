@@ -72,7 +72,11 @@ type DbInstMetadata struct {
 }
 
 func (m *DbInstMetadata) GetMySQLRole() string {
-	return m.InstanceRole
+	if m.InstanceRole != "" {
+		return m.InstanceRole
+	}
+	// TenDBHA proxy 节点没有 instance_role 字段，fallback 到 machine_type
+	return m.MachineType
 }
 
 func (m *DbInstMetadata) GetTenDBClusterRole() string {
