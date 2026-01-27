@@ -5,6 +5,7 @@ go 1.24.0
 toolchain go1.24.2
 
 require (
+	github.com/avast/retry-go/v5 v5.0.0
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/juju/fslock v0.0.0-20160525022230-4d5c94c67b4b
