@@ -55,7 +55,7 @@ func (s *instOpJob) Name() string {
 // Run 运行原子任务
 func (s *instOpJob) Run() error {
 	var op = s.GetInstanceOp()
-	s.runtime.Logger.Info("do op " + s.ConfParams.Op)
+	s.runtime.Logger.Info("do op %s", s.ConfParams.Op)
 	switch s.ConfParams.Op {
 	case "rs_remove_other_node":
 		// remove me from the replica set
@@ -103,6 +103,9 @@ func (s *instOpJob) Run() error {
 	case "flush_router_config":
 		// 刷新router的配置
 		return op.DoFlushRouterConfig()
+	case "service_status_check":
+		// 检查服务状态
+		return op.DoServiceStatusCheck(s.runtime.Logger)
 	}
 
 	return errors.New("unknown op " + s.ConfParams.Op)
@@ -210,7 +213,6 @@ func (s *instOpJob) doRemoveOtherMember() error {
 	} else {
 		return errors.New("remove other member failed")
 	}
-	return nil
 }
 
 func (s *instOpJob) doAddMember() error {
@@ -239,7 +241,7 @@ func (s *instOpJob) Init(runtime *jobruntime.JobGenericRuntime) error {
 	}
 	if err := json.Unmarshal([]byte(s.runtime.PayloadDecoded), &s.ConfParams); err != nil {
 		tmpErr := errors.Wrap(err, "payload json.Unmarshal failed")
-		s.runtime.Logger.Error(tmpErr.Error())
+		s.runtime.Logger.Error("%s", tmpErr.Error())
 		return tmpErr
 	}
 	return nil
