@@ -312,6 +312,11 @@ class HCMReplenishResourceTaskFlow(SimpleTaskFlow):
     """
 
     @property
+    def url(self) -> str:
+        # 直接返回url构造(父类url方法因为有error msg会屏蔽路由跳转)
+        return super()._url
+
+    @property
     def _status(self) -> str:
         if not self.flow_tree:
             return self.flow_obj.status
