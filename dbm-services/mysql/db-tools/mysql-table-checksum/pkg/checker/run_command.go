@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+
 	"errors"
 	"fmt"
 	"log/slog"
@@ -14,6 +15,8 @@ import (
 	"time"
 
 	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
+
+	"github.com/avast/retry-go/v5"
 )
 
 var roundStartStr = "_dba_fake_round_start"
@@ -21,6 +24,25 @@ var dailyStr = "_dba_fake_daily"
 
 // var demandStartStr = "_dba_fake_demand_start"
 var demandEndStr = "_dba_fake_demand_end"
+
+// EmptySummaryError 表示校验摘要为空的错误，用于 RetryIf 判断是否需要重试
+// 当 pt-table-checksum 执行完成但没有返回校验摘要时，返回此错误触发重试
+type EmptySummaryError struct {
+	Message string
+}
+
+func (e *EmptySummaryError) Error() string {
+	if e.Message == "" {
+		return "checksum summary is empty, need retry"
+	}
+	return e.Message
+}
+
+// IsEmptySummaryError 判断错误是否为 EmptySummaryError 类型
+func IsEmptySummaryError(err error) bool {
+	var emptySummaryErr *EmptySummaryError
+	return errors.As(err, &emptySummaryErr)
+}
 
 func (r *Checker) Run() error {
 	slog.Info("run mode", slog.String("mode", string(r.Mode)))
@@ -37,7 +59,7 @@ func (r *Checker) Run() error {
 			return nil
 		}
 
-		err = r.runGeneral(1)
+		err = r.runGeneral()
 		if err != nil {
 			slog.Error("run checksum", slog.String("error", err.Error()))
 			return err
@@ -49,10 +71,7 @@ func (r *Checker) Run() error {
 		}
 		return nil
 	case config.DemandMode:
-		//err := r.preRunDemand()
-		//if err != nil {
-		//	return err
-		//}
+
 		err := r.runDemand()
 		if err != nil {
 			return err
@@ -62,10 +81,7 @@ func (r *Checker) Run() error {
 		if err != nil {
 			return err
 		}
-		//err = r.moveResult()
-		//if err != nil {
-		//	return err
-		//}
+
 		return nil
 	default:
 		err := fmt.Errorf("run mode %s not supported", r.Mode)
@@ -74,14 +90,6 @@ func (r *Checker) Run() error {
 	}
 }
 
-//	func (r *Checker) preRunDemand() error {
-//		err := r.writeFakeResult(demandStartStr, demandStartStr)
-//		if err != nil {
-//			slog.Error("run demand checksum", slog.String("error", err.Error()))
-//			return err
-//		}
-//		return nil
-//	}
 func (r *Checker) postRunDemand(demand bool) error {
 	err := r.writeFakeResult(demandEndStr, demandEndStr, demand)
 	if err != nil {
@@ -111,72 +119,77 @@ func (r *Checker) preRunGeneral() error {
 	return nil
 }
 
-func (r *Checker) runGeneral(guard int) error {
-	// 重试保护, 防止任何意外情况的无限递归
-	if guard < 0 {
-		err := fmt.Errorf("guard must be greater than zero")
-		slog.Error("run checksum", slog.String("error", err.Error()))
-		return err
-	}
+func (r *Checker) runGeneral() error {
+	var cleanUpErr error
 
-	isEmptyResultTbl, err := r.isEmptyResultTbl()
-	if err != nil {
-		slog.Error("run checksum", slog.String("error", err.Error()))
-		return err
-	}
-	if isEmptyResultTbl {
-		err := r.writeFakeResult(roundStartStr, roundStartStr, false)
-		if err != nil {
-			slog.Error("run checksum", slog.String("error", err.Error()))
-			return err
-		}
-	}
+	err := retry.New(
+		retry.Attempts(2),
+		retry.Delay(2*time.Second),
+		retry.RetryIf(
+			func(err error) bool {
+				// 只有当错误是 EmptySummaryError 时才重试
+				isEmptySummary := IsEmptySummaryError(err)
+				shouldRetry := isEmptySummary && cleanUpErr == nil
+				slog.Info(
+					"RetryIf check",
+					slog.Bool("isEmptySummaryError", isEmptySummary),
+					slog.Any("cleanUpErr", cleanUpErr),
+					slog.Bool("shouldRetry", shouldRetry),
+					slog.Any("originalErr", err),
+				)
+				return shouldRetry
+			},
+		),
+		retry.OnRetry(
+			func(_ uint, _ error) {
+				_, cleanUpErr = r.db.Exec(
+					fmt.Sprintf("TRUNCATE TABLE `%s`.`%s`", r.resultDB, r.resultTbl),
+				)
+				if cleanUpErr != nil {
+					slog.Error("clean up retry run checksum", slog.String("error", cleanUpErr.Error()))
+					return
+				}
+				slog.Info("clean up retry run checksum success")
+			},
+		),
+	).Do(
+		func() error {
+			isEmptyResultTbl, err := r.isEmptyResultTbl()
+			if err != nil {
+				slog.Error("run checksum", slog.String("error", err.Error()))
+				return err
+			}
+			if isEmptyResultTbl {
+				err := r.writeFakeResult(roundStartStr, roundStartStr, false)
+				if err != nil {
+					slog.Error("run checksum", slog.String("error", err.Error()))
+					return err
+				}
+			}
 
-	output, err, pterr := r.run()
-	if err != nil {
-		slog.Error("run checksum", slog.String("error", err.Error()))
-		return err
-	}
-	if pterr != nil {
-		slog.Error("run checksum", slog.String("error", pterr.Error()))
-		return pterr
-	}
-	if output == nil {
-		err := fmt.Errorf("output nil")
-		slog.Error("run checksum", slog.String("error", err.Error()))
-		return err
-	}
+			output, err, pterr := r.run()
+			if err != nil {
+				slog.Error("run checksum", slog.String("error", err.Error()))
+				return err
+			}
+			if pterr != nil {
+				slog.Error("run checksum", slog.String("error", pterr.Error()))
+				return pterr
+			}
+			if output == nil {
+				err := fmt.Errorf("output nil")
+				slog.Error("run checksum", slog.String("error", err.Error()))
+				return err
+			}
 
-	if len(output.Summaries) == 0 {
-		var cnt int
-		querySql := fmt.Sprintf(
-			"SELECT COUNT(*) FROM `%s`.`%s` WHERE master_ip = ? AND master_port = ? AND db NOT LIKE ?",
-			r.resultDB, r.resultTbl,
-		)
-		err := r.db.QueryRowx(querySql, r.Config.Ip, r.Config.Port, "_dba_fake_%").Scan(&cnt)
-		if err != nil {
-			slog.Error("run checksum", slog.String("error", err.Error()))
-			return err
-		}
-		slog.Info("run checksum", slog.Int("result table count", cnt))
-		if cnt == 0 {
+			if len(output.Summaries) == 0 {
+				return &EmptySummaryError{}
+			}
 			return nil
-		}
+		},
+	)
 
-		_, err = r.db.Exec(
-			fmt.Sprintf("TRUNCATE TABLE `%s`.`%s`", r.resultDB, r.resultTbl),
-		)
-		if err != nil {
-			slog.Error("run checksum", slog.String("error", err.Error()))
-			return err
-		}
-
-		slog.Info("retry run checksum")
-		return r.runGeneral(guard - 1)
-	}
-
-	slog.Info("run checksum", slog.String("output", output.String()))
-	return nil
+	return err
 }
 
 func (r *Checker) runDemand() error {
@@ -204,126 +217,6 @@ func (r *Checker) runDemand() error {
 	fmt.Println(zipOutput)
 	return nil
 }
-
-//func (r *Checker) Run() error {
-//	slog.Info("run mode", slog.String("mode", string(r.Mode)))
-//	stackDepth := 0
-//
-//RunCheckLabel:
-//	slog.Info("run", slog.Int("stack depth", stackDepth))
-//	stackDepth += 1
-//	if stackDepth > 2 {
-//		err := fmt.Errorf("retry stack too deep: %d", stackDepth)
-//		slog.Error("run stack check", slog.String("error", err.Error()))
-//		return err
-//	}
-//
-//	if r.Mode == config.GeneralMode {
-//		if stackDepth == 1 {
-//			err := r.writeFakeResult(dailyStr, dailyStr)
-//			if err != nil {
-//				slog.Error("write daily fake", slog.String("error", err.Error()))
-//				return err
-//			}
-//			slog.Info("write daily fake success")
-//		}
-//
-//		if !config.ChecksumConfig.Enable {
-//			slog.Info("general checksum disabled")
-//			return nil
-//		}
-//	}
-//
-//	isEmptyResultTbl, err := r.isEmptyResultTbl()
-//	if err != nil {
-//		return err
-//	}
-//	if r.Mode == config.GeneralMode && isEmptyResultTbl {
-//		slog.Info("result table is empty")
-//		err := r.writeFakeResult(roundStartStr, roundStartStr)
-//		if err != nil {
-//			slog.Error("write round start", slog.String("error", err.Error()))
-//			return err
-//		}
-//		slog.Info("round start")
-//	}
-//
-//	// ------- 跑校验 -------
-//	output, err, pterr := r.run()
-//	if err != nil {
-//		return err
-//	}
-//	if output == nil {
-//		return fmt.Errorf("output is nil")
-//	}
-//
-//	if r.Mode == config.GeneralMode {
-//		slog.Info("run in general mode")
-//
-//		// 清理太老的 history
-//		_, err := r.conn.ExecContext(
-//			context.Background(),
-//			fmt.Sprintf(`DELETE FROM %s WHERE ts < NOW() - INTERVAL 10 DAY`, r.resultHistoryTable),
-//		)
-//		if err != nil {
-//			slog.Error("run in general mode delete 10 days ago history", slog.String("error", err.Error()))
-//		}
-//		slog.Info("run in general mode delete 10 days ago history")
-//
-//		// 校验摘要是空的, 有两种可能
-//		// 1. 应用过滤器后, 没有库表需要校验
-//		// 2. checksum 中有所有库表的校验结果, 这一轮轮空了
-//		if len(output.Summaries) == 0 {
-//			var cnt int
-//			err = r.db.QueryRow(fmt.Sprintf("SELECT count(*) FROM %s.%s", r.resultDB, r.resultTbl)).Scan(&cnt)
-//			if err != nil {
-//				slog.Error("query result table rows count", slog.String("error", err.Error()))
-//				return err
-//			}
-//			slog.Info("query result table rows count", slog.Int("rows count", cnt))
-//			/*
-//				由于会写入 round start 假数据
-//				所以如果行数大于 1, 则说明有真实的校验结果
-//				完成了一轮
-//			*/
-//			if cnt > 1 {
-//				//Replicate 是带有库前缀的字符串
-//				_, err := r.db.Exec(fmt.Sprintf(`TRUNCATE TABLE %s`, r.Config.PtChecksum.Replicate))
-//				if err != nil {
-//					slog.Error(
-//						"truncate regular result table",
-//						slog.String("error", err.Error()),
-//						slog.String("table name", r.Config.PtChecksum.Replicate),
-//					)
-//					return err
-//				}
-//
-//				// 清掉上一轮的结构后再跑一次
-//				slog.Info("clear last round result and run again")
-//				goto RunCheckLabel
-//			} else {
-//				// 什么都没干, 又没有库表需要校验
-//				// 直接返回
-//				return nil
-//			}
-//		}
-//
-//		err = r.moveResult()
-//		if err != nil {
-//			return err
-//		}
-//	} else {
-//		slog.Info("run in demand mode")
-//	}
-//
-//	fmt.Println(output.String())
-//
-//	if pterr != nil {
-//		return pterr
-//	}
-//
-//	return nil
-//}
 
 func (r *Checker) isEmptyResultTbl() (bool, error) {
 	var resultCnt int

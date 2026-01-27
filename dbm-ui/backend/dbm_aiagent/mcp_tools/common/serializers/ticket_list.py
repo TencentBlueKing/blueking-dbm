@@ -36,7 +36,10 @@ class TicketInfoSerializer(serializers.Serializer):
     status = serializers.CharField(help_text=_("单据状态"))
     relate_clusters = serializers.ListField(child=serializers.CharField(), help_text=_("关联集群"))
     created_at = serializers.TimeField(help_text=_("单据创建时间"))
-    # bill_param = serializers.JSONField(help_text=_("单据参数"))
+    ticket_param = serializers.JSONField(help_text=_("单据参数"))
+    current_flow = serializers.CharField(help_text=_("当前流程"))
+    cost_time_seconds = serializers.IntegerField(help_text=_("单据耗时（秒）"))
+    msgs = serializers.ListField(child=serializers.CharField(), help_text=_("单据消息"))
 
 
 class TicketListOutputSerializer(serializers.Serializer):

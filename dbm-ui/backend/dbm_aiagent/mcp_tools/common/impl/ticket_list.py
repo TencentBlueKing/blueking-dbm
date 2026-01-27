@@ -15,9 +15,10 @@ from typing import List
 from django.db.models import Q
 from django.utils import timezone
 
-from backend.ticket.builders import BuilderFactory
+from backend.dbm_aiagent.apps import TICKET_SCHEMA
+from backend.dbm_aiagent.mcp_tools.common.helps.extract_ticket_info_by_schema.extracter import extract_by_schema
 from backend.ticket.constants import TicketStatus, TicketType
-from backend.ticket.models import Ticket
+from backend.ticket.models import FlowSummary, Ticket
 
 logger = logging.getLogger("root")
 
@@ -49,11 +50,21 @@ def ticket_list(
         if not (username == creator or username in helpers):
             continue
 
-        # if 'clusters' in t.details:
-        #     relate_cluster_do = list(t.details['clusters'].keys())
-        # else:
-        #     relate_cluster_ids = []
+        msgs = [""]
+        if t.status == TicketStatus.SUCCEEDED:
+            current_flow = ""
+        elif t.status == TicketStatus.TERMINATED:
+            current_flow = ""
+            msgs = [t.get_terminate_reason()]
+        else:
+            current_flow = t.current_flow().flow_alias
 
+        if t.status in [TicketStatus.TERMINATED, TicketStatus.FAILED]:
+            msgs = list(
+                FlowSummary.objects.filter(flow__ticket=t, flow__status=TicketStatus.FAILED).values_list(
+                    "summary", flat=True
+                )
+            )
         relate_cluster_domains = [v["immute_domain"] for k, v in t.details.get("clusters", {}).items()]
 
         if want_cluster_domains:  # 这里要保持这样, 当输入的域名实际不对时, 就不会返回东西
@@ -67,7 +78,10 @@ def ticket_list(
                         "status": t.status,
                         "relate_clusters": "\n".join(relate_cluster_domains),
                         "created_at": t.create_at,
-                        # "bill_param": __rebuild_ticket_param(t)
+                        "ticket_param": rebuild_ticket_param(t),
+                        "current_flow": current_flow,
+                        "cost_time_seconds": t.get_cost_time(),
+                        "msgs": msgs,
                     }
                 )
         else:
@@ -80,28 +94,29 @@ def ticket_list(
                     "status": t.status,
                     "relate_clusters": "\n".join(relate_cluster_domains),
                     "created_at": t.create_at,
-                    # "bill_param": __rebuild_ticket_param(t)
+                    "ticket_param": rebuild_ticket_param(t),
+                    "current_flow": current_flow,
+                    "cost_time_seconds": t.get_cost_time(),
+                    "msgs": msgs,
                 }
             )
 
     return want_tickets
 
 
-def __rebuild_ticket_param(tk: Ticket):
-    if tk.status not in [TicketStatus.TODO, TicketStatus.APPROVE]:
-        return ""
-    # return tk.details
-    # logger.info(tk.pk)
-    #
+def rebuild_ticket_param(tk: Ticket):
     ticket_type = tk.ticket_type
-    ticket_serializer_class = BuilderFactory.get_serializer(ticket_type).__class__
-    slz = ticket_serializer_class(data=tk.details)
-    slz.context.update({"ticket_type": ticket_type})
-    slz.context.update({"bk_biz_id": tk.bk_biz_id})
-    try:
-        slz.is_valid(raise_exception=False)
-        return slz.validated_data
-    except Exception as e:
-        logger.info(f"{e}: {tk}")
+    if ticket_type in TICKET_SCHEMA:
+        ticket_schema = TICKET_SCHEMA[ticket_type]
+        details_schema = ticket_schema.get("properties", {}).get("details", {})
+        if "properties" not in details_schema:
+            return ""
 
-    return ""
+        try:
+            data = extract_by_schema(details_schema, tk.details)
+            return data
+        except Exception as e:
+            logger.error(f"extract_by_schema error: {e}")
+            raise e
+    else:
+        return ""

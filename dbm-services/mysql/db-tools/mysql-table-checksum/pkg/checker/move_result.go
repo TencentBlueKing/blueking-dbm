@@ -35,12 +35,12 @@ func (r *Checker) moveResult() error {
 		columns = append(columns, col)
 	}
 
-	err = r.validateHistoryTable()
-	if err != nil {
-		slog.Error("move result validate history table again", slog.String("error", err.Error()))
-		return err
-	}
-	slog.Info("move result validate history table again success")
+	//err = r.validateHistoryTable()
+	//if err != nil {
+	//	slog.Error("move result validate history table again", slog.String("error", err.Error()))
+	//	return err
+	//}
+	//slog.Info("move result validate history table success")
 
 	//conn, err := r.db.Conn(context.Background())
 	//if err != nil {

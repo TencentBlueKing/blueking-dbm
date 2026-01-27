@@ -12,10 +12,10 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 
-class TicketExecuteInputSerializer(serializers.Serializer):
+class TicketManipulateInputSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
     ticket_id = serializers.IntegerField(help_text=_("单据 ID"))
 
 
-class TicketExecuteOutputSerializer(serializers.Serializer):
+class TicketManipulateOutputSerializer(serializers.Serializer):
     status = serializers.CharField(help_text=_("单据状态"))

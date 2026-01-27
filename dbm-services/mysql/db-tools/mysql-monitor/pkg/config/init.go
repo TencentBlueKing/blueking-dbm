@@ -58,9 +58,6 @@ func InitConfig(configPath string) error {
 		slog.Error("init config", slog.String("error", err.Error()))
 		return err
 	}
-	defer func() {
-		_ = fl.Unlock()
-	}()
 
 	content, err := os.ReadFile(configPath)
 	if err != nil {

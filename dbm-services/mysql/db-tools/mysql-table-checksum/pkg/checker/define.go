@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
-	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/reporter"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -28,7 +27,7 @@ type Checker struct {
 	resultDB           string
 	resultTbl          string
 	hasHistoryTable    bool
-	reporter           *reporter.Reporter
+	//reporter           *reporter.Reporter
 }
 
 // ChecksumSummary 结果汇总报表

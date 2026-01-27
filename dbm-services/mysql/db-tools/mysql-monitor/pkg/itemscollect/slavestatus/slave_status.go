@@ -119,14 +119,27 @@ func (s *slaveStatusChecker) skipErr() error {
 
 	if s.isOk() {
 		return nil
-	} else {
-		return errors.Errorf("err still stay after skip")
 	}
+
+	return errors.Errorf("err still stay after skip")
 }
 
 func (s *slaveStatusChecker) isOk() bool {
-	return strings.ToUpper(s.slaveStatus["Slave_IO_Running"].(string)) == "YES" &&
-		strings.ToUpper(s.slaveStatus["Slave_SQL_Running"].(string)) == "YES"
+	ioRunning, ok1 := s.getStringValue("Slave_IO_Running")
+	sqlRunning, ok2 := s.getStringValue("Slave_SQL_Running")
+	if !ok1 || !ok2 {
+		return false
+	}
+	return strings.ToUpper(ioRunning) == "YES" && strings.ToUpper(sqlRunning) == "YES"
+}
+
+func (s *slaveStatusChecker) getStringValue(key string) (string, bool) {
+	val, exists := s.slaveStatus[key]
+	if !exists {
+		return "", false
+	}
+	str, ok := val.(string)
+	return str, ok
 }
 
 func (s *slaveStatusChecker) masterHost() string {
