@@ -40,3 +40,25 @@ class TicketFlowLogAnalysisCommand(CommandHandler):
         单据类型：{{ ticket_type }}
         错误日志信息：{{ log_content }}
         """
+
+
+@command
+class MysqlSlowSqlTunerCommand(CommandHandler):
+    name = _("MySQL慢SQL调优")
+    command = "sql-tuner"
+    agent_code = DBMAgentCode.MYSQL_SLOW_LOGS_QUERY
+
+    def get_template(self) -> str:
+        return """
+        {% if query_digest_md5 %}
+        根据提供的 query_digest_md5 值，查询原始 sql_text 文本，然后根据表结构和执行计划，进行分析优化:
+        query_digest_md5: {{query_digest_md5}}
+        {% else %}
+        帮根据表结构和执行计划，我对以下 sql 进行优化:
+        {{sql_text}}
+        {% endif %}
+
+        业务ID bk_biz_id: {{bk_biz_id}}
+        db集群 cluster_domain: {{cluster_domain}}
+        db 名 db_name: {{db_name}} (如果有)
+        """

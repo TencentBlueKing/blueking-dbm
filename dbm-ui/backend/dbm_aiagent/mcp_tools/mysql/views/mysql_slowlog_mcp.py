@@ -13,6 +13,8 @@ import logging
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
+from backend.dbm_aiagent.agent.commands import MysqlSlowSqlTunerCommand
+from backend.dbm_aiagent.agent.handlers import AgentHandler
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.mysql.impl.mysql_slowlog import query_slow_log_detail, query_slow_logs_by_metric
@@ -20,6 +22,8 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_slowlog import (
     MysqlOneSlowlogInputSerializer,
     MysqlSlowlogInputSerializer,
     MysqlSlowlogOutputSerializer,
+    MysqlSlowTunerInputSerializer,
+    MysqlSlowTunerOutputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
@@ -101,3 +105,43 @@ class MySQLSlowlogMcpToolsViewSet(McpToolsViewSet):
                 end_time=end_time,
             )
         )
+
+    @mcp_tools_api_decorator(
+        description=str(
+            _(
+                "分析某一条慢查询，返回优化建议。慢查询可以传入 sql_text 或者 query_digest_md5"
+                "会自动从 db 集群上获取表结构和查询计划，进行什么分析，并给出表结构或者 sql 的优化改造建议"
+            )
+        ),
+        request_slz=MysqlSlowTunerInputSerializer,
+        response_slz=MysqlSlowTunerOutputSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.MYSQL_SLOWLOG],
+        name_prefix="mysql_slowlog",
+    )
+    def sql_tune(self, request, *args, **kwargs):
+        bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
+        cluster_type = self.get_param("cluster_type")
+        cluster_domain = self.get_param("cluster_domain")
+        db_name = self.get_param("db_name")
+        sql_text = self.get_param("sql_text")
+        query_digest_md5 = self.get_param("query_digest_md5")
+
+        try:
+            result = AgentHandler.ask_agent_with_command(
+                command=MysqlSlowSqlTunerCommand.command,
+                username="admin",
+                command_params={
+                    "sql_text": sql_text,
+                    "query_digest_md5": query_digest_md5,
+                    "cluster_type": cluster_type,
+                    "cluster_domain": cluster_domain,
+                    "db_name": db_name,
+                    "bk_biz_id": bk_biz_id,
+                },
+            )
+        except Exception as e:
+            logger.error(f"sql_tune error: {e}")
+            return Response({"error": str(e)})
+
+        return Response(result)

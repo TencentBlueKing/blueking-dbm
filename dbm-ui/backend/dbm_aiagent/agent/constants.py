@@ -16,3 +16,5 @@ from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 class DBMAgentCode(StrStructuredEnum):
     DBM = EnumField("ai-am", _("DBM 主智能体"))
     LOG_ANALYSIS = EnumField("ai-loganalysis", _("日志分析智能体"))
+    MYSQL_SLOW_SQL_TUNER = EnumField("ai-sql-tune", _("MySQL 慢查询调优智能体"))
+    MYSQL_SLOW_LOGS_QUERY = EnumField("ai-mysql-slowlog", _("MySQL慢日志分析智能体"))
