@@ -133,7 +133,8 @@ func (p *PhysicalDumper) buildArgs() []string {
 		}
 	}
 
-	if p.cnf.PhysicalBackup.Throttle > 0 {
+	if p.cnf.PhysicalBackup.Throttle > 0 && strings.Compare(p.mysqlVersion, "005005000") > 0 {
+		// 只在 5.6+ 加限速。5.5 限速可能有 bug，导致备份很慢
 		args = append(args, fmt.Sprintf("--throttle=%d", p.cnf.PhysicalBackup.Throttle))
 		args = append(args, "--log-copy-interval=300")
 	}

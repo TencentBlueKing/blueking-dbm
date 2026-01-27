@@ -48,3 +48,16 @@ class MysqlOneSlowlogInputSerializer(serializers.Serializer):
     query_digest_md5 = serializers.CharField(help_text=_("慢日志摘要，query_digest 与 query_digest_md5 是同一个意思"))
     start_time = serializers.DateTimeField(help_text=_("开始时间"))
     end_time = serializers.DateTimeField(help_text=_("结束时间"))
+
+
+class MysqlSlowTunerInputSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
+    cluster_domain = serializers.CharField(help_text=_("集群域名"))
+    cluster_type = serializers.ChoiceField(choices=mysql_cluster_type_choices, help_text=_("集群类型"))
+    query_digest_md5 = serializers.CharField(help_text=_("慢日志摘要"))
+    sql_text = serializers.CharField(help_text=_("SQL 文本"))
+    db_name = serializers.CharField(help_text=_("database name"))
+
+
+class MysqlSlowTunerOutputSerializer(serializers.Serializer):
+    content = serializers.CharField(help_text=_("慢日志分析结果"))
