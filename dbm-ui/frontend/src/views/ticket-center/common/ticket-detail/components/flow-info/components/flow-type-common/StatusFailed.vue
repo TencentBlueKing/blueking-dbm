@@ -131,7 +131,7 @@
       props.ticketDetail.todo_operators.includes(username) ||
       props.ticketDetail.todo_helpers.includes(username),
   );
-  const isNeedOperation = computed(() => [0, 2].includes(props.data.err_code));
+  const isNeedOperation = computed(() => [0, 2, 4].includes(props.data.err_code));
   const renderTodoList = computed(() =>
     _.filter(props.data.todos, (item) => item.type !== FlowMode.TODO_TYPE_INNER_FAILED),
   );
