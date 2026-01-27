@@ -7,6 +7,7 @@
     <div class="partition-operation-box">
       <BkAlert
         class="mb-16"
+        closable
         theme="info">
         <div>{{ t('表中包含数据，建议在低峰期执行分区；') }}</div>
         <div>{{ t('表中行数大于1千万或者表数据量大于300GB，不允许执行分区；') }}</div>
@@ -66,10 +67,22 @@
           </BkPopover>
         </DbFormItem>
         <DbFormItem
+          :label="t('分区字段')"
+          property="partition_column"
+          required>
+          <BkInput
+            v-model="formData.partition_column"
+            :placeholder="
+              t('请输入分区字段，分区字段的字段类型必须是 int、bigint、date、datetime、timestamp 其中一个')
+            " />
+        </DbFormItem>
+        <DbFormItem
           :label="t('字段类型')"
           property="partition_column_type"
           required>
-          <BkSelect v-model="formData.partition_column_type">
+          <BkSelect
+            v-model="formData.partition_column_type"
+            :disabled="partitionColumnTypeDisabled">
             <BkOption
               v-for="item in columnTypeSelectList"
               :id="item.id"
@@ -78,21 +91,12 @@
           </BkSelect>
         </DbFormItem>
         <DbFormItem
-          :label="t('分区字段')"
-          property="partition_column"
-          required>
-          <BkInput
-            v-model="formData.partition_column"
-            :placeholder="t('请输入')" />
-        </DbFormItem>
-        <DbFormItem
           :description="t('多少天为一个分区，例如 7 天为一个分区')"
           :label="t('分区间隔')"
           property="partition_time_interval"
           required>
           <BkInput
             v-model="formData.partition_time_interval"
-            :disabled="Boolean(data?.id)"
             :min="1"
             :suffix="t('天')"
             type="number" />
@@ -109,10 +113,44 @@
             type="number" />
         </DbFormItem>
       </DbForm>
+      <BkAlert
+        class="mt-24"
+        theme="warning">
+        <div style="font-weight: 600">{{ t('操作说明：') }}</div>
+        <div class="mt-20">
+          <div style="font-weight: 600">
+            {{ t('保存并执行')
+            }}<BkTag
+              class="ml-8"
+              theme="success">
+              {{ t('推荐') }}
+            </BkTag>
+          </div>
+          <ul>
+            <li>{{ t('- 适用：调整分区间隔，过期时间') }}</li>
+            <li>{{ t('- 影响：仅对新分区生效，历史分区不变') }}</li>
+            <li>{{ t('- 风险：低，无业务影响') }}</li>
+          </ul>
+        </div>
+        <div class="mt-20 mb-8">
+          <div style="font-weight: 600">
+            {{ t('保存并重新初始化')
+            }}<BkTag
+              class="ml-8"
+              theme="danger">
+              {{ t('谨慎') }}
+            </BkTag>
+          </div>
+          <ul>
+            <li>{{ t('- 适用：修改分区字段或需历史分区立即应用新的分区策略') }}</li>
+            <li>{{ t('- 影响：重构表结构，历史分区同步调整') }}</li>
+            <li>{{ t('- 风险：高，可能影响查询性能，建议联系DBA评估') }}</li>
+          </ul>
+        </div>
+      </BkAlert>
     </div>
     <template #footer>
       <BkPopConfirm
-        :content="verifyWarnTip"
         :is-show="warnConfirming"
         :title="data && data.id ? t('确定提交？') : t('确定保存并执行？')"
         trigger="manual"
@@ -120,11 +158,29 @@
         @cancel="handleVerifyCancel"
         @confirm="handleVerifyConfirm">
         <BkButton
-          :loading="warnConfirming || confirmLoading"
+          :loading="confirmLoading"
           style="width: 100px"
           theme="primary"
           @click="handleSubmit">
           {{ data && data.id ? t('提交') : t('保存并执行') }}
+        </BkButton>
+      </BkPopConfirm>
+      <BkPopConfirm
+        :confirm-config="{ theme: 'danger' }"
+        :confirm-text="t('确认初始化')"
+        :content="t('重新初始化会立刻对当前表结构进行变更，请谨慎操作')"
+        :is-show="warnResetConfirming"
+        :title="t('确认重新初始化？')"
+        trigger="manual"
+        width="350"
+        @cancel="handleResetCancel"
+        @confirm="handleResetConfirm">
+        <BkButton
+          class="ml-8"
+          :disabled="isDisabledResetButton"
+          :loading="resetLoading"
+          @click="handleResetSubmit">
+          {{ t('保存并重新初始化') }}
         </BkButton>
       </BkPopConfirm>
       <BkButton
@@ -141,11 +197,7 @@
 
   import type PartitionModel from '@services/model/partition/partition';
   import { queryAllTypeCluster } from '@services/source/dbbase';
-  import {
-    create as createParitition,
-    edit as editPartition,
-    verifyPartitionField,
-  } from '@services/source/partitionManage';
+  import { queryFieldType, saveAndExecute } from '@services/source/partitionManage';
 
   import { useTicketMessage } from '@hooks';
 
@@ -173,13 +225,17 @@
     dblikes: [] as string[],
     expire_time: 30,
     partition_column: '',
-    partition_column_type: 'int',
+    partition_column_type: '',
     partition_time_interval: undefined as unknown as number,
     tblikes: [] as string[],
   });
 
   let showPopConfirm = false;
   let partionColumnVerifyErrorText = '';
+  let motifyBefore = {
+    partition_column: '',
+    partition_time_interval: 0,
+  };
 
   const { t } = useI18n();
   const ticketMessage = useTicketMessage();
@@ -189,7 +245,9 @@
   const isTblikePopShow = ref(false);
   const confirmLoading = ref(false);
   const warnConfirming = ref(false);
-  const verifyWarnTip = ref('');
+  const warnResetConfirming = ref(false);
+  const resetLoading = ref(false);
+  const partitionColumnTypeDisabled = ref(true);
 
   const formData = reactive(initFormData());
 
@@ -240,12 +298,7 @@
         message: t('请输入完整信息验证分区字段'),
         trigger: 'blur',
         validator: () => {
-          if (
-            !formData.cluster_id ||
-            formData.dblikes.length < 1 ||
-            formData.tblikes.length < 1 ||
-            !formData.partition_column_type
-          ) {
+          if (!formData.cluster_id || formData.dblikes.length < 1 || formData.tblikes.length < 1) {
             return false;
           }
           return true;
@@ -255,20 +308,22 @@
         message: () => partionColumnVerifyErrorText,
         trigger: 'blur',
         validator: (value: string) =>
-          verifyPartitionField({
+          queryFieldType({
+            bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
             cluster_id: formData.cluster_id,
             dblikes: formData.dblikes,
             partition_column: value,
-            partition_column_type: formData.partition_column_type,
             tblikes: formData.tblikes,
           })
             .then((result) => {
               if (result) {
                 showPopConfirm = true;
-                verifyWarnTip.value = result;
+                partitionColumnTypeDisabled.value = true;
+                formData.partition_column_type = result;
               } else {
                 showPopConfirm = false;
-                verifyWarnTip.value = '';
+                partitionColumnTypeDisabled.value = false;
+                formData.partition_column_type = '';
               }
               return true;
             })
@@ -292,6 +347,13 @@
       },
     ],
   }));
+
+  const isDisabledResetButton = computed(() => {
+    return (
+      formData.partition_column === motifyBefore.partition_column &&
+      formData.partition_time_interval === motifyBefore.partition_time_interval
+    );
+  });
 
   const columnTypeSelectList = [
     {
@@ -334,10 +396,14 @@
         formData.cluster_id = props.data.cluster_id;
         formData.dblikes = [props.data.dblike];
         formData.tblikes = [props.data.tblike];
-        formData.partition_column = props.data.partition_columns;
+        formData.partition_column = props.data.partition_column;
         formData.partition_column_type = props.data.partition_column_type;
         formData.expire_time = props.data.expire_time;
         formData.partition_time_interval = props.data.partition_time_interval;
+        motifyBefore = {
+          partition_column: props.data.partition_column,
+          partition_time_interval: props.data.partition_time_interval,
+        };
       } else {
         // 从编辑态进入创建态，初始化表单
         Object.assign(formData, initFormData());
@@ -369,25 +435,18 @@
   };
 
   const submitPartition = () => {
-    if (props.data?.id) {
-      editPartition({
-        id: props.data.id,
-        ...formData,
-      }).then(() => {
-        emits('editSuccess');
-        handleCancel();
-      });
-      return;
-    }
-
     confirmLoading.value = true;
-    createParitition({
+    saveAndExecute({
       ...formData,
     })
       .then((data) => {
         ticketMessage(data[0].id);
-        emits('createSuccess');
         handleCancel();
+        if (isEditMode.value) {
+          emits('editSuccess');
+        } else {
+          emits('createSuccess');
+        }
       })
       .finally(() => {
         confirmLoading.value = false;
@@ -409,9 +468,40 @@
       submitPartition();
     });
   };
+
+  const handleResetConfirm = () => {
+    warnResetConfirming.value = false;
+    resetLoading.value = true;
+    saveAndExecute({
+      ...formData,
+      force: true,
+    })
+      .then((data) => {
+        ticketMessage(data[0].id);
+        handleCancel();
+        if (isEditMode.value) {
+          emits('editSuccess');
+        } else {
+          emits('createSuccess');
+        }
+      })
+      .finally(() => {
+        resetLoading.value = false;
+      });
+  };
+
+  const handleResetCancel = () => {
+    warnResetConfirming.value = false;
+  };
+
+  const handleResetSubmit = () => {
+    formRef.value.validate().then(() => {
+      warnResetConfirming.value = true;
+    });
+  };
 </script>
 <style lang="less">
   .partition-operation-box {
-    padding: 20px 40px;
+    padding: 20px 24px;
   }
 </style>
