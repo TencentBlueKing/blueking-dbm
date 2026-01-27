@@ -72,8 +72,9 @@ class TendbChecksumDetailSerializer(TendbBaseOperateDetailSerializer):
         super().validate_checksum_database_selector(attrs)
 
         # 校验定时时间不能早于当前时间
-        if str2datetime(attrs["timing"]) < datetime.now(timezone.utc):
-            raise serializers.ValidationError(_("定时时间必须晚于当前时间"))
+        if attrs["need_manual_confirm"] is False:
+            if str2datetime(attrs["timing"]) < datetime.now(timezone.utc):
+                raise serializers.ValidationError(_("定时时间必须晚于当前时间"))
 
         return attrs
 
@@ -242,15 +243,11 @@ class TendbChecksumFlowBuilder(MySQLChecksumFlowBuilder):
     @property
     def need_manual_confirm(self):
         """是否需要人工确认节点。后续默认从单据配置表获取。子类可覆写，覆写以后editable为False"""
-        if self.ticket.details["need_manual_confirm"] is True:
-            return True
-        return False
+        return self.ticket.details["need_manual_confirm"]
 
     @property
     def need_timer(self):
-        if self.ticket.details["need_manual_confirm"] is True:
-            return False
-        return True
+        return not self.ticket.details["need_manual_confirm"]
 
     @property
     def need_itsm(self):
