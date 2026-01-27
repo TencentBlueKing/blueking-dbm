@@ -618,3 +618,263 @@ func (hdl *MysqlClusterHandler) ResetAllMysqlClusters() error {
 
 	return nil
 }
+
+// ShowAllMysqlClustersDomain shows domain binding information for all MySQL clusters
+func (hdl *MysqlClusterHandler) ShowAllMysqlClustersDomain() error {
+	if config.ClusterConfig == nil {
+		return gerrors.Newf(gerrors.Failure, "config is not loaded")
+	}
+
+	if hdl.dbmClient == nil {
+		return gerrors.Newf(gerrors.Failure, "dbm client is nil")
+	}
+
+	clusterDomainInfoList := make([]ClusterDomainInfo, 0)
+
+	for _, cluster := range config.ClusterConfig.MysqlClusters {
+		clusterDomainInfo := ClusterDomainInfo{
+			Cluster: cluster.Domain,
+			Domains: make([]DomainInstanceList, 0),
+		}
+
+		if cluster.Domain != "" {
+			instList, err := hdl.dbmClient.GetAllInstancesOfDomain(cluster.Domain)
+			if err != nil {
+				return gerrors.Newf(gerrors.Failure, "failed to get instances of domain(%s), errmsg: %s",
+					cluster.Domain, err.Error())
+			}
+			instanceList := make([]string, 0)
+			for _, inst := range instList {
+				instanceList = append(instanceList, fmt.Sprintf("%s:%d", inst.Ip, inst.Port))
+			}
+			clusterDomainInfo.Domains = append(clusterDomainInfo.Domains, DomainInstanceList{
+				Domain:       cluster.Domain,
+				InstanceList: instanceList,
+			})
+		}
+
+		if cluster.DomainSlave != "" {
+			instList, err := hdl.dbmClient.GetAllInstancesOfDomain(cluster.DomainSlave)
+			if err != nil {
+				return gerrors.Newf(gerrors.Failure, "failed to get instances of domain(%s), errmsg: %s",
+					cluster.DomainSlave, err.Error())
+			}
+			instanceList := make([]string, 0)
+			for _, inst := range instList {
+				instanceList = append(instanceList, fmt.Sprintf("%s:%d", inst.Ip, inst.Port))
+			}
+			clusterDomainInfo.Domains = append(clusterDomainInfo.Domains, DomainInstanceList{
+				Domain:       cluster.DomainSlave,
+				InstanceList: instanceList,
+			})
+		}
+
+		clusterDomainInfoList = append(clusterDomainInfoList, clusterDomainInfo)
+	}
+
+	return printJSON(clusterDomainInfoList)
+}
+
+// ShowAllMysqlClustersNodes shows all nodes status and role for all MySQL clusters
+func (hdl *MysqlClusterHandler) ShowAllMysqlClustersNodes() error {
+	if config.ClusterConfig == nil {
+		return gerrors.Newf(gerrors.Failure, "config is not loaded")
+	}
+
+	if hdl.dbmClient == nil {
+		return gerrors.Newf(gerrors.Failure, "dbm client is nil")
+	}
+
+	clusterNodeInfoList := make([]ClusterNodeInfo, 0)
+
+	for _, cluster := range config.ClusterConfig.MysqlClusters {
+		configRoleMap := make(map[string]string)
+
+		masterKey := fmt.Sprintf("%s:%d", cluster.Master.Host, cluster.Master.Port)
+		configRoleMap[masterKey] = "backend_master"
+
+		for _, slave := range cluster.Slave {
+			key := fmt.Sprintf("%s:%d", slave.Host, slave.Port)
+			configRoleMap[key] = "backend_slave"
+		}
+		for _, proxy := range cluster.Proxy {
+			key := fmt.Sprintf("%s:%d", proxy.Host, proxy.Port)
+			configRoleMap[key] = "proxy"
+		}
+
+		ipList := make([]string, 0)
+		ipList = append(ipList, cluster.Master.Host)
+		for _, slave := range cluster.Slave {
+			ipList = append(ipList, slave.Host)
+		}
+		for _, proxy := range cluster.Proxy {
+			ipList = append(ipList, proxy.Host)
+		}
+
+		metadataList, err := hdl.dbmClient.QueryMetadataFromDbm(0, ipList)
+		if err != nil {
+			return gerrors.Newf(gerrors.Failure, "failed to query metadata for cluster(%s), errmsg: %s",
+				cluster.Domain, err.Error())
+		}
+
+		clusterNodeInfo := ClusterNodeInfo{
+			Cluster: cluster.Domain,
+			Nodes:   make([]NodeInfo, 0),
+		}
+
+		for _, meta := range metadataList {
+			key := fmt.Sprintf("%s:%d", meta.IP, meta.Port)
+			role := meta.GetRole()
+			if role == "" {
+				role = configRoleMap[key]
+			}
+			clusterNodeInfo.Nodes = append(clusterNodeInfo.Nodes, NodeInfo{
+				IP:     meta.IP,
+				Port:   meta.Port,
+				Status: meta.Status,
+				Role:   role,
+			})
+		}
+
+		clusterNodeInfoList = append(clusterNodeInfoList, clusterNodeInfo)
+	}
+
+	return printJSON(clusterNodeInfoList)
+}
+
+// ShowAllMysqlClustersReplication shows replication status for all MySQL clusters
+// Directly connects to all backend nodes from config file to query replication status
+func (hdl *MysqlClusterHandler) ShowAllMysqlClustersReplication() error {
+	if config.ClusterConfig == nil {
+		return gerrors.Newf(gerrors.Failure, "config is not loaded")
+	}
+
+	clusterReplList := make([]ClusterReplicationInfo, 0)
+
+	for _, cluster := range config.ClusterConfig.MysqlClusters {
+		clusterRepl := ClusterReplicationInfo{
+			Cluster:      cluster.Domain,
+			Replications: make([]ReplicationInfo, 0),
+		}
+
+		masterDB, err := hamysql.NewGormDB(
+			hamysql.OptionProto(MySQLProtocol),
+			hamysql.OptionIP(cluster.Master.Host),
+			hamysql.OptionPort(cluster.Master.Port),
+			hamysql.OptionUser(config.ClusterConfig.AuthInfo.User),
+			hamysql.OptionPassword(config.ClusterConfig.AuthInfo.Password),
+		)
+		if err != nil {
+			return gerrors.Newf(gerrors.Failure, "failed to connect to backend master(%s:%d), errmsg: %s",
+				cluster.Master.Host, cluster.Master.Port, err.Error())
+		}
+
+		masterSlaveStatus, err := hdl.ShowSlaveStatus(masterDB)
+		masterDB.Close()
+		if err != nil {
+			return gerrors.Newf(gerrors.Failure, "failed to get slave status of master node(%s:%d), errmsg: %s",
+				cluster.Master.Host, cluster.Master.Port, err.Error())
+		}
+
+		clusterRepl.Replications = append(clusterRepl.Replications, ReplicationInfo{
+			IP:              cluster.Master.Host,
+			Port:            cluster.Master.Port,
+			MasterIP:        masterSlaveStatus.MasterHost,
+			MasterPort:      masterSlaveStatus.MasterPort,
+			SlaveIORunning:  masterSlaveStatus.SlaveIORunning,
+			SlaveSQLRunning: masterSlaveStatus.SlaveSQLRunning,
+		})
+
+		for _, slave := range cluster.Slave {
+			slaveDB, err := hamysql.NewGormDB(
+				hamysql.OptionProto(MySQLProtocol),
+				hamysql.OptionIP(slave.Host),
+				hamysql.OptionPort(slave.Port),
+				hamysql.OptionUser(config.ClusterConfig.AuthInfo.User),
+				hamysql.OptionPassword(config.ClusterConfig.AuthInfo.Password),
+			)
+			if err != nil {
+				return gerrors.Newf(gerrors.Failure, "failed to connect to backend slave(%s:%d), errmsg: %s",
+					slave.Host, slave.Port, err.Error())
+			}
+
+			slaveStatus, err := hdl.ShowSlaveStatus(slaveDB)
+			slaveDB.Close()
+			if err != nil {
+				return gerrors.Newf(gerrors.Failure, "failed to get slave status of node(%s:%d), errmsg: %s",
+					slave.Host, slave.Port, err.Error())
+			}
+
+			clusterRepl.Replications = append(clusterRepl.Replications, ReplicationInfo{
+				IP:              slave.Host,
+				Port:            slave.Port,
+				MasterIP:        slaveStatus.MasterHost,
+				MasterPort:      slaveStatus.MasterPort,
+				SlaveIORunning:  slaveStatus.SlaveIORunning,
+				SlaveSQLRunning: slaveStatus.SlaveSQLRunning,
+			})
+		}
+
+		clusterReplList = append(clusterReplList, clusterRepl)
+	}
+
+	return printJSON(clusterReplList)
+}
+
+// ShowAllMysqlClustersRouting shows proxy routing (backend) information for all MySQL clusters
+func (hdl *MysqlClusterHandler) ShowAllMysqlClustersRouting() error {
+	if config.ClusterConfig == nil {
+		return gerrors.Newf(gerrors.Failure, "config is not loaded")
+	}
+
+	clusterRoutingList := make([]ClusterProxyRoutingInfo, 0)
+
+	for _, cluster := range config.ClusterConfig.MysqlClusters {
+		clusterRouting := ClusterProxyRoutingInfo{
+			Cluster: cluster.Domain,
+			Proxies: make([]ProxyRoutingEntry, 0),
+		}
+
+		for _, proxy := range cluster.Proxy {
+			proxyDB, err := hamysql.NewSqlxDB(
+				hamysql.OptionIP(proxy.Host),
+				hamysql.OptionPort(proxy.AdminPort),
+				hamysql.OptionUser(config.ClusterConfig.AuthInfo.ProxyUser),
+				hamysql.OptionPassword(config.ClusterConfig.AuthInfo.ProxyPassword),
+				hamysql.OptionCharset(""),
+			)
+			if err != nil {
+				return gerrors.Newf(gerrors.Failure, "failed to connect to proxy(%s:%d), errmsg: %s",
+					proxy.Host, proxy.AdminPort, err.Error())
+			}
+
+			var backendList []ProxyBackendInfo
+			if err = proxyDB.DB().Select(&backendList, "select * from backends"); err != nil {
+				proxyDB.Close()
+				return gerrors.Newf(gerrors.Failure, "failed to query backends on proxy(%s:%d), errmsg: %s",
+					proxy.Host, proxy.AdminPort, err.Error())
+			}
+			proxyDB.Close()
+
+			proxyEntry := ProxyRoutingEntry{
+				ProxyIP:        proxy.Host,
+				ProxyAdminPort: proxy.AdminPort,
+				Backends:       make([]ProxyBackendEntry, 0),
+			}
+
+			for _, backend := range backendList {
+				proxyEntry.Backends = append(proxyEntry.Backends, ProxyBackendEntry{
+					BackendNdx:   backend.BackendNdx,
+					BackendAddr:  backend.Address,
+					BackendState: backend.State,
+				})
+			}
+
+			clusterRouting.Proxies = append(clusterRouting.Proxies, proxyEntry)
+		}
+
+		clusterRoutingList = append(clusterRoutingList, clusterRouting)
+	}
+
+	return printJSON(clusterRoutingList)
+}

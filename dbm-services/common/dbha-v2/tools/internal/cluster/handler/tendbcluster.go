@@ -26,6 +26,7 @@ package handler
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -176,7 +177,7 @@ func (hdl *TenDBClusterHandler) correctRemoteDBRole(cluster *config.TenDBCluster
 	return nil
 }
 
-// ConnectTdbctlNode connects tdbctl node
+// ConnectTdbctlNode connects tdbctl node using authInfo credentials
 func (hdl *TenDBClusterHandler) ConnectTdbctlNode(ip string, port int) (*hamysql.GormDB, error) {
 	tdbctlDB, err := hamysql.NewGormDB(
 		hamysql.OptionProto(MySQLProtocol),
@@ -184,6 +185,21 @@ func (hdl *TenDBClusterHandler) ConnectTdbctlNode(ip string, port int) (*hamysql
 		hamysql.OptionPort(port),
 		hamysql.OptionUser(config.ClusterConfig.AuthInfo.User),
 		hamysql.OptionPassword(config.ClusterConfig.AuthInfo.Password),
+		hamysql.OptionSkipInitializeWithVersion(false),
+		hamysql.OptionDisableDatetimePrecision(true),
+		hamysql.OptionCharset(""),
+	)
+	return tdbctlDB, err
+}
+
+// ConnectTdbctlNodeWithCredentials connects tdbctl node with specified credentials
+func (hdl *TenDBClusterHandler) ConnectTdbctlNodeWithCredentials(ip string, port int, user, password string) (*hamysql.GormDB, error) {
+	tdbctlDB, err := hamysql.NewGormDB(
+		hamysql.OptionProto(MySQLProtocol),
+		hamysql.OptionIP(ip),
+		hamysql.OptionPort(port),
+		hamysql.OptionUser(user),
+		hamysql.OptionPassword(password),
 		hamysql.OptionSkipInitializeWithVersion(false),
 		hamysql.OptionDisableDatetimePrecision(true),
 		hamysql.OptionCharset(""),
@@ -661,4 +677,418 @@ func (hdl *TenDBClusterHandler) ResetAllTenDBClusters() error {
 		len(config.ClusterConfig.TenDBClusters), failCount, len(config.ClusterConfig.TenDBClusters)-failCount)
 
 	return nil
+}
+
+// ShowAllTenDBClustersDomain shows domain binding information for all TenDB clusters
+func (hdl *TenDBClusterHandler) ShowAllTenDBClustersDomain() error {
+	if config.ClusterConfig == nil {
+		return gerrors.Newf(gerrors.Failure, "config is not loaded")
+	}
+
+	if hdl.dbmClient == nil {
+		return gerrors.Newf(gerrors.Failure, "dbm client is nil")
+	}
+
+	clusterDomainInfoList := make([]ClusterDomainInfo, 0)
+
+	for _, cluster := range config.ClusterConfig.TenDBClusters {
+		clusterDomainInfo := ClusterDomainInfo{
+			Cluster: cluster.Domain,
+			Domains: make([]DomainInstanceList, 0),
+		}
+
+		if cluster.Domain != "" {
+			instList, err := hdl.dbmClient.GetAllInstancesOfDomain(cluster.Domain)
+			if err != nil {
+				return gerrors.Newf(gerrors.Failure, "failed to get instances of domain(%s), errmsg: %s",
+					cluster.Domain, err.Error())
+			}
+			instanceList := make([]string, 0)
+			for _, inst := range instList {
+				instanceList = append(instanceList, fmt.Sprintf("%s:%d", inst.Ip, inst.Port))
+			}
+			clusterDomainInfo.Domains = append(clusterDomainInfo.Domains, DomainInstanceList{
+				Domain:       cluster.Domain,
+				InstanceList: instanceList,
+			})
+		}
+
+		if cluster.DomainSlave != "" {
+			instList, err := hdl.dbmClient.GetAllInstancesOfDomain(cluster.DomainSlave)
+			if err != nil {
+				return gerrors.Newf(gerrors.Failure, "failed to get instances of domain(%s), errmsg: %s",
+					cluster.DomainSlave, err.Error())
+			}
+			instanceList := make([]string, 0)
+			for _, inst := range instList {
+				instanceList = append(instanceList, fmt.Sprintf("%s:%d", inst.Ip, inst.Port))
+			}
+			clusterDomainInfo.Domains = append(clusterDomainInfo.Domains, DomainInstanceList{
+				Domain:       cluster.DomainSlave,
+				InstanceList: instanceList,
+			})
+		}
+
+		clusterDomainInfoList = append(clusterDomainInfoList, clusterDomainInfo)
+	}
+
+	return printJSON(clusterDomainInfoList)
+}
+
+// ShowAllTenDBClustersNodes shows all nodes status and role for all TenDB clusters
+func (hdl *TenDBClusterHandler) ShowAllTenDBClustersNodes() error {
+	if config.ClusterConfig == nil {
+		return gerrors.Newf(gerrors.Failure, "config is not loaded")
+	}
+
+	if hdl.dbmClient == nil {
+		return gerrors.Newf(gerrors.Failure, "dbm client is nil")
+	}
+
+	clusterNodeInfoList := make([]ClusterNodeInfo, 0)
+
+	for _, cluster := range config.ClusterConfig.TenDBClusters {
+		serverNameMap := make(map[string]string)
+		configRoleMap := make(map[string]string)
+
+		for _, spider := range cluster.Spider {
+			key := fmt.Sprintf("%s:%d", spider.Host, spider.Port)
+			serverNameMap[key] = spider.ServerName
+			configRoleMap[key] = "spider_master"
+		}
+		for _, spider := range cluster.SpiderSlave {
+			key := fmt.Sprintf("%s:%d", spider.Host, spider.Port)
+			serverNameMap[key] = spider.ServerName
+			configRoleMap[key] = "spider_slave"
+		}
+		for _, remote := range cluster.RemoteMaster {
+			key := fmt.Sprintf("%s:%d", remote.Host, remote.Port)
+			serverNameMap[key] = remote.ServerName
+			configRoleMap[key] = "remote_master"
+		}
+		for _, remote := range cluster.RemoteSlave {
+			key := fmt.Sprintf("%s:%d", remote.Host, remote.Port)
+			serverNameMap[key] = remote.ServerName
+			configRoleMap[key] = "remote_slave"
+		}
+
+		ipList := make([]string, 0)
+		for _, spider := range cluster.Spider {
+			ipList = append(ipList, spider.Host)
+		}
+		for _, spider := range cluster.SpiderSlave {
+			ipList = append(ipList, spider.Host)
+		}
+
+		for _, remote := range cluster.RemoteMaster {
+			ipList = append(ipList, remote.Host)
+		}
+		for _, remote := range cluster.RemoteSlave {
+			ipList = append(ipList, remote.Host)
+		}
+
+		metadataList, err := hdl.dbmClient.QueryMetadataFromDbm(0, ipList)
+		if err != nil {
+			return gerrors.Newf(gerrors.Failure, "failed to query metadata for cluster(%s), errmsg: %s",
+				cluster.Domain, err.Error())
+		}
+
+		clusterNodeInfo := ClusterNodeInfo{
+			Cluster: cluster.Domain,
+			Nodes:   make([]NodeInfo, 0),
+		}
+
+		for _, meta := range metadataList {
+			key := fmt.Sprintf("%s:%d", meta.IP, meta.Port)
+			role := meta.GetRole()
+			if role == "" {
+				role = configRoleMap[key]
+			}
+			clusterNodeInfo.Nodes = append(clusterNodeInfo.Nodes, NodeInfo{
+				ServerName: serverNameMap[key],
+				IP:         meta.IP,
+				Port:       meta.Port,
+				Status:     meta.Status,
+				Role:       role,
+			})
+		}
+
+		sort.Slice(clusterNodeInfo.Nodes, func(i, j int) bool {
+			return clusterNodeInfo.Nodes[i].ServerName < clusterNodeInfo.Nodes[j].ServerName
+		})
+
+		clusterNodeInfoList = append(clusterNodeInfoList, clusterNodeInfo)
+	}
+
+	return printJSON(clusterNodeInfoList)
+}
+
+// ShowAllTenDBClustersReplication shows replication status for all TenDB clusters
+// Only checks Remote nodes and tdbctl nodes (Spider nodes are stateless proxies without replication)
+func (hdl *TenDBClusterHandler) ShowAllTenDBClustersReplication() error {
+	if config.ClusterConfig == nil {
+		return gerrors.Newf(gerrors.Failure, "config is not loaded")
+	}
+
+	clusterReplList := make([]ClusterReplicationInfo, 0)
+
+	user := config.ClusterConfig.AuthInfo.User
+	password := config.ClusterConfig.AuthInfo.Password
+
+	for _, cluster := range config.ClusterConfig.TenDBClusters {
+		clusterRepl := ClusterReplicationInfo{
+			Cluster:      cluster.Domain,
+			Replications: make([]ReplicationInfo, 0),
+		}
+
+		// Skip Spider and SpiderSlave - they are stateless proxies without replication
+
+		for _, remote := range cluster.RemoteMaster {
+			replInfo, err := hdl.getRemoteNodeReplicationInfo(remote.Host, remote.Port, remote.ServerName, user, password)
+			if err != nil {
+				return err
+			}
+			clusterRepl.Replications = append(clusterRepl.Replications, *replInfo)
+		}
+
+		for _, remote := range cluster.RemoteSlave {
+			replInfo, err := hdl.getRemoteNodeReplicationInfo(remote.Host, remote.Port, remote.ServerName, user, password)
+			if err != nil {
+				return err
+			}
+			clusterRepl.Replications = append(clusterRepl.Replications, *replInfo)
+		}
+
+		replInfo, err := hdl.getTdbctlNodeReplicationInfo(cluster.CtlMaster.Host, cluster.CtlMaster.Port, cluster.CtlMaster.ServerName)
+		if err != nil {
+			return err
+		}
+		clusterRepl.Replications = append(clusterRepl.Replications, *replInfo)
+
+		for _, ctl := range cluster.CtlSlave {
+			replInfo, err := hdl.getTdbctlNodeReplicationInfo(ctl.Host, ctl.Port, ctl.ServerName)
+			if err != nil {
+				return err
+			}
+			clusterRepl.Replications = append(clusterRepl.Replications, *replInfo)
+		}
+
+		sort.Slice(clusterRepl.Replications, func(i, j int) bool {
+			return clusterRepl.Replications[i].ServerName < clusterRepl.Replications[j].ServerName
+		})
+
+		clusterReplList = append(clusterReplList, clusterRepl)
+	}
+
+	return printJSON(clusterReplList)
+}
+
+// getRemoteNodeReplicationInfo gets replication info from a remote node
+func (hdl *TenDBClusterHandler) getRemoteNodeReplicationInfo(host string, port int, serverName string, user string, password string) (*ReplicationInfo, error) {
+	db, err := hamysql.NewGormDB(
+		hamysql.OptionProto(MySQLProtocol),
+		hamysql.OptionIP(host),
+		hamysql.OptionPort(port),
+		hamysql.OptionUser(user),
+		hamysql.OptionPassword(password),
+	)
+	if err != nil {
+		return nil, gerrors.Newf(gerrors.Failure, "failed to connect to remote node(%s:%d), errmsg: %s",
+			host, port, err.Error())
+	}
+	defer db.Close()
+
+	slaveStatus, err := hdl.ShowSlaveStatus(db)
+	if err != nil {
+		return nil, gerrors.Newf(gerrors.Failure, "failed to get slave status of remote node(%s:%d), errmsg: %s",
+			host, port, err.Error())
+	}
+
+	return &ReplicationInfo{
+		IP:              host,
+		Port:            port,
+		ServerName:      serverName,
+		MasterIP:        slaveStatus.MasterHost,
+		MasterPort:      slaveStatus.MasterPort,
+		SlaveIORunning:  slaveStatus.SlaveIORunning,
+		SlaveSQLRunning: slaveStatus.SlaveSQLRunning,
+	}, nil
+}
+
+// getTdbctlNodeReplicationInfo gets replication info from a tdbctl node
+func (hdl *TenDBClusterHandler) getTdbctlNodeReplicationInfo(host string, port int, serverName string) (*ReplicationInfo, error) {
+	db, err := hdl.ConnectTdbctlNode(host, port)
+	if err != nil {
+		return nil, gerrors.Newf(gerrors.Failure, "failed to connect to tdbctl node(%s:%d), errmsg: %s",
+			host, port, err.Error())
+	}
+	defer db.Close()
+
+	if err = hdl.setTcAdmin(db, 0); err != nil {
+		return nil, err
+	}
+
+	slaveStatus, err := hdl.ShowSlaveStatus(db)
+	if err != nil {
+		return nil, gerrors.Newf(gerrors.Failure, "failed to get slave status of tdbctl node(%s:%d), errmsg: %s",
+			host, port, err.Error())
+	}
+
+	return &ReplicationInfo{
+		IP:              host,
+		Port:            port,
+		ServerName:      serverName,
+		MasterIP:        slaveStatus.MasterHost,
+		MasterPort:      slaveStatus.MasterPort,
+		SlaveIORunning:  slaveStatus.SlaveIORunning,
+		SlaveSQLRunning: slaveStatus.SlaveSQLRunning,
+	}, nil
+}
+
+// MysqlServerEntry represents an entry in mysql.servers table
+type MysqlServerEntry struct {
+	ServerName string `gorm:"column:Server_name"`
+	Host       string `gorm:"column:Host"`
+	Port       int    `gorm:"column:Port"`
+	Username   string `gorm:"column:Username"`
+	Password   string `gorm:"column:Password"`
+	Wrapper    string `gorm:"column:Wrapper"`
+}
+
+// TdbctlPrimaryInfo represents the result of tdbctl get primary
+type TdbctlPrimaryInfo struct {
+	ServerName string `gorm:"column:SERVER_NAME"`
+	Host       string `gorm:"column:HOST"`
+	Port       int    `gorm:"column:PORT"`
+}
+
+// connectToAvailableTdbctl connects to an available tdbctl node from the cluster config
+func (hdl *TenDBClusterHandler) connectToAvailableTdbctl(cluster *config.TenDBCluster) (*hamysql.GormDB, error) {
+	// Try CtlMaster first with its own credentials
+	db, err := hdl.ConnectTdbctlNodeWithCredentials(
+		cluster.CtlMaster.Host,
+		cluster.CtlMaster.Port,
+		cluster.CtlMaster.User,
+		cluster.CtlMaster.Password,
+	)
+	if err == nil {
+		return db, nil
+	}
+
+	// Fallback to authInfo credentials
+	db, err = hdl.ConnectTdbctlNode(cluster.CtlMaster.Host, cluster.CtlMaster.Port)
+	if err == nil {
+		return db, nil
+	}
+
+	// Try CtlSlave nodes
+	for _, ctl := range cluster.CtlSlave {
+		db, err := hdl.ConnectTdbctlNodeWithCredentials(ctl.Host, ctl.Port, ctl.User, ctl.Password)
+		if err == nil {
+			return db, nil
+		}
+		db, err = hdl.ConnectTdbctlNode(ctl.Host, ctl.Port)
+		if err == nil {
+			return db, nil
+		}
+	}
+
+	return nil, gerrors.Newf(gerrors.Failure, "failed to connect to any tdbctl node for cluster(%s)", cluster.Domain)
+}
+
+// getPrimaryTdbctl gets the primary tdbctl by executing "tdbctl get primary" on a tdbctl node
+func (hdl *TenDBClusterHandler) getPrimaryTdbctl(tdbctlDB *hamysql.GormDB) (*TdbctlPrimaryInfo, error) {
+	if err := hdl.setTcAdmin(tdbctlDB, 1); err != nil {
+		return nil, err
+	}
+
+	var primaryInfo TdbctlPrimaryInfo
+	if err := tdbctlDB.DB().Raw("tdbctl get primary").Scan(&primaryInfo).Error; err != nil {
+		return nil, gerrors.Newf(gerrors.Failure, "failed to execute 'tdbctl get primary', errmsg: %s", err.Error())
+	}
+	return &primaryInfo, nil
+}
+
+// checkRoutingConsistency checks if routing is consistent by executing "tdbctl check routing"
+func (hdl *TenDBClusterHandler) checkRoutingConsistency(tdbctlDB *hamysql.GormDB) bool {
+	if err := tdbctlDB.DB().Exec("tdbctl check routing").Error; err != nil {
+		return false
+	}
+	return true
+}
+
+// ShowAllTenDBClustersRouting shows routing table (mysql.servers) for all TenDB clusters
+func (hdl *TenDBClusterHandler) ShowAllTenDBClustersRouting() error {
+	if config.ClusterConfig == nil {
+		return gerrors.Newf(gerrors.Failure, "config is not loaded")
+	}
+
+	clusterRoutingList := make([]ClusterRoutingInfo, 0)
+
+	for _, cluster := range config.ClusterConfig.TenDBClusters {
+		tdbctlDB, err := hdl.connectToAvailableTdbctl(&cluster)
+		if err != nil {
+			return err
+		}
+
+		primaryInfo, err := hdl.getPrimaryTdbctl(tdbctlDB)
+		tdbctlDB.Close()
+		if err != nil {
+			return gerrors.Newf(gerrors.Failure, "failed to get primary tdbctl for cluster(%s), errmsg: %s",
+				cluster.Domain, err.Error())
+		}
+
+		primaryDB, err := hdl.ConnectTdbctlNode(primaryInfo.Host, primaryInfo.Port)
+		if err != nil {
+			return gerrors.Newf(gerrors.Failure, "failed to connect to primary tdbctl(%s:%d), errmsg: %s",
+				primaryInfo.Host, primaryInfo.Port, err.Error())
+		}
+
+		if err = hdl.setTcAdmin(primaryDB, 0); err != nil {
+			primaryDB.Close()
+			return err
+		}
+
+		var serverEntries []MysqlServerEntry
+		if err = primaryDB.DB().Raw("SELECT Server_name, Host, Port, Username, Wrapper FROM mysql.servers").Scan(&serverEntries).Error; err != nil {
+			primaryDB.Close()
+			return gerrors.Newf(gerrors.Failure, "failed to query mysql.servers on primary tdbctl(%s:%d), errmsg: %s",
+				primaryInfo.Host, primaryInfo.Port, err.Error())
+		}
+
+		if err = hdl.setTcAdmin(primaryDB, 1); err != nil {
+			primaryDB.Close()
+			return err
+		}
+		routingConsist := hdl.checkRoutingConsistency(primaryDB)
+		primaryDB.Close()
+
+		checkResult := "ok"
+		if !routingConsist {
+			checkResult = "failed"
+		}
+
+		routingEntries := make([]RoutingEntry, 0, len(serverEntries))
+		for _, entry := range serverEntries {
+			routingEntries = append(routingEntries, RoutingEntry{
+				ServerName: entry.ServerName,
+				Host:       entry.Host,
+				Port:       entry.Port,
+				Username:   entry.Username,
+				Wrapper:    entry.Wrapper,
+			})
+		}
+
+		sort.Slice(routingEntries, func(i, j int) bool {
+			return routingEntries[i].ServerName < routingEntries[j].ServerName
+		})
+
+		clusterRoutingList = append(clusterRoutingList, ClusterRoutingInfo{
+			Cluster:     cluster.Domain,
+			Routing:     routingEntries,
+			CheckResult: checkResult,
+		})
+	}
+
+	return printJSON(clusterRoutingList)
 }
