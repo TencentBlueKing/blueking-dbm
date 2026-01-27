@@ -75,11 +75,11 @@ type ClusterReplicationInfo struct {
 
 // RoutingEntry represents a single routing entry from mysql.servers
 type RoutingEntry struct {
-	ServerName string `json:"server_name"`
-	Host       string `json:"host"`
-	Port       int    `json:"port"`
-	Username   string `json:"username"`
-	Wrapper    string `json:"wrapper"`
+	ServerName string `json:"server_name" gorm:"column:Server_name"`
+	Host       string `json:"host" gorm:"column:Host"`
+	Port       int    `json:"port" gorm:"column:Port"`
+	Username   string `json:"username" gorm:"column:Username"`
+	Wrapper    string `json:"wrapper" gorm:"column:Wrapper"`
 }
 
 // ClusterRoutingInfo represents TenDBCluster routing table with check result

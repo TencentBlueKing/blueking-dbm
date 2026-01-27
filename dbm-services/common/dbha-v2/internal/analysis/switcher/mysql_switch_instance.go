@@ -1090,8 +1090,8 @@ func (sw *MySQLProxySwitchInstance) DoSwitch() error {
 // GetInstanceInfo returns instance information as string
 func (sw *MySQLProxySwitchInstance) GetInstanceInfo() string {
 	infoStr := fmt.Sprintf("{bk_cloud_id:%d, ip:%s, port:%d, admin_port:%d, bk_idc_city_id:%d, "+
-		"bk_biz_id:%d, status:%s, cluster:%s, cluster_id:%d, cluster_type:%s, machine_type:%s, role:%s}",
+		"bk_biz_id:%d, status:%s, cluster:%s, cluster_id:%d, cluster_type:%s, machine_type:%s}",
 		sw.BkCloudID, sw.IP, sw.Port, sw.AdminPort, sw.BkIdcCityID, sw.BkBizID, sw.Status, sw.Cluster,
-		sw.ClusterID, sw.ClusterType, sw.MachineType, sw.InstanceRole)
+		sw.ClusterID, sw.ClusterType, sw.MachineType)
 	return infoStr
 }
