@@ -28,12 +28,13 @@ export default function () {
       'immute_domain',
       'dblike',
       'tblike',
-      'partition_columns',
+      'partition_column',
       'partition_column_type',
       'partition_time_interval',
       'expire_time',
       'status',
       'execute_time',
+      'operation',
     ],
     fields: [
       {
@@ -44,7 +45,7 @@ export default function () {
       {
         disabled: true,
         field: 'immute_domain',
-        label: t('集群域名'),
+        label: t('域名'),
       },
       {
         field: 'dblike',
@@ -55,12 +56,12 @@ export default function () {
         label: t('表名'),
       },
       {
-        field: 'partition_columns',
+        field: 'partition_column',
         label: t('分区字段'),
       },
       {
         field: 'partition_column_type',
-        label: t('分区字段类型'),
+        label: t('字段类型'),
       },
       {
         field: 'partition_time_interval',
@@ -72,11 +73,11 @@ export default function () {
       },
       {
         field: 'status',
-        label: '最近一次执行状态',
+        label: '最近执行状态',
       },
       {
         field: 'execute_time',
-        label: '最近一次执行时间',
+        label: '最近执行时间',
       },
     ],
     size: cache.size || 'small',

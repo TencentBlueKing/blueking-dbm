@@ -13,27 +13,32 @@
 
 <template>
   <div class="resource-spce-list">
-    <div class="resource-spce-operations">
+    <div class="resource-spec-operations">
       <AuthButton
         action-id="spec_create"
-        class="w-88 mr-8"
+        class="w-88"
         :resource="dbType"
         theme="primary"
         @click="() => handleShowSpecOperation('create')">
         {{ t('新建') }}
       </AuthButton>
       <BkDropdown
-        :disabled="selectedList.length === 0"
+        v-bk-tooltips="{
+          disabled: !disabled,
+          content: t('请选择规格'),
+        }"
+        class="batch-operation ml-8"
+        :disabled="disabled"
         :popover-options="{
           renderDirective: 'show',
           hideIgnoreReference: true,
         }">
         <template #default="{ popoverShow }">
-          <BkButton :disabled="selectedList.length === 0">
+          <BkButton :disabled="disabled">
             {{ t('批量操作') }}
             <DbIcon
-              class="cluster-batch-operation-icon ml-4"
-              :class="[{ 'cluster-batch-operation-icon-active': popoverShow }]"
+              class="batch-operation-icon ml-4"
+              :class="[{ 'batch-operation-icon-active': popoverShow }]"
               type="up-big " />
           </BkButton>
         </template>
@@ -421,6 +426,8 @@
   const specOperationData = shallowRef<ResourceSpecModel>();
   const selectedList = shallowRef<ResourceSpecModel[]>([]);
 
+  const disabled = computed(() => selectedList.value.length === 0);
+
   const hasInstance = computed(() => [`${DBTypes.ES}_es_datanode`].includes(`${props.dbType}_${props.machineType}`));
 
   const batchDeleteTooltips = computed(() => {
@@ -601,11 +608,22 @@
     padding: 16px 24px 0;
     background-color: white;
 
-    .resource-spce-operations {
+    .resource-spec-operations {
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding-bottom: 16px;
+
+      .batch-operation {
+        .batch-operation-icon {
+          transform: rotate(0);
+          transition: all 0.2s;
+        }
+
+        .batch-operation-icon-active {
+          transform: rotate(180deg);
+        }
+      }
 
       .enable-checkbox {
         display: flex;

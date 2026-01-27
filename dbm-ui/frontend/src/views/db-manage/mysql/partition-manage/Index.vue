@@ -6,346 +6,406 @@
         class="w-88"
         theme="primary"
         @click="handleCreate">
-        {{ t('新建') }}
+        {{ t('添加策略') }}
       </AuthButton>
-      <DbPopconfirm
-        :confirm-handler="handleBatchRemove"
-        :content="t('移除后将不可恢复')"
-        :title="t('确认移除选中的策略')">
-        <BkButton
-          class="ml-8"
-          :disabled="selectionList.length < 1">
-          {{ t('删除') }}
-        </BkButton>
-      </DbPopconfirm>
-      <DbSearchSelect
-        v-model="searchValues"
+      <AuthButton
+        action-id="mysql_partition_create"
+        class="w-88 ml-8"
+        @click="handleShowExcelImport">
+        {{ t('导入策略') }}
+      </AuthButton>
+      <BkDropdown
+        v-bk-tooltips="{
+          disabled: !disabled,
+          content: t('请选择策略'),
+        }"
+        class="batch-operation ml-8"
+        :disabled="disabled"
+        :popover-options="{
+          renderDirective: 'show',
+          hideIgnoreReference: true,
+        }">
+        <template #default="{ popoverShow }">
+          <BkButton :disabled="disabled">
+            {{ t('批量操作') }}
+            <DbIcon
+              class="batch-operation-icon ml-4"
+              :class="[{ 'batch-operation-icon-active': popoverShow }]"
+              type="up-big " />
+          </BkButton>
+        </template>
+        <template #content>
+          <BkDropdownMenu>
+            <BkDropdownItem>
+              <BkButton
+                :disabled="disabled"
+                text
+                @click="handleBatchExecute">
+                {{ t('批量执行') }}
+              </BkButton>
+            </BkDropdownItem>
+            <BkDropdownItem>
+              <BkButton
+                :disabled="disabled"
+                text
+                @click="handleBatchExport">
+                {{ t('批量导出') }}
+              </BkButton>
+            </BkDropdownItem>
+            <BkDropdownItem>
+              <BkButton
+                :disabled="disabled"
+                text
+                @click="handleBatchEnable">
+                {{ t('批量启用') }}
+              </BkButton>
+            </BkDropdownItem>
+            <BkDropdownItem>
+              <BkButton
+                :disabled="disabled"
+                text
+                @click="handleBatchDisable">
+                {{ t('批量禁用') }}
+              </BkButton>
+            </BkDropdownItem>
+            <BkDropdownItem>
+              <BkButton
+                :disabled="disabled"
+                text
+                @click="handleBatchRemove">
+                {{ t('批量删除') }}
+              </BkButton>
+            </BkDropdownItem>
+          </BkDropdownMenu>
+        </template>
+      </BkDropdown>
+      <DbQuickSearch
+        v-model="searchValue"
         :data="serachData"
+        parse-url
         :placeholder="t('输入关键字或选择条件搜索')"
         style="width: 500px; margin-left: auto"
-        unique-select
         @change="handleSearch" />
     </div>
     <DbTable
       ref="tableRef"
+      :bk-ui-settings="tableSetting"
       class="partition-table"
-      :columns="tableColumn"
-      :data-source="getList"
+      :data-source="dataSource"
+      releate-url-query
       :row-class="getRowClass"
+      row-key="id"
       selectable
-      :settings="tableSetting"
-      show-settings
       @clear-search="handleClearSearch"
       @selection="handleTableSelection"
-      @setting-change="handleSettingChange" />
+      @setting-change="handleSettingChange">
+      <TableColumn
+        col-key="id"
+        fixed="left"
+        title="ID"
+        :width="100">
+        <template #default="{ row }: { row: PartitionModel }">
+          <AuthButton
+            action-id="mysql_partition_update"
+            :permission="row.permission.mysql_partition_update"
+            :resource="row.cluster_id"
+            text
+            theme="primary"
+            @click="handleEdit(row)">
+            {{ row.id }}
+          </AuthButton>
+          <BkTag
+            v-if="row.isNew"
+            class="ml-4"
+            size="small"
+            theme="success">
+            NEW
+          </BkTag>
+          <BkTag
+            v-if="row.isOffline"
+            class="ml-4"
+            size="small">
+            {{ t('已禁用') }}
+          </BkTag>
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="immute_domain"
+        :title="t('集群')"
+        :width="240">
+        <template #default="{ row }: { row: PartitionModel }">
+          {{ row.immute_domain || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="dblike"
+        :title="t('DB 名')"
+        :width="120">
+        <template #default="{ row }: { row: PartitionModel }">
+          <span v-if="!row.dblike">--</span>
+          <BkTag>{{ row.dblike }}</BkTag>
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="tblike"
+        :title="t('表名')"
+        :width="160">
+        <template #default="{ row }: { row: PartitionModel }">
+          <span v-if="!row.tblike">--</span>
+          <BkTag>{{ row.tblike }}</BkTag>
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="partition_column"
+        :title="t('分区字段')"
+        :width="140">
+        <template #default="{ row }: { row: PartitionModel }">
+          {{ row.partition_column || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="partition_column_type"
+        :title="t('字段类型')"
+        :width="140">
+        <template #default="{ row }: { row: PartitionModel }">
+          {{ row.partition_column_type || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="partition_time_interval"
+        :title="t('分区间隔（天）')"
+        :width="140">
+        <template #default="{ row }: { row: PartitionModel }">
+          {{ row.partition_time_interval || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="expire_time"
+        :title="t('数据过期时间（天）')"
+        :width="140">
+        <template #default="{ row }: { row: PartitionModel }">
+          {{ row.expire_time || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="status"
+        :title="t('最近执行状态')"
+        :width="180">
+        <template #default="{ row }: { row: PartitionModel }">
+          <DbIcon
+            style="vertical-align: middle"
+            svg
+            :type="row.statusIcon" />
+          <span class="ml-4">{{ row.statusText }}</span>
+          <DbIcon
+            v-if="row.status === PartitionModel.STATUS_FAILED"
+            v-bk-tooltips="t('查看失败日志')"
+            class="ml-4"
+            style="vertical-align: middle; cursor: pointer; color: #3a84ff"
+            type="bk-dbm-icon db-icon-form"
+            @click="handleShowFailLog(row)" />
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="execute_time"
+        :title="t('最近执行时间')"
+        :width="240">
+        <template #default="{ row }: { row: PartitionModel }">
+          {{ utcDisplayTime(row.execute_time) || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="operation"
+        fixed="right"
+        :title="t('操作')"
+        :width="140">
+        <template #default="{ row }: { row: PartitionModel }">
+          <!-- 执行按钮 -->
+          <AuthButton
+            action-id="mysql_partition"
+            :loading="executeLoadingMap[row.id]"
+            :permission="row.permission.mysql_partition"
+            :resource="row.cluster_id"
+            text
+            theme="primary"
+            @click="handleExecute(row)">
+            {{ t('执行') }}
+          </AuthButton>
+          <!-- 编辑按钮 -->
+          <AuthButton
+            action-id="mysql_partition_update"
+            class="ml-8 mr-8"
+            :permission="row.permission.mysql_partition_update"
+            :resource="row.cluster_id"
+            text
+            theme="primary"
+            @click="handleEdit(row)">
+            {{ t('编辑') }}
+          </AuthButton>
+          <!-- 克隆按钮 -->
+          <AuthButton
+            action-id="mysql_partition_create"
+            class="mr-8"
+            :permission="row.permission.mysql_partition_create"
+            text
+            theme="primary"
+            @click="handleClone(row)">
+            {{ t('克隆') }}
+          </AuthButton>
+          <!-- 更多操作 -->
+          <MoreActionExtend>
+            <template #default>
+              <div v-if="row.isOnline">
+                <AuthButton
+                  action-id="mysql_partition_enable_disable"
+                  :permission="row.permission.mysql_partition_enable_disable"
+                  :resource="row.cluster_id"
+                  text
+                  @click="handleDisable(row)">
+                  {{ t('禁用') }}
+                </AuthButton>
+              </div>
+              <div v-else>
+                <AuthButton
+                  action-id="mysql_partition_enable_disable"
+                  :permission="row.permission.mysql_partition_enable_disable"
+                  :resource="row.cluster_id"
+                  text
+                  @click="handleEnable(row)">
+                  {{ t('启用') }}
+                </AuthButton>
+              </div>
+              <div>
+                <DbPopconfirm
+                  :confirm-handler="() => handleRemove(row)"
+                  :content="t('删除操作无法撤回，请谨慎操作！')"
+                  :title="t('确认删除该分区策略？')">
+                  <div style="height: 100%">
+                    <AuthButton
+                      action-id="mysql_partition_delete"
+                      :permission="row.permission.mysql_partition_delete"
+                      :resource="row.cluster_id"
+                      text>
+                      {{ t('删除') }}
+                    </AuthButton>
+                  </div>
+                </DbPopconfirm>
+              </div>
+            </template>
+          </MoreActionExtend>
+        </template>
+      </TableColumn>
+    </DbTable>
+    <!-- 新增/编辑 -->
     <PartitionOperation
       v-model:is-show="isShowOperation"
       :data="operationData"
       @create-success="handleOperationCreateSuccess"
       @edit-success="handleOperationEditSuccess" />
-    <DbSideslider
-      v-model:is-show="isShowExecuteLog"
-      :show-footer="false"
-      :title="t(`查看执行记录`)"
-      :width="1000">
-      <ExecuteLog
-        v-if="operationData"
-        :data="operationData" />
-    </DbSideslider>
+    <!-- excel 导入 -->
+    <ExcelImport
+      v-model:is-show="isShowExcelImport"
+      @success="handleExcelImportSuccess" />
+    <!-- 查看失败日志 -->
+    <FailLog
+      v-model:is-show="isShowFailLog"
+      :data="operationData" />
   </div>
 </template>
 <script setup lang="tsx">
-  import { Message } from 'bkui-vue';
+  import { InfoBox, Table as BkTable } from 'bkui-vue';
   import _ from 'lodash';
   import { ref, shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type PartitionModel from '@services/model/partition/partition';
+  const BkTableColumn = BkTable.Column;
+
+  import PartitionModel from '@services/model/partition/partition';
   import {
     batchRemove,
     disablePartition,
-    dryRun,
     enablePartition,
     execute,
+    exportPartitions,
     getList,
   } from '@services/source/partitionManage';
 
   import { useTicketMessage } from '@hooks';
 
   import { ClusterTypes } from '@common/const';
-  import { batchSplitRegex } from '@common/regex';
 
-  import { getSearchSelectorParams, messageSuccess } from '@utils';
+  import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
+  import DbTable from '@components/db-table/IndexNew.vue';
+  import MoreActionExtend from '@components/more-action-extend/Index.vue';
 
-  import ExecuteLog from './components/ExecuteLog.vue';
+  import { messageSuccess, utcDisplayTime } from '@utils';
+
+  import ExcelImport from './components/ExcelImport.vue';
+  import FailLog from './components/fail-log/Index.vue';
   import PartitionOperation from './components/Operation.vue';
   import useTableSetting from './hooks/useTableSetting';
-
-  type DryRunData = ServiceReturnType<typeof dryRun>;
 
   const { t } = useI18n();
   const ticketMessage = useTicketMessage();
   const { handleChange: handleSettingChange, setting: tableSetting } = useTableSetting();
 
   const tableRef = ref();
-  const searchValues = ref([]);
+  const searchValue = ref<Record<string, string>>({});
   const isShowOperation = ref(false);
-  const isShowExecuteLog = ref(false);
+  const isShowExcelImport = ref(false);
+  const isShowFailLog = ref(false);
   const executeLoadingMap = ref<Record<number, boolean>>({});
 
   const operationData = shallowRef<PartitionModel>();
   const selectionList = shallowRef<number[]>([]);
 
+  const disabled = computed(() => selectionList.value.length === 0);
+
   const serachData = [
     {
       id: 'ids',
-      multiple: true,
       name: t('策略 ID'),
+      type: 'multiple-input',
+      validator: (value: string) => {
+        return !isNaN(Number(value)) ? true : t('ID 只支持数字');
+      },
     },
     {
+      description: t('单个值支持模糊搜索'),
       id: 'immute_domains',
-      multiple: true,
       name: t('域名'),
+      type: 'multiple-input',
     },
     {
+      description: t('单个值支持模糊搜索'),
       id: 'dblikes',
-      multiple: true,
       name: t('DB 名'),
+      type: 'multiple-input',
     },
     {
+      description: t('单个值支持模糊搜索'),
       id: 'tblikes',
-      multiple: true,
       name: t('表名'),
+      type: 'multiple-input',
     },
-  ];
+    {
+      id: 'status',
+      list: [
+        {
+          label: t('执行失败'),
+          value: PartitionModel.STATUS_FAILED,
+        },
+        {
+          label: t('执行成功'),
+          value: PartitionModel.STATUS_SUCCEEDED,
+        },
+      ],
+      name: t('最近执行状态'),
+      type: 'multiple',
+    },
+  ] as QuickSearchProps['data'];
 
-  const tableColumn = [
-    {
-      field: 'id',
-      fixed: 'left',
-      label: t('策略 ID'),
-      render: ({ data }: { data: PartitionModel }) => (
-        <div class='id-container'>
-          <span>{data.id}</span>
-          {data.isNew && (
-            <bk-tag
-              class='ml-4'
-              size='small'
-              theme='success'>
-              NEW
-            </bk-tag>
-          )}
-          {data.isOffline && (
-            <bk-tag
-              class='ml-4'
-              size='small'>
-              {t('已禁用')}
-            </bk-tag>
-          )}
-        </div>
-      ),
-      width: 100,
-    },
-    {
-      field: 'immute_domain',
-      label: t('集群域名'),
-      render: ({ data }: { data: PartitionModel }) => data.immute_domain || '--',
-      width: 240,
-    },
-    {
-      field: 'dblike',
-      label: t('DB 名'),
-      render: ({ data }: { data: PartitionModel }) => {
-        if (!data.dblike) {
-          return '--';
-        }
-        return <bk-tag>{data.dblike}</bk-tag>;
-      },
-      width: 150,
-    },
-    {
-      field: 'tblike',
-      label: t('表名'),
-      render: ({ data }: { data: PartitionModel }) => {
-        if (!data.tblike) {
-          return '--';
-        }
-        return <bk-tag>{data.tblike}</bk-tag>;
-      },
-      width: 150,
-    },
-    {
-      field: 'partition_columns',
-      label: t('分区字段'),
-      render: ({ data }: { data: PartitionModel }) => data.partition_columns || '--',
-    },
-    {
-      field: 'partition_column_type',
-      label: t('分区字段类型'),
-      render: ({ data }: { data: PartitionModel }) => data.partition_column_type || '--',
-    },
-    {
-      field: 'partition_time_interval',
-      label: t('分区间隔（天）'),
-      render: ({ data }: { data: PartitionModel }) => data.partition_time_interval || '--',
-    },
-    {
-      field: 'expire_time',
-      label: t('数据过期时间（天）'),
-      minWidth: 150,
-      render: ({ data }: { data: PartitionModel }) => data.expire_time || '--',
-    },
-    {
-      field: 'status',
-      label: t('最近一次执行状态'),
-      render: ({ data }: { data: PartitionModel }) => (
-        <div>
-          <db-icon
-            class={{ 'rotate-loading': data.isRunning }}
-            style='vertical-align: middle;'
-            svg
-            type={data.statusIcon}
-          />
-          <span class='ml-4'>{data.statusText}</span>
-        </div>
-      ),
-      width: 200,
-    },
-    {
-      field: 'execute_time',
-      label: t('最近一次执行时间'),
-      render: ({ data }: { data: PartitionModel }) => data.executeTimeDisplay || '--',
-      width: 240,
-    },
-    {
-      fixed: 'right',
-      label: t('操作'),
-      render: ({ data }: { data: PartitionModel }) => {
-        const renderAction = () => {
-          if (data.isRunning) {
-            return (
-              <router-link
-                target='_blank'
-                to={{
-                  name: 'bizTicketManage',
-                  params: {
-                    ticketId: data.ticket_id,
-                  },
-                }}>
-                {t('查看')}
-              </router-link>
-            );
-          }
-          if (!data.isOnline) {
-            return (
-              <auth-button
-                onClick={() => handleEnable(data)}
-                actionId='mysql_partition_enable_disable'
-                permission={data.permission.mysql_partition_enable_disable}
-                resource={data.cluster_id}
-                text
-                theme='primary'>
-                {t('启用')}
-              </auth-button>
-            );
-          }
-          return (
-            <auth-button
-              onClick={() => handleExecute(data)}
-              actionId='mysql_partition'
-              loading={executeLoadingMap.value[data.id]}
-              permission={data.permission.mysql_partition}
-              resource={data.cluster_id}
-              text
-              theme='primary'>
-              {t('执行')}
-            </auth-button>
-          );
-        };
-        return (
-          <>
-            {renderAction()}
-            <span
-              v-bk-tooltips={{
-                content: t('正在执行中，无法编辑'),
-                disabled: !data.isRunning,
-              }}
-              class='ml-8'>
-              <auth-button
-                onClick={() => handleEdit(data)}
-                actionId='mysql_partition_update'
-                disabled={data.isRunning}
-                permission={data.permission.mysql_partition_update}
-                resource={data.cluster_id}
-                text
-                theme='primary'>
-                {t('编辑')}
-              </auth-button>
-            </span>
-            <auth-button
-              onClick={() => handleShowExecuteLog(data)}
-              action-id='mysql_partition'
-              class='ml-8 mr-16'
-              permission={data.permission.mysql_partition}
-              resource={data.cluster_id}
-              text
-              theme='primary'>
-              {t('执行记录')}
-            </auth-button>
-            <more-action-extend>
-              {{
-                default: () => (
-                  <>
-                    {data.isOnline && (
-                      <div>
-                        <auth-button
-                          onClick={() => handleDisable(data)}
-                          action-id='mysql_partition_enable_disable'
-                          permission={data.permission.mysql_partition_enable_disable}
-                          resource={data.cluster_id}
-                          text>
-                          {t('禁用')}
-                        </auth-button>
-                      </div>
-                    )}
-                    <div>
-                      <auth-button
-                        onClick={() => handleClone(data)}
-                        action-id='mysql_partition_create'
-                        permission={data.permission.mysql_partition_create}
-                        text>
-                        {t('克隆')}
-                      </auth-button>
-                    </div>
-                    <div>
-                      <db-popconfirm
-                        confirm-handler={() => handleRemove(data)}
-                        content={t('删除操作无法撤回，请谨慎操作！')}
-                        title={t('确认删除该分区策略？')}>
-                        <div style='height: 100%'>
-                          <auth-button
-                            action-id='mysql_partition_delete'
-                            permission={data.permission.mysql_partition_delete}
-                            resource={data.cluster_id}
-                            text>
-                            {t('删除')}
-                          </auth-button>
-                        </div>
-                      </db-popconfirm>
-                    </div>
-                  </>
-                ),
-              }}
-            </more-action-extend>
-          </>
-        );
-      },
-      showOverflow: false,
-      width: 180,
-    },
-  ];
-
-  watch(searchValues, () => {
+  watch(searchValue, () => {
     tableRef.value!.clearSelected();
   });
 
@@ -360,16 +420,16 @@
     return classList.join(' ');
   };
 
+  const dataSource = () =>
+    getList(
+      Object.assign(searchValue.value, {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        cluster_type: ClusterTypes.TENDBHA,
+      }),
+    );
+
   const fetchData = () => {
-    const searchParams = getSearchSelectorParams(searchValues.value);
-    /**
-     * 多域名精确查询、单域名模糊查询，用domain_name字段
-     */
-    if (searchParams.immute_domains?.split(batchSplitRegex).length <= 1) {
-      searchParams.domain_name = searchParams.immute_domains;
-      delete searchParams.immute_domains;
-    }
-    tableRef.value?.fetchData(searchParams, {
+    tableRef.value?.fetchData(searchValue.value, {
       cluster_type: ClusterTypes.TENDBHA,
     });
   };
@@ -380,19 +440,238 @@
     isShowOperation.value = true;
   };
 
+  // 批量启用
+  const handleBatchEnable = () => {
+    operationData.value = undefined;
+    InfoBox({
+      cancelText: t('取消'),
+      confirmButtonTheme: 'primary',
+      confirmText: t('启用'),
+      content: () => {
+        const tableData = selectionList.value.map((id) => ({ id }));
+        return (
+          <>
+            <BkTable
+              border='outer'
+              data={tableData}>
+              <BkTableColumn
+                align='left'
+                field='id'
+                label={t('已选择以下 n 个策略', { n: selectionList.value.length })}
+                minWidth={100}
+              />
+            </BkTable>
+          </>
+        );
+      },
+      footerAlign: 'center',
+      headerAlign: 'center',
+      onConfirm: async () => {
+        const result = await enablePartition({
+          cluster_type: ClusterTypes.TENDBHA,
+          ids: selectionList.value,
+        });
+        if (result) {
+          fetchData();
+          messageSuccess(t('启用成功'));
+          return true;
+        }
+        return false;
+      },
+      title: t('确定启用 n 个策略？', { n: selectionList.value.length }),
+    });
+  };
+
+  // 批量禁用
+  const handleBatchDisable = () => {
+    operationData.value = undefined;
+    InfoBox({
+      cancelText: t('取消'),
+      confirmButtonTheme: 'danger',
+      confirmText: t('禁用'),
+      content: () => {
+        const tableData = selectionList.value.map((id) => ({ id }));
+        return (
+          <>
+            <div style='margin-bottom:16px;padding: 12px 16px;display: flex;background: #F5F7FA;'>
+              {t('停用后，策略将立即失效，请谨慎操作！')}
+            </div>
+            <BkTable
+              border='outer'
+              data={tableData}>
+              <BkTableColumn
+                align='left'
+                field='id'
+                label={t('已选择以下 n 个策略', { n: selectionList.value.length })}
+                minWidth={100}
+              />
+            </BkTable>
+          </>
+        );
+      },
+      footerAlign: 'center',
+      headerAlign: 'center',
+      onConfirm: async () => {
+        const result = await disablePartition({
+          cluster_type: ClusterTypes.TENDBHA,
+          ids: selectionList.value,
+        });
+        if (result) {
+          fetchData();
+          messageSuccess(t('禁用成功'));
+          return true;
+        }
+        return false;
+      },
+      title: t('确定禁用 n 个策略？', { n: selectionList.value.length }),
+    });
+  };
+
   // 批量删除
   const handleBatchRemove = () => {
     operationData.value = undefined;
-    return batchRemove({
-      cluster_type: ClusterTypes.TENDBHA,
-      ids: selectionList.value,
-    }).then(() => {
-      fetchData();
-      Object.values(selectionList.value).forEach((hostId) => {
-        tableRef.value.removeSelectByKey(hostId);
-      });
-      selectionList.value = [];
-      messageSuccess(t('移除成功'));
+    InfoBox({
+      cancelText: t('取消'),
+      confirmButtonTheme: 'danger',
+      confirmText: t('删除'),
+      content: () => {
+        const tableData = selectionList.value.map((id) => ({ id }));
+        return (
+          <>
+            <div style='margin-bottom:16px;padding: 12px 16px;display: flex;background: #F5F7FA;'>
+              {t('删除策略后无法恢复，请谨慎操作！')}
+            </div>
+            <BkTable
+              border='outer'
+              data={tableData}>
+              <BkTableColumn
+                align='left'
+                field='id'
+                label={t('已选择以下 n 个策略', { n: selectionList.value.length })}
+                minWidth={100}
+              />
+            </BkTable>
+          </>
+        );
+      },
+      footerAlign: 'center',
+      headerAlign: 'center',
+      onConfirm: async () => {
+        const result = await batchRemove({
+          cluster_type: ClusterTypes.TENDBHA,
+          ids: selectionList.value,
+        });
+        if (result) {
+          fetchData();
+          Object.values(selectionList.value).forEach((hostId) => {
+            tableRef.value.removeSelectByKey(hostId);
+          });
+          selectionList.value = [];
+          messageSuccess(t('删除成功'));
+          return true;
+        }
+        return false;
+      },
+      title: t('确定删除 n 个策略？', { n: selectionList.value.length }),
+    });
+  };
+
+  const handleBatchExecute = () => {
+    operationData.value = undefined;
+    InfoBox({
+      cancelText: t('取消'),
+      confirmButtonTheme: 'primary',
+      confirmText: t('执行'),
+      content: () => {
+        const tableData = selectionList.value.map((id) => ({ id }));
+        return (
+          <>
+            <BkTable
+              border='outer'
+              data={tableData}>
+              <BkTableColumn
+                align='left'
+                field='id'
+                label={t('已选择以下 n 个策略', { n: selectionList.value.length })}
+                minWidth={100}
+              />
+            </BkTable>
+          </>
+        );
+      },
+      footerAlign: 'center',
+      headerAlign: 'center',
+      onConfirm: async () => {
+        const tableData = tableRef.value?.getData() || [];
+        const selectionRows = tableData.filter((data: PartitionModel) => selectionList.value.includes(data.id));
+        const result = await execute({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          partition_infos: selectionRows.map((data: PartitionModel) => ({
+            cluster_id: data.cluster_id,
+            configs: [
+              {
+                config_id: data.id,
+                dblike: data.dblike,
+                expire_time: data.expire_time,
+                extra_partition: data.extra_partition,
+                partition_column: data.partition_column,
+                partition_column_type: data.partition_column_type,
+                partition_time_interval: data.partition_time_interval,
+                partition_type: data.partition_type,
+                phase: data.phase,
+                tblike: data.tblike,
+                time_zone: data.time_zone,
+              },
+            ],
+            force: false,
+          })),
+        });
+        if (result) {
+          fetchData();
+          messageSuccess(t('执行成功'));
+          return true;
+        }
+        return false;
+      },
+      title: t('确定执行 n 个策略？', { n: selectionList.value.length }),
+    });
+  };
+
+  const handleBatchExport = () => {
+    operationData.value = undefined;
+    InfoBox({
+      cancelText: t('取消'),
+      confirmButtonTheme: 'primary',
+      confirmText: t('导出'),
+      content: () => {
+        const tableData = selectionList.value.map((id) => ({ id }));
+        return (
+          <>
+            <BkTable
+              border='outer'
+              data={tableData}>
+              <BkTableColumn
+                align='left'
+                field='id'
+                label={t('已选择以下 n 个策略', { n: selectionList.value.length })}
+                minWidth={100}
+              />
+            </BkTable>
+          </>
+        );
+      },
+      footerAlign: 'center',
+      headerAlign: 'center',
+      onConfirm: async () => {
+        await exportPartitions({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_type: ClusterTypes.TENDBHA,
+          export_type: selectionList.value.length > 0 ? 'selected' : 'all',
+          selected_ids: selectionList.value,
+        });
+        return true;
+      },
+      title: t('确定导出 n 个策略？', { n: selectionList.value.length }),
     });
   };
 
@@ -407,7 +686,7 @@
 
   // 清空搜索
   const handleClearSearch = () => {
-    searchValues.value = [];
+    searchValue.value = {};
     fetchData();
   };
 
@@ -416,58 +695,50 @@
     executeLoadingMap.value[data.id] = true;
     operationData.value = data;
     try {
-      const dryRunResults = await dryRun({
-        cluster_id: data.cluster_id,
-        config_id: data.id,
-      });
-      const dryRunData = Object.keys(dryRunResults).reduce<DryRunData>(
-        (result, configId) =>
-          Object.assign(result, {
-            [configId]: _.filter(dryRunResults[Number(configId)], (item) => !item.message),
-          }),
-        {},
-      );
-      if (!dryRunData[data.id].length) {
-        const messageConfig = {
-          actions: [
-            {
-              disabled: true,
-              id: 'assistant',
-            },
-          ],
-          message: {
-            assistant: '',
-            code: '',
-            details: {
-              message: dryRunResults[data.id][0].message,
-            },
-            overview: t('目标分区异常'),
-            suggestion: '',
-            type: 'key-value',
+      const executeResult = await execute({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        partition_infos: [
+          {
+            cluster_id: data.cluster_id,
+            configs: [
+              {
+                config_id: data.id,
+                dblike: data.dblike,
+                expire_time: data.expire_time,
+                extra_partition: data.extra_partition,
+                partition_column: data.partition_column,
+                partition_column_type: data.partition_column_type,
+                partition_time_interval: data.partition_time_interval,
+                partition_type: data.partition_type,
+                phase: data.phase,
+                tblike: data.tblike,
+                time_zone: data.time_zone,
+              },
+            ],
+            force: false,
           },
-          theme: 'error',
-        };
-        Message(messageConfig);
-      } else {
-        const executeResult = await execute({
-          cluster_id: data.cluster_id,
-          partition_objects: dryRunData,
-        });
-        ticketMessage(executeResult[0].id);
-      }
+        ],
+      });
+      ticketMessage(executeResult[0].id);
     } finally {
       executeLoadingMap.value[data.id] = false;
     }
   };
+
   // 编辑
   const handleEdit = (payload: PartitionModel) => {
     isShowOperation.value = true;
     operationData.value = payload;
   };
-  // 执行记录
-  const handleShowExecuteLog = (payload: PartitionModel) => {
-    isShowExecuteLog.value = true;
-    operationData.value = payload;
+
+  // 导入策略
+  const handleShowExcelImport = () => {
+    isShowExcelImport.value = true;
+  };
+
+  // Excel 导入成功
+  const handleExcelImportSuccess = () => {
+    fetchData();
   };
 
   // 编辑成功
@@ -515,11 +786,31 @@
       fetchData();
       messageSuccess(t('移除成功'));
     });
+
+  const handleShowFailLog = (payload: PartitionModel) => {
+    operationData.value = payload;
+    isShowFailLog.value = true;
+  };
+
+  onMounted(() => {
+    fetchData();
+  });
 </script>
 <style lang="less">
   .spider-manage-paritition-page {
     .header-action {
       display: flex;
+    }
+
+    .batch-operation {
+      .batch-operation-icon {
+        transform: rotate(0);
+        transition: all 0.2s;
+      }
+
+      .batch-operation-icon-active {
+        transform: rotate(180deg);
+      }
     }
 
     .more-action {
@@ -541,6 +832,37 @@
       .id-container {
         display: flex;
         align-items: center;
+      }
+    }
+
+    .sub-title {
+      position: relative;
+      display: flex;
+      height: 22px;
+      padding-left: 9px;
+      margin-left: 16px;
+      font-family: MicrosoftYaHei, sans-serif;
+      font-size: 14px;
+      line-height: 22px;
+      letter-spacing: 0;
+      color: #979ba5;
+
+      &::before {
+        position: absolute;
+        top: 4px;
+        left: 0;
+        width: 1px;
+        height: 14px;
+        background-color: #979ba580;
+        content: '';
+      }
+
+      .sub-title-label {
+        margin-right: 8px;
+      }
+
+      .sub-title-value {
+        margin-right: 20px;
       }
     }
   }
