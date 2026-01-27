@@ -571,4 +571,15 @@ def redis_rebalance_slots_4_expansion(root_id: str, flow_data: dict, act_kwargs:
         kwargs=asdict(record_kwargs),
     )
 
+    from backend.flow.plugins.components.collections.redis.redis_update_version import RedisUpdateVersionComponent
+
+    act_kwargs.cluster["update_all"] = True
+    act_kwargs.cluster["cluster_id"] = cluster_info["cluster_id"]
+    act_kwargs.cluster["bk_biz_id"] = act_kwargs.cluster["bk_biz_id"]
+    sub_pipeline.add_act(
+        act_name=_("{}-更新版本").format(act_kwargs.cluster["immute_domain"]),
+        act_component_code=RedisUpdateVersionComponent.code,
+        kwargs=asdict(act_kwargs),
+    )
+
     return sub_pipeline.build_sub_process(sub_name=_("迁移slots扩容{}".format(predixy_kwargs.cluster["immute_domain"])))
