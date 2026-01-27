@@ -14,6 +14,7 @@ from django.utils.translation import gettext as _
 
 from backend import env
 from backend.components import BKMonitorV3Api
+from backend.db_monitor.constants import AlertLevelEnum, AlertStatusEnum
 
 
 class QueryMonitorAlarm(object):
@@ -27,13 +28,19 @@ class QueryMonitorAlarm(object):
         感觉蓝鲸监控返回的告警条数，在做二次过滤，过滤出某个时间范围中，生成的告警记录
         因为search_alert返回告警条目的时候，只要某类告警记录，它的未恢复的时间区间，和你传入的时间区间有交集，则也会返回过来
         但往往我们可能需要这个时间区间所产生的告警记录，所以设计这个方法，根据每条记录的 create_time, 做二次过滤
+        同时这里还要过滤掉，处理阶段为“已屏蔽”的告警记录，因为通过接口过滤比较困难，所有把这块逻辑移到这里。
         @param alerts: 蓝鲸监控返回的告警记录列表
         @param start_time: 起始时间点
         @param end_time: 截止时间点
         """
         filter_alerts = []
         for alert in alerts:
-            if int(start_time.timestamp()) <= alert["create_time"] <= int(end_time.timestamp()):
+            if (
+                int(start_time.timestamp()) <= alert["create_time"] <= int(end_time.timestamp())
+                and not alert["is_shielded"]
+            ):
+                # 精准匹配到过滤时间
+                # 同时处理阶段不属于“已屏蔽”
                 filter_alerts.append(alert)
         return filter_alerts
 
@@ -52,13 +59,15 @@ class QueryMonitorAlarm(object):
             "start_time": int(start_time.timestamp()),
             "end_time": int(end_time.timestamp()),
             "page": 1,
-            "page_size": 2,
+            "page_size": 10,
             "status": ["ABNORMAL"],
             "show_aggs": False,
             "show_overview": False,
             "query_string": "",
         }
         # 通用查询条件拼接 querystring
+        # 过滤出对应的业务ID
+        # 过滤出对应的集群域名的告警记录
         conditions = [
             f'tags.appid:"{bk_biz_id}"',
             " OR ".join([f'tags.cluster_domain:"{c}"' for c in cluster_domains]),
@@ -87,9 +96,10 @@ class QueryMonitorAlarm(object):
         # 查询出来的结果
         return [
             {
-                "alarm_id": alart["id"],
+                "alert_id": alart["id"],
                 "alert_name": alart["alert_name"],
-                "alert_status": alart["status"],
+                "alert_status": AlertStatusEnum.get_choice_label(alart["status"]),
+                "alert_severity": AlertLevelEnum.get_choice_label(int(alart["severity"])),
                 "alert_create_time": int(alart["create_time"]),
                 "tags": alart["tags"],
             }

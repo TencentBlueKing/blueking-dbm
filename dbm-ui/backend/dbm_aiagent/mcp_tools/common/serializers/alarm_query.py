@@ -11,6 +11,8 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_monitor.constants import AlertLevelEnum, AlertStatusEnum
+
 
 class AlertTagsSerializer(serializers.Serializer):
     key = serializers.CharField(help_text=_("标签名称"))
@@ -18,9 +20,10 @@ class AlertTagsSerializer(serializers.Serializer):
 
 
 class AlertInfoSerializer(serializers.Serializer):
-    alarm_id = serializers.CharField(help_text=_("告警记录Id"))
+    alert_id = serializers.CharField(help_text=_("告警记录Id"))
     alert_name = serializers.CharField(help_text=_("告警记录名称"))
-    alert_status = serializers.CharField(help_text=_("告警记录状态"))
+    alert_status = serializers.ChoiceField(help_text=_("告警记录状态"), choices=AlertStatusEnum.get_choices())
+    alert_severity = serializers.ChoiceField(help_text=_("告警级别"), choices=AlertLevelEnum.get_choices())
     alert_create_time = serializers.IntegerField(help_text=_("告警记录创建时间戳"))
     tags = serializers.ListField(child=AlertTagsSerializer(), help_text=_("告警记录的标签信息"))
 
