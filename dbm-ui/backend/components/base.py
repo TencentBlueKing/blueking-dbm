@@ -30,7 +30,7 @@ from backend.components.constants import CLIENT_CRT_PATH, SSL_KEY, SSLEnum
 from backend.components.domains import ESB_PREFIX
 from backend.components.exception import DataAPIException
 from backend.configuration.models.system import SystemSettings
-from backend.exceptions import ApiError, ApiRequestError, ApiResultError, AppBaseException
+from backend.exceptions import ApiError, ApiRequestError, ApiResultError, AppBaseException, ValidationError
 from backend.utils.local import local
 
 logger = logging.getLogger("root")
@@ -413,6 +413,34 @@ class DataAPI(object):
         """
         cache.set(cache_key, data, self.cache_time)
 
+    def _get_cached_admin_username(self):
+        """
+        获取缓存的租户管理员用户名
+        """
+        login_name = "bk_admin"
+        cache_key = f"dbm:tenant_admin_username:{env.BK_TENANT_ID}:{login_name}"
+        bk_username = cache.get(cache_key, "")
+        if not bk_username:
+            try:
+                from backend.components.usermanage.client import UserManagerApi
+
+                params = {"lookup_field": "login_name", "lookups": login_name, "bk_username": "bk_admin"}
+                data = UserManagerApi.lookup_admin_user(params, use_admin=False, use_param_user=True)
+                if isinstance(data, list) and data:
+                    bk_username = data[0].get("bk_username") or data[0].get("username")
+                elif isinstance(data, dict) and data:
+                    bk_username = data.get("bk_username") or data.get("username")
+                if bk_username:
+                    cache.set(cache_key, bk_username, 60 * 60 * 24)
+                else:
+                    raise ValidationError(_("获取租户管理员账号失败: 未能从响应中获取用户名"))
+            except Exception as e:
+                error_msg = _("获取租户管理员账号失败: {error}").format(error=str(e))
+                logger.error(error_msg)
+                raise ValidationError(error_msg)
+
+        return bk_username
+
     def _set_session_headers(self, session, local_request, headers: Dict, params: Dict, use_admin: bool = False):
         """
         设置session的headers
@@ -437,10 +465,10 @@ class DataAPI(object):
         }
         if use_admin:
             # 使用管理员/平台身份调用接口
-            bkapi_auth_headers["bk_username"] = env.DEFAULT_USERNAME
+            bkapi_auth_headers["bk_username"] = self._get_cached_admin_username()
         elif self.is_backend_request(local_request) and not self.use_param_user:
             # 后台调用(且不明确用户)，使用管理员/平台身份调用接口
-            bkapi_auth_headers["bk_username"] = env.DEFAULT_USERNAME
+            bkapi_auth_headers["bk_username"] = self._get_cached_admin_username()
         elif local_request and local_request.COOKIES:
             # 根据不同环境，传递认证信息
             bkapi_auth_headers["bk_username"] = local_request.user.username

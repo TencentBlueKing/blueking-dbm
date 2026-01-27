@@ -31,6 +31,11 @@ class _UserManageApi(BaseApi):
             url="retrieve_user/",
             description=_("获取单个用户"),
         )
+        self.lookup_admin_user = self.generate_data_api(
+            method="GET",
+            url="api/v3/open/tenant/virtual-users/-/lookup/",
+            description=_("获取租户的管理员用户"),
+        )
 
 
 UserManagerApi = _UserManageApi()
