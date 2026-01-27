@@ -66,12 +66,14 @@ class McpToolsViewSet(viewsets.SystemViewSet, metaclass=McpToolsViewSetMeta):
     # 这样 generate_resources_yaml 命令可以正确识别并使用 drf-spectacular 生成 schema
     schema_class = AutoSchema
 
-    # MCP 工具需要同时开启用户认证和应用认证，默认为True
-    # 这里user_verified_required 和 app_verified_required 比如和视图函数一致
-    # 如果确实无需某个认证，则类定义和 mcp_tools_api_decorator 都要改写为False
-    # TODO: 考虑 mcp 也有后台调用，暂时都已应用态接口开放
-    user_verified_required = False
-    app_verified_required = True
+    def get_permissions(self):
+        """
+        MCP 工具接口的权限校验交由装饰器处理，禁用默认的 viewset 鉴权逻辑
+        """
+        view_method = getattr(self, self.action, None)
+        if view_method and getattr(view_method, "is_mcp_tool", False):
+            return []
+        return super().get_permissions()
 
     def get_param(self, pname, default_value: Any | None = None) -> Any:
         return self.params_validate(self.get_serializer_class()).get(pname, default_value)

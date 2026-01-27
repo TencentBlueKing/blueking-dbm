@@ -280,13 +280,6 @@ class DBManagePermission(ResourceActionPermission):
 
     def has_permission(self, request, view):
         return super().has_permission(request, view)
-        # try:
-        #     return super().has_permission(request, view)
-        # except PermissionDeniedError:
-        #     username = Permission(request=request).username
-        #     bk_biz_id = self.instance_biz_id_getter(request, view)
-        #     logger.error(f"api: {request.path}, bk_biz_id: {bk_biz_id}, user: {username} has no db-manage, ")
-        #     return True
 
 
 class BizOrGlobalResourceActionPermission(ResourceActionPermission):

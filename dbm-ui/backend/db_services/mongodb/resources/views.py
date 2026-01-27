@@ -119,7 +119,7 @@ class MongoDBViewSet(ResourceViewSet):
         operation_summary=_("获取实例的角色类型"),
         tags=[constants.RESOURCE_TAG],
     )
-    @action(methods=["GET"], detail=False)
+    @action(methods=["GET"], detail=False, serializer_class=None)
     def get_instance_role(self, request, *args, **kwargs):
         storage_role_types = MachineTypeInstanceRoleMap[MachineType.MONGODB]
         proxy_role_types = [AccessLayer.PROXY]
