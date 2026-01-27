@@ -122,7 +122,7 @@ func (inst *InstanceOp) DoStop() error {
 		} else if pid == 0 {
 			return nil
 		} else if pid > 0 {
-			inst.logger.Info("kill pid " + strconv.Itoa(pid))
+			inst.logger.Info("kill pid %d", pid)
 			err = syscall.Kill(pid, 2)
 			if err != nil {
 				return errors.Wrap(err, "kill pid "+strconv.Itoa(pid))
@@ -295,6 +295,44 @@ func (inst *InstanceOp) GrantRolesToUser(user string, roles []string) error {
 // DoFlushRouterConfig TODO
 func (inst *InstanceOp) DoFlushRouterConfig() error {
 	return inst.ExecJs("db.adminCommand({flushRouterConfig: 1});", 300)
+}
+
+// DoServiceStatusCheck 检查服务状态是否正常.
+// 如果是mongos，则检查是否有admin, config, local三个库.
+// 如果是mongod，则检查是否为PRIMARY或者SECONDARY.
+func (inst *InstanceOp) DoServiceStatusCheck(logger *logger.Logger) error {
+	client, err := inst.ConnectDirect()
+	if err != nil {
+		return errors.Wrap(err, "ConnectDirect")
+	}
+	defer client.Disconnect(context.TODO())
+	// determine instance type
+	isMasterResult, err := mymongo.IsMaster(client, 120)
+	if err != nil {
+		return errors.Wrap(err, "IsMaster")
+	}
+	isMongos := isMasterResult.Msg == "isdbgrid"
+	logger.Info("%s isMongos: %t", inst.Addr(), isMongos)
+
+	if isMongos {
+		dbList, err := client.ListDatabaseNames(context.TODO(), bson.M{})
+		if err != nil {
+			return errors.Wrap(err, "ListDatabaseNames")
+		}
+		if !slices.Contains(dbList, "admin") || !slices.Contains(dbList, "config") {
+			return errors.New("not found admin, config, local database")
+		}
+		logger.Info("%s found admin, config database, seems ok", inst.Addr())
+		return nil
+	} else {
+		if isMasterResult.Primary == "" {
+			return errors.New("no primary found")
+		} else if !isMasterResult.Secondary && !isMasterResult.IsMaster { // primary or secondary is ok
+			return nil
+		} else {
+			return errors.New("is not primary or secondary")
+		}
+	}
 }
 
 func checkPortInUse(port int) (bool, error) {
